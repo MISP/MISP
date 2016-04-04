@@ -59,15 +59,17 @@ class ComplexTypeTool {
 	}
 	
 	public function checkFreeText($input) {
-		$iocArray = preg_split("/\r\n|\n|\r/", $input);
+		$iocArray = preg_split("/\r\n|\n|\r|\s|\s+|,|;/", $input);
 		$resultArray = array();
 		foreach ($iocArray as $ioc) {
 			$ioc = trim($ioc);
+			$ioc = trim($ioc, ',');
 			$ioc = preg_replace('/\p{C}+/u', '', $ioc);
 			if (empty($ioc)) continue;
 			$typeArray = $this->__resolveType($ioc);
+			if ($typeArray === false) continue;
 			$temp = $typeArray;
-			$temp['value'] = $ioc;
+			if (!isset($temp['value'])) $temp['value'] = $ioc;
 			$resultArray[] = $temp;
 		}
 		return $resultArray;
@@ -78,54 +80,67 @@ class ComplexTypeTool {
 		$input = trim($input);
 		$input = strtolower($input);
 		
+		if (strpos($input, '|')) {
+			$compositeParts = explode('|', $input);
+			if (count($compositeParts) == 2) {
+				if ($this->__resolveFilename($compositeParts[0])) {
+					if (strlen($compositeParts[1]) == 32 && preg_match("#[0-9a-f]{32}$#", $compositeParts[1])) return array('types' => array('filename|md5'), 'to_ids' => true, 'default_type' => 'filename|md5');
+					if (strlen($compositeParts[1]) == 40 && preg_match("#[0-9a-f]{40}$#", $compositeParts[1])) return array('types' => array('filename|sha1'), 'to_ids' => true, 'default_type' => 'filename|sha1');
+					if (strlen($compositeParts[1]) == 64 && preg_match("#[0-9a-f]{64}$#", $compositeParts[1])) return array('types' => array('filename|sha256'), 'to_ids' => true, 'default_type' => 'filename|sha256');
+				}
+			}
+		}
+		
 		// check for hashes
 		if (strlen($input) == 32 && preg_match("#[0-9a-f]{32}$#", $input)) return array('types' => array('md5'), 'to_ids' => true, 'default_type' => 'md5');
 		if (strlen($input) == 40 && preg_match("#[0-9a-f]{40}$#", $input)) return array('types' => array('sha1'), 'to_ids' => true, 'default_type' => 'sha1');
 		if (strlen($input) == 64 && preg_match("#[0-9a-f]{64}$#", $input)) return array('types' => array('sha256'), 'to_ids' => true, 'default_type' => 'sha256');
 		
+		$inputRefanged = preg_replace('/^hxxp/i', 'http', $input);
+		$inputRefanged = preg_replace('/\[\.\]/', '.' , $inputRefanged);
+		// note down and remove the port if it's a url / domain name / hostname / ip
+		// input2 from here on is the variable containing the original input with the port removed. It is only used by url / domain name / hostname / ip
+		$comment = false;
+		if (preg_match('/(:[0-9]{2,5})$/', $inputRefanged, $port)) {
+			$comment = 'On port ' . substr($port[0], 1);
+			$inputRefangedNoPort = str_replace($port[0], '', $inputRefanged);
+		} else $inputRefangedNoPort = $inputRefanged;		
 		// check for IP
-		if (filter_var($input, FILTER_VALIDATE_IP)) return array('types' => array('ip-dst', 'ip-src'), 'to_ids' => true, 'default_type' => 'ip-dst');
-		if (strpos($input, '/')) {
-			$temp = explode('/', $input);
+		if (filter_var($inputRefangedNoPort, FILTER_VALIDATE_IP)) return array('types' => array('ip-dst', 'ip-src', 'ip-src/ip-dst'), 'to_ids' => true, 'default_type' => 'ip-dst', 'comment' => $comment, 'value' => $inputRefangedNoPort);
+		if (strpos($inputRefangedNoPort, '/')) {
+			$temp = explode('/', $inputRefangedNoPort);
 			if (count($temp == 2)) {
-				if (filter_var($temp[0], FILTER_VALIDATE_IP)) return array('types' => array('ip-dst', 'ip-src'), 'to_ids' => true, 'default_type' => 'ip-dst');
+				if (filter_var($temp[0], FILTER_VALIDATE_IP) && is_numeric($temp[1])) return array('types' => array('ip-dst', 'ip-src', 'ip-src/ip-dst'), 'to_ids' => true, 'default_type' => 'ip-dst', 'comment' => $comment, 'value' => $inputRefangedNoPort);
 			}
 		}
 		
 		
 		// check for domain name, hostname, filename
-		if (strpos($input, '.') !== false) {
-			$extra = '';
-			$temp = explode('.', $input);
-			if (strpos($temp[0], ':')) {
-				$extra = '([a-z0-9]+):\/\/';
-			}
-			
-			// check if it is a URL
-			if (filter_var($input, FILTER_VALIDATE_URL)) {
-				return array('types' => array('url'), 'to_ids' => true, 'default_type' => 'url');
-			}
-			
+		if (strpos($inputRefanged, '.') !== false) {
+			$temp = explode('.', $inputRefanged);
+	
 			//if (filter_var($input, FILTER_VALIDATE_URL)) {
-			if (preg_match('/^([-\pL\pN]+\.)+([a-z][a-z]|biz|cat|com|edu|gov|int|mil|net|org|pro|tel|aero|arpa|asia|coop|info|jobs|mobi|name|museum|travel)$/u', $input)) {
+			if (preg_match('/^([-\pL\pN]+\.)+([a-z][a-z]|biz|cat|com|edu|gov|int|mil|net|org|pro|tel|aero|arpa|asia|coop|info|jobs|mobi|name|museum|travel)(:[0-9]{2,5})?$/u', $inputRefanged)) {
 				if (count($temp) > 2) {
-					return array('types' => array('hostname', 'domain'), 'to_ids' => true, 'default_type' => 'hostname');
+					return array('types' => array('hostname', 'domain', 'url'), 'to_ids' => true, 'default_type' => 'hostname', 'comment' => $comment, 'value' => $inputRefangedNoPort);
 				} else {
-					return array('types' => array('domain'), 'to_ids' => true, 'default_type' => 'domain');
+					return array('types' => array('domain'), 'to_ids' => true, 'default_type' => 'domain', 'comment' => $comment, 'value' => $inputRefangedNoPort);
 				}
 			} else {
-				if (!preg_match('/[?:<>|\\*:\/@]/', $input)) {
-					return array('types' => array('filename'), 'to_ids' => true, 'default_type' => 'filename');
+				// check if it is a URL
+				// Adding http:// infront of the input in case it was left off. github.com/MISP/MISP should still be counted as a valid link
+				if (count($temp) > 1 && (filter_var($inputRefangedNoPort, FILTER_VALIDATE_URL) || filter_var('http://' . $inputRefangedNoPort, FILTER_VALIDATE_URL))) {
+					if (preg_match('/^https:\/\/www.virustotal.com\//i', $inputRefangedNoPort)) return array('types' => array('link'), 'to_ids' => true, 'default_type' => 'link', 'comment' => $comment, 'value' => $inputRefangedNoPort);
+					return array('types' => array('url'), 'to_ids' => true, 'default_type' => 'url', 'comment' => $comment, 'value' => $inputRefangedNoPort);
 				}
-			}	
+				if ($this->__resolveFilename($input)) return array('types' => array('filename'), 'to_ids' => true, 'default_type' => 'filename');
+			}
 		}
 		
 		if (strpos($input, '\\') !== false) {
 			$temp = explode('\\', $input);
 			if (strpos($temp[count($temp)-1], '.')) {
-				if (!preg_match('/[?:<>|\\*:\/]/', $temp[count($temp)-1])) {
-					return array('types' => array('filename'), 'category' => 'Payload installation', 'to_ids' => false, 'default_type' => 'filename');
-				}
+				if ($this->__resolveFilename($temp[count($temp)-1])) return array('types' => array('filename'), 'category' => 'Payload installation', 'to_ids' => false, 'default_type' => 'filename');
 			} else {
 				return array('types' => array('regkey'), 'to_ids' => false, 'default_type' => 'regkey');
 			}
@@ -138,6 +153,17 @@ class ComplexTypeTool {
 		// check for CVE
 		if (preg_match("#^cve-[0-9]{4}-[0-9]{4,9}$#i", $input)) return array('types' => array('vulnerability'), 'category' => 'External analysis', 'to_ids' => false, 'default_type' => 'vulnerability');
 		
-		return array('types' => array('text'), 'category' => 'Other', 'to_ids' => false, 'default_type' => 'text');
+		return false;
+	}
+	
+	private function __resolveFilename($input) {
+		if (
+			strpos($input, '.') != 0 &&
+			strpos($input, '..') == 0 &&
+			strpos($input, '.') != (strlen($input)-1) &&
+			preg_match('/(.*)\.[^(\|\<\>\^\=\?\/\[\]\"\;\*)]*$/', $input) &&
+			!preg_match('/[?:<>|\\*:\/@]/', $input)
+		) return true;
+		return false;
 	}
 }

@@ -1,11 +1,10 @@
 /* bootstrap changes */
 body{
-	font-family: "RobotoLight", Arial, sans-serif, "Helvetica Neue", Helvetica;
 	font-size: 12px;
 }
 
 input, button, select, textarea{
-	font-family: "RobotoLight"
+
 }
 
 button .full-width{
@@ -242,6 +241,11 @@ td.shortish {
 	text-align: left;
 }
 
+td.limitedWidth {
+	max-width:400px;
+	word-wrap:break-word;
+}
+
 td.bitwider {
 	width:20%;
 	text-align: left;
@@ -436,6 +440,11 @@ dd {
 	-webkit-animation-name: bluePulse;
 	-webkit-animation-duration: 10s;
 	-webkit-animation-iteration-count: infinite;
+}
+
+.logoBlueStatic {
+	color: #0088cc; 
+	text-shadow: #0099E6 0 0 3px;
 }
 
 @-webkit-keyframes bluePulse {
@@ -892,15 +901,14 @@ a.proposal_link_red:hover {
 
 .tabMenu {
 	position:absolute;
-	top:-21px;
-	height:20px;
+	top:-23px;
 	padding-left:10px;
 	padding-right:10px;
 	-webkit-border-radius: 4px 4px 0 0;
 	-moz-border-radius: 4px 4px 0 0;
 	border-radius: 4px 4px 0 0;
 	border: 1px solid #ddd;
-	border-bottom-color: transparent;
+	border-bottom: 0px !important;
 	background-color: #f9f9f9;
 	border-collapse: separate !important;
 }
@@ -908,15 +916,17 @@ a.proposal_link_red:hover {
 .tabMenuFixedContainer {
 	position:relative;
 	left:10px;
-	bottom:-1px;
+	height:20px;
+	width:calc(100% - 10px);
+	bottom:0px;
 }
 
 .tabMenuFixed {
-	border-bottom:1px solid #f5f5f5;
 	position:relative;
 	padding-top:3px;
 	padding-bottom:3px;
 	border-left: 1px solid #ddd;
+	border-bottom: 1px solid #fff;
 	padding-left:5px;
 	padding-right:5px;
 }
@@ -927,6 +937,55 @@ a.proposal_link_red:hover {
 
 .tabMenuSides {
 	border-top: 1px solid #ddd;
+}
+
+.tabMenuFilterFieldHeader {
+	border-radius: 10px 0px 0 0 !important;
+	height:14px !important;
+	width:30px;
+	margin:0px !important;
+	margin-bottom:1px !important;
+	padding:3px !important;
+	padding-left:10px !important;
+	border: 1px solid #ddd !important;
+	border-bottom:0px !important;
+	line-height:14px !important;
+	margin-right:0px !important;
+	margin-bottom:1px !important;
+	float:right;
+}
+
+.tabMenuFilterField {
+	border-radius: 10px 0 0 0 !important;
+	height:20px !important;
+	margin:0px !important;
+	margin-bottom:1px !important;
+	padding:0px !important;
+	padding-left:10px !important;
+	border-top: 1px solid #ddd !important;
+	border-left: 1px solid #ddd !important;
+	border-right:0px !important;
+	border-bottom:0px !important;
+	float:right;
+}
+
+.tabMenuFilterFieldButton {
+	border-radius: 0px 10px 0 0 !important;
+	background-color:#f9f9f9;
+	height:20px !important;
+	width:34px;
+	padding-left:3px;
+	margin:0px !important;
+	margin-bottom:1px !important;
+	border: 1px solid #ddd !important;
+	border-bottom:0px !important;
+	margin-right:200px !important;
+	margin-bottom:0px !important;
+	float:right;
+}
+
+.tabMenuFilterFieldButton:hover {
+	background-color:#cfefff;
 }
 
 .tabMenuFixedLeft {
@@ -1292,6 +1351,10 @@ a.proposal_link_red:hover {
 
 .green {
 	color: green;
+}
+
+.orange {
+	color: orange;
 }
 
 .bold {

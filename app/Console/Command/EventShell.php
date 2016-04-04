@@ -5,8 +5,8 @@ App::uses('File', 'Utility');
 require_once 'AppShell.php';
 class EventShell extends AppShell
 {
-	public $uses = array('Event', 'Attribute', 'Job', 'User', 'Task', 'Whitelist');
-	
+	public $uses = array('Event', 'Post', 'Attribute', 'Job', 'User', 'Task', 'Whitelist', 'Server');
+
 	public function doPublish() {
 		$id = $this->args[0];
 		$this->Event->id = $id;
@@ -45,14 +45,14 @@ class EventShell extends AppShell
 		$eventIds = $this->Event->fetchEventIds($org, $isSiteAdmin);
 		$result = array();
 		$eventCount = count($eventIds);
-		$dir = new Folder(APP . DS . '/tmp/cached_exports/xml');
+		$dir = new Folder(APP . 'tmp/cached_exports/xml');
 		if ($isSiteAdmin) {
 			$file = new File($dir->pwd() . DS . 'misp.xml' . '.ADMIN.xml');
 		} else {
 			$file = new File($dir->pwd() . DS . 'misp.xml' . '.' . $org . '.xml');
 		}
-		$toEscape = array("&", "<");
-		$escapeWith = array('&amp;', '&lt;');
+		$toEscape = array("&", "<", ">", "\"", "'");
+		$escapeWith = array('&amp;', '&lt;', '&gt;', '&quot;', '&apos;');
 		$file->write('<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL . '<response>');
 		foreach ($eventIds as $k => $eventId) {
 			$temp = $this->Event->fetchEvent($eventId['Event']['id'], null, $org, $isSiteAdmin, $this->Job->id);
@@ -60,6 +60,8 @@ class EventShell extends AppShell
 			$result['Event']['Attribute'] = $result['Attribute'];
 			$result['Event']['ShadowAttribute'] = $result['ShadowAttribute'];
 			$result['Event']['RelatedEvent'] = $result['RelatedEvent'];
+			$result['Event']['info'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $result['Event']['info']);
+			$result['Event']['info'] = str_replace($toEscape, $escapeWith, $result['Event']['info']);
 			
 			//
 			// cleanup the array from things we do not want to expose
@@ -79,10 +81,23 @@ class EventShell extends AppShell
 					$result['Event']['Attribute'][$key]['data'] = $encodedFile;
 				}
 				$result['Event']['Attribute'][$key]['value'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $result['Event']['Attribute'][$key]['value']);
+				$result['Event']['Attribute'][$key]['comment'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $result['Event']['Attribute'][$key]['comment']);
 				unset($result['Event']['Attribute'][$key]['value1']);
 				unset($result['Event']['Attribute'][$key]['value2']);
 				unset($result['Event']['Attribute'][$key]['category_order']);
 				$result['Event']['Attribute'][$key]['value'] = str_replace($toEscape, $escapeWith, $result['Event']['Attribute'][$key]['value']);
+				$result['Event']['Attribute'][$key]['comment'] = str_replace($toEscape, $escapeWith, $result['Event']['Attribute'][$key]['comment']);
+
+				foreach($result['Event']['Attribute'][$key]['ShadowAttribute'] as $skey => $svalue) {
+					if (Configure::read('MISP.cached_attachments') && $this->Event->ShadowAttribute->typeIsAttachment($result['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['type'])) {
+						$encodedFile = $this->Event->ShadowAttribute->base64EncodeAttachment($result['Event']['Attribute'][$key]['ShadowAttribute'][$skey]);
+						$result['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['data'] = $encodedFile;
+					}
+					$result['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['value'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $result['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['value']);
+					$result['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['value'] = str_replace($toEscape, $escapeWith, $result['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['value']);
+					$result['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['comment'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $result['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['comment']);
+					$result['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['comment'] = str_replace($toEscape, $escapeWith, $result['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['comment']);
+				}
 			}
 			// remove invalid utf8 characters for the xml parser
 			foreach($result['Event']['ShadowAttribute'] as $key => $value) {
@@ -92,6 +107,8 @@ class EventShell extends AppShell
 				}
 				$result['Event']['ShadowAttribute'][$key]['value'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $result['Event']['ShadowAttribute'][$key]['value']);
 				$result['Event']['ShadowAttribute'][$key]['value'] = str_replace($toEscape, $escapeWith, $result['Event']['ShadowAttribute'][$key]['value']);
+				$result['Event']['ShadowAttribute'][$key]['comment'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $result['Event']['ShadowAttribute'][$key]['comment']);
+				$result['Event']['ShadowAttribute'][$key]['comment'] = str_replace($toEscape, $escapeWith, $result['Event']['ShadowAttribute'][$key]['comment']);
 			}
 			
 			if (isset($result['Event']['RelatedEvent'])) {
@@ -100,6 +117,8 @@ class EventShell extends AppShell
 					unset($result['Event']['RelatedEvent'][$key]['Event']);
 					$result['Event']['RelatedEvent'][$key]['Event'][0] = $temp;
 					unset($result['Event']['RelatedEvent'][$key]['Event'][0]['user_id']);
+					$result['Event']['RelatedEvent'][$key]['Event'][0]['info'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $result['Event']['RelatedEvent'][$key]['Event'][0]['info']);
+					$result['Event']['RelatedEvent'][$key]['Event'][0]['info'] = str_replace($toEscape, $escapeWith, $result['Event']['RelatedEvent'][$key]['Event'][0]['info']);
 					if ('true' != Configure::read('MISP.showorg') && !$isAdmin) {
 						unset($result['Event']['RelatedEvent'][$key]['Event'][0]['org']);
 						unset($result['Event']['RelatedEvent'][$key]['Event'][0]['orgc']);
@@ -162,6 +181,35 @@ class EventShell extends AppShell
 		$this->Job->saveField('progress', '100');
 	}
 	
+	public function cacherpz() {
+		$org = $this->args[0];
+		$isSiteAdmin = $this->args[1];
+		$id = $this->args[2];
+		$this->Job->id = $id;
+		$extra = $this->args[3];
+		$this->Job->saveField('progress', 1);
+		$values = $this->Attribute->rpz($org, $isSiteAdmin);
+		$this->Job->saveField('progress', 80);
+		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $extra);
+		if ($isSiteAdmin) {
+			$file = new File($dir->pwd() . DS . 'misp.rpz.ADMIN.txt');
+		} else {
+			$file = new File($dir->pwd() . DS . 'misp.rpz.' . $org . '.txt');
+		}
+		App::uses('RPZExport', 'Export');
+		$rpzExport = new RPZExport();
+		$rpzSettings = array();
+		$lookupData = array('policy', 'walled_garden', 'ns', 'email', 'serial', 'refresh', 'retry', 'expiry', 'minimum_ttl', 'ttl');
+		foreach ($lookupData as $v) {
+			$tempSetting = Configure::read('Plugin.RPZ_' . $v);
+			if (isset($tempSetting)) $rpzSettings[$v] = Configure::read('Plugin.RPZ_' . $v);
+			else $rpzSettings[$v] = $this->Server->serverSettings['Plugin']['RPZ_' . $v]['value'];
+		}
+		$file->write($rpzExport->export($values, $rpzSettings));
+		$file->close();
+		$this->Job->saveField('progress', '100');
+	}
+	
 	public function cachecsv() {
 		$org = $this->args[0];
 		$isSiteAdmin = $this->args[1];
@@ -173,19 +221,21 @@ class EventShell extends AppShell
 		$eventIds = $this->Event->fetchEventIds($org, $isSiteAdmin);
 		$eventCount = count($eventIds);
 		$attributes = array();
-		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $extra);
+		$dir = new Folder(APP . 'tmp/cached_exports/' . $extra);
 		if ($isSiteAdmin) {
 			$file = new File($dir->pwd() . DS . 'misp.' . $extra . '.ADMIN.csv');
 		} else {
 			$file = new File($dir->pwd() . DS . 'misp.' . $extra . '.' . $org . '.csv');
 		}
-		$file->write('uuid,event_id,category,type,value,to_ids,date');
+		$file->write('uuid,event_id,category,type,value,to_ids,date' . PHP_EOL);
 		foreach ($eventIds as $k => $eventId) {
+			$chunk = "";
 			$attributes = $this->Event->csv($org, $isSiteAdmin, $eventId['Event']['id'], $ignore);
 			$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
 			foreach ($attributes as $attribute) {
-				$file->append($attribute['Attribute']['uuid'] . ',' . $attribute['Attribute']['event_id'] . ',' . $attribute['Attribute']['category'] . ',' . $attribute['Attribute']['type'] . ',' . $attribute['Attribute']['value'] . ',' . intval($attribute['Attribute']['to_ids']) . ',' . $attribute['Attribute']['timestamp'] . PHP_EOL);
+				$chunk .= $attribute['Attribute']['uuid'] . ',' . $attribute['Attribute']['event_id'] . ',' . $attribute['Attribute']['category'] . ',' . $attribute['Attribute']['type'] . ',' . $attribute['Attribute']['value'] . ',' . intval($attribute['Attribute']['to_ids']) . ',' . $attribute['Attribute']['timestamp'] . PHP_EOL;
 			}
+			$file->append($chunk);
 			if ($k % 10 == 0) {
 				$this->Job->saveField('progress', $k / $eventCount * 80);
 			}
@@ -278,6 +328,22 @@ class EventShell extends AppShell
 		$this->Job->saveField('progress', '100');
 		if ($result != true) $this->Job->saveField('message', 'Job done.');
 	}
+
+	public function postsemail() {
+		$user_id = $this->args[0];
+		$post_id = $this->args[1];
+		$event_id = $this->args[2];
+		$title = $this->args[3];
+		$message = $this->args[4];
+		$processId = $this->args[5];
+		$this->Job->id = $processId;
+		$user = $this->User->read(null, $user_id);
+		$eventId = $this->args[2];
+		$result = $this->Post->sendPostsEmail($user_id, $post_id, $event_id, $title, $message);
+		$job['Job']['progress'] = 100;
+		$job['Job']['message'] = 'Emails sent.';
+		$this->Job->save($job);
+	}
 	
 	public function enqueueCaching() {
 		$timestamp = $this->args[0];
@@ -286,9 +352,10 @@ class EventShell extends AppShell
 		// If the next execution time and the timestamp don't match, it means that this task is no longer valid as the time for the execution has since being scheduled
 		// been updated. 
 		if ($task['Task']['next_execution_time'] != $timestamp) return;
-		$task['Task']['scheduled_time'] = date('H:i', $task['Task']['next_execution_time']);
-		$this->Task->save($task);
+
 		$orgs = $this->User->getOrgs();
+		
+		if ($task['Task']['timer'] > 0)	$this->Task->reQueue($task, 'cache', 'EventShell', 'enqueueCaching', false, false);
 		
 		// Queue a set of exports for admins. This "ADMIN" organisation. The organisation of the admin users doesn't actually matter, it is only used to indentify
 		// the special cache files containing all events
@@ -301,16 +368,8 @@ class EventShell extends AppShell
 			$this->Job->cache($k, true, 'ADMIN', 'All events.', 'ADMIN');
 			$i++;
 		}
-		$task['Task']['message'] = $i . ' jobs started at ' . date('d/m/Y - H:i:s') . '.';
-		if ($task['Task']['timer'] > 0) {
-			$time = time();
-			// Keep adding the timer's time interval until we get a date that is in the future! We don't want to keep queuing tasks in the past since they will execute until it catches up.
-			while ($task['Task']['next_execution_time'] < $time) {
-				$task['Task']['next_execution_time'] = strtotime('+' . $task['Task']['timer'] . ' hours', $task['Task']['next_execution_time']);
-			}
-			$task['Task']['scheduled_time'] = $this->Task->breakTime($task['Task']['scheduled_time'], $task['Task']['timer']);
-			$this->Task->save($task);
-		}
+		$this->Task->id = $task['Task']['id'];
+		$this->Task->saveField('message', $i . ' job(s) started at ' . date('d/m/Y - H:i:s') . '.');
 	}
 	
 	public function publish() {

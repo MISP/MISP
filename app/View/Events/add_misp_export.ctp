@@ -1,10 +1,10 @@
 <div class="events form">
 <?php echo $this->Form->create('Event', array('type' => 'file'));?>
 	<fieldset>
-		<legend><?php echo __('Import from MISP XML'); ?></legend>
+		<legend><?php echo __('Import from MISP Export File'); ?></legend>
 <?php
-	echo $this->Form->input('Event.submittedxml', array(
-			'label' => '<b>MISP XML</b>',
+	echo $this->Form->input('Event.submittedfile', array(
+			'label' => '<b>MISP XML or JSON file</b>',
 			'type' => 'file',
 	));
 	if (Configure::read('MISP.take_ownership_xml_import')):
@@ -25,5 +25,5 @@
 ?>
 </div>
 <?php 
-	echo $this->element('side_menu', array('menuList' => 'event-collection', 'menuItem' => 'addXML'));
+	echo $this->element('side_menu', array('menuList' => 'event-collection', 'menuItem' => 'addMISPExport'));
 ?>

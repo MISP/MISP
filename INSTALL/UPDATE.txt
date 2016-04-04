@@ -1,0 +1,59 @@
+# After installing MISP you can keep it up to date by periodically running the commands below.
+
+# 1. Update the MISP code to the latest hotfix. If a new major version (2.4.x) has been released, refer to UPGRADE.txt instead.
+
+cd /var/www/MISP
+git pull
+
+# 2. Update CakePHP to the latest 2.6 code
+
+cd /var/www/MISP/app/Lib/cakephp
+git fetch origin
+git checkout 2.6
+
+# 3. Update Mitre's STIX and its dependencies
+
+cd /var/www/MISP/app/files/scripts/python-cybox
+git checkout v2.1.0.10
+python setup.py install
+cd /var/www/MISP/app/files/scripts/python-stix
+git checkout v1.1.1.4
+python setup.py install
+
+# 4. Update CakeResque and it's dependencies
+
+cd /var/www/MISP/app
+
+# Edit composer.json so that cake-resque is allowed to be updated
+# "kamisama/cake-resque": ">=4.1.2"
+
+vim composer.json
+php composer.phar self-update
+php composer.phar update
+
+# To use the scheduler worker for scheduled tasks, do the following:
+cp -fa /var/www/MISP/INSTALL/setup/config.php /var/www/MISP/app/Plugin/CakeResque/Config/config.php
+
+# 5. Make sure all file permissions are set correctly
+
+chown -R root:www-data /var/www/MISP
+find /var/www/MISP -type d -exec chmod g=rx {} \;
+chmod -R g+r,o= /var/www/MISP
+chown www-data:www-data /var/www/MISP/app/files
+chown www-data:www-data /var/www/MISP/app/files/terms
+chown www-data:www-data /var/www/MISP/app/files/scripts/tmp
+chown www-data:www-data /var/www/MISP/app/Plugin/CakeResque/tmp
+chown -R www-data:www-data /var/www/MISP/app/tmp
+chown -R www-data:www-data /var/www/MISP/app/webroot/img/orgs
+chown -R www-data:www-data /var/www/MISP/app/webroot/img/custom
+
+# 6. Restart the CakeResque workers
+
+su www-data -c 'bash /var/www/MISP/app/Console/worker/start.sh'
+
+# You can also do this using the MISP application by navigating to the workers tab in the server settings and clicking on the "Restart all workers" button.
+
+# 7. Add any new dependencies that might have been added since you've last updated (shown below)
+
+# 7.a requirements for the pubsub optional feature
+pip install pyzmq

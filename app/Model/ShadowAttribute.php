@@ -241,13 +241,8 @@ class ShadowAttribute extends AppModel {
 			'message' => 'Options : Payload delivery, Antivirus detection, Payload installation, Files dropped ...'
 		),
 		'value' => array(
-			'notempty' => array(
-			'rule' => array('notempty'),
-			'message' => 'Please fill in this field',
-			//'allowEmpty' => false,
-			//'required' => false,
-			//'last' => false, // Stop validation after this rule
-			//'on' => 'create', // Limit validation to 'create' or 'update' operations
+			'valueNotEmpty' => array(
+				'rule' => array('valueNotEmpty'),
 			),
 			'userdefined' => array(
 				'rule' => array('validateAttributeValue'),
@@ -326,11 +321,25 @@ class ShadowAttribute extends AppModel {
 	}
 
 	public function afterSave($created, $options = array()) {
-
 		$result = true;
 		// if the 'data' field is set on the $this->data then save the data to the correct file
-		if (isset($this->data['ShadowAttribute']['type']) && $this->typeIsAttachment($this->data['ShadowAttribute']['type']) && !empty($this->data['ShadowAttribute']['data'])) {
-			$result = $result && $this->saveBase64EncodedAttachment($this->data['ShadowAttribute']);
+		if (isset($this->data['ShadowAttribute']['deleted']) && $this->data['ShadowAttribute']['deleted']) {
+			$sa = $this->find('first', array('conditions' => array('ShadowAttribute.id' => $this->data['ShadowAttribute']['id']), 'recursive' => -1, 'fields' => array('ShadowAttribute.id', 'ShadowAttribute.event_id', 'ShadowAttribute.type')));
+			if ($this->typeIsAttachment($sa['ShadowAttribute']['type'])) {
+				// FIXME secure this filesystem access/delete by not allowing to change directories or go outside of the directory container.
+				// only delete the file if it exists
+				$filepath = APP . "files" . DS . 'shadow' . DS . $sa['ShadowAttribute']['event_id'] . DS . $sa['ShadowAttribute']['id'];
+				$file = new File ($filepath);
+				if ($file->exists()) {
+					if (!$file->delete()) {
+						throw new InternalErrorException('Delete of file attachment failed. Please report to administrator.');
+					}
+				}
+			}
+		} else {
+			if (isset($this->data['ShadowAttribute']['type']) && $this->typeIsAttachment($this->data['ShadowAttribute']['type']) && !empty($this->data['ShadowAttribute']['data'])) {
+				$result = $result && $this->saveBase64EncodedAttachment($this->data['ShadowAttribute']);
+			}
 		}
 		return $result;
 	}
@@ -341,7 +350,7 @@ class ShadowAttribute extends AppModel {
 		if ($this->typeIsAttachment($this->data['ShadowAttribute']['type'])) {
 			// FIXME secure this filesystem access/delete by not allowing to change directories or go outside of the directory container.
 			// only delete the file if it exists
-			$filepath = APP . "files" . DS . $this->data['ShadowAttribute']['event_id'] . DS . 'shadow' . DS . $this->data['ShadowAttribute']['id'];
+			$filepath = APP . "files" . DS . 'shadow' . DS . $this->data['ShadowAttribute']['event_id'] . DS . $this->data['ShadowAttribute']['id'];
 			$file = new File ($filepath);
 			if ($file->exists()) {
 				if (!$file->delete()) {
@@ -383,7 +392,7 @@ class ShadowAttribute extends AppModel {
 
 		// generate UUID if it doesn't exist
 		if (empty($this->data['ShadowAttribute']['uuid'])) {
-			$this->data['ShadowAttribute']['uuid'] = String::uuid();
+			$this->data['ShadowAttribute']['uuid'] = $this->generateUuid();
 		}
 
 		// always return true, otherwise the object cannot be saved
@@ -434,7 +443,7 @@ class ShadowAttribute extends AppModel {
 	}
 
 	public function base64EncodeAttachment($attribute) {
-		$filepath = APP . "files" . DS . $attribute['event_id'] . DS . 'shadow' . DS. $attribute['id'];
+		$filepath = APP . "files" . DS . 'shadow' . DS . $attribute['event_id'] . DS. $attribute['id'];
 		$file = new File($filepath);
 		if (!$file->exists()) {
 			return '';
@@ -510,7 +519,7 @@ class ShadowAttribute extends AppModel {
 			// TODO check if CakePHP has no easy/safe wrapper to execute commands
 			$execRetval = '';
 			$execOutput = array();
-			exec("zip -j -P infected " . $zipfile->path . ' "' . addslashes($fileInZip->path) . '"', $execOutput, $execRetval);
+			exec("zip -j -P infected " . $zipfile->path . ' \'' . addslashes($fileInZip->path) . '\'', $execOutput, $execRetval);
 			if ($execRetval != 0) { // not EXIT_SUCCESS
 				// do some?
 			};

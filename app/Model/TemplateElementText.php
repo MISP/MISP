@@ -12,11 +12,11 @@ class TemplateElementText extends AppModel {
 	
 	public $validate = array(
 			'name' => array(
-					'rule' => 'notEmpty',
+					'rule' => 'valueNotEmpty',
 					'message' => 'Please enter a Name',
 			),
 			'text' => array(
-					'rule' => 'notEmpty',
+					'rule' => 'valueNotEmpty',
 					'message' => 'Please fill out the text field',
 			),
 	);

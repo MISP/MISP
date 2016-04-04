@@ -3,9 +3,11 @@
 ?>
 <div>
 	<div class="tree">
-		<?php 
-			echo $this->Pivot->convertPivotToHTML($pivot, $currentEvent);
-		?>
+		<span style="white-space:nowrap;">
+			<?php 
+				echo $this->Pivot->convertPivotToHTML($pivot, $currentEvent);
+			?>
+		</span>
 	</div>
 	<div style="clear:both">
 	</div>

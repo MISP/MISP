@@ -16,7 +16,7 @@
 		foreach ($events as $event) {
 			?>
 			<tr>
-				<td class="short"><a href="/events/view/<?php echo (h($event['Event']['id'])); ?>"><?php echo (h($event['Event']['id'])); ?></a></td>
+				<td class="short"><a href="<?php echo $baseurl;?>/events/view/<?php echo (h($event['Event']['id'])); ?>"><?php echo (h($event['Event']['id'])); ?></a></td>
 				<td class="short">
 					<?php 
 						$imgRelativePath = 'orgs' . DS . h($event['Event']['orgc']) . '.png';
@@ -27,7 +27,7 @@
 				</td>
 				<td>
 					<?php 
-						if (strlen(h($event['Event']['info'])) > 60) { 
+						if (strlen(h($event['Event']['info'])) > 63) { 
 							echo (substr(h($event['Event']['info']), 0, 60)) . '...'; 
 						} else 	echo h($event['Event']['info']);
 					?>

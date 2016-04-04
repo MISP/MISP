@@ -38,13 +38,8 @@ class Whitelist extends AppModel {
  */
 	public $validate = array(
 		'name' => array(
-			'notempty' => array(
-			'rule' => array('notempty'),
-			'message' => 'Please fill in this field',
-			//'allowEmpty' => false,
-			//'required' => false,
-			//'last' => false, // Stop validation after this rule
-			//'on' => 'create', // Limit validation to 'create' or 'update' operations
+			'valueNotEmpty' => array(
+				'rule' => array('valueNotEmpty'),
 			),
 			'userdefined' => array(
 				'rule' => array('validateValue'),
@@ -120,6 +115,22 @@ class Whitelist extends AppModel {
 								unset($data[$ke]['Attribute'][$k]);
 							}
 						}
+					}
+				}
+			}
+		}
+		return $data;
+	}
+	
+	// A simplified whitelist removal, for when we just want to throw values against the list instead of attributes / events
+	public function removeWhitelistedValuesFromArray($data) {
+		$whitelists = $this->getBlockedValues();
+		// if we don't have any whitelist items in the db, don't loop through each attribute
+		if (!empty($whitelists)) {
+			foreach ($data as $k => $value) {
+				foreach ($whitelists as $wlitem) {
+					if (preg_match($wlitem, $value)) {
+						unset($data[$k]);
 					}
 				}
 			}

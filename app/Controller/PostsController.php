@@ -53,6 +53,20 @@ class PostsController extends AppController {
 					}
 				}
 				$thread = $this->Thread->find('first', array('conditions' => array('event_id' => $target_id)));
+				if (empty($thread)) {
+					$newThread = array(
+							'date_created' => date('Y/m/d H:i:s'),
+							'date_modified' => date('Y/m/d H:i:s'),
+							'user_id' => $this->Auth->user('id'),
+							'event_id' => $target_id,
+							'title' => 'Discussion about Event #' . $this->Event->data['Event']['id'] . ' (' . $this->Event->data['Event']['info'] . ')',
+							'distribution' => $this->Event->data['Event']['distribution'],
+							'post_count' => 0,
+							'org' => $this->Event->data['Event']['orgc']
+					);
+					$this->Thread->save($newThread);
+					$thread = ($this->Thread->read());
+				}
 				$title = $eventDiscussionTitle;
 				if (isset($thread['Thread']['id'])) {
 					$target_thread_id = $thread['Thread']['id'];
@@ -61,6 +75,7 @@ class PostsController extends AppController {
 				}
 				$distribution = $this->Event->data['Event']['distribution'];
 				$org = $this->Event->data['Event']['org'];
+				$event_id = $this->Event->data['Event']['id'];
 			break;
 			case 'thread' :
 				$target_thread_id = $target_id;
@@ -75,6 +90,7 @@ class PostsController extends AppController {
 						}
 					}
 					$title = $this->Thread->data['Thread']['title'];
+					$event_id = $this->Thread->data['Thread']['event_id'];
 				}
 			break;
 			case 'post' :
@@ -110,10 +126,9 @@ class PostsController extends AppController {
 			if ($target_thread_id == null) {
 				// We have a post that was posted in a new thread. This could also mean that someone created the first post related to an event!
 				$this->Thread->create();
-				// Take the title from above and the id of the event as event_id if we are adding a post to an event. 
+				// Take the title from above if we are adding a post to an event. 
 				if ($target_type === 'event') {
 					$title = $eventDiscussionTitle;
-					$event_id = $this->Event->data['Event']['id'];
 				}
 				$newThread = array(
 						'date_created' => date('Y/m/d H:i:s'),
@@ -150,6 +165,7 @@ class PostsController extends AppController {
 				$this->Thread->read(null, $target_thread_id);
 				$this->Thread->updateAfterPostChange(true);
 				$this->Session->setFlash(__('Post added'));
+				$this->Post->sendPostsEmailRouter($this->Auth->user('id'), $this->Post->getId(), $event_id, $title, $this->request->data['Post']['message']);
 				$this->redirect(array('action' => 'view', $this->Post->getId()));
 			} else {
 				$this->Session->setFlash('The post could not be added.');
@@ -195,30 +211,6 @@ class PostsController extends AppController {
 		$this->set('contents', $this->Post->data['Post']['contents']);
 		$this->set('id', $post_id);
 		$this->set('thread_id', $this->Post->data['Post']['thread_id']);
-	}
-	
-	public function quick_add() {
-		if($this->RequestHandler->isAjax()) {
-			$this->layout = 'ajax'; //THIS LINE NEWLY ADDED
-			if(!empty($this->data)) {
-				if($this->Message->save($this->data)) {
-					$this->Session->setFlash('Your Message has been posted');
-				}
-			}
-		}
-	}
-	
-	
-	public function quick_edit() {
-		throw new Exception();
-		if($this->RequestHandler->isAjax()) {
-			$this->layout = 'ajax'; //THIS LINE NEWLY ADDED
-			if(!empty($this->data)) {
-				if($this->Message->save($this->data)) {
-					$this->Session->setFlash('Your Message has been posted');
-				}
-			}
-		}
 	}
 	
 	public function delete($post_id) {

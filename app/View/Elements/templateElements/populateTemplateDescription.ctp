@@ -4,7 +4,7 @@
 </div>
 <div id="populate_template_info_body" class="populate_template_div_body">
 	<div class="left" style="float:left;">Template ID:</div>
-	<div class="right" style="float:left;"><?php echo $templateData['Template']['id']; ?></div><br />
+	<div class="right" style="float:left;"><?php echo h($templateData['Template']['id']); ?></div><br />
 	<div class="left" style="float:left;">Template Name:</div>
 	<div class="right" style="float:left;"><?php echo h($templateData['Template']['name']); ?></div><br />
 	<div class="left" style="float:left;">Created by:</div>

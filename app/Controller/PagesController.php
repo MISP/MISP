@@ -65,10 +65,15 @@ class PagesController extends AppController {
 		}
 		if (!empty($path[1])) {
 			$subpage = $path[1];
+			if ($path[1] === 'md') $this->layout = false;
 		}
 		if (!empty($path[$count - 1])) {
 			$title_for_layout = Inflector::humanize($path[$count - 1]);
 		}
+		$this->loadModel('Attribute');
+		$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
+		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
+		$this->set('user', $this->Auth->User());
 		$this->set(compact('page', 'subpage', 'title_for_layout'));
 		$this->render(implode('/', $path));
 	}

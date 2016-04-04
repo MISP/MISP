@@ -116,7 +116,7 @@ class UsersController extends AppController {
 			$this->request->data = $this->User->data;
 		}
 		// XXX ACL roles
-		$this->extraLog("change_pw");
+		$this->__extralog("change_pw");
 		$roles = $this->User->Role->find('list');
 		$this->set(compact('roles'));
 	}
@@ -156,6 +156,7 @@ class UsersController extends AppController {
  * @return void
  */
 	public function admin_index() {
+		$this->User->virtualFields['org_ci'] = 'UPPER(User.org)';
 		$urlparams = "";
 		$passedArgsArray = array();
 		$booleanFields = array('autoalert', 'contactalert', 'termsaccepted');
@@ -181,16 +182,18 @@ class UsersController extends AppController {
 						$test = array();
 						foreach ($pieces as $piece) {
 							if ($piece[0] == '!') {
-								$this->paginate['conditions']['AND'][] = array('LOWER(User.' . $searchTerm . ') NOT LIKE' => '%' . substr($piece, 1) . '%');
+								if ($searchTerm == 'email' || $searchTerm == 'org') $this->paginate['conditions']['AND'][] = array('LOWER(User.' . $searchTerm . ') NOT LIKE' => '%' . strtolower(substr($piece, 1)) . '%');
+								else $this->paginate['conditions']['AND'][] = array('User.' . $searchTerm => substr($piece, 1));
 							} else {
-								$test['OR'][] = array('LOWER(User.' . $searchTerm . ') LIKE' => '%' . $piece . '%');
+								if ($searchTerm == 'email' || $searchTerm == 'org') $test['OR'][] = array('LOWER(User.' . $searchTerm . ') LIKE' => '%' . strtolower($piece) . '%');
+								else $test['OR'][] = array('User.' . $searchTerm => $piece);
 							}
 						}
 						if (!empty($test)) $this->paginate['conditions']['AND'][] = $test;
 					}
 				}
+				$passedArgsArray[$searchTerm] = $v;
 			}
-			$passedArgsArray[$searchTerm] = $v;
 		}
 		$this->set('urlparams', $urlparams);
 		$this->set('passedArgsArray', $passedArgsArray);
@@ -324,14 +327,20 @@ class UsersController extends AppController {
 		if ($this->request->is('post')) {
 			$this->User->create();
 			// set invited by
+			$this->loadModel('Role');
+			$this->Role->recursive = -1;
+			$chosenRole = $this->Role->findById($this->request->data['User']['role_id']);
 			$this->request->data['User']['invited_by'] = $this->Auth->user('id');
-			$this->request->data['User']['change_pw'] = 1;
+			if ($chosenRole['Role']['perm_sync']) {
+				$this->request->data['User']['change_pw'] = 0;
+				$this->request->data['User']['termsaccepted'] = 1;
+			} else {
+				$this->request->data['User']['change_pw'] = 1;
+				$this->request->data['User']['termsaccepted'] = 0;
+			}
 			$this->request->data['User']['newsread'] = '2000-01-01';
 			if (!$this->_isSiteAdmin()) {
 				$this->request->data['User']['org'] = $this->Auth->User('org');
-				$this->loadModel('Role');
-				$this->Role->recursive = -1;
-				$chosenRole = $this->Role->findById($this->request->data['User']['role_id']);
 				if ($chosenRole['Role']['perm_site_admin'] == 1 || $chosenRole['Role']['perm_regexp_access'] == 1 || $chosenRole['Role']['perm_sync'] == 1) {
 					throw new Exception('You are not authorised to assign that role to a user.');
 				}
@@ -368,7 +377,27 @@ class UsersController extends AppController {
 		}
 		$params = null;
 		if (!$this->_isSiteAdmin()) {
-			$params = array('conditions' => array('perm_site_admin !=' => 1, 'perm_sync !=' => 1, 'perm_regexp_access !=' => 1));
+			// Org admins should be able to select the role that is already assigned to an org user when editing them.
+			// What happened previously:
+			// Org admin edits another org admin of the same org
+			// Org admin is not allowed to set privileged access roles (site_admin/sync/regex)
+			// MISP automatically chooses the first available option for the user as the selected setting (usually user)
+			// Org admin is downgraded to a user
+			// Now we make an exception for the already assigned role, both in the form and the actual edit.
+			$userToEdit = $this->User->find('first', array(
+				'conditions' => array('id' => $id),
+				'recursive' => -1,
+				'fields' => array('id', 'role_id', 'email'),
+			));
+			$allowedRole = $userToEdit['User']['role_id'];
+			$params = array('conditions' => array(
+					'OR' => array(
+							'AND' => array(
+								'perm_site_admin' => 0, 'perm_sync' => 0, 'perm_regexp_access' => 0
+							),
+							'id' => $allowedRole,
+					)
+			));
 		}
 		$roles = $this->User->Role->find('list', $params);
 		$this->set('currentId', $id);
@@ -377,13 +406,13 @@ class UsersController extends AppController {
 			foreach (array_keys($this->request->data['User']) as $field) {
 				if($field != 'password') array_push($fields, $field);
 			}
-			// TODO Audit, extraLog, fields get orig
+			// TODO Audit, __extralog, fields get orig
 			$fieldsOldValues = array();
 			foreach ($fields as $field) {
 				if($field != 'confirm_password') array_push($fieldsOldValues, $this->User->field($field));
 				else array_push($fieldsOldValues, $this->User->field('password'));
 			}
-			// TODO Audit, extraLog, fields get orig END
+			// TODO Audit, __extralog, fields get orig END
 			if ("" != $this->request->data['User']['password'])
 				$fields[] = 'password';
 			$fields[] = 'role_id';
@@ -391,12 +420,12 @@ class UsersController extends AppController {
 				$this->loadModel('Role');
 				$this->Role->recursive = -1;
 				$chosenRole = $this->Role->findById($this->request->data['User']['role_id']);
-				if ($chosenRole['Role']['perm_site_admin'] == 1 || $chosenRole['Role']['perm_regexp_access'] == 1 || $chosenRole['Role']['perm_sync'] == 1) {
+				if (($chosenRole['Role']['id'] != $allowedRole) && ($chosenRole['Role']['perm_site_admin'] == 1 || $chosenRole['Role']['perm_regexp_access'] == 1 || $chosenRole['Role']['perm_sync'] == 1)) {
 					throw new Exception('You are not authorised to assign that role to a user.');
 				}
 			}
 			if ($this->User->save($this->request->data, true, $fields)) {
-				// TODO Audit, extraLog, fields compare
+				// TODO Audit, __extralog, fields compare
 				// newValues to array
 				$fieldsNewValues = array();
 				foreach ($fields as $field) {
@@ -426,8 +455,8 @@ class UsersController extends AppController {
 					$c++;
 				}
 				$fieldsResultStr = substr($fieldsResultStr, 2);
-				$this->extraLog("edit", "user", $fieldsResultStr);	// TODO Audit, check: modify User
-				// TODO Audit, extraLog, fields compare END
+				$this->__extralog("edit", "user", $fieldsResultStr);	// TODO Audit, check: modify User
+				// TODO Audit, __extralog, fields compare END
 				$this->Session->setFlash(__('The user has been saved'));
 				$this->_refreshAuth(); // in case we modify ourselves
 				$this->redirect(array('action' => 'index'));
@@ -466,7 +495,7 @@ class UsersController extends AppController {
 			throw new NotFoundException(__('Invalid user'));
 		}
 		if ($this->User->delete()) {
-			$this->extraLog("delete", $fieldsDescrStr, '');	// TODO Audit, check: modify User
+			$this->__extralog("delete", $fieldsDescrStr, '');	// TODO Audit, check: modify User
 			$this->Session->setFlash(__('User deleted'));
 			$this->redirect(array('action' => 'index'));
 		}
@@ -476,7 +505,7 @@ class UsersController extends AppController {
 
 	public function login() {
 		if ($this->Auth->login()) {
-			$this->extraLog("login");	// TODO Audit, extraLog, check: customLog i.s.o. extraLog, no auth user?: $this->User->customLog('login', $this->Auth->user('id'), array('title' => '','user_id' => $this->Auth->user('id'),'email' => $this->Auth->user('email'),'org' => 'IN2'));
+			$this->__extralog("login");	// TODO Audit, __extralog, check: customLog i.s.o. __extralog, no auth user?: $this->User->customLog('login', $this->Auth->user('id'), array('title' => '','user_id' => $this->Auth->user('id'),'email' => $this->Auth->user('email'),'org' => 'IN2'));
 			// TODO removed the auto redirect for now, due to security concerns - will look more into this
 			// $this->redirect($this->Auth->redirectUrl());
 			$this->redirect(array('controller' => 'events', 'action' => 'index'));
@@ -535,21 +564,13 @@ class UsersController extends AppController {
 		if (!$this->Auth->user('termsaccepted')) {
 			$this->redirect(array('action' => 'terms'));
 		}
-
-		// News page
-		$newNewsdate = new DateTime("2012-03-27");	// TODO general, fixed odd date??
-		$newsdate = new DateTime($this->Auth->user('newsread'));
-		if ($newNewsdate > $newsdate) {
-			$this->redirect(array('action' => 'news'));
-		}
-
 		// Events list
 		$this->redirect(array('controller' => 'events', 'action' => 'index'));
 	}
 
 	public function logout() {
 		if ($this->Session->check('Auth.User')) { // TODO session, user is logged in, so ..
-			$this->extraLog("logout");	// TODO Audit, extraLog, check: customLog i.s.o. extraLog, $this->User->customLog('logout', $this->Auth->user('id'), array());
+			$this->__extralog("logout");	// TODO Audit, __extralog, check: customLog i.s.o. __extralog, $this->User->customLog('logout', $this->Auth->user('id'), array());
 		}
 		$this->Session->setFlash(__('Good-Bye'));
 		$this->redirect($this->Auth->logout());
@@ -566,11 +587,17 @@ class UsersController extends AppController {
 			$this->Session->setFlash(__('Invalid id for user', true), 'default', array(), 'error');
 			$this->redirect(array('action' => 'view', $this->Auth->user('id')));
 		}
-		$this->User->read();
+		$user = $this->User->read();
+		$oldKey = $this->User->data['User']['authkey'];
 		if ('me' == $id ) $id = $this->Auth->user('id');
 		else if (!$this->_isSiteAdmin() && !($this->_isAdmin() && $this->Auth->user('org') == $this->User->data['User']['org']) && ($this->Auth->user('id') != $id)) throw new MethodNotAllowedException();
 		$newkey = $this->User->generateAuthKey();
 		$this->User->saveField('authkey', $newkey);
+		$this->__extralog(
+				'reset_auth_key', 
+				'Authentication key for user ' . $user['User']['id'] . ' (' . $user['User']['email'] . ')', 
+				$fieldsResult = 'authkey(' . $oldKey . ') => (' . $newkey . ')'
+		);
 		$this->Session->setFlash(__('New authkey generated.', true));
 		$this->_refreshAuth();
 		$this->redirect($this->referer());
@@ -698,14 +725,18 @@ class UsersController extends AppController {
 		}
 		$this->set('termsaccepted', $this->Auth->user('termsaccepted'));
 	}
-
-	public function news() {
-		$this->User->id = $this->Auth->user('id');
-		$this->User->saveField('newsread', date("Y-m-d"));
-		$this->_refreshAuth(); // refresh auth info
+	
+	public function downloadTerms() {
+		if (!Configure::read('MISP.terms_file')) {
+			$termsFile = APP ."View/Users/terms";
+		} else {
+			$termsFile = APP . 'files' . DS . 'terms' . DS .  Configure::read('MISP.terms_file');
+		}
+		$this->response->file($termsFile, array('download' => true, 'name' => Configure::read('MISP.terms_file')));
+		return $this->response;
 	}
 
-	public function extraLog($action = null, $description = null, $fieldsResult = null) {	// TODO move audit to AuditsController?
+	private function __extralog($action = null, $description = null, $fieldsResult = null) {	// TODO move audit to AuditsController?
 		// new data
 		$userId = $this->Auth->user('id');
 		$model = 'User';
@@ -767,144 +798,92 @@ class UsersController extends AppController {
 	}
 
 	public function admin_email() {
-		if (!$this->_isSiteAdmin()) {
-			throw new MethodNotAllowedException();
+		if (!$this->_isAdmin()) throw new MethodNotAllowedException();
+		// User has filled in his contact form, send out the email.
+		if ($this->request->is('post') || $this->request->is('put')) {
+			$conditions = array();
+			if (!$this->_isSiteAdmin()) $conditions = array('org' => $this->Auth->user('org'));
+			if ($this->request->data['User']['recipient'] != 1) $conditions['id'] = $this->request->data['User']['recipientEmailList'];
+			$users = $this->User->find('all', array('recursive' => -1, 'order' => array('email ASC'), 'conditions' => $conditions));
+			$this->request->data['User']['message'] = $this->User->adminMessageResolve($this->request->data['User']['message']);
+			$failures = '';
+			foreach ($users as $user) {
+				$password = $this->User->generateRandomPassword();
+				$body = str_replace('$password', $password, $this->request->data['User']['message']);
+				$body = str_replace('$username', $user['User']['email'], $body);
+				$result = $this->User->sendEmail($user, $body, false, $this->request->data['User']['subject']);
+				// if sending successful and action was a password change, update the user's password.
+				if ($result && $this->request->data['User']['action'] != '0') {
+					$this->User->id = $user['User']['id'];
+					$this->User->saveField('password', $password);
+					$this->User->saveField('change_pw', '1');
+				}
+				if (!$result) {
+					if ($failures != '') $failures .= ', ';
+					$failures .= $user['User']['email'];
+				}
+			}
+			if ($failures != '') $this->Session->setFlash(__('E-mails sent, but failed to deliver the messages to the following recipients: ' . $failures));
+			else $this->Session->setFlash(__('E-mails sent.'));
 		}
-		$this->User->recursive = 0;
-		$temp = $this->User->find('all', array('fields' => array('email', 'gpgkey')));
+		$conditions = array();
+		if (!$this->_isSiteAdmin()) $conditions = array('org' => $this->Auth->user('org'));
+		$temp = $this->User->find('all', array('recursive' => -1, 'fields' => array('id', 'email'), 'order' => array('email ASC'), 'conditions' => $conditions));
 		$emails = array();
 		$gpgKeys = array();
 		// save all the emails of the users and set it for the dropdown list in the form
 		foreach ($temp as $user) {
-			array_push($emails, $user['User']['email']);
-			array_push($gpgKeys, $user['User']['gpgkey']);
+			$emails[$user['User']['id']] = $user['User']['email'];
 		}
+		$this->set('users', $temp);
 		$this->set('recipientEmail', $emails);
-
-		// User has filled in his contact form, send out the email.
-		if ($this->request->is('post') || $this->request->is('put')) {
-			$message1 = null;
-			$message2 = null;
-			$recipients = array();
-			$messageP = array();
-			// Formulating the message and the subject that will be common to the e-mail(s) sent
-			if ($this->request->data['User']['action'] == '0') {
-				// Custom message
-				$subject = $this->request->data['User']['subject'];
-				$message1 .= $this->request->data['User']['message'];
-			} else {
-				// Temp password
-				if ($this->request->data['User']['customMessage']) {
-					$message1 .= $this->request->data['User']['message'];
-				} else {
-					$message1 .= "Dear MISP user,\n\nA password reset has been triggered for your account. Use the below provided temporary password to log into MISP at ";
-					$message1 .= Configure::read('MISP.baseurl');
-					$message1 .= ", where you will be prompted to manually change your password to something of your own choice.";
-				}
-				//$message .= "\n\nYour temporary password: " . $password;
-				$subject = 'Password reset on ' . Configure::read('MISP.org') . ' MISP';
-			}
-			if (Configure::read('MISP.contact')) {
-				$message2 .= "\n\nIf you have any questions, contact us at: " . Configure::read('MISP.contact') . ".";
-			}
-			$message2 .= "\n\nBest Regards,\n" . Configure::read('MISP.org') . ' MISP support';
-
-			// Return an error message if the action is a password reset for a new user
-
-			if ($this->request->data['User']['recipient'] == 2 && $this->request->data['User']['action'] == '1') {
-				$this->Session->setFlash(__('Cannot reset the password of a user that doesn\'t exist.'));
-				$this->redirect(array('action' => 'email', 'admin' => true));
-			}
-
-			// Setting up the list of recipient(s) based on the setting and creating the final message for each user, including the password
-			// If the recipient is all users, and the action to create a password, create it and for each user and squeeze it between the main message and the signature
-			if ($this->request->data['User']['recipient'] == 0) {
-				$recipients = $emails;
-				$recipientGPG = $gpgKeys;
-				if ($this->request->data['User']['action'] == '1') {
-					$i = 0;
-					foreach ($recipients as $rec) {
-						$password = $this->User->generateRandomPassword();
-						$messageP = "\n\nYour temporary password: " . $password;
-						$message[$i] = $message1 . $messageP . $message2;
-						$recipientPass[$i] = $password;
-						$i++;
-					}
-				} else {
-					$i = 0;
-					foreach ($recipients as $rec) {
-						$message[$i] = $message1;
-						$i++;
-					}
-				}
-			}
-
-			// If the recipient is a user, and the action to create a password, create it and squeeze it between the main message and the signature
-			if ($this->request->data['User']['recipient'] == 1) {
-				$recipients[0] = $emails[$this->request->data['User']['recipientEmailList']];
-				$recipientGPG[0] = $gpgKeys[$this->request->data['User']['recipientEmailList']];
-				if ($this->request->data['User']['action'] == '1') {
-					$password = $this->User->generateRandomPassword();
-					$message[0] = $message1 . "\n\nYour temporary password: " . $password . $message2;
-					$recipientPass[0] = $password;
-				} else {
-					$message[0] = $message1;
-				}
-			}
-
-			require_once 'Crypt/GPG.php';
-			$i = 0;
-			foreach ($recipients as $recipient) {
-				if (!empty($recipientGPG[$i])) {
-					$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));	// , 'debug' => true
-					$gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
-					$messageSigned = $gpg->sign($message[$i], Crypt_GPG::SIGN_MODE_CLEAR);
-					$keyImportOutput = $gpg->importKey($recipientGPG[$i]);
-					try {
-						$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir')));
-						$gpg->addEncryptKey($keyImportOutput['fingerprint']); // use the key that was given in the import
-
-						$encryptedMessage = $gpg->encrypt($messageSigned, true);
-					} catch (Exception $e){
-						// catch errors like expired PGP keys
-						$this->log($e->getMessage());
-						// no need to return here, as we want to send out mails to the other users if GPG encryption fails for a single user
-					}
-				} else {
-					$encryptedMessage = $message[$i];
-				}
-
-				// prepare the email
-				$this->Email->from = Configure::read('MISP.email');
-				$this->Email->to = $recipients[$i];
-				$this->Email->subject = $subject;
-				//$this->Email->delivery = 'debug';   // do not really send out mails, only display it on the screen
-				$this->Email->template = 'body';
-				$this->Email->sendAs = 'text';		// both text or html
-				$this->set('body', $encryptedMessage);
-
-				// send it
-				$result = $this->Email->send();
-
-				// if sending successful and action was a password change, update the user's password.
-				if ($result && $this->request->data['User']['action'] == '1') {
-					$this->User->recursive = 0;
-					$temp = $this->User->findByEmail($recipients[$i]);
-					$this->User->id = $temp['User']['id'];
-					$this->User->read();
-					$this->User->saveField('password', $recipientPass[$i]);
-					$this->User->saveField('change_pw', '1');
-				}
-				// If you wish to send multiple emails using a loop, you'll need
-				// to reset the email fields using the reset method of the Email component.
-				$this->Email->reset();
-				$i++;
-			}
-			$this->Session->setFlash(__('E-mails sent.'));
+		$this->set('org', Configure::read('MISP.org'));
+		$textsToFetch = array('newUserText', 'passwordResetText');
+		$this->loadModel('Server');
+		foreach ($textsToFetch as $text) {
+			${$text} = Configure::read('MISP.' . $text);
+			if (!${$text}) ${$text} = $this->Server->serverSettings['MISP'][$text]['value'];
+			$this->set($text, ${$text});
 		}
-		// User didn't see the contact form yet. Present it to him.
 	}
 
+	public function initiatePasswordReset($id, $firstTime = false) {
+		if (!$this->_isAdmin()) throw new MethodNotAllowedException('You are not authorised to do that.');
+		$user = $this->User->find('first', array(
+			'conditions' => array('id' => $id),
+			'recursive' => -1
+		));
+		if (!$this->_isSiteAdmin() && $this->Auth->user('org') != $user['User']['org']) throw new MethodNotAllowedException('You are not authorised to do that.');
+		if ($this->request->is('post')) {
+			if (isset($this->request->data['User']['firstTime'])) $firstTime = $this->request->data['User']['firstTime']; 
+			$org = Configure::read('MISP.org');
+			$options = array('passwordResetText', 'newUserText');
+			$subjects = array('[' . $org . ' MISP] New user registration', '[' . $org .  ' MISP] Password reset');
+			$textToFetch = $options[($firstTime ? 0 : 1)];
+			$subject = $subjects[($firstTime ? 0 : 1)]; 
+			$this->loadModel('Server');
+			$body = Configure::read('MISP.' . $textToFetch);
+			if (!$body) $body = $this->Server->serverSettings['MISP'][$textToFetch]['value'];
+			$body = $this->User->adminMessageResolve($body);
+			$password = $this->User->generateRandomPassword();
+			$body = str_replace('$password', $password, $body);
+			$body = str_replace('$username', $user['User']['email'], $body);
+			$result = $this->User->sendEmail($user, $body, false, $subject);
+			if ($result) {
+				$this->User->id = $user['User']['id'];
+				$this->User->saveField('password', $password);
+				$this->User->saveField('change_pw', '1');
+				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'New credentials sent.')),'status'=>200));
+			}
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'There was an error notifying the user. His/her credentials were not altered.')),'status'=>200));
+		} else {
+			$this->layout = 'ajax';
+			$this->set('user', $user);
+			$this->set('firstTime', $firstTime);
+			$this->render('ajax/passwordResetConfirmationForm');
+		}
+	}
+	
 	// shows some statistics about the instance
 	public function statistics() {
 		
@@ -958,5 +937,18 @@ class UsersController extends AppController {
 		if (!self::_isSiteAdmin()) throw new NotFoundException();
 		$user_results = $this->User->verifyGPG();
 		$this->set('users', $user_results);
+	}
+	
+	public function fetchPGPKey($email) {
+		if (!$this->_isAdmin()) throw new Exception('Administrators only.');
+		$keys = $this->User->fetchPGPKey($email);
+		if (is_numeric($keys)) {
+			
+			throw new NotFoundException('Could not retrieved any keys from the key server.');
+		}
+		$this->set('keys', $keys);
+		$this->autorender = false;
+		$this->layout = false;
+		$this->render('ajax/fetchpgpkey');
 	}
 }

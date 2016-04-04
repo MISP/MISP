@@ -1,4 +1,4 @@
-from cybox.core import Observable, ObservableComposition
+from cybox.core import Object, Observable, ObservableComposition
 from cybox.objects.file_object import File
 from cybox.objects.address_object import Address
 from cybox.objects.hostname_object import Hostname
@@ -31,6 +31,7 @@ simple_type_to_method.update(dict.fromkeys(["pattern-in-file", "pattern-in-traff
 # mapping for the attributes that can go through the simpleobservable script
 misp_cybox_name = {"domain" : "DomainName", "hostname" : "Hostname", "url" : "URI", "AS" : "AutonomousSystem", "mutex" : "Mutex", "named pipe" : "Pipe", "link" : "URI"}
 cybox_name_attribute = {"DomainName" : "value", "Hostname" : "hostname_value", "URI" : "value", "AutonomousSystem" : "number", "Pipe" : "name", "Mutex" : "name"}
+misp_indicator_type = {"domain" : "Domain Watchlist", "hostname" : "Domain Watchlist", "url" : "URL Watchlist", "AS" : "", "mutex" : "Host Characteristics", "named pipe" : "Host Characteristics", "link" : ""}
 
 def generateObservable(indicator, attribute):
     if (attribute["type"] in ("snort", "yara")):
@@ -40,21 +41,28 @@ def generateObservable(indicator, attribute):
         if (attribute["type"] in simple_type_to_method.keys()):
             action = getattr(this_module, simple_type_to_method[attribute["type"]], None)
             if (action != None):
-                observable = action(attribute)
+                property = action(indicator, attribute)
+		property.condition = "Equals"
+                object = Object(property)
+                object.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":" + property.__class__.__name__ + "-" + attribute["uuid"]
+                observable = Observable(object)
+                observable.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":observable-" + attribute["uuid"]
                 indicator.add_observable(observable)
 
-def resolveFileObservable(attribute):
+def resolveFileObservable(indicator, attribute):
     hashValue = ""
     filenameValue = ""
     if (attribute["type"] in ("filename|md5", "filename|sha1", "filename|sha256", "malware-sample")):
         values = attribute["value"].split('|')
         filenameValue = values[0]
         hashValue = values[1]
+        indicator.add_indicator_type("File Hash Watchlist")
     else:
         if (attribute["type"] in ("filename", "attachment")):
             filenameValue = attribute["value"]
         else:
             hashValue = attribute["value"]
+            indicator.add_indicator_type("File Hash Watchlist")
     observable = generateFileObservable(filenameValue, hashValue)
     return observable
 
@@ -66,11 +74,12 @@ def generateFileObservable(filenameValue, hashValue):
             file_object.file_name = ntpath.basename(filenameValue)
         else:
             file_object.file_name = filenameValue
-        if (hashValue != ""):
-            file_object.add_hash(Hash(hashValue))
+    if (hashValue != ""):
+        file_object.add_hash(Hash(hash_value=hashValue, exact=True))
     return file_object
 
-def generateIPObservable(attribute):
+def generateIPObservable(indicator, attribute):
+    indicator.add_indicator_type("IP Watchlist")
     address_object = Address()
     cidr = False
     if ("/" in attribute["value"]):
@@ -96,7 +105,8 @@ def generateIPObservable(attribute):
     address_object.address_value = attribute["value"]
     return address_object
 
-def generateRegkeyObservable(attribute):
+def generateRegkeyObservable(indicator, attribute):
+    indicator.add_indicator_type("Host Characteristics")
     regkey = ""
     regvalue = ""
     if (attribute["type"] == "regkey|value"):
@@ -112,9 +122,12 @@ def generateRegkeyObservable(attribute):
         reg_object.values = RegistryValues(reg_value_object)
     return reg_object
 
-def generateSimpleObservable(attribute):
+def generateSimpleObservable(indicator, attribute):
     cyboxName = misp_cybox_name[attribute["type"]]
     constructor = getattr(this_module, cyboxName, None)
+    indicatorType = misp_indicator_type[attribute["type"]]
+    if (indicatorType != ""):
+        indicator.add_indicator_type(indicatorType)
     new_object = constructor()
     setattr(new_object, cybox_name_attribute[cyboxName], attribute["value"])
     return new_object
@@ -130,7 +143,8 @@ def generateTM(indicator, attribute):
         #tm.rules = [attribute["value"]]
     indicator.test_mechanisms = [tm]
 
-def resolveEmailObservable(attribute):
+def resolveEmailObservable(indicator, attribute):
+    indicator.add_indicator_type("Malicious E-mail")
     new_object = EmailMessage()
     email_header = EmailHeader()
     if (attribute["type"] == "email-src"):
@@ -142,7 +156,7 @@ def resolveEmailObservable(attribute):
     new_object.header = email_header
     return new_object
 
-def resolveHTTPObservable(attribute):
+def resolveHTTPObservable(indicator, attribute):
     request_response = HTTPRequestResponse()
     client_request = HTTPClientRequest()
     if (attribute["type"] == "user-agent"):
@@ -162,7 +176,7 @@ def resolveHTTPObservable(attribute):
     return new_object
 
 # use this when implementing pattern in memory and pattern in traffic
-def resolvePatternObservable(attribute):
+def resolvePatternObservable(indicator, attribute):
     new_object = None
     if attribute["type"] == "pattern-in-file":
         byte_run = ByteRun()
@@ -177,28 +191,44 @@ def resolvePatternObservable(attribute):
 # create an artifact object for the malware-sample type.
 def createArtifactObject(indicator, attribute):
     artifact = Artifact(data = attribute["data"])
-    indicator.add_observable(artifact)
+    artifact.parent.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":artifact-" + attribute["uuid"]
+    observable = Observable(artifact)
+    observable.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":observable-artifact-" + attribute["uuid"]
+    indicator.add_observable(observable)
 
 # return either a composition if data is set in attribute, or just an observable with a filename if it's not set
 def returnAttachmentComposition(attribute):
     file_object = File()
     file_object.file_name = attribute["value"]
+    file_object.parent.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":file-" + attribute["uuid"]
     observable = Observable()
     if "data" in attribute:
         artifact = Artifact(data = attribute["data"])
-        composition = ObservableComposition(observables = [artifact, file_object])
+        artifact.parent.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":artifact-" + attribute["uuid"]
+        observable_artifact = Observable(artifact)
+        observable_artifact.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":observable-artifact-" + attribute["uuid"]
+        observable_file = Observable(file_object)
+        observable_file.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":observable-file-" + attribute["uuid"]
+        composition = ObservableComposition(observables = [observable_artifact, observable_file])
         observable.observable_composition = composition
     else:
         observable = Observable(file_object)
+    observable.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":observable-" + attribute["uuid"]
+    if attribute["comment"] != "":
+        observable.description = attribute["comment"]
     return observable
 
 # email-attachment are mapped to an email message observable that contains the attachment as a file object
-def generateEmailAttachmentObject(indicator, filename):
+def generateEmailAttachmentObject(indicator, attribute):
     file_object = File()
-    file_object.file_name = filename
+    file_object.file_name = attribute["value"]
     email = EmailMessage()
     email.attachments = Attachments()
     email.add_related(file_object, "Contains", inline=True)
+    file_object.parent.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":file-" + attribute["uuid"]
     email.attachments.append(file_object.parent.id_)
-    indicator.observable = email
+    email.parent.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":EmailMessage-" + attribute["uuid"]
+    observable = Observable(email)
+    observable.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":observable-" + attribute["uuid"]
+    indicator.observable = observable
 

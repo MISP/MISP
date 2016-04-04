@@ -12,6 +12,7 @@ class Log extends AppModel {
 			'action' => array(
 			'rule' => array('inList', array(
 							'login',
+							'login_fail',
 							'logout',
 							'add',
 							'edit',
@@ -22,7 +23,17 @@ class Log extends AppModel {
 							'discard',
 							'pull',
 							'push',
-							'blacklisted'
+							'blacklisted',
+							'admin_email',
+							'email',
+							'serverSettingsEdit',
+							'remove_dead_workers',
+							'upload_sample',
+							'update_database',
+							'version_warning',
+							'auth',
+							'auth_fail',
+							'reset_auth_key'
 						)),
 			'message' => 'Options : ...'
 		)
@@ -37,6 +48,11 @@ class Log extends AppModel {
 		'delete' => array('desc' => 'Delete action', 'formdesc' => "Delete action"),
 		'publish' => array('desc' => "Publish action", 'formdesc' => "Publish action")
 	);
+	
+	public function beforeSave($options = array()) {
+		if (Configure::read('MISP.log_client_ip') && isset($_SERVER['REMOTE_ADDR'])) $this->data['Log']['ip'] = $_SERVER['REMOTE_ADDR'];
+		return true;
+	}
 	
 	public function returnDates($org = 'all') {
 		$conditions = array();

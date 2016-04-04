@@ -7,14 +7,14 @@ class EventTag extends AppModel {
 	
 	public $validate = array(
 		'event_id' => array(
-			'notEmpty' => array(
-				'rule' => array('notEmpty'),
+			'valueNotEmpty' => array(
+				'rule' => array('valueNotEmpty'),
 				'required' => true
 			),
 		),
 		'tag_id' => array(
-			'notEmpty' => array(
-				'rule' => array('notEmpty'),
+			'valueNotEmpty' => array(
+				'rule' => array('valueNotEmpty'),
 				'required' => true
 			),
 		),

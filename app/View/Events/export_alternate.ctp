@@ -28,13 +28,21 @@
 	</div>
 	<div class="row bottom-buffer">
 		<div class="span3">
-		<?php echo $this->Html->link('Download NIDS signatures', array('action' => 'nids', 'download'), array('class' => 'btn btn-block full-width')); ?>
+		<?php echo $this->Html->link('Download Suricata signatures', array('action' => 'nids', 'suricata', 'download'), array('class' => 'btn btn-block full-width')); ?>
+		<?php echo $this->Html->link('Download Snort signatures', array('action' => 'nids', 'snort', 'download'), array('class' => 'btn btn-block full-width')); ?>
 		</div>
-		<div class="span9">Click this to download all network related attributes that you
-				have access to under the Snort rule format. Only <em>published</em>
+		<div class="span9">Click these to download all network related attributes that you
+				have access to under the Suricata or Snort rule format. Only <em>published</em>
 				events and attributes marked as <em>IDS Signature</em> are exported.
 				Administration is able to maintain a whitelist containing host,
 				domain name and IP numbers to exclude from the NIDS export.
+		</div>
+	</div>
+		<div class="row bottom-buffer">
+		<div class="span3">
+		<?php echo $this->Html->link('Download RPZ Zone File', array('controller' => 'attributes', 'action' => 'rpz', 'download'), array('class' => 'btn btn-block full-width')); ?>
+		</div>
+		<div class="span9">Click this to download an RPZ Zone file generated from all ip-src/ip-dst, hostname, domain attributes. This can be useful for DNS level firewalling. Only published events and attributes marked as IDS Signature are exported.
 		</div>
 	</div>
 	<div class="row bottom-buffer">
@@ -65,17 +73,17 @@
 </div>
 <div class="actions <?php echo $debugMode;?>">
 	<ul class="nav nav-list">
-		<li><a href="/events/index">List Events</a></li>
+		<li><a href="<?php echo $baseurl;?>/events/index">List Events</a></li>
 		<?php if ($isAclAdd): ?>
-		<li><a href="/events/add">Add Event</a></li>
+		<li><a href="<?php echo $baseurl;?>/events/add">Add Event</a></li>
 		<?php endif; ?>
 		<li class="divider"></li>
-		<li><a href="/attributes/index">List Attributes</a></li>
-		<li><a href="/attributes/search">Search Attributes</a></li>
+		<li><a href="<?php echo $baseurl;?>/attributes/index">List Attributes</a></li>
+		<li><a href="<?php echo $baseurl;?>/attributes/search">Search Attributes</a></li>
 		<li class="divider"></li>
-		<li class="active"><a href="/events/export">Export</a></li>
+		<li class="active"><a href="<?php echo $baseurl;?>/events/export">Export</a></li>
 		<?php if ($isAclAuth): ?>
-		<li><a href="/events/automation">Automation</a></li>
+		<li><a href="<?php echo $baseurl;?>/events/automation">Automation</a></li>
 		<?php endif;?>
 	</ul>
 </div>

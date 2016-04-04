@@ -46,7 +46,7 @@ class AppController extends Controller {
 	// This is used to allow authentication via headers for methods not covered by _isRest() - as that only checks for JSON and XML formats 
 	public $automationArray = array(
 		'events' => array('csv', 'nids', 'hids', 'xml', 'restSearch', 'stix'),
-		'attributes' => array('text', 'downloadAttachment', 'returnAttributes', 'restSearch'),
+		'attributes' => array('text', 'downloadAttachment', 'returnAttributes', 'restSearch', 'rpz'),
 	);
 
 	public function __construct($id = false, $table = null, $ds = null) {
@@ -69,15 +69,24 @@ class AppController extends Controller {
 				),
 				'authError' => 'Unauthorised access.',
 				'loginRedirect' => array('controller' => 'users', 'action' => 'routeafterlogin'),
-				'logoutRedirect' => array('controller' => 'users', 'action' => 'login'),
+				'logoutRedirect' => array('controller' => 'users', 'action' => 'login', 'admin' => false),
 				//'authorize' => array('Controller', // Added this line
 				//'Actions' => array('actionPath' => 'controllers')) // TODO ACL, 4: tell actionPath
 				),
+			'Security'
 	);
 	
 	public $mispVersion = '2.3.0';
 	
 	public function beforeFilter() {
+		$versionArray = $this->{$this->modelClass}->checkMISPVersion();
+		$this->mispVersionFull = implode('.', array_values($versionArray));
+		$this->Security->blackHoleCallback = 'blackHole';
+
+		// Let us access $baseurl from all views
+		$baseurl = Configure::read('MISP.baseurl');
+		$this->set('baseurl', h($baseurl)); 
+
 		// send users away that are using ancient versions of IE
 		// Make sure to update this if IE 20 comes out :)
 		if(preg_match('/(?i)msie [2-8]/',$_SERVER['HTTP_USER_AGENT']) && !strpos($_SERVER['HTTP_USER_AGENT'], 'Opera')) throw new MethodNotAllowedException('You are using an unsecure and outdated version of IE, please download Google Chrome, Mozilla Firefox or update to a newer version of IE. If you are running IE9 or newer and still receive this error message, please make sure that you are not running your browser in compatibility mode. If you still have issues accessing the site, get in touch with your administration team at ' . Configure::read('MISP.contact'));
@@ -87,36 +96,104 @@ class AppController extends Controller {
 			// disable CSRF for REST access
 			if (array_key_exists('Security', $this->components))
 				$this->Security->csrfCheck = false;
-
 			// Authenticate user with authkey in Authorization HTTP header
 			if (!empty($_SERVER['HTTP_AUTHORIZATION'])) {
-				$user = $this->checkAuthUser($_SERVER['HTTP_AUTHORIZATION']);
-				if ($user) {
-				    // User found in the db, add the user info to the session
-				    $this->Session->renew();
-				    $this->Session->write(AuthComponent::$sessionKey, $user['User']);
-				} else {
-					// User not authenticated correctly
-					// reset the session information
-					$this->Session->destroy();
-					throw new ForbiddenException('The authentication key provided cannot be used for syncing.');
+				$found_misp_auth_key = false;
+				$authentication = explode(',', $_SERVER['HTTP_AUTHORIZATION']);
+				$user = false;
+				foreach ($authentication as $auth_key) {
+					if (preg_match('/^[a-zA-Z0-9]{40}$/', trim($auth_key))) {
+						$found_misp_auth_key = true;
+						$user = $this->checkAuthUser(trim($auth_key));
+						continue;
+					}
+				}
+				if ($found_misp_auth_key) {
+					if ($user) {
+						unset($user['User']['gpgkey']);
+					    // User found in the db, add the user info to the session
+					    if (Configure::read('MISP.log_auth')) {
+							$this->Log = ClassRegistry::init('Log');
+							$this->Log->create();
+							$log = array(
+									'org' => $user['User']['org'],
+									'model' => 'User',
+									'model_id' => $user['User']['id'],
+									'email' => $user['User']['email'],
+									'action' => 'auth',
+									'title' => 'Successful authentication using API key',
+									'change' => 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->here,
+							);
+							$this->Log->save($log);
+					    }
+					    $this->Session->renew();
+					    $this->Session->write(AuthComponent::$sessionKey, $user['User']);   
+					} else {
+						// User not authenticated correctly
+						// reset the session information
+						$this->Session->destroy();
+						$this->Log = ClassRegistry::init('Log');
+						$this->Log->create();
+						$log = array(
+								'org' => 'SYSTEM',
+								'model' => 'User',
+								'model_id' => 0,
+								'email' => 'SYSTEM',
+								'action' => 'auth_fail',
+								'title' => 'Failed authentication using API key (' . trim($auth_key) . ')',
+								'change' => null,
+						);
+						$this->Log->save($log);
+						throw new ForbiddenException('Authentication failed. Please make sure you pass the API key of an API enabled user along in the Authorization header.');
+					}
+					unset($user);
 				}
 			}
+			if ($this->Auth->user() == null) throw new ForbiddenException('Authentication failed. Please make sure you pass the API key of an API enabled user along in the Authorization header.');
+		} else if(!$this->Session->read(AuthComponent::$sessionKey)) {
+			// load authentication plugins from Configure::read('Security.auth')
+			$auth = Configure::read('Security.auth');
+			if($auth) {
+				$this->Auth->authenticate = array_merge($auth, $this->Auth->authenticate);
+				if($this->Auth->startup($this)) {
+					$user = $this->Auth->user();
+					if ($user) {
+						unset($user['gpgkey']);
+						// User found in the db, add the user info to the session
+						$this->Session->renew();
+						$this->Session->write(AuthComponent::$sessionKey, $user);
+					}
+					unset($user);
+				}
+			}
+			unset($auth);
 		}
+
 		// user must accept terms
 		//
-		if ($this->Session->check('Auth.User') && !$this->Auth->user('termsaccepted') && (!in_array($this->request->here, array('/users/terms', '/users/logout', '/users/login')))) {
-		    $this->redirect(array('controller' => 'users', 'action' => 'terms', 'admin' => false));
+		//grab the base path from our base url for use in the following checks
+		$base_dir = parse_url($baseurl, PHP_URL_PATH);
+
+		// if MISP is running out of the web root already, just set this variable to blank so we don't wind up with '//' in the following if statements
+		if ($base_dir == '/') {
+			$base_dir = '';
 		}
-		if ($this->Session->check('Auth.User') && $this->Auth->user('change_pw') && (!in_array($this->request->here, array('/users/terms', '/users/change_pw', '/users/logout', '/users/login')))) {
-		    $this->redirect(array('controller' => 'users', 'action' => 'change_pw', 'admin' => false));
+
+		if ($this->Session->check(AuthComponent::$sessionKey) && !$this->Auth->user('termsaccepted') && (!in_array($this->request->here, array($base_dir.'/users/terms', $base_dir.'/users/logout', $base_dir.'/users/login')))) {
+			$this->redirect(array('controller' => 'users', 'action' => 'terms', 'admin' => false));
 		}
+		if ($this->Session->check(AuthComponent::$sessionKey) && $this->Auth->user('change_pw') && (!in_array($this->request->here, array($base_dir.'/users/terms', $base_dir.'/users/change_pw', $base_dir.'/users/logout', $base_dir.'/users/login')))) {
+			$this->redirect(array('controller' => 'users', 'action' => 'change_pw', 'admin' => false));
+		}
+		unset($base_dir);
 
 		// We don't want to run these role checks before the user is logged in, but we want them available for every view once the user is logged on
 		// instead of using checkAction(), like we normally do from controllers when trying to find out about a permission flag, we can use getActions()
 		// getActions returns all the flags in a single SQL query
 		if ($this->Auth->user()) {
+			//$this->_refreshAuth();
 			$this->set('mispVersion', $this->mispVersion);
+			$this->set('mispVersionFull', $this->mispVersionFull);
 			$role = $this->getActions();
 			$this->set('me', $this->Auth->user());
 			$this->set('isAdmin', $role['perm_admin']);
@@ -161,10 +238,16 @@ class AppController extends Controller {
 		$this->set('mispVersion', $this->mispVersion);
 	}
 
+	public function blackhole($type) {
+		if ($type === 'csrf') throw new BadRequestException(__d('cake_dev', $type));
+		throw new BadRequestException(__d('cake_dev', 'The request has been black-holed'));
+	}
+	
 	public $userRole = null;
 
-	protected function _isJson(){
-		return $this->request->header('Accept') === 'application/json';
+	protected function _isJson($data=false) {
+		if ($data) return (json_decode($data) != NULL) ? true : false;
+		return $this->request->header('Accept') === 'application/json' || $this->RequestHandler->prefers() === 'json';
 	}
 
 	//public function blackhole($type) {
@@ -293,7 +376,7 @@ class AppController extends Controller {
 	}
 
 	public function generateCount() {
-		if (!self::_isSiteAdmin()) throw new NotFoundException();
+		if (!self::_isSiteAdmin() || !$this->request->is('post')) throw new NotFoundException();
 		// do one SQL query with the counts
 		// loop over events, update in db
 		$this->loadModel('Attribute');
@@ -309,6 +392,77 @@ class AppController extends Controller {
 			$this->Event->save();
 		}
 		$this->Session->setFlash(__('All done. attribute_count generated from scratch for ' . $k . ' events.'));
+		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
+	}
+	
+	public function pruneDuplicateUUIDs() {
+		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException();
+		$this->LoadModel('Attribute');
+		$duplicates = $this->Attribute->find('all', array(
+			'fields' => array('Attribute.uuid', 'count(*) as occurance'),
+			'recursive' => -1,
+			'group' => array('Attribute.uuid HAVING COUNT(*) > 1'),
+		));
+		$counter = 0;
+		foreach ($duplicates as $duplicate) {
+			$attributes = $this->Attribute->find('all', array(
+				'recursive' => -1,
+				'conditions' => array('uuid' => $duplicate['Attribute']['uuid'])
+			));
+			foreach ($attributes as $k => $attribute) {
+				if ($k > 0) {
+					$attribute['Attribute']['uuid'] = String::uuid();
+					$this->Attribute->save($attribute);
+					$counter++;
+				}
+			}
+		}
+		$this->Server->updateDatabase('makeAttributeUUIDsUnique');
+		$this->Session->setFlash('Done. Assigned new UUIDs to ' . $counter . ' attribute(s).');
+		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
+	}
+	
+	public function removeDuplicateEvents() {
+		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException();
+		$this->LoadModel('Event');
+		$duplicates = $this->Event->find('all', array(
+				'fields' => array('Event.uuid', 'count(*) as occurance'),
+				'recursive' => -1,
+				'group' => array('Event.uuid HAVING COUNT(*) > 1'),
+		));
+		$counter = 0;
+		
+		// load this so we can remove the blacklist item that will be created, this is the one case when we do not want it.
+		if (Configure::read('MISP.enableEventBlacklisting')) $this->EventBlacklist = ClassRegistry::init('EventBlacklist');
+		
+		foreach ($duplicates as $duplicate) {
+			$events = $this->Event->find('all', array(
+					'recursive' => -1,
+					'conditions' => array('uuid' => $duplicate['Event']['uuid'])
+			));
+			foreach ($events as $k => $event) {
+				if ($k > 0) {
+					$uuid = $event['Event']['uuid'];
+					$this->Event->delete($event['Event']['id']);
+					$counter++;
+					// remove the blacklist entry that we just created with the event deletion, if the feature is enabled
+					// We do not want to block the UUID, since we just deleted a copy
+					if (Configure::read('MISP.enableEventBlacklisting')) {
+						$this->EventBlacklist->deleteAll(array('EventBlacklist.event_uuid' => $uuid));
+					}
+				}
+			}
+		}
+		$this->Server->updateDatabase('makeEventUUIDsUnique');
+		$this->Session->setFlash('Done. Removed ' . $counter . ' duplicate events.');
+		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
+	}
+	
+	public function updateDatabase($command) {
+		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException();
+		$this->loadModel('Server');
+		$this->Server->updateDatabase($command);
+		$this->Session->setFlash('Done.');
 		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 	}
 }

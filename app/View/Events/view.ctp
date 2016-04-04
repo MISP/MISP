@@ -12,7 +12,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 			$left = true;
 		}
 		$title = $event['Event']['info'];
-		if (strlen($title) > 55) $title = substr($title, 0, 55) . '...';
+		if (strlen($title) > 58) $title = substr($title, 0, 55) . '...';
 	?>
 	<div class="row-fluid">
 		<div class="span8">
@@ -28,27 +28,45 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 					<?php echo h($event['Event']['uuid']); ?>
 					&nbsp;
 				</dd>
-				<?php if (Configure::read('MISP.showorg') || $isAdmin): ?>
-				<dt>Org</dt>
-				<dd>
-					<?php echo h($event['Event']['orgc']); ?>
-					&nbsp;
-				</dd>
-				<?php endif; ?>
-				<?php if ($isSiteAdmin): ?>
-				<dt>Owner org</dt>
-				<dd>
-					<?php echo h($event['Event']['org']); ?>
-					&nbsp;
-				</dd>
-				<?php endif; ?>
+				<?php 
+					if (Configure::read('MISP.showorgalternate') && (Configure::read('MISP.showorg') || $isAdmin)): ?>
+						<dt>Source Organisation</dt>
+						<dd>
+							<?php echo h($event['Event']['orgc']); ?>
+							&nbsp;
+						</dd>
+						<dt>Member Organisation</dt>
+						<dd>
+							<?php echo h($event['Event']['org']); ?>
+							&nbsp;
+						</dd>
+				<?php 	
+					else:
+						if (Configure::read('MISP.showorg') || $isAdmin): ?>
+							<dt>Org</dt>
+							<dd>
+								<?php echo h($event['Event']['orgc']); ?>
+								&nbsp;
+							</dd>
+							<?php endif; ?>
+							<?php if ($isSiteAdmin): ?>
+							<dt>Owner org</dt>
+							<dd>
+								<?php echo h($event['Event']['org']); ?>
+								&nbsp;
+							</dd>
+				<?php 
+						endif; 
+					endif;
+						
+				?>
 				<dt>Contributors</dt>
 				<dd>
 					<?php 
 						foreach($logEntries as $k => $entry) {
 							if (Configure::read('MISP.showorg') || $isAdmin) {
 								?>
-									<a href="/logs/event_index/<?php echo $event['Event']['id'] . '/' . h($entry['Log']['org']);?>" style="margin-right:2px;text-decoration: none;">
+									<a href="<?php echo $baseurl."/logs/event_index/".$event['Event']['id'].'/'.h($entry['Log']['org']);?>" style="margin-right:2px;text-decoration: none;">
 								<?php 
 									echo $this->element('img', array('id' => $entry['Log']['org'], 'imgSize' => 24, 'imgStyle' => true));
 								?>
@@ -98,7 +116,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 					?>
 				</dd>
 				<dt>Description</dt>
-				<dd>
+				<dd style="word-wrap: break-word;">
 					<?php echo nl2br(h($event['Event']['info'])); ?>
 					&nbsp;
 				</dd>
@@ -173,8 +191,6 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc'] == $me['org']);
 	<div id="pivots_div">
 		<?php if (sizeOf($allPivots) > 1) echo $this->element('pivot'); ?>
 	</div>
-	<div id="popover_form" class="ajax_popover_form"></div>
-	<div id="confirmation_box" class="confirmation_box"></div>
 	<div id="attribute_creation_div" style="display:none;">
 		<?php 
 			echo $this->element('eventattributecreation');

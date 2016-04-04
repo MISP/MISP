@@ -1,5 +1,5 @@
 <div class="shadow_attributes <?php if (!$ajax) echo 'form';?>">
-<?php echo $this->Form->create('ShadowAttribute');?>
+<?php echo $this->Form->create('ShadowAttribute', array('url' => '/shadow_attributes/add/' . $event_id));?>
 	<fieldset>
 	<legend><?php echo __('Add Proposal'); ?></legend>
 	<div id="formWarning" class="message ajaxMessage"></div>
@@ -31,12 +31,12 @@
 			?>
 			<div class="input clear"></div>
 			<?php
-			echo $this->Form->input('batch_import', array(
-					'type' => 'checkbox',
-			));
 			echo $this->Form->input('to_ids', array(
 					'checked' => true,
-					'label' => 'IDS Signature?',
+					'label' => 'for Intrusion Detection System',
+			));
+			echo $this->Form->input('batch_import', array(
+					'type' => 'checkbox',
 			));
 			// link an onchange event to the form elements
 			$this->Js->get('#ShadowAttributeCategory')->event('change', 'formCategoryChanged("#ShadowAttributeCategory")');
@@ -44,7 +44,7 @@
 		?>
 	</div>
 	</fieldset>
-	<p style="color:red;font-weight:bold;display:none;" id="warning-message">Warning: You are about to share data that is of a classified nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>
+	<p style="color:red;font-weight:bold;display:none;<?php if($ajax) echo 'text-align:center;'; ?>" id="warning-message">Warning: You are about to share data that is of a classified nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>
 	<?php if ($ajax): ?>
 		<div class="overlay_spacing">
 			<table>
@@ -53,7 +53,7 @@
 					<span id="submitButton" class="btn btn-primary" onClick="submitPopoverForm('<?php echo $event_id;?>', 'propose')">Propose</span>
 				</td>
 				<td style="width:540px;">
-					<p style="color:red;font-weight:bold;display:none;text-align:center" id="warning-message">Warning: You are about to share data that is of a classified nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>
+					<p style="color:red;font-weight:bold;display:none;<?php if($ajax) echo "text-align:center;"?>" id="warning-message">Warning: You are about to share data that is of a sensitive nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>
 				</td>
 				<td style="vertical-align:top;">
 					<span class="btn btn-inverse" id="cancel_attribute_add">Cancel</span>

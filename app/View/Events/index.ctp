@@ -23,20 +23,22 @@
 			$filtered = true;
 		}
 	?>
-	<div class="tabMenuFixedContainer">
-	<span class="tabMenuFixed tabMenuFixed<?php echo $tab; ?> tabMenuSides">
-		<span id="create-button" title="Modify filters" class="icon-search useCursorPointer" onClick="getPopup('<?php echo $urlparams;?>', 'events', 'filterEventIndex');"></span>
-	</span>
-	<?php if ($filtered):
-		foreach ($passedArgsArray as $k => $v):?>
-			<span class="tabMenuFixed tabMenuFixedElement">
-				<?php echo h(ucfirst($k)) . " : " . h($v); ?>
-			</span>
-		<?php endforeach; ?>
-	<span class="tabMenuFixed tabMenuFixedRight tabMenuSides">
-		<?php echo $this->Html->link('', array('controller' => 'events', 'action' => 'index'), array('class' => 'icon-remove', 'title' => 'Remove filters'));?>
-	</span>
-	<?php endif;?>
+	<div class="tabMenuFixedContainer" style="display:inline-block;">
+		<span class="tabMenuFixed tabMenuFixed<?php echo $tab; ?> tabMenuSides">
+			<span id="create-button" title="Modify filters" class="icon-search useCursorPointer" onClick="getPopup('<?php echo h($urlparams);?>', 'events', 'filterEventIndex');"></span>
+		</span>
+		<?php if ($filtered):
+			foreach ($passedArgsArray as $k => $v):?>
+				<span class="tabMenuFixed tabMenuFixedElement">
+					<?php echo h(ucfirst($k)) . " : " . h($v); ?>
+				</span>
+			<?php endforeach; ?>
+		<span class="tabMenuFixed tabMenuFixedRight tabMenuSides">
+			<?php echo $this->Html->link('', array('controller' => 'events', 'action' => 'index'), array('class' => 'icon-remove', 'title' => 'Remove filters'));?>
+		</span>
+		<?php endif;?>
+		<span id="quickFilterButton" class="tabMenuFilterFieldButton useCursorPointer" onClick='quickFilterEvents(<?php echo h($passedArgs);?>);'>Filter</span>
+		<input class="tabMenuFilterField" type="text" id="quickFilterField"></input>
 	</div>
 	<table class="table table-striped table-hover table-condensed">
 		<tr>
@@ -44,16 +46,24 @@
 				<?php echo $this->Paginator->sort('published');?>
 			</th>
 			<?php
-			if (Configure::read('MISP.showorg') || $isAdmin): ?>
-				<th class="filter"><?php echo $this->Paginator->sort('org'); ?></th>
-			<?php
-			endif;
+				if (Configure::read('MISP.showorgalternate') && Configure::read('MISP.showorg')):
 			?>
-			<?php if ($isSiteAdmin): ?>
-			<th class="filter">
-				<?php echo $this->Paginator->sort('owner org');?>
-			</th>
-			<?php endif; ?>
+				<th class="filter"><?php echo $this->Paginator->sort('org', 'Source org'); ?></th>
+				<th class="filter"><?php echo $this->Paginator->sort('org', 'Member org'); ?></th>
+			<?php 
+				else:
+					if (Configure::read('MISP.showorg') || $isAdmin): 
+			?>
+						<th class="filter"><?php echo $this->Paginator->sort('org'); ?></th>
+			<?php
+					endif;
+					if ($isSiteAdmin):
+			?>
+				<th class="filter"><?php echo $this->Paginator->sort('owner org');?></th>
+			<?php 
+					endif;
+				endif;
+			?>
 			<th><?php echo $this->Paginator->sort('id');?></th>
 			<?php if (Configure::read('MISP.tagging')): ?>
 				<th class="filter">Tags</th>
@@ -76,20 +86,20 @@
 		</tr>
 		<?php foreach ($events as $event): ?>
 		<tr <?php if($event['Event']['distribution'] == 0) echo 'class = "privateRed"'?>>
-			<td class="short" onclick="document.location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
+			<td class="short" ondblclick="document.location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
 				<?php
 				if ($event['Event']['published'] == 1) {
 				?>
-					<a href="/events/view/<?php echo $event['Event']['id'] ?>" class = "icon-ok" title = "View"></a>
+					<a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] ?>" class = "icon-ok" title = "View"></a>
 				<?php
 				} else {
 				?>
-					<a href="/events/view/<?php echo $event['Event']['id'] ?>" class = "icon-remove" title = "View"></a>
+					<a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] ?>" class = "icon-remove" title = "View"></a>
 				<?php
 				}?>&nbsp;
 			</td>
 			<?php if (Configure::read('MISP.showorg') || $isAdmin): ?>
-			<td class="short" onclick="document.location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
+			<td class="short" ondblclick="document.location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
 				<?php
 					$imgRelativePath = 'orgs' . DS . h($event['Event']['orgc']) . '.png';
 					$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
@@ -99,8 +109,8 @@
 				&nbsp;
 			</td>
 			<?php endif;?>
-			<?php if ('true' == $isSiteAdmin): ?>
-			<td class="short" onclick="document.location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
+			<?php if ($isSiteAdmin || (Configure::read('MISP.showorgalternate') && Configure::read('MISP.showorg'))): ?>
+			<td class="short" ondblclick="document.location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
 				<?php
 					$imgRelativePath = 'orgs' . DS . h($event['Event']['org']) . '.png';
 					$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
@@ -111,42 +121,42 @@
 			</td>
 			<?php endif; ?>
 			<td style="width:30px;">
-				<a href="/events/view/<?php echo $event['Event']['id'] ?>"><?php echo $event['Event']['id'];?></a>
+				<a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] ?>"><?php echo $event['Event']['id'];?></a>
 			</td>
 			<?php if (Configure::read('MISP.tagging')): ?>
 			<td style = "max-width: 200px;width:10px;">
 				<?php foreach ($event['EventTag'] as $tag):
 					$tagText = "&nbsp;";
-					if (Configure::read('MISP.full_tags_on_event_index')) $tagText = $tag['Tag']['name'];
+					if (Configure::read('MISP.full_tags_on_event_index')) $tagText = h($tag['Tag']['name']);
 				?>
-					<span class=tag style="margin-bottom:3px;background-color:<?php echo $tag['Tag']['colour']?>;color:<?php echo $this->TextColour->getTextColour($tag['Tag']['colour']);?>;" title="<?php echo $tag['Tag']['name']; ?>"><?php echo $tagText; ?></span>
+					<span class=tag style="margin-bottom:3px;background-color:<?php echo h($tag['Tag']['colour']);?>;color:<?php echo $this->TextColour->getTextColour($tag['Tag']['colour']);?>;" title="<?php echo h($tag['Tag']['name']); ?>"><?php echo $tagText; ?></span>
 				<?php endforeach; ?>
 			</td>
 			<?php endif; ?>
-			<td style="width:30px;" onclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
+			<td style="width:30px;" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
 				<?php echo $event['Event']['attribute_count']; ?>&nbsp;
 			</td>
 			<?php if ('true' == $isSiteAdmin): ?>
-			<td class="short" onclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
+			<td class="short" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
 				<?php echo h($event['User']['email']); ?>&nbsp;
 			</td>
 			<?php endif; ?>
-			<td class="short" onclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
+			<td class="short" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
 				<?php echo $event['Event']['date']; ?>&nbsp;
 			</td>
-			<td class="short" onclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
+			<td class="short" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
 				<?php 
 				if ($event['ThreatLevel']['name']) echo h($event['ThreatLevel']['name']);
 				else echo h($event['Event']['threat_level_id']);
 				?>&nbsp;
 			</td>
-			<td class="short" onclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
+			<td class="short" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
 				<?php echo $analysisLevels[$event['Event']['analysis']]; ?>&nbsp;
 			</td>
-			<td onclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'">
+			<td ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
 				<?php echo nl2br(h($event['Event']['info'])); ?>&nbsp;
 			</td>
-			<td class="short <?php if ($event['Event']['distribution'] == 0) echo 'privateRedText';?>" onclick="location.href ='/events/view/<?php echo $event['Event']['id'];?>'" title = "<?php echo $event['Event']['distribution'] != 3 ? $distributionLevels[$event['Event']['distribution']] : 'All';?>">
+			<td class="short <?php if ($event['Event']['distribution'] == 0) echo 'privateRedText';?>" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'" title = "<?php echo $event['Event']['distribution'] != 3 ? $distributionLevels[$event['Event']['distribution']] : 'All';?>">
 				<?php echo $shortDist[$event['Event']['distribution']]; ?>
 			</td>
 			<td class="short action-links">
@@ -157,12 +167,12 @@
 
 				if ($isSiteAdmin || ($isAclModify && $event['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $event['Event']['org'] == $me['org'])) {
 				?>
-					<a href='/events/view/<?php echo $event['Event']['id'];?>' class = "icon-edit" title = "Edit"></a>
+					<a href='<?php echo $baseurl."/events/edit/".$event['Event']['id'];?>' class = "icon-edit" title = "Edit"></a>
 				<?php
 					echo $this->Form->postLink('', array('action' => 'delete', $event['Event']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete # %s?', $event['Event']['id']));
 				}
 				?>
-				<a href='/events/view/<?php echo $event['Event']['id'];?>' class = "icon-list-alt" title = "View"></a>
+				<a href='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>' class = "icon-list-alt" title = "View"></a>
 			</td>
 		</tr>
 		<?php endforeach; ?>
@@ -183,7 +193,6 @@
         ?>
         </ul>
     </div>
-    <div id="popover_form" class="ajax_popover_form"></div>
 </div>
 <?php
 	echo $this->element('side_menu', array('menuList' => 'event-collection', 'menuItem' => 'index'));

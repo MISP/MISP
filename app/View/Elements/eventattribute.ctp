@@ -50,9 +50,29 @@
 <div id="edit_object_div">
 	<?php 
 		echo $this->Form->create('Attribute', array('id' => 'delete_selected', 'url' => '/attributes/deleteSelected/' . $event['Event']['id']));
-		echo $this->Form->input('ids', array(
+		echo $this->Form->input('ids_delete', array(
 			'type' => 'text',
 			'value' => 'test',
+			'style' => 'display:none;',
+			'label' => false,
+		)); 
+		echo $this->Form->end();
+	?>
+		<?php 
+		echo $this->Form->create('ShadowAttribute', array('id' => 'accept_selected', 'url' => '/shadow_attributes/acceptSelected/' . $event['Event']['id']));
+		echo $this->Form->input('ids_accept', array(
+			'type' => 'text',
+			'value' => '',
+			'style' => 'display:none;',
+			'label' => false,
+		)); 
+		echo $this->Form->end();
+	?>
+		<?php 
+		echo $this->Form->create('ShadowAttribute', array('id' => 'discard_selected', 'url' => '/shadow_attributes/discardSelected/' . $event['Event']['id']));
+		echo $this->Form->input('ids_discard', array(
+			'type' => 'text',
+			'value' => '',
 			'style' => 'display:none;',
 			'label' => false,
 		)); 
@@ -62,8 +82,10 @@
 <div id="attributeList" class="attributeListContainer">
 	<div class="tabMenu tabMenuEditBlock noPrint">
 		<span id="create-button" title="Add attribute" class="icon-plus useCursorPointer" onClick="clickCreateButton(<?php echo $event['Event']['id']; ?>, '<?php echo $possibleAction; ?>');"></span>
-		<span id="multi-edit-button" title="Edit selected" class="icon-edit mass-select useCursorPointer" onClick="editSelectedAttributes(<?php echo $event['Event']['id']; ?>);"></span>
-		<span id="multi-delete-button" title="Delete selected" class = "icon-trash mass-select useCursorPointer" onClick="deleteSelectedAttributes(<?php echo $event['Event']['id']; ?>);"></span>
+		<span id="multi-edit-button" title="Edit selected Attributes" class="icon-edit mass-select useCursorPointer" onClick="editSelectedAttributes(<?php echo $event['Event']['id']; ?>);"></span>
+		<span id="multi-delete-button" title="Delete selected Attributes" class = "icon-trash mass-select useCursorPointer" onClick="multiSelectAction(<?php echo $event['Event']['id']; ?>, 'deleteAttributes');"></span>
+		<span id="multi-accept-button" title="Accept selected Proposals" class="icon-ok mass-proposal-select useCursorPointer" onClick="multiSelectAction(<?php echo $event['Event']['id']; ?>, 'acceptProposals');"></span>
+		<span id="multi-discard-button" title="Discard selected Proposals" class = "icon-remove mass-proposal-select useCursorPointer" onClick="multiSelectAction(<?php echo $event['Event']['id']; ?>, 'discardProposals');"></span>
 	</div>
 	<?php if ($mayModify): ?>
 	<div class="tabMenu tabMenuToolsBlock noPrint">
@@ -89,7 +111,6 @@
 		</tr>
 		<?php 
 			foreach($eventArray as $k => $object):
-
 				$extra = '';
 				$extra2 = '';
 				$extra3 = '';
@@ -117,7 +138,9 @@
 					<?php if ($mayModify): ?>
 						<td class="<?php echo $extra; ?>" style="width:10px;">
 							<?php if ($object['objectType'] == 0): ?>
-							<input id = "select_<?php echo $object['id']; ?>" class="select_attribute" type="checkbox" data-id="<?php echo $object['id'];?>" />
+								<input id = "select_<?php echo $object['id']; ?>" class="select_attribute" type="checkbox" data-id="<?php echo $object['id'];?>" />
+							<?php else: ?>
+								<input id = "select_proposal_<?php echo $object['id']; ?>" class="select_proposal" type="checkbox" data-id="<?php echo $object['id'];?>" />
 							<?php endif; ?>
 						</td>
 					<?php endif; ?>
@@ -131,27 +154,27 @@
 					</td>
 					<td class="shortish <?php echo $extra; ?>">
 						<div id = "<?php echo $currentType . '_' . $object['id'] . '_category_placeholder'; ?>" class = "inline-field-placeholder"></div>
-						<div id = "<?php echo $currentType . '_' . $object['id'] . '_category_solid'; ?>" class="inline-field-solid" onClick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'category', <?php echo $event['Event']['id'];?>);">
+						<div id = "<?php echo $currentType . '_' . $object['id'] . '_category_solid'; ?>" class="inline-field-solid" ondblclick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'category', <?php echo $event['Event']['id'];?>);">
 							<?php echo h($object['category']); ?>
 						</div>
 					</td>
 					<td class="shortish <?php echo $extra; ?>">
 						<div id = "<?php echo $currentType . '_' . $object['id'] . '_type_placeholder'; ?>" class = "inline-field-placeholder"></div>
-						<div id = "<?php echo $currentType . '_' . $object['id'] . '_type_solid'; ?>" class="inline-field-solid" onClick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'type', <?php echo $event['Event']['id'];?>);">
+						<div id = "<?php echo $currentType . '_' . $object['id'] . '_type_solid'; ?>" class="inline-field-solid" ondblclick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'type', <?php echo $event['Event']['id'];?>);">
 							<?php echo h($object['type']); ?>
 						</div>
 					</td>
-					<td class="showspaces <?php echo $extra; ?>">
+					<td class="showspaces <?php echo $extra; ?> limitedWidth">
 						<div id = "<?php echo $currentType . '_' . $object['id'] . '_value_placeholder'; ?>" class = "inline-field-placeholder"></div>
 						<?php if ('attachment' == $object['type'] || 'malware-sample' == $object['type'] ): ?>
 						<div id = "<?php echo $currentType . '_' . $object['id'] . '_value_solid'; ?>" class="inline-field-solid">
 						<?php else: ?>
-						<div id = "<?php echo $currentType . '_' . $object['id'] . '_value_solid'; ?>" class="inline-field-solid" onClick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'value', <?php echo $event['Event']['id'];?>);">
+						<div id = "<?php echo $currentType . '_' . $object['id'] . '_value_solid'; ?>" class="inline-field-solid" ondblclick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'value', <?php echo $event['Event']['id'];?>);">
 							<?php 
 							endif;
 								$sigDisplay = $object['value'];
 								if ('attachment' == $object['type'] || 'malware-sample' == $object['type'] ) {
-									$t = ($currentType == 'Attribute' ? 'attributes' : 'shadow_attributes');
+									$t = ($object['objectType'] == 0 ? 'attributes' : 'shadow_attributes');
 									$filenameHash = explode('|', nl2br(h($object['value'])));
 									if (strrpos($filenameHash[0], '\\')) {
 										$filepath = substr($filenameHash[0], 0, strrpos($filenameHash[0], '\\'));
@@ -172,9 +195,9 @@
 									} else {
 										$cveUrl = "http://www.google.com/search?q=";
 									}
-									echo $this->Html->link(h($sigDisplay), h($cveUrl) . h($sigDisplay), array('target' => '_blank'));
+									echo $this->Html->link($sigDisplay, $cveUrl . $sigDisplay, array('target' => '_blank'));
 								} elseif ('link' == $object['type']) {
-									echo $this->Html->link(h($sigDisplay), h($sigDisplay));
+									echo $this->Html->link($sigDisplay, $sigDisplay);
 								} else {
 									$sigDisplay = str_replace("\r", '', $sigDisplay);
 									echo nl2br(h($sigDisplay));
@@ -184,7 +207,7 @@
 					</td>
 					<td class="showspaces bitwider <?php echo $extra; ?>">
 						<div id = "<?php echo $currentType . '_' . $object['id'] . '_comment_placeholder'; ?>" class = "inline-field-placeholder"></div>
-						<div id = "<?php echo $currentType . '_' . $object['id'] . '_comment_solid'; ?>" class="inline-field-solid" onClick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'comment', <?php echo $event['Event']['id'];?>);">
+						<div id = "<?php echo $currentType . '_' . $object['id'] . '_comment_solid'; ?>" class="inline-field-solid" ondblclick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'comment', <?php echo $event['Event']['id'];?>);">
 							<?php echo nl2br(h($object['comment'])); ?>&nbsp;
 						</div>
 					</td>
@@ -209,7 +232,7 @@
 					</td>
 					<td class="short <?php echo $extra; ?>">
 						<div id = "<?php echo $currentType . '_' . $object['id'] . '_to_ids_placeholder'; ?>" class = "inline-field-placeholder"></div>
-						<div id = "<?php echo $currentType . '_' . $object['id'] . '_to_ids_solid'; ?>" class="inline-field-solid" onClick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'to_ids', <?php echo $event['Event']['id'];?>);">
+						<div id = "<?php echo $currentType . '_' . $object['id'] . '_to_ids_solid'; ?>" class="inline-field-solid" ondblclick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'to_ids', <?php echo $event['Event']['id'];?>);">
 							<?php 
 								if ($object['to_ids']) echo 'Yes';
 								else echo 'No';
@@ -222,22 +245,23 @@
 							if ($object['objectType'] == 0 && $object['distribution'] == 0) $turnRed = 'style="color:red"';
 						?>
 						<div id = "<?php echo $currentType . '_' . $object['id'] . '_distribution_placeholder'; ?>" class = "inline-field-placeholder"></div>
-						<div id = "<?php echo $currentType . '_' . $object['id'] . '_distribution_solid'; ?>" <?php echo $turnRed; ?> class="inline-field-solid" onClick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'distribution', <?php echo $event['Event']['id'];?>);">
+						<div id = "<?php echo $currentType . '_' . $object['id'] . '_distribution_solid'; ?>" <?php echo $turnRed; ?> class="inline-field-solid" ondblclick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'distribution', <?php echo $event['Event']['id'];?>);">
 							<?php if ($object['objectType'] == 0) echo h($distributionLevels[$object['distribution']]); ?>&nbsp;
 						</div>
 					</td>
 					<td class="short action-links <?php echo $extra;?>">
 						<?php
 							if ($object['objectType'] == 0) {
+								if ($isSiteAdmin || !$mayModify)  {
+						?>
+									<a href="<?php echo $baseurl;?>/shadow_attributes/edit/<?php echo $object['id']; ?>" title="Propose Edit" class="icon-share useCursorPointer"></a>
+						<?php 
+								}
 								if ($isSiteAdmin || $mayModify) {
 						?>
-							<a href="/attributes/edit/<?php echo $object['id']; ?>" title="Edit" class="icon-edit useCursorPointer"></a>
+							<a href="<?php echo $baseurl;?>/attributes/edit/<?php echo $object['id']; ?>" title="Edit" class="icon-edit useCursorPointer"></a>
 							<span class="icon-trash useCursorPointer" onClick="deleteObject('attributes', 'delete', '<?php echo $object['id']; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
 						<?php 			
-								} else {
-						?>
-									<a href="/shadow_attributes/edit/<?php echo $object['id']; ?>" title="Propose Edit" class="icon-edit useCursorPointer"></a>
-						<?php 
 								}
 							} else {
 								if (($event['Event']['orgc'] == $me['org'] && $mayModify) || $isSiteAdmin) {
@@ -299,13 +323,17 @@
 ?>
 <script type="text/javascript">
 	var all = 1;
-	var page = <?php echo $page; ?>;
+	var page = "<?php echo $page; ?>";
 	var count = <?php echo $pageCount; ?>;
 	$(document).ready(function(){
 		$('input:checkbox').removeAttr('checked');
 		$('.mass-select').hide();
-		$('input[type="checkbox"]').click(function(){
-			attributeListAnyCheckBoxesChecked();
+		$('.mass-proposal-select').hide();
+		$('.select_attribute, .select_all').click(function(){
+			attributeListAnyAttributeCheckBoxesChecked();
+		});
+		$('.select_proposal, .select_all').click(function(){
+			attributeListAnyProposalCheckBoxesChecked();
 		});
 		if (<?php echo $pageCount; ?> > 10) restrictEventViewPagination();
 	});

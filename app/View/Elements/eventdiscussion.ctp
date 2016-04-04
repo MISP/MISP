@@ -34,8 +34,8 @@
 			?>					
 										</td>
 										<td style="text-align:right">
-											<a href = #top class = "whitelink">Top</a> |
-											<a href = #<?php echo $post['Post']['id']; ?> class = "whitelink">#<?php echo h($post['Post']['id'])?></a>
+											<a href="#top" class="whitelink">Top</a> |
+											<a href="<?php echo "#".$post['Post']['id']; ?>" class="whitelink">#<?php echo h($post['Post']['id'])?></a>
 										</td>
 									</tr>
 								</table>
@@ -62,7 +62,7 @@
 			?>
 										<span style="font-style:italic">
 											In reply to post
-											<a href = #<?php echo h($post['Post']['post_id']); ?>>#<?php echo h($post['Post']['post_id'])?></a>
+											<a href="<?php echo "#".h($post['Post']['post_id']); ?>">#<?php echo h($post['Post']['post_id'])?></a>
 										</span>
 			<?php 
 									}
@@ -87,14 +87,14 @@
 												echo $this->Form->postLink('', array('controller' => 'posts', 'action' => 'delete', h($post['Post']['id'])), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete this post?'));
 											} else {
 			?>
-												<a href = "<?php echo Configure::read('MISP.baseurl') . '/posts/add/post/' . h($post['Post']['id']); ?>" class="icon-comment" title = "Reply"></a>
+												<a href="<?php echo $baseurl.'/posts/add/post/'.h($post['Post']['id']); ?>" class="icon-comment" title = "Reply"></a>
 			<?php 							
 											}
 										} else {
 											echo $this->Html->link('', array('controller' => 'posts', 'action' => 'edit', h($post['Post']['id'])), array('class' => 'icon-edit', 'title' => 'Edit'));
 											echo $this->Form->postLink('', array('controller' => 'posts', 'action' => 'delete', h($post['Post']['id'])), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete this post?'));
 			?>
-												<a href = "<?php echo Configure::read('MISP.baseurl') . '/posts/add/post/' . h($post['Post']['id']); ?>" class="icon-comment" title = "Reply"></a>
+												<a href = "<?php echo $baseurl.'/posts/add/post/'.h($post['Post']['id']); ?>" class="icon-comment" title = "Reply"></a>
 			<?php 	
 								
 										}
@@ -128,7 +128,7 @@
 	    </div>
     <?php endif; ?>
 	<div class="comment">
-	<?php echo $this->Form->create('Post', array('url' => '/posts/add/thread/' . $thread_id));?>
+	<?php echo $this->Form->create('Post', array('url' => '/posts/add/event/' . $currentEvent));?>
 		<fieldset>
 		<div class="input clear">
 			<button type="button" title="Insert a quote - just paste your quote between the [quote][/quote] tags." class="toggle-left btn btn-inverse qet" id = "quote"  onclick="insertQuote()">Quote</button>
@@ -150,7 +150,7 @@
 			'success'=>$this->Js->get('#loading')->effect('fadeOut'),
 			'update'=>'#top',
 			'class'=>'btn btn-primary',
-			'url' => '/posts/add/thread/' . $thread_id
+			'url' => '/posts/add/event/' . $currentEvent
 	));
 	echo $this->Form->end();
 	?>

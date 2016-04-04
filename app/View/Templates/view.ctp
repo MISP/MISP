@@ -3,7 +3,7 @@
 	<dl>
 		<dt><?php echo __('Id'); ?></dt>
 		<dd>
-			<?php echo $template['Template']['id']; ?>
+			<?php echo h($template['Template']['id']); ?>
 			&nbsp;
 		</dd>
 		<dt><?php echo __('Name'); ?></dt>
@@ -45,8 +45,6 @@
 	</dl>
 	<div id="templateElements">
 	</div>
-	<div id="popover_form" class="ajax_popover_form"></div>
-	<div id="confirmation_box" class="confirmation_box"></div>
 </div>
 <?php 
 	echo $this->element('side_menu', array('menuList' => 'templates', 'menuItem' => 'view', 'mayModify' => $mayModify));

@@ -5,6 +5,7 @@ if ($isSearch == 1) {
 	echo "<h4>Results for all attributes";
 	if ($keywordSearch != null) echo " with the value containing \"<b>" . h($keywordSearch) . "</b>\"";
 	if ($keywordSearch2 != null) echo " from the events \"<b>" . h($keywordSearch2) . "</b>\"";
+	if ($tags != null) echo " from events tagged \"<b>" . h($tags) . "</b>\"";
 	if ($categorySearch != "ALL") echo " of category \"<b>" . h($categorySearch) . "</b>\"";
 	if ($typeSearch != "ALL") echo " of type \"<b>" . h($typeSearch) . "</b>\"";
 	if (isset($orgSearch) && $orgSearch != '' && $orgSearch != null) echo " created by the organisation \"<b>" . h($orgSearch) . "</b>\"";
@@ -58,7 +59,7 @@ foreach ($attributes as $attribute):
 	?>
 	<tr>
 		<td class="short">
-			<div onclick="document.location='/events/view/<?php echo $attribute['Event']['id'];?>';">
+			<div ondblclick="document.location='<?php echo $baseurl?>/events/view/<?php echo $attribute['Event']['id'];?>';" title="<?php echo h($attribute['Event']['info']); ?>">
 			<?php
 				if ($attribute['Event']['orgc'] == $me['org']) {
 					$style='style="color:red;"';
@@ -67,11 +68,11 @@ foreach ($attributes as $attribute):
 				}
 				$currentCount++;
 			?>
-				<a href="/events/view/<?php echo $attribute['Event']['id'];?>" <?php echo $style;?>><?php echo $attribute['Event']['id'];?></a>
+				<a href="<?php echo $baseurl;?>/events/view/<?php echo $attribute['Event']['id'];?>" <?php echo $style;?>><?php echo $attribute['Event']['id'];?></a>
 			</div>
 		</td>
 		<?php if (Configure::read('MISP.showorg') || $isAdmin): ?>
-		<td class="short" onclick="document.location.href ='/events/view/<?php echo $attribute['Event']['id'];?>'">
+		<td class="short" ondblclick="document.location.href ='<?php echo $baseurl;?>/events/view/<?php echo $attribute['Event']['id'];?>'">
 			<?php
 				$imgRelativePath = 'orgs' . DS . h($attribute['Event']['orgc']) . '.png';
 				$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
@@ -81,38 +82,45 @@ foreach ($attributes as $attribute):
 			&nbsp;
 		</td>
 		<?php endif;?>
-		<td title="<?php echo $categoryDefinitions[$attribute['Attribute']['category']]['desc'];?>" class="short" onclick="document.location='/events/view/<?php echo $attribute['Event']['id'];?>';">
-		<?php echo $attribute['Attribute']['category']; ?>&nbsp;</td>
-		<td title="<?php echo $typeDefinitions[$attribute['Attribute']['type']]['desc'];?>" class="short" onclick="document.location='/events/view/<?php echo $attribute['Event']['id'];?>';">
-		<?php echo $attribute['Attribute']['type']; ?>&nbsp;</td>
-		<td class="showspaces" onclick="document.location='/events/view/<?php echo $attribute['Event']['id'];?>';"><?php
+		<td title="<?php echo $categoryDefinitions[$attribute['Attribute']['category']]['desc'];?>" class="short" ondblclick="document.location='<?php echo $baseurl;?>/events/view/<?php echo $attribute['Event']['id'];?>';">
+		<?php echo h($attribute['Attribute']['category']); ?>&nbsp;</td>
+		<td title="<?php if (isset($typeDefinitions[$attribute['Attribute']['type']])) echo $typeDefinitions[$attribute['Attribute']['type']]['desc'];?>" class="short" ondblclick="document.location='<?php echo $baseurl;?>/events/view/<?php echo $attribute['Event']['id'];?>';">
+		<?php echo h($attribute['Attribute']['type']); ?>&nbsp;</td>
+		<td class="showspaces" ondblclick="document.location='<?php echo $baseurl;?>/events/view/<?php echo $attribute['Event']['id'];?>';"><?php
 			$sigDisplay = nl2br(h($attribute['Attribute']['value']));
 			if ($isSearch == 1 && !empty($replacePairs)) {
 				// highlight the keywords if there are any
 				$sigDisplay = $this->Highlight->highlighter($sigDisplay, $replacePairs);
 			}
 			if ('attachment' == $attribute['Attribute']['type'] || 'malware-sample' == $attribute['Attribute']['type']) {
-				?><a href="/attributes/download/<?php echo $attribute['Attribute']['id'];?>"><?php echo $sigDisplay; ?></a><?php
+				?><a href="<?php echo $baseurl;?>/attributes/download/<?php echo $attribute['Attribute']['id'];?>"><?php echo $sigDisplay; ?></a><?php
 			} elseif ('link' == $attribute['Attribute']['type']) {
-				?><a href="<?php echo h($attribute['Attribute']['value']);?>"><?php echo $sigDisplay; ?></a><?php
+				?><a href="<?php echo $baseurl.h($attribute['Attribute']['value']);?>"><?php echo $sigDisplay; ?></a><?php
 			} else {
 				echo $sigDisplay;
 			}
 			?>
 		</td>
-		<td onclick="document.location ='document.location ='/events/view/<?php echo $attribute['Event']['id'];?>';">
-			<?php echo h($attribute['Attribute']['comment']); ?>&nbsp;
+		<td ondblclick="document.location ='document.location ='<?php echo $baseurl;?>/events/view/<?php echo $attribute['Event']['id'];?>';">
+			<?php
+			$sigDisplay = nl2br(h($attribute['Attribute']['comment']));
+				if ($isSearch == 1 && !empty($replacePairs)) {
+					// highlight the keywords if there are any
+					$sigDisplay = $this->Highlight->highlighter($sigDisplay, $replacePairs);
+			}
+			echo $sigDisplay;
+			?>&nbsp;
 		</td>
-		<td class="short" onclick="document.location ='document.location ='/events/view/<?php echo $attribute['Event']['id'];?>';">
+		<td class="short" ondblclick="document.location ='document.location ='/events/view/<?php echo $attribute['Event']['id'];?>';">
 			<?php echo $attribute['Attribute']['to_ids'] ? 'Yes' : 'No'; ?>&nbsp;
 		</td>
 		<td class="short action-links"><?php
 	if ($isAdmin || ($isAclModify && $attribute['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $attribute['Event']['org'] == $me['org'])) {
-				?><a href="/attributes/edit/<?php echo $attribute['Attribute']['id'];?>" class="icon-edit" title="Edit"></a><?php
+				?><a href="<?php echo $baseurl;?>/attributes/edit/<?php echo $attribute['Attribute']['id'];?>" class="icon-edit" title="Edit"></a><?php
 		echo $this->Form->postLink('',array('action' => 'delete', $attribute['Attribute']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete this attribute?'));
 	}
 	?>
-			<a href="/events/view/<?php echo $attribute['Attribute']['event_id'];?>" class="icon-list-alt" title="View"></a>
+			<a href="<?php echo $baseurl;?>/events/view/<?php echo $attribute['Attribute']['event_id'];?>" class="icon-list-alt" title="View"></a>
 		</td>
 	</tr>
 	<?php
