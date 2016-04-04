@@ -516,12 +516,24 @@ class EventsController extends AppController {
 			if (Configure::read('MISP.showCorrelationsOnIndex')) $this->Event->attachCorrelationCountToEvents($this->Auth->user(), $events);
 			$this->set('events', $events);
 		}
-		
-		if (!$this->Event->User->getPGP($this->Auth->user('id')) && Configure::read('GnuPG.onlyencrypted')) {
-			$this->Session->setFlash(__('No GPG key set in your profile. To receive emails, submit your public key in your profile.'));
-		} elseif ($this->Auth->user('autoalert') && !$this->Event->User->getPGP($this->Auth->user('id')) && Configure::read('GnuPG.bodyonlyencrypted')) {
-			$this->Session->setFlash(__('No GPG key set in your profile. To receive attributes in emails, submit your public key in your profile.'));
-		}
+	
+    if (!$this->Event->User->getPGP($this->Auth->user('id')) && Configure::read('GnuPG.onlyencrypted')) {
+      // No GPG
+      if (!$this->Event->User->getCertificate($this->Auth->user('id')) && Configure::read('SMIME.onlyencrypted')) {
+        // No GPG and No SMIME
+        $this->Session->setFlash(__('No x509 certificate or GPG key set in your profile. To receive emails, submit your public certificate or GPG key in your profile.'));
+      } elseif (!Configure::read('SMIME.onlyencrypted')) {
+        $this->Session->setFlash(__('No GPG key set in your profile. To receive emails, submit your public key in your profile.'));
+      }
+    } elseif ($this->Auth->user('autoalert') && !$this->Event->User->getPGP($this->Auth->user('id')) && Configure::read('GnuPG.bodyonlyencrypted')) {
+      // No GPG & autoalert
+      if ($this->Auth->user('autoalert') && !$this->Event->User->getCertificate($this->Auth->user('id')) && Configure::read('SMIME.onlyencrypted')) {
+        // No GPG and No SMIME & autoalert
+        $this->Session->setFlash(__('No x509 certificate or GPG key set in your profile. To receive attributes in emails, submit your public certificate or GPG key in your profile.'));
+      } elseif (!Configure::read('SMIME.onlyencrypted')) {
+        $this->Session->setFlash(__('No GPG key set in your profile. To receive attributes in emails, submit your public key in your profile.'));
+      }
+    }
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 		$this->set('analysisLevels', $this->Event->analysisLevels);
 		$this->set('distributionLevels', $this->Event->distributionLevels);
@@ -665,7 +677,9 @@ class EventsController extends AppController {
 					}
 				}
 			}
-			if ($proposalStatus && empty($this->Session->read('Message'))) $this->Session->setFlash('This event has active proposals for you to accept or discard.');
+			$mess = $this->Session->read('Message');
+#			if ($proposalStatus && empty($this->Session->read('Message'))) $this->Session->setFlash('This event has active proposals for you to accept or discard.');
+			if ($proposalStatus && empty($mess)) $this->Session->setFlash('This event has active proposals for you to accept or discard.');
 		}
 		// set the pivot data
 		$this->helpers[] = 'Pivot';
@@ -1382,6 +1396,7 @@ class EventsController extends AppController {
 			$creator_only = $this->request->data['Event']['person'];
 			$user = $this->Auth->user();
 			$user['gpgkey'] = $this->Event->User->getPGP($user['id']);
+			$user['certif_public'] = $this->Event->User->getCertificate($user['id']);
 			if ($this->Event->sendContactEmailRouter($id, $message, $creator_only, $user, $this->_isSiteAdmin())) {
 				// redirect to the view event page
 				$this->Session->setFlash(__('Email sent to the reporter.', true));
@@ -1636,7 +1651,7 @@ class EventsController extends AppController {
 			}
 			$user = $this->Auth->user();
 		}
-		
+
 		// display the full snort rulebase
 		$this->loadModel('Attribute');
 		$rules = $this->Attribute->nids($user, $format, $id, $continue, $tags, $from, $to, $last);
@@ -2318,7 +2333,6 @@ class EventsController extends AppController {
 					$subcondition = array();
 				}
 			}
-			
 			// If we sent any tags along, load the associated tag names for each attribute
 			if ($tags) {
 				$args = $this->Event->Attribute->dissectArgs($tags);
