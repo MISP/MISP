@@ -696,31 +696,49 @@ class Event extends AppModel {
 			}
 			// get the remote event_id
 			foreach ($json as $jsonEvent) {
-				foreach ($jsonEvent as $key => $value) {
-					if ($key == 'id') {
-						$remoteId = (int)$value;
-						break;
+				if (is_array($jsonEvent) {
+					foreach ($jsonEvent as $key => $value) {
+						if ($key == 'id') {
+							$remoteId = (int)$value;
+							break;
+						}
 					}
 				}
 			}
-			if ($remoteId) {
-				// get the new attribute uuids in an array
-				$newerUuids = array();
-				foreach ($event['Attribute'] as $attribute) {
-					$newerUuids[$attribute['id']] = $attribute['uuid'];
-					$attribute['event_id'] = $remoteId;
-				}
-				// get the already existing attributes and delete the ones that are not there
-				foreach ($json->Event->Attribute as $attribute) {
-					foreach ($attribute as $key => $value) {
-						if ($key == 'uuid') {
-							if (!in_array((string)$value, $newerUuids)) {
-								$anAttr = ClassRegistry::init('Attribute');
-								$anAttr->deleteAttributeFromServer((string)$value, $server, $HttpSocket);
+			if (isset($remoteId)) {
+				if ($remoteId) {
+					// get the new attribute uuids in an array
+					$newerUuids = array();
+					foreach ($event['Attribute'] as $attribute) {
+						$newerUuids[$attribute['id']] = $attribute['uuid'];
+						$attribute['event_id'] = $remoteId;
+					}
+					// get the already existing attributes and delete the ones that are not there
+					foreach ($json->Event->Attribute as $attribute) {
+						foreach ($attribute as $key => $value) {
+							if ($key == 'uuid') {
+								if (!in_array((string)$value, $newerUuids)) {
+									$anAttr = ClassRegistry::init('Attribute');
+									$anAttr->deleteAttributeFromServer((string)$value, $server, $HttpSocket);
+								}
 							}
 						}
 					}
 				}
+			} else {
+				$log = ClassRegistry::init('Log');
+				$this->Log->create();
+				$this->Log->save(array(
+						'org' => 'SYSTEM',
+						'model' => 'Server',
+						'model_id' => $server['Server']['id'],
+						'email' => 'SYSTEM',
+						'action' => 'warning',
+						'user_id' => 0,
+						'title' => 'Uploading Event (' . $event['Event']['id'] . ') to Server (' . $server['Server']['id'] . ')',
+						'change' => 'Returned message: ', $nrewTextBody,
+				));
+				return false;
 			}
 		}
 		return 'Success';
