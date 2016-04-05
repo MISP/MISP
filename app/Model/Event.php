@@ -646,6 +646,20 @@ class Event extends AppModel {
 		}
 		return $data;
 	}
+	
+	private function __resolveErrorCode($code) {
+		switch ($code) {
+			case 403:
+				return 'The distribution level of this event blocks it from being pushed.';
+				break;
+			case 405:
+				return 'The sync user on the remote instance does not have the required privileges to handle this event.';
+				break;
+			default:
+				return 'There was an error pushing to the instance.';
+				break;
+		}
+	}
 
 	public function uploadEventToServer($event, $server, $HttpSocket = null) {
 		$this->Server = ClassRegistry::init('Server');
@@ -659,18 +673,15 @@ class Event extends AppModel {
 		$updated = null;
 		$newLocation = $newTextBody = '';
 		$result = $this->restfullEventToServer($event, $server, null, $newLocation, $newTextBody, $HttpSocket);
-		if ($result === 403) {
-			return 'The distribution level of this event blocks it from being pushed.';
-		}
-		if ($result === 405) {
-			return 'The sync user on the remote instance does not have the required privileges to handle this event.';
+		if (is_numeric($result)) {
+			return $this->__resolveErrorCode($result) . ' Error code: ' . $result;
 		}
 		if (strlen($newLocation) || $result) { // HTTP/1.1 200 OK or 302 Found and Location: http://<newLocation>
 			if (strlen($newLocation)) { // HTTP/1.1 302 Found and Location: http://<newLocation>
 				//$updated = true;
 				$result = $this->restfullEventToServer($event, $server, $newLocation, $newLocation, $newTextBody, $HttpSocket);
-				if ($result === 405) {
-					return 'You do not have permission to edit this event or the event is up to date.';
+				if (is_numeric($result)) {
+					return $this->__resolveErrorCode($result) . ' Error code: ' . $result;
 				}
 			}
 			$uploadFailed = false;
