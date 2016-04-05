@@ -647,18 +647,31 @@ class Event extends AppModel {
 		return $data;
 	}
 	
-	private function __resolveErrorCode($code) {
+	private function __resolveErrorCode($code, &$event, &$server) {
 		switch ($code) {
 			case 403:
 				return 'The distribution level of this event blocks it from being pushed.';
 				break;
 			case 405:
-				return 'The sync user on the remote instance does not have the required privileges to handle this event.';
+				$error = 'The sync user on the remote instance does not have the required privileges to handle this event.';
 				break;
 			default:
-				return 'There was an error pushing to the instance.';
+				$error =  'There was an error pushing to the instance.';
 				break;
 		}
+		$this->Log = ClassRegistry::init('Log');
+		$this->Log->create();
+		$this->Log->save(array(
+				'org' => 'SYSTEM',
+				'model' => 'Server',
+				'model_id' => $server['Server']['id'],
+				'email' => 'SYSTEM',
+				'action' => 'warning',
+				'user_id' => 0,
+				'title' => 'Uploading Event (' . $event['Event']['id'] . ') to Server (' . $server['Server']['id'] . ')',
+				'change' => 'Remote instance returned an error, with error code: ' . $code,
+		));
+		return $error;
 	}
 
 	public function uploadEventToServer($event, $server, $HttpSocket = null) {
@@ -674,14 +687,14 @@ class Event extends AppModel {
 		$newLocation = $newTextBody = '';
 		$result = $this->restfullEventToServer($event, $server, null, $newLocation, $newTextBody, $HttpSocket);
 		if (is_numeric($result)) {
-			return $this->__resolveErrorCode($result) . ' Error code: ' . $result;
+			return $this->__resolveErrorCode($result, $event, $server) . ' Error code: ' . $result;
 		}
 		if (strlen($newLocation) || $result) { // HTTP/1.1 200 OK or 302 Found and Location: http://<newLocation>
 			if (strlen($newLocation)) { // HTTP/1.1 302 Found and Location: http://<newLocation>
 				//$updated = true;
 				$result = $this->restfullEventToServer($event, $server, $newLocation, $newLocation, $newTextBody, $HttpSocket);
 				if (is_numeric($result)) {
-					return $this->__resolveErrorCode($result) . ' Error code: ' . $result;
+					return $this->__resolveErrorCode($result, $event, $server) . ' Error code: ' . $result;
 				}
 			}
 			$uploadFailed = false;
