@@ -696,7 +696,7 @@ class Event extends AppModel {
 			}
 			// get the remote event_id
 			foreach ($json as $jsonEvent) {
-				if (is_array($jsonEvent) {
+				if (is_array($jsonEvent)) {
 					foreach ($jsonEvent as $key => $value) {
 						if ($key == 'id') {
 							$remoteId = (int)$value;
