@@ -725,7 +725,7 @@ class User extends AppModel {
     if (isset($user['User']['certif_public']) && !empty($user['User']['certif_public'])) $canEncryptSMIME = true;
 	
 		// If bodyonlencrypted is enabled and the user has no encryption key, use the alternate body (if it exists)
-		if (Configure::read('GnuPG.bodyonlyencrypted') && !$canEncryptSMIME && $canEncryptGPG && $bodyNoEnc) {
+		if (Configure::read('GnuPG.bodyonlyencrypted') && !$canEncryptSMIME && !$canEncryptGPG && $bodyNoEnc) {
 			$body = $bodyNoEnc;
 		}
 		$body = str_replace('\n', PHP_EOL, $body);
