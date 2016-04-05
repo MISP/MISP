@@ -736,7 +736,7 @@ class Event extends AppModel {
 						'action' => 'warning',
 						'user_id' => 0,
 						'title' => 'Uploading Event (' . $event['Event']['id'] . ') to Server (' . $server['Server']['id'] . ')',
-						'change' => 'Returned message: ', $nrewTextBody,
+						'change' => 'Returned message: ', $newTextBody,
 				));
 				return false;
 			}
