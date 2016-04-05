@@ -680,7 +680,7 @@ class Event extends AppModel {
 				$uploadFailed = true;
 			}
 			if (!array($json) || $uploadFailed) {
-				$log = ClassRegistry::init('Log');
+				$this->Log = ClassRegistry::init('Log');
 				$this->Log->create();
 				$this->Log->save(array(
 						'org' => 'SYSTEM',
@@ -726,7 +726,7 @@ class Event extends AppModel {
 					}
 				}
 			} else {
-				$log = ClassRegistry::init('Log');
+				$this->Log = ClassRegistry::init('Log');
 				$this->Log->create();
 				$this->Log->save(array(
 						'org' => 'SYSTEM',
