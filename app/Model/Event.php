@@ -1933,8 +1933,8 @@ class Event extends AppModel {
 			// Conditions affecting all:
 			// user.org == event.org
 			// edit timestamp newer than existing event timestamp
-			if (!isset($data['Event']['timestamp'])) $data['Event']['timestamp'] = $date;
-			if ($data['Event']['timestamp'] > $existingEvent['Event']['timestamp']) {
+			if (!isset($data['Event']['timestamp']) || $data['Event']['timestamp'] > $existingEvent['Event']['timestamp']) {
+				if (!isset($data['Event']['timestamp'])) $data['Event']['timestamp'] = $date;
 				if ($data['Event']['distribution'] == 4) {
 					if (!isset($data['Event']['SharingGroup'])) {
 						if (!isset($data['Event']['sharing_group_id'])) return(array('error' => 'Event could not be saved: Sharing group chosen as the distribution level, but no sharing group specified. Make sure that the event includes a valid sharing_group_id or change to a different distribution level.'));
@@ -2003,7 +2003,7 @@ class Event extends AppModel {
 										unset($data['Event']['Attribute'][$k]);
 										continue;
 									}
-								} else $data['Event']['timestamp'] = $date;
+								} else $data['Event']['Attribute'][$k]['timestamp'] = $date;
 							}
 						} else {
 							$this->Attribute->create();
