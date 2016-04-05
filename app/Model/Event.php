@@ -727,6 +727,20 @@ class Event extends AppModel {
 							break;
 						}
 					}
+				} else {
+					$this->Log = ClassRegistry::init('Log');
+					$this->Log->create();
+					$this->Log->save(array(
+							'org' => 'SYSTEM',
+							'model' => 'Server',
+							'model_id' => $server['Server']['id'],
+							'email' => 'SYSTEM',
+							'action' => 'warning',
+							'user_id' => 0,
+							'title' => 'Uploading Event (' . $event['Event']['id'] . ') to Server (' . $server['Server']['id'] . ')',
+							'change' => 'Returned message: ', $newTextBody,
+					));
+					return false;
 				}
 			}
 			if (isset($remoteId)) {
@@ -749,20 +763,6 @@ class Event extends AppModel {
 						}
 					}
 				}
-			} else {
-				$this->Log = ClassRegistry::init('Log');
-				$this->Log->create();
-				$this->Log->save(array(
-						'org' => 'SYSTEM',
-						'model' => 'Server',
-						'model_id' => $server['Server']['id'],
-						'email' => 'SYSTEM',
-						'action' => 'warning',
-						'user_id' => 0,
-						'title' => 'Uploading Event (' . $event['Event']['id'] . ') to Server (' . $server['Server']['id'] . ')',
-						'change' => 'Returned message: ', $newTextBody,
-				));
-				return false;
 			}
 		}
 		return 'Success';
