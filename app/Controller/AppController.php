@@ -124,6 +124,7 @@ class AppController extends Controller {
 					if ($found_misp_auth_key) {
 						if ($user) {
 							unset($user['User']['gpgkey']);
+							unset($user['User']['certif_public']);
 						    // User found in the db, add the user info to the session
 						    if (Configure::read('MISP.log_auth')) {
 								$this->Log = ClassRegistry::init('Log');
@@ -173,6 +174,7 @@ class AppController extends Controller {
 						$user = $this->Auth->user();
 						if ($user) {
 							unset($user['gpgkey']);
+							unset($user['certif_public']);
 							// User found in the db, add the user info to the session
 							$this->Session->renew();
 							$this->Session->write(AuthComponent::$sessionKey, $user);
@@ -567,6 +569,7 @@ class AppController extends Controller {
 				$user['User'] = $temp;
 				if ($user['User']) {
 					unset($user['User']['gpgkey']);
+					unset($user['User']['certif_public']);
 					$this->Session->renew();
 					$this->Session->write(AuthComponent::$sessionKey, $user['User']);
 					if (Configure::read('MISP.log_auth')) {
