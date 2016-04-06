@@ -384,6 +384,7 @@
     </div>
 <script type="text/javascript">
 	var currentUri = "<?php echo isset($currentUri) ? h($currentUri) : '/events/viewEventAttributes/' . h($event['Event']['id']); ?>";
+	var ajaxResults = [];
 	$(document).ready(function(){
 		$('input:checkbox').removeAttr('checked');
 		$('.mass-select').hide();

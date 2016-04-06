@@ -2300,10 +2300,12 @@ class AttributesController extends AppController {
 			if (!empty($result['results'])) {
 				foreach ($result['results'] as &$r) {
 					if (is_array($r['values']) && !empty($r['values'])) {
-						foreach ($r['values'] as $v) {
+						$tempArray = array();
+						foreach ($r['values'] as $k => $v) {
 							if (is_array($v)) $v = 'Array returned';
-							$resultArray[] = array($type => $v);
+							$tempArray[] = $k . ': ' . $v;
 						}
+						$resultArray[] = array($type => $tempArray);
 					} else if ($r['values'] == null) $resultArray[] = array($type => 'No result');
 					else $resultArray[] = array($type => $r['values']);
 				}

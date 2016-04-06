@@ -2293,19 +2293,31 @@ function toggleSettingSubGroup(group) {
 
 function hoverModuleExpand(type, id) {
 	$('.popover').remove();
-	$.ajax({
-		success:function (html) {
-			$('.popover').remove();
-			$('#' + type + '_' + id + '_container').popover({
-				title: 'Lookup results:',
-				content: html,
-				placement: 'left',
-				html: true,
-				trigger: 'focus',
-				container: 'body'
-			}).popover('show');
-		}, 
-		cache: false,
-		url:"/" + type + "s/hoverEnrichment/" + id,
-	});
+	if (type + "_" + id in ajaxResults) {
+		$('#' + type + '_' + id + '_container').popover({
+			title: 'Lookup results:',
+			content: ajaxResults[type + "_" + id],
+			placement: 'left',
+			html: true,
+			trigger: 'focus',
+			container: 'body'
+		}).popover('show');
+	} else {
+		$.ajax({
+			success:function (html) {
+				ajaxResults[type + "_" + id] = html;
+				$('.popover').remove();
+				$('#' + type + '_' + id + '_container').popover({
+					title: 'Lookup results:',
+					content: html,
+					placement: 'left',
+					html: true,
+					trigger: 'focus',
+					container: 'body'
+				}).popover('show');
+			}, 
+			cache: false,
+			url:"/" + type + "s/hoverEnrichment/" + id,
+		});
+	}
 }
