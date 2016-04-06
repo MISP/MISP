@@ -413,6 +413,21 @@ class Event extends AppModel {
 		
 		if (!isset($this->data['Event']['distribution']) || $this->data['Event']['distribution'] != 4) $this->data['Event']['sharing_group_id'] = 0;
 	}
+	
+	public function afterSave($created, $options = array()) {
+		if (!$created) {
+			$this->Correlation = ClassRegistry::init('Correlation');
+			$db = $this->getDataSource();
+			$values = array('id' => $db->value($this->data['Event']['id']));
+			$fields = array('info', 'date');
+			foreach ($fields as $field) {
+				if (isset($this->data['Event'][$field])) {
+					$values[$field] = $db->value($this->data['Event'][$field]);
+					$this->Correlation->updateAll(array('Correlation.' . $field => $values[$field]), array('Correlation.event_id' => $values['id']));
+				}
+			} 
+		}
+	}
 
 	public function isOwnedByOrg($eventid, $org) {
 		return $this->field('id', array('id' => $eventid, 'org_id' => $org)) === $eventid;
