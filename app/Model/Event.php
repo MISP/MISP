@@ -699,7 +699,7 @@ class Event extends AppModel {
 			}
 			$uploadFailed = false;
 			try { // TODO Xml::build() does not throw the XmlException
-				$json = json_decode($newTextBody);
+				$json = json_decode($newTextBody, true);
 			} catch (Exception $e) {
 				$uploadFailed = true;
 			}
@@ -752,7 +752,7 @@ class Event extends AppModel {
 						$attribute['event_id'] = $remoteId;
 					}
 					// get the already existing attributes and delete the ones that are not there
-					foreach ($json->Event->Attribute as $attribute) {
+					foreach ($json['Event']['Attribute'] as $attribute) {
 						foreach ($attribute as $key => $value) {
 							if ($key == 'uuid') {
 								if (!in_array((string)$value, $newerUuids)) {

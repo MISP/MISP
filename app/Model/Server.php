@@ -1418,7 +1418,8 @@ class Server extends AppModel {
 						)
 				), //array of conditions
 				'recursive' => -1, //int
-				'fields' => array('Event.id', 'Event.timestamp', 'Event.uuid'), //array of field names
+				'contain' => array('EventTag' => array('fields' => array('EventTag.tag_id'))),
+				'fields' => array('Event.id', 'Event.timestamp', 'Event.uuid', 'Event.orgc_id'), //array of field names
 		);
 		$eventIds = $this->Event->find('all', $findParams);
 		$eventUUIDsFiltered = $this->getEventIdsForPush($id, $HttpSocket, $eventIds, $user);
@@ -1494,6 +1495,10 @@ class Server extends AppModel {
 		$this->Event = ClassRegistry::init('Event');
 
 		foreach ($eventIds as $k => $event) {
+			if (empty($this->eventFilterPushableServers($event, array($server)))) {
+				unset ($eventIds[$k]);
+				continue;
+			}
 			unset($eventIds[$k]['Event']['id']);
 		}
 		if (null == $HttpSocket) {
