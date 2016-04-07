@@ -74,8 +74,10 @@ GnuPGPass=$(grep -o -P "(?<='password' => ').*(?=')" $MISPPath/app/Config/config
 TmpDir="$(mktemp -d)"
 cp $GnuPGHomeDir/* $TmpDir/
 echo "copy of org images and other custom images"
-cp -r $MISPPath/app/webroot/img/orgs /tmp/MISPBackup/
-cp -r $MISPPath/app/webroot/img/custom /tmp/MISPBackup/
+cp -r $MISPPath/app/webroot/img/orgs $TmpDir/
+cp -r $MISPPath/app/webroot/img/custom $TmpDir/
+cp -r $MISPPath/app/files $TmpDir
+
 echo "MySQL Dump"
 mysqldump --opt -u $MySQLRUser -p$MySQLRPass $MISPDB > $TmpDir/MISPbackupfile.sql
 # Create compressed archive
