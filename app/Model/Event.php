@@ -663,6 +663,7 @@ class Event extends AppModel {
 	}
 	
 	private function __resolveErrorCode($code, &$event, &$server) {
+		$error = false;
 		switch ($code) {
 			case 403:
 				return 'The distribution level of this event blocks it from being pushed.';
@@ -670,22 +671,21 @@ class Event extends AppModel {
 			case 405:
 				$error = 'The sync user on the remote instance does not have the required privileges to handle this event.';
 				break;
-			default:
-				$error =  'There was an error pushing to the instance.';
-				break;
 		}
-		$this->Log = ClassRegistry::init('Log');
-		$this->Log->create();
-		$this->Log->save(array(
-				'org' => 'SYSTEM',
-				'model' => 'Server',
-				'model_id' => $server['Server']['id'],
-				'email' => 'SYSTEM',
-				'action' => 'warning',
-				'user_id' => 0,
-				'title' => 'Uploading Event (' . $event['Event']['id'] . ') to Server (' . $server['Server']['id'] . ')',
-				'change' => 'Remote instance returned an error, with error code: ' . $code,
-		));
+		if ($error) {
+			$this->Log = ClassRegistry::init('Log');
+			$this->Log->create();
+			$this->Log->save(array(
+					'org' => 'SYSTEM',
+					'model' => 'Server',
+					'model_id' => $server['Server']['id'],
+					'email' => 'SYSTEM',
+					'action' => 'warning',
+					'user_id' => 0,
+					'title' => 'Uploading Event (' . $event['Event']['id'] . ') to Server (' . $server['Server']['id'] . ')',
+					'change' => 'Remote instance returned an error, with error code: ' . $code,
+			));
+		}
 		return $error;
 	}
 
@@ -702,14 +702,16 @@ class Event extends AppModel {
 		$newLocation = $newTextBody = '';
 		$result = $this->restfullEventToServer($event, $server, null, $newLocation, $newTextBody, $HttpSocket);
 		if (is_numeric($result)) {
-			return $this->__resolveErrorCode($result, $event, $server) . ' Error code: ' . $result;
+			$error = $this->__resolveErrorCode($result, $event, $server);
+			if ($error) return $error . ' Error code: ' . $result;
 		}
 		if (strlen($newLocation) || $result) { // HTTP/1.1 200 OK or 302 Found and Location: http://<newLocation>
 			if (strlen($newLocation)) { // HTTP/1.1 302 Found and Location: http://<newLocation>
 				//$updated = true;
 				$result = $this->restfullEventToServer($event, $server, $newLocation, $newLocation, $newTextBody, $HttpSocket);
 				if (is_numeric($result)) {
-					return $this->__resolveErrorCode($result, $event, $server) . ' Error code: ' . $result;
+					$error = $this->__resolveErrorCode($result, $event, $server);
+					if ($error) return $error . ' Error code: ' . $result;
 				}
 			}
 			$uploadFailed = false;
@@ -849,7 +851,11 @@ class Event extends AppModel {
 						//'Connection' => 'keep-alive' // LATER followup cakephp ticket 2854 about this problem http://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2854
 				)
 		);
-		$uri = isset($urlPath) ? $urlPath : $url . '/events';
+		$uri = $url . '/events';
+		if (isset($urlPath)) {
+			$pieces = explode('/', $urlPath);
+			$uri .= '/' . end($pieces);
+		}
 		$data = json_encode($event);
 		// LATER validate HTTPS SSL certificate
 		$this->Dns = ClassRegistry::init('Dns');
