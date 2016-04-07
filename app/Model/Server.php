@@ -1571,13 +1571,13 @@ class Server extends AppModel {
 					$uri = $server['Server']['url'] . '/events/pushProposals/' . $event['Event']['uuid'];
 					$response = $HttpSocket->post($uri, $data, $request);
 					if ($response->code == '200') {
-						$result = json_decode($response->body());
-						if ($result->success) {
-							$success += intval($result->counter);
+						$result = json_decode($response->body(), true);
+						if ($result['success']) {
+							$success += intval($result['counter']);
 						} else {
 							$fails++;
-							if ($error_message == "") $result->message;
-							else $error_message += " --- " . $result->message; 
+							if ($error_message == "") $result['message'];
+							else $error_message += " --- " . $result['message']; 
 						}
 					} else {
 						$fails++;
