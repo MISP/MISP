@@ -1,6 +1,6 @@
 #@IgnoreInspection BashAddShebang
 #/!bin/sh
-## $Id: misp-backup.sh 03/03/2016 $
+## $Id: misp-backup.sh 07.04.2016 $
 ##
 ## script to backup MISP on debian/ubuntu 14.04.1
 ##
@@ -16,7 +16,7 @@
 ## built system. This is not intended as an upgrade script
 ## to move between MISP versions - But it might work ;).
 ##
-## Tested against MISP 2.4
+## Tested against MISP 2.4.33
 ##
 ## Run the script as the standard user with the command below
 ##
@@ -71,9 +71,14 @@ GnuPGEmail=$(sed -n -e '/GnuPG/,$p' $MISPPath/app/Config/config.php|grep -o -P "
 GnuPGHomeDir=$(grep -o -P "(?<='homedir' => ').*(?=')" $MISPPath/app/Config/config.php)
 GnuPGPass=$(grep -o -P "(?<='password' => ').*(?=')" $MISPPath/app/Config/config.php)
 # Create backup files
-mkdir /tmp/MISPBackup
-cp $GnuPGHomeDir/* /tmp/MISPBackup/
-mysqldump --opt -u $MySQLRUser -p$MySQLRPass $MISPDB > /tmp/MISPBackup/MISPbackupfile.sql
+TmpDir="$(mktemp -d)"
+cp $GnuPGHomeDir/* $TmpDir/
+echo "copy of org images and other custom images"
+cp -r $MISPPath/app/webroot/img/orgs /tmp/MISPBackup/
+cp -r $MISPPath/app/webroot/img/custom /tmp/MISPBackup/
+echo "MySQL Dump"
+mysqldump --opt -u $MySQLRUser -p$MySQLRPass $MISPDB > $TmpDir/MISPbackupfile.sql
 # Create compressed archive
-tar -zcvf $OutputDirName/$OutputFileName-$(date "+%b_%d_%Y_%H_%M_%S").tar.gz /tmp/MISPBackup
+tar -zcvf $OutputDirName/$OutputFileName-$(date "+%b_%d_%Y_%H_%M_%S").tar.gz $TmpDir
+rm -rf $TmpDir
 echo 'MISP Backup Complete!!!'
