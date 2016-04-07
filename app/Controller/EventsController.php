@@ -3521,6 +3521,7 @@ class EventsController extends AppController {
 			$complexTypeTool = new ComplexTypeTool();
 			if (isset($result['results']) && !empty($result['results'])) {
 				foreach ($result['results'] as $k => &$r) {
+					if (!is_array($r['values'])) $r['values'] = array($r['values']);
 					foreach ($r['values'] as &$value) if (!is_array($r['values']) || !isset($r['values'][0])) $r['values'] = array($r['values']);
 					foreach ($r['values'] as &$value) {
 							if (in_array('freetext', $r['types'])) {
