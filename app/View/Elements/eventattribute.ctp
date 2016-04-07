@@ -252,6 +252,7 @@
 											$otherColour = 'white';
 										}
 										$relatedObject = $object['objectType'] == 0 ? 'Attribute' : 'ShadowAttribute';
+
 										if (isset($event['Related' . $relatedObject][$object['id']]) && (null != $event['Related' . $relatedObject][$object['id']])) {
 											foreach ($event['Related' . $relatedObject][$object['id']] as $relatedAttribute) {
 												$relatedData = array('Event info' => $relatedAttribute['info'], 'Correlating Value' => $relatedAttribute['value']);
@@ -386,6 +387,7 @@
 	var currentUri = "<?php echo isset($currentUri) ? h($currentUri) : '/events/viewEventAttributes/' . h($event['Event']['id']); ?>";
 	var ajaxResults = [];
 	$(document).ready(function(){
+		popoverStartup();
 		$('input:checkbox').removeAttr('checked');
 		$('.mass-select').hide();
 		$('.mass-proposal-select').hide();
