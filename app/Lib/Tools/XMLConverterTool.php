@@ -86,7 +86,12 @@ class XMLConverterTool {
 				$this->__sanitizeField($event['Event']['Attribute'][$key]['value']);
 				$this->__sanitizeField($event['Event']['Attribute'][$key]['comment']);
 				unset($event['Event']['Attribute'][$key]['value1'], $event['Event']['Attribute'][$key]['value2'], $event['Event']['Attribute'][$key]['category_order']);
-				if (isset($event['Event']['RelatedAttribute']) && isset($event['Event']['RelatedAttribute'][$value['id']])) $event['Event']['Attribute'][$key]['RelatedAttribute'] = $event['Event']['RelatedAttribute'][$value['id']];
+				if (isset($event['Event']['RelatedAttribute']) && isset($event['Event']['RelatedAttribute'][$value['id']])) {
+					$event['Event']['Attribute'][$key]['RelatedAttribute'] = $event['Event']['RelatedAttribute'][$value['id']];
+					foreach ($event['Event']['Attribute'][$key]['RelatedAttribute'] as &$ra) {
+						$ra = array('Attribute' => array(0 => $ra));
+					}
+				}
 				if (isset($event['Event']['Attribute'][$key]['ShadowAttribute'])) {
 					foreach($event['Event']['Attribute'][$key]['ShadowAttribute'] as $skey => $svalue) {
 						$this->__sanitizeField($event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['value']);

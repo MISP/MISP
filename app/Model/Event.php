@@ -1315,8 +1315,7 @@ class Event extends AppModel {
 				'ShadowAttribute' => array(
 					'fields' => $fieldsShadowAtt,
 					'conditions' => array('deleted' => 0),
-					'Org' => array('fields' => $fieldsOrg),
-					'EventOrg' => array('fields' => $fieldsOrg)
+					'Org' => array('fields' => $fieldsOrg)
 				),
 				'SharingGroup' => $fieldsSharingGroup[(($user['Role']['perm_site_admin'] || $user['Role']['perm_sync']) ? 1 : 0)],
 				'EventTag' => array(
