@@ -36,7 +36,7 @@ frontend-deps:
 	# bootstrap-timepicker
 	wget -qO- https://github.com/jdewit/bootstrap-timepicker/releases/download/v0.5.2/bootstrap-timepicker.tar.gz | tar -C webroot/ --strip-components 1 --exclude="*.json" --exclude="*.md" --exclude="*.less" -xzv
 	# bootstrap-datepicker
-	wget -qO- https://github.com/eternicode/bootstrap-datepicker/releases/download/v1.6.0/bootstrap-datepicker-1.6.0-dist.zip | tar -C webroot/ -xvf-
+	wget -qO- https://github.com/eternicode/bootstrap-datepicker/releases/download/v1.6.0/bootstrap-datepicker-1.6.0-dist.zip | bsdtar -C webroot/ -xvf-
 	# jQuery stuff
 	wget -q -O webroot/js/jquery.min.js https://code.jquery.com/jquery-2.2.3.min.js
 	wget -q -O webroot/js/jquery-ui.min.js https://code.jquery.com/ui/1.11.4/jquery-ui.min.js
