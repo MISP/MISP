@@ -60,3 +60,10 @@
 *.swp
 /app/Plugin/CakeResque/
 /app/vendor/
+/app/webroot/*/bootstrap*
+/app/webroot/fonts/
+/app/webroot/img/bootstrap-colorpicker/
+/app/webroot/js/d3.v3.min.js
+/app/webroot/*/jquery*
+/app/webroot/js/npm.js
+/app/webroot/locales/
