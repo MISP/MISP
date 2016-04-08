@@ -8,17 +8,16 @@
 	</title>
 	<?php
         echo $this->Html->meta('icon');
-        echo $this->Html->css('roboto');
         echo $this->Html->css('bootstrap');
-        echo $this->Html->css('datepicker');
-        echo $this->Html->css('bootstrap-timepicker');
+        echo $this->Html->css('bootstrap-datepicker.min');
+        echo $this->Html->css('bootstrap-timepicker.min');
         echo $this->Html->css('bootstrap-colorpicker.min');
         echo $this->Html->css('main');
         echo $this->Html->css('print', 'stylesheet', array('media' => 'print'));
         echo $this->fetch('meta');
         echo $this->fetch('css');
         echo $this->fetch('script');
-        echo $this->Html->script('jquery-2.1.0.min');
+        echo $this->Html->script('jquery.min');
     ?>
 </head>
 <body>
@@ -68,8 +67,8 @@
     echo $this->element('footer');
     echo $this->element('sql_dump');
     echo $this->Html->script('bootstrap.min');
-    echo $this->Html->script('bootstrap-timepicker');
-    echo $this->Html->script('bootstrap-datepicker');
+    echo $this->Html->script('bootstrap-timepicker.min');
+    echo $this->Html->script('bootstrap-datepicker.min');
     echo $this->Html->script('bootstrap-colorpicker.min');
     echo $this->Html->script('main');
     echo $this->Html->script('ajaxification');
