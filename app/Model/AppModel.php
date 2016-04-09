@@ -134,7 +134,7 @@ class AppModel extends Model {
 				`attribute_id` int(11) NOT NULL,
 				`event_id` int(11) NOT NULL,
 				`org_id` int(11) NOT NULL,
-				`date_sighting` datetime NOT NULL,
+				`date_sighting` bigint(20) NOT NULL,
 				PRIMARY KEY (`id`),
 				INDEX `attribute_id` (`attribute_id`),
 				INDEX `event_id` (`event_id`),
