@@ -113,7 +113,7 @@
 						<th style="width:10px;border:1px solid #cccccc;border-left:0px;text-align: left;"></th>
 					</tr>
 					<?php 
-						$fields = array('published', 'org', 'tag', 'date', 'eventinfo', 'threatlevel', 'analysis', 'distribution', 'attribute');
+						$fields = array('published', 'org', 'tag', 'date', 'eventinfo', 'eventid', 'threatlevel', 'analysis', 'distribution', 'attribute');
 						foreach ($fields as $k => $field):
 					?>
 						<tr id="row_<?php echo $field; ?>" class="hidden filterTableRow">
@@ -183,9 +183,9 @@ var filtering = <?php echo $filtering; ?>;
 
 var operators = ["OR", "NOT"];
 
-var allFields = ["published", "tag", "date", "eventinfo", "threatlevel", "distribution", "analysis", "attribute"];
+var allFields = ["published", "tag", "date", "eventinfo", "eventid", "threatlevel", "distribution", "analysis", "attribute"];
 
-var simpleFilters = ["tag", "eventinfo", "threatlevel", "distribution", "analysis", "attribute", "eventid"];
+var simpleFilters = ["tag", "eventinfo", "eventid", "threatlevel", "distribution", "analysis", "attribute"];
 
 var differentFilters = ["published", "date"];
 

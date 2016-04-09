@@ -34,7 +34,7 @@ class OrganisationsController extends AppController {
 			$passedArgs['searchall'] = $searchall;
 			$allSearchFields = array('name', 'description', 'nationality', 'sector', 'type', 'contacts');
 			foreach ($allSearchFields as $field) {
-				$conditions['OR'][] = array('Organisation.' . $field . ' LIKE' => '%' . $passedArgs['searchall'] . '%');
+				$conditions['OR'][] = array('LOWER(Organisation.' . $field . ') LIKE' => '%' . strtolower($passedArgs['searchall']) . '%');
 			}
 		}
 		$this->set('passedArgs', json_encode($passedArgs));

@@ -43,26 +43,26 @@ class JSONConverterTool {
 				unset($event['Event']['Attribute'][$key]['value1']);
 				unset($event['Event']['Attribute'][$key]['value2']);
 				unset($event['Event']['Attribute'][$key]['category_order']);
-				if (isset($event['Event']['RelatedAttribute'][$value['id']])) $event['Event']['Attribute'][$key]['RelatedAttribute'] = $event['Event']['RelatedAttribute'][$value['id']];
+				if (isset($event['RelatedAttribute'][$value['id']])) {
+					$event['Event']['Attribute'][$key]['RelatedAttribute'] = $event['Event']['RelatedAttribute'][$value['id']];
+					foreach ($event['Event']['Attribute'][$key]['RelatedAttribute'] as &$ra) {
+						$ra = array('Attribute' => $ra);
+					}
+				}
 			}
 		}
 		unset($event['Event']['RelatedAttribute']);
-		
 		if (isset($event['Event']['RelatedEvent'])) {
 			foreach ($event['Event']['RelatedEvent'] as $key => $value) {
-				$temp = $value['Event'];
-				unset($event['Event']['RelatedEvent'][$key]['Event']);
-				$event['Event']['RelatedEvent'][$key]['Event'][0] = $temp;
-				unset($event['Event']['RelatedEvent'][$key]['Event'][0]['user_id']);
+				unset($event['Event']['RelatedEvent'][$key]['Event']['user_id']);
 				if (!Configure::read('MISP.showorg') && !$isSiteAdmin) {
-					unset($event['Event']['RelatedEvent'][$key]['Event'][0]['org']);
-					unset($event['Event']['RelatedEvent'][$key]['Event'][0]['orgc']);
+					unset($event['Event']['RelatedEvent'][$key]['Event']['org']);
+					unset($event['Event']['RelatedEvent'][$key]['Event']['orgc']);
 				}
-				unset($temp);
 			}
 		}
 		$result = array('Event' => $event['Event']);
-		if (isset($event['errors']))$result = array_merge($result, array('errors' => $event['errors']));
+		if (isset($event['errors'])) $result = array_merge($result, array('errors' => $event['errors']));
 		return json_encode($result);
 	}
 	

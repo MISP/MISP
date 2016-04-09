@@ -401,8 +401,9 @@ class Server extends AppModel {
 							'description' =>'Show the full tag names on the event index.',
 							'value' => '',
 							'errorMessage' => '',
-							'test' => 'testBool',
-							'type' => 'boolean',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+							'options' => array(0 => 'Minimal tags', 1 => 'Full tags', 2 => 'Shortened tags'),
 					),
 					'welcome_text_top' => array(
 							'level' => 2,
@@ -1444,7 +1445,8 @@ class Server extends AppModel {
 						)
 				), //array of conditions
 				'recursive' => -1, //int
-				'fields' => array('Event.id', 'Event.timestamp', 'Event.uuid'), //array of field names
+				'contain' => array('EventTag' => array('fields' => array('EventTag.tag_id'))),
+				'fields' => array('Event.id', 'Event.timestamp', 'Event.uuid', 'Event.orgc_id'), //array of field names
 		);
 		$eventIds = $this->Event->find('all', $findParams);
 		$eventUUIDsFiltered = $this->getEventIdsForPush($id, $HttpSocket, $eventIds, $user);
@@ -1520,6 +1522,10 @@ class Server extends AppModel {
 		$this->Event = ClassRegistry::init('Event');
 
 		foreach ($eventIds as $k => $event) {
+			if (empty($this->eventFilterPushableServers($event, array($server)))) {
+				unset ($eventIds[$k]);
+				continue;
+			}
 			unset($eventIds[$k]['Event']['id']);
 		}
 		if (null == $HttpSocket) {
@@ -1592,13 +1598,13 @@ class Server extends AppModel {
 					$uri = $server['Server']['url'] . '/events/pushProposals/' . $event['Event']['uuid'];
 					$response = $HttpSocket->post($uri, $data, $request);
 					if ($response->code == '200') {
-						$result = json_decode($response->body());
-						if ($result->success) {
-							$success += intval($result->counter);
+						$result = json_decode($response->body(), true);
+						if ($result['success']) {
+							$success += intval($result['counter']);
 						} else {
 							$fails++;
-							if ($error_message == "") $result->message;
-							else $error_message += " --- " . $result->message; 
+							if ($error_message == "") $result['message'];
+							else $error_message += " --- " . $result['message']; 
 						}
 					} else {
 						$fails++;

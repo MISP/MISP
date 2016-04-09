@@ -944,9 +944,14 @@ class EventsController extends AppController {
 					} else {
 						if ($this->_isRest()) { // TODO return error if REST
 							if(is_numeric($add)) {
-								$this->response->header('Location', Configure::read('MISP.baseurl') . '/events/' . $add);
-								$this->response->send();
-								throw new NotFoundException('Event already exists, if you would like to edit it, use the url in the location header.');
+								$this->response->location(Configure::read('MISP.baseurl') . '/events/' . $add);
+								$this->response->statusCode(302);
+								$message = 'Event already exists, if you would like to edit it, use the url in the location header.';
+								$this->set('name', $message);
+								$this->set('message', $message);
+								$this->set('url', $this->here);
+								$this->set('_serialize', array('name', 'message', 'url'));
+								return false;
 							}
 							$this->set('name', 'Add event failed.');
 							$this->set('message', 'The event could not be saved.');
@@ -3191,39 +3196,63 @@ class EventsController extends AppController {
 		$successCount = 0;
 		$errors = array();
 		foreach ($data['files'] as $file) {
-			$temp = $this->Event->Attribute->handleMaliciousBase64($data['event_id'], $file['filename'], $file['data'], array_keys($hashes));
-			if ($temp['success']) {
-				foreach ($hashes as $hash => $typeName) {
-					if ($temp[$hash] == false) continue;
-					$file[$hash] = $temp[$hash];
-					$file['data'] = $temp['data'];
-					$this->Event->Attribute->create();
-					$attribute = array(
-							'value' => $file['filename'] . '|' . $file[$hash],
-							'distribution' => $data['distribution'],
-							'category' => $data['category'],
-							'type' => $typeName,
-							'event_id' => $data['event_id'],
-							'to_ids' => $data['to_ids']
-					);
-					if ($hash == 'md5') $attribute['data'] = $file['data'];
-					$result = $this->Event->Attribute->save($attribute);
-					if (!$result) {
-						$this->Log->save(array(
-								'org' => $this->Auth->user('Organisation')['name'],
-								'model' => 'Event',
-								'model_id' => $data['event_id'],
-								'email' => $this->Auth->user('email'),
-								'action' => 'upload_sample',
-								'user_id' => $this->Auth->user('id'),
-								'title' => 'Error: Failed to create attribute using the upload sample functionality',
-								'change' => 'There was an issue creating an attribute (' . $typeName . ': ' . $file['filename'] . '|' . $file[$hash] . '). ' . 'The validation errors were: ' . json_encode($this->Event->Attribute->validationErrors),
-						));
-						if ($typeName == 'malware-sample') $errors[] = array('filename' => $file['filename'], 'hash' => $file[$hash], 'error' => $this->Event->Attribute->validationErrors);
-					} else if ($typeName == 'malware-sample') $successCount++;
+			if ($data['to_ids']) {
+				$temp = $this->Event->Attribute->handleMaliciousBase64($data['event_id'], $file['filename'], $file['data'], array_keys($hashes));
+				if ($temp['success']) {
+					foreach ($hashes as $hash => $typeName) {
+						if ($temp[$hash] == false) continue;
+						$file[$hash] = $temp[$hash];
+						$file['data'] = $temp['data'];
+						$this->Event->Attribute->create();
+						$attribute = array(
+								'value' => $file['filename'] . '|' . $file[$hash],
+								'distribution' => $data['distribution'],
+								'category' => $data['category'],
+								'type' => $typeName,
+								'event_id' => $data['event_id'],
+								'to_ids' => $data['to_ids']
+						);
+						if ($hash == 'md5') $attribute['data'] = $file['data'];
+						$result = $this->Event->Attribute->save($attribute);
+						if (!$result) {
+							$this->Log->save(array(
+									'org' => $this->Auth->user('Organisation')['name'],
+									'model' => 'Event',
+									'model_id' => $data['event_id'],
+									'email' => $this->Auth->user('email'),
+									'action' => 'upload_sample',
+									'user_id' => $this->Auth->user('id'),
+									'title' => 'Error: Failed to create attribute using the upload sample functionality',
+									'change' => 'There was an issue creating an attribute (' . $typeName . ': ' . $file['filename'] . '|' . $file[$hash] . '). ' . 'The validation errors were: ' . json_encode($this->Event->Attribute->validationErrors),
+							));
+							if ($typeName == 'malware-sample') $errors[] = array('filename' => $file['filename'], 'hash' => $file[$hash], 'error' => $this->Event->Attribute->validationErrors);
+						} else if ($typeName == 'malware-sample') $successCount++;
+					}
+				} else {
+					$errors[] = array('filename' => $file['filename'], 'hash' => $file['hash'], 'error' => 'Failed to encrypt and compress the file.');
 				}
 			} else {
-				$errors[] = array('filename' => $file['filename'], 'hash' => $file['hash'], 'error' => 'Failed to encrypt and compress the file.');
+				$this->Event->Attribute->create();
+				$attribute = array(
+						'value' => $file['filename'],
+						'distribution' => $data['distribution'],
+						'category' => $data['category'],
+						'type' => 'attachment',
+						'event_id' => $data['event_id'],
+						'to_ids' => $data['to_ids'],
+						'data' => $file['data']
+				);
+				$result = $this->Event->Attribute->save($attribute);
+				$this->Log->save(array(
+						'org' => $this->Auth->user('Organisation')['name'],
+						'model' => 'Event',
+						'model_id' => $data['event_id'],
+						'email' => $this->Auth->user('email'),
+						'action' => 'upload_sample',
+						'user_id' => $this->Auth->user('id'),
+						'title' => 'Error: Failed to create attribute using the upload sample functionality',
+						'change' => 'There was an issue creating an attribute (attachment: ' . $file['filename'] . '). ' . 'The validation errors were: ' . json_encode($this->Event->Attribute->validationErrors),
+				));
 			}
 		}
 		if (!empty($errors)) {
@@ -3492,6 +3521,7 @@ class EventsController extends AppController {
 			$complexTypeTool = new ComplexTypeTool();
 			if (isset($result['results']) && !empty($result['results'])) {
 				foreach ($result['results'] as $k => &$r) {
+					if (!is_array($r['values'])) $r['values'] = array($r['values']);
 					foreach ($r['values'] as &$value) if (!is_array($r['values']) || !isset($r['values'][0])) $r['values'] = array($r['values']);
 					foreach ($r['values'] as &$value) {
 							if (in_array('freetext', $r['types'])) {

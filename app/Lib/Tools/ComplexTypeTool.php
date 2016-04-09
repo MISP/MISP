@@ -89,7 +89,7 @@ class ComplexTypeTool {
 		32 => array('single' => array('md5', 'imphash'), 'composite' => array('filename|md5', 'filename|imphash')),
 		40 => array('single' => array('sha1', 'pehash', 'x509-fingerprint-sha1'), 'composite' => array('filename|sha1', 'filename|pehash')),
 		56 => array('single' => array('sha224', 'sha512/224'), array('sha224', 'sha512/224')),
-		64 => array('single' => array('sha256, authentihash', 'sha512/256'), 'composite' => array('sha256, authentihash', 'sha512/256')),
+		64 => array('single' => array('sha256', 'authentihash', 'sha512/256'), 'composite' => array('sha256', 'authentihash', 'sha512/256')),
 		96 => array('single' => array('sha384'), 'composite' => array('sha384')),
 		128 => array('single' => array('sha512'), 'composite' => array('sha512'))
 	);
