@@ -143,20 +143,6 @@
 				</dd>
 				<dt class="<?php echo ($event['Event']['published'] == 0) ? (($isAclPublish && $me['org_id'] == $event['Event']['orgc_id']) ? 'background-red bold' : 'bold') : 'bold'; ?>">Published</dt>
 				<dd class="<?php echo ($event['Event']['published'] == 0) ? (($isAclPublish && $me['org_id'] == $event['Event']['orgc_id']) ? 'background-red bold' : 'red bold') : 'green bold'; ?>"><?php echo ($event['Event']['published'] == 0) ? 'No' : 'Yes'; ?></dd>
-				<?php 
-					$dtclass='published';
-					$ddclass='published green';
-					if (!$event['Event']['published']) {
-						if ($isAclPublish) {
-							$dtclass = $ddclass = 'visibleDL notPublished';
-						} else {
-							$dtclass = 'notPublished';
-							$ddclass = 'nobPublished red';
-						}
-					}
-				?>
-				<dt class="<?php echo $dtclass;?>">Published</dt>
-				<dd class="<?php echo $ddclass;?>"><?php echo ($event['Event']['published'] ? 'Yes' : 'No');?></dd>
 				<?php if (Configure::read('Plugin.Sightings_enable')): ?>
 				<dt>Sightings</dt>
 				<dd style="word-wrap: break-word;">

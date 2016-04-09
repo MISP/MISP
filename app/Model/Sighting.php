@@ -11,7 +11,7 @@ class Sighting extends AppModel{
 		'event_id' => 'numeric',
 		'attribute_id' => 'numeric',
 		'org_id' => 'numeric',
-		'date_sighting' => 'datetime'
+		'date_sighting' => 'numeric'
 	);
 	
 	public $belongsTo = array(
@@ -72,5 +72,72 @@ class Sighting extends AppModel{
 			$sightings[$k] = $sightings[$k]['Sighting'] ;
 		}
 		return $sightings; 
+	}
+	
+	public function saveSightings($id, $values, $timestamp, $user) {
+		$conditions = array();
+		if ($id && $id !== 'stix') {
+			if (strlen($id) == 36) $conditions = array('Attribute.uuid' => $id);
+			else $conditions = array('Attribute.id' => $id);
+		} else {
+			if (!$values) return 0;
+			foreach ($values as &$value) {
+				foreach (array('value1', 'value2') as $field) {
+					$conditions['OR'][] = array(
+						'LOWER(Attribute.' . $field . ') LIKE' => strtolower($value) 	
+					);
+				}
+			}
+		}
+		$attributes = $this->Attribute->fetchAttributes($user, array('conditions' => $conditions));
+		if (empty($attributes)) return 0;
+		$sightingsAdded = 0;
+		foreach ($attributes as &$attribute) {
+			$this->create();
+			$sighting = array(
+					'attribute_id' => $attribute['Attribute']['id'],
+					'event_id' => $attribute['Attribute']['event_id'],
+					'org_id' => $user['org_id'],
+					'date_sighting' => $timestamp,
+			);
+			$sightingsAdded += $this->save($sighting) ? 1 : 0;
+		}
+		return $sightingsAdded;
+	}
+	
+	public function handleStixSighting($data) {
+		$randomFileName = $this->generateRandomFileName();
+		$tempFile = new File (APP . "files" . DS . "scripts" . DS . "tmp" . DS . $randomFileName, true, 0644);
+		
+		// save the json_encoded event(s) to the temporary file
+		if (!$tempFile->write($data)) return array('success' => 0, 'message' => 'Could not write the Sightings file to disk.');
+		$tempFile->close();
+		$scriptFile = APP . "files" . DS . "scripts" . DS . "stixsighting2misp.py";
+		// Execute the python script and point it to the temporary filename
+		$result = shell_exec('python ' . $scriptFile . ' ' . $randomFileName);
+		// The result of the script will be a returned JSON object with 2 variables: success (boolean) and message
+		// If success = 1 then the temporary output file was successfully written, otherwise an error message is passed along
+		$result = json_decode($result, true);
+
+		if ($result['success'] == 1) {
+			$file = new File(APP . "files" . DS . "scripts" . DS . "tmp" . DS . $randomFileName . ".out");
+			$result['data'] = $file->read();
+			$file->close();
+			$file->delete();
+		}
+		$tempFile->delete();
+		return $result;
+		
+	}
+	
+	public function generateRandomFileName() {
+		$length = 12;
+		$characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+		$charLen = strlen($characters) - 1;
+		$fn = '';
+		for ($p = 0; $p < $length; $p++) {
+			$fn .= $characters[rand(0, $charLen)];
+		}
+		return $fn;
 	}
 }

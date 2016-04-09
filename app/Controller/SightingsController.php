@@ -16,42 +16,48 @@ class SightingsController extends AppController {
 	);
 
 	// takes an attribute ID or UUID
-	public function add($id) {
+	public function add($id = false) {
 		if (!$this->userRole['perm_add']) throw new MethodNotAllowedException('You are not authorised to add sightings data as you don\'t have write access.');
 		if (!$this->request->is('post')) throw new MethodNotAllowedException('This action can only be accessed via a post request.');
-		if (strlen($id) == 36) $conditions = array('Attribute.uuid' => $id);
-		else $conditions = array('Attribute.id' => $id);
-		$attribute = $this->Sighting->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => $conditions));
-		if (empty($attribute)) throw new NotFoundException('Could not add sighting information, invalid attribute.');
-		// normalise the request data if it exists
-		if (isset($this->request->data['request'])) $this->request->data = $this->request->data['request'];
-		if (isset($this->request->data['Sighting'])) $this->request->data = $this->request->data['Sighting'];
-		$attribute = $attribute[0];
-		$this->Sighting->create();
-		$date = date('Y-m-d H:i:s');
-		$sighting = array(
-			'attribute_id' => $attribute['Attribute']['id'],
-			'event_id' => $attribute['Attribute']['event_id'],
-			'org_id' => $this->Auth->user('org_id'),
-			'date_sighting' => isset($this->request->data['date_sighting']) ? $this->request->data['date_sighting'] : $date,
-		);
-		$result = $this->Sighting->save($sighting);
+		$now = time();
+		$values = false;
+		$timestamp = false;
+		$error = false;
+		if ($id === 'stix') {
+			$result = $this->Sighting->handleStixSighting(file_get_contents('php://input'));
+			if ($result['success']) {
+				$result['data'] = json_decode($result['data'], true);
+				$timestamp = isset($result['data']['timestamp']) ? strtotime($result['data']['timestamp']) : $now;
+				if (isset($result['data']['values'])) $values = $result['data']['values'];
+				else $error = 'No valid values found could be extracted from the sightings document.';
+			} $error = $result['message'];
+		} else {
+			if (isset($this->request->data['request'])) $this->request->data = $this->request->data['request'];
+			if (isset($this->request->data['Sighting'])) $this->request->data = $this->request->data['Sighting'];
+			$timestamp = isset($this->request->data['timestamp']) ? $this->request->data['timestamp'] : $now;
+			if (isset($this->request->data['value'])) $this->request->data['values'] = array($this->request->data['value']);
+			$values = isset($this->request->data['values']) ? $this->request->data['values'] : false;
+			if (!$id && isset($this->request->data['id'])) $id = $this->request->data['id'];
+		}
+		if (!$error) $result = $this->Sighting->saveSightings($id, $values, $timestamp, $this->Auth->user());
+		if ($result == 0) $error = 'No valid attributes found that would match the sighting criteria.';
+		
 		if ($this->request->is('ajax')) {
-			if (!$result) {
-				$error_message = 'Could not add the Sighting. Reason: ' . json_encode($this->Sighting->validationErrors);
+			if ($error) {
+				$error_message = 'Could not add the Sighting. Reason: ' . $error;
 				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $error_message)), 'status' => 200));
 			} else {
-				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Sighting added.')), 'status' => 200));
+				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $result . ' sighting' . (($result == 1) ? '' : 's') . '  added.')), 'status' => 200));
 			}
 		} else {
-			if (!$result) {
-				$this->set('errors', json_encode($this->Sighting->validatidationErrors));
-				$this->set('name', 'Failed');
+			if ($error) {
+				$this->set('errors', $error);
+				$this->set('name', 'Could not add the Sighting.');
 				$this->set('message', 'Could not add the Sighting.');
 				$this->set('_serialize', array('name', 'message', 'errors'));
 			} else {
-				$this->set('name', 'Success');
-				$this->set('message', 'Sighting successfuly added.');
+				$this->set('name', 'Sighting added.');
+				$this->set('message', $result . ' sighting' . (($result == 1) ? '' : 's') . ' successfuly added.');
 				$this->set('url', '/sightings/add/' . $id);
 				$this->set('id', $this->Sighting->id);
 				$this->set('_serialize', array('name', 'message', 'url', 'id'));
