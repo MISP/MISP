@@ -32,7 +32,7 @@
 		<div>
 		<?php
 			}
-			echo $this->Form->create('User', array('action' => 'login'));
+			echo $this->Form->create('User');
 			echo $this->Form->inputs(array(
 				'legend' => __('Login', true),
 				'email' => array('autocomplete' => 'off'),
