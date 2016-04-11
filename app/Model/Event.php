@@ -1673,7 +1673,7 @@ class Event extends AppModel {
 	 			elseif ('email-src' == $attribute['type'] or 'email-dst' == $attribute['type']) {
 	 				$line = str_replace("@","[at]", $line);
 	 			}
-	 			elseif ('domain' == $attribute['type'] or 'ip-src' == $attribute['type'] or 'ip-dst' == $attribute['type']) {
+				elseif ('hostname' == $attribute['type'] or 'domain' == $attribute['type'] or 'ip-src' == $attribute['type'] or 'ip-dst' == $attribute['type']) {
 	 				$line = str_replace(".","[.]", $line);
 	 			}
 	 	
