@@ -401,8 +401,9 @@ class Server extends AppModel {
 							'description' =>'Show the full tag names on the event index.',
 							'value' => '',
 							'errorMessage' => '',
-							'test' => 'testBool',
-							'type' => 'boolean',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+							'options' => array(0 => 'Minimal tags', 1 => 'Full tags', 2 => 'Shortened tags'),
 					),
 					'welcome_text_top' => array(
 							'level' => 2,
