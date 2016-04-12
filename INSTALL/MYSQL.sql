@@ -194,8 +194,8 @@ CREATE TABLE IF NOT EXISTS `jobs` (
   `retries` int(11) NOT NULL DEFAULT '0',
   `message` text CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
   `progress` int(11) NOT NULL DEFAULT '0',
-  `org_id` int(11) NOT NULL,
-  `process_id` varchar(32) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `org_id` int(11) NOT NULL DEFAULT '0',
+  `process_id` varchar(32) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,
   `date_created` datetime NOT NULL,
   `date_modified` datetime NOT NULL,
   PRIMARY KEY (`id`)
