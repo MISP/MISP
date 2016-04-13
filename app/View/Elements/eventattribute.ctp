@@ -4,7 +4,48 @@
 	$possibleAction = 'Proposal';
 	if ($mayModify) $possibleAction = 'Attribute';
 	$all = false;
-	if (isset($this->params->params['paging']['Event']['page']) && $this->params->params['paging']['Event']['page'] == 0) $all = true;
+	if (isset($this->params->params['paging']['Event']['page'])) {
+		if ($this->params->params['paging']['Event']['page'] == 0) $all = true;
+		$page = $this->params->params['paging']['Event']['page'];
+	} else {
+		$page = 0;
+	}
+	if (Configure::read('Plugin.Sightings_enable')) {
+		$attributeSightings = array();
+		$attributeOwnSightings = array();
+		$attributeSightingsPopover = array();
+		if (isset($event['Sighting']) && !empty($event['Sighting'])) {
+			foreach ($event['Sighting'] as $sighting) {
+				$attributeSightings[$sighting['attribute_id']][] = $sighting;
+				if (isset($sighting['org_id']) && $sighting['org_id'] == $me['org_id']) {
+					if (isset($attributeOwnSightings[$sighting['attribute_id']])) $attributeOwnSightings[$sighting['attribute_id']]++;
+					else $attributeOwnSightings[$sighting['attribute_id']] = 1;
+				}
+				if (isset($sighting['org_id'])) {
+					if (isset($attributeSightingsPopover[$sighting['attribute_id']][$sighting['Organisation']['name']])) {
+						$attributeSightingsPopover[$sighting['attribute_id']][$sighting['Organisation']['name']]++;
+					} else {
+						$attributeSightingsPopover[$sighting['attribute_id']][$sighting['Organisation']['name']] = 1;
+					}
+				} else {
+					if (isset($attributeSightingsPopover[$sighting['attribute_id']]['Other organisations'])) {
+						$attributeSightingsPopover[$sighting['attribute_id']]['Other organisations']++;
+					} else {
+						$attributeSightingsPopover[$sighting['attribute_id']]['Other organisations'] = 1;
+					}
+				}
+			}	
+			if (!empty($attributeSightingsPopover)) {
+				$attributeSightingsPopoverText = array();
+				foreach ($attributeSightingsPopover as $aid =>  &$attribute) {
+					$attributeSightingsPopoverText[$aid] = '';
+					foreach ($attribute as $org => $count) {
+						$attributeSightingsPopoverText[$aid] .= '<span class=\'bold\'>' . h($org) . '</span>: <span class=\'green\'>' . h($count) . '</span><br />';
+					}
+				}
+			}
+		}
+	}
 ?>
 	<div class="pagination">
         <ul>
@@ -106,6 +147,9 @@
 			<th>Related Events</th>
 			<th title="<?php echo $attrDescriptions['signature']['desc'];?>"><?php echo $this->Paginator->sort('to_ids', 'IDS');?></th>
 			<th title="<?php echo $attrDescriptions['distribution']['desc'];?>"><?php echo $this->Paginator->sort('distribution');?></th>
+			<?php if (Configure::read('Plugin.Sightings_enable')): ?>
+				<th>Sightings</th>
+			<?php endif; ?>
 			<th class="actions">Actions</th>
 		</tr>
 		<?php 
@@ -302,6 +346,29 @@
 									?>&nbsp;
 								</div>
 							</td>
+					<?php 
+						endif;
+						if (Configure::read('Plugin.Sightings_enable')):
+					?>
+					<td class="short <?php echo $extra;?>">
+						<span id="sightingForm_<?php echo h($object['id']);?>">
+						<?php 
+							if($object['objectType'] == 0):
+								echo $this->Form->create('Sighting', array('id' => 'Sighting_' . $object['id'], 'url' => '/sightings/add/' . $object['id'], 'style' => 'display:none;'));
+								echo $this->Form->end();
+						?>
+						</span>
+						<span class="icon-thumbs-up useCursorPointer" onClick="addSighting('<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']);?>', '<?php echo h($page); ?>');">&nbsp;</span>
+						<span id="sightingCount_<?php echo h($object['id']); ?>" class="bold sightingsCounter_<?php echo h($object['id']); ?>"  data-toggle="popover" data-trigger="hover" data-content="<?php echo isset($attributeSightingsPopoverText[$object['id']]) ? $attributeSightingsPopoverText[$object['id']] : ''; ?>">
+							<?php echo (!empty($attributeSightings[$object['id']]) ? count($attributeSightings[$object['id']]) : 0); ?>
+						</span>
+						<span id="ownSightingCount_<?php echo h($object['id']); ?>" class="bold green sightingsCounter_<?php echo h($object['id']); ?>" data-toggle="popover" data-trigger="hover" data-content="<?php echo isset($attributeSightingsPopoverText[$object['id']]) ? $attributeSightingsPopoverText[$object['id']] : ''; ?>">
+							<?php echo '(' . (isset($attributeOwnSightings[$object['id']]) ? $attributeOwnSightings[$object['id']] : 0) . ')'; ?>
+						</span>
+						<?php 
+							endif;
+						?>
+					</td>
 					<?php 
 						endif;
 					?>

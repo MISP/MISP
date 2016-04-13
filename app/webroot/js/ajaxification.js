@@ -252,6 +252,29 @@ function postActivationScripts(name, type, id, field, event) {
 	$(name + '_solid').hide();
 }
 
+function addSighting(attribute_id, event_id, $page) {
+	$.ajax({
+		data: $('#Sighting_' + attribute_id).closest("form").serialize(),
+		cache: false,
+		success:function (data, textStatus) {
+			handleGenericAjaxResponse(data);
+			var result = JSON.parse(data);
+			if (result.saved == true) {
+				$('.sightingsCounter').each(function( counter ) {
+					$(this).html(parseInt($(this).html()) + 1);
+				});
+				updateIndex(event_id, 'event');
+			}
+		}, 
+		error:function() {
+			showMessage('fail', 'Request failed for an unknown reason.');
+			updateIndex(context, 'event');
+		},
+		type:"post", 
+		url:"/sightings/add/" + attribute_id
+	});
+}
+
 function resetForms() {
 	$('.inline-field-solid').show();
 	$('.inline-field-placeholder').empty();
