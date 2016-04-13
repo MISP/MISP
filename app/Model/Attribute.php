@@ -193,7 +193,7 @@ class Attribute extends AppModel {
 					),
  			'Targeting data' => array(
  					'desc' => 'Internal Attack Targeting and Compromise Information',
- 					'formdesc' => 'Targeting information to include recipient email, infected machines, department, and or locations.<br/>',
+ 					'formdesc' => 'Targeting information to include recipient email, infected machines, department, and or locations.',
  					'types' => array('target-user', 'target-email', 'target-machine', 'target-org', 'target-location', 'target-external', 'comment')
  					),
 			'Antivirus detection' => array(
