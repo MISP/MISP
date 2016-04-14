@@ -170,11 +170,11 @@ CREATE TABLE IF NOT EXISTS `feeds` (
   `name` varchar(255) COLLATE utf8_bin NOT NULL,
   `provider` varchar(255) COLLATE utf8_bin NOT NULL,
   `url` varchar(255) COLLATE utf8_bin NOT NULL,
-  `rules` text COLLATE utf8_bin NOT NULL,
+  `rules` text COLLATE utf8_bin DEFAULT NULL,
   `enabled` BOOLEAN NOT NULL,
   `distribution` tinyint(4) NOT NULL,
-  `sharing_group_id` int(11) NOT NULL,
-  `tag_id` int(11) NOT NULL,
+  `sharing_group_id` int(11) NOT NULL DEFAULT '0',
+  `tag_id` int(11) NOT NULL DEFAULT '0',
   `default` tinyint(1) NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
