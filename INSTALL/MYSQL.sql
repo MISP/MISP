@@ -116,7 +116,7 @@ CREATE TABLE IF NOT EXISTS `events` (
   `proposal_email_lock` tinyint(1) NOT NULL DEFAULT '0',
   `locked` tinyint(1) NOT NULL DEFAULT '0',
   `threat_level_id` int(11) NOT NULL,
-  `publish_timestamp` int(11) NOT NULL,
+  `publish_timestamp` int(11) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uuid` (`uuid`),
   FULLTEXT KEY `info` (`info`),
