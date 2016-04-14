@@ -303,7 +303,7 @@ CREATE TABLE IF NOT EXISTS `roles` (
   `perm_site_admin` tinyint(1) NOT NULL DEFAULT '0',
   `perm_regexp_access` tinyint(1) NOT NULL DEFAULT '0',
   `perm_tagger` tinyint(1) NOT NULL DEFAULT '0',
-  `perm_template` tinyint(1) NOT NULL,
+  `perm_template` tinyint(1) NOT NULL DEFAULT '0',
   `perm_sharing_group` tinyint(1) NOT NULL DEFAULT '0',
   `perm_tag_editor` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`)
