@@ -237,7 +237,7 @@ CREATE TABLE `organisations` (
   `type` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
   `nationality` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
   `sector` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
-  `created_by` int(11) NOT NULL,
+  `created_by` int(11) NOT NULL DEFAULT '0',
   `uuid` varchar(40) COLLATE utf8_bin NOT NULL,
   `contacts` text CHARACTER SET utf8 COLLATE utf8_unicode_ci,
   `local` tinyint(1) NOT NULL DEFAULT '0',
