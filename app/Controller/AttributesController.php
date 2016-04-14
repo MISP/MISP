@@ -1345,6 +1345,7 @@ class AttributesController extends AppController {
 				// combobox for types
 				$types = array('' => array('ALL' => 'ALL'), 'types' => array());
 				$types['types'] = array_merge($types['types'], $this->_arrayToValuesIndexArray(array_keys($this->Attribute->typeDefinitions)));
+				ksort($types['types']);
 				$this->set('types', $types);
 
 				// combobox for categories

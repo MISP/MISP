@@ -154,21 +154,21 @@ class Attribute extends AppModel {
 			'ssdeep' => array('desc' => 'A checksum in ssdeep format', 'formdesc' => "You are encouraged to use filename|ssdeep instead. A checksum in the SSDeep format, only use this if you don't know the correct filename"),////x
 			'imphash' => array('desc' => 'Import hash - a hash created based on the imports in the sample.', 'formdesc' => "You are encouraged to use filename|imphash instead. A hash created based on the imports in the sample, only use this if you don't know the correct filename"),//x
 			'pehash' => array('desc' => 'PEhash - a hash calculated based of certain pieces of a PE executable file'),//x
-			'sha-224' => array('desc' => 'A checksum in sha-224 format', 'formdesc' => "You are encouraged to use filename|sha224 instead. A checksum in sha224 format, only use this if you don't know the correct filename"),//x
-			'sha-384' => array('desc' => 'A checksum in sha-384 format', 'formdesc' => "You are encouraged to use filename|sha384 instead. A checksum in sha384 format, only use this if you don't know the correct filename"),//x
-			'sha-512' => array('desc' => 'A checksum in sha-512 format', 'formdesc' => "You are encouraged to use filename|sha512 instead. A checksum in sha512 format, only use this if you don't know the correct filename"),//x
-			'sha-512/224' => array('desc' => 'A checksum in the sha-512/224 format', 'formdesc' => "You are encouraged to use filename|sha512/224 instead. A checksum in sha512/224 format, only use this if you don't know the correct filename"),//x
-			'sha-512/256' => array('desc' => 'A checksum in the sha-512/256 format', 'formdesc' => "You are encouraged to use filename|sha512/256 instead. A checksum in sha512/256 format, only use this if you don't know the correct filename"),//x
+			'sha224' => array('desc' => 'A checksum in sha-224 format', 'formdesc' => "You are encouraged to use filename|sha224 instead. A checksum in sha224 format, only use this if you don't know the correct filename"),//x
+			'sha384' => array('desc' => 'A checksum in sha-384 format', 'formdesc' => "You are encouraged to use filename|sha384 instead. A checksum in sha384 format, only use this if you don't know the correct filename"),//x
+			'sha512' => array('desc' => 'A checksum in sha-512 format', 'formdesc' => "You are encouraged to use filename|sha512 instead. A checksum in sha512 format, only use this if you don't know the correct filename"),//x
+			'sha512/224' => array('desc' => 'A checksum in the sha-512/224 format', 'formdesc' => "You are encouraged to use filename|sha512/224 instead. A checksum in sha512/224 format, only use this if you don't know the correct filename"),//x
+			'sha512/256' => array('desc' => 'A checksum in the sha-512/256 format', 'formdesc' => "You are encouraged to use filename|sha512/256 instead. A checksum in sha512/256 format, only use this if you don't know the correct filename"),//x
 			'tlsh' => array('desc' => 'A checksum in the Trend Micro Locality Sensitive Hash format', 'formdesc' => "You are encouraged to use filename|tlsh instead. A checksum in the Trend Micro Locality Sensitive Hash format, only use this if you don't know the correct filename"),//x
 			'filename|authentihash' => array('desc' => 'A checksum in md5 format'),
 			'filename|ssdeep' => array('desc' => 'A checksum in ssdeep format'),//x
 			'filename|imphash' => array('desc' => 'Import hash - a hash created based on the imports in the sample.'),//x
 			'filename|pehash' => array('desc' => 'A filename and a PEhash separated by a |'),//x
-			'filename|sha-224' => array('desc' => 'A filename and a sha-224 hash separated by a |'),//x
-			'filename|sha-384' => array('desc' => 'A filename and a sha-384 hash separated by a |'),//x
-			'filename|sha-512' => array('desc' => 'A filename and a sha-512 hash separated by a |'),//x
-			'filename|sha-512/224' => array('desc' => 'A filename and a sha-512/224 hash separated by a |'),//x
-			'filename|sha-512/256' => array('desc' => 'A filename and a sha-512/256 hash separated by a |'),//x
+			'filename|sha224' => array('desc' => 'A filename and a sha-224 hash separated by a |'),//x
+			'filename|sha384' => array('desc' => 'A filename and a sha-384 hash separated by a |'),//x
+			'filename|sha512' => array('desc' => 'A filename and a sha-512 hash separated by a |'),//x
+			'filename|sha512/224' => array('desc' => 'A filename and a sha-512/224 hash separated by a |'),//x
+			'filename|sha512/256' => array('desc' => 'A filename and a sha-512/256 hash separated by a |'),//x
 			'filename|tlsh' => array('desc' => 'A filename and a Trend Micro Locality Sensitive Hash separated by a |'),//x
 			'windows-scheduled-task' => array('desc' => 'A scheduled task in windows'),
 			'windows-service-name' => array('desc' => 'A windows service name. This is the name used internally by windows. Not to be confused with the windows-service-displayname.'),//x
