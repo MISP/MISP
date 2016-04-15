@@ -565,6 +565,25 @@ class Server extends AppModel {
 							'null' => false,
 							
 					),
+					'block_old_event_alert' => array(
+							'level' => 1,
+							'description' => 'Enable this setting to start blocking alert e-mails for old events. The exact timing of what constitutes an old event is defined by MISP.block_old_event_alert_age.',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+							'null' => false,
+					),
+					'block_old_event_alert_age' => array(
+							'level' => 1,
+							'description' => 'If the MISP.block_old_event_alert setting is set, this setting will control the earliest date before which events will not be alerted on. The "Date" field of the event is used. Expected format: "YYYY-MM-DD"',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testDate',
+							'type' => 'string',
+							'null' => false,
+							
+					),
 			),
 			'GnuPG' => array(
 					'branch' => 1,
@@ -1776,6 +1795,12 @@ class Server extends AppModel {
 		if ($this->testBool($value) !== true) return 'This setting has to be either true or false.';
 		if (!$value) return true;
 		return 'Enabling debug is not recommended. Turn this on temporarily if you need to see a stack trace to debug an issue, but make sure this is not left on.';
+	}
+	
+	public function testDate($date) {
+		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
+		if (!strtotime($date)) return 'The date that you have entered is invalid. Expected: yyyy-mm-dd';
+		return true;
 	}
 	
 	public function testBaseURL($value) {

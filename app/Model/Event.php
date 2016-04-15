@@ -1543,6 +1543,18 @@ class Event extends AppModel {
 	 }
 	 
 	 public function sendAlertEmailRouter($id, $user) {
+	 	if (Configure::read('MISP.block_old_event_alert') && Configure::read('MISP.block_old_event_alert_age')) {
+	 		$oldest = Configure::read('MISP.block_old_event_alert_age');
+	 		$oldest = strtotime($oldest);
+	 		if (!$oldest) return false;
+	 		$event = $this->find('first', array(
+	 				'conditions' => array('Event.id' => $id),
+	 				'recursive' => -1,
+	 				'fields' => array('Event.date')
+	 		));
+	 		if (empty($event)) return false;
+	 		if (strtotime($event['Event']['date']) < $oldest) return true;
+	 	}
 	 	if (Configure::read('MISP.background_jobs')) {
 	 		$job = ClassRegistry::init('Job');
 	 		$job->create();
