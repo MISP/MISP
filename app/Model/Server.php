@@ -576,11 +576,11 @@ class Server extends AppModel {
 					),
 					'block_old_event_alert_age' => array(
 							'level' => 1,
-							'description' => 'If the MISP.block_old_event_alert setting is set, this setting will control the earliest date before which events will not be alerted on. The "Date" field of the event is used. Expected format: "YYYY-MM-DD"',
+							'description' => 'If the MISP.block_old_event_alert setting is set, this setting will control how old an event can be for it to be alerted on. The "Date" field of the event is used. Expected format: integer, in days',
 							'value' => false,
 							'errorMessage' => '',
-							'test' => 'testDate',
-							'type' => 'string',
+							'test' => 'testForNumeric',
+							'type' => 'numeric',
 							'null' => false,
 							
 					),
