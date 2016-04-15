@@ -3110,7 +3110,8 @@ class EventsController extends AppController {
 				'analysis' => array('valid_options' => array(0, 1, 2), 'default' => 0),
 				'info' => array('default' =>  'Malware samples uploaded on ' . date('Y-m-d')),
 				'to_ids' => array('valid_options' => array(0, 1), 'default' => 1),
-				'category' => array('valid_options' => $types, 'default' => 'Payload installation')
+				'category' => array('valid_options' => $types, 'default' => 'Payload installation'),
+				'comment' => array('default' => '')
 		);
 		
 	
@@ -3210,7 +3211,8 @@ class EventsController extends AppController {
 								'category' => $data['category'],
 								'type' => $typeName,
 								'event_id' => $data['event_id'],
-								'to_ids' => $data['to_ids']
+								'to_ids' => $data['to_ids'],
+								'comment' => $data['comment']
 						);
 						if ($hash == 'md5') $attribute['data'] = $file['data'];
 						$result = $this->Event->Attribute->save($attribute);
@@ -3240,7 +3242,8 @@ class EventsController extends AppController {
 						'type' => 'attachment',
 						'event_id' => $data['event_id'],
 						'to_ids' => $data['to_ids'],
-						'data' => $file['data']
+						'data' => $file['data'],
+						'comment' => $data['comment']
 				);
 				$result = $this->Event->Attribute->save($attribute);
 				$this->Log->save(array(
