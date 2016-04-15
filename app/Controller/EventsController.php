@@ -3146,13 +3146,17 @@ class EventsController extends AppController {
 		
 		if (empty($data['files'])) throw new BadRequestException('No samples received, or samples not in the correct format. Please refer to the API documentation on the automation page.');
 		if (isset($event_id)) $data['event_id'] = $event_id;
+		if (isset($data['event_id'])) {
+			$this->Event->id = $data['event_id'];
+			if(!$this->Event->exists()) throw new NotFoundException('Event not found');
+		}
 		
 		// check if the user has permission to create attributes for an event, if the event ID has been passed
 		// If not, create an event
 		if (isset($data['event_id']) && !empty($data['event_id']) && is_numeric($data['event_id'])) {
-			$conditions = array();
+			$conditions = array('Event.id' => $data['event_id']);
 			if (!$this->_isSiteAdmin()) {
-				$conditions = array('Event.orgc_id' => $this->Auth->user('org_id'));
+				$conditions[] = array('Event.orgc_id' => $this->Auth->user('org_id'));
 				if (!$this->userRole['perm_modify_org']) $conditions[] = array('Event.user_id' => $this->Auth->user('id'));
 			}		
 			$event = $this->Event->find('first', array(
@@ -3160,7 +3164,7 @@ class EventsController extends AppController {
 				'conditions' => $conditions,
 				'fields' => array('id'),
 			));
-			if (empty($event)) throw new MethodNotFoundException('Event not found.');
+			if (empty($event)) throw new NotFoundException('Event not found.');
 			$this->Event->id = $data['event_id'];
 			$this->Event->saveField('published', 0);
 		} else {
