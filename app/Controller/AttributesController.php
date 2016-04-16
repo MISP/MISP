@@ -1394,7 +1394,7 @@ class AttributesController extends AppController {
 				'contain' => array('Event' => array('Orgc' => array('fields' => array('Orgc.name')))),
 				'fields' => array(
 					'Attribute.id', 'Attribute.event_id', 'Attribute.type', 'Attribute.category', 'Attribute.to_ids', 'Attribute.value', 'Attribute.distribution',
-					'Event.id', 'Event.org_id', 'Event.orgc_id', 'Event.info', 'Event.distribution', 'Event.attribute_count',
+					'Event.id', 'Event.org_id', 'Event.orgc_id', 'Event.info', 'Event.distribution', 'Event.attribute_count', 'Event.date',
 				)
 			)
 		);

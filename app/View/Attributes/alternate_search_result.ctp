@@ -6,6 +6,7 @@
 			<th>Event id</th>
 			<th>Org</th>
 			<th>Event info</th>
+			<th>Event date</th>
 			<th>Event graph</th>
 			<th>Matches</th>
 			<th>Attribute Count</th>
@@ -32,6 +33,7 @@
 						} else 	echo h($event['Event']['info']);
 					?>
 				</td>
+				<td class="short"><?php echo h($event['Event']['date']); ?></td>
 				<?php 
 					$to_ids =  100 * h($event['to_ids']) / (h($event['to_ids']) + h($event['no_ids'])); 
 				?>
