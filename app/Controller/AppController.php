@@ -304,9 +304,13 @@ class AppController extends Controller {
 	
 	public function queryACL($debugType='findMissingFunctionNames', $content = false) {
 		$this->autoRender = false;
+		$this->layout = false;
 		$validCommands = array('printAllFunctionNames', 'findMissingFunctionNames', 'printRoleAccess');
 		if (!in_array($debugType, $validCommands)) throw new MethodNotAllowedException('Invalid function call.');
-		return json_encode($this->ACL->$debugType($content), JSON_UNESCAPED_SLASHES);
+		$this->set('data', $this->ACL->$debugType($content));
+		$this->set('flags', JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+		$this->response->type('json');
+		$this->render('/Servers/json/simple');
 	}
 	
 	private function __convertEmailToName($email) {
