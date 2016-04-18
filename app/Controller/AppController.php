@@ -299,7 +299,7 @@ class AppController extends Controller {
 		$this->set('debugMode', $this->debugMode);
 		$notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user());
 		$this->set('notifications', $notifications);
-		$this->ACL->checkAccess($this->Auth->user(), $this->request->params['controller'], $this->action);
+		$this->ACL->checkAccess($this->Auth->user(), Inflector::variable($this->request->params['controller']), $this->action);
 	}
 	
 	public function queryACL($debugType='findMissingFunctionNames', $content = false) {

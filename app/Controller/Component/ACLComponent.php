@@ -341,14 +341,10 @@ class ACLComponent extends Component {
 		if (isset($this->__aclList[$controller][$action]) && !empty($this->__aclList[$controller][$action])) {
 			if (in_array('*', $this->__aclList[$controller][$action])) return true;
 			if (isset($this->__aclList[$controller][$action]['OR'])) {
-				foreach ($this->__aclList[$controller][$action]['OR'] as $permission) {
-					if ($user['Role'][$this->__aclList[$controller][$permission]]) return true;
-				}
+				foreach ($this->__aclList[$controller][$action]['OR'] as $permission) if ($user['Role'][$permission]) return true;
 			} else if (isset($this->__aclList[$controller][$action]['AND'])) {
 				$allConditionsMet = true;
-				foreach ($this->__aclList[$controller][$action]['AND'] as $permission) {
-					if (!$user['Role'][$this->__aclList[$controller][$permission]]) $allConditionsMet = false;
-				}
+				foreach ($this->__aclList[$controller][$action]['AND'] as $permission) if (!$user['Role'][$permission]) $allConditionsMet = false;
 				if ($allConditionsMet) return true;
 			} else if ($user['Role'][$this->__aclList[$controller][$action][0]]) return true;
 		}
