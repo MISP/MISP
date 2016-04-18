@@ -302,7 +302,7 @@ class AppController extends Controller {
 		$this->ACL->checkAccess($this->Auth->user(), $this->request->params['controller'], $this->action);
 	}
 	
-	public function debugACL($debugType='findMissingFunctionNames', $content = false) {
+	public function queryACL($debugType='findMissingFunctionNames', $content = false) {
 		$this->autoRender = false;
 		$validCommands = array('printAllFunctionNames', 'findMissingFunctionNames', 'printRoleAccess');
 		if (!in_array($debugType, $validCommands)) throw new MethodNotAllowedException('Invalid function call.');
@@ -310,7 +310,7 @@ class AppController extends Controller {
 	}
 	
 	private function __convertEmailToName($email) {
-		$name = explode('@', $email);
+		$name = explode('@', $email);		
 		$name = explode('.', $name[0]);
 		foreach ($name as &$temp) $temp = ucfirst($temp);
 		$name = implode(' ', $name);
