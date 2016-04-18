@@ -297,7 +297,7 @@ class ACLComponent extends Component {
 					'admin_index' => array('perm_admin'),
 					'admin_view' => array('perm_admin'),
 					'arrayCopy' => array(),
-					'change_pw' => array(),
+					'change_pw' => array('*'),
 					'checkAndCorrectPgps' => array(),
 					'dashboard' => array('*'),
 					'delete' => array('perm_admin'),
