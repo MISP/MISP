@@ -249,6 +249,7 @@ class EventsController extends AppController {
 		$passedArgsArray = array();
 		$urlparams = "";
 		$overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'Datefrom', 'Dateuntil', 'org', 'eventinfo', 'tag', 'distribution', 'analysis', 'threatlevel');
+		if ($this->_isSiteAdmin()) $overrideAbleParams[] = 'email';
 		$passedArgs = $this->passedArgs;
 		if (isset($this->request->data)) {
 			if (isset($this->request->data['request'])) $this->request->data = $this->request->data['request'];
@@ -420,6 +421,31 @@ class EventsController extends AppController {
 						if ($expectOR && !$setOR) $this->paginate['conditions']['AND'][] = array('Event.id' => -1);
 						$v = $filterString;
 						break;
+					case 'email':
+						if ($v == "" || !$this->_isSiteAdmin()) continue 2;
+						// if the first character is '!', search for NOT LIKE the rest of the string (excluding the '!' itself of course)
+						$pieces = explode('|', $v);
+						$test = array();
+						foreach ($pieces as $piece) {
+							if ($piece[0] == '!') {
+								$users = $this->Event->User->find('list', array(
+										'recursive' => -1,
+										'fields' => array('User.email'),
+										'conditions' => array('lower(User.email) LIKE' => '%' . strtolower(substr($piece, 1)) . '%')
+								));
+								if (!empty($users)) $this->paginate['conditions']['AND'][] = array('Event.user_id !=' => array_keys($users));
+							} else {
+								$users = $this->Event->User->find('list', array(
+										'recursive' => -1,
+										'fields' => array('User.email'),
+										'conditions' => array('lower(User.email) LIKE' => '%' . strtolower($piece) . '%')
+								));
+								if (!empty($users)) $test['OR'][] = array('Event.user_id' => array_keys($users));
+							}
+						}
+						
+						if (!empty($test)) $this->paginate['conditions']['AND'][] = $test;
+						break;
 					case 'distribution' :
 					case 'analysis' :
 					case 'threatlevel' :
@@ -461,7 +487,6 @@ class EventsController extends AppController {
 				$passedArgsArray[$searchTerm] = $v;
 			}
 		}
-	
 		if (Configure::read('MISP.tagging') && !$this->_isRest()) {
 			$this->Event->contain(array('User.email', 'EventTag' => array('Tag')));
 			$tags = $this->Event->EventTag->Tag->find('all', array('recursive' => -1));
@@ -544,6 +569,8 @@ class EventsController extends AppController {
 			'analysis' => array('OR' => array(), 'NOT' => array()),
 			'attribute' => array('OR' => array(), 'NOT' => array()),
 		);
+		
+		if ($this->_isSiteAdmin()) $filtering['email'] = array('OR' => array(), 'NOT' => array());
 
 		foreach ($this->passedArgs as $k => $v) {
 			if (substr($k, 0, 6) === 'search') {
@@ -558,6 +585,7 @@ class EventsController extends AppController {
 					case 'Dateuntil' :
 						$filtering['date']['until'] = $v;
 						break;
+					case 'email':
 					case 'org' :
 					case 'eventid' :
 					case 'tag' :
@@ -566,8 +594,7 @@ class EventsController extends AppController {
 					case 'threatlevel' :
 					case 'distribution' :
 					case 'analysis' :
-						if ($v == "") continue 2;
-						
+						if ($v == "" || ($searchTerm == 'email' && !$this->_isSiteAdmin())) continue 2;
 						$pieces = explode('|', $v);
 						foreach ($pieces as $piece) {
 							if ($piece[0] == '!') {
@@ -595,6 +622,7 @@ class EventsController extends AppController {
 			$conditions['AND'][] = array('Event.id' => $eIds);
 		}
 		$rules = array('published', 'eventid', 'tag', 'date', 'eventinfo', 'threatlevel', 'distribution', 'analysis', 'attribute');
+		if ($this->_isSiteAdmin()) $rules[] = 'email';
 		if (Configure::read('MISP.showorg')){
 			$orgs = $this->Event->find('list', array(
 					'recursive' => -1,
