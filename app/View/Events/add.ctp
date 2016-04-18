@@ -37,7 +37,7 @@
 				'options' => array($analysisLevels),
 				));
 		echo $this->Form->input('info', array(
-					'label' => 'Event Description',
+					'label' => 'Event Info',
 					'div' => 'clear',
 					'type' => 'text',
 					'class' => 'form-control span6',

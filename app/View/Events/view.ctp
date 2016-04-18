@@ -136,7 +136,7 @@
 						endif;
 					?>
 				</dd>
-				<dt>Description</dt>
+				<dt>Info</dt>
 				<dd style="word-wrap: break-word;">
 					<?php echo nl2br(h($event['Event']['info'])); ?>
 					&nbsp;
