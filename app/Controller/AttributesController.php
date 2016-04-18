@@ -2339,7 +2339,7 @@ class AttributesController extends AppController {
 		$results = array();
 		foreach ($attributes as $attribute) {
 			if ($percentage) {
-				$results[$attribute['Attribute'][$type]] = round(100 * $attribute[0]['attribute_count'] / $totalAttributes, 2) . '%';
+				$results[$attribute['Attribute'][$type]] = round(100 * $attribute[0]['attribute_count'] / $totalAttributes, 3) . '%';
 			} else {
 				$results[$attribute['Attribute'][$type]] = $attribute[0]['attribute_count'];
 			}
