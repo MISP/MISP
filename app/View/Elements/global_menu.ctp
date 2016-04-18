@@ -99,7 +99,9 @@
 						</a>
 						<ul class="dropdown-menu">
 							<li><a href="<?php echo $baseurl;?>/servers/index">List Servers</a></li>
-							<li><a href="<?php echo $baseurl;?>/feeds/index">List Feeds</a></li>
+							<?php if ($isSiteAdmin): ?>
+								<li><a href="<?php echo $baseurl;?>/feeds/index">List Feeds</a></li>
+							<?php endif;?>
 						</ul>
 					</li>
 					<?php endif;?>
