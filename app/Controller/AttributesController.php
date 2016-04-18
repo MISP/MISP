@@ -2326,4 +2326,19 @@ class AttributesController extends AppController {
 		$this->set('result', $result);
 		$this->set('_serialize', array('result'));
 	}
+	
+	public function attributeStatistics($type = 'type') {
+		$validTypes = array('type', 'category');
+		if (!in_array($type, $validTypes)) throw new MethodNotAllowedException('Invalid type requested.');
+		$attributes = $this->Attribute->find('all', array(
+				'recursive' => -1,
+				'fields' => array($type, 'COUNT(id) as attribute_count'),
+				'group' => array($type)
+		));
+		$results = array();
+		foreach ($attributes as $attribute) $results[$attribute['Attribute'][$type]] = $attribute[0]['attribute_count'];
+		ksort($results);
+		$this->set($type . 's', $results);
+		$this->set('_serialize', array($type . 's'));
+	}
 }
