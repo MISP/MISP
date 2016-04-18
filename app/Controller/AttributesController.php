@@ -2338,7 +2338,11 @@ class AttributesController extends AppController {
 		$results = array();
 		foreach ($attributes as $attribute) $results[$attribute['Attribute'][$type]] = $attribute[0]['attribute_count'];
 		ksort($results);
-		$this->set($type . 's', $results);
-		$this->set('_serialize', array($type . 's'));
+		$this->autoRender = false;
+		$this->layout = false;
+		$this->set('data', $results);
+		$this->set('flags', JSON_PRETTY_PRINT);
+		$this->response->type('json');
+		$this->render('/Servers/json/simple');
 	}
 }
