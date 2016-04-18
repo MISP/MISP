@@ -2327,16 +2327,23 @@ class AttributesController extends AppController {
 		$this->set('_serialize', array('result'));
 	}
 	
-	public function attributeStatistics($type = 'type') {
+	public function attributeStatistics($type = 'type', $percentage = false) {
 		$validTypes = array('type', 'category');
 		if (!in_array($type, $validTypes)) throw new MethodNotAllowedException('Invalid type requested.');
+		$totalAttributes = $this->Attribute->find('count', array());
 		$attributes = $this->Attribute->find('all', array(
 				'recursive' => -1,
 				'fields' => array($type, 'COUNT(id) as attribute_count'),
 				'group' => array($type)
 		));
 		$results = array();
-		foreach ($attributes as $attribute) $results[$attribute['Attribute'][$type]] = $attribute[0]['attribute_count'];
+		foreach ($attributes as $attribute) {
+			if ($percentage) {
+				$results[$attribute['Attribute'][$type]] = round(100 * $attribute[0]['attribute_count'] / $totalAttributes, 2) . '%';
+			} else {
+				$results[$attribute['Attribute'][$type]] = $attribute[0]['attribute_count'];
+			}
+		}
 		ksort($results);
 		$this->autoRender = false;
 		$this->layout = false;
