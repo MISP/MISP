@@ -2779,6 +2779,7 @@ class EventsController extends AppController {
 			$this->set('defaultCategories', $this->Event->Attribute->defaultCategories);
 			$this->set('typeCategoryMapping', $typeCategoryMapping);
 			$this->set('resultArray', $resultArray);
+			$this->set('importComment', 'Imported via the Freetext Import Tool');
 			$this->set('title', 'Freetext Import Results');
 			$this->render('resolved_attributes');
 		}
@@ -3613,6 +3614,7 @@ class EventsController extends AppController {
 			$this->set('defaultCategories', $this->Event->Attribute->defaultCategories);
 			$this->set('typeCategoryMapping', $typeCategoryMapping);
 			$this->set('title', 'Enrichment Results');
+			$this->set('importComment', 'Enriched via the ' . $module . ' module');
 			$this->render('resolved_attributes');
 		}
 	}
