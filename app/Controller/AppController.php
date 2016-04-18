@@ -62,12 +62,6 @@ class AppController extends Controller {
 	public $components = array(
 			'Session',
 			'Auth' => array(
-				'className' => 'SecureAuth',
-				'authenticate' => array(
-					'Form' => array(
-						'fields' => array('username' => 'email')
-					)
-				),
 				'authError' => 'Unauthorised access.',
 				'loginRedirect' => array('controller' => 'users', 'action' => 'routeafterlogin'),
 				'logoutRedirect' => array('controller' => 'users', 'action' => 'login', 'admin' => false),
@@ -80,6 +74,24 @@ class AppController extends Controller {
 	
 	
 	public function beforeFilter() {
+                //Let s check if Apache have kerberos auth.
+                $envvar = Configure::read('ApacheSecureAuth.apacheEnv');
+                if (isset($_SERVER[$envvar])) {
+                    $this->Auth->className = 'ApacheSecureAuth';
+                    $this->Auth->authenticate = array(
+                        'Apache' => array(
+                            // envvar = field return by Apache when used Authentificatied
+                            'fields' => array('username' => 'email', 'envvar' => $envvar)
+                        )
+                    );
+                } else {
+                    $this->Auth->className = 'SecureAuth';
+                    $this->Auth->authenticate = array(
+                        'Form' => array(
+                            'fields' => array('username' => 'email')
+                        )
+                    );
+                }
 		$versionArray = $this->{$this->modelClass}->checkMISPVersion();
 		$this->mispVersion = implode('.', array_values($versionArray));
 
