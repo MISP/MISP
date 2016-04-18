@@ -1438,7 +1438,6 @@ class AttributesController extends AppController {
 
 	public function checkComposites() {
 		if (!self::_isAdmin()) throw new NotFoundException();
-
 		$this->set('fails', $this->Attribute->checkComposites());
 	}
 

@@ -2162,7 +2162,7 @@ class EventsController extends AppController {
 			// add attribute..
 			$this->Attribute->create();
 
-			if ($this->strposarray($val,$actualFileNameArray)) {
+			if ($this->__strposarray($val,$actualFileNameArray)) {
 				$this->Attribute->save(array(
 					'event_id' => $id,
 					'comment' => 'GFI import',
@@ -2176,7 +2176,7 @@ class EventsController extends AppController {
 		}
 	}
 
-	public function strposarray($string, $array) {
+	private function __strposarray($string, $array) {
 		$toReturn = false;
 		foreach ($array as $item) {
 			if (strpos($string,$item)) {

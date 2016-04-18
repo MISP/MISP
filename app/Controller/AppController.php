@@ -74,7 +74,8 @@ class AppController extends Controller {
 				//'authorize' => array('Controller', // Added this line
 				//'Actions' => array('actionPath' => 'controllers')) // TODO ACL, 4: tell actionPath
 				),
-			'Security'
+			'Security',
+			'ACL'
 	);
 	
 	
@@ -234,7 +235,7 @@ class AppController extends Controller {
 			$role = $this->getActions();
 			if (!$role['perm_site_admin']) {
 				$message = Configure::read('MISP.maintenance_message');
-				if (empty($messaage)) {
+				if (empty($message)) {
 					$this->loadModel('Server');
 					$message = $this->Server->serverSettings['MISP']['maintenance_message']['value'];
 				}
@@ -298,6 +299,14 @@ class AppController extends Controller {
 		$this->set('debugMode', $this->debugMode);
 		$notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user());
 		$this->set('notifications', $notifications);
+		$this->ACL->checkAccess($this->Auth->user(), $this->request->params['controller'], $this->action);
+	}
+	
+	public function debugACL($debugType='findMissingFunctionNames', $content = false) {
+		$this->autoRender = false;
+		$validCommands = array('printAllFunctionNames', 'findMissingFunctionNames', 'printRoleAccess');
+		if (!in_array($debugType, $validCommands)) throw new MethodNotAllowedException('Invalid function call.');
+		return json_encode($this->ACL->$debugType($content), JSON_UNESCAPED_SLASHES);
 	}
 	
 	private function __convertEmailToName($email) {
@@ -319,12 +328,6 @@ class AppController extends Controller {
 		if ($data) return (json_decode($data) != NULL) ? true : false;
 		return $this->request->header('Accept') === 'application/json' || $this->RequestHandler->prefers() === 'json';
 	}
-
-	//public function blackhole($type) {
-	//	// handle errors.
-	//	throw new Exception(__d('cake_dev', 'The request has been black-holed'));
-	//	//throw new BadRequestException(__d('cake_dev', 'The request has been black-holed'));
-	//}
 
 	protected function _isRest() {
 		return (isset($this->RequestHandler) && ($this->RequestHandler->isXml() || $this->_isJson()));
