@@ -28,7 +28,7 @@
 		<?php
 			echo $this->Form->input('ioc', array(
 				'type' => 'checkbox',
-				'label' => 'Only find valid IOCs',
+				'label' => 'Only find IOCs to use in IDS',
 			));
 			echo $this->Form->input('alternate', array(
 					'type' => 'checkbox',
