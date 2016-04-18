@@ -63,7 +63,7 @@ class JSONConverterTool {
 		}
 		$result = array('Event' => $event['Event']);
 		if (isset($event['errors'])) $result = array_merge($result, array('errors' => $event['errors']));
-		return json_encode($result);
+		return json_encode($result, JSON_PRETTY_PRINT);
 	}
 	
 	public function arrayPrinter($array, $root = true) {
