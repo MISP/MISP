@@ -389,16 +389,7 @@ class ACLComponent extends Component {
 		$pretty = "";
 		ksort($results);
 		$count = 0;
-		foreach ($results as $controller => $functions) {
-			$pretty .= "'" . $controller . "' => array(" . PHP_EOL;
-			sort($functions);
-			foreach ($functions as $method) {
-				$count++;
-				$pretty .= "\t'" . $method . "' => array()," . PHP_EOL;
-			}
-			$pretty .= ")," . PHP_EOL;
-		}
-		return $pretty;
+		return $results;
 	} 
 
 	public function findMissingFunctionNames($content = false) {
