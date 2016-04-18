@@ -80,6 +80,9 @@ $config = array (
     ),
   ),
   */
+  // Warning: The follow is a 3rd party contribution and still untested (including security) by the MISP-project team.
+  // Feel free to enable it and report back to us if you run into any issues.
+  //
   // Uncomment the following to enable Kerberos authentification
   // need php5-ldap mod for apache
   /*
