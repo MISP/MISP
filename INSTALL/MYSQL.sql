@@ -323,7 +323,6 @@ CREATE TABLE IF NOT EXISTS `servers` (
   `org_id` int(11) NOT NULL,
   `push` tinyint(1) NOT NULL,
   `pull` tinyint(1) NOT NULL,
-  `lastfetchedid` int(11) NOT NULL DEFAULT '0',
   `lastpulledid` int(11) DEFAULT NULL,
   `lastpushedid` int(11) DEFAULT NULL,
   `organization` varchar(10) COLLATE utf8_bin DEFAULT NULL,
