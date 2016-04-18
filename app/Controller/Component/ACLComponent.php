@@ -298,7 +298,7 @@ class ACLComponent extends Component {
 					'arrayCopy' => array(),
 					'change_pw' => array(),
 					'checkAndCorrectPgps' => array(),
-					'dashBoard' => array('*'),
+					'dashboard' => array('*'),
 					'delete' => array('perm_admin'),
 					'downloadTerms' => array('*'),
 					'edit' => array('*'),
