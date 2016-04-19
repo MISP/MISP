@@ -240,6 +240,14 @@ class Server extends AppModel {
 							'test' => 'testForCustomImage',
 							'type' => 'string',
 					),
+					'main_logo' => array(
+							'level' => 2 ,
+							'description' => 'If set, the image specified here will replace the main MISP logo on the login screen. Upload it as a custom image in the file management tool.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForCustomImage',
+							'type' => 'string',
+					),
 					'org' => array(
 							'level' => 1,
 							'description' => 'The organisation tag of the hosting organisation. This is used in the e-mail subjects.',
