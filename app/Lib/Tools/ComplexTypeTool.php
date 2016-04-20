@@ -97,10 +97,10 @@ class ComplexTypeTool {
 	private $__hexHashTypes = array(
 		32 => array('single' => array('md5', 'imphash'), 'composite' => array('filename|md5', 'filename|imphash')),
 		40 => array('single' => array('sha1', 'pehash', 'x509-fingerprint-sha1'), 'composite' => array('filename|sha1', 'filename|pehash')),
-		56 => array('single' => array('sha224', 'sha512/224'), array('sha224', 'sha512/224')),
-		64 => array('single' => array('sha256', 'authentihash', 'sha512/256'), 'composite' => array('sha256', 'authentihash', 'sha512/256')),
-		96 => array('single' => array('sha384'), 'composite' => array('sha384')),
-		128 => array('single' => array('sha512'), 'composite' => array('sha512'))
+		56 => array('single' => array('sha224', 'sha512/224'), 'composite' => array('filename|sha224', 'filename|sha512/224')),
+		64 => array('single' => array('sha256', 'authentihash', 'sha512/256'), 'composite' => array('filename|sha256', 'filename|authentihash', 'filename|sha512/256')),
+		96 => array('single' => array('sha384'), 'composite' => array('filename|sha384')),
+		128 => array('single' => array('sha512'), 'composite' => array('filename|sha512'))
 	);
 	
 	private function __resolveType($input) {
