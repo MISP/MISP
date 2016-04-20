@@ -1,6 +1,15 @@
 <?php
 
 class ComplexTypeTool {
+	
+	private $__refangRegexTable = array(
+		'/^hxxp/i' => 'http',
+		'/\[\.\]/' => '.',
+		'/\[dot\]/' => '.',
+		'/\\\./' => '.',
+		'/\.+/' => '.'
+	);
+	
 	public function checkComplexRouter($input, $type) {
 		switch ($type) {
 			case 'File':
@@ -114,9 +123,8 @@ class ComplexTypeTool {
 			if (strlen($input) == $k && preg_match("#[0-9a-f]{" . $k . "}$#i", $input)) return array('types' => $v['single'], 'to_ids' => true, 'default_type' => $v['single'][0]);
 		}
 		if (preg_match('#^[0-9]+:.+:.+$#', $input)) return array('types' => array('ssdeep'), 'to_ids' => true, 'default_type' => 'ssdeep');
-		
-		$inputRefanged = preg_replace('/^hxxp/i', 'http', $input);
-		$inputRefanged = preg_replace('/\[\.\]/', '.' , $inputRefanged);
+		$inputRefanged = $input;
+		foreach ($this->__refangRegexTable as $regex => $replacement) $inputRefanged = preg_replace($regex, $replacement , $inputRefanged);
 		$inputRefanged = rtrim($inputRefanged, ".");
 		if (strpos($input, '@') !== false) {
 			if (filter_var($input, FILTER_VALIDATE_EMAIL)) return array('types' => array('email-src', 'email-dst'), 'to_ids' => true, 'default_type' => 'email-src');
