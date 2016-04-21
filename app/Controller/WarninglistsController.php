@@ -28,10 +28,16 @@ class WarninglistsController extends AppController {
 			$warninglist['Warninglist']['valid_attributes'] = implode(', ', $warninglist['Warninglist']['valid_attributes']);
 			unset($warninglist['WarninglistType']);
 		}
-		$this->set('warninglists', $warninglists);
+		if ($this->_isRest()) {
+			$this->set('Warninglists', $warninglists);
+			$this->set('_serialize', array('Warninglists'));
+		} else {
+			$this->set('warninglists', $warninglists);
+		}
 	}
 	
 	public function update() {
+		if (!$this->request->is('post')) throw new MethodNotAllowedException('This action is only accessible via POST requests.');
 		$result = $this->Warninglist->update();
 		$this->Log = ClassRegistry::init('Log');
 		$fails = 0;
@@ -94,7 +100,9 @@ class WarninglistsController extends AppController {
 		$this->redirect(array('controller' => 'warninglists', 'action' => 'index'));
 	}
 	
-	public function toggleEnable($id) {
+	public function toggleEnable() {
+		$id = $this->request->data['Warninglist']['data'];
+		if (!is_numeric($id)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Warninglist not found.')), 'status' => 200));
 		$currentState = $this->Warninglist->find('first', array('conditions' => array('id' => $id), 'recursive' => -1));
 		if (empty($currentState)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Warninglist not found.')), 'status' => 200));
 		if ($currentState['Warninglist']['enabled']) {
@@ -111,11 +119,32 @@ class WarninglistsController extends AppController {
 		}
 	}
 	
-	public function getToggleField($id) {
+	public function enableWarninglist($id, $enable = false) {
+		$this->Warninglist->id = $id;
+		debug($id);
+		if (!$this->Warninglist->exists()) throw new NotFoundException('Invalid Warninglist.');
+		$this->Warninglist->saveField('enabled', $enable);
+		$this->Session->setFlash('Warninglist enabled');
+		$this->redirect(array('controller' => 'warninglists', 'action' => 'view', $id));
+	}
+	
+	public function getToggleField() {
 		if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This action is available via AJAX only.');
 		$this->layout = 'ajax';
-		$currentState = $this->Warninglist->find('first', array('conditions' => array('id' => $id), 'recursive' => -1, 'fields' => array('id', 'enabled')));
-		$this->set('item', $currentState);
 		$this->render('ajax/getToggleField');
+	}
+	
+	public function view($id) {
+		if (!is_numeric($id)) throw new NotFoundException('Invalid ID.');
+		$warninglist = $this->Warninglist->find('first', array('contain' => array('WarninglistEntry', 'WarninglistType'), 'conditions' => array('id' => $id)));
+		if (empty($warninglist)) throw new NotFoundException('Warninglist not found.');
+		if ($this->_isRest()) {
+			$warninglist['Warninglist']['WarninglistEntry'] = $warninglist['WarninglistEntry'];
+			$warninglist['Warninglist']['WarninglistType'] = $warninglist['WarninglistType'];
+			$this->set('Warninglist', $warninglist['Warninglist']);
+			$this->set('_serialize', array('Warninglist'));
+		} else {
+			$this->set('warninglist', $warninglist);
+		}
 	}
 }

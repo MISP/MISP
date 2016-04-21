@@ -16,6 +16,15 @@
         ?>
         </ul>
     </div>
+    <div id="hiddenFormDiv">
+    <?php 
+		if ($isSiteAdmin) {
+			echo $this->Form->create('Warninglist', array('url' => '/warninglists/toggleEnable'));
+			echo $this->Form->input('data', array('label' => false, 'style' => 'display:none;'));
+			echo $this->Form->end();
+		}
+	?>
+    </div>
 	<table class="table table-striped table-hover table-condensed">
 	<tr>
 			<th><?php echo $this->Paginator->sort('id');?></th>
@@ -37,21 +46,12 @@ foreach ($warninglists as $k => $item): ?>
 		<td class="short" ondblclick="document.location.href ='<?php echo $baseurl."/warninglists/view/".h($item['Warninglist']['id']);?>'"><?php echo h($item['Warninglist']['type']); ?>&nbsp;</td>
 		<td class="short" ondblclick="document.location.href ='<?php echo $baseurl."/warninglists/view/".h($item['Warninglist']['id']);?>'"><?php echo h($item['Warninglist']['valid_attributes']); ?>&nbsp;</td>
 		<td class="short" ondblclick="document.location.href ='<?php echo $baseurl."/warninglists/view/".h($item['Warninglist']['id']);?>'"><?php echo h($item['Warninglist']['warninglist_entry_count']); ?>&nbsp;</td>
-		<td class="short" ondblclick="document.location.href ='<?php echo $baseurl."/warninglists/view/".h($item['Warninglist']['id']);?>'">
-		<div id="#checkbox_div_<?php echo h($item['Warninglist']['id']);?>">
-			<?php 
-				echo $this->Form->create('Warninglist', array('id' => 'enable_form_' . $item['Warninglist']['id'], 'url' => '/warninglists/toggleEnable/' . $item['Warninglist']['id']));
-				echo $this->Form->input('enable', array('id' => 'enable_checkbox_' . $item['Warninglist']['id'], 'checked' => $item['Warninglist']['enabled'], 'label' => false, 'onclick' => 'toggleSetting(event, "warninglist_enable", "' . $item['Warninglist']['id'] . '")'));
-				echo $this->Form->end();
-			?>
-		</div>
+		<?php if ($isSiteAdmin): ?>
+		<td class="short" id ="checkbox_row_<?php echo h($item['Warninglist']['id']);?>">
+			<input id="checkBox_<?php echo h($item['Warninglist']['id']); ?>" type="checkbox" onClick="toggleSetting(event, 'warninglist_enable', '<?php echo h($item['Warninglist']['id']); ?>')" <?php echo $item['Warninglist']['enabled'] ? 'checked' : ''; ?>/>
 		</td>
+		<?php endif;?>
 		<td class="short action-links">
-			<?php 
-				if ($isSiteAdmin) {
-
-				}
-			?>
 			<a href='<?php echo $baseurl."/warninglists/view/". h($item['Warninglist']['id']);?>' class = "icon-list-alt" title = "View"></a>
 		</td>
 	</tr><?php
@@ -75,5 +75,5 @@ endforeach; ?>
     </div>
 </div>
 <?php 
-	echo $this->element('side_menu', array('menuList' => 'taxonomies', 'menuItem' => 'index'));
+	echo $this->element('side_menu', array('menuList' => 'warninglist', 'menuItem' => 'index'));
 ?>
