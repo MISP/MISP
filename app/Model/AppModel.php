@@ -49,7 +49,7 @@ class AppModel extends Model {
 	// major -> minor -> hotfix -> requires_logout
 	public $db_changes = array(
 		2 => array(
-			4 => array(18 => false, 19 => false, 20 => false, 25 => false, 27 => false, 32 => false, 33 => true)
+			4 => array(18 => false, 19 => false, 20 => false, 25 => false, 27 => false, 32 => false, 33 => true, 38 => true)
 		)
 	);
 	
@@ -324,6 +324,31 @@ class AppModel extends Model {
 				break;
 			case '2.4.33':
 				$sqlArray[] = "ALTER TABLE `users` ADD `force_logout` tinyint(1) NOT NULL DEFAULT '0';";
+				break;
+			case '2.4.38':
+				$sqlArray[] = "CREATE TABLE IF NOT EXISTS `warninglists` (
+					`id` int(11) NOT NULL AUTO_INCREMENT,
+					`name` varchar(255) COLLATE utf8_bin NOT NULL,
+					`type` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT 'string',
+					`description` text COLLATE utf8_bin NOT NULL,
+					`version` int(11) NOT NULL DEFAULT '1',
+					`enabled` tinyint(1) NOT NULL DEFAULT '0',
+					`warninglist_entry_count` int(11) unsigned DEFAULT NULL,
+					PRIMARY KEY (`id`)
+					) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+				$sqlArray[] = "CREATE TABLE IF NOT EXISTS `warninglist_entries` (
+					`id` int(11) NOT NULL AUTO_INCREMENT,
+					`value` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+					`warninglist_id` int(11) NOT NULL,
+					PRIMARY KEY (`id`)
+					) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+				$sqlArray[] = "CREATE TABLE IF NOT EXISTS `warninglist_types` (
+					`id` int(11) NOT NULL AUTO_INCREMENT,
+					`type` varchar(255) COLLATE utf8_bin NOT NULL,
+					`warninglist_id` int(11) NOT NULL,
+					PRIMARY KEY (`id`)
+					) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+				break;
 				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4';
