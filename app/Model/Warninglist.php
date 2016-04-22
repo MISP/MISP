@@ -114,18 +114,20 @@ class Warninglist extends AppModel{
 	public function setWarnings(&$event, &$warninglists) {
 		if (empty($event['objects'])) return $event;
 		$eventWarnings = array();
-		debug($warninglists);
 		foreach ($event['objects'] as &$object) {
-			foreach ($warninglists as &$list) {
-				if (in_array($object['type'], $list['types'])) {
-					$result = $this->__checkValue($list['values'], $object['value'], $object['type'], $list['Warninglist']['type']);
-					if (!empty($result)) {
-						$object['warnings'] = $result;
-						if (!in_array($list['Warninglist']['name'], $eventWarnings)) $eventWarnings[] = $list['Warninglist']['name'];
+			if ($object['to_ids']) {
+				foreach ($warninglists as &$list) {
+					if (in_array($object['type'], $list['types'])) {
+						$result = $this->__checkValue($list['values'], $object['value'], $object['type'], $list['Warninglist']['type']);
+						if (!empty($result)) {
+							$object['warnings'][$result][] = $list['Warninglist']['name'];
+							if (!in_array($list['Warninglist']['name'], $eventWarnings)) $eventWarnings[] = $list['Warninglist']['name'];
+						}
 					}
 				}
 			}
 		}
+		debug($event);
 		return $event;
 	}
 	
@@ -135,18 +137,69 @@ class Warninglist extends AppModel{
 		$components = array(0, 1);
 		foreach ($components as $component) {
 			if (!isset($value[$component])) continue;
-			debug($value);
-			debug($component);
-			if ($listType === 'cidr') $result = $this->__evalCIDR($listValues, $value[$component]);
+			if ($listType === 'cidr') $result = $this->__evalCIDRList($listValues, $value[$component]);
 			else if ($listType === 'string') $result = $this->__evalString($listValues, $value[$component]);
 			if ($result) return ($component + 1);
 		}
 		return false;
 	}
 	
-	private function __evalCIDR(&$listValues, $value) {
-		
+	// This requires an IP type attribute in a non CIDR notation format
+	// For the future we can expand this to look for CIDR overlaps?
+	private function __evalCIDRList(&$listValues, $value) {
+		$ipv4cidrlist = array();
+		$ipv6cidrlist = array();
+		// separate the CIDR list into IPv4 and IPv6
+		foreach ($listValues as $lv) {
+			$base = substr($lv, 0, strpos($lv, '/'));
+			if (filter_var($base, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) $ipv4cidrlist[] = $lv;
+			else if (filter_var($base, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) $ipv6cidrlist[] = $lv;
+		}
+		// evaluate the value separately if it's IPv4 or IPv6
+		if (filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) return $this->__evalCIDR($value, $ipv4cidrlist, '__ipv4InCidr');
+		else if (filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) return $this->__evalCIDR($value, $ipv6cidrlist, '__ipv6InCidr');
 		return false;
+
+	}
+	
+	private function __evalCIDR($value, &$listValues, $function) {
+		$found = false;
+		foreach ($listValues as $lv) {
+			$found = $this->$function($value, $lv);
+		}
+		if ($found) return true;
+		return false;
+	}
+	
+	// using Alnitak's solution from http://stackoverflow.com/questions/594112/matching-an-ip-to-a-cidr-mask-in-php5
+	private function __ipv4InCidr($ip, $cidr) {
+		list ($subnet, $bits) = explode('/', $cidr);
+		$ip = ip2long($ip);
+		$subnet = ip2long($subnet);
+		$mask = -1 << (32 - $bits);
+		$subnet &= $mask; # nb: in case the supplied subnet wasn't correctly aligned
+		return ($ip & $mask) == $subnet;
+	}
+	
+	// using Snifff's solution from http://stackoverflow.com/questions/7951061/matching-ipv6-address-to-a-cidr-subnet
+	private function __ipv6InCidr($ip, $cidr) {
+		$ip = inet_pton($ip);
+		$binaryip = inet_to_bits($ip);
+		list($net,$maskbits) = explode('/',$cidrnet);
+		$net=inet_pton($net);
+		$binarynet = $this->__inet_to_bits($net);
+		$ip_net_bits = substr($binaryip, 0, $maskbits);
+		$net_bits = substr($binarynet, 0, $maskbits);
+		return ($ip_net_bits === $net_bits);
+	}
+	
+	// converts inet_pton output to string with bits
+	private function __inet_to_bits($inet) {
+		$unpacked = unpack('A16', $inet);
+		$unpacked = str_split($unpacked[1]);
+		$binaryip = '';
+		foreach ($unpacked as $char) $binaryip .= str_pad(decbin(ord($char)), 8, '0', STR_PAD_LEFT);
+		return $binaryip;
 	}
 	
 	private function __evalString(&$listValues, $value) {
