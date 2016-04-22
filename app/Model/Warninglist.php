@@ -117,7 +117,7 @@ class Warninglist extends AppModel{
 		foreach ($event['objects'] as &$object) {
 			if ($object['to_ids']) {
 				foreach ($warninglists as &$list) {
-					if (in_array($object['type'], $list['types'])) {
+					if (in_array('ALL', $list['types']) || in_array($object['type'], $list['types'])) {
 						$result = $this->__checkValue($list['values'], $object['value'], $object['type'], $list['Warninglist']['type']);
 						if (!empty($result)) {
 							$object['warnings'][$result][] = $list['Warninglist']['name'];
@@ -127,7 +127,7 @@ class Warninglist extends AppModel{
 				}
 			}
 		}
-		debug($event);
+		$event['Event']['warnings'] = $eventWarnings;
 		return $event;
 	}
 	

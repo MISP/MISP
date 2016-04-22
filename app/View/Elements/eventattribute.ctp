@@ -275,6 +275,19 @@
 											echo nl2br(h($sigDisplay));
 										}
 										if (isset($object['validationIssue'])) echo ' <span class="icon-warning-sign" title="Warning, this doesn\'t seem to be a legitimage ' . strtoupper(h($object['type'])) . ' value">&nbsp;</span>';
+										
+																				
+										if (isset($object['warnings'])) {
+											$temp = '';
+											$components = array(1 => 0, 2 => 1);
+											$valueParts = explode('|', $object['value']);
+											foreach ($components as $component => $valuePart) {
+												if (isset($object['warnings'][$component]) && isset($valueParts[$valuePart])) {
+													foreach ($object['warnings'][$component] as $warning) $temp .= '<span class=\'bold\'>' . h($valueParts[$valuePart]) . '</span>: <span class=\'red\'>' . h($warning) . '</span><br />';
+												}
+											}
+											echo ' <span class="icon-warning-sign" data-placement="right" data-toggle="popover" data-content="' . h($temp) . '" data-trigger="hover">&nbsp;</span>';
+										}
 									?>
 								</div>
 								</div>

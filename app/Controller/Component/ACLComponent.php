@@ -22,6 +22,7 @@ class ACLComponent extends Component {
 					'generateCount' => array(),
 					'getActions' => array(),
 					'pruneDuplicateUUIDs' => array(),
+					'queryACL' => array(),
 					'removeDuplicateEvents' => array(),
 					'updateDatabase' => array(),
 					'upgrade2324' => array(),
@@ -317,6 +318,14 @@ class ACLComponent extends Component {
 					'updateLoginTime' => array('*'),
 					'verifyGPG' => array(),
 					'view' => array('*'),
+			),
+			'warninglists' => array(
+					'enableWarninglist' => array(),
+					'getToggleField' => array(),
+					'index' => array('*'),
+					'toggleEnable' => array(),
+					'update' => array(),
+					'view' => array('*')
 			),
 			'whitelists' => array(
 					'admin_add' => array('perm_regexp_access'),

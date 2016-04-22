@@ -650,6 +650,9 @@ class EventsController extends AppController {
 		if (empty($results)) throw new NotFoundException('Invalid event');
 		$event = &$results[0];
 		$params = $this->Event->rearrangeEventForView($event, $this->passedArgs, $all);
+		$this->loadModel('Warninglist');
+		$warningLists = $this->Warninglist->fetchForEventView();
+		if (!empty($warningLists)) $event = $this->Warninglist->setWarnings($event, $warningLists);
 		$this->params->params['paging'] = array($this->modelClass => $params);
 		$this->set('event', $event);
 		$dataForView = array(

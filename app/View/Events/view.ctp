@@ -31,6 +31,9 @@
 	?>
 	<div class="row-fluid">
 		<div class="span8">
+			<div class="background-red bold">
+				Warning! Potential false positive hits found in the following warning lists (<?php echo h(implode(', ', $event['Event']['warnings'])); ?>)
+			</div>
 			<h2><?php echo nl2br(h($title)); ?></h2>
 			<dl>
 				<dt>Event ID</dt>

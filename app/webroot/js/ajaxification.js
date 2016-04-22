@@ -1603,7 +1603,6 @@ function sharingGroupIndexMembersExpand(id) {
 
 function popoverStartup() {
     $('[data-toggle="popover"]').popover({
-        placement: 'left',
         animation: true,
         html: true,
     }).click(function(e) {
