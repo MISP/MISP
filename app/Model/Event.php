@@ -2751,10 +2751,9 @@ class Event extends AppModel {
 		App::uses('CustomPaginationTool', 'Tools');
 		$customPagination = new CustomPaginationTool();
 		if ($all) $passedArgs['page'] = 0;
-		$params = $customPagination->applyRulesOnArray($eventArray, $passedArgs, 'events', 'category');
 		$eventArrayWithProposals = array();
 		
-		foreach ($eventArray as &$object) {
+		foreach ($eventArray as $k => &$object) {
 			if ($object['category'] === 'Financial fraud') {
 				if (!$fTool->validateRouter($object['type'], $object['value'])) {
 					$object['validationIssue'] = true;
@@ -2777,8 +2776,13 @@ class Event extends AppModel {
 			} else {
 				$eventArrayWithProposals[] = $object;
 			}
+			unset($eventArray[$k]);
 		}
 		$event['objects'] = $eventArrayWithProposals;
+		$this->Warninglist = ClassRegistry::init('Warninglist');
+		$warningLists = $this->Warninglist->fetchForEventView();
+		if (!empty($warningLists)) $event = $this->Warninglist->setWarnings($event, $warningLists);
+		$params = $customPagination->applyRulesOnArray($event['objects'], $passedArgs, 'events', 'category');
 		return $params;
 	}
 	
