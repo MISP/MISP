@@ -72,26 +72,54 @@ class AppController extends Controller {
 			'ACL'
 	);
 	
+	public $auth_user_vars = array(
+			'id',
+			'password',
+			'org_id',
+			'server_id',
+			'email',
+			'autoalert',
+			'authkey',
+			'invited_by',
+			'nids_sid',
+			'termsaccepted',
+			'newsread',
+			'role_id',
+			'change_pw',
+			'contactalert',
+			'disabled',
+			'expiration',
+			'last_login',
+			'current_login',
+			'external_auth_required',
+			'external_auth_key',
+			'force_logout',
+			'Role.*',
+			'Organisation.*',
+			'Server.*'
+	);
 	
 	public function beforeFilter() {
-                //Let s check if Apache have kerberos auth.
-                $envvar = Configure::read('ApacheSecureAuth.apacheEnv');
-                if (isset($_SERVER[$envvar])) {
-                    $this->Auth->className = 'ApacheSecureAuth';
-                    $this->Auth->authenticate = array(
-                        'Apache' => array(
-                            // envvar = field return by Apache when used Authentificatied
-                            'fields' => array('username' => 'email', 'envvar' => $envvar)
-                        )
-                    );
-                } else {
-                    $this->Auth->className = 'SecureAuth';
-                    $this->Auth->authenticate = array(
-                        'Form' => array(
-                            'fields' => array('username' => 'email')
-                        )
-                    );
-                }
+		//Let s check if Apache have kerberos auth.
+		$envvar = Configure::read('ApacheSecureAuth.apacheEnv');
+		if (isset($_SERVER[$envvar])) {
+			$this->Auth->className = 'ApacheSecureAuth';
+			$this->Auth->authenticate = array(
+				'Apache' => array(
+					// envvar = field return by Apache when used Authentificatied
+					'fields' => array('username' => 'email', 'envvar' => $envvar),
+					'userFields' => $this->auth_user_vars	
+				)
+			);
+		} else {
+			$this->Auth->className = 'SecureAuth';
+			$this->Auth->authenticate = array(
+				'Form' => array(
+					'fields' => array('username' => 'email'),
+					'userFields' => $this->auth_user_vars
+				)
+			);
+		}
 		$versionArray = $this->{$this->modelClass}->checkMISPVersion();
 		$this->mispVersion = implode('.', array_values($versionArray));
 
@@ -185,7 +213,6 @@ class AppController extends Controller {
 					if($this->Auth->startup($this)) {
 						$user = $this->Auth->user();
 						if ($user) {
-							unset($user['gpgkey']);
 							// User found in the db, add the user info to the session
 							$this->Session->renew();
 							$this->Session->write(AuthComponent::$sessionKey, $user);
