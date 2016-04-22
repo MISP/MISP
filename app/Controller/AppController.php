@@ -72,34 +72,9 @@ class AppController extends Controller {
 			'ACL'
 	);
 	
-	public $auth_user_vars = array(
-			'id',
-			'password',
-			'org_id',
-			'server_id',
-			'email',
-			'autoalert',
-			'authkey',
-			'invited_by',
-			'nids_sid',
-			'termsaccepted',
-			'newsread',
-			'role_id',
-			'change_pw',
-			'contactalert',
-			'disabled',
-			'expiration',
-			'last_login',
-			'current_login',
-			'external_auth_required',
-			'external_auth_key',
-			'force_logout',
-			'Role.*',
-			'Organisation.*',
-			'Server.*'
-	);
-	
 	public function beforeFilter() {
+		$this->loadModel('User');
+		$auth_user_fields = $this->User->describeAuthFields();
 		//Let s check if Apache have kerberos auth.
 		$envvar = Configure::read('ApacheSecureAuth.apacheEnv');
 		if (isset($_SERVER[$envvar])) {
@@ -108,7 +83,7 @@ class AppController extends Controller {
 				'Apache' => array(
 					// envvar = field return by Apache when used Authentificatied
 					'fields' => array('username' => 'email', 'envvar' => $envvar),
-					'userFields' => $this->auth_user_vars	
+					'userFields' => $auth_user_fields
 				)
 			);
 		} else {
@@ -116,7 +91,7 @@ class AppController extends Controller {
 			$this->Auth->authenticate = array(
 				'Form' => array(
 					'fields' => array('username' => 'email'),
-					'userFields' => $this->auth_user_vars
+					'userFields' => $auth_user_fields
 				)
 			);
 		}
