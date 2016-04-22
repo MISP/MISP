@@ -93,4 +93,70 @@ class Warninglist extends AppModel{
 			return $this->id;
 		} else return $this->validationErrors;
 	}
+	
+	public function fetchForEventView() {
+		$warninglists = $this->find('all', array('contain' => array('WarninglistType'), 'conditions' => array('enabled' => true)));
+		if (empty($warninglists)) return array();		
+		$results = array();
+		foreach ($warninglists as $k => &$t) {
+			$t['values'] = $this->WarninglistEntry->find('list', array(
+					'recursive' => -1,
+					'conditions' => array('warninglist_id' => $t['Warninglist']['id']),
+					'fields' => array('value')
+			));
+			$t['values'] = array_values($t['values']);
+			foreach ($t['WarninglistType'] as &$wt) $t['types'][] = $wt['type'];
+			unset($warninglists[$k]['WarninglistType']);
+		}
+		return $warninglists;
+	}
+	
+	public function setWarnings(&$event, &$warninglists) {
+		if (empty($event['objects'])) return $event;
+		$eventWarnings = array();
+		debug($warninglists);
+		foreach ($event['objects'] as &$object) {
+			foreach ($warninglists as &$list) {
+				if (in_array($object['type'], $list['types'])) {
+					$result = $this->__checkValue($list['values'], $object['value'], $object['type'], $list['Warninglist']['type']);
+					if (!empty($result)) {
+						$object['warnings'] = $result;
+						if (!in_array($list['Warninglist']['name'], $eventWarnings)) $eventWarnings[] = $list['Warninglist']['name'];
+					}
+				}
+			}
+		}
+		return $event;
+	}
+	
+	private function __checkValue(&$listValues, $value, $type, $listType) {
+		if (strpos($type, '|')) $value = explode('|', $value);
+		else $value = array($value);
+		$components = array(0, 1);
+		foreach ($components as $component) {
+			if (!isset($value[$component])) continue;
+			debug($value);
+			debug($component);
+			if ($listType === 'cidr') $result = $this->__evalCIDR($listValues, $value[$component]);
+			else if ($listType === 'string') $result = $this->__evalString($listValues, $value[$component]);
+			if ($result) return ($component + 1);
+		}
+		return false;
+	}
+	
+	private function __evalCIDR(&$listValues, $value) {
+		
+		return false;
+	}
+	
+	private function __evalString(&$listValues, $value) {
+		if (in_array($value, $listValues)) return true;
+		return false;
+	}
+	
+	private function __checkCIDR(&$listValues, $value, $type) {
+		if (strpos($type, '|')) $value = explode('|', $value);
+		else $value = array($value);
+		$components = array(0, 1);
+	}
 }

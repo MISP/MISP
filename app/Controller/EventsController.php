@@ -721,6 +721,10 @@ class EventsController extends AppController {
 			}
 		}
 		$params = $this->Event->rearrangeEventForView($event);
+		$this->loadModel('Warninglist');
+		$warningLists = $this->Warninglist->fetchForEventView();
+		if (!empty($warningLists)) $event = $this->Warninglist->setWarnings($event, $warningLists);
+
 		$this->params->params['paging'] = array($this->modelClass => $params);
 		$this->set('event', $event);
 		$dataForView = array(
