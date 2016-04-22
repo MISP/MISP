@@ -31,11 +31,6 @@
 	?>
 	<div class="row-fluid">
 		<div class="span8">
-			<?php if (!empty($event['Event']['warnings'])): ?>
-				<div class="background-red bold">
-					Warning! Potential false positive hits found in the following warning lists (<?php echo h(implode(', ', $event['Event']['warnings'])); ?>)
-				</div>
-			<?php endif; ?>
 			<h2><?php echo nl2br(h($title)); ?></h2>
 			<dl>
 				<dt>Event ID</dt>
@@ -195,6 +190,19 @@
 			</div></li>
 			<?php endforeach; ?>
 		</ul>
+		<?php if (!empty($event['Event']['warnings'])): ?>
+			<div class="warning_container" style="width:80%;">
+				<h4 class="red">Warning: Potential false positives</h4>
+				<?php 
+					$total = count($event['Event']['warnings']);
+					$current = 1;
+					foreach ($event['Event']['warnings'] as $id => $name) {
+						echo '<a href="' . $baseurl . '/warninglists/view/' . $id . '">' . h($name) . '</a>' . ($current == $total ? '' : '<br />');
+						$current++;
+					}
+				?>
+			</div>
+		<?php endif; ?>
 	</div>
 	<?php endif; ?>
 	</div>

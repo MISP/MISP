@@ -120,7 +120,7 @@ class Warninglist extends AppModel{
 						$result = $this->__checkValue($list['values'], $object['value'], $object['type'], $list['Warninglist']['type']);
 						if (!empty($result)) {
 							$object['warnings'][$result][] = $list['Warninglist']['name'];
-							if (!in_array($list['Warninglist']['name'], $eventWarnings)) $eventWarnings[] = $list['Warninglist']['name'];
+							if (!in_array($list['Warninglist']['name'], $eventWarnings)) $eventWarnings[$list['Warninglist']['id']] = $list['Warninglist']['name'];
 						}
 					}
 				}
