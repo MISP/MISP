@@ -77,15 +77,14 @@ class Warninglist extends AppModel{
 		foreach ($fieldsToSave as $fieldToSave) $warninglist['Warninglist'][$fieldToSave] = $list[$fieldToSave];
 		$this->create();
 		if ($this->save($warninglist)) {
-			foreach ($list['list'] as $value) {
-				$this->WarninglistEntry->create();
-				$this->WarninglistEntry->save(array('WarninglistEntry' => array('value' => $value, 'warninglist_id' => $this->id)));
-			}
+			$data = array();
+			foreach ($list['list'] as $value) $data[] = array('value' => $value, 'warninglist_id' => $this->id);
+			$this->WarninglistEntry->saveMany($data);
+			
 			if (!empty($list['matching_attributes'])) {
-				foreach ($list['matching_attributes'] as $type) {
-					$this->WarninglistType->create();
-					$this->WarninglistType->save(array('WarninglistType' => array('type' => $type, 'warninglist_id' => $this->id)));
-				}
+				$data = array();
+				foreach ($list['matching_attributes'] as $type) $data[] = array('type' => $type, 'warninglist_id' => $this->id);
+				$this->WarninglistType->saveMany($data);
 			} else {
 				$this->WarninglistType->create();
 				$this->WarninglistType->save(array('WarninglistType' => array('type' => 'ALL', 'warninglist_id' => $this->id)));
