@@ -270,6 +270,10 @@
 											echo $this->Html->link($sigDisplay, $cveUrl . $sigDisplay, array('target' => '_blank'));
 										} elseif ('link' == $object['type']) {
 											echo $this->Html->link($sigDisplay, $sigDisplay);
+										} else if ('text' == $object['type']) {
+											$sigDisplay = str_replace("\r", '', h($sigDisplay));
+											$sigDisplay = str_replace(" ", '&nbsp;', $sigDisplay);
+											echo nl2br($sigDisplay);
 										} else {
 											$sigDisplay = str_replace("\r", '', $sigDisplay);
 											echo nl2br(h($sigDisplay));
