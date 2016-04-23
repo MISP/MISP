@@ -2717,7 +2717,7 @@ class Event extends AppModel {
 		}
 		$filterType = false;
 		if (isset($passedArgs['attributeFilter'])) {
-			if (in_array($passedArgs['attributeFilter'], array_keys($this->Attribute->typeGroupings)) || $passedArgs['attributeFilter'] == 'proposal' || $passedArgs['attributeFilter'] == 'correlation') {
+			if (in_array($passedArgs['attributeFilter'], array_keys($this->Attribute->typeGroupings)) || in_array($passedArgs['attributeFilter'], array('proposal', 'correlation', 'warning'))) {
 				$filterType = $passedArgs['attributeFilter'];
 			} else {
 				unset($passedArgs['attributeFilter']);
@@ -2728,7 +2728,7 @@ class Event extends AppModel {
 		$correlatedAttributes = isset($event['RelatedAttribute']) ? array_keys($event['RelatedAttribute']) : array();
 		$correlatedShadowAttributes = isset($event['RelatedShadowAttribute']) ? array_keys($event['RelatedShadowAttribute']) : array();
 		foreach ($event['Attribute'] as $attribute) {
-			if ($filterType && $filterType !== 'proposal' && $filterType !== 'correlation') if (!in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType])) continue;
+			if ($filterType && !in_array($filterType, array('proposal', 'correlation', 'warning'))) if (!in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType])) continue;
 			if (isset($attribute['distribution']) && $attribute['distribution'] != 4) unset ($attribute['SharingGroup']);
 			$attribute['objectType'] = 0;
 			if (!empty($attribute['ShadowAttribute'])) $attribute['hasChildren'] = 1;
@@ -2742,7 +2742,7 @@ class Event extends AppModel {
 		if (isset($event['ShadowAttribute'])) {
 			foreach ($event['ShadowAttribute'] as $shadowAttribute) {
 				if ($filterType === 'correlation' && !in_array($shadowAttribute['id'], $correlatedShadowAttributes)) continue;
-				if ($filterType && $filterType !== 'proposal' && $filterType !== 'correlation') if (!in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType])) continue;
+				if ($filterType && !in_array($filterType, array('proposal', 'correlation', 'warning'))) if (!in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType])) continue;
 				$shadowAttribute['objectType'] = 2;
 				$eventArray[] = $shadowAttribute;
 			}
@@ -2751,10 +2751,9 @@ class Event extends AppModel {
 		App::uses('CustomPaginationTool', 'Tools');
 		$customPagination = new CustomPaginationTool();
 		if ($all) $passedArgs['page'] = 0;
-		$params = $customPagination->applyRulesOnArray($eventArray, $passedArgs, 'events', 'category');
 		$eventArrayWithProposals = array();
 		
-		foreach ($eventArray as &$object) {
+		foreach ($eventArray as $k => &$object) {
 			if ($object['category'] === 'Financial fraud') {
 				if (!$fTool->validateRouter($object['type'], $object['value'])) {
 					$object['validationIssue'] = true;
@@ -2777,8 +2776,17 @@ class Event extends AppModel {
 			} else {
 				$eventArrayWithProposals[] = $object;
 			}
+			unset($eventArray[$k]);
 		}
 		$event['objects'] = $eventArrayWithProposals;
+		$this->Warninglist = ClassRegistry::init('Warninglist');
+		$warningLists = $this->Warninglist->fetchForEventView();
+		if (!empty($warningLists)) $event = $this->Warninglist->setWarnings($event, $warningLists);
+		if ($filterType && $filterType == 'warning') {
+			foreach ($event['objects'] as $k => &$object) if (empty($object['warnings'])) unset($event['objects'][$k]);
+			$event['objects'] = array_values($event['objects']);
+		}
+		$params = $customPagination->applyRulesOnArray($event['objects'], $passedArgs, 'events', 'category');
 		return $params;
 	}
 	

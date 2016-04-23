@@ -83,6 +83,48 @@ function submitDeletion(context_id, action, type, id) {
 	});
 }
 
+function toggleSetting(e, setting, id) {
+	e.preventDefault();
+	e.stopPropagation();
+	switch (setting) {
+	case 'warninglist_enable': 
+		formID = '#WarninglistIndexForm';
+		dataDiv = '#WarninglistEnable';
+		break;
+	}
+	$('#WarninglistData').val(id);
+	var formData = $(formID).serialize();
+	$.ajax({
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		}, 
+		data: formData, 
+		success:function (data, textStatus) {
+			var result = JSON.parse(data);
+			if (result.success) {
+				var setting = false;
+				if (result.success == 'Warninglist enabled') setting = true;
+				$('#checkBox_' + id).prop('checked', setting);
+			}
+			handleGenericAjaxResponse(data);
+		}, 
+		complete:function() {
+			$.get( "/warninglists/getToggleField/", function(data) {
+				$('#hiddenFormDiv').html(data);
+			});
+			$(".loading").hide();
+			$("#confirmation_box").fadeOut();
+			$("#gray_out").fadeOut();
+		},
+		error:function() {
+			handleGenericAjaxResponse({'saved':false, 'errors':['Request failed due to an unexpected error.']});
+		},
+		type:"post", 
+		cache: false,
+		url: $(formID).attr('action'),
+	});
+}
+
 function initiatePasswordReset(id) {
 	$.get( "/users/initiatePasswordReset/" + id, function(data) {
 		$("#confirmation_box").fadeIn();
@@ -1561,7 +1603,6 @@ function sharingGroupIndexMembersExpand(id) {
 
 function popoverStartup() {
     $('[data-toggle="popover"]').popover({
-        placement: 'left',
         animation: true,
         html: true,
     }).click(function(e) {

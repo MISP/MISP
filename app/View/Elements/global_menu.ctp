@@ -65,6 +65,7 @@
 							<li><a href="<?php echo $baseurl;?>/regexp/index">Import Regexp</a></li>
 							<li><a href="<?php echo $baseurl;?>/whitelists/index">Signature Whitelist</a></li>
 							<?php endif;?>
+							<li><a href="<?php echo $baseurl;?>/warninglists/index">List Warninglists</a></li>
 						</ul>
 					</li>
 

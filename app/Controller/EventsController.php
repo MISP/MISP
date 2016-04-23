@@ -721,6 +721,7 @@ class EventsController extends AppController {
 			}
 		}
 		$params = $this->Event->rearrangeEventForView($event);
+
 		$this->params->params['paging'] = array($this->modelClass => $params);
 		$this->set('event', $event);
 		$dataForView = array(

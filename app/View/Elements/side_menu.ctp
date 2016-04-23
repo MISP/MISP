@@ -111,8 +111,13 @@
 					<?php 
 					endif;
 				break;
-					
-					case 'whitelist':?>
+				case 'warninglist':?>
+					<?php if ($menuItem == 'view'): ?><li class="active"><a href="#">View Warninglist</a></li><?php endif;?>
+					<li id='liindex'><?php echo $this->Html->link('List Warninglists', array('action' => 'index'));?></li>
+					<li><?php echo $this->Form->postLink('Update Warninglists', '/warninglists/update'); ?></li>
+				<?php 
+				break; 	
+				case 'whitelist':?>
 					<li id='liindex'><?php echo $this->Html->link('List Whitelist', array('admin' => $isSiteAdmin, 'action' => 'index'));?></li>
 					<?php if ($isSiteAdmin): ?>
 					<li id='liadd'><?php echo $this->Html->link('New Whitelist', array('admin' => true, 'action' => 'add'));?></li>

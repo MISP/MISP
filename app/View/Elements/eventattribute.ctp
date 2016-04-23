@@ -132,6 +132,7 @@
 		<?php endforeach; ?>
 		<div id="filter_proposal" title="Only show proposals" class="attribute_filter_text" onClick="filterAttributes('proposal', '<?php echo h($event['Event']['id']); ?>');">Proposal</div>
 		<div id="filter_correlation" title="Only show correlating attributes" class="attribute_filter_text" onClick="filterAttributes('correlation', '<?php echo h($event['Event']['id']); ?>');">Correlation</div>
+		<div id="filter_warning" title="Only show potentially false positive attributes" class="attribute_filter_text" onClick="filterAttributes('warning', '<?php echo h($event['Event']['id']); ?>');">Warnings</div>
 	</div>
 	<table class="table table-striped table-condensed">
 		<tr>
@@ -279,6 +280,19 @@
 											echo nl2br(h($sigDisplay));
 										}
 										if (isset($object['validationIssue'])) echo ' <span class="icon-warning-sign" title="Warning, this doesn\'t seem to be a legitimage ' . strtoupper(h($object['type'])) . ' value">&nbsp;</span>';
+										
+																				
+										if (isset($object['warnings'])) {
+											$temp = '';
+											$components = array(1 => 0, 2 => 1);
+											$valueParts = explode('|', $object['value']);
+											foreach ($components as $component => $valuePart) {
+												if (isset($object['warnings'][$component]) && isset($valueParts[$valuePart])) {
+													foreach ($object['warnings'][$component] as $warning) $temp .= '<span class=\'bold\'>' . h($valueParts[$valuePart]) . '</span>: <span class=\'red\'>' . h($warning) . '</span><br />';
+												}
+											}
+											echo ' <span class="icon-warning-sign" data-placement="right" data-toggle="popover" data-content="' . h($temp) . '" data-trigger="hover">&nbsp;</span>';
+										}
 									?>
 								</div>
 								</div>

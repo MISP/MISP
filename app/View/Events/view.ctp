@@ -190,6 +190,19 @@
 			</div></li>
 			<?php endforeach; ?>
 		</ul>
+		<?php if (!empty($event['Event']['warnings'])): ?>
+			<div class="warning_container" style="width:80%;">
+				<h4 class="red">Warning: Potential false positives</h4>
+				<?php 
+					$total = count($event['Event']['warnings']);
+					$current = 1;
+					foreach ($event['Event']['warnings'] as $id => $name) {
+						echo '<a href="' . $baseurl . '/warninglists/view/' . $id . '">' . h($name) . '</a>' . ($current == $total ? '' : '<br />');
+						$current++;
+					}
+				?>
+			</div>
+		<?php endif; ?>
 	</div>
 	<?php endif; ?>
 	</div>
