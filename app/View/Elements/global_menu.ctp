@@ -65,6 +65,7 @@
 							<li><a href="<?php echo $baseurl;?>/regexp/index">Import Regexp</a></li>
 							<li><a href="<?php echo $baseurl;?>/whitelists/index">Signature Whitelist</a></li>
 							<?php endif;?>
+							<li><a href="<?php echo $baseurl;?>/warninglists/index">List Warninglists</a></li>
 						</ul>
 					</li>
 
@@ -99,7 +100,9 @@
 						</a>
 						<ul class="dropdown-menu">
 							<li><a href="<?php echo $baseurl;?>/servers/index">List Servers</a></li>
-							<li><a href="<?php echo $baseurl;?>/feeds/index">List Feeds</a></li>
+							<?php if ($isSiteAdmin): ?>
+								<li><a href="<?php echo $baseurl;?>/feeds/index">List Feeds</a></li>
+							<?php endif;?>
 						</ul>
 					</li>
 					<?php endif;?>

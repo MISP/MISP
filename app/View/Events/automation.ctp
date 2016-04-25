@@ -355,6 +355,7 @@ The event ID is optional. MISP will accept either a JSON or an XML object posted
 <b>info</b>: Used to populate the event info field if no event ID supplied. Alternatively, if not set, MISP will simply generate a message showing that it's a malware sample collection generated on the given day.<br />
 <b>analysis</b>: The analysis level of the newly created event, if applicatble. [0-2]<br />
 <b>threat_level_id</b>: The threat level ID of the newly created event, if applicatble. [0-3]<br />
+<b>comment</b>: This will populate the comment field of any attribute created using this API.<br />
 <h3>Add or remove tags from events</h3>
 <p>You can add or remove an existing tag from an event in the following way:</p>
 <pre>

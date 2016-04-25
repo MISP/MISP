@@ -1345,6 +1345,7 @@ class AttributesController extends AppController {
 				// combobox for types
 				$types = array('' => array('ALL' => 'ALL'), 'types' => array());
 				$types['types'] = array_merge($types['types'], $this->_arrayToValuesIndexArray(array_keys($this->Attribute->typeDefinitions)));
+				ksort($types['types']);
 				$this->set('types', $types);
 
 				// combobox for categories
@@ -1393,7 +1394,7 @@ class AttributesController extends AppController {
 				'contain' => array('Event' => array('Orgc' => array('fields' => array('Orgc.name')))),
 				'fields' => array(
 					'Attribute.id', 'Attribute.event_id', 'Attribute.type', 'Attribute.category', 'Attribute.to_ids', 'Attribute.value', 'Attribute.distribution',
-					'Event.id', 'Event.org_id', 'Event.orgc_id', 'Event.info', 'Event.distribution', 'Event.attribute_count',
+					'Event.id', 'Event.org_id', 'Event.orgc_id', 'Event.info', 'Event.distribution', 'Event.attribute_count', 'Event.date',
 				)
 			)
 		);
@@ -1437,7 +1438,6 @@ class AttributesController extends AppController {
 
 	public function checkComposites() {
 		if (!self::_isAdmin()) throw new NotFoundException();
-
 		$this->set('fails', $this->Attribute->checkComposites());
 	}
 
@@ -1938,7 +1938,7 @@ class AttributesController extends AppController {
 			}
 		}
 		$this->layout = 'ajax';
-		if ($field == 'distribution') $this->set('distributionLevels', $this->Attribute->distributionLevels);
+		if ($field == 'distribution') $this->set('distributionLevels', $this->Attribute->shortDist);
 		if ($field == 'category') {
 			$typeCategory = array();
 			foreach ($this->Attribute->categoryDefinitions as $k => $category) {
@@ -2300,11 +2300,14 @@ class AttributesController extends AppController {
 			if (!empty($result['results'])) {
 				foreach ($result['results'] as &$r) {
 					if (is_array($r['values']) && !empty($r['values'])) {
-						foreach ($r['values'] as $v) {
+						$tempArray = array();
+						foreach ($r['values'] as $k => $v) {
 							if (is_array($v)) $v = 'Array returned';
-							$resultArray[] = array($type => $v);
+							$tempArray[] = $k . ': ' . $v;
 						}
+						$resultArray[] = array($type => $tempArray);
 					} else if ($r['values'] == null) $resultArray[] = array($type => 'No result');
+					else $resultArray[] = array($type => $r['values']);
 				}
 			}
 		}
@@ -2322,5 +2325,31 @@ class AttributesController extends AppController {
 		}
 		$this->set('result', $result);
 		$this->set('_serialize', array('result'));
+	}
+	
+	public function attributeStatistics($type = 'type', $percentage = false) {
+		$validTypes = array('type', 'category');
+		if (!in_array($type, $validTypes)) throw new MethodNotAllowedException('Invalid type requested.');
+		$totalAttributes = $this->Attribute->find('count', array());
+		$attributes = $this->Attribute->find('all', array(
+				'recursive' => -1,
+				'fields' => array($type, 'COUNT(id) as attribute_count'),
+				'group' => array($type)
+		));
+		$results = array();
+		foreach ($attributes as $attribute) {
+			if ($percentage) {
+				$results[$attribute['Attribute'][$type]] = round(100 * $attribute[0]['attribute_count'] / $totalAttributes, 3) . '%';
+			} else {
+				$results[$attribute['Attribute'][$type]] = $attribute[0]['attribute_count'];
+			}
+		}
+		ksort($results);
+		$this->autoRender = false;
+		$this->layout = false;
+		$this->set('data', $results);
+		$this->set('flags', JSON_PRETTY_PRINT);
+		$this->response->type('json');
+		$this->render('/Servers/json/simple');
 	}
 }

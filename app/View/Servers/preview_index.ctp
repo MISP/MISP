@@ -112,7 +112,14 @@
 			<td style = "max-width: 200px;width:10px;">
 				<?php foreach ($event['Event']['EventTag'] as $tag):
 					$tagText = "&nbsp;";
-					if (Configure::read('MISP.full_tags_on_event_index')) $tagText = $tag['Tag']['name'];
+					if (Configure::read('MISP.full_tags_on_event_index') == 1) $tagText = h($tag['Tag']['name']);
+					else if (Configure::read('MISP.full_tags_on_event_index') == 2) {
+						if (strpos($tag['Tag']['name'], '=')) {
+							$tagText = explode('=', $tag['Tag']['name']);
+							$tagText = h(trim(end($tagText), "\""));
+						}
+						else $tagText = h($tag['Tag']['name']);
+					}
 				?>
 					<span class=tag style="margin-bottom:3px;background-color:<?php echo h($tag['Tag']['colour']);?>;color:<?php echo $this->TextColour->getTextColour($tag['Tag']['colour']);?>;" title="<?php echo h($tag['Tag']['name']); ?>"><?php echo h($tagText); ?></span>
 				<?php endforeach; ?>

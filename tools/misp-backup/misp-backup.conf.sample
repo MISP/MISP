@@ -1,0 +1,4 @@
+MySQLRUser="misp"
+MySQLRPass="FILLME"
+OutputFileName="MISP-Backup"
+OutputDirName="./"

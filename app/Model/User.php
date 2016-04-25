@@ -938,4 +938,16 @@ class User extends AppModel {
 		}
 		return $final;
 	}
+	
+	public function describeAuthFields() {
+		$fields = array();
+		$fields = array_merge($fields, array_keys($this->getColumnTypes()));
+		if (($key = array_search('gpgkey', $fields)) !== false) unset($fields[$key]);
+		if (($key = array_search('certif_public', $fields)) !== false) unset($fields[$key]);
+		$relatedModels = array_keys($this->belongsTo);
+		foreach ($relatedModels as $relatedModel) {
+			$fields[] = $relatedModel . '.*';
+		}
+		return $fields;
+	}
 }

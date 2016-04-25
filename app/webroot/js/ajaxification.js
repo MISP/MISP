@@ -83,6 +83,48 @@ function submitDeletion(context_id, action, type, id) {
 	});
 }
 
+function toggleSetting(e, setting, id) {
+	e.preventDefault();
+	e.stopPropagation();
+	switch (setting) {
+	case 'warninglist_enable': 
+		formID = '#WarninglistIndexForm';
+		dataDiv = '#WarninglistEnable';
+		break;
+	}
+	$('#WarninglistData').val(id);
+	var formData = $(formID).serialize();
+	$.ajax({
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		}, 
+		data: formData, 
+		success:function (data, textStatus) {
+			var result = JSON.parse(data);
+			if (result.success) {
+				var setting = false;
+				if (result.success == 'Warninglist enabled') setting = true;
+				$('#checkBox_' + id).prop('checked', setting);
+			}
+			handleGenericAjaxResponse(data);
+		}, 
+		complete:function() {
+			$.get( "/warninglists/getToggleField/", function(data) {
+				$('#hiddenFormDiv').html(data);
+			});
+			$(".loading").hide();
+			$("#confirmation_box").fadeOut();
+			$("#gray_out").fadeOut();
+		},
+		error:function() {
+			handleGenericAjaxResponse({'saved':false, 'errors':['Request failed due to an unexpected error.']});
+		},
+		type:"post", 
+		cache: false,
+		url: $(formID).attr('action'),
+	});
+}
+
 function initiatePasswordReset(id) {
 	$.get( "/users/initiatePasswordReset/" + id, function(data) {
 		$("#confirmation_box").fadeIn();
@@ -250,6 +292,29 @@ function postActivationScripts(name, type, id, field, event) {
 	});
 
 	$(name + '_solid').hide();
+}
+
+function addSighting(attribute_id, event_id, $page) {
+	$.ajax({
+		data: $('#Sighting_' + attribute_id).closest("form").serialize(),
+		cache: false,
+		success:function (data, textStatus) {
+			handleGenericAjaxResponse(data);
+			var result = JSON.parse(data);
+			if (result.saved == true) {
+				$('.sightingsCounter').each(function( counter ) {
+					$(this).html(parseInt($(this).html()) + 1);
+				});
+				updateIndex(event_id, 'event');
+			}
+		}, 
+		error:function() {
+			showMessage('fail', 'Request failed for an unknown reason.');
+			updateIndex(context, 'event');
+		},
+		type:"post", 
+		url:"/sightings/add/" + attribute_id
+	});
 }
 
 function resetForms() {
@@ -1538,7 +1603,6 @@ function sharingGroupIndexMembersExpand(id) {
 
 function popoverStartup() {
     $('[data-toggle="popover"]').popover({
-        placement: 'left',
         animation: true,
         html: true,
     }).click(function(e) {
@@ -2293,19 +2357,31 @@ function toggleSettingSubGroup(group) {
 
 function hoverModuleExpand(type, id) {
 	$('.popover').remove();
-	$.ajax({
-		success:function (html) {
-			$('.popover').remove();
-			$('#' + type + '_' + id + '_container').popover({
-				title: 'Lookup results:',
-				content: html,
-				placement: 'left',
-				html: true,
-				trigger: 'focus',
-				container: 'body'
-			}).popover('show');
-		}, 
-		cache: false,
-		url:"/" + type + "s/hoverEnrichment/" + id,
-	});
+	if (type + "_" + id in ajaxResults) {
+		$('#' + type + '_' + id + '_container').popover({
+			title: 'Lookup results:',
+			content: ajaxResults[type + "_" + id],
+			placement: 'left',
+			html: true,
+			trigger: 'focus',
+			container: 'body'
+		}).popover('show');
+	} else {
+		$.ajax({
+			success:function (html) {
+				ajaxResults[type + "_" + id] = html;
+				$('.popover').remove();
+				$('#' + type + '_' + id + '_container').popover({
+					title: 'Lookup results:',
+					content: html,
+					placement: 'left',
+					html: true,
+					trigger: 'focus',
+					container: 'body'
+				}).popover('show');
+			}, 
+			cache: false,
+			url:"/" + type + "s/hoverEnrichment/" + id,
+		});
+	}
 }

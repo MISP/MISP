@@ -293,7 +293,7 @@ class SharingGroup extends AppModel {
 			}
 			if ($results['rule'] === false) return false;
 		}
-		foreach ($sg['SharingGroupOrg'] as $org) if ($org['Organisation']['uuid'] === $server['RemoteOrg']['uuid']) return true;
+		foreach ($sg['SharingGroupOrg'] as $org) if (isset($org['Organisation']) && $org['Organisation']['uuid'] === $server['RemoteOrg']['uuid']) return true;
 		return false;
 	}
 	

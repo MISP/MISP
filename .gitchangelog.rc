@@ -1,0 +1,192 @@
+##
+## Format
+##
+##   ACTION: [AUDIENCE:] COMMIT_MSG [!TAG ...]
+##
+## Description
+##
+##   ACTION is one of 'chg', 'fix', 'new'
+##
+##       Is WHAT the change is about.
+##
+##       'chg' is for refactor, small improvement, cosmetic changes...
+##       'fix' is for bug fixes
+##       'new' is for new features, big improvement
+##
+##   AUDIENCE is optional and one of 'dev', 'usr', 'pkg', 'test', 'doc'
+##
+##       Is WHO is concerned by the change.
+##
+##       'dev'  is for developpers (API changes, refactors...)
+##       'usr'  is for final users (UI changes)
+##       'pkg'  is for packagers   (packaging changes)
+##       'test' is for testers     (test only related changes)
+##       'doc'  is for doc guys    (doc only changes)
+##
+##   COMMIT_MSG is ... well ... the commit message itself.
+##
+##   TAGs are additionnal adjective as 'refactor' 'minor' 'cosmetic'
+##
+##       They are preceded with a '!' or a '@' (prefer the former, as the
+##       latter is wrongly interpreted in github.) Commonly used tags are:
+##
+##       'refactor' is obviously for refactoring code only
+##       'minor' is for a very meaningless change (a typo, adding a comment)
+##       'cosmetic' is for cosmetic driven change (re-indentation, 80-col...)
+##       'wip' is for partial functionality but complete subfunctionality.
+##
+## Example:
+##
+##   new: usr: support of bazaar implemented
+##   chg: re-indentend some lines !cosmetic
+##   new: dev: updated code to be compatible with last version of killer lib.
+##   fix: pkg: updated year of licence coverage.
+##   new: test: added a bunch of test around user usability of feature X.
+##   fix: typo in spelling my name in comment. !minor
+##
+##   Please note that multi-line commit message are supported, and only the
+##   first line will be considered as the "summary" of the commit message. So
+##   tags, and other rules only applies to the summary.  The body of the commit
+##   message will be displayed in the changelog without reformatting.
+
+
+##
+## ``ignore_regexps`` is a line of regexps
+##
+## Any commit having its full commit message matching any regexp listed here
+## will be ignored and won't be reported in the changelog.
+##
+ignore_regexps = [
+        r'@minor', r'!minor',
+        r'@cosmetic', r'!cosmetic',
+        r'@refactor', r'!refactor',
+        r'@wip', r'!wip',
+        r'^([cC]hg|[fF]ix|[nN]ew)\s*:\s*[p|P]kg:',
+        r'^([cC]hg|[fF]ix|[nN]ew)\s*:\s*[d|D]ev:',
+        r'^(.{3,3}\s*:)?\s*[fF]irst commit.?\s*$',
+  ]
+
+
+## ``section_regexps`` is a list of 2-tuples associating a string label and a
+## list of regexp
+##
+## Commit messages will be classified in sections thanks to this. Section
+## titles are the label, and a commit is classified under this section if any
+## of the regexps associated is matching.
+##
+section_regexps = [
+    ('New', [
+        r'^[nN]ew\s*:\s*((dev|use?r|pkg|test|doc)\s*:\s*)?([^\n]*)$',
+     ]),
+    ('Changes', [
+        r'^[cC]hg\s*:\s*((dev|use?r|pkg|test|doc)\s*:\s*)?([^\n]*)$',
+     ]),
+    ('Fix', [
+        r'^[fF]ix\s*:\s*((dev|use?r|pkg|test|doc)\s*:\s*)?([^\n]*)$',
+     ]),
+
+    ('Other', None ## Match all lines
+     ),
+
+]
+
+
+## ``body_process`` is a callable
+##
+## This callable will be given the original body and result will
+## be used in the changelog.
+##
+## Available constructs are:
+##
+##   - any python callable that take one txt argument and return txt argument.
+##
+##   - ReSub(pattern, replacement): will apply regexp substitution.
+##
+##   - Indent(chars="  "): will indent the text with the prefix
+##     Please remember that template engines gets also to modify the text and
+##     will usually indent themselves the text if needed.
+##
+##   - Wrap(regexp=r"\n\n"): re-wrap text in separate paragraph to fill 80-Columns
+##
+##   - noop: do nothing
+##
+##   - ucfirst: ensure the first letter is uppercase.
+##     (usually used in the ``subject_process`` pipeline)
+##
+##   - final_dot: ensure text finishes with a dot
+##     (usually used in the ``subject_process`` pipeline)
+##
+##   - strip: remove any spaces before or after the content of the string
+##
+## Additionally, you can `pipe` the provided filters, for instance:
+#body_process = Wrap(regexp=r'\n(?=\w+\s*:)') | Indent(chars="  ")
+#body_process = Wrap(regexp=r'\n(?=\w+\s*:)')
+#body_process = noop
+body_process = ReSub(r'((^|\n)[A-Z]\w+(-\w+)*: .*(\n\s+.*)*)+$', r'') | strip
+
+
+## ``subject_process`` is a callable
+##
+## This callable will be given the original subject and result will
+## be used in the changelog.
+##
+## Available constructs are those listed in ``body_process`` doc.
+subject_process = (strip |
+    ReSub(r'^([cC]hg|[fF]ix|[nN]ew)\s*:\s*((dev|use?r|pkg|test|doc)\s*:\s*)?([^\n@]*)(@[a-z]+\s+)*$', r'\4') |
+    ucfirst | final_dot)
+
+
+## ``tag_filter_regexp`` is a regexp
+##
+## Tags that will be used for the changelog must match this regexp.
+##
+tag_filter_regexp = r'^v[0-9]+\.[0-9]+\.[0-9]+$'
+
+
+## ``unreleased_version_label`` is a string
+##
+## This label will be used as the changelog Title of the last set of changes
+## between last valid tag and HEAD if any.
+unreleased_version_label = "%%version%% (unreleased)"
+
+
+## ``output_engine`` is a callable
+##
+## This will change the output format of the generated changelog file
+##
+## Available choices are:
+##
+##   - rest_py
+##
+##        Legacy pure python engine, outputs ReSTructured text.
+##        This is the default.
+##
+##   - mustache(<template_name>)
+##
+##        Template name could be any of the available templates in
+##        ``templates/mustache/*.tpl``.
+##        Requires python package ``pystache``.
+##        Examples:
+##           - mustache("markdown")
+##           - mustache("restructuredtext")
+##
+##   - makotemplate(<template_name>)
+##
+##        Template name could be any of the available templates in
+##        ``templates/mako/*.tpl``.
+##        Requires python package ``mako``.
+##        Examples:
+##           - makotemplate("restructuredtext")
+##
+output_engine = rest_py
+#output_engine = mustache("restructuredtext")
+#output_engine = mustache("markdown")
+#output_engine = makotemplate("restructuredtext")
+
+
+## ``include_merge`` is a boolean
+##
+## This option tells git-log whether to include merge commits in the log.
+## The default is to include them.
+include_merge = True
+

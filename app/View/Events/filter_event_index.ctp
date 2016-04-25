@@ -87,6 +87,14 @@
 						'style' => 'display:none;width:424px;',
 						'div' => false
 				));
+				if ($isSiteAdmin) {
+					echo $this->Form->input('searchemail', array(
+							'label' => false,
+							'class' => 'input-large',
+							'style' => 'display:none;width:424px;',
+							'div' => false
+					));
+				}
 				echo $this->Form->input('searcheventid', array(
 						'label' => false,
 						'class' => 'input-large',
@@ -113,7 +121,8 @@
 						<th style="width:10px;border:1px solid #cccccc;border-left:0px;text-align: left;"></th>
 					</tr>
 					<?php 
-						$fields = array('published', 'org', 'tag', 'date', 'eventinfo', 'threatlevel', 'analysis', 'distribution', 'attribute');
+						$fields = array('published', 'org', 'tag', 'date', 'eventinfo', 'eventid', 'threatlevel', 'analysis', 'distribution', 'attribute');
+						if ($isSiteAdmin) $fields[] = 'email';
 						foreach ($fields as $k => $field):
 					?>
 						<tr id="row_<?php echo $field; ?>" class="hidden filterTableRow">
@@ -176,6 +185,7 @@ var typeArray = {
 var filterContext = "event";
 
 var showorg = <?php echo $showorg == true ? 1 : 0; ?>;
+var isSiteAdmin = <?php echo $isSiteAdmin == true ? 1 : 0; ?>;
 
 var publishedOptions = ["No", "Yes", "Any"];
 
@@ -183,9 +193,9 @@ var filtering = <?php echo $filtering; ?>;
 
 var operators = ["OR", "NOT"];
 
-var allFields = ["published", "tag", "date", "eventinfo", "threatlevel", "distribution", "analysis", "attribute"];
+var allFields = ["published", "tag", "date", "eventinfo", "eventid", "threatlevel", "distribution", "analysis", "attribute"];
 
-var simpleFilters = ["tag", "eventinfo", "threatlevel", "distribution", "analysis", "attribute", "eventid"];
+var simpleFilters = ["tag", "eventinfo", "eventid", "threatlevel", "distribution", "analysis", "attribute"];
 
 var differentFilters = ["published", "date"];
 
@@ -194,6 +204,11 @@ var typedFields = ["tag", "threatlevel", "distribution", "analysis"];
 if (showorg == 1) {
 	allFields.push("org");
 	simpleFilters.push("org");
+}
+
+if (isSiteAdmin == 1) {
+	allFields.push("email");
+	simpleFilters.push("email");
 }
 
 var baseurl = "<?php echo $baseurl; ?>";

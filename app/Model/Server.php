@@ -240,6 +240,14 @@ class Server extends AppModel {
 							'test' => 'testForCustomImage',
 							'type' => 'string',
 					),
+					'main_logo' => array(
+							'level' => 2 ,
+							'description' => 'If set, the image specified here will replace the main MISP logo on the login screen. Upload it as a custom image in the file management tool.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForCustomImage',
+							'type' => 'string',
+					),
 					'org' => array(
 							'level' => 1,
 							'description' => 'The organisation tag of the hosting organisation. This is used in the e-mail subjects.',
@@ -401,8 +409,9 @@ class Server extends AppModel {
 							'description' =>'Show the full tag names on the event index.',
 							'value' => '',
 							'errorMessage' => '',
-							'test' => 'testBool',
-							'type' => 'boolean',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+							'options' => array(0 => 'Minimal tags', 1 => 'Full tags', 2 => 'Shortened tags'),
 					),
 					'welcome_text_top' => array(
 							'level' => 2,
@@ -564,6 +573,25 @@ class Server extends AppModel {
 							'null' => false,
 							
 					),
+					'block_old_event_alert' => array(
+							'level' => 1,
+							'description' => 'Enable this setting to start blocking alert e-mails for old events. The exact timing of what constitutes an old event is defined by MISP.block_old_event_alert_age.',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+							'null' => false,
+					),
+					'block_old_event_alert_age' => array(
+							'level' => 1,
+							'description' => 'If the MISP.block_old_event_alert setting is set, this setting will control how old an event can be for it to be alerted on. The "Date" field of the event is used. Expected format: integer, in days',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testForNumeric',
+							'type' => 'numeric',
+							'null' => false,
+							
+					),
 			),
 			'GnuPG' => array(
 					'branch' => 1,
@@ -709,7 +737,7 @@ class Server extends AppModel {
 			'Plugin' => array(
 					'branch' => 1,
 					'RPZ_policy' => array(
-						'level' => 1,
+						'level' => 2,
 						'description' => 'The default policy action for the values added to the RPZ.',
 						'value' => 0,
 						'errorMessage' => '',
@@ -851,6 +879,32 @@ class Server extends AppModel {
 						'test' => 'testForEmpty',
 						'type' => 'string',
 						'afterHook' => 'zmqAfterHook',
+					),
+					'Sightings_enable' => array(
+						'level' => 1,
+						'description' => 'Enables or disables the sighting functionality. When enabled, users can use the UI or the appropriate APIs to submit sightings data about indicators.',
+						'value' => false,
+						'errorMessage' => '',
+						'test' => 'testBool',
+						'type' => 'boolean',
+						'beforeHook' => 'sightingsBeforeHook',
+					),
+					'Sightings_policy' => array(
+						'level' => 1,
+						'description' => 'This setting defines who will have access to seeing the reported sightings. The default setting is the event owner alone (in addition to everyone seeing their own contribution) with the other options being Sighting reporters (meaning the event owner and anyone that provided sighting data about the event) and Everyone (meaning anyone that has access to seeing the event / attribute).',
+						'value' => 0,
+						'errorMessage' => '',
+						'test' => 'testForSightingVisibility',
+						'type' => 'numeric',
+						'options' => array(0 => 'Event Owner', 1 => 'Sighting reporters', 2 => 'Everyone'),
+					),
+					'Sightings_anonymise' => array(
+						'level' => 1,
+						'description' => 'Enabling the anonymisation of sightings will simply aggregate all sightings instead of showing the organisations that have reported a sighting. Users will be able to tell the number of sightings their organisation has submitted and the number of sightings for other organisations',
+						'value' => false,
+						'errorMessage' => '',
+						'test' => 'testBool',
+						'type' => 'boolean',
 					),
 					'CustomAuth_enable' => array(
 							'level' => 2,
@@ -1418,7 +1472,8 @@ class Server extends AppModel {
 						)
 				), //array of conditions
 				'recursive' => -1, //int
-				'fields' => array('Event.id', 'Event.timestamp', 'Event.uuid'), //array of field names
+				'contain' => array('EventTag' => array('fields' => array('EventTag.tag_id'))),
+				'fields' => array('Event.id', 'Event.timestamp', 'Event.uuid', 'Event.orgc_id'), //array of field names
 		);
 		$eventIds = $this->Event->find('all', $findParams);
 		$eventUUIDsFiltered = $this->getEventIdsForPush($id, $HttpSocket, $eventIds, $user);
@@ -1494,6 +1549,10 @@ class Server extends AppModel {
 		$this->Event = ClassRegistry::init('Event');
 
 		foreach ($eventIds as $k => $event) {
+			if (empty($this->eventFilterPushableServers($event, array($server)))) {
+				unset ($eventIds[$k]);
+				continue;
+			}
 			unset($eventIds[$k]['Event']['id']);
 		}
 		if (null == $HttpSocket) {
@@ -1566,13 +1625,13 @@ class Server extends AppModel {
 					$uri = $server['Server']['url'] . '/events/pushProposals/' . $event['Event']['uuid'];
 					$response = $HttpSocket->post($uri, $data, $request);
 					if ($response->code == '200') {
-						$result = json_decode($response->body());
-						if ($result->success) {
-							$success += intval($result->counter);
+						$result = json_decode($response->body(), true);
+						if ($result['success']) {
+							$success += intval($result['counter']);
 						} else {
 							$fails++;
-							if ($error_message == "") $result->message;
-							else $error_message += " --- " . $result->message; 
+							if ($error_message == "") $result['message'];
+							else $error_message += " --- " . $result['message']; 
 						}
 					} else {
 						$fails++;
@@ -1746,6 +1805,12 @@ class Server extends AppModel {
 		return 'Enabling debug is not recommended. Turn this on temporarily if you need to see a stack trace to debug an issue, but make sure this is not left on.';
 	}
 	
+	public function testDate($date) {
+		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
+		if (!strtotime($date)) return 'The date that you have entered is invalid. Expected: yyyy-mm-dd';
+		return true;
+	}
+	
 	public function testBaseURL($value) {
 		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
 		$protocol = ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $_SERVER['SERVER_PORT'] == 443) === true ? 'HTTPS' : 'HTTP';
@@ -1833,6 +1898,20 @@ class Server extends AppModel {
 		$numeric = $this->testforNumeric($value);
 		if ($numeric !== true) return $numeric;
 		if ($value < 0 || $value > 3) return 'Invalid setting, valid range is 0-3 (0 = DROP, 1 = NXDOMAIN, 2 = NODATA, 3 = walled garden.';
+		return true;
+	}
+	
+	public function testForSightingVisibility($value) {
+		$numeric = $this->testforNumeric($value);
+		if ($numeric !== true) return $numeric;
+		if ($value < 0 || $value > 2) return 'Invalid setting, valid range is 0-2 (0 = Event owner, 1 = Sighting reporters, 2 = Everyone.';
+		return true;
+	}
+	
+	public function sightingsBeforeHook($setting, $value) {
+		if ($value == true) {
+			$this->updateDatabase('addSightings');
+		}
 		return true;
 	}
 	

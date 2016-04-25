@@ -9,3 +9,6 @@
 [submodule "app/files/taxonomies"]
 	path = app/files/taxonomies
 	url = https://github.com/MISP/misp-taxonomies.git
+[submodule "app/files/warninglists"]
+	path = app/files/warninglists
+	url = https://github.com/MISP/misp-warninglists.git

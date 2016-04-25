@@ -413,6 +413,21 @@ class Event extends AppModel {
 		
 		if (!isset($this->data['Event']['distribution']) || $this->data['Event']['distribution'] != 4) $this->data['Event']['sharing_group_id'] = 0;
 	}
+	
+	public function afterSave($created, $options = array()) {
+		if (!$created) {
+			$this->Correlation = ClassRegistry::init('Correlation');
+			$db = $this->getDataSource();
+			$values = array('id' => $db->value($this->data['Event']['id']));
+			$fields = array('info', 'date');
+			foreach ($fields as $field) {
+				if (isset($this->data['Event'][$field])) {
+					$values[$field] = $db->value($this->data['Event'][$field]);
+					$this->Correlation->updateAll(array('Correlation.' . $field => $values[$field]), array('Correlation.event_id' => $values['id']));
+				}
+			} 
+		}
+	}
 
 	public function isOwnedByOrg($eventid, $org) {
 		return $this->field('id', array('id' => $eventid, 'org_id' => $org)) === $eventid;
@@ -646,6 +661,33 @@ class Event extends AppModel {
 		}
 		return $data;
 	}
+	
+	private function __resolveErrorCode($code, &$event, &$server) {
+		$error = false;
+		switch ($code) {
+			case 403:
+				return 'The distribution level of this event blocks it from being pushed.';
+				break;
+			case 405:
+				$error = 'The sync user on the remote instance does not have the required privileges to handle this event.';
+				break;
+		}
+		if ($error) {
+			$this->Log = ClassRegistry::init('Log');
+			$this->Log->create();
+			$this->Log->save(array(
+					'org' => 'SYSTEM',
+					'model' => 'Server',
+					'model_id' => $server['Server']['id'],
+					'email' => 'SYSTEM',
+					'action' => 'warning',
+					'user_id' => 0,
+					'title' => 'Uploading Event (' . $event['Event']['id'] . ') to Server (' . $server['Server']['id'] . ')',
+					'change' => 'Remote instance returned an error, with error code: ' . $code,
+			));
+		}
+		return $error;
+	}
 
 	public function uploadEventToServer($event, $server, $HttpSocket = null) {
 		$this->Server = ClassRegistry::init('Server');
@@ -659,28 +701,27 @@ class Event extends AppModel {
 		$updated = null;
 		$newLocation = $newTextBody = '';
 		$result = $this->restfullEventToServer($event, $server, null, $newLocation, $newTextBody, $HttpSocket);
-		if ($result === 403) {
-			return 'The distribution level of this event blocks it from being pushed.';
-		}
-		if ($result === 405) {
-			return 'The sync user on the remote instance does not have the required privileges to handle this event.';
+		if (is_numeric($result)) {
+			$error = $this->__resolveErrorCode($result, $event, $server);
+			if ($error) return $error . ' Error code: ' . $result;
 		}
 		if (strlen($newLocation) || $result) { // HTTP/1.1 200 OK or 302 Found and Location: http://<newLocation>
 			if (strlen($newLocation)) { // HTTP/1.1 302 Found and Location: http://<newLocation>
 				//$updated = true;
 				$result = $this->restfullEventToServer($event, $server, $newLocation, $newLocation, $newTextBody, $HttpSocket);
-				if ($result === 405) {
-					return 'You do not have permission to edit this event or the event is up to date.';
+				if (is_numeric($result)) {
+					$error = $this->__resolveErrorCode($result, $event, $server);
+					if ($error) return $error . ' Error code: ' . $result;
 				}
 			}
 			$uploadFailed = false;
 			try { // TODO Xml::build() does not throw the XmlException
-				$json = json_decode($newTextBody);
+				$json = json_decode($newTextBody, true);
 			} catch (Exception $e) {
 				$uploadFailed = true;
 			}
-			if (!array($json) || $uploadFailed) {
-				$log = ClassRegistry::init('Log');
+			if (!is_array($json) || $uploadFailed) {
+				$this->Log = ClassRegistry::init('Log');
 				$this->Log->create();
 				$this->Log->save(array(
 						'org' => 'SYSTEM',
@@ -696,27 +737,45 @@ class Event extends AppModel {
 			}
 			// get the remote event_id
 			foreach ($json as $jsonEvent) {
-				foreach ($jsonEvent as $key => $value) {
-					if ($key == 'id') {
-						$remoteId = (int)$value;
-						break;
+				if (is_array($jsonEvent)) {
+					foreach ($jsonEvent as $key => $value) {
+						if ($key == 'id') {
+							$remoteId = (int)$value;
+							break;
+						}
 					}
+				} else {
+					$this->Log = ClassRegistry::init('Log');
+					$this->Log->create();
+					$this->Log->save(array(
+							'org' => 'SYSTEM',
+							'model' => 'Server',
+							'model_id' => $server['Server']['id'],
+							'email' => 'SYSTEM',
+							'action' => 'warning',
+							'user_id' => 0,
+							'title' => 'Uploading Event (' . $event['Event']['id'] . ') to Server (' . $server['Server']['id'] . ')',
+							'change' => 'Returned message: ', $newTextBody,
+					));
+					return false;
 				}
 			}
-			if ($remoteId) {
-				// get the new attribute uuids in an array
-				$newerUuids = array();
-				foreach ($event['Attribute'] as $attribute) {
-					$newerUuids[$attribute['id']] = $attribute['uuid'];
-					$attribute['event_id'] = $remoteId;
-				}
-				// get the already existing attributes and delete the ones that are not there
-				foreach ($json->Event->Attribute as $attribute) {
-					foreach ($attribute as $key => $value) {
-						if ($key == 'uuid') {
-							if (!in_array((string)$value, $newerUuids)) {
-								$anAttr = ClassRegistry::init('Attribute');
-								$anAttr->deleteAttributeFromServer((string)$value, $server, $HttpSocket);
+			if (isset($remoteId)) {
+				if ($remoteId) {
+					// get the new attribute uuids in an array
+					$newerUuids = array();
+					foreach ($event['Attribute'] as $attribute) {
+						$newerUuids[$attribute['id']] = $attribute['uuid'];
+						$attribute['event_id'] = $remoteId;
+					}
+					// get the already existing attributes and delete the ones that are not there
+					foreach ($json['Event']['Attribute'] as $attribute) {
+						foreach ($attribute as $key => $value) {
+							if ($key == 'uuid') {
+								if (!in_array((string)$value, $newerUuids)) {
+									$anAttr = ClassRegistry::init('Attribute');
+									$anAttr->deleteAttributeFromServer((string)$value, $server, $HttpSocket);
+								}
 							}
 						}
 					}
@@ -792,7 +851,11 @@ class Event extends AppModel {
 						//'Connection' => 'keep-alive' // LATER followup cakephp ticket 2854 about this problem http://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2854
 				)
 		);
-		$uri = isset($urlPath) ? $urlPath : $url . '/events';
+		$uri = $url . '/events';
+		if (isset($urlPath)) {
+			$pieces = explode('/', $urlPath);
+			$uri .= '/' . end($pieces);
+		}
 		$data = json_encode($event);
 		// LATER validate HTTPS SSL certificate
 		$this->Dns = ClassRegistry::init('Dns');
@@ -1252,8 +1315,7 @@ class Event extends AppModel {
 				'ShadowAttribute' => array(
 					'fields' => $fieldsShadowAtt,
 					'conditions' => array('deleted' => 0),
-					'Org' => array('fields' => $fieldsOrg),
-					'EventOrg' => array('fields' => $fieldsOrg)
+					'Org' => array('fields' => $fieldsOrg)
 				),
 				'SharingGroup' => $fieldsSharingGroup[(($user['Role']['perm_site_admin'] || $user['Role']['perm_sync']) ? 1 : 0)],
 				'EventTag' => array(
@@ -1270,6 +1332,7 @@ class Event extends AppModel {
 		if (empty($results)) return array();
 		// Do some refactoring with the event
 		$sgsids = $this->SharingGroup->fetchAllAuthorised($user);
+		if (Configure::read('Plugin.Sightings_enable')) $this->Sighting = ClassRegistry::init('Sighting');
 		foreach ($results as $eventKey => &$event) {
 			// unset the empty sharing groups that are created due to the way belongsTo is handled
 			if (isset($event['SharingGroup']['SharingGroupServer'])) {
@@ -1325,6 +1388,9 @@ class Event extends AppModel {
 						}
 					}
 				}
+			}
+			if (Configure::read('Plugin.Sightings_enable')) {
+				$event['Sighting'] = $this->Sighting->attachToEvent($event, $user);
 			}
 			// remove proposals to attributes that we cannot see
 			// if the shadow attribute wasn't moved within an attribute before, this is the case
@@ -1477,6 +1543,16 @@ class Event extends AppModel {
 	 }
 	 
 	 public function sendAlertEmailRouter($id, $user) {
+	 	if (Configure::read('MISP.block_old_event_alert') && Configure::read('MISP.block_old_event_alert_age') && is_numeric(Configure::read('MISP.block_old_event_alert_age'))) {
+	 		$oldest = time() - (Configure::read('MISP.block_old_event_alert_age') * 86400);
+	 		$event = $this->find('first', array(
+	 				'conditions' => array('Event.id' => $id),
+	 				'recursive' => -1,
+	 				'fields' => array('Event.date')
+	 		));
+	 		if (empty($event)) return false;
+	 		if (strtotime($event['Event']['date']) < $oldest) return true;
+	 	}
 	 	if (Configure::read('MISP.background_jobs')) {
 	 		$job = ClassRegistry::init('Job');
 	 		$job->create();
@@ -1611,7 +1687,7 @@ class Event extends AppModel {
 	 			elseif ('email-src' == $attribute['type'] or 'email-dst' == $attribute['type']) {
 	 				$line = str_replace("@","[at]", $line);
 	 			}
-	 			elseif ('domain' == $attribute['type'] or 'ip-src' == $attribute['type'] or 'ip-dst' == $attribute['type']) {
+				elseif ('hostname' == $attribute['type'] or 'domain' == $attribute['type'] or 'ip-src' == $attribute['type'] or 'ip-dst' == $attribute['type']) {
 	 				$line = str_replace(".","[.]", $line);
 	 			}
 	 	
@@ -1935,8 +2011,8 @@ class Event extends AppModel {
 			// Conditions affecting all:
 			// user.org == event.org
 			// edit timestamp newer than existing event timestamp
-			if (!isset($data['Event']['timestamp'])) $data['Event']['timestamp'] = $date;
-			if ($data['Event']['timestamp'] > $existingEvent['Event']['timestamp']) {
+			if (!isset($data['Event']['timestamp']) || $data['Event']['timestamp'] > $existingEvent['Event']['timestamp']) {
+				if (!isset($data['Event']['timestamp'])) $data['Event']['timestamp'] = $date;
 				if ($data['Event']['distribution'] == 4) {
 					if (!isset($data['Event']['SharingGroup'])) {
 						if (!isset($data['Event']['sharing_group_id'])) return(array('error' => 'Event could not be saved: Sharing group chosen as the distribution level, but no sharing group specified. Make sure that the event includes a valid sharing_group_id or change to a different distribution level.'));
@@ -2005,7 +2081,7 @@ class Event extends AppModel {
 										unset($data['Event']['Attribute'][$k]);
 										continue;
 									}
-								} else $data['Event']['timestamp'] = $date;
+								} else $data['Event']['Attribute'][$k]['timestamp'] = $date;
 							}
 						} else {
 							$this->Attribute->create();
@@ -2643,7 +2719,7 @@ class Event extends AppModel {
 		}
 		$filterType = false;
 		if (isset($passedArgs['attributeFilter'])) {
-			if (in_array($passedArgs['attributeFilter'], array_keys($this->Attribute->typeGroupings)) || $passedArgs['attributeFilter'] == 'proposal' || $passedArgs['attributeFilter'] == 'correlation') {
+			if (in_array($passedArgs['attributeFilter'], array_keys($this->Attribute->typeGroupings)) || in_array($passedArgs['attributeFilter'], array('proposal', 'correlation', 'warning'))) {
 				$filterType = $passedArgs['attributeFilter'];
 			} else {
 				unset($passedArgs['attributeFilter']);
@@ -2654,7 +2730,7 @@ class Event extends AppModel {
 		$correlatedAttributes = isset($event['RelatedAttribute']) ? array_keys($event['RelatedAttribute']) : array();
 		$correlatedShadowAttributes = isset($event['RelatedShadowAttribute']) ? array_keys($event['RelatedShadowAttribute']) : array();
 		foreach ($event['Attribute'] as $attribute) {
-			if ($filterType && $filterType !== 'proposal' && $filterType !== 'correlation') if (!in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType])) continue;
+			if ($filterType && !in_array($filterType, array('proposal', 'correlation', 'warning'))) if (!in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType])) continue;
 			if (isset($attribute['distribution']) && $attribute['distribution'] != 4) unset ($attribute['SharingGroup']);
 			$attribute['objectType'] = 0;
 			if (!empty($attribute['ShadowAttribute'])) $attribute['hasChildren'] = 1;
@@ -2668,7 +2744,7 @@ class Event extends AppModel {
 		if (isset($event['ShadowAttribute'])) {
 			foreach ($event['ShadowAttribute'] as $shadowAttribute) {
 				if ($filterType === 'correlation' && !in_array($shadowAttribute['id'], $correlatedShadowAttributes)) continue;
-				if ($filterType && $filterType !== 'proposal' && $filterType !== 'correlation') if (!in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType])) continue;
+				if ($filterType && !in_array($filterType, array('proposal', 'correlation', 'warning'))) if (!in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType])) continue;
 				$shadowAttribute['objectType'] = 2;
 				$eventArray[] = $shadowAttribute;
 			}
@@ -2677,10 +2753,9 @@ class Event extends AppModel {
 		App::uses('CustomPaginationTool', 'Tools');
 		$customPagination = new CustomPaginationTool();
 		if ($all) $passedArgs['page'] = 0;
-		$params = $customPagination->applyRulesOnArray($eventArray, $passedArgs, 'events', 'category');
 		$eventArrayWithProposals = array();
 		
-		foreach ($eventArray as &$object) {
+		foreach ($eventArray as $k => &$object) {
 			if ($object['category'] === 'Financial fraud') {
 				if (!$fTool->validateRouter($object['type'], $object['value'])) {
 					$object['validationIssue'] = true;
@@ -2703,8 +2778,17 @@ class Event extends AppModel {
 			} else {
 				$eventArrayWithProposals[] = $object;
 			}
+			unset($eventArray[$k]);
 		}
 		$event['objects'] = $eventArrayWithProposals;
+		$this->Warninglist = ClassRegistry::init('Warninglist');
+		$warningLists = $this->Warninglist->fetchForEventView();
+		if (!empty($warningLists)) $event = $this->Warninglist->setWarnings($event, $warningLists);
+		if ($filterType && $filterType == 'warning') {
+			foreach ($event['objects'] as $k => &$object) if (empty($object['warnings'])) unset($event['objects'][$k]);
+			$event['objects'] = array_values($event['objects']);
+		}
+		$params = $customPagination->applyRulesOnArray($event['objects'], $passedArgs, 'events', 'category');
 		return $params;
 	}
 	

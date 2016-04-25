@@ -14,7 +14,7 @@ MISP, Malware Information Sharing Platform and Threat Sharing, core functionalit
 - An **efficient IOC and indicators** database allowing to store technical and non-technical information about malware samples, incidents, attackers and intelligence.
 - Automatic **correlation** finding relationships between attributes and indicators from malware, attacks campaigns or analysis.
 - Built-in **sharing functionality** to ease data sharing using different model of distributions. MISP can synchronize automatically events and attributes among different MISP. Advanced filtering functionalities can be used to meet each organization sharing policy including a **flexible sharing group** capacity and an attribute level distribution mechanisms.
-- An **intuitive user-interface** for end-users to create, update and collaborate on events and attributes/indicators. A **graphical interface** to navigate seamlessly between events and their correlations.
+- An **intuitive user-interface** for end-users to create, update and collaborate on events and attributes/indicators. A **graphical interface** to navigate seamlessly between events and their correlations. Advanced filtering functionalities and [warning list](https://github.com/MISP/misp-warninglists) to help the analysts to contribute events and attributes.
 - **storing data** in a structured format (allowing automated use of the database for various purposes) with an extensive support of cyber security indicators along fraud indicators as in the financial sector.
 - **export**: generating IDS, OpenIOC, plain text, CSV, MISP XML or JSON output to integrate with other systems (network IDS, host IDS, custom tools)
 - **import**: bulk-import, batch-import, import from OpenIOC, GFI sandbox, ThreatConnect CSV.
@@ -25,6 +25,7 @@ MISP, Malware Information Sharing Platform and Threat Sharing, core functionalit
 - Flexible **API** to integrate MISP with your own solutions. MISP is bundled with [PyMISP](https://github.com/MISP/PyMISP) which is a flexible Python Library to fetch, add or update events attributes, handle malware samples or search for attributes.
 - **Adjustable taxonomy** to classify and tag events following your own classification schemes or [existing classification](https://github.com/MISP/misp-taxonomies). The taxonomy can be local to your MISP but also shareable among MISP instances.
 - **Expansion modules in Python** to expand MISP with your own services or activate already available [misp-modules](https://github.com/MISP/misp-modules).
+- **Sighting support** to get observations from organizations concerning shared indicators and attributes. Sighting [can be contributed](https://www.circl.lu/doc/misp/automation/index.html#sightings-api) via MISP user-interface, API as MISP document or STIX sighting documents.
 - **STIX support**: export data in the STIX format (XML and JSON).
 
 Exchanging info results in *faster detection* of targeted attacks and improves the detection ratio while reducing the false positives. We also avoid reversing similar malware as we know very fast that others team or organizations who already analyzed a specific malware.
@@ -60,10 +61,11 @@ Feel free to fork the code, play with it, make some patches and send us the pull
 
 Feel free to contact us, create [issues](https://github.com/MISP/MISP/issues), if you have questions, remarks or bug reports.
 
-There are 2 branches:
+There is one main branch:
 
-- develop: (very active development) new features and improvements.
 - 2.4 (current stable version): what we consider as stable with frequent updates as hot-fixes.
+
+and features are developed in separated branches and then regularly merged into the 2.4 stable branch.
 
 Feature Request
 ---------------
@@ -78,7 +80,7 @@ This software is licensed under [GNU Affero General Public License version 3](ht
 * Copyright (C) 2012 Christophe Vandeplas
 * Copyright (C) 2012 Belgian Defence
 * Copyright (C) 2012 NATO / NCIRC
-* Copyright (C) 2013-2015 Andras Iklody
-* Copyright (C) 2015 CIRCL - Computer Incident Response Center Luxembourg
+* Copyright (C) 2013-2016 Andras Iklody
+* Copyright (C) 2015-2016 CIRCL - Computer Incident Response Center Luxembourg
 
 For more information, [the list of authors and contributors](AUTHORS) is available.

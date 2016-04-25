@@ -32,6 +32,7 @@
 					<li><?php echo $this->Form->postLink('Delete Event', array('action' => 'delete', h($event['Event']['id'])), null, __('Are you sure you want to delete # %s?', h($event['Event']['id']))); ?></li>
 					<li id='liaddAttribute'><a href="<?php echo $baseurl;?>/attributes/add/<?php echo h($event['Event']['id']);?>">Add Attribute</a></li>
 					<li id='liaddAttachment'><a href="<?php echo $baseurl;?>/attributes/add_attachment/<?php echo h($event['Event']['id']);?>">Add Attachment</a></li>
+					<li id='liaddFreetext'><a href="#" onClick="getPopup(<?php echo $event['Event']['id']; ?>, 'events', 'freeTextImport');">Populate via Freetext Import</a></li>
 					<li id='liaddIOC'><a href="<?php echo $baseurl;?>/events/addIOC/<?php echo h($event['Event']['id']);?>">Populate from OpenIOC</a></li>
 					<li id='liaddThreatConnect'><a href="<?php echo $baseurl;?>/attributes/add_threatconnect/<?php echo h($event['Event']['id']); ?>">Populate from ThreatConnect</a></li>
 					<?php if ($menuItem === 'populateFromtemplate'): ?>
@@ -110,8 +111,13 @@
 					<?php 
 					endif;
 				break;
-					
-					case 'whitelist':?>
+				case 'warninglist':?>
+					<?php if ($menuItem == 'view'): ?><li class="active"><a href="#">View Warninglist</a></li><?php endif;?>
+					<li id='liindex'><?php echo $this->Html->link('List Warninglists', array('action' => 'index'));?></li>
+					<li><?php echo $this->Form->postLink('Update Warninglists', '/warninglists/update'); ?></li>
+				<?php 
+				break; 	
+				case 'whitelist':?>
 					<li id='liindex'><?php echo $this->Html->link('List Whitelist', array('admin' => $isSiteAdmin, 'action' => 'index'));?></li>
 					<?php if ($isSiteAdmin): ?>
 					<li id='liadd'><?php echo $this->Html->link('New Whitelist', array('admin' => true, 'action' => 'add'));?></li>

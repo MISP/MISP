@@ -1111,7 +1111,7 @@ class UsersController extends AppController {
 		$this->render('ajax/fetchpgpkey');
 	}
 	
-	public function dashBoard() {
+	public function dashboard() {
 		$events = array();
 		// the last login in the session is not updated after the login - only in the db, so let's fetch it.
 		$lastLogin = $this->Auth->user('last_login');

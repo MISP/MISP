@@ -62,23 +62,39 @@ class AppController extends Controller {
 	public $components = array(
 			'Session',
 			'Auth' => array(
-				'className' => 'SecureAuth',
-				'authenticate' => array(
-					'Form' => array(
-						'fields' => array('username' => 'email')
-					)
-				),
 				'authError' => 'Unauthorised access.',
 				'loginRedirect' => array('controller' => 'users', 'action' => 'routeafterlogin'),
 				'logoutRedirect' => array('controller' => 'users', 'action' => 'login', 'admin' => false),
 				//'authorize' => array('Controller', // Added this line
 				//'Actions' => array('actionPath' => 'controllers')) // TODO ACL, 4: tell actionPath
 				),
-			'Security'
+			'Security',
+			'ACL'
 	);
 	
-	
 	public function beforeFilter() {
+		$this->loadModel('User');
+		$auth_user_fields = $this->User->describeAuthFields();
+		//Let s check if Apache have kerberos auth.
+		$envvar = Configure::read('ApacheSecureAuth.apacheEnv');
+		if (isset($_SERVER[$envvar])) {
+			$this->Auth->className = 'ApacheSecureAuth';
+			$this->Auth->authenticate = array(
+				'Apache' => array(
+					// envvar = field return by Apache when used Authentificatied
+					'fields' => array('username' => 'email', 'envvar' => $envvar),
+					'userFields' => $auth_user_fields
+				)
+			);
+		} else {
+			$this->Auth->className = 'SecureAuth';
+			$this->Auth->authenticate = array(
+				'Form' => array(
+					'fields' => array('username' => 'email'),
+					'userFields' => $auth_user_fields
+				)
+			);
+		}
 		$versionArray = $this->{$this->modelClass}->checkMISPVersion();
 		$this->mispVersion = implode('.', array_values($versionArray));
 
@@ -173,8 +189,6 @@ class AppController extends Controller {
 					if($this->Auth->startup($this)) {
 						$user = $this->Auth->user();
 						if ($user) {
-							unset($user['gpgkey']);
-							unset($user['certif_public']);
 							// User found in the db, add the user info to the session
 							$this->Session->renew();
 							$this->Session->write(AuthComponent::$sessionKey, $user);
@@ -236,7 +250,7 @@ class AppController extends Controller {
 			$role = $this->getActions();
 			if (!$role['perm_site_admin']) {
 				$message = Configure::read('MISP.maintenance_message');
-				if (empty($messaage)) {
+				if (empty($message)) {
 					$this->loadModel('Server');
 					$message = $this->Server->serverSettings['MISP']['maintenance_message']['value'];
 				}
@@ -300,10 +314,22 @@ class AppController extends Controller {
 		$this->set('debugMode', $this->debugMode);
 		$notifications = $this->{$this->modelClass}->populateNotifications($this->Auth->user());
 		$this->set('notifications', $notifications);
+		$this->ACL->checkAccess($this->Auth->user(), Inflector::variable($this->request->params['controller']), $this->action);
+	}
+	
+	public function queryACL($debugType='findMissingFunctionNames', $content = false) {
+		$this->autoRender = false;
+		$this->layout = false;
+		$validCommands = array('printAllFunctionNames', 'findMissingFunctionNames', 'printRoleAccess');
+		if (!in_array($debugType, $validCommands)) throw new MethodNotAllowedException('Invalid function call.');
+		$this->set('data', $this->ACL->$debugType($content));
+		$this->set('flags', JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+		$this->response->type('json');
+		$this->render('/Servers/json/simple');
 	}
 	
 	private function __convertEmailToName($email) {
-		$name = explode('@', $email);
+		$name = explode('@', $email);		
 		$name = explode('.', $name[0]);
 		foreach ($name as &$temp) $temp = ucfirst($temp);
 		$name = implode(' ', $name);
@@ -321,12 +347,6 @@ class AppController extends Controller {
 		if ($data) return (json_decode($data) != NULL) ? true : false;
 		return $this->request->header('Accept') === 'application/json' || $this->RequestHandler->prefers() === 'json';
 	}
-
-	//public function blackhole($type) {
-	//	// handle errors.
-	//	throw new Exception(__d('cake_dev', 'The request has been black-holed'));
-	//	//throw new BadRequestException(__d('cake_dev', 'The request has been black-holed'));
-	//}
 
 	protected function _isRest() {
 		return (isset($this->RequestHandler) && ($this->RequestHandler->isXml() || $this->_isJson()));

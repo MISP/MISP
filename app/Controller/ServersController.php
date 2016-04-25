@@ -147,6 +147,9 @@ class ServersController extends AppController {
 	}
 	
 	public function filterEventIndex($id) {
+		if (!$this->_isSiteAdmin()) {
+			throw new MethodNotAllowedException('You are not authorised to do that.');
+		}
 		$validFilters = $this->Server->validEventIndexFilters;
 		$validatedFilterString = '';
 		foreach ($this->passedArgs as $k => $v) {

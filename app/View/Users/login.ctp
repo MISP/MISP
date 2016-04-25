@@ -15,12 +15,16 @@
 				}
 			?>
 		</span><br /><br />
-		<div class="nav" style="font-weight:bold; font-size:30px;text-align:center;">
-			<span class="logoBlue">M</span><span style="color: #000000;">alware</span>
-			<span class="logoBlue">I</span><span style="color: #000000;">nformation </span>
-			<span class="logoBlue">S</span><span style="color: #000000;">haring</span>
-			<span class="logoBlue">P</span><span style="color: #000000;">latform</span>
-		</div>
+		<?php if (Configure::read('MISP.main_logo') && file_exists(APP . '/webroot/img/custom/' . Configure::read('MISP.main_logo'))): ?>
+			<img src="<?php echo $baseurl?>/img/custom/<?php echo h(Configure::read('MISP.main_logo'));?>" />
+		<?php else: ?>
+			<div class="nav" style="font-weight:bold; font-size:30px;text-align:center;">
+				<span class="logoBlue">M</span><span style="color: #000000;">alware</span>
+				<span class="logoBlue">I</span><span style="color: #000000;">nformation </span>
+				<span class="logoBlue">S</span><span style="color: #000000;">haring</span>
+				<span class="logoBlue">P</span><span style="color: #000000;">latform</span>
+			</div>
+		<?php endif;?>
 		<?php
 			if (true == Configure::read('MISP.welcome_text_bottom')) {
 		?>
@@ -32,7 +36,7 @@
 		<div>
 		<?php
 			}
-			echo $this->Form->create('User', array('action' => 'login'));
+			echo $this->Form->create('User');
 			echo $this->Form->inputs(array(
 				'legend' => __('Login', true),
 				'email' => array('autocomplete' => 'off'),

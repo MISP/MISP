@@ -55,7 +55,7 @@ foreach ($threads as $thread):
 			</td>
 			<td class="short" style="text-align: center;" ondblclick="document.location.href ='<?php echo $url;?>/threads/view/<?php echo $thread['Thread']['id'];?>'">
 				<?php 
-					echo h($lastPost['User']['email']);
+					echo isset($lastPost['User']['email']) ? h($lastPost['User']['email']) : '';
 				?>
 				&nbsp;
 			</td>

@@ -38,7 +38,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc_id'] == $me['org_id']);
 			));
 	echo $this->Form->input('info', array(
 			'div' => 'clear',
-			'label' => 'Event Description',
+			'label' => 'Event Info',
 			'div' => 'clear',
 			'type' => 'text',
 			'class' => 'form-control span6',
