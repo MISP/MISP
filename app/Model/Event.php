@@ -1747,7 +1747,7 @@ class Event extends AppModel {
 		$body .= "You can reach him at " . $user['User']['email'] . "\n";
 		if (!$user['User']['gpgkey'])
 			$body .= "His GPG/PGP key is added as attachment to this email. \n";
-    if (!$user['User']['certif_public'])
+		if (!$user['User']['certif_public'])
 			$body .= "His Public certificate is added as attachment to this email. \n";
 		$body .= "\n";
 		$body .= "He wrote the following message: \n";

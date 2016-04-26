@@ -585,10 +585,9 @@ class ServersController extends AppController {
 		if ($this->request->is('Get')) {
 			$tabs = array(
 					'MISP' => array('count' => 0, 'errors' => 0, 'severity' => 5),
-					'GnuPG' => array('count' => 0, 'errors' => 0, 'severity' => 5),
+					'Encryption' => array('count' => 0, 'errors' => 0, 'severity' => 5),
 					'Proxy' => array('count' => 0, 'errors' => 0, 'severity' => 5),
 					'Security' => array('count' => 0, 'errors' => 0, 'severity' => 5),
-					'misc' => array('count' => 0, 'errors' => 0, 'severity' => 5),
 					'Plugin' => array('count' => 0, 'errors' => 0, 'severity' => 5)
 			);
 			$writeableErrors = array(0 => 'OK', 1 => 'doesn\'t exist', 2 => 'is not writeable');

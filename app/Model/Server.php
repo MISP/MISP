@@ -644,6 +644,49 @@ class Server extends AppModel {
 							'type' => 'string',
 					)
 			),
+			'SMIME' => array(
+					'branch' => 1,
+					'enabled' => array(
+							'level' => 2,
+							'description' => 'Enable SMIME encryption. The encryption posture of the GnuPG.onlyencrypted and GnuPG.bodyonlyencrypted settings are inherited if SMIME is enabled.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+					),
+					'email' => array(
+							'level' => 2,
+							'description' => 'The e-mail address that the instance\'s SMIME key is tied to.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+					),
+					'cert_public_sign' => array(
+							'level' => 2,
+							'description' => 'The location of the public half of the signing certificate.',
+							'value' => '/var/www/MISP/.smime/email@address.com.pem',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+					),
+					'key_sign' => array(
+							'level' => 2,
+							'description' => 'The location of the private half of the signing certificate.',
+							'value' => '/var/www/MISP/.smime/email@address.com.key',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+					),
+					'password' => array(
+							'level' => 2,
+							'description' => 'The password (if it is set) of the SMIME key of the instance.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+					),
+			),
 			'Proxy' => array(
 					'branch' => 1,
 					'host' => array(
@@ -1028,6 +1071,13 @@ class Server extends AppModel {
 					'test' => 'testDebugAdmin',
 					'type' => 'boolean',
 			),
+	);
+	
+	private $__settingTabMergeRules = array(
+			'GnuPG' => 'Encryption',
+			'SMIME' => 'Encryption',
+			'misc' => 'Security',
+			'Security' => 'Security'
 	);
 
 	public $validEventIndexFilters = array('searchall', 'searchpublished', 'searchorg', 'searchtag', 'searcheventid', 'searchdate', 'searcheventinfo', 'searchthreatlevel', 'searchdistribution', 'searchanalysis', 'searchattribute');
@@ -1746,6 +1796,9 @@ class Server extends AppModel {
 					$finalSettingsUnsorted[$branchKey] = $branchValue;
 			}
 		}
+		foreach ($finalSettingsUnsorted as &$temp) if (in_array($temp['tab'], array_keys($this->__settingTabMergeRules))) {
+			$temp['tab'] = $this->__settingTabMergeRules[$temp['tab']];
+		}
 		if ($unsorted) return $finalSettingsUnsorted;
 		$finalSettings = array();
 		for ($i = 0; $i < 4; $i++) {
@@ -1999,7 +2052,7 @@ class Server extends AppModel {
 	
 	public function serverSettingsSaveValue($setting, $value) {
 		Configure::write($setting, $value);
-		Configure::dump('config.php', 'default', array('MISP', 'GnuPG', 'Proxy', 'SecureAuth', 'Security', 'debug', 'site_admin_debug', 'Plugin'));
+		Configure::dump('config.php', 'default', array('MISP', 'GnuPG', 'SMIME', 'Proxy', 'SecureAuth', 'Security', 'debug', 'site_admin_debug', 'Plugin'));
 	}
 	
 	public function checkVersion($newest) {

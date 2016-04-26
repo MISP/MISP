@@ -43,6 +43,8 @@ class AppController extends Controller {
 
 	public $debugMode = false;
 	
+	public $helpers = array('Utility');
+	
 	// Used for _isAutomation(), a check that returns true if the controller & action combo matches an action that is a non-xml and non-json automation method
 	// This is used to allow authentication via headers for methods not covered by _isRest() - as that only checks for JSON and XML formats 
 	public $automationArray = array(

@@ -10,12 +10,15 @@
 				<?php }else{ ?>
 					<span>Could not locate the PGP/GPG public key.</span>
 				<?php }
-				$smimepath = ROOT.DS.APP_DIR.DS.WEBROOT_DIR.DS.'public_certificate.pem';
-				if(file_exists($smimepath) && is_file($smimepath)){ ?>
-					<span>Download: <?php echo $this->Html->link('Certificate (Encipherment)', $this->webroot.'public_certificate.pem');?></span>
-				<?php }else{ ?>
-					<span>Could not locate the Certificate (Encipherment).</span>
-				<?php } ?>
+				if (Configure::read('SMIME.enabled')):
+					$smimepath = ROOT.DS.APP_DIR.DS.WEBROOT_DIR.DS.'public_certificate.pem';
+					if(file_exists($smimepath) && is_file($smimepath)){ ?>
+						<span>Download: <?php echo $this->Html->link('SMIME certificate', $this->webroot.'public_certificate.pem');?></span>
+					<?php }else{ ?>
+						<span>Could not locate SMIME certificate.</span>
+					<?php } 
+				endif;	
+				?>
 			</div>
 			<div class = "footerText footerCenterText">
 				<span><?php echo h(Configure::read('MISP.footermidleft')); ?> Powered by <a href="https://github.com/MISP/MISP">MISP <?php if (isset($me['id'])) echo h($mispVersionFull);?></a> <?php echo h(Configure::read('MISP.footermidright')); ?></span>

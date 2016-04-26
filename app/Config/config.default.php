@@ -40,11 +40,11 @@ $config = array (
 	),
   'SMIME' => 
   array (
-    'onlyencrypted' => false,
-    'email' => 'email@address.com',
-    'cert_public_sign' => '/var/www/MISP/.smime/email@address.com.pem',
-    'key_sign' => '/var/www/MISP/.smime/email@address.com.key',
-    'password' => 'XXXXXXXXXXXXXXXXXXXXXX',
+    'enabled' => false,
+    'email' => '',
+    'cert_public_sign' => '',
+    'key_sign' => '',
+    'password' => '',
 	),
   'Proxy' =>
   array (
