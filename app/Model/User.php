@@ -772,27 +772,32 @@ class User extends AppModel {
 			$fp = fopen($msg, "w");
 			fwrite($fp, $body);
 			fclose($fp);
-			$signed = tempnam($dir, 'SMIME');
 			
-			// sign it
-			if (!is_readable(Configure::read('SMIME.cert_public_sign'))) throw new NotFoundException('SMIME.cert_public_sign - file not found. Expected location based on setting: ' . Configure::read('SMIME.cert_public_sign'));
-			if (!is_readable(Configure::read('SMIME.key_sign'))) throw new NotFoundException('SMIME.cert_public_sign - file not found. Expected location based on setting: ' . Configure::read('SMIME.key_sign'));
-			if (openssl_pkcs7_sign($msg, $signed, 'file://'.Configure::read('SMIME.cert_public_sign'), array('file://'.Configure::read('SMIME.key_sign'), Configure::read('SMIME.password')), array(), PKCS7_TEXT)){
-				$fp = fopen($signed, "r");
-				$bodySigned = fread($fp, filesize($signed));
+			$canSign = true;
+			if (!empty(Configure::read('SMIME.cert_public_sign')) && !is_readable(Configure::read('SMIME.cert_public_sign'))) $canSign = false;
+			if (!empty(Configure::read('SMIME.key_sign')) && !is_readable(Configure::read('SMIME.key_sign'))) $canSign = false;
+			if ($canSign) {
+				$signed = tempnam($dir, 'SMIME');
+				if (openssl_pkcs7_sign($msg, $signed, 'file://'.Configure::read('SMIME.cert_public_sign'), array('file://'.Configure::read('SMIME.key_sign'), Configure::read('SMIME.password')), array(), PKCS7_TEXT)){
+					$fp = fopen($signed, "r");
+					$bodySigned = fread($fp, filesize($signed));
+					fclose($fp);
+					unlink($msg);
+					unlink($signed);
+				} else {
+					unlink($msg);
+					unlink($signed);
+					throw new Exception('Failed while attempting to sign the SMIME message.');
+				}
+				// save message to file
+				$msg_signed = tempnam($dir, 'SMIME');
+				$fp = fopen($msg_signed, "w");
+				fwrite($fp, $bodySigned);
 				fclose($fp);
-				unlink($msg);
-				unlink($signed);
 			} else {
-				unlink($msg);
-				unlink($signed);
-				throw new Exception('Could not sign the SMIME message.');
+				$bodySigned = $body;
+				$msg_signed = $msg;
 			}
-			// save message to file
-			$msg_signed = tempnam($dir, 'SMIME');
-			$fp = fopen($msg_signed, "w");
-			fwrite($fp, $bodySigned);
-			fclose($fp);
 			$msg_signed_encrypted = tempnam($dir, 'SMIME');
 			$headers_smime = array("To" => $user['User']['email'], "From" => Configure::read('MISP.email'), "Subject" => $subject);
 			// encrypt it
