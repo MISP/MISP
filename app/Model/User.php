@@ -774,8 +774,8 @@ class User extends AppModel {
 			fclose($fp);
 			
 			$canSign = true;
-			if (!empty(Configure::read('SMIME.cert_public_sign')) && !is_readable(Configure::read('SMIME.cert_public_sign'))) $canSign = false;
-			if (!empty(Configure::read('SMIME.key_sign')) && !is_readable(Configure::read('SMIME.key_sign'))) $canSign = false;
+			if (empty(Configure::read('SMIME.cert_public_sign')) || !is_readable(Configure::read('SMIME.cert_public_sign'))) $canSign = false;
+			if (empty(Configure::read('SMIME.key_sign')) || !is_readable(Configure::read('SMIME.key_sign'))) $canSign = false;
 			if ($canSign) {
 				$signed = tempnam($dir, 'SMIME');
 				if (openssl_pkcs7_sign($msg, $signed, 'file://'.Configure::read('SMIME.cert_public_sign'), array('file://'.Configure::read('SMIME.key_sign'), Configure::read('SMIME.password')), array(), PKCS7_TEXT)){
