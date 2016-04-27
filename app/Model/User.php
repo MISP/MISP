@@ -764,21 +764,15 @@ class User extends AppModel {
 		try {
 			App::uses('Folder', 'Utility');
 			$dir = APP . 'tmp' . DS . 'SMIME';
-			$headers_smime = array("To" => $user['User']['email'], "From" => Configure::read('MISP.email'), "Subject" => $subject);
-			$headers_smime_enc = '';
-			foreach ($headers_smime as $h => $v) $headers_smime_enc .= $h . ': ' . $v . PHP_EOL;
-			$headers_smime_enc .= 'Content-Type: text/plain;  format=flowed; charset=\"iso-8859-1\"; reply-type=original' . PHP_EOL;
-			$headers_smime_enc .= 'Content-Transfer-Encoding: 7bit' . PHP_EOL;
-
 			if (!file_exists($dir)) {
 				if (!mkdir($dir, 0750, true)) throw new MethodNotAllowedException('The SMIME temp directory is not writeable (app/tmp/SMIME).');
 			}
 			// save message to file
 			$msg = tempnam($dir, 'SMIME');
 			$fp = fopen($msg, "w");
-			fwrite($fp, $headers_smime_enc . $body);
+			fwrite($fp, $body);
 			fclose($fp);
-			
+			$headers_smime = array("To" => $user['User']['email'], "From" => Configure::read('MISP.email'), "Subject" => $subject);			
 			$canSign = true;
 			if (empty(Configure::read('SMIME.cert_public_sign')) || !is_readable(Configure::read('SMIME.cert_public_sign'))) $canSign = false;
 			if (empty(Configure::read('SMIME.key_sign')) || !is_readable(Configure::read('SMIME.key_sign'))) $canSign = false;
