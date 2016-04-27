@@ -764,13 +764,19 @@ class User extends AppModel {
 		try {
 			App::uses('Folder', 'Utility');
 			$dir = APP . 'tmp' . DS . 'SMIME';
+			$headers_smime = array("To" => $user['User']['email'], "From" => Configure::read('MISP.email'), "Subject" => $subject);
+			$headers_smime_enc = '';
+			foreach ($headers_smime as $h => $v) $headers_smime_enc .= $h . ': ' . $v . PHP_EOL;
+			$headers_smime_enc .= 'Content-Type: text/plain;  format=flowed; charset=\"iso-8859-1\"; reply-type=original' . PHP_EOL;
+			$headers_smime_enc .= 'Content-Transfer-Encoding: 7bit' . PHP_EOL;
+
 			if (!file_exists($dir)) {
 				if (!mkdir($dir, 0750, true)) throw new MethodNotAllowedException('The SMIME temp directory is not writeable (app/tmp/SMIME).');
 			}
 			// save message to file
 			$msg = tempnam($dir, 'SMIME');
 			$fp = fopen($msg, "w");
-			fwrite($fp, $body);
+			fwrite($fp, $headers_smime_enc . $body);
 			fclose($fp);
 			
 			$canSign = true;
@@ -799,7 +805,6 @@ class User extends AppModel {
 				$msg_signed = $msg;
 			}
 			$msg_signed_encrypted = tempnam($dir, 'SMIME');
-			$headers_smime = array("To" => $user['User']['email'], "From" => Configure::read('MISP.email'), "Subject" => $subject);
 			// encrypt it
 			if (openssl_pkcs7_encrypt($msg_signed, $msg_signed_encrypted, $user['User']['certif_public'], $headers_smime, 0, OPENSSL_CIPHER_AES_256_CBC)){
 				$fp = fopen($msg_signed_encrypted, 'r');
