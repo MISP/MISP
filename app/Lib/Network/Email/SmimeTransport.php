@@ -25,7 +25,7 @@ class SmimeTransport extends AbstractTransport {
 		}
 		$headers = $email->getHeaders(array('from', 'sender', 'replyTo', 'readReceipt', 'returnPath', 'to', 'cc', 'bcc'));
 		// DIRTY HEADERS
-		$headers = array_merge($headers, array('Content-Transfer-Encoding' => 'base64', 'Content-Type' => 'application/pkcs7-mime; name="smime.p7m"; smime-type=enveloped-data', 'Content-Disposition' => 'attachment; filename="smime.p7m"', 'Content-Description' => 'S/MIME Encrypted Message'));
+		$headers = array_merge($headers, array('Content-Transfer-Encoding' => 'base64', 'Content-Type' => 'application/pkcs7-mime; name=smime.p7m; smime-type=enveloped-data', 'Content-Disposition' => 'attachment; filename=smime.p7m', 'Content-Description' => 'S/MIME Encrypted Message'));
 		$to = $headers['To'];
 		unset($headers['To']);
 		foreach ($headers as $key => $header) {
