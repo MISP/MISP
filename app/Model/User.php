@@ -762,6 +762,7 @@ class User extends AppModel {
 	// SMIME if not GPG key
 	if (!$failed && !$canEncryptGPG && $canEncryptSMIME) {
 		try {
+			$prependedBody = 'Content-Transfer-Encoding: 7bit' . PHP_EOL . 'Content-Type: text/plain;' . PHP_EOL . '    charset=us-ascii' . PHP_EOL . PHP_EOL . $body;
 			App::uses('Folder', 'Utility');
 			$dir = APP . 'tmp' . DS . 'SMIME';
 			if (!file_exists($dir)) {
@@ -770,7 +771,7 @@ class User extends AppModel {
 			// save message to file
 			$msg = tempnam($dir, 'SMIME');
 			$fp = fopen($msg, "w");
-			fwrite($fp, $body);
+			fwrite($fp, $prependedBody);
 			fclose($fp);
 			$headers_smime = array("To" => $user['User']['email'], "From" => Configure::read('MISP.email'), "Subject" => $subject);			
 			$canSign = true;
