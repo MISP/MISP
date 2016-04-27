@@ -15,6 +15,7 @@ if (!$isSiteAdmin) exit();
 		<li><?php echo $this->Form->postLink('Recorrelate attributes', $baseurl . '/attributes/generateCorrelation');?></li>
 		<li><?php echo $this->Form->postLink('Recorrelate proposals', $baseurl . '/shadow_attributes/generateCorrelation');?></li>
 		<li><a href="<?php echo $baseurl;?>/users/verifyGPG">Verify GPG keys</a> (Check whether every user's GPG key is usable)</li>
+		<li><a href="<?php echo $baseurl;?>/users/verifyCertificate">Verify Certificates</a> (Check whether every user's certificate is usable</li>
 		<li><?php echo $this->Form->postLink('Extend Organization length', $baseurl . '/servers/updateDatabase/extendServerOrganizationLength');?> (Hotfix 2.3.57: Increase the max length of the organization field when adding a new server connection.)</li>
 		<li><?php echo $this->Form->postLink('Convert log fields to text', $baseurl . '/servers/updateDatabase/convertLogFieldsToText');?> (Hotfix 2.3.78: Some of the log fields that were varchar(255) ended up truncating the data. This function will change them to "text")</li>
 		<li><?php echo $this->Form->postLink('Fix duplicate UUIDs', $baseurl . '/servers/pruneDuplicateUUIDs');?> (Hotfix 2.3.107: it was previously possible to get duplicate attribute UUIDs in the database, this script will remove all duplicates and ensure that duplicates will not be entered into the database in the future.)</li>

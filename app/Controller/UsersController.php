@@ -74,7 +74,7 @@ class UsersController extends AppController {
 		}
 		if ($this->request->is('post') || $this->request->is('put')) {
 			// What fields should be saved (allowed to be saved)
-			$fieldList = array('email', 'autoalert', 'gpgkey', 'nids_sid', 'contactalert', 'disabled');
+			$fieldList = array('email', 'autoalert', 'gpgkey', 'certif_public', 'nids_sid', 'contactalert', 'disabled');
 			if ("" != $this->request->data['User']['password'])
 				$fieldList[] = 'password';
 			// Save the data
@@ -238,7 +238,7 @@ class UsersController extends AppController {
 		if (!$this->User->Organisation->exists() || !($this->_isSiteAdmin() || $this->Auth->user('org_id') == $id)) {
 			throw new MethodNotAllowedException('Organisation not found or no authorisation to view it.');
 		}
-		$user_fields = array('id', 'email', 'gpgkey', 'nids_sid');
+		$user_fields = array('id', 'email', 'gpgkey', 'certif_public', 'nids_sid');
 		$conditions = array('org_id' => $id);
 		if ($this->_isSiteAdmin() || ($this->_isAdmin() && $this->Auth->user('org_id') == $id)) {
 			$user_fields = array_merge($user_fields, array('current_login', 'termsaccepted', 'change_pw', 'authkey'));
@@ -970,6 +970,7 @@ class UsersController extends AppController {
 		$temp = $this->User->find('all', array('recursive' => -1, 'fields' => array('id', 'email'), 'order' => array('email ASC'), 'conditions' => $conditions));
 		$emails = array();
 		$gpgKeys = array();
+		$certif_public_certs = array();
 		// save all the emails of the users and set it for the dropdown list in the form
 		foreach ($temp as $user) {
 			$emails[$user['User']['id']] = $user['User']['email'];
@@ -1077,7 +1078,13 @@ class UsersController extends AppController {
 		$user_results = $this->User->verifyGPG();
 		$this->set('users', $user_results);
 	}
-	
+
+  public function verifyCertificate() {
+    if (!self::_isSiteAdmin()) throw new NotFoundException();
+    $user_results = $this->User->verifyCertificate();
+    $this->set('users', $user_results);
+  }	
+
 	/**
 	 * Refreshes the Auth session with new/updated data
 	 * @return void

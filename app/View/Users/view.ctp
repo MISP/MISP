@@ -1,6 +1,6 @@
 <div class="users view">
 <h2><?php  echo __('User');?></h2>
-	<dl>
+	<dl style="width:700px;">
 		<dt><?php echo __('Id'); ?></dt>
 		<dd>
 			<?php echo h($user['User']['id']); ?>
@@ -51,17 +51,16 @@
 			<?php echo h((0 == $user['User']['termsaccepted'])? 'No' : 'Yes'); ?>
 			&nbsp;
 		</dd>
-		<dt><?php echo __('GPG Key'); ?></dt>
-		<dd>
-		<?php
-if (!empty($user['User']['gpgkey'])) {
-	echo "<code>" . nl2br(h($user['User']['gpgkey'])) . "</code>";
-} else {
-	echo "N/A";
-}
-		?>
-			&nbsp;
+		<dt><?php echo __('PGP key'); ?></dt>
+		<dd class="red">
+			<?php echo (h($user['User']['gpgkey'])) ? $this->Utility->space2nbsp(nl2br(h($user['User']['gpgkey']))) : "N/A"; ?>
 		</dd>
+		<?php if (Configure::read('SMIME.enabled')): ?>
+			<dt><?php echo __('SMIME Public certificate'); ?></dt>
+			<dd class="red">
+				<?php echo (h($user['User']['certif_public'])) ? $this->Utility->space2nbsp(nl2br(h($user['User']['certif_public']))) : "N/A"; ?>
+			</dd>
+		<?php endif; ?>
 	</dl>
 </div>
 <?php 

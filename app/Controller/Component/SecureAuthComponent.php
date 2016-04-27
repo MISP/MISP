@@ -29,6 +29,7 @@ class SecureAuthComponent extends AuthComponent {
 					// check if the user credentials are valid
 					$user = $this->identify($this->request, $this->response);
 					unset($user['gpgkey']);
+					unset($user['certif_public']);
 					if ($user === false) {
 						$this->Log = ClassRegistry::init('Log');
 						$this->Log->create();

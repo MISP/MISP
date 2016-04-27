@@ -43,6 +43,8 @@ class AppController extends Controller {
 
 	public $debugMode = false;
 	
+	public $helpers = array('Utility');
+	
 	// Used for _isAutomation(), a check that returns true if the controller & action combo matches an action that is a non-xml and non-json automation method
 	// This is used to allow authentication via headers for methods not covered by _isRest() - as that only checks for JSON and XML formats 
 	public $automationArray = array(
@@ -140,6 +142,7 @@ class AppController extends Controller {
 					if ($found_misp_auth_key) {
 						if ($user) {
 							unset($user['User']['gpgkey']);
+							unset($user['User']['certif_public']);
 						    // User found in the db, add the user info to the session
 						    if (Configure::read('MISP.log_auth')) {
 								$this->Log = ClassRegistry::init('Log');
@@ -588,6 +591,7 @@ class AppController extends Controller {
 				$user['User'] = $temp;
 				if ($user['User']) {
 					unset($user['User']['gpgkey']);
+					unset($user['User']['certif_public']);
 					$this->Session->renew();
 					$this->Session->write(AuthComponent::$sessionKey, $user['User']);
 					if (Configure::read('MISP.log_auth')) {

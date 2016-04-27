@@ -21,6 +21,7 @@
 			<th><?php echo $this->Paginator->sort('email');?></th>
 			<th>Role</th>
 			<th>GPGKey set</th>
+			<th>Certificate (x509) set</th>
 			<th><?php echo $this->Paginator->sort('nids_sid');?></th>
 			<?php 
 				if ($isSiteAdmin):

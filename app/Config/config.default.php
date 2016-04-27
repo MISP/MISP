@@ -37,7 +37,15 @@ $config = array (
     'homedir' => '',
     'password' => '',
     'bodyonlyencrypted' => false,
-  ),
+	),
+  'SMIME' => 
+  array (
+    'enabled' => false,
+    'email' => '',
+    'cert_public_sign' => '',
+    'key_sign' => '',
+    'password' => '',
+	),
   'Proxy' =>
   array (
     'host' => '',
