@@ -351,6 +351,7 @@ class AppModel extends Model {
 				break;
 			case '2.4.39':
 				$sqlArray[] = "ALTER TABLE `users` ADD `certif_public` longtext COLLATE utf8_bin NOT NULL DEFAULT '' AFTER `gpgkey`;";
+				$sqlArray[] = 'ALTER TABLE `logs` MODIFY COLUMN `title` text, MODIFY COLUMN `change` text;';
 				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4';
