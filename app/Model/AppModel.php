@@ -355,11 +355,13 @@ class AppModel extends Model {
 				break;
 			case '2.4.40':
 				$sqlArray[] = "CREATE TABLE IF NOT EXISTS `favourite_tags` (
-				`id` int(11) NOT NULL AUTO_INCREMENT,
-				`tag_id` int(11) NOT NULL,
-				`user_id` int(11) NOT NULL,
-				PRIMARY KEY (`id`)
-				) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+					`id` int(11) NOT NULL AUTO_INCREMENT,
+					`tag_id` int(11) NOT NULL,
+					`user_id` int(11) NOT NULL,
+					PRIMARY KEY (`id`),
+					INDEX `user_id` (`user_id`),
+					INDEX `tag_id` (`tag_id`)
+					) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
 				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4';
