@@ -1,5 +1,5 @@
 <div class="tags index">
-	<h2>Tags</h2>
+	<h2><?php echo $favouritesOnly ? 'Your Favourite Tags' : 'Tags';?></h2>
 	<div class="pagination">
         <ul>
         <?php
@@ -16,6 +16,15 @@
         ?>
         </ul>
     </div>
+	<div id="hiddenFormDiv">
+    <?php 
+		if ($isSiteAdmin) {
+			echo $this->Form->create('FavouriteTag', array('url' => '/favourite_tags/toggle'));
+			echo $this->Form->input('data', array('label' => false, 'style' => 'display:none;'));
+			echo $this->Form->end();
+		}
+	?>
+	</div>
 	<table class="table table-striped table-hover table-condensed">
 	<tr>
 			<th><?php echo $this->Paginator->sort('id');?></th>
@@ -23,6 +32,7 @@
 			<th><?php echo $this->Paginator->sort('name');?></th>
 			<th>Taxonomy</th>
 			<th>Tagged events</th>
+			<th>Favourite</th>
 			<?php if ($isAclTagEditor): ?>
 			<th class="actions"><?php echo __('Actions');?></th>
 			<?php endif; ?>
@@ -40,7 +50,10 @@ foreach ($list as $item): ?>
 		?>
 		&nbsp;
 		</td>
-		<td class="short"><?php echo h($item['Tag']['count']); ?>&nbsp;</td>
+		<td class="shortish"><?php echo h($item['Tag']['count']); ?>&nbsp;</td>
+		<td class="short" id ="checkbox_row_<?php echo h($item['Tag']['id']);?>">
+			<input id="checkBox_<?php echo h($item['Tag']['id']); ?>" type="checkbox" onClick="toggleSetting(event, 'favourite_tag', '<?php echo h($item['Tag']['id']); ?>')" <?php echo $item['Tag']['favourite'] ? 'checked' : ''; ?>/>
+		</td>
 		<?php if ($isAclTagEditor): ?>
 		<td class="short action-links">
 			<?php echo $this->Html->link('', array('action' => 'edit', $item['Tag']['id']), array('class' => 'icon-edit', 'title' => 'Edit'));?>
@@ -69,5 +82,6 @@ endforeach; ?>
 
 </div>
 <?php 
-	echo $this->element('side_menu', array('menuList' => 'tags', 'menuItem' => 'index'));
+	$menuItem = $favouritesOnly ? 'indexfav' : 'index';
+	echo $this->element('side_menu', array('menuList' => 'tags', 'menuItem' => $menuItem));
 ?>

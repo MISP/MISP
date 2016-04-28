@@ -24,7 +24,7 @@ class TagsController extends AppController {
 		parent::beforeFilter();
 	}
 	
-	public function index() {
+	public function index($favouritesOnly = false) {
 		$this->loadModel('Event');
 		$this->loadModel('Taxonomy');
 		$taxonomies = $this->Taxonomy->listTaxonomies(array('full' => false, 'enabled' => true));
@@ -32,7 +32,15 @@ class TagsController extends AppController {
 		if (!empty($taxonomies)) foreach ($taxonomies as &$taxonomy) $taxonomyNamespaces[$taxonomy['namespace']] = $taxonomy;
 		$taxonomyTags = array();
 		$this->Event->recursive = -1;
-		$this->paginate['contain'] = array('EventTag' => array('fields' => 'event_id'));
+		$this->paginate['contain'] = array('EventTag' => array('fields' => 'event_id'), 'FavouriteTag');
+		if ($favouritesOnly) {
+			$tag_id_list = $this->Tag->FavouriteTag->find('list', array(
+					'conditions' => array('FavouriteTag.user_id' => $this->Auth->user('id')),
+					'fields' => array('FavouriteTag.tag_id')
+			));
+			if (empty($tag_id_list)) $tag_id_list = array(-1);
+			$this->paginate['conditions']['AND']['Tag.id'] = $tag_id_list;
+		}
 		$paginated = $this->paginate();
 		foreach ($paginated as $k => &$tag) {
 			$eventIDs = array();
@@ -58,6 +66,11 @@ class TagsController extends AppController {
 				$tag['Tag']['count'] = count($events);
 			}
 			unset($tag['EventTag']);
+			if (!empty($tag['FavouriteTag'])) {
+				foreach ($tag['FavouriteTag'] as &$ft) if ($ft['user_id'] == $this->Auth->user('id')) $tag['Tag']['favourite'] = true; 
+				if (!isset($tag['Tag']['favourite'])) $tag['Tag']['favourite'] = false;
+			} else $tag['Tag']['favourite'] = false;
+			unset($tag['FavouriteTag']);
 			if (!empty($taxonomyNamespaces)) {
 				$taxonomyNamespaceArrayKeys = array_keys($taxonomyNamespaces);
 				foreach ($taxonomyNamespaceArrayKeys as &$tns) {
@@ -77,6 +90,7 @@ class TagsController extends AppController {
 			$this->set('_serialize', array('Tag'));
 		} else {
 			$this->set('list', $paginated);
+			$this->set('favouritesOnly', $favouritesOnly);
 		}
 		// send perm_tagger to view for action buttons
 	}
@@ -248,6 +262,7 @@ class TagsController extends AppController {
 
 	public function selectTaxonomy($event_id) {
 		if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) throw new NotFoundException('You don\'t have permission to do that.');
+		$favourites = $this->Tag->FavouriteTag->find('count', array('conditions' => array('FavouriteTag.user_id' => $this->Auth->user('id'))));
 		$this->loadModel('Taxonomy');
 		$options = $this->Taxonomy->find('list', array('conditions' => array('enabled' => true), 'fields' => array('namespace'), 'order' => array('Taxonomy.namespace ASC')));
 		foreach ($options as $k => &$option) {
@@ -256,6 +271,7 @@ class TagsController extends AppController {
 		}
 		$this->set('event_id', $event_id);
 		$this->set('options', $options);
+		$this->set('favourites', $favourites);
 		$this->render('ajax/taxonomy_choice');
 	}
 	
@@ -263,9 +279,19 @@ class TagsController extends AppController {
 		if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) throw new NotFoundException('You don\'t have permission to do that.');
 		$this->loadModel('Taxonomy');
 		$expanded = array();
-		if ($taxonomy_id == 0) {
+		if ($taxonomy_id === '0') {
 			$options = $this->Taxonomy->getAllTaxonomyTags(true);
 			$expanded = $options;
+		} else if ($taxonomy_id === 'favourites') {
+			$tags = $this->Tag->FavouriteTag->find('all', array(
+				'conditions' => array('FavouriteTag.user_id' => $this->Auth->user('id')),
+				'recursive' => -1,
+				'contain' => array('Tag.name')
+			));
+			foreach ($tags as $tag) {
+				$options[$tag['FavouriteTag']['tag_id']] = $tag['Tag']['name'];
+				$expanded = $options;
+			}
 		} else {
 			$taxonomies = $this->Taxonomy->getTaxonomy($taxonomy_id);
 			$options = array();
