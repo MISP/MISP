@@ -18,11 +18,9 @@
     </div>
 	<div id="hiddenFormDiv">
     <?php 
-		if ($isSiteAdmin) {
-			echo $this->Form->create('FavouriteTag', array('url' => '/favourite_tags/toggle'));
-			echo $this->Form->input('data', array('label' => false, 'style' => 'display:none;'));
-			echo $this->Form->end();
-		}
+		echo $this->Form->create('FavouriteTag', array('url' => '/favourite_tags/toggle'));
+		echo $this->Form->input('data', array('label' => false, 'style' => 'display:none;'));
+		echo $this->Form->end();
 	?>
 	</div>
 	<table class="table table-striped table-hover table-condensed">

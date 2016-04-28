@@ -116,6 +116,11 @@ class ACLComponent extends Component {
 					'viewGraph' => array('*'),
 					'xml' => array('*'),
 			),
+			'favouriteTags' => array(
+				'index' => array('*'),
+				'toggle' => array('*'),
+				'getToggleField' => array('*')
+			),
 			'feeds' => array(
 					'add' => array(),
 					'delete' => array(),

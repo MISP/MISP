@@ -15,10 +15,6 @@ class FavouriteTagsController extends AppController {
 					'FavouriteTag.id' => 'DESC'
 			),
 	);
-
-	public function index() {
-		$this->FavouriteTag->paginate();
-	}
 	
 	public function toggle() {
 		if (!$this->request->is('post')) throw new MethodNotAllowedException('This action is only available via POST requests.');
