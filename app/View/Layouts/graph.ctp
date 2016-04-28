@@ -77,7 +77,7 @@
 	echo $this->Html->script('bootstrap-datepicker');
 	echo $this->Html->script('bootstrap-colorpicker.min');
 	echo $this->Html->script('main');
-	echo $this->Html->script('ajaxification');
+	echo $this->Html->script('misp' . $jsVersion);
 	?>
 	<div id = "ajax_success_container" class="ajax_container">
 		<div id="ajax_success" class="ajax_result ajax_success"></div>
