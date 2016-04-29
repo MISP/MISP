@@ -234,10 +234,7 @@ class User extends AppModel {
 			'finderQuery' => '',
 			'counterQuery' => ''
 		),
-		'Post',
-		'FavouriteTag' => array(
-				'dependent' => true
-		)
+		'Post'
 	);
 
 	public $actsAs = array(
