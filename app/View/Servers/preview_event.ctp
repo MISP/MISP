@@ -54,7 +54,7 @@
 					<?php 
 						if ($event['Event']['distribution'] == 4):
 					?>
-							<?php echo h($event['SharingGroup'][0]['name']); ?></a>
+							<?php echo h($event['SharingGroup']['name']); ?></a>
 					<?php 
 						else:
 							echo h($distributionLevels[$event['Event']['distribution']]);
