@@ -1,5 +1,6 @@
 <div class="events <?php if (!$ajax) echo 'index'; ?>">
-	<h4 class="visibleDL notPublished" >You are currently viewing the event index of the remote instance "<?php echo h($server['Server']['name']); ?>" (@ <?php echo h($server['Server']['url']); ?>)</h4>
+	<?php $serverName = $server['Server']['name'] ? '"' . $server['Server']['name'] . '" (' . $server['Server']['url'] . ')' : '"' . $server['Server']['url'] . '"'; ?>
+	<h4 class="visibleDL notPublished" >You are currently viewing the event index of the remote instance <?php echo h($serverName);?></h4>
 	<div class="pagination">
         <ul>
         <?php
