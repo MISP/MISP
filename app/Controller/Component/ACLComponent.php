@@ -196,7 +196,7 @@ class ACLComponent extends Component {
 					'edit' => array(),
 					'fetchServersForSG' => array('*'),
 					'filterEventIndex' => array(),
-					'getVersion' => array('perm_auth'),
+					'getVersion' => array('*'),
 					'index' => array('OR' => array('perm_sync', 'perm_admin')),
 					'previewEvent' => array(),
 					'previewIndex' => array(),
