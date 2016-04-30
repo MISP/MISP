@@ -3555,7 +3555,7 @@ class EventsController extends AppController {
 			$port = Configure::read('Plugin.Enrichment_services_port') ? Configure::read('Plugin.Enrichment_services_port') : $this->Server->serverSettings['Plugin']['Enrichment_services_port']['value'];
 			App::uses('HttpSocket', 'Network/Http');
 			$httpSocket = new HttpSocket();
-			$data = array('module' => $module, $attribute[0]['Attribute']['type'] => $attribute[0]['Attribute']['value']);
+			$data = array('module' => $module, $attribute[0]['Attribute']['type'] => $attribute[0]['Attribute']['value'], 'event_id' => $attribute[0]['Attribute']['event_id']);
 			if (!empty($options)) $data['config'] = $options;
 			$data = json_encode($data);
 			try {
