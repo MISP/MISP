@@ -1,5 +1,6 @@
 <div class="events <?php if (!$ajax) echo 'index'; ?>">
-	<h4 class="visibleDL notPublished" >You are currently viewing the event index of the remote instance "<?php echo h($server['Server']['name']); ?>" (@ <?php echo h($server['Server']['url']); ?>)</h4>
+	<?php $serverName = $server['Server']['name'] ? '"' . $server['Server']['name'] . '" (' . $server['Server']['url'] . ')' : '"' . $server['Server']['url'] . '"'; ?>
+	<h4 class="visibleDL notPublished" >You are currently viewing the event index of the remote instance <?php echo h($serverName);?></h4>
 	<div class="pagination">
         <ul>
         <?php
@@ -111,17 +112,17 @@
 			<?php if (Configure::read('MISP.tagging')): ?>
 			<td style = "max-width: 200px;width:10px;">
 				<?php foreach ($event['Event']['EventTag'] as $tag):
-					$tagText = "&nbsp;";
-					if (Configure::read('MISP.full_tags_on_event_index') == 1) $tagText = h($tag['Tag']['name']);
+					$tagText = "";
+					if (Configure::read('MISP.full_tags_on_event_index') == 1) $tagText = $tag['Tag']['name'];
 					else if (Configure::read('MISP.full_tags_on_event_index') == 2) {
 						if (strpos($tag['Tag']['name'], '=')) {
 							$tagText = explode('=', $tag['Tag']['name']);
 							$tagText = h(trim(end($tagText), "\""));
 						}
-						else $tagText = h($tag['Tag']['name']);
+						else $tagText = $tag['Tag']['name'];
 					}
 				?>
-					<span class=tag style="margin-bottom:3px;background-color:<?php echo h($tag['Tag']['colour']);?>;color:<?php echo $this->TextColour->getTextColour($tag['Tag']['colour']);?>;" title="<?php echo h($tag['Tag']['name']); ?>"><?php echo h($tagText); ?></span>
+					<span class=tag style="margin-bottom:3px;background-color:<?php echo h($tag['Tag']['colour']);?>;color:<?php echo $this->TextColour->getTextColour($tag['Tag']['colour']);?>;" title="<?php echo h($tag['Tag']['name']); ?>"><?php echo h($tagText); ?>&nbsp;</span>
 				<?php endforeach; ?>
 			</td>
 			<?php endif; ?>

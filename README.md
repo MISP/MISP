@@ -27,6 +27,7 @@ MISP, Malware Information Sharing Platform and Threat Sharing, core functionalit
 - **Expansion modules in Python** to expand MISP with your own services or activate already available [misp-modules](https://github.com/MISP/misp-modules).
 - **Sighting support** to get observations from organizations concerning shared indicators and attributes. Sighting [can be contributed](https://www.circl.lu/doc/misp/automation/index.html#sightings-api) via MISP user-interface, API as MISP document or STIX sighting documents.
 - **STIX support**: export data in the STIX format (XML and JSON).
+- **Integrated encryption and signing of the notifications** via PGP and/or S/MIME depending of the user preferences.
 
 Exchanging info results in *faster detection* of targeted attacks and improves the detection ratio while reducing the false positives. We also avoid reversing similar malware as we know very fast that others team or organizations who already analyzed a specific malware.
 

@@ -89,10 +89,18 @@ function toggleSetting(e, setting, id) {
 	switch (setting) {
 	case 'warninglist_enable': 
 		formID = '#WarninglistIndexForm';
-		dataDiv = '#WarninglistEnable';
+		dataDiv = '#WarninglistData';
+		replacementForm = '/warninglists/getToggleField/';
+		searchString = 'enabled';
+		break;
+	case 'favourite_tag':
+		formID = '#FavouriteTagIndexForm';
+		dataDiv = '#FavouriteTagData';
+		replacementForm = '/favourite_tags/getToggleField/';
+		searchString = 'Adding';
 		break;
 	}
-	$('#WarninglistData').val(id);
+	$(dataDiv).val(id);
 	var formData = $(formID).serialize();
 	$.ajax({
 		beforeSend: function (XMLHttpRequest) {
@@ -103,13 +111,13 @@ function toggleSetting(e, setting, id) {
 			var result = JSON.parse(data);
 			if (result.success) {
 				var setting = false;
-				if (result.success == 'Warninglist enabled') setting = true;
+				if (result.success.indexOf(searchString) > -1) setting = true;
 				$('#checkBox_' + id).prop('checked', setting);
 			}
 			handleGenericAjaxResponse(data);
 		}, 
 		complete:function() {
-			$.get( "/warninglists/getToggleField/", function(data) {
+			$.get( replacementForm, function(data) {
 				$('#hiddenFormDiv').html(data);
 			});
 			$(".loading").hide();

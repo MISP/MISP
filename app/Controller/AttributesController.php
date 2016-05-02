@@ -405,8 +405,10 @@ class AttributesController extends AppController {
 			
 			$message = 'The attachment(s) have been uploaded.';
 			if (!empty($partialFails)) $message .= ' Some of the hashes however could not be generated.';
-			if (!empty($fails)) $message = 'Some of the attachments failed to upload. The failed files were: ' . implode(', ', $fails);
-			if (empty($success)) $message = 'The attachment(s) could not be saved, please contact your administrator.';
+			if (!empty($fails)) $message = 'Some of the attachments failed to upload. The failed files were: ' . implode(', ', $fails) . ' - This can be caused by the attachments already existing in the event.';
+			if (empty($success)) {
+				if (empty($fails)) $message = 'The attachment(s) could not be saved. please contact your administrator.';
+			}
 			else {
 				$this->Event->id = $this->request->data['Attribute']['event_id'];
 				$this->Event->saveField('published', 0);

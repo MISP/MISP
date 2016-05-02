@@ -2,8 +2,9 @@
 	<?php
 		$title = $event['Event']['info'];
 		if (strlen($title) > 58) $title = substr($title, 0, 55) . '...';
+		$serverName = $server['Server']['name'] ? '"' . $server['Server']['name'] . '" (' . $server['Server']['url'] . ')' : '"' . $server['Server']['url'] . '"';
 	?>
-	<h4 class="visibleDL notPublished" >You are currently viewing an event on the remote instance "<?php echo h($server['Server']['name']); ?>" (@ <?php echo h($server['Server']['url']); ?>)</h4>
+	<h4 class="visibleDL notPublished" >You are currently viewing an event on the remote instance <?php echo h($serverName); ?></h4>
 	<div class="row-fluid">
 		<div class="span8">
 			<h2><?php echo nl2br(h($title)); ?></h2>
@@ -54,7 +55,7 @@
 					<?php 
 						if ($event['Event']['distribution'] == 4):
 					?>
-							<?php echo h($event['SharingGroup'][0]['name']); ?></a>
+							<?php echo h($event['SharingGroup']['name']); ?></a>
 					<?php 
 						else:
 							echo h($distributionLevels[$event['Event']['distribution']]);

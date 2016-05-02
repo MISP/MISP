@@ -265,6 +265,7 @@
 				break;	
 				
 				case 'tags': ?>
+					<li id='liindexfav'><?php echo $this->Html->link('List Favourite Tags', array('action' => 'index', true));?></li>
 					<li id='liindex'><?php echo $this->Html->link('List Tags', array('action' => 'index'));?></li>
 					<?php if ($isAclTagEditor): ?>
 					<li id='liadd'><?php echo $this->Html->link('Add Tag', array('action' => 'add'));?></li>
