@@ -84,4 +84,17 @@ class JSONConverterTool {
 			return $text;
 		} else return $resultArray;
 	}
+	
+	public function eventCollection2Format($events, $isSiteAdmin=false) {
+		$results = array();
+		foreach ($events as &$event) $results[] = $this->event2JSON($event, $isSiteAdmin);
+		return implode(',' . PHP_EOL, $results);
+	}
+	
+	public function frameCollection($input, $mispVersion = false) {
+		$result = '{"response":[';
+		$result .= $input;
+		if ($mispVersion) $result .= ',' . PHP_EOL . '{"xml_version":"' . $mispVersion . '"}' . PHP_EOL;
+		return $result . ']}';
+	}
 }

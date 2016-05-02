@@ -2247,18 +2247,18 @@ class EventsController extends AppController {
 				$idList[] = $attribute['Attribute']['event_id'];
 			}
 		}
-		
-		if ($this->response->type() === 'application/json') {
-			
-		} else {
-			// display the full xml
-			$this->response->type('xml');	// set the content type
-			$this->layout = 'xml/default';
-			$this->header('Content-Disposition: download; filename="misp.search.results.xml"');
-		}
 		$results = $this->__fetchEvent(null, $idList);
 		$this->set('results', $results);
-		$this->render('xml');
+		if ($this->response->type() === 'application/json') $type = 'json';
+		else $type = 'xml';
+		App::uses(strtoupper($type) . 'ConverterTool', 'Tools');
+		$tool = strtoupper($type) . 'ConverterTool';
+		$converter = new $tool();
+		$body = $converter->eventCollection2Format($results);
+		$body = $converter->frameCollection($body, $this->mispVersion); 
+		$this->response->body($body);
+		$this->response->download('misp.search.results.' . $type);
+		return $this->response;
 	}
 
 	// Use the rest interface to search for  attributes or events. Usage:

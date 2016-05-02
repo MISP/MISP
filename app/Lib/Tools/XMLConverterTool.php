@@ -161,4 +161,17 @@ class XMLConverterTool {
 		$field = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $field);
 		$field = str_replace($this->__toEscape, $this->__escapeWith, $field);
 	}
+	
+	public function eventCollection2Format($events, $isSiteAdmin=false) {
+		$result = "";
+		foreach ($events as $event) $result .= $this->event2XML($event) . PHP_EOL;
+		return $result;
+	}
+	
+	public function frameCollection($input, $mispVersion = false) {
+		$result = '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL . '<response>' . PHP_EOL;
+		$result .= $input;
+		if ($mispVersion) $result .= '<xml_version>' . $mispVersion . '</xml_version>';
+		return $result . '</response>' . PHP_EOL;
+	}
 }

@@ -85,7 +85,8 @@
 					<li id='lisearchAttributes'><a href="<?php echo $baseurl;?>/attributes/search">Search Attributes</a></li>
 					<?php if ($menuItem == 'searchAttributes2'): ?>
 					<li class="divider"></li>
-					<li><a href="<?php echo $baseurl;?>/events/downloadSearchResult">Download results as XML</a></li>
+					<li><a href="<?php echo $baseurl;?>/events/downloadSearchResult.json">Download results as JSON</a></li>
+					<li><a href="<?php echo $baseurl;?>/events/downloadSearchResult.xml">Download results as XML</a></li>
 					<li><a href="<?php echo $baseurl;?>/events/csv/download/search">Download results as CSV</a></li>
 					<?php endif; ?>
 					<li class="divider"></li>
