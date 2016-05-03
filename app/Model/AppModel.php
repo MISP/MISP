@@ -481,6 +481,14 @@ class AppModel extends Model {
 		return ucfirst($field) . ' cannot be empty.';
 	}
 	
+	public function stringNotEmpty($value) {
+		$field = array_keys($value);
+		$field = $field[0];
+		$value[$field] = trim($value[$field]);
+		if (!isset($value[$field]) || ($value[$field] == false && $value[$field] !== "0")) return ucfirst($field) . ' cannot be empty.'; 
+		return true;
+	}
+	
 	public function runUpdates() {
 		$this->AdminSetting = ClassRegistry::init('AdminSetting');
 		$db = ConnectionManager::getDataSource('default');
