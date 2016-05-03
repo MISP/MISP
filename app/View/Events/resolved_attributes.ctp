@@ -15,6 +15,12 @@
 				'style' => 'display:none;',
 				'value' => '',
 		));
+		echo $this->Form->input('default_comment', array(
+				'label' => false,
+				'type' => 'text',
+				'style' => 'display:none;',
+				'value' => $importComment,
+		));
 		echo $this->Form->end();
 	?>
 	<table class="table table-striped table-hover table-condensed">

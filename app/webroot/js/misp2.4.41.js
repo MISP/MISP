@@ -1678,8 +1678,7 @@ function freetextImportResultsSubmit(id, count) {
 				comment:$('#Attribute' + i + 'Comment').val(),
 				data:$('#Attribute' + i + 'Data').val()
 			}
-			attributeArray[attributeArray.length] = temp;	
-			console.log(temp)
+			attributeArray[attributeArray.length] = temp;
 		}
 	};
 	$("#AttributeJsonObject").val(JSON.stringify(attributeArray));

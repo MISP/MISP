@@ -2843,7 +2843,7 @@ class EventsController extends AppController {
 						$this->Event->$objectType->create();
 						$attribute['type'] = $type;
 						$attribute['distribution'] = 5;
-						if (empty($attribute['comment'])) $attribute['comment'] = 'Imported via the freetext import.';
+						if (empty($attribute['comment'])) $attribute['comment'] = $this->request->data['Attribute']['default_comment'];
 						$attribute['event_id'] = $id;
 						if ($objectType == 'ShadowAttribute') {
 							$attribute['org_id'] = $this->Auth->user('org_id');
