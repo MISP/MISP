@@ -891,13 +891,11 @@ class AttributesController extends AppController {
 		}
 		$result = $this->Attribute->find('first', array(
 			'conditions' => array('Attribute.id' => $id),
-			'fields' => array('Attribute.id, Attribute.event_id', 'Attribute.uuid'),
+			'fields' => array('Attribute.*'),
 			'contain' => array('Event' => array(
 				'fields' => array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.locked')
 			)),
 		));
-		// find the uuid
-		$uuid = $result['Attribute']['uuid'];
 		
 		// check for permissions
 		if (!$this->_isSiteAdmin()) {
@@ -913,7 +911,7 @@ class AttributesController extends AppController {
 		}
 		
 		// attachment will be deleted with the beforeDelete() function in the Model
-		if ($this->Attribute->delete()) {
+		if ($this->Attribute->save($result['Attribute'])) {
 			// delete the attribute from remote servers
 			//$this->__deleteAttributeFromServers($uuid);
 		
@@ -924,7 +922,6 @@ class AttributesController extends AppController {
 		} else {
 			return false;
 		}
-		
 	}
 	
 	public function deleteSelected($id) {
