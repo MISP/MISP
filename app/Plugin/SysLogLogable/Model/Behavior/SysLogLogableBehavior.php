@@ -47,6 +47,10 @@ class SysLogLogableBehavior extends LogableBehavior {
 				$logData['Log']['action'] = 'add';
 			} else {
 				$logData['Log']['action'] = 'edit';
+				if ($Model->alias === 'Attribute' && isset($Model->data[$Model->alias]['deleted']) && $Model->data[$Model->alias]['deleted']) {
+					$logData['Log']['action'] = 'delete';
+					unset($this->schema['change']);
+				}
 			}
 
 		}
