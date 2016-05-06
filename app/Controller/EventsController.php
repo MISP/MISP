@@ -735,7 +735,6 @@ class EventsController extends AppController {
 			}
 		}
 		$params = $this->Event->rearrangeEventForView($event);
-
 		$this->params->params['paging'] = array($this->modelClass => $params);
 		$this->set('event', $event);
 		$dataForView = array(
@@ -794,6 +793,7 @@ class EventsController extends AppController {
 		} else {
 			$conditions['includeAttachments'] = true;
 		}
+		if (isset($this->request->query['deleted']) && $this->request->query['deleted']) $conditions['deleted'] = true;
 		$results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
 		if (empty($results)) throw new NotFoundException('Invalid event');
 		$event = &$results[0];

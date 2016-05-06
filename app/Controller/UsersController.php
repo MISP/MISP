@@ -768,7 +768,7 @@ class UsersController extends AppController {
 		// What org posted what type of attribute
 		$this->loadModel('Attribute');
 		$conditions = array();
-		if ($selected) $conditions[] = array('Attribute.type' => $selectedTypes);
+		if ($selected) $conditions[] = array('Attribute.type' => $selectedTypes, 'Attribute.deleted' => false);
 		$fields = array('Event.orgc_id', 'Attribute.type', 'count(Attribute.type) as `num_types`');
 		$params = array('recursive' => 0,
 				'fields' => $fields,
@@ -1044,8 +1044,8 @@ class UsersController extends AppController {
 		$stats[0] = $this->User->Event->find('count', null);
 		$stats[1] = $this->User->Event->find('count', array('conditions' => array('Event.timestamp >' => $this_month)));
 
-		$stats[2] = $this->User->Event->Attribute->find('count', null);
-		$stats[3] = $this->User->Event->Attribute->find('count', array('conditions' => array('Attribute.timestamp >' => $this_month)));
+		$stats[2] = $this->User->Event->Attribute->find('count', array('conditions' => array('Attribute.deleted' => false)));
+		$stats[3] = $this->User->Event->Attribute->find('count', array('conditions' => array('Attribute.timestamp >' => $this_month, 'Attribute.deleted' => false)));
 		
 		$this->loadModel('Correlation');
 		$this->Correlation->recursive = -1;

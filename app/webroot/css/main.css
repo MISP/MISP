@@ -1480,6 +1480,21 @@ a.proposal_link_red:hover {
 	color: white !important;
 }
 
+.background-light-red {
+	background: #ffcccc !important;
+	color: white !important;
+}
+
+.background-deleted {
+	background: repeating-linear-gradient(
+		45deg,
+		#606dbc,
+		#606dbc 10px,
+		#465298 10px,
+		#465298 20px
+	) !important;
+}
+
 .align-right {
 	text-align: right;
 }

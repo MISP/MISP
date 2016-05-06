@@ -1244,6 +1244,7 @@ class Event extends AppModel {
 		if ($options['to']) $conditions['AND'][] = array('Event.date <=' => $options['to']);
 		if ($options['last']) $conditions['AND'][] = array('Event.publish_timestamp >=' => $options['last']);
 		if ($options['event_uuid']) $conditions['AND'][] = array('Event.uuid' => $options['event_uuid']);
+		if (!$user['Role']['perm_sync'] || !isset($options['deleted']) || !$options['deleted']) $conditionsAttributes['AND']['Attribute.deleted'] = false;
 	
 		
 		if ($options['idList'] && !$options['tags']) {
@@ -1278,7 +1279,7 @@ class Event extends AppModel {
 		
 		// do not expose all the data ...
 		$fields = array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.date', 'Event.threat_level_id', 'Event.info', 'Event.published', 'Event.uuid', 'Event.attribute_count', 'Event.analysis', 'Event.timestamp', 'Event.distribution', 'Event.proposal_email_lock', 'Event.user_id', 'Event.locked', 'Event.publish_timestamp', 'Event.sharing_group_id');
-		$fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.timestamp', 'Attribute.comment', 'Attribute.sharing_group_id');
+		$fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.timestamp', 'Attribute.comment', 'Attribute.sharing_group_id', 'Attribute.deleted');
 		$fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.proposal_to_delete');
 		$fieldsOrg = array('id', 'name', 'uuid');
 		$fieldsServer = array('id', 'url', 'name');

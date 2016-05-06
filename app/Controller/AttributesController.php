@@ -909,7 +909,7 @@ class AttributesController extends AppController {
 				}
 			}
 		}
-		
+		$result['Attribute']['deleted'] = true;
 		// attachment will be deleted with the beforeDelete() function in the Model
 		if ($this->Attribute->save($result['Attribute'])) {
 			// delete the attribute from remote servers

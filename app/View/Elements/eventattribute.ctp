@@ -183,6 +183,10 @@
 						$extra3 .= ' highlightBlueBottom';
 					}
 				}
+				if (isset($object['deleted']) && $object['deleted']) {
+					$extra .= ' background-light-red';
+				}
+				$extra .= (isset($object['deleted']) && $object['deleted']) ? ' background-light-red' : '';
 				?>
 				<tr id = "<?php echo $currentType . '_' . $object['id'] . '_tr'; ?>" class="<?php echo $extra3; ?>">
 					<?php if ($mayModify): ?>
