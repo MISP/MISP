@@ -874,6 +874,30 @@ class AttributesController extends AppController {
 		}
 	}
 	
+	public function restore($id = null) {
+		if ($this->request->is('ajax')) {
+			if ($this->request->is('post')) {
+				$result = $this->Attribute->restore($id, $this->Auth->user());
+				if ($result === true) return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Attribute restored.')),'status'=>200));
+				else return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $result)),'status'=>200));
+			} else {
+				$this->set('id', $id);
+				$attribute = $this->Attribute->find('first', array(
+						'conditions' => array('id' => $id),
+						'recursive' => -1,
+						'fields' => array('id', 'event_id'),
+				));
+				$this->set('event_id', $attribute['Attribute']['event_id']);
+				$this->render('ajax/attributeConfirmationForm');
+			}
+		} else {
+			if (!$this->request->is('post') && !$this->_isRest()) throw new MethodNotAllowedException();
+			if ($this->Attribute->restore($id, $this->Auth->user())) $this->redirect(array('action' => 'view', $id));
+			else throw new NotFoundException('Could not restore the attribute');
+		}
+	}
+
+	
 /**
  * unification of the actual delete for the multi-select
  * 

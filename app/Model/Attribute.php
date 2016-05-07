@@ -1981,4 +1981,19 @@ class Attribute extends AppModel {
 			return $this->validationErrors;
 		}
 	}
+	
+	public function restore($id, $user) {
+		$this->id = $id;
+		if (!$this->exists()) return 'Attribute doesn\'t exist, or you lack the permission to edit it.';
+		$this->read();
+		if (!$user['Role']['perm_site_admin']) {
+			if (!($this->data['Event']['orgc_id'] == $user['org_id'] && (($user['Role']['perm_modify'] && $this->data['Event']['user_id'] != $user['id']) || $user['Role']['perm_modify_org']))) {
+				if (!$this->exists()) return 'Attribute doesn\'t exist, or you lack the permission to edit it.';
+			}
+		}
+		unset($this->data['Attribute']['timestamp']);
+		$this->data['Attribute']['deleted'] = false;
+		if ($this->save($this->data)) return true;
+		else return 'Could not save changes.';
+	}
 }
