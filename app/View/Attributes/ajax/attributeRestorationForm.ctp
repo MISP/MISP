@@ -2,13 +2,13 @@
 <?php 
 	echo $this->Form->create('Attribute', array('style' => 'margin:0px;', 'id' => 'PromptForm'));
 ?>
-<legend>Attribute Restoration</legend>
+<legend>Attribute Deletion</legend>
 <div style="padding-left:5px;padding-right:5px;padding-bottom:5px;">
-<p>Are you sure you want to restore Attribute #<?php echo $id?>?</p>
+<p>Are you sure you want to delete Attribute #<?php echo $id?>?</p>
 	<table>
 		<tr>
 			<td style="vertical-align:top">
-				<span id="PromptYesButton" class="btn btn-primary" onClick="submitDeletion(<?php echo $event_id; ?>, 'restore', 'attributes', <?php echo $id;?>)">Yes</span>
+				<span id="PromptYesButton" class="btn btn-primary" onClick="submitDeletion(<?php echo $event_id; ?>, 'delete', 'attributes', <?php echo $id;?>)">Yes</span>
 			</td>
 			<td style="width:540px;">
 			</td>
