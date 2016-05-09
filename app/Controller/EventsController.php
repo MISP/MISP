@@ -1765,6 +1765,7 @@ class EventsController extends AppController {
 			foreach ($attributes as &$attribute) {
 				$list[] = $attribute['Attribute']['id'];
 			}
+			$events = array($eventid);
 		} else if ($eventid === false) {
 			$events = $this->Event->fetchEventIds($this->Auth->user(), $from, $to, $last, true);
 			if (empty($events)) $events = array(0 => -1);
