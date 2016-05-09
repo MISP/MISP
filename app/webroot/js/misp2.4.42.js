@@ -1194,11 +1194,8 @@ function quickFilter(passedArgs, url) {
 	window.location.href=url;
 }
 
-function filterMyOrgOnly(passedArgs, org, url) {
-	passedArgs['searchorg'] = org;
-	for (var key in passedArgs) {
-		url += "/" + key + ":" + passedArgs[key];
-	}
+function executeFilter(passedArgs, url) {
+	for (var key in passedArgs) url += "/" + key + ":" + passedArgs[key];
 	window.location.href=url;
 }
 

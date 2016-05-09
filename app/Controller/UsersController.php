@@ -744,7 +744,7 @@ class UsersController extends AppController {
 							'fields' => $fields,
 							'recursive' => -1,
 							'contain' => array('Organisation'),
-							'group' => array('Organisation.name'),
+							'group' => array('Organisation.id'),
 							'order' => array('UPPER(Organisation.name)'),
 		);
 		$orgs = $this->User->find('all', $params);
