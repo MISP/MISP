@@ -1462,6 +1462,10 @@ a.proposal_link_red:hover {
 	color: white;
 }
 
+.background-lightblue {
+	background-color:#cfefff;
+}
+
 .red-background {
 	background-color:red;
 }

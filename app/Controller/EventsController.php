@@ -253,8 +253,7 @@ class EventsController extends AppController {
 		// list the events
 		$passedArgsArray = array();
 		$urlparams = "";
-		$overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'Datefrom', 'Dateuntil', 'org', 'eventinfo', 'tag', 'distribution', 'analysis', 'threatlevel');
-		if ($this->_isSiteAdmin()) $overrideAbleParams[] = 'email';
+		$overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'Datefrom', 'Dateuntil', 'org', 'eventinfo', 'tag', 'distribution', 'analysis', 'threatlevel', 'email');
 		$passedArgs = $this->passedArgs;
 		if (isset($this->request->data)) {
 			if (isset($this->request->data['request'])) $this->request->data = $this->request->data['request'];
@@ -365,7 +364,6 @@ class EventsController extends AppController {
 							if ($piece[0] == '!') {
 								if (is_numeric(substr($piece, 1))) $conditions = array('OR' => array('Tag.id' => substr($piece, 1)));
 								else $conditions = array('OR' => array('Tag.name' => substr($piece, 1)));
-
 								$tagName = $this->Event->EventTag->Tag->find('first', array(
 									'conditions' => $conditions,
 									'fields' => array('id', 'name'),
@@ -427,7 +425,7 @@ class EventsController extends AppController {
 						$v = $filterString;
 						break;
 					case 'email':
-						if ($v == "" || !$this->_isSiteAdmin()) continue 2;
+						if ($v == "" || (strtolower($this->Auth->user('email')) !== strtolower(trim($v)) && !$this->_isSiteAdmin())) continue 2;
 						// if the first character is '!', search for NOT LIKE the rest of the string (excluding the '!' itself of course)
 						$pieces = explode('|', $v);
 						$test = array();

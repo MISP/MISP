@@ -41,8 +41,33 @@
 		<?php endif;?>
 		<span id="quickFilterButton" class="tabMenuFilterFieldButton useCursorPointer" onClick='quickFilter(<?php echo h($passedArgs);?>, "/events/index");'>Filter</span>
 		<input class="tabMenuFilterField" type="text" id="quickFilterField"></input>
-		<span class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer" style="margin-left:50px;">
-			<span id="myOrgButton" title="Modify filters" onClick="filterMyOrgOnly(<?php echo h($passedArgs);?>, '<?php echo $me['Organisation']['name'];?>', '<?php echo $baseurl;?>/events/index');">My Org</span>
+		<?php 
+			$tempArgs = json_decode($passedArgs, true);
+			$tabBackground = "";
+			if (isset($tempArgs['searchemail']) && $tempArgs['searchemail'] === $me['email']) {
+				unset($tempArgs['searchemail']);
+				$tabBackground = 'background-lightblue';
+			} else {
+				$tempArgs['searchemail'] = $me['email'];
+			}
+			$tempArgs = json_encode($tempArgs);
+		?>
+		<span class="tabMenuFixed tabMenuFixedLeft tabMenuSides useCursorPointer <?php echo $tabBackground; ?>" style="margin-left:50px;">
+			<span id="myOrgButton" title="Modify filters" onClick="executeFilter(<?php echo h($tempArgs);?>, '<?php echo $baseurl;?>/events/index');">My Events</span>
+		</span>
+		<?php 
+			$tempArgs = json_decode($passedArgs, true);
+			$tabBackground = "";
+			if (isset($tempArgs['searchorg']) && $tempArgs['searchorg'] === $me['Organisation']['name']) {
+				unset($tempArgs['searchorg']);
+				$tabBackground = 'background-lightblue';
+			} else {
+				$tempArgs['searchorg'] = $me['Organisation']['name'];
+			}
+			$tempArgs = json_encode($tempArgs);
+		?>
+		<span class="tabMenuFixed tabMenuFixedRight tabMenuSides useCursorPointer <?php echo $tabBackground; ?>">
+			<span id="myOrgButton" title="Modify filters" onClick="executeFilter(<?php echo h($tempArgs);?>, '<?php echo $baseurl;?>/events/index');">Org Events</span>
 		</span>
 	</div>
 	<?php endif; ?>
