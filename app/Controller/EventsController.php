@@ -134,6 +134,7 @@ class EventsController extends AppController {
 				$includeQuery['conditions']['OR'][] = array('lower(Attribute.value1) LIKE' => $i);
 				$includeQuery['conditions']['OR'][] = array('lower(Attribute.value2) LIKE' => $i);
 			}
+			$includeQuery['conditions']['AND'][] = array('Attribute.deleted' => false);
 			$includeHits = $this->Event->Attribute->find('all', $includeQuery);
 			
 			// convert it into an array that uses the event ID as a key
@@ -154,6 +155,7 @@ class EventsController extends AppController {
 				$excludeQuery['conditions']['OR'][] = array('lower(Attribute.value1) LIKE' => $e);
 				$excludeQuery['conditions']['OR'][] = array('lower(Attribute.value2) LIKE' => $e);
 			}
+			$excludeQuery['conditions']['AND'][] = array('Attribute.deleted' => false);
 			$excludeHits = $this->Event->Attribute->find('all', $excludeQuery);
 			
 			// convert it into an array that uses the event ID as a key
@@ -181,6 +183,9 @@ class EventsController extends AppController {
 						'lower(value1) LIKE' => '%' . strtolower($value) . '%',
 						'lower(value2) LIKE' => '%' . strtolower($value) . '%',
 						'lower(comment) LIKE' => '%' . strtolower($value) . '%',
+					),
+					'AND' => array(
+						'deleted' => false
 					),
 				),
 		));

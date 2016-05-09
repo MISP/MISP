@@ -1881,7 +1881,7 @@ class Attribute extends AppModel {
  				'Event' => array(
  					'fields' => array('id', 'info', 'org_id'),
  				), 
- 			),	
+ 			),
  		);
 	 	if (isset($options['contain'])) $params['contain'] = array_merge_recursive($params['contain'], $options['contain']);
 	 	else $option['contain']['Event']['fields'] = array('id', 'info', 'org_id');

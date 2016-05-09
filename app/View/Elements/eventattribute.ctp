@@ -397,32 +397,40 @@
 					<td class="short action-links <?php echo $extra;?>">
 						<?php
 							if ($object['objectType'] == 0) {
-								if ($isSiteAdmin || !$mayModify):
-									if (isset($modules) && isset($modules['types'][$object['type']])):
-						?>
-							<span class="icon-asterisk useCursorPointer" onClick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?php echo h($object['id']);?>/ShadowAttribute');" title="Propose enrichment">&nbsp;</span>
-						<?php 
+								if ($object['deleted']):
+									if ($isSiteAdmin || $mayModify):
+							?>
+									<span class="icon-repeat useCursorPointer" onClick="deleteObject('attributes', 'restore', '<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
+							<?php
 									endif;
-						?>
-									<a href="<?php echo $baseurl;?>/shadow_attributes/edit/<?php echo $object['id']; ?>" title="Propose Edit" class="icon-share useCursorPointer"></a>
-									<span class="icon-trash useCursorPointer" title="Propose Deletion" onClick="deleteObject('shadow_attributes', 'delete', '<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
-						<?php 
-									if ($isSiteAdmin): 
-						?>
-										<span class="verticalSeparator">&nbsp;</span>
-						<?php 		endif;
+								else:
+									if ($isSiteAdmin || !$mayModify):
+										if (isset($modules) && isset($modules['types'][$object['type']])):
+							?>
+								<span class="icon-asterisk useCursorPointer" onClick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?php echo h($object['id']);?>/ShadowAttribute');" title="Propose enrichment">&nbsp;</span>
+							<?php 
+										endif;
+							?>
+										<a href="<?php echo $baseurl;?>/shadow_attributes/edit/<?php echo $object['id']; ?>" title="Propose Edit" class="icon-share useCursorPointer"></a>
+										<span class="icon-trash useCursorPointer" title="Propose Deletion" onClick="deleteObject('shadow_attributes', 'delete', '<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
+							<?php 
+										if ($isSiteAdmin): 
+							?>
+											<span class="verticalSeparator">&nbsp;</span>
+							<?php 		endif;
+									endif;
+									if ($isSiteAdmin || $mayModify) {
+										if (isset($modules) && isset($modules['types'][$object['type']])):
+							?>
+								<span class="icon-asterisk useCursorPointer" onClick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?php echo h($object['id']);?>/Attribute');" title="Add enrichment">&nbsp;</span>
+							<?php 
+										endif;
+							?>
+								<a href="<?php echo $baseurl;?>/attributes/edit/<?php echo $object['id']; ?>" title="Edit" class="icon-edit useCursorPointer"></a>
+								<span class="icon-trash useCursorPointer" onClick="deleteObject('attributes', 'delete', '<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
+							<?php 			
+									}
 								endif;
-								if ($isSiteAdmin || $mayModify) {
-									if (isset($modules) && isset($modules['types'][$object['type']])):
-						?>
-							<span class="icon-asterisk useCursorPointer" onClick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?php echo h($object['id']);?>/Attribute');" title="Add enrichment">&nbsp;</span>
-						<?php 
-									endif;
-						?>
-							<a href="<?php echo $baseurl;?>/attributes/edit/<?php echo $object['id']; ?>" title="Edit" class="icon-edit useCursorPointer"></a>
-							<span class="icon-trash useCursorPointer" onClick="deleteObject('attributes', 'delete', '<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
-						<?php 			
-								}
 							} else {
 								if (($event['Orgc']['id'] == $me['org_id'] && $mayModify) || $isSiteAdmin) {
 									echo $this->Form->create('Shadow_Attribute', array('id' => 'ShadowAttribute_' . $object['id'] . '_accept', 'url' => '/shadow_attributes/accept/' . $object['id'], 'style' => 'display:none;'));
