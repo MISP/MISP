@@ -5,8 +5,8 @@ String.prototype.ucfirst = function() {
 function deleteObject(type, action, id, event) {
 	var destination = 'attributes';
 	if (type == 'shadow_attributes') destination = 'shadow_attributes';
-	if (type == 'template_elements') destination = 'template_elements';
-	$.get( "/" + destination + "/" + action + "/" + id, function(data) {
+	else if (type == 'template_elements') destination = 'template_elements';
+	$.get( "/" + destination + "/" + action + "/" + id + parameters, function(data) {
 		$("#confirmation_box").fadeIn();
 		$("#gray_out").fadeIn();
 		$("#confirmation_box").html(data);
@@ -2292,16 +2292,39 @@ function syncUserSelected() {
 }
 
 function filterAttributes(filter, id) {
+	url = "/events/viewEventAttributes/" + id + "/attributeFilter:" + filter;
+	if (deleted) url += '/deleted:true';
 	$.ajax({
 		type:"get",
-		url:"/events/viewEventAttributes/" + id + "/attributeFilter:" + filter,
+		url:url,
 		beforeSend: function (XMLHttpRequest) {
 			$(".loading").show();
 		},
 		success:function (data) {
 			$("#attributes_div").html(data);
-			$(".attribute_filter_text_active").removeClass("attribute_filter_text_active").addClass("attribute_filter_text");
-			$("#filter_" + filter).removeClass("attribute_filter_text").addClass("attribute_filter_text_active");
+			$(".loading").hide();
+		},
+		error:function() {
+			showMessage('fail', 'Something went wrong - could not fetch attributes.');
+		}
+	});
+}
+
+function toggleDeletedAttributes(url) {
+	url = url.replace(/view\//i, 'viewEventAttributes/');
+	if (url.indexOf('deleted:') > -1) {
+		url = url.replace(/\/deleted:[^\/]*/i, '');
+	} else {
+		url = url + '/deleted:true'
+	}
+	$.ajax({
+		type:"get",
+		url:url,
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+		success:function (data) {
+			$("#attributes_div").html(data);
 			$(".loading").hide();
 		},
 		error:function() {

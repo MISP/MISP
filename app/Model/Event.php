@@ -692,7 +692,7 @@ class Event extends AppModel {
 	public function uploadEventToServer($event, $server, $HttpSocket = null) {
 		$this->Server = ClassRegistry::init('Server');
 		$push = $this->Server->checkVersionCompatibility($server['Server']['id'])['canPush'];
-		if ($push !== true) {
+		if (!isset($push['canPush']) || !$push['canPush']) {
 			if ($push === 'mangle' && $event['Event']['distribution'] != 4) {
 				$event['Event']['orgc'] = $event['Orgc']['name'];
 				$event['mangle'] = true;
@@ -1078,7 +1078,7 @@ class Event extends AppModel {
 				)
 		);
 		if (!$proposalDownload) {
-			$uri = $url . '/events/' . $eventId . '?deleted=true';
+			$uri = $url . '/events/' . $eventId . '/deleted:true';
 		} else {
 			$uri = $url . '/shadow_attributes/getProposalsByUuid/' . $eventId;
 		}

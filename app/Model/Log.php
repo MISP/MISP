@@ -44,7 +44,8 @@ class Log extends AppModel {
 							'disable',
 							'accept_delegation',
 							'request_delegation',
-							'merge'
+							'merge',
+							'undelete'
 						)),
 			'message' => 'Options : ...'
 		)

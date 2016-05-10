@@ -888,7 +888,7 @@ class AttributesController extends AppController {
 						'fields' => array('id', 'event_id'),
 				));
 				$this->set('event_id', $attribute['Attribute']['event_id']);
-				$this->render('ajax/attributeConfirmationForm');
+				$this->render('ajax/attributeRestorationForm');
 			}
 		} else {
 			if (!$this->request->is('post') && !$this->_isRest()) throw new MethodNotAllowedException();
