@@ -688,10 +688,22 @@ class Event extends AppModel {
 		}
 		return $error;
 	}
-
+	
 	public function uploadEventToServer($event, $server, $HttpSocket = null) {
 		$this->Server = ClassRegistry::init('Server');
-		$push = $this->Server->checkVersionCompatibility($server['Server']['id'])['canPush'];
+		$push = $this->Server->checkVersionCompatibility($server['Server']['id']);
+		$deletedAttributes = false;
+		if (($push['version'][0] > 2) || 
+			($push['version'][0] == 2 && $push['version'][1] > 4) || 
+			($push['version'][0] == 2 && $push['version'][1] == 4 && $push['version'][2] > 42)) {
+			$deletedAttributes = true;
+		}
+		if (isset($event['Attribute']) && !$deletedAttributes) {
+			foreach ($event['Attribute'] as $k => $v) {
+				if ($v['deleted']) unset($event['Attribute'][$k]);
+			}
+			$event['Attribute'] = array_values($event['Attribute']);
+		}
 		if (!isset($push['canPush']) || !$push['canPush']) {
 			if ($push === 'mangle' && $event['Event']['distribution'] != 4) {
 				$event['Event']['orgc'] = $event['Orgc']['name'];
@@ -1078,7 +1090,7 @@ class Event extends AppModel {
 				)
 		);
 		if (!$proposalDownload) {
-			$uri = $url . '/events/' . $eventId . '/deleted:true';
+			$uri = $url . '/events/view/' . $eventId . '/deleted:true';
 		} else {
 			$uri = $url . '/shadow_attributes/getProposalsByUuid/' . $eventId;
 		}

@@ -917,23 +917,26 @@ class AttributesController extends AppController {
 			'conditions' => array('Attribute.id' => $id),
 			'fields' => array('Attribute.*'),
 			'contain' => array('Event' => array(
-				'fields' => array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.locked')
+				'fields' => array('Event.*')
 			)),
 		));
+		if (empty($result)) throw new MethodNotAllowedException('Attribute not found or not authorised.');
 		
 		// check for permissions
 		if (!$this->_isSiteAdmin()) {
 			if ($result['Event']['locked']) {
 				if ($this->Auth->user('org_id') != $result['Event']['org_id'] || !$this->userRole['perm_sync']) {
-					throw new MethodNotAllowedException();
+					throw new MethodNotAllowedException('Attribute not found or not authorised.');
 				}
 			} else {
 				if ($this->Auth->user('org_id') != $result['Event']['orgc_id']) {
-					throw new MethodNotAllowedException();
+					throw new MethodNotAllowedException('Attribute not found or not authorised.');
 				}
 			}
 		}
 		$result['Attribute']['deleted'] = true;
+		$date = new DateTime();
+		$result['Attribute']['timestamp'] = $date->getTimestamp();
 		// attachment will be deleted with the beforeDelete() function in the Model
 		if ($this->Attribute->save($result['Attribute'])) {
 			// delete the attribute from remote servers
@@ -942,6 +945,11 @@ class AttributesController extends AppController {
 			// We have just deleted the attribute, let's also check if there are any shadow attributes that were attached to it and delete them
 			$this->loadModel('ShadowAttribute');
 			$this->ShadowAttribute->deleteAll(array('ShadowAttribute.old_id' => $id), false);
+			
+			// remove the published flag from the event
+			$result['Event']['timestamp'] = $date->getTimestamp();
+			$result['Event']['published'] = false;
+			$this->Attribute->Event->save($result['Event'], array('fieldList' => array('published', 'timestamp', 'info')));
 			return true;
 		} else {
 			return false;

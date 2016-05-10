@@ -1985,15 +1985,22 @@ class Attribute extends AppModel {
 	public function restore($id, $user) {
 		$this->id = $id;
 		if (!$this->exists()) return 'Attribute doesn\'t exist, or you lack the permission to edit it.';
-		$this->read();
+		$attribute = $this->find('first', array('conditions' => array('Attribute.id' => $id), 'recursive' => -1, 'contain' => array('Event')));
 		if (!$user['Role']['perm_site_admin']) {
-			if (!($this->data['Event']['orgc_id'] == $user['org_id'] && (($user['Role']['perm_modify'] && $this->data['Event']['user_id'] != $user['id']) || $user['Role']['perm_modify_org']))) {
-				if (!$this->exists()) return 'Attribute doesn\'t exist, or you lack the permission to edit it.';
+			if (!($attribute['Event']['orgc_id'] == $user['org_id'] && (($user['Role']['perm_modify'] && $attribute['Event']['user_id'] != $user['id']) || $user['Role']['perm_modify_org']))) {
+				return 'Attribute doesn\'t exist, or you lack the permission to edit it.';
 			}
 		}
-		unset($this->data['Attribute']['timestamp']);
-		$this->data['Attribute']['deleted'] = false;
-		if ($this->save($this->data)) return true;
+		unset($attribute['Attribute']['timestamp']);
+		$attribute['Attribute']['deleted'] = false;
+		$date = new DateTime();
+		$attribute['Attribute']['timestamp'] = $date->getTimestamp();
+		if ($this->save($attribute['Attribute'])) {
+			$attribute['Event']['published'] = false;
+			$attribute['Event']['timestamp'] = $date->getTimestamp();
+			$this->Event->save($attribute['Event']);
+			return true;
+		}
 		else return 'Could not save changes.';
 	}
 }

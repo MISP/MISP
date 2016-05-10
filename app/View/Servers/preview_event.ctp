@@ -90,15 +90,16 @@
 				<?php endif; ?>
 			</dl>
 		</div>
-
 	<?php if (!empty($event['RelatedEvent'])):?>
 	<div class="related span4">
 		<h3>Related Events</h3>
 		<ul class="inline">
-			<?php foreach ($event['RelatedEvent'] as $relatedEvent): ?>
+			<?php foreach ($event['RelatedEvent'] as $relatedEvent): 
+				if (isset($relatedEvent['Event'][0])) $relatedEvent['Event'] = $relatedEvent['Event'][0];
+			?>
 			<li>
-			<div title="<?php echo h($relatedEvent['Event'][0]['info']); ?>">
-			<a href = "<?php echo '/servers/previewEvent/' . $server['Server']['id'] . '/' . $relatedEvent['Event'][0]['id']; ?>"><?php echo h($relatedEvent['Event'][0]['date']) . ' (' . h($relatedEvent['Event'][0]['id']) . ')'; ?></a>
+			<div title="<?php echo h($relatedEvent['Event']['info']); ?>">
+			<a href = "<?php echo '/servers/previewEvent/' . $server['Server']['id'] . '/' . $relatedEvent['Event']['id']; ?>"><?php echo h($relatedEvent['Event']['date']) . ' (' . h($relatedEvent['Event']['id']) . ')'; ?></a>
 			</div></li>
 			<?php endforeach; ?>
 		</ul>
