@@ -772,27 +772,6 @@ class Event extends AppModel {
 					return false;
 				}
 			}
-			if (isset($remoteId)) {
-				if ($remoteId) {
-					// get the new attribute uuids in an array
-					$newerUuids = array();
-					foreach ($event['Attribute'] as $attribute) {
-						$newerUuids[$attribute['id']] = $attribute['uuid'];
-						$attribute['event_id'] = $remoteId;
-					}
-					// get the already existing attributes and delete the ones that are not there
-					foreach ($json['Event']['Attribute'] as $attribute) {
-						foreach ($attribute as $key => $value) {
-							if ($key == 'uuid') {
-								if (!in_array((string)$value, $newerUuids)) {
-									$anAttr = ClassRegistry::init('Attribute');
-									$anAttr->deleteAttributeFromServer((string)$value, $server, $HttpSocket);
-								}
-							}
-						}
-					}
-				}
-			}
 		}
 		return 'Success';
 	}

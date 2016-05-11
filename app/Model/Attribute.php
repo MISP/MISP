@@ -1607,7 +1607,7 @@ class Attribute extends AppModel {
 					'conditions' => array('id' => $id),
 					'order' => array()
 			));
-			$attributes = $this->find('all', array('recursive' => -1, 'conditions' => array('Attribute.event_id' => $id), 'order' => array()));
+			$attributes = $this->find('all', array('recursive' => -1, 'conditions' => array('Attribute.event_id' => $id, 'Attribute.deleted' => false), 'order' => array()));
 			foreach ($attributes as $k => $attribute) {
 				$this->__afterSaveCorrelation($attribute['Attribute'], true, $event);
 				$attributeCount++;
