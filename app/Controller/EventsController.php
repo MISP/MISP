@@ -134,6 +134,7 @@ class EventsController extends AppController {
 				$includeQuery['conditions']['OR'][] = array('lower(Attribute.value1) LIKE' => $i);
 				$includeQuery['conditions']['OR'][] = array('lower(Attribute.value2) LIKE' => $i);
 			}
+			$includeQuery['conditions']['AND'][] = array('Attribute.deleted' => false);
 			$includeHits = $this->Event->Attribute->find('all', $includeQuery);
 			
 			// convert it into an array that uses the event ID as a key
@@ -154,6 +155,7 @@ class EventsController extends AppController {
 				$excludeQuery['conditions']['OR'][] = array('lower(Attribute.value1) LIKE' => $e);
 				$excludeQuery['conditions']['OR'][] = array('lower(Attribute.value2) LIKE' => $e);
 			}
+			$excludeQuery['conditions']['AND'][] = array('Attribute.deleted' => false);
 			$excludeHits = $this->Event->Attribute->find('all', $excludeQuery);
 			
 			// convert it into an array that uses the event ID as a key
@@ -181,6 +183,9 @@ class EventsController extends AppController {
 						'lower(value1) LIKE' => '%' . strtolower($value) . '%',
 						'lower(value2) LIKE' => '%' . strtolower($value) . '%',
 						'lower(comment) LIKE' => '%' . strtolower($value) . '%',
+					),
+					'AND' => array(
+						'deleted' => false
 					),
 				),
 		));
@@ -656,7 +661,9 @@ class EventsController extends AppController {
 	}
 	
 	public function viewEventAttributes($id, $all = false) {
-		$results = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
+		$conditions = array('eventid' => $id);
+		if (isset($this->params['named']['deleted']) && $this->params['named']['deleted']) $conditions['deleted'] = true;
+		$results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
 		if (empty($results)) throw new NotFoundException('Invalid event');
 		$event = &$results[0];
 		$params = $this->Event->rearrangeEventForView($event, $this->passedArgs, $all);
@@ -678,7 +685,9 @@ class EventsController extends AppController {
 			$modules = $this->Server->getEnabledModules();
 			$this->set('modules', $modules);
 		}
+		$this->set('deleted', (isset($this->params['named']['deleted']) && $this->params['named']['deleted']) ? true : false);
 		$this->set('typeGroups', array_keys($this->Event->Attribute->typeGroupings));
+		$this->set('attributeFilter', isset($this->params['named']['attributeFilter']) ? $this->params['named']['attributeFilter'] : 'all');
 		$this->disableCache();
 		$this->layout = 'ajax';
 		$this->set('currentUri', $this->params->here);
@@ -791,13 +800,14 @@ class EventsController extends AppController {
 		} else {
 			$conditions['includeAttachments'] = true;
 		}
-		if (isset($this->request->query['deleted']) && $this->request->query['deleted']) $conditions['deleted'] = true;
+		if (isset($this->params['named']['deleted']) && $this->params['named']['deleted']) $conditions['deleted'] = true;
 		$results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
 		if (empty($results)) throw new NotFoundException('Invalid event');
 		$event = &$results[0];
 		if ($this->_isRest()) {
 			$this->set('event', $event);
 		}
+		$this->set('deleted', isset($this->params['named']['deleted']) && $this->params['named']['deleted']);
 		if (!$this->_isRest()) $this->__viewUI($event, $continue, $fromEvent);
 	}
 	

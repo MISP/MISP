@@ -48,19 +48,20 @@
 	}
 ?>
 	<div class="pagination">
-        <ul>
-        <?php
-	        $this->Paginator->options(array(
-	        	'url' => array('controller' => 'events', 'action' => 'viewEventAttributes', $event['Event']['id']),
-	            'update' => '#attributes_div',
-	            'evalScripts' => true,
-	            'before' => '$(".progress").show()',
-	            'complete' => '$(".progress").hide()',
-	        ));
-            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-            echo $this->Paginator->numbers(array('modulus' => 60, 'separator' => '', 'tag' => 'li', 'currentClass' => 'red', 'currentTag' => 'span'));
-            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-        ?>
+		<ul>
+		<?php
+			$url = array_merge(array('controller' => 'events', 'action' => 'viewEventAttributes', $event['Event']['id']), $this->request->named);
+			$this->Paginator->options(array(
+				'url' => $url,
+				'update' => '#attributes_div',
+				'evalScripts' => true,
+				'before' => '$(".progress").show()',
+				'complete' => '$(".progress").hide()',
+			));
+			echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
+			echo $this->Paginator->numbers(array('modulus' => 60, 'separator' => '', 'tag' => 'li', 'currentClass' => 'red', 'currentTag' => 'span'));
+			echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
+		?>
 		<li class="all <?php if ($all) echo 'disabled'; ?>">
 			<?php
 				if ($all):
@@ -72,8 +73,8 @@
 				endif;
 			?>
 		</li>
-        </ul>
-    </div>
+		</ul>
+	</div>
 <br />
 <div id="edit_object_div">
 	<?php 
@@ -105,6 +106,7 @@
 			'label' => false,
 		)); 
 		echo $this->Form->end();
+		if (!isset($attributeFilter)) $attributeFilter = 'all';
 	?>
 </div>
 <div id="attributeList" class="attributeListContainer">
@@ -126,14 +128,18 @@
 	</div>
 	<div class="tabMenu tabMenuFiltersBlock noPrint" style="padding-right:0px !important;">
 		<span id="filter_header" class="attribute_filter_header">Filters: </span>
-		<div id="filter_all" title="Show all attributes" class="attribute_filter_text_active" onClick="filterAttributes('all', '<?php echo h($event['Event']['id']); ?>');">All</div>
+		<div id="filter_all" title="Show all attributes" class="attribute_filter_text<?php if ($attributeFilter == 'all') echo '_active'; ?>" onClick="filterAttributes('all', '<?php echo h($event['Event']['id']); ?>');">All</div>
 		<?php foreach ($typeGroups as $group): ?>
-			<div id="filter_<?php echo $group; ?>" title="Only show <?php echo $group; ?> related attributes" class="attribute_filter_text" onClick="filterAttributes('<?php echo $group; ?>', '<?php echo h($event['Event']['id']); ?>');"><?php echo ucfirst($group); ?></div>
+			<div id="filter_<?php echo $group; ?>" title="Only show <?php echo $group; ?> related attributes" class="attribute_filter_text<?php if ($attributeFilter == $group) echo '_active'; ?>" onClick="filterAttributes('<?php echo $group; ?>', '<?php echo h($event['Event']['id']); ?>');"><?php echo ucfirst($group); ?></div>
 		<?php endforeach; ?>
-		<div id="filter_proposal" title="Only show proposals" class="attribute_filter_text" onClick="filterAttributes('proposal', '<?php echo h($event['Event']['id']); ?>');">Proposal</div>
-		<div id="filter_correlation" title="Only show correlating attributes" class="attribute_filter_text" onClick="filterAttributes('correlation', '<?php echo h($event['Event']['id']); ?>');">Correlation</div>
-		<div id="filter_warning" title="Only show potentially false positive attributes" class="attribute_filter_text" onClick="filterAttributes('warning', '<?php echo h($event['Event']['id']); ?>');">Warnings</div>
+		<div id="filter_proposal" title="Only show proposals" class="attribute_filter_text<?php if ($attributeFilter == 'proposal') echo '_active'; ?>" onClick="filterAttributes('proposal', '<?php echo h($event['Event']['id']); ?>');">Proposal</div>
+		<div id="filter_correlation" title="Only show correlating attributes" class="attribute_filter_text<?php if ($attributeFilter == 'correlation') echo '_active'; ?>" onClick="filterAttributes('correlation', '<?php echo h($event['Event']['id']); ?>');">Correlation</div>
+		<div id="filter_warning" title="Only show potentially false positive attributes" class="attribute_filter_text<?php if ($attributeFilter == 'warning') echo '_active'; ?>" onClick="filterAttributes('warning', '<?php echo h($event['Event']['id']); ?>');">Warnings</div>
+		<?php if ($me['Role']['perm_sync']): ?>
+			<div id="filter_deleted" title="Include deleted attributes" class="attribute_filter_text<?php if ($deleted) echo '_active'; ?>" onClick="toggleDeletedAttributes('<?php echo Router::url( $this->here, true );?>');">Include deleted attributes</div>
+		<?php endif; ?>
 	</div>
+
 	<table class="table table-striped table-condensed">
 		<tr>
 			<?php if ($mayModify && !empty($event['objects'])): ?>
@@ -397,32 +403,40 @@
 					<td class="short action-links <?php echo $extra;?>">
 						<?php
 							if ($object['objectType'] == 0) {
-								if ($isSiteAdmin || !$mayModify):
-									if (isset($modules) && isset($modules['types'][$object['type']])):
-						?>
-							<span class="icon-asterisk useCursorPointer" onClick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?php echo h($object['id']);?>/ShadowAttribute');" title="Propose enrichment">&nbsp;</span>
-						<?php 
+								if ($object['deleted']):
+									if ($isSiteAdmin || $mayModify):
+							?>
+									<span class="icon-repeat useCursorPointer" onClick="deleteObject('attributes', 'restore', '<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
+							<?php
 									endif;
-						?>
-									<a href="<?php echo $baseurl;?>/shadow_attributes/edit/<?php echo $object['id']; ?>" title="Propose Edit" class="icon-share useCursorPointer"></a>
-									<span class="icon-trash useCursorPointer" title="Propose Deletion" onClick="deleteObject('shadow_attributes', 'delete', '<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
-						<?php 
-									if ($isSiteAdmin): 
-						?>
-										<span class="verticalSeparator">&nbsp;</span>
-						<?php 		endif;
+								else:
+									if ($isSiteAdmin || !$mayModify):
+										if (isset($modules) && isset($modules['types'][$object['type']])):
+							?>
+								<span class="icon-asterisk useCursorPointer" onClick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?php echo h($object['id']);?>/ShadowAttribute');" title="Propose enrichment">&nbsp;</span>
+							<?php 
+										endif;
+							?>
+										<a href="<?php echo $baseurl;?>/shadow_attributes/edit/<?php echo $object['id']; ?>" title="Propose Edit" class="icon-share useCursorPointer"></a>
+										<span class="icon-trash useCursorPointer" title="Propose Deletion" onClick="deleteObject('shadow_attributes', 'delete', '<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
+							<?php 
+										if ($isSiteAdmin): 
+							?>
+											<span class="verticalSeparator">&nbsp;</span>
+							<?php 		endif;
+									endif;
+									if ($isSiteAdmin || $mayModify) {
+										if (isset($modules) && isset($modules['types'][$object['type']])):
+							?>
+								<span class="icon-asterisk useCursorPointer" onClick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?php echo h($object['id']);?>/Attribute');" title="Add enrichment">&nbsp;</span>
+							<?php 
+										endif;
+							?>
+								<a href="<?php echo $baseurl;?>/attributes/edit/<?php echo $object['id']; ?>" title="Edit" class="icon-edit useCursorPointer"></a>
+								<span class="icon-trash useCursorPointer" onClick="deleteObject('attributes', 'delete', '<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
+							<?php 			
+									}
 								endif;
-								if ($isSiteAdmin || $mayModify) {
-									if (isset($modules) && isset($modules['types'][$object['type']])):
-						?>
-							<span class="icon-asterisk useCursorPointer" onClick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?php echo h($object['id']);?>/Attribute');" title="Add enrichment">&nbsp;</span>
-						<?php 
-									endif;
-						?>
-							<a href="<?php echo $baseurl;?>/attributes/edit/<?php echo $object['id']; ?>" title="Edit" class="icon-edit useCursorPointer"></a>
-							<span class="icon-trash useCursorPointer" onClick="deleteObject('attributes', 'delete', '<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
-						<?php 			
-								}
 							} else {
 								if (($event['Orgc']['id'] == $me['org_id'] && $mayModify) || $isSiteAdmin) {
 									echo $this->Form->create('Shadow_Attribute', array('id' => 'ShadowAttribute_' . $object['id'] . '_accept', 'url' => '/shadow_attributes/accept/' . $object['id'], 'style' => 'display:none;'));
@@ -446,19 +460,20 @@
 	</table>
 </div>
 	<div class="pagination">
-        <ul>
-        <?php
-	        $this->Paginator->options(array(
-				'url' => array('controller' => 'events', 'action' => 'viewEventAttributes', $event['Event']['id']),
-	            'update' => '#attributes_div',
-	            'evalScripts' => true,
-	            'before' => '$(".progress").show()',
-	            'complete' => '$(".progress").hide()',
-	        ));
-            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-            echo $this->Paginator->numbers(array('modulus' => 60, 'separator' => '', 'tag' => 'li', 'currentClass' => 'red', 'currentTag' => 'span'));
-            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-        ?>
+  	  <ul>
+		<?php
+			$url = array_merge(array('controller' => 'events', 'action' => 'viewEventAttributes', $event['Event']['id']), $this->request->named);
+			$this->Paginator->options(array(
+				'url' => $url,
+				'update' => '#attributes_div',
+				'evalScripts' => true,
+				'before' => '$(".progress").show()',
+				'complete' => '$(".progress").hide()',
+			));
+			echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
+			echo $this->Paginator->numbers(array('modulus' => 60, 'separator' => '', 'tag' => 'li', 'currentClass' => 'red', 'currentTag' => 'span'));
+			echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
+		?>
 		<li class="all <?php if ($all) echo 'disabled'; ?>">
 			<?php
 				if ($all):
@@ -470,11 +485,12 @@
 				endif;
 			?>
 		</li>
-        </ul>
-    </div>
+		</ul>
+	</div>
 <script type="text/javascript">
 	var currentUri = "<?php echo isset($currentUri) ? h($currentUri) : '/events/viewEventAttributes/' . h($event['Event']['id']); ?>";
 	var ajaxResults = [];
+	var deleted = <?php echo (isset($deleted) && $deleted) ? 'true' : 'false';?>;
 	$(document).ready(function(){
 		popoverStartup();
 		$('input:checkbox').removeAttr('checked');

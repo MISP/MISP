@@ -678,7 +678,7 @@ class AttributesController extends AppController {
 			}
 			// check if the attribute has a timestamp already set (from a previous instance that is trying to edit via synchronisation)
 			// check which attribute is newer
-			if (count($existingAttribute)) {
+			if (count($existingAttribute) && !$existingAttribute['Attribute']['deleted']) {
 				$this->request->data['Attribute']['id'] = $existingAttribute['Attribute']['id'];
 				$dateObj = new DateTime();
 				if (!isset($this->request->data['Attribute']['timestamp'])) $this->request->data['Attribute']['timestamp'] = $dateObj->getTimestamp(); 	
@@ -843,6 +843,13 @@ class AttributesController extends AppController {
  * and is able to delete w/o question
  */
 	public function delete($id = null) {
+		$this->set('id', $id);
+		$attribute = $this->Attribute->find('first', array(
+				'conditions' => array('id' => $id, 'deleted' => false),
+				'recursive' => -1,
+				'fields' => array('id', 'event_id'),
+		));
+		if (empty($attribute)) throw new NotFoundException('Invalid Attribute');
 		if ($this->request->is('ajax')) {
 			if ($this->request->is('post')) {
 				if ($this->__delete($id)) {
@@ -851,12 +858,6 @@ class AttributesController extends AppController {
 					return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Attribute was not deleted.')),'status'=>200));
 				}
 			} else {
-				$this->set('id', $id);
-				$attribute = $this->Attribute->find('first', array(
-					'conditions' => array('id' => $id),
-					'recursive' => -1,
-					'fields' => array('id', 'event_id'),
-				));
 				$this->set('event_id', $attribute['Attribute']['event_id']);
 				$this->render('ajax/attributeConfirmationForm');
 			}
@@ -869,8 +870,7 @@ class AttributesController extends AppController {
 			} else {
 				$this->Session->setFlash(__('Attribute was not deleted'));
 			}
-			if (!$this->_isRest()) $this->redirect($this->referer());	// TODO check
-			else $this->redirect(array('action' => 'index'));
+			$this->redirect(array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']));	// TODO check
 		}
 	}
 	
@@ -888,7 +888,7 @@ class AttributesController extends AppController {
 						'fields' => array('id', 'event_id'),
 				));
 				$this->set('event_id', $attribute['Attribute']['event_id']);
-				$this->render('ajax/attributeConfirmationForm');
+				$this->render('ajax/attributeRestorationForm');
 			}
 		} else {
 			if (!$this->request->is('post') && !$this->_isRest()) throw new MethodNotAllowedException();
@@ -917,31 +917,36 @@ class AttributesController extends AppController {
 			'conditions' => array('Attribute.id' => $id),
 			'fields' => array('Attribute.*'),
 			'contain' => array('Event' => array(
-				'fields' => array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.locked')
+				'fields' => array('Event.*')
 			)),
 		));
+		if (empty($result)) throw new MethodNotAllowedException('Attribute not found or not authorised.');
 		
 		// check for permissions
 		if (!$this->_isSiteAdmin()) {
 			if ($result['Event']['locked']) {
 				if ($this->Auth->user('org_id') != $result['Event']['org_id'] || !$this->userRole['perm_sync']) {
-					throw new MethodNotAllowedException();
+					throw new MethodNotAllowedException('Attribute not found or not authorised.');
 				}
 			} else {
 				if ($this->Auth->user('org_id') != $result['Event']['orgc_id']) {
-					throw new MethodNotAllowedException();
+					throw new MethodNotAllowedException('Attribute not found or not authorised.');
 				}
 			}
 		}
 		$result['Attribute']['deleted'] = true;
+		$date = new DateTime();
+		$result['Attribute']['timestamp'] = $date->getTimestamp();
 		// attachment will be deleted with the beforeDelete() function in the Model
-		if ($this->Attribute->save($result['Attribute'])) {
-			// delete the attribute from remote servers
-			//$this->__deleteAttributeFromServers($uuid);
-		
+		if ($this->Attribute->save($result)) {
 			// We have just deleted the attribute, let's also check if there are any shadow attributes that were attached to it and delete them
 			$this->loadModel('ShadowAttribute');
 			$this->ShadowAttribute->deleteAll(array('ShadowAttribute.old_id' => $id), false);
+			
+			// remove the published flag from the event
+			$result['Event']['timestamp'] = $date->getTimestamp();
+			$result['Event']['published'] = false;
+			$this->Attribute->Event->save($result, array('fieldList' => array('published', 'timestamp', 'info')));
 			return true;
 		} else {
 			return false;

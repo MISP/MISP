@@ -688,11 +688,23 @@ class Event extends AppModel {
 		}
 		return $error;
 	}
-
+	
 	public function uploadEventToServer($event, $server, $HttpSocket = null) {
 		$this->Server = ClassRegistry::init('Server');
-		$push = $this->Server->checkVersionCompatibility($server['Server']['id'])['canPush'];
-		if ($push !== true) {
+		$push = $this->Server->checkVersionCompatibility($server['Server']['id']);
+		$deletedAttributes = false;
+		if (($push['version'][0] > 2) || 
+			($push['version'][0] == 2 && $push['version'][1] > 4) || 
+			($push['version'][0] == 2 && $push['version'][1] == 4 && $push['version'][2] > 42)) {
+			$deletedAttributes = true;
+		}
+		if (isset($event['Attribute']) && !$deletedAttributes) {
+			foreach ($event['Attribute'] as $k => $v) {
+				if ($v['deleted']) unset($event['Attribute'][$k]);
+			}
+			$event['Attribute'] = array_values($event['Attribute']);
+		}
+		if (!isset($push['canPush']) || !$push['canPush']) {
 			if ($push === 'mangle' && $event['Event']['distribution'] != 4) {
 				$event['Event']['orgc'] = $event['Orgc']['name'];
 				$event['mangle'] = true;
@@ -758,27 +770,6 @@ class Event extends AppModel {
 							'change' => 'Returned message: ', $newTextBody,
 					));
 					return false;
-				}
-			}
-			if (isset($remoteId)) {
-				if ($remoteId) {
-					// get the new attribute uuids in an array
-					$newerUuids = array();
-					foreach ($event['Attribute'] as $attribute) {
-						$newerUuids[$attribute['id']] = $attribute['uuid'];
-						$attribute['event_id'] = $remoteId;
-					}
-					// get the already existing attributes and delete the ones that are not there
-					foreach ($json['Event']['Attribute'] as $attribute) {
-						foreach ($attribute as $key => $value) {
-							if ($key == 'uuid') {
-								if (!in_array((string)$value, $newerUuids)) {
-									$anAttr = ClassRegistry::init('Attribute');
-									$anAttr->deleteAttributeFromServer((string)$value, $server, $HttpSocket);
-								}
-							}
-						}
-					}
 				}
 			}
 		}
@@ -1078,7 +1069,7 @@ class Event extends AppModel {
 				)
 		);
 		if (!$proposalDownload) {
-			$uri = $url . '/events/' . $eventId;
+			$uri = $url . '/events/view/' . $eventId . '/deleted:true';
 		} else {
 			$uri = $url . '/shadow_attributes/getProposalsByUuid/' . $eventId;
 		}
@@ -1945,7 +1936,7 @@ class Event extends AppModel {
 		// FIXME chri: validatebut  the necessity for all these fields...impact on security !
 		$fieldList = array(
 				'Event' => array('org_id', 'orgc_id', 'date', 'threat_level_id', 'analysis', 'info', 'user_id', 'published', 'uuid', 'timestamp', 'distribution', 'sharing_group_id', 'locked'),
-				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'timestamp', 'distribution', 'comment', 'sharing_group_id'),
+				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'timestamp', 'distribution', 'comment', 'sharing_group_id', 'deleted'),
 		);
 		$saveResult = $this->save(array('Event' => $data['Event']), array('fieldList' => $fieldList['Event']));
 		$this->Log = ClassRegistry::init('Log');
@@ -2046,7 +2037,7 @@ class Event extends AppModel {
 		if (!isset($data['Event']['published'])) $data['Event']['published'] = false;
 		$fieldList = array(
 				'Event' => array('date', 'threat_level_id', 'analysis', 'info', 'published', 'uuid', 'distribution', 'timestamp', 'sharing_group_id'),
-				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'distribution', 'timestamp', 'comment', 'sharing_group_id')
+				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'distribution', 'timestamp', 'comment', 'sharing_group_id', 'deleted')
 		);
 		$saveResult = $this->save(array('Event' => $data['Event']), array('fieldList' => $fieldList['Event']));
 		$this->Log = ClassRegistry::init('Log');

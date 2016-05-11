@@ -1479,7 +1479,7 @@ class Server extends AppModel {
 		$this->read(null, $id);
 		$url = $this->data['Server']['url'];
 		$push = $this->checkVersionCompatibility($id, $user)['canPush'];
-		if (!$push) {
+		if (!isset($push['canPush']) || !$push['canPush']) {
 			if ($jobId) {
 				$job->id = $jobId;
 				$job->saveField('progress', 100);
@@ -2305,7 +2305,7 @@ class Server extends AppModel {
 					'title' => ucfirst($issueLevel) . ': ' . $response,
 			));
 		}
-		return array('success' => $success, 'response' => $response, 'canPush' => $canPush);
+		return array('success' => $success, 'response' => $response, 'canPush' => $canPush, 'version' => $remoteVersion);
 	}
 	
 	public function isJson($string) {
