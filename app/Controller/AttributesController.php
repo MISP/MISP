@@ -678,7 +678,7 @@ class AttributesController extends AppController {
 			}
 			// check if the attribute has a timestamp already set (from a previous instance that is trying to edit via synchronisation)
 			// check which attribute is newer
-			if (count($existingAttribute)) {
+			if (count($existingAttribute) && !$existingAttribute['Attribute']['deleted']) {
 				$this->request->data['Attribute']['id'] = $existingAttribute['Attribute']['id'];
 				$dateObj = new DateTime();
 				if (!isset($this->request->data['Attribute']['timestamp'])) $this->request->data['Attribute']['timestamp'] = $dateObj->getTimestamp(); 	
@@ -853,10 +853,11 @@ class AttributesController extends AppController {
 			} else {
 				$this->set('id', $id);
 				$attribute = $this->Attribute->find('first', array(
-					'conditions' => array('id' => $id),
+					'conditions' => array('id' => $id, 'deleted' => false),
 					'recursive' => -1,
 					'fields' => array('id', 'event_id'),
 				));
+				if (empty($attribute)) throw new NotFoundException('Invalid Attribute');
 				$this->set('event_id', $attribute['Attribute']['event_id']);
 				$this->render('ajax/attributeConfirmationForm');
 			}
