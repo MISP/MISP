@@ -1103,6 +1103,11 @@ class Server extends AppModel {
 		return $this->field('id', array('id' => $serverid, 'org' => $org)) === $serverid;
 	}
 	
+	public function beforeSave($options = array()) {
+		$this->data['Server']['url'] = rtrim($this->data['Server']['url'], '/');
+		return true;
+	}
+	
 	public function pull($user, $id = null, $technique=false, $server, $jobId = false, $percent = 100, $current = 0) {
 		if ($jobId) {
 			$job = ClassRegistry::init('Job');
