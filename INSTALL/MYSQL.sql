@@ -653,7 +653,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `authkey` varchar(40) COLLATE utf8_bin DEFAULT NULL,
   `invited_by` int(11) NOT NULL DEFAULT '0',
   `gpgkey` longtext COLLATE utf8_bin,
-  `certif_public` longtext COLLATE utf8_bin NOT NULL,
+  `certif_public` longtext COLLATE utf8_bin DEFAULT NULL,
   `nids_sid` int(15) NOT NULL DEFAULT '0',
   `termsaccepted` tinyint(1) NOT NULL DEFAULT '0',
   `newsread` date DEFAULT NULL,
