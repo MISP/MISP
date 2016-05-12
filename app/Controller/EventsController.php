@@ -3057,21 +3057,21 @@ class EventsController extends AppController {
 		$event = $event[0];
 		$exports = array(
 			'xml' => array(
-					'url' => '/events/restsearch/download/false/false/false/false/false/false/false/false/false/' . $id . '/false.xml',
+					'url' => '/events/restSearch/download/false/false/false/false/false/false/false/false/false/' . $id . '/false.xml',
 					'text' => 'MISP XML (metadata + all attributes)',
 					'requiresPublished' => false,
 					'checkbox' => true,
 					'checkbox_text' => 'Encode Attachments',
-					'checkbox_set' => '/events/restsearch/download/false/false/false/false/false/false/false/false/false/' . $id . '/true.xml',
+					'checkbox_set' => '/events/restSearch/download/false/false/false/false/false/false/false/false/false/' . $id . '/true.xml',
 					'checkbox_default' => true
 			),
 			'json' => array(
-					'url' => '/events/restsearch/download/false/false/false/false/false/false/false/false/false/' . $id . '/false.json',
+					'url' => '/events/restSearch/download/false/false/false/false/false/false/false/false/false/' . $id . '/false.json',
 					'text' => 'MISP JSON (metadata + all attributes)',
 					'requiresPublished' => false,
 					'checkbox' => true,
 					'checkbox_text' => 'Encode Attachments',
-					'checkbox_set' => '/events/restsearch/download/false/false/false/false/false/false/false/false/false/' . $id . '/true.json',
+					'checkbox_set' => '/events/restSearch/download/false/false/false/false/false/false/false/false/false/' . $id . '/true.json',
 					'checkbox_default' => true
 			),
 			'openIOC' => array(
