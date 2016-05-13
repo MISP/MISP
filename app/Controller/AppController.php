@@ -45,7 +45,7 @@ class AppController extends Controller {
 	
 	public $helpers = array('Utility');
 	
-	private $__jsVersion = '2.4.40';
+	private $__jsVersion = '2.4.42';
 	
 	// Used for _isAutomation(), a check that returns true if the controller & action combo matches an action that is a non-xml and non-json automation method
 	// This is used to allow authentication via headers for methods not covered by _isRest() - as that only checks for JSON and XML formats 

@@ -1103,6 +1103,11 @@ class Server extends AppModel {
 		return $this->field('id', array('id' => $serverid, 'org' => $org)) === $serverid;
 	}
 	
+	public function beforeSave($options = array()) {
+		$this->data['Server']['url'] = rtrim($this->data['Server']['url'], '/');
+		return true;
+	}
+	
 	public function pull($user, $id = null, $technique=false, $server, $jobId = false, $percent = 100, $current = 0) {
 		if ($jobId) {
 			$job = ClassRegistry::init('Job');
@@ -1479,7 +1484,7 @@ class Server extends AppModel {
 		$this->read(null, $id);
 		$url = $this->data['Server']['url'];
 		$push = $this->checkVersionCompatibility($id, $user)['canPush'];
-		if (!$push) {
+		if (!isset($push['canPush']) || !$push['canPush']) {
 			if ($jobId) {
 				$job->id = $jobId;
 				$job->saveField('progress', 100);
@@ -2305,7 +2310,7 @@ class Server extends AppModel {
 					'title' => ucfirst($issueLevel) . ': ' . $response,
 			));
 		}
-		return array('success' => $success, 'response' => $response, 'canPush' => $canPush);
+		return array('success' => $success, 'response' => $response, 'canPush' => $canPush, 'version' => $remoteVersion);
 	}
 	
 	public function isJson($string) {

@@ -9,10 +9,10 @@ class TaxonomyEntry extends AppModel{
 
 	public $validate = array(
 		'value' => array(
-			'rule' => array('valueNotEmpty'),
+			'rule' => array('stringNotEmpty'),
 		),
 		'expanded' => array(
-			'rule' => array('valueNotEmpty'),
+			'rule' => array('stringNotEmpty'),
 		),
 	);	
 	

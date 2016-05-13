@@ -134,6 +134,7 @@ class EventsController extends AppController {
 				$includeQuery['conditions']['OR'][] = array('lower(Attribute.value1) LIKE' => $i);
 				$includeQuery['conditions']['OR'][] = array('lower(Attribute.value2) LIKE' => $i);
 			}
+			$includeQuery['conditions']['AND'][] = array('Attribute.deleted' => false);
 			$includeHits = $this->Event->Attribute->find('all', $includeQuery);
 			
 			// convert it into an array that uses the event ID as a key
@@ -154,6 +155,7 @@ class EventsController extends AppController {
 				$excludeQuery['conditions']['OR'][] = array('lower(Attribute.value1) LIKE' => $e);
 				$excludeQuery['conditions']['OR'][] = array('lower(Attribute.value2) LIKE' => $e);
 			}
+			$excludeQuery['conditions']['AND'][] = array('Attribute.deleted' => false);
 			$excludeHits = $this->Event->Attribute->find('all', $excludeQuery);
 			
 			// convert it into an array that uses the event ID as a key
@@ -181,6 +183,9 @@ class EventsController extends AppController {
 						'lower(value1) LIKE' => '%' . strtolower($value) . '%',
 						'lower(value2) LIKE' => '%' . strtolower($value) . '%',
 						'lower(comment) LIKE' => '%' . strtolower($value) . '%',
+					),
+					'AND' => array(
+						'deleted' => false
 					),
 				),
 		));
@@ -248,8 +253,7 @@ class EventsController extends AppController {
 		// list the events
 		$passedArgsArray = array();
 		$urlparams = "";
-		$overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'Datefrom', 'Dateuntil', 'org', 'eventinfo', 'tag', 'distribution', 'analysis', 'threatlevel');
-		if ($this->_isSiteAdmin()) $overrideAbleParams[] = 'email';
+		$overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'Datefrom', 'Dateuntil', 'org', 'eventinfo', 'tag', 'distribution', 'analysis', 'threatlevel', 'email');
 		$passedArgs = $this->passedArgs;
 		if (isset($this->request->data)) {
 			if (isset($this->request->data['request'])) $this->request->data = $this->request->data['request'];
@@ -360,7 +364,6 @@ class EventsController extends AppController {
 							if ($piece[0] == '!') {
 								if (is_numeric(substr($piece, 1))) $conditions = array('OR' => array('Tag.id' => substr($piece, 1)));
 								else $conditions = array('OR' => array('Tag.name' => substr($piece, 1)));
-
 								$tagName = $this->Event->EventTag->Tag->find('first', array(
 									'conditions' => $conditions,
 									'fields' => array('id', 'name'),
@@ -422,7 +425,7 @@ class EventsController extends AppController {
 						$v = $filterString;
 						break;
 					case 'email':
-						if ($v == "" || !$this->_isSiteAdmin()) continue 2;
+						if ($v == "" || (strtolower($this->Auth->user('email')) !== strtolower(trim($v)) && !$this->_isSiteAdmin())) continue 2;
 						// if the first character is '!', search for NOT LIKE the rest of the string (excluding the '!' itself of course)
 						$pieces = explode('|', $v);
 						$test = array();
@@ -658,7 +661,9 @@ class EventsController extends AppController {
 	}
 	
 	public function viewEventAttributes($id, $all = false) {
-		$results = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
+		$conditions = array('eventid' => $id);
+		if (isset($this->params['named']['deleted']) && $this->params['named']['deleted']) $conditions['deleted'] = true;
+		$results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
 		if (empty($results)) throw new NotFoundException('Invalid event');
 		$event = &$results[0];
 		$params = $this->Event->rearrangeEventForView($event, $this->passedArgs, $all);
@@ -680,7 +685,9 @@ class EventsController extends AppController {
 			$modules = $this->Server->getEnabledModules();
 			$this->set('modules', $modules);
 		}
+		$this->set('deleted', (isset($this->params['named']['deleted']) && $this->params['named']['deleted']) ? true : false);
 		$this->set('typeGroups', array_keys($this->Event->Attribute->typeGroupings));
+		$this->set('attributeFilter', isset($this->params['named']['attributeFilter']) ? $this->params['named']['attributeFilter'] : 'all');
 		$this->disableCache();
 		$this->layout = 'ajax';
 		$this->set('currentUri', $this->params->here);
@@ -735,7 +742,6 @@ class EventsController extends AppController {
 			}
 		}
 		$params = $this->Event->rearrangeEventForView($event);
-
 		$this->params->params['paging'] = array($this->modelClass => $params);
 		$this->set('event', $event);
 		$dataForView = array(
@@ -794,12 +800,14 @@ class EventsController extends AppController {
 		} else {
 			$conditions['includeAttachments'] = true;
 		}
+		if (isset($this->params['named']['deleted']) && $this->params['named']['deleted']) $conditions['deleted'] = true;
 		$results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
 		if (empty($results)) throw new NotFoundException('Invalid event');
 		$event = &$results[0];
 		if ($this->_isRest()) {
 			$this->set('event', $event);
 		}
+		$this->set('deleted', isset($this->params['named']['deleted']) && $this->params['named']['deleted']);
 		if (!$this->_isRest()) $this->__viewUI($event, $continue, $fromEvent);
 	}
 	
@@ -1767,6 +1775,7 @@ class EventsController extends AppController {
 			foreach ($attributes as &$attribute) {
 				$list[] = $attribute['Attribute']['id'];
 			}
+			$events = array($eventid);
 		} else if ($eventid === false) {
 			$events = $this->Event->fetchEventIds($this->Auth->user(), $from, $to, $last, true);
 			if (empty($events)) $events = array(0 => -1);
@@ -2843,7 +2852,7 @@ class EventsController extends AppController {
 						$this->Event->$objectType->create();
 						$attribute['type'] = $type;
 						$attribute['distribution'] = 5;
-						if (empty($attribute['comment'])) $attribute['comment'] = 'Imported via the freetext import.';
+						if (empty($attribute['comment'])) $attribute['comment'] = $this->request->data['Attribute']['default_comment'];
 						$attribute['event_id'] = $id;
 						if ($objectType == 'ShadowAttribute') {
 							$attribute['org_id'] = $this->Auth->user('org_id');
@@ -3048,21 +3057,21 @@ class EventsController extends AppController {
 		$event = $event[0];
 		$exports = array(
 			'xml' => array(
-					'url' => '/events/restsearch/download/false/false/false/false/false/false/false/false/false/' . $id . '/false.xml',
+					'url' => '/events/restSearch/download/false/false/false/false/false/false/false/false/false/' . $id . '/false.xml',
 					'text' => 'MISP XML (metadata + all attributes)',
 					'requiresPublished' => false,
 					'checkbox' => true,
 					'checkbox_text' => 'Encode Attachments',
-					'checkbox_set' => '/events/restsearch/download/false/false/false/false/false/false/false/false/false/' . $id . '/true.xml',
+					'checkbox_set' => '/events/restSearch/download/false/false/false/false/false/false/false/false/false/' . $id . '/true.xml',
 					'checkbox_default' => true
 			),
 			'json' => array(
-					'url' => '/events/restsearch/download/false/false/false/false/false/false/false/false/false/' . $id . '/false.json',
+					'url' => '/events/restSearch/download/false/false/false/false/false/false/false/false/false/' . $id . '/false.json',
 					'text' => 'MISP JSON (metadata + all attributes)',
 					'requiresPublished' => false,
 					'checkbox' => true,
 					'checkbox_text' => 'Encode Attachments',
-					'checkbox_set' => '/events/restsearch/download/false/false/false/false/false/false/false/false/false/' . $id . '/true.json',
+					'checkbox_set' => '/events/restSearch/download/false/false/false/false/false/false/false/false/false/' . $id . '/true.json',
 					'checkbox_default' => true
 			),
 			'openIOC' => array(

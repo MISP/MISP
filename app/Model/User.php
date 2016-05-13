@@ -490,6 +490,8 @@ class User extends AppModel {
 		foreach ($users as $k => $user) {
 			try {
 				$temp = $gpg->importKey($user['User']['gpgkey']);
+				debug($gpg->getSignatures());
+				debug($temp);
 				$key = $gpg->getKeys($temp['fingerprint']);
 				$subKeys = $key[0]->getSubKeys();
 				$sortedKeys = array('valid' => 0, 'expired' => 0, 'noEncrypt' => 0);
@@ -718,7 +720,7 @@ class User extends AppModel {
 			// Sign the body
 			require_once 'Crypt/GPG.php';
 			try {
-				$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));	// , 'debug' => true
+				$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg'), 'debug'));	// , 'debug' => true
 				$gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
 				$body = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
 			} catch (Exception $e) {

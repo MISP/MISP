@@ -417,7 +417,8 @@ class Attribute extends AppModel {
 			'conditions' => '',
 			'fields' => '',
 			'order' => '',
-			'counterCache' => true
+			'counterCache' => 'attribute_count',
+			'counterScope' => array('Attribute.deleted' => false)
 		),
 		'SharingGroup' => array(
 				'className' => 'SharingGroup',
@@ -482,10 +483,12 @@ class Attribute extends AppModel {
 
 	public function afterSave($created, $options = array()) {
 		// update correlation...
-		$this->__afterSaveCorrelation($this->data['Attribute']);
-
+		if (isset($this->data['Attribute']['deleted']) && $this->data['Attribute']['deleted']) {
+			$this->__beforeSaveCorrelation($this->data['Attribute']);
+		} else {
+			$this->__afterSaveCorrelation($this->data['Attribute']);
+		}
 		$result = true;
-
 		// if the 'data' field is set on the $this->data then save the data to the correct file
 		if (isset($this->data['Attribute']['type']) && $this->typeIsAttachment($this->data['Attribute']['type']) && !empty($this->data['Attribute']['data'])) {
 			$result = $result && $this->saveBase64EncodedAttachment($this->data['Attribute']); // TODO : is this correct?
@@ -507,7 +510,6 @@ class Attribute extends AppModel {
 				}
 			}
 		}
-
 		// update correlation..
 		$this->__beforeDeleteCorrelation($this->data['Attribute']['id']);
 	}
@@ -564,6 +566,7 @@ class Attribute extends AppModel {
 	}
 	
 	public function valueIsUnique ($fields) {
+		if ($this->data['Attribute']['deleted']) return true;
 		$value = $fields['value'];
 		$eventId = $this->data['Attribute']['event_id'];
 		$type = $this->data['Attribute']['type'];
@@ -574,7 +577,8 @@ class Attribute extends AppModel {
 		$conditions = array('Attribute.event_id' => $eventId,
 				'Attribute.type' => $type,
 				'Attribute.category' => $category,
-				'Attribute.value' => $value
+				'Attribute.value' => $value,
+				'Attribute.deleted' => false
 		);
 		if (isset($this->data['Attribute']['id'])) {
 			$conditions['Attribute.id !='] = $this->data['Attribute']['id'];
@@ -1603,7 +1607,7 @@ class Attribute extends AppModel {
 					'conditions' => array('id' => $id),
 					'order' => array()
 			));
-			$attributes = $this->find('all', array('recursive' => -1, 'conditions' => array('Attribute.event_id' => $id), 'order' => array()));
+			$attributes = $this->find('all', array('recursive' => -1, 'conditions' => array('Attribute.event_id' => $id, 'Attribute.deleted' => false), 'order' => array()));
 			foreach ($attributes as $k => $attribute) {
 				$this->__afterSaveCorrelation($attribute['Attribute'], true, $event);
 				$attributeCount++;
@@ -1877,7 +1881,7 @@ class Attribute extends AppModel {
  				'Event' => array(
  					'fields' => array('id', 'info', 'org_id'),
  				), 
- 			),	
+ 			),
  		);
 	 	if (isset($options['contain'])) $params['contain'] = array_merge_recursive($params['contain'], $options['contain']);
 	 	else $option['contain']['Event']['fields'] = array('id', 'info', 'org_id');
@@ -1885,6 +1889,7 @@ class Attribute extends AppModel {
 	 	if (isset($options['conditions'])) $params['conditions']['AND'][] = $options['conditions'];
 	 	if (isset($options['order'])) $params['order'] = $options['order'];
 	 	else ($params['order'] = array());
+	 	if (!$user['Role']['perm_sync'] || !isset($options['deleted']) || !$options['deleted']) $params['conditions']['AND']['Attribute.deleted'] = false;
 	 	if (isset($options['group'])) $params['group'] = $options['group'];
 		if (Configure::read('MISP.unpublishedprivate')) $params['conditions']['AND'][] = array('OR' => array('Event.published' => 1, 'Event.orgc_id' => $user['org_id']));
 	 	$results = $this->find('all', $params);
@@ -1975,5 +1980,27 @@ class Attribute extends AppModel {
 		else {
 			return $this->validationErrors;
 		}
+	}
+	
+	public function restore($id, $user) {
+		$this->id = $id;
+		if (!$this->exists()) return 'Attribute doesn\'t exist, or you lack the permission to edit it.';
+		$attribute = $this->find('first', array('conditions' => array('Attribute.id' => $id), 'recursive' => -1, 'contain' => array('Event')));
+		if (!$user['Role']['perm_site_admin']) {
+			if (!($attribute['Event']['orgc_id'] == $user['org_id'] && (($user['Role']['perm_modify'] && $attribute['Event']['user_id'] != $user['id']) || $user['Role']['perm_modify_org']))) {
+				return 'Attribute doesn\'t exist, or you lack the permission to edit it.';
+			}
+		}
+		unset($attribute['Attribute']['timestamp']);
+		$attribute['Attribute']['deleted'] = false;
+		$date = new DateTime();
+		$attribute['Attribute']['timestamp'] = $date->getTimestamp();
+		if ($this->save($attribute['Attribute'])) {
+			$attribute['Event']['published'] = false;
+			$attribute['Event']['timestamp'] = $date->getTimestamp();
+			$this->Event->save($attribute['Event']);
+			return true;
+		}
+		else return 'Could not save changes.';
 	}
 }
