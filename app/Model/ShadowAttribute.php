@@ -505,7 +505,7 @@ class ShadowAttribute extends AppModel {
 	}
 	
 	public function getEventContributors($id) {
-		$orgs = $this->find('all', array('fields' => array('DISTINCT(org_id)'), 'conditions' => array('event_id' => $id)));
+		$orgs = $this->find('all', array('fields' => array('DISTINCT(org_id)'), 'conditions' => array('event_id' => $id), 'order' => false));
 		$org_ids = array();
 		foreach ($orgs as $org) {
 			$org_ids[] = $org['ShadowAttribute']['org_id'];

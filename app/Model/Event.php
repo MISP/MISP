@@ -562,7 +562,7 @@ class Event extends AppModel {
 		);
 		if ($id == null) $id = $this->data['Event']['id'];
 		if (!isset($sgids) || empty($sgids)) $sgids = array(-1);
-		$this->$settings[$context]['correlationModel'] = ClassRegistry::init($settings[$context]['correlationModel']);
+		$this->{$settings[$context]['correlationModel']} = ClassRegistry::init($settings[$context]['correlationModel']);
 		if (!$user['Role']['perm_site_admin']) {
 			$conditionsCorrelation = array(
 					'AND' => array(
@@ -613,7 +613,7 @@ class Event extends AppModel {
 		} else {
 			$conditionsCorrelation = array($settings[$context]['correlationModel'] . '.1_event_id' => $id);
 		}
-		$correlations = $this->$settings[$context]['correlationModel']->find('all',array(
+		$correlations = $this->{$settings[$context]['correlationModel']}->find('all',array(
 				'fields' => $settings[$context]['correlationModel'] . '.*',
 				'conditions' => $conditionsCorrelation,
 				'recursive' => 0,

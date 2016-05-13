@@ -2589,7 +2589,7 @@ class EventsController extends AppController {
 		if (!$this->_isSiteAdmin()) $conditions[] = array('ShadowAttribute.event_org_id' => $this->Auth->user('org_id'));
 		$result = $this->ShadowAttribute->find('all', array(
 				'fields' => array('event_id'),
-				'group' => 'event_id',
+				'group' => array('event_id', 'id'),
 				'conditions' => $conditions
 		));
 		$this->Event->recursive = -1;
