@@ -958,6 +958,18 @@ a.proposal_link_red:hover {
 	bottom:0px;
 }
 
+.tabMenuFixedContainer > span:nth-child(1) {
+	border-radius: 4px 0 0 0;
+	padding-left:10px;
+}
+
+.tabMenuFixedContainer > span:nth-last-child(1) {
+	border-radius: 0 4px 0 0;
+	border-right: 1px solid #ddd;
+	padding-right:10px;
+
+}
+
 .tabMenuFixed {
 	position:relative;
 	padding-top:3px;
