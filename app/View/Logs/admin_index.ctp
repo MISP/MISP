@@ -68,7 +68,7 @@
 					echo '<td>';
 					if (isset($ipSearch) && $ipSearch != null) echo nl2br($this->Highlight->highlighter(h($item['Log']['ip']), $ipSearchReplacePairs));
 					else echo h($item['Log']['ip']);
-					echo '</td>&nbsp;';
+					echo '</td>';
 				}
 			?>
 			<td class="short"><?php
