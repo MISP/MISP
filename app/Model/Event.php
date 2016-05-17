@@ -1812,7 +1812,7 @@ class Event extends AppModel {
 		}
 		
 		if ($data['Event']['distribution'] == 4) {
-			$data['Event']['sharing_group_id'] = $this->SharingGroup->captureSG($data['Event']['SharingGroup'], $user);
+			$data['Event']['sharing_group_id'] = intval($this->SharingGroup->captureSG($data['Event']['SharingGroup'], $user));
 			unset ($data['Event']['SharingGroup']);
 		}
 		if (isset($data['Event']['Attribute'])) {
