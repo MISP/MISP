@@ -681,8 +681,8 @@ class EventsController extends AppController {
 			}
 		}
 		if (Configure::read('Plugin.Enrichment_services_enable')) {
-			$this->loadModel('Server');
-			$modules = $this->Server->getEnabledModules();
+			$this->loadModel('Module');
+			$modules = $this->Module->getEnabledModules();
 			$this->set('modules', $modules);
 		}
 		$this->set('deleted', (isset($this->params['named']['deleted']) && $this->params['named']['deleted']) ? true : false);
@@ -763,8 +763,8 @@ class EventsController extends AppController {
 		}
 		
 		if (Configure::read('Plugin.Enrichment_services_enable')) {
-			$this->loadModel('Server');
-			$modules = $this->Server->getEnabledModules();
+			$this->loadModel('Module');
+			$modules = $this->Module->getEnabledModules();
 			$this->set('modules', $modules);
 		}
 		$this->set('contributors', $contributors);
@@ -3533,8 +3533,8 @@ class EventsController extends AppController {
 		$attribute = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $attribute_id)));
 		if (empty($attribute)) throw new MethodNotAllowedException('Attribute not found or you are not authorised to see it.');
 		if ($this->request->is('ajax')) {
-			$this->loadModel('Server');
-			$modules = $this->Server->getEnabledModules();
+			$this->loadModel('Module');
+			$modules = $this->Module->getEnabledModules();
 			if (!is_array($modules) || empty($modules)) throw new MethodNotAllowedException('No valid enrichment options found for this attribute.');
 			$temp = array();
 			foreach ($modules['modules'] as &$module) {
@@ -3546,8 +3546,8 @@ class EventsController extends AppController {
 			foreach (array('attribute_id', 'modules') as $viewVar) $this->set($viewVar, $$viewVar);
 			$this->render('ajax/enrichmentChoice');
 		} else {
-			$this->loadModel('Server');
-			$modules = $this->Server->getEnabledModules();
+			$this->loadModel('Module');
+			$modules = $this->Module->getEnabledModules();
 			if (!is_array($modules) || empty($modules)) throw new MethodNotAllowedException('No valid enrichment options found for this attribute.');
 			$options = array();
 			$found = false;
@@ -3559,20 +3559,13 @@ class EventsController extends AppController {
 					}
 				}
 			}
-			if (!$found) throw new MethodNotAllowedException('No valid enrichment options found for this attribute.');
-			$url = Configure::read('Plugin.Enrichment_services_url') ? Configure::read('Plugin.Enrichment_services_url') : $this->Server->serverSettings['Plugin']['Enrichment_services_url']['value'];
-			$port = Configure::read('Plugin.Enrichment_services_port') ? Configure::read('Plugin.Enrichment_services_port') : $this->Server->serverSettings['Plugin']['Enrichment_services_port']['value'];
-			App::uses('HttpSocket', 'Network/Http');
-			$httpSocket = new HttpSocket();
+			
 			$data = array('module' => $module, $attribute[0]['Attribute']['type'] => $attribute[0]['Attribute']['value'], 'event_id' => $attribute[0]['Attribute']['event_id']);
 			if (!empty($options)) $data['config'] = $options;
 			$data = json_encode($data);
-			try {
-				$response = $httpSocket->post($url . ':' . $port . '/query', $data);
-				$result = json_decode($response->body, true);
-			} catch (Exception $e) {
-				return 'Enrichment service not reachable.';
-			}
+			$response = $this->Module->queryModuleServer('/query', $data);
+			if (!$response) return 'Enrichment service not reachable.';
+			
 			if (isset($result['error'])) $this->Session->setFlash($result['error']);
 			if (!is_array($result)) throw new Exception($result);
 			$resultArray = array();
