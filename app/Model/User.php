@@ -702,6 +702,7 @@ class User extends AppModel {
 			));
 			return true;
 		}
+		if (isset($user['User']['disabled']) && $user['User']['disabled']) return true;
 		$failed = false;
 		$failureReason = "";
 		// check if the e-mail can be encrypted

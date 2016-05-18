@@ -942,7 +942,7 @@ class UsersController extends AppController {
 			$conditions = array();
 			if (!$this->_isSiteAdmin()) $conditions = array('org_id' => $this->Auth->user('org_id'));
 			if ($this->request->data['User']['recipient'] != 1) $conditions['id'] = $this->request->data['User']['recipientEmailList'];
-			else $conditions['AND'][] = array('User.disabled' => 0);
+			$conditions['AND'][] = array('User.disabled' => false);
 			$users = $this->User->find('all', array('recursive' => -1, 'order' => array('email ASC'), 'conditions' => $conditions));
 			$this->request->data['User']['message'] = $this->User->adminMessageResolve($this->request->data['User']['message']);
 			$failures = '';
@@ -967,6 +967,7 @@ class UsersController extends AppController {
 		}
 		$conditions = array();
 		if (!$this->_isSiteAdmin()) $conditions = array('org_id' => $this->Auth->user('org_id'));
+		$conditions['User.disabled'] = false;
 		$temp = $this->User->find('all', array('recursive' => -1, 'fields' => array('id', 'email'), 'order' => array('email ASC'), 'conditions' => $conditions));
 		$emails = array();
 		$gpgKeys = array();
