@@ -244,7 +244,7 @@ class LogsController extends AppController {
 			$models = array('Attribute', 'Event', 'EventBlacklist', 'EventTag', 'Organisation', 'Post', 'Regexp', 'Role', 'Server', 'ShadowAttribute', 'SharingGroup', 'Tag', 'Task', 'Taxonomy', 'Template', 'Thread', 'User', 'Whitelist');
 			$existing_models = $this->Log->find('list', array(
 					'fields' => array('Log.model'),
-					'group' => array('Log.model')
+					'group' => array('Log.model','Log.id')
 			));
 			$models = array_intersect($models, $existing_models);
 			$models = array('' => 'ALL') + $this->_arrayToValuesIndexArray($models);
