@@ -61,6 +61,18 @@ class Log extends AppModel {
 		'publish' => array('desc' => "Publish action", 'formdesc' => "Publish action")
 	);
 	
+	public $logMeta = array(
+		'email' => array('values' => array('email'), 'name' => 'Emails'),
+		'auth_issues' => array('values' => array('login_fail', 'auth_fail'), 'name' => 'Authentication issues')
+	);
+	
+	public $logMetaAdmin = array(
+		'update' => array('values' => array('update_database'), 'name' => 'MISP Update results'),
+		'settings' => array('values' => array('serverSettingsEdit', 'remove_dead_workers'), 'name' => 'Setting changes'),
+		'errors' => array('values' => array('warning', 'errors', 'version_warning'), 'name' => 'Warnings and errors'),
+		'email' => array('values' => array('admin_email'))
+	);
+	
 	public function beforeSave($options = array()) {
 		if (Configure::read('MISP.log_client_ip') && isset($_SERVER['REMOTE_ADDR'])) $this->data['Log']['ip'] = $_SERVER['REMOTE_ADDR'];
 		$setEmpty = array('title' => '', 'model' => '', 'model_id' => 0, 'action' => '', 'user_id' => 0, 'change' => '', 'email' => '', 'org' => '', 'description' => '');

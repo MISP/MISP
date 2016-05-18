@@ -41,21 +41,26 @@ class LogsController extends AppController {
 	public function admin_index() {
 		if(!$this->userRole['perm_audit']) $this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
 		$this->set('isSearch', 0);
-		if ($this->_isSiteAdmin()) {
-			$this->AdminCrud->adminIndex();
-		} else {
+		$this->recursive = 0;
+		$validFilters = $this->Log->logMeta;
+		if (!$this->_isSiteAdmin()) {
 			$orgRestriction = null;
 			$orgRestriction = $this->Auth->user('org');
 			$conditions['Log.org LIKE'] = '%' . $orgRestriction . '%';
-			$this->recursive = 0;
 			$this->paginate = array(
 					'limit' => 60,
 					'conditions' => $conditions,
 					'order' => array('Log.id' => 'DESC')
 			);
-
-			$this->set('list', $this->paginate());
+		} else {
+			$validFilters = array_merge_recursive($validFilters, $this->Log->logMetaAdmin);
 		}
+		if (isset($this->params['named']['filter']) && in_array($this->params['named']['filter'], array_keys($validFilters))) {
+			$this->paginate['conditions']['Log.action'] = $validFilters[$this->params['named']['filter']]['values'];
+		}
+		$this->set('validFilters', $validFilters);
+		$this->set('filter', isset($this->params['named']['filter']) ? $this->params['named']['filter'] : false);
+		$this->set('list', $this->paginate());
 	}
 
 	// Shows a minimalistic history for the currently selected event
@@ -136,6 +141,10 @@ class LogsController extends AppController {
 			$orgRestriction = $this->Auth->user('org');
 		}
 		$this->set('orgRestriction', $orgRestriction);
+		$validFilters = $this->Log->logMeta;
+		if ($this->_isSiteAdmin()) $validFilters = array_merge_recursive($validFilters, $this->Log->logMetaAdmin);
+		$this->set('validFilters', $validFilters);
+		$this->set('filters', false);
 		if ($new !== false) {
 			$this->set('actionDefinitions', $this->{$this->defaultModel}->actionDefinitions);
 
@@ -235,7 +244,7 @@ class LogsController extends AppController {
 			$models = array('Attribute', 'Event', 'EventBlacklist', 'EventTag', 'Organisation', 'Post', 'Regexp', 'Role', 'Server', 'ShadowAttribute', 'SharingGroup', 'Tag', 'Task', 'Taxonomy', 'Template', 'Thread', 'User', 'Whitelist');
 			$existing_models = $this->Log->find('list', array(
 					'fields' => array('Log.model'),
-					'group' => array('Log.model')
+					'group' => array('Log.model','Log.id')
 			));
 			$models = array_intersect($models, $existing_models);
 			$models = array('' => 'ALL') + $this->_arrayToValuesIndexArray($models);
