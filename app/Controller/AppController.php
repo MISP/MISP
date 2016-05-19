@@ -80,13 +80,14 @@ class AppController extends Controller {
 		$this->set('jsVersion', $this->__jsVersion);
 		$this->loadModel('User');
 		$auth_user_fields = $this->User->describeAuthFields();
-		//Let s check if Apache have kerberos auth.
+
+		// check if Apache provides kerberos authentication data
 		$envvar = Configure::read('ApacheSecureAuth.apacheEnv');
 		if (isset($_SERVER[$envvar])) {
 			$this->Auth->className = 'ApacheSecureAuth';
 			$this->Auth->authenticate = array(
 				'Apache' => array(
-					// envvar = field return by Apache when used Authentificatied
+					// envvar = field returned by Apache if user is authenticated
 					'fields' => array('username' => 'email', 'envvar' => $envvar),
 					'userFields' => $auth_user_fields
 				)
