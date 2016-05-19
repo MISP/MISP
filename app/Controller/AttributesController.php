@@ -954,8 +954,7 @@ class AttributesController extends AppController {
 	}
 	
 	public function deleteSelected($id) {
-		if (!$this->request->is('post') || !$this->request->is('ajax')) {
-		//if (!$this->request->is('post')) {
+		if (!$this->request->is('post') && !$this->request->is('ajax')) {
 			throw new MethodNotAllowedException();
 		}
 		// get a json object with a list of attribute IDs to be deleted
