@@ -145,6 +145,12 @@ class ACLComponent extends Component {
 					'maxDateActivity' => array('*'),
 					'returnDates' => array('*'),
 			),
+			'news' => array(
+					'add' => array(),
+					'edit' => array(),
+					'delete' => array(),
+					'index' => array('*'),
+			),
 			'orgBlacklists' => array(
 					'add' => array(),
 					'delete' => array(),

@@ -279,6 +279,10 @@ class AppController extends Controller {
 			if ($this->_isRest()) throw new MethodNotAllowedException('Your user account is expecting a password change, please log in via the web interface and change it before proceeding.');
 			$this->redirect(array('controller' => 'users', 'action' => 'change_pw', 'admin' => false));
 		}
+		$newsread = $this->User->field('newsread', array('User.id' => $this->Auth->user('id')));
+		$this->loadModel('News');
+		$latest_news = $this->News->field('date_created', array(), 'date_created DESC');
+		if (!$this->_isRest() && ($this->params['controller'] != 'news' || $this->params['action'] != 'index') && $latest_news && $newsread < $latest_news) $this->redirect(array('controller' => 'news', 'action' => 'index', 'admin' => false));
 		unset($base_dir);
 
 		// We don't want to run these role checks before the user is logged in, but we want them available for every view once the user is logged on
