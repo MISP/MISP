@@ -456,7 +456,6 @@ class Attribute extends AppModel {
 		if (!empty($this->data['Attribute']['type'])) {
 			$compositeTypes = $this->getCompositeTypes();
 			// explode composite types in value1 and value2
-			//if (!isset($this->data['Attribute']['value1'])) {
 			$pieces = explode('|', $this->data['Attribute']['value']);
 			if (in_array($this->data['Attribute']['type'], $compositeTypes)) {
 				if (2 != count($pieces)) {

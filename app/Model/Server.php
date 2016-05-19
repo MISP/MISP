@@ -1999,7 +1999,6 @@ class Server extends AppModel {
 	public function testForRPZSerial($value) {
 		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
 		if (!preg_match('/^((\$date(\d*)|\d*))$/', $value)) return 'Invalid format.';
-		//if (!preg_match('/^\w+(\.\w+)*(\.?) \w+(\.\w+)* \((\$date(\d*)|\d*)( ((\d*)|(\d*)[hHmMdD])){4}\)$/', $value)) return 'Invalid format.';
 		return true;
 	}
 	

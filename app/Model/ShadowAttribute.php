@@ -180,7 +180,6 @@ class ShadowAttribute extends AppModel {
 		if (!empty($this->data['ShadowAttribute']['type'])) {
 			$compositeTypes = $this->getCompositeTypes();
 			// explode composite types in value1 and value2
-			//if (!isset($this->data['ShadowAttribute']['value1'])) {
 			$pieces = explode('|', $this->data['ShadowAttribute']['value']);
 			if (in_array($this->data['ShadowAttribute']['type'], $compositeTypes)) {
 				if (2 != count($pieces)) {

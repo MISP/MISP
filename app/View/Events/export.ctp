@@ -10,7 +10,6 @@
 		var intervalArray = new Array();
 		function queueInterval(i, k, id, progress, modified) {
 			jobsArray[i] = id;
-			//if (id != -1) alert (i + " - "+ k + " - " + progress + " - " + id + " - " + modified);
 			intervalArray[i] = setInterval(function(){
 					if (id != -1 && progress < 100 && modified != "N/A") {
 						queryTask(k, i);

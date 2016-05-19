@@ -1884,8 +1884,6 @@ class Event extends AppModel {
 		$data['Event']['user_id'] = $user['id'];
 		$date = new DateTime();
 
-		//if ($this->checkAction('perm_sync')) $data['Event']['org'] = Configure::read('MISP.org');
-		//else $data['Event']['org'] = $auth->user('org');
 		if ($fromPull) {
 			$data['Event']['org_id'] = $org_id;
 		} else {

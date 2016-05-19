@@ -1265,9 +1265,6 @@ class EventsController extends AppController {
 				$this->set('_serialize', array('message'));
 			} else {
 				// delete the event from remote servers
-				//if ('true' == Configure::read('MISP.sync')) {	// TODO test..(!$this->_isRest()) &&
-				//	$this->__deleteEventFromServers($uuid);
-				//}
 				$this->Session->setFlash(__('Event deleted'));
 	
 				// if coming from index, redirect to referer (to have the filter working)

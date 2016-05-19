@@ -144,11 +144,6 @@ class UsersController extends AppController {
 		if (!$this->User->exists()) {
 			throw new NotFoundException(__('Invalid user'));
 		}
-		//if ($this->Auth->User('org') != 'ADMIN' && $this->Auth->User('org') != $this->User->data['User']['org']) $this->redirect(array('controller' => 'users', 'action' => 'index', 'admin' => true));
-		//// Only own profile
-		//if ($this->Auth->user('id') != $id) {
-		//	throw new ForbiddenException('You are not authorized to delete this profile.');
-		//}
 		if ($this->User->delete()) {
 			$this->Session->setFlash(__('User deleted'));
 			$this->redirect(array('action' => 'index'));
