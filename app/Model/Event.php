@@ -1807,7 +1807,7 @@ class Event extends AppModel {
 			if (!isset($data['Event']['Attribute'][0])) $data['Event']['Attribute'] = array(0 => $data['Event']['Attribute']);
 			foreach ($data['Event']['Attribute'] as &$attribute) {
 				if (isset($attribute['SharingGroup']) && !empty($attribute['SharingGroup']) && isset($attribute['SharingGroup'][0])) $attribute['SharingGroup'] = $attribute['SharingGroup'][0]; 
-				if ($attribute['distribution'] == 4 && !isset($sgs[$attribute['SharingGroup']['uuid']])) $sgs[$attribute['SharingGroup']['uuid']] = $attribute['SharingGroup']; 
+				if (isset($attribute['distribution']) && $attribute['distribution'] == 4 && !isset($sgs[$attribute['SharingGroup']['uuid']])) $sgs[$attribute['SharingGroup']['uuid']] = $attribute['SharingGroup']; 
 			}
 		}
 		
@@ -1818,7 +1818,7 @@ class Event extends AppModel {
 		if (isset($data['Event']['Attribute'])) {
 			foreach ($data['Event']['Attribute'] as $k => &$a) {
 				unset($data['Event']['Attribute']['id']);
-				if($a['distribution'] == 4) {
+				if(isset($a['distribution']) && $a['distribution'] == 4) {
 					$data['Event']['Attribute'][$k]['sharing_group_id'] = $this->SharingGroup->captureSG($data['Event']['Attribute'][$k]['SharingGroup'], $user);
 					unset($data['Event']['Attribute'][$k]['SharingGroup']);
 				}
