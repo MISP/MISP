@@ -1484,7 +1484,7 @@ class Server extends AppModel {
 		$this->read(null, $id);
 		$url = $this->data['Server']['url'];
 		$push = $this->checkVersionCompatibility($id, $user)['canPush'];
-		if (!isset($push['canPush']) || !$push['canPush']) {
+		if (!isset($push) || !$push) {
 			if ($jobId) {
 				$job->id = $jobId;
 				$job->saveField('progress', 100);
