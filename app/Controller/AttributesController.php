@@ -38,7 +38,7 @@ class AttributesController extends AppController {
 		}
 		$this->Security->validatePost = true;
 
-		// convert uuid to id if present in the url, and overwrite id field
+		// convert uuid to id if present in the url and overwrite id field
 		if (isset($this->params->query['uuid'])) {
 			$params = array(
 					'conditions' => array('Attribute.uuid' => $this->params->query['uuid']),
@@ -125,17 +125,17 @@ class AttributesController extends AppController {
 				$successes = "";
 				$failCount = 0;
 				$successCount = 0;
-				// TODO loop-holes,
+				// TODO loopholes,
 				// the value null value thing
 				foreach ($attributes as $key => $attribute) {
 					$attribute = trim($attribute);
 					if (strlen($attribute) == 0)
-					continue; // don't do anything for empty lines
+						continue; // don't do anything for empty lines
 
 					$this->Attribute->create();
 					$this->request->data['Attribute']['value'] = $attribute; // set the value as the content of the single line
-					// TODO loop-holes,
-					// there seems to be a loop-hole in misp here
+					// TODO loopholes,
+					// there seems to be a loophole in MISP here
 					// be it an create and not an update
 					$this->Attribute->id = null;
 					if ($this->Attribute->save($this->request->data)) {
@@ -155,7 +155,7 @@ class AttributesController extends AppController {
 						return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $successCount . ' Attributes added')), 'status' => 200));
 					}
 				} else {
-					// we added all the attributes,
+					// we added all the attributes
 					if ($fails) {
 						// list the ones that failed
 						if (!CakeSession::read('Message.flash')) {
@@ -249,7 +249,7 @@ class AttributesController extends AppController {
 		$types = array_keys($this->Attribute->typeDefinitions);
 		$types = $this->_arrayToValuesIndexArray($types);
 		$this->set('types', $types);
-		// combobos for categories
+		// combobox for categories
 		$categories = array_keys($this->Attribute->categoryDefinitions);
 		$categories = $this->_arrayToValuesIndexArray($categories);
 		$this->set('categories', compact('categories'));
@@ -420,7 +420,7 @@ class AttributesController extends AppController {
 			$this->request->data['Attribute']['event_id'] = $eventId;
 		}
 	
-		// combobos for categories
+		// combobox for categories
 		$categories = array_keys($this->Attribute->categoryDefinitions);
 		// just get them with attachments..
 		$selectedCategories = array();
@@ -640,7 +640,7 @@ class AttributesController extends AppController {
 			throw new NotFoundException(__('Invalid attribute'));
 		}
 		$this->Attribute->read();
-		//set stuff to fix undefined index: uuid
+		// set stuff to fix undefined index: uuid
 		if (!$this->_isRest()) {
 			$uuid = $this->Attribute->data['Attribute']['uuid'];
 		}
@@ -1133,8 +1133,9 @@ class AttributesController extends AppController {
 								$toInclude = false;
 								$saveWord = substr($saveWord, 1);
 							}
-	
-							if (preg_match('@^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(\d|[1-2]\d|3[0-2]))$@', $saveWord)) {
+
+							// check for an IPv4 address and subnet in CIDR notation (e.g. 127.0.0.1/8)
+							if (preg_match('@^((\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.){3}(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])(\/(\d|[12]\d|3[012]))$@', $saveWord)) {
 								$cidrresults = $this->Cidr->CIDR($saveWord);
 								foreach ($cidrresults as $result) {
 									$result = strtolower($result);
@@ -1621,7 +1622,7 @@ class AttributesController extends AppController {
 	// returns an XML with attributes that belong to an event. The type of attributes to be returned can be restricted by type using the 3rd parameter.
 	// Similar to the restSearch, this parameter can be chained with '&&' and negations are accepted too. For example filename&&!filename|md5 would return all filenames that don't have an md5
 	// The usage of returnAttributes is the following: [MISP-url]/attributes/returnAttributes/<API-key>/<type>/<signature flag>
-	// The signature flag is off by default, enabling it will only return attribugtes that have the to_ids flag set to true.
+	// The signature flag is off by default, enabling it will only return attributes that have the to_ids flag set to true.
 	public function returnAttributes($key='download', $id, $type = null, $sigOnly = false) {
 		$user = $this->checkAuthUser($key);
 		// if the user is authorised to use the api key then user will be populated with the user's account
@@ -1684,7 +1685,7 @@ class AttributesController extends AppController {
 		// check each attribute
 		foreach($this->Event->data['Attribute'] as $k => $attribute) {
 			$contained = false;
-			// If the include list is empty, then we just then the first check should always set contained to true (basically we chose type = all - exclusions, or simply all)
+			// If the include list is empty, then the first check should always set contained to true (basically we chose type = all - exclusions, or simply all)
 			if (empty($include)) {
 				$contained = true;
 			} else {
@@ -2004,7 +2005,7 @@ class AttributesController extends AppController {
 			$types = array_keys($this->Attribute->typeDefinitions);
 			$types = $this->_arrayToValuesIndexArray($types);
 			$this->set('types', $types);
-			// combobos for categories
+			// combobox for categories
 			$categories = array_keys($this->Attribute->categoryDefinitions);
 			$categories = $this->_arrayToValuesIndexArray($categories);
 			$this->set('categories', compact('categories'));

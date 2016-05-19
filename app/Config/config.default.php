@@ -78,7 +78,7 @@ $config = array (
     'restApi'       => array(        // API parameters
       'url'         => 'https://example.com/data/users',  // URL to query
       'headers'     => array(),                           // additional headers, used for authentication
-      'param'       => array( 'email' => 'email'),        // query parameters to add to the URL, mapped to USer properties 
+      'param'       => array( 'email' => 'email'),        // query parameters to add to the URL, mapped to User properties 
       'map'         =>  array(                            // maps REST result to the User properties
         'uid'       => 'nids_sid',
         'team'      => 'org',
