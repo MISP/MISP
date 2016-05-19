@@ -87,7 +87,7 @@ Configure::load('config');
 
 $appendPort = true;
 
-if (!Configure::read('MISP.baseurl')) {
+if (!Configure::read('MISP.baseurl') && isset($_SERVER['SERVER_ADDR'])) {
 	if (isset($_SERVER['SERVER_NAME'])) $serverName = $_SERVER['SERVER_NAME'];
 	else if (isset($_SERVER['HTTP_HOST'])) $serverName = $_SERVER['HTTP_HOST'];
 	else $serverName = $_SERVER['SERVER_ADDR']; 
