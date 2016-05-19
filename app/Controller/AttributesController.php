@@ -640,6 +640,7 @@ class AttributesController extends AppController {
 			throw new NotFoundException(__('Invalid attribute'));
 		}
 		$this->Attribute->read();
+		if ($this->Attribute->data['Attribute']['deleted']) throw new NotFoundException(__('Invalid attribute'));
 		// set stuff to fix undefined index: uuid
 		if (!$this->_isRest()) {
 			$uuid = $this->Attribute->data['Attribute']['uuid'];
@@ -1293,6 +1294,7 @@ class AttributesController extends AppController {
 						$conditions['AND'][] = $temp;
 					}
 				}
+				$conditions['AND'][] = array('Attribute.deleted' => false);
 				if ($this->request->data['Attribute']['alternate']) {
 					$events = $this->searchAlternate($conditions);
 					$this->set('events', $events);
