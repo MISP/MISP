@@ -86,7 +86,7 @@ Cache::config('default', array('engine' => 'File'));
 Configure::load('config');
 
 $appendPort = true;
-$relativePaths = true;
+$relativePaths = false;
 
 if (!$relativePaths) {
 	if (isset($_SERVER['SERVER_NAME'])) $serverName = $_SERVER['SERVER_NAME'];
