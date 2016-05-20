@@ -1007,7 +1007,6 @@ class Attribute extends AppModel {
 		// prepare the conditions
 		$conditions = array(
 				'Attribute.event_id !=' => $attribute['event_id'],
-				//'Attribute.type' => $attribute['type'],  // do not filter on type
 				);
 
 		// prevent issues with empty fields
@@ -1183,9 +1182,6 @@ class Attribute extends AppModel {
 										'Attribute.value2' => $cV
 								),
 								'Attribute.type !=' => $this->nonCorrelatingTypes,
-								//'Attribute.id !=' => $a['id'],
-								//$temp,
-								//'Attribute.event_id !=' => $a['event_id']
 							),
 						),
 						'recursive => -1',
@@ -1288,7 +1284,6 @@ class Attribute extends AppModel {
 		$xmlArray = array();
 
 		// cleanup the array from things we do not want to expose
-		//unset($event['Event']['org']);
 		// remove value1 and value2 from the output
 		unset($attribute['value1']);
 		unset($attribute['value2']);
@@ -1590,7 +1585,6 @@ class Attribute extends AppModel {
 	 public function generateCorrelation($jobId = false, $startPercentage = 0) {
 	 	$this->Correlation = ClassRegistry::init('Correlation');
 	 	$this->Correlation->deleteAll(array('id !=' => 0), false);
-	 	//$fields = array('Attribute.id', 'Attribute.type', 'Attribute.value1', 'Attribute.value2', 'Attribute.event_id');
 	 	// get all attributes..
 	 	$eventIds = $this->Event->find('list', array('recursive' => -1, 'fields' => array('Event.id')));
 	 	$attributeCount = 0;
