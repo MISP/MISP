@@ -912,7 +912,6 @@ class Attribute extends AppModel {
 			case 'sha512':
 			case 'sha512/224':
 			case 'sha512/256':
-			case 'sha256':
 			case 'domain':
 			case 'hostname':
 			case 'pehash':
