@@ -843,22 +843,25 @@ class AttributesController extends AppController {
  *
  * and is able to delete w/o question
  */
-	public function delete($id = null) {
+	public function delete($id = null, $hard = false) {
 		$this->set('id', $id);
+		$conditions = array('id' => $id);
+		if (!$hard) $conditions['deleted'] = false;
 		$attribute = $this->Attribute->find('first', array(
-				'conditions' => array('id' => $id, 'deleted' => false),
+				'conditions' => $conditions,
 				'recursive' => -1,
 				'fields' => array('id', 'event_id'),
 		));
 		if (empty($attribute)) throw new NotFoundException('Invalid Attribute');
 		if ($this->request->is('ajax')) {
 			if ($this->request->is('post')) {
-				if ($this->__delete($id)) {
+				if ($this->__delete($id, $hard)) {
 					return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Attribute deleted.')),'status'=>200));
 				} else {
 					return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Attribute was not deleted.')),'status'=>200));
 				}
 			} else {
+				$this->set('hard', $hard);
 				$this->set('event_id', $attribute['Attribute']['event_id']);
 				$this->render('ajax/attributeConfirmationForm');
 			}
@@ -866,7 +869,7 @@ class AttributesController extends AppController {
 			if (!$this->request->is('post') && !$this->_isRest()) {
 				throw new MethodNotAllowedException();
 			}
-			if ($this->__delete($id)) {
+			if ($this->__delete($id, $hard)) {
 				$this->Session->setFlash(__('Attribute deleted'));
 			} else {
 				$this->Session->setFlash(__('Attribute was not deleted'));
@@ -918,7 +921,7 @@ class AttributesController extends AppController {
  * 
  * returns true/false based on success
  */
-	private function __delete($id) {
+	private function __delete($id, $hard = false) {
 		$this->Attribute->id = $id;
 		if (!$this->Attribute->exists()) {
 			return false;
@@ -944,11 +947,16 @@ class AttributesController extends AppController {
 				}
 			}
 		}
-		$result['Attribute']['deleted'] = true;
 		$date = new DateTime();
-		$result['Attribute']['timestamp'] = $date->getTimestamp();
+		if ($hard) {
+			$save = $this->Attribute->delete($id);
+		} else {
+			$result['Attribute']['deleted'] = true;
+			$result['Attribute']['timestamp'] = $date->getTimestamp();
+			$save = $this->Attribute->save($result);
+		}
 		// attachment will be deleted with the beforeDelete() function in the Model
-		if ($this->Attribute->save($result)) {
+		if ($save) {
 			// We have just deleted the attribute, let's also check if there are any shadow attributes that were attached to it and delete them
 			$this->loadModel('ShadowAttribute');
 			$this->ShadowAttribute->deleteAll(array('ShadowAttribute.old_id' => $id), false);
