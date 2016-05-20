@@ -15,7 +15,8 @@
 						<div style="padding:6px;">
 							<h4><?php echo h($newsItem['News']['title']);?></h4>
 							<?php 
-								echo nl2br(h($newsItem['News']['message']));
+								$message = h($newsItem['News']['message']);
+								echo nl2br(preg_replace('#https?:\/\/[^\s]*#i', '<a href="$0">$0</a>', $message));
 								if ($isSiteAdmin):
 							?>
 									<br /><a href="<?php echo $baseurl; ?>/news/edit/<?php echo h($newsItem['News']['id']);?>" class="icon-edit" title="Edit news message"></a>
@@ -32,7 +33,6 @@
 						'format' => __('Page {:page} of {:pages}, showing {:current} records out of {:count} total, starting on record {:start}, ending on {:end}')
 				));
 		?>
-		    </p>
 		    <div class="pagination">
 		        <ul>
 		        <?php
