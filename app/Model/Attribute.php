@@ -368,7 +368,7 @@ class Attribute extends AppModel {
 		),
 		'distribution' => array(
 				'rule' => array('inList', array('0', '1', '2', '3', '4', '5')),
-				'message' => 'Options : Your organisation only, This community only, Connected communities, All communities', 'Sharing group', 'Inherit event',
+				'message' => 'Options: Your organisation only, This community only, Connected communities, All communities, Sharing group, Inherit event',
 				//'allowEmpty' => false,
 				'required' => true,
 				//'last' => false, // Stop validation after this rule
