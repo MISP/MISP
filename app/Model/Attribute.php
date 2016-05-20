@@ -1128,7 +1128,6 @@ class Attribute extends AppModel {
 
 		// zip and password protect the malware files
 		if ($malware) {
-			// TODO check if CakePHP has no easy/safe wrapper to execute commands
 			$execRetval = '';
 			$execOutput = array();
 			exec("zip -j -P infected " . $zipfile->path . ' \'' . addslashes($fileInZip->path) . '\'', $execOutput, $execRetval);
