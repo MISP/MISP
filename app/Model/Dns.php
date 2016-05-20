@@ -11,10 +11,10 @@ class Dns extends AppModel {
 
 /**
  * Checks for a valid internet name
- * Returns true if Name is an existing Domain Host Name, false otherwise
+ * Returns true if the name is an existing domain name, false otherwise
  * TODO should be renamed
  *
- * @param unknown_type $nametotest The Domain Host Name to check for existence.
+ * @param unknown_type $nametotest a domain name to check
  * @return boolean
  */
 	public function testipaddress($nametotest) {
@@ -32,12 +32,11 @@ class Dns extends AppModel {
 	}
 
 /**
- * Name to IP list,
- * get all ip numbers given a certain domain or host $name.
+ * Name to IP list
+ * get all IP addresses of a certain domain name via DNS.
  *
- * @param $name being a hostname
- *
- * @return array of ip numbers
+ * @param $name a domain name
+ * @return array of IP addresses
  */
 	public function nametoipl($name = '') {
 		if ('true' == Configure::read('MISP.dns')) {

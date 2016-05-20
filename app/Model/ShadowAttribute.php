@@ -132,7 +132,7 @@ class ShadowAttribute extends AppModel {
 			),
 			'userdefined' => array(
 				'rule' => array('validateAttributeValue'),
-				'message' => 'Value not in the right type/format. Please double check the value or select "other" for a type.',
+				'message' => 'Value not in the right type/format. Please double check the value or select type "other".',
 			),
 		),
 		'to_ids' => array(
