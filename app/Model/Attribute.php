@@ -326,7 +326,7 @@ class Attribute extends AppModel {
 			),
 			'userdefined' => array(
 				'rule' => array('validateAttributeValue'),
-				'message' => 'Value not in the right type/format. Please double check the value or select "other" for a type.',
+				'message' => 'Value not in the right type/format. Please double check the value or select type "other".',
 				//'allowEmpty' => false,
 				//'required' => true,
 				//'last' => false, // Stop validation after this rule
@@ -635,14 +635,14 @@ class Attribute extends AppModel {
 				if (preg_match("#^[0-9a-f]{" . $length . "}$#", $value)) {
 					$returnValue = true;
 				} else {
-					$returnValue = 'Checksum has invalid length or format (expected: ' . $length . ' hexadecimal characters). Please double check the value or select "other" for a type.';
+					$returnValue = 'Checksum has an invalid length or format (expected: ' . $length . ' hexadecimal characters). Please double check the value or select type "other".';
 				}
 				break;
 			case 'tlsh':
 				if (preg_match("#^[0-9a-f]{35,}$#", $value)) {
 					$returnValue = true;
 				} else {
-					$returnValue = 'Checksum has invalid length or format (expected: at least 35 hexadecimal characters). Please double check the value or select "other" for a type.';
+					$returnValue = 'Checksum has an invalid length or format (expected: at least 35 hexadecimal characters). Please double check the value or select type "other".';
 				}
 				break;
 			case 'pehash':
@@ -689,7 +689,7 @@ class Attribute extends AppModel {
 				if (preg_match("#^.+\|[0-9a-f]{" . $length . "}$#", $value)) {
 					$returnValue = true;
 				} else {
-					$returnValue = 'Checksum has invalid length or format (expected: filename|' . $length . ' hexadecimal characters). Please double check the value or select "other" for a type.';
+					$returnValue = 'Checksum has an invalid length or format (expected: filename|' . $length . ' hexadecimal characters). Please double check the value or select type "other".';
 				}
 				break;
 			case 'filename|ssdeep':
@@ -709,18 +709,18 @@ class Attribute extends AppModel {
 				if (preg_match("#^.+\|[0-9a-f]{35,}$#", $value)) {
 					$returnValue = true;
 				} else {
-					$returnValue = 'Checksum has invalid length or format (expected: filename|at least 35 hexadecimal characters). Please double check the value or select "other" for a type.';
+					$returnValue = 'Checksum has an invalid length or format (expected: filename|at least 35 hexadecimal characters). Please double check the value or select type "other".';
 				}
 				break;
 			case 'ip-src':
 			case 'ip-dst':
 				$parts = explode("/", $value);
-				// [0] = the ip
+				// [0] = the IP
 				// [1] = the network address
 				if (count($parts) <= 2 ) {
-					// ipv4 and ipv6 matching
+					// IPv4 and IPv6 matching
 					if (filter_var($parts[0], FILTER_VALIDATE_IP)) {
-						// ip is validated, now check if we have a valid network mask
+						// IP is validated, now check if we have a valid network mask
 						if (empty($parts[1])) {
 							$returnValue = true;
 						} else {
@@ -731,7 +731,7 @@ class Attribute extends AppModel {
 					}
 				}
 				if (!$returnValue) {
-					$returnValue = 'IP address has invalid format. Please double check the value or select "other" for a type.';
+					$returnValue = 'IP address has an invalid format. Please double check the value or select type "other".';
 				}
 				break;
 			case 'hostname':
@@ -739,7 +739,7 @@ class Attribute extends AppModel {
 				if (preg_match("#^[A-Z0-9.\-_]+\.[A-Z]{2,}$#i", $value)) {
 					$returnValue = true;
 				} else {
-					$returnValue = 'Domain name has invalid format. Please double check the value or select "other" for a type.';
+					$returnValue = 'Domain name has an invalid format. Please double check the value or select type "other".';
 				}
 				break;
 			case 'domain|ip':
@@ -748,10 +748,10 @@ class Attribute extends AppModel {
 					if (filter_var($parts[1], FILTER_VALIDATE_IP)) {
 						$returnValue = true;
 					} else {
-						$returnValue = 'IP address has invalid format.';
+						$returnValue = 'IP address has an invalid format.';
 					}
 				} else {
-					$returnValue = 'Domain name has invalid format.';
+					$returnValue = 'Domain name has an invalid format.';
 				}
 				break;		
 			case 'email-src':
@@ -762,7 +762,7 @@ class Attribute extends AppModel {
 				if (preg_match("#^[A-Z0-9._&%+-]*@[A-Z0-9.\-_]+\.[A-Z]{2,}$#i", $value)) {
 					$returnValue = true;
 				} else {
-					$returnValue = 'Email address has invalid format. Please double check the value or select "other" for a type.';
+					$returnValue = 'Email address has an invalid format. Please double check the value or select type "other".';
 				}
 				break;
 			case 'vulnerability':
