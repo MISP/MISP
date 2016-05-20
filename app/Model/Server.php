@@ -1254,9 +1254,6 @@ class Server extends AppModel {
 					// no fails, take the highest success
 					$lastpulledid = count($successes) > 0 ? max($successes) : 0;
 				}
-				// increment lastid based on the highest ID seen
-				$this->save($event, array('fieldList' => array('lastpulledid', 'url')));
-				// grab all of the shadow attributes that are relevant to us
 			}
 		}
 		if ($jobId) {
