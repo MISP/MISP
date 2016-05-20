@@ -265,7 +265,7 @@ class ShadowAttribute extends AppModel {
 				// FIXME secure this filesystem access/delete by not allowing to change directories or go outside of the directory container.
 				// only delete the file if it exists
 				$filepath = APP . "files" . DS . 'shadow' . DS . $sa['ShadowAttribute']['event_id'] . DS . $sa['ShadowAttribute']['id'];
-				$file = new File ($filepath);
+				$file = new File($filepath);
 				if ($file->exists()) {
 					if (!$file->delete()) {
 						throw new InternalErrorException('Delete of file attachment failed. Please report to administrator.');
@@ -293,7 +293,7 @@ class ShadowAttribute extends AppModel {
 			// FIXME secure this filesystem access/delete by not allowing to change directories or go outside of the directory container.
 			// only delete the file if it exists
 			$filepath = APP . "files" . DS . 'shadow' . DS . $this->data['ShadowAttribute']['event_id'] . DS . $this->data['ShadowAttribute']['id'];
-			$file = new File ($filepath);
+			$file = new File($filepath);
 			if ($file->exists()) {
 				if (!$file->delete()) {
 					throw new InternalErrorException('Delete of file attachment failed. Please report to administrator.');

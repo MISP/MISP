@@ -1502,7 +1502,7 @@ class EventsController extends AppController {
 				} else {
 					$file = new File($dir->pwd() . DS . 'misp.' . $k . '.' . $useOrg . $type['extension']);
 				}
-				if (!$file->exists()) {
+				if (!$file->readable()) {
 					$lastModified = 'N/A';
 					$this->Event->export_types[$k]['recommendation'] = 1;
 				} else {
