@@ -45,13 +45,6 @@ class Event extends AppModel {
 		'distribution' => array('desc' => 'Describes who will have access to the event.')
 	);
 
-	/*public $riskDescriptions = array(
-		'Undefined' => array('desc' => '*undefined* no risk', 'formdesc' => 'No risk'),
-		'Low' => array('desc' => '*low* means mass-malware', 'formdesc' => 'Mass-malware'),
-		'Medium' => array('desc' => '*medium* means APT malware', 'formdesc' => 'APT malware'),
-		'High' => array('desc' => '*high* means sophisticated APT malware or 0-day attack', 'formdesc' => 'Sophisticated APT malware or 0-day attack')
-	);*/
-
 	public $analysisDescriptions = array(
 		0 => array('desc' => '*Initial* means the event has just been created', 'formdesc' => 'Creation started'),
 		1 => array('desc' => '*Ongoing* means that the event is being populated', 'formdesc' => 'Creation ongoing'),
@@ -245,24 +238,13 @@ class Event extends AppModel {
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
 		),
-		//'classification' => array(
-		//		'rule' => array('inList', array('TLP:AMBER', 'TLP:GREEN:NeedToKnow', 'TLP:GREEN')),
-		//		//'message' => 'Your custom message here',
-		//		//'allowEmpty' => false,
-		//		'required' => true,
-		//		//'last' => false, // Stop validation after this rule
-		//		//'on' => 'create', // Limit validation to 'create' or 'update' operations
-		//),
 	);
 
 	public function __construct($id = false, $table = null, $ds = null) {
 		parent::__construct($id, $table, $ds);
-		//$this->virtualFields = Set::merge($this->virtualFields, array(
-//			'distribution' => 'IF (Event.private=true AND Event.cluster=false, "Your organization only", IF (Event.private=true AND Event.cluster=true, "This server-only", IF (Event.private=false AND Event.cluster=true, "This Community-only", IF (Event.communitie=true, "Connected communities" , "All communities"))))',
-	//	));
 	}
 
-	//The Associations below have been created with all possible keys, those that are not needed can be removed
+	// The Associations below have been created with all possible keys, those that are not needed can be removed
 
 /**
  * belongsTo associations
@@ -270,13 +252,6 @@ class Event extends AppModel {
  * @var array
  */
 	public $belongsTo = array(
-		//'Org' => array(
-		//	'className' => 'Org',
-		//	'foreignKey' => 'org',
-		//	'conditions' => '',
-		//	'fields' => '',
-		//	'order' => ''
-		//)
 		'User' => array(
 			'className' => 'User',
 			'foreignKey' => 'user_id',
@@ -358,7 +333,6 @@ class Event extends AppModel {
 		// only delete the file if it exists
 		$filepath = APP . "files" . DS . $this->id;
 		App::uses('Folder', 'Utility');
-		$file = new Folder ($filepath);
 		if (is_dir($filepath)) {
 			if (!$this->destroyDir($filepath)) {
 				throw new InternalErrorException('Delete of event file directory failed. Please report to administrator.');
@@ -640,7 +614,7 @@ class Event extends AppModel {
  * This function receives the reference of the variable, so no return is required as it directly
  * modifies the original data.
  *
- * @param &$data The reference to the variable
+ * @param &$data a reference to the variable
  *
  * @throws InternalErrorException
  */
@@ -719,7 +693,6 @@ class Event extends AppModel {
 		}
 		if (strlen($newLocation) || $result) { // HTTP/1.1 200 OK or 302 Found and Location: http://<newLocation>
 			if (strlen($newLocation)) { // HTTP/1.1 302 Found and Location: http://<newLocation>
-				//$updated = true;
 				$result = $this->restfullEventToServer($event, $server, $newLocation, $newLocation, $newTextBody, $HttpSocket);
 				if (is_numeric($result)) {
 					$error = $this->__resolveErrorCode($result, $event, $server);
@@ -752,7 +725,6 @@ class Event extends AppModel {
 				if (is_array($jsonEvent)) {
 					foreach ($jsonEvent as $key => $value) {
 						if ($key == 'id') {
-							$remoteId = (int)$value;
 							break;
 						}
 					}
@@ -839,7 +811,7 @@ class Event extends AppModel {
 						'Authorization' => $authkey,
 						'Accept' => 'application/json',
 						'Content-Type' => 'application/json',
-						//'Connection' => 'keep-alive' // LATER followup cakephp ticket 2854 about this problem http://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2854
+						//'Connection' => 'keep-alive' // // LATER followup cakephp issue about this problem: https://github.com/cakephp/cakephp/issues/1961
 				)
 		);
 		$uri = $url . '/events';
@@ -877,7 +849,6 @@ class Event extends AppModel {
 					$newLocation = $response->headers['Location'];
 					$newTextBody = $response->body();
 					return true;
-					//return isset($urlPath) ? $response->body() : $response->headers['Location'];
 					break;
 				case '404': // Not Found
 					$newLocation = $response->headers['Location'];
@@ -1029,7 +1000,7 @@ class Event extends AppModel {
 						'Authorization' => $authkey,
 						'Accept' => 'application/xml',
 						'Content-Type' => 'application/xml',
-						//'Connection' => 'keep-alive' // LATER followup cakephp ticket 2854 about this problem http://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2854
+						//'Connection' => 'keep-alive' // // LATER followup cakephp issue about this problem: https://github.com/cakephp/cakephp/issues/1961
 				)
 		);
 		$uri = $url . '/events/0?uuid=' . $uuid;
@@ -1065,7 +1036,7 @@ class Event extends AppModel {
 						'Authorization' => $authkey,
 						'Accept' => 'application/json',
 						'Content-Type' => 'application/json',
-						//'Connection' => 'keep-alive' // LATER followup cakephp ticket 2854 about this problem http://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2854
+						//'Connection' => 'keep-alive' // // LATER followup cakephp issue about this problem: https://github.com/cakephp/cakephp/issues/1961
 				)
 		);
 		if (!$proposalDownload) {
@@ -1095,7 +1066,7 @@ class Event extends AppModel {
 						'Authorization' => $authkey,
 						'Accept' => 'application/json',
 						'Content-Type' => 'application/json',
-						//'Connection' => 'keep-alive' // LATER followup cakephp ticket 2854 about this problem http://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2854
+						//'Connection' => 'keep-alive' // LATER followup cakephp issue about this problem: https://github.com/cakephp/cakephp/issues/1961
 				)
 		);
 		$uri = $url . '/shadow_attributes/getProposalsByUuidList';
@@ -1110,10 +1081,7 @@ class Event extends AppModel {
 
 	public function fetchEventIds($user, $from = false, $to = false, $last = false, $list = false, $timestamp = false, $publish_timestamp = false) {
 		$conditions = array();
-			$isSiteAdmin = $user['Role']['perm_site_admin'];
-		
-		$conditionsAttributes = array();
-		//restricting to non-private or same org if the user is not a site-admin.
+		// restricting to non-private or same org if the user is not a site-admin.
 		if (!$user['Role']['perm_site_admin']) {
 			$sgids = $this->SharingGroup->fetchAllAuthorised($user);
 			$conditions['AND']['OR'] = array(
@@ -1184,7 +1152,7 @@ class Event extends AppModel {
 		if (isset($options['disableSiteAdmin']) && $options['disableSiteAdmin']) $isSiteAdmin = false;
 		$conditionsAttributes = array();
 		
-		//restricting to non-private or same org if the user is not a site-admin.
+		// restricting to non-private or same org if the user is not a site-admin.
 		if (!$isSiteAdmin) {
 			$sgids = $this->SharingGroup->fetchAllAuthorised($user);
 			if (empty($sgids)) $sgids = array(-1);
@@ -1403,9 +1371,6 @@ class Event extends AppModel {
 	}
 
 	public function csv($user, $eventid=false, $ignore=false, $attributeIDList = array(), $tags = false, $category = false, $type = false, $includeContext = false, $from = false, $to = false, $last = false) {
-		$final = array();
-		$attributeList = array();
-	 	$econditions = array();
 	 	$this->recursive = -1;
 	 	// If we are not in the search result csv download function then we need to check what can be downloaded. CSV downloads are already filtered by the search function.
 	 	if ($eventid !== 'search') {
@@ -1509,8 +1474,6 @@ class Event extends AppModel {
 	 		unset($context_fields['org_id']);
 	 	}
 	 	
-	 	//$params
-	 	
 	 	$events = $this->find('all', array(
 	 		'recursive' => -1,
 	 		'fields' => array_keys($context_fields),
@@ -1520,7 +1483,6 @@ class Event extends AppModel {
 	 	unset($context_fields['id']);
 	 	foreach ($events as $event) {
 	 		foreach ($context_fields as $field => $header_name) {
-	 		//	if ($header_name)
 	 			$event_id_data[$event['Event']['id']][$header_name] = $event['Event'][$field];
 	 		}
 	 	}
@@ -1681,7 +1643,7 @@ class Event extends AppModel {
 	 			} else {
 	 				$line = $attribute['type'] . str_repeat(' ', $appendlen - 2 - strlen($attribute['type'])) . ': ' . $attribute['value'] . $ids .  "\n";
 	 			}
-	 			//Defanging URLs (Not "links") emails domains/ips in notification emails
+	 			// Defanging URLs (Not "links") emails domains/ips in notification emails
 	 			if ('url' == $attribute['type']) {
 	 				$line = str_ireplace("http","hxxp", $line);
 	 			}
@@ -1710,8 +1672,8 @@ class Event extends AppModel {
 		$event = $this->read(null, $id);
 		$this->User = ClassRegistry::init('User');
 		if (!$creator_only) {
-			//Insert extra field here: alertOrg or something, then foreach all the org members
-			//limit this array to users with contactalerts turned on!
+			// Insert extra field here: alertOrg or something, then foreach all the org members
+			// limit this array to users with contactalerts turned on!
 			$orgMembers = array();
 			$this->User->recursive = 0;
 			$temp = $this->User->find('all', array(
@@ -1891,7 +1853,6 @@ class Event extends AppModel {
 		$this->create();
 		// force check userid and orgname to be from yourself
 		$data['Event']['user_id'] = $user['id'];
-		$date = new DateTime();
 
 		if ($fromPull) {
 			$data['Event']['org_id'] = $org_id;
@@ -1929,7 +1890,7 @@ class Event extends AppModel {
 			// check if the uuid already exists
 			$existingEventCount = $this->find('count', array('conditions' => array('Event.uuid' => $data['Event']['uuid'])));
 			if ($existingEventCount > 0) {
-				// RESTfull, set responce location header..so client can find right URL to edit
+				// RESTful, set response location header so client can find right URL to edit
 				if ($fromPull) return false;
 				$existingEvent = $this->find('first', array('conditions' => array('Event.uuid' => $data['Event']['uuid'])));
 				if ($fromXml) $created_id = $existingEvent['Event']['id'];
@@ -2033,13 +1994,22 @@ class Event extends AppModel {
 						}
 					}
 					// Only allow an edit if this is true!
+					// TODO: variable seems to be unused
 					$saveEvent = true;
-				} else return (array('error' => 'Event could not be saved: The user used to edit the event is not authorised to do so. This can be caused by the user not being of the same organisation as the original creator of the event whilst also not being a site administrator.'));
-			} else return (array('error' => 'Event could not be saved: Event in the request not newer than the local copy.'));
+				} else {
+					return (array('error' => 'Event could not be saved: The user used to edit the event is not authorised to do so. This can be caused by the user not being of the same organisation as the original creator of the event whilst also not being a site administrator.'));
+				}
+			} else {
+				return (array('error' => 'Event could not be saved: Event in the request not newer than the local copy.'));
+			}
 			// If a field is not set in the request, just reuse the old value
 			$recoverFields = array('analysis', 'threat_level_id', 'info', 'distribution', 'date');
-			foreach ($recoverFields as $rF) if (!isset($data['Event'][$rF])) $data['Event'][$rF] = $existingEvent['Event'][$rF];
-		} else return (array('error' => 'Event could not be saved: Could not find the local event.'));
+			foreach ($recoverFields as $rF) {
+				if (!isset($data['Event'][$rF])) $data['Event'][$rF] = $existingEvent['Event'][$rF];
+			}
+		} else {
+			return (array('error' => 'Event could not be saved: Could not find the local event.'));
+		}
 		if (isset($data['Event']['published']) && $data['Event']['published'] && !$user['Role']['perm_publish']) $data['Event']['published'] = false;
 		if (!isset($data['Event']['published'])) $data['Event']['published'] = false;
 		$fieldList = array(
@@ -2080,7 +2050,9 @@ class Event extends AppModel {
 										unset($data['Event']['Attribute'][$k]);
 										continue;
 									}
-								} else $data['Event']['Attribute'][$k]['timestamp'] = $date;
+								} else {
+									$data['Event']['Attribute'][$k]['timestamp'] = $date;
+								}
 							}
 						} else {
 							$this->Attribute->create();
@@ -2135,7 +2107,7 @@ class Event extends AppModel {
 					}
 				}
 			}
-			//if published -> do the actual publishing
+			// if published -> do the actual publishing
 			if ((!empty($data['Event']['published']) && 1 == $data['Event']['published'])) {
 				// do the necessary actions to publish the event (email, upload,...)
 				if (true != Configure::read('MISP.disablerestalert')) {
@@ -2264,7 +2236,7 @@ class Event extends AppModel {
 				),
 		));
 		if (empty($event)) return true;
-		//
+
 		if ($event['Event']['distribution'] < 2) return true;
 		$event['Event']['locked'] = 1;
 		// get a list of the servers
@@ -2282,7 +2254,7 @@ class Event extends AppModel {
 		foreach ($servers as &$server) {
 			$syncTool = new SyncTool();
 			$HttpSocket = $syncTool->setupHttpSocket($server);
-			//Skip servers where the event has come from.
+			// Skip servers where the event has come from.
 			if (($passAlong != $server)) {
 				$thisUploaded = $this->uploadEventToServer($event, $server, $HttpSocket);
 				if (!$thisUploaded) {
@@ -2349,7 +2321,6 @@ class Event extends AppModel {
 			$event['Event']['publish_timestamp'] = time();
 			$this->save($event, array('fieldList' => $fieldList));
 		}		
-		$uploaded = false;
 		if (Configure::read('Plugin.ZeroMQ_enable')) {
 			App::uses('PubSubTool', 'Tools');
 			$pubSubTool = new PubSubTool();
@@ -2418,7 +2389,6 @@ class Event extends AppModel {
 		$this->User->recursive = -1;
 		$localOrgs = array();
 		$conditions = array();
-		//$orgs = $this->User->getOrgs();
 		$orgs = $this->User->find('all', array('fields' => array('DISTINCT org_id')));
 		foreach ($orgs as $k => $org) {
 			$orgs[$k]['User']['count'] = $this->User->getOrgMemberCount($orgs[$k]['User']['org_id']);
@@ -2466,9 +2436,7 @@ class Event extends AppModel {
 				// validates
 			} else {
 				$errors = $this->validationErrors;
-		
 				$result[$i]['id'] = $event['Event']['id'];
-				// print_r
 				$result[$i]['error'] = $errors;
 				$result[$i]['details'] = $event;
 				$i++;
@@ -2695,7 +2663,6 @@ class Event extends AppModel {
 		return (preg_match('/^[0-9]{4}-(0[1-9]|1[012])-(0[1-9]|1[0-9]|2[0-9]|3[01])$/', $date)) ? $date : false;
 	}
 	
-	//
 	public function resolveTimeDelta($delta) {
 		$multiplierArray = array('d' => 86400, 'h' => 3600, 'm' => 60);
 		$multiplier = $multiplierArray['d'];
@@ -2725,7 +2692,6 @@ class Event extends AppModel {
 			}
 		}
 		$eventArray = array();
-		$shadowAttributeTemp = array();
 		$correlatedAttributes = isset($event['RelatedAttribute']) ? array_keys($event['RelatedAttribute']) : array();
 		$correlatedShadowAttributes = isset($event['RelatedShadowAttribute']) ? array_keys($event['RelatedShadowAttribute']) : array();
 		foreach ($event['Attribute'] as $attribute) {
@@ -2737,7 +2703,6 @@ class Event extends AppModel {
 			if ($filterType === 'proposal' && $attribute['hasChildren'] == 0) continue;
 			if ($filterType === 'correlation' && !in_array($attribute['id'], $correlatedAttributes)) continue;
 			$eventArray[] = $attribute;
-			$current = count($eventArray)-1;
 		}
 		unset($event['Attribute']);
 		if (isset($event['ShadowAttribute'])) {

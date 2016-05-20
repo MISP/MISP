@@ -140,7 +140,6 @@ class AppController extends Controller {
 							$found_misp_auth_key = true;
 							$temp = $this->checkAuthUser(trim($auth_key));
 							if ($temp) $user['User'] = $this->checkAuthUser(trim($auth_key));
-							continue;
 						}
 					}
 					if ($found_misp_auth_key) {
@@ -187,7 +186,6 @@ class AppController extends Controller {
 				}
 				if ($this->Auth->user() == null) throw new ForbiddenException('Authentication failed. Please make sure you pass the API key of an API enabled user along in the Authorization header.');
 			} else if(!$this->Session->read(AuthComponent::$sessionKey)) {
-				//throw new Exception();
 				// load authentication plugins from Configure::read('Security.auth')
 				$auth = Configure::read('Security.auth');
 				if($auth) {
@@ -208,7 +206,7 @@ class AppController extends Controller {
 		$this->set('externalAuthUser', $userLoggedIn);
 		// user must accept terms
 		//
-		//grab the base path from our base url for use in the following checks
+		// grab the base path from our base url for use in the following checks
 		$base_dir = parse_url($baseurl, PHP_URL_PATH);
 
 		// if MISP is running out of the web root already, just set this variable to blank so we don't wind up with '//' in the following if statements
@@ -224,7 +222,6 @@ class AppController extends Controller {
 				$this->loadModel('User');
 				$this->User->id = $this->Auth->user('id');
 				$this->User->saveField('force_logout', false);
-				//$this->Session->destroy();
 			}
 			if ($this->Auth->user('disabled')) {
 				$this->Log = ClassRegistry::init('Log');
@@ -291,7 +288,6 @@ class AppController extends Controller {
 		// instead of using checkAction(), like we normally do from controllers when trying to find out about a permission flag, we can use getActions()
 		// getActions returns all the flags in a single SQL query
 		if ($this->Auth->user()) {
-			//$this->_refreshAuth();
 			$versionArray = $this->{$this->modelClass}->checkMISPVersion();
 			$this->mispVersionFull = implode('.', array_values($versionArray));
 			$this->set('mispVersion', implode('.', array($versionArray['major'], $versionArray['minor'], 0)));
@@ -427,7 +423,7 @@ class AppController extends Controller {
 
 /**
  *
- * @param unknown $authkey
+ * @param string $authkey
  * @return boolean or user array
  */
 	public function checkAuthUser($authkey) {
@@ -462,13 +458,13 @@ class AppController extends Controller {
 			$this->Event->set('attribute_count', $event[0]['attribute_count']);
 			$this->Event->save();
 		}
-		$this->Session->setFlash(__('All done. attribute_count generated from scratch for ' . $k . ' events.'));
+		$this->Session->setFlash(__('All done. attribute_count generated from scratch for ' . (isset($k) ? $k : 'no') . ' events.'));
 		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 	}
 	
 	public function pruneDuplicateUUIDs() {
 		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException();
-		$this->LoadModel('Attribute');
+		$this->loadModel('Attribute');
 		$duplicates = $this->Attribute->find('all', array(
 			'fields' => array('Attribute.uuid', 'count(*) as occurance'),
 			'recursive' => -1,
@@ -495,7 +491,7 @@ class AppController extends Controller {
 	
 	public function removeDuplicateEvents() {
 		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException();
-		$this->LoadModel('Event');
+		$this->loadModel('Event');
 		$duplicates = $this->Event->find('all', array(
 				'fields' => array('Event.uuid', 'count(*) as occurance'),
 				'recursive' => -1,
@@ -644,7 +640,7 @@ class AppController extends Controller {
 	
 	public function cleanModelCaches() {
 		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException();
-		$this->LoadModel('Server');
+		$this->loadModel('Server');
 		$this->Server->cleanCacheFiles();
 		$this->Session->setFlash('Caches cleared.');
 		$this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'diagnostics'));

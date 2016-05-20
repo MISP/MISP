@@ -129,10 +129,7 @@ class IOCImportComponent extends Component {
 	public function readXML($data, $id, $dist, $filename) {
 		$this->Attribute = ClassRegistry::init('Attribute');
 		$this->filename = $filename;
-		$event = array();
-		$attributes = array();
 		$this->fails = array();
-		$tree = array();
 		$this->distribution = $dist;
 		$this->event_id = $id;
 		// import XML class
@@ -293,14 +290,11 @@ class IOCImportComponent extends Component {
 				}
 				foreach ($value as $k => $v) {
 					array_push($node['branches'], $this->__createBranchNode($v));
-					//$node['branches'][] = $this->__createBranchNode($v);
 				}
 			}
-
 		}
 		return $node;
 	}
-
 
 	// Neat way of checking whether an array is associative or not - during the conversion from XML, if a Node has 1 child it will be represented as $node['child'] instead of $node[0]['child']
 	// By figuring out whether we're dealing with a numerical or an associative array, we can avoid this issue
@@ -412,7 +406,6 @@ class IOCImportComponent extends Component {
 	}
 
 	private function __resolveBranch($branch, $uuid, $type, &$leaves, $root = false) {
-		$toBeOmitted = $branch;
 		// Resolve any deeper branching before we attempt to resolve this, as we might be able to turn it into a single attribute
 		foreach ($branch['branches'] as $key => $value) {
 			$r = $this->__resolveBranch($value, $branch['uuid'], $branch['type'], $branch['leaves']);
@@ -516,6 +509,7 @@ class IOCImportComponent extends Component {
 
 		// If there's only 1 OR branch, return the indicatorItems in the same format as if there were more. It can still get ANDed with the leaves of the parent branch
 		if ($i == count($arrays) - 1) {
+			$temp = array();
 			foreach ($arrays[$i]['leaves'] as $current) {
 				$temp[] = array($current);
 			}
@@ -525,6 +519,7 @@ class IOCImportComponent extends Component {
 		// get combinations from subsequent arrays
 		$tmp = $this->__findCombinations($arrays, $i + 1);
 
+		$result = array();
 		// Build an array of AND-ed combinations
 		foreach ($arrays[$i]['leaves'] as $v) {
 			foreach ($tmp as $t) {
@@ -546,19 +541,25 @@ class IOCImportComponent extends Component {
 	private function __resolveAndBranch($array, $id) {
 		// Let's see how many indicators we have left and take action accordingly
 		$count = count($array);
-		if ($count == 0) return;
-		else if ($count == 1) {
+		if ($count == 0) {
+			return null;
+		} else if ($count == 1) {
 			return $array[0];
 		} else {
-			for ($i=0; $i < $count; $i++) $att[$i] = $this->__analyseIndicator($array[$i], $id);
+			$att = array();
+			for ($i=0; $i < $count; $i++) {
+				$att[$i] = $this->__analyseIndicator($array[$i]);
+			}
 			$attempt = $this->__convertToCompositeAttribute($att, $id);
 			if ($attempt) {
 				$attempt['uuid'] = $att[0]['uuid'];
 				$this->saved_uuids[] = $id;
-				foreach ($att as &$temp) $this->saved_uuids[] = $temp['uuid'];
+				foreach ($att as &$temp) {
+					$this->saved_uuids[] = $temp['uuid'];
+				}
 				return $attempt;
 			}
-			return;
+			return null;
 		}
 	}
 
@@ -577,7 +578,6 @@ class IOCImportComponent extends Component {
 	// Attempt to convert the two attributes retrieved from an AND indicator into a single attribute, if they are eligible to be converted. If not, add it to the array of failures.
 	private function __convertToCompositeAttribute($att, $uuid) {
 		// check if the current attribute is one of the known pairs saved in the array $attributePairs
-		$componentCount = count($att);
 		$tempArray = $values = $uuids = array();
 		foreach ($att as &$temp) $tempArray[$temp['type']] = $temp;
 		ksort($tempArray);
@@ -607,13 +607,6 @@ class IOCImportComponent extends Component {
 		}
 		// If no match found, return false, it's not a valid composite attribute for MISP
 		return false;
-	}
-
-	// used to save the value of attributes of type other (attributes that could not be mapped) and convert temporary attributes to type other.
-	private function __convertToOther(&$attribute) {
-		$attribute['category'] = 'Other';
-		$attribute['type'] = 'comment';
-		$attribute['value'] = $attribute['search'] . ': ' . $attribute['value'];
 	}
 }
 ?>

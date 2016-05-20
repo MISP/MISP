@@ -170,8 +170,6 @@ class SharingGroupsController extends AppController {
 		$result = $this->paginate();
 		// check if the current user can modify or delete the SG
 		foreach ($result as $k => $sg) {
-			//$result[$k]['access'] = $this->SharingGroup->checkAccess($this->Auth->user(), $sg['SharingGroup']['id']);
-			//debug($this->)
 			if ($sg['Organisation']['uuid'] == $this->Auth->user('Organisation')['uuid'] && $this->userRole['perm_sharing_group']) {
 				$result[$k]['editable'] = true;
 			} else {

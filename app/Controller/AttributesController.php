@@ -83,8 +83,6 @@ class AttributesController extends AppController {
 /**
  * add method
  *
- * @return void
- *
  * @throws NotFoundException // TODO Exception
  */
 	public function add($eventId = null) {
@@ -94,8 +92,9 @@ class AttributesController extends AppController {
 		if ($this->request->is('ajax'))	{
 			$this->set('ajax', true);
 			$this->layout = 'ajax';
+		} else {
+			$this->set('ajax', false);
 		}
-		else $this->set('ajax', false);
 		if ($this->request->is('post')) {
 			if ($this->request->is('ajax')) $this->autoRender = false;
 			$this->loadModel('Event');
@@ -177,9 +176,8 @@ class AttributesController extends AppController {
 					// check if the uuid already exists and also save the existing attribute for further checks
 					$existingAttribute = null;
 					$existingAttribute = $this->Attribute->find('first', array('conditions' => array('Attribute.uuid' => $this->request->data['Attribute']['uuid'])));
-					//$existingAttributeCount = $this->Attribute->find('count', array('conditions' => array('Attribute.uuid' => $this->request->data['Attribute']['uuid'])));
 					if ($existingAttribute) {
-						// TODO RESTfull, set responce location header..so client can find right URL to edit
+						// TODO RESTful, set response location header so client can find right URL to edit
 						$this->response->header('Location', Configure::read('MISP.baseurl') . '/attributes/' . $existingAttribute['Attribute']['id']);
 						$this->response->send();
 						throw new NotFoundException('Attribute already exists, if you would like to edit it, use the url in the location header.');
@@ -201,7 +199,6 @@ class AttributesController extends AppController {
 				//
 				// create the attribute
 				$this->Attribute->create();
-				$savedId = $this->Attribute->getID();
 				if ($this->Attribute->save($this->request->data)) {
 					if ($this->_isRest() || $this->response->type() === 'application/json') {
 						$saved_attribute = $this->Attribute->find('first', array(
@@ -295,14 +292,12 @@ class AttributesController extends AppController {
 	private function __downloadAttachment($attribute) {
 		$path = "files" . DS . $attribute['event_id'] . DS;
 		$file = $attribute['id'];
-		$filename = '';
 		if ('attachment' == $attribute['type']) {
 			$filename = $attribute['value'];
 			$fileExt = pathinfo($filename, PATHINFO_EXTENSION);
 			$filename = substr($filename, 0, strlen($filename) - strlen($fileExt) - 1);
 		} elseif ('malware-sample' == $attribute['type']) {
 			$filenameHash = explode('|', $attribute['value']);
-			$filename = $filenameHash[0];
 			$filename = substr($filenameHash[0], strrpos($filenameHash[0], '\\'));
 			$fileExt = "zip";
 		} else {
@@ -340,7 +335,7 @@ class AttributesController extends AppController {
 				$filename = basename($value['name']);
 				$tmpfile = new File($value['tmp_name']);
 				if ((isset($value['error']) && $value['error'] == 0) ||
-				(!empty($value['tmp_name']) && $value['tmp_name'] != 'none')
+					(!empty($value['tmp_name']) && $value['tmp_name'] != 'none')
 				) {
 					if (!is_uploaded_file($tmpfile->path))
 						throw new InternalErrorException('PHP says file was not uploaded. Are you attacking me?');
@@ -408,8 +403,7 @@ class AttributesController extends AppController {
 			if (!empty($fails)) $message = 'Some of the attachments failed to upload. The failed files were: ' . implode(', ', $fails) . ' - This can be caused by the attachments already existing in the event.';
 			if (empty($success)) {
 				if (empty($fails)) $message = 'The attachment(s) could not be saved. please contact your administrator.';
-			}
-			else {
+			} else {
 				$this->Event->id = $this->request->data['Attribute']['event_id'];
 				$this->Event->saveField('published', 0);
 			}
@@ -435,7 +429,7 @@ class AttributesController extends AppController {
 					continue;
 				}
 			}
-		};
+		}
 		$categories = $this->_arrayToValuesIndexArray($selectedCategories);
 		$this->set('categories',$categories);
 	
@@ -641,12 +635,7 @@ class AttributesController extends AppController {
 		}
 		$this->Attribute->read();
 		if ($this->Attribute->data['Attribute']['deleted']) throw new NotFoundException(__('Invalid attribute'));
-		// set stuff to fix undefined index: uuid
-		if (!$this->_isRest()) {
-			$uuid = $this->Attribute->data['Attribute']['uuid'];
-		}
 		if (!$this->_isSiteAdmin()) {
-			//
 			if ($this->Attribute->data['Event']['orgc_id'] == $this->Auth->user('org_id')
 				&& (($this->userRole['perm_modify'] && $this->Attribute->data['Event']['user_id'] != $this->Auth->user('id'))
 					|| $this->userRole['perm_modify_org'])) {
@@ -675,7 +664,7 @@ class AttributesController extends AppController {
 			if ($this->_isRest() || $this->response->type() === 'application/json') {
 				$existingAttribute = $this->Attribute->findByUuid($this->request->data['Attribute']['uuid']);
 			} else {
-				$existingAttribute = $this->Attribute->findByUuid($uuid);
+				$existingAttribute = $this->Attribute->findByUuid($this->Attribute->data['Attribute']['uuid']);
 			}
 			// check if the attribute has a timestamp already set (from a previous instance that is trying to edit via synchronisation)
 			// check which attribute is newer
@@ -685,7 +674,9 @@ class AttributesController extends AppController {
 				if (!isset($this->request->data['Attribute']['timestamp'])) $this->request->data['Attribute']['timestamp'] = $dateObj->getTimestamp(); 	
 				if ($this->request->data['Attribute']['timestamp'] > $existingAttribute['Attribute']['timestamp']) {
 					$recoverFields = array('value', 'to_ids', 'distribution', 'category', 'type', 'comment');
-					foreach ($recoverFields as $rF) if (!isset($this->request->data['Attribute'][$rF])) $this->request->data['Attribute'][$rF] = $existingAttribute['Attribute'][$rF];
+					foreach ($recoverFields as $rF) {
+						if (!isset($this->request->data['Attribute'][$rF])) $this->request->data['Attribute'][$rF] = $existingAttribute['Attribute'][$rF];
+					}
 					// carry on with adding this attribute - Don't forget! if orgc!=user org, create shadow attribute, not attribute!
 				} else {
 					// the old one is newer or the same, replace the request's attribute with the old one
@@ -699,7 +690,6 @@ class AttributesController extends AppController {
 					$this->redirect(array('controller' => 'events', 'action' => 'index'));
 				}
 			}
-			$fieldList = array('category', 'type', 'value1', 'value2', 'to_ids', 'distribution', 'value', 'timestamp', 'comment');
 			$this->loadModel('Event');
 			$this->Event->id = $eventId;
 
@@ -721,7 +711,7 @@ class AttributesController extends AppController {
 					$this->set('response', $response);
 					if ($this->response->type() === 'application/json') $this->render('/Attributes/json/view');
 					else $this->render('view');
-					return false;
+					return;
 				} else {
 					$this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
 				}
@@ -780,7 +770,6 @@ class AttributesController extends AppController {
 		$attribute = $this->Attribute->read();
 		
 		if (!$this->_isSiteAdmin()) {
-			//
 			if ($this->Attribute->data['Event']['orgc_id'] == $this->Auth->user('org_id')
 			&& (($this->userRole['perm_modify'] && $this->Attribute->data['Event']['user_id'] != $this->Auth->user('id'))
 			|| $this->userRole['perm_modify_org'])) {
@@ -837,7 +826,6 @@ class AttributesController extends AppController {
  * delete method
  *
  * @param string $id
- * @return void
  * @throws MethodNotAllowedException
  * @throws NotFoundException
  *
@@ -877,7 +865,16 @@ class AttributesController extends AppController {
 			$this->redirect(array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']));	// TODO check
 		}
 	}
-	
+
+
+	/**
+	 * restore method
+	 *
+	 * @param null $id
+	 * @throws MethodNotAllowedException
+	 * @throws NotFoundException
+	 * @return CakeResponse
+     */
 	public function restore($id = null) {
 		$attribute = $this->Attribute->find('first', array(
 				'conditions' => array('Attribute.id' => $id),
@@ -1028,8 +1025,6 @@ class AttributesController extends AppController {
 					'id' => $attribute_ids,
 					'event_id' => $id,
 				),
-					//to_ids = true/false, distribution = [0,1,2,3]
-				//'fields' => array('id', 'event_id', 'comment', 'to_ids', 'timestamp', 'distribution'),
 				'recursive' => -1,
 			));
 			
@@ -1039,25 +1034,37 @@ class AttributesController extends AppController {
 			}
 			
 			if ($this->request->data['Attribute']['to_ids'] != 2) {
-				foreach ($attributes as &$attribute) $attribute['Attribute']['to_ids'] = ($this->request->data['Attribute']['to_ids'] == 0 ? false : true);
+				foreach ($attributes as &$attribute) {
+					$attribute['Attribute']['to_ids'] = ($this->request->data['Attribute']['to_ids'] == 0 ? false : true);
+				}
 			}
 
 			if ($this->request->data['Attribute']['distribution'] != 6) {
-				foreach ($attributes as &$attribute) $attribute['Attribute']['distribution'] = $this->request->data['Attribute']['distribution'];
+				foreach ($attributes as &$attribute) {
+					$attribute['Attribute']['distribution'] = $this->request->data['Attribute']['distribution'];
+				}
 				if ($this->request->data['Attribute']['distribution'] == 4) {
-					foreach ($attributes as &$attribute) $attribute['Attribute']['sharing_group_id'] = $this->request->data['Attribute']['sharing_group_id'];
+					foreach ($attributes as &$attribute) {
+						$attribute['Attribute']['sharing_group_id'] = $this->request->data['Attribute']['sharing_group_id'];
+					}
 				} else {
-					foreach ($attributes as &$attribute) $attribute['Attribute']['sharing_group_id'] = 0;
+					foreach ($attributes as &$attribute) {
+						$attribute['Attribute']['sharing_group_id'] = 0;
+					}
 				}
 			}
 		
 			if ($this->request->data['Attribute']['comment'] != null) {
-				foreach ($attributes as &$attribute) $attribute['Attribute']['comment'] = $this->request->data['Attribute']['comment'];
+				foreach ($attributes as &$attribute) {
+					$attribute['Attribute']['comment'] = $this->request->data['Attribute']['comment'];
+				}
 			}
 			
 			$date = new DateTime();
 			$timestamp = $date->getTimestamp();
-			foreach ($attributes as &$attribute) $attribute['Attribute']['timestamp'] = $timestamp;
+			foreach ($attributes as &$attribute) {
+				$attribute['Attribute']['timestamp'] = $timestamp;
+			}
 			
 			if($this->Attribute->saveMany($attributes)) {
 				$event['Event']['timestamp'] = $date->getTimestamp();
@@ -1086,7 +1093,6 @@ class AttributesController extends AppController {
  * TODO move this to a component(?)
  */
 	private function __deleteAttributeFromServers($uuid) {
-
 		// get a list of the servers with push active
 		$this->loadModel('Server');
 		$servers = $this->Server->find('all', array('conditions' => array('push' => 1)));
@@ -1104,9 +1110,7 @@ class AttributesController extends AppController {
 
 	public function search() {
 		$fullAddress = '/attributes/search';
-
 		if ($this->request->here == $fullAddress) {
-
 			$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
 			$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
 			$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
@@ -1356,8 +1360,8 @@ class AttributesController extends AppController {
 					$idList = array();
 					$attributeIdList = array();
 					$attributes = $this->paginate();
+
 					// if we searched for IOCs only, apply the whitelist to the search result!
-	
 					if ($ioc) {
 						$this->loadModel('Whitelist');
 						$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
@@ -1500,7 +1504,7 @@ class AttributesController extends AppController {
 		foreach ($simpleFalse as $sF) {
 			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
 		}
-		if ($key!=null && $key!='download') {
+		if ($key != null && $key != 'download') {
 			$user = $this->checkAuthUser($key);
 		} else {
 			if (!$this->Auth->user()) throw new UnauthorizedException('You are not authorized. Please send the Authorization header with your auth key along with an Accept header for application/xml.');
@@ -1509,7 +1513,6 @@ class AttributesController extends AppController {
 		if (!$user) {
 			throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
 		}
-		if ($value) $value = str_replace('|', '/', $value);
 		// request handler for POSTed queries. If the request is a post, the parameters (apart from the key) will be ignored and replaced by the terms defined in the posted json or xml object.
 		// The correct format for both is a "request" root element, as shown by the examples below:
 		// For Json: {"request":{"value": "7.7.7.7&&1.1.1.1","type":"ip-src"}}
@@ -1551,7 +1554,6 @@ class AttributesController extends AppController {
 		$subcondition = array();
 		$this->loadModel('Attribute');
 		// add the values as specified in the 2nd parameter to the conditions
-		$values = explode('&&', $value);
 		$parameters = array('value', 'type', 'category', 'org', 'eventid');
 		foreach ($parameters as $k => $param) {
 			if (isset(${$parameters[$k]}) && ${$parameters[$k]}!==false) {
@@ -1645,7 +1647,7 @@ class AttributesController extends AppController {
 		$user = $this->checkAuthUser($key);
 		// if the user is authorised to use the api key then user will be populated with the user's account
 		// in addition we also set a flag indicating whether the user is a site admin or not.
-		if ($key!=null && $key!='download') {
+		if ($key != null && $key != 'download') {
 			$user = $this->checkAuthUser($key);
 		} else {
 			if (!$this->Auth->user()) throw new UnauthorizedException('You are not authorized. Please send the Authorization header with your auth key along with an Accept header for application/xml.');
@@ -1719,7 +1721,6 @@ class AttributesController extends AppController {
 			if ($contained) {
 				foreach ($exclude as $exc) {
 					if (strpos($attribute['type'], $exc) !== false) {
-						$contained = false;
 						continue 2;
 					}
 				}
@@ -1743,7 +1744,7 @@ class AttributesController extends AppController {
 	}
 
 	public function downloadAttachment($key='download', $id) {
-		if ($key!=null && $key!='download') {
+		if ($key != null && $key != 'download') {
 			$user = $this->checkAuthUser($key);
 		} else {
 			if (!$this->Auth->user()) throw new UnauthorizedException('You are not authorized. Please send the Authorization header with your auth key along with an Accept header for application/xml.');
@@ -1800,7 +1801,6 @@ class AttributesController extends AppController {
 	}
 	
 	public function rpz($key='download', $tags=false, $eventId=false, $from=false, $to=false, $policy=false, $walled_garden = false, $ns = false, $email = false, $serial = false, $refresh = false, $retry = false, $expiry = false, $minimum_ttl = false, $ttl = false) {
-		
 		// request handler for POSTed queries. If the request is a post, the parameters (apart from the key) will be ignored and replaced by the terms defined in the posted json or xml object.
 		// The correct format for both is a "request" root element, as shown by the examples below:
 		// For Json: {"request":{"policy": "walled-garden","garden":"garden.example.com"}}
@@ -1955,7 +1955,6 @@ class AttributesController extends AppController {
 		}
 
 		$fields = array('id', 'distribution', 'event_id');
-		$additionalFieldsToLoad = $field;
 		if ($field == 'category' || $field == 'type') {
 			$fields[] = 'type';
 			$fields[] = 'category';
@@ -1975,11 +1974,10 @@ class AttributesController extends AppController {
 		if (empty($attribute)) throw new NotFoundException(__('Invalid attribute'));
 		$attribute = $attribute[0];
 		if (!$this->_isSiteAdmin()) {
-			//
 			if ($attribute['Event']['orgc_id'] == $this->Auth->user('org_id')
 			&& (($this->userRole['perm_modify'] && $attribute['Event']['user_id'] != $this->Auth->user('id'))
 					|| $this->userRole['perm_modify_org'])) {
-							// Allow the edit
+				// Allow the edit
 			} else {
 				throw new NotFoundException(__('Invalid attribute'));
 			}
@@ -2127,10 +2125,8 @@ class AttributesController extends AppController {
 	// download a sample by passing along an md5
 	public function downloadSample($hash=false, $allSamples=false, $eventID=false) {
 		if (!$this->userRole['perm_auth']) throw new MethodNotAllowedException('This functionality requires API key access.');
-		$isJson = false;
 		$error = false;
 		if ($this->response->type() === 'application/json') {
-			$isJson = true;
 			$data = $this->request->input('json_decode', true);
 		} elseif ($this->response->type() === 'application/xml') {
 			$data = $this->request->data;
@@ -2154,10 +2150,11 @@ class AttributesController extends AppController {
 		// eventID + all samples
 		// hash + eventID
 		// hash + eventID + all samples 
-		
-		if ($hash) $validTypes = $this->Attribute->resolveHashType($hash);
+
+		$searchConditions = array();
 		$types = array();
 		if ($hash) {
+			$validTypes = $this->Attribute->resolveHashType($hash);
 			if ($allSamples) {
 				if (empty($validTypes)) {
 					$error = 'Invalid hash format (valid options are ' . implode(', ', array_keys($this->Attribute->hashTypes)) . ')';
@@ -2191,7 +2188,6 @@ class AttributesController extends AppController {
 			} else {
 				if (!in_array('md5', $validTypes)) $error = 'Only MD5 hashes can be used to fetch malware samples at this point in time.';
 				if (empty($error)) {
-					$types = array('malware-sample', 'filename|md5');
 					$searchConditions = array('AND' => array('LOWER(Attribute.value2) LIKE' => strtolower($hash)));
 				}
 			}
@@ -2200,20 +2196,6 @@ class AttributesController extends AppController {
 		if (!empty($eventID)) $searchConditions['AND'][] = array('Event.id' => $eventID);
 		
 		if (empty($error)) {
-			$distributionConditions = array();
-			if (!$this->_isSiteAdmin()) {
-				$distributionConditions = array("OR" =>
-					array(
-						array('Event.org =' => $this->Auth->user('org')),
-						array("AND" =>
-							array('Event.org !=' => $this->Auth->user('org')),
-							array('Event.distribution !=' => 0),
-							array('Attribute.distribution !=' => 0),
-							Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
-						)
-					)
-				);
-			}
 			$attributes = $this->Attribute->fetchAttributes(
 					$this->Auth->user(),
 					array(
@@ -2254,8 +2236,8 @@ class AttributesController extends AppController {
 				$this->set('_serialize', array('result'));
 			}
 		} else {
-				$this->set('message', $error);
-				$this->set('_serialize', array('message'));
+			$this->set('message', $error);
+			$this->set('_serialize', array('message'));
 		}
 	}
 	

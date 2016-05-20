@@ -1,14 +1,12 @@
 <?php 
 App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
-//App::uses('AppShell', 'Console/Command');
 require_once 'AppShell.php';
 class ServerShell extends AppShell
 {
 	public $uses = array('Server', 'Task', 'Job', 'User', 'Feed');
 	
 	public function pull() {
-		//$user, $id = null, $technique=false, $server
 		$userId = $this->args[0];
 		$serverId = $this->args[1];
 		$technique = $this->args[2];
@@ -50,7 +48,6 @@ class ServerShell extends AppShell
 	
 	public function push() {
 		$serverId = $this->args[0];
-		$technique = $this->args[1];
 		$jobId = $this->args[2];
 		$userId = $this->args[3];
 		$this->Job->read(null, $jobId);
@@ -167,7 +164,6 @@ class ServerShell extends AppShell
 		$this->User->recursive = -1;
 		$user = $this->User->getAuthUser($userId);
 		$servers = $this->Server->find('all', array('recursive' => -1, 'conditions' => array('push' => 1)));
-		$count = count($servers);
 		foreach ($servers as $k => $server) {
 			$this->Job->create();
 			$data = array(

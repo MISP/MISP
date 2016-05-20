@@ -86,15 +86,14 @@ class LogsController extends AppController {
 		$this->set('published', $this->Event->data['Event']['published']);
 		if ($mineOrAdmin && $this->userRole['perm_modify']) $mayModify = true;
 		
-		
 		$conditions['OR'][] = array('AND' => array('Log.model LIKE' => 'Event', 'Log.model_id LIKE' => $id));
 		if ($org) $conditions['AND'][] = array('Log.org LIKE' => $org, 'Log.model LIKE' => 'ShadowAttribute');
 		// if we are not the owners of the event and we aren't site admins, then we should only see the entries for attributes that are not private
 		// This means that we will not be able to see deleted attributes - since those could have been private
 		if (!$mayModify) {
 			$sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user());
-		// get a list of the attributes that belong to the event
-		
+			
+			// get a list of the attributes that belong to the event
 			$this->loadModel('Attribute');
 			$this->Attribute->recursive = -1;
 			$attributes = $this->Attribute->find('all', array(
@@ -116,7 +115,6 @@ class LogsController extends AppController {
 			$conditions['OR'][] = array('AND' => array ('Log.model LIKE' => 'Attribute', 'Log.title LIKE' => '%Event (' . $id . ')%'));
 		}
 		$conditions['OR'][] = array('AND' => array ('Log.model LIKE' => 'ShadowAttribute', 'Log.title LIKE' => '%Event (' . $id . ')%'));
-		//$conditions['OR'][] = array('AND' => array ('Log.model LIKE' => 'ShadowAttribute', 'Log.title LIKE' => '%Event (' . $id . ')%'));
 		$fieldList = array('title', 'created', 'model', 'model_id', 'action', 'change', 'org');
 		$this->paginate = array(
 				'limit' => 60,
@@ -287,9 +285,5 @@ class LogsController extends AppController {
 		$data = $this->Log->returnDates($org);
 		$this->set('data', $data);
 		$this->set('_serialize', 'data');
-	}
-	
-	public function maxDateActivity() {
-		return $this->Log->maxDateActivity();
 	}
 }
