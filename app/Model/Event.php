@@ -1235,8 +1235,17 @@ class Event extends AppModel {
 		if ($options['to']) $conditions['AND'][] = array('Event.date <=' => $options['to']);
 		if ($options['last']) $conditions['AND'][] = array('Event.publish_timestamp >=' => $options['last']);
 		if ($options['event_uuid']) $conditions['AND'][] = array('Event.uuid' => $options['event_uuid']);
-		if (!$user['Role']['perm_sync'] || !isset($options['deleted']) || !$options['deleted']) $conditionsAttributes['AND']['Attribute.deleted'] = false;
-	
+		
+		if (isset($options['deleted']) && $options['deleted']) {
+			if (!$user['Role']['perm_sync']) {
+				$conditionsAttributes['AND'][] = array(
+					'OR' => array(
+						'(SELECT events.org_id FROM events WHERE events.id = Attribute.event_id)' => $user['org_id'],
+						'Attribute.deleted' => false
+					)
+				);
+			}
+		} else $conditionsAttributes['AND']['Attribute.deleted'] = false;
 		
 		if ($options['idList'] && !$options['tags']) {
 			$conditions['AND'][] = array('Event.id' => $options['idList']);

@@ -876,6 +876,20 @@ class AttributesController extends AppController {
 	}
 	
 	public function restore($id = null) {
+		$attribute = $this->Attribute->find('first', array(
+				'conditions' => array('Attribute.id' => $id),
+				'recursive' => -1,
+				'fields' => array('Attribute.id', 'Attribute.event_id'),
+				'contain' => array(
+					'Event' => array(
+						'fields' => array('Event.orgc_id')
+					)
+				)
+		));
+		if (empty($attribute) || !$this->userRole['perm_site_admin'] && $this->Auth->user('org_id') != $attribute['Event']['orgc_id']) {
+			if ($this->request->is('ajax')) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Attribute')),'status'=>200));
+			else throw new MethodNotAllowedException('Invalid Attribute');
+		}
 		if ($this->request->is('ajax')) {
 			if ($this->request->is('post')) {
 				$result = $this->Attribute->restore($id, $this->Auth->user());
@@ -883,11 +897,6 @@ class AttributesController extends AppController {
 				else return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $result)),'status'=>200));
 			} else {
 				$this->set('id', $id);
-				$attribute = $this->Attribute->find('first', array(
-						'conditions' => array('id' => $id),
-						'recursive' => -1,
-						'fields' => array('id', 'event_id'),
-				));
 				$this->set('event_id', $attribute['Attribute']['event_id']);
 				$this->render('ajax/attributeRestorationForm');
 			}

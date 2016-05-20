@@ -1055,7 +1055,6 @@ class UsersController extends AppController {
 	}
 
   public function verifyCertificate() {
-    if (!self::_isSiteAdmin()) throw new NotFoundException();
     $user_results = $this->User->verifyCertificate();
     $this->set('users', $user_results);
   }	
