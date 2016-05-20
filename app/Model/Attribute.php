@@ -524,13 +524,6 @@ class Attribute extends AppModel {
 		// make some last changes to the inserted value
 		$this->data['Attribute']['value'] = $this->modifyBeforeValidation($this->data['Attribute']['type'], $this->data['Attribute']['value']);
 
-		// uppercase the following types
-		switch($this->data['Attribute']['type']) {
-			case 'http-method':
-				$this->data['Attribute']['value'] = strtoupper($this->data['Attribute']['value']);
-		        break;
-        }
-
 		// set to_ids if it doesn't exist
 		if (empty($this->data['Attribute']['to_ids'])) {
 		    $this->data['Attribute']['to_ids'] = 0;
