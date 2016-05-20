@@ -322,7 +322,7 @@ class SharingGroup extends AppModel {
 	}
 	
 	public function captureSG($sg, $user) {
-		$existingSG = $this->find('first', array(
+		$existingSG = !isset($sg['uuid']) ? null : $this->find('first', array(
 				'recursive' => -1,
 				'conditions' => array('SharingGroup.uuid' => $sg['uuid']),
 				'contain' => array(
@@ -337,7 +337,7 @@ class SharingGroup extends AppModel {
 			$this->create();
 			$newSG = array();
 			$attributes = array('name', 'releasability', 'description', 'uuid', 'organisation_uuid', 'created', 'modified');
-			foreach ($attributes as $a)	$newSG[$a] = $sg[$a];
+			foreach ($attributes as $a)	$newSG[$a] = isset($sg[$a]) ? $sg[$a] : null;
 			$newSG['local'] = 0;
 			$newSG['sync_user_id'] = $user['id'];
 			if (!isset($sg['Organisation'])) {
