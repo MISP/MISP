@@ -70,17 +70,15 @@ class Attribute extends AppModel {
 	
 	public $shortDist = array(0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All', 4 => ' sharing Group', 5 => 'Inherit');
 
-	// these are definition of possible types + their descriptions and maybe later other behaviors
+	// these are definitions of possible types + their descriptions and maybe later other behaviors
 	// e.g. if the attribute should be correlated with others or not
 
-	// if these then a category my have upload to be zipped
-
+	// if these then a category may have upload to be zipped
 	public $zippedDefinitions = array(
 			'malware-sample'
 	);
 
-	// if these then a category my have upload
-
+	// if these then a category may have upload
 	public $uploadDefinitions = array(
 			'attachment'
 	);
@@ -280,8 +278,8 @@ class Attribute extends AppModel {
 	);
 	
 	// typeGroupings are a mapping to high level groups for attributes
-	// for example, IP addresses, domain names, hostnames e-mail addresses are all network related attribute types
-	// whilst filenames and hashes are all file related attribute types
+	// for example, IP addresses, domain names, hostnames and e-mail addresses are network related attribute types
+	// whilst filenames and hashes are file related attribute types
 	// This helps generate quick filtering for the event view, but we may reuse this and enhance it in the future for other uses (such as the API?) 
 	public $typeGroupings = array(
 		'file' => array('attachment', 'pattern-in-file', 'md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'authentihash', 'pehash', 'tlsh', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|pehash', 'malware-sample', 'x509-fingerprint-sha1'),
@@ -403,7 +401,7 @@ class Attribute extends AppModel {
 		parent::__construct($id, $table, $ds);
 	}
 
-	//The Associations below have been created with all possible keys, those that are not needed can be removed
+	// The Associations below have been created with all possible keys, those that are not needed can be removed
 
 /**
  * belongsTo associations
@@ -546,16 +544,19 @@ class Attribute extends AppModel {
 			$date = new DateTime();
 			$this->data['Attribute']['timestamp'] = $date->getTimestamp();
 		}
+		// TODO: add explanatory comment
 		$result = $this->runRegexp($this->data['Attribute']['type'], $this->data['Attribute']['value']);
 		if (!$result) {
 			$this->invalidate('value', 'This value is blocked by a regular expression in the import filters.');
 		} else {
 			$this->data['Attribute']['value'] = $result;
 		}
-		// always return true, otherwise the object cannot be saved
-		
+
+		// TODO: add explanatory comment
 		if (!isset($this->data['Attribute']['distribution']) || $this->data['Attribute']['distribution'] != 4) $this->data['Attribute']['sharing_group_id'] = 0;
 		if (!isset($this->data['Attribute']['distribution'])) $this->data['Attribute']['distribution'] = 5;
+
+		// return true, otherwise the object cannot be saved
 		return true;
 	}
 
@@ -588,9 +589,10 @@ class Attribute extends AppModel {
 				'conditions' => $conditions,
 		);
 		if (0 != $this->find('count', $params)) {
+			// value isn't unique
 			return false;
 		}
-		// Say everything is fine
+		// value is unique
 		return true;
 	}
 
@@ -699,8 +701,9 @@ class Attribute extends AppModel {
 				}
 				break;
 			case 'filename|ssdeep':
-				if (substr_count($value, '|') != 1 || !preg_match("#^.+\|.+$#", $value)) $returnValue = 'Invalid composite type. The format has to be ' . $type . '.'; 
-				else {
+				if (substr_count($value, '|') != 1 || !preg_match("#^.+\|.+$#", $value)) {
+					$returnValue = 'Invalid composite type. The format has to be ' . $type . '.';
+				} else {
 					$composite = explode('|', $value);
 					$value = $composite[1];
 					if (substr_count($value, ':') == 2) {
@@ -724,7 +727,7 @@ class Attribute extends AppModel {
 				// [1] = the network address
 				if (count($parts) <= 2 ) {
 					// ipv4 and ipv6 matching
-					if (filter_var($parts[0],FILTER_VALIDATE_IP)) {
+					if (filter_var($parts[0], FILTER_VALIDATE_IP)) {
 						// ip is validated, now check if we have a valid network mask
 						if (empty($parts[1])) {
 							$returnValue = true;
@@ -750,8 +753,11 @@ class Attribute extends AppModel {
 			case 'domain|ip':
 				if (preg_match("#^[A-Z0-9.\-_]+\.[A-Z]{2,}\|.*$#i", $value)) {
 					$parts = explode('|', $value);
-					if (filter_var($parts[1],FILTER_VALIDATE_IP)) {$returnValue = true;}
-					else {$returnValue = 'IP address has invalid format.';}
+					if (filter_var($parts[1], FILTER_VALIDATE_IP)) {
+						$returnValue = true;
+					} else {
+						$returnValue = 'IP address has invalid format.';
+					}
 				} else {
 					$returnValue = 'Domain name has invalid format.';
 				}
@@ -781,8 +787,11 @@ class Attribute extends AppModel {
 				break;
 			case 'windows-service-name':
 			case 'windows-service-displayname':
-				if (strlen($value) > 256 || preg_match('#[\\\/]#', $value)) $returnValue = 'Invalid format. Only values shorter than 256 characters that don\'t include any forward or backward slashes are allowed.';
-				else $returnValue = true;
+				if (strlen($value) > 256 || preg_match('#[\\\/]#', $value)) {
+					$returnValue = 'Invalid format. Only values shorter than 256 characters that don\'t include any forward or backward slashes are allowed.';
+				} else {
+					$returnValue = true;
+				}
 				break;
 			case 'mutex':
 			case 'AS':
@@ -833,10 +842,12 @@ class Attribute extends AppModel {
  				}
  				break;
  			case 'targeted-threat-index':
- 				if (!is_numeric($value) || $value < 0 || $value > 10) $returnValue = 'The value has to be a number between 0 and 10.';
- 				else $returnValue = true;
+ 				if (!is_numeric($value) || $value < 0 || $value > 10) {
+					$returnValue = 'The value has to be a number between 0 and 10.';
+				} else {
+					$returnValue = true;
+				}
  				break;
-
 			case 'iban':
 			case 'bic':
 			case 'btc':
@@ -980,8 +991,8 @@ class Attribute extends AppModel {
 		return $compositeTypes;
 	}
 
-	public function isOwnedByOrg($attributeid, $org) {
-		$this->id = $attributeid;
+	public function isOwnedByOrg($attributeId, $org) {
+		$this->id = $attributeId;
 		$this->read();
 		return $this->data['Event']['org_id'] === $org;
 	}
@@ -989,12 +1000,12 @@ class Attribute extends AppModel {
 	public function getRelatedAttributes($attribute, $fields=array()) {
 		// LATER getRelatedAttributes($attribute) this might become a performance bottleneck
 
-		// exclude these specific categories to be linked
+		// exclude these specific categories from being linked
 		switch ($attribute['category']) {
 			case 'Antivirus detection':
 				return null;
 		}
-		// exclude these specific types to be linked
+		// exclude these specific types from being linked
 		switch ($attribute['type']) {
 			case 'other':
 			case 'comment':
@@ -1006,7 +1017,9 @@ class Attribute extends AppModel {
 				'Attribute.event_id !=' => $attribute['event_id'],
 				//'Attribute.type' => $attribute['type'],  // do not filter on type
 				);
-		if (empty($attribute['value1'])) {	// prevent issues with empty fields
+
+		// prevent issues with empty fields
+		if (empty($attribute['value1'])) {
 			return null;
 		}
 
@@ -1097,33 +1110,28 @@ class Attribute extends AppModel {
 			$this->data['Attribute']['category'] = $category ? $category : "Payload delivery";
 			$this->data['Attribute']['type'] = "malware-sample";
 			$this->data['Attribute']['value'] = $fullFileName ? $fullFileName . '|' . $md5 : $filename . '|' . $md5; // TODO gives problems with bigger files
-			$this->data['Attribute']['to_ids'] = 1; // LATER let user choose to send this to IDS
-			if ($fromGFI)$this->data['Attribute']['comment'] = 'GFI import';
+			$this->data['Attribute']['to_ids'] = 1; // LATER let user choose whether to send this to an IDS
+			if ($fromGFI) $this->data['Attribute']['comment'] = 'GFI import';
 		} else {
 			$this->data['Attribute']['category'] = $category ? $category : "Artifacts dropped";
 			$this->data['Attribute']['type'] = "attachment";
 			$this->data['Attribute']['value'] = $fullFileName ? $fullFileName : $realFileName;
 			$this->data['Attribute']['to_ids'] = 0;
-			if ($fromGFI)$this->data['Attribute']['comment'] = 'GFI import';
+			if ($fromGFI) $this->data['Attribute']['comment'] = 'GFI import';
 		}
 
-		//???
-		if ($this->save($this->data)) {
-			// attribute saved correctly in the db
-		} else {
-			// do some?
+		if (!$this->save($this->data)) {
+			// TODO: error handling
 		}
 
 		// no errors in file upload, entry already in db, now move the file where needed and zip it if required.
 		// no sanitization is required on the filename, path or type as we save
 		// create directory structure
-		// ???
 		$rootDir = APP . "files" . DS . $eventId;
-		
 		$dir = new Folder($rootDir, true);
 		// move the file to the correct location
 		$destpath = $rootDir . DS . $this->getId(); // id of the new attribute in the database
-		$file = new File ($destpath);
+		$file = new File($destpath);
 		$zipfile = new File ($destpath . '.zip');
 		$fileInZip = new File($rootDir . DS . $extraPath . $filename); // FIXME do sanitization of the filename
 
@@ -1134,9 +1142,9 @@ class Attribute extends AppModel {
 			$execOutput = array();
 			exec("zip -j -P infected " . $zipfile->path . ' \'' . addslashes($fileInZip->path) . '\'', $execOutput, $execRetval);
 			if ($execRetval != 0) { // not EXIT_SUCCESS
-				// do some?
+				// TODO: error handling
 			};
-			$fileInZip->delete(); // delete the original not-zipped-file
+			$fileInZip->delete(); // delete the original non-zipped-file
 			rename($zipfile->path, $file->path); // rename the .zip to .nothing
 		} else {
 			$fileAttach = new File($fileP);
@@ -1145,7 +1153,6 @@ class Attribute extends AppModel {
 	}
 
 	public function __beforeSaveCorrelation($a) {
-
 		// (update-only) clean up the relation of the old value: remove the existing relations related to that attribute, we DO have a reference, the id
 		// ==> DELETE FROM correlations WHERE 1_attribute_id = $a_id OR attribute_id = $a_id; */
 		// first check if it's an update
@@ -1249,9 +1256,9 @@ class Attribute extends AppModel {
 	}
 
 	public function uploadAttributeToServer($attribute, $server, $HttpSocket=null) {
-		$newLocation = $this->restfullAttributeToServer($attribute, $server, null, $HttpSocket);
+		$newLocation = $this->restfulAttributeToServer($attribute, $server, null, $HttpSocket);
 		if (is_string($newLocation)) { // HTTP/1.1 302 Found and Location: http://<newLocation>
-			$newTextBody = $this->restfullAttributeToServer($attribute, $server, $newLocation, $HttpSocket);
+			$newTextBody = $this->restfulAttributeToServer($attribute, $server, $newLocation, $HttpSocket);
 		}
 		return true;
 	}
@@ -1262,10 +1269,10 @@ class Attribute extends AppModel {
  *
  * @return bool true if success, error message if failed
  */
-	public function restfullAttributeToServer($attribute, $server, $urlPath, $HttpSocket=null) {
+	public function restfulAttributeToServer($attribute, $server, $urlPath, $HttpSocket=null) {
 		// do not keep attributes that are private
 		if (0 == $attribute['distribution']) { // never upload private events
-			return "Attribute is private and non exportable";
+			return "Attribute is private and non-exportable";
 		}
 
 		$url = $server['Server']['url'];
@@ -1280,7 +1287,7 @@ class Attribute extends AppModel {
 						'Authorization' => $authkey,
 						'Accept' => 'application/xml',
 						'Content-Type' => 'application/xml',
-						//'Connection' => 'keep-alive' // LATER followup cakephp ticket 2854 about this problem http://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2854
+						//'Connection' => 'keep-alive' // LATER followup cakephp issue about this problem: https://github.com/cakephp/cakephp/issues/1961
 				)
 		);
 		$uri = isset($urlPath) ? $urlPath : $url . '/attributes';
@@ -1356,7 +1363,7 @@ class Attribute extends AppModel {
 						'Authorization' => $authkey,
 						'Accept' => 'application/xml',
 						'Content-Type' => 'application/xml',
-						//'Connection' => 'keep-alive' // LATER followup cakephp ticket 2854 about this problem http://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2854
+						//'Connection' => 'keep-alive' // LATER followup cakephp issue about this problem: https://github.com/cakephp/cakephp/issues/1961
 				)
 		);
 		$uri = $url . '/attributes/0?uuid=' . $uuid;
@@ -1367,7 +1374,7 @@ class Attribute extends AppModel {
 			// TODO NETWORK for now do not know how to catch the following..
 			// TODO NETWORK No route to host
 			$response = $HttpSocket->delete($uri, array(), $request);
-			// TODO REST, DELETE, no responce needed
+			// TODO REST, DELETE, no response needed
 		}
 	}
 
@@ -1467,15 +1474,15 @@ class Attribute extends AppModel {
 			$conditions['AND']['Attribute.type'] = $valid_types;
 					
 			$params = array(
-					'conditions' => $conditions, //array of conditions
-					'recursive' => -1, //int
+					'conditions' => $conditions, // array of conditions
+					'recursive' => -1, // int
 					'fields' => array('Attribute.id', 'Attribute.event_id', 'Attribute.type', 'Attribute.value'),
 					'contain' => array('Event'=> array('fields' => array('Event.id', 'Event.threat_level_id'))),
-					'group' => array('Attribute.type', 'Attribute.value1'), //fields to GROUP BY
+					'group' => array('Attribute.type', 'Attribute.value1'), // fields to GROUP BY
 			);
 			$items = $this->fetchAttributes($user, $params);
 			if (empty($items)) continue;
-			// export depending of the requested type
+			// export depending on the requested type
 			switch ($format) {
 				case 'suricata':
 					$export = new NidsSuricataExport();
@@ -1485,7 +1492,7 @@ class Attribute extends AppModel {
 					break;
 			}
 			$rules = array_merge($rules, $export->export($items, $user['nids_sid'], $format, $continue));
-			// Only pre-pend the comments once
+			// Only prepend the comments once
 			$continue = true;
 		}
 		return $rules;
@@ -1562,7 +1569,7 @@ class Attribute extends AppModel {
  							$conditions,
  							array('type' => $v),
 	 					),
- 						'fields' => array('Attribute.value'), //array of field names
+						'fields' => array('Attribute.value'), // array of field names
 	 				)
 	 		);
 	 		if (empty($temp)) continue;
@@ -1578,8 +1585,12 @@ class Attribute extends AppModel {
 	 				}
 	 				if (!$found) $values[$k][] = $value['Attribute']['value'];
 	 			}
-	 		} else foreach ($temp as $value) $values[$k][] = $value['Attribute']['value'];
-	 		unset($temp);
+			} else {
+				foreach ($temp as $value) {
+					$values[$k][] = $value['Attribute']['value'];
+				}
+			}
+			unset($temp);
 	 	}
 	 	return $values;
 	 }
@@ -1629,12 +1640,9 @@ class Attribute extends AppModel {
 	 	foreach ($attributes as $a) {
 	 		$attribute = $this->find('first', array('recursive' => -1, 'conditions' => array('id' => $a['Attribute']['id'])));
 	 		$this->set($attribute);
-	 		if ($this->validates()) {
-	 			// validates
-	 		} else {
+	 		if (!$this->validates()) {
 	 			$errors = $this->validationErrors;
 	 			$result[$i]['id'] = $attribute['Attribute']['id'];
-	 			// print_r
 	 			$result[$i]['error'] = array();
 	 			foreach ($errors as $field => $error) {
 	 				$result[$i]['error'][$field] = array('value' => $attribute['Attribute'][$field], 'error' => $error[0]); 
@@ -1727,7 +1735,7 @@ class Attribute extends AppModel {
 	private function __resolveElementAttribute($element, $value) {
 		$attributes = array();
 		$results = array();
-		$errors=null;
+		$errors = null;
 		if (!empty($value)) {
 				if ($element['batch']) {
 				$values = explode("\n", $value);
@@ -1836,7 +1844,7 @@ class Attribute extends AppModel {
 	 public function buildConditions($user) {
 	 	$conditions = array();
 	 	if (!$user['Role']['perm_site_admin']) {
-	 		$event_ids = $this->Event->fetchEventIds($user, false, false, false, true);
+	 		$eventIds = $this->Event->fetchEventIds($user, false, false, false, true);
 	 		$sgsids = $this->SharingGroup->fetchAllAuthorised($user);
 	 		$conditions = array(
 				'AND' => array(
@@ -1848,7 +1856,7 @@ class Attribute extends AppModel {
 	 					),
 	 					array(
  							'AND' => array(
-								'Event.id' => $event_ids,
+								'Event.id' => $eventIds,
 								'OR' => array(
 									'Attribute.distribution' => array('1', '2', '3', '5'),
 									'AND '=> array(
@@ -1873,7 +1881,7 @@ class Attribute extends AppModel {
 	//     conditions
 	//     order
 	//     group
-	 public function fetchAttributes($user, $options = array()) {
+	public function fetchAttributes($user, $options = array()) {
  		$params = array(
  			'conditions' => $this->buildConditions($user),
  			'recursive' => -1,
@@ -1902,14 +1910,14 @@ class Attribute extends AppModel {
 	 		}
 	 	}
 	 	return $results;
-	 }
+	}
 	
-	// get and converts the contents of a file passed along as a base64 encoded string with the original filename into a zip archive
+	// Method gets and converts the contents of a file passed along as a base64 encoded string with the original filename into a zip archive
 	// The zip archive is then passed back as a base64 encoded string along with the md5 hash and a flag whether the transaction was successful
 	// The archive is password protected using the "infected" password
 	// The contents of the archive will be the actual sample, named <md5> and the original filename in a text file named <md5>.filename.txt
 	public function handleMaliciousBase64($event_id, $original_filename, $base64, $hash_types, $proposal = false) {
-		if (!is_numeric($event_id)) throw new Exception('Something went wrong. Received a non numeric event ID while trying to create a zip archive of an uploaded malware sample.');
+		if (!is_numeric($event_id)) throw new Exception('Something went wrong. Received a non-numeric event ID while trying to create a zip archive of an uploaded malware sample.');
 		if ($proposal) {
 			$dir = new Folder(APP . "files" . DS . $event_id . DS . 'shadow', true);
 		} else {
@@ -1946,6 +1954,7 @@ class Attribute extends AppModel {
 				return hash_file($hashType, $file);
 				break;
 		}
+		return false;
 	}
 	
 	public function generateRandomFileName() {
