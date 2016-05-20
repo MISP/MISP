@@ -1404,7 +1404,6 @@ class Attribute extends AppModel {
 				}
 			}
 		}
-		$continue = false;
 		App::uses('HidsExport', 'Export');
 		$continue = false;
 		foreach ($eventIds as $event) {
@@ -1676,8 +1675,6 @@ class Attribute extends AppModel {
 		 $result = array();
 		 $errors = array();
 		 $attributes = array();
-		 $files = array();
-		 $savedFiles = array();
 		 if (isset($data['Template']['fileArray'])) $fileArray = json_decode($data['Template']['fileArray'], true);
 		 foreach ($template['TemplateElement'] as $element) {
 		 	if ($element['element_definition'] == 'attribute') {
@@ -1749,8 +1746,6 @@ class Attribute extends AppModel {
 	private function __resolveElementFile($element, $files) {
 		$attributes = array();
 		$errors = null;
-		$results = array();
-		$count = count($files);
 		$element['complex'] = false;
 		if ($element['malware']) {
 			$element['type'] = 'malware-sample';
