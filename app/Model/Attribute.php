@@ -1762,12 +1762,11 @@ class Attribute extends AppModel {
 			if ($element['malware']) {
 				$malwareName = $file['filename'] . '|' . hash_file('md5', APP . 'tmp/files/' . $file['tmp_name']);
 				$tmp_file = new File(APP . 'tmp/files/' . $file['tmp_name']);
-				if (!$tmp_file->exists()) {
+				if (!$tmp_file->readable()) {
 					$errors = 'File cannot be read.';
 				} else {
 					$element['type'] = 'malware-sample';
 					$attributes[] = $this->__createAttribute($element, $malwareName);
-					$content = $tmp_file->read();
 					$attributes[count($attributes) - 1]['data'] = $file['tmp_name'];
 					$element['type'] = 'filename|sha256';
 					$sha256 = $file['filename'] . '|' . (hash_file('sha256', APP . 'tmp/files/' . $file['tmp_name']));
@@ -1779,10 +1778,9 @@ class Attribute extends AppModel {
 			} else {
 				$attributes[] = $this->__createAttribute($element, $file['filename']);
 				$tmp_file = new File(APP . 'tmp/files/' . $file['tmp_name']);
-				if (!$tmp_file->exists()) {
-				$errors = 'File cannot be read.';
+				if (!$tmp_file->readable()) {
+					$errors = 'File cannot be read.';
 				} else {
-					$content = $tmp_file->read();
 					$attributes[count($attributes) - 1]['data'] = $file['tmp_name'];
 				}
 			}
