@@ -357,7 +357,7 @@ class UsersController extends AppController {
 				$this->request->data['User']['termsaccepted'] = 0;
 			}
 			if (!isset($this->request->data['User']['disabled'])) $this->request->data['User']['disabled'] = false;
-			$this->request->data['User']['newsread'] = '2000-01-01';
+			$this->request->data['User']['newsread'] = 0;
 			if (!$this->_isSiteAdmin()) {
 				$this->request->data['User']['org_id'] = $this->Auth->User('org_id');
 				$this->loadModel('Role');
@@ -656,7 +656,7 @@ class UsersController extends AppController {
 					'confirm_password' => 'admin',
 					'authkey' => $this->User->generateAuthKey(),
 					'nids_sid' => 4000000,
-					'newsread' => date('Y-m-d'),
+					'newsread' => 0,
 					'role_id' => 1,
 					'change_pw' => 1
 				));

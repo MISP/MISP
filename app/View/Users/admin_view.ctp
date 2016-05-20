@@ -85,7 +85,7 @@ if (h($user['User']['change_pw']) == 1) {
 		</dd>
 		<dt><?php echo __('Newsread'); ?></dt>
 		<dd>
-			<?php echo h($user['User']['newsread']); ?>
+			<?php echo $user['User']['newsread'] ? date('Y/m/d H:i:s', h($user['User']['newsread'])) : 'N/A'; ?>
 			&nbsp;
 		</dd>
 		<dt><?php echo __('Disabled'); ?></dt>

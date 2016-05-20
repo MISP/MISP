@@ -318,7 +318,18 @@
 					<?php elseif ($menuItem === 'previewEvent'): ?>
 						<li id='lipreviewEvent'><a href="<?php echo $baseurl;?>/feeds/previewEvent/<?php echo h($feed['Feed']['id']); ?>/<?php echo h($id);?>">PreviewEvent</a></li>
 					<?php endif; 
-				break;	
+				break;
+				
+				case 'news': ?>
+					<li id='liindex'><a href="<?php echo $baseurl;?>/news/index">View News</a></li>
+				<?php 
+					if ($isSiteAdmin): ?>
+						<li id='liadd'><a href="<?php echo $baseurl;?>/news/add">Add News Item</a></li>
+						<?php if ($menuItem === 'edit'): ?>
+							<li class="active"><a href="#">Edit News Item</a></li>
+						<?php endif;
+					endif; 
+				break;
 			}
 		?>
 	</ul>

@@ -75,6 +75,7 @@
 							<b class="caret"></b>
 						</a>
 						<ul class="dropdown-menu">
+							<li><a href="<?php echo $baseurl;?>/news">News</a></li>
 							<li><a href="<?php echo $baseurl;?>/users/view/me">My Profile</a></li>
 							<li><a href="<?php echo $baseurl;?>/users/dashboard">Dashboard</a></li>
 							<li><a href="<?php echo $baseurl;?>/users/memberslist">Members List</a></li>
