@@ -418,7 +418,7 @@ class TemplatesController extends AppController {
 	// before it gets saved as an attribute and moved to the persistent attachment store
 	public function deleteTemporaryFile($filename) {
 		if (!$this->request->is('post')) throw new MethodNotAllowedException('This action is restricted to accepting POST requests only.');
-		//if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This action is only accessible through AJAX.');
+		if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This action is only accessible through AJAX.');
 		$this->autoRender = false;
 		if (preg_match('/^[a-zA-Z0-9]{12}$/', $filename)) {
 			$file = new File(APP . 'tmp/files/' . $filename);

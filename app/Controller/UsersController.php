@@ -128,35 +128,6 @@ class UsersController extends AppController {
 	}
 
 /**
- * delete method
- *
- * @param string $id
- * @return void
- * @throws MethodNotAllowedException
- * @throws NotFoundException
- */
-	public function delete($id = null) {
-		if ("me" == $id) $id = $this->Auth->user('id');
-		if (!$this->request->is('post')) {
-			throw new MethodNotAllowedException();
-		}
-		$this->User->id = $id;
-		if (!$this->User->exists()) {
-			throw new NotFoundException(__('Invalid user'));
-		}
-		//if ($this->Auth->User('org') != 'ADMIN' && $this->Auth->User('org') != $this->User->data['User']['org']) $this->redirect(array('controller' => 'users', 'action' => 'index', 'admin' => true));
-		//// Only own profile
-		//if ($this->Auth->user('id') != $id) {
-		//	throw new ForbiddenException('You are not authorized to delete this profile.');
-		//}
-		if ($this->User->delete()) {
-			$this->Session->setFlash(__('User deleted'));
-			$this->redirect(array('action' => 'index'));
-		}
-		$this->Session->setFlash(__('User was not deleted'));
-		$this->redirect(array('action' => 'index'));
-	}
-/**
  * admin_index method
  *
  * @return void
@@ -580,6 +551,9 @@ class UsersController extends AppController {
 		$user = $this->User->read('email', $id);
 		$fieldsDescrStr = 'User (' . $id . '): ' . $user['User']['email'];
 		if (!$this->User->exists()) {
+			throw new NotFoundException(__('Invalid user'));
+		}
+		if (!$this->_isSiteAdmin && $this->User->data['User']['org_id'] != $this->Auth->user('id')) {
 			throw new NotFoundException(__('Invalid user'));
 		}
 		if ($this->User->delete()) {
