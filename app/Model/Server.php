@@ -1465,8 +1465,8 @@ class Server extends AppModel {
 			// FIXME refactor this with clean try catch over all http functions
 				return $e->getMessage();
 			}
-			// error, so return null
-			return null;
+			// error, so return error message, since that is handled and everything is expecting an array
+			return "Error: got response code " . $response->code;
 	}
 	
 	public function push($id = null, $technique=false, $jobId = false, $HttpSocket, $user) {
@@ -1654,6 +1654,8 @@ class Server extends AppModel {
 			if ($event_id == null) {
 				// event_id is null when we are doing a push
 				$ids = $this->getEventIdsFromServer($server, true, $HttpSocket);
+				// error return strings or ints or throw exceptions
+				if(!is_array($ids)) return false;
 				$conditions = array('uuid' => $ids);
 			} else {
 				$conditions = array('id' => $event_id);
