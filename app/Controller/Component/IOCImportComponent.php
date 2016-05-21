@@ -439,7 +439,7 @@ class IOCImportComponent extends Component {
 		}
 		// try to reverse AND-OR
 		// If we are in an AND branch that only has 1 level of extra branching, consisting of only OR branches
-		if ($branch['type'] === 'AND' && ((count($branch['branches']) > 1) || (count($branch['branches'] > 0 && count($branch['leaves'] > 0))))) {
+		if ($branch['type'] === 'AND' && ((count($branch['branches']) > 1) || (count($branch['branches']) > 0 && count($branch['leaves']) > 0))) {
 			// There's hope to be able to resolve the branch
 			$hope = true;
 			$combinations = 1;
