@@ -15,7 +15,7 @@ class AttributesController extends AppController {
 	public $paginate = array(
 			'limit' => 60,
 			'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events
-			'conditions' => array('AND' => array('Event.id >' => 0))
+			'conditions' => array('AND' => array('Event.id >' => 0, 'Attribute.deleted' => false))
 	);
 
 	public $helpers = array('Js' => array('Jquery'));
@@ -1283,12 +1283,11 @@ class AttributesController extends AppController {
 					$conditions['Attribute.category ='] = $category;
 				}
 				// organisation search field
-				$i = 1;
 				$temp = array();
 				if (isset($org)) {
 					$this->loadModel('Organisation');
 					$orgArray = explode("\n", $org);
-					foreach ($orgArray as $orgArrayElement) {
+					foreach ($orgArray as $i => $orgArrayElement) {
 						$saveWord = trim($orgArrayElement);
 						if (empty($saveWord)) continue;
 						if ($saveWord[0] == '!') {
@@ -1304,11 +1303,10 @@ class AttributesController extends AppController {
 							));
 							foreach ($org_names as $org_name) $temp['OR'][] = array('Event.orgc_id' => $org_name['Organisation']['id']);
 						}
+						if ($i == 0 && $saveWord != '') $keyWordText3 = $saveWord;
+						else if (($i > 0 && $i < 9) && $saveWord != '') $keyWordText3 = $keyWordText3 . ', ' . $saveWord;
+						else if ($i == 9 && $saveWord != '') $keyWordText3 = $keyWordText3 . ' and several other organisations';
 					}
-					if ($i == 1 && $saveWord != '') $keyWordText3 = $saveWord;
-					else if (($i > 1 && $i < 10) && $saveWord != '') $keyWordText3 = $keyWordText3 . ', ' . $saveWord;
-					else if ($i == 10 && $saveWord != '') $keyWordText3 = $keyWordText3 . ' and several other organisations';
-					$i++;
 					$this->set('orgSearch', $keyWordText3);
 					if (!empty($temp)) {
 						$conditions['AND'][] = $temp;
