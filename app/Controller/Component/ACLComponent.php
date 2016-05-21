@@ -404,9 +404,7 @@ class ACLComponent extends Component {
 	
 	public function printAllFunctionNames($content = false) {
 		$results = $this->__findAllFunctions();
-		$pretty = "";
 		ksort($results);
-		$count = 0;
 		return $results;
 	} 
 
@@ -462,5 +460,4 @@ class ACLComponent extends Component {
 		}
 		return $result;
 	}
-	
 }

@@ -13,7 +13,8 @@ class RolesController extends AppController {
 
 	public $components = array(
 		'Security',
-		'Session', 'AdminCrud' // => array('fields' => array('name'))
+		'Session',
+		'AdminCrud' // => array('fields' => array('name'))
 	);
 
 	public $helpers = array('Js' => array('Jquery'));
@@ -39,7 +40,6 @@ class RolesController extends AppController {
  */
 	public function view($id = null) {
 		$this->Role->id = $id;
-		//$this->Acl->allow($this->Role, 'controllers/Events/add');
 		if (!$this->Role->exists()) {
 			throw new NotFoundException(__('Invalid role'));
 		}
@@ -70,7 +70,6 @@ class RolesController extends AppController {
 		}
 		$this->set('permFlags', $this->Role->permFlags);
 		$this->set('options', $this->options);
-		//$this->AdminCrud->adminAdd();
 	}
 
 /**

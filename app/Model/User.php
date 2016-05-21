@@ -179,7 +179,7 @@ class User extends AppModel {
 		),
 	);
 
-	//The Associations below have been created with all possible keys, those that are not needed can be removed
+	// The Associations below have been created with all possible keys, those that are not needed can be removed
 
 /**
  * belongsTo associations
@@ -294,7 +294,7 @@ class User extends AppModel {
 			return true;
 		}
 
-		// we have a clean, hopefull public, key here
+		// we have a clean, hopefully public, key here
 
 		// key is entered
 		require_once 'Crypt/GPG.php';
@@ -306,12 +306,10 @@ class User extends AppModel {
 					return true;
 				}
 			} catch (Exception $e) {
-				//debug($e);
 				$this->log($e->getMessage());
 				return false;
 			}
 		} catch (Exception $e) {
-			//debug($e);
 			$this->log($e->getMessage());
 			return true; // TODO was false
 		}
@@ -325,14 +323,15 @@ class User extends AppModel {
 	// the method in verifyUsers will fail in that case.
 	public function validateCertificate($check) {
 		// LATER first remove the old certif_public from the keychain
+
 		// empty value
 		if (empty($check['certif_public'])) {
-		return true;
+			return true;
 		}
 	
 		// certif_public is entered
 	
-		// Check if $check is a x509 certificate ?
+		// Check if $check is a x509 certificate
 		if (openssl_x509_read($check['certif_public'])){
 			try {
 				App::uses('Folder', 'Utility');
@@ -448,7 +447,6 @@ class User extends AppModel {
 		foreach ($users as $user) {
 			if (strlen($user['User']['gpgkey']) && strpos($user['User']['gpgkey'], "\n")) {
 				$fails[] = $user['User']['id'] . ':' . $user['User']['id'];
-				//$check['gpgkey'] = trim(preg_replace('/\n', '', $check['gpgkey']));
 			}
 		}
 		return $fails;
@@ -491,7 +489,6 @@ class User extends AppModel {
 				$subKeys = $key[0]->getSubKeys();
 				$sortedKeys = array('valid' => 0, 'expired' => 0, 'noEncrypt' => 0);
 				foreach ($subKeys as $subKey) {
-					$issue = false;
 					$expiration = $subKey->getExpirationDate();
 					if ($expiration != 0 && $currentTimestamp > $expiration) {
 						$sortedKeys['expired']++;
@@ -528,7 +525,7 @@ class User extends AppModel {
 	));
 	foreach ($users as $k => $user) {
 	  $certif_public = $user['User']['certif_public'];
-	  try{
+	  try {
 	  	App::uses('Folder', 'Utility');
   		$dir = APP . 'tmp' . DS . 'SMIME';
 		if (!file_exists($dir)) {
@@ -712,7 +709,7 @@ class User extends AppModel {
 		}
 		$body = str_replace('\n', PHP_EOL, $body);
 
-		if ($canEncryptGPG){
+		if ($canEncryptGPG) {
 			// Sign the body
 			require_once 'Crypt/GPG.php';
 			try {
@@ -750,7 +747,7 @@ class User extends AppModel {
 					$failed = true;
 					$failureReason = " the message could not be encrypted because the provided key is either expired or cannot be used for encryption.";
 				}
-			} catch (Exception $e){
+			} catch (Exception $e) {
 				// despite the user having a PGP key and the signing already succeeding earlier, we get an exception. This must mean that there is an issue with the user's key.
 				$failureReason = " the message could not be encrypted because there was an issue with the user's PGP key. The following error message was returned by gpg: " . $e->getMessage();
 				$this->log($e->getMessage());
@@ -794,7 +791,6 @@ class User extends AppModel {
 				fwrite($fp, $bodySigned);
 				fclose($fp);
 			} else {
-				$bodySigned = $body;
 				$msg_signed = $msg;
 			}
 			$msg_signed_encrypted = tempnam($dir, 'SMIME');
@@ -824,8 +820,6 @@ class User extends AppModel {
 	}
 		$replyToLog = '';
 		if (!$failed) {
-			//$Email = new CakeEmail(); --> declared below (needed in the SMIME part (headers)
-			
 			// If the e-mail is sent on behalf of a user, then we want the target user to be able to respond to the sender
 			// For this reason we should also attach the public key of the sender along with the message (if applicable)
 			if ($replyToUser != false) {

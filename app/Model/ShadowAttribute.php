@@ -166,7 +166,7 @@ class ShadowAttribute extends AppModel {
 		$this->typeDefinitions = $this->Event->Attribute->typeDefinitions;
 	}
 
-	//The Associations below have been created with all possible keys, those that are not needed can be removed
+	// The Associations below have been created with all possible keys, those that are not needed can be removed
 	
 /**
  * beforeSave
@@ -455,9 +455,9 @@ class ShadowAttribute extends AppModel {
 			$execOutput = array();
 			exec("zip -j -P infected " . $zipfile->path . ' \'' . addslashes($fileInZip->path) . '\'', $execOutput, $execRetval);
 			if ($execRetval != 0) { // not EXIT_SUCCESS
-				// do some?
+				// TODO: error-handling
 			};
-			$fileInZip->delete(); // delete the original not-zipped-file
+			$fileInZip->delete(); // delete the original non-zipped-file
 			rename($zipfile->path, $file->path); // rename the .zip to .nothing
 		} else {
 			$fileAttach = new File($fileP);
@@ -658,4 +658,3 @@ class ShadowAttribute extends AppModel {
 		}
 	}
 }
-

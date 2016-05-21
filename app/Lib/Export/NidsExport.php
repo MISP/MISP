@@ -372,18 +372,18 @@ class NidsExport {
 		//   tag	   - '/tag\s*:\s*.+?;/'
 		$replaceCount = array();
 		$tmpRule = preg_replace('/sid\s*:\s*[0-9]+\s*;/', 'sid:' . $sid . ';', $tmpRule, -1, $replaceCount['sid']);
-		if (null == $tmpRule ) break;	// don't output the rule on error with the regex
+		if (null == $tmpRule) return false;	// don't output the rule on error with the regex
 		$tmpRule = preg_replace('/rev\s*:\s*[0-9]+\s*;/', 'rev:1;', $tmpRule, -1, $replaceCount['rev']);
-		if (null == $tmpRule ) break;	// don't output the rule on error with the regex
+		if (null == $tmpRule) return false;	// don't output the rule on error with the regex
 		$tmpRule = preg_replace('/classtype:[a-zA-Z_-]+;/', 'classtype:' . $this->classtype . ';', $tmpRule, -1, $replaceCount['classtype']);
-		if (null == $tmpRule ) break;	// don't output the rule on error with the regex
+		if (null == $tmpRule) return false;	// don't output the rule on error with the regex
 		$tmpMessage = sprintf($ruleFormatMsg, 'snort-rule');
 		$tmpRule = preg_replace('/msg\s*:\s*".*?"\s*;/', $tmpMessage . ';', $tmpRule, -1, $replaceCount['msg']);
-		if (null == $tmpRule ) break;	// don't output the rule on error with the regex
+		if (null == $tmpRule) return false;	// don't output the rule on error with the regex
 		$tmpRule = preg_replace('/reference\s*:\s*.+?;/', $ruleFormatReference . ';', $tmpRule, -1, $replaceCount['reference']);
-		if (null == $tmpRule ) break;	// don't output the rule on error with the regex
+		if (null == $tmpRule) return false;	// don't output the rule on error with the regex
 		$tmpRule = preg_replace('/reference\s*:\s*.+?;/', $ruleFormatReference . ';', $tmpRule, -1, $replaceCount['reference']);
-		if (null == $tmpRule ) break;	// don't output the rule on error with the regex
+		if (null == $tmpRule) return false;	// don't output the rule on error with the regex
 		// FIXME nids -  implement priority overwriting
 
 		// some values were not replaced, so we need to add them ourselves, and insert them in the rule
@@ -403,6 +403,8 @@ class NidsExport {
 
 		// finally the rule is cleaned up and can be outputed
 		$this->rules[] = $tmpRule;
+
+		return true;
 	}
 
 	/**
@@ -422,7 +424,7 @@ class NidsExport {
 		foreach ($explodedNames as &$explodedName) {
 			// count the lenght of the part, and add |length| before
 			$length = strlen($explodedName);
-			if ($length > 255) $this->log('WARNING: dns name is to long for RFC: '.$name);
+			if ($length > 255) log('WARNING: DNS name is too long for RFC: '.$name);
 			$hexLength = dechex($length);
 			if (1 == strlen($hexLength)) $hexLength = '0' . $hexLength;
 			$rawName .= '|' . $hexLength . '|' . $explodedName;
@@ -449,7 +451,7 @@ class NidsExport {
 		foreach ($explodedNames as &$explodedName) {
 			// count the lenght of the part, and add |length| before
 			$length = strlen($explodedName);
-			if ($length > 255) exit('ERROR: dns name is to long for RFC'); // LATER log correctly without dying
+			if ($length > 255) log('WARNING: DNS name is too long for RFC: '.$name);
 			$hexLength = dechex($length);
 			$rawName .= '(' . $hexLength . ')' . $explodedName;
 		}
