@@ -309,7 +309,7 @@ class TagsController extends AppController {
 		$this->render('ajax/select_tag');
 	}
 	
-	public function tagStatistics($percentage = false, $sort = 'name') {
+	public function tagStatistics($percentage = false, $keysort = false) {
 		$result = $this->Tag->EventTag->find('all', array(
 				'recursive' => -1,
 				'fields' => array('count(EventTag.id) as count', 'tag_id'),
@@ -332,7 +332,7 @@ class TagsController extends AppController {
 				if (substr(strtolower($r['Tag']['name']), 0, strlen($taxonomy)) === strtolower($taxonomy)) $taxonomies[$taxonomy] += $r[0]['count']; 
 			}
 		}
-		if ($sort == 'name') {
+		if ($keysort === 'true') {
 			ksort($tags, SORT_NATURAL | SORT_FLAG_CASE);
 			ksort($taxonomies, SORT_NATURAL | SORT_FLAG_CASE);
 		} else {
