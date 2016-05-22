@@ -308,4 +308,47 @@ class TagsController extends AppController {
 		$this->set('custom', $taxonomy_id == 0 ? true : false);
 		$this->render('ajax/select_tag');
 	}
+	
+	public function tagStatistics($percentage = false) {
+		$result = $this->Tag->EventTag->find('all', array(
+				'recursive' => -1,
+				'fields' => array('count(EventTag.id) as count', 'tag_id'),
+				'contain' => array('Tag' => array('fields' => array('Tag.name'))),
+				'group' => array('tag_id')
+		));
+		$tags = array();
+		$taxonomies = array();
+		$totalCount = 0;
+		$this->loadModel('Taxonomy');
+		$temp = $this->Taxonomy->listTaxonomies(array('enabled' => true));
+		foreach ($temp as $t) {
+			if ($t['enabled']) $taxonomies[$t['namespace']] = 0;
+		}
+		foreach ($result as $r) {
+			if ($r['Tag']['name'] == null) continue;
+			$tags[$r['Tag']['name']] = $r[0]['count'];
+			$totalCount += $r[0]['count'];
+			foreach ($taxonomies as $taxonomy => $count) {
+				if (substr(strtolower($r['Tag']['name']), 0, strlen($taxonomy)) === strtolower($taxonomy)) $taxonomies[$taxonomy] += $r[0]['count']; 
+			}
+		}
+		
+		if ($percentage) {
+			foreach ($tags as $tag => &$count) {
+				$count = round(100 * $count / $totalCount, 3) . '%';
+			}
+			foreach ($taxonomies as $taxonomy => &$count) {
+				$count = round(100 * $count / $totalCount, 3) . '%';
+			}
+		}
+		ksort($tags, SORT_NATURAL | SORT_FLAG_CASE);
+		ksort($taxonomies, SORT_NATURAL | SORT_FLAG_CASE);
+		$results = array('tags' => $tags, 'taxonomies' => $taxonomies);
+		$this->autoRender = false;
+		$this->layout = false;
+		$this->set('data', $results);
+		$this->set('flags', JSON_PRETTY_PRINT);
+		$this->response->type('json');
+		$this->render('/Servers/json/simple');
+	}
 }

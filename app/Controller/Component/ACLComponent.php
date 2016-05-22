@@ -260,6 +260,7 @@ class ACLComponent extends Component {
 					'selectTag' => array('perm_tagger'),
 					'selectTaxonomy' => array('perm_tagger'),
 					'showEventTag' => array('*'),
+					'tagStatistics' => array('*'),
 					'view' => array('*'),
 					'viewTag' => array('*'),
 			),
