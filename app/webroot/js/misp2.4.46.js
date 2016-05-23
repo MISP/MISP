@@ -2391,7 +2391,7 @@ function hoverModuleExpand(type, id) {
 			content: ajaxResults[type + "_" + id],
 			placement: 'left',
 			html: true,
-			trigger: 'focus',
+			trigger: 'hover',
 			container: 'body'
 		}).popover('show');
 	} else {
@@ -2404,7 +2404,7 @@ function hoverModuleExpand(type, id) {
 					content: html,
 					placement: 'left',
 					html: true,
-					trigger: 'focus',
+					trigger: 'hover',
 					container: 'body'
 				}).popover('show');
 			}, 

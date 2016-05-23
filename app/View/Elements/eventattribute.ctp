@@ -247,51 +247,52 @@
 								</div>
 							</td>
 							<td id="<?php echo h($currentType) . '_' . h($object['id']) . '_container'; ?>" class="showspaces <?php echo $extra; ?> limitedWidth">
-								<div <?php if (Configure::read('Plugin.Enrichment_hover_enable') && isset($modules) && isset($modules['hover_type'][$object['type']])) echo 'onMouseOver="hoverModuleExpand(\'' . $currentType . '\', \'' . $object['id'] . '\');";'?>>
 								<div id = "<?php echo $currentType . '_' . $object['id'] . '_value_placeholder'; ?>" class = "inline-field-placeholder"></div>
-								<?php if ('attachment' === $object['type'] || 'malware-sample' === $object['type'] ): ?>
-								<div id = "<?php echo $currentType . '_' . $object['id'] . '_value_solid'; ?>" class="inline-field-solid">
-								<?php else: ?>
-								<div id = "<?php echo $currentType . '_' . $object['id'] . '_value_solid'; ?>" class="inline-field-solid" ondblclick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'value', <?php echo $event['Event']['id'];?>);">
-									<?php 
-									endif;
-										$sigDisplay = $object['value'];
-										if ('attachment' == $object['type'] || 'malware-sample' == $object['type'] ) {
-											$t = ($object['objectType'] == 0 ? 'attributes' : 'shadow_attributes');
-											$filenameHash = explode('|', nl2br(h($object['value'])));
-											if (strrpos($filenameHash[0], '\\')) {
-												$filepath = substr($filenameHash[0], 0, strrpos($filenameHash[0], '\\'));
-												$filename = substr($filenameHash[0], strrpos($filenameHash[0], '\\'));
-												echo h($filepath);
-												echo $this->Html->link($filename, array('controller' => $t, 'action' => 'download', $object['id']));
+								<?php 
+									if ('attachment' !== $object['type'] && 'malware-sample' !== $object['type']) $editable = ' ondblclick="activateField(\'' . $currentType . '\', \'' . $object['id'] . '\', \'value\', \'' . $event['Event']['id'] . '\');"';
+									else $editable = '';
+								?>
+								<div id = "<?php echo $currentType; ?>_<?php echo $object['id']; ?>_value_solid" class="inline-field-solid" <?php echo $editable; ?>>
+									<span <?php if (Configure::read('Plugin.Enrichment_hover_enable') && isset($modules) && isset($modules['hover_type'][$object['type']])) echo 'onMouseOver="hoverModuleExpand(\'' . $currentType . '\', \'' . $object['id'] . '\');";'?>>
+										<?php 
+											$sigDisplay = $object['value'];
+											if ('attachment' == $object['type'] || 'malware-sample' == $object['type'] ) {
+												$t = ($object['objectType'] == 0 ? 'attributes' : 'shadow_attributes');
+												$filenameHash = explode('|', nl2br(h($object['value'])));
+												if (strrpos($filenameHash[0], '\\')) {
+													$filepath = substr($filenameHash[0], 0, strrpos($filenameHash[0], '\\'));
+													$filename = substr($filenameHash[0], strrpos($filenameHash[0], '\\'));
+													echo h($filepath);
+													echo $this->Html->link($filename, array('controller' => $t, 'action' => 'download', $object['id']));
+												} else {
+													echo $this->Html->link($filenameHash[0], array('controller' => $t, 'action' => 'download', $object['id']));
+												}
+												if (isset($filenameHash[1])) echo ' | ' . $filenameHash[1];
+											} elseif (strpos($object['type'], '|') !== false) {
+												$filenameHash = explode('|', $object['value']);
+												echo h($filenameHash[0]);
+												if (isset($filenameHash[1])) echo ' | ' . $filenameHash[1];
+											} elseif ('vulnerability' == $object['type']) {
+												if (! is_null(Configure::read('MISP.cveurl'))) {
+													$cveUrl = Configure::read('MISP.cveurl');
+												} else {
+													$cveUrl = "http://www.google.com/search?q=";
+												}
+												echo $this->Html->link($sigDisplay, $cveUrl . $sigDisplay, array('target' => '_blank'));
+											} elseif ('link' == $object['type']) {
+												echo $this->Html->link($sigDisplay, $sigDisplay);
+											} else if ('text' == $object['type']) {
+												$sigDisplay = str_replace("\r", '', h($sigDisplay));
+												$sigDisplay = str_replace(" ", '&nbsp;', $sigDisplay);
+												echo nl2br($sigDisplay);
 											} else {
-												echo $this->Html->link($filenameHash[0], array('controller' => $t, 'action' => 'download', $object['id']));
+												$sigDisplay = str_replace("\r", '', $sigDisplay);
+												echo nl2br(h($sigDisplay));
 											}
-											if (isset($filenameHash[1])) echo ' | ' . $filenameHash[1];
-										} elseif (strpos($object['type'], '|') !== false) {
-											$filenameHash = explode('|', $object['value']);
-											echo h($filenameHash[0]);
-											if (isset($filenameHash[1])) echo ' | ' . $filenameHash[1];
-										} elseif ('vulnerability' == $object['type']) {
-											if (! is_null(Configure::read('MISP.cveurl'))) {
-												$cveUrl = Configure::read('MISP.cveurl');
-											} else {
-												$cveUrl = "http://www.google.com/search?q=";
-											}
-											echo $this->Html->link($sigDisplay, $cveUrl . $sigDisplay, array('target' => '_blank'));
-										} elseif ('link' == $object['type']) {
-											echo $this->Html->link($sigDisplay, $sigDisplay);
-										} else if ('text' == $object['type']) {
-											$sigDisplay = str_replace("\r", '', h($sigDisplay));
-											$sigDisplay = str_replace(" ", '&nbsp;', $sigDisplay);
-											echo nl2br($sigDisplay);
-										} else {
-											$sigDisplay = str_replace("\r", '', $sigDisplay);
-											echo nl2br(h($sigDisplay));
-										}
-										if (isset($object['validationIssue'])) echo ' <span class="icon-warning-sign" title="Warning, this doesn\'t seem to be a legitimage ' . strtoupper(h($object['type'])) . ' value">&nbsp;</span>';
-										
-																				
+											if (isset($object['validationIssue'])) echo ' <span class="icon-warning-sign" title="Warning, this doesn\'t seem to be a legitimage ' . strtoupper(h($object['type'])) . ' value">&nbsp;</span>';
+										?>		
+									</span>								
+									<?php 											
 										if (isset($object['warnings'])) {
 											$temp = '';
 											$components = array(1 => 0, 2 => 1);
@@ -304,7 +305,6 @@
 											echo ' <span class="icon-warning-sign" data-placement="right" data-toggle="popover" data-content="' . h($temp) . '" data-trigger="hover">&nbsp;</span>';
 										}
 									?>
-								</div>
 								</div>
 							</td>
 							<td class="showspaces bitwider <?php echo $extra; ?>">
