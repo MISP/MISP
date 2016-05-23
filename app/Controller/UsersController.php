@@ -631,7 +631,6 @@ class UsersController extends AppController {
 						'type' => 'ADMIN',
 						'uuid' => $this->User->Organisation->generateUuid(),
 						'local' => 1,
-						'type' => '',
 						'sector' => '',
 						'nationality' => ''
 				));
@@ -714,12 +713,12 @@ class UsersController extends AppController {
 	public function memberslist() {
 		// Orglist
 		$fields = array('Organisation.name', 'count(User.id) as `num_members`');
-		$params = array('recursive' => 0,
-							'fields' => $fields,
-							'recursive' => -1,
-							'contain' => array('Organisation'),
-							'group' => array('Organisation.name', 'Organisation.id'),
-							'order' => array('UPPER(Organisation.name)'),
+		$params = array(
+				'fields' => $fields,
+				'recursive' => -1,
+				'contain' => array('Organisation'),
+				'group' => array('Organisation.name', 'Organisation.id'),
+				'order' => array('UPPER(Organisation.name)'),
 		);
 		$orgs = $this->User->find('all', $params);
 		$this->set('orgs', $orgs);
