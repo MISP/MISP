@@ -2318,7 +2318,6 @@ class EventsController extends AppController {
 		$subcondition = array();
 		$this->loadModel('Attribute');
 		// add the values as specified in the 2nd parameter to the conditions
-		$values = explode('&&', $value);
 		if (isset($searchall) && ($searchall == 1 || $searchall === true || $searchall == 'true')) {
 			$eventIds = $this->__quickFilter($value);
 		} else {
