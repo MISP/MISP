@@ -1267,7 +1267,7 @@ class Server extends AppModel {
 		$shadowAttribute = ClassRegistry::init('ShadowAttribute');
 		$shadowAttribute->recursive = -1;
 		if (!empty($events)) {
-			$proposals = $eventModel->downloadProposalsFromServer($events, $server, false);
+			$proposals = $eventModel->downloadProposalsFromServer($events, $server);
 			if ($proposals !== null) {
 				$uuidEvents = array_flip($events);
 				foreach ($proposals as $k => &$proposal) {
