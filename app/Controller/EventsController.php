@@ -995,9 +995,14 @@ class EventsController extends AppController {
 					} else {
 						if ($this->_isRest()) { // TODO return error if REST
 							if(is_numeric($add)) {
-								$this->response->header('Location', Configure::read('MISP.baseurl') . '/events/' . $add);
-								$this->response->send();
-								throw new NotFoundException('Event already exists, if you would like to edit it, use the url in the location header.');
+								$this->response->location(Configure::read('MISP.baseurl') . '/events/' . $add);
+								$this->response->statusCode(302);
+								$message = 'Event already exists, if you would like to edit it, use the url in the location header.';
+								$this->set('name', $message);
+								$this->set('message', $message);
+								$this->set('url', $this->here);
+								$this->set('_serialize', array('name', 'message', 'url'));
+								return false;
 							}
 							$this->set('name', 'Add event failed.');
 							$this->set('message', 'The event could not be saved.');
