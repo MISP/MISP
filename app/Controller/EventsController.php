@@ -3151,7 +3151,8 @@ class EventsController extends AppController {
 		$categoryDefinitions = $this->Event->Attribute->categoryDefinitions;
 		$types = array();
 		foreach ($categoryDefinitions as $k => $v) {
-			if (in_array('malware-sample', $v['types']) && !in_array($k, $types)) $types[] = $k;
+			if (in_array('malware-sample', $v['types']) && !in_array($k, $types))
+				$types[] = $k;
 		}
 		$parameter_options = array(
 				'distribution' => array('valid_options' => array(0, 1, 2, 3), 'default' => 0),
