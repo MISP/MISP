@@ -104,7 +104,8 @@ class Warninglist extends AppModel{
 					'fields' => array('value')
 			));
 			$t['values'] = array_values($t['values']);
-			foreach ($t['WarninglistType'] as &$wt) $t['types'][] = $wt['type'];
+			foreach ($t['WarninglistType'] as &$wt)
+                $t['types'][] = $wt['type'];
 			unset($warninglists[$k]['WarninglistType']);
 		}
 		return $warninglists;
@@ -211,4 +212,5 @@ class Warninglist extends AppModel{
 		else $value = array($value);
 		$components = array(0, 1);
 	}
+
 }

@@ -25,4 +25,13 @@ class WarninglistEntry extends AppModel{
 		parent::beforeValidate();
 		return true;
 	}
+
+	public function allEntryValues() {
+		$entries = $this->find('list',
+			array(
+				'fields' => array('value'),
+			));
+		return $entries;
+	}
+
 }
