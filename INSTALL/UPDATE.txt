@@ -11,7 +11,7 @@ git pull
 
 # 2. Update CakePHP to the latest supported version (if for some reason it doesn't get updated automatically with git submodule
 
-rm -R /var/www/MISP/app/Lib/cakephp
+rm -rf /var/www/MISP/app/Lib/cakephp
 cd /var/www/MISP
 git submodule init
 git submodule update

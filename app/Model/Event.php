@@ -1053,7 +1053,7 @@ class Event extends AppModel {
 		}
 	}
 	
-	public function downloadProposalsFromServer($uuidList, $server, $HttpSocket = false) {
+	public function downloadProposalsFromServer($uuidList, $server, $HttpSocket = null) {
 		$url = $server['Server']['url'];
 		$authkey = $server['Server']['authkey'];
 		if (null == $HttpSocket) {
