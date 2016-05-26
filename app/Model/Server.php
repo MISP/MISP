@@ -1177,7 +1177,7 @@ class Server extends AppModel {
 							$r = $this->EventBlacklist->find('first', array('conditions' => array('event_uuid' => $event['Event']['uuid'])));
 							if (!empty($r))	{
 								$blocked = true;
-								$fails[$eventId] = 'Event blocked by local blocklist.';
+								$fails[$eventId] = 'Event blocked by local blacklist.';
 							}
 						}
 						if (!$blocked) {
