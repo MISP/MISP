@@ -1177,7 +1177,7 @@ class Server extends AppModel {
 							$r = $this->EventBlacklist->find('first', array('conditions' => array('event_uuid' => $event['Event']['uuid'])));
 							if (!empty($r))	{
 								$blocked = true;
-								$fails[$eventId] = 'Event blocked by local blacklist.';
+								$fails[$eventId] = 'Event blocked by local blocklist.';
 							}
 						}
 						if (!$blocked) {
@@ -1205,10 +1205,6 @@ class Server extends AppModel {
 								case 'Your organisation only': // backwards compatibility
 									$event['Event']['distribution'] = '0';
 									break;
-							}
-							if (!is_array($event['Event']['Attribute']) || empty($event['Event']['Attribute'])) {
-								$fails[$eventId] = 'Empty event received.';
-								continue;
 							}
 						} else {
 							$fails[$eventId] = 'Event blocked by blacklist.';
