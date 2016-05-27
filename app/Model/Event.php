@@ -1073,6 +1073,10 @@ class Event extends AppModel {
 		$response = $HttpSocket->post($uri, json_encode($uuidList), $request);
 		if ($response->isOk()) {
 			return(json_decode($response->body, true));
+		} elseif ($response->code == '405') {
+			// HACKY: without correct permission, the returning null causes Fallback for < 2.4.7 instances
+			// which queries every event, for proposal, which it doesn't have permission for
+			return array();
 		} else {
 			// TODO parse the XML response and keep the reason why it failed
 			return null;
