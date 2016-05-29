@@ -1206,10 +1206,6 @@ class Server extends AppModel {
 									$event['Event']['distribution'] = '0';
 									break;
 							}
-							if (!is_array($event['Event']['Attribute']) || empty($event['Event']['Attribute'])) {
-								$fails[$eventId] = 'Empty event received.';
-								continue;
-							}
 						} else {
 							$fails[$eventId] = 'Event blocked by blacklist.';
 							continue;
