@@ -85,7 +85,7 @@
 				?>
 			</td>
 			<td class="short">
-				<?php 
+				<?php
 					if (!isset($item['category'])) {
 						if (isset($defaultCategories[$item['default_type']])) {
 							$default = array_search($defaultCategories[$item['default_type']], $typeCategoryMapping[$item['default_type']]);
@@ -97,13 +97,32 @@
 						$default = array_search($item['category'], $typeCategoryMapping[$item['default_type']]);
 					}
 				?>
-				<select id="<?php echo 'Attribute' . $k . 'Category'; ?>" style='padding:0px;height:20px;margin-bottom:0px;'>
-					<?php 
+				<select id="<?php echo 'Attribute' . $k . 'Category'; ?>" style="padding:0;height:20px;margin-bottom:0;">
+					<?php
+					    //save all already added categories
+                        $catAdded = [];
 						foreach ($typeCategoryMapping[$item['default_type']] as $type) {
-							echo '<option value="' . $type . '" ';
+							/*echo '<option value="' . $type . '" ';
 							if ($type == $default) echo 'selected="selected"';
-							echo '>' . $type . '</option>';
+							echo '>' . $type . '</option>';*/
+                            $catAdded[] = $type;
 						}
+                        if(isset($item['types']) && is_array($item['types']) && count($item['types']) > 1 &&
+                            (in_array('domain', $item['types']) | in_array('filename', $item['types']))){
+                            foreach($item['types'] as $category){
+                                if(array_key_exists($category, $typeCategoryMapping)){
+                                    $catAdded = array_merge($catAdded, $typeCategoryMapping[$category]);
+                                }
+                            }
+                        }
+                    $catAdded = array_unique($catAdded);
+                    asort($catAdded);
+                    foreach($catAdded as $type){
+                        echo '<option value="' . $type . '" ';
+                        if ($type == $default)
+                            echo 'selected="selected"';
+                        echo '>' . $type . '</option>';
+                    }
 					?>
 				</select>
 			</td>

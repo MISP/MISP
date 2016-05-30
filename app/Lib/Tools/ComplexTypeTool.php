@@ -157,21 +157,22 @@ class ComplexTypeTool {
 		// check for domain name, hostname, filename
 		if (strpos($inputRefanged, '.') !== false) {
 			$temp = explode('.', $inputRefanged);
-			// TODO: use a more flexible matching approach, like the one below (that still doesn't support non-ASCII domains)
             //first check in $warningListEntries:
             $ending = $temp[count($temp)-1];
 
             $warningListEntries = array_map('strtolower', $warningListEntries);
-            //$warningListEntries = ['berlin', 'int'];
-            //var_dump($warningListEntries);
 
 			//if (filter_var($input, FILTER_VALIDATE_URL)) {
-			if ((count($warningListEntries)>0 && in_array($ending, $warningListEntries)) ||
-                preg_match('/^([-\pL\pN]+\.)+([a-z][a-z]|biz|cat|com|edu|gov|int|mil|net|org|pro|tel|aero|arpa|asia|coop|info|jobs|mobi|name|museum|travel)(:[0-9]{2,5})?$/iu', $inputRefanged)) {
+			// TODO: use a more flexible matching approach, like the one below (that still doesn't support non-ASCII domains)
+			if ((count($warningListEntries)>0 && in_array($ending, $warningListEntries))) {
 				if (count($temp) > 2) {
 					return array('types' => array('hostname', 'domain', 'url'), 'to_ids' => true, 'default_type' => 'hostname', 'comment' => $comment, 'value' => $inputRefangedNoPort);
 				} else {
-					return array('types' => array('domain'), 'to_ids' => true, 'default_type' => 'domain', 'comment' => $comment, 'value' => $inputRefangedNoPort);
+                    //check if it's for sure a domain. Should pb be changed to
+                    if(preg_match('/^([-\pL\pN]+\.)+([a-z][a-z]|biz|cat|com|edu|gov|int|mil|net|org|pro|tel|aero|arpa|asia|coop|info|jobs|mobi|name|museum|travel")(:[0-9]{2,5})?$/iu', $inputRefanged))
+					    return array('types' => array('domain'), 'to_ids' => true, 'default_type' => 'domain', 'comment' => $comment, 'value' => $inputRefangedNoPort);
+                    else
+                        return array('types' => array('domain', 'filename'), 'to_ids' => true, 'default_type' => 'domain', 'comment' => $comment, 'value' => $inputRefangedNoPort, 'category' => 'filename');
 				}
 			} else {
 				// check if it is a URL

@@ -2764,8 +2764,6 @@ class EventsController extends AppController {
 		if ($this->request->is('post')) {
 			App::uses('ComplexTypeTool', 'Tools');
 
-
-            Configure::write('debug', 2);
             //getting the warninglists
             App::uses('WarninglistEntry', 'Model');
             $warningList = new WarninglistEntry();
@@ -2773,7 +2771,6 @@ class EventsController extends AppController {
 			$complexTypeTool = new ComplexTypeTool();
             //added the 3rd parameter - all entry values for warninglists:
 			$resultArray = $complexTypeTool->checkComplexRouter($this->request->data['Attribute']['value'], 'FreeText', $warningList->allEntryValues());
-			var_dump($resultArray);
 			foreach ($resultArray as &$r) {
 				$temp = array();
 				foreach ($r['types'] as $type) {
