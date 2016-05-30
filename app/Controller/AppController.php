@@ -77,7 +77,6 @@ class AppController extends Controller {
 	);
 	
 	public function beforeFilter() {
-		$this->Security->csrfCheck = false;
 		$this->set('jsVersion', $this->__jsVersion);
 		$this->loadModel('User');
 		$auth_user_fields = $this->User->describeAuthFields();

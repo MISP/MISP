@@ -102,6 +102,8 @@
 					    //save all already added categories
                         $catAdded = [];
 						foreach ($typeCategoryMapping[$item['default_type']] as $type) {
+							//this is the old code. Can be removed once the change is integrated.
+							//but this is far from ideal, as there is logic being done in the view. :(
 							/*echo '<option value="' . $type . '" ';
 							if ($type == $default) echo 'selected="selected"';
 							echo '>' . $type . '</option>';*/
