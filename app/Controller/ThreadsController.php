@@ -231,7 +231,8 @@ class ThreadsController extends AppController {
 		$threadsBeforeEmailRemoval = $this->paginate();
 		if (!$this->_isSiteAdmin()) {
 			foreach ($threadsBeforeEmailRemoval as &$thread) {
-				if ($thread['Post'][0]['User']['org_id'] != $this->Auth->user('org_id')) $thread['Post'][0]['User']['email'] = 'User ' . $thread['Post'][0]['User']['id'] . " (" . $thread['Post'][0]['User']['Organisation']['name'] . ")";
+				if (empty($thread['Post'][0]['User']['org_id'])) $thread['Post'][0]['User']['email'] = 'Deactivated user';
+				else if ($thread['Post'][0]['User']['org_id'] != $this->Auth->user('org_id')) $thread['Post'][0]['User']['email'] = 'User ' . $thread['Post'][0]['User']['id'] . " (" . $thread['Post'][0]['User']['Organisation']['name'] . ")";
 			}
 		}
 		$this->set('threads', $threadsBeforeEmailRemoval);

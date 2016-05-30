@@ -239,4 +239,50 @@ class FeedsController extends AppController {
 			else throw new NotFoundException('Could not download the selected Event');
 		}
 	}
+	
+	public function enable($id) {
+		$result = $this->__toggleEnable($id, true);
+		$this->set('name', $result['message']);
+		$this->set('message', $result['message']);
+		$this->set('url', $this->here);
+		if ($result) {
+			$this->set('_serialize', array('name', 'message', 'url'));
+		} else {
+			$this->set('errors', $result);
+			$this->set('_serialize', array('name', 'message', 'url', 'errors'));
+		}  
+	}
+	
+	public function disable($id) {
+		$result = $this->__toggleEnable($id, false);
+		$this->set('name', $result['message']);
+		$this->set('message', $result['message']);
+		$this->set('url', $this->here);
+		if ($result['result']) {
+			$this->set('_serialize', array('name', 'message', 'url'));
+		} else {
+			$this->set('errors', $result);
+			$this->set('_serialize', array('name', 'message', 'url', 'errors'));
+		}
+	}
+	
+	private function __toggleEnable($id, $enable = true) {
+		if (!is_numeric($id)) throw new MethodNotAllowedException('Invalid Feed.');
+		$this->Feed->id = $id;
+		if (!$this->Feed->exists()) throw new MethodNotAllowedException('Invalid Feed.');
+		$feed = $this->Feed->find('first', array(
+				'conditions' => array('Feed.id' => $id),
+				'recursive' => -1
+		));
+		$feed['Feed']['enabled'] = $enable;
+		$result = array('result' => $this->Feed->save($feed));
+		$fail = false;
+		if (!$result['result']) {
+			$fail = true;
+			$result['result'] = $this->Feed->validationErrors;
+		}
+		$action = $enable ? 'enable' : 'disable';
+		$result['message'] = $fail ? 'Could not ' . $action . ' feed.' : 'Feed ' . $action . 'd.';
+		return $result;
+	}
 }

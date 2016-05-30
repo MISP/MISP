@@ -1053,7 +1053,7 @@ class Event extends AppModel {
 		}
 	}
 	
-	public function downloadProposalsFromServer($uuidList, $server, $HttpSocket = false) {
+	public function downloadProposalsFromServer($uuidList, $server, $HttpSocket = null) {
 		$url = $server['Server']['url'];
 		$authkey = $server['Server']['authkey'];
 		if (null == $HttpSocket) {
@@ -1073,6 +1073,10 @@ class Event extends AppModel {
 		$response = $HttpSocket->post($uri, json_encode($uuidList), $request);
 		if ($response->isOk()) {
 			return(json_decode($response->body, true));
+		} elseif ($response->code == '405') {
+			// HACKY: without correct permission, the returning null causes Fallback for < 2.4.7 instances
+			// which queries every event, for proposal, which it doesn't have permission for
+			return array();
 		} else {
 			// TODO parse the XML response and keep the reason why it failed
 			return null;
@@ -1785,7 +1789,12 @@ class Event extends AppModel {
 		}
 		
 		if ($data['Event']['distribution'] == 4) {
-			$data['Event']['sharing_group_id'] = $this->SharingGroup->captureSG($data['Event']['SharingGroup'], $user);
+			$sg = $this->SharingGroup->captureSG($data['Event']['SharingGroup'], $user);
+			if ($sg===false){
+				$sg = 0;
+				$data['Event']['distribution'] = 0;
+			}
+			$data['Event']['sharing_group_id'] = $sg;
 			unset ($data['Event']['SharingGroup']);
 		}
 		if (isset($data['Event']['Attribute'])) {

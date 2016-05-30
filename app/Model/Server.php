@@ -1214,10 +1214,6 @@ class Server extends AppModel {
 									$event['Event']['distribution'] = '0';
 									break;
 							}
-							if (!is_array($event['Event']['Attribute']) || empty($event['Event']['Attribute'])) {
-								$fails[$eventId] = 'Empty event received.';
-								continue;
-							}
 						} else {
 							$fails[$eventId] = 'Event blocked by blacklist.';
 							continue;
@@ -1275,7 +1271,7 @@ class Server extends AppModel {
 		$shadowAttribute = ClassRegistry::init('ShadowAttribute');
 		$shadowAttribute->recursive = -1;
 		if (!empty($events)) {
-			$proposals = $eventModel->downloadProposalsFromServer($events, $server, false);
+			$proposals = $eventModel->downloadProposalsFromServer($events, $server);
 			if ($proposals !== null) {
 				$uuidEvents = array_flip($events);
 				foreach ($proposals as $k => &$proposal) {

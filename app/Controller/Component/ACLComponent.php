@@ -125,7 +125,9 @@ class ACLComponent extends Component {
 			'feeds' => array(
 					'add' => array(),
 					'delete' => array(),
+					'disable' => array(),
 					'edit' => array(),
+					'enable' => array(),
 					'fetchFromFeed' => array(),
 					'getEvent' => array(),
 					'index' => array(),

@@ -352,7 +352,7 @@ class SharingGroup extends AppModel {
 			if (!$this->save($newSG)) return false;
 			$sgids = $this->id;
 		} else {
-			if (!$this->checkIfAuthorised($user, $existingSG['SharingGroup']['id'])) return false;
+			if (!$this->checkIfAuthorised($user, $existingSG['SharingGroup']['id'])) throw new Exception('User not authorised to modify sharing groups.');
 			if ($sg['modified'] > $existingSG['SharingGroup']['modified']) {
 				if ($user['Role']['perm_sync'] && $existingSG['SharingGroup']['local'] == 0) $force = true;
 				if ($force) {

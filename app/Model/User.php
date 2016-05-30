@@ -483,8 +483,6 @@ class User extends AppModel {
 		foreach ($users as $k => $user) {
 			try {
 				$temp = $gpg->importKey($user['User']['gpgkey']);
-				debug($gpg->getSignatures());
-				debug($temp);
 				$key = $gpg->getKeys($temp['fingerprint']);
 				$subKeys = $key[0]->getSubKeys();
 				$sortedKeys = array('valid' => 0, 'expired' => 0, 'noEncrypt' => 0);

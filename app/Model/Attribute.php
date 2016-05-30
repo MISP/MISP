@@ -513,13 +513,13 @@ class Attribute extends AppModel {
 
 	public function beforeValidate($options = array()) {
 		parent::beforeValidate();
-		// remove leading and trailing blanks
-		$this->data['Attribute']['value'] = trim($this->data['Attribute']['value']);
 
 		if (!isset($this->data['Attribute']['type'])) {
 			return false;
 		}
-		
+		// remove leading and trailing blanks
+		$this->data['Attribute']['value'] = trim($this->data['Attribute']['value']);
+
 		// make some last changes to the inserted value
 		$this->data['Attribute']['value'] = $this->modifyBeforeValidation($this->data['Attribute']['type'], $this->data['Attribute']['value']);
 
