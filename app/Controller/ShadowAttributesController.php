@@ -400,7 +400,7 @@ class ShadowAttributesController extends AppController {
 				//
 				// create the attribute
 				$this->ShadowAttribute->create();
-				$savedId = $this->ShadowAttribute->getId();
+				$savedId = $this->ShadowAttribute->getID();
 				$this->request->data['ShadowAttribute']['email'] = $this->Auth->user('email');
 				$this->request->data['ShadowAttribute']['org_id'] = $this->Auth->user('org_id');
 				$this->request->data['ShadowAttribute']['event_uuid'] = $event['Event']['uuid'];
@@ -1007,7 +1007,7 @@ class ShadowAttributesController extends AppController {
 	// ajax edit - post a single edited field and this method will attempt to create a proposal and return a json with the validation errors if they occur.
 	public function editField($id) {
 		if ((!$this->request->is('post') && !$this->request->is('put')) || !$this->request->is('ajax')) throw new MethodNotAllowedException();
-		$this->LoadModel('Attribute');
+		$this->loadModel('Attribute');
 		$this->Attribute->id = $id;
 		if (!$this->Attribute->exists()) {
 			throw new NotFoundException(__('Invalid attribute'));

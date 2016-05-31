@@ -342,7 +342,7 @@ class UsersController extends AppController {
  */
 	public function admin_add() {
 		if (!$this->_isAdmin()) throw new Exception('Administrators only.');
-		$this->set('currentOrg', $this->Auth->User('org_id'));
+		$this->set('currentOrg', $this->Auth->user('org_id'));
 		$this->set('isSiteAdmin', $this->_isSiteAdmin());
 		$params = null;
 		if (!$this->_isSiteAdmin()) {
@@ -368,7 +368,7 @@ class UsersController extends AppController {
 			if (!isset($this->request->data['User']['disabled'])) $this->request->data['User']['disabled'] = false;
 			$this->request->data['User']['newsread'] = 0;
 			if (!$this->_isSiteAdmin()) {
-				$this->request->data['User']['org_id'] = $this->Auth->User('org_id');
+				$this->request->data['User']['org_id'] = $this->Auth->user('org_id');
 				$this->loadModel('Role');
 				$this->Role->recursive = -1;
 				$chosenRole = $this->Role->findById($this->request->data['User']['role_id']);
@@ -416,7 +416,7 @@ class UsersController extends AppController {
  * @throws NotFoundException
  */
 	public function admin_edit($id = null) {
-		$this->set('currentOrg', $this->Auth->User('org_id'));
+		$this->set('currentOrg', $this->Auth->user('org_id'));
 		$this->User->id = $id;
 		if (!$this->User->exists()) {
 			throw new NotFoundException(__('Invalid user'));

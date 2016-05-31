@@ -1017,8 +1017,8 @@ class EventsController extends AppController {
 							$this->render('view');
 							return true;
 						} else {
-							// TODO now save uploaded attributes using $this->Event->getId() ..
-							if (isset($this->data['Event']['submittedgfi'])) $this->_addGfiZip($this->Event->getId());
+							// TODO now save uploaded attributes using $this->Event->getID() ..
+							if (isset($this->data['Event']['submittedgfi'])) $this->_addGfiZip($this->Event->getID());
 
 							// redirect to the view of the newly created event
 							if (!CakeSession::read('Message.flash')) {
@@ -1027,7 +1027,7 @@ class EventsController extends AppController {
 								$existingFlash = CakeSession::read('Message.flash');
 								$this->Session->setFlash(__('The event has been saved. ' . $existingFlash['message']));
 							}
-							$this->redirect(array('action' => 'view', $this->Event->getId()));
+							$this->redirect(array('action' => 'view', $this->Event->getID()));
 						}
 					} else {
 						if ($this->_isRest()) { // TODO return error if REST
@@ -1512,8 +1512,8 @@ class EventsController extends AppController {
 				$useOrg_id = 0;
 				$conditions = null;
 			} else {
-				$useOrg = $this->Auth->User('Organisation')['name'];
-				$useOrg_id = $this->Auth->User('org_id');
+				$useOrg = $this->Auth->user('Organisation')['name'];
+				$useOrg_id = $this->Auth->user('org_id');
 				$conditions['OR'][] = array('id' => $this->Event->fetchEventIds($this->Auth->user, false, false, true, true));
 			}
 			$this->Event->recursive = -1;
@@ -3497,7 +3497,7 @@ class EventsController extends AppController {
 	}
 	
 	public function delegation_index() {
-		$this->loadmodel('EventDelegation');
+		$this->loadModel('EventDelegation');
 		$delegatedEvents = $this->EventDelegation->find('list', array(
 				'conditions' => array('EventDelegation.org_id' => $this->Auth->user('org_id')),
 				'fields' => array('event_id')
