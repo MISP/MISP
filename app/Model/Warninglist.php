@@ -206,7 +206,7 @@ class Warninglist extends AppModel{
 	// using Snifff's solution from http://stackoverflow.com/questions/7951061/matching-ipv6-address-to-a-cidr-subnet
 	private function __ipv6InCidr($ip, $cidr) {
 		$ip = inet_pton($ip);
-		$binaryip = inet_to_bits($ip);
+		$binaryip = $this->__inet_to_bits($ip);
 		list($net, $maskbits) = explode('/', $cidr);
 		$net = inet_pton($net);
 		$binarynet = $this->__inet_to_bits($net);
