@@ -111,7 +111,6 @@ class EventsController extends AppController {
 	private function __filterOnAttributeValue($value) {
 		// dissect the value
 		$pieces = explode('|', $value);
-		$test = array();
 		$include = array();
 		$exclude = array();
 		$includeIDs = array();
@@ -709,8 +708,6 @@ class EventsController extends AppController {
 	}
 	
 	private function __viewUI($event, $continue, $fromEvent) {
-		if (isset($this->params['named']['attributesPage'])) $page = $this->params['named']['attributesPage'];
-		else $page = 1;
 		// set the data for the contributors / history field
 		$org_ids = $this->Event->ShadowAttribute->getEventContributors($event['Event']['id']);
 		$contributors = $this->Event->Org->find('list', array('fields' => array('Org.name'), 'conditions' => array('Org.id' => $org_ids)));
@@ -722,7 +719,6 @@ class EventsController extends AppController {
 				foreach ($event['Attribute'] as &$temp) {
 					if (isset($temp['ShadowAttribute']) && !empty($temp['ShadowAttribute'])) {
 						$proposalStatus = true;
-						continue;
 					}
 				}
 			}
@@ -821,7 +817,6 @@ class EventsController extends AppController {
 
 	public function view($id = null, $continue=false, $fromEvent=null) {
 		// If the length of the id provided is 36 then it is most likely a Uuid - find the id of the event, change $id to it and proceed to read the event as if the ID was entered.
-		$perm_publish = $this->userRole['perm_publish'];
 		if (strlen($id) == 36) {
 			$this->Event->recursive = -1;
 			$temp = $this->Event->findByUuid($id);
@@ -946,7 +941,6 @@ class EventsController extends AppController {
 			$pivot['deletable'] = false;
 			return true;
 		}
-		$containsCurrent = false;
 		foreach ($pivot['children'] as $k => $v) {
 			$containsCurrent = $this->__setDeletable($pivot['children'][$k], $id);
 			if ($containsCurrent && !$root) $pivot['deletable'] = false;
@@ -961,7 +955,6 @@ class EventsController extends AppController {
 		if (!$this->userRole['perm_add']) {
 			throw new MethodNotAllowedException('You don\'t have permissions to create events');
 		}
-		if ($this->userRole['perm_sync']) $sguuids = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'uuid',  1);
 		$sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name',  1);
 		if ($this->request->is('post')) {
 			if ($this->_isRest()) {
@@ -1092,11 +1085,9 @@ class EventsController extends AppController {
 		}
 		if ($this->request->is('post')) {
 			if (!empty($this->data)) {
-				$ext = '';
 				if (isset($this->data['Event']['submittedioc'])) {
 					App::uses('File', 'Utility');
 					$file = new File($this->data['Event']['submittedioc']['name']);
-					$ext = $file->ext();
 				}
 				if (isset($this->data['Event']['submittedioc'])) $this->_addIOCFile($id);
 
@@ -1153,7 +1144,6 @@ class EventsController extends AppController {
 	 */
 	public function edit($id = null) {
 		$this->Event->id = $id;
-		$date = new DateTime();
 		if (!$this->Event->exists()) {
 			throw new NotFoundException(__('Invalid event'));
 		}
@@ -1284,7 +1274,6 @@ class EventsController extends AppController {
 
 		// find the uuid
 		$result = $this->Event->findById($id);
-		$uuid = $result['Event']['uuid'];
 		$this->Event->read();
 		
 		if (!$this->_isSiteAdmin()) {
@@ -1799,7 +1788,6 @@ class EventsController extends AppController {
 		if ($tags) {
 			$args = $this->Event->Attribute->dissectArgs($tags);
 			$tagArray = $this->Event->EventTag->Tag->fetchEventTagIds($args[0], $args[1]);
-			$temp = array();
 			if (!empty($tagArray[0])) $events = array_intersect($events, $tagArray[0]);
 			if (!empty($tagArray[1])) {
 				foreach ($events as $k => $eventid) {
@@ -1850,7 +1838,6 @@ class EventsController extends AppController {
 			App::uses('Folder', 'Utility');
 			$dir = new Folder($rootDir, true);
 			$destpath = $rootDir;
-			$file = new File ($destpath);
 			if (!preg_match('@^[\w-,\s,\.]+\.[A-Za-z0-9_]{2,4}$@', $this->data['Event']['submittedgfi']['name'])) {
 				throw new Exception ('Filename not allowed');
 			}
@@ -1893,14 +1880,12 @@ class EventsController extends AppController {
 			App::uses('Folder', 'Utility');
 			$dir = new Folder($rootDir . 'ioc', true);
 			$destpath = $rootDir . 'ioc';
-			$file = new File ($destpath);
 			if (!preg_match('@^[\w-,\s,\.]+\.[A-Za-z0-9_]{2,4}$@', $this->data['Event']['submittedioc']['name'])) throw new Exception ('Filename not allowed');
 			$iocfile = new File($destpath . DS . $this->data['Event']['submittedioc']['name']);
 			$result = $iocfile->write($iocData);
 			if (!$result) $this->Session->setFlash(__('Problem with writing the ioc file. Please report to administrator.'));
 
 			// now open the xml..
-			$xml = $rootDir . DS . 'Analysis' . DS . 'analysis.xml';
 			$fileData = fread(fopen($destpath . DS . $this->data['Event']['submittedioc']['name'], "r"), $this->data['Event']['submittedioc']['size']);
 			// Load event and populate the event data
 			$this->Event->id = $id;
@@ -2078,11 +2063,6 @@ class EventsController extends AppController {
 		// write content..
 		foreach ($files as $file) {
 			$keyName = $file['key'];
-			if (!strpos($file['key'], $realMalware)) {
-				$itsType = 'malware-sample';
-			} else {
-				$itsType = 'filename|md5';
-			}
 
 			// the actual files..
 			// seek $val in dirs and add..
@@ -2392,7 +2372,6 @@ class EventsController extends AppController {
 			} else {
 				App::uses('JSONConverterTool', 'Tools');
 				$converter = new JSONConverterTool();
-				$temp = array();
 				$final = '{"response":[';
 				foreach ($eventIds as $k => $currentEventId) {
 					$result = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $currentEventId, 'includeAttachments' => $withAttachments));
@@ -2440,7 +2419,6 @@ class EventsController extends AppController {
 	
 	public function create_dummy_event() {
 		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException('You don\'t have the privileges to access this.');
-		$date = new DateTime();
 		$data['Event']['info'] = 'Test event showing every category-type combination';
 		$data['Event']['date'] = '2013-10-09';
 		$data['Event']['threat_level_id'] = 4; //'Undefined'
@@ -2779,7 +2757,6 @@ class EventsController extends AppController {
 			else $objectType = 'Attribute';
 			$saved = 0;
 			$failed = 0;
-			$attributes = json_decode($this->request->data['Attribute']['JsonObject'], true);
 			$attributeSources = array('attributes', 'ontheflyattributes');
 			$ontheflyattributes = array();
 			foreach ($attributeSources as $source) {
@@ -2853,12 +2830,10 @@ class EventsController extends AppController {
 			if (!$user) {
 				throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
 			}
-			$isSiteAdmin = $user['User']['siteAdmin'];
 		} else {
 			if (!$this->Auth->user('id')) {
 				throw new UnauthorizedException('You have to be logged in to do that.');
 			}
-			$isSiteAdmin = $this->_isSiteAdmin();
 		}
 		
 		// request handler for POSTed queries. If the request is a post, the parameters (apart from the key) will be ignored and replaced by the terms defined in the posted xml object.
@@ -3129,13 +3104,10 @@ class EventsController extends AppController {
 				'category' => array('valid_options' => $types, 'default' => 'Payload installation'),
 				'comment' => array('default' => '')
 		);
-		
-	
+
 		if (!$this->userRole['perm_auth']) throw new MethodNotAllowedException('This functionality requires API key access.');
 		if (!$this->request->is('post')) throw new MethodNotAllowedException('Please POST the samples as described on the automation page.');
-		$isJson = false;
 		if ($this->response->type() === 'application/json') {
-			$isJson = true;
 			$data = $this->request->input('json_decode', true);
 		} elseif ($this->response->type() === 'application/xml') {
 			$data = $this->request->data;
@@ -3324,7 +3296,6 @@ class EventsController extends AppController {
 	
 	public function updateGraph($id) {
 		if ($this->request->is('post')) {
-			$oldArray = $this->request->data;
 			$json = $this->__buildGraphJson($id, $this->request->data);
 		} else {
 			$json = $this->__buildGraphJson($id);
@@ -3529,7 +3500,6 @@ class EventsController extends AppController {
 					$temp[] = array('name' => $module['name'], 'description' => $module['meta']['description']);
 				}
 			}
-			$modules = &$temp;
 			foreach (array('attribute_id', 'modules') as $viewVar) $this->set($viewVar, $$viewVar);
 			$this->render('ajax/enrichmentChoice');
 		} else {
