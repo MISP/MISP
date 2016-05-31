@@ -38,7 +38,7 @@ class Taxonomy extends AppModel{
 		}
 		$updated = array();
 		foreach ($directories as &$dir) {
-			$file = new File (APP . 'files' . DS . 'taxonomies' . DS . $dir . DS . 'machinetag.json');
+			$file = new File(APP . 'files' . DS . 'taxonomies' . DS . $dir . DS . 'machinetag.json');
 			$vocab = json_decode($file->read(), true);
 			$file->close();
 			if (!isset($vocab['version'])) $vocab['version'] = 1;

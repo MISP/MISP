@@ -41,7 +41,7 @@ class Warninglist extends AppModel{
 		$directories = glob(APP . 'files' . DS . 'warninglists' . DS . 'lists' . DS . '*', GLOB_ONLYDIR);
 		$updated = array();
 		foreach ($directories as &$dir) {
-			$file = new File ($dir . DS . 'list.json');
+			$file = new File($dir . DS . 'list.json');
 			$list = json_decode($file->read(), true);
 			$file->close();
 			if (!isset($list['version'])) $list['version'] = 1;

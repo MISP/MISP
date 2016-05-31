@@ -113,7 +113,7 @@ class Sighting extends AppModel{
 	
 	public function handleStixSighting($data) {
 		$randomFileName = $this->generateRandomFileName();
-		$tempFile = new File (APP . "files" . DS . "scripts" . DS . "tmp" . DS . $randomFileName, true, 0644);
+		$tempFile = new File(APP . "files" . DS . "scripts" . DS . "tmp" . DS . $randomFileName, true, 0644);
 		
 		// save the json_encoded event(s) to the temporary file
 		if (!$tempFile->write($data)) return array('success' => 0, 'message' => 'Could not write the Sightings file to disk.');

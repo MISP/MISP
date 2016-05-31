@@ -390,7 +390,7 @@ class ShadowAttribute extends AppModel {
 		$rootDir = APP . DS . "files" . DS . 'shadow' . DS . $attribute['event_id'];
 		$dir = new Folder($rootDir, true);						// create directory structure
 		$destpath = $rootDir . DS . $attribute['id'];
-		$file = new File ($destpath, true);						// create the file
+		$file = new File($destpath, true);						// create the file
 		$decodedData = base64_decode($attribute['data']);		// decode
 		if ($file->write($decodedData)) {						// save the data
 			return true;
@@ -444,8 +444,8 @@ class ShadowAttribute extends AppModel {
 		$dir = new Folder($rootDir, true);
 		// move the file to the correct location
 		$destpath = $rootDir . DS . $this->getId(); // id of the new attribute in the database
-		$file = new File ($destpath);
-		$zipfile = new File ($destpath . '.zip');
+		$file = new File($destpath);
+		$zipfile = new File($destpath . '.zip');
 		$fileInZip = new File($rootDir . DS . $extraPath . $filename); // FIXME do sanitization of the filename
 
 		// zip and password protect the malware files

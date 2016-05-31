@@ -2198,7 +2198,7 @@ class Server extends AppModel {
 		// for event publishing when we don't have a user.					
 		if (empty($user)) $user = array('Organisation' => array('name' => 'SYSTEM'), 'email' => 'SYSTEM', 'id' => 0);
 		App::uses('Folder', 'Utility');
-		$file = new File (ROOT . DS . 'VERSION.json', true);
+		$file = new File(ROOT . DS . 'VERSION.json', true);
 		$localVersion = json_decode($file->read(), true);
 		$file->close();
 		
@@ -2334,7 +2334,7 @@ class Server extends AppModel {
 		foreach ($writeableDirs as $path => &$error) {
 			$dir = new Folder(APP . $path);
 			if (is_null($dir->path)) $error = 1;
-			$file = new File (APP . $path . DS . 'test.txt', true);
+			$file = new File(APP . $path . DS . 'test.txt', true);
 			if ($error == 0 && !$file->write('test')) $error = 2;
 			if ($error != 0) $diagnostic_errors++;
 			$file->delete();
