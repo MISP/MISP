@@ -513,61 +513,60 @@ class User extends AppModel {
 		return $results;
 	}
 
-  public function verifyCertificate() {
-	$this->Behaviors->detach('Trim');
-	$results = array();
-	$users = $this->find('all', array(
-	  'conditions' => array('not' => array('certif_public' => '')),
-	  //'fields' => array('id', 'email', 'gpgkey'),
-	  'recursive' => -1,
-	));
-	foreach ($users as $k => $user) {
-	  $certif_public = $user['User']['certif_public'];
-	  try {
-	  	App::uses('Folder', 'Utility');
-  		$dir = APP . 'tmp' . DS . 'SMIME';
-		if (!file_exists($dir)) {
-			if (!mkdir($dir, 0750, true)) throw new MethodNotAllowedException('The SMIME temp directory is not writeable (app/tmp/SMIME).');
-		}
-		$msg_test = tempnam($dir, 'SMIME');
-		$fp = fopen($msg_test, "w");
-		$test = 'test';
-		fwrite($fp, $test);
-		fclose($fp);
-		$msg_test_encrypted = tempnam($dir, 'SMIME');
-		// encrypt it
-		if (openssl_pkcs7_encrypt($msg_test, $msg_test_encrypted, $certif_public, null, 0, OPENSSL_CIPHER_AES_256_CBC)){
-		  $parse = openssl_x509_parse($certif_public);
-		  // Valid certificate ?
-		  $now = new DateTime("now");
-		  $validTo_time_t_epoch = $parse['validTo_time_t'];
-		  $validTo_time_t = new DateTime("@$validTo_time_t_epoch");
-		  if ($validTo_time_t > $now){
-			// purposes smimeencrypt ?
-			if (($parse['purposes'][5][0] == 1) && ($parse['purposes'][5][2] == 'smimeencrypt')){
-			} else {
-			  // openssl_pkcs7_encrypt good -- Model/User purposes is NOT GOOD'
-			  $results[$user['User']['id']][0] = true;
+	public function verifyCertificate() {
+		$this->Behaviors->detach('Trim');
+		$results = array();
+		$users = $this->find('all', array(
+			'conditions' => array('not' => array('certif_public' => '')),
+			//'fields' => array('id', 'email', 'gpgkey'),
+			'recursive' => -1,
+		));
+		foreach ($users as $k => $user) {
+			$certif_public = $user['User']['certif_public'];
+			try {
+				App::uses('Folder', 'Utility');
+				$dir = APP . 'tmp' . DS . 'SMIME';
+				if (!file_exists($dir)) {
+					if (!mkdir($dir, 0750, true)) throw new MethodNotAllowedException('The SMIME temp directory is not writeable (app/tmp/SMIME).');
+				}
+				$msg_test = tempnam($dir, 'SMIME');
+				$fp = fopen($msg_test, "w");
+				$test = 'test';
+				fwrite($fp, $test);
+				fclose($fp);
+				$msg_test_encrypted = tempnam($dir, 'SMIME');
+				// encrypt it
+				if (openssl_pkcs7_encrypt($msg_test, $msg_test_encrypted, $certif_public, null, 0, OPENSSL_CIPHER_AES_256_CBC)){
+					$parse = openssl_x509_parse($certif_public);
+					// Valid certificate ?
+					$now = new DateTime("now");
+					$validTo_time_t_epoch = $parse['validTo_time_t'];
+					$validTo_time_t = new DateTime("@$validTo_time_t_epoch");
+					if ($validTo_time_t > $now){
+						// purposes smimeencrypt ?
+						if (($parse['purposes'][5][0] == 1) && ($parse['purposes'][5][2] == 'smimeencrypt')){
+						} else {
+							// openssl_pkcs7_encrypt good -- Model/User purposes is NOT GOOD'
+							$results[$user['User']['id']][0] = true;
+						}
+					} else {
+						// openssl_pkcs7_encrypt good -- Model/User expired;
+						$results[$user['User']['id']][0] = true;
+					}
+				} else{
+					// openssl_pkcs7_encrypt NOT good -- Model/User
+					$results[$user['User']['id']][0] = true;
+				}
+				$results[$user['User']['id']][1] = $user['User']['email'];
+			} catch (Exception $e){
+				$this->log($e->getMessage());
 			}
-		  } else {
-			// openssl_pkcs7_encrypt good -- Model/User expired;
-			$results[$user['User']['id']][0] = true;
-		  }
-		} else{
-		  // openssl_pkcs7_encrypt NOT good -- Model/User
-		  $results[$user['User']['id']][0] = true;
+			unlink($msg_test);
+			unlink($msg_test_encrypted);
 		}
-		$results[$user['User']['id']][1] = $user['User']['email'];
-	  } catch (Exception $e){
-		$this->log($e->getMessage());
-	  }
-	  unlink($msg_test);
-	  unlink($msg_test_encrypted);
+		return $results;
 	}
-	return $results;
-  }
 
-	
 	public function getPGP($id) {
 		$result = $this->find('first', array(
 			'recursive' => -1,
@@ -577,15 +576,15 @@ class User extends AppModel {
 		return $result['User']['gpgkey'];
 	}
 
-  public function getCertificate($id) {
-	$result = $this->find('first', array(
-	  'recursive' => -1,
-	  'fields' => array('id', 'certif_public'),
-	  'conditions' => array('id' => $id),
-	));
-	return $result['User']['certif_public'];
-  }
-	
+	public function getCertificate($id) {
+		$result = $this->find('first', array(
+			'recursive' => -1,
+			'fields' => array('id', 'certif_public'),
+			'conditions' => array('id' => $id),
+		));
+		return $result['User']['certif_public'];
+	}
+
 	// get the current user and rearrange it to be in the same format as in the auth component
 	public function getAuthUser($id) {
 		$conditions = array('User.id' => $id);
@@ -752,70 +751,70 @@ class User extends AppModel {
 				$failed = true;
 			}
 		}
-	// SMIME if not GPG key
-	if (!$failed && !$canEncryptGPG && $canEncryptSMIME) {
-		try {
-			$prependedBody = 'Content-Transfer-Encoding: 7bit' . PHP_EOL . 'Content-Type: text/plain;' . PHP_EOL . '    charset=us-ascii' . PHP_EOL . PHP_EOL . $body;
-			App::uses('Folder', 'Utility');
-			$dir = APP . 'tmp' . DS . 'SMIME';
-			if (!file_exists($dir)) {
-				if (!mkdir($dir, 0750, true)) throw new MethodNotAllowedException('The SMIME temp directory is not writeable (app/tmp/SMIME).');
-			}
-			// save message to file
-			$msg = tempnam($dir, 'SMIME');
-			$fp = fopen($msg, "w");
-			fwrite($fp, $prependedBody);
-			fclose($fp);
-			$headers_smime = array("To" => $user['User']['email'], "From" => Configure::read('MISP.email'), "Subject" => $subject);			
-			$canSign = true;
-			if (empty(Configure::read('SMIME.cert_public_sign')) || !is_readable(Configure::read('SMIME.cert_public_sign'))) $canSign = false;
-			if (empty(Configure::read('SMIME.key_sign')) || !is_readable(Configure::read('SMIME.key_sign'))) $canSign = false;
-			if ($canSign) {
-				$signed = tempnam($dir, 'SMIME');
-				if (openssl_pkcs7_sign($msg, $signed, 'file://'.Configure::read('SMIME.cert_public_sign'), array('file://'.Configure::read('SMIME.key_sign'), Configure::read('SMIME.password')), array(), PKCS7_TEXT)){
-					$fp = fopen($signed, "r");
-					$bodySigned = fread($fp, filesize($signed));
-					fclose($fp);
-					unlink($msg);
-					unlink($signed);
-				} else {
-					unlink($msg);
-					unlink($signed);
-					throw new Exception('Failed while attempting to sign the SMIME message.');
+		// SMIME if not GPG key
+		if (!$failed && !$canEncryptGPG && $canEncryptSMIME) {
+			try {
+				$prependedBody = 'Content-Transfer-Encoding: 7bit' . PHP_EOL . 'Content-Type: text/plain;' . PHP_EOL . '    charset=us-ascii' . PHP_EOL . PHP_EOL . $body;
+				App::uses('Folder', 'Utility');
+				$dir = APP . 'tmp' . DS . 'SMIME';
+				if (!file_exists($dir)) {
+					if (!mkdir($dir, 0750, true)) throw new MethodNotAllowedException('The SMIME temp directory is not writeable (app/tmp/SMIME).');
 				}
 				// save message to file
-				$msg_signed = tempnam($dir, 'SMIME');
-				$fp = fopen($msg_signed, "w");
-				fwrite($fp, $bodySigned);
+				$msg = tempnam($dir, 'SMIME');
+				$fp = fopen($msg, "w");
+				fwrite($fp, $prependedBody);
 				fclose($fp);
-			} else {
-				$msg_signed = $msg;
+				$headers_smime = array("To" => $user['User']['email'], "From" => Configure::read('MISP.email'), "Subject" => $subject);
+				$canSign = true;
+				if (empty(Configure::read('SMIME.cert_public_sign')) || !is_readable(Configure::read('SMIME.cert_public_sign'))) $canSign = false;
+				if (empty(Configure::read('SMIME.key_sign')) || !is_readable(Configure::read('SMIME.key_sign'))) $canSign = false;
+				if ($canSign) {
+					$signed = tempnam($dir, 'SMIME');
+					if (openssl_pkcs7_sign($msg, $signed, 'file://'.Configure::read('SMIME.cert_public_sign'), array('file://'.Configure::read('SMIME.key_sign'), Configure::read('SMIME.password')), array(), PKCS7_TEXT)){
+						$fp = fopen($signed, "r");
+						$bodySigned = fread($fp, filesize($signed));
+						fclose($fp);
+						unlink($msg);
+						unlink($signed);
+					} else {
+						unlink($msg);
+						unlink($signed);
+						throw new Exception('Failed while attempting to sign the SMIME message.');
+					}
+					// save message to file
+					$msg_signed = tempnam($dir, 'SMIME');
+					$fp = fopen($msg_signed, "w");
+					fwrite($fp, $bodySigned);
+					fclose($fp);
+				} else {
+					$msg_signed = $msg;
+				}
+				$msg_signed_encrypted = tempnam($dir, 'SMIME');
+				// encrypt it
+				if (openssl_pkcs7_encrypt($msg_signed, $msg_signed_encrypted, $user['User']['certif_public'], $headers_smime, 0, OPENSSL_CIPHER_AES_256_CBC)){
+					$fp = fopen($msg_signed_encrypted, 'r');
+					$bodyEncSig = fread($fp, filesize($msg_signed_encrypted));
+					fclose($fp);
+					unlink($msg_signed);
+					unlink($msg_signed_encrypted);
+					$parts = explode("\n\n", $bodyEncSig);
+					$bodyEncSig = $parts[1];
+					// SMIME transport (hardcoded headers
+					$Email = $Email->transport('Smime');
+					$body = $bodyEncSig;
+				} else {
+					unlink($msg_signed);
+					unlink($msg_signed_encrypted);
+					throw new Exception('Could not encrypt the SMIME message.');
+				}
+			} catch (Exception $e) {
+				// despite the user having a certificate. This must mean that there is an issue with the user's certificate.
+				$failureReason = " the message could not be encrypted because there was an issue with the user's public certificate. The following error message was returned by openssl: " . $e->getMessage();
+				$this->log($e->getMessage());
+				$failed = true;
 			}
-			$msg_signed_encrypted = tempnam($dir, 'SMIME');
-			// encrypt it
-			if (openssl_pkcs7_encrypt($msg_signed, $msg_signed_encrypted, $user['User']['certif_public'], $headers_smime, 0, OPENSSL_CIPHER_AES_256_CBC)){
-				$fp = fopen($msg_signed_encrypted, 'r');
-				$bodyEncSig = fread($fp, filesize($msg_signed_encrypted));
-				fclose($fp);
-				unlink($msg_signed);
-				unlink($msg_signed_encrypted);
-				$parts = explode("\n\n", $bodyEncSig);
-				$bodyEncSig = $parts[1];
-				// SMIME transport (hardcoded headers
-				$Email = $Email->transport('Smime');
-				$body = $bodyEncSig;
-			} else {
-				unlink($msg_signed);
-				unlink($msg_signed_encrypted);
-				throw new Exception('Could not encrypt the SMIME message.');
-			}
-		} catch (Exception $e) {
-			// despite the user having a certificate. This must mean that there is an issue with the user's certificate.
-			$failureReason = " the message could not be encrypted because there was an issue with the user's public certificate. The following error message was returned by openssl: " . $e->getMessage();
-			$this->log($e->getMessage());
-			$failed = true;
 		}
-	}
 		$replyToLog = '';
 		if (!$failed) {
 			// If the e-mail is sent on behalf of a user, then we want the target user to be able to respond to the sender
