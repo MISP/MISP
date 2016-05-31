@@ -230,10 +230,4 @@ class Warninglist extends AppModel{
 		if (in_array($value, $listValues)) return true;
 		return false;
 	}
-	
-	private function __checkCIDR(&$listValues, $value, $type) {
-		if (strpos($type, '|')) $value = explode('|', $value);
-		else $value = array($value);
-		$components = array(0, 1);
-	}
 }

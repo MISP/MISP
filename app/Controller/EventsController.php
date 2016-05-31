@@ -1144,13 +1144,6 @@ class EventsController extends AppController {
 		}
 	}
 
-	private function __searchUuidInAttributeArray($uuid, &$attr_array) {
-		foreach ($attr_array['Attribute'] as &$attr) {
-			if ($attr['uuid'] == $uuid)	return array('Attribute' => $attr);
-		}
-		return false;
-	}
-
 	/**
 	 * edit method
 	 *
@@ -1324,29 +1317,6 @@ class EventsController extends AppController {
 		}
 	}
 
-	/**
-	 * Delets this specific event to all remote servers
-	 * TODO move this to a component(?)
-	 */
-	private function __deleteEventFromServers($uuid) {
-		// get a list of the servers
-		$this->loadModel('Server');
-		$servers = $this->Server->find('all', array(
-				'conditions' => array('Server.push' => true)
-		));
-
-		// iterate over the servers and upload the event
-		if(empty($servers))
-			return;
-
-		App::uses('SyncTool', 'Tools');
-		foreach ($servers as &$server) {
-			$syncTool = new SyncTool();
-			$HttpSocket = $syncTool->setupHttpSocket($server);
-			$this->Event->deleteEventFromServer($uuid, $server, $HttpSocket);
-		}
-	}
-	
 	/**
 	 * Publishes the event without sending an alert email
 	 *
@@ -2628,11 +2598,6 @@ class EventsController extends AppController {
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 		$this->set('analysisLevels', $this->Event->analysisLevels);
 		$this->set('distributionLevels', $this->Event->distributionLevels);
-	}
-	
-	private function __setHeaderForAdd($eventId) {
-		$this->response->header('Location', Configure::read('MISP.baseurl') . '/events/' . $eventId);
-		$this->response->send();
 	}
 	
 	public function reportValidationIssuesEvents() {
