@@ -22,18 +22,4 @@ class ThreatLevel extends AppModel {
 			),
 		),
 	);
-
-/**
- * hasMany associations
- *
- * @var array
- */
-	/*public $hasMany = array(
-		'Event' => array(
-			'className' => 'Event',
-			'foreignKey' => 'threat_level_id',
-			'dependent' => false,
-		)
-	);*/
-
 }

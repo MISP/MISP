@@ -245,7 +245,6 @@ class UsersController extends AppController {
 		$this->set('users', $this->paginate());
 		$this->set('org', $org['Organisation']['name']);
 		$this->render('ajax/index');
-		//return new CakeResponse(array('body'=> json_encode(array('users' => $users, 'status' => 200))));
 	}
 
 	public function admin_filterUserIndex() {

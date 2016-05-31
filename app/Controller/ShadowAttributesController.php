@@ -310,7 +310,6 @@ class ShadowAttributesController extends AppController {
 	public function add($eventId = null) {
 		if ($this->request->is('ajax'))	{
 			$this->set('ajax', true);
-			//$this->autoRender = false;
 			$this->layout = 'ajax';
 		} else {
 			$this->set('ajax', false);

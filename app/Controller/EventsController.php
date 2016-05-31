@@ -726,7 +726,6 @@ class EventsController extends AppController {
 				}
 			}
 			$mess = $this->Session->read('Message');
-#			if ($proposalStatus && empty($this->Session->read('Message'))) $this->Session->setFlash('This event has active proposals for you to accept or discard.');
 			if ($proposalStatus && empty($mess)) $this->Session->setFlash('This event has active proposals for you to accept or discard.');
 		}
 		// set the pivot data
@@ -995,7 +994,6 @@ class EventsController extends AppController {
 						$this->request->data['Event']['sharing_group_id'] = 0;
 					}
 					if ($this->_isRest()) {
-						// $this->request->data = $this->Event->updateXMLArray($this->request->data, false);
 						if (isset($this->request->data['Event']['orgc_id']) && !$this->userRole['perm_sync']) {
 							$this->request->data['Event']['orgc_id'] = $this->Auth->user('org_id');
 							if (isset($this->request->data['Event']['Orgc'])) unset($this->request->data['Event']['Orgc']);
@@ -1562,23 +1560,19 @@ class EventsController extends AppController {
 					$this->Event->export_types[$k]['job_id'] = -1;
 					$this->Event->export_types[$k]['progress'] = 0;
 				}
-				//$this->Event->export_types[$k]['recommendation']
 			}
 			$this->set('useOrg', $useOrg);
 			$this->set('export_types', $this->Event->export_types);
 			// generate the list of Attribute types
 			$this->loadModel('Attribute');
-			//$lastModified = strftime("%d, %m, %Y, %T", $lastModified);
 			$this->set('sigTypes', array_keys($this->Attribute->typeDefinitions));
 		} else {
 			// generate the list of Attribute types
 			$this->loadModel('Attribute');
-			//$lastModified = strftime("%d, %m, %Y, %T", $lastModified);
 			$this->set('sigTypes', array_keys($this->Attribute->typeDefinitions));
 			$this->render('/Events/export_alternate');
 		}
 	}
-	
 
 	public function downloadExport($type, $extra = null) {
 		if ($this->_isSiteAdmin()) $org = 'ADMIN';
@@ -1874,68 +1868,6 @@ class EventsController extends AppController {
 		$this->set('headerless', $headerless);
 	}
 
-	//public function dot($key) {
-	//	// check if the key is valid -> search for users based on key
-	//	$this->loadModel('User');
-	//	// no input sanitization necessary, it's done by model
-	//	$this->User->recursive=0;
-	//	$user = $this->User->findByAuthkey($key);
-	//	if (empty($user)) {
-	//		throw new UnauthorizedException('Incorrect authentication key');
-	//	}
-	//	// display the full snort rulebase
-	//	$this->response->type('txt');	// set the content type
-	//	$this->header('Content-Disposition: inline; filename="MISP.rules"');
-	//	$this->layout = 'text/default';
-
-	//	$rules= array();
-	//	$this->loadModel('Attribute');
-
-	//	$params = array(
-	//			'recursive' => 0,
-	//			'fields' => array('Attribute.*')
-	//	);
-	//	$items = $this->Attribute->find('all', $params);
-
-	//	$composite_types = $this->Attribute->getCompositeTypes();
-	//	// rebuild the array with the correct data
-	//	foreach ($items as &$item) {
-	//		if (in_array($item['Attribute']['type'], $composite_types)) {
-	//			// create a new item that will contain value2
-	//			$new_item = $item;
-	//			// set the correct type for the first item
-	//			$pieces = explode('|', $item['Attribute']['type']);
-	//			$item['Attribute']['type'] = $pieces[0];
-	//			// set the correct data for the new item
-	//			$new_item['Attribute']['type'] = (isset($pieces[1]))? $pieces[1] : 'md5';
-	//			$new_item['Attribute']['value'] = $item['Attribute']['value2'];
-	//			unset($new_item['Attribute']['value1']);
-	//			unset($new_item['Attribute']['value2']);
-	//			// store the new item
-	//			$items[] = $new_item;
-	//		}
-	//		// set the correct fields for the attribute
-	//		if (isset($item['Attribute']['value1'])) {
-	//			$item['Attribute']['value'] = $item['Attribute']['value1'];
-	//		}
-	//		unset($item['Attribute']['value1']);
-	//		unset($item['Attribute']['value2']);
-	//	}
-	//	debug($items);
-
-	//	// iterate over the array to build the GV links
-	//	require_once 'Image/GraphViz.php';
-	//	$gv = new Image_GraphViz();
-	//	$gv->addEdge(array('wake up'		=> 'visit bathroom'));
-	//	$gv->addEdge(array('visit bathroom' => 'make coffee'));
-	//	foreach ($items as &$item) {
-	//		$gv->addNode('Node 1',
-	//				array(''));
-	//	}
-	//	debug($gv);
-	//	$gv->image();
-	//}
-
 	public function _addGfiZip($id) {
 		if (!empty($this->data) && $this->data['Event']['submittedgfi']['size'] > 0 &&
 				is_uploaded_file($this->data['Event']['submittedgfi']['tmp_name'])) {
@@ -2168,12 +2100,10 @@ class EventsController extends AppController {
 				if ($key == 'md5') $arrayItemValue = (string)$val;
 				if ($key == 'filesize') $arrayItemSize = $val;
 			}
-			//$files[$arrayItemKey] = $arrayItemValue;
 			if ($arrayItemSize > 0) {
 				$files[] = array('key' => $arrayItemKey, 'val' => $arrayItemValue);
 			}
 		}
-		//$files = array_unique($files);
 		// write content..
 		foreach ($files as $file) {
 			$keyName = $file['key'];
@@ -2259,7 +2189,6 @@ class EventsController extends AppController {
 			}
 			$regs[$arrayItemKey] = str_replace('(UNICODE_0x00000000)', '', $arrayItemValue);
 		}
-		//$regs = array_unique($regs);
 
 		// write content..
 		foreach ($regs as $key => $val) {
@@ -2510,13 +2439,11 @@ class EventsController extends AppController {
 	}
 
 	public function downloadOpenIOCEvent($eventid) {
-
 		// return a downloadable text file called misp.openIOC.<eventId>.ioc for individual events
 		// TODO implement mass download of all events - maybe in a zip file?
 		$this->response->type('text');	// set the content type
 		if ($eventid == null) {
 			throw new Exception('Not yet implemented');
-			// $this->header('Content-Disposition: download; filename="misp.openIOC.ioc"');
 		} else {
 			$this->header('Content-Disposition: download; filename="misp.openIOC' . $eventid . '.ioc"');
 		}
@@ -2532,7 +2459,6 @@ class EventsController extends AppController {
 		$this->loadModel('Whitelist');
 		$temp = $this->Whitelist->removeWhitelistedFromArray(array($event[0]), false);
 		$event = $temp[0];
-		//$event['Attribute'] = $this->Whitelist->removeWhitelistedFromArray($event['Attribute'], false);
 
 		// send the event and the vars needed to check authorisation to the Component
 		$final = $this->IOCExport->buildAll($this->Auth->user(), $event);
@@ -3425,7 +3351,6 @@ class EventsController extends AppController {
 		$event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
 		if (empty($event)) throw new MethodNotAllowedException('Invalid Event.');
 		$this->set('event', $event[0]);
-		//$this->layout = 'graph';
 		$this->set('id', $id);
 	}
 	
