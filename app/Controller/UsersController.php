@@ -798,45 +798,7 @@ class UsersController extends AppController {
 		}
 		$this->set('typeDb', $typeDb);
 		$this->set('sigTypes', $sigTypes);
-		$graphInterval = $this->_getIntervals($max);
 		$this->layout = 'ajax';
-	}
-	
-	private function _getIntervals($max) {
-		$intervals = array();
-		if ($max > 5) {
-			$maxDecimals = strlen((string) $max);
-			//$graphInterval = $max / 10;
-			$graphInterval = round($max, -($maxDecimals-2), PHP_ROUND_HALF_DOWN);
-			$graphInterval = round($graphInterval / 5);
-			for ($i=0; $i<$max; $i+=$graphInterval) {
-				$intervals[] = $i;
-			}
-		} else {
-			for ($i=0; $i<$max; $i++) $intervals[] = $i;
-		}
-		return $intervals;
-	}
-	
-	private function _generateColours($count){
-		$pallette = 16777216;
-		$array = array();
-		$interval = ceil($pallette / $count);
-		$colours = array();
-		for ($i = 0; $i < $count; $i++) {
-			$temp = $i * $interval;
-			$array[$i] = $temp;
-			$colours[$i] = $this->_convertToHex($temp);
-		}
-		return $colours;
-	}
-	
-	private function _convertToHex($int) {
-		$hex = strval(dechex($int));
-		$filler = '';
-		for ($i = 0; $i < 6 - (strlen($hex)); $i++) $filler .= '0';
-		$filler = '#' . $filler . $hex;
-		return $filler;
 	}
 
 	public function terms() {
