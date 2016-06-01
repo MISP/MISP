@@ -61,7 +61,7 @@
 				?>
 				<input type="hidden" id="<?php echo 'Attribute' . $k . 'Save'; ?>" value=1 >
 			</td>
-			<td style="shortish">
+			<td class="shortish">
 				<?php 
 					foreach ($item['related'] as $relation):
 						$popover = array(
@@ -74,7 +74,7 @@
 						);
 						$popoverHTML = '';
 						foreach ($popover as $key => $popoverElement) {
-							$popoverHTML .= '<span class=\'bold\'>' . $key . '</span>: <span class=\'blue bold\'>' . $popoverElement . '</span><br />';
+							$popoverHTML .= '<span class=\'bold\'>' . $key . '</span>: <span class="blue bold">' . $popoverElement . '</span><br />';
 						}
 				?>
 						<a href="<?php echo $baseurl; ?>/events/view/<?php echo h($relation['Event']['id']);?>" data-toggle="popover" title="Attribute details" data-content="<?php echo h($popoverHTML); ?>" data-trigger="hover"><?php echo h($relation['Event']['id']);?></a>
@@ -85,7 +85,7 @@
 				?>
 			</td>
 			<td class="short">
-				<?php 
+				<?php
 					if (!isset($item['category'])) {
 						if (isset($defaultCategories[$item['default_type']])) {
 							$default = array_search($defaultCategories[$item['default_type']], $typeCategoryMapping[$item['default_type']]);
@@ -97,13 +97,34 @@
 						$default = array_search($item['category'], $typeCategoryMapping[$item['default_type']]);
 					}
 				?>
-				<select id="<?php echo 'Attribute' . $k . 'Category'; ?>" style='padding:0px;height:20px;margin-bottom:0px;'>
-					<?php 
+				<select id="<?php echo 'Attribute' . $k . 'Category'; ?>" style="padding:0;height:20px;margin-bottom:0;">
+					<?php
+					    //save all already added categories
+                        $catAdded = [];
 						foreach ($typeCategoryMapping[$item['default_type']] as $type) {
-							echo '<option value="' . $type . '" ';
+							//this is the old code. Can be removed once the change is integrated.
+							//but this is far from ideal, as there is logic being done in the view. :(
+							/*echo '<option value="' . $type . '" ';
 							if ($type == $default) echo 'selected="selected"';
-							echo '>' . $type . '</option>';
+							echo '>' . $type . '</option>';*/
+                            $catAdded[] = $type;
 						}
+                        if(isset($item['types']) && is_array($item['types']) && count($item['types']) > 1 &&
+                            (in_array('domain', $item['types']) | in_array('filename', $item['types']))){
+                            foreach($item['types'] as $category){
+                                if(array_key_exists($category, $typeCategoryMapping)){
+                                    $catAdded = array_merge($catAdded, $typeCategoryMapping[$category]);
+                                }
+                            }
+                        }
+                    $catAdded = array_unique($catAdded);
+                    asort($catAdded);
+                    foreach($catAdded as $type){
+                        echo '<option value="' . $type . '" ';
+                        if ($type == $default)
+                            echo 'selected="selected"';
+                        echo '>' . $type . '</option>';
+                    }
 					?>
 				</select>
 			</td>

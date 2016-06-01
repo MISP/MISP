@@ -10,7 +10,7 @@ class ComplexTypeTool {
 		'/\.+/' => '.'
 	);
 	
-	public function checkComplexRouter($input, $type) {
+	public function checkComplexRouter($input, $type, $warningListEntries = array()) {
 		switch ($type) {
 			case 'File':
 				return $this->checkComplexFile($input);
@@ -19,7 +19,7 @@ class ComplexTypeTool {
 				return $this->checkComplexCnC($input);
 				break;
 			case 'FreeText':
-				return $this->checkFreetext($input);
+				return $this->checkFreetext($input, $warningListEntries);
 				break;
 			default:
 				return false;
@@ -72,7 +72,7 @@ class ComplexTypeTool {
 		return array_values($array);
 	}
 	
-	public function checkFreeText($input) {
+	public function checkFreeText($input, $warningListEntries) {
 		$iocArray = preg_split("/\r\n|\n|\r|\s|\s+|,|;/", $input);
 		$quotedText = explode('"', $input);
 		$iocArray = array_merge($iocArray, $this->__returnOddElements($quotedText));
@@ -84,7 +84,7 @@ class ComplexTypeTool {
 				$ioc = trim($ioc, ',');
 				$ioc = preg_replace('/\p{C}+/u', '', $ioc);
 				if (empty($ioc)) continue;
-				$typeArray = $this->__resolveType($ioc);
+				$typeArray = $this->__resolveType($ioc, $warningListEntries);
 				if ($typeArray === false) continue;
 				$temp = $typeArray;
 				if (!isset($temp['value'])) $temp['value'] = $ioc;
@@ -103,7 +103,7 @@ class ComplexTypeTool {
 		128 => array('single' => array('sha512'), 'composite' => array('filename|sha512'))
 	);
 	
-	private function __resolveType($input) {
+	private function __resolveType($input, $warningListEntries = array()) {
 		$result = array();
 		$input = trim($input);
 		if (strpos($input, '|')) {
@@ -111,23 +111,29 @@ class ComplexTypeTool {
 			if (count($compositeParts) == 2) {
 				if ($this->__resolveFilename($compositeParts[0])) {
 					foreach ($this->__hexHashTypes as $k => &$v) {
-						if (strlen($compositeParts[1]) == $k && preg_match("#[0-9a-f]{" . $k . "}$#i", $compositeParts[1])) return array('types' => $v['composite'], 'to_ids' => true, 'default_type' => $v['composite'][0]);
+						if (strlen($compositeParts[1]) == $k && preg_match("#[0-9a-f]{" . $k . "}$#i", $compositeParts[1]))
+							return array('types' => $v['composite'], 'to_ids' => true, 'default_type' => $v['composite'][0]);
 					}
-					if (preg_match('#^[0-9]+:.+:.+$#', $compositeParts[1])) return array('types' => array('ssdeep'), 'to_ids' => true, 'default_type' => 'filename|ssdeep');
+					if (preg_match('#^[0-9]+:.+:.+$#', $compositeParts[1]))
+						return array('types' => array('ssdeep'), 'to_ids' => true, 'default_type' => 'filename|ssdeep');
 				}
 			}
 		}
 		
 		// check for hashes
 		foreach ($this->__hexHashTypes as $k => &$v) {
-			if (strlen($input) == $k && preg_match("#[0-9a-f]{" . $k . "}$#i", $input)) return array('types' => $v['single'], 'to_ids' => true, 'default_type' => $v['single'][0]);
+			if (strlen($input) == $k && preg_match("#[0-9a-f]{" . $k . "}$#i", $input))
+				return array('types' => $v['single'], 'to_ids' => true, 'default_type' => $v['single'][0]);
 		}
-		if (preg_match('#^[0-9]+:.+:.+$#', $input)) return array('types' => array('ssdeep'), 'to_ids' => true, 'default_type' => 'ssdeep');
+		if (preg_match('#^[0-9]+:.+:.+$#', $input))
+			return array('types' => array('ssdeep'), 'to_ids' => true, 'default_type' => 'ssdeep');
 		$inputRefanged = $input;
-		foreach ($this->__refangRegexTable as $regex => $replacement) $inputRefanged = preg_replace($regex, $replacement , $inputRefanged);
+		foreach ($this->__refangRegexTable as $regex => $replacement)
+			$inputRefanged = preg_replace($regex, $replacement , $inputRefanged);
 		$inputRefanged = rtrim($inputRefanged, ".");
 		if (strpos($input, '@') !== false) {
-			if (filter_var($input, FILTER_VALIDATE_EMAIL)) return array('types' => array('email-src', 'email-dst'), 'to_ids' => true, 'default_type' => 'email-src');
+			if (filter_var($input, FILTER_VALIDATE_EMAIL))
+				return array('types' => array('email-src', 'email-dst'), 'to_ids' => true, 'default_type' => 'email-src');
 		}
 		// note down and remove the port if it's a url / domain name / hostname / ip
 		// input2 from here on is the variable containing the original input with the port removed. It is only used by url / domain name / hostname / ip
@@ -135,36 +141,51 @@ class ComplexTypeTool {
 		if (preg_match('/(:[0-9]{2,5})$/', $inputRefanged, $port)) {
 			$comment = 'On port ' . substr($port[0], 1);
 			$inputRefangedNoPort = str_replace($port[0], '', $inputRefanged);
-		} else $inputRefangedNoPort = $inputRefanged;		
+		} else
+			$inputRefangedNoPort = $inputRefanged;
 		// check for IP
-		if (filter_var($inputRefangedNoPort, FILTER_VALIDATE_IP)) return array('types' => array('ip-dst', 'ip-src', 'ip-src/ip-dst'), 'to_ids' => true, 'default_type' => 'ip-dst', 'comment' => $comment, 'value' => $inputRefangedNoPort);
+		if (filter_var($inputRefangedNoPort, FILTER_VALIDATE_IP))
+            return array('types' => array('ip-dst', 'ip-src', 'ip-src/ip-dst'), 'to_ids' => true, 'default_type' => 'ip-dst', 'comment' => $comment, 'value' => $inputRefangedNoPort);
 		if (strpos($inputRefangedNoPort, '/')) {
 			$temp = explode('/', $inputRefangedNoPort);
-			if (count($temp == 2)) {
-				if (filter_var($temp[0], FILTER_VALIDATE_IP) && is_numeric($temp[1])) return array('types' => array('ip-dst', 'ip-src', 'ip-src/ip-dst'), 'to_ids' => true, 'default_type' => 'ip-dst', 'comment' => $comment, 'value' => $inputRefangedNoPort);
+			if (count($temp) == 2) {
+				if (filter_var($temp[0], FILTER_VALIDATE_IP) && is_numeric($temp[1]))
+                    return array('types' => array('ip-dst', 'ip-src', 'ip-src/ip-dst'), 'to_ids' => true, 'default_type' => 'ip-dst', 'comment' => $comment, 'value' => $inputRefangedNoPort);
 			}
 		}
 		
 		// check for domain name, hostname, filename
 		if (strpos($inputRefanged, '.') !== false) {
 			$temp = explode('.', $inputRefanged);
-			// TODO: use a more flexible matching approach, like the one below (that still doesn't support non-ASCII domains)
+            //first check in $warningListEntries:
+            $ending = $temp[count($temp)-1];
+
+            $warningListEntries = array_map('strtolower', $warningListEntries);
+
 			//if (filter_var($input, FILTER_VALIDATE_URL)) {
-			if (preg_match('/^([-\pL\pN]+\.)+([a-z][a-z]|biz|cat|com|edu|gov|int|mil|net|org|pro|tel|aero|arpa|asia|coop|info|jobs|mobi|name|museum|travel)(:[0-9]{2,5})?$/iu', $inputRefanged)) {
+			// TODO: use a more flexible matching approach, like the one below (that still doesn't support non-ASCII domains)
+			if ((count($warningListEntries)>0 && in_array($ending, $warningListEntries))) {
 				if (count($temp) > 2) {
 					return array('types' => array('hostname', 'domain', 'url'), 'to_ids' => true, 'default_type' => 'hostname', 'comment' => $comment, 'value' => $inputRefangedNoPort);
 				} else {
-					return array('types' => array('domain'), 'to_ids' => true, 'default_type' => 'domain', 'comment' => $comment, 'value' => $inputRefangedNoPort);
+                    //check if it's for sure a domain. Should pb be changed to
+                    if(preg_match('/^([-\pL\pN]+\.)+([a-z][a-z]|biz|cat|com|edu|gov|int|mil|net|org|pro|tel|aero|arpa|asia|coop|info|jobs|mobi|name|museum|travel")(:[0-9]{2,5})?$/iu', $inputRefanged))
+					    return array('types' => array('domain'), 'to_ids' => true, 'default_type' => 'domain', 'comment' => $comment, 'value' => $inputRefangedNoPort);
+                    else
+                        return array('types' => array('domain', 'filename'), 'to_ids' => true, 'default_type' => 'domain', 'comment' => $comment, 'value' => $inputRefangedNoPort, 'category' => 'filename');
 				}
 			} else {
 				// check if it is a URL
 				// Adding http:// infront of the input in case it was left off. github.com/MISP/MISP should still be counted as a valid link
 				if (count($temp) > 1 && (filter_var($inputRefangedNoPort, FILTER_VALIDATE_URL) || filter_var('http://' . $inputRefangedNoPort, FILTER_VALIDATE_URL))) {
 					// TODO: add comment explaining why there is a check for a specific domain	
-					if (preg_match('/^https:\/\/www.virustotal.com\//i', $inputRefangedNoPort)) return array('types' => array('link'), 'to_ids' => false, 'default_type' => 'link', 'comment' => $comment, 'value' => $inputRefangedNoPort);
-					if (strpos($inputRefangedNoPort, '/')) return array('types' => array('url'), 'to_ids' => true, 'default_type' => 'url', 'comment' => $comment, 'value' => $inputRefangedNoPort);
+					if (preg_match('/^https:\/\/www.virustotal.com\//i', $inputRefangedNoPort))
+                        return array('types' => array('link'), 'to_ids' => false, 'default_type' => 'link', 'comment' => $comment, 'value' => $inputRefangedNoPort);
+					if (strpos($inputRefangedNoPort, '/'))
+                        return array('types' => array('url'), 'to_ids' => true, 'default_type' => 'url', 'comment' => $comment, 'value' => $inputRefangedNoPort);
 				}
-				if ($this->__resolveFilename($input)) return array('types' => array('filename'), 'to_ids' => true, 'default_type' => 'filename');
+				if ($this->__resolveFilename($input))
+                    return array('types' => array('filename'), 'to_ids' => true, 'default_type' => 'filename');
 			}
 		}
 		

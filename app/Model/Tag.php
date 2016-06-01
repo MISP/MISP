@@ -50,7 +50,7 @@ class Tag extends AppModel {
 					),
 			),
 	);
-	
+	//http://stackoverflow.com/questions/14630819/using-virtual-fields-in-cakephp-2-x
 	public $hasMany = array(
 		'EventTag' => array(
 			'className' => 'EventTag',
@@ -58,9 +58,10 @@ class Tag extends AppModel {
 		'TemplateTag',
 		'FavouriteTag' => array(
 			'dependent' => true
-		)
+		),
+
 	);
-	
+
 	
 	public function beforeDelete($cascade = true) {
 		$this->EventTag->deleteAll(array('EventTag.tag_id' => $this->id));

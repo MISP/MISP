@@ -18,7 +18,7 @@
 			$initialDistribution = 5;
 			if (Configure::read('MISP.default_attribute_distribution') != null) {
 				if (Configure::read('MISP.default_attribute_distribution') === 'event') {
-					$initialDistribution = 5;	
+					$initialDistribution = 5;
 				} else {
 					$initialDistribution = Configure::read('MISP.default_attribute_distribution');
 				}
@@ -78,7 +78,7 @@
 		?>
 		</div>
 	</fieldset>
-	<p style="color:red;font-weight:bold;display:none;<?php if(isset($ajax) && $ajax) echo "text-align:center;"?>" id="warning-message">Warning: You are about to share data that is of a sensitive nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>
+	<p style="color:red;font-weight:bold;display:none;<?php if(isset($ajax) && $ajax) echo "text-align:center;"; ?>" id="warning-message">Warning: You are about to share data that is of a sensitive nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>
 	<?php if ($ajax): ?>
 		<div class="overlay_spacing">
 			<table>
@@ -118,11 +118,16 @@
 var category_type_mapping = new Array();
 <?php
 foreach ($categoryDefinitions as $category => $def) {
+    //sorting the types array alphabetically - see #1117
+     asort($def['types']);
+
 	echo "category_type_mapping['" . addslashes($category) . "'] = {";
 	$first = true;
 	foreach ($def['types'] as $type) {
-		if ($first) $first = false;
-		else echo ', ';
+		if ($first)
+            $first = false;
+		else
+            echo ', ';
 		echo "'" . addslashes($type) . "' : '" . addslashes($type) . "'";
 	}
 	echo "}; \n";

@@ -1011,9 +1011,14 @@ class EventsController extends AppController {
 					} else {
 						if ($this->_isRest()) { // TODO return error if REST
 							if(is_numeric($add)) {
-								$this->response->header('Location', Configure::read('MISP.baseurl') . '/events/' . $add);
-								$this->response->send();
-								throw new NotFoundException('Event already exists, if you would like to edit it, use the url in the location header.');
+								$this->response->location(Configure::read('MISP.baseurl') . '/events/' . $add);
+								$this->response->statusCode(302);
+								$message = 'Event already exists, if you would like to edit it, use the url in the location header.';
+								$this->set('name', $message);
+								$this->set('message', $message);
+								$this->set('url', $this->here);
+								$this->set('_serialize', array('name', 'message', 'url'));
+								return false;
 							}
 							$this->set('name', 'Add event failed.');
 							$this->set('message', 'The event could not be saved.');
@@ -2774,8 +2779,14 @@ class EventsController extends AppController {
 		
 		if ($this->request->is('post')) {
 			App::uses('ComplexTypeTool', 'Tools');
+
+            //getting the warninglists
+            App::uses('WarninglistEntry', 'Model');
+            $warningList = new WarninglistEntry();
+
 			$complexTypeTool = new ComplexTypeTool();
-			$resultArray = $complexTypeTool->checkComplexRouter($this->request->data['Attribute']['value'], 'FreeText');
+            //added the 3rd parameter - all entry values for warninglists:
+			$resultArray = $complexTypeTool->checkComplexRouter($this->request->data['Attribute']['value'], 'FreeText', $warningList->allEntryValues());
 			foreach ($resultArray as &$r) {
 				$temp = array();
 				foreach ($r['types'] as $type) {
@@ -3162,7 +3173,8 @@ class EventsController extends AppController {
 		$categoryDefinitions = $this->Event->Attribute->categoryDefinitions;
 		$types = array();
 		foreach ($categoryDefinitions as $k => $v) {
-			if (in_array('malware-sample', $v['types']) && !in_array($k, $types)) $types[] = $k;
+			if (in_array('malware-sample', $v['types']) && !in_array($k, $types))
+				$types[] = $k;
 		}
 		$parameter_options = array(
 				'distribution' => array('valid_options' => array(0, 1, 2, 3), 'default' => 0),
