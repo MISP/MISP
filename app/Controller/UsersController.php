@@ -619,7 +619,6 @@ class UsersController extends AppController {
 					'perm_sharing_group' => 1,
 					'perm_template' => 1,
 					'perm_tagger' => 1,
-					'perm_site_admin' => 1
 				));
 				$this->Role->save($siteAdmin);
 			}
