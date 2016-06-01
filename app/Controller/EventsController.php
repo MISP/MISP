@@ -232,10 +232,11 @@ class EventsController extends AppController {
 				'fields' => array('id')					
 		));
 		if (!empty($orgs)) $conditions['OR']['orgc_id'] = array_values($orgs);
-		$conditions['OR']['lower(info) LIKE'] = '%' . strtolower($value) .'%';	
+		$conditions['OR']['lower(info) LIKE'] = '%' . strtolower($value) .'%';
+		$conditions['OR']['lower(uuid) LIKE'] = strtolower($value);
 		$otherEvents = $this->Event->find('all', array(
 				'recursive' => -1,
-				'fields' => array('id', 'orgc_id', 'info'),
+				'fields' => array('id', 'orgc_id', 'info', 'uuid'),
 				'conditions' => $conditions,
 		));
 		foreach ($otherEvents as $oE) {
