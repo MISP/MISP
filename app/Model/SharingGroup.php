@@ -171,10 +171,7 @@ class SharingGroup extends AppModel {
 				foreach ($sg['SharingGroupOrg'] as $org) {
 					if (isset($org['Organisation'][0])) $org['Organisation'] = $org['Organisation'][0]; 
 					if ($org['Organisation']['uuid'] == $user['Organisation']['uuid']) {
-						if ($user['Role']['perm_sync'] || $org['extend'] == 1) {
-							$orgCheck = true;
-							continue;
-						}
+						if ($user['Role']['perm_sync'] || $org['extend'] == 1) $orgCheck = true;
 					}
 				}
 			}
@@ -184,7 +181,6 @@ class SharingGroup extends AppModel {
 					if ($server['Server']['url'] == Configure::read('MISP.baseurl')) {
 						$serverCheck = true;
 						if ($user['Role']['perm_sync'] && $server['all_orgs']) $orgCheck = true;
-						continue;
 					}
 				}
 			} else $serverCheck = true;
