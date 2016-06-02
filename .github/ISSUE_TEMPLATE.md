@@ -1,5 +1,7 @@
 *This template aims to ease the triage of the issues you encounter when using MISP*
 
+*This template is meant for bug reports, if you have a feature request, please be as descriptive as possible* 
+
 ### Work environment
 
 | Questions                 | Answers
