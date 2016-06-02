@@ -17,7 +17,6 @@ class Warninglist extends AppModel{
 		'version' => array(
 			'rule' => array('numeric'),
 		),
-		
 	);
 	
 	public $hasMany = array(
@@ -42,12 +41,15 @@ class Warninglist extends AppModel{
 		$directories = glob(APP . 'files' . DS . 'warninglists' . DS . 'lists' . DS . '*', GLOB_ONLYDIR);
 		$updated = array();
 		foreach ($directories as &$dir) {
-			$file = new File ($dir . DS . 'list.json');
+			$file = new File($dir . DS . 'list.json');
 			$list = json_decode($file->read(), true);
 			$file->close();
 			if (!isset($list['version'])) $list['version'] = 1;
-			if (!isset($list['type'])) $list['type'] = 'string';
-			else if (is_array($list['type'])) $list['type'] = $list['type'][0];
+			if (!isset($list['type'])) {
+				$list['type'] = 'string';
+			} else if (is_array($list['type'])) {
+				$list['type'] = $list['type'][0];
+			}
 			$current = $this->find('first', array(
 					'conditions' => array('name' => $list['name']),
 					'recursive' => -1,
@@ -74,23 +76,31 @@ class Warninglist extends AppModel{
 			$this->deleteAll(array('Warninglist.id' => $current['Warninglist']['id']));
 		}
 		$fieldsToSave = array('name', 'version', 'description', 'type', 'enabled');
-		foreach ($fieldsToSave as $fieldToSave) $warninglist['Warninglist'][$fieldToSave] = $list[$fieldToSave];
+		foreach ($fieldsToSave as $fieldToSave) {
+			$warninglist['Warninglist'][$fieldToSave] = $list[$fieldToSave];
+		}
 		$this->create();
 		if ($this->save($warninglist)) {
 			$data = array();
-			foreach ($list['list'] as $value) $data[] = array('value' => $value, 'warninglist_id' => $this->id);
+			foreach ($list['list'] as $value) {
+				$data[] = array('value' => $value, 'warninglist_id' => $this->id);
+			}
 			$this->WarninglistEntry->saveMany($data);
 			
 			if (!empty($list['matching_attributes'])) {
 				$data = array();
-				foreach ($list['matching_attributes'] as $type) $data[] = array('type' => $type, 'warninglist_id' => $this->id);
+				foreach ($list['matching_attributes'] as $type) {
+					$data[] = array('type' => $type, 'warninglist_id' => $this->id);
+				}
 				$this->WarninglistType->saveMany($data);
 			} else {
 				$this->WarninglistType->create();
 				$this->WarninglistType->save(array('WarninglistType' => array('type' => 'ALL', 'warninglist_id' => $this->id)));
 			}
 			return $this->id;
-		} else return $this->validationErrors;
+		} else {
+			return $this->validationErrors;
+		}
 	}
 	
 	public function fetchForEventView() {
@@ -104,7 +114,9 @@ class Warninglist extends AppModel{
 					'fields' => array('value')
 			));
 			$t['values'] = array_values($t['values']);
-			foreach ($t['WarninglistType'] as &$wt) $t['types'][] = $wt['type'];
+			foreach ($t['WarninglistType'] as &$wt) {
+				$t['types'][] = $wt['type'];
+			}
 			unset($warninglists[$k]['WarninglistType']);
 		}
 		return $warninglists;
@@ -120,7 +132,9 @@ class Warninglist extends AppModel{
 						$result = $this->__checkValue($list['values'], $object['value'], $object['type'], $list['Warninglist']['type']);
 						if (!empty($result)) {
 							$object['warnings'][$result][] = $list['Warninglist']['name'];
-							if (!in_array($list['Warninglist']['name'], $eventWarnings)) $eventWarnings[$list['Warninglist']['id']] = $list['Warninglist']['name'];
+							if (!in_array($list['Warninglist']['name'], $eventWarnings)) {
+								$eventWarnings[$list['Warninglist']['id']] = $list['Warninglist']['name'];
+							}
 						}
 					}
 				}
@@ -136,8 +150,11 @@ class Warninglist extends AppModel{
 		$components = array(0, 1);
 		foreach ($components as $component) {
 			if (!isset($value[$component])) continue;
-			if ($listType === 'cidr') $result = $this->__evalCIDRList($listValues, $value[$component]);
-			else if ($listType === 'string') $result = $this->__evalString($listValues, $value[$component]);
+			if ($listType === 'cidr') {
+				$result = $this->__evalCIDRList($listValues, $value[$component]);
+			} else if ($listType === 'string') {
+				$result = $this->__evalString($listValues, $value[$component]);
+			}
 			if ($result) return ($component + 1);
 		}
 		return false;
@@ -151,12 +168,18 @@ class Warninglist extends AppModel{
 		// separate the CIDR list into IPv4 and IPv6
 		foreach ($listValues as $lv) {
 			$base = substr($lv, 0, strpos($lv, '/'));
-			if (filter_var($base, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) $ipv4cidrlist[] = $lv;
-			else if (filter_var($base, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) $ipv6cidrlist[] = $lv;
+			if (filter_var($base, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+				$ipv4cidrlist[] = $lv;
+			} else if (filter_var($base, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+				$ipv6cidrlist[] = $lv;
+			}
 		}
-		// evaluate the value separately if it's IPv4 or IPv6
-		if (filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) return $this->__evalCIDR($value, $ipv4cidrlist, '__ipv4InCidr');
-		else if (filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) return $this->__evalCIDR($value, $ipv6cidrlist, '__ipv6InCidr');
+		// evaluate the value separately for IPv4 and IPv6
+		if (filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+			return $this->__evalCIDR($value, $ipv4cidrlist, '__ipv4InCidr');
+		} else if (filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+			return $this->__evalCIDR($value, $ipv6cidrlist, '__ipv6InCidr');
+		}
 		return false;
 
 	}
@@ -183,7 +206,7 @@ class Warninglist extends AppModel{
 	// using Snifff's solution from http://stackoverflow.com/questions/7951061/matching-ipv6-address-to-a-cidr-subnet
 	private function __ipv6InCidr($ip, $cidr) {
 		$ip = inet_pton($ip);
-		$binaryip = inet_to_bits($ip);
+		$binaryip = $this->__inet_to_bits($ip);
 		list($net, $maskbits) = explode('/', $cidr);
 		$net = inet_pton($net);
 		$binarynet = $this->__inet_to_bits($net);
@@ -197,7 +220,9 @@ class Warninglist extends AppModel{
 		$unpacked = unpack('A16', $inet);
 		$unpacked = str_split($unpacked[1]);
 		$binaryip = '';
-		foreach ($unpacked as $char) $binaryip .= str_pad(decbin(ord($char)), 8, '0', STR_PAD_LEFT);
+		foreach ($unpacked as $char) {
+			$binaryip .= str_pad(decbin(ord($char)), 8, '0', STR_PAD_LEFT);
+		}
 		return $binaryip;
 	}
 	

@@ -548,7 +548,7 @@ class ServersController extends AppController {
 			$destpath = APP . "files" . DS . "certs" . DS;
 			$dir = new Folder(APP . "files" . DS . "certs", true);
 			if (!preg_match('@^[\w-,\s,\.]+\.[A-Za-z0-9_]{2,4}$@', $server['Server']['submitted_cert']['name'])) throw new Exception ('Filename not allowed');
-			$pemfile = new File ($destpath . $id . '.' . $ext);
+			$pemfile = new File($destpath . $id . '.' . $ext);
 			$result = $pemfile->write($pemData); 
 			$s = $this->Server->read(null, $id);
 			$s['Server']['cert_file'] = $s['Server']['id'] . '.' . $ext;
@@ -1008,7 +1008,7 @@ class ServersController extends AppController {
 				$version = json_decode($result['message'], true);
 				if (isset($version['version']) && preg_match('/^[0-9]+\.+[0-9]+\.[0-9]+$/', $version['version'])) {
 					App::uses('Folder', 'Utility');
-					$file = new File (ROOT . DS . 'VERSION.json', true);
+					$file = new File(ROOT . DS . 'VERSION.json', true);
 					$local_version = json_decode($file->read(), true);
 					$file->close();
 					$version = explode('.', $version['version']);

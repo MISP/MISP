@@ -2579,7 +2579,7 @@ class Event extends AppModel {
                 }
 		// generate a randomised filename for the temporary file that will be passed to the python script
 		$randomFileName = $this->generateRandomFileName();
-		$tempFile = new File (APP . "files" . DS . "scripts" . DS . "tmp" . DS . $randomFileName, true, 0644);
+		$tempFile = new File(APP . "files" . DS . "scripts" . DS . "tmp" . DS . $randomFileName, true, 0644);
 		
 		// save the json_encoded event(s) to the temporary file
 		$result = $tempFile->write(json_encode($events));
