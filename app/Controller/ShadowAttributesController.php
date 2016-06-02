@@ -463,8 +463,6 @@ class ShadowAttributesController extends AppController {
 		$categories = $this->_arrayToValuesIndexArray($categories);
 		$this->set('categories', compact('categories'));
 		// combobox for distribution
-		$count = 0;
-
 		$this->set('typeDefinitions', $this->ShadowAttribute->typeDefinitions);
 		$this->set('categoryDefinitions', $this->ShadowAttribute->categoryDefinitions);
 	}
@@ -486,14 +484,12 @@ class ShadowAttributesController extends AppController {
 	private function __downloadAttachment($shadowAttribute) {
 		$path = "files" . DS . 'shadow' . DS . $shadowAttribute['event_id'] . DS;
 		$file = $shadowAttribute['id'];
-		$filename = '';
 		if ('attachment' == $shadowAttribute['type']) {
 			$filename = $shadowAttribute['value'];
 			$fileExt = pathinfo($filename, PATHINFO_EXTENSION);
 			$filename = substr($filename, 0, strlen($filename) - strlen($fileExt) - 1);
 		} elseif ('malware-sample' == $shadowAttribute['type']) {
 			$filenameHash = explode('|', $shadowAttribute['value']);
-			$filename = $filenameHash[0];
 			$filename = substr($filenameHash[0], strrpos($filenameHash[0], '\\'));
 			$fileExt = "zip";
 		} else {
@@ -615,7 +611,6 @@ class ShadowAttributesController extends AppController {
 						// add to the whole..
 						$selectedCategories[] = $category;
 						$alreadySet = true;
-						continue;
 					}
 				}
 			}
@@ -961,7 +956,6 @@ class ShadowAttributesController extends AppController {
 		}
 	
 		$fields = array('id', 'distribution', 'event_id');
-		$additionalFieldsToLoad = $field;
 		if ($field == 'category' || $field == 'type') {
 			$fields[] = 'type';
 			$fields[] = 'category';
