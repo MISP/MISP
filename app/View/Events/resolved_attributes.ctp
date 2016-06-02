@@ -87,7 +87,12 @@
 			<td class="short">
 				<?php 
 					if (!isset($item['category'])) {
-						$default = array_search($defaultCategories[$item['default_type']], $typeCategoryMapping[$item['default_type']]);
+						if (isset($defaultCategories[$item['default_type']])) {
+							$default = array_search($defaultCategories[$item['default_type']], $typeCategoryMapping[$item['default_type']]);
+						} else {
+							reset($typeCategoryMapping[$item['default_type']]);
+							$default = key($typeCategoryMapping[$item['default_type']]);
+						}
 					} else {
 						$default = array_search($item['category'], $typeCategoryMapping[$item['default_type']]);
 					}

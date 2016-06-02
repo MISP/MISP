@@ -184,8 +184,8 @@ class Warninglist extends AppModel{
 	private function __ipv6InCidr($ip, $cidr) {
 		$ip = inet_pton($ip);
 		$binaryip = inet_to_bits($ip);
-		list($net,$maskbits) = explode('/',$cidrnet);
-		$net=inet_pton($net);
+		list($net, $maskbits) = explode('/', $cidr);
+		$net = inet_pton($net);
 		$binarynet = $this->__inet_to_bits($net);
 		$ip_net_bits = substr($binaryip, 0, $maskbits);
 		$net_bits = substr($binarynet, 0, $maskbits);

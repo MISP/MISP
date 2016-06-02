@@ -24,7 +24,8 @@ class TemplateElement extends AppModel {
 	public function lastPosition($template_id) {
 		$result = $this->find('first', array(
 			'fields' => array('MAX(position) AS pos', 'id', 'template_id'),
-			'conditions' => array('template_id' => $template_id)
+			'conditions' => array('template_id' => $template_id),
+			'order' => array('id')
 		));
 		return $result[0]['pos'];
 	}

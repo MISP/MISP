@@ -232,10 +232,11 @@ class EventsController extends AppController {
 				'fields' => array('id')					
 		));
 		if (!empty($orgs)) $conditions['OR']['orgc_id'] = array_values($orgs);
-		$conditions['OR']['lower(info) LIKE'] = '%' . strtolower($value) .'%';	
+		$conditions['OR']['lower(info) LIKE'] = '%' . strtolower($value) .'%';
+		$conditions['OR']['lower(uuid) LIKE'] = strtolower($value);
 		$otherEvents = $this->Event->find('all', array(
 				'recursive' => -1,
-				'fields' => array('id', 'orgc_id', 'info'),
+				'fields' => array('id', 'orgc_id', 'info', 'uuid'),
 				'conditions' => $conditions,
 		));
 		foreach ($otherEvents as $oE) {
@@ -644,7 +645,7 @@ class EventsController extends AppController {
 					'fields' => array('Orgc.name'),
 					'contain' => array('Orgc'),
 					'conditions' => $conditions,
-					'group' => 'LOWER(Orgc.name)'
+					'group' => array('LOWER(Orgc.name)','Event.id')
 			));
 			$this->set('showorg', true);
 			$this->set('orgs', $this->_arrayToValuesIndexArray($orgs));
@@ -734,6 +735,22 @@ class EventsController extends AppController {
 				'Attribute' => array('attrDescriptions' => 'fieldDescriptions', 'distributionDescriptions' => 'distributionDescriptions', 'distributionLevels' => 'distributionLevels', 'shortDist' => 'shortDist'),
 				'Event' => array('eventDescriptions' => 'fieldDescriptions', 'analysisDescriptions' => 'analysisDescriptions', 'analysisLevels' => 'analysisLevels')
 		);
+
+		// workaround to get the event dates in to the attribute relations
+		$relatedDates = array();
+		if (isset($event['RelatedEvent'])) {
+			foreach ($event['RelatedEvent'] as &$relation) {
+				$relatedDates[$relation['Event']['id']] = $relation['Event']['date'];
+			}
+			if (isset($event['RelatedAttribute'])) {
+				foreach ($event['RelatedAttribute'] as &$relatedAttribute) {
+					foreach ($relatedAttribute as &$relation) {
+						$relation['date'] = $relatedDates[$relation['id']];
+					}
+				}
+			}
+		}
+		
 		foreach ($dataForView as $m => $variables) {
 			if ($m === 'Event') $currentModel = $this->Event;
 			else if ($m === 'Attribute') $currentModel = $this->Event->Attribute;
@@ -995,14 +1012,9 @@ class EventsController extends AppController {
 					} else {
 						if ($this->_isRest()) { // TODO return error if REST
 							if(is_numeric($add)) {
-								$this->response->location(Configure::read('MISP.baseurl') . '/events/' . $add);
-								$this->response->statusCode(302);
-								$message = 'Event already exists, if you would like to edit it, use the url in the location header.';
-								$this->set('name', $message);
-								$this->set('message', $message);
-								$this->set('url', $this->here);
-								$this->set('_serialize', array('name', 'message', 'url'));
-								return false;
+								$this->response->header('Location', Configure::read('MISP.baseurl') . '/events/' . $add);
+								$this->response->send();
+								throw new NotFoundException('Event already exists, if you would like to edit it, use the url in the location header.');
 							}
 							$this->set('name', 'Add event failed.');
 							$this->set('message', 'The event could not be saved.');
@@ -1265,9 +1277,6 @@ class EventsController extends AppController {
 				$this->set('_serialize', array('message'));
 			} else {
 				// delete the event from remote servers
-				//if ('true' == Configure::read('MISP.sync')) {	// TODO test..(!$this->_isRest()) &&
-				//	$this->__deleteEventFromServers($uuid);
-				//}
 				$this->Session->setFlash(__('Event deleted'));
 	
 				// if coming from index, redirect to referer (to have the filter working)
@@ -1505,7 +1514,7 @@ class EventsController extends AppController {
 				} else {
 					$file = new File($dir->pwd() . DS . 'misp.' . $k . '.' . $useOrg . $type['extension']);
 				}
-				if (!$file->exists()) {
+				if (!$file->readable()) {
 					$lastModified = 'N/A';
 					$this->Event->export_types[$k]['recommendation'] = 1;
 				} else {
@@ -2321,7 +2330,6 @@ class EventsController extends AppController {
 		$subcondition = array();
 		$this->loadModel('Attribute');
 		// add the values as specified in the 2nd parameter to the conditions
-		$values = explode('&&', $value);
 		if (isset($searchall) && ($searchall == 1 || $searchall === true || $searchall == 'true')) {
 			$eventIds = $this->__quickFilter($value);
 		} else {

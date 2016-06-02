@@ -60,7 +60,7 @@ class UserInitShell extends AppShell {
 					'confirm_password' => 'admin',
 					'authkey' => $authkey,
 					'nids_sid' => 4000000,
-					'newsread' => date('Y-m-d'),
+					'newsread' => 0,
 					'role_id' => 1,
 					'change_pw' => 0,
 					'termsaccepted' => 1

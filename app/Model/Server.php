@@ -1206,10 +1206,6 @@ class Server extends AppModel {
 									$event['Event']['distribution'] = '0';
 									break;
 							}
-							if (!is_array($event['Event']['Attribute']) || empty($event['Event']['Attribute'])) {
-								$fails[$eventId] = 'Empty event received.';
-								continue;
-							}
 						} else {
 							$fails[$eventId] = 'Event blocked by blacklist.';
 							continue;
@@ -1254,9 +1250,6 @@ class Server extends AppModel {
 					// no fails, take the highest success
 					$lastpulledid = count($successes) > 0 ? max($successes) : 0;
 				}
-				// increment lastid based on the highest ID seen
-				$this->save($event, array('fieldList' => array('lastpulledid', 'url')));
-				// grab all of the shadow attributes that are relevant to us
 			}
 		}
 		if ($jobId) {
@@ -1270,7 +1263,7 @@ class Server extends AppModel {
 		$shadowAttribute = ClassRegistry::init('ShadowAttribute');
 		$shadowAttribute->recursive = -1;
 		if (!empty($events)) {
-			$proposals = $eventModel->downloadProposalsFromServer($events, $server, false);
+			$proposals = $eventModel->downloadProposalsFromServer($events, $server);
 			if ($proposals !== null) {
 				$uuidEvents = array_flip($events);
 				foreach ($proposals as $k => &$proposal) {
@@ -1414,9 +1407,6 @@ class Server extends AppModel {
 		if ($ignoreFilterRules) $filter_rules = array();
 		else $filter_rules = $this->filterRuleToParameter($server['Server']['pull_rules']);
 		if (null == $HttpSocket) {
-			//$HttpSocket = new HttpSocket(array(
-			//		'ssl_verify_peer' => false
-			//		));
 			App::uses('SyncTool', 'Tools');
 			$syncTool = new SyncTool();
 			$HttpSocket = $syncTool->setupHttpSocket($server);
@@ -1426,7 +1416,7 @@ class Server extends AppModel {
 						'Authorization' => $authkey,
 						'Accept' => 'application/json',
 						'Content-Type' => 'application/json',
-						//'Connection' => 'keep-alive' // LATER followup cakephp ticket 2854 about this problem http://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2854
+						//'Connection' => 'keep-alive' // LATER followup cakephp issue about this problem: https://github.com/cakephp/cakephp/issues/1961
 				)
 		);
 		$uri = $url . '/events/index';
@@ -1465,14 +1455,14 @@ class Server extends AppModel {
 				return $eventIds;
 			}
 			if ($response->code == '403') {
-					return 403;
+				return 403;
 			}
 			} catch (SocketException $e){
 			// FIXME refactor this with clean try catch over all http functions
 				return $e->getMessage();
 			}
-			// error, so return null
-			return null;
+			// error, so return error message, since that is handled and everything is expecting an array
+			return "Error: got response code " . $response->code;
 	}
 	
 	public function push($id = null, $technique=false, $jobId = false, $HttpSocket, $user) {
@@ -1484,7 +1474,7 @@ class Server extends AppModel {
 		$this->read(null, $id);
 		$url = $this->data['Server']['url'];
 		$push = $this->checkVersionCompatibility($id, $user)['canPush'];
-		if (!isset($push['canPush']) || !$push['canPush']) {
+		if (!isset($push) || !$push) {
 			if ($jobId) {
 				$job->id = $jobId;
 				$job->saveField('progress', 100);
@@ -1542,17 +1532,16 @@ class Server extends AppModel {
 								),
 							)
 						)
-				), //array of conditions
+				), // array of conditions
 				'recursive' => -1, //int
 				'contain' => array('EventTag' => array('fields' => array('EventTag.tag_id'))),
-				'fields' => array('Event.id', 'Event.timestamp', 'Event.uuid', 'Event.orgc_id'), //array of field names
+				'fields' => array('Event.id', 'Event.timestamp', 'Event.uuid', 'Event.orgc_id'), // array of field names
 		);
 		$eventIds = $this->Event->find('all', $findParams);
 		$eventUUIDsFiltered = $this->getEventIdsForPush($id, $HttpSocket, $eventIds, $user);
 		if ($eventUUIDsFiltered === false || empty($eventUUIDsFiltered)) $pushFailed = true;
 		if (!empty($eventUUIDsFiltered)) {
 			$eventCount = count($eventUUIDsFiltered);
-			//debug($eventIds);
 			// now process the $eventIds to pull each of the events sequentially
 			if (!empty($eventUUIDsFiltered)) {
 				$successes = array();
@@ -1650,7 +1639,7 @@ class Server extends AppModel {
 		return $uuidList;
 	}
 	
-	public function syncProposals($HttpSocket, $server, $sa_id = null, $event_id = null, $eventModel){
+	public function syncProposals($HttpSocket, $server, $sa_id = null, $event_id = null, $eventModel) {
 		$saModel = ClassRegistry::init('ShadowAttribute');
 		if (null == $HttpSocket) {
 			App::uses('SyncTool', 'Tools');
@@ -1661,6 +1650,8 @@ class Server extends AppModel {
 			if ($event_id == null) {
 				// event_id is null when we are doing a push
 				$ids = $this->getEventIdsFromServer($server, true, $HttpSocket);
+				// error return strings or ints or throw exceptions
+				if(!is_array($ids)) return false;
 				$conditions = array('uuid' => $ids);
 			} else {
 				$conditions = array('id' => $event_id);
@@ -1676,7 +1667,6 @@ class Server extends AppModel {
 			$fails = 0;
 			$success = 0;
 			$error_message = "";
-			$unchanged = array();
 			foreach ($events as $k => &$event) {
 				if (!empty($event['ShadowAttribute'])) {
 					foreach ($event['ShadowAttribute'] as &$sa) {
@@ -1703,7 +1693,7 @@ class Server extends AppModel {
 						} else {
 							$fails++;
 							if ($error_message == "") $result['message'];
-							else $error_message += " --- " . $result['message']; 
+							else $error_message .= " --- " . $result['message']; 
 						}
 					} else {
 						$fails++;
@@ -1721,14 +1711,28 @@ class Server extends AppModel {
 			);
 			$uri = $server['Server']['url'] . '/events/checkuuid/' . $sa_id;
 			$response = $HttpSocket->get($uri, '', $request);
-			if ($response->code == '200') {
-				$uuidList = json_decode($response->body());
-			} else {
+			if ($response->code != '200') {
 				return false;
 			}
 		}
+		return true;
 	}
-
+	
+	private function __getEnrichmentSettings() {
+		$modules = $this->getEnrichmentModules();
+		$result = array();
+		if (!empty($modules['modules'])) {
+			foreach ($modules['modules'] as $module) {
+				$result[$module['name']][0] = array('name' => 'enabled', 'type' => 'boolean');
+				if (isset($module['meta']['config'])) {
+					foreach ($module['meta']['config'] as $conf) {
+						$result[$module['name']][] = array('name' => $conf, 'type' => 'string');
+					}
+				}
+			}
+		}
+		return $result;
+	}
 	
 	public function getCurrentServerSettings() {
 		$this->Module = ClassRegistry::init('Module');
@@ -1990,7 +1994,6 @@ class Server extends AppModel {
 	public function testForRPZSerial($value) {
 		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
 		if (!preg_match('/^((\$date(\d*)|\d*))$/', $value)) return 'Invalid format.';
-		//if (!preg_match('/^\w+(\.\w+)*(\.?) \w+(\.\w+)* \((\$date(\d*)|\d*)( ((\d*)|(\d*)[hHmMdD])){4}\)$/', $value)) return 'Invalid format.';
 		return true;
 	}
 	
@@ -2113,16 +2116,6 @@ class Server extends AppModel {
 						'regex_error' => 'Filename must be in the following format: *.png',
 						'files' => array(),
 				),
-				/*'terms' => array(
-						'name' => 'Terms of Use file',
-						'description' => 'Terms of use file viewable / downloadable by users. Make sure that it is either in text / html format if served inline.',
-						'expected' => array('MISP.terms_file' => Configure::read('MISP.terms_file')),
-						'valid_format' => 'text/html if served inline, anything that conveys the terms of use if served as download',
-						'path' => APP . 'files' . DS . 'terms',
-						'regex' => '^(?!empty).*$',
-						'regex_error' => 'Filename can be any string consisting of characters between a-z, A-Z, 0-9 or one of the following: "_" or "-". The filename can also have an extension.',
-						'files' => array(),
-				),*/
 				'img' => array(
 						'name' => 'Additional image files',
 						'description' => 'Image files uploaded into this directory can be used for various purposes, such as for the login page logos',
@@ -2146,7 +2139,6 @@ class Server extends AppModel {
 		$validItems = $this->getFileRules();
 		App::uses('Folder', 'Utility');
 		App::uses('File', 'Utility');
-		$result = array();
 		foreach ($validItems as $k => &$item) {
 			$dir = new Folder($item['path']);
 			$files = $dir->find($item['regex'], true);
@@ -2171,7 +2163,6 @@ class Server extends AppModel {
 			)
 		);
 		$uri = $server['Server']['url'] . '/servers/getVersion';
-		$responseArray = array();
 		try {
 			$response = $HttpSocket->get($uri, false, $request);
 		} catch (Exception $e) {
@@ -2493,7 +2484,9 @@ class Server extends AppModel {
 		if (function_exists('posix_getpwuid')) {
 			$currentUser = posix_getpwuid(posix_geteuid());
 			$currentUser = $currentUser['name'];
-		} else $currentUser = trim(shell_exec('whoami'));
+		} else {
+			$currentUser = trim(shell_exec('whoami'));
+		}
 		$worker_array = array(
 				'cache' => array('ok' => true),
 				'default' => array('ok' => true),
@@ -2505,8 +2498,11 @@ class Server extends AppModel {
 			$entry = ($worker['type'] == 'regular') ? $worker['queue'] : $worker['type'];
 			$correct_user = ($currentUser === $worker['user']);
 			if (!is_numeric($pid)) throw new MethodNotAllowedException('Non numeric PID found.');
-			if ($procAccessible) $alive = $correct_user ? (file_exists('/proc/' . addslashes($pid))) : false;
-			else $alive = 'N/A';
+			if ($procAccessible) {
+				$alive = $correct_user ? (file_exists('/proc/' . addslashes($pid))) : false;
+			} else {
+				$alive = 'N/A';
+			}
 			$ok = true;
 			if (!$alive || !$correct_user) {
 				$ok = false;
@@ -2656,8 +2652,6 @@ class Server extends AppModel {
 		}
 		$this->query('UPDATE `roles` SET `perm_template` = 1 WHERE `perm_site_admin` = 1 OR `perm_admin` = 1');
 		$this->query('UPDATE `roles` SET `perm_sharing_group` = 1 WHERE `perm_site_admin` = 1 OR `perm_sync` = 1');
-		$localOrgs = array();
-		$externalOrgs = array();
 		$orgs = array('local' => array(), 'external' => array());
 		$captureRules = array(
 				'events_org' => array('table' => 'events', 'old' => 'org', 'new' => 'org_id'),
@@ -2797,7 +2791,7 @@ class Server extends AppModel {
 						'Authorization' => $server['Server']['authkey'],
 						'Accept' => 'application/json',
 						'Content-Type' => 'application/json',
-						//'Connection' => 'keep-alive' // LATER followup cakephp ticket 2854 about this problem http://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2854
+						//'Connection' => 'keep-alive' // // LATER followup cakephp issue about this problem: https://github.com/cakephp/cakephp/issues/1961
 				)
 		);
 		$validArgs = array_merge(array('sort', 'direction'), $this->validEventIndexFilters);
@@ -2841,7 +2835,7 @@ class Server extends AppModel {
 						'Authorization' => $server['Server']['authkey'],
 						'Accept' => 'application/json',
 						'Content-Type' => 'application/json',
-						//'Connection' => 'keep-alive' // LATER followup cakephp ticket 2854 about this problem http://cakephp.lighthouseapp.com/projects/42648-cakephp/tickets/2854
+						//'Connection' => 'keep-alive' // // LATER followup cakephp issue about this problem: https://github.com/cakephp/cakephp/issues/1961
 				)
 		);
 		$uri = $server['Server']['url'] . '/events/' . $eventId;

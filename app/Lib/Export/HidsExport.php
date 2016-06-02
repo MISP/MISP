@@ -18,9 +18,6 @@ class HidsExport {
 	public function export($items, $type = 'MD5', $continue = false) {
 		if (!empty($items)) {
 			foreach ($items as &$item) {
-				# md5
-				$ruleFormat = '%s';
-	
 				$attribute = &$item['Attribute'];
 	
 				switch ($attribute['type']) {
@@ -37,7 +34,6 @@ class HidsExport {
 						break;
 					default:
 						break;
-	
 				}
 			}
 		}

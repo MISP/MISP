@@ -78,7 +78,7 @@ $config = array (
     'restApi'       => array(        // API parameters
       'url'         => 'https://example.com/data/users',  // URL to query
       'headers'     => array(),                           // additional headers, used for authentication
-      'param'       => array( 'email' => 'email'),        // query parameters to add to the URL, mapped to USer properties 
+      'param'       => array( 'email' => 'email'),        // query parameters to add to the URL, mapped to User properties 
       'map'         =>  array(                            // maps REST result to the User properties
         'uid'       => 'nids_sid',
         'team'      => 'org',
@@ -88,26 +88,26 @@ $config = array (
     ),
   ),
   */
-  // Warning: The follow is a 3rd party contribution and still untested (including security) by the MISP-project team.
+  // Warning: The following is a 3rd party contribution and still untested (including security) by the MISP-project team.
   // Feel free to enable it and report back to us if you run into any issues.
   //
-  // Uncomment the following to enable Kerberos authentification
-  // need php5-ldap mod for apache
+  // Uncomment the following to enable Kerberos authentication
+  // needs PHP LDAP support enabled (e.g. compile flag --with-ldap or Debian package php5-ldap)
   /*
-   'ApacheSecureAuth' => // Configuration for kerberos authentification
+   'ApacheSecureAuth' => // Configuration for kerberos authentication
     array(
-        'apacheEnv' => 'REMOTE_USER', // If proxy variable = HTTP_REMOTE_USER
-        'ldapServer' => 'ldap://sample.com',    // fqdn or ip
+        'apacheEnv' => 'REMOTE_USER',           // If proxy variable = HTTP_REMOTE_USER
+        'ldapServer' => 'ldap://example.com',   // FQDN or IP
         'ldapProtocol' => 3,
-        'ldapReaderUser' => 'cn=userWithReadAccess,ou=users,dc=sample,dc=com', // DN ou RDN LDAP with reader user right
-        'ldapReaderPassword' => 'UserPassword', //the ldap reader user password
-        'ldapDN' => 'dc=sample,dc=com', 
-        'ldapSearchAttribut' => 'uid', // filter for search. Maybe can be "samacountname"
+        'ldapReaderUser' => 'cn=userWithReadAccess,ou=users,dc=example,dc=com', // DN ou RDN LDAP with reader user right
+        'ldapReaderPassword' => 'UserPassword', // the LDAP reader user password
+        'ldapDN' => 'dc=example,dc=com', 
+        'ldapSearchAttribut' => 'uid',          // filter for search
         'ldapFilter' => array(
             'mail',
         ),
-        'ldapDefaultRoleId' => 3,   // 3:User-1:admin. Maybe good to make 1 for the first user
-        'ldapDefaultOrg' => 'sample.com',     // if not define default org = 1 misp org
+        'ldapDefaultRoleId' => 3,               // 3:User, 1:admin. May be good to set "1" for the first user
+        'ldapDefaultOrg' => 'example.com',      // uses 1st local org in MISP if undefined
     ),
    */
 );

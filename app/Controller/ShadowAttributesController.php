@@ -956,7 +956,6 @@ class ShadowAttributesController extends AppController {
 	public function fetchEditForm($id, $field = null) {
 		$validFields = array('value', 'comment', 'type', 'category', 'to_ids');
 		if (!isset($field) || !in_array($field, $validFields)) throw new MethodNotAllowedException('Invalid field requested.');
-		//if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This function can only be accessed via AJAX.');
 		$this->loadModel('Attribute');
 		$this->Attribute->id = $id;
 		if (!$this->Attribute->exists()) {

@@ -341,6 +341,7 @@ class SharingGroup extends AppModel {
 			$newSG['local'] = 0;
 			$newSG['sync_user_id'] = $user['id'];
 			if (!isset($sg['Organisation'])) {
+				if (!isset($sg['SharingGroupOrg'])) return false;
 				foreach ($sg['SharingGroupOrg'] as $k => $org) {
 					if (isset($org['Organisation'][0])) $org['Organisation'] = $org['Organisation'][0];
 					if ($org['Organisation']['uuid'] == $sg['organisation_uuid']) $newSG['org_id'] = $this->Organisation->captureOrg($org['Organisation'], $user);
@@ -351,7 +352,7 @@ class SharingGroup extends AppModel {
 			if (!$this->save($newSG)) return false;
 			$sgids = $this->id;
 		} else {
-			if (!$this->checkIfAuthorised($user, $existingSG['SharingGroup']['id'])) return false;
+			if (!$this->checkIfAuthorised($user, $existingSG['SharingGroup']['id'])) throw new Exception('User not authorised to modify sharing groups.');
 			if ($sg['modified'] > $existingSG['SharingGroup']['modified']) {
 				if ($user['Role']['perm_sync'] && $existingSG['SharingGroup']['local'] == 0) $force = true;
 				if ($force) {

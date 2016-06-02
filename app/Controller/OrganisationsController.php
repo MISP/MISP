@@ -69,7 +69,6 @@ class OrganisationsController extends AppController {
 			if ($this->Organisation->save($this->request->data)) {
 				$this->Session->setFlash('The organisation has been successfully added.');
 				$this->redirect(array('admin' => false, 'action' => 'index'));
-				//$this->redirect(array('admin' => false, 'action' => 'view', $this->Organisation->id));
 			} else {
 				$this->Session->setFlash('The organisation could not be added.');
 			}

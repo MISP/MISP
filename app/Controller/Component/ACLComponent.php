@@ -50,6 +50,7 @@ class ACLComponent extends Component {
 					'index' => array('*'),
 					'pruneOrphanedAttributes' => array(),
 					'reportValidationIssuesAttributes' => array(),
+					'restore' => array('perm_add'),
 					'restSearch' => array('*'),
 					'returnAttributes' => array('*'),
 					'rpz' => array('*'),
@@ -124,7 +125,9 @@ class ACLComponent extends Component {
 			'feeds' => array(
 					'add' => array(),
 					'delete' => array(),
+					'disable' => array(),
 					'edit' => array(),
+					'enable' => array(),
 					'fetchFromFeed' => array(),
 					'getEvent' => array(),
 					'index' => array(),
@@ -144,6 +147,12 @@ class ACLComponent extends Component {
 					'event_index' => array('*'),
 					'maxDateActivity' => array('*'),
 					'returnDates' => array('*'),
+			),
+			'news' => array(
+					'add' => array(),
+					'edit' => array(),
+					'delete' => array(),
+					'index' => array('*'),
 			),
 			'orgBlacklists' => array(
 					'add' => array(),
@@ -253,6 +262,7 @@ class ACLComponent extends Component {
 					'selectTag' => array('perm_tagger'),
 					'selectTaxonomy' => array('perm_tagger'),
 					'showEventTag' => array('*'),
+					'tagStatistics' => array('*'),
 					'view' => array('*'),
 					'viewTag' => array('*'),
 			),
@@ -321,6 +331,7 @@ class ACLComponent extends Component {
 					'statistics' => array('*'),
 					'terms' => array('*'),
 					'updateLoginTime' => array('*'),
+					'verifyCertificate' => array(),
 					'verifyGPG' => array(),
 					'view' => array('*'),
 			),
@@ -396,9 +407,7 @@ class ACLComponent extends Component {
 	
 	public function printAllFunctionNames($content = false) {
 		$results = $this->__findAllFunctions();
-		$pretty = "";
 		ksort($results);
-		$count = 0;
 		return $results;
 	} 
 
@@ -454,5 +463,4 @@ class ACLComponent extends Component {
 		}
 		return $result;
 	}
-	
 }

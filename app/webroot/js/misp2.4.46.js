@@ -6,7 +6,8 @@ function deleteObject(type, action, id, event) {
 	var destination = 'attributes';
 	if (type == 'shadow_attributes') destination = 'shadow_attributes';
 	else if (type == 'template_elements') destination = 'template_elements';
-	$.get( "/" + destination + "/" + action + "/" + id, function(data) {
+	url = "/" + destination + "/" + action + "/" + id;
+	$.get(url, function(data) {
 		$("#confirmation_box").fadeIn();
 		$("#gray_out").fadeIn();
 		$("#confirmation_box").html(data);
@@ -2390,7 +2391,7 @@ function hoverModuleExpand(type, id) {
 			content: ajaxResults[type + "_" + id],
 			placement: 'left',
 			html: true,
-			trigger: 'focus',
+			trigger: 'hover',
 			container: 'body'
 		}).popover('show');
 	} else {
@@ -2403,7 +2404,7 @@ function hoverModuleExpand(type, id) {
 					content: html,
 					placement: 'left',
 					html: true,
-					trigger: 'focus',
+					trigger: 'hover',
 					container: 'body'
 				}).popover('show');
 			}, 

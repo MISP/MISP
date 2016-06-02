@@ -232,7 +232,7 @@ class Taxonomy extends AppModel{
 
 	public function listTaxonomies($options = array('full' => false, 'enabled' => false)) {
 		$recursive = -1;
-		if ($options['full']) $recursive = 2;
+		if (isset($options['full']) && $options['full']) $recursive = 2;
 		$conditions = array();
 		if (isset($options['enabled']) && $options['enabled']) $conditions[] = array('Taxonomy.enabled' => true);
 		$temp =  $this->find('all',  array(

@@ -25,6 +25,7 @@
 			<th><?php echo $this->Paginator->sort('date_created', 'Thread started On');?></th>
 			<th>Posts</th>
 			<th>Distribution</th>
+			<th>Actions</th>
 	</tr>
 	<?php
 	$url = Configure::read('MISP.baseurl');
@@ -73,6 +74,11 @@ foreach ($threads as $thread):
 				<?php
 					if ($thread['Thread']['distribution'] < 4) echo $distributionLevels[$thread['Thread']['distribution']];
 					else echo '<a href="/sharing_groups/view/' . h($thread['Thread']['sharing_group_id']) . '" title="' . h($thread['SharingGroup']['name']) . '">Sharing group</a>';
+				?>
+			</td>
+			<td class="short action-links">
+				<?php 
+					echo $this->Html->link('', array('action' => 'view', $thread['Thread']['id']), array('class' => 'icon-list-alt', 'title' => 'View Discussion')); 
 				?>
 			</td>
 		</tr>

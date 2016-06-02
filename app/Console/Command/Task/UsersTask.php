@@ -14,7 +14,5 @@ class UsersTask extends Shell {
 		$users = ClassRegistry::init('User');
 		// perform clean
 		$users->checkAndCorrectPgps();
-		//$users->create();
-		//$users->save(array('User' => array('name' => 'malware analyst', 'perm_add' => true, 'perm_modify' => true, 'perm_publish' => false, 'perm_full' => false)));
 	}
 }

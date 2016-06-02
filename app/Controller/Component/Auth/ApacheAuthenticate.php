@@ -1,14 +1,13 @@
 <?php
 
-/**
- * Classe custom authentification Apache
- */
 App::uses('BaseAuthenticate', 'Controller/Component/Auth');
 
 /*
+ * custom class for Apache-based authentication
  *
  * User for ApacheAuthenticate you can pass in settings to which fields, model and additional conditions
  * are used. See FormAuthenticate::$settings for more information.
+ * TODO: clarification needed, text almost the same as in lib/Cake/Controller/Component/Auth/FormAuthenticate.php
  *
  * @package       Controller.Component.Auth
  * @since 2.0
@@ -18,7 +17,7 @@ App::uses('BaseAuthenticate', 'Controller/Component/Auth');
 class ApacheAuthenticate extends BaseAuthenticate {
 
     /**
-     * Authentification class
+     * Authentication class
      *
      * @param CakeRequest $request The request that contains login information.
      * @param CakeResponse $response Unused response object.
@@ -26,67 +25,67 @@ class ApacheAuthenticate extends BaseAuthenticate {
      */
     public function authenticate(CakeRequest $request, CakeResponse $response) {
 
-        // Get information user for misp auth
+        // Get information user for MISP auth
         $envvar = $this->settings['fields']['envvar'];
         $mispUsername = $_SERVER[$envvar];
 
-        // make LDAP request to get user email require for misp auth
+        // make LDAP request to get user email required for MISP auth
         $ldapdn = Configure::read('ApacheSecureAuth.ldapDN');
         $ldaprdn = Configure::read('ApacheSecureAuth.ldapReaderUser');     // DN ou RDN LDAP
         $ldappass = Configure::read('ApacheSecureAuth.ldapReaderPassword');
 
-        // The  LDAP connexion
+        // LDAP connection
         $ldapconn = ldap_connect(Configure::read('ApacheSecureAuth.ldapServer'))
-                or die('LDAP Server Ko');
+                or die('LDAP server connection failed');
 
-        // Ldap protocol configuration 
+        // LDAP protocol configuration 
         ldap_set_option($ldapconn, LDAP_OPT_PROTOCOL_VERSION, Configure::read('ApacheSecureAuth.ldapProtocol'));
 
         if ($ldapconn) {
-            // Connexion au serveur LDAP
+            // LDAP bind
             $ldapbind = ldap_bind($ldapconn, $ldaprdn, $ldappass);
-            // Vérification de l'authentification
+            // authentication verification
             if (!$ldapbind) {
-                die("LDAP Connexion error.");
+                die("LDAP bind failed");
             }
-            // sample : '(uuid=ApacheUser)'
+            // example: '(uuid=ApacheUser)'
             $filter = '('.Configure::read('ApacheSecureAuth.ldapSearchAttribut').'=' . $_SERVER[$envvar] . ')';
-            // sample : mail
+            // example: mail
             $getLdapUserInfo = Configure::read('ApacheSecureAuth.ldapFilter');
             
             $result = ldap_search($ldapconn, $ldapdn, $filter, $getLdapUserInfo)
-                    or die("Error in search query: " . ldap_error($ldapconn));
+                    or die("Error in LDAP search query: " . ldap_error($ldapconn));
 
             $ldapUserData = ldap_get_entries($ldapconn, $result);
 
-            // the request return only 1 field
+            // the request returns only 1 field
             if (isset($ldapUserData[0]['mail'][0])) {
-                // assigne the real user for misp
+                // assign the real user for MISP
                 $mispUsername = $ldapUserData[0]['mail'][0];
-            }else{
-                die("User not find in ldap. Maybe some with your config.php");
+            } else {
+                die("User not found in LDAP");
             }
-            // close the 
+            // close LDAP connection
             ldap_close($ldapconn);
         }
 
-        // Find user with reel username (mail)
+        // Find user with real username (mail)
         $user = $this->_findUser($mispUsername);
 
         if ($user) {
             return $user;
         }
 
-        // insert user in database if not exist
+        // insert user in database if not existent
         $userModel = ClassRegistry::init($this->settings['userModel']);
         $org_id = Configure::read('ApacheSecureAuth.ldapDefaultOrg');
         // If not in config, take default org
         if(!isset($org_id)) {
             $firstOrg = $userModel->Organisation->find(
                     'first', array(
-                'conditions' => array(
-                    'Organisation.local' => true),
-                'order' => 'Organisation.id ASC'
+                        'conditions' => array(
+                            'Organisation.local' => true),
+                        'order' => 'Organisation.id ASC'
                     )
             );
             $org_id = $firstOrg['Organisation']['id'];
@@ -104,7 +103,7 @@ class ApacheAuthenticate extends BaseAuthenticate {
                 'role_id' => Configure::read('ApacheSecureAuth.ldapDefaultRoleId'),
                 'change_pw' => 0
         ));
-        // save it
+        // save user
         $userModel->save($userData, false);
 
         return $this->_findUser(

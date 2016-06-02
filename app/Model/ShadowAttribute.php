@@ -132,7 +132,7 @@ class ShadowAttribute extends AppModel {
 			),
 			'userdefined' => array(
 				'rule' => array('validateAttributeValue'),
-				'message' => 'Value not in the right type/format. Please double check the value or select "other" for a type.',
+				'message' => 'Value not in the right type/format. Please double check the value or select type "other".',
 			),
 		),
 		'to_ids' => array(
@@ -166,7 +166,7 @@ class ShadowAttribute extends AppModel {
 		$this->typeDefinitions = $this->Event->Attribute->typeDefinitions;
 	}
 
-	//The Associations below have been created with all possible keys, those that are not needed can be removed
+	// The Associations below have been created with all possible keys, those that are not needed can be removed
 	
 /**
  * beforeSave
@@ -180,7 +180,6 @@ class ShadowAttribute extends AppModel {
 		if (!empty($this->data['ShadowAttribute']['type'])) {
 			$compositeTypes = $this->getCompositeTypes();
 			// explode composite types in value1 and value2
-			//if (!isset($this->data['ShadowAttribute']['value1'])) {
 			$pieces = explode('|', $this->data['ShadowAttribute']['value']);
 			if (in_array($this->data['ShadowAttribute']['type'], $compositeTypes)) {
 				if (2 != count($pieces)) {
@@ -266,7 +265,7 @@ class ShadowAttribute extends AppModel {
 				// FIXME secure this filesystem access/delete by not allowing to change directories or go outside of the directory container.
 				// only delete the file if it exists
 				$filepath = APP . "files" . DS . 'shadow' . DS . $sa['ShadowAttribute']['event_id'] . DS . $sa['ShadowAttribute']['id'];
-				$file = new File ($filepath);
+				$file = new File($filepath);
 				if ($file->exists()) {
 					if (!$file->delete()) {
 						throw new InternalErrorException('Delete of file attachment failed. Please report to administrator.');
@@ -294,7 +293,7 @@ class ShadowAttribute extends AppModel {
 			// FIXME secure this filesystem access/delete by not allowing to change directories or go outside of the directory container.
 			// only delete the file if it exists
 			$filepath = APP . "files" . DS . 'shadow' . DS . $this->data['ShadowAttribute']['event_id'] . DS . $this->data['ShadowAttribute']['id'];
-			$file = new File ($filepath);
+			$file = new File($filepath);
 			if ($file->exists()) {
 				if (!$file->delete()) {
 					throw new InternalErrorException('Delete of file attachment failed. Please report to administrator.');
@@ -456,9 +455,9 @@ class ShadowAttribute extends AppModel {
 			$execOutput = array();
 			exec("zip -j -P infected " . $zipfile->path . ' \'' . addslashes($fileInZip->path) . '\'', $execOutput, $execRetval);
 			if ($execRetval != 0) { // not EXIT_SUCCESS
-				// do some?
+				// TODO: error-handling
 			};
-			$fileInZip->delete(); // delete the original not-zipped-file
+			$fileInZip->delete(); // delete the original non-zipped-file
 			rename($zipfile->path, $file->path); // rename the .zip to .nothing
 		} else {
 			$fileAttach = new File($fileP);
@@ -659,4 +658,3 @@ class ShadowAttribute extends AppModel {
 		}
 	}
 }
-

@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS `attributes` (
   `distribution` tinyint(4) NOT NULL DEFAULT '0',
   `sharing_group_id` int(11) NOT NULL,
   `comment` text COLLATE utf8_bin NOT NULL,
+  `deleted` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   INDEX `event_id` (`event_id`),
   INDEX `value1` (`value1`(255)),
@@ -236,6 +237,21 @@ CREATE TABLE IF NOT EXISTS `logs` (
   `description` text CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `news`
+--
+
+CREATE TABLE IF NOT EXISTS `news` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `message` text COLLATE utf8_bin NOT NULL,
+  `title` text COLLATE utf8_bin NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `date_created` int(11) unsigned NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
 
@@ -656,7 +672,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `certif_public` longtext COLLATE utf8_bin DEFAULT NULL,
   `nids_sid` int(15) NOT NULL DEFAULT '0',
   `termsaccepted` tinyint(1) NOT NULL DEFAULT '0',
-  `newsread` date DEFAULT NULL,
+  `newsread` int(11) unsigned DEFAULT '0',
   `role_id` int(11) NOT NULL DEFAULT '0',
   `change_pw` tinyint(4) NOT NULL DEFAULT '0',
   `contactalert` tinyint(1) NOT NULL DEFAULT '0',

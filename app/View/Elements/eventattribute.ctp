@@ -135,7 +135,7 @@
 		<div id="filter_proposal" title="Only show proposals" class="attribute_filter_text<?php if ($attributeFilter == 'proposal') echo '_active'; ?>" onClick="filterAttributes('proposal', '<?php echo h($event['Event']['id']); ?>');">Proposal</div>
 		<div id="filter_correlation" title="Only show correlating attributes" class="attribute_filter_text<?php if ($attributeFilter == 'correlation') echo '_active'; ?>" onClick="filterAttributes('correlation', '<?php echo h($event['Event']['id']); ?>');">Correlation</div>
 		<div id="filter_warning" title="Only show potentially false positive attributes" class="attribute_filter_text<?php if ($attributeFilter == 'warning') echo '_active'; ?>" onClick="filterAttributes('warning', '<?php echo h($event['Event']['id']); ?>');">Warnings</div>
-		<?php if ($me['Role']['perm_sync']): ?>
+		<?php if ($me['Role']['perm_sync'] || $event['Orgc']['id'] == $me['org_id']): ?>
 			<div id="filter_deleted" title="Include deleted attributes" class="attribute_filter_text<?php if ($deleted) echo '_active'; ?>" onClick="toggleDeletedAttributes('<?php echo Router::url( $this->here, true );?>');">Include deleted attributes</div>
 		<?php endif; ?>
 	</div>
@@ -247,51 +247,52 @@
 								</div>
 							</td>
 							<td id="<?php echo h($currentType) . '_' . h($object['id']) . '_container'; ?>" class="showspaces <?php echo $extra; ?> limitedWidth">
-								<div <?php if (Configure::read('Plugin.Enrichment_hover_enable') && isset($modules) && isset($modules['hover_type'][$object['type']])) echo 'onMouseOver="hoverModuleExpand(\'' . $currentType . '\', \'' . $object['id'] . '\');";'?>>
 								<div id = "<?php echo $currentType . '_' . $object['id'] . '_value_placeholder'; ?>" class = "inline-field-placeholder"></div>
-								<?php if ('attachment' === $object['type'] || 'malware-sample' === $object['type'] ): ?>
-								<div id = "<?php echo $currentType . '_' . $object['id'] . '_value_solid'; ?>" class="inline-field-solid">
-								<?php else: ?>
-								<div id = "<?php echo $currentType . '_' . $object['id'] . '_value_solid'; ?>" class="inline-field-solid" ondblclick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'value', <?php echo $event['Event']['id'];?>);">
-									<?php 
-									endif;
-										$sigDisplay = $object['value'];
-										if ('attachment' == $object['type'] || 'malware-sample' == $object['type'] ) {
-											$t = ($object['objectType'] == 0 ? 'attributes' : 'shadow_attributes');
-											$filenameHash = explode('|', nl2br(h($object['value'])));
-											if (strrpos($filenameHash[0], '\\')) {
-												$filepath = substr($filenameHash[0], 0, strrpos($filenameHash[0], '\\'));
-												$filename = substr($filenameHash[0], strrpos($filenameHash[0], '\\'));
-												echo h($filepath);
-												echo $this->Html->link($filename, array('controller' => $t, 'action' => 'download', $object['id']));
+								<?php 
+									if ('attachment' !== $object['type'] && 'malware-sample' !== $object['type']) $editable = ' ondblclick="activateField(\'' . $currentType . '\', \'' . $object['id'] . '\', \'value\', \'' . $event['Event']['id'] . '\');"';
+									else $editable = '';
+								?>
+								<div id = "<?php echo $currentType; ?>_<?php echo $object['id']; ?>_value_solid" class="inline-field-solid" <?php echo $editable; ?>>
+									<span <?php if (Configure::read('Plugin.Enrichment_hover_enable') && isset($modules) && isset($modules['hover_type'][$object['type']])) echo 'onMouseOver="hoverModuleExpand(\'' . $currentType . '\', \'' . $object['id'] . '\');";'?>>
+										<?php 
+											$sigDisplay = $object['value'];
+											if ('attachment' == $object['type'] || 'malware-sample' == $object['type'] ) {
+												$t = ($object['objectType'] == 0 ? 'attributes' : 'shadow_attributes');
+												$filenameHash = explode('|', nl2br(h($object['value'])));
+												if (strrpos($filenameHash[0], '\\')) {
+													$filepath = substr($filenameHash[0], 0, strrpos($filenameHash[0], '\\'));
+													$filename = substr($filenameHash[0], strrpos($filenameHash[0], '\\'));
+													echo h($filepath);
+													echo $this->Html->link($filename, array('controller' => $t, 'action' => 'download', $object['id']));
+												} else {
+													echo $this->Html->link($filenameHash[0], array('controller' => $t, 'action' => 'download', $object['id']));
+												}
+												if (isset($filenameHash[1])) echo ' | ' . $filenameHash[1];
+											} elseif (strpos($object['type'], '|') !== false) {
+												$filenameHash = explode('|', $object['value']);
+												echo h($filenameHash[0]);
+												if (isset($filenameHash[1])) echo ' | ' . $filenameHash[1];
+											} elseif ('vulnerability' == $object['type']) {
+												if (! is_null(Configure::read('MISP.cveurl'))) {
+													$cveUrl = Configure::read('MISP.cveurl');
+												} else {
+													$cveUrl = "http://www.google.com/search?q=";
+												}
+												echo $this->Html->link($sigDisplay, $cveUrl . $sigDisplay, array('target' => '_blank'));
+											} elseif ('link' == $object['type']) {
+												echo $this->Html->link($sigDisplay, $sigDisplay);
+											} else if ('text' == $object['type']) {
+												$sigDisplay = str_replace("\r", '', h($sigDisplay));
+												$sigDisplay = str_replace(" ", '&nbsp;', $sigDisplay);
+												echo nl2br($sigDisplay);
 											} else {
-												echo $this->Html->link($filenameHash[0], array('controller' => $t, 'action' => 'download', $object['id']));
+												$sigDisplay = str_replace("\r", '', $sigDisplay);
+												echo nl2br(h($sigDisplay));
 											}
-											if (isset($filenameHash[1])) echo ' | ' . $filenameHash[1];
-										} elseif (strpos($object['type'], '|') !== false) {
-											$filenameHash = explode('|', $object['value']);
-											echo h($filenameHash[0]);
-											if (isset($filenameHash[1])) echo ' | ' . $filenameHash[1];
-										} elseif ('vulnerability' == $object['type']) {
-											if (! is_null(Configure::read('MISP.cveurl'))) {
-												$cveUrl = Configure::read('MISP.cveurl');
-											} else {
-												$cveUrl = "http://www.google.com/search?q=";
-											}
-											echo $this->Html->link($sigDisplay, $cveUrl . $sigDisplay, array('target' => '_blank'));
-										} elseif ('link' == $object['type']) {
-											echo $this->Html->link($sigDisplay, $sigDisplay);
-										} else if ('text' == $object['type']) {
-											$sigDisplay = str_replace("\r", '', h($sigDisplay));
-											$sigDisplay = str_replace(" ", '&nbsp;', $sigDisplay);
-											echo nl2br($sigDisplay);
-										} else {
-											$sigDisplay = str_replace("\r", '', $sigDisplay);
-											echo nl2br(h($sigDisplay));
-										}
-										if (isset($object['validationIssue'])) echo ' <span class="icon-warning-sign" title="Warning, this doesn\'t seem to be a legitimage ' . strtoupper(h($object['type'])) . ' value">&nbsp;</span>';
-										
-																				
+											if (isset($object['validationIssue'])) echo ' <span class="icon-warning-sign" title="Warning, this doesn\'t seem to be a legitimage ' . strtoupper(h($object['type'])) . ' value">&nbsp;</span>';
+										?>		
+									</span>								
+									<?php 											
 										if (isset($object['warnings'])) {
 											$temp = '';
 											$components = array(1 => 0, 2 => 1);
@@ -304,7 +305,6 @@
 											echo ' <span class="icon-warning-sign" data-placement="right" data-toggle="popover" data-content="' . h($temp) . '" data-trigger="hover">&nbsp;</span>';
 										}
 									?>
-								</div>
 								</div>
 							</td>
 							<td class="showspaces bitwider <?php echo $extra; ?>">
@@ -327,7 +327,7 @@
 
 										if (isset($event['Related' . $relatedObject][$object['id']]) && (null != $event['Related' . $relatedObject][$object['id']])) {
 											foreach ($event['Related' . $relatedObject][$object['id']] as $relatedAttribute) {
-												$relatedData = array('Event info' => $relatedAttribute['info'], 'Correlating Value' => $relatedAttribute['value']);
+												$relatedData = array('Event info' => $relatedAttribute['info'], 'Correlating Value' => $relatedAttribute['value'], 'date' => $relatedAttribute['date']);
 												$popover = '';
 												foreach ($relatedData as $k => $v) {
 													$popover .= '<span class=\'bold\'>' . h($k) . '</span>: <span class="blue">' . h($v) . '</span><br />';
@@ -407,6 +407,7 @@
 									if ($isSiteAdmin || $mayModify):
 							?>
 									<span class="icon-repeat useCursorPointer" onClick="deleteObject('attributes', 'restore', '<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
+									<span class="icon-trash useCursorPointer" onClick="deleteObject('attributes', 'delete', '<?php echo h($object['id']) . '/true'; ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
 							<?php
 									endif;
 								else:
@@ -459,6 +460,21 @@
 		?>
 	</table>
 </div>
+	<?php if (!isset($event['objects']) || empty($event['objects'])): ?>
+		<div class="background-red bold">
+			<span>
+			<?php 
+				if ($me['org_id'] != $event['Event']['orgc_id']) {
+					echo 'Attribute warning: This event doesn\'t have any attributes visible to you. Either the owner of the event decided to have
+a specific distribution scheme per attribute and wanted to still distribute the event alone either for notification or potential contribution with attributes without such restriction. Or the owner forgot to add the
+attributes or the appropriate distribution level. If you think there is a mistake or you can contribute attributes based on the event meta-information, feel free to make a proposal';
+				} else {
+					echo 'Attribute warning: This event doesn\'t contain any attribute. It\'s strongly advised to populate the event with attributes (indicators, observables or information) to provide a meaningful event';
+				}
+			?>
+			</span>
+		</div>
+	<?php endif;?>
 	<div class="pagination">
   	  <ul>
 		<?php

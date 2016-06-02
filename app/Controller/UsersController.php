@@ -128,35 +128,6 @@ class UsersController extends AppController {
 	}
 
 /**
- * delete method
- *
- * @param string $id
- * @return void
- * @throws MethodNotAllowedException
- * @throws NotFoundException
- */
-	public function delete($id = null) {
-		if ("me" == $id) $id = $this->Auth->user('id');
-		if (!$this->request->is('post')) {
-			throw new MethodNotAllowedException();
-		}
-		$this->User->id = $id;
-		if (!$this->User->exists()) {
-			throw new NotFoundException(__('Invalid user'));
-		}
-		//if ($this->Auth->User('org') != 'ADMIN' && $this->Auth->User('org') != $this->User->data['User']['org']) $this->redirect(array('controller' => 'users', 'action' => 'index', 'admin' => true));
-		//// Only own profile
-		//if ($this->Auth->user('id') != $id) {
-		//	throw new ForbiddenException('You are not authorized to delete this profile.');
-		//}
-		if ($this->User->delete()) {
-			$this->Session->setFlash(__('User deleted'));
-			$this->redirect(array('action' => 'index'));
-		}
-		$this->Session->setFlash(__('User was not deleted'));
-		$this->redirect(array('action' => 'index'));
-	}
-/**
  * admin_index method
  *
  * @return void
@@ -386,7 +357,7 @@ class UsersController extends AppController {
 				$this->request->data['User']['termsaccepted'] = 0;
 			}
 			if (!isset($this->request->data['User']['disabled'])) $this->request->data['User']['disabled'] = false;
-			$this->request->data['User']['newsread'] = '2000-01-01';
+			$this->request->data['User']['newsread'] = 0;
 			if (!$this->_isSiteAdmin()) {
 				$this->request->data['User']['org_id'] = $this->Auth->User('org_id');
 				$this->loadModel('Role');
@@ -582,6 +553,9 @@ class UsersController extends AppController {
 		if (!$this->User->exists()) {
 			throw new NotFoundException(__('Invalid user'));
 		}
+		if (!$this->_isSiteAdmin && $this->User->data['User']['org_id'] != $this->Auth->user('id')) {
+			throw new NotFoundException(__('Invalid user'));
+		}
 		if ($this->User->delete()) {
 			$this->__extralog("delete", $fieldsDescrStr, '');	// TODO Audit, check: modify User
 			$this->Session->setFlash(__('User deleted'));
@@ -645,7 +619,6 @@ class UsersController extends AppController {
 					'perm_sharing_group' => 1,
 					'perm_template' => 1,
 					'perm_tagger' => 1,
-					'perm_site_admin' => 1
 				));
 				$this->Role->save($siteAdmin);
 			}
@@ -657,7 +630,6 @@ class UsersController extends AppController {
 						'type' => 'ADMIN',
 						'uuid' => $this->User->Organisation->generateUuid(),
 						'local' => 1,
-						'type' => '',
 						'sector' => '',
 						'nationality' => ''
 				));
@@ -682,7 +654,7 @@ class UsersController extends AppController {
 					'confirm_password' => 'admin',
 					'authkey' => $this->User->generateAuthKey(),
 					'nids_sid' => 4000000,
-					'newsread' => date('Y-m-d'),
+					'newsread' => 0,
 					'role_id' => 1,
 					'change_pw' => 1
 				));
@@ -740,12 +712,12 @@ class UsersController extends AppController {
 	public function memberslist() {
 		// Orglist
 		$fields = array('Organisation.name', 'count(User.id) as `num_members`');
-		$params = array('recursive' => 0,
-							'fields' => $fields,
-							'recursive' => -1,
-							'contain' => array('Organisation'),
-							'group' => array('Organisation.name', 'Organisation.id'),
-							'order' => array('UPPER(Organisation.name)'),
+		$params = array(
+				'fields' => $fields,
+				'recursive' => -1,
+				'contain' => array('Organisation'),
+				'group' => array('Organisation.name', 'Organisation.id'),
+				'order' => array('UPPER(Organisation.name)'),
 		);
 		$orgs = $this->User->find('all', $params);
 		$this->set('orgs', $orgs);
@@ -942,7 +914,7 @@ class UsersController extends AppController {
 			$conditions = array();
 			if (!$this->_isSiteAdmin()) $conditions = array('org_id' => $this->Auth->user('org_id'));
 			if ($this->request->data['User']['recipient'] != 1) $conditions['id'] = $this->request->data['User']['recipientEmailList'];
-			else $conditions['AND'][] = array('User.disabled' => 0);
+			$conditions['AND'][] = array('User.disabled' => false);
 			$users = $this->User->find('all', array('recursive' => -1, 'order' => array('email ASC'), 'conditions' => $conditions));
 			$this->request->data['User']['message'] = $this->User->adminMessageResolve($this->request->data['User']['message']);
 			$failures = '';
@@ -967,6 +939,7 @@ class UsersController extends AppController {
 		}
 		$conditions = array();
 		if (!$this->_isSiteAdmin()) $conditions = array('org_id' => $this->Auth->user('org_id'));
+		$conditions['User.disabled'] = false;
 		$temp = $this->User->find('all', array('recursive' => -1, 'fields' => array('id', 'email'), 'order' => array('email ASC'), 'conditions' => $conditions));
 		$emails = array();
 		$gpgKeys = array();
@@ -1080,7 +1053,6 @@ class UsersController extends AppController {
 	}
 
   public function verifyCertificate() {
-    if (!self::_isSiteAdmin()) throw new NotFoundException();
     $user_results = $this->User->verifyCertificate();
     $this->set('users', $user_results);
   }	

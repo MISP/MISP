@@ -49,7 +49,7 @@ class AppModel extends Model {
 	// major -> minor -> hotfix -> requires_logout
 	public $db_changes = array(
 		2 => array(
-			4 => array(18 => false, 19 => false, 20 => false, 25 => false, 27 => false, 32 => false, 33 => true, 38 => true, 39 => true, 40 => false, 42 => false, 44 => false)
+			4 => array(18 => false, 19 => false, 20 => false, 25 => false, 27 => false, 32 => false, 33 => true, 38 => true, 39 => true, 40 => false, 42 => false, 44 => false, 45 => false)
 		)
 	);
 	
@@ -368,6 +368,18 @@ class AppModel extends Model {
 				break;
 			case '2.4.44':
 				$sqlArray[] = "UPDATE `servers` SET `url` = TRIM(TRAILING '/' FROM `url`)";				
+				break;
+			case '2.4.45':
+				$sqlArray[] = 'ALTER TABLE `users` CHANGE `newsread` `newsread` int(11) unsigned;';
+				$sqlArray[] = 'UPDATE `users` SET `newsread` = 0;';
+				$sqlArray[] = "CREATE TABLE IF NOT EXISTS `news` (
+					`id` int(11) NOT NULL AUTO_INCREMENT,
+					`message` text COLLATE utf8_bin NOT NULL,
+					`title` text COLLATE utf8_bin NOT NULL,
+					`user_id` int(11) NOT NULL,
+					`date_created` int(11) unsigned NOT NULL,
+					PRIMARY KEY (`id`)
+					) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
 				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4';

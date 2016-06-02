@@ -27,6 +27,7 @@ end;
 delimiter ';'
 
 call AddColumnUnlessExists(Database(), 'attributes', 'sharing_group_id', 'INT( 11 ) NOT NULL DEFAULT 0');
+call AddColumnUnlessExists(Database(), 'attributes', 'deleted', 'TINYINT( 1 ) NOT NULL DEFAULT 0');
 
 call AddColumnUnlessExists(Database(), 'events', 'sharing_group_id', 'INT( 11 ) NOT NULL DEFAULT 0');
 call AddColumnUnlessExists(Database(), 'events', 'org_id', 'INT( 11 ) NOT NULL DEFAULT 0');
@@ -159,3 +160,16 @@ CREATE TABLE IF NOT EXISTS `favourite_tags` (
   INDEX `tag_id` (`tag_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+-- --------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS `news` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `message` text COLLATE utf8_bin NOT NULL,
+  `title` text COLLATE utf8_bin NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `date_created` int(11) unsigned NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
+ALTER TABLE `users` CHANGE `newsread` `newsread` int(11) unsigned;
