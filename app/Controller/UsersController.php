@@ -209,9 +209,7 @@ class UsersController extends AppController {
 	public function index($id) {
 		$this->autoRender = false;
 		$this->layout = false;
-		$overrideAbleParams = array('all');
 		$passedArgs = $this->passedArgs;
-		$overrideAbleParams = array('all');
 		$org = $this->User->Organisation->read(null, $id);
 		if (!$this->User->Organisation->exists() || !($this->_isSiteAdmin() || $this->Auth->user('org_id') == $id)) {
 			throw new MethodNotAllowedException('Organisation not found or no authorisation to view it.');
@@ -421,8 +419,8 @@ class UsersController extends AppController {
 		if (!$this->User->exists()) {
 			throw new NotFoundException(__('Invalid user'));
 		}
-		$params = null;
-		$paramsOrgs = null;
+		$params = array();
+		$allowedRole = '';
 		if (!$this->_isSiteAdmin()) {
 			// Org admins should be able to select the role that is already assigned to an org user when editing them.
 			// What happened previously:
@@ -798,45 +796,7 @@ class UsersController extends AppController {
 		}
 		$this->set('typeDb', $typeDb);
 		$this->set('sigTypes', $sigTypes);
-		$graphInterval = $this->_getIntervals($max);
 		$this->layout = 'ajax';
-	}
-	
-	private function _getIntervals($max) {
-		$intervals = array();
-		if ($max > 5) {
-			$maxDecimals = strlen((string) $max);
-			//$graphInterval = $max / 10;
-			$graphInterval = round($max, -($maxDecimals-2), PHP_ROUND_HALF_DOWN);
-			$graphInterval = round($graphInterval / 5);
-			for ($i=0; $i<$max; $i+=$graphInterval) {
-				$intervals[] = $i;
-			}
-		} else {
-			for ($i=0; $i<$max; $i++) $intervals[] = $i;
-		}
-		return $intervals;
-	}
-	
-	private function _generateColours($count){
-		$pallette = 16777216;
-		$array = array();
-		$interval = ceil($pallette / $count);
-		$colours = array();
-		for ($i = 0; $i < $count; $i++) {
-			$temp = $i * $interval;
-			$array[$i] = $temp;
-			$colours[$i] = $this->_convertToHex($temp);
-		}
-		return $colours;
-	}
-	
-	private function _convertToHex($int) {
-		$hex = strval(dechex($int));
-		$filler = '';
-		for ($i = 0; $i < 6 - (strlen($hex)); $i++) $filler .= '0';
-		$filler = '#' . $filler . $hex;
-		return $filler;
 	}
 
 	public function terms() {
@@ -862,7 +822,6 @@ class UsersController extends AppController {
 
 	private function __extralog($action = null, $description = null, $fieldsResult = null) {	// TODO move audit to AuditsController?
 		// new data
-		$userId = $this->Auth->user('id');
 		$model = 'User';
 		$modelId = $this->Auth->user('id');
 		if ($action == 'login') {
@@ -960,8 +919,6 @@ class UsersController extends AppController {
 		$conditions['User.disabled'] = false;
 		$temp = $this->User->find('all', array('recursive' => -1, 'fields' => array('id', 'email'), 'order' => array('email ASC'), 'conditions' => $conditions));
 		$emails = array();
-		$gpgKeys = array();
-		$certif_public_certs = array();
 		// save all the emails of the users and set it for the dropdown list in the form
 		foreach ($temp as $user) {
 			$emails[$user['User']['id']] = $user['User']['email'];
@@ -1024,7 +981,6 @@ class UsersController extends AppController {
 		$this->loadModel('Log');
 		$year = date('Y');
 		$month = date('n');
-		$day = date('j');
 		$month = $month - 5;
 		if ($month < 1) {
 			$year--;
