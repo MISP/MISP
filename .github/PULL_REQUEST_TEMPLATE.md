@@ -2,7 +2,7 @@
 
 #### What does it do?
 
-If it fixes an existing issue, please use github syntax: #<IssueID>
+If it fixes an existing issue, please use github syntax: #IssueID
 
 #### Questions
 
