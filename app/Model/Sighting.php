@@ -36,13 +36,17 @@ class Sighting extends AppModel{
 		return true;
 	}
 	
-	public function attachToEvent(&$event, &$user, $eventOnly=false) {
+	public function attachToEvent(&$event, &$user, $eventOnly = false) {
 		$ownEvent = false;
 		if ($user['Role']['perm_site_admin'] || $event['Event']['org_id'] == $user['org_id']) $ownEvent = true;
 		$conditions = array('Sighting.event_id' => $event['Event']['id']);
-		if (!$ownEvent && (!Configure::read('Plugin.Sightings_policy') || Configure::read('Plugin.Sightings_policy') == 0)) $conditions['Sighting.org_id'] = $user['org_id'];
+		if (!$ownEvent && (!Configure::read('Plugin.Sightings_policy') || Configure::read('Plugin.Sightings_policy') == 0)) {
+			$conditions['Sighting.org_id'] = $user['org_id'];
+		}
 		$contain = array();
-		if (Configure::read('MISP.showorg')) $contain['Organisation'] = array('fields' => array('Organisation.id', 'Organisation.uuid', 'Organisation.name'));
+		if (Configure::read('MISP.showorg')) {
+			$contain['Organisation'] = array('fields' => array('Organisation.id', 'Organisation.uuid', 'Organisation.name'));
+		}
 		
 		// Sighting reporters setting
 		// If the event has any sightings for the user's org, then the user is a sighting reporter for the event too.
@@ -67,8 +71,10 @@ class Sighting extends AppModel{
 					unset($sightings[$k]['Organisation']);
 				}	
 			}
-			//rearrange it to match the event format of fetchevent
-			if (isset($sightings[$k]['Organisation'])) $sightings[$k]['Sighting']['Organisation'] = $sightings[$k]['Organisation'];
+			// rearrange it to match the event format of fetchevent
+			if (isset($sightings[$k]['Organisation'])) {
+				$sightings[$k]['Sighting']['Organisation'] = $sightings[$k]['Organisation'];
+			}
 			$sightings[$k] = $sightings[$k]['Sighting'] ;
 		}
 		return $sightings; 
@@ -107,7 +113,7 @@ class Sighting extends AppModel{
 	
 	public function handleStixSighting($data) {
 		$randomFileName = $this->generateRandomFileName();
-		$tempFile = new File (APP . "files" . DS . "scripts" . DS . "tmp" . DS . $randomFileName, true, 0644);
+		$tempFile = new File(APP . "files" . DS . "scripts" . DS . "tmp" . DS . $randomFileName, true, 0644);
 		
 		// save the json_encoded event(s) to the temporary file
 		if (!$tempFile->write($data)) return array('success' => 0, 'message' => 'Could not write the Sightings file to disk.');
@@ -127,7 +133,6 @@ class Sighting extends AppModel{
 		}
 		$tempFile->delete();
 		return $result;
-		
 	}
 	
 	public function generateRandomFileName() {

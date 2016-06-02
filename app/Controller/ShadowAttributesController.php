@@ -183,8 +183,6 @@ class ShadowAttributesController extends AppController {
 /**
  * accept method
  *
- * @return void
- *
  */
 	// Accept a proposed edit and update the attribute
 	public function accept($id = null) {
@@ -266,8 +264,6 @@ class ShadowAttributesController extends AppController {
 /**
  * discard method
  *
- * @return void
- *
  */
 	// This method will discard a proposed change. Users that can delete the proposals are the publishing users of the org that created the event and of the ones that created the proposal - in addition to site admins of course
 	public function discard($id = null) {
@@ -309,17 +305,15 @@ class ShadowAttributesController extends AppController {
 /**
  * add method
  *
- * @return void
- *
  * @throws NotFoundException // TODO Exception
  */
 	public function add($eventId = null) {
 		if ($this->request->is('ajax'))	{
 			$this->set('ajax', true);
-			//$this->autoRender = false;
 			$this->layout = 'ajax';
+		} else {
+			$this->set('ajax', false);
 		}
-		else $this->set('ajax', false);
 		$event = $this->ShadowAttribute->Event->fetchEvent($this->Auth->user(), array('eventid' => $eventId));
 		if (empty($event)) throw new NotFoundException('Invalid Event');
 		$event = $event[0];		
@@ -328,7 +322,11 @@ class ShadowAttributesController extends AppController {
 			if (isset($this->request->data['request'])) $this->request->data = $this->request->data['request'];
 			// rearrange the request in case someone didn't RTFM
 			$invalidNames = array('Attribute', 'Proposal');
-			foreach ($invalidNames as &$iN) if (isset($this->request->data[$iN]) && !isset($this->request->data['ShadowAttribute'])) $this->request->data['ShadowAttribute'] = $this->request->data[$iN];
+			foreach ($invalidNames as &$iN) {
+				if (isset($this->request->data[$iN]) && !isset($this->request->data['ShadowAttribute'])) {
+					$this->request->data['ShadowAttribute'] = $this->request->data[$iN];
+				}
+			}
 			if ($this->request->is('ajax')) $this->autoRender = false;
 			// Give error if someone tried to submit a attribute with attachment or malware-sample type.
 			// TODO change behavior attachment options - this is bad ... it should rather by a messagebox or should be filtered out on the view level
@@ -345,7 +343,7 @@ class ShadowAttributesController extends AppController {
 				$attributes = explode("\n", $this->request->data['ShadowAttribute']['value']);
 				$fails = "";	// will be used to keep a list of the lines that failed or succeeded
 				$successes = "";
-				// TODO loop-holes,
+				// TODO loopholes
 				// the value null value thing
 				foreach ($attributes as $key => $attribute) {
 					$attribute = trim($attribute);
@@ -357,8 +355,8 @@ class ShadowAttributesController extends AppController {
 					$this->request->data['ShadowAttribute']['org_id'] = $this->Auth->user('org_id');
 					$this->request->data['ShadowAttribute']['event_uuid'] = $event['Event']['uuid'];
 					$this->request->data['ShadowAttribute']['event_org_id'] = $event['Event']['org_id'];
-					// TODO loop-holes,
-					// there seems to be a loop-hole in misp here
+					// TODO loopholes
+					// there seems to be a loophole in MISP here
 					// be it an create and not an update
 					$this->ShadowAttribute->id = null;
 					if ($this->ShadowAttribute->save($this->request->data)) {
@@ -367,9 +365,9 @@ class ShadowAttributesController extends AppController {
 						$fails .= " " . ($key + 1);
 					}
 				}
-				// we added all the attributes,
+				// we added all the attributes
 				if ($this->request->is('ajax')) {
-					// handle it if some of them failed!!!!
+					// handle it if some of them failed!
 					if ($fails) {
 						$error_message = 'The lines' . $fails . ' could not be saved. Please, try again.';
 						return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $error_message)), 'status' => 200));
@@ -402,7 +400,7 @@ class ShadowAttributesController extends AppController {
 				//
 				// create the attribute
 				$this->ShadowAttribute->create();
-				$savedId = $this->ShadowAttribute->getId();
+				$savedId = $this->ShadowAttribute->getID();
 				$this->request->data['ShadowAttribute']['email'] = $this->Auth->user('email');
 				$this->request->data['ShadowAttribute']['org_id'] = $this->Auth->user('org_id');
 				$this->request->data['ShadowAttribute']['event_uuid'] = $event['Event']['uuid'];
@@ -460,7 +458,7 @@ class ShadowAttributesController extends AppController {
 		$types = array_keys($this->ShadowAttribute->typeDefinitions);
 		$types = $this->_arrayToValuesIndexArray($types);
 		$this->set('types', $types);
-		// combobos for categories
+		// combobox for categories
 		$categories = array_keys($this->ShadowAttribute->Event->Attribute->categoryDefinitions);
 		$categories = $this->_arrayToValuesIndexArray($categories);
 		$this->set('categories', compact('categories'));
@@ -588,9 +586,11 @@ class ShadowAttributesController extends AppController {
 				}
 			}
 			if (!$completeFail) {
-				if (!$this->ShadowAttribute->sendProposalAlertEmail($eventId)) $emailResult = " but sending out the alert e-mails has failed for at least one recipient.";
-				if (empty($fails)) $this->Session->setFlash(__('The attachment has been uploaded'));
-				else $this->Session->setFlash(__('The attachment has been uploaded, but some of the proposals could not be created. The failed proposals are: ' . implode(', ', $fails)));
+				if (empty($fails)) {
+					$this->Session->setFlash(__('The attachment has been uploaded'));
+				} else {
+					$this->Session->setFlash(__('The attachment has been uploaded, but some of the proposals could not be created. The failed proposals are: ' . implode(', ', $fails)));
+				}
 			} else {
 				$this->Session->setFlash(__('The attachment could not be saved, please contact your administrator.'));
 			}
@@ -619,7 +619,7 @@ class ShadowAttributesController extends AppController {
 					}
 				}
 			}
-		};
+		}
 		$categories = $this->_arrayToValuesIndexArray($selectedCategories);
 		$this->set('categories',$categories);
 
@@ -629,7 +629,6 @@ class ShadowAttributesController extends AppController {
 
 		$this->set('zippedDefinitions', $this->ShadowAttribute->zippedDefinitions);
 		$this->set('uploadDefinitions', $this->ShadowAttribute->uploadDefinitions);
-
 	}
 
 /**
@@ -855,7 +854,6 @@ class ShadowAttributesController extends AppController {
 			foreach ($temp as $proposal) {
 				$proposal['ShadowAttribute']['org'] = $proposal['Org']['name'];
 				$proposals[] = $proposal['ShadowAttribute'];
-				
 			}
 			$this->set('ShadowAttribute', $proposals);
 			$this->set('_serialize', array('ShadowAttribute'));
@@ -981,9 +979,8 @@ class ShadowAttributesController extends AppController {
 				)
 		));
 		if (!$this->_isSiteAdmin()) {
-			//
-			if ($attribute['Event']['orgc_id'] != $this->Auth->user('org_id')	&& ($attribute['Event']['org_id'] == $this->Auth->user('org_id') || $attribute['Event']['distribution'] > 0)) {
-							// Allow the edit
+			if ($attribute['Event']['orgc_id'] != $this->Auth->user('org_id') && ($attribute['Event']['org_id'] == $this->Auth->user('org_id') || $attribute['Event']['distribution'] > 0)) {
+				// Allow the edit
 			} else {
 				throw new NotFoundException(__('Invalid attribute'));
 			}
@@ -1010,7 +1007,7 @@ class ShadowAttributesController extends AppController {
 	// ajax edit - post a single edited field and this method will attempt to create a proposal and return a json with the validation errors if they occur.
 	public function editField($id) {
 		if ((!$this->request->is('post') && !$this->request->is('put')) || !$this->request->is('ajax')) throw new MethodNotAllowedException();
-		$this->LoadModel('Attribute');
+		$this->loadModel('Attribute');
 		$this->Attribute->id = $id;
 		if (!$this->Attribute->exists()) {
 			throw new NotFoundException(__('Invalid attribute'));
@@ -1020,8 +1017,7 @@ class ShadowAttributesController extends AppController {
 		$attribute = $this->Attribute->read();
 	
 		if (!$this->_isSiteAdmin()) {
-			//
-			if ($attribute['Event']['orgc_id'] != $this->Auth->user('org_id')	&& ($attribute['Event']['org_id'] == $this->Auth->user('org_id') || $attribute['Event']['distribution'] > 0)) {
+			if ($attribute['Event']['orgc_id'] != $this->Auth->user('org_id') && ($attribute['Event']['org_id'] == $this->Auth->user('org_id') || $attribute['Event']['distribution'] > 0)) {
 				// Allow the edit
 			} else {
 				throw new NotFoundException(__('Invalid attribute'));
