@@ -559,7 +559,7 @@ class Attribute extends AppModel {
 	}
 	
 	public function valueIsUnique ($fields) {
-		if ($this->data['Attribute']['deleted']) return true;
+		if (isset($this->data['Attribute']['deleted']) && $this->data['Attribute']['deleted']) return true;
 		$value = $fields['value'];
 		$eventId = $this->data['Attribute']['event_id'];
 		$type = $this->data['Attribute']['type'];
