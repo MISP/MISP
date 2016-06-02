@@ -99,7 +99,7 @@ if (!$relativePaths) {
 		} else {
 			$protocol = 'http';
 		} 
-		if (!isset($_SERVER['SERVER_PORT']) || !in_array($_SERVER['SERVER_PORT'], array('443', '80')) || !$appendPort) {
+		if (!isset($_SERVER['SERVER_PORT']) || in_array($_SERVER['SERVER_PORT'], array('443', '80')) || !$appendPort) {
 			Configure::write('MISP.baseurl', sprintf('https://%s', $serverName));
 		} else {
 			Configure::write('MISP.baseurl', sprintf('https://%s:%d', $serverName, $_SERVER['SERVER_PORT']));
