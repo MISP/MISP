@@ -232,10 +232,11 @@ class EventsController extends AppController {
 				'fields' => array('id')					
 		));
 		if (!empty($orgs)) $conditions['OR']['orgc_id'] = array_values($orgs);
-		$conditions['OR']['lower(info) LIKE'] = '%' . strtolower($value) .'%';	
+		$conditions['OR']['lower(info) LIKE'] = '%' . strtolower($value) .'%';
+		$conditions['OR']['lower(uuid) LIKE'] = strtolower($value);
 		$otherEvents = $this->Event->find('all', array(
 				'recursive' => -1,
-				'fields' => array('id', 'orgc_id', 'info'),
+				'fields' => array('id', 'orgc_id', 'info', 'uuid'),
 				'conditions' => $conditions,
 		));
 		foreach ($otherEvents as $oE) {
@@ -734,6 +735,22 @@ class EventsController extends AppController {
 				'Attribute' => array('attrDescriptions' => 'fieldDescriptions', 'distributionDescriptions' => 'distributionDescriptions', 'distributionLevels' => 'distributionLevels', 'shortDist' => 'shortDist'),
 				'Event' => array('eventDescriptions' => 'fieldDescriptions', 'analysisDescriptions' => 'analysisDescriptions', 'analysisLevels' => 'analysisLevels')
 		);
+
+		// workaround to get the event dates in to the attribute relations
+		$relatedDates = array();
+		if (isset($event['RelatedEvent'])) {
+			foreach ($event['RelatedEvent'] as &$relation) {
+				$relatedDates[$relation['Event']['id']] = $relation['Event']['date'];
+			}
+			if (isset($event['RelatedAttribute'])) {
+				foreach ($event['RelatedAttribute'] as &$relatedAttribute) {
+					foreach ($relatedAttribute as &$relation) {
+						$relation['date'] = $relatedDates[$relation['id']];
+					}
+				}
+			}
+		}
+		
 		foreach ($dataForView as $m => $variables) {
 			if ($m === 'Event') $currentModel = $this->Event;
 			else if ($m === 'Attribute') $currentModel = $this->Event->Attribute;

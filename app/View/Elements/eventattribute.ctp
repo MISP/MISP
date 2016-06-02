@@ -327,7 +327,7 @@
 
 										if (isset($event['Related' . $relatedObject][$object['id']]) && (null != $event['Related' . $relatedObject][$object['id']])) {
 											foreach ($event['Related' . $relatedObject][$object['id']] as $relatedAttribute) {
-												$relatedData = array('Event info' => $relatedAttribute['info'], 'Correlating Value' => $relatedAttribute['value']);
+												$relatedData = array('Event info' => $relatedAttribute['info'], 'Correlating Value' => $relatedAttribute['value'], 'date' => $relatedAttribute['date']);
 												$popover = '';
 												foreach ($relatedData as $k => $v) {
 													$popover .= '<span class=\'bold\'>' . h($k) . '</span>: <span class="blue">' . h($v) . '</span><br />';
@@ -460,6 +460,21 @@
 		?>
 	</table>
 </div>
+	<?php if (!isset($event['objects']) || empty($event['objects'])): ?>
+		<div class="background-red bold">
+			<span>
+			<?php 
+				if ($me['org_id'] != $event['Event']['orgc_id']) {
+					echo 'Attribute warning: This event doesn\'t have any attributes visible to you. Either the owner of the event decided to have
+a specific distribution scheme per attribute and wanted to still distribute the event alone either for notification or potential contribution with attributes without such restriction. Or the owner forgot to add the
+attributes or the appropriate distribution level. If you think there is a mistake or you can contribute attributes based on the event meta-information, feel free to make a proposal';
+				} else {
+					echo 'Attribute warning: This event doesn\'t contain any attribute. It\'s strongly advised to populate the event with attributes (indicators, observables or information) to provide a meaningful event';
+				}
+			?>
+			</span>
+		</div>
+	<?php endif;?>
 	<div class="pagination">
   	  <ul>
 		<?php

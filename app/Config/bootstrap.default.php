@@ -95,17 +95,14 @@ if (!$relativePaths) {
 	
 	if (!Configure::read('MISP.baseurl') && isset($serverName)) { 
 		if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443)) {
-			if (!isset($_SERVER['SERVER_PORT']) || $_SERVER['SERVER_PORT'] == 443 || !$appendPort) {
-				Configure::write('MISP.baseurl', sprintf('https://%s', $serverName));
-			} else {
-				Configure::write('MISP.baseurl', sprintf('https://%s:%d', $serverName, $_SERVER['SERVER_PORT']));
-			}
+			$protocol = 'https';
 		} else {
-			if (!isset($_SERVER['SERVER_PORT']) || $_SERVER['SERVER_PORT'] == 80 || !$appendPort) {
-				Configure::write('MISP.baseurl', sprintf('http://%s', $serverName));
-			} else {
-				Configure::write('MISP.baseurl', sprintf('http://%s:%d', $serverName, $_SERVER['SERVER_PORT']));
-			}
+			$protocol = 'http';
+		} 
+		if (!isset($_SERVER['SERVER_PORT']) || in_array($_SERVER['SERVER_PORT'], array('443', '80')) || !$appendPort) {
+			Configure::write('MISP.baseurl', sprintf($protocol . '://%s', $serverName));
+		} else {
+			Configure::write('MISP.baseurl', sprintf($protocol . '://%s:%d', $serverName, $_SERVER['SERVER_PORT']));
 		}
 	}
 }

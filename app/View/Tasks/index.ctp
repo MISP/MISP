@@ -19,7 +19,7 @@
     </div>
 	<?php
 		echo $this->Form->create('Task', array(
-		'action' => 'setTask',
+		'url' => 'setTask',
 		'controller' => 'Tasks',
 		'inputDefaults' => array(
 		'label' => false
