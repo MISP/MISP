@@ -1,4 +1,4 @@
-*This template aims to ease the triage of the issues you encour when using MISP*
+*This template aims to ease the triage of the issues you encounter when using MISP*
 
 ### Work environment
 
