@@ -1777,7 +1777,6 @@ class AttributesController extends AppController {
 		if ($from) $from = $this->Attribute->Event->dateFieldCheck($from);
 		if ($to) $to = $this->Attribute->Event->dateFieldCheck($to);
 		if ($last) $last = $this->Attribute->Event->resolveTimeDelta($last);
-		
 		if ($key != 'download') {
 			// check if the key is valid -> search for users based on key
 			$user = $this->checkAuthUser($key);
@@ -1796,6 +1795,7 @@ class AttributesController extends AppController {
 		$this->loadModel('Whitelist');
 		$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
 		$this->set('attributes', $attributes);
+		$this->render('/Attributes/text');
 	}
 	
 	public function rpz($key='download', $tags=false, $eventId=false, $from=false, $to=false, $policy=false, $walled_garden = false, $ns = false, $email = false, $serial = false, $refresh = false, $retry = false, $expiry = false, $minimum_ttl = false, $ttl = false) {
@@ -1871,6 +1871,7 @@ class AttributesController extends AppController {
 		$values = $this->Whitelist->removeWhitelistedValuesFromArray($values);
 		$this->set('values', $values);
 		$this->set('rpzSettings', $rpzSettings);
+		$this->render('/Attributes/rpz');
 	}
 
 	public function reportValidationIssuesAttributes($eventId = false) {
