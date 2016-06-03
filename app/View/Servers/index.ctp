@@ -64,7 +64,7 @@ foreach ($servers as $server):
 			?>
 		</td>
 		<td id="connection_test_<?php echo $server['Server']['id'];?>"><span class="btn btn-primary" style="line-height:10px; padding: 4px 4px;" onClick="testConnection('<?php echo $server['Server']['id'];?>');">Run</span></td>
-		
+
 		<td><span class="<?php echo ($server['Server']['push']? 'icon-ok' : 'icon-remove'); ?>"></span><span class="short <?php if (!$server['Server']['push'] || empty($ruleDescription['push'])) echo "hidden"; ?>" data-toggle="popover" title="Distribution List" data-content="<?php echo $ruleDescription['push']; ?>"> (Rules)</span></td>
 		<td><span class="<?php echo ($server['Server']['pull']? 'icon-ok' : 'icon-remove'); ?>"></span><span class="short <?php if (!$server['Server']['pull'] || empty($ruleDescription['pull'])) echo "hidden"; ?>" data-toggle="popover" title="Distribution List" data-content="<?php echo $ruleDescription['pull']; ?>"> (Rules)</span>
 		<td><?php echo h($server['Server']['url']); ?>&nbsp;</td>

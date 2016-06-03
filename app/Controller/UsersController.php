@@ -205,7 +205,7 @@ class UsersController extends AppController {
 			$this->set('users', $this->paginate());
 		}
 	}
-	
+
 	public function index($id) {
 		$this->autoRender = false;
 		$this->layout = false;
@@ -260,7 +260,7 @@ class UsersController extends AppController {
 		$this->set('simpleFilters', $textFields);
 		$rules = array_merge($booleanFields, $textFields);
 		$this->set('showorg', $showOrg);
-		
+
 		$filtering = array();
 		foreach ($booleanFields as $b) {
 			$filtering[$b] = '';
@@ -268,7 +268,7 @@ class UsersController extends AppController {
 		foreach ($textFields as $t) {
 			$filtering[$t] = array('OR' => array(), 'NOT' => array());
 		}
-	
+
 		foreach ($this->passedArgs as $k => $v) {
 			if (substr($k, 0, 6) === 'search') {
 				$searchTerm = substr($k, 6);
@@ -285,7 +285,7 @@ class UsersController extends AppController {
 			}
 		}
 		$this->set('filtering', json_encode($filtering));
-		
+
 		$roles = $this->User->Role->find('all', array('recursive' => -1));
 		$roleNames = array();
 		$roleJSON = array();
@@ -446,7 +446,7 @@ class UsersController extends AppController {
 		}
 		$roles = $this->User->Role->find('list', $params);
 		$syncRoles = $this->User->Role->find('list', array('conditions' => array('perm_sync' => 1), 'recursive' => -1));
-		
+
 		$this->set('currentId', $id);
 		if ($this->request->is('post') || $this->request->is('put')) {
 			if (!array_key_exists($this->request->data['User']['role_id'], $syncRoles)) $this->request->data['User']['server_id'] = 0;
@@ -578,7 +578,7 @@ class UsersController extends AppController {
 		$this->Session->setFlash(__('User was not deleted'));
 		$this->redirect(array('action' => 'index'));
 	}
-	
+
 	public function updateLoginTime() {
 		if (!$this->request->is('post')) throw new MethodNotAllowedException('This feature is only accessible via POST requests');
 		$user = $this->User->find('first', array(
@@ -657,7 +657,7 @@ class UsersController extends AppController {
 					$org_id = $firstOrg['Organisation']['id'];
 				}
 			}
-			
+
 			// populate the DB with the first user if it's empty
 			if ($this->User->find('count') == 0 ) {
 				$admin = array('User' => array(
@@ -694,7 +694,7 @@ class UsersController extends AppController {
 		$this->Session->setFlash(__('Good-Bye'));
 		$this->redirect($this->Auth->logout());
 	}
-	
+
 	public function resetauthkey($id = null) {
 		if (!$this->_isAdmin() && Configure::read('MISP.disableUserSelfManagement')) {
 			throw new MethodNotAllowedException('User self-management has been disabled on this instance.');
@@ -739,7 +739,7 @@ class UsersController extends AppController {
 		$orgs = $this->User->find('all', $params);
 		$this->set('orgs', $orgs);
 	}
-	
+
 	public function histogram($selected = null) {
 		if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This function can only be accessed via AJAX.');
 		if ($selected == '[]') $selected = null;
@@ -786,7 +786,7 @@ class UsersController extends AppController {
 		$this->set('data', $data);
 		$this->set('max', $max);
 		$this->set('selectedTypes', $selectedTypes);
-		
+
 		// Nice graphical histogram
 		$sigTypes = array_keys($this->Attribute->typeDefinitions);
 		App::uses('ColourPaletteTool', 'Tools');
@@ -811,7 +811,7 @@ class UsersController extends AppController {
 		}
 		$this->set('termsaccepted', $this->Auth->user('termsaccepted'));
 	}
-	
+
 	public function downloadTerms() {
 		if (!Configure::read('MISP.terms_file')) {
 			$termsFile = APP ."View/Users/terms";
@@ -975,7 +975,7 @@ class UsersController extends AppController {
 			$this->render('ajax/passwordResetConfirmationForm');
 		}
 	}
-	
+
 	// shows some statistics about the instance
 	public function statistics() {
 		// set all of the data up for the heatmaps
@@ -995,24 +995,24 @@ class UsersController extends AppController {
 
 		$stats[2] = $this->User->Event->Attribute->find('count', array('conditions' => array('Attribute.deleted' => false)));
 		$stats[3] = $this->User->Event->Attribute->find('count', array('conditions' => array('Attribute.timestamp >' => $this_month, 'Attribute.deleted' => false)));
-		
+
 		$this->loadModel('Correlation');
 		$this->Correlation->recursive = -1;
 		$stats[4] = $this->Correlation->find('count', null);
 		$stats[4] = $stats[4] / 2;
-		
+
 		$stats[5] = $this->User->Event->ShadowAttribute->find('count', null);
-		
+
 		$stats[6] = $this->User->find('count', null);
 		$stats[7] = count($orgs);
-		
+
 		$this->loadModel('Thread');
 		$stats[8] = $this->Thread->find('count', array('conditions' => array('Thread.post_count >' => 0)));
 		$stats[9] = $this->Thread->find('count', array('conditions' => array('Thread.date_created >' => date("Y-m-d H:i:s",$this_month), 'Thread.post_count >' => 0)));
 
 		$stats[10] = $this->Thread->Post->find('count', null);
 		$stats[11] = $this->Thread->Post->find('count', array('conditions' => array('Post.date_created >' => date("Y-m-d H:i:s",$this_month))));
-		
+
 		$this->set('stats', $stats);
 		$this->set('orgs', $orgs);
 		$this->set('start', strtotime(date('Y-m-d H:i:s') . ' -5 months'));
@@ -1046,7 +1046,7 @@ class UsersController extends AppController {
 		unset($newUser['Organisation'], $newUser['Role']);
 		$this->Auth->login($newUser['User']);
 	}
-	
+
 	public function fetchPGPKey($email) {
 		if (!$this->_isAdmin()) throw new Exception('Administrators only.');
 		$keys = $this->User->fetchPGPKey($email);
@@ -1058,7 +1058,7 @@ class UsersController extends AppController {
 		$this->layout = false;
 		$this->render('ajax/fetchpgpkey');
 	}
-	
+
 	public function dashboard() {
 		$events = array();
 		// the last login in the session is not updated after the login - only in the db, so let's fetch it.

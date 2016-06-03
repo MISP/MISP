@@ -13,7 +13,7 @@
 						'div' => 'input clear',
 						'class' => 'input-xxlarge'
 				));
-				
+
 				echo $this->Form->input('description', array(
 						'type' => 'textarea',
 						'error' => array('escape' => false),
@@ -36,7 +36,7 @@
 						'label' => 'Type',
 						'empty' => 'Select Type'
 					));
-	
+
 				?>
 			</div>
 			<div class="input clear"></div>
@@ -46,7 +46,7 @@
 							'checked' => false,
 							'label' => 'Use complex types',
 					));
-	
+
 				?>
 			</div>
 			<div class="input clear"></div>
@@ -109,7 +109,7 @@
 	var complexTypes = <?php echo json_encode($validTypeGroups); ?>;
 	var currentTypes = new Array();
 	var fieldsArray = new Array('TemplateElementAttributeName', 'TemplateElementAttributeDescription', 'TemplateElementAttributeCategory', 'TemplateElementAttributeToIds', 'TemplateElementAttributeMandatory', 'TemplateElementAttributeBatch', 'TemplateElementAttributeType', 'TemplateElementAttributeComplex');
-	
+
 	$(document).ready(function() {
 		<?php 
 			foreach ($categoryDefinitions as $k => $cat) {
@@ -120,7 +120,7 @@
 					}
 				echo '];';
 			}
-			
+
 			foreach ($typeGroupCategoryMapping as $k => $mapping) {
 				echo 'typeGroupCategoryMapping["' . $k . '"] = [';
 				foreach ($mapping as $l => $map) {
@@ -131,7 +131,7 @@
 			}
 		?>
 	});
-	
+
 	$("#TemplateElementAttributeCategory").change(function() {
 		var category = $(this).val();
 		templateElementAttributeCategoryChange(category);

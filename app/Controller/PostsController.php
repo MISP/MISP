@@ -15,7 +15,7 @@ class PostsController extends AppController {
 	);
 
 	public $helpers = array('Js' => array('Jquery'));
-	
+
 	public $paginate = array(
 			'limit' => 60,
 	);
@@ -23,7 +23,7 @@ class PostsController extends AppController {
 	public function beforeFilter() {
 		parent::beforeFilter();
 	}
-	
+
 	// Find the thread_id and post_id in advance. If a user clicks post comment on the event view, send the event's related thread's ID 
 	// Usage:
 	// /posts/add : Creates new thread with the added post as the first post. Title set by user
@@ -110,7 +110,7 @@ class PostsController extends AppController {
 			if (empty($thread_id) && empty($target_type)) {
 				$title = $this->request->data['Post']['title'];
 			}
-			
+
 			if ($target_thread_id == null) {
 				// We have a post that was posted in a new thread. This could also mean that someone created the first post related to an event!
 				$this->Thread->create();
@@ -176,7 +176,7 @@ class PostsController extends AppController {
 			}
 		}
 	}
-	
+
 	public function edit($post_id, $context = 'thread') {
 		$post = $this->Post->find('first', array('conditions' => array('Post.id' => $post_id), 'recursive' => -1, 'contain' => array('Thread')));
 		if (empty($post)) throw new NotFoundException(__('Invalid post'));
@@ -213,7 +213,7 @@ class PostsController extends AppController {
 		$this->set('id', $post_id);
 		$this->set('thread_id', $post['Post']['thread_id']);
 	}
-	
+
 	public function delete($post_id, $context = 'thread') {
 			if (!$this->request->is('post')) {
 				throw new MethodNotAllowedException();
@@ -266,4 +266,4 @@ class PostsController extends AppController {
 	}
 }
 ?>
-		
+

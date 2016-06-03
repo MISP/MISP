@@ -33,7 +33,7 @@ h3{
 }
 pre {
 	font-size: 11px;
-	
+
 }
 .nav-list {
 	padding-right: 5px;
@@ -263,13 +263,13 @@ td.highlight1 {
 td.highlight2 {
 	background-color: #747170 !important;
 	color: #ffffff !important;
-	
+
 }
 
 td.highlight3 {
 	background-color: red !important;
 	color: #ffffff !important;
-	
+
 }
 
 tr.highlightBlueSides {
@@ -334,7 +334,7 @@ td.action-links {
 }
 
 .showspaces {
-	
+
 }
 
 /** Scaffold View **/
@@ -408,7 +408,7 @@ dd {
 .cake-sql-log td {
 	padding: 4px 8px;
 	text-align: left;
-	
+
 }
 .cake-sql-log caption {
 	color:#fff;
@@ -575,7 +575,7 @@ dd {
 	top: 0;
 	padding: 4px;
 }
-	
+
 .loading {
 	display: none;
 	text-color: #0088cc;
@@ -928,7 +928,7 @@ a.proposal_link_red:hover {
 }
 
 .inline-form {
-	
+
 	margin-bottom:0px !important;
 }
 
@@ -1311,7 +1311,7 @@ a.proposal_link_red:hover {
 		inset 0 10px rgba(255,255,255,0.1), 
 		inset 0 10px 20px rgba(255,255,255,0.3), 
 		inset 0 -15px 30px rgba(0,0,0,0.3); 
-	
+
 }
 
 .addTemplateElement {

@@ -199,7 +199,7 @@ cp -a bootstrap.default.php bootstrap.php
 cp -a database.default.php database.php
 cp -a core.default.php core.php
 cp -a config.default.php config.php
- 
+
 # Configure the fields in the newly created files:
 # config.php   : baseurl
 # database.php : login, port, password, database

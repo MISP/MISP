@@ -42,11 +42,11 @@ class AppController extends Controller {
 	public $defaultModel = '';
 
 	public $debugMode = false;
-	
+
 	public $helpers = array('Utility');
-	
+
 	private $__jsVersion = '2.4.46';
-	
+
 	// Used for _isAutomation(), a check that returns true if the controller & action combo matches an action that is a non-xml and non-json automation method
 	// This is used to allow authentication via headers for methods not covered by _isRest() - as that only checks for JSON and XML formats 
 	public $automationArray = array(
@@ -75,7 +75,7 @@ class AppController extends Controller {
 			'Security',
 			'ACL'
 	);
-	
+
 	public function beforeFilter() {
 		$this->set('jsVersion', $this->__jsVersion);
 		$this->loadModel('User');
@@ -120,10 +120,10 @@ class AppController extends Controller {
 		if (isset($_SERVER['HTTP_USER_AGENT'])) {
 			if(preg_match('/(?i)msie [2-8]/',$_SERVER['HTTP_USER_AGENT']) && !strpos($_SERVER['HTTP_USER_AGENT'], 'Opera')) throw new MethodNotAllowedException('You are using an unsecure and outdated version of IE, please download Google Chrome, Mozilla Firefox or update to a newer version of IE. If you are running IE9 or newer and still receive this error message, please make sure that you are not running your browser in compatibility mode. If you still have issues accessing the site, get in touch with your administration team at ' . Configure::read('MISP.contact'));
 		}
-		
+
 		$userLoggedIn = false;
 		if (Configure::read('Plugin.CustomAuth_enable')) $userLoggedIn = $this->__customAuthentication($_SERVER);
-		
+
 		if (!$userLoggedIn) {
 			// REST authentication
 			if ($this->_isRest() || $this->_isAutomation()) {
@@ -213,7 +213,7 @@ class AppController extends Controller {
 		if ($base_dir == '/') {
 			$base_dir = '';
 		}
-		
+
 		if ($this->Auth->user()) {
 			// update script
 			$this->{$this->modelClass}->runUpdates();
@@ -247,7 +247,7 @@ class AppController extends Controller {
 		} else {
 			if (!($this->params['controller'] === 'users' && $this->params['action'] === 'login')) $this->redirect(array('controller' => 'users', 'action' => 'login', 'admin' => false));
 		}
-		
+
 		// check if MISP is live
 		if ($this->Auth->user() && !Configure::read('MISP.live')) {
 			$role = $this->getActions();
@@ -324,7 +324,7 @@ class AppController extends Controller {
 		$this->set('notifications', $notifications);
 		$this->ACL->checkAccess($this->Auth->user(), Inflector::variable($this->request->params['controller']), $this->action);
 	}
-	
+
 	public function queryACL($debugType='findMissingFunctionNames', $content = false) {
 		$this->autoRender = false;
 		$this->layout = false;
@@ -335,7 +335,7 @@ class AppController extends Controller {
 		$this->response->type('json');
 		$this->render('/Servers/json/simple');
 	}
-	
+
 	private function __convertEmailToName($email) {
 		$name = explode('@', $email);		
 		$name = explode('.', $name[0]);
@@ -348,7 +348,7 @@ class AppController extends Controller {
 		if ($type === 'csrf') throw new BadRequestException(__d('cake_dev', $type));
 		throw new BadRequestException(__d('cake_dev', 'The request has been black-holed'));
 	}
-	
+
 	public $userRole = null;
 
 	protected function _isJson($data=false) {
@@ -359,14 +359,14 @@ class AppController extends Controller {
 	protected function _isRest() {
 		return (isset($this->RequestHandler) && ($this->RequestHandler->isXml() || $this->_isJson()));
 	}
-	
+
 	protected function _isAutomation() {
 		foreach ($this->automationArray as $controllerName => $controllerActions) {
 			if ($this->params['controller'] == $controllerName && in_array($this->params['action'], $controllerActions)) return true;
 		}
 		return false;
 	}
-	
+
 /**
  * Convert an array to the same array but with the values also as index instead of an interface_exists
  */
@@ -433,7 +433,7 @@ class AppController extends Controller {
 		if ($user['Role']['perm_site_admin']) $user['siteadmin'] = true;
 		return $user;
 	}
-	
+
 	public function checkExternalAuthUser($authkey) {
 		$this->loadModel('User');
 		$user = $this->User->getAuthUserByExternalAuth($authkey);
@@ -461,7 +461,7 @@ class AppController extends Controller {
 		$this->Session->setFlash(__('All done. attribute_count generated from scratch for ' . (isset($k) ? $k : 'no') . ' events.'));
 		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 	}
-	
+
 	public function pruneDuplicateUUIDs() {
 		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException();
 		$this->loadModel('Attribute');
@@ -488,7 +488,7 @@ class AppController extends Controller {
 		$this->Session->setFlash('Done. Assigned new UUIDs to ' . $counter . ' attribute(s).');
 		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 	}
-	
+
 	public function removeDuplicateEvents() {
 		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException();
 		$this->loadModel('Event');
@@ -498,10 +498,10 @@ class AppController extends Controller {
 				'group' => array('Event.uuid HAVING COUNT(*) > 1'),
 		));
 		$counter = 0;
-		
+
 		// load this so we can remove the blacklist item that will be created, this is the one case when we do not want it.
 		if (Configure::read('MISP.enableEventBlacklisting')) $this->EventBlacklist = ClassRegistry::init('EventBlacklist');
-		
+
 		foreach ($duplicates as $duplicate) {
 			$events = $this->Event->find('all', array(
 					'recursive' => -1,
@@ -524,7 +524,7 @@ class AppController extends Controller {
 		$this->Session->setFlash('Done. Removed ' . $counter . ' duplicate events.');
 		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 	}
-	
+
 	public function updateDatabase($command) {
 		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException();
 		$this->loadModel('Server');
@@ -532,7 +532,7 @@ class AppController extends Controller {
 		$this->Session->setFlash('Done.');
 		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 	}
-	
+
 	public function upgrade2324() {
 		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException();
 		$this->loadModel('Server');
@@ -564,13 +564,13 @@ class AppController extends Controller {
 			$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 		}
 	}
-	
+
 	private function __preAuthException($message) {
 		$this->set('debugMode', (Configure::read('debug') > 1) ? 'debugOn' : 'debugOff');
 		$this->set('me', array());
 		throw new ForbiddenException($message);
 	}
-	
+
 	private function __customAuthentication(&$server) {
 		$result = false;
 		if (Configure::read('Plugin.CustomAuth_enable')) {
@@ -637,7 +637,7 @@ class AppController extends Controller {
 		}
 		return $result;
 	}
-	
+
 	public function cleanModelCaches() {
 		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException();
 		$this->loadModel('Server');

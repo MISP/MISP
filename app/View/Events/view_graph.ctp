@@ -90,7 +90,7 @@ width = $(window).width() - margin.left - margin.right,
 height = $(window).height() - 200 - margin.top - margin.bottom;
 
 var root;
-    
+
 var force = d3.layout.force()
     .linkDistance(150)
     .linkStrength(0.9)
@@ -113,7 +113,7 @@ var rect = svg.append("svg:rect")
 	.attr('height', height)
 	.attr('fill', 'white')
 	.call(d3.behavior.zoom().on("zoom", zoomhandler));
-		
+
 var plotting_area = svg.append("g")
 		.attr("class", "plotting-area");
 
@@ -140,11 +140,11 @@ function zoomhandler() {
 	graphElementScale = d3.event.scale;
 	graphElementTranslate = d3.event.translate;
 }
-	
+
 function update() {
 	var nodes = root['nodes'], links = root['links'];
 
-	 
+
 	// Restart the force layout.
 	force.nodes(nodes).links(links).start();
 

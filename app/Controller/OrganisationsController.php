@@ -204,7 +204,7 @@ class OrganisationsController extends AppController {
 		}
 		return new CakeResponse(array('body'=> json_encode($orgs)));
 	}
-	
+
 	public function admin_merge($id) {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException('You are not authorised to do that.');
 		if ($this->request->is('Post')) {

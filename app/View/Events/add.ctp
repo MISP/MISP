@@ -93,7 +93,7 @@ $(document).ready(function() {
 
 	if ($('#EventDistribution').val() == 4) $('#SGContainer').show();
 	else $('#SGContainer').hide();
-	
+
 	$("#EventAnalysis, #EventThreatLevelId, #EventDistribution").on('mouseover', function(e) {
 	    var $e = $(e.target);
 	    if ($e.is('option')) {

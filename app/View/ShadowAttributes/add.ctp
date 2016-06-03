@@ -105,7 +105,7 @@ function formCategoryChanged(id) {
 }
 
 $(document).ready(function() {
-	
+
 	$("#ShadowAttributeType, #ShadowAttributeCategory, #ShadowAttribute").on('mouseover', function(e) {
 	    var $e = $(e.target);
 	    if ($e.is('option')) {

@@ -98,7 +98,7 @@
 					<li id='liautomation'><a href="<?php echo $baseurl;?>/events/automation">Automation</a></li>
 					<?php endif;
 				break;
-					
+
 				case 'regexp': ?>
 					<li id='liindex'><?php echo $this->Html->link('List Regexp', array('admin' => $isSiteAdmin, 'action' => 'index'));?></li>
 					<?php if ($isSiteAdmin): ?>
@@ -130,7 +130,7 @@
 					<?php 
 					endif;
 				break;
-					
+
 				case 'globalActions':
 					if (((Configure::read('MISP.disableUserSelfManagement') && $isAdmin) || !Configure::read('MISP.disableUserSelfManagement')) && ($menuItem === 'edit' || $menuItem === 'view')): ?>
 					<li id='liedit'><?php echo $this->Html->link(__('Edit User', true), array('action' => 'edit', $user['User']['id'])); ?></li>
@@ -159,7 +159,7 @@
 					<li id='listatistics'><a href="<?php echo $baseurl;?>/users/statistics">Statistics</a></li>
 					<?php 
 				break;
-				
+
 				case 'sync':
 					if ($menuItem === 'previewEvent' && $isSiteAdmin) : ?>
 					<li class="active"><?php echo $this->Html->link('Explore Remote Event', array('controller' => 'servers', 'action' => 'previewEvent', h($server['Server']['id']), h($event['Event']['id']))); ?></li>
@@ -180,7 +180,7 @@
 					<?php endif;?>
 					<?php 
 				break;	
-					
+
 				case 'admin': 
 					if ($menuItem === 'editUser' || $menuItem === 'viewUser'): ?>
 					<li id='liviewUser'><?php echo $this->Html->link('View User', array('controller' => 'users', 'action' => 'view', 'admin' => true, h($id))); ?> </li>
@@ -236,15 +236,15 @@
 						<?php endif;
 					endif;
 				break;	
-				
+
 				case 'logs': ?>
 					<li id='liindex'><?php echo $this->Html->link('List Logs', array('admin' => true, 'action' => 'index'));?></li>
 					<li id='lisearch'><?php echo $this->Html->link('Search Logs', array('admin' => true, 'action' => 'search'));?></li>
 					<?php 
 				break;	
-				
+
 				case 'threads': 
-				
+
 					if ($menuItem === 'add' || $menuItem === 'view') {
 						if (!(empty($thread_id) && empty($target_type))) { ?>
 					<li  id='view'><?php echo $this->Html->link('View Thread', array('controller' => 'threads', 'action' => 'view', h($thread_id)));?></li>
@@ -264,7 +264,7 @@
 					<li id='liadd'><a href = "<?php echo Configure::read('MISP.baseurl');?>/posts/add">New Thread</a></li>
 					<?php 
 				break;	
-				
+
 				case 'tags': ?>
 					<li id='liindexfav'><?php echo $this->Html->link('List Favourite Tags', array('action' => 'index', true));?></li>
 					<li id='liindex'><?php echo $this->Html->link('List Tags', array('action' => 'index'));?></li>
@@ -278,7 +278,7 @@
 					<?php 
 					endif;
 				break;	
-				
+
 				case 'taxonomies': ?>
 					<li id='liindex'><a href="<?php echo $baseurl;?>/taxonomies/index">List Taxonomies</a></li>
 					<?php if ($menuItem === 'view'): ?>
@@ -291,7 +291,7 @@
 					<?php 
 					endif;
 				break;	
-				
+
 				case 'templates': ?>
 					<li id='liindex'><a href="<?php echo $baseurl;?>/templates/index">List Templates</a></li>
 					<?php if ($isSiteAdmin || $isAclTemplate): ?>
@@ -307,7 +307,7 @@
 					endif; 
 					endif;
 				break;	
-				
+
 				case 'feeds': ?>
 					<li id='liindex'><a href="<?php echo $baseurl;?>/feeds/index">List Feeds</a></li>
 					<li id='liadd'><a href="<?php echo $baseurl;?>/feeds/add">Add Feed</a></li>
@@ -319,7 +319,7 @@
 						<li id='lipreviewEvent'><a href="<?php echo $baseurl;?>/feeds/previewEvent/<?php echo h($feed['Feed']['id']); ?>/<?php echo h($id);?>">PreviewEvent</a></li>
 					<?php endif; 
 				break;
-				
+
 				case 'news': ?>
 					<li id='liindex'><a href="<?php echo $baseurl;?>/news/index">View News</a></li>
 				<?php 

@@ -9,7 +9,7 @@
 		</div><br />
 		<div class="left">Description:</div>
 		<div class="right"><?php echo h($element['description']); ?></div><br />
-		
+
 		<div class="left">Type<?php if ($element['complex']) echo 's'; ?>:</div>
 		<div class="right">
 		<?php 

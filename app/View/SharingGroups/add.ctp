@@ -110,5 +110,5 @@
 			$('#serverList').hide();
 		}
 	});
-	
+
 </script>

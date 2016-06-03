@@ -20,7 +20,7 @@
 						'style'	=> 'display:none;width:62px;margin-right:3px',
 						'div' => false
 				));
-				
+
 				echo $this->Form->input('searchpublished', array(
 						'options' => array('0' => 'No', '1' => 'Yes', '2' => 'Any'),
 						'class' => 'input',
@@ -73,7 +73,7 @@
 						'style' => 'display:none;width:236px;margin-right:3px;',
 						'div' => false
 				));
-				
+
 				echo $this->Form->input('searchdateuntil', array(
 						'class' => 'datepicker',
 						'label' => false,
@@ -212,7 +212,7 @@ if (isSiteAdmin == 1) {
 }
 
 var baseurl = "<?php echo $baseurl; ?>";
-		
+
 $(document).ready(function() {
 	$('.datepicker').datepicker().on('changeDate', function(ev) {
 		$('.dropdown-menu').hide();

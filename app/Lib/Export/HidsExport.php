@@ -19,7 +19,7 @@ class HidsExport {
 		if (!empty($items)) {
 			foreach ($items as &$item) {
 				$attribute = &$item['Attribute'];
-	
+
 				switch ($attribute['type']) {
 					case 'md5':
 					case 'sha1':

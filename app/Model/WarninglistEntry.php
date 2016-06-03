@@ -12,7 +12,7 @@ class WarninglistEntry extends AppModel{
 			'rule' => array('valueNotEmpty'),
 		)
 	);	
-	
+
 	public $belongsTo = array(
 			'Warninglist' => array(
 				'className' => 'Warninglist',
@@ -20,7 +20,7 @@ class WarninglistEntry extends AppModel{
 				'counterCache' => true
 			)
 	);
-	
+
 	public function beforeValidate($options = array()) {
 		parent::beforeValidate();
 		return true;

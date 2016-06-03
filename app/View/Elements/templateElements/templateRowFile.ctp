@@ -15,7 +15,7 @@
 							<?php echo h($element['TemplateElementFile'][0]['name']); ?>&nbsp;
 						</div>
 					</div>
-					
+
 					<div class="templateTableTDDescriptionFile templateTableArea">
 						<div class="templateTableColumnName">
 							Description
@@ -24,7 +24,7 @@
 							<?php echo h($element['TemplateElementFile'][0]['description']); ?>&nbsp;
 						</div>
 					</div>
-					
+
 					<div class="templateTableTDCategory templateTableArea">
 						<div class="templateTableColumnName">
 							Category

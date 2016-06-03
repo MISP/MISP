@@ -67,7 +67,7 @@ class Attribute extends AppModel {
 	public $distributionLevels = array(
 			0 => 'Your organisation only', 1 => 'This community only', 2 => 'Connected communities', 3 => 'All communities', 4 => 'Sharing group', 5 => 'Inherit event'
 	);
-	
+
 	public $shortDist = array(0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All', 4 => ' sharing Group', 5 => 'Inherit');
 
 	// these are definitions of possible types + their descriptions and maybe later other behaviors
@@ -82,7 +82,7 @@ class Attribute extends AppModel {
 	public $uploadDefinitions = array(
 			'attachment'
 	);
-	
+
 	// skip Correlation for the following types
 	public $nonCorrelatingTypes = array(
 			'vulnerability',
@@ -246,7 +246,7 @@ class Attribute extends AppModel {
 					'types' => array('comment', 'text', 'other')
 					)
 	);
-	
+
 	public $defaultCategories = array(
 			'md5' => 'Payload delivery',
 			'sha1' => 'Payload delivery',
@@ -276,7 +276,7 @@ class Attribute extends AppModel {
 			'attachment' => 'External analysis',
 			'malware-sample' => 'Payload delivery'
 	);
-	
+
 	// typeGroupings are a mapping to high level groups for attributes
 	// for example, IP addresses, domain names, hostnames and e-mail addresses are network related attribute types
 	// whilst filenames and hashes are file related attribute types
@@ -375,7 +375,7 @@ class Attribute extends AppModel {
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 		),
 	);
-	
+
 	// automatic resolution of complex types
 	// If the complex type "file" is chosen for example, then the system will try to categorise the values entered into a complex template field based 
 	// on the regular expression rules
@@ -389,7 +389,7 @@ class Attribute extends AppModel {
 				'types' => array('url', 'domain', 'hostname', 'ip-dst'),
 			),
 	);
-	
+
 	public $typeGroupCategoryMapping = array(
 			'Payload delviery' => array('File', 'CnC'),
 			'Payload installation' => array('File'),
@@ -423,7 +423,7 @@ class Attribute extends AppModel {
 				'foreignKey' => 'sharing_group_id'
 		)
 	);
-	
+
 	public $hashTypes = array(
 		'md5' => array(
 			'length' => 32,
@@ -467,9 +467,9 @@ class Attribute extends AppModel {
 				$this->data['Attribute']['value2'] = '';
 			}
 		}
-		
+
 		if ($this->data['Attribute']['distribution'] != 4) $this->data['Attribute']['sharing_group_id'] = 0;
-		
+
 		// update correlation... (only needed here if there's an update)
 		if ($this->id || !empty($this->data['Attribute']['id'])) {
  			$this->__beforeSaveCorrelation($this->data['Attribute']);
@@ -557,7 +557,7 @@ class Attribute extends AppModel {
 		if (in_array($fields['category'], $validCategories)) return true;
 		return false;
 	}
-	
+
 	public function valueIsUnique ($fields) {
 		if (isset($this->data['Attribute']['deleted']) && $this->data['Attribute']['deleted']) return true;
 		$value = $fields['value'];
@@ -600,7 +600,7 @@ class Attribute extends AppModel {
 		$value = $fields['value'];
 		return $this->runValidation($value, $this->data['Attribute']['type']);
 	}
-	
+
 	private $__hexHashLengths = array(
 			'authentihash' => 64,
 			'md5' => 32,
@@ -615,7 +615,7 @@ class Attribute extends AppModel {
 			'sha512/224' => 56,
 			'sha512/256' => 64,
 	);
-	
+
 	public function runValidation($value, $type) {
 		$returnValue = false;
 		// check data validation
@@ -899,7 +899,7 @@ class Attribute extends AppModel {
 		}
 		return $returnValue;
 	}
-	
+
 	// do some last second modifications before the validation
 	public function modifyBeforeValidation($type, $value) {
 		switch($type) {
@@ -1253,7 +1253,7 @@ class Attribute extends AppModel {
 		}
 		return $fails;
 	}
-	
+
 
 	public function hids($user, $type, $tags = '', $from = false, $to = false, $last = false) {
 		if (empty($user)) throw new MethodNotAllowedException('Could not read user.');
@@ -1298,11 +1298,11 @@ class Attribute extends AppModel {
 		return $rules;
 	}
 
-	
+
 	public function nids($user, $format, $id = false, $continue = false, $tags = false, $from = false, $to = false, $last = false) {
 		if (empty($user)) throw new MethodNotAllowedException('Could not read user.');
 		$eventIds = $this->Event->fetchEventIds($user, $from, $to, $last);
-		
+
 		// If we sent any tags along, load the associated tag names for each attribute
 		if ($tags) {
 			$tag = ClassRegistry::init('Tag');
@@ -1319,7 +1319,7 @@ class Attribute extends AppModel {
 				}
 			}
 		}
-		
+
 		if ($id) {
 			foreach ($eventIds as $k => $v) {
 				if ($v['Event']['id'] !== $id) unset($eventIds[$k]);
@@ -1328,13 +1328,13 @@ class Attribute extends AppModel {
 
 		if ($format == 'suricata') App::uses('NidsSuricataExport', 'Export');
 		else App::uses('NidsSnortExport', 'Export');
-		
+
 		$rules = array();
 		foreach ($eventIds as $event) {
 			$conditions['AND'] = array('Attribute.to_ids' => 1, "Event.published" => 1, 'Attribute.event_id' => $event['Event']['id']);
 			$valid_types = array('ip-dst', 'ip-src', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'domain', 'hostname', 'url', 'user-agent', 'snort');
 			$conditions['AND']['Attribute.type'] = $valid_types;
-					
+
 			$params = array(
 					'conditions' => $conditions, // array of conditions
 					'recursive' => -1, // int
@@ -1396,7 +1396,7 @@ class Attribute extends AppModel {
 		))));
 	 	return $attributes;
 	 }
-	 
+
 	 public function rpz($user, $tags = false, $eventId = false, $from = false, $to = false) {
 	 	// we can group hostname and domain as well as ip-src and ip-dst in this case
 	 	$conditions['AND'] = array('Attribute.to_ids' => 1, 'Event.published' => 1);
@@ -1456,7 +1456,7 @@ class Attribute extends AppModel {
 	 	}
 	 	return $values;
 	 }
-	 
+
 	 public function generateCorrelation($jobId = false, $startPercentage = 0) {
 	 	$this->Correlation = ClassRegistry::init('Correlation');
 	 	$this->Correlation->deleteAll(array('id !=' => 0), false);
@@ -1488,11 +1488,11 @@ class Attribute extends AppModel {
 		if ($jobId && Configure::read('MISP.background_jobs')) $this->Job->saveField('message', 'Job done.');
 	 	return $attributeCount;
 	 }
-	 
+
 	 public function reportValidationIssuesAttributes($eventId) {
 	 	$conditions = array();
 	 	if ($eventId && is_numeric($eventId)) $conditions = array('event_id' => $eventId);
-	 
+
 	 	// get all attributes..
 	 	$attributes = $this->find('all', array('recursive' => -1, 'fields' => array('id'), 'conditions' => $conditions));
 	 	// for all attributes..
@@ -1514,7 +1514,7 @@ class Attribute extends AppModel {
 	 	}
 	 	return $result;
 	 }
-	 
+
 	 // This method takes a string from an argument with several elements (separated by '&&' and negated by '!') and returns 2 arrays
 	 // array 1 will have all of the non negated terms and array 2 all the negated terms
 	 public function dissectArgs($args) {
@@ -1537,7 +1537,7 @@ class Attribute extends AppModel {
 	 	$result[1] = $reject;
 	 	return $result;
 	 }
-	 
+
 	 public function checkForValidationIssues($attribute) {
 	 	$this->set($attribute);
 	 	if ($this->validates()) {
@@ -1546,8 +1546,8 @@ class Attribute extends AppModel {
 	 		return $this->validationErrors;
 	 	}
 	 }
-	 
-	 
+
+
 	 public function checkTemplateAttributes($template, &$data, $event_id) {
 		 $result = array();
 		 $errors = array();
@@ -1589,7 +1589,7 @@ class Attribute extends AppModel {
 		 }
 		 return array('attributes' => $attributes, 'errors' => $errors);
 	 }
-	 
+
 
 	private function __resolveElementAttribute($element, $value) {
 		$attributes = array();
@@ -1619,7 +1619,7 @@ class Attribute extends AppModel {
 		}
 		return array('attributes' => $results, 'errors' => $errors);
 	}
-	 
+
 	private function __resolveElementFile($element, $files) {
 		$attributes = array();
 		$errors = null;
@@ -1695,7 +1695,7 @@ class Attribute extends AppModel {
 	 	}
 	 	return $attribute;
 	 }
-	 
+
 	 public function buildConditions($user) {
 	 	$conditions = array();
 	 	if (!$user['Role']['perm_site_admin']) {
@@ -1727,7 +1727,7 @@ class Attribute extends AppModel {
 	 	}
 	 	return $conditions;
 	 }
-	 
+
 	// Method that fetches all attributes for the various exports
 	// very flexible, it's basically a replacement for find, with the addition that it restricts access based on user
 	// options: 
@@ -1766,7 +1766,7 @@ class Attribute extends AppModel {
 	 	}
 	 	return $results;
 	}
-	
+
 	// Method gets and converts the contents of a file passed along as a base64 encoded string with the original filename into a zip archive
 	// The zip archive is then passed back as a base64 encoded string along with the md5 hash and a flag whether the transaction was successful
 	// The archive is password protected using the "infected" password
@@ -1798,7 +1798,7 @@ class Attribute extends AppModel {
 		$contentsFile->delete();
 		return $result;
 	}
-	
+
 	private function __hashRouter($hashType, $file) {
 		$validHashes = array('md5', 'sha1', 'sha256');
 		if (!in_array($hashType, $validHashes)) return false;
@@ -1811,7 +1811,7 @@ class Attribute extends AppModel {
 		}
 		return false;
 	}
-	
+
 	public function generateRandomFileName() {
 		$length = 12;
 		$characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -1822,7 +1822,7 @@ class Attribute extends AppModel {
 		}
 		return $fn;
 	}
-	
+
 	public function resolveHashType($hash) {
 		$hashTypes = $this->hashTypes;
 		$validTypes = array();
@@ -1833,7 +1833,7 @@ class Attribute extends AppModel {
 		}
 		return $validTypes;
 	}
-	
+
 	public function validateAttribute($attribute, $context = true) {
 		$this->set($attribute);
 		if (!$context) {
@@ -1845,7 +1845,7 @@ class Attribute extends AppModel {
 			return $this->validationErrors;
 		}
 	}
-	
+
 	public function restore($id, $user) {
 		$this->id = $id;
 		if (!$this->exists()) return 'Attribute doesn\'t exist, or you lack the permission to edit it.';

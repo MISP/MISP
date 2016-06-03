@@ -12,11 +12,11 @@ class WarninglistType extends AppModel{
 			'rule' => array('valueNotEmpty'),
 		)
 	);	
-	
+
 	public $belongsTo = array(
 		'Warninglist'
 	);
-	
+
 	public function beforeValidate($options = array()) {
 		parent::beforeValidate();
 		return true;

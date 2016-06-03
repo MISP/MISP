@@ -15,11 +15,11 @@ class TaxonomyEntry extends AppModel{
 			'rule' => array('stringNotEmpty'),
 		),
 	);	
-	
+
 	public $belongsTo = array(
 		'TaxonomyPredicate'
 	);
-	
+
 	public function beforeValidate($options = array()) {
 		parent::beforeValidate();
 		return true;

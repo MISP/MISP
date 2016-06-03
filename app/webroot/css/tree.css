@@ -18,47 +18,47 @@
  	top: -35px; 
  	height: 50px;
  }
- 
+
 .distance2::before {
  	top: -85px; 
  	height: 100px;
  }
- 
+
 .distance3::before {
  	top: -135px; 
  	height: 150px;
  }
- 
+
 .distance4::before {
  	top: -185px; 
  	height: 200px;
  }
- 
+
 .distance5::before {
  	top: -235px; 
  	height: 250px;
  }
- 
+
 .distance6::before {
  	top: -285px; 
  	height: 300px;
  }
- 
+
 .distance7::before {
  	top: -335px; 
  	height: 350px;
  }
- 
+
  .distance8::before {
  	top: -385px; 
  	height: 400px;
  }
- 
+
 .distance9::before {
  	top: -435px; 
  	height: 450px;
  }
- 
+
 .distance10::before {
  	top: -485px; 
  	height: 500px;
@@ -93,7 +93,7 @@
 	padding-top:4px;
 	padding-bottom:2px;
 	width: 105px;
-	
+
 	display: inline-block;	
 	border-radius: 7px;
 	-webkit-border-radius: 7px;

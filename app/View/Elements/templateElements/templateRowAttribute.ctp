@@ -15,7 +15,7 @@
 							<?php echo h($element['TemplateElementAttribute'][0]['name']); ?>&nbsp;
 						</div>
 					</div>
-	
+
 					<div class="templateTableTDDescription templateTableArea">
 						<div class="templateTableColumnName">
 							Description
@@ -24,7 +24,7 @@
 							<?php echo h($element['TemplateElementAttribute'][0]['description']); ?>&nbsp;
 						</div>
 					</div>
-	
+
 					<div class="templateTableTDCategory templateTableArea">
 						<div class="templateTableColumnName">
 							Category
@@ -33,7 +33,7 @@
 							<?php echo h($element['TemplateElementAttribute'][0]['category']); ?>&nbsp;
 						</div>
 					</div>
-					
+
 					<div class="templateTableTDTypes templateTableArea">
 						<div class="templateTableColumnName">
 							Types
@@ -53,7 +53,7 @@
 							?>&nbsp;
 						</div>
 					</div>
-				
+
 					<div class="templateTableTDShort templateTableArea">
 						<div class="templateTableColumnName">
 							Mandatory
@@ -76,7 +76,7 @@
 							?>&nbsp;
 						</div>
 					</div>		
-					
+
 					<div class="templateTableTDShort templateTableArea">
 						<div class="templateTableColumnName">
 							IDS
@@ -88,7 +88,7 @@
 							?>&nbsp;
 						</div>
 					</div>
-					
+
 					<div class="templateTableTDActions templateTableArea">
 						<div class="templateTableColumnName">
 							Actions

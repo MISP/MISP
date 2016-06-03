@@ -10,7 +10,7 @@
 			$first = true;
 			foreach ($templateData['TemplateElement'] as $k => $element) {
 				if ($k != 0 && (($k == count($templateData['TemplateElement'])) || !$first && $element['element_definition'] == 'text')):
-				
+
 				?>
 					</div>
 				<?php			

@@ -2,7 +2,7 @@
 App::uses('AppModel', 'Model');
 
 class SharingGroup extends AppModel {
-	
+
 	public $actsAs = array(
 			'Containable',
 			'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
@@ -43,7 +43,7 @@ class SharingGroup extends AppModel {
 		'Attribute',
 		'Thread'
 	);
-	
+
 	public $belongsTo = array(
 		'Organisation' => array(
 			'className' => 'Organisation',
@@ -62,7 +62,7 @@ class SharingGroup extends AppModel {
 			$this->data['SharingGroup']['date_created'] = $date;
 		}
 		$this->data['SharingGroup']['date_modified'] = $date;
-		
+
 		$sameNameSG = $this->find('first', array(
 			'conditions' => array('SharingGroup.name' => $this->data['SharingGroup']['name']),
 			'recursive' => -1,
@@ -73,7 +73,7 @@ class SharingGroup extends AppModel {
 		}
 		return true;
 	}
-	
+
 	public function beforeDelete($cascade = false){
 		$countEvent = $this->Event->find('count', array(
 				'recursive' => -1,
@@ -90,7 +90,7 @@ class SharingGroup extends AppModel {
 		if (($countEvent + $countThread + $countAttribute) == 0) return true;
 		return false;
 	}
-	
+
 	public function fetchAllAuthorisedForServer($server) {
 		$conditions = array();
 		$ids = array();
@@ -98,7 +98,7 @@ class SharingGroup extends AppModel {
 		$sgs = array_merge($sgs, $this->SharingGroupServer->fetchAllSGsForServer($server['Server']['id']));
 		return $sgs;
 	}
-	
+
 	// returns a list of all sharing groups that the user is allowed to see
 	// scope can be:
 	// full: Entire SG object with all organisations and servers attached
@@ -145,7 +145,7 @@ class SharingGroup extends AppModel {
 			return $ids;
 		}
 	}
-	
+
 	// Who can create a new sharing group with the elements pre-defined (via REST for example)?
 	// 1. site admins
 	// 2. Sharing group enabled users
@@ -153,7 +153,7 @@ class SharingGroup extends AppModel {
 	// 3. Sync users
 	//    a. as long as they are at least users of the SG (they can circumvent the extend rule to 
 	//       avoid situations where no one can create / edit an SG on an instance after a push)
-	
+
 	public function checkIfAuthorisedToSave($user, $sg) {
 		if (isset($sg[0])) $sg = $sg[0];
 		if ($user['Role']['perm_site_admin']) return true;
@@ -190,7 +190,7 @@ class SharingGroup extends AppModel {
 		} 
 		return false;
 	}
-	
+
 	// Who is authorised to extend a sharing group? 
 	// 1. Site admins
 	// 2. Sharing group permission enabled users that:
@@ -226,7 +226,7 @@ class SharingGroup extends AppModel {
 		if (empty($sgo)) return false;
 		else return true;
 	}
-	
+
 	// returns true if the SG exists and the user is allowed to see it
 	public function checkIfAuthorised($user, $id) {
 		if (!isset($user['id'])) throw new MethodNotAllowedException('Invalid user.');
@@ -235,7 +235,7 @@ class SharingGroup extends AppModel {
 		if ($user['Role']['perm_site_admin'] || $this->SharingGroupServer->checkIfAuthorised($id) || $this->SharingGroupOrg->checkIfAuthorised($id, $user['org_id'])) return true;
 		return false;
 	}
-	
+
 	public function checkIfOwner($user, $id) {
 		if (!isset($user['id'])) throw new MethodNotAllowedException('Invalid user.');
 		$this->id = $id;
@@ -248,7 +248,7 @@ class SharingGroup extends AppModel {
 		));
 		return ($sg['SharingGroup']['org_id'] == $user['org_id']);
 	}
-	
+
 	// Get all organisation ids that can see a SG
 	public function getOrgsWithAccess($id) {
 		$sg = $this->find('first', array(
@@ -274,7 +274,7 @@ class SharingGroup extends AppModel {
 		}
 		return $orgs;
 	}
-	
+
 	public function checkIfServerInSG($sg, $server) {
 		$results = array(
 				'rule' => false,
@@ -292,7 +292,7 @@ class SharingGroup extends AppModel {
 		foreach ($sg['SharingGroupOrg'] as $org) if (isset($org['Organisation']) && $org['Organisation']['uuid'] === $server['RemoteOrg']['uuid']) return true;
 		return false;
 	}
-	
+
 	public function getSGSyncRules($sg) {
 		$results = array(
 			'conditional' => array(),
@@ -316,7 +316,7 @@ class SharingGroup extends AppModel {
 		}
 		return $results;
 	}
-	
+
 	public function captureSG($sg, $user) {
 		$existingSG = !isset($sg['uuid']) ? null : $this->find('first', array(
 				'recursive' => -1,
@@ -372,7 +372,7 @@ class SharingGroup extends AppModel {
 			}
 		}
 		unset ($sg['Organisation']);
-		
+
 		if (isset($sg['SharingGroupOrg']['id'])) {
 			$temp = $sg['SharingGroupOrg'];
 			unset($sg['SharingGroupOrg']);
@@ -405,7 +405,7 @@ class SharingGroup extends AppModel {
 				$this->SharingGroupOrg->save(array('sharing_group_id' => $sgids, 'org_id' => $sg['SharingGroupOrg'][$k]['org_id'], 'extend' => $org['extend']));
 			}
 		}
-		
+
 		if (isset($sg['SharingGroupServer']['id'])) {
 			$temp = $sg['SharingGroupServer'];
 			unset($sg['SharingGroupServer']);

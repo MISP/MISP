@@ -41,7 +41,7 @@ class SightingsController extends AppController {
 		}
 		if (!$error) $result = $this->Sighting->saveSightings($id, $values, $timestamp, $this->Auth->user());
 		if ($result == 0) $error = 'No valid attributes found that would match the sighting criteria.';
-		
+
 		if ($this->request->is('ajax')) {
 			if ($error) {
 				$error_message = 'Could not add the Sighting. Reason: ' . $error;

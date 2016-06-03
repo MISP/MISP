@@ -12,7 +12,7 @@
 						'div' => 'input clear',
 						'class' => 'input-xxlarge'
 				));
-				
+
 				echo $this->Form->input('text', array(
 						'type' => 'textarea',
 						'error' => array('escape' => false),

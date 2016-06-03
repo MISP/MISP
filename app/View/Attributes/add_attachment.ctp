@@ -129,7 +129,7 @@ $(document).ready(function() {
 		if ($('#AttributeDistribution').val() == 4) $('#SGContainer').show();
 		else $('#SGContainer').hide();
 	});
-	
+
 	$("#AttributeCategory, #AttributeDistribution").on('mouseover', function(e) {
 	    var $e = $(e.target);
 	    if ($e.is('option')) {
@@ -141,11 +141,11 @@ $(document).ready(function() {
 	        }).popover('show');
 		}
 	});
-	
+
 	$("input, label").on('mouseleave', function(e) {
 	    $('#'+e.currentTarget.id).popover('destroy');
 	});
-	
+
 	$("input, label").on('mouseover', function(e) {
 		var $e = $(e.target);
 		$('#'+e.currentTarget.id).popover('destroy');
@@ -154,7 +154,7 @@ $(document).ready(function() {
 	        placement: 'right',
 	    }).popover('show');
 	});
-	
+
 	// workaround for browsers like IE and Chrome that do now have an onmouseover on the 'options' of a select.
 	// disadvangate is that user needs to click on the item to see the tooltip.
 	// no solutions exist, except to generate the select completely using html.
@@ -168,7 +168,7 @@ $(document).ready(function() {
 	    }).popover('show');
 	});
 });
-	
+
 function malwareCheckboxSetter(id) {
 idDiv = id+'Div';
 var value = $(id).val();  // get the selected value

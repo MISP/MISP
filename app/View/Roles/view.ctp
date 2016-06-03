@@ -33,9 +33,9 @@
 					</dd>
 				<?php 
 			endif;
-		
+
 		endforeach;
-		
+
 		?>
 	</dl>
 </div>

@@ -177,7 +177,7 @@ def index(model) :
 		}
 	)
 	return response, content
-	
+
 # Get the content of a specific model entry
 def view(model, entry_id) :
 	url = base_url + '/'+model+'s/view/'+str(entry_id)

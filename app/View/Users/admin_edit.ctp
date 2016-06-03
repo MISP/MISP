@@ -72,7 +72,7 @@
 		<div class="clear"></div>
 	<?php
 		echo $this->Form->input('disabled', array('label' => 'Disable this user account'));
-		
+
 	?>
 	</fieldset>
 <?php

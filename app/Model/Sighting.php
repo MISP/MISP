@@ -13,7 +13,7 @@ class Sighting extends AppModel{
 		'org_id' => 'numeric',
 		'date_sighting' => 'numeric'
 	);
-	
+
 	public $belongsTo = array(
 			'Attribute' => array(
 					'className' => 'Attribute',
@@ -35,7 +35,7 @@ class Sighting extends AppModel{
 		}
 		return true;
 	}
-	
+
 	public function attachToEvent(&$event, &$user, $eventOnly = false) {
 		$ownEvent = false;
 		if ($user['Role']['perm_site_admin'] || $event['Event']['org_id'] == $user['org_id']) $ownEvent = true;
@@ -47,7 +47,7 @@ class Sighting extends AppModel{
 		if (Configure::read('MISP.showorg')) {
 			$contain['Organisation'] = array('fields' => array('Organisation.id', 'Organisation.uuid', 'Organisation.name'));
 		}
-		
+
 		// Sighting reporters setting
 		// If the event has any sightings for the user's org, then the user is a sighting reporter for the event too.
 		// This means that he /she has access to the sightings data contained within
@@ -55,7 +55,7 @@ class Sighting extends AppModel{
 			$temp = $this->find('first', array('recursive' => -1, 'conditions' => array('Sighting.event_id' => $event['Event']['id'], 'Sighting.org_id' => $user['org_id'])));
 			if (empty($temp)) return array();
 		}
-		
+
 		$sightings = $this->find('all', array(
 				'conditions' => $conditions,
 				'recursive' => -1,
@@ -79,7 +79,7 @@ class Sighting extends AppModel{
 		}
 		return $sightings; 
 	}
-	
+
 	public function saveSightings($id, $values, $timestamp, $user) {
 		$conditions = array();
 		if ($id && $id !== 'stix') {
@@ -110,11 +110,11 @@ class Sighting extends AppModel{
 		}
 		return $sightingsAdded;
 	}
-	
+
 	public function handleStixSighting($data) {
 		$randomFileName = $this->generateRandomFileName();
 		$tempFile = new File(APP . "files" . DS . "scripts" . DS . "tmp" . DS . $randomFileName, true, 0644);
-		
+
 		// save the json_encoded event(s) to the temporary file
 		if (!$tempFile->write($data)) return array('success' => 0, 'message' => 'Could not write the Sightings file to disk.');
 		$tempFile->close();
@@ -134,7 +134,7 @@ class Sighting extends AppModel{
 		$tempFile->delete();
 		return $result;
 	}
-	
+
 	public function generateRandomFileName() {
 		$length = 12;
 		$characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';

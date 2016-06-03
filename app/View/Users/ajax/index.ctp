@@ -42,7 +42,7 @@
 			<tr>
 	<?php 
 			foreach ($user_fields as $field):
-	
+
 	?>
 				<td class="short" ondblclick="document.location ='/admin/users/view/<?php echo $user['User']['id'];?>'">
 				<?php 
@@ -81,7 +81,7 @@
 					?>
 					<?php endif; ?>
 			<a href='/users/view/<?php echo $user['User']['id']; ?>' class = "icon-list-alt" title = "View"></a>
-					
+
 				</td>
 			</tr>
 	<?php

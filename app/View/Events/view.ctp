@@ -73,7 +73,7 @@
 				<?php 
 						endif; 
 					endif;
-						
+
 				?>
 				<dt>Contributors</dt>
 				<dd>

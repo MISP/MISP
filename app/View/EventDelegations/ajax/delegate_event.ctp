@@ -43,7 +43,7 @@
 	?>
 </div>
 <script type="text/javascript">
-	
+
 $(document).ready(function() {
 	$('#EventDelegationDistribution').change(function() {
 		if ($('#EventDelegationDistribution').val() == 4) $('#sgid').show();

@@ -17,13 +17,13 @@ class TagsController extends AppController {
 					'Tag.name' => 'asc'
 			)
 	);
-	
+
 	public $helpers = array('TextColour');
-	
+
 	public function beforeFilter() { // TODO REMOVE
 		parent::beforeFilter();
 	}
-	
+
 	public function index($favouritesOnly = false) {
 		$this->loadModel('Event');
 		$this->loadModel('Taxonomy');
@@ -94,7 +94,7 @@ class TagsController extends AppController {
 		}
 		// send perm_tagger to view for action buttons
 	}
-	
+
 	public function add() {
 		if (!$this->_isSiteAdmin() && !$this->userRole['perm_tag_editor']) throw new NotFoundException('You don\'t have permission to do that.');
 		if ($this->request->is('post')) {
@@ -116,7 +116,7 @@ class TagsController extends AppController {
 			}
 		}
 	}
-	
+
 	public function quickAdd() {
 		if ((!$this->_isSiteAdmin() && !$this->userRole['perm_tag_editor']) || !$this->request->is('post')) throw new NotFoundException('You don\'t have permission to do that.');
 		if (isset($this->request->data['Tag']['request'])) $this->request->data['Tag'] = $this->request->data['Tag']['request'];
@@ -127,7 +127,7 @@ class TagsController extends AppController {
 		}
 		$this->redirect($this->referer());
 	}
-	
+
 	public function edit($id) {
 		if (!$this->_isSiteAdmin() && !$this->userRole['perm_tag_editor']) {
 			throw new NotFoundException('You don\'t have permission to do that.');
@@ -155,7 +155,7 @@ class TagsController extends AppController {
 		}
 		$this->request->data = $this->Tag->read(null, $id);
 	}
-	
+
 	public function delete($id) {
 		if (!$this->_isSiteAdmin() && !$this->userRole['perm_tag_editor']) {
 			throw new NotFoundException('You don\'t have permission to do that.');
@@ -181,7 +181,7 @@ class TagsController extends AppController {
 		}
 		if (!$this->_isRest()) $this->redirect(array('action' => 'index'));
 	}
-	
+
 	public function view($id) {
 		if ($this->_isRest()) {
 			$tag = $this->Tag->find('first', array(
@@ -216,9 +216,9 @@ class TagsController extends AppController {
 			$this->set('Tag', $tag['Tag']);
 			$this->set('_serialize', 'Tag');
 		} else throw new MethodNotAllowedException('This action is only for REST users.');
-		
+
 	}
-	
+
 	public function showEventTag($id) {
 		$this->helpers[] = 'TextColour';
 		$this->loadModel('EventTag');
@@ -245,7 +245,7 @@ class TagsController extends AppController {
 		$this->layout = 'ajax';
 		$this->render('/Events/ajax/ajaxTags');
 	}
-	
+
 	public function viewTag($id) {
 		$tag = $this->Tag->find('first', array(
 				'conditions' => array(
@@ -258,7 +258,7 @@ class TagsController extends AppController {
 		$this->set('id', $id);
 		$this->render('ajax/view_tag');
 	}
-	
+
 
 	public function selectTaxonomy($event_id) {
 		if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) throw new NotFoundException('You don\'t have permission to do that.');
@@ -274,7 +274,7 @@ class TagsController extends AppController {
 		$this->set('favourites', $favourites);
 		$this->render('ajax/taxonomy_choice');
 	}
-	
+
 	public function selectTag($event_id, $taxonomy_id) {
 		if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) throw new NotFoundException('You don\'t have permission to do that.');
 		$this->loadModel('Taxonomy');
@@ -308,7 +308,7 @@ class TagsController extends AppController {
 		$this->set('custom', $taxonomy_id == 0 ? true : false);
 		$this->render('ajax/select_tag');
 	}
-	
+
 	public function tagStatistics($percentage = false, $keysort = false) {
 		$result = $this->Tag->EventTag->find('all', array(
 				'recursive' => -1,

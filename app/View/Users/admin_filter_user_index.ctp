@@ -21,7 +21,7 @@
 						'style'	=> 'display:none;width:62px;margin-right:3px',
 						'div' => false
 				));
-				
+
 				foreach($differentFilters as $b) {
 					echo $this->Form->input('search' . $b, array(
 						'options' => array('' => 'Any', '0' => 'No', '1' => 'Yes'),
@@ -31,7 +31,7 @@
 						'div' => false
 					));
 				}
-				
+
 				foreach($simpleFilters as $t) {
 					if ($t == 'role') {
 						echo $this->Form->input('search' . $t, array(
@@ -133,7 +133,7 @@ var orgs = <?php echo json_encode($orgs, true); ?>
 var allFields = simpleFilters.concat(differentFilters);
 
 var baseurl = "<?php echo $baseurl; ?>";
-		
+
 $(document).ready(function() {
 	indexRuleChange();
 	indexSetTableVisibility();

@@ -109,7 +109,7 @@
 				disableButton(i);
 			});
 		}
-	
+
 	function queryTask(type, i){
 		$.getJSON('/jobs/getProgress/cache_' + type, function(data) {
 			var x = document.getElementById("bar" + i); 

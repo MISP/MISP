@@ -138,7 +138,7 @@ class SysLogLogableBehavior extends LogableBehavior {
 			$logData['Log']['version_id'] = $Model->version_id;
 			unset($Model->version_id);
 		}
-		
+
 		if (isset($this->schema[$this->settings[$Model->alias]['userKey']]) && $this->user) {
 			$logData['Log'][$this->settings[$Model->alias]['userKey']] = $this->user[$this->UserModel->alias][$this->UserModel->primaryKey];
 		}
@@ -248,7 +248,7 @@ class SysLogLogableBehavior extends LogableBehavior {
 		$this->Log->create($logData);
 		$this->Log->save(null, array(
 				'validate' => false));
-		
+
 		// write to syslogd as well
 		$syslog = new SysLog();
 		if (isset($logData['Log']['change'])) {
@@ -257,15 +257,15 @@ class SysLogLogableBehavior extends LogableBehavior {
 			$syslog->write('notice', $logData['Log']['description']);
 		}
 	}
-	
+
 	function setup(Model $Model, $config = array()) {
-	
+
 		if (!is_array($config)) {
 			$config = array();
 		}
 		$this->settings[$Model->alias] = array_merge($this->defaults, $config);
 		$this->settings[$Model->alias]['ignore'][] = $Model->primaryKey;
-	
+
 		$this->Log = ClassRegistry::init('Log');
 		if ($this->settings[$Model->alias]['userModel'] != $Model->alias) {
 			$this->UserModel = ClassRegistry::init($this->settings[$Model->alias]['userModel']);

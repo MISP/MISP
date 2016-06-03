@@ -80,7 +80,7 @@
 					$style = "color:white;background-color:red;";
 					$icon_modifier = ' icon-white';
 				} 
-				
+
 				$status = '<span style="color:green;">OK</span>';
 	?>
 		<tr>
@@ -105,7 +105,7 @@
 			echo $this->Form->end();
 		endforeach;
 	?>
-	
+
 </div>
 
 <?php echo $this->Form->create('Server', array('url' => '/servers/restartWorkers'));

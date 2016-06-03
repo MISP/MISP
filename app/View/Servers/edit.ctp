@@ -150,7 +150,7 @@ $(document).ready(function() {
 	$('#ServerOrganisationType').change(function() {
 		serverOrgTypeChange();
 	});
-	
+
 	$("#ServerUrl, #ServerOrganization, #ServerName, #ServerAuthkey, #ServerPush, #ServerPull, #ServerSubmittedCert, #ServerSelfSigned").on('mouseleave', function(e) {
 	    $('#'+e.currentTarget.id).popover('destroy');
 	});

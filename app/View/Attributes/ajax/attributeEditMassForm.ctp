@@ -85,9 +85,9 @@ $(document).ready(function() {
 		if ($('#AttributeDistribution').val() == 4) $('#SGContainer').show();
 		else $('#SGContainer').hide();
 	});
-	
+
 	$('#AttributeAttributeIds').attr('value', getSelected());
-	
+
 	$("#Attribute, #AttributeDistribution").on('mouseover', function(e) {
 	    var $e = $(e.target);
 	    if ($e.is('option')) {

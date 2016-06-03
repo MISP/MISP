@@ -24,7 +24,7 @@ class Thread extends AppModel {
 		),
 		'SharingGroup'
 	);
-	
+
 	public function updateAfterPostChange($thread, $add = false) {
 		$count = count($thread['Post']);
 		// If we have 0 posts left, delete the thread!

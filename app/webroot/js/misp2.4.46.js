@@ -278,7 +278,7 @@ function postActivationScripts(name, type, id, field, event) {
 		submitForm(type, id, field, event);
 		return false;
 	});
-	
+
 	$(name + '_form').bind("focusout", function() {
 		inputFieldButtonPassive(name + '_field');
 	});
@@ -286,7 +286,7 @@ function postActivationScripts(name, type, id, field, event) {
 	$(name + '_form').bind("focusin", function(){
 		inputFieldButtonActive(name + '_field');
 	});
-	
+
 	$(name + '_form').bind("keydown", function(e) {
 		if (e.ctrlKey && (e.keyCode == 13 || e.keyCode == 10)) {
 			submitForm(type, id, field, event);
@@ -295,7 +295,7 @@ function postActivationScripts(name, type, id, field, event) {
 	$(name + '_field').closest('.inline-input-container').children('.inline-input-accept').bind('click', function() {
 		submitForm(type, id, field, event);
 	});
-	
+
 	$(name + '_field').closest('.inline-input-container').children('.inline-input-decline').bind('click', function() {
 		resetForms();
 	});
@@ -556,7 +556,7 @@ function addSelectedTaxonomies(taxonomy) {
 
 function submitMassTaxonomyTag() {
 	$('#PromptForm').submit();
-	
+
 }
 
 function getSelected() {
@@ -679,7 +679,7 @@ function submitPopoverForm(context_id, referer, update_context_id) {
 			url = "/attributes/attributeReplace/" + context_id;
 			break;
 	}
-	
+
 	if (url !== null) {
 		$.ajax({
 			beforeSend: function (XMLHttpRequest) {
@@ -1134,7 +1134,7 @@ function templateDeleteFileBubble(filename, tmp_name, element_id, context, batch
 	}
 	$(".loading").hide();
 }
-	
+
 function templateFileUploadTriggerBrowse(id) {
 	$('#upload_' + id + '_file').click();
 }
@@ -1228,7 +1228,7 @@ function remoteIndexApplyFilters() {
 	var url = actionUrl + '/' + $("#EventFilter").val();
 	window.location.href = url;
 }
-	
+
 function indexApplyFilters() {
 	var url = indexCreateFilters();
 	window.location.href = url;
@@ -1384,7 +1384,7 @@ function indexRuleChange() {
 	if (simpleFilters.indexOf(rule) != -1) {
 		$('#' + context + 'Searchbool').show();
 	} else $('#' + context + 'Searchbool').hide();
-	
+
 	$('#addRuleButton').show();
 	$('#addRuleButton').unbind("click");
 	$('#addRuleButton').click({param1: rule}, indexAddRule);
@@ -1429,7 +1429,7 @@ function restrictEventViewPagination() {
 		start = page-5;
 		end = page+5;
 	}
-	
+
 	if (start > 2) {
 		$("#apage" + start).parent().before("<li><a href id='aExpandLeft'>...</a></li>");
 		$("#aExpandLeft").click(function() {expandPagination(0, 0); return false;});
@@ -1443,7 +1443,7 @@ function restrictEventViewPagination() {
 		$("#bpage" + end).parent().after("<li><a href id='bExpandRight'>...</a></li>");
 		$("#bExpandRight").click(function() {expandPagination(1, 1); return false;})
 	}
-	
+
 	for (i = 1; i < (count+1); i++) {
 		if (i != 1 && i != count && (i < start || i > end)) {
 			$("#apage" + i).hide();
@@ -1510,7 +1510,7 @@ function serverSettingsPostActivationScripts(name, setting, id) {
 		serverSettingSubmitForm(name, setting, id);
 		return false;
 	});
-	
+
 	$(name + '_form').bind("focusout", function() {
 		inputFieldButtonPassive(name + '_field');
 	});
@@ -1518,7 +1518,7 @@ function serverSettingsPostActivationScripts(name, setting, id) {
 	$(name + '_form').bind("focusin", function(){
 		inputFieldButtonActive(name + '_field');
 	});
-	
+
 	$(name + '_form').bind("keydown", function(e) {
 		if (e.ctrlKey && (e.keyCode == 13 || e.keyCode == 10)) {
 			serverSettingSubmitForm(name, setting, id);
@@ -1979,7 +1979,7 @@ function serverSubmitForm(action) {
 		};
 		break;
 	}
-	
+
 	$('#ServerJson').val(JSON.stringify(ajax));
 	var formName = "#Server" + action + "Form";
 	$(formName).submit();

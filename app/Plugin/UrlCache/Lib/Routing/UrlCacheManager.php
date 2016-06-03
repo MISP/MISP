@@ -12,40 +12,40 @@
  * 2012-02-13 ms
  */
 class UrlCacheManager {
-	
+
 	/**
 	 * Holds all generated urls so far by the application indexed by a custom hash
 	 *
 	 */
 	public static $cache = array();
-	
+
 	/**
 	 * Holds all generated urls so far by the application indexed by a custom hash
 	 *
 	 */
 	public static $cachePage = array();
-	
+
 	/**
 	 * Holds all generated urls so far by the application indexed by a custom hash
 	 *
 	 */
 	public static $extras = array();
-	
+
 	/**
 	 * type for the current set (triggered by last get)
 	 */
 	public static $type = 'cache'; 
-	
+
 	/**
 	 * key for current get/set
 	 */
 	public static $key = null; 
-	
+
 	/**
 	 * cache key for pageFiles
 	 */
 	public static $cacheKey = 'url_map'; 
-	
+
 	/**
 	 * cache key for pageFiles
 	 */
@@ -80,7 +80,7 @@ class UrlCacheManager {
 			self::$cachePage = Cache::read(self::$cachePageKey, '_cake_core_');
 		}
 		self::$cache = Cache::read(self::$cacheKey, '_cake_core_');
-		
+
 		# still old "prefix true/false" syntax?
 		if (Configure::read('UrlCache.verbosePrefixes')) {
 			unset(self::$paramFields[3]);
@@ -93,7 +93,7 @@ class UrlCacheManager {
 		}
 		self::$extras = array_merge($defaults, self::$extras);
 	}
-	
+
 	/**
 	 * should be called in afterLayout()
 	 * 
@@ -154,5 +154,5 @@ class UrlCacheManager {
 			self::$cache[self::$key] = $data;
 		}
 	}
-	
+
 }

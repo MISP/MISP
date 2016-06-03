@@ -3,7 +3,7 @@ App::uses('AppModel', 'Model');
 
 class Module extends AppModel {
 	public $useTable = false;
-	
+
 
 	public function getEnrichmentModules() {
 		if (!Configure::read('Plugin.Enrichment_services_enable')) return 'Enrichment service not enabled.';
@@ -28,7 +28,7 @@ class Module extends AppModel {
 			return $result;
 		} else return 'The enrichment service reports that it found no enrichment modules.';
 	}
-	
+
 	public function getEnabledModules() {
 		$modules = $this->getEnrichmentModules();
 		if (is_array($modules)) {
@@ -53,16 +53,16 @@ class Module extends AppModel {
 		$modules['hover_type'] = $hover_types;
 		return $modules;
 	}
-	
+
 	public function sendRequest() {
-		
+
 	}
-	
+
 	public function queryModule() {
-		
+
 	}
-	
+
 	private function queryModule() {
-		
+
 	}
 }

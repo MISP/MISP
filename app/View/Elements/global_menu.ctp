@@ -216,7 +216,7 @@ window.onresize = resizeLogo;
 function resizeLogo() {
 	var testElem = document.getElementById('fullLogo');
 	var topBar = document.getElementById('topBar');
-	
+
 	if (testElem != null) {
 		if ($(window).width() < 1400) {
 			document.getElementById('fullLogo').style.display='none';

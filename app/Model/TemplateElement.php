@@ -20,7 +20,7 @@ class TemplateElement extends AppModel {
 		)
 	);
 	public $belongsTo = array('Template');
-	
+
 	public function lastPosition($template_id) {
 		$result = $this->find('first', array(
 			'fields' => array('MAX(position) AS pos', 'id', 'template_id'),

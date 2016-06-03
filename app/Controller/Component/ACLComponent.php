@@ -351,7 +351,7 @@ class ACLComponent extends Component {
 					'index' => array('*'),
 			)
 	);
-	
+
 	// The check works like this:
 	// If the user is a site admin, return true
 	// If the requested action has an OR-d list, iterate through the list. If any of the permissions are set for the user, return true
@@ -374,7 +374,7 @@ class ACLComponent extends Component {
 		}
 		$this->__error(403, 'You do not have permission to use this functionality.');
 	}
-	
+
 	private function __error($code, $message) {
 		switch ($code) {
 			case 404: 
@@ -386,7 +386,7 @@ class ACLComponent extends Component {
 				throw new InternalErrorException('Unknown error: ' . $message); 
 		}
 	}
-	
+
 	private function __findAllFunctions() {
 		$functionFinder = '/function[\s\n]+(\S+)[\s\n]*\(/';
 		$dir = new Folder(APP . 'Controller');
@@ -404,7 +404,7 @@ class ACLComponent extends Component {
 		}
 		return $results;
 	}
-	
+
 	public function printAllFunctionNames($content = false) {
 		$results = $this->__findAllFunctions();
 		ksort($results);
@@ -423,7 +423,7 @@ class ACLComponent extends Component {
 		}
 		return $missing;
 	}
-	
+
 	public function printRoleAccess($content = false) {
 		$results = array();
 		$this->Role = ClassRegistry::init('Role');
@@ -440,7 +440,7 @@ class ACLComponent extends Component {
 		}
 		return $results;
 	}
-	
+
 	private function __checkRoleAccess($role) {
 		$result = array();
 		foreach ($this->__aclList as $controller => &$actions) {

@@ -92,7 +92,7 @@ if (!$relativePaths) {
 	if (isset($_SERVER['SERVER_NAME'])) $serverName = $_SERVER['SERVER_NAME'];
 	else if (isset($_SERVER['HTTP_HOST'])) $serverName = $_SERVER['HTTP_HOST'];
 	else if (isset($_SERVER['SERVER_ADDR'])) $serverName = $_SERVER['SERVER_ADDR'];
-	
+
 	if (!Configure::read('MISP.baseurl') && isset($serverName)) { 
 		if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443)) {
 			$protocol = 'https';

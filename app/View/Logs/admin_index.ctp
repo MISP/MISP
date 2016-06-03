@@ -13,7 +13,7 @@
 				'change' => array('text' => 'including the change', 'default' => null),
 				'ip' => array('text' => 'from IP', 'default' => null)
 		);
-		
+
 		foreach ($replaceArray as $type => $replace) {
 			if (isset(${$type . 'Search'}) && ${$type . 'Search'} != $replace['default']) {
 				echo ' ' . $replace['text'] . ' "<b>' . h(${$type . 'Search'}) . '</b>"';

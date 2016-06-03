@@ -105,7 +105,7 @@
 		var serverids = [0];
 	<?php
 		else:
-	
+
 			foreach ($sharingGroup['SharingGroupServer'] as $s): 
 	?>
 			serverids.push(<?php echo h($s['server_id']);?>);
@@ -152,7 +152,7 @@
 		<?php 
 			endforeach;
 		?>
-	
+
 	$(function() {
 		if ($('#SharingGroupJson').val()) sharingGroupPopulateFromJson();
 		sharingGroupPopulateOrganisations();
@@ -165,5 +165,5 @@
 			$('#serverList').hide();
 		}
 	});
-	
+
 </script>

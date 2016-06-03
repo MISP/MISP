@@ -52,7 +52,7 @@ class ApacheAuthenticate extends BaseAuthenticate {
             $filter = '('.Configure::read('ApacheSecureAuth.ldapSearchAttribut').'=' . $_SERVER[$envvar] . ')';
             // example: mail
             $getLdapUserInfo = Configure::read('ApacheSecureAuth.ldapFilter');
-            
+
             $result = ldap_search($ldapconn, $ldapdn, $filter, $getLdapUserInfo)
                     or die("Error in LDAP search query: " . ldap_error($ldapconn));
 
@@ -90,7 +90,7 @@ class ApacheAuthenticate extends BaseAuthenticate {
             );
             $org_id = $firstOrg['Organisation']['id'];
         }
-        
+
         // create user 
         $userData = array('User' => array(
                 'email' => $mispUsername,

@@ -247,7 +247,7 @@ def resolvePatternObservable(indicator, attribute):
     # elif attribute["type"] == "pattern-in-memory":
     # elif attribute["type"] == "pattern-in-traffic":
     return new_object
-    
+
 # create an artifact object for the malware-sample type.
 def createArtifactObject(indicator, attribute):
     artifact = Artifact(data = attribute["data"])

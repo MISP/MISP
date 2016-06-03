@@ -1,14 +1,14 @@
 <?php
 
 class IOCImportComponent extends Component {
-	
+
 	// rework of handling composite attributes
 	// each entry is only triggered if an "AND" branch contains the exact list of parsed attribute types that are set in the components field
 	// Note that some indicators are not immediately discarded by the parser even if they cannot be turned into an attribute
 	// The reason for this is that they might not be convertable to an attribute, but they might be converted into a part of a composite attribute
 	// For example: There is no Registry value type in MISP, but there is a regkey|value type. Meaning that a Registry value can be turned into an attribute
 	// as long as a registry key is "AND"ed with the value in the OpenIOC file.
-	
+
 	// notes about the format for the composition:
 	// - components have to be in alphabetical order
 	// - returnFormat has to be a valid MISP type
@@ -96,7 +96,7 @@ class IOCImportComponent extends Component {
 			'filename|sha256' => true,
 			'regkey|value' => true,
 	);
-	
+
 	// Set up the data that you would like to fetch from the ioc's root and add as comments.
 	private $iocinfo = array('info', 'uuid', 'date', 'long_info');
 
@@ -123,7 +123,7 @@ class IOCImportComponent extends Component {
 
 	// stores the graph that will be passed back along with the event and attributes
 	private $graph = array();
-	
+
 	private $filename = "";
 
 	public function readXML($data, $id, $dist, $filename) {
@@ -587,7 +587,7 @@ class IOCImportComponent extends Component {
 			$values[] = $temp['value'];
 			$uuids[] = $temp['uuid'];
 		}
-		
+
 		foreach ($this->attributeComposition as $composition) {
 			if (count($composition['components']) != count($att)) continue;
 			if ($keys === $composition['components']) {

@@ -1,9 +1,9 @@
 <?php
 class XMLConverterTool {
-	
+
 	private $__toEscape = array("&", "<", ">", "\"", "'");
 	private $__escapeWith = array('&amp;', '&lt;', '&gt;', '&quot;', '&apos;');
-	
+
 	public function recursiveEcho($array) {
 		$text = "";
 		if (is_array($array)) foreach ($array as $k => $v) {
@@ -26,7 +26,7 @@ class XMLConverterTool {
 		}
 		return $text;
 	}
-	
+
 	public function event2xmlArray($event, $isSiteAdmin=false) {
 		$event['Event']['Org'][0] = $event['Org'];
 		$event['Event']['Orgc'][0] = $event['Orgc'];
@@ -49,11 +49,11 @@ class XMLConverterTool {
 			unset($event['ShadowAttribute']);
 		}
 		if (isset($event['RelatedEvent'])) if (isset($event['RelatedEvent'])) $event['Event']['RelatedEvent'] = $event['RelatedEvent'];
-		
+
 		// legacy
 		unset($event['Event']['org']);
 		unset($event['Event']['orgc']);
-	
+
 		if (isset($event['EventTag'])) {
 			foreach ($event['EventTag'] as $k => $tag) {
 				$event['Event']['Tag'][$k] = $tag['Tag'];
@@ -79,7 +79,7 @@ class XMLConverterTool {
 		if (!Configure::read('MISP.showorg') && !$isSiteAdmin) {
 			unset($event['Event']['Org'], $event['Event']['Orgc'], $event['Event']['from']);
 		}
-		
+
 		if (isset($event['Event']['Attribute'])) {
 			// remove value1 and value2 from the output and remove invalid utf8 characters for the xml parser
 			foreach ($event['Event']['Attribute'] as $key => $value) {
@@ -148,25 +148,25 @@ class XMLConverterTool {
 		if (isset($event['errors']) && !empty($event['errors'])) $result['errors'] = $event['errors'];
 		return $result;
 	}
-	
+
 	public function event2XML($event, $isSiteAdmin=false) {
 		$xmlArray = $this->event2xmlArray($event, $isSiteAdmin);
 		$result = array('Event' => array(0 => $xmlArray['Event']));
 		if (isset($xmlArray['errors']) && !empty($xmlArray['errors'])) $result['errors'] = array($xmlArray['errors']);
 		return $this->recursiveEcho($result);
 	}
-	
+
 	private function __sanitizeField(&$field) {
 		$field = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $field);
 		$field = str_replace($this->__toEscape, $this->__escapeWith, $field);
 	}
-	
+
 	public function eventCollection2Format($events, $isSiteAdmin=false) {
 		$result = "";
 		foreach ($events as $event) $result .= $this->event2XML($event) . PHP_EOL;
 		return $result;
 	}
-	
+
 	public function frameCollection($input, $mispVersion = false) {
 		$result = '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL . '<response>' . PHP_EOL;
 		$result .= $input;

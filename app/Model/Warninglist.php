@@ -18,7 +18,7 @@ class Warninglist extends AppModel{
 			'rule' => array('numeric'),
 		),
 	);
-	
+
 	public $hasMany = array(
 			'WarninglistEntry' => array(
 				'dependent' => true
@@ -32,11 +32,11 @@ class Warninglist extends AppModel{
 		parent::beforeValidate();
 		return true;
 	}
-	
+
 	public function checkValidTypeJSON($check) {
 		return true;
 	}
-	
+
 	public function update() {
 		$directories = glob(APP . 'files' . DS . 'warninglists' . DS . 'lists' . DS . '*', GLOB_ONLYDIR);
 		$updated = array();
@@ -67,7 +67,7 @@ class Warninglist extends AppModel{
 		}
 		return $updated;
 	}
-	
+
 	private function __updateList($list, $current) {
 		$list['enabled'] = false;
 		$warninglist = array();
@@ -86,7 +86,7 @@ class Warninglist extends AppModel{
 				$data[] = array('value' => $value, 'warninglist_id' => $this->id);
 			}
 			$this->WarninglistEntry->saveMany($data);
-			
+
 			if (!empty($list['matching_attributes'])) {
 				$data = array();
 				foreach ($list['matching_attributes'] as $type) {
@@ -102,7 +102,7 @@ class Warninglist extends AppModel{
 			return $this->validationErrors;
 		}
 	}
-	
+
 	public function fetchForEventView() {
 		$warninglists = $this->find('all', array('contain' => array('WarninglistType'), 'conditions' => array('enabled' => true)));
 		if (empty($warninglists)) return array();		
@@ -120,7 +120,7 @@ class Warninglist extends AppModel{
 		}
 		return $warninglists;
 	}
-	
+
 	public function setWarnings(&$event, &$warninglists) {
 		if (empty($event['objects'])) return $event;
 		$eventWarnings = array();
@@ -142,7 +142,7 @@ class Warninglist extends AppModel{
 		$event['Event']['warnings'] = $eventWarnings;
 		return $event;
 	}
-	
+
 	private function __checkValue(&$listValues, $value, $type, $listType) {
 		if (strpos($type, '|')) $value = explode('|', $value);
 		else $value = array($value);
@@ -158,7 +158,7 @@ class Warninglist extends AppModel{
 		}
 		return false;
 	}
-	
+
 	// This requires an IP type attribute in a non CIDR notation format
 	// For the future we can expand this to look for CIDR overlaps?
 	private function __evalCIDRList(&$listValues, $value) {
@@ -182,7 +182,7 @@ class Warninglist extends AppModel{
 		return false;
 
 	}
-	
+
 	private function __evalCIDR($value, &$listValues, $function) {
 		$found = false;
 		foreach ($listValues as $lv) {
@@ -191,7 +191,7 @@ class Warninglist extends AppModel{
 		if ($found) return true;
 		return false;
 	}
-	
+
 	// using Alnitak's solution from http://stackoverflow.com/questions/594112/matching-an-ip-to-a-cidr-mask-in-php5
 	private function __ipv4InCidr($ip, $cidr) {
 		list ($subnet, $bits) = explode('/', $cidr);
@@ -201,7 +201,7 @@ class Warninglist extends AppModel{
 		$subnet &= $mask; # nb: in case the supplied subnet wasn't correctly aligned
 		return ($ip & $mask) == $subnet;
 	}
-	
+
 	// using Snifff's solution from http://stackoverflow.com/questions/7951061/matching-ipv6-address-to-a-cidr-subnet
 	private function __ipv6InCidr($ip, $cidr) {
 		$ip = inet_pton($ip);
@@ -213,7 +213,7 @@ class Warninglist extends AppModel{
 		$net_bits = substr($binarynet, 0, $maskbits);
 		return ($ip_net_bits === $net_bits);
 	}
-	
+
 	// converts inet_pton output to string with bits
 	private function __inet_to_bits($inet) {
 		$unpacked = unpack('A16', $inet);
@@ -224,7 +224,7 @@ class Warninglist extends AppModel{
 		}
 		return $binaryip;
 	}
-	
+
 	private function __evalString(&$listValues, $value) {
 		if (in_array($value, $listValues)) return true;
 		return false;

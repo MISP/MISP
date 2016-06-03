@@ -13,7 +13,7 @@
 						'div' => 'input clear',
 						'class' => 'input-xxlarge'
 				));
-				
+
 				echo $this->Form->input('description', array(
 						'type' => 'textarea',
 						'error' => array('escape' => false),
@@ -107,7 +107,7 @@
 		currentTypes = complexTypes["<?php echo $initialValues['type']; ?>"]['types'];
 	}
 	var fieldsArray = new Array('TemplateElementAttributeName', 'TemplateElementAttributeDescription', 'TemplateElementAttributeCategory', 'TemplateElementAttributeToIds', 'TemplateElementAttributeMandatory', 'TemplateElementAttributeBatch', 'TemplateElementAttributeType', 'TemplateElementAttributeComplex');
-	
+
 	$(document).ready(function() {
 		<?php 
 			foreach ($categoryDefinitions as $k => $cat) {
@@ -118,7 +118,7 @@
 					}
 				echo '];';
 			}
-			
+
 			foreach ($typeGroupCategoryMapping as $k => $mapping) {
 				echo 'typeGroupCategoryMapping["' . $k . '"] = [';
 				foreach ($mapping as $l => $map) {
@@ -130,7 +130,7 @@
 		?>
 		templateUpdateAvailableTypes();
 	});
-	
+
 	$("#TemplateElementAttributeCategory").change(function() {
 		var category = $(this).val();
 		templateElementAttributeCategoryChange(category);

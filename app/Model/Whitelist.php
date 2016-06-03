@@ -121,7 +121,7 @@ class Whitelist extends AppModel {
 		}
 		return $data;
 	}
-	
+
 	// A simplified whitelist removal, for when we just want to throw values against the list instead of attributes / events
 	public function removeWhitelistedValuesFromArray($data) {
 		$whitelists = $this->getBlockedValues();

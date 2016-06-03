@@ -85,14 +85,14 @@ class LogsController extends AppController {
 		}
 		$this->set('published', $this->Event->data['Event']['published']);
 		if ($mineOrAdmin && $this->userRole['perm_modify']) $mayModify = true;
-		
+
 		$conditions['OR'][] = array('AND' => array('Log.model LIKE' => 'Event', 'Log.model_id LIKE' => $id));
 		if ($org) $conditions['AND'][] = array('Log.org LIKE' => $org, 'Log.model LIKE' => 'ShadowAttribute');
 		// if we are not the owners of the event and we aren't site admins, then we should only see the entries for attributes that are not private
 		// This means that we will not be able to see deleted attributes - since those could have been private
 		if (!$mayModify) {
 			$sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user());
-			
+
 			// get a list of the attributes that belong to the event
 			$this->loadModel('Attribute');
 			$this->Attribute->recursive = -1;
@@ -149,7 +149,7 @@ class LogsController extends AppController {
 			// reset the paginate_conditions
 			$this->Session->write('paginate_conditions_log', array());
 			if ($this->request->is('post')) { // FIXME remove this crap check
-				
+
 				$filters['email'] = $this->request->data['Log']['email'];
 				if (!$orgRestriction) {
 					$filters['org'] = $this->request->data['Log']['org'];
@@ -207,7 +207,7 @@ class LogsController extends AppController {
 				$filters['title'] = $this->Session->read('paginate_conditions_log_title');
 				$filters['change'] = $this->Session->read('paginate_conditions_log_change');
 				if (Configure::read('MISP.log_client_ip')) $filters['ip'] = $this->Session->read('paginate_conditions_log_ip');
-				
+
 				// for info on what was searched for
 				$this->set('emailSearch', $filters['email']);
 				$this->set('orgSearch', $filters['org']);
@@ -218,7 +218,7 @@ class LogsController extends AppController {
 				$this->set('changeSearch', $filters['change']);
 				if (Configure::read('MISP.log_client_ip')) $this->set('ipSearch', $filters['ip']);
 				$this->set('isSearch', 1);
-				
+
 				// re-get pagination
 				$this->{$this->defaultModel}->recursive = 0;
 				$this->paginate = $this->Session->read('paginate_conditions_log');
@@ -226,18 +226,18 @@ class LogsController extends AppController {
 				$conditions = $this->__buildSearchConditions($filters);
 				$this->paginate['conditions'] = $conditions;
 				$this->set('list', $this->paginate());
-				
+
 				// set the same view as the index page
 				$this->render('admin_index');
 			}
 		} else {
 			// no search keyword is given, show the search form
-			
+
 			// combobox for actions
 			$actions = array('' => array('ALL' => 'ALL'), 'actions' => array());
 			$actions['actions'] = array_merge($actions['actions'], $this->_arrayToValuesIndexArray($this->{$this->defaultModel}->validate['action']['rule'][1]));
 			$this->set('actions', $actions);
-			
+
 			// combobox for models
 			$models = array('Attribute', 'Event', 'EventBlacklist', 'EventTag', 'Organisation', 'Post', 'Regexp', 'Role', 'Server', 'ShadowAttribute', 'SharingGroup', 'Tag', 'Task', 'Taxonomy', 'Template', 'Thread', 'User', 'Whitelist');
 			$existing_models = $this->Log->find('list', array(
@@ -281,7 +281,7 @@ class LogsController extends AppController {
 		}
 		return $conditions;
 	}
-	
+
 	public function returnDates($org = 'all') {
 		$data = $this->Log->returnDates($org);
 		$this->set('data', $data);

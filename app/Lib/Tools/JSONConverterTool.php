@@ -17,13 +17,13 @@ class JSONConverterTool {
 		$event['Event']['Attribute'] = $event['Attribute'];
 		$event['Event']['ShadowAttribute'] = $event['ShadowAttribute'];
 		$event['Event']['RelatedEvent'] = $event['RelatedEvent'];
-		
+
 		if (isset($event['EventTag'])) {
 			foreach ($event['EventTag'] as $k => $tag) {
 				$event['Event']['Tag'][$k] = $tag['Tag'];
 			}
 		}
-		
+
 		if (isset($event['RelatedAttribute'])) $event['Event']['RelatedAttribute'] = $event['RelatedAttribute'];
 		else $event['Event']['RelatedAttribute'] = array();
 		//
@@ -36,7 +36,7 @@ class JSONConverterTool {
 			unset($event['Event']['orgc']);
 			unset($event['Event']['from']);
 		}
-		
+
 		if (isset($event['Event']['Attribute'])) {
 			// remove value1 and value2 from the output and remove invalid utf8 characters for the xml parser
 			foreach ($event['Event']['Attribute'] as $key => $value) {
@@ -65,7 +65,7 @@ class JSONConverterTool {
 		if (isset($event['errors'])) $result = array_merge($result, array('errors' => $event['errors']));
 		return json_encode($result, JSON_PRETTY_PRINT);
 	}
-	
+
 	public function arrayPrinter($array, $root = true) {
 		if (is_array($array)) {
 			$resultArray = array();
@@ -84,13 +84,13 @@ class JSONConverterTool {
 			return $text;
 		} else return $resultArray;
 	}
-	
+
 	public function eventCollection2Format($events, $isSiteAdmin=false) {
 		$results = array();
 		foreach ($events as &$event) $results[] = $this->event2JSON($event, $isSiteAdmin);
 		return implode(',' . PHP_EOL, $results);
 	}
-	
+
 	public function frameCollection($input, $mispVersion = false) {
 		$result = '{"response":[';
 		$result .= $input;

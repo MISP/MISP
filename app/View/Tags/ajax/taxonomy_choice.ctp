@@ -23,7 +23,7 @@
 	$(document).ready(function() {
 		resizePopoverBody();
 	});
-	
+
 	$(window).resize(function() {
 		resizePopoverBody();
 	});

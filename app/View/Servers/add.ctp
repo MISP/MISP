@@ -140,7 +140,7 @@ $(document).ready(function() {
 	            content: formInfoValues[e.currentTarget.id],
 	        }).popover('show');
 	});
-	
+
 	serverRulePopulateTagPicklist();
 	$("#push_modify").click(function() {
 		serverRuleFormActivate('push');

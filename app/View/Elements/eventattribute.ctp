@@ -177,7 +177,7 @@
 						$extra = 'highlight3';
 						unset($object['type']);
 					} else $extra = 'highlight2';
-					
+
 				}
 				if ($object['objectType'] == 1) {
 					$extra2 = '1';
@@ -518,7 +518,7 @@ attributes or the appropriate distribution level. If you think there is a mistak
 		$('.select_proposal, .select_all').click(function(){
 			attributeListAnyProposalCheckBoxesChecked();
 		});
-		
+
 	});
 </script>
 <?php 

@@ -13,7 +13,7 @@
 						'div' => 'input clear',
 						'class' => 'input-xxlarge'
 				));
-				
+
 				echo $this->Form->input('description', array(
 						'type' => 'textarea',
 						'error' => array('escape' => false),
@@ -37,7 +37,7 @@
 							'checked' => false,
 							'label' => 'Malware',
 					));
-	
+
 				?>
 			</div>
 			<div class="input clear"></div>
@@ -96,7 +96,7 @@
 		?>
 		templateElementFileCategoryChange($("#TemplateElementFileCategory").val());
 	});
-	
+
 	$("#TemplateElementFileCategory").change(function() {
 		var category = $("#TemplateElementFileCategory").val();
 		templateElementFileCategoryChange(category);

@@ -15,7 +15,7 @@ class SyncTool {
 		if (isset($proxy['host']) && !empty($proxy['host'])) $HttpSocket->configProxy($proxy['host'], $proxy['port'], $proxy['method'], $proxy['user'], $proxy['password']);
 		return $HttpSocket;
 	}
-	
+
 	public function setupHttpSocketFeed($feed = null) {
 		App::uses('HttpSocket', 'Network/Http');
 		$HttpSocket = new HttpSocket();

@@ -116,7 +116,7 @@ cp /var/www/MISP/INSTALL/apache.misp.ubuntu /etc/apache2/sites-available/misp.co
 # Be aware that the configuration files for apache 2.4 and up have changed. 
 # The configuration file has to have the .conf extension in the sites-available directory
 # For more information, visit http://httpd.apache.org/docs/2.4/upgrading.html
- 
+
 a2dissite 000-default
 # 000-default can be called default based on distribution, in which case run a2dissite default
 a2ensite misp
@@ -139,7 +139,7 @@ cp -a bootstrap.default.php bootstrap.php
 cp -a database.default.php database.php
 cp -a core.default.php core.php
 cp -a config.default.php config.php
- 
+
 # Configure the fields in the newly created files:
 # database.php : login, port, password, database
 

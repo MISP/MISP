@@ -37,11 +37,11 @@ class FeedsController extends AppController {
 		$this->loadModel('Event');
 		$this->set('distributionLevels', $this->Event->distributionLevels);
 	}
-	
+
 	public function view($feedId) {
 		$feed = $this->Feed->find('first', array('conditions' => array('Feed.id' => $feedId)));
 	}
-	
+
 	public function add() {
 		if ($this->request->is('post')) {
 			if (isset($this->request->data['Feed']['pull_rules'])) $this->request->data['Feed']['rules'] = $this->request->data['Feed']['pull_rules'];
@@ -65,7 +65,7 @@ class FeedsController extends AppController {
 			$this->set('tags', $tags);
 		}
 	}
-	
+
 	public function edit($feedId) {
 		$this->Feed->id = $feedId;
 		if (!$this->Feed->exists()) throw new NotFoundException('Invalid feed.');
@@ -97,7 +97,7 @@ class FeedsController extends AppController {
 			$this->set('tags', $tags);
 		}
 	}
-	
+
 	public function delete($feedId) {
 		if (!$this->request->is('post')) throw new MethodNotAllowedException('This action requires a post request.');
 		$this->Feed->id = $feedId;
@@ -106,7 +106,7 @@ class FeedsController extends AppController {
 		else $this->Session->setFlash('Feed could not be deleted.');
 		$this->redirect(array('controller' => 'feeds', 'action' => 'index'));
 	}
-	
+
 	public function fetchFromFeed($feedId) {
 		$this->Feed->id = $feedId;
 		if (!$this->Feed->exists()) throw new NotFoundException('Invalid feed.');
@@ -145,7 +145,7 @@ class FeedsController extends AppController {
 		$this->Session->setFlash($message);
 		$this->redirect(array('action' => 'index'));
 	}
-	
+
 	public function getEvent($feedId, $eventUuid, $all = false) {
 		$this->Feed->id = $feedId;
 		if (!$this->Feed->exists()) throw new NotFoundException('Invalid feed.');
@@ -169,7 +169,7 @@ class FeedsController extends AppController {
 		$this->Session->setFlash($message);
 		$this->redirect(array('action' => 'previewIndex', $feedId));
 	}
-	
+
 	public function previewIndex($feedId) {
 		$this->Feed->id = $feedId;
 		if (!$this->Feed->exists()) throw new NotFoundException('Invalid feed.');
@@ -177,7 +177,7 @@ class FeedsController extends AppController {
 		else $currentPage = 1;
 		$urlparams = '';
 		$passedArgs = array();
-		
+
 		App::uses('SyncTool', 'Tools');
 		$syncTool = new SyncTool();
 		$this->Feed->read();
@@ -191,7 +191,7 @@ class FeedsController extends AppController {
 		$this->params->params['paging'] = array($this->modelClass => $params);
 		if (is_array($events)) $customPagination->truncateByPagination($events, $params);
 		else ($events = array());
-		
+
 		$this->set('events', $events);
 		$this->loadModel('Event');
 		$threat_levels = $this->Event->ThreatLevel->find('all');
@@ -207,7 +207,7 @@ class FeedsController extends AppController {
 		$this->set('passedArgs', json_encode($passedArgs));
 		$this->set('passedArgsArray', $passedArgs);
 	}
-	
+
 
 	public function previewEvent($feedId, $eventUuid, $all = false) {
 		$this->Feed->id = $feedId;
@@ -239,7 +239,7 @@ class FeedsController extends AppController {
 			else throw new NotFoundException('Could not download the selected Event');
 		}
 	}
-	
+
 	public function enable($id) {
 		$result = $this->__toggleEnable($id, true);
 		$this->set('name', $result['message']);
@@ -252,7 +252,7 @@ class FeedsController extends AppController {
 			$this->set('_serialize', array('name', 'message', 'url', 'errors'));
 		}  
 	}
-	
+
 	public function disable($id) {
 		$result = $this->__toggleEnable($id, false);
 		$this->set('name', $result['message']);
@@ -265,7 +265,7 @@ class FeedsController extends AppController {
 			$this->set('_serialize', array('name', 'message', 'url', 'errors'));
 		}
 	}
-	
+
 	private function __toggleEnable($id, $enable = true) {
 		if (!is_numeric($id)) throw new MethodNotAllowedException('Invalid Feed.');
 		$this->Feed->id = $id;

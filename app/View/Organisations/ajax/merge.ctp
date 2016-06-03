@@ -66,7 +66,7 @@
 var formInfoValues = {};
 var orgArray = <?php echo $orgs; ?>;
 var types = ['local', 'external'];
-		
+
 $(document).ready(function() {
 	mergeOrganisationUpdate();
 	$('#OrganisationTargetType').change(function() {

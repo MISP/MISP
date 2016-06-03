@@ -4,7 +4,7 @@
 	<div style="background-color:#f7f7f9;width:300px;">
 		<span>Currently installed version.....
 			<?php 
-				
+
 				switch ($version['upToDate']) {
 					case 'newer':
 						$fontColour = 'orange';

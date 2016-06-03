@@ -19,7 +19,7 @@
 						<?php endforeach;?>
 						</ul>
 					</td>
-				
+
 				</tr>
 			<?php endforeach; ?>
 			</table>

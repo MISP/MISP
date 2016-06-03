@@ -12,7 +12,7 @@
 			<th>Attribute Count</th>
 
 		</tr>
-	
+
 	<?php 
 		foreach ($events as $event) {
 			?>

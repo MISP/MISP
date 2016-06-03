@@ -2,7 +2,7 @@
 App::uses('AppHelper', 'View/Helper');
 
 	class PivotHelper extends AppHelper {
-		
+
 		private function __doConvert($pivot, $currentEvent, $activeText=false) {
 			$data = null;
 			$text = $pivot['id'] . ': ';
@@ -14,7 +14,7 @@ App::uses('AppHelper', 'View/Helper');
 			} else {
 				$text .= $pivot['info'];
 			}
-			
+
 			// Colour the text white if it is a highlighted pivot element
 			$pivotType = 'pivotText';
 			$pivotSpanType = '';
@@ -22,7 +22,7 @@ App::uses('AppHelper', 'View/Helper');
 				$pivotType = 'pivotTextBlue';
 				$pivotSpanType = 'pivotSpanBlue';
 			}
-			
+
 			$data[] = '<span class ="'.$pivotSpanType.'">';
 			if ($pivot['deletable']) {
 				$data[] = '<a class="pivotDelete icon-remove" href="' . h(Configure::read('MISP.baseurl')) . '/events/removePivot/' . $pivot['id'] . '/' . $currentEvent . '"></a>';
@@ -50,7 +50,7 @@ App::uses('AppHelper', 'View/Helper');
 			}
 			return $data;
 		}
-		
+
 		public function convertPivotToHTML($pivot, $currentEvent) {
 			$lookingAtRoot = false;
 			$pivotType = '';
@@ -80,6 +80,6 @@ App::uses('AppHelper', 'View/Helper');
 			return $height + $heightToAdd;
 		}
 	}
-	
+
 ?>
 

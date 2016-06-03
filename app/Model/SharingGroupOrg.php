@@ -3,9 +3,9 @@ App::uses('AppModel', 'Model');
 class SharingGroupOrg extends AppModel {
 	public $actsAs = array('Containable');
 	public $validate = array(
-			
+
 	);
-	
+
 	public $belongsTo = array(
 			'SharingGroup' => array(
 					'className' => 'SharingGroup',
@@ -21,7 +21,7 @@ class SharingGroupOrg extends AppModel {
 	public function beforeValidate($options = array()) {
 		parent::beforeValidate();
 	}
-	
+
 	public function updateOrgsForSG($id, $new_orgs, $old_orgs, $user) {
 		$log = ClassRegistry::init('Log');
 		// Loop through all of the organisations we want to add.
@@ -64,7 +64,7 @@ class SharingGroupOrg extends AppModel {
 			}
 		}
 	}
-	
+
 	public function fetchAllAuthorised($org_id) {
 		$sgs = $this->find('all', array(
 			'conditions' => array('org_id' => $org_id),
@@ -75,7 +75,7 @@ class SharingGroupOrg extends AppModel {
 		foreach ($sgs as $sg) $ids[] = $sg['SharingGroupOrg']['sharing_group_id'];
 		return $ids; 
 	}
-	
+
 	// pass a sharing group ID and an organisation ID, returns true if it has a matching attached organisation object
 	public function checkIfAuthorised($id, $org_id) {
 		$sg = $this->find('first', array(

@@ -15,7 +15,7 @@ class Task extends AppModel {
 					'description' => 'Generates export caches for every export type and for every organisation. This process is heavy, schedule so it might be a good idea to schedule this outside of working hours and before your daily automatic imports on connected services are scheduled.',
 					'next_execution_time' => 1391601600,
 					'message' => 'Not scheduled yet.'
-		
+
 			),
 			'pull_all' => array(
 					'type' => 'pull_all',
@@ -37,7 +37,7 @@ class Task extends AppModel {
 					'message' => 'Not scheduled yet.'
 			)
 	);
-	
+
 	// takes a time in the 24h format (13:49) and an integer representing the number of hours 
 	// by which it needs to be incremeneted. Returns a string in the first parameters format
 	public function breakTime($time, $timeToAdd) {
@@ -47,7 +47,7 @@ class Task extends AppModel {
 		if ($temp[0] > 23) $temp[0] = $temp[0] - 24;
 		return $temp[0] . ':' . $temp[1];
 	}
-	
+
 	public function reQueue($task, $worker, $shell, $action, $userId, $taskId) {
 		$time = time();
 		// Keep adding the timer's time interval until we get a date that is in the future! We don't want to keep queuing tasks in the past since they will execute until it catches up.
@@ -56,7 +56,7 @@ class Task extends AppModel {
 		}
 		$task['Task']['scheduled_time'] = $this->breakTime($task['Task']['scheduled_time'], $task['Task']['timer']);
 		$task['Task']['scheduled_time'] = date('H:i', $task['Task']['next_execution_time']);
-		
+
 		// Now that we have figured out when the next execution should happen, it's time to enqueue it.
 		$process_id = CakeResque::enqueueAt(
 				$task['Task']['next_execution_time'],

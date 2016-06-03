@@ -25,7 +25,7 @@
 			$filtered = true;
 		}
 	?>
-	
+
 	<table class="table table-striped table-hover table-condensed">
 		<tr>
 			<th class="filter"><?php echo $this->Paginator->sort('Org', 'org'); ?></th>

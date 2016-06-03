@@ -220,7 +220,7 @@ class RegexpController extends AppController {
 		$this->Session->setFlash(__('All done! Number of changed attributes: ' . $modifications . ' Number of deletions: ' . count($deletable)));
 		$this->redirect(array('action' => 'index'));
 	}
-	
+
 
 	public function cleanRegexModifiers() {
 		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException();

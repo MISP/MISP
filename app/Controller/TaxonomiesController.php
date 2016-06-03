@@ -37,7 +37,7 @@ class TaxonomiesController extends AppController {
 		}
 		$this->set('taxonomies', $taxonomies);
 	}
-	
+
 	public function view($id) {
 		if (isset($this->passedArgs['pages'])) {
 			$currentPage = $this->passedArgs['pages'];
@@ -64,7 +64,7 @@ class TaxonomiesController extends AppController {
 		$this->set('taxonomy', $taxonomy['Taxonomy']);
 		$this->set('id', $id);
 	}
-	
+
 	public function enable($id) {
 		if (!$this->_isSiteAdmin() || !$this->request->is('Post')) throw new MethodNotAllowedException('You don\'t have permission to do that.');
 		$taxonomy = $this->Taxonomy->find('first', array(
@@ -88,7 +88,7 @@ class TaxonomiesController extends AppController {
 		$this->Session->setFlash('Taxonomy enabled.');
 		$this->redirect($this->referer());
 	}
-	
+
 	public function disable($id) {
 		if (!$this->_isSiteAdmin() || !$this->request->is('Post')) throw new MethodNotAllowedException('You don\'t have permission to do that.');
 		$taxonomy = $this->Taxonomy->find('first', array(
@@ -112,7 +112,7 @@ class TaxonomiesController extends AppController {
 		$this->Session->setFlash('Taxonomy disabled.');
 		$this->redirect($this->referer());
 	}
-	
+
 	public function update() {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException('You don\'t have permission to do that.');
 		$result = $this->Taxonomy->update();
@@ -176,7 +176,7 @@ class TaxonomiesController extends AppController {
 		}
 		$this->redirect(array('controller' => 'taxonomies', 'action' => 'index'));
 	}
-	
+
 	public function addTag($taxonomy_id = false) {
 		if ((!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) || !$this->request->is('post')) throw new NotFoundException('You don\'t have permission to do that.');
 		if ($taxonomy_id) {
@@ -198,7 +198,7 @@ class TaxonomiesController extends AppController {
 		}
 		$this->redirect($this->referer());
 	}
-	
+
 	public function taxonomyMassConfirmation($id) {
 		if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) throw new NotFoundException('You don\'t have permission to do that.');
 		$this->set('id', $id);

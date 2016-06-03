@@ -23,11 +23,11 @@
 					$initialDistribution = Configure::read('MISP.default_attribute_distribution');
 				}
 			}
-			
+
 			?>
 				<div class="input clear"></div>
 			<?php
-			
+
 			echo $this->Form->input('distribution', array(
 				'options' => array($distributionLevels),
 				'label' => 'Distribution',
@@ -195,7 +195,7 @@ $(document).ready(function() {
         }).popover('show');
        // $('#'+e.currentTarget.id).on('mouseleave', $('#'+e.currentTarget.id).popover('destroy');
         //$('#'+e.currentTarget.id).on('mouseout', $('#'+e.currentTarget.id).popover('destroy'));
-       
+
 	});
 
 	// workaround for browsers like IE and Chrome that do now have an onmouseover on the 'options' of a select.

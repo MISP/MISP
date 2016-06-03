@@ -48,7 +48,7 @@ class UserInitShell extends AppShell {
 				$org_id = $firstOrg['Organisation']['id'];
 			}
 		}
-		
+
 		// populate the DB with the first user if it's empty
 		if ($this->User->find('count') == 0 ) {
 			$authkey = $this->User->generateAuthKey();
