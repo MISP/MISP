@@ -562,15 +562,15 @@ class UsersController extends AppController {
 		}
 		if (!$this->_isAdmin()) throw new Exception('Administrators only.');
 		$this->User->id = $id;
-		$user = $this->User->read('email', $id);
+		$user = $this->User->find('first', array(
+				'conditions' => array('User.id' => $id),
+				'recursive' => -1
+		));
+		if (empty($user) || (!$this->_isSiteAdmin() && $user['User']['org_id'] != $this->Auth->user('id'))) {
+			throw new NotFoundException(__('Invalid user'));
+		}
 		$fieldsDescrStr = 'User (' . $id . '): ' . $user['User']['email'];
-		if (!$this->User->exists()) {
-			throw new NotFoundException(__('Invalid user'));
-		}
-		if (!$this->_isSiteAdmin && $this->User->data['User']['org_id'] != $this->Auth->user('id')) {
-			throw new NotFoundException(__('Invalid user'));
-		}
-		if ($this->User->delete()) {
+		if ($this->User->delete($id)) {
 			$this->__extralog("delete", $fieldsDescrStr, '');	// TODO Audit, check: modify User
 			$this->Session->setFlash(__('User deleted'));
 			$this->redirect(array('action' => 'index'));
