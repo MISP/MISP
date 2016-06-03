@@ -529,6 +529,8 @@ class UsersController extends AppController {
 					'conditions' => array('local' => 1),
 					'order' => array('lower(name) asc')
 			));
+		} else {
+			$orgs = array();
 		}
 		$this->loadModel('Server');
 		$conditions = array();

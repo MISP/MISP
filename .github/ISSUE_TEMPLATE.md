@@ -1,6 +1,15 @@
-*This template aims to ease the triage of the issues you encounter when using MISP*
+# This template is meant for bug reports, if you have a feature request, please be as descriptive as possible and delete the template
 
-*This template is meant for bug reports, if you have a feature request, please be as descriptive as possible* 
+
+
+
+
+
+
+
+
+
+*If you would like to report a bug, please fill the template bellow*
 
 ### Work environment
 
