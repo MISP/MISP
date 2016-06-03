@@ -8,7 +8,7 @@
 	</title>
 	<?php
 		echo $this->Html->meta('icon');
-// 		echo $this->Html->css('cake.generic');
+//		echo $this->Html->css('cake.generic');
 		echo $this->Html->css('roboto');
 		echo $this->Html->css('bootstrap'); // see http://twitter.github.io/bootstrap/base-css.html
 		echo $this->Html->css('datepicker');
@@ -61,8 +61,8 @@
 			if (Configure::read('debug') > 1) {
 				$topGap = 10;
 			} else {
-	 			if ($has_flash) $topGap += 50;
-	 		}
+				if ($has_flash) $topGap += 50;
+			}
 		?>
 		<div style="padding-top:<?php echo $topGap; ?>px !important;">
 			<?php echo $this->fetch('content'); ?>

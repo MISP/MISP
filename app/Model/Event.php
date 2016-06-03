@@ -1374,76 +1374,76 @@ class Event extends AppModel {
 	}
 
 	public function csv($user, $eventid=false, $ignore=false, $attributeIDList = array(), $tags = false, $category = false, $type = false, $includeContext = false, $from = false, $to = false, $last = false) {
-	 	$this->recursive = -1;
-	 	// If we are not in the search result csv download function then we need to check what can be downloaded. CSV downloads are already filtered by the search function.
-	 	if ($eventid !== 'search') {
-	 		if ($from) $conditions['AND'][] = array('Event.date >=' => $from);
-	 		if ($to) $conditions['AND'][] = array('Event.date <=' => $to);
-	 		if ($last) $conditions['AND'][] = array('Event.publish_timestamp >=' => $last);
-	 		// This is for both single event downloads and for full downloads. Org has to be the same as the user's or distribution not org only - if the user is no siteadmin
-	 		if ($ignore == false) $conditions['AND'][] = array('Event.published' => 1);
+		$this->recursive = -1;
+		// If we are not in the search result csv download function then we need to check what can be downloaded. CSV downloads are already filtered by the search function.
+		if ($eventid !== 'search') {
+			if ($from) $conditions['AND'][] = array('Event.date >=' => $from);
+			if ($to) $conditions['AND'][] = array('Event.date <=' => $to);
+			if ($last) $conditions['AND'][] = array('Event.publish_timestamp >=' => $last);
+			// This is for both single event downloads and for full downloads. Org has to be the same as the user's or distribution not org only - if the user is no siteadmin
+			if ($ignore == false) $conditions['AND'][] = array('Event.published' => 1);
 
- 			// If we sent any tags along, load the associated tag names for each attribute
- 			if ($tags) {
- 				$tag = ClassRegistry::init('Tag');
- 				$args = $this->Attribute->dissectArgs($tags);
- 				$tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
- 				$temp = array();
- 				foreach ($tagArray[0] as $accepted) {
- 					$temp['OR'][] = array('Event.id' => $accepted);
- 				}
- 				if (!empty($temp)) $conditions['AND'][] = $temp;
- 				$temp = array();
- 				foreach ($tagArray[1] as $rejected) {
- 					$temp['AND'][] = array('Event.id !=' => $rejected);
- 				}
- 				if (!empty($temp)) $conditions['AND'][] = $temp;
- 			}
-	 		// if we're downloading a single event, set it as a condition
-	 		if ($eventid) $conditions['AND'][] = array('Event.id' => $eventid);
+			// If we sent any tags along, load the associated tag names for each attribute
+			if ($tags) {
+				$tag = ClassRegistry::init('Tag');
+				$args = $this->Attribute->dissectArgs($tags);
+				$tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
+				$temp = array();
+				foreach ($tagArray[0] as $accepted) {
+					$temp['OR'][] = array('Event.id' => $accepted);
+				}
+				if (!empty($temp)) $conditions['AND'][] = $temp;
+				$temp = array();
+				foreach ($tagArray[1] as $rejected) {
+					$temp['AND'][] = array('Event.id !=' => $rejected);
+				}
+				if (!empty($temp)) $conditions['AND'][] = $temp;
+			}
+			// if we're downloading a single event, set it as a condition
+			if ($eventid) $conditions['AND'][] = array('Event.id' => $eventid);
 
-	 		//restricting to non-private or same org if the user is not a site-admin.
-	 		if (!$ignore) $conditions['AND'][] = array('Attribute.to_ids' => 1);
-	 		if ($type) $conditions['AND'][] = array('Attribute.type' => $type);
-	 		if ($category) $conditions['AND'][] = array('Attribute.category' => $category);
-	 	}
+			//restricting to non-private or same org if the user is not a site-admin.
+			if (!$ignore) $conditions['AND'][] = array('Attribute.to_ids' => 1);
+			if ($type) $conditions['AND'][] = array('Attribute.type' => $type);
+			if ($category) $conditions['AND'][] = array('Attribute.category' => $category);
+		}
 
-	 	if ($eventid === 'search') {
-		 	foreach ($attributeIDList as $aID) $conditions['AND']['OR'][] = array('Attribute.id' => $aID);
-	 	}
-	 	$params = array(
-	 			'conditions' => $conditions, //array of conditions
-	 			'fields' => array('Attribute.event_id', 'Attribute.distribution', 'Attribute.category', 'Attribute.type', 'Attribute.value', 'Attribute.comment', 'Attribute.uuid', 'Attribute.to_ids', 'Attribute.timestamp', 'Attribute.id'),
-	 			'order' => array('Attribute.uuid ASC')
-	 	);
+		if ($eventid === 'search') {
+			foreach ($attributeIDList as $aID) $conditions['AND']['OR'][] = array('Attribute.id' => $aID);
+		}
+		$params = array(
+				'conditions' => $conditions, //array of conditions
+				'fields' => array('Attribute.event_id', 'Attribute.distribution', 'Attribute.category', 'Attribute.type', 'Attribute.value', 'Attribute.comment', 'Attribute.uuid', 'Attribute.to_ids', 'Attribute.timestamp', 'Attribute.id'),
+				'order' => array('Attribute.uuid ASC')
+		);
 
-	 	if ($includeContext) {
-	 		$params['contain'] = array(
- 				'Event' => array(
- 						'fields' => array('id', 'info', 'org_id', 'orgc_id', 'date', 'distribution', 'analysis'),
- 						'SharingGroup' => array('fields' => array('id', 'name')),
- 						'Org' => array('id', 'name'),
- 						'Orgc' => array('id', 'name'),
- 						'ThreatLevel' => array(
- 								'fields' => array('id', 'name'),
- 						),
- 						'EventTag' => array(
- 								'Tag' => array(
- 										'fields' => array('id', 'name')
- 								)
- 						)
- 				),
-	 		);
-	 	}
-	 	$attributes = $this->Attribute->fetchAttributes($user, $params);
-	 	if (empty($attributes)) return array();
-	 	foreach ($attributes as &$attribute) {
-	 		$attribute['Attribute']['value'] = str_replace(array('"'), '""', $attribute['Attribute']['value']);
-	 		$attribute['Attribute']['value'] = '"' . $attribute['Attribute']['value'] . '"';
-	 		$attribute['Attribute']['comment'] = str_replace(array('"'), '""', $attribute['Attribute']['comment']);
-	 		$attribute['Attribute']['comment'] = '"' . $attribute['Attribute']['comment'] . '"';
-	 		$attribute['Attribute']['timestamp'] = date('Ymd', $attribute['Attribute']['timestamp']);
-	 		if ($includeContext) {
+		if ($includeContext) {
+			$params['contain'] = array(
+				'Event' => array(
+						'fields' => array('id', 'info', 'org_id', 'orgc_id', 'date', 'distribution', 'analysis'),
+						'SharingGroup' => array('fields' => array('id', 'name')),
+						'Org' => array('id', 'name'),
+						'Orgc' => array('id', 'name'),
+						'ThreatLevel' => array(
+								'fields' => array('id', 'name'),
+						),
+						'EventTag' => array(
+								'Tag' => array(
+										'fields' => array('id', 'name')
+								)
+						)
+				),
+			);
+		}
+		$attributes = $this->Attribute->fetchAttributes($user, $params);
+		if (empty($attributes)) return array();
+		foreach ($attributes as &$attribute) {
+			$attribute['Attribute']['value'] = str_replace(array('"'), '""', $attribute['Attribute']['value']);
+			$attribute['Attribute']['value'] = '"' . $attribute['Attribute']['value'] . '"';
+			$attribute['Attribute']['comment'] = str_replace(array('"'), '""', $attribute['Attribute']['comment']);
+			$attribute['Attribute']['comment'] = '"' . $attribute['Attribute']['comment'] . '"';
+			$attribute['Attribute']['timestamp'] = date('Ymd', $attribute['Attribute']['timestamp']);
+			if ($includeContext) {
 				$attribute['Event']['info'] = str_replace(array('"'), '""', $attribute['Event']['info']);
 				$attribute['Event']['info'] = '"' . $attribute['Event']['info'] . '"';
 				$attribute['Event']['Tag']['name'] = '';
@@ -1454,220 +1454,220 @@ class Event extends AppModel {
 					}
 				}
 				if (!empty($attribute['Event']['Tag']['name'])) $attribute['Event']['Tag']['name'] = '"' . $attribute['Event']['Tag']['name'] . '"';
-	 		}
-	 	}
-	 	return $attributes;
+			}
+		}
+		return $attributes;
 	 }
 
 	 private function attachEventInfoToAttributes($attributes, $user) {
-	 	$TLs = $this->ThreatLevel->find('list', array(
-	 		'recursive' => -1,
-	 	));
-	 	$event_ids = array();
-	 	foreach ($attributes as &$attribute) {
-	 		if (!in_array($attribute['Attribute']['event_id'], $event_ids)) $event_ids[] = $attribute['Attribute']['event_id'];
-	 	}
-	 	$context_fields = array('id' => null);
-	 	$context_fields = array_merge($context_fields, $this->csv_event_context_fields_to_fetch);
-	 	if (!Configure::read('MISP.showorg') && !$user['Role']['perm_site_admin']) {
+		$TLs = $this->ThreatLevel->find('list', array(
+			'recursive' => -1,
+		));
+		$event_ids = array();
+		foreach ($attributes as &$attribute) {
+			if (!in_array($attribute['Attribute']['event_id'], $event_ids)) $event_ids[] = $attribute['Attribute']['event_id'];
+		}
+		$context_fields = array('id' => null);
+		$context_fields = array_merge($context_fields, $this->csv_event_context_fields_to_fetch);
+		if (!Configure::read('MISP.showorg') && !$user['Role']['perm_site_admin']) {
 			unset($context_fields['orgc_id']);
 			unset($context_fields['org_id']);
-	 	} else if (!Configure::read('MISP.showorgalternate') && !$user['Role']['perm_site_admin']) {
-	 		$context_fields['orgc_id'] = 'event_org_id';
-	 		unset($context_fields['org_id']);
-	 	}
+		} else if (!Configure::read('MISP.showorgalternate') && !$user['Role']['perm_site_admin']) {
+			$context_fields['orgc_id'] = 'event_org_id';
+			unset($context_fields['org_id']);
+		}
 
-	 	$events = $this->find('all', array(
-	 		'recursive' => -1,
-	 		'fields' => array_keys($context_fields),
-	 		'conditions' => array('id' => $event_ids),
-	 	));
-	 	$event_id_data = array();
-	 	unset($context_fields['id']);
-	 	foreach ($events as $event) {
-	 		foreach ($context_fields as $field => $header_name) {
-	 			$event_id_data[$event['Event']['id']][$header_name] = $event['Event'][$field];
-	 		}
-	 	}
-	 	foreach ($attributes as &$attribute) {
-	 		foreach ($context_fields as $field => $header_name) {
-	 			if ($header_name == 'event_threat_level_id') {
-	 				$attribute['Attribute'][$header_name] = $TLs[$event_id_data[$attribute['Attribute']['event_id']][$header_name]];
-	 			} else if ($header_name == 'event_distribution') {
-	 				$attribute['Attribute'][$header_name] = $this->distributionLevels[$event_id_data[$attribute['Attribute']['event_id']][$header_name]];
-	 			} else if ($header_name == 'event_analysis') {
-	 				$attribute['Attribute'][$header_name] = $this->analysisLevels[$event_id_data[$attribute['Attribute']['event_id']][$header_name]];
-	 			} else if ($header_name == 'event_info') {
-	 				$attribute['Attribute'][$header_name] = str_replace(array('"'), '""', $event_id_data[$attribute['Attribute']['event_id']][$header_name]);
-	 				$attribute['Attribute'][$header_name] = '"' . $attribute['Attribute'][$header_name] . '"';
-	 			} else {
-	 				$attribute['Attribute'][$header_name] = $event_id_data[$attribute['Attribute']['event_id']][$header_name];
-	 			}
-	 		}
-	 	}
-	 	return $attributes;
+		$events = $this->find('all', array(
+			'recursive' => -1,
+			'fields' => array_keys($context_fields),
+			'conditions' => array('id' => $event_ids),
+		));
+		$event_id_data = array();
+		unset($context_fields['id']);
+		foreach ($events as $event) {
+			foreach ($context_fields as $field => $header_name) {
+				$event_id_data[$event['Event']['id']][$header_name] = $event['Event'][$field];
+			}
+		}
+		foreach ($attributes as &$attribute) {
+			foreach ($context_fields as $field => $header_name) {
+				if ($header_name == 'event_threat_level_id') {
+					$attribute['Attribute'][$header_name] = $TLs[$event_id_data[$attribute['Attribute']['event_id']][$header_name]];
+				} else if ($header_name == 'event_distribution') {
+					$attribute['Attribute'][$header_name] = $this->distributionLevels[$event_id_data[$attribute['Attribute']['event_id']][$header_name]];
+				} else if ($header_name == 'event_analysis') {
+					$attribute['Attribute'][$header_name] = $this->analysisLevels[$event_id_data[$attribute['Attribute']['event_id']][$header_name]];
+				} else if ($header_name == 'event_info') {
+					$attribute['Attribute'][$header_name] = str_replace(array('"'), '""', $event_id_data[$attribute['Attribute']['event_id']][$header_name]);
+					$attribute['Attribute'][$header_name] = '"' . $attribute['Attribute'][$header_name] . '"';
+				} else {
+					$attribute['Attribute'][$header_name] = $event_id_data[$attribute['Attribute']['event_id']][$header_name];
+				}
+			}
+		}
+		return $attributes;
 	 }
 
 	 public function sendAlertEmailRouter($id, $user) {
-	 	if (Configure::read('MISP.block_old_event_alert') && Configure::read('MISP.block_old_event_alert_age') && is_numeric(Configure::read('MISP.block_old_event_alert_age'))) {
-	 		$oldest = time() - (Configure::read('MISP.block_old_event_alert_age') * 86400);
-	 		$event = $this->find('first', array(
-	 				'conditions' => array('Event.id' => $id),
-	 				'recursive' => -1,
-	 				'fields' => array('Event.date')
-	 		));
-	 		if (empty($event)) return false;
-	 		if (strtotime($event['Event']['date']) < $oldest) return true;
-	 	}
-	 	if (Configure::read('MISP.background_jobs')) {
-	 		$job = ClassRegistry::init('Job');
-	 		$job->create();
-	 		$data = array(
-	 				'worker' => 'email',
-	 				'job_type' => 'publish_alert_email',
-	 				'job_input' => 'Event: ' . $id,
-	 				'status' => 0,
-	 				'retries' => 0,
-	 				'org_id' => $user['org_id'],
-	 				'org' => $user['Organisation']['name'],
-	 				'message' => 'Sending...',
-	 		);
-	 		$job->save($data);
-	 		$jobId = $job->id;
-	 		$process_id = CakeResque::enqueue(
-	 				'email',
-	 				'EventShell',
-	 				array('alertemail', $user['id'], $jobId, $id)
-	 		);
-	 		$job->saveField('process_id', $process_id);
-	 		return true;
-	 	} else {
-	 		return ($this->sendAlertEmail($id, $user));
-	 	}
+		if (Configure::read('MISP.block_old_event_alert') && Configure::read('MISP.block_old_event_alert_age') && is_numeric(Configure::read('MISP.block_old_event_alert_age'))) {
+			$oldest = time() - (Configure::read('MISP.block_old_event_alert_age') * 86400);
+			$event = $this->find('first', array(
+					'conditions' => array('Event.id' => $id),
+					'recursive' => -1,
+					'fields' => array('Event.date')
+			));
+			if (empty($event)) return false;
+			if (strtotime($event['Event']['date']) < $oldest) return true;
+		}
+		if (Configure::read('MISP.background_jobs')) {
+			$job = ClassRegistry::init('Job');
+			$job->create();
+			$data = array(
+					'worker' => 'email',
+					'job_type' => 'publish_alert_email',
+					'job_input' => 'Event: ' . $id,
+					'status' => 0,
+					'retries' => 0,
+					'org_id' => $user['org_id'],
+					'org' => $user['Organisation']['name'],
+					'message' => 'Sending...',
+			);
+			$job->save($data);
+			$jobId = $job->id;
+			$process_id = CakeResque::enqueue(
+					'email',
+					'EventShell',
+					array('alertemail', $user['id'], $jobId, $id)
+			);
+			$job->saveField('process_id', $process_id);
+			return true;
+		} else {
+			return ($this->sendAlertEmail($id, $user));
+		}
 	 }
 
 	 public function sendAlertEmail($id, $senderUser, $processId = null) {
-	 	$event = $this->fetchEvent($senderUser, array('eventid' => $id, 'includeAllTags' => true));
-	 	if (empty($event)) throw new MethodNotFoundException('Invalid Event.');
-	 	$userConditions = array('autoalert' => 1);
-	 	$this->User = ClassRegistry::init('User');
-	 	$users = $this->User->getUsersWithAccess(
+		$event = $this->fetchEvent($senderUser, array('eventid' => $id, 'includeAllTags' => true));
+		if (empty($event)) throw new MethodNotFoundException('Invalid Event.');
+		$userConditions = array('autoalert' => 1);
+		$this->User = ClassRegistry::init('User');
+		$users = $this->User->getUsersWithAccess(
 			$owners = array(
 				$event[0]['Event']['orgc_id'],
 				$event[0]['Event']['org_id']
- 			),
+			),
 			$event[0]['Event']['distribution'],
 			$event[0]['Event']['sharing_group_id'],
 			$userConditions
-	 	);
-	 	if (Configure::read('MISP.extended_alert_subject')) {
-	 		$subject = preg_replace( "/\r|\n/", "", $event[0]['Event']['info']);
-	 		if (strlen($subject) > 58) {
-	 			$subject = substr($subject, 0, 55) . '... - ';
-	 		} else {
-	 			$subject .= " - ";
-	 		}
-	 	} else {
-	 		$subject = '';
-	 	}
-	 	$subject = "[" . Configure::read('MISP.org') . " MISP] Event " . $id . " - " . $subject . $event[0]['ThreatLevel']['name'] . " - TLP Amber";
+		);
+		if (Configure::read('MISP.extended_alert_subject')) {
+			$subject = preg_replace( "/\r|\n/", "", $event[0]['Event']['info']);
+			if (strlen($subject) > 58) {
+				$subject = substr($subject, 0, 55) . '... - ';
+			} else {
+				$subject .= " - ";
+			}
+		} else {
+			$subject = '';
+		}
+		$subject = "[" . Configure::read('MISP.org') . " MISP] Event " . $id . " - " . $subject . $event[0]['ThreatLevel']['name'] . " - TLP Amber";
 
-	 	// Initialise the Job class if we have a background process ID
-	 	// This will keep updating the process's progress bar
-	 	if ($processId) {
-	 		$this->Job = ClassRegistry::init('Job');
-	 	}
-	 	$sgModel = ClassRegistry::init('SharingGroup');
-	 	$log = ClassRegistry::init('Log');
+		// Initialise the Job class if we have a background process ID
+		// This will keep updating the process's progress bar
+		if ($processId) {
+			$this->Job = ClassRegistry::init('Job');
+		}
+		$sgModel = ClassRegistry::init('SharingGroup');
+		$log = ClassRegistry::init('Log');
 
-	 	$userCount = count($users);
-	 	foreach ($users as $k => $user) {
-	 		$body = $this->__buildAlertEmailBody($event[0], $user, $sgModel);
-	 		$bodyNoEnc = "A new or modified event was just published on " . Configure::read('MISP.baseurl') . "/events/view/" . $event[0]['Event']['id'];
-	 		$this->User->sendEmail(array('User' => $user), $body, $bodyNoEnc, $subject);
-		 		if ($processId) {
-		 			$this->Job->id = $processId;
-		 			$this->Job->saveField('progress', $k / $userCount * 100);
-		 		}
-	 	}
+		$userCount = count($users);
+		foreach ($users as $k => $user) {
+			$body = $this->__buildAlertEmailBody($event[0], $user, $sgModel);
+			$bodyNoEnc = "A new or modified event was just published on " . Configure::read('MISP.baseurl') . "/events/view/" . $event[0]['Event']['id'];
+			$this->User->sendEmail(array('User' => $user), $body, $bodyNoEnc, $subject);
+				if ($processId) {
+					$this->Job->id = $processId;
+					$this->Job->saveField('progress', $k / $userCount * 100);
+				}
+		}
 
-	 	if ($processId) {
-	 		$this->Job->saveField('message', 'Mails sent.');
-	 	}
-	 	return true;
+		if ($processId) {
+			$this->Job->saveField('message', 'Mails sent.');
+		}
+		return true;
 	 }
 
 	 private function __buildAlertEmailBody($event, $user, $sgModel) {
-	 	$owner = false;
-	 	if ($user['org_id'] == $event['Event']['orgc_id'] || $user['org_id'] == $event['Event']['org_id'] || $user['Role']['perm_site_admin']) $owner = true;
-	 	// The mail body, h() is NOT needed as we are sending plain-text mails.
-	 	$body = "";
-	 	$body .= '==============================================' . "\n";
-	 	$appendlen = 20;
-	 	$body .= 'URL         : ' . Configure::read('MISP.baseurl') . '/events/view/' . $event['Event']['id'] . "\n";
-	 	$body .= 'Event ID    : ' . $event['Event']['id'] . "\n";
-	 	$body .= 'Date        : ' . $event['Event']['date'] . "\n";
-	 	if (Configure::read('MISP.showorg')) {
-	 		$body .= 'Reported by : ' . $event['Orgc']['name'] . "\n";
-	 		$body .= 'Local owner of the event : ' . $event['Org']['name'] . "\n";
-	 	}
-	 	$body .= 'Distribution: ' . $this->distributionLevels[$event['Event']['distribution']] . "\n";
-	 	if ($event['Event']['distribution'] == 4) {
-	 		$body .= 'Sharing Group:' . $event['SharingGroup']['name'] . "\n";
-	 	}
-	 	$tags = "";
-	 	foreach ($event['EventTag'] as $k => $tag) {
-	 		$tags .= $tag['Tag']['name'];
-	 		if (($k+1) != count($event['EventTag'])) $tags .= ", ";
-	 	}
-	 	$body .= 'Tags: ' . $tags . "\n";
-	 	$body .= 'Threat Level: ' . $event['ThreatLevel']['name'] . "\n";
-	 	$body .= 'Analysis    : ' . $this->analysisLevels[$event['Event']['analysis']] . "\n";
-	 	$body .= 'Description : ' . $event['Event']['info'] . "\n\n";
-	 	$relatedEvents = $this->getRelatedEvents($user, $event['Event']['id'], array());
-	 	if (!empty($relatedEvents)) {
-	 		$body .= '==============================================' . "\n";
-	 		$body .= 'Related to : '. "\n";
-	 		foreach ($relatedEvents as &$relatedEvent) {
-	 			$body .= Configure::read('MISP.baseurl') . '/events/view/' . $relatedEvent['Event']['id'] . ' (' . $relatedEvent['Event']['date'] . ') ' ."\n";
-	 		}
-	 		$body .= '==============================================' . "\n";
-	 	}
-	 	$body .= 'Attributes (* indicates a new or modified attribute)  :' . "\n";
-	 	$bodyTempOther = "";
-	 	if (isset($event['Attribute'])) {
-	 		foreach ($event['Attribute'] as &$attribute) {
-	 			if (!$owner && $attribute['distribution'] == 0) continue;
-	 			if ($attribute['distribution'] == 4 && !$sgModel->checkIfAuthorised($user, $attribute['sharing_group_id'])) continue;
-	 			$ids = '';
-	 			if ($attribute['to_ids']) $ids = ' (IDS)';
-	 			if (isset($event['Event']['publish_timestamp']) && isset($attribute['timestamp']) && $attribute['timestamp'] > $event['Event']['publish_timestamp']) {
-	 				$line = '*' . $attribute['type'] . str_repeat(' ', $appendlen - 2 - strlen($attribute['type'])) . ': ' . $attribute['value'] . $ids . "\n";
-	 			} else {
-	 				$line = $attribute['type'] . str_repeat(' ', $appendlen - 2 - strlen($attribute['type'])) . ': ' . $attribute['value'] . $ids .  "\n";
-	 			}
-	 			// Defanging URLs (Not "links") emails domains/ips in notification emails
-	 			if ('url' == $attribute['type']) {
-	 				$line = str_ireplace("http","hxxp", $line);
-	 			}
-	 			elseif ('email-src' == $attribute['type'] or 'email-dst' == $attribute['type']) {
-	 				$line = str_replace("@","[at]", $line);
-	 			}
+		$owner = false;
+		if ($user['org_id'] == $event['Event']['orgc_id'] || $user['org_id'] == $event['Event']['org_id'] || $user['Role']['perm_site_admin']) $owner = true;
+		// The mail body, h() is NOT needed as we are sending plain-text mails.
+		$body = "";
+		$body .= '==============================================' . "\n";
+		$appendlen = 20;
+		$body .= 'URL         : ' . Configure::read('MISP.baseurl') . '/events/view/' . $event['Event']['id'] . "\n";
+		$body .= 'Event ID    : ' . $event['Event']['id'] . "\n";
+		$body .= 'Date        : ' . $event['Event']['date'] . "\n";
+		if (Configure::read('MISP.showorg')) {
+			$body .= 'Reported by : ' . $event['Orgc']['name'] . "\n";
+			$body .= 'Local owner of the event : ' . $event['Org']['name'] . "\n";
+		}
+		$body .= 'Distribution: ' . $this->distributionLevels[$event['Event']['distribution']] . "\n";
+		if ($event['Event']['distribution'] == 4) {
+			$body .= 'Sharing Group:' . $event['SharingGroup']['name'] . "\n";
+		}
+		$tags = "";
+		foreach ($event['EventTag'] as $k => $tag) {
+			$tags .= $tag['Tag']['name'];
+			if (($k+1) != count($event['EventTag'])) $tags .= ", ";
+		}
+		$body .= 'Tags: ' . $tags . "\n";
+		$body .= 'Threat Level: ' . $event['ThreatLevel']['name'] . "\n";
+		$body .= 'Analysis    : ' . $this->analysisLevels[$event['Event']['analysis']] . "\n";
+		$body .= 'Description : ' . $event['Event']['info'] . "\n\n";
+		$relatedEvents = $this->getRelatedEvents($user, $event['Event']['id'], array());
+		if (!empty($relatedEvents)) {
+			$body .= '==============================================' . "\n";
+			$body .= 'Related to : '. "\n";
+			foreach ($relatedEvents as &$relatedEvent) {
+				$body .= Configure::read('MISP.baseurl') . '/events/view/' . $relatedEvent['Event']['id'] . ' (' . $relatedEvent['Event']['date'] . ') ' ."\n";
+			}
+			$body .= '==============================================' . "\n";
+		}
+		$body .= 'Attributes (* indicates a new or modified attribute)  :' . "\n";
+		$bodyTempOther = "";
+		if (isset($event['Attribute'])) {
+			foreach ($event['Attribute'] as &$attribute) {
+				if (!$owner && $attribute['distribution'] == 0) continue;
+				if ($attribute['distribution'] == 4 && !$sgModel->checkIfAuthorised($user, $attribute['sharing_group_id'])) continue;
+				$ids = '';
+				if ($attribute['to_ids']) $ids = ' (IDS)';
+				if (isset($event['Event']['publish_timestamp']) && isset($attribute['timestamp']) && $attribute['timestamp'] > $event['Event']['publish_timestamp']) {
+					$line = '*' . $attribute['type'] . str_repeat(' ', $appendlen - 2 - strlen($attribute['type'])) . ': ' . $attribute['value'] . $ids . "\n";
+				} else {
+					$line = $attribute['type'] . str_repeat(' ', $appendlen - 2 - strlen($attribute['type'])) . ': ' . $attribute['value'] . $ids .  "\n";
+				}
+				// Defanging URLs (Not "links") emails domains/ips in notification emails
+				if ('url' == $attribute['type']) {
+					$line = str_ireplace("http","hxxp", $line);
+				}
+				elseif ('email-src' == $attribute['type'] or 'email-dst' == $attribute['type']) {
+					$line = str_replace("@","[at]", $line);
+				}
 				elseif ('hostname' == $attribute['type'] or 'domain' == $attribute['type'] or 'ip-src' == $attribute['type'] or 'ip-dst' == $attribute['type']) {
-	 				$line = str_replace(".","[.]", $line);
-	 			}
+					$line = str_replace(".","[.]", $line);
+				}
 
-	 			if ('other' == $attribute['type']) // append the 'other' attribute types to the bottom.
-	 				$bodyTempOther .= $line;
-	 			else $body .= $line;
-	 		}
-	 	}
-	 	if (!empty($bodyTempOther)) {
-	 		$body .= "\n";
-	 	}
-	 	$body .= $bodyTempOther;	// append the 'other' attribute types to the bottom.
-	 	$body .= '==============================================' . "\n";
-	 	return $body;
+				if ('other' == $attribute['type']) // append the 'other' attribute types to the bottom.
+					$bodyTempOther .= $line;
+				else $body .= $line;
+			}
+		}
+		if (!empty($bodyTempOther)) {
+			$body .= "\n";
+		}
+		$body .= $bodyTempOther;	// append the 'other' attribute types to the bottom.
+		$body .= '==============================================' . "\n";
+		return $body;
 	 }
 
 	public function sendContactEmail($id, $message, $creator_only, $user, $isSiteAdmin) {
@@ -2601,7 +2601,7 @@ class Event extends AppModel {
 		$tempFile->delete();
 		$file = new File(APP . "files" . DS . "scripts" . DS . "tmp" . DS . $randomFileName . ".out");
 		$file->delete();
- 		return $result;
+		return $result;
 	}
 
 	public function getAccessibleEventIds($include, $exclude, $includedTags, $excludedTags) {

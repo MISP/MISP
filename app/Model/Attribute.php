@@ -129,9 +129,9 @@ class Attribute extends AppModel {
 			'other' => array('desc' => 'Other attribute'),
 			'named pipe' => array('desc' => 'Named pipe, use the format \\.\pipe\<PipeName>'),
 			'mutex' => array('desc' => 'Mutex, use the format \BaseNamedObjects\<Mutex>'),
- 			'target-user' => array('desc' => 'Attack Targets Username(s)'),
- 			'target-email' => array('desc' => 'Attack Targets Email(s)'),
- 			'target-machine' => array('desc' => 'Attack Targets Machine Name(s)'),
+			'target-user' => array('desc' => 'Attack Targets Username(s)'),
+			'target-email' => array('desc' => 'Attack Targets Email(s)'),
+			'target-machine' => array('desc' => 'Attack Targets Machine Name(s)'),
 			'target-org' => array('desc' => 'Attack Targets Department or Organization(s)'),
 			'target-location' => array('desc' => 'Attack Targets Physical Location(s)'),
 			'target-external' => array('desc' => 'External Target Organizations Affected by this Attack'),
@@ -189,11 +189,11 @@ class Attribute extends AppModel {
 					'desc' => 'Reference used by the publishing party (e.g. ticket number)',
 					'types' => array('link', 'comment', 'text', 'other')
 					),
- 			'Targeting data' => array(
- 					'desc' => 'Internal Attack Targeting and Compromise Information',
- 					'formdesc' => 'Targeting information to include recipient email, infected machines, department, and or locations.',
- 					'types' => array('target-user', 'target-email', 'target-machine', 'target-org', 'target-location', 'target-external', 'comment')
- 					),
+			'Targeting data' => array(
+					'desc' => 'Internal Attack Targeting and Compromise Information',
+					'formdesc' => 'Targeting information to include recipient email, infected machines, department, and or locations.',
+					'types' => array('target-user', 'target-email', 'target-machine', 'target-org', 'target-location', 'target-external', 'comment')
+					),
 			'Antivirus detection' => array(
 					'desc' => 'All the info about how the malware is detected by the antivirus products',
 					'formdesc' => 'List of anti-virus vendors detecting the malware or information on detection performance (e.g. 13/43 or 67%). Attachment with list of detection or link to VirusTotal could be placed here as well.',
@@ -472,7 +472,7 @@ class Attribute extends AppModel {
 
 		// update correlation... (only needed here if there's an update)
 		if ($this->id || !empty($this->data['Attribute']['id'])) {
- 			$this->__beforeSaveCorrelation($this->data['Attribute']);
+			$this->__beforeSaveCorrelation($this->data['Attribute']);
 		}
 		// always return true after a beforeSave()
 		return true;
@@ -806,40 +806,40 @@ class Attribute extends AppModel {
 			case 'other':
 				$returnValue = true;
 				break;
- 			case 'target-user':
+			case 'target-user':
 			case 'campaign-name':
 			case 'campaign-id':
 			case 'threat-actor':
- 			case 'target-machine':
- 			case 'target-org':
- 			case 'target-location':
- 			case 'target-external':
- 			case 'email-subject':
- 			case 'email-attachment':
+			case 'target-machine':
+			case 'target-org':
+			case 'target-location':
+			case 'target-external':
+			case 'email-subject':
+			case 'email-attachment':
 			case 'malware-type':
- 			case 'url':
- 			case 'uri':
- 			case 'user-agent':
- 			case 'regkey':
- 			case 'regkey|value':
+			case 'url':
+			case 'uri':
+			case 'user-agent':
+			case 'regkey':
+			case 'regkey|value':
 			case 'filename':
 			case 'pdb':
             case 'windows-scheduled-task':
             case 'whois-registrant-name':
 			case 'whois-registrar':
 			case 'whois-creation-date':
- 				// no newline
- 				if (!preg_match("#\n#", $value)) {
- 					$returnValue = true;
- 				}
- 				break;
- 			case 'targeted-threat-index':
- 				if (!is_numeric($value) || $value < 0 || $value > 10) {
+				// no newline
+				if (!preg_match("#\n#", $value)) {
+					$returnValue = true;
+				}
+				break;
+			case 'targeted-threat-index':
+				if (!is_numeric($value) || $value < 0 || $value > 10) {
 					$returnValue = 'The value has to be a number between 0 and 10.';
 				} else {
 					$returnValue = true;
 				}
- 				break;
+				break;
 			case 'iban':
 			case 'bic':
 			case 'btc':
@@ -1361,113 +1361,113 @@ class Attribute extends AppModel {
 	}
 
 	 public function text($user, $type, $tags = false, $eventId = false, $allowNonIDS = false, $from = false, $to = false, $last = false) {
-	 	//restricting to non-private or same org if the user is not a site-admin.
-	 	$conditions['AND'] = array();
-	 	if ($allowNonIDS === false) $conditions['AND'] = array('Attribute.to_ids =' => 1, 'Event.published =' => 1);
-	 	if ($type !== 'all') $conditions['AND']['Attribute.type'] = $type;
-	 	if ($from) $conditions['AND']['Event.date >='] = $from;
-	 	if ($to) $conditions['AND']['Event.date <='] = $to;
+		//restricting to non-private or same org if the user is not a site-admin.
+		$conditions['AND'] = array();
+		if ($allowNonIDS === false) $conditions['AND'] = array('Attribute.to_ids =' => 1, 'Event.published =' => 1);
+		if ($type !== 'all') $conditions['AND']['Attribute.type'] = $type;
+		if ($from) $conditions['AND']['Event.date >='] = $from;
+		if ($to) $conditions['AND']['Event.date <='] = $to;
 		if ($last) $conditions['AND']['Event.publish_timestamp >='] = $last;
 
-	 	if ($eventId !== false) {
-	 		$conditions['AND'][] = array('Event.id' => $eventId);
-	 	} elseif ($tags !== false) {
-	 		// If we sent any tags along, load the associated tag names for each attribute
-	 		$tag = ClassRegistry::init('Tag');
-	 		$args = $this->dissectArgs($tags);
-	 		$tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
-	 		$temp = array();
-	 		foreach ($tagArray[0] as $accepted) {
-	 			$temp['OR'][] = array('Event.id' => $accepted);
-	 		}
-	 		$conditions['AND'][] = $temp;
-	 		$temp = array();
-	 		foreach ($tagArray[1] as $rejected) {
-	 			$temp['AND'][] = array('Event.id !=' => $rejected);
-	 		}
-	 		$conditions['AND'][] = $temp;
-	 	}
-	 	$attributes = $this->fetchAttributes($user, array(
-	 			'conditions' => $conditions,
-	 			'order' => 'Attribute.value1 ASC',
-	 			'fields' => array('value'),
+		if ($eventId !== false) {
+			$conditions['AND'][] = array('Event.id' => $eventId);
+		} elseif ($tags !== false) {
+			// If we sent any tags along, load the associated tag names for each attribute
+			$tag = ClassRegistry::init('Tag');
+			$args = $this->dissectArgs($tags);
+			$tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
+			$temp = array();
+			foreach ($tagArray[0] as $accepted) {
+				$temp['OR'][] = array('Event.id' => $accepted);
+			}
+			$conditions['AND'][] = $temp;
+			$temp = array();
+			foreach ($tagArray[1] as $rejected) {
+				$temp['AND'][] = array('Event.id !=' => $rejected);
+			}
+			$conditions['AND'][] = $temp;
+		}
+		$attributes = $this->fetchAttributes($user, array(
+				'conditions' => $conditions,
+				'order' => 'Attribute.value1 ASC',
+				'fields' => array('value'),
 				'contain' => array('Event' => array(
 					'fields' => array('Event.id', 'Event.published', 'Event.date', 'Event.publish_timestamp'),
 		))));
-	 	return $attributes;
+		return $attributes;
 	 }
 
 	 public function rpz($user, $tags = false, $eventId = false, $from = false, $to = false) {
-	 	// we can group hostname and domain as well as ip-src and ip-dst in this case
-	 	$conditions['AND'] = array('Attribute.to_ids' => 1, 'Event.published' => 1);
-	 	$typesToFetch = array('ip' => array('ip-src', 'ip-dst'), 'domain' => array('domain'), 'hostname' => array('hostname'));
-	 	if ($from) $conditions['AND']['Event.date >='] = $from;
-	 	if ($to) $conditions['AND']['Event.date <='] = $to;
-	 	if ($eventId !== false) {
-	 		$conditions['AND'][] = array('Event.id' => $eventId);
-	 	}
-	 	if ($tags !== false) {
-	 		// If we sent any tags along, load the associated tag names for each attribute
-	 		$tag = ClassRegistry::init('Tag');
-	 		$args = $this->dissectArgs($tags);
-	 		$tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
-	 		$temp = array();
-	 		foreach ($tagArray[0] as $accepted) {
-	 			$temp['OR'][] = array('Event.id' => $accepted);
-	 		}
-	 		$conditions['AND'][] = $temp;
-	 		$temp = array();
-	 		foreach ($tagArray[1] as $rejected) {
-	 			$temp['AND'][] = array('Event.id !=' => $rejected);
-	 		}
-	 		$conditions['AND'][] = $temp;
-	 	}
-	 	$values = array();
-	 	foreach ($typesToFetch as $k => $v) {
-	 		$temp = $this->fetchAttributes(
-	 				$user,
-	 				array(
-	 					'conditions' => array(
- 							$conditions,
- 							array('type' => $v),
-	 					),
+		// we can group hostname and domain as well as ip-src and ip-dst in this case
+		$conditions['AND'] = array('Attribute.to_ids' => 1, 'Event.published' => 1);
+		$typesToFetch = array('ip' => array('ip-src', 'ip-dst'), 'domain' => array('domain'), 'hostname' => array('hostname'));
+		if ($from) $conditions['AND']['Event.date >='] = $from;
+		if ($to) $conditions['AND']['Event.date <='] = $to;
+		if ($eventId !== false) {
+			$conditions['AND'][] = array('Event.id' => $eventId);
+		}
+		if ($tags !== false) {
+			// If we sent any tags along, load the associated tag names for each attribute
+			$tag = ClassRegistry::init('Tag');
+			$args = $this->dissectArgs($tags);
+			$tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
+			$temp = array();
+			foreach ($tagArray[0] as $accepted) {
+				$temp['OR'][] = array('Event.id' => $accepted);
+			}
+			$conditions['AND'][] = $temp;
+			$temp = array();
+			foreach ($tagArray[1] as $rejected) {
+				$temp['AND'][] = array('Event.id !=' => $rejected);
+			}
+			$conditions['AND'][] = $temp;
+		}
+		$values = array();
+		foreach ($typesToFetch as $k => $v) {
+			$temp = $this->fetchAttributes(
+					$user,
+					array(
+						'conditions' => array(
+							$conditions,
+							array('type' => $v),
+						),
 						'fields' => array('Attribute.value'), // array of field names
-	 				)
-	 		);
-	 		if (empty($temp)) continue;
-	 		if ($k == 'hostname') {
-	 			foreach ($temp as $value) {
-	 				$found = false;
-	 				if (isset($values['domain'])) {
-		 				foreach ($values['domain'] as $domain) {
-		 					if (strpos($value['Attribute']['value'], $domain) != 0) {
-		 						$found = true;
-		 					}
-		 				}
-	 				}
-	 				if (!$found) $values[$k][] = $value['Attribute']['value'];
-	 			}
+					)
+			);
+			if (empty($temp)) continue;
+			if ($k == 'hostname') {
+				foreach ($temp as $value) {
+					$found = false;
+					if (isset($values['domain'])) {
+						foreach ($values['domain'] as $domain) {
+							if (strpos($value['Attribute']['value'], $domain) != 0) {
+								$found = true;
+							}
+						}
+					}
+					if (!$found) $values[$k][] = $value['Attribute']['value'];
+				}
 			} else {
 				foreach ($temp as $value) {
 					$values[$k][] = $value['Attribute']['value'];
 				}
 			}
 			unset($temp);
-	 	}
-	 	return $values;
+		}
+		return $values;
 	 }
 
 	 public function generateCorrelation($jobId = false, $startPercentage = 0) {
-	 	$this->Correlation = ClassRegistry::init('Correlation');
-	 	$this->Correlation->deleteAll(array('id !=' => 0), false);
-	 	// get all attributes..
-	 	$eventIds = $this->Event->find('list', array('recursive' => -1, 'fields' => array('Event.id')));
-	 	$attributeCount = 0;
-	 	if (Configure::read('MISP.background_jobs') && $jobId) {
-	 		$this->Job = ClassRegistry::init('Job');
-	 		$this->Job->id = $jobId;
-	 		$eventCount = count($eventIds);
-	 	}
+		$this->Correlation = ClassRegistry::init('Correlation');
+		$this->Correlation->deleteAll(array('id !=' => 0), false);
+		// get all attributes..
+		$eventIds = $this->Event->find('list', array('recursive' => -1, 'fields' => array('Event.id')));
+		$attributeCount = 0;
+		if (Configure::read('MISP.background_jobs') && $jobId) {
+			$this->Job = ClassRegistry::init('Job');
+			$this->Job->id = $jobId;
+			$eventCount = count($eventIds);
+		}
 		foreach (array_values($eventIds) as $j => $id) {
 			if ($jobId && Configure::read('MISP.background_jobs')) {
 				$this->Job->saveField('message', 'Correlating Event ' . $id);
@@ -1486,65 +1486,65 @@ class Attribute extends AppModel {
 			}
 		}
 		if ($jobId && Configure::read('MISP.background_jobs')) $this->Job->saveField('message', 'Job done.');
-	 	return $attributeCount;
+		return $attributeCount;
 	 }
 
 	 public function reportValidationIssuesAttributes($eventId) {
-	 	$conditions = array();
-	 	if ($eventId && is_numeric($eventId)) $conditions = array('event_id' => $eventId);
+		$conditions = array();
+		if ($eventId && is_numeric($eventId)) $conditions = array('event_id' => $eventId);
 
-	 	// get all attributes..
-	 	$attributes = $this->find('all', array('recursive' => -1, 'fields' => array('id'), 'conditions' => $conditions));
-	 	// for all attributes..
-	 	$result = array();
-	 	$i = 0;
-	 	foreach ($attributes as $a) {
-	 		$attribute = $this->find('first', array('recursive' => -1, 'conditions' => array('id' => $a['Attribute']['id'])));
-	 		$this->set($attribute);
-	 		if (!$this->validates()) {
-	 			$errors = $this->validationErrors;
-	 			$result[$i]['id'] = $attribute['Attribute']['id'];
-	 			$result[$i]['error'] = array();
-	 			foreach ($errors as $field => $error) {
-	 				$result[$i]['error'][$field] = array('value' => $attribute['Attribute'][$field], 'error' => $error[0]);
-	 			}
-	 			$result[$i]['details'] = 'Event ID: [' . $attribute['Attribute']['event_id'] . "] - Category: [" . $attribute['Attribute']['category'] . "] - Type: [" . $attribute['Attribute']['type'] . "] - Value: [" . $attribute['Attribute']['value'] . ']';
-	 			$i++;
-	 		}
-	 	}
-	 	return $result;
+		// get all attributes..
+		$attributes = $this->find('all', array('recursive' => -1, 'fields' => array('id'), 'conditions' => $conditions));
+		// for all attributes..
+		$result = array();
+		$i = 0;
+		foreach ($attributes as $a) {
+			$attribute = $this->find('first', array('recursive' => -1, 'conditions' => array('id' => $a['Attribute']['id'])));
+			$this->set($attribute);
+			if (!$this->validates()) {
+				$errors = $this->validationErrors;
+				$result[$i]['id'] = $attribute['Attribute']['id'];
+				$result[$i]['error'] = array();
+				foreach ($errors as $field => $error) {
+					$result[$i]['error'][$field] = array('value' => $attribute['Attribute'][$field], 'error' => $error[0]);
+				}
+				$result[$i]['details'] = 'Event ID: [' . $attribute['Attribute']['event_id'] . "] - Category: [" . $attribute['Attribute']['category'] . "] - Type: [" . $attribute['Attribute']['type'] . "] - Value: [" . $attribute['Attribute']['value'] . ']';
+				$i++;
+			}
+		}
+		return $result;
 	 }
 
 	 // This method takes a string from an argument with several elements (separated by '&&' and negated by '!') and returns 2 arrays
 	 // array 1 will have all of the non negated terms and array 2 all the negated terms
 	 public function dissectArgs($args) {
-	 	if (!$args) return array(null, null);
-	 	if (is_array($args)) {
-	 		$argArray = $args;
-	 	} else {
-	 		$argArray = explode('&&', $args);
-	 	}
-	 	$accept = $reject = $result = array();
-	 	$reject = array();
-	 	foreach ($argArray as $arg) {
-	 		if (substr($arg, 0, 1) == '!') {
-	 			$reject[] = substr($arg, 1);
-	 		} else {
-	 			$accept[] = $arg;
-	 		}
-	 	}
-	 	$result[0] = $accept;
-	 	$result[1] = $reject;
-	 	return $result;
+		if (!$args) return array(null, null);
+		if (is_array($args)) {
+			$argArray = $args;
+		} else {
+			$argArray = explode('&&', $args);
+		}
+		$accept = $reject = $result = array();
+		$reject = array();
+		foreach ($argArray as $arg) {
+			if (substr($arg, 0, 1) == '!') {
+				$reject[] = substr($arg, 1);
+			} else {
+				$accept[] = $arg;
+			}
+		}
+		$result[0] = $accept;
+		$result[1] = $reject;
+		return $result;
 	 }
 
 	 public function checkForValidationIssues($attribute) {
-	 	$this->set($attribute);
-	 	if ($this->validates()) {
-	 		return false;
-	 	} else {
-	 		return $this->validationErrors;
-	 	}
+		$this->set($attribute);
+		if ($this->validates()) {
+			return false;
+		} else {
+			return $this->validationErrors;
+		}
 	 }
 
 
@@ -1554,37 +1554,37 @@ class Attribute extends AppModel {
 		 $attributes = array();
 		 if (isset($data['Template']['fileArray'])) $fileArray = json_decode($data['Template']['fileArray'], true);
 		 foreach ($template['TemplateElement'] as $element) {
-		 	if ($element['element_definition'] == 'attribute') {
-		 		$result = $this->__resolveElementAttribute($element['TemplateElementAttribute'][0], $data['Template']['value_' . $element['id']]);
-		 	} else if ($element['element_definition'] == 'file') {
-		 		$temp = array();
-		 		if (isset($fileArray)) {
-			 		foreach ($fileArray as $fileArrayElement) {
-			 			if ($fileArrayElement['element_id'] == $element['id']) {
-			 				$temp[] = $fileArrayElement;
-			 			}
-			 		}
-		 		}
-		 		$result = $this->__resolveElementFile($element['TemplateElementFile'][0], $temp);
-		 		if ($element['TemplateElementFile'][0]['mandatory'] && empty($temp) && empty($errors[$element['id']])) $errors[$element['id']] = 'This field is mandatory.';
-		 	}
-		 	if ($element['element_definition'] == 'file' || $element['element_definition'] == 'attribute') {
-		 		if ($result['errors']) {
-		 			$errors[$element['id']] = $result['errors'];
-		 		} else {
-		 			foreach ($result['attributes'] as &$a) {
-		 				$a['event_id'] = $event_id;
-		 				$a['distribution'] = 5;
-		 				$test = $this->checkForValidationIssues(array('Attribute' => $a));
-		 				if ($test) {
-		 					foreach ($test['value'] as $e) {
-		 						$errors[$element['id']] = $e;
-		 					}
-		 				} else {
-		 					$attributes[] = $a;
-		 				}
-		 			}
-		 		}
+			if ($element['element_definition'] == 'attribute') {
+				$result = $this->__resolveElementAttribute($element['TemplateElementAttribute'][0], $data['Template']['value_' . $element['id']]);
+			} else if ($element['element_definition'] == 'file') {
+				$temp = array();
+				if (isset($fileArray)) {
+					foreach ($fileArray as $fileArrayElement) {
+						if ($fileArrayElement['element_id'] == $element['id']) {
+							$temp[] = $fileArrayElement;
+						}
+					}
+				}
+				$result = $this->__resolveElementFile($element['TemplateElementFile'][0], $temp);
+				if ($element['TemplateElementFile'][0]['mandatory'] && empty($temp) && empty($errors[$element['id']])) $errors[$element['id']] = 'This field is mandatory.';
+			}
+			if ($element['element_definition'] == 'file' || $element['element_definition'] == 'attribute') {
+				if ($result['errors']) {
+					$errors[$element['id']] = $result['errors'];
+				} else {
+					foreach ($result['attributes'] as &$a) {
+						$a['event_id'] = $event_id;
+						$a['distribution'] = 5;
+						$test = $this->checkForValidationIssues(array('Attribute' => $a));
+						if ($test) {
+							foreach ($test['value'] as $e) {
+								$errors[$element['id']] = $e;
+							}
+						} else {
+							$attributes[] = $a;
+						}
+					}
+				}
 			}
 		 }
 		 return array('attributes' => $attributes, 'errors' => $errors);
@@ -1666,51 +1666,51 @@ class Attribute extends AppModel {
 	}
 
 	 private function __createAttribute($element, $value) {
-	 	$attribute = array(
-	 			'comment' => $element['name'],
-	 			'to_ids' => $element['to_ids'],
-	 			'category' => $element['category'],
-	 			'value' => $value,
-	 	);
-	 	if ($element['complex']) {
-	 		App::uses('ComplexTypeTool', 'Tools');
-	 		$complexTypeTool = new ComplexTypeTool();
-	 		$result = $complexTypeTool->checkComplexRouter($value, ucfirst($element['type']));
-	 		if (isset($result['multi'])) {
-	 			$temp = $attribute;
-	 			$attribute = array();
-	 			foreach($result['multi'] as $k => $r) {
-	 				$attribute['multi'][] = $temp;
-	 				$attribute['multi'][$k]['type'] = $r['type'];
-	 				$attribute['multi'][$k]['value'] = $r['value'];
-	 			}
-	 		} else if ($result != false) {
-	 			$attribute['type'] = $result['type'];
-	 			$attribute['value'] = $result['value'];
-	 		} else {
-	 			return false;
-	 		}
-	 	} else {
-	 		$attribute['type'] = $element['type'];
-	 	}
-	 	return $attribute;
+		$attribute = array(
+				'comment' => $element['name'],
+				'to_ids' => $element['to_ids'],
+				'category' => $element['category'],
+				'value' => $value,
+		);
+		if ($element['complex']) {
+			App::uses('ComplexTypeTool', 'Tools');
+			$complexTypeTool = new ComplexTypeTool();
+			$result = $complexTypeTool->checkComplexRouter($value, ucfirst($element['type']));
+			if (isset($result['multi'])) {
+				$temp = $attribute;
+				$attribute = array();
+				foreach($result['multi'] as $k => $r) {
+					$attribute['multi'][] = $temp;
+					$attribute['multi'][$k]['type'] = $r['type'];
+					$attribute['multi'][$k]['value'] = $r['value'];
+				}
+			} else if ($result != false) {
+				$attribute['type'] = $result['type'];
+				$attribute['value'] = $result['value'];
+			} else {
+				return false;
+			}
+		} else {
+			$attribute['type'] = $element['type'];
+		}
+		return $attribute;
 	 }
 
 	 public function buildConditions($user) {
-	 	$conditions = array();
-	 	if (!$user['Role']['perm_site_admin']) {
-	 		$eventIds = $this->Event->fetchEventIds($user, false, false, false, true);
-	 		$sgsids = $this->SharingGroup->fetchAllAuthorised($user);
-	 		$conditions = array(
+		$conditions = array();
+		if (!$user['Role']['perm_site_admin']) {
+			$eventIds = $this->Event->fetchEventIds($user, false, false, false, true);
+			$sgsids = $this->SharingGroup->fetchAllAuthorised($user);
+			$conditions = array(
 				'AND' => array(
 					'OR' => array(
 						array(
 							'AND' => array(
-	 							'Event.org_id' => $user['org_id'],
-	 						)
-	 					),
-	 					array(
- 							'AND' => array(
+								'Event.org_id' => $user['org_id'],
+							)
+						),
+						array(
+							'AND' => array(
 								'Event.id' => $eventIds,
 								'OR' => array(
 									'Attribute.distribution' => array('1', '2', '3', '5'),
@@ -1723,9 +1723,9 @@ class Attribute extends AppModel {
 						)
 					)
 				)
-	 		);
-	 	}
-	 	return $conditions;
+			);
+		}
+		return $conditions;
 	 }
 
 	// Method that fetches all attributes for the various exports
@@ -1737,34 +1737,34 @@ class Attribute extends AppModel {
 	//     order
 	//     group
 	public function fetchAttributes($user, $options = array()) {
- 		$params = array(
- 			'conditions' => $this->buildConditions($user),
- 			'recursive' => -1,
- 			'contain' => array(
- 				'Event' => array(
- 					'fields' => array('id', 'info', 'org_id'),
- 				),
- 			),
- 		);
-	 	if (isset($options['contain'])) $params['contain'] = array_merge_recursive($params['contain'], $options['contain']);
-	 	else $option['contain']['Event']['fields'] = array('id', 'info', 'org_id');
-	 	if (isset($options['fields'])) $params['fields'] = $options['fields'];
-	 	if (isset($options['conditions'])) $params['conditions']['AND'][] = $options['conditions'];
-	 	if (isset($options['order'])) $params['order'] = $options['order'];
-	 	else ($params['order'] = array());
-	 	if (!$user['Role']['perm_sync'] || !isset($options['deleted']) || !$options['deleted']) $params['conditions']['AND']['Attribute.deleted'] = false;
-	 	if (isset($options['group'])) $params['group'] = $options['group'];
+		$params = array(
+			'conditions' => $this->buildConditions($user),
+			'recursive' => -1,
+			'contain' => array(
+				'Event' => array(
+					'fields' => array('id', 'info', 'org_id'),
+				),
+			),
+		);
+		if (isset($options['contain'])) $params['contain'] = array_merge_recursive($params['contain'], $options['contain']);
+		else $option['contain']['Event']['fields'] = array('id', 'info', 'org_id');
+		if (isset($options['fields'])) $params['fields'] = $options['fields'];
+		if (isset($options['conditions'])) $params['conditions']['AND'][] = $options['conditions'];
+		if (isset($options['order'])) $params['order'] = $options['order'];
+		else ($params['order'] = array());
+		if (!$user['Role']['perm_sync'] || !isset($options['deleted']) || !$options['deleted']) $params['conditions']['AND']['Attribute.deleted'] = false;
+		if (isset($options['group'])) $params['group'] = $options['group'];
 		if (Configure::read('MISP.unpublishedprivate')) $params['conditions']['AND'][] = array('OR' => array('Event.published' => 1, 'Event.orgc_id' => $user['org_id']));
-	 	$results = $this->find('all', $params);
-	 	if (isset($options['withAttachments']) && $options['withAttachments']) {
-	 		foreach ($results as &$attribute) {
-		 		if ($this->typeIsAttachment($attribute['Attribute']['type'])) {
-		 			$encodedFile = $this->base64EncodeAttachment($attribute['Attribute']);
-		 			$attribute['Attribute']['data'] = $encodedFile;
-		 		}
-	 		}
-	 	}
-	 	return $results;
+		$results = $this->find('all', $params);
+		if (isset($options['withAttachments']) && $options['withAttachments']) {
+			foreach ($results as &$attribute) {
+				if ($this->typeIsAttachment($attribute['Attribute']['type'])) {
+					$encodedFile = $this->base64EncodeAttachment($attribute['Attribute']);
+					$attribute['Attribute']['data'] = $encodedFile;
+				}
+			}
+		}
+		return $results;
 	}
 
 	// Method gets and converts the contents of a file passed along as a base64 encoded string with the original filename into a zip archive

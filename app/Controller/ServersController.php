@@ -413,9 +413,9 @@ class ServersController extends AppController {
 	/**
 	 * Pull one or more events with attributes from a remote instance.
 	 * Set $technique to
-	 * 		full - download everything
-	 * 		incremental - only new events
-	 * 		<int>	- specific id of the event to pull
+	 *		full - download everything
+	 *		incremental - only new events
+	 *		<int>	- specific id of the event to pull
 	 * For example to download event 10 from server 2 to /servers/pull/2/5
 	 * @param int $id The id of the server
 	 * @param unknown_type $technique

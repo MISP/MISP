@@ -30,7 +30,7 @@
 					<?php
 						if (strlen(h($event['Event']['info'])) > 63) {
 							echo (substr(h($event['Event']['info']), 0, 60)) . '...';
-						} else 	echo h($event['Event']['info']);
+						} else	echo h($event['Event']['info']);
 					?>
 				</td>
 				<td class="short"><?php echo h($event['Event']['date']); ?></td>
