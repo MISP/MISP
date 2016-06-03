@@ -1111,6 +1111,7 @@ class EventsController extends AppController {
 			throw new UnauthorizedException('You do not have permission to do that.');
 		}
 		if ($this->request->is('post')) {
+			$results = array();
 			if (!empty($this->data)) {
 				$ext = '';
 				if (isset($this->data['Event']['submittedfile'])) {
@@ -2051,6 +2052,7 @@ class EventsController extends AppController {
 		foreach ($results as $result) {
 			$arrayItemKey = '';
 			$arrayItemValue = '';
+			$arrayItemSize = 0;
 			foreach ($result[0]->attributes() as $key => $val) {
 				if ($key == 'filename') $arrayItemKey = (string)$val;
 				if ($key == 'md5') $arrayItemValue = (string)$val;
@@ -2061,6 +2063,7 @@ class EventsController extends AppController {
 			}
 		}
 		// write content..
+		$actualFileNameArray = array();
 		foreach ($files as $file) {
 			$keyName = $file['key'];
 
