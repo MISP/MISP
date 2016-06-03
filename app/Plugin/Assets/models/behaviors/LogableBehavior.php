@@ -21,13 +21,13 @@
  * or if u want more detail, add any combination of the following :
  *
  * - "model"    	[string] : automagically filled with the class name of the model that generated the activity.
- * - "model_id"	[int]	 : automagically filled with the primary key of the model that was modified.
+ * - "model_id"	[int]	: automagically filled with the primary key of the model that was modified.
  * - "action"   	[string] : automagically filled with what action is made (add/edit/delete)
  * - "user_id"  	[int]    : populated with the supplied user info. (May be renamed. See bellow.)
  * - "change"   	[string] : depending on setting either :
  * [name (alek) => (Alek), age (28) => (29)] or [name, age]
  *
- * - "version_id"	[int]	 : cooperates with RevisionBehavior to link the shadow table (thus linking to old data)
+ * - "version_id"	[int]	: cooperates with RevisionBehavior to link the shadow table (thus linking to old data)
  *
  * Remember that Logable behavior needs to be added after RevisionBehavior. In fact, just put it last to be safe.
  *

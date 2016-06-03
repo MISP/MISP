@@ -292,7 +292,7 @@ class AppModel extends Model {
 					`1_shadow_attribute_id` int(11) NOT NULL,
 					`event_id` int(11) NOT NULL,
 					`1_event_id` int(11) NOT NULL,
-					 `info` text COLLATE utf8_bin NOT NULL,
+					`info` text COLLATE utf8_bin NOT NULL,
 					PRIMARY KEY (`id`),
 					KEY `org_id` (`org_id`),
 					KEY `attribute_id` (`attribute_id`),

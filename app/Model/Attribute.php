@@ -1360,7 +1360,7 @@ class Attribute extends AppModel {
 		return $rules;
 	}
 
-	 public function text($user, $type, $tags = false, $eventId = false, $allowNonIDS = false, $from = false, $to = false, $last = false) {
+	public function text($user, $type, $tags = false, $eventId = false, $allowNonIDS = false, $from = false, $to = false, $last = false) {
 		//restricting to non-private or same org if the user is not a site-admin.
 		$conditions['AND'] = array();
 		if ($allowNonIDS === false) $conditions['AND'] = array('Attribute.to_ids =' => 1, 'Event.published =' => 1);
@@ -1395,9 +1395,9 @@ class Attribute extends AppModel {
 					'fields' => array('Event.id', 'Event.published', 'Event.date', 'Event.publish_timestamp'),
 		))));
 		return $attributes;
-	 }
+	}
 
-	 public function rpz($user, $tags = false, $eventId = false, $from = false, $to = false) {
+	public function rpz($user, $tags = false, $eventId = false, $from = false, $to = false) {
 		// we can group hostname and domain as well as ip-src and ip-dst in this case
 		$conditions['AND'] = array('Attribute.to_ids' => 1, 'Event.published' => 1);
 		$typesToFetch = array('ip' => array('ip-src', 'ip-dst'), 'domain' => array('domain'), 'hostname' => array('hostname'));
@@ -1455,9 +1455,9 @@ class Attribute extends AppModel {
 			unset($temp);
 		}
 		return $values;
-	 }
+	}
 
-	 public function generateCorrelation($jobId = false, $startPercentage = 0) {
+	public function generateCorrelation($jobId = false, $startPercentage = 0) {
 		$this->Correlation = ClassRegistry::init('Correlation');
 		$this->Correlation->deleteAll(array('id !=' => 0), false);
 		// get all attributes..
@@ -1487,9 +1487,9 @@ class Attribute extends AppModel {
 		}
 		if ($jobId && Configure::read('MISP.background_jobs')) $this->Job->saveField('message', 'Job done.');
 		return $attributeCount;
-	 }
+	}
 
-	 public function reportValidationIssuesAttributes($eventId) {
+	public function reportValidationIssuesAttributes($eventId) {
 		$conditions = array();
 		if ($eventId && is_numeric($eventId)) $conditions = array('event_id' => $eventId);
 
@@ -1513,11 +1513,11 @@ class Attribute extends AppModel {
 			}
 		}
 		return $result;
-	 }
+	}
 
-	 // This method takes a string from an argument with several elements (separated by '&&' and negated by '!') and returns 2 arrays
-	 // array 1 will have all of the non negated terms and array 2 all the negated terms
-	 public function dissectArgs($args) {
+	// This method takes a string from an argument with several elements (separated by '&&' and negated by '!') and returns 2 arrays
+	// array 1 will have all of the non negated terms and array 2 all the negated terms
+	public function dissectArgs($args) {
 		if (!$args) return array(null, null);
 		if (is_array($args)) {
 			$argArray = $args;
@@ -1536,24 +1536,24 @@ class Attribute extends AppModel {
 		$result[0] = $accept;
 		$result[1] = $reject;
 		return $result;
-	 }
+	}
 
-	 public function checkForValidationIssues($attribute) {
+	public function checkForValidationIssues($attribute) {
 		$this->set($attribute);
 		if ($this->validates()) {
 			return false;
 		} else {
 			return $this->validationErrors;
 		}
-	 }
+	}
 
 
-	 public function checkTemplateAttributes($template, &$data, $event_id) {
-		 $result = array();
-		 $errors = array();
-		 $attributes = array();
-		 if (isset($data['Template']['fileArray'])) $fileArray = json_decode($data['Template']['fileArray'], true);
-		 foreach ($template['TemplateElement'] as $element) {
+	public function checkTemplateAttributes($template, &$data, $event_id) {
+		$result = array();
+		$errors = array();
+		$attributes = array();
+		if (isset($data['Template']['fileArray'])) $fileArray = json_decode($data['Template']['fileArray'], true);
+		foreach ($template['TemplateElement'] as $element) {
 			if ($element['element_definition'] == 'attribute') {
 				$result = $this->__resolveElementAttribute($element['TemplateElementAttribute'][0], $data['Template']['value_' . $element['id']]);
 			} else if ($element['element_definition'] == 'file') {
@@ -1586,9 +1586,9 @@ class Attribute extends AppModel {
 					}
 				}
 			}
-		 }
-		 return array('attributes' => $attributes, 'errors' => $errors);
-	 }
+		}
+		return array('attributes' => $attributes, 'errors' => $errors);
+	}
 
 
 	private function __resolveElementAttribute($element, $value) {
@@ -1665,7 +1665,7 @@ class Attribute extends AppModel {
 		return array('attributes' => $attributes, 'errors' => $errors, 'files' => $files);
 	}
 
-	 private function __createAttribute($element, $value) {
+	private function __createAttribute($element, $value) {
 		$attribute = array(
 				'comment' => $element['name'],
 				'to_ids' => $element['to_ids'],
@@ -1694,9 +1694,9 @@ class Attribute extends AppModel {
 			$attribute['type'] = $element['type'];
 		}
 		return $attribute;
-	 }
+	}
 
-	 public function buildConditions($user) {
+	public function buildConditions($user) {
 		$conditions = array();
 		if (!$user['Role']['perm_site_admin']) {
 			$eventIds = $this->Event->fetchEventIds($user, false, false, false, true);
@@ -1726,7 +1726,7 @@ class Attribute extends AppModel {
 			);
 		}
 		return $conditions;
-	 }
+	}
 
 	// Method that fetches all attributes for the various exports
 	// very flexible, it's basically a replacement for find, with the addition that it restricts access based on user

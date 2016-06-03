@@ -11,7 +11,7 @@
     echo '------------------------------------------------------------------------------<br />';
   }
    ?>
-	 </ul>
+	</ul>
 </div>
 <?php
 	echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'adminTools'));

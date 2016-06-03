@@ -56,9 +56,9 @@ class ComplexTypeTool {
 			$result = explode('.', $input);
 			if (count($result) > 2) {
 				$toReturn['multi'][] = array('type' => 'hostname', 'value' => $input);
-				 $pos = strpos($input, '.');
-				 $toReturn['multi'][] = array('type' => 'domain', 'value' => substr($input, (1 + $pos)));
-				 return $toReturn;
+				$pos = strpos($input, '.');
+				$toReturn['multi'][] = array('type' => 'domain', 'value' => substr($input, (1 + $pos)));
+				return $toReturn;
 			}
 			return array('type' => 'domain', 'value' => $input);
 		}

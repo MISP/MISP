@@ -127,7 +127,7 @@ class Event extends AppModel {
 		'event_analysis' => array('object' => false, 'var' => 'analysis'),
 		'event_date' => array('object' => false, 'var' => 'date'),
 		'event_tag' => array('object' => 'Tag', 'var' => 'name')
-	 );
+	);
 
 /**
  * Validation rules
@@ -1457,9 +1457,9 @@ class Event extends AppModel {
 			}
 		}
 		return $attributes;
-	 }
+	}
 
-	 private function attachEventInfoToAttributes($attributes, $user) {
+	private function attachEventInfoToAttributes($attributes, $user) {
 		$TLs = $this->ThreatLevel->find('list', array(
 			'recursive' => -1,
 		));
@@ -1506,9 +1506,9 @@ class Event extends AppModel {
 			}
 		}
 		return $attributes;
-	 }
+	}
 
-	 public function sendAlertEmailRouter($id, $user) {
+	public function sendAlertEmailRouter($id, $user) {
 		if (Configure::read('MISP.block_old_event_alert') && Configure::read('MISP.block_old_event_alert_age') && is_numeric(Configure::read('MISP.block_old_event_alert_age'))) {
 			$oldest = time() - (Configure::read('MISP.block_old_event_alert_age') * 86400);
 			$event = $this->find('first', array(
@@ -1544,9 +1544,9 @@ class Event extends AppModel {
 		} else {
 			return ($this->sendAlertEmail($id, $user));
 		}
-	 }
+	}
 
-	 public function sendAlertEmail($id, $senderUser, $processId = null) {
+	public function sendAlertEmail($id, $senderUser, $processId = null) {
 		$event = $this->fetchEvent($senderUser, array('eventid' => $id, 'includeAllTags' => true));
 		if (empty($event)) throw new MethodNotFoundException('Invalid Event.');
 		$userConditions = array('autoalert' => 1);
@@ -1595,9 +1595,9 @@ class Event extends AppModel {
 			$this->Job->saveField('message', 'Mails sent.');
 		}
 		return true;
-	 }
+	}
 
-	 private function __buildAlertEmailBody($event, $user, $sgModel) {
+	private function __buildAlertEmailBody($event, $user, $sgModel) {
 		$owner = false;
 		if ($user['org_id'] == $event['Event']['orgc_id'] || $user['org_id'] == $event['Event']['org_id'] || $user['Role']['perm_site_admin']) $owner = true;
 		// The mail body, h() is NOT needed as we are sending plain-text mails.
@@ -1668,7 +1668,7 @@ class Event extends AppModel {
 		$body .= $bodyTempOther;	// append the 'other' attribute types to the bottom.
 		$body .= '==============================================' . "\n";
 		return $body;
-	 }
+	}
 
 	public function sendContactEmail($id, $message, $creator_only, $user, $isSiteAdmin) {
 		// fetch the event
@@ -1888,7 +1888,7 @@ class Event extends AppModel {
 			// Workaround for different structure in XML/array than what CakePHP expects
 			$data = $this->cleanupEventArrayFromXML($data);
 			// the event_id field is not set (normal) so make sure no validation errors are thrown
-			// LATER do this with	 $this->validator()->remove('event_id');
+			// LATER do this with	$this->validator()->remove('event_id');
 			unset($this->Attribute->validate['event_id']); // otherwise gives bugs because event_id is not set
 			unset($this->Attribute->validate['value']['uniqueValue']); // unset this - we are saving a new event, there are no values to compare against and event_id is not set in the attributes
 		}

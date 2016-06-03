@@ -46,9 +46,9 @@
 				<td style="width:150px;">
 					<div id="barFrame<?php echo $i; ?>" class="progress progress-striped active" style="margin-bottom: 0px;display:none;">
 					  <div id="bar<?php echo $i; ?>" class="bar" style="width: <?php echo $type['progress']; ?>%;">
-						 <?php
+						<?php
 							if ($type['progress'] > 0 && $type['progress'] < 100) echo $type['progress'] . '%';
-						 ?>
+						?>
 					  </div>
 					</div>
 					<div id="message<?php echo $i; ?>" style="text-align:center;display:block;">Loading...</div>

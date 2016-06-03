@@ -752,7 +752,7 @@ function saveValuesForPersistance() {
 
 function recoverValuesFromPersistance(formPersistanceArray) {
 	for (i = 0; i < fieldsArray.length; i++) {
-		 document.getElementById(fieldsArray[i]).value = formPersistanceArray[fieldsArray[i]];
+		document.getElementById(fieldsArray[i]).value = formPersistanceArray[fieldsArray[i]];
 	}
 }
 

@@ -15,7 +15,7 @@
  *
  * File storage engine.
  *
- *	 Cache::config('default', array(
+ *	Cache::config('default', array(
  *		'engine' => 'File', //[required]
  *		'duration'=> 3600, //[optional]
  *		'probability'=> 100, //[optional]
@@ -28,7 +28,7 @@
  *
  * APC (http://pecl.php.net/package/APC)
  *
- *	 Cache::config('default', array(
+ *	Cache::config('default', array(
  *		'engine' => 'Apc', //[required]
  *		'duration'=> 3600, //[optional]
  *		'probability'=> 100, //[optional]
@@ -37,7 +37,7 @@
  *
  * Xcache (http://xcache.lighttpd.net/)
  *
- *	 Cache::config('default', array(
+ *	Cache::config('default', array(
  *		'engine' => 'Xcache', //[required]
  *		'duration'=> 3600, //[optional]
  *		'probability'=> 100, //[optional]
@@ -48,7 +48,7 @@
  *
  * Memcache (http://memcached.org/)
  *
- *	 Cache::config('default', array(
+ *	Cache::config('default', array(
  *		'engine' => 'Memcache', //[required]
  *		'duration'=> 3600, //[optional]
  *		'probability'=> 100, //[optional]
@@ -62,7 +62,7 @@
  *
  *  Wincache (http://php.net/wincache)
  *
- *	 Cache::config('default', array(
+ *	Cache::config('default', array(
  *		'engine' => 'Wincache', //[required]
  *		'duration'=> 3600, //[optional]
  *		'probability'=> 100, //[optional]
@@ -71,7 +71,7 @@
  *
  * Redis (http://http://redis.io/)
  *
- *	 Cache::config('default', array(
+ *	Cache::config('default', array(
  *		'engine' => 'Redis', //[required]
  *		'duration'=> 3600, //[optional]
  *		'probability'=> 100, //[optional]
