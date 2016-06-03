@@ -19,7 +19,7 @@ yum update
 Once the system is installed you can perform the following steps as root:
 
 # We need some packages from the Extra Packages for Enterprise Linux repository
-curl -o epel.rpm http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-5.noarch.rpm
+curl -o epel.rpm https://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-6.noarch.rpm
 rpm -Uvh epel.rpm
 
 # Since MISP 2.4 PHP 5.5 is a minimal requirement, so we need a newer version than CentOS base provides
