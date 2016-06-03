@@ -357,4 +357,3 @@ class EventShell extends AppShell
 	}
 
 }
-

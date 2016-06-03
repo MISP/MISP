@@ -38,4 +38,3 @@
 	else echo h($def['desc']);
 	echo '<br />';
 }?>
-

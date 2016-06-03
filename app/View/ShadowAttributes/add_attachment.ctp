@@ -105,4 +105,3 @@ $('#ShadowAttributeType').prop('disabled', true);
 
 </script>
 <?php echo $this->Js->writeBuffer(); // Write cached scripts
-

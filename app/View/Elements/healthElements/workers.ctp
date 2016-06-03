@@ -112,4 +112,3 @@
 echo $this->Form->button('Restart all workers', array('class' => 'btn btn-primary'));
 echo $this->Form->end();
 ?>
-

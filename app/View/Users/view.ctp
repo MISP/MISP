@@ -66,4 +66,3 @@
 <?php 
 	echo $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'view'));
 ?>
-

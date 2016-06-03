@@ -68,4 +68,3 @@
 <?php 
 	echo $this->element('side_menu', array('menuList' => 'warninglist', 'menuItem' => 'view'));
 ?>
-

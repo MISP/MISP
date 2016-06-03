@@ -66,4 +66,3 @@ cp -fa "$FILE_PATH/setup/config.php" "$MISP_PATH/app/Plugin/CakeResque/Config/co
 printf '\n\n=========================================================\n'
 printf '|               \e[34mI\e[39mnstallation \e[34mC\e[39momplete                   |\n'
 printf '=========================================================\n\n'
-

@@ -35,4 +35,3 @@ class AdminShell extends AppShell
 		$this->Job->saveField('status', 4);
 	}
 }
-

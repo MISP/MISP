@@ -301,4 +301,3 @@ def resolveRegHive(regStr):
         if regStrU.startswith(hive):
             return misp_reghive[hive], regStr[len(hive):]
     return None, regStr
-

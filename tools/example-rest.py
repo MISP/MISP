@@ -226,4 +226,3 @@ response, content = view('event', 672)
 
 print response
 print content
-

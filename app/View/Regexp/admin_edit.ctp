@@ -46,4 +46,3 @@ echo $this->Form->end();
 <?php 
 	echo $this->element('side_menu', array('menuList' => 'regexp', 'menuItem' => 'edit', 'id' => $this->Form->value('Regexp.id')));
 ?>
-

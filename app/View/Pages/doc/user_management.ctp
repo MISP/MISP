@@ -70,4 +70,3 @@ All the events and attributes that get entered into MISP will be run through a s
 	<li><b>Signature Whitelist:</b> This list (can) contain a set of addresses that are allowed to be entered as attribute values but will be blocked from being exported to NIDS-es.<br /><br /> </li>
 </ul>
 </div>
-
