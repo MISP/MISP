@@ -361,7 +361,7 @@ class ACLComponent extends Component {
 	public function checkAccess($user, $controller, $action) {
 		if ($user['Role']['perm_site_admin']) return true;
 		if (!isset($this->__aclList[$controller])) $this->__error(404, 'Invalid controller.');
-		if ($user['Role']['perm_site_admin']) return true; 
+		if ($user['Role']['perm_site_admin']) return true;
 		if (isset($this->__aclList[$controller][$action]) && !empty($this->__aclList[$controller][$action])) {
 			if (in_array('*', $this->__aclList[$controller][$action])) return true;
 			if (isset($this->__aclList[$controller][$action]['OR'])) {
@@ -377,13 +377,13 @@ class ACLComponent extends Component {
 
 	private function __error($code, $message) {
 		switch ($code) {
-			case 404: 
+			case 404:
 				throw new NotFoundException($message);
 				break;
 			case 403:
 				throw new MethodNotAllowedException($message);
 			default:
-				throw new InternalErrorException('Unknown error: ' . $message); 
+				throw new InternalErrorException('Unknown error: ' . $message);
 		}
 	}
 
@@ -409,15 +409,15 @@ class ACLComponent extends Component {
 		$results = $this->__findAllFunctions();
 		ksort($results);
 		return $results;
-	} 
+	}
 
 	public function findMissingFunctionNames($content = false) {
 		$results = $this->__findAllFunctions();
 		$missing = array();
 		foreach ($results as $controller => &$functions) {
 			foreach ($functions as &$function) {
-				if (!isset($this->__aclList[$controller]) 
-				|| !in_array($function, array_keys($this->__aclList[$controller]))) 
+				if (!isset($this->__aclList[$controller])
+				|| !in_array($function, array_keys($this->__aclList[$controller])))
 					$missing[$controller][] = $function;
 			}
 		}
@@ -431,7 +431,7 @@ class ACLComponent extends Component {
 		if (is_numeric($content)) $conditions = array('Role.id' => $content);
 		$roles = $this->Role->find('all', array(
 			'recursive' => -1,
-			'conditions' => $conditions	
+			'conditions' => $conditions
 		));
 		if (empty($roles)) throw new NotFoundException('Role not found.');
 		foreach ($roles as &$role) {
@@ -451,7 +451,7 @@ class ACLComponent extends Component {
 					else if (in_array('*', $permissions)) $result[] = DS . $controllerName . DS . $action . DS . '*';
 					else if (isset($permissions['OR'])) {
 						$access = false;
-						foreach ($permissions['OR'] as $permission) if ($role[$permission]) $access = true; 
+						foreach ($permissions['OR'] as $permission) if ($role[$permission]) $access = true;
 						if ($access) $result[] = DS . $controllerName . DS . $action . DS . '*';
 					} else if (isset($permissions['AND'])) {
 						$access = true;

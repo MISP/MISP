@@ -65,11 +65,11 @@ class EventDelegation extends AppModel {
 				'contain' => array(
 						'ShadowAttribute' => array(
 							'conditions' => array(
-								'ShadowAttribute.old_id' => 0, 
+								'ShadowAttribute.old_id' => 0,
 								'ShadowAttribute.event_id' => $delegation['EventDelegation']['event_id']
 							)
-						), 
-						'EventTag', 
+						),
+						'EventTag',
 						'Attribute' => array(
 							'ShadowAttribute'
 						)
@@ -105,7 +105,7 @@ class EventDelegation extends AppModel {
 
 				// unset ID fields and relations
 				foreach ($fields as $field) {
-					unset($object[$field]);	
+					unset($object[$field]);
 				}
 			}
 			if (in_array($object_type, $objectsToRearrange)) {

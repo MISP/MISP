@@ -32,7 +32,7 @@
 			<th class="filter">Tags</th>
 			<th class="filter"><?php echo $this->Paginator->sort('date');?></th>
 			<th class="filter" title="<?php echo $eventDescriptions['threat_level_id']['desc'];?>"><?php echo $this->Paginator->sort('threat_level_id');?></th>
-			<th title="<?php echo $eventDescriptions['analysis']['desc'];?>"><?php echo $this->Paginator->sort('analysis');?></th>	
+			<th title="<?php echo $eventDescriptions['analysis']['desc'];?>"><?php echo $this->Paginator->sort('analysis');?></th>
 			<th class="filter"><?php echo $this->Paginator->sort('info');?></th>
 			<th class="filter"><?php echo $this->Paginator->sort('timestamp');?></th>
 			<th class="actions">Actions</th>
@@ -50,7 +50,7 @@
 				<?php echo $event['date']; ?>&nbsp;
 			</td>
 			<td class="short" ondblclick="document.location.href ='<?php echo $eventViewURL . h($uuid);?>'">
-				<?php 
+				<?php
 					echo h($threatLevels[$event['threat_level_id']]);
 				?>&nbsp;
 			</td>

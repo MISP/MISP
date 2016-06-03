@@ -36,7 +36,7 @@
 	echo $this->Form->end();
 ?>
 </div>
-<?php 
+<?php
 	$event['Event']['id'] = $this->request->data['ShadowAttribute']['event_id'];
 	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'proposeAttachment', 'event' => $event));
 ?>

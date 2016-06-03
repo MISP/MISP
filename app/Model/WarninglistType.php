@@ -11,7 +11,7 @@ class WarninglistType extends AppModel{
 		'type' => array(
 			'rule' => array('valueNotEmpty'),
 		)
-	);	
+	);
 
 	public $belongsTo = array(
 		'Warninglist'

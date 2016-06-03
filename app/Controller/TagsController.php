@@ -67,7 +67,7 @@ class TagsController extends AppController {
 			}
 			unset($tag['EventTag']);
 			if (!empty($tag['FavouriteTag'])) {
-				foreach ($tag['FavouriteTag'] as &$ft) if ($ft['user_id'] == $this->Auth->user('id')) $tag['Tag']['favourite'] = true; 
+				foreach ($tag['FavouriteTag'] as &$ft) if ($ft['user_id'] == $this->Auth->user('id')) $tag['Tag']['favourite'] = true;
 				if (!isset($tag['Tag']['favourite'])) $tag['Tag']['favourite'] = false;
 			} else $tag['Tag']['favourite'] = false;
 			unset($tag['FavouriteTag']);
@@ -98,7 +98,7 @@ class TagsController extends AppController {
 	public function add() {
 		if (!$this->_isSiteAdmin() && !$this->userRole['perm_tag_editor']) throw new NotFoundException('You don\'t have permission to do that.');
 		if ($this->request->is('post')) {
-			if (isset($this->request->data['Tag']['request'])) $this->request->data['Tag'] = $this->request->data['Tag']['request']; 
+			if (isset($this->request->data['Tag']['request'])) $this->request->data['Tag'] = $this->request->data['Tag']['request'];
 			if (!isset($this->request->data['Tag']['colour'])) $this->request->data['Tag']['colour'] = $this->Tag->random_color();
 			if (isset($this->request->data['Tag']['id'])) unset($this->request->data['Tag']['id']);
 			if ($this->Tag->save($this->request->data)) {
@@ -108,7 +108,7 @@ class TagsController extends AppController {
 			} else {
 				if ($this->_isRest()) {
 					$error_message = '';
-					foreach ($this->Tag->validationErrors as $k => $v) $error_message .= '[' . $k . ']: ' . $v[0]; 
+					foreach ($this->Tag->validationErrors as $k => $v) $error_message .= '[' . $k . ']: ' . $v[0];
 					throw new MethodNotAllowedException('Could not add the Tag. ' . $error_message);
 				} else {
 					$this->Session->setFlash('The tag could not be saved. Please, try again.');
@@ -189,7 +189,7 @@ class TagsController extends AppController {
 					'recursive' => -1,
 					'contain' => array('EventTag' => array('fields' => 'event_id'))
 			));
-			if (empty($tag)) throw MethodNotAllowedException('Invalid Tag'); 
+			if (empty($tag)) throw MethodNotAllowedException('Invalid Tag');
 			$eventIDs = array();
 			if (empty($tag['EventTag'])) $tag['Tag']['count'] = 0;
 			else {
@@ -329,7 +329,7 @@ class TagsController extends AppController {
 			$tags[$r['Tag']['name']] = $r[0]['count'];
 			$totalCount += $r[0]['count'];
 			foreach ($taxonomies as $taxonomy => $count) {
-				if (substr(strtolower($r['Tag']['name']), 0, strlen($taxonomy)) === strtolower($taxonomy)) $taxonomies[$taxonomy] += $r[0]['count']; 
+				if (substr(strtolower($r['Tag']['name']), 0, strlen($taxonomy)) === strtolower($taxonomy)) $taxonomies[$taxonomy] += $r[0]['count'];
 			}
 		}
 		if ($keysort === 'true') {
@@ -338,7 +338,7 @@ class TagsController extends AppController {
 		} else {
 			arsort($tags);
 			arsort($taxonomies);
-		}		
+		}
 		if ($percentage === 'true') {
 			foreach ($tags as $tag => &$count) {
 				$count = round(100 * $count / $totalCount, 3) . '%';

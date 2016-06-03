@@ -72,7 +72,7 @@ class JSONConverterTool {
 			foreach ($array as $k => $element) {
 				$temp = $this->arrayPrinter($element, false);
 				if (!is_array($temp)) {
-					$resultArray[] = '[' . $k .']' . $temp;	
+					$resultArray[] = '[' . $k .']' . $temp;
 				} else {
 					foreach ($temp as &$t) $resultArray[] = '[' . $k . ']' . $t;
 				}

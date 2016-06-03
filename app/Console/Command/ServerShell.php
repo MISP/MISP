@@ -1,4 +1,4 @@
-<?php 
+<?php
 App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
 require_once 'AppShell.php';

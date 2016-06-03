@@ -18,7 +18,7 @@
 			?>
 			&nbsp;
 		</dd>
-		<?php 
+		<?php
 		foreach ($role['Role'] as $k => $item):
 			if (substr($k, 0, 5) === 'perm_' && !in_array($k, array('perm_add', 'perm_modify', 'perm_modify_org', 'perm_publish', 'perm_full'))):
 				$nameParts = explode('_', $k);
@@ -31,7 +31,7 @@
 						<?php echo $role['Role'][$k] ? 'Yes' : 'No'; ?>
 						&nbsp;
 					</dd>
-				<?php 
+				<?php
 			endif;
 
 		endforeach;
@@ -39,6 +39,6 @@
 		?>
 	</dl>
 </div>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'roles'));
 ?>

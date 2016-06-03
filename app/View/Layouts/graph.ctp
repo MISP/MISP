@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <meta charset="UTF-8">
-<meta content="utf-8" http-equiv="encoding">  
+<meta content="utf-8" http-equiv="encoding">
 <meta http-equiv="X-UA-Compatible" content="IE=edge" />
 	<?php echo $this->Html->charset(); ?>
 	<title>
@@ -64,7 +64,7 @@
 	 			if ($has_flash) $topGap += 50;
 	 		}
 		?>
-		<div style="padding-top:<?php echo $topGap; ?>px !important;">	
+		<div style="padding-top:<?php echo $topGap; ?>px !important;">
 			<?php echo $this->fetch('content'); ?>
 		</div>
 	</div>
@@ -97,7 +97,7 @@
 			$('.actions').css('left',-$(window).scrollLeft());
 		});
 	</script>
-	<?php 
+	<?php
 		endif;
 	?>
 </body>

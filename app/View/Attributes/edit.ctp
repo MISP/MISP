@@ -30,7 +30,7 @@
 			}
 		?>
 		</div>
-		<?php 
+		<?php
 		echo $this->Form->input('value', array(
 				'type' => 'textarea',
 				'error' => array('escape' => false),
@@ -66,7 +66,7 @@ echo $this->Form->button('Submit', array('class' => 'btn btn-primary'));
 echo $this->Form->end();
 ?>
 </div>
-<?php 
+<?php
 	$event['Event']['id'] = $this->request->data['Attribute']['event_id'];
 	$event['Event']['published'] = $published;
 	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'addAttribute', 'event' => $event));

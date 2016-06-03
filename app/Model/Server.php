@@ -12,7 +12,7 @@ class Server extends AppModel {
 			'userModel' => 'User',
 			'userKey' => 'user_id',
 			'change' => 'full'
-		), 
+		),
 		'Trim',
 		'Containable'
 	);
@@ -877,7 +877,7 @@ class Server extends AppModel {
 						'test' => 'testForEmpty',
 						'type' => 'string',
 					),
-					'ZeroMQ_enable' => array(						
+					'ZeroMQ_enable' => array(
 						'level' => 2,
 						'description' => 'Enables or disables the pub/sub feature of MISP. Make sure that you install the requirements for the plugin to work. Refer to the installation instructions for more information.',
 						'value' => false,
@@ -886,7 +886,7 @@ class Server extends AppModel {
 						'type' => 'boolean',
 						'afterHook' => 'zmqAfterHook',
 					),
-					'ZeroMQ_port' => array(						
+					'ZeroMQ_port' => array(
 						'level' => 2,
 						'description' => 'The port that the pub/sub feature will use.',
 						'value' => 50000,
@@ -1368,7 +1368,7 @@ class Server extends AppModel {
 			'action' => 'pull',
 			'user_id' => $user['id'],
 			'title' => 'Pull from ' . $server['Server']['url'] . ' initiated by ' . $email,
-			'change' => count($successes) . ' events and ' . count($pulledProposals) . ' proposals pulled or updated. ' . count($fails) . ' events failed or didn\'t need an update.' 
+			'change' => count($successes) . ' events and ' . count($pulledProposals) . ' proposals pulled or updated. ' . count($fails) . ' events failed or didn\'t need an update.'
 		));
 		if (!isset($lastpulledid)) $lastpulledid = 0;
 		return array($successes, $fails, $pulledProposals, $lastpulledid);
@@ -1693,7 +1693,7 @@ class Server extends AppModel {
 						} else {
 							$fails++;
 							if ($error_message == "") $result['message'];
-							else $error_message .= " --- " . $result['message']; 
+							else $error_message .= " --- " . $result['message'];
 						}
 					} else {
 						$fails++;
@@ -1799,7 +1799,7 @@ class Server extends AppModel {
 							$leafValue['subGroup'] = $pluginData[0];
 						}
 						if (strpos($branchKey, 'Secur') === 0) $leafValue['tab'] = 'Security';
-						else $leafValue['tab'] = $branchKey; 
+						else $leafValue['tab'] = $branchKey;
 						$finalSettingsUnsorted[$branchKey . '.' . $leafKey] = $leafValue;
 					}
 				}
@@ -2079,7 +2079,7 @@ class Server extends AppModel {
 		$version_array = $this->checkMISPVersion();
 		$current = 'v' . $version_array['major'] . '.' . $version_array['minor'] . '.' . $version_array['hotfix'];
 		$newest_array = $this->__dissectVersion($newest);
-		$upToDate = $this->__compareVersions(array($version_array['major'], $version_array['minor'], $version_array['hotfix']), $newest_array, 0); 
+		$upToDate = $this->__compareVersions(array($version_array['major'], $version_array['minor'], $version_array['hotfix']), $newest_array, 0);
 		return array ('current' => $current, 'newest' => $newest, 'upToDate' => $upToDate);
 	}
 
@@ -2118,7 +2118,7 @@ class Server extends AppModel {
 						'name' => 'Additional image files',
 						'description' => 'Image files uploaded into this directory can be used for various purposes, such as for the login page logos',
 						'expected' => array(
-								'MISP.footer_logo' => Configure::read('MISP.footer_logo'), 
+								'MISP.footer_logo' => Configure::read('MISP.footer_logo'),
 								'MISP.home_logo' => Configure::read('MISP.home_logo'),
 								'MISP.welcome_logo' => Configure::read('MISP.welcome_logo'),
 								'MISP.welcome_logo2' => Configure::read('MISP.welcome_logo2'),
@@ -2195,7 +2195,7 @@ class Server extends AppModel {
 	}
 
 	public function checkVersionCompatibility($id, $user = array(), $HttpSocket = false) {
-		// for event publishing when we don't have a user.					
+		// for event publishing when we don't have a user.
 		if (empty($user)) $user = array('Organisation' => array('name' => 'SYSTEM'), 'email' => 'SYSTEM', 'id' => 0);
 		App::uses('Folder', 'Utility');
 		$file = new File(ROOT . DS . 'VERSION.json', true);
@@ -2305,7 +2305,7 @@ class Server extends AppModel {
 				'conditions' => array('url' => $server['url'])
 		));
 		// unlike with other capture methods, if we find a server that we don't know
-		// we don't want to save it. 
+		// we don't want to save it.
 		if (empty($existingServer)) {
 			return false;
 		}
@@ -2317,18 +2317,18 @@ class Server extends AppModel {
 		App::uses('Folder', 'Utility');
 		// check writeable directories
 		$writeableDirs = array(
-				'tmp' => 0, 
-				'files' => 0, 
+				'tmp' => 0,
+				'files' => 0,
 				'files' . DS . 'scripts' . DS . 'tmp' => 0,
-				'tmp' . DS . 'csv_all' => 0, 
-				'tmp' . DS . 'csv_sig' => 0, 
-				'tmp' . DS . 'md5' => 0, 
+				'tmp' . DS . 'csv_all' => 0,
+				'tmp' . DS . 'csv_sig' => 0,
+				'tmp' . DS . 'md5' => 0,
 				'tmp' . DS . 'sha1' => 0,
-				'tmp' . DS . 'snort' => 0, 
-				'tmp' . DS . 'suricata' => 0, 
-				'tmp' . DS . 'text' => 0, 
+				'tmp' . DS . 'snort' => 0,
+				'tmp' . DS . 'suricata' => 0,
+				'tmp' . DS . 'text' => 0,
 				'tmp' . DS . 'xml' => 0,
-				'tmp' . DS . 'files' => 0, 
+				'tmp' . DS . 'files' => 0,
 				'tmp' . DS . 'logs' => 0,
 		);
 		foreach ($writeableDirs as $path => &$error) {
@@ -2379,7 +2379,7 @@ class Server extends AppModel {
 		foreach ($expected as $package => $version) {
 			$result[$package]['version'] = $scriptResult[$package];
 			$result[$package]['expected'] = $expected[$package];
-			$result[$package]['status'] = $result[$package]['version'] == $result[$package]['expected'] ? 1 : 0; 
+			$result[$package]['status'] = $result[$package]['version'] == $result[$package]['expected'] ? 1 : 0;
 			if ($result[$package]['status'] == 0) $diagnostic_errors++;
 			${$package . 'Version'}[0] = str_replace('$current', $result[$package]['version'], ${$package . 'Version'}[0]);
 			${$package . 'Version'}[0] = str_replace('$expected', $result[$package]['expected'], ${$package . 'Version'}[0]);
@@ -2578,9 +2578,9 @@ class Server extends AppModel {
 			$currentUser = posix_getpwuid(posix_geteuid());
 			$currentUser = $currentUser['name'];
 		} else $currentUser = trim(shell_exec('whoami'));
-		foreach ($workers as $pid => $worker) { 
+		foreach ($workers as $pid => $worker) {
 			if (!is_numeric($pid)) throw new MethodNotAllowedException('Non numeric PID found!');
-			$pidTest = substr_count(trim(shell_exec('ps -p ' . $pid)), PHP_EOL) > 0 ? true : false; 
+			$pidTest = substr_count(trim(shell_exec('ps -p ' . $pid)), PHP_EOL) > 0 ? true : false;
 			if ($worker['user'] == $currentUser && !$pidTest) {
 				$this->ResqueStatus->removeWorker($pid);
 				$this->Log->create();
@@ -2699,7 +2699,7 @@ class Server extends AppModel {
 						));
 					}
 				}
-			} 
+			}
 		}
 		$this->Log->create();
 		$this->Log->save(array(
@@ -2752,7 +2752,7 @@ class Server extends AppModel {
 		// For all intents and purposes, this oversimplification works fine when upgrading from 2.3
 		// Even though the distribution values stored in the correlation won't be correct, they will provide the exact same realeasability
 		// Event1 = distribution 0 and Attribute1 distribution 3 would lead to private = 1, so setting distribution = 0 and a_distribution = 0
-		// will result in the same visibility, etc. Once events / attributes get put into a sharing group this will get recorrelated anyway 
+		// will result in the same visibility, etc. Once events / attributes get put into a sharing group this will get recorrelated anyway
 		// Also by unsetting the org field after the move the changes we ensure that these correlations won't get hit again by the script if we rerun it
 		// and that we don't accidentally "upgrade" a 2.4 correlation
 		$this->query('UPDATE `correlations` SET `distribution` = 1, `a_distribution` = 1 WHERE `org` != "" AND `private` = 0');
@@ -2779,7 +2779,7 @@ class Server extends AppModel {
 	 */
 	public function previewIndex($id, $user, $passedArgs) {
 		$server = $this->find('first', array(
-			'conditions' => array('Server.id' => $id),	
+			'conditions' => array('Server.id' => $id),
 		));
 		App::uses('SyncTool', 'Tools');
 		$syncTool = new SyncTool();

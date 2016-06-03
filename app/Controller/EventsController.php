@@ -29,7 +29,7 @@ class EventsController extends AppController {
 					'Event.timestamp' => 'DESC'
 			),
 			'contain' => array(
-					'Org' => array('fields' => array('id', 'name')), 
+					'Org' => array('fields' => array('id', 'name')),
 					'Orgc' => array('fields' => array('id', 'name')),
 					'SharingGroup' => array('fields' => array('id', 'name'))
 			)
@@ -97,7 +97,7 @@ class EventsController extends AppController {
 										Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
 								),
 							)
-						)		
+						)
 					)
 				)
 			);
@@ -228,7 +228,7 @@ class EventsController extends AppController {
 		$orgs = $this->Event->Org->find('list', array(
 				'conditions' => array('lower(name) LIKE' => '%' .  strtolower($value) . '%'),
 				'recursive' => -1,
-				'fields' => array('id')					
+				'fields' => array('id')
 		));
 		if (!empty($orgs)) $conditions['OR']['orgc_id'] = array_values($orgs);
 		$conditions['OR']['lower(info) LIKE'] = '%' . strtolower($value) .'%';
@@ -266,7 +266,7 @@ class EventsController extends AppController {
 		// check each of the passed arguments whether they're a filter (could also be a sort for example) and if yes, add it to the pagination conditions
 		foreach ($passedArgs as $k => $v) {
 			if (substr($k, 0, 6) === 'search') {
-				if ($urlparams != "") $urlparams .= "/"; 
+				if ($urlparams != "") $urlparams .= "/";
 				$urlparams .= $k . ":" . $v;
 				$searchTerm = substr($k, 6);
 				switch ($searchTerm) {
@@ -584,7 +584,7 @@ class EventsController extends AppController {
 			'published' => 2,
 			'org' => array('OR' => array(), 'NOT' => array()),
 			'tag' => array('OR' => array(), 'NOT' => array()),
-			'eventid' => array('OR' => array(), 'NOT' => array()), 
+			'eventid' => array('OR' => array(), 'NOT' => array()),
 			'date' => array('from' => "", 'until' => ""),
 			'eventinfo' => array('OR' => array(), 'NOT' => array()),
 			'threatlevel' => array('OR' => array(), 'NOT' => array()),
@@ -984,7 +984,7 @@ class EventsController extends AppController {
 							if (!isset($sgs[$this->request->data['Event']['sharing_group_id']])) throw new MethodNotAllowedException('Invalid Sharing Group or not authorised.');
 						}
 					} else {
-						// If the distribution is set to something "traditional", set the SG id to 0. 
+						// If the distribution is set to something "traditional", set the SG id to 0.
 						$this->request->data['Event']['sharing_group_id'] = 0;
 					}
 					if ($this->_isRest()) {
@@ -1124,7 +1124,7 @@ class EventsController extends AppController {
 					$this->Session->setFlash(__('You may only upload MISP XML or MISP JSON files.'));
 				}
 				if (isset($this->data['Event']['submittedfile'])) {
-					if (Configure::read('MISP.take_ownership_xml_import') 
+					if (Configure::read('MISP.take_ownership_xml_import')
 						&& (isset($this->data['Event']['takeownership']) && $this->data['Event']['takeownership'] == 1)) {
 						$results = $this->_addMISPExportFile($ext, true);
 					} else {
@@ -1724,7 +1724,7 @@ class EventsController extends AppController {
 				throw new UnauthorizedException('You have to be logged in to do that.');
 			}
 			$user = $this->Auth->user();
-		}	
+		}
 		$this->loadModel('Attribute');
 		$rules = $this->Attribute->hids($this->Auth->user(), $type, $tags, $from, $to, $last);
 		$this->set('rules', $rules);
@@ -1733,7 +1733,7 @@ class EventsController extends AppController {
 	// csv function
 	// Usage: csv($key, $eventid)   - key can be a valid auth key or the string 'download'. Download requires the user to be logged in interactively and will generate a .csv file
 	// $eventid can be one of 3 options: left empty it will get all the visible to_ids attributes,
-	// $ignore is a flag that allows the export tool to ignore the ids flag. 0 = only IDS signatures, 1 = everything. 
+	// $ignore is a flag that allows the export tool to ignore the ids flag. 0 = only IDS signatures, 1 = everything.
 	public function csv($key, $eventid = false, $ignore = false, $tags = false, $category = false, $type = false, $includeContext = false, $from = false, $to = false, $last = false, $headerless = false) {
 		$simpleFalse = array('eventid', 'ignore', 'tags', 'category', 'type', 'includeContext', 'from', 'to', 'last', 'headerless');
 		foreach ($simpleFalse as $sF) {
@@ -2198,7 +2198,7 @@ class EventsController extends AppController {
 		$tool = strtoupper($type) . 'ConverterTool';
 		$converter = new $tool();
 		$body = $converter->eventCollection2Format($results);
-		$body = $converter->frameCollection($body, $this->mispVersion); 
+		$body = $converter->frameCollection($body, $this->mispVersion);
 		$this->response->body($body);
 		$this->response->download('misp.search.results.' . $type);
 		return $this->response;
@@ -2501,7 +2501,7 @@ class EventsController extends AppController {
 			'analysis' => 0,
 			'org_id' => $this->Auth->user('org_id'),
 			'orgc_id' => $this->Auth->user('org_id'),
-			'timestamp' => $ts,	
+			'timestamp' => $ts,
 			'uuid' => $this->Event->generateUuid(),
 			'user_id' => $this->Auth->user('id'),
 		));
@@ -2556,7 +2556,7 @@ class EventsController extends AppController {
 				'contain' => array(
 					'User' => array(
 							'fields' => array(
-								'User.email'	
+								'User.email'
 					)),
 					'ShadowAttribute'=> array(
 						'fields' => array(
@@ -2615,7 +2615,7 @@ class EventsController extends AppController {
 		$this->Event->recurisve = -1;
 		$event = $this->Event->read(array('id', 'org_id', 'orgc_id', 'distribution', 'sharing_group_id'), $id);
 
-		if (!$this->_isSiteAdmin() && !$this->userRole['perm_sync']) {		
+		if (!$this->_isSiteAdmin() && !$this->userRole['perm_sync']) {
 			if (!$this->userRole['perm_tagger'] || ($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id'])) {
 				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200));
 			}
@@ -2978,7 +2978,7 @@ class EventsController extends AppController {
 				}
 			}
 			if ($success) {
-				if ($counter) {	
+				if ($counter) {
 					$message = $counter . " Proposal(s) added.";
 				} else {
 					$message = "Nothing to update.";
@@ -3072,7 +3072,7 @@ class EventsController extends AppController {
 		);
 		if ($event['Event']['published'] == 0) {
 			foreach ($exports as $k => $export) {
-				if ($export['requiresPublished']) unset($exports[$k]);	
+				if ($export['requiresPublished']) unset($exports[$k]);
 			}
 			$exports['csv'] = array(
 				'url' => '/events/csv/download/' . $id . '/1',
@@ -3158,7 +3158,7 @@ class EventsController extends AppController {
 				if (!$this->userRole['perm_modify_org']) {
 					$conditions[] = array('Event.user_id' => $this->Auth->user('id'));
 				}
-			}		
+			}
 			$event = $this->Event->find('first', array(
 				'recursive' => -1,
 				'conditions' => $conditions,
@@ -3170,7 +3170,7 @@ class EventsController extends AppController {
 		} else {
 			$this->Event->create();
 			$result = $this->Event->save(
-				array(	
+				array(
 					'info' => $data['info'],
 					'analysis' => $data['analysis'],
 					'threat_level_id' => $data['threat_level_id'],

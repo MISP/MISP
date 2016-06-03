@@ -130,11 +130,11 @@ class Organisation extends AppModel{
 			$date = date('Y-m-d H:i:s');
 			$this->create();
 			$organisation = array(
-					'name' => $name, 
-					'local' => 0, 
+					'name' => $name,
+					'local' => 0,
 					'created_by' => $user['id'],
 					'date_modified' => $date,
-					'date_created' => $date					
+					'date_created' => $date
 			);
 			if (isset($uuid)) $organisation['uuid'] = $uuid;
 			$this->save($organisation);

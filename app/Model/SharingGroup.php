@@ -66,7 +66,7 @@ class SharingGroup extends AppModel {
 		$sameNameSG = $this->find('first', array(
 			'conditions' => array('SharingGroup.name' => $this->data['SharingGroup']['name']),
 			'recursive' => -1,
-			'fields' => array('SharingGroup.name')	
+			'fields' => array('SharingGroup.name')
 		));
 		if (!empty($sameNameSG) && !isset($this->data['SharingGroup']['id'])) {
 			$this->data['SharingGroup']['name'] = $this->data['SharingGroup']['name'] . '_' . rand(0, 9999);
@@ -151,7 +151,7 @@ class SharingGroup extends AppModel {
 	// 2. Sharing group enabled users
 	//    a. as long as they are creator or extender of the SG object
 	// 3. Sync users
-	//    a. as long as they are at least users of the SG (they can circumvent the extend rule to 
+	//    a. as long as they are at least users of the SG (they can circumvent the extend rule to
 	//       avoid situations where no one can create / edit an SG on an instance after a push)
 
 	public function checkIfAuthorisedToSave($user, $sg) {
@@ -169,7 +169,7 @@ class SharingGroup extends AppModel {
 			$serverCheck = false;
 			if (isset($sg['SharingGroupOrg'])) {
 				foreach ($sg['SharingGroupOrg'] as $org) {
-					if (isset($org['Organisation'][0])) $org['Organisation'] = $org['Organisation'][0]; 
+					if (isset($org['Organisation'][0])) $org['Organisation'] = $org['Organisation'][0];
 					if ($org['Organisation']['uuid'] == $user['Organisation']['uuid']) {
 						if ($user['Role']['perm_sync'] || $org['extend'] == 1) $orgCheck = true;
 					}
@@ -187,11 +187,11 @@ class SharingGroup extends AppModel {
 			if ($serverCheck && $orgCheck) return true;
 		} else {
 			return $this->checkIfAuthorisedExtend($user, $local['SharingGroup']['id']);
-		} 
+		}
 		return false;
 	}
 
-	// Who is authorised to extend a sharing group? 
+	// Who is authorised to extend a sharing group?
 	// 1. Site admins
 	// 2. Sharing group permission enabled users that:
 	//    a. Belong to the organisation that created the SG
@@ -325,7 +325,7 @@ class SharingGroup extends AppModel {
 					'Organisation',
 					'SharingGroupServer' => array('Server'),
 					'SharingGroupOrg' => array('Organisation')
-				)				
+				)
 		));
 		$force = false;
 		if (empty($existingSG)) {

@@ -63,7 +63,7 @@
 		<?php foreach ($list as $item): ?>
 		<tr>
 			<td class="short"><?php echo h($item['Log']['id']); ?>&nbsp;</td>
-			<?php 
+			<?php
 				if (Configure::read('MISP.log_client_ip')) {
 					echo '<td>';
 					if (isset($ipSearch) && $ipSearch != null) echo nl2br($this->Highlight->highlighter(h($item['Log']['ip']), $ipSearchReplacePairs));

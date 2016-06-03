@@ -9,7 +9,7 @@
 	</div>
 	<div class="templateChoiceButton templateChoiceButtonLast" onClick="cancelPopoverForm();">Cancel</div>
 </div>
-<script type="text/javascript">	
+<script type="text/javascript">
 	$(document).ready(function() {
 		resizePopoverBody();
 	});

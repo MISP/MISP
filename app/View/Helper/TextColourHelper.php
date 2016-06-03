@@ -11,7 +11,7 @@ App::uses('AppHelper', 'View/Helper');
 			$b = hexdec(substr($RGB, 5, 2));
 			$average = ((2 * $r) + $b + (3 * $g))/6;
 			if ($average < 128) {
-				return 'white';	
+				return 'white';
 			} else {
 				return 'black';
 			}

@@ -10,7 +10,7 @@
 	if (Configure::read('MISP.take_ownership_xml_import')):
 ?>
 		<div class="input clear"></div>
-<?php 
+<?php
 	echo $this->Form->input('Event.takeownership', array(
 			'checked' => false,
 			'label' => 'Take ownership of the event',
@@ -24,6 +24,6 @@
 	echo $this->Form->end();
 ?>
 </div>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'event-collection', 'menuItem' => 'addMISPExport'));
 ?>

@@ -373,7 +373,7 @@ class User extends AppModel {
 		} else {
 			return false;
 		}
-	}	
+	}
 
 	public function passwordLength($check) {
 		$length = Configure::read('Security.password_policy_length');
@@ -624,7 +624,7 @@ class User extends AppModel {
 	}
 
 	// Fetch all users that have access to an event / discussion for e-mailing (or maybe something else in the future.
-	// parameters are an array of org IDs that are owners (for an event this would be orgc and org) 
+	// parameters are an array of org IDs that are owners (for an event this would be orgc and org)
 	public function getUsersWithAccess($owners = array(), $distribution, $sharing_group_id = 0, $userConditions = array()) {
 		$sgModel = ClassRegistry::init('SharingGroup');
 		$conditions = array();
@@ -719,8 +719,8 @@ class User extends AppModel {
 				$failed = true;
 			}
 		}
-		$Email = new CakeEmail();	
-		// If we cannot encrypt the mail and the server settings restricts sending unencrypted messages, return false 
+		$Email = new CakeEmail();
+		// If we cannot encrypt the mail and the server settings restricts sending unencrypted messages, return false
 		if (!$failed && Configure::read('GnuPG.onlyencrypted') && !$canEncryptGPG && !$canEncryptSMIME) {
 			$failed = true;
 			$failureReason = " encrypted messages are enforced and the message could not be encrypted for this user as no valid encryption key was found.";

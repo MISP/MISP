@@ -20,7 +20,7 @@
 				$initialDistribution = 3;
 				if (Configure::read('MISP.default_attribute_distribution') != null) {
 					if (Configure::read('MISP.default_attribute_distribution') === 'event') {
-						$initialDistribution = 5;	
+						$initialDistribution = 5;
 					} else {
 						$initialDistribution = Configure::read('MISP.default_attribute_distribution');
 					}
@@ -92,7 +92,7 @@
 				</tr>
 			</table>
 		</div>
-	<?php 
+	<?php
 		echo $this->Form->end();
 	?>
 

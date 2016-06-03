@@ -45,7 +45,7 @@ class FeedsController extends AppController {
 	public function add() {
 		if ($this->request->is('post')) {
 			if (isset($this->request->data['Feed']['pull_rules'])) $this->request->data['Feed']['rules'] = $this->request->data['Feed']['pull_rules'];
-			if ($this->request->data['Feed']['distribution'] != 4) $this->request->data['Feed']['sharing_group_id'] = 0; 
+			if ($this->request->data['Feed']['distribution'] != 4) $this->request->data['Feed']['sharing_group_id'] = 0;
 			$this->request->data['Feed']['default'] = 0;
 			$result = $this->Feed->save($this->request->data);
 			if ($result) {
@@ -183,7 +183,7 @@ class FeedsController extends AppController {
 		$this->Feed->read();
 		$HttpSocket = $syncTool->setupHttpSocketFeed($this->Feed->data);
 		$events = $this->Feed->getManifest($this->Feed->data, $HttpSocket);
-		if (isset($events['code'])) throw new NotFoundException('Feed could not be fetched. The HTTP error code returned was: ' .$events['code']);		
+		if (isset($events['code'])) throw new NotFoundException('Feed could not be fetched. The HTTP error code returned was: ' .$events['code']);
 		$pageCount = count($events);
 		App::uses('CustomPaginationTool', 'Tools');
 		$customPagination = new CustomPaginationTool();
@@ -203,7 +203,7 @@ class FeedsController extends AppController {
 		$this->set('shortDist', $shortDist);
 		$this->set('id', $feedId);
 		$this->set('feed', $this->Feed->data);
-		$this->set('urlparams', $urlparams);		
+		$this->set('urlparams', $urlparams);
 		$this->set('passedArgs', json_encode($passedArgs));
 		$this->set('passedArgsArray', $passedArgs);
 	}
@@ -250,7 +250,7 @@ class FeedsController extends AppController {
 		} else {
 			$this->set('errors', $result);
 			$this->set('_serialize', array('name', 'message', 'url', 'errors'));
-		}  
+		}
 	}
 
 	public function disable($id) {

@@ -69,7 +69,7 @@ class UserInitShell extends AppShell {
 			$this->User->save($admin);
 			echo $authkey . PHP_EOL;
 		} else {
-			echo 'Script aborted: MISP instance already initialised.' . PHP_EOL;			
+			echo 'Script aborted: MISP instance already initialised.' . PHP_EOL;
 		}
 	}
 }

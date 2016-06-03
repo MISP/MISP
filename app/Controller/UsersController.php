@@ -224,7 +224,7 @@ class UsersController extends AppController {
 			if (isset($this->request->data['all']) && !empty($this->request->data['all'])) {
 				$passedArgs['searchall'] = $this->request->data['all'];
 				$conditions['OR'][] = array('User.email LIKE' => '%' . $passedArgs['searchall'] . '%');
-			}	
+			}
 		}
 		$this->set('passedArgs', json_encode($passedArgs));
 		$this->paginate = array(
@@ -295,7 +295,7 @@ class UsersController extends AppController {
 		}
 		$temp = $this->User->Organisation->find('all', array(
 			'conditions' => array('local' => 1),
-			'recursive' => -1, 
+			'recursive' => -1,
 			'fields' => array('id', 'name'),
 			'order' => array('LOWER(name) ASC')
 		));
@@ -583,7 +583,7 @@ class UsersController extends AppController {
 		if (!$this->request->is('post')) throw new MethodNotAllowedException('This feature is only accessible via POST requests');
 		$user = $this->User->find('first', array(
 			'recursive' => -1,
-			'conditions' => array('User.id' => $this->Auth->user('id'))	
+			'conditions' => array('User.id' => $this->Auth->user('id'))
 		));
 		$this->User->id = $this->Auth->user('id');
 		$this->User->saveField('last_login', time());
@@ -717,8 +717,8 @@ class UsersController extends AppController {
 		$newkey = $this->User->generateAuthKey();
 		$this->User->saveField('authkey', $newkey);
 		$this->__extralog(
-				'reset_auth_key', 
-				'Authentication key for user ' . $user['User']['id'] . ' (' . $user['User']['email'] . ')', 
+				'reset_auth_key',
+				'Authentication key for user ' . $user['User']['id'] . ' (' . $user['User']['email'] . ')',
 				$fieldsResult = 'authkey(' . $oldKey . ') => (' . $newkey . ')'
 		);
 		$this->Session->setFlash(__('New authkey generated.', true));
@@ -794,7 +794,7 @@ class UsersController extends AppController {
 		$colours = $paletteTool->createColourPalette(count($sigTypes));
 		$typeDb = array();
 		foreach($sigTypes as $k => $type) {
-			$typeDb[$type] = $colours[$k]; 
+			$typeDb[$type] = $colours[$k];
 		}
 		$this->set('typeDb', $typeDb);
 		$this->set('sigTypes', $sigTypes);
@@ -947,12 +947,12 @@ class UsersController extends AppController {
 			throw new MethodNotAllowedException('You are not authorised to do that.');
 		}
 		if ($this->request->is('post')) {
-			if (isset($this->request->data['User']['firstTime'])) $firstTime = $this->request->data['User']['firstTime']; 
+			if (isset($this->request->data['User']['firstTime'])) $firstTime = $this->request->data['User']['firstTime'];
 			$org = Configure::read('MISP.org');
 			$options = array('passwordResetText', 'newUserText');
 			$subjects = array('[' . $org . ' MISP] New user registration', '[' . $org .  ' MISP] Password reset');
 			$textToFetch = $options[($firstTime ? 0 : 1)];
-			$subject = $subjects[($firstTime ? 0 : 1)]; 
+			$subject = $subjects[($firstTime ? 0 : 1)];
 			$this->loadModel('Server');
 			$body = Configure::read('MISP.' . $textToFetch);
 			if (!$body) $body = $this->Server->serverSettings['MISP'][$textToFetch]['value'];

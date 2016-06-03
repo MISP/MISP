@@ -225,7 +225,7 @@ def resolveHTTPObservable(indicator, attribute):
         header_fields.user_agent = attribute["value"]
         header.parsed_header = header_fields
         client_request.http_request_header = header
-    else: 
+    else:
         line = HTTPRequestLine()
         line.http_method = attribute["value"]
         client_request.http_request_line = line

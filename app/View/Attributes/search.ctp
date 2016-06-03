@@ -196,7 +196,7 @@ $(document).ready(function() {
 
 });
 </script>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'event-collection', 'menuItem' => 'searchAttributes'));
 ?>
 <?php echo $this->Js->writeBuffer(); // Write cached scripts ?>

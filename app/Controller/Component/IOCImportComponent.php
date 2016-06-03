@@ -16,45 +16,45 @@ class IOCImportComponent extends Component {
 	// - replace: passed attribute values will replace the $[component position] substring to form the final attribute value
 	private $attributeComposition = array(
 		array(
-				'components' => array('filename', 'md5'), 
-				'returnFormat' => 'filename|md5', 
-				'returnCategory' => 'Payload installation', 
+				'components' => array('filename', 'md5'),
+				'returnFormat' => 'filename|md5',
+				'returnCategory' => 'Payload installation',
 				'replace'=> '$0|$1'
 		),
 		array(
-				'components' => array('filename', 'sha1'), 
-				'returnFormat' => 'filename|sha1', 
-				'returnCategory' => 'Payload installation', 
+				'components' => array('filename', 'sha1'),
+				'returnFormat' => 'filename|sha1',
+				'returnCategory' => 'Payload installation',
 				'replace'=> '$0|$1'
 		),
 		array(
-				'components' => array('filename', 'sha256'), 
-				'returnFormat' => 'filename|sha256', 
-				'returnCategory' => 'Payload installation', 
+				'components' => array('filename', 'sha256'),
+				'returnFormat' => 'filename|sha256',
+				'returnCategory' => 'Payload installation',
 				'replace'=> '$0|$1'
 		),
 		array(
-				'components' => array('regkey', 'tempRegValue'), 
-				'returnFormat' => 'regkey|value', 
-				'returnCategory' => 'Persistence mechanism', 
+				'components' => array('regkey', 'tempRegValue'),
+				'returnFormat' => 'regkey|value',
+				'returnCategory' => 'Persistence mechanism',
 				'replace'=> '$0|$1'
 		),
 		array(
-				'components' => array('filename', 'tempCertificateSubject'), 
-				'returnFormat' => 'filename', 
-				'returnCategory' => 'Payload installation', 
+				'components' => array('filename', 'tempCertificateSubject'),
+				'returnFormat' => 'filename',
+				'returnCategory' => 'Payload installation',
 				'replace'=> '$0'
 		),
 		array(
-				'components' => array('filename', 'tempExtension'), 
-				'returnFormat' => 'filename', 
-				'returnCategory' => 'Payload installation', 
+				'components' => array('filename', 'tempExtension'),
+				'returnFormat' => 'filename',
+				'returnCategory' => 'Payload installation',
 				'replace'=> '$0.$1'
 		),
 		array(
-				'components' => array('regkey', 'tempRegName', 'tempRegValue'), 
-				'returnFormat' => 'regkey|value', 
-				'returnCategory' => 'Persistence mechanism', 
+				'components' => array('regkey', 'tempRegName', 'tempRegValue'),
+				'returnFormat' => 'regkey|value',
+				'returnCategory' => 'Persistence mechanism',
 				'replace'=> '$0$1|$2'
 		),
 	);
@@ -141,7 +141,7 @@ class IOCImportComponent extends Component {
 		// Since the tree created by simplexml is a bit of a pain to traverse (partially because of branches with 1 leaves and with several leaves ending up in a different format -
 		// $branch['leaf'] vs $branch[0]['leaf'] we convert it to an easier to deal with tree structure
 		// This tree also only contains the information that we care about.
-		$tree = array(				
+		$tree = array(
 				'type' => 'OR',
 				'branches' => array(),
 				'leaves' => array()
@@ -596,11 +596,11 @@ class IOCImportComponent extends Component {
 					$value = str_replace('$' . $k, $v, $value);
 				}
 				return array(
-						'type' => $composition['returnFormat'], 
-						'category' => $composition['returnCategory'], 
-						'value' => $value, 
-						'to_ids' => $this->typeToIdsSettings[$composition['returnFormat']], 
-						'distribution' => $this->distribution, 
+						'type' => $composition['returnFormat'],
+						'category' => $composition['returnCategory'],
+						'value' => $value,
+						'to_ids' => $this->typeToIdsSettings[$composition['returnFormat']],
+						'distribution' => $this->distribution,
 						'comment' => 'OpenIOC import from file ' . $this->filename . ' - Original UUIDs:' . PHP_EOL . implode(PHP_EOL, $uuids),
 				);
 			}

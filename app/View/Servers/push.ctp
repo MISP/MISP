@@ -23,6 +23,6 @@ else:?>
 endif;?>
 </div>
 
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'sync', 'menuItem' => 'push'));
 ?>

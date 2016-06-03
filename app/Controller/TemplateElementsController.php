@@ -142,7 +142,7 @@ class TemplateElementsController extends AppController {
 		$ModelType = 'TemplateElement' . ucfirst($type);
 		$templateElement = $this->TemplateElement->find('first', array(
 			'conditions' => array('TemplateElement.id' => $id),
-			'contain' => array('Template', $ModelType) 
+			'contain' => array('Template', $ModelType)
 		));
 		$this->set('template_id', $templateElement['Template']['id']);
 		if (!$this->_isSiteAdmin() && !$this->TemplateElement->Template->checkAuthorisation($id, $this->Auth->user(), true)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You are not authorised to do that.')), 'status' => 200));

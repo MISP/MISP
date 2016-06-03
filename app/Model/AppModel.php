@@ -260,7 +260,7 @@ class AppModel extends Model {
 				) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
 				$sqlArray[] = "INSERT INTO `admin_settings` (`setting`, `value`) VALUES ('db_version', '2.4.0')";
 				break;
-			case '2.4.18': 
+			case '2.4.18':
 				$sqlArray[] = "ALTER TABLE `users` ADD `current_login` INT(11) DEFAULT 0;";
 				$sqlArray[] = "ALTER TABLE `users` ADD `last_login` INT(11) DEFAULT 0;";
 				$sqlArray[] = "CREATE TABLE IF NOT EXISTS `event_delegations` (
@@ -367,7 +367,7 @@ class AppModel extends Model {
 				$sqlArray[] = "ALTER TABLE `attributes` ADD `deleted` tinyint(1) NOT NULL DEFAULT '0';";
 				break;
 			case '2.4.44':
-				$sqlArray[] = "UPDATE `servers` SET `url` = TRIM(TRAILING '/' FROM `url`)";				
+				$sqlArray[] = "UPDATE `servers` SET `url` = TRIM(TRAILING '/' FROM `url`)";
 				break;
 			case '2.4.45':
 				$sqlArray[] = 'ALTER TABLE `users` CHANGE `newsread` `newsread` int(11) unsigned;';
@@ -481,7 +481,7 @@ class AppModel extends Model {
 		return $version_array;
 	}
 
-	// wrapper for UUID generation, compatible with cakephp <= 2.6 and cakephp and cakephp >= 2.7 
+	// wrapper for UUID generation, compatible with cakephp <= 2.6 and cakephp and cakephp >= 2.7
 	public function generateUuid() {
 		$version = Configure::version();
 		$version = explode('.', $version);
@@ -503,7 +503,7 @@ class AppModel extends Model {
 		$field = array_keys($value);
 		$field = $field[0];
 		$value[$field] = trim($value[$field]);
-		if (!isset($value[$field]) || ($value[$field] == false && $value[$field] !== "0")) return ucfirst($field) . ' cannot be empty.'; 
+		if (!isset($value[$field]) || ($value[$field] == false && $value[$field] !== "0")) return ucfirst($field) . ' cannot be empty.';
 		return true;
 	}
 

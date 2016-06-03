@@ -11,7 +11,7 @@ class HidsExport {
 			array_unshift($this->rules, '# Keep in mind MD5 is not collision resistant');
 		} else if ($type === 'SHA1') {
 			array_unshift($this->rules, '# Keep in mind SHA-1 still has a theoretical collision possibility');
-		}		
+		}
 		array_unshift($this->rules, '# These HIDS export contains ' . $type . ' checksums.');
 	}
 

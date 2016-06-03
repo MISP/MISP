@@ -17,7 +17,7 @@ class Thread extends AppModel {
 	);
 	public $hasMany = 'Post';
 	public $belongsTo = array(
-		'Event', 
+		'Event',
 		'Organisation' => array(
 			'className' => 'Organisation',
 			'foreignKey' => 'org_id'

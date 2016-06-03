@@ -1,7 +1,7 @@
 <div class="index">
 	<h2><?php echo h($title);?></h2>
 	<p>Below you can see the attributes that are to be created. Make sure that the categories and the types are correct, often several options will be offered based on an inconclusive automatic resolution. </p>
-	<?php 
+	<?php
 		echo $this->Form->create('Attribute', array('url' => '/events/saveFreeText/' . $event['Event']['id'], 'class' => 'mainForm'));
 		if ($isSiteAdmin) {
 			echo $this->Form->input('force', array(
@@ -38,7 +38,7 @@
 			foreach ($resultArray as $k => $item):
 		?>
 		<tr id="row_<?php echo $k; ?>" class="freetext_row">
-			<?php 
+			<?php
 				echo $this->Form->input('Attribute' . $k . 'Save', array(
 						'label' => false,
 						'style' => 'display:none;',
@@ -51,7 +51,7 @@
 				));
 			?>
 			<td>
-				<?php 
+				<?php
 					echo $this->Form->input('Attribute' . $k . 'Value', array(
 							'label' => false,
 							'value' => h($item['value']),
@@ -62,7 +62,7 @@
 				<input type="hidden" id="<?php echo 'Attribute' . $k . 'Save'; ?>" value=1 >
 			</td>
 			<td style="shortish">
-				<?php 
+				<?php
 					foreach ($item['related'] as $relation):
 						$popover = array(
 							'Event ID' => $relation['Event']['id'],
@@ -78,14 +78,14 @@
 						}
 				?>
 						<a href="<?php echo $baseurl; ?>/events/view/<?php echo h($relation['Event']['id']);?>" data-toggle="popover" title="Attribute details" data-content="<?php echo h($popoverHTML); ?>" data-trigger="hover"><?php echo h($relation['Event']['id']);?></a>
-				<?php 
+				<?php
 					endforeach;
-					// Category/type: 
+					// Category/type:
 					$correlationPopover = array('<span>', );
 				?>
 			</td>
 			<td class="short">
-				<?php 
+				<?php
 					if (!isset($item['category'])) {
 						if (isset($defaultCategories[$item['default_type']])) {
 							$default = array_search($defaultCategories[$item['default_type']], $typeCategoryMapping[$item['default_type']]);
@@ -98,7 +98,7 @@
 					}
 				?>
 				<select id="<?php echo 'Attribute' . $k . 'Category'; ?>" style='padding:0px;height:20px;margin-bottom:0px;'>
-					<?php 
+					<?php
 						foreach ($typeCategoryMapping[$item['default_type']] as $type) {
 							echo '<option value="' . $type . '" ';
 							if ($type == $default) echo 'selected="selected"';
@@ -108,7 +108,7 @@
 				</select>
 			</td>
 			<td class="short">
-				<?php 
+				<?php
 					$divVisibility = '';
 					$selectVisibility = '';
 					if (count($item['types']) == 1) {
@@ -120,7 +120,7 @@
 				?>
 				<div id = "<?php echo 'Attribute' . $k . 'TypeStatic'; ?>" <?php echo $divVisibility; ?> ><?php echo h($item['default_type']); ?></div>
 				<select id = "<?php echo 'Attribute' . $k . 'Type'; ?>" class='typeToggle' style='padding:0px;height:20px;margin-bottom:0px;<?php echo $selectVisibility; ?>'>
-					<?php 
+					<?php
 						foreach ($item['types'] as $type) {
 							echo '<option value="' . $type . '" ';
 							echo ($type == $item['default_type'] ? 'selected="selected"' : '') . '>' . $type . '</option>';
@@ -158,22 +158,22 @@
 				if (!empty($optionsRearranged)):
 			?>
 				<select id="changeFrom" style="margin-left:50px;margin-top:10px;">
-					<?php 
+					<?php
 						foreach (array_keys($optionsRearranged) as $fromElement):
 					?>
 							<option><?php echo $fromElement; ?></option>
-					<?php 	
+					<?php
 						endforeach;
 					?>
 				</select>
 				<span class="icon-arrow-right"></span>
 				<select id="changeTo" style="margin-top:10px;">
-					<?php 
+					<?php
 						$keys = array_keys($optionsRearranged);
 						foreach ($optionsRearranged[$keys[0]] as $toElement):
 					?>
 							<option value="<?php echo $toElement; ?>"><?php echo $toElement; ?></option>
-					<?php 	
+					<?php
 						endforeach;
 					?>
 				</select>
@@ -198,7 +198,7 @@
 			});
 		});
 	</script>
-<?php 
+<?php
 	endif;
 	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'freetextResults'));
 ?>

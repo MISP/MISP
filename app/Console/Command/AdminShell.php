@@ -1,4 +1,4 @@
-<?php 
+<?php
 App::uses('AppShell', 'Console/Command');
 class AdminShell extends AppShell
 {

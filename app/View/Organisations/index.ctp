@@ -1,5 +1,5 @@
 <div class="organisations index">
-<?php 
+<?php
 	$texts = array(
 			'all' => array(
 					'text' => 'All organisations',
@@ -34,12 +34,12 @@ echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escap
         </ul>
     </div>
     <div class="tabMenuFixedContainer" style="display:inline-block;">
-    <?php 
+    <?php
     	foreach (array('local', 'external', 'all') as $scopeChoice):
     ?>
     	<span class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php if ($scope === $scopeChoice) echo 'tabMenuActive';?>" onClick="window.location='/organisations/index/scope:<?php echo h($scopeChoice);?>'"><?php echo $texts[$scopeChoice]['text'];?></span>
     <?php
-    	endforeach; 	
+    	endforeach;
     ?>
 		<span id="quickFilterButton" class="tabMenuFilterFieldButton useCursorPointer" onClick="quickFilter(<?php echo  h($passedArgs); ?>, '<?php echo $baseurl . '/organisations/index'; ?>');">Filter</span>
 		<input class="tabMenuFilterField" type="text" id="quickFilterField"></input>
@@ -119,7 +119,7 @@ endforeach; ?>
     </div>
 
 </div>
-<?php 
+<?php
 	if ($isSiteAdmin) echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'indexOrg'));
 	else echo $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'indexOrg'));
 ?>

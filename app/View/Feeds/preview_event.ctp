@@ -29,7 +29,7 @@
 				</dd>
 				<dt title="<?php echo $eventDescriptions['threat_level_id']['desc'];?>">Threat Level</dt>
 				<dd>
-					<?php 
+					<?php
 						echo h($threatLevels[$event['Event']['threat_level_id']]);
 					?>
 					&nbsp;
@@ -44,7 +44,7 @@
 					<?php echo nl2br(h($event['Event']['info'])); ?>
 					&nbsp;
 				</dd>
-				<?php 
+				<?php
 					$published = '';
 					$notPublished = 'style="display:none;"';
 					if ($event['Event']['published'] == 0) {
@@ -54,13 +54,13 @@
 				?>
 						<dt class="published" <?php echo $published;?>>Published</dt>
 						<dd class="published green" <?php echo $published;?>>Yes</dd>
-				<?php 
+				<?php
 					if ($isAclPublish) :
 				?>
 						<dt class="visibleDL notPublished" <?php echo $notPublished;?>>Published</dt>
 						<dd class="visibleDL notPublished" <?php echo $notPublished;?>>No</dd>
-				<?php 
-					else: 
+				<?php
+					else:
 				?>
 						<dt class="notPublished" <?php echo $notPublished;?>>Published</dt>
 						<dd class="notPublished red" <?php echo $notPublished;?>>No</dd>
@@ -84,7 +84,7 @@
 	</div>
 	<br />
 	<div id="attributes_div">
-		<?php 
+		<?php
 			$all = false;
 			if (isset($this->params->params['paging']['Event']['page']) && $this->params->params['paging']['Event']['page'] == 0) $all = true;
 		?>
@@ -106,9 +106,9 @@
 					if ($all):
 				?>
 					<span class="red">view all</span>
-				<?php 
+				<?php
 					else:
-						echo $this->Paginator->link(__('view all'), 'all'); 
+						echo $this->Paginator->link(__('view all'), 'all');
 					endif;
 				?>
 			</li>
@@ -124,7 +124,7 @@
 					<th><?php echo $this->Paginator->sort('comment');?></th>
 					<th title="<?php echo $attrDescriptions['signature']['desc'];?>"><?php echo $this->Paginator->sort('to_ids', 'IDS');?></th>
 				</tr>
-			    <?php 
+			    <?php
 					foreach($event['objects'] as $k => $object):
 				?>
 					<tr id = "<?php echo 'Attribute_' . $object['uuid'] . '_tr'; ?>">
@@ -134,8 +134,8 @@
 						<td class="shortish"><?php echo h($object['value']); ?></td>
 						<td class="shortish"><?php echo h($object['comment']); ?></td>
 						<td class="shortish"><?php echo ($object['to_ids']) ? 'Yes' : 'No'; ?></td>
-					</tr>	
-				<?php 
+					</tr>
+				<?php
 					endforeach;
 				?>
 			</table>
@@ -158,9 +158,9 @@
 					if ($all):
 				?>
 					<span class="red">view all</span>
-				<?php 
+				<?php
 					else:
-						echo $this->Paginator->link(__('view all'), 'all'); 
+						echo $this->Paginator->link(__('view all'), 'all');
 					endif;
 				?>
 			</li>
@@ -174,7 +174,7 @@
 <script type="text/javascript">
 // tooltips
 $(document).ready(function () {
-	//loadEventTags("<?php echo $event['Event']['id']; ?>");	
+	//loadEventTags("<?php echo $event['Event']['id']; ?>");
 	$("th, td, dt, div, span, li").tooltip({
 		'placement': 'top',
 		'container' : 'body',

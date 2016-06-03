@@ -408,7 +408,7 @@ class AttributesController extends AppController {
 				$this->Event->saveField('published', 0);
 			}
 			$this->Session->setFlash($message);
-			$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Attribute']['event_id']));	
+			$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Attribute']['event_id']));
 		} else {
 			// set the event_id in the form
 			$this->request->data['Attribute']['event_id'] = $eventId;
@@ -671,7 +671,7 @@ class AttributesController extends AppController {
 			if (count($existingAttribute) && !$existingAttribute['Attribute']['deleted']) {
 				$this->request->data['Attribute']['id'] = $existingAttribute['Attribute']['id'];
 				$dateObj = new DateTime();
-				if (!isset($this->request->data['Attribute']['timestamp'])) $this->request->data['Attribute']['timestamp'] = $dateObj->getTimestamp(); 	
+				if (!isset($this->request->data['Attribute']['timestamp'])) $this->request->data['Attribute']['timestamp'] = $dateObj->getTimestamp();
 				if ($this->request->data['Attribute']['timestamp'] > $existingAttribute['Attribute']['timestamp']) {
 					$recoverFields = array('value', 'to_ids', 'distribution', 'category', 'type', 'comment');
 					foreach ($recoverFields as $rF) {
@@ -758,9 +758,9 @@ class AttributesController extends AppController {
 		$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
 	}
 
-	// ajax edit - post a single edited field and this method will attempt to save it and return a json with the validation errors if they occur. 
+	// ajax edit - post a single edited field and this method will attempt to save it and return a json with the validation errors if they occur.
 	public function editField($id) {
-		if ((!$this->request->is('post') && !$this->request->is('put')) || !$this->request->is('ajax')) throw new MethodNotAllowedException(); 
+		if ((!$this->request->is('post') && !$this->request->is('put')) || !$this->request->is('ajax')) throw new MethodNotAllowedException();
 		$this->Attribute->id = $id;
 		if (!$this->Attribute->exists()) {
 			return new CakeResponse(array('body'=> json_encode(array('fail' => false, 'errors' => 'Invalid attribute')),'status'=>200));
@@ -793,7 +793,7 @@ class AttributesController extends AppController {
 				'recursive' => -1,
 				'fields' => array('id', 'published', 'timestamp', 'info', 'uuid'),
 				'conditions' => array(
-					'id' => $attribute['Attribute']['event_id'],	
+					'id' => $attribute['Attribute']['event_id'],
 			)));
 			$event['Event']['timestamp'] = $date->getTimestamp();
 			$event['Event']['published'] = 0;
@@ -910,12 +910,12 @@ class AttributesController extends AppController {
 
 /**
  * unification of the actual delete for the multi-select
- * 
+ *
  * @param unknown $id
  * @throws NotFoundException
  * @throws MethodNotAllowedException
  * @return boolean
- * 
+ *
  * returns true/false based on success
  */
 	private function __delete($id, $hard = false) {
@@ -1162,7 +1162,7 @@ class AttributesController extends AppController {
 									$result = strtolower($result);
 									if (strpos($result, '|')) {
 										$resultParts = explode('|', $result);
-										if (!toInclude) { 
+										if (!toInclude) {
 											$temp2[] = array(
 												'AND' => array(
 													'LOWER(Attribute.value1) NOT LIKE' => $resultParts[0],
@@ -1274,7 +1274,7 @@ class AttributesController extends AppController {
 					}
 					$this->loadModel('Tag');
 					if (!empty($include)) $conditions['AND'][] = array('OR' => array('Attribute.event_id' => $this->Tag->findTags($include)));
-					if (!empty($exclude)) $conditions['AND'][] = array('Attribute.event_id !=' => $this->Tag->findTags($exclude)); 
+					if (!empty($exclude)) $conditions['AND'][] = array('Attribute.event_id !=' => $this->Tag->findTags($exclude));
 				}
 				if ($type != 'ALL') {
 					$conditions['Attribute.type ='] = $type;
@@ -1435,7 +1435,7 @@ class AttributesController extends AppController {
 	// events are sorted based on relevance (as in the percentage of matches being flagged as indicators for IDS)
 	public function searchAlternate($data) {
 		$attributes = $this->Attribute->fetchAttributes(
-			$this->Auth->user(), 
+			$this->Auth->user(),
 			array(
 				'conditions' => array(
 					'AND' => $data
@@ -1473,7 +1473,7 @@ class AttributesController extends AppController {
 		return $events;
 	}
 
-	// Sort the array of arrays based on a value of a sub-array 
+	// Sort the array of arrays based on a value of a sub-array
 	private function __subval_sort($a,$subkey) {
 		foreach($a as $k=>$v) {
 			$b[$k] = strtolower($v[$subkey]);
@@ -1523,7 +1523,7 @@ class AttributesController extends AppController {
 				$data = $this->request->data;
 			} else {
 				throw new BadRequestException('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct accept and content type headers.');
-			} 
+			}
 			$paramArray = array('value', 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid');
 			foreach ($paramArray as $p) {
 				if (isset($data['request'][$p])) ${$p} = $data['request'][$p];
@@ -1597,7 +1597,7 @@ class AttributesController extends AppController {
 							if (!empty($v)) $subcondition['OR'][] = array('Attribute.' . $parameters[$k] . ' LIKE' => '%'.$v.'%');
 						}
 					}
-				}	
+				}
 				array_push ($conditions['AND'], $subcondition);
 				$subcondition = array();
 			}
@@ -1661,7 +1661,7 @@ class AttributesController extends AppController {
 				$data = $this->request->data;
 			} else {
 				throw new BadRequestException('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct accept and content type headers.');
-			} 
+			}
 			$paramArray = array('type', 'sigOnly');
 			foreach ($paramArray as $p) {
 				if (isset($data['request'][$p])) ${$p} = $data['request'][$p];
@@ -1856,7 +1856,7 @@ class AttributesController extends AppController {
 		else throw new MethodNotAllowedException('Invalid event ID format.');
 		$values = array();
 		foreach ($eventIds as $k => $eventId) {
-			$values = array_merge_recursive($values, $this->Attribute->rpz($this->Auth->user(), $tags, $eventId, $from, $to));	
+			$values = array_merge_recursive($values, $this->Attribute->rpz($this->Auth->user(), $tags, $eventId, $from, $to));
 		}
 		$this->response->type('txt');	// set the content type
 		$file = '';
@@ -1965,7 +1965,7 @@ class AttributesController extends AppController {
 			'fields' => $fields,
 			'contain' => array(
 				'Event' => array(
-					'fields' => array('distribution', 'id', 'user_id', 'orgc_id'),	
+					'fields' => array('distribution', 'id', 'user_id', 'orgc_id'),
 				)
 			)
 		);
@@ -2148,7 +2148,7 @@ class AttributesController extends AppController {
 		// hash
 		// eventID + all samples
 		// hash + eventID
-		// hash + eventID + all samples 
+		// hash + eventID + all samples
 
 		$searchConditions = array();
 		$types = array();
@@ -2168,7 +2168,7 @@ class AttributesController extends AppController {
 					$event_ids = $this->Attribute->find('list', array(
 						'recursive' => -1,
 						'contain' => array('Event'),
-						'fields' => array('Event.id'),	
+						'fields' => array('Event.id'),
 						'conditions' => array(
 							'OR' => array(
 								'AND' => array(

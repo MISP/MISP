@@ -119,12 +119,12 @@ class Event extends AppModel {
 	);
 
 	public $csv_event_context_fields_to_fetch = array(
-		'event_info' => array('object' => false, 'var' => 'info'), 
-		'event_member_org' => array('object' => 'Org', 'var' => 'name'),  
-		'event_source_org' => array('object' => 'Orgc', 'var' => 'name'), 
-		'event_distribution' => array('object' => false, 'var' => 'distribution'), 
-		'event_threat_level_id' => array('object' => 'ThreatLevel', 'var' => 'name'), 
-		'event_analysis' => array('object' => false, 'var' => 'analysis'), 
+		'event_info' => array('object' => false, 'var' => 'info'),
+		'event_member_org' => array('object' => 'Org', 'var' => 'name'),
+		'event_source_org' => array('object' => 'Orgc', 'var' => 'name'),
+		'event_distribution' => array('object' => false, 'var' => 'distribution'),
+		'event_threat_level_id' => array('object' => 'ThreatLevel', 'var' => 'name'),
+		'event_analysis' => array('object' => false, 'var' => 'analysis'),
 		'event_date' => array('object' => false, 'var' => 'date'),
 		'event_tag' => array('object' => 'Tag', 'var' => 'name')
 	 );
@@ -399,7 +399,7 @@ class Event extends AppModel {
 					$values[$field] = $db->value($this->data['Event'][$field]);
 					$this->Correlation->updateAll(array('Correlation.' . $field => $values[$field]), array('Correlation.event_id' => $values['id']));
 				}
-			} 
+			}
 		}
 	}
 
@@ -483,7 +483,7 @@ class Event extends AppModel {
 		if (!isset($sgids) || empty($sgids)) $sgids = array(-1);
 		$this->Correlation = ClassRegistry::init('Correlation');
 		// search the correlation table for the event ids of the related events
-		// Rules: 
+		// Rules:
 		// 1. Event is owned by the user (org_id matches)
 		// 2. User is allowed to see both the event and the org:
 		//    a.  Event:
@@ -531,7 +531,7 @@ class Event extends AppModel {
 		$context = $shadowAttribute ? 'ShadowAttribute' : 'Attribute';
 		$settings = array(
 			'Attribute' => array('model' => 'Attribute', 'correlationModel' => 'Correlation', 'parentIdField' => '1_attribute_id'),
-			'ShadowAttribute' => array('model' => 'ShadowAttribute', 'correlationModel' => 'ShadowAttributeCorrelation', 'parentIdField' => '1_shadow_attribute_id')	
+			'ShadowAttribute' => array('model' => 'ShadowAttribute', 'correlationModel' => 'ShadowAttributeCorrelation', 'parentIdField' => '1_shadow_attribute_id')
 		);
 		if ($id == null) $id = $this->data['Event']['id'];
 		if (!isset($sgids) || empty($sgids)) $sgids = array(-1);
@@ -666,8 +666,8 @@ class Event extends AppModel {
 		$this->Server = ClassRegistry::init('Server');
 		$push = $this->Server->checkVersionCompatibility($server['Server']['id']);
 		$deletedAttributes = false;
-		if (($push['version'][0] > 2) || 
-			($push['version'][0] == 2 && $push['version'][1] > 4) || 
+		if (($push['version'][0] > 2) ||
+			($push['version'][0] == 2 && $push['version'][1] > 4) ||
 			($push['version'][0] == 2 && $push['version'][1] == 4 && $push['version'][2] > 42)) {
 			$deletedAttributes = true;
 		}
@@ -1131,7 +1131,7 @@ class Event extends AppModel {
 	}
 
 	//Once the data about the user is gathered from the appropriate sources, fetchEvent is called from the controller or background process.
-	// Possible options: 
+	// Possible options:
 	// eventid: single event ID
 	// idList: array with event IDs
 	// tags: string with the usual tag syntax
@@ -1166,7 +1166,7 @@ class Event extends AppModel {
 						'Event.distribution >' => 0,
 						'Event.distribution <' => 4,
 						Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
-						$options['distribution'] !== false ? array('Event.distribution =' => $options['distribution']) : array(), 
+						$options['distribution'] !== false ? array('Event.distribution =' => $options['distribution']) : array(),
 					),
 				),
 				array(
@@ -1277,7 +1277,7 @@ class Event extends AppModel {
 				'ThreatLevel' => array(
 						'fields' => array('ThreatLevel.name')
 				),
-				'Org' => array('fields' => $fieldsOrg), 
+				'Org' => array('fields' => $fieldsOrg),
 				'Orgc' => array('fields' => $fieldsOrg),
 				'Attribute' => array(
 					'fields' => $fieldsAtt,
@@ -1451,9 +1451,9 @@ class Event extends AppModel {
 					foreach ($attribute['Event']['EventTag'] as $eventTag) {
 						if (!empty($attribute['Event']['Tag']['name'])) $attribute['Event']['Tag']['name'] .= ',';
 						$attribute['Event']['Tag']['name'] .= str_replace(array('"'), '""', $eventTag['Tag']['name']);
-					} 
+					}
 				}
-				if (!empty($attribute['Event']['Tag']['name'])) $attribute['Event']['Tag']['name'] = '"' . $attribute['Event']['Tag']['name'] . '"'; 
+				if (!empty($attribute['Event']['Tag']['name'])) $attribute['Event']['Tag']['name'] = '"' . $attribute['Event']['Tag']['name'] . '"';
 	 		}
 	 	}
 	 	return $attributes;
@@ -1544,7 +1544,7 @@ class Event extends AppModel {
 	 	} else {
 	 		return ($this->sendAlertEmail($id, $user));
 	 	}
-	 } 
+	 }
 
 	 public function sendAlertEmail($id, $senderUser, $processId = null) {
 	 	$event = $this->fetchEvent($senderUser, array('eventid' => $id, 'includeAllTags' => true));
@@ -1553,11 +1553,11 @@ class Event extends AppModel {
 	 	$this->User = ClassRegistry::init('User');
 	 	$users = $this->User->getUsersWithAccess(
 			$owners = array(
-				$event[0]['Event']['orgc_id'], 
+				$event[0]['Event']['orgc_id'],
 				$event[0]['Event']['org_id']
- 			), 
-			$event[0]['Event']['distribution'], 
-			$event[0]['Event']['sharing_group_id'], 
+ 			),
+			$event[0]['Event']['distribution'],
+			$event[0]['Event']['sharing_group_id'],
 			$userConditions
 	 	);
 	 	if (Configure::read('MISP.extended_alert_subject')) {
@@ -1780,8 +1780,8 @@ class Event extends AppModel {
 		if (isset($data['Event']['Attribute'])) {
 			if (!isset($data['Event']['Attribute'][0])) $data['Event']['Attribute'] = array(0 => $data['Event']['Attribute']);
 			foreach ($data['Event']['Attribute'] as &$attribute) {
-				if (isset($attribute['SharingGroup']) && !empty($attribute['SharingGroup']) && isset($attribute['SharingGroup'][0])) $attribute['SharingGroup'] = $attribute['SharingGroup'][0]; 
-				if (isset($attribute['distribution']) && $attribute['distribution'] == 4 && !isset($sgs[$attribute['SharingGroup']['uuid']])) $sgs[$attribute['SharingGroup']['uuid']] = $attribute['SharingGroup']; 
+				if (isset($attribute['SharingGroup']) && !empty($attribute['SharingGroup']) && isset($attribute['SharingGroup'][0])) $attribute['SharingGroup'] = $attribute['SharingGroup'][0];
+				if (isset($attribute['distribution']) && $attribute['distribution'] == 4 && !isset($sgs[$attribute['SharingGroup']['uuid']])) $sgs[$attribute['SharingGroup']['uuid']] = $attribute['SharingGroup'];
 			}
 		}
 
@@ -1917,7 +1917,7 @@ class Event extends AppModel {
 		$saveResult = $this->save(array('Event' => $data['Event']), array('fieldList' => $fieldList['Event']));
 		$this->Log = ClassRegistry::init('Log');
 		if ($saveResult) {
-			if (isset($data['Event']['EventTag'])) { 
+			if (isset($data['Event']['EventTag'])) {
 				foreach ($data['Event']['EventTag'] as $et) {
 					$this->EventTag->create();
 					$et['event_id'] = $this->id;
@@ -1994,7 +1994,7 @@ class Event extends AppModel {
 				// If the above is true, we have two more options:
 				// For users that are of the creating org of the event, always allow the edit
 				// For users that are sync users, only allow the edit if the event is locked
-				if ($existingEvent['Event']['orgc_id'] === $user['org_id'] 
+				if ($existingEvent['Event']['orgc_id'] === $user['org_id']
 				|| ($user['Role']['perm_sync'] && $existingEvent['Event']['locked']) || $user['Role']['perm_site_admin']) {
 					if ($user['Role']['perm_sync']) {
 						if ($data['Event']['distribution'] == 4 && !$this->SharingGroup->checkIfAuthorised($user, $data['Event']['sharing_group_id'])) {
@@ -2250,7 +2250,7 @@ class Event extends AppModel {
 		// get a list of the servers
 		$this->Server = ClassRegistry::init('Server');
 		$conditions = array('push' => 1);
-		if ($passAlong) $conditions[] = array('Server.id !=' => $passAlong); 
+		if ($passAlong) $conditions[] = array('Server.id !=' => $passAlong);
 		$servers = $this->Server->find('all', array('conditions' => $conditions));
 		// iterate over the servers and upload the event
 		if(empty($servers))
@@ -2328,7 +2328,7 @@ class Event extends AppModel {
 			$event['Event']['published'] = 1;
 			$event['Event']['publish_timestamp'] = time();
 			$this->save($event, array('fieldList' => $fieldList));
-		}		
+		}
 		if (Configure::read('Plugin.ZeroMQ_enable')) {
 			App::uses('PubSubTool', 'Tools');
 			$pubSubTool = new PubSubTool();
@@ -2504,15 +2504,15 @@ class Event extends AppModel {
 			if ($version == 1) throw new Exception('This XML file is from a MISP instance that is newer than the current instance. Please contact your administrator about upgrading this instance.');
 
 			// if the xml contains an event or events from an older MISP instance, let's try to upgrade it!
-			// Let's manually set the version to something below 2.2.0 if there is no version set in the xml		
-			if (!isset($xmlArray['response']['xml_version'])) $xmlArray['response']['xml_version'] = '2.1.0'; 
+			// Let's manually set the version to something below 2.2.0 if there is no version set in the xml
+			if (!isset($xmlArray['response']['xml_version'])) $xmlArray['response']['xml_version'] = '2.1.0';
 
 			// Upgrade from versions below 2.2.0 will need to replace the risk field with threat level id
 			if ($this->compareVersions($xmlArray['response']['xml_version'], '2.2.0') < 0) {
 				if ($response) $xmlArray['response'] = $this->__updateXMLArray220($xmlArray['response']);
 				else $xmlArray = $this->__updateXMLArray220($xmlArray);
 			}
-		}		
+		}
 		unset ($xmlArray['response']['xml_version']);
 		if ($response) return $xmlArray;
 		else return $xmlArray['response'];
@@ -2548,7 +2548,7 @@ class Event extends AppModel {
 		}
 		$localEvents = $this->find('list', array('recursive' => -1, 'fields' => array('Event.uuid', 'Event.timestamp')));
 		foreach ($uuidsToCheck as $uuid => $eventArrayId) {
-			if (isset($localEvents[$uuid]) && $localEvents[$uuid] >= $eventArray[$eventArrayId]['timestamp']) unset($eventArray[$eventArrayId]); 
+			if (isset($localEvents[$uuid]) && $localEvents[$uuid] >= $eventArray[$eventArrayId]['timestamp']) unset($eventArray[$eventArrayId]);
 		}
 	}
 
@@ -2622,7 +2622,7 @@ class Event extends AppModel {
 		// get all of the event IDs based on includedTags / excludedTags
 		if (!empty($includedTags) || !empty($excludedTags)) {
 			$eventIDsFromTags = $this->EventTag->getEventIDsFromTags($includedTags, $excludedTags);
-			// get the intersect of the two 
+			// get the intersect of the two
 			$ids = array_intersect($ids, $eventIDsFromTags);
 		}
 		return $ids;
@@ -2680,7 +2680,7 @@ class Event extends AppModel {
 			$delta = substr($delta, 0, -1);
 		}
 		if (!is_numeric($delta)) return false;
-		return time() - ($delta * $multiplier); 
+		return time() - ($delta * $multiplier);
 	}
 
 	public function rearrangeEventForView(&$event, $passedArgs = array(), $all = false) {
@@ -2774,7 +2774,7 @@ class Event extends AppModel {
 				$event_ids = $this->EventTag->find('list', array(
 					'recursive' => -1,
 					'conditions' => array('EventTag.tag_id' => $rules['tags'][$op]),
-					'fields' => array('EventTag.event_id')	
+					'fields' => array('EventTag.event_id')
 				));
 				$rules['events'][$op] = $event_ids;
 			}

@@ -3,7 +3,7 @@
 		<fieldset>
 			<legend>Filter Event Index</legend>
 			<div class="overlay_spacing">
-			<?php 
+			<?php
 				echo $this->Form->input('rule', array(
 						'options' => $rules,
 						//'empty' => '(Select a filter)',
@@ -80,7 +80,7 @@
 						'data-date-format' => 'yyyy-mm-dd',
 						'style' => 'display:none;width:236px;',
 						'div' => false
-				)); 
+				));
 				echo $this->Form->input('searcheventinfo', array(
 						'label' => false,
 						'class' => 'input-large',
@@ -120,7 +120,7 @@
 						<th style="width:567px;border:1px solid #cccccc;border-right:0px;text-align: left;">Value</th>
 						<th style="width:10px;border:1px solid #cccccc;border-left:0px;text-align: left;"></th>
 					</tr>
-					<?php 
+					<?php
 						$fields = array('published', 'org', 'tag', 'date', 'eventinfo', 'eventid', 'threatlevel', 'analysis', 'distribution', 'attribute');
 						if ($isSiteAdmin) $fields[] = 'email';
 						foreach ($fields as $k => $field):
@@ -130,7 +130,7 @@
 							<td id="value_<?php echo $field;?>" style="border:1px solid #cccccc;border-right:0px;"></td>
 							<td id="delete_<?php echo $field;?>" style="border:1px solid #cccccc;border-left:0px;"><span class="icon-trash" onClick="indexFilterClearRow('<?php echo $field;?>')"></span></td>
 						</tr>
-					<?php 
+					<?php
 						endforeach;
 					?>
 				</table>
@@ -142,7 +142,7 @@
 			</div>
 			<?php echo $this->Form->create('Event', array('id' => 'test', 'url' => $baseurl . '/events/index'));?>
 			<fieldset>
-			<?php 
+			<?php
 				echo $this->Form->input('generatedURL', array(
 					'label' => false,
 					'class' => 'input',
@@ -164,20 +164,20 @@ var typeArray = {
 		'tag' : <?php echo $tagJSON; ?>,
 		'published' : ["No", "Yes", "Any"],
 		'distribution' : [
-						{"id" : "0", "value" : "Your organisation only"}, 
+						{"id" : "0", "value" : "Your organisation only"},
 						{"id" : "1", "value" : "This community only"},
-						{"id" : "2", "value" : "Connected communities"}, 
+						{"id" : "2", "value" : "Connected communities"},
 						{"id" : "3", "value" : "All communities"}
 						],
 		'threatlevel' : [
-						{"id" : "1", "value" : "High"}, 
-						{"id" : "2", "value" : "Medium"}, 
-						{"id" : "3", "value" : "Low"}, 
+						{"id" : "1", "value" : "High"},
+						{"id" : "2", "value" : "Medium"},
+						{"id" : "3", "value" : "Low"},
 						{"id" : "4", "value" : "Undefined"}
 		         		],
 		'analysis' : [
-		      			{"id" : "0", "value" : "Initial"}, 
-		      			{"id" : "1", "value" : "Ongoing"}, 
+		      			{"id" : "0", "value" : "Initial"},
+		      			{"id" : "1", "value" : "Ongoing"},
 		      			{"id" : "2", "value" : "Completed"}
 		      		]
 };

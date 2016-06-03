@@ -42,7 +42,7 @@ class ServersController extends AppController {
 		switch ($this->request->params['action']) {
 			case 'push':
 			case 'pull':
-			case 'getVersion': 
+			case 'getVersion':
 			case 'testConnection':
 				$this->Security->csrfUseOnce = false;
 		}
@@ -73,7 +73,7 @@ class ServersController extends AppController {
 
 	public function previewIndex($id) {
 		if (isset($this->passedArgs['pages'])) $currentPage = $this->passedArgs['pages'];
-		else $currentPage = 1; 
+		else $currentPage = 1;
 		$urlparams = '';
 		$passedArgs = array();
 		if (!$this->_isSiteAdmin()) {
@@ -85,8 +85,8 @@ class ServersController extends AppController {
 		foreach($validFilters as $k => $filter) {
 			if (isset($this->passedArgs[$filter])) {
 				$passedArgs[$filter] = $this->passedArgs[$filter];
-				if ($k != 0) $urlparams .= '/'; 
-				$urlparams .= $filter . ':' . $this->passedArgs[$filter]; 
+				if ($k != 0) $urlparams .= '/';
+				$urlparams .= $filter . ':' . $this->passedArgs[$filter];
 			}
 		}
 		$events = $this->Server->previewIndex($id, $this->Auth->user(), array_merge($this->passedArgs, $passedArgs));
@@ -109,7 +109,7 @@ class ServersController extends AppController {
 		$this->set('shortDist', $shortDist);
 		$this->set('ajax', $this->request->is('ajax'));
 		$this->set('id', $id);
-		$this->set('urlparams', $urlparams);		
+		$this->set('urlparams', $urlparams);
 		$this->set('passedArgs', json_encode($passedArgs));
 		$this->set('passedArgsArray', $passedArgs);
 		$this->set('server', $server);
@@ -454,7 +454,7 @@ class ServersController extends AppController {
 						break;
 					case '4' :
 						$this->redirect(array('action' => 'index'));
-						break;		
+						break;
 				}
 				$this->redirect($this->referer());
 			} else {
@@ -549,7 +549,7 @@ class ServersController extends AppController {
 			$dir = new Folder(APP . "files" . DS . "certs", true);
 			if (!preg_match('@^[\w-,\s,\.]+\.[A-Za-z0-9_]{2,4}$@', $server['Server']['submitted_cert']['name'])) throw new Exception ('Filename not allowed');
 			$pemfile = new File($destpath . $id . '.' . $ext);
-			$result = $pemfile->write($pemData); 
+			$result = $pemfile->write($pemData);
 			$s = $this->Server->read(null, $id);
 			$s['Server']['cert_file'] = $s['Server']['id'] . '.' . $ext;
 			if ($result) $this->Server->save($s);
@@ -600,23 +600,23 @@ class ServersController extends AppController {
 			$sessionErrors = array(0 => 'OK', 1 => 'High', 2 => 'Alternative setting used', 3 => 'Test failed');
 
 			$finalSettings = $this->Server->serverSettingsRead();
-			$issues = array(	
+			$issues = array(
 				'errors' => array(
 						0 => array(
 								'value' => 0,
 								'description' => 'MISP will not operate correctly or will be unsecure until these issues are resolved.'
-						), 
+						),
 						1 => array(
 								'value' => 0,
 								'description' => 'Some of the features of MISP cannot be utilised until these issues are resolved.'
-						), 
+						),
 						2 => array(
 								'value' => 0,
 								'description' => 'There are some optional tweaks that could be done to improve the looks of your MISP instance.'
 						),
 				),
 				'deprecated' => array(),
-				'overallHealth' => 3, 
+				'overallHealth' => 3,
 			);
 			$dumpResults = array();
 			$tempArray = array();
@@ -655,17 +655,17 @@ class ServersController extends AppController {
 							'explanation' => 'The maximum duration that a script can run (does not affect the background workers). A too low number will break long running scripts like comprehensive API exports',
 							'recommended' => 300,
 							'unit' => false
-						), 
+						),
 						'memory_limit' => array(
 							'explanation' => 'The maximum memory that PHP can consume. It is recommended to raise this number since certain exports can generate a fair bit of memory usage',
 							'recommended' => 512,
 							'unit' => 'M'
-						), 
+						),
 						'upload_max_filesize' => array(
 							'explanation' => 'The maximum size that an uploaded file can be. It is recommended to raise this number to allow for the upload of larger samples',
 							'recommended' => 50,
 							'unit' => 'M'
-						), 
+						),
 						'post_max_size' => array(
 							'explanation' => 'The maximum size of a POSTed message, this has to be at least the same size as the upload_max_filesize setting',
 							'recommended' => 50,
@@ -1061,7 +1061,7 @@ class ServersController extends AppController {
 			$this->set('events', $result['publishCount']);
 			$this->set('time', date('Y/m/d H:i:s', $result['timestamp']));
 			$this->set('time2', date('Y/m/d H:i:s', $result['timestampSettings']));
-		}		
+		}
 		$this->render('ajax/zeromqstatus');
 	}
 

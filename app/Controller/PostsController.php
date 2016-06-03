@@ -24,12 +24,12 @@ class PostsController extends AppController {
 		parent::beforeFilter();
 	}
 
-	// Find the thread_id and post_id in advance. If a user clicks post comment on the event view, send the event's related thread's ID 
+	// Find the thread_id and post_id in advance. If a user clicks post comment on the event view, send the event's related thread's ID
 	// Usage:
 	// /posts/add : Creates new thread with the added post as the first post. Title set by user
 	// /posts/add/event/id : Checks if the event already has a thread, if no it creates one. The post is added to the event's thread
 	// /posts/add/thread/id : Adds a post to the thread specified
-	// /posts/add/post/id : Adds a post as a reply to another post. The system finds the appropriate thread, adds the post to the thread and links to the post that is being replied to. 
+	// /posts/add/post/id : Adds a post as a reply to another post. The system finds the appropriate thread, adds the post to the thread and links to the post that is being replied to.
 	public function add($target_type = null, $target_id = null, $quick = false) {
 		$this->loadModel('Thread');
 		$this->Thread->recursive = -1;
@@ -37,8 +37,8 @@ class PostsController extends AppController {
 		$event_id = 0;
 		$post_id = 0;
 		if ($this->request->is('ajax')) $this->layout = 'ajax';
-		// we have a target type and a target id. The target id defines what type of object we want to attach this event to (is it a reply to another post, 
-		// did someone add a post to a thread, does a thread for the event exist already, etc. 
+		// we have a target type and a target id. The target id defines what type of object we want to attach this event to (is it a reply to another post,
+		// did someone add a post to a thread, does a thread for the event exist already, etc.
 		switch ($target_type) {
 			case 'event' :
 				$this->loadModel('Event');
@@ -114,7 +114,7 @@ class PostsController extends AppController {
 			if ($target_thread_id == null) {
 				// We have a post that was posted in a new thread. This could also mean that someone created the first post related to an event!
 				$this->Thread->create();
-				// Take the title from above if we are adding a post to an event. 
+				// Take the title from above if we are adding a post to an event.
 				if ($target_type === 'event') {
 					$title = $eventDiscussionTitle;
 				}
@@ -137,7 +137,7 @@ class PostsController extends AppController {
 				$this->Thread->data['Thread']['date_modified'] = date('Y/m/d H:i:s');
 				$this->Thread->save();
 			}
-			// Time to create our post! 
+			// Time to create our post!
 			$this->Post->create();
 			$newPost = array(
 					'date_created' => date('Y/m/d H:i:s'),
@@ -145,7 +145,7 @@ class PostsController extends AppController {
 					'user_id' => $this->Auth->user('id'),
 					'contents' => $this->request->data['Post']['message'],
 					'post_id' => $post_id,
-					'thread_id' => $target_thread_id, 
+					'thread_id' => $target_thread_id,
 			);
 			if ($this->Post->save($newPost)) {
 				$this->Thread->recursive = 0;

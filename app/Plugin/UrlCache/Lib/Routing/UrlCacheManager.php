@@ -2,13 +2,13 @@
 
 /**
  * This class will statically hold in memory url's indexed by a custom hash
- * 
+ *
  * @licence MIT
  * @modified Mark Scherer
  * - now easier to integrate
  * - optimization for `pageFiles` (still stores urls with only controller/action keys in global file)
  * - can handle legacy `prefix` urls
- * 
+ *
  * 2012-02-13 ms
  */
 class UrlCacheManager {
@@ -34,22 +34,22 @@ class UrlCacheManager {
 	/**
 	 * type for the current set (triggered by last get)
 	 */
-	public static $type = 'cache'; 
+	public static $type = 'cache';
 
 	/**
 	 * key for current get/set
 	 */
-	public static $key = null; 
+	public static $key = null;
 
 	/**
 	 * cache key for pageFiles
 	 */
-	public static $cacheKey = 'url_map'; 
+	public static $cacheKey = 'url_map';
 
 	/**
 	 * cache key for pageFiles
 	 */
-	public static $cachePageKey = null; 
+	public static $cachePageKey = null;
 
 	/**
 	 * params that will always be present and will determine the global cache if pageFiles is used
@@ -58,7 +58,7 @@ class UrlCacheManager {
 
 	/**
 	 * should be called in beforeRender()
-	 * 
+	 *
 	 */
 	public static function init(View $View) {
 		$params = $View->request->params;
@@ -96,7 +96,7 @@ class UrlCacheManager {
 
 	/**
 	 * should be called in afterLayout()
-	 * 
+	 *
 	 */
 	public static function finalize() {
 		Cache::write(self::$cacheKey, self::$cache, '_cake_core_');
@@ -109,7 +109,7 @@ class UrlCacheManager {
 	/**
 	 * Returns the stored url if it was already generated, false otherwise
 	 *
-	 * @param string $key 
+	 * @param string $key
 	 * @return mixed
 	 */
 	public static function get($url, $full) {
@@ -143,7 +143,7 @@ class UrlCacheManager {
 	/**
 	 * Stores a ney key in memory cache
 	 *
-	 * @param string $key 
+	 * @param string $key
 	 * @param mixed data to be stored
 	 * @return void
 	 */

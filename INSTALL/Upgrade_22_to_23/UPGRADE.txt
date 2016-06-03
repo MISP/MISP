@@ -48,9 +48,9 @@ mysql -u <database login> -p<database password> <misp table name> < /var/www/MIS
 
 # MISP has moved to a new configuration system. It might be a good idea to note down the old settings before removing them.
 # Wherever applicable, you can remove .b from the default configuration file's name to get the non-background worker enabled version, however this is not recommended
-mv /var/www/MISP/app/Config/bootstrap.b.default.php /var/www/MISP/app/Config/bootstrap.php 
-mv /var/www/MISP/app/Config/core.b.default.php /var/www/MISP/app/Config/core.php 
-mv /var/www/MISP/app/Config/config.default.php /var/www/MISP/app/Config/config.php 
+mv /var/www/MISP/app/Config/bootstrap.b.default.php /var/www/MISP/app/Config/bootstrap.php
+mv /var/www/MISP/app/Config/core.b.default.php /var/www/MISP/app/Config/core.php
+mv /var/www/MISP/app/Config/config.default.php /var/www/MISP/app/Config/config.php
 
 # Enable the background workers by uncommenting CakePlugin::loadall(array('CakeResque' => array('bootstrap' => true))); in /var/www/MISP/app/Config/bootstrap.php
 

@@ -138,7 +138,7 @@ class BlackListComponent extends Component {
 			$this->controller->Session->setFlash(__('Could not remove the blacklist entry'));
 		}
 		$this->controller->redirect(array('action' => 'index'));
-	}	
+	}
 
 	public $controller;
 

@@ -23,10 +23,10 @@ class ComplexTypeTool {
 				break;
 			default:
 				return false;
-		}	
+		}
 	}
 
-	// checks if the passed input matches a valid file description attribute's pattern (filename, md5, sha1, sha256, filename|md5, filename|sha1, filename|sha256)		
+	// checks if the passed input matches a valid file description attribute's pattern (filename, md5, sha1, sha256, filename|md5, filename|sha1, filename|sha256)
 	public function checkComplexFile($input) {
 		$original = $input;
 		$type = '';
@@ -135,7 +135,7 @@ class ComplexTypeTool {
 		if (preg_match('/(:[0-9]{2,5})$/', $inputRefanged, $port)) {
 			$comment = 'On port ' . substr($port[0], 1);
 			$inputRefangedNoPort = str_replace($port[0], '', $inputRefanged);
-		} else $inputRefangedNoPort = $inputRefanged;		
+		} else $inputRefangedNoPort = $inputRefanged;
 		// check for IP
 		if (filter_var($inputRefangedNoPort, FILTER_VALIDATE_IP)) return array('types' => array('ip-dst', 'ip-src', 'ip-src/ip-dst'), 'to_ids' => true, 'default_type' => 'ip-dst', 'comment' => $comment, 'value' => $inputRefangedNoPort);
 		if (strpos($inputRefangedNoPort, '/')) {
@@ -160,7 +160,7 @@ class ComplexTypeTool {
 				// check if it is a URL
 				// Adding http:// infront of the input in case it was left off. github.com/MISP/MISP should still be counted as a valid link
 				if (count($temp) > 1 && (filter_var($inputRefangedNoPort, FILTER_VALIDATE_URL) || filter_var('http://' . $inputRefangedNoPort, FILTER_VALIDATE_URL))) {
-					// TODO: add comment explaining why there is a check for a specific domain	
+					// TODO: add comment explaining why there is a check for a specific domain
 					if (preg_match('/^https:\/\/www.virustotal.com\//i', $inputRefangedNoPort)) return array('types' => array('link'), 'to_ids' => false, 'default_type' => 'link', 'comment' => $comment, 'value' => $inputRefangedNoPort);
 					if (strpos($inputRefangedNoPort, '/')) return array('types' => array('url'), 'to_ids' => true, 'default_type' => 'url', 'comment' => $comment, 'value' => $inputRefangedNoPort);
 				}

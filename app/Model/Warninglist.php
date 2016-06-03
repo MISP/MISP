@@ -105,7 +105,7 @@ class Warninglist extends AppModel{
 
 	public function fetchForEventView() {
 		$warninglists = $this->find('all', array('contain' => array('WarninglistType'), 'conditions' => array('enabled' => true)));
-		if (empty($warninglists)) return array();		
+		if (empty($warninglists)) return array();
 		foreach ($warninglists as $k => &$t) {
 			$t['values'] = $this->WarninglistEntry->find('list', array(
 					'recursive' => -1,

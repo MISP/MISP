@@ -19,21 +19,21 @@
 	?>
 		<div class="clear"></div>
 		<div id="externalAuthDiv">
-		<?php 
+		<?php
 			echo $this->Form->input('external_auth_key', array('type' => 'text'));
 		?>
 		</div>
-	<?php 
+	<?php
 		endif;
 	?>
 	<div class="clear"></div>
 	<div id="passwordDivDiv">
-		<?php 
+		<?php
 			echo $this->Form->input('enable_password', array('type' => 'checkbox', 'label' => 'Set password'));
 		?>
 		<div id="PasswordDiv">
 			<div class="clear"></div>
-			<?php 
+			<?php
 				echo $this->Form->input('password');
 				echo $this->Form->input('confirm_password', array('type' => 'password', 'div' => array('class' => 'input password required')));
 			?>
@@ -52,11 +52,11 @@
 		echo $this->Form->input('nids_sid');
 	?>
 		<div id = "syncServers" class="hidden">
-	<?php 
+	<?php
 			echo $this->Form->input('server_id', array('label' => 'Sync user for', 'div' => 'clear', 'options' => $servers));
 	?>
 		</div>
-	<?php 
+	<?php
 		echo $this->Form->input('gpgkey', array('label' => 'GPG key', 'div' => 'clear', 'class' => 'input-xxlarge'));
 	?>
 			<div class="clear"><span onClick="lookupPGPKey('UserEmail');" class="btn btn-inverse" style="margin-bottom:10px;">Fetch GPG key</span></div>
@@ -79,7 +79,7 @@
 	echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary'));
 echo $this->Form->end();?>
 </div>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'editUser'));
 ?>
 

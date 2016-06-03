@@ -33,8 +33,8 @@
 		</dd>
 		<dt><?php echo __('Authkey'); ?></dt>
 		<dd>
-			<?php 
-				echo h($user['User']['authkey']); 
+			<?php
+				echo h($user['User']['authkey']);
 				if (!Configure::read('MISP.disableUserSelfManagement') || $isAdmin) {
 					echo '(' . $this->Html->link('reset', array('controller' => 'users', 'action' => 'resetauthkey', $user['User']['id'])) . ')';
 				}
@@ -63,6 +63,6 @@
 		<?php endif; ?>
 	</dl>
 </div>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'view'));
 ?>

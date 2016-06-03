@@ -189,7 +189,7 @@ class Taxonomy extends AppModel{
 		$tags = $this->Tag->getTagsForNamespace($taxonomy['Taxonomy']['namespace']);
 		foreach ($taxonomy['entries'] as $k => &$entry) {
 			if (isset($tags[strtoupper($entry['tag'])])) {
-				$temp = $tags[strtoupper($entry['tag'])]; 
+				$temp = $tags[strtoupper($entry['tag'])];
 				if ((in_array('colour', $skipUpdateFields) && $temp['Tag']['colour'] != $colours[$k]) || (in_array('name', $skipUpdateFields) && $temp['Tag']['name'] !== $entry['tag'])) {
 					if (!in_array('colour', $skipUpdateFields)) $temp['Tag']['colour'] = $colours[$k];
 					if (!in_array('name', $skipUpdateFields)) $temp['Tag']['name'] = $entry['tag'];
@@ -241,7 +241,7 @@ class Taxonomy extends AppModel{
 		));
 		$taxonomies = array();
 		foreach ($temp as &$t) {
-			$taxonomies[$t['Taxonomy']['namespace']] = $t['Taxonomy'];	
+			$taxonomies[$t['Taxonomy']['namespace']] = $t['Taxonomy'];
 		}
 		return $taxonomies;
 	}

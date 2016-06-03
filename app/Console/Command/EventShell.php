@@ -1,4 +1,4 @@
-<?php 
+<?php
 App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
 require_once 'AppShell.php';
@@ -290,7 +290,7 @@ class EventShell extends AppShell
 		$task = $this->Task->findByType('cache_exports');
 
 		// If the next execution time and the timestamp don't match, it means that this task is no longer valid as the time for the execution has since being scheduled
-		// been updated. 
+		// been updated.
 		if ($task['Task']['next_execution_time'] != $timestamp) return;
 
 		$users = $this->User->find('all', array(
@@ -301,7 +301,7 @@ class EventShell extends AppShell
 				),
 				'contain' => array(
 						'Organisation' => array('fields' => array('name')),
-						'Role' => array('fields' => array('perm_site_admin'))	
+						'Role' => array('fields' => array('perm_site_admin'))
 				),
 				'fields' => array('User.org_id', 'User.id'),
 				'group' => array('User.org_id')
@@ -314,7 +314,7 @@ class EventShell extends AppShell
 				),
 				'contain' => array(
 						'Organisation' => array('fields' => array('name')),
-						'Role' => array('fields' => array('perm_site_admin'))	
+						'Role' => array('fields' => array('perm_site_admin'))
 				),
 				'fields' => array('User.org_id', 'User.id')
 		));

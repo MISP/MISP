@@ -15,7 +15,7 @@
 							echo $this->Form->create('Event', array('id' => 'removeTag_' . h($tag['Tag']['id']),  'url' => '/events/removeTag/' . h($event['Event']['id']) . '/' . h($tag['Tag']['id']), 'style' => 'margin:0px;'));
 						?>
 						<div class="tagSecondHalf useCursorPointer noPrint" onClick="removeEventTag('<?php echo h($event['Event']['id']); ?>', '<?php echo h($tag['Tag']['id']); ?>');">x</div>
-						<?php 
+						<?php
 							echo $this->Form->end();
 						?>
 					<?php else: ?>
@@ -23,7 +23,7 @@
 					<?php endif; ?>
 				</div>
 			</div>
-			<?php 
+			<?php
 		endforeach;
 	?>
 		<div style="float:left">

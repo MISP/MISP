@@ -205,7 +205,7 @@
 	<h2><a id="background"></a>Background Processing</h2>
 	If enabled, MISP can delegate a lot of the time intensive tasks to the background workers. These will then be executed in order, allowing the users of the instance to keep using the system without a hiccup and without having to wait for the process to finish. It also allows for certain tasks to be scheduled and automated.
 	<h3>Command Line Tools for the Background Workers</h3>
-	The background workers are powered by <a href="https://github.com/kamisama/Cake-Resque">CakeResque</a>, so all of the CakeResque commands work. 
+	The background workers are powered by <a href="https://github.com/kamisama/Cake-Resque">CakeResque</a>, so all of the CakeResque commands work.
 	To start all of the workers needed by MISP go to your <code>/var/www/MISP/app/Console/worker</code> (assuming a standard installation path) and execute start.sh.
 	To interact with the workers, here is a list of useful commands. Go to your <code>/var/www/MISP/app/Console</code> (assuming a standard installation path) and execute one of the following commands as a parameter to <code>./cake CakeResque.CakeResque</code> (for example: <code>./cake CakeResque.CakeResque tail</code>):<br /><br />
 	<ul>

@@ -1,5 +1,5 @@
 <div class="attributes <?php if (!isset($ajax) || !$ajax) echo 'form';?>">
-<?php 
+<?php
 	echo $this->Form->create('Attribute', array('id'));
 ?>
 	<fieldset>
@@ -18,7 +18,7 @@
 			$initialDistribution = 5;
 			if (Configure::read('MISP.default_attribute_distribution') != null) {
 				if (Configure::read('MISP.default_attribute_distribution') === 'event') {
-					$initialDistribution = 5;	
+					$initialDistribution = 5;
 				} else {
 					$initialDistribution = Configure::read('MISP.default_attribute_distribution');
 				}
@@ -44,7 +44,7 @@
 				}
 			?>
 				</div>
-			<?php 
+			<?php
 			echo $this->Form->input('value', array(
 					'type' => 'textarea',
 					'error' => array('escape' => false),
@@ -95,15 +95,15 @@
 				</tr>
 			</table>
 		</div>
-	<?php 
-		else: 
+	<?php
+		else:
 			echo $this->Form->button('Submit', array('class' => 'btn btn-primary'));
 		endif;
 		echo $this->Form->end();
 	?>
 	<div id="confirmation_box" class="confirmation_box"></div>
 </div>
-<?php 
+<?php
 	if(!$ajax) {
 		$event['Event']['id'] = $this->request->data['Attribute']['event_id'];
 		$event['Event']['published'] = $published;
@@ -223,7 +223,7 @@ $(document).ready(function() {
 	<?php if ($ajax): ?>
 		$('#cancel_attribute_add').click(function() {
 			cancelPopoverForm();
-		});	
+		});
 
 	<?php endif; ?>
 });

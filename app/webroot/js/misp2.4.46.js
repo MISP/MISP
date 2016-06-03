@@ -25,7 +25,7 @@ function publishPopup(id, type) {
 	});
 }
 
-function delegatePopup(id) {	
+function delegatePopup(id) {
 	$.get( "/event_delegations/delegateEvent/" + id, function(data) {
 		$("#popover_form").html(data);
 		$("#popover_form").fadeIn();
@@ -67,18 +67,18 @@ function submitDeletion(context_id, action, type, id) {
 	$.ajax({
 		beforeSend: function (XMLHttpRequest) {
 			$(".loading").show();
-		}, 
-		data: formData, 
+		},
+		data: formData,
 		success:function (data, textStatus) {
 			updateIndex(context_id, context);
 			handleGenericAjaxResponse(data);
-		}, 
+		},
 		complete:function() {
 			$(".loading").hide();
 			$("#confirmation_box").fadeOut();
 			$("#gray_out").fadeOut();
 		},
-		type:"post", 
+		type:"post",
 		cache: false,
 		url:"/" + type + "/" + action + "/" + id,
 	});
@@ -88,7 +88,7 @@ function toggleSetting(e, setting, id) {
 	e.preventDefault();
 	e.stopPropagation();
 	switch (setting) {
-	case 'warninglist_enable': 
+	case 'warninglist_enable':
 		formID = '#WarninglistIndexForm';
 		dataDiv = '#WarninglistData';
 		replacementForm = '/warninglists/getToggleField/';
@@ -106,8 +106,8 @@ function toggleSetting(e, setting, id) {
 	$.ajax({
 		beforeSend: function (XMLHttpRequest) {
 			$(".loading").show();
-		}, 
-		data: formData, 
+		},
+		data: formData,
 		success:function (data, textStatus) {
 			var result = JSON.parse(data);
 			if (result.success) {
@@ -116,7 +116,7 @@ function toggleSetting(e, setting, id) {
 				$('#checkBox_' + id).prop('checked', setting);
 			}
 			handleGenericAjaxResponse(data);
-		}, 
+		},
 		complete:function() {
 			$.get( replacementForm, function(data) {
 				$('#hiddenFormDiv').html(data);
@@ -128,7 +128,7 @@ function toggleSetting(e, setting, id) {
 		error:function() {
 			handleGenericAjaxResponse({'saved':false, 'errors':['Request failed due to an unexpected error.']});
 		},
-		type:"post", 
+		type:"post",
 		cache: false,
 		url: $(formID).attr('action'),
 	});
@@ -148,17 +148,17 @@ function submitPasswordReset(id) {
 	$.ajax({
 		beforeSend: function (XMLHttpRequest) {
 			$(".loading").show();
-		}, 
-		data: formData, 
+		},
+		data: formData,
 		success:function (data, textStatus) {
 			handleGenericAjaxResponse(data);
-		}, 
+		},
 		complete:function() {
 			$(".loading").hide();
 			$("#confirmation_box").fadeOut();
 			$("#gray_out").fadeOut();
 		},
-		type:"post", 
+		type:"post",
 		cache: false,
 		url:url,
 	});
@@ -168,17 +168,17 @@ function acceptObject(type, id, event) {
 	name = '#ShadowAttribute_' + id + '_accept';
 	var formData = $(name).serialize();
 	$.ajax({
-		data: formData, 
+		data: formData,
 		success:function (data, textStatus) {
 			updateIndex(event, 'event');
 			eventUnpublish();
 			handleGenericAjaxResponse(data);
-		}, 
-		type:"post", 
+		},
+		type:"post",
 		cache: false,
 		url:"/shadow_attributes/accept/" + id,
 	});
-}	
+}
 
 function eventUnpublish() {
 	$('.publishButtons').show();
@@ -201,13 +201,13 @@ function updateIndex(id, context, newPage) {
 	$.ajax({
 		beforeSend: function (XMLHttpRequest) {
 			$(".loading").show();
-		}, 
-		dataType:"html", 
+		},
+		dataType:"html",
 		cache: false,
 		success:function (data, textStatus) {
 			$(".loading").hide();
 			$(div).html(data);
-		}, 
+		},
 		url: url,
 	});
 }
@@ -218,8 +218,8 @@ function updateAttributeFieldOnSuccess(name, type, id, field, event) {
 			if (field != 'timestamp') {
 				$(".loading").show();
 			}
-		}, 
-		dataType:"html", 
+		},
+		dataType:"html",
 		cache: false,
 		success:function (data, textStatus) {
 			if (field != 'timestamp') {
@@ -230,7 +230,7 @@ function updateAttributeFieldOnSuccess(name, type, id, field, event) {
 			} else {
 				$('#' + type + '_' + id + '_' + 'timestamp_solid').html(data);
 			}
-		}, 
+		},
 		url:"/attributes/fetchViewValue/" + id + "/" + field,
 	});
 }
@@ -246,14 +246,14 @@ function activateField(type, id, field, event) {
 	$.ajax({
 		beforeSend: function (XMLHttpRequest) {
 			$(".loading").show();
-		}, 
-		dataType:"html", 
+		},
+		dataType:"html",
 		cache: false,
 		success:function (data, textStatus) {
 			$(".loading").hide();
 			$(name + '_placeholder').html(data);
 			postActivationScripts(name, type, id, field, event);
-		}, 
+		},
 		url:"/" + objectType + "/fetchEditForm/" + id + "/" + field,
 	});
 }
@@ -273,7 +273,7 @@ function postActivationScripts(name, type, id, field, event) {
 		    autoresize(this);
 		});
 	}
-	$(name + '_form').submit(function(e){ 
+	$(name + '_form').submit(function(e){
 		e.preventDefault();
 		submitForm(type, id, field, event);
 		return false;
@@ -316,12 +316,12 @@ function addSighting(attribute_id, event_id, $page) {
 				});
 				updateIndex(event_id, 'event');
 			}
-		}, 
+		},
 		error:function() {
 			showMessage('fail', 'Request failed for an unknown reason.');
 			updateIndex(context, 'event');
 		},
-		type:"post", 
+		type:"post",
 		url:"/sightings/add/" + attribute_id
 	});
 }
@@ -347,7 +347,7 @@ function autoresize(textarea) {
 }
 
 // submit the form - this can be triggered by unfocusing the activated form field or by submitting the form (hitting enter)
-// after the form is submitted, intercept the response and act on it 
+// after the form is submitted, intercept the response and act on it
 function submitForm(type, id, field, context) {
 	var object_type = 'attributes';
 	var action = "editField";
@@ -360,12 +360,12 @@ function submitForm(type, id, field, context) {
 		cache: false,
 		success:function (data, textStatus) {
 			handleAjaxEditResponse(data, name, type, id, field, context);
-		}, 
+		},
 		error:function() {
 			showMessage('fail', 'Request failed for an unknown reason.');
 			updateIndex(context, 'event');
 		},
-		type:"post", 
+		type:"post",
 		url:"/" + object_type + "/" + action + "/" + id
 	});
 	$(name + '_field').unbind("keyup");
@@ -375,14 +375,14 @@ function submitForm(type, id, field, context) {
 
 function submitTagForm(id) {
 	$.ajax({
-		data: $('#EventTag').closest("form").serialize(), 
+		data: $('#EventTag').closest("form").serialize(),
 		beforeSend: function (XMLHttpRequest) {
 			$(".loading").show();
-		}, 
+		},
 		success:function (data, textStatus) {
 			loadEventTags(id);
 			handleGenericAjaxResponse(data);
-		}, 
+		},
 		error:function() {
 			showMessage('fail', 'Could not add tag.');
 			loadEventTags(id);
@@ -390,7 +390,7 @@ function submitTagForm(id) {
 		complete:function() {
 			$(".loading").hide();
 		},
-		type:"post", 
+		type:"post",
 		url:"/events/addTag/" + id
 	});
 	return false;
@@ -402,11 +402,11 @@ function quickSubmitTagForm(event_id, tag_id) {
 		data: $('#EventSelectTagForm').closest("form").serialize(),
 		beforeSend: function (XMLHttpRequest) {
 			$(".loading").show();
-		}, 
+		},
 		success:function (data, textStatus) {
 			loadEventTags(event_id);
 			handleGenericAjaxResponse(data);
-		}, 
+		},
 		error:function() {
 			showMessage('fail', 'Could not add tag.');
 			loadEventTags(event_id);
@@ -416,7 +416,7 @@ function quickSubmitTagForm(event_id, tag_id) {
 			$("#gray_out").fadeOut();
 			$(".loading").hide();
 		},
-		type:"post", 
+		type:"post",
 		url:"/events/addTag/" + event_id
 	});
 	return false;
@@ -524,15 +524,15 @@ function multiSelectAction(event, context) {
 		$('#' + settings[context]["camelCase"] + 'Ids' + settings[context]["action"].ucfirst()).attr('value', JSON.stringify(selected));
 		var formData = $('#' + settings[context]["action"] + '_selected').serialize();
 		$.ajax({
-			data: formData, 
+			data: formData,
 			cache: false,
-			type:"POST", 
+			type:"POST",
 			url:"/" + settings[context]["controller"] + "/" + settings[context]["action"] + "Selected/" + event,
 			success:function (data, textStatus) {
 				updateIndex(event, 'event');
 				var result = handleGenericAjaxResponse(data);
-				if (settings[context]["action"] != "discard" && result == true) eventUnpublish(); 
-			}, 
+				if (settings[context]["action"] != "discard" && result == true) eventUnpublish();
+			},
 		});
 	}
 	return false;
@@ -585,11 +585,11 @@ function getSelectedTaxonomyNames() {
 
 function loadEventTags(id) {
 	$.ajax({
-		dataType:"html", 
+		dataType:"html",
 		cache: false,
 		success:function (data, textStatus) {
 			$(".eventTagContainer").html(data);
-		}, 
+		},
 		url:"/tags/showEventTag/" + id,
 	});
 }
@@ -601,15 +601,15 @@ function removeEventTag(event, tag) {
 		$.ajax({
 			beforeSend: function (XMLHttpRequest) {
 				$(".loading").show();
-			}, 
-			data: formData, 
-			type:"POST", 
+			},
+			data: formData,
+			type:"POST",
 			cache: false,
 			url:"/events/removeTag/" + event + '/' + tag,
 			success:function (data, textStatus) {
 				loadEventTags(event);
 				handleGenericAjaxResponse(data);
-			}, 
+			},
 			complete:function() {
 				$(".loading").hide();
 			}
@@ -633,7 +633,7 @@ function submitPopoverForm(context_id, referer, update_context_id) {
 	var context = 'event';
 	var contextNamingConvention = 'Attribute';
 	switch (referer) {
-		case 'add': 
+		case 'add':
 			url = "/attributes/add/" + context_id;
 			break;
 		case 'propose':
@@ -686,14 +686,14 @@ function submitPopoverForm(context_id, referer, update_context_id) {
 				$(".loading").show();
 				$("#gray_out").fadeOut();
 				$("#popover_form").fadeOut();
-			}, 
-			data: $("#submitButton").closest("form").serialize(), 
+			},
+			data: $("#submitButton").closest("form").serialize(),
 			success:function (data, textStatus) {
 				var result = handleAjaxPopoverResponse(data, context_id, url, referer, context, contextNamingConvention);
 				if (context == 'event' && (referer == 'add' || referer == 'massEdit' || referer == 'replaceAttributes')) eventUnpublish();
 				$(".loading").show();
-			}, 
-			type:"post", 
+			},
+			type:"post",
 			url:url
 		});
 	}
@@ -713,8 +713,8 @@ function handleAjaxPopoverResponse(response, context_id, url, referer, context, 
 	} else {
 		var savedArray = saveValuesForPersistance();
 		$.ajax({
-			async:true, 
-			dataType:"html", 
+			async:true,
+			dataType:"html",
 			success:function (data, textStatus) {
 				$("#gray_out").fadeIn();
 				$("#popover_form").fadeIn();
@@ -729,7 +729,7 @@ function handleAjaxPopoverResponse(response, context_id, url, referer, context, 
 				$(".loading").hide();
 			},
 			url:url
-		});	
+		});
 	}
 }
 
@@ -741,7 +741,7 @@ function isEmpty(obj) {
 	return true;
 }
 
-//before we update the form (in case the action failed), we want to retrieve the data from every field, so that we can set the fields in the new form that we fetch 
+//before we update the form (in case the action failed), we want to retrieve the data from every field, so that we can set the fields in the new form that we fetch
 function saveValuesForPersistance() {
 	var formPersistanceArray = new Array();
 	for (i = 0; i < fieldsArray.length; i++) {
@@ -780,13 +780,13 @@ function updateHistogram(selected) {
 	$.ajax({
 		beforeSend: function (XMLHttpRequest) {
 			$(".loading").show();
-		}, 
-		dataType:"html", 
+		},
+		dataType:"html",
 		cache: false,
 		success:function (data, textStatus) {
 			$(".loading").hide();
 			$("#histogram").html(data);
-		}, 
+		},
 		url:"/users/histogram/" + selected,
 	});
 }
@@ -832,13 +832,13 @@ function appendTemplateTag(selected_id) {
 	$.ajax({
 		beforeSend: function (XMLHttpRequest) {
 			$(".loading").show();
-		}, 
-		dataType:"html", 
+		},
+		dataType:"html",
 		cache: false,
 		success:function (data, textStatus) {
 			$(".loading").hide();
 			$("#tags").append(data);
-		}, 
+		},
 		url:"/tags/viewTag/" + selected_id,
 	});
 	updateSelectedTags();
@@ -870,14 +870,14 @@ function updateSelectedTags() {
 
 function saveElementSorting(order) {
 	$.ajax({
-		data: order, 
+		data: order,
 		dataType:"json",
 		contentType: "application/json",
 		cache: false,
 		success:function (data, textStatus) {
 			handleGenericAjaxResponse(data);
-		}, 
-		type:"post", 
+		},
+		type:"post",
 		cache: false,
 		url:"/templates/saveElementSorting/",
 	});
@@ -888,25 +888,25 @@ function templateAddElementClicked(id) {
 	$.ajax({
 		beforeSend: function (XMLHttpRequest) {
 			$(".loading").show();
-		}, 
-		dataType:"html", 
+		},
+		dataType:"html",
 		cache: false,
 		success:function (data, textStatus) {
 			$(".loading").hide();
 			$("#popover_form").html(data);
 			$("#popover_form").fadeIn();
-		}, 
+		},
 		url:"/template_elements/templateElementAddChoices/" + id,
 	});
 }
 
 function templateAddElement(type, id) {
 	$.ajax({
-		dataType:"html", 
+		dataType:"html",
 		cache: false,
 		success:function (data, textStatus) {
 			$("#popover_form").html(data);
-		}, 
+		},
 		url:"/template_elements/add/" + type + "/" + id,
 	});
 }
@@ -1005,14 +1005,14 @@ function getPopup(id, context, target, admin) {
 	$.ajax({
 		beforeSend: function (XMLHttpRequest) {
 			$(".loading").show();
-		}, 
-		dataType:"html", 
+		},
+		dataType:"html",
 		cache: false,
 		success:function (data, textStatus) {
 			$(".loading").hide();
 			$("#popover_form").html(data);
 			$("#popover_form").fadeIn();
-		}, 
+		},
 		url: url,
 		//url:"/templates/templateChoices/" + id,
 	});
@@ -1023,14 +1023,14 @@ function simplePopup(url) {
 	$.ajax({
 		beforeSend: function (XMLHttpRequest) {
 			$(".loading").show();
-		}, 
-		dataType:"html", 
+		},
+		dataType:"html",
 		cache: false,
 		success:function (data, textStatus) {
 			$(".loading").hide();
 			$("#popover_form").html(data);
 			$("#popover_form").fadeIn();
-		}, 
+		},
 		url: url,
 	});
 }
@@ -1100,7 +1100,7 @@ function templateAddFileBubble(element_id, iframe, filename, tmp_name, batch) {
 function templateDeleteFileBubble(filename, tmp_name, element_id, context, batch) {
 	$(".loading").show();
 	$.ajax({
-		type:"post", 
+		type:"post",
 		cache: false,
 		url:"/templates/deleteTemporaryFile/" + tmp_name,
 	});
@@ -1123,7 +1123,7 @@ function templateDeleteFileBubble(filename, tmp_name, element_id, context, batch
 				newArray.push(entry);
 			}
 		}
-	}); 
+	});
 	if (batch == 'no') {
 		$('#fileUploadButton_' + element_id, $('#iframe_' + element_id).contents()).html('Upload File');
 	}
@@ -1254,7 +1254,7 @@ function indexCreateFilters() {
 	if (filterContext == 'event') {
 		if (filtering.date.from) {
 			if (text != "") text += "/";
-			text += "searchDatefrom:" + filtering.date.from; 
+			text += "searchDatefrom:" + filtering.date.from;
 		}
 		if (filtering.date.until) {
 			if (text != "") text += "/";
@@ -1310,7 +1310,7 @@ function indexEvaluateSimpleFiltering(field) {
 					}
 				}
 			}
-		} 
+		}
 	}
 	if (filtering[field].NOT.length !=0) {
 		for (var i = 0; i < filtering[field].NOT.length; i++) {
@@ -1327,7 +1327,7 @@ function indexEvaluateSimpleFiltering(field) {
 					}
 				}
 			}
-		} 
+		}
 	}
 	$('#value_' + field).html(text);
 }
@@ -1448,7 +1448,7 @@ function restrictEventViewPagination() {
 		if (i != 1 && i != count && (i < start || i > end)) {
 			$("#apage" + i).hide();
 			$("#bpage" + i).hide();
-		}	
+		}
 	}
 }
 
@@ -1470,7 +1470,7 @@ function expandPagination(bottom, right) {
 
 function getSubGroupFromSetting(setting) {
 	var temp = setting.split('.');
-	if (temp[0] == "Plugin") { 
+	if (temp[0] == "Plugin") {
 		temp = temp[1];
 		if (temp.indexOf('_') > -1) {
 			temp = temp.split('_');
@@ -1483,12 +1483,12 @@ function getSubGroupFromSetting(setting) {
 function serverSettingsActivateField(setting, id) {
 	resetForms();
 	$('.inline-field-placeholder').hide();
-	var fieldName = "#setting_" + getSubGroupFromSetting(setting) + "_" + id; 
+	var fieldName = "#setting_" + getSubGroupFromSetting(setting) + "_" + id;
 	$.ajax({
 		beforeSend: function (XMLHttpRequest) {
 			$(".loading").show();
-		}, 
-		dataType:"html", 
+		},
+		dataType:"html",
 		cache: false,
 		success:function (data, textStatus) {
 			$(".loading").hide();
@@ -1496,7 +1496,7 @@ function serverSettingsActivateField(setting, id) {
 			$(fieldName + "_solid").hide();
 			$(fieldName + "_placeholder").show();
 			serverSettingsPostActivationScripts(fieldName, setting, id);
-		}, 
+		},
 		url:"/servers/serverSettingsEdit/" + setting + "/" + id,
 	});
 }
@@ -1505,7 +1505,7 @@ function serverSettingsPostActivationScripts(name, setting, id) {
 	$(name + '_field').focus();
 	inputFieldButtonActive(name + '_field');
 
-	$(name + '_form').submit(function(e){ 
+	$(name + '_form').submit(function(e){
 		e.preventDefault();
 		serverSettingSubmitForm(name, setting, id);
 		return false;
@@ -1543,7 +1543,7 @@ function serverSettingSubmitForm(name, setting, id) {
 		cache: false,
 		beforeSend: function (XMLHttpRequest) {
 			$(".loading").show();
-		}, 
+		},
 		success:function (data, textStatus) {
 			$.ajax({
 				type:"get",
@@ -1556,13 +1556,13 @@ function serverSettingSubmitForm(name, setting, id) {
 					showMessage('fail', 'Could not refresh the table.');
 				}
 			});
-		}, 
+		},
 		error:function() {
 			showMessage('fail', 'Request failed for an unknown reason.');
 			resetForms();
 			$('.inline-field-placeholder').hide();
 		},
-		type:"post", 
+		type:"post",
 		url:"/servers/serverSettingsEdit/" + setting + "/" + id + "/" + 1
 	});
 	$(name + '_field').unbind("keyup");
@@ -1691,7 +1691,7 @@ function freetextImportResultsSubmit(id, count) {
 		},
 		success:function (data, textStatus) {
 			window.location = '/events/view/' + id;
-		}, 
+		},
 		complete:function() {
 			$(".loading").hide();
 		},
@@ -1728,7 +1728,7 @@ function organisationViewContent(context, id) {
 function organisationViewButtonHighlight(context) {
 	$(".orgViewButtonActive").hide();
 	$(".orgViewButton").show();
-	$("#button_" + context).hide();	
+	$("#button_" + context).hide();
 	$("#button_" + context + "_active").show();
 }
 
@@ -2121,7 +2121,7 @@ function zeroMQServerAction(action) {
 		url: "/servers/" + action + "ZeroMQServer/",
 		beforeSend: function (XMLHttpRequest) {
 			$(".loading").show();
-		}, 
+		},
 		success: function (data) {
 			$(".loading").hide();
 			if (action !== 'status') {
@@ -2207,23 +2207,23 @@ function serverRulePopulateTagPicklist() {
 			if ($.inArray(element.id, rules["push"][field]["OR"]) != -1) target = "#" + field + "pushLeftValues";
 			else if ($.inArray(element.id, rules["push"][field]["NOT"]) != -1) target = "#" + field + "pushRightValues";
 			else target = "#" + field + "pushMiddleValues";
-			$(target).append($('<option/>', { 
+			$(target).append($('<option/>', {
 				value: element.id,
-				text : element.name 
+				text : element.name
 			}));
 		});
 		target = "#" + field + "pullLeftValues";
 		rules["pull"][field]["OR"].forEach(function(t) {
-			$(target).append($('<option/>', { 
+			$(target).append($('<option/>', {
 				value: t,
-				text : t 
+				text : t
 			}));
 		});
 		target = "#" + field + "pullRightValues";
 		rules["pull"][field]["NOT"].forEach(function(t) {
-			$(target).append($('<option/>', { 
+			$(target).append($('<option/>', {
 				value: t,
-				text : t 
+				text : t
 			}));
 		});
 	});
@@ -2262,7 +2262,7 @@ function serverRuleMoveFilter(type, field, from, to) {
 				if (value == $(this).val()) $(this).remove();
 			});
 			if (doInsert) {
-				$("#" + field + type + to + "Values").append($('<option/>', { 
+				$("#" + field + type + to + "Values").append($('<option/>', {
 					value: value,
 					text : value
 				}));
@@ -2274,7 +2274,7 @@ function serverRuleMoveFilter(type, field, from, to) {
 			if (type != "pull" || to != "Middle") {
 				value = $(this).val();
 				text = $(this).text();
-				$("#" + field + type + to + "Values").append($('<option/>', { 
+				$("#" + field + type + to + "Values").append($('<option/>', {
 					value: value,
 					text : text
 				}));
@@ -2407,7 +2407,7 @@ function hoverModuleExpand(type, id) {
 					trigger: 'hover',
 					container: 'body'
 				}).popover('show');
-			}, 
+			},
 			cache: false,
 			url:"/" + type + "s/hoverEnrichment/" + id,
 		});

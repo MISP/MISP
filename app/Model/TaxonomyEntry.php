@@ -14,7 +14,7 @@ class TaxonomyEntry extends AppModel{
 		'expanded' => array(
 			'rule' => array('stringNotEmpty'),
 		),
-	);	
+	);
 
 	public $belongsTo = array(
 		'TaxonomyPredicate'

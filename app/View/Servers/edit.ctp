@@ -12,7 +12,7 @@
 	?>
 		<div class="input clear"></div>
 
-	<?php	
+	<?php
 		echo $this->Form->input('organisation_type', array(
 				'label' => 'Organisation Type',
 				'options' => $organisationOptions,
@@ -22,10 +22,10 @@
 		<div id="ServerExternalContainer" class="input select hiddenField" style="display:none;">
 			<label for="ServerExternal">External Organisation</label>
 			<select id="ServerExternal">
-				<?php 
+				<?php
 					foreach ($externalOrganisations as $k => $v) {
-						if ($k == $oldRemoteOrg) echo '<option value="' . $k . '" selected="selected">' . h($v) . '</option>'; 
-						else echo '<option value="' . $k . '">' . h($v) . '</option>'; 
+						if ($k == $oldRemoteOrg) echo '<option value="' . $k . '" selected="selected">' . h($v) . '</option>';
+						else echo '<option value="' . $k . '">' . h($v) . '</option>';
 					}
 				?>
 			</select>
@@ -33,7 +33,7 @@
 		<div id="ServerLocalContainer" class="input select hiddenField" style="display:none;">
 			<label for="ServerLocal">Local Organisation</label>
 			<select id="ServerLocal">
-				<?php 
+				<?php
 					foreach ($localOrganisations as $k => $v) {
 						if ($k == $oldRemoteOrg) echo '<option value="' . $k . '" selected="selected">' . h($v) . '</option>';
 						else echo '<option value="' . $k . '">' . h($v) . '</option>';
@@ -50,7 +50,7 @@
 			<input type="text" id="ServerExternalUuid">
 		</div>
 		<div class = "input clear"></div>
-	<?php	
+	<?php
 		echo $this->Form->input('authkey', array(
 		));
 	?>
@@ -71,7 +71,7 @@
 	<div class="clear">
 		<p>
 			<span class="bold">Ceritificate file: </span>
-			<span id="serverEditCertValue"> 
+			<span id="serverEditCertValue">
 				<?php
 					if (isset($server['Server']['cert_file']) && !empty($server['Server']['cert_file'])) echo h($server['Server']['cert_file']);
 					else echo '<span class="green bold">Not set.</span>';
@@ -82,7 +82,7 @@
 			<span id="remove_cert_file" class="btn btn-inverse" style="line-height:10px; padding: 4px 4px;">Remove certificate file</span>
 		</p>
 		<div style="width: 0px;height: 0px;overflow: hidden;">
-		<?php 
+		<?php
 			echo $this->Form->input('Server.submitted_cert', array(
 				'label' => false,
 				'type' => 'file',
@@ -103,7 +103,7 @@
 	    <span id="pull_orgs_OR" style="display:none;">Events with the following organisations allowed: <span id="pull_orgs_OR_text" style="color:green;"></span><br /></span>
 	    <span id="pull_orgs_NOT" style="display:none;">Events with the following organisations blocked: <span id="pull_orgs_NOT_text" style="color:red;"></span><br /></span>
 		<span id="pull_modify" class="btn btn-inverse" style="line-height:10px; padding: 4px 4px;">Modify</span><br /><br />
-	<?php 
+	<?php
 		echo $this->Form->input('push_rules', array('style' => 'display:none;', 'label' => false, 'div' => false));
 		echo $this->Form->input('pull_rules', array('style' => 'display:none;', 'label' => false, 'div' => false));
 		echo $this->Form->input('json', array('style' => 'display:none;', 'label' => false, 'div' => false));
@@ -119,7 +119,7 @@
 	<?php echo $this->element('serverRuleElements/push'); ?>
 	<?php echo $this->element('serverRuleElements/pull'); ?>
 </div>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'sync', 'menuItem' => 'edit'));
 ?>
 
@@ -179,7 +179,7 @@ $(document).ready(function() {
 	$('input[type=file]').change(function() {
 		$('#serverEditCertValue').text($('input[type=file]').val());
 		$('#ServerDeleteCert').prop('checked', false);
-	}); 
+	});
 
 	$('#remove_cert_file').click(function() {
 		$('#serverEditCertValue').html('<span class="green bold">Not set.</span>');

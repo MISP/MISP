@@ -5,7 +5,7 @@ class Feed extends AppModel {
 
 	public $actsAs = array('SysLogLogable.SysLogLogable' => array(
 			'change' => 'full'
-		), 
+		),
 		'Trim',
 		'Containable'
 	);

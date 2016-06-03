@@ -11,6 +11,6 @@
 	</fieldset>
 <?php echo $this->Form->end(__('Submit'));?>
 </div>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'whitelist', 'menuItem' => 'edit', 'id' => $this->Form->value('Whitelist.id')));
 ?>

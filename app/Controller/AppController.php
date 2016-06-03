@@ -48,7 +48,7 @@ class AppController extends Controller {
 	private $__jsVersion = '2.4.46';
 
 	// Used for _isAutomation(), a check that returns true if the controller & action combo matches an action that is a non-xml and non-json automation method
-	// This is used to allow authentication via headers for methods not covered by _isRest() - as that only checks for JSON and XML formats 
+	// This is used to allow authentication via headers for methods not covered by _isRest() - as that only checks for JSON and XML formats
 	public $automationArray = array(
 		'events' => array('csv', 'nids', 'hids', 'xml', 'restSearch', 'stix', 'updateGraph'),
 		'attributes' => array('text', 'downloadAttachment', 'returnAttributes', 'restSearch', 'rpz'),
@@ -111,9 +111,9 @@ class AppController extends Controller {
 		if (substr($baseurl, -1) == '/') {
 			// if the baseurl has a trailing slash, remove it. It can lead to issues with the CSRF protection
 			$baseurl = rtrim($baseurl, '/');
-			Configure::write('MISP.baseurl', $baseurl); 
+			Configure::write('MISP.baseurl', $baseurl);
 		}
-		$this->set('baseurl', h($baseurl)); 
+		$this->set('baseurl', h($baseurl));
 
 		// send users away that are using ancient versions of IE
 		// Make sure to update this if IE 20 comes out :)
@@ -162,7 +162,7 @@ class AppController extends Controller {
 								$this->Log->save($log);
 						    }
 						    $this->Session->renew();
-						    $this->Session->write(AuthComponent::$sessionKey, $user['User']);   
+						    $this->Session->write(AuthComponent::$sessionKey, $user['User']);
 						} else {
 							// User not authenticated correctly
 							// reset the session information
@@ -264,7 +264,7 @@ class AppController extends Controller {
 				$this->Auth->logout();
 				throw new MethodNotAllowedException($message);
 			} else {
-				$this->Session->setFlash('Warning: MISP is currently disabled for all users. Enable it in Server Settings (Administration -> Server Settings -> MISP tab -> live)');				
+				$this->Session->setFlash('Warning: MISP is currently disabled for all users. Enable it in Server Settings (Administration -> Server Settings -> MISP tab -> live)');
 			}
 		}
 
@@ -337,7 +337,7 @@ class AppController extends Controller {
 	}
 
 	private function __convertEmailToName($email) {
-		$name = explode('@', $email);		
+		$name = explode('@', $email);
 		$name = explode('.', $name[0]);
 		foreach ($name as &$temp) $temp = ucfirst($temp);
 		$name = implode(' ', $name);

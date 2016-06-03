@@ -65,7 +65,7 @@ class XMLConverterTool {
 			unset($event['RelatedAttribute']);
 		}
 		else $event['Event']['RelatedAttribute'] = array();
-		foreach ($event['Event']['RelatedAttribute'] as &$attribute_w_relation) {	
+		foreach ($event['Event']['RelatedAttribute'] as &$attribute_w_relation) {
 			foreach ($attribute_w_relation as &$relation) {
 				$this->__sanitizeField($relation['info']);
 				$this->__sanitizeField($relation['value']);

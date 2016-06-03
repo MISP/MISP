@@ -138,7 +138,7 @@ class Attribute extends AppModel {
 			'btc' => array('desc' => 'Bitcoin Address'),//
 			'iban' => array('desc' => 'International Bank Account Number'),//
 			'bic' => array('desc' => 'Bank Identifier Code Number'),
-			'bank-account-nr' => array('desc' => 'Bank account number without any routing number'), 
+			'bank-account-nr' => array('desc' => 'Bank account number without any routing number'),
 			'aba-rtn' => array('desc' => 'ABA routing transit number'),
 			'bin' => array('desc' => 'Bank Identification Number'),//
 			'cc-number' => array('desc' => 'Credit-Card Number'),//
@@ -280,7 +280,7 @@ class Attribute extends AppModel {
 	// typeGroupings are a mapping to high level groups for attributes
 	// for example, IP addresses, domain names, hostnames and e-mail addresses are network related attribute types
 	// whilst filenames and hashes are file related attribute types
-	// This helps generate quick filtering for the event view, but we may reuse this and enhance it in the future for other uses (such as the API?) 
+	// This helps generate quick filtering for the event view, but we may reuse this and enhance it in the future for other uses (such as the API?)
 	public $typeGroupings = array(
 		'file' => array('attachment', 'pattern-in-file', 'md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'authentihash', 'pehash', 'tlsh', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|pehash', 'malware-sample', 'x509-fingerprint-sha1'),
 		'network' => array('ip-src', 'ip-dst', 'hostname', 'domain', 'domain|ip', 'email-dst', 'url', 'uri', 'user-agent', 'http-method', 'AS', 'snort', 'pattern-in-traffic', 'x509-fingerprint-sha1'),
@@ -377,7 +377,7 @@ class Attribute extends AppModel {
 	);
 
 	// automatic resolution of complex types
-	// If the complex type "file" is chosen for example, then the system will try to categorise the values entered into a complex template field based 
+	// If the complex type "file" is chosen for example, then the system will try to categorise the values entered into a complex template field based
 	// on the regular expression rules
 	public $validTypeGroups = array(
 			'File' => array(
@@ -656,7 +656,7 @@ class Attribute extends AppModel {
 				if (substr_count($value, ':') == 2) {
 					$parts = explode(':', $value);
 					if (is_numeric($parts[0])) $returnValue = true;
-				} 
+				}
 				if (!$returnValue) $returnValue = 'Invalid SSDeep hash. The format has to be blocksize:hash:hash';
 				break;
 			case 'http-method':
@@ -675,7 +675,7 @@ class Attribute extends AppModel {
 				}
 				break;
 			case 'filename|md5':
-			case 'filename|sha1':	
+			case 'filename|sha1':
 			case 'filename|imphash':
 			case 'filename|sha224':
 			case 'filename|sha256':
@@ -753,7 +753,7 @@ class Attribute extends AppModel {
 				} else {
 					$returnValue = 'Domain name has an invalid format.';
 				}
-				break;		
+				break;
 			case 'email-src':
 			case 'email-dst':
 			case 'target-email':
@@ -828,7 +828,7 @@ class Attribute extends AppModel {
             case 'whois-registrant-name':
 			case 'whois-registrar':
 			case 'whois-creation-date':
- 				// no newline	
+ 				// no newline
  				if (!preg_match("#\n#", $value)) {
  					$returnValue = true;
  				}
@@ -894,7 +894,7 @@ class Attribute extends AppModel {
 				if (is_numeric($value)) {
 					$returnValue = true;
 				}
-				break;	
+				break;
 			*/
 		}
 		return $returnValue;
@@ -925,7 +925,7 @@ class Attribute extends AppModel {
 				$value = strtolower($value);
 				break;
 			case 'filename|md5':
-			case 'filename|sha1':	
+			case 'filename|sha1':
 			case 'filename|imphash':
 			case 'filename|sha224':
 			case 'filename|sha256':
@@ -1284,7 +1284,7 @@ class Attribute extends AppModel {
 		App::uses('HidsExport', 'Export');
 		$continue = false;
 		foreach ($eventIds as $event) {
-			$conditions['AND'] = array('Attribute.to_ids' => 1, 'Event.published' => 1, 'Attribute.type' => $typeArray, 'Attribute.event_id' => $event['Event']['id']);		
+			$conditions['AND'] = array('Attribute.to_ids' => 1, 'Event.published' => 1, 'Attribute.type' => $typeArray, 'Attribute.event_id' => $event['Event']['id']);
 			$options = array(
 					'conditions' => $conditions,
 					'group' => array('Attribute.type', 'Attribute.value1'),
@@ -1364,7 +1364,7 @@ class Attribute extends AppModel {
 	 	//restricting to non-private or same org if the user is not a site-admin.
 	 	$conditions['AND'] = array();
 	 	if ($allowNonIDS === false) $conditions['AND'] = array('Attribute.to_ids =' => 1, 'Event.published =' => 1);
-	 	if ($type !== 'all') $conditions['AND']['Attribute.type'] = $type; 
+	 	if ($type !== 'all') $conditions['AND']['Attribute.type'] = $type;
 	 	if ($from) $conditions['AND']['Event.date >='] = $from;
 	 	if ($to) $conditions['AND']['Event.date <='] = $to;
 		if ($last) $conditions['AND']['Event.publish_timestamp >='] = $last;
@@ -1388,7 +1388,7 @@ class Attribute extends AppModel {
 	 		$conditions['AND'][] = $temp;
 	 	}
 	 	$attributes = $this->fetchAttributes($user, array(
-	 			'conditions' => $conditions, 
+	 			'conditions' => $conditions,
 	 			'order' => 'Attribute.value1 ASC',
 	 			'fields' => array('value'),
 				'contain' => array('Event' => array(
@@ -1405,7 +1405,7 @@ class Attribute extends AppModel {
 	 	if ($to) $conditions['AND']['Event.date <='] = $to;
 	 	if ($eventId !== false) {
 	 		$conditions['AND'][] = array('Event.id' => $eventId);
-	 	} 
+	 	}
 	 	if ($tags !== false) {
 	 		// If we sent any tags along, load the associated tag names for each attribute
 	 		$tag = ClassRegistry::init('Tag');
@@ -1425,7 +1425,7 @@ class Attribute extends AppModel {
 	 	$values = array();
 	 	foreach ($typesToFetch as $k => $v) {
 	 		$temp = $this->fetchAttributes(
-	 				$user, 
+	 				$user,
 	 				array(
 	 					'conditions' => array(
  							$conditions,
@@ -1440,7 +1440,7 @@ class Attribute extends AppModel {
 	 				$found = false;
 	 				if (isset($values['domain'])) {
 		 				foreach ($values['domain'] as $domain) {
-		 					if (strpos($value['Attribute']['value'], $domain) != 0) { 
+		 					if (strpos($value['Attribute']['value'], $domain) != 0) {
 		 						$found = true;
 		 					}
 		 				}
@@ -1506,7 +1506,7 @@ class Attribute extends AppModel {
 	 			$result[$i]['id'] = $attribute['Attribute']['id'];
 	 			$result[$i]['error'] = array();
 	 			foreach ($errors as $field => $error) {
-	 				$result[$i]['error'][$field] = array('value' => $attribute['Attribute'][$field], 'error' => $error[0]); 
+	 				$result[$i]['error'][$field] = array('value' => $attribute['Attribute'][$field], 'error' => $error[0]);
 	 			}
 	 			$result[$i]['details'] = 'Event ID: [' . $attribute['Attribute']['event_id'] . "] - Category: [" . $attribute['Attribute']['category'] . "] - Type: [" . $attribute['Attribute']['type'] . "] - Value: [" . $attribute['Attribute']['value'] . ']';
 	 			$i++;
@@ -1631,7 +1631,7 @@ class Attribute extends AppModel {
 			$element['type'] = 'attachment';
 			$element['to_ids'] = false;
 		}
-		foreach ($files as $file) {	
+		foreach ($files as $file) {
 			if (!preg_match('@^[\w\-. ]+$@', $file['filename'])) {
 				$errors = 'Filename not allowed.';
 				continue;
@@ -1730,7 +1730,7 @@ class Attribute extends AppModel {
 
 	// Method that fetches all attributes for the various exports
 	// very flexible, it's basically a replacement for find, with the addition that it restricts access based on user
-	// options: 
+	// options:
 	//     fields
 	//     contain
 	//     conditions
@@ -1743,7 +1743,7 @@ class Attribute extends AppModel {
  			'contain' => array(
  				'Event' => array(
  					'fields' => array('id', 'info', 'org_id'),
- 				), 
+ 				),
  			),
  		);
 	 	if (isset($options['contain'])) $params['contain'] = array_merge_recursive($params['contain'], $options['contain']);
@@ -1757,7 +1757,7 @@ class Attribute extends AppModel {
 		if (Configure::read('MISP.unpublishedprivate')) $params['conditions']['AND'][] = array('OR' => array('Event.published' => 1, 'Event.orgc_id' => $user['org_id']));
 	 	$results = $this->find('all', $params);
 	 	if (isset($options['withAttachments']) && $options['withAttachments']) {
-	 		foreach ($results as &$attribute) { 
+	 		foreach ($results as &$attribute) {
 		 		if ($this->typeIsAttachment($attribute['Attribute']['type'])) {
 		 			$encodedFile = $this->base64EncodeAttachment($attribute['Attribute']);
 		 			$attribute['Attribute']['data'] = $encodedFile;
@@ -1837,7 +1837,7 @@ class Attribute extends AppModel {
 	public function validateAttribute($attribute, $context = true) {
 		$this->set($attribute);
 		if (!$context) {
-			unset($this->validate['event_id']); 
+			unset($this->validate['event_id']);
 			unset($this->validate['value']['uniqueValue']);
 		}
 		if ($this->validates()) return true;

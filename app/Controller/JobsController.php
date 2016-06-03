@@ -69,7 +69,7 @@ class JobsController extends AppController {
 
 	public function getProgress($type) {
 		$org = $this->Auth->user('Organisation')['name'];
-		if ($this->_isSiteAdmin()) $org = 'ADMIN'; 
+		if ($this->_isSiteAdmin()) $org = 'ADMIN';
 		$progress = $this->Job->find('first', array(
 			'conditions' => array(
 				'job_type' => $type,
@@ -89,7 +89,7 @@ class JobsController extends AppController {
 	public function cache($type) {
 		if ($this->_isSiteAdmin()) {
 			$target = 'All events.';
-		} else { 
+		} else {
 			$target = 'Events visible to: '.$this->Auth->user('Organisation')['name'];
 		}
 		$id = $this->Job->cache($type, $this->Auth->user(), $target);

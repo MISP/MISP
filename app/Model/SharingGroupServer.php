@@ -34,7 +34,7 @@ class SharingGroupServer extends AppModel {
 						'all_orgs' => $server['all_orgs']
 				);
 				$server_name = 'server (' . $server['id'] . ')';
-				if ($server['id'] == 0) $server_name = 'the local server'; 
+				if ($server['id'] == 0) $server_name = 'the local server';
 
 				$found = false;
 				// If there is a match between a new server and an old server, keep the server in $found and unset it in the old server array.
@@ -61,7 +61,7 @@ class SharingGroupServer extends AppModel {
 					$log->create();
 					if ($isChange) $log->createLogEntry($user, 'edit', 'SharingGroupServer', $this->id, 'Sharing group (' . $id . '): Modified access rights for users on ' . $server_name . '.', ($server['all_orgs'] ? 'All organisations on server ' . $server['id'] . ' are now part of the sharing group.' : 'Organisations on ' . $server_name . ' are now not part of the sharing group unless they are present in the list of organisations.'));
 					else $log->createLogEntry($user, 'add', 'SharingGroupServer', $this->id, 'Sharing group (' . $id . '): Added server (' . $server['id'] . ').', ucfirst($server_name) . ' added to Sharing group.' . ($server['all_orgs'] ? ' Sharing group visible to all organisations on the server.' : ''));
-				}	
+				}
 			}
 			// We are left with some "old orgs" that are not in the new list. This means that they can be safely deleted.
 			foreach ($old_servers as $old_server) {

@@ -29,7 +29,7 @@ class TaxonomiesController extends AppController {
 		foreach ($taxonomies as &$taxonomy) {
 			$total = 0;
 			foreach ($taxonomy['TaxonomyPredicate'] as &$predicate) {
-				$total += empty($predicate['TaxonomyEntry']) ? 1 : count($predicate['TaxonomyEntry']); 
+				$total += empty($predicate['TaxonomyEntry']) ? 1 : count($predicate['TaxonomyEntry']);
 			}
 			$taxonomy['total_count'] = $total;
 			$taxonomy['current_count'] = $this->Tag->find('count', array('conditions' => array('lower(Tag.name) LIKE ' => strtolower($taxonomy['Taxonomy']['namespace']) . ':%')));
@@ -136,7 +136,7 @@ class TaxonomiesController extends AppController {
 							'change' => $change,
 					));
 					$successes++;
-				}	
+				}
 			}
 			if (isset($result['fails'])) {
 				foreach ($result['fails'] as $id => &$fail) {
@@ -185,7 +185,7 @@ class TaxonomiesController extends AppController {
 			if (isset($this->request->data['Taxonomy'])) {
 				$this->request->data['Tag'] = $this->request->data['Taxonomy'];
 				unset($this->request->data['Taxonomy']);
-			} 
+			}
 			if (isset($this->request->data['Tag']['request'])) $this->request->data['Tag'] = $this->request->data['Tag']['request'];
 			if (!isset($this->request->data['Tag']['nameList'])) $this->request->data['Tag']['nameList'] = array($this->request->data['Tag']['name']);
 			else $this->request->data['Tag']['nameList'] = json_decode($this->request->data['Tag']['nameList'], true);

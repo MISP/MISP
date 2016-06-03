@@ -100,14 +100,14 @@ class SharingGroupsController extends AppController {
 			'contain' => array(
 					'SharingGroupOrg' => array(
 						'Organisation' => array('name', 'local', 'id')
-					), 
+					),
 					'SharingGroupServer' => array(
 						'Server' => array(
 							'fields' => array('name', 'url', 'id')
 						)
-					), 
+					),
 					'Organisation' => array(
-						'fields' => array('name', 'local', 'id')	
+						'fields' => array('name', 'local', 'id')
 					),
 			),
 		));

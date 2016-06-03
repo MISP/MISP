@@ -70,7 +70,7 @@ class TemplatesController extends AppController {
 				));
 
 				foreach($oldTags as $k => $oT) {
-					if (!in_array($oT['Tag'], $newTags)) $this->TemplateTag->delete($oT['TemplateTag']['id']); 
+					if (!in_array($oT['Tag'], $newTags)) $this->TemplateTag->delete($oT['TemplateTag']['id']);
 				}
 
 				foreach($newTags as $k => $nT) {
@@ -249,7 +249,7 @@ class TemplatesController extends AppController {
 				'TemplateElement' => array(
 					'TemplateElementAttribute',
 					'TemplateElementText',
-					'TemplateElementFile'	
+					'TemplateElementFile'
 				),
 				'TemplateTag' => array(
 					'Tag'
@@ -267,7 +267,7 @@ class TemplatesController extends AppController {
 		if (empty($template)) throw new MethodNotAllowedException('Template not found or you are not authorised to edit it.');
 		if (!$this->_isSiteAdmin()) {
 			if ($event['Event']['orgc_id'] != $this->Auth->user('org_id')) throw new MethodNotAllowedException('Event not found or you are not authorised to edit it.');
-			if ($template['Template']['org'] != $this->Auth->user('Organisation')['name'] && !$template['Template']['share']) throw new MethodNotAllowedException('Template not found or you are not authorised to use it.');	
+			if ($template['Template']['org'] != $this->Auth->user('Organisation')['name'] && !$template['Template']['share']) throw new MethodNotAllowedException('Template not found or you are not authorised to use it.');
 		}
 
 		$this->set('template_id', $template_id);
@@ -356,7 +356,7 @@ class TemplatesController extends AppController {
 				if ($fails == 0) $this->Session->setFlash(__('Event populated, ' . $count . ' attributes successfully created.'));
 				else $this->Session->setFlash(__('Event populated, but ' . $fails . ' attributes could not be saved.'));
 				$this->redirect(array('controller' => 'events', 'action' => 'view', $event_id));
-			} else { 
+			} else {
 				throw new MethodNotAllowedException('No attributes submitted for creation.');
 			}
 		} else {
@@ -413,8 +413,8 @@ class TemplatesController extends AppController {
 		return $array;
 	}
 
-	// deletes a temporary file created by the user while populating a template 
-	// users can add files to attachment fields and when they change their mind about it, they can remove a file (deleting the temporary file) 
+	// deletes a temporary file created by the user while populating a template
+	// users can add files to attachment fields and when they change their mind about it, they can remove a file (deleting the temporary file)
 	// before it gets saved as an attribute and moved to the persistent attachment store
 	public function deleteTemporaryFile($filename) {
 		if (!$this->request->is('post')) throw new MethodNotAllowedException('This action is restricted to accepting POST requests only.');

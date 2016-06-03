@@ -10,8 +10,8 @@ class Template extends AppModel {
 	public $actsAs = array('Containable');
 	public $hasMany = array(
 		'TemplateTag' => array(
-			'dependent' => true,		
-		), 
+			'dependent' => true,
+		),
 		'TemplateElement' => array(
 			'order' => 'TemplateElement.position',
 			'dependent' => true,

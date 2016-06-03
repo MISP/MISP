@@ -147,7 +147,7 @@ $(document).ready(function() {
 
 	$('#cancel_attribute_add').click(function() {
 		cancelPopoverForm();
-	});	
+	});
 });
 </script>
 <?php echo $this->Js->writeBuffer(); // Write cached scripts

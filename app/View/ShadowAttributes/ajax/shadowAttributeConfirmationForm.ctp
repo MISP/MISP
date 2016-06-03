@@ -18,7 +18,7 @@ echo $this->Form->create('ShadowAttribute', array('style' => 'margin:0px;', 'id'
 		</tr>
 	</table>
 </div>
-<?php 
+<?php
 	echo $this->Form->end();
 ?>
 </div>

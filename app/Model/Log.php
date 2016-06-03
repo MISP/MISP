@@ -77,7 +77,7 @@ class Log extends AppModel {
 		if (Configure::read('MISP.log_client_ip') && isset($_SERVER['REMOTE_ADDR'])) $this->data['Log']['ip'] = $_SERVER['REMOTE_ADDR'];
 		$setEmpty = array('title' => '', 'model' => '', 'model_id' => 0, 'action' => '', 'user_id' => 0, 'change' => '', 'email' => '', 'org' => '', 'description' => '');
 		foreach ($setEmpty as $field => $empty) {
-			if (!isset($this->data['Log'][$field]) || empty($this->data['Log'][$field])) $this->data['Log'][$field] = $empty;  
+			if (!isset($this->data['Log'][$field]) || empty($this->data['Log'][$field])) $this->data['Log'][$field] = $empty;
 		}
 		if (!isset($this->data['Log']['created'])) $this->data['Log']['created'] =  time();
 		return true;

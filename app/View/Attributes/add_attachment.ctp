@@ -11,7 +11,7 @@
 			$initialDistribution = 5;
 			if (Configure::read('MISP.default_attribute_distribution') != null) {
 				if (Configure::read('MISP.default_attribute_distribution') === 'event') {
-					$initialDistribution = 5;	
+					$initialDistribution = 5;
 				} else {
 					$initialDistribution = Configure::read('MISP.default_attribute_distribution');
 				}
@@ -32,7 +32,7 @@
 			}
 			?>
 		</div>
-			<?php 
+			<?php
 			echo $this->Form->input('comment', array(
 					'type' => 'text',
 					'label' => 'Contextual Comment',
@@ -72,7 +72,7 @@ echo $this->Form->end();
 ?>
 	<div id="confirmation_box" class="confirmation_box"></div>
 </div>
-<?php 
+<?php
 	$event['Event']['id'] = $this->request->data['Attribute']['event_id'];
 	$event['Event']['published'] = $published;
 	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'addAttachment', 'event' => $event));

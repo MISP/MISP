@@ -16,7 +16,7 @@ class Bruteforce extends AppModel {
 		$this->query("INSERT INTO `bruteforces` (`ip` , `username` , `expire` ) VALUES ('$ip', '$username', TIMESTAMPADD(SECOND,$expire, NOW()));");
 		if ($this->isBlacklisted($ip, $username)) {
 			$this->Log = ClassRegistry::init('Log');
-			$this->Log->create(); 	
+			$this->Log->create();
 			$this->Log->save(array(
 				'org' => 'SYSTEM',
 				'model' => 'Blacklist',

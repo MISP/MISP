@@ -11,7 +11,7 @@
 		<?php if ($me != false ):?>
 			<div class="nav-collapse collapse">
 				<ul class="nav">
-					<?php 
+					<?php
 						$logo = 'Home';
 						if (Configure::read('MISP.home_logo')) $logo = '<img src="' . $baseurl . '/img/custom/' . Configure::read('MISP.home_logo') . '" style="height:24px;">';
 					?>
@@ -138,12 +138,12 @@
 									<li class="divider"></li>
 									<li><a href="<?php echo $baseurl;?>/tasks">Scheduled Tasks</a></li>
 								<?php endif; ?>
-								<?php if (Configure::read('MISP.enableEventBlacklisting') && $isSiteAdmin): ?>	
+								<?php if (Configure::read('MISP.enableEventBlacklisting') && $isSiteAdmin): ?>
 									<li class="divider"></li>
 									<li><a href="<?php echo $baseurl;?>/eventBlacklists/add">Blacklist Event</a></li>
 									<li><a href="<?php echo $baseurl;?>/eventBlacklists">Manage Event Blacklists</a></li>
 								<?php endif; ?>
-								<?php if (Configure::read('MISP.enableEventBlacklisting') && $isSiteAdmin): ?>	
+								<?php if (Configure::read('MISP.enableEventBlacklisting') && $isSiteAdmin): ?>
 									<li class="divider"></li>
 									<li><a href="<?php echo $baseurl;?>/orgBlacklists/add">Blacklist Organisation</a></li>
 									<li><a href="<?php echo $baseurl;?>/orgBlacklists">Manage Org Blacklists</a></li>
@@ -224,7 +224,7 @@ function resizeLogo() {
 		}
 		if ($(window).width() > 1399) {
 			document.getElementById('fullLogo').style.display='block';
-			document.getElementById('smallLogo').style.display='none';	
+			document.getElementById('smallLogo').style.display='none';
 		}
 	}
 

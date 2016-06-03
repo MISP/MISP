@@ -32,7 +32,7 @@ class TasksController extends AppController {
 	}
 
 	// checks if all the mandatory tasks exist, and if not, creates them
-	// default tasks are: 
+	// default tasks are:
 	// 'cache_exports'
 	private function __checkTasks() {
 		$existingTasks = $this->Task->find('list', array('fields' => array('type')));

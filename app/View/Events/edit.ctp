@@ -19,7 +19,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc_id'] == $me['org_id']);
 	));
 ?>
 	<div id="SGContainer" style="display:none;">
-		<?php 
+		<?php
 		if (!empty($sharingGroups)) {
 			echo $this->Form->input('sharing_group_id', array(
 				'options' => array($sharingGroups),
@@ -29,7 +29,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc_id'] == $me['org_id']);
 		}
 		?>
 	</div>
-<?php 
+<?php
 	echo $this->Form->input('threat_level_id', array(
 			'div' => 'input clear'
 			));

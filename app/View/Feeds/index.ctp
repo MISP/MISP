@@ -27,7 +27,7 @@
 			<th><?php echo $this->Paginator->sort('enabled');?></th>
 			<th class="actions"><?php echo __('Actions');?></th>
 	</tr><?php
-foreach ($feeds as $item): 
+foreach ($feeds as $item):
 	$rules = array();
 	$rules = json_decode($item['Feed']['rules'], true);
 	$fieldOptions = array('tags', 'orgs');
@@ -36,9 +36,9 @@ foreach ($feeds as $item):
 	foreach ($fieldOptions as $fieldOption) {
 		foreach ($typeOptions as $typeOption => $typeData) {
 			if (isset($rules[$fieldOption][$typeOption]) && !empty($rules[$fieldOption][$typeOption])) {
-				$ruleDescription .= '<span class=\'bold\'>' . 
-				ucfirst($fieldOption) . ' ' . 
-				$typeData['text'] . '</span>: <span class=\'' . 
+				$ruleDescription .= '<span class=\'bold\'>' .
+				ucfirst($fieldOption) . ' ' .
+				$typeData['text'] . '</span>: <span class=\'' .
 				$typeData['colour'] . '\'>';
 				foreach ($rules[$fieldOption][$typeOption] as $k => $temp) {
 					if ($k != 0) $ruleDescription .= ', ';
@@ -53,19 +53,19 @@ foreach ($feeds as $item):
 		<td class="short"><?php echo h($item['Feed']['id']); ?>&nbsp;</td>
 		<td>
 			<?php
-				echo h($item['Feed']['name']); 
+				echo h($item['Feed']['name']);
 				if ($item['Feed']['default']):
 				?>
 					<img src="<?php echo $baseurl;?>/img/orgs/MISP.png" width="24" height="24" style="padding-bottom:3px;" />
-				<?php 
+				<?php
 					endif;
 			?>
 		</td>
 		<td><?php echo h($item['Feed']['provider']); ?>&nbsp;</td>
 		<td><?php echo h($item['Feed']['url']); ?>&nbsp;</td>
 		<td <?php if ($item['Feed']['distribution'] == 0) echo 'class="red"'; ?>>
-		<?php 
-			echo $item['Feed']['distribution'] == 4 ? '<a href="' . $baseurl . '/sharing_groups/view/' . h($item['SharingGroup']['id']) . '">' . h($item['SharingGroup']['name']) . '</a>' : $distributionLevels[$item['Feed']['distribution']] ; 
+		<?php
+			echo $item['Feed']['distribution'] == 4 ? '<a href="' . $baseurl . '/sharing_groups/view/' . h($item['SharingGroup']['id']) . '">' . h($item['SharingGroup']['name']) . '</a>' : $distributionLevels[$item['Feed']['distribution']] ;
 		?>
 		</td>
 		<td>
@@ -77,9 +77,9 @@ foreach ($feeds as $item):
 		</td>
 		<td class="short"><span class="<?php echo ($item['Feed']['enabled'] ? 'icon-ok' : 'icon-remove'); ?>"></span><span class="short <?php if (!$item['Feed']['enabled'] || empty($ruleDescription)) echo "hidden"; ?>" data-toggle="popover" title="Filter rules" data-content="<?php echo $ruleDescription; ?>"> (Rules)</span>
 		<td class="short action-links">
-			<?php 
+			<?php
 				echo $this->Html->link('', array('action' => 'previewIndex', $item['Feed']['id']), array('class' => 'icon-search', 'title' => 'Explore the events remotely'));
-				if ($item['Feed']['enabled']) echo $this->Html->link('', array('action' => 'fetchFromFeed', $item['Feed']['id']), array('class' => 'icon-download', 'title' => 'Fetch all events')); 
+				if ($item['Feed']['enabled']) echo $this->Html->link('', array('action' => 'fetchFromFeed', $item['Feed']['id']), array('class' => 'icon-download', 'title' => 'Fetch all events'));
 			?>
 			<a href="<?php echo $baseurl;?>/feeds/edit/<?php echo h($item['Feed']['id']); ?>"><span class="icon-edit" title="edit">&nbsp;</span></a>
 			<?php echo $this->Form->postLink('', array('action' => 'delete', h($item['Feed']['id'])), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to permanently remove the feed (%s)?', h($item['Feed']['name']))); ?>
@@ -104,11 +104,11 @@ endforeach; ?>
         </ul>
     </div>
 </div>
-<script type="text/javascript"> 
+<script type="text/javascript">
 	$(document).ready(function(){
 		popoverStartup();
 	});
 </script>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'feeds', 'menuItem' => 'index'));
 ?>

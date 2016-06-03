@@ -110,7 +110,7 @@ class FinancialTool {
 			else $temp2 .= ord(strtolower($temp[$i])) - 87;
 		}
 		$temp = bcmod($temp2, 97);
-		return intval($temp)===1 ? true : false; 
+		return intval($temp)===1 ? true : false;
 	}
 
 	public function validateBIC($bic) {
@@ -142,7 +142,7 @@ class FinancialTool {
 			return false;
 		}
 		return false;
-	} 
+	}
 
 	// based on the php implementation of the BTC address validation example from
 	// http://rosettacode.org/wiki/Bitcoin/address_validation

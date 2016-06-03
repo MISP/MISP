@@ -15,7 +15,7 @@
 		<p class="red">Information about the organisation that will receive the events, typically the remote instance's host organisation.</p>
 		</div>
 		<div class = "input clear"></div>
-	<?php	
+	<?php
 		if ($isSiteAdmin) :
 		echo $this->Form->input('organisation_type', array(
 				'label' => 'Remote Sync Organisation Type',
@@ -43,7 +43,7 @@
 			<input type="text" id="ServerExternalUuid">
 		</div>
 		<div class = "input clear"></div>
-	<?php	
+	<?php
 		endif;
 		echo $this->Form->input('authkey', array(
 		));
@@ -96,7 +96,7 @@ echo $this->Form->end();
 	<?php echo $this->element('serverRuleElements/push'); ?>
 	<?php echo $this->element('serverRuleElements/pull'); ?>
 </div>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'sync', 'menuItem' => 'add'));
 ?>
 

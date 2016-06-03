@@ -39,7 +39,7 @@ class SharingGroupOrg extends AppModel {
 					unset($old_orgs[$k]);
 					break;
 				}
-			}								
+			}
 			// If we have not found the org previously, create a new sharing group org object.
 			// Otherwise, if we have found it check whether the extended field has been altered, if not just continue without saving
 			if (!$found) {
@@ -73,7 +73,7 @@ class SharingGroupOrg extends AppModel {
 		));
 		$ids = array();
 		foreach ($sgs as $sg) $ids[] = $sg['SharingGroupOrg']['sharing_group_id'];
-		return $ids; 
+		return $ids;
 	}
 
 	// pass a sharing group ID and an organisation ID, returns true if it has a matching attached organisation object

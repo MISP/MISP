@@ -12,7 +12,7 @@
 
 		<div class="left">Type<?php if ($element['complex']) echo 's'; ?>:</div>
 		<div class="right">
-		<?php 
+		<?php
 			$types = '';
 			if ($element['complex']) {
 				foreach ($validTypeGroups[$element['type']]['types'] as $k => $type):
@@ -20,12 +20,12 @@
 					$types .= $type;
 					?>
 						<div class="templateTypeBox"><?php echo h($type); ?></div>
-					<?php 
+					<?php
 				endforeach;
 			} else {
 				?>
 					<div class="templateTypeBox"><?php echo h($element['type']); ?></div>
-				<?php 
+				<?php
 			}
 		?>
 		</div>

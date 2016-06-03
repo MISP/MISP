@@ -19,7 +19,7 @@
 			));
 		?>
 			<div id="SGContainer" style="display:none;">
-		<?php 
+		<?php
 		if (!empty($sharingGroups)) {
 			echo $this->Form->input('sharing_group_id', array(
 					'options' => array($sharingGroups),
@@ -28,10 +28,10 @@
 		}
 		?>
 			</div>
-		<?php 
+		<?php
 		echo $this->Form->input('threat_level_id', array(
 				'div' => 'input clear',
-				'selected' => Configure::read('MISP.default_event_threat_level') ? Configure::read('MISP.default_event_threat_level') : '1', 
+				'selected' => Configure::read('MISP.default_event_threat_level') ? Configure::read('MISP.default_event_threat_level') : '1',
 				));
 		echo $this->Form->input('analysis', array(
 				'options' => array($analysisLevels),

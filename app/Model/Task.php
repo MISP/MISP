@@ -38,7 +38,7 @@ class Task extends AppModel {
 			)
 	);
 
-	// takes a time in the 24h format (13:49) and an integer representing the number of hours 
+	// takes a time in the 24h format (13:49) and an integer representing the number of hours
 	// by which it needs to be incremeneted. Returns a string in the first parameters format
 	public function breakTime($time, $timeToAdd) {
 		$temp = explode(':', $time);

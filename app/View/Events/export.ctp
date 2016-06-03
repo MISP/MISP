@@ -35,19 +35,19 @@
 				<td id="update<?php echo $i; ?>" class="short" style="color:red;"><?php echo $type['lastModified']; ?></td>
 				<td><?php echo $type['description']; ?></td>
 				<td id="outdated<?php echo $i; ?>">
-					<?php 
+					<?php
 						if ($type['recommendation']) {
 							echo '<span style="color:red;">Yes</span>';
 						} else {
 							echo 'No';
-						} 
+						}
 					?>
 				</td>
 				<td style="width:150px;">
 					<div id="barFrame<?php echo $i; ?>" class="progress progress-striped active" style="margin-bottom: 0px;display:none;">
 					  <div id="bar<?php echo $i; ?>" class="bar" style="width: <?php echo $type['progress']; ?>%;">
-					 	 <?php 
-					 	 	if ($type['progress'] > 0 && $type['progress'] < 100) echo $type['progress'] . '%'; 
+					 	 <?php
+					 	 	if ($type['progress'] > 0 && $type['progress'] < 100) echo $type['progress'] . '%';
 					 	 ?>
 					  </div>
 					</div>
@@ -66,23 +66,23 @@
 					</script>
 				</td>
 				<td style="width:150px;">
-					<?php 
+					<?php
 						if ($k !== 'text') {
 							echo $this->Html->link('Download', array('action' => 'downloadExport', $k), array('class' => 'btn btn-inverse toggle-left btn.active qet'));
 						?>
 							<button class = "btn btn-inverse toggle-right btn.active qet" id=button<?php echo $i;?> onClick = "generate('<?php echo $temp; ?>')" <?php if (!$type['recommendation']) echo 'disabled';?>>Generate</button>
-						<?php 
-						} else { 
+						<?php
+						} else {
 						?>
 							<button class = "btn btn-inverse btn.active qet" id=button<?php echo $i;?> onClick = "generate('<?php echo $temp; ?>')" <?php if (!$type['recommendation']) echo 'disabled';?>>Generate</button>
 						<?php
-						}  
+						}
 						?>
 
 				</td>
 			</tr>
-		<?php 
-			$i++; 
+		<?php
+			$i++;
 		endforeach; ?>
 	</table>
 	<ul class="inline">
@@ -94,7 +94,7 @@
 	<?php endforeach; ?>
 	</ul>
 </div>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'event-collection', 'menuItem' => 'export'));
 ?>
 <script type="text/javascript">
@@ -112,7 +112,7 @@
 
 	function queryTask(type, i){
 		$.getJSON('/jobs/getProgress/cache_' + type, function(data) {
-			var x = document.getElementById("bar" + i); 
+			var x = document.getElementById("bar" + i);
 			x.style.width = data+"%";
 			if (data > -1 && data < 100) {
 				x.innerHTML = data + "%";

@@ -69,7 +69,7 @@ class Sighting extends AppModel{
 				if ($sighting['Sighting']['org_id'] != $user['org_id']) {
 					unset($sightings[$k]['Sighting']['org_id']);
 					unset($sightings[$k]['Organisation']);
-				}	
+				}
 			}
 			// rearrange it to match the event format of fetchevent
 			if (isset($sightings[$k]['Organisation'])) {
@@ -77,7 +77,7 @@ class Sighting extends AppModel{
 			}
 			$sightings[$k] = $sightings[$k]['Sighting'] ;
 		}
-		return $sightings; 
+		return $sightings;
 	}
 
 	public function saveSightings($id, $values, $timestamp, $user) {
@@ -90,7 +90,7 @@ class Sighting extends AppModel{
 			foreach ($values as &$value) {
 				foreach (array('value1', 'value2') as $field) {
 					$conditions['OR'][] = array(
-						'LOWER(Attribute.' . $field . ') LIKE' => strtolower($value) 	
+						'LOWER(Attribute.' . $field . ') LIKE' => strtolower($value)
 					);
 				}
 			}

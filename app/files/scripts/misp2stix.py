@@ -23,7 +23,7 @@ namespace = ['https://github.com/MISP/MISP', 'MISP']
 
 NS_DICT = {
 	"http://cybox.mitre.org/common-2" : 'cyboxCommon',
-	"http://cybox.mitre.org/cybox-2" : 'cybox',	
+	"http://cybox.mitre.org/cybox-2" : 'cybox',
 	"http://cybox.mitre.org/default_vocabularies-2" : 'cyboxVocabs',
 	"http://cybox.mitre.org/objects#ASObject-1" : 'ASObj',
 	"http://cybox.mitre.org/objects#AddressObject-2" : 'AddressObj',
@@ -269,7 +269,7 @@ def generateTTP(incident, attribute, ttps):
     relatedTTP = RelatedTTP(rttp, relationship=attribute["category"])
     incident.leveraged_ttps.append(relatedTTP)
 
-# Threat actors are currently only used for the category:attribution / type:(text|comment|other) attributes 
+# Threat actors are currently only used for the category:attribution / type:(text|comment|other) attributes
 def generateThreatActor(attribute):
     ta = ThreatActor(timestamp=getDateFromTimestamp(int(attribute["timestamp"])))
     ta.id_= namespace[1] + ":threatactor-" + attribute["uuid"]
@@ -304,13 +304,13 @@ def getDateFromTimestamp(timestamp):
 def convertToStixDate(date):
     return getDateFromTimestamp(time.mktime(datetime.datetime.strptime(date, "%Y-%m-%d").timetuple()))
 
-# takes an object and adds the passed organisation as the information_source.identity to it. 
+# takes an object and adds the passed organisation as the information_source.identity to it.
 def setOrg(target, org):
     ident = Identity(name=org)
     information_source = InformationSource(identity = ident)
     target.information_source = information_source
 
-# takes an object and adds the passed tags as journal entries to it. 
+# takes an object and adds the passed tags as journal entries to it.
 def setTag(target, tags):
     for tag in tags:
         addJournalEntry(target, "MISP Tag: " + tag["name"])

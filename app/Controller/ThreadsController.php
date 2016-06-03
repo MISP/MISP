@@ -192,7 +192,7 @@ class ThreadsController extends AppController {
 		if (!$this->_isSiteAdmin()) {
 			$conditions['AND']['OR'] = array(
 					'Thread.distribution' => array(1, 2, 3),
-					'AND' => array( 
+					'AND' => array(
 							'Thread.distribution' => 0,
 							'Thread.org_id' => $this->Auth->user('org_id'),
 					),
@@ -219,7 +219,7 @@ class ThreadsController extends AppController {
 						),
 					),
 					'Organisation' => array(
-						'fields' => array('id', 'name')		
+						'fields' => array('id', 'name')
 					),
 					'SharingGroup' => array(
 						'fields' => array('id', 'name')

@@ -11,10 +11,10 @@ class TemplateElement extends AppModel {
 	public $hasMany = array(
 		'TemplateElementAttribute' => array(
 			'dependent' => true
-		), 
+		),
 		'TemplateElementText' => array(
 			'dependent' => true
-		), 		
+		),
 		'TemplateElementFile' => array(
 			'dependent' => true
 		)

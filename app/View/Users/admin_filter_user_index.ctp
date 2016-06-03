@@ -3,7 +3,7 @@
 		<fieldset>
 			<legend>Filter Event Index</legend>
 			<div class="overlay_spacing">
-			<?php 
+			<?php
 				echo $this->Form->input('rule', array(
 						'options' => $rules,
 						//'empty' => '(Select a filter)',
@@ -71,7 +71,7 @@
 					<th style="width:567px;border:1px solid #cccccc;border-right:0px;text-align: left;">Value</th>
 					<th style="width:10px;border:1px solid #cccccc;border-left:0px;text-align: left;"></th>
 				</tr>
-				<?php 
+				<?php
 					$fields = array_merge($differentFilters, $simpleFilters);
 					foreach ($fields as $k => $field):
 				?>
@@ -80,7 +80,7 @@
 						<td id="value_<?php echo $field;?>" style="border:1px solid #cccccc;border-right:0px;"></td>
 						<td id="delete_<?php echo $field;?>" style="border:1px solid #cccccc;border-left:0px;"><span class="icon-trash" onClick="indexFilterClearRow('<?php echo $field;?>');"></span></td>
 					</tr>
-				<?php 
+				<?php
 					endforeach;
 				?>
 			</table>
@@ -92,7 +92,7 @@
 		</div>
 		<?php echo $this->Form->create('User', array('id' => 'test', 'url' => $baseurl . '/admin/users/index'));?>
 		<fieldset>
-		<?php 
+		<?php
 			echo $this->Form->input('generatedURL', array(
 				'label' => false,
 				'class' => 'input',

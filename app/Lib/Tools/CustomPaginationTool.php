@@ -35,7 +35,7 @@ class CustomPaginationTool {
 			if ($params['page'] < $maxPage) $params['nextPage'] = true;
 		}
 		$params['pageCount'] = $maxPage;
-		return $params;		
+		return $params;
 	}
 
 	function truncateByPagination(&$items, $params) {
