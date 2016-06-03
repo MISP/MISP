@@ -88,6 +88,7 @@ class Organisation extends AppModel{
 		if (empty($this->data['Organisation']['uuid']) && (isset($this->data['Organisation']['local']) && $this->data['Organisation']['local'])) {
 			$this->data['Organisation']['uuid'] = $this->generateUuid();
 		}
+		if (empty($this->data['Organisation']['uuid'])) return false;
 		$date = date('Y-m-d H:i:s');
 		if (!isset($this->data['Organisation']['date_created']) || empty($this->data['Organisation']['date_created'])) $this->data['Organisation']['date_created'] = $date;
 		$this->data['Organisation']['date_modified'] = $date;
