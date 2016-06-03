@@ -508,8 +508,7 @@ class Event extends AppModel {
 		// now look up the event data for these attributes
 		$conditions = array("Event.id" => $relatedEventIds);
 		$fields = array('id', 'date', 'threat_level_id', 'info', 'published', 'uuid', 'analysis', 'timestamp', 'distribution', 'org_id', 'orgc_id');
-		$orgfields = array('id', 'name');
-		if ($user['Role']['perm_site_admin']) $orgfields[] = 'uuid';
+		$orgfields = array('id', 'name', 'uuid');
 		$relatedEvents = $this->find('all',
 			array('conditions' => $conditions,
 				'recursive' => 0,
