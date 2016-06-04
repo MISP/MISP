@@ -553,7 +553,7 @@ class User extends AppModel {
 						// openssl_pkcs7_encrypt good -- Model/User expired;
 						$results[$user['User']['id']][0] = true;
 					}
-				} else{
+				} else {
 					// openssl_pkcs7_encrypt NOT good -- Model/User
 					$results[$user['User']['id']][0] = true;
 				}
