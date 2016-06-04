@@ -1831,63 +1831,86 @@ class EventsController extends AppController {
 	public function _addGfiZip($id) {
 		if (!empty($this->data) && $this->data['Event']['submittedgfi']['size'] > 0 &&
 				is_uploaded_file($this->data['Event']['submittedgfi']['tmp_name'])) {
-			$zipData = fread(fopen($this->data['Event']['submittedgfi']['tmp_name'], "r"),
-					$this->data['Event']['submittedgfi']['size']);
+			$tmpFileHandle = fopen($this->data['Event']['submittedgfi']['tmp_name'], "rb");
+			if ($tmpFileHandle === FALSE) {
+				throw new Exception('An error has occured while attempting to access the GFI sandbox .zip file.');
+			}
+			$zipData = fread($tmpFileHandle, $this->data['Event']['submittedgfi']['size']);
+			fclose($tmpFileHandle);
 
 			// write
 			$rootDir = APP . "files" . DS . $id . DS;
 			App::uses('Folder', 'Utility');
 			$dir = new Folder($rootDir, true);
-			$destpath = $rootDir;
 			if (!preg_match('@^[\w-,\s,\.]+\.[A-Za-z0-9_]{2,4}$@', $this->data['Event']['submittedgfi']['name'])) {
 				throw new Exception ('Filename not allowed');
 			}
 			if (PHP_OS == 'WINNT') {
-				$zipfile = new File($destpath . DS . $this->data['Event']['submittedgfi']['name']);
+				$zipFile = new File($rootDir . DS . $this->data['Event']['submittedgfi']['name']);
 			} else {
-				$zipfile = new File($destpath . $this->data['Event']['submittedgfi']['name']);
+				$zipFile = new File($rootDir . $this->data['Event']['submittedgfi']['name']);
 			}
-
-			$result = $zipfile->write($zipData);
+			$result = $zipFile->write($zipData);
 			if (!$result) $this->Session->setFlash(__('Problem with writing the zip file. Please report to administrator.'));
-			// extract zip..
+
+			// extract zip
 			$execRetval = '';
 			$execOutput = array();
-			exec("unzip " . $zipfile->path . ' -d ' . $rootDir, $execOutput, $execRetval);
+			exec("unzip " . $zipFile->path . ' -d ' . $rootDir, $execOutput, $execRetval);
 			if ($execRetval != 0) {	// not EXIT_SUCCESS
 				throw new Exception('An error has occured while attempting to unzip the GFI sandbox .zip file. We apologise for the inconvenience.');
 			}
 
-			// now open the xml..
+			// open the xml
+			$xmlFileName = 'analysis.xml';
 			if (PHP_OS == 'WINNT') {
-				$xml = $rootDir . 'Analysis' . DS . 'analysis.xml';
+				$xmlFilePath = $rootDir . 'Analysis' . DS . $xmlFileName;
 			} else {
-				$xml = $rootDir . DS . 'Analysis' . DS . 'analysis.xml';
+				$xmlFilePath = $rootDir . DS . 'Analysis' . DS . $xmlFileName;
 			}
-			$fileData = fread(fopen($xml, "r"), filesize($xml));
+			$xmlFileHandle = fopen($xmlFilePath, "rb");
+			if ($xmlFileHandle === FALSE) {
+				throw new Exception('An error has occured while attempting to access the GFI sandbox XML analysis file.');
+			}
+			$xmlFileData = fread($xmlFileHandle, filesize($xmlFilePath));
+			fclose($xmlFileHandle);
 
 			// read XML
-			$this->_readGfiXML($fileData, $id);
+			$this->_readGfiXML($xmlFileData, $id);
 		}
 	}
 
 	public function _addIOCFile($id) {
 		if (!empty($this->data) && $this->data['Event']['submittedioc']['size'] > 0 &&
 				is_uploaded_file($this->data['Event']['submittedioc']['tmp_name'])) {
-			$iocData = fread(fopen($this->data['Event']['submittedioc']['tmp_name'], "r"),
-					$this->data['Event']['submittedioc']['size']);
+			$tmpFileHandle = fopen($this->data['Event']['submittedioc']['tmp_name'], "rb");
+			if ($tmpFileHandle === FALSE) {
+				throw new Exception('An error has occured while attempting to access the IOC file.');
+			}
+			$iocData = fread($tmpFileHandle, $this->data['Event']['submittedioc']['size']);
+			fclose($tmpFileHandle);
+
 			// write
 			$rootDir = APP . "files" . DS . $id . DS;
 			App::uses('Folder', 'Utility');
 			$dir = new Folder($rootDir . 'ioc', true);
-			$destpath = $rootDir . 'ioc';
-			if (!preg_match('@^[\w-,\s,\.]+\.[A-Za-z0-9_]{2,4}$@', $this->data['Event']['submittedioc']['name'])) throw new Exception ('Filename not allowed');
-			$iocfile = new File($destpath . DS . $this->data['Event']['submittedioc']['name']);
-			$result = $iocfile->write($iocData);
+			$destPath = $rootDir . 'ioc';
+			if (!preg_match('@^[\w-,\s,\.]+\.[A-Za-z0-9_]{2,4}$@', $this->data['Event']['submittedioc']['name'])) {
+				throw new Exception ('Filename not allowed');
+			}
+			$iocFile = new File($destPath . DS . $this->data['Event']['submittedioc']['name']);
+			$result = $iocFile->write($iocData);
 			if (!$result) $this->Session->setFlash(__('Problem with writing the ioc file. Please report to administrator.'));
 
-			// now open the xml..
-			$fileData = fread(fopen($destpath . DS . $this->data['Event']['submittedioc']['name'], "r"), $this->data['Event']['submittedioc']['size']);
+			// open the xml
+			$xmlFilePath = $destPath . DS . $this->data['Event']['submittedioc']['name'];
+			$xmlFileHandle = fopen($xmlFilePath, "rb");
+			if ($xmlFileHandle === FALSE) {
+				throw new Exception('An error has occured while attempting to access the IOC file.');
+			}
+			$xmlFileData = fread($xmlFileHandle, $this->data['Event']['submittedioc']['size']);
+			fclose($xmlFileHandle);
+
 			// Load event and populate the event data
 			$this->Event->id = $id;
 			$this->Event->recursive = -1;
@@ -1907,7 +1930,7 @@ class EventsController extends AppController {
 				}
 			}
 			// read XML
-			$event = $this->IOCImport->readXML($fileData, $id, $dist, $this->data['Event']['submittedioc']['name']);
+			$event = $this->IOCImport->readXML($xmlFileData, $id, $dist, $this->data['Event']['submittedioc']['name']);
 
 			// make some changes to have $saveEvent in the format that is needed to save the event together with its attributes
 			$fails = $event['Fails'];
@@ -1924,7 +1947,7 @@ class EventsController extends AppController {
 				'value' => $this->data['Event']['submittedioc']['name'],
 				'to_ids' => false,
 				'distribution' => $dist,
-				'data' => base64_encode($fileData),
+				'data' => base64_encode($xmlFileData),
 				'comment' => 'OpenIOC import source file'
 			);
 
@@ -1952,7 +1975,13 @@ class EventsController extends AppController {
 	}
 
 	public function _addMISPExportFile($ext, $take_ownership = false) {
-		$data = fread(fopen($this->data['Event']['submittedfile']['tmp_name'], "r"), $this->data['Event']['submittedfile']['size']);
+		$fileHandle = fopen($this->data['Event']['submittedfile']['tmp_name'], "rb");
+		if ($fileHandle === FALSE) {
+			throw new Exception('An error has occured while attempting to access the submitted file.');
+		}
+		$data = fread($fileHandle, $this->data['Event']['submittedfile']['size']);
+		fclose($fileHandle);
+
 		if ($ext == 'xml') {
 			App::uses('Xml', 'Utility');
 			$dataArray = Xml::toArray(Xml::build($data));
