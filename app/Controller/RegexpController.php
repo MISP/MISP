@@ -93,7 +93,7 @@ class RegexpController extends AppController {
 			throw new NotFoundException('Invalid Regexp');
 		}
 		if ($this->request->is('post') || $this->request->is('put')) {
-			unset ($this->request->data['Regexp']['id']);
+			unset($this->request->data['Regexp']['id']);
 			// If 'all' is set, it overrides all other type settings. Create an attribute with the "all" setting and save it. Also, delete the original(s)
 			if ($this->request->data['Regexp']['all'] == 1) {
 				$this->Regexp->create();
