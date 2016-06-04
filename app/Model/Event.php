@@ -2732,10 +2732,10 @@ class Event extends AppModel {
 					$shadowAttributeTemp = $object['ShadowAttribute'];
 					unset($object['ShadowAttribute']);
 					$eventArrayWithProposals[] = $object;
-					foreach ($shadowAttributeTemp as $k => $shadowAttribute) {
+					foreach ($shadowAttributeTemp as $kk => $shadowAttribute) {
 						$shadowAttribute['objectType'] = 1;
-						if ($k == 0) $shadowAttribute['firstChild'] = true;
-						if (($k + 1) == count($shadowAttributeTemp)) $shadowAttribute['lastChild'] = true;
+						if ($kk == 0) $shadowAttribute['firstChild'] = true;
+						if (($kk + 1) == count($shadowAttributeTemp)) $shadowAttribute['lastChild'] = true;
 						$eventArrayWithProposals[] = $shadowAttribute;
 					}
 				} else {
