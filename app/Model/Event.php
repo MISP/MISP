@@ -2557,7 +2557,7 @@ class Event extends AppModel {
 		$tagIDs = $this->Attribute->dissectArgs($tags);
 		$idList = $this->getAccessibleEventIds($eventIDs[0], $eventIDs[1], $tagIDs[0], $tagIDs[1]);
 		if (empty($idList)) throw new Exception('No matching events found to export.');
-		$events = $this->fetchEvent($user, array('idList' => $idList, 'last' => $last, 'from' => $from, 'last' => $last));
+		$events = $this->fetchEvent($user, array('idList' => $idList, 'last' => $last, 'from' => $from, 'to' => $to));
 		if (empty($events)) throw new Exception('No matching events found to export.');
 
 		// If a second argument is passed (and it is either "yes", "true", or 1) base64 encode all of the attachments
