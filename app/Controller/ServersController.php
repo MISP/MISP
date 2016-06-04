@@ -82,7 +82,7 @@ class ServersController extends AppController {
 		$server = $this->Server->find('first', array('conditions' => array('Server.id' => $id), 'recursive' => -1, 'fields' => array('Server.id', 'Server.url', 'Server.name')));
 		if (empty($server)) throw new NotFoundException('Invalid server ID.');
 		$validFilters = $this->Server->validEventIndexFilters;
-		foreach($validFilters as $k => $filter) {
+		foreach ($validFilters as $k => $filter) {
 			if (isset($this->passedArgs[$filter])) {
 				$passedArgs[$filter] = $this->passedArgs[$filter];
 				if ($k != 0) $urlparams .= '/'; 
@@ -1020,7 +1020,7 @@ class ServersController extends AppController {
 							if ($version[$k] > $local_version[$v]) {
 								$mismatch = $v;
 								$newer = 'remote';
-							} elseif ($version[$k] < $local_version[$v]) {
+							} else if ($version[$k] < $local_version[$v]) {
 								$mismatch = $v;
 								$newer = 'local';
 							}

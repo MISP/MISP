@@ -5,7 +5,7 @@ class SyncTool {
 	public function setupHttpSocket($server = null) {
 		$params = array();
 		App::uses('HttpSocket', 'Network/Http');
-		if(!empty($server)) {
+		if (!empty($server)) {
 			if ($server['Server']['cert_file']) $params['ssl_cafile'] = APP . "files" . DS . "certs" . DS . $server['Server']['id'] . '.pem';
 			if ($server['Server']['self_signed']) $params['ssl_allow_self_signed'] = $server['Server']['self_signed'];
 		}

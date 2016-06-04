@@ -93,7 +93,7 @@ class XMLConverterTool {
 					}
 				}
 				if (isset($event['Event']['Attribute'][$key]['ShadowAttribute'])) {
-					foreach($event['Event']['Attribute'][$key]['ShadowAttribute'] as $skey => $svalue) {
+					foreach ($event['Event']['Attribute'][$key]['ShadowAttribute'] as $skey => $svalue) {
 						$this->__sanitizeField($event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['value']);
 						$this->__sanitizeField($event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['comment']);
 						$event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['Org'] = array(0 => $event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['Org']);
@@ -119,7 +119,7 @@ class XMLConverterTool {
 		unset($event['Event']['RelatedAttribute']);
 		if (isset($event['Event']['ShadowAttribute'])) {
 			// remove invalid utf8 characters for the xml parser
-			foreach($event['Event']['ShadowAttribute'] as $key => $value) {
+			foreach ($event['Event']['ShadowAttribute'] as $key => $value) {
 				$this->__sanitizeField($event['Event']['ShadowAttribute'][$key]['value']);
 				$this->__sanitizeField($event['Event']['ShadowAttribute'][$key]['comment']);
 				$event['Event']['ShadowAttribute'][$key]['Org'] = array(0 => $event['Event']['ShadowAttribute'][$key]['Org']);
@@ -139,7 +139,7 @@ class XMLConverterTool {
 				} else {
 					$event['Event']['RelatedEvent'][$key]['Event'][0]['Org'][0] = $event['Event']['RelatedEvent'][$key]['Org'];
 					$event['Event']['RelatedEvent'][$key]['Event'][0]['Orgc'][0] = $event['Event']['RelatedEvent'][$key]['Orgc'];
-					unset ($event['Event']['RelatedEvent'][$key]['Org'], $event['Event']['RelatedEvent'][$key]['Orgc']);
+					unset($event['Event']['RelatedEvent'][$key]['Org'], $event['Event']['RelatedEvent'][$key]['Orgc']);
 				}
 				unset($temp);
 			}

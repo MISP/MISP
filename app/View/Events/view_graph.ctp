@@ -184,7 +184,7 @@ function update() {
 		.attr("dy", ".35em")
 		.attr("fill", function(d) {
 			if (d.type == "event") {
-				if(d.expanded == 1) {
+				if (d.expanded == 1) {
 					return "#0000ff";
 				} else {
 					return "#ff0000";

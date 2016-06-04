@@ -357,7 +357,7 @@ class Event extends AppModel {
 		// analysis - setting correct vars
 		// TODO refactor analysis into an Enum (in the database)
 		if (isset($this->data['Event']['analysis'])) {
-			switch($this->data['Event']['analysis']){
+			switch ($this->data['Event']['analysis']) {
 			    case 'Initial':
 			        $this->data['Event']['analysis'] = 0;
 			        break;
@@ -952,7 +952,7 @@ class Event extends AppModel {
 					if ($attribute['distribution'] == 2) {
 						$attribute['distribution'] = 1;
 					}
-					unset ($event['Attribute'][$key]['SharingGroup'], $event['Attribute'][$key]['sharing_group_id']);
+					unset($event['Attribute'][$key]['SharingGroup'], $event['Attribute'][$key]['sharing_group_id']);
 					if ($attribute['distribution'] == 4) {
 						unset($event['Event']['Attribute'][$key]);
 						continue;
@@ -1072,7 +1072,7 @@ class Event extends AppModel {
 		$response = $HttpSocket->post($uri, json_encode($uuidList), $request);
 		if ($response->isOk()) {
 			return(json_decode($response->body, true));
-		} elseif ($response->code == '405') {
+		} else if ($response->code == '405') {
 			// HACKY: without correct permission, the returning null causes Fallback for < 2.4.7 instances
 			// which queries every event, for proposal, which it doesn't have permission for
 			return array();
@@ -1318,7 +1318,7 @@ class Event extends AppModel {
 			// unset empty event tags that got added because the tag wasn't exportable
 			if (!empty($event['EventTag'])) {
 				foreach ($event['EventTag'] as $k => &$eventTag) {
-					if (empty($eventTag['Tag'])) unset ($event['EventTag'][$k]);
+					if (empty($eventTag['Tag'])) unset($event['EventTag'][$k]);
 				}
 				$event['EventTag'] = array_values($event['EventTag']);
 			}
@@ -1353,7 +1353,7 @@ class Event extends AppModel {
 				// If a shadowattribute can be linked to an attribute, link it to it then remove it from the event
 				// This is to differentiate between proposals that were made to an attribute for modification and between proposals for new attributes
 				foreach ($event['ShadowAttribute'] as $k => &$sa) {
-					if(!empty($sa['old_id'])) {
+					if (!empty($sa['old_id'])) {
 						if ($sa['old_id'] == $attribute['id']) {
 							$results[$eventKey]['Attribute'][$key]['ShadowAttribute'][] = $sa;
 							unset($results[$eventKey]['ShadowAttribute'][$k]);
@@ -1367,7 +1367,7 @@ class Event extends AppModel {
 			// remove proposals to attributes that we cannot see
 			// if the shadow attribute wasn't moved within an attribute before, this is the case
 			foreach ($event['ShadowAttribute'] as $k => &$sa) {
-				if(!empty($sa['old_id'])) unset($event['ShadowAttribute'][$k]);
+				if (!empty($sa['old_id'])) unset($event['ShadowAttribute'][$k]);
 			}
 		}
 		return $results;
@@ -1650,10 +1650,10 @@ class Event extends AppModel {
 	 			if ('url' == $attribute['type']) {
 	 				$line = str_ireplace("http","hxxp", $line);
 	 			}
-	 			elseif ('email-src' == $attribute['type'] or 'email-dst' == $attribute['type']) {
+	 			else if ('email-src' == $attribute['type'] or 'email-dst' == $attribute['type']) {
 	 				$line = str_replace("@","[at]", $line);
 	 			}
-				elseif ('hostname' == $attribute['type'] or 'domain' == $attribute['type'] or 'ip-src' == $attribute['type'] or 'ip-dst' == $attribute['type']) {
+				else if ('hostname' == $attribute['type'] or 'domain' == $attribute['type'] or 'ip-src' == $attribute['type'] or 'ip-dst' == $attribute['type']) {
 	 				$line = str_replace(".","[.]", $line);
 	 			}
 	 	
@@ -1787,17 +1787,17 @@ class Event extends AppModel {
 		
 		if ($data['Event']['distribution'] == 4) {
 			$sg = $this->SharingGroup->captureSG($data['Event']['SharingGroup'], $user);
-			if ($sg===false){
+			if ($sg===false) {
 				$sg = 0;
 				$data['Event']['distribution'] = 0;
 			}
 			$data['Event']['sharing_group_id'] = $sg;
-			unset ($data['Event']['SharingGroup']);
+			unset($data['Event']['SharingGroup']);
 		}
 		if (isset($data['Event']['Attribute'])) {
 			foreach ($data['Event']['Attribute'] as $k => &$a) {
 				unset($data['Event']['Attribute']['id']);
-				if(isset($a['distribution']) && $a['distribution'] == 4) {
+				if (isset($a['distribution']) && $a['distribution'] == 4) {
 					$data['Event']['Attribute'][$k]['sharing_group_id'] = $this->SharingGroup->captureSG($data['Event']['Attribute'][$k]['SharingGroup'], $user);
 					unset($data['Event']['Attribute'][$k]['SharingGroup']);
 				}
@@ -1807,7 +1807,7 @@ class Event extends AppModel {
 		// The options here are either by passing an organisation object along or simply passing a string along
 		if (isset($data['Event']['Orgc'])) {
 			$data['Event']['orgc_id'] = $this->Orgc->captureOrg($data['Event']['Orgc'], $user);
-			unset ($data['Event']['Orgc']);
+			unset($data['Event']['Orgc']);
 		} else if (isset($data['Event']['orgc'])) {
 			$data['Event']['orgc_id'] = $this->Orgc->captureOrg($data['Event']['orgc'], $user);
 			unset($data['Event']['orgc']);
@@ -1817,13 +1817,13 @@ class Event extends AppModel {
 		if (isset($data['Event']['EventTag'])) {
 			if (isset($data['Event']['EventTag']['id'])) {
 				$temp = $data['Event']['EventTag'];
-				unset ($data['Event']['EventTag']);
+				unset($data['Event']['EventTag']);
 				$data['Event']['EventTag'][0] = $temp;
 			}
 			$eventTags = array();
 			foreach ($data['Event']['EventTag'] as $k => $tag) {
 				$eventTags[] = array('tag_id' => $this->EventTag->Tag->captureTag($data['Event']['EventTag'][$k]['Tag'], $user));
-				unset ($data['Event']['EventTag'][$k]);
+				unset($data['Event']['EventTag'][$k]);
 			}
 			$data['Event']['EventTag'] = $eventTags;
 		}
@@ -1892,7 +1892,7 @@ class Event extends AppModel {
 			unset($this->Attribute->validate['event_id']); // otherwise gives bugs because event_id is not set
 			unset($this->Attribute->validate['value']['uniqueValue']); // unset this - we are saving a new event, there are no values to compare against and event_id is not set in the attributes
 		}
-		unset ($data['Event']['id']);
+		unset($data['Event']['id']);
 		if (isset($data['Event']['published']) && $data['Event']['published'] && $user['Role']['perm_publish'] == false) $data['Event']['published'] = false;
 		if (isset($data['Event']['uuid'])) {
 			// check if the uuid already exists
@@ -1927,7 +1927,7 @@ class Event extends AppModel {
 			if (isset($data['Event']['Attribute'])) {
 				foreach ($data['Event']['Attribute'] as $k => &$attribute) {
 					$attribute['event_id'] = $this->id;
-					unset ($attribute['id']);
+					unset($attribute['id']);
 					$this->Attribute->create();
 					if (!$this->Attribute->save($attribute, array('fieldList' => $fieldList['Attribute']))) {
 						$validationErrors['Attribute'][$k] = $this->Attribute->validationErrors;
@@ -1987,7 +1987,7 @@ class Event extends AppModel {
 						if (!$this->SharingGroup->checkIfAuthorised($user, $data['Event']['sharing_group_id'])) return(array('error' => 'Event could not be saved: Invalid sharing group or you don\'t have access to that sharing group.'));
 					} else {
 						$data['Event']['sharing_group_id'] = $this->SharingGroup->captureSG($data['Event']['SharingGroup'], $user);
-						unset ($data['Event']['SharingGroup']);
+						unset($data['Event']['SharingGroup']);
 						if ($data['Event']['sharing_group_id'] === false) return (array('error' => 'Event could not be saved: User not authorised to create the associated sharing group.'));
 					}
 				}
@@ -2253,7 +2253,7 @@ class Event extends AppModel {
 		if ($passAlong) $conditions[] = array('Server.id !=' => $passAlong); 
 		$servers = $this->Server->find('all', array('conditions' => $conditions));
 		// iterate over the servers and upload the event
-		if(empty($servers))
+		if (empty($servers))
 			return true;
 		
 		$uploaded = true;
@@ -2513,7 +2513,7 @@ class Event extends AppModel {
 				else $xmlArray = $this->__updateXMLArray220($xmlArray);
 			}
 		}		
-		unset ($xmlArray['response']['xml_version']);
+		unset($xmlArray['response']['xml_version']);
 		if ($response) return $xmlArray;
 		else return $xmlArray['response'];
 	}
@@ -2688,7 +2688,7 @@ class Event extends AppModel {
 		foreach ($event['Event'] as $k => $v) {
 			if (is_array($v)) {
 				$event[$k] = $v;
-				unset ($event['Event'][$k]);
+				unset($event['Event'][$k]);
 			}
 		}
 		$filterType = false;
@@ -2704,7 +2704,7 @@ class Event extends AppModel {
 		$correlatedShadowAttributes = isset($event['RelatedShadowAttribute']) ? array_keys($event['RelatedShadowAttribute']) : array();
 		foreach ($event['Attribute'] as $attribute) {
 			if ($filterType && !in_array($filterType, array('proposal', 'correlation', 'warning'))) if (!in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType])) continue;
-			if (isset($attribute['distribution']) && $attribute['distribution'] != 4) unset ($attribute['SharingGroup']);
+			if (isset($attribute['distribution']) && $attribute['distribution'] != 4) unset($attribute['SharingGroup']);
 			$attribute['objectType'] = 0;
 			if (!empty($attribute['ShadowAttribute'])) $attribute['hasChildren'] = 1;
 			else $attribute['hasChildren'] = 0;

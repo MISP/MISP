@@ -64,7 +64,7 @@
 			}
 		?>
 		</div>
-		<div class="error-message populateTemplateErrorField" <?php if(!isset($errors[$element_id])) echo 'style="display:none;"';?>>
+		<div class="error-message populateTemplateErrorField" <?php if (!isset($errors[$element_id])) echo 'style="display:none;"';?>>
 			<?php echo 'Error: ' . $errors[$element_id]; ?>
 		</div>
 	</div>

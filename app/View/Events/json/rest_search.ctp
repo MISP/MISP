@@ -22,7 +22,7 @@ foreach ($results as $result) {
 		unset($result['Event']['Attribute'][$key]['value2']);
 	}
 	// remove invalid utf8 characters for the xml parser
-	foreach($result['Event']['ShadowAttribute'] as $key => $value) {
+	foreach ($result['Event']['ShadowAttribute'] as $key => $value) {
 		$result['Event']['ShadowAttribute'][$key]['value'] = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $result['Event']['ShadowAttribute'][$key]['value']);
 	}
 

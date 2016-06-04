@@ -1,7 +1,7 @@
 <?php
 $jsonArray = array();
 foreach ($results as $k => $v) {
-	unset (
+	unset(
 			$results[$k]['value1'],
 			$results[$k]['value2']
 	);

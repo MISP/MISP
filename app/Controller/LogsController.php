@@ -39,7 +39,7 @@ class LogsController extends AppController {
  * @return void
  */
 	public function admin_index() {
-		if(!$this->userRole['perm_audit']) $this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
+		if (!$this->userRole['perm_audit']) $this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
 		$this->set('isSearch', 0);
 		$this->recursive = 0;
 		$validFilters = $this->Log->logMeta;
@@ -131,7 +131,7 @@ class LogsController extends AppController {
 	public $helpers = array('Js' => array('Jquery'), 'Highlight');
 
 	public function admin_search($new = false) {
-		if(!$this->userRole['perm_audit']) $this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
+		if (!$this->userRole['perm_audit']) $this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
 		$orgRestriction = null;
 		if ($this->_isSiteAdmin()) {
 			$orgRestriction = false;
