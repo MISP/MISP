@@ -1591,7 +1591,7 @@ class AttributesController extends AppController {
 									'conditions' => array('LOWER(name) LIKE' => '%' . strtolower($v) . '%'),
 							));
 							foreach ($found_orgs as $o) $subcondition['OR'][] = array('Event.orgc_id' => $o['Org']['id']);
-						} else if ($parameters[$k] === 'eventid'){
+						} else if ($parameters[$k] === 'eventid') {
 							if (!empty($v)) $subcondition['OR'][] = array('Attribute.event_id' => $v);
 						} else {
 							if (!empty($v)) $subcondition['OR'][] = array('Attribute.' . $parameters[$k] . ' LIKE' => '%'.$v.'%');

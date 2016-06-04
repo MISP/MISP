@@ -74,7 +74,7 @@ class SharingGroup extends AppModel {
 		return true;
 	}
 
-	public function beforeDelete($cascade = false){
+	public function beforeDelete($cascade = false) {
 		$countEvent = $this->Event->find('count', array(
 				'recursive' => -1,
 				'conditions' => array('sharing_group_id' => $this->id)
@@ -357,7 +357,7 @@ class SharingGroup extends AppModel {
 					$attributes = array('name', 'releasability', 'description', 'created', 'modified');
 					$different = false;
 					foreach ($attributes as &$a) {
-						if (!in_array($a, array('created', 'modified')) && $editedSG[$a] !== $sg[$a]){
+						if (!in_array($a, array('created', 'modified')) && $editedSG[$a] !== $sg[$a]) {
 							$different = true;
 						}
 						$editedSG[$a] = $sg[$a];

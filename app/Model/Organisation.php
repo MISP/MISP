@@ -95,7 +95,7 @@ class Organisation extends AppModel{
 		return true;
 	}
 
-	public function beforeDelete($cascade = false){
+	public function beforeDelete($cascade = false) {
 		if ($this->User->find('count', array('conditions' => array('User.org_id' => $this->id))) != 0) return false;
 		if ($this->Event->find('count', array('conditions' => array('OR' => array('Event.org_id' => $this->id, 'Event.orgc_id' => $this->id)))) != 0) return false;
 		return true;

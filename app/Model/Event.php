@@ -357,7 +357,7 @@ class Event extends AppModel {
 		// analysis - setting correct vars
 		// TODO refactor analysis into an Enum (in the database)
 		if (isset($this->data['Event']['analysis'])) {
-			switch($this->data['Event']['analysis']){
+			switch($this->data['Event']['analysis']) {
 			    case 'Initial':
 			        $this->data['Event']['analysis'] = 0;
 			        break;
@@ -1787,7 +1787,7 @@ class Event extends AppModel {
 
 		if ($data['Event']['distribution'] == 4) {
 			$sg = $this->SharingGroup->captureSG($data['Event']['SharingGroup'], $user);
-			if ($sg===false){
+			if ($sg===false) {
 				$sg = 0;
 				$data['Event']['distribution'] = 0;
 			}
