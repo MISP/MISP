@@ -1942,9 +1942,9 @@ class Event extends AppModel {
 			if (!empty($data['Event']['published']) && 1 == $data['Event']['published']) {
 				// do the necessary actions to publish the event (email, upload,...)
 				if ('true' != Configure::read('MISP.disablerestalert')) {
-					$this->sendAlertEmailRouter($this->getId(), $user);
+					$this->sendAlertEmailRouter($this->getID(), $user);
 				}
-				$this->publish($this->getId(), $passAlong);
+				$this->publish($this->getID(), $passAlong);
 			}
 			return true;
 		} else {
