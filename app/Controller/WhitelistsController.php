@@ -9,8 +9,6 @@ App::uses('AppController', 'Controller');
  */
 class WhitelistsController extends AppController {
 
-	public $XXXcomponents = array('Security', 'RequestHandler');
-
 	public $components = array(
 		'Security',
 		'AdminCrud'
