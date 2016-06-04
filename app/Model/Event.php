@@ -208,16 +208,6 @@ class Event extends AppModel {
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
 		),
-		'user_id' => array(
-			'numeric' => array(
-				'rule' => array('numeric'),
-				//'message' => 'Your custom message here',
-				//'allowEmpty' => false,
-				//'required' => false,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
-			),
-		),
 		'published' => array(
 			'boolean' => array(
 				'rule' => array('boolean'),
@@ -685,14 +675,14 @@ class Event extends AppModel {
 		}
 		$updated = null;
 		$newLocation = $newTextBody = '';
-		$result = $this->restfullEventToServer($event, $server, null, $newLocation, $newTextBody, $HttpSocket);
+		$result = $this->restfulEventToServer($event, $server, null, $newLocation, $newTextBody, $HttpSocket);
 		if (is_numeric($result)) {
 			$error = $this->__resolveErrorCode($result, $event, $server);
 			if ($error) return $error . ' Error code: ' . $result;
 		}
 		if (strlen($newLocation) || $result) { // HTTP/1.1 200 OK or 302 Found and Location: http://<newLocation>
 			if (strlen($newLocation)) { // HTTP/1.1 302 Found and Location: http://<newLocation>
-				$result = $this->restfullEventToServer($event, $server, $newLocation, $newLocation, $newTextBody, $HttpSocket);
+				$result = $this->restfulEventToServer($event, $server, $newLocation, $newLocation, $newTextBody, $HttpSocket);
 				if (is_numeric($result)) {
 					$error = $this->__resolveErrorCode($result, $event, $server);
 					if ($error) return $error . ' Error code: ' . $result;
@@ -781,7 +771,7 @@ class Event extends AppModel {
  *
  * @return bool true if success, false or error message if failed
  */
-	public function restfullEventToServer($event, $server, $urlPath, &$newLocation, &$newTextBody, $HttpSocket = null) {
+	public function restfulEventToServer($event, $server, $urlPath, &$newLocation, &$newTextBody, $HttpSocket = null) {
 		if ($event['Event']['distribution'] == 4) {
 			if (!empty($event['SharingGroup']['SharingGroupServer'])) {
 				$found = false;
@@ -1375,6 +1365,7 @@ class Event extends AppModel {
 
 	public function csv($user, $eventid=false, $ignore=false, $attributeIDList = array(), $tags = false, $category = false, $type = false, $includeContext = false, $from = false, $to = false, $last = false) {
 		$this->recursive = -1;
+		$conditions = array();
 		// If we are not in the search result csv download function then we need to check what can be downloaded. CSV downloads are already filtered by the search function.
 		if ($eventid !== 'search') {
 			if ($from) $conditions['AND'][] = array('Event.date >=' => $from);
@@ -1951,9 +1942,9 @@ class Event extends AppModel {
 			if (!empty($data['Event']['published']) && 1 == $data['Event']['published']) {
 				// do the necessary actions to publish the event (email, upload,...)
 				if ('true' != Configure::read('MISP.disablerestalert')) {
-					$this->sendAlertEmailRouter($this->getId(), $user);
+					$this->sendAlertEmailRouter($this->getID(), $user);
 				}
-				$this->publish($this->getId(), $passAlong);
+				$this->publish($this->getID(), $passAlong);
 			}
 			return true;
 		} else {
@@ -2124,7 +2115,8 @@ class Event extends AppModel {
 				$this->publish($existingEvent['Event']['id']);
 			}
 			return true;
-		} return $this->validationErrors;
+		}
+		return $this->validationErrors;
 	}
 
 	// format has to be:
@@ -2437,6 +2429,7 @@ class Event extends AppModel {
 		$events = $this->find('all', array('recursive' => -1));
 		// for all events..
 		$result = array();
+		$k = 0;
 		$i = 0;
 		foreach ($events as $k => $event) {
 			$this->set($event);
@@ -2456,6 +2449,7 @@ class Event extends AppModel {
 	public function generateThreatLevelFromRisk() {
 		$risk = array('Undefined' => 4, 'Low' => 3, 'Medium' => 2, 'High' => 1);
 		$events = $this->find('all', array('recursive' => -1));
+		$k = 0;
 		foreach ($events as $k => $event) {
 			if ($event['Event']['threat_level_id'] == 0 && isset($event['Event']['risk'])) {
 				$event['Event']['threat_level_id'] = $risk[$event['Event']['risk']];
@@ -2557,7 +2551,7 @@ class Event extends AppModel {
 		$tagIDs = $this->Attribute->dissectArgs($tags);
 		$idList = $this->getAccessibleEventIds($eventIDs[0], $eventIDs[1], $tagIDs[0], $tagIDs[1]);
 		if (empty($idList)) throw new Exception('No matching events found to export.');
-		$events = $this->fetchEvent($user, array('idList' => $idList, 'last' => $last, 'from' => $from, 'last' => $last));
+		$events = $this->fetchEvent($user, array('idList' => $idList, 'last' => $last, 'from' => $from));
 		if (empty($events)) throw new Exception('No matching events found to export.');
 
 		// If a second argument is passed (and it is either "yes", "true", or 1) base64 encode all of the attachments
@@ -2571,11 +2565,11 @@ class Event extends AppModel {
 				}
 			}
 		}
-                if (Configure::read('MISP.tagging')) {
+		if (Configure::read('MISP.tagging')) {
 			foreach ($events as &$event) {
 				$event['Tag'] = $this->EventTag->Tag->findEventTags($event['Event']['id']);
-                        }
-                }
+			}
+		}
 		// generate a randomised filename for the temporary file that will be passed to the python script
 		$randomFileName = $this->generateRandomFileName();
 		$tempFile = new File(APP . "files" . DS . "scripts" . DS . "tmp" . DS . $randomFileName, true, 0644);
@@ -2738,10 +2732,10 @@ class Event extends AppModel {
 					$shadowAttributeTemp = $object['ShadowAttribute'];
 					unset($object['ShadowAttribute']);
 					$eventArrayWithProposals[] = $object;
-					foreach ($shadowAttributeTemp as $k => $shadowAttribute) {
+					foreach ($shadowAttributeTemp as $kk => $shadowAttribute) {
 						$shadowAttribute['objectType'] = 1;
-						if ($k == 0) $shadowAttribute['firstChild'] = true;
-						if (($k + 1) == count($shadowAttributeTemp)) $shadowAttribute['lastChild'] = true;
+						if ($kk == 0) $shadowAttribute['firstChild'] = true;
+						if (($kk + 1) == count($shadowAttributeTemp)) $shadowAttribute['lastChild'] = true;
 						$eventArrayWithProposals[] = $shadowAttribute;
 					}
 				} else {
