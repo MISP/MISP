@@ -18,7 +18,7 @@ class Taxonomy extends AppModel{
 			'rule' => array('numeric'),
 		)
 	);
-	
+
 	public $hasMany = array(
 			'TaxonomyPredicate' => array(
 				'dependent' => true
@@ -29,7 +29,7 @@ class Taxonomy extends AppModel{
 		parent::beforeValidate();
 		return true;
 	}
-	
+
 	public function update() {
 		$directories = glob(APP . 'files' . DS . 'taxonomies' . DS . '*', GLOB_ONLYDIR);
 		foreach ($directories as $k => &$dir) {
@@ -59,7 +59,7 @@ class Taxonomy extends AppModel{
 		}
 		return $updated;
 	}
-	
+
 	private function __updateVocab(&$vocab, &$current, $skipUpdateFields = array()) {
 		$enabled = false;
 		$taxonomy = array();
@@ -87,7 +87,7 @@ class Taxonomy extends AppModel{
 		}
 		return $this->validationErrors;
 	}
-	
+
 	private function __getTaxonomy($id, $options = array('full' => false, 'filter' => false)) {
 		$recursive = -1;
 		if ($options['full']) $recursive = 2;
@@ -122,7 +122,7 @@ class Taxonomy extends AppModel{
 		$taxonomy['entries'] = $entries;
 		return $taxonomy;
 	}
-	
+
 	// returns all tags associated to a taxonomy
 	// returns all tags not associated to a taxonomy if $inverse is true
 	public function getAllTaxonomyTags($inverse = false) {
@@ -140,7 +140,7 @@ class Taxonomy extends AppModel{
 		}
 		return $allTags;
 	}
-	
+
 	public function getTaxonomyTags($id, $uc = false, $existingOnly = false) {
 		$taxonomy = $this->__getTaxonomy($id, array('full' => true, 'filter' => false));
 		if ($existingOnly) {
@@ -163,7 +163,7 @@ class Taxonomy extends AppModel{
 		}
 		return $entries;
 	}
-	
+
 	public function getTaxonomy($id, $options = array('full' => true)) {
 		$this->Tag = ClassRegistry::init('Tag');
 		$taxonomy = $this->__getTaxonomy($id, $options);
@@ -178,7 +178,7 @@ class Taxonomy extends AppModel{
 		}
 		return $taxonomy;
 	}
-	
+
 	private function __updateTags($id, $skipUpdateFields = array()) {
 		$this->Tag = ClassRegistry::init('Tag');
 		App::uses('ColourPaletteTool', 'Tools');
@@ -189,7 +189,7 @@ class Taxonomy extends AppModel{
 		$tags = $this->Tag->getTagsForNamespace($taxonomy['Taxonomy']['namespace']);
 		foreach ($taxonomy['entries'] as $k => &$entry) {
 			if (isset($tags[strtoupper($entry['tag'])])) {
-				$temp = $tags[strtoupper($entry['tag'])]; 
+				$temp = $tags[strtoupper($entry['tag'])];
 				if ((in_array('colour', $skipUpdateFields) && $temp['Tag']['colour'] != $colours[$k]) || (in_array('name', $skipUpdateFields) && $temp['Tag']['name'] !== $entry['tag'])) {
 					if (!in_array('colour', $skipUpdateFields)) $temp['Tag']['colour'] = $colours[$k];
 					if (!in_array('name', $skipUpdateFields)) $temp['Tag']['name'] = $entry['tag'];
@@ -198,7 +198,7 @@ class Taxonomy extends AppModel{
 			}
 		}
 	}
-	
+
 	public function addTags($id, $tagList = false) {
 		if ($tagList && !is_array($tagList)) $tagList = array($tagList);
 		$this->Tag = ClassRegistry::init('Tag');
@@ -241,7 +241,7 @@ class Taxonomy extends AppModel{
 		));
 		$taxonomies = array();
 		foreach ($temp as &$t) {
-			$taxonomies[$t['Taxonomy']['namespace']] = $t['Taxonomy'];	
+			$taxonomies[$t['Taxonomy']['namespace']] = $t['Taxonomy'];
 		}
 		return $taxonomies;
 	}

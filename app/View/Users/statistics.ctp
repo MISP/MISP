@@ -1,4 +1,4 @@
-<?php 
+<?php
 	echo $this->Html->script('d3.v3.min');
 	echo $this->Html->script('cal-heatmap.min');
 	echo $this->Html->css('cal-heatmap');
@@ -44,13 +44,13 @@
 <div id="orgs">
 	<ul class="inline">
 	<li id="org-all"  class="btn btn btn.active qet" style="margin-right:5px;" onClick="updateCalendar('all')">All organisations</li>
-	<?php 
-		foreach($orgs as $org): ?>
+	<?php
+		foreach ($orgs as $org): ?>
 			<li id="org-<?php echo h($org['Organisation']['name']);?>"  class="btn btn btn.active qet" style="margin-right:5px;" onClick="updateCalendar('<?php echo h($org['Organisation']['name']);?>')">
 				<?php echo h($org['Organisation']['name']);?>
 			</li>
-	<?php 
-		endforeach;	
+	<?php
+		endforeach;
 	?>
 	</ul>
 </div>
@@ -75,8 +75,8 @@
 var cal = new CalHeatMap();
 var orgSelected = "all";
 cal.init({
-	range: 5, 
-	domain:"month", 
+	range: 5,
+	domain:"month",
 	subDomain:"x_day",
 	start: new Date(<?php echo $startDateCal; ?>),
 	data: "<?php echo Configure::read('MISP.baseurl'); ?>/logs/returnDates.json",
@@ -109,20 +109,20 @@ function goLeft() {
 	cal.previous();
 }
 </script>
-<?php 
+<?php
 if (preg_match('/(?i)msie [2-9]/',$_SERVER['HTTP_USER_AGENT']) && !strpos($_SERVER['HTTP_USER_AGENT'], 'Opera')) {
 	if (preg_match('%(?i)Trident/(.*?).0%', $_SERVER['HTTP_USER_AGENT'], $matches) && isset($matches[1]) && $matches[1] > 5) {
 		?>
-			<br /><br /><p style="color:red;font-size:11px;">The above graph will not work correctly in Compatibility mode. Please make sure that it is disabled in your Internet Explorer settings.</p>	
-		<?php 
+			<br /><br /><p style="color:red;font-size:11px;">The above graph will not work correctly in Compatibility mode. Please make sure that it is disabled in your Internet Explorer settings.</p>
+		<?php
 	} else {
 		?>
-			<br /><br /><p style="color:red;font-size:11px;">The above graph will not work correctly on Internet Explorer 9.0 and earlier. Please download Chrome, Firefox or upgrade to a newer version of Internet Explorer.</p>	
+			<br /><br /><p style="color:red;font-size:11px;">The above graph will not work correctly on Internet Explorer 9.0 and earlier. Please download Chrome, Firefox or upgrade to a newer version of Internet Explorer.</p>
 		<?php
 	}
 }
 ?>
 </div>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'statistics'));
 ?>

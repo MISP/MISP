@@ -48,7 +48,7 @@ class UserInitShell extends AppShell {
 				$org_id = $firstOrg['Organisation']['id'];
 			}
 		}
-		
+
 		// populate the DB with the first user if it's empty
 		if ($this->User->find('count') == 0 ) {
 			$authkey = $this->User->generateAuthKey();
@@ -69,7 +69,7 @@ class UserInitShell extends AppShell {
 			$this->User->save($admin);
 			echo $authkey . PHP_EOL;
 		} else {
-			echo 'Script aborted: MISP instance already initialised.' . PHP_EOL;			
+			echo 'Script aborted: MISP instance already initialised.' . PHP_EOL;
 		}
 	}
 }

@@ -242,5 +242,3 @@ INSERT INTO `template_element_texts` (`id`, `name`, `template_element_id`, `text
 (10, 'Other Network Activity', 33, 'If any other Network activity (such as an internet connection test) was detected during the analysis, please specify it using the following fields'),
 (11, 'Persistence mechanism', 41, 'The following fields allow you to describe the persistence mechanism used by the malware'),
 (12, 'Indicators', 45, 'Just paste your list of indicators based on type into the appropriate field. All of the fields are optional, so inputting a list of IP addresses into the Network indicator field for example is sufficient to complete this template.');
-
-

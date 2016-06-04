@@ -30,12 +30,12 @@ foreach ($taxonomies as $item): ?>
 	<tr>
 		<td class="short" ondblclick="document.location.href ='<?php echo $baseurl."/taxonomies/view/".h($item['Taxonomy']['id']);?>'"><?php echo h($item['Taxonomy']['id']); ?>&nbsp;</td>
 		<td class="short" ondblclick="document.location.href ='<?php echo $baseurl."/taxonomies/view/".h($item['Taxonomy']['id']);?>'"><?php echo h($item['Taxonomy']['namespace']); ?>&nbsp;</td>
-		<td ondblclick="document.location.href ='<?php echo $baseurl."/taxonomies/view/".h($item['Taxonomy']['id']);?>'"><?php echo h($item['Taxonomy']['description']); ?>&nbsp;</td>	
-		<td class="short" ondblclick="document.location.href ='<?php echo $baseurl."/taxonomies/view/".h($item['Taxonomy']['id']);?>'"><?php echo h($item['Taxonomy']['version']); ?>&nbsp;</td>	
+		<td ondblclick="document.location.href ='<?php echo $baseurl."/taxonomies/view/".h($item['Taxonomy']['id']);?>'"><?php echo h($item['Taxonomy']['description']); ?>&nbsp;</td>
+		<td class="short" ondblclick="document.location.href ='<?php echo $baseurl."/taxonomies/view/".h($item['Taxonomy']['id']);?>'"><?php echo h($item['Taxonomy']['version']); ?>&nbsp;</td>
 		<td class="short" ondblclick="document.location.href ='<?php echo $baseurl."/taxonomies/view/".h($item['Taxonomy']['id']);?>'"><?php echo $item['Taxonomy']['enabled'] ? '<span class="green">Yes</span>' : '<span class="red">No</span>'; ?>&nbsp;</td>
-		<td class="shortish"><span><span class="bold"><?php echo h($item['current_count']);?></span> / <?php echo h($item['total_count']);?> <?php if ($item['current_count'] != $item['total_count'] && $isSiteAdmin && $item['Taxonomy']['enabled']) echo '(' . $this->Form->postLink('enable all', array('action' => 'addTag', h($item['Taxonomy']['id'])), array('title' => 'Enable all tags'), ('Are you sure you want to enable every tag associated to this taxonomy?')) . ')'; ?></span></td>	
+		<td class="shortish"><span><span class="bold"><?php echo h($item['current_count']);?></span> / <?php echo h($item['total_count']);?> <?php if ($item['current_count'] != $item['total_count'] && $isSiteAdmin && $item['Taxonomy']['enabled']) echo '(' . $this->Form->postLink('enable all', array('action' => 'addTag', h($item['Taxonomy']['id'])), array('title' => 'Enable all tags'), ('Are you sure you want to enable every tag associated to this taxonomy?')) . ')'; ?></span></td>
 		<td class="short action-links">
-			<?php 
+			<?php
 				if ($isSiteAdmin) {
 					if ($item['Taxonomy']['enabled']) {
 						echo $this->Form->postLink('', array('action' => 'disable', h($item['Taxonomy']['id'])), array('class' => 'icon-minus', 'title' => 'Disable'), ('Are you sure you want to disable this taxonomy library?'));
@@ -66,6 +66,6 @@ endforeach; ?>
         </ul>
     </div>
 </div>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'taxonomies', 'menuItem' => 'index'));
 ?>

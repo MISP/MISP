@@ -29,6 +29,6 @@ echo $this->Form->button('Add', array('class' => 'btn btn-primary'));
 echo $this->Form->end();
 ?>
 </div>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'orgBlacklistsAdd'));
 ?>

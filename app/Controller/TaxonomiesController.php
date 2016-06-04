@@ -29,7 +29,7 @@ class TaxonomiesController extends AppController {
 		foreach ($taxonomies as &$taxonomy) {
 			$total = 0;
 			foreach ($taxonomy['TaxonomyPredicate'] as &$predicate) {
-				$total += empty($predicate['TaxonomyEntry']) ? 1 : count($predicate['TaxonomyEntry']); 
+				$total += empty($predicate['TaxonomyEntry']) ? 1 : count($predicate['TaxonomyEntry']);
 			}
 			$taxonomy['total_count'] = $total;
 			$taxonomy['current_count'] = $this->Tag->find('count', array('conditions' => array('lower(Tag.name) LIKE ' => strtolower($taxonomy['Taxonomy']['namespace']) . ':%')));
@@ -37,7 +37,7 @@ class TaxonomiesController extends AppController {
 		}
 		$this->set('taxonomies', $taxonomies);
 	}
-	
+
 	public function view($id) {
 		if (isset($this->passedArgs['pages'])) {
 			$currentPage = $this->passedArgs['pages'];
@@ -64,7 +64,7 @@ class TaxonomiesController extends AppController {
 		$this->set('taxonomy', $taxonomy['Taxonomy']);
 		$this->set('id', $id);
 	}
-	
+
 	public function enable($id) {
 		if (!$this->_isSiteAdmin() || !$this->request->is('Post')) throw new MethodNotAllowedException('You don\'t have permission to do that.');
 		$taxonomy = $this->Taxonomy->find('first', array(
@@ -88,7 +88,7 @@ class TaxonomiesController extends AppController {
 		$this->Session->setFlash('Taxonomy enabled.');
 		$this->redirect($this->referer());
 	}
-	
+
 	public function disable($id) {
 		if (!$this->_isSiteAdmin() || !$this->request->is('Post')) throw new MethodNotAllowedException('You don\'t have permission to do that.');
 		$taxonomy = $this->Taxonomy->find('first', array(
@@ -112,7 +112,7 @@ class TaxonomiesController extends AppController {
 		$this->Session->setFlash('Taxonomy disabled.');
 		$this->redirect($this->referer());
 	}
-	
+
 	public function update() {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException('You don\'t have permission to do that.');
 		$result = $this->Taxonomy->update();
@@ -136,7 +136,7 @@ class TaxonomiesController extends AppController {
 							'change' => $change,
 					));
 					$successes++;
-				}	
+				}
 			}
 			if (isset($result['fails'])) {
 				foreach ($result['fails'] as $id => &$fail) {
@@ -176,7 +176,7 @@ class TaxonomiesController extends AppController {
 		}
 		$this->redirect(array('controller' => 'taxonomies', 'action' => 'index'));
 	}
-	
+
 	public function addTag($taxonomy_id = false) {
 		if ((!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) || !$this->request->is('post')) throw new NotFoundException('You don\'t have permission to do that.');
 		if ($taxonomy_id) {
@@ -185,7 +185,7 @@ class TaxonomiesController extends AppController {
 			if (isset($this->request->data['Taxonomy'])) {
 				$this->request->data['Tag'] = $this->request->data['Taxonomy'];
 				unset($this->request->data['Taxonomy']);
-			} 
+			}
 			if (isset($this->request->data['Tag']['request'])) $this->request->data['Tag'] = $this->request->data['Tag']['request'];
 			if (!isset($this->request->data['Tag']['nameList'])) $this->request->data['Tag']['nameList'] = array($this->request->data['Tag']['name']);
 			else $this->request->data['Tag']['nameList'] = json_decode($this->request->data['Tag']['nameList'], true);
@@ -198,7 +198,7 @@ class TaxonomiesController extends AppController {
 		}
 		$this->redirect($this->referer());
 	}
-	
+
 	public function taxonomyMassConfirmation($id) {
 		if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) throw new NotFoundException('You don\'t have permission to do that.');
 		$this->set('id', $id);

@@ -61,7 +61,7 @@ class SmimeTransport extends AbstractTransport {
 				$msg = 'Could not send email: ' . isset($error['message']) ? $error['message'] : 'unknown';
 				throw new SocketException($msg);
 			}
-		} elseif (!@mail($to, $subject, $message, $headers, $params)) {
+		} else if (!@mail($to, $subject, $message, $headers, $params)) {
 			$error = error_get_last();
 			$msg = 'Could not send email: ' . isset($error['message']) ? $error['message'] : 'unknown';
 			//@codingStandardsIgnoreEnd

@@ -30,7 +30,7 @@ class RegexpController extends AppController {
 	public function admin_add() {
 		$this->loadModel('Attribute');
 		$types = array_keys($this->Attribute->typeDefinitions);
-		if(!$this->userRole['perm_regexp_access']) $this->redirect(array('controller' => 'regexp', 'action' => 'index', 'admin' => false));
+		if (!$this->userRole['perm_regexp_access']) $this->redirect(array('controller' => 'regexp', 'action' => 'index', 'admin' => false));
 		if ($this->request->is('post')) {
 			if ($this->request->data['Regexp']['all'] == 1) {
 				$this->Regexp->create();
@@ -69,7 +69,7 @@ class RegexpController extends AppController {
  * @return void
  */
 	public function admin_index() {
-		if(!$this->userRole['perm_regexp_access']) $this->redirect(array('controller' => 'regexp', 'action' => 'index', 'admin' => false));
+		if (!$this->userRole['perm_regexp_access']) $this->redirect(array('controller' => 'regexp', 'action' => 'index', 'admin' => false));
 		$this->AdminCrud->adminIndex();
 	}
 
@@ -93,7 +93,7 @@ class RegexpController extends AppController {
 			throw new NotFoundException('Invalid Regexp');
 		}
 		if ($this->request->is('post') || $this->request->is('put')) {
-			unset ($this->request->data['Regexp']['id']);
+			unset($this->request->data['Regexp']['id']);
 			// If 'all' is set, it overrides all other type settings. Create an attribute with the "all" setting and save it. Also, delete the original(s)
 			if ($this->request->data['Regexp']['all'] == 1) {
 				$this->Regexp->create();
@@ -176,7 +176,7 @@ class RegexpController extends AppController {
  * @throws NotFoundException
  */
 	public function admin_delete($id = null) {
-		if(!$this->userRole['perm_regexp_access']) $this->redirect(array('controller' => 'regexp', 'action' => 'index', 'admin' => false));
+		if (!$this->userRole['perm_regexp_access']) $this->redirect(array('controller' => 'regexp', 'action' => 'index', 'admin' => false));
 		$this->AdminCrud->adminDelete($id);
 	}
 
@@ -194,7 +194,7 @@ class RegexpController extends AppController {
  *
  */
 	public function admin_clean() {
-		if(!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException('This action is only accessible via a POST request.');
+		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException('This action is only accessible via a POST request.');
 		$allRegexp = $this->Regexp->find('all');
 		$deletable = array();
 		$modifications = 0;
@@ -220,13 +220,13 @@ class RegexpController extends AppController {
 		$this->Session->setFlash(__('All done! Number of changed attributes: ' . $modifications . ' Number of deletions: ' . count($deletable)));
 		$this->redirect(array('action' => 'index'));
 	}
-	
+
 
 	public function cleanRegexModifiers() {
 		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException();
 		$entries = $this->Regexp->find('all', array());
 		$changes = 0;
-		foreach($entries as $entry) {
+		foreach ($entries as $entry) {
 			$length = strlen($entry['Regexp']['regexp']);
 			$this->Regexp->sanitizeModifiers($entry['Regexp']['regexp']);
 			if (strlen($entry['Regexp']['regexp']) < $length) {

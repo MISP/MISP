@@ -43,7 +43,7 @@ class Whitelist extends AppModel {
 			),
 			'userdefined' => array(
 				'rule' => array('validateValue'),
- 				'message' => 'Name not in the right format. Whitelist entries have to be enclosed by a valid php delimiter (which can be most non-alphanumeric / non-whitespace character). Format: "/8.8.8.8/" Please double check the name.', 				//'allowEmpty' => false,
+				'message' => 'Name not in the right format. Whitelist entries have to be enclosed by a valid php delimiter (which can be most non-alphanumeric / non-whitespace character). Format: "/8.8.8.8/" Please double check the name.',				//'allowEmpty' => false,
 				//'allowEmpty' => false,
 				//'required' => true,
 				//'last' => false, // Stop validation after this rule
@@ -121,7 +121,7 @@ class Whitelist extends AppModel {
 		}
 		return $data;
 	}
-	
+
 	// A simplified whitelist removal, for when we just want to throw values against the list instead of attributes / events
 	public function removeWhitelistedValuesFromArray($data) {
 		$whitelists = $this->getBlockedValues();

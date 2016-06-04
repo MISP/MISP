@@ -22,21 +22,21 @@ App::uses('BaseAuthenticate', 'Controller/Component/Auth');
 class CertificateAuthenticate extends BaseAuthenticate
 {
     /**
-     * Holds the certificate issuer information (available at SSL_CLIENT_I_DN) 
+     * Holds the certificate issuer information (available at SSL_CLIENT_I_DN)
      *
      * @var array
      */
     protected static $ca;
 
     /**
-     * Holds the certificate user information (available at SSL_CLIENT_S_DN) 
+     * Holds the certificate user information (available at SSL_CLIENT_S_DN)
      *
      * @var array
      */
     protected static $client;
 
     /**
-     * Holds the user information 
+     * Holds the user information
      *
      * @var array
      */
@@ -54,22 +54,22 @@ class CertificateAuthenticate extends BaseAuthenticate
         self::$ca = self::$client = false;
 
         // this means the client certificate is valid — check nginx/apache configuration
-        if(isset($_SERVER['SSL_CLIENT_VERIFY']) && $_SERVER['SSL_CLIENT_VERIFY']=='SUCCESS') {
+        if (isset($_SERVER['SSL_CLIENT_VERIFY']) && $_SERVER['SSL_CLIENT_VERIFY']=='SUCCESS') {
 
-            if(isset($_SERVER['SSL_CLIENT_I_DN'])) {
+            if (isset($_SERVER['SSL_CLIENT_I_DN'])) {
                 $CA = self::parse($_SERVER['SSL_CLIENT_I_DN'], Configure::read('CertAuth.mapCa'));
 
                 // only valid CAs, if this was configured
-                if($ca=Configure::read('CertAuth.ca')) {
+                if ($ca=Configure::read('CertAuth.ca')) {
                     $k = Configure::read('CertAuth.caId');
-                    if(!$k) $k = 'CN';
+                    if (!$k) $k = 'CN';
                     $id = (isset($CA[$k]))?($CA[$k]):(false);
 
-                    if(!$id) {
+                    if (!$id) {
                         $CA = false;
-                    } else if(is_array($ca)) {
-                        if(!in_array($id, $ca)) $CA = false;
-                    } else if($ca!=$id) {
+                    } else if (is_array($ca)) {
+                        if (!in_array($id, $ca)) $CA = false;
+                    } else if ($ca!=$id) {
                         $CA = false;
                     }
                     unset($id, $k);
@@ -78,7 +78,7 @@ class CertificateAuthenticate extends BaseAuthenticate
                 unset($CA, $ca);
             }
 
-            if(self::$ca && isset($_SERVER['SSL_CLIENT_S_DN'])) {
+            if (self::$ca && isset($_SERVER['SSL_CLIENT_S_DN'])) {
                 self::$client = self::parse($_SERVER['SSL_CLIENT_S_DN'], Configure::read('CertAuth.map'));
             }
         }
@@ -95,11 +95,11 @@ class CertificateAuthenticate extends BaseAuthenticate
     private static function parse($s, $map=null)
     {
         $r=array();
-        foreach(preg_split('#/#', $s, null, PREG_SPLIT_NO_EMPTY) as $v) {
-            if($p=strpos($v, '=')) {
+        foreach (preg_split('#/#', $s, null, PREG_SPLIT_NO_EMPTY) as $v) {
+            if ($p=strpos($v, '=')) {
                 $k = substr($v, 0, $p);
-                if($map) {
-                    if(isset($map[$k])) {
+                if ($map) {
+                    if (isset($map[$k])) {
                         $k = $map[$k];
                     } else {
                         unset($p, $v, $k);
@@ -116,21 +116,21 @@ class CertificateAuthenticate extends BaseAuthenticate
     // to enable stateless authentication
     public function getUser(CakeRequest $request)
     {
-        if(is_null(self::$user)) {
-            if(self::$client) {
+        if (is_null(self::$user)) {
+            if (self::$client) {
                 self::$user = self::$client;
 
                 $sync = Configure::read('CertAuth.syncUser');
 
-                if($sync) {
+                if ($sync) {
                     self::getRestUser();
                 }
 
                 // find and fill user with model
                 $cn = Configure::read('CertAuth.userModel');
-                if($cn) {
+                if ($cn) {
                     $k = Configure::read('CertAuth.userModelKey');
-                    if($k) {
+                    if ($k) {
                         $q = array($k=>self::$user[$k]);
                     } else {
                         $q = self::$user;
@@ -140,30 +140,30 @@ class CertificateAuthenticate extends BaseAuthenticate
                         'conditions' => $q,
                         'recursive' => false
                     ));
-                    if($U) {
-                        if($sync) {
+                    if ($U) {
+                        if ($sync) {
                             $write = array();
-                            foreach(self::$user as $k=>$v) {
-                                if(array_key_exists($k, $U[$cn]) && trim($U[$cn][$k])!=trim($v)) {
+                            foreach (self::$user as $k=>$v) {
+                                if (array_key_exists($k, $U[$cn]) && trim($U[$cn][$k])!=trim($v)) {
                                     $write[] = $k;
                                     $U[$cn][$k] = trim($v);
                                 }
                                 unset($k, $v);
                             }
-                            if($write && !$User->save($U[$cn], true, $write)) {
+                            if ($write && !$User->save($U[$cn], true, $write)) {
                                 CakeLog::write('alert', 'Could not update model at database with RestAPI data.');
                             }
                             unset($write);
                         }
                         self::$user = $U[$cn];
-                    } else if($sync) {
+                    } else if ($sync) {
                         $User->create();
                         $d = Configure::read('CertAuth.userDefaults');
-                        if($d && is_array($d)) {
+                        if ($d && is_array($d)) {
                             self::$user += $d;
                         }
                         unset($d);
-                        if($User->save(self::$user, true, array_keys(self::$user))) {
+                        if ($User->save(self::$user, true, array_keys(self::$user))) {
                             $U = $User->read();
                             self::$user = $U[$cn];
                         } else {
@@ -199,14 +199,14 @@ class CertificateAuthenticate extends BaseAuthenticate
      */
     public function getRestUser($options=null, $user=null)
     {
-        if(is_null($options)) {
+        if (is_null($options)) {
             $options = Configure::read('CertAuth.restApi');
         }
-        if(!is_null($user)) {
+        if (!is_null($user)) {
             self::$user = $user;
         }
 
-        if(!isset($options['url'])) {
+        if (!isset($options['url'])) {
             return null;
         }
 
@@ -217,9 +217,9 @@ class CertificateAuthenticate extends BaseAuthenticate
             'header'=>"Accept: application/json\r\n"
           ),
         );
-        if(isset($options['headers'])) {
-            foreach($options['headers'] as $k=>$v) {
-                if(is_int($k)) {
+        if (isset($options['headers'])) {
+            foreach ($options['headers'] as $k=>$v) {
+                if (is_int($k)) {
                     $req['header'] .= "{$v}\r\n";
                 } else {
                     $req['header'] .= "{$k}: {$v}\r\n";
@@ -229,9 +229,9 @@ class CertificateAuthenticate extends BaseAuthenticate
         }
 
         $url = $options['url'];
-        if(isset($options['param'])) {
-            foreach($options['param'] as $k=>$v) {
-                if(isset(self::$user[$v])) {
+        if (isset($options['param'])) {
+            foreach ($options['param'] as $k=>$v) {
+                if (isset(self::$user[$v])) {
                     $url .= ((strpos($url, '?'))?('&'):('?'))
                         . $k . '=' . urlencode(self::$user[$v]);
                 }
@@ -240,13 +240,13 @@ class CertificateAuthenticate extends BaseAuthenticate
         }
         $ctx = stream_context_create($req);
         $a   = file_get_contents($url, false, $ctx);
-        if(!$a) return null;
+        if (!$a) return null;
 
         $A = json_decode($a, true);
-        if(!isset($A['data'][0])) return false;
-        if(isset($options['map'])) {
-            foreach($options['map'] as $k=>$v) {
-                if(isset($A['data'][0][$k])) {
+        if (!isset($A['data'][0])) return false;
+        if (isset($options['map'])) {
+            foreach ($options['map'] as $k=>$v) {
+                if (isset($A['data'][0][$k])) {
                     self::$user[$v] = $A['data'][0][$k];
                 }
                 unset($k, $v);
@@ -256,17 +256,17 @@ class CertificateAuthenticate extends BaseAuthenticate
         return self::$user;
     }
 
-    protected static $instance; 
+    protected static $instance;
 
     public static function ca()
     {
-        if(is_null(self::$ca)) new CertificateAuthenticate();
+        if (is_null(self::$ca)) new CertificateAuthenticate();
         return self::$ca;
     }
 
     public static function client()
     {
-        if(is_null(self::$client)) new CertificateAuthenticate();
+        if (is_null(self::$client)) new CertificateAuthenticate();
         return self::$client;
     }
 

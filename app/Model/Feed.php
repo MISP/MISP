@@ -5,11 +5,11 @@ class Feed extends AppModel {
 
 	public $actsAs = array('SysLogLogable.SysLogLogable' => array(
 			'change' => 'full'
-		), 
+		),
 		'Trim',
 		'Containable'
 	);
-	
+
 	public $belongsTo = array(
 			'SharingGroup' => array(
 					'className' => 'SharingGroup',
@@ -20,7 +20,7 @@ class Feed extends AppModel {
 					'foreignKey' => 'tag_id',
 			)
 	);
-	
+
 /**
  * Validation rules
  *
@@ -42,7 +42,7 @@ class Feed extends AppModel {
 				),
 		),
 	);
-	
+
 	// gets the event UUIDs from the feed by ID
 	// returns an array with the UUIDs of events that are new or that need updating
 	public function getNewEventUuids($feed, $HttpSocket) {
@@ -68,8 +68,8 @@ class Feed extends AppModel {
 		$result['add'] = array_keys($manifest);
 		return $result;
 	}
-	
-	
+
+
 	public function getManifest($feed, $HttpSocket) {
 		$result = array();
 		$request = $this->__createFeedRequest();
@@ -83,7 +83,7 @@ class Feed extends AppModel {
 		$events = $this->__filterEventsIndex($events, $feed);
 		return $events;
 	}
-	
+
 	public function downloadFromFeed($actions, $feed, $HttpSocket, $user, $jobId = false) {
 		if ($jobId) {
 			$job = ClassRegistry::init('Job');
@@ -134,7 +134,7 @@ class Feed extends AppModel {
 		}
 		return $results;
 	}
-	
+
 	private function __createFeedRequest() {
 		$version = $this->checkMISPVersion();
 		$version = implode('.', $version);
@@ -146,7 +146,7 @@ class Feed extends AppModel {
 			)
 		);
 	}
-	
+
 	private function __checkIfEventBlockedByFilter($event, $filterRules) {
 		$fields = array('tags' => 'Tag', 'orgs' => 'Orgc');
 		$prefixes = array('OR', 'NOT');
@@ -170,7 +170,7 @@ class Feed extends AppModel {
 		if (!$filterRules) return true;
 		return true;
 	}
-	
+
 	private function __filterEventsIndex($events, $feed) {
 		$filterRules = array();
 		if (isset($feed['Feed']['rules']) && !empty($feed['Feed']['rules'])) {
@@ -212,13 +212,13 @@ class Feed extends AppModel {
 		}
 		return $events;
 	}
-	
+
 	public function downloadAndSaveEventFromFeed($feed, $uuid, $user) {
 		$event = $this->downloadEventFromFeed($feed, $uuid, $user);
 		if (!is_array($event) || isset($event['code'])) return false;
 		return $this->__saveEvent($event, $user);
 	}
-	
+
 	public function downloadEventFromFeed($feed, $uuid, $user) {
 		$HttpSocket = $this->__setupHttpSocket($feed);
 		$request = $this->__createFeedRequest();
@@ -230,7 +230,7 @@ class Feed extends AppModel {
 			return $this->__prepareEvent($response->body, $feed);
 		}
 	}
-	
+
 	private function __saveEvent($event, $user) {
 		$this->Event = ClassRegistry::init('Event');
 		$existingEvent = $this->Event->find('first', array(
@@ -250,7 +250,7 @@ class Feed extends AppModel {
 		}
 		return $result;
 	}
-	
+
 	private function __prepareEvent($body, $feed) {
 		$filterRules = $this->__prepareFilterRules($feed);
 		$event = json_decode($body, true);
@@ -289,19 +289,19 @@ class Feed extends AppModel {
 		if (!$this->__checkIfEventBlockedByFilter($event, $filterRules)) return 'blocked';
 		return $event;
 	}
-	
+
 	private function __prepareFilterRules($feed) {
 		$filterRules = false;
 		if (isset($feed['Feed']['rules']) && !empty($feed['Feed']['rules'])) $filterRules = json_decode($feed['Feed']['rules'], true);
 		return $filterRules;
 	}
-	
+
 	private function __setupHttpSocket($feed) {
 		App::uses('SyncTool', 'Tools');
 		$syncTool = new SyncTool();
 		return ($syncTool->setupHttpSocketFeed($feed));
 	}
-	
+
 	private function __addEventFromFeed($HttpSocket, $feed, $uuid, $user, $filterRules) {
 		$request = $this->__createFeedRequest();
 		$uri = $feed['Feed']['url'] . '/' . $uuid . '.json';
@@ -316,7 +316,7 @@ class Feed extends AppModel {
 			} else return $event;
 		}
 	}
-	
+
 	private function __updateEventFromFeed($HttpSocket, $feed, $uuid, $eventId, $user, $filterRules) {
 		$request = $this->__createFeedRequest();
 		$uri = $feed['Feed']['url'] . '/' . $uuid . '.json';
@@ -329,7 +329,7 @@ class Feed extends AppModel {
 			return $this->Event->_edit($event, $user, $uuid, $jobId = null);
 		}
 	}
-	
+
 	public function addDefaultFeeds($newFeeds) {
 		foreach ($newFeeds as $newFeed) {
 			$existingFeed = $this->find('list', array('conditions' => array('Feed.url' => $newFeed['url'])));
@@ -351,7 +351,7 @@ class Feed extends AppModel {
 		}
 		return $success;
 	}
-	
+
 	public function downloadFromFeedInitiator($feedId, $user, $jobId = false) {
 		$this->id = $feedId;
 		App::uses('SyncTool', 'Tools');

@@ -13,9 +13,9 @@ class ThreadsController extends AppController {
 		'RequestHandler',
 		'Session',
 	);
-	
+
 	public $helpers = array('Js' => array('Jquery'));
-	
+
 	public $paginate = array(
 			'limit' => 60,
 	);
@@ -23,7 +23,7 @@ class ThreadsController extends AppController {
 	public function beforeFilter() {
 		parent::beforeFilter();
 	}
-	
+
 	public function viewEvent($id) {
 		$this->loadModel('Event');
 		$result = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
@@ -84,8 +84,8 @@ class ThreadsController extends AppController {
 		$this->layout = 'ajax';
 		$this->render('/Elements/eventdiscussion');
 	}
-	
-	
+
+
 	public function view($thread_id, $eventView = false) {
 		$post_id = false;
 		if (isset($this->passedArgs['post_id'])) $post_id = $this->passedArgs['post_id'];
@@ -113,13 +113,13 @@ class ThreadsController extends AppController {
 		} else {
 			$this->Thread->recursive = -1;
 			$this->Thread->id = $thread_id;
-			
+
 			//If the thread doesn't exist, throw exception
 			if (!$this->Thread->exists()) {
 				throw new NotFoundException('Invalid thread.');
 			}
 			$thread = $this->Thread->read();
-			
+
 			// If the thread belongs to an event, we have to make sure that the event's distribution level hasn't changed.
 			// This is also a good time to update the thread's distribution level if that did happen.
 			if (!empty($thread['Thread']['event_id'])) {
@@ -135,7 +135,7 @@ class ThreadsController extends AppController {
 				}
 				$this->set('event_id', $thread['Thread']['event_id']);
 			}
-		
+
 			// If the user shouldn't be allowed to see the event send him away.
 			if (!$this->_isSiteAdmin()) {
 				if ($thread['Thread']['distribution'] == 0 && $thread['Thread']['org_id'] != $this->Auth->user('org_id')) {
@@ -183,7 +183,7 @@ class ThreadsController extends AppController {
 			$this->render('/Elements/eventdiscussion');
 		}
 	}
-	
+
 	public function index() {
 		$this->loadModel('Posts');
 		$this->loadModel('SharingGroup');
@@ -192,7 +192,7 @@ class ThreadsController extends AppController {
 		if (!$this->_isSiteAdmin()) {
 			$conditions['AND']['OR'] = array(
 					'Thread.distribution' => array(1, 2, 3),
-					'AND' => array( 
+					'AND' => array(
 							'Thread.distribution' => 0,
 							'Thread.org_id' => $this->Auth->user('org_id'),
 					),
@@ -219,7 +219,7 @@ class ThreadsController extends AppController {
 						),
 					),
 					'Organisation' => array(
-						'fields' => array('id', 'name')		
+						'fields' => array('id', 'name')
 					),
 					'SharingGroup' => array(
 						'fields' => array('id', 'name')

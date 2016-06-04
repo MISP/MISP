@@ -3,24 +3,24 @@ Upgrade procedure from v2.1 to v2.2
 
 - git pull the latest version of MISP from https://github.com/MISP/MISP.git
 
-- execute UPGRADE.SH in the MISP/INSTALL folder (this also includes the installation of Redis for CakeResque)   
+- execute UPGRADE.SH in the MISP/INSTALL folder (this also includes the installation of Redis for CakeResque)
 	- cd /var/www/MISP/INSTALL
 	- ./UPGRADE.SH
-	
+
 - Replace your current bootstrap.php file found in /MISP/app/Config/ with bootstrap.default.php and change set your instance up to your liking
 
-- Log in with the site admin credentials and execute the following commands by changing the url 
+- Log in with the site admin credentials and execute the following commands by changing the url
 (where <MISP> is the address of your instance):
 	- https://<MISP>/events/generateThreatLevelFromRisk
 
 ================================================================================================================================================
 
-Enabling background jobs via CakeResque 
+Enabling background jobs via CakeResque
 (assuming /var/www/MISP as your installation directory)
 
 - Enable CakeResque in MISP
 	- vim /var/www/MISP/app/Config/bootstrap.php
-	- set Configure::write('MISP.background_jobs', false); to Configure::write('MISP.background_jobs', true); 
+	- set Configure::write('MISP.background_jobs', false); to Configure::write('MISP.background_jobs', true);
 	- uncomment CakePlugin::load('CakeResque', array('bootstrap' => true));
 	- in Core.php (if you have just recently updated MISP, just add this line at the end of the file): require_once dirname(__DIR__) . '/Vendor/autoload.php';
 
@@ -28,5 +28,5 @@ Enabling background jobs via CakeResque
 	- cd /var/www/MISP/app/Console/worker/
 	- ./start.sh
 	Make sure you configure your OS to start this script as boot time !
-	
+
 ================================================================================================================================================

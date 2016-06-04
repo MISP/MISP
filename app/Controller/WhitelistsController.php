@@ -9,8 +9,6 @@ App::uses('AppController', 'Controller');
  */
 class WhitelistsController extends AppController {
 
-	public $XXXcomponents = array('Security', 'RequestHandler');
-
 	public $components = array(
 		'Security',
 		'AdminCrud'
@@ -33,7 +31,7 @@ class WhitelistsController extends AppController {
  * @return void
  */
 	public function admin_add() {
-		if(!$this->userRole['perm_regexp_access']) $this->redirect(array('controller' => 'regexp', 'action' => 'index', 'admin' => false));
+		if (!$this->userRole['perm_regexp_access']) $this->redirect(array('controller' => 'regexp', 'action' => 'index', 'admin' => false));
 		$this->AdminCrud->adminAdd();
 	}
 
@@ -43,7 +41,7 @@ class WhitelistsController extends AppController {
  * @return void
  */
 	public function admin_index() {
-		if(!$this->userRole['perm_regexp_access']) $this->redirect(array('controller' => 'whitelists', 'action' => 'index', 'admin' => false));
+		if (!$this->userRole['perm_regexp_access']) $this->redirect(array('controller' => 'whitelists', 'action' => 'index', 'admin' => false));
 		$this->AdminCrud->adminIndex();
 	}
 
@@ -55,7 +53,7 @@ class WhitelistsController extends AppController {
  * @throws NotFoundException
  */
 	public function admin_edit($id = null) {
-		if(!$this->userRole['perm_regexp_access']) $this->redirect(array('controller' => 'whitelists', 'action' => 'index', 'admin' => false));
+		if (!$this->userRole['perm_regexp_access']) $this->redirect(array('controller' => 'whitelists', 'action' => 'index', 'admin' => false));
 		$this->AdminCrud->adminEdit($id);
 	}
 
@@ -68,7 +66,7 @@ class WhitelistsController extends AppController {
  * @throws NotFoundException
  */
 	public function admin_delete($id = null) {
-		if(!$this->userRole['perm_regexp_access']) $this->redirect(array('controller' => 'whitelists', 'action' => 'index', 'admin' => false));
+		if (!$this->userRole['perm_regexp_access']) $this->redirect(array('controller' => 'whitelists', 'action' => 'index', 'admin' => false));
 		$this->AdminCrud->adminDelete($id);
 	}
 

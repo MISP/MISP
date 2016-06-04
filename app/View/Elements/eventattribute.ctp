@@ -34,7 +34,7 @@
 						$attributeSightingsPopover[$sighting['attribute_id']]['Other organisations'] = 1;
 					}
 				}
-			}	
+			}
 			if (!empty($attributeSightingsPopover)) {
 				$attributeSightingsPopoverText = array();
 				foreach ($attributeSightingsPopover as $aid =>  &$attribute) {
@@ -67,9 +67,9 @@
 				if ($all):
 			?>
 				<span class="red">view all</span>
-			<?php 
+			<?php
 				else:
-					echo $this->Paginator->link(__('view all'), 'all'); 
+					echo $this->Paginator->link(__('view all'), 'all');
 				endif;
 			?>
 		</li>
@@ -77,34 +77,34 @@
 	</div>
 <br />
 <div id="edit_object_div">
-	<?php 
+	<?php
 		echo $this->Form->create('Attribute', array('id' => 'delete_selected', 'url' => '/attributes/deleteSelected/' . $event['Event']['id']));
 		echo $this->Form->input('ids_delete', array(
 			'type' => 'text',
 			'value' => 'test',
 			'style' => 'display:none;',
 			'label' => false,
-		)); 
+		));
 		echo $this->Form->end();
 	?>
-		<?php 
+		<?php
 		echo $this->Form->create('ShadowAttribute', array('id' => 'accept_selected', 'url' => '/shadow_attributes/acceptSelected/' . $event['Event']['id']));
 		echo $this->Form->input('ids_accept', array(
 			'type' => 'text',
 			'value' => '',
 			'style' => 'display:none;',
 			'label' => false,
-		)); 
+		));
 		echo $this->Form->end();
 	?>
-		<?php 
+		<?php
 		echo $this->Form->create('ShadowAttribute', array('id' => 'discard_selected', 'url' => '/shadow_attributes/discardSelected/' . $event['Event']['id']));
 		echo $this->Form->input('ids_discard', array(
 			'type' => 'text',
 			'value' => '',
 			'style' => 'display:none;',
 			'label' => false,
-		)); 
+		));
 		echo $this->Form->end();
 		if (!isset($attributeFilter)) $attributeFilter = 'all';
 	?>
@@ -124,7 +124,7 @@
 		<span id="freetext-button" title="Populate using the freetext import tool" class="icon-exclamation-sign icon-inverse useCursorPointer" onClick="getPopup(<?php echo $event['Event']['id']; ?>, 'events', 'freeTextImport');"></span>
 		<?php if ($mayModify): ?>
 			<span id="attribute-replace-button" title="Replace all attributes of a category/type combination within the event" class="icon-random useCursorPointer" onClick="getPopup(<?php echo $event['Event']['id']; ?>, 'attributes', 'attributeReplace');"></span>
-		<?php endif; ?>			
+		<?php endif; ?>
 	</div>
 	<div class="tabMenu tabMenuFiltersBlock noPrint" style="padding-right:0px !important;">
 		<span id="filter_header" class="attribute_filter_header">Filters: </span>
@@ -159,8 +159,8 @@
 			<?php endif; ?>
 			<th class="actions">Actions</th>
 		</tr>
-		<?php 
-			foreach($event['objects'] as $k => $object):
+		<?php
+			foreach ($event['objects'] as $k => $object):
 				$extra = '';
 				$extra2 = '';
 				$extra3 = '';
@@ -177,7 +177,7 @@
 						$extra = 'highlight3';
 						unset($object['type']);
 					} else $extra = 'highlight2';
-					
+
 				}
 				if ($object['objectType'] == 1) {
 					$extra2 = '1';
@@ -203,26 +203,26 @@
 								<input id = "select_proposal_<?php echo $object['id']; ?>" class="select_proposal" type="checkbox" data-id="<?php echo $object['id'];?>" />
 							<?php endif; ?>
 						</td>
-					<?php endif; 
-						if (isset($object['proposal_to_delete']) && $object['proposal_to_delete']): 
-							for ($i = 0; $i < 9; $i++): 	
+					<?php endif;
+						if (isset($object['proposal_to_delete']) && $object['proposal_to_delete']):
+							for ($i = 0; $i < 9; $i++):
 					?>
 								<td class="<?php echo $extra; ?>" style="font-weight:bold;"><?php echo ($i == 0 ? 'DELETE' : '&nbsp;'); ?></td>
-					<?php 
+					<?php
 							endfor;
 						else:
 					?>
 							<td class="short <?php echo $extra; ?>">
 								<div id = "<?php echo $currentType . '_' . $object['id'] . '_timestamp_solid'; ?>">
-									<?php 
+									<?php
 										if (isset($object['timestamp'])) echo date('Y-m-d', $object['timestamp']);
-										else echo '&nbsp';				
+										else echo '&nbsp';
 									?>
 								</div>
 							</td>
 							<td class="short <?php echo $extra; ?>">
-						<?php 
-							if ($object['objectType'] != 0) {  
+						<?php
+							if ($object['objectType'] != 0) {
 								if (isset($object['Org']['name'])) {
 									$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . 'orgs' . DS . h($object['Org']['name']) . '.png';
 									if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($object['Org']['name']) . '.png', array('alt' => h($object['Org']['name']), 'title' => h($object['Org']['name']), 'style' => 'width:24px; height:24px'));
@@ -230,7 +230,7 @@
 								}
 							} else { ?>
 							&nbsp;
-						<?php 
+						<?php
 							}
 						?>
 							</td>
@@ -248,13 +248,13 @@
 							</td>
 							<td id="<?php echo h($currentType) . '_' . h($object['id']) . '_container'; ?>" class="showspaces <?php echo $extra; ?> limitedWidth">
 								<div id = "<?php echo $currentType . '_' . $object['id'] . '_value_placeholder'; ?>" class = "inline-field-placeholder"></div>
-								<?php 
+								<?php
 									if ('attachment' !== $object['type'] && 'malware-sample' !== $object['type']) $editable = ' ondblclick="activateField(\'' . $currentType . '\', \'' . $object['id'] . '\', \'value\', \'' . $event['Event']['id'] . '\');"';
 									else $editable = '';
 								?>
 								<div id = "<?php echo $currentType; ?>_<?php echo $object['id']; ?>_value_solid" class="inline-field-solid" <?php echo $editable; ?>>
 									<span <?php if (Configure::read('Plugin.Enrichment_hover_enable') && isset($modules) && isset($modules['hover_type'][$object['type']])) echo 'onMouseOver="hoverModuleExpand(\'' . $currentType . '\', \'' . $object['id'] . '\');";'?>>
-										<?php 
+										<?php
 											$sigDisplay = $object['value'];
 											if ('attachment' == $object['type'] || 'malware-sample' == $object['type'] ) {
 												$t = ($object['objectType'] == 0 ? 'attributes' : 'shadow_attributes');
@@ -268,18 +268,18 @@
 													echo $this->Html->link($filenameHash[0], array('controller' => $t, 'action' => 'download', $object['id']));
 												}
 												if (isset($filenameHash[1])) echo ' | ' . $filenameHash[1];
-											} elseif (strpos($object['type'], '|') !== false) {
+											} else if (strpos($object['type'], '|') !== false) {
 												$filenameHash = explode('|', $object['value']);
 												echo h($filenameHash[0]);
 												if (isset($filenameHash[1])) echo ' | ' . $filenameHash[1];
-											} elseif ('vulnerability' == $object['type']) {
+											} else if ('vulnerability' == $object['type']) {
 												if (! is_null(Configure::read('MISP.cveurl'))) {
 													$cveUrl = Configure::read('MISP.cveurl');
 												} else {
 													$cveUrl = "http://www.google.com/search?q=";
 												}
 												echo $this->Html->link($sigDisplay, $cveUrl . $sigDisplay, array('target' => '_blank'));
-											} elseif ('link' == $object['type']) {
+											} else if ('link' == $object['type']) {
 												echo $this->Html->link($sigDisplay, $sigDisplay);
 											} else if ('text' == $object['type']) {
 												$sigDisplay = str_replace("\r", '', h($sigDisplay));
@@ -290,9 +290,9 @@
 												echo nl2br(h($sigDisplay));
 											}
 											if (isset($object['validationIssue'])) echo ' <span class="icon-warning-sign" title="Warning, this doesn\'t seem to be a legitimage ' . strtoupper(h($object['type'])) . ' value">&nbsp;</span>';
-										?>		
-									</span>								
-									<?php 											
+										?>
+									</span>
+									<?php
 										if (isset($object['warnings'])) {
 											$temp = '';
 											$components = array(1 => 0, 2 => 1);
@@ -315,7 +315,7 @@
 							</td>
 							<td class="shortish <?php echo $extra; ?>">
 								<ul class="inline" style="margin:0px;">
-									<?php 
+									<?php
 										if ($object['objectType'] == 0) {
 											$relatedObject = 'Attribute';
 											$otherColour = $object['hasChildren'] == 0 ? 'blue' : 'white';
@@ -348,40 +348,40 @@
 							<td class="short <?php echo $extra; ?>">
 								<div id = "<?php echo $currentType . '_' . $object['id'] . '_to_ids_placeholder'; ?>" class = "inline-field-placeholder"></div>
 								<div id = "<?php echo $currentType . '_' . $object['id'] . '_to_ids_solid'; ?>" class="inline-field-solid" ondblclick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'to_ids', <?php echo $event['Event']['id'];?>);">
-									<?php 
+									<?php
 										if ($object['to_ids']) echo 'Yes';
 										else echo 'No';
 									?>
 								</div>
 							</td>
 							<td class="shortish <?php echo $extra; ?>">
-								<?php 
+								<?php
 									$turnRed = '';
 									if ($object['objectType'] == 0 && $object['distribution'] == 0) $turnRed = 'style="color:red"';
 								?>
 								<div id = "<?php echo $currentType . '_' . $object['id'] . '_distribution_placeholder'; ?>" class = "inline-field-placeholder"></div>
 								<div id = "<?php echo $currentType . '_' . $object['id'] . '_distribution_solid'; ?>" <?php echo $turnRed; ?> class="inline-field-solid" ondblclick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'distribution', <?php echo $event['Event']['id'];?>);">
-									<?php 
+									<?php
 										if ($object['objectType'] == 0) {
 											if ($object['distribution'] == 4):
 									?>
 											<a href="/sharing_groups/view/<?php echo h($object['sharing_group_id']); ?>"><?php echo h($object['SharingGroup']['name']);?></a>
-									<?php 
-											else: 
-												echo h($shortDist[$object['distribution']]); 
+									<?php
+											else:
+												echo h($shortDist[$object['distribution']]);
 											endif;
 										}
 									?>&nbsp;
 								</div>
 							</td>
-					<?php 
+					<?php
 						endif;
 						if (Configure::read('Plugin.Sightings_enable')):
 					?>
 					<td class="short <?php echo $extra;?>">
 						<span id="sightingForm_<?php echo h($object['id']);?>">
-						<?php 
-							if($object['objectType'] == 0):
+						<?php
+							if ($object['objectType'] == 0):
 								echo $this->Form->create('Sighting', array('id' => 'Sighting_' . $object['id'], 'url' => '/sightings/add/' . $object['id'], 'style' => 'display:none;'));
 								echo $this->Form->end();
 						?>
@@ -393,11 +393,11 @@
 						<span id="ownSightingCount_<?php echo h($object['id']); ?>" class="bold green sightingsCounter_<?php echo h($object['id']); ?>" data-toggle="popover" data-trigger="hover" data-content="<?php echo isset($attributeSightingsPopoverText[$object['id']]) ? $attributeSightingsPopoverText[$object['id']] : ''; ?>">
 							<?php echo '(' . (isset($attributeOwnSightings[$object['id']]) ? $attributeOwnSightings[$object['id']] : 0) . ')'; ?>
 						</span>
-						<?php 
+						<?php
 							endif;
 						?>
 					</td>
-					<?php 
+					<?php
 						endif;
 					?>
 					<td class="short action-links <?php echo $extra;?>">
@@ -415,27 +415,27 @@
 										if (isset($modules) && isset($modules['types'][$object['type']])):
 							?>
 								<span class="icon-asterisk useCursorPointer" onClick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?php echo h($object['id']);?>/ShadowAttribute');" title="Propose enrichment">&nbsp;</span>
-							<?php 
+							<?php
 										endif;
 							?>
 										<a href="<?php echo $baseurl;?>/shadow_attributes/edit/<?php echo $object['id']; ?>" title="Propose Edit" class="icon-share useCursorPointer"></a>
 										<span class="icon-trash useCursorPointer" title="Propose Deletion" onClick="deleteObject('shadow_attributes', 'delete', '<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
-							<?php 
-										if ($isSiteAdmin): 
+							<?php
+										if ($isSiteAdmin):
 							?>
 											<span class="verticalSeparator">&nbsp;</span>
-							<?php 		endif;
+							<?php		endif;
 									endif;
 									if ($isSiteAdmin || $mayModify) {
 										if (isset($modules) && isset($modules['types'][$object['type']])):
 							?>
 								<span class="icon-asterisk useCursorPointer" onClick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?php echo h($object['id']);?>/Attribute');" title="Add enrichment">&nbsp;</span>
-							<?php 
+							<?php
 										endif;
 							?>
 								<a href="<?php echo $baseurl;?>/attributes/edit/<?php echo $object['id']; ?>" title="Edit" class="icon-edit useCursorPointer"></a>
 								<span class="icon-trash useCursorPointer" onClick="deleteObject('attributes', 'delete', '<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
-							<?php 			
+							<?php
 									}
 								endif;
 							} else {
@@ -444,18 +444,18 @@
 									echo $this->Form->end();
 								?>
 									<span class="icon-ok useCursorPointer" onClick="acceptObject('shadow_attributes', '<?php echo $object['id']; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
-								<?php 
+								<?php
 								}
 								if (($event['Orgc']['id'] == $me['org_id'] && $mayModify) || $isSiteAdmin || ($object['org_id'] == $me['org_id'])) {
 								?>
 									<span class="icon-trash useCursorPointer" onClick="deleteObject('shadow_attributes', 'discard' ,'<?php echo $object['id']; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
-								<?php 
+								<?php
 								}
 							}
 						?>
 					</td>
-				</tr>	
-		<?php 
+				</tr>
+		<?php
 			endforeach;
 		?>
 	</table>
@@ -463,7 +463,7 @@
 	<?php if (!isset($event['objects']) || empty($event['objects'])): ?>
 		<div class="background-red bold">
 			<span>
-			<?php 
+			<?php
 				if ($me['org_id'] != $event['Event']['orgc_id']) {
 					echo 'Attribute warning: This event doesn\'t have any attributes visible to you. Either the owner of the event decided to have
 a specific distribution scheme per attribute and wanted to still distribute the event alone either for notification or potential contribution with attributes without such restriction. Or the owner forgot to add the
@@ -495,9 +495,9 @@ attributes or the appropriate distribution level. If you think there is a mistak
 				if ($all):
 			?>
 				<span class="red">view all</span>
-			<?php 
+			<?php
 				else:
-					echo $this->Paginator->link(__('view all'), 'all'); 
+					echo $this->Paginator->link(__('view all'), 'all');
 				endif;
 			?>
 		</li>
@@ -518,9 +518,9 @@ attributes or the appropriate distribution level. If you think there is a mistak
 		$('.select_proposal, .select_all').click(function(){
 			attributeListAnyProposalCheckBoxesChecked();
 		});
-		
+
 	});
 </script>
-<?php 
+<?php
 	echo $this->Js->writeBuffer();
 ?>

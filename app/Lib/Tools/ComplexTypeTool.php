@@ -1,7 +1,7 @@
 <?php
 
 class ComplexTypeTool {
-	
+
 	private $__refangRegexTable = array(
 		'/^hxxp/i' => 'http',
 		'/\[\.\]/' => '.',
@@ -9,7 +9,7 @@ class ComplexTypeTool {
 		'/\\\./' => '.',
 		'/\.+/' => '.'
 	);
-	
+
 	public function checkComplexRouter($input, $type) {
 		switch ($type) {
 			case 'File':
@@ -23,10 +23,10 @@ class ComplexTypeTool {
 				break;
 			default:
 				return false;
-		}	
+		}
 	}
-	
-	// checks if the passed input matches a valid file description attribute's pattern (filename, md5, sha1, sha256, filename|md5, filename|sha1, filename|sha256)		
+
+	// checks if the passed input matches a valid file description attribute's pattern (filename, md5, sha1, sha256, filename|md5, filename|sha1, filename|sha256)
 	public function checkComplexFile($input) {
 		$original = $input;
 		$type = '';
@@ -46,7 +46,7 @@ class ComplexTypeTool {
 		if ($type == '') $type = 'other';
 		return array('type' => $type, 'value' => $original);
 	}
-	
+
 	public function checkComplexCnC($input) {
 		$type = '';
 		$toReturn = array();
@@ -56,27 +56,27 @@ class ComplexTypeTool {
 			$result = explode('.', $input);
 			if (count($result) > 2) {
 				$toReturn['multi'][] = array('type' => 'hostname', 'value' => $input);
-				 $pos = strpos($input, '.');
-				 $toReturn['multi'][] = array('type' => 'domain', 'value' => substr($input, (1 + $pos)));
-				 return $toReturn;
+				$pos = strpos($input, '.');
+				$toReturn['multi'][] = array('type' => 'domain', 'value' => substr($input, (1 + $pos)));
+				return $toReturn;
 			}
 			return array('type' => 'domain', 'value' => $input);
 		}
-		
+
 		if (!preg_match("#\n#", $input)) return array('type' => 'url', 'value' => $input);
 		return array('type' => 'other', 'value' => $input);
 	}
-	
+
 	private function __returnOddElements(&$array) {
 		foreach ($array as $k => &$v) if ($k % 2 != 1) unset($array[$k]);
 		return array_values($array);
 	}
-	
+
 	public function checkFreeText($input) {
 		$iocArray = preg_split("/\r\n|\n|\r|\s|\s+|,|;/", $input);
 		$quotedText = explode('"', $input);
 		$iocArray = array_merge($iocArray, $this->__returnOddElements($quotedText));
-		
+
 		$resultArray = array();
 		if (!empty($iocArray)) {
 			foreach ($iocArray as $ioc) {
@@ -102,7 +102,7 @@ class ComplexTypeTool {
 		96 => array('single' => array('sha384'), 'composite' => array('filename|sha384')),
 		128 => array('single' => array('sha512'), 'composite' => array('filename|sha512'))
 	);
-	
+
 	private function __resolveType($input) {
 		$result = array();
 		$input = trim($input);
@@ -117,7 +117,7 @@ class ComplexTypeTool {
 				}
 			}
 		}
-		
+
 		// check for hashes
 		foreach ($this->__hexHashTypes as $k => &$v) {
 			if (strlen($input) == $k && preg_match("#[0-9a-f]{" . $k . "}$#i", $input)) return array('types' => $v['single'], 'to_ids' => true, 'default_type' => $v['single'][0]);
@@ -135,7 +135,7 @@ class ComplexTypeTool {
 		if (preg_match('/(:[0-9]{2,5})$/', $inputRefanged, $port)) {
 			$comment = 'On port ' . substr($port[0], 1);
 			$inputRefangedNoPort = str_replace($port[0], '', $inputRefanged);
-		} else $inputRefangedNoPort = $inputRefanged;		
+		} else $inputRefangedNoPort = $inputRefanged;
 		// check for IP
 		if (filter_var($inputRefangedNoPort, FILTER_VALIDATE_IP)) return array('types' => array('ip-dst', 'ip-src', 'ip-src/ip-dst'), 'to_ids' => true, 'default_type' => 'ip-dst', 'comment' => $comment, 'value' => $inputRefangedNoPort);
 		if (strpos($inputRefangedNoPort, '/')) {
@@ -144,7 +144,7 @@ class ComplexTypeTool {
 				if (filter_var($temp[0], FILTER_VALIDATE_IP) && is_numeric($temp[1])) return array('types' => array('ip-dst', 'ip-src', 'ip-src/ip-dst'), 'to_ids' => true, 'default_type' => 'ip-dst', 'comment' => $comment, 'value' => $inputRefangedNoPort);
 			}
 		}
-		
+
 		// check for domain name, hostname, filename
 		if (strpos($inputRefanged, '.') !== false) {
 			$temp = explode('.', $inputRefanged);
@@ -160,14 +160,14 @@ class ComplexTypeTool {
 				// check if it is a URL
 				// Adding http:// infront of the input in case it was left off. github.com/MISP/MISP should still be counted as a valid link
 				if (count($temp) > 1 && (filter_var($inputRefangedNoPort, FILTER_VALIDATE_URL) || filter_var('http://' . $inputRefangedNoPort, FILTER_VALIDATE_URL))) {
-					// TODO: add comment explaining why there is a check for a specific domain	
+					// TODO: add comment explaining why there is a check for a specific domain
 					if (preg_match('/^https:\/\/www.virustotal.com\//i', $inputRefangedNoPort)) return array('types' => array('link'), 'to_ids' => false, 'default_type' => 'link', 'comment' => $comment, 'value' => $inputRefangedNoPort);
 					if (strpos($inputRefangedNoPort, '/')) return array('types' => array('url'), 'to_ids' => true, 'default_type' => 'url', 'comment' => $comment, 'value' => $inputRefangedNoPort);
 				}
 				if ($this->__resolveFilename($input)) return array('types' => array('filename'), 'to_ids' => true, 'default_type' => 'filename');
 			}
 		}
-		
+
 		if (strpos($input, '\\') !== false) {
 			$temp = explode('\\', $input);
 			if (strpos($temp[count($temp)-1], '.')) {
@@ -176,13 +176,13 @@ class ComplexTypeTool {
 				return array('types' => array('regkey'), 'to_ids' => false, 'default_type' => 'regkey');
 			}
 		}
-		
+
 		// check for CVE
 		if (preg_match("#^cve-[0-9]{4}-[0-9]{4,9}$#i", $input)) return array('types' => array('vulnerability'), 'category' => 'External analysis', 'to_ids' => false, 'default_type' => 'vulnerability');
-		
+
 		return false;
 	}
-	
+
 	private function __resolveFilename($input) {
 		if (
 			strpos($input, '.') != 0 &&

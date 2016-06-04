@@ -83,7 +83,7 @@ class EventDelegationsController extends AppController {
 			$this->render('ajax/delegate_event');
 		}
 	}
-	
+
 	public function acceptDelegation($id) {
 		$delegation = $this->EventDelegation->find('first', array(
 				'conditions' => array('EventDelegation.id' => $id),
@@ -128,7 +128,7 @@ class EventDelegationsController extends AppController {
 			$this->render('ajax/accept_delegation');
 		}
 	}
-	
+
 	public function deleteDelegation($id) {
 		$delegation = $this->EventDelegation->find('first', array(
 			'conditions' => array('EventDelegation.id' => $id),
@@ -145,6 +145,6 @@ class EventDelegationsController extends AppController {
 			$this->render('ajax/delete_delegation');
 		}
 	}
-	
-	
+
+
 }

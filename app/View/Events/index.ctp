@@ -41,7 +41,7 @@
 		<?php endif;?>
 		<span id="quickFilterButton" class="tabMenuFilterFieldButton useCursorPointer" onClick='quickFilter(<?php echo h($passedArgs);?>, "/events/index");'>Filter</span>
 		<input class="tabMenuFilterField" type="text" id="quickFilterField"></input>
-		<?php 
+		<?php
 			$tempArgs = json_decode($passedArgs, true);
 			$tabBackground = "";
 			if (isset($tempArgs['searchemail']) && $tempArgs['searchemail'] === $me['email']) {
@@ -55,7 +55,7 @@
 		<span class="tabMenuFixed tabMenuFixedLeft tabMenuSides useCursorPointer <?php echo $tabBackground; ?>" style="margin-left:50px;">
 			<span id="myOrgButton" title="Modify filters" onClick="executeFilter(<?php echo h($tempArgs);?>, '<?php echo $baseurl;?>/events/index');">My Events</span>
 		</span>
-		<?php 
+		<?php
 			$tempArgs = json_decode($passedArgs, true);
 			$tabBackground = "";
 			if (isset($tempArgs['searchorg']) && $tempArgs['searchorg'] === $me['Organisation']['name']) {
@@ -81,9 +81,9 @@
 			?>
 				<th class="filter"><?php echo $this->Paginator->sort('Org', 'Source org'); ?></th>
 				<th class="filter"><?php echo $this->Paginator->sort('Org', 'Member org'); ?></th>
-			<?php 
+			<?php
 				else:
-					if (Configure::read('MISP.showorg') || $isAdmin): 
+					if (Configure::read('MISP.showorg') || $isAdmin):
 			?>
 						<th class="filter"><?php echo $this->Paginator->sort('Org'); ?></th>
 			<?php
@@ -91,7 +91,7 @@
 					if ($isSiteAdmin):
 			?>
 				<th class="filter"><?php echo $this->Paginator->sort('owner org');?></th>
-			<?php 
+			<?php
 					endif;
 				endif;
 			?>
@@ -119,7 +119,7 @@
 
 		</tr>
 		<?php foreach ($events as $event): ?>
-		<tr <?php if($event['Event']['distribution'] == 0) echo 'class = "privateRed"'?>>
+		<tr <?php if ($event['Event']['distribution'] == 0) echo 'class = "privateRed"'?>>
 			<td class="short" ondblclick="document.location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
 				<?php
 				if ($event['Event']['published'] == 1) {
@@ -191,7 +191,7 @@
 				<?php echo $event['Event']['date']; ?>&nbsp;
 			</td>
 			<td class="short" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
-				<?php 
+				<?php
 				if ($event['ThreatLevel']['name']) echo h($event['ThreatLevel']['name']);
 				else echo h($event['Event']['threat_level_id']);
 				?>&nbsp;
@@ -205,7 +205,7 @@
 			<td class="short <?php if ($event['Event']['distribution'] == 0) echo 'privateRedText';?>" ondblclick="location.href ='<?php echo $baseurl; ?>/events/view/<?php echo $event['Event']['id'];?>'" title = "<?php echo $event['Event']['distribution'] != 3 ? $distributionLevels[$event['Event']['distribution']] : 'All';?>">
 				<?php if ($event['Event']['distribution'] == 4):?>
 					<a href="<?php echo $baseurl;?>/sharingGroups/view/<?php echo h($event['SharingGroup']['id']); ?>"><?php echo h($event['SharingGroup']['name']);?></a>
-				<?php else: 
+				<?php else:
 					echo h($shortDist[$event['Event']['distribution']]);
 				endif;
 				?>
@@ -214,7 +214,7 @@
 				<?php
 				if (0 == $event['Event']['published'] && ($isSiteAdmin || ($isAclPublish && $event['Event']['orgc_id'] == $me['org_id'])))
 					echo $this->Form->postLink('', array('action' => 'alert', $event['Event']['id']), array('class' => 'icon-download-alt', 'title' => 'Publish Event'), 'Are you sure this event is complete and everyone should be informed?');
-				elseif (0 == $event['Event']['published']) echo 'Not published';
+				else if (0 == $event['Event']['published']) echo 'Not published';
 
 				if ($isSiteAdmin || ($isAclModify && $event['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $event['Event']['orgc_id'] == $me['org_id'])) {
 				?>

@@ -16,7 +16,7 @@ class Post extends AppModel {
 					'change' => 'full'
 			),
 	);
-	
+
 	public $belongsTo = array(
 			'Thread',
 			'User'
@@ -84,7 +84,7 @@ class Post extends AppModel {
 		$temp = $this->findAllByThreadId($post['Post']['thread_id'],array('user_id'));
 		foreach ($temp as $tempElement) {
 			$user = $this->User->findById($tempElement['Post']['user_id'], array('email', 'gpgkey', 'certif_public', 'contactalert', 'id'));
-			if(!empty($user) && $user['User']['id'] != $user_id && !in_array($user, $orgMembers)) {
+			if (!empty($user) && $user['User']['id'] != $user_id && !in_array($user, $orgMembers)) {
 				array_push($orgMembers, $user);
 			}
 		}
@@ -116,7 +116,7 @@ class Post extends AppModel {
 			$this->User->sendEmail($recipient, $bodyDetail, $body, $subject);
 		}
 	}
-	
+
 	public function findPageNr($id, $context = 'thread', &$post_id = false) {
 		// find the current post and its position in the thread
 		if ($context == 'event') $conditions = array('Thread.event_id' => $id);

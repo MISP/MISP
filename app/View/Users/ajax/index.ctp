@@ -23,14 +23,14 @@
 			<th>GPGKey set</th>
 			<th>Certificate (x509) set</th>
 			<th><?php echo $this->Paginator->sort('nids_sid');?></th>
-			<?php 
+			<?php
 				if ($isSiteAdmin):
 			?>
 				<th>Last login</th>
 				<th>Terms accepted</th>
 				<th>Change password</th>
 				<th>API key</th>
-			<?php 
+			<?php
 				endif;
 			?>
 			<th>Actions</th>
@@ -40,12 +40,12 @@
 		foreach ($users as $user):
 	?>
 			<tr>
-	<?php 
+	<?php
 			foreach ($user_fields as $field):
-	
+
 	?>
 				<td class="short" ondblclick="document.location ='/admin/users/view/<?php echo $user['User']['id'];?>'">
-				<?php 
+				<?php
 				// here I am
 					switch ($field) {
 						case 'gpgkey':
@@ -59,18 +59,18 @@
 							break;
 						case 'current_login':
 							echo $user['User'][$field] ? h(date('Y-m-d', $user['User'][$field])) : 'N/A';
-							break;  
+							break;
 						case 'role':
 				?>
 					<a href="/roles/view/<?php echo $user['Role']['id']; ?>"><?php echo h($user['Role']['name']); ?></a>
-				<?php 
+				<?php
 							break;
 						default:
 							echo h($user['User'][$field]);
-					} 
+					}
 				?>&nbsp;
 				</td>
-	<?php 
+	<?php
 			endforeach;
 	?>
 				<td class="short action-links">
@@ -81,7 +81,7 @@
 					?>
 					<?php endif; ?>
 			<a href='/users/view/<?php echo $user['User']['id']; ?>' class = "icon-list-alt" title = "View"></a>
-					
+
 				</td>
 			</tr>
 	<?php

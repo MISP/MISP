@@ -76,7 +76,7 @@ class SysLog {
         $priority = LOG_INFO;
         if ($type == 'error' || $type == 'warning') {
             $priority = LOG_ERR;
-        } elseif (in_array($type, $debugTypes)) {
+        } else if (in_array($type, $debugTypes)) {
             $priority = LOG_DEBUG;
         }
         $output = date('Y-m-d H:i:s') . ' ' . ucfirst($type) . ': ' . $message . "\n";

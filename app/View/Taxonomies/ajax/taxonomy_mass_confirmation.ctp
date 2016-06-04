@@ -3,11 +3,11 @@
 	echo $this->Form->create('Taxonomy', array('style' => 'margin:0px;', 'id' => 'PromptForm', 'url' => '/taxonomies/addTag'));
 ?>
 	<div class="hidden">
-<?php 
+<?php
 	echo $this->Form->input('nameList', array('value' => '{}'));
 ?>
 	</div>
-<?php 
+<?php
 	echo $this->Form->input('taxonomy_id', array('type' => 'hidden', 'value' => $id));
 ?>
 <legend>Create Tags</legend>
@@ -31,7 +31,7 @@
 		getSelectedTaxonomyNames();
 	});
 </script>
-<?php 
+<?php
 	echo $this->Form->end();
 ?>
 </div>

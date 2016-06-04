@@ -1,5 +1,5 @@
 <div class="attributes <?php if (!isset($ajax) || !$ajax) echo 'form';?>">
-<?php 
+<?php
 	echo $this->Form->create('Attribute', array('id'));
 ?>
 	<fieldset>
@@ -18,16 +18,16 @@
 			$initialDistribution = 5;
 			if (Configure::read('MISP.default_attribute_distribution') != null) {
 				if (Configure::read('MISP.default_attribute_distribution') === 'event') {
-					$initialDistribution = 5;	
+					$initialDistribution = 5;
 				} else {
 					$initialDistribution = Configure::read('MISP.default_attribute_distribution');
 				}
 			}
-			
+
 			?>
 				<div class="input clear"></div>
 			<?php
-			
+
 			echo $this->Form->input('distribution', array(
 				'options' => array($distributionLevels),
 				'label' => 'Distribution',
@@ -44,7 +44,7 @@
 				}
 			?>
 				</div>
-			<?php 
+			<?php
 			echo $this->Form->input('value', array(
 					'type' => 'textarea',
 					'error' => array('escape' => false),
@@ -78,7 +78,7 @@
 		?>
 		</div>
 	</fieldset>
-	<p style="color:red;font-weight:bold;display:none;<?php if(isset($ajax) && $ajax) echo "text-align:center;"?>" id="warning-message">Warning: You are about to share data that is of a sensitive nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>
+	<p style="color:red;font-weight:bold;display:none;<?php if (isset($ajax) && $ajax) echo "text-align:center;"?>" id="warning-message">Warning: You are about to share data that is of a sensitive nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>
 	<?php if ($ajax): ?>
 		<div class="overlay_spacing">
 			<table>
@@ -95,16 +95,16 @@
 				</tr>
 			</table>
 		</div>
-	<?php 
-		else: 
+	<?php
+		else:
 			echo $this->Form->button('Submit', array('class' => 'btn btn-primary'));
 		endif;
 		echo $this->Form->end();
 	?>
 	<div id="confirmation_box" class="confirmation_box"></div>
 </div>
-<?php 
-	if(!$ajax) {
+<?php
+	if (!$ajax) {
 		$event['Event']['id'] = $this->request->data['Attribute']['event_id'];
 		$event['Event']['published'] = $published;
 		echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'addAttribute', 'event' => $event));
@@ -195,7 +195,7 @@ $(document).ready(function() {
         }).popover('show');
        // $('#'+e.currentTarget.id).on('mouseleave', $('#'+e.currentTarget.id).popover('destroy');
         //$('#'+e.currentTarget.id).on('mouseout', $('#'+e.currentTarget.id).popover('destroy'));
-       
+
 	});
 
 	// workaround for browsers like IE and Chrome that do now have an onmouseover on the 'options' of a select.
@@ -223,7 +223,7 @@ $(document).ready(function() {
 	<?php if ($ajax): ?>
 		$('#cancel_attribute_add').click(function() {
 			cancelPopoverForm();
-		});	
+		});
 
 	<?php endif; ?>
 });

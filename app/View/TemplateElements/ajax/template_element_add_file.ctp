@@ -1,19 +1,19 @@
 <div class="template_element_add_file">
-<?php 
+<?php
 	echo $this->Form->create('TemplateElementFile', array('id', 'url' => '/templateElements/add/file/' . $id));
 ?>
 	<legend><?php echo __('Add File Element To Template'); ?></legend>
 	<fieldset>
 		<div id="formWarning" class="message ajaxMessage"></div>
 		<div class="add_attribute_fields">
-			<?php 
+			<?php
 				echo $this->Form->input('name', array(
 						'type' => 'text',
 						'error' => array('escape' => false),
 						'div' => 'input clear',
 						'class' => 'input-xxlarge'
 				));
-				
+
 				echo $this->Form->input('description', array(
 						'type' => 'textarea',
 						'error' => array('escape' => false),
@@ -32,12 +32,12 @@
 
 			<div class="input clear"></div>
 			<div id='malwareToggle' title="If a file is flagged as malicious then it will automatically be encrypted.">
-				<?php 
+				<?php
 					echo $this->Form->input('malware', array(
 							'checked' => false,
 							'label' => 'Malware',
 					));
-	
+
 				?>
 			</div>
 			<div class="input clear"></div>
@@ -75,7 +75,7 @@
 			</tr>
 		</table>
 	</div>
-	<?php 
+	<?php
 		echo $this->Form->end();
 	?>
 </div>
@@ -84,19 +84,19 @@
 	var fieldsArray = new Array('TemplateElementFileName', 'TemplateElementFileDescription', 'TemplateElementFileCategory', 'TemplateElementFileMalware', 'TemplateElementFileMandatory', 'TemplateElementFileBatch');
 	var categoryArray = new Array();
 	$(document).ready(function() {
-		<?php 
+		<?php
 			foreach ($categoryArray as $k => $cat) {
 				echo 'categoryArray[\'' . $k . '\'] = [';
 					foreach ($cat as $l => $type) {
 						if ($l != 0) echo ', ';
-						echo '"' . $type . '"'; 
+						echo '"' . $type . '"';
 					}
 				echo '];';
 			}
 		?>
 		templateElementFileCategoryChange($("#TemplateElementFileCategory").val());
 	});
-	
+
 	$("#TemplateElementFileCategory").change(function() {
 		var category = $("#TemplateElementFileCategory").val();
 		templateElementFileCategoryChange(category);

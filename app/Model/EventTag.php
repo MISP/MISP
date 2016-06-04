@@ -4,7 +4,7 @@ App::uses('AppModel', 'Model');
 class EventTag extends AppModel {
 
 	public $actsAs = array('Containable');
-	
+
 	public $validate = array(
 		'event_id' => array(
 			'valueNotEmpty' => array(
@@ -17,7 +17,7 @@ class EventTag extends AppModel {
 			),
 		),
 	);
-	
+
 	public $belongsTo = array(
 		'Event' => array(
 			'className' => 'Event',
@@ -26,7 +26,7 @@ class EventTag extends AppModel {
 			'className' => 'Tag',
 		),
 	);
-	 	
+
 	// take an array of tag names to be included and an array with tagnames to be excluded and find all event IDs that fit the criteria
 	public function getEventIDsFromTags($includedTags, $excludedTags) {
 		$conditions = array();
@@ -52,7 +52,7 @@ class EventTag extends AppModel {
 		$eventIDs = array_unique($eventIDs);
 		return $eventIDs;
 	}
-	
+
 	public function attachTagToEvent($event_id, $tag_id) {
 		$existingAssociation = $this->find('first', array(
 			'recursive' => -1,

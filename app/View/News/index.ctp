@@ -1,7 +1,7 @@
 <div class="templates view">
 <h2>News</h2>
 	<div>
-		<?php 
+		<?php
 			if (!empty($newsItems)):
 				foreach ($newsItems as $newsItem): ?>
 					<div class="templateTableRow" style="width:800px;">
@@ -14,7 +14,7 @@
 						</div>
 						<div style="padding:6px;">
 							<h4><?php echo h($newsItem['News']['title']);?></h4>
-							<?php 
+							<?php
 								$message = h($newsItem['News']['message']);
 								echo nl2br(preg_replace('#https?:\/\/[^\s]*#i', '<a href="$0">$0</a>', $message));
 								if ($isSiteAdmin):
@@ -42,13 +42,13 @@
 		        ?>
 		        </ul>
 		    </div>
-		<?php 
-			else: 
+		<?php
+			else:
 				echo 'There are currently no news messages.';
-			endif; 
+			endif;
 		?>
 	</div>
 </div>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'news', 'menuItem' => 'index'));
 ?>

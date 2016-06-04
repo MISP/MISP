@@ -28,7 +28,7 @@
 		));
 	?>
 		<div id="SGContainer" style="display:none;">
-	<?php 
+	<?php
 		if (!empty($sharingGroups)) {
 			echo $this->Form->input('sharing_group_id', array(
 					'options' => array($sharingGroups),
@@ -61,7 +61,7 @@
 		<?php echo $this->element('serverRuleElements/pull'); ?>
 	</div>
 </div>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'feeds', 'menuItem' => 'add'));
 ?>
 <script type="text/javascript">

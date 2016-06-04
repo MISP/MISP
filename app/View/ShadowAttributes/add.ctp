@@ -44,7 +44,7 @@
 		?>
 	</div>
 	</fieldset>
-	<p style="color:red;font-weight:bold;display:none;<?php if($ajax) echo 'text-align:center;'; ?>" id="warning-message">Warning: You are about to share data that is of a classified nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>
+	<p style="color:red;font-weight:bold;display:none;<?php if ($ajax) echo 'text-align:center;'; ?>" id="warning-message">Warning: You are about to share data that is of a classified nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>
 	<?php if (isset($ajax) && $ajax): ?>
 		<div class="overlay_spacing">
 			<table>
@@ -53,7 +53,7 @@
 					<span id="submitButton" class="btn btn-primary" onClick="submitPopoverForm('<?php echo $event_id;?>', 'propose')">Propose</span>
 				</td>
 				<td style="width:540px;">
-					<p style="color:red;font-weight:bold;display:none;<?php if(isset($ajax) && $ajax) echo "text-align:center;"?>" id="warning-message">Warning: You are about to share data that is of a sensitive nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>
+					<p style="color:red;font-weight:bold;display:none;<?php if (isset($ajax) && $ajax) echo "text-align:center;"?>" id="warning-message">Warning: You are about to share data that is of a sensitive nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>
 				</td>
 				<td style="vertical-align:top;">
 					<span class="btn btn-inverse" id="cancel_attribute_add">Cancel</span>
@@ -61,14 +61,14 @@
 				</tr>
 			</table>
 		</div>
-	<?php 
-		else: 
+	<?php
+		else:
 			echo $this->Form->button('Propose', array('class' => 'btn btn-primary'));
 		endif;
 		echo $this->Form->end();
 	?>
 </div>
-<?php 
+<?php
 	$event['Event']['id'] = $this->request->data['ShadowAttribute']['event_id'];
 	if (!$ajax) {
 		echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'proposeAttribute', 'event' => $event));
@@ -105,7 +105,7 @@ function formCategoryChanged(id) {
 }
 
 $(document).ready(function() {
-	
+
 	$("#ShadowAttributeType, #ShadowAttributeCategory, #ShadowAttribute").on('mouseover', function(e) {
 	    var $e = $(e.target);
 	    if ($e.is('option')) {
@@ -176,7 +176,7 @@ $('#ShadowAttributeType').prop('disabled', true);
 $('#cancel_attribute_add').click(function() {
 	$('#gray_out').fadeOut();
 	$('#popover_form').fadeOut();
-});	
+});
 
 <?php endif; ?>
 </script>

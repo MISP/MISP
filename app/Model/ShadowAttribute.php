@@ -167,7 +167,7 @@ class ShadowAttribute extends AppModel {
 	}
 
 	// The Associations below have been created with all possible keys, those that are not needed can be removed
-	
+
 /**
  * beforeSave
  *
@@ -204,7 +204,7 @@ class ShadowAttribute extends AppModel {
 		$this->ShadowAttributeCorrelation = ClassRegistry::init('ShadowAttributeCorrelation');
 		$this->ShadowAttributeCorrelation->deleteAll(array('ShadowAttributeCorrelation.1_shadow_attribute_id' => $temp['id']));
 	}
-	
+
 	private function __afterSaveCorrelation(&$sa) {
 		$temp = $sa;
 		if (isset($temp['ShadowAttribute'])) $temp = $temp['ShadowAttribute'];
@@ -255,7 +255,7 @@ class ShadowAttribute extends AppModel {
 		}
 		if (!empty($shadow_attribute_correlations)) $this->ShadowAttributeCorrelation->saveMany($shadow_attribute_correlations);
 	}
-	
+
 	public function afterSave($created, $options = array()) {
 		$result = true;
 		// if the 'data' field is set on the $this->data then save the data to the correct file
@@ -311,7 +311,7 @@ class ShadowAttribute extends AppModel {
 		if (!isset($this->data['ShadowAttribute']['type'])) {
 			return false;
 		}
-		
+
 		if (empty($this->data['ShadowAttribute']['timestamp'])) {
 			$date = new DateTime();
 			$this->data['ShadowAttribute']['timestamp'] = $date->getTimestamp();
@@ -336,7 +336,7 @@ class ShadowAttribute extends AppModel {
 		}
 		return false;
 	}
-	
+
 	public function validCategory($fields) {
 		return $this->Event->Attribute->validCategory($fields);
 	}
@@ -456,7 +456,7 @@ class ShadowAttribute extends AppModel {
 			exec("zip -j -P infected " . $zipfile->path . ' \'' . addslashes($fileInZip->path) . '\'', $execOutput, $execRetval);
 			if ($execRetval != 0) { // not EXIT_SUCCESS
 				// TODO: error-handling
-			};
+			}
 			$fileInZip->delete(); // delete the original non-zipped-file
 			rename($zipfile->path, $file->path); // rename the .zip to .nothing
 		} else {
@@ -477,7 +477,7 @@ class ShadowAttribute extends AppModel {
 		}
 		return $fails;
 	}
-	
+
 	public function setDeleted($id) {
 		$this->Behaviors->detach('SysLogLogable.SysLogLogable');
 		$sa = $this->find('first', array('conditions' => array('ShadowAttribute.id' => $id), 'recusive' => -1));
@@ -488,7 +488,7 @@ class ShadowAttribute extends AppModel {
 		$this->save($sa);
 		return true;
 	}
-	
+
 	public function findOldProposal($sa) {
 		$oldsa = $this->find('first', array(
 			'conditions' => array(
@@ -503,7 +503,7 @@ class ShadowAttribute extends AppModel {
 		if (empty($oldsa)) return false;
 		else return $oldsa['ShadowAttribute'];
 	}
-	
+
 	public function getEventContributors($id) {
 		$orgs = $this->find('all', array('fields' => array('DISTINCT(org_id)'), 'conditions' => array('event_id' => $id), 'order' => false));
 		$org_ids = array();
@@ -512,12 +512,12 @@ class ShadowAttribute extends AppModel {
 		}
 		return $org_ids;
 	}
-	
+
 
 	public function sendProposalAlertEmail($id) {
 		$this->Event->recursive = -1;
 		$event = $this->Event->read(null, $id);
-	
+
 		// If the event has an e-mail lock, return
 		if ($event['Event']['proposal_email_lock'] == 1) {
 			return;
@@ -534,7 +534,7 @@ class ShadowAttribute extends AppModel {
 				),
 				'fields' => array('email', 'gpgkey', 'certif_public', 'contactalert', 'id')
 		));
-	
+
 		$body = "Hello, \n\n";
 		$body .= "A user of another organisation has proposed a change to an event created by you or your organisation. \n\n";
 		$body .= 'To view the event in question, follow this link: ' . Configure::read('MISP.baseurl') . '/events/view/' . $id . "\n";
@@ -545,7 +545,7 @@ class ShadowAttribute extends AppModel {
 		}
 		return $result;
 	}
-	
+
 
 	public function setProposalLock($id, $lock = true) {
 		$this->Event->recursive = -1;
@@ -558,7 +558,7 @@ class ShadowAttribute extends AppModel {
 		$fieldList = array('proposal_email_lock', 'id', 'info');
 		$this->Event->save($event, array('fieldList' => $fieldList));
 	}
-	
+
 	public function generateCorrelation($jobId = false) {
 		$this->ShadowAttributeCorrelation = ClassRegistry::init('ShadowAttributeCorrelation');
 		$this->ShadowAttributeCorrelation->deleteAll(array('id !=' => 0), false);
@@ -574,7 +574,7 @@ class ShadowAttribute extends AppModel {
 				$this->__afterSaveCorrelation($proposal['ShadowAttribute']);
 				if ($jobId && Configure::read('MISP.background_jobs') && $k > 0 && $proposalCount % $k == 10) {
 					$this->Job->saveField('progress', ($k / $proposalCount * 100));
-				} 
+				}
 			}
 		}
 		if ($jobId && Configure::read('MISP.background_jobs')) {
@@ -584,7 +584,7 @@ class ShadowAttribute extends AppModel {
 		}
 		return $proposalCount;
 	}
-	
+
 	public function upgradeToProposalCorrelation() {
 		$this->Log = ClassRegistry::init('Log');
 		if (!Configure::read('MISP.background_jobs')) {

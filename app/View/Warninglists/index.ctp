@@ -17,7 +17,7 @@
         </ul>
     </div>
     <div id="hiddenFormDiv">
-    <?php 
+    <?php
 		if ($isSiteAdmin) {
 			echo $this->Form->create('Warninglist', array('url' => '/warninglists/toggleEnable'));
 			echo $this->Form->input('data', array('label' => false, 'style' => 'display:none;'));
@@ -74,6 +74,6 @@ endforeach; ?>
         </ul>
     </div>
 </div>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'warninglist', 'menuItem' => 'index'));
 ?>

@@ -4,7 +4,7 @@
 	<td id="orgName<?php echo $id;?>"></td>
 	<td id="orgUUID<?php echo $id;?>"></td>
 <?php if ($removable):
-		$checked = ''; 
+		$checked = '';
 		if ($extend) $checked = 'checked';
 ?>
 	<td id="orgExtend<?php echo $id;?>"><input id="orgExtendInput<?php echo $id;?>" type="checkbox" onClick="sharingGroupExtendOrg(<?php echo $id;?>)" <?php echo h($checked);?>></input></td>

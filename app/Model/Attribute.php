@@ -67,7 +67,7 @@ class Attribute extends AppModel {
 	public $distributionLevels = array(
 			0 => 'Your organisation only', 1 => 'This community only', 2 => 'Connected communities', 3 => 'All communities', 4 => 'Sharing group', 5 => 'Inherit event'
 	);
-	
+
 	public $shortDist = array(0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All', 4 => ' sharing Group', 5 => 'Inherit');
 
 	// these are definitions of possible types + their descriptions and maybe later other behaviors
@@ -82,7 +82,7 @@ class Attribute extends AppModel {
 	public $uploadDefinitions = array(
 			'attachment'
 	);
-	
+
 	// skip Correlation for the following types
 	public $nonCorrelatingTypes = array(
 			'vulnerability',
@@ -129,16 +129,16 @@ class Attribute extends AppModel {
 			'other' => array('desc' => 'Other attribute'),
 			'named pipe' => array('desc' => 'Named pipe, use the format \\.\pipe\<PipeName>'),
 			'mutex' => array('desc' => 'Mutex, use the format \BaseNamedObjects\<Mutex>'),
- 			'target-user' => array('desc' => 'Attack Targets Username(s)'),
- 			'target-email' => array('desc' => 'Attack Targets Email(s)'),
- 			'target-machine' => array('desc' => 'Attack Targets Machine Name(s)'),
+			'target-user' => array('desc' => 'Attack Targets Username(s)'),
+			'target-email' => array('desc' => 'Attack Targets Email(s)'),
+			'target-machine' => array('desc' => 'Attack Targets Machine Name(s)'),
 			'target-org' => array('desc' => 'Attack Targets Department or Organization(s)'),
 			'target-location' => array('desc' => 'Attack Targets Physical Location(s)'),
 			'target-external' => array('desc' => 'External Target Organizations Affected by this Attack'),
 			'btc' => array('desc' => 'Bitcoin Address'),//
 			'iban' => array('desc' => 'International Bank Account Number'),//
 			'bic' => array('desc' => 'Bank Identifier Code Number'),
-			'bank-account-nr' => array('desc' => 'Bank account number without any routing number'), 
+			'bank-account-nr' => array('desc' => 'Bank account number without any routing number'),
 			'aba-rtn' => array('desc' => 'ABA routing transit number'),
 			'bin' => array('desc' => 'Bank Identification Number'),//
 			'cc-number' => array('desc' => 'Credit-Card Number'),//
@@ -189,11 +189,11 @@ class Attribute extends AppModel {
 					'desc' => 'Reference used by the publishing party (e.g. ticket number)',
 					'types' => array('link', 'comment', 'text', 'other')
 					),
- 			'Targeting data' => array(
- 					'desc' => 'Internal Attack Targeting and Compromise Information',
- 					'formdesc' => 'Targeting information to include recipient email, infected machines, department, and or locations.',
- 					'types' => array('target-user', 'target-email', 'target-machine', 'target-org', 'target-location', 'target-external', 'comment')
- 					),
+			'Targeting data' => array(
+					'desc' => 'Internal Attack Targeting and Compromise Information',
+					'formdesc' => 'Targeting information to include recipient email, infected machines, department, and or locations.',
+					'types' => array('target-user', 'target-email', 'target-machine', 'target-org', 'target-location', 'target-external', 'comment')
+					),
 			'Antivirus detection' => array(
 					'desc' => 'All the info about how the malware is detected by the antivirus products',
 					'formdesc' => 'List of anti-virus vendors detecting the malware or information on detection performance (e.g. 13/43 or 67%). Attachment with list of detection or link to VirusTotal could be placed here as well.',
@@ -246,7 +246,7 @@ class Attribute extends AppModel {
 					'types' => array('comment', 'text', 'other')
 					)
 	);
-	
+
 	public $defaultCategories = array(
 			'md5' => 'Payload delivery',
 			'sha1' => 'Payload delivery',
@@ -276,11 +276,11 @@ class Attribute extends AppModel {
 			'attachment' => 'External analysis',
 			'malware-sample' => 'Payload delivery'
 	);
-	
+
 	// typeGroupings are a mapping to high level groups for attributes
 	// for example, IP addresses, domain names, hostnames and e-mail addresses are network related attribute types
 	// whilst filenames and hashes are file related attribute types
-	// This helps generate quick filtering for the event view, but we may reuse this and enhance it in the future for other uses (such as the API?) 
+	// This helps generate quick filtering for the event view, but we may reuse this and enhance it in the future for other uses (such as the API?)
 	public $typeGroupings = array(
 		'file' => array('attachment', 'pattern-in-file', 'md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'authentihash', 'pehash', 'tlsh', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|pehash', 'malware-sample', 'x509-fingerprint-sha1'),
 		'network' => array('ip-src', 'ip-dst', 'hostname', 'domain', 'domain|ip', 'email-dst', 'url', 'uri', 'user-agent', 'http-method', 'AS', 'snort', 'pattern-in-traffic', 'x509-fingerprint-sha1'),
@@ -375,9 +375,9 @@ class Attribute extends AppModel {
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 		),
 	);
-	
+
 	// automatic resolution of complex types
-	// If the complex type "file" is chosen for example, then the system will try to categorise the values entered into a complex template field based 
+	// If the complex type "file" is chosen for example, then the system will try to categorise the values entered into a complex template field based
 	// on the regular expression rules
 	public $validTypeGroups = array(
 			'File' => array(
@@ -389,7 +389,7 @@ class Attribute extends AppModel {
 				'types' => array('url', 'domain', 'hostname', 'ip-dst'),
 			),
 	);
-	
+
 	public $typeGroupCategoryMapping = array(
 			'Payload delviery' => array('File', 'CnC'),
 			'Payload installation' => array('File'),
@@ -423,7 +423,7 @@ class Attribute extends AppModel {
 				'foreignKey' => 'sharing_group_id'
 		)
 	);
-	
+
 	public $hashTypes = array(
 		'md5' => array(
 			'length' => 32,
@@ -467,12 +467,12 @@ class Attribute extends AppModel {
 				$this->data['Attribute']['value2'] = '';
 			}
 		}
-		
+
 		if ($this->data['Attribute']['distribution'] != 4) $this->data['Attribute']['sharing_group_id'] = 0;
-		
+
 		// update correlation... (only needed here if there's an update)
 		if ($this->id || !empty($this->data['Attribute']['id'])) {
- 			$this->__beforeSaveCorrelation($this->data['Attribute']);
+			$this->__beforeSaveCorrelation($this->data['Attribute']);
 		}
 		// always return true after a beforeSave()
 		return true;
@@ -557,7 +557,7 @@ class Attribute extends AppModel {
 		if (in_array($fields['category'], $validCategories)) return true;
 		return false;
 	}
-	
+
 	public function valueIsUnique ($fields) {
 		if (isset($this->data['Attribute']['deleted']) && $this->data['Attribute']['deleted']) return true;
 		$value = $fields['value'];
@@ -600,7 +600,7 @@ class Attribute extends AppModel {
 		$value = $fields['value'];
 		return $this->runValidation($value, $this->data['Attribute']['type']);
 	}
-	
+
 	private $__hexHashLengths = array(
 			'authentihash' => 64,
 			'md5' => 32,
@@ -615,11 +615,11 @@ class Attribute extends AppModel {
 			'sha512/224' => 56,
 			'sha512/256' => 64,
 	);
-	
+
 	public function runValidation($value, $type) {
 		$returnValue = false;
 		// check data validation
-		switch($type) {
+		switch ($type) {
 			case 'md5':
 			case 'imphash':
 			case 'sha1':
@@ -656,7 +656,7 @@ class Attribute extends AppModel {
 				if (substr_count($value, ':') == 2) {
 					$parts = explode(':', $value);
 					if (is_numeric($parts[0])) $returnValue = true;
-				} 
+				}
 				if (!$returnValue) $returnValue = 'Invalid SSDeep hash. The format has to be blocksize:hash:hash';
 				break;
 			case 'http-method':
@@ -675,7 +675,7 @@ class Attribute extends AppModel {
 				}
 				break;
 			case 'filename|md5':
-			case 'filename|sha1':	
+			case 'filename|sha1':
 			case 'filename|imphash':
 			case 'filename|sha224':
 			case 'filename|sha256':
@@ -753,7 +753,7 @@ class Attribute extends AppModel {
 				} else {
 					$returnValue = 'Domain name has an invalid format.';
 				}
-				break;		
+				break;
 			case 'email-src':
 			case 'email-dst':
 			case 'target-email':
@@ -806,40 +806,40 @@ class Attribute extends AppModel {
 			case 'other':
 				$returnValue = true;
 				break;
- 			case 'target-user':
+			case 'target-user':
 			case 'campaign-name':
 			case 'campaign-id':
 			case 'threat-actor':
- 			case 'target-machine':
- 			case 'target-org':
- 			case 'target-location':
- 			case 'target-external':
- 			case 'email-subject':
- 			case 'email-attachment':
+			case 'target-machine':
+			case 'target-org':
+			case 'target-location':
+			case 'target-external':
+			case 'email-subject':
+			case 'email-attachment':
 			case 'malware-type':
- 			case 'url':
- 			case 'uri':
- 			case 'user-agent':
- 			case 'regkey':
- 			case 'regkey|value':
+			case 'url':
+			case 'uri':
+			case 'user-agent':
+			case 'regkey':
+			case 'regkey|value':
 			case 'filename':
 			case 'pdb':
             case 'windows-scheduled-task':
             case 'whois-registrant-name':
 			case 'whois-registrar':
 			case 'whois-creation-date':
- 				// no newline	
- 				if (!preg_match("#\n#", $value)) {
- 					$returnValue = true;
- 				}
- 				break;
- 			case 'targeted-threat-index':
- 				if (!is_numeric($value) || $value < 0 || $value > 10) {
+				// no newline
+				if (!preg_match("#\n#", $value)) {
+					$returnValue = true;
+				}
+				break;
+			case 'targeted-threat-index':
+				if (!is_numeric($value) || $value < 0 || $value > 10) {
 					$returnValue = 'The value has to be a number between 0 and 10.';
 				} else {
 					$returnValue = true;
 				}
- 				break;
+				break;
 			case 'iban':
 			case 'bic':
 			case 'btc':
@@ -894,15 +894,15 @@ class Attribute extends AppModel {
 				if (is_numeric($value)) {
 					$returnValue = true;
 				}
-				break;	
+				break;
 			*/
 		}
 		return $returnValue;
 	}
-	
+
 	// do some last second modifications before the validation
 	public function modifyBeforeValidation($type, $value) {
-		switch($type) {
+		switch ($type) {
 			case 'md5':
 			case 'sha1':
 			case 'sha224':
@@ -925,7 +925,7 @@ class Attribute extends AppModel {
 				$value = strtolower($value);
 				break;
 			case 'filename|md5':
-			case 'filename|sha1':	
+			case 'filename|sha1':
 			case 'filename|imphash':
 			case 'filename|sha224':
 			case 'filename|sha256':
@@ -1132,7 +1132,7 @@ class Attribute extends AppModel {
 			exec("zip -j -P infected " . $zipfile->path . ' \'' . addslashes($fileInZip->path) . '\'', $execOutput, $execRetval);
 			if ($execRetval != 0) { // not EXIT_SUCCESS
 				// TODO: error handling
-			};
+			}
 			$fileInZip->delete(); // delete the original non-zipped-file
 			rename($zipfile->path, $file->path); // rename the .zip to .nothing
 		} else {
@@ -1253,7 +1253,7 @@ class Attribute extends AppModel {
 		}
 		return $fails;
 	}
-	
+
 
 	public function hids($user, $type, $tags = '', $from = false, $to = false, $last = false) {
 		if (empty($user)) throw new MethodNotAllowedException('Could not read user.');
@@ -1284,7 +1284,7 @@ class Attribute extends AppModel {
 		App::uses('HidsExport', 'Export');
 		$continue = false;
 		foreach ($eventIds as $event) {
-			$conditions['AND'] = array('Attribute.to_ids' => 1, 'Event.published' => 1, 'Attribute.type' => $typeArray, 'Attribute.event_id' => $event['Event']['id']);		
+			$conditions['AND'] = array('Attribute.to_ids' => 1, 'Event.published' => 1, 'Attribute.type' => $typeArray, 'Attribute.event_id' => $event['Event']['id']);
 			$options = array(
 					'conditions' => $conditions,
 					'group' => array('Attribute.type', 'Attribute.value1'),
@@ -1298,11 +1298,11 @@ class Attribute extends AppModel {
 		return $rules;
 	}
 
-	
+
 	public function nids($user, $format, $id = false, $continue = false, $tags = false, $from = false, $to = false, $last = false) {
 		if (empty($user)) throw new MethodNotAllowedException('Could not read user.');
 		$eventIds = $this->Event->fetchEventIds($user, $from, $to, $last);
-		
+
 		// If we sent any tags along, load the associated tag names for each attribute
 		if ($tags) {
 			$tag = ClassRegistry::init('Tag');
@@ -1319,7 +1319,7 @@ class Attribute extends AppModel {
 				}
 			}
 		}
-		
+
 		if ($id) {
 			foreach ($eventIds as $k => $v) {
 				if ($v['Event']['id'] !== $id) unset($eventIds[$k]);
@@ -1328,13 +1328,13 @@ class Attribute extends AppModel {
 
 		if ($format == 'suricata') App::uses('NidsSuricataExport', 'Export');
 		else App::uses('NidsSnortExport', 'Export');
-		
+
 		$rules = array();
 		foreach ($eventIds as $event) {
 			$conditions['AND'] = array('Attribute.to_ids' => 1, "Event.published" => 1, 'Attribute.event_id' => $event['Event']['id']);
 			$valid_types = array('ip-dst', 'ip-src', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'domain', 'hostname', 'url', 'user-agent', 'snort');
 			$conditions['AND']['Attribute.type'] = $valid_types;
-					
+
 			$params = array(
 					'conditions' => $conditions, // array of conditions
 					'recursive' => -1, // int
@@ -1360,114 +1360,114 @@ class Attribute extends AppModel {
 		return $rules;
 	}
 
-	 public function text($user, $type, $tags = false, $eventId = false, $allowNonIDS = false, $from = false, $to = false, $last = false) {
-	 	//restricting to non-private or same org if the user is not a site-admin.
-	 	$conditions['AND'] = array();
-	 	if ($allowNonIDS === false) $conditions['AND'] = array('Attribute.to_ids =' => 1, 'Event.published =' => 1);
-	 	if ($type !== 'all') $conditions['AND']['Attribute.type'] = $type; 
-	 	if ($from) $conditions['AND']['Event.date >='] = $from;
-	 	if ($to) $conditions['AND']['Event.date <='] = $to;
+	public function text($user, $type, $tags = false, $eventId = false, $allowNonIDS = false, $from = false, $to = false, $last = false) {
+		//restricting to non-private or same org if the user is not a site-admin.
+		$conditions['AND'] = array();
+		if ($allowNonIDS === false) $conditions['AND'] = array('Attribute.to_ids =' => 1, 'Event.published =' => 1);
+		if ($type !== 'all') $conditions['AND']['Attribute.type'] = $type;
+		if ($from) $conditions['AND']['Event.date >='] = $from;
+		if ($to) $conditions['AND']['Event.date <='] = $to;
 		if ($last) $conditions['AND']['Event.publish_timestamp >='] = $last;
 
-	 	if ($eventId !== false) {
-	 		$conditions['AND'][] = array('Event.id' => $eventId);
-	 	} elseif ($tags !== false) {
-	 		// If we sent any tags along, load the associated tag names for each attribute
-	 		$tag = ClassRegistry::init('Tag');
-	 		$args = $this->dissectArgs($tags);
-	 		$tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
-	 		$temp = array();
-	 		foreach ($tagArray[0] as $accepted) {
-	 			$temp['OR'][] = array('Event.id' => $accepted);
-	 		}
-	 		$conditions['AND'][] = $temp;
-	 		$temp = array();
-	 		foreach ($tagArray[1] as $rejected) {
-	 			$temp['AND'][] = array('Event.id !=' => $rejected);
-	 		}
-	 		$conditions['AND'][] = $temp;
-	 	}
-	 	$attributes = $this->fetchAttributes($user, array(
-	 			'conditions' => $conditions, 
-	 			'order' => 'Attribute.value1 ASC',
-	 			'fields' => array('value'),
+		if ($eventId !== false) {
+			$conditions['AND'][] = array('Event.id' => $eventId);
+		} else if ($tags !== false) {
+			// If we sent any tags along, load the associated tag names for each attribute
+			$tag = ClassRegistry::init('Tag');
+			$args = $this->dissectArgs($tags);
+			$tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
+			$temp = array();
+			foreach ($tagArray[0] as $accepted) {
+				$temp['OR'][] = array('Event.id' => $accepted);
+			}
+			$conditions['AND'][] = $temp;
+			$temp = array();
+			foreach ($tagArray[1] as $rejected) {
+				$temp['AND'][] = array('Event.id !=' => $rejected);
+			}
+			$conditions['AND'][] = $temp;
+		}
+		$attributes = $this->fetchAttributes($user, array(
+				'conditions' => $conditions,
+				'order' => 'Attribute.value1 ASC',
+				'fields' => array('value'),
 				'contain' => array('Event' => array(
 					'fields' => array('Event.id', 'Event.published', 'Event.date', 'Event.publish_timestamp'),
 		))));
-	 	return $attributes;
-	 }
-	 
-	 public function rpz($user, $tags = false, $eventId = false, $from = false, $to = false) {
-	 	// we can group hostname and domain as well as ip-src and ip-dst in this case
-	 	$conditions['AND'] = array('Attribute.to_ids' => 1, 'Event.published' => 1);
-	 	$typesToFetch = array('ip' => array('ip-src', 'ip-dst'), 'domain' => array('domain'), 'hostname' => array('hostname'));
-	 	if ($from) $conditions['AND']['Event.date >='] = $from;
-	 	if ($to) $conditions['AND']['Event.date <='] = $to;
-	 	if ($eventId !== false) {
-	 		$conditions['AND'][] = array('Event.id' => $eventId);
-	 	} 
-	 	if ($tags !== false) {
-	 		// If we sent any tags along, load the associated tag names for each attribute
-	 		$tag = ClassRegistry::init('Tag');
-	 		$args = $this->dissectArgs($tags);
-	 		$tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
-	 		$temp = array();
-	 		foreach ($tagArray[0] as $accepted) {
-	 			$temp['OR'][] = array('Event.id' => $accepted);
-	 		}
-	 		$conditions['AND'][] = $temp;
-	 		$temp = array();
-	 		foreach ($tagArray[1] as $rejected) {
-	 			$temp['AND'][] = array('Event.id !=' => $rejected);
-	 		}
-	 		$conditions['AND'][] = $temp;
-	 	}
-	 	$values = array();
-	 	foreach ($typesToFetch as $k => $v) {
-	 		$temp = $this->fetchAttributes(
-	 				$user, 
-	 				array(
-	 					'conditions' => array(
- 							$conditions,
- 							array('type' => $v),
-	 					),
+		return $attributes;
+	}
+
+	public function rpz($user, $tags = false, $eventId = false, $from = false, $to = false) {
+		// we can group hostname and domain as well as ip-src and ip-dst in this case
+		$conditions['AND'] = array('Attribute.to_ids' => 1, 'Event.published' => 1);
+		$typesToFetch = array('ip' => array('ip-src', 'ip-dst'), 'domain' => array('domain'), 'hostname' => array('hostname'));
+		if ($from) $conditions['AND']['Event.date >='] = $from;
+		if ($to) $conditions['AND']['Event.date <='] = $to;
+		if ($eventId !== false) {
+			$conditions['AND'][] = array('Event.id' => $eventId);
+		}
+		if ($tags !== false) {
+			// If we sent any tags along, load the associated tag names for each attribute
+			$tag = ClassRegistry::init('Tag');
+			$args = $this->dissectArgs($tags);
+			$tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
+			$temp = array();
+			foreach ($tagArray[0] as $accepted) {
+				$temp['OR'][] = array('Event.id' => $accepted);
+			}
+			$conditions['AND'][] = $temp;
+			$temp = array();
+			foreach ($tagArray[1] as $rejected) {
+				$temp['AND'][] = array('Event.id !=' => $rejected);
+			}
+			$conditions['AND'][] = $temp;
+		}
+		$values = array();
+		foreach ($typesToFetch as $k => $v) {
+			$temp = $this->fetchAttributes(
+					$user,
+					array(
+						'conditions' => array(
+							$conditions,
+							array('type' => $v),
+						),
 						'fields' => array('Attribute.value'), // array of field names
-	 				)
-	 		);
-	 		if (empty($temp)) continue;
-	 		if ($k == 'hostname') {
-	 			foreach ($temp as $value) {
-	 				$found = false;
-	 				if (isset($values['domain'])) {
-		 				foreach ($values['domain'] as $domain) {
-		 					if (strpos($value['Attribute']['value'], $domain) != 0) { 
-		 						$found = true;
-		 					}
-		 				}
-	 				}
-	 				if (!$found) $values[$k][] = $value['Attribute']['value'];
-	 			}
+					)
+			);
+			if (empty($temp)) continue;
+			if ($k == 'hostname') {
+				foreach ($temp as $value) {
+					$found = false;
+					if (isset($values['domain'])) {
+						foreach ($values['domain'] as $domain) {
+							if (strpos($value['Attribute']['value'], $domain) != 0) {
+								$found = true;
+							}
+						}
+					}
+					if (!$found) $values[$k][] = $value['Attribute']['value'];
+				}
 			} else {
 				foreach ($temp as $value) {
 					$values[$k][] = $value['Attribute']['value'];
 				}
 			}
 			unset($temp);
-	 	}
-	 	return $values;
-	 }
-	 
-	 public function generateCorrelation($jobId = false, $startPercentage = 0) {
-	 	$this->Correlation = ClassRegistry::init('Correlation');
-	 	$this->Correlation->deleteAll(array('id !=' => 0), false);
-	 	// get all attributes..
-	 	$eventIds = $this->Event->find('list', array('recursive' => -1, 'fields' => array('Event.id')));
-	 	$attributeCount = 0;
-	 	if (Configure::read('MISP.background_jobs') && $jobId) {
-	 		$this->Job = ClassRegistry::init('Job');
-	 		$this->Job->id = $jobId;
-	 		$eventCount = count($eventIds);
-	 	}
+		}
+		return $values;
+	}
+
+	public function generateCorrelation($jobId = false, $startPercentage = 0) {
+		$this->Correlation = ClassRegistry::init('Correlation');
+		$this->Correlation->deleteAll(array('id !=' => 0), false);
+		// get all attributes..
+		$eventIds = $this->Event->find('list', array('recursive' => -1, 'fields' => array('Event.id')));
+		$attributeCount = 0;
+		if (Configure::read('MISP.background_jobs') && $jobId) {
+			$this->Job = ClassRegistry::init('Job');
+			$this->Job->id = $jobId;
+			$eventCount = count($eventIds);
+		}
 		foreach (array_values($eventIds) as $j => $id) {
 			if ($jobId && Configure::read('MISP.background_jobs')) {
 				$this->Job->saveField('message', 'Correlating Event ' . $id);
@@ -1486,110 +1486,110 @@ class Attribute extends AppModel {
 			}
 		}
 		if ($jobId && Configure::read('MISP.background_jobs')) $this->Job->saveField('message', 'Job done.');
-	 	return $attributeCount;
-	 }
-	 
-	 public function reportValidationIssuesAttributes($eventId) {
-	 	$conditions = array();
-	 	if ($eventId && is_numeric($eventId)) $conditions = array('event_id' => $eventId);
-	 
-	 	// get all attributes..
-	 	$attributes = $this->find('all', array('recursive' => -1, 'fields' => array('id'), 'conditions' => $conditions));
-	 	// for all attributes..
-	 	$result = array();
-	 	$i = 0;
-	 	foreach ($attributes as $a) {
-	 		$attribute = $this->find('first', array('recursive' => -1, 'conditions' => array('id' => $a['Attribute']['id'])));
-	 		$this->set($attribute);
-	 		if (!$this->validates()) {
-	 			$errors = $this->validationErrors;
-	 			$result[$i]['id'] = $attribute['Attribute']['id'];
-	 			$result[$i]['error'] = array();
-	 			foreach ($errors as $field => $error) {
-	 				$result[$i]['error'][$field] = array('value' => $attribute['Attribute'][$field], 'error' => $error[0]); 
-	 			}
-	 			$result[$i]['details'] = 'Event ID: [' . $attribute['Attribute']['event_id'] . "] - Category: [" . $attribute['Attribute']['category'] . "] - Type: [" . $attribute['Attribute']['type'] . "] - Value: [" . $attribute['Attribute']['value'] . ']';
-	 			$i++;
-	 		}
-	 	}
-	 	return $result;
-	 }
-	 
-	 // This method takes a string from an argument with several elements (separated by '&&' and negated by '!') and returns 2 arrays
-	 // array 1 will have all of the non negated terms and array 2 all the negated terms
-	 public function dissectArgs($args) {
-	 	if (!$args) return array(null, null);
-	 	if (is_array($args)) {
-	 		$argArray = $args;
-	 	} else {
-	 		$argArray = explode('&&', $args);
-	 	}
-	 	$accept = $reject = $result = array();
-	 	$reject = array();
-	 	foreach ($argArray as $arg) {
-	 		if (substr($arg, 0, 1) == '!') {
-	 			$reject[] = substr($arg, 1);
-	 		} else {
-	 			$accept[] = $arg;
-	 		}
-	 	}
-	 	$result[0] = $accept;
-	 	$result[1] = $reject;
-	 	return $result;
-	 }
-	 
-	 public function checkForValidationIssues($attribute) {
-	 	$this->set($attribute);
-	 	if ($this->validates()) {
-	 		return false;
-	 	} else {
-	 		return $this->validationErrors;
-	 	}
-	 }
-	 
-	 
-	 public function checkTemplateAttributes($template, &$data, $event_id) {
-		 $result = array();
-		 $errors = array();
-		 $attributes = array();
-		 if (isset($data['Template']['fileArray'])) $fileArray = json_decode($data['Template']['fileArray'], true);
-		 foreach ($template['TemplateElement'] as $element) {
-		 	if ($element['element_definition'] == 'attribute') {
-		 		$result = $this->__resolveElementAttribute($element['TemplateElementAttribute'][0], $data['Template']['value_' . $element['id']]);
-		 	} else if ($element['element_definition'] == 'file') {
-		 		$temp = array();
-		 		if (isset($fileArray)) {
-			 		foreach ($fileArray as $fileArrayElement) {
-			 			if ($fileArrayElement['element_id'] == $element['id']) {
-			 				$temp[] = $fileArrayElement;
-			 			}
-			 		}
-		 		}
-		 		$result = $this->__resolveElementFile($element['TemplateElementFile'][0], $temp);
-		 		if ($element['TemplateElementFile'][0]['mandatory'] && empty($temp) && empty($errors[$element['id']])) $errors[$element['id']] = 'This field is mandatory.';
-		 	}
-		 	if ($element['element_definition'] == 'file' || $element['element_definition'] == 'attribute') {
-		 		if ($result['errors']) {
-		 			$errors[$element['id']] = $result['errors'];
-		 		} else {
-		 			foreach ($result['attributes'] as &$a) {
-		 				$a['event_id'] = $event_id;
-		 				$a['distribution'] = 5;
-		 				$test = $this->checkForValidationIssues(array('Attribute' => $a));
-		 				if ($test) {
-		 					foreach ($test['value'] as $e) {
-		 						$errors[$element['id']] = $e;
-		 					}
-		 				} else {
-		 					$attributes[] = $a;
-		 				}
-		 			}
-		 		}
+		return $attributeCount;
+	}
+
+	public function reportValidationIssuesAttributes($eventId) {
+		$conditions = array();
+		if ($eventId && is_numeric($eventId)) $conditions = array('event_id' => $eventId);
+
+		// get all attributes..
+		$attributes = $this->find('all', array('recursive' => -1, 'fields' => array('id'), 'conditions' => $conditions));
+		// for all attributes..
+		$result = array();
+		$i = 0;
+		foreach ($attributes as $a) {
+			$attribute = $this->find('first', array('recursive' => -1, 'conditions' => array('id' => $a['Attribute']['id'])));
+			$this->set($attribute);
+			if (!$this->validates()) {
+				$errors = $this->validationErrors;
+				$result[$i]['id'] = $attribute['Attribute']['id'];
+				$result[$i]['error'] = array();
+				foreach ($errors as $field => $error) {
+					$result[$i]['error'][$field] = array('value' => $attribute['Attribute'][$field], 'error' => $error[0]);
+				}
+				$result[$i]['details'] = 'Event ID: [' . $attribute['Attribute']['event_id'] . "] - Category: [" . $attribute['Attribute']['category'] . "] - Type: [" . $attribute['Attribute']['type'] . "] - Value: [" . $attribute['Attribute']['value'] . ']';
+				$i++;
 			}
-		 }
-		 return array('attributes' => $attributes, 'errors' => $errors);
-	 }
-	 
+		}
+		return $result;
+	}
+
+	// This method takes a string from an argument with several elements (separated by '&&' and negated by '!') and returns 2 arrays
+	// array 1 will have all of the non negated terms and array 2 all the negated terms
+	public function dissectArgs($args) {
+		if (!$args) return array(null, null);
+		if (is_array($args)) {
+			$argArray = $args;
+		} else {
+			$argArray = explode('&&', $args);
+		}
+		$accept = $reject = $result = array();
+		$reject = array();
+		foreach ($argArray as $arg) {
+			if (substr($arg, 0, 1) == '!') {
+				$reject[] = substr($arg, 1);
+			} else {
+				$accept[] = $arg;
+			}
+		}
+		$result[0] = $accept;
+		$result[1] = $reject;
+		return $result;
+	}
+
+	public function checkForValidationIssues($attribute) {
+		$this->set($attribute);
+		if ($this->validates()) {
+			return false;
+		} else {
+			return $this->validationErrors;
+		}
+	}
+
+
+	public function checkTemplateAttributes($template, &$data, $event_id) {
+		$result = array();
+		$errors = array();
+		$attributes = array();
+		if (isset($data['Template']['fileArray'])) $fileArray = json_decode($data['Template']['fileArray'], true);
+		foreach ($template['TemplateElement'] as $element) {
+			if ($element['element_definition'] == 'attribute') {
+				$result = $this->__resolveElementAttribute($element['TemplateElementAttribute'][0], $data['Template']['value_' . $element['id']]);
+			} else if ($element['element_definition'] == 'file') {
+				$temp = array();
+				if (isset($fileArray)) {
+					foreach ($fileArray as $fileArrayElement) {
+						if ($fileArrayElement['element_id'] == $element['id']) {
+							$temp[] = $fileArrayElement;
+						}
+					}
+				}
+				$result = $this->__resolveElementFile($element['TemplateElementFile'][0], $temp);
+				if ($element['TemplateElementFile'][0]['mandatory'] && empty($temp) && empty($errors[$element['id']])) $errors[$element['id']] = 'This field is mandatory.';
+			}
+			if ($element['element_definition'] == 'file' || $element['element_definition'] == 'attribute') {
+				if ($result['errors']) {
+					$errors[$element['id']] = $result['errors'];
+				} else {
+					foreach ($result['attributes'] as &$a) {
+						$a['event_id'] = $event_id;
+						$a['distribution'] = 5;
+						$test = $this->checkForValidationIssues(array('Attribute' => $a));
+						if ($test) {
+							foreach ($test['value'] as $e) {
+								$errors[$element['id']] = $e;
+							}
+						} else {
+							$attributes[] = $a;
+						}
+					}
+				}
+			}
+		}
+		return array('attributes' => $attributes, 'errors' => $errors);
+	}
+
 
 	private function __resolveElementAttribute($element, $value) {
 		$attributes = array();
@@ -1619,7 +1619,7 @@ class Attribute extends AppModel {
 		}
 		return array('attributes' => $results, 'errors' => $errors);
 	}
-	 
+
 	private function __resolveElementFile($element, $files) {
 		$attributes = array();
 		$errors = null;
@@ -1631,7 +1631,7 @@ class Attribute extends AppModel {
 			$element['type'] = 'attachment';
 			$element['to_ids'] = false;
 		}
-		foreach ($files as $file) {	
+		foreach ($files as $file) {
 			if (!preg_match('@^[\w\-. ]+$@', $file['filename'])) {
 				$errors = 'Filename not allowed.';
 				continue;
@@ -1665,52 +1665,52 @@ class Attribute extends AppModel {
 		return array('attributes' => $attributes, 'errors' => $errors, 'files' => $files);
 	}
 
-	 private function __createAttribute($element, $value) {
-	 	$attribute = array(
-	 			'comment' => $element['name'],
-	 			'to_ids' => $element['to_ids'],
-	 			'category' => $element['category'],
-	 			'value' => $value,
-	 	);
-	 	if ($element['complex']) {
-	 		App::uses('ComplexTypeTool', 'Tools');
-	 		$complexTypeTool = new ComplexTypeTool();
-	 		$result = $complexTypeTool->checkComplexRouter($value, ucfirst($element['type']));
-	 		if (isset($result['multi'])) {
-	 			$temp = $attribute;
-	 			$attribute = array();
-	 			foreach($result['multi'] as $k => $r) {
-	 				$attribute['multi'][] = $temp;
-	 				$attribute['multi'][$k]['type'] = $r['type'];
-	 				$attribute['multi'][$k]['value'] = $r['value'];
-	 			}
-	 		} else if ($result != false) {
-	 			$attribute['type'] = $result['type'];
-	 			$attribute['value'] = $result['value'];
-	 		} else {
-	 			return false;
-	 		}
-	 	} else {
-	 		$attribute['type'] = $element['type'];
-	 	}
-	 	return $attribute;
-	 }
-	 
-	 public function buildConditions($user) {
-	 	$conditions = array();
-	 	if (!$user['Role']['perm_site_admin']) {
-	 		$eventIds = $this->Event->fetchEventIds($user, false, false, false, true);
-	 		$sgsids = $this->SharingGroup->fetchAllAuthorised($user);
-	 		$conditions = array(
+	private function __createAttribute($element, $value) {
+		$attribute = array(
+				'comment' => $element['name'],
+				'to_ids' => $element['to_ids'],
+				'category' => $element['category'],
+				'value' => $value,
+		);
+		if ($element['complex']) {
+			App::uses('ComplexTypeTool', 'Tools');
+			$complexTypeTool = new ComplexTypeTool();
+			$result = $complexTypeTool->checkComplexRouter($value, ucfirst($element['type']));
+			if (isset($result['multi'])) {
+				$temp = $attribute;
+				$attribute = array();
+				foreach ($result['multi'] as $k => $r) {
+					$attribute['multi'][] = $temp;
+					$attribute['multi'][$k]['type'] = $r['type'];
+					$attribute['multi'][$k]['value'] = $r['value'];
+				}
+			} else if ($result != false) {
+				$attribute['type'] = $result['type'];
+				$attribute['value'] = $result['value'];
+			} else {
+				return false;
+			}
+		} else {
+			$attribute['type'] = $element['type'];
+		}
+		return $attribute;
+	}
+
+	public function buildConditions($user) {
+		$conditions = array();
+		if (!$user['Role']['perm_site_admin']) {
+			$eventIds = $this->Event->fetchEventIds($user, false, false, false, true);
+			$sgsids = $this->SharingGroup->fetchAllAuthorised($user);
+			$conditions = array(
 				'AND' => array(
 					'OR' => array(
 						array(
 							'AND' => array(
-	 							'Event.org_id' => $user['org_id'],
-	 						)
-	 					),
-	 					array(
- 							'AND' => array(
+								'Event.org_id' => $user['org_id'],
+							)
+						),
+						array(
+							'AND' => array(
 								'Event.id' => $eventIds,
 								'OR' => array(
 									'Attribute.distribution' => array('1', '2', '3', '5'),
@@ -1723,50 +1723,50 @@ class Attribute extends AppModel {
 						)
 					)
 				)
-	 		);
-	 	}
-	 	return $conditions;
-	 }
-	 
+			);
+		}
+		return $conditions;
+	}
+
 	// Method that fetches all attributes for the various exports
 	// very flexible, it's basically a replacement for find, with the addition that it restricts access based on user
-	// options: 
+	// options:
 	//     fields
 	//     contain
 	//     conditions
 	//     order
 	//     group
 	public function fetchAttributes($user, $options = array()) {
- 		$params = array(
- 			'conditions' => $this->buildConditions($user),
- 			'recursive' => -1,
- 			'contain' => array(
- 				'Event' => array(
- 					'fields' => array('id', 'info', 'org_id'),
- 				), 
- 			),
- 		);
-	 	if (isset($options['contain'])) $params['contain'] = array_merge_recursive($params['contain'], $options['contain']);
-	 	else $option['contain']['Event']['fields'] = array('id', 'info', 'org_id');
-	 	if (isset($options['fields'])) $params['fields'] = $options['fields'];
-	 	if (isset($options['conditions'])) $params['conditions']['AND'][] = $options['conditions'];
-	 	if (isset($options['order'])) $params['order'] = $options['order'];
-	 	else ($params['order'] = array());
-	 	if (!$user['Role']['perm_sync'] || !isset($options['deleted']) || !$options['deleted']) $params['conditions']['AND']['Attribute.deleted'] = false;
-	 	if (isset($options['group'])) $params['group'] = $options['group'];
+		$params = array(
+			'conditions' => $this->buildConditions($user),
+			'recursive' => -1,
+			'contain' => array(
+				'Event' => array(
+					'fields' => array('id', 'info', 'org_id'),
+				),
+			),
+		);
+		if (isset($options['contain'])) $params['contain'] = array_merge_recursive($params['contain'], $options['contain']);
+		else $option['contain']['Event']['fields'] = array('id', 'info', 'org_id');
+		if (isset($options['fields'])) $params['fields'] = $options['fields'];
+		if (isset($options['conditions'])) $params['conditions']['AND'][] = $options['conditions'];
+		if (isset($options['order'])) $params['order'] = $options['order'];
+		else ($params['order'] = array());
+		if (!$user['Role']['perm_sync'] || !isset($options['deleted']) || !$options['deleted']) $params['conditions']['AND']['Attribute.deleted'] = false;
+		if (isset($options['group'])) $params['group'] = $options['group'];
 		if (Configure::read('MISP.unpublishedprivate')) $params['conditions']['AND'][] = array('OR' => array('Event.published' => 1, 'Event.orgc_id' => $user['org_id']));
-	 	$results = $this->find('all', $params);
-	 	if (isset($options['withAttachments']) && $options['withAttachments']) {
-	 		foreach ($results as &$attribute) { 
-		 		if ($this->typeIsAttachment($attribute['Attribute']['type'])) {
-		 			$encodedFile = $this->base64EncodeAttachment($attribute['Attribute']);
-		 			$attribute['Attribute']['data'] = $encodedFile;
-		 		}
-	 		}
-	 	}
-	 	return $results;
+		$results = $this->find('all', $params);
+		if (isset($options['withAttachments']) && $options['withAttachments']) {
+			foreach ($results as &$attribute) {
+				if ($this->typeIsAttachment($attribute['Attribute']['type'])) {
+					$encodedFile = $this->base64EncodeAttachment($attribute['Attribute']);
+					$attribute['Attribute']['data'] = $encodedFile;
+				}
+			}
+		}
+		return $results;
 	}
-	
+
 	// Method gets and converts the contents of a file passed along as a base64 encoded string with the original filename into a zip archive
 	// The zip archive is then passed back as a base64 encoded string along with the md5 hash and a flag whether the transaction was successful
 	// The archive is password protected using the "infected" password
@@ -1798,7 +1798,7 @@ class Attribute extends AppModel {
 		$contentsFile->delete();
 		return $result;
 	}
-	
+
 	private function __hashRouter($hashType, $file) {
 		$validHashes = array('md5', 'sha1', 'sha256');
 		if (!in_array($hashType, $validHashes)) return false;
@@ -1811,7 +1811,7 @@ class Attribute extends AppModel {
 		}
 		return false;
 	}
-	
+
 	public function generateRandomFileName() {
 		$length = 12;
 		$characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -1822,7 +1822,7 @@ class Attribute extends AppModel {
 		}
 		return $fn;
 	}
-	
+
 	public function resolveHashType($hash) {
 		$hashTypes = $this->hashTypes;
 		$validTypes = array();
@@ -1833,11 +1833,11 @@ class Attribute extends AppModel {
 		}
 		return $validTypes;
 	}
-	
+
 	public function validateAttribute($attribute, $context = true) {
 		$this->set($attribute);
 		if (!$context) {
-			unset($this->validate['event_id']); 
+			unset($this->validate['event_id']);
 			unset($this->validate['value']['uniqueValue']);
 		}
 		if ($this->validates()) return true;
@@ -1845,7 +1845,7 @@ class Attribute extends AppModel {
 			return $this->validationErrors;
 		}
 	}
-	
+
 	public function restore($id, $user) {
 		$this->id = $id;
 		if (!$this->exists()) return 'Attribute doesn\'t exist, or you lack the permission to edit it.';
