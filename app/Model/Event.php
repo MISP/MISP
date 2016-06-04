@@ -1578,7 +1578,6 @@ class Event extends AppModel {
 			$this->Job = ClassRegistry::init('Job');
 		}
 		$sgModel = ClassRegistry::init('SharingGroup');
-		$log = ClassRegistry::init('Log');
 
 		$userCount = count($users);
 		foreach ($users as $k => $user) {
@@ -2001,9 +2000,6 @@ class Event extends AppModel {
 							return (array('error' => 'Event could not be saved: The sync user has to have access to the sharing group in order to be able to edit it.'));
 						}
 					}
-					// Only allow an edit if this is true!
-					// TODO: variable seems to be unused
-					$saveEvent = true;
 				} else {
 					return (array('error' => 'Event could not be saved: The user used to edit the event is not authorised to do so. This can be caused by the user not being of the same organisation as the original creator of the event whilst also not being a site administrator.'));
 				}
@@ -2070,7 +2066,6 @@ class Event extends AppModel {
 					}
 					$data['Event']['Attribute'][$k]['event_id'] = $this->id;
 					if ($data['Event']['Attribute'][$k]['distribution'] == 4) {
-						$sid = $this->SharingGroup->captureSG($data['Event']['Attribute'][$k]['SharingGroup'], $user);
 						$data['Event']['Attribute'][$k]['sharing_group_id'] = $this->SharingGroup->captureSG($data['Event']['Attribute'][$k]['SharingGroup'], $user);
 					}
 					if (!$this->Attribute->save($data['Event']['Attribute'][$k], array('fieldList' => $fieldList['Attribute']))) {
