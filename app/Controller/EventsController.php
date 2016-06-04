@@ -825,7 +825,7 @@ class EventsController extends AppController {
 		}
 		
 		$this->Event->id = $id;
-		if(!$this->Event->exists()) {
+		if (!$this->Event->exists()) {
 			throw new NotFoundException(__('Invalid event.'));
 		}
 		
@@ -870,7 +870,7 @@ class EventsController extends AppController {
 			$pivot['children'][] = $newPivot;
 			return $pivot;
 		}
-		foreach($pivot['children'] as $k => $v) {
+		foreach ($pivot['children'] as $k => $v) {
 			$pivot['children'][$k] = $this->__insertPivot($v, $oldId, $newPivot, $depth);
 		}
 		return $pivot;
@@ -960,7 +960,7 @@ class EventsController extends AppController {
 			if ($this->_isRest()) {
 				
 				// rearrange the response if the event came from an export
-				if(isset($this->request->data['response'])) $this->request->data = $this->request->data['response'];
+				if (isset($this->request->data['response'])) $this->request->data = $this->request->data['response'];
 				
 				// Distribution, reporter for the events pushed will be the owner of the authentication key
 				$this->request->data['Event']['user_id'] = $this->Auth->user('id');
@@ -1025,7 +1025,7 @@ class EventsController extends AppController {
 						}
 					} else {
 						if ($this->_isRest()) { // TODO return error if REST
-							if(is_numeric($add)) {
+							if (is_numeric($add)) {
 								$this->response->header('Location', Configure::read('MISP.baseurl') . '/events/' . $add);
 								$this->response->send();
 								throw new NotFoundException('Event already exists, if you would like to edit it, use the url in the location header.');
@@ -1217,7 +1217,7 @@ class EventsController extends AppController {
 				$this->Session->setFlash(__('The event could not be saved. Please, try again.'));
 			}
 		} else {
-			if(!$this->userRole['perm_modify']) $this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
+			if (!$this->userRole['perm_modify']) $this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
 			$this->request->data = $this->Event->read(null, $id);
 		}
 
@@ -1549,11 +1549,11 @@ class EventsController extends AppController {
 		$periods = array("second", "minute", "hour", "day", "week", "month", "year");
 		$lengths = array("60","60","24","7","4.35","12");
 		$difference = $now - $then;
-		for($j = 0; $difference >= $lengths[$j] && $j < count($lengths)-1; $j++) {
+		for ($j = 0; $difference >= $lengths[$j] && $j < count($lengths)-1; $j++) {
 			$difference /= $lengths[$j];
 		}
 		$difference = round($difference);
-		if($difference != 1) {
+		if ($difference != 1) {
 			$periods[$j].= "s";
 		}
 		return $difference . " " . $periods[$j] . " ago";
@@ -1803,7 +1803,7 @@ class EventsController extends AppController {
 				foreach ($attributes as $attribute) {
 					$line = $attribute['Attribute']['uuid'] . ',' . $attribute['Attribute']['event_id'] . ',' . $attribute['Attribute']['category'] . ',' . $attribute['Attribute']['type'] . ',' . $attribute['Attribute']['value'] . ',' . $attribute['Attribute']['comment'] . ',' . intval($attribute['Attribute']['to_ids']) . ',' . $attribute['Attribute']['timestamp'];
 					if ($includeContext) {
-						foreach($this->Event->csv_event_context_fields_to_fetch as $header => $field) {
+						foreach ($this->Event->csv_event_context_fields_to_fetch as $header => $field) {
 							if ($field['object']) $line .= ',' . $attribute['Event'][$field['object']][$field['var']];
 							else $line .= ',' . $attribute['Event'][$field['var']];
 						}
@@ -2270,7 +2270,7 @@ class EventsController extends AppController {
 					} else {
 						$elements = explode('&&', ${$parameters[$k]});
 					}
-					foreach($elements as $v) {
+					foreach ($elements as $v) {
 						if ($v == '') continue;
 						if (substr($v, 0, 1) == '!') {
 							// check for an IPv4 address and subnet in CIDR notation (e.g. 127.0.0.1/8)
@@ -2621,7 +2621,7 @@ class EventsController extends AppController {
 			}
 		}
 		$this->Event->EventTag->Tag->id = $tag_id;
-		if(!$this->Event->EventTag->Tag->exists()) {
+		if (!$this->Event->EventTag->Tag->exists()) {
 			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200));
 		}
 		$found = $this->Event->EventTag->find('first', array(
@@ -2960,7 +2960,7 @@ class EventsController extends AppController {
 					}
 					$sa['event_id'] = $event['Event']['id'];
 					if ($sa['old_id'] != 0) {
-						foreach($event['Attribute'] as $attribute) {
+						foreach ($event['Attribute'] as $attribute) {
 							if ($sa['uuid'] == $attribute['uuid']) {
 								$sa['old_id'] = $attribute['id'];
 							}
@@ -3146,7 +3146,7 @@ class EventsController extends AppController {
 		if (isset($event_id)) $data['event_id'] = $event_id;
 		if (isset($data['event_id'])) {
 			$this->Event->id = $data['event_id'];
-			if(!$this->Event->exists()) throw new NotFoundException('Event not found');
+			if (!$this->Event->exists()) throw new NotFoundException('Event not found');
 		}
 		
 		// check if the user has permission to create attributes for an event, if the event ID has been passed
@@ -3356,7 +3356,7 @@ class EventsController extends AppController {
 				}
 				$l1 = $this->__graphJsonContainsLink($current_event_id, $current_attribute_id, $json);
 				if ($l1 === false) $json['links'][] = array('source' => $current_event_id, 'target' => $current_attribute_id);
-				foreach($event[0]['RelatedAttribute'][$att['id']] as $relation) {
+				foreach ($event[0]['RelatedAttribute'][$att['id']] as $relation) {
 					$found = $this->__graphJsonContains('event', $relation, $json);
 					if ($found !== false) {
 						$l3 = $this->__graphJsonContainsLink($found, $current_attribute_id, $json);

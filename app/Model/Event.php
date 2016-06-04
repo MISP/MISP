@@ -357,7 +357,7 @@ class Event extends AppModel {
 		// analysis - setting correct vars
 		// TODO refactor analysis into an Enum (in the database)
 		if (isset($this->data['Event']['analysis'])) {
-			switch($this->data['Event']['analysis']) {
+			switch ($this->data['Event']['analysis']) {
 			    case 'Initial':
 			        $this->data['Event']['analysis'] = 0;
 			        break;
@@ -1353,7 +1353,7 @@ class Event extends AppModel {
 				// If a shadowattribute can be linked to an attribute, link it to it then remove it from the event
 				// This is to differentiate between proposals that were made to an attribute for modification and between proposals for new attributes
 				foreach ($event['ShadowAttribute'] as $k => &$sa) {
-					if(!empty($sa['old_id'])) {
+					if (!empty($sa['old_id'])) {
 						if ($sa['old_id'] == $attribute['id']) {
 							$results[$eventKey]['Attribute'][$key]['ShadowAttribute'][] = $sa;
 							unset($results[$eventKey]['ShadowAttribute'][$k]);
@@ -1367,7 +1367,7 @@ class Event extends AppModel {
 			// remove proposals to attributes that we cannot see
 			// if the shadow attribute wasn't moved within an attribute before, this is the case
 			foreach ($event['ShadowAttribute'] as $k => &$sa) {
-				if(!empty($sa['old_id'])) unset($event['ShadowAttribute'][$k]);
+				if (!empty($sa['old_id'])) unset($event['ShadowAttribute'][$k]);
 			}
 		}
 		return $results;
@@ -1797,7 +1797,7 @@ class Event extends AppModel {
 		if (isset($data['Event']['Attribute'])) {
 			foreach ($data['Event']['Attribute'] as $k => &$a) {
 				unset($data['Event']['Attribute']['id']);
-				if(isset($a['distribution']) && $a['distribution'] == 4) {
+				if (isset($a['distribution']) && $a['distribution'] == 4) {
 					$data['Event']['Attribute'][$k]['sharing_group_id'] = $this->SharingGroup->captureSG($data['Event']['Attribute'][$k]['SharingGroup'], $user);
 					unset($data['Event']['Attribute'][$k]['SharingGroup']);
 				}
@@ -2253,7 +2253,7 @@ class Event extends AppModel {
 		if ($passAlong) $conditions[] = array('Server.id !=' => $passAlong); 
 		$servers = $this->Server->find('all', array('conditions' => $conditions));
 		// iterate over the servers and upload the event
-		if(empty($servers))
+		if (empty($servers))
 			return true;
 		
 		$uploaded = true;

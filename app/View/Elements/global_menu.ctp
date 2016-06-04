@@ -108,7 +108,7 @@
 					</li>
 					<?php endif;?>
 
-					<?php if($isAdmin || $isSiteAdmin): ?>
+					<?php if ($isAdmin || $isSiteAdmin): ?>
 					<li class="dropdown">
 						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
 							Administration
@@ -125,10 +125,10 @@
 							<?php endif;?>
 							<li class="divider"></li>
 							<li><a href="<?php echo $baseurl;?>/admin/roles/index">List Roles</a></li>
-							<?php if($isSiteAdmin): ?>
+							<?php if ($isSiteAdmin): ?>
 							<li><a href="<?php echo $baseurl;?>/admin/roles/add">Add Role</a></li>
 							<?php endif; ?>
-							<?php if($isSiteAdmin): ?>
+							<?php if ($isSiteAdmin): ?>
 								<li class="divider"></li>
 								<li><a href="<?php echo $baseurl;?>/pages/display/administration">Administrative tools</a></li>
 								<li><a href="<?php echo $baseurl;?>/servers/serverSettings">Server settings</a></li>
@@ -153,7 +153,7 @@
 					</li>
 					<?php endif; ?>
 
-					<?php if($isAclAudit): ?>
+					<?php if ($isAclAudit): ?>
 					<li class="dropdown">
 						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
 							Audit

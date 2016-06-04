@@ -326,7 +326,7 @@ class EventShell extends AppShell
 		// the special cache files containing all events
 		$i = 0;
 		foreach ($users as $user) {
-			foreach($this->Event->export_types as $k => $type) {
+			foreach ($this->Event->export_types as $k => $type) {
 				$this->Job->cache($k, $user['User'], 'Events visible to: ' . ($user['Role']['perm_site_admin'] ? 'ADMIN' : $user['Organisation']['name']));
 				$i++;
 			}

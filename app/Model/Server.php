@@ -1188,7 +1188,7 @@ class Server extends AppModel {
 								$event['Event']['distribution'] = '1';
 							}
 							// Distribution
-							switch($event['Event']['distribution']) {
+							switch ($event['Event']['distribution']) {
 								case 1:
 								case 'This community only': // backwards compatibility
 									// if community only, downgrade to org only after pull
@@ -1312,7 +1312,7 @@ class Server extends AppModel {
 							$temp = $proposals['ShadowAttribute'];
 							$proposals['ShadowAttribute'] = array(0 => $temp);
 						}
-						foreach($proposals['ShadowAttribute'] as &$proposal) {
+						foreach ($proposals['ShadowAttribute'] as &$proposal) {
 							$oldsa = $shadowAttribute->findOldProposal($proposal);
 							$proposal['event_id'] = $eid;
 							if (!$oldsa || $oldsa['timestamp'] < $proposal['timestamp']) {
@@ -1651,7 +1651,7 @@ class Server extends AppModel {
 				// event_id is null when we are doing a push
 				$ids = $this->getEventIdsFromServer($server, true, $HttpSocket);
 				// error return strings or ints or throw exceptions
-				if(!is_array($ids)) return false;
+				if (!is_array($ids)) return false;
 				$conditions = array('uuid' => $ids);
 			} else {
 				$conditions = array('id' => $event_id);
@@ -2437,7 +2437,7 @@ class Server extends AppModel {
 	public function proxyDiagnostics(&$diagnostic_errors) {
 		$proxyStatus = 0;
 		$proxy = Configure::read('Proxy');
-		if(!empty($proxy['host'])) {
+		if (!empty($proxy['host'])) {
 			App::uses('SyncTool', 'Tools');
 			$syncTool = new SyncTool();
 			try {
@@ -2446,7 +2446,7 @@ class Server extends AppModel {
 			} catch (Exception $e) {
 				$proxyStatus = 2;
 			}
-			if(empty($proxyResponse) || $proxyResponse->code > 399) {
+			if (empty($proxyResponse) || $proxyResponse->code > 399) {
 				$proxyStatus = 2;
 			}
 		} else {

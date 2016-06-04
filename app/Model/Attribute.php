@@ -619,7 +619,7 @@ class Attribute extends AppModel {
 	public function runValidation($value, $type) {
 		$returnValue = false;
 		// check data validation
-		switch($type) {
+		switch ($type) {
 			case 'md5':
 			case 'imphash':
 			case 'sha1':
@@ -902,7 +902,7 @@ class Attribute extends AppModel {
 	
 	// do some last second modifications before the validation
 	public function modifyBeforeValidation($type, $value) {
-		switch($type) {
+		switch ($type) {
 			case 'md5':
 			case 'sha1':
 			case 'sha224':
@@ -1679,7 +1679,7 @@ class Attribute extends AppModel {
 	 		if (isset($result['multi'])) {
 	 			$temp = $attribute;
 	 			$attribute = array();
-	 			foreach($result['multi'] as $k => $r) {
+	 			foreach ($result['multi'] as $k => $r) {
 	 				$attribute['multi'][] = $temp;
 	 				$attribute['multi'][$k]['type'] = $r['type'];
 	 				$attribute['multi'][$k]['value'] = $r['value'];

@@ -6,7 +6,7 @@ class SharingGroupsController extends AppController {
 	
 	public function beforeFilter() {
 		parent::beforeFilter();
-		if(!empty($this->request->params['admin']) && !$this->_isSiteAdmin()) $this->redirect('/');
+		if (!empty($this->request->params['admin']) && !$this->_isSiteAdmin()) $this->redirect('/');
 		$sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user());
 		$this->paginate = Set::merge($this->paginate,array('conditions' => array('SharingGroup.id' => $sgs)));
 	}
@@ -36,7 +36,7 @@ class SharingGroupsController extends AppController {
 	
 	public function add() {
 		if (!$this->userRole['perm_sharing_group']) throw new MethodNotAllowedException('You don\'t have the required privileges to do that.');
-		if($this->request->is('post')) {
+		if ($this->request->is('post')) {
 			$json = json_decode($this->request->data['SharingGroup']['json'], true);
 			$this->SharingGroup->create();
 			$sg = $json['sharingGroup'];
@@ -111,7 +111,7 @@ class SharingGroupsController extends AppController {
 					),
 			),
 		));
-		if($this->request->is('post')) {
+		if ($this->request->is('post')) {
 			$json = json_decode($this->request->data['SharingGroup']['json'], true);
 			$sg = $json['sharingGroup'];
 			$sg['id'] = $id;

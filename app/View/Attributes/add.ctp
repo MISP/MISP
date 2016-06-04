@@ -78,7 +78,7 @@
 		?>
 		</div>
 	</fieldset>
-	<p style="color:red;font-weight:bold;display:none;<?php if(isset($ajax) && $ajax) echo "text-align:center;"?>" id="warning-message">Warning: You are about to share data that is of a sensitive nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>
+	<p style="color:red;font-weight:bold;display:none;<?php if (isset($ajax) && $ajax) echo "text-align:center;"?>" id="warning-message">Warning: You are about to share data that is of a sensitive nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>
 	<?php if ($ajax): ?>
 		<div class="overlay_spacing">
 			<table>
@@ -104,7 +104,7 @@
 	<div id="confirmation_box" class="confirmation_box"></div>
 </div>
 <?php 
-	if(!$ajax) {
+	if (!$ajax) {
 		$event['Event']['id'] = $this->request->data['Attribute']['event_id'];
 		$event['Event']['published'] = $published;
 		echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'addAttribute', 'event' => $event));

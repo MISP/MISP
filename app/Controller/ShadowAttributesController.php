@@ -191,7 +191,7 @@ class ShadowAttributesController extends AppController {
 		}
 		$response = $this->__accept($id);
 		if ($this->_isRest()) {
-			if(isset($response['success'])) {
+			if (isset($response['success'])) {
 				$this->set('name', $response['success']);
 				$this->set('message', $response['success']);
 				$this->set('url', '/shadow_attributes/accept/' . $id);
@@ -417,7 +417,7 @@ class ShadowAttributesController extends AppController {
 					if ($this->request->is('ajax')) {
 						$this->autoRender = false;
 						return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Proposal added' . $emailResult)),'status'=>200));
-					} else if($this->_isRest()) {
+					} else if ($this->_isRest()) {
 						$sa = $this->ShadowAttribute->find(
 							'first', 
 							array(
@@ -436,7 +436,7 @@ class ShadowAttributesController extends AppController {
 					if ($this->request->is('ajax')) {
 						$this->autoRender = false;
 						return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $this->ShadowAttribute->validationErrors)),'status'=>200));
-					} else if($this->_isRest()) {
+					} else if ($this->_isRest()) {
 						$message = '';						
 						foreach ($this->ShadowAttribute->validationErrors as $k => $v) {
 							$message .= '[' . $k . ']: ' . $v[0] . PHP_EOL;

@@ -160,7 +160,7 @@
 			<th class="actions">Actions</th>
 		</tr>
 		<?php 
-			foreach($event['objects'] as $k => $object):
+			foreach ($event['objects'] as $k => $object):
 				$extra = '';
 				$extra2 = '';
 				$extra3 = '';
@@ -381,7 +381,7 @@
 					<td class="short <?php echo $extra;?>">
 						<span id="sightingForm_<?php echo h($object['id']);?>">
 						<?php 
-							if($object['objectType'] == 0):
+							if ($object['objectType'] == 0):
 								echo $this->Form->create('Sighting', array('id' => 'Sighting_' . $object['id'], 'url' => '/sightings/add/' . $object['id'], 'style' => 'display:none;'));
 								echo $this->Form->end();
 						?>

@@ -119,7 +119,7 @@
 
 		</tr>
 		<?php foreach ($events as $event): ?>
-		<tr <?php if($event['Event']['distribution'] == 0) echo 'class = "privateRed"'?>>
+		<tr <?php if ($event['Event']['distribution'] == 0) echo 'class = "privateRed"'?>>
 			<td class="short" ondblclick="document.location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
 				<?php
 				if ($event['Event']['published'] == 1) {

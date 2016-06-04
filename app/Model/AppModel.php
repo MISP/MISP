@@ -57,7 +57,7 @@ class AppModel extends Model {
 	// add special cases where the upgrade does more than just update the DB
 	// this could become useful in the future
 	public function updateMISP($command) {
-		switch($command) {
+		switch ($command) {
 			case '2.4.20':
 				$this->updateDatabase($command);
 				$this->ShadowAttribute = ClassRegistry::init('ShadowAttribute');
