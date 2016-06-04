@@ -646,7 +646,7 @@ class EventsController extends AppController {
 		}
 		$rules = array('published', 'eventid', 'tag', 'date', 'eventinfo', 'threatlevel', 'distribution', 'analysis', 'attribute');
 		if ($this->_isSiteAdmin()) $rules[] = 'email';
-		if (Configure::read('MISP.showorg')){
+		if (Configure::read('MISP.showorg')) {
 			$orgs = $this->Event->find('list', array(
 					'recursive' => -1,
 					'fields' => array('Orgc.name'),
@@ -848,13 +848,13 @@ class EventsController extends AppController {
 		if (!$this->_isRest()) $this->__viewUI($event, $continue, $fromEvent);
 	}
 	
-	private function __startPivoting($id, $info, $date){
+	private function __startPivoting($id, $info, $date) {
 		$this->Session->write('pivot_thread', null);
 		$initial_pivot = array('id' => $id, 'info' => $info, 'date' => $date, 'depth' => 0, 'height' => 0, 'children' => array(), 'deletable' => true);
 		$this->Session->write('pivot_thread', $initial_pivot);
 	}
 
-	private function __continuePivoting($id, $info, $date, $fromEvent){
+	private function __continuePivoting($id, $info, $date, $fromEvent) {
 		$pivot = $this->Session->read('pivot_thread');
 		$newPivot = array('id' => $id, 'info' => $info, 'date' => $date, 'depth' => null, 'children' => array(), 'deletable' => true);
 		if (!$this->__checkForPivot($pivot, $id)) {

@@ -1457,7 +1457,7 @@ class Server extends AppModel {
 			if ($response->code == '403') {
 				return 403;
 			}
-			} catch (SocketException $e){
+			} catch (SocketException $e) {
 			// FIXME refactor this with clean try catch over all http functions
 				return $e->getMessage();
 			}
@@ -2410,7 +2410,7 @@ class Server extends AppModel {
 				try {
 					$gpgStatus = 0;
 					$signed = $gpg->sign('test', Crypt_GPG::SIGN_MODE_CLEAR);
-				} catch (Exception $e){
+				} catch (Exception $e) {
 					$gpgStatus = 4;
 				}
 			}

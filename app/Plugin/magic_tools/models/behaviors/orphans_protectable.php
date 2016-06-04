@@ -51,7 +51,7 @@ class OrphansProtectableBehavior extends ModelBehavior {
 
 	  foreach($Model->hasMany as $model => $settings) {
 	    // Is relationship is dependent?
-      if($settings['dependent']){ // Yes! Possible orphans are deleted, too!
+      if($settings['dependent']) { // Yes! Possible orphans are deleted, too!
         // Do nothing
       } else { // No! Possible orphans should be protected!
         // Is there a possible orphan for this relation?
