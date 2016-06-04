@@ -69,11 +69,11 @@ class TemplatesController extends AppController {
 					'conditions' => array('id' => $tagArray)
 				));
 
-				foreach($oldTags as $k => $oT) {
+				foreach ($oldTags as $k => $oT) {
 					if (!in_array($oT['Tag'], $newTags)) $this->TemplateTag->delete($oT['TemplateTag']['id']);
 				}
 
-				foreach($newTags as $k => $nT) {
+				foreach ($newTags as $k => $nT) {
 					if (!in_array($nT['Tag'], $oldTags)) {
 						$this->TemplateTag->create();
 						$this->TemplateTag->save(array('TemplateTag' => array('template_id' => $id, 'tag_id' => $nT['Tag']['id'])));
@@ -124,7 +124,7 @@ class TemplatesController extends AppController {
 		));
 		if (empty($template)) throw new NotFoundException('No template with the provided ID exists, or you are not authorised to see it.');
 		$tagArray = array();
-		foreach($template['TemplateTag'] as $tt) {
+		foreach ($template['TemplateTag'] as $tt) {
 			$tagArray[] = $tt;
 		}
 		$this->set('id', $id);
@@ -173,7 +173,7 @@ class TemplatesController extends AppController {
 		$this->autoRender = false;
 		$this->request->onlyAllow('ajax');
 		$orderedElements = $this->request->data;
-		foreach($orderedElements as &$e) {
+		foreach ($orderedElements as &$e) {
 			$e = ltrim($e, 'id_');
 		}
 		$extractedIds = array();
@@ -334,7 +334,7 @@ class TemplatesController extends AppController {
 				$attributes = json_decode($this->request->data['Template']['attributes'], true);
 				$this->loadModel('Attribute');
 				$fails = 0;
-				foreach($attributes as $k => &$attribute) {
+				foreach ($attributes as $k => &$attribute) {
 					if (isset($attribute['data']) && preg_match('/^[a-zA-Z0-9]{12}$/', $attribute['data'])) {
 						$file = new File(APP . 'tmp/files/' . $attribute['data']);
 						$content = $file->read();

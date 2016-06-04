@@ -332,7 +332,7 @@ class User extends AppModel {
 		// certif_public is entered
 
 		// Check if $check is a x509 certificate
-		if (openssl_x509_read($check['certif_public'])){
+		if (openssl_x509_read($check['certif_public'])) {
 			try {
 				App::uses('Folder', 'Utility');
 				$dir = APP . 'tmp' . DS . 'SMIME';
@@ -346,7 +346,7 @@ class User extends AppModel {
 				fclose($fp);
 				$msg_test_encrypted = tempnam($dir, 'SMIME');
 				// encrypt it
-				if (openssl_pkcs7_encrypt($msg_test, $msg_test_encrypted, $check['certif_public'], null, 0, OPENSSL_CIPHER_AES_256_CBC)){
+				if (openssl_pkcs7_encrypt($msg_test, $msg_test_encrypted, $check['certif_public'], null, 0, OPENSSL_CIPHER_AES_256_CBC)) {
 					$parse = openssl_x509_parse($check['certif_public']);
 					// Valid certificate ?
 					$now = new DateTime("now");
@@ -354,7 +354,7 @@ class User extends AppModel {
 					$validTo_time_t = new DateTime("@$validTo_time_t_epoch");
 					if ($validTo_time_t > $now) {
 						// purposes smimeencrypt ?
-						if (($parse['purposes'][5][0] == 1) and ($parse['purposes'][5][2] == 'smimeencrypt')){
+						if (($parse['purposes'][5][0] == 1) and ($parse['purposes'][5][2] == 'smimeencrypt')) {
 							return true;
 						} else {
 							return 'This certificate cannot be used to encrypt email';
@@ -365,7 +365,7 @@ class User extends AppModel {
 				} else {
 					return false;
 				}
-			} catch (Exception $e){
+			} catch (Exception $e) {
 				$this->log($e->getMessage());
 			}
 			unlink($msg_test);
@@ -504,7 +504,7 @@ class User extends AppModel {
 					if ($sortedKeys['noEncrypt']) $results[$user['User']['id']][2] .= ' Found ' . $sortedKeys['noEncrypt'] . ' subkey(s) that are sign only.';
 					$results[$user['User']['id']][0] = true;
 				}
-			} catch (Exception $e){
+			} catch (Exception $e) {
 				$results[$user['User']['id']][2] = $e->getMessage();
 				$results[$user['User']['id']][0] = true;
 			}
@@ -536,15 +536,15 @@ class User extends AppModel {
 				fclose($fp);
 				$msg_test_encrypted = tempnam($dir, 'SMIME');
 				// encrypt it
-				if (openssl_pkcs7_encrypt($msg_test, $msg_test_encrypted, $certif_public, null, 0, OPENSSL_CIPHER_AES_256_CBC)){
+				if (openssl_pkcs7_encrypt($msg_test, $msg_test_encrypted, $certif_public, null, 0, OPENSSL_CIPHER_AES_256_CBC)) {
 					$parse = openssl_x509_parse($certif_public);
 					// Valid certificate ?
 					$now = new DateTime("now");
 					$validTo_time_t_epoch = $parse['validTo_time_t'];
 					$validTo_time_t = new DateTime("@$validTo_time_t_epoch");
-					if ($validTo_time_t > $now){
+					if ($validTo_time_t > $now) {
 						// purposes smimeencrypt ?
-						if (($parse['purposes'][5][0] == 1) && ($parse['purposes'][5][2] == 'smimeencrypt')){
+						if (($parse['purposes'][5][0] == 1) && ($parse['purposes'][5][2] == 'smimeencrypt')) {
 						} else {
 							// openssl_pkcs7_encrypt good -- Model/User purposes is NOT GOOD'
 							$results[$user['User']['id']][0] = true;
@@ -553,12 +553,12 @@ class User extends AppModel {
 						// openssl_pkcs7_encrypt good -- Model/User expired;
 						$results[$user['User']['id']][0] = true;
 					}
-				} else{
+				} else {
 					// openssl_pkcs7_encrypt NOT good -- Model/User
 					$results[$user['User']['id']][0] = true;
 				}
 				$results[$user['User']['id']][1] = $user['User']['email'];
-			} catch (Exception $e){
+			} catch (Exception $e) {
 				$this->log($e->getMessage());
 			}
 			unlink($msg_test);
@@ -771,7 +771,7 @@ class User extends AppModel {
 				if (empty(Configure::read('SMIME.key_sign')) || !is_readable(Configure::read('SMIME.key_sign'))) $canSign = false;
 				if ($canSign) {
 					$signed = tempnam($dir, 'SMIME');
-					if (openssl_pkcs7_sign($msg, $signed, 'file://'.Configure::read('SMIME.cert_public_sign'), array('file://'.Configure::read('SMIME.key_sign'), Configure::read('SMIME.password')), array(), PKCS7_TEXT)){
+					if (openssl_pkcs7_sign($msg, $signed, 'file://'.Configure::read('SMIME.cert_public_sign'), array('file://'.Configure::read('SMIME.key_sign'), Configure::read('SMIME.password')), array(), PKCS7_TEXT)) {
 						$fp = fopen($signed, "r");
 						$bodySigned = fread($fp, filesize($signed));
 						fclose($fp);
@@ -792,7 +792,7 @@ class User extends AppModel {
 				}
 				$msg_signed_encrypted = tempnam($dir, 'SMIME');
 				// encrypt it
-				if (openssl_pkcs7_encrypt($msg_signed, $msg_signed_encrypted, $user['User']['certif_public'], $headers_smime, 0, OPENSSL_CIPHER_AES_256_CBC)){
+				if (openssl_pkcs7_encrypt($msg_signed, $msg_signed_encrypted, $user['User']['certif_public'], $headers_smime, 0, OPENSSL_CIPHER_AES_256_CBC)) {
 					$fp = fopen($msg_signed_encrypted, 'r');
 					$bodyEncSig = fread($fp, filesize($msg_signed_encrypted));
 					fclose($fp);
@@ -823,7 +823,7 @@ class User extends AppModel {
 				$Email->replyTo($replyToUser['User']['email']);
 				if (!empty($replyToUser['User']['gpgkey'])) {
 					$Email->attachments(array('gpgkey.asc' => array('data' => $replyToUser['User']['gpgkey'])));
-				} elseif (!empty($replyToUser['User']['certif_public'])) {
+				} else if (!empty($replyToUser['User']['certif_public'])) {
 					$Email->attachments(array($replyToUser['User']['email'] . '.pem' => array('data' => $replyToUser['User']['certif_public'])));
 				}
 				$replyToLog = 'from ' . $replyToUser['User']['email'];

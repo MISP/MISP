@@ -191,7 +191,7 @@ class ShadowAttributesController extends AppController {
 		}
 		$response = $this->__accept($id);
 		if ($this->_isRest()) {
-			if(isset($response['success'])) {
+			if (isset($response['success'])) {
 				$this->set('name', $response['success']);
 				$this->set('message', $response['success']);
 				$this->set('url', '/shadow_attributes/accept/' . $id);
@@ -206,7 +206,7 @@ class ShadowAttributesController extends AppController {
 	}
 
 	// If we accept a proposed attachment, then the attachment itself needs to be moved from files/eventId/shadow/shadowId to files/eventId/attributeId
-	private function _moveFile($shadowId, $newId, $eventId){
+	private function _moveFile($shadowId, $newId, $eventId) {
 		$pathOld = APP . "files" . DS . $eventId . DS . "shadow" . DS . $shadowId;
 		$pathNew = APP . "files" . DS . $eventId . DS . $newId;
 		if (rename($pathOld, $pathNew)) {
@@ -417,7 +417,7 @@ class ShadowAttributesController extends AppController {
 					if ($this->request->is('ajax')) {
 						$this->autoRender = false;
 						return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Proposal added' . $emailResult)),'status'=>200));
-					} else if($this->_isRest()) {
+					} else if ($this->_isRest()) {
 						$sa = $this->ShadowAttribute->find(
 							'first',
 							array(
@@ -436,7 +436,7 @@ class ShadowAttributesController extends AppController {
 					if ($this->request->is('ajax')) {
 						$this->autoRender = false;
 						return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $this->ShadowAttribute->validationErrors)),'status'=>200));
-					} else if($this->_isRest()) {
+					} else if ($this->_isRest()) {
 						$message = '';
 						foreach ($this->ShadowAttribute->validationErrors as $k => $v) {
 							$message .= '[' . $k . ']: ' . $v[0] . PHP_EOL;
@@ -488,7 +488,7 @@ class ShadowAttributesController extends AppController {
 			$filename = $shadowAttribute['value'];
 			$fileExt = pathinfo($filename, PATHINFO_EXTENSION);
 			$filename = substr($filename, 0, strlen($filename) - strlen($fileExt) - 1);
-		} elseif ('malware-sample' == $shadowAttribute['type']) {
+		} else if ('malware-sample' == $shadowAttribute['type']) {
 			$filenameHash = explode('|', $shadowAttribute['value']);
 			$filename = substr($filenameHash[0], strrpos($filenameHash[0], '\\'));
 			$fileExt = "zip";

@@ -94,7 +94,7 @@ foreach ($attributes as $attribute):
 			}
 			if ('attachment' == $attribute['Attribute']['type'] || 'malware-sample' == $attribute['Attribute']['type']) {
 				?><a href="<?php echo $baseurl;?>/attributes/download/<?php echo $attribute['Attribute']['id'];?>"><?php echo $sigDisplay; ?></a><?php
-			} elseif ('link' == $attribute['Attribute']['type']) {
+			} else if ('link' == $attribute['Attribute']['type']) {
 				?><a href="<?php echo h($attribute['Attribute']['value']);?>"><?php echo $sigDisplay; ?></a><?php
 			} else {
 				echo $sigDisplay;

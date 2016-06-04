@@ -166,7 +166,7 @@ class IOCImportComponent extends Component {
 		$attributes = null;
 		if (isset($tree['branches'][0]['leaves'])) $attributes = $tree['branches'][0]['leaves'];
 		if (isset($tree['leaves'])) $attributes = $tree['leaves'];
-		unset ($tree['branches'], $tree['leaves'], $tree['type']);
+		unset($tree['branches'], $tree['leaves'], $tree['type']);
 		// set the basic info the event in case we want to populate the uuid, info and date fields
 		$event = $tree;
 		// attach the attributes to the event
@@ -410,7 +410,7 @@ class IOCImportComponent extends Component {
 		foreach ($branch['branches'] as $key => $value) {
 			$r = $this->__resolveBranch($value, $branch['uuid'], $branch['type'], $branch['leaves']);
 			if ($r === 'getFromTemp') {
-				unset ($branch['branches'][$key]);
+				unset($branch['branches'][$key]);
 				foreach ($this->tempLeaves as $tempLeaf) {
 					$branch['leaves'][] = $tempLeaf;
 				}
@@ -427,7 +427,7 @@ class IOCImportComponent extends Component {
 		// First, let's see if we can get rid of some of the indicators in here
 		foreach ($branch['leaves'] as $key => $value) {
 			if ($this->__checkOmit($value)) {
-				unset ($branch['leaves'][$key]);
+				unset($branch['leaves'][$key]);
 			}
 		}
 		// try to reverse AND-OR
@@ -477,7 +477,7 @@ class IOCImportComponent extends Component {
 		if (count($branch['leaves']) != 0 && count($branch['branches']) == 0 && $branch['type'] === 'AND') {
 			$branch['leaves'] = array($this->__resolveAndBranch($branch['leaves'], $uuid));
 			if ($branch['leaves'][0] == null) {
-				unset ($branch['leaves']);
+				unset($branch['leaves']);
 			} else {
 				$this->saved_uuids[] = $branch['uuid'];
 			}

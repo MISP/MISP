@@ -92,7 +92,7 @@ class EventDelegation extends AppModel {
 		);
 		$objectsWithAttachments = array('Attribute', 'ShadowAttribute');
 		$objectsToRearrange = array('Attribute', 'ShadowAttribute', 'EventTag');
-		unset ($event['Event']['id']);
+		unset($event['Event']['id']);
 		foreach ($objects as $object_type => $fields) {
 			foreach ($event[$object_type] as &$object) {
 				// append attachment

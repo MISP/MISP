@@ -119,7 +119,7 @@
 
 		</tr>
 		<?php foreach ($events as $event): ?>
-		<tr <?php if($event['Event']['distribution'] == 0) echo 'class = "privateRed"'?>>
+		<tr <?php if ($event['Event']['distribution'] == 0) echo 'class = "privateRed"'?>>
 			<td class="short" ondblclick="document.location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
 				<?php
 				if ($event['Event']['published'] == 1) {
@@ -214,7 +214,7 @@
 				<?php
 				if (0 == $event['Event']['published'] && ($isSiteAdmin || ($isAclPublish && $event['Event']['orgc_id'] == $me['org_id'])))
 					echo $this->Form->postLink('', array('action' => 'alert', $event['Event']['id']), array('class' => 'icon-download-alt', 'title' => 'Publish Event'), 'Are you sure this event is complete and everyone should be informed?');
-				elseif (0 == $event['Event']['published']) echo 'Not published';
+				else if (0 == $event['Event']['published']) echo 'Not published';
 
 				if ($isSiteAdmin || ($isAclModify && $event['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $event['Event']['orgc_id'] == $me['org_id'])) {
 				?>

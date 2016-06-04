@@ -22,7 +22,7 @@
 						'div' => false
 				));
 
-				foreach($differentFilters as $b) {
+				foreach ($differentFilters as $b) {
 					echo $this->Form->input('search' . $b, array(
 						'options' => array('' => 'Any', '0' => 'No', '1' => 'Yes'),
 						'class' => 'input',
@@ -32,7 +32,7 @@
 					));
 				}
 
-				foreach($simpleFilters as $t) {
+				foreach ($simpleFilters as $t) {
 					if ($t == 'role') {
 						echo $this->Form->input('search' . $t, array(
 								'options' => array($roles),

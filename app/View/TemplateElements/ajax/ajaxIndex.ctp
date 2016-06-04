@@ -1,13 +1,13 @@
 <div id="ajaxTemplateElementsIndex">
 	<h2>Template Elements</h2>
-	<ul <?php if($mayModify): ?> id="sortable" <?php endif; ?> style="list-style:none; margin:0px;">
+	<ul <?php if ($mayModify): ?> id="sortable" <?php endif; ?> style="list-style:none; margin:0px;">
 				<?php
 				foreach ($elements as $k => $element):
 					echo $this->element('templateElements/templateRow' . ucfirst($element['TemplateElement']['element_definition']), array('element' => $element, 'element_id' => $element['TemplateElement']['id']));
 				endforeach;
 			?>
 	</ul>
-	<?php if($mayModify): ?>
+	<?php if ($mayModify): ?>
 	<div id="AddTemplateElementDiv" class="addTemplateElement useCursorPointer" onClick="templateAddElementClicked(<?php echo $id; ?>);">+</div>
 	<?php endif; ?>
 </div>

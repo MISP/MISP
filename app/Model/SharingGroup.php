@@ -74,7 +74,7 @@ class SharingGroup extends AppModel {
 		return true;
 	}
 
-	public function beforeDelete($cascade = false){
+	public function beforeDelete($cascade = false) {
 		$countEvent = $this->Event->find('count', array(
 				'recursive' => -1,
 				'conditions' => array('sharing_group_id' => $this->id)
@@ -357,7 +357,7 @@ class SharingGroup extends AppModel {
 					$attributes = array('name', 'releasability', 'description', 'created', 'modified');
 					$different = false;
 					foreach ($attributes as &$a) {
-						if (!in_array($a, array('created', 'modified')) && $editedSG[$a] !== $sg[$a]){
+						if (!in_array($a, array('created', 'modified')) && $editedSG[$a] !== $sg[$a]) {
 							$different = true;
 						}
 						$editedSG[$a] = $sg[$a];
@@ -371,7 +371,7 @@ class SharingGroup extends AppModel {
 				return $existingSG['SharingGroup']['id'];
 			}
 		}
-		unset ($sg['Organisation']);
+		unset($sg['Organisation']);
 
 		if (isset($sg['SharingGroupOrg']['id'])) {
 			$temp = $sg['SharingGroupOrg'];
@@ -381,7 +381,7 @@ class SharingGroup extends AppModel {
 		foreach ($sg['SharingGroupOrg'] as $k => $org) {
 			if (isset($org['Organisation'][0])) $org['Organisation'] = $org['Organisation'][0];
 			$sg['SharingGroupOrg'][$k]['org_id'] = $this->Organisation->captureOrg($org['Organisation'], $user, $force);
-			unset ($sg['SharingGroupOrg'][$k]['Organisation']);
+			unset($sg['SharingGroupOrg'][$k]['Organisation']);
 			if ($force) {
 				// we are editing not creating here
 				$temp = $this->SharingGroupOrg->find('first', array(
@@ -414,7 +414,7 @@ class SharingGroup extends AppModel {
 		foreach ($sg['SharingGroupServer'] as $k => $server) {
 			if (isset($server[0])) $server = $server[0];
 			$sg['SharingGroupServer'][$k]['server_id'] = $this->SharingGroupServer->Server->captureServer($server['Server'], $user, $force);
-			if ($sg['SharingGroupServer'][$k]['server_id'] === false) unset ($sg['SharingGroupServer'][$k]);
+			if ($sg['SharingGroupServer'][$k]['server_id'] === false) unset($sg['SharingGroupServer'][$k]);
 			else {
 				if ($force) {
 					// we are editing not creating here

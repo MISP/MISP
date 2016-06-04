@@ -10,7 +10,7 @@ class SysLogLogableBehavior extends LogableBehavior {
 		}
 		if (isset($this->settings[$Model->alias]['skip']['add']) && $this->settings[$Model->alias]['skip']['add'] && $created) {
 			return true;
-		} elseif (isset($this->settings[$Model->alias]['skip']['edit']) && $this->settings[$Model->alias]['skip']['edit'] && !$created) {
+		} else if (isset($this->settings[$Model->alias]['skip']['edit']) && $this->settings[$Model->alias]['skip']['edit'] && !$created) {
 			return true;
 		}
 		$keys = array_keys($Model->data[$Model->alias]);
@@ -20,7 +20,7 @@ class SysLogLogableBehavior extends LogableBehavior {
 		}
 		if ($Model->id) {
 			$id = $Model->id;
-		} elseif ($Model->insertId) {
+		} else if ($Model->insertId) {
 			$id = $Model->insertId;
 		}
 		if (isset($this->schema[$this->settings[$Model->alias]['foreignKey']])) {
@@ -103,9 +103,9 @@ class SysLogLogableBehavior extends LogableBehavior {
 	function _saveLog(&$Model, $logData, $title = null) {
 		if ($title !== NULL) {
 			$logData['Log']['title'] = $title;
-		} elseif ($Model->displayField == $Model->primaryKey) {
+		} else if ($Model->displayField == $Model->primaryKey) {
 			$logData['Log']['title'] = $Model->alias . ' (' . $Model->id . ')';
-		} elseif (isset($Model->data[$Model->alias][$Model->displayField])) {
+		} else if (isset($Model->data[$Model->alias][$Model->displayField])) {
 			if (($Model->alias == "User") && ($logData['Log']['action'] != 'edit')) {
 				$logData['Log']['title'] = 'User (' . $Model->data[$Model->alias][$Model->primaryKey] . '): ' . $Model->data[$Model->alias][$Model->displayField];
 			} else {
@@ -123,13 +123,13 @@ class SysLogLogableBehavior extends LogableBehavior {
 		if (isset($this->schema[$this->settings[$Model->alias]['foreignKey']]) && !isset($logData['Log'][$this->settings[$Model->alias]['foreignKey']])) {
 			if ($Model->id) {
 				$logData['Log'][$this->settings[$Model->alias]['foreignKey']] = $Model->id;
-			} elseif ($Model->insertId) {
+			} else if ($Model->insertId) {
 				$logData['Log'][$this->settings[$Model->alias]['foreignKey']] = $Model->insertId;
 			}
 		}
 		if (!isset($this->schema['action'])) {
 			unset($logData['Log']['action']);
-		} elseif (isset($Model->logableAction) && !empty($Model->logableAction)) {
+		} else if (isset($Model->logableAction) && !empty($Model->logableAction)) {
 			$logData['Log']['action'] = implode(',', $Model->logableAction); // . ' ' . $logData['Log']['action'];
 			unset($Model->logableAction);
 		}

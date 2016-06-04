@@ -144,7 +144,7 @@
 		foreach ($options as $group) {
 			foreach ($group as $k => $element) {
 				$temp = $group;
-				unset ($temp[$k]);
+				unset($temp[$k]);
 				if (!isset($optionsRearranged[$element])) $optionsRearranged[$element] = array();
 				$optionsRearranged[$element] = array_merge($optionsRearranged[$element], $temp);
 			}

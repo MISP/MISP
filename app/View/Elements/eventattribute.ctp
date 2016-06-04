@@ -160,7 +160,7 @@
 			<th class="actions">Actions</th>
 		</tr>
 		<?php
-			foreach($event['objects'] as $k => $object):
+			foreach ($event['objects'] as $k => $object):
 				$extra = '';
 				$extra2 = '';
 				$extra3 = '';
@@ -268,18 +268,18 @@
 													echo $this->Html->link($filenameHash[0], array('controller' => $t, 'action' => 'download', $object['id']));
 												}
 												if (isset($filenameHash[1])) echo ' | ' . $filenameHash[1];
-											} elseif (strpos($object['type'], '|') !== false) {
+											} else if (strpos($object['type'], '|') !== false) {
 												$filenameHash = explode('|', $object['value']);
 												echo h($filenameHash[0]);
 												if (isset($filenameHash[1])) echo ' | ' . $filenameHash[1];
-											} elseif ('vulnerability' == $object['type']) {
+											} else if ('vulnerability' == $object['type']) {
 												if (! is_null(Configure::read('MISP.cveurl'))) {
 													$cveUrl = Configure::read('MISP.cveurl');
 												} else {
 													$cveUrl = "http://www.google.com/search?q=";
 												}
 												echo $this->Html->link($sigDisplay, $cveUrl . $sigDisplay, array('target' => '_blank'));
-											} elseif ('link' == $object['type']) {
+											} else if ('link' == $object['type']) {
 												echo $this->Html->link($sigDisplay, $sigDisplay);
 											} else if ('text' == $object['type']) {
 												$sigDisplay = str_replace("\r", '', h($sigDisplay));
@@ -381,7 +381,7 @@
 					<td class="short <?php echo $extra;?>">
 						<span id="sightingForm_<?php echo h($object['id']);?>">
 						<?php
-							if($object['objectType'] == 0):
+							if ($object['objectType'] == 0):
 								echo $this->Form->create('Sighting', array('id' => 'Sighting_' . $object['id'], 'url' => '/sightings/add/' . $object['id'], 'style' => 'display:none;'));
 								echo $this->Form->end();
 						?>

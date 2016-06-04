@@ -28,7 +28,7 @@
 		<?php foreach ($typeDb as $type => $colour): ?>
 			<div class="membersList-histogram-legend-line">
 				<div class="membersList-histogram-legend-box" style="background-color:<?php echo $colour; ?>">&nbsp;</div>
-				<div style="display: inline-block;<?php if (in_array($type, $selectedTypes)) echo 'font-weight:bold';?>" onClick='toggleHistogramType("<?php echo $type; ?>", [<?php foreach($selectedTypes as $t) echo '"' . $t . '", ' ?>]);'><?php echo $type;?></div>
+				<div style="display: inline-block;<?php if (in_array($type, $selectedTypes)) echo 'font-weight:bold';?>" onClick='toggleHistogramType("<?php echo $type; ?>", [<?php foreach ($selectedTypes as $t) echo '"' . $t . '", ' ?>]);'><?php echo $type;?></div>
 			</div>
 		<?php
 			endforeach;

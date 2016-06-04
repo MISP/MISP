@@ -20,7 +20,7 @@
 	</div>
 	<div class="input clear">	</div>
 	<?php
-		foreach($types as $key => $type) {
+		foreach ($types as $key => $type) {
 			echo $this->Form->input($key, array(
 				'checked' => false,
 				'label' => $type,

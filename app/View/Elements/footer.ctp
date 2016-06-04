@@ -5,16 +5,16 @@
 			<div class="pull-left footerText" style="float:left;position:absolute;padding-top:12px;z-index:2;">
 				<?php
 				$gpgpath = ROOT.DS.APP_DIR.DS.WEBROOT_DIR.DS.'gpg.asc';
-				if(file_exists($gpgpath) && is_file($gpgpath)){ ?>
+				if (file_exists($gpgpath) && is_file($gpgpath)){ ?>
 					<span>Download: <?php echo $this->Html->link('PGP/GPG key', $this->webroot.'gpg.asc');?></span>
-				<?php }else{ ?>
+				<?php } else { ?>
 					<span>Could not locate the PGP/GPG public key.</span>
 				<?php }
 				if (Configure::read('SMIME.enabled')):
 					$smimepath = ROOT.DS.APP_DIR.DS.WEBROOT_DIR.DS.'public_certificate.pem';
-					if(file_exists($smimepath) && is_file($smimepath)){ ?>
+					if (file_exists($smimepath) && is_file($smimepath)){ ?>
 						<span>Download: <?php echo $this->Html->link('SMIME certificate', $this->webroot.'public_certificate.pem');?></span>
-					<?php }else{ ?>
+					<?php } else { ?>
 						<span>Could not locate SMIME certificate.</span>
 					<?php }
 				endif;

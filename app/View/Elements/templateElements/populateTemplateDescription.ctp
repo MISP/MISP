@@ -14,7 +14,7 @@
 	<div class="left" style="float:left;">Tags automatically assigned:</div>
 	<div class="right" style="float:left;">
 		<?php
-			foreach($templateData['TemplateTag'] as $tag) {
+			foreach ($templateData['TemplateTag'] as $tag) {
 				echo $this->element('ajaxTemplateTag', array('editable' => 'no', 'tag' => array('Tag' => $tag['Tag'])));
 			}
 		?>

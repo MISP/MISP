@@ -452,7 +452,7 @@ class UsersController extends AppController {
 			if (!array_key_exists($this->request->data['User']['role_id'], $syncRoles)) $this->request->data['User']['server_id'] = 0;
 			$fields = array();
 			foreach (array_keys($this->request->data['User']) as $field) {
-				if($field != 'password') array_push($fields, $field);
+				if ($field != 'password') array_push($fields, $field);
 			}
 			// TODO Audit, __extralog, fields get orig
 			$fieldsOldValues = array();
@@ -501,7 +501,7 @@ class UsersController extends AppController {
 				$c = 0;
 				foreach ($fields as $field) {
 					if (isset($fieldsOldValues[$c]) && $fieldsOldValues[$c] != $fieldsNewValues[$c]) {
-						if($field != 'confirm_password') {
+						if ($field != 'confirm_password') {
 							$fieldsResultStr = $fieldsResultStr . ', ' . $field . ' (' . $fieldsOldValues[$c] . ') => (' . $fieldsNewValues[$c] . ')';
 						}
 					}
@@ -610,7 +610,7 @@ class UsersController extends AppController {
 				$this->Session->delete('Message.auth');
 			}
 			// don't display "invalid user" before first login attempt
-			if($this->request->is('post')) {
+			if ($this->request->is('post')) {
 				$this->Session->setFlash(__('Invalid username or password, try again'));
 			}
 			// populate the DB with the first role (site admin) if it's empty
@@ -793,7 +793,7 @@ class UsersController extends AppController {
 		$paletteTool = new ColourPaletteTool();
 		$colours = $paletteTool->createColourPalette(count($sigTypes));
 		$typeDb = array();
-		foreach($sigTypes as $k => $type) {
+		foreach ($sigTypes as $k => $type) {
 			$typeDb[$type] = $colours[$k];
 		}
 		$this->set('typeDb', $typeDb);
@@ -828,11 +828,11 @@ class UsersController extends AppController {
 		$modelId = $this->Auth->user('id');
 		if ($action == 'login') {
 			$description = "User (" . $this->Auth->user('id') . "): " . $this->data['User']['email'];
-		} elseif ($action == 'logout') {
+		} else if ($action == 'logout') {
 			$description = "User (" . $this->Auth->user('id') . "): " . $this->Auth->user('email');
-		} elseif ($action == 'edit') {
+		} else if ($action == 'edit') {
 			$description = "User (" . $this->User->id . "): " . $this->data['User']['email'];
-		} elseif ($action == 'change_pw') {
+		} else if ($action == 'change_pw') {
 			$description = "User (" . $this->User->id . "): " . $this->data['User']['email'];
 			$fieldsResult = "Password changed.";
 		}
@@ -869,7 +869,7 @@ class UsersController extends AppController {
 		foreach ($array as $key => $val) {
 			if (is_array($val)) {
 				$result[$key] = arrayCopy($val);
-			} elseif (is_object($val)) {
+			} else if (is_object($val)) {
 				$result[$key] = clone $val;
 			} else {
 				$result[$key] = $val;
