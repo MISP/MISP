@@ -268,18 +268,18 @@
 													echo $this->Html->link($filenameHash[0], array('controller' => $t, 'action' => 'download', $object['id']));
 												}
 												if (isset($filenameHash[1])) echo ' | ' . $filenameHash[1];
-											} elseif (strpos($object['type'], '|') !== false) {
+											} else if (strpos($object['type'], '|') !== false) {
 												$filenameHash = explode('|', $object['value']);
 												echo h($filenameHash[0]);
 												if (isset($filenameHash[1])) echo ' | ' . $filenameHash[1];
-											} elseif ('vulnerability' == $object['type']) {
+											} else if ('vulnerability' == $object['type']) {
 												if (! is_null(Configure::read('MISP.cveurl'))) {
 													$cveUrl = Configure::read('MISP.cveurl');
 												} else {
 													$cveUrl = "http://www.google.com/search?q=";
 												}
 												echo $this->Html->link($sigDisplay, $cveUrl . $sigDisplay, array('target' => '_blank'));
-											} elseif ('link' == $object['type']) {
+											} else if ('link' == $object['type']) {
 												echo $this->Html->link($sigDisplay, $sigDisplay);
 											} else if ('text' == $object['type']) {
 												$sigDisplay = str_replace("\r", '', h($sigDisplay));

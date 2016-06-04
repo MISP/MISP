@@ -558,15 +558,15 @@ class EventsController extends AppController {
 	      if (Configure::read('SMIME.enabled') && !$this->Event->User->getCertificate($this->Auth->user('id'))) {
 	        // No GPG and No SMIME
 	        $this->Session->setFlash(__('No x509 certificate or GPG key set in your profile. To receive emails, submit your public certificate or GPG key in your profile.'));
-	      } elseif (!Configure::read('SMIME.enabled')) {
+	      } else if (!Configure::read('SMIME.enabled')) {
 	        $this->Session->setFlash(__('No GPG key set in your profile. To receive emails, submit your public key in your profile.'));
 	      }
-	    } elseif ($this->Auth->user('autoalert') && !$this->Event->User->getPGP($this->Auth->user('id')) && Configure::read('GnuPG.bodyonlyencrypted')) {
+	    } else if ($this->Auth->user('autoalert') && !$this->Event->User->getPGP($this->Auth->user('id')) && Configure::read('GnuPG.bodyonlyencrypted')) {
 	      // No GPG & autoalert
 	      if ($this->Auth->user('autoalert') && Configure::read('SMIME.enabled') && !$this->Event->User->getCertificate($this->Auth->user('id'))) {
 	        // No GPG and No SMIME & autoalert
 	        $this->Session->setFlash(__('No x509 certificate or GPG key set in your profile. To receive attributes in emails, submit your public certificate or GPG key in your profile.'));
-	      } elseif (!Configure::read('SMIME.enabled')) {
+	      } else if (!Configure::read('SMIME.enabled')) {
 	        $this->Session->setFlash(__('No GPG key set in your profile. To receive attributes in emails, submit your public key in your profile.'));
 	      }
 	    }
@@ -1394,7 +1394,7 @@ class EventsController extends AppController {
 					$resultString = (count($result) > 0) ? implode(', ', $result) . ' and ' . $lastResult : $lastResult;
 					$this->Session->setFlash(__(sprintf('Not published given no connection to %s but email sent to all participants.', $resultString), true));
 				}
-			} elseif (!is_bool($emailResult)) {
+			} else if (!is_bool($emailResult)) {
 				// Performs all the actions required to publish an event
 				$result = $this->Event->publishRouter($id, null, $this->Auth->user());
 				if (!is_array($result)) {
@@ -2232,7 +2232,7 @@ class EventsController extends AppController {
 		if ($this->request->is('post')) {
 			if ($this->response->type() === 'application/json') {
 				$data = $this->request->input('json_decode', true);
-			} elseif ($this->response->type() === 'application/xml') {
+			} else if ($this->response->type() === 'application/xml') {
 				$data = $this->request->data;
 			} else {
 				throw new BadRequestException('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct headers based on content type.');
@@ -2288,7 +2288,7 @@ class EventsController extends AppController {
 									foreach ($found_orgs as $o) {
 										$subcondition['AND'][] = array('Event.orgc_id !=' => $o['Org']['id']);
 									}
-								} elseif ($parameters[$k] === 'eventid') {
+								} else if ($parameters[$k] === 'eventid') {
 									$subcondition['AND'][] = array('Attribute.event_id !=' => substr($v, 1));
 								} else {
 									$subcondition['AND'][] = array('Attribute.' . $parameters[$k] . ' NOT LIKE' => '%'.substr($v, 1).'%');
@@ -2310,7 +2310,7 @@ class EventsController extends AppController {
 									foreach ($found_orgs as $o) {
 										$subcondition['OR'][] = array('Event.orgc_id' => $o['Org']['id']);
 									}
-								} elseif ($parameters[$k] === 'eventid') {
+								} else if ($parameters[$k] === 'eventid') {
 									$subcondition['OR'][] = array('Attribute.event_id' => $v);
 								} else {
 									if (!empty($v)) $subcondition['OR'][] = array('Attribute.' . $parameters[$k] . ' LIKE' => '%'.$v.'%');
@@ -3112,7 +3112,7 @@ class EventsController extends AppController {
 		if (!$this->request->is('post')) throw new MethodNotAllowedException('Please POST the samples as described on the automation page.');
 		if ($this->response->type() === 'application/json') {
 			$data = $this->request->input('json_decode', true);
-		} elseif ($this->response->type() === 'application/xml') {
+		} else if ($this->response->type() === 'application/xml') {
 			$data = $this->request->data;
 		} else {
 			throw new BadRequestException('Please POST the samples as described on the automation page.');

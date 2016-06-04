@@ -200,7 +200,7 @@
 					</li>
 					<?php if (!$externalAuthUser || !Configure::read('Plugin.CustomAuth_disable_logout')): ?>
 						<li><a href="<?php echo $baseurl;?>/users/logout">Log out</a></li>
-					<?php elseif (Configure::read('Plugin.CustomAuth_custom_logout')): ?>
+					<?php else if (Configure::read('Plugin.CustomAuth_custom_logout')): ?>
 						<li><a href="<?php echo h(Configure::read('Plugin.CustomAuth_custom_logout'));?>">Log out</a></li>
 					<?php endif; ?>
 				</ul>

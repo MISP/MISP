@@ -135,7 +135,7 @@
 					if (((Configure::read('MISP.disableUserSelfManagement') && $isAdmin) || !Configure::read('MISP.disableUserSelfManagement')) && ($menuItem === 'edit' || $menuItem === 'view')): ?>
 					<li id='liedit'><?php echo $this->Html->link(__('Edit User', true), array('action' => 'edit', $user['User']['id'])); ?></li>
 					<li class="divider"></li>
-					<?php elseif (Configure::read('Plugin.CustomAuth_custom_password_reset')): ?>
+					<?php else if (Configure::read('Plugin.CustomAuth_custom_password_reset')): ?>
 					<li id='lipwreset'><a href="<?php echo h(Configure::read('Plugin.CustomAuth_custom_password_reset'));?>">Reset Password</a></li>
 					<?php endif; ?>
 					<li id='liview'><a href="<?php echo $baseurl;?>/users/view/me">My Profile</a></li>
@@ -313,9 +313,9 @@
 					<li id='liadd'><a href="<?php echo $baseurl;?>/feeds/add">Add Feed</a></li>
 					<?php if ($menuItem === 'edit'): ?>
 						<li class="active"><a href="#">Edit Feed</a></li>
-					<?php elseif ($menuItem === 'previewIndex'): ?>
+					<?php else if ($menuItem === 'previewIndex'): ?>
 						<li id='lipreviewIndex'><a href="<?php echo $baseurl;?>/feeds/previewIndex/<?php echo h($feed['Feed']['id']); ?>">PreviewIndex</a></li>
-					<?php elseif ($menuItem === 'previewEvent'): ?>
+					<?php else if ($menuItem === 'previewEvent'): ?>
 						<li id='lipreviewEvent'><a href="<?php echo $baseurl;?>/feeds/previewEvent/<?php echo h($feed['Feed']['id']); ?>/<?php echo h($id);?>">PreviewEvent</a></li>
 					<?php endif; 
 				break;

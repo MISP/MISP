@@ -828,11 +828,11 @@ class UsersController extends AppController {
 		$modelId = $this->Auth->user('id');
 		if ($action == 'login') {
 			$description = "User (" . $this->Auth->user('id') . "): " . $this->data['User']['email'];
-		} elseif ($action == 'logout') {
+		} else if ($action == 'logout') {
 			$description = "User (" . $this->Auth->user('id') . "): " . $this->Auth->user('email');
-		} elseif ($action == 'edit') {
+		} else if ($action == 'edit') {
 			$description = "User (" . $this->User->id . "): " . $this->data['User']['email'];
-		} elseif ($action == 'change_pw') {
+		} else if ($action == 'change_pw') {
 			$description = "User (" . $this->User->id . "): " . $this->data['User']['email'];
 			$fieldsResult = "Password changed.";
 		}
@@ -869,7 +869,7 @@ class UsersController extends AppController {
 		foreach ($array as $key => $val) {
 			if (is_array($val)) {
 				$result[$key] = arrayCopy($val);
-			} elseif (is_object($val)) {
+			} else if (is_object($val)) {
 				$result[$key] = clone $val;
 			} else {
 				$result[$key] = $val;

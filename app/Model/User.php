@@ -553,7 +553,7 @@ class User extends AppModel {
 						// openssl_pkcs7_encrypt good -- Model/User expired;
 						$results[$user['User']['id']][0] = true;
 					}
-				} else{
+				} else {
 					// openssl_pkcs7_encrypt NOT good -- Model/User
 					$results[$user['User']['id']][0] = true;
 				}
@@ -823,7 +823,7 @@ class User extends AppModel {
 				$Email->replyTo($replyToUser['User']['email']);
 				if (!empty($replyToUser['User']['gpgkey'])) {
 					$Email->attachments(array('gpgkey.asc' => array('data' => $replyToUser['User']['gpgkey'])));
-				} elseif (!empty($replyToUser['User']['certif_public'])) {
+				} else if (!empty($replyToUser['User']['certif_public'])) {
 					$Email->attachments(array($replyToUser['User']['email'] . '.pem' => array('data' => $replyToUser['User']['certif_public'])));
 				}
 				$replyToLog = 'from ' . $replyToUser['User']['email'];

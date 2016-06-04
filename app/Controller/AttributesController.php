@@ -211,7 +211,7 @@ class AttributesController extends AppController {
 						if ($this->response->type() === 'application/json') $this->render('/Attributes/json/view');
 						else $this->render('view');
 						return false;
-					} elseif ($this->request->is('ajax')) {
+					} else if ($this->request->is('ajax')) {
 						$this->autoRender = false;
 						return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Attribute added.')),'status'=>200));
 					} else {
@@ -227,7 +227,7 @@ class AttributesController extends AppController {
 							$message .= '[' . $k . ']: ' . $v[0] . PHP_EOL;
 						}
 						throw new NotFoundException('Could not save the attribute. ' . $message);
-					}  elseif ($this->request->is('ajax')) {
+					}  else if ($this->request->is('ajax')) {
 						$this->autoRender = false;
 						return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $this->Attribute->validationErrors)),'status'=>200));
 					} else {
@@ -296,7 +296,7 @@ class AttributesController extends AppController {
 			$filename = $attribute['value'];
 			$fileExt = pathinfo($filename, PATHINFO_EXTENSION);
 			$filename = substr($filename, 0, strlen($filename) - strlen($fileExt) - 1);
-		} elseif ('malware-sample' == $attribute['type']) {
+		} else if ('malware-sample' == $attribute['type']) {
 			$filenameHash = explode('|', $attribute['value']);
 			$filename = substr($filenameHash[0], strrpos($filenameHash[0], '\\'));
 			$fileExt = "zip";
@@ -1519,7 +1519,7 @@ class AttributesController extends AppController {
 		if ($this->request->is('post')) {
 			if ($this->response->type() === 'application/json') {
 				$data = $this->request->input('json_decode', true);
-			} elseif ($this->response->type() === 'application/xml' && !empty($this->request->data)) {
+			} else if ($this->response->type() === 'application/xml' && !empty($this->request->data)) {
 				$data = $this->request->data;
 			} else {
 				throw new BadRequestException('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct accept and content type headers.');
@@ -1657,7 +1657,7 @@ class AttributesController extends AppController {
 		if ($this->request->is('post')) {
 			if ($this->response->type() === 'application/json') {
 				$data = $this->request->input('json_decode', true);
-			} elseif ($this->response->type() === 'application/xml' && !empty($this->request->data)) {
+			} else if ($this->response->type() === 'application/xml' && !empty($this->request->data)) {
 				$data = $this->request->data;
 			} else {
 				throw new BadRequestException('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct accept and content type headers.');
@@ -2127,7 +2127,7 @@ class AttributesController extends AppController {
 		$error = false;
 		if ($this->response->type() === 'application/json') {
 			$data = $this->request->input('json_decode', true);
-		} elseif ($this->response->type() === 'application/xml') {
+		} else if ($this->response->type() === 'application/xml') {
 			$data = $this->request->data;
 		} else {
 			throw new BadRequestException('This action is for the API only. Please refer to the automation page for information on how to use it.');
