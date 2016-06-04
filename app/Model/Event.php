@@ -2115,7 +2115,8 @@ class Event extends AppModel {
 				$this->publish($existingEvent['Event']['id']);
 			}
 			return true;
-		} return $this->validationErrors;
+		}
+		return $this->validationErrors;
 	}
 
 	// format has to be:
@@ -2564,11 +2565,11 @@ class Event extends AppModel {
 				}
 			}
 		}
-                if (Configure::read('MISP.tagging')) {
+		if (Configure::read('MISP.tagging')) {
 			foreach ($events as &$event) {
 				$event['Tag'] = $this->EventTag->Tag->findEventTags($event['Event']['id']);
-                        }
-                }
+			}
+		}
 		// generate a randomised filename for the temporary file that will be passed to the python script
 		$randomFileName = $this->generateRandomFileName();
 		$tempFile = new File(APP . "files" . DS . "scripts" . DS . "tmp" . DS . $randomFileName, true, 0644);
