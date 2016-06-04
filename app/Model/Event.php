@@ -747,34 +747,6 @@ class Event extends AppModel {
 		return 'Success';
 	}
 
-	// checks the filters in the json fields
-	// currently only org and tag are checked
-	// The format of the valid JSON string now is:
-	// "{"tag":[], "org":[]}"
-	// where both tag and org are the numeric IDs passed as a string
-	// the usual negation syntax is allowed
-	// for example:
-	// "{"tag":["1", "!2"], "org":["1"]}"
-	// this would only sync events having been tagged as 1 but not 2 and created by organisation 1
-	private function __checkFilterSbeforePush($event, $server) {
-		$rules = json_decode($server['Server']['push_rules'], true);
-		$eventTags = array();
-		if (isset($event['EventTag'])) foreach ($event['EventTag'] as $tag) $eventTags[] = $tag['tag_id'];
-		if (isset($rules['orgs']['OR'])) if (!in_array($event['Orgc']['id'], $rules['orgs']['OR'])) return false;
-		if (isset($rules['orgs']['NOT'])) if (in_array($event['Orgc']['id'], $rules['orgs']['NOT'])) return false;
-		if (isset($rules['tags']['OR'])) {
-			if (!isset($event['EventTag'])) return false;
-			$found = false;
-			foreach ($rules['tags']['OR'] as $tag) if (in_array($tag, $eventTags)) $found = true;
-			if (!$found) return false;
-		}
-		if (isset ($rules['tags']['NOT'])) {
-			if (isset($event['EventTag'])) foreach ($rules['tags']['NOT'] as $tag) if (in_array($tag, $eventTags)) return false;
-		}
-		return true;
-	}
-
-
 /**
  * Uploads the event and the associated Attributes to another Server
  * TODO move this to a component
@@ -1459,55 +1431,6 @@ class Event extends AppModel {
 		return $attributes;
 	}
 
-	private function attachEventInfoToAttributes($attributes, $user) {
-		$TLs = $this->ThreatLevel->find('list', array(
-			'recursive' => -1,
-		));
-		$event_ids = array();
-		foreach ($attributes as &$attribute) {
-			if (!in_array($attribute['Attribute']['event_id'], $event_ids)) $event_ids[] = $attribute['Attribute']['event_id'];
-		}
-		$context_fields = array('id' => null);
-		$context_fields = array_merge($context_fields, $this->csv_event_context_fields_to_fetch);
-		if (!Configure::read('MISP.showorg') && !$user['Role']['perm_site_admin']) {
-			unset($context_fields['orgc_id']);
-			unset($context_fields['org_id']);
-		} else if (!Configure::read('MISP.showorgalternate') && !$user['Role']['perm_site_admin']) {
-			$context_fields['orgc_id'] = 'event_org_id';
-			unset($context_fields['org_id']);
-		}
-
-		$events = $this->find('all', array(
-			'recursive' => -1,
-			'fields' => array_keys($context_fields),
-			'conditions' => array('id' => $event_ids),
-		));
-		$event_id_data = array();
-		unset($context_fields['id']);
-		foreach ($events as $event) {
-			foreach ($context_fields as $field => $header_name) {
-				$event_id_data[$event['Event']['id']][$header_name] = $event['Event'][$field];
-			}
-		}
-		foreach ($attributes as &$attribute) {
-			foreach ($context_fields as $field => $header_name) {
-				if ($header_name == 'event_threat_level_id') {
-					$attribute['Attribute'][$header_name] = $TLs[$event_id_data[$attribute['Attribute']['event_id']][$header_name]];
-				} else if ($header_name == 'event_distribution') {
-					$attribute['Attribute'][$header_name] = $this->distributionLevels[$event_id_data[$attribute['Attribute']['event_id']][$header_name]];
-				} else if ($header_name == 'event_analysis') {
-					$attribute['Attribute'][$header_name] = $this->analysisLevels[$event_id_data[$attribute['Attribute']['event_id']][$header_name]];
-				} else if ($header_name == 'event_info') {
-					$attribute['Attribute'][$header_name] = str_replace(array('"'), '""', $event_id_data[$attribute['Attribute']['event_id']][$header_name]);
-					$attribute['Attribute'][$header_name] = '"' . $attribute['Attribute'][$header_name] . '"';
-				} else {
-					$attribute['Attribute'][$header_name] = $event_id_data[$attribute['Attribute']['event_id']][$header_name];
-				}
-			}
-		}
-		return $attributes;
-	}
-
 	public function sendAlertEmailRouter($id, $user) {
 		if (Configure::read('MISP.block_old_event_alert') && Configure::read('MISP.block_old_event_alert_age') && is_numeric(Configure::read('MISP.block_old_event_alert_age'))) {
 			$oldest = time() - (Configure::read('MISP.block_old_event_alert_age') * 86400);
@@ -2137,38 +2060,6 @@ class Event extends AppModel {
 			}
 		}
 		return $event['Event']['id'];
-	}
-
-	private function __savePreparedAttribute(&$attribute, &$event) {
-		unset($attribute['id']);
-		$attribute['event_id'] = $event['Event']['id'];
-		$this->Attribute->create();
-		$this->Attribute->save($attribute);
-		foreach ($attribute['ShadowAttribute'] as $k => $sa) {
-			$this->__savePreparedShadowAttribute($sa, $event, $this->Attribute->id);
-		}
-	}
-
-	private function __savePreparedShadowAttribute($shadow_attribute, &$event, $old_id = 0) {
-		unset($shadow_attribute['id']);
-		$shadow_attribute['event_id'] = $event['Event']['id'];
-		$shadow_attribute['old_id'] = $old_id;
-		$this->ShadowAttribute->create();
-		$this->ShadowAttribute->save($shadow_attribute);
-	}
-
-	private function __savePreparedEventTag($event_tag, &$event) {
-		unset($event_tag['id']);
-		$event_tag['event_id'] = $event['Event']['id'];
-		$this->EventTag->create();
-		$this->EventTag->save($event_tag);
-	}
-
-	private function __searchUuidInAttributeArray($uuid, &$attr_array) {
-		foreach ($attr_array['Attribute'] as &$attr) {
-			if ($attr['uuid'] == $uuid)	return array('Attribute' => $attr);
-		}
-		return false;
 	}
 
 	// pass an event or an attribute together with the server id.
