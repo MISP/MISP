@@ -1072,7 +1072,7 @@ class Event extends AppModel {
 		$response = $HttpSocket->post($uri, json_encode($uuidList), $request);
 		if ($response->isOk()) {
 			return(json_decode($response->body, true));
-		} elseif ($response->code == '405') {
+		} else if ($response->code == '405') {
 			// HACKY: without correct permission, the returning null causes Fallback for < 2.4.7 instances
 			// which queries every event, for proposal, which it doesn't have permission for
 			return array();
@@ -1650,10 +1650,10 @@ class Event extends AppModel {
 				if ('url' == $attribute['type']) {
 					$line = str_ireplace("http","hxxp", $line);
 				}
-				elseif ('email-src' == $attribute['type'] or 'email-dst' == $attribute['type']) {
+				else if ('email-src' == $attribute['type'] or 'email-dst' == $attribute['type']) {
 					$line = str_replace("@","[at]", $line);
 				}
-				elseif ('hostname' == $attribute['type'] or 'domain' == $attribute['type'] or 'ip-src' == $attribute['type'] or 'ip-dst' == $attribute['type']) {
+				else if ('hostname' == $attribute['type'] or 'domain' == $attribute['type'] or 'ip-src' == $attribute['type'] or 'ip-dst' == $attribute['type']) {
 					$line = str_replace(".","[.]", $line);
 				}
 

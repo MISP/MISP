@@ -1134,7 +1134,7 @@ class Server extends AppModel {
 			if (!empty($eventIds)) {
 				$eventIds = array_reverse($eventIds);
 			}
-		} elseif ("update" === $technique) {
+		} else if ("update" === $technique) {
 			$eventIds = $this->getEventIdsFromServer($server, false, null, true, true);
 			if ($eventIds === 403) {
 				return array (1, null);
@@ -1146,10 +1146,10 @@ class Server extends AppModel {
 					'recursive' => -1,
 			));
 			$eventIds = array_intersect($eventIds, $local_event_ids);
-		} elseif ("incremental" === $technique) {
+		} else if ("incremental" === $technique) {
 			// TODO incremental pull
 			return array (3, null);
-		} elseif (is_numeric($technique)) {
+		} else if (is_numeric($technique)) {
 			$eventIds[] = intval($technique);
 			// if we are downloading a single event, don't fetch all proposals
 			$conditions = array('Event.id' => $technique);
@@ -1486,10 +1486,10 @@ class Server extends AppModel {
 		if ("full" == $technique) {
 			$eventid_conditions_key = 'Event.id >';
 			$eventid_conditions_value = 0;
-		} elseif ("incremental" == $technique) {
+		} else if ("incremental" == $technique) {
 			$eventid_conditions_key = 'Event.id >';
 			$eventid_conditions_value = $this->data['Server']['lastpushedid'];
-		} elseif (true == $technique) {
+		} else if (true == $technique) {
 			$eventid_conditions_key = 'Event.id';
 			$eventid_conditions_value = intval($technique);
 		} else {
@@ -2010,7 +2010,7 @@ class Server extends AppModel {
 				$pubSubTool->killService();
 				return true;
 			}
-		} elseif (!Configure::read('Plugin.ZeroMQ_enable')) {
+		} else if (!Configure::read('Plugin.ZeroMQ_enable')) {
 			// If we are changing any other ZeroMQ settings but the feature is disabled, don't reload the service
 			return true;
 		}
@@ -2684,7 +2684,7 @@ class Server extends AppModel {
 					// in case we have something in the db with a missing org, let's hop over that
 					if ($t[$rule['table']][$rule['old']] !== '') {
 						if ($k == 'local' && !in_array($t[$rule['table']][$rule['old']], $orgs[$k])) $orgs[$k][] = $t[$rule['table']][$rule['old']];
-						elseif ($k == 'external' && !in_array($t[$rule['table']][$rule['old']], $orgs['local']) && !in_array($t[$rule['table']][$rule['old']], $orgs[$k])) $orgs[$k][] = $t[$rule['table']][$rule['old']];
+						else if ($k == 'external' && !in_array($t[$rule['table']][$rule['old']], $orgs['local']) && !in_array($t[$rule['table']][$rule['old']], $orgs[$k])) $orgs[$k][] = $t[$rule['table']][$rule['old']];
 					} else {
 						$this->Log->create();
 						$this->Log->save(array(

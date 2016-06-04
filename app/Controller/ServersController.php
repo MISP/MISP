@@ -1020,7 +1020,7 @@ class ServersController extends AppController {
 							if ($version[$k] > $local_version[$v]) {
 								$mismatch = $v;
 								$newer = 'remote';
-							} elseif ($version[$k] < $local_version[$v]) {
+							} else if ($version[$k] < $local_version[$v]) {
 								$mismatch = $v;
 								$newer = 'local';
 							}

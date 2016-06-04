@@ -488,7 +488,7 @@ class ShadowAttributesController extends AppController {
 			$filename = $shadowAttribute['value'];
 			$fileExt = pathinfo($filename, PATHINFO_EXTENSION);
 			$filename = substr($filename, 0, strlen($filename) - strlen($fileExt) - 1);
-		} elseif ('malware-sample' == $shadowAttribute['type']) {
+		} else if ('malware-sample' == $shadowAttribute['type']) {
 			$filenameHash = explode('|', $shadowAttribute['value']);
 			$filename = substr($filenameHash[0], strrpos($filenameHash[0], '\\'));
 			$fileExt = "zip";
