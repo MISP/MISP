@@ -57,7 +57,7 @@ class FeedsController extends AppController {
 			$this->loadModel('Event');
 			$sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name',  1);
 			$distributionLevels = $this->Event->distributionLevels;
-			if (empty($sgs)) unset ($distributionLevels[4]);
+			if (empty($sgs)) unset($distributionLevels[4]);
 			$this->set('distributionLevels', $distributionLevels);
 			$this->set('sharingGroups', $sgs);
 			$tags = $this->Event->EventTag->Tag->find('list', array('fields' => array('Tag.name'), 'order' => array('lower(Tag.name) asc')));
@@ -89,7 +89,7 @@ class FeedsController extends AppController {
 			$this->loadModel('Event');
 			$sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name',  1);
 			$distributionLevels = $this->Event->distributionLevels;
-			if (empty($sgs)) unset ($distributionLevels[4]);
+			if (empty($sgs)) unset($distributionLevels[4]);
 			$this->set('distributionLevels', $distributionLevels);
 			$this->set('sharingGroups', $sgs);
 			$tags = $this->Event->EventTag->Tag->find('list', array('fields' => array('Tag.name'), 'order' => array('lower(Tag.name) asc')));

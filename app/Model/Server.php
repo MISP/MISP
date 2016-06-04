@@ -1611,7 +1611,7 @@ class Server extends AppModel {
 
 		foreach ($eventIds as $k => $event) {
 			if (empty($this->eventFilterPushableServers($event, array($server)))) {
-				unset ($eventIds[$k]);
+				unset($eventIds[$k]);
 				continue;
 			}
 			unset($eventIds[$k]['Event']['id']);

@@ -139,7 +139,7 @@ class XMLConverterTool {
 				} else {
 					$event['Event']['RelatedEvent'][$key]['Event'][0]['Org'][0] = $event['Event']['RelatedEvent'][$key]['Org'];
 					$event['Event']['RelatedEvent'][$key]['Event'][0]['Orgc'][0] = $event['Event']['RelatedEvent'][$key]['Orgc'];
-					unset ($event['Event']['RelatedEvent'][$key]['Org'], $event['Event']['RelatedEvent'][$key]['Orgc']);
+					unset($event['Event']['RelatedEvent'][$key]['Org'], $event['Event']['RelatedEvent'][$key]['Orgc']);
 				}
 				unset($temp);
 			}

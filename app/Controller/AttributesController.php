@@ -263,7 +263,7 @@ class AttributesController extends AppController {
 		$this->set('sharingGroups', $sgs);
 
 		$distributionLevels = $this->Attribute->distributionLevels;
-		if (empty($sgs)) unset ($distributionLevels[4]);
+		if (empty($sgs)) unset($distributionLevels[4]);
 		$this->set('distributionLevels', $distributionLevels);
 
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
@@ -750,7 +750,7 @@ class AttributesController extends AppController {
 		$this->set('sharingGroups', $sgs);
 
 		$distributionLevels = $this->Attribute->distributionLevels;
-		if (empty($sgs)) unset ($distributionLevels[4]);
+		if (empty($sgs)) unset($distributionLevels[4]);
 		$this->set('distributionLevels', $distributionLevels);
 
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);

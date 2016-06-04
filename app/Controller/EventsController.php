@@ -542,7 +542,7 @@ class EventsController extends AppController {
 			$events = $this->Event->find('all', $rules);
 			foreach ($events as $k => &$event) {
 				foreach ($event['EventTag'] as $k2 => &$et) {
-					if (empty($et['Tag'])) unset ($events[$k]['EventTag'][$k2]);
+					if (empty($et['Tag'])) unset($events[$k]['EventTag'][$k2]);
 				}
 				$event['EventTag'] = array_values($event['EventTag']);
 			}
@@ -927,7 +927,7 @@ class EventsController extends AppController {
 	private function __doRemove(&$pivot, $id) {
 		foreach ($pivot['children'] as $k => $v) {
 			if ($v['id'] == $id) {
-				unset ($pivot['children'][$k]);
+				unset($pivot['children'][$k]);
 				return $pivot;
 			} else {
 				$pivot['children'][$k] = $this->__doRemove($pivot['children'][$k], $id);
@@ -1057,7 +1057,7 @@ class EventsController extends AppController {
 		// tooltip for distribution
 		$this->set('distributionDescriptions', $this->Event->distributionDescriptions);
 		$distributionLevels = $this->Event->distributionLevels;
-		if (empty($sgs)) unset ($distributionLevels[4]);
+		if (empty($sgs)) unset($distributionLevels[4]);
 		$this->set('distributionLevels', $distributionLevels);
 
 		// combobox for risks
@@ -1234,7 +1234,7 @@ class EventsController extends AppController {
 		$this->set('sharingGroups', $sgs);
 
 		$distributionLevels = $this->Event->distributionLevels;
-		if (empty($sgs)) unset ($distributionLevels[4]);
+		if (empty($sgs)) unset($distributionLevels[4]);
 		$this->set('distributionLevels', $distributionLevels);
 
 		// combobox for types
@@ -1961,7 +1961,7 @@ class EventsController extends AppController {
 			if (isset($dataArray['response'][0])) {
 				foreach ($dataArray['response'] as $k => &$temp) {
 					$dataArray['Event'][] = $temp['Event'];
-					unset ($dataArray['response'][$k]);
+					unset($dataArray['response'][$k]);
 				}
 			}
 		}
@@ -2716,7 +2716,7 @@ class EventsController extends AppController {
 			// remove all duplicates
 			foreach ($resultArray as $k => $v) {
 				for ($i = 0; $i < $k; $i++) {
-					if (isset($resultArray[$i]) && $v == $resultArray[$i]) unset ($resultArray[$k]);
+					if (isset($resultArray[$i]) && $v == $resultArray[$i]) unset($resultArray[$k]);
 				}
 			}
 			foreach ($resultArray as &$result) {
@@ -3133,7 +3133,7 @@ class EventsController extends AppController {
 		if (isset($data['files'])) {
 			foreach ($data['files'] as $k => $file) {
 				if (!isset($file['filename']) || !isset($file['data'])) {
-					unset ($data['files'][$k]);
+					unset($data['files'][$k]);
 				} else {
 					$data['files'][$k]['md5'] = md5(base64_decode($file['data']));
 				}
