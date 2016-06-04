@@ -1365,6 +1365,7 @@ class Event extends AppModel {
 
 	public function csv($user, $eventid=false, $ignore=false, $attributeIDList = array(), $tags = false, $category = false, $type = false, $includeContext = false, $from = false, $to = false, $last = false) {
 		$this->recursive = -1;
+		$conditions = array();
 		// If we are not in the search result csv download function then we need to check what can be downloaded. CSV downloads are already filtered by the search function.
 		if ($eventid !== 'search') {
 			if ($from) $conditions['AND'][] = array('Event.date >=' => $from);
@@ -2427,6 +2428,7 @@ class Event extends AppModel {
 		$events = $this->find('all', array('recursive' => -1));
 		// for all events..
 		$result = array();
+		$k = 0;
 		$i = 0;
 		foreach ($events as $k => $event) {
 			$this->set($event);
@@ -2446,6 +2448,7 @@ class Event extends AppModel {
 	public function generateThreatLevelFromRisk() {
 		$risk = array('Undefined' => 4, 'Low' => 3, 'Medium' => 2, 'High' => 1);
 		$events = $this->find('all', array('recursive' => -1));
+		$k = 0;
 		foreach ($events as $k => $event) {
 			if ($event['Event']['threat_level_id'] == 0 && isset($event['Event']['risk'])) {
 				$event['Event']['threat_level_id'] = $risk[$event['Event']['risk']];
