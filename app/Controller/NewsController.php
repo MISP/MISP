@@ -34,7 +34,7 @@ class NewsController extends AppController {
 		$this->User->saveField('newsread', time());
 		$this->set('newsItems', $newsItems);
 	}
-	
+
 	public function add() {
 		if ($this->request->is('post')) {
 			$this->News->create();
@@ -47,7 +47,7 @@ class NewsController extends AppController {
 			} else $this->Session->setFlash('The news item could not be added.');
 		}
 	}
-	
+
 	public function edit($id) {
 		$this->News->id = $id;
 		if (!$this->News->exists()) throw new NotFoundException('Invalid news item.');
@@ -62,7 +62,7 @@ class NewsController extends AppController {
 			$this->set('newsItem', $this->request->data);
 		}
 	}
-	
+
 	public function delete($id) {
 		if (!$this->request->is('post')) throw new MethodNotAllowedException();
 		$this->News->id = $id;

@@ -153,7 +153,7 @@ if ($isSearch == 1){
 	$class = 'listAttributes';
 }
 ?>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'event-collection', 'menuItem' => $class));
 ?>
 <script type="text/javascript">

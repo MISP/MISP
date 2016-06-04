@@ -1,6 +1,6 @@
 <div style="border:1px solid #dddddd; margin-top:1px; width:100%; padding:10px">
 	<p>Below you will find a list of the uploaded files based on type.</p>
-	<?php 
+	<?php
 		foreach ($files as $k => $file):
 	?>
 		<h3><?php echo h($file['name']); ?></h3>
@@ -8,19 +8,19 @@
 			<b>Description</b>: <?php echo $file['description']; ?><br />
 			<b>Expected Format</b>: <?php echo h($file['valid_format']);?><br />
 			<b>Path</b>:  <?php echo h($file['path']);?><br />
-			<?php 
+			<?php
 				if (!empty($file['expected'])):
 			?>
 				<b>Files set for each relevant setting:</b>:<br />
 				<ul>
 					<?php foreach ($file['expected'] as $expectedKey => $expectedValue):
-						$colour = 'red'; 
+						$colour = 'red';
 						foreach ($file['files'] as $f) if ($f['filename'] == $expectedValue) $colour = 'green';
 					?>
 						<li><b><?php echo h($expectedKey); ?></b>: <span style="color:<?php echo $colour; ?>"><?php echo h($expectedValue); ?></span></li>
 					<?php endforeach; ?>
 				</ul>
-			<?php 
+			<?php
 				endif;
 			?>
 		</div>
@@ -32,7 +32,7 @@
 				<th>Permissions</th>
 				<th>Actions</th>
 			</tr>
-				<?php 
+				<?php
 					foreach ($file['files'] as $f):
 						$permission = "";
 						if ($f['read']) $permission .= "r";
@@ -52,10 +52,10 @@
 					<tr>
 						<td><?php echo h($f['filename']);?></td>
 						<td width="150px;">
-							<?php 
+							<?php
 								if ($k != 'orgs'):
 									foreach ($file['expected'] as $ek => $ev):
-										if ($f['filename'] == $ev) echo h($ek) . "<br />"; 
+										if ($f['filename'] == $ev) echo h($ek) . "<br />";
 									endforeach;
 								else:
 									echo 'N/A';
@@ -69,16 +69,16 @@
 							<?php echo $permission;?>
 						</td>
 						<td class="short">
-							<?php 
+							<?php
 								echo $this->Form->postLink('', array('controller' => 'servers', 'action' => 'deleteFile' , $k , $f['filename']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete %s?', $f['filename']));
 							?>
 						</td>
 					</tr>
-				<?php 
+				<?php
 					endforeach;
 				?>
 			</table>
-	<?php 
+	<?php
 			echo $this->Form->create('Server', array('type' => 'file', 'url' => '/servers/uploadFile/' . $k));?>
 				<fieldset>
 					<?php
@@ -93,5 +93,5 @@
 			echo $this->Form->end();
 		endforeach;
 	?>
-	
+
 </div>

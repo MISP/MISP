@@ -4,7 +4,7 @@ App::uses('AppModel', 'Model');
 class FavouriteTag extends AppModel {
 
 	public $actsAs = array('Containable');
-	
+
 	public $validate = array(
 		'user_id' => array(
 			'valueNotEmpty' => array(
@@ -17,6 +17,6 @@ class FavouriteTag extends AppModel {
 			),
 		),
 	);
-	
+
 	public $belongsTo = array('Tag', 'User');
 }

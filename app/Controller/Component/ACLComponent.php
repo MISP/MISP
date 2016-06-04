@@ -351,7 +351,7 @@ class ACLComponent extends Component {
 					'index' => array('*'),
 			)
 	);
-	
+
 	// The check works like this:
 	// If the user is a site admin, return true
 	// If the requested action has an OR-d list, iterate through the list. If any of the permissions are set for the user, return true
@@ -361,7 +361,7 @@ class ACLComponent extends Component {
 	public function checkAccess($user, $controller, $action) {
 		if ($user['Role']['perm_site_admin']) return true;
 		if (!isset($this->__aclList[$controller])) $this->__error(404, 'Invalid controller.');
-		if ($user['Role']['perm_site_admin']) return true; 
+		if ($user['Role']['perm_site_admin']) return true;
 		if (isset($this->__aclList[$controller][$action]) && !empty($this->__aclList[$controller][$action])) {
 			if (in_array('*', $this->__aclList[$controller][$action])) return true;
 			if (isset($this->__aclList[$controller][$action]['OR'])) {
@@ -374,19 +374,19 @@ class ACLComponent extends Component {
 		}
 		$this->__error(403, 'You do not have permission to use this functionality.');
 	}
-	
+
 	private function __error($code, $message) {
 		switch ($code) {
-			case 404: 
+			case 404:
 				throw new NotFoundException($message);
 				break;
 			case 403:
 				throw new MethodNotAllowedException($message);
 			default:
-				throw new InternalErrorException('Unknown error: ' . $message); 
+				throw new InternalErrorException('Unknown error: ' . $message);
 		}
 	}
-	
+
 	private function __findAllFunctions() {
 		$functionFinder = '/function[\s\n]+(\S+)[\s\n]*\(/';
 		$dir = new Folder(APP . 'Controller');
@@ -404,26 +404,26 @@ class ACLComponent extends Component {
 		}
 		return $results;
 	}
-	
+
 	public function printAllFunctionNames($content = false) {
 		$results = $this->__findAllFunctions();
 		ksort($results);
 		return $results;
-	} 
+	}
 
 	public function findMissingFunctionNames($content = false) {
 		$results = $this->__findAllFunctions();
 		$missing = array();
 		foreach ($results as $controller => &$functions) {
 			foreach ($functions as &$function) {
-				if (!isset($this->__aclList[$controller]) 
-				|| !in_array($function, array_keys($this->__aclList[$controller]))) 
+				if (!isset($this->__aclList[$controller])
+				|| !in_array($function, array_keys($this->__aclList[$controller])))
 					$missing[$controller][] = $function;
 			}
 		}
 		return $missing;
 	}
-	
+
 	public function printRoleAccess($content = false) {
 		$results = array();
 		$this->Role = ClassRegistry::init('Role');
@@ -431,7 +431,7 @@ class ACLComponent extends Component {
 		if (is_numeric($content)) $conditions = array('Role.id' => $content);
 		$roles = $this->Role->find('all', array(
 			'recursive' => -1,
-			'conditions' => $conditions	
+			'conditions' => $conditions
 		));
 		if (empty($roles)) throw new NotFoundException('Role not found.');
 		foreach ($roles as &$role) {
@@ -440,7 +440,7 @@ class ACLComponent extends Component {
 		}
 		return $results;
 	}
-	
+
 	private function __checkRoleAccess($role) {
 		$result = array();
 		foreach ($this->__aclList as $controller => &$actions) {
@@ -451,7 +451,7 @@ class ACLComponent extends Component {
 					else if (in_array('*', $permissions)) $result[] = DS . $controllerName . DS . $action . DS . '*';
 					else if (isset($permissions['OR'])) {
 						$access = false;
-						foreach ($permissions['OR'] as $permission) if ($role[$permission]) $access = true; 
+						foreach ($permissions['OR'] as $permission) if ($role[$permission]) $access = true;
 						if ($access) $result[] = DS . $controllerName . DS . $action . DS . '*';
 					} else if (isset($permissions['AND'])) {
 						$access = true;

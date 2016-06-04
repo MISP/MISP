@@ -6,7 +6,7 @@ class ApacheSecureAuthComponent extends AuthComponent {
 
     /**
      * No brute force safeguard needed because Apache does the job
-     * 
+     *
      * If $user is provided that data will be stored as the logged in user.  If $user is empty or not
      * specified, the request will be used to identify a user. If the identification was successful,
      * the user record is written to the session key specified in AuthComponent::$sessionKey. Logging in

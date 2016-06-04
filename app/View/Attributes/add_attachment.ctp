@@ -11,7 +11,7 @@
 			$initialDistribution = 5;
 			if (Configure::read('MISP.default_attribute_distribution') != null) {
 				if (Configure::read('MISP.default_attribute_distribution') === 'event') {
-					$initialDistribution = 5;	
+					$initialDistribution = 5;
 				} else {
 					$initialDistribution = Configure::read('MISP.default_attribute_distribution');
 				}
@@ -32,7 +32,7 @@
 			}
 			?>
 		</div>
-			<?php 
+			<?php
 			echo $this->Form->input('comment', array(
 					'type' => 'text',
 					'label' => 'Contextual Comment',
@@ -72,7 +72,7 @@ echo $this->Form->end();
 ?>
 	<div id="confirmation_box" class="confirmation_box"></div>
 </div>
-<?php 
+<?php
 	$event['Event']['id'] = $this->request->data['Attribute']['event_id'];
 	$event['Event']['published'] = $published;
 	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'addAttachment', 'event' => $event));
@@ -129,7 +129,7 @@ $(document).ready(function() {
 		if ($('#AttributeDistribution').val() == 4) $('#SGContainer').show();
 		else $('#SGContainer').hide();
 	});
-	
+
 	$("#AttributeCategory, #AttributeDistribution").on('mouseover', function(e) {
 	    var $e = $(e.target);
 	    if ($e.is('option')) {
@@ -141,11 +141,11 @@ $(document).ready(function() {
 	        }).popover('show');
 		}
 	});
-	
+
 	$("input, label").on('mouseleave', function(e) {
 	    $('#'+e.currentTarget.id).popover('destroy');
 	});
-	
+
 	$("input, label").on('mouseover', function(e) {
 		var $e = $(e.target);
 		$('#'+e.currentTarget.id).popover('destroy');
@@ -154,7 +154,7 @@ $(document).ready(function() {
 	        placement: 'right',
 	    }).popover('show');
 	});
-	
+
 	// workaround for browsers like IE and Chrome that do now have an onmouseover on the 'options' of a select.
 	// disadvangate is that user needs to click on the item to see the tooltip.
 	// no solutions exist, except to generate the select completely using html.
@@ -168,7 +168,7 @@ $(document).ready(function() {
 	    }).popover('show');
 	});
 });
-	
+
 function malwareCheckboxSetter(id) {
 idDiv = id+'Div';
 var value = $(id).val();  // get the selected value

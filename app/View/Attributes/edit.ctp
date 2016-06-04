@@ -10,11 +10,11 @@
 		echo $this->Form->input('type', array(
 			'empty' => '(first choose category)'
 			));
-		
+
 		?>
 			<div class="input clear"></div>
 		<?php
-		
+
 		echo $this->Form->input('distribution', array(
 			'options' => array($distributionLevels),
 			'label' => 'Distribution',
@@ -30,7 +30,7 @@
 			}
 		?>
 		</div>
-		<?php 
+		<?php
 		echo $this->Form->input('value', array(
 				'type' => 'textarea',
 				'error' => array('escape' => false),
@@ -66,7 +66,7 @@ echo $this->Form->button('Submit', array('class' => 'btn btn-primary'));
 echo $this->Form->end();
 ?>
 </div>
-<?php 
+<?php
 	$event['Event']['id'] = $this->request->data['Attribute']['event_id'];
 	$event['Event']['published'] = $published;
 	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'addAttribute', 'event' => $event));
@@ -121,12 +121,12 @@ foreach ($distributionDescriptions as $type => $def) {
 ?>
 
 $(document).ready(function() {
-	
+
 	$('#AttributeDistribution').change(function() {
 		if ($('#AttributeDistribution').val() == 4) $('#SGContainer').show();
 		else $('#SGContainer').hide();
 	});
-	
+
 	$("#AttributeType, #AttributeCategory, #Attribute, #AttributeDistribution").on('mouseover', function(e) {
 	    var $e = $(e.target);
 	    if ($e.is('option')) {

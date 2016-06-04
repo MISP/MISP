@@ -17,7 +17,7 @@ class PasswordShell extends AppShell {
 			$results['User']['password'] = $this->args[1];
 			$results['User']['confirm_password'] = $this->args[1];
 			$results['User']['change_pw'] = 1;
-	
+
 			if (!$this->User->save($results)) {
 				echo 'Could not update account for User.id = ', $results['User']['id'], PHP_EOL;
 				debug($this->User->validationErrors);

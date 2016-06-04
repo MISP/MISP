@@ -13,10 +13,10 @@
  * @link          http://cakephp.org CakePHP(tm) Project
  * @package       Cake.View.Layouts
  * @since         CakePHP(tm) v 0.10.0.1076
- * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)	
+ * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
  */
 ?>
-<?php 
+<?php
 //echo $this->Html->script('jquery-2.1.0.min');
 echo $this->Html->css('jquery-ui-1.10.4.min');
 //echo $this->Html->css('bootstrap');

@@ -45,7 +45,7 @@ foreach ($list as $item): ?>
 		<?php if ($isAclTemplate): ?>
 		<td class="short action-links">
 			<?php echo $this->Html->link('', array('action' => 'edit', $item['Template']['id']), array('class' => 'icon-edit', 'title' => 'Edit'));?>
-			<?php echo $this->Form->postLink('', array('action' => 'delete', $item['Template']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete Template #' . $item['Template']['id'] . '?'));?>	
+			<?php echo $this->Form->postLink('', array('action' => 'delete', $item['Template']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete Template #' . $item['Template']['id'] . '?'));?>
 		</td>
 		<?php endif; ?>
 	</tr><?php
@@ -69,6 +69,6 @@ endforeach; ?>
     </div>
 
 </div>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'templates', 'menuItem' => 'index'));
 ?>

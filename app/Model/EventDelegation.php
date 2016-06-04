@@ -4,7 +4,7 @@ App::uses('AppModel', 'Model');
 class EventDelegation extends AppModel {
 
 	public $actsAs = array('Containable');
-	
+
 	public $validate = array(
 		'event_id' => array(
 			'valueNotEmpty' => array(
@@ -17,7 +17,7 @@ class EventDelegation extends AppModel {
 			),
 		)
 	);
-	
+
 	public $belongsTo = array(
 		'Event' => array(
 			'className' => 'Event',
@@ -47,7 +47,7 @@ class EventDelegation extends AppModel {
 		}
 		return true;
 	}
-	
+
 	public function transferEvent($delegation, $user) {
 		$this->Event->Attribute->bindModel(
 			array(
@@ -65,11 +65,11 @@ class EventDelegation extends AppModel {
 				'contain' => array(
 						'ShadowAttribute' => array(
 							'conditions' => array(
-								'ShadowAttribute.old_id' => 0, 
+								'ShadowAttribute.old_id' => 0,
 								'ShadowAttribute.event_id' => $delegation['EventDelegation']['event_id']
 							)
-						), 
-						'EventTag', 
+						),
+						'EventTag',
 						'Attribute' => array(
 							'ShadowAttribute'
 						)
@@ -82,7 +82,7 @@ class EventDelegation extends AppModel {
 		$event_id = $this->Event->savePreparedEvent($event);
 		return $event_id;
 	}
-	
+
 	private function __prepareEvent(&$event) {
 		$objects = array('Attribute', 'ShadowAttribute', 'EventTag');
 		$objects = array(
@@ -102,10 +102,10 @@ class EventDelegation extends AppModel {
 						$object['data'] = $encodedFile;
 					}
 				}
-				
+
 				// unset ID fields and relations
 				foreach ($fields as $field) {
-					unset($object[$field]);	
+					unset($object[$field]);
 				}
 			}
 			if (in_array($object_type, $objectsToRearrange)) {

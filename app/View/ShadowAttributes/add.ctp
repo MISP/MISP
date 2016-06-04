@@ -61,14 +61,14 @@
 				</tr>
 			</table>
 		</div>
-	<?php 
-		else: 
+	<?php
+		else:
 			echo $this->Form->button('Propose', array('class' => 'btn btn-primary'));
 		endif;
 		echo $this->Form->end();
 	?>
 </div>
-<?php 
+<?php
 	$event['Event']['id'] = $this->request->data['ShadowAttribute']['event_id'];
 	if (!$ajax) {
 		echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'proposeAttribute', 'event' => $event));
@@ -105,7 +105,7 @@ function formCategoryChanged(id) {
 }
 
 $(document).ready(function() {
-	
+
 	$("#ShadowAttributeType, #ShadowAttributeCategory, #ShadowAttribute").on('mouseover', function(e) {
 	    var $e = $(e.target);
 	    if ($e.is('option')) {
@@ -176,7 +176,7 @@ $('#ShadowAttributeType').prop('disabled', true);
 $('#cancel_attribute_add').click(function() {
 	$('#gray_out').fadeOut();
 	$('#popover_form').fadeOut();
-});	
+});
 
 <?php endif; ?>
 </script>

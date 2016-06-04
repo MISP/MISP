@@ -43,7 +43,7 @@ class CamelCase {
 	}
 
 /**
- * 
+ *
  **/
 	public function toCamelCase($underscored) {
 		//App::uses('Inflector', 'lib');

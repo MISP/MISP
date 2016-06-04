@@ -3,14 +3,14 @@ App::uses('AppController', 'Controller');
 
 class SharingGroupsController extends AppController {
 	public $components = array('Session', 'RequestHandler');
-	
+
 	public function beforeFilter() {
 		parent::beforeFilter();
 		if(!empty($this->request->params['admin']) && !$this->_isSiteAdmin()) $this->redirect('/');
 		$sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user());
 		$this->paginate = Set::merge($this->paginate,array('conditions' => array('SharingGroup.id' => $sgs)));
 	}
-	
+
 	public $paginate = array(
 			'limit' => 60,
 			'maxLimit' => 9999,	// LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
@@ -33,7 +33,7 @@ class SharingGroupsController extends AppController {
 					)
 			),
 	);
-	
+
 	public function add() {
 		if (!$this->userRole['perm_sharing_group']) throw new MethodNotAllowedException('You don\'t have the required privileges to do that.');
 		if($this->request->is('post')) {
@@ -85,14 +85,14 @@ class SharingGroupsController extends AppController {
 		// We just pass true and allow the user to edit, since he/she is just about to create the SG. This is needed to reuse the view for the edit
 		$this->set('user', $this->Auth->user());
 	}
-	
+
 	public function edit($id) {
 		if (!$this->userRole['perm_sharing_group']) throw new MethodNotAllowedException('You don\'t have the required privileges to do that.');
 		// add check for perm_sharing_group
 		$this->SharingGroup->id = $id;
 		if (!$this->SharingGroup->exists()) throw new NotFoundException('Invalid sharing group.');
 		if (!$this->_isSiteAdmin() && !$this->SharingGroup->checkIfAuthorisedExtend($this->Auth->user(), $id)) throw new MethodNotAllowedException('Action not allowed.');
-		
+
 		// check if the user is eligible to edit the SG (original creator or extend)
 		$sharingGroup = $this->SharingGroup->find('first', array(
 			'conditions' => array('SharingGroup.id' => $id),
@@ -100,14 +100,14 @@ class SharingGroupsController extends AppController {
 			'contain' => array(
 					'SharingGroupOrg' => array(
 						'Organisation' => array('name', 'local', 'id')
-					), 
+					),
 					'SharingGroupServer' => array(
 						'Server' => array(
 							'fields' => array('name', 'url', 'id')
 						)
-					), 
+					),
 					'Organisation' => array(
-						'fields' => array('name', 'local', 'id')	
+						'fields' => array('name', 'local', 'id')
 					),
 			),
 		));
@@ -146,7 +146,7 @@ class SharingGroupsController extends AppController {
 		// We just pass true and allow the user to edit, since he/she is just about to create the SG. This is needed to reuse the view for the edit
 		$this->set('user', $this->Auth->user());
 	}
-	
+
 	public function delete($id) {
 		if (!$this->userRole['perm_sharing_group']) throw new MethodNotAllowedException('You don\'t have the required privileges to do that.');
 		if (!$this->request->is('post')) throw new MethodNotAllowedException('Action not allowed, post request expected.');
@@ -162,7 +162,7 @@ class SharingGroupsController extends AppController {
 		if ($deletedSg['SharingGroup']['active']) $this->redirect('/SharingGroups/index');
 		else $this->redirect('/SharingGroups/index/true');
 	}
-	
+
 	public function index($passive = false) {
 		if ($passive === 'true') $passive = true;
 		if ($passive === true) $this->paginate['conditions'][] = array('SharingGroup.active' => false);
@@ -189,7 +189,7 @@ class SharingGroupsController extends AppController {
 			$this->set('sharingGroups', $result);
 		}
 	}
-	
+
 	public function view($id) {
 		if (!$this->SharingGroup->checkIfAuthorised($this->Auth->user(), $id)) throw new MethodNotAllowedException('Sharing group doesn\'t exist or you do not have permission to access it.');
 		$this->SharingGroup->id = $id;
@@ -206,4 +206,3 @@ class SharingGroupsController extends AppController {
 		$this->set('sg', $sg);
 	}
 }
-	

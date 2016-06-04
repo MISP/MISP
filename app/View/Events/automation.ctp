@@ -28,8 +28,8 @@ You can <?php echo $this->Html->link('reset', array('controller' => 'users', 'ac
 <p>
 <b>eventid</b>: Restrict the download to a single event<br />
 <b>withattachments</b>: A boolean field that determines whether attachments should be encoded and a second parameter that controls the eligible tags. <br />
-<b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'. 
-You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search. 
+<b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'.
+You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search.
 Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use:<br />
 </p>
 <pre><?php echo $baseurl;?>/events/xml/download/false/true/tag1&amp;&amp;tag2&amp;&amp;!tag3</pre>
@@ -50,8 +50,8 @@ Use semicolons instead (the search will automatically search for colons instead)
 <p>
 <b>eventid</b>: Restrict the download to a single event<br />
 <b>ignore</b>: Setting this flag to true will include attributes that are not marked "to_ids".<br />
-<b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'. 
-You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search. 
+<b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'.
+You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search.
 Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use:<br />
 </p>
 <p>For example, to only download a csv generated of the "domain" type and the "Network activity" category attributes all events except for the one and further restricting it to events that are tagged "tag1" or "tag2" but not "tag3", only allowing attributes that are IDS flagged use the following syntax:</p>
@@ -80,8 +80,8 @@ Use semicolons instead (the search will automatically search for colons instead)
 <b>format</b>: The export format, can be "suricata" or "snort"<br />
 <b>eventid</b>: Restrict the download to a single event<br />
 <b>frame</b>: Some commented out explanation framing the data. The reason to disable this would be if you would like to concatenate a list of exports from various select events in order to avoid unnecasary duplication of the comments.<br />
-<b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'. 
-You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search. 
+<b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'.
+You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search.
 Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use:<br />
 <pre><?php echo $baseurl;?>/events/nids/snort/download/false/false/tag1&amp;&amp;tag2&amp;&amp;!tag3</pre>
 <b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-15). This filter will use the date of the event.<br />
@@ -102,8 +102,8 @@ Use semicolons instead (the search will automatically search for colons instead)
 <p>The API's full format is as follows: </p>
 <pre><?php echo $baseurl;?>/events/hids/[format]/download/[tags]/[from]/[to]/[last]</pre>
 <b>format</b>: The export format, can be "md5" or "sha1"<br />
-<b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'. 
-You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search. 
+<b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'.
+You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search.
 Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use:<br />
 <pre><?php echo $baseurl;?>/events/hids/md5/download/tag1&amp;&amp;tag2&amp;&amp;!tag3</pre>
 <p>
@@ -123,8 +123,8 @@ Use semicolons instead (the search will automatically search for colons instead)
 <p>
 <b>id</b>: The event's ID<br />
 <b>withAttachments</b>: Encode attachments where applicable<br />
-<b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'. 
-You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search. 
+<b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'.
+You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search.
 Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use:<br />
 </p>
 <pre><?php echo $baseurl;?>/events/stix/download/false/true/tag1&amp;&amp;tag2&amp;&amp;!tag3</pre>
@@ -145,8 +145,8 @@ Use semicolons instead (the search will automatically search for colons instead)
 <p>You can export RPZ zone files for DNS level firewalling by using the RPZ export functionality of MISP. The file generated will include all of the IDS flagged domain, hostname and IP-src/IP-dst attribute values that you have access to.</p>
 <p>It is possible to further restrict the exported values using the following filters:</p>
 <p>
-	<b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'. 
-	You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search when passed through the url. 
+	<b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'.
+	You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search when passed through the url.
 	Use semicolons instead (the search will automatically search for colons instead).<br />
 	<b>id</b>: The event's ID<br />
 	<b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-03)<br />
@@ -184,23 +184,23 @@ foreach ($sigTypes as $sigType) {
 </pre>
 <p>To restrict the results by tags, use the usual syntax. Please be aware the colons (:) cannot be used in the tag search. Use semicolons instead (the search will automatically search for colons instead). To get ip-src values from events tagged tag1 but not tag2 use:</p>
 <pre>
-<?php 
+<?php
 	echo $baseurl.'/attributes/text/download/ip-src/tag1&&!tag2';
 ?>
 </pre>
 
 <p>As of version 2.3.38, it is possible to restrict the text exports on two additional flags. The first allows the user to restrict based on event ID, whilst the second is a boolean switch allowing non IDS flagged attributes to be exported. Additionally, choosing "all" in the type field will return all eligible attributes. </p>
 <pre>
-<?php 
+<?php
 	echo $baseurl.'/attributes/text/download/[type]/[tags]/[event_id]/[allowNonIDS]/[from]/[to]/[last]';
 ?>
 </pre>
 <b>type</b>: The attribute type, any valid MISP attribute type is accepted.<br />
-<b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'. 
-You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search. 
+<b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'.
+You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search.
 Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use:<br />
 <pre>
-<?php 
+<?php
 	echo $baseurl.'/attributes/text/download/all/tag1&amp;&amp;tag2&amp;&amp;!tag3';
 ?>
 </pre>
@@ -214,7 +214,7 @@ Use semicolons instead (the search will automatically search for colons instead)
 <p>The keywords false or null should be used for optional empty parameters in the URL.</p>
 <p>For example, to retrieve all attributes for event #5, including non IDS marked attributes too, use the following line:</p>
 <pre>
-<?php 
+<?php
 	echo $baseurl.'/attributes/text/download/all/null/5/true';
 ?>
 </pre>
@@ -231,8 +231,8 @@ Use semicolons instead (the search will automatically search for colons instead)
 <b>type</b>: The attribute type, any valid MISP attribute type is accepted.<br />
 <b>category</b>: The attribute category, any valid MISP attribute category is accepted.<br />
 <b>org</b>: Search by the creator organisation by supplying the organisation idenfitier. <br />
-<b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'. 
-You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search. 
+<b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'.
+You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search.
 Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use:<br />
 <pre>
 <?php
@@ -262,8 +262,8 @@ Use semicolons instead (the search will automatically search for colons instead)
 <b>type</b>: The attribute type, any valid MISP attribute type is accepted.<br />
 <b>category</b>: The attribute category, any valid MISP attribute category is accepted.<br />
 <b>org</b>: Search by the creator organisation by supplying the organisation idenfitier. <br />
-<b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'. 
-You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search. 
+<b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'.
+You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search.
 Use semicolons instead (the search will automatically search for colons instead).<br />
 <b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-15)<br />
 <b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-15)<br />
@@ -436,6 +436,6 @@ The event ID is optional. MISP will accept either a JSON or an XML object posted
 <code><?php echo h('<request><ShadowAttribute><value>5.5.5.5</value><to_ids>0</to_ids><type>ip-src</type><category>Network activity</category></ShadowAttribute></request>');?></code><br /><br />
 <p>None of the above fields are mandatory, but at least one of them has to be provided.</p>
 </div>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'event-collection', 'menuItem' => 'automation'));
 ?>

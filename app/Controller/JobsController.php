@@ -9,18 +9,18 @@ App::uses('AppController', 'Controller');
 */
 class JobsController extends AppController {
 	public $components = array('Security' ,'RequestHandler', 'Session');
-	
+
 	public $paginate = array(
 			'limit' => 20,
 			'order' => array(
 					'Job.id' => 'desc'
 			),
 	);
-	
+
 	public function beforeFilter() {
 		parent::beforeFilter();
 	}
-	
+
 	public function index($queue = false) {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
 		if (!Configure::read('MISP.background_jobs')) throw new NotFoundException('Background jobs are not enabled on this instance.');
@@ -38,7 +38,7 @@ class JobsController extends AppController {
 		$this->set('list', $jobs);
 		$this->set('queue', $queue);
 	}
-	
+
 	private function __jobStatusConverter($status) {
 		switch ($status) {
 			case 1:
@@ -55,7 +55,7 @@ class JobsController extends AppController {
 				break;
 		}
 	}
-	
+
 	public function getGenerateCorrelationProgress($id) {
 		if (!self::_isSiteAdmin()) throw new NotFoundException();
 		$progress = $this->Job->findById($id);
@@ -66,10 +66,10 @@ class JobsController extends AppController {
 		}
 		return new CakeResponse(array('body' => json_encode($progress)));
 	}
-	
+
 	public function getProgress($type) {
 		$org = $this->Auth->user('Organisation')['name'];
-		if ($this->_isSiteAdmin()) $org = 'ADMIN'; 
+		if ($this->_isSiteAdmin()) $org = 'ADMIN';
 		$progress = $this->Job->find('first', array(
 			'conditions' => array(
 				'job_type' => $type,
@@ -85,11 +85,11 @@ class JobsController extends AppController {
 		}
 		return new CakeResponse(array('body' => json_encode($progress)));
 	}
-	
+
 	public function cache($type) {
 		if ($this->_isSiteAdmin()) {
 			$target = 'All events.';
-		} else { 
+		} else {
 			$target = 'Events visible to: '.$this->Auth->user('Organisation')['name'];
 		}
 		$id = $this->Job->cache($type, $this->Auth->user(), $target);

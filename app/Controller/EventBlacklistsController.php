@@ -28,7 +28,7 @@ class EventBlacklistsController extends AppController {
 	public function add() {
 		$this->BlackList->add($this->_isRest());
 	}
-	
+
 	public function edit($id) {
 		$this->BlackList->edit($this->_isRest(), $id);
 	}

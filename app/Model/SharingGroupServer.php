@@ -3,9 +3,9 @@ App::uses('AppModel', 'Model');
 class SharingGroupServer extends AppModel {
 	public $actsAs = array('Containable');
 	public $validate = array(
-			
+
 	);
-	
+
 	public $belongsTo = array(
 		'SharingGroup' => array(
 			'className' => 'SharingGroup',
@@ -21,7 +21,7 @@ class SharingGroupServer extends AppModel {
 	public function beforeValidate($options = array()) {
 		parent::beforeValidate();
 	}
-	
+
 
 	public function updateServersForSG($id, $new_servers, $old_servers, $limitServers, $user) {
 		$log = ClassRegistry::init('Log');
@@ -34,8 +34,8 @@ class SharingGroupServer extends AppModel {
 						'all_orgs' => $server['all_orgs']
 				);
 				$server_name = 'server (' . $server['id'] . ')';
-				if ($server['id'] == 0) $server_name = 'the local server'; 
-		
+				if ($server['id'] == 0) $server_name = 'the local server';
+
 				$found = false;
 				// If there is a match between a new server and an old server, keep the server in $found and unset it in the old server array.
 				foreach ($old_servers as $k => $old_server) {
@@ -45,7 +45,7 @@ class SharingGroupServer extends AppModel {
 						break;
 					}
 				}
-					
+
 				// If we have not found the server previously, create a new sharing group server object.
 				// Otherwise, if we have found it check whether the extended field has been altered, if not just continue without saving
 				if (!$found) {
@@ -61,7 +61,7 @@ class SharingGroupServer extends AppModel {
 					$log->create();
 					if ($isChange) $log->createLogEntry($user, 'edit', 'SharingGroupServer', $this->id, 'Sharing group (' . $id . '): Modified access rights for users on ' . $server_name . '.', ($server['all_orgs'] ? 'All organisations on server ' . $server['id'] . ' are now part of the sharing group.' : 'Organisations on ' . $server_name . ' are now not part of the sharing group unless they are present in the list of organisations.'));
 					else $log->createLogEntry($user, 'add', 'SharingGroupServer', $this->id, 'Sharing group (' . $id . '): Added server (' . $server['id'] . ').', ucfirst($server_name) . ' added to Sharing group.' . ($server['all_orgs'] ? ' Sharing group visible to all organisations on the server.' : ''));
-				}	
+				}
 			}
 			// We are left with some "old orgs" that are not in the new list. This means that they can be safely deleted.
 			foreach ($old_servers as $old_server) {
@@ -74,7 +74,7 @@ class SharingGroupServer extends AppModel {
 			$this->deleteAll(array('sharing_group_id' => $id), false);
 		}
 	}
-	
+
 	// returns all sharing group IDs that have the local server (server_id = 0) as a server object with all orgs turned to 1
 	// This basically lists all SGs that allow everyone on the instance to see events tagged with it
 	public function fetchAllAuthorised() {
@@ -87,7 +87,7 @@ class SharingGroupServer extends AppModel {
 		foreach ($sgs as $sg) $ids[] = $sg['SharingGroupServer']['sharing_group_id'];
 		return $ids;
 	}
-	
+
 	// pass a sharing group ID, returns true if it has an attached server object with "all_orgs" ticked
 	public function checkIfAuthorised($id) {
 		$sg = $this->find('first', array(
@@ -98,7 +98,7 @@ class SharingGroupServer extends AppModel {
 		if (!empty($sg)) return true;
 		return false;
 	}
-	
+
 	public function fetchAllSGsForServer($server_id) {
 		$sgs = $this->find('all', array(
 			'recursive' => -1,

@@ -55,6 +55,6 @@ endforeach;?>
 		</ul>
 	</div>
 </div>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'regexp', 'menuItem' => 'index'));
 ?>

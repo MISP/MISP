@@ -1,7 +1,7 @@
 <div class="popover_choice">
 	<legend>Select Tag</legend>
 	<div style="display:none;">
-		<?php 
+		<?php
 			echo $this->Form->create('Event', array('url' => '/events/addTag/' . $event_id, 'style' => 'margin:0px;'));
 			echo $this->Form->input('tag', array('value' => 0));
 			echo $this->Form->end();
@@ -21,11 +21,11 @@
 	</div>
 	<div class="templateChoiceButton templateChoiceButtonLast" onClick="cancelPopoverForm();">Cancel</div>
 </div>
-<script type="text/javascript">	
+<script type="text/javascript">
 	$(document).ready(function() {
 		resizePopoverBody();
 	});
-	
+
 	$(window).resize(function() {
 		resizePopoverBody();
 	});

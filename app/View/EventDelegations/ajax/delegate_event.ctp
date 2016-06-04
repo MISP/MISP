@@ -16,7 +16,7 @@
 			));
 			?>
 			<div id="sgid" class="hidden">
-				<?php 
+				<?php
 					echo $this->Form->input('sharing_group_id', array(
 							'options' => $sgOptions,
 							'label' => 'Desired Sharing Group',
@@ -24,7 +24,7 @@
 					));
 				?>
 			</div>
-			<?php 
+			<?php
 			echo $this->Form->input('message', array(
 					'label' => false,
 					'div' => false,
@@ -32,18 +32,18 @@
 					'style' => 'width:665px;',
 					'placeholder' => 'Message to the recipient organisation'
 			));
-			echo $this->Form->submit('Yes', array('div' => false, 'class' => 'btn btn-primary')); 
+			echo $this->Form->submit('Yes', array('div' => false, 'class' => 'btn btn-primary'));
 		?>
 		<span class="btn btn-inverse" id="PromptNoButton" onClick="cancelPopoverForm();" style="float:right;">No</span>
-		<?php 
+		<?php
 			echo $this->Form->end();
 		?>
 	</div>
-	<?php 
+	<?php
 	?>
 </div>
 <script type="text/javascript">
-	
+
 $(document).ready(function() {
 	$('#EventDelegationDistribution').change(function() {
 		if ($('#EventDelegationDistribution').val() == 4) $('#sgid').show();

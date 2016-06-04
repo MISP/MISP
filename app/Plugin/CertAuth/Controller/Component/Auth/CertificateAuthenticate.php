@@ -22,21 +22,21 @@ App::uses('BaseAuthenticate', 'Controller/Component/Auth');
 class CertificateAuthenticate extends BaseAuthenticate
 {
     /**
-     * Holds the certificate issuer information (available at SSL_CLIENT_I_DN) 
+     * Holds the certificate issuer information (available at SSL_CLIENT_I_DN)
      *
      * @var array
      */
     protected static $ca;
 
     /**
-     * Holds the certificate user information (available at SSL_CLIENT_S_DN) 
+     * Holds the certificate user information (available at SSL_CLIENT_S_DN)
      *
      * @var array
      */
     protected static $client;
 
     /**
-     * Holds the user information 
+     * Holds the user information
      *
      * @var array
      */
@@ -256,7 +256,7 @@ class CertificateAuthenticate extends BaseAuthenticate
         return self::$user;
     }
 
-    protected static $instance; 
+    protected static $instance;
 
     public static function ca()
     {

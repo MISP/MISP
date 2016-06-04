@@ -24,7 +24,7 @@ if ($type == 'publish') $extraTitle = ' (no email)';
 		</tr>
 	</table>
 </div>
-<?php 
+<?php
 	echo $this->Form->end();
 ?>
 </div>

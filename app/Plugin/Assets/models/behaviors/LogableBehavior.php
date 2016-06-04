@@ -8,26 +8,26 @@
  * - "Log" model ( empty but for a order variable [created DESC]
  * - "logs" table with these fields required :
  * - id			[int]			:
- * - title 		[string] 		: automagically filled with the display field of the model that was modified.
+ * - title		[string]		: automagically filled with the display field of the model that was modified.
  * - created	[date/datetime] : filled by cake in normal way
  *
  * - actsAs = array("Logable"); on models that should be logged
  *
  * Optional extra table fields for the "logs" table :
  *
- * - "description" 	[string] : Fill with a descriptive text of what, who and to which model/row :
+ * - "description"	[string] : Fill with a descriptive text of what, who and to which model/row :
  * "Contact "John Smith"(34) added by User "Administrator"(1).
  *
  * or if u want more detail, add any combination of the following :
  *
  * - "model"    	[string] : automagically filled with the class name of the model that generated the activity.
- * - "model_id" 	[int]	 : automagically filled with the primary key of the model that was modified.
+ * - "model_id"	[int]	: automagically filled with the primary key of the model that was modified.
  * - "action"   	[string] : automagically filled with what action is made (add/edit/delete)
  * - "user_id"  	[int]    : populated with the supplied user info. (May be renamed. See bellow.)
  * - "change"   	[string] : depending on setting either :
  * [name (alek) => (Alek), age (28) => (29)] or [name, age]
  *
- * - "version_id"	[int]	 : cooperates with RevisionBehavior to link the shadow table (thus linking to old data)
+ * - "version_id"	[int]	: cooperates with RevisionBehavior to link the shadow table (thus linking to old data)
  *
  * Remember that Logable behavior needs to be added after RevisionBehavior. In fact, just put it last to be safe.
  *
@@ -87,10 +87,10 @@ class LogableBehavior extends ModelBehavior {
 	/**
 	 * Cake called intializer
 	 * Config options are :
-	 * userModel 		: 'User'. Class name of the user model you want to use (User by default), if you want to save User in log
+	 * userModel		: 'User'. Class name of the user model you want to use (User by default), if you want to save User in log
 	 * userKey   		: 'user_id'. The field for saving the user to (user_id by default).
 	 * change    		: 'list' > [name, age]. Set to 'full' for [name (alek) => (Alek), age (28) => (29)]
-	 * description_ids 	: TRUE. Set to FALSE to not include model id and user id in the title field
+	 * description_ids	: TRUE. Set to FALSE to not include model id and user id in the title field
 	 * skip  			: array(). String array of actions to not log
 	 *
 	 * @param Object $Model
@@ -135,14 +135,14 @@ class LogableBehavior extends ModelBehavior {
 	 * the models it is called from.
 	 *
 	 * Possible params :
-	 * 'model' 		: mixed  (NULL) String with className, NULL to get current or FALSE to get everything
-	 * 'action' 	: string (NULL) String with action (add/edit/delete), NULL gets all
-	 * 'order' 		: string ('created DESC') String with custom order
+	 * 'model'		: mixed  (NULL) String with className, NULL to get current or FALSE to get everything
+	 * 'action'	: string (NULL) String with action (add/edit/delete), NULL gets all
+	 * 'order'		: string ('created DESC') String with custom order
 	 * 'conditions  : array  (array()) Add custom conditions
 	 * 'model_id'	: int	 (NULL) Add a int
 	 *
 	 * (remember to use your own user key if you're not using 'user_id')
-	 * 'user_id' 	: int 	 (NULL) Defaults to all users, supply id if you want for only one User
+	 * 'user_id'	: int	 (NULL) Defaults to all users, supply id if you want for only one User
 	 *
 	 * @param Object $Model
 	 * @param array $params

@@ -225,7 +225,7 @@ def resolveHTTPObservable(indicator, attribute):
         header_fields.user_agent = attribute["value"]
         header.parsed_header = header_fields
         client_request.http_request_header = header
-    else: 
+    else:
         line = HTTPRequestLine()
         line.http_method = attribute["value"]
         client_request.http_request_line = line
@@ -247,7 +247,7 @@ def resolvePatternObservable(indicator, attribute):
     # elif attribute["type"] == "pattern-in-memory":
     # elif attribute["type"] == "pattern-in-traffic":
     return new_object
-    
+
 # create an artifact object for the malware-sample type.
 def createArtifactObject(indicator, attribute):
     artifact = Artifact(data = attribute["data"])
@@ -301,4 +301,3 @@ def resolveRegHive(regStr):
         if regStrU.startswith(hive):
             return misp_reghive[hive], regStr[len(hive):]
     return None, regStr
-

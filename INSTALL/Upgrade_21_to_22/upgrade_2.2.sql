@@ -173,6 +173,3 @@ CREATE TABLE IF NOT EXISTS `template_element_types` (
   `type` varchar(100) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
-
-
-

@@ -31,8 +31,8 @@
 			<th>Last Pushed ID</th>
 			<th class="actions">Actions</th>
 	</tr>
-	<?php 
-foreach ($servers as $server): 
+	<?php
+foreach ($servers as $server):
 	$rules = array();
 	$rules['push'] = json_decode($server['Server']['push_rules'], true);
 	$rules['pull'] = json_decode($server['Server']['pull_rules'], true);
@@ -58,13 +58,13 @@ foreach ($servers as $server):
 ?>
 	<tr>
 		<td>
-			<?php 
+			<?php
 				if (!empty($server['Server']['name'])) echo h($server['Server']['name']);
-				else echo h($server['Server']['url']); 
+				else echo h($server['Server']['url']);
 			?>
 		</td>
 		<td id="connection_test_<?php echo $server['Server']['id'];?>"><span class="btn btn-primary" style="line-height:10px; padding: 4px 4px;" onClick="testConnection('<?php echo $server['Server']['id'];?>');">Run</span></td>
-		
+
 		<td><span class="<?php echo ($server['Server']['push']? 'icon-ok' : 'icon-remove'); ?>"></span><span class="short <?php if (!$server['Server']['push'] || empty($ruleDescription['push'])) echo "hidden"; ?>" data-toggle="popover" title="Distribution List" data-content="<?php echo $ruleDescription['push']; ?>"> (Rules)</span></td>
 		<td><span class="<?php echo ($server['Server']['pull']? 'icon-ok' : 'icon-remove'); ?>"></span><span class="short <?php if (!$server['Server']['pull'] || empty($ruleDescription['pull'])) echo "hidden"; ?>" data-toggle="popover" title="Distribution List" data-content="<?php echo $ruleDescription['pull']; ?>"> (Rules)</span>
 		<td><?php echo h($server['Server']['url']); ?>&nbsp;</td>
@@ -113,11 +113,11 @@ endforeach; ?>
     </div>
 
 </div>
-<script type="text/javascript"> 
+<script type="text/javascript">
 	$(document).ready(function(){
 		popoverStartup();
 	});
 </script>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'sync', 'menuItem' => 'index'));
 ?>

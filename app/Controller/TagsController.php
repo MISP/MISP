@@ -17,13 +17,13 @@ class TagsController extends AppController {
 					'Tag.name' => 'asc'
 			)
 	);
-	
+
 	public $helpers = array('TextColour');
-	
+
 	public function beforeFilter() { // TODO REMOVE
 		parent::beforeFilter();
 	}
-	
+
 	public function index($favouritesOnly = false) {
 		$this->loadModel('Event');
 		$this->loadModel('Taxonomy');
@@ -67,7 +67,7 @@ class TagsController extends AppController {
 			}
 			unset($tag['EventTag']);
 			if (!empty($tag['FavouriteTag'])) {
-				foreach ($tag['FavouriteTag'] as &$ft) if ($ft['user_id'] == $this->Auth->user('id')) $tag['Tag']['favourite'] = true; 
+				foreach ($tag['FavouriteTag'] as &$ft) if ($ft['user_id'] == $this->Auth->user('id')) $tag['Tag']['favourite'] = true;
 				if (!isset($tag['Tag']['favourite'])) $tag['Tag']['favourite'] = false;
 			} else $tag['Tag']['favourite'] = false;
 			unset($tag['FavouriteTag']);
@@ -94,11 +94,11 @@ class TagsController extends AppController {
 		}
 		// send perm_tagger to view for action buttons
 	}
-	
+
 	public function add() {
 		if (!$this->_isSiteAdmin() && !$this->userRole['perm_tag_editor']) throw new NotFoundException('You don\'t have permission to do that.');
 		if ($this->request->is('post')) {
-			if (isset($this->request->data['Tag']['request'])) $this->request->data['Tag'] = $this->request->data['Tag']['request']; 
+			if (isset($this->request->data['Tag']['request'])) $this->request->data['Tag'] = $this->request->data['Tag']['request'];
 			if (!isset($this->request->data['Tag']['colour'])) $this->request->data['Tag']['colour'] = $this->Tag->random_color();
 			if (isset($this->request->data['Tag']['id'])) unset($this->request->data['Tag']['id']);
 			if ($this->Tag->save($this->request->data)) {
@@ -108,7 +108,7 @@ class TagsController extends AppController {
 			} else {
 				if ($this->_isRest()) {
 					$error_message = '';
-					foreach ($this->Tag->validationErrors as $k => $v) $error_message .= '[' . $k . ']: ' . $v[0]; 
+					foreach ($this->Tag->validationErrors as $k => $v) $error_message .= '[' . $k . ']: ' . $v[0];
 					throw new MethodNotAllowedException('Could not add the Tag. ' . $error_message);
 				} else {
 					$this->Session->setFlash('The tag could not be saved. Please, try again.');
@@ -116,7 +116,7 @@ class TagsController extends AppController {
 			}
 		}
 	}
-	
+
 	public function quickAdd() {
 		if ((!$this->_isSiteAdmin() && !$this->userRole['perm_tag_editor']) || !$this->request->is('post')) throw new NotFoundException('You don\'t have permission to do that.');
 		if (isset($this->request->data['Tag']['request'])) $this->request->data['Tag'] = $this->request->data['Tag']['request'];
@@ -127,7 +127,7 @@ class TagsController extends AppController {
 		}
 		$this->redirect($this->referer());
 	}
-	
+
 	public function edit($id) {
 		if (!$this->_isSiteAdmin() && !$this->userRole['perm_tag_editor']) {
 			throw new NotFoundException('You don\'t have permission to do that.');
@@ -155,7 +155,7 @@ class TagsController extends AppController {
 		}
 		$this->request->data = $this->Tag->read(null, $id);
 	}
-	
+
 	public function delete($id) {
 		if (!$this->_isSiteAdmin() && !$this->userRole['perm_tag_editor']) {
 			throw new NotFoundException('You don\'t have permission to do that.');
@@ -181,7 +181,7 @@ class TagsController extends AppController {
 		}
 		if (!$this->_isRest()) $this->redirect(array('action' => 'index'));
 	}
-	
+
 	public function view($id) {
 		if ($this->_isRest()) {
 			$tag = $this->Tag->find('first', array(
@@ -189,7 +189,7 @@ class TagsController extends AppController {
 					'recursive' => -1,
 					'contain' => array('EventTag' => array('fields' => 'event_id'))
 			));
-			if (empty($tag)) throw MethodNotAllowedException('Invalid Tag'); 
+			if (empty($tag)) throw MethodNotAllowedException('Invalid Tag');
 			$eventIDs = array();
 			if (empty($tag['EventTag'])) $tag['Tag']['count'] = 0;
 			else {
@@ -216,9 +216,9 @@ class TagsController extends AppController {
 			$this->set('Tag', $tag['Tag']);
 			$this->set('_serialize', 'Tag');
 		} else throw new MethodNotAllowedException('This action is only for REST users.');
-		
+
 	}
-	
+
 	public function showEventTag($id) {
 		$this->helpers[] = 'TextColour';
 		$this->loadModel('EventTag');
@@ -245,7 +245,7 @@ class TagsController extends AppController {
 		$this->layout = 'ajax';
 		$this->render('/Events/ajax/ajaxTags');
 	}
-	
+
 	public function viewTag($id) {
 		$tag = $this->Tag->find('first', array(
 				'conditions' => array(
@@ -258,7 +258,7 @@ class TagsController extends AppController {
 		$this->set('id', $id);
 		$this->render('ajax/view_tag');
 	}
-	
+
 
 	public function selectTaxonomy($event_id) {
 		if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) throw new NotFoundException('You don\'t have permission to do that.');
@@ -274,7 +274,7 @@ class TagsController extends AppController {
 		$this->set('favourites', $favourites);
 		$this->render('ajax/taxonomy_choice');
 	}
-	
+
 	public function selectTag($event_id, $taxonomy_id) {
 		if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) throw new NotFoundException('You don\'t have permission to do that.');
 		$this->loadModel('Taxonomy');
@@ -308,7 +308,7 @@ class TagsController extends AppController {
 		$this->set('custom', $taxonomy_id == 0 ? true : false);
 		$this->render('ajax/select_tag');
 	}
-	
+
 	public function tagStatistics($percentage = false, $keysort = false) {
 		$result = $this->Tag->EventTag->find('all', array(
 				'recursive' => -1,
@@ -329,7 +329,7 @@ class TagsController extends AppController {
 			$tags[$r['Tag']['name']] = $r[0]['count'];
 			$totalCount += $r[0]['count'];
 			foreach ($taxonomies as $taxonomy => $count) {
-				if (substr(strtolower($r['Tag']['name']), 0, strlen($taxonomy)) === strtolower($taxonomy)) $taxonomies[$taxonomy] += $r[0]['count']; 
+				if (substr(strtolower($r['Tag']['name']), 0, strlen($taxonomy)) === strtolower($taxonomy)) $taxonomies[$taxonomy] += $r[0]['count'];
 			}
 		}
 		if ($keysort === 'true') {
@@ -338,7 +338,7 @@ class TagsController extends AppController {
 		} else {
 			arsort($tags);
 			arsort($taxonomies);
-		}		
+		}
 		if ($percentage === 'true') {
 			foreach ($tags as $tag => &$count) {
 				$count = round(100 * $count / $totalCount, 3) . '%';

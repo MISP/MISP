@@ -38,7 +38,7 @@ class ApacheAuthenticate extends BaseAuthenticate {
         $ldapconn = ldap_connect(Configure::read('ApacheSecureAuth.ldapServer'))
                 or die('LDAP server connection failed');
 
-        // LDAP protocol configuration 
+        // LDAP protocol configuration
         ldap_set_option($ldapconn, LDAP_OPT_PROTOCOL_VERSION, Configure::read('ApacheSecureAuth.ldapProtocol'));
 
         if ($ldapconn) {
@@ -52,7 +52,7 @@ class ApacheAuthenticate extends BaseAuthenticate {
             $filter = '('.Configure::read('ApacheSecureAuth.ldapSearchAttribut').'=' . $_SERVER[$envvar] . ')';
             // example: mail
             $getLdapUserInfo = Configure::read('ApacheSecureAuth.ldapFilter');
-            
+
             $result = ldap_search($ldapconn, $ldapdn, $filter, $getLdapUserInfo)
                     or die("Error in LDAP search query: " . ldap_error($ldapconn));
 
@@ -90,8 +90,8 @@ class ApacheAuthenticate extends BaseAuthenticate {
             );
             $org_id = $firstOrg['Organisation']['id'];
         }
-        
-        // create user 
+
+        // create user
         $userData = array('User' => array(
                 'email' => $mispUsername,
                 'org_id' => $org_id,

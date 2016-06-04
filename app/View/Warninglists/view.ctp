@@ -28,16 +28,16 @@
 		</dd>
 		<dt>Accepted attribute types</dt>
 		<dd>
-			<?php 
+			<?php
 				$text = array();
 				foreach ($warninglist['WarninglistType'] as $temp) $text[] = $temp['type'];
 				$text = implode(', ', $text);
-				echo h($text); 
+				echo h($text);
 			?>
 		</dd>
 		<dt>Enabled</dt>
 		<dd>
-			<?php echo $warninglist['Warninglist']['enabled'] ? '<span class="green">Yes</span>&nbsp;&nbsp;' : '<span class="red">No</span>&nbsp;&nbsp;'; 
+			<?php echo $warninglist['Warninglist']['enabled'] ? '<span class="green">Yes</span>&nbsp;&nbsp;' : '<span class="red">No</span>&nbsp;&nbsp;';
 				if ($isSiteAdmin) {
 					if ($warninglist['Warninglist']['enabled']) {
 						echo $this->Form->postLink('(disable)', array('action' => 'enableWarninglist', h($warninglist['Warninglist']['id'])), array('title' => 'Disable'));
@@ -46,13 +46,13 @@
 					}
 				}
 			?>
-			
+
 			&nbsp;
 		</dd>
 	</dl>
 	<br />
 	<h3>Values</h3>
-	<div><?php 
+	<div><?php
 		foreach ($warninglist['WarninglistEntry'] as $entry) echo h($entry['value']) . '<br />';
 	?></div>
 </div>
@@ -65,7 +65,6 @@
 		});
 	});
 </script>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'warninglist', 'menuItem' => 'view'));
 ?>
-

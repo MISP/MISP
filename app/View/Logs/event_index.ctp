@@ -40,9 +40,9 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc_id'] == $me['org_id']);
 			&nbsp;
 			</td>
 			<td class="short"><?php echo h($item['Log']['action']); ?>&nbsp;</td>
-			<td class="short"><?php 
+			<td class="short"><?php
 				if ($item['Log']['model'] !== 'ShadowAttribute') echo h($item['Log']['model']);
-				else echo 'Proposal'; 
+				else echo 'Proposal';
 			?>&nbsp;</td>
 			<td><?php echo h($item['Log']['title']); ?>&nbsp;</td>
 			<td class="short"><?php echo (h($item['Log']['created'])); ?>&nbsp;</td>
@@ -67,7 +67,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc_id'] == $me['org_id']);
 	</div>
 	<div id="confirmation_box" class="confirmation_box"></div>
 </div>
-<?php 
+<?php
 	// We mimic the $event from some other views to pass the ID back to the sidemenu
 	$event['Event']['id'] = $eventId;
 	echo $this->element('side_menu', array('menuList' => 'event', 'event' => $event, 'menuItem' => 'eventLog', 'mayModify' => $mayModify, 'mayPublish' => $mayPublish));

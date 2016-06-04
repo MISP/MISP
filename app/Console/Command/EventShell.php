@@ -1,4 +1,4 @@
-<?php 
+<?php
 App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
 require_once 'AppShell.php';
@@ -33,7 +33,7 @@ class EventShell extends AppShell
 		$this->Job->saveField('status', 1);
 		$this->Job->saveField('message', 'Job done.');
 	}
-	
+
 	public function cachexml() {
 		$userId = $this->args[0];
 		$id = $this->args[1];
@@ -64,7 +64,7 @@ class EventShell extends AppShell
 		$file->append('</response>' . PHP_EOL);
 		$file->close();
 	}
-	
+
 	private function __recursiveEcho($array) {
 		$text = "";
 		foreach ($array as $k => $v) {
@@ -87,7 +87,7 @@ class EventShell extends AppShell
 		}
 		return $text;
 	}
-	
+
 	public function cachehids() {
 		$userId = $this->args[0];
 		$user = $this->User->getAuthUser($userId);
@@ -111,7 +111,7 @@ class EventShell extends AppShell
 		$this->Job->saveField('progress', '100');
 		$this->Job->saveField('message', 'Job done.');
 	}
-	
+
 	public function cacherpz() {
 		$userId = $this->args[0];
 		$user = $this->User->getAuthUser($userId);
@@ -149,7 +149,7 @@ class EventShell extends AppShell
 		$this->Job->saveField('progress', '100');
 		$this->Job->saveField('message', 'Job done.');
 	}
-	
+
 	public function cachecsv() {
 		$userId = $this->args[0];
 		$user = $this->User->getAuthUser($userId);
@@ -185,7 +185,7 @@ class EventShell extends AppShell
 		$this->Job->saveField('progress', '100');
 		$this->Job->saveField('message', 'Job done.');
 	}
-	
+
 	public function cachetext() {
 		$userId = $this->args[0];
 		$user = $this->User->getAuthUser($userId);
@@ -211,7 +211,7 @@ class EventShell extends AppShell
 		$this->Job->saveField('progress', 100);
 		$this->Job->saveField('message', 'Job done.');
 	}
-	
+
 	public function cachenids() {
 		$userId = $this->args[0];
 		$user = $this->User->getAuthUser($userId);
@@ -244,7 +244,7 @@ class EventShell extends AppShell
 		$this->Job->saveField('progress', '100');
 		$this->Job->saveField('message', 'Job done.');
 	}
-	
+
 	public function alertemail() {
 		$userId = $this->args[0];
 		$processId = $this->args[1];
@@ -256,7 +256,7 @@ class EventShell extends AppShell
 		$job['Job']['message'] = 'Emails sent.';
 		$this->Job->save($job);
 	}
-	
+
 	public function contactemail() {
 		$id = $this->args[0];
 		$message = $this->args[1];
@@ -284,13 +284,13 @@ class EventShell extends AppShell
 		$job['Job']['message'] = 'Emails sent.';
 		$this->Job->save($job);
 	}
-	
+
 	public function enqueueCaching() {
 		$timestamp = $this->args[0];
 		$task = $this->Task->findByType('cache_exports');
-		
+
 		// If the next execution time and the timestamp don't match, it means that this task is no longer valid as the time for the execution has since being scheduled
-		// been updated. 
+		// been updated.
 		if ($task['Task']['next_execution_time'] != $timestamp) return;
 
 		$users = $this->User->find('all', array(
@@ -301,7 +301,7 @@ class EventShell extends AppShell
 				),
 				'contain' => array(
 						'Organisation' => array('fields' => array('name')),
-						'Role' => array('fields' => array('perm_site_admin'))	
+						'Role' => array('fields' => array('perm_site_admin'))
 				),
 				'fields' => array('User.org_id', 'User.id'),
 				'group' => array('User.org_id')
@@ -314,14 +314,14 @@ class EventShell extends AppShell
 				),
 				'contain' => array(
 						'Organisation' => array('fields' => array('name')),
-						'Role' => array('fields' => array('perm_site_admin'))	
+						'Role' => array('fields' => array('perm_site_admin'))
 				),
 				'fields' => array('User.org_id', 'User.id')
 		));
 		$users[] = $site_admin;
-		
+
 		if ($task['Task']['timer'] > 0)	$this->Task->reQueue($task, 'cache', 'EventShell', 'enqueueCaching', false, false);
-		
+
 		// Queue a set of exports for admins. This "ADMIN" organisation. The organisation of the admin users doesn't actually matter, it is only used to indentify
 		// the special cache files containing all events
 		$i = 0;
@@ -334,7 +334,7 @@ class EventShell extends AppShell
 		$this->Task->id = $task['Task']['id'];
 		$this->Task->saveField('message', $i . ' job(s) started at ' . date('d/m/Y - H:i:s') . '.');
 	}
-	
+
 	public function publish() {
 		$id = $this->args[0];
 		$passAlong = $this->args[1];
@@ -357,4 +357,3 @@ class EventShell extends AppShell
 	}
 
 }
-

@@ -16,7 +16,7 @@
 * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
 */
 ?>
-<?php 
+<?php
 echo $this->Html->css('bootstrap');
 echo $this->Html->css('main');
 echo $this->Html->script('jquery-2.1.0.min');

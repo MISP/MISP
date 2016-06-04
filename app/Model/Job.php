@@ -6,7 +6,7 @@ App::uses('AppModel', 'Model');
  * @property Job $Job
 */
 class Job extends AppModel {
-	
+
 	public $belongsTo = array(
 			'Org' => array(
 					'className' => 'Organisation',
@@ -15,7 +15,7 @@ class Job extends AppModel {
 					'fields' => array('id', 'name', 'uuid')
 			),
 		);
-	
+
 	public function beforeValidate($options = array()) {
 		parent::beforeValidate();
 		$date = date('Y-m-d H:i:s');
@@ -26,7 +26,7 @@ class Job extends AppModel {
 			$this->data['Job']['date_modified'] = $date;
 		}
 	}
-	
+
 	public function cache($type, $user, $target, $jobOrg = null) {
 		$extra = null;
 		$extra2 = null;

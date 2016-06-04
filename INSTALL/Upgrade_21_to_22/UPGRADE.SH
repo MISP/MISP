@@ -33,15 +33,15 @@ YUM_CMD=$(which yum)
 APT_GET_CMD=$(which apt-get)
 BREW_CMD=$(which brew)
 
-if [[ ! -z $APT_GET_CMD ]] 
+if [[ ! -z $APT_GET_CMD ]]
   then
     printf '\n\nInstalling Redis using apt-get'
     apt-get install redis-server
-elif [[ ! -z $YUM_CMD ]] 
+elif [[ ! -z $YUM_CMD ]]
   then
     printf '\n\nNo Redis package available with yum, please install it manually.'
     yum install redis
-elif [[ ! -z $OTHER_CMD ]] 
+elif [[ ! -z $OTHER_CMD ]]
   then
     printf '\n\nInstalling Redis using brew'
     brew install redis-server
@@ -66,4 +66,3 @@ cp -fa "$FILE_PATH/setup/config.php" "$MISP_PATH/app/Plugin/CakeResque/Config/co
 printf '\n\n=========================================================\n'
 printf '|               \e[34mI\e[39mnstallation \e[34mC\e[39momplete                   |\n'
 printf '=========================================================\n\n'
-

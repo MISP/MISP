@@ -16,10 +16,10 @@ class User extends AppModel {
  * @var string
  */
 	public $displayField = 'email';
-	
+
 	public $orgField = array('Organisation', 'name');	// TODO Audit, LogableBehaviour + org
 
-	
+
 /**
  * Validation rules
  *
@@ -242,7 +242,7 @@ class User extends AppModel {
 		'Trim',
 		'Containable'
 	);
-	
+
 	private function __generatePassword() {
 		$groups = array(
 				'0123456789',
@@ -261,7 +261,7 @@ class User extends AppModel {
 		}
 		return $pw;
 	}
-	
+
 	public function beforeValidate($options = array()) {
 		if (!isset($this->data['User']['id'])) {
 			if (isset($this->data['User']['enable_password']) && (!$this->data['User']['enable_password'] || (empty($this->data['User']['password']) && empty($this->data['User']['confirm_password'])))) {
@@ -328,9 +328,9 @@ class User extends AppModel {
 		if (empty($check['certif_public'])) {
 			return true;
 		}
-	
+
 		// certif_public is entered
-	
+
 		// Check if $check is a x509 certificate
 		if (openssl_x509_read($check['certif_public'])){
 			try {
@@ -373,7 +373,7 @@ class User extends AppModel {
 		} else {
 			return false;
 		}
-	}	
+	}
 
 	public function passwordLength($check) {
 		$length = Configure::read('Security.password_policy_length');
@@ -383,7 +383,7 @@ class User extends AppModel {
 		if (strlen($value) < $length) return false;
 		return true;
 	}
-	
+
 	public function complexPassword($check) {
 		/*
 		default password:
@@ -451,7 +451,7 @@ class User extends AppModel {
 		}
 		return $fails;
 	}
-	
+
 	public function getOrgs() {
 		$orgs = $this->Organisation->find('list', array(
 			'recursive' => -1,
@@ -459,14 +459,14 @@ class User extends AppModel {
 		));
 		return $orgs;
 	}
-	
+
 	public function getOrgMemberCount($org) {
 		return $this->find('count', array(
 				'conditions' => array(
 						'org =' => $org,
 				)));
 	}
-	
+
 	public function verifyGPG($id = false) {
 		require_once 'Crypt/GPG.php';
 		$this->Behaviors->detach('Trim');
@@ -597,7 +597,7 @@ class User extends AppModel {
 		unset($user['Organisation'], $user['Role'], $user['Server']);
 		return $user['User'];
 	}
-	
+
 	// get the current user and rearrange it to be in the same format as in the auth component
 	public function getAuthUserByUuid($id) {
 		$conditions = array('User.authkey' => $id);
@@ -610,7 +610,7 @@ class User extends AppModel {
 		unset($user['Organisation'], $user['Role'], $user['Server']);
 		return $user['User'];
 	}
-	
+
 	public function getAuthUserByExternalAuth($id) {
 		$conditions = array('User.external_auth_key' => $id, 'User.external_auth_required' => true);
 		$user = $this->find('first', array('conditions' => $conditions, 'recursive' => -1,'contain' => array('Organisation', 'Role', 'Server')));
@@ -622,9 +622,9 @@ class User extends AppModel {
 		unset($user['Organisation'], $user['Role'], $user['Server']);
 		return $user['User'];
 	}
-	
+
 	// Fetch all users that have access to an event / discussion for e-mailing (or maybe something else in the future.
-	// parameters are an array of org IDs that are owners (for an event this would be orgc and org) 
+	// parameters are an array of org IDs that are owners (for an event this would be orgc and org)
 	public function getUsersWithAccess($owners = array(), $distribution, $sharing_group_id = 0, $userConditions = array()) {
 		$sgModel = ClassRegistry::init('SharingGroup');
 		$conditions = array();
@@ -636,7 +636,7 @@ class User extends AppModel {
 			$all = false;
 			$validOrgs = $owners;
 		}
-		
+
 		// add all orgs to the conditions that can see the SG
 		if ($distribution == 4) {
 			$sgOrgs = $sgModel->getOrgsWithAccess($sharing_group_id);
@@ -699,7 +699,7 @@ class User extends AppModel {
 		if (isset($user['User']['gpgkey']) && !empty($user['User']['gpgkey'])) $canEncryptGPG = true;
 		$canEncryptSMIME = false;
 		if (isset($user['User']['certif_public']) && !empty($user['User']['certif_public']) && Configure::read('SMIME.enabled')) $canEncryptSMIME = true;
-	
+
 		// If bodyonlencrypted is enabled and the user has no encryption key, use the alternate body (if it exists)
 		if (Configure::read('GnuPG.bodyonlyencrypted') && !$canEncryptSMIME && !$canEncryptGPG && $bodyNoEnc) {
 			$body = $bodyNoEnc;
@@ -719,8 +719,8 @@ class User extends AppModel {
 				$failed = true;
 			}
 		}
-		$Email = new CakeEmail();	
-		// If we cannot encrypt the mail and the server settings restricts sending unencrypted messages, return false 
+		$Email = new CakeEmail();
+		// If we cannot encrypt the mail and the server settings restricts sending unencrypted messages, return false
 		if (!$failed && Configure::read('GnuPG.onlyencrypted') && !$canEncryptGPG && !$canEncryptSMIME) {
 			$failed = true;
 			$failureReason = " encrypted messages are enforced and the message could not be encrypted for this user as no valid encryption key was found.";
@@ -863,7 +863,7 @@ class User extends AppModel {
 		}
 		return false;
 	}
-	
+
 	public function adminMessageResolve($message) {
 		$resolveVars = array('$contact' => 'MISP.contact', '$org' => 'MISP.org', '$misp' => 'MISP.baseurl');
 		foreach ($resolveVars as $k => $v) {
@@ -872,7 +872,7 @@ class User extends AppModel {
 		}
 		return $message;
 	}
-	
+
 	public function fetchPGPKey($email) {
 		App::uses('SyncTool', 'Tools');
 		$syncTool = new SyncTool();
@@ -884,7 +884,7 @@ class User extends AppModel {
 		$results = $this->__extractPGPInfo($matches[1]);
 		return $results;
 	}
-	
+
 	private function __extractPGPInfo($lines) {
 		$extractionRules = array(
 			'key_id' => array('regex' => '/\">(.*?)<\/a>/', 'all' => false, 'alternate' => false),
@@ -910,7 +910,7 @@ class User extends AppModel {
 		}
 		return $final;
 	}
-	
+
 	public function describeAuthFields() {
 		$fields = array();
 		$fields = array_merge($fields, array_keys($this->getColumnTypes()));

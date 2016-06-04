@@ -12,11 +12,11 @@ class Server extends AppModel {
 			'userModel' => 'User',
 			'userKey' => 'user_id',
 			'change' => 'full'
-		), 
+		),
 		'Trim',
 		'Containable'
 	);
-	
+
 	public $belongsTo = array(
 		'Organisation' => array(
 			'className' => 'Organisation',
@@ -27,7 +27,7 @@ class Server extends AppModel {
 			'foreignKey' => 'remote_org_id',
 		)
 	);
-	
+
 	public $hasMany = array(
 		'SharingGroupServer' => array(
 			'className' => 'SharingGroupServer',
@@ -124,7 +124,7 @@ class Server extends AppModel {
 			),
 		),
 	);
-	
+
 	public $serverSettings = array(
 			'MISP' => array(
 					'branch' => 1,
@@ -571,7 +571,7 @@ class Server extends AppModel {
 							'test' => 'testBool',
 							'type' => 'boolean',
 							'null' => false,
-							
+
 					),
 					'block_old_event_alert' => array(
 							'level' => 1,
@@ -877,7 +877,7 @@ class Server extends AppModel {
 						'test' => 'testForEmpty',
 						'type' => 'string',
 					),
-					'ZeroMQ_enable' => array(						
+					'ZeroMQ_enable' => array(
 						'level' => 2,
 						'description' => 'Enables or disables the pub/sub feature of MISP. Make sure that you install the requirements for the plugin to work. Refer to the installation instructions for more information.',
 						'value' => false,
@@ -886,7 +886,7 @@ class Server extends AppModel {
 						'type' => 'boolean',
 						'afterHook' => 'zmqAfterHook',
 					),
-					'ZeroMQ_port' => array(						
+					'ZeroMQ_port' => array(
 						'level' => 2,
 						'description' => 'The port that the pub/sub feature will use.',
 						'value' => 50000,
@@ -1089,7 +1089,7 @@ class Server extends AppModel {
 					'type' => 'boolean',
 			),
 	);
-	
+
 	private $__settingTabMergeRules = array(
 			'GnuPG' => 'Encryption',
 			'SMIME' => 'Encryption',
@@ -1098,16 +1098,16 @@ class Server extends AppModel {
 	);
 
 	public $validEventIndexFilters = array('searchall', 'searchpublished', 'searchorg', 'searchtag', 'searcheventid', 'searchdate', 'searcheventinfo', 'searchthreatlevel', 'searchdistribution', 'searchanalysis', 'searchattribute');
-	
+
 	public function isOwnedByOrg($serverid, $org) {
 		return $this->field('id', array('id' => $serverid, 'org' => $org)) === $serverid;
 	}
-	
+
 	public function beforeSave($options = array()) {
 		$this->data['Server']['url'] = rtrim($this->data['Server']['url'], '/');
 		return true;
 	}
-	
+
 	public function pull($user, $id = null, $technique=false, $server, $jobId = false, $percent = 100, $current = 0) {
 		if ($jobId) {
 			$job = ClassRegistry::init('Job');
@@ -1129,7 +1129,7 @@ class Server extends AppModel {
 			} else if (is_string($eventIds)) {
 				return array(2, $eventIds);
 			}
-		
+
 			// reverse array of events, to first get the old ones, and then the new ones
 			if (!empty($eventIds)) {
 				$eventIds = array_reverse($eventIds);
@@ -1339,7 +1339,7 @@ class Server extends AppModel {
 								if (!isset($proposal['deleted']) || !$proposal['deleted']) {
 									if ($shadowAttribute->save($proposal)) $shadowAttribute->sendProposalAlertEmail($eid);
 								}
-								
+
 							}
 						}
 					}
@@ -1368,12 +1368,12 @@ class Server extends AppModel {
 			'action' => 'pull',
 			'user_id' => $user['id'],
 			'title' => 'Pull from ' . $server['Server']['url'] . ' initiated by ' . $email,
-			'change' => count($successes) . ' events and ' . count($pulledProposals) . ' proposals pulled or updated. ' . count($fails) . ' events failed or didn\'t need an update.' 
+			'change' => count($successes) . ' events and ' . count($pulledProposals) . ' proposals pulled or updated. ' . count($fails) . ' events failed or didn\'t need an update.'
 		));
 		if (!isset($lastpulledid)) $lastpulledid = 0;
 		return array($successes, $fails, $pulledProposals, $lastpulledid);
 	}
-	
+
 	public function filterRuleToParameter($filter_rules) {
 		$final = array();
 		if (empty($filter_rules)) return $final;
@@ -1393,7 +1393,7 @@ class Server extends AppModel {
 		}
 		return $final;
 	}
-	
+
 
 	/**
 	 * Get an array of event_ids that are present on the remote server
@@ -1464,7 +1464,7 @@ class Server extends AppModel {
 			// error, so return error message, since that is handled and everything is expecting an array
 			return "Error: got response code " . $response->code;
 	}
-	
+
 	public function push($id = null, $technique=false, $jobId = false, $HttpSocket, $user) {
 		if ($jobId) {
 			$job = ClassRegistry::init('Job');
@@ -1495,7 +1495,7 @@ class Server extends AppModel {
 		} else {
 			$this->redirect(array('action' => 'index'));
 		}
-		
+
 		if ($push !== 'mangle') {
 			$sgs = $this->Event->SharingGroup->find('all', array(
 				'recursive' => -1,
@@ -1577,9 +1577,9 @@ class Server extends AppModel {
 				$this->save($this->data);
 			}
 		}
-		
+
 		$this->syncProposals($HttpSocket, $this->data, null, null, $this->Event);
-		
+
 		if (!isset($successes)) $successes = null;
 		if (!isset($fails)) $fails = null;
 		$this->Log = ClassRegistry::init('Log');
@@ -1604,7 +1604,7 @@ class Server extends AppModel {
 			return array($successes, $fails);
 		}
 	}
-	
+
 	public function getEventIdsForPush($id, $HttpSocket, $eventIds, $user) {
 		$server = $this->read(null, $id);
 		$this->Event = ClassRegistry::init('Event');
@@ -1638,7 +1638,7 @@ class Server extends AppModel {
 		}
 		return $uuidList;
 	}
-	
+
 	public function syncProposals($HttpSocket, $server, $sa_id = null, $event_id = null, $eventModel) {
 		$saModel = ClassRegistry::init('ShadowAttribute');
 		if (null == $HttpSocket) {
@@ -1675,7 +1675,7 @@ class Server extends AppModel {
 						unset($sa['value1']);
 						unset($sa['value2']);
 					}
-						
+
 					$data = json_encode($event['ShadowAttribute']);
 					$request = array(
 							'header' => array(
@@ -1693,7 +1693,7 @@ class Server extends AppModel {
 						} else {
 							$fails++;
 							if ($error_message == "") $result['message'];
-							else $error_message .= " --- " . $result['message']; 
+							else $error_message .= " --- " . $result['message'];
 						}
 					} else {
 						$fails++;
@@ -1717,7 +1717,7 @@ class Server extends AppModel {
 		}
 		return true;
 	}
-	
+
 	private function __getEnrichmentSettings() {
 		$modules = $this->getEnrichmentModules();
 		$result = array();
@@ -1733,7 +1733,7 @@ class Server extends AppModel {
 		}
 		return $result;
 	}
-	
+
 	public function getCurrentServerSettings() {
 		$serverSettings = $this->serverSettings;
 		$results = array();
@@ -1760,7 +1760,7 @@ class Server extends AppModel {
 		}
 		return $serverSettings;
 	}
-	
+
 	public function serverSettingsRead($unsorted = false) {
 		$serverSettings = $this->getCurrentServerSettings();
 		$results = array();
@@ -1799,7 +1799,7 @@ class Server extends AppModel {
 							$leafValue['subGroup'] = $pluginData[0];
 						}
 						if (strpos($branchKey, 'Secur') === 0) $leafValue['tab'] = 'Security';
-						else $leafValue['tab'] = $branchKey; 
+						else $leafValue['tab'] = $branchKey;
 						$finalSettingsUnsorted[$branchKey . '.' . $leafKey] = $leafValue;
 					}
 				}
@@ -1824,14 +1824,14 @@ class Server extends AppModel {
 		}
 		return $finalSettings;
 	}
-	
+
 	public function serverSettingReadSingle($settingObject, $settingName, $leafKey) {
 		$setting = Configure::read($settingName);
 		$result = $this->__evaluateLeaf($settingObject, $leafKey, $setting);
 		$result['setting'] = $settingName;
 		return $result;
 	}
-	
+
 	private function __evaluateLeaf($leafValue, $leafKey, $setting) {
 		if (isset($setting)) {
 			$result = $this->{$leafValue['test']}($setting);
@@ -1848,112 +1848,112 @@ class Server extends AppModel {
 		}
 		return $leafValue;
 	}
-	
+
 	public function testForNumeric($value) {
 		if (!is_numeric($value)) return 'This setting has to be a number.';
 		return true;
 	}
-	
+
 	public function testForEmpty($value) {
 		if ($value === '') return 'Value not set.';
 		return true;
 	}
-	
+
 	public function testForPath($value) {
 		if ($value === '') return true;
 		if (preg_match('/^[a-z0-9\-\_\:\/]+$/i', $value)) return true;
 		return 'Invalid characters in the path.';
 	}
-	
+
 	public function testDebug($value) {
 		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
 		if ($this->testForNumeric($value) !== true) return 'This setting has to be a number between 0 and 2, with 0 disabling debug mode.';
 		if ($value === 0) return true;
 		return 'This setting has to be set to 0 on production systems. Ignore this warning if this is not the case.';
 	}
-	
+
 	public function testDebugAdmin($value) {
 		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
 		if ($this->testBool($value) !== true) return 'This setting has to be either true or false.';
 		if (!$value) return true;
 		return 'Enabling debug is not recommended. Turn this on temporarily if you need to see a stack trace to debug an issue, but make sure this is not left on.';
 	}
-	
+
 	public function testDate($date) {
 		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
 		if (!strtotime($date)) return 'The date that you have entered is invalid. Expected: yyyy-mm-dd';
 		return true;
 	}
-	
+
 	public function testBaseURL($value) {
 		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
 		$protocol = ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $_SERVER['SERVER_PORT'] == 443) === true ? 'HTTPS' : 'HTTP';
 		if ($value != strtolower($protocol) . '://' . $_SERVER['HTTP_HOST']) return false;
 		return true;
 	}
-	
+
 	public function testMangle($value) {
 		if ($this->testBool($value) !== true) return $this->testBool($value);
 		if ($value) return 'Enabled, expect issues.';
 		return true;
 	}
-	
+
 	public function testDisableEmail($value) {
 		if (isset($value) && $value) return 'E-mailing is blocked.';
 		return true;
 	}
-	
+
 	public function testLive($value) {
 		if ($this->testBool($value) !== true) return $this->testBool($value);
 		if (!$value) return 'MISP disabled.';
 		return true;
 	}
-	
+
 	public function testBool($value) {
 		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
 		if ($value !== true && $value !== false) return 'Value is not a boolean, make sure that you convert \'true\' to true for example.';
 		return true;
 	}
-	
+
 	public function testSalt($value) {
 		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
 		if (strlen($value) < 32) return 'The salt has to be an at least 32 byte long string.';
 		if ($value == "Rooraenietu8Eeyo<Qu2eeNfterd-dd+") return 'This is the default salt shipped with the application and is therefore unsecure.';
 		return true;
 	}
-	
+
 	public function testForTermsFile($value) {
 		return $this->__testForFile($value, APP . 'files' . DS . 'terms');
 	}
-	
+
 	public function testForCustomImage($value) {
 		return $this->__testForFile($value, APP . 'webroot' . DS . 'img' . DS . 'custom');
 	}
-	
+
 	public function testPasswordLength($value) {
 		$numeric = $this->testForNumeric($value);
 		if ($numeric !== true) return $numeric;
 		if ($value < 0) return 'Length cannot be negative, set a positive integer or 0 (to choose the default option).';
 		return true;
 	}
-	
+
 	public function testForPortNumber($value) {
 		$numeric = $this->testForNumeric($value);
 		if ($numeric !== true) return $numeric;
 		if ($value < 49152 || $value > 65535) return 'It is recommended that you pick a port number in the dynamic range (49152-65535). However, if you have a valid reason to use a different port, ignore this message.';
 		return true;
 	}
-	
+
 	public function testPasswordRegex($value) {
 		if (!empty($value) && @preg_match($value, 'test') === false) return 'Invalid regex.';
 		return true;
 	}
-	
+
 	public function testPasswordResetText($value) {
 		if (strpos($value, '$password') === false || strpos($value, '$username') === false || strpos($value, '$misp') === false) return 'The text served to the users must include the following replacement strings: "$username", "$password", "$misp"';
 		return true;
 	}
-	
+
 	public function testForGPGBinary($value) {
 		if (empty($value)) $value = $this->serverSettings['GnuPG']['binary']['value'];
 		if (file_exists($value)) return true;
@@ -1967,40 +1967,40 @@ class Server extends AppModel {
 			return 'Negative seconds found. The following formats are accepted: seconds (positive integer), or duration (positive integer) followed by a letter denoting scale (such as m, h, d, w for minutes, hours, days, weeks)';
 		}
 	}
-	
+
 	public function testForRPZBehaviour($value) {
 		$numeric = $this->testforNumeric($value);
 		if ($numeric !== true) return $numeric;
 		if ($value < 0 || $value > 3) return 'Invalid setting, valid range is 0-3 (0 = DROP, 1 = NXDOMAIN, 2 = NODATA, 3 = walled garden.';
 		return true;
 	}
-	
+
 	public function testForSightingVisibility($value) {
 		$numeric = $this->testforNumeric($value);
 		if ($numeric !== true) return $numeric;
 		if ($value < 0 || $value > 2) return 'Invalid setting, valid range is 0-2 (0 = Event owner, 1 = Sighting reporters, 2 = Everyone.';
 		return true;
 	}
-	
+
 	public function sightingsBeforeHook($setting, $value) {
 		if ($value == true) {
 			$this->updateDatabase('addSightings');
 		}
 		return true;
 	}
-	
+
 	public function testForRPZSerial($value) {
 		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
 		if (!preg_match('/^((\$date(\d*)|\d*))$/', $value)) return 'Invalid format.';
 		return true;
 	}
-	
+
 	public function testForRPZNS($value) {
 		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
 		if (!preg_match('/^\w+(\.\w+)*(\.?) \w+(\.\w+)*$/', $value)) return 'Invalid format.';
 		return true;
 	}
-	
+
 	public function zmqAfterHook($setting, $value) {
 		App::uses('PubSubTool', 'Tools');
 		$pubSubTool = new PubSubTool();
@@ -2017,7 +2017,7 @@ class Server extends AppModel {
 		$pubSubTool->reloadServer();
 		return true;
 	}
-	
+
 	public function ipLogBeforeHook($setting, $value) {
 		if ($setting == 'MISP.log_client_ip') {
 			if ($value == true) {
@@ -2026,7 +2026,7 @@ class Server extends AppModel {
 		}
 		return true;
 	}
-	
+
 	public function eventBlacklistingBeforeHook($setting, $value) {
 		$this->cleanCacheFiles();
 		if ($value) {
@@ -2046,7 +2046,7 @@ class Server extends AppModel {
 		$this->cleanCacheFiles();
 		return true;
 	}
-	
+
 	public function orgBlacklistingBeforeHook($setting, $value) {
 		$this->cleanCacheFiles();
 		if ($value) {
@@ -2059,8 +2059,8 @@ class Server extends AppModel {
 		}
 		return true;
 	}
-	
-	
+
+
 	// never come here directly, always go through a secondary check like testForTermsFile in order to also pass along the expected file path
 	private function __testForFile($value, $path) {
 		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
@@ -2069,25 +2069,25 @@ class Server extends AppModel {
 		if (!file_exists($file)) return 'Could not find the specified file. Make sure that it is uploaded into the following directory: ' . $path;
 		return true;
 	}
-	
+
 	public function serverSettingsSaveValue($setting, $value) {
 		Configure::write($setting, $value);
 		Configure::dump('config.php', 'default', array('MISP', 'GnuPG', 'SMIME', 'Proxy', 'SecureAuth', 'Security', 'debug', 'site_admin_debug', 'Plugin'));
 	}
-	
+
 	public function checkVersion($newest) {
 		$version_array = $this->checkMISPVersion();
 		$current = 'v' . $version_array['major'] . '.' . $version_array['minor'] . '.' . $version_array['hotfix'];
 		$newest_array = $this->__dissectVersion($newest);
-		$upToDate = $this->__compareVersions(array($version_array['major'], $version_array['minor'], $version_array['hotfix']), $newest_array, 0); 
+		$upToDate = $this->__compareVersions(array($version_array['major'], $version_array['minor'], $version_array['hotfix']), $newest_array, 0);
 		return array ('current' => $current, 'newest' => $newest, 'upToDate' => $upToDate);
 	}
-	
+
 	private function __dissectVersion($version) {
 		$version = substr($version, 1);
 		return explode('.', $version);
 	}
-	
+
 	private function __compareVersions($current, $newest, $i) {
 		if ($current[$i] == $newest[$i]) {
 			if ($i < 2) {
@@ -2101,7 +2101,7 @@ class Server extends AppModel {
 			return 'newer';
 		}
 	}
-	
+
 	public function getFileRules() {
 		$validItems = array(
 				'orgs' => array(
@@ -2118,7 +2118,7 @@ class Server extends AppModel {
 						'name' => 'Additional image files',
 						'description' => 'Image files uploaded into this directory can be used for various purposes, such as for the login page logos',
 						'expected' => array(
-								'MISP.footer_logo' => Configure::read('MISP.footer_logo'), 
+								'MISP.footer_logo' => Configure::read('MISP.footer_logo'),
 								'MISP.home_logo' => Configure::read('MISP.home_logo'),
 								'MISP.welcome_logo' => Configure::read('MISP.welcome_logo'),
 								'MISP.welcome_logo2' => Configure::read('MISP.welcome_logo2'),
@@ -2132,7 +2132,7 @@ class Server extends AppModel {
 		);
 		return $validItems;
 	}
-	
+
 	public function grabFiles() {
 		$validItems = $this->getFileRules();
 		App::uses('Folder', 'Utility');
@@ -2147,7 +2147,7 @@ class Server extends AppModel {
 		}
 		return $validItems;
 	}
-	
+
 	public function runConnectionTest($id) {
 		$server = $this->find('first', array('conditions' => array('Server.id' => $id)));
 		App::uses('SyncTool', 'Tools');
@@ -2193,15 +2193,15 @@ class Server extends AppModel {
 			return array('status' => 3);
 		}
 	}
-	
+
 	public function checkVersionCompatibility($id, $user = array(), $HttpSocket = false) {
-		// for event publishing when we don't have a user.					
+		// for event publishing when we don't have a user.
 		if (empty($user)) $user = array('Organisation' => array('name' => 'SYSTEM'), 'email' => 'SYSTEM', 'id' => 0);
 		App::uses('Folder', 'Utility');
 		$file = new File(ROOT . DS . 'VERSION.json', true);
 		$localVersion = json_decode($file->read(), true);
 		$file->close();
-		
+
 		$server = $this->find('first', array('conditions' => array('Server.id' => $id)));
 		if (!$HttpSocket) {
 			App::uses('SyncTool', 'Tools');
@@ -2262,7 +2262,7 @@ class Server extends AppModel {
 			$response = "Sync to Server ('" . $id . "') aborted. The remote instance is at least a full minor version ahead - make sure you update your MISP instance!";
 			$canPush = true;
 		}
-		
+
 		// if we haven't set a message yet, we're good to go. We are only behind by a hotfix version
 		if ($response === false) {
 			$success = true;
@@ -2271,12 +2271,12 @@ class Server extends AppModel {
 		else $issueLevel = "error";
 		if ($response === false && $localVersion['hotfix'] > $remoteVersion[2]) $response = "Sync to Server ('" . $id . "') initiated, but the remote instance is a few hotfixes behind.";
 		if ($response === false && $localVersion['hotfix'] < $remoteVersion[2]) $response = "Sync to Server ('" . $id . "') initiated, but the remote instance is a few hotfixes ahead. Make sure you keep your instance up to date!";
-		
+
 		if (Configure::read('MISP.ManglePushTo23') && !$canPush) {
 			$canPush = 'mangle';
 			$response = "Sync to Server ('" . $id . "') should have been blocked, but mangle sync override is enabled. A downgraded synchronisation is highly advised again, please upgrade your instance as soon as possible.";
 		}
-		
+
 		if ($response !== false) {
 			$this->Log = ClassRegistry::init('Log');
 			$this->Log->create();
@@ -2292,11 +2292,11 @@ class Server extends AppModel {
 		}
 		return array('success' => $success, 'response' => $response, 'canPush' => $canPush, 'version' => $remoteVersion);
 	}
-	
+
 	public function isJson($string) {
 		return (json_last_error() == JSON_ERROR_NONE);
 	}
-	
+
 	public function captureServer($server, $user) {
 		if (isset($server[0])) $server = $server[0];
 		if ($server['url'] == Configure::read('MISP.baseurl')) return 0;
@@ -2305,7 +2305,7 @@ class Server extends AppModel {
 				'conditions' => array('url' => $server['url'])
 		));
 		// unlike with other capture methods, if we find a server that we don't know
-		// we don't want to save it. 
+		// we don't want to save it.
 		if (empty($existingServer)) {
 			return false;
 		}
@@ -2317,18 +2317,18 @@ class Server extends AppModel {
 		App::uses('Folder', 'Utility');
 		// check writeable directories
 		$writeableDirs = array(
-				'tmp' => 0, 
-				'files' => 0, 
+				'tmp' => 0,
+				'files' => 0,
 				'files' . DS . 'scripts' . DS . 'tmp' => 0,
-				'tmp' . DS . 'csv_all' => 0, 
-				'tmp' . DS . 'csv_sig' => 0, 
-				'tmp' . DS . 'md5' => 0, 
+				'tmp' . DS . 'csv_all' => 0,
+				'tmp' . DS . 'csv_sig' => 0,
+				'tmp' . DS . 'md5' => 0,
 				'tmp' . DS . 'sha1' => 0,
-				'tmp' . DS . 'snort' => 0, 
-				'tmp' . DS . 'suricata' => 0, 
-				'tmp' . DS . 'text' => 0, 
+				'tmp' . DS . 'snort' => 0,
+				'tmp' . DS . 'suricata' => 0,
+				'tmp' . DS . 'text' => 0,
 				'tmp' . DS . 'xml' => 0,
-				'tmp' . DS . 'files' => 0, 
+				'tmp' . DS . 'files' => 0,
 				'tmp' . DS . 'logs' => 0,
 		);
 		foreach ($writeableDirs as $path => &$error) {
@@ -2342,7 +2342,7 @@ class Server extends AppModel {
 		}
 		return $writeableDirs;
 	}
-	
+
 	public function writeableFilesDiagnostics(&$diagnostic_errors) {
 		$writeableFiles = array(
 				'Config' . DS . 'config.php' => 0,
@@ -2359,7 +2359,7 @@ class Server extends AppModel {
 		}
 		return $writeableFiles;
 	}
-	
+
 	public function stixDiagnostics(&$diagnostic_errors, &$stixVersion, &$cyboxVersion) {
 		$result = array();
 		$expected = array('stix' => '1.1.1.4', 'cybox' => '2.1.0.12');
@@ -2379,14 +2379,14 @@ class Server extends AppModel {
 		foreach ($expected as $package => $version) {
 			$result[$package]['version'] = $scriptResult[$package];
 			$result[$package]['expected'] = $expected[$package];
-			$result[$package]['status'] = $result[$package]['version'] == $result[$package]['expected'] ? 1 : 0; 
+			$result[$package]['status'] = $result[$package]['version'] == $result[$package]['expected'] ? 1 : 0;
 			if ($result[$package]['status'] == 0) $diagnostic_errors++;
 			${$package . 'Version'}[0] = str_replace('$current', $result[$package]['version'], ${$package . 'Version'}[0]);
 			${$package . 'Version'}[0] = str_replace('$expected', $result[$package]['expected'], ${$package . 'Version'}[0]);
 		}
 		return $result;
 	}
-	
+
 	public function gpgDiagnostics(&$diagnostic_errors) {
 		$gpgStatus = 0;
 		if (Configure::read('GnuPG.email') && Configure::read('GnuPG.homedir')) {
@@ -2420,7 +2420,7 @@ class Server extends AppModel {
 		if ($gpgStatus != 0) $diagnostic_errors++;
 		return $gpgStatus;
 	}
-	
+
 	public function zmqDiagnostics(&$diagnostic_errors) {
 		if (!Configure::read('Plugin.ZeroMQ_enable')) return 1;
 		App::uses('PubSubTool', 'Tools');
@@ -2433,7 +2433,7 @@ class Server extends AppModel {
 		$diagnostic_errors++;
 		return 3;
 	}
-	
+
 	public function proxyDiagnostics(&$diagnostic_errors) {
 		$proxyStatus = 0;
 		$proxy = Configure::read('Proxy');
@@ -2455,7 +2455,7 @@ class Server extends AppModel {
 		if ($proxyStatus > 1) $diagnostic_errors++;
 		return $proxyStatus;
 	}
-	
+
 	public function sessionDiagnostics(&$diagnostic_errors, &$sessionCount) {
 		if (Configure::read('Session.defaults') !== 'database') {
 			$sessionCount = 'N/A';
@@ -2475,7 +2475,7 @@ class Server extends AppModel {
 		}
 		return $sessionStatus;
 	}
-	
+
 	public function workerDiagnostics(&$workerIssueCount) {
 		$this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
 		$workers = $this->ResqueStatus->getWorkers();
@@ -2519,7 +2519,7 @@ class Server extends AppModel {
 		$worker_array['proc_accessible'] = $procAccessible;
 		return $worker_array;
 	}
-	
+
 	public function retrieveCurrentSettings($branch, $subString) {
 		$settings = array();
 		foreach ($this->serverSettings[$branch] as $settingName => $setting) {
@@ -2531,7 +2531,7 @@ class Server extends AppModel {
 		}
 		return $settings;
 	}
-	
+
 	public function killWorker($pid, $user) {
 		if (!is_numeric($pid)) throw new MethodNotAllowedException('Non numeric PID found!');
 		$this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
@@ -2569,7 +2569,7 @@ class Server extends AppModel {
 			$this->ResqueStatus->removeWorker($pid);
 		}
 	}
-	
+
 	public function workerRemoveDead($user) {
 		$this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
 		$workers = $this->ResqueStatus->getWorkers();
@@ -2578,9 +2578,9 @@ class Server extends AppModel {
 			$currentUser = posix_getpwuid(posix_geteuid());
 			$currentUser = $currentUser['name'];
 		} else $currentUser = trim(shell_exec('whoami'));
-		foreach ($workers as $pid => $worker) { 
+		foreach ($workers as $pid => $worker) {
 			if (!is_numeric($pid)) throw new MethodNotAllowedException('Non numeric PID found!');
-			$pidTest = substr_count(trim(shell_exec('ps -p ' . $pid)), PHP_EOL) > 0 ? true : false; 
+			$pidTest = substr_count(trim(shell_exec('ps -p ' . $pid)), PHP_EOL) > 0 ? true : false;
 			if ($worker['user'] == $currentUser && !$pidTest) {
 				$this->ResqueStatus->removeWorker($pid);
 				$this->Log->create();
@@ -2597,7 +2597,7 @@ class Server extends AppModel {
 			}
 		}
 	}
-	
+
 	private function __dropIndex($table, $field) {
 		$this->Log = ClassRegistry::init('Log');
 		$indexCheck = "SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema=DATABASE() AND table_name='" . $table . "' AND index_name LIKE '" . $field . "%'";
@@ -2623,7 +2623,7 @@ class Server extends AppModel {
 			));
 		}
 	}
-	
+
 	public function upgrade2324($user_id, $jobId = false) {
 		$this->cleanCacheFiles();
 		if (Configure::read('MISP.background_jobs') && $jobId) {
@@ -2699,7 +2699,7 @@ class Server extends AppModel {
 						));
 					}
 				}
-			} 
+			}
 		}
 		$this->Log->create();
 		$this->Log->save(array(
@@ -2752,7 +2752,7 @@ class Server extends AppModel {
 		// For all intents and purposes, this oversimplification works fine when upgrading from 2.3
 		// Even though the distribution values stored in the correlation won't be correct, they will provide the exact same realeasability
 		// Event1 = distribution 0 and Attribute1 distribution 3 would lead to private = 1, so setting distribution = 0 and a_distribution = 0
-		// will result in the same visibility, etc. Once events / attributes get put into a sharing group this will get recorrelated anyway 
+		// will result in the same visibility, etc. Once events / attributes get put into a sharing group this will get recorrelated anyway
 		// Also by unsetting the org field after the move the changes we ensure that these correlations won't get hit again by the script if we rerun it
 		// and that we don't accidentally "upgrade" a 2.4 correlation
 		$this->query('UPDATE `correlations` SET `distribution` = 1, `a_distribution` = 1 WHERE `org` != "" AND `private` = 0');
@@ -2769,8 +2769,8 @@ class Server extends AppModel {
 			$this->Job->saveField('message', 'Upgrade complete.');
 		}
 	}
-	
-	
+
+
 	/* returns an array with the events
 	 * error codes:
 	 * 1: received non json response
@@ -2779,7 +2779,7 @@ class Server extends AppModel {
 	 */
 	public function previewIndex($id, $user, $passedArgs) {
 		$server = $this->find('first', array(
-			'conditions' => array('Server.id' => $id),	
+			'conditions' => array('Server.id' => $id),
 		));
 		App::uses('SyncTool', 'Tools');
 		$syncTool = new SyncTool();
@@ -2815,7 +2815,7 @@ class Server extends AppModel {
 		}
 		return 2;
 	}
-	
+
 	/* returns an array with the events
 	 * error codes:
 	 * 1: received non-json response
@@ -2853,7 +2853,7 @@ class Server extends AppModel {
 		}
 		return 2;
 	}
-	
+
 	// Loops through all servers and checks which servers' push rules don't conflict with the given event.
 	// returns the server objects that would allow the event to be pushed
 	public function eventFilterPushableServers($event, $servers) {
@@ -2880,7 +2880,7 @@ class Server extends AppModel {
 		}
 		return $validServers;
 	}
-	
+
 	public function getEnrichmentModules() {
 		if (!Configure::read('Plugin.Enrichment_services_enable')) return 'Enrichment service not enabled.';
 		$url = Configure::read('Plugin.Enrichment_services_url') ? Configure::read('Plugin.Enrichment_services_url') : $this->serverSettings['Plugin']['Enrichment_services_url']['value'];
@@ -2904,7 +2904,7 @@ class Server extends AppModel {
 			return $result;
 		} else return 'The enrichment service reports that it found no enrichment modules.';
 	}
-	
+
 	public function getEnabledModules() {
 		$modules = $this->getEnrichmentModules();
 		if (is_array($modules)) {

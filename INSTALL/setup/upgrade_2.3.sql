@@ -120,4 +120,3 @@ CREATE TABLE IF NOT EXISTS `template_tags` (
   `tag_id` int(11) NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=latin1;
-

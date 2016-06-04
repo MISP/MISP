@@ -26,8 +26,8 @@
 			$filtered = true;
 		}
 	?>
-	
-	
+
+
 	<div class="tabMenuFixedContainer" style="display:inline-block;">
 		<span class="tabMenuFixed tabMenuFixed<?php echo $tab; ?> tabMenuSides">
 			<span id="create-button" title="Modify filters" class="icon-search useCursorPointer" onClick="getPopup('<?php echo h($urlparams);?>', 'servers', 'filterEventIndex/<?php echo h($id);?>');"></span>
@@ -55,12 +55,12 @@
 			?>
 				<th class="filter"><?php echo $this->Paginator->sort('Org', 'Source org'); ?></th>
 				<th class="filter"><?php echo $this->Paginator->sort('Org', 'Member org'); ?></th>
-			<?php 
+			<?php
 				else:
 			?>
 				<th class="filter"><?php echo $this->Paginator->sort('Org'); ?></th>
 				<th class="filter"><?php echo $this->Paginator->sort('owner org');?></th>
-			<?php 
+			<?php
 				endif;
 			?>
 			<th><?php echo $this->Paginator->sort('id');?></th>
@@ -133,7 +133,7 @@
 				<?php echo $event['Event']['date']; ?>&nbsp;
 			</td>
 			<td class="short" ondblclick="document.location.href ='<?php echo $eventViewURL . h($event['Event']['id']);?>'">
-				<?php 
+				<?php
 					echo h($threatLevels[$event['Event']['threat_level_id']]);
 				?>&nbsp;
 			</td>
@@ -146,7 +146,7 @@
 			<td class="short <?php if ($event['Event']['distribution'] == 0) echo 'privateRedText';?>" ondblclick="document.location.href ='<?php echo $eventViewURL . h($event['Event']['id']);?>'" title = "<?php echo $event['Event']['distribution'] != 3 ? $distributionLevels[$event['Event']['distribution']] : 'All';?>">
 				<?php if ($event['Event']['distribution'] == 4):?>
 					<a href="/sharingGroups/view/<?php echo h($event['Event']['SharingGroup']['id']); ?>"><?php echo h($event['Event']['SharingGroup']['name']);?></a>
-				<?php else: 
+				<?php else:
 					echo h($shortDist[$event['Event']['distribution']]);
 				endif;
 				?>

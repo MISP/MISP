@@ -22,7 +22,7 @@
 		function queueInterval(k, id) {
 			intervalArray[k] = setInterval(function(){
 				$.getJSON('/jobs/getGenerateCorrelationProgress/' + id, function(data) {
-					var x = document.getElementById("bar" + id); 
+					var x = document.getElementById("bar" + id);
 					x.style.width = data+"%";
 					if (data > 0 && data < 100) {
 						x.innerHTML = data + "%";
@@ -75,10 +75,10 @@
 			<td style="width:200px;">
 				<div class="progress progress-striped active" style="margin-bottom: 0px;">
 				  <div id="bar<?php echo h($item['Job']['id']); ?>" class="bar" style="width: <?php echo h($item['Job']['progress']); ?>%;">
-				 	 <?php 
-				 	 	if ($item['Job']['progress'] > 0 && $item['Job']['progress'] < 100) echo h($item['Job']['progress']) . '%'; 
-				 	 	if ($item['Job']['progress'] == 100) echo 'Completed.';
-				 	 ?>
+					<?php
+						if ($item['Job']['progress'] > 0 && $item['Job']['progress'] < 100) echo h($item['Job']['progress']) . '%';
+						if ($item['Job']['progress'] == 100) echo 'Completed.';
+					?>
 				  </div>
 				</div>
 					<?php if ($item['Job']['progress'] != 100): ?>
@@ -113,7 +113,6 @@
 
 	</ul>
 </div>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'jobs'));
 ?>
-				

@@ -14,7 +14,7 @@ class NidsExport {
 		$this->rules[] = '# These NIDS rules contain some variables that need to exist in your configuration.';
 		$this->rules[] = '# Make sure you have set:';
 		$this->rules[] = '#';
-		$this->rules[] = '# $HOME_NET	 - Your internal network range';
+		$this->rules[] = '# $HOME_NET	- Your internal network range';
 		$this->rules[] = '# $EXTERNAL_NET - The network considered as outside';
 		$this->rules[] = '# $SMTP_SERVERS - All your internal SMTP servers';
 		$this->rules[] = '# $HTTP_PORTS   - The ports used to contain HTTP traffic (not required with suricata export)';

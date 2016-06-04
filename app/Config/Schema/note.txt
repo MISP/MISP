@@ -1,7 +1,7 @@
 0.1.0
 		+Events.uuid
 		+Attributes.uuid
-0.2.0	
+0.2.0
 		Attributes.value -> Attributes.value1
 0.2.0.1
 		+Attributes.value2
@@ -9,7 +9,7 @@
 		Servers.lastfetchedid -> Servers.lastpulledid
 0.2.1.1
 		+Servers.lastpushedid
-0.2.2	
+0.2.2
 		+Users.role_id
 		+Roles
 		+Logs
