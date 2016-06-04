@@ -78,7 +78,7 @@
 				<dt>Contributors</dt>
 				<dd>
 					<?php
-						foreach($contributors as $k => $entry) {
+						foreach ($contributors as $k => $entry) {
 							if (Configure::read('MISP.showorg') || $isAdmin) {
 								?>
 									<a href="<?php echo $baseurl."/logs/event_index/".$event['Event']['id'].'/'.h($entry);?>" style="margin-right:2px;text-decoration: none;">
@@ -125,7 +125,7 @@
 					&nbsp;
 				</dd>
 				<dt>Distribution</dt>
-				<dd <?php if($event['Event']['distribution'] == 0) echo 'class = "privateRedText"';?> title = "<?php echo h($distributionDescriptions[$event['Event']['distribution']]['formdesc'])?>">
+				<dd <?php if ($event['Event']['distribution'] == 0) echo 'class = "privateRedText"';?> title = "<?php echo h($distributionDescriptions[$event['Event']['distribution']]['formdesc'])?>">
 					<?php
 						if ($event['Event']['distribution'] == 4):
 					?>
@@ -148,7 +148,7 @@
 				<dd style="word-wrap: break-word;">
 						<span id="eventSightingCount" class="bold sightingsCounter" data-toggle="popover" data-trigger="hover" data-content="<?php echo $sightingPopover; ?>"><?php echo count($event['Sighting']); ?></span>
 						(<span id="eventOwnSightingCount" class="green bold sightingsCounter" data-toggle="popover" data-trigger="hover" data-content="<?php echo $sightingPopover; ?>"><?php echo isset($ownSightings) ? count($ownSightings) : 0; ?></span>)
-						<?php if(!Configure::read('Plugin.Sightings_policy')) echo '- restricted to own organisation only.'; ?>
+						<?php if (!Configure::read('Plugin.Sightings_policy')) echo '- restricted to own organisation only.'; ?>
 				</dd>
 				<?php endif;
 					if (!empty($delegationRequest)):

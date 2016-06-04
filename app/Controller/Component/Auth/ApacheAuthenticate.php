@@ -80,7 +80,7 @@ class ApacheAuthenticate extends BaseAuthenticate {
         $userModel = ClassRegistry::init($this->settings['userModel']);
         $org_id = Configure::read('ApacheSecureAuth.ldapDefaultOrg');
         // If not in config, take default org
-        if(!isset($org_id)) {
+        if (!isset($org_id)) {
             $firstOrg = $userModel->Organisation->find(
                     'first', array(
                         'conditions' => array(

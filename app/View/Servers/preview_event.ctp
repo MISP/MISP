@@ -51,7 +51,7 @@
 					&nbsp;
 				</dd>
 				<dt>Distribution</dt>
-				<dd <?php if($event['Event']['distribution'] == 0) echo 'class = "privateRedText"';?> title = "<?php echo h($distributionDescriptions[$event['Event']['distribution']]['formdesc'])?>">
+				<dd <?php if ($event['Event']['distribution'] == 0) echo 'class = "privateRedText"';?> title = "<?php echo h($distributionDescriptions[$event['Event']['distribution']]['formdesc'])?>">
 					<?php
 						if ($event['Event']['distribution'] == 4):
 					?>
@@ -151,7 +151,7 @@
 					<th title="<?php echo $attrDescriptions['distribution']['desc'];?>"><?php echo $this->Paginator->sort('distribution');?></th>
 				</tr>
 			    <?php
-					foreach($event['objects'] as $k => $object):
+					foreach ($event['objects'] as $k => $object):
 						$extra = $extra2 = $extra3 = '';
 						$currentType = 'denyForm';
 						if ($object['objectType'] == 0 ) {

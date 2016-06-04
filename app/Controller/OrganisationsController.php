@@ -6,7 +6,7 @@ class OrganisationsController extends AppController {
 
 	public function beforeFilter() {
 		parent::beforeFilter();
-		if(!empty($this->request->params['admin']) && !$this->_isSiteAdmin()) $this->redirect('/');
+		if (!empty($this->request->params['admin']) && !$this->_isSiteAdmin()) $this->redirect('/');
 	}
 
 	public $paginate = array(
@@ -63,7 +63,7 @@ class OrganisationsController extends AppController {
 	}
 
 	public function admin_add() {
-		if($this->request->is('post')) {
+		if ($this->request->is('post')) {
 			$this->Organisation->create();
 			$this->request->data['Organisation']['created_by'] = $this->Auth->user('id');
 			if ($this->Organisation->save($this->request->data)) {

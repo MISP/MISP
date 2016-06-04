@@ -28,7 +28,7 @@ class JobsController extends AppController {
 		$queues = array('email', 'default', 'cache');
 		if ($queue && in_array($queue, $queues)) $this->paginate['conditions'] = array('Job.worker' => $queue);
 		$jobs = $this->paginate();
-		foreach($jobs as &$job) {
+		foreach ($jobs as &$job) {
 			if ($job['Job']['process_id']) {
 				$job['Job']['status'] = $this->__jobStatusConverter(CakeResque::getJobStatus($job['Job']['process_id']));
 			} else {

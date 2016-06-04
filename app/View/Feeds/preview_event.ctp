@@ -125,7 +125,7 @@
 					<th title="<?php echo $attrDescriptions['signature']['desc'];?>"><?php echo $this->Paginator->sort('to_ids', 'IDS');?></th>
 				</tr>
 			    <?php
-					foreach($event['objects'] as $k => $object):
+					foreach ($event['objects'] as $k => $object):
 				?>
 					<tr id = "<?php echo 'Attribute_' . $object['uuid'] . '_tr'; ?>">
 						<td class="short"><?php echo (isset($object['timestamp'])) ? date('Y-m-d', $object['timestamp']) : '&nbsp'; ?></td>

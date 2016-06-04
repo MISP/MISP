@@ -496,7 +496,7 @@ class AttributesController extends AppController {
 			$entries = array();
 			if (($handle = fopen($filename, 'r')) !== FALSE) {
 				while (($row = fgetcsv($handle, 0, ',', '"')) !== FALSE) {
-					if(!$header)
+					if (!$header)
 						$header = $row;
 					else
 						$entries[] = array_combine($header, $row);
@@ -515,7 +515,7 @@ class AttributesController extends AppController {
 			// import attributes
 			//
 			$attributes = array();  // array with all the attributes we're going to save
-			foreach($entries as $entry) {
+			foreach ($entries as $entry) {
 				$attribute = array();
 				$attribute['event_id'] = $this->request->data['Attribute']['event_id'];
 				$attribute['value'] = $entry['Value'];
@@ -529,7 +529,7 @@ class AttributesController extends AppController {
 						$attribute['distribution'] = Configure::read('MISP.default_attribute_distribution');
 					}
 				}
-				switch($entry['Type']) {
+				switch ($entry['Type']) {
 					case 'Address':
 						$attribute['category'] = 'Network activity';
 						$attribute['type'] = 'ip-dst';
@@ -575,12 +575,12 @@ class AttributesController extends AppController {
 			// 3/ if url format -> 'link'
 			//	else 'comment'
 			$references = array();
-			foreach($entries as $entry) {
+			foreach ($entries as $entry) {
 				$references[$entry['Source']] = true;
 			}
 			$references = array_keys($references);
 			// generate the Attributes
-			foreach($references as $reference) {
+			foreach ($references as $reference) {
 				$attribute = array();
 				$attribute['event_id'] = $this->request->data['Attribute']['event_id'];
 				$attribute['category'] = 'Internal reference';
@@ -1066,7 +1066,7 @@ class AttributesController extends AppController {
 				$attribute['Attribute']['timestamp'] = $timestamp;
 			}
 
-			if($this->Attribute->saveMany($attributes)) {
+			if ($this->Attribute->saveMany($attributes)) {
 				$event['Event']['timestamp'] = $date->getTimestamp();
 				$event['Event']['published'] = 0;
 				$this->Attribute->Event->save($event, array('fieldList' => array('published', 'timestamp', 'info', 'id')));
@@ -1475,11 +1475,11 @@ class AttributesController extends AppController {
 
 	// Sort the array of arrays based on a value of a sub-array
 	private function __subval_sort($a,$subkey) {
-		foreach($a as $k=>$v) {
+		foreach ($a as $k=>$v) {
 			$b[$k] = strtolower($v[$subkey]);
 		}
 		arsort($b);
-		foreach($b as $key=>$val) {
+		foreach ($b as $key=>$val) {
 			$c[] = $a[$key];
 		}
 		return $c;
@@ -1557,7 +1557,7 @@ class AttributesController extends AppController {
 			if (isset(${$parameters[$k]}) && ${$parameters[$k]}!==false) {
 				if (is_array(${$parameters[$k]})) $elements = ${$parameters[$k]};
 				else $elements = explode('&&', ${$parameters[$k]});
-				foreach($elements as $v) {
+				foreach ($elements as $v) {
 					if (empty($v)) continue;
 					if (substr($v, 0, 1) == '!') {
 						if ($parameters[$k] === 'value' && preg_match('@^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(\d|[1-2]\d|3[0-2]))$@', substr($v, 1))) {
@@ -1691,7 +1691,7 @@ class AttributesController extends AppController {
 		// If there is a type set, create the include and exclude arrays from it
 		if (isset($type)) {
 			$elements = explode('&&', $type);
-			foreach($elements as $v) {
+			foreach ($elements as $v) {
 				if (substr($v, 0, 1) == '!') {
 					$exclude[] = substr($v, 1);
 				} else {
@@ -1701,7 +1701,7 @@ class AttributesController extends AppController {
 		}
 
 		// check each attribute
-		foreach($this->Event->data['Attribute'] as $k => $attribute) {
+		foreach ($this->Event->data['Attribute'] as $k => $attribute) {
 			$contained = false;
 			// If the include list is empty, then the first check should always set contained to true (basically we chose type = all - exclusions, or simply all)
 			if (empty($include)) {
@@ -1754,7 +1754,7 @@ class AttributesController extends AppController {
 			throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
 		}
 		$this->Attribute->id = $id;
-		if(!$this->Attribute->exists()) {
+		if (!$this->Attribute->exists()) {
 			throw new NotFoundException('Invalid attribute or no authorisation to view it.');
 		}
 		$this->Attribute->read(null, $id);
