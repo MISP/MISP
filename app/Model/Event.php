@@ -2249,7 +2249,7 @@ class Event extends AppModel {
 			$data = array(
 					'worker' => 'email',
 					'job_type' => 'contact_alert',
-					'job_input' => 'To entire org: ' . $all,
+					'job_input' => 'Owner ' . ($creator_only ? 'user' : 'org') . ' of event #' . $id,
 					'status' => 0,
 					'retries' => 0,
 					'org_id' => $user['org_id'],
