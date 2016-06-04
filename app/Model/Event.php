@@ -347,7 +347,7 @@ class Event extends AppModel {
 			if (!$this->destroyDir($dir . DS . $file)) {
 				chmod($dir . DS . $file, 0777);
 				if (!$this->destroyDir($dir . DS . $file)) return false;
-			};
+			}
 		}
 		return rmdir($dir);
 	}
