@@ -1933,7 +1933,7 @@ class AttributesController extends AppController {
 		if (empty($attribute)) throw new NotFoundException(__('Invalid attribute'));
 		$attribute = $attribute[0];
 		$result = $attribute['Attribute'][$field];
-		if ($field == 'distribution') $result=$this->Attribute->distributionLevels[$result];
+		if ($field == 'distribution') $result=$this->Attribute->shortDist[$result];
 		if ($field == 'to_ids') $result = ($result == 0 ? 'No' : 'Yes');
 		if ($field == 'timestamp') {
 			if (isset($result)) $result = date('Y-m-d', $result);
