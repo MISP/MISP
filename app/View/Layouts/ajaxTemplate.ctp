@@ -17,9 +17,6 @@
  */
 ?>
 <?php
-//echo $this->Html->script('jquery-2.2.4.min');
-echo $this->Html->css('jquery-ui-1.11.4-smoothness.min');
-//echo $this->Html->css('bootstrap');
-//echo $this->Html->css('main');
-echo $this->Html->script('jquery-ui-1.11.4.min');
+echo $this->Html->css('jquery-ui-1.11.4');
+echo $this->Html->script('jquery-ui-1.11.4');
 echo $content_for_layout; ?>

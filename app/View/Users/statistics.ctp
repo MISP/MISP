@@ -1,7 +1,7 @@
 <?php
 	echo $this->Html->script('d3-3.5.17');
-	echo $this->Html->script('cal-heatmap');
-	echo $this->Html->css('cal-heatmap');
+	echo $this->Html->script('cal-heatmap-3.6.0');
+	echo $this->Html->css('cal-heatmap-3.6.0');
 ?>
 <div class = "index">
 <h2>Statistics</h2>
@@ -44,11 +44,11 @@
 <div id="orgs">
 	<select onchange="updateCalendar(this.options[this.selectedIndex].value);">
 		<option value="all">All organisations</option>
-		<?php 
+		<?php
 			foreach ($orgs as $org):
 				?>
 					<option value="<?php echo h($org['Organisation']['name']); ?>"><?php echo h($org['Organisation']['name']); ?></option>
-				<?php 
+				<?php
 			endforeach;
 		?>
 	</select>

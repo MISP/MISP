@@ -17,8 +17,8 @@
 */
 ?>
 <?php
-echo $this->Html->css('bootstrap');
+echo $this->Html->css('bootstrap-2.3.2');
 echo $this->Html->css('main');
-echo $this->Html->script('jquery-2.2.4.min');
+echo $this->Html->script('jquery-2.2.4');
 echo $this->Html->script('misp' . $jsVersion);
 echo $content_for_layout; ?>

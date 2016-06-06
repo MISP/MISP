@@ -10,10 +10,10 @@
 		echo $this->Html->meta('icon');
 //		echo $this->Html->css('cake.generic');
 		echo $this->Html->css('roboto');
-		echo $this->Html->css('bootstrap'); // see http://twitter.github.io/bootstrap/base-css.html
-		echo $this->Html->css('datepicker');
-		echo $this->Html->css('bootstrap-timepicker');
-		echo $this->Html->css('bootstrap-colorpicker.min');
+		echo $this->Html->css('bootstrap-2.3.2'); // see http://twitter.github.io/bootstrap/base-css.html
+		echo $this->Html->css('bootstrap-datepicker-1.5.0-RC1');
+		echo $this->Html->css('bootstrap-timepicker-0.2.6');
+		echo $this->Html->css('bootstrap-colorpicker-2.0.0-beta');
 		echo $this->Html->css('main');
 		echo $this->Html->css('print', 'stylesheet', array('media' => 'print'));
 
@@ -71,11 +71,10 @@
 	<?php
 	echo $this->element('footer');
 	echo $this->element('sql_dump');
-	echo $this->Html->script('bootstrap');
-	// echo $this->Html->script('bootstrap.min');
-	echo $this->Html->script('bootstrap-timepicker');
-	echo $this->Html->script('bootstrap-datepicker');
-	echo $this->Html->script('bootstrap-colorpicker.min');
+	echo $this->Html->script('bootstrap-2.3.2');
+	echo $this->Html->script('bootstrap-timepicker-0.2.6');
+	echo $this->Html->script('bootstrap-datepicker-1.5.0-RC1');
+	echo $this->Html->script('bootstrap-colorpicker-2.0.0-beta');
 	echo $this->Html->script('main');
 	echo $this->Html->script('misp' . $jsVersion);
 	?>
