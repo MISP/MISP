@@ -19,7 +19,7 @@ class ComplexTypeTool {
 				return $this->checkComplexCnC($input);
 				break;
 			case 'FreeText':
-				return $this->checkFreetext($input);
+				return $this->checkFreeText($input);
 				break;
 			default:
 				return false;
