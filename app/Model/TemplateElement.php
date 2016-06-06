@@ -25,7 +25,8 @@ class TemplateElement extends AppModel {
 		$result = $this->find('first', array(
 			'fields' => array('MAX(position) AS pos', 'id', 'template_id'),
 			'conditions' => array('template_id' => $template_id),
-			'order' => array('id')
+			'order' => array('id'),
+			'group' => array('id')
 		));
 		return $result[0]['pos'];
 	}

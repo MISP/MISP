@@ -436,11 +436,7 @@ class ShadowAttribute extends AppModel {
 		// no errors in file upload, entry already in db, now move the file where needed and zip it if required.
 		// no sanitization is required on the filename, path or type as we save
 		// create directory structure
-		if (PHP_OS == 'WINNT') {
-			$rootDir = APP . "files" . DS . $eventId;
-		} else {
-			$rootDir = APP . "files" . DS . $eventId;
-		}
+		$rootDir = APP . "files" . DS . $eventId;
 		$dir = new Folder($rootDir, true);
 		// move the file to the correct location
 		$destpath = $rootDir . DS . $this->getId(); // id of the new attribute in the database
@@ -450,12 +446,11 @@ class ShadowAttribute extends AppModel {
 
 		// zip and password protect the malware files
 		if ($malware) {
-			// TODO check if CakePHP has no easy/safe wrapper to execute commands
 			$execRetval = '';
 			$execOutput = array();
 			exec("zip -j -P infected " . $zipfile->path . ' \'' . addslashes($fileInZip->path) . '\'', $execOutput, $execRetval);
-			if ($execRetval != 0) { // not EXIT_SUCCESS
-				// TODO: error-handling
+			if ($execRetval != 0) {	// not EXIT_SUCCESS
+				throw new Exception('An error has occured while attempting to zip the malware file.');
 			}
 			$fileInZip->delete(); // delete the original non-zipped-file
 			rename($zipfile->path, $file->path); // rename the .zip to .nothing
