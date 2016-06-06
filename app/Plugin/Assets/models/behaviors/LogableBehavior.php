@@ -67,7 +67,7 @@ class LogableBehavior extends ModelBehavior {
 
 	public $user = NULL;
 
-	public $UserModel = FALSE;
+	public $UserModel = false;
 
 	public $settings = array();
 
@@ -76,7 +76,7 @@ class LogableBehavior extends ModelBehavior {
 			'userModel' => 'User',
 			'userKey' => 'user_id',
 			'change' => 'list',
-			'description_ids' => TRUE,
+			'description_ids' => true,
 			'skip' => array(),
 			'ignore' => array(),
 			'classField' => 'model',
@@ -90,7 +90,7 @@ class LogableBehavior extends ModelBehavior {
 	 * userModel		: 'User'. Class name of the user model you want to use (User by default), if you want to save User in log
 	 * userKey   		: 'user_id'. The field for saving the user to (user_id by default).
 	 * change    		: 'list' > [name, age]. Set to 'full' for [name (alek) => (Alek), age (28) => (29)]
-	 * description_ids	: TRUE. Set to FALSE to not include model id and user id in the title field
+	 * description_ids	: true. Set to false to not include model id and user id in the title field
 	 * skip  			: array(). String array of actions to not log
 	 *
 	 * @param Object $Model
@@ -135,7 +135,7 @@ class LogableBehavior extends ModelBehavior {
 	 * the models it is called from.
 	 *
 	 * Possible params :
-	 * 'model'		: mixed  (NULL) String with className, NULL to get current or FALSE to get everything
+	 * 'model'		: mixed  (NULL) String with className, NULL to get current or false to get everything
 	 * 'action'	: string (NULL) String with action (add/edit/delete), NULL gets all
 	 * 'order'		: string ('created DESC') String with custom order
 	 * 'conditions  : array  (array()) Add custom conditions
@@ -174,7 +174,7 @@ class LogableBehavior extends ModelBehavior {
 			} else if (isset($this->schema['description'])) {
 				$options['conditions']['description LIKE '] = $params[$this->settings[$Model->alias]['classField']] . '%';
 			} else {
-				return FALSE;
+				return false;
 			}
 		}
 		if ($params['action'] && isset($this->schema['action'])) {
@@ -358,7 +358,7 @@ class LogableBehavior extends ModelBehavior {
 			if ($this->settings[$Model->alias]['description_ids']) {
 				$logData['Log']['description'] .= ' (' . $Model->id . ') ';
 			}
-			$logData['Log']['description'] .= __('deleted', TRUE);
+			$logData['Log']['description'] .= __('deleted', true);
 		}
 		$logData['Log']['action'] = 'delete';
 		$this->_saveLog($Model, $logData);
@@ -409,9 +409,9 @@ class LogableBehavior extends ModelBehavior {
 			}
 
 			if ($created) {
-				$logData['Log']['description'] .= __('added', TRUE);
+				$logData['Log']['description'] .= __('added', true);
 			} else {
-				$logData['Log']['description'] .= __('updated', TRUE);
+				$logData['Log']['description'] .= __('updated', true);
 			}
 		}
 		if (isset($this->schema['action'])) {
