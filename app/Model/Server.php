@@ -1969,14 +1969,14 @@ class Server extends AppModel {
 	}
 
 	public function testForRPZBehaviour($value) {
-		$numeric = $this->testforNumeric($value);
+		$numeric = $this->testForNumeric($value);
 		if ($numeric !== true) return $numeric;
 		if ($value < 0 || $value > 3) return 'Invalid setting, valid range is 0-3 (0 = DROP, 1 = NXDOMAIN, 2 = NODATA, 3 = walled garden.';
 		return true;
 	}
 
 	public function testForSightingVisibility($value) {
-		$numeric = $this->testforNumeric($value);
+		$numeric = $this->testForNumeric($value);
 		if ($numeric !== true) return $numeric;
 		if ($value < 0 || $value > 2) return 'Invalid setting, valid range is 0-2 (0 = Event owner, 1 = Sighting reporters, 2 = Everyone.';
 		return true;
