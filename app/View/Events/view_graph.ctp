@@ -2,7 +2,7 @@
 $mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Orgc']['id'] == $me['org_id']) || ($isAclModifyOrg && $event['Orgc']['id'] == $me['org_id']));
 $mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
 ?>
-<?php echo $this->Html->script('d3-3.5.17');?>
+<?php echo $this->Html->script('d3');?>
 <style>
 
 	.node circle {

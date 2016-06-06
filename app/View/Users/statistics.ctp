@@ -1,7 +1,7 @@
 <?php
-	echo $this->Html->script('d3-3.5.17');
-	echo $this->Html->script('cal-heatmap-3.6.0');
-	echo $this->Html->css('cal-heatmap-3.6.0');
+	echo $this->Html->script('d3');
+	echo $this->Html->script('cal-heatmap');
+	echo $this->Html->css('cal-heatmap');
 ?>
 <div class = "index">
 <h2>Statistics</h2>

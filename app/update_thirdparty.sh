@@ -22,39 +22,39 @@ wget https://github.com/jdewit/bootstrap-timepicker/releases/download/v${BOOTSTR
 wget http://getbootstrap.com/${BOOTSTRAP_TRANSITION}/assets/bootstrap.zip -O ${TMP_DIR}/bootstrap.zip
 wget https://github.com/wa0x6e/cal-heatmap/archive/${CAL_HEATMAP}.zip -O ${TMP_DIR}/cal_heatmap.zip
 
-wget https://code.jquery.com/jquery-${JQUERY}.js -O webroot/js/jquery-${JQUERY}.js
+wget https://code.jquery.com/jquery-${JQUERY}.js -O webroot/js/jquery.js
 
-wget https://cdnjs.cloudflare.com/ajax/libs/bootstrap-colorpicker/${BOOTSTRAP_COLORPICKER}/js/bootstrap-colorpicker.js -O webroot/js/bootstrap-colorpicker-${BOOTSTRAP_COLORPICKER}.js
-wget https://cdnjs.cloudflare.com/ajax/libs/bootstrap-colorpicker/${BOOTSTRAP_COLORPICKER}/css/bootstrap-colorpicker.css -O webroot/css/bootstrap-colorpicker-${BOOTSTRAP_COLORPICKER}.css
+wget https://cdnjs.cloudflare.com/ajax/libs/bootstrap-colorpicker/${BOOTSTRAP_COLORPICKER}/js/bootstrap-colorpicker.js -O webroot/js/bootstrap-colorpicker.js
+wget https://cdnjs.cloudflare.com/ajax/libs/bootstrap-colorpicker/${BOOTSTRAP_COLORPICKER}/css/bootstrap-colorpicker.css -O webroot/css/bootstrap-colorpicker.css
 wget https://cdnjs.cloudflare.com/ajax/libs/bootstrap-colorpicker/${BOOTSTRAP_COLORPICKER}/img/bootstrap-colorpicker/alpha-horizontal.png -O webroot/img/bootstrap-colorpicker/alpha-horizontal.png
 wget https://cdnjs.cloudflare.com/ajax/libs/bootstrap-colorpicker/${BOOTSTRAP_COLORPICKER}/img/bootstrap-colorpicker/alpha.png -O webroot/img/bootstrap-colorpicker/alpha.png
 wget https://cdnjs.cloudflare.com/ajax/libs/bootstrap-colorpicker/${BOOTSTRAP_COLORPICKER}/img/bootstrap-colorpicker/hue-horizontal.png -O webroot/img/bootstrap-colorpicker/hue-horizontal.png
 wget https://cdnjs.cloudflare.com/ajax/libs/bootstrap-colorpicker/${BOOTSTRAP_COLORPICKER}/img/bootstrap-colorpicker/hue.png -O webroot/img/bootstrap-colorpicker/hue.png
 wget https://cdnjs.cloudflare.com/ajax/libs/bootstrap-colorpicker/${BOOTSTRAP_COLORPICKER}/img/bootstrap-colorpicker/saturation.png -O webroot/img/bootstrap-colorpicker/saturation.png
 
-wget https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/${BOOTSTRAP_DATEPICKER}/js/bootstrap-datepicker.js -O webroot/js/bootstrap-datepicker-${BOOTSTRAP_DATEPICKER}.js
-wget https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/${BOOTSTRAP_DATEPICKER}/css/bootstrap-datepicker.css -O webroot/css/bootstrap-datepicker-${BOOTSTRAP_DATEPICKER}.css
+wget https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/${BOOTSTRAP_DATEPICKER}/js/bootstrap-datepicker.js -O webroot/js/bootstrap-datepicker.js
+wget https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/${BOOTSTRAP_DATEPICKER}/css/bootstrap-datepicker.css -O webroot/css/bootstrap-datepicker.css
 
 unzip -o ${TMP_DIR}/d3.zip -d ${TMP_DIR}
-mv -f ${TMP_DIR}/d3.js webroot/js/d3-${D3JS}.js
+mv -f ${TMP_DIR}/d3.js webroot/js/d3.js
 
 unzip -o ${TMP_DIR}/jquery-ui.zip -d ${TMP_DIR}
-mv -f ${TMP_DIR}/jquery-ui-${JQUERY_UI}/jquery-ui.js webroot/js/jquery-ui-${JQUERY_UI}.js
-mv -f ${TMP_DIR}/jquery-ui-${JQUERY_UI}/jquery-ui.css webroot/css/jquery-ui-${JQUERY_UI}.css
+mv -f ${TMP_DIR}/jquery-ui-${JQUERY_UI}/jquery-ui.js webroot/js/jquery-ui.js
+mv -f ${TMP_DIR}/jquery-ui-${JQUERY_UI}/jquery-ui.css webroot/css/jquery-ui.css
 
 unzip -o ${TMP_DIR}/bootstrap-timepicker.zip -d ${TMP_DIR}
-mv -f ${TMP_DIR}/bootstrap-timepicker/js/bootstrap-timepicker.js webroot/js/bootstrap-timepicker-${BOOTSTRAP_TIMEPICKER}.js
-mv -f ${TMP_DIR}/bootstrap-timepicker/css/bootstrap-timepicker.css webroot/css/bootstrap-timepicker-${BOOTSTRAP_TIMEPICKER}.css
+mv -f ${TMP_DIR}/bootstrap-timepicker/js/bootstrap-timepicker.js webroot/js/bootstrap-timepicker.js
+mv -f ${TMP_DIR}/bootstrap-timepicker/css/bootstrap-timepicker.css webroot/css/bootstrap-timepicker.css
 
 unzip -o ${TMP_DIR}/bootstrap.zip -d ${TMP_DIR}
-mv -f ${TMP_DIR}/bootstrap/js/bootstrap.js webroot/js/bootstrap-${BOOTSTRAP_TRANSITION}.js
-mv -f ${TMP_DIR}/bootstrap/css/bootstrap.css webroot/css/bootstrap-${BOOTSTRAP_TRANSITION}.css
+mv -f ${TMP_DIR}/bootstrap/js/bootstrap.js webroot/js/bootstrap.js
+mv -f ${TMP_DIR}/bootstrap/css/bootstrap.css webroot/css/bootstrap.css
 mv -f ${TMP_DIR}/bootstrap/img/glyphicons-halflings-white.png webroot/img/glyphicons-halflings-white.png
 mv -f ${TMP_DIR}/bootstrap/img/glyphicons-halflings.png webroot/img/glyphicons-halflings.png
 
 unzip -o ${TMP_DIR}/cal_heatmap.zip -d ${TMP_DIR}
-mv -f ${TMP_DIR}/cal-heatmap-${CAL_HEATMAP}/cal-heatmap.js webroot/js/cal-heatmap-${CAL_HEATMAP}.js
-mv -f ${TMP_DIR}/cal-heatmap-${CAL_HEATMAP}/cal-heatmap.css webroot/css/cal-heatmap-${CAL_HEATMAP}.css
+mv -f ${TMP_DIR}/cal-heatmap-${CAL_HEATMAP}/cal-heatmap.js webroot/js/cal-heatmap.js
+mv -f ${TMP_DIR}/cal-heatmap-${CAL_HEATMAP}/cal-heatmap.css webroot/css/cal-heatmap.css
 
 
 rm -rf ${TMP_DIR}

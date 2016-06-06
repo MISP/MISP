@@ -17,6 +17,6 @@
  */
 ?>
 <?php
-echo $this->Html->css('jquery-ui-1.11.4');
-echo $this->Html->script('jquery-ui-1.11.4');
+echo $this->Html->css('jquery-ui');
+echo $this->Html->script('jquery-ui');
 echo $content_for_layout; ?>
