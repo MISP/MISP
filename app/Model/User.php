@@ -347,6 +347,8 @@ class User extends AppModel {
 				$msg_test_encrypted = tempnam($dir, 'SMIME');
 				// encrypt it
 				if (openssl_pkcs7_encrypt($msg_test, $msg_test_encrypted, $check['certif_public'], null, 0, OPENSSL_CIPHER_AES_256_CBC)) {
+					unlink($msg_test);
+					unlink($msg_test_encrypted);
 					$parse = openssl_x509_parse($check['certif_public']);
 					// Valid certificate ?
 					$now = new DateTime("now");
@@ -363,13 +365,15 @@ class User extends AppModel {
 						return 'This certificate is expired';
 					}
 				} else {
+					unlink($msg_test);
+					unlink($msg_test_encrypted);
 					return false;
 				}
 			} catch (Exception $e) {
+				unlink($msg_test);
+				unlink($msg_test_encrypted);
 				$this->log($e->getMessage());
 			}
-			unlink($msg_test);
-			unlink($msg_test_encrypted);
 		} else {
 			return false;
 		}
