@@ -34,9 +34,11 @@ class ComplexTypeTool {
 		if (strpos($input, '|')) {
 			$composite = true;
 			$result = explode('|', $input);
-			if (count($result) != 2) $type = 'other';
-			if (!preg_match("#^.+#", $result[0])) $type = 'other';
-			$type = 'filename|';
+			if (count($result) != 2 || !preg_match("#^.+#", $result[0])) {
+				$type = 'other';
+			} else {
+				$type = 'filename|';
+			}
 			$input = $result[1];
 		}
 		if (strlen($input) == 32 && preg_match("#[0-9a-f]{32}$#", $input)) $type .= 'md5';
