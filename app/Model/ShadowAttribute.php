@@ -446,12 +446,11 @@ class ShadowAttribute extends AppModel {
 
 		// zip and password protect the malware files
 		if ($malware) {
-			// TODO check if CakePHP has no easy/safe wrapper to execute commands
 			$execRetval = '';
 			$execOutput = array();
 			exec("zip -j -P infected " . $zipfile->path . ' \'' . addslashes($fileInZip->path) . '\'', $execOutput, $execRetval);
-			if ($execRetval != 0) { // not EXIT_SUCCESS
-				// TODO: error-handling
+			if ($execRetval != 0) {	// not EXIT_SUCCESS
+				throw new Exception('An error has occured while attempting to zip the malware file.');
 			}
 			$fileInZip->delete(); // delete the original non-zipped-file
 			rename($zipfile->path, $file->path); // rename the .zip to .nothing
