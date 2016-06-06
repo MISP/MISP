@@ -10,7 +10,7 @@ class ComplexTypeTool {
 		'/\.+/' => '.'
 	);
 
-	public function checkComplexRouter($input, $type) {
+	public function checkComplexRouter($input, $type, $warningListEntries = array()) {
 		switch ($type) {
 			case 'File':
 				return $this->checkComplexFile($input);
@@ -19,7 +19,7 @@ class ComplexTypeTool {
 				return $this->checkComplexCnC($input);
 				break;
 			case 'FreeText':
-				return $this->checkFreetext($input);
+				return $this->checkFreetext($input, $warningListEntries);
 				break;
 			default:
 				return false;
@@ -72,7 +72,7 @@ class ComplexTypeTool {
 		return array_values($array);
 	}
 
-	public function checkFreeText($input) {
+	public function checkFreeText($input, $warningListEntries) {
 		$iocArray = preg_split("/\r\n|\n|\r|\s|\s+|,|;/", $input);
 		$quotedText = explode('"', $input);
 		$iocArray = array_merge($iocArray, $this->__returnOddElements($quotedText));
@@ -84,7 +84,7 @@ class ComplexTypeTool {
 				$ioc = trim($ioc, ',');
 				$ioc = preg_replace('/\p{C}+/u', '', $ioc);
 				if (empty($ioc)) continue;
-				$typeArray = $this->__resolveType($ioc);
+				$typeArray = $this->__resolveType($ioc, $warningListEntries);
 				if ($typeArray === false) continue;
 				$temp = $typeArray;
 				if (!isset($temp['value'])) $temp['value'] = $ioc;
@@ -103,7 +103,7 @@ class ComplexTypeTool {
 		128 => array('single' => array('sha512'), 'composite' => array('filename|sha512'))
 	);
 
-	private function __resolveType($input) {
+	private function __resolveType($input, $warningListEntries = array()) {
 		$result = array();
 		$input = trim($input);
 		if (strpos($input, '|')) {
@@ -150,11 +150,18 @@ class ComplexTypeTool {
 			$temp = explode('.', $inputRefanged);
 			// TODO: use a more flexible matching approach, like the one below (that still doesn't support non-ASCII domains)
 			//if (filter_var($input, FILTER_VALIDATE_URL)) {
-			if (preg_match('/^([-\pL\pN]+\.)+([a-z][a-z]|biz|cat|com|edu|gov|int|mil|net|org|pro|tel|aero|arpa|asia|coop|info|jobs|mobi|name|museum|travel)(:[0-9]{2,5})?$/iu', $inputRefanged)) {
+			//first check in $warningListEntries:
+			$ending = $temp[count($temp)-1];
+
+			if ((count($warningListEntries)>0 && in_array($ending, $warningListEntries))) {
 				if (count($temp) > 2) {
 					return array('types' => array('hostname', 'domain', 'url'), 'to_ids' => true, 'default_type' => 'hostname', 'comment' => $comment, 'value' => $inputRefangedNoPort);
 				} else {
-					return array('types' => array('domain'), 'to_ids' => true, 'default_type' => 'domain', 'comment' => $comment, 'value' => $inputRefangedNoPort);
+					//check if it's for sure a domain. Should pb be changed to include more domain only endings.
+					if(preg_match('/^([-\pL\pN]+\.)+([a-z][a-z]|biz|cat|com|edu|gov|int|mil|net|org|pro|tel|aero|arpa|asia|coop|info|jobs|mobi|name|museum|travel")(:[0-9]{2,5})?$/iu', $inputRefanged))
+						return array('types' => array('domain'), 'to_ids' => true, 'default_type' => 'domain', 'comment' => $comment, 'value' => $inputRefangedNoPort);
+					else
+						return array('types' => array('domain', 'filename'), 'to_ids' => true, 'default_type' => 'domain', 'comment' => $comment, 'value' => $inputRefangedNoPort, 'category' => 'filename');
 				}
 			} else {
 				// check if it is a URL

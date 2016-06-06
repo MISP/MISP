@@ -147,4 +147,12 @@ class WarninglistsController extends AppController {
 			$this->set('warninglist', $warninglist);
 		}
 	}
+
+	/**
+	 * returns all warningList entries who belong to the IANA warninglist
+	 * @return mixed
+	 */
+	public function returnAllIANAEntries() {
+		return $this->Warninglist->getAllIANAEntries();
+	}
 }
