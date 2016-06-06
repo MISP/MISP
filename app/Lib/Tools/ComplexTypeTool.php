@@ -50,7 +50,6 @@ class ComplexTypeTool {
 	}
 
 	public function checkComplexCnC($input) {
-		$type = '';
 		$toReturn = array();
 		// check if it's an IP address
 		if (filter_var($input, FILTER_VALIDATE_IP)) return array('type' => 'ip-dst', 'value' => $input);
@@ -106,7 +105,6 @@ class ComplexTypeTool {
 	);
 
 	private function __resolveType($input) {
-		$result = array();
 		$input = trim($input);
 		if (strpos($input, '|')) {
 			$compositeParts = explode('|', $input);
