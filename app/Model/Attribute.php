@@ -1129,7 +1129,7 @@ class Attribute extends AppModel {
 		if ($malware) {
 			$execRetval = '';
 			$execOutput = array();
-			exec("zip -j -P infected " . $zipfile->path . ' \'' . addslashes($fileInZip->path) . '\'', $execOutput, $execRetval);
+			exec("zip -j -P infected " . $zipfile->path . ' \'' . escapeshellarg($fileInZip->path) . '\'', $execOutput, $execRetval);
 			if ($execRetval != 0) { // not EXIT_SUCCESS
 				throw new Exception('An error has occured while attempting to zip the malware file.');
 			}
@@ -1790,7 +1790,7 @@ class Attribute extends AppModel {
 		$fileNameFile->write($original_filename);
 		$fileNameFile->close();
 		$zipFile = new File($dir->path . DS . $hashes['md5'] . '.zip');
-		exec('zip -j -P infected "' . addslashes($zipFile->path) . '" "' . addslashes($contentsFile->path) . '" "' . addslashes($fileNameFile->path) . '"', $execOutput, $execRetval);
+		exec('zip -j -P infected "' . escapeshellarg($zipFile->path) . '" "' . escapeshellarg($contentsFile->path) . '" "' . escapeshellarg($fileNameFile->path) . '"', $execOutput, $execRetval);
 		if ($execRetval != 0) $result = array('success' => false);
 		else $result = array_merge(array('data' => base64_encode($zipFile->read()), 'success' => true), $hashes);
 		$fileNameFile->delete();
