@@ -1292,7 +1292,7 @@ class EventsController extends AppController {
 
 				// if coming from index, redirect to referer (to have the filter working)
 				// else redirect to index
-				if (strpos($this->referer(), '/view') !== FALSE) {
+				if (strpos($this->referer(), '/view') !== false) {
 					$this->redirect(array('action' => 'index'));
 				} else {
 					$this->redirect($this->referer(array('action' => 'index')));
@@ -2781,6 +2781,7 @@ class EventsController extends AppController {
 			else $objectType = 'Attribute';
 			$saved = 0;
 			$failed = 0;
+			$attributes = json_decode($this->request->data['Attribute']['JsonObject'], true);
 			$attributeSources = array('attributes', 'ontheflyattributes');
 			$ontheflyattributes = array();
 			foreach ($attributeSources as $source) {
@@ -3524,6 +3525,7 @@ class EventsController extends AppController {
 					$temp[] = array('name' => $module['name'], 'description' => $module['meta']['description']);
 				}
 			}
+			$modules = &$temp;
 			foreach (array('attribute_id', 'modules') as $viewVar) $this->set($viewVar, $$viewVar);
 			$this->render('ajax/enrichmentChoice');
 		} else {

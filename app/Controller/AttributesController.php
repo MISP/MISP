@@ -494,8 +494,8 @@ class AttributesController extends AppController {
 			$filename = $tmpfile->path;
 			$header = NULL;
 			$entries = array();
-			if (($handle = fopen($filename, 'r')) !== FALSE) {
-				while (($row = fgetcsv($handle, 0, ',', '"')) !== FALSE) {
+			if (($handle = fopen($filename, 'r')) !== false) {
+				while (($row = fgetcsv($handle, 0, ',', '"')) !== false) {
 					if (!$header)
 						$header = $row;
 					else
