@@ -1292,7 +1292,7 @@ class EventsController extends AppController {
 
 				// if coming from index, redirect to referer (to have the filter working)
 				// else redirect to index
-				if (strpos($this->referer(), '/view') !== FALSE) {
+				if (strpos($this->referer(), '/view') !== false) {
 					$this->redirect(array('action' => 'index'));
 				} else {
 					$this->redirect($this->referer(array('action' => 'index')));
