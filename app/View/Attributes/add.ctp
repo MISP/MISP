@@ -193,8 +193,6 @@ $(document).ready(function() {
             placement: 'right',
             container: 'body',
         }).popover('show');
-       // $('#'+e.currentTarget.id).on('mouseleave', $('#'+e.currentTarget.id).popover('destroy');
-        //$('#'+e.currentTarget.id).on('mouseout', $('#'+e.currentTarget.id).popover('destroy'));
 
 	});
 

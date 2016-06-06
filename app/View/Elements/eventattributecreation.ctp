@@ -80,7 +80,6 @@
 							'class'=>'btn btn-primary',
 							'url' => '/attributes/add/' . $event['Event']['id']
 					));
-						//echo $this->Form->button('Submit', array('class' => 'btn btn-primary'));
 					?>
 				</td>
 				<td style="width:540px;">
@@ -171,8 +170,6 @@
 	            placement: 'right',
 	            container: 'body',
 	        }).popover('show');
-	       // $('#'+e.currentTarget.id).on('mouseleave', $('#'+e.currentTarget.id).popover('destroy');
-	        //$('#'+e.currentTarget.id).on('mouseout', $('#'+e.currentTarget.id).popover('destroy'));
 
 		});
 
