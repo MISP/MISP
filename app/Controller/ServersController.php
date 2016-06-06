@@ -537,14 +537,17 @@ class ServersController extends AppController {
 			$ext = '';
 			App::uses('File', 'Utility');
 			App::uses('Folder', 'Utility');
+			App::uses('FileAccess', 'Tools');
 			$file = new File($server['Server']['submitted_cert']['name']);
 			$ext = $file->ext();
 			if (($ext != 'pem') || !$server['Server']['submitted_cert']['size'] > 0) {
 				$this->Session->setFlash('Incorrect extension or empty file.');
 				$this->redirect(array('action' => 'index'));
 			}
-			$pemData = fread(fopen($server['Server']['submitted_cert']['tmp_name'], "r"),
-					$server['Server']['submitted_cert']['size']);
+
+			// read pem file data
+			$pemData = FileAccess::readFromFile($server['Server']['submitted_cert']['name'], $server['Server']['submitted_cert']['size']);
+
 			$destpath = APP . "files" . DS . "certs" . DS;
 			$dir = new Folder(APP . "files" . DS . "certs", true);
 			if (!preg_match('@^[\w-,\s,\.]+\.[A-Za-z0-9_]{2,4}$@', $server['Server']['submitted_cert']['name'])) throw new Exception ('Filename not allowed');

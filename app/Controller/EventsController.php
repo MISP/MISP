@@ -1831,12 +1831,8 @@ class EventsController extends AppController {
 	public function _addGfiZip($id) {
 		if (!empty($this->data) && $this->data['Event']['submittedgfi']['size'] > 0 &&
 				is_uploaded_file($this->data['Event']['submittedgfi']['tmp_name'])) {
-			$tmpFileHandle = fopen($this->data['Event']['submittedgfi']['tmp_name'], "rb");
-			if ($tmpFileHandle === FALSE) {
-				throw new Exception('An error has occured while attempting to access the GFI sandbox .zip file.');
-			}
-			$zipData = fread($tmpFileHandle, $this->data['Event']['submittedgfi']['size']);
-			fclose($tmpFileHandle);
+			App::uses('FileAccess', 'Tools');
+			$zipData = FileAccess::readFromFile($this->data['Event']['submittedgfi']['tmp_name'], $this->data['Event']['submittedgfi']['size']);
 
 			// write
 			$rootDir = APP . "files" . DS . $id . DS;
@@ -1860,12 +1856,7 @@ class EventsController extends AppController {
 			// open the xml
 			$xmlFileName = 'analysis.xml';
 			$xmlFilePath = $rootDir . DS . 'Analysis' . DS . $xmlFileName;
-			$xmlFileHandle = fopen($xmlFilePath, "rb");
-			if ($xmlFileHandle === FALSE) {
-				throw new Exception('An error has occured while attempting to access the GFI sandbox XML analysis file.');
-			}
-			$xmlFileData = fread($xmlFileHandle, filesize($xmlFilePath));
-			fclose($xmlFileHandle);
+			$xmlFileData = FileAccess::readFromFile($xmlFilePath);
 
 			// read XML
 			$this->_readGfiXML($xmlFileData, $id);
@@ -1875,12 +1866,7 @@ class EventsController extends AppController {
 	public function _addIOCFile($id) {
 		if (!empty($this->data) && $this->data['Event']['submittedioc']['size'] > 0 &&
 				is_uploaded_file($this->data['Event']['submittedioc']['tmp_name'])) {
-			$tmpFileHandle = fopen($this->data['Event']['submittedioc']['tmp_name'], "rb");
-			if ($tmpFileHandle === FALSE) {
-				throw new Exception('An error has occured while attempting to access the IOC file.');
-			}
-			$iocData = fread($tmpFileHandle, $this->data['Event']['submittedioc']['size']);
-			fclose($tmpFileHandle);
+			$iocData = FileAccess::readFromFile($this->data['Event']['submittedioc']['tmp_name'], $this->data['Event']['submittedioc']['size']);
 
 			// write
 			$rootDir = APP . "files" . DS . $id . DS;
@@ -1896,12 +1882,7 @@ class EventsController extends AppController {
 
 			// open the xml
 			$xmlFilePath = $destPath . DS . $this->data['Event']['submittedioc']['name'];
-			$xmlFileHandle = fopen($xmlFilePath, "rb");
-			if ($xmlFileHandle === FALSE) {
-				throw new Exception('An error has occured while attempting to access the IOC file.');
-			}
-			$xmlFileData = fread($xmlFileHandle, $this->data['Event']['submittedioc']['size']);
-			fclose($xmlFileHandle);
+			$xmlFileData = FileAccess::readFromFile($xmlFilePath, $this->data['Event']['submittedioc']['size']);
 
 			// Load event and populate the event data
 			$this->Event->id = $id;
@@ -1967,12 +1948,8 @@ class EventsController extends AppController {
 	}
 
 	public function _addMISPExportFile($ext, $take_ownership = false) {
-		$fileHandle = fopen($this->data['Event']['submittedfile']['tmp_name'], "rb");
-		if ($fileHandle === FALSE) {
-			throw new Exception('An error has occured while attempting to access the submitted file.');
-		}
-		$data = fread($fileHandle, $this->data['Event']['submittedfile']['size']);
-		fclose($fileHandle);
+		App::uses('FileAccess', 'Tools');
+		$data = FileAccess::readFromFile($this->data['Event']['submittedfile']['tmp_name'], $this->data['Event']['submittedfile']['size']);
 
 		if ($ext == 'xml') {
 			App::uses('Xml', 'Utility');
