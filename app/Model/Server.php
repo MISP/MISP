@@ -272,6 +272,14 @@ class Server extends AppModel {
 							'test' => 'testBool',
 							'type' => 'boolean',
 					),
+					'email_subject_TLP_string' => array(
+						'level' => 0,
+						'description' => 'This is the TLP string in alert e-mail sent when an event is published.',
+						'value' => '',
+						'errorMessage' => '',
+						'test' => 'testForEmpty',
+						'type' => 'string',
+					),
 					'sync' => array(
 							'level' => 3,
 							'description' => 'This setting is deprecated and can be safely removed.',

@@ -1484,7 +1484,7 @@ class Event extends AppModel {
 		} else {
 			$subject = '';
 		}
-		$subject = "[" . Configure::read('MISP.org') . " MISP] Event " . $id . " - " . $subject . $event[0]['ThreatLevel']['name'] . " - TLP Amber";
+		$subject = "[" . Configure::read('MISP.org') . " MISP] Event " . $id . " - " . $subject . $event[0]['ThreatLevel']['name'] . " - ".Configure::read('MISP.email_subject_TLP_string');
 
 		// Initialise the Job class if we have a background process ID
 		// This will keep updating the process's progress bar
@@ -1677,7 +1677,7 @@ class Event extends AppModel {
 		$bodyevent .= $bodyTempOther;	// append the 'other' attribute types to the bottom.
 		$result = true;
 		foreach ($orgMembers as &$reporter) {
-			$subject = "[" . Configure::read('MISP.org') . " MISP] Need info about event " . $id . " - TLP Amber";
+			$subject = "[" . Configure::read('MISP.org') . " MISP] Need info about event " . $id . " - ".Configure::read('MISP.email_subject_TLP_string');
 			$result = $this->User->sendEmail($reporter, $bodyevent, $body, $subject, $user) && $result;
 		}
 		return $result;

@@ -111,7 +111,7 @@ class Post extends AppModel {
 		$bodyDetail .= "The following message was added: \n";
 		$bodyDetail .= "\n";
 		$bodyDetail .= $message . "\n";
-		$subject = "[" . Configure::read('MISP.org') . " MISP] New post in discussion " . $post['Post']['thread_id'] . " - TLP Amber";
+		$subject = "[" . Configure::read('MISP.org') . " MISP] New post in discussion " . $post['Post']['thread_id'] . " - ".Configure::read('MISP.email_subject_TLP_string');
 		foreach ($orgMembers as &$recipient) {
 			$this->User->sendEmail($recipient, $bodyDetail, $body, $subject);
 		}
