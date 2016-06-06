@@ -140,7 +140,7 @@ class ComplexTypeTool {
 		if (filter_var($inputRefangedNoPort, FILTER_VALIDATE_IP)) return array('types' => array('ip-dst', 'ip-src', 'ip-src/ip-dst'), 'to_ids' => true, 'default_type' => 'ip-dst', 'comment' => $comment, 'value' => $inputRefangedNoPort);
 		if (strpos($inputRefangedNoPort, '/')) {
 			$temp = explode('/', $inputRefangedNoPort);
-			if (count($temp == 2)) {
+			if (count($temp) == 2) {
 				if (filter_var($temp[0], FILTER_VALIDATE_IP) && is_numeric($temp[1])) return array('types' => array('ip-dst', 'ip-src', 'ip-src/ip-dst'), 'to_ids' => true, 'default_type' => 'ip-dst', 'comment' => $comment, 'value' => $inputRefangedNoPort);
 			}
 		}
