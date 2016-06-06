@@ -45,23 +45,10 @@ class SysLog {
  * @return void
  */
     function SysLog($options = array()) {
-        if ($this->isWindows()) {
-            $default_facility = LOG_USER;
-        } else {
-            $default_facility= LOG_LOCAL0;
-        }
+        $default_facility = LOG_LOCAL0;
         $options += array('ident' => LOGS, 'facility' => $default_facility);
         $this->_ident = $options['ident'];
         $this->_facility = $options['facility'];
-    }
-
-/**
- * Utilty method to identify if we're running on a Windows box.
- *
- * @return boolean if running on windows.
- */
-    function isWindows() {
-        return (DIRECTORY_SEPARATOR == '\\' ? true : false);
     }
 
 /**
