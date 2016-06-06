@@ -436,11 +436,7 @@ class ShadowAttribute extends AppModel {
 		// no errors in file upload, entry already in db, now move the file where needed and zip it if required.
 		// no sanitization is required on the filename, path or type as we save
 		// create directory structure
-		if (PHP_OS == 'WINNT') {
-			$rootDir = APP . "files" . DS . $eventId;
-		} else {
-			$rootDir = APP . "files" . DS . $eventId;
-		}
+		$rootDir = APP . "files" . DS . $eventId;
 		$dir = new Folder($rootDir, true);
 		// move the file to the correct location
 		$destpath = $rootDir . DS . $this->getId(); // id of the new attribute in the database

@@ -1845,11 +1845,7 @@ class EventsController extends AppController {
 			if (!preg_match('@^[\w-,\s,\.]+\.[A-Za-z0-9_]{2,4}$@', $this->data['Event']['submittedgfi']['name'])) {
 				throw new Exception ('Filename not allowed');
 			}
-			if (PHP_OS == 'WINNT') {
-				$zipFile = new File($rootDir . DS . $this->data['Event']['submittedgfi']['name']);
-			} else {
-				$zipFile = new File($rootDir . $this->data['Event']['submittedgfi']['name']);
-			}
+			$zipFile = new File($rootDir . $this->data['Event']['submittedgfi']['name']);
 			$result = $zipFile->write($zipData);
 			if (!$result) $this->Session->setFlash(__('Problem with writing the zip file. Please report to administrator.'));
 
@@ -1863,11 +1859,7 @@ class EventsController extends AppController {
 
 			// open the xml
 			$xmlFileName = 'analysis.xml';
-			if (PHP_OS == 'WINNT') {
-				$xmlFilePath = $rootDir . 'Analysis' . DS . $xmlFileName;
-			} else {
-				$xmlFilePath = $rootDir . DS . 'Analysis' . DS . $xmlFileName;
-			}
+			$xmlFilePath = $rootDir . DS . 'Analysis' . DS . $xmlFileName;
 			$xmlFileHandle = fopen($xmlFilePath, "rb");
 			if ($xmlFileHandle === FALSE) {
 				throw new Exception('An error has occured while attempting to access the GFI sandbox XML analysis file.');
