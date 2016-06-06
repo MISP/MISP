@@ -78,8 +78,6 @@ class PubSubTool {
 			$redis->connect($settings['redis_host'], $settings['redis_port']);
 			$redis->select($settings['redis_database']);
 			$redis->rPush($settings['redis_namespace'] . ':command', 'kill');
-			$continue = true;
-			$counter = 0;
 			sleep(1);
 			if ($this->checkIfRunning()) return false;
 		}
