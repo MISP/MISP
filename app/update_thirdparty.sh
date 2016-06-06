@@ -5,10 +5,10 @@ set -e
 D3JS='3.5.17'
 JQUERY_UI='1.11.4'
 JQUERY='2.2.4'
-BOOTSTRAP_COLORPICKER='2.0.0'
-BOOTSTRAP_DATEPICKER='1.5.1'
-BOOTSTRAP_TIMEPICKER='0.2.6'
-BOOTSTRAP_TRANSITION='2.3.2'
+BOOTSTRAP_COLORPICKER='2.0.0'  # Anything higher supports transparent color and requires changes in MISP code
+BOOTSTRAP_DATEPICKER='1.5.1'  # Need to try 1.6.X
+BOOTSTRAP_TIMEPICKER='0.3.0'  # Latest version working with Bootstrap 2.X
+BOOTSTRAP_TRANSITION='2.3.2'  # Latest 2.X bootstrap
 CAL_HEATMAP='3.6.0'
 
 
