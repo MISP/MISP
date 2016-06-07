@@ -1889,7 +1889,7 @@ class Server extends AppModel {
 	}
 
 	public function testDate($date) {
-		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
+		if ($this->testForEmpty($date) !== true) return $this->testForEmpty($date);
 		if (!strtotime($date)) return 'The date that you have entered is invalid. Expected: yyyy-mm-dd';
 		return true;
 	}
