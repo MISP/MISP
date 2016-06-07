@@ -53,34 +53,29 @@ class CertificateAuthenticate extends BaseAuthenticate
     {
         self::$ca = self::$client = false;
 
-        // this means the client certificate is valid — check nginx/apache configuration
-        if (isset($_SERVER['SSL_CLIENT_VERIFY']) && $_SERVER['SSL_CLIENT_VERIFY']=='SUCCESS') {
+        if (isset($_SERVER['SSL_CLIENT_I_DN'])) {
+            $CA = self::parse($_SERVER['SSL_CLIENT_I_DN'], Configure::read('CertAuth.mapCa'));
+            // only valid CAs, if this was configured
+            if ($ca=Configure::read('CertAuth.ca')) {
+                $k = Configure::read('CertAuth.caId');
+                if (!$k) $k = 'CN';
+                $id = (isset($CA[$k]))?($CA[$k]):(false);
 
-            if (isset($_SERVER['SSL_CLIENT_I_DN'])) {
-                $CA = self::parse($_SERVER['SSL_CLIENT_I_DN'], Configure::read('CertAuth.mapCa'));
-
-                // only valid CAs, if this was configured
-                if ($ca=Configure::read('CertAuth.ca')) {
-                    $k = Configure::read('CertAuth.caId');
-                    if (!$k) $k = 'CN';
-                    $id = (isset($CA[$k]))?($CA[$k]):(false);
-
-                    if (!$id) {
-                        $CA = false;
-                    } else if (is_array($ca)) {
-                        if (!in_array($id, $ca)) $CA = false;
-                    } else if ($ca!=$id) {
-                        $CA = false;
-                    }
-                    unset($id, $k);
+                if (!$id) {
+                    $CA = false;
+                } else if (is_array($ca)) {
+                    if (!in_array($id, $ca)) $CA = false;
+                } else if ($ca!=$id) {
+                    $CA = false;
                 }
-                self::$ca = $CA;
-                unset($CA, $ca);
+                unset($id, $k);
             }
+            self::$ca = $CA;
+            unset($CA, $ca);
+        }
 
-            if (self::$ca && isset($_SERVER['SSL_CLIENT_S_DN'])) {
-                self::$client = self::parse($_SERVER['SSL_CLIENT_S_DN'], Configure::read('CertAuth.map'));
-            }
+        if (self::$ca && isset($_SERVER['SSL_CLIENT_S_DN'])) {
+            self::$client = self::parse($_SERVER['SSL_CLIENT_S_DN'], Configure::read('CertAuth.map'));
         }
     }
 
@@ -95,20 +90,21 @@ class CertificateAuthenticate extends BaseAuthenticate
     private static function parse($s, $map=null)
     {
         $r=array();
-        foreach (preg_split('#/#', $s, null, PREG_SPLIT_NO_EMPTY) as $v) {
-            if ($p=strpos($v, '=')) {
-                $k = substr($v, 0, $p);
+        if(preg_match_all('#(^/?|\/|\,)([a-zA-Z]+)\=([^\/\,]+)#', $s, $m)) {
+            foreach($m[2] as $i=>$k) {
                 if ($map) {
-                    if (isset($map[$k])) {
+                    if(isset($map[$k])) {
                         $k = $map[$k];
                     } else {
-                        unset($p, $v, $k);
-                        continue;
+                        $k = null;
                     }
                 }
-                $r[$k] = substr($v, $p+1);
+                if($k) {
+                    $v = $m[3][$i];
+                    $r[$k] = $v;
+                }
+                unset($m[0][$i], $m[1][$i], $m[2][$i], $m[3][$i], $k, $v, $i);
             }
-            unset($p, $v, $k);
         }
         return $r;
     }
@@ -178,13 +174,14 @@ class CertificateAuthenticate extends BaseAuthenticate
                         unset($d);
 
                         if ($User->save(self::$user, true, array_keys(self::$user))) {
-
+                            $id = $User->id;
                             if($org) {
                                 self::$user['org_id']=$User->Organisation->createOrgFromName($org, $User->id, true);
                                 $User->save(self::$user, true, array('org_id'));
                             }
 
-                            self::$user = $User->getAuthUser($U[$cn]['id']);
+                            self::$user = $User->getAuthUser($id);
+                            unset($id);
                             if(isset(self::$user['gpgkey'])) unset(self::$user['gpgkey']);
                         } else {
                             CakeLog::write('alert', 'Could not insert model at database from RestAPI data.');
