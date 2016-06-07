@@ -610,7 +610,7 @@ class Server extends AppModel {
 							'null' => true,
 					),
 					'custom_css' => array(
-							'level' => 1,
+							'level' => 2,
 							'description' => 'If you would like to customise the css, simply drop a css file in the /var/www/MISP/webroot/css directory and enter the name here.',
 							'value' => '',
 							'errorMessage' => '',
