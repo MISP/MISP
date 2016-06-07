@@ -21,11 +21,11 @@
 			<th><?php echo $this->Paginator->sort('id');?></th>
 			<th><?php echo $this->Paginator->sort('name');?></th>
 			<th><?php echo $this->Paginator->sort('permission', 'Permission');?></th>
-			<?php 
+			<?php
 				foreach ($permFlags as $k => $flags):
 			?>
 				<th><?php echo $this->Paginator->sort($k, $flags['text']);?></th>
-			<?php 
+			<?php
 				endforeach;
 			?>
 			<th class="actions"><?php echo __('Actions');?></th>
@@ -63,6 +63,6 @@ endforeach; ?>
     </div>
 
 </div>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'indexRole'));
 ?>

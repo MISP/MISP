@@ -13,7 +13,7 @@
 				'change' => array('text' => 'including the change', 'default' => null),
 				'ip' => array('text' => 'from IP', 'default' => null)
 		);
-		
+
 		foreach ($replaceArray as $type => $replace) {
 			if (isset(${$type . 'Search'}) && ${$type . 'Search'} != $replace['default']) {
 				echo ' ' . $replace['text'] . ' "<b>' . h(${$type . 'Search'}) . '</b>"';
@@ -63,7 +63,7 @@
 		<?php foreach ($list as $item): ?>
 		<tr>
 			<td class="short"><?php echo h($item['Log']['id']); ?>&nbsp;</td>
-			<?php 
+			<?php
 				if (Configure::read('MISP.log_client_ip')) {
 					echo '<td>';
 					if (isset($ipSearch) && $ipSearch != null) echo nl2br($this->Highlight->highlighter(h($item['Log']['ip']), $ipSearchReplacePairs));

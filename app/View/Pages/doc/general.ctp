@@ -86,7 +86,7 @@
 		<li><b>List Logs:</b> View the logs of the instance.</li>
 		<li><b>Search Logs:</b> Search the logs by various attributes.</li>
 	</ul>
-	
+
 		<h5>Discussions</h5>
 	<ul>
 		<li><b>List Discussions:</b> List all of the discussion threads.</li>

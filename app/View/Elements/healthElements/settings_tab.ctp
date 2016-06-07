@@ -1,6 +1,6 @@
 <div style="border:1px solid #dddddd; margin-top:1px; width:95%; padding:10px">
-<?php 
-	foreach ($finalSettings as $subGroup => &$settings): 
+<?php
+	foreach ($finalSettings as $subGroup => &$settings):
 ?>
 	<div>
 		<table class="table table-hover table-condensed" style="border:1px solid #dddddd; margin-top:1px; margin-bottom:0px; width:100%; padding:10px">
@@ -40,12 +40,12 @@
 				<td style="<?php echo $bgColour; ?>"><?php if (isset($setting['error']) && $setting['level'] != 3) echo h($setting['errorMessage']); ?></td>
 			</tr>
 		<?php
-			endforeach; 
+			endforeach;
 		?>
 		</table>
 		<div class="subGroup_<?php echo h($subGroup);?> hidden" style="margin-bottom:30px;"></div>
 	</div>
-<?php 
+<?php
 	endforeach;
 ?>
 </div>

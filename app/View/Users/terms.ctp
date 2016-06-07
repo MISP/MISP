@@ -17,7 +17,7 @@
 		} else {
 			?>
 				<a href="<?php echo $baseurl;?>/users/downloadTerms" class="btn btn-inverse">Download Terms and Conditions</a>
-			<?php 
+			<?php
 		}
 	}
 	if (!$termsaccepted) {
@@ -29,6 +29,6 @@
 	}
 ?>
 </div>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'terms'));
 ?>

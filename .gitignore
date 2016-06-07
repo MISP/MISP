@@ -5,6 +5,7 @@
 /.project
 /.settings
 /.buildpath
+/.idea
 .DS_Store
 /.htaccess
 /app/Vendor

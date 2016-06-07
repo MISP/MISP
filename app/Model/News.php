@@ -4,7 +4,7 @@ App::uses('AppModel', 'Model');
 class News extends AppModel {
 
 	public $actsAs = array('Containable');
-	
+
 	public $validate = array(
 		'message' => array(
 			'valueNotEmpty' => array(
@@ -17,7 +17,7 @@ class News extends AppModel {
 				),
 		)
 	);
-	
+
 	public $belongsTo = array(
 		'User' => array(
 			'className' => 'User',

@@ -21,7 +21,7 @@ class TaxonomyPredicate extends AppModel{
 				'dependent' => true
 			)
 	);
-	
+
 	public function beforeValidate($options = array()) {
 		parent::beforeValidate();
 		return true;

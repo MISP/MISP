@@ -5,7 +5,7 @@
 
 .tree div:not(:nth-of-type(1))::before {
 	content: '';
-	position: absolute; 
+	position: absolute;
 	left: -15px;
 	border-bottom: 1px solid #ccc;
 	border-top: 0px solid #ccc;
@@ -15,52 +15,52 @@
 }
 
 .distance1::before {
- 	top: -35px; 
+ 	top: -35px;
  	height: 50px;
  }
- 
+
 .distance2::before {
- 	top: -85px; 
+ 	top: -85px;
  	height: 100px;
  }
- 
+
 .distance3::before {
- 	top: -135px; 
+ 	top: -135px;
  	height: 150px;
  }
- 
+
 .distance4::before {
- 	top: -185px; 
+ 	top: -185px;
  	height: 200px;
  }
- 
+
 .distance5::before {
- 	top: -235px; 
+ 	top: -235px;
  	height: 250px;
  }
- 
+
 .distance6::before {
- 	top: -285px; 
+ 	top: -285px;
  	height: 300px;
  }
- 
+
 .distance7::before {
- 	top: -335px; 
+ 	top: -335px;
  	height: 350px;
  }
- 
+
  .distance8::before {
- 	top: -385px; 
+ 	top: -385px;
  	height: 400px;
  }
- 
+
 .distance9::before {
- 	top: -435px; 
+ 	top: -435px;
  	height: 450px;
  }
- 
+
 .distance10::before {
- 	top: -485px; 
+ 	top: -485px;
  	height: 500px;
  }
 
@@ -82,7 +82,7 @@
 }
 
 .firstPivot {
-	left:0px; 
+	left:0px;
 	top:0px;
 }
 
@@ -93,8 +93,8 @@
 	padding-top:4px;
 	padding-bottom:2px;
 	width: 105px;
-	
-	display: inline-block;	
+
+	display: inline-block;
 	border-radius: 7px;
 	-webkit-border-radius: 7px;
 	-moz-border-radius: 7px;
@@ -129,4 +129,3 @@
 	-webkit-border-radius: 7px;
 	-moz-border-radius: 7px;
 }
-

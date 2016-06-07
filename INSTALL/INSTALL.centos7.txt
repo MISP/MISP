@@ -19,7 +19,7 @@ yum update
 Once the system is installed you can perform the following steps as root:
 
 # We need some packages from the Extra Packages for Enterprise Linux repository
-curl -o epel.rpm http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-5.noarch.rpm
+curl -o epel.rpm http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-6.noarch.rpm
 rpm -Uvh epel.rpm
 
 # Since MISP 2.4 PHP 5.5 is a minimal requirement, so we need a newer version than CentOS base provides
@@ -48,7 +48,7 @@ scl enable rh-php56 bash
 
 pear channel-update pear.php.net
 
-pear install Crypt_GPG    # we need version >1.3.0 
+pear install Crypt_GPG    # we need version >1.3.0
 
 # GPG needs lots of entropy, haveged provides entropy
 yum install haveged
@@ -61,9 +61,9 @@ systemctl start  redis.service
 
 3/ MISP code
 ------------
-# Download MISP using git in the /var/www/ directory. 
+# Download MISP using git in the /var/www/ directory.
 cd /var/www/
-git clone https://github.com/MISP/MISP.git 
+git clone https://github.com/MISP/MISP.git
 
 # Make git ignore filesystem permission differences
 cd /var/www/MISP
@@ -179,7 +179,7 @@ chcon -R -t httpd_sys_content_rw_t /var/www/MISP/app/webroot/img/custom
 # Allow httpd to connect to the redis server and php-fpm over tcp/ip
 setsebool -P httpd_can_network_connect on
 
-# Enable and start the httpd service 
+# Enable and start the httpd service
 systemctl enable httpd.service
 systemctl start  httpd.service
 
@@ -187,7 +187,7 @@ systemctl start  httpd.service
 firewall-cmd --zone=public --add-port=80/tcp --permanent
 firewall-cmd --reload
 
-# We seriously recommend using only SSL ! 
+# We seriously recommend using only SSL !
 # Check out the apache.misp.ssl file for an example
 
 
@@ -199,14 +199,14 @@ cp -a bootstrap.default.php bootstrap.php
 cp -a database.default.php database.php
 cp -a core.default.php core.php
 cp -a config.default.php config.php
- 
+
 # Configure the fields in the newly created files:
 # config.php   : baseurl
 # database.php : login, port, password, database
 
 # Important! Change the salt key in /var/www/MISP/app/Config/config.php
 # The admin user account will be generated on the first login, make sure that the salt is changed before you create that user
-# If you forget to do this step, and you are still dealing with a fresh installation, just alter the salt, 
+# If you forget to do this step, and you are still dealing with a fresh installation, just alter the salt,
 # delete the user from mysql and log in again using the default admin credentials (admin@admin.test / admin)
 
 # If you want to be able to change configuration parameters from the webinterface:
@@ -237,7 +237,7 @@ su -s /bin/bash apache -c 'scl enable rh-php56 /var/www/MISP/app/Console/worker/
 chmod +x /etc/rc.local
 
 # Now log in using the webinterface:
-# The default user/pass = admin@admin.test/admin 
+# The default user/pass = admin@admin.test/admin
 
 # Using the server settings tool in the admin interface (Administration -> Server Settings), set MISP up to your preference
 # It is especially vital that no critical issues remain!

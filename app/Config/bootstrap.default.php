@@ -15,29 +15,29 @@
  *
  * File storage engine.
  *
- * 	 Cache::config('default', array(
+ *	Cache::config('default', array(
  *		'engine' => 'File', //[required]
  *		'duration'=> 3600, //[optional]
  *		'probability'=> 100, //[optional]
- * 		'path' => CACHE, //[optional] use system tmp directory - remember to use absolute path
- * 		'prefix' => 'cake_', //[optional]  prefix every cache file with this string
- * 		'lock' => false, //[optional]  use file locking
- * 		'serialize' => true, // [optional]
- * 		'mask' => 0666, // [optional] permission mask to use when creating cache files
+ *		'path' => CACHE, //[optional] use system tmp directory - remember to use absolute path
+ *		'prefix' => 'cake_', //[optional]  prefix every cache file with this string
+ *		'lock' => false, //[optional]  use file locking
+ *		'serialize' => true, // [optional]
+ *		'mask' => 0666, // [optional] permission mask to use when creating cache files
  *	));
  *
  * APC (http://pecl.php.net/package/APC)
  *
- * 	 Cache::config('default', array(
+ *	Cache::config('default', array(
  *		'engine' => 'Apc', //[required]
  *		'duration'=> 3600, //[optional]
  *		'probability'=> 100, //[optional]
- * 		'prefix' => Inflector::slug(APP_DIR) . '_', //[optional]  prefix every cache file with this string
+ *		'prefix' => Inflector::slug(APP_DIR) . '_', //[optional]  prefix every cache file with this string
  *	));
  *
  * Xcache (http://xcache.lighttpd.net/)
  *
- * 	 Cache::config('default', array(
+ *	Cache::config('default', array(
  *		'engine' => 'Xcache', //[required]
  *		'duration'=> 3600, //[optional]
  *		'probability'=> 100, //[optional]
@@ -48,21 +48,21 @@
  *
  * Memcache (http://memcached.org/)
  *
- * 	 Cache::config('default', array(
+ *	Cache::config('default', array(
  *		'engine' => 'Memcache', //[required]
  *		'duration'=> 3600, //[optional]
  *		'probability'=> 100, //[optional]
- * 		'prefix' => Inflector::slug(APP_DIR) . '_', //[optional]  prefix every cache file with this string
- * 		'servers' => array(
- * 			'127.0.0.1:11211' // localhost, default port 11211
- * 		), //[optional]
- * 		'persistent' => true, // [optional] set this to false for non-persistent connections
- * 		'compress' => false, // [optional] compress data in Memcache (slower, but uses less memory)
+ *		'prefix' => Inflector::slug(APP_DIR) . '_', //[optional]  prefix every cache file with this string
+ *		'servers' => array(
+ *			'127.0.0.1:11211' // localhost, default port 11211
+ *		), //[optional]
+ *		'persistent' => true, // [optional] set this to false for non-persistent connections
+ *		'compress' => false, // [optional] compress data in Memcache (slower, but uses less memory)
  *	));
  *
  *  Wincache (http://php.net/wincache)
  *
- * 	 Cache::config('default', array(
+ *	Cache::config('default', array(
  *		'engine' => 'Wincache', //[required]
  *		'duration'=> 3600, //[optional]
  *		'probability'=> 100, //[optional]
@@ -71,7 +71,7 @@
  *
  * Redis (http://http://redis.io/)
  *
- * 	 Cache::config('default', array(
+ *	Cache::config('default', array(
  *		'engine' => 'Redis', //[required]
  *		'duration'=> 3600, //[optional]
  *		'probability'=> 100, //[optional]
@@ -92,17 +92,17 @@ if (!$relativePaths) {
 	if (isset($_SERVER['SERVER_NAME'])) $serverName = $_SERVER['SERVER_NAME'];
 	else if (isset($_SERVER['HTTP_HOST'])) $serverName = $_SERVER['HTTP_HOST'];
 	else if (isset($_SERVER['SERVER_ADDR'])) $serverName = $_SERVER['SERVER_ADDR'];
-	
-	if (!Configure::read('MISP.baseurl') && isset($serverName)) { 
+
+	if (!Configure::read('MISP.baseurl') && isset($serverName)) {
 		if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443)) {
 			$protocol = 'https';
 		} else {
 			$protocol = 'http';
-		} 
-		if (!isset($_SERVER['SERVER_PORT']) || !in_array($_SERVER['SERVER_PORT'], array('443', '80')) || !$appendPort) {
-			Configure::write('MISP.baseurl', sprintf('https://%s', $serverName));
+		}
+		if (!isset($_SERVER['SERVER_PORT']) || in_array($_SERVER['SERVER_PORT'], array('443', '80')) || !$appendPort) {
+			Configure::write('MISP.baseurl', sprintf($protocol . '://%s', $serverName));
 		} else {
-			Configure::write('MISP.baseurl', sprintf('https://%s:%d', $serverName, $_SERVER['SERVER_PORT']));
+			Configure::write('MISP.baseurl', sprintf($protocol . '://%s:%d', $serverName, $_SERVER['SERVER_PORT']));
 		}
 	}
 }
@@ -139,7 +139,7 @@ CakePlugin::load('UrlCache');
  * Configure::write('Dispatcher.filters', array(
  *		'MyCacheFilter', //  will use MyCacheFilter class from the Routing/Filter package in your app.
  *		'MyPlugin.MyFilter', // will use MyFilter class from the Routing/Filter package in MyPlugin plugin.
- * 		array('callable' => $aFunction, 'on' => 'before', 'priority' => 9), // A valid PHP callback type to be called on beforeDispatch
+ *		array('callable' => $aFunction, 'on' => 'before', 'priority' => 9), // A valid PHP callback type to be called on beforeDispatch
  *		array('callable' => $anotherMethod, 'on' => 'after'), // A valid PHP callback type to be called on afterDispatch
  *
  * ));

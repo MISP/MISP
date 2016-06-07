@@ -87,7 +87,7 @@ class FinancialTool {
 			'VG' => '24',
 			'XK' => '20'
 	);
-	
+
 	public function validateRouter($type, $value) {
 		$validationRoutes = array(
 			'cc-number' => 'CC',
@@ -99,7 +99,7 @@ class FinancialTool {
 		if (in_array($type, array_keys($validationRoutes))) return $this->{'validate' . strtoupper($validationRoutes[$type])}($value);
 		return true;
 	}
-	
+
 	// validating using method described on wikipedia @ https://en.wikipedia.org/wiki/International_Bank_Account_Number#Algorithms
 	public function validateIBAN($iban) {
 		if (strlen($iban) < 15 || strlen($iban) > 32) return false;
@@ -110,19 +110,19 @@ class FinancialTool {
 			else $temp2 .= ord(strtolower($temp[$i])) - 87;
 		}
 		$temp = bcmod($temp2, 97);
-		return intval($temp)===1 ? true : false; 
+		return intval($temp)===1 ? true : false;
 	}
-	
+
 	public function validateBIC($bic) {
 		if (preg_match('/^([A-Z]{4})([A-Z]){2}([0-9A-Z]){2}([0-9A-Z]{3})?$/i', $bic)) return true;
 		return false;
 	}
-	
+
 	public function validateBIN($bin) {
 		if (is_numeric($bin) && strlen($bin) == 6) return true;
 		return false;
 	}
-	
+
 	// based on the explanation at www.freeformatter.com/credit-card-number-generator-validator.html#validate
 	public function validateCC($cc) {
 		if (is_numeric($cc) && strlen($cc) > 12 && strlen($cc) < 20) {
@@ -142,30 +142,30 @@ class FinancialTool {
 			return false;
 		}
 		return false;
-	} 
-	
+	}
+
 	// based on the php implementation of the BTC address validation example from
 	// http://rosettacode.org/wiki/Bitcoin/address_validation
-	public function validateBTC($address){
+	public function validateBTC($address) {
 		if (strlen($address) < 26 || strlen($address) > 35) return false;
 		$decoded = $this->__decodeBase58($address);
 		if ($decoded === false) return false;
-		
+
 		$d1 = hash("sha256", substr($decoded,0,21), true);
 		$d2 = hash("sha256", $d1, true);
-	
-		if(substr_compare($decoded, $d2, 21, 4)){
+
+		if (substr_compare($decoded, $d2, 21, 4)) {
 			return false;
 		}
 		return true;
 	}
-	
+
 	private function __decodeBase58($input) {
 		$alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
-	
+
 		$out = array_fill(0, 25, 0);
-		for($i=0;$i<strlen($input);$i++){
-			if(($p=strpos($alphabet, $input[$i]))===false){
+		for ($i=0;$i<strlen($input);$i++) {
+			if (($p=strpos($alphabet, $input[$i]))===false) {
 				return false;
 			}
 			$c = $p;
@@ -175,16 +175,16 @@ class FinancialTool {
 				$c /= 256;
 				$c = (int)$c;
 			}
-			if($c != 0){
+			if ($c != 0) {
 				return false;
 			}
 		}
-	
+
 		$result = "";
-		foreach($out as $val){
+		foreach ($out as $val) {
 			$result .= chr($val);
 		}
-	
+
 		return $result;
 	}
 }

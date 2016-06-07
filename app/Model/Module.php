@@ -3,7 +3,7 @@ App::uses('AppModel', 'Model');
 
 class Module extends AppModel {
 	public $useTable = false;
-	
+
 
 	public function getModules($type = false) {
 		$modules = $this->queryModuleServer('/modules');
@@ -36,7 +36,6 @@ class Module extends AppModel {
 				}
 			}
 		}
-		debug($modules);
 		return $modules;
 	}
 	
@@ -54,8 +53,8 @@ class Module extends AppModel {
 		App::uses('HttpSocket', 'Network/Http');
 		$httpSocket = new HttpSocket();
 		try {
-			if ($post) $response = $httpSocket->post($url . '/modules', $post);
-			else $response = $httpSocket->get($url . '/modules');
+			if ($post) $response = $httpSocket->post($url . $uri, $post);
+			else $response = $httpSocket->get($url . $uri);
 			return json_decode($response->body, true);
 		} catch (Exception $e) {
 			return false;

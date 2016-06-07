@@ -9,7 +9,7 @@ App::uses('AppModel', 'Model');
 class TemplateElementAttribute extends AppModel {
 	public $actsAs = array('Containable');
 	public $belongsTo = array('TemplateElement');
-	
+
 	public $validate = array(
 			'name' => array(
 				'valueNotEmpty' => array(

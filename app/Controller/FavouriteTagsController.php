@@ -15,7 +15,7 @@ class FavouriteTagsController extends AppController {
 					'FavouriteTag.id' => 'DESC'
 			),
 	);
-	
+
 	public function toggle() {
 		if (!$this->request->is('post')) throw new MethodNotAllowedException('This action is only available via POST requests.');
 		if (!is_numeric($this->request->data['FavouriteTag']['data'])) throw new MethodNotAllowedException('Invalid tag ID.');
@@ -38,7 +38,7 @@ class FavouriteTagsController extends AppController {
 			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'fails' => $message . ' has failed.')), 'status'=>200));
 		}
 	}
-	
+
 	public function getToggleField() {
 		if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This action is available via AJAX only.');
 		$this->layout = 'ajax';

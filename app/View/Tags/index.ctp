@@ -17,7 +17,7 @@
         </ul>
     </div>
 	<div id="hiddenFormDiv">
-    <?php 
+    <?php
 		echo $this->Form->create('FavouriteTag', array('url' => '/favourite_tags/toggle'));
 		echo $this->Form->input('data', array('label' => false, 'style' => 'display:none;'));
 		echo $this->Form->end();
@@ -41,9 +41,9 @@ foreach ($list as $item): ?>
 		<td class="short"><span class="<?php echo ($item['Tag']['exportable'] ? 'icon-ok' : 'icon-remove'); ?>"></span></td>
 		<td><a href="<?php echo $baseurl."/events/index/searchtag:".$item['Tag']['id']; ?>" class="tag" style="background-color: <?php echo h($item['Tag']['colour']); ?>;color:<?php echo $this->TextColour->getTextColour($item['Tag']['colour']); ?>" title="<?php echo isset($item['Tag']['Taxonomy']['expanded']) ? h($item['Tag']['Taxonomy']['expanded']) : h($item['Tag']['name']); ?>"><?php echo h($item['Tag']['name']); ?></a></td>
 		<td class="short">
-		<?php 
-			if (isset($item['Tag']['Taxonomy'])): 
-				echo '<a href="' . $baseurl . '/taxonomies/view/' . h($item['Tag']['Taxonomy']['id']) . '" title="' . (isset($item['Tag']['Taxonomy']['description']) ? h($item['Tag']['Taxonomy']['description']) : h($item['Tag']['Taxonomy']['namespace'])) . '">' . h($item['Tag']['Taxonomy']['namespace']) . '</a>'; 
+		<?php
+			if (isset($item['Tag']['Taxonomy'])):
+				echo '<a href="' . $baseurl . '/taxonomies/view/' . h($item['Tag']['Taxonomy']['id']) . '" title="' . (isset($item['Tag']['Taxonomy']['description']) ? h($item['Tag']['Taxonomy']['description']) : h($item['Tag']['Taxonomy']['namespace'])) . '">' . h($item['Tag']['Taxonomy']['namespace']) . '</a>';
 			endif;
 		?>
 		&nbsp;
@@ -55,7 +55,7 @@ foreach ($list as $item): ?>
 		<?php if ($isAclTagEditor): ?>
 		<td class="short action-links">
 			<?php echo $this->Html->link('', array('action' => 'edit', $item['Tag']['id']), array('class' => 'icon-edit', 'title' => 'Edit'));?>
-			<?php echo $this->Form->postLink('', array('action' => 'delete', $item['Tag']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete "%s"?', $item['Tag']['name']));?>	
+			<?php echo $this->Form->postLink('', array('action' => 'delete', $item['Tag']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete "%s"?', $item['Tag']['name']));?>
 		</td>
 		<?php endif; ?>
 	</tr><?php
@@ -79,7 +79,7 @@ endforeach; ?>
     </div>
 
 </div>
-<?php 
+<?php
 	$menuItem = $favouritesOnly ? 'indexfav' : 'index';
 	echo $this->element('side_menu', array('menuList' => 'tags', 'menuItem' => $menuItem));
 ?>

@@ -18,7 +18,7 @@ publishCount = 0
 def setup():
     global namespace
     global socket
-    global r 
+    global r
     global settings
     global timestampSettings
     with open(current_location + '/settings.json') as settings_file:

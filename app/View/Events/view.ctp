@@ -43,7 +43,7 @@
 					<?php echo h($event['Event']['uuid']); ?>
 					&nbsp;
 				</dd>
-				<?php 
+				<?php
 					if (Configure::read('MISP.showorgalternate') && (Configure::read('MISP.showorg') || $isAdmin)): ?>
 						<dt>Source Organisation</dt>
 						<dd>
@@ -55,7 +55,7 @@
 							<a href="/organisations/view/<?php echo h($event['Org']['id']); ?>"><?php echo h($event['Org']['name']); ?></a>
 							&nbsp;
 						</dd>
-				<?php 	
+				<?php
 					else:
 						if (Configure::read('MISP.showorg') || $isAdmin): ?>
 							<dt>Org</dt>
@@ -70,25 +70,25 @@
 								<a href="/organisations/view/<?php echo h($event['Org']['id']); ?>"><?php echo h($event['Org']['name']); ?></a>
 								&nbsp;
 							</dd>
-				<?php 
-						endif; 
+				<?php
+						endif;
 					endif;
-						
+
 				?>
 				<dt>Contributors</dt>
 				<dd>
-					<?php 
-						foreach($contributors as $k => $entry) {
+					<?php
+						foreach ($contributors as $k => $entry) {
 							if (Configure::read('MISP.showorg') || $isAdmin) {
 								?>
 									<a href="<?php echo $baseurl."/logs/event_index/".$event['Event']['id'].'/'.h($entry);?>" style="margin-right:2px;text-decoration: none;">
-								<?php 
+								<?php
 									echo $this->element('img', array('id' => $entry, 'imgSize' => 24, 'imgStyle' => true));
 								?>
 									</a>
-								<?php 
+								<?php
 							}
-						}		
+						}
 					?>
 					&nbsp;
 				</dd>
@@ -99,7 +99,7 @@
 					&nbsp;
 				</dd>
 				<?php endif; ?>
-				<?php 
+				<?php
 					if (Configure::read('MISP.tagging')): ?>
 						<dt>Tags</dt>
 						<dd class="eventTagContainer">
@@ -113,7 +113,7 @@
 				</dd>
 				<dt title="<?php echo $eventDescriptions['threat_level_id']['desc'];?>">Threat Level</dt>
 				<dd>
-					<?php 
+					<?php
 						if ($event['ThreatLevel']['name']) echo h($event['ThreatLevel']['name']);
 						else echo h($event['Event']['threat_level_id']);
 					?>
@@ -125,12 +125,12 @@
 					&nbsp;
 				</dd>
 				<dt>Distribution</dt>
-				<dd <?php if($event['Event']['distribution'] == 0) echo 'class = "privateRedText"';?> title = "<?php echo h($distributionDescriptions[$event['Event']['distribution']]['formdesc'])?>">
-					<?php 
+				<dd <?php if ($event['Event']['distribution'] == 0) echo 'class = "privateRedText"';?> title = "<?php echo h($distributionDescriptions[$event['Event']['distribution']]['formdesc'])?>">
+					<?php
 						if ($event['Event']['distribution'] == 4):
 					?>
 							<a href="/sharing_groups/view/<?php echo h($event['SharingGroup']['id']); ?>"><?php echo h($event['SharingGroup']['name']); ?></a>
-					<?php 
+					<?php
 						else:
 							echo h($distributionLevels[$event['Event']['distribution']]);
 						endif;
@@ -148,10 +148,10 @@
 				<dd style="word-wrap: break-word;">
 						<span id="eventSightingCount" class="bold sightingsCounter" data-toggle="popover" data-trigger="hover" data-content="<?php echo $sightingPopover; ?>"><?php echo count($event['Sighting']); ?></span>
 						(<span id="eventOwnSightingCount" class="green bold sightingsCounter" data-toggle="popover" data-trigger="hover" data-content="<?php echo $sightingPopover; ?>"><?php echo isset($ownSightings) ? count($ownSightings) : 0; ?></span>)
-						<?php if(!Configure::read('Plugin.Sightings_policy')) echo '- restricted to own organisation only.'; ?>
+						<?php if (!Configure::read('Plugin.Sightings_policy')) echo '- restricted to own organisation only.'; ?>
 				</dd>
 				<?php endif;
-					if (!empty($delegationRequest)): 
+					if (!empty($delegationRequest)):
 						if ($isSiteAdmin || $me['org_id'] == $delegationRequest['EventDelegation']['org_id']) {
 							$target = $isSiteAdmin ? $delegationRequest['Org']['name'] : 'you';
 							$subject = $delegationRequest['RequesterOrg']['name'] . ' has';
@@ -171,11 +171,11 @@
 		<ul class="inline">
 			<?php foreach ($event['RelatedEvent'] as $relatedEvent): ?>
 			<li>
-			<?php 
+			<?php
 			$relatedData = array('Orgc' => $relatedEvent['Orgc']['name'], 'Date' => $relatedEvent['Event']['date'], 'Info' => $relatedEvent['Event']['info']);
 			$popover = '';
 			foreach ($relatedData as $k => $v) {
-				$popover .= '<span class=\'bold\'>' . h($k) . '</span>: <span class="blue">' . h($v) . '</span><br />'; 
+				$popover .= '<span class=\'bold\'>' . h($k) . '</span>: <span class="blue">' . h($v) . '</span><br />';
 			}
 			?>
 			<div data-toggle="popover" data-content="<?php echo h($popover); ?>" data-trigger="hover">
@@ -193,7 +193,7 @@
 		<?php if (!empty($event['Event']['warnings'])): ?>
 			<div class="warning_container" style="width:80%;">
 				<h4 class="red">Warning: Potential false positives</h4>
-				<?php 
+				<?php
 					$total = count($event['Event']['warnings']);
 					$current = 1;
 					foreach ($event['Event']['warnings'] as $id => $name) {
@@ -244,7 +244,7 @@
 // tooltips
 $(document).ready(function () {
 	popoverStartup();
-	//loadEventTags("<?php echo $event['Event']['id']; ?>");	
+	//loadEventTags("<?php echo $event['Event']['id']; ?>");
 	$("th, td, dt, div, span, li").tooltip({
 		'placement': 'top',
 		'container' : 'body',

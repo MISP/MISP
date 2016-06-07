@@ -33,7 +33,7 @@ class Regexp extends AppModel {
 	public function beforeValidate($options = array()) {
 		$this->sanitizeModifiers($this->data['Regexp']['regexp']);
 	}
-	
+
 	public function sanitizeModifiers(&$regex) {
 		preg_match('/[a-zA-Z]*$/i', $regex, $modifiers);
 		if (!empty($modifiers[0])) {
@@ -43,7 +43,7 @@ class Regexp extends AppModel {
 			$regex .= $modifiers[0];
 		}
 	}
-	
+
 	public function checkRegexp() {
 		if (@preg_replace($this->data['Regexp']['regexp'], 'success', $this->data['Regexp']['regexp']) != null) return true;
 		return false;

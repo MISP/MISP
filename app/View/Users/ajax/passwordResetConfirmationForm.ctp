@@ -1,5 +1,5 @@
 <div class="confirmation">
-<?php 
+<?php
 	$legend = ($firstTime ? 'Send welcome message to user' : 'Initiate password reset for user');
 	$message = ($firstTime ? 'Are you sure you want to reset the password of ' . $user['User']['email'] . ' and send him/her a welcome message with the credentials?' : 'Are you sure you want to reset the password of ' . $user['User']['email'] . ' and send him/her the temporary credentials? ');
 	echo $this->Form->create('User', array('style' => 'margin:0px;', 'id' => 'PromptForm'));
@@ -22,7 +22,7 @@
 		</tr>
 	</table>
 </div>
-<?php 
+<?php
 	echo $this->Form->end();
 ?>
 </div>

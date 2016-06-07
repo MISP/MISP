@@ -20,4 +20,3 @@ request.add_header('Authorization', API_KEY)
 data = urllib2.urlopen(request).read()
 f.write(data)
 f.close()
-

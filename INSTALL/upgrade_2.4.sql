@@ -112,7 +112,7 @@ CREATE TABLE IF NOT EXISTS `sharing_groups` (
   `created` datetime NOT NULL,
   `modified` datetime NOT NULL,
   `local` tinyint(1) NOT NULL,
-  `sync_user_id` INT( 11 ) NOT NULL DEFAULT 0, 
+  `sync_user_id` INT( 11 ) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 

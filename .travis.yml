@@ -3,6 +3,7 @@ php:
     - 5.5
     - 5.6
     - 7.0
+    - nightly
 
 services:
     - redis
@@ -39,6 +40,7 @@ before_install:
 
 install:
     - git pull --recurse-submodules && git submodule update
+    - pip install --user pip -U
     - pip install --user pyzmq
     - pip install --user coveralls
     - pip install --user codecov
@@ -49,15 +51,8 @@ install:
     - pear install Net_GeoIP
     - phpenv rehash
     - pushd app
-    - curl -s https://getcomposer.org/installer | php
-    - php composer.phar require kamisama/cake-resque:4.1.2
-    - php composer.phar config vendor-dir Vendor
-    - php composer.phar install
+    - composer install
     - popd
-    - sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu/ trusty multiverse" && sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu/ trusty-updates multiverse"
-    - sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu/ trusty universe" && sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu/ trusty-updates universe"
-    - sudo apt-get update -qq
-    - sudo apt-get install libapache2-mod-fastcgi php5-redis
     - phpenv config-add travis/myphpconfig.ini
     - cp -fa INSTALL/setup/config.php app/Plugin/CakeResque/Config/config.php
     # Set perms

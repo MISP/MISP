@@ -16,15 +16,15 @@
 		</dd>
 		<dt><?php echo 'Local or remote'; ?></dt>
 		<dd>
-			<?php 
+			<?php
 				if ($org['Organisation']['local']):
 			?>
 				<span class="green bold">Local</span>
-			<?php 
+			<?php
 				else:
 			?>
 				<span class="red bold">Remote</span>
-			<?php 
+			<?php
 				endif;
 			?>
 			&nbsp;
@@ -48,17 +48,17 @@
 				&nbsp;
 			</dd>
 		<?php endif;?>
-		<?php 
+		<?php
 			$optionalFields = array('sector' => 'Sector', 'nationality' => 'Nationality', 'type' => 'Organisation type', 'contacts' => 'Contact information');
 			foreach ($optionalFields as $k => $field):
-				if (!empty($org['Organisation'][$k])): 
+				if (!empty($org['Organisation'][$k])):
 		?>
 					<dt><?php echo $field; ?></dt>
 					<dd>
 						<?php echo h($org['Organisation'][$k]); ?>
 						&nbsp;
 					</dd>
-		<?php 
+		<?php
 				endif;
 			endforeach;
 		?>
@@ -67,24 +67,24 @@
 	<?php if ($local): ?>
 		<button id="button_description" class="btn btn-inverse toggle-left qet orgViewButton" onClick="organisationViewContent('description', '<?php echo $id;?>');">Description</button>
 		<button id="button_description_active" style="display:none;" class="btn btn-primary toggle-left qet orgViewButtonActive" onClick="organisationViewContent('description', '<?php echo $id;?>');">Description</button>
-		
+
 		<?php if ($fullAccess): ?>
 			<button id="button_members" class="btn btn-inverse toggle qet orgViewButton" onClick="organisationViewContent('members', '<?php echo $id;?>');">Members</button>
 			<button id="button_members_active" style="display:none;" class="btn btn-primary toggle qet orgViewButtonActive" onClick="organisationViewContent('members', '<?php echo $id;?>');">Members</button>
 		<?php endif; ?>
-	
+
 		<button id="button_events" class="btn btn-inverse toggle-right qet orgViewButton" onClick="organisationViewContent('events', '<?php echo $id;?>');">Events</button>
 		<button id="button_events_active" style="display:none;" class="btn btn-primary toggle-right qet orgViewButtonActive" onClick="organisationViewContent('events', '<?php echo $id;?>');">Events</button>
 	<br /><br />
 	<?php endif;?>
 	<div id="ajaxContent" style="width:100%;"></div>
 </div>
-<?php 
+<?php
 	if ($isSiteAdmin) echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'viewOrg'));
 	else echo $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'viewOrg'));
 ?>
 <script type="text/javascript">
-	<?php 
+	<?php
 		$startingTab = 'description';
 		if (!$local) $startingTab = 'events';
 	?>

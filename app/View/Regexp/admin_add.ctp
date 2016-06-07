@@ -20,7 +20,7 @@
 	</div>
 	<div class="input clear">	</div>
 	<?php
-		foreach($types as $key => $type) {
+		foreach ($types as $key => $type) {
 			echo $this->Form->input($key, array(
 				'checked' => false,
 				'label' => $type,
@@ -33,6 +33,6 @@ echo $this->Form->button('Add', array('class' => 'btn btn-primary'));
 echo $this->Form->end();
 ?>
 </div>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'regexp', 'menuItem' => 'add'));
 ?>

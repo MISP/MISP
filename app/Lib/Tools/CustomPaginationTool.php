@@ -1,6 +1,6 @@
 <?php
 class CustomPaginationTool {
-	
+
 	function createPaginationRules(&$items, $options, $model, $sort = 'id') {
 		$params = array(
 			'model' => $model,
@@ -35,17 +35,16 @@ class CustomPaginationTool {
 			if ($params['page'] < $maxPage) $params['nextPage'] = true;
 		}
 		$params['pageCount'] = $maxPage;
-		return $params;		
+		return $params;
 	}
-	
+
 	function truncateByPagination(&$items, $params) {
 		if (empty($items)) return;
 		$items = array_slice($items, $params['current'] - 1, $params['current'] + $params['limit']);
 	}
-	
+
 	function applyRulesOnArray(&$items, $options, $model, $sort = 'id') {
 		$params = $this->createPaginationRules($items, $options, $model, $sort);
-		$direction = 'asc';
 		if (isset($params['sort'])) {
 			$items = Set::sort($items, '{n}.' . $params['sort'], $params['direction']);
 		}
@@ -54,7 +53,7 @@ class CustomPaginationTool {
 		$this->truncateByPagination($items, $params);
 		return $params;
 	}
-	
+
 	function cmp($a, $b) {
 		$multiplier = 1;
 		if ($this->direction == 'desc') $multiplier = -1;

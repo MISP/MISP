@@ -29,7 +29,7 @@ class Tag extends AppModel {
 			),
 			'Containable'
 	);
-	
+
 	public $validate = array(
 			'name' => array(
 					'valueNotEmpty' => array(
@@ -50,7 +50,7 @@ class Tag extends AppModel {
 					),
 			),
 	);
-	
+
 	public $hasMany = array(
 		'EventTag' => array(
 			'className' => 'EventTag',
@@ -60,17 +60,17 @@ class Tag extends AppModel {
 			'dependent' => true
 		)
 	);
-	
-	
+
+
 	public function beforeDelete($cascade = true) {
 		$this->EventTag->deleteAll(array('EventTag.tag_id' => $this->id));
 	}
-	
+
 	public function validateColour($fields) {
 		if (!preg_match('/^#[0-9a-f]{6}$/i', $fields['colour'])) return false;
 		return true;
 	}
-	
+
 	// find all of the event Ids that belong to the accepted tags and the rejected tags
 	public function fetchEventTagIds($accept=array(), $reject=array()) {
 		$acceptIds = array();
@@ -84,7 +84,7 @@ class Tag extends AppModel {
 		}
 		return array($acceptIds, $rejectIds);
 	}
-	
+
 	// find all of the event Ids that belong to tags with certain names
 	public function findTags($array) {
 		$ids = array();
@@ -105,7 +105,7 @@ class Tag extends AppModel {
 		}
 		return $ids;
 	}
-	
+
 	public function captureTag($tag, $user) {
 		$existingTag = $this->find('first', array(
 				'recursive' => -1,
@@ -143,13 +143,13 @@ class Tag extends AppModel {
 		}
 		return $tags;
 	}
-	
+
 	public function random_color() {
 		$colour = '#';
 		for ($i = 0; $i < 3; $i++) $colour .= str_pad(dechex(mt_rand(0,255)), 2, '0', STR_PAD_LEFT);
 		return $colour;
 	}
-	
+
 	public function quickAdd($name, $colour = false) {
 		$this->create();
 		if ($colour === false) $colour = $this->random_color();
@@ -160,7 +160,7 @@ class Tag extends AppModel {
 		);
 		return ($this->save($data));
 	}
-	
+
 	public function quickEdit($tag, $name, $colour) {
 		if ($tag['Tag']['colour'] !== $colour || $tag['Tag']['name'] !== $name) {
 			$tag['Tag']['name'] = $name;
@@ -169,7 +169,7 @@ class Tag extends AppModel {
 		}
 		return true;
 	}
-	
+
 	public function getTagsForNamespace($namespace) {
 		$tags_temp = $this->find('all', array(
 				'recursive' => -1,

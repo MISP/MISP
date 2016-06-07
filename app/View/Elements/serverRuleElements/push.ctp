@@ -57,9 +57,9 @@
 					</td>
 				</tr>
 			</table>
-		</div>		
-		
-		
+		</div>
+
+
 			<table>
 				<tr>
 					<td style="vertical-align:top">

@@ -24,7 +24,7 @@ endforeach; ?>
 	<?php //echo $this->element('histogram');?>
 <br /><br />
 </div>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'members'));
 ?>
 <script type="text/javascript">

@@ -23,7 +23,7 @@
 <?php echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary'));
 echo $this->Form->end();?>
 </div>
-<?php 
+<?php
 	$user['User']['id'] = $id;
 	echo $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'edit', 'user' => $user));
 ?>

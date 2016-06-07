@@ -17,14 +17,14 @@ class Thread extends AppModel {
 	);
 	public $hasMany = 'Post';
 	public $belongsTo = array(
-		'Event', 
+		'Event',
 		'Organisation' => array(
 			'className' => 'Organisation',
 			'foreignKey' => 'org_id'
 		),
 		'SharingGroup'
 	);
-	
+
 	public function updateAfterPostChange($thread, $add = false) {
 		$count = count($thread['Post']);
 		// If we have 0 posts left, delete the thread!

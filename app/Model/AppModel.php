@@ -45,19 +45,19 @@ class AppModel extends Model {
 
 		$this->name = get_class($this);
 	}
-	
+
 	// major -> minor -> hotfix -> requires_logout
 	public $db_changes = array(
 		2 => array(
 			4 => array(18 => false, 19 => false, 20 => false, 25 => false, 27 => false, 32 => false, 33 => true, 38 => true, 39 => true, 40 => false, 42 => false, 44 => false, 45 => false)
 		)
 	);
-	
+
 	// Generic update script
 	// add special cases where the upgrade does more than just update the DB
 	// this could become useful in the future
 	public function updateMISP($command) {
-		switch($command) {
+		switch ($command) {
 			case '2.4.20':
 				$this->updateDatabase($command);
 				$this->ShadowAttribute = ClassRegistry::init('ShadowAttribute');
@@ -81,7 +81,7 @@ class AppModel extends Model {
 				break;
 		}
 	}
-	
+
 	private function __addNewFeeds($feeds) {
 		$this->Feed = ClassRegistry::init('Feed');
 		$this->Log = ClassRegistry::init('Log');
@@ -106,7 +106,7 @@ class AppModel extends Model {
 		}
 		$this->Log->save($entry);
 	}
-	
+
 	// SQL scripts for updates
 	public function updateDatabase($command) {
 		$sql = '';
@@ -167,9 +167,9 @@ class AppModel extends Model {
 			case '24betaupdates':
 				$sqlArray = array();
 				$sqlArray[] = "ALTER TABLE `shadow_attributes` ADD  `proposal_to_delete` tinyint(1) NOT NULL DEFAULT '0';";
-				
+
 				$sqlArray[] = 'ALTER TABLE `logs` MODIFY  `change` text COLLATE utf8_bin NOT NULL;';
-				
+
 				$sqlArray[] = "CREATE TABLE IF NOT EXISTS `taxonomies` (
 					`id` int(11) NOT NULL AUTO_INCREMENT,
 					`namespace` varchar(255) COLLATE utf8_bin NOT NULL,
@@ -178,7 +178,7 @@ class AppModel extends Model {
 					`enabled` tinyint(1) NOT NULL DEFAULT '0',
 					PRIMARY KEY (`id`)
 					) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin ;";
-				
+
 				$sqlArray[] = "CREATE TABLE IF NOT EXISTS `taxonomy_entries` (
 					`id` int(11) NOT NULL AUTO_INCREMENT,
 					`taxonomy_predicate_id` int(11) NOT NULL,
@@ -187,7 +187,7 @@ class AppModel extends Model {
 					PRIMARY KEY (`id`),
 					KEY `taxonomy_predicate_id` (`taxonomy_predicate_id`)
 					) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
-				
+
 				$sqlArray[] = "CREATE TABLE IF NOT EXISTS `taxonomy_predicates` (
 					`id` int(11) NOT NULL AUTO_INCREMENT,
 					`taxonomy_id` int(11) NOT NULL,
@@ -196,19 +196,19 @@ class AppModel extends Model {
 					PRIMARY KEY (`id`),
 					KEY `taxonomy_id` (`taxonomy_id`)
 					) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
-				
+
 				$sqlArray[] = 'ALTER TABLE `jobs` ADD  `org` text COLLATE utf8_bin NOT NULL;';
-				
+
 				$sqlArray[] = 'ALTER TABLE  `servers` ADD  `name` varchar(255) NOT NULL;';
-				
+
 				$sqlArray[] = 'ALTER TABLE  `sharing_groups` ADD  `sync_user_id` INT( 11 ) NOT NULL DEFAULT \'0\' AFTER  `org_id`;';
-				
+
 				$sqlArray[] = 'ALTER TABLE `users` ADD  `disabled` BOOLEAN NOT NULL;';
 				$sqlArray[] = 'ALTER TABLE `users` ADD  `expiration` datetime DEFAULT NULL;';
-				
+
 				$sqlArray[] = 'UPDATE `roles` SET `perm_template` = 1 WHERE `perm_site_admin` = 1 OR `perm_admin` = 1';
 				$sqlArray[] = 'UPDATE `roles` SET `perm_sharing_group` = 1 WHERE `perm_site_admin` = 1 OR `perm_sync` = 1';
-				
+
 				//create indexes
 				break;
 			case 'indexTables':
@@ -228,7 +228,7 @@ class AppModel extends Model {
 					'threads' => array(array('user_id', 'INDEX'), array('event_id', 'INDEX'), array('org_id', 'INDEX'), array('sharing_group_id', 'INDEX')),
 					'users' => array(array('org_id', 'INDEX'), array('server_id', 'INDEX'), array('email', 'INDEX')),
 				);
-				
+
 				$version = $this->query('select version();');
 				$version = $version[0][0]['version()'];
 				$version = explode('.', $version);
@@ -236,7 +236,7 @@ class AppModel extends Model {
 				$version[1] = intval($version[1]);
 				$downgrade = true;
 				if ($version[0] > 5 || ($version[0] == 5 && $version[1] > 5)) $downgrade = false;
-				
+
 				// keep the fulltext for now, we can change it later to actually use it once we require MySQL 5.6 / or if we decide to move some tables to MyISAM
 
 				foreach ($fieldsToIndex as $table => $fields) {
@@ -260,7 +260,7 @@ class AppModel extends Model {
 				) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
 				$sqlArray[] = "INSERT INTO `admin_settings` (`setting`, `value`) VALUES ('db_version', '2.4.0')";
 				break;
-			case '2.4.18': 
+			case '2.4.18':
 				$sqlArray[] = "ALTER TABLE `users` ADD `current_login` INT(11) DEFAULT 0;";
 				$sqlArray[] = "ALTER TABLE `users` ADD `last_login` INT(11) DEFAULT 0;";
 				$sqlArray[] = "CREATE TABLE IF NOT EXISTS `event_delegations` (
@@ -292,7 +292,7 @@ class AppModel extends Model {
 					`1_shadow_attribute_id` int(11) NOT NULL,
 					`event_id` int(11) NOT NULL,
 					`1_event_id` int(11) NOT NULL,
-					 `info` text COLLATE utf8_bin NOT NULL,
+					`info` text COLLATE utf8_bin NOT NULL,
 					PRIMARY KEY (`id`),
 					KEY `org_id` (`org_id`),
 					KEY `attribute_id` (`attribute_id`),
@@ -367,7 +367,7 @@ class AppModel extends Model {
 				$sqlArray[] = "ALTER TABLE `attributes` ADD `deleted` tinyint(1) NOT NULL DEFAULT '0';";
 				break;
 			case '2.4.44':
-				$sqlArray[] = "UPDATE `servers` SET `url` = TRIM(TRAILING '/' FROM `url`)";				
+				$sqlArray[] = "UPDATE `servers` SET `url` = TRIM(TRAILING '/' FROM `url`)";
 				break;
 			case '2.4.45':
 				$sqlArray[] = 'ALTER TABLE `users` CHANGE `newsread` `newsread` int(11) unsigned;';
@@ -433,7 +433,7 @@ class AppModel extends Model {
 		if ($clean) $this->cleanCacheFiles();
 		return true;
 	}
-	
+
 	private function __dropIndex($table, $field) {
 		$this->Log = ClassRegistry::init('Log');
 		$indexCheck = "SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema=DATABASE() AND table_name='" . $table . "' AND index_name LIKE '" . $field . "%'";
@@ -459,7 +459,7 @@ class AppModel extends Model {
 			));
 		}
 	}
-	
+
 	public function cleanCacheFiles() {
 		Cache::clear();
 		clearCache();
@@ -472,16 +472,16 @@ class AppModel extends Model {
 			}
 		}
 	}
-	
+
 	public function checkMISPVersion() {
 		App::uses('Folder', 'Utility');
-		$file = new File (ROOT . DS . 'VERSION.json', true);
+		$file = new File(ROOT . DS . 'VERSION.json', true);
 		$version_array = json_decode($file->read(), true);
 		$file->close();
 		return $version_array;
 	}
-	
-	// wrapper for UUID generation, compatible with cakephp <= 2.6 and cakephp and cakephp >= 2.7 
+
+	// wrapper for UUID generation, compatible with cakephp <= 2.6 and cakephp and cakephp >= 2.7
 	public function generateUuid() {
 		$version = Configure::version();
 		$version = explode('.', $version);
@@ -489,7 +489,7 @@ class AppModel extends Model {
 		else $uuid = CakeText::uuid();
 		return $uuid;
 	}
-	
+
 	// alternative to the build in notempty/notblank validation functions, compatible with cakephp <= 2.6 and cakephp and cakephp >= 2.7
 	public function valueNotEmpty($value) {
 		$field = array_keys($value);
@@ -498,15 +498,15 @@ class AppModel extends Model {
 		if (!empty($value[$field])) return true;
 		return ucfirst($field) . ' cannot be empty.';
 	}
-	
+
 	public function stringNotEmpty($value) {
 		$field = array_keys($value);
 		$field = $field[0];
 		$value[$field] = trim($value[$field]);
-		if (!isset($value[$field]) || ($value[$field] == false && $value[$field] !== "0")) return ucfirst($field) . ' cannot be empty.'; 
+		if (!isset($value[$field]) || ($value[$field] == false && $value[$field] !== "0")) return ucfirst($field) . ' cannot be empty.';
 		return true;
 	}
-	
+
 	public function runUpdates() {
 		$this->AdminSetting = ClassRegistry::init('AdminSetting');
 		$db = ConnectionManager::getDataSource('default');
@@ -534,7 +534,7 @@ class AppModel extends Model {
 			$this->updateDatabase('destroyAllSessions');
 		}
 	}
-	
+
 	private function __queueCleanDB() {
 		$this->AdminSetting = ClassRegistry::init('AdminSetting');
 		$cleanDB = $this->AdminSetting->find('first', array('conditions' => array('setting' => 'clean_db')));
@@ -546,7 +546,7 @@ class AppModel extends Model {
 		}
 		$this->AdminSetting->save($cleanDB);
 	}
-	
+
 	private function __runCleanDB() {
 		$this->AdminSetting = ClassRegistry::init('AdminSetting');
 		$cleanDB = $this->AdminSetting->find('first', array('conditions' => array('setting' => 'clean_db')));
@@ -561,7 +561,7 @@ class AppModel extends Model {
 			$this->AdminSetting->save($cleanDB);
 		}
 	}
-	
+
 	private function __findUpgrades($db_version) {
 		$version = explode('.', $db_version);
 		$updates = array();
@@ -582,7 +582,7 @@ class AppModel extends Model {
 		}
 		return $updates;
 	}
-	
+
 
 	public function populateNotifications($user) {
 		$notifications = array();
@@ -598,7 +598,7 @@ class AppModel extends Model {
 		}
 		return $notifications;
 	}
-	
+
 
 	private function _getProposalCount($user) {
 		$this->ShadowAttribute = ClassRegistry::init('ShadowAttribute');
@@ -619,7 +619,7 @@ class AppModel extends Model {
 		$results[1] = count($eventIds);
 		return $results;
 	}
-	
+
 	private function _getDelegationCount($user) {
 		$this->EventDelegation = ClassRegistry::init('EventDelegation');
 		$delegations = $this->EventDelegation->find('count', array(

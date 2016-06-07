@@ -16,10 +16,10 @@ class User extends AppModel {
  * @var string
  */
 	public $displayField = 'email';
-	
+
 	public $orgField = array('Organisation', 'name');	// TODO Audit, LogableBehaviour + org
 
-	
+
 /**
  * Validation rules
  *
@@ -242,7 +242,7 @@ class User extends AppModel {
 		'Trim',
 		'Containable'
 	);
-	
+
 	private function __generatePassword() {
 		$groups = array(
 				'0123456789',
@@ -261,7 +261,7 @@ class User extends AppModel {
 		}
 		return $pw;
 	}
-	
+
 	public function beforeValidate($options = array()) {
 		if (!isset($this->data['User']['id'])) {
 			if (isset($this->data['User']['enable_password']) && (!$this->data['User']['enable_password'] || (empty($this->data['User']['password']) && empty($this->data['User']['confirm_password'])))) {
@@ -328,11 +328,11 @@ class User extends AppModel {
 		if (empty($check['certif_public'])) {
 			return true;
 		}
-	
+
 		// certif_public is entered
-	
+
 		// Check if $check is a x509 certificate
-		if (openssl_x509_read($check['certif_public'])){
+		if (openssl_x509_read($check['certif_public'])) {
 			try {
 				App::uses('Folder', 'Utility');
 				$dir = APP . 'tmp' . DS . 'SMIME';
@@ -346,7 +346,9 @@ class User extends AppModel {
 				fclose($fp);
 				$msg_test_encrypted = tempnam($dir, 'SMIME');
 				// encrypt it
-				if (openssl_pkcs7_encrypt($msg_test, $msg_test_encrypted, $check['certif_public'], null, 0, OPENSSL_CIPHER_AES_256_CBC)){
+				if (openssl_pkcs7_encrypt($msg_test, $msg_test_encrypted, $check['certif_public'], null, 0, OPENSSL_CIPHER_AES_256_CBC)) {
+					unlink($msg_test);
+					unlink($msg_test_encrypted);
 					$parse = openssl_x509_parse($check['certif_public']);
 					// Valid certificate ?
 					$now = new DateTime("now");
@@ -354,7 +356,7 @@ class User extends AppModel {
 					$validTo_time_t = new DateTime("@$validTo_time_t_epoch");
 					if ($validTo_time_t > $now) {
 						// purposes smimeencrypt ?
-						if (($parse['purposes'][5][0] == 1) and ($parse['purposes'][5][2] == 'smimeencrypt')){
+						if (($parse['purposes'][5][0] == 1) and ($parse['purposes'][5][2] == 'smimeencrypt')) {
 							return true;
 						} else {
 							return 'This certificate cannot be used to encrypt email';
@@ -363,17 +365,19 @@ class User extends AppModel {
 						return 'This certificate is expired';
 					}
 				} else {
+					unlink($msg_test);
+					unlink($msg_test_encrypted);
 					return false;
 				}
-			} catch (Exception $e){
+			} catch (Exception $e) {
+				unlink($msg_test);
+				unlink($msg_test_encrypted);
 				$this->log($e->getMessage());
 			}
-			unlink($msg_test);
-			unlink($msg_test_encrypted);
 		} else {
 			return false;
 		}
-	}	
+	}
 
 	public function passwordLength($check) {
 		$length = Configure::read('Security.password_policy_length');
@@ -383,7 +387,7 @@ class User extends AppModel {
 		if (strlen($value) < $length) return false;
 		return true;
 	}
-	
+
 	public function complexPassword($check) {
 		/*
 		default password:
@@ -451,7 +455,7 @@ class User extends AppModel {
 		}
 		return $fails;
 	}
-	
+
 	public function getOrgs() {
 		$orgs = $this->Organisation->find('list', array(
 			'recursive' => -1,
@@ -459,14 +463,14 @@ class User extends AppModel {
 		));
 		return $orgs;
 	}
-	
+
 	public function getOrgMemberCount($org) {
 		return $this->find('count', array(
 				'conditions' => array(
 						'org =' => $org,
 				)));
 	}
-	
+
 	public function verifyGPG($id = false) {
 		require_once 'Crypt/GPG.php';
 		$this->Behaviors->detach('Trim');
@@ -504,7 +508,7 @@ class User extends AppModel {
 					if ($sortedKeys['noEncrypt']) $results[$user['User']['id']][2] .= ' Found ' . $sortedKeys['noEncrypt'] . ' subkey(s) that are sign only.';
 					$results[$user['User']['id']][0] = true;
 				}
-			} catch (Exception $e){
+			} catch (Exception $e) {
 				$results[$user['User']['id']][2] = $e->getMessage();
 				$results[$user['User']['id']][0] = true;
 			}
@@ -513,61 +517,60 @@ class User extends AppModel {
 		return $results;
 	}
 
-  public function verifyCertificate() {
-	$this->Behaviors->detach('Trim');
-	$results = array();
-	$users = $this->find('all', array(
-	  'conditions' => array('not' => array('certif_public' => '')),
-	  //'fields' => array('id', 'email', 'gpgkey'),
-	  'recursive' => -1,
-	));
-	foreach ($users as $k => $user) {
-	  $certif_public = $user['User']['certif_public'];
-	  try {
-	  	App::uses('Folder', 'Utility');
-  		$dir = APP . 'tmp' . DS . 'SMIME';
-		if (!file_exists($dir)) {
-			if (!mkdir($dir, 0750, true)) throw new MethodNotAllowedException('The SMIME temp directory is not writeable (app/tmp/SMIME).');
-		}
-		$msg_test = tempnam($dir, 'SMIME');
-		$fp = fopen($msg_test, "w");
-		$test = 'test';
-		fwrite($fp, $test);
-		fclose($fp);
-		$msg_test_encrypted = tempnam($dir, 'SMIME');
-		// encrypt it
-		if (openssl_pkcs7_encrypt($msg_test, $msg_test_encrypted, $certif_public, null, 0, OPENSSL_CIPHER_AES_256_CBC)){
-		  $parse = openssl_x509_parse($certif_public);
-		  // Valid certificate ?
-		  $now = new DateTime("now");
-		  $validTo_time_t_epoch = $parse['validTo_time_t'];
-		  $validTo_time_t = new DateTime("@$validTo_time_t_epoch");
-		  if ($validTo_time_t > $now){
-			// purposes smimeencrypt ?
-			if (($parse['purposes'][5][0] == 1) && ($parse['purposes'][5][2] == 'smimeencrypt')){
-			} else {
-			  // openssl_pkcs7_encrypt good -- Model/User purposes is NOT GOOD'
-			  $results[$user['User']['id']][0] = true;
+	public function verifyCertificate() {
+		$this->Behaviors->detach('Trim');
+		$results = array();
+		$users = $this->find('all', array(
+			'conditions' => array('not' => array('certif_public' => '')),
+			//'fields' => array('id', 'email', 'gpgkey'),
+			'recursive' => -1,
+		));
+		foreach ($users as $k => $user) {
+			$certif_public = $user['User']['certif_public'];
+			try {
+				App::uses('Folder', 'Utility');
+				$dir = APP . 'tmp' . DS . 'SMIME';
+				if (!file_exists($dir)) {
+					if (!mkdir($dir, 0750, true)) throw new MethodNotAllowedException('The SMIME temp directory is not writeable (app/tmp/SMIME).');
+				}
+				$msg_test = tempnam($dir, 'SMIME');
+				$fp = fopen($msg_test, "w");
+				$test = 'test';
+				fwrite($fp, $test);
+				fclose($fp);
+				$msg_test_encrypted = tempnam($dir, 'SMIME');
+				// encrypt it
+				if (openssl_pkcs7_encrypt($msg_test, $msg_test_encrypted, $certif_public, null, 0, OPENSSL_CIPHER_AES_256_CBC)) {
+					$parse = openssl_x509_parse($certif_public);
+					// Valid certificate ?
+					$now = new DateTime("now");
+					$validTo_time_t_epoch = $parse['validTo_time_t'];
+					$validTo_time_t = new DateTime("@$validTo_time_t_epoch");
+					if ($validTo_time_t > $now) {
+						// purposes smimeencrypt ?
+						if (($parse['purposes'][5][0] == 1) && ($parse['purposes'][5][2] == 'smimeencrypt')) {
+						} else {
+							// openssl_pkcs7_encrypt good -- Model/User purposes is NOT GOOD'
+							$results[$user['User']['id']][0] = true;
+						}
+					} else {
+						// openssl_pkcs7_encrypt good -- Model/User expired;
+						$results[$user['User']['id']][0] = true;
+					}
+				} else {
+					// openssl_pkcs7_encrypt NOT good -- Model/User
+					$results[$user['User']['id']][0] = true;
+				}
+				$results[$user['User']['id']][1] = $user['User']['email'];
+			} catch (Exception $e) {
+				$this->log($e->getMessage());
 			}
-		  } else {
-			// openssl_pkcs7_encrypt good -- Model/User expired;
-			$results[$user['User']['id']][0] = true;
-		  }
-		} else{
-		  // openssl_pkcs7_encrypt NOT good -- Model/User
-		  $results[$user['User']['id']][0] = true;
+			unlink($msg_test);
+			unlink($msg_test_encrypted);
 		}
-		$results[$user['User']['id']][1] = $user['User']['email'];
-	  } catch (Exception $e){
-		$this->log($e->getMessage());
-	  }
-	  unlink($msg_test);
-	  unlink($msg_test_encrypted);
+		return $results;
 	}
-	return $results;
-  }
 
-	
 	public function getPGP($id) {
 		$result = $this->find('first', array(
 			'recursive' => -1,
@@ -577,15 +580,15 @@ class User extends AppModel {
 		return $result['User']['gpgkey'];
 	}
 
-  public function getCertificate($id) {
-	$result = $this->find('first', array(
-	  'recursive' => -1,
-	  'fields' => array('id', 'certif_public'),
-	  'conditions' => array('id' => $id),
-	));
-	return $result['User']['certif_public'];
-  }
-	
+	public function getCertificate($id) {
+		$result = $this->find('first', array(
+			'recursive' => -1,
+			'fields' => array('id', 'certif_public'),
+			'conditions' => array('id' => $id),
+		));
+		return $result['User']['certif_public'];
+	}
+
 	// get the current user and rearrange it to be in the same format as in the auth component
 	public function getAuthUser($id) {
 		$conditions = array('User.id' => $id);
@@ -598,7 +601,7 @@ class User extends AppModel {
 		unset($user['Organisation'], $user['Role'], $user['Server']);
 		return $user['User'];
 	}
-	
+
 	// get the current user and rearrange it to be in the same format as in the auth component
 	public function getAuthUserByUuid($id) {
 		$conditions = array('User.authkey' => $id);
@@ -611,7 +614,7 @@ class User extends AppModel {
 		unset($user['Organisation'], $user['Role'], $user['Server']);
 		return $user['User'];
 	}
-	
+
 	public function getAuthUserByExternalAuth($id) {
 		$conditions = array('User.external_auth_key' => $id, 'User.external_auth_required' => true);
 		$user = $this->find('first', array('conditions' => $conditions, 'recursive' => -1,'contain' => array('Organisation', 'Role', 'Server')));
@@ -623,9 +626,9 @@ class User extends AppModel {
 		unset($user['Organisation'], $user['Role'], $user['Server']);
 		return $user['User'];
 	}
-	
+
 	// Fetch all users that have access to an event / discussion for e-mailing (or maybe something else in the future.
-	// parameters are an array of org IDs that are owners (for an event this would be orgc and org) 
+	// parameters are an array of org IDs that are owners (for an event this would be orgc and org)
 	public function getUsersWithAccess($owners = array(), $distribution, $sharing_group_id = 0, $userConditions = array()) {
 		$sgModel = ClassRegistry::init('SharingGroup');
 		$conditions = array();
@@ -637,7 +640,7 @@ class User extends AppModel {
 			$all = false;
 			$validOrgs = $owners;
 		}
-		
+
 		// add all orgs to the conditions that can see the SG
 		if ($distribution == 4) {
 			$sgOrgs = $sgModel->getOrgsWithAccess($sharing_group_id);
@@ -700,7 +703,7 @@ class User extends AppModel {
 		if (isset($user['User']['gpgkey']) && !empty($user['User']['gpgkey'])) $canEncryptGPG = true;
 		$canEncryptSMIME = false;
 		if (isset($user['User']['certif_public']) && !empty($user['User']['certif_public']) && Configure::read('SMIME.enabled')) $canEncryptSMIME = true;
-	
+
 		// If bodyonlencrypted is enabled and the user has no encryption key, use the alternate body (if it exists)
 		if (Configure::read('GnuPG.bodyonlyencrypted') && !$canEncryptSMIME && !$canEncryptGPG && $bodyNoEnc) {
 			$body = $bodyNoEnc;
@@ -720,8 +723,8 @@ class User extends AppModel {
 				$failed = true;
 			}
 		}
-		$Email = new CakeEmail();	
-		// If we cannot encrypt the mail and the server settings restricts sending unencrypted messages, return false 
+		$Email = new CakeEmail();
+		// If we cannot encrypt the mail and the server settings restricts sending unencrypted messages, return false
 		if (!$failed && Configure::read('GnuPG.onlyencrypted') && !$canEncryptGPG && !$canEncryptSMIME) {
 			$failed = true;
 			$failureReason = " encrypted messages are enforced and the message could not be encrypted for this user as no valid encryption key was found.";
@@ -752,70 +755,70 @@ class User extends AppModel {
 				$failed = true;
 			}
 		}
-	// SMIME if not GPG key
-	if (!$failed && !$canEncryptGPG && $canEncryptSMIME) {
-		try {
-			$prependedBody = 'Content-Transfer-Encoding: 7bit' . PHP_EOL . 'Content-Type: text/plain;' . PHP_EOL . '    charset=us-ascii' . PHP_EOL . PHP_EOL . $body;
-			App::uses('Folder', 'Utility');
-			$dir = APP . 'tmp' . DS . 'SMIME';
-			if (!file_exists($dir)) {
-				if (!mkdir($dir, 0750, true)) throw new MethodNotAllowedException('The SMIME temp directory is not writeable (app/tmp/SMIME).');
-			}
-			// save message to file
-			$msg = tempnam($dir, 'SMIME');
-			$fp = fopen($msg, "w");
-			fwrite($fp, $prependedBody);
-			fclose($fp);
-			$headers_smime = array("To" => $user['User']['email'], "From" => Configure::read('MISP.email'), "Subject" => $subject);			
-			$canSign = true;
-			if (empty(Configure::read('SMIME.cert_public_sign')) || !is_readable(Configure::read('SMIME.cert_public_sign'))) $canSign = false;
-			if (empty(Configure::read('SMIME.key_sign')) || !is_readable(Configure::read('SMIME.key_sign'))) $canSign = false;
-			if ($canSign) {
-				$signed = tempnam($dir, 'SMIME');
-				if (openssl_pkcs7_sign($msg, $signed, 'file://'.Configure::read('SMIME.cert_public_sign'), array('file://'.Configure::read('SMIME.key_sign'), Configure::read('SMIME.password')), array(), PKCS7_TEXT)){
-					$fp = fopen($signed, "r");
-					$bodySigned = fread($fp, filesize($signed));
-					fclose($fp);
-					unlink($msg);
-					unlink($signed);
-				} else {
-					unlink($msg);
-					unlink($signed);
-					throw new Exception('Failed while attempting to sign the SMIME message.');
+		// SMIME if not GPG key
+		if (!$failed && !$canEncryptGPG && $canEncryptSMIME) {
+			try {
+				$prependedBody = 'Content-Transfer-Encoding: 7bit' . PHP_EOL . 'Content-Type: text/plain;' . PHP_EOL . '    charset=us-ascii' . PHP_EOL . PHP_EOL . $body;
+				App::uses('Folder', 'Utility');
+				$dir = APP . 'tmp' . DS . 'SMIME';
+				if (!file_exists($dir)) {
+					if (!mkdir($dir, 0750, true)) throw new MethodNotAllowedException('The SMIME temp directory is not writeable (app/tmp/SMIME).');
 				}
 				// save message to file
-				$msg_signed = tempnam($dir, 'SMIME');
-				$fp = fopen($msg_signed, "w");
-				fwrite($fp, $bodySigned);
+				$msg = tempnam($dir, 'SMIME');
+				$fp = fopen($msg, "w");
+				fwrite($fp, $prependedBody);
 				fclose($fp);
-			} else {
-				$msg_signed = $msg;
+				$headers_smime = array("To" => $user['User']['email'], "From" => Configure::read('MISP.email'), "Subject" => $subject);
+				$canSign = true;
+				if (empty(Configure::read('SMIME.cert_public_sign')) || !is_readable(Configure::read('SMIME.cert_public_sign'))) $canSign = false;
+				if (empty(Configure::read('SMIME.key_sign')) || !is_readable(Configure::read('SMIME.key_sign'))) $canSign = false;
+				if ($canSign) {
+					$signed = tempnam($dir, 'SMIME');
+					if (openssl_pkcs7_sign($msg, $signed, 'file://'.Configure::read('SMIME.cert_public_sign'), array('file://'.Configure::read('SMIME.key_sign'), Configure::read('SMIME.password')), array(), PKCS7_TEXT)) {
+						$fp = fopen($signed, "r");
+						$bodySigned = fread($fp, filesize($signed));
+						fclose($fp);
+						unlink($msg);
+						unlink($signed);
+					} else {
+						unlink($msg);
+						unlink($signed);
+						throw new Exception('Failed while attempting to sign the SMIME message.');
+					}
+					// save message to file
+					$msg_signed = tempnam($dir, 'SMIME');
+					$fp = fopen($msg_signed, "w");
+					fwrite($fp, $bodySigned);
+					fclose($fp);
+				} else {
+					$msg_signed = $msg;
+				}
+				$msg_signed_encrypted = tempnam($dir, 'SMIME');
+				// encrypt it
+				if (openssl_pkcs7_encrypt($msg_signed, $msg_signed_encrypted, $user['User']['certif_public'], $headers_smime, 0, OPENSSL_CIPHER_AES_256_CBC)) {
+					$fp = fopen($msg_signed_encrypted, 'r');
+					$bodyEncSig = fread($fp, filesize($msg_signed_encrypted));
+					fclose($fp);
+					unlink($msg_signed);
+					unlink($msg_signed_encrypted);
+					$parts = explode("\n\n", $bodyEncSig);
+					$bodyEncSig = $parts[1];
+					// SMIME transport (hardcoded headers
+					$Email = $Email->transport('Smime');
+					$body = $bodyEncSig;
+				} else {
+					unlink($msg_signed);
+					unlink($msg_signed_encrypted);
+					throw new Exception('Could not encrypt the SMIME message.');
+				}
+			} catch (Exception $e) {
+				// despite the user having a certificate. This must mean that there is an issue with the user's certificate.
+				$failureReason = " the message could not be encrypted because there was an issue with the user's public certificate. The following error message was returned by openssl: " . $e->getMessage();
+				$this->log($e->getMessage());
+				$failed = true;
 			}
-			$msg_signed_encrypted = tempnam($dir, 'SMIME');
-			// encrypt it
-			if (openssl_pkcs7_encrypt($msg_signed, $msg_signed_encrypted, $user['User']['certif_public'], $headers_smime, 0, OPENSSL_CIPHER_AES_256_CBC)){
-				$fp = fopen($msg_signed_encrypted, 'r');
-				$bodyEncSig = fread($fp, filesize($msg_signed_encrypted));
-				fclose($fp);
-				unlink($msg_signed);
-				unlink($msg_signed_encrypted);
-				$parts = explode("\n\n", $bodyEncSig);
-				$bodyEncSig = $parts[1];
-				// SMIME transport (hardcoded headers
-				$Email = $Email->transport('Smime');
-				$body = $bodyEncSig;
-			} else {
-				unlink($msg_signed);
-				unlink($msg_signed_encrypted);
-				throw new Exception('Could not encrypt the SMIME message.');
-			}
-		} catch (Exception $e) {
-			// despite the user having a certificate. This must mean that there is an issue with the user's certificate.
-			$failureReason = " the message could not be encrypted because there was an issue with the user's public certificate. The following error message was returned by openssl: " . $e->getMessage();
-			$this->log($e->getMessage());
-			$failed = true;
 		}
-	}
 		$replyToLog = '';
 		if (!$failed) {
 			// If the e-mail is sent on behalf of a user, then we want the target user to be able to respond to the sender
@@ -824,7 +827,7 @@ class User extends AppModel {
 				$Email->replyTo($replyToUser['User']['email']);
 				if (!empty($replyToUser['User']['gpgkey'])) {
 					$Email->attachments(array('gpgkey.asc' => array('data' => $replyToUser['User']['gpgkey'])));
-				} elseif (!empty($replyToUser['User']['certif_public'])) {
+				} else if (!empty($replyToUser['User']['certif_public'])) {
 					$Email->attachments(array($replyToUser['User']['email'] . '.pem' => array('data' => $replyToUser['User']['certif_public'])));
 				}
 				$replyToLog = 'from ' . $replyToUser['User']['email'];
@@ -864,7 +867,7 @@ class User extends AppModel {
 		}
 		return false;
 	}
-	
+
 	public function adminMessageResolve($message) {
 		$resolveVars = array('$contact' => 'MISP.contact', '$org' => 'MISP.org', '$misp' => 'MISP.baseurl');
 		foreach ($resolveVars as $k => $v) {
@@ -873,7 +876,7 @@ class User extends AppModel {
 		}
 		return $message;
 	}
-	
+
 	public function fetchPGPKey($email) {
 		App::uses('SyncTool', 'Tools');
 		$syncTool = new SyncTool();
@@ -885,7 +888,7 @@ class User extends AppModel {
 		$results = $this->__extractPGPInfo($matches[1]);
 		return $results;
 	}
-	
+
 	private function __extractPGPInfo($lines) {
 		$extractionRules = array(
 			'key_id' => array('regex' => '/\">(.*?)<\/a>/', 'all' => false, 'alternate' => false),
@@ -911,7 +914,7 @@ class User extends AppModel {
 		}
 		return $final;
 	}
-	
+
 	public function describeAuthFields() {
 		$fields = array();
 		$fields = array_merge($fields, array_keys($this->getColumnTypes()));

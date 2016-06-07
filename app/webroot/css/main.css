@@ -15,8 +15,8 @@ button .full-width{
   width:100%;
 }
 
-.bottom-buffer { 
-	margin-bottom:10px; 
+.bottom-buffer {
+	margin-bottom:10px;
 }
 
 /*.close{
@@ -33,7 +33,7 @@ h3{
 }
 pre {
 	font-size: 11px;
-	
+
 }
 .nav-list {
 	padding-right: 5px;
@@ -263,13 +263,13 @@ td.highlight1 {
 td.highlight2 {
 	background-color: #747170 !important;
 	color: #ffffff !important;
-	
+
 }
 
 td.highlight3 {
 	background-color: red !important;
 	color: #ffffff !important;
-	
+
 }
 
 tr.highlightBlueSides {
@@ -286,7 +286,7 @@ tr.highlightBlueBottom {
 }
 
 table.fullwidth {
-		 border:1px solid #f0f0f0;
+		border:1px solid #f0f0f0;
 }
 
 table.fullwidth th, table.fullwidth th a {
@@ -334,7 +334,7 @@ td.action-links {
 }
 
 .showspaces {
-	
+
 }
 
 /** Scaffold View **/
@@ -408,7 +408,7 @@ dd {
 .cake-sql-log td {
 	padding: 4px 8px;
 	text-align: left;
-	
+
 }
 .cake-sql-log caption {
 	color:#fff;
@@ -458,7 +458,7 @@ dd {
 }
 
 .logoBlueStatic {
-	color: #0088cc; 
+	color: #0088cc;
 	text-shadow: #0099E6 0 0 3px;
 }
 
@@ -480,14 +480,14 @@ dd {
 
 .glass {
 	width: 100%;
-	height: 100%; 
-	position: absolute; 
+	height: 100%;
+	position: absolute;
 	padding: 0;
 	-webkit-border-radius: 10px;
     -moz-border-radius: 10px;
     border-radius: 10px;
 	background: rgba(0,0,0,0.25);
-	box-shadow: 0 2px 6px rgba(0,0,0,0.5), inset 0 1px rgba(255,255,255,0.3), inset 0 10px rgba(255,255,255,0.1), inset 0 10px 20px rgba(255,255,255,0.3), inset 0 -15px 30px rgba(0,0,0,0.3); 
+	box-shadow: 0 2px 6px rgba(0,0,0,0.5), inset 0 1px rgba(255,255,255,0.3), inset 0 10px rgba(255,255,255,0.1), inset 0 10px 20px rgba(255,255,255,0.3), inset 0 -15px 30px rgba(0,0,0,0.3);
 }
 
 .footerText {
@@ -575,7 +575,7 @@ dd {
 	top: 0;
 	padding: 4px;
 }
-	
+
 .loading {
 	display: none;
 	text-color: #0088cc;
@@ -607,7 +607,7 @@ dd {
 	-moz-border-top-right-radius: 0px !important;
 }
 
-.toggle-right {		
+.toggle-right {
 	border-bottom-left-radius: 0px !important;
 	-webkit-bottom-left-radius: 0px !important;
 	-moz-border-bottom-left-radius: 0px !important;
@@ -863,7 +863,7 @@ a.proposal_link_red:hover {
 	-webkit-border-radius: 6px;
 	-moz-border-radius: 6px;
 	box-shadow: 2px 2px 2px #888888;
-} 
+}
 
 .ajax_fail {
 	background-color: red;
@@ -928,7 +928,7 @@ a.proposal_link_red:hover {
 }
 
 .inline-form {
-	
+
 	margin-bottom:0px !important;
 }
 
@@ -1112,8 +1112,8 @@ a.proposal_link_red:hover {
 }
 
 .taxFilterButton {
-	border-radius: 0px 10px 0 0 !important; 
-	border: 1px solid #ddd !important; 
+	border-radius: 0px 10px 0 0 !important;
+	border: 1px solid #ddd !important;
 	border-bottom: 0px !important;
 	padding-left: 3px;
 	padding-top: 2px;
@@ -1153,7 +1153,7 @@ a.proposal_link_red:hover {
 
 .membersList-histogram-legend {
 	float: left;
-	padding:5px;	
+	padding:5px;
 	border:1px solid;
 }
 
@@ -1177,7 +1177,7 @@ a.proposal_link_red:hover {
 }
 
 .useCursorPointer {
-	cursor: pointer; 
+	cursor: pointer;
 	cursor: hand;
 }
 
@@ -1288,30 +1288,30 @@ a.proposal_link_red:hover {
 	height:25px;
 	-moz-border-radius: 0px;
 	-webkit-border-radius: 7px 7px 0px 0px;
-	border-radius: 7px 7px 0px 0px; 
+	border-radius: 7px 7px 0px 0px;
 }
 
 .templateElementHeaderText {
-	position: absolute; 
+	position: absolute;
 	padding-left:8px;
 	padding-top:4px;
 }
 
 .templateGlass {
 	width: 100%;
-	height: 100%; 
-	position: absolute; 
+	height: 100%;
+	position: absolute;
 	padding: 0;
 	-webkit-border-radius: 7px 7px 0px 0px;
     -moz-border-radius: 7px 7px 0px 0px;
     border-radius: 7px 7px 0px 0px;
 	background: rgba(0,0,0,0.1.25);
-	box-shadow: 0 2px 6px rgba(0,0,0,0.5), 
-		inset 0 1px rgba(255,255,255,0.3), 
-		inset 0 10px rgba(255,255,255,0.1), 
-		inset 0 10px 20px rgba(255,255,255,0.3), 
-		inset 0 -15px 30px rgba(0,0,0,0.3); 
-	
+	box-shadow: 0 2px 6px rgba(0,0,0,0.5),
+		inset 0 1px rgba(255,255,255,0.3),
+		inset 0 10px rgba(255,255,255,0.1),
+		inset 0 10px 20px rgba(255,255,255,0.3),
+		inset 0 -15px 30px rgba(0,0,0,0.3);
+
 }
 
 .addTemplateElement {
@@ -1526,7 +1526,7 @@ a.discrete {
 }
 
 .multi-page-form-div {
-	border:1px solid #dddddd; 
+	border:1px solid #dddddd;
 	padding:10px;
 }
 
@@ -1536,7 +1536,7 @@ a.discrete {
 
 .notification-active {
 	float:left;
-	background-color:red; 
+	background-color:red;
 	color:white;
 	border-radius: 50%;
 	width:20px;

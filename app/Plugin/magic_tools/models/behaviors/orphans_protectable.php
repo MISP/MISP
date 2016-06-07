@@ -36,7 +36,7 @@ class OrphansProtectableBehavior extends ModelBehavior {
    * @return boolean
    */
   function beforeDelete(&$model, $cascade) {
-    if($cascade) return true;
+    if ($cascade) return true;
     return !$Model->wouldLeaveOrphanedRecordsBehind();
   }
 
@@ -49,17 +49,17 @@ class OrphansProtectableBehavior extends ModelBehavior {
 	function wouldLeaveOrphanedRecordsBehind(&$model) {
 	  $possibleOrphans = array();
 
-	  foreach($Model->hasMany as $model => $settings) {
+	  foreach ($Model->hasMany as $model => $settings) {
 	    // Is relationship is dependent?
-      if($settings['dependent']){ // Yes! Possible orphans are deleted, too!
+      if ($settings['dependent']) { // Yes! Possible orphans are deleted, too!
         // Do nothing
       } else { // No! Possible orphans should be protected!
         // Is there a possible orphan for this relation?
         $Model->{$model}->recursive = -1;
         $objects = $Model->{$model}->find('all', array('conditions' => array($settings['className'].'.'.$settings['foreignKey'] => $Model->id), 'order' => 'id asc'));
-        if(count($objects) > 0) { // Yes, there is at least one possible orphan!
+        if (count($objects) > 0) { // Yes, there is at least one possible orphan!
           $objectIds = array();
-          foreach($objects as $object) {
+          foreach ($objects as $object) {
             $objectIds[] = $object[$model]['id'];
           }
           $possibleOrphans[$model] = $objectIds;
@@ -68,7 +68,7 @@ class OrphansProtectableBehavior extends ModelBehavior {
     }
 
     // Would orphans be left behind?
-    if(count($possibleOrphans) > 0) { // Yes! Create deletion error message!
+    if (count($possibleOrphans) > 0) { // Yes! Create deletion error message!
       $Model->_deletionError = $Model->createDeletionError($possibleOrphans);
       return true;
     } else { // No!
@@ -95,7 +95,7 @@ class OrphansProtectableBehavior extends ModelBehavior {
 	 */
 	function createDeletionError(&$model, $possibleOrphans) {
 	  $errorParts = array();
-    foreach($possibleOrphans as $model => $ids) {
+    foreach ($possibleOrphans as $model => $ids) {
       $count = count($ids);
       $modelName = $count > 1 ? Inflector::pluralize($model) : $model;
       $errorParts[] = $count.' '.__($modelName, true).' (ID: '.$Model->createDeletionErrorIds($model, $ids).')';
@@ -113,8 +113,8 @@ class OrphansProtectableBehavior extends ModelBehavior {
 	 */
 	function createDeletionErrorIds(&$model, $orphanModel, $ids) {
 	  $messageParts = array();
-	  if($Model->orphansProtectableOptions['htmlError']) {
-	    foreach($ids as $id) {
+	  if ($Model->orphansProtectableOptions['htmlError']) {
+	    foreach ($ids as $id) {
 	      $messageParts[] = '<a href="'.Inflector::pluralize(strtolower($orphanModel)).'/view/'.$id.'">'.$id.'</a>'; // TODO: Noch unschÃ¶n! --zivi-muh
 	    }
 	  } else {

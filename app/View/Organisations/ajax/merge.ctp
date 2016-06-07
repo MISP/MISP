@@ -7,7 +7,7 @@
 	<div class="overlay_spacing bottomGap">
 		<div class="row-fluid">
 			<div class="span6">
-			<?php 
+			<?php
 				echo $this->Form->input('targetType', array(
 						'options' => array('Local', 'External'),
 						'label' => 'Organisation type',
@@ -18,7 +18,7 @@
 			?>
 			</div>
 			<div id="orgsLocal" class="span6">
-				<?php 
+				<?php
 					echo $this->Form->input('orgsLocal', array(
 							'options' => $orgOptions['local'],
 							'class' => 'input mergeUpdate',
@@ -29,7 +29,7 @@
 				?>
 			</div>
 			<div id="orgsExternal" class="span6" style="display:none;">
-				<?php 
+				<?php
 					echo $this->Form->input('orgsExternal', array(
 							'options' => $orgOptions['external'],
 							'class' => 'input mergeUpdate',
@@ -66,7 +66,7 @@
 var formInfoValues = {};
 var orgArray = <?php echo $orgs; ?>;
 var types = ['local', 'external'];
-		
+
 $(document).ready(function() {
 	mergeOrganisationUpdate();
 	$('#OrganisationTargetType').change(function() {

@@ -1,9 +1,9 @@
 <?php
 class XMLConverterTool {
-	
+
 	private $__toEscape = array("&", "<", ">", "\"", "'");
 	private $__escapeWith = array('&amp;', '&lt;', '&gt;', '&quot;', '&apos;');
-	
+
 	public function recursiveEcho($array) {
 		$text = "";
 		if (is_array($array)) foreach ($array as $k => $v) {
@@ -26,7 +26,7 @@ class XMLConverterTool {
 		}
 		return $text;
 	}
-	
+
 	public function event2xmlArray($event, $isSiteAdmin=false) {
 		$event['Event']['Org'][0] = $event['Org'];
 		$event['Event']['Orgc'][0] = $event['Orgc'];
@@ -49,11 +49,11 @@ class XMLConverterTool {
 			unset($event['ShadowAttribute']);
 		}
 		if (isset($event['RelatedEvent'])) if (isset($event['RelatedEvent'])) $event['Event']['RelatedEvent'] = $event['RelatedEvent'];
-		
+
 		// legacy
 		unset($event['Event']['org']);
 		unset($event['Event']['orgc']);
-	
+
 		if (isset($event['EventTag'])) {
 			foreach ($event['EventTag'] as $k => $tag) {
 				$event['Event']['Tag'][$k] = $tag['Tag'];
@@ -65,7 +65,7 @@ class XMLConverterTool {
 			unset($event['RelatedAttribute']);
 		}
 		else $event['Event']['RelatedAttribute'] = array();
-		foreach ($event['Event']['RelatedAttribute'] as &$attribute_w_relation) {	
+		foreach ($event['Event']['RelatedAttribute'] as &$attribute_w_relation) {
 			foreach ($attribute_w_relation as &$relation) {
 				$this->__sanitizeField($relation['info']);
 				$this->__sanitizeField($relation['value']);
@@ -79,7 +79,7 @@ class XMLConverterTool {
 		if (!Configure::read('MISP.showorg') && !$isSiteAdmin) {
 			unset($event['Event']['Org'], $event['Event']['Orgc'], $event['Event']['from']);
 		}
-		
+
 		if (isset($event['Event']['Attribute'])) {
 			// remove value1 and value2 from the output and remove invalid utf8 characters for the xml parser
 			foreach ($event['Event']['Attribute'] as $key => $value) {
@@ -93,7 +93,7 @@ class XMLConverterTool {
 					}
 				}
 				if (isset($event['Event']['Attribute'][$key]['ShadowAttribute'])) {
-					foreach($event['Event']['Attribute'][$key]['ShadowAttribute'] as $skey => $svalue) {
+					foreach ($event['Event']['Attribute'][$key]['ShadowAttribute'] as $skey => $svalue) {
 						$this->__sanitizeField($event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['value']);
 						$this->__sanitizeField($event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['comment']);
 						$event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['Org'] = array(0 => $event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['Org']);
@@ -119,7 +119,7 @@ class XMLConverterTool {
 		unset($event['Event']['RelatedAttribute']);
 		if (isset($event['Event']['ShadowAttribute'])) {
 			// remove invalid utf8 characters for the xml parser
-			foreach($event['Event']['ShadowAttribute'] as $key => $value) {
+			foreach ($event['Event']['ShadowAttribute'] as $key => $value) {
 				$this->__sanitizeField($event['Event']['ShadowAttribute'][$key]['value']);
 				$this->__sanitizeField($event['Event']['ShadowAttribute'][$key]['comment']);
 				$event['Event']['ShadowAttribute'][$key]['Org'] = array(0 => $event['Event']['ShadowAttribute'][$key]['Org']);
@@ -139,7 +139,7 @@ class XMLConverterTool {
 				} else {
 					$event['Event']['RelatedEvent'][$key]['Event'][0]['Org'][0] = $event['Event']['RelatedEvent'][$key]['Org'];
 					$event['Event']['RelatedEvent'][$key]['Event'][0]['Orgc'][0] = $event['Event']['RelatedEvent'][$key]['Orgc'];
-					unset ($event['Event']['RelatedEvent'][$key]['Org'], $event['Event']['RelatedEvent'][$key]['Orgc']);
+					unset($event['Event']['RelatedEvent'][$key]['Org'], $event['Event']['RelatedEvent'][$key]['Orgc']);
 				}
 				unset($temp);
 			}
@@ -148,25 +148,25 @@ class XMLConverterTool {
 		if (isset($event['errors']) && !empty($event['errors'])) $result['errors'] = $event['errors'];
 		return $result;
 	}
-	
+
 	public function event2XML($event, $isSiteAdmin=false) {
 		$xmlArray = $this->event2xmlArray($event, $isSiteAdmin);
 		$result = array('Event' => array(0 => $xmlArray['Event']));
 		if (isset($xmlArray['errors']) && !empty($xmlArray['errors'])) $result['errors'] = array($xmlArray['errors']);
 		return $this->recursiveEcho($result);
 	}
-	
+
 	private function __sanitizeField(&$field) {
 		$field = preg_replace ('/[^\x{0009}\x{000a}\x{000d}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}]+/u', ' ', $field);
 		$field = str_replace($this->__toEscape, $this->__escapeWith, $field);
 	}
-	
+
 	public function eventCollection2Format($events, $isSiteAdmin=false) {
 		$result = "";
 		foreach ($events as $event) $result .= $this->event2XML($event) . PHP_EOL;
 		return $result;
 	}
-	
+
 	public function frameCollection($input, $mispVersion = false) {
 		$result = '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL . '<response>' . PHP_EOL;
 		$result .= $input;

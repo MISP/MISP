@@ -1,14 +1,14 @@
 <?php
 $config = array (
   'debug' => 0,
-  'Security' => 
+  'Security' =>
   array (
     'level' => 'medium',
     'salt' => 'Rooraenietu8Eeyo<Qu2eeNfterd-dd+',
     'cipherSeed' => '',
     //'auth'=>array('CertAuth.Certificate'), // additional authentication methods
   ),
-  'MISP' => 
+  'MISP' =>
   array (
     'baseurl' => '',
     'footermidleft' => '',
@@ -30,7 +30,7 @@ $config = array (
     'unpublishedprivate' => false,
   	'disable_emailing' => false,
   ),
-  'GnuPG' => 
+  'GnuPG' =>
   array (
     'onlyencrypted' => false,
     'email' => '',
@@ -38,7 +38,7 @@ $config = array (
     'password' => '',
     'bodyonlyencrypted' => false,
 	),
-  'SMIME' => 
+  'SMIME' =>
   array (
     'enabled' => false,
     'email' => '',
@@ -54,19 +54,19 @@ $config = array (
     'user' => '',
     'password' => '',
   ),
-  'SecureAuth' => 
+  'SecureAuth' =>
   array (
     'amount' => 5,
     'expire' => 300,
   ),
   // Uncomment the following to enable client SSL certificate authentication
   /*
-  'CertAuth' => 
+  'CertAuth' =>
   array(
     'ca'    => array( 'FIRST.Org' ), // allowed CAs
     'caId'          => 'O',          // which attribute will be used to verify the CA
-    'userModel'     => 'User',       // name of the User class to check if user exists 
-    'userModelKey'  => 'nids_sid',   // User field that will be used for querying 
+    'userModel'     => 'User',       // name of the User class to check if user exists
+    'userModelKey'  => 'nids_sid',   // User field that will be used for querying
     'map'           => array(        // maps client certificate attributes to User properties
       'O'           => 'org',
       'emailAddress'=>'email',
@@ -78,7 +78,7 @@ $config = array (
     'restApi'       => array(        // API parameters
       'url'         => 'https://example.com/data/users',  // URL to query
       'headers'     => array(),                           // additional headers, used for authentication
-      'param'       => array( 'email' => 'email'),        // query parameters to add to the URL, mapped to User properties 
+      'param'       => array( 'email' => 'email' ),       // query parameters to add to the URL, mapped to User properties
       'map'         =>  array(                            // maps REST result to the User properties
         'uid'       => 'nids_sid',
         'team'      => 'org',
@@ -86,6 +86,7 @@ $config = array (
         'pgp_public'=> 'gpgkey',
       ),
     ),
+    'userDefaults'  => array ( 'role_id' => 3 ),          // default attributes for new users
   ),
   */
   // Warning: The following is a 3rd party contribution and still untested (including security) by the MISP-project team.
@@ -101,7 +102,7 @@ $config = array (
         'ldapProtocol' => 3,
         'ldapReaderUser' => 'cn=userWithReadAccess,ou=users,dc=example,dc=com', // DN ou RDN LDAP with reader user right
         'ldapReaderPassword' => 'UserPassword', // the LDAP reader user password
-        'ldapDN' => 'dc=example,dc=com', 
+        'ldapDN' => 'dc=example,dc=com',
         'ldapSearchAttribut' => 'uid',          // filter for search
         'ldapFilter' => array(
             'mail',

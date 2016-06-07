@@ -57,9 +57,9 @@ class Organisation extends AppModel{
 			'foreignKey' => 'org_id',
 		),
 	);
-	
+
 	public $countries = array('Not specified', 'International', 'Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Antigua & Deps', 'Argentina', 'Armenia', 'Australia', 'Austria', 'Azerbaijan', 'Bahamas', 'Bahrain', 'Bangladesh', 'Barbados', 'Belarus', 'Belgium', 'Belize', 'Benin', 'Bhutan', 'Bolivia', 'Bosnia Herzegovina', 'Botswana', 'Brazil', 'Brunei', 'Bulgaria', 'Burkina', 'Burundi', 'Cambodia', 'Cameroon', 'Canada', 'Cape Verde', 'Central African Rep', 'Chad', 'Chile', 'China', 'Colombia', 'Comoros', 'Congo', 'Congo {Democratic Rep}', 'Costa Rica', 'Croatia', 'Cuba', 'Cyprus', 'Czech Republic', 'Denmark', 'Djibouti', 'Dominica', 'Dominican Republic', 'East Timor', 'Ecuador', 'Egypt', 'El Salvador', 'Equatorial Guinea', 'Eritrea', 'Estonia', 'Ethiopia', 'Fiji', 'Finland', 'France', 'Gabon', 'Gambia', 'Georgia', 'Germany', 'Ghana', 'Greece', 'Grenada', 'Guatemala', 'Guinea', 'Guinea-Bissau', 'Guyana', 'Haiti', 'Honduras', 'Hungary', 'Iceland', 'India', 'Indonesia', 'Iran', 'Iraq', 'Ireland {Republic}', 'Israel', 'Italy', 'Ivory Coast', 'Jamaica', 'Japan', 'Jordan', 'Kazakhstan', 'Kenya', 'Kiribati', 'Korea North', 'Korea South', 'Kosovo', 'Kuwait', 'Kyrgyzstan', 'Laos', 'Latvia', 'Lebanon', 'Lesotho', 'Liberia', 'Libya', 'Liechtenstein', 'Lithuania', 'Luxembourg', 'Macedonia', 'Madagascar', 'Malawi', 'Malaysia', 'Maldives', 'Mali', 'Malta', 'Marshall Islands', 'Mauritania', 'Mauritius', 'Mexico', 'Micronesia', 'Moldova', 'Monaco', 'Mongolia', 'Montenegro', 'Morocco', 'Mozambique', 'Myanmar, {Burma}', 'Namibia', 'Nauru', 'Nepal', 'Netherlands', 'New Zealand', 'Nicaragua', 'Niger', 'Nigeria', 'Norway', 'Oman', 'Pakistan', 'Palau', 'Panama', 'Papua New Guinea', 'Paraguay', 'Peru', 'Philippines', 'Poland', 'Portugal', 'Qatar', 'Romania', 'Russian Federation', 'Rwanda', 'St Kitts & Nevis', 'St Lucia', 'Saint Vincent & the Grenadines', 'Samoa', 'San Marino', 'Sao Tome & Principe', 'Saudi Arabia', 'Senegal', 'Serbia', 'Seychelles', 'Sierra Leone', 'Singapore', 'Slovakia', 'Slovenia', 'Solomon Islands', 'Somalia', 'South Africa', 'South Sudan', 'Spain', 'Sri Lanka', 'Sudan', 'Suriname', 'Swaziland', 'Sweden', 'Switzerland', 'Syria', 'Taiwan', 'Tajikistan', 'Tanzania', 'Thailand', 'Togo', 'Tonga', 'Trinidad & Tobago', 'Tunisia', 'Turkey', 'Turkmenistan', 'Tuvalu', 'Uganda', 'Ukraine', 'United Arab Emirates', 'United Kingdom', 'United States', 'Uruguay', 'Uzbekistan', 'Vanuatu', 'Vatican City', 'Venezuela', 'Vietnam', 'Yemen', 'Zambia', 'Zimbabwe');
-	
+
 	public $organisationAssociations = array(
 			'Correlation' => array('table' => 'correlations', 'fields' => array('org_id')),
 			'Event' => array('table' => 'events', 'fields' => array('org_id', 'orgc_id')),
@@ -71,7 +71,7 @@ class Organisation extends AppModel{
 			'Thread' => array('table' => 'threads', 'fields' => array('org_id')),
 			'User' => array('table' => 'users', 'fields' => array('org_id'))
 	);
-	
+
 	/*
 	public $hasAndBelongsToMany = array(
 		'SharingGroup' => array(
@@ -82,7 +82,7 @@ class Organisation extends AppModel{
 		)
 	);
 	*/
-	
+
 	public function beforeValidate($options = array()) {
 		parent::beforeValidate();
 		if (empty($this->data['Organisation']['uuid']) && (isset($this->data['Organisation']['local']) && $this->data['Organisation']['local'])) {
@@ -94,13 +94,13 @@ class Organisation extends AppModel{
 		if (!isset($this->data['Organisation']['nationality']) || empty($this->data['Organisation']['nationality'])) $this->data['Organisation']['nationality'] = 'Not specified';
 		return true;
 	}
-	
-	public function beforeDelete($cascade = false){
+
+	public function beforeDelete($cascade = false) {
 		if ($this->User->find('count', array('conditions' => array('User.org_id' => $this->id))) != 0) return false;
 		if ($this->Event->find('count', array('conditions' => array('OR' => array('Event.org_id' => $this->id, 'Event.orgc_id' => $this->id)))) != 0) return false;
 		return true;
 	}
-	
+
 	public function captureOrg($org, $user, $force = false) {
 		if (is_array($org)) {
 			if (isset($org['uuid']) && !empty($org['uuid'])) {
@@ -115,7 +115,7 @@ class Organisation extends AppModel{
 			$conditions = array('name' => $org);
 			$name = $org;
 		}
-		
+
 		$existingOrg = $this->find('first', array(
 				'recursive' => -1,
 				'conditions' => $conditions,
@@ -130,11 +130,11 @@ class Organisation extends AppModel{
 			$date = date('Y-m-d H:i:s');
 			$this->create();
 			$organisation = array(
-					'name' => $name, 
-					'local' => 0, 
+					'name' => $name,
+					'local' => 0,
 					'created_by' => $user['id'],
 					'date_modified' => $date,
-					'date_created' => $date					
+					'date_created' => $date
 			);
 			if (isset($uuid)) $organisation['uuid'] = $uuid;
 			$this->save($organisation);
@@ -151,7 +151,7 @@ class Organisation extends AppModel{
 		}
 		return $existingOrg[$this->alias]['id'];
 	}
-	
+
 	public function createOrgFromName($name, $user_id, $local) {
 		$existingOrg = $this->find('first', array(
 				'recursive' => -1,
@@ -170,7 +170,7 @@ class Organisation extends AppModel{
 		}
 		return $existingOrg[$this->alias]['id'];
 	}
-	
+
 	public function orgMerge($id, $request, $user) {
 		$currentOrg = $this->find('first', array('recursive' => -1, 'conditions' => array('Organisation.id' => $id)));
 		$targetOrgId = $request['Organisation']['targetType'] == 0 ? $request['Organisation']['orgsLocal'] : $request['Organisation']['orgsExternal'];

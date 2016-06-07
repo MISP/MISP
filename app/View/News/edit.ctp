@@ -1,5 +1,5 @@
 <div class="news form">
-<?php 
+<?php
 	echo $this->Form->create('News');
 ?>
 	<fieldset>
@@ -30,11 +30,11 @@
 			));
 		?>
 	</fieldset>
-	<?php 
+	<?php
 		echo $this->Form->button('Submit', array('class' => 'btn btn-primary'));
 		echo $this->Form->end();
 	?>
 </div>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'news', 'menuItem' => 'edit'));
 ?>

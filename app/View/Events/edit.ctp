@@ -19,7 +19,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc_id'] == $me['org_id']);
 	));
 ?>
 	<div id="SGContainer" style="display:none;">
-		<?php 
+		<?php
 		if (!empty($sharingGroups)) {
 			echo $this->Form->input('sharing_group_id', array(
 				'options' => array($sharingGroups),
@@ -29,7 +29,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc_id'] == $me['org_id']);
 		}
 		?>
 	</div>
-<?php 
+<?php
 	echo $this->Form->input('threat_level_id', array(
 			'div' => 'input clear'
 			));
@@ -89,7 +89,7 @@ $(document).ready(function() {
 		if ($('#EventDistribution').val() == 4) $('#SGContainer').show();
 		else $('#SGContainer').hide();
 	});
-	
+
 	$("#EventAnalysis, #EventThreatLevelId, #EventDistribution").on('mouseover', function(e) {
 	    var $e = $(e.target);
 	    if ($e.is('option')) {

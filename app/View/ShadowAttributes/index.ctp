@@ -54,11 +54,11 @@
 				&nbsp;
 			</td>
 			<td class="short" onclick="document.location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
-				<?php 
+				<?php
 					if ($event['ShadowAttribute']['old_id'] != 0) {
 						echo 'Attribute edit';
 					} else {
-						echo 'New Attribute';	
+						echo 'New Attribute';
 					}
 				?>
 			</td>
@@ -94,6 +94,6 @@
         </ul>
     </div>
 </div>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'event-collection', 'menuItem' => 'viewProposals'));
 ?>

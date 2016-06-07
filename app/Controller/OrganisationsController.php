@@ -6,7 +6,7 @@ class OrganisationsController extends AppController {
 
 	public function beforeFilter() {
 		parent::beforeFilter();
-		if(!empty($this->request->params['admin']) && !$this->_isSiteAdmin()) $this->redirect('/');
+		if (!empty($this->request->params['admin']) && !$this->_isSiteAdmin()) $this->redirect('/');
 	}
 
 	public $paginate = array(
@@ -63,7 +63,7 @@ class OrganisationsController extends AppController {
 	}
 
 	public function admin_add() {
-		if($this->request->is('post')) {
+		if ($this->request->is('post')) {
 			$this->Organisation->create();
 			$this->request->data['Organisation']['created_by'] = $this->Auth->user('id');
 			if ($this->Organisation->save($this->request->data)) {
@@ -204,7 +204,7 @@ class OrganisationsController extends AppController {
 		}
 		return new CakeResponse(array('body'=> json_encode($orgs)));
 	}
-	
+
 	public function admin_merge($id) {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException('You are not authorised to do that.');
 		if ($this->request->is('Post')) {
@@ -215,7 +215,7 @@ class OrganisationsController extends AppController {
 		} else {
 			$currentOrg = $this->Organisation->find('first', array('fields' => array('id', 'name', 'uuid', 'local'), 'recursive' => -1, 'conditions' => array('Organisation.id' => $id)));
 			$orgs['local'] = $this->Organisation->find('all', array(
-					'fields' => array('id', 'name', 'uuid'), 
+					'fields' => array('id', 'name', 'uuid'),
 					'conditions' => array('Organisation.id !=' => $id, 'Organisation.local' => true),
 					'order' => 'lower(Organisation.name) ASC'
 			));

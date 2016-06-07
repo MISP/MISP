@@ -1,5 +1,5 @@
 <div class="confirmation">
-<?php 
+<?php
 	echo $this->Form->create('TemplateElement', array('style' => 'margin:0px;', 'id' => 'PromptForm'));
 ?>
 <legend>Template Element Deletion</legend>
@@ -18,7 +18,7 @@
 		</tr>
 	</table>
 </div>
-<?php 
+<?php
 	echo $this->Form->end();
 ?>
 </div>

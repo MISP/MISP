@@ -10,7 +10,7 @@
 <?php
 	App::uses('JSONConverterTool', 'Tools');
 	$converter = new JSONConverterTool();
-	foreach ($results as &$result): 
+	foreach ($results as &$result):
 		$status = 'Failed';
 		$text = '';
 		$colour = 'red';
@@ -28,19 +28,19 @@
 			<td class="short"><?php echo h($result['info']); ?>&nbsp;</td>
 			<td class="short" style="color:<?php echo $colour; ?>"><?php echo h($status); ?>&nbsp;</td>
 			<td class="short">
-				<?php 
+				<?php
 					if ($result['validationIssues']) echo nl2br(h($result['validationIssues']));
 					echo nl2br(h($text));
-					if (0 !== ($result['id'])) echo ' <a href="' . $baseurl . '/events/view/' . h($result['id']) . '">Event ' . h($result['id']) . '</a>'; 
+					if (0 !== ($result['id'])) echo ' <a href="' . $baseurl . '/events/view/' . h($result['id']) . '">Event ' . h($result['id']) . '</a>';
 				?>
 				&nbsp;
 			</td>
 		</tr>
 <?php
-	endforeach; 
+	endforeach;
 ?>
 	</table>
 </div>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'event-collection', 'menuItem' => 'addMISPExport'));
 ?>

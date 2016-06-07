@@ -1,5 +1,5 @@
 <div class="confirmation">
-<?php 
+<?php
 	echo $this->Form->create('Attribute', array('style' => 'margin:0px;', 'id' => 'PromptForm'));
 ?>
 <legend>Attribute Restoration</legend>
@@ -18,7 +18,7 @@
 		</tr>
 	</table>
 </div>
-<?php 
+<?php
 	echo $this->Form->end();
 ?>
 </div>

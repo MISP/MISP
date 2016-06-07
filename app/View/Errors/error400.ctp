@@ -29,7 +29,7 @@ if ($message !== 'csrf'):
 	endif;
 
 else:
-?> 
+?>
 	<h2>You have tripped the cross-site request forgery protection of MISP</h2>
 	<p class="error">
 		<strong>CSRF error:</strong>

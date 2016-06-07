@@ -4,7 +4,7 @@ App::uses('AppHelper', 'View/Helper');
 //this helper simply replaces quotes between [QUOTE][/QUOTE] with div tags.
 
 	class CommandHelper extends AppHelper {
-		public function convertQuotes($string){
+		public function convertQuotes($string) {
 			$string = str_ireplace('[QUOTE]', '<div class="quote">', $string);
 			$string = str_ireplace('[/QUOTE]', '</div>', $string);
 			$matches = array();
@@ -16,7 +16,7 @@ App::uses('AppHelper', 'View/Helper');
 				}
 			}
 			$matches = array();
-			
+
 			while (preg_match ('%\[thread\](.*?)\[/thread\]%is', $string, $matches)) {
 				if (!empty($matches) && is_numeric($matches[1])) {
 					$string = preg_replace('%\[thread\]' . $matches[1] . '\[/thread\]%i', '<a href=' . h(Configure::read('MISP.baseurl')) . '/threads/view/' . $matches[1] . '> Thread ' . $matches[1] . '</a>', $string);
@@ -25,7 +25,7 @@ App::uses('AppHelper', 'View/Helper');
 				}
 				$matches = array();
 			}
-			
+
 			return $string;
 		}
 	}

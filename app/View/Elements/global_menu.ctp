@@ -11,7 +11,7 @@
 		<?php if ($me != false ):?>
 			<div class="nav-collapse collapse">
 				<ul class="nav">
-					<?php 
+					<?php
 						$logo = 'Home';
 						if (Configure::read('MISP.home_logo')) $logo = '<img src="' . $baseurl . '/img/custom/' . Configure::read('MISP.home_logo') . '" style="height:24px;">';
 					?>
@@ -108,7 +108,7 @@
 					</li>
 					<?php endif;?>
 
-					<?php if($isAdmin || $isSiteAdmin): ?>
+					<?php if ($isAdmin || $isSiteAdmin): ?>
 					<li class="dropdown">
 						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
 							Administration
@@ -125,10 +125,10 @@
 							<?php endif;?>
 							<li class="divider"></li>
 							<li><a href="<?php echo $baseurl;?>/admin/roles/index">List Roles</a></li>
-							<?php if($isSiteAdmin): ?>
+							<?php if ($isSiteAdmin): ?>
 							<li><a href="<?php echo $baseurl;?>/admin/roles/add">Add Role</a></li>
 							<?php endif; ?>
-							<?php if($isSiteAdmin): ?>
+							<?php if ($isSiteAdmin): ?>
 								<li class="divider"></li>
 								<li><a href="<?php echo $baseurl;?>/pages/display/administration">Administrative tools</a></li>
 								<li><a href="<?php echo $baseurl;?>/servers/serverSettings">Server settings</a></li>
@@ -138,12 +138,12 @@
 									<li class="divider"></li>
 									<li><a href="<?php echo $baseurl;?>/tasks">Scheduled Tasks</a></li>
 								<?php endif; ?>
-								<?php if (Configure::read('MISP.enableEventBlacklisting') && $isSiteAdmin): ?>	
+								<?php if (Configure::read('MISP.enableEventBlacklisting') && $isSiteAdmin): ?>
 									<li class="divider"></li>
 									<li><a href="<?php echo $baseurl;?>/eventBlacklists/add">Blacklist Event</a></li>
 									<li><a href="<?php echo $baseurl;?>/eventBlacklists">Manage Event Blacklists</a></li>
 								<?php endif; ?>
-								<?php if (Configure::read('MISP.enableEventBlacklisting') && $isSiteAdmin): ?>	
+								<?php if (Configure::read('MISP.enableEventBlacklisting') && $isSiteAdmin): ?>
 									<li class="divider"></li>
 									<li><a href="<?php echo $baseurl;?>/orgBlacklists/add">Blacklist Organisation</a></li>
 									<li><a href="<?php echo $baseurl;?>/orgBlacklists">Manage Org Blacklists</a></li>
@@ -153,7 +153,7 @@
 					</li>
 					<?php endif; ?>
 
-					<?php if($isAclAudit): ?>
+					<?php if ($isAclAudit): ?>
 					<li class="dropdown">
 						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
 							Audit
@@ -216,7 +216,7 @@ window.onresize = resizeLogo;
 function resizeLogo() {
 	var testElem = document.getElementById('fullLogo');
 	var topBar = document.getElementById('topBar');
-	
+
 	if (testElem != null) {
 		if ($(window).width() < 1400) {
 			document.getElementById('fullLogo').style.display='none';
@@ -224,7 +224,7 @@ function resizeLogo() {
 		}
 		if ($(window).width() > 1399) {
 			document.getElementById('fullLogo').style.display='block';
-			document.getElementById('smallLogo').style.display='none';	
+			document.getElementById('smallLogo').style.display='none';
 		}
 	}
 

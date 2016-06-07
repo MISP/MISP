@@ -9,10 +9,10 @@
 		</div><br />
 		<div class="left">Description:</div>
 		<div class="right"><?php echo h($element['description']); ?></div><br />
-		
+
 		<div class="left">Type<?php if ($element['complex']) echo 's'; ?>:</div>
 		<div class="right">
-		<?php 
+		<?php
 			$types = '';
 			if ($element['complex']) {
 				foreach ($validTypeGroups[$element['type']]['types'] as $k => $type):
@@ -20,12 +20,12 @@
 					$types .= $type;
 					?>
 						<div class="templateTypeBox"><?php echo h($type); ?></div>
-					<?php 
+					<?php
 				endforeach;
 			} else {
 				?>
 					<div class="templateTypeBox"><?php echo h($element['type']); ?></div>
-				<?php 
+				<?php
 			}
 		?>
 		</div>
@@ -64,7 +64,7 @@
 			}
 		?>
 		</div>
-		<div class="error-message populateTemplateErrorField" <?php if(!isset($errors[$element_id])) echo 'style="display:none;"';?>>
+		<div class="error-message populateTemplateErrorField" <?php if (!isset($errors[$element_id])) echo 'style="display:none;"';?>>
 			<?php echo 'Error: ' . $errors[$element_id]; ?>
 		</div>
 	</div>

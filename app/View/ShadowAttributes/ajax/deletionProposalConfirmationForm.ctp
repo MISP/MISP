@@ -1,5 +1,5 @@
 <div class="confirmation">
-<?php 
+<?php
 	echo $this->Form->create('ShadowAttribute', array('style' => 'margin:0px;', 'id' => 'PromptForm'));
 ?>
 <legend>Attribute Deletion</legend>
@@ -18,7 +18,7 @@
 		</tr>
 	</table>
 </div>
-<?php 
+<?php
 	echo $this->Form->end();
 ?>
 </div>
