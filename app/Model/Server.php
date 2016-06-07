@@ -609,6 +609,15 @@ class Server extends AppModel {
 							'type' => 'string',
 							'null' => true,
 					),
+					'custom_css' => array(
+							'level' => 1,
+							'description' => 'If you would like to customise the css, simply drop a css file in the /var/www/MISP/webroot/css directory and enter the name here.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForStyleFile',
+							'type' => 'string',
+							'null' => true,
+					),
 			),
 			'GnuPG' => array(
 					'branch' => 1,
@@ -1924,6 +1933,11 @@ class Server extends AppModel {
 
 	public function testForTermsFile($value) {
 		return $this->__testForFile($value, APP . 'files' . DS . 'terms');
+	}
+	
+	public function testForStyleFile($value) {
+		if (empty($value)) return true;
+		return $this->__testForFile($value, APP . 'webroot' . DS . 'css');
 	}
 
 	public function testForCustomImage($value) {
