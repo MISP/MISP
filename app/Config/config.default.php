@@ -86,6 +86,7 @@ $config = array (
         'pgp_public'=> 'gpgkey',
       ),
     ),
+    'userDefaults'  => array ( 'role_id' => 3),           // default attributes for new users
   ),
   */
   // Warning: The following is a 3rd party contribution and still untested (including security) by the MISP-project team.
