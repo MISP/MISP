@@ -155,7 +155,7 @@ class CertificateAuthenticate extends BaseAuthenticate
                             }
                             unset($write);
                         }
-                        self::$user = $U[$cn];
+                        self::$user = $User->getAuthUser($U[$cn]['id']);
                     } else if ($sync) {
                         $User->create();
                         $d = Configure::read('CertAuth.userDefaults');
@@ -165,7 +165,7 @@ class CertificateAuthenticate extends BaseAuthenticate
                         unset($d);
                         if ($User->save(self::$user, true, array_keys(self::$user))) {
                             $U = $User->read();
-                            self::$user = $U[$cn];
+                            self::$user = $User->getAuthUser($U[$cn]['id']);
                         } else {
                             CakeLog::write('alert', 'Could not insert model at database from RestAPI data.');
                         }
