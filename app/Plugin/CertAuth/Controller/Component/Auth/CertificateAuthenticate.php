@@ -143,6 +143,12 @@ class CertificateAuthenticate extends BaseAuthenticate
                     if ($U) {
                         if ($sync) {
                             $write = array();
+
+                            if(!isset(self::$user['org_id']) && isset(self::$user['org'])) {
+                                self::$user['org_id']=$User->Organisation->createOrgFromName(self::$user['org'], $User->id, true);
+                                unset(self::$user['org']);
+                            }
+
                             foreach (self::$user as $k=>$v) {
                                 if (array_key_exists($k, $U[$cn]) && trim($U[$cn][$k])!=trim($v)) {
                                     $write[] = $k;
@@ -156,19 +162,34 @@ class CertificateAuthenticate extends BaseAuthenticate
                             unset($write);
                         }
                         self::$user = $User->getAuthUser($U[$cn]['id']);
+                        if(isset(self::$user['gpgkey'])) unset(self::$user['gpgkey']);
                     } else if ($sync) {
                         $User->create();
+                        $org=null;
+                        if(!isset(self::$user['org_id']) && isset(self::$user['org'])) {
+                            $org = self::$user['org'];
+                            unset(self::$user['org']);
+                        }
+
                         $d = Configure::read('CertAuth.userDefaults');
                         if ($d && is_array($d)) {
                             self::$user += $d;
                         }
                         unset($d);
+
                         if ($User->save(self::$user, true, array_keys(self::$user))) {
-                            $U = $User->read();
+
+                            if($org) {
+                                self::$user['org_id']=$User->Organisation->createOrgFromName($org, $User->id, true);
+                                $User->save(self::$user, true, array('org_id'));
+                            }
+
                             self::$user = $User->getAuthUser($U[$cn]['id']);
+                            if(isset(self::$user['gpgkey'])) unset(self::$user['gpgkey']);
                         } else {
                             CakeLog::write('alert', 'Could not insert model at database from RestAPI data.');
                         }
+                        unset($org);
                     }
                     unset($U, $User, $q, $k);
                 }
