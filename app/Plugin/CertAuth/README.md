@@ -37,8 +37,8 @@ Configure::write('CertAuth',
         'email'     => 'email',
       ),
     ),
-  ),
-));
+  )
+);
 ```
 
 
