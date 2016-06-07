@@ -1,7 +1,6 @@
 <div id = "topBar" class="navbar-wrapper header <?php echo $debugMode;?>" style="height:42px;width:100%">
-	<div class="glass"></div>
-	<div class="navbar navbar-inverse">
-		<div class="navbar-inner" style="border-radius: 10px;">
+	<div class="navbar navbar-fixed-top navbar-inverse">
+		<div class="navbar-inner">
 		  <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
 	    <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
 	      <span class="icon-bar"></span>
@@ -180,13 +179,7 @@
 			<div class="nav-collapse collapse pull-right">
 				<ul class="nav">
 					<li>
-						<a href="<?php echo $baseurl;?>/" id="fullLogo" style="font-weight:bold;">
-							<span class="logoBlueStatic">M</span><span class="logoGray">alware</span>
-							<span class="logoBlueStatic">I</span><span class="logoGray">nformation </span>
-							<span class="logoBlueStatic">S</span><span class="logoGray">haring</span>
-							<span class="logoBlueStatic">P</span><span class="logoGray">latform</span>
-						</a>
-						<a href="<?php echo $baseurl;?>/" id="smallLogo" style="display:none;font-weight:bold;">
+						<a href="<?php echo $baseurl;?>/" id="smallLogo" style="font-weight:bold;">
 							<span class="logoBlueStatic">MISP</span>
 						</a>
 					</li>
@@ -209,30 +202,3 @@
 		</div>
 	</div>
 </div>
-<script type="text/javascript">
-window.onload = resizeLogo;
-window.onresize = resizeLogo;
-
-function resizeLogo() {
-	var testElem = document.getElementById('fullLogo');
-	var topBar = document.getElementById('topBar');
-
-	if (testElem != null) {
-		if ($(window).width() < 1400) {
-			document.getElementById('fullLogo').style.display='none';
-			document.getElementById('smallLogo').style.display='block';
-		}
-		if ($(window).width() > 1399) {
-			document.getElementById('fullLogo').style.display='block';
-			document.getElementById('smallLogo').style.display='none';
-		}
-	}
-
-	if ($(window).width() < 1185) {
-		topBar.style.width = '1185px';
-	}
-	if ($(window).width() > 1184) {
-		topBar.style.width = '100%';
-	}
-}
-</script>
