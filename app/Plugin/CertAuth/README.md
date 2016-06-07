@@ -37,9 +37,10 @@ Configure::write('CertAuth',
         'email'     => 'email',
       ),
     ),
+    'userDefaults'  => array ( 'role_id' => 3 ),          // default attributes for new users
   )
 );
 ```
 
-
+If you set *syncUser* to *true* and *restApi.url* to *null*, new users will be created with the defaults defined by *userDefaults* without the need for a REST server.
 
