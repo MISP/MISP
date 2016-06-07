@@ -34,9 +34,11 @@ class ComplexTypeTool {
 		if (strpos($input, '|')) {
 			$composite = true;
 			$result = explode('|', $input);
-			if (count($result) != 2) $type = 'other';
-			if (!preg_match("#^.+#", $result[0])) $type = 'other';
-			$type = 'filename|';
+			if (count($result) != 2 || !preg_match("#^.+#", $result[0])) {
+				$type = 'other';
+			} else {
+				$type = 'filename|';
+			}
 			$input = $result[1];
 		}
 		if (strlen($input) == 32 && preg_match("#[0-9a-f]{32}$#", $input)) $type .= 'md5';
@@ -48,7 +50,6 @@ class ComplexTypeTool {
 	}
 
 	public function checkComplexCnC($input) {
-		$type = '';
 		$toReturn = array();
 		// check if it's an IP address
 		if (filter_var($input, FILTER_VALIDATE_IP)) return array('type' => 'ip-dst', 'value' => $input);
@@ -104,7 +105,6 @@ class ComplexTypeTool {
 	);
 
 	private function __resolveType($input, $warningListEntries = array()) {
-		$result = array();
 		$input = trim($input);
 		if (strpos($input, '|')) {
 			$compositeParts = explode('|', $input);
@@ -140,7 +140,7 @@ class ComplexTypeTool {
 		if (filter_var($inputRefangedNoPort, FILTER_VALIDATE_IP)) return array('types' => array('ip-dst', 'ip-src', 'ip-src/ip-dst'), 'to_ids' => true, 'default_type' => 'ip-dst', 'comment' => $comment, 'value' => $inputRefangedNoPort);
 		if (strpos($inputRefangedNoPort, '/')) {
 			$temp = explode('/', $inputRefangedNoPort);
-			if (count($temp == 2)) {
+			if (count($temp) == 2) {
 				if (filter_var($temp[0], FILTER_VALIDATE_IP) && is_numeric($temp[1])) return array('types' => array('ip-dst', 'ip-src', 'ip-src/ip-dst'), 'to_ids' => true, 'default_type' => 'ip-dst', 'comment' => $comment, 'value' => $inputRefangedNoPort);
 			}
 		}

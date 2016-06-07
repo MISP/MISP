@@ -37,9 +37,9 @@ class SysLogLogableBehavior extends LogableBehavior {
 			}
 
 			if ($created) {
-				$logData['Log']['description'] .= __('added', TRUE);
+				$logData['Log']['description'] .= __('added', true);
 			} else {
-				$logData['Log']['description'] .= __('updated', TRUE);
+				$logData['Log']['description'] .= __('updated', true);
 			}
 		}
 		if (isset($this->schema['action'])) {

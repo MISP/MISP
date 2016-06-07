@@ -45,7 +45,6 @@ class CustomPaginationTool {
 
 	function applyRulesOnArray(&$items, $options, $model, $sort = 'id') {
 		$params = $this->createPaginationRules($items, $options, $model, $sort);
-		$direction = 'asc';
 		if (isset($params['sort'])) {
 			$items = Set::sort($items, '{n}.' . $params['sort'], $params['direction']);
 		}

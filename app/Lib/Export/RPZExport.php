@@ -99,7 +99,7 @@ class RPZExport {
 		return $input . ' CNAME ' . $action . PHP_EOL;
 	}
 
-	private function __convertip($input, $action) {
+	private function __convertIP($input, $action) {
 		$type = filter_var($input, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) ? 'ipv6' : 'ipv4';
 		if ($type == 'ipv6') $prefix = '128';
 		else $prefix = '32';

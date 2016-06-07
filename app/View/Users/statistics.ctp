@@ -1,6 +1,6 @@
 <?php
-	echo $this->Html->script('d3.v3.min');
-	echo $this->Html->script('cal-heatmap.min');
+	echo $this->Html->script('d3');
+	echo $this->Html->script('cal-heatmap');
 	echo $this->Html->css('cal-heatmap');
 ?>
 <div class = "index">
@@ -42,21 +42,18 @@
 <h3>Activity Heatmap</h3>
 <p>A heatmap showing user activity for each day during this month and the 4 months that preceded it. Use the buttons below to only show the heatmap of a specific organisation.</p>
 <div id="orgs">
-	<ul class="inline">
-	<li id="org-all"  class="btn btn btn.active qet" style="margin-right:5px;" onClick="updateCalendar('all')">All organisations</li>
-	<?php
-		foreach ($orgs as $org): ?>
-			<li id="org-<?php echo h($org['Organisation']['name']);?>"  class="btn btn btn.active qet" style="margin-right:5px;" onClick="updateCalendar('<?php echo h($org['Organisation']['name']);?>')">
-				<?php echo h($org['Organisation']['name']);?>
-			</li>
-	<?php
-		endforeach;
-	?>
-	</ul>
+	<select onchange="updateCalendar(this.options[this.selectedIndex].value);">
+		<option value="all">All organisations</option>
+		<?php
+			foreach ($orgs as $org):
+				?>
+					<option value="<?php echo h($org['Organisation']['name']); ?>"><?php echo h($org['Organisation']['name']); ?></option>
+				<?php
+			endforeach;
+		?>
+	</select>
 </div>
-<br />
-<br />
-<div style="margin-top:100px;">
+<div>
 <table>
 <tr>
 <td style="vertical-align:top;">
