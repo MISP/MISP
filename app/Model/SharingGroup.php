@@ -141,6 +141,7 @@ class SharingGroup extends AppModel {
 					'fields' => array('id', 'uuid'),
 					'conditions' => $conditions,
 			));
+			return $sgs;
 		} else {
 			return $ids;
 		}

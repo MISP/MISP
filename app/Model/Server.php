@@ -75,12 +75,9 @@ class Server extends AppModel {
 		),
 		'org_id' => array(
 			'numeric' => array(
-				'rule' => array('numeric'),
-				//'message' => 'Your custom message here',
+				'rule' => array('valueIsID'),
 				'allowEmpty' => false,
 				'required' => true,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
 		),
 		'push' => array(
@@ -272,14 +269,14 @@ class Server extends AppModel {
 							'test' => 'testBool',
 							'type' => 'boolean',
 					),
-					'sync' => array(
-							'level' => 3,
-							'description' => 'This setting is deprecated and can be safely removed.',
-							'value' => '',
+					'email_subject_TLP_string' => array(
+							'level' => 2,
+							'description' => 'This is the TLP string in alert e-mail sent when an event is published.',
+							'value' => 'TLP Amber',
 							'errorMessage' => '',
 							'test' => 'testForEmpty',
 							'type' => 'string',
-					),
+						),
 					'taxii_sync' => array(
 							'level' => 3,
 							'description' => 'This setting is deprecated and can be safely removed.',
@@ -606,6 +603,15 @@ class Server extends AppModel {
 							'value' => '/opt/rh/rh-php56/root/usr/bin:/opt/rh/rh-php56/root/usr/sbin',
 							'errorMessage' => '',
 							'test' => 'testForPath',
+							'type' => 'string',
+							'null' => true,
+					),
+					'custom_css' => array(
+							'level' => 2,
+							'description' => 'If you would like to customise the css, simply drop a css file in the /var/www/MISP/webroot/css directory and enter the name here.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForStyleFile',
 							'type' => 'string',
 							'null' => true,
 					),
@@ -1882,7 +1888,7 @@ class Server extends AppModel {
 	}
 
 	public function testDate($date) {
-		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
+		if ($this->testForEmpty($date) !== true) return $this->testForEmpty($date);
 		if (!strtotime($date)) return 'The date that you have entered is invalid. Expected: yyyy-mm-dd';
 		return true;
 	}
@@ -1926,6 +1932,11 @@ class Server extends AppModel {
 
 	public function testForTermsFile($value) {
 		return $this->__testForFile($value, APP . 'files' . DS . 'terms');
+	}
+	
+	public function testForStyleFile($value) {
+		if (empty($value)) return true;
+		return $this->__testForFile($value, APP . 'webroot' . DS . 'css');
 	}
 
 	public function testForCustomImage($value) {
@@ -1971,14 +1982,14 @@ class Server extends AppModel {
 	}
 
 	public function testForRPZBehaviour($value) {
-		$numeric = $this->testforNumeric($value);
+		$numeric = $this->testForNumeric($value);
 		if ($numeric !== true) return $numeric;
 		if ($value < 0 || $value > 3) return 'Invalid setting, valid range is 0-3 (0 = DROP, 1 = NXDOMAIN, 2 = NODATA, 3 = walled garden.';
 		return true;
 	}
 
 	public function testForSightingVisibility($value) {
-		$numeric = $this->testforNumeric($value);
+		$numeric = $this->testForNumeric($value);
 		if ($numeric !== true) return $numeric;
 		if ($value < 0 || $value > 2) return 'Invalid setting, valid range is 0-2 (0 = Event owner, 1 = Sighting reporters, 2 = Everyone.';
 		return true;
@@ -2600,6 +2611,7 @@ class Server extends AppModel {
 		}
 	}
 
+	// currently unused, but let's keep it in the code-base in case we need it in the future.
 	private function __dropIndex($table, $field) {
 		$this->Log = ClassRegistry::init('Log');
 		$indexCheck = "SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema=DATABASE() AND table_name='" . $table . "' AND index_name LIKE '" . $field . "%'";
