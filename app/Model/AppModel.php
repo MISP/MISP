@@ -498,6 +498,13 @@ class AppModel extends Model {
 		if (!empty($value[$field])) return true;
 		return ucfirst($field) . ' cannot be empty.';
 	}
+	
+	public function valueIsID($value) {
+		$field = array_keys($value);
+		$field = $field[0];
+		if (!is_numeric($value[$field]) || $value[$field] < 0) 'Invalid ' . ucfirst($field) . ' ID';
+		return true;
+	}
 
 	public function stringNotEmpty($value) {
 		$field = array_keys($value);

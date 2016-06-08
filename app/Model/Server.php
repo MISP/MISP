@@ -75,12 +75,9 @@ class Server extends AppModel {
 		),
 		'org_id' => array(
 			'numeric' => array(
-				'rule' => array('numeric'),
-				//'message' => 'Your custom message here',
+				'rule' => array('valueIsID'),
 				'allowEmpty' => false,
 				'required' => true,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
 		),
 		'push' => array(

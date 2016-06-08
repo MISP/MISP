@@ -203,14 +203,21 @@ class ServersController extends AppController {
 
 					if (!$fail) {
 						$this->Server->Organisation->create();
-						if (!$this->Server->Organisation->save(array(
+						$orgSave = $this->Server->Organisation->save(array(
 								'name' => $json['name'],
 								'uuid' => $json['uuid'],
 								'local' => 0,
 								'created_by' => $this->Auth->user('id')
-							)
-						)) $this->Session->setFlash(__('Couldn\'t save the new organisation, are you sure that the uuid is in the correct format?.'));
-						$this->request->data['Server']['remote_org_id'] = $this->Server->Organisation->id;
+						));
+						
+						if (!$orgSave) {
+							$this->Session->setFlash(__('Couldn\'t save the new organisation, are you sure that the uuid is in the correct format?.'));
+							$fail = true;
+							$this->request->data['Server']['external_name'] = $json['name'];
+							$this->request->data['Server']['external_uuid'] = $json['uuid'];
+						} else {
+							$this->request->data['Server']['remote_org_id'] = $this->Server->Organisation->id;
+						}
 					}
 				}
 				if (!$fail) {
@@ -310,14 +317,21 @@ class ServersController extends AppController {
 
 					if (!$fail) {
 						$this->Server->Organisation->create();
-						if (!$this->Server->Organisation->save(array(
+						$orgSave = $this->Server->Organisation->save(array(
 								'name' => $json['name'],
 								'uuid' => $json['uuid'],
 								'local' => 0,
 								'created_by' => $this->Auth->user('id')
-						)
-						)) $this->Session->setFlash(__('Couldn\'t save the new organisation, are you sure that the uuid is in the correct format?'));
-						$this->request->data['Server']['remote_org_id'] = $this->Server->Organisation->id;
+						));
+						
+						if (!$orgSave) {
+							$this->Session->setFlash(__('Couldn\'t save the new organisation, are you sure that the uuid is in the correct format?.'));
+							$fail = true;
+							$this->request->data['Server']['external_name'] = $json['name'];
+							$this->request->data['Server']['external_uuid'] = $json['uuid'];
+						} else {
+							$this->request->data['Server']['remote_org_id'] = $this->Server->Organisation->id;
+						}
 					}
 				}
 			}
