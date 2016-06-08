@@ -273,7 +273,7 @@ class Server extends AppModel {
 							'type' => 'boolean',
 					),
 					'email_subject_TLP_string' => array(
-							'level' => 0,
+							'level' => 2,
 							'description' => 'This is the TLP string in alert e-mail sent when an event is published.',
 							'value' => 'TLP Amber',
 							'errorMessage' => '',
@@ -2612,6 +2612,7 @@ class Server extends AppModel {
 		}
 	}
 
+	// currently unused, but let's keep it in the code-base in case we need it in the future.
 	private function __dropIndex($table, $field) {
 		$this->Log = ClassRegistry::init('Log');
 		$indexCheck = "SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema=DATABASE() AND table_name='" . $table . "' AND index_name LIKE '" . $field . "%'";
