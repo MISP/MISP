@@ -448,7 +448,7 @@ class ShadowAttribute extends AppModel {
 		if ($malware) {
 			$execRetval = '';
 			$execOutput = array();
-			exec("zip -j -P infected " . $zipfile->path . ' \'' . escapeshellarg($fileInZip->path) . '\'', $execOutput, $execRetval);
+			exec("zip -j -P infected " . $zipfile->path . ' \'' . addslashes($fileInZip->path) . '\'', $execOutput, $execRetval);
 			if ($execRetval != 0) {	// not EXIT_SUCCESS
 				throw new Exception('An error has occured while attempting to zip the malware file.');
 			}
