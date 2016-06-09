@@ -171,22 +171,30 @@ class EventsController extends AppController {
 	}
 
 	private function __quickFilter($value) {
+		if (!is_array($value)) $value = array($value);
+		$values = array();
+		foreach ($value as $v) {
+			$values[] = '%' . strtolower($v) . '%';
+		}
+
 		$result = array();
 		// get all of the attributes that have a hit on the search term, in either the value or the comment field
 		// This is not perfect, the search will be case insensitive, but value1 and value2 are searched separately. lower() doesn't seem to work on virtualfields
-		$attributeHits = $this->Event->Attribute->find('all', array(
-				'recursive' => -1,
-				'fields' => array('event_id', 'comment', 'distribution', 'value1', 'value2'),
-				'conditions' => array(
-					'OR' => array(
-						'lower(value1) LIKE' => '%' . strtolower($value) . '%',
-						'lower(value2) LIKE' => '%' . strtolower($value) . '%',
-						'lower(comment) LIKE' => '%' . strtolower($value) . '%',
-					),
-					'AND' => array(
-						'deleted' => false
-					),
-				),
+		$subconditions = array();
+		foreach ($values as $v) {
+			$subconditions[] = array('lower(value1) LIKE' => $v);
+			$subconditions[] = array('lower(value2) LIKE' => $v);
+			$subconditions[] = array('lower(comment) LIKE' => $v);
+		}
+		$conditions = array(
+			'AND' => array(
+				'OR' => $subconditions,
+				'deleted' => false
+			)
+		);
+		$attributeHits = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array(
+				'conditions' => $conditions,
+				'fields' => array('event_id', 'comment', 'distribution', 'value1', 'value2') 
 		));
 		// rearrange the data into an array where the keys are the event IDs
 		$eventsWithAttributeHits = array();
@@ -212,8 +220,12 @@ class EventsController extends AppController {
 		// For anything beyond this point the default pagination restrictions will apply!
 
 		// First of all, there are tags that might be interesting for us
+		$subconditions = array();
+		foreach ($values as $v) {
+			$subconditions[] = array('lower(name) LIKE' => $v);
+		}
 		$tags = $this->Event->EventTag->Tag->find('all', array(
-				'conditions' => array('lower(name) LIKE' => '%' . strtolower($value) . '%'),
+				'conditions' => $subconditions,
 				'fields' => array('name', 'id'),
 				'contain' => array('EventTag'),
 		));
@@ -224,15 +236,21 @@ class EventsController extends AppController {
 		}
 
 		// Finally, let's search on the event metadata!
+		$subconditions = array();
+		foreach ($values as $v) {
+			$subconditions[] = array('lower(name) LIKE' => $v);
+		}
 		$conditions = array();
 		$orgs = $this->Event->Org->find('list', array(
-				'conditions' => array('lower(name) LIKE' => '%' .  strtolower($value) . '%'),
+				'conditions' => $subconditions,
 				'recursive' => -1,
 				'fields' => array('id')
 		));
+		foreach ($values as $v) {
+			$conditions['OR'][] = array('lower(info) LIKE' => $v);
+			$conditions['OR'][] = array('lower(uuid) LIKE' => $v);
+		}
 		if (!empty($orgs)) $conditions['OR']['orgc_id'] = array_values($orgs);
-		$conditions['OR']['lower(info) LIKE'] = '%' . strtolower($value) .'%';
-		$conditions['OR']['lower(uuid) LIKE'] = strtolower($value);
 		$otherEvents = $this->Event->find('all', array(
 				'recursive' => -1,
 				'fields' => array('id', 'orgc_id', 'info', 'uuid'),
@@ -2244,7 +2262,7 @@ class EventsController extends AppController {
 		if (!$user) {
 			throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
 		}
-		$value = str_replace('|', '/', $value);
+		if (!is_array($value)) $value = str_replace('|', '/', $value);
 		// request handler for POSTed queries. If the request is a post, the parameters (apart from the key) will be ignored and replaced by the terms defined in the posted json or xml object.
 		// The correct format for both is a "request" root element, as shown by the examples below:
 		// For Json: {"request":{"value": "7.7.7.7&&1.1.1.1","type":"ip-src"}}
