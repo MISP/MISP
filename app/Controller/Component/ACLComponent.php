@@ -36,7 +36,7 @@ class ACLComponent extends Component {
 					'checkComposites' => array('perm_admin'),
 					'delete' => array('perm_add'),
 					'deleteSelected' => array('perm_add'),
-					'describeTypes' => array('perm_auth'),
+					'describeTypes' => array('perm_add'),
 					'download' => array('*'),
 					'downloadAttachment' => array('*'),
 					'downloadSample' => array('*'),
