@@ -3,16 +3,6 @@ class JSONConverterTool {
 	public function event2JSON($event, $isSiteAdmin=false) {
 		$event['Event']['Org'] = $event['Org'];
 		$event['Event']['Orgc'] = $event['Orgc'];
-		if (isset($event['SharingGroup']['SharingGroupOrg'])) {
-			foreach ($event['SharingGroup']['SharingGroupOrg'] as $key => $sgo) {
-				$event['SharingGroup']['SharingGroupOrg'][$key]['Organisation'] = $event['SharingGroup']['SharingGroupOrg'][$key]['Organisation'];
-			}
-		}
-		if (isset($event['SharingGroup']['SharingGroupServer'])) {
-			foreach ($event['SharingGroup']['SharingGroupServer'] as $key => $sgs) {
-				$event['SharingGroup']['SharingGroupServer'][$key]['Server'] = $event['SharingGroup']['SharingGroupServer'][$key]['Server'];
-			}
-		}
 		if (isset($event['SharingGroup'])) $event['Event']['SharingGroup'] = $event['SharingGroup'];
 		$event['Event']['Attribute'] = $event['Attribute'];
 		$event['Event']['ShadowAttribute'] = $event['ShadowAttribute'];
