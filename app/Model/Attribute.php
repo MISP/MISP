@@ -1120,7 +1120,7 @@ class Attribute extends AppModel {
 		$rootDir = APP . "files" . DS . $eventId;
 		$dir = new Folder($rootDir, true);
 		// move the file to the correct location
-		$destpath = $rootDir . DS . $this->getId(); // id of the new attribute in the database
+		$destpath = $rootDir . DS . $this->getID(); // id of the new attribute in the database
 		$file = new File($destpath);
 		$zipfile = new File($destpath . '.zip');
 		$fileInZip = new File($rootDir . DS . $extraPath . $filename); // FIXME do sanitization of the filename
