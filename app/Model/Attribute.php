@@ -135,47 +135,47 @@ class Attribute extends AppModel {
 			'target-org' => array('desc' => 'Attack Targets Department or Organization(s)'),
 			'target-location' => array('desc' => 'Attack Targets Physical Location(s)'),
 			'target-external' => array('desc' => 'External Target Organizations Affected by this Attack'),
-			'btc' => array('desc' => 'Bitcoin Address'),//
-			'iban' => array('desc' => 'International Bank Account Number'),//
+			'btc' => array('desc' => 'Bitcoin Address'),
+			'iban' => array('desc' => 'International Bank Account Number'),
 			'bic' => array('desc' => 'Bank Identifier Code Number'),
 			'bank-account-nr' => array('desc' => 'Bank account number without any routing number'),
 			'aba-rtn' => array('desc' => 'ABA routing transit number'),
-			'bin' => array('desc' => 'Bank Identification Number'),//
-			'cc-number' => array('desc' => 'Credit-Card Number'),//
-			'prtn' => array('desc' => 'Premium-Rate Telephone Number'),//
-			'threat-actor' => array('desc' => 'A string identifying the threat actor'),//
-			'campaign-name' => array('desc' => 'Associated campaign name'),//
-			'campaign-id' => array('desc' => 'Associated campaign ID'),//
-			'malware-type' => array('desc' => ''),//
+			'bin' => array('desc' => 'Bank Identification Number'),
+			'cc-number' => array('desc' => 'Credit-Card Number'),
+			'prtn' => array('desc' => 'Premium-Rate Telephone Number'),
+			'threat-actor' => array('desc' => 'A string identifying the threat actor'),
+			'campaign-name' => array('desc' => 'Associated campaign name'),
+			'campaign-id' => array('desc' => 'Associated campaign ID'),
+			'malware-type' => array('desc' => ''),
 			'uri' => array('desc' => 'Uniform Resource Identifier'),
-			'authentihash' => array('desc' => 'Authenticode executable signature hash', 'formdesc' => "You are encouraged to use filename|authentihash instead. Authenticode executable signature hash, only use this if you don't know the correct filename"),//x
-			'ssdeep' => array('desc' => 'A checksum in ssdeep format', 'formdesc' => "You are encouraged to use filename|ssdeep instead. A checksum in the SSDeep format, only use this if you don't know the correct filename"),////x
-			'imphash' => array('desc' => 'Import hash - a hash created based on the imports in the sample.', 'formdesc' => "You are encouraged to use filename|imphash instead. A hash created based on the imports in the sample, only use this if you don't know the correct filename"),//x
-			'pehash' => array('desc' => 'PEhash - a hash calculated based of certain pieces of a PE executable file'),//x
-			'sha224' => array('desc' => 'A checksum in sha-224 format', 'formdesc' => "You are encouraged to use filename|sha224 instead. A checksum in sha224 format, only use this if you don't know the correct filename"),//x
-			'sha384' => array('desc' => 'A checksum in sha-384 format', 'formdesc' => "You are encouraged to use filename|sha384 instead. A checksum in sha384 format, only use this if you don't know the correct filename"),//x
-			'sha512' => array('desc' => 'A checksum in sha-512 format', 'formdesc' => "You are encouraged to use filename|sha512 instead. A checksum in sha512 format, only use this if you don't know the correct filename"),//x
-			'sha512/224' => array('desc' => 'A checksum in the sha-512/224 format', 'formdesc' => "You are encouraged to use filename|sha512/224 instead. A checksum in sha512/224 format, only use this if you don't know the correct filename"),//x
-			'sha512/256' => array('desc' => 'A checksum in the sha-512/256 format', 'formdesc' => "You are encouraged to use filename|sha512/256 instead. A checksum in sha512/256 format, only use this if you don't know the correct filename"),//x
-			'tlsh' => array('desc' => 'A checksum in the Trend Micro Locality Sensitive Hash format', 'formdesc' => "You are encouraged to use filename|tlsh instead. A checksum in the Trend Micro Locality Sensitive Hash format, only use this if you don't know the correct filename"),//x
+			'authentihash' => array('desc' => 'Authenticode executable signature hash', 'formdesc' => "You are encouraged to use filename|authentihash instead. Authenticode executable signature hash, only use this if you don't know the correct filename"),
+			'ssdeep' => array('desc' => 'A checksum in ssdeep format', 'formdesc' => "You are encouraged to use filename|ssdeep instead. A checksum in the SSDeep format, only use this if you don't know the correct filename"),
+			'imphash' => array('desc' => 'Import hash - a hash created based on the imports in the sample.', 'formdesc' => "You are encouraged to use filename|imphash instead. A hash created based on the imports in the sample, only use this if you don't know the correct filename"),
+			'pehash' => array('desc' => 'PEhash - a hash calculated based of certain pieces of a PE executable file'),
+			'sha224' => array('desc' => 'A checksum in sha-224 format', 'formdesc' => "You are encouraged to use filename|sha224 instead. A checksum in sha224 format, only use this if you don't know the correct filename"),
+			'sha384' => array('desc' => 'A checksum in sha-384 format', 'formdesc' => "You are encouraged to use filename|sha384 instead. A checksum in sha384 format, only use this if you don't know the correct filename"),
+			'sha512' => array('desc' => 'A checksum in sha-512 format', 'formdesc' => "You are encouraged to use filename|sha512 instead. A checksum in sha512 format, only use this if you don't know the correct filename"),
+			'sha512/224' => array('desc' => 'A checksum in the sha-512/224 format', 'formdesc' => "You are encouraged to use filename|sha512/224 instead. A checksum in sha512/224 format, only use this if you don't know the correct filename"),
+			'sha512/256' => array('desc' => 'A checksum in the sha-512/256 format', 'formdesc' => "You are encouraged to use filename|sha512/256 instead. A checksum in sha512/256 format, only use this if you don't know the correct filename"),
+			'tlsh' => array('desc' => 'A checksum in the Trend Micro Locality Sensitive Hash format', 'formdesc' => "You are encouraged to use filename|tlsh instead. A checksum in the Trend Micro Locality Sensitive Hash format, only use this if you don't know the correct filename"),
 			'filename|authentihash' => array('desc' => 'A checksum in md5 format'),
-			'filename|ssdeep' => array('desc' => 'A checksum in ssdeep format'),//x
-			'filename|imphash' => array('desc' => 'Import hash - a hash created based on the imports in the sample.'),//x
-			'filename|pehash' => array('desc' => 'A filename and a PEhash separated by a |'),//x
-			'filename|sha224' => array('desc' => 'A filename and a sha-224 hash separated by a |'),//x
-			'filename|sha384' => array('desc' => 'A filename and a sha-384 hash separated by a |'),//x
-			'filename|sha512' => array('desc' => 'A filename and a sha-512 hash separated by a |'),//x
-			'filename|sha512/224' => array('desc' => 'A filename and a sha-512/224 hash separated by a |'),//x
-			'filename|sha512/256' => array('desc' => 'A filename and a sha-512/256 hash separated by a |'),//x
-			'filename|tlsh' => array('desc' => 'A filename and a Trend Micro Locality Sensitive Hash separated by a |'),//x
+			'filename|ssdeep' => array('desc' => 'A checksum in ssdeep format'),
+			'filename|imphash' => array('desc' => 'Import hash - a hash created based on the imports in the sample.'),
+			'filename|pehash' => array('desc' => 'A filename and a PEhash separated by a |'),
+			'filename|sha224' => array('desc' => 'A filename and a sha-224 hash separated by a |'),
+			'filename|sha384' => array('desc' => 'A filename and a sha-384 hash separated by a |'),
+			'filename|sha512' => array('desc' => 'A filename and a sha-512 hash separated by a |'),
+			'filename|sha512/224' => array('desc' => 'A filename and a sha-512/224 hash separated by a |'),
+			'filename|sha512/256' => array('desc' => 'A filename and a sha-512/256 hash separated by a |'),
+			'filename|tlsh' => array('desc' => 'A filename and a Trend Micro Locality Sensitive Hash separated by a |'),
 			'windows-scheduled-task' => array('desc' => 'A scheduled task in windows'),
-			'windows-service-name' => array('desc' => 'A windows service name. This is the name used internally by windows. Not to be confused with the windows-service-displayname.'),//x
-			'windows-service-displayname' => array('desc' => 'A windows service\'s displayname, not to be confused with the windows-service-name. This is the name that applications will generally display as the service\'s name in applications.'),//x
-			'whois-registrant-email' => array('desc' => 'The e-mail of a domain\'s registrant, obtained from the WHOIS information.'),//x
-			'whois-registrant-phone' => array('desc' => 'The phone number of a domain\'s registrant, obtained from the WHOIS information.'),//x
-            'whois-registrant-name' => array('desc' => 'The name of a domain\'s registrant, obtained from the WHOIS information.'),//x
-            'whois-registrar' => array('desc' => 'The registrar of the domain, obtained from the WHOIS information.'),//x
-			'whois-creation-date' => array('desc' => 'The date of domain\'s creation, obtained from the WHOIS information.'),//x
+			'windows-service-name' => array('desc' => 'A windows service name. This is the name used internally by windows. Not to be confused with the windows-service-displayname.'),
+			'windows-service-displayname' => array('desc' => 'A windows service\'s displayname, not to be confused with the windows-service-name. This is the name that applications will generally display as the service\'s name in applications.'),
+			'whois-registrant-email' => array('desc' => 'The e-mail of a domain\'s registrant, obtained from the WHOIS information.'),
+			'whois-registrant-phone' => array('desc' => 'The phone number of a domain\'s registrant, obtained from the WHOIS information.'),
+			'whois-registrant-name' => array('desc' => 'The name of a domain\'s registrant, obtained from the WHOIS information.'),
+			'whois-registrar' => array('desc' => 'The registrar of the domain, obtained from the WHOIS information.'),
+			'whois-creation-date' => array('desc' => 'The date of domain\'s creation, obtained from the WHOIS information.'),
 			'targeted-threat-index' => array('desc' => ''),
 			'mailslot' => array('desc' => 'MailSlot interprocess communication'),
 			'pipe' => array('desc' => 'Pipeline (for named pipes use the attribute type "named pipe")'),
