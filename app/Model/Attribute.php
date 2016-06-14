@@ -920,6 +920,12 @@ class Attribute extends AppModel {
 			case 'email-src':
 			case 'email-dst':
 			case 'domain|ip':
+				$parts = explode('|', $value);
+				if (filter_var($parts[1], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+					// convert IPv6 address to compressed format
+					$parts[1] = inet_ntop(inet_pton($value));
+					$value = implode('|', $parts);
+				}
 			case 'target-email':
 			case 'whois-registrant-email':
 				$value = strtolower($value);
@@ -963,6 +969,13 @@ class Attribute extends AppModel {
 			case 'x509-fingerprint-sha1':
 				$value = str_replace(':', '', $value);
 				$value = strtolower($value);
+				break;
+			case 'ip-src':
+			case 'ip-dst':
+				if (filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+					// convert IPv6 address to compressed format
+					$value = inet_ntop(inet_pton($value));
+				}
 				break;
 		}
 		return $value;
