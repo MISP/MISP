@@ -439,7 +439,7 @@ class ShadowAttribute extends AppModel {
 		$rootDir = APP . "files" . DS . $eventId;
 		$dir = new Folder($rootDir, true);
 		// move the file to the correct location
-		$destpath = $rootDir . DS . $this->getId(); // id of the new attribute in the database
+		$destpath = $rootDir . DS . $this->getID(); // id of the new attribute in the database
 		$file = new File($destpath);
 		$zipfile = new File($destpath . '.zip');
 		$fileInZip = new File($rootDir . DS . $extraPath . $filename); // FIXME do sanitization of the filename
@@ -448,7 +448,7 @@ class ShadowAttribute extends AppModel {
 		if ($malware) {
 			$execRetval = '';
 			$execOutput = array();
-			exec("zip -j -P infected " . $zipfile->path . ' \'' . escapeshellarg($fileInZip->path) . '\'', $execOutput, $execRetval);
+			exec('zip -j -P infected ' . escapeshellarg($zipfile->path) . ' ' . escapeshellarg($fileInZip->path), $execOutput, $execRetval);
 			if ($execRetval != 0) {	// not EXIT_SUCCESS
 				throw new Exception('An error has occured while attempting to zip the malware file.');
 			}
