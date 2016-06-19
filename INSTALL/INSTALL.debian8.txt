@@ -1,10 +1,10 @@
 INSTALLATION INSTRUCTIONS
-------------------------- for Ubuntu 16.04-server
+------------------------- for Debian 8 "jessie" server
 
-1/ Minimal Ubuntu install
+1/ Minimal Debian install
 -------------------------
 
-# Install a minimal Ubuntu 16.04-server system with the software:
+# Install a minimal Debian 8 "jessie" server system with the software:
 - OpenSSH server
 
 # Make sure your system is up2date:
@@ -42,7 +42,7 @@ sudo a2dissite 000-default
 sudo a2ensite default-ssl
 
 # Install PHP and dependencies
-sudo apt-get install libapache2-mod-php php php-cli php-crypt-gpg php-dev php-json php-mysql php-opcache php-readline php-redis
+sudo apt-get install libapache2-mod-php5 php5 php5-cli php-crypt-gpg php5-dev php5-json php5-mysql php5-readline php5-redis
 
 # Apply all changes
 sudo systemctl restart apache2
@@ -53,8 +53,8 @@ sudo systemctl restart apache2
 # Download MISP using git in the /var/www/ directory.
 sudo mkdir /var/www/MISP
 sudo chown www-data:www-data /var/www/MISP
-sudo -u www-data git clone https://github.com/MISP/MISP.git /var/www/MISP
 cd /var/www/MISP
+sudo -u www-data git clone https://github.com/MISP/MISP.git /var/www/MISP
 
 # Make git ignore filesystem permission differences
 sudo -u www-data git config core.filemode false
@@ -87,7 +87,7 @@ sudo -u www-data php composer.phar config vendor-dir Vendor
 sudo -u www-data php composer.phar install
 
 # Enable CakeResque with php-redis
-sudo phpenmod redis
+sudo php5enmod redis
 
 # To use the scheduler worker for scheduled tasks, do the following:
 sudo -u www-data cp -fa /var/www/MISP/INSTALL/setup/config.php /var/www/MISP/app/Plugin/CakeResque/Config/config.php
@@ -126,7 +126,7 @@ sudo -u www-data sh -c "mysql -u misp -p misp < /var/www/MISP/INSTALL/MYSQL.sql"
 
 sudo cp /var/www/MISP/INSTALL/apache.misp.ssl /etc/apache2/sites-available/misp-ssl.conf
 
-# Be aware that the configuration files for apache 2.4 and up have changed.
+# Be aware that the configuration files for Apache 2.4 and up have changed.
 # The configuration file has to have the .conf extension in the sites-available directory
 # For more information, visit http://httpd.apache.org/docs/2.4/upgrading.html
 

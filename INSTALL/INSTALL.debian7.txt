@@ -1,10 +1,10 @@
 INSTALLATION INSTRUCTIONS
-------------------------- for debian-server
+------------------------- for Debian 7 "wheezy" server
 
 1/ Minimal debian install
 -------------------------
 
-Install a minimal debian-server system with the software:
+Install a minimal Debian 7 "wheezy" server system with the software:
 
 - OpenSSH server
 - LAMP server (don't forget php5-mysql)
