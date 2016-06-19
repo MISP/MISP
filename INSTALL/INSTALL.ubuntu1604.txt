@@ -1,5 +1,5 @@
 INSTALLATION INSTRUCTIONS
-------------------------- for ubuntu 16.04-server
+------------------------- for Ubuntu 16.04-server
 
 1/ Minimal Ubuntu install
 -------------------------
@@ -7,16 +7,16 @@ INSTALLATION INSTRUCTIONS
 # Install a minimal Ubuntu 16.04-server system with the software:
 - OpenSSH server
 
+# Make sure your system is up2date:
+sudo apt-get update
+sudo apt-get upgrade
+
 # install postfix, there will be some questions.
 sudo apt-get install postfix
 # Postfix Configuration: Satellite system
 # change the relay server later with:
 sudo postconf -e 'relayhost = example.com'
 sudo postfix reload
-
-# Make sure your system is up2date:
-sudo apt-get update
-sudo apt-get upgrade
 
 
 2/ Install LAMP & dependencies
@@ -122,8 +122,7 @@ sudo -u www-data sh -c "mysql -u misp -p misp < /var/www/MISP/INSTALL/MYSQL.sql"
 
 7/ Apache configuration
 -----------------------
-# Now configure your apache server with the DocumentRoot /var/www/MISP/app/webroot/
-# A sample vhost can be found in /var/www/MISP/INSTALL/apache.misp.ubuntu
+# Now configure your Apache webserver with the DocumentRoot /var/www/MISP/app/webroot/
 
 sudo cp /var/www/MISP/INSTALL/apache.misp.ssl /etc/apache2/sites-available/misp-ssl.conf
 
@@ -238,8 +237,8 @@ sudo -u www-data bash /var/www/MISP/app/Console/worker/start.sh
 # If any of the directories that MISP uses to store files is not writeable to the apache user, change the permissions
 # you can do this by running the following commands:
 
-chmod -R 750 /var/www/MISP/<directory path with an indicated issue>
-chown -R www-data:www-data /var/www/MISP/<directory path with an indicated issue>
+sudo chmod -R 750 /var/www/MISP/<directory path with an indicated issue>
+sudo chown -R www-data:www-data /var/www/MISP/<directory path with an indicated issue>
 
 # Make sure that the STIX libraries and GnuPG work as intended, if not, refer to INSTALL.txt's paragraphs dealing with these two items
 
@@ -264,6 +263,6 @@ Recommended actions
 Optional features
 -------------------
 # MISP has a new pub/sub feature, using ZeroMQ. To enable it, simply run the following command
-pip install pyzmq
+sudo pip install pyzmq
 # ZeroMQ depends on the Python client for Redis
-pip install redis
+sudo pip install redis
