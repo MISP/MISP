@@ -696,6 +696,20 @@ class EventsController extends AppController {
 		$event = &$results[0];
 		$params = $this->Event->rearrangeEventForView($event, $this->passedArgs, $all);
 		$this->params->params['paging'] = array($this->modelClass => $params);
+		// workaround to get the event dates in to the attribute relations
+		$relatedDates = array();
+		if (isset($event['RelatedEvent'])) {
+			foreach ($event['RelatedEvent'] as &$relation) {
+				$relatedDates[$relation['Event']['id']] = $relation['Event']['date'];
+			}
+			if (isset($event['RelatedAttribute'])) {
+				foreach ($event['RelatedAttribute'] as &$relatedAttribute) {
+					foreach ($relatedAttribute as &$relation) {
+						$relation['date'] = $relatedDates[$relation['id']];
+					}
+				}
+			}
+		}
 		$this->set('event', $event);
 		$dataForView = array(
 				'Attribute' => array('attrDescriptions', 'typeDefinitions', 'categoryDefinitions', 'distributionDescriptions', 'distributionLevels', 'shortDist'),
