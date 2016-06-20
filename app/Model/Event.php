@@ -319,7 +319,6 @@ class Event extends AppModel {
 		// delete all of the event->tag combinations that involve the deleted event
 		$this->EventTag->deleteAll(array('event_id' => $this->id));
 
-		// FIXME secure this filesystem access/delete by not allowing to change directories or go outside of the directory container.
 		// only delete the file if it exists
 		$filepath = APP . "files" . DS . $this->id;
 		App::uses('Folder', 'Utility');

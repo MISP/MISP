@@ -497,7 +497,6 @@ class Attribute extends AppModel {
 		// delete attachments from the disk
 		$this->read(); // first read the attribute from the db
 		if ($this->typeIsAttachment($this->data['Attribute']['type'])) {
-			// FIXME secure this filesystem access/delete by not allowing to change directories or go outside of the directory container.
 			// only delete the file if it exists
 			$filepath = APP . "files" . DS . $this->data['Attribute']['event_id'] . DS . $this->data['Attribute']['id'];
 			$file = new File($filepath);
@@ -1136,7 +1135,7 @@ class Attribute extends AppModel {
 		$destpath = $rootDir . DS . $this->getID(); // id of the new attribute in the database
 		$file = new File($destpath);
 		$zipfile = new File($destpath . '.zip');
-		$fileInZip = new File($rootDir . DS . $extraPath . $filename); // FIXME do sanitization of the filename
+		$fileInZip = new File($rootDir . DS . $extraPath . $filename);
 
 		// zip and password protect the malware files
 		if ($malware) {
