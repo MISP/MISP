@@ -21,6 +21,12 @@ class Post extends AppModel {
 			'Thread',
 			'User'
 	);
+	
+	public $validate = array(
+			'contents' => array(
+					'rule' => array('valueNotEmpty'),
+			),
+	);
 
 	public function sendPostsEmailRouter($user_id, $post_id, $event_id, $title, $message, $JobId = false) {
 		if (Configure::read('MISP.background_jobs')) {

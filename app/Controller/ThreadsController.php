@@ -95,7 +95,7 @@ class ThreadsController extends AppController {
 			$this->Thread->Behaviors->unload('SysLogLogable.SysLogLogable');
 			$params = array('conditions' => array('event_id' => $id),
 					'recursive' => -1,
-					'fields' => array('id', 'event_id', 'distribution', 'title', 'sharing_group_id')
+					'fields' => array('id', 'event_id', 'distribution', 'title', 'sharing_group_id', 'org_id')
 			);
 			$thread = $this->Thread->find('first', $params);
 			if (!empty($thread)) {
