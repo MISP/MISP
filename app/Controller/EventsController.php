@@ -542,9 +542,9 @@ class EventsController extends AppController {
 			$directions = array('ASC', 'DESC');
 			if (isset($passedArgs['sort']) && in_array($passedArgs['sort'], $fieldNames)) {
 				if (isset($passedArgs['direction']) && in_array(strtoupper($passedArgs['direction']), $directions)) {
-					$rules['order'] = array($passedArgs['sort'] => $passedArgs['direction']);
+					$rules['order'] = array('Event.' . $passedArgs['sort'] => $passedArgs['direction']);
 				} else {
-					$rules['order'] = array($passedArgs['sort'] => 'ASC');
+					$rules['order'] = array('Event.' . $passedArgs['sort'] => 'ASC');
 				}
 			} else {
 				$rules['order'] = array('Event.id' => 'DESC');
