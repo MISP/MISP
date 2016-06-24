@@ -2500,6 +2500,7 @@ class Server extends AppModel {
 				'cache' => array('ok' => true),
 				'default' => array('ok' => true),
 				'email' => array('ok' => true),
+				'prio' => array('ok' => true),
 				'scheduler' => array('ok' => true)
 		);
 		$procAccessible = file_exists('/proc');

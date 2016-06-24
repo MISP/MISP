@@ -25,7 +25,7 @@ class JobsController extends AppController {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
 		if (!Configure::read('MISP.background_jobs')) throw new NotFoundException('Background jobs are not enabled on this instance.');
 		$this->recursive = 0;
-		$queues = array('email', 'default', 'cache');
+		$queues = array('email', 'default', 'cache', 'prio');
 		if ($queue && in_array($queue, $queues)) $this->paginate['conditions'] = array('Job.worker' => $queue);
 		$jobs = $this->paginate();
 		foreach ($jobs as &$job) {
