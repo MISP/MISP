@@ -2165,7 +2165,7 @@ class Event extends AppModel {
 			$job = ClassRegistry::init('Job');
 			$job->create();
 			$data = array(
-					'worker' => 'default',
+					'worker' => 'prio',
 					'job_type' => 'publish_event',
 					'job_input' => 'Event ID: ' . $id,
 					'status' => 0,
