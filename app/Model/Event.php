@@ -2164,8 +2164,16 @@ class Event extends AppModel {
 		if (Configure::read('MISP.background_jobs')) {
 			$job = ClassRegistry::init('Job');
 			$job->create();
+			$this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
+			$workers = $this->ResqueStatus->getWorkers();
+			$workerType = 'default';
+			foreach ($workers as $worker) {
+				if ($worker['queue'] === 'prio') {
+					$workerType = 'prio';
+				}
+			}
 			$data = array(
-					'worker' => 'prio',
+					'worker' => $workerType,
 					'job_type' => 'publish_event',
 					'job_input' => 'Event ID: ' . $id,
 					'status' => 0,
@@ -2177,7 +2185,7 @@ class Event extends AppModel {
 			$job->save($data);
 			$jobId = $job->id;
 			$process_id = CakeResque::enqueue(
-					'default',
+					'prio',
 					'EventShell',
 					array('publish', $id, $passAlong, $jobId, $user['id'])
 			);
