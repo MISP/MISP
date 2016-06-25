@@ -2402,6 +2402,8 @@ class EventsController extends AppController {
 			);
 			$attributes = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $params);
 			$eventIds = array();
+			// Add event ID if specifically specified to allow for the export of an empty event
+			if (isset($eventid)) $eventIds[] = $eventid;
 			foreach ($attributes as $attribute) {
 				if (!in_array($attribute['Attribute']['event_id'], $eventIds)) $eventIds[] = $attribute['Attribute']['event_id'];
 			}
