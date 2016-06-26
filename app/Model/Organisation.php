@@ -144,14 +144,25 @@ class Organisation extends AppModel{
 			$this->save($organisation);
 			return $this->id;
 		} else {
-			if (isset($org['uuid']) && empty($existingOrg['Organisation']['uuid'])) $existingOrg['Organisation']['uuid'] = $org['uuid'];
+			$changed = false;
+			if (isset($org['uuid']) && empty($existingOrg['Organisation']['uuid'])) {
+				$existingOrg['Organisation']['uuid'] = $org['uuid'];
+				$changed = true;
+			}
 			if ($force) {
 				$fields = array('type', 'date_created', 'date_modified', 'nationality', 'sector', 'contacts', 'landingpage');
 				foreach ($fields as $field) {
-					if (isset($org[$field])) $existingOrg['Organisation'][$field] = $org[$field];
+					if (isset($org[$field])) {
+						if ($existingOrg['Organisation'][$field] != $org[$field]) {
+							$existingOrg['Organisation'][$field] = $org[$field];
+							if ($field != 'date_modified') {
+								$changed = true;
+							}
+						}
+					}
 				}
 			}
-			$this->save($existingOrg);
+			if ($changed) $this->save($existingOrg);
 		}
 		return $existingOrg[$this->alias]['id'];
 	}
