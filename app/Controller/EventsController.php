@@ -2076,7 +2076,7 @@ class EventsController extends AppController {
 				$dist .= Configure::read('MISP.default_attribute_distribution');
 			}
 		} else {
-			// TODO: need a default value for $dist or throw an exception
+			throw new Exception('Couldn\'t read "MISP.default_attribute_distribution".');
 		}
 
 		// Payload delivery -- malware-sample
