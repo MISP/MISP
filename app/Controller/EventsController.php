@@ -2080,14 +2080,13 @@ class EventsController extends AppController {
 		}
 
 		// Payload delivery -- malware-sample
+		$realFileName = '';
 		$results = $parsedXml->xpath('/analysis');
 		foreach ($results as $result) {
 			foreach ($result[0]->attributes() as $key => $val) {
 				if ((string)$key == 'filename') $realFileName = (string)$val;
 			}
 		}
-		// TODO: what if the xml parsing didn't return any filename? $realFileName would be unset
-		$realMalware = $realFileName;
 		$rootDir = APP . "files" . DS . $id . DS;
 		$malware = $rootDir . DS . 'sample';
 		$this->Event->Attribute->uploadAttachment($malware,	$realFileName,	true, $id, null, '', $this->Event->data['Event']['uuid'] . '-sample', $dist, true);
