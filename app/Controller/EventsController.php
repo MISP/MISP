@@ -2076,18 +2076,17 @@ class EventsController extends AppController {
 				$dist .= Configure::read('MISP.default_attribute_distribution');
 			}
 		} else {
-			// TODO: need a default value for $dist or throw an exception
+			throw new Exception('Couldn\'t read "MISP.default_attribute_distribution".');
 		}
 
 		// Payload delivery -- malware-sample
+		$realFileName = '';
 		$results = $parsedXml->xpath('/analysis');
 		foreach ($results as $result) {
 			foreach ($result[0]->attributes() as $key => $val) {
 				if ((string)$key == 'filename') $realFileName = (string)$val;
 			}
 		}
-		// TODO: what if the xml parsing didn't return any filename? $realFileName would be unset
-		$realMalware = $realFileName;
 		$rootDir = APP . "files" . DS . $id . DS;
 		$malware = $rootDir . DS . 'sample';
 		$this->Event->Attribute->uploadAttachment($malware,	$realFileName,	true, $id, null, '', $this->Event->data['Event']['uuid'] . '-sample', $dist, true);
@@ -2136,7 +2135,9 @@ class EventsController extends AppController {
 					if ((string)$key == 'index') $index = (string)$val;
 				}
 			}
-			// TODO: what if the xml parsing didn't return any filename? $index would be unset
+			if (!isset($index) || !is_numeric($index)) {
+				throw new Exception('The GFI sandbox xml file seems to be malformed, at least one process with stored_files hasn\'t got a valid numeric index attribute.');
+			}
 			$actualFile = $rootDir . DS . 'Analysis' . DS . 'proc_' . $index . DS . 'modified_files' . DS . $actualFileName;
 			$extraPath = 'Analysis' . DS . 'proc_' . $index . DS . 'modified_files' . DS;
 			$file = new File($actualFile);
