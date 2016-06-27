@@ -918,6 +918,10 @@ class Attribute extends AppModel {
 			case 'tlsh':
 			case 'email-src':
 			case 'email-dst':
+			case 'target-email':
+			case 'whois-registrant-email':
+				$value = strtolower($value);
+				break;
 			case 'domain|ip':
 				$parts = explode('|', $value);
 				if (filter_var($parts[1], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
@@ -925,9 +929,6 @@ class Attribute extends AppModel {
 					$parts[1] = inet_ntop(inet_pton($value));
 					$value = implode('|', $parts);
 				}
-			case 'target-email':
-			case 'whois-registrant-email':
-				$value = strtolower($value);
 				break;
 			case 'filename|md5':
 			case 'filename|sha1':
