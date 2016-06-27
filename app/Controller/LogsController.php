@@ -44,9 +44,8 @@ class LogsController extends AppController {
 		$this->recursive = 0;
 		$validFilters = $this->Log->logMeta;
 		if (!$this->_isSiteAdmin()) {
-			$orgRestriction = null;
-			$orgRestriction = $this->Auth->user('org');
-			$conditions['Log.org LIKE'] = '%' . $orgRestriction . '%';
+			$orgRestriction = $this->Auth->user('Organisation')['name'];
+			$conditions['Log.org'] = $orgRestriction;
 			$this->paginate = array(
 					'limit' => 60,
 					'conditions' => $conditions,
