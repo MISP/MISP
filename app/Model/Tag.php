@@ -114,6 +114,7 @@ class Tag extends AppModel {
 		if (empty($existingTag)) {
 			if ($user['Role']['perm_tag_editor']) {
 				$this->create();
+				if (!isset($tag['colour']) || empty($tag['colour'])) $tag['colour'] = $this->random_color();
 				$tag = array(
 						'name' => $tag['name'],
 						'colour' => $tag['colour'],

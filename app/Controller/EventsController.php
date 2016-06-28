@@ -1019,10 +1019,15 @@ class EventsController extends AppController {
 						// If the distribution is set to something "traditional", set the SG id to 0.
 						$this->request->data['Event']['sharing_group_id'] = 0;
 					}
-					if ($this->_isRest()) {
-						if (isset($this->request->data['Event']['orgc_id']) && !$this->userRole['perm_sync']) {
-							$this->request->data['Event']['orgc_id'] = $this->Auth->user('org_id');
-							if (isset($this->request->data['Event']['Orgc'])) unset($this->request->data['Event']['Orgc']);
+					// If we are not sync users / site admins, we only allow events to be created for our own org
+					// Set the orgc ID as our own orgc ID and unset both the 2.4 and 2.3 style creator orgs
+					if ($this->_isRest() && !$this->userRole['perm_sync']) {
+						$this->request->data['Event']['orgc_id'] = $this->Auth->user('org_id');
+						if (isset($this->request->data['Event']['Orgc'])) {
+							unset($this->request->data['Event']['Orgc']);
+						}
+						if (isset($this->request->data['Event']['orgc'])) {
+							unset($this->request->data['Event']['orgc']);
 						}
 					}
 					$validationErrors = array();
