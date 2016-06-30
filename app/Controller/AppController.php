@@ -261,8 +261,9 @@ class AppController extends Controller {
 					$email = Configure::read('MISP.email');
 					$message = str_replace('$email', $email, $message);
 				}
+				$this->Session->setFlash($message);
 				$this->Auth->logout();
-				throw new MethodNotAllowedException($message);
+				throw new MethodNotAllowedException($message);//todo this should pb be removed?
 			} else {
 				$this->Session->setFlash('Warning: MISP is currently disabled for all users. Enable it in Server Settings (Administration -> Server Settings -> MISP tab -> live)');
 			}
