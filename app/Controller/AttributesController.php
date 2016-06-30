@@ -160,24 +160,22 @@ class AttributesController extends AppController {
 						return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $successCount . ' Attributes added')), 'status' => 200));
 					}
 				} else if ($this->_isRest()) {
-					if ($this->_isRest()) { // TODO return error if REST
-						$name = 'Attribute(s) could not be added.';
-						$message = 'Could not save any of the POSTed attributes. Check errors field to see what caused the failures.';
-						if ($successCount) {
-							$name = 'Attribute(s) added.';
-							$message = $successCount . ' attribute(s) successfuly added.';
-							if ($failCount) {
-								$name = 'Only a subset of the attributes could be added.';
-								$message = $successCount . ' attribute(s) added, but ' . $failCount . ' of them failed the validation. Check the errors field for more details.';
-							}
+					$name = 'Attribute(s) could not be added.';
+					$message = 'Could not save any of the POSTed attributes. Check errors field to see what caused the failures.';
+					if ($successCount) {
+						$name = 'Attribute(s) added.';
+						$message = $successCount . ' attribute(s) successfuly added.';
+						if ($failCount) {
+							$name = 'Only a subset of the attributes could be added.';
+							$message = $successCount . ' attribute(s) added, but ' . $failCount . ' of them failed the validation. Check the errors field for more details.';
 						}
-						$this->set('name', $name);
-						$this->set('message', $message);
-						$this->set('errors', $validationErrors);
-						$this->set('url', '/attributes/add/' . $eventId);
-						$this->set('_serialize', array('name', 'message', 'url', 'errors'));
-						return false;
 					}
+					$this->set('name', $name);
+					$this->set('message', $message);
+					$this->set('errors', $validationErrors);
+					$this->set('url', '/attributes/add/' . $eventId);
+					$this->set('_serialize', array('name', 'message', 'url', 'errors'));
+					return false;
 				} else {
 					// we added all the attributes
 					if ($fails) {
