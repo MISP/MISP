@@ -152,7 +152,7 @@ class CertificateAuthenticate extends BaseAuthenticate
                                 }
                                 unset($k, $v);
                             }
-                            if ($write && !$User->save($U[$cn], true, $write)) {
+                            if ($write && !$User->save($U[$cn], true)) {
                                 CakeLog::write('alert', 'Could not update model at database with RestAPI data.');
                             }
                             unset($write);
@@ -173,7 +173,7 @@ class CertificateAuthenticate extends BaseAuthenticate
                         }
                         unset($d);
 
-                        if ($User->save(self::$user, true, array_keys(self::$user))) {
+                        if ($User->save(self::$user, true)) {
                             $id = $User->id;
                             if($org) {
                                 self::$user['org_id']=$User->Organisation->createOrgFromName($org, $User->id, true);

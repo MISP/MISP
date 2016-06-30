@@ -61,7 +61,7 @@
 				?>
 				<input type="hidden" id="<?php echo 'Attribute' . $k . 'Save'; ?>" value=1 >
 			</td>
-			<td style="shortish">
+			<td class="shortish">
 				<?php
 					foreach ($item['related'] as $relation):
 						$popover = array(

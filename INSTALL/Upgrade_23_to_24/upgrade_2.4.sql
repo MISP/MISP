@@ -173,3 +173,4 @@ CREATE TABLE IF NOT EXISTS `news` (
 
 
 ALTER TABLE `users` CHANGE `newsread` `newsread` int(11) unsigned;
+ALTER TABLE `organisations` CHANGE `uuid` `uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL;

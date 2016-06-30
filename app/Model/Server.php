@@ -1463,12 +1463,12 @@ class Server extends AppModel {
 			if ($response->code == '403') {
 				return 403;
 			}
-			} catch (SocketException $e) {
+		} catch (SocketException $e) {
 			// FIXME refactor this with clean try catch over all http functions
-				return $e->getMessage();
-			}
-			// error, so return error message, since that is handled and everything is expecting an array
-			return "Error: got response code " . $response->code;
+			return $e->getMessage();
+		}
+		// error, so return error message, since that is handled and everything is expecting an array
+		return "Error: got response code " . $response->code;
 	}
 
 	public function push($id = null, $technique=false, $jobId = false, $HttpSocket, $user) {
@@ -2502,6 +2502,7 @@ class Server extends AppModel {
 				'cache' => array('ok' => true),
 				'default' => array('ok' => true),
 				'email' => array('ok' => true),
+				'prio' => array('ok' => true),
 				'scheduler' => array('ok' => true)
 		);
 		$procAccessible = file_exists('/proc');

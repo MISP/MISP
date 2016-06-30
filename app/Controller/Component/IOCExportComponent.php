@@ -29,122 +29,72 @@ class IOCExportComponent extends Component {
 		$this->final[] = '    <Indicator operator="OR" id="' . h($event['Event']['uuid']) . '">';
 	}
 
+	public $mapping = array(
+		'composite' => array(
+				'regkey|value' => array(array('Network', 'RegistryItem/KeyPath', 'string'), array('Network', 'RegistryItem/Value', 'string')),
+				'filename|md5' => array(array('FileItem', 'FileItem/FileName', 'string'), array('FileItem', 'FileItem/Md5sum', 'md5')),
+				'filename|sha1' => array(array('FileItem', 'FileItem/FileName', 'string'), array('FileItem', 'FileItem/Sha1sum', 'sha1')),
+				'filename|sha256' => array(array('FileItem', 'FileItem/FileName', 'string'), array('FileItem', 'FileItem/Sha256sum', 'sha256')),
+				'malware-sample' => array(array('FileItem', 'FileItem/FileName', 'string'), array('FileItem', 'FileItem/Md5sum', 'md5')),
+				'domain|ip' => array(array('Network', 'Network/DNS', 'string'), array('PortItem', 'PortItem/remoteIP', 'IP')),
+		),
+		'simple' => array(
+				'md5' => array('FileItem', 'FileItem/Md5sum', 'md5'),
+				'sha1' => array('FileItem', 'FileItem/Sha1sum', 'sha1'),
+				'sha256' => array('FileItem', 'FileItem/Sha256sum', 'sha256'),
+				'filename' => array('FileItem', 'FileItem/FileName', 'string'),
+				'ip-src' => array('PortItem', 'PortItem/remoteIP', 'IP'),
+				'ip-dst' => array('RouteEntryItem', 'RouteEntryItem/Destination', 'IP'),
+				'hostname' => array('RouteEntryItem', 'RouteEntryItem/Destination', 'string'),
+				'email-src' => array('Email', 'Email/From', 'string'),
+				'email-dst' => array('Email', 'Email/To', 'string'),
+				'email-subject' => array('Email', 'Email/Subject', 'string'),
+				'email-attachment' => array('Email', 'Email/Attachment/Name', 'string'),
+				'domain' => array('Network', 'Network/DNS', 'string'),
+				'url' => array('UrlHistoryItem', 'UrlHistoryItem/URL', 'string'),
+				'user-agent' => array('Network', 'Network/UserAgent', 'string'),
+				'regkey' => array('Network', 'RegistryItem/KeyPath', 'string'),
+				'snort' => array('Snort', 'Snort/Snort', 'string'),
+				'attachment' => array('FileItem', 'FileItem/FileName', 'string'),
+				'link' => array('URL', 'UrlHistoryItem/URL', 'md5')
+		)
+	);
+	
+	private function __frameComposite($attribute) {
+		$types = explode('|', $attribute['type']);
+		$values = explode('|', $attribute['value']);
+		$this->final[] = '     <Indicator operator="AND" id="' . h($attribute['uuid']) . '">';
+		$this->__frameIndicator($this->mapping['composite'][$attribute['type']][0], $attribute['uuid'], $values[0], true);
+		$this->__frameIndicator($this->mapping['composite'][$attribute['type']][1], $attribute['uuid'], $values[1], true);
+		$this->final[] = '      </Indicator>';
+	}
+	
+	private function __frameIndicator($mapping, $uuid, $value, $extraIndent = false) {
+		$indent = "      ";
+		$padding = 6;
+		if ($extraIndent) {
+			$padding = 8;
+		}
+		$this->final[] = str_repeat(' ', $padding) . '<IndicatorItem id="' . h($uuid) . '" condition="is">';
+		$this->final[] = str_repeat(' ', ($padding + 2)) . '<Context document="' . $mapping[0] . '" search="' . $mapping[1] . '" type="mir" />';
+		$this->final[] = str_repeat(' ', ($padding + 2)) . '<Content type="' . $mapping[2] . '">' . h($value) . '</Content>';
+		$this->final[] = str_repeat(' ', $padding) . '</IndicatorItem>';
+	}
+	
 	// This method will turn each eligible attribute into an indicator
 	private function __buildAttribute($attribute) {
 		// Hop over attributes that don't have the to ids flag turned on and check whether the attribute is sent for IOC export based on category/type
 		if (!$this->__checkValidTypeForIOC($attribute) || $attribute['to_ids'] == 0) return;
-
-		// Composite type regkey|value doesn\t need the leading and closing IndicatorItem, so taken outside of the switch
-		if ($attribute['type'] == 'regkey|value') {
-			$this->final[] = '    	<Indicator operator="AND" id="' . h($attribute['uuid']) . '">';
-			$this->final[] = '          <IndicatorItem id="' . h($attribute['uuid']) . '" condition="is">';
-			$this->final[] = '            <Context document="Network" search="RegistryItem/KeyPath" type="mir" />';
-			$this->final[] = '            <Content type="string">' . h($attribute['value1']) . '</Content>';
-			$this->final[] = '          </IndicatorItem>';
-			$this->final[] = '          <IndicatorItem id="' . h($attribute['uuid']) . '" condition="is">';
-			$this->final[] = '            <Context document="Network" search="RegistryItem/Value" type="mir" />';
-			$this->final[] = '            <Content type="string">' . h($attribute['value2']) . '</Content>';
-			$this->final[] = '          </IndicatorItem>';
-			$this->final[] = '        </Indicator>';
+		if ($attribute['type'] == 'malware-sample') $attribute['type'] = 'filename|md5';
+		if (strpos($attribute['type'], '|')) {
+			if ($this->mapping['composite'][$attribute['type']]) {
+				$this->__frameComposite($attribute);
+			}
 		} else {
-			// for all other types
-			$this->final[] = '      <IndicatorItem id="' . h($attribute['uuid']) . '" condition="is">';
-		}
-		// main switch to convert attributes to the IOC indicator equivalent
-		switch ($attribute['type']) {
-			case 'md5':
-				$this->final[] = '        <Context document="FileItem" search="FileItem/Md5sum" type="mir" />';
-				$this->final[] = '        <Content type="md5">' . h($attribute['value']) . '</Content>';
-				break;
-			case 'sha1':
-				$this->final[] = '        <Context document="TaskItem" search="TaskItem/sha1sum" type="mir" />';
-				$this->final[] = '        <Content type="string">' . h($attribute['value']) . '</Content>';
-				break;
-			case 'sha256':
-				$this->final[] = '        <Context document="TaskItem" search="TaskItem/sha256sum" type="mir" />';
-				$this->final[] = '        <Content type="string">' . h($attribute['value']) . '</Content>';
-				break;
-			case 'filename':
-				$this->final[] = '        <Context document="FileItem" search="FileItem/FileName" type="mir" />';
-				$this->final[] = '        <Content type="string">' . h($attribute['value']) . '</Content>';
-				break;
-			case 'filename|md5':
-				$this->final[] = '        <Context document="FileItem" search="FileItem/Md5sum" type="mir" />';
-				$this->final[] = '        <Content type="md5">' . h($attribute['value2']) . '</Content>';
-				break;
-			case 'filename|sha1':
-				$this->final[] = '        <Context document="TaskItem" search="TaskItem/sha1sum" type="mir" />';
-				$this->final[] = '        <Content type="string">' . h($attribute['value2']) . '</Content>';
-				break;
-			case 'filename|sha256':
-				$this->final[] = '        <Context document="TaskItem" search="TaskItem/sha256sum" type="mir" />';
-				$this->final[] = '        <Content type="string">' . h($attribute['value2']) . '</Content>';
-				break;
-			case 'ip-src':
-				$this->final[] = '        <Context document="PortItem" search="PortItem/remoteIP" type="mir" />';
-				$this->final[] = '        <Content type="IP">' . h($attribute['value']) . '</Content>';
-				break;
-			case 'ip-dst':
-				$this->final[] = '        <Context document="RouteEntryItem" search="RouteEntryItem/Destination" type="mir" />';
-				$this->final[] = '        <Content type="IP">' . h($attribute['value']) . '</Content>';
-				break;
-			case 'hostname':
-				$this->final[] = '        <Context document="RouteEntryItem" search="RouteEntryItem/Destination" type="mir" />';
-				$this->final[] = '        <Content type="string">' . h($attribute['value']) . '</Content>';
-				break;
-			case 'email-src':
-				$this->final[] = '        <Context document="Email" search="Email/From" type="mir" />';
-				$this->final[] = '        <Content type="string">' . h($attribute['value']) . '</Content>';
-				break;
-			case 'email-dst':
-				$this->final[] = '        <Context document="Email" search="Email/To" type="mir" />';
-				$this->final[] = '        <Content type="string">' . h($attribute['value']) . '</Content>';
-				break;
-			case 'email-subject':
-				$this->final[] = '        <Context document="Email" search="Email/Subject" type="mir" />';
-				$this->final[] = '        <Content type="string">' . h($attribute['value']) . '</Content>';
-				break;
-			case 'email-attachment':
-				$this->final[] = '        <Context document="Email" search="Email/Attachment/Name" type="mir" />';
-				$this->final[] = '        <Content type="string">' . h($attribute['value']) . '</Content>';
-				break;
-			case 'domain':
-				$this->final[] = '        <Context document="Network" search="Network/DNS" type="mir" />';
-				$this->final[] = '        <Content type="string">' . h($attribute['value']) . '</Content>';
-				break;
-			case 'url':
-				$this->final[] = '        <Context document="UrlHistoryItem" search="UrlHistoryItem/URL" type="mir" />';
-				$this->final[] = '        <Content type="string">' . h($attribute['value']) . '</Content>';
-				break;
-			case 'user-agent':
-				$this->final[] = '        <Context document="Network" search="Network/UserAgent" type="mir" />';
-				$this->final[] = '        <Content type="string">' . h($attribute['value']) . '</Content>';
-				break;
-			case 'regkey':
-				$this->final[] = '        <Context document="Network" search="RegistryItem/KeyPath" type="mir" />';
-				$this->final[] = '        <Content type="string">' . h($attribute['value']) . '</Content>';
-				break;
-			case 'snort':
-				$this->final[] = '        <Context document="Snort" search="Snort/Snort" type="mir" />';
-				$this->final[] = '        <Content type="string">' . h($attribute['value']) . '</Content>';
-				break;
-			case 'attachment':
-				$this->final[] = '        <Context document="FileItem" search="FileItem/FileName" type="mir" />';
-				$this->final[] = '        <Content type="string">' . h($attribute['value']) . '</Content>';
-				break;
-			case 'malware-sample':
-				$this->final[] = '        <Context document="FileItem" search="FileItem/Md5sum" type="mir" />';
-				$this->final[] = '        <Content type="md5">' . h($attribute['value2']) . '</Content>';
-				break;
-			case 'link':
-				$this->final[] = '        <Context document="URL" search="UrlHistoryItem/URL" type="mir" />';
-				$this->final[] = '        <Content type="md5">' . h($attribute['value2']) . '</Content>';
-				break;
-		}
-		// since regkey|value is enclosed by an AND indicator, it was closed differently in its branch
-		if ($attribute['type'] != 'regkey|value') {
-			$this->final[] = '      </IndicatorItem>';
-		}
+			if (isset($this->mapping['simple'][$attribute['type']])) {
+				$this->__frameIndicator($this->mapping['simple'][$attribute['type']], $attribute['value'], false);
+			}
+		}		
 	}
 
 	// Just closing some tags at the bottom of the .ioc file
@@ -158,10 +108,7 @@ class IOCExportComponent extends Component {
 	private function __checkValidTypeForIOC($attribute) {
 		// categories that should be included
 		$Category = array('Payload delivery', 'Artifacts dropped', 'Payload installation', 'Persistence mechanism', 'Network activity');
-		// types that should be excluded
-		$skipType = array('AS', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'yara', 'vulnerability', 'comment', 'text', 'other');
 		if (!in_array($attribute['category'], $Category)) return false;
-		if (in_array($attribute['type'], $skipType)) return false;
 		return true;
 	}
 }

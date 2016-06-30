@@ -164,6 +164,33 @@ function submitPasswordReset(id) {
 	});
 }
 
+function submitMessageForm(url, form, target) {
+	if (!$('#PostMessage').val()) {
+		showMessage("fail", "Cannot submit empty message.");
+	} else {
+		submitGenericForm(url, form, target);
+	}
+}
+
+function submitGenericForm(url, form, target) {
+	$.ajax({
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+		data: $('#' + form).serialize(),
+		success:function (data, textStatus) {
+			$('#top').html(data);
+			showMessage("success", "Message added.");
+		},
+		complete:function() {
+			$(".loading").hide();
+		},
+		type:"post",
+		cache: false,
+		url:url,		
+	});
+}
+
 function acceptObject(type, id, event) {
 	name = '#ShadowAttribute_' + id + '_accept';
 	var formData = $(name).serialize();

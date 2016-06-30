@@ -171,22 +171,30 @@ class EventsController extends AppController {
 	}
 
 	private function __quickFilter($value) {
+		if (!is_array($value)) $value = array($value);
+		$values = array();
+		foreach ($value as $v) {
+			$values[] = '%' . strtolower($v) . '%';
+		}
+
 		$result = array();
 		// get all of the attributes that have a hit on the search term, in either the value or the comment field
 		// This is not perfect, the search will be case insensitive, but value1 and value2 are searched separately. lower() doesn't seem to work on virtualfields
-		$attributeHits = $this->Event->Attribute->find('all', array(
-				'recursive' => -1,
-				'fields' => array('event_id', 'comment', 'distribution', 'value1', 'value2'),
-				'conditions' => array(
-					'OR' => array(
-						'lower(value1) LIKE' => '%' . strtolower($value) . '%',
-						'lower(value2) LIKE' => '%' . strtolower($value) . '%',
-						'lower(comment) LIKE' => '%' . strtolower($value) . '%',
-					),
-					'AND' => array(
-						'deleted' => false
-					),
-				),
+		$subconditions = array();
+		foreach ($values as $v) {
+			$subconditions[] = array('lower(value1) LIKE' => $v);
+			$subconditions[] = array('lower(value2) LIKE' => $v);
+			$subconditions[] = array('lower(comment) LIKE' => $v);
+		}
+		$conditions = array(
+			'AND' => array(
+				'OR' => $subconditions,
+				'deleted' => false
+			)
+		);
+		$attributeHits = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array(
+				'conditions' => $conditions,
+				'fields' => array('event_id', 'comment', 'distribution', 'value1', 'value2') 
 		));
 		// rearrange the data into an array where the keys are the event IDs
 		$eventsWithAttributeHits = array();
@@ -212,8 +220,12 @@ class EventsController extends AppController {
 		// For anything beyond this point the default pagination restrictions will apply!
 
 		// First of all, there are tags that might be interesting for us
+		$subconditions = array();
+		foreach ($values as $v) {
+			$subconditions[] = array('lower(name) LIKE' => $v);
+		}
 		$tags = $this->Event->EventTag->Tag->find('all', array(
-				'conditions' => array('lower(name) LIKE' => '%' . strtolower($value) . '%'),
+				'conditions' => $subconditions,
 				'fields' => array('name', 'id'),
 				'contain' => array('EventTag'),
 		));
@@ -224,15 +236,21 @@ class EventsController extends AppController {
 		}
 
 		// Finally, let's search on the event metadata!
+		$subconditions = array();
+		foreach ($values as $v) {
+			$subconditions[] = array('lower(name) LIKE' => $v);
+		}
 		$conditions = array();
 		$orgs = $this->Event->Org->find('list', array(
-				'conditions' => array('lower(name) LIKE' => '%' .  strtolower($value) . '%'),
+				'conditions' => $subconditions,
 				'recursive' => -1,
 				'fields' => array('id')
 		));
+		foreach ($values as $v) {
+			$conditions['OR'][] = array('lower(info) LIKE' => $v);
+			$conditions['OR'][] = array('lower(uuid) LIKE' => $v);
+		}
 		if (!empty($orgs)) $conditions['OR']['orgc_id'] = array_values($orgs);
-		$conditions['OR']['lower(info) LIKE'] = '%' . strtolower($value) .'%';
-		$conditions['OR']['lower(uuid) LIKE'] = strtolower($value);
 		$otherEvents = $this->Event->find('all', array(
 				'recursive' => -1,
 				'fields' => array('id', 'orgc_id', 'info', 'uuid'),
@@ -524,9 +542,9 @@ class EventsController extends AppController {
 			$directions = array('ASC', 'DESC');
 			if (isset($passedArgs['sort']) && in_array($passedArgs['sort'], $fieldNames)) {
 				if (isset($passedArgs['direction']) && in_array(strtoupper($passedArgs['direction']), $directions)) {
-					$rules['order'] = array($passedArgs['sort'] => $passedArgs['direction']);
+					$rules['order'] = array('Event.' . $passedArgs['sort'] => $passedArgs['direction']);
 				} else {
-					$rules['order'] = array($passedArgs['sort'] => 'ASC');
+					$rules['order'] = array('Event.' . $passedArgs['sort'] => 'ASC');
 				}
 			} else {
 				$rules['order'] = array('Event.id' => 'DESC');
@@ -676,8 +694,24 @@ class EventsController extends AppController {
 		$results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
 		if (empty($results)) throw new NotFoundException('Invalid event');
 		$event = &$results[0];
+		$emptyEvent = (!isset($event['Attribute']) || empty($event['Attribute']));
+		$this->set('emptyEvent', $emptyEvent);
 		$params = $this->Event->rearrangeEventForView($event, $this->passedArgs, $all);
 		$this->params->params['paging'] = array($this->modelClass => $params);
+		// workaround to get the event dates in to the attribute relations
+		$relatedDates = array();
+		if (isset($event['RelatedEvent'])) {
+			foreach ($event['RelatedEvent'] as &$relation) {
+				$relatedDates[$relation['Event']['id']] = $relation['Event']['date'];
+			}
+			if (isset($event['RelatedAttribute'])) {
+				foreach ($event['RelatedAttribute'] as &$relatedAttribute) {
+					foreach ($relatedAttribute as &$relation) {
+						$relation['date'] = $relatedDates[$relation['id']];
+					}
+				}
+			}
+		}
 		$this->set('event', $event);
 		$dataForView = array(
 				'Attribute' => array('attrDescriptions', 'typeDefinitions', 'categoryDefinitions', 'distributionDescriptions', 'distributionLevels', 'shortDist'),
@@ -708,6 +742,8 @@ class EventsController extends AppController {
 	}
 
 	private function __viewUI($event, $continue, $fromEvent) {
+		$emptyEvent = (!isset($event['Attribute']) || empty($event['Attribute']));
+		$this->set('emptyEvent', $emptyEvent);
 		// set the data for the contributors / history field
 		$org_ids = $this->Event->ShadowAttribute->getEventContributors($event['Event']['id']);
 		$contributors = $this->Event->Org->find('list', array('fields' => array('Org.name'), 'conditions' => array('Org.id' => $org_ids)));
@@ -987,10 +1023,15 @@ class EventsController extends AppController {
 						// If the distribution is set to something "traditional", set the SG id to 0.
 						$this->request->data['Event']['sharing_group_id'] = 0;
 					}
-					if ($this->_isRest()) {
-						if (isset($this->request->data['Event']['orgc_id']) && !$this->userRole['perm_sync']) {
-							$this->request->data['Event']['orgc_id'] = $this->Auth->user('org_id');
-							if (isset($this->request->data['Event']['Orgc'])) unset($this->request->data['Event']['Orgc']);
+					// If we are not sync users / site admins, we only allow events to be created for our own org
+					// Set the orgc ID as our own orgc ID and unset both the 2.4 and 2.3 style creator orgs
+					if ($this->_isRest() && !$this->userRole['perm_sync']) {
+						$this->request->data['Event']['orgc_id'] = $this->Auth->user('org_id');
+						if (isset($this->request->data['Event']['Orgc'])) {
+							unset($this->request->data['Event']['Orgc']);
+						}
+						if (isset($this->request->data['Event']['orgc'])) {
+							unset($this->request->data['Event']['orgc']);
 						}
 					}
 					$validationErrors = array();
@@ -2044,18 +2085,17 @@ class EventsController extends AppController {
 				$dist .= Configure::read('MISP.default_attribute_distribution');
 			}
 		} else {
-			// TODO: need a default value for $dist or throw an exception
+			throw new Exception('Couldn\'t read "MISP.default_attribute_distribution".');
 		}
 
 		// Payload delivery -- malware-sample
+		$realFileName = '';
 		$results = $parsedXml->xpath('/analysis');
 		foreach ($results as $result) {
 			foreach ($result[0]->attributes() as $key => $val) {
 				if ((string)$key == 'filename') $realFileName = (string)$val;
 			}
 		}
-		// TODO: what if the xml parsing didn't return any filename? $realFileName would be unset
-		$realMalware = $realFileName;
 		$rootDir = APP . "files" . DS . $id . DS;
 		$malware = $rootDir . DS . 'sample';
 		$this->Event->Attribute->uploadAttachment($malware,	$realFileName,	true, $id, null, '', $this->Event->data['Event']['uuid'] . '-sample', $dist, true);
@@ -2104,7 +2144,9 @@ class EventsController extends AppController {
 					if ((string)$key == 'index') $index = (string)$val;
 				}
 			}
-			// TODO: what if the xml parsing didn't return any filename? $index would be unset
+			if (!isset($index) || !is_numeric($index)) {
+				throw new Exception('The GFI sandbox xml file seems to be malformed, at least one process with stored_files hasn\'t got a valid numeric index attribute.');
+			}
 			$actualFile = $rootDir . DS . 'Analysis' . DS . 'proc_' . $index . DS . 'modified_files' . DS . $actualFileName;
 			$extraPath = 'Analysis' . DS . 'proc_' . $index . DS . 'modified_files' . DS;
 			$file = new File($actualFile);
@@ -2244,7 +2286,7 @@ class EventsController extends AppController {
 		if (!$user) {
 			throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
 		}
-		$value = str_replace('|', '/', $value);
+		if (!is_array($value)) $value = str_replace('|', '/', $value);
 		// request handler for POSTed queries. If the request is a post, the parameters (apart from the key) will be ignored and replaced by the terms defined in the posted json or xml object.
 		// The correct format for both is a "request" root element, as shown by the examples below:
 		// For Json: {"request":{"value": "7.7.7.7&&1.1.1.1","type":"ip-src"}}
@@ -2370,6 +2412,8 @@ class EventsController extends AppController {
 			);
 			$attributes = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $params);
 			$eventIds = array();
+			// Add event ID if specifically specified to allow for the export of an empty event
+			if (isset($eventid)) $eventIds[] = $eventid;
 			foreach ($attributes as $attribute) {
 				if (!in_array($attribute['Attribute']['event_id'], $eventIds)) $eventIds[] = $attribute['Attribute']['event_id'];
 			}

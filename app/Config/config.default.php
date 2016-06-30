@@ -108,7 +108,7 @@ $config = array (
             'mail',
         ),
         'ldapDefaultRoleId' => 3,               // 3:User, 1:admin. May be good to set "1" for the first user
-        'ldapDefaultOrg' => 'example.com',      // uses 1st local org in MISP if undefined
+        'ldapDefaultOrg' => '1',      // uses 1st local org in MISP if undefined
     ),
    */
 );

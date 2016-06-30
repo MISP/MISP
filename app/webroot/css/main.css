@@ -1583,5 +1583,10 @@ a.discrete {
    to {-o-transform: rotate(359deg);}
 }
 @keyframes rotation {
-   from {transform: rotate(0deg);}
-   to {transform: rotate(359deg);}
+	from {
+		transform: rotate(0deg);
+	}
+	to {
+		transform: rotate(359deg);
+	}
+}

@@ -262,7 +262,6 @@ class ShadowAttribute extends AppModel {
 		if (isset($this->data['ShadowAttribute']['deleted']) && $this->data['ShadowAttribute']['deleted']) {
 			$sa = $this->find('first', array('conditions' => array('ShadowAttribute.id' => $this->data['ShadowAttribute']['id']), 'recursive' => -1, 'fields' => array('ShadowAttribute.id', 'ShadowAttribute.event_id', 'ShadowAttribute.type')));
 			if ($this->typeIsAttachment($sa['ShadowAttribute']['type'])) {
-				// FIXME secure this filesystem access/delete by not allowing to change directories or go outside of the directory container.
 				// only delete the file if it exists
 				$filepath = APP . "files" . DS . 'shadow' . DS . $sa['ShadowAttribute']['event_id'] . DS . $sa['ShadowAttribute']['id'];
 				$file = new File($filepath);
@@ -290,7 +289,6 @@ class ShadowAttribute extends AppModel {
 		// delete attachments from the disk
 		$this->read(); // first read the attribute from the db
 		if ($this->typeIsAttachment($this->data['ShadowAttribute']['type'])) {
-			// FIXME secure this filesystem access/delete by not allowing to change directories or go outside of the directory container.
 			// only delete the file if it exists
 			$filepath = APP . "files" . DS . 'shadow' . DS . $this->data['ShadowAttribute']['event_id'] . DS . $this->data['ShadowAttribute']['id'];
 			$file = new File($filepath);
@@ -439,16 +437,16 @@ class ShadowAttribute extends AppModel {
 		$rootDir = APP . "files" . DS . $eventId;
 		$dir = new Folder($rootDir, true);
 		// move the file to the correct location
-		$destpath = $rootDir . DS . $this->getId(); // id of the new attribute in the database
+		$destpath = $rootDir . DS . $this->getID(); // id of the new attribute in the database
 		$file = new File($destpath);
 		$zipfile = new File($destpath . '.zip');
-		$fileInZip = new File($rootDir . DS . $extraPath . $filename); // FIXME do sanitization of the filename
+		$fileInZip = new File($rootDir . DS . $extraPath . $filename);
 
 		// zip and password protect the malware files
 		if ($malware) {
 			$execRetval = '';
 			$execOutput = array();
-			exec("zip -j -P infected " . $zipfile->path . ' \'' . escapeshellarg($fileInZip->path) . '\'', $execOutput, $execRetval);
+			exec('zip -j -P infected ' . escapeshellarg($zipfile->path) . ' ' . escapeshellarg($fileInZip->path), $execOutput, $execRetval);
 			if ($execRetval != 0) {	// not EXIT_SUCCESS
 				throw new Exception('An error has occured while attempting to zip the malware file.');
 			}
