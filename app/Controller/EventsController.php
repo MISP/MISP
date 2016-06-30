@@ -694,6 +694,8 @@ class EventsController extends AppController {
 		$results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
 		if (empty($results)) throw new NotFoundException('Invalid event');
 		$event = &$results[0];
+		$emptyEvent = (!isset($event['Attribute']) || empty($event['Attribute']));
+		$this->set('emptyEvent', $emptyEvent);
 		$params = $this->Event->rearrangeEventForView($event, $this->passedArgs, $all);
 		$this->params->params['paging'] = array($this->modelClass => $params);
 		// workaround to get the event dates in to the attribute relations
@@ -740,6 +742,8 @@ class EventsController extends AppController {
 	}
 
 	private function __viewUI($event, $continue, $fromEvent) {
+		$emptyEvent = (!isset($event['Attribute']) || empty($event['Attribute']));
+		$this->set('emptyEvent', $emptyEvent);
 		// set the data for the contributors / history field
 		$org_ids = $this->Event->ShadowAttribute->getEventContributors($event['Event']['id']);
 		$contributors = $this->Event->Org->find('list', array('fields' => array('Org.name'), 'conditions' => array('Org.id' => $org_ids)));
