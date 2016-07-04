@@ -1553,7 +1553,7 @@ class Server extends AppModel {
 				$fails = array();
 				$lowestfailedid = null;
 				foreach ($eventUUIDsFiltered as $k => $eventUuid) {
-					$event = $this->Event->fetchEvent($user, array('event_uuid' => $eventUuid, 'includeAttachments' => true));
+					$event = $this->Event->fetchEvent($user, array('event_uuid' => $eventUuid, 'includeAttachments' => true, 'includeAllTags' => true));
 					$event = $event[0];
 					$event['Event']['locked'] = true;
 					$result = $this->Event->uploadEventToServer(
