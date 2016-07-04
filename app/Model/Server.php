@@ -1407,7 +1407,6 @@ class Server extends AppModel {
 	 * @return array of event_ids
 	 */
 	public function getEventIdsFromServer($server, $all = false, $HttpSocket=null, $force_uuid=false, $ignoreFilterRules = false) {
-		$start = microtime(true);
 		$url = $server['Server']['url'];
 		$authkey = $server['Server']['authkey'];
 		if ($ignoreFilterRules) $filter_rules = array();
@@ -1605,7 +1604,6 @@ class Server extends AppModel {
 			$job->saveField('progress', 100);
 			$job->saveField('message', 'Push to server ' . $id . ' complete.');
 			$job->saveField('status', 4);
-			return;
 		} else {
 			return array($successes, $fails);
 		}
@@ -1742,8 +1740,6 @@ class Server extends AppModel {
 
 	public function getCurrentServerSettings() {
 		$serverSettings = $this->serverSettings;
-		$results = array();
-		$currentSettings = Configure::read();
 		if (Configure::read('Plugin.Enrichment_services_enable')) {
 			$results = $this->__getEnrichmentSettings();
 			foreach ($results as $module => $data) {
@@ -1769,7 +1765,6 @@ class Server extends AppModel {
 
 	public function serverSettingsRead($unsorted = false) {
 		$serverSettings = $this->getCurrentServerSettings();
-		$results = array();
 		$currentSettings = Configure::read();
 		if (Configure::read('Plugin.Enrichment_services_enable')) {
 			$results = $this->__getEnrichmentSettings();

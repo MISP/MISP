@@ -61,8 +61,4 @@ class Module extends AppModel {
 	public function queryModule() {
 
 	}
-
-	private function queryModule() {
-
-	}
 }

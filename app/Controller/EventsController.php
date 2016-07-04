@@ -1126,10 +1126,6 @@ class EventsController extends AppController {
 		}
 		if ($this->request->is('post')) {
 			if (!empty($this->data)) {
-				if (isset($this->data['Event']['submittedioc'])) {
-					App::uses('File', 'Utility');
-					$file = new File($this->data['Event']['submittedioc']['name']);
-				}
 				if (isset($this->data['Event']['submittedioc'])) $this->_addIOCFile($id);
 
 				// redirect to the view of the newly created event
@@ -1764,7 +1760,6 @@ class EventsController extends AppController {
 			if (!$this->Auth->user('id')) {
 				throw new UnauthorizedException('You have to be logged in to do that.');
 			}
-			$user = $this->Auth->user();
 		}
 		$this->loadModel('Attribute');
 		$rules = $this->Attribute->hids($this->Auth->user(), $type, $tags, $from, $to, $last);
@@ -1917,6 +1912,7 @@ class EventsController extends AppController {
 			if (!preg_match('@^[\w-,\s,\.]+\.[A-Za-z0-9_]{2,4}$@', $this->data['Event']['submittedioc']['name'])) {
 				throw new Exception ('Filename not allowed');
 			}
+			App::uses('File', 'Utility');
 			$iocFile = new File($destPath . DS . $this->data['Event']['submittedioc']['name']);
 			$result = $iocFile->write($iocData);
 			if (!$result) $this->Session->setFlash(__('Problem with writing the ioc file. Please report to administrator.'));

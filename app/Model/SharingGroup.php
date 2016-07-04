@@ -92,8 +92,6 @@ class SharingGroup extends AppModel {
 	}
 
 	public function fetchAllAuthorisedForServer($server) {
-		$conditions = array();
-		$ids = array();
 		$sgs = $this->SharingGroupOrg->fetchAllAuthorised($server['RemoteOrg']['id']);
 		$sgs = array_merge($sgs, $this->SharingGroupServer->fetchAllSGsForServer($server['Server']['id']));
 		return $sgs;
@@ -165,7 +163,6 @@ class SharingGroup extends AppModel {
 				'conditions' => array('uuid' => $sg['uuid'])
 		));
 		if (empty($local)) {
-			$found = false;
 			$orgCheck = false;
 			$serverCheck = false;
 			if (isset($sg['SharingGroupOrg'])) {
