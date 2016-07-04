@@ -114,11 +114,17 @@ foreach ($attributes as $attribute):
 		<td class="short" ondblclick="document.location ='document.location ='/events/view/<?php echo $attribute['Event']['id'];?>';">
 			<?php echo $attribute['Attribute']['to_ids'] ? 'Yes' : 'No'; ?>&nbsp;
 		</td>
-		<td class="short action-links"><?php
-	if ($isAdmin || ($isAclModify && $attribute['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $attribute['Event']['org_id'] == $me['org_id'])) {
-				?><a href="<?php echo $baseurl;?>/attributes/edit/<?php echo $attribute['Attribute']['id'];?>" class="icon-edit" title="Edit"></a><?php
-		echo $this->Form->postLink('',array('action' => 'delete', $attribute['Attribute']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete this attribute?'));
-	}
+		<td class="short action-links">
+	<?php
+		if ($isSiteAdmin || ($isAclModify && $attribute['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $attribute['Event']['org_id'] == $me['org_id'])):
+	?>
+			<a href="<?php echo $baseurl;?>/attributes/edit/<?php echo $attribute['Attribute']['id'];?>" class="icon-edit" title="Edit"></a><?php
+			echo $this->Form->postLink('',array('action' => 'delete', $attribute['Attribute']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete this attribute?'));
+		elseif ($isAclModify):
+	?>
+			<a href="<?php echo $baseurl;?>/shadow_attributes/edit/<?php echo $attribute['Attribute']['id'];?>" class="icon-share" title="Propose an edit"></a>
+	<?php 
+		endif;
 	?>
 			<a href="<?php echo $baseurl;?>/events/view/<?php echo $attribute['Attribute']['event_id'];?>" class="icon-list-alt" title="View"></a>
 		</td>

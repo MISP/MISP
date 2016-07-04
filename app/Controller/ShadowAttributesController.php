@@ -23,7 +23,7 @@ class ShadowAttributesController extends AppController {
 
 	public function beforeFilter() {
 		parent::beforeFilter();
-
+		$this->set('title_for_layout', 'Proposals');
 		$this->Security->validatePost = true;
 
 		// convert uuid to id if present in the url, and overwrite id field

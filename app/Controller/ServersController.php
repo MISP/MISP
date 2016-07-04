@@ -203,14 +203,21 @@ class ServersController extends AppController {
 
 					if (!$fail) {
 						$this->Server->Organisation->create();
-						if (!$this->Server->Organisation->save(array(
+						$orgSave = $this->Server->Organisation->save(array(
 								'name' => $json['name'],
 								'uuid' => $json['uuid'],
 								'local' => 0,
 								'created_by' => $this->Auth->user('id')
-							)
-						)) $this->Session->setFlash(__('Couldn\'t save the new organisation, are you sure that the uuid is in the correct format?.'));
-						$this->request->data['Server']['remote_org_id'] = $this->Server->Organisation->id;
+						));
+						
+						if (!$orgSave) {
+							$this->Session->setFlash(__('Couldn\'t save the new organisation, are you sure that the uuid is in the correct format?.'));
+							$fail = true;
+							$this->request->data['Server']['external_name'] = $json['name'];
+							$this->request->data['Server']['external_uuid'] = $json['uuid'];
+						} else {
+							$this->request->data['Server']['remote_org_id'] = $this->Server->Organisation->id;
+						}
 					}
 				}
 				if (!$fail) {
@@ -310,14 +317,21 @@ class ServersController extends AppController {
 
 					if (!$fail) {
 						$this->Server->Organisation->create();
-						if (!$this->Server->Organisation->save(array(
+						$orgSave = $this->Server->Organisation->save(array(
 								'name' => $json['name'],
 								'uuid' => $json['uuid'],
 								'local' => 0,
 								'created_by' => $this->Auth->user('id')
-						)
-						)) $this->Session->setFlash(__('Couldn\'t save the new organisation, are you sure that the uuid is in the correct format?'));
-						$this->request->data['Server']['remote_org_id'] = $this->Server->Organisation->id;
+						));
+						
+						if (!$orgSave) {
+							$this->Session->setFlash(__('Couldn\'t save the new organisation, are you sure that the uuid is in the correct format?.'));
+							$fail = true;
+							$this->request->data['Server']['external_name'] = $json['name'];
+							$this->request->data['Server']['external_uuid'] = $json['uuid'];
+						} else {
+							$this->request->data['Server']['remote_org_id'] = $this->Server->Organisation->id;
+						}
 					}
 				}
 			}
@@ -743,7 +757,7 @@ class ServersController extends AppController {
 
 	public function startWorker($type) {
 		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException();
-		$validTypes = array('default', 'email', 'scheduler', 'cache');
+		$validTypes = array('default', 'email', 'scheduler', 'cache', 'prio');
 		if (!in_array($type, $validTypes)) throw new MethodNotAllowedException('Invalid worker type.');
 		$prepend = '';
 		if (Configure::read('MISP.rh_shell_fix')) $prepend = 'export PATH=$PATH:"/opt/rh/rh-php56/root/usr/bin:/opt/rh/rh-php56/root/usr/sbin"; ';

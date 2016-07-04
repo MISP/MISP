@@ -116,9 +116,13 @@ class AttributesController extends AppController {
 			//
 			// multiple attributes in batch import
 			//
-			if ((isset($this->request->data['Attribute']['batch_import']) && $this->request->data['Attribute']['batch_import'] == 1)) {
+			if ((isset($this->request->data['Attribute']['batch_import']) && $this->request->data['Attribute']['batch_import'] == 1) || is_array($this->request->data['Attribute']['value'])) {
 				// make array from value field
-				$attributes = explode("\n", $this->request->data['Attribute']['value']);
+				if (is_array($this->request->data['Attribute']['value'])) {
+					$attributes = $this->request->data['Attribute']['value'];
+				} else {
+					$attributes = explode("\n", $this->request->data['Attribute']['value']);
+				}
 
 				$fails = "";	// will be used to keep a list of the lines that failed or succeeded
 				$successes = "";
@@ -126,6 +130,7 @@ class AttributesController extends AppController {
 				$successCount = 0;
 				// TODO loopholes,
 				// the value null value thing
+				$validationErrors = array();
 				foreach ($attributes as $key => $attribute) {
 					$attribute = trim($attribute);
 					if (strlen($attribute) == 0)
@@ -143,6 +148,7 @@ class AttributesController extends AppController {
 					} else {
 						$fails .= " " . ($key + 1);
 						$failCount++;
+						$validationErrors[] = array($attribute => $this->Attribute->validationErrors);
 					}
 				}
 				if ($this->request->is('ajax')) {
@@ -153,6 +159,23 @@ class AttributesController extends AppController {
 					} else {
 						return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $successCount . ' Attributes added')), 'status' => 200));
 					}
+				} else if ($this->_isRest()) {
+					$name = 'Attribute(s) could not be added.';
+					$message = 'Could not save any of the POSTed attributes. Check errors field to see what caused the failures.';
+					if ($successCount) {
+						$name = 'Attribute(s) added.';
+						$message = $successCount . ' attribute(s) successfuly added.';
+						if ($failCount) {
+							$name = 'Only a subset of the attributes could be added.';
+							$message = $successCount . ' attribute(s) added, but ' . $failCount . ' of them failed the validation. Check the errors field for more details.';
+						}
+					}
+					$this->set('name', $name);
+					$this->set('message', $message);
+					$this->set('errors', $validationErrors);
+					$this->set('url', '/attributes/add/' . $eventId);
+					$this->set('_serialize', array('name', 'message', 'url', 'errors'));
+					return false;
 				} else {
 					// we added all the attributes
 					if ($fails) {

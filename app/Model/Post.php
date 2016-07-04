@@ -21,6 +21,12 @@ class Post extends AppModel {
 			'Thread',
 			'User'
 	);
+	
+	public $validate = array(
+			'contents' => array(
+					'rule' => array('valueNotEmpty'),
+			),
+	);
 
 	public function sendPostsEmailRouter($user_id, $post_id, $event_id, $title, $message, $JobId = false) {
 		if (Configure::read('MISP.background_jobs')) {
@@ -111,7 +117,8 @@ class Post extends AppModel {
 		$bodyDetail .= "The following message was added: \n";
 		$bodyDetail .= "\n";
 		$bodyDetail .= $message . "\n";
-		$subject = "[" . Configure::read('MISP.org') . " MISP] New post in discussion " . $post['Post']['thread_id'] . " - TLP Amber";
+		$tplColorString = !empty(Configure::read('MISP.email_subject_TLP_string')) ? Configure::read('MISP.email_subject_TLP_string') : "TLP Amber";
+		$subject = "[" . Configure::read('MISP.org') . " MISP] New post in discussion " . $post['Post']['thread_id'] . " - ".$tplColorString;
 		foreach ($orgMembers as &$recipient) {
 			$this->User->sendEmail($recipient, $bodyDetail, $body, $subject);
 		}

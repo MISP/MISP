@@ -44,9 +44,8 @@ class LogsController extends AppController {
 		$this->recursive = 0;
 		$validFilters = $this->Log->logMeta;
 		if (!$this->_isSiteAdmin()) {
-			$orgRestriction = null;
-			$orgRestriction = $this->Auth->user('org');
-			$conditions['Log.org LIKE'] = '%' . $orgRestriction . '%';
+			$orgRestriction = $this->Auth->user('Organisation')['name'];
+			$conditions['Log.org'] = $orgRestriction;
 			$this->paginate = array(
 					'limit' => 60,
 					'conditions' => $conditions,
@@ -136,7 +135,7 @@ class LogsController extends AppController {
 		if ($this->_isSiteAdmin()) {
 			$orgRestriction = false;
 		} else {
-			$orgRestriction = $this->Auth->user('org');
+			$orgRestriction = $this->Auth->user('Organisation')['name'];
 		}
 		$this->set('orgRestriction', $orgRestriction);
 		$validFilters = $this->Log->logMeta;
@@ -154,7 +153,7 @@ class LogsController extends AppController {
 				if (!$orgRestriction) {
 					$filters['org'] = $this->request->data['Log']['org'];
 				} else {
-					$filters['org'] = $this->Auth->user('org');
+					$filters['org'] = $this->Auth->user('Organisation')['name'];
 				}
 				$filters['action'] = $this->request->data['Log']['action'];
 				$filters['model'] = $this->request->data['Log']['model'];

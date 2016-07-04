@@ -319,7 +319,6 @@ class Event extends AppModel {
 		// delete all of the event->tag combinations that involve the deleted event
 		$this->EventTag->deleteAll(array('event_id' => $this->id));
 
-		// FIXME secure this filesystem access/delete by not allowing to change directories or go outside of the directory container.
 		// only delete the file if it exists
 		$filepath = APP . "files" . DS . $this->id;
 		App::uses('Folder', 'Utility');
@@ -1484,7 +1483,8 @@ class Event extends AppModel {
 		} else {
 			$subject = '';
 		}
-		$subject = "[" . Configure::read('MISP.org') . " MISP] Event " . $id . " - " . $subject . $event[0]['ThreatLevel']['name'] . " - TLP Amber";
+        $tplColorString = !empty(Configure::read('MISP.email_subject_TLP_string')) ? Configure::read('MISP.email_subject_TLP_string') : "TLP Amber";
+		$subject = "[" . Configure::read('MISP.org') . " MISP] Event " . $id . " - " . $subject . $event[0]['ThreatLevel']['name'] . " - ".$tplColorString;
 
 		// Initialise the Job class if we have a background process ID
 		// This will keep updating the process's progress bar
@@ -1676,8 +1676,9 @@ class Event extends AppModel {
 		$bodyevent .= "\n";
 		$bodyevent .= $bodyTempOther;	// append the 'other' attribute types to the bottom.
 		$result = true;
+        $tplColorString = !empty(Configure::read('MISP.email_subject_TLP_string')) ? Configure::read('MISP.email_subject_TLP_string') : "TLP Amber";
 		foreach ($orgMembers as &$reporter) {
-			$subject = "[" . Configure::read('MISP.org') . " MISP] Need info about event " . $id . " - TLP Amber";
+			$subject = "[" . Configure::read('MISP.org') . " MISP] Need info about event " . $id . " - ".$tplColorString;
 			$result = $this->User->sendEmail($reporter, $bodyevent, $body, $subject, $user) && $result;
 		}
 		return $result;
@@ -1786,11 +1787,12 @@ class Event extends AppModel {
 			$data['Event']['orgc_id'] = $data['Event']['org_id'];
 		} else {
 			if (!isset($data['Event']['Orgc'])) {
-				if ($data['Event']['orgc_id'] != $user['org_id'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) throw new MethodNotAllowedException('Event cannot be created as you are not a member of the creator organisation.');
+				if (isset($data['Event']['orgc_id']) && $data['Event']['orgc_id'] != $user['org_id'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) throw new MethodNotAllowedException('Event cannot be created as you are not a member of the creator organisation.');
 			} else {
 				if ($data['Event']['Orgc']['uuid'] != $user['Organisation']['uuid'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) throw new MethodNotAllowedException('Event cannot be created as you are not a member of the creator organisation.');
+				if (isset($data['Event']['orgc']) && $data['Event']['orgc'] != $user['Organisation']['name'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) throw new MethodNotAllowedException('Event cannot be created as you are not a member of the creator organisation.');
 			}
-			if ($data['Event']['orgc_id'] != $user['org_id'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) throw new MethodNotAllowedException('Event cannot be created as you are not a member of the creator organisation.');
+			if (isset($data['Event']['orgc_id']) && $data['Event']['orgc_id'] != $user['org_id'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) throw new MethodNotAllowedException('Event cannot be created as you are not a member of the creator organisation.');
 		}
 		if (Configure::read('MISP.enableOrgBlacklisting')) {
 			$this->OrgBlacklist = ClassRegistry::init('OrgBlacklist');
@@ -2163,8 +2165,16 @@ class Event extends AppModel {
 		if (Configure::read('MISP.background_jobs')) {
 			$job = ClassRegistry::init('Job');
 			$job->create();
+			$this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
+			$workers = $this->ResqueStatus->getWorkers();
+			$workerType = 'default';
+			foreach ($workers as $worker) {
+				if ($worker['queue'] === 'prio') {
+					$workerType = 'prio';
+				}
+			}
 			$data = array(
-					'worker' => 'default',
+					'worker' => $workerType,
 					'job_type' => 'publish_event',
 					'job_input' => 'Event ID: ' . $id,
 					'status' => 0,
@@ -2176,7 +2186,7 @@ class Event extends AppModel {
 			$job->save($data);
 			$jobId = $job->id;
 			$process_id = CakeResque::enqueue(
-					'default',
+					'prio',
 					'EventShell',
 					array('publish', $id, $passAlong, $jobId, $user['id'])
 			);

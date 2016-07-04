@@ -45,10 +45,19 @@ pre {
 
 .navbar-lab .navbar-inner{
 	background: #FF9900;
-
+    -webkit-border-radius: 0px !important;
+    -moz-border-radius: 0px !important;
+    border-radius: 0px !important;
 }
+
 .navbar-lab .nav > li > a{
 	text-shadow: none;
+}
+
+.navbar-inner{
+    -webkit-border-radius: 0px !important;
+    -moz-border-radius: 0px !important;
+    border-radius: 0px !important;
 }
 
 /* MULTI-LEVEL DROPDOWNS FOR BOOTSTRAP */
@@ -444,22 +453,8 @@ dd {
 }
 
 /* fonts for logo */
-
-.logoBlue {
-	animation-name: bluePulse;
-	animation-duration: 10s;
-	animation-iteration-count: infinite;
-	-moz-animation-name: bluePulse;
-	-moz-animation-duration: 10s;
-	-moz-animation-iteration-count: infinite;
-	-webkit-animation-name: bluePulse;
-	-webkit-animation-duration: 10s;
-	-webkit-animation-iteration-count: infinite;
-}
-
 .logoBlueStatic {
 	color: #0088cc;
-	text-shadow: #0099E6 0 0 3px;
 }
 
 @-webkit-keyframes bluePulse {
@@ -941,9 +936,6 @@ a.proposal_link_red:hover {
 	top:-23px;
 	padding-left:10px;
 	padding-right:10px;
-	-webkit-border-radius: 4px 4px 0 0;
-	-moz-border-radius: 4px 4px 0 0;
-	border-radius: 4px 4px 0 0;
 	border: 1px solid #ddd;
 	border-bottom: 0px !important;
 	background-color: #f9f9f9;
@@ -959,12 +951,10 @@ a.proposal_link_red:hover {
 }
 
 .tabMenuFixedContainer > span:nth-child(1) {
-	border-radius: 4px 0 0 0;
 	padding-left:10px;
 }
 
 .tabMenuFixedContainer > span:nth-last-child(1) {
-	border-radius: 0 4px 0 0;
 	border-right: 1px solid #ddd;
 	padding-right:10px;
 
@@ -1038,16 +1028,10 @@ a.proposal_link_red:hover {
 }
 
 .tabMenuFixedLeft {
-	-webkit-border-radius: 4px 0 0 0;
-	-moz-border-radius: 4px 0 0 0;
-	border-radius: 4px 0 0 0;
 	padding-left:10px;
 }
 
 .tabMenuFixedRight {
-	-webkit-border-radius: 0 4px 0 0;
-	-moz-border-radius: 0 4px 0 0;
-	border-radius: 0 4px 0 0;
 	border-right: 1px solid #ddd;
 	padding-right:10px;
 }
@@ -1057,9 +1041,6 @@ a.proposal_link_red:hover {
 	padding-left:10px;
 	border-right: 1px solid #ddd;
 	border-left: 1px solid #ddd;
-	-webkit-border-radius: 4px 4px 0 0;
-	-moz-border-radius: 4px 4px 0 0;
-	border-radius: 4px 4px 0 0;
 }
 
 .tabMenuFixedElement {
@@ -1602,5 +1583,10 @@ a.discrete {
    to {-o-transform: rotate(359deg);}
 }
 @keyframes rotation {
-   from {transform: rotate(0deg);}
-   to {transform: rotate(359deg);}
+	from {
+		transform: rotate(0deg);
+	}
+	to {
+		transform: rotate(359deg);
+	}
+}

@@ -106,7 +106,6 @@ class Organisation extends AppModel{
 			if (isset($org['uuid']) && !empty($org['uuid'])) {
 				$conditions = array('uuid' => $org['uuid']);
 				$uuid = $org['uuid'];
-				$conditions2 = array('name' => $org['name']);
 			} else {
 				$conditions = array('name' => $org['name']);
 			}
@@ -120,15 +119,9 @@ class Organisation extends AppModel{
 				'recursive' => -1,
 				'conditions' => $conditions,
 		));
-		if (empty($existingOrg) && isset($conditions2)) {
-			$existingOrg = $this->find('first', array(
-					'recursive' => -1,
-					'conditions' => $conditions2,
-			));
-		}
+
 		if (empty($existingOrg)) {
 			$date = date('Y-m-d H:i:s');
-			$this->create();
 			$organisation = array(
 					'name' => $name,
 					'local' => 0,
@@ -136,18 +129,40 @@ class Organisation extends AppModel{
 					'date_modified' => $date,
 					'date_created' => $date
 			);
-			if (isset($uuid)) $organisation['uuid'] = $uuid;
+			// If we have the UUID set, then we have only made sure that the org doesn't exist by UUID
+			// We want to create a new organisation for pushed data, even if the same org name exists
+			// Alter the name if the name is already taken by a random string
+			if (isset($uuid)) {
+				$existingOrgByName = $this->find('first', array(
+						'recursive' => -1,
+						'conditions' => array('name' => $name),
+				));
+				if ($existingOrgByName) $organisation['name'] = $organisation['name'] . '_' . rand(0, 9999);
+				$organisation['uuid'] = $uuid;
+			}
+			$this->create();
 			$this->save($organisation);
 			return $this->id;
 		} else {
-			if (isset($org['uuid']) && empty($existingOrg['Organisation']['uuid'])) $existingOrg['Organisation']['uuid'] = $org['uuid'];
+			$changed = false;
+			if (isset($org['uuid']) && empty($existingOrg['Organisation']['uuid'])) {
+				$existingOrg['Organisation']['uuid'] = $org['uuid'];
+				$changed = true;
+			}
 			if ($force) {
 				$fields = array('type', 'date_created', 'date_modified', 'nationality', 'sector', 'contacts', 'landingpage');
 				foreach ($fields as $field) {
-					if (isset($org[$field])) $existingOrg['Organisation'][$field] = $org[$field];
+					if (isset($org[$field])) {
+						if ($existingOrg['Organisation'][$field] != $org[$field]) {
+							$existingOrg['Organisation'][$field] = $org[$field];
+							if ($field != 'date_modified') {
+								$changed = true;
+							}
+						}
+					}
 				}
 			}
-			$this->save($existingOrg);
+			if ($changed) $this->save($existingOrg);
 		}
 		return $existingOrg[$this->alias]['id'];
 	}

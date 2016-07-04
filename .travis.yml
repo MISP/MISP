@@ -1,4 +1,5 @@
 language: php
+
 php:
     - 5.5
     - 5.6
@@ -34,6 +35,7 @@ addons:
             - python-pip
             - php5-mysql
 
+cache: pip
 
 before_install:
     - git config --global user.name "TravisCI"
@@ -125,6 +127,10 @@ script:
     - pushd PyMISP
     - coverage run setup.py test
     - popd
+    - cp PyMISP/tests/keys.py PyMISP/examples/events/
+    - pushd PyMISP/examples/events/
+    - ./create_massive_dummy_events.py -l 5 -a 30
+    - popd
 
 after_failure:
     - curl http://misp.local
@@ -137,6 +143,13 @@ after_failure:
     - sudo cat /var/log/apache2/misp.local_access.log
     - pwd
 
+notifications:
+  webhooks:
+    urls:
+      - https://webhooks.gitter.im/e/05e30284086a8e948d31
+    on_success: change  # options: [always|never|change] default: always
+    on_failure: always  # options: [always|never|change] default: always
+    on_start: never     # options: [always|never|change] default: always
 
 after_success:
     - coveralls

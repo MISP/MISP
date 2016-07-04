@@ -264,11 +264,12 @@ class User extends AppModel {
 
 	public function beforeValidate($options = array()) {
 		if (!isset($this->data['User']['id'])) {
-			if (isset($this->data['User']['enable_password']) && (!$this->data['User']['enable_password'] || (empty($this->data['User']['password']) && empty($this->data['User']['confirm_password'])))) {
+			if ((isset($this->data['User']['enable_password']) && (!$this->data['User']['enable_password'])) || (empty($this->data['User']['password']) && empty($this->data['User']['confirm_password']))) {
 				$this->data['User']['password'] = $this->__generatePassword();
 				$this->data['User']['confirm_password'] = $this->data['User']['password'];
 			}
 		}
+		if (!isset($this->data['User']['authkey']) || empty($this->data['User']['authkey'])) $this->data['User']['authkey'] = $this->generateAuthKey();
 		if (!isset($this->data['User']['nids_sid']) || empty($this->data['User']['nids_sid'])) $this->data['User']['nids_sid'] = mt_rand(1000000, 9999999);
 		return true;
 	}

@@ -45,7 +45,7 @@ class AppController extends Controller {
 
 	public $helpers = array('Utility');
 
-	private $__jsVersion = '2.4.46';
+	private $__jsVersion = '2.4.48';
 
 	// Used for _isAutomation(), a check that returns true if the controller & action combo matches an action that is a non-xml and non-json automation method
 	// This is used to allow authentication via headers for methods not covered by _isRest() - as that only checks for JSON and XML formats
@@ -261,8 +261,9 @@ class AppController extends Controller {
 					$email = Configure::read('MISP.email');
 					$message = str_replace('$email', $email, $message);
 				}
+				$this->Session->setFlash($message);
 				$this->Auth->logout();
-				throw new MethodNotAllowedException($message);
+				throw new MethodNotAllowedException($message);//todo this should pb be removed?
 			} else {
 				$this->Session->setFlash('Warning: MISP is currently disabled for all users. Enable it in Server Settings (Administration -> Server Settings -> MISP tab -> live)');
 			}

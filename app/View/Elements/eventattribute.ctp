@@ -460,7 +460,7 @@
 		?>
 	</table>
 </div>
-	<?php if (!isset($event['objects']) || empty($event['objects'])): ?>
+	<?php if ($emptyEvent): ?>
 		<div class="background-red bold">
 			<span>
 			<?php

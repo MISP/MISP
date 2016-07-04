@@ -103,6 +103,7 @@ class PostsController extends AppController {
 			break;
 		}
 		if ($this->request->is('post')) {
+			if (empty($this->request->data['Post']['message'])) throw new MethodNotAllowedException('Cannot post an empty message.');
 			// Set the default values that we'll alter before actually saving data. These are the default values unless specifically modified.
 			// By default, all discussions will be visibile to everyone on the platform
 

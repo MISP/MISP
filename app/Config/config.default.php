@@ -78,7 +78,7 @@ $config = array (
     'restApi'       => array(        // API parameters
       'url'         => 'https://example.com/data/users',  // URL to query
       'headers'     => array(),                           // additional headers, used for authentication
-      'param'       => array( 'email' => 'email'),        // query parameters to add to the URL, mapped to User properties
+      'param'       => array( 'email' => 'email' ),       // query parameters to add to the URL, mapped to User properties
       'map'         =>  array(                            // maps REST result to the User properties
         'uid'       => 'nids_sid',
         'team'      => 'org',
@@ -86,6 +86,7 @@ $config = array (
         'pgp_public'=> 'gpgkey',
       ),
     ),
+    'userDefaults'  => array ( 'role_id' => 3 ),          // default attributes for new users
   ),
   */
   // Warning: The following is a 3rd party contribution and still untested (including security) by the MISP-project team.
@@ -107,7 +108,7 @@ $config = array (
             'mail',
         ),
         'ldapDefaultRoleId' => 3,               // 3:User, 1:admin. May be good to set "1" for the first user
-        'ldapDefaultOrg' => 'example.com',      // uses 1st local org in MISP if undefined
+        'ldapDefaultOrg' => '1',      // uses 1st local org in MISP if undefined
     ),
    */
 );

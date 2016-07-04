@@ -153,15 +153,9 @@
 			));
 		?>
 		</fieldset>
+		<button class="btn btn-primary" onClick="submitMessageForm('<?php echo h($url);?>', 'PostViewForm', 'top'); return false;">Send</button>
 	<?php
-	echo $this->Js->submit('Send', array(
-			'before'=>$this->Js->get('#loading')->effect('fadeIn'),
-			'success'=>$this->Js->get('#loading')->effect('fadeOut'),
-			'update'=>'#top',
-			'class'=>'btn btn-primary',
-			'url' => $url
-	));
-	echo $this->Form->end();
+		echo $this->Form->end();
 	?>
 	</div>
 </div>

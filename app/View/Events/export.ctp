@@ -14,7 +14,7 @@
 					if (id != -1 && progress < 100 && modified != "N/A") {
 						queryTask(k, i);
 					}
-				}, 1000);
+				}, 3000);
 		}
 		function editMessage(id, text) {
 			document.getElementById("message" + id).innerHTML = text;
