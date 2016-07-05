@@ -1215,7 +1215,7 @@ function indexEvaluateFiltering() {
 }
 
 function quickFilter(passedArgs, url) {
-	passedArgs["searchall"] = $('#quickFilterField').val();
+	passedArgs["searchall"] = $('#quickFilterField').val().trim();
 	for (var key in passedArgs) {
 		url += "/" + key + ":" + passedArgs[key];
 	}
