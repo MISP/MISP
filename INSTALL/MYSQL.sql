@@ -524,6 +524,51 @@ CREATE TABLE IF NOT EXISTS `tasks` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `taxonomies`
+--
+
+CREATE TABLE IF NOT EXISTS `taxonomies` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `namespace` varchar(255) COLLATE utf8_bin NOT NULL,
+  `description` text COLLATE utf8_bin NOT NULL,
+  `version` int(11) NOT NULL,
+  `enabled` tinyint(1) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `taxonomy_entries`
+--
+
+CREATE TABLE IF NOT EXISTS `taxonomy_entries` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `taxonomy_predicate_id` int(11) NOT NULL,
+  `value` text COLLATE utf8_bin NOT NULL,
+  `expanded` text COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `taxonomy_predicate_id` (`taxonomy_predicate_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `taxonomy_predicates`
+--
+
+CREATE TABLE IF NOT EXISTS `taxonomy_predicates` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `taxonomy_id` int(11) NOT NULL,
+  `value` text COLLATE utf8_bin NOT NULL,
+  `expanded` text COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `taxonomy_id` (`taxonomy_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `templates`
 --
 
@@ -697,39 +742,6 @@ CREATE TABLE IF NOT EXISTS `whitelist` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
-
--- --------------------------------------------------------
-
-CREATE TABLE IF NOT EXISTS `taxonomies` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `namespace` varchar(255) COLLATE utf8_bin NOT NULL,
-  `description` text COLLATE utf8_bin NOT NULL,
-  `version` int(11) NOT NULL,
-  `enabled` tinyint(1) NOT NULL DEFAULT 0,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
-
--- --------------------------------------------------------
-
-CREATE TABLE IF NOT EXISTS `taxonomy_entries` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `taxonomy_predicate_id` int(11) NOT NULL,
-  `value` text COLLATE utf8_bin NOT NULL,
-  `expanded` text COLLATE utf8_bin NOT NULL,
-  PRIMARY KEY (`id`),
-  INDEX `taxonomy_predicate_id` (`taxonomy_predicate_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
-
--- --------------------------------------------------------
-
-CREATE TABLE IF NOT EXISTS `taxonomy_predicates` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `taxonomy_id` int(11) NOT NULL,
-  `value` text COLLATE utf8_bin NOT NULL,
-  `expanded` text COLLATE utf8_bin NOT NULL,
-  PRIMARY KEY (`id`),
-  INDEX `taxonomy_id` (`taxonomy_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- --------------------------------------------------------
