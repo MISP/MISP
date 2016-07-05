@@ -1292,6 +1292,7 @@ class AttributesController extends AppController {
 					$keywordArray = explode("\n", $tags);
 					foreach ($keywordArray as $tagname) {
 						$tagname = trim($tagname);
+						if (empty($tagname)) continue;
 						if (substr($tagname, 0, 1) === '!') $exclude[] = substr($tagname, 1);
 						else $include[] = $tagname;
 					}
