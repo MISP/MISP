@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS `attributes` (
   INDEX `value1` (`value1`(255)),
   INDEX `value2` (`value2`(255)),
   INDEX `sharing_group_id` (`sharing_group_id`),
-  UNIQUE KEY `uuid` (`uuid`)
+  UNIQUE INDEX `uuid` (`uuid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- --------------------------------------------------------
@@ -119,8 +119,8 @@ CREATE TABLE IF NOT EXISTS `events` (
   `threat_level_id` int(11) NOT NULL,
   `publish_timestamp` int(11) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uuid` (`uuid`),
-  FULLTEXT KEY `info` (`info`),
+  UNIQUE INDEX `uuid` (`uuid`),
+  FULLTEXT INDEX `info` (`info`),
   INDEX `sharing_group_id` (`sharing_group_id`),
   INDEX `org_id` (`org_id`),
   INDEX `orgc_id` (`orgc_id`)
@@ -141,8 +141,8 @@ CREATE TABLE IF NOT EXISTS `event_delegations` (
   `distribution` tinyint(4) NOT NULL DEFAULT -1,
   `sharing_group_id` int(11),
   PRIMARY KEY (`id`),
-  KEY `org_id` (`org_id`),
-  KEY `event_id` (`event_id`)
+  INDEX `org_id` (`org_id`),
+  INDEX `event_id` (`event_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- -------------------------------------------------------
@@ -274,7 +274,7 @@ CREATE TABLE `organisations` (
   `local` tinyint(1) NOT NULL DEFAULT 0,
   `landingpage` text CHARACTER SET utf8 COLLATE utf8_unicode_ci,
   PRIMARY KEY (`id`),
-  KEY `uuid` (`uuid`),
+  INDEX `uuid` (`uuid`),
   INDEX `name` (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
@@ -421,13 +421,13 @@ CREATE TABLE IF NOT EXISTS `shadow_attribute_correlations` (
   `1_event_id` int(11) NOT NULL,
   `info` text COLLATE utf8_bin NOT NULL,
   PRIMARY KEY (`id`),
-  KEY `org_id` (`org_id`),
-  KEY `attribute_id` (`attribute_id`),
-  KEY `a_sharing_group_id` (`a_sharing_group_id`),
-  KEY `event_id` (`event_id`),
-  KEY `1_event_id` (`event_id`),
-  KEY `sharing_group_id` (`sharing_group_id`),
-  KEY `1_shadow_attribute_id` (`1_shadow_attribute_id`)
+  INDEX `org_id` (`org_id`),
+  INDEX `attribute_id` (`attribute_id`),
+  INDEX `a_sharing_group_id` (`a_sharing_group_id`),
+  INDEX `event_id` (`event_id`),
+  INDEX `1_event_id` (`event_id`),
+  INDEX `sharing_group_id` (`sharing_group_id`),
+  INDEX `1_shadow_attribute_id` (`1_shadow_attribute_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
@@ -718,7 +718,7 @@ CREATE TABLE IF NOT EXISTS `taxonomy_entries` (
   `value` text COLLATE utf8_bin NOT NULL,
   `expanded` text COLLATE utf8_bin NOT NULL,
   PRIMARY KEY (`id`),
-  KEY `taxonomy_predicate_id` (`taxonomy_predicate_id`)
+  INDEX `taxonomy_predicate_id` (`taxonomy_predicate_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- --------------------------------------------------------
@@ -729,7 +729,7 @@ CREATE TABLE IF NOT EXISTS `taxonomy_predicates` (
   `value` text COLLATE utf8_bin NOT NULL,
   `expanded` text COLLATE utf8_bin NOT NULL,
   PRIMARY KEY (`id`),
-  KEY `taxonomy_id` (`taxonomy_id`)
+  INDEX `taxonomy_id` (`taxonomy_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- --------------------------------------------------------
