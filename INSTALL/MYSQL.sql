@@ -735,6 +735,49 @@ CREATE TABLE IF NOT EXISTS `users` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `warninglists`
+--
+
+CREATE TABLE IF NOT EXISTS `warninglists` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) COLLATE utf8_bin NOT NULL,
+  `type` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT 'string',
+  `description` text COLLATE utf8_bin NOT NULL,
+  `version` int(11) NOT NULL DEFAULT '1',
+  `enabled` tinyint(1) NOT NULL DEFAULT '0',
+  `warninglist_entry_count` int(11) unsigned DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `warninglist_entries`
+--
+
+CREATE TABLE IF NOT EXISTS `warninglist_entries` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `value` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `warninglist_id` int(11) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `warninglist_types`
+--
+
+CREATE TABLE IF NOT EXISTS `warninglist_types` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `type` varchar(255) COLLATE utf8_bin NOT NULL,
+  `warninglist_id` int(11) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `whitelist`
 --
 
