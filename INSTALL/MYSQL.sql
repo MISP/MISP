@@ -524,6 +524,51 @@ CREATE TABLE IF NOT EXISTS `tasks` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `taxonomies`
+--
+
+CREATE TABLE IF NOT EXISTS `taxonomies` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `namespace` varchar(255) COLLATE utf8_bin NOT NULL,
+  `description` text COLLATE utf8_bin NOT NULL,
+  `version` int(11) NOT NULL,
+  `enabled` tinyint(1) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `taxonomy_entries`
+--
+
+CREATE TABLE IF NOT EXISTS `taxonomy_entries` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `taxonomy_predicate_id` int(11) NOT NULL,
+  `value` text COLLATE utf8_bin NOT NULL,
+  `expanded` text COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `taxonomy_predicate_id` (`taxonomy_predicate_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `taxonomy_predicates`
+--
+
+CREATE TABLE IF NOT EXISTS `taxonomy_predicates` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `taxonomy_id` int(11) NOT NULL,
+  `value` text COLLATE utf8_bin NOT NULL,
+  `expanded` text COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `taxonomy_id` (`taxonomy_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `templates`
 --
 
@@ -669,7 +714,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `authkey` varchar(40) COLLATE utf8_bin DEFAULT NULL,
   `invited_by` int(11) NOT NULL DEFAULT 0,
   `gpgkey` longtext COLLATE utf8_bin,
-  `certif_public` longtext COLLATE utf8_bin DEFAULT NULL,
+  `certif_public` longtext COLLATE utf8_bin NOT NULL DEFAULT '',
   `nids_sid` int(15) NOT NULL DEFAULT 0,
   `termsaccepted` tinyint(1) NOT NULL DEFAULT 0,
   `newsread` int(11) unsigned DEFAULT 0,
@@ -690,6 +735,49 @@ CREATE TABLE IF NOT EXISTS `users` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `warninglists`
+--
+
+CREATE TABLE IF NOT EXISTS `warninglists` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) COLLATE utf8_bin NOT NULL,
+  `type` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT 'string',
+  `description` text COLLATE utf8_bin NOT NULL,
+  `version` int(11) NOT NULL DEFAULT '1',
+  `enabled` tinyint(1) NOT NULL DEFAULT '0',
+  `warninglist_entry_count` int(11) unsigned DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `warninglist_entries`
+--
+
+CREATE TABLE IF NOT EXISTS `warninglist_entries` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `value` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `warninglist_id` int(11) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `warninglist_types`
+--
+
+CREATE TABLE IF NOT EXISTS `warninglist_types` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `type` varchar(255) COLLATE utf8_bin NOT NULL,
+  `warninglist_id` int(11) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `whitelist`
 --
 
@@ -701,45 +789,12 @@ CREATE TABLE IF NOT EXISTS `whitelist` (
 
 -- --------------------------------------------------------
 
-CREATE TABLE IF NOT EXISTS `taxonomies` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `namespace` varchar(255) COLLATE utf8_bin NOT NULL,
-  `description` text COLLATE utf8_bin NOT NULL,
-  `version` int(11) NOT NULL,
-  `enabled` tinyint(1) NOT NULL DEFAULT 0,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
-
--- --------------------------------------------------------
-
-CREATE TABLE IF NOT EXISTS `taxonomy_entries` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `taxonomy_predicate_id` int(11) NOT NULL,
-  `value` text COLLATE utf8_bin NOT NULL,
-  `expanded` text COLLATE utf8_bin NOT NULL,
-  PRIMARY KEY (`id`),
-  INDEX `taxonomy_predicate_id` (`taxonomy_predicate_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
-
--- --------------------------------------------------------
-
-CREATE TABLE IF NOT EXISTS `taxonomy_predicates` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `taxonomy_id` int(11) NOT NULL,
-  `value` text COLLATE utf8_bin NOT NULL,
-  `expanded` text COLLATE utf8_bin NOT NULL,
-  PRIMARY KEY (`id`),
-  INDEX `taxonomy_id` (`taxonomy_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
-
--- --------------------------------------------------------
-
 --
 -- Default values for initial installation
 --
 
 INSERT INTO `admin_settings` (`id`, `setting`, `value`) VALUES
-(1, 'db_version', '2.4.33');
+(1, 'db_version', '2.4.48');
 
 INSERT INTO `feeds` (`id`, `provider`, `name`, `url`, `distribution`, `default`, `enabled`) VALUES
 (1, 'CIRCL', 'CIRCL OSINT Feed', 'https://www.circl.lu/doc/misp/feed-osint', 3, 1, 0),
