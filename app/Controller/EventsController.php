@@ -1902,6 +1902,7 @@ class EventsController extends AppController {
 	public function _addIOCFile($id) {
 		if (!empty($this->data) && $this->data['Event']['submittedioc']['size'] > 0 &&
 				is_uploaded_file($this->data['Event']['submittedioc']['tmp_name'])) {
+			App::uses('FileAccess', 'Tools');
 			$iocData = FileAccess::readFromFile($this->data['Event']['submittedioc']['tmp_name'], $this->data['Event']['submittedioc']['size']);
 
 			// write
