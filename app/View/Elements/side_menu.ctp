@@ -53,7 +53,7 @@
 					<li<?php echo $publishButtons; ?> class="publishButtons"><a href="#" onClick="publishPopup('<?php echo h($event['Event']['id']); ?>', 'alert')">Publish Event</a></li>
 					<li<?php echo $publishButtons; ?> class="publishButtons"><a href="#" onClick="publishPopup('<?php echo h($event['Event']['id']); ?>', 'publish')">Publish (no email)</a></li>
 					<?php if (Configure::read('MISP.delegation')):?>
-						<?php if (isset($event['Event']['distribution']) && (!isset($delegationRequest) || !$delegationRequest) && $event['Event']['distribution'] == 0 && ($isSiteAdmin || (isset($mayPublish) && $mayPublish))): ?>
+						<?php if ((Configure::read('MISP.unpublishedprivate') || (isset($event['Event']['distribution']) && $event['Event']['distribution'] == 0)) && (!isset($delegationRequest) || !$delegationRequest) && ($isSiteAdmin || (isset($isAclDelegate) && $isAclDelegate))): ?>
 								<li id='lidelegateEvent'><a href="#" onClick="delegatePopup('<?php echo h($event['Event']['id']); ?>');">Delegate Publishing</a></li>
 						<?php endif;?>
 						<?php if (isset($delegationRequest) && $delegationRequest && ($isSiteAdmin || ($isAclPublish && ($me['org_id'] == $delegationRequest['EventDelegation']['org_id'] || $me['org_id'] == $delegationRequest['EventDelegation']['requester_org_id'])))): ?>

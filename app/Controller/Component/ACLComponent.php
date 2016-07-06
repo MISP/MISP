@@ -68,7 +68,7 @@ class ACLComponent extends Component {
 			),
 			'eventDelegations' => array(
 					'acceptDelegation' => array('perm_add'),
-					'delegateEvent' => array('perm_add'),
+					'delegateEvent' => array('perm_delegate'),
 					'deleteDelegation' => array('perm_add'),
 					'view' => array('*'),
 			),

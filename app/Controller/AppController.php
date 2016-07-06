@@ -301,6 +301,7 @@ class AppController extends Controller {
 			$this->set('isAclModify', $role['perm_modify']);
 			$this->set('isAclModifyOrg', $role['perm_modify_org']);
 			$this->set('isAclPublish', $role['perm_publish']);
+			$this->set('isAclDelegate', $role['perm_delegate']);
 			$this->set('isAclSync', $role['perm_sync']);
 			$this->set('isAclAdmin', $role['perm_admin']);
 			$this->set('isAclAudit', $role['perm_audit']);
