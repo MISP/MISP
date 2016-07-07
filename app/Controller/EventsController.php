@@ -859,9 +859,8 @@ class EventsController extends AppController {
 			if ($temp == null) throw new NotFoundException('Invalid event');
 			$id = $temp['Event']['id'];
 		}
-
 		$this->Event->id = $id;
-		if (!$this->Event->exists()) {
+		if (!is_numeric($id) || !$this->Event->exists()) {
 			throw new NotFoundException(__('Invalid event.'));
 		}
 
