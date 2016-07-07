@@ -481,15 +481,6 @@ class AppModel extends Model {
 		return $version_array;
 	}
 
-	// wrapper for UUID generation, compatible with cakephp <= 2.6 and cakephp and cakephp >= 2.7
-	public function generateUuid() {
-		$version = Configure::version();
-		$version = explode('.', $version);
-		if (intval($version[0]) <= 2 && intval($version[1]) < 7) $uuid = String::uuid();
-		else $uuid = CakeText::uuid();
-		return $uuid;
-	}
-
 	// alternative to the build in notempty/notblank validation functions, compatible with cakephp <= 2.6 and cakephp and cakephp >= 2.7
 	public function valueNotEmpty($value) {
 		$field = array_keys($value);

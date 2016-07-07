@@ -528,7 +528,7 @@ class Attribute extends AppModel {
 		}
 		// generate UUID if it doesn't exist
 		if (empty($this->data['Attribute']['uuid'])) {
-			$this->data['Attribute']['uuid'] = $this->generateUuid();
+			$this->data['Attribute']['uuid'] = CakeText::uuid();
 		}
 		// generate timestamp if it doesn't exist
 		if (empty($this->data['Attribute']['timestamp'])) {

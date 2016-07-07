@@ -86,7 +86,7 @@ class Organisation extends AppModel{
 	public function beforeValidate($options = array()) {
 		parent::beforeValidate();
 		if (empty($this->data['Organisation']['uuid']) && (isset($this->data['Organisation']['local']) && $this->data['Organisation']['local'])) {
-			$this->data['Organisation']['uuid'] = $this->generateUuid();
+			$this->data['Organisation']['uuid'] = CakeText::uuid();
 		}
 		$date = date('Y-m-d H:i:s');
 		if (!isset($this->data['Organisation']['date_created']) || empty($this->data['Organisation']['date_created'])) $this->data['Organisation']['date_created'] = $date;
@@ -175,7 +175,7 @@ class Organisation extends AppModel{
 		if (empty($existingOrg)) {
 			$this->create();
 			$organisation = array(
-					'uuid' => $this->generateUuid(),
+					'uuid' =>CakeText::uuid(),
 					'name' => $name,
 					'local' => $local,
 					'created_by' => $user_id

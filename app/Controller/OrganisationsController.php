@@ -117,7 +117,7 @@ class OrganisationsController extends AppController {
 	}
 
 	public function admin_generateuuid() {
-		$this->set('uuid', $this->Organisation->generateUuid());
+		$this->set('uuid', CakeText::uuid());
 		$this->set('_serialize', array('uuid'));
 	}
 
