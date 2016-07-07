@@ -642,7 +642,7 @@ class UsersController extends AppController {
 						'name' => !empty(Configure::read('MISP.org')) ? Configure::read('MISP.org') : 'ADMIN',
 						'description' => 'Automatically generated admin organisation',
 						'type' => 'ADMIN',
-						'uuid' => $this->User->Organisation->generateUuid(),
+						'uuid' => CakeText::uuid(),
 						'local' => 1,
 						'sector' => '',
 						'nationality' => ''
