@@ -381,6 +381,42 @@ class AppModel extends Model {
 					PRIMARY KEY (`id`)
 					) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
 				break;
+			case '2.4.49':
+				// table: roles
+				$sqlArray[] = "ALTER TABLE `roles` ALTER COLUMN `perm_default` SET DEFAULT '0'";
+				// table: users
+				$sqlArray[] = "ALTER TABLE `users` ALTER COLUMN `server_id` SET DEFAULT '0'";
+				$sqlArray[] = "ALTER TABLE `users` ALTER COLUMN `autoalert` SET DEFAULT '0'";
+				$sqlArray[] = "ALTER TABLE `users` ALTER COLUMN `invited_by` SET DEFAULT '0'";
+				$sqlArray[] = "ALTER TABLE `users` ALTER COLUMN `nids_sid` SET DEFAULT '0'";
+				$sqlArray[] = "ALTER TABLE `users` ALTER COLUMN `termsaccepted` SET DEFAULT '0'";
+				$sqlArray[] = "ALTER TABLE `users` ALTER COLUMN `role_id` SET DEFAULT '0'";
+				$sqlArray[] = "ALTER TABLE `users` ALTER COLUMN `change_pw` SET DEFAULT '0'";
+				$sqlArray[] = "ALTER TABLE `users` ALTER COLUMN `contactalert` SET DEFAULT '0'";
+				$sqlArray[] = "ALTER TABLE `users` ALTER COLUMN `disabled` SET DEFAULT '0'";
+				$sqlArray[] = "ALTER TABLE `users` MODIFY `authkey` varchar(40) COLLATE utf8_bin DEFAULT NULL";
+				$sqlArray[] = "ALTER TABLE `users` MODIFY `gpgkey` longtext COLLATE utf8_bin";
+				$sqlArray[] = "ALTER TABLE `users` MODIFY `newsread` date DEFAULT NULL";
+				// table: events
+				$sqlArray[] = "ALTER TABLE `events` ALTER COLUMN `publish_timestamp` SET DEFAULT '0'";
+				// table: jobs
+				$sqlArray[] = "ALTER TABLE `jobs` ALTER COLUMN `org_id` SET DEFAULT '0'";
+				$sqlArray[] = "ALTER TABLE `jobs` MODIFY `process_id` varchar(32) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL";
+				// table: organisations
+				$sqlArray[] = "ALTER TABLE `organisations` ALTER COLUMN `created_by` SET DEFAULT '0'";
+				$sqlArray[] = "ALTER TABLE `organisations` MODIFY `uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL"; // https://github.com/MISP/MISP/pull/1260
+				// table: logs
+				$sqlArray[] = "ALTER TABLE `logs` MODIFY `title` text CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL";
+				$sqlArray[] = "ALTER TABLE `logs` MODIFY `change` text CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL";
+				$sqlArray[] = "ALTER TABLE `logs` MODIFY `description` text CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL";
+				// table: servers
+				$sqlArray[] = "ALTER TABLE `servers` DROP `lastfetchedid`"; // git commit hash d4c393897e8666fbbf04443a97d60c508700f5b4
+				$sqlArray[] = "ALTER TABLE `servers` MODIFY `cert_file` varchar(255) COLLATE utf8_bin DEFAULT NULL";
+				// table: feeds
+				$sqlArray[] = "ALTER TABLE `feeds` ALTER COLUMN `sharing_group_id` SET DEFAULT '0'";
+				$sqlArray[] = "ALTER TABLE `feeds` ALTER COLUMN `tag_id` SET DEFAULT '0'";
+				$sqlArray[] = "ALTER TABLE `feeds` MODIFY `rules` text COLLATE utf8_bin DEFAULT NULL";
+				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4';
 				$sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4';
