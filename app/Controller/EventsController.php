@@ -852,12 +852,14 @@ class EventsController extends AppController {
 	 */
 
 	public function view($id = null, $continue=false, $fromEvent=null) {
-		// If the length of the id provided is 36 then it is most likely a Uuid - find the id of the event, change $id to it and proceed to read the event as if the ID was entered.
-		if (strlen($id) == 36) {
+		// find the id of the event, change $id to it and proceed to read the event as if the ID was entered.
+		if (Validation::uuid($id)) {
 			$this->Event->recursive = -1;
 			$temp = $this->Event->findByUuid($id);
 			if ($temp == null) throw new NotFoundException('Invalid event');
 			$id = $temp['Event']['id'];
+		} else if (!is_numeric($id)) {
+			throw new NotFoundException(__('Invalid event id.'));
 		}
 
 		$this->Event->id = $id;
