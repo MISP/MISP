@@ -22,8 +22,7 @@ class UserInitShell extends AppShell {
 					'perm_regexp_access' => 1,
 					'perm_sharing_group' => 1,
 					'perm_tagger' => 1,
-					'perm_template' => 1,
-					'perm_site_admin' => 1
+					'perm_template' => 1
 			));
 			$this->Role->save($siteAdmin);
 		}
