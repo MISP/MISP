@@ -234,10 +234,10 @@ class ShadowAttribute extends AppModel {
 			foreach ($correlatingAttributes[$k] as $key => &$correlatingAttribute) {
 				if ($correlatingAttribute['Attribute']['event_id'] == $temp['event_id']) unset($correlatingAttributes[$k][$key]);
 			}
-			foreach ($correlatingAttributes as $k => $cA) {
+			foreach ($correlatingAttributes as $key => $cA) {
 				foreach ($cA as $corr) {
 					$shadow_attribute_correlations[] = array(
-							'value' => $correlatingValues[$k],
+							'value' => $correlatingValues[$key],
 							'1_event_id' => $temp['event_id'],
 							'1_shadow_attribute_id' => $temp['id'],
 							'event_id' => $corr['Attribute']['event_id'],
