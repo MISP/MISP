@@ -479,7 +479,7 @@ class AppController extends Controller {
 			));
 			foreach ($attributes as $k => $attribute) {
 				if ($k > 0) {
-					$attribute['Attribute']['uuid'] = CakeText::uuid();
+					$attribute['Attribute']['uuid'] = $this->Attribute->generateUuid();
 					$this->Attribute->save($attribute);
 					$counter++;
 				}

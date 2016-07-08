@@ -1955,7 +1955,7 @@ class EventsController extends AppController {
 			// add the original openIOC file as an attachment
 			$saveEvent['Attribute'][] = array(
 				'category' => 'External analysis',
-				'uuid' =>  CakeText::uuid(),
+				'uuid' =>  $this->Event->generateUuid(),
 				'type' => 'attachment',
 				'value' => $this->data['Event']['submittedioc']['name'],
 				'to_ids' => false,
@@ -2543,7 +2543,7 @@ class EventsController extends AppController {
 			'org_id' => $this->Auth->user('org_id'),
 			'orgc_id' => $this->Auth->user('org_id'),
 			'timestamp' => $ts,
-			'uuid' => CakeText::uuid(),
+			'uuid' => $this->Event->generateUuid(),
 			'user_id' => $this->Auth->user('id'),
 		));
 		$default['Event']['info'] = 'A junk event for load testing';
@@ -2564,7 +2564,7 @@ class EventsController extends AppController {
 						'value1' => $value,
 						'value2' => '',
 						'comment' => '',
-						'uuid' => CakeText::uuid(),
+						'uuid' => $this->Event->generateUuid(),
 						'timestamp' => $ts,
 				);
 			}

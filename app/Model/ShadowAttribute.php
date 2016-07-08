@@ -320,7 +320,7 @@ class ShadowAttribute extends AppModel {
 
 		// generate UUID if it doesn't exist
 		if (empty($this->data['ShadowAttribute']['uuid'])) {
-			$this->data['ShadowAttribute']['uuid'] = CakeText::uuid();
+			$this->data['ShadowAttribute']['uuid'] = $this->generateUuid();
 		}
 
 		// always return true, otherwise the object cannot be saved

@@ -362,7 +362,7 @@ class Event extends AppModel {
 
 		// generate UUID if it doesn't exist
 		if (empty($this->data['Event']['uuid'])) {
-			$this->data['Event']['uuid'] = CakeText::uuid();
+			$this->data['Event']['uuid'] = $this->generateUuid();
 		}
 		// generate timestamp if it doesn't exist
 		if (empty($this->data['Event']['timestamp'])) {

@@ -34,7 +34,7 @@ class UserInitShell extends AppShell {
 					'name' => !empty(Configure::read('MISP.org')) ? Configure::read('MISP.org') : 'ADMIN',
 					'description' => 'Automatically generated admin organisation',
 					'type' => 'ADMIN',
-					'uuid' => CakeText::uuid(),
+					'uuid' => $this->Organisation->generateUuid(),
 					'local' => 1
 			));
 			$this->Organisation->save($org);
