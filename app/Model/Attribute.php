@@ -758,7 +758,7 @@ class Attribute extends AppModel {
 			case 'target-email':
 			case 'whois-registrant-email':
 				// we don't use the native function to prevent issues with partial email addresses
-				if (preg_match("#^[A-Z0-9._&%+-]*@[A-Z0-9.\-_]+\.[A-Z]{2,}$#i", $value)) {
+				if (preg_match("#^[A-Z0-9._&%+-=~]*@[A-Z0-9.\-_]+\.[A-Z]{2,}$#i", $value)) {
 					$returnValue = true;
 				} else {
 					$returnValue = 'Email address has an invalid format. Please double check the value or select type "other".';
