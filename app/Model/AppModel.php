@@ -120,13 +120,13 @@ class AppModel extends Model {
 				$sql = 'ALTER TABLE `logs` MODIFY COLUMN `title` text, MODIFY COLUMN `change` text;';
 				break;
 			case 'addEventBlacklists':
-				$sql = 'CREATE TABLE IF NOT EXISTS `event_blacklists` ( `id` int(11) NOT NULL AUTO_INCREMENT, `event_uuid` varchar(40) COLLATE utf8_bin NOT NULL, `created` datetime NOT NULL, PRIMARY KEY (`id`), `event_info` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL, `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL, `event_orgc` VARCHAR( 255 ) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin ;';
+				$sql = 'CREATE TABLE IF NOT EXISTS `event_blacklists` ( `id` int(11) NOT NULL AUTO_INCREMENT, `event_uuid` varchar(40) COLLATE utf8_bin NOT NULL, `created` datetime NOT NULL, PRIMARY KEY (`id`), `event_info` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL, `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL, `event_orgc` VARCHAR( 255 ) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;';
 				break;
 			case 'addOrgBlacklists':
-				$sql = 'CREATE TABLE IF NOT EXISTS `org_blacklists` ( `id` int(11) NOT NULL AUTO_INCREMENT, `org_uuid` varchar(40) COLLATE utf8_bin NOT NULL, `created` datetime NOT NULL, PRIMARY KEY (`id`), `org_name` varchar(255) COLLATE utf8_bin NOT NULL, `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin ;';
+				$sql = 'CREATE TABLE IF NOT EXISTS `org_blacklists` ( `id` int(11) NOT NULL AUTO_INCREMENT, `org_uuid` varchar(40) COLLATE utf8_bin NOT NULL, `created` datetime NOT NULL, PRIMARY KEY (`id`), `org_name` varchar(255) COLLATE utf8_bin NOT NULL, `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;';
 				break;
 			case 'addEventBlacklistsContext':
-				$sql = 'ALTER TABLE  `event_blacklists` ADD  `event_orgc` VARCHAR( 255 ) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL , ADD  `event_info` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL, ADD `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL ;';
+				$sql = 'ALTER TABLE  `event_blacklists` ADD  `event_orgc` VARCHAR( 255 ) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL , ADD  `event_info` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL, ADD `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL;';
 				break;
 			case 'addSightings':
 				$sql = "CREATE TABLE IF NOT EXISTS `sightings` (
@@ -139,7 +139,7 @@ class AppModel extends Model {
 				INDEX `attribute_id` (`attribute_id`),
 				INDEX `event_id` (`event_id`),
 				INDEX `org_id` (`org_id`)
-				) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin ;";
+				) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
 				break;
 			case 'makeAttributeUUIDsUnique':
 				$this->__dropIndex('attributes', 'uuid');
@@ -177,7 +177,7 @@ class AppModel extends Model {
 					`version` int(11) NOT NULL,
 					`enabled` tinyint(1) NOT NULL DEFAULT 0,
 					PRIMARY KEY (`id`)
-					) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin ;";
+					) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
 
 				$sqlArray[] = "CREATE TABLE IF NOT EXISTS `taxonomy_entries` (
 					`id` int(11) NOT NULL AUTO_INCREMENT,
@@ -201,13 +201,13 @@ class AppModel extends Model {
 
 				$sqlArray[] = 'ALTER TABLE  `servers` ADD  `name` varchar(255) NOT NULL;';
 
-				$sqlArray[] = 'ALTER TABLE  `sharing_groups` ADD  `sync_user_id` INT( 11 ) NOT NULL DEFAULT \'0\' AFTER  `org_id`;';
+				$sqlArray[] = 'ALTER TABLE  `sharing_groups` ADD  `sync_user_id` INT( 11 ) NOT NULL DEFAULT \'0\' AFTER `org_id`;';
 
 				$sqlArray[] = 'ALTER TABLE `users` ADD  `disabled` BOOLEAN NOT NULL;';
 				$sqlArray[] = 'ALTER TABLE `users` ADD  `expiration` datetime DEFAULT NULL;';
 
-				$sqlArray[] = 'UPDATE `roles` SET `perm_template` = 1 WHERE `perm_site_admin` = 1 OR `perm_admin` = 1';
-				$sqlArray[] = 'UPDATE `roles` SET `perm_sharing_group` = 1 WHERE `perm_site_admin` = 1 OR `perm_sync` = 1';
+				$sqlArray[] = 'UPDATE `roles` SET `perm_template` = 1 WHERE `perm_site_admin` = 1 OR `perm_admin` = 1;';
+				$sqlArray[] = 'UPDATE `roles` SET `perm_sharing_group` = 1 WHERE `perm_site_admin` = 1 OR `perm_sync` = 1;';
 
 				//create indexes
 				break;
@@ -247,7 +247,7 @@ class AppModel extends Model {
 						$extra = '';
 						$this->__dropIndex($table, $field[0]);
 						if (isset($field[2])) $extra = ' (' . $field[2] . ')';
-						$sqlArray[] = 'ALTER TABLE `' . $table . '` ADD ' . ($downgradeThis ? 'INDEX' : $field[1]) . ' `' . $field[0] . '` (`' . $field[0] . '`' . $extra . ')';
+						$sqlArray[] = 'ALTER TABLE `' . $table . '` ADD ' . ($downgradeThis ? 'INDEX' : $field[1]) . ' `' . $field[0] . '` (`' . $field[0] . '`' . $extra . ');';
 					}
 				}
 				break;
@@ -258,7 +258,7 @@ class AppModel extends Model {
 					`value` text COLLATE utf8_bin NOT NULL,
 					PRIMARY KEY (`id`)
 				) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
-				$sqlArray[] = "INSERT INTO `admin_settings` (`setting`, `value`) VALUES ('db_version', '2.4.0')";
+				$sqlArray[] = "INSERT INTO `admin_settings` (`setting`, `value`) VALUES ('db_version', '2.4.0');";
 				break;
 			case '2.4.18':
 				$sqlArray[] = "ALTER TABLE `users` ADD `current_login` INT(11) DEFAULT 0;";
@@ -320,7 +320,7 @@ class AppModel extends Model {
 				break;
 			case '2.4.32':
 				$sqlArray[] = "ALTER TABLE `roles` ADD `perm_tag_editor` tinyint(1) NOT NULL DEFAULT 0;";
-				$sqlArray[] = 'UPDATE `roles` SET `perm_tag_editor` = 1 WHERE `perm_tagger` = 1';
+				$sqlArray[] = 'UPDATE `roles` SET `perm_tag_editor` = 1 WHERE `perm_tagger` = 1;';
 				break;
 			case '2.4.33':
 				$sqlArray[] = "ALTER TABLE `users` ADD `force_logout` tinyint(1) NOT NULL DEFAULT 0;";
@@ -331,7 +331,7 @@ class AppModel extends Model {
 					`name` varchar(255) COLLATE utf8_bin NOT NULL,
 					`type` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT 'string',
 					`description` text COLLATE utf8_bin NOT NULL,
-					`version` int(11) NOT NULL DEFAULT '1',
+					`version` int(11) NOT NULL DEFAULT 1,
 					`enabled` tinyint(1) NOT NULL DEFAULT 0,
 					`warninglist_entry_count` int(11) unsigned DEFAULT NULL,
 					PRIMARY KEY (`id`)
@@ -367,7 +367,7 @@ class AppModel extends Model {
 				$sqlArray[] = "ALTER TABLE `attributes` ADD `deleted` tinyint(1) NOT NULL DEFAULT 0;";
 				break;
 			case '2.4.44':
-				$sqlArray[] = "UPDATE `servers` SET `url` = TRIM(TRAILING '/' FROM `url`)";
+				$sqlArray[] = "UPDATE `servers` SET `url` = TRIM(TRAILING '/' FROM `url`);";
 				break;
 			case '2.4.45':
 				$sqlArray[] = 'ALTER TABLE `users` CHANGE `newsread` `newsread` int(11) unsigned;';
@@ -383,47 +383,47 @@ class AppModel extends Model {
 				break;
 			case '2.4.49':
 				// table: roles
-				$sqlArray[] = "ALTER TABLE `roles` ALTER COLUMN `perm_default` SET DEFAULT 0";
+				$sqlArray[] = "ALTER TABLE `roles` ALTER COLUMN `perm_default` SET DEFAULT 0;";
 				// table: users
-				$sqlArray[] = "ALTER TABLE `users` ALTER COLUMN `server_id` SET DEFAULT 0";
-				$sqlArray[] = "ALTER TABLE `users` ALTER COLUMN `autoalert` SET DEFAULT 0";
-				$sqlArray[] = "ALTER TABLE `users` ALTER COLUMN `invited_by` SET DEFAULT 0";
-				$sqlArray[] = "ALTER TABLE `users` ALTER COLUMN `nids_sid` SET DEFAULT 0";
-				$sqlArray[] = "ALTER TABLE `users` ALTER COLUMN `termsaccepted` SET DEFAULT 0";
-				$sqlArray[] = "ALTER TABLE `users` ALTER COLUMN `role_id` SET DEFAULT 0";
-				$sqlArray[] = "ALTER TABLE `users` ALTER COLUMN `change_pw` SET DEFAULT 0";
-				$sqlArray[] = "ALTER TABLE `users` ALTER COLUMN `contactalert` SET DEFAULT 0";
-				$sqlArray[] = "ALTER TABLE `users` ALTER COLUMN `disabled` SET DEFAULT 0";
-				$sqlArray[] = "ALTER TABLE `users` MODIFY `authkey` varchar(40) COLLATE utf8_bin DEFAULT NULL";
-				$sqlArray[] = "ALTER TABLE `users` MODIFY `gpgkey` longtext COLLATE utf8_bin";
-				$sqlArray[] = "ALTER TABLE `users` MODIFY `newsread` date DEFAULT NULL";
+				$sqlArray[] = "ALTER TABLE `users` ALTER COLUMN `server_id` SET DEFAULT 0;";
+				$sqlArray[] = "ALTER TABLE `users` ALTER COLUMN `autoalert` SET DEFAULT 0;";
+				$sqlArray[] = "ALTER TABLE `users` ALTER COLUMN `invited_by` SET DEFAULT 0;";
+				$sqlArray[] = "ALTER TABLE `users` ALTER COLUMN `nids_sid` SET DEFAULT 0;";
+				$sqlArray[] = "ALTER TABLE `users` ALTER COLUMN `termsaccepted` SET DEFAULT 0;";
+				$sqlArray[] = "ALTER TABLE `users` ALTER COLUMN `role_id` SET DEFAULT 0;";
+				$sqlArray[] = "ALTER TABLE `users` ALTER COLUMN `change_pw` SET DEFAULT 0;";
+				$sqlArray[] = "ALTER TABLE `users` ALTER COLUMN `contactalert` SET DEFAULT 0;";
+				$sqlArray[] = "ALTER TABLE `users` ALTER COLUMN `disabled` SET DEFAULT 0;";
+				$sqlArray[] = "ALTER TABLE `users` MODIFY `authkey` varchar(40) COLLATE utf8_bin DEFAULT NULL;";
+				$sqlArray[] = "ALTER TABLE `users` MODIFY `gpgkey` longtext COLLATE utf8_bin;";
+				$sqlArray[] = "ALTER TABLE `users` MODIFY `newsread` date DEFAULT NULL;";
 				// table: events
-				$sqlArray[] = "ALTER TABLE `events` ALTER COLUMN `publish_timestamp` SET DEFAULT 0";
+				$sqlArray[] = "ALTER TABLE `events` ALTER COLUMN `publish_timestamp` SET DEFAULT 0;";
 				// table: jobs
-				$sqlArray[] = "ALTER TABLE `jobs` ALTER COLUMN `org_id` SET DEFAULT 0";
-				$sqlArray[] = "ALTER TABLE `jobs` MODIFY `process_id` varchar(32) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL";
+				$sqlArray[] = "ALTER TABLE `jobs` ALTER COLUMN `org_id` SET DEFAULT 0;";
+				$sqlArray[] = "ALTER TABLE `jobs` MODIFY `process_id` varchar(32) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL;";
 				// table: organisations
-				$sqlArray[] = "ALTER TABLE `organisations` ALTER COLUMN `created_by` SET DEFAULT 0";
-				$sqlArray[] = "ALTER TABLE `organisations` MODIFY `uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL"; // https://github.com/MISP/MISP/pull/1260
+				$sqlArray[] = "ALTER TABLE `organisations` ALTER COLUMN `created_by` SET DEFAULT 0;";
+				$sqlArray[] = "ALTER TABLE `organisations` MODIFY `uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL;"; // https://github.com/MISP/MISP/pull/1260
 				// table: logs
-				$sqlArray[] = "ALTER TABLE `logs` MODIFY `title` text CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL";
-				$sqlArray[] = "ALTER TABLE `logs` MODIFY `change` text CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL";
-				$sqlArray[] = "ALTER TABLE `logs` MODIFY `description` text CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL";
+				$sqlArray[] = "ALTER TABLE `logs` MODIFY `title` text CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL;";
+				$sqlArray[] = "ALTER TABLE `logs` MODIFY `change` text CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL;";
+				$sqlArray[] = "ALTER TABLE `logs` MODIFY `description` text CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL;";
 				// table: servers
-				$sqlArray[] = "ALTER TABLE `servers` DROP `lastfetchedid`"; // git commit hash d4c393897e8666fbbf04443a97d60c508700f5b4
-				$sqlArray[] = "ALTER TABLE `servers` MODIFY `cert_file` varchar(255) COLLATE utf8_bin DEFAULT NULL";
+				$sqlArray[] = "ALTER TABLE `servers` DROP `lastfetchedid`;"; // git commit hash d4c393897e8666fbbf04443a97d60c508700f5b4
+				$sqlArray[] = "ALTER TABLE `servers` MODIFY `cert_file` varchar(255) COLLATE utf8_bin DEFAULT NULL;";
 				// table: feeds
-				$sqlArray[] = "ALTER TABLE `feeds` ALTER COLUMN `sharing_group_id` SET DEFAULT 0";
-				$sqlArray[] = "ALTER TABLE `feeds` ALTER COLUMN `tag_id` SET DEFAULT 0";
-				$sqlArray[] = "ALTER TABLE `feeds` MODIFY `rules` text COLLATE utf8_bin DEFAULT NULL";
+				$sqlArray[] = "ALTER TABLE `feeds` ALTER COLUMN `sharing_group_id` SET DEFAULT 0;";
+				$sqlArray[] = "ALTER TABLE `feeds` ALTER COLUMN `tag_id` SET DEFAULT 0;";
+				$sqlArray[] = "ALTER TABLE `feeds` MODIFY `rules` text COLLATE utf8_bin DEFAULT NULL;";
 				
 				// DB changes to support https://github.com/MISP/MISP/pull/1334
 				$sqlArray[] = "ALTER TABLE `feeds` ADD `perm_delegate` tinyint(1) NOT NULL DEFAULT 0 AFTER `perm_publish`;";
 				$sqlArray[] = "UPDATE `feeds` SET `perm_delegate` = 1 WHERE `perm_publish` = 1;";
 				break;
 			case 'fixNonEmptySharingGroupID':
-				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4';
-				$sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4';
+				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
+				$sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
 				break;
 			case 'cleanupAfterUpgrade':
 				$sqlArray[] = 'ALTER TABLE `events` DROP `org`;';
@@ -476,10 +476,10 @@ class AppModel extends Model {
 
 	private function __dropIndex($table, $field) {
 		$this->Log = ClassRegistry::init('Log');
-		$indexCheck = "SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema=DATABASE() AND table_name='" . $table . "' AND index_name LIKE '" . $field . "%'";
+		$indexCheck = "SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema=DATABASE() AND table_name='" . $table . "' AND index_name LIKE '" . $field . "%';";
 		$indexCheckResult = $this->query($indexCheck);
 		foreach ($indexCheckResult as $icr) {
-			$dropIndex = 'ALTER TABLE ' . $table . ' DROP INDEX ' . $icr['STATISTICS']['INDEX_NAME'];
+			$dropIndex = 'ALTER TABLE ' . $table . ' DROP INDEX ' . $icr['STATISTICS']['INDEX_NAME'] . ';';
 			$result = true;
 			try {
 				$this->query($dropIndex);
