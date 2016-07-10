@@ -331,7 +331,7 @@ class AppModel extends Model {
 					`name` varchar(255) COLLATE utf8_bin NOT NULL,
 					`type` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT 'string',
 					`description` text COLLATE utf8_bin NOT NULL,
-					`version` int(11) NOT NULL DEFAULT '1',
+					`version` int(11) NOT NULL DEFAULT 1,
 					`enabled` tinyint(1) NOT NULL DEFAULT 0,
 					`warninglist_entry_count` int(11) unsigned DEFAULT NULL,
 					PRIMARY KEY (`id`)
