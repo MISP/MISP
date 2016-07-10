@@ -418,7 +418,7 @@ class AppModel extends Model {
 				$sqlArray[] = "ALTER TABLE `feeds` MODIFY `rules` text COLLATE utf8_bin DEFAULT NULL";
 				
 				// DB changes to support https://github.com/MISP/MISP/pull/1334
-				$sqlArray[] = "ALTER TABLE `feeds` ADD `perm_delegate` tinyint(1) NOT NULL SET DEFAULT 0;";
+				$sqlArray[] = "ALTER TABLE `feeds` ADD `perm_delegate` tinyint(1) NOT NULL DEFAULT 0 AFTER `perm_publish`;";
 				$sqlArray[] = "UPDATE `feeds` SET `perm_delegate` = 1 WHERE `perm_publish` = 1;";
 				break;
 			case 'fixNonEmptySharingGroupID':

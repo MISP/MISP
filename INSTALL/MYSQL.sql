@@ -326,6 +326,7 @@ CREATE TABLE IF NOT EXISTS `roles` (
   `perm_modify` tinyint(1) DEFAULT NULL,
   `perm_modify_org` tinyint(1) DEFAULT NULL,
   `perm_publish` tinyint(1) DEFAULT NULL,
+  `perm_delegate` tinyint(1) NOT NULL DEFAULT 0,
   `perm_sync` tinyint(1) DEFAULT NULL,
   `perm_admin` tinyint(1) DEFAULT NULL,
   `perm_audit` tinyint(1) DEFAULT NULL,
