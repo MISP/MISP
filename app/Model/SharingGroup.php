@@ -55,7 +55,7 @@ class SharingGroup extends AppModel {
 	public function beforeValidate($options = array()) {
 		parent::beforeValidate();
 		if (empty($this->data['SharingGroup']['uuid'])) {
-			$this->data['SharingGroup']['uuid'] = $this->generateUuid();
+			$this->data['SharingGroup']['uuid'] = CakeText::uuid();
 		}
 		$date = date('Y-m-d H:i:s');
 		if (empty($this->data['SharingGroup']['date_created'])) {
