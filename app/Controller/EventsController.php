@@ -2649,7 +2649,7 @@ class EventsController extends AppController {
 		if ($id === false) $id = $this->request->data['event'];
 		if ($tag_id === false) $tag_id = $this->request->data['tag'];
 		if (!is_numeric($tag_id)) {
-			$tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => array('LOWER(Tag.name) LIKE' => '%' . strtolower(trim($tag_id)) . '%')));
+			$tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => array('LOWER(Tag.name) LIKE' => strtolower(trim($tag_id)))));
 			if (empty($tag)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200));
 			$tag_id = $tag['Tag']['id'];
 		}
@@ -2699,8 +2699,9 @@ class EventsController extends AppController {
 		$this->request->data = $RearrangeTool->rearrangeArray($this->request->data, $rearrangeRules);
 		if ($id === false) $id = $this->request->data['event'];
 		if ($tag_id === false) $tag_id = $this->request->data['tag'];
+		if (empty($tag_id)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')),'status'=>200));
 		if (!is_numeric($tag_id)) {
-			$tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => array('LOWER(Tag.name) LIKE' => '%' . strtolower(trim($tag_id)) . '%')));
+			$tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => array('LOWER(Tag.name) LIKE' => strtolower(trim($tag_id)))));
 			if (empty($tag)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200));
 			$tag_id = $tag['Tag']['id'];
 		}
