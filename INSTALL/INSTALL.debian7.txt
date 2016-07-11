@@ -36,8 +36,14 @@ pear config-set http_proxy http://username:password@yourproxy:80
 3/ MISP code
 ------------
 # Download MISP using git in the /var/www/ directory.
-cd /var/www/
-git clone https://github.com/MISP/MISP.git
+mkdir /var/www/MISP
+cd /var/www/MISP
+git clone https://github.com/MISP/MISP.git /var/www/MISP
+git checkout tags/$(git describe --tags `git rev-list --tags --max-count=1`)
+# if the last shortcut doesn't work, specify the latest version manually
+# example: git checkout tags/v2.4.XY
+# the message regarding a "detached HEAD state" is expected behaviour
+# (you only have to create a new branch, if you want to change stuff and do a pull request for example)
 
 # if you are behind a proxy:
 git config --global http.proxy http://username:password@yourproxy:80
