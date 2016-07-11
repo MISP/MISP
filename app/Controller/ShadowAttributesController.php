@@ -66,7 +66,7 @@ class ShadowAttributesController extends AppController {
 				'recursive' => -1,
 				'conditions' => array(
 					'ShadowAttribute.id' => $id,
-					'deleted' => false
+					'deleted' => 0
 				),
 			)
 		);
@@ -225,7 +225,7 @@ class ShadowAttributesController extends AppController {
 					'recursive' => -1,
 					'conditions' => array(
 						'ShadowAttribute.id' => $id,
-						'deleted' => false
+						'deleted' => 0
 					),
 				)
 			);

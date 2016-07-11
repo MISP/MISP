@@ -133,7 +133,7 @@ class EventsController extends AppController {
 				$includeQuery['conditions']['OR'][] = array('lower(Attribute.value1) LIKE' => $i);
 				$includeQuery['conditions']['OR'][] = array('lower(Attribute.value2) LIKE' => $i);
 			}
-			$includeQuery['conditions']['AND'][] = array('Attribute.deleted' => false);
+			$includeQuery['conditions']['AND'][] = array('Attribute.deleted' => 0);
 			$includeHits = $this->Event->Attribute->find('all', $includeQuery);
 
 			// convert it into an array that uses the event ID as a key
@@ -153,7 +153,7 @@ class EventsController extends AppController {
 				$excludeQuery['conditions']['OR'][] = array('lower(Attribute.value1) LIKE' => $e);
 				$excludeQuery['conditions']['OR'][] = array('lower(Attribute.value2) LIKE' => $e);
 			}
-			$excludeQuery['conditions']['AND'][] = array('Attribute.deleted' => false);
+			$excludeQuery['conditions']['AND'][] = array('Attribute.deleted' => 0);
 			$excludeHits = $this->Event->Attribute->find('all', $excludeQuery);
 
 			// convert it into an array that uses the event ID as a key
@@ -189,7 +189,7 @@ class EventsController extends AppController {
 		$conditions = array(
 			'AND' => array(
 				'OR' => $subconditions,
-				'deleted' => false
+				'deleted' => 0
 			)
 		);
 		$attributeHits = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array(
@@ -689,7 +689,7 @@ class EventsController extends AppController {
 	public function viewEventAttributes($id, $all = false) {
 		$conditions = array('eventid' => $id);
 		if (isset($this->params['named']['deleted']) && $this->params['named']['deleted']) {
-			$conditions['deleted'] = true;
+			$conditions['deleted'] = 1;
 		}
 		$results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
 		if (empty($results)) throw new NotFoundException('Invalid event');
@@ -874,7 +874,7 @@ class EventsController extends AppController {
 			$conditions['includeAttachments'] = true;
 		}
 		if (isset($this->params['named']['deleted']) && $this->params['named']['deleted']) {
-			$conditions['deleted'] = true;
+			$conditions['deleted'] = 1;
 		}
 		$results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
 		if (empty($results)) throw new NotFoundException('Invalid event');

@@ -1173,11 +1173,11 @@ class Event extends AppModel {
 				$conditionsAttributes['AND'][] = array(
 					'OR' => array(
 						'(SELECT events.org_id FROM events WHERE events.id = Attribute.event_id)' => $user['org_id'],
-						'Attribute.deleted' => false
+						'Attribute.deleted' => 0
 					)
 				);
 			}
-		} else $conditionsAttributes['AND']['Attribute.deleted'] = false;
+		} else $conditionsAttributes['AND']['Attribute.deleted'] = 0;
 
 		if ($options['idList'] && !$options['tags']) {
 			$conditions['AND'][] = array('Event.id' => $options['idList']);

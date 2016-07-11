@@ -81,28 +81,28 @@ class Role extends AppModel {
 	public function beforeSave($options = array()) {
 		switch ($this->data['Role']['permission']) {
 			case '0':
-				$this->data['Role']['perm_add'] = false;
-				$this->data['Role']['perm_modify'] = false;
-				$this->data['Role']['perm_modify_org'] = false;
-				$this->data['Role']['perm_publish'] = false;
+				$this->data['Role']['perm_add'] = 0;
+				$this->data['Role']['perm_modify'] = 0;
+				$this->data['Role']['perm_modify_org'] = 0;
+				$this->data['Role']['perm_publish'] = 0;
 				break;
 			case '1':
-				$this->data['Role']['perm_add'] = true;
-				$this->data['Role']['perm_modify'] = true; // SHOULD BE true
-				$this->data['Role']['perm_modify_org'] = false;
-				$this->data['Role']['perm_publish'] = false;
+				$this->data['Role']['perm_add'] = 1;
+				$this->data['Role']['perm_modify'] = 1; // SHOULD BE true
+				$this->data['Role']['perm_modify_org'] = 0;
+				$this->data['Role']['perm_publish'] = 0;
 				break;
 			case '2':
-				$this->data['Role']['perm_add'] = true;
-				$this->data['Role']['perm_modify'] = true;
-				$this->data['Role']['perm_modify_org'] = true;
-				$this->data['Role']['perm_publish'] = false;
+				$this->data['Role']['perm_add'] = 1;
+				$this->data['Role']['perm_modify'] = 1;
+				$this->data['Role']['perm_modify_org'] = 1;
+				$this->data['Role']['perm_publish'] = 0;
 				break;
 			case '3':
-				$this->data['Role']['perm_add'] = true;
-				$this->data['Role']['perm_modify'] = true; // ?
-				$this->data['Role']['perm_modify_org'] = true; // ?
-				$this->data['Role']['perm_publish'] = true;
+				$this->data['Role']['perm_add'] = 1;
+				$this->data['Role']['perm_modify'] = 1; // ?
+				$this->data['Role']['perm_modify_org'] = 1; // ?
+				$this->data['Role']['perm_publish'] = 1;
 				break;
 			default:
 				break;
