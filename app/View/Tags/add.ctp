@@ -11,6 +11,7 @@
 		<div class="clear"></div>
 	<?php
 		echo $this->Form->input('exportable', array(
+			'type' => 'checkbox', 'checked' => true
 		));
 	?>
 	</fieldset>
