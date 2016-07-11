@@ -63,8 +63,8 @@
 		<div class="clear"><span onClick="lookupPGPKey('UserEmail');" class="btn btn-inverse" style="margin-bottom:10px;">Fetch GPG key</span></div>
 	<?php
 		if (Configure::read('SMIME.enabled')) echo $this->Form->input('certif_public', array('label' => 'Public certificate (Encryption -- PEM format)', 'div' => 'clear', 'class' => 'input-xxlarge'));
-		echo $this->Form->input('autoalert', array('label' => 'Receive alerts when events are published'));
-		echo $this->Form->input('contactalert', array('label' => 'Receive alerts from "contact reporter" requests'));
+		echo $this->Form->input('autoalert', array('label' => 'Receive alerts when events are published', 'type' => 'checkbox'));
+		echo $this->Form->input('contactalert', array('label' => 'Receive alerts from "contact reporter" requests', 'type' => 'checkbox'));
 	?>
 		<div class="clear"></div>
 	<?php
