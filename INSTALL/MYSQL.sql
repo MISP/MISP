@@ -547,7 +547,7 @@ CREATE TABLE IF NOT EXISTS `taxonomy_entries` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `taxonomy_predicate_id` int(11) NOT NULL,
   `value` text COLLATE utf8_bin NOT NULL,
-  `expanded` text COLLATE utf8_bin NOT NULL,
+  `expanded` text COLLATE utf8_bin,
   PRIMARY KEY (`id`),
   INDEX `taxonomy_predicate_id` (`taxonomy_predicate_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
@@ -562,7 +562,7 @@ CREATE TABLE IF NOT EXISTS `taxonomy_predicates` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `taxonomy_id` int(11) NOT NULL,
   `value` text COLLATE utf8_bin NOT NULL,
-  `expanded` text COLLATE utf8_bin NOT NULL,
+  `expanded` text COLLATE utf8_bin,
   PRIMARY KEY (`id`),
   INDEX `taxonomy_id` (`taxonomy_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;

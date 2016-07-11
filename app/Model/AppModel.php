@@ -416,10 +416,12 @@ class AppModel extends Model {
 				$sqlArray[] = "ALTER TABLE `feeds` ALTER COLUMN `sharing_group_id` SET DEFAULT 0;";
 				$sqlArray[] = "ALTER TABLE `feeds` ALTER COLUMN `tag_id` SET DEFAULT 0;";
 				$sqlArray[] = "ALTER TABLE `feeds` MODIFY `rules` text COLLATE utf8_bin DEFAULT NULL;";
-				
 				// DB changes to support https://github.com/MISP/MISP/pull/1334
 				$sqlArray[] = "ALTER TABLE `feeds` ADD `perm_delegate` tinyint(1) NOT NULL DEFAULT 0 AFTER `perm_publish`;";
 				$sqlArray[] = "UPDATE `feeds` SET `perm_delegate` = 1 WHERE `perm_publish` = 1;";
+				// DB changes to solve https://github.com/MISP/MISP/issues/1354
+				$sqlArray[] = "ALTER TABLE `taxonomy_entries` MODIFY `expanded` text COLLATE utf8_bin;";
+				$sqlArray[] = "ALTER TABLE `taxonomy_predicates` MODIFY `expanded` text COLLATE utf8_bin;";
 				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
