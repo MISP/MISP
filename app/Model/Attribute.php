@@ -41,7 +41,7 @@ class Attribute extends AppModel {
  * @var array
  */
 	public $virtualFields = array(
-			'value' => 'IF (Attribute.value2="", Attribute.value1, CONCAT(Attribute.value1, "|", Attribute.value2))',
+			'value' => "CASE WHEN Attribute.value2 = '' THEN Attribute.value1 ELSE CONCAT(Attribute.value1, '|', Attribute.value2) END",
 	); // TODO hardcoded
 
 /**

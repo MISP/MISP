@@ -62,7 +62,7 @@ class ShadowAttribute extends AppModel {
  * @var array
  */
 	public $virtualFields = array(
-			'value' => 'IF (ShadowAttribute.value2="", ShadowAttribute.value1, CONCAT(ShadowAttribute.value1, "|", ShadowAttribute.value2))',
+			'value' => "CASE WHEN ShadowAttribute.value2 = '' THEN ShadowAttribute.value1 ELSE CONCAT(ShadowAttribute.value1, '|', ShadowAttribute.value2) END",
 	); // TODO hardcoded
 
 /**
