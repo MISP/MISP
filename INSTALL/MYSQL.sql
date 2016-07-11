@@ -840,9 +840,10 @@ INSERT INTO `feeds` (`id`, `provider`, `name`, `url`, `distribution`, `default`,
 -- 1. Admin - has full access
 -- 2. Org Admin - read/write/publish/audit/admin/sync/auth/tagger
 -- 3. User - User - Read / Write, no other permissions (default)
--- 4. Sync user - read/write/publish/sync/auth
--- 5. Automation user - read/write/publish/auth
--- 6. Read Only - read
+-- 4. Publisher
+-- 5. Sync user - read/write/publish/sync/auth
+-- 6. Automation user - read/write/publish/auth
+-- 7. Read Only - read
 --
 
 INSERT INTO `roles` (`id` ,`name` ,`created` ,`modified` ,`perm_add` ,`perm_modify` ,`perm_modify_org` ,`perm_publish` ,`perm_sync` ,`perm_admin` ,`perm_audit` ,`perm_full` ,`perm_auth`, `perm_regexp_access`, `perm_tagger`, `perm_site_admin`, `perm_template`, `perm_sharing_group`, `perm_tag_editor`)
@@ -872,16 +873,12 @@ VALUES ('7', 'Read Only', NOW(), NOW(), '0', '0', '0', '0', '0', '0', '0', '0', 
 -- Initial threat levels
 --
 
-
 INSERT INTO `threat_levels` (`id`, `name`, `description`, `form_description`)
 VALUES
   (1,'High','*high* means sophisticated APT malware or 0-day attack','Sophisticated APT malware or 0-day attack'),
   (2,'Medium','*medium* means APT malware','APT malware'),
   (3,'Low','*low* means mass-malware','Mass-malware'),
   (4,'Undefined','*undefined* no risk','No risk');
-
--- --------------------------------------------------------
-
 
 -- --------------------------------------------------------
 
@@ -992,6 +989,12 @@ INSERT INTO `template_element_texts` (`id`, `name`, `template_element_id`, `text
 (10, 'Other Network Activity', 33, 'If any other Network activity (such as an internet connection test) was detected during the analysis, please specify it using the following fields'),
 (11, 'Persistence mechanism', 41, 'The following fields allow you to describe the persistence mechanism used by the malware'),
 (12, 'Indicators', 45, 'Just paste your list of indicators based on type into the appropriate field. All of the fields are optional, so inputting a list of IP addresses into the Network indicator field for example is sufficient to complete this template.');
+
+-- --------------------------------------------------------
+
+--
+-- Default tasks
+--
 
 INSERT INTO `tasks` (`id`, `type`, `timer`, `scheduled_time`, `job_id`, `description`, `next_execution_time`, `message`) VALUES
 (1, 'cache_exports', 0, '12:00', 0, 'Generates export caches for every export type and for every organisation. This process is heavy, schedule so it might be a good idea to schedule this outside of working hours and before your daily automatic imports on connected services are scheduled.', 1391601600, 'Not scheduled yet.'),
