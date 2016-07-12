@@ -41,7 +41,7 @@ class Attribute extends AppModel {
  * @var array
  */
 	public $virtualFields = array(
-			'value' => 'IF (Attribute.value2="", Attribute.value1, CONCAT(Attribute.value1, "|", Attribute.value2))',
+			'value' => "CASE WHEN Attribute.value2 = '' THEN Attribute.value1 ELSE CONCAT(Attribute.value1, '|', Attribute.value2) END",
 	); // TODO hardcoded
 
 /**
@@ -416,7 +416,7 @@ class Attribute extends AppModel {
 			'fields' => '',
 			'order' => '',
 			'counterCache' => 'attribute_count',
-			'counterScope' => array('Attribute.deleted' => false)
+			'counterScope' => array('Attribute.deleted' => 0)
 		),
 		'SharingGroup' => array(
 				'className' => 'SharingGroup',
@@ -570,7 +570,7 @@ class Attribute extends AppModel {
 				'Attribute.type' => $type,
 				'Attribute.category' => $category,
 				'Attribute.value' => $value,
-				'Attribute.deleted' => false
+				'Attribute.deleted' => 0
 		);
 		if (isset($this->data['Attribute']['id'])) {
 			$conditions['Attribute.id !='] = $this->data['Attribute']['id'];
@@ -1492,7 +1492,7 @@ class Attribute extends AppModel {
 					'conditions' => array('id' => $id),
 					'order' => array()
 			));
-			$attributes = $this->find('all', array('recursive' => -1, 'conditions' => array('Attribute.event_id' => $id, 'Attribute.deleted' => false), 'order' => array()));
+			$attributes = $this->find('all', array('recursive' => -1, 'conditions' => array('Attribute.event_id' => $id, 'Attribute.deleted' => 0), 'order' => array()));
 			foreach ($attributes as $k => $attribute) {
 				$this->__afterSaveCorrelation($attribute['Attribute'], true, $event);
 				$attributeCount++;
@@ -1765,7 +1765,7 @@ class Attribute extends AppModel {
 		if (isset($options['conditions'])) $params['conditions']['AND'][] = $options['conditions'];
 		if (isset($options['order'])) $params['order'] = $options['order'];
 		else ($params['order'] = array());
-		if (!$user['Role']['perm_sync'] || !isset($options['deleted']) || !$options['deleted']) $params['conditions']['AND']['Attribute.deleted'] = false;
+		if (!$user['Role']['perm_sync'] || !isset($options['deleted']) || !$options['deleted']) $params['conditions']['AND']['Attribute.deleted'] = 0;
 		if (isset($options['group'])) $params['group'] = $options['group'];
 		if (Configure::read('MISP.unpublishedprivate')) $params['conditions']['AND'][] = array('OR' => array('Event.published' => 1, 'Event.orgc_id' => $user['org_id']));
 		$results = $this->find('all', $params);
@@ -1869,7 +1869,7 @@ class Attribute extends AppModel {
 			}
 		}
 		unset($attribute['Attribute']['timestamp']);
-		$attribute['Attribute']['deleted'] = false;
+		$attribute['Attribute']['deleted'] = 0;
 		$date = new DateTime();
 		$attribute['Attribute']['timestamp'] = $date->getTimestamp();
 		if ($this->save($attribute['Attribute'])) {

@@ -8,10 +8,11 @@
 		echo $this->Form->input('colour', array(
 		));
 	?>
-	<div class="clear"></div>
+		<div class="clear"></div>
 	<?php
 		echo $this->Form->input('exportable', array(
-	));
+			'type' => 'checkbox'
+		));
 	?>
 	</fieldset>
 <?php

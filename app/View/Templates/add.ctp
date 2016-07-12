@@ -42,6 +42,7 @@
 		));
 		echo $this->Form->input('share', array(
 			'label' => 'Share this template with others',
+			'type' => 'checkbox'
 		));
 	?>
 	</fieldset>

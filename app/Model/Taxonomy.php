@@ -61,10 +61,10 @@ class Taxonomy extends AppModel{
 	}
 
 	private function __updateVocab(&$vocab, &$current, $skipUpdateFields = array()) {
-		$enabled = false;
+		$enabled = 0;
 		$taxonomy = array();
 		if (!empty($current)) {
-			if ($current['Taxonomy']['enabled']) $enabled = true;
+			if ($current['Taxonomy']['enabled']) $enabled = 1;
 			$this->deleteAll(array('Taxonomy.namespace' => $current['Taxonomy']['namespace']));
 		}
 		$taxonomy['Taxonomy'] = array('namespace' => $vocab['namespace'], 'description' => $vocab['description'], 'version' => $vocab['version'], 'enabled' => $enabled);
@@ -234,7 +234,7 @@ class Taxonomy extends AppModel{
 		$recursive = -1;
 		if (isset($options['full']) && $options['full']) $recursive = 2;
 		$conditions = array();
-		if (isset($options['enabled']) && $options['enabled']) $conditions[] = array('Taxonomy.enabled' => true);
+		if (isset($options['enabled']) && $options['enabled']) $conditions[] = array('Taxonomy.enabled' => 1);
 		$temp =  $this->find('all',  array(
 			'recursive' => $recursive,
 			'conditions' => $conditions
