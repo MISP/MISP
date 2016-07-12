@@ -282,12 +282,13 @@
 				case 'taxonomies': ?>
 					<li id='liindex'><a href="<?php echo $baseurl;?>/taxonomies/index">List Taxonomies</a></li>
 					<?php if ($menuItem === 'view'): ?>
-					<li id='liview'><a href="">View Taxonomy</a></li>
+						<li id='liview'><a href="">View Taxonomy</a></li>
+						<li id='lidelete'><a class="useCursorPointer" onClick="deleteObject('taxonomies', 'delete', '<?php echo h($id); ?>', '<?php echo h($id); ?>');">Delete Taxonomy</a></li>
 					<?php
 					endif;
 					if ($isSiteAdmin):
 					?>
-					<li id='liupdate'><?php echo $this->Form->postLink('Update Taxonomies', array('controller' => 'taxonomies', 'action' => 'update'));?></li>
+						<li id='liupdate'><?php echo $this->Form->postLink('Update Taxonomies', array('controller' => 'taxonomies', 'action' => 'update'));?></li>
 					<?php
 					endif;
 				break;

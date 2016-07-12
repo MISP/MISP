@@ -4,8 +4,8 @@ String.prototype.ucfirst = function() {
 
 function deleteObject(type, action, id, event) {
 	var destination = 'attributes';
-	if (type == 'shadow_attributes') destination = 'shadow_attributes';
-	else if (type == 'template_elements') destination = 'template_elements';
+	var alternateDestinations = ['shadow_attributes', 'template_elements', 'taxonomies'];
+	if (alternateDestinations.indexOf(type) > -1) destination = type;
 	url = "/" + destination + "/" + action + "/" + id;
 	$.get(url, function(data) {
 		$("#confirmation_box").fadeIn();

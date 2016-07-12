@@ -204,4 +204,24 @@ class TaxonomiesController extends AppController {
 		$this->set('id', $id);
 		$this->render('ajax/taxonomy_mass_confirmation');
 	}
+	
+	public function delete($id) {
+		if ($this->request->is('post')) {
+			$result = $this->Taxonomy->delete($id, true);
+			if ($result) {
+				$this->Session->setFlash('Taxonomy successfuly deleted.');
+				$this->redirect(array('controller' => 'taxonomies', 'action' => 'index'));
+			} else {
+				$this->Session->setFlash('Taxonomy could not be deleted.');
+				$this->redirect(array('controller' => 'taxonomies', 'action' => 'index'));
+			}
+		} else {
+			if ($this->request->is('ajax')) {
+				$this->set('id', $id);
+				$this->render('ajax/taxonomy_delete_confirmation');
+			} else {
+				throw new MethodNotAllowedException('This function can only be reached via AJAX.');
+			}
+		}
+	}
 }
