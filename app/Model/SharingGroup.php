@@ -58,10 +58,10 @@ class SharingGroup extends AppModel {
 			$this->data['SharingGroup']['uuid'] = CakeText::uuid();
 		}
 		$date = date('Y-m-d H:i:s');
-		if (empty($this->data['SharingGroup']['date_created'])) {
-			$this->data['SharingGroup']['date_created'] = $date;
+		if (empty($this->data['SharingGroup']['created'])) {
+			$this->data['SharingGroup']['created'] = $date;
 		}
-		$this->data['SharingGroup']['date_modified'] = $date;
+		$this->data['SharingGroup']['modified'] = $date;
 
 		$sameNameSG = $this->find('first', array(
 			'conditions' => array('SharingGroup.name' => $this->data['SharingGroup']['name']),
