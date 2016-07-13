@@ -1,4 +1,4 @@
-import sys, json, uuid, os, time, datetime
+import sys, json, uuid, os, time, datetime, re
 from misp2cybox import *
 from misp2ciq import *
 from dateutil.tz import tzutc
@@ -346,6 +346,7 @@ def main(args):
         namespace[0] = sys.argv[3]
     if len(sys.argv) > 4:
         namespace[1] = sys.argv[4].replace(" ", "_")
+        namespace[1] = re.sub('[\W]+', '', namespace[1])
     NS_DICT[namespace[0]]=namespace[1]
     cybox.utils.idgen.set_id_namespace(Namespace(namespace[0], namespace[1]))
     stix.utils.idgen.set_id_namespace({namespace[0]: namespace[1]})
