@@ -18,9 +18,7 @@ git checkout tags/$(git describe --tags `git rev-list --tags --max-count=1`)
 # 2. Update CakePHP to the latest supported version (if for some reason it doesn't get updated automatically with git submodule)
 
 cd /var/www/MISP
-rm -rf app/Lib/cakephp/
-git submodule init
-git submodule update
+git submodule update --init --force
 
 
 # 3. Update Mitre's STIX and its dependencies
