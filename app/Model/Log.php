@@ -79,7 +79,7 @@ class Log extends AppModel {
 		foreach ($setEmpty as $field => $empty) {
 			if (!isset($this->data['Log'][$field]) || empty($this->data['Log'][$field])) $this->data['Log'][$field] = $empty;
 		}
-		if (!isset($this->data['Log']['created'])) $this->data['Log']['created'] =  time();
+		if (!isset($this->data['Log']['created'])) $this->data['Log']['created'] = date('Y-m-d H:i:s');
 		return true;
 	}
 
