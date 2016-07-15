@@ -327,7 +327,7 @@ class SharingGroup extends AppModel {
 		));
 		$force = false;
 		if (empty($existingSG)) {
-			if (!$user['Role']['perm_sharing_group']) throw new Exception('User not authorised to create sharing groups.');
+			if (!$user['Role']['perm_sharing_group']) return false;
 			$this->create();
 			$newSG = array();
 			$attributes = array('name', 'releasability', 'description', 'uuid', 'organisation_uuid', 'created', 'modified');
@@ -346,7 +346,9 @@ class SharingGroup extends AppModel {
 			if (!$this->save($newSG)) return false;
 			$sgids = $this->id;
 		} else {
-			if (!$this->checkIfAuthorised($user, $existingSG['SharingGroup']['id'])) throw new Exception('User not authorised to modify sharing groups.');
+			if (!$this->checkIfAuthorised($user, $existingSG['SharingGroup']['id']) && !$user['Role']['perm_sync']) {
+				return false;
+			}
 			if ($sg['modified'] > $existingSG['SharingGroup']['modified']) {
 				if ($user['Role']['perm_sync'] && $existingSG['SharingGroup']['local'] == 0) $force = true;
 				if ($force) {
@@ -365,7 +367,6 @@ class SharingGroup extends AppModel {
 					return $existingSG['SharingGroup']['id'];
 				}
 			} else {
-
 				return $existingSG['SharingGroup']['id'];
 			}
 		}
@@ -435,5 +436,53 @@ class SharingGroup extends AppModel {
 		}
 		if (!empty($existingSG)) return $existingSG[$this->alias]['id'];
 		return $this->id;
+	}
+	
+	// Correct an issue that existed pre 2.4.49 where a pulled sharing group can end up not being visible to the sync user
+	// This could happen if a sharing group visible to all organisations on the remote end gets pulled and for some reason (mismatch in the baseurl string for example)
+	// the instance cannot be associated with a local sync link. This method checks all non-local sharing groups if the assigned sync user has access to it, if not
+	// it adds the organisation of the sync user (as the only way for them to pull the event is if it is visible to them in the first place remotely).
+	public function correctSyncedSharingGroups($sgs) {
+		$sgs = $this->SharingGroup->find('all', array(
+				'recursive' => -1,
+				'conditions' => array('local' => 0),
+		));
+		$this->Log = ClassRegistry::init('Log');
+		$syncUsers = array();
+		foreach ($sgs as &$sg) {
+			if (!isset($syncUsers[$sg['SharingGroup']['sync_user_id']])) {
+				$user = $this->SharingGroup->User->getAuthUser($sg['SharingGroup']['sync_user_id']);
+				if (empty($user)) {
+					$this->Log->create();
+					$entry = array(
+							'org' => 'SYSTEM',
+							'model' => 'SharingGroup',
+							'model_id' => $sg['SharingGroup']['id'],
+							'email' => 'SYSTEM',
+							'action' => 'error',
+							'user_id' => 0,
+							'title' => 'Tried to update a sharing group as part of the 2.4.49 update, but the user used for creating the sharing group locally doesn\'t exist any longer.'
+					);
+					$this->Log->save($entry);
+					continue;
+				}
+				$syncUser[$sg['SharingGroup']['sync_user_id']] = $this->SharingGroup->User->getAuthUser($sg['SharingGroup']['sync_user_id']);
+			}
+			$sg['SharingGroup']['org_id'] = $syncUsers[$sg['SharingGroup']['sync_user_id']]['org_id'];
+			$result = $this->save($sg);
+			if (!$result) {
+				$this->Log->create();
+				$entry = array(
+						'org' => 'SYSTEM',
+						'model' => 'SharingGroup',
+						'model_id' => $sg['SharingGroup']['id'],
+						'email' => 'SYSTEM',
+						'action' => 'error',
+						'user_id' => 0,
+						'title' => 'Tried to update a sharing group as part of the 2.4.49 update, but saving the changes has resulted in the following error: ' . json_encode($this->validationErrors)
+				);
+				$this->Log->save($entry);
+			}
+		}
 	}
 }

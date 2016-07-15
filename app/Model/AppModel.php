@@ -76,6 +76,11 @@ class AppModel extends Model {
 				);
 				$this->__addNewFeeds($newFeeds);
 				break;
+			case '2.4.49':
+				$this->updateDatabase($command);
+				$this->SharingGroup = ClassRegistry::init('SharingGroup');
+				$this->SharingGroup->correctSyncedSharingGroups();
+				break;
 			default:
 				$this->updateDatabase($command);
 				break;
