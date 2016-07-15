@@ -426,6 +426,8 @@ class AppModel extends Model {
 			case '2.4.50':
 				// table: shadow_attributes
 				$sqlArray[] = "ALTER TABLE `shadow_attributes` MODIFY `email` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL;";
+				// table: tasks
+				$sqlArray[] = "ALTER TABLE `tasks` MODIFY `job_id` varchar(32) DEFAULT NULL;";
 				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
