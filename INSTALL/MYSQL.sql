@@ -515,7 +515,7 @@ CREATE TABLE IF NOT EXISTS `tasks` (
   `type` varchar(100) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
   `timer` int(11) NOT NULL,
   `scheduled_time` varchar(8) NOT NULL DEFAULT '6:00',
-  `job_id` int(11) NOT NULL,
+  `job_id` varchar(32) DEFAULT NULL,
   `description` varchar(255) NOT NULL,
   `next_execution_time` int(11) NOT NULL,
   `message` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
@@ -997,6 +997,6 @@ INSERT INTO `template_element_texts` (`id`, `name`, `template_element_id`, `text
 --
 
 INSERT INTO `tasks` (`id`, `type`, `timer`, `scheduled_time`, `job_id`, `description`, `next_execution_time`, `message`) VALUES
-(1, 'cache_exports', 0, '12:00', 0, 'Generates export caches for every export type and for every organisation. This process is heavy, schedule so it might be a good idea to schedule this outside of working hours and before your daily automatic imports on connected services are scheduled.', 1391601600, 'Not scheduled yet.'),
-(2, 'pull_all', 0, '12:00', 0, 'Initiates a full pull for all eligible instances.', 1391601600, 'Not scheduled yet.'),
-(3, 'push_all', 0, '12:00', 0, 'Initiates a full push for all eligible instances.', 1391601600, 'Not scheduled yet.');
+(1, 'cache_exports', 0, '12:00', '00000000000000000000000000000000', 'Generates export caches for every export type and for every organisation. This process is heavy, schedule so it might be a good idea to schedule this outside of working hours and before your daily automatic imports on connected services are scheduled.', 1391601600, 'Not scheduled yet.'),
+(2, 'pull_all', 0, '12:00', '00000000000000000000000000000000', 'Initiates a full pull for all eligible instances.', 1391601600, 'Not scheduled yet.'),
+(3, 'push_all', 0, '12:00', '00000000000000000000000000000000', 'Initiates a full push for all eligible instances.', 1391601600, 'Not scheduled yet.');
