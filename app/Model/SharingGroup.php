@@ -377,9 +377,11 @@ class SharingGroup extends AppModel {
 			unset($sg['SharingGroupOrg']);
 			$sg['SharingGroupOrg'][0] = $temp;
 		}
+		$creatorOrgFound = false;
 		foreach ($sg['SharingGroupOrg'] as $k => $org) {
 			if (isset($org['Organisation'][0])) $org['Organisation'] = $org['Organisation'][0];
 			$sg['SharingGroupOrg'][$k]['org_id'] = $this->Organisation->captureOrg($org['Organisation'], $user, $force);
+			if ($sg['SharingGroupOrg'][$k]['org_id'] == $user['org_id']) $creatorOrgFound = true;
 			unset($sg['SharingGroupOrg'][$k]['Organisation']);
 			if ($force) {
 				// we are editing not creating here
@@ -413,6 +415,7 @@ class SharingGroup extends AppModel {
 		foreach ($sg['SharingGroupServer'] as $k => $server) {
 			if (isset($server[0])) $server = $server[0];
 			$sg['SharingGroupServer'][$k]['server_id'] = $this->SharingGroupServer->Server->captureServer($server['Server'], $user, $force);
+			if ($sg['SharingGroupServer'][$k]['server_id'] == 0 && $sg['SharingGroupServer'][$k]['all_orgs']) $creatorOrgFound = true;
 			if ($sg['SharingGroupServer'][$k]['server_id'] === false) unset($sg['SharingGroupServer'][$k]);
 			else {
 				if ($force) {
@@ -433,6 +436,10 @@ class SharingGroup extends AppModel {
 					$this->SharingGroupServer->save(array('sharing_group_id' => $sgids, 'server_id' => $sg['SharingGroupServer'][$k]['server_id'], 'all_orgs' => $server['all_orgs']));
 				}
 			}
+		}
+		if (!$creatorOrgFound && $user['Role']['perm_sync']) {
+			$this->SharingGroupOrg->create();
+			$this->SharingGroupOrg->save(array('sharing_group_id' => $sgids, 'org_id' => $user['org_id'], 'extend' => false));
 		}
 		if (!empty($existingSG)) return $existingSG[$this->alias]['id'];
 		return $this->id;
