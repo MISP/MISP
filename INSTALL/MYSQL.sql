@@ -515,7 +515,7 @@ CREATE TABLE IF NOT EXISTS `tasks` (
   `type` varchar(100) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
   `timer` int(11) NOT NULL,
   `scheduled_time` varchar(8) NOT NULL DEFAULT '6:00',
-  `job_id` varchar(32) DEFAULT NULL,
+  `process_id` varchar(32) DEFAULT NULL,
   `description` varchar(255) NOT NULL,
   `next_execution_time` int(11) NOT NULL,
   `message` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
