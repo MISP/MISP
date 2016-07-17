@@ -385,7 +385,7 @@ CREATE TABLE IF NOT EXISTS `shadow_attributes` (
   `uuid` varchar(40) COLLATE utf8_bin NOT NULL,
   `value2` text COLLATE utf8_bin,
   `org_id` int(11) NOT NULL,
-  `email` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `email` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL,
   `event_org_id` int(11) NOT NULL,
   `comment` text COLLATE utf8_bin NOT NULL,
   `event_uuid` varchar(40) COLLATE utf8_bin NOT NULL,
@@ -795,7 +795,7 @@ CREATE TABLE IF NOT EXISTS `whitelist` (
 --
 
 INSERT INTO `admin_settings` (`id`, `setting`, `value`) VALUES
-(1, 'db_version', '2.4.49');
+(1, 'db_version', '2.4.50');
 
 INSERT INTO `feeds` (`id`, `provider`, `name`, `url`, `distribution`, `default`, `enabled`) VALUES
 (1, 'CIRCL', 'CIRCL OSINT Feed', 'https://www.circl.lu/doc/misp/feed-osint', 3, 1, 0),
@@ -997,6 +997,6 @@ INSERT INTO `template_element_texts` (`id`, `name`, `template_element_id`, `text
 --
 
 INSERT INTO `tasks` (`id`, `type`, `timer`, `scheduled_time`, `job_id`, `description`, `next_execution_time`, `message`) VALUES
-(1, 'cache_exports', 0, '12:00', 0, 'Generates export caches for every export type and for every organisation. This process is heavy, schedule so it might be a good idea to schedule this outside of working hours and before your daily automatic imports on connected services are scheduled.', 1391601600, 'Not scheduled yet.'),
-(2, 'pull_all', 0, '12:00', 0, 'Initiates a full pull for all eligible instances.', 1391601600, 'Not scheduled yet.'),
-(3, 'push_all', 0, '12:00', 0, 'Initiates a full push for all eligible instances.', 1391601600, 'Not scheduled yet.');
+(1, 'cache_exports', 0, '12:00', '00000000000000000000000000000000', 'Generates export caches for every export type and for every organisation. This process is heavy, schedule so it might be a good idea to schedule this outside of working hours and before your daily automatic imports on connected services are scheduled.', 1391601600, 'Not scheduled yet.'),
+(2, 'pull_all', 0, '12:00', '00000000000000000000000000000000', 'Initiates a full pull for all eligible instances.', 1391601600, 'Not scheduled yet.'),
+(3, 'push_all', 0, '12:00', '00000000000000000000000000000000', 'Initiates a full push for all eligible instances.', 1391601600, 'Not scheduled yet.');
