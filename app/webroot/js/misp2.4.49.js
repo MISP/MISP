@@ -1810,13 +1810,13 @@ function simpleTabPageLast() {
 		}
 		if (server.id == 0 && server.all_orgs == true) summaryorgs = "all organisations on this instance";
 	});
-	if (servercounter == 0) {
-		if ($('#SharingGroupLimitservers').is(":checked")) $('#synchronisationText').hide();
-		else {
-			summaryservers = "any interconnected instances that have users from eligible organisations.";
-		}
+	if ($('#SharingGroupRoaming').is(":checked")) {
+		summaryservers = "any interconnected instances linked by an eligible organisation.";
 	} else {
-		$('#synchronisationText').show();
+		console.log(servercounter);
+		if (servercounter == 0) {
+			summaryservers = "data marked with this sharing group will not be pushed.";
+		}
 	}
 	$('#summarylocal').text(summaryorgs);
 	$('#summarylocalextend').text(summaryextendorgs);
@@ -1978,7 +1978,7 @@ function sgSubmitForm(action) {
 				'releasability': $('#SharingGroupReleasability').val(),
 				'description': $('#SharingGroupDescription').val(),
 				'active': $('#SharingGroupActive').is(":checked"),
-				'limitServers': $('#SharingGroupLimitservers').is(":checked"),
+				'roaming': $('#SharingGroupRoaming').is(":checked"),
 			}
 	};
 	$('#SharingGroupJson').val(JSON.stringify(ajax));
@@ -2032,9 +2032,11 @@ function sharingGroupPopulateFromJson() {
 	var jsonparsed = JSON.parse($('#SharingGroupJson').val());
 	organisations = jsonparsed.organisations;
 	servers = jsonparsed.servers;
-	if (jsonparsed.sharingGroup.active == 1) $("#SharingGroupActive").prop("checked", true);
-	if (jsonparsed.sharingGroup.limitServers == 1) {
-		$("#SharingGroupLimitservers").prop("checked", true);
+	if (jsonparsed.sharingGroup.active == 1) {
+		$("#SharingGroupActive").prop("checked", true);
+	}
+	if (jsonparsed.sharingGroup.roaming == 1) {
+		$("#SharingGroupRoaming").prop("checked", true);
 		$('#serverList').show();
 	}
 	$('#SharingGroupName').attr('value', jsonparsed.sharingGroup.name);
