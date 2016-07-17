@@ -49,7 +49,7 @@ class AppModel extends Model {
 	// major -> minor -> hotfix -> requires_logout
 	public $db_changes = array(
 		2 => array(
-			4 => array(18 => false, 19 => false, 20 => false, 25 => false, 27 => false, 32 => false, 33 => true, 38 => true, 39 => true, 40 => false, 42 => false, 44 => false, 45 => false, 49 => false)
+			4 => array(18 => false, 19 => false, 20 => false, 25 => false, 27 => false, 32 => false, 33 => true, 38 => true, 39 => true, 40 => false, 42 => false, 44 => false, 45 => false, 49 => true)
 		)
 	);
 
@@ -388,8 +388,6 @@ class AppModel extends Model {
 					) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
 				break;
 			case '2.4.49':
-				// table: roles
-				$sqlArray[] = "ALTER TABLE `roles` ALTER COLUMN `perm_default` SET DEFAULT 0;";
 				// table: users
 				$sqlArray[] = "ALTER TABLE `users` ALTER COLUMN `server_id` SET DEFAULT 0;";
 				$sqlArray[] = "ALTER TABLE `users` ALTER COLUMN `autoalert` SET DEFAULT 0;";
@@ -423,8 +421,8 @@ class AppModel extends Model {
 				$sqlArray[] = "ALTER TABLE `feeds` ALTER COLUMN `tag_id` SET DEFAULT 0;";
 				$sqlArray[] = "ALTER TABLE `feeds` MODIFY `rules` text COLLATE utf8_bin DEFAULT NULL;";
 				// DB changes to support https://github.com/MISP/MISP/pull/1334
-				$sqlArray[] = "ALTER TABLE `feeds` ADD `perm_delegate` tinyint(1) NOT NULL DEFAULT 0 AFTER `perm_publish`;";
-				$sqlArray[] = "UPDATE `feeds` SET `perm_delegate` = 1 WHERE `perm_publish` = 1;";
+				$sqlArray[] = "ALTER TABLE `roles` ADD `perm_delegate` tinyint(1) NOT NULL DEFAULT 0 AFTER `perm_publish`;";
+				$sqlArray[] = "UPDATE `roles` SET `perm_delegate` = 1 WHERE `perm_publish` = 1;";
 				// DB changes to solve https://github.com/MISP/MISP/issues/1354
 				$sqlArray[] = "ALTER TABLE `taxonomy_entries` MODIFY `expanded` text COLLATE utf8_bin;";
 				$sqlArray[] = "ALTER TABLE `taxonomy_predicates` MODIFY `expanded` text COLLATE utf8_bin;";
