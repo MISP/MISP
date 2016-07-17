@@ -449,16 +449,17 @@ class SharingGroup extends AppModel {
 	// This could happen if a sharing group visible to all organisations on the remote end gets pulled and for some reason (mismatch in the baseurl string for example)
 	// the instance cannot be associated with a local sync link. This method checks all non-local sharing groups if the assigned sync user has access to it, if not
 	// it adds the organisation of the sync user (as the only way for them to pull the event is if it is visible to them in the first place remotely).
-	public function correctSyncedSharingGroups($sgs) {
-		$sgs = $this->SharingGroup->find('all', array(
+	public function correctSyncedSharingGroups() {
+		$sgs = $this->find('all', array(
 				'recursive' => -1,
 				'conditions' => array('local' => 0),
 		));
 		$this->Log = ClassRegistry::init('Log');
+		$this->User = ClassRegistry::init('User');
 		$syncUsers = array();
 		foreach ($sgs as &$sg) {
 			if (!isset($syncUsers[$sg['SharingGroup']['sync_user_id']])) {
-				$user = $this->SharingGroup->User->getAuthUser($sg['SharingGroup']['sync_user_id']);
+				$user = $this->User->getAuthUser($sg['SharingGroup']['sync_user_id']);
 				if (empty($user)) {
 					$this->Log->create();
 					$entry = array(
@@ -473,7 +474,7 @@ class SharingGroup extends AppModel {
 					$this->Log->save($entry);
 					continue;
 				}
-				$syncUser[$sg['SharingGroup']['sync_user_id']] = $this->SharingGroup->User->getAuthUser($sg['SharingGroup']['sync_user_id']);
+				$syncUser[$sg['SharingGroup']['sync_user_id']] = $this->User->getAuthUser($sg['SharingGroup']['sync_user_id']);
 			}
 			$sg['SharingGroup']['org_id'] = $syncUsers[$sg['SharingGroup']['sync_user_id']]['org_id'];
 			$result = $this->save($sg);
@@ -489,6 +490,20 @@ class SharingGroup extends AppModel {
 						'title' => 'Tried to update a sharing group as part of the 2.4.49 update, but saving the changes has resulted in the following error: ' . json_encode($this->validationErrors)
 				);
 				$this->Log->save($entry);
+			}
+		}
+	}
+	
+	public function updateRoaming() {
+		$sgs = $this->find('all', array(
+				'recursive' => -1,
+				'conditions' => array('local' => 1, 'roaming' => 0),
+				'contain' => array('SharingGroupServer')
+		));
+		foreach ($sgs as &$sg) {
+			if (empty($sg['SharingGroupServer'])) {
+				$sg['SharingGroup']['roaming'] = 1;
+				$this->save($sg);
 			}
 		}
 	}

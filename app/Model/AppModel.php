@@ -49,7 +49,7 @@ class AppModel extends Model {
 	// major -> minor -> hotfix -> requires_logout
 	public $db_changes = array(
 		2 => array(
-			4 => array(18 => false, 19 => false, 20 => false, 25 => false, 27 => false, 32 => false, 33 => true, 38 => true, 39 => true, 40 => false, 42 => false, 44 => false, 45 => false)
+			4 => array(18 => false, 19 => false, 20 => false, 25 => false, 27 => false, 32 => false, 33 => true, 38 => true, 39 => true, 40 => false, 42 => false, 44 => false, 45 => false, 49 => false)
 		)
 	);
 
@@ -80,6 +80,7 @@ class AppModel extends Model {
 				$this->updateDatabase($command);
 				$this->SharingGroup = ClassRegistry::init('SharingGroup');
 				$this->SharingGroup->correctSyncedSharingGroups();
+				$this->SharingGroup->updateRoaming();
 				break;
 			default:
 				$this->updateDatabase($command);
@@ -427,6 +428,8 @@ class AppModel extends Model {
 				// DB changes to solve https://github.com/MISP/MISP/issues/1354
 				$sqlArray[] = "ALTER TABLE `taxonomy_entries` MODIFY `expanded` text COLLATE utf8_bin;";
 				$sqlArray[] = "ALTER TABLE `taxonomy_predicates` MODIFY `expanded` text COLLATE utf8_bin;";
+				// Sharing group propagate to instances freely setting 
+				$sqlArray[] = "ALTER TABLE `sharing_groups` ADD `roaming` tinyint(1) NOT NULL DEFAULT 0;";
 				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
