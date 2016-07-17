@@ -274,20 +274,28 @@ class SharingGroup extends AppModel {
 	}
 
 	public function checkIfServerInSG($sg, $server) {
-		$results = array(
-				'rule' => false,
-				'orgs' => array(),
-		);
-		if (isset($sg['SharingGroupServer']) && !empty($sg['SharingGroupServer'])) {
+		$conditional = false;
+		if (isset($sg['SharingGroupServer']) && !empty($sg['SharingGroupServer']) && !$sg['SharingGroup']['roaming']) {
 			foreach ($sg['SharingGroupServer'] as $s) {
 				if ($s['server_id'] == $server['Server']['id']) {
-					if ($s['all_orgs']) return true;
-					else $results['rule'] = 'conditional';
+					if ($s['all_orgs']) {
+						return true;
+					} else {
+						$conditional = true;
+					}
 				}
 			}
-			if ($results['rule'] === false) return false;
+			if ($conditional === false) {
+				return false;
+			}
 		}
-		foreach ($sg['SharingGroupOrg'] as $org) if (isset($org['Organisation']) && $org['Organisation']['uuid'] === $server['RemoteOrg']['uuid']) return true;
+		if (isset($sg['SharingGroupOrg']) && !empty($sg['SharingGroupOrg'])) {
+			foreach ($sg['SharingGroupOrg'] as $org) {
+				if (isset($org['Organisation']) && $org['Organisation']['uuid'] === $server['RemoteOrg']['uuid']) {
+					return true;
+				}
+			}
+		}
 		return false;
 	}
 
