@@ -990,13 +990,3 @@ INSERT INTO `template_element_texts` (`id`, `name`, `template_element_id`, `text
 (11, 'Persistence mechanism', 41, 'The following fields allow you to describe the persistence mechanism used by the malware'),
 (12, 'Indicators', 45, 'Just paste your list of indicators based on type into the appropriate field. All of the fields are optional, so inputting a list of IP addresses into the Network indicator field for example is sufficient to complete this template.');
 
--- --------------------------------------------------------
-
---
--- Default tasks
---
-
-INSERT INTO `tasks` (`id`, `type`, `timer`, `scheduled_time`, `job_id`, `description`, `next_execution_time`, `message`) VALUES
-(1, 'cache_exports', 0, '12:00', '00000000000000000000000000000000', 'Generates export caches for every export type and for every organisation. This process is heavy, schedule so it might be a good idea to schedule this outside of working hours and before your daily automatic imports on connected services are scheduled.', 1391601600, 'Not scheduled yet.'),
-(2, 'pull_all', 0, '12:00', '00000000000000000000000000000000', 'Initiates a full pull for all eligible instances.', 1391601600, 'Not scheduled yet.'),
-(3, 'push_all', 0, '12:00', '00000000000000000000000000000000', 'Initiates a full push for all eligible instances.', 1391601600, 'Not scheduled yet.');
