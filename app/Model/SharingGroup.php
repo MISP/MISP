@@ -482,7 +482,7 @@ class SharingGroup extends AppModel {
 					$this->Log->save($entry);
 					continue;
 				}
-				$syncUser[$sg['SharingGroup']['sync_user_id']] = $this->User->getAuthUser($sg['SharingGroup']['sync_user_id']);
+				$syncUsers[$sg['SharingGroup']['sync_user_id']] = $this->User->getAuthUser($sg['SharingGroup']['sync_user_id']);
 			}
 			$sg['SharingGroup']['org_id'] = $syncUsers[$sg['SharingGroup']['sync_user_id']]['org_id'];
 			$result = $this->save($sg);
