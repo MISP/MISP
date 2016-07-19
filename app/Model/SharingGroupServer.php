@@ -23,10 +23,10 @@ class SharingGroupServer extends AppModel {
 	}
 
 
-	public function updateServersForSG($id, $new_servers, $old_servers, $limitServers, $user) {
+	public function updateServersForSG($id, $new_servers, $old_servers, $roaming, $user) {
 		$log = ClassRegistry::init('Log');
 		// Check first if we need to handle the servers at all, or if we should just delete all servers from the SG (depending on the checkbox in the "MISP instances" tab).
-		if ($limitServers) {
+		if (!$roaming) {
 			foreach ($new_servers as $server) {
 				$SgS = array(
 						'sharing_group_id' => $id,

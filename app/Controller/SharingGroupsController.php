@@ -53,7 +53,7 @@ class SharingGroupsController extends AppController {
 							'extend' => $org['extend']
 					));
 				}
-				if ($json['sharingGroup']['roaming']) {
+				if (!$json['sharingGroup']['roaming']) {
 					foreach ($json['servers'] as $server) {
 						$this->SharingGroup->SharingGroupServer->create();
 						$this->SharingGroup->SharingGroupServer->save(array(
