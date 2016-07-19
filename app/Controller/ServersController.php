@@ -560,7 +560,6 @@ class ServersController extends AppController {
 			}
 
 			// read pem file data
-			debug($server);
 			$pemData = FileAccess::readFromFile($server['Server']['submitted_cert']['tmp_name'], $server['Server']['submitted_cert']['size']);
 
 			$destpath = APP . "files" . DS . "certs" . DS;
