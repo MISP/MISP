@@ -448,7 +448,7 @@ class ServersController extends AppController {
 			throw new NotFoundException(__('Invalid server'));
 		}
 
-		if (false == $this->Server->data['Server']['pull']) {
+		if (false == $this->Server->data['Server']['pull'] && ($technique == 'full' || $technique == 'incremental')) {
 			$this->Session->setFlash(__('Pull setting not enabled for this server.'));
 			$this->redirect(array('action' => 'index'));
 		}
@@ -560,7 +560,7 @@ class ServersController extends AppController {
 			}
 
 			// read pem file data
-			$pemData = FileAccess::readFromFile($server['Server']['submitted_cert']['name'], $server['Server']['submitted_cert']['size']);
+			$pemData = FileAccess::readFromFile($server['Server']['submitted_cert']['tmp_name'], $server['Server']['submitted_cert']['size']);
 
 			$destpath = APP . "files" . DS . "certs" . DS;
 			$dir = new Folder(APP . "files" . DS . "certs", true);

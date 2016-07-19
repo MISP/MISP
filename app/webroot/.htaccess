@@ -7,3 +7,6 @@
     # Adds AUTH support to Rest Plugin:
     RewriteRule .* - [env=HTTP_AUTHORIZATION:%{HTTP:Authorization},last]
 </IfModule>
+<IfModule mod_headers.c>
+   RequestHeader unset Proxy
+</IfModule>
