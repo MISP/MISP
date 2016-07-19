@@ -400,7 +400,6 @@ class AppModel extends Model {
 				$sqlArray[] = "ALTER TABLE `users` ALTER COLUMN `disabled` SET DEFAULT 0;";
 				$sqlArray[] = "ALTER TABLE `users` MODIFY `authkey` varchar(40) COLLATE utf8_bin DEFAULT NULL;";
 				$sqlArray[] = "ALTER TABLE `users` MODIFY `gpgkey` longtext COLLATE utf8_bin;";
-				$sqlArray[] = "ALTER TABLE `users` MODIFY `newsread` date DEFAULT NULL;";
 				// table: events
 				$sqlArray[] = "ALTER TABLE `events` ALTER COLUMN `publish_timestamp` SET DEFAULT 0;";
 				// table: jobs
