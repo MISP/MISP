@@ -7,6 +7,10 @@
 		));
 		echo $this->Form->input('colour', array(
 		));
+		echo $this->Form->input('org_id', array(
+				'options' => $orgs,
+				'label' => 'Restrict tagging to'
+		));
 	?>
 		<div class="clear"></div>
 	<?php

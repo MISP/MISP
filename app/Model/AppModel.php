@@ -432,6 +432,9 @@ class AppModel extends Model {
 				$sqlArray[] = "ALTER TABLE `shadow_attributes` MODIFY `email` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL;";
 				// table: tasks
 				$sqlArray[] = "ALTER TABLE `tasks` CHANGE `job_id` `process_id` varchar(32) DEFAULT NULL;";
+				// Adding tag org restrictions 
+				$sqlArray[] = "ALTER TABLE `tags` ADD `org_id` int(11) NOT NULL DEFAULT 0;";
+				$sqlArray[] = 'ALTER TABLE `tags` ADD INDEX `org_id` (`org_id`);';
 				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';

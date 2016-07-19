@@ -501,7 +501,9 @@ CREATE TABLE IF NOT EXISTS `tags` (
   `name` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
   `colour` varchar(7) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
   `exportable` tinyint(1) NOT NULL,
-  PRIMARY KEY (`id`)
+  `org_id` tinyint(1) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  INDEX `org_id` (`org_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 
