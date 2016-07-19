@@ -482,6 +482,7 @@ CREATE TABLE `sharing_groups` (
   `created` datetime NOT NULL,
   `modified` datetime NOT NULL,
   `local` tinyint(1) NOT NULL,
+  `roaming` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   INDEX `org_id` (`org_id`),
   INDEX `sync_user_id` (`sync_user_id`),
