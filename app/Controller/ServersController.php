@@ -448,7 +448,7 @@ class ServersController extends AppController {
 			throw new NotFoundException(__('Invalid server'));
 		}
 
-		if (false == $this->Server->data['Server']['pull']) {
+		if (false == $this->Server->data['Server']['pull'] && ($technique == 'full' || $technique == 'incremental')) {
 			$this->Session->setFlash(__('Pull setting not enabled for this server.'));
 			$this->redirect(array('action' => 'index'));
 		}
