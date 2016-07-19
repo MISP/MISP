@@ -96,7 +96,7 @@ class Tag extends AppModel {
 	public function findTags($array) {
 		$ids = array();
 		foreach ($array as $a) {
-			$conditions['OR'][] = array('LOWER(name) like' => '%' . strtolower($a) . '%');
+			$conditions['OR'][] = array('LOWER(name) like' => strtolower($a));
 		}
 		$params = array(
 				'recursive' => 1,
