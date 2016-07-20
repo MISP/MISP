@@ -76,6 +76,19 @@
 		?>
 	</div>
 	<h3>PHP Settings</h3>
+	<?php
+		$phpcolour = 'green';
+		$phptext = 'Up to date'; 
+		if (version_compare($phpversion, $phprec) < 1) {
+			$phpcolour = 'orange';
+			$phptext = 'Update highly recommended';
+			if (version_compare($phpversion, $phpmin) < 1) {
+				$phpcolour = 'red';
+				$phptext = 'Version unsupported, update ASAP';
+			}
+		} 
+	?>
+	<p><span class="bold">PHP Version (<?php echo $phprec; ?> recommended): </span><span class="<?php echo $phpcolour; ?>"><?php echo h($phpversion) . ' (' . $phptext . ')';?></span></p>
 	<p>The following settings might have a negative impact on certain functionalities of MISP with their current and recommended minimum settings. You can adjust these in your php.ini. Keep in mind that the recommendations are not requirements, just recommendations. Depending on usage you might want to go beyond the recommended values.</p>
 	<?php
 		foreach ($phpSettings as $settingName => &$phpSetting):

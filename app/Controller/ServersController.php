@@ -690,7 +690,7 @@ class ServersController extends AppController {
 						)
 
 				);
-
+				
 				foreach ($phpSettings as $setting => &$settingArray) {
 					$settingArray['value'] = ini_get($setting);
 					if ($settingArray['unit']) $settingArray['value'] = intval(rtrim($settingArray['value'], $settingArray['unit']));
@@ -752,6 +752,9 @@ class ServersController extends AppController {
 			$this->set('workerIssueCount', $workerIssueCount);
 			$priorityErrorColours = array(0 => 'red', 1 => 'yellow', 2 => 'green');
 			$this->set('priorityErrorColours', $priorityErrorColours);
+			$this->set('phpversion', phpversion());
+			$this->set('phpmin', $this->phpmin);
+			$this->set('phprec', $this->phprec);
 		}
 	}
 
