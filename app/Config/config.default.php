@@ -4,7 +4,7 @@ $config = array (
   'Security' =>
   array (
     'level' => 'medium',
-    'salt' => 'Rooraenietu8Eeyo<Qu2eeNfterd-dd+',
+    'salt' => '',
     'cipherSeed' => '',
     //'auth'=>array('CertAuth.Certificate'), // additional authentication methods
   ),
