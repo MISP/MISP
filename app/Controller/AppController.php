@@ -84,6 +84,11 @@ class AppController extends Controller {
 		$this->loadModel('User');
 		$auth_user_fields = $this->User->describeAuthFields();
 
+        //if fresh installation (salt empty) generate a new salt
+        if (!Configure::read('Security.salt')) {
+            $this->loadModel('Server');
+            $this->Server->serverSettingsSaveValue('Security.salt', $this->User->generateRandomPassword(32));
+        }
 		// check if Apache provides kerberos authentication data
 		$envvar = Configure::read('ApacheSecureAuth.apacheEnv');
 		if (isset($_SERVER[$envvar])) {
