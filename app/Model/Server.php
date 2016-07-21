@@ -1034,6 +1034,14 @@ class Server extends AppModel {
 						'test' => 'testBool',
 						'type' => 'boolean'
 					),
+					'Enrichment_timeout' => array(
+							'level' => 1,
+							'description' => 'Set a timeout for the enrichment services',
+							'value' => 5,
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'numeric'
+					),
 					'Enrichment_hover_enable' => array(
 							'level' => 0,
 							'description' => 'Enable/disable the hover over information retrieved from the enrichment modules',
@@ -1041,6 +1049,14 @@ class Server extends AppModel {
 							'errorMessage' => '',
 							'test' => 'testBool',
 							'type' => 'boolean'
+					),
+					'Enrichment_hover_timeout' => array(
+							'level' => 1,
+							'description' => 'Set a timeout for the hover services',
+							'value' => 2,
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'numeric'
 					),
 					'CustomAuth_custom_password_reset' => array(
 							'level' => 2,

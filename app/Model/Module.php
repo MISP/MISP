@@ -47,11 +47,15 @@ class Module extends AppModel {
 		return $url . ':' . $port;
 	}
 	
-	public function queryModuleServer($uri, $post = false) {
+	public function queryModuleServer($uri, $post = false, $hover = false) {
 		$url = $this->__getModuleServer();
 		if (!$url) return false;
 		App::uses('HttpSocket', 'Network/Http');
-		$httpSocket = new HttpSocket();
+		if ($hover) {
+			$httpSocket = new HttpSocket(array('timeout' => Configure::read('Plugin.Enrichment_hover_timeout') ? Configure::read('Plugin.Enrichment_hover_timeout') : 2));			
+		} else {
+			$httpSocket = new HttpSocket(array('timeout' => Configure::read('Plugin.Enrichment_timeout') ? Configure::read('Plugin.Enrichment_timeout') : 5));
+		}
 		try {
 			if ($post) $response = $httpSocket->post($url . $uri, $post);
 			else $response = $httpSocket->get($url . $uri);

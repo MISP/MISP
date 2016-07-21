@@ -2338,10 +2338,12 @@ class AttributesController extends AppController {
 			$data = array('module' => $type, $attribute[0]['Attribute']['type'] => $attribute[0]['Attribute']['value']);
 			if (!empty($options)) $data['config'] = $options;
 			$data = json_encode($data);
-			try {
-				$response = $httpSocket->post($url . ':' . $port . '/query', $data);
-				$result = json_decode($response->body, true);
-			} catch (Exception $e) {
+			$result = $this->Module->queryModuleServer('/query', $data, true);
+			if ($result) {
+				if (!is_array($result)) {
+					$resultArray[] = array($type => $result);
+				}
+			} else {
 				$resultArray[] = array($type => 'Enrichment service not reachable.');
 				continue;
 			}
