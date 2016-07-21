@@ -435,6 +435,36 @@ The event ID is optional. MISP will accept either a JSON or an XML object posted
 <p><b>XML</b></p>
 <code><?php echo h('<request><ShadowAttribute><value>5.5.5.5</value><to_ids>0</to_ids><type>ip-src</type><category>Network activity</category></ShadowAttribute></request>');?></code><br /><br />
 <p>None of the above fields are mandatory, but at least one of them has to be provided.</p>
+
+<h3>Filtering event metadata</h3>
+<p>As described in the REST section, it is possible to retrieve a list of events along with their metadata by sending a GET request to the /events API. However, this API in particular is a bit more versatile. You can pass search parameters along to search among the events on various fields and retrieve a list of matching events (along with their metadata). Use the following URL:<br />
+<?php
+	echo $baseurl.'/events/index';
+?>
+POST a JSON object with the desired lookup fields and values to receive a JSON back.<br />
+An example for a valid lookup:</p>
+<b>URL</b>: <?php echo $baseurl.'/events/index'; ?><br />
+<b>Headers</b>:<br />
+<pre>Authorization: [your API key]
+Accept: application/json
+Content-type: application/json
+</pre>
+<b>Body</b>:
+<code>{"searchinfo":"Locky", "searchpublished":1, "searchdistribution":!0}</code><br /><br />
+<p>The above would return any event that is published, not restricted to your organisation only that has the term "Locky" in its event description. You can use exclamation marks to negate a value wherever appropriate.</p>
+<p><b>The list of valid parameters:</b></p>
+<p><b>searchpublished</b>: Filters on published or unpulished events [0,1] - negatable<br />
+<b>searchinfo</b>: Filters on strings found in the event info - negatable<br />
+<b>searchtag</b>: Filters on attached tag names - negatable<br />
+<b>searcheventid</b>: Filters on specific event IDs - negatable<br />
+<b>searchthreatlevel</b>: Filters on a given event threat level [1,2,3,4] - negatable<br />
+<b>searchdistribution</b>: Filters on the distribution level [0,1,2,3] - negatable<br />
+<b>searchanalysis</b>: Filters on the given analysis phase of the event [0,1,2,3] - negatable<br />
+<b>searchattribute</b>: Filters on a contained attribute value - negatable<br />
+<b>searchorg</b>: Filters on the creator organisation - negatable<br />
+<b>searchemail</b>: Filters on the creator user's email address (admin only) - negatable<br />
+<b>searchDatefrom</b>: Filters on the date, anything newer than the given date in YYYY-MM-DD format is taken - non-negatable<br />
+<b>searchDateuntil</b>: Filters on the date, anything older than the given date in YYYY-MM-DD format is taken - non-negatable<br /></p>
 </div>
 <?php
 	echo $this->element('side_menu', array('menuList' => 'event-collection', 'menuItem' => 'automation'));

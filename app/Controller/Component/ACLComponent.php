@@ -272,6 +272,7 @@ class ACLComponent extends Component {
 			),
 			'taxonomies' => array(
 					'addTag' => array(),
+					'delete' => array(),
 					'disable' => array(),
 					'enable' => array(),
 					'index' => array('*'),

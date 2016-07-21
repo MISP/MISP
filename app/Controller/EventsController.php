@@ -133,7 +133,7 @@ class EventsController extends AppController {
 				$includeQuery['conditions']['OR'][] = array('lower(Attribute.value1) LIKE' => $i);
 				$includeQuery['conditions']['OR'][] = array('lower(Attribute.value2) LIKE' => $i);
 			}
-			$includeQuery['conditions']['AND'][] = array('Attribute.deleted' => false);
+			$includeQuery['conditions']['AND'][] = array('Attribute.deleted' => 0);
 			$includeHits = $this->Event->Attribute->find('all', $includeQuery);
 
 			// convert it into an array that uses the event ID as a key
@@ -153,7 +153,7 @@ class EventsController extends AppController {
 				$excludeQuery['conditions']['OR'][] = array('lower(Attribute.value1) LIKE' => $e);
 				$excludeQuery['conditions']['OR'][] = array('lower(Attribute.value2) LIKE' => $e);
 			}
-			$excludeQuery['conditions']['AND'][] = array('Attribute.deleted' => false);
+			$excludeQuery['conditions']['AND'][] = array('Attribute.deleted' => 0);
 			$excludeHits = $this->Event->Attribute->find('all', $excludeQuery);
 
 			// convert it into an array that uses the event ID as a key
@@ -189,7 +189,7 @@ class EventsController extends AppController {
 		$conditions = array(
 			'AND' => array(
 				'OR' => $subconditions,
-				'deleted' => false
+				'deleted' => 0
 			)
 		);
 		$attributeHits = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array(
@@ -689,7 +689,7 @@ class EventsController extends AppController {
 	public function viewEventAttributes($id, $all = false) {
 		$conditions = array('eventid' => $id);
 		if (isset($this->params['named']['deleted']) && $this->params['named']['deleted']) {
-			$conditions['deleted'] = true;
+			$conditions['deleted'] = 1;
 		}
 		$results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
 		if (empty($results)) throw new NotFoundException('Invalid event');
@@ -852,12 +852,14 @@ class EventsController extends AppController {
 	 */
 
 	public function view($id = null, $continue=false, $fromEvent=null) {
-		// If the length of the id provided is 36 then it is most likely a Uuid - find the id of the event, change $id to it and proceed to read the event as if the ID was entered.
-		if (strlen($id) == 36) {
+		// find the id of the event, change $id to it and proceed to read the event as if the ID was entered.
+		if (Validation::uuid($id)) {
 			$this->Event->recursive = -1;
 			$temp = $this->Event->findByUuid($id);
 			if ($temp == null) throw new NotFoundException('Invalid event');
 			$id = $temp['Event']['id'];
+		} else if (!is_numeric($id)) {
+			throw new NotFoundException(__('Invalid event id.'));
 		}
 
 		$this->Event->id = $id;
@@ -872,7 +874,7 @@ class EventsController extends AppController {
 			$conditions['includeAttachments'] = true;
 		}
 		if (isset($this->params['named']['deleted']) && $this->params['named']['deleted']) {
-			$conditions['deleted'] = true;
+			$conditions['deleted'] = 1;
 		}
 		$results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
 		if (empty($results)) throw new NotFoundException('Invalid event');
@@ -1126,10 +1128,6 @@ class EventsController extends AppController {
 		}
 		if ($this->request->is('post')) {
 			if (!empty($this->data)) {
-				if (isset($this->data['Event']['submittedioc'])) {
-					App::uses('File', 'Utility');
-					$file = new File($this->data['Event']['submittedioc']['name']);
-				}
 				if (isset($this->data['Event']['submittedioc'])) $this->_addIOCFile($id);
 
 				// redirect to the view of the newly created event
@@ -1764,7 +1762,6 @@ class EventsController extends AppController {
 			if (!$this->Auth->user('id')) {
 				throw new UnauthorizedException('You have to be logged in to do that.');
 			}
-			$user = $this->Auth->user();
 		}
 		$this->loadModel('Attribute');
 		$rules = $this->Attribute->hids($this->Auth->user(), $type, $tags, $from, $to, $last);
@@ -1872,12 +1869,8 @@ class EventsController extends AppController {
 	public function _addGfiZip($id) {
 		if (!empty($this->data) && $this->data['Event']['submittedgfi']['size'] > 0 &&
 				is_uploaded_file($this->data['Event']['submittedgfi']['tmp_name'])) {
-			$tmpFileHandle = fopen($this->data['Event']['submittedgfi']['tmp_name'], "rb");
-			if ($tmpFileHandle === FALSE) {
-				throw new Exception('An error has occured while attempting to access the GFI sandbox .zip file.');
-			}
-			$zipData = fread($tmpFileHandle, $this->data['Event']['submittedgfi']['size']);
-			fclose($tmpFileHandle);
+			App::uses('FileAccess', 'Tools');
+			$zipData = FileAccess::readFromFile($this->data['Event']['submittedgfi']['tmp_name'], $this->data['Event']['submittedgfi']['size']);
 
 			// write
 			$rootDir = APP . "files" . DS . $id . DS;
@@ -1901,12 +1894,7 @@ class EventsController extends AppController {
 			// open the xml
 			$xmlFileName = 'analysis.xml';
 			$xmlFilePath = $rootDir . DS . 'Analysis' . DS . $xmlFileName;
-			$xmlFileHandle = fopen($xmlFilePath, "rb");
-			if ($xmlFileHandle === FALSE) {
-				throw new Exception('An error has occured while attempting to access the GFI sandbox XML analysis file.');
-			}
-			$xmlFileData = fread($xmlFileHandle, filesize($xmlFilePath));
-			fclose($xmlFileHandle);
+			$xmlFileData = FileAccess::readFromFile($xmlFilePath);
 
 			// read XML
 			$this->_readGfiXML($xmlFileData, $id);
@@ -1916,12 +1904,8 @@ class EventsController extends AppController {
 	public function _addIOCFile($id) {
 		if (!empty($this->data) && $this->data['Event']['submittedioc']['size'] > 0 &&
 				is_uploaded_file($this->data['Event']['submittedioc']['tmp_name'])) {
-			$tmpFileHandle = fopen($this->data['Event']['submittedioc']['tmp_name'], "rb");
-			if ($tmpFileHandle === FALSE) {
-				throw new Exception('An error has occured while attempting to access the IOC file.');
-			}
-			$iocData = fread($tmpFileHandle, $this->data['Event']['submittedioc']['size']);
-			fclose($tmpFileHandle);
+			App::uses('FileAccess', 'Tools');
+			$iocData = FileAccess::readFromFile($this->data['Event']['submittedioc']['tmp_name'], $this->data['Event']['submittedioc']['size']);
 
 			// write
 			$rootDir = APP . "files" . DS . $id . DS;
@@ -1931,18 +1915,14 @@ class EventsController extends AppController {
 			if (!preg_match('@^[\w-,\s,\.]+\.[A-Za-z0-9_]{2,4}$@', $this->data['Event']['submittedioc']['name'])) {
 				throw new Exception ('Filename not allowed');
 			}
+			App::uses('File', 'Utility');
 			$iocFile = new File($destPath . DS . $this->data['Event']['submittedioc']['name']);
 			$result = $iocFile->write($iocData);
 			if (!$result) $this->Session->setFlash(__('Problem with writing the ioc file. Please report to administrator.'));
 
 			// open the xml
 			$xmlFilePath = $destPath . DS . $this->data['Event']['submittedioc']['name'];
-			$xmlFileHandle = fopen($xmlFilePath, "rb");
-			if ($xmlFileHandle === FALSE) {
-				throw new Exception('An error has occured while attempting to access the IOC file.');
-			}
-			$xmlFileData = fread($xmlFileHandle, $this->data['Event']['submittedioc']['size']);
-			fclose($xmlFileHandle);
+			$xmlFileData = FileAccess::readFromFile($xmlFilePath, $this->data['Event']['submittedioc']['size']);
 
 			// Load event and populate the event data
 			$this->Event->id = $id;
@@ -1975,7 +1955,7 @@ class EventsController extends AppController {
 			// add the original openIOC file as an attachment
 			$saveEvent['Attribute'][] = array(
 				'category' => 'External analysis',
-				'uuid' =>  $this->Event->generateUuid(),
+				'uuid' =>  CakeText::uuid(),
 				'type' => 'attachment',
 				'value' => $this->data['Event']['submittedioc']['name'],
 				'to_ids' => false,
@@ -2008,12 +1988,8 @@ class EventsController extends AppController {
 	}
 
 	public function _addMISPExportFile($ext, $take_ownership = false) {
-		$fileHandle = fopen($this->data['Event']['submittedfile']['tmp_name'], "rb");
-		if ($fileHandle === FALSE) {
-			throw new Exception('An error has occured while attempting to access the submitted file.');
-		}
-		$data = fread($fileHandle, $this->data['Event']['submittedfile']['size']);
-		fclose($fileHandle);
+		App::uses('FileAccess', 'Tools');
+		$data = FileAccess::readFromFile($this->data['Event']['submittedfile']['tmp_name'], $this->data['Event']['submittedfile']['size']);
 
 		if ($ext == 'xml') {
 			App::uses('Xml', 'Utility');
@@ -2567,7 +2543,7 @@ class EventsController extends AppController {
 			'org_id' => $this->Auth->user('org_id'),
 			'orgc_id' => $this->Auth->user('org_id'),
 			'timestamp' => $ts,
-			'uuid' => $this->Event->generateUuid(),
+			'uuid' => CakeText::uuid(),
 			'user_id' => $this->Auth->user('id'),
 		));
 		$default['Event']['info'] = 'A junk event for load testing';
@@ -2588,7 +2564,7 @@ class EventsController extends AppController {
 						'value1' => $value,
 						'value2' => '',
 						'comment' => '',
-						'uuid' => $this->Event->generateUuid(),
+						'uuid' => CakeText::uuid(),
 						'timestamp' => $ts,
 				);
 			}
@@ -2673,7 +2649,7 @@ class EventsController extends AppController {
 		if ($id === false) $id = $this->request->data['event'];
 		if ($tag_id === false) $tag_id = $this->request->data['tag'];
 		if (!is_numeric($tag_id)) {
-			$tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => array('LOWER(Tag.name) LIKE' => '%' . strtolower(trim($tag_id)) . '%')));
+			$tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => array('LOWER(Tag.name) LIKE' => strtolower(trim($tag_id)))));
 			if (empty($tag)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200));
 			$tag_id = $tag['Tag']['id'];
 		}
@@ -2723,8 +2699,9 @@ class EventsController extends AppController {
 		$this->request->data = $RearrangeTool->rearrangeArray($this->request->data, $rearrangeRules);
 		if ($id === false) $id = $this->request->data['event'];
 		if ($tag_id === false) $tag_id = $this->request->data['tag'];
+		if (empty($tag_id)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')),'status'=>200));
 		if (!is_numeric($tag_id)) {
-			$tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => array('LOWER(Tag.name) LIKE' => '%' . strtolower(trim($tag_id)) . '%')));
+			$tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => array('LOWER(Tag.name) LIKE' => strtolower(trim($tag_id)))));
 			if (empty($tag)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200));
 			$tag_id = $tag['Tag']['id'];
 		}

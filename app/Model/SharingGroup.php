@@ -55,13 +55,13 @@ class SharingGroup extends AppModel {
 	public function beforeValidate($options = array()) {
 		parent::beforeValidate();
 		if (empty($this->data['SharingGroup']['uuid'])) {
-			$this->data['SharingGroup']['uuid'] = $this->generateUuid();
+			$this->data['SharingGroup']['uuid'] = CakeText::uuid();
 		}
 		$date = date('Y-m-d H:i:s');
-		if (empty($this->data['SharingGroup']['date_created'])) {
-			$this->data['SharingGroup']['date_created'] = $date;
+		if (empty($this->data['SharingGroup']['created'])) {
+			$this->data['SharingGroup']['created'] = $date;
 		}
-		$this->data['SharingGroup']['date_modified'] = $date;
+		$this->data['SharingGroup']['modified'] = $date;
 
 		$sameNameSG = $this->find('first', array(
 			'conditions' => array('SharingGroup.name' => $this->data['SharingGroup']['name']),
@@ -92,8 +92,6 @@ class SharingGroup extends AppModel {
 	}
 
 	public function fetchAllAuthorisedForServer($server) {
-		$conditions = array();
-		$ids = array();
 		$sgs = $this->SharingGroupOrg->fetchAllAuthorised($server['RemoteOrg']['id']);
 		$sgs = array_merge($sgs, $this->SharingGroupServer->fetchAllSGsForServer($server['Server']['id']));
 		return $sgs;
@@ -165,7 +163,6 @@ class SharingGroup extends AppModel {
 				'conditions' => array('uuid' => $sg['uuid'])
 		));
 		if (empty($local)) {
-			$found = false;
 			$orgCheck = false;
 			$serverCheck = false;
 			if (isset($sg['SharingGroupOrg'])) {

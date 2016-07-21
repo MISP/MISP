@@ -1407,7 +1407,6 @@ class Server extends AppModel {
 	 * @return array of event_ids
 	 */
 	public function getEventIdsFromServer($server, $all = false, $HttpSocket=null, $force_uuid=false, $ignoreFilterRules = false) {
-		$start = microtime(true);
 		$url = $server['Server']['url'];
 		$authkey = $server['Server']['authkey'];
 		if ($ignoreFilterRules) $filter_rules = array();
@@ -1554,7 +1553,7 @@ class Server extends AppModel {
 				$fails = array();
 				$lowestfailedid = null;
 				foreach ($eventUUIDsFiltered as $k => $eventUuid) {
-					$event = $this->Event->fetchEvent($user, array('event_uuid' => $eventUuid, 'includeAttachments' => true));
+					$event = $this->Event->fetchEvent($user, array('event_uuid' => $eventUuid, 'includeAttachments' => true, 'includeAllTags' => true));
 					$event = $event[0];
 					$event['Event']['locked'] = true;
 					$result = $this->Event->uploadEventToServer(
@@ -1605,7 +1604,6 @@ class Server extends AppModel {
 			$job->saveField('progress', 100);
 			$job->saveField('message', 'Push to server ' . $id . ' complete.');
 			$job->saveField('status', 4);
-			return;
 		} else {
 			return array($successes, $fails);
 		}
@@ -1743,8 +1741,6 @@ class Server extends AppModel {
 	public function getCurrentServerSettings() {
 		$this->Module = ClassRegistry::init('Module');
 		$serverSettings = $this->serverSettings;
-		$results = array();
-		$currentSettings = Configure::read();
 		if (Configure::read('Plugin.Enrichment_services_enable')) {
 			$results = $this->Module->getModuleSettings();
 			foreach ($results as $module => $data) {
@@ -1771,7 +1767,6 @@ class Server extends AppModel {
 	public function serverSettingsRead($unsorted = false) {
 		$this->Module = ClassRegistry::init('Module');
 		$serverSettings = $this->getCurrentServerSettings();
-		$results = array();
 		$currentSettings = Configure::read();
 		if (Configure::read('Plugin.Enrichment_services_enable')) {
 			$results = $this->Module->getModuleSettings();

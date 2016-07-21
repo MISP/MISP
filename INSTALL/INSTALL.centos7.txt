@@ -59,9 +59,14 @@ systemctl start  redis.service
 # Download MISP using git in the /var/www/ directory.
 cd /var/www/
 git clone https://github.com/MISP/MISP.git
+cd /var/www/MISP
+git checkout tags/$(git describe --tags `git rev-list --tags --max-count=1`)
+# if the last shortcut doesn't work, specify the latest version manually
+# example: git checkout tags/v2.4.XY
+# the message regarding a "detached HEAD state" is expected behaviour
+# (you only have to create a new branch, if you want to change stuff and do a pull request for example)
 
 # Make git ignore filesystem permission differences
-cd /var/www/MISP
 git config core.filemode false
 
 # install Mitre's STIX and its dependencies by running the following commands:

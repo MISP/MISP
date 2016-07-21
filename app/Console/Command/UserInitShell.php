@@ -22,8 +22,7 @@ class UserInitShell extends AppShell {
 					'perm_regexp_access' => 1,
 					'perm_sharing_group' => 1,
 					'perm_tagger' => 1,
-					'perm_template' => 1,
-					'perm_site_admin' => 1
+					'perm_template' => 1
 			));
 			$this->Role->save($siteAdmin);
 		}
@@ -35,7 +34,7 @@ class UserInitShell extends AppShell {
 					'name' => !empty(Configure::read('MISP.org')) ? Configure::read('MISP.org') : 'ADMIN',
 					'description' => 'Automatically generated admin organisation',
 					'type' => 'ADMIN',
-					'uuid' => $this->Organisation->generateUuid(),
+					'uuid' => CakeText::uuid(),
 					'local' => 1
 			));
 			$this->Organisation->save($org);

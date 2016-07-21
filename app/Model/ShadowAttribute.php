@@ -62,7 +62,7 @@ class ShadowAttribute extends AppModel {
  * @var array
  */
 	public $virtualFields = array(
-			'value' => 'IF (ShadowAttribute.value2="", ShadowAttribute.value1, CONCAT(ShadowAttribute.value1, "|", ShadowAttribute.value2))',
+			'value' => "CASE WHEN ShadowAttribute.value2 = '' THEN ShadowAttribute.value1 ELSE CONCAT(ShadowAttribute.value1, '|', ShadowAttribute.value2) END",
 	); // TODO hardcoded
 
 /**
@@ -223,7 +223,7 @@ class ShadowAttribute extends AppModel {
 											'Attribute.value2' => $cV
 									),
 									'Attribute.type !=' => $this->Event->Attribute->nonCorrelatingTypes,
-									'Attribute.deleted' => false
+									'Attribute.deleted' => 0
 							),
 					),
 					'recursive => -1',
@@ -231,13 +231,10 @@ class ShadowAttribute extends AppModel {
 					'contain' => array('Event' => array('fields' => array('Event.id', 'Event.date', 'Event.info', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id'))),
 					'order' => array(),
 			));
-			foreach ($correlatingAttributes[$k] as $key => &$correlatingAttribute) {
-				if ($correlatingAttribute['Attribute']['event_id'] == $temp['event_id']) unset($correlatingAttributes[$k][$key]);
-			}
-			foreach ($correlatingAttributes as $k => $cA) {
+			foreach ($correlatingAttributes as $key => $cA) {
 				foreach ($cA as $corr) {
 					$shadow_attribute_correlations[] = array(
-							'value' => $correlatingValues[$k],
+							'value' => $correlatingValues[$key],
 							'1_event_id' => $temp['event_id'],
 							'1_shadow_attribute_id' => $temp['id'],
 							'event_id' => $corr['Attribute']['event_id'],
@@ -320,7 +317,7 @@ class ShadowAttribute extends AppModel {
 
 		// generate UUID if it doesn't exist
 		if (empty($this->data['ShadowAttribute']['uuid'])) {
-			$this->data['ShadowAttribute']['uuid'] = $this->generateUuid();
+			$this->data['ShadowAttribute']['uuid'] = CakeText::uuid();
 		}
 
 		// always return true, otherwise the object cannot be saved
@@ -395,66 +392,6 @@ class ShadowAttribute extends AppModel {
 		} else {
 			// error
 			return false;
-		}
-	}
-
-/**
- * add_attachment method
- *
- * @return void
- */
-	public function uploadAttachment($fileP, $realFileName, $malware, $eventId = null, $category = null, $extraPath = '', $fullFileName = '') {
-		// Check if there were problems with the file upload
-		// only keep the last part of the filename, this should prevent directory attacks
-		$filename = basename($fileP);
-		$tmpfile = new File($fileP);
-
-		// save the file-info in the database
-		$this->create();
-		$this->data['ShadowAttribute']['event_id'] = $eventId;
-		if ($malware) {
-			$md5 = !$tmpfile->size() ? md5_file($fileP) : $tmpfile->md5();
-			$this->data['ShadowAttribute']['category'] = $category ? $category : "Payload delivery";
-			$this->data['ShadowAttribute']['type'] = "malware-sample";
-			$this->data['ShadowAttribute']['value'] = $fullFileName ? $fullFileName . '|' . $md5 : $filename . '|' . $md5; // TODO gives problems with bigger files
-			$this->data['ShadowAttribute']['to_ids'] = 1; // LATER let user choose to send this to IDS
-		} else {
-			$this->data['ShadowAttribute']['category'] = $category ? $category : "Artifacts dropped";
-			$this->data['ShadowAttribute']['type'] = "attachment";
-			$this->data['ShadowAttribute']['value'] = $fullFileName ? $fullFileName : $realFileName;
-			$this->data['ShadowAttribute']['to_ids'] = 0;
-		}
-
-		if ($this->save($this->data)) {
-			// attribute saved correctly in the db
-		} else {
-			// do some?
-		}
-
-		// no errors in file upload, entry already in db, now move the file where needed and zip it if required.
-		// no sanitization is required on the filename, path or type as we save
-		// create directory structure
-		$rootDir = APP . "files" . DS . $eventId;
-		$dir = new Folder($rootDir, true);
-		// move the file to the correct location
-		$destpath = $rootDir . DS . $this->getID(); // id of the new attribute in the database
-		$file = new File($destpath);
-		$zipfile = new File($destpath . '.zip');
-		$fileInZip = new File($rootDir . DS . $extraPath . $filename);
-
-		// zip and password protect the malware files
-		if ($malware) {
-			$execRetval = '';
-			$execOutput = array();
-			exec('zip -j -P infected ' . escapeshellarg($zipfile->path) . ' ' . escapeshellarg($fileInZip->path), $execOutput, $execRetval);
-			if ($execRetval != 0) {	// not EXIT_SUCCESS
-				throw new Exception('An error has occured while attempting to zip the malware file.');
-			}
-			$fileInZip->delete(); // delete the original non-zipped-file
-			rename($zipfile->path, $file->path); // rename the .zip to .nothing
-		} else {
-			$fileAttach = new File($fileP);
-			rename($fileAttach->path, $file->path);
 		}
 	}
 

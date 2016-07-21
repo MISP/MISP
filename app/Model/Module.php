@@ -60,7 +60,7 @@ class Module extends AppModel {
 			return false;
 		}
 	}
-	
+
 	public function getModuleSettings() {
 		$modules = $this->getModules();
 		$result = array();

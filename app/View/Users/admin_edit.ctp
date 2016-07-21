@@ -64,8 +64,8 @@
 		if (Configure::read('SMIME.enabled')) echo $this->Form->input('certif_public', array('label' => 'SMIME Public certificate (PEM format)', 'div' => 'clear', 'class' => 'input-xxlarge'));
 		echo $this->Form->input('termsaccepted', array('label' => 'Terms accepted'));
 		echo $this->Form->input('change_pw', array('type' => 'checkbox', 'label' => 'Change Password'));
-		echo $this->Form->input('autoalert', array('label' => 'Receive alerts when events are published'));
-		echo $this->Form->input('contactalert', array('label' => 'Receive alerts from "contact reporter" requests'));
+		echo $this->Form->input('autoalert', array('label' => 'Receive alerts when events are published', 'type' => 'checkbox'));
+		echo $this->Form->input('contactalert', array('label' => 'Receive alerts from "contact reporter" requests', 'type' => 'checkbox'));
 
 		echo $this->Html->link('Reset Auth Key', array('controller' => 'users', 'action' => 'resetauthkey', $currentId));
 	?>

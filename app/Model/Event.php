@@ -362,7 +362,7 @@ class Event extends AppModel {
 
 		// generate UUID if it doesn't exist
 		if (empty($this->data['Event']['uuid'])) {
-			$this->data['Event']['uuid'] = $this->generateUuid();
+			$this->data['Event']['uuid'] = CakeText::uuid();
 		}
 		// generate timestamp if it doesn't exist
 		if (empty($this->data['Event']['timestamp'])) {
@@ -1173,11 +1173,11 @@ class Event extends AppModel {
 				$conditionsAttributes['AND'][] = array(
 					'OR' => array(
 						'(SELECT events.org_id FROM events WHERE events.id = Attribute.event_id)' => $user['org_id'],
-						'Attribute.deleted' => false
+						'Attribute.deleted' => 0
 					)
 				);
 			}
-		} else $conditionsAttributes['AND']['Attribute.deleted'] = false;
+		} else $conditionsAttributes['AND']['Attribute.deleted'] = 0;
 
 		if ($options['idList'] && !$options['tags']) {
 			$conditions['AND'][] = array('Event.id' => $options['idList']);
@@ -1790,7 +1790,7 @@ class Event extends AppModel {
 				if (isset($data['Event']['orgc_id']) && $data['Event']['orgc_id'] != $user['org_id'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) throw new MethodNotAllowedException('Event cannot be created as you are not a member of the creator organisation.');
 			} else {
 				if ($data['Event']['Orgc']['uuid'] != $user['Organisation']['uuid'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) throw new MethodNotAllowedException('Event cannot be created as you are not a member of the creator organisation.');
-				if (isset($data['Event'][['orgc']]) && $data['Event']['orgc'] != $user['Organisation']['name'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) throw new MethodNotAllowedException('Event cannot be created as you are not a member of the creator organisation.');
+				if (isset($data['Event']['orgc']) && $data['Event']['orgc'] != $user['Organisation']['name'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) throw new MethodNotAllowedException('Event cannot be created as you are not a member of the creator organisation.');
 			}
 			if (isset($data['Event']['orgc_id']) && $data['Event']['orgc_id'] != $user['org_id'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) throw new MethodNotAllowedException('Event cannot be created as you are not a member of the creator organisation.');
 		}

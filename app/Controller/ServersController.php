@@ -448,7 +448,7 @@ class ServersController extends AppController {
 			throw new NotFoundException(__('Invalid server'));
 		}
 
-		if (false == $this->Server->data['Server']['pull']) {
+		if (false == $this->Server->data['Server']['pull'] && ($technique == 'full' || $technique == 'incremental')) {
 			$this->Session->setFlash(__('Pull setting not enabled for this server.'));
 			$this->redirect(array('action' => 'index'));
 		}
@@ -551,14 +551,17 @@ class ServersController extends AppController {
 			$ext = '';
 			App::uses('File', 'Utility');
 			App::uses('Folder', 'Utility');
+			App::uses('FileAccess', 'Tools');
 			$file = new File($server['Server']['submitted_cert']['name']);
 			$ext = $file->ext();
 			if (($ext != 'pem') || !$server['Server']['submitted_cert']['size'] > 0) {
 				$this->Session->setFlash('Incorrect extension or empty file.');
 				$this->redirect(array('action' => 'index'));
 			}
-			$pemData = fread(fopen($server['Server']['submitted_cert']['tmp_name'], "r"),
-					$server['Server']['submitted_cert']['size']);
+
+			// read pem file data
+			$pemData = FileAccess::readFromFile($server['Server']['submitted_cert']['tmp_name'], $server['Server']['submitted_cert']['size']);
+
 			$destpath = APP . "files" . DS . "certs" . DS;
 			$dir = new Folder(APP . "files" . DS . "certs", true);
 			if (!preg_match('@^[\w-,\s,\.]+\.[A-Za-z0-9_]{2,4}$@', $server['Server']['submitted_cert']['name'])) throw new Exception ('Filename not allowed');
@@ -687,7 +690,7 @@ class ServersController extends AppController {
 						)
 
 				);
-
+				
 				foreach ($phpSettings as $setting => &$settingArray) {
 					$settingArray['value'] = ini_get($setting);
 					if ($settingArray['unit']) $settingArray['value'] = intval(rtrim($settingArray['value'], $settingArray['unit']));
@@ -749,6 +752,9 @@ class ServersController extends AppController {
 			$this->set('workerIssueCount', $workerIssueCount);
 			$priorityErrorColours = array(0 => 'red', 1 => 'yellow', 2 => 'green');
 			$this->set('priorityErrorColours', $priorityErrorColours);
+			$this->set('phpversion', phpversion());
+			$this->set('phpmin', $this->phpmin);
+			$this->set('phprec', $this->phprec);
 		}
 	}
 

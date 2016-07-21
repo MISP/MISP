@@ -29,14 +29,14 @@ class TemplatesController extends AppController {
 	public function index() {
 		$conditions = array();
 		if (!$this->_isSiteAdmin()) {
-			$conditions['OR'] = array('org' => $this->Auth->user('Organisation')['name'], 'share' => true);
+			$conditions['OR'] = array('org' => $this->Auth->user('Organisation')['name'], 'share' => 1);
 		}
 		if (!$this->_isSiteAdmin()) {
 			$this->paginate = Set::merge($this->paginate,array(
 					'conditions' =>
 					array("OR" => array(
 							array('org' => $this->Auth->user('Organisation')['name']),
-							array('share' => true),
+							array('share' => 1),
 			))));
 		}
 		$this->set('list', $this->paginate());
@@ -231,7 +231,7 @@ class TemplatesController extends AppController {
 
 		$conditions = array();
 		if (!$this->_isSiteAdmin) {
-			$conditions['OR'] = array('Template.org' => $this->Auth->user('Organisation')['name'], 'Template.share' => true);
+			$conditions['OR'] = array('Template.org' => $this->Auth->user('Organisation')['name'], 'Template.share' => 1);
 		}
 		$templates = $this->Template->find('all', array(
 				'recursive' => -1,

@@ -35,6 +35,7 @@ class EventShell extends AppShell
 	}
 
 	public function cachexml() {
+		$timeStart = time();
 		$userId = $this->args[0];
 		$id = $this->args[1];
 		$user = $this->User->getAuthUser($userId);
@@ -58,12 +59,13 @@ class EventShell extends AppShell
 				$this->Job->saveField('progress', ($k+1) / $eventCount *100);
 			}
 		}
-		$this->Job->saveField('progress', 100);
-		$this->Job->saveField('message', 'Job done.');
-		$this->Job->saveField('date_modified', date("y-m-d H:i:s"));
 		$file->append('<xml_version>' . $this->Event->mispVersion . '</xml_version>');
 		$file->append('</response>' . PHP_EOL);
 		$file->close();
+		$timeDelta = (time()-$timeStart);
+		$this->Job->saveField('progress', 100);
+		$this->Job->saveField('message', 'Job done. (in '.$timeDelta.'s)');
+		$this->Job->saveField('date_modified', date("y-m-d H:i:s"));
 	}
 
 	private function __recursiveEcho($array) {
@@ -90,6 +92,7 @@ class EventShell extends AppShell
 	}
 
 	public function cachehids() {
+		$timeStart = time();
 		$userId = $this->args[0];
 		$user = $this->User->getAuthUser($userId);
 		$id = $this->args[1];
@@ -109,12 +112,14 @@ class EventShell extends AppShell
 			$file->append($rule . PHP_EOL);
 		}
 		$file->close();
+		$timeDelta = (time()-$timeStart);
 		$this->Job->saveField('progress', '100');
-		$this->Job->saveField('message', 'Job done.');
+		$this->Job->saveField('message', 'Job done. (in '.$timeDelta.'s)');
 		$this->Job->saveField('date_modified', date("y-m-d H:i:s"));
 	}
 
 	public function cacherpz() {
+		$timeStart = time();
 		$userId = $this->args[0];
 		$user = $this->User->getAuthUser($userId);
 		$id = $this->args[1];
@@ -148,12 +153,14 @@ class EventShell extends AppShell
 		}
 		$file->write($rpzExport->export($values, $rpzSettings));
 		$file->close();
+		$timeDelta = (time()-$timeStart);
 		$this->Job->saveField('progress', '100');
-		$this->Job->saveField('message', 'Job done.');
+		$this->Job->saveField('message', 'Job done. (in '.$timeDelta.'s)');
 		$this->Job->saveField('date_modified', date("y-m-d H:i:s"));
 	}
 
 	public function cachecsv() {
+		$timeStart = time();
 		$userId = $this->args[0];
 		$user = $this->User->getAuthUser($userId);
 		$id = $this->args[1];
@@ -185,12 +192,14 @@ class EventShell extends AppShell
 			}
 		}
 		$file->close();
+		$timeDelta = (time()-$timeStart);
 		$this->Job->saveField('progress', '100');
-		$this->Job->saveField('message', 'Job done.');
+		$this->Job->saveField('message', 'Job done. (in '.$timeDelta.'s)');
 		$this->Job->saveField('date_modified', date("y-m-d H:i:s"));
 	}
 
 	public function cachetext() {
+		$timeStart = time();
 		$userId = $this->args[0];
 		$user = $this->User->getAuthUser($userId);
 		$id = $this->args[1];
@@ -212,12 +221,14 @@ class EventShell extends AppShell
 			$file->close();
 			$this->Job->saveField('progress', $k / $typeCount * 100);
 		}
+		$timeDelta = (time()-$timeStart);
 		$this->Job->saveField('progress', 100);
-		$this->Job->saveField('message', 'Job done.');
+		$this->Job->saveField('message', 'Job done. (in '.$timeDelta.'s)');
 		$this->Job->saveField('date_modified', date("y-m-d H:i:s"));
 	}
 
 	public function cachenids() {
+		$timeStart = time();
 		$userId = $this->args[0];
 		$user = $this->User->getAuthUser($userId);
 		$id = $this->args[1];
@@ -246,8 +257,9 @@ class EventShell extends AppShell
 			}
 		}
 		$file->close();
+		$timeDelta = time()-$timeStart;
 		$this->Job->saveField('progress', '100');
-		$this->Job->saveField('message', 'Job done.');
+		$this->Job->saveField('message', 'Job done. (in '.$timeDelta.'s)');
 		$this->Job->saveField('date_modified', date("y-m-d H:i:s"));
 	}
 
@@ -275,7 +287,7 @@ class EventShell extends AppShell
 		$user = $this->User->getAuthUser($userId);
 		$result = $this->Event->sendContactEmail($id, $message, $all, array('User' => $user), $isSiteAdmin);
 		$this->Job->saveField('progress', '100');
-		//$this->Job->saveField('date_modified', date("y-m-d H:i:s"));
+		$this->Job->saveField('date_modified', date("y-m-d H:i:s"));
 		if ($result != true) $this->Job->saveField('message', 'Job done.');
 	}
 
@@ -290,7 +302,7 @@ class EventShell extends AppShell
 		$result = $this->Post->sendPostsEmail($userId, $postId, $eventId, $title, $message);
 		$job['Job']['progress'] = 100;
 		$job['Job']['message'] = 'Emails sent.';
-		//$job['Job']['date_modified'] = date("y-m-d H:i:s");
+		$job['Job']['date_modified'] = date("y-m-d H:i:s");
 		$this->Job->save($job);
 	}
 
@@ -354,7 +366,7 @@ class EventShell extends AppShell
 		$this->Event->Behaviors->unload('SysLogLogable.SysLogLogable');
 		$result = $this->Event->publish($id, $passAlong);
 		$job['Job']['progress'] = 100;
-		//$job['Job']['date_modified'] = date("y-m-d H:i:s");
+		$job['Job']['date_modified'] = date("y-m-d H:i:s");
 		if ($result) {
 			$job['Job']['message'] = 'Event published.';
 		} else {

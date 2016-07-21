@@ -1,4 +1,5 @@
 language: php
+
 php:
     - 5.5
     - 5.6
@@ -34,6 +35,7 @@ addons:
             - python-pip
             - php5-mysql
 
+cache: pip
 
 before_install:
     - git config --global user.name "TravisCI"
@@ -124,6 +126,10 @@ script:
     - popd
     - pushd PyMISP
     - coverage run setup.py test
+    - popd
+    - cp PyMISP/tests/keys.py PyMISP/examples/events/
+    - pushd PyMISP/examples/events/
+    - ./create_massive_dummy_events.py -l 5 -a 30
     - popd
 
 after_failure:

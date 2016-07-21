@@ -177,7 +177,8 @@
  */
 	Configure::write('Session', array(
 		'timeout' => 60,	// Session timeout, default is 1 hour
-		'defaults' => 'database'
+		'defaults' => 'database',
+		'autoRegenerate' => true
 	));
 
 /**

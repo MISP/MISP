@@ -46,6 +46,9 @@ class AppController extends Controller {
 	public $helpers = array('Utility');
 
 	private $__jsVersion = '2.4.48';
+	
+	public $phpmin = '5.5.9';	
+	public $phprec = '5.6.0';
 
 	// Used for _isAutomation(), a check that returns true if the controller & action combo matches an action that is a non-xml and non-json automation method
 	// This is used to allow authentication via headers for methods not covered by _isRest() - as that only checks for JSON and XML formats
@@ -81,6 +84,11 @@ class AppController extends Controller {
 		$this->loadModel('User');
 		$auth_user_fields = $this->User->describeAuthFields();
 
+        //if fresh installation (salt empty) generate a new salt
+        if (!Configure::read('Security.salt')) {
+            $this->loadModel('Server');
+            $this->Server->serverSettingsSaveValue('Security.salt', $this->User->generateRandomPassword(32));
+        }
 		// check if Apache provides kerberos authentication data
 		$envvar = Configure::read('ApacheSecureAuth.apacheEnv');
 		if (isset($_SERVER[$envvar])) {
@@ -261,8 +269,9 @@ class AppController extends Controller {
 					$email = Configure::read('MISP.email');
 					$message = str_replace('$email', $email, $message);
 				}
+				$this->Session->setFlash($message);
 				$this->Auth->logout();
-				throw new MethodNotAllowedException($message);
+				throw new MethodNotAllowedException($message);//todo this should pb be removed?
 			} else {
 				$this->Session->setFlash('Warning: MISP is currently disabled for all users. Enable it in Server Settings (Administration -> Server Settings -> MISP tab -> live)');
 			}
@@ -478,7 +487,7 @@ class AppController extends Controller {
 			));
 			foreach ($attributes as $k => $attribute) {
 				if ($k > 0) {
-					$attribute['Attribute']['uuid'] = $this->Attribute->generateUuid();
+					$attribute['Attribute']['uuid'] = CakeText::uuid();
 					$this->Attribute->save($attribute);
 					$counter++;
 				}

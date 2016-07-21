@@ -53,8 +53,13 @@ sudo systemctl restart apache2
 # Download MISP using git in the /var/www/ directory.
 sudo mkdir /var/www/MISP
 sudo chown www-data:www-data /var/www/MISP
-sudo -u www-data git clone https://github.com/MISP/MISP.git /var/www/MISP
 cd /var/www/MISP
+sudo -u www-data git clone https://github.com/MISP/MISP.git /var/www/MISP
+sudo -u www-data git checkout tags/$(git describe --tags `git rev-list --tags --max-count=1`)
+# if the last shortcut doesn't work, specify the latest version manually
+# example: git checkout tags/v2.4.XY
+# the message regarding a "detached HEAD state" is expected behaviour
+# (you only have to create a new branch, if you want to change stuff and do a pull request for example)
 
 # Make git ignore filesystem permission differences
 sudo -u www-data git config core.filemode false

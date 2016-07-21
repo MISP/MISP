@@ -15,7 +15,7 @@ class AttributesController extends AppController {
 	public $paginate = array(
 			'limit' => 60,
 			'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events
-			'conditions' => array('AND' => array('Event.id >' => 0, 'Attribute.deleted' => false))
+			'conditions' => array('AND' => array('Event.id >' => 0, 'Attribute.deleted' => 0))
 	);
 
 	public $helpers = array('Js' => array('Jquery'));
@@ -857,7 +857,7 @@ class AttributesController extends AppController {
 	public function delete($id = null, $hard = false) {
 		$this->set('id', $id);
 		$conditions = array('id' => $id);
-		if (!$hard) $conditions['deleted'] = false;
+		if (!$hard) $conditions['deleted'] = 0;
 		$attribute = $this->Attribute->find('first', array(
 				'conditions' => $conditions,
 				'recursive' => -1,
@@ -983,7 +983,7 @@ class AttributesController extends AppController {
 
 			// remove the published flag from the event
 			$result['Event']['timestamp'] = $date->getTimestamp();
-			$result['Event']['published'] = false;
+			$result['Event']['published'] = 0;
 			$this->Attribute->Event->save($result, array('fieldList' => array('published', 'timestamp', 'info')));
 			return true;
 		} else {
@@ -1292,6 +1292,7 @@ class AttributesController extends AppController {
 					$keywordArray = explode("\n", $tags);
 					foreach ($keywordArray as $tagname) {
 						$tagname = trim($tagname);
+						if (empty($tagname)) continue;
 						if (substr($tagname, 0, 1) === '!') $exclude[] = substr($tagname, 1);
 						else $include[] = $tagname;
 					}
@@ -1335,7 +1336,7 @@ class AttributesController extends AppController {
 						$conditions['AND'][] = $temp;
 					}
 				}
-				$conditions['AND'][] = array('Attribute.deleted' => false);
+				$conditions['AND'][] = array('Attribute.deleted' => 0);
 				if ($this->request->data['Attribute']['alternate']) {
 					$events = $this->searchAlternate($conditions);
 					$this->set('events', $events);

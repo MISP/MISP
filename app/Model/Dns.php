@@ -21,7 +21,6 @@ class Dns extends AppModel {
 		if (intval($nametotest) > 0) {
 			return true;
 		} else {
-			$ipaddress = $nametotest;
 			$ipaddress = gethostbyname($nametotest);
 			if ($ipaddress == $nametotest) {
 				return false;
