@@ -1,7 +1,11 @@
 <?php
 class UserInitShell extends AppShell {
-	public $uses = array('User', 'Role', 'Organisation');
+	public $uses = array('User', 'Role', 'Organisation', 'Server');
 	public function main() {
+		if (!Configure::read('Security.salt')) {
+			$this->loadModel('Server');
+			$this->Server->serverSettingsSaveValue('Security.salt', $this->User->generateRandomPassword(32));
+		}
 		$this->Role->Behaviors->unload('SysLogLogable.SysLogLogable');
 		$this->User->Behaviors->unload('SysLogLogable.SysLogLogable');
 		// populate the DB with the first role (site admin) if it's empty
