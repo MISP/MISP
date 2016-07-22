@@ -69,9 +69,9 @@
 	</fieldset>
 	<div id="page4_content" class="multi-page-form-div tabContent" style="display:none;width:544px;">
 		<p><span class="bold">General: </span>You are about to create the <span id="summarytitle" class="red bold"></span> sharing group, which is intended to be releasable to <span id="summaryreleasable" class="red bold"></span>. </p>
-		<p><span class="bold">Local organisations: </span>It will be visible to <span id="summarylocal" class="red bold"></span>, from which <span id="summarylocalextend" class="red bold"></span> can extend the sharing group. </p>
-		<p><span class="bold">External organisations: </span>It will also be visible to <span id="summaryexternal" class="red bold"></span>, out of which <span id="summaryexternalextend" class="red bold"></span> can extend the sharing group.</p>
-		<p><span class="bold">Synchronisation: </span>Furthermore, events are automatically pushed to: <span id="summaryservers" class="red bold"></span></p>
+		<p id="localText"><span class="bold">Local organisations: </span>It will be visible to <span id="summarylocal" class="red bold"></span>, from which <span id="summarylocalextend" class="red bold"></span> can extend the sharing group. </p>
+		<p id="externalText"><span class="bold">External organisations: </span>It will also be visible to <span id="summaryexternal" class="red bold"></span>, out of which <span id="summaryexternalextend" class="red bold"></span> can extend the sharing group.</p>
+		<p id="synchronisationText"><span class="bold">Synchronisation: </span>Furthermore, events are automatically pushed to: <span id="summaryservers" class="red bold"></span></p>
 		<p>You can edit this information by going back to one of the previous pages, or if you agree with the above mentioned information, click Submit to create the Sharing group.</p>
 		<?php
 			echo $this->Form->create('SharingGroup');
