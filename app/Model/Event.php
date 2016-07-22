@@ -1896,7 +1896,7 @@ class Event extends AppModel {
 			// edit timestamp newer than existing event timestamp
 			if (!isset($data['Event']['timestamp']) || $data['Event']['timestamp'] > $existingEvent['Event']['timestamp']) {
 				if (!isset($data['Event']['timestamp'])) $data['Event']['timestamp'] = $date;
-				if ($data['Event']['distribution'] == 4) {
+				if (isset($data['Event']['distribution']) && $data['Event']['distribution'] == 4) {
 					if (!isset($data['Event']['SharingGroup'])) {
 						if (!isset($data['Event']['sharing_group_id'])) return(array('error' => 'Event could not be saved: Sharing group chosen as the distribution level, but no sharing group specified. Make sure that the event includes a valid sharing_group_id or change to a different distribution level.'));
 						if (!$this->SharingGroup->checkIfAuthorised($user, $data['Event']['sharing_group_id'])) return(array('error' => 'Event could not be saved: Invalid sharing group or you don\'t have access to that sharing group.'));
@@ -1912,7 +1912,7 @@ class Event extends AppModel {
 				if ($existingEvent['Event']['orgc_id'] === $user['org_id']
 				|| ($user['Role']['perm_sync'] && $existingEvent['Event']['locked']) || $user['Role']['perm_site_admin']) {
 					if ($user['Role']['perm_sync']) {
-						if ($data['Event']['distribution'] == 4 && !$this->SharingGroup->checkIfAuthorised($user, $data['Event']['sharing_group_id'])) {
+						if (isset($data['Event']['distribution']) && $data['Event']['distribution'] == 4 && !$this->SharingGroup->checkIfAuthorised($user, $data['Event']['sharing_group_id'])) {
 							return (array('error' => 'Event could not be saved: The sync user has to have access to the sharing group in order to be able to edit it.'));
 						}
 					}
