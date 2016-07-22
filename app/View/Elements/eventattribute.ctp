@@ -253,7 +253,7 @@
 									else $editable = '';
 								?>
 								<div id = "<?php echo $currentType; ?>_<?php echo $object['id']; ?>_value_solid" class="inline-field-solid" <?php echo $editable; ?>>
-									<span <?php if (Configure::read('Plugin.Enrichment_hover_enable') && isset($modules) && isset($modules['hover_type'][$object['type']])) echo 'onMouseOver="hoverModuleExpand(\'' . $currentType . '\', \'' . $object['id'] . '\');";'?>>
+									<span <?php if (Configure::read('Plugin.Enrichment_hover_enable') && isset($modules) && isset($modules['hover_type'][$object['type']])) echo 'class="eventViewAttributeHover" data-object-type="' . h($currentType) . '" data-object-id="' . h($object['id']) . '"'?>>
 										<?php
 											$sigDisplay = $object['value'];
 											if ('attachment' == $object['type'] || 'malware-sample' == $object['type'] ) {
@@ -506,6 +506,7 @@ attributes or the appropriate distribution level. If you think there is a mistak
 <script type="text/javascript">
 	var currentUri = "<?php echo isset($currentUri) ? h($currentUri) : '/events/viewEventAttributes/' . h($event['Event']['id']); ?>";
 	var ajaxResults = [];
+	var timer;
 	var deleted = <?php echo (isset($deleted) && $deleted) ? 'true' : 'false';?>;
 	$(document).ready(function(){
 		popoverStartup();

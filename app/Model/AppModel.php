@@ -356,7 +356,7 @@ class AppModel extends Model {
 					) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
 				break;
 			case '2.4.39':
-				$sqlArray[] = "ALTER TABLE `users` ADD `certif_public` longtext COLLATE utf8_bin NOT NULL DEFAULT '' AFTER `gpgkey`;";
+				$sqlArray[] = "ALTER TABLE `users` ADD `certif_public` longtext COLLATE utf8_bin AFTER `gpgkey`;";
 				$sqlArray[] = 'ALTER TABLE `logs` MODIFY COLUMN `title` text, MODIFY COLUMN `change` text;';
 				break;
 			case '2.4.40':

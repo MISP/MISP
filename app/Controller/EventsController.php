@@ -728,8 +728,8 @@ class EventsController extends AppController {
 			}
 		}
 		if (Configure::read('Plugin.Enrichment_services_enable')) {
-			$this->loadModel('Server');
-			$modules = $this->Server->getEnabledModules();
+			$this->loadModel('Module');
+			$modules = $this->Module->getEnabledModules();
 			$this->set('modules', $modules);
 		}
 		$this->set('deleted', (isset($this->params['named']['deleted']) && $this->params['named']['deleted']) ? true : false);
@@ -835,8 +835,8 @@ class EventsController extends AppController {
 		}
 
 		if (Configure::read('Plugin.Enrichment_services_enable')) {
-			$this->loadModel('Server');
-			$modules = $this->Server->getEnabledModules();
+			$this->loadModel('Module');
+			$modules = $this->Module->getEnabledModules();
 			$this->set('modules', $modules);
 		}
 		$this->set('contributors', $contributors);
@@ -1365,6 +1365,9 @@ class EventsController extends AppController {
 				throw new MethodNotAllowedException('You don\'t have the permission to do that.');
 			}
 		}
+		$success = true;
+		$message = '';
+		$errors = array();
 		// only allow form submit CSRF protection.
 		if ($this->request->is('post') || $this->request->is('put')) {
 			// Performs all the actions required to publish an event
@@ -1372,11 +1375,12 @@ class EventsController extends AppController {
 			if (!Configure::read('MISP.background_jobs')) {
 				if (!is_array($result)) {
 					// redirect to the view event page
-					$this->Session->setFlash(__('Event published without alerts.', true));
+					$message = 'Event published without alerts';
 				} else {
 					$lastResult = array_pop($result);
 					$resultString = (count($result) > 0) ? implode(', ', $result) . ' and ' . $lastResult : $lastResult;
-					$this->Session->setFlash(__(sprintf('Event published but not pushed to %s, re-try later. If the issue persists, make sure that the correct sync user credentials are used for the server link and that the sync user on the remote server has authentication privileges.', $resultString), true));
+					$errors['failed_servers'] = $result;
+					$message = sprintf('Event published but not pushed to %s, re-try later. If the issue persists, make sure that the correct sync user credentials are used for the server link and that the sync user on the remote server has authentication privileges.', $resultString);
 				}
 			} else {
 				// update the DB to set the published flag
@@ -1385,9 +1389,21 @@ class EventsController extends AppController {
 				$event['Event']['published'] = 1;
 				$event['Event']['publish_timestamp'] = time();
 				$this->Event->save($event, array('fieldList' => $fieldList));
-				$this->Session->setFlash(__('Job queued.'));
+				$message = 'Job queued';
 			}
-			$this->redirect(array('action' => 'view', $id));
+			if ($this->_isRest()) {
+				$this->set('name', 'Publish');
+				$this->set('message', $message);
+				if (!empty($errors)) {
+					$this->set('errors', $errors);
+				}
+				$this->set('url', '/events/alert/' . $id);
+				$this->set('id', $id);
+				$this->set('_serialize', array('name', 'message', 'url', 'id', 'errors'));
+			} else {
+				$this->Session->setFlash($message);
+				$this->redirect(array('action' => 'view', $id));
+			}
 		} else {
 			$this->set('id', $id);
 			$this->set('type', 'publish');
@@ -1414,6 +1430,9 @@ class EventsController extends AppController {
 				throw new MethodNotAllowedException('You don\'t have the permission to do that.');
 			}
 		}
+		$success = true;
+		$message = '';
+		$errors = array();
 		// only allow form submit CSRF protection
 		if ($this->request->is('post') || $this->request->is('put')) {
 			// send out the email
@@ -1424,30 +1443,47 @@ class EventsController extends AppController {
 				if (!is_array($result)) {
 					// redirect to the view event page
 					if (Configure::read('MISP.background_jobs')) {
-						$this->Session->setFlash(__('Job queued.', true));
+						$message = 'Job queued.';
 					} else {
-						$this->Session->setFlash(__('Email sent to all participants.', true));
+						$message = 'Email sent to all participants.';
 					}
 				} else {
 					$lastResult = array_pop($result);
 					$resultString = (count($result) > 0) ? implode(', ', $result) . ' and ' . $lastResult : $lastResult;
-					$this->Session->setFlash(__(sprintf('Not published given no connection to %s but email sent to all participants.', $resultString), true));
+					$errors['failed_servers'] = $result;
+					$message = sprintf('Not published given no connection to %s but email sent to all participants.', $resultString);
 				}
 			} else if (!is_bool($emailResult)) {
 				// Performs all the actions required to publish an event
 				$result = $this->Event->publishRouter($id, null, $this->Auth->user());
 				if (!is_array($result)) {
 					// redirect to the view event page
-					$this->Session->setFlash(__('Published but no email sent given GnuPG is not configured.', true));
+					$message = 'Published but no email sent given GnuPG is not configured.';
+					$errors['GnuPG'] = 'GnuPG not set up.';
 				} else {
 					$lastResult = array_pop($result);
 					$resultString = (count($result) > 0) ? implode(', ', $result) . ' and ' . $lastResult : $lastResult;
-					$this->Session->setFlash(__(sprintf('Not published given no connection to %s but no email sent given GnuPG is not configured.', $resultString), true));
+					$errors['failed_servers'] = $result;
+					$errors['GnuPG'] = 'GnuPG not set up.';
+					$message = sprintf('Not published given no connection to %s but no email sent given GnuPG is not configured.', $resultString);
 				}
 			} else {
-				$this->Session->setFlash(__('Sending of email failed', true), 'default', array(), 'error');
+				$message = 'Sending of email failed';
+				$errors['email'] = 'The sending of emails failed.';
 			}
-			$this->redirect(array('action' => 'view', $id));
+			if ($this->_isRest()) {
+				$this->set('name', 'Alert');
+				$this->set('message', $message);
+				if (!empty($errors)) {
+					$this->set('errors', $errors);
+				}
+				$this->set('url', '/events/alert/' . $id);
+				$this->set('id', $id);
+				$this->set('_serialize', array('name', 'message', 'url', 'id', 'errors'));
+			} else {
+				$this->Session->setFlash($message);
+				$this->redirect(array('action' => 'view', $id));
+			}
 		} else {
 			$this->set('id', $id);
 			$this->set('type', 'alert');
@@ -3537,8 +3573,8 @@ class EventsController extends AppController {
 		$attribute = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $attribute_id)));
 		if (empty($attribute)) throw new MethodNotAllowedException('Attribute not found or you are not authorised to see it.');
 		if ($this->request->is('ajax')) {
-			$this->loadModel('Server');
-			$modules = $this->Server->getEnabledModules();
+			$this->loadModel('Module');
+			$modules = $this->Module->getEnabledModules();
 			if (!is_array($modules) || empty($modules)) throw new MethodNotAllowedException('No valid enrichment options found for this attribute.');
 			$temp = array();
 			foreach ($modules['modules'] as &$module) {
@@ -3550,8 +3586,8 @@ class EventsController extends AppController {
 			foreach (array('attribute_id', 'modules') as $viewVar) $this->set($viewVar, $$viewVar);
 			$this->render('ajax/enrichmentChoice');
 		} else {
-			$this->loadModel('Server');
-			$modules = $this->Server->getEnabledModules();
+			$this->loadModel('Module');
+			$modules = $this->Module->getEnabledModules();
 			if (!is_array($modules) || empty($modules)) throw new MethodNotAllowedException('No valid enrichment options found for this attribute.');
 			$options = array();
 			$found = false;
@@ -3565,20 +3601,11 @@ class EventsController extends AppController {
 					}
 				}
 			}
-			if (!$found) throw new MethodNotAllowedException('No valid enrichment options found for this attribute.');
-			$url = Configure::read('Plugin.Enrichment_services_url') ? Configure::read('Plugin.Enrichment_services_url') : $this->Server->serverSettings['Plugin']['Enrichment_services_url']['value'];
-			$port = Configure::read('Plugin.Enrichment_services_port') ? Configure::read('Plugin.Enrichment_services_port') : $this->Server->serverSettings['Plugin']['Enrichment_services_port']['value'];
-			App::uses('HttpSocket', 'Network/Http');
-			$httpSocket = new HttpSocket();
 			$data = array('module' => $module, $attribute[0]['Attribute']['type'] => $attribute[0]['Attribute']['value'], 'event_id' => $attribute[0]['Attribute']['event_id']);
 			if (!empty($options)) $data['config'] = $options;
 			$data = json_encode($data);
-			try {
-				$response = $httpSocket->post($url . ':' . $port . '/query', $data);
-				$result = json_decode($response->body, true);
-			} catch (Exception $e) {
-				return 'Enrichment service not reachable.';
-			}
+			$result = $this->Module->queryModuleServer('/query', $data);
+			if (!$result) return 'Enrichment service not reachable.';
 			if (isset($result['error'])) $this->Session->setFlash($result['error']);
 			if (!is_array($result)) throw new Exception($result);
 			$resultArray = array();

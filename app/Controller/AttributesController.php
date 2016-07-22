@@ -2312,7 +2312,8 @@ class AttributesController extends AppController {
 		$attribute = $this->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id)));
 		if (empty($attribute)) throw new NotFoundException('Invalid Attribute');
 		$this->loadModel('Server');
-		$modules = $this->Server->getEnabledModules();
+		$this->loadModel('Module');
+		$modules = $this->Module->getEnabledModules();
 		$validTypes = array();
 		if (isset($modules['hover_type'][$attribute[0]['Attribute']['type']])) {
 			$validTypes = $modules['hover_type'][$attribute[0]['Attribute']['type']];
@@ -2337,10 +2338,12 @@ class AttributesController extends AppController {
 			$data = array('module' => $type, $attribute[0]['Attribute']['type'] => $attribute[0]['Attribute']['value']);
 			if (!empty($options)) $data['config'] = $options;
 			$data = json_encode($data);
-			try {
-				$response = $httpSocket->post($url . ':' . $port . '/query', $data);
-				$result = json_decode($response->body, true);
-			} catch (Exception $e) {
+			$result = $this->Module->queryModuleServer('/query', $data, true);
+			if ($result) {
+				if (!is_array($result)) {
+					$resultArray[] = array($type => $result);
+				}
+			} else {
 				$resultArray[] = array($type => 'Enrichment service not reachable.');
 				continue;
 			}

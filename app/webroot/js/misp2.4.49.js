@@ -2442,3 +2442,46 @@ function hoverModuleExpand(type, id) {
 		});
 	}
 }
+
+function runHoverLookup(type, id) {
+	$.ajax({
+		success:function (html) {
+			ajaxResults[type + "_" + id] = html;
+			$('.popover').remove();
+			$('#' + type + '_' + id + '_container').popover({
+				title: 'Lookup results:',
+				content: html,
+				placement: 'left',
+				html: true,
+				trigger: 'hover',
+				container: 'body'
+			}).popover('show');
+		},
+		cache: false,
+		url:"/" + type + "s/hoverEnrichment/" + id,
+	});
+}
+
+$(".eventViewAttributeHover").mouseenter(function() {
+	$('.popover').remove();
+	type = $(this).attr('data-object-type');
+	id = $(this).attr('data-object-id');
+	if (type + "_" + id in ajaxResults) {
+		$('#' + type + '_' + id + '_container').popover({
+			title: 'Lookup results:',
+			content: ajaxResults[type + "_" + id],
+			placement: 'left',
+			html: true,
+			trigger: 'hover',
+			container: 'body'
+		}).popover('show');
+	} else {
+		timer = setTimeout(function() {
+				runHoverLookup(type, id)
+			},
+			500
+		);
+	}
+}).mouseleave(function() {
+	clearTimeout(timer);
+});

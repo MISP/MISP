@@ -46,6 +46,8 @@ class AppController extends Controller {
 	public $helpers = array('Utility');
 
 	private $__jsVersion = '2.4.49';
+	public $phpmin = '5.5.9';	
+	public $phprec = '5.6.0';
 
 	// Used for _isAutomation(), a check that returns true if the controller & action combo matches an action that is a non-xml and non-json automation method
 	// This is used to allow authentication via headers for methods not covered by _isRest() - as that only checks for JSON and XML formats
@@ -81,6 +83,11 @@ class AppController extends Controller {
 		$this->loadModel('User');
 		$auth_user_fields = $this->User->describeAuthFields();
 
+        //if fresh installation (salt empty) generate a new salt
+        if (!Configure::read('Security.salt')) {
+            $this->loadModel('Server');
+            $this->Server->serverSettingsSaveValue('Security.salt', $this->User->generateRandomPassword(32));
+        }
 		// check if Apache provides kerberos authentication data
 		$envvar = Configure::read('ApacheSecureAuth.apacheEnv');
 		if (isset($_SERVER[$envvar])) {
@@ -270,7 +277,7 @@ class AppController extends Controller {
 		}
 
 		if ($this->Session->check(AuthComponent::$sessionKey)) {
-			if (!$this->Auth->user('termsaccepted') && (!in_array($this->request->here, array($base_dir.'/users/terms', $base_dir.'/users/logout', $base_dir.'/users/login')))) {
+			if (!empty(Configure::read('MISP.terms_file')) && !$this->Auth->user('termsaccepted') && (!in_array($this->request->here, array($base_dir.'/users/terms', $base_dir.'/users/logout', $base_dir.'/users/login')))) {
 				if ($this->_isRest()) throw new MethodNotAllowedException('You have not accepted the terms of use yet, please log in via the web interface and accept them.');
 				$this->redirect(array('controller' => 'users', 'action' => 'terms', 'admin' => false));
 			} else if ($this->Auth->user('change_pw') && (!in_array($this->request->here, array($base_dir.'/users/terms', $base_dir.'/users/change_pw', $base_dir.'/users/logout', $base_dir.'/users/login')))) {
