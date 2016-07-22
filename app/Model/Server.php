@@ -1240,7 +1240,7 @@ class Server extends AppModel {
 						if (!$existingEvent) {
 							// add data for newly imported events
 							$passAlong = $server['Server']['id'];
-							$result = $eventModel->_add($event, $fromXml = true, $user, $server['Server']['org_id'], $passAlong, true, $jobId);
+							$result = $eventModel->_add($event, true, $user, $server['Server']['org_id'], $passAlong, true, $jobId);
 							if ($result) $successes[] = $eventId;
 							else {
 								$fails[$eventId] = 'Failed (partially?) because of validation errors: '. print_r($eventModel->validationErrors, true);

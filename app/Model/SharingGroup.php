@@ -274,20 +274,28 @@ class SharingGroup extends AppModel {
 	}
 
 	public function checkIfServerInSG($sg, $server) {
-		$results = array(
-				'rule' => false,
-				'orgs' => array(),
-		);
-		if (isset($sg['SharingGroupServer']) && !empty($sg['SharingGroupServer'])) {
+		$conditional = false;
+		if (isset($sg['SharingGroupServer']) && !empty($sg['SharingGroupServer']) && !$sg['SharingGroup']['roaming']) {
 			foreach ($sg['SharingGroupServer'] as $s) {
 				if ($s['server_id'] == $server['Server']['id']) {
-					if ($s['all_orgs']) return true;
-					else $results['rule'] = 'conditional';
+					if ($s['all_orgs']) {
+						return true;
+					} else {
+						$conditional = true;
+					}
 				}
 			}
-			if ($results['rule'] === false) return false;
+			if ($conditional === false) {
+				return false;
+			}
 		}
-		foreach ($sg['SharingGroupOrg'] as $org) if (isset($org['Organisation']) && $org['Organisation']['uuid'] === $server['RemoteOrg']['uuid']) return true;
+		if (isset($sg['SharingGroupOrg']) && !empty($sg['SharingGroupOrg'])) {
+			foreach ($sg['SharingGroupOrg'] as $org) {
+				if (isset($org['Organisation']) && $org['Organisation']['uuid'] === $server['RemoteOrg']['uuid']) {
+					return true;
+				}
+			}
+		}
 		return false;
 	}
 
@@ -327,7 +335,7 @@ class SharingGroup extends AppModel {
 		));
 		$force = false;
 		if (empty($existingSG)) {
-			if (!$user['Role']['perm_sharing_group']) throw new Exception('User not authorised to create sharing groups.');
+			if (!$user['Role']['perm_sharing_group']) return false;
 			$this->create();
 			$newSG = array();
 			$attributes = array('name', 'releasability', 'description', 'uuid', 'organisation_uuid', 'created', 'modified');
@@ -346,7 +354,9 @@ class SharingGroup extends AppModel {
 			if (!$this->save($newSG)) return false;
 			$sgids = $this->id;
 		} else {
-			if (!$this->checkIfAuthorised($user, $existingSG['SharingGroup']['id'])) throw new Exception('User not authorised to modify sharing groups.');
+			if (!$this->checkIfAuthorised($user, $existingSG['SharingGroup']['id']) && !$user['Role']['perm_sync']) {
+				return false;
+			}
 			if ($sg['modified'] > $existingSG['SharingGroup']['modified']) {
 				if ($user['Role']['perm_sync'] && $existingSG['SharingGroup']['local'] == 0) $force = true;
 				if ($force) {
@@ -365,7 +375,6 @@ class SharingGroup extends AppModel {
 					return $existingSG['SharingGroup']['id'];
 				}
 			} else {
-
 				return $existingSG['SharingGroup']['id'];
 			}
 		}
@@ -376,9 +385,11 @@ class SharingGroup extends AppModel {
 			unset($sg['SharingGroupOrg']);
 			$sg['SharingGroupOrg'][0] = $temp;
 		}
+		$creatorOrgFound = false;
 		foreach ($sg['SharingGroupOrg'] as $k => $org) {
 			if (isset($org['Organisation'][0])) $org['Organisation'] = $org['Organisation'][0];
 			$sg['SharingGroupOrg'][$k]['org_id'] = $this->Organisation->captureOrg($org['Organisation'], $user, $force);
+			if ($sg['SharingGroupOrg'][$k]['org_id'] == $user['org_id']) $creatorOrgFound = true;
 			unset($sg['SharingGroupOrg'][$k]['Organisation']);
 			if ($force) {
 				// we are editing not creating here
@@ -412,6 +423,7 @@ class SharingGroup extends AppModel {
 		foreach ($sg['SharingGroupServer'] as $k => $server) {
 			if (isset($server[0])) $server = $server[0];
 			$sg['SharingGroupServer'][$k]['server_id'] = $this->SharingGroupServer->Server->captureServer($server['Server'], $user, $force);
+			if ($sg['SharingGroupServer'][$k]['server_id'] == 0 && $sg['SharingGroupServer'][$k]['all_orgs']) $creatorOrgFound = true;
 			if ($sg['SharingGroupServer'][$k]['server_id'] === false) unset($sg['SharingGroupServer'][$k]);
 			else {
 				if ($force) {
@@ -433,7 +445,74 @@ class SharingGroup extends AppModel {
 				}
 			}
 		}
+		if (!$creatorOrgFound && $user['Role']['perm_sync']) {
+			$this->SharingGroupOrg->create();
+			$this->SharingGroupOrg->save(array('sharing_group_id' => $sgids, 'org_id' => $user['org_id'], 'extend' => false));
+		}
 		if (!empty($existingSG)) return $existingSG[$this->alias]['id'];
 		return $this->id;
+	}
+	
+	// Correct an issue that existed pre 2.4.49 where a pulled sharing group can end up not being visible to the sync user
+	// This could happen if a sharing group visible to all organisations on the remote end gets pulled and for some reason (mismatch in the baseurl string for example)
+	// the instance cannot be associated with a local sync link. This method checks all non-local sharing groups if the assigned sync user has access to it, if not
+	// it adds the organisation of the sync user (as the only way for them to pull the event is if it is visible to them in the first place remotely).
+	public function correctSyncedSharingGroups() {
+		$sgs = $this->find('all', array(
+				'recursive' => -1,
+				'conditions' => array('local' => 0),
+		));
+		$this->Log = ClassRegistry::init('Log');
+		$this->User = ClassRegistry::init('User');
+		$syncUsers = array();
+		foreach ($sgs as &$sg) {
+			if (!isset($syncUsers[$sg['SharingGroup']['sync_user_id']])) {
+				$user = $this->User->getAuthUser($sg['SharingGroup']['sync_user_id']);
+				if (empty($user)) {
+					$this->Log->create();
+					$entry = array(
+							'org' => 'SYSTEM',
+							'model' => 'SharingGroup',
+							'model_id' => $sg['SharingGroup']['id'],
+							'email' => 'SYSTEM',
+							'action' => 'error',
+							'user_id' => 0,
+							'title' => 'Tried to update a sharing group as part of the 2.4.49 update, but the user used for creating the sharing group locally doesn\'t exist any longer.'
+					);
+					$this->Log->save($entry);
+					continue;
+				}
+				$syncUsers[$sg['SharingGroup']['sync_user_id']] = $this->User->getAuthUser($sg['SharingGroup']['sync_user_id']);
+			}
+			$sg['SharingGroup']['org_id'] = $syncUsers[$sg['SharingGroup']['sync_user_id']]['org_id'];
+			$result = $this->save($sg);
+			if (!$result) {
+				$this->Log->create();
+				$entry = array(
+						'org' => 'SYSTEM',
+						'model' => 'SharingGroup',
+						'model_id' => $sg['SharingGroup']['id'],
+						'email' => 'SYSTEM',
+						'action' => 'error',
+						'user_id' => 0,
+						'title' => 'Tried to update a sharing group as part of the 2.4.49 update, but saving the changes has resulted in the following error: ' . json_encode($this->validationErrors)
+				);
+				$this->Log->save($entry);
+			}
+		}
+	}
+	
+	public function updateRoaming() {
+		$sgs = $this->find('all', array(
+				'recursive' => -1,
+				'conditions' => array('local' => 1, 'roaming' => 0),
+				'contain' => array('SharingGroupServer')
+		));
+		foreach ($sgs as &$sg) {
+			if (empty($sg['SharingGroupServer'])) {
+				$sg['SharingGroup']['roaming'] = 1;
+				$this->save($sg);
+			}
+		}
 	}
 }
