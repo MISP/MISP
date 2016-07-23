@@ -50,7 +50,7 @@
 		</div>
 	<?php
 		endif;
-		if (isset($sg['SharingGroupServer'])):
+		if (!$sg['SharingGroup']['roaming']):
 	?>
 		<div class="span6">
 		<b>Instances</b>

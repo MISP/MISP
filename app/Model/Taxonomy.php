@@ -125,7 +125,7 @@ class Taxonomy extends AppModel{
 
 	// returns all tags associated to a taxonomy
 	// returns all tags not associated to a taxonomy if $inverse is true
-	public function getAllTaxonomyTags($inverse = false) {
+	public function getAllTaxonomyTags($inverse = false, $user = false) {
 		$this->Tag = ClassRegistry::init('Tag');
 		$taxonomyIdList = $this->find('list', array('fields' => array('id')));
 		$taxonomyIdList = array_keys($taxonomyIdList);
@@ -133,7 +133,19 @@ class Taxonomy extends AppModel{
 		foreach ($taxonomyIdList as &$taxonomy) {
 			$allTaxonomyTags = array_merge($allTaxonomyTags, array_keys($this->getTaxonomyTags($taxonomy, true)));
 		}
-		$allTags = $this->Tag->find('list', array('fields' => array('name'), 'order' => array('UPPER(Tag.name) ASC')));
+		$conditions = array();
+		if ($user) {
+			if (!$user['Role']['perm_site_admin']) {
+				$conditions = array('Tag.org_id' => array(0, $user['org_id']));
+			}
+		}
+		$allTags = $this->Tag->find(
+			'list', array(
+				'fields' => array('name'),
+				'order' => array('UPPER(Tag.name) ASC'),
+				'conditions' => $conditions
+			)
+		);
 		foreach ($allTags as $k => &$tag) {
 			if ($inverse && in_array(strtoupper($tag), $allTaxonomyTags)) unset($allTags[$k]);
 			if (!$inverse && !in_array(strtoupper($tag), $allTaxonomyTags)) unset($allTags[$k]);

@@ -87,13 +87,15 @@ class TasksController extends AppController {
 	}
 
 	private function _cacheScheduler($timestamp, $id) {
-		CakeResque::enqueueAt(
+		$process_id = CakeResque::enqueueAt(
 				$timestamp,
 				'cache',
 				'EventShell',
 				array('enqueueCaching', $timestamp),
 				true
 		);
+		$this->Task->id = $id;
+		$this->Task->saveField('process_id', $process_id);
 	}
 
 	private function _pushScheduler($timestamp, $id) {
@@ -105,7 +107,7 @@ class TasksController extends AppController {
 				true
 		);
 		$this->Task->id = $id;
-		$this->Task->saveField('job_id', $process_id);
+		$this->Task->saveField('process_id', $process_id);
 	}
 
 	private function _pullScheduler($timestamp, $id) {
@@ -117,7 +119,7 @@ class TasksController extends AppController {
 				true
 		);
 		$this->Task->id = $id;
-		$this->Task->saveField('job_id', $process_id);
+		$this->Task->saveField('process_id', $process_id);
 	}
 
 }

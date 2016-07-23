@@ -53,7 +53,7 @@ class SharingGroupsController extends AppController {
 							'extend' => $org['extend']
 					));
 				}
-				if ($json['sharingGroup']['limitServers']) {
+				if (!$json['sharingGroup']['roaming']) {
 					foreach ($json['servers'] as $server) {
 						$this->SharingGroup->SharingGroupServer->create();
 						$this->SharingGroup->SharingGroupServer->save(array(
@@ -115,13 +115,13 @@ class SharingGroupsController extends AppController {
 			$json = json_decode($this->request->data['SharingGroup']['json'], true);
 			$sg = $json['sharingGroup'];
 			$sg['id'] = $id;
-			$fields = array('name', 'releasability', 'description', 'active', 'limitServers');
+			$fields = array('name', 'releasability', 'description', 'active', 'roaming');
 			$existingSG = $this->SharingGroup->find('first', array('recursive' => -1, 'conditions' => array('SharingGroup.id' => $id)));
 			foreach ($fields as $field) $existingSG['SharingGroup'][$field] = $sg[$field];
 			unset($existingSG['SharingGroup']['modified']);
 			if ($this->SharingGroup->save($existingSG)) {
 				$this->SharingGroup->SharingGroupOrg->updateOrgsForSG($id, $json['organisations'], $sharingGroup['SharingGroupOrg'], $this->Auth->user());
-				$this->SharingGroup->SharingGroupServer->updateServersForSG($id, $json['servers'], $sharingGroup['SharingGroupServer'], $json['sharingGroup']['limitServers'], $this->Auth->user());
+				$this->SharingGroup->SharingGroupServer->updateServersForSG($id, $json['servers'], $sharingGroup['SharingGroupServer'], $json['sharingGroup']['roaming'], $this->Auth->user());
 				$this->redirect('/SharingGroups/view/' . $id);
 			} else {
 				$validationReplacements = array(
