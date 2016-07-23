@@ -3178,7 +3178,7 @@ class EventsController extends AppController {
 			}
 		}
 		$parameter_options = array(
-				'distribution' => array('valid_options' => array(0, 1, 2, 3), 'default' => 0),
+				'distribution' => array('valid_options' => array(0, 1, 2, 3, 5), 'default' => 0),
 				'threat_level_id' => array('valid_options' => array(1, 2, 3, 4), 'default' => 4),
 				'analysis' => array('valid_options' => array(0, 1, 2), 'default' => 0),
 				'info' => array('default' =>  'Malware samples uploaded on ' . date('Y-m-d')),
@@ -3248,6 +3248,7 @@ class EventsController extends AppController {
 			$this->Event->saveField('published', 0);
 		} else {
 			$this->Event->create();
+			if ($data['distribution'] == 5) throw new BadRequestException('Distribution level 5 is not supported when uploading a sample without passing an event ID. Distribution level 5 is meant to take on the distribution level of an existing event.');
 			$result = $this->Event->save(
 				array(
 					'info' => $data['info'],
