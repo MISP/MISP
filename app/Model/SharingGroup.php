@@ -226,11 +226,11 @@ class SharingGroup extends AppModel {
 	}
 
 	// returns true if the SG exists and the user is allowed to see it
-	public function checkIfAuthorised($user, $id) {
+	public function checkIfAuthorised($user, $id, $adminCheck = true) {
 		if (!isset($user['id'])) throw new MethodNotAllowedException('Invalid user.');
 		$this->id = $id;
 		if (!$this->exists()) return false;
-		if ($user['Role']['perm_site_admin'] || $this->SharingGroupServer->checkIfAuthorised($id) || $this->SharingGroupOrg->checkIfAuthorised($id, $user['org_id'])) return true;
+		if (($adminCheck && $user['Role']['perm_site_admin']) || $this->SharingGroupServer->checkIfAuthorised($id) || $this->SharingGroupOrg->checkIfAuthorised($id, $user['org_id'])) return true;
 		return false;
 	}
 
@@ -467,8 +467,8 @@ class SharingGroup extends AppModel {
 		$syncUsers = array();
 		foreach ($sgs as &$sg) {
 			if (!isset($syncUsers[$sg['SharingGroup']['sync_user_id']])) {
-				$user = $this->User->getAuthUser($sg['SharingGroup']['sync_user_id']);
-				if (empty($user)) {
+				$syncUsers[$sg['SharingGroup']['sync_user_id']] = $this->User->getAuthUser($sg['SharingGroup']['sync_user_id']);
+				if (empty($syncUsers[$sg['SharingGroup']['sync_user_id']])) {
 					$this->Log->create();
 					$entry = array(
 							'org' => 'SYSTEM',
@@ -480,24 +480,26 @@ class SharingGroup extends AppModel {
 							'title' => 'Tried to update a sharing group as part of the 2.4.49 update, but the user used for creating the sharing group locally doesn\'t exist any longer.'
 					);
 					$this->Log->save($entry);
+					unset($syncUsers[$sg['SharingGroup']['sync_user_id']]);
 					continue;
 				}
-				$syncUsers[$sg['SharingGroup']['sync_user_id']] = $this->User->getAuthUser($sg['SharingGroup']['sync_user_id']);
 			}
-			$sg['SharingGroup']['org_id'] = $syncUsers[$sg['SharingGroup']['sync_user_id']]['org_id'];
-			$result = $this->save($sg);
-			if (!$result) {
-				$this->Log->create();
-				$entry = array(
-						'org' => 'SYSTEM',
-						'model' => 'SharingGroup',
-						'model_id' => $sg['SharingGroup']['id'],
-						'email' => 'SYSTEM',
-						'action' => 'error',
-						'user_id' => 0,
-						'title' => 'Tried to update a sharing group as part of the 2.4.49 update, but saving the changes has resulted in the following error: ' . json_encode($this->validationErrors)
-				);
-				$this->Log->save($entry);
+			if (!$this->checkIfAuthorised($syncUsers[$sg['SharingGroup']['sync_user_id']], $sg['SharingGroup']['id'], false)) {
+				$sharingGroupOrg = array('sharing_group_id' => $sg['SharingGroup']['id'], 'org_id' => $syncUsers[$sg['SharingGroup']['sync_user_id']]['org_id'], 'extend' => 0);
+				$result = $this->SharingGroupOrg->save($sharingGroupOrg);
+				if (!$result) {
+					$this->Log->create();
+					$entry = array(
+							'org' => 'SYSTEM',
+							'model' => 'SharingGroup',
+							'model_id' => $sg['SharingGroup']['id'],
+							'email' => 'SYSTEM',
+							'action' => 'error',
+							'user_id' => 0,
+							'title' => 'Tried to update a sharing group as part of the 2.4.49 update, but saving the changes has resulted in the following error: ' . json_encode($this->SharingGroupOrg->validationErrors)
+					);
+					$this->Log->save($entry);
+				}
 			}
 		}
 	}
