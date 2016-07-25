@@ -201,6 +201,19 @@ class SharingGroupsController extends AppController {
 				if ($sgs['server_id'] == 0) $sgs['Server'] = array('name' => 'Local instance', 'url' => Configure::read('MISP.baseurl'));
 			}
 		}
+		if ($sg['SharingGroup']['sync_user_id']) {
+			$this->loadModel('User');
+			$sync_user = $this->User->find('first', array(
+					'conditions' => array('User.id' => $sg['SharingGroup']['sync_user_id']),
+					'recursive' => -1,
+					'fields' => array('User.id', 'User.org_id'),
+					'contain' => array('Organisation' => array(
+						'fields' => array('Organisation.name')
+					))
+			));
+			if (empty($sync_user)) $sg['SharingGroup']['sync_org_name'] = 'N/A'; 
+			$sg['SharingGroup']['sync_org_name'] = $sync_user['Organisation']['name'];
+		}
 		$this->set('mayModify', $this->SharingGroup->checkIfAuthorisedExtend($this->Auth->user(), $id));
 		$this->set('id', $id);
 		$this->set('sg', $sg);
