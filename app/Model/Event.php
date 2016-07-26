@@ -1127,15 +1127,13 @@ class Event extends AppModel {
 						'Event.distribution >' => 0,
 						'Event.distribution <' => 4,
 						Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
-						$options['distribution'] !== false ? array('Event.distribution =' => $options['distribution']) : array(),
 					),
 				),
 				array(
 					'AND' => array(
 						'Event.sharing_group_id' => $sgids,
 						'Event.distribution' => 4,
-						Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
-						$options['sharing_group_id'] !== false ? array('Event.sharing_group_id =' => $options['sharing_group_id']) : array(),
+						Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array()
 					)
 				)
 			);
@@ -1153,15 +1151,21 @@ class Event extends AppModel {
 				array('AND' => array(
 					'Attribute.distribution >' => 0,
 					'Attribute.distribution !=' => 4,
-					$options['distribution'] !== false ? array('Attribute.distribution =' => $options['distribution']) : array(),
 				)),
 				array('AND' => array(
 					'Attribute.distribution' => 4,
 					'Attribute.sharing_group_id' => $sgids,
-					$options['sharing_group_id'] !== false ? array('Attribute.sharing_group_id =' => $options['sharing_group_id']) : array(),
 				)),
 				'(SELECT events.org_id FROM events WHERE events.id = Attribute.event_id)' => $user['org_id']
 			);
+		}
+		if ($options['distribution']) {
+			$conditions['AND'][] = array('Event.distribution' => $options['distribution']);
+			$conditionsAttributes['AND'][] = array('Attribute.distribution' => $options['distribution']);
+		}
+		if ($options['sharing_group_id']) {
+			$conditions['AND'][] = array('Event.sharing_group_id' => $options['sharing_group_id']);
+			$conditionsAttributes['AND'][] = array('Attribute.sharing_group_id' => $options['sharing_group_id']);
 		}
 		if ($options['from']) $conditions['AND'][] = array('Event.date >=' => $options['from']);
 		if ($options['to']) $conditions['AND'][] = array('Event.date <=' => $options['to']);

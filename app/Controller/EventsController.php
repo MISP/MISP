@@ -866,7 +866,6 @@ class EventsController extends AppController {
 		if (!$this->Event->exists()) {
 			throw new NotFoundException(__('Invalid event.'));
 		}
-
 		$conditions = array('eventid' => $id);
 		if (!$this->_isRest()) {
 			$conditions['includeAllTags'] = true;
@@ -875,6 +874,9 @@ class EventsController extends AppController {
 		}
 		if (isset($this->params['named']['deleted']) && $this->params['named']['deleted']) {
 			$conditions['deleted'] = 1;
+		}
+		if (isset($this->params['named']['public']) && $this->params['named']['public']) {
+			$conditions['distribution'] = array(3, 5);
 		}
 		$results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
 		if (empty($results)) throw new NotFoundException('Invalid event');
