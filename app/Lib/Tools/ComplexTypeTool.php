@@ -171,14 +171,14 @@ class ComplexTypeTool {
 		if (strpos($input, '\\') !== false) {
 			$temp = explode('\\', $input);
 			if (strpos($temp[count($temp)-1], '.')) {
-				if ($this->__resolveFilename($temp[count($temp)-1])) return array('types' => array('filename'), 'category' => 'Payload installation', 'to_ids' => false, 'default_type' => 'filename');
+				if ($this->__resolveFilename($temp[count($temp)-1])) return array('types' => array('filename'), 'categories' => array('Payload installation'), 'to_ids' => false, 'default_type' => 'filename');
 			} else {
 				return array('types' => array('regkey'), 'to_ids' => false, 'default_type' => 'regkey');
 			}
 		}
 
 		// check for CVE
-		if (preg_match("#^cve-[0-9]{4}-[0-9]{4,9}$#i", $input)) return array('types' => array('vulnerability'), 'category' => 'External analysis', 'to_ids' => false, 'default_type' => 'vulnerability');
+		if (preg_match("#^cve-[0-9]{4}-[0-9]{4,9}$#i", $input)) return array('types' => array('vulnerability'), 'categories' => array('External analysis'), 'to_ids' => false, 'default_type' => 'vulnerability');
 
 		return false;
 	}

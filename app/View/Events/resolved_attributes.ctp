@@ -94,7 +94,7 @@
 						}
 					} else {
 						if (isset($item['category_default'])) $default = $item['category_default'];
-						else $default = array_search($item['categories'], $typeCategoryMapping[$item['default_type']]);
+						else $default = array_search($item['categories'][0], $typeCategoryMapping[$item['default_type']]);
 						
 					}
 				?>
