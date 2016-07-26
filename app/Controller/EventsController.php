@@ -3651,6 +3651,10 @@ class EventsController extends AppController {
 								'to_ids' => isset($r['to_ids']) ? $r['to_ids'] : false,
 								'value' => $value
 						);
+						if (isset($r['categories'])) {
+							$temp['categories'] = $r['categories'];
+							$temp['default_category'] = $r['categories'][0];
+						}
 						if (isset($r['data'])) $temp['data'] = $r['data'];
 						$resultArray[] = $temp;
 					}
