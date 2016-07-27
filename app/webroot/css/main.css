@@ -1443,6 +1443,10 @@ a.proposal_link_red:hover {
 	color: green !important;
 }
 
+.black {
+	color: black !important;
+}
+
 .orange {
 	color: orange !important;
 }
