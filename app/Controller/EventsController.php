@@ -3623,6 +3623,9 @@ class EventsController extends AppController {
 					if (!is_array($r['types'])) {
 						$r['types'] = array($r['types']);
 					}
+					if (!is_array($r['categories'])) {
+						$r['categories'] = array($r['categories']);
+					}
 					foreach ($r['values'] as &$value) {
 						if (!is_array($r['values']) || !isset($r['values'][0])) {
 							$r['values'] = array($r['values']);
