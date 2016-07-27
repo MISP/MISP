@@ -3667,6 +3667,12 @@ class EventsController extends AppController {
 				}
 				$resultArray = array_merge($resultArray, $freetextResults);
 			}
+			if(isset($result['comment']) && $result['comment'] != "") {
+				$importComment = $result['comment'];
+			}
+			else {
+				$importComment = 'Enriched via the ' . $module . ' module';
+			}
 			$typeCategoryMapping = array();
 			foreach ($this->Event->Attribute->categoryDefinitions as $k => $cat) {
 				foreach ($cat['types'] as $type) {
@@ -3681,13 +3687,14 @@ class EventsController extends AppController {
 				);
 				$result['related'] = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $options);
 			}
+
 			$this->set('event', array('Event' => $attribute[0]['Event']));
 			$this->set('resultArray', $resultArray);
 			$this->set('typeList', array_keys($this->Event->Attribute->typeDefinitions));
 			$this->set('defaultCategories', $this->Event->Attribute->defaultCategories);
 			$this->set('typeCategoryMapping', $typeCategoryMapping);
 			$this->set('title', 'Enrichment Results');
-			$this->set('importComment', 'Enriched via the ' . $module . ' module');
+			$this->set('importComment', $importComment);
 			$this->render('resolved_attributes');
 		}
 	}
