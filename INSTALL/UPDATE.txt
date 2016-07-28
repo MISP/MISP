@@ -7,7 +7,7 @@
 As user root, do the following:
 
 cd /var/www/MISP
-git pull
+git fetch
 git checkout tags/$(git describe --tags `git rev-list --tags --max-count=1`)
 # if the last shortcut doesn't work, specify the latest version manually
 # example: git checkout tags/v2.4.XY
