@@ -140,7 +140,6 @@
 					<?php endif; ?>
 					<li id='liview'><a href="<?php echo $baseurl;?>/users/view/me">My Profile</a></li>
 					<li id='lidashboard'><a href="<?php echo $baseurl;?>/users/dashboard">Dashboard</a></li>
-					<li id='limembers'><a href="<?php echo $baseurl;?>/users/memberslist">Members List</a></li>
 					<li id='liindexOrg'><a href="<?php echo $baseurl;?>/organisations/index">List Organisations</a></li>
 					<?php if ($menuItem === 'viewOrg'): ?>
 						<li class="active"><a href="<?php echo $baseurl;?>/organisations/view/<?php echo h($id);?>">View Organisation</a></li>
@@ -157,6 +156,7 @@
 					<li id='liuserGuide'><a href="<?php echo $baseurl;?>/pages/display/doc/general">User Guide</a></li>
 					<li id='literms'><a href="<?php echo $baseurl;?>/users/terms">Terms &amp; Conditions</a></li>
 					<li id='listatistics'><a href="<?php echo $baseurl;?>/users/statistics">Statistics</a></li>
+					<li id='limembers'><a href="<?php echo $baseurl;?>/users/memberslist">Attribute Histogram</a></li>
 					<?php
 				break;
 

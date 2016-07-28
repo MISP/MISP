@@ -1,4 +1,5 @@
-<div class="users index">
+<div class="users index"><?php
+/*
 	<h2>Members</h2>
  	<table class="table table-striped table-condensed table-bordered" style="width:300px;">
 	<tr>
@@ -20,6 +21,8 @@ foreach ($orgs as $org):?>
 	<?php
 endforeach; ?>
 	</table>
+*/
+?>
 	<div id = "histogram"></div>
 	<?php //echo $this->element('histogram');?>
 <br /><br />

@@ -1115,7 +1115,7 @@ a.proposal_link_red:hover {
 
 .memberslistBar {
 	overflow: hidden;
-	height:30px;
+	height:13px;
 	-webkit-border-radius: 2px;
 	-moz-border-radius: 2px;
 	border-radius: 2px;
@@ -1151,6 +1151,12 @@ a.proposal_link_red:hover {
 	border-radius: 2px;
 	box-shadow: 1px 1px 1px #888888;
 }
+
+.histogram-legendH4{
+	margin-bottom: 0;
+}
+
+.membersList-histogram-legend .col{float: left;margin: 0 0.4em 0 0;}
 
 .attributeListContainer{
 	position:relative;

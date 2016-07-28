@@ -791,6 +791,10 @@ function handleValidationErrors(responseArray, context, contextNamingConvention)
 	}
 }
 
+/**
+ * updates the histogram
+ * @param selected
+ */
 function toggleHistogramType(type, old) {
 	var done = false;
 	old.forEach(function(entry) {
@@ -803,6 +807,11 @@ function toggleHistogramType(type, old) {
 	updateHistogram(JSON.stringify(old));
 }
 
+/**
+ * toggles which fields are taken into account when rendering the histogram activity
+ * @param type
+ * @param old
+ */
 function updateHistogram(selected) {
 	$.ajax({
 		beforeSend: function (XMLHttpRequest) {

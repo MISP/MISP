@@ -1,6 +1,35 @@
 <h2>Attribute Types Histogram</h2>
 <table>
 	<tr>
+		<td colspan="2"><h4 class="histogram-legendH4">Attributes</h4> (you can also choose specific histogram items by clicking on attributes below)</td>
+	</tr>
+	<tr>
+		<td class="membersList-histogram-legend">
+			<div class="membersList-histogram-legend-line col">
+				<?php
+				$cnt = 0;
+				foreach ($typeDb as $type => $colour): ?>
+				<div class="membersList-histogram-legend-line">
+					<div class="membersList-histogram-legend-box" style="display: block;float: left;margin: 4px 6px 0 0;background-color:<?php echo $colour; ?>">&nbsp;</div>
+					<div style="display: inline-block;cursor: pointer;<?php if (in_array($type, $selectedTypes)) echo 'font-weight:bold';?>" onClick='toggleHistogramType("<?php echo $type; ?>", [<?php foreach ($selectedTypes as $t) echo '"' . $t . '", ' ?>]);'><?php echo $type;?></div>
+				</div>
+				<?php
+				if($cnt%12==11){?>
+			</div>
+			<div class="membersList-histogram-legend-line col">
+				<?php
+				} ?>
+				<?php
+				$cnt++;
+				endforeach;
+				?>
+			</div>
+		</td>
+	</tr>
+	<tr>
+		<td colspan="2"><h4 >Attributes per organization</h4></td>
+	</tr>
+	<tr>
 		<td class="membersList-histogram-left-table">
 			<table style="border-spacing:0px !important;">
 			<?php
@@ -23,16 +52,6 @@
 				</tr>
 			<?php endforeach; ?>
 			</table>
-		</td>
-		<td class="membersList-histogram-legend">
-		<?php foreach ($typeDb as $type => $colour): ?>
-			<div class="membersList-histogram-legend-line">
-				<div class="membersList-histogram-legend-box" style="background-color:<?php echo $colour; ?>">&nbsp;</div>
-				<div style="display: inline-block;<?php if (in_array($type, $selectedTypes)) echo 'font-weight:bold';?>" onClick='toggleHistogramType("<?php echo $type; ?>", [<?php foreach ($selectedTypes as $t) echo '"' . $t . '", ' ?>]);'><?php echo $type;?></div>
-			</div>
-		<?php
-			endforeach;
-		?>
 		</td>
 	</tr>
 </table>
