@@ -92,7 +92,7 @@ class IOCExportComponent extends Component {
 			}
 		} else {
 			if (isset($this->mapping['simple'][$attribute['type']])) {
-				$this->__frameIndicator($this->mapping['simple'][$attribute['type']], $attribute['value'], false);
+				$this->__frameIndicator($this->mapping['simple'][$attribute['type']], $attribute['uuid'], $attribute['value'], false);
 			}
 		}		
 	}
