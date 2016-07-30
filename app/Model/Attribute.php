@@ -1268,7 +1268,7 @@ class Attribute extends AppModel {
 	}
 
 
-	public function hids($user, $type, $tags = '', $from = false, $to = false, $last = false) {
+	public function hids($user, $type, $tags = '', $from = false, $to = false, $last = false, $jobId = false) {
 		if (empty($user)) throw new MethodNotAllowedException('Could not read user.');
 		// check if it's a valid type
 		if ($type != 'md5' && $type != 'sha1' && $type != 'sha256') {
@@ -1296,7 +1296,13 @@ class Attribute extends AppModel {
 		}
 		App::uses('HidsExport', 'Export');
 		$continue = false;
-		foreach ($eventIds as $event) {
+		$eventCount = count($eventIds);
+		if ($jobId) {
+			$this->Job = ClassRegistry::init('Job');
+			$this->Job->id = $jobId;
+			if (!$this->Job->exists()) $jobId = false;
+		}
+		foreach ($eventIds as $k => $event) {
 			$conditions['AND'] = array('Attribute.to_ids' => 1, 'Event.published' => 1, 'Attribute.type' => $typeArray, 'Attribute.event_id' => $event['Event']['id']);
 			$options = array(
 					'conditions' => $conditions,
@@ -1307,6 +1313,9 @@ class Attribute extends AppModel {
 			$export = new HidsExport();
 			$rules = array_merge($rules, $export->export($items, strtoupper($type), $continue));
 			$continue = true;
+			if ($jobId && ($k % 10 == 0)) {
+				$this->Job->saveField('progress', $k * 80 / $eventCount);
+			}
 		}
 		return $rules;
 	}

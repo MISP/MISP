@@ -1552,7 +1552,7 @@ class EventsController extends AppController {
 			} else {
 				$useOrg = $this->Auth->user('Organisation')['name'];
 				$useOrg_id = $this->Auth->user('org_id');
-				$conditions['OR'][] = array('id' => $this->Event->fetchEventIds($this->Auth->user, false, false, true, true));
+				$conditions['OR'][] = array('id' => $this->Event->fetchEventIds($this->Auth->user(), false, false, false, true));
 			}
 			$this->Event->recursive = -1;
 			$newestEvent = $this->Event->find('first', array(
@@ -1560,8 +1560,18 @@ class EventsController extends AppController {
 				'fields' => 'timestamp',
 				'order' => 'Event.timestamp DESC',
 			));
+			$newestEventPublished = $this->Event->find('first', array(
+				'conditions' => array('AND' => array($conditions, array('published' => 1))),
+				'fields' => 'timestamp',
+				'order' => 'Event.timestamp DESC',
+			));
 			$this->loadModel('Job');
 			foreach ($this->Event->export_types as $k => $type) {
+				if ($type['requiresPublished']) {
+					$tempNewestEvent = $newestEventPublished;
+				} else {
+					$tempNewestEvent = $newestEvent;
+				}
 				$job = $this->Job->find('first', array(
 						'fields' => array('id', 'progress'),
 						'conditions' => array(
@@ -1578,12 +1588,20 @@ class EventsController extends AppController {
 					$file = new File($dir->pwd() . DS . 'misp.' . $k . '.' . $useOrg . $type['extension']);
 				}
 				if (!$file->readable()) {
-					$lastModified = 'N/A';
-					$this->Event->export_types[$k]['recommendation'] = 1;
+					if (empty($tempNewestEvent)) {
+						$lastModified = 'No valid events';
+						$this->Event->export_types[$k]['recommendation'] = 0;
+					} else {
+						$lastModified = 'N/A';
+						$this->Event->export_types[$k]['recommendation'] = 1;
+					}
 				} else {
 					$fileChange = $file->lastChange();
 					$lastModified = $this->__timeDifference($now, $fileChange);
-					if ($fileChange > $newestEvent['Event']['timestamp']) {
+					if (empty($tempNewestEvent) || $fileChange > $tempNewestEvent['Event']['timestamp']) {
+						if (empty($tempNewestEvent)) {
+							$lastModified = 'No valid events';
+						}
 						$this->Event->export_types[$k]['recommendation'] = 0;
 					} else {
 						$this->Event->export_types[$k]['recommendation'] = 1;

@@ -71,49 +71,74 @@ class Event extends AppModel {
 	public $shortDist = array(0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All', 4 => ' sharing Group');
 
 	public $export_types = array(
+			'json' => array(
+					'extension' => '.json',
+					'type' => 'JSON',
+					'requiresPublished' => 0,
+					'canHaveAttachments' => true,
+					'description' => 'Click this to download all events and attributes that you have access to in MISP XML format.',
+			),
 			'xml' => array(
 					'extension' => '.xml',
 					'type' => 'XML',
-					'description' => 'Click this to download all events and attributes that you have access to <small>(except file attachments)</small> in a custom XML format.',
+					'requiresPublished' => 0,
+					'canHaveAttachments' => true,
+					'description' => 'Click this to download all events and attributes that you have access to in MISP JSON format.',
 			),
 			'csv_sig' => array(
 					'extension' => '.csv',
 					'type' => 'CSV_Sig',
+					'requiresPublished' => 1,
+					'canHaveAttachments' => false,
 					'description' => 'Click this to download all attributes that are indicators and that you have access to <small>(except file attachments)</small> in CSV format.',
 			),
 			'csv_all' => array(
 					'extension' => '.csv',
 					'type' => 'CSV_All',
+					'requiresPublished' => 0,
+					'canHaveAttachments' => false,
 					'description' => 'Click this to download all attributes that you have access to <small>(except file attachments)</small> in CSV format.',
 			),
 			'suricata' => array(
 					'extension' => '.rules',
 					'type' => 'Suricata',
+					'requiresPublished' => 1,
+					'canHaveAttachments' => false,
 					'description' => 'Click this to download all network related attributes that you have access to under the Suricata rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a whitelist containing host, domain name and IP numbers to exclude from the NIDS export.',
 			),
 			'snort' => array(
 					'extension' => '.rules',
 					'type' => 'Snort',
+					'requiresPublished' => 1,
+					'canHaveAttachments' => false,
 					'description' => 'Click this to download all network related attributes that you have access to under the Snort rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a whitelist containing host, domain name and IP numbers to exclude from the NIDS export.',
 			),
 			'rpz' => array(
 					'extension' => '.txt',
 					'type' => 'RPZ',
+					'requiresPublished' => 1,
+					'canHaveAttachments' => false,
 					'description' => 'Click this to download an RPZ Zone file generated from all ip-src/ip-dst, hostname, domain attributes. This can be useful for DNS level firewalling. Only published events and attributes marked as IDS Signature are exported.'
 			),
 			'md5' => array(
 					'extension' => '.txt',
 					'type' => 'MD5',
+					'requiresPublished' => 1,
+					'canHaveAttachments' => false,
 					'description' => 'Click on one of these two buttons to download all MD5 checksums contained in file-related attributes. This list can be used to feed forensic software when searching for susipicious files. Only published events and attributes marked as IDS Signature are exported.',
 			),
 			'sha1' => array(
 					'extension' => '.txt',
 					'type' => 'SHA1',
+					'requiresPublished' => 1,
+					'canHaveAttachments' => false,
 					'description' => 'Click on one of these two buttons to download all SHA1 checksums contained in file-related attributes. This list can be used to feed forensic software when searching for susipicious files. Only published events and attributes marked as IDS Signature are exported.',
 			),
 			'text' => array(
 					'extension' => '.txt',
 					'type' => 'TEXT',
+					'requiresPublished' => 1,
+					'canHaveAttachments' => false,
 					'description' => 'Click on one of the buttons below to download all the attributes with the matching type. This list can be used to feed forensic software when searching for susipicious files. Only published events and attributes marked as IDS Signature are exported.'
 			),
 	);
@@ -1048,6 +1073,7 @@ class Event extends AppModel {
 		// restricting to non-private or same org if the user is not a site-admin.
 		if (!$user['Role']['perm_site_admin']) {
 			$sgids = $this->SharingGroup->fetchAllAuthorised($user);
+			if (empty($sgids)) $sgids = -1;
 			$conditions['AND']['OR'] = array(
 				'Event.org_id' => $user['org_id'],
 				array(
@@ -1073,7 +1099,6 @@ class Event extends AppModel {
 		if ($last) $conditions['AND'][] = array('Event.publish_timestamp >=' => $last);
 		if ($timestamp) $conditions['AND'][] = array('Event.timestamp >=' => $timestamp);
 		if ($publish_timestamp) $conditions['AND'][] = array('Event.publish_timestamp >=' => $publish_timestamp);
-
 		if ($list) {
 			$params = array(
 				'conditions' => $conditions,
