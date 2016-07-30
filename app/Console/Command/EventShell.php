@@ -90,6 +90,7 @@ class EventShell extends AppShell
 			$result = $this->Event->fetchEvent($user, array('eventid' => $eventId['Event']['id'], 'includeAttachments' => Configure::read('MISP.cached_attachments')));
 			$file->append($converter->event2JSON($result[0]));
 			if ($k < count($eventIds) -1 ) $file->append(',');
+			$this->Job->saveField('progress', ($k+1) / $eventCount *100);
 		}
 		$file->append(']}');
 		$file->close();
