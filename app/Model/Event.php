@@ -134,6 +134,13 @@ class Event extends AppModel {
 					'canHaveAttachments' => false,
 					'description' => 'Click on one of these two buttons to download all SHA1 checksums contained in file-related attributes. This list can be used to feed forensic software when searching for susipicious files. Only published events and attributes marked as IDS Signature are exported.',
 			),
+			'sha256' => array(
+					'extension' => '.txt',
+					'type' => 'SHA256',
+					'requiresPublished' => 1,
+					'canHaveAttachments' => false,
+					'description' => 'Click on one of these two buttons to download all SHA256 checksums contained in file-related attributes. This list can be used to feed forensic software when searching for susipicious files. Only published events and attributes marked as IDS Signature are exported.',
+			),
 			'text' => array(
 					'extension' => '.txt',
 					'type' => 'TEXT',
