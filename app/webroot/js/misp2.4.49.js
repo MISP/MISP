@@ -1690,6 +1690,30 @@ function exportChoiceSelect(url, elementId, checkbox) {
 	document.location.href = url;
 }
 
+function importChoiceSelect(url, elementId, ajax) {
+	if (ajax == 'false') {
+		document.location.href = url;
+	} else {
+		$.ajax({
+		    url: url,
+		    type:'GET',
+			beforeSend: function (XMLHttpRequest) {
+				$(".loading").show();
+			},
+		    error: function(){
+		    	$("#popover_form").html('An error has occured, please reload the page.');
+		    },
+		    success: function(response){
+		    	$("#popover_form").html(response);
+		    	$("#popover_form").fadeIn();
+		    },
+			complete: function() {
+				$(".loading").hide();
+			},
+		});
+	}
+}
+
 function freetextImportResultsSubmit(id, count) {
 	var attributeArray = [];
 	var temp;

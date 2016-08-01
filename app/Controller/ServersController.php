@@ -580,7 +580,9 @@ class ServersController extends AppController {
 	public function serverSettingsReloadSetting($setting, $id) {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
 		$pathToSetting = explode('.', $setting);
-		if (strpos($setting, 'Plugin.Enrichment') !== false) $settingObject = $this->Server->getCurrentServerSettings();
+		if (strpos($setting, 'Plugin.Enrichment') !== false || strpos($setting, 'Plugin.Import') !== false || strpos($setting, 'Plugin.Export') !== false) {
+			$settingObject = $this->Server->getCurrentServerSettings();
+		}
 		else $settingObject = $this->Server->serverSettings;
 		foreach ($pathToSetting as $key) {
 			if (!isset($settingObject[$key])) throw new MethodNotAllowedException();
@@ -803,7 +805,9 @@ class ServersController extends AppController {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
 		if (!isset($setting) || !isset($id)) throw new MethodNotAllowedException();
 		$this->set('id', $id);
-		if (strpos($setting, 'Plugin.Enrichment') !== false) $serverSettings = $this->Server->getCurrentServerSettings();
+		if (strpos($setting, 'Plugin.Enrichment') !== false || strpos($setting, 'Plugin.Import') !== false || strpos($setting, 'Plugin.Export') !== false) {
+			$serverSettings = $this->Server->getCurrentServerSettings();
+		}
 		else $serverSettings = $this->Server->serverSettings;
 		$relevantSettings = (array_intersect_key(Configure::read(), $serverSettings));
 		$found = null;

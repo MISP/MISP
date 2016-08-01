@@ -3181,9 +3181,66 @@ class EventsController extends AppController {
 				'checkbox' => false
 			);
 		}
+		$this->loadModel('Module');
+		$modules = $this->Module->getEnabledModules(false, 'Export');
+		if (is_array($modules) && !empty($modules)) {
+			foreach ($modules['modules'] as $module) {
+				$imports[$module['name']] = array(
+						'url' => '/events/exportModule/' . $id,
+						'text' => Inflector::humanize($module['name']),
+						'requiresPublished' => true,
+						'checkbox' => false,
+				);
+			}
+		}
 		$this->set('exports', $exports);
 		$this->set('id', $id);
 		$this->render('ajax/exportChoice');
+	}
+	
+	public function importChoice($id) {
+		if (!is_numeric($id)) throw new MethodNotAllowedException('Invalid ID');
+		$event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
+		if (empty($event)) throw new NotFoundException('Event not found or you are not authorised to view it.');
+		$event = $event[0];
+		$imports = array(
+				'freetext' => array(
+						'url' => '/events/freeTextImport/' . $id,
+						'text' => 'Freetext Import',
+						'ajax' => true,
+						'target' => 'popover_form'
+				),
+				'template' => array(
+						'url' => '/templates/templateChoices/' . $id,
+						'text' => 'Populate using a Template',
+						'ajax' => true,
+						'target' => 'popover_form'
+				),
+				'OpenIOC' => array(
+						'url' => '/events/addIOC/' . $id,
+						'text' => 'OpenIOC Import',
+						'ajax' => false,
+				),
+				'ThreatConnect' => array(
+						'url' => '/attributes/add_threatconnect/' . $id,
+						'text' => 'ThreatConnect Import',
+						'ajax' => false
+				)
+		);
+		$this->loadModel('Module');
+		$modules = $this->Module->getEnabledModules(false, 'Import');
+		if (is_array($modules) && !empty($modules)) {
+			foreach ($modules['modules'] as $k => $module) {
+				$imports[$module['name']] = array(
+						'url' => '/events/importModule/' . $module['name'] . '/' . $id,
+						'text' => Inflector::humanize($module['name']),
+						'ajax' => false
+				);
+			}
+		}
+		$this->set('imports', $imports);
+		$this->set('id', $id);
+		$this->render('ajax/importChoice');
 	}
 
 	// API for pushing samples to MISP
@@ -3718,6 +3775,68 @@ class EventsController extends AppController {
 			$this->set('title', 'Enrichment Results');
 			$this->set('importComment', $importComment);
 			$this->render('resolved_attributes');
+		}
+	}
+	
+	public function importModule($module, $eventId) {
+		$this->loadModel('Module');
+		$module = $this->Module->getEnabledModule($module, 'import');
+		if (!is_array($module)) throw new MethodNotAllowedException($module);
+		if (!isset($module['mispattributes']['inputSource'])) $module['mispattributes']['inputSource'] = array('paste');
+		if ($this->request->is('post')) {
+			$fail = false;
+			$modulePayload = array(
+					'module' => $module['name']
+			);
+			foreach ($module['mispattributes']['userConfig'] as $configName => $config) {
+				if (!$fail) {
+					if (isset($config['regex']) && !empty($config['regex'])) {
+						$fail = preg_match($config['regex'], $this->request->data['Event']['config'][$configName]) ? false : 'Invalid setting for ' . h($configName);
+						if (!$fail) {
+							$modulePayload['config'][$configName] = $this->request->data['Event']['config'][$configName];
+						}
+					} else {
+						$modulePayload['config'][$configName] = $this->request->data['Event']['config'][$configName];
+					}
+				}
+			}
+			if (!$fail) {
+				if (isset($this->request->data['Event']['source']) && $this->request->data['Event']['source'] == '1') {
+					$fileupload = $this->request->data['Event']['fileupload'];
+					$tmpfile = new File($fileupload['tmp_name']);
+					if ((isset($fileupload['error']) && $fileupload['error'] == 0) || (!empty($fileupload['tmp_name']) && $fileupload['tmp_name'] != 'none') && is_uploaded_file($tmpfile->path)) {
+						$filename = basename($fileupload['name']);
+						App::uses('FileAccess', 'Tools');
+						$modulePayload['data'] = FileAccess::readFromFile($fileupload['tmp_name'], $fileupload['size']);
+					} else {
+						$fail = true;
+					}	
+				} else {
+					$modulePayload['data'] = $this->request->data['Event']['paste'];
+				}
+				if (!$fail) {
+					$modulePayload['data'] = base64_encode($modulePayload['data']);
+					debug(json_encode($modulePayload, true));
+					$result = $this->Module->queryModuleServer('/query', json_encode($modulePayload, true), false, $moduleFamily = 'Import');
+					debug($result);
+					throw new Exception();
+				}
+			}
+			$this->Session->setFlash($fail);
+		} else {
+		}
+		$this->set('configTypes', $this->Module->configTypes);
+		$this->set('module', $module);
+		$this->set('eventId', $eventId);
+	}
+	
+	public function exportModule($module, $eventId) {
+		$this->loadModel('Module');
+		$this->Module->getEnabledModule($module, 'export');
+		if ($this->request->is('post')) {
+		
+		} else {
+				
 		}
 	}
 }
