@@ -224,7 +224,10 @@ class ServersController extends AppController {
 					$this->request->data['Server']['org_id'] = $this->Auth->user('org_id');
 					if ($this->Server->save($this->request->data)) {
 						if (isset($this->request->data['Server']['submitted_cert']) && $this->request->data['Server']['submitted_cert']['size'] != 0) {
-							$this->__saveCert($this->request->data, $this->Server->id);
+							$this->__saveCert($this->request->data, $this->Server->id, false);
+						}
+						if (isset($this->request->data['Server']['submitted_client_cert']) && $this->request->data['Server']['submitted_client_cert']['size'] != 0) {
+							$this->__saveCert($this->request->data, $this->Server->id, true);
 						}
 						$this->Session->setFlash(__('The server has been saved'));
 						$this->redirect(array('action' => 'index'));
@@ -300,7 +303,7 @@ class ServersController extends AppController {
 			}
 			if (!$fail) {
 				// say what fields are to be updated
-				$fieldList = array('id', 'url', 'push', 'pull', 'remote_org_id', 'name' ,'self_signed', 'cert_file', 'push_rules', 'pull_rules');
+				$fieldList = array('id', 'url', 'push', 'pull', 'remote_org_id', 'name' ,'self_signed', 'cert_file', 'client_cert_file', 'push_rules', 'pull_rules');
 				$this->request->data['Server']['id'] = $id;
 				if ("" != $this->request->data['Server']['authkey']) $fieldList[] = 'authkey';
 				if ($this->request->data['Server']['organisation_type'] < 2) $this->request->data['Server']['remote_org_id'] = $json['id'];
@@ -340,9 +343,14 @@ class ServersController extends AppController {
 				// Save the data
 				if ($this->Server->save($this->request->data, true, $fieldList)) {
 					if (isset($this->request->data['Server']['submitted_cert']) && $this->request->data['Server']['submitted_cert']['size'] != 0 && !$this->request->data['Server']['delete_cert']) {
-						$this->__saveCert($this->request->data, $this->Server->id);
+						$this->__saveCert($this->request->data, $this->Server->id, false);
 					} else {
-						if ($this->request->data['Server']['delete_cert']) $this->__saveCert($this->request->data, $this->Server->id, true);
+						if ($this->request->data['Server']['delete_cert']) $this->__saveCert($this->request->data, $this->Server->id, false, true);
+					}
+					if (isset($this->request->data['Server']['submitted_client_cert']) && $this->request->data['Server']['submitted_client_cert']['size'] != 0 && !$this->request->data['Server']['delete_client_cert']) {
+						$this->__saveCert($this->request->data, $this->Server->id, true);
+					} else {
+						if ($this->request->data['Server']['delete_client_cert']) $this->__saveCert($this->request->data, $this->Server->id, true, true);
 					}
 					$this->Session->setFlash(__('The server has been saved'));
 					$this->redirect(array('action' => 'index'));
@@ -546,33 +554,42 @@ class ServersController extends AppController {
 		}
 	}
 
-	private function __saveCert($server, $id, $delete = false) {
+	private function __saveCert($server, $id, $client = false, $delete = false) {
+		if ($client) {
+			$subm = 'submitted_client_cert';
+			$attr = 'client_cert_file';
+			$ins  = '_client';
+		} else {
+			$subm = 'submitted_cert';
+			$attr = 'cert_file';
+			$ins  = '';
+		}
 		if (!$delete) {
 			$ext = '';
 			App::uses('File', 'Utility');
 			App::uses('Folder', 'Utility');
 			App::uses('FileAccess', 'Tools');
-			$file = new File($server['Server']['submitted_cert']['name']);
+			$file = new File($server['Server'][$subm]['name']);
 			$ext = $file->ext();
-			if (($ext != 'pem') || !$server['Server']['submitted_cert']['size'] > 0) {
+			if (($ext != 'pem') || !$server['Server'][$subm]['size'] > 0) {
 				$this->Session->setFlash('Incorrect extension or empty file.');
 				$this->redirect(array('action' => 'index'));
 			}
 
 			// read pem file data
-			$pemData = FileAccess::readFromFile($server['Server']['submitted_cert']['tmp_name'], $server['Server']['submitted_cert']['size']);
+			$pemData = FileAccess::readFromFile($server['Server'][$subm]['tmp_name'], $server['Server'][$subm]['size']);
 
 			$destpath = APP . "files" . DS . "certs" . DS;
 			$dir = new Folder(APP . "files" . DS . "certs", true);
-			if (!preg_match('@^[\w-,\s,\.]+\.[A-Za-z0-9_]{2,4}$@', $server['Server']['submitted_cert']['name'])) throw new Exception ('Filename not allowed');
-			$pemfile = new File($destpath . $id . '.' . $ext);
+			if (!preg_match('@^[\w-,\s,\.]+\.[A-Za-z0-9_]{2,4}$@', $server['Server'][$subm]['name'])) throw new Exception ('Filename not allowed');
+			$pemfile = new File($destpath . $id . $ins . '.' . $ext);
 			$result = $pemfile->write($pemData);
 			$s = $this->Server->read(null, $id);
-			$s['Server']['cert_file'] = $s['Server']['id'] . '.' . $ext;
+			$s['Server'][$attr] = $s['Server']['id'] . $ins . '.' . $ext;
 			if ($result) $this->Server->save($s);
 		} else {
 			$s = $this->Server->read(null, $id);
-			$s['Server']['cert_file'] = '';
+			$s['Server'][$attr] = '';
 			$this->Server->save($s);
 		}
 	}

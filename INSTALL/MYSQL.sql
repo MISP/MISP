@@ -363,6 +363,7 @@ CREATE TABLE IF NOT EXISTS `servers` (
   `pull_rules` text COLLATE utf8_bin NOT NULL,
   `push_rules` text COLLATE utf8_bin NOT NULL,
   `cert_file` varchar(255) COLLATE utf8_bin DEFAULT NULL,
+  `client_cert_file` varchar(255) COLLATE utf8_bin DEFAULT NULL,
   PRIMARY KEY (`id`),
   INDEX `org_id` (`org_id`),
   INDEX `remote_org_id` (`remote_org_id`)

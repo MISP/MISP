@@ -168,6 +168,7 @@ class AppSchema extends CakeSchema {
 		'lastpushedid' => array('type' => 'integer', 'null' => false, 'default' => null),
 		'self_signed' => array('type' => 'boolean', 'null' => false, 'default' => null),
 		'cert_file' => array('type' => 'string', 'null' => false, 'default' => null, 'collate' => 'utf8_bin', 'charset' => 'utf8'),
+		'client_cert_file' => array('type' => 'string', 'null' => false, 'default' => null, 'collate' => 'utf8_bin', 'charset' => 'utf8'),
 		'indexes' => array(
 			'PRIMARY' => array('column' => 'id', 'unique' => 1)
 		),

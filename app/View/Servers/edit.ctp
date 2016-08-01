@@ -70,7 +70,7 @@
 	?>
 	<div class="clear">
 		<p>
-			<span class="bold">Ceritificate file: </span>
+			<span class="bold">Server ceritificate file: </span>
 			<span id="serverEditCertValue">
 				<?php
 					if (isset($server['Server']['cert_file']) && !empty($server['Server']['cert_file'])) echo h($server['Server']['cert_file']);
@@ -84,7 +84,29 @@
 		<div style="width: 0px;height: 0px;overflow: hidden;">
 		<?php
 			echo $this->Form->input('Server.submitted_cert', array(
-				'label' => false,
+				'label' => 'submitted_cert',
+				'type' => 'file',
+				'div' => false
+			));
+		?>
+		</div>
+	<div class="clear">
+		<p>
+			<span class="bold">Client ceritificate file: </span>
+			<span id="serverEditClientCertValue">
+				<?php
+					if (isset($server['Server']['client_cert_file']) && !empty($server['Server']['client_cert_file'])) echo h($server['Server']['client_cert_file']);
+					else echo '<span class="green bold">Not set.</span>';
+				?>
+			</span>
+			<br />
+			<span id="add_client_cert_file" class="btn btn-inverse" style="line-height:10px; padding: 4px 4px;">Add certificate file</span>
+			<span id="remove_client_cert_file" class="btn btn-inverse" style="line-height:10px; padding: 4px 4px;">Remove certificate file</span>
+		</p>
+		<div style="width: 0px;height: 0px;overflow: hidden;">
+		<?php
+			echo $this->Form->input('Server.submitted_client_cert', array(
+				'label' => 'submitted_client_cert',
 				'type' => 'file',
 				'div' => false
 			));
@@ -134,6 +156,7 @@ var formInfoValues = {
 		'ServerPush' : "Allow the upload of events and their attributes.",
 		'ServerPull' : "Allow the download of events and their attributes from the server.",
 		'ServerSubmittedCert' : "You can also upload a certificate file if the instance you are trying to connect to has its own signing authority.",
+		'ServerSubmittedClientCert' : "You can also upload a client certificate file if the instance you are trying to connect requires this.",
 		'ServerSelfSigned' : "Click this, if you would like to allow a connection despite the other instance using a self-signed certificate (not recommended)."
 };
 
@@ -151,11 +174,11 @@ $(document).ready(function() {
 		serverOrgTypeChange();
 	});
 
-	$("#ServerUrl, #ServerOrganization, #ServerName, #ServerAuthkey, #ServerPush, #ServerPull, #ServerSubmittedCert, #ServerSelfSigned").on('mouseleave', function(e) {
+	$("#ServerUrl, #ServerOrganization, #ServerName, #ServerAuthkey, #ServerPush, #ServerPull, #ServerSubmittedCert, #ServerSubmittedClientCert, #ServerSelfSigned").on('mouseleave', function(e) {
 	    $('#'+e.currentTarget.id).popover('destroy');
 	});
 
-	$("#ServerUrl, #ServerOrganization, #ServerName, #ServerAuthkey, #ServerPush, #ServerPull, #ServerSubmittedCert, #ServerSelfSigned").on('mouseover', function(e) {
+	$("#ServerUrl, #ServerOrganization, #ServerName, #ServerAuthkey, #ServerPush, #ServerPull, #ServerSubmittedCert, #ServerSubmittedClientCert, #ServerSelfSigned").on('mouseover', function(e) {
 	    var $e = $(e.target);
 	        $('#'+e.currentTarget.id).popover('destroy');
 	        $('#'+e.currentTarget.id).popover({
@@ -176,14 +199,24 @@ $(document).ready(function() {
 	$('#add_cert_file').click(function() {
 		$('#ServerSubmittedCert').trigger('click');
 	});
-	$('input[type=file]').change(function() {
-		$('#serverEditCertValue').text($('input[type=file]').val());
+	$('#add_client_cert_file').click(function() {
+		$('#ServerSubmittedClientCert').trigger('click');
+	});
+	$('input[label=submitted_cert]').change(function() {
+		$('#serverEditCertValue').text($('input[label=submitted_cert]').val());
 		$('#ServerDeleteCert').prop('checked', false);
 	});
-
+	$('input[label=submitted_client_cert]').change(function() {
+		$('#serverEditClientCertValue').text($('input[label=submitted_client_cert]').val());
+		$('#ServerDeleteClientCert').prop('checked', false);
+	});
 	$('#remove_cert_file').click(function() {
 		$('#serverEditCertValue').html('<span class="green bold">Not set.</span>');
 		$('#ServerDeleteCert').prop('checked', true);
+	});
+	$('#remove_client_cert_file').click(function() {
+		$('#serverEditClientCertValue').html('<span class="green bold">Not set.</span>');
+		$('#ServerDeleteClientCert').prop('checked', true);
 	});
 });
 </script>

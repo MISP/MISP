@@ -25,6 +25,7 @@
 			<th><?php echo $this->Paginator->sort('url');?></th>
 			<th>Remote Organisation</th>
 			<th><?php echo $this->Paginator->sort('cert_file');?></th>
+			<th><?php echo $this->Paginator->sort('client_cert_file');?></th>
 			<th><?php echo $this->Paginator->sort('self_signed');?></th>
 			<th><?php echo $this->Paginator->sort('org');?></th>
 			<th>Last Pulled ID</th>
@@ -70,6 +71,7 @@ foreach ($servers as $server):
 		<td><?php echo h($server['Server']['url']); ?>&nbsp;</td>
 		<td><a href="/organisations/view/<?php echo h($server['RemoteOrg']['id']); ?>"><?php echo h($server['RemoteOrg']['name']); ?></a></td>
 		<td class="short"><?php echo h($server['Server']['cert_file']); ?>&nbsp;</td>
+		<td class="short"><?php echo h($server['Server']['client_cert_file']); ?>&nbsp;</td>
 		<td class="short"><span class="<?php echo ($server['Server']['self_signed'] ? 'icon-ok' : 'icon-remove'); ?>"></span></td>
 		<td class="short"><a href="/organisations/view/<?php echo h($server['Organisation']['id']); ?>"><?php echo h($server['Organisation']['name']); ?></a></td>
 		<td class="short"><?php echo $server['Server']['lastpulledid']; ?></td>

@@ -44,6 +44,7 @@ call AddColumnUnlessExists(Database(), 'servers', 'push_rules', 'TEXT( 11 ) COLL
 call AddColumnUnlessExists(Database(), 'servers', 'org_id', 'INT( 11 ) NOT NULL DEFAULT 0');
 call AddColumnUnlessExists(Database(), 'servers', 'remote_org_id', 'INT( 11 ) NOT NULL DEFAULT 0');
 call AddColumnUnlessExists(Database(), 'servers', 'name', 'varchar(255) COLLATE utf8_bin NOT NULL');
+call AddColumnUnlessExists(Database(), 'servers', 'client_cert_file', 'varchar(255) COLLATE utf8_bin DEFAULT NULL');
 
 call AddColumnUnlessExists(Database(), 'shadow_attributes', 'org_id', 'INT( 11 ) NOT NULL DEFAULT 0');
 call AddColumnUnlessExists(Database(), 'shadow_attributes', 'event_org_id', 'INT( 11 ) NOT NULL DEFAULT 0');
