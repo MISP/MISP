@@ -134,6 +134,13 @@ class Event extends AppModel {
 					'canHaveAttachments' => false,
 					'description' => 'Click on one of these two buttons to download all SHA1 checksums contained in file-related attributes. This list can be used to feed forensic software when searching for susipicious files. Only published events and attributes marked as IDS Signature are exported.',
 			),
+			'sha256' => array(
+					'extension' => '.txt',
+					'type' => 'SHA256',
+					'requiresPublished' => 1,
+					'canHaveAttachments' => false,
+					'description' => 'Click on one of these two buttons to download all SHA256 checksums contained in file-related attributes. This list can be used to feed forensic software when searching for susipicious files. Only published events and attributes marked as IDS Signature are exported.',
+			),
 			'text' => array(
 					'extension' => '.txt',
 					'type' => 'TEXT',
@@ -2707,5 +2714,68 @@ class Event extends AppModel {
 			$conditions['AND'][] = $temp;
 		}
 		return $conditions;
+	}
+	
+	public function handleModuleResult($result, $event_id) {
+		$resultArray = array();
+		$freetextResults = array();
+		App::uses('ComplexTypeTool', 'Tools');
+		$complexTypeTool = new ComplexTypeTool();
+		if (isset($result['results']) && !empty($result['results'])) {
+			foreach ($result['results'] as $k => &$r) {
+				if (!is_array($r['values'])) {
+					$r['values'] = array($r['values']);
+				}
+				if (!is_array($r['types'])) {
+					$r['types'] = array($r['types']);
+				}
+				if (isset($r['categories']) && !is_array($r['categories'])) {
+					$r['categories'] = array($r['categories']);
+				}
+				foreach ($r['values'] as &$value) {
+					if (!is_array($r['values']) || !isset($r['values'][0])) {
+						$r['values'] = array($r['values']);
+					}
+				}
+				foreach ($r['values'] as &$value) {
+					if (in_array('freetext', $r['types'])) {
+						if (is_array($value)) $value = json_encode($value);
+						$freetextResults = array_merge($freetextResults, $complexTypeTool->checkComplexRouter($value, 'FreeText'));
+						if (!empty($freetextResults)) {
+							foreach ($freetextResults as &$ft) {
+								$temp = array();
+								foreach ($ft['types'] as $type) {
+									$temp[$type] = $type;
+								}
+								$ft['types'] = $temp;
+							}
+						}
+						$r['types'] = array_diff($r['types'], array('freetext'));
+						// if we just removed the only type in the result then more on to the next result
+						if (empty($r['types'])) continue 2;
+						$r['types'] = array_values($r['types']);
+					}
+				}
+				foreach ($r['values'] as &$value) {
+					$temp = array(
+							'event_id' => $event_id,
+							'types' => $r['types'],
+							'default_type' => $r['types'][0],
+							'comment' => isset($r['comment']) ? $r['comment'] : false,
+							'to_ids' => isset($r['to_ids']) ? $r['to_ids'] : false,
+							'value' => $value
+					);
+					if (isset($r['categories'])) {
+						$temp['categories'] = $r['categories'];
+						$temp['default_category'] = $r['categories'][0];
+					}
+					if (isset($r['data'])) $temp['data'] = $r['data'];
+					$resultArray[] = $temp;
+				}
+					
+			}
+			$resultArray = array_merge($resultArray, $freetextResults);
+		}
+		return $resultArray;
 	}
 }

@@ -3687,66 +3687,8 @@ class EventsController extends AppController {
 			if (!$result) return 'Enrichment service not reachable.';
 			if (isset($result['error'])) $this->Session->setFlash($result['error']);
 			if (!is_array($result)) throw new Exception($result);
-			$resultArray = array();
-			$freetextResults = array();
-			App::uses('ComplexTypeTool', 'Tools');
-			$complexTypeTool = new ComplexTypeTool();
-			if (isset($result['results']) && !empty($result['results'])) {
-				foreach ($result['results'] as $k => &$r) {
-					if (!is_array($r['values'])) {
-						$r['values'] = array($r['values']);
-					}
-					if (!is_array($r['types'])) {
-						$r['types'] = array($r['types']);
-					}
-					if (isset($r['categories']) && !is_array($r['categories'])) {
-						$r['categories'] = array($r['categories']);
-					}
-					foreach ($r['values'] as &$value) {
-						if (!is_array($r['values']) || !isset($r['values'][0])) {
-							$r['values'] = array($r['values']);
-						}
-					}
-					foreach ($r['values'] as &$value) {
-							if (in_array('freetext', $r['types'])) {
-								if (is_array($value)) $value = json_encode($value);
-								$freetextResults = array_merge($freetextResults, $complexTypeTool->checkComplexRouter($value, 'FreeText'));
-								if (!empty($freetextResults)) {
-									foreach ($freetextResults as &$ft) {
-										$temp = array();
-										foreach ($ft['types'] as $type) {
-											$temp[$type] = $type;
-										}
-										$ft['types'] = $temp;
-									}
-								}
-								$r['types'] = array_diff($r['types'], array('freetext'));
-								// if we just removed the only type in the result then more on to the next result
-								if (empty($r['types'])) continue 2;
-								$r['types'] = array_values($r['types']);
-						}
-					}
-					foreach ($r['values'] as &$value) {
-						$temp = array(
-								'event_id' => $attribute[0]['Attribute']['event_id'],
-								'types' => $r['types'],
-								'default_type' => $r['types'][0],
-								'comment' => isset($r['comment']) ? $r['comment'] : false,
-								'to_ids' => isset($r['to_ids']) ? $r['to_ids'] : false,
-								'value' => $value
-						);
-						if (isset($r['categories'])) {
-							$temp['categories'] = $r['categories'];
-							$temp['default_category'] = $r['categories'][0];
-						}
-						if (isset($r['data'])) $temp['data'] = $r['data'];
-						$resultArray[] = $temp;
-					}
-
-				}
-				$resultArray = array_merge($resultArray, $freetextResults);
-			}
-			if(isset($result['comment']) && $result['comment'] != "") {
+			$resultArray = $this->Event->handleModuleResult($result, $attribute[0]['Attribute']['event_id']);
+			if (isset($result['comment']) && $result['comment'] != "") {
 				$importComment = $result['comment'];
 			}
 			else {
@@ -3816,8 +3758,41 @@ class EventsController extends AppController {
 				}
 				if (!$fail) {
 					$modulePayload['data'] = base64_encode($modulePayload['data']);
-					debug(json_encode($modulePayload, true));
 					$result = $this->Module->queryModuleServer('/query', json_encode($modulePayload, true), false, $moduleFamily = 'Import');
+					if (!$result) return 'Import service not reachable.';
+					if (isset($result['error'])) $this->Session->setFlash($result['error']);
+					if (!is_array($result)) throw new Exception($result);
+					$resultArray = $this->Event->handleModuleResult($result, $attribute[0]['Attribute']['event_id']);
+
+					if (isset($result['comment']) && $result['comment'] != "") {
+						$importComment = $result['comment'];
+					}
+					else {
+						$importComment = 'Enriched via the ' . $module . ' module';
+					}
+					$typeCategoryMapping = array();
+					foreach ($this->Event->Attribute->categoryDefinitions as $k => $cat) {
+						foreach ($cat['types'] as $type) {
+							$typeCategoryMapping[$type][$k] = $k;
+						}
+					}
+					foreach ($resultArray as &$result) {
+						$options = array(
+								'conditions' => array('OR' => array('Attribute.value1' => $result['value'], 'Attribute.value2' => $result['value'])),
+								'fields' => array('Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.comment'),
+								'order' => false
+						);
+						$result['related'] = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $options);
+					}
+					
+					$this->set('event', array('Event' => $attribute[0]['Event']));
+					$this->set('resultArray', $resultArray);
+					$this->set('typeList', array_keys($this->Event->Attribute->typeDefinitions));
+					$this->set('defaultCategories', $this->Event->Attribute->defaultCategories);
+					$this->set('typeCategoryMapping', $typeCategoryMapping);
+					$this->set('title', 'Enrichment Results');
+					$this->set('importComment', $importComment);
+					$this->render('resolved_attributes');
 					debug($result);
 					throw new Exception();
 				}
