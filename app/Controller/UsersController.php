@@ -730,7 +730,7 @@ class UsersController extends AppController {
 	    //all code is called via JS
 	}
 
-    public function histogram($selected = null) {
+	public function histogram($selected = null) {
 		if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This function can only be accessed via AJAX.');
 		if ($selected == '[]') $selected = null;
 		$selectedTypes = array();
