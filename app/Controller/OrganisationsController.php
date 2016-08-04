@@ -42,6 +42,8 @@ class OrganisationsController extends AppController {
 				'conditions' => $conditions,
 				'recursive' => -1,
 		);
+        $usersPerOrg = $this->getMembersCount();
+
 		$orgs = $this->paginate();
 		if ($this->_isSiteAdmin()) {
 			$this->loadModel('User');
@@ -60,6 +62,7 @@ class OrganisationsController extends AppController {
 		}
 		$this->set('scope', $scope);
 		$this->set('orgs', $orgs);
+        $this->set('members', $usersPerOrg);
 	}
 
 	public function admin_add() {
@@ -236,4 +239,23 @@ class OrganisationsController extends AppController {
 			$this->render('ajax/merge');
 		}
 	}
+
+    public function getMembersCount() {
+        // for Organizations List
+        $fields = array('org_id', 'count(User.id) as `num_members`');
+        $params = array(
+            'fields' => $fields,
+            'recursive' => -1,
+            'contain' => array('Users'),
+            'group' => array('org_id'),
+            'order' => array('org_id'),
+        );
+
+        $orgs = $this->User->find('all', $params);
+        $usersPerOrg = [];
+        foreach ($orgs as $key => $value){
+            $usersPerOrg[$value['User']['org_id']] = $value[0]['num_members'];
+        }
+        return $usersPerOrg;
+    }
 }

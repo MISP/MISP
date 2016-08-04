@@ -726,21 +726,11 @@ class UsersController extends AppController {
 		$this->redirect($this->referer());
 	}
 
-	public function memberslist() {
-		// Orglist
-		$fields = array('Organisation.name', 'count(User.id) as `num_members`');
-		$params = array(
-				'fields' => $fields,
-				'recursive' => -1,
-				'contain' => array('Organisation'),
-				'group' => array('Organisation.name', 'Organisation.id'),
-				'order' => array('UPPER(Organisation.name)'),
-		);
-		$orgs = $this->User->find('all', $params);
-		$this->set('orgs', $orgs);
+	public function attributehistogram() {
+	    //all code is called via JS
 	}
 
-	public function histogram($selected = null) {
+    public function histogram($selected = null) {
 		if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This function can only be accessed via AJAX.');
 		if ($selected == '[]') $selected = null;
 		$selectedTypes = array();

@@ -156,7 +156,7 @@
 					<li id='liuserGuide'><a href="<?php echo $baseurl;?>/pages/display/doc/general">User Guide</a></li>
 					<li id='literms'><a href="<?php echo $baseurl;?>/users/terms">Terms &amp; Conditions</a></li>
 					<li id='listatistics'><a href="<?php echo $baseurl;?>/users/statistics">Statistics</a></li>
-					<li id='limembers'><a href="<?php echo $baseurl;?>/users/memberslist">Attribute Histogram</a></li>
+					<li id='limembers'><a href="<?php echo $baseurl;?>/users/attributehistogram">Attribute Histogram</a></li>
 					<?php
 				break;
 
