@@ -127,7 +127,7 @@ CakePlugin::load('UrlCache');
  * It's also necessary to configure the plugin — for more information, please read app/Plugin/CertAuth/reame.md
  */
 // CakePlugin::load('CertAuth');
-
+// CakePlugin::load('ShibbAuth');
 /**
  * You can attach event listeners to the request lifecyle as Dispatcher Filter . By Default CakePHP bundles two filters:
  *
