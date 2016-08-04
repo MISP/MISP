@@ -6,13 +6,13 @@ class Module extends AppModel {
 	
 	private $__validTypes = array(
 		'Enrichment' => array('hover', 'expansion'),
-		'import' => array('import'),
-		'Export' => array('export')
+		'Import' => array('Import'),
+		'Export' => array('Export')
 	);
 	
 	private $__typeToFamily = array(
-		'import' => 'import',
-		'export' => 'export',
+		'Import' => 'Import',
+		'Export' => 'Export',
 		'hover' => 'Enrichment',
 		'expansion' => 'Enrichment'	
 	);
@@ -82,7 +82,7 @@ class Module extends AppModel {
 		$modules = $this->getModules($type, $moduleFamily);
 		if (is_array($modules)) {
 			foreach ($modules['modules'] as $k => &$module) {
-				if (!Configure::read('Plugin.' . $moduleFamily . '_' . $module['name'] . '_enabled') || ($type && in_array($type, $module['meta']['module-type']))) {
+				if (!Configure::read('Plugin.' . $moduleFamily . '_' . $module['name'] . '_enabled') || ($type && in_array(strtolower($type), $module['meta']['module-type']))) {
 					unset($modules['modules'][$k]);
 				}
 			}
@@ -91,8 +91,8 @@ class Module extends AppModel {
 		if (isset($modules['modules']) && !empty($modules['modules'])) $modules['modules'] = array_values($modules['modules']);
 		if (!is_array($modules)) return array();
 		foreach ($modules['modules'] as $temp) {
-			if (isset($temp['meta']['module-type']) && in_array('import', $temp['meta']['module-type']))  $modules['import'] = $temp['name'];
-			else if (isset($temp['meta']['module-type']) && in_array('export', $temp['meta']['module-type']))  $modules['export'] = $temp['name'];
+			if (isset($temp['meta']['module-type']) && in_array('Import', $temp['meta']['module-type']))  $modules['Import'] = $temp['name'];
+			else if (isset($temp['meta']['module-type']) && in_array('Export', $temp['meta']['module-type']))  $modules['Export'] = $temp['name'];
 			else {
 				foreach ($temp['mispattributes']['input'] as $input) {
 					if (!isset($temp['meta']['module-type']) || in_array('expansion', $temp['meta']['module-type'])) $modules['types'][$input][] = $temp['name'];
@@ -104,15 +104,15 @@ class Module extends AppModel {
 	}
 	
 	public function getEnabledModule($name, $type) {
-		$moduleFamily = $this->__typeToFamily[$type]; 
+		$moduleFamily = $this->__typeToFamily[$type];
 		$url = $this->__getModuleServer($moduleFamily);
-		$modules = $this->getModules($type);
+		$modules = $this->getModules($type, $moduleFamily);
 		$module = false;
 		if (!Configure::read('Plugin.' . $moduleFamily . '_' . $name . '_enabled')) return 'The requested module is not enabled.';
 		if (is_array($modules)) {
 			foreach ($modules['modules'] as $k => &$module) {
 				if ($module['name'] == $name) {
-					if ($type && in_array($type, $module['meta']['module-type'])) {
+					if ($type && in_array(strtolower($type), $module['meta']['module-type'])) {
 						return $module;
 					} else {
 						return 'The requested module is not available for the requested action.';
@@ -124,8 +124,8 @@ class Module extends AppModel {
 	}
 	
 	private function __getModuleServer($moduleFamily = 'Enrichment') {
-		$this->Server = ClassRegistry::init('Server');
 		if (!Configure::read('Plugin.' . $moduleFamily . '_services_enable')) return false;
+		$this->Server = ClassRegistry::init('Server');
 		$url = Configure::read('Plugin.' . $moduleFamily . '_services_url') ? Configure::read('Plugin.' . $moduleFamily . '_services_url') : $this->Server->serverSettings['Plugin'][$moduleFamily . '_services_url']['value'];
 		$port = Configure::read('Plugin.' . $moduleFamily . '_services_port') ? Configure::read('Plugin.' . $moduleFamily . '_services_port') : $this->Server->serverSettings['Plugin'][$moduleFamily . '_services_port']['value'];
 		return $url . ':' . $port;
