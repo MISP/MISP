@@ -91,8 +91,8 @@ class Module extends AppModel {
 		if (isset($modules['modules']) && !empty($modules['modules'])) $modules['modules'] = array_values($modules['modules']);
 		if (!is_array($modules)) return array();
 		foreach ($modules['modules'] as $temp) {
-			if (isset($temp['meta']['module-type']) && in_array('Import', $temp['meta']['module-type']))  $modules['Import'] = $temp['name'];
-			else if (isset($temp['meta']['module-type']) && in_array('Export', $temp['meta']['module-type']))  $modules['Export'] = $temp['name'];
+			if (isset($temp['meta']['module-type']) && in_array('import', $temp['meta']['module-type']))  $modules['Import'] = $temp['name'];
+			else if (isset($temp['meta']['module-type']) && in_array('export', $temp['meta']['module-type']))  $modules['Export'] = $temp['name'];
 			else {
 				foreach ($temp['mispattributes']['input'] as $input) {
 					if (!isset($temp['meta']['module-type']) || in_array('expansion', $temp['meta']['module-type'])) $modules['types'][$input][] = $temp['name'];
