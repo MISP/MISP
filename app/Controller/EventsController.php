@@ -3732,13 +3732,18 @@ class EventsController extends AppController {
 			);
 			foreach ($module['mispattributes']['userConfig'] as $configName => $config) {
 				if (!$fail) {
-					if (isset($config['regex']) && !empty($config['regex'])) {
-						$fail = preg_match($config['regex'], $this->request->data['Event']['config'][$configName]) ? false : 'Invalid setting for ' . h($configName);
-						if (!$fail) {
+					$validation = call_user_func_array(array($this->Module, $this->Module->configTypes[$config['type']]['validation']), array($this->request->data['Event']['config'][$configName]));
+					if ($validation !== true) {
+						$fail = ucfirst($configName) . ': ' . $validation;
+					} else {
+						if (isset($config['regex']) && !empty($config['regex'])) {
+							$fail = preg_match($config['regex'], $this->request->data['Event']['config'][$configName]) ? false : ucfirst($configName) . ': ' . 'Invalid setting' . ($config['errorMessage'] ? ' - ' . $config['errorMessage'] : '');
+							if (!empty($fail)) {
+								$modulePayload['config'][$configName] = $this->request->data['Event']['config'][$configName];
+							}
+						} else {
 							$modulePayload['config'][$configName] = $this->request->data['Event']['config'][$configName];
 						}
-					} else {
-						$modulePayload['config'][$configName] = $this->request->data['Event']['config'][$configName];
 					}
 				}
 			}
@@ -3759,16 +3764,15 @@ class EventsController extends AppController {
 				if (!$fail) {
 					$modulePayload['data'] = base64_encode($modulePayload['data']);
 					$result = $this->Module->queryModuleServer('/query', json_encode($modulePayload, true), false, $moduleFamily = 'Import');
-					if (!$result) return 'Import service not reachable.';
+					if (!$result) throw new Exception('Import service not reachable.');
 					if (isset($result['error'])) $this->Session->setFlash($result['error']);
 					if (!is_array($result)) throw new Exception($result);
-					$resultArray = $this->Event->handleModuleResult($result, $attribute[0]['Attribute']['event_id']);
-
+					$resultArray = $this->Event->handleModuleResult($result, $eventId);
 					if (isset($result['comment']) && $result['comment'] != "") {
 						$importComment = $result['comment'];
 					}
 					else {
-						$importComment = 'Enriched via the ' . $module . ' module';
+						$importComment = 'Enriched via the ' . $module['name'] . ' module';
 					}
 					$typeCategoryMapping = array();
 					foreach ($this->Event->Attribute->categoryDefinitions as $k => $cat) {
@@ -3784,8 +3788,7 @@ class EventsController extends AppController {
 						);
 						$result['related'] = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $options);
 					}
-					
-					$this->set('event', array('Event' => $attribute[0]['Event']));
+					$this->set('event', array('Event' => array('id' => $eventId)));
 					$this->set('resultArray', $resultArray);
 					$this->set('typeList', array_keys($this->Event->Attribute->typeDefinitions));
 					$this->set('defaultCategories', $this->Event->Attribute->defaultCategories);
@@ -3793,8 +3796,6 @@ class EventsController extends AppController {
 					$this->set('title', 'Enrichment Results');
 					$this->set('importComment', $importComment);
 					$this->render('resolved_attributes');
-					debug($result);
-					throw new Exception();
 				}
 			}
 			$this->Session->setFlash($fail);

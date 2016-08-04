@@ -29,19 +29,45 @@ class Module extends AppModel {
 			'class' => 'input-xxlarge'
 		),
 		'Integer' => array(
-			'validation' => 'validateInteger',
+			'validation' => 'validateIntegerField',
 			'field' => 'number',
 		),
 		'Boolean' => array(
-			'validation' => 'validateBoolean',
+			'validation' => 'validateBooleanField',
 			'field' => 'checkbox'
 		),
 		'Select' => array(
-			'validation' => 'validateSelect',
+			'validation' => 'validateSelectField',
 			'field' => 'select'
 		)
 	);
+	
+	public function validateIPField($value) {
+		if (!filter_var($value, FILTER_VALIDATE_IP) === false) {
+			return 'Value is not a valid IP.';
+		}
+		return true;
+	}
 
+	public function validateStringField($value) {
+		if (!empty($value)) return true;
+		return 'Field cannot be empty.';
+	}
+	
+	public function validateIntegerField($value) {
+		if (is_numeric($value) && is_int(intval($value))) {
+			return true;
+		}
+		return 'Value is not an integer.';
+	}
+	
+	public function validateBooleanField($value) {
+		if ($value === true || $value === false) {
+			return true;
+		}
+		return 'Value has to be a boolean.';
+	}
+	
 
 	public function getModules($type = false, $moduleFamily = 'Enrichment') {
 		$modules = $this->queryModuleServer('/modules', false, false, $moduleFamily);
