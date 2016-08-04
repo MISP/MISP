@@ -3723,7 +3723,7 @@ class EventsController extends AppController {
 	
 	public function importModule($module, $eventId) {
 		$this->loadModel('Module');
-		$module = $this->Module->getEnabledModule($module, 'Import');
+		$module = $this->Module->getEnabledModule($module, 'import');
 		if (!is_array($module)) throw new MethodNotAllowedException($module);
 		if (!isset($module['mispattributes']['inputSource'])) $module['mispattributes']['inputSource'] = array('paste');
 		if ($this->request->is('post')) {
@@ -3764,7 +3764,7 @@ class EventsController extends AppController {
 				}
 				if (!$fail) {
 					$modulePayload['data'] = base64_encode($modulePayload['data']);
-					$result = $this->Module->queryModuleServer('/query', json_encode($modulePayload, true), false, $moduleFamily = 'Import');
+					$result = $this->Module->queryModuleServer('/query', json_encode($modulePayload, true), false, $moduleFamily = 'import');
 					if (!$result) throw new Exception('Import service not reachable.');
 					if (isset($result['error'])) $this->Session->setFlash($result['error']);
 					if (!is_array($result)) throw new Exception($result);
