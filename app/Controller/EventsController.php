@@ -3723,7 +3723,7 @@ class EventsController extends AppController {
 	
 	public function importModule($module, $eventId) {
 		$this->loadModel('Module');
-		$module = $this->Module->getEnabledModule($module, 'import');
+		$module = $this->Module->getEnabledModule($module, 'Import');
 		if (!is_array($module)) throw new MethodNotAllowedException($module);
 		if (!isset($module['mispattributes']['inputSource'])) $module['mispattributes']['inputSource'] = array('paste');
 		if ($this->request->is('post')) {
