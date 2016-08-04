@@ -3183,10 +3183,11 @@ class EventsController extends AppController {
 		}
 		$this->loadModel('Module');
 		$modules = $this->Module->getEnabledModules(false, 'Export');
+		
 		if (is_array($modules) && !empty($modules)) {
 			foreach ($modules['modules'] as $module) {
-				$imports[$module['name']] = array(
-						'url' => '/events/exportModule/' . $id,
+				$exports[$module['name']] = array(
+						'url' => '/events/exportModule/' . $module['name'] . '/' . $id,
 						'text' => Inflector::humanize($module['name']),
 						'requiresPublished' => true,
 						'checkbox' => false,

@@ -7,7 +7,7 @@ class Module extends AppModel {
 	private $__validTypes = array(
 		'Enrichment' => array('hover', 'expansion'),
 		'Import' => array('import'),
-		'export' => array('export')
+		'Export' => array('export')
 	);
 	
 	private $__typeToFamily = array(
@@ -62,7 +62,7 @@ class Module extends AppModel {
 	}
 	
 	public function validateBooleanField($value) {
-		if ($value === true || $value === false) {
+		if ($value == true || $value == false) {
 			return true;
 		}
 		return 'Value has to be a boolean.';
@@ -126,8 +126,8 @@ class Module extends AppModel {
 	private function __getModuleServer($moduleFamily = 'Enrichment') {
 		$this->Server = ClassRegistry::init('Server');
 		if (!Configure::read('Plugin.' . $moduleFamily . '_services_enable')) return false;
-		$url = Configure::read('Plugin.' . $moduleFamily . '_services_url') ? Configure::read('Plugin.' . $moduleFamily . '_services_url') : $this->Server->serverSettings['Plugin']['Enrichment_services_url']['value'];
-		$port = Configure::read('Plugin.' . $moduleFamily . '_services_port') ? Configure::read('Plugin.' . $moduleFamily . '_services_port') : $this->Server->serverSettings['Plugin']['Enrichment_services_port']['value'];
+		$url = Configure::read('Plugin.' . $moduleFamily . '_services_url') ? Configure::read('Plugin.' . $moduleFamily . '_services_url') : $this->Server->serverSettings['Plugin'][$moduleFamily . '_services_url']['value'];
+		$port = Configure::read('Plugin.' . $moduleFamily . '_services_port') ? Configure::read('Plugin.' . $moduleFamily . '_services_port') : $this->Server->serverSettings['Plugin'][$moduleFamily . '_services_port']['value'];
 		return $url . ':' . $port;
 	}
 	

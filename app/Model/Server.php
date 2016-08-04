@@ -1058,6 +1058,38 @@ class Server extends AppModel {
 							'test' => 'testForEmpty',
 							'type' => 'numeric'
 					),
+					'Import_services_url' => array(
+							'level' => 1,
+							'description' => 'The url used to access the import services. By default, it is accessible at http://127.0.0.1:6666',
+							'value' => 'http://127.0.0.1',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string'
+					),
+					'Import_services_port' => array(
+							'level' => 1,
+							'description' => 'The port used to access the import services. By default, it is accessible at 127.0.0.1:6666',
+							'value' => '6666',
+							'errorMessage' => '',
+							'test' => 'testForPortNumber',
+							'type' => 'numeric'
+					),
+					'Export_services_url' => array(
+							'level' => 1,
+							'description' => 'The url used to access the export services. By default, it is accessible at http://127.0.0.1:6666',
+							'value' => 'http://127.0.0.1',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string'
+					),
+					'Export_services_port' => array(
+							'level' => 1,
+							'description' => 'The port used to access the export services. By default, it is accessible at 127.0.0.1:6666',
+							'value' => '6666',
+							'errorMessage' => '',
+							'test' => 'testForPortNumber',
+							'type' => 'numeric'
+					),
 					'Export_services_enable' => array(
 							'level' => 0,
 							'description' => 'Enable/disable the import services',
@@ -1090,6 +1122,22 @@ class Server extends AppModel {
 							'test' => 'testForEmpty',
 							'type' => 'numeric'
 					),
+					'Enrichment_services_url' => array(
+							'level' => 1,
+							'description' => 'The url used to access the enrichment services. By default, it is accessible at http://127.0.0.1:6666',
+							'value' => 'http://127.0.0.1',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string'
+					),
+					'Enrichment_services_port' => array(
+							'level' => 1,
+							'description' => 'The port used to access the enrichment services. By default, it is accessible at 127.0.0.1:6666',
+							'value' => '6666',
+							'errorMessage' => '',
+							'test' => 'testForPortNumber',
+							'type' => 'numeric'
+					),
 					'CustomAuth_custom_password_reset' => array(
 							'level' => 2,
 							'description' => 'Provide your custom authentication users with an external URL to the authentication system to reset their passwords.',
@@ -1107,22 +1155,6 @@ class Server extends AppModel {
 							'test' => 'testForEmpty',
 							'type' => 'string',
 							'null' => true
-					),
-					'Enrichment_services_url' => array(
-						'level' => 1,
-						'description' => 'The url used to access the enrichment services. By default, it is accessible at http://127.0.0.1:6666',
-						'value' => 'http://127.0.0.1',
-						'errorMessage' => '',
-						'test' => 'testForEmpty',
-						'type' => 'string'
-					),
-					'Enrichment_services_port' => array(
-						'level' => 1,
-						'description' => 'The port used to access the enrichment services. By default, it is accessible at 127.0.0.1:6666',
-						'value' => '6666',
-						'errorMessage' => '',
-						'test' => 'testForPortNumber',
-						'type' => 'numeric'
 					)
 			),
 			'debug' => array(
