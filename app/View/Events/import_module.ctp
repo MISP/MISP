@@ -5,20 +5,6 @@
 		<?php
 			if (isset($module['mispattributes']['userConfig']) && !empty($module['mispattributes']['userConfig'])) {
 				foreach ($module['mispattributes']['userConfig'] as $configName => $config) {
-					?>
-						<p>
-							<span class="bold">
-								<?php
-									echo ucfirst(h($configName));
-								?>
-							</span><br />
-							<?php 
-								if (isset($config['message']) && !empty($config['message'])) {
-									echo PHP_EOL . h($config['message']);
-								}
-							?>
-						</p>
-					<?php
 					$settings = array(
 						'label' => false,
 						'div' => false
@@ -26,12 +12,34 @@
 					if (isset($configTypes[$config['type']]['class'])) {
 						$settings['class'] = $configTypes[$config['type']]['class'];
 					}
-					if (isset($configTypes[$config['type']]['type'])) {
-						$settings['type'] = $configTypes[$config['type']]['type'];
+					if (isset($configTypes[$config['type']]['field'])) {
+						$settings['type'] = $configTypes[$config['type']]['field'];
 					}
-					echo $this->Form->input('Event.config.' . $configName, $settings);
 					?>
-						<div class="input clear"></div><br />
+					<span class="bold">
+						<?php
+							echo ucfirst(h($configName));
+						?>
+					</span><br />
+					<?php 
+						if ($settings['type'] == 'checkbox'):
+							echo $this->Form->input('Event.config.' . $configName, $settings);
+							if (isset($config['message']) && !empty($config['message'])):
+								echo h($config['message']);
+					?>
+								<br />
+					<?php 
+							endif;
+						else:
+							if (isset($config['message']) && !empty($config['message'])): 
+							?>
+								<p><?php echo h($config['message']); ?></p>
+							<?php 
+							endif;
+							echo $this->Form->input('Event.config.' . $configName, $settings);
+						endif;
+					?>
+					<div class="input clear"></div><br />
 					<?php 
 				}
 			}
@@ -52,7 +60,7 @@
 				'style' => 'margin-bottom:5px;'
 			));
 			?>
-			<span class="bold" style="margin-top:5px;">
+			<span class="bold">
 				File upload
 			</span>
 				<div class="input clear"></div>
