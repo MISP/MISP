@@ -3749,22 +3749,31 @@ class EventsController extends AppController {
 				}
 			}
 			if (!$fail) {
-				if (isset($this->request->data['Event']['source']) && $this->request->data['Event']['source'] == '1') {
-					$fileupload = $this->request->data['Event']['fileupload'];
-					$tmpfile = new File($fileupload['tmp_name']);
-					if ((isset($fileupload['error']) && $fileupload['error'] == 0) || (!empty($fileupload['tmp_name']) && $fileupload['tmp_name'] != 'none') && is_uploaded_file($tmpfile->path)) {
-						$filename = basename($fileupload['name']);
-						App::uses('FileAccess', 'Tools');
-						$modulePayload['data'] = FileAccess::readFromFile($fileupload['tmp_name'], $fileupload['size']);
+				if (!isset($this->request->data['Event']['source'])) {
+					if (in_array('paste', $module['mispattributes']['inputSource'])) $this->request->data['Event']['source'] = '0';
+					else $this->request->data['Event']['source'] = '1';
+				}
+				if ($this->request->data['Event']['source'] == '1') {
+					if (!isset($this->request->data['Event']['fileupload']) || empty($this->request->data['Event']['fileupload'])) {
+						$fail = 'Invalid file upload.';
 					} else {
-						$fail = true;
-					}	
+						$fileupload = $this->request->data['Event']['fileupload'];
+						$tmpfile = new File($fileupload['tmp_name']);
+						if ((isset($fileupload['error']) && $fileupload['error'] == 0) || (!empty($fileupload['tmp_name']) && $fileupload['tmp_name'] != 'none') && is_uploaded_file($tmpfile->path)) {
+							$filename = basename($fileupload['name']);
+							App::uses('FileAccess', 'Tools');
+							$modulePayload['data'] = FileAccess::readFromFile($fileupload['tmp_name'], $fileupload['size']);
+						} else {
+							$fail = 'Invalid file upload.';
+						}
+					}
 				} else {
 					$modulePayload['data'] = $this->request->data['Event']['paste'];
 				}
 				if (!$fail) {
 					$modulePayload['data'] = base64_encode($modulePayload['data']);
 					$result = $this->Module->queryModuleServer('/query', json_encode($modulePayload, true), false, $moduleFamily = 'Import');
+					debug($result);
 					if (!$result) throw new Exception('Import service not reachable.');
 					if (isset($result['error'])) $this->Session->setFlash($result['error']);
 					if (!is_array($result)) throw new Exception($result);
