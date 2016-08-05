@@ -2778,4 +2778,21 @@ class Event extends AppModel {
 		}
 		return $resultArray;
 	}
+	
+	public function export($user = false, $module = false, $options = array()) {
+		if (empty($user)) return 'Invalid user.';
+		if  (empty($module)) return 'Invalid module.';
+		$this->Module = ClassRegistry::init('Module');
+		$module = $this->Module->getEnabledModule($module, 'Export');
+		$events = $this->fetchEvent($user, $options);
+		if (empty($events)) return 'Invalid event.';
+		$modulePayload = array('module' => $module['name']);
+		$modulePayload['data'] = $events;
+		$result = $this->Module->queryModuleServer('/query', json_encode($modulePayload, true), false, 'Export');
+		return array(
+				'data' => $result['data'],
+				'extension' => $module['mispattributes']['outputFileExtension'],
+				'response' => $module['mispattributes']['responseType']
+		);
+	}
 }

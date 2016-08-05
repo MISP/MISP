@@ -3815,13 +3815,11 @@ class EventsController extends AppController {
 		$this->set('eventId', $eventId);
 	}
 	
-	public function exportModule($module, $eventId) {
-		$this->loadModel('Module');
-		$this->Module->getEnabledModule($module, 'export');
-		if ($this->request->is('post')) {
-		
-		} else {
-				
-		}
+	public function exportModule($module, $id) {
+		$result = $this->Event->export($this->Auth->user(), $module, array('eventid' => $id));
+		$this->response->body(base64_decode($result['data']));
+		$this->response->type($result['response']);
+		$this->response->download('misp.event.' . $id . '.' . $module . '.export.' . $result['extension']);
+		return $this->response;
 	}
 }
