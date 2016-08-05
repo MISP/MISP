@@ -1,0 +1,364 @@
+---
+# Install basic packages
+- name: Create misp user
+  user:
+    name: misp
+    state: present
+
+- name: Create Ansible directory
+  file: 
+    path: "/home/misp/ansible"
+    owner: misp
+    group: misp
+    mode: 0775
+    state: directory
+
+- name: Install all needed packages
+  apt: 
+    pkg: "{{ item }}"
+    state: latest
+    update_cache: yes
+  with_items: 
+    - gcc
+    - zip
+    - php-pear
+    - git
+    - redis-server
+    - make
+    - python-dev
+    - python-pip
+    - libxml2-dev
+    - libxslt1-dev
+    - zlib1g-dev
+    - php5-dev
+    - curl
+    - gnupg-agent
+    - php5-mysql
+    - php5-redis
+
+######### MISP users and groups #########
+
+- name: Add MISP group
+  group:
+    name: "{{ item }}"
+    state: present
+    system: yes
+  with_items:
+    - "misp-server"
+
+- name: Add misp in misp-server
+  user:
+    name: misp
+    append: yes
+    groups: misp-server
+    state: present
+
+- name: Add www-data in misp-server
+  user: 
+    name: www-data
+    append: yes
+    groups: misp-server
+
+######### MISP directories #########
+
+- name: Create MISP server directory
+  file:
+    path: "{{ item }}"
+    owner: misp
+    group: misp-server
+    mode: 02775
+    state: directory
+  with_items: 
+    - "/opt/misp-server"
+    - "/opt/misp-server/misp"
+    - "/opt/misp-server/tmp"
+    - "/opt/misp-server/backup"
+
+######### PEAR: CRYPTPGP #########
+- name: Configure PEAR proxy
+  shell: "{{ item }}"
+  args:
+    creates: /home/misp/ansible/ansible_shell_pear_configure_proxy.log
+  with_items:
+    - "pear config-set http_proxy http://{{proxy_host}}:{{proxy_port}} > /home/misp/ansible/ansible_shell_pear_configure_proxy.log"
+
+- name: Configure PEAR tmp
+  shell: "{{ item }}"
+  args:
+    creates: /home/misp/ansible/ansible_shell_pear_configure_tmp.log
+  with_items:
+    - pear config-set temp_dir /opt/misp-server/tmp/ > /home/misp/ansible/ansible_shell_pear_configure_tmp.log
+
+- name: Install CryptGPG
+  pear:
+    name: Crypt_GPG
+    state: present
+
+######### MISP REPOSITORY #########
+
+- name: Clone MISP repository
+  become: true
+  become_user: misp
+  git: 
+    repo: "https://github.com/MISP/MISP.git"
+    dest: "/opt/misp-server/misp"
+    recursive: yes
+    force: no
+    update: no
+    version: v2.4.49
+    accept_hostkey: yes
+
+- name: Configure Git
+  git_config:
+    name: core.filemode
+    scope: global
+    value: false
+
+- name: Create scripts directories
+  file: 
+    path: "{{ item }}"
+    owner: misp
+    group: misp-server
+    mode: 02775
+    state: directory
+  with_items:
+    - "/opt/misp-server/misp/app/files/scripts/python-cybox"
+    - "/opt/misp-server/misp/app/files/scripts/python-stix"
+
+- name: Clone MISP depedencies | Python-Cybox
+  become: true
+  become_user: misp
+  git: 
+    repo: "https://github.com/CybOXProject/python-cybox.git"
+    dest: "/opt/misp-server/misp/app/files/scripts/python-cybox"
+    force: no
+    update: no
+    version: v2.1.0.12
+    accept_hostkey: yes
+
+- name: Clone MISP depedencies | Python-Stix
+  become: true
+  become_user: misp
+  git: 
+    repo: "https://github.com/STIXProject/python-stix.git"
+    dest: "/opt/misp-server/misp/app/files/scripts/python-stix"
+    force: no
+    update: no
+    version: v1.1.1.4
+    accept_hostkey: yes
+
+- name: Install MISP depedencies | Python-Cybox
+  become: true
+  shell: "{{ item }}"
+  args:
+    chdir: /opt/misp-server/misp/app/files/scripts/python-cybox
+    creates: /home/misp/ansible/ansible_shell_pythoncybox_setup.log
+  with_items:
+    - python setup.py install > /home/misp/ansible/ansible_shell_pythoncybox_setup.log
+
+- name: Install MISP depedencies | Python-Stix
+  become: true
+  shell: "{{ item }}"
+  args:
+    chdir: /opt/misp-server/misp/app/files/scripts/python-stix
+    creates: /home/misp/ansible/ansible_shell_pythonstix_setup.log
+  with_items:
+    - python setup.py install > /home/misp/ansible/ansible_shell_pythonstix_setup.log
+
+######### CAKE PHP #########
+
+- name: Curl PHP installer
+  shell: "{{ item }}"
+  args:
+    chdir: /opt/misp-server/misp/app/
+    creates: /home/misp/ansible/ansible_shell_curl_php.log
+  with_items:
+    - curl -s https://getcomposer.org/installer | php > /home/misp/ansible/ansible_shell_curl_php.log
+
+- name: Install COMPOSER in /bin
+  copy:
+    remote_src: True
+    src: /opt/misp-server/misp/app/composer.phar
+    dest: /usr/local/bin/composer
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Cake-resque installation
+  composer:
+    command: "require"
+    arguments: "kamisama/cake-resque:4.1.2"
+    working_dir: "/opt/misp-server/misp/app"
+  register: cakeresque_install
+
+- name: Vendor configure
+  composer:
+    command: "config"
+    arguments: "vendor-dir Vendor"
+    working_dir: "/opt/misp-server/misp/app"
+  when: cakeresque_install.changed
+
+- name: PHP composer install
+  composer:
+    command: "install"
+    arguments: ""
+    working_dir: "/opt/misp-server/misp/app"
+
+- name: Copy CakeResque config file
+  copy:
+    remote_src: True
+    src: /opt/misp-server/misp/INSTALL/setup/config.php
+    dest: /opt/misp-server/misp/app/Plugin/CakeResque/Config/config.php
+    force: yes
+    owner: misp
+    group: misp-server
+    mode: 0774
+
+######### MISP CONFIGURATION #########
+
+- name: Copy MISP configuration files
+  template: 
+    src: "misp/config/{{item}}"
+    dest: "/opt/misp-server/misp/app/Config/{{item}}"
+    force: yes
+    owner: misp
+    group: misp-server
+    mode: 0774
+  with_items:
+    - bootstrap.php
+    - config.php
+    - core.php
+    - database.php
+
+######### GNUPG #########
+
+- name: Create the directory for GNUPG
+  file: 
+    path: "/opt/misp-server/misp/.gnupg"
+    owner: misp
+    group: misp-server
+    mode: 0770
+    state: directory
+
+######### MISP WORKERS #########
+
+- name: Check MISP worker launcher permissions
+  file: 
+    path: /opt/misp-server/misp/app/Console/worker/start.sh
+    owner: misp
+    group: misp-server
+    mode: 0764
+
+- name: Check MISP worker autolaunch at boot
+  lineinfile:
+    state: present
+    dest: /etc/rc.local
+    insertbefore: "exit 0"
+    line: "sudo -u www-data bash /opt/misp-server/misp/app/Console/worker/start.sh"
+
+######### ADD-ON #########
+
+- name: Install ZeroMQ
+  pip: 
+    name: pyzmq
+    state: latest
+
+- name: Install Python client for Redis
+  pip: 
+    name: redis
+    state: latest
+
+######### MYSQL CONFIGURATION #########
+
+- name: MySQL | Create MISP database
+  become: true
+  mysql_db:
+    login_user: root
+    login_password: "{{ mysql_root_new_pass }}"
+    name: misp
+    state: present
+  register: mysql_init
+
+- name: MySQL | Create MISP user
+  become: true
+  mysql_user:
+    login_user: root
+    login_password: "{{ mysql_root_new_pass }}"
+    name: misp
+    password: "{{mysql_misp_password}}"
+    priv: "misp.*:ALL,GRANT"
+    state: present
+  register: mysql_init
+
+- name: MySQL | Create password file
+  template: 
+    src: "mysql/{{item}}"
+    dest: "/home/misp/{{item}}"
+    force: no
+    owner: misp
+    group: misp
+    mode: 0600
+  with_items:
+    - .my.cnf
+
+- name: MySQL | Create password file for root
+  template: 
+    src: "mysql/{{item}}"
+    dest: "/root/{{item}}"
+    force: no
+    owner: root
+    group: root
+    mode: 0600
+  with_items:
+    - .my.cnf
+
+- name: MySQL | Initialize MISP database
+  shell: "{{ item }}"
+  with_items:
+    - mysql -D misp < /opt/misp-server/misp/INSTALL/MYSQL.sql
+  when: mysql_init.changed
+  
+######### PERMISSIONS #########
+
+- name: Fix all files permissions
+  file:
+    path: /opt/misp-server/misp
+    recurse: yes
+    state: directory
+    mode: "g=u"
+
+############################################
+#####           BACKUP                  ####
+############################################
+
+- name: Copy backup script
+  become: true
+  template: 
+    src: misp/{{item}}
+    dest: /bin/{{item}}
+    mode: 0755
+  with_items:
+    - misp_backup
+  when: enable_auto_backup == 'y'
+
+- name: Copy restore script
+  template: 
+    src: misp/{{item}}
+    dest: /opt/misp-server/backup/{{item}}
+    mode: 0755
+    owner: misp
+    group: misp
+  with_items:
+    - misp_backup
+  when: enable_auto_backup == 'y'
+
+- name: Create backup cronjob
+  become: true
+  become_user: misp
+  cron:
+    name: "misp backup cronjob"
+    minute: "0"
+    hour: "4"
+    job: "sh /bin/misp_backup"
+  when: enable_auto_backup == 'y'
+

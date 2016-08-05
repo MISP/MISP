@@ -1,0 +1,45 @@
+---
+
+- name: mysql-server - installation
+  apt:
+    pkg: mysql-server-5.6
+    state: present
+
+- name: python-mysqldb - installation
+  apt:
+    pkg: python-mysqldb
+    state: present
+
+- name: MySQL - Update mysql root passwd
+  mysql_user:
+    name: root 
+    host: "{{item}}" 
+    password: "{{mysql_root_new_pass}}"
+    login_user: root
+    login_password: "{{mysql_root_old_pass}}"
+  with_items:
+    - "{{ansible_hostname}}"
+    - 127.0.0.1
+    - ::1
+    - localhost
+  when: mysql_root_new_pass != mysql_root_old_pass and
+        mysql_root_new_pass != ""
+
+- name: MySQL - Delete anonymous mysql user
+  mysql_user:
+    name: "" 
+    state: absent
+    login_user: root
+    login_password: "{{mysql_root_new_pass}}"
+ 
+- name: MySQL - Remove mysql test database
+  mysql_db:
+    name: test 
+    state: absent
+    login_user: root
+    login_password: "{{mysql_root_new_pass}}"
+
+- name: Restart MySQL
+  service:
+    name: mysql
+    state: restarted
