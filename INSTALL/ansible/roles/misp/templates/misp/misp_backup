@@ -1,0 +1,35 @@
+#!/bin/bash
+
+###########################################
+#######      MISP BACKUP SCRIPT     #######
+###########################################
+
+TIMESTAMP=`date +%m%d%Y%H%M`
+BACKUP_PATH='/opt/misp-server/backup'
+BACKUP_DIR="$BACKUP_PATH/$TIMESTAMP"
+
+BACKUP_MYSQL_DIR="$BACKUP_DIR/mysql"
+BACKUP_FILES_DIR="$BACKUP_DIR/misp"
+
+MISP_FILES="/opt/misp-server/misp/app/files"
+MISP_CONF="/opt/misp-server/misp/app/Config"
+
+mkdir "$BACKUP_DIR"
+mkdir "$BACKUP_MYSQL_DIR"
+mkdir "$BACKUP_FILES_DIR"
+
+#### 1 | MYSQL ####
+mysqldump -u misp --opt --single-transaction misp > "$BACKUP_MYSQL_DIR/mysql_dump.sql"
+
+#### 2 | CONFIGURATION FILES ####
+cp -R $MISP_CONF $BACKUP_FILES_DIR
+
+#### 3 | FILES ####
+cp -R $MISP_FILES $BACKUP_FILES_DIR
+
+cd $BACKUP_PATH
+tar -cpzf ${TIMESTAMP}.tar.gz ./${TIMESTAMP} 
+rm -rf $BACKUP_DIR
+
+#### Remove old backups ####
+find . -mtime +30 -exec rm {} \;
