@@ -7,6 +7,7 @@ $config = array (
     'salt' => '',
     'cipherSeed' => '',
     //'auth'=>array('CertAuth.Certificate'), // additional authentication methods
+    //'auth'=>array('ShibbAuth.ApacheShibb'),
   ),
   'MISP' =>
   array (
@@ -87,6 +88,24 @@ $config = array (
       ),
     ),
     'userDefaults'  => array ( 'role_id' => 3 ),          // default attributes for new users
+  ),
+  */
+  /*
+   'ApacheShibbAuth' =>                      // Configuration for shibboleth authentication
+    array(
+         'apacheEnv' => 'REMOTE_USER',        // If proxy variable = HTTP_REMOTE_USER
+         'ssoAuth' => 'AUTH_TYPE',
+         'MailTag' => 'EMAIL_TAG',
+         'OrgTag' => 'FEDERATION_TAG',
+         'GroupTag' => 'GROUP_TAG',
+         'GroupSeparator' => ';',
+         'GroupRoleMatching' => array(                // 3:User, 1:admin. May be good to set "1" for the first user
+               'group_three' => 3,
+               'group_two' => 2,
+               'group_one' => 1,
+          ),
+         'DefaultRoleId' => 3,
+         'DefaultOrg' => 'DEFAULT_ORG',
   ),
   */
   // Warning: The following is a 3rd party contribution and still untested (including security) by the MISP-project team.

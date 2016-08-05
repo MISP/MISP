@@ -142,10 +142,10 @@ class EventShell extends AppShell
 		$file->write('');
 		if (!empty($rules)) {
 			foreach ($rules as $rule) {
-				$file->append($rule . '\n');
+				$file->append($rule . PHP_EOL);
 			}
 		} else {
-			$file->append("No exportable " . $type . "s found. " . '\n');
+			$file->append("No exportable " . $type . "s found. " . PHP_EOL);
 		}
 		$file->close();
 		$timeDelta = (time()-$timeStart);

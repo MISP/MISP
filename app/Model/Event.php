@@ -76,14 +76,14 @@ class Event extends AppModel {
 					'type' => 'JSON',
 					'requiresPublished' => 0,
 					'canHaveAttachments' => true,
-					'description' => 'Click this to download all events and attributes that you have access to in MISP XML format.',
+					'description' => 'Click this to download all events and attributes that you have access to in MISP JSON format.',
 			),
 			'xml' => array(
 					'extension' => '.xml',
 					'type' => 'XML',
 					'requiresPublished' => 0,
 					'canHaveAttachments' => true,
-					'description' => 'Click this to download all events and attributes that you have access to in MISP JSON format.',
+					'description' => 'Click this to download all events and attributes that you have access to in MISP XML format.',
 			),
 			'csv_sig' => array(
 					'extension' => '.csv',
