@@ -3183,7 +3183,6 @@ class EventsController extends AppController {
 		}
 		$this->loadModel('Module');
 		$modules = $this->Module->getEnabledModules(false, 'Export');
-		
 		if (is_array($modules) && !empty($modules)) {
 			foreach ($modules['modules'] as $module) {
 				$exports[$module['name']] = array(

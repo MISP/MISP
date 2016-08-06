@@ -6,8 +6,8 @@ class Module extends AppModel {
 	
 	private $__validTypes = array(
 		'Enrichment' => array('hover', 'expansion'),
-		'Import' => array('Import'),
-		'Export' => array('Export')
+		'Import' => array('import'),
+		'Export' => array('export')
 	);
 	
 	private $__typeToFamily = array(
