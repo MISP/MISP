@@ -218,7 +218,6 @@
 					<li id='liindexRole'><?php echo $this->Html->link('List Roles', array('controller' => 'roles', 'action' => 'index', 'admin' => true)); ?> </li>
 					<?php if ($isSiteAdmin): ?>
 						<li class="divider"></li>
-						<li id='liadminTools'><a href="<?php echo $baseurl;?>/pages/display/administration">Administrative Tools</a></li>
 						<li id='liserverSettings'><a href="<?php echo $baseurl;?>/servers/serverSettings">Server Settings</a></li>
 						<li class="divider"></li>
 						<?php if (Configure::read('MISP.background_jobs')): ?>

@@ -188,8 +188,13 @@
 		endif;
 	?>
 	<h3>
-	Clean model cache
+		Clean model cache
 	</h3>
 	<p>If you ever run into issues with missing database fields / tables, please run the following script to clean the model cache.</p>
 	<?php echo $this->Form->postLink('<span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;">Clean cache</span>', $baseurl . '/events/cleanModelCaches', array('escape' => false));?>
+	<h3>
+		Legacy Administrative Tools
+	</h3>
+	<p>Click the following button to go to the legacy administrative tools page. There should in general be no need to do this unless you are upgrading a very old MISP instance (<2.4), all updates are done automatically with more current versions.</p>
+	<span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick="location.href = '<?php echo $baseurl; ?>/pages/display/administration';">Legacy Administrative Tools</span>
 </div>
