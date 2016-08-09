@@ -1,6 +1,6 @@
 <div class="events">
 <?php echo $this->Form->create('Organisation', array(
-		'onsubmit' => 'return confirm("This will remove the selected organisation and hand over all objects belonging to it to the target organisation. This process is irreversible. Are you sure you");',
+		'onsubmit' => 'return confirm("This will remove the selected organisation and hand over all objects belonging to it to the target organisation. This process is irreversible. Are you sure you want to proceed?");',
 ));?>
 	<div class="legend">Merge Organisation</div>
 			<p class="red-background white">Warning: Merging an organisation into another will be transfer all users and data belonging to the organisation to another.</p>
