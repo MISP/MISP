@@ -435,7 +435,7 @@ class AppModel extends Model {
 				$sqlArray[] = "ALTER TABLE `tags` ADD `org_id` int(11) NOT NULL DEFAULT 0;";
 				$sqlArray[] = 'ALTER TABLE `tags` ADD INDEX `org_id` (`org_id`);';
 				break;
-			case '2.4.50':
+			case '2.4.51':
 				$sqlArray[] = 'ALTER TABLE `servers` ADD `internal` tinyint(1) NOT NULL DEFAULT 0;';
 				break;
 			case 'fixNonEmptySharingGroupID':
