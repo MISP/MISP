@@ -1156,13 +1156,14 @@ class EventsController extends AppController {
 			if (!empty($this->data)) {
 				$ext = '';
 				if (isset($this->data['Event']['submittedfile'])) {
-					App::uses('File', 'Utility');
-					$file = new File($this->data['Event']['submittedfile']['name']);
-					$ext = $file->ext();
+					$ext = pathinfo($this->data['Event']['submittedfile']['name'], PATHINFO_EXTENSION);
 				}
-				if (isset($this->data['Event']['submittedfile']) && ($ext != 'xml' && $ext != 'json') && $this->data['Event']['submittedfile']['size'] > 0 &&
-				is_uploaded_file($this->data['Event']['submittedxml']['tmp_name'])) {
+				if (isset($this->data['Event']['submittedfile']) && (strtolower($ext) != 'xml' && strtolower($ext) != 'json') && $this->data['Event']['submittedfile']['size'] > 0 &&
+				is_uploaded_file($this->data['Event']['submittedfile']['tmp_name'])) {
+					$log = ClassRegistry::init('Log');
+					$log->createLogEntry($this->Auth->user(), 'file_upload', 'Event', 0, 'MISP export file upload failed', 'File details: ' . json_encode($this->data['Event']['submittedfile']));
 					$this->Session->setFlash(__('You may only upload MISP XML or MISP JSON files.'));
+					throw new MethodNotAllowedException('File upload failed or file does not have the expected extension (.xml / .json).');
 				}
 				if (isset($this->data['Event']['submittedfile'])) {
 					if (Configure::read('MISP.take_ownership_xml_import')

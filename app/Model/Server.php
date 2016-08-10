@@ -2341,24 +2341,25 @@ class Server extends AppModel {
 		App::uses('Folder', 'Utility');
 		// check writeable directories
 		$writeableDirs = array(
-				'tmp' => 0,
-				'files' => 0,
-				'files' . DS . 'scripts' . DS . 'tmp' => 0,
-				'tmp' . DS . 'csv_all' => 0,
-				'tmp' . DS . 'csv_sig' => 0,
-				'tmp' . DS . 'md5' => 0,
-				'tmp' . DS . 'sha1' => 0,
-				'tmp' . DS . 'snort' => 0,
-				'tmp' . DS . 'suricata' => 0,
-				'tmp' . DS . 'text' => 0,
-				'tmp' . DS . 'xml' => 0,
-				'tmp' . DS . 'files' => 0,
-				'tmp' . DS . 'logs' => 0,
+				'/tmp' => 0,
+				APP . 'tmp' => 0,
+				APP . 'files' => 0,
+				APP . 'files' . DS . 'scripts' . DS . 'tmp' => 0,
+				APP . 'tmp' . DS . 'csv_all' => 0,
+				APP . 'tmp' . DS . 'csv_sig' => 0,
+				APP . 'tmp' . DS . 'md5' => 0,
+				APP . 'tmp' . DS . 'sha1' => 0,
+				APP . 'tmp' . DS . 'snort' => 0,
+				APP . 'tmp' . DS . 'suricata' => 0,
+				APP . 'tmp' . DS . 'text' => 0,
+				APP . 'tmp' . DS . 'xml' => 0,
+				APP . 'tmp' . DS . 'files' => 0,
+				APP . 'tmp' . DS . 'logs' => 0,
 		);
 		foreach ($writeableDirs as $path => &$error) {
-			$dir = new Folder(APP . $path);
+			$dir = new Folder($path);
 			if (is_null($dir->path)) $error = 1;
-			$file = new File(APP . $path . DS . 'test.txt', true);
+			$file = new File($path . DS . 'test.txt', true);
 			if ($error == 0 && !$file->write('test')) $error = 2;
 			if ($error != 0) $diagnostic_errors++;
 			$file->delete();
