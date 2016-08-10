@@ -47,7 +47,7 @@
 				<?php endforeach; ?>
 			</td>
 			<td class="short" ondblclick="document.location.href ='<?php echo $eventViewURL . h($uuid);?>'">
-				<?php echo $event['date']; ?>&nbsp;
+				<?php echo h($event['date']); ?>&nbsp;
 			</td>
 			<td class="short" ondblclick="document.location.href ='<?php echo $eventViewURL . h($uuid);?>'">
 				<?php
