@@ -68,8 +68,9 @@ class JobsController extends AppController {
 	}
 
 	public function getProgress($type) {
-		$org = $this->Auth->user('Organisation')['name'];
-		if ($this->_isSiteAdmin()) $org = 'ADMIN';
+		$org = $this->Auth->user('org_id');
+		if ($this->_isSiteAdmin()) $org = array($org, '0');
+
 		$progress = $this->Job->find('first', array(
 			'conditions' => array(
 				'job_type' => $type,
