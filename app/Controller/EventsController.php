@@ -3182,9 +3182,66 @@ class EventsController extends AppController {
 				'checkbox' => false
 			);
 		}
+		$this->loadModel('Module');
+		$modules = $this->Module->getEnabledModules(false, 'Export');
+		if (is_array($modules) && !empty($modules)) {
+			foreach ($modules['modules'] as $module) {
+				$exports[$module['name']] = array(
+						'url' => '/events/exportModule/' . $module['name'] . '/' . $id,
+						'text' => Inflector::humanize($module['name']),
+						'requiresPublished' => true,
+						'checkbox' => false,
+				);
+			}
+		}
 		$this->set('exports', $exports);
 		$this->set('id', $id);
 		$this->render('ajax/exportChoice');
+	}
+	
+	public function importChoice($id) {
+		if (!is_numeric($id)) throw new MethodNotAllowedException('Invalid ID');
+		$event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
+		if (empty($event)) throw new NotFoundException('Event not found or you are not authorised to view it.');
+		$event = $event[0];
+		$imports = array(
+				'freetext' => array(
+						'url' => '/events/freeTextImport/' . $id,
+						'text' => 'Freetext Import',
+						'ajax' => true,
+						'target' => 'popover_form'
+				),
+				'template' => array(
+						'url' => '/templates/templateChoices/' . $id,
+						'text' => 'Populate using a Template',
+						'ajax' => true,
+						'target' => 'popover_form'
+				),
+				'OpenIOC' => array(
+						'url' => '/events/addIOC/' . $id,
+						'text' => 'OpenIOC Import',
+						'ajax' => false,
+				),
+				'ThreatConnect' => array(
+						'url' => '/attributes/add_threatconnect/' . $id,
+						'text' => 'ThreatConnect Import',
+						'ajax' => false
+				)
+		);
+		$this->loadModel('Module');
+		$modules = $this->Module->getEnabledModules(false, 'Import');
+		if (is_array($modules) && !empty($modules)) {
+			foreach ($modules['modules'] as $k => $module) {
+				$imports[$module['name']] = array(
+						'url' => '/events/importModule/' . $module['name'] . '/' . $id,
+						'text' => Inflector::humanize($module['name']),
+						'ajax' => false
+				);
+			}
+		}
+		$this->set('imports', $imports);
+		$this->set('id', $id);
+		$this->render('ajax/importChoice');
 	}
 
 	// API for pushing samples to MISP
@@ -3631,66 +3688,8 @@ class EventsController extends AppController {
 			if (!$result) return 'Enrichment service not reachable.';
 			if (isset($result['error'])) $this->Session->setFlash($result['error']);
 			if (!is_array($result)) throw new Exception($result);
-			$resultArray = array();
-			$freetextResults = array();
-			App::uses('ComplexTypeTool', 'Tools');
-			$complexTypeTool = new ComplexTypeTool();
-			if (isset($result['results']) && !empty($result['results'])) {
-				foreach ($result['results'] as $k => &$r) {
-					if (!is_array($r['values'])) {
-						$r['values'] = array($r['values']);
-					}
-					if (!is_array($r['types'])) {
-						$r['types'] = array($r['types']);
-					}
-					if (isset($r['categories']) && !is_array($r['categories'])) {
-						$r['categories'] = array($r['categories']);
-					}
-					foreach ($r['values'] as &$value) {
-						if (!is_array($r['values']) || !isset($r['values'][0])) {
-							$r['values'] = array($r['values']);
-						}
-					}
-					foreach ($r['values'] as &$value) {
-							if (in_array('freetext', $r['types'])) {
-								if (is_array($value)) $value = json_encode($value);
-								$freetextResults = array_merge($freetextResults, $complexTypeTool->checkComplexRouter($value, 'FreeText'));
-								if (!empty($freetextResults)) {
-									foreach ($freetextResults as &$ft) {
-										$temp = array();
-										foreach ($ft['types'] as $type) {
-											$temp[$type] = $type;
-										}
-										$ft['types'] = $temp;
-									}
-								}
-								$r['types'] = array_diff($r['types'], array('freetext'));
-								// if we just removed the only type in the result then more on to the next result
-								if (empty($r['types'])) continue 2;
-								$r['types'] = array_values($r['types']);
-						}
-					}
-					foreach ($r['values'] as &$value) {
-						$temp = array(
-								'event_id' => $attribute[0]['Attribute']['event_id'],
-								'types' => $r['types'],
-								'default_type' => $r['types'][0],
-								'comment' => isset($r['comment']) ? $r['comment'] : false,
-								'to_ids' => isset($r['to_ids']) ? $r['to_ids'] : false,
-								'value' => $value
-						);
-						if (isset($r['categories'])) {
-							$temp['categories'] = $r['categories'];
-							$temp['default_category'] = $r['categories'][0];
-						}
-						if (isset($r['data'])) $temp['data'] = $r['data'];
-						$resultArray[] = $temp;
-					}
-
-				}
-				$resultArray = array_merge($resultArray, $freetextResults);
-			}
-			if(isset($result['comment']) && $result['comment'] != "") {
+			$resultArray = $this->Event->handleModuleResult($result, $attribute[0]['Attribute']['event_id']);
+			if (isset($result['comment']) && $result['comment'] != "") {
 				$importComment = $result['comment'];
 			}
 			else {
@@ -3720,5 +3719,107 @@ class EventsController extends AppController {
 			$this->set('importComment', $importComment);
 			$this->render('resolved_attributes');
 		}
+	}
+	
+	public function importModule($module, $eventId) {
+		$this->loadModel('Module');
+		$module = $this->Module->getEnabledModule($module, 'Import');
+		if (!is_array($module)) throw new MethodNotAllowedException($module);
+		if (!isset($module['mispattributes']['inputSource'])) $module['mispattributes']['inputSource'] = array('paste');
+		if ($this->request->is('post')) {
+			$fail = false;
+			$modulePayload = array(
+					'module' => $module['name']
+			);
+			foreach ($module['mispattributes']['userConfig'] as $configName => $config) {
+				if (!$fail) {
+					$validation = call_user_func_array(array($this->Module, $this->Module->configTypes[$config['type']]['validation']), array($this->request->data['Event']['config'][$configName]));
+					if ($validation !== true) {
+						$fail = ucfirst($configName) . ': ' . $validation;
+					} else {
+						if (isset($config['regex']) && !empty($config['regex'])) {
+							$fail = preg_match($config['regex'], $this->request->data['Event']['config'][$configName]) ? false : ucfirst($configName) . ': ' . 'Invalid setting' . ($config['errorMessage'] ? ' - ' . $config['errorMessage'] : '');
+							if (!empty($fail)) {
+								$modulePayload['config'][$configName] = $this->request->data['Event']['config'][$configName];
+							}
+						} else {
+							$modulePayload['config'][$configName] = $this->request->data['Event']['config'][$configName];
+						}
+					}
+				}
+			}
+			if (!$fail) {
+				if (!isset($this->request->data['Event']['source'])) {
+					if (in_array('paste', $module['mispattributes']['inputSource'])) $this->request->data['Event']['source'] = '0';
+					else $this->request->data['Event']['source'] = '1';
+				}
+				if ($this->request->data['Event']['source'] == '1') {
+					if (!isset($this->request->data['Event']['fileupload']) || empty($this->request->data['Event']['fileupload'])) {
+						$fail = 'Invalid file upload.';
+					} else {
+						$fileupload = $this->request->data['Event']['fileupload'];
+						$tmpfile = new File($fileupload['tmp_name']);
+						if ((isset($fileupload['error']) && $fileupload['error'] == 0) || (!empty($fileupload['tmp_name']) && $fileupload['tmp_name'] != 'none') && is_uploaded_file($tmpfile->path)) {
+							$filename = basename($fileupload['name']);
+							App::uses('FileAccess', 'Tools');
+							$modulePayload['data'] = FileAccess::readFromFile($fileupload['tmp_name'], $fileupload['size']);
+						} else {
+							$fail = 'Invalid file upload.';
+						}
+					}
+				} else {
+					$modulePayload['data'] = $this->request->data['Event']['paste'];
+				}
+				if (!$fail) {
+					$modulePayload['data'] = base64_encode($modulePayload['data']);
+					$result = $this->Module->queryModuleServer('/query', json_encode($modulePayload, true), false, $moduleFamily = 'Import');
+					if (!$result) throw new Exception('Import service not reachable.');
+					if (isset($result['error'])) $this->Session->setFlash($result['error']);
+					if (!is_array($result)) throw new Exception($result);
+					$resultArray = $this->Event->handleModuleResult($result, $eventId);
+					if (isset($result['comment']) && $result['comment'] != "") {
+						$importComment = $result['comment'];
+					}
+					else {
+						$importComment = 'Enriched via the ' . $module['name'] . ' module';
+					}
+					$typeCategoryMapping = array();
+					foreach ($this->Event->Attribute->categoryDefinitions as $k => $cat) {
+						foreach ($cat['types'] as $type) {
+							$typeCategoryMapping[$type][$k] = $k;
+						}
+					}
+					foreach ($resultArray as &$result) {
+						$options = array(
+								'conditions' => array('OR' => array('Attribute.value1' => $result['value'], 'Attribute.value2' => $result['value'])),
+								'fields' => array('Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.comment'),
+								'order' => false
+						);
+						$result['related'] = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $options);
+					}
+					$this->set('event', array('Event' => array('id' => $eventId)));
+					$this->set('resultArray', $resultArray);
+					$this->set('typeList', array_keys($this->Event->Attribute->typeDefinitions));
+					$this->set('defaultCategories', $this->Event->Attribute->defaultCategories);
+					$this->set('typeCategoryMapping', $typeCategoryMapping);
+					$this->set('title', 'Enrichment Results');
+					$this->set('importComment', $importComment);
+					$this->render('resolved_attributes');
+				}
+			}
+			$this->Session->setFlash($fail);
+		} else {
+		}
+		$this->set('configTypes', $this->Module->configTypes);
+		$this->set('module', $module);
+		$this->set('eventId', $eventId);
+	}
+	
+	public function exportModule($module, $id) {
+		$result = $this->Event->export($this->Auth->user(), $module, array('eventid' => $id));
+		$this->response->body(base64_decode($result['data']));
+		$this->response->type($result['response']);
+		$this->response->download('misp.event.' . $id . '.' . $module . '.export.' . $result['extension']);
+		return $this->response;
 	}
 }
