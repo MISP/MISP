@@ -27,7 +27,7 @@ class Job extends AppModel {
 		}
 	}
 
-	public function cache($type, $user, $target, $isSiteAdmin = False, $jobOrg = null) {
+	public function cache($type, $user, $target, $jobOrg = null) {
 		$extra = null;
 		$extra2 = null;
 		$shell = 'Event';
@@ -38,7 +38,7 @@ class Job extends AppModel {
 				'job_input' => $target,
 				'status' => 0,
 				'retries' => 0,
-				'org_id' => $isSiteAdmin ? 0 : $user['org_id'],
+				'org_id' => $user['Role']['perm_site_admin'] ? 0 : $user['org_id'],
 				'message' => 'Fetching events.',
 		);
 		if ($type === 'md5' || $type === 'sha1') {
