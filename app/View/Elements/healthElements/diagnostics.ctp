@@ -56,7 +56,7 @@
 					$message = 'Directory ' . $message;
 					$colour = 'red';
 				}
-				echo 'app/' . $dir . '.....<span style="color:' . $colour . ';">' . $message . '</span><br />';
+				echo $dir . '.....<span style="color:' . $colour . ';">' . $message . '</span><br />';
 			}
 		?>
 	</div>
