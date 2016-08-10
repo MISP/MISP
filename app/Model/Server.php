@@ -253,6 +253,15 @@ class Server extends AppModel {
 							'test' => 'testForEmpty',
 							'type' => 'string',
 					),
+					'host_org_id' => array(
+							'level' => 0,
+							'description' => 'The hosting organisation of this instance. If this is not selected then replication instances cannot be added.',
+							'value' => '0',
+							'errorMessage' => '',
+							'test' => 'testLocalOrg',
+							'type' => 'numeric',
+							'optionsSource' => 'LocalOrgs',
+					),
 					'logo' => array(
 							'level' => 3,
 							'description' => 'This setting is deprecated and can be safely removed.',
@@ -1274,23 +1283,25 @@ class Server extends AppModel {
 								$event['Event']['distribution'] = '1';
 							}
 							// Distribution
-							switch ($event['Event']['distribution']) {
-								case 1:
-								case 'This community only': // backwards compatibility
-									// if community only, downgrade to org only after pull
-									$event['Event']['distribution'] = '0';
-									break;
-								case 2:
-								case 'Connected communities': // backwards compatibility
-									// if connected communities downgrade to community only
-									$event['Event']['distribution'] = '1';
-									break;
-								case 'All communities': // backwards compatibility
-									$event['Event']['distribution'] = '3';
-									break;
-								case 'Your organisation only': // backwards compatibility
-									$event['Event']['distribution'] = '0';
-									break;
+							if (empty(Configure::read('MISP.host_org_id')) || !$server['Server']['internal'] ||  Configure::read('MISP.host_org_id') != $server['Server']['org_id']) {
+								switch ($event['Event']['distribution']) {
+									case 1:
+									case 'This community only': // backwards compatibility
+										// if community only, downgrade to org only after pull
+										$event['Event']['distribution'] = '0';
+										break;
+									case 2:
+									case 'Connected communities': // backwards compatibility
+										// if connected communities downgrade to community only
+										$event['Event']['distribution'] = '1';
+										break;
+									case 'All communities': // backwards compatibility
+										$event['Event']['distribution'] = '3';
+										break;
+									case 'Your organisation only': // backwards compatibility
+										$event['Event']['distribution'] = '0';
+										break;
+								}
 							}
 						} else {
 							$fails[$eventId] = 'Event blocked by blacklist.';
@@ -1938,6 +1949,18 @@ class Server extends AppModel {
 	public function testForNumeric($value) {
 		if (!is_numeric($value)) return 'This setting has to be a number.';
 		return true;
+	}
+	
+	public function testLocalOrg($value) {
+		$this->Organisation = ClassRegistry::init('Organisation');
+		if ($value == 0) return 'No organisation selected';
+		$local_orgs = $this->Organisation->find('list', array(
+			'conditions' => array('local' => 1),
+			'recursive' => -1,
+			'fields' => array('Organisation.id', 'Organisation.name')
+		));
+		if (in_array($value, array_keys($local_orgs))) return true;
+		return 'Invalid organisation';
 	}
 
 	public function testForEmpty($value) {

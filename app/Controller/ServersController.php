@@ -174,7 +174,7 @@ class ServersController extends AppController {
 			$json = json_decode($this->request->data['Server']['json'], true);
 
 			$fail = false;
-
+			if (empty(Configure::read('MISP.host_org_id'))) $this->request->data['Server']['internal'] = 0;
 			// test the filter fields
 			if (!empty($this->request->data['Server']['pull_rules']) && !$this->Server->isJson($this->request->data['Server']['pull_rules'])) {
 				$fail = true;
@@ -220,6 +220,9 @@ class ServersController extends AppController {
 						}
 					}
 				}
+				if (Configure::read('MISP.host_org_id') == 0 || $this->request->data['Server']['remote_org_id'] != Configure::read('MISP.host_org_id')) {
+					$this->request->data['Server']['internal'] = 0;
+				}
 				if (!$fail) {
 					$this->request->data['Server']['org_id'] = $this->Auth->user('org_id');
 					if ($this->Server->save($this->request->data)) {
@@ -256,7 +259,7 @@ class ServersController extends AppController {
 			$externalOrganisations[$o['Organisation']['id']] = $o['Organisation']['name'];
 			$allOrgs[] = array('id' => $o['Organisation']['id'], 'name' => $o['Organisation']['name']);
 		}
-
+		$this->set('host_org_id', Configure::read('MISP.host_org_id'));
 		$this->set('organisationOptions', $organisationOptions);
 		$this->set('localOrganisations', $localOrganisations);
 		$this->set('externalOrganisations', $externalOrganisations);
@@ -285,6 +288,7 @@ class ServersController extends AppController {
 		$s = $this->Server->read(null, $id);
 		if (!$this->_isSiteAdmin()) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
 		if ($this->request->is('post') || $this->request->is('put')) {
+			if (empty(Configure::read('MISP.host_org_id'))) $this->request->data['Server']['internal'] = 0;
 			$json = json_decode($this->request->data['Server']['json'], true);
 			$fail = false;
 
@@ -300,7 +304,7 @@ class ServersController extends AppController {
 			}
 			if (!$fail) {
 				// say what fields are to be updated
-				$fieldList = array('id', 'url', 'push', 'pull', 'remote_org_id', 'name' ,'self_signed', 'cert_file', 'push_rules', 'pull_rules');
+				$fieldList = array('id', 'url', 'push', 'pull', 'remote_org_id', 'name' ,'self_signed', 'cert_file', 'push_rules', 'pull_rules', 'internal');
 				$this->request->data['Server']['id'] = $id;
 				if ("" != $this->request->data['Server']['authkey']) $fieldList[] = 'authkey';
 				if ($this->request->data['Server']['organisation_type'] < 2) $this->request->data['Server']['remote_org_id'] = $json['id'];
@@ -334,8 +338,10 @@ class ServersController extends AppController {
 						}
 					}
 				}
+				if (empty(Configure::read('MISP.host_org_id')) || $this->request->data['Server']['remote_org_id'] != Configure::read('MISP.host_org_id')) {
+					$this->request->data['Server']['internal'] = 0;
+				}
 			}
-
 			if (!$fail) {
 				// Save the data
 				if ($this->Server->save($this->request->data, true, $fieldList)) {
@@ -380,7 +386,7 @@ class ServersController extends AppController {
 
 		$oldRemoteSetting = 0;
 		if (!$this->Server->data['RemoteOrg']['local']) $oldRemoteSetting = 1;
-
+		$this->set('host_org_id', Configure::read('MISP.host_org_id'));
 		$this->set('oldRemoteSetting', $oldRemoteSetting);
 		$this->set('oldRemoteOrg', $this->Server->data['RemoteOrg']['id']);
 
@@ -599,6 +605,16 @@ class ServersController extends AppController {
 		$this->render('/Elements/healthElements/settings_row');
 	}
 
+	private function __loadLocalOrgs() {
+		$this->loadModel('Organisation');
+		$local_orgs = $this->Organisation->find('list', array(
+				'conditions' => array('local' => 1),
+				'recursive' => -1,
+				'fields' => array('Organisation.id', 'Organisation.name')
+		));
+		return array_merge(array(0 => 'No organisation selected.'), $local_orgs);
+	}
+	
 	public function serverSettings($tab=false) {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
 		if ($this->request->is('Get')) {
@@ -647,6 +663,9 @@ class ServersController extends AppController {
 					if ($result['level'] < $issues['overallHealth']) $issues['overallHealth'] = $result['level'];
 					$tabs[$result['tab']]['errors']++;
 					if ($result['level'] < $tabs[$result['tab']]['severity']) $tabs[$result['tab']]['severity'] = $result['level'];
+				}
+				if (isset($result['optionsSource']) && !empty($result['optionsSource'])) {
+					$result['options'] = $this->{'__load' . $result['optionsSource']}();
 				}
 				$dumpResults[] = $result;
 				if ($result['tab'] == $tab) {
@@ -833,6 +852,9 @@ class ServersController extends AppController {
 				$value = Configure::read($setting);
 				if ($value) $found['value'] = $value;
 				$found['setting'] = $setting;
+			}
+			if (isset($found['optionsSource']) && !empty($found['optionsSource'])) {
+				$found['options'] = $this->{'__load' . $found['optionsSource']}();
 			}
 			$subGroup = 'general';
 			$subGroup = explode('.', $setting);
