@@ -74,7 +74,7 @@
 						);
 						$popoverHTML = '';
 						foreach ($popover as $key => $popoverElement) {
-							$popoverHTML .= '<span class=\'bold\'>' . $key . '</span>: <span class=\'blue bold\'>' . $popoverElement . '</span><br />';
+							$popoverHTML .= '<span class="bold">' . $key . '</span>: <span class="blue bold">' . $popoverElement . '</span><br />';
 						}
 				?>
 						<a href="<?php echo $baseurl; ?>/events/view/<?php echo h($relation['Event']['id']);?>" data-toggle="popover" title="Attribute details" data-content="<?php echo h($popoverHTML); ?>" data-trigger="hover"><?php echo h($relation['Event']['id']);?></a>
@@ -95,41 +95,39 @@
 					} else {
 						if (isset($item['category_default'])) $default = $item['category_default'];
 						else $default = array_search($item['categories'][0], $typeCategoryMapping[$item['default_type']]);
-						
+
 					}
 				?>
-				<select id="<?php echo 'Attribute' . $k . 'Category'; ?>" style='padding:0px;height:20px;margin-bottom:0px;'>
+				<select id="<?php echo 'Attribute' . $k . 'Category'; ?>" style="padding:0;height:20px;margin-bottom:0;">
 					<?php
-						foreach ($typeCategoryMapping[$item['default_type']] as $category) {
-							if (isset($item['categories']) && !in_array($category, $item['categories'])) {
-								continue;
+					//save all already added categories
+					$catAdded = [];
+					foreach ($typeCategoryMapping[$item['default_type']] as $type) {
+						//this is the old code. Can be removed once the change is integrated.
+						//but this is far from ideal, as there is logic being done in the view. :(
+						/*echo '<option value="' . $type . '" ';
+                        if ($type == $default) echo 'selected="selected"';
+                        echo '>' . $type . '</option>';*/
+						$catAdded[] = $type;
+					}
+					if(isset($item['types']) && is_array($item['types']) && count($item['types']) > 1 &&
+						(in_array('domain', $item['types']) | in_array('filename', $item['types']))){
+						foreach($item['types'] as $category){
+							if(array_key_exists($category, $typeCategoryMapping)){
+								$catAdded = array_merge($catAdded, $typeCategoryMapping[$category]);
 							}
-							echo '<option value="' . $category . '" ';
-							if ($category == $default) echo 'selected="selected"';
-							echo '>' . $category . '</option>';
 						}
-					?>
-				</select>
-			</td>
-			<td class="short">
-				<?php
-					$divVisibility = '';
-					$selectVisibility = '';
-					if (count($item['types']) == 1) {
-						$selectVisibility = 'display:none;';
-					} else {
-						$divVisibility = 'style="display:none;"';
-						if (!in_array(array_keys($item['types']), $options)) $options[] = array_values($item['types']);
 					}
-				?>
-				<div id = "<?php echo 'Attribute' . $k . 'TypeStatic'; ?>" <?php echo $divVisibility; ?> ><?php echo h($item['default_type']); ?></div>
-				<select id = "<?php echo 'Attribute' . $k . 'Type'; ?>" class='typeToggle' style='padding:0px;height:20px;margin-bottom:0px;<?php echo $selectVisibility; ?>'>
-					<?php
-						foreach ($item['types'] as $type) {
-							echo '<option value="' . $type . '" ';
-							echo ($type == $item['default_type'] ? 'selected="selected"' : '') . '>' . $type . '</option>';
-						}
+					$catAdded = array_unique($catAdded);
+					asort($catAdded);
+					foreach($catAdded as $type){
+						echo '<option value="' . $type . '" ';
+						if ($type == $default)
+							echo 'selected="selected"';
+						echo '>' . $type . '</option>';
+					}
 					?>
+
 				</select>
 			</td>
 			<td class="short" style="width:40px;text-align:center;">
@@ -192,7 +190,7 @@
 		var options = <?php echo json_encode($optionsRearranged);?>;
 		$(document).ready(function(){
 			popoverStartup();
-	<?php 
+	<?php
 		if (!empty($optionsRearranged)):
 	?>
 			$('#changeFrom').change(function(){
@@ -202,8 +200,8 @@
 			$('#checkAll').change(function() {
 				$('.idsCheckbox').prop('checked', $('#checkAll').is(':checked'));
 			});
-	<?php 
-		endif; 
+	<?php
+		endif;
 	?>
 		});
 	</script>

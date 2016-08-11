@@ -2802,9 +2802,15 @@ class EventsController extends AppController {
 		}
 
 		if ($this->request->is('post')) {
+            //getting the warninglists
+            App::uses('WarninglistsController', 'Controller');
+            $warningList = new WarninglistsController();
+            $IANAEntries = $warningList->Warninglist->getAllIANAEntries();
+
 			App::uses('ComplexTypeTool', 'Tools');
 			$complexTypeTool = new ComplexTypeTool();
-			$resultArray = $complexTypeTool->checkComplexRouter($this->request->data['Attribute']['value'], 'FreeText');
+            //fix:: 1149, added the 3rd parameter - all entry values for warninglists:
+			$resultArray = $complexTypeTool->checkComplexRouter($this->request->data['Attribute']['value'], 'FreeText', $IANAEntries);
 			foreach ($resultArray as &$r) {
 				$temp = array();
 				foreach ($r['types'] as $type) {
