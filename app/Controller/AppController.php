@@ -325,6 +325,7 @@ class AppController extends Controller {
 		if (Configure::read('site_admin_debug') && $this->_isSiteAdmin() && (Configure::read('debug') < 2)) {
 				Configure::write('debug', 1);
 		}
+		
 		$this->debugMode = 'debugOff';
 		if (Configure::read('debug') > 1) $this->debugMode = 'debugOn';
 		$this->set('loggedInUserName', $this->__convertEmailToName($this->Auth->user('email')));
@@ -438,6 +439,7 @@ class AppController extends Controller {
 	public function checkAuthUser($authkey) {
 		$this->loadModel('User');
 		$user = $this->User->getAuthUserByUuid($authkey);
+		if (!$user['Role']['perm_auth']) return false;
 		if (empty($user)) return false;
 		if ($user['Role']['perm_site_admin']) $user['siteadmin'] = true;
 		return $user;
