@@ -2611,6 +2611,7 @@ class Event extends AppModel {
 
 	public function rearrangeEventForView(&$event, $passedArgs = array(), $all = false) {
 		$fTool = new FinancialTool();
+        //var_dump($event["Attribute"]);
 		foreach ($event['Event'] as $k => $v) {
 			if (is_array($v)) {
 				$event[$k] = $v;
@@ -2629,6 +2630,8 @@ class Event extends AppModel {
 		$correlatedAttributes = isset($event['RelatedAttribute']) ? array_keys($event['RelatedAttribute']) : array();
 		$correlatedShadowAttributes = isset($event['RelatedShadowAttribute']) ? array_keys($event['RelatedShadowAttribute']) : array();
 		foreach ($event['Attribute'] as $attribute) {
+		    //adding a date key so that attributes can be sorted on date - #1355
+		    $attribute['date'] = $attribute['timestamp'];
 			if ($filterType && !in_array($filterType, array('proposal', 'correlation', 'warning'))) if (!in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType])) continue;
 			if (isset($attribute['distribution']) && $attribute['distribution'] != 4) unset($attribute['SharingGroup']);
 			$attribute['objectType'] = 0;
