@@ -145,7 +145,7 @@
 			<?php if ($mayModify && !empty($event['objects'])): ?>
 				<th><input class="select_all" type="checkbox" onClick="toggleAllAttributeCheckboxes();" /></th>
 			<?php endif;?>
-			<th><?php echo $this->Paginator->sort('date');?></th>
+			<th><?php echo $this->Paginator->sort('timestamp', 'Date');?></th>
 			<th><?php echo $this->Paginator->sort('Org.name', 'Org'); ?>
 			<th><?php echo $this->Paginator->sort('category');?></th>
 			<th><?php echo $this->Paginator->sort('type');?></th>

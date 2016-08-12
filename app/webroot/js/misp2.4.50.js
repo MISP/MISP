@@ -2436,37 +2436,6 @@ function toggleSettingSubGroup(group) {
 	$('.subGroup_' + group).toggle();
 }
 
-function hoverModuleExpand(type, id) {
-	$('.popover').remove();
-	if (type + "_" + id in ajaxResults) {
-		$('#' + type + '_' + id + '_container').popover({
-			title: 'Lookup results:',
-			content: ajaxResults[type + "_" + id],
-			placement: 'left',
-			html: true,
-			trigger: 'hover',
-			container: 'body'
-		}).popover('show');
-	} else {
-		$.ajax({
-			success:function (html) {
-				ajaxResults[type + "_" + id] = html;
-				$('.popover').remove();
-				$('#' + type + '_' + id + '_container').popover({
-					title: 'Lookup results:',
-					content: html,
-					placement: 'left',
-					html: true,
-					trigger: 'hover',
-					container: 'body'
-				}).popover('show');
-			},
-			cache: false,
-			url:"/" + type + "s/hoverEnrichment/" + id,
-		});
-	}
-}
-
 function runHoverLookup(type, id) {
 	$.ajax({
 		success:function (html) {
@@ -2482,7 +2451,7 @@ function runHoverLookup(type, id) {
 			}).popover('show');
 		},
 		cache: false,
-		url:"/" + type + "s/hoverEnrichment/" + id,
+		url:"/attributes/hoverEnrichment/" + id,
 	});
 }
 
