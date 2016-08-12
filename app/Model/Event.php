@@ -2611,7 +2611,6 @@ class Event extends AppModel {
 
 	public function rearrangeEventForView(&$event, $passedArgs = array(), $all = false) {
 		$fTool = new FinancialTool();
-        //var_dump($event["Attribute"]);
 		foreach ($event['Event'] as $k => $v) {
 			if (is_array($v)) {
 				$event[$k] = $v;
