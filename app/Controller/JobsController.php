@@ -68,12 +68,13 @@ class JobsController extends AppController {
 	}
 
 	public function getProgress($type) {
-		$org = $this->Auth->user('Organisation')['name'];
-		if ($this->_isSiteAdmin()) $org = 'ADMIN';
+		$org_id = $this->Auth->user('org_id');
+		if ($this->_isSiteAdmin()) $org_id = 0;
+
 		$progress = $this->Job->find('first', array(
 			'conditions' => array(
 				'job_type' => $type,
-				'org_id' => $org
+				'org_id' => $org_id
 			),
 			'fields' => array('id', 'progress'),
 			'order' => array('Job.id' => 'desc'),
@@ -92,7 +93,7 @@ class JobsController extends AppController {
 		} else {
 			$target = 'Events visible to: '.$this->Auth->user('Organisation')['name'];
 		}
-		$id = $this->Job->cache($type, $this->Auth->user(), $target);
+		$id = $this->Job->cache($type, $this->Auth->user());
 		return new CakeResponse(array('body' => json_encode($id)));
 	}
 }

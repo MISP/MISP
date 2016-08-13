@@ -188,11 +188,13 @@
 		</span>
 	</span>
 </div>
-<?php if (!empty($optionsRearranged)):?>
 	<script>
 		var options = <?php echo json_encode($optionsRearranged);?>;
 		$(document).ready(function(){
 			popoverStartup();
+	<?php 
+		if (!empty($optionsRearranged)):
+	?>
 			$('#changeFrom').change(function(){
 				changeFreetextImportFrom();
 			});
@@ -200,9 +202,11 @@
 			$('#checkAll').change(function() {
 				$('.idsCheckbox').prop('checked', $('#checkAll').is(':checked'));
 			});
+	<?php 
+		endif; 
+	?>
 		});
 	</script>
 <?php
-	endif;
 	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'freetextResults'));
 ?>

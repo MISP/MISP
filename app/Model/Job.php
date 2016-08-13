@@ -38,10 +38,10 @@ class Job extends AppModel {
 				'job_input' => $target,
 				'status' => 0,
 				'retries' => 0,
-				'org_id' => $user['org_id'],
+				'org_id' => $user['Role']['perm_site_admin'] ? 0 : $user['org_id'],
 				'message' => 'Fetching events.',
 		);
-		if ($type === 'md5' || $type === 'sha1') {
+		if ($type === 'md5' || $type === 'sha1' || $type === 'sha256') {
 			$extra = $type;
 			$type = 'hids';
 		}

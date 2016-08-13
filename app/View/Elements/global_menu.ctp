@@ -129,7 +129,6 @@
 							<?php endif; ?>
 							<?php if ($isSiteAdmin): ?>
 								<li class="divider"></li>
-								<li><a href="<?php echo $baseurl;?>/pages/display/administration">Administrative tools</a></li>
 								<li><a href="<?php echo $baseurl;?>/servers/serverSettings">Server settings</a></li>
 								<?php if (Configure::read('MISP.background_jobs')): ?>
 									<li class="divider"></li>

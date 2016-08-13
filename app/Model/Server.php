@@ -1042,6 +1042,70 @@ class Server extends AppModel {
 							'test' => 'testForEmpty',
 							'type' => 'numeric'
 					),
+					'Import_services_enable' => array(
+							'level' => 0,
+							'description' => 'Enable/disable the import services',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean'
+					),
+					'Import_timeout' => array(
+							'level' => 1,
+							'description' => 'Set a timeout for the import services',
+							'value' => 5,
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'numeric'
+					),
+					'Import_services_url' => array(
+							'level' => 1,
+							'description' => 'The url used to access the import services. By default, it is accessible at http://127.0.0.1:6666',
+							'value' => 'http://127.0.0.1',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string'
+					),
+					'Import_services_port' => array(
+							'level' => 1,
+							'description' => 'The port used to access the import services. By default, it is accessible at 127.0.0.1:6666',
+							'value' => '6666',
+							'errorMessage' => '',
+							'test' => 'testForPortNumber',
+							'type' => 'numeric'
+					),
+					'Export_services_url' => array(
+							'level' => 1,
+							'description' => 'The url used to access the export services. By default, it is accessible at http://127.0.0.1:6666',
+							'value' => 'http://127.0.0.1',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string'
+					),
+					'Export_services_port' => array(
+							'level' => 1,
+							'description' => 'The port used to access the export services. By default, it is accessible at 127.0.0.1:6666',
+							'value' => '6666',
+							'errorMessage' => '',
+							'test' => 'testForPortNumber',
+							'type' => 'numeric'
+					),
+					'Export_services_enable' => array(
+							'level' => 0,
+							'description' => 'Enable/disable the import services',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean'
+					),
+					'Export_timeout' => array(
+							'level' => 1,
+							'description' => 'Set a timeout for the import services',
+							'value' => 5,
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'numeric'
+					),
 					'Enrichment_hover_enable' => array(
 							'level' => 0,
 							'description' => 'Enable/disable the hover over information retrieved from the enrichment modules',
@@ -1056,6 +1120,22 @@ class Server extends AppModel {
 							'value' => 2,
 							'errorMessage' => '',
 							'test' => 'testForEmpty',
+							'type' => 'numeric'
+					),
+					'Enrichment_services_url' => array(
+							'level' => 1,
+							'description' => 'The url used to access the enrichment services. By default, it is accessible at http://127.0.0.1:6666',
+							'value' => 'http://127.0.0.1',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string'
+					),
+					'Enrichment_services_port' => array(
+							'level' => 1,
+							'description' => 'The port used to access the enrichment services. By default, it is accessible at 127.0.0.1:6666',
+							'value' => '6666',
+							'errorMessage' => '',
+							'test' => 'testForPortNumber',
 							'type' => 'numeric'
 					),
 					'CustomAuth_custom_password_reset' => array(
@@ -1075,22 +1155,6 @@ class Server extends AppModel {
 							'test' => 'testForEmpty',
 							'type' => 'string',
 							'null' => true
-					),
-					'Enrichment_services_url' => array(
-						'level' => 1,
-						'description' => 'The url used to access the enrichment services. By default, it is accessible at http://127.0.0.1:6666',
-						'value' => 'http://127.0.0.1',
-						'errorMessage' => '',
-						'test' => 'testForEmpty',
-						'type' => 'string'
-					),
-					'Enrichment_services_port' => array(
-						'level' => 1,
-						'description' => 'The port used to access the enrichment services. By default, it is accessible at 127.0.0.1:6666',
-						'value' => '6666',
-						'errorMessage' => '',
-						'test' => 'testForPortNumber',
-						'type' => 'numeric'
 					)
 			),
 			'debug' => array(
@@ -1757,23 +1821,26 @@ class Server extends AppModel {
 	public function getCurrentServerSettings() {
 		$this->Module = ClassRegistry::init('Module');
 		$serverSettings = $this->serverSettings;
-		if (Configure::read('Plugin.Enrichment_services_enable')) {
-			$results = $this->Module->getModuleSettings();
-			foreach ($results as $module => $data) {
-				foreach ($data as $result) {
-					$setting = array('level' => 1, 'errorMessage' => '');
-					if ($result['type'] == 'boolean') {
-						$setting['test'] = 'testBool';
-						$setting['type'] = 'boolean';
-						$setting['description'] = 'Enable or disable the ' . $module . ' module.';
-						$setting['value'] = false;
-					} else {
-						$setting['test'] = 'testForEmpty';
-						$setting['type'] = 'string';
-						$setting['description'] = 'Set this required module specific setting.';
-						$setting['value'] = '';
+		$moduleTypes = array('Enrichment', 'Import', 'Export');
+		foreach ($moduleTypes as $moduleType) {
+			if (Configure::read('Plugin.' . $moduleType . '_services_enable')) {
+				$results = $this->Module->getModuleSettings($moduleType);
+				foreach ($results as $module => $data) {
+					foreach ($data as $result) {
+						$setting = array('level' => 1, 'errorMessage' => '');
+						if ($result['type'] == 'boolean') {
+							$setting['test'] = 'testBool';
+							$setting['type'] = 'boolean';
+							$setting['description'] = 'Enable or disable the ' . $module . ' module.';
+							$setting['value'] = false;
+						} else {
+							$setting['test'] = 'testForEmpty';
+							$setting['type'] = 'string';
+							$setting['description'] = 'Set this required module specific setting.';
+							$setting['value'] = '';
+						}
+						$serverSettings['Plugin'][$moduleType . '_' . $module . '_' .  $result['name']] = $setting;
 					}
-					$serverSettings['Plugin']['Enrichment_' . $module . '_' .  $result['name']] = $setting;
 				}
 			}
 		}
@@ -2341,24 +2408,25 @@ class Server extends AppModel {
 		App::uses('Folder', 'Utility');
 		// check writeable directories
 		$writeableDirs = array(
-				'tmp' => 0,
-				'files' => 0,
-				'files' . DS . 'scripts' . DS . 'tmp' => 0,
-				'tmp' . DS . 'csv_all' => 0,
-				'tmp' . DS . 'csv_sig' => 0,
-				'tmp' . DS . 'md5' => 0,
-				'tmp' . DS . 'sha1' => 0,
-				'tmp' . DS . 'snort' => 0,
-				'tmp' . DS . 'suricata' => 0,
-				'tmp' . DS . 'text' => 0,
-				'tmp' . DS . 'xml' => 0,
-				'tmp' . DS . 'files' => 0,
-				'tmp' . DS . 'logs' => 0,
+				'/tmp' => 0,
+				APP . 'tmp' => 0,
+				APP . 'files' => 0,
+				APP . 'files' . DS . 'scripts' . DS . 'tmp' => 0,
+				APP . 'tmp' . DS . 'csv_all' => 0,
+				APP . 'tmp' . DS . 'csv_sig' => 0,
+				APP . 'tmp' . DS . 'md5' => 0,
+				APP . 'tmp' . DS . 'sha1' => 0,
+				APP . 'tmp' . DS . 'snort' => 0,
+				APP . 'tmp' . DS . 'suricata' => 0,
+				APP . 'tmp' . DS . 'text' => 0,
+				APP . 'tmp' . DS . 'xml' => 0,
+				APP . 'tmp' . DS . 'files' => 0,
+				APP . 'tmp' . DS . 'logs' => 0,
 		);
 		foreach ($writeableDirs as $path => &$error) {
-			$dir = new Folder(APP . $path);
+			$dir = new Folder($path);
 			if (is_null($dir->path)) $error = 1;
-			$file = new File(APP . $path . DS . 'test.txt', true);
+			$file = new File($path . DS . 'test.txt', true);
 			if ($error == 0 && !$file->write('test')) $error = 2;
 			if ($error != 0) $diagnostic_errors++;
 			$file->delete();

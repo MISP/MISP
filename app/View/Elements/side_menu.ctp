@@ -32,9 +32,7 @@
 					<li><?php echo $this->Form->postLink('Delete Event', array('action' => 'delete', h($event['Event']['id'])), null, __('Are you sure you want to delete # %s?', h($event['Event']['id']))); ?></li>
 					<li id='liaddAttribute'><a href="<?php echo $baseurl;?>/attributes/add/<?php echo h($event['Event']['id']);?>">Add Attribute</a></li>
 					<li id='liaddAttachment'><a href="<?php echo $baseurl;?>/attributes/add_attachment/<?php echo h($event['Event']['id']);?>">Add Attachment</a></li>
-					<li id='liaddFreetext'><a href="#" onClick="getPopup(<?php echo $event['Event']['id']; ?>, 'events', 'freeTextImport');">Populate via Freetext Import</a></li>
-					<li id='liaddIOC'><a href="<?php echo $baseurl;?>/events/addIOC/<?php echo h($event['Event']['id']);?>">Populate from OpenIOC</a></li>
-					<li id='liaddThreatConnect'><a href="<?php echo $baseurl;?>/attributes/add_threatconnect/<?php echo h($event['Event']['id']); ?>">Populate from ThreatConnect</a></li>
+					<li id='import'><a onClick="getPopup('<?php echo h($event['Event']['id']); ?>', 'events', 'importChoice');" style="cursor:pointer;">Populate from...</a></li>
 					<?php if ($menuItem === 'populateFromtemplate'): ?>
 							<li class="active"><a href="<?php echo $baseurl;?>/templates/populateEventFromTemplate/<?php echo $template_id . '/' . h($event['Event']['id']); ?>">Populate From Template</a></li>
 						<?php endif; ?>
@@ -184,7 +182,7 @@
 				case 'admin':
 					if ($menuItem === 'editUser' || $menuItem === 'viewUser'): ?>
 					<li id='liviewUser'><?php echo $this->Html->link('View User', array('controller' => 'users', 'action' => 'view', 'admin' => true, h($id))); ?> </li>
-					<li><a href="#/" onClick="initiatePasswordReset('<?php echo h($id); ?>');">Send Credentials</a></li>
+					<li><a href="#/" onClick="initiatePasswordReset('<?php echo h($id); ?>');">Reset Password</a></li>
 					<li id='lieditUser'><?php echo $this->Html->link('Edit User', array('controller' => 'users', 'action' => 'edit', 'admin' => true, h($id))); ?> </li>
 					<li><?php echo $this->Form->postLink('Delete User', array('admin' => true, 'action' => 'delete', h($id)), null, __('Are you sure you want to delete # %s? It is highly recommended to never delete users but to disable them instead.', h($id)));?></li>
 					<li class="divider"></li>
@@ -218,7 +216,6 @@
 					<li id='liindexRole'><?php echo $this->Html->link('List Roles', array('controller' => 'roles', 'action' => 'index', 'admin' => true)); ?> </li>
 					<?php if ($isSiteAdmin): ?>
 						<li class="divider"></li>
-						<li id='liadminTools'><a href="<?php echo $baseurl;?>/pages/display/administration">Administrative Tools</a></li>
 						<li id='liserverSettings'><a href="<?php echo $baseurl;?>/servers/serverSettings">Server Settings</a></li>
 						<li class="divider"></li>
 						<?php if (Configure::read('MISP.background_jobs')): ?>

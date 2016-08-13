@@ -35,7 +35,7 @@ class FileAccess {
 
 	private static function __checkForFalse($result, $errorMsgPart) {
 		if ($result === false) {
-			throw new Exception(self::$__fileErrorMsgPrefix . $errorMsgPart . '".');
+			throw new MethodNotAllowedException(self::$__fileErrorMsgPrefix . $errorMsgPart . '".');
 		}
 	}
 }

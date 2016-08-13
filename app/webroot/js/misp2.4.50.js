@@ -1699,6 +1699,30 @@ function exportChoiceSelect(url, elementId, checkbox) {
 	document.location.href = url;
 }
 
+function importChoiceSelect(url, elementId, ajax) {
+	if (ajax == 'false') {
+		document.location.href = url;
+	} else {
+		$.ajax({
+		    url: url,
+		    type:'GET',
+			beforeSend: function (XMLHttpRequest) {
+				$(".loading").show();
+			},
+		    error: function(){
+		    	$("#popover_form").html('An error has occured, please reload the page.');
+		    },
+		    success: function(response){
+		    	$("#popover_form").html(response);
+		    	$("#popover_form").fadeIn();
+		    },
+			complete: function() {
+				$(".loading").hide();
+			},
+		});
+	}
+}
+
 function freetextImportResultsSubmit(id, count) {
 	var attributeArray = [];
 	var temp;
@@ -2421,37 +2445,6 @@ function toggleSettingSubGroup(group) {
 	$('.subGroup_' + group).toggle();
 }
 
-function hoverModuleExpand(type, id) {
-	$('.popover').remove();
-	if (type + "_" + id in ajaxResults) {
-		$('#' + type + '_' + id + '_container').popover({
-			title: 'Lookup results:',
-			content: ajaxResults[type + "_" + id],
-			placement: 'left',
-			html: true,
-			trigger: 'hover',
-			container: 'body'
-		}).popover('show');
-	} else {
-		$.ajax({
-			success:function (html) {
-				ajaxResults[type + "_" + id] = html;
-				$('.popover').remove();
-				$('#' + type + '_' + id + '_container').popover({
-					title: 'Lookup results:',
-					content: html,
-					placement: 'left',
-					html: true,
-					trigger: 'hover',
-					container: 'body'
-				}).popover('show');
-			},
-			cache: false,
-			url:"/" + type + "s/hoverEnrichment/" + id,
-		});
-	}
-}
-
 function runHoverLookup(type, id) {
 	$.ajax({
 		success:function (html) {
@@ -2467,7 +2460,7 @@ function runHoverLookup(type, id) {
 			}).popover('show');
 		},
 		cache: false,
-		url:"/" + type + "s/hoverEnrichment/" + id,
+		url:"/attributes/hoverEnrichment/" + id,
 	});
 }
 

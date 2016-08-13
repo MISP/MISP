@@ -71,49 +71,81 @@ class Event extends AppModel {
 	public $shortDist = array(0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All', 4 => ' sharing Group');
 
 	public $export_types = array(
+			'json' => array(
+					'extension' => '.json',
+					'type' => 'JSON',
+					'requiresPublished' => 0,
+					'canHaveAttachments' => true,
+					'description' => 'Click this to download all events and attributes that you have access to in MISP JSON format.',
+			),
 			'xml' => array(
 					'extension' => '.xml',
 					'type' => 'XML',
-					'description' => 'Click this to download all events and attributes that you have access to <small>(except file attachments)</small> in a custom XML format.',
+					'requiresPublished' => 0,
+					'canHaveAttachments' => true,
+					'description' => 'Click this to download all events and attributes that you have access to in MISP XML format.',
 			),
 			'csv_sig' => array(
 					'extension' => '.csv',
 					'type' => 'CSV_Sig',
+					'requiresPublished' => 1,
+					'canHaveAttachments' => false,
 					'description' => 'Click this to download all attributes that are indicators and that you have access to <small>(except file attachments)</small> in CSV format.',
 			),
 			'csv_all' => array(
 					'extension' => '.csv',
 					'type' => 'CSV_All',
+					'requiresPublished' => 0,
+					'canHaveAttachments' => false,
 					'description' => 'Click this to download all attributes that you have access to <small>(except file attachments)</small> in CSV format.',
 			),
 			'suricata' => array(
 					'extension' => '.rules',
 					'type' => 'Suricata',
+					'requiresPublished' => 1,
+					'canHaveAttachments' => false,
 					'description' => 'Click this to download all network related attributes that you have access to under the Suricata rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a whitelist containing host, domain name and IP numbers to exclude from the NIDS export.',
 			),
 			'snort' => array(
 					'extension' => '.rules',
 					'type' => 'Snort',
+					'requiresPublished' => 1,
+					'canHaveAttachments' => false,
 					'description' => 'Click this to download all network related attributes that you have access to under the Snort rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a whitelist containing host, domain name and IP numbers to exclude from the NIDS export.',
 			),
 			'rpz' => array(
 					'extension' => '.txt',
 					'type' => 'RPZ',
+					'requiresPublished' => 1,
+					'canHaveAttachments' => false,
 					'description' => 'Click this to download an RPZ Zone file generated from all ip-src/ip-dst, hostname, domain attributes. This can be useful for DNS level firewalling. Only published events and attributes marked as IDS Signature are exported.'
 			),
 			'md5' => array(
 					'extension' => '.txt',
 					'type' => 'MD5',
+					'requiresPublished' => 1,
+					'canHaveAttachments' => false,
 					'description' => 'Click on one of these two buttons to download all MD5 checksums contained in file-related attributes. This list can be used to feed forensic software when searching for susipicious files. Only published events and attributes marked as IDS Signature are exported.',
 			),
 			'sha1' => array(
 					'extension' => '.txt',
 					'type' => 'SHA1',
+					'requiresPublished' => 1,
+					'canHaveAttachments' => false,
 					'description' => 'Click on one of these two buttons to download all SHA1 checksums contained in file-related attributes. This list can be used to feed forensic software when searching for susipicious files. Only published events and attributes marked as IDS Signature are exported.',
+			),
+			'sha256' => array(
+					'extension' => '.txt',
+					'type' => 'SHA256',
+					'requiresPublished' => 1,
+					'canHaveAttachments' => false,
+					'description' => 'Click on one of these two buttons to download all SHA256 checksums contained in file-related attributes. This list can be used to feed forensic software when searching for susipicious files. Only published events and attributes marked as IDS Signature are exported.',
 			),
 			'text' => array(
 					'extension' => '.txt',
 					'type' => 'TEXT',
+					'requiresPublished' => 1,
+					'canHaveAttachments' => false,
 					'description' => 'Click on one of the buttons below to download all the attributes with the matching type. This list can be used to feed forensic software when searching for susipicious files. Only published events and attributes marked as IDS Signature are exported.'
 			),
 	);
@@ -1048,6 +1080,7 @@ class Event extends AppModel {
 		// restricting to non-private or same org if the user is not a site-admin.
 		if (!$user['Role']['perm_site_admin']) {
 			$sgids = $this->SharingGroup->fetchAllAuthorised($user);
+			if (empty($sgids)) $sgids = -1;
 			$conditions['AND']['OR'] = array(
 				'Event.org_id' => $user['org_id'],
 				array(
@@ -1073,7 +1106,6 @@ class Event extends AppModel {
 		if ($last) $conditions['AND'][] = array('Event.publish_timestamp >=' => $last);
 		if ($timestamp) $conditions['AND'][] = array('Event.timestamp >=' => $timestamp);
 		if ($publish_timestamp) $conditions['AND'][] = array('Event.publish_timestamp >=' => $publish_timestamp);
-
 		if ($list) {
 			$params = array(
 				'conditions' => $conditions,
@@ -2597,7 +2629,7 @@ class Event extends AppModel {
 		$correlatedAttributes = isset($event['RelatedAttribute']) ? array_keys($event['RelatedAttribute']) : array();
 		$correlatedShadowAttributes = isset($event['RelatedShadowAttribute']) ? array_keys($event['RelatedShadowAttribute']) : array();
 		foreach ($event['Attribute'] as $attribute) {
-			if ($filterType && !in_array($filterType, array('proposal', 'correlation', 'warning'))) if (!in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType])) continue;
+    			if ($filterType && !in_array($filterType, array('proposal', 'correlation', 'warning'))) if (!in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType])) continue;
 			if (isset($attribute['distribution']) && $attribute['distribution'] != 4) unset($attribute['SharingGroup']);
 			$attribute['objectType'] = 0;
 			if (!empty($attribute['ShadowAttribute'])) $attribute['hasChildren'] = 1;
@@ -2682,5 +2714,85 @@ class Event extends AppModel {
 			$conditions['AND'][] = $temp;
 		}
 		return $conditions;
+	}
+	
+	public function handleModuleResult($result, $event_id) {
+		$resultArray = array();
+		$freetextResults = array();
+		App::uses('ComplexTypeTool', 'Tools');
+		$complexTypeTool = new ComplexTypeTool();
+		if (isset($result['results']) && !empty($result['results'])) {
+			foreach ($result['results'] as $k => &$r) {
+				if (!is_array($r['values'])) {
+					$r['values'] = array($r['values']);
+				}
+				if (!is_array($r['types'])) {
+					$r['types'] = array($r['types']);
+				}
+				if (isset($r['categories']) && !is_array($r['categories'])) {
+					$r['categories'] = array($r['categories']);
+				}
+				foreach ($r['values'] as &$value) {
+					if (!is_array($r['values']) || !isset($r['values'][0])) {
+						$r['values'] = array($r['values']);
+					}
+				}
+				foreach ($r['values'] as &$value) {
+					if (in_array('freetext', $r['types'])) {
+						if (is_array($value)) $value = json_encode($value);
+						$freetextResults = array_merge($freetextResults, $complexTypeTool->checkComplexRouter($value, 'FreeText'));
+						if (!empty($freetextResults)) {
+							foreach ($freetextResults as &$ft) {
+								$temp = array();
+								foreach ($ft['types'] as $type) {
+									$temp[$type] = $type;
+								}
+								$ft['types'] = $temp;
+							}
+						}
+						$r['types'] = array_diff($r['types'], array('freetext'));
+						// if we just removed the only type in the result then more on to the next result
+						if (empty($r['types'])) continue 2;
+						$r['types'] = array_values($r['types']);
+					}
+				}
+				foreach ($r['values'] as &$value) {
+					$temp = array(
+							'event_id' => $event_id,
+							'types' => $r['types'],
+							'default_type' => $r['types'][0],
+							'comment' => isset($r['comment']) ? $r['comment'] : false,
+							'to_ids' => isset($r['to_ids']) ? $r['to_ids'] : false,
+							'value' => $value
+					);
+					if (isset($r['categories'])) {
+						$temp['categories'] = $r['categories'];
+						$temp['default_category'] = $r['categories'][0];
+					}
+					if (isset($r['data'])) $temp['data'] = $r['data'];
+					$resultArray[] = $temp;
+				}
+					
+			}
+			$resultArray = array_merge($resultArray, $freetextResults);
+		}
+		return $resultArray;
+	}
+	
+	public function export($user = false, $module = false, $options = array()) {
+		if (empty($user)) return 'Invalid user.';
+		if  (empty($module)) return 'Invalid module.';
+		$this->Module = ClassRegistry::init('Module');
+		$module = $this->Module->getEnabledModule($module, 'Export');
+		$events = $this->fetchEvent($user, $options);
+		if (empty($events)) return 'Invalid event.';
+		$modulePayload = array('module' => $module['name']);
+		$modulePayload['data'] = $events;
+		$result = $this->Module->queryModuleServer('/query', json_encode($modulePayload, true), false, 'Export');
+		return array(
+				'data' => $result['data'],
+				'extension' => $module['mispattributes']['outputFileExtension'],
+				'response' => $module['mispattributes']['responseType']
+		);
 	}
 }
