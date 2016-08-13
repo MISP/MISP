@@ -61,7 +61,7 @@ echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escap
 				<th>Added by</th>
 			<?php endif; ?>
 			<th><?php echo $this->Paginator->sort('local');?></th>
-			<th># of members</th>
+			<th>Users</th>
 			<th class="actions">Actions</th>
 	</tr>
 	<?php
@@ -89,7 +89,7 @@ foreach ($orgs as $org): ?>
 			<td class="short" ondblclick="document.location.href ='/organisations/view/<?php echo $org['Organisation']['id'];?>'"><?php echo h($org_creator_ids[$org['Organisation']['created_by']]); ?></td>
 		<?php endif; ?>
 		<td class="short <?php echo $org['Organisation']['local'] ? 'green' : 'red';?>" ondblclick="document.location.href ='/organisations/view/<?php echo $org['Organisation']['id'];?>'"><?php echo $org['Organisation']['local'] ? 'Yes' : 'No';?></td>
-		<td class="short"><?php echo $members[$org['Organisation']['id']];?></td>
+		<td class="short"><?php echo isset($members[$org['Organisation']['id']]) ? $members[$org['Organisation']['id']] : '0';?></td>
 		<td class="short action-links">
 			<?php if ($isSiteAdmin): ?>
 				<a href='/admin/organisations/edit/<?php echo $org['Organisation']['id'];?>' class = "icon-edit" title = "Edit"></a>
