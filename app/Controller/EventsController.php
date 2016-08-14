@@ -2723,6 +2723,11 @@ class EventsController extends AppController {
 		if (!$this->Event->EventTag->Tag->exists()) {
 			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200));
 		}
+		$tag = $this->Event->EventTag->Tag->find('first', array(
+			'conditions' => array('Tag.id' => $tag_id),
+			'recursive' => -1,
+			'fields' => array('Tag.name')
+		));
 		$found = $this->Event->EventTag->find('first', array(
 			'conditions' => array(
 				'event_id' => $id,
@@ -2735,7 +2740,7 @@ class EventsController extends AppController {
 		$this->Event->EventTag->create();
 		if ($this->Event->EventTag->save(array('event_id' => $id, 'tag_id' => $tag_id))) {
 			$log = ClassRegistry::init('Log');
-			$log->createLogEntry($this->Auth->user(), 'tag', 'Event', $id, 'Attached tag (' . $tag_id . ') to event (' . $id . ')', 'Event (' . $id . ') tagged as Tag (' . $tag_id . ')');
+			$log->createLogEntry($this->Auth->user(), 'tag', 'Event', $id, 'Attached tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" to event (' . $id . ')', 'Event (' . $id . ') tagged as Tag (' . $tag_id . ')');
 			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Tag added.')), 'status'=>200));
 		} else {
 			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Tag could not be added.')),'status'=>200));
@@ -2779,7 +2784,14 @@ class EventsController extends AppController {
 		));
 		$this->autoRender = false;
 		if (empty($eventTag)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid event - tag combination.')),'status'=>200));
+		$tag = $this->Event->EventTag->Tag->find('first', array(
+			'conditions' => array('Tag.id' => $tag_id),
+			'recursive' => -1,
+			'fields' => array('Tag.name')
+		));
 		if ($this->Event->EventTag->delete($eventTag['EventTag']['id'])) {
+			$log = ClassRegistry::init('Log');
+			$log->createLogEntry($this->Auth->user(), 'tag', 'Event', $id, 'Removed tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" from event (' . $id . ')', 'Event (' . $id . ') untagged of Tag (' . $tag_id . ')');
 			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Tag removed.')), 'status'=>200));
 		} else {
 			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Tag could not be removed.')),'status'=>200));
