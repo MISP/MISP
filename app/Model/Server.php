@@ -2656,7 +2656,7 @@ class Server extends AppModel {
 						'action' => 'remove_dead_workers',
 						'user_id' => $user['id'],
 						'title' => 'Removing a dead worker.',
-						'change' => 'Removind dead worker data. Worker was of type ' . $worker['queue'] . ' with pid ' . $pid
+						'change' => 'Removing dead worker data. Worker was of type ' . $worker['queue'] . ' with pid ' . $pid
 				));
 			}
 			$this->ResqueStatus->removeWorker($pid);
@@ -2685,7 +2685,7 @@ class Server extends AppModel {
 						'action' => 'remove_dead_workers',
 						'user_id' => $user['id'],
 						'title' => 'Removing a dead worker.',
-						'change' => 'Removind dead worker data. Worker was of type ' . $worker['queue'] . ' with pid ' . $pid
+						'change' => 'Removing dead worker data. Worker was of type ' . $worker['queue'] . ' with pid ' . $pid
 				));
 			}
 		}
