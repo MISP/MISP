@@ -1096,6 +1096,16 @@ class ServersController extends AppController {
 		}
 		$this->redirect('/servers/serverSettings/diagnostics');
 	}
+	
+	public function clearWorkerQueue($worker) {
+		if (!$this->_isSiteAdmin() || !$this->request->is('Post') || $this->request->is('ajax')) throw new MethodNotAllowedException();
+		$worker_array = array('cache', 'default', 'email', 'prio');
+		if (!in_array($worker, $worker_array)) throw new MethodNotAllowedException('Invalid worker');
+		$redis = Resque::redis();
+		$redis->del('queue:' . $worker);
+		$this->Session->setFlash('Queue cleared.');
+		$this->redirect($this->referer());
+	}
 
 	public function getVersion() {
 		if (!$this->userRole['perm_auth']) throw new MethodNotAllowedException('This action requires API access.');
