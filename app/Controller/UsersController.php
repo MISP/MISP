@@ -748,7 +748,7 @@ class UsersController extends AppController {
 		$this->loadModel('Attribute');
 		$conditions = array();
 		if ($selected) $conditions[] = array('Attribute.type' => $selectedTypes, 'Attribute.deleted' => false);
-		$fields = array('Event.orgc_id', 'Attribute.type', 'count(Attribute.type) as `num_types`');
+		$fields = array('Event.orgc_id', 'Attribute.type', 'COUNT(Attribute.type) AS num_types');
 		$params = array('recursive' => 0,
 				'fields' => $fields,
 				'group' => array('Attribute.type', 'Event.orgc_id'),
