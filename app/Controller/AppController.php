@@ -322,8 +322,15 @@ class AppController extends Controller {
 		} else {
 			$this->set('me', false);
 		}
-		if (Configure::read('site_admin_debug') && $this->_isSiteAdmin() && (Configure::read('debug') < 2)) {
+		if ($this->_isSiteAdmin()) {
+			$this->loadModel('Server');
+			$sessionStatus = $this->Server->sessionDiagnostics();
+			if ($sessionStatus == 1) {
+				$this->Server->updateDatabase('cleanSessionTable');
+			}
+			if (Configure::read('site_admin_debug') && (Configure::read('debug') < 2)) {
 				Configure::write('debug', 1);
+			}
 		}
 		
 		$this->debugMode = 'debugOff';

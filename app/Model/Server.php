@@ -2548,7 +2548,7 @@ class Server extends AppModel {
 		return $proxyStatus;
 	}
 
-	public function sessionDiagnostics(&$diagnostic_errors, &$sessionCount) {
+	public function sessionDiagnostics(&$diagnostic_errors = 0, &$sessionCount = '') {
 		if (Configure::read('Session.defaults') !== 'database') {
 			$sessionCount = 'N/A';
 			return 2;
@@ -2560,12 +2560,11 @@ class Server extends AppModel {
 			$sessionCount = 'Error';
 			return 3;
 		}
-		$sessionStatus = 0;
-		if ($sessionCount > 100) {
-			$sessionStatus = 1;
+		if ($sessionCount > 1000) {
 			$diagnostic_errors++;
+			return 1;
 		}
-		return $sessionStatus;
+		return 0;
 	}
 
 	public function workerDiagnostics(&$workerIssueCount) {
