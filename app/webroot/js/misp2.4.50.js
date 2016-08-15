@@ -2478,3 +2478,14 @@ $(".eventViewAttributeHover").mouseenter(function() {
 }).mouseleave(function() {
 	clearTimeout(timer);
 });
+
+$(".queryPopover").click(function() {
+	url = $(this).data('url');
+	id = $(this).data('id');
+	$.get(url + '/' + id, function(data) {
+		$('#popover_form').html(data);
+		$('#popover_form').fadeIn();
+		$("#gray_out").fadeIn();
+	});
+});
+
