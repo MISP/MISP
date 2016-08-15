@@ -1928,7 +1928,8 @@ class AttributesController extends AppController {
 			$process_id = CakeResque::enqueue(
 					'default',
 					'AdminShell',
-					array('jobGenerateCorrelation', $jobId)
+					array('jobGenerateCorrelation', $jobId),
+					true
 			);
 			$job->saveField('process_id', $process_id);
 			$this->Session->setFlash(__('Job queued. You can view the progress if you navigate to the active jobs view (administration -> jobs).'));

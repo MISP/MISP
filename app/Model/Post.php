@@ -47,7 +47,8 @@ class Post extends AppModel {
 			$process_id = CakeResque::enqueue(
 					'email',
 					'EventShell',
-					array('postsemail', $user_id, $post_id, $event_id, $title, $message, $jobId)
+					array('postsemail', $user_id, $post_id, $event_id, $title, $message, $jobId),
+					true
 			);
 			$job->saveField('process_id', $process_id);
 			return true;

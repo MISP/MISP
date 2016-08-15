@@ -1486,7 +1486,8 @@ class Event extends AppModel {
 			$process_id = CakeResque::enqueue(
 					'email',
 					'EventShell',
-					array('alertemail', $user['id'], $jobId, $id)
+					array('alertemail', $user['id'], $jobId, $id),
+					true
 			);
 			$job->saveField('process_id', $process_id);
 			return true;
@@ -2224,7 +2225,8 @@ class Event extends AppModel {
 			$process_id = CakeResque::enqueue(
 					'prio',
 					'EventShell',
-					array('publish', $id, $passAlong, $jobId, $user['id'])
+					array('publish', $id, $passAlong, $jobId, $user['id']),
+					true
 			);
 			$job->saveField('process_id', $process_id);
 			return $process_id;
@@ -2306,7 +2308,8 @@ class Event extends AppModel {
 			$process_id = CakeResque::enqueue(
 					'email',
 					'EventShell',
-					array('contactemail', $id, $message, $creator_only, $user['id'], $isSiteAdmin, $jobId)
+					array('contactemail', $id, $message, $creator_only, $user['id'], $isSiteAdmin, $jobId),
+					true
 			);
 			$job->saveField('process_id', $process_id);
 			return true;

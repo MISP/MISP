@@ -568,7 +568,8 @@ class AppController extends Controller {
 			$process_id = CakeResque::enqueue(
 					'default',
 					'AdminShell',
-					array('jobUpgrade24', $jobId, $this->Auth->user('id'))
+					array('jobUpgrade24', $jobId, $this->Auth->user('id')),
+					true
 			);
 			$job->saveField('process_id', $process_id);
 			$this->Session->setFlash(__('Job queued. You can view the progress if you navigate to the active jobs view (administration -> jobs).'));
