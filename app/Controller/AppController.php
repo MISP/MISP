@@ -323,9 +323,10 @@ class AppController extends Controller {
 			$this->set('me', false);
 		}
 		if ($this->_isSiteAdmin()) {
-			$this->loadModel('Server');
-			$sessionStatus = $this->Server->sessionDiagnostics();
-			if ($sessionStatus == 1) {
+			$db = ConnectionManager::getDataSource('default');
+			$sqlResult = $db->query('SELECT COUNT(id) AS session_count FROM cake_sessions WHERE expires < ' . time() . ';');
+			if (isset($sqlResult[0][0]['session_count']) && $sqlResult[0][0]['session_count'] > 1000) {
+				$this->loadModel('Server');
 				$this->Server->updateDatabase('cleanSessionTable');
 			}
 			if (Configure::read('site_admin_debug') && (Configure::read('debug') < 2)) {
