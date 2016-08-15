@@ -156,11 +156,11 @@ class AppModel extends Model {
 				$sql = 'ALTER TABLE `events` ADD UNIQUE (uuid);';
 				break;
 			case 'cleanSessionTable':
-				$sql = 'DELETE FROM `cake_sessions` WHERE `expires` < ' . time() . ';';
+				$sql = 'DELETE FROM cake_sessions WHERE expires < ' . time() . ';';
 				$clean = false;
 				break;
 			case 'destroyAllSessions':
-				$sql = 'DELETE FROM `cake_sessions`;';
+				$sql = 'DELETE FROM cake_sessions;';
 				$clean = false;
 				break;
 			case 'addIPLogging':

@@ -13,7 +13,7 @@ class Bruteforce extends AppModel {
 		// sanitize fields
 		$ip = Sanitize::clean($ip);
 		$username = Sanitize::clean($username);
-		$this->query("INSERT INTO `bruteforces` (`ip` , `username` , `expire` ) VALUES ('$ip', '$username', TIMESTAMPADD(SECOND,$expire, NOW()));");
+		$this->query("INSERT INTO bruteforces (ip, username, `expire`) VALUES ('$ip', '$username', TIMESTAMPADD(SECOND, $expire, NOW()));");
 		if ($this->isBlacklisted($ip, $username)) {
 			$this->Log = ClassRegistry::init('Log');
 			$this->Log->create();
@@ -29,7 +29,7 @@ class Bruteforce extends AppModel {
 	}
 
 	public function clean() {
-		$this->query("DELETE FROM `bruteforces` WHERE `expire`<=NOW();");
+		$this->query("DELETE FROM bruteforces WHERE `expire` <= NOW();");
 	}
 
 	public function isBlacklisted($ip,$username) {

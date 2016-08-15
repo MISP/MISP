@@ -2553,7 +2553,7 @@ class Server extends AppModel {
 			$sessionCount = 'N/A';
 			return 2;
 		}
-		$sql = 'SELECT COUNT(id) FROM `cake_sessions` WHERE `expires` < ' . time() . ';';
+		$sql = 'SELECT COUNT(id) FROM cake_sessions WHERE expires < ' . time() . ';';
 		$sqlResult = $this->query($sql);
 		if (isset($sqlResult[0][0])) $sessionCount = $sqlResult[0][0]['COUNT(id)'];
 		else {
@@ -2742,8 +2742,8 @@ class Server extends AppModel {
 			$this->Job->saveField('progress', 10);
 			$this->Job->saveField('message', 'Starting the migration of the database to 2.4');
 		}
-		$this->query('UPDATE `roles` SET `perm_template` = 1 WHERE `perm_site_admin` = 1 OR `perm_admin` = 1');
-		$this->query('UPDATE `roles` SET `perm_sharing_group` = 1 WHERE `perm_site_admin` = 1 OR `perm_sync` = 1');
+		$this->query('UPDATE roles SET perm_template = 1 WHERE perm_site_admin = 1 OR perm_admin = 1');
+		$this->query('UPDATE roles SET perm_sharing_group = 1 WHERE perm_site_admin = 1 OR perm_sync = 1');
 		$orgs = array('local' => array(), 'external' => array());
 		$captureRules = array(
 				'events_org' => array('table' => 'events', 'old' => 'org', 'new' => 'org_id'),
@@ -2849,9 +2849,9 @@ class Server extends AppModel {
 		// will result in the same visibility, etc. Once events / attributes get put into a sharing group this will get recorrelated anyway
 		// Also by unsetting the org field after the move the changes we ensure that these correlations won't get hit again by the script if we rerun it
 		// and that we don't accidentally "upgrade" a 2.4 correlation
-		$this->query('UPDATE `correlations` SET `distribution` = 1, `a_distribution` = 1 WHERE `org` != "" AND `private` = 0');
+		$this->query('UPDATE correlations SET distribution = 1, a_distribution = 1 WHERE org != "" AND private = 0');
 		foreach ($orgMapping as $old => $new) {
-			$this->query('UPDATE `correlations` SET `org_id` = "' . $new . '", `org` = "" WHERE `org` = "' . $old . '";');
+			$this->query('UPDATE correlations SET org_id = "' . $new . '", org = "" WHERE org = "' . $old . '";');
 		}
 		if (Configure::read('MISP.background_jobs') && $jobId) {
 			$this->Job->saveField('progress', 60);
