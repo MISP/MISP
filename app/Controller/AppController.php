@@ -439,8 +439,8 @@ class AppController extends Controller {
 	public function checkAuthUser($authkey) {
 		$this->loadModel('User');
 		$user = $this->User->getAuthUserByUuid($authkey);
-		if (!$user['Role']['perm_auth']) return false;
 		if (empty($user)) return false;
+		if (!$user['Role']['perm_auth']) return false;
 		if ($user['Role']['perm_site_admin']) $user['siteadmin'] = true;
 		return $user;
 	}
