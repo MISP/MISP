@@ -151,46 +151,46 @@ class ComplexTypeTool {
 			}
 		}
 
-        // check for domain name, hostname, filename
-        if (strpos($inputRefanged, '.') !== false) {
-            $temp = explode('.', $inputRefanged);
-            // TODO: use a more flexible matching approach, like the one below (that still doesn't support non-ASCII domains)
-            //if (filter_var($input, FILTER_VALIDATE_URL)) {
-            //first check in $warningListEntries:
-            $ending = $temp[count($temp)-1];
-            if ((count($warningListEntries)>0 && in_array($ending, $warningListEntries))) {
-                if (count($temp) > 2) {
-                    return array('types' => array('hostname', 'domain', 'url'), 'to_ids' => true, 'default_type' => 'hostname', 'comment' => $comment, 'value' => $inputRefangedNoPort);
-                } else {
-                    //check if it's for sure a domain. Should pb be changed to include more domain only endings.
-                    if(preg_match('/^([-\pL\pN]+\.)+([a-z][a-z]|biz|cat|com|edu|gov|int|mil|net|org|pro|tel|aero|arpa|asia|coop|info|jobs|mobi|name|museum|travel")(:[0-9]{2,5})?$/iu', $inputRefanged))
-                        return array('types' => array('domain'), 'to_ids' => true, 'default_type' => 'domain', 'comment' => $comment, 'value' => $inputRefangedNoPort);
-                    else
-                        return array('types' => array('domain', 'filename'), 'to_ids' => true, 'default_type' => 'domain', 'comment' => $comment, 'value' => $inputRefangedNoPort, 'category' => 'filename');
-                }
-            } else {
-                // check if it is a URL
-                // Adding http:// infront of the input in case it was left off. github.com/MISP/MISP should still be counted as a valid link
-                if (count($temp) > 1 && (filter_var($inputRefangedNoPort, FILTER_VALIDATE_URL) || filter_var('http://' . $inputRefangedNoPort, FILTER_VALIDATE_URL))) {
-                    // TODO: add comment explaining why there is a check for a specific domain
-                    if (preg_match('/^https:\/\/www.virustotal.com\//i', $inputRefangedNoPort)) return array('types' => array('link'), 'to_ids' => false, 'default_type' => 'link', 'comment' => $comment, 'value' => $inputRefangedNoPort);
-                    if (strpos($inputRefangedNoPort, '/')) return array('types' => array('url'), 'to_ids' => true, 'default_type' => 'url', 'comment' => $comment, 'value' => $inputRefangedNoPort);
-                }
-                if ($this->__resolveFilename($input)) return array('types' => array('filename'), 'to_ids' => true, 'default_type' => 'filename');
-            }
-        }
-        if (strpos($input, '\\') !== false) {
-            $temp = explode('\\', $input);
-            if (strpos($temp[count($temp)-1], '.')) {
-                if ($this->__resolveFilename($temp[count($temp)-1])) return array('types' => array('filename'), 'category' => 'Payload installation', 'to_ids' => false, 'default_type' => 'filename');
-            } else {
-                return array('types' => array('regkey'), 'to_ids' => false, 'default_type' => 'regkey');
-            }
-        }
-        // check for CVE
-        if (preg_match("#^cve-[0-9]{4}-[0-9]{4,9}$#i", $input)) return array('types' => array('vulnerability'), 'category' => 'External analysis', 'to_ids' => false, 'default_type' => 'vulnerability');
-        return false;
-    }
+		// check for domain name, hostname, filename
+		if (strpos($inputRefanged, '.') !== false) {
+			$temp = explode('.', $inputRefanged);
+			// TODO: use a more flexible matching approach, like the one below (that still doesn't support non-ASCII domains)
+			//if (filter_var($input, FILTER_VALIDATE_URL)) {
+			//first check in $warningListEntries:
+			$ending = $temp[count($temp)-1];
+			if ((count($warningListEntries)>0 && in_array($ending, $warningListEntries))) {
+				if (count($temp) > 2) {
+					return array('types' => array('hostname', 'domain', 'url'), 'to_ids' => true, 'default_type' => 'hostname', 'comment' => $comment, 'value' => $inputRefangedNoPort);
+				} else {
+					//check if it's for sure a domain. Should pb be changed to include more domain only endings.
+					if(preg_match('/^([-\pL\pN]+\.)+([a-z][a-z]|biz|cat|com|edu|gov|int|mil|net|org|pro|tel|aero|arpa|asia|coop|info|jobs|mobi|name|museum|travel")(:[0-9]{2,5})?$/iu', $inputRefanged))
+						return array('types' => array('domain'), 'to_ids' => true, 'default_type' => 'domain', 'comment' => $comment, 'value' => $inputRefangedNoPort);
+					else
+						return array('types' => array('domain', 'filename'), 'to_ids' => true, 'default_type' => 'domain', 'comment' => $comment, 'value' => $inputRefangedNoPort, 'category' => 'filename');
+				}
+			} else {
+				// check if it is a URL
+				// Adding http:// infront of the input in case it was left off. github.com/MISP/MISP should still be counted as a valid link
+				if (count($temp) > 1 && (filter_var($inputRefangedNoPort, FILTER_VALIDATE_URL) || filter_var('http://' . $inputRefangedNoPort, FILTER_VALIDATE_URL))) {
+					// TODO: add comment explaining why there is a check for a specific domain
+					if (preg_match('/^https:\/\/www.virustotal.com\//i', $inputRefangedNoPort)) return array('types' => array('link'), 'to_ids' => false, 'default_type' => 'link', 'comment' => $comment, 'value' => $inputRefangedNoPort);
+					if (strpos($inputRefangedNoPort, '/')) return array('types' => array('url'), 'to_ids' => true, 'default_type' => 'url', 'comment' => $comment, 'value' => $inputRefangedNoPort);
+				}
+				if ($this->__resolveFilename($input)) return array('types' => array('filename'), 'to_ids' => true, 'default_type' => 'filename');
+			}
+		}
+		if (strpos($input, '\\') !== false) {
+			$temp = explode('\\', $input);
+			if (strpos($temp[count($temp)-1], '.')) {
+				if ($this->__resolveFilename($temp[count($temp)-1])) return array('types' => array('filename'), 'category' => 'Payload installation', 'to_ids' => false, 'default_type' => 'filename');
+			} else {
+				return array('types' => array('regkey'), 'to_ids' => false, 'default_type' => 'regkey');
+			}
+		}
+		// check for CVE
+		if (preg_match("#^cve-[0-9]{4}-[0-9]{4,9}$#i", $input)) return array('types' => array('vulnerability'), 'category' => 'External analysis', 'to_ids' => false, 'default_type' => 'vulnerability');
+		return false;
+	}
 
 	private function __resolveFilename($input) {
 		if ((preg_match('/^.:/', $input) || strpos($input, '.') !=0)) return true;
