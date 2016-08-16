@@ -85,7 +85,7 @@ class EventShell extends AppShell
 		}
 		App::uses('JSONConverterTool', 'Tools');
 		$converter = new JSONConverterTool();
-		$file->append('{"response":[');
+		$file->write('{"response":[');
 		foreach ($eventIds as $k => $eventId) {
 			$result = $this->Event->fetchEvent($user, array('eventid' => $eventId['Event']['id'], 'includeAttachments' => Configure::read('MISP.cached_attachments')));
 			$file->append($converter->event2JSON($result[0]));
