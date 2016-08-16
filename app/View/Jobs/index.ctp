@@ -66,7 +66,7 @@
 		if ($item['Job']['failed']) {
 			$progress_message = 'Failed';
 			$progress_bar_type = 'progress progress-danger active';
-		} else if (!$item['Job']['worker_status']) {
+		} else if (!$item['Job']['worker_status'] && $item['Job']['progress'] != 100) {
 			$progress_message = 'No worker active';
 			$progress_bar_type = 'progress progress-striped progress-warning active';
 		} else if ($item['Job']['progress'] == 0) {
@@ -95,12 +95,12 @@
 			<td><?php echo h($item['Job']['message']); ?>&nbsp;</td>
 			<td class="short"><?php echo isset($item['Org']['name']) ? h($item['Org']['name']) : 'SYSTEM'; ?>&nbsp;</td>
 			<td class="short">
-			<?php 
+			<?php
 				echo h($item['Job']['status']);
 				if ($item['Job']['failed']):
 			?>
 				<div class="icon-search useCursorPointer queryPopover" data-url="/jobs/getError" data-id="<?php echo h($item['Job']['process_id']); ?>"></div>
-			<?php 
+			<?php
 				endif;
 			?>
 			</td>
@@ -113,13 +113,13 @@
 					?>
 				  </div>
 				</div>
-					<?php 
-						if ($startRefreshing): 
+					<?php
+						if ($startRefreshing):
 					?>
 							<script type="text/javascript">
 								queueInterval("<?php echo $k; ?>", "<?php echo h($item['Job']['id']); ?>");
 							</script>
-					<?php 
+					<?php
 						endif;
 					?>
 			</td>
