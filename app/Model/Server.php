@@ -606,6 +606,15 @@ class Server extends AppModel {
 							'type' => 'string',
 							'null' => true,
 					),
+					'tmpdir' => array(
+							'level' => 1,
+							'description' => 'Please indicate the temp directory you wish to use for certain functionalities in MISP. By default this is set to /tmp and will be used among others to store certain temporary files extracted from imports during the import process.',
+							'value' => '/tmp',
+							'errorMessage' => '',
+							'test' => 'testForPath',
+							'type' => 'string',
+							'null' => true,
+					),
 					'custom_css' => array(
 							'level' => 2,
 							'description' => 'If you would like to customise the css, simply drop a css file in the /var/www/MISP/webroot/css directory and enter the name here.',
@@ -2011,7 +2020,7 @@ class Server extends AppModel {
 	public function testForTermsFile($value) {
 		return $this->__testForFile($value, APP . 'files' . DS . 'terms');
 	}
-	
+
 	public function testForStyleFile($value) {
 		if (empty($value)) return true;
 		return $this->__testForFile($value, APP . 'webroot' . DS . 'css');

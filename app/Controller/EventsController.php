@@ -194,7 +194,7 @@ class EventsController extends AppController {
 		);
 		$attributeHits = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array(
 				'conditions' => $conditions,
-				'fields' => array('event_id', 'comment', 'distribution', 'value1', 'value2') 
+				'fields' => array('event_id', 'comment', 'distribution', 'value1', 'value2')
 		));
 		// rearrange the data into an array where the keys are the event IDs
 		$eventsWithAttributeHits = array();
@@ -2880,10 +2880,22 @@ class EventsController extends AppController {
 					if ($attribute['type'] == 'ip-src/ip-dst') {
 						$types = array('ip-src', 'ip-dst');
 					} else if ($attribute['type'] == 'malware-sample') {
+						App::uses('FileAccess', 'Tools');
+						$tmpdir = Configure::read('MISP.tmpdir') ? Configure::read('MISP.tmpdir') : '/tmp';
+						$tempFile = explode('|', $attribute['data']);
+						if (!preg_match('/^[a-z0-9]*$/i', $tempFile[0])) {
+							throw new MethodNotAllowedException('Invalid filename, stop tampering with it.');
+						}
+						$attribute['data'] = FileAccess::readFromFile($tmpdir . '/' . $tempFile[0], $tempFile[1]);
+						unlink($tmpdir . '/' . $tempFile[0]);
 						$result = $this->Event->Attribute->handleMaliciousBase64($id, $attribute['value'], $attribute['data'], array('md5', 'sha1', 'sha256'), $objectType == 'ShadowAttribute' ? true : false);
+						if (!$result['success']) {
+							$failed++;
+							continue;
+						}
+						$attribute['data'] = $result['data'];
 						$shortValue = $attribute['value'];
 						$attribute['value'] = $shortValue . '|' . $result['md5'];
-						$attribute['data'] = $result['data'];
 						$additionalHashes = array('sha1', 'sha256');
 						foreach ($additionalHashes as $hash) {
 							$temp = $attribute;
@@ -3210,7 +3222,7 @@ class EventsController extends AppController {
 		$this->set('id', $id);
 		$this->render('ajax/exportChoice');
 	}
-	
+
 	public function importChoice($id) {
 		if (!is_numeric($id)) throw new MethodNotAllowedException('Invalid ID');
 		$event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
@@ -3720,6 +3732,13 @@ class EventsController extends AppController {
 						'order' => false
 				);
 				$result['related'] = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $options);
+				if (isset($result['data'])) {
+					App::uses('FileAccess', 'Tools');
+					$tmpdir = Configure::read('MISP.tmpdir') ? Configure::read('MISP.tmpdir') : '/tmp';
+					$tempFile = FileAccess::createTempFile($tmpdir, $prefix = 'MISP');
+					FileAccess::writeToFile($tempFile, $result['data']);
+					$result['data'] = basename($tempFile) . '|' . filesize($tempFile);
+				}
 			}
 
 			$this->set('event', array('Event' => $attribute[0]['Event']));
@@ -3732,7 +3751,7 @@ class EventsController extends AppController {
 			$this->render('resolved_attributes');
 		}
 	}
-	
+
 	public function importModule($module, $eventId) {
 		$this->loadModel('Module');
 		$module = $this->Module->getEnabledModule($module, 'Import');
@@ -3826,7 +3845,7 @@ class EventsController extends AppController {
 		$this->set('module', $module);
 		$this->set('eventId', $eventId);
 	}
-	
+
 	public function exportModule($module, $id) {
 		$result = $this->Event->export($this->Auth->user(), $module, array('eventid' => $id));
 		$this->response->body(base64_decode($result['data']));
