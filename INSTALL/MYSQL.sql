@@ -61,7 +61,8 @@ CREATE TABLE IF NOT EXISTS `cake_sessions` (
   `id` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT '',
   `data` text COLLATE utf8_bin NOT NULL,
   `expires` int(11) NOT NULL,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  INDEX `expires` (`expires`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- --------------------------------------------------------
