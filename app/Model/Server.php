@@ -2562,9 +2562,9 @@ class Server extends AppModel {
 			$sessionCount = 'N/A';
 			return 2;
 		}
-		$sql = 'SELECT COUNT(id) FROM cake_sessions WHERE expires < ' . time() . ';';
+		$sql = 'SELECT COUNT(id) AS session_count FROM cake_sessions WHERE expires < ' . time() . ';';
 		$sqlResult = $this->query($sql);
-		if (isset($sqlResult[0][0])) $sessionCount = $sqlResult[0][0]['COUNT(id)'];
+		if (isset($sqlResult[0][0])) $sessionCount = $sqlResult[0][0]['session_count'];
 		else {
 			$sessionCount = 'Error';
 			return 3;
