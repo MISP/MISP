@@ -3709,7 +3709,7 @@ class EventsController extends AppController {
 			if (!empty($options)) $data['config'] = $options;
 			$data = json_encode($data);
 			$result = $this->Module->queryModuleServer('/query', $data);
-			if (!$result) return 'Enrichment service not reachable.';
+			if (!$result) throw new MethodNotAllowedException('Enrichment service not reachable.');
 			if (isset($result['error'])) $this->Session->setFlash($result['error']);
 			if (!is_array($result)) throw new Exception($result);
 			$resultArray = $this->Event->handleModuleResult($result, $attribute[0]['Attribute']['event_id']);
