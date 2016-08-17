@@ -881,11 +881,22 @@ class AttributesController extends AppController {
 				throw new MethodNotAllowedException();
 			}
 			if ($this->__delete($id, $hard)) {
-				$this->Session->setFlash(__('Attribute deleted'));
+				if ($this->_isRest() || $this->response->type() === 'application/json') {
+					$this->set('message', 'Attribute deleted.');
+					$this->set('_serialize', array('message'));
+				} else {
+					$this->Session->setFlash(__('Attribute deleted'));
+					$this->redirect($this->referer());
+				}
 			} else {
-				$this->Session->setFlash(__('Attribute was not deleted'));
+				if ($this->_isRest() || $this->response->type() === 'application/json') {
+					throw new Exception('Attribute was not deleted');
+				} else {
+					$this->Session->setFlash(__('Attribute was not deleted'));
+					$this->redirect(array('action' => 'index'));
+				}
+				$this->Session->setFlash(__('Attribute deleted'));
 			}
-			$this->redirect(array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']));	// TODO check
 		}
 	}
 
