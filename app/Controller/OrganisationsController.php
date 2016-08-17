@@ -223,7 +223,7 @@ class OrganisationsController extends AppController {
 			));
 			$orgs['external'] = $this->Organisation->find('all', array(
 					'fields' => array('id', 'name', 'uuid'),
-					'conditions' => array('Organisation.id !=' => $id, 'Organisation.local' => false),
+					'conditions' => array('Organisation.id !=' => $id, 'Organisation.local' => 0),
 					'order' => 'lower(Organisation.name) ASC'
 			));
 			foreach (array('local', 'external') as $type) {
