@@ -34,7 +34,7 @@
 			<?php echo h($org['Organisation']['description']); ?>
 			&nbsp;
 		</dd>
-		<?php if ($fullAccess): ?>
+		<?php if (isset($org['Organisation']['uuid'])&& !empty($org['Organisation']['uuid'])): ?>
 			<dt><?php echo 'Uuid'; ?></dt>
 			<dd>
 				<?php echo h($org['Organisation']['uuid']); ?>
