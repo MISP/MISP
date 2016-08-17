@@ -2807,7 +2807,7 @@ class EventsController extends AppController {
 			$this->loadModel('Warninglist');
 			$IANATLDentries = $this->Warninglist->getAllIANAEntries();
 
-            $resultArray = $complexTypeTool->checkComplexRouter($this->request->data['Attribute']['value'], 'FreeText', $IANATLDentries);
+			$resultArray = $complexTypeTool->checkComplexRouter($this->request->data['Attribute']['value'], 'FreeText', $IANATLDentries);
 			foreach ($resultArray as &$r) {
 				$temp = array();
 				foreach ($r['types'] as $type) {
