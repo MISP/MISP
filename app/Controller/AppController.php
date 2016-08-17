@@ -46,7 +46,7 @@ class AppController extends Controller {
 	public $helpers = array('Utility');
 
 	private $__jsVersion = '2.4.50';
-	public $phpmin = '5.5.9';	
+	public $phpmin = '5.5.9';
 	public $phprec = '5.6.0';
 
 	// Used for _isAutomation(), a check that returns true if the controller & action combo matches an action that is a non-xml and non-json automation method
@@ -323,17 +323,19 @@ class AppController extends Controller {
 			$this->set('me', false);
 		}
 		if ($this->_isSiteAdmin()) {
-			$db = ConnectionManager::getDataSource('default');
-			$sqlResult = $db->query('SELECT COUNT(id) AS session_count FROM cake_sessions WHERE expires < ' . time() . ';');
-			if (isset($sqlResult[0][0]['session_count']) && $sqlResult[0][0]['session_count'] > 1000) {
-				$this->loadModel('Server');
-				$this->Server->updateDatabase('cleanSessionTable');
+			if (Configure::read('Session.defaults') !== 'database') {
+				$db = ConnectionManager::getDataSource('default');
+				$sqlResult = $db->query('SELECT COUNT(id) AS session_count FROM cake_sessions WHERE expires < ' . time() . ';');
+				if (isset($sqlResult[0][0]['session_count']) && $sqlResult[0][0]['session_count'] > 1000) {
+					$this->loadModel('Server');
+					$this->Server->updateDatabase('cleanSessionTable');
+				}
 			}
 			if (Configure::read('site_admin_debug') && (Configure::read('debug') < 2)) {
 				Configure::write('debug', 1);
 			}
 		}
-		
+
 		$this->debugMode = 'debugOff';
 		if (Configure::read('debug') > 1) $this->debugMode = 'debugOn';
 		$this->set('loggedInUserName', $this->__convertEmailToName($this->Auth->user('email')));
