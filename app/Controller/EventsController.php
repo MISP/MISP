@@ -2492,7 +2492,7 @@ class EventsController extends AppController {
 		return $this->response;
 	}
 
-	public function downloadOpenIOCEvent($eventid) {
+	public function downloadOpenIOCEvent($key, $eventid) {
 		// return a downloadable text file called misp.openIOC.<eventId>.ioc for individual events
 		// TODO implement mass download of all events - maybe in a zip file?
 		$this->response->type('text');	// set the content type
@@ -2502,6 +2502,17 @@ class EventsController extends AppController {
 			$this->header('Content-Disposition: download; filename="misp.openIOC' . $eventid . '.ioc"');
 		}
 		$this->layout = 'text/default';
+        
+         if ($key != 'download'){
+            $user = $this->checkAuthUser($key);
+            if (!$user){
+                throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
+            }
+        } else {
+            if (!$this->Auth->user('id')){
+                throw new UnauthorizedException('You have to be logged in to do that.');
+            }
+        }
 
 		// get the event if it exists and load it together with its attributes
 		$this->Event->id = $eventid;
@@ -3139,7 +3150,7 @@ class EventsController extends AppController {
 					'checkbox_default' => true
 			),
 			'openIOC' => array(
-					'url' => '/events/downloadOpenIOCEvent/' . $id,
+					'url' => '/events/downloadOpenIOCEvent/download/' . $id,
 					'text' => 'OpenIOC (all indicators marked to IDS)',
 					'requiresPublished' => true,
 					'checkbox' => false,
