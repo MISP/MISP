@@ -132,7 +132,8 @@ class FeedsController extends AppController {
 			$process_id = CakeResque::enqueue(
 					'default',
 					'ServerShell',
-					array('fetchFeed', $this->Auth->user('id'), $feedId, $jobId)
+					array('fetchFeed', $this->Auth->user('id'), $feedId, $jobId),
+					true
 			);
 			$this->Job->saveField('process_id', $process_id);
 			$message = 'Pull queued for background execution.';

@@ -67,7 +67,7 @@ class EventShell extends AppShell
 		$this->Job->saveField('message', 'Job done. (in '.$timeDelta.'s)');
 		$this->Job->saveField('date_modified', date("y-m-d H:i:s"));
 	}
-	
+
 	public function cachejson() {
 		$timeStart = time();
 		$userId = $this->args[0];
@@ -85,7 +85,7 @@ class EventShell extends AppShell
 		}
 		App::uses('JSONConverterTool', 'Tools');
 		$converter = new JSONConverterTool();
-		$file->append('{"response":[');
+		$file->write('{"response":[');
 		foreach ($eventIds as $k => $eventId) {
 			$result = $this->Event->fetchEvent($user, array('eventid' => $eventId['Event']['id'], 'includeAttachments' => Configure::read('MISP.cached_attachments')));
 			$file->append($converter->event2JSON($result[0]));
@@ -384,7 +384,7 @@ class EventShell extends AppShell
 		$i = 0;
 		foreach ($users as $user) {
 			foreach ($this->Event->export_types as $k => $type) {
-				$this->Job->cache($k, $user['User'], 'Events visible to: ' . ($user['Role']['perm_site_admin'] ? 'ADMIN' : $user['Organisation']['name']));
+				$this->Job->cache($k, $user['User']);
 				$i++;
 			}
 		}

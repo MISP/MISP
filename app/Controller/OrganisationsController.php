@@ -42,6 +42,7 @@ class OrganisationsController extends AppController {
 				'conditions' => $conditions,
 				'recursive' => -1,
 		);
+		$usersPerOrg = $this->User->getMembersCount();
 		$orgs = $this->paginate();
 		if ($this->_isSiteAdmin()) {
 			$this->loadModel('User');
@@ -60,6 +61,7 @@ class OrganisationsController extends AppController {
 		}
 		$this->set('scope', $scope);
 		$this->set('orgs', $orgs);
+		$this->set('members', $usersPerOrg);
 	}
 
 	public function admin_add() {

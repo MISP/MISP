@@ -76,14 +76,14 @@ class Event extends AppModel {
 					'type' => 'JSON',
 					'requiresPublished' => 0,
 					'canHaveAttachments' => true,
-					'description' => 'Click this to download all events and attributes that you have access to in MISP XML format.',
+					'description' => 'Click this to download all events and attributes that you have access to in MISP JSON format.',
 			),
 			'xml' => array(
 					'extension' => '.xml',
 					'type' => 'XML',
 					'requiresPublished' => 0,
 					'canHaveAttachments' => true,
-					'description' => 'Click this to download all events and attributes that you have access to in MISP JSON format.',
+					'description' => 'Click this to download all events and attributes that you have access to in MISP XML format.',
 			),
 			'csv_sig' => array(
 					'extension' => '.csv',
@@ -1486,7 +1486,8 @@ class Event extends AppModel {
 			$process_id = CakeResque::enqueue(
 					'email',
 					'EventShell',
-					array('alertemail', $user['id'], $jobId, $id)
+					array('alertemail', $user['id'], $jobId, $id),
+					true
 			);
 			$job->saveField('process_id', $process_id);
 			return true;
@@ -2224,7 +2225,8 @@ class Event extends AppModel {
 			$process_id = CakeResque::enqueue(
 					'prio',
 					'EventShell',
-					array('publish', $id, $passAlong, $jobId, $user['id'])
+					array('publish', $id, $passAlong, $jobId, $user['id']),
+					true
 			);
 			$job->saveField('process_id', $process_id);
 			return $process_id;
@@ -2306,7 +2308,8 @@ class Event extends AppModel {
 			$process_id = CakeResque::enqueue(
 					'email',
 					'EventShell',
-					array('contactemail', $id, $message, $creator_only, $user['id'], $isSiteAdmin, $jobId)
+					array('contactemail', $id, $message, $creator_only, $user['id'], $isSiteAdmin, $jobId),
+					true
 			);
 			$job->saveField('process_id', $process_id);
 			return true;
@@ -2629,7 +2632,7 @@ class Event extends AppModel {
 		$correlatedAttributes = isset($event['RelatedAttribute']) ? array_keys($event['RelatedAttribute']) : array();
 		$correlatedShadowAttributes = isset($event['RelatedShadowAttribute']) ? array_keys($event['RelatedShadowAttribute']) : array();
 		foreach ($event['Attribute'] as $attribute) {
-			if ($filterType && !in_array($filterType, array('proposal', 'correlation', 'warning'))) if (!in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType])) continue;
+    			if ($filterType && !in_array($filterType, array('proposal', 'correlation', 'warning'))) if (!in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType])) continue;
 			if (isset($attribute['distribution']) && $attribute['distribution'] != 4) unset($attribute['SharingGroup']);
 			$attribute['objectType'] = 0;
 			if (!empty($attribute['ShadowAttribute'])) $attribute['hasChildren'] = 1;
@@ -2714,5 +2717,85 @@ class Event extends AppModel {
 			$conditions['AND'][] = $temp;
 		}
 		return $conditions;
+	}
+	
+	public function handleModuleResult($result, $event_id) {
+		$resultArray = array();
+		$freetextResults = array();
+		App::uses('ComplexTypeTool', 'Tools');
+		$complexTypeTool = new ComplexTypeTool();
+		if (isset($result['results']) && !empty($result['results'])) {
+			foreach ($result['results'] as $k => &$r) {
+				if (!is_array($r['values'])) {
+					$r['values'] = array($r['values']);
+				}
+				if (!is_array($r['types'])) {
+					$r['types'] = array($r['types']);
+				}
+				if (isset($r['categories']) && !is_array($r['categories'])) {
+					$r['categories'] = array($r['categories']);
+				}
+				foreach ($r['values'] as &$value) {
+					if (!is_array($r['values']) || !isset($r['values'][0])) {
+						$r['values'] = array($r['values']);
+					}
+				}
+				foreach ($r['values'] as &$value) {
+					if (in_array('freetext', $r['types'])) {
+						if (is_array($value)) $value = json_encode($value);
+						$freetextResults = array_merge($freetextResults, $complexTypeTool->checkComplexRouter($value, 'FreeText'));
+						if (!empty($freetextResults)) {
+							foreach ($freetextResults as &$ft) {
+								$temp = array();
+								foreach ($ft['types'] as $type) {
+									$temp[$type] = $type;
+								}
+								$ft['types'] = $temp;
+							}
+						}
+						$r['types'] = array_diff($r['types'], array('freetext'));
+						// if we just removed the only type in the result then more on to the next result
+						if (empty($r['types'])) continue 2;
+						$r['types'] = array_values($r['types']);
+					}
+				}
+				foreach ($r['values'] as &$value) {
+					$temp = array(
+							'event_id' => $event_id,
+							'types' => $r['types'],
+							'default_type' => $r['types'][0],
+							'comment' => isset($r['comment']) ? $r['comment'] : false,
+							'to_ids' => isset($r['to_ids']) ? $r['to_ids'] : false,
+							'value' => $value
+					);
+					if (isset($r['categories'])) {
+						$temp['categories'] = $r['categories'];
+						$temp['default_category'] = $r['categories'][0];
+					}
+					if (isset($r['data'])) $temp['data'] = $r['data'];
+					$resultArray[] = $temp;
+				}
+					
+			}
+			$resultArray = array_merge($resultArray, $freetextResults);
+		}
+		return $resultArray;
+	}
+	
+	public function export($user = false, $module = false, $options = array()) {
+		if (empty($user)) return 'Invalid user.';
+		if  (empty($module)) return 'Invalid module.';
+		$this->Module = ClassRegistry::init('Module');
+		$module = $this->Module->getEnabledModule($module, 'Export');
+		$events = $this->fetchEvent($user, $options);
+		if (empty($events)) return 'Invalid event.';
+		$modulePayload = array('module' => $module['name']);
+		$modulePayload['data'] = $events;
+		$result = $this->Module->queryModuleServer('/query', json_encode($modulePayload, true), false, 'Export');
+		return array(
+				'data' => $result['data'],
+				'extension' => $module['mispattributes']['outputFileExtension'],
+				'response' => $module['mispattributes']['responseType']
+		);
 	}
 }

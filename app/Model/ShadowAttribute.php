@@ -571,7 +571,8 @@ class ShadowAttribute extends AppModel {
 			$process_id = CakeResque::enqueue(
 					'default',
 					'AdminShell',
-					array('jobGenerateShadowAttributeCorrelation', $jobId)
+					array('jobGenerateShadowAttributeCorrelation', $jobId),
+					true
 			);
 			$job->saveField('process_id', $process_id);
 			$this->Log->create();

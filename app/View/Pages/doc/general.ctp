@@ -55,7 +55,7 @@
 	<ul>
 		<li><b>News:</b> Read about the latest news regarding the MISP system</li>
 		<li><b>My Profile:</b> Manage your user account.</li>
-		<li><b>Members List:</b> View the number of users per organisation and get some statistics about the currently stored attributes.</li>
+		<li><b>Attribute Histogram:</b> View some statistics about the currently stored attributes.</li>
 		<li><b>Role Permissions:</b> You can view the role permissions here. </li>
 		<li><b>User Guide:</b> A link to this user guide.</li>
 		<li><b>Terms &amp; Conditions:</b> View the terms &amp; conditions again.</li>

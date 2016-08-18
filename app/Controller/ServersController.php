@@ -597,7 +597,9 @@ class ServersController extends AppController {
 	public function serverSettingsReloadSetting($setting, $id) {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
 		$pathToSetting = explode('.', $setting);
-		if (strpos($setting, 'Plugin.Enrichment') !== false) $settingObject = $this->Server->getCurrentServerSettings();
+		if (strpos($setting, 'Plugin.Enrichment') !== false || strpos($setting, 'Plugin.Import') !== false || strpos($setting, 'Plugin.Export') !== false) {
+			$settingObject = $this->Server->getCurrentServerSettings();
+		}
 		else $settingObject = $this->Server->serverSettings;
 		foreach ($pathToSetting as $key) {
 			if (!isset($settingObject[$key])) throw new MethodNotAllowedException();
@@ -820,7 +822,9 @@ class ServersController extends AppController {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
 		if (!isset($setting) || !isset($id)) throw new MethodNotAllowedException();
 		$this->set('id', $id);
-		if (strpos($setting, 'Plugin.Enrichment') !== false) $serverSettings = $this->Server->getCurrentServerSettings();
+		if (strpos($setting, 'Plugin.Enrichment') !== false || strpos($setting, 'Plugin.Import') !== false || strpos($setting, 'Plugin.Export') !== false) {
+			$serverSettings = $this->Server->getCurrentServerSettings();
+		}
 		else $serverSettings = $this->Server->serverSettings;
 		$relevantSettings = (array_intersect_key(Configure::read(), $serverSettings));
 		$found = null;
@@ -1108,6 +1112,16 @@ class ServersController extends AppController {
 			$this->Session->setFlash('Could not purge the session table.');
 		}
 		$this->redirect('/servers/serverSettings/diagnostics');
+	}
+	
+	public function clearWorkerQueue($worker) {
+		if (!$this->_isSiteAdmin() || !$this->request->is('Post') || $this->request->is('ajax')) throw new MethodNotAllowedException();
+		$worker_array = array('cache', 'default', 'email', 'prio');
+		if (!in_array($worker, $worker_array)) throw new MethodNotAllowedException('Invalid worker');
+		$redis = Resque::redis();
+		$redis->del('queue:' . $worker);
+		$this->Session->setFlash('Queue cleared.');
+		$this->redirect($this->referer());
 	}
 
 	public function getVersion() {

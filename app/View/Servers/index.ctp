@@ -28,8 +28,6 @@
 			<th><?php echo $this->Paginator->sort('client_cert_file');?></th>
 			<th><?php echo $this->Paginator->sort('self_signed');?></th>
 			<th><?php echo $this->Paginator->sort('org');?></th>
-			<th>Last Pulled ID</th>
-			<th>Last Pushed ID</th>
 			<th class="actions">Actions</th>
 	</tr>
 	<?php
@@ -74,8 +72,6 @@ foreach ($servers as $server):
 		<td class="short"><?php echo h($server['Server']['client_cert_file']); ?>&nbsp;</td>
 		<td class="short"><span class="<?php echo ($server['Server']['self_signed'] ? 'icon-ok' : 'icon-remove'); ?>"></span></td>
 		<td class="short"><a href="/organisations/view/<?php echo h($server['Organisation']['id']); ?>"><?php echo h($server['Organisation']['name']); ?></a></td>
-		<td class="short"><?php echo $server['Server']['lastpulledid']; ?></td>
-		<td class="short"><?php echo $server['Server']['lastpushedid']; ?></td>
 		<td class="short action-links">
 			<?php
 			echo $this->Html->link('', array('action' => 'previewIndex', $server['Server']['id']), array('class' => 'icon-search', 'title' => 'Explore'));
