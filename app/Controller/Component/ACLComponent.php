@@ -326,7 +326,7 @@ class ACLComponent extends Component {
 					'initiatePasswordReset' => array('perm_admin'),
 					'login' => array('*'),
 					'logout' => array('*'),
-					'memberslist' => array('*'),
+					'attributehistogram' => array('*'),
 					'resetauthkey' => array('*'),
 					'routeafterlogin' => array('*'),
 					'statistics' => array('*'),

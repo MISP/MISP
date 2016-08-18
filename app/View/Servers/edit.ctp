@@ -67,6 +67,7 @@
 		<div class = "input clear"></div>
 	<?php
 		echo $this->Form->input('authkey', array(
+				'placeholder' => 'Leave empty to use current key'
 		));
 	?>
 		<div class = "input clear"></div>

@@ -7,6 +7,9 @@
 		<?php echo $title_for_layout, ' - MISP'; ?>
 	</title>
 	<?php
+		if (!isset($debugMode)) {
+			$debugMode == 'debugOff';
+		}
 		echo $this->Html->meta('icon');
 		echo $this->Html->css('roboto');
 		echo $this->Html->css('bootstrap');

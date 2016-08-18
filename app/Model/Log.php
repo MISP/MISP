@@ -96,7 +96,7 @@ class Log extends AppModel {
 		$validDates = $this->find('all', array(
 				'fields' => array('DISTINCT UNIX_TIMESTAMP(DATE(created)) AS Date', 'count(id) AS count'),
 				'conditions' => $conditions,
-				'group' => array('DATE(created)'),
+				'group' => array('Date'),
 				'order' => array('Date')
 		));
 		$data = array();

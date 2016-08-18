@@ -726,18 +726,8 @@ class UsersController extends AppController {
 		$this->redirect($this->referer());
 	}
 
-	public function memberslist() {
-		// Orglist
-		$fields = array('Organisation.name', 'count(User.id) as `num_members`');
-		$params = array(
-				'fields' => $fields,
-				'recursive' => -1,
-				'contain' => array('Organisation'),
-				'group' => array('Organisation.name', 'Organisation.id'),
-				'order' => array('UPPER(Organisation.name)'),
-		);
-		$orgs = $this->User->find('all', $params);
-		$this->set('orgs', $orgs);
+	public function attributehistogram() {
+	    //all code is called via JS
 	}
 
 	public function histogram($selected = null) {
@@ -758,7 +748,7 @@ class UsersController extends AppController {
 		$this->loadModel('Attribute');
 		$conditions = array();
 		if ($selected) $conditions[] = array('Attribute.type' => $selectedTypes, 'Attribute.deleted' => false);
-		$fields = array('Event.orgc_id', 'Attribute.type', 'count(Attribute.type) as `num_types`');
+		$fields = array('Event.orgc_id', 'Attribute.type', 'COUNT(Attribute.type) AS num_types');
 		$params = array('recursive' => 0,
 				'fields' => $fields,
 				'group' => array('Attribute.type', 'Event.orgc_id'),

@@ -24,34 +24,56 @@ class JobsController extends AppController {
 	public function index($queue = false) {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
 		if (!Configure::read('MISP.background_jobs')) throw new NotFoundException('Background jobs are not enabled on this instance.');
+		$this->loadModel('Server');
+		$issueCount = 0;
+		$workers = $this->Server->workerDiagnostics($issueCount);
 		$this->recursive = 0;
 		$queues = array('email', 'default', 'cache', 'prio');
 		if ($queue && in_array($queue, $queues)) $this->paginate['conditions'] = array('Job.worker' => $queue);
 		$jobs = $this->paginate();
 		foreach ($jobs as &$job) {
-			if ($job['Job']['process_id']) {
+			if ($job['Job']['process_id'] !== false) {
 				$job['Job']['status'] = $this->__jobStatusConverter(CakeResque::getJobStatus($job['Job']['process_id']));
+				$job['Job']['failed'] = false;
+				if ($job['Job']['status'] === 'Failed') {
+					$job['Job']['failed'] = true;
+				}
 			} else {
-				$job['Job']['status'] = '???';
+				$job['Job']['status'] = 'Unknown';
 			}
+			$job['Job']['worker_status'] = isset($workers[$job['Job']['worker']]) && $workers[$job['Job']['worker']]['ok'] ? true : false; 
 		}
 		$this->set('list', $jobs);
 		$this->set('queue', $queue);
+	}
+	
+	public function getError($id) {
+		$fields = array(
+			'Failed at' => 'failed_at',
+			'Exception' => 'exception',
+			'Error' => 'error'
+		);
+		$this->set('fields', $fields);
+		$this->set('response', CakeResque::getFailedJobLog($id));
+		$this->render('/Jobs/ajax/error');
 	}
 
 	private function __jobStatusConverter($status) {
 		switch ($status) {
 			case 1:
-				return 'In progress...';
+				return 'Waiting';
 				break;
 			case 2:
-				return 'Unknown';
+				return 'Running';
 				break;
 			case 3:
-				return 'Unknown';
+				return 'Failed';
 				break;
 			case 4:
 				return 'Completed';
+				break;
+			default:
+				return 'Unknown';
 				break;
 		}
 	}

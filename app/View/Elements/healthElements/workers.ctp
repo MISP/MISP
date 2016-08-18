@@ -29,7 +29,14 @@
 	?>
 	<h3><?php echo 'Worker type: ' . h($type);?></h3>
 	<?php if ($type !== 'scheduler'): ?>
-		<p><b>Jobs in the queue: </b><?php echo h($data['jobCount']);?></p>
+		<span><b>Jobs in the queue: </b>
+			<?php
+				echo h($data['jobCount']);
+				if ($data['jobCount'] > 0) {
+					echo $this->Form->postLink('<span class="icon-trash useCursorPointer"></span>', $baseurl . '/servers/clearWorkerQueue/' . h($type), array('escape' => false, 'inline' => true, 'style' => 'margin-left:2px;'));
+				}
+			?>
+		</span>
 		<p><b>Queue status: </b>
 			<?php
 				$color = "green";

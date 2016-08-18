@@ -3,20 +3,20 @@ App::uses('AppModel', 'Model');
 
 class Module extends AppModel {
 	public $useTable = false;
-	
+
 	private $__validTypes = array(
 		'Enrichment' => array('hover', 'expansion'),
 		'Import' => array('import'),
 		'Export' => array('export')
 	);
-	
+
 	private $__typeToFamily = array(
 		'Import' => 'Import',
 		'Export' => 'Export',
 		'hover' => 'Enrichment',
-		'expansion' => 'Enrichment'	
+		'expansion' => 'Enrichment'
 	);
-	
+
 	public $configTypes = array(
 		'IP' => array(
 			'validation' => 'validateIPField',
@@ -41,7 +41,7 @@ class Module extends AppModel {
 			'field' => 'select'
 		)
 	);
-	
+
 	public function validateIPField($value) {
 		if (!filter_var($value, FILTER_VALIDATE_IP) === false) {
 			return 'Value is not a valid IP.';
@@ -53,21 +53,21 @@ class Module extends AppModel {
 		if (!empty($value)) return true;
 		return 'Field cannot be empty.';
 	}
-	
+
 	public function validateIntegerField($value) {
 		if (is_numeric($value) && is_int(intval($value))) {
 			return true;
 		}
 		return 'Value is not an integer.';
 	}
-	
+
 	public function validateBooleanField($value) {
 		if ($value == true || $value == false) {
 			return true;
 		}
 		return 'Value has to be a boolean.';
 	}
-	
+
 
 	public function getModules($type = false, $moduleFamily = 'Enrichment') {
 		$modules = $this->queryModuleServer('/modules', false, false, $moduleFamily);
@@ -77,7 +77,7 @@ class Module extends AppModel {
 			return $result;
 		} else return 'The module service reports that it found no modules.';
 	}
-	
+
 	public function getEnabledModules($type = false, $moduleFamily = 'Enrichment') {
 		$modules = $this->getModules($type, $moduleFamily);
 		if (is_array($modules)) {
@@ -102,7 +102,7 @@ class Module extends AppModel {
 		}
 		return $modules;
 	}
-	
+
 	public function getEnabledModule($name, $type) {
 		$moduleFamily = $this->__typeToFamily[$type];
 		$url = $this->__getModuleServer($moduleFamily);
@@ -122,7 +122,7 @@ class Module extends AppModel {
 		} else return $modules;
 		return 'The modules system reports that it found no suitable modules.';
 	}
-	
+
 	private function __getModuleServer($moduleFamily = 'Enrichment') {
 		if (!Configure::read('Plugin.' . $moduleFamily . '_services_enable')) return false;
 		$this->Server = ClassRegistry::init('Server');
@@ -130,13 +130,13 @@ class Module extends AppModel {
 		$port = Configure::read('Plugin.' . $moduleFamily . '_services_port') ? Configure::read('Plugin.' . $moduleFamily . '_services_port') : $this->Server->serverSettings['Plugin'][$moduleFamily . '_services_port']['value'];
 		return $url . ':' . $port;
 	}
-	
+
 	public function queryModuleServer($uri, $post = false, $hover = false, $moduleFamily = 'Enrichment') {
 		$url = $this->__getModuleServer($moduleFamily);
 		if (!$url) return false;
 		App::uses('HttpSocket', 'Network/Http');
 		if ($hover) {
-			$httpSocket = new HttpSocket(array('timeout' => Configure::read('Plugin.' . $moduleFamily . '_hover_timeout') ? Configure::read('Plugin.' . $moduleFamily . '_hover_timeout') : 2));			
+			$httpSocket = new HttpSocket(array('timeout' => Configure::read('Plugin.' . $moduleFamily . '_hover_timeout') ? Configure::read('Plugin.' . $moduleFamily . '_hover_timeout') : 2));
 		} else {
 			$httpSocket = new HttpSocket(array('timeout' => Configure::read('Plugin.' . $moduleFamily . '_timeout') ? Configure::read('Plugin.' . $moduleFamily . '_timeout') : 5));
 		}

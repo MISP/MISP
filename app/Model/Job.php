@@ -27,7 +27,7 @@ class Job extends AppModel {
 		}
 	}
 
-	public function cache($type, $user, $target, $jobOrg = null) {
+	public function cache($type, $user) {
 		$extra = null;
 		$extra2 = null;
 		$shell = 'Event';
@@ -35,7 +35,7 @@ class Job extends AppModel {
 		$data = array(
 				'worker' => 'cache',
 				'job_type' => 'cache_' . $type,
-				'job_input' => $target,
+				'job_input' => $user['Role']['perm_site_admin'] ? 'All events.' : 'Events visible to: ' . $user['Organisation']['name'],
 				'status' => 0,
 				'retries' => 0,
 				'org_id' => $user['Role']['perm_site_admin'] ? 0 : $user['org_id'],
