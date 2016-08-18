@@ -42,7 +42,12 @@
 		<?php if ($isSiteAdmin): ?>
 			<dt><?php echo 'Created by'; ?></dt>
 			<dd>
-				<?php echo h($creator['User']['email']); ?>
+				<?php
+				if(isset($creator['User']['email']))
+					echo h($creator['User']['email']);
+				else
+					echo h("SYSTEM");
+				?>
 				&nbsp;
 			</dd>
 		<?php endif;?>

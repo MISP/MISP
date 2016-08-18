@@ -31,7 +31,6 @@ class UserInitShell extends AppShell {
 			$this->Role->save($siteAdmin);
 		}
 
-		$org_id = 0;
 		if ($this->Organisation->find('count', array('conditions' => array('Organisation.local' => true))) == 0) {
 			$org = array('Organisation' => array(
 					'id' => 1,
