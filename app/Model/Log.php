@@ -82,6 +82,8 @@ class Log extends AppModel {
 	}
 
 	public function returnDates($org = 'all') {
+		$dataSourceConfig = ConnectionManager::getDataSource('default')->config;
+		$dataSource = $dataSourceConfig['datasource'];
 		$conditions = array();
 		$this->Organisation = ClassRegistry::init('Organisation');
 		if ($org !== 'all') {
@@ -90,12 +92,27 @@ class Log extends AppModel {
 			$conditions['org'] = $org['Organisation']['name'];
 		}
 		$conditions['AND']['NOT'] = array('action' => array('login', 'logout', 'changepw'));
-		$validDates = $this->find('all', array(
-				'fields' => array('DISTINCT UNIX_TIMESTAMP(DATE(created)) AS Date', 'count(id) AS count'),
-				'conditions' => $conditions,
-				'group' => array('Date'),
-				'order' => array('Date')
-		));
+		if ($dataSource == 'Database/Mysql') {
+			$validDates = $this->find('all', array(
+					'fields' => array('DISTINCT UNIX_TIMESTAMP(DATE(created)) AS Date', 'count(id) AS count'),
+					'conditions' => $conditions,
+					'group' => array('Date'),
+					'order' => array('Date')
+			));
+		} else if ($dataSource == 'Database/Postgres') {
+			// manually generate the query for Postgres
+			// cakephp ORM would escape "DATE" datatype in CAST expression
+			$condnotinaction = "'" . implode("', '", $conditions['AND']['NOT']['action']) . "'";
+			if (!empty($conditions['org'])) $condOrg = ' AND org = "' . $conditions['org'] . '"';
+			else $condOrg = '';
+			$sql = 'SELECT DISTINCT EXTRACT(EPOCH FROM CAST(created AS DATE)) AS "Date",
+									COUNT(id) AS count
+					FROM logs
+					WHERE action NOT IN (' . $condnotinaction . ')
+					' . $condOrg . '
+					GROUP BY "Date" ORDER BY "Date"';
+			$validDates = $this->query($sql);
+		}
 		$data = array();
 		foreach ($validDates as $k => $date) {
 			$data[$date[0]['Date']] = intval($date[0]['count']);
