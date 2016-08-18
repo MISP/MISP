@@ -2503,16 +2503,16 @@ class EventsController extends AppController {
 		}
 		$this->layout = 'text/default';
 
-	if ($key != 'download'){
-		$user = $this->checkAuthUser($key);
-		if (!$user){
-			throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
+		if ($key != 'download'){
+			$user = $this->checkAuthUser($key);
+			if (!$user){
+				throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
+			}
+		} else {
+			if (!$this->Auth->user('id')){
+				throw new UnauthorizedException('You have to be logged in to do that.');
+			}
 		}
-	} else {
-		if (!$this->Auth->user('id')){
-			throw new UnauthorizedException('You have to be logged in to do that.');
-		}
-	}
 
 		// get the event if it exists and load it together with its attributes
 		$this->Event->id = $eventid;
