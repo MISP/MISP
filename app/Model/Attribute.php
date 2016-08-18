@@ -1645,13 +1645,13 @@ class Attribute extends AppModel {
 	private function __resolveElementFile($element, $files) {
 		$attributes = array();
 		$errors = null;
-		$element['complex'] = false;
+		$element['complex'] = 0;
 		if ($element['malware']) {
 			$element['type'] = 'malware-sample';
-			$element['to_ids'] = true;
+			$element['to_ids'] = 1;
 		} else {
 			$element['type'] = 'attachment';
-			$element['to_ids'] = false;
+			$element['to_ids'] = 0;
 		}
 		foreach ($files as $file) {
 			if (!preg_match('@^[\w\-. ]+$@', $file['filename'])) {
@@ -1882,7 +1882,7 @@ class Attribute extends AppModel {
 		$date = new DateTime();
 		$attribute['Attribute']['timestamp'] = $date->getTimestamp();
 		if ($this->save($attribute['Attribute'])) {
-			$attribute['Event']['published'] = false;
+			$attribute['Event']['published'] = 0;
 			$attribute['Event']['timestamp'] = $date->getTimestamp();
 			$this->Event->save($attribute['Event']);
 			return true;

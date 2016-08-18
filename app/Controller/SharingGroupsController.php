@@ -165,8 +165,8 @@ class SharingGroupsController extends AppController {
 
 	public function index($passive = false) {
 		if ($passive === 'true') $passive = true;
-		if ($passive === true) $this->paginate['conditions'][] = array('SharingGroup.active' => false);
-		else $this->paginate['conditions'][] = array('SharingGroup.active' => true);
+		if ($passive === true) $this->paginate['conditions'][] = array('SharingGroup.active' => 0);
+		else $this->paginate['conditions'][] = array('SharingGroup.active' => 1);
 		$result = $this->paginate();
 		// check if the current user can modify or delete the SG
 		foreach ($result as $k => $sg) {

@@ -193,7 +193,7 @@ class ShadowAttribute extends AppModel {
 				$this->data['ShadowAttribute']['value2'] = '';
 			}
 		}
-		if (!isset($this->data['ShadowAttribute']['deleted'])) $this->data['ShadowAttribute']['deleted'] = false;
+		if (!isset($this->data['ShadowAttribute']['deleted'])) $this->data['ShadowAttribute']['deleted'] = 0;
 		if ($this->data['ShadowAttribute']['deleted']) $this->__beforeDeleteCorrelation($this->data['ShadowAttribute']);
 		return true;
 	}
