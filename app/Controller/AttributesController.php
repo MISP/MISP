@@ -1927,7 +1927,7 @@ class AttributesController extends AppController {
 			$this->render('/Attributes/bro');
 		}
 	}
-	
+
 	public function reportValidationIssuesAttributes($eventId = false) {
 		// TODO improve performance of this function by eliminating the additional SQL query per attribute
 		// search for validation problems in the attributes
