@@ -1928,7 +1928,8 @@ class EventsController extends AppController {
 		if (!empty($this->data) && $this->data['Event']['submittedgfi']['size'] > 0 &&
 				is_uploaded_file($this->data['Event']['submittedgfi']['tmp_name'])) {
 			App::uses('FileAccess', 'Tools');
-			$zipData = FileAccess::readFromFile($this->data['Event']['submittedgfi']['tmp_name'], $this->data['Event']['submittedgfi']['size']);
+			$fileAccess = new FileAccess();
+			$zipData = $fileAccess->readFromFile($this->data['Event']['submittedgfi']['tmp_name'], $this->data['Event']['submittedgfi']['size']);
 
 			// write
 			$rootDir = APP . "files" . DS . $id . DS;
@@ -1952,7 +1953,7 @@ class EventsController extends AppController {
 			// open the xml
 			$xmlFileName = 'analysis.xml';
 			$xmlFilePath = $rootDir . DS . 'Analysis' . DS . $xmlFileName;
-			$xmlFileData = FileAccess::readFromFile($xmlFilePath);
+			$xmlFileData = $fileAccess->readFromFile($xmlFilePath);
 
 			// read XML
 			$this->_readGfiXML($xmlFileData, $id);
@@ -1963,7 +1964,8 @@ class EventsController extends AppController {
 		if (!empty($this->data) && $this->data['Event']['submittedioc']['size'] > 0 &&
 				is_uploaded_file($this->data['Event']['submittedioc']['tmp_name'])) {
 			App::uses('FileAccess', 'Tools');
-			$iocData = FileAccess::readFromFile($this->data['Event']['submittedioc']['tmp_name'], $this->data['Event']['submittedioc']['size']);
+			$fileAccess = new FileAccess();
+			$iocData = $fileAccess->readFromFile($this->data['Event']['submittedioc']['tmp_name'], $this->data['Event']['submittedioc']['size']);
 
 			// write
 			$rootDir = APP . "files" . DS . $id . DS;
@@ -1980,7 +1982,7 @@ class EventsController extends AppController {
 
 			// open the xml
 			$xmlFilePath = $destPath . DS . $this->data['Event']['submittedioc']['name'];
-			$xmlFileData = FileAccess::readFromFile($xmlFilePath, $this->data['Event']['submittedioc']['size']);
+			$xmlFileData = $fileAccess->readFromFile($xmlFilePath, $this->data['Event']['submittedioc']['size']);
 
 			// Load event and populate the event data
 			$this->Event->id = $id;
@@ -2047,7 +2049,7 @@ class EventsController extends AppController {
 
 	public function _addMISPExportFile($ext, $take_ownership = false) {
 		App::uses('FileAccess', 'Tools');
-		$data = FileAccess::readFromFile($this->data['Event']['submittedfile']['tmp_name'], $this->data['Event']['submittedfile']['size']);
+		$data = (new FileAccess())->readFromFile($this->data['Event']['submittedfile']['tmp_name'], $this->data['Event']['submittedfile']['size']);
 
 		if ($ext == 'xml') {
 			App::uses('Xml', 'Utility');
@@ -2886,7 +2888,7 @@ class EventsController extends AppController {
 						if (!preg_match('/^[a-z0-9]*$/i', $tempFile[0])) {
 							throw new MethodNotAllowedException('Invalid filename, stop tampering with it.');
 						}
-						$attribute['data'] = FileAccess::readFromFile($tmpdir . '/' . $tempFile[0], $tempFile[1]);
+						$attribute['data'] = (new FileAccess())->readFromFile($tmpdir . '/' . $tempFile[0], $tempFile[1]);
 						unlink($tmpdir . '/' . $tempFile[0]);
 						$result = $this->Event->Attribute->handleMaliciousBase64($id, $attribute['value'], $attribute['data'], array('md5', 'sha1', 'sha256'), $objectType == 'ShadowAttribute' ? true : false);
 						if (!$result['success']) {
@@ -3734,9 +3736,10 @@ class EventsController extends AppController {
 				$result['related'] = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $options);
 				if (isset($result['data'])) {
 					App::uses('FileAccess', 'Tools');
+					$fileAccess = new FileAccess();
 					$tmpdir = Configure::read('MISP.tmpdir') ? Configure::read('MISP.tmpdir') : '/tmp';
-					$tempFile = FileAccess::createTempFile($tmpdir, $prefix = 'MISP');
-					FileAccess::writeToFile($tempFile, $result['data']);
+					$tempFile = $fileAccess->createTempFile($tmpdir, $prefix = 'MISP');
+					$fileAccess->writeToFile($tempFile, $result['data']);
 					$result['data'] = basename($tempFile) . '|' . filesize($tempFile);
 				}
 			}
@@ -3793,7 +3796,7 @@ class EventsController extends AppController {
 						if ((isset($fileupload['error']) && $fileupload['error'] == 0) || (!empty($fileupload['tmp_name']) && $fileupload['tmp_name'] != 'none') && is_uploaded_file($tmpfile->path)) {
 							$filename = basename($fileupload['name']);
 							App::uses('FileAccess', 'Tools');
-							$modulePayload['data'] = FileAccess::readFromFile($fileupload['tmp_name'], $fileupload['size']);
+							$modulePayload['data'] = (new FileAccess())->readFromFile($fileupload['tmp_name'], $fileupload['size']);
 						} else {
 							$fail = 'Invalid file upload.';
 						}
