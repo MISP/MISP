@@ -1478,7 +1478,8 @@ class Attribute extends AppModel {
 		if ($last) $conditions['AND']['Event.publish_timestamp >='] = $last;
 		if ($eventId !== false) {
 			$conditions['AND'][] = array('Event.id' => $eventId);
-		} else if ($tags !== false) {
+		} 
+		else if ($tags !== false) {
 			// If we sent any tags along, load the associated tag names for each attribute
 			$tag = ClassRegistry::init('Tag');
 			$args = $this->dissectArgs($tags);
