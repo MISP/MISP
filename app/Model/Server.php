@@ -2354,6 +2354,7 @@ class Server extends AppModel {
 				'tmp' . DS . 'xml' => 0,
 				'tmp' . DS . 'files' => 0,
 				'tmp' . DS . 'logs' => 0,
+				'tmp' . DS . 'bro' => 0,
 		);
 		foreach ($writeableDirs as $path => &$error) {
 			$dir = new Folder(APP . $path);
