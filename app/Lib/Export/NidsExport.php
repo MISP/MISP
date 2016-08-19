@@ -62,7 +62,7 @@ class NidsExport {
 				$ruleFormatReference = Configure::read('MISP.baseurl') . '/events/view/' . $item['Event']['id'];
 				$ruleFormat = "%s\t%s\t" . $orgFormatReference . "\t" . $ruleFormatReference . "\t%s\t%s";
 			}
-			
+
 			$sid = $startSid + ($item['Attribute']['id'] * 10); // leave 9 possible rules per attribute type
 			$attribute = &$item['Attribute'];
 
