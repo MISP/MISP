@@ -1898,6 +1898,36 @@ class AttributesController extends AppController {
 		$this->render('/Attributes/rpz');
 	}
 
+	public function bro($key='download', $type='all', $tags=false, $eventId=false, $allowNonIDS=false, $from=false, $to=false, $last=false) {
+		$simpleFalse = array('eventId', 'allowNonIDS', 'tags', 'from', 'to', 'last');
+		foreach ($simpleFalse as $sF) {
+			if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false')) ${$sF} = false;
+		}
+		if ($type !== 'null' || $type !== '0' || $type !== 'false') {
+			if ($from) $from = $this->Attribute->Event->dateFieldCheck($from);
+			if ($to) $to = $this->Attribute->Event->dateFieldCheck($to);
+			if ($last) $last = $this->Attribute->Event->resolveTimeDelta($last);
+			if ($key != 'download') {
+				// check if the key is valid -> search for users based on key
+				$user = $this->checkAuthUser($key);
+				if (!$user) {
+					throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
+				}
+			} else {
+				if (!$this->Auth->user('id')) {
+					throw new UnauthorizedException('You have to be logged in to do that.');
+				}
+			}
+			$this->response->type('txt');    // set the content type
+			$this->header('Content-Disposition: download; filename="misp.' . $type . '.intel"');
+			$this->layout = 'text/default';
+			$attributes = array("#fields indicator\tindicator_type\tmeta.source\tmeta.url\tmeta.do_notice\tmeta.if_in");
+			$attributes = array_merge($attributes, $this->Attribute->bro($this->Auth->user(), $type, $tags, $eventId, $allowNonIDS, $from, $to, $last));
+			$this->set('attributes', $attributes);
+			$this->render('/Attributes/bro');
+		}
+	}
+	
 	public function reportValidationIssuesAttributes($eventId = false) {
 		// TODO improve performance of this function by eliminating the additional SQL query per attribute
 		// search for validation problems in the attributes

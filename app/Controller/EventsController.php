@@ -3140,6 +3140,12 @@ class EventsController extends AppController {
 					'requiresPublished' => true,
 					'checkbox' => false,
 			),
+			'bro' => array(
+				'url' => '/events/bro/download/' . $id,
+				'text' => 'Download Bro rules',
+				'requiresPublished' => true,
+				'checkbox' => false,
+			),
 			'text' => array(
 					'url' => '/attributes/text/download/all/false/' . $id,
 					'text' => 'Export all attribute values as a text file',

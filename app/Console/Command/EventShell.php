@@ -306,7 +306,7 @@ class EventShell extends AppShell
 		$this->Job->saveField('progress', 100);
 		$this->Job->saveField('message', 'Job done.');
 	}
-	
+
 	public function alertemail() {
 		$userId = $this->args[0];
 		$processId = $this->args[1];
