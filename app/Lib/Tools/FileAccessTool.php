@@ -1,6 +1,6 @@
 <?php
 
-class FileAccess {
+class FileAccessTool {
 	private $__fileErrorMsgPrefix = 'An error has occured while attempting to ';
 
 	public function createTempFile($dir, $prefix = 'MISP') {
