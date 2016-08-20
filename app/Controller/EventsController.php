@@ -567,6 +567,9 @@ class EventsController extends AppController {
 			$this->set('events', $events);
 		} else {
 			$events = $this->paginate();
+			if (count($events) == 1 && isset($this->passedArgs['searchall'])) {
+				$this->redirect(array('controller' => 'events', 'action' => 'view', $events[0]['Event']['id']));
+			}
 			if (Configure::read('MISP.showCorrelationsOnIndex')) $this->Event->attachCorrelationCountToEvents($this->Auth->user(), $events);
 			$this->set('events', $events);
 		}
