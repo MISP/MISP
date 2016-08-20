@@ -73,6 +73,8 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
         $groupRoleMatching = Configure::read('ApacheShibbAuth.GroupRoleMatching');
 
         // Get user values
+        if(!isset($_SERVER[$mailTag])) return false;
+
         $mispUsername = $_SERVER[$mailTag];
 
         //Change username column for email (username in shibboleth attributes corresponds to the email in MISPs DB)
@@ -194,7 +196,11 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
     public function checkOrganization($org, $user)
     {
         $orgModel = ClassRegistry::init('Organisation');
-        $orgAux = $orgModel->find($org);
+        $orgAux = $orgModel->find('first', array(
+                'fields' => array('Organisation.id'),
+                'conditions' => array('name' => $org),
+            )
+        );
         $orgId = $orgAux['id'];
         if ($orgAux == null) {
             $organisations = new Organisation();
