@@ -201,7 +201,7 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
                 'conditions' => array('name' => $org),
             )
         );
-        $orgId = $orgAux['id'];
+        $orgId = $orgAux['Organisation']['id'];
         if ($orgAux == null) {
             $organisations = new Organisation();
             $orgUserId = 1; //By default created by the admin
