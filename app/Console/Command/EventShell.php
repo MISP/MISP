@@ -100,6 +100,25 @@ class EventShell extends AppShell
 		$this->Job->saveField('date_modified', date("y-m-d H:i:s"));
 	}
 
+	public function cachestix() {
+		$timeStart = time();
+		$userId = $this->args[0];
+		$id = $this->args[1];
+		$user = $this->User->getAuthUser($userId);
+		$this->Job->id = $id;
+		$dir = new Folder(APP . 'tmp/cached_exports/stix', true, 0750);
+		if ($user['Role']['perm_site_admin']) {
+			$file = new File($dir->pwd() . DS . 'misp.stix' . '.ADMIN.xml');
+		} else {
+			$file = new File($dir->pwd() . DS . 'misp.stix' . '.' . $user['Organisation']['name'] . '.xml');
+		}
+		$file->write($this->Event->stix(false, false, Configure::read('MISP.cached_attachments'), $user));
+		$timeDelta = (time()-$timeStart);
+		$this->Job->saveField('progress', 100);
+		$this->Job->saveField('message', 'Job done. (in '.$timeDelta.'s)');
+		$this->Job->saveField('date_modified', date("y-m-d H:i:s"));
+	}
+
 	private function __recursiveEcho($array) {
 		$text = "";
 		foreach ($array as $k => $v) {
