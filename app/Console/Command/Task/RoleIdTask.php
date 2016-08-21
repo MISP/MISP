@@ -1,5 +1,5 @@
 <?php
-App::import('Controller', 'Users');
+App::uses('UsersController', 'Controller');
 
 class RoleIdTask extends Shell {
 

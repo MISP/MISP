@@ -1,7 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('CakeEmail', 'Network/Email');
-App::import('Controller', 'Attributes');
 Configure::load('config'); // This is needed to load GnuPG.bodyonlyencrypted
 /**
  * Event Model
@@ -1797,7 +1796,7 @@ class Event extends AppModel {
 	 */
 	public function _add(&$data, $fromXml, $user, $org_id = 0, $passAlong = null, $fromPull = false, $jobId = null, &$created_id = 0, &$validationErrors = array()) {
 		if ($jobId) {
-			App::import('Component','Auth');
+			App::uses('AuthComponent', 'Controller/Component');
 		}
 		if (Configure::read('MISP.enableEventBlacklisting') && isset($data['Event']['uuid'])) {
 			$event = $this->find('first', array(
