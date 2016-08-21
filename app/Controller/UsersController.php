@@ -747,7 +747,7 @@ class UsersController extends AppController {
 		// What org posted what type of attribute
 		$this->loadModel('Attribute');
 		$conditions = array();
-		if ($selected) $conditions[] = array('Attribute.type' => $selectedTypes, 'Attribute.deleted' => false);
+		if ($selected) $conditions[] = array('Attribute.type' => $selectedTypes, 'Attribute.deleted' => 0);
 		$fields = array('Event.orgc_id', 'Attribute.type', 'COUNT(Attribute.type) AS num_types');
 		$params = array('recursive' => 0,
 				'fields' => $fields,
@@ -883,7 +883,7 @@ class UsersController extends AppController {
 			$conditions = array();
 			if (!$this->_isSiteAdmin()) $conditions = array('org_id' => $this->Auth->user('org_id'));
 			if ($this->request->data['User']['recipient'] != 1) $conditions['id'] = $this->request->data['User']['recipientEmailList'];
-			$conditions['AND'][] = array('User.disabled' => false);
+			$conditions['AND'][] = array('User.disabled' => 0);
 			$users = $this->User->find('all', array('recursive' => -1, 'order' => array('email ASC'), 'conditions' => $conditions));
 			$this->request->data['User']['message'] = $this->User->adminMessageResolve($this->request->data['User']['message']);
 			$failures = '';
@@ -908,7 +908,7 @@ class UsersController extends AppController {
 		}
 		$conditions = array();
 		if (!$this->_isSiteAdmin()) $conditions = array('org_id' => $this->Auth->user('org_id'));
-		$conditions['User.disabled'] = false;
+		$conditions['User.disabled'] = 0;
 		$temp = $this->User->find('all', array('recursive' => -1, 'fields' => array('id', 'email'), 'order' => array('email ASC'), 'conditions' => $conditions));
 		$emails = array();
 		// save all the emails of the users and set it for the dropdown list in the form
@@ -983,8 +983,8 @@ class UsersController extends AppController {
 		$stats[0] = $this->User->Event->find('count', null);
 		$stats[1] = $this->User->Event->find('count', array('conditions' => array('Event.timestamp >' => $this_month)));
 
-		$stats[2] = $this->User->Event->Attribute->find('count', array('conditions' => array('Attribute.deleted' => false)));
-		$stats[3] = $this->User->Event->Attribute->find('count', array('conditions' => array('Attribute.timestamp >' => $this_month, 'Attribute.deleted' => false)));
+		$stats[2] = $this->User->Event->Attribute->find('count', array('conditions' => array('Attribute.deleted' => 0)));
+		$stats[3] = $this->User->Event->Attribute->find('count', array('conditions' => array('Attribute.timestamp >' => $this_month, 'Attribute.deleted' => 0)));
 
 		$this->loadModel('Correlation');
 		$this->Correlation->recursive = -1;

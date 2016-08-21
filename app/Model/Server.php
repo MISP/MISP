@@ -1332,7 +1332,7 @@ class Server extends AppModel {
 							}
 						} else {
 							$tempUser = $user;
-							$tempUser['Role']['perm_site_admin'] = false;
+							$tempUser['Role']['perm_site_admin'] = 0;
 							$result = $eventModel->_edit($event, $tempUser, $existingEvent['Event']['id'], $jobId);
 							if ($result === true) $successes[] = $eventId;
 							else if (isset($result['error'])) $fails[$eventId] = $result['error'];

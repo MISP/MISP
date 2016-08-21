@@ -1852,7 +1852,7 @@ class Event extends AppModel {
 			unset($this->Attribute->validate['value']['uniqueValue']); // unset this - we are saving a new event, there are no values to compare against and event_id is not set in the attributes
 		}
 		unset($data['Event']['id']);
-		if (isset($data['Event']['published']) && $data['Event']['published'] && $user['Role']['perm_publish'] == false) $data['Event']['published'] = false;
+		if (isset($data['Event']['published']) && $data['Event']['published'] && $user['Role']['perm_publish'] == 0) $data['Event']['published'] = 0;
 		if (isset($data['Event']['uuid'])) {
 			// check if the uuid already exists
 			$existingEventCount = $this->find('count', array('conditions' => array('Event.uuid' => $data['Event']['uuid'])));
@@ -1974,8 +1974,8 @@ class Event extends AppModel {
 		} else {
 			return (array('error' => 'Event could not be saved: Could not find the local event.'));
 		}
-		if (isset($data['Event']['published']) && $data['Event']['published'] && !$user['Role']['perm_publish']) $data['Event']['published'] = false;
-		if (!isset($data['Event']['published'])) $data['Event']['published'] = false;
+		if (isset($data['Event']['published']) && $data['Event']['published'] && !$user['Role']['perm_publish']) $data['Event']['published'] = 0;
+		if (!isset($data['Event']['published'])) $data['Event']['published'] = 0;
 		$fieldList = array(
 				'Event' => array('date', 'threat_level_id', 'analysis', 'info', 'published', 'uuid', 'distribution', 'timestamp', 'sharing_group_id'),
 				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'distribution', 'timestamp', 'comment', 'sharing_group_id', 'deleted')
@@ -2269,7 +2269,7 @@ class Event extends AppModel {
 			$pubSubTool = new PubSubTool();
 			$hostOrg = $this->Org->find('first', array('conditions' => array('name' => Configure::read('MISP.org')), 'fields' => array('id')));
 			if (!empty($hostOrg)) {
-				$user = array('org_id' => $hostOrg['Org']['id'], 'Role' => array('perm_sync' => false, 'perm_site_admin' => false), 'Organisation' => $hostOrg['Org']);
+				$user = array('org_id' => $hostOrg['Org']['id'], 'Role' => array('perm_sync' => 0, 'perm_site_admin' => 0), 'Organisation' => $hostOrg['Org']);
 				$fullEvent = $this->fetchEvent($user, array('eventid' => $id));
 				if (!empty($fullEvent)) $pubSubTool->publishEvent($fullEvent[0]);
 			}

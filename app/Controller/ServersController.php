@@ -574,7 +574,7 @@ class ServersController extends AppController {
 			$ext = '';
 			App::uses('File', 'Utility');
 			App::uses('Folder', 'Utility');
-			App::uses('FileAccess', 'Tools');
+			App::uses('FileAccessTool', 'Tools');
 			$file = new File($server['Server'][$subm]['name']);
 			$ext = $file->ext();
 			if (($ext != 'pem') || !$server['Server'][$subm]['size'] > 0) {
@@ -583,7 +583,7 @@ class ServersController extends AppController {
 			}
 
 			// read pem file data
-			$pemData = FileAccess::readFromFile($server['Server'][$subm]['tmp_name'], $server['Server'][$subm]['size']);
+			$pemData = (new FileAccessTool())->readFromFile($server['Server']['submitted_cert']['tmp_name'], $server['Server']['submitted_cert']['size']);
 
 			$destpath = APP . "files" . DS . "certs" . DS;
 			$dir = new Folder(APP . "files" . DS . "certs", true);
