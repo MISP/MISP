@@ -21,7 +21,7 @@ class Post extends AppModel {
 			'Thread',
 			'User'
 	);
-	
+
 	public $validate = array(
 			'contents' => array(
 					'rule' => array('valueNotEmpty'),

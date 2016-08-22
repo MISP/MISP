@@ -6,16 +6,16 @@
 	?>
 	<legend>Publish Event<?php echo $extraTitle; ?></legend>
 	<div style="padding-left:5px;padding-right:5px;padding-bottom:5px;">
-		<?php 
+		<?php
 			if ($type == 'alert'):
 		?>
 				<p>Are you sure this event is complete and everyone should be informed?</p>
-		<?php 
-			else: 
+		<?php
+			else:
 		?>
 				<p>Publish but do NOT send alert email? Only for minor changes!</p>
-		<?php 
-			endif; 
+		<?php
+			endif;
 		?>
 		<table>
 			<tr>

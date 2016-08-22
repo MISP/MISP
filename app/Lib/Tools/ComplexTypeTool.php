@@ -191,6 +191,6 @@ class ComplexTypeTool {
 
 	private function __resolveFilename($input) {
 		if ((preg_match('/^.:/', $input) || strpos($input, '.') !=0)) return true;
-		return false; 
+		return false;
 	}
 }

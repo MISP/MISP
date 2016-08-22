@@ -1,7 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('CakeEmail', 'Network/Email');
-App::import('Controller', 'Attributes');
 Configure::load('config'); // This is needed to load GnuPG.bodyonlyencrypted
 /**
  * Event Model
@@ -1527,7 +1526,7 @@ class Event extends AppModel {
 		} else {
 			$subject = '';
 		}
-        $tplColorString = !empty(Configure::read('MISP.email_subject_TLP_string')) ? Configure::read('MISP.email_subject_TLP_string') : "TLP Amber";
+		$tplColorString = !empty(Configure::read('MISP.email_subject_TLP_string')) ? Configure::read('MISP.email_subject_TLP_string') : "TLP Amber";
 		$subject = "[" . Configure::read('MISP.org') . " MISP] Event " . $id . " - " . $subject . $event[0]['ThreatLevel']['name'] . " - ".$tplColorString;
 
 		// Initialise the Job class if we have a background process ID
@@ -1720,7 +1719,7 @@ class Event extends AppModel {
 		$bodyevent .= "\n";
 		$bodyevent .= $bodyTempOther;	// append the 'other' attribute types to the bottom.
 		$result = true;
-        $tplColorString = !empty(Configure::read('MISP.email_subject_TLP_string')) ? Configure::read('MISP.email_subject_TLP_string') : "TLP Amber";
+		$tplColorString = !empty(Configure::read('MISP.email_subject_TLP_string')) ? Configure::read('MISP.email_subject_TLP_string') : "TLP Amber";
 		foreach ($orgMembers as &$reporter) {
 			$subject = "[" . Configure::read('MISP.org') . " MISP] Need info about event " . $id . " - ".$tplColorString;
 			$result = $this->User->sendEmail($reporter, $bodyevent, $body, $subject, $user) && $result;
@@ -1804,7 +1803,7 @@ class Event extends AppModel {
 	 */
 	public function _add(&$data, $fromXml, $user, $org_id = 0, $passAlong = null, $fromPull = false, $jobId = null, &$created_id = 0, &$validationErrors = array()) {
 		if ($jobId) {
-			App::import('Component','Auth');
+			App::uses('AuthComponent', 'Controller/Component');
 		}
 		if (Configure::read('MISP.enableEventBlacklisting') && isset($data['Event']['uuid'])) {
 			$event = $this->find('first', array(
@@ -2672,7 +2671,7 @@ class Event extends AppModel {
 		$correlatedAttributes = isset($event['RelatedAttribute']) ? array_keys($event['RelatedAttribute']) : array();
 		$correlatedShadowAttributes = isset($event['RelatedShadowAttribute']) ? array_keys($event['RelatedShadowAttribute']) : array();
 		foreach ($event['Attribute'] as $attribute) {
-    			if ($filterType && !in_array($filterType, array('proposal', 'correlation', 'warning'))) if (!in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType])) continue;
+			if ($filterType && !in_array($filterType, array('proposal', 'correlation', 'warning'))) if (!in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType])) continue;
 			if (isset($attribute['distribution']) && $attribute['distribution'] != 4) unset($attribute['SharingGroup']);
 			$attribute['objectType'] = 0;
 			if (!empty($attribute['ShadowAttribute'])) $attribute['hasChildren'] = 1;

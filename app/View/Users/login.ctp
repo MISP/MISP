@@ -35,12 +35,12 @@
 			echo $this->Form->create('User');
 		?>
 		<legend style="width:450px;">Login</legend>
-		<?php 
+		<?php
 			echo $this->Form->input('email', array('autocomplete' => 'off'));
 			echo $this->Form->input('password', array('autocomplete' => 'off'));
 		?>
 			<div class="clear"></div>
-		<?php 
+		<?php
 			echo $this->Form->button('Login', array('class' => 'btn btn-primary'));
 			echo $this->Form->end();
 		?>

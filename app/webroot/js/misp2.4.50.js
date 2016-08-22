@@ -187,7 +187,7 @@ function submitGenericForm(url, form, target) {
 		},
 		type:"post",
 		cache: false,
-		url:url,		
+		url:url,
 	});
 }
 

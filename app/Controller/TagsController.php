@@ -342,7 +342,7 @@ class TagsController extends AppController {
 					'conditions' => array(
 							'NOT' => array(
 									'Tag.org_id' => array(
-											0, 
+											0,
 											$this->Auth->user('org_id')
 									)
 							)
