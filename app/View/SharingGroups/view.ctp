@@ -22,12 +22,12 @@
 		?>
 		<dt>Created by</dt>
 		<dd><a href="/organisations/view/<?php echo $sg['Organisation']['id']; ?>"><?php echo h($sg['Organisation']['name']); ?></a></dd>
-		<?php 
+		<?php
 			if ($sg['SharingGroup']['sync_user_id']):
 		?>
 			<dt>Synced by</dt>
 			<dd><a href="/organisations/view/<?php echo $sg['Organisation']['id']; ?>"><?php echo h($sg['Organisation']['name']); ?></a></dd>
-		<?php 
+		<?php
 			endif;
 		?>
 	</dl><br />

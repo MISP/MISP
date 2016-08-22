@@ -211,7 +211,7 @@ class SharingGroupsController extends AppController {
 						'fields' => array('Organisation.name')
 					))
 			));
-			if (empty($sync_user)) $sg['SharingGroup']['sync_org_name'] = 'N/A'; 
+			if (empty($sync_user)) $sg['SharingGroup']['sync_org_name'] = 'N/A';
 			$sg['SharingGroup']['sync_org_name'] = $sync_user['Organisation']['name'];
 		}
 		$this->set('mayModify', $this->SharingGroup->checkIfAuthorisedExtend($this->Auth->user(), $id));

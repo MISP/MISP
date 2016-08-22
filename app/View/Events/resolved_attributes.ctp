@@ -192,7 +192,7 @@
 		var options = <?php echo json_encode($optionsRearranged);?>;
 		$(document).ready(function(){
 			popoverStartup();
-	<?php 
+	<?php
 		if (!empty($optionsRearranged)):
 	?>
 			$('#changeFrom').change(function(){
@@ -202,8 +202,8 @@
 			$('#checkAll').change(function() {
 				$('.idsCheckbox').prop('checked', $('#checkAll').is(':checked'));
 			});
-	<?php 
-		endif; 
+	<?php
+		endif;
 	?>
 		});
 	</script>

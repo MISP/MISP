@@ -94,7 +94,7 @@ class IOCExportComponent extends Component {
 			if (isset($this->mapping['simple'][$attribute['type']])) {
 				$this->__frameIndicator($this->mapping['simple'][$attribute['type']], $attribute['uuid'], $attribute['value'], false);
 			}
-		}		
+		}
 	}
 
 	// Just closing some tags at the bottom of the .ioc file

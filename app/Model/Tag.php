@@ -65,7 +65,7 @@ class Tag extends AppModel {
 		'Organisation' => array(
 			'className' => 'Organisation',
 			'foreignKey' => 'org_id',
-		)	
+		)
 	);
 
 

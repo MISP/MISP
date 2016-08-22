@@ -41,7 +41,7 @@ class JobsController extends AppController {
 			} else {
 				$job['Job']['status'] = 'Unknown';
 			}
-			$job['Job']['worker_status'] = isset($workers[$job['Job']['worker']]) && $workers[$job['Job']['worker']]['ok'] ? true : false; 
+			$job['Job']['worker_status'] = isset($workers[$job['Job']['worker']]) && $workers[$job['Job']['worker']]['ok'] ? true : false;
 		}
 		$this->set('list', $jobs);
 		$this->set('queue', $queue);
