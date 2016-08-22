@@ -1,6 +1,0 @@
-{
-    "require": {
-        "kamisama/cake-resque": ">=4.1.2"
-    }
-}
-
