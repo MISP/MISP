@@ -823,8 +823,8 @@ class Attribute extends AppModel {
 			case 'regkey|value':
 			case 'filename':
 			case 'pdb':
-            case 'windows-scheduled-task':
-            case 'whois-registrant-name':
+			case 'windows-scheduled-task':
+			case 'whois-registrant-name':
 			case 'whois-registrar':
 			case 'whois-creation-date':
 				// no newline

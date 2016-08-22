@@ -2,7 +2,7 @@
 App::uses('AppModel', 'Model');
 class Organisation extends AppModel{
 	public $useTable = 'organisations';
-    public $recursive = -1;
+	public $recursive = -1;
 	public $actsAs = array(
 		'Containable',
 		'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
@@ -22,11 +22,11 @@ class Organisation extends AppModel{
 			),
 		),
 		'uuid' => array(
-            'unique' => array(
-                'rule' => 'isUnique',
-                'message' => 'An organisation with this UUID already exists.',
-            	'allowEmpty' => true
-            ),
+			'unique' => array(
+				'rule' => 'isUnique',
+				'message' => 'An organisation with this UUID already exists.',
+				'allowEmpty' => true
+			),
 			'uuid' => array(
 				'rule' => array('uuid'),
 				'message' => 'Please provide a valid UUID',

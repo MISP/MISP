@@ -183,7 +183,7 @@ class SysLogLogableBehavior extends LogableBehavior {
 					}
 					break;
 				case "Event":
-        			$title = 'Event ('. $Model->data[$Model->alias]['id'] .'): '. $Model->data[$Model->alias]['info'];
+					$title = 'Event ('. $Model->data[$Model->alias]['id'] .'): '. $Model->data[$Model->alias]['info'];
 					$logData['Log']['title'] = $title;
 					break;
 				case "Organisation":
