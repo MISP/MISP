@@ -56,7 +56,7 @@
 					$message = 'Directory ' . $message;
 					$colour = 'red';
 				}
-				echo $dir . '.....<span style="color:' . $colour . ';">' . $message . '</span><br />';
+				echo 'app/' . $dir . '.....<span style="color:' . $colour . ';">' . $message . '</span><br />';
 			}
 		?>
 	</div>
@@ -78,7 +78,7 @@
 	<h3>PHP Settings</h3>
 	<?php
 		$phpcolour = 'green';
-		$phptext = 'Up to date';
+		$phptext = 'Up to date'; 
 		if (version_compare($phpversion, $phprec) < 1) {
 			$phpcolour = 'orange';
 			$phptext = 'Update highly recommended';
@@ -86,7 +86,7 @@
 				$phpcolour = 'red';
 				$phptext = 'Version unsupported, update ASAP';
 			}
-		}
+		} 
 	?>
 	<p><span class="bold">PHP Version (><?php echo $phprec; ?> recommended): </span><span class="<?php echo $phpcolour; ?>"><?php echo h($phpversion) . ' (' . $phptext . ')';?></span></p>
 	<p>The following settings might have a negative impact on certain functionalities of MISP with their current and recommended minimum settings. You can adjust these in your php.ini. Keep in mind that the recommendations are not requirements, just recommendations. Depending on usage you might want to go beyond the recommended values.</p>
@@ -188,13 +188,8 @@
 		endif;
 	?>
 	<h3>
-		Clean model cache
+	Clean model cache
 	</h3>
 	<p>If you ever run into issues with missing database fields / tables, please run the following script to clean the model cache.</p>
 	<?php echo $this->Form->postLink('<span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;">Clean cache</span>', $baseurl . '/events/cleanModelCaches', array('escape' => false));?>
-	<h3>
-		Legacy Administrative Tools
-	</h3>
-	<p>Click the following button to go to the legacy administrative tools page. There should in general be no need to do this unless you are upgrading a very old MISP instance (<2.4), all updates are done automatically with more current versions.</p>
-	<span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick="location.href = '<?php echo $baseurl; ?>/pages/display/administration';">Legacy Administrative Tools</span>
 </div>

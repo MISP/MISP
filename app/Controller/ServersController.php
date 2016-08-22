@@ -209,7 +209,7 @@ class ServersController extends AppController {
 								'local' => 0,
 								'created_by' => $this->Auth->user('id')
 						));
-
+						
 						if (!$orgSave) {
 							$this->Session->setFlash(__('Couldn\'t save the new organisation, are you sure that the uuid is in the correct format?.'));
 							$fail = true;
@@ -323,7 +323,7 @@ class ServersController extends AppController {
 								'local' => 0,
 								'created_by' => $this->Auth->user('id')
 						));
-
+						
 						if (!$orgSave) {
 							$this->Session->setFlash(__('Couldn\'t save the new organisation, are you sure that the uuid is in the correct format?.'));
 							$fail = true;
@@ -551,7 +551,7 @@ class ServersController extends AppController {
 			$ext = '';
 			App::uses('File', 'Utility');
 			App::uses('Folder', 'Utility');
-			App::uses('FileAccessTool', 'Tools');
+			App::uses('FileAccess', 'Tools');
 			$file = new File($server['Server']['submitted_cert']['name']);
 			$ext = $file->ext();
 			if (($ext != 'pem') || !$server['Server']['submitted_cert']['size'] > 0) {
@@ -560,7 +560,7 @@ class ServersController extends AppController {
 			}
 
 			// read pem file data
-			$pemData = (new FileAccessTool())->readFromFile($server['Server']['submitted_cert']['tmp_name'], $server['Server']['submitted_cert']['size']);
+			$pemData = FileAccess::readFromFile($server['Server']['submitted_cert']['tmp_name'], $server['Server']['submitted_cert']['size']);
 
 			$destpath = APP . "files" . DS . "certs" . DS;
 			$dir = new Folder(APP . "files" . DS . "certs", true);
@@ -580,9 +580,7 @@ class ServersController extends AppController {
 	public function serverSettingsReloadSetting($setting, $id) {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
 		$pathToSetting = explode('.', $setting);
-		if (strpos($setting, 'Plugin.Enrichment') !== false || strpos($setting, 'Plugin.Import') !== false || strpos($setting, 'Plugin.Export') !== false) {
-			$settingObject = $this->Server->getCurrentServerSettings();
-		}
+		if (strpos($setting, 'Plugin.Enrichment') !== false) $settingObject = $this->Server->getCurrentServerSettings();
 		else $settingObject = $this->Server->serverSettings;
 		foreach ($pathToSetting as $key) {
 			if (!isset($settingObject[$key])) throw new MethodNotAllowedException();
@@ -692,7 +690,7 @@ class ServersController extends AppController {
 						)
 
 				);
-
+				
 				foreach ($phpSettings as $setting => &$settingArray) {
 					$settingArray['value'] = ini_get($setting);
 					if ($settingArray['unit']) $settingArray['value'] = intval(rtrim($settingArray['value'], $settingArray['unit']));
@@ -805,9 +803,7 @@ class ServersController extends AppController {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
 		if (!isset($setting) || !isset($id)) throw new MethodNotAllowedException();
 		$this->set('id', $id);
-		if (strpos($setting, 'Plugin.Enrichment') !== false || strpos($setting, 'Plugin.Import') !== false || strpos($setting, 'Plugin.Export') !== false) {
-			$serverSettings = $this->Server->getCurrentServerSettings();
-		}
+		if (strpos($setting, 'Plugin.Enrichment') !== false) $serverSettings = $this->Server->getCurrentServerSettings();
 		else $serverSettings = $this->Server->serverSettings;
 		$relevantSettings = (array_intersect_key(Configure::read(), $serverSettings));
 		$found = null;
@@ -1095,16 +1091,6 @@ class ServersController extends AppController {
 			$this->Session->setFlash('Could not purge the session table.');
 		}
 		$this->redirect('/servers/serverSettings/diagnostics');
-	}
-
-	public function clearWorkerQueue($worker) {
-		if (!$this->_isSiteAdmin() || !$this->request->is('Post') || $this->request->is('ajax')) throw new MethodNotAllowedException();
-		$worker_array = array('cache', 'default', 'email', 'prio');
-		if (!in_array($worker, $worker_array)) throw new MethodNotAllowedException('Invalid worker');
-		$redis = Resque::redis();
-		$redis->del('queue:' . $worker);
-		$this->Session->setFlash('Queue cleared.');
-		$this->redirect($this->referer());
 	}
 
 	public function getVersion() {

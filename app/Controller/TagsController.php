@@ -15,15 +15,6 @@ class TagsController extends AppController {
 			'limit' => 50,
 			'order' => array(
 					'Tag.name' => 'asc'
-			),
-			'contain' => array(
-				'EventTag' => array(
-					'fields' => array('event_id')
-				),
-				'FavouriteTag',
-				'Organisation' => array(
-					'fields' => array('id', 'name')
-				)
 			)
 	);
 
@@ -41,6 +32,7 @@ class TagsController extends AppController {
 		if (!empty($taxonomies)) foreach ($taxonomies as &$taxonomy) $taxonomyNamespaces[$taxonomy['namespace']] = $taxonomy;
 		$taxonomyTags = array();
 		$this->Event->recursive = -1;
+		$this->paginate['contain'] = array('EventTag' => array('fields' => 'event_id'), 'FavouriteTag');
 		if ($favouritesOnly) {
 			$tag_id_list = $this->Tag->FavouriteTag->find('list', array(
 					'conditions' => array('FavouriteTag.user_id' => $this->Auth->user('id')),
@@ -123,19 +115,6 @@ class TagsController extends AppController {
 				}
 			}
 		}
-		$this->loadModel('Organisation');
-		$temp = $this->Organisation->find('all', array(
-			'conditions' => array('local' => 1),
-			'fields' => array('id', 'name'),
-			'recursive' => -1
-		));
-		$orgs = array(0 => 'Unrestricted');
-		if (!empty($temp)) {
-			foreach ($temp as &$org) {
-				$orgs[$org['Organisation']['id']] = $org['Organisation']['name'];
-			}
-		}
-		$this->set('orgs', $orgs);
 	}
 
 	public function quickAdd() {
@@ -174,19 +153,6 @@ class TagsController extends AppController {
 				$this->Session->setFlash('The Tag could not be saved. Please, try again.');
 			}
 		}
-		$this->loadModel('Organisation');
-		$temp = $this->Organisation->find('all', array(
-			'conditions' => array('local' => 1),
-			'fields' => array('id', 'name'),
-			'recursive' => -1
-		));
-		$orgs = array(0 => 'Unrestricted');
-		if (!empty($temp)) {
-			foreach ($temp as &$org) {
-				$orgs[$org['Organisation']['id']] = $org['Organisation']['name'];
-			}
-		}
-		$this->set('orgs', $orgs);
 		$this->request->data = $this->Tag->read(null, $id);
 	}
 
@@ -334,24 +300,6 @@ class TagsController extends AppController {
 					$options[$entry['existing_tag']['Tag']['id']] = $entry['existing_tag']['Tag']['name'];
 					$expanded[$entry['existing_tag']['Tag']['id']] = $entry['expanded'];
 				}
-			}
-		}
-		// Unset all tags that this user cannot use for tagging, determined by the org restriction on tags
-		if (!$this->_isSiteAdmin()) {
-			$banned_tags = $this->Tag->find('list', array(
-					'conditions' => array(
-							'NOT' => array(
-									'Tag.org_id' => array(
-											0,
-											$this->Auth->user('org_id')
-									)
-							)
-					),
-					'fields' => array('Tag.id')
-			));
-			foreach ($banned_tags as $banned_tag) {
-				unset($options[$banned_tag]);
-				unset($expanded[$banned_tag]);
 			}
 		}
 		$this->set('event_id', $event_id);

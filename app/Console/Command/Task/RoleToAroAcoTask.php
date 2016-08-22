@@ -1,5 +1,5 @@
 <?php
-App::uses('RolesController', 'Controller');
+App::import('Controller', 'Roles');
 
 class RoleToAroAcoTask extends Shell {
 

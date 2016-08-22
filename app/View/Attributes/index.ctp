@@ -123,7 +123,7 @@ foreach ($attributes as $attribute):
 		elseif ($isAclModify):
 	?>
 			<a href="<?php echo $baseurl;?>/shadow_attributes/edit/<?php echo $attribute['Attribute']['id'];?>" class="icon-share" title="Propose an edit"></a>
-	<?php
+	<?php 
 		endif;
 	?>
 			<a href="<?php echo $baseurl;?>/events/view/<?php echo $attribute['Attribute']['event_id'];?>" class="icon-list-alt" title="View"></a>

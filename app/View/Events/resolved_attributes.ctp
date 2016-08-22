@@ -80,12 +80,13 @@
 						<a href="<?php echo $baseurl; ?>/events/view/<?php echo h($relation['Event']['id']);?>" data-toggle="popover" title="Attribute details" data-content="<?php echo h($popoverHTML); ?>" data-trigger="hover"><?php echo h($relation['Event']['id']);?></a>
 				<?php
 					endforeach;
+					// Category/type:
 					$correlationPopover = array('<span>', );
 				?>
 			</td>
 			<td class="short">
 				<?php
-					if (!isset($item['categories'])) {
+					if (!isset($item['category'])) {
 						if (isset($defaultCategories[$item['default_type']])) {
 							$default = array_search($defaultCategories[$item['default_type']], $typeCategoryMapping[$item['default_type']]);
 						} else {
@@ -93,20 +94,15 @@
 							$default = key($typeCategoryMapping[$item['default_type']]);
 						}
 					} else {
-						if (isset($item['category_default'])) $default = $item['category_default'];
-						else $default = array_search($item['categories'][0], $typeCategoryMapping[$item['default_type']]);
-
+						$default = array_search($item['category'], $typeCategoryMapping[$item['default_type']]);
 					}
 				?>
 				<select id="<?php echo 'Attribute' . $k . 'Category'; ?>" style='padding:0px;height:20px;margin-bottom:0px;'>
 					<?php
-						foreach ($typeCategoryMapping[$item['default_type']] as $category) {
-							if (isset($item['categories']) && !in_array($category, $item['categories'])) {
-								continue;
-							}
-							echo '<option value="' . $category . '" ';
-							if ($category == $default) echo 'selected="selected"';
-							echo '>' . $category . '</option>';
+						foreach ($typeCategoryMapping[$item['default_type']] as $type) {
+							echo '<option value="' . $type . '" ';
+							if ($type == $default) echo 'selected="selected"';
+							echo '>' . $type . '</option>';
 						}
 					?>
 				</select>
@@ -188,13 +184,11 @@
 		</span>
 	</span>
 </div>
+<?php if (!empty($optionsRearranged)):?>
 	<script>
 		var options = <?php echo json_encode($optionsRearranged);?>;
 		$(document).ready(function(){
 			popoverStartup();
-	<?php
-		if (!empty($optionsRearranged)):
-	?>
 			$('#changeFrom').change(function(){
 				changeFreetextImportFrom();
 			});
@@ -202,11 +196,9 @@
 			$('#checkAll').change(function() {
 				$('.idsCheckbox').prop('checked', $('#checkAll').is(':checked'));
 			});
-	<?php
-		endif;
-	?>
 		});
 	</script>
 <?php
+	endif;
 	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'freetextResults'));
 ?>

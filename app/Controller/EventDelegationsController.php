@@ -35,7 +35,7 @@ class EventDelegationsController extends AppController {
 				'fields' => array('Event.id', 'Event.orgc_id', 'Event.distribution')
 		));
 		if (!$this->_isSiteAdmin() && $this->Auth->user('org_id') !== $event['Event']['orgc_id']) throw new MethodNotAllowedException('You are not authorised to do that.');
-		if (!Configure::read('MISP.unpublishedprivate') && $event['Event']['distribution'] != 0) throw new MethodNotAllowedException('Only events with the distribution setting "Your Organisation Only" can be delegated.');
+		if ($event['Event']['distribution'] != 0) throw new MethodNotAllowedException('Only events with the distribution setting "Your Organisation Only" can be delegated.');
 		$existingDelegations = $this->EventDelegation->find('first', array('conditions' => array('event_id' => $id), 'recursive' => -1));
 		if (!empty($existingDelegations)) throw new MethodNotAllowedException('This event already has a pending delegation request. Please revoke that before creating a new request.');
 		if ($this->request->is('Post')) {

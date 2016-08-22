@@ -823,8 +823,8 @@ class Attribute extends AppModel {
 			case 'regkey|value':
 			case 'filename':
 			case 'pdb':
-			case 'windows-scheduled-task':
-			case 'whois-registrant-name':
+            case 'windows-scheduled-task':
+            case 'whois-registrant-name':
 			case 'whois-registrar':
 			case 'whois-creation-date':
 				// no newline
@@ -1268,7 +1268,7 @@ class Attribute extends AppModel {
 	}
 
 
-	public function hids($user, $type, $tags = '', $from = false, $to = false, $last = false, $jobId = false) {
+	public function hids($user, $type, $tags = '', $from = false, $to = false, $last = false) {
 		if (empty($user)) throw new MethodNotAllowedException('Could not read user.');
 		// check if it's a valid type
 		if ($type != 'md5' && $type != 'sha1' && $type != 'sha256') {
@@ -1296,13 +1296,7 @@ class Attribute extends AppModel {
 		}
 		App::uses('HidsExport', 'Export');
 		$continue = false;
-		$eventCount = count($eventIds);
-		if ($jobId) {
-			$this->Job = ClassRegistry::init('Job');
-			$this->Job->id = $jobId;
-			if (!$this->Job->exists()) $jobId = false;
-		}
-		foreach ($eventIds as $k => $event) {
+		foreach ($eventIds as $event) {
 			$conditions['AND'] = array('Attribute.to_ids' => 1, 'Event.published' => 1, 'Attribute.type' => $typeArray, 'Attribute.event_id' => $event['Event']['id']);
 			$options = array(
 					'conditions' => $conditions,
@@ -1313,9 +1307,6 @@ class Attribute extends AppModel {
 			$export = new HidsExport();
 			$rules = array_merge($rules, $export->export($items, strtoupper($type), $continue));
 			$continue = true;
-			if ($jobId && ($k % 10 == 0)) {
-				$this->Job->saveField('progress', $k * 80 / $eventCount);
-			}
 		}
 		return $rules;
 	}
@@ -1477,6 +1468,141 @@ class Attribute extends AppModel {
 			unset($temp);
 		}
 		return $values;
+	}
+
+	function bro($user, $type, $tags = false, $eventId = false, $from = false, $to = false, $last = false){
+		//restricting to non-private or same org if the user is not a site-admin.
+		$conditions['AND'] = array('Attribute.to_ids =' => 1, 'Event.published =' => 1);
+		if ($from) $conditions['AND']['Event.date >='] = $from;
+		if ($to) $conditions['AND']['Event.date <='] = $to;
+		if ($last) $conditions['AND']['Event.publish_timestamp >='] = $last;
+		if ($eventId !== false) {
+			$conditions['AND'][] = array('Event.id' => $eventId);
+		} 
+		else if ($tags !== false) {
+			// If we sent any tags along, load the associated tag names for each attribute
+			$tag = ClassRegistry::init('Tag');
+			$args = $this->dissectArgs($tags);
+			$tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
+			$temp = array();
+			foreach ($tagArray[0] as $accepted) {
+				$temp['OR'][] = array('Event.id' => $accepted);
+			}
+			$conditions['AND'][] = $temp;
+			$temp = array();
+			foreach ($tagArray[1] as $rejected) {
+				$temp['AND'][] = array('Event.id !=' => $rejected);
+			}
+			$conditions['AND'][] = $temp;
+		}
+
+		$mispTypes = $this->getMispTypes($type);
+
+		$intel = array();
+		foreach($mispTypes as $mispType) {
+
+			$conditions['AND']['Attribute.type'] = $mispType;
+			if ($type === 'filehash') {
+				$intel = array_merge($intel, $this->brohids($user, $conditions, $this->getValueField($type, $mispType), $mispType));
+			} else {
+				$intel = array_merge($intel, $this->bronids($user, $conditions,$this->getValueField($type, $mispType)));
+			}
+		}
+
+		return $intel;
+	}
+
+	private function getMispTypes($type)
+	{
+		$mispTypes = array();
+		if ($type !== 'all') {
+			switch ($type) {
+				case 'ip':
+					$mispTypes = array('ip-src', 'ip-dst', 'domain|ip');
+					break;
+				case 'url':
+					$mispTypes = array('url');
+					break;
+				case 'domain':
+					$mispTypes = array('hostname', 'domain', 'domain|ip');
+					break;
+				case 'email':
+					$mispTypes = array('email-src', 'email-dst');
+					break;
+				case 'filename':
+					$mispTypes = array('filename', 'email-attachment', 'filename|md5', 'filename|sha1', 'filename|sha256');
+					break;
+				case 'filehash':
+					$mispTypes = array('md5', 'sha1', 'sha256', 'filename|md5', 'filename|sha1', 'filename|sha256');
+					break;
+				case 'certhash':
+					$mispTypes = array('x509-fingerprint-sha1');
+					break;
+				case 'software':
+					$mispTypes = array('user-agent');
+					break;
+			}
+			return $mispTypes;
+		}
+		return $mispTypes;
+	}
+
+	private function getValueField($type, $mispType){
+		$valueField = "value1";
+		switch($type){
+			case 'ip':
+				if($mispType == 'domain|ip'){
+					$valueField = "value2";
+				}
+				break;
+			case 'filehash':
+				if($mispType == 'filename|md5' || $mispType == 'filename|sha1' || $mispType == 'filename|sha256'){
+					$valueField = "value2";
+				}
+				break;
+		}
+		return $valueField;
+	}
+
+	private function brohids($user, $conditions, $valueField, $mispType)
+	{
+		$intel = array();
+		App::uses('HidsBroExport', 'Export');
+		$export = new HidsBroExport();
+		$attributes = $this->fetchAttributes($user, array(
+				'conditions' => $conditions,
+				'order' => 'Attribute.'.$valueField.' ASC',
+				'fields' => array('Attribute.id', 'Attribute.event_id', 'Attribute.type',
+					'Attribute.'.$valueField." as value"),
+				'contain' => array('Event' => array(
+					'fields' => array(
+						'Event.id', 'Event.published', 'Event.date',
+						'Event.publish_timestamp', 'Event.orgc_id'),
+				),
+				)
+			)
+		);
+
+		$intel = array_merge($intel, $export->export($attributes, strtoupper($mispType), true));
+		return $intel;
+	}
+
+	private function bronids($user, $conditions, $valueField)
+	{
+		$intel = array();
+		App::uses('NidsBroExport', 'Export');
+		$export = new NidsBroExport();
+		$attributes = $this->fetchAttributes($user, array(
+				'conditions' => $conditions, // array of conditions
+				'order' => 'Attribute.'.$valueField.' ASC',
+				'recursive' => -1, // int
+				'fields' => array('Attribute.id', 'Attribute.event_id', 'Attribute.type', 'Attribute.'.$valueField." as value"),
+				'contain' => array('Event' => array('fields' => array('Event.id', 'Event.threat_level_id'))),
+				'group' => array('Attribute.type', 'Attribute.'.$valueField), // fields to GROUP BY
+			)
+		);
+		$intel = array_merge($intel, $export->export($attributes, $user['nids_sid'], 'bro', true));
+		return $intel;
 	}
 
 	public function generateCorrelation($jobId = false, $startPercentage = 0) {
@@ -1645,13 +1771,13 @@ class Attribute extends AppModel {
 	private function __resolveElementFile($element, $files) {
 		$attributes = array();
 		$errors = null;
-		$element['complex'] = 0;
+		$element['complex'] = false;
 		if ($element['malware']) {
 			$element['type'] = 'malware-sample';
-			$element['to_ids'] = 1;
+			$element['to_ids'] = true;
 		} else {
 			$element['type'] = 'attachment';
-			$element['to_ids'] = 0;
+			$element['to_ids'] = false;
 		}
 		foreach ($files as $file) {
 			if (!preg_match('@^[\w\-. ]+$@', $file['filename'])) {
@@ -1764,12 +1890,12 @@ class Attribute extends AppModel {
 			'recursive' => -1,
 			'contain' => array(
 				'Event' => array(
-					'fields' => array('id', 'info', 'org_id'),
+					'fields' => array('id', 'info', 'org_id', 'orgc_id'),
 				),
 			),
 		);
 		if (isset($options['contain'])) $params['contain'] = array_merge_recursive($params['contain'], $options['contain']);
-		else $option['contain']['Event']['fields'] = array('id', 'info', 'org_id');
+		else $option['contain']['Event']['fields'] = array('id', 'info', 'org_id', 'orgc_id');
 		if (isset($options['fields'])) $params['fields'] = $options['fields'];
 		if (isset($options['conditions'])) $params['conditions']['AND'][] = $options['conditions'];
 		if (isset($options['order'])) $params['order'] = $options['order'];
@@ -1882,7 +2008,7 @@ class Attribute extends AppModel {
 		$date = new DateTime();
 		$attribute['Attribute']['timestamp'] = $date->getTimestamp();
 		if ($this->save($attribute['Attribute'])) {
-			$attribute['Event']['published'] = 0;
+			$attribute['Event']['published'] = false;
 			$attribute['Event']['timestamp'] = $date->getTimestamp();
 			$this->Event->save($attribute['Event']);
 			return true;

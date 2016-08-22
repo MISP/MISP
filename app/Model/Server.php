@@ -606,15 +606,6 @@ class Server extends AppModel {
 							'type' => 'string',
 							'null' => true,
 					),
-					'tmpdir' => array(
-							'level' => 1,
-							'description' => 'Please indicate the temp directory you wish to use for certain functionalities in MISP. By default this is set to /tmp and will be used among others to store certain temporary files extracted from imports during the import process.',
-							'value' => '/tmp',
-							'errorMessage' => '',
-							'test' => 'testForPath',
-							'type' => 'string',
-							'null' => true,
-					),
 					'custom_css' => array(
 							'level' => 2,
 							'description' => 'If you would like to customise the css, simply drop a css file in the /var/www/MISP/webroot/css directory and enter the name here.',
@@ -1051,70 +1042,6 @@ class Server extends AppModel {
 							'test' => 'testForEmpty',
 							'type' => 'numeric'
 					),
-					'Import_services_enable' => array(
-							'level' => 0,
-							'description' => 'Enable/disable the import services',
-							'value' => false,
-							'errorMessage' => '',
-							'test' => 'testBool',
-							'type' => 'boolean'
-					),
-					'Import_timeout' => array(
-							'level' => 1,
-							'description' => 'Set a timeout for the import services',
-							'value' => 5,
-							'errorMessage' => '',
-							'test' => 'testForEmpty',
-							'type' => 'numeric'
-					),
-					'Import_services_url' => array(
-							'level' => 1,
-							'description' => 'The url used to access the import services. By default, it is accessible at http://127.0.0.1:6666',
-							'value' => 'http://127.0.0.1',
-							'errorMessage' => '',
-							'test' => 'testForEmpty',
-							'type' => 'string'
-					),
-					'Import_services_port' => array(
-							'level' => 1,
-							'description' => 'The port used to access the import services. By default, it is accessible at 127.0.0.1:6666',
-							'value' => '6666',
-							'errorMessage' => '',
-							'test' => 'testForPortNumber',
-							'type' => 'numeric'
-					),
-					'Export_services_url' => array(
-							'level' => 1,
-							'description' => 'The url used to access the export services. By default, it is accessible at http://127.0.0.1:6666',
-							'value' => 'http://127.0.0.1',
-							'errorMessage' => '',
-							'test' => 'testForEmpty',
-							'type' => 'string'
-					),
-					'Export_services_port' => array(
-							'level' => 1,
-							'description' => 'The port used to access the export services. By default, it is accessible at 127.0.0.1:6666',
-							'value' => '6666',
-							'errorMessage' => '',
-							'test' => 'testForPortNumber',
-							'type' => 'numeric'
-					),
-					'Export_services_enable' => array(
-							'level' => 0,
-							'description' => 'Enable/disable the import services',
-							'value' => false,
-							'errorMessage' => '',
-							'test' => 'testBool',
-							'type' => 'boolean'
-					),
-					'Export_timeout' => array(
-							'level' => 1,
-							'description' => 'Set a timeout for the import services',
-							'value' => 5,
-							'errorMessage' => '',
-							'test' => 'testForEmpty',
-							'type' => 'numeric'
-					),
 					'Enrichment_hover_enable' => array(
 							'level' => 0,
 							'description' => 'Enable/disable the hover over information retrieved from the enrichment modules',
@@ -1129,22 +1056,6 @@ class Server extends AppModel {
 							'value' => 2,
 							'errorMessage' => '',
 							'test' => 'testForEmpty',
-							'type' => 'numeric'
-					),
-					'Enrichment_services_url' => array(
-							'level' => 1,
-							'description' => 'The url used to access the enrichment services. By default, it is accessible at http://127.0.0.1:6666',
-							'value' => 'http://127.0.0.1',
-							'errorMessage' => '',
-							'test' => 'testForEmpty',
-							'type' => 'string'
-					),
-					'Enrichment_services_port' => array(
-							'level' => 1,
-							'description' => 'The port used to access the enrichment services. By default, it is accessible at 127.0.0.1:6666',
-							'value' => '6666',
-							'errorMessage' => '',
-							'test' => 'testForPortNumber',
 							'type' => 'numeric'
 					),
 					'CustomAuth_custom_password_reset' => array(
@@ -1164,6 +1075,22 @@ class Server extends AppModel {
 							'test' => 'testForEmpty',
 							'type' => 'string',
 							'null' => true
+					),
+					'Enrichment_services_url' => array(
+						'level' => 1,
+						'description' => 'The url used to access the enrichment services. By default, it is accessible at http://127.0.0.1:6666',
+						'value' => 'http://127.0.0.1',
+						'errorMessage' => '',
+						'test' => 'testForEmpty',
+						'type' => 'string'
+					),
+					'Enrichment_services_port' => array(
+						'level' => 1,
+						'description' => 'The port used to access the enrichment services. By default, it is accessible at 127.0.0.1:6666',
+						'value' => '6666',
+						'errorMessage' => '',
+						'test' => 'testForPortNumber',
+						'type' => 'numeric'
 					)
 			),
 			'debug' => array(
@@ -1313,7 +1240,7 @@ class Server extends AppModel {
 						if (!$existingEvent) {
 							// add data for newly imported events
 							$passAlong = $server['Server']['id'];
-							$result = $eventModel->_add($event, true, $user, $server['Server']['org_id'], $passAlong, true, $jobId);
+							$result = $eventModel->_add($event, $fromXml = true, $user, $server['Server']['org_id'], $passAlong, true, $jobId);
 							if ($result) $successes[] = $eventId;
 							else {
 								$fails[$eventId] = 'Failed (partially?) because of validation errors: '. print_r($eventModel->validationErrors, true);
@@ -1321,7 +1248,7 @@ class Server extends AppModel {
 							}
 						} else {
 							$tempUser = $user;
-							$tempUser['Role']['perm_site_admin'] = 0;
+							$tempUser['Role']['perm_site_admin'] = false;
 							$result = $eventModel->_edit($event, $tempUser, $existingEvent['Event']['id'], $jobId);
 							if ($result === true) $successes[] = $eventId;
 							else if (isset($result['error'])) $fails[$eventId] = $result['error'];
@@ -1830,26 +1757,23 @@ class Server extends AppModel {
 	public function getCurrentServerSettings() {
 		$this->Module = ClassRegistry::init('Module');
 		$serverSettings = $this->serverSettings;
-		$moduleTypes = array('Enrichment', 'Import', 'Export');
-		foreach ($moduleTypes as $moduleType) {
-			if (Configure::read('Plugin.' . $moduleType . '_services_enable')) {
-				$results = $this->Module->getModuleSettings($moduleType);
-				foreach ($results as $module => $data) {
-					foreach ($data as $result) {
-						$setting = array('level' => 1, 'errorMessage' => '');
-						if ($result['type'] == 'boolean') {
-							$setting['test'] = 'testBool';
-							$setting['type'] = 'boolean';
-							$setting['description'] = 'Enable or disable the ' . $module . ' module.';
-							$setting['value'] = false;
-						} else {
-							$setting['test'] = 'testForEmpty';
-							$setting['type'] = 'string';
-							$setting['description'] = 'Set this required module specific setting.';
-							$setting['value'] = '';
-						}
-						$serverSettings['Plugin'][$moduleType . '_' . $module . '_' .  $result['name']] = $setting;
+		if (Configure::read('Plugin.Enrichment_services_enable')) {
+			$results = $this->Module->getModuleSettings();
+			foreach ($results as $module => $data) {
+				foreach ($data as $result) {
+					$setting = array('level' => 1, 'errorMessage' => '');
+					if ($result['type'] == 'boolean') {
+						$setting['test'] = 'testBool';
+						$setting['type'] = 'boolean';
+						$setting['description'] = 'Enable or disable the ' . $module . ' module.';
+						$setting['value'] = false;
+					} else {
+						$setting['test'] = 'testForEmpty';
+						$setting['type'] = 'string';
+						$setting['description'] = 'Set this required module specific setting.';
+						$setting['value'] = '';
 					}
+					$serverSettings['Plugin']['Enrichment_' . $module . '_' .  $result['name']] = $setting;
 				}
 			}
 		}
@@ -2020,7 +1944,7 @@ class Server extends AppModel {
 	public function testForTermsFile($value) {
 		return $this->__testForFile($value, APP . 'files' . DS . 'terms');
 	}
-
+	
 	public function testForStyleFile($value) {
 		if (empty($value)) return true;
 		return $this->__testForFile($value, APP . 'webroot' . DS . 'css');
@@ -2417,25 +2341,25 @@ class Server extends AppModel {
 		App::uses('Folder', 'Utility');
 		// check writeable directories
 		$writeableDirs = array(
-				'/tmp' => 0,
-				APP . 'tmp' => 0,
-				APP . 'files' => 0,
-				APP . 'files' . DS . 'scripts' . DS . 'tmp' => 0,
-				APP . 'tmp' . DS . 'csv_all' => 0,
-				APP . 'tmp' . DS . 'csv_sig' => 0,
-				APP . 'tmp' . DS . 'md5' => 0,
-				APP . 'tmp' . DS . 'sha1' => 0,
-				APP . 'tmp' . DS . 'snort' => 0,
-				APP . 'tmp' . DS . 'suricata' => 0,
-				APP . 'tmp' . DS . 'text' => 0,
-				APP . 'tmp' . DS . 'xml' => 0,
-				APP . 'tmp' . DS . 'files' => 0,
-				APP . 'tmp' . DS . 'logs' => 0,
+				'tmp' => 0,
+				'files' => 0,
+				'files' . DS . 'scripts' . DS . 'tmp' => 0,
+				'tmp' . DS . 'csv_all' => 0,
+				'tmp' . DS . 'csv_sig' => 0,
+				'tmp' . DS . 'md5' => 0,
+				'tmp' . DS . 'sha1' => 0,
+				'tmp' . DS . 'snort' => 0,
+				'tmp' . DS . 'suricata' => 0,
+				'tmp' . DS . 'text' => 0,
+				'tmp' . DS . 'xml' => 0,
+				'tmp' . DS . 'files' => 0,
+				'tmp' . DS . 'logs' => 0,
+				'tmp' . DS . 'bro' => 0,
 		);
 		foreach ($writeableDirs as $path => &$error) {
-			$dir = new Folder($path);
+			$dir = new Folder(APP . $path);
 			if (is_null($dir->path)) $error = 1;
-			$file = new File($path . DS . 'test.txt', true);
+			$file = new File(APP . $path . DS . 'test.txt', true);
 			if ($error == 0 && !$file->write('test')) $error = 2;
 			if ($error != 0) $diagnostic_errors++;
 			$file->delete();
@@ -2557,23 +2481,24 @@ class Server extends AppModel {
 		return $proxyStatus;
 	}
 
-	public function sessionDiagnostics(&$diagnostic_errors = 0, &$sessionCount = '') {
+	public function sessionDiagnostics(&$diagnostic_errors, &$sessionCount) {
 		if (Configure::read('Session.defaults') !== 'database') {
 			$sessionCount = 'N/A';
 			return 2;
 		}
-		$sql = 'SELECT COUNT(id) AS session_count FROM cake_sessions WHERE expires < ' . time() . ';';
+		$sql = 'SELECT COUNT(id) FROM `cake_sessions` WHERE `expires` < ' . time() . ';';
 		$sqlResult = $this->query($sql);
-		if (isset($sqlResult[0][0])) $sessionCount = $sqlResult[0][0]['session_count'];
+		if (isset($sqlResult[0][0])) $sessionCount = $sqlResult[0][0]['COUNT(id)'];
 		else {
 			$sessionCount = 'Error';
 			return 3;
 		}
-		if ($sessionCount > 1000) {
+		$sessionStatus = 0;
+		if ($sessionCount > 100) {
+			$sessionStatus = 1;
 			$diagnostic_errors++;
-			return 1;
 		}
-		return 0;
+		return $sessionStatus;
 	}
 
 	public function workerDiagnostics(&$workerIssueCount) {
@@ -2664,7 +2589,7 @@ class Server extends AppModel {
 						'action' => 'remove_dead_workers',
 						'user_id' => $user['id'],
 						'title' => 'Removing a dead worker.',
-						'change' => 'Removing dead worker data. Worker was of type ' . $worker['queue'] . ' with pid ' . $pid
+						'change' => 'Removind dead worker data. Worker was of type ' . $worker['queue'] . ' with pid ' . $pid
 				));
 			}
 			$this->ResqueStatus->removeWorker($pid);
@@ -2693,7 +2618,7 @@ class Server extends AppModel {
 						'action' => 'remove_dead_workers',
 						'user_id' => $user['id'],
 						'title' => 'Removing a dead worker.',
-						'change' => 'Removing dead worker data. Worker was of type ' . $worker['queue'] . ' with pid ' . $pid
+						'change' => 'Removind dead worker data. Worker was of type ' . $worker['queue'] . ' with pid ' . $pid
 				));
 			}
 		}
@@ -2750,8 +2675,8 @@ class Server extends AppModel {
 			$this->Job->saveField('progress', 10);
 			$this->Job->saveField('message', 'Starting the migration of the database to 2.4');
 		}
-		$this->query('UPDATE roles SET perm_template = 1 WHERE perm_site_admin = 1 OR perm_admin = 1');
-		$this->query('UPDATE roles SET perm_sharing_group = 1 WHERE perm_site_admin = 1 OR perm_sync = 1');
+		$this->query('UPDATE `roles` SET `perm_template` = 1 WHERE `perm_site_admin` = 1 OR `perm_admin` = 1');
+		$this->query('UPDATE `roles` SET `perm_sharing_group` = 1 WHERE `perm_site_admin` = 1 OR `perm_sync` = 1');
 		$orgs = array('local' => array(), 'external' => array());
 		$captureRules = array(
 				'events_org' => array('table' => 'events', 'old' => 'org', 'new' => 'org_id'),
@@ -2857,9 +2782,9 @@ class Server extends AppModel {
 		// will result in the same visibility, etc. Once events / attributes get put into a sharing group this will get recorrelated anyway
 		// Also by unsetting the org field after the move the changes we ensure that these correlations won't get hit again by the script if we rerun it
 		// and that we don't accidentally "upgrade" a 2.4 correlation
-		$this->query('UPDATE correlations SET distribution = 1, a_distribution = 1 WHERE org != "" AND private = 0');
+		$this->query('UPDATE `correlations` SET `distribution` = 1, `a_distribution` = 1 WHERE `org` != "" AND `private` = 0');
 		foreach ($orgMapping as $old => $new) {
-			$this->query('UPDATE correlations SET org_id = "' . $new . '", org = "" WHERE org = "' . $old . '";');
+			$this->query('UPDATE `correlations` SET `org_id` = "' . $new . '", `org` = "" WHERE `org` = "' . $old . '";');
 		}
 		if (Configure::read('MISP.background_jobs') && $jobId) {
 			$this->Job->saveField('progress', 60);

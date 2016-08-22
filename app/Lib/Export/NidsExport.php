@@ -29,6 +29,9 @@ class NidsExport {
 		$this->Whitelist = ClassRegistry::init('Whitelist');
 		$this->whitelist = $this->Whitelist->getBlockedValues();
 
+		//For bro format organisation
+		$orgsName = array();
+
 		// output a short explanation
 		if (!$continue) {
 			$this->explain();
@@ -36,10 +39,29 @@ class NidsExport {
 		// generate the rules
 		foreach ($items as &$item) {
 
-			# proto src_ip src_port direction dst_ip dst_port msg rule_content tag sid rev
-			$ruleFormatMsg = 'msg: "MISP e' . $item['Event']['id'] . ' %s"';
-			$ruleFormatReference = 'reference:url,' . Configure::read('MISP.baseurl') . '/events/view/' . $item['Event']['id'];
-			$ruleFormat = '%salert %s %s %s %s %s %s (' . $ruleFormatMsg . '; %s %s classtype:' . $this->classtype . '; sid:%d; rev:%d; priority:' . $item['Event']['threat_level_id'] . '; ' . $ruleFormatReference . ';) ';
+			if($format != 'bro') {
+				# proto src_ip src_port direction dst_ip dst_port msg rule_content tag sid rev
+				$ruleFormatMsg = 'msg: "MISP e' . $item['Event']['id'] . ' %s"';
+				$ruleFormatReference = 'reference:url,' . Configure::read('MISP.baseurl') . '/events/view/' . $item['Event']['id'];
+				$ruleFormat = '%salert %s %s %s %s %s %s (' . $ruleFormatMsg . '; %s %s classtype:' . $this->classtype . '; sid:%d; rev:%d; priority:' . $item['Event']['threat_level_id'] . '; ' . $ruleFormatReference . ';) ';
+			}
+			else{
+				if (array_key_exists($item['Event']['orgc_id'], $orgsName)) {
+					$orgName = $orgsName[$item['Event']['orgc_id']];
+				} else {
+					$orgModel = ClassRegistry::init('Organisation');
+					$org = $orgModel->find('first', array(
+							'fields' => array('Organisation.name'),
+							'conditions' => array('id' => $item['Event']['orgc_id']),
+						)
+					);
+					$orgName = $org['Organisation']['name'];
+					$orgsName[$item['Event']['orgc_id']] = $orgName;
+				}
+				$orgFormatReference = $orgName;
+				$ruleFormatReference = Configure::read('MISP.baseurl') . '/events/view/' . $item['Event']['id'];
+				$ruleFormat = "%s\t%s\t" . $orgFormatReference . "\t" . $ruleFormatReference . "\t%s\t%s";
+			}
 
 			$sid = $startSid + ($item['Attribute']['id'] * 10); // leave 9 possible rules per attribute type
 			$attribute = &$item['Attribute'];

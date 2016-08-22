@@ -61,13 +61,6 @@ class Tag extends AppModel {
 		)
 	);
 
-	public $belongsTo = array(
-		'Organisation' => array(
-			'className' => 'Organisation',
-			'foreignKey' => 'org_id',
-		)
-	);
-
 
 	public function beforeDelete($cascade = true) {
 		$this->EventTag->deleteAll(array('EventTag.tag_id' => $this->id));
@@ -130,8 +123,6 @@ class Tag extends AppModel {
 				$this->save($tag);
 				return $this->id;
 			} else return false;
-		} else {
-			if (!$user['Role']['perm_site_admin'] && $existingTag['Tag']['org_id'] != 0 && $existingTag['Tag']['org_id'] != $user['org_id']) return false;
 		}
 		return $existingTag['Tag']['id'];
 	}

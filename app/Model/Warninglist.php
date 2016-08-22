@@ -65,10 +65,10 @@ class Warninglist extends AppModel{
 	}
 
 	private function __updateList($list, $current) {
-		$list['enabled'] = 0;
+		$list['enabled'] = false;
 		$warninglist = array();
 		if (!empty($current)) {
-			if ($current['Warninglist']['enabled']) $list['enabled'] = 1;
+			if ($current['Warninglist']['enabled']) $list['enabled'] = true;
 			$this->deleteAll(array('Warninglist.id' => $current['Warninglist']['id']));
 		}
 		$fieldsToSave = array('name', 'version', 'description', 'type', 'enabled');
@@ -100,7 +100,7 @@ class Warninglist extends AppModel{
 	}
 
 	public function fetchForEventView() {
-		$warninglists = $this->find('all', array('contain' => array('WarninglistType'), 'conditions' => array('enabled' => 1)));
+		$warninglists = $this->find('all', array('contain' => array('WarninglistType'), 'conditions' => array('enabled' => true)));
 		if (empty($warninglists)) return array();
 		foreach ($warninglists as $k => &$t) {
 			$t['values'] = $this->WarninglistEntry->find('list', array(

@@ -53,7 +53,7 @@ class SharingGroupsController extends AppController {
 							'extend' => $org['extend']
 					));
 				}
-				if (!$json['sharingGroup']['roaming']) {
+				if ($json['sharingGroup']['limitServers']) {
 					foreach ($json['servers'] as $server) {
 						$this->SharingGroup->SharingGroupServer->create();
 						$this->SharingGroup->SharingGroupServer->save(array(
@@ -115,13 +115,13 @@ class SharingGroupsController extends AppController {
 			$json = json_decode($this->request->data['SharingGroup']['json'], true);
 			$sg = $json['sharingGroup'];
 			$sg['id'] = $id;
-			$fields = array('name', 'releasability', 'description', 'active', 'roaming');
+			$fields = array('name', 'releasability', 'description', 'active', 'limitServers');
 			$existingSG = $this->SharingGroup->find('first', array('recursive' => -1, 'conditions' => array('SharingGroup.id' => $id)));
 			foreach ($fields as $field) $existingSG['SharingGroup'][$field] = $sg[$field];
 			unset($existingSG['SharingGroup']['modified']);
 			if ($this->SharingGroup->save($existingSG)) {
 				$this->SharingGroup->SharingGroupOrg->updateOrgsForSG($id, $json['organisations'], $sharingGroup['SharingGroupOrg'], $this->Auth->user());
-				$this->SharingGroup->SharingGroupServer->updateServersForSG($id, $json['servers'], $sharingGroup['SharingGroupServer'], $json['sharingGroup']['roaming'], $this->Auth->user());
+				$this->SharingGroup->SharingGroupServer->updateServersForSG($id, $json['servers'], $sharingGroup['SharingGroupServer'], $json['sharingGroup']['limitServers'], $this->Auth->user());
 				$this->redirect('/SharingGroups/view/' . $id);
 			} else {
 				$validationReplacements = array(
@@ -165,8 +165,8 @@ class SharingGroupsController extends AppController {
 
 	public function index($passive = false) {
 		if ($passive === 'true') $passive = true;
-		if ($passive === true) $this->paginate['conditions'][] = array('SharingGroup.active' => 0);
-		else $this->paginate['conditions'][] = array('SharingGroup.active' => 1);
+		if ($passive === true) $this->paginate['conditions'][] = array('SharingGroup.active' => false);
+		else $this->paginate['conditions'][] = array('SharingGroup.active' => true);
 		$result = $this->paginate();
 		// check if the current user can modify or delete the SG
 		foreach ($result as $k => $sg) {
@@ -200,19 +200,6 @@ class SharingGroupsController extends AppController {
 			foreach ($sg['SharingGroupServer'] as &$sgs) {
 				if ($sgs['server_id'] == 0) $sgs['Server'] = array('name' => 'Local instance', 'url' => Configure::read('MISP.baseurl'));
 			}
-		}
-		if ($sg['SharingGroup']['sync_user_id']) {
-			$this->loadModel('User');
-			$sync_user = $this->User->find('first', array(
-					'conditions' => array('User.id' => $sg['SharingGroup']['sync_user_id']),
-					'recursive' => -1,
-					'fields' => array('User.id', 'User.org_id'),
-					'contain' => array('Organisation' => array(
-						'fields' => array('Organisation.name')
-					))
-			));
-			if (empty($sync_user)) $sg['SharingGroup']['sync_org_name'] = 'N/A';
-			$sg['SharingGroup']['sync_org_name'] = $sync_user['Organisation']['name'];
 		}
 		$this->set('mayModify', $this->SharingGroup->checkIfAuthorisedExtend($this->Auth->user(), $id));
 		$this->set('id', $id);

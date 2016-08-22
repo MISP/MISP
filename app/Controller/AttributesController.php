@@ -881,22 +881,11 @@ class AttributesController extends AppController {
 				throw new MethodNotAllowedException();
 			}
 			if ($this->__delete($id, $hard)) {
-				if ($this->_isRest() || $this->response->type() === 'application/json') {
-					$this->set('message', 'Attribute deleted.');
-					$this->set('_serialize', array('message'));
-				} else {
-					$this->Session->setFlash(__('Attribute deleted'));
-					$this->redirect($this->referer());
-				}
-			} else {
-				if ($this->_isRest() || $this->response->type() === 'application/json') {
-					throw new Exception('Attribute was not deleted');
-				} else {
-					$this->Session->setFlash(__('Attribute was not deleted'));
-					$this->redirect(array('action' => 'index'));
-				}
 				$this->Session->setFlash(__('Attribute deleted'));
+			} else {
+				$this->Session->setFlash(__('Attribute was not deleted'));
 			}
+			$this->redirect(array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']));	// TODO check
 		}
 	}
 
@@ -908,7 +897,7 @@ class AttributesController extends AppController {
 	 * @throws MethodNotAllowedException
 	 * @throws NotFoundException
 	 * @return CakeResponse
-	 */
+     */
 	public function restore($id = null) {
 		$attribute = $this->Attribute->find('first', array(
 				'conditions' => array('Attribute.id' => $id),
@@ -1909,6 +1898,36 @@ class AttributesController extends AppController {
 		$this->render('/Attributes/rpz');
 	}
 
+	public function bro($key='download', $type='all', $tags=false, $eventId=false, $allowNonIDS=false, $from=false, $to=false, $last=false) {
+		$simpleFalse = array('eventId', 'allowNonIDS', 'tags', 'from', 'to', 'last');
+		foreach ($simpleFalse as $sF) {
+			if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false')) ${$sF} = false;
+		}
+		if ($type !== 'null' || $type !== '0' || $type !== 'false') {
+			if ($from) $from = $this->Attribute->Event->dateFieldCheck($from);
+			if ($to) $to = $this->Attribute->Event->dateFieldCheck($to);
+			if ($last) $last = $this->Attribute->Event->resolveTimeDelta($last);
+			if ($key != 'download') {
+				// check if the key is valid -> search for users based on key
+				$user = $this->checkAuthUser($key);
+				if (!$user) {
+					throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
+				}
+			} else {
+				if (!$this->Auth->user('id')) {
+					throw new UnauthorizedException('You have to be logged in to do that.');
+				}
+			}
+			$this->response->type('txt');    // set the content type
+			$this->header('Content-Disposition: download; filename="misp.' . $type . '.intel"');
+			$this->layout = 'text/default';
+			$attributes = array("#fields indicator\tindicator_type\tmeta.source\tmeta.url\tmeta.do_notice\tmeta.if_in");
+			$attributes = array_merge($attributes, $this->Attribute->bro($this->Auth->user(), $type, $tags, $eventId, $allowNonIDS, $from, $to, $last));
+			$this->set('attributes', $attributes);
+			$this->render('/Attributes/bro');
+		}
+	}
+
 	public function reportValidationIssuesAttributes($eventId = false) {
 		// TODO improve performance of this function by eliminating the additional SQL query per attribute
 		// search for validation problems in the attributes
@@ -1939,8 +1958,7 @@ class AttributesController extends AppController {
 			$process_id = CakeResque::enqueue(
 					'default',
 					'AdminShell',
-					array('jobGenerateCorrelation', $jobId),
-					true
+					array('jobGenerateCorrelation', $jobId)
 			);
 			$job->saveField('process_id', $process_id);
 			$this->Session->setFlash(__('Job queued. You can view the progress if you navigate to the active jobs view (administration -> jobs).'));
