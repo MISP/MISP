@@ -1,5 +1,5 @@
 <?php
-App::import('Controller', 'Roles');
+App::uses('RolesController', 'Controller');
 
 class RolesTask extends Shell {
 
@@ -13,12 +13,12 @@ class RolesTask extends Shell {
 
 		$roles = ClassRegistry::init('Role');
 		$roles->create();
-		$roles->save(array('Role' => array('name' => 'admin', 'perm_add' => true, 'perm_modify' => true, 'perm_publish' => true, 'perm_full' => true, 'perm_sync' => true, 'perm_audit' => true, 'perm_auth' =>true)));
+		$roles->save(array('Role' => array('name' => 'admin', 'perm_add' => 1, 'perm_modify' => 1, 'perm_publish' => 1, 'perm_full' => 1, 'perm_sync' => 1, 'perm_audit' => 1, 'perm_auth' => 1)));
 		$roles->create();
-		$roles->save(array('Role' => array('name' => 'org_admin', 'perm_add' => true, 'perm_modify' => true, 'perm_publish' => false, 'perm_full' => false, 'perm_sync' => true, 'perm_audit' => true, 'perm_auth' =>true)));
+		$roles->save(array('Role' => array('name' => 'org_admin', 'perm_add' => 1, 'perm_modify' => 1, 'perm_publish' => 0, 'perm_full' => 0, 'perm_sync' => 1, 'perm_audit' => 1, 'perm_auth' => 1)));
 		$roles->create();
-		$roles->save(array('Role' => array('name' => 'User', 'perm_add' => true, 'perm_modify' => true, 'perm_publish' => false, 'perm_full' => false, 'perm_sync' => true, 'perm_audit' => true, 'perm_auth' =>false)));
+		$roles->save(array('Role' => array('name' => 'User', 'perm_add' => 1, 'perm_modify' => 1, 'perm_publish' => 0, 'perm_full' => 0, 'perm_sync' => 1, 'perm_audit' => 1, 'perm_auth' => 0)));
 		$roles->create();
-		$roles->save(array('Role' => array('name' => 'Sync', 'perm_add' => true, 'perm_modify' => true, 'perm_publish' => true, 'perm_full' => false, 'perm_sync' => true, 'perm_audit' => true, 'perm_auth' =>true)));
+		$roles->save(array('Role' => array('name' => 'Sync', 'perm_add' => 1, 'perm_modify' => 1, 'perm_publish' => 1, 'perm_full' => 0, 'perm_sync' => 1, 'perm_audit' => 1, 'perm_auth' => 1)));
 	}
 }

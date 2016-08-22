@@ -1,7 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('CakeEmail', 'Network/Email');
-App::import('Controller', 'Attributes');
 Configure::load('config'); // This is needed to load GnuPG.bodyonlyencrypted
 /**
  * Event Model
@@ -71,29 +70,46 @@ class Event extends AppModel {
 	public $shortDist = array(0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All', 4 => ' sharing Group');
 
 	public $export_types = array(
+			'json' => array(
+					'extension' => '.json',
+					'type' => 'JSON',
+					'requiresPublished' => 0,
+					'canHaveAttachments' => true,
+					'description' => 'Click this to download all events and attributes that you have access to in MISP JSON format.',
+			),
 			'xml' => array(
 					'extension' => '.xml',
 					'type' => 'XML',
-					'description' => 'Click this to download all events and attributes that you have access to <small>(except file attachments)</small> in a custom XML format.',
+					'requiresPublished' => 0,
+					'canHaveAttachments' => true,
+					'description' => 'Click this to download all events and attributes that you have access to in MISP XML format.',
 			),
 			'csv_sig' => array(
 					'extension' => '.csv',
 					'type' => 'CSV_Sig',
+					'requiresPublished' => 1,
+					'canHaveAttachments' => false,
 					'description' => 'Click this to download all attributes that are indicators and that you have access to <small>(except file attachments)</small> in CSV format.',
 			),
 			'csv_all' => array(
 					'extension' => '.csv',
 					'type' => 'CSV_All',
+					'requiresPublished' => 0,
+					'canHaveAttachments' => false,
 					'description' => 'Click this to download all attributes that you have access to <small>(except file attachments)</small> in CSV format.',
 			),
 			'suricata' => array(
 					'extension' => '.rules',
 					'type' => 'Suricata',
+					'requiresPublished' => 1,
+					'canHaveAttachments' => false,
 					'description' => 'Click this to download all network related attributes that you have access to under the Suricata rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a whitelist containing host, domain name and IP numbers to exclude from the NIDS export.',
 			),
 			'snort' => array(
 					'extension' => '.rules',
 					'type' => 'Snort',
+					'requiresPublished' => 1,
+					'canHaveAttachments' => false,
 					'description' => 'Click this to download all network related attributes that you have access to under the Snort rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a whitelist containing host, domain name and IP numbers to exclude from the NIDS export.',
 			),
 			'bro' => array(
@@ -104,21 +120,36 @@ class Event extends AppModel {
 			'rpz' => array(
 					'extension' => '.txt',
 					'type' => 'RPZ',
+					'requiresPublished' => 1,
+					'canHaveAttachments' => false,
 					'description' => 'Click this to download an RPZ Zone file generated from all ip-src/ip-dst, hostname, domain attributes. This can be useful for DNS level firewalling. Only published events and attributes marked as IDS Signature are exported.'
 			),
 			'md5' => array(
 					'extension' => '.txt',
 					'type' => 'MD5',
+					'requiresPublished' => 1,
+					'canHaveAttachments' => false,
 					'description' => 'Click on one of these two buttons to download all MD5 checksums contained in file-related attributes. This list can be used to feed forensic software when searching for susipicious files. Only published events and attributes marked as IDS Signature are exported.',
 			),
 			'sha1' => array(
 					'extension' => '.txt',
 					'type' => 'SHA1',
+					'requiresPublished' => 1,
+					'canHaveAttachments' => false,
 					'description' => 'Click on one of these two buttons to download all SHA1 checksums contained in file-related attributes. This list can be used to feed forensic software when searching for susipicious files. Only published events and attributes marked as IDS Signature are exported.',
+			),
+			'sha256' => array(
+					'extension' => '.txt',
+					'type' => 'SHA256',
+					'requiresPublished' => 1,
+					'canHaveAttachments' => false,
+					'description' => 'Click on one of these two buttons to download all SHA256 checksums contained in file-related attributes. This list can be used to feed forensic software when searching for susipicious files. Only published events and attributes marked as IDS Signature are exported.',
 			),
 			'text' => array(
 					'extension' => '.txt',
 					'type' => 'TEXT',
+					'requiresPublished' => 1,
+					'canHaveAttachments' => false,
 					'description' => 'Click on one of the buttons below to download all the attributes with the matching type. This list can be used to feed forensic software when searching for susipicious files. Only published events and attributes marked as IDS Signature are exported.'
 			),
 	);
@@ -1053,6 +1084,7 @@ class Event extends AppModel {
 		// restricting to non-private or same org if the user is not a site-admin.
 		if (!$user['Role']['perm_site_admin']) {
 			$sgids = $this->SharingGroup->fetchAllAuthorised($user);
+			if (empty($sgids)) $sgids = -1;
 			$conditions['AND']['OR'] = array(
 				'Event.org_id' => $user['org_id'],
 				array(
@@ -1078,7 +1110,6 @@ class Event extends AppModel {
 		if ($last) $conditions['AND'][] = array('Event.publish_timestamp >=' => $last);
 		if ($timestamp) $conditions['AND'][] = array('Event.timestamp >=' => $timestamp);
 		if ($publish_timestamp) $conditions['AND'][] = array('Event.publish_timestamp >=' => $publish_timestamp);
-
 		if ($list) {
 			$params = array(
 				'conditions' => $conditions,
@@ -1132,15 +1163,13 @@ class Event extends AppModel {
 						'Event.distribution >' => 0,
 						'Event.distribution <' => 4,
 						Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
-						$options['distribution'] !== false ? array('Event.distribution =' => $options['distribution']) : array(),
 					),
 				),
 				array(
 					'AND' => array(
 						'Event.sharing_group_id' => $sgids,
 						'Event.distribution' => 4,
-						Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
-						$options['sharing_group_id'] !== false ? array('Event.sharing_group_id =' => $options['sharing_group_id']) : array(),
+						Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array()
 					)
 				)
 			);
@@ -1158,15 +1187,21 @@ class Event extends AppModel {
 				array('AND' => array(
 					'Attribute.distribution >' => 0,
 					'Attribute.distribution !=' => 4,
-					$options['distribution'] !== false ? array('Attribute.distribution =' => $options['distribution']) : array(),
 				)),
 				array('AND' => array(
 					'Attribute.distribution' => 4,
 					'Attribute.sharing_group_id' => $sgids,
-					$options['sharing_group_id'] !== false ? array('Attribute.sharing_group_id =' => $options['sharing_group_id']) : array(),
 				)),
 				'(SELECT events.org_id FROM events WHERE events.id = Attribute.event_id)' => $user['org_id']
 			);
+		}
+		if ($options['distribution']) {
+			$conditions['AND'][] = array('Event.distribution' => $options['distribution']);
+			$conditionsAttributes['AND'][] = array('Attribute.distribution' => $options['distribution']);
+		}
+		if ($options['sharing_group_id']) {
+			$conditions['AND'][] = array('Event.sharing_group_id' => $options['sharing_group_id']);
+			$conditionsAttributes['AND'][] = array('Attribute.sharing_group_id' => $options['sharing_group_id']);
 		}
 		if ($options['from']) $conditions['AND'][] = array('Event.date >=' => $options['from']);
 		if ($options['to']) $conditions['AND'][] = array('Event.date <=' => $options['to']);
@@ -1455,7 +1490,8 @@ class Event extends AppModel {
 			$process_id = CakeResque::enqueue(
 					'email',
 					'EventShell',
-					array('alertemail', $user['id'], $jobId, $id)
+					array('alertemail', $user['id'], $jobId, $id),
+					true
 			);
 			$job->saveField('process_id', $process_id);
 			return true;
@@ -1488,7 +1524,7 @@ class Event extends AppModel {
 		} else {
 			$subject = '';
 		}
-        $tplColorString = !empty(Configure::read('MISP.email_subject_TLP_string')) ? Configure::read('MISP.email_subject_TLP_string') : "TLP Amber";
+		$tplColorString = !empty(Configure::read('MISP.email_subject_TLP_string')) ? Configure::read('MISP.email_subject_TLP_string') : "TLP Amber";
 		$subject = "[" . Configure::read('MISP.org') . " MISP] Event " . $id . " - " . $subject . $event[0]['ThreatLevel']['name'] . " - ".$tplColorString;
 
 		// Initialise the Job class if we have a background process ID
@@ -1681,7 +1717,7 @@ class Event extends AppModel {
 		$bodyevent .= "\n";
 		$bodyevent .= $bodyTempOther;	// append the 'other' attribute types to the bottom.
 		$result = true;
-        $tplColorString = !empty(Configure::read('MISP.email_subject_TLP_string')) ? Configure::read('MISP.email_subject_TLP_string') : "TLP Amber";
+		$tplColorString = !empty(Configure::read('MISP.email_subject_TLP_string')) ? Configure::read('MISP.email_subject_TLP_string') : "TLP Amber";
 		foreach ($orgMembers as &$reporter) {
 			$subject = "[" . Configure::read('MISP.org') . " MISP] Need info about event " . $id . " - ".$tplColorString;
 			$result = $this->User->sendEmail($reporter, $bodyevent, $body, $subject, $user) && $result;
@@ -1763,9 +1799,9 @@ class Event extends AppModel {
 	 *
 	 * @return bool true if success
 	 */
-	public function _add(&$data, $fromXml, $user, $org_id='', $passAlong = null, $fromPull = false, $jobId = null, &$created_id = 0, &$validationErrors = array()) {
+	public function _add(&$data, $fromXml, $user, $org_id = 0, $passAlong = null, $fromPull = false, $jobId = null, &$created_id = 0, &$validationErrors = array()) {
 		if ($jobId) {
-			App::import('Component','Auth');
+			App::uses('AuthComponent', 'Controller/Component');
 		}
 		if (Configure::read('MISP.enableEventBlacklisting') && isset($data['Event']['uuid'])) {
 			$event = $this->find('first', array(
@@ -1813,7 +1849,7 @@ class Event extends AppModel {
 			unset($this->Attribute->validate['value']['uniqueValue']); // unset this - we are saving a new event, there are no values to compare against and event_id is not set in the attributes
 		}
 		unset($data['Event']['id']);
-		if (isset($data['Event']['published']) && $data['Event']['published'] && $user['Role']['perm_publish'] == false) $data['Event']['published'] = false;
+		if (isset($data['Event']['published']) && $data['Event']['published'] && $user['Role']['perm_publish'] == 0) $data['Event']['published'] = 0;
 		if (isset($data['Event']['uuid'])) {
 			// check if the uuid already exists
 			$existingEventCount = $this->find('count', array('conditions' => array('Event.uuid' => $data['Event']['uuid'])));
@@ -1935,8 +1971,8 @@ class Event extends AppModel {
 		} else {
 			return (array('error' => 'Event could not be saved: Could not find the local event.'));
 		}
-		if (isset($data['Event']['published']) && $data['Event']['published'] && !$user['Role']['perm_publish']) $data['Event']['published'] = false;
-		if (!isset($data['Event']['published'])) $data['Event']['published'] = false;
+		if (isset($data['Event']['published']) && $data['Event']['published'] && !$user['Role']['perm_publish']) $data['Event']['published'] = 0;
+		if (!isset($data['Event']['published'])) $data['Event']['published'] = 0;
 		$fieldList = array(
 				'Event' => array('date', 'threat_level_id', 'analysis', 'info', 'published', 'uuid', 'distribution', 'timestamp', 'sharing_group_id'),
 				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'distribution', 'timestamp', 'comment', 'sharing_group_id', 'deleted')
@@ -2193,7 +2229,8 @@ class Event extends AppModel {
 			$process_id = CakeResque::enqueue(
 					'prio',
 					'EventShell',
-					array('publish', $id, $passAlong, $jobId, $user['id'])
+					array('publish', $id, $passAlong, $jobId, $user['id']),
+					true
 			);
 			$job->saveField('process_id', $process_id);
 			return $process_id;
@@ -2227,7 +2264,7 @@ class Event extends AppModel {
 			$pubSubTool = new PubSubTool();
 			$hostOrg = $this->Org->find('first', array('conditions' => array('name' => Configure::read('MISP.org')), 'fields' => array('id')));
 			if (!empty($hostOrg)) {
-				$user = array('org_id' => $hostOrg['Org']['id'], 'Role' => array('perm_sync' => false, 'perm_site_admin' => false), 'Organisation' => $hostOrg['Org']);
+				$user = array('org_id' => $hostOrg['Org']['id'], 'Role' => array('perm_sync' => 0, 'perm_site_admin' => 0), 'Organisation' => $hostOrg['Org']);
 				$fullEvent = $this->fetchEvent($user, array('eventid' => $id));
 				if (!empty($fullEvent)) $pubSubTool->publishEvent($fullEvent[0]);
 			}
@@ -2275,7 +2312,8 @@ class Event extends AppModel {
 			$process_id = CakeResque::enqueue(
 					'email',
 					'EventShell',
-					array('contactemail', $id, $message, $creator_only, $user['id'], $isSiteAdmin, $jobId)
+					array('contactemail', $id, $message, $creator_only, $user['id'], $isSiteAdmin, $jobId),
+					true
 			);
 			$job->saveField('process_id', $process_id);
 			return true;
@@ -2683,5 +2721,85 @@ class Event extends AppModel {
 			$conditions['AND'][] = $temp;
 		}
 		return $conditions;
+	}
+
+	public function handleModuleResult($result, $event_id) {
+		$resultArray = array();
+		$freetextResults = array();
+		App::uses('ComplexTypeTool', 'Tools');
+		$complexTypeTool = new ComplexTypeTool();
+		if (isset($result['results']) && !empty($result['results'])) {
+			foreach ($result['results'] as $k => &$r) {
+				if (!is_array($r['values'])) {
+					$r['values'] = array($r['values']);
+				}
+				if (!is_array($r['types'])) {
+					$r['types'] = array($r['types']);
+				}
+				if (isset($r['categories']) && !is_array($r['categories'])) {
+					$r['categories'] = array($r['categories']);
+				}
+				foreach ($r['values'] as &$value) {
+					if (!is_array($r['values']) || !isset($r['values'][0])) {
+						$r['values'] = array($r['values']);
+					}
+				}
+				foreach ($r['values'] as &$value) {
+					if (in_array('freetext', $r['types'])) {
+						if (is_array($value)) $value = json_encode($value);
+						$freetextResults = array_merge($freetextResults, $complexTypeTool->checkComplexRouter($value, 'FreeText'));
+						if (!empty($freetextResults)) {
+							foreach ($freetextResults as &$ft) {
+								$temp = array();
+								foreach ($ft['types'] as $type) {
+									$temp[$type] = $type;
+								}
+								$ft['types'] = $temp;
+							}
+						}
+						$r['types'] = array_diff($r['types'], array('freetext'));
+						// if we just removed the only type in the result then more on to the next result
+						if (empty($r['types'])) continue 2;
+						$r['types'] = array_values($r['types']);
+					}
+				}
+				foreach ($r['values'] as &$value) {
+					$temp = array(
+							'event_id' => $event_id,
+							'types' => $r['types'],
+							'default_type' => $r['types'][0],
+							'comment' => isset($r['comment']) ? $r['comment'] : false,
+							'to_ids' => isset($r['to_ids']) ? $r['to_ids'] : false,
+							'value' => $value
+					);
+					if (isset($r['categories'])) {
+						$temp['categories'] = $r['categories'];
+						$temp['default_category'] = $r['categories'][0];
+					}
+					if (isset($r['data'])) $temp['data'] = $r['data'];
+					$resultArray[] = $temp;
+				}
+
+			}
+			$resultArray = array_merge($resultArray, $freetextResults);
+		}
+		return $resultArray;
+	}
+
+	public function export($user = false, $module = false, $options = array()) {
+		if (empty($user)) return 'Invalid user.';
+		if  (empty($module)) return 'Invalid module.';
+		$this->Module = ClassRegistry::init('Module');
+		$module = $this->Module->getEnabledModule($module, 'Export');
+		$events = $this->fetchEvent($user, $options);
+		if (empty($events)) return 'Invalid event.';
+		$modulePayload = array('module' => $module['name']);
+		$modulePayload['data'] = $events;
+		$result = $this->Module->queryModuleServer('/query', json_encode($modulePayload, true), false, 'Export');
+		return array(
+				'data' => $result['data'],
+				'extension' => $module['mispattributes']['outputFileExtension'],
+				'response' => $module['mispattributes']['responseType']
+		);
 	}
 }

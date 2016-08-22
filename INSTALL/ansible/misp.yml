@@ -1,0 +1,30 @@
+---
+- hosts: all
+  become: true
+  roles:
+    - { role: mysql}
+    - { role: misp}
+    - { role: nginx}
+
+  vars_prompt:
+  - name: "proxy_host"
+    prompt: "Enter the proxy host (e.g. myproxy.be)"  
+    private: no
+  - name: "proxy_port"
+    prompt: "Enter the proxy port (e.g. 3128)"  
+    private: no
+  - name: "servername"
+    prompt: "Enter the servername address to use for the webserver (e.g. misp.com)"  
+    private: no
+  - name: "mysql_root_old_pass"
+    prompt: "MySQL root password (current or default/empty)"  
+    private: yes
+  - name: "mysql_root_new_pass"
+    prompt: "MySQL root password (new/current)"
+    private: yes
+  - name: mysql_misp_password
+    prompt: "Enter the mysql misp user password"  
+    private: yes
+  - name: enable_auto_backup
+    prompt: "Do you want to enable automatic backup everyday ? (y/n)"  
+    private: no

@@ -77,7 +77,6 @@
 							<li><a href="<?php echo $baseurl;?>/news">News</a></li>
 							<li><a href="<?php echo $baseurl;?>/users/view/me">My Profile</a></li>
 							<li><a href="<?php echo $baseurl;?>/users/dashboard">Dashboard</a></li>
-							<li><a href="<?php echo $baseurl;?>/users/memberslist">Members List</a></li>
 							<li><a href="<?php echo $baseurl;?>/organisations/index">Organisations</a></li>
 							<li><a href="<?php echo $baseurl;?>/roles/index">Role Permissions</a></li>
 							<li class="divider"></li>
@@ -89,6 +88,7 @@
 							<li><a href="<?php echo $baseurl;?>/pages/display/doc/quickstart">User Guide</a></li>
 							<li><a href="<?php echo $baseurl;?>/users/terms">Terms &amp; Conditions</a></li>
 							<li><a href="<?php echo $baseurl;?>/users/statistics">Statistics</a></li>
+							<li><a href="<?php echo $baseurl;?>/users/attributehistogram">Attribute Histogram</a></li>
 						</ul>
 					</li>
 
@@ -129,7 +129,6 @@
 							<?php endif; ?>
 							<?php if ($isSiteAdmin): ?>
 								<li class="divider"></li>
-								<li><a href="<?php echo $baseurl;?>/pages/display/administration">Administrative tools</a></li>
 								<li><a href="<?php echo $baseurl;?>/servers/serverSettings">Server settings</a></li>
 								<?php if (Configure::read('MISP.background_jobs')): ?>
 									<li class="divider"></li>

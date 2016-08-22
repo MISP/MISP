@@ -2,7 +2,7 @@
 App::uses('AppModel', 'Model');
 class Organisation extends AppModel{
 	public $useTable = 'organisations';
-    public $recursive = -1;
+	public $recursive = -1;
 	public $actsAs = array(
 		'Containable',
 		'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
@@ -22,11 +22,11 @@ class Organisation extends AppModel{
 			),
 		),
 		'uuid' => array(
-            'unique' => array(
-                'rule' => 'isUnique',
-                'message' => 'An organisation with this UUID already exists.',
-            	'allowEmpty' => true
-            ),
+			'unique' => array(
+				'rule' => 'isUnique',
+				'message' => 'An organisation with this UUID already exists.',
+				'allowEmpty' => true
+			),
 			'uuid' => array(
 				'rule' => array('uuid'),
 				'message' => 'Please provide a valid UUID',
@@ -204,7 +204,7 @@ class Organisation extends AppModel{
 		if (!$logFile->create()) throw new MethodNotAllowedException('Merge halted because the log file (default location: /var/www/MISP/app/tmp/logs/merges/[old_org_id]_[new_org_id]_timestamp.log) could not be created. This is most likely a permission issue, make sure that MISP can write to the logs directory and try again.');
 		$backupFile = new File($dirPath . DS . 'merge_' . $currentOrg['Organisation']['id'] . '_' . $targetOrg['Organisation']['id'] . '_' . time() . '.sql');
 		if (!$backupFile->create()) throw new MethodNotAllowedException('Merge halted because the backup script file (default location: /var/www/MISP/app/tmp/logs/merges/[old_org_id]_[new_org_id]_timestamp.sql) could not be created. This is most likely a permission issue, make sure that MISP can write to the logs directory and try again.');
-		$backupFile->append('INSERT INTO `organisations` (`' . implode('`, `', array_keys($currentOrg['Organisation'])) . '`) VALUES (\'' . implode('\', \'', array_values($currentOrg['Organisation'])) . '\');' . PHP_EOL);
+		$backupFile->append('INSERT INTO organisations (`' . implode('`, `', array_keys($currentOrg['Organisation'])) . '`) VALUES (\'' . implode('\', \'', array_values($currentOrg['Organisation'])) . '\');' . PHP_EOL);
 		$this->Log->create();
 		$this->Log->save(array(
 				'org' => $user['Organisation']['name'],

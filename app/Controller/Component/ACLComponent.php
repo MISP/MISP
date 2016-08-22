@@ -68,7 +68,7 @@ class ACLComponent extends Component {
 			),
 			'eventDelegations' => array(
 					'acceptDelegation' => array('perm_add'),
-					'delegateEvent' => array('perm_add'),
+					'delegateEvent' => array('perm_delegate'),
 					'deleteDelegation' => array('perm_add'),
 					'view' => array('*'),
 			),
@@ -326,7 +326,7 @@ class ACLComponent extends Component {
 					'initiatePasswordReset' => array('perm_admin'),
 					'login' => array('*'),
 					'logout' => array('*'),
-					'memberslist' => array('*'),
+					'attributehistogram' => array('*'),
 					'resetauthkey' => array('*'),
 					'routeafterlogin' => array('*'),
 					'statistics' => array('*'),

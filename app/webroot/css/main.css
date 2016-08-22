@@ -1113,9 +1113,9 @@ a.proposal_link_red:hover {
 	background-color: #0088cc;
 }
 
-.memberslistBar {
+.attributehistogramBar {
 	overflow: hidden;
-	height:30px;
+	height:13px;
 	-webkit-border-radius: 2px;
 	-moz-border-radius: 2px;
 	border-radius: 2px;
@@ -1123,26 +1123,26 @@ a.proposal_link_red:hover {
 	margin-left:0px;
 }
 
-.membersList-histogram-left-table {
+.attributehistogram-left-table {
 	padding-right:15px;
 }
 
-.membersList-histogram-canvas {
+.attributehistogram-canvas {
 	border-left:1px solid;
 	border-bottom:1px solid;
 }
 
-.membersList-histogram-legend {
+.attributehistogram-legend {
 	float: left;
 	padding:5px;
 	border:1px solid;
 }
 
-.membersList-histogram-last {
+.attributehistogram-last {
 	border-bottom:1px solid;
 }
 
-.membersList-histogram-legend-box {
+.attributehistogram-legend-box {
 	display:inline-block;
 	width:10px;
 	height:10px;
@@ -1151,6 +1151,12 @@ a.proposal_link_red:hover {
 	border-radius: 2px;
 	box-shadow: 1px 1px 1px #888888;
 }
+
+.histogram-legendH4{
+	margin-bottom: 0;
+}
+
+.attributehistogram-legend .col{float: left;margin: 0 0.4em 0 0;}
 
 .attributeListContainer{
 	position:relative;
@@ -1443,6 +1449,10 @@ a.proposal_link_red:hover {
 	color: green !important;
 }
 
+.black {
+	color: black !important;
+}
+
 .orange {
 	color: orange !important;
 }
@@ -1568,6 +1578,26 @@ a.discrete {
 
 .tooltip-inner {
     white-space:pre-wrap !important;
+}
+
+.progress-queued .bar, .progress .bar-queued {
+    background-color: #A0A0A0;
+    background-image: -moz-linear-gradient(top, #dbdbdb, #bfbfbf);
+    background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#dbdbdb), to(#bfbfbf));
+    background-image: -webkit-linear-gradient(top, #dbdbdb, #bfbfbf);
+    background-image: -o-linear-gradient(top, #dbdbdb, #bfbfbf);
+    background-image: linear-gradient(to bottom, #dbdbdb, #bfbfbf);
+    background-repeat: repeat-x;
+    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#ffdbdbdb', endColorstr='#ffbfbfbf', GradientType=0);
+}
+
+.progress-queued.progress-striped .bar, .progress-striped .bar-warning {
+    background-color: #A0A0A0;
+    background-image: -webkit-gradient(linear, 0 100%, 100% 0, color-stop(0.25, rgba(255, 255, 255, 0.15)), color-stop(0.25, transparent), color-stop(0.5, transparent), color-stop(0.5, rgba(255, 255, 255, 0.15)), color-stop(0.75, rgba(255, 255, 255, 0.15)), color-stop(0.75, transparent), to(transparent));
+    background-image: -webkit-linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.15) 75%, transparent 75%, transparent);
+    background-image: -moz-linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.15) 75%, transparent 75%, transparent);
+    background-image: -o-linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.15) 75%, transparent 75%, transparent);
+    background-image: linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.15) 75%, transparent 75%, transparent);
 }
 
 @-webkit-keyframes rotation {

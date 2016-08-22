@@ -34,17 +34,21 @@
 			<?php echo h($org['Organisation']['description']); ?>
 			&nbsp;
 		</dd>
-		<?php if ($fullAccess): ?>
-			<dt><?php echo 'Uuid'; ?></dt>
-			<dd>
-				<?php echo h($org['Organisation']['uuid']); ?>
-				&nbsp;
-			</dd>
-		<?php endif;?>
+		<dt><?php echo 'Uuid'; ?></dt>
+		<dd>
+			<?php echo h($org['Organisation']['uuid']); ?>
+			&nbsp;
+		</dd>
 		<?php if ($isSiteAdmin): ?>
 			<dt><?php echo 'Created by'; ?></dt>
 			<dd>
-				<?php echo h($creator['User']['email']); ?>
+				<?php
+				if (isset($creator['User']['email'])) {
+					echo h($creator['User']['email']);
+				} else {
+					echo "SYSTEM";
+				}
+				?>
 				&nbsp;
 			</dd>
 		<?php endif;?>

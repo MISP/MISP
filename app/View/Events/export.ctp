@@ -33,7 +33,22 @@
 			<tr>
 				<td class="short"><?php echo $type['type']; ?></td>
 				<td id="update<?php echo $i; ?>" class="short" style="color:red;"><?php echo $type['lastModified']; ?></td>
-				<td><?php echo $type['description']; ?></td>
+				<td>
+					<?php
+						echo $type['description'];
+						if ($type['canHaveAttachments']):
+							if (Configure::read('MISP.cached_attachments')):
+					?>
+						<span class="green"> (Attachments are enabled on this instance)</span>
+					<?php
+							else:
+					?>
+						<span class="red"> (Attachments are disabled on this instance)</span>
+					<?php
+							endif;
+						endif;
+					?>
+				</td>
 				<td id="outdated<?php echo $i; ?>">
 					<?php
 						if ($type['recommendation']) {

@@ -823,8 +823,8 @@ class Attribute extends AppModel {
 			case 'regkey|value':
 			case 'filename':
 			case 'pdb':
-            case 'windows-scheduled-task':
-            case 'whois-registrant-name':
+			case 'windows-scheduled-task':
+			case 'whois-registrant-name':
 			case 'whois-registrar':
 			case 'whois-creation-date':
 				// no newline
@@ -1268,7 +1268,7 @@ class Attribute extends AppModel {
 	}
 
 
-	public function hids($user, $type, $tags = '', $from = false, $to = false, $last = false) {
+	public function hids($user, $type, $tags = '', $from = false, $to = false, $last = false, $jobId = false) {
 		if (empty($user)) throw new MethodNotAllowedException('Could not read user.');
 		// check if it's a valid type
 		if ($type != 'md5' && $type != 'sha1' && $type != 'sha256') {
@@ -1296,7 +1296,13 @@ class Attribute extends AppModel {
 		}
 		App::uses('HidsExport', 'Export');
 		$continue = false;
-		foreach ($eventIds as $event) {
+		$eventCount = count($eventIds);
+		if ($jobId) {
+			$this->Job = ClassRegistry::init('Job');
+			$this->Job->id = $jobId;
+			if (!$this->Job->exists()) $jobId = false;
+		}
+		foreach ($eventIds as $k => $event) {
 			$conditions['AND'] = array('Attribute.to_ids' => 1, 'Event.published' => 1, 'Attribute.type' => $typeArray, 'Attribute.event_id' => $event['Event']['id']);
 			$options = array(
 					'conditions' => $conditions,
@@ -1307,6 +1313,9 @@ class Attribute extends AppModel {
 			$export = new HidsExport();
 			$rules = array_merge($rules, $export->export($items, strtoupper($type), $continue));
 			$continue = true;
+			if ($jobId && ($k % 10 == 0)) {
+				$this->Job->saveField('progress', $k * 80 / $eventCount);
+			}
 		}
 		return $rules;
 	}
@@ -1771,13 +1780,13 @@ class Attribute extends AppModel {
 	private function __resolveElementFile($element, $files) {
 		$attributes = array();
 		$errors = null;
-		$element['complex'] = false;
+		$element['complex'] = 0;
 		if ($element['malware']) {
 			$element['type'] = 'malware-sample';
-			$element['to_ids'] = true;
+			$element['to_ids'] = 1;
 		} else {
 			$element['type'] = 'attachment';
-			$element['to_ids'] = false;
+			$element['to_ids'] = 0;
 		}
 		foreach ($files as $file) {
 			if (!preg_match('@^[\w\-. ]+$@', $file['filename'])) {
@@ -2008,7 +2017,7 @@ class Attribute extends AppModel {
 		$date = new DateTime();
 		$attribute['Attribute']['timestamp'] = $date->getTimestamp();
 		if ($this->save($attribute['Attribute'])) {
-			$attribute['Event']['published'] = false;
+			$attribute['Event']['published'] = 0;
 			$attribute['Event']['timestamp'] = $date->getTimestamp();
 			$this->Event->save($attribute['Event']);
 			return true;

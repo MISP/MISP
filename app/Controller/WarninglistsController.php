@@ -106,10 +106,10 @@ class WarninglistsController extends AppController {
 		$currentState = $this->Warninglist->find('first', array('conditions' => array('id' => $id), 'recursive' => -1));
 		if (empty($currentState)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Warninglist not found.')), 'status' => 200));
 		if ($currentState['Warninglist']['enabled']) {
-			$currentState['Warninglist']['enabled'] = false;
+			$currentState['Warninglist']['enabled'] = 0;
 			$message = 'disabled';
 		} else {
-			$currentState['Warninglist']['enabled'] = true;
+			$currentState['Warninglist']['enabled'] = 1;
 			$message = 'enabled';
 		}
 		if ($this->Warninglist->save($currentState)) {
@@ -123,6 +123,8 @@ class WarninglistsController extends AppController {
 		$this->Warninglist->id = $id;
 		debug($id);
 		if (!$this->Warninglist->exists()) throw new NotFoundException('Invalid Warninglist.');
+		// DBMS interoperability: convert boolean false to integer 0 so cakephp doesn't try to insert an empty string into the database
+		if ($enable === false) $enable = 0;
 		$this->Warninglist->saveField('enabled', $enable);
 		$this->Session->setFlash('Warninglist enabled');
 		$this->redirect(array('controller' => 'warninglists', 'action' => 'view', $id));
