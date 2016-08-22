@@ -272,7 +272,6 @@ class EventShell extends AppShell
 		$this->Job->id = $id;
 		$format = $this->args[2];
 		$this->Job->saveField('progress', 1);
-		//$types = array_keys($this->Attribute->typeDefinitions);
 		$types = array('ip', 'email', 'domain', 'filename', 'filehash', 'certhash', 'software', 'url'); //Bro types
 		$typeCount = count($types);
 		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $format, true, 0750);
@@ -299,7 +298,6 @@ class EventShell extends AppShell
 				}
 				$file->close();
 				$zip->addFile($dir->pwd() . $filename, $type . '.intel');
-				//unlink($dir->pwd() . $filename);
 				$this->Job->saveField('progress', $k / $typeCount * 100);
 			}
 		}
