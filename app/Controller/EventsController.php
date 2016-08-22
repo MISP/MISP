@@ -194,7 +194,7 @@ class EventsController extends AppController {
 		);
 		$attributeHits = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array(
 				'conditions' => $conditions,
-				'fields' => array('event_id', 'comment', 'distribution', 'value1', 'value2')
+				'fields' => array('event_id', 'comment', 'distribution', 'value1', 'value2') 
 		));
 		// rearrange the data into an array where the keys are the event IDs
 		$eventsWithAttributeHits = array();
@@ -567,9 +567,6 @@ class EventsController extends AppController {
 			$this->set('events', $events);
 		} else {
 			$events = $this->paginate();
-			if (count($events) == 1 && isset($this->passedArgs['searchall'])) {
-				$this->redirect(array('controller' => 'events', 'action' => 'view', $events[0]['Event']['id']));
-			}
 			if (Configure::read('MISP.showCorrelationsOnIndex')) $this->Event->attachCorrelationCountToEvents($this->Auth->user(), $events);
 			$this->set('events', $events);
 		}
@@ -869,6 +866,7 @@ class EventsController extends AppController {
 		if (!$this->Event->exists()) {
 			throw new NotFoundException(__('Invalid event.'));
 		}
+
 		$conditions = array('eventid' => $id);
 		if (!$this->_isRest()) {
 			$conditions['includeAllTags'] = true;
@@ -877,9 +875,6 @@ class EventsController extends AppController {
 		}
 		if (isset($this->params['named']['deleted']) && $this->params['named']['deleted']) {
 			$conditions['deleted'] = 1;
-		}
-		if (isset($this->params['named']['public']) && $this->params['named']['public']) {
-			$conditions['distribution'] = array(3, 5);
 		}
 		$results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
 		if (empty($results)) throw new NotFoundException('Invalid event');
@@ -1159,14 +1154,13 @@ class EventsController extends AppController {
 			if (!empty($this->data)) {
 				$ext = '';
 				if (isset($this->data['Event']['submittedfile'])) {
-					$ext = pathinfo($this->data['Event']['submittedfile']['name'], PATHINFO_EXTENSION);
+					App::uses('File', 'Utility');
+					$file = new File($this->data['Event']['submittedfile']['name']);
+					$ext = $file->ext();
 				}
-				if (isset($this->data['Event']['submittedfile']) && (strtolower($ext) != 'xml' && strtolower($ext) != 'json') && $this->data['Event']['submittedfile']['size'] > 0 &&
-				is_uploaded_file($this->data['Event']['submittedfile']['tmp_name'])) {
-					$log = ClassRegistry::init('Log');
-					$log->createLogEntry($this->Auth->user(), 'file_upload', 'Event', 0, 'MISP export file upload failed', 'File details: ' . json_encode($this->data['Event']['submittedfile']));
+				if (isset($this->data['Event']['submittedfile']) && ($ext != 'xml' && $ext != 'json') && $this->data['Event']['submittedfile']['size'] > 0 &&
+				is_uploaded_file($this->data['Event']['submittedxml']['tmp_name'])) {
 					$this->Session->setFlash(__('You may only upload MISP XML or MISP JSON files.'));
-					throw new MethodNotAllowedException('File upload failed or file does not have the expected extension (.xml / .json).');
 				}
 				if (isset($this->data['Event']['submittedfile'])) {
 					if (Configure::read('MISP.take_ownership_xml_import')
@@ -1544,7 +1538,6 @@ class EventsController extends AppController {
 	}
 
 	public function export() {
-		if ($this->_isSiteAdmin()) $this->Session->setFlash('Warning, you are logged in as a site admin, any export that you generate will contain the FULL UNRESTRICTED data-set. If you would like to generate an export for your own organisation, please log in with a different user.');
 		// Check if the background jobs are enabled - if not, fall back to old export page.
 		if (Configure::read('MISP.background_jobs')) {
 			$now = time();
@@ -1557,7 +1550,7 @@ class EventsController extends AppController {
 			} else {
 				$useOrg = $this->Auth->user('Organisation')['name'];
 				$useOrg_id = $this->Auth->user('org_id');
-				$conditions['OR'][] = array('id' => $this->Event->fetchEventIds($this->Auth->user(), false, false, false, true));
+				$conditions['OR'][] = array('id' => $this->Event->fetchEventIds($this->Auth->user, false, false, true, true));
 			}
 			$this->Event->recursive = -1;
 			$newestEvent = $this->Event->find('first', array(
@@ -1565,18 +1558,8 @@ class EventsController extends AppController {
 				'fields' => 'timestamp',
 				'order' => 'Event.timestamp DESC',
 			));
-			$newestEventPublished = $this->Event->find('first', array(
-				'conditions' => array('AND' => array($conditions, array('published' => 1))),
-				'fields' => 'timestamp',
-				'order' => 'Event.timestamp DESC',
-			));
 			$this->loadModel('Job');
 			foreach ($this->Event->export_types as $k => $type) {
-				if ($type['requiresPublished']) {
-					$tempNewestEvent = $newestEventPublished;
-				} else {
-					$tempNewestEvent = $newestEvent;
-				}
 				$job = $this->Job->find('first', array(
 						'fields' => array('id', 'progress'),
 						'conditions' => array(
@@ -1593,20 +1576,12 @@ class EventsController extends AppController {
 					$file = new File($dir->pwd() . DS . 'misp.' . $k . '.' . $useOrg . $type['extension']);
 				}
 				if (!$file->readable()) {
-					if (empty($tempNewestEvent)) {
-						$lastModified = 'No valid events';
-						$this->Event->export_types[$k]['recommendation'] = 0;
-					} else {
-						$lastModified = 'N/A';
-						$this->Event->export_types[$k]['recommendation'] = 1;
-					}
+					$lastModified = 'N/A';
+					$this->Event->export_types[$k]['recommendation'] = 1;
 				} else {
 					$fileChange = $file->lastChange();
 					$lastModified = $this->__timeDifference($now, $fileChange);
-					if (empty($tempNewestEvent) || $fileChange > $tempNewestEvent['Event']['timestamp']) {
-						if (empty($tempNewestEvent)) {
-							$lastModified = 'No valid events';
-						}
+					if ($fileChange > $newestEvent['Event']['timestamp']) {
 						$this->Event->export_types[$k]['recommendation'] = 0;
 					} else {
 						$this->Event->export_types[$k]['recommendation'] = 1;
@@ -1930,9 +1905,8 @@ class EventsController extends AppController {
 	public function _addGfiZip($id) {
 		if (!empty($this->data) && $this->data['Event']['submittedgfi']['size'] > 0 &&
 				is_uploaded_file($this->data['Event']['submittedgfi']['tmp_name'])) {
-			App::uses('FileAccessTool', 'Tools');
-			$fileAccessTool = new FileAccessTool();
-			$zipData = $fileAccessTool->readFromFile($this->data['Event']['submittedgfi']['tmp_name'], $this->data['Event']['submittedgfi']['size']);
+			App::uses('FileAccess', 'Tools');
+			$zipData = FileAccess::readFromFile($this->data['Event']['submittedgfi']['tmp_name'], $this->data['Event']['submittedgfi']['size']);
 
 			// write
 			$rootDir = APP . "files" . DS . $id . DS;
@@ -1956,7 +1930,7 @@ class EventsController extends AppController {
 			// open the xml
 			$xmlFileName = 'analysis.xml';
 			$xmlFilePath = $rootDir . DS . 'Analysis' . DS . $xmlFileName;
-			$xmlFileData = $fileAccessTool->readFromFile($xmlFilePath);
+			$xmlFileData = FileAccess::readFromFile($xmlFilePath);
 
 			// read XML
 			$this->_readGfiXML($xmlFileData, $id);
@@ -1966,9 +1940,8 @@ class EventsController extends AppController {
 	public function _addIOCFile($id) {
 		if (!empty($this->data) && $this->data['Event']['submittedioc']['size'] > 0 &&
 				is_uploaded_file($this->data['Event']['submittedioc']['tmp_name'])) {
-			App::uses('FileAccessTool', 'Tools');
-			$fileAccessTool = new FileAccessTool();
-			$iocData = $fileAccessTool->readFromFile($this->data['Event']['submittedioc']['tmp_name'], $this->data['Event']['submittedioc']['size']);
+			App::uses('FileAccess', 'Tools');
+			$iocData = FileAccess::readFromFile($this->data['Event']['submittedioc']['tmp_name'], $this->data['Event']['submittedioc']['size']);
 
 			// write
 			$rootDir = APP . "files" . DS . $id . DS;
@@ -1985,7 +1958,7 @@ class EventsController extends AppController {
 
 			// open the xml
 			$xmlFilePath = $destPath . DS . $this->data['Event']['submittedioc']['name'];
-			$xmlFileData = $fileAccessTool->readFromFile($xmlFilePath, $this->data['Event']['submittedioc']['size']);
+			$xmlFileData = FileAccess::readFromFile($xmlFilePath, $this->data['Event']['submittedioc']['size']);
 
 			// Load event and populate the event data
 			$this->Event->id = $id;
@@ -2051,8 +2024,8 @@ class EventsController extends AppController {
 	}
 
 	public function _addMISPExportFile($ext, $take_ownership = false) {
-		App::uses('FileAccessTool', 'Tools');
-		$data = (new FileAccessTool())->readFromFile($this->data['Event']['submittedfile']['tmp_name'], $this->data['Event']['submittedfile']['size']);
+		App::uses('FileAccess', 'Tools');
+		$data = FileAccess::readFromFile($this->data['Event']['submittedfile']['tmp_name'], $this->data['Event']['submittedfile']['size']);
 
 		if ($ext == 'xml') {
 			App::uses('Xml', 'Utility');
@@ -2728,11 +2701,6 @@ class EventsController extends AppController {
 		if (!$this->Event->EventTag->Tag->exists()) {
 			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200));
 		}
-		$tag = $this->Event->EventTag->Tag->find('first', array(
-			'conditions' => array('Tag.id' => $tag_id),
-			'recursive' => -1,
-			'fields' => array('Tag.name')
-		));
 		$found = $this->Event->EventTag->find('first', array(
 			'conditions' => array(
 				'event_id' => $id,
@@ -2745,7 +2713,7 @@ class EventsController extends AppController {
 		$this->Event->EventTag->create();
 		if ($this->Event->EventTag->save(array('event_id' => $id, 'tag_id' => $tag_id))) {
 			$log = ClassRegistry::init('Log');
-			$log->createLogEntry($this->Auth->user(), 'tag', 'Event', $id, 'Attached tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" to event (' . $id . ')', 'Event (' . $id . ') tagged as Tag (' . $tag_id . ')');
+			$log->createLogEntry($this->Auth->user(), 'tag', 'Event', $id, 'Attached tag (' . $tag_id . ') to event (' . $id . ')', 'Event (' . $id . ') tagged as Tag (' . $tag_id . ')');
 			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Tag added.')), 'status'=>200));
 		} else {
 			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Tag could not be added.')),'status'=>200));
@@ -2789,14 +2757,7 @@ class EventsController extends AppController {
 		));
 		$this->autoRender = false;
 		if (empty($eventTag)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid event - tag combination.')),'status'=>200));
-		$tag = $this->Event->EventTag->Tag->find('first', array(
-			'conditions' => array('Tag.id' => $tag_id),
-			'recursive' => -1,
-			'fields' => array('Tag.name')
-		));
 		if ($this->Event->EventTag->delete($eventTag['EventTag']['id'])) {
-			$log = ClassRegistry::init('Log');
-			$log->createLogEntry($this->Auth->user(), 'tag', 'Event', $id, 'Removed tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" from event (' . $id . ')', 'Event (' . $id . ') untagged of Tag (' . $tag_id . ')');
 			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Tag removed.')), 'status'=>200));
 		} else {
 			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Tag could not be removed.')),'status'=>200));
@@ -2885,22 +2846,10 @@ class EventsController extends AppController {
 					if ($attribute['type'] == 'ip-src/ip-dst') {
 						$types = array('ip-src', 'ip-dst');
 					} else if ($attribute['type'] == 'malware-sample') {
-						App::uses('FileAccessTool', 'Tools');
-						$tmpdir = Configure::read('MISP.tmpdir') ? Configure::read('MISP.tmpdir') : '/tmp';
-						$tempFile = explode('|', $attribute['data']);
-						if (!preg_match('/^[a-z0-9]*$/i', $tempFile[0])) {
-							throw new MethodNotAllowedException('Invalid filename, stop tampering with it.');
-						}
-						$attribute['data'] = (new FileAccessTool())->readFromFile($tmpdir . '/' . $tempFile[0], $tempFile[1]);
-						unlink($tmpdir . '/' . $tempFile[0]);
 						$result = $this->Event->Attribute->handleMaliciousBase64($id, $attribute['value'], $attribute['data'], array('md5', 'sha1', 'sha256'), $objectType == 'ShadowAttribute' ? true : false);
-						if (!$result['success']) {
-							$failed++;
-							continue;
-						}
-						$attribute['data'] = $result['data'];
 						$shortValue = $attribute['value'];
 						$attribute['value'] = $shortValue . '|' . $result['md5'];
+						$attribute['data'] = $result['data'];
 						$additionalHashes = array('sha1', 'sha256');
 						foreach ($additionalHashes as $hash) {
 							$temp = $attribute;
@@ -3217,66 +3166,9 @@ class EventsController extends AppController {
 				'checkbox' => false
 			);
 		}
-		$this->loadModel('Module');
-		$modules = $this->Module->getEnabledModules(false, 'Export');
-		if (is_array($modules) && !empty($modules)) {
-			foreach ($modules['modules'] as $module) {
-				$exports[$module['name']] = array(
-						'url' => '/events/exportModule/' . $module['name'] . '/' . $id,
-						'text' => Inflector::humanize($module['name']),
-						'requiresPublished' => true,
-						'checkbox' => false,
-				);
-			}
-		}
 		$this->set('exports', $exports);
 		$this->set('id', $id);
 		$this->render('ajax/exportChoice');
-	}
-
-	public function importChoice($id) {
-		if (!is_numeric($id)) throw new MethodNotAllowedException('Invalid ID');
-		$event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
-		if (empty($event)) throw new NotFoundException('Event not found or you are not authorised to view it.');
-		$event = $event[0];
-		$imports = array(
-				'freetext' => array(
-						'url' => '/events/freeTextImport/' . $id,
-						'text' => 'Freetext Import',
-						'ajax' => true,
-						'target' => 'popover_form'
-				),
-				'template' => array(
-						'url' => '/templates/templateChoices/' . $id,
-						'text' => 'Populate using a Template',
-						'ajax' => true,
-						'target' => 'popover_form'
-				),
-				'OpenIOC' => array(
-						'url' => '/events/addIOC/' . $id,
-						'text' => 'OpenIOC Import',
-						'ajax' => false,
-				),
-				'ThreatConnect' => array(
-						'url' => '/attributes/add_threatconnect/' . $id,
-						'text' => 'ThreatConnect Import',
-						'ajax' => false
-				)
-		);
-		$this->loadModel('Module');
-		$modules = $this->Module->getEnabledModules(false, 'Import');
-		if (is_array($modules) && !empty($modules)) {
-			foreach ($modules['modules'] as $k => $module) {
-				$imports[$module['name']] = array(
-						'url' => '/events/importModule/' . $module['name'] . '/' . $id,
-						'text' => Inflector::humanize($module['name']),
-						'ajax' => false
-				);
-			}
-		}
-		$this->set('imports', $imports);
-		$this->set('id', $id);
-		$this->render('ajax/importChoice');
 	}
 
 	// API for pushing samples to MISP
@@ -3292,7 +3184,7 @@ class EventsController extends AppController {
 			}
 		}
 		$parameter_options = array(
-				'distribution' => array('valid_options' => array(0, 1, 2, 3, 5), 'default' => 0),
+				'distribution' => array('valid_options' => array(0, 1, 2, 3), 'default' => 0),
 				'threat_level_id' => array('valid_options' => array(1, 2, 3, 4), 'default' => 4),
 				'analysis' => array('valid_options' => array(0, 1, 2), 'default' => 0),
 				'info' => array('default' =>  'Malware samples uploaded on ' . date('Y-m-d')),
@@ -3362,7 +3254,6 @@ class EventsController extends AppController {
 			$this->Event->saveField('published', 0);
 		} else {
 			$this->Event->create();
-			if ($data['distribution'] == 5) throw new BadRequestException('Distribution level 5 is not supported when uploading a sample without passing an event ID. Distribution level 5 is meant to take on the distribution level of an existing event.');
 			$result = $this->Event->save(
 				array(
 					'info' => $data['info'],
@@ -3720,15 +3611,57 @@ class EventsController extends AppController {
 			if (!empty($options)) $data['config'] = $options;
 			$data = json_encode($data);
 			$result = $this->Module->queryModuleServer('/query', $data);
-			if (!$result) throw new MethodNotAllowedException('Enrichment service not reachable.');
+			if (!$result) return 'Enrichment service not reachable.';
 			if (isset($result['error'])) $this->Session->setFlash($result['error']);
 			if (!is_array($result)) throw new Exception($result);
-			$resultArray = $this->Event->handleModuleResult($result, $attribute[0]['Attribute']['event_id']);
-			if (isset($result['comment']) && $result['comment'] != "") {
-				$importComment = $result['comment'];
-			}
-			else {
-				$importComment = 'Enriched via the ' . $module . ' module';
+			$resultArray = array();
+			$freetextResults = array();
+			App::uses('ComplexTypeTool', 'Tools');
+			$complexTypeTool = new ComplexTypeTool();
+			if (isset($result['results']) && !empty($result['results'])) {
+				foreach ($result['results'] as $k => &$r) {
+					if (!is_array($r['values'])) {
+						$r['values'] = array($r['values']);
+					}
+					foreach ($r['values'] as &$value) {
+						if (!is_array($r['values']) || !isset($r['values'][0])) {
+							$r['values'] = array($r['values']);
+						}
+					}
+					foreach ($r['values'] as &$value) {
+							if (in_array('freetext', $r['types'])) {
+								if (is_array($value)) $value = json_encode($value);
+								$freetextResults = array_merge($freetextResults, $complexTypeTool->checkComplexRouter($value, 'FreeText'));
+								if (!empty($freetextResults)) {
+									foreach ($freetextResults as &$ft) {
+										$temp = array();
+										foreach ($ft['types'] as $type) {
+											$temp[$type] = $type;
+										}
+										$ft['types'] = $temp;
+									}
+								}
+								$r['types'] = array_diff($r['types'], array('freetext'));
+								// if we just removed the only type in the result then more on to the next result
+								if (empty($r['types'])) continue 2;
+								$r['types'] = array_values($r['types']);
+						}
+					}
+					foreach ($r['values'] as &$value) {
+						$temp = array(
+								'event_id' => $attribute[0]['Attribute']['event_id'],
+								'types' => $r['types'],
+								'default_type' => $r['types'][0],
+								'comment' => isset($r['comment']) ? $r['comment'] : false,
+								'to_ids' => isset($r['to_ids']) ? $r['to_ids'] : false,
+								'value' => $value
+						);
+						if (isset($r['data'])) $temp['data'] = $r['data'];
+						$resultArray[] = $temp;
+					}
+
+				}
+				$resultArray = array_merge($resultArray, $freetextResults);
 			}
 			$typeCategoryMapping = array();
 			foreach ($this->Event->Attribute->categoryDefinitions as $k => $cat) {
@@ -3743,126 +3676,15 @@ class EventsController extends AppController {
 						'order' => false
 				);
 				$result['related'] = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $options);
-				if (isset($result['data'])) {
-					App::uses('FileAccessTool', 'Tools');
-					$fileAccessTool = new FileAccessTool();
-					$tmpdir = Configure::read('MISP.tmpdir') ? Configure::read('MISP.tmpdir') : '/tmp';
-					$tempFile = $fileAccessTool->createTempFile($tmpdir, $prefix = 'MISP');
-					$fileAccessTool->writeToFile($tempFile, $result['data']);
-					$result['data'] = basename($tempFile) . '|' . filesize($tempFile);
-				}
 			}
-
 			$this->set('event', array('Event' => $attribute[0]['Event']));
 			$this->set('resultArray', $resultArray);
 			$this->set('typeList', array_keys($this->Event->Attribute->typeDefinitions));
 			$this->set('defaultCategories', $this->Event->Attribute->defaultCategories);
 			$this->set('typeCategoryMapping', $typeCategoryMapping);
 			$this->set('title', 'Enrichment Results');
-			$this->set('importComment', $importComment);
+			$this->set('importComment', 'Enriched via the ' . $module . ' module');
 			$this->render('resolved_attributes');
 		}
-	}
-
-	public function importModule($module, $eventId) {
-		$this->loadModel('Module');
-		$module = $this->Module->getEnabledModule($module, 'Import');
-		if (!is_array($module)) throw new MethodNotAllowedException($module);
-		if (!isset($module['mispattributes']['inputSource'])) $module['mispattributes']['inputSource'] = array('paste');
-		if ($this->request->is('post')) {
-			$fail = false;
-			$modulePayload = array(
-					'module' => $module['name']
-			);
-			foreach ($module['mispattributes']['userConfig'] as $configName => $config) {
-				if (!$fail) {
-					$validation = call_user_func_array(array($this->Module, $this->Module->configTypes[$config['type']]['validation']), array($this->request->data['Event']['config'][$configName]));
-					if ($validation !== true) {
-						$fail = ucfirst($configName) . ': ' . $validation;
-					} else {
-						if (isset($config['regex']) && !empty($config['regex'])) {
-							$fail = preg_match($config['regex'], $this->request->data['Event']['config'][$configName]) ? false : ucfirst($configName) . ': ' . 'Invalid setting' . ($config['errorMessage'] ? ' - ' . $config['errorMessage'] : '');
-							if (!empty($fail)) {
-								$modulePayload['config'][$configName] = $this->request->data['Event']['config'][$configName];
-							}
-						} else {
-							$modulePayload['config'][$configName] = $this->request->data['Event']['config'][$configName];
-						}
-					}
-				}
-			}
-			if (!$fail) {
-				if (!isset($this->request->data['Event']['source'])) {
-					if (in_array('paste', $module['mispattributes']['inputSource'])) $this->request->data['Event']['source'] = '0';
-					else $this->request->data['Event']['source'] = '1';
-				}
-				if ($this->request->data['Event']['source'] == '1') {
-					if (!isset($this->request->data['Event']['fileupload']) || empty($this->request->data['Event']['fileupload'])) {
-						$fail = 'Invalid file upload.';
-					} else {
-						$fileupload = $this->request->data['Event']['fileupload'];
-						$tmpfile = new File($fileupload['tmp_name']);
-						if ((isset($fileupload['error']) && $fileupload['error'] == 0) || (!empty($fileupload['tmp_name']) && $fileupload['tmp_name'] != 'none') && is_uploaded_file($tmpfile->path)) {
-							$filename = basename($fileupload['name']);
-							App::uses('FileAccessTool', 'Tools');
-							$modulePayload['data'] = (new FileAccessTool())->readFromFile($fileupload['tmp_name'], $fileupload['size']);
-						} else {
-							$fail = 'Invalid file upload.';
-						}
-					}
-				} else {
-					$modulePayload['data'] = $this->request->data['Event']['paste'];
-				}
-				if (!$fail) {
-					$modulePayload['data'] = base64_encode($modulePayload['data']);
-					$result = $this->Module->queryModuleServer('/query', json_encode($modulePayload, true), false, $moduleFamily = 'Import');
-					if (!$result) throw new Exception('Import service not reachable.');
-					if (isset($result['error'])) $this->Session->setFlash($result['error']);
-					if (!is_array($result)) throw new Exception($result);
-					$resultArray = $this->Event->handleModuleResult($result, $eventId);
-					if (isset($result['comment']) && $result['comment'] != "") {
-						$importComment = $result['comment'];
-					}
-					else {
-						$importComment = 'Enriched via the ' . $module['name'] . ' module';
-					}
-					$typeCategoryMapping = array();
-					foreach ($this->Event->Attribute->categoryDefinitions as $k => $cat) {
-						foreach ($cat['types'] as $type) {
-							$typeCategoryMapping[$type][$k] = $k;
-						}
-					}
-					foreach ($resultArray as &$result) {
-						$options = array(
-								'conditions' => array('OR' => array('Attribute.value1' => $result['value'], 'Attribute.value2' => $result['value'])),
-								'fields' => array('Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.comment'),
-								'order' => false
-						);
-						$result['related'] = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $options);
-					}
-					$this->set('event', array('Event' => array('id' => $eventId)));
-					$this->set('resultArray', $resultArray);
-					$this->set('typeList', array_keys($this->Event->Attribute->typeDefinitions));
-					$this->set('defaultCategories', $this->Event->Attribute->defaultCategories);
-					$this->set('typeCategoryMapping', $typeCategoryMapping);
-					$this->set('title', 'Enrichment Results');
-					$this->set('importComment', $importComment);
-					$this->render('resolved_attributes');
-				}
-			}
-			$this->Session->setFlash($fail);
-		} else {
-		}
-		$this->set('configTypes', $this->Module->configTypes);
-		$this->set('module', $module);
-		$this->set('eventId', $eventId);
-	}
-
-	public function exportModule($module, $id) {
-		$result = $this->Event->export($this->Auth->user(), $module, array('eventid' => $id));
-		$this->response->body(base64_decode($result['data']));
-		$this->response->type($result['response']);
-		$this->response->download('misp.event.' . $id . '.' . $module . '.export.' . $result['extension']);
-		return $this->response;
 	}
 }

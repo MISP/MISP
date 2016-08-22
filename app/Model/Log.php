@@ -45,8 +45,7 @@ class Log extends AppModel {
 							'accept_delegation',
 							'request_delegation',
 							'merge',
-							'undelete',
-							'file_upload'
+							'undelete'
 						)),
 			'message' => 'Options : ...'
 		)
@@ -96,7 +95,7 @@ class Log extends AppModel {
 		$validDates = $this->find('all', array(
 				'fields' => array('DISTINCT UNIX_TIMESTAMP(DATE(created)) AS Date', 'count(id) AS count'),
 				'conditions' => $conditions,
-				'group' => array('Date'),
+				'group' => array('DATE(created)'),
 				'order' => array('Date')
 		));
 		$data = array();

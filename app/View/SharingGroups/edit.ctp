@@ -40,15 +40,15 @@
 		<div id="page3_content" class="multi-page-form-div tabContent" style="display:none;width:544px;">
 		<?php
 			$serverDivVisibility = "";
-			$checked = "";
-			if ($sharingGroup['SharingGroup']['roaming']) {
+			$checked = "checked";
+			if (empty($sharingGroup['SharingGroupServer'])) {
 				$serverDivVisibility = 'style="display:none;"';
-				$checked = "checked";
+				$checked = "";
 			}
 		?>
 			<div style="display:block;">
-				<input type="checkbox" style="float:left;" title="Enable roaming mode for this sharing group. Roaming mode will allow the sharing group to be passed to any instance where the remote recipient is contained in the organisation list. It is preferred to list the recipient instances instead." <?php echo $checked; ?> id="SharingGroupRoaming"></input>
-				<label for="SharingGroupRoaming" style="padding-left:20px;"><b>Enable roaming mode</b> for this sharing group (pass the event to any connected instance where the sync connection is tied to an organisation contained in the SG organisation list).</label>
+				<input type="checkbox" style="float:left;" title="Active sharing groups can be selected by users of the local instance when creating events. Generally, sharing groups received through synchronisation will have this disabled until manually enabled." <?php echo $checked; ?> id="SharingGroupLimitservers"></input>
+				<label for="SharingGroupLimitservers" style="padding-left:20px;">Limit instances to which data in this sharing group should be pushed to (keep in mind that eligible organisations can still pull data).</label>
 			</div>
 			<div id="serverList" <?php echo $serverDivVisibility; ?>>
 				<div class="tabMenuFixedContainer">
@@ -69,9 +69,9 @@
 	</fieldset>
 	<div id="page4_content" class="multi-page-form-div tabContent" style="display:none;width:544px;">
 		<p><span class="bold">General: </span>You are about to create the <span id="summarytitle" class="red bold"></span> sharing group, which is intended to be releasable to <span id="summaryreleasable" class="red bold"></span>. </p>
-		<p id="localText"><span class="bold">Local organisations: </span>It will be visible to <span id="summarylocal" class="red bold"></span>, from which <span id="summarylocalextend" class="red bold"></span> can extend the sharing group. </p>
-		<p id="externalText"><span class="bold">External organisations: </span>It will also be visible to <span id="summaryexternal" class="red bold"></span>, out of which <span id="summaryexternalextend" class="red bold"></span> can extend the sharing group.</p>
-		<p id="synchronisationText"><span class="bold">Synchronisation: </span>Furthermore, events are automatically pushed to: <span id="summaryservers" class="red bold"></span></p>
+		<p><span class="bold">Local organisations: </span>It will be visible to <span id="summarylocal" class="red bold"></span>, from which <span id="summarylocalextend" class="red bold"></span> can extend the sharing group. </p>
+		<p><span class="bold">External organisations: </span>It will also be visible to <span id="summaryexternal" class="red bold"></span>, out of which <span id="summaryexternalextend" class="red bold"></span> can extend the sharing group.</p>
+		<p><span class="bold">Synchronisation: </span>Furthermore, events are automatically pushed to: <span id="summaryservers" class="red bold"></span></p>
 		<p>You can edit this information by going back to one of the previous pages, or if you agree with the above mentioned information, click Submit to create the Sharing group.</p>
 		<?php
 			echo $this->Form->create('SharingGroup');
@@ -158,11 +158,11 @@
 		sharingGroupPopulateOrganisations();
 		sharingGroupPopulateServers();
 	});
-	$('#SharingGroupRoaming').change(function() {
+	$('#SharingGroupLimitservers').change(function() {
 		if ($(this).is(":checked")) {
-			$('#serverList').hide();
-		} else {
 			$('#serverList').show();
+		} else {
+			$('#serverList').hide();
 		}
 	});
 

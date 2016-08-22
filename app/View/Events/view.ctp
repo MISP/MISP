@@ -165,46 +165,46 @@
 				<?php endif;?>
 			</dl>
 		</div>
-		<div class="related span4">
-			<?php if (!empty($event['RelatedEvent'])):?>
-				<h3>Related Events</h3>
-				<ul class="inline">
-					<?php foreach ($event['RelatedEvent'] as $relatedEvent): ?>
-					<li>
-					<?php
-					$relatedData = array('Orgc' => $relatedEvent['Orgc']['name'], 'Date' => $relatedEvent['Event']['date'], 'Info' => $relatedEvent['Event']['info']);
-					$popover = '';
-					foreach ($relatedData as $k => $v) {
-						$popover .= '<span class=\'bold\'>' . h($k) . '</span>: <span class="blue">' . h($v) . '</span><br />';
+	<?php if (!empty($event['RelatedEvent'])):?>
+	<div class="related span4">
+		<h3>Related Events</h3>
+		<ul class="inline">
+			<?php foreach ($event['RelatedEvent'] as $relatedEvent): ?>
+			<li>
+			<?php
+			$relatedData = array('Orgc' => $relatedEvent['Orgc']['name'], 'Date' => $relatedEvent['Event']['date'], 'Info' => $relatedEvent['Event']['info']);
+			$popover = '';
+			foreach ($relatedData as $k => $v) {
+				$popover .= '<span class=\'bold\'>' . h($k) . '</span>: <span class="blue">' . h($v) . '</span><br />';
+			}
+			?>
+			<div data-toggle="popover" data-content="<?php echo h($popover); ?>" data-trigger="hover">
+			<?php
+			$linkText = $relatedEvent['Event']['date'] . ' (' . $relatedEvent['Event']['id'] . ')';
+			if ($relatedEvent['Event']['org_id'] == $me['org_id']) {
+				echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id'], true, $event['Event']['id']), array('style' => 'color:red;'));
+			} else {
+				echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id'], true, $event['Event']['id']));
+			}
+			?>
+			</div></li>
+			<?php endforeach; ?>
+		</ul>
+		<?php if (!empty($event['Event']['warnings'])): ?>
+			<div class="warning_container" style="width:80%;">
+				<h4 class="red">Warning: Potential false positives</h4>
+				<?php
+					$total = count($event['Event']['warnings']);
+					$current = 1;
+					foreach ($event['Event']['warnings'] as $id => $name) {
+						echo '<a href="' . $baseurl . '/warninglists/view/' . $id . '">' . h($name) . '</a>' . ($current == $total ? '' : '<br />');
+						$current++;
 					}
-					?>
-					<div data-toggle="popover" data-content="<?php echo h($popover); ?>" data-trigger="hover">
-					<?php
-					$linkText = $relatedEvent['Event']['date'] . ' (' . $relatedEvent['Event']['id'] . ')';
-					if ($relatedEvent['Event']['org_id'] == $me['org_id']) {
-						echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id'], true, $event['Event']['id']), array('style' => 'color:red;'));
-					} else {
-						echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id'], true, $event['Event']['id']));
-					}
-					?>
-					</div></li>
-					<?php endforeach; ?>
-				</ul>
-			<?php endif; ?>
-			<?php if (!empty($event['Event']['warnings'])): ?>
-				<div class="warning_container" style="width:80%;">
-					<h4 class="red">Warning: Potential false positives</h4>
-					<?php
-						$total = count($event['Event']['warnings']);
-						$current = 1;
-						foreach ($event['Event']['warnings'] as $id => $name) {
-							echo '<a href="' . $baseurl . '/warninglists/view/' . $id . '">' . h($name) . '</a>' . ($current == $total ? '' : '<br />');
-							$current++;
-						}
-					?>
-				</div>
-			<?php endif; ?>
-		</div>
+				?>
+			</div>
+		<?php endif; ?>
+	</div>
+	<?php endif; ?>
 	</div>
 	<br />
 	<div class="toggleButtons">

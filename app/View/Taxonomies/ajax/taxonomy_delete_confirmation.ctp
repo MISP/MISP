@@ -12,10 +12,10 @@
 	<table>
 		<tr>
 			<td style="vertical-align:top">
-				<?php
+				<?php 
 					echo $this->Form->button('Yes', array(
 							'type' => 'submit',
-							'class' => 'btn btn-primary'
+							'class' => 'btn btn-primary' 
 					));
 				?>
 			</td>

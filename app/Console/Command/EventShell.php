@@ -54,45 +54,13 @@ class EventShell extends AppShell
 		$file->write('<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL . '<response>');
 		if (!empty($eventIds)) {
 			foreach ($eventIds as $k => $eventId) {
-				$temp = $this->Event->fetchEvent($user, array('eventid' => $eventId['Event']['id'], 'includeAttachments' => Configure::read('MISP.cached_attachments')));
+				$temp = $this->Event->fetchEvent($user, array('eventid' => $eventId['Event']['id']));
 				$file->append($converter->event2XML($temp[0], $user['Role']['perm_site_admin']) . PHP_EOL);
 				$this->Job->saveField('progress', ($k+1) / $eventCount *100);
 			}
 		}
 		$file->append('<xml_version>' . $this->Event->mispVersion . '</xml_version>');
 		$file->append('</response>' . PHP_EOL);
-		$file->close();
-		$timeDelta = (time()-$timeStart);
-		$this->Job->saveField('progress', 100);
-		$this->Job->saveField('message', 'Job done. (in '.$timeDelta.'s)');
-		$this->Job->saveField('date_modified', date("y-m-d H:i:s"));
-	}
-
-	public function cachejson() {
-		$timeStart = time();
-		$userId = $this->args[0];
-		$id = $this->args[1];
-		$user = $this->User->getAuthUser($userId);
-		$this->Job->id = $id;
-		// TEMP: change to passing an options array with the user!!
-		$eventIds = $this->Event->fetchEventIds($user);
-		$eventCount = count($eventIds);
-		$dir = new Folder(APP . 'tmp/cached_exports/json', true, 0750);
-		if ($user['Role']['perm_site_admin']) {
-			$file = new File($dir->pwd() . DS . 'misp.json' . '.ADMIN.json');
-		} else {
-			$file = new File($dir->pwd() . DS . 'misp.json' . '.' . $user['Organisation']['name'] . '.json');
-		}
-		App::uses('JSONConverterTool', 'Tools');
-		$converter = new JSONConverterTool();
-		$file->write('{"response":[');
-		foreach ($eventIds as $k => $eventId) {
-			$result = $this->Event->fetchEvent($user, array('eventid' => $eventId['Event']['id'], 'includeAttachments' => Configure::read('MISP.cached_attachments')));
-			$file->append($converter->event2JSON($result[0]));
-			if ($k < count($eventIds) -1 ) $file->append(',');
-			$this->Job->saveField('progress', ($k+1) / $eventCount *100);
-		}
-		$file->append(']}');
 		$file->close();
 		$timeDelta = (time()-$timeStart);
 		$this->Job->saveField('progress', 100);
@@ -131,7 +99,7 @@ class EventShell extends AppShell
 		$this->Job->id = $id;
 		$extra = $this->args[2];
 		$this->Job->saveField('progress', 1);
-		$rules = $this->Attribute->hids($user, $extra, '', false, false, false, $id);
+		$rules = $this->Attribute->hids($user, $extra);
 		$this->Job->saveField('progress', 80);
 		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $extra, true, 0750);
 		if ($user['Role']['perm_site_admin']) {
@@ -140,12 +108,8 @@ class EventShell extends AppShell
 			$file = new File($dir->pwd() . DS . 'misp.' . $extra . '.' . $user['Organisation']['name'] . '.txt');
 		}
 		$file->write('');
-		if (!empty($rules)) {
-			foreach ($rules as $rule) {
-				$file->append($rule . PHP_EOL);
-			}
-		} else {
-			$file->append("No exportable " . $type . "s found. " . PHP_EOL);
+		foreach ($rules as $rule) {
+			$file->append($rule . PHP_EOL);
 		}
 		$file->close();
 		$timeDelta = (time()-$timeStart);
@@ -317,31 +281,26 @@ class EventShell extends AppShell
 		} else {
 			$zipname = DS . 'misp.bro.' . $user['Organisation']['name'] . '.intel.zip';
 		}
+		$zip = new ZipArchive();
+		if ($zip->open($dir->pwd() . $zipname, ZIPARCHIVE::CREATE) === TRUE) {
+			foreach ($types as $k => $type) {
 
-		$zip = new File($dir->pwd() . $zipname);
-		foreach ($types as $k => $type) {
-			$final = $this->Attribute->bro($user, $type);
-			$filename = $type . '.intel';
-
-			$file = new File($dir->pwd() . $filename);
-			$file->write($broHeader);
-			foreach ($final as $attribute) {
-				$file->append($attribute . "\n");
+				$final = $this->Attribute->bro($user, $type);
+				if ($user['Role']['perm_site_admin']) {
+					$filename = DS . 'misp.' . $type . '.ADMIN.intel';
+				} else {
+					$filename = DS . 'misp.' . $type . '.' . $user['Organisation']['name'] . '.intel';
+				}
+				$file = new File($dir->pwd() . $filename);
+				$file->write($broHeader);
+				foreach ($final as $attribute) {
+					$file->append($attribute . "\n");
+				}
+				$file->close();
+				$zip->addFile($dir->pwd() . $filename, $type . '.intel');
+				$this->Job->saveField('progress', $k / $typeCount * 100);
 			}
-			$file->close();
-
-			$execRetval = '';
-			$execOutput = array();
-			exec('zip -gj  ' . $zip->path . ' ' . $dir->pwd() . $filename,
-				$execOutput, $execRetval);
-			if ($execRetval != 0) { // not EXIT_SUCCESS
-				throw new Exception('An error has occured while attempting to zip the intel files.');
-			}
-
-			$file->delete(); // delete the original non-zipped-file
-			$this->Job->saveField('progress', $k / $typeCount * 100);
 		}
-		$zip->close();
 		$this->Job->saveField('progress', 100);
 		$this->Job->saveField('message', 'Job done.');
 	}
@@ -431,7 +390,7 @@ class EventShell extends AppShell
 		$i = 0;
 		foreach ($users as $user) {
 			foreach ($this->Event->export_types as $k => $type) {
-				$this->Job->cache($k, $user['User']);
+				$this->Job->cache($k, $user['User'], 'Events visible to: ' . ($user['Role']['perm_site_admin'] ? 'ADMIN' : $user['Organisation']['name']));
 				$i++;
 			}
 		}

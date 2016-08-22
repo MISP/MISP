@@ -58,32 +58,8 @@
 				<th><?php echo $this->Paginator->sort('status');?></th>
 				<th><?php echo $this->Paginator->sort('retries');?></th>
 				<th><?php echo $this->Paginator->sort('progress');?></th>
-		</tr>
-<?php
-	foreach ($list as $k => $item):
-		$progress = '100';
-		$startRefreshing = false;
-		if ($item['Job']['failed']) {
-			$progress_message = 'Failed';
-			$progress_bar_type = 'progress progress-danger active';
-		} else if (!$item['Job']['worker_status'] && $item['Job']['progress'] != 100) {
-			$progress_message = 'No worker active';
-			$progress_bar_type = 'progress progress-striped progress-warning active';
-		} else if ($item['Job']['progress'] == 0) {
-			$progress_bar_type = 'progress progress-striped progress-queued active';
-			$progress_message = 'Queued';
-		} else {
-			$progress = h($item['Job']['progress']);
-			if ($item['Job']['progress'] == 100) {
-				$progress_bar_type = 'progress';
-				$progress_message = 'Completed';
-			} else {
-				$progress_bar_type = 'progress progress-striped';
-				$progress_message = $item['Job']['progress'] . '%';
-				$startRefreshing = true;
-			}
-		}
-?>
+		</tr><?php
+	foreach ($list as $k => $item): ?>
 		<tr>
 			<td class="short"><?php echo h($item['Job']['id']); ?>&nbsp;</td>
 			<td class="short"><?php echo h($item['Job']['date_created']); ?>&nbsp;</td>
@@ -94,34 +70,22 @@
 			<td class="short"><?php echo h($item['Job']['job_input']); ?>&nbsp;</td>
 			<td><?php echo h($item['Job']['message']); ?>&nbsp;</td>
 			<td class="short"><?php echo isset($item['Org']['name']) ? h($item['Org']['name']) : 'SYSTEM'; ?>&nbsp;</td>
-			<td class="short">
-			<?php
-				echo h($item['Job']['status']);
-				if ($item['Job']['failed']):
-			?>
-				<div class="icon-search useCursorPointer queryPopover" data-url="/jobs/getError" data-id="<?php echo h($item['Job']['process_id']); ?>"></div>
-			<?php
-				endif;
-			?>
-			</td>
+			<td class="short"><?php echo h($item['Job']['status']); ?>&nbsp;</td>
 			<td class="short"><?php echo h($item['Job']['retries']); ?>&nbsp;</td>
 			<td style="width:200px;">
-				<div class="<?php echo $progress_bar_type; ?>" style="margin-bottom: 0px;">
-				  <div id="bar<?php echo h($item['Job']['id']); ?>" class="bar" style="width: <?php echo $progress; ?>%;">
+				<div class="progress progress-striped active" style="margin-bottom: 0px;">
+				  <div id="bar<?php echo h($item['Job']['id']); ?>" class="bar" style="width: <?php echo h($item['Job']['progress']); ?>%;">
 					<?php
-						echo h($progress_message);
+						if ($item['Job']['progress'] > 0 && $item['Job']['progress'] < 100) echo h($item['Job']['progress']) . '%';
+						if ($item['Job']['progress'] == 100) echo 'Completed.';
 					?>
 				  </div>
 				</div>
-					<?php
-						if ($startRefreshing):
-					?>
-							<script type="text/javascript">
-								queueInterval("<?php echo $k; ?>", "<?php echo h($item['Job']['id']); ?>");
-							</script>
-					<?php
-						endif;
-					?>
+					<?php if ($item['Job']['progress'] != 100): ?>
+						<script type="text/javascript">
+							queueInterval("<?php echo $k; ?>", "<?php echo h($item['Job']['id']); ?>");
+						</script>
+					<?php endif; ?>
 			</td>
 		</tr><?php
 	endforeach; ?>

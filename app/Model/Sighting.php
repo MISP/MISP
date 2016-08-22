@@ -1,13 +1,6 @@
 <?php
-
 App::uses('AppModel', 'Model');
-
-/**
- * Sighting Model
- *
- */
-class Sighting extends AppModel {
-
+class Sighting extends AppModel{
 	public $useTable = 'sightings';
 	public $recursive = -1;
 	public $actsAs = array(
@@ -43,7 +36,7 @@ class Sighting extends AppModel {
 		return true;
 	}
 
-	public function attachToEvent(&$event, &$user) {
+	public function attachToEvent(&$event, &$user, $eventOnly = false) {
 		$ownEvent = false;
 		if ($user['Role']['perm_site_admin'] || $event['Event']['org_id'] == $user['org_id']) $ownEvent = true;
 		$conditions = array('Sighting.event_id' => $event['Event']['id']);

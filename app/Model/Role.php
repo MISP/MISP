@@ -74,7 +74,6 @@ class Role extends AppModel {
 		'perm_tag_editor' => array('id' => 'RolePermTagEditor', 'text' => 'Tag Editor'),
 		'perm_template' => array('id' => 'RolePermTemplate', 'text' => 'Template Editor'),
 		'perm_sharing_group' => array('id' => 'RolePermSharingGroup', 'text' => 'Sharing Group Editor'),
-		'perm_delegate' => array('id' => 'RolePermDelegate', 'text' => 'Delegations access')
 	);
 
 	public $premissionLevelName = array('Read Only', 'Manage Own Events', 'Manage Organisation Events', 'Manage and Publish Organisation Events');

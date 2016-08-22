@@ -95,7 +95,7 @@ class TaxonomiesController extends AppController {
 				'recursive' => -1,
 				'conditions' => array('Taxonomy.id' => $id),
 		));
-		$taxonomy['Taxonomy']['enabled'] = 0;
+		$taxonomy['Taxonomy']['enabled'] = false;
 		$this->Taxonomy->save($taxonomy);
 		$this->Log = ClassRegistry::init('Log');
 		$this->Log->create();
@@ -204,7 +204,7 @@ class TaxonomiesController extends AppController {
 		$this->set('id', $id);
 		$this->render('ajax/taxonomy_mass_confirmation');
 	}
-
+	
 	public function delete($id) {
 		if ($this->request->is('post')) {
 			$result = $this->Taxonomy->delete($id, true);

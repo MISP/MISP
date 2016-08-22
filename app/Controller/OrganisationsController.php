@@ -42,7 +42,6 @@ class OrganisationsController extends AppController {
 				'conditions' => $conditions,
 				'recursive' => -1,
 		);
-		$usersPerOrg = $this->User->getMembersCount();
 		$orgs = $this->paginate();
 		if ($this->_isSiteAdmin()) {
 			$this->loadModel('User');
@@ -61,7 +60,6 @@ class OrganisationsController extends AppController {
 		}
 		$this->set('scope', $scope);
 		$this->set('orgs', $orgs);
-		$this->set('members', $usersPerOrg);
 	}
 
 	public function admin_add() {
@@ -127,10 +125,10 @@ class OrganisationsController extends AppController {
 		$this->Organisation->id = $id;
 		if (!$this->Organisation->exists()) throw new NotFoundException('Invalid organisation');
 		$fullAccess = false;
-		$fields = array('id', 'name', 'date_created', 'date_modified', 'type', 'nationality', 'sector', 'contacts', 'description', 'local', 'uuid');
+		$fields = array('id', 'name', 'date_created', 'date_modified', 'type', 'nationality', 'sector', 'contacts', 'description', 'local');
 		if ($this->_isSiteAdmin() || $this->Auth->user('Organisation')['id'] == $id) {
 			$fullAccess = true;
-			$fields = array_merge($fields, array('created_by'));
+			$fields = array_merge($fields, array('created_by', 'uuid'));
 		}
 		$org = $this->Organisation->find('first', array(
 				'conditions' => array('id' => $id),
@@ -223,7 +221,7 @@ class OrganisationsController extends AppController {
 			));
 			$orgs['external'] = $this->Organisation->find('all', array(
 					'fields' => array('id', 'name', 'uuid'),
-					'conditions' => array('Organisation.id !=' => $id, 'Organisation.local' => 0),
+					'conditions' => array('Organisation.id !=' => $id, 'Organisation.local' => false),
 					'order' => 'lower(Organisation.name) ASC'
 			));
 			foreach (array('local', 'external') as $type) {

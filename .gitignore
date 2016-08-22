@@ -1,15 +1,14 @@
 /vendors
 /app/Vendor
-/app/vendor
 /app/composer*
 /lib
 /.project
 /.settings
 /.buildpath
 /.idea
-*iml
 .DS_Store
 /.htaccess
+/app/Vendor
 /app/composer*
 /README
 /app/tmp/GPG*
@@ -61,6 +60,4 @@
 /app/tmp/cached_exports/sha1/*
 /app/tmp/cached_exports/csv_all/*
 /app/tmp/cached_exports/csv_sig/*
-/app/tmp/cached_exports/bro/*
 *.swp
-.gnupg/

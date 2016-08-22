@@ -336,15 +336,14 @@ class User extends AppModel {
 		if (openssl_x509_read($check['certif_public'])) {
 			try {
 				App::uses('Folder', 'Utility');
-				App::uses('FileAccessTool', 'Tools');
-				$fileAccessTool = new FileAccessTool();
+				App::uses('FileAccess', 'Tools');
 				$dir = APP . 'tmp' . DS . 'SMIME';
 				if (!file_exists($dir)) {
 					if (!mkdir($dir, 0750, true)) throw new MethodNotAllowedException('The SMIME temp directory is not writeable (app/tmp/SMIME).');
 				}
-				$tempFile = $fileAccessTool->createTempFile($dir, 'SMIME');
-				$msg_test = $fileAccessTool->writeToFile($tempFile, 'test');
-				$msg_test_encrypted = $fileAccessTool->createTempFile($dir, 'SMIME');
+				$tempFile = FileAccess::createTempFile($dir, 'SMIME');
+				$msg_test = FileAccess::writeToFile($tempFile, 'test');
+				$msg_test_encrypted = FileAccess::createTempFile($dir, 'SMIME');
 				// encrypt it
 				if (openssl_pkcs7_encrypt($msg_test, $msg_test_encrypted, $check['certif_public'], null, 0, OPENSSL_CIPHER_AES_256_CBC)) {
 					unlink($msg_test);
@@ -528,15 +527,14 @@ class User extends AppModel {
 			$certif_public = $user['User']['certif_public'];
 			try {
 				App::uses('Folder', 'Utility');
-				App::uses('FileAccessTool', 'Tools');
-				$fileAccessTool = new FileAccessTool();
+				App::uses('FileAccess', 'Tools');
 				$dir = APP . 'tmp' . DS . 'SMIME';
 				if (!file_exists($dir)) {
 					if (!mkdir($dir, 0750, true)) throw new MethodNotAllowedException('The SMIME temp directory is not writeable (app/tmp/SMIME).');
 				}
-				$tempFile = $fileAccessTool->createTempFile($dir, 'SMIME');
-				$msg_test = $fileAccessTool->writeToFile($tempFile, 'test');
-				$msg_test_encrypted = $fileAccessTool->createTempFile($dir, 'SMIME');
+				$tempFile = FileAccess::createTempFile($dir, 'SMIME');
+				$msg_test = FileAccess::writeToFile($tempFile, 'test');
+				$msg_test_encrypted = FileAccess::createTempFile($dir, 'SMIME');
 				// encrypt it
 				if (openssl_pkcs7_encrypt($msg_test, $msg_test_encrypted, $certif_public, null, 0, OPENSSL_CIPHER_AES_256_CBC)) {
 					$parse = openssl_x509_parse($certif_public);
@@ -758,23 +756,22 @@ class User extends AppModel {
 			try {
 				$prependedBody = 'Content-Transfer-Encoding: 7bit' . PHP_EOL . 'Content-Type: text/plain;' . PHP_EOL . '    charset=us-ascii' . PHP_EOL . PHP_EOL . $body;
 				App::uses('Folder', 'Utility');
-				App::uses('FileAccessTool', 'Tools');
-				$fileAccessTool = new FileAccessTool();
+				App::uses('FileAccess', 'Tools');
 				$dir = APP . 'tmp' . DS . 'SMIME';
 				if (!file_exists($dir)) {
 					if (!mkdir($dir, 0750, true)) throw new MethodNotAllowedException('The SMIME temp directory is not writeable (app/tmp/SMIME).');
 				}
 				// save message to file
-				$tempFile = $fileAccessTool->createTempFile($dir, 'SMIME');
-				$msg = $fileAccessTool->writeToFile($tempFile, $prependedBody);
+				$tempFile = FileAccess::createTempFile($dir, 'SMIME');
+				$msg = FileAccess::writeToFile($tempFile, $prependedBody);
 				$headers_smime = array("To" => $user['User']['email'], "From" => Configure::read('MISP.email'), "Subject" => $subject);
 				$canSign = true;
 				if (empty(Configure::read('SMIME.cert_public_sign')) || !is_readable(Configure::read('SMIME.cert_public_sign'))) $canSign = false;
 				if (empty(Configure::read('SMIME.key_sign')) || !is_readable(Configure::read('SMIME.key_sign'))) $canSign = false;
 				if ($canSign) {
-					$signed = $fileAccessTool->createTempFile($dir, 'SMIME');
+					$signed = FileAccess::createTempFile($dir, 'SMIME');
 					if (openssl_pkcs7_sign($msg, $signed, 'file://'.Configure::read('SMIME.cert_public_sign'), array('file://'.Configure::read('SMIME.key_sign'), Configure::read('SMIME.password')), array(), PKCS7_TEXT)) {
-						$bodySigned = $fileAccessTool->readFromFile($signed);
+						$bodySigned = FileAccess::readFromFile($signed);
 						unlink($msg);
 						unlink($signed);
 					} else {
@@ -783,15 +780,15 @@ class User extends AppModel {
 						throw new Exception('Failed while attempting to sign the SMIME message.');
 					}
 					// save message to file
-					$tempFile = $fileAccessTool->createTempFile($dir, 'SMIME');
-					$msg_signed = $fileAccessTool->writeToFile($tempFile, $bodySigned);
+					$tempFile = FileAccess::createTempFile($dir, 'SMIME');
+					$msg_signed = FileAccess::writeToFile($tempFile, $bodySigned);
 				} else {
 					$msg_signed = $msg;
 				}
-				$msg_signed_encrypted = $fileAccessTool->createTempFile($dir, 'SMIME');
+				$msg_signed_encrypted = FileAccess::createTempFile($dir, 'SMIME');
 				// encrypt it
 				if (openssl_pkcs7_encrypt($msg_signed, $msg_signed_encrypted, $user['User']['certif_public'], $headers_smime, 0, OPENSSL_CIPHER_AES_256_CBC)) {
-					$bodyEncSig = $fileAccessTool->readFromFile($msg_signed_encrypted);
+					$bodyEncSig = FileAccess::readFromFile($msg_signed_encrypted);
 					unlink($msg_signed);
 					unlink($msg_signed_encrypted);
 					$parts = explode("\n\n", $bodyEncSig);
@@ -917,22 +914,5 @@ class User extends AppModel {
 			$fields[] = $relatedModel . '.*';
 		}
 		return $fields;
-	}
-
-	public function getMembersCount() {
-		// for Organizations List
-		$fields = array('org_id', 'COUNT(User.id) AS num_members');
-		$params = array(
-				'fields' => $fields,
-				'recursive' => -1,
-				'group' => array('org_id'),
-				'order' => array('org_id'),
-		);
-		$orgs = $this->find('all', $params);
-		$usersPerOrg = [];
-		foreach ($orgs as $key => $value) {
-			$usersPerOrg[$value['User']['org_id']] = $value[0]['num_members'];
-		}
-		return $usersPerOrg;
 	}
 }

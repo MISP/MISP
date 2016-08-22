@@ -32,7 +32,9 @@
 					<li><?php echo $this->Form->postLink('Delete Event', array('action' => 'delete', h($event['Event']['id'])), null, __('Are you sure you want to delete # %s?', h($event['Event']['id']))); ?></li>
 					<li id='liaddAttribute'><a href="<?php echo $baseurl;?>/attributes/add/<?php echo h($event['Event']['id']);?>">Add Attribute</a></li>
 					<li id='liaddAttachment'><a href="<?php echo $baseurl;?>/attributes/add_attachment/<?php echo h($event['Event']['id']);?>">Add Attachment</a></li>
-					<li id='import'><a onClick="getPopup('<?php echo h($event['Event']['id']); ?>', 'events', 'importChoice');" style="cursor:pointer;">Populate from...</a></li>
+					<li id='liaddFreetext'><a href="#" onClick="getPopup(<?php echo $event['Event']['id']; ?>, 'events', 'freeTextImport');">Populate via Freetext Import</a></li>
+					<li id='liaddIOC'><a href="<?php echo $baseurl;?>/events/addIOC/<?php echo h($event['Event']['id']);?>">Populate from OpenIOC</a></li>
+					<li id='liaddThreatConnect'><a href="<?php echo $baseurl;?>/attributes/add_threatconnect/<?php echo h($event['Event']['id']); ?>">Populate from ThreatConnect</a></li>
 					<?php if ($menuItem === 'populateFromtemplate'): ?>
 							<li class="active"><a href="<?php echo $baseurl;?>/templates/populateEventFromTemplate/<?php echo $template_id . '/' . h($event['Event']['id']); ?>">Populate From Template</a></li>
 						<?php endif; ?>
@@ -51,7 +53,7 @@
 					<li<?php echo $publishButtons; ?> class="publishButtons"><a href="#" onClick="publishPopup('<?php echo h($event['Event']['id']); ?>', 'alert')">Publish Event</a></li>
 					<li<?php echo $publishButtons; ?> class="publishButtons"><a href="#" onClick="publishPopup('<?php echo h($event['Event']['id']); ?>', 'publish')">Publish (no email)</a></li>
 					<?php if (Configure::read('MISP.delegation')):?>
-						<?php if ((Configure::read('MISP.unpublishedprivate') || (isset($event['Event']['distribution']) && $event['Event']['distribution'] == 0)) && (!isset($delegationRequest) || !$delegationRequest) && ($isSiteAdmin || (isset($isAclDelegate) && $isAclDelegate))): ?>
+						<?php if (isset($event['Event']['distribution']) && (!isset($delegationRequest) || !$delegationRequest) && $event['Event']['distribution'] == 0 && ($isSiteAdmin || (isset($mayPublish) && $mayPublish))): ?>
 								<li id='lidelegateEvent'><a href="#" onClick="delegatePopup('<?php echo h($event['Event']['id']); ?>');">Delegate Publishing</a></li>
 						<?php endif;?>
 						<?php if (isset($delegationRequest) && $delegationRequest && ($isSiteAdmin || ($isAclPublish && ($me['org_id'] == $delegationRequest['EventDelegation']['org_id'] || $me['org_id'] == $delegationRequest['EventDelegation']['requester_org_id'])))): ?>
@@ -138,6 +140,7 @@
 					<?php endif; ?>
 					<li id='liview'><a href="<?php echo $baseurl;?>/users/view/me">My Profile</a></li>
 					<li id='lidashboard'><a href="<?php echo $baseurl;?>/users/dashboard">Dashboard</a></li>
+					<li id='limembers'><a href="<?php echo $baseurl;?>/users/memberslist">Members List</a></li>
 					<li id='liindexOrg'><a href="<?php echo $baseurl;?>/organisations/index">List Organisations</a></li>
 					<?php if ($menuItem === 'viewOrg'): ?>
 						<li class="active"><a href="<?php echo $baseurl;?>/organisations/view/<?php echo h($id);?>">View Organisation</a></li>
@@ -154,7 +157,6 @@
 					<li id='liuserGuide'><a href="<?php echo $baseurl;?>/pages/display/doc/general">User Guide</a></li>
 					<li id='literms'><a href="<?php echo $baseurl;?>/users/terms">Terms &amp; Conditions</a></li>
 					<li id='listatistics'><a href="<?php echo $baseurl;?>/users/statistics">Statistics</a></li>
-					<li id='limembers'><a href="<?php echo $baseurl;?>/users/attributehistogram">Attribute Histogram</a></li>
 					<?php
 				break;
 
@@ -182,7 +184,7 @@
 				case 'admin':
 					if ($menuItem === 'editUser' || $menuItem === 'viewUser'): ?>
 					<li id='liviewUser'><?php echo $this->Html->link('View User', array('controller' => 'users', 'action' => 'view', 'admin' => true, h($id))); ?> </li>
-					<li><a href="#/" onClick="initiatePasswordReset('<?php echo h($id); ?>');">Reset Password</a></li>
+					<li><a href="#/" onClick="initiatePasswordReset('<?php echo h($id); ?>');">Send Credentials</a></li>
 					<li id='lieditUser'><?php echo $this->Html->link('Edit User', array('controller' => 'users', 'action' => 'edit', 'admin' => true, h($id))); ?> </li>
 					<li><?php echo $this->Form->postLink('Delete User', array('admin' => true, 'action' => 'delete', h($id)), null, __('Are you sure you want to delete # %s? It is highly recommended to never delete users but to disable them instead.', h($id)));?></li>
 					<li class="divider"></li>
@@ -216,6 +218,7 @@
 					<li id='liindexRole'><?php echo $this->Html->link('List Roles', array('controller' => 'roles', 'action' => 'index', 'admin' => true)); ?> </li>
 					<?php if ($isSiteAdmin): ?>
 						<li class="divider"></li>
+						<li id='liadminTools'><a href="<?php echo $baseurl;?>/pages/display/administration">Administrative Tools</a></li>
 						<li id='liserverSettings'><a href="<?php echo $baseurl;?>/servers/serverSettings">Server Settings</a></li>
 						<li class="divider"></li>
 						<?php if (Configure::read('MISP.background_jobs')): ?>

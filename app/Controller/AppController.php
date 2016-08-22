@@ -45,8 +45,9 @@ class AppController extends Controller {
 
 	public $helpers = array('Utility');
 
-	private $__jsVersion = '2.4.50';
-	public $phpmin = '5.5.9';
+	private $__jsVersion = '2.4.48';
+	
+	public $phpmin = '5.5.9';	
 	public $phprec = '5.6.0';
 
 	// Used for _isAutomation(), a check that returns true if the controller & action combo matches an action that is a non-xml and non-json automation method
@@ -83,11 +84,11 @@ class AppController extends Controller {
 		$this->loadModel('User');
 		$auth_user_fields = $this->User->describeAuthFields();
 
-		//if fresh installation (salt empty) generate a new salt
-		if (!Configure::read('Security.salt')) {
-			$this->loadModel('Server');
-			$this->Server->serverSettingsSaveValue('Security.salt', $this->User->generateRandomPassword(32));
-		}
+        //if fresh installation (salt empty) generate a new salt
+        if (!Configure::read('Security.salt')) {
+            $this->loadModel('Server');
+            $this->Server->serverSettingsSaveValue('Security.salt', $this->User->generateRandomPassword(32));
+        }
 		// check if Apache provides kerberos authentication data
 		$envvar = Configure::read('ApacheSecureAuth.apacheEnv');
 		if (isset($_SERVER[$envvar])) {
@@ -308,7 +309,6 @@ class AppController extends Controller {
 			$this->set('isAclModify', $role['perm_modify']);
 			$this->set('isAclModifyOrg', $role['perm_modify_org']);
 			$this->set('isAclPublish', $role['perm_publish']);
-			$this->set('isAclDelegate', $role['perm_delegate']);
 			$this->set('isAclSync', $role['perm_sync']);
 			$this->set('isAclAdmin', $role['perm_admin']);
 			$this->set('isAclAudit', $role['perm_audit']);
@@ -322,20 +322,9 @@ class AppController extends Controller {
 		} else {
 			$this->set('me', false);
 		}
-		if ($this->_isSiteAdmin()) {
-			if (Configure::read('Session.defaults') !== 'database') {
-				$db = ConnectionManager::getDataSource('default');
-				$sqlResult = $db->query('SELECT COUNT(id) AS session_count FROM cake_sessions WHERE expires < ' . time() . ';');
-				if (isset($sqlResult[0][0]['session_count']) && $sqlResult[0][0]['session_count'] > 1000) {
-					$this->loadModel('Server');
-					$this->Server->updateDatabase('cleanSessionTable');
-				}
-			}
-			if (Configure::read('site_admin_debug') && (Configure::read('debug') < 2)) {
+		if (Configure::read('site_admin_debug') && $this->_isSiteAdmin() && (Configure::read('debug') < 2)) {
 				Configure::write('debug', 1);
-			}
 		}
-
 		$this->debugMode = 'debugOff';
 		if (Configure::read('debug') > 1) $this->debugMode = 'debugOn';
 		$this->set('loggedInUserName', $this->__convertEmailToName($this->Auth->user('email')));
@@ -450,7 +439,6 @@ class AppController extends Controller {
 		$this->loadModel('User');
 		$user = $this->User->getAuthUserByUuid($authkey);
 		if (empty($user)) return false;
-		if (!$user['Role']['perm_auth']) return false;
 		if ($user['Role']['perm_site_admin']) $user['siteadmin'] = true;
 		return $user;
 	}
@@ -578,8 +566,7 @@ class AppController extends Controller {
 			$process_id = CakeResque::enqueue(
 					'default',
 					'AdminShell',
-					array('jobUpgrade24', $jobId, $this->Auth->user('id')),
-					true
+					array('jobUpgrade24', $jobId, $this->Auth->user('id'))
 			);
 			$job->saveField('process_id', $process_id);
 			$this->Session->setFlash(__('Job queued. You can view the progress if you navigate to the active jobs view (administration -> jobs).'));

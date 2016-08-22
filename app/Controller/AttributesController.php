@@ -881,22 +881,11 @@ class AttributesController extends AppController {
 				throw new MethodNotAllowedException();
 			}
 			if ($this->__delete($id, $hard)) {
-				if ($this->_isRest() || $this->response->type() === 'application/json') {
-					$this->set('message', 'Attribute deleted.');
-					$this->set('_serialize', array('message'));
-				} else {
-					$this->Session->setFlash(__('Attribute deleted'));
-					$this->redirect($this->referer());
-				}
-			} else {
-				if ($this->_isRest() || $this->response->type() === 'application/json') {
-					throw new Exception('Attribute was not deleted');
-				} else {
-					$this->Session->setFlash(__('Attribute was not deleted'));
-					$this->redirect(array('action' => 'index'));
-				}
 				$this->Session->setFlash(__('Attribute deleted'));
+			} else {
+				$this->Session->setFlash(__('Attribute was not deleted'));
 			}
+			$this->redirect(array('controller' => 'events', 'action' => 'view', $attribute['Attribute']['event_id']));	// TODO check
 		}
 	}
 
@@ -908,7 +897,7 @@ class AttributesController extends AppController {
 	 * @throws MethodNotAllowedException
 	 * @throws NotFoundException
 	 * @return CakeResponse
-	 */
+     */
 	public function restore($id = null) {
 		$attribute = $this->Attribute->find('first', array(
 				'conditions' => array('Attribute.id' => $id),
@@ -1969,8 +1958,7 @@ class AttributesController extends AppController {
 			$process_id = CakeResque::enqueue(
 					'default',
 					'AdminShell',
-					array('jobGenerateCorrelation', $jobId),
-					true
+					array('jobGenerateCorrelation', $jobId)
 			);
 			$job->saveField('process_id', $process_id);
 			$this->Session->setFlash(__('Job queued. You can view the progress if you navigate to the active jobs view (administration -> jobs).'));

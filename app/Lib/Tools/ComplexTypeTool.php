@@ -76,18 +76,12 @@ class ComplexTypeTool {
 	public function checkFreeText($input) {
 		$iocArray = preg_split("/\r\n|\n|\r|\s|\s+|,|;/", $input);
 		$quotedText = explode('"', $input);
-		foreach ($quotedText as $k => &$temp) {
-			$temp = trim($temp);
-			if (empty($temp)) {
-				unset($quotedText[$k]);
-			}
-		}
 		$iocArray = array_merge($iocArray, $this->__returnOddElements($quotedText));
+
 		$resultArray = array();
 		if (!empty($iocArray)) {
 			foreach ($iocArray as $ioc) {
 				$ioc = trim($ioc);
-				$ioc = trim($ioc, '"');
 				$ioc = trim($ioc, ',');
 				$ioc = preg_replace('/\p{C}+/u', '', $ioc);
 				if (empty($ioc)) continue;
@@ -176,21 +170,27 @@ class ComplexTypeTool {
 
 		if (strpos($input, '\\') !== false) {
 			$temp = explode('\\', $input);
-			if (strpos($temp[count($temp)-1], '.') || preg_match('/^.:/i', $temp[0])) {
-				if ($this->__resolveFilename($temp[count($temp)-1])) return array('types' => array('filename'), 'categories' => array('Payload installation'), 'to_ids' => true, 'default_type' => 'filename');
+			if (strpos($temp[count($temp)-1], '.')) {
+				if ($this->__resolveFilename($temp[count($temp)-1])) return array('types' => array('filename'), 'category' => 'Payload installation', 'to_ids' => false, 'default_type' => 'filename');
 			} else {
 				return array('types' => array('regkey'), 'to_ids' => false, 'default_type' => 'regkey');
 			}
 		}
 
 		// check for CVE
-		if (preg_match("#^cve-[0-9]{4}-[0-9]{4,9}$#i", $input)) return array('types' => array('vulnerability'), 'categories' => array('External analysis'), 'to_ids' => false, 'default_type' => 'vulnerability');
+		if (preg_match("#^cve-[0-9]{4}-[0-9]{4,9}$#i", $input)) return array('types' => array('vulnerability'), 'category' => 'External analysis', 'to_ids' => false, 'default_type' => 'vulnerability');
 
 		return false;
 	}
 
 	private function __resolveFilename($input) {
-		if ((preg_match('/^.:/', $input) || strpos($input, '.') !=0)) return true;
+		if (
+			strpos($input, '.') != 0 &&
+			strpos($input, '..') == 0 &&
+			strpos($input, '.') != (strlen($input)-1) &&
+			preg_match('/(.*)\.[^(\|\<\>\^\=\?\/\[\]\"\;\*)]*$/', $input) &&
+			!preg_match('/[?:<>|\\*:\/@]/', $input)
+		) return true;
 		return false;
 	}
 }
