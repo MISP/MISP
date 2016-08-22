@@ -452,7 +452,7 @@ class SharingGroup extends AppModel {
 		if (!empty($existingSG)) return $existingSG[$this->alias]['id'];
 		return $this->id;
 	}
-	
+
 	// Correct an issue that existed pre 2.4.49 where a pulled sharing group can end up not being visible to the sync user
 	// This could happen if a sharing group visible to all organisations on the remote end gets pulled and for some reason (mismatch in the baseurl string for example)
 	// the instance cannot be associated with a local sync link. This method checks all non-local sharing groups if the assigned sync user has access to it, if not
@@ -503,7 +503,7 @@ class SharingGroup extends AppModel {
 			}
 		}
 	}
-	
+
 	public function updateRoaming() {
 		$sgs = $this->find('all', array(
 				'recursive' => -1,

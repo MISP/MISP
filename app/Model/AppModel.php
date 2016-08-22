@@ -425,13 +425,13 @@ class AppModel extends Model {
 				// DB changes to solve https://github.com/MISP/MISP/issues/1354
 				$sqlArray[] = "ALTER TABLE `taxonomy_entries` MODIFY `expanded` text COLLATE utf8_bin;";
 				$sqlArray[] = "ALTER TABLE `taxonomy_predicates` MODIFY `expanded` text COLLATE utf8_bin;";
-				// Sharing group propagate to instances freely setting 
+				// Sharing group propagate to instances freely setting
 				$sqlArray[] = "ALTER TABLE `sharing_groups` ADD `roaming` tinyint(1) NOT NULL DEFAULT 0;";
 				// table: shadow_attributes
 				$sqlArray[] = "ALTER TABLE `shadow_attributes` MODIFY `email` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL;";
 				// table: tasks
 				$sqlArray[] = "ALTER TABLE `tasks` CHANGE `job_id` `process_id` varchar(32) DEFAULT NULL;";
-				// Adding tag org restrictions 
+				// Adding tag org restrictions
 				$sqlArray[] = "ALTER TABLE `tags` ADD `org_id` int(11) NOT NULL DEFAULT 0;";
 				$sqlArray[] = 'ALTER TABLE `tags` ADD INDEX `org_id` (`org_id`);';
 				break;
@@ -548,7 +548,7 @@ class AppModel extends Model {
 		if (!empty($value[$field])) return true;
 		return ucfirst($field) . ' cannot be empty.';
 	}
-	
+
 	public function valueIsID($value) {
 		$field = array_keys($value);
 		$field = $field[0];

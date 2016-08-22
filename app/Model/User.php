@@ -918,7 +918,7 @@ class User extends AppModel {
 		}
 		return $fields;
 	}
-	
+
 	public function getMembersCount() {
 		// for Organizations List
 		$fields = array('org_id', 'COUNT(User.id) AS num_members');
@@ -930,7 +930,7 @@ class User extends AppModel {
 		);
 		$orgs = $this->find('all', $params);
 		$usersPerOrg = [];
-		foreach ($orgs as $key => $value){
+		foreach ($orgs as $key => $value) {
 			$usersPerOrg[$value['User']['org_id']] = $value[0]['num_members'];
 		}
 		return $usersPerOrg;

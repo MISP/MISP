@@ -60,12 +60,12 @@ class Tag extends AppModel {
 			'dependent' => true
 		)
 	);
-	
+
 	public $belongsTo = array(
 		'Organisation' => array(
 			'className' => 'Organisation',
 			'foreignKey' => 'org_id',
-		)	
+		)
 	);
 
 

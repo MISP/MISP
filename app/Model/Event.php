@@ -1519,7 +1519,7 @@ class Event extends AppModel {
 		} else {
 			$subject = '';
 		}
-        $tplColorString = !empty(Configure::read('MISP.email_subject_TLP_string')) ? Configure::read('MISP.email_subject_TLP_string') : "TLP Amber";
+		$tplColorString = !empty(Configure::read('MISP.email_subject_TLP_string')) ? Configure::read('MISP.email_subject_TLP_string') : "TLP Amber";
 		$subject = "[" . Configure::read('MISP.org') . " MISP] Event " . $id . " - " . $subject . $event[0]['ThreatLevel']['name'] . " - ".$tplColorString;
 
 		// Initialise the Job class if we have a background process ID
@@ -1712,7 +1712,7 @@ class Event extends AppModel {
 		$bodyevent .= "\n";
 		$bodyevent .= $bodyTempOther;	// append the 'other' attribute types to the bottom.
 		$result = true;
-        $tplColorString = !empty(Configure::read('MISP.email_subject_TLP_string')) ? Configure::read('MISP.email_subject_TLP_string') : "TLP Amber";
+		$tplColorString = !empty(Configure::read('MISP.email_subject_TLP_string')) ? Configure::read('MISP.email_subject_TLP_string') : "TLP Amber";
 		foreach ($orgMembers as &$reporter) {
 			$subject = "[" . Configure::read('MISP.org') . " MISP] Need info about event " . $id . " - ".$tplColorString;
 			$result = $this->User->sendEmail($reporter, $bodyevent, $body, $subject, $user) && $result;
@@ -2631,7 +2631,7 @@ class Event extends AppModel {
 		$correlatedAttributes = isset($event['RelatedAttribute']) ? array_keys($event['RelatedAttribute']) : array();
 		$correlatedShadowAttributes = isset($event['RelatedShadowAttribute']) ? array_keys($event['RelatedShadowAttribute']) : array();
 		foreach ($event['Attribute'] as $attribute) {
-    			if ($filterType && !in_array($filterType, array('proposal', 'correlation', 'warning'))) if (!in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType])) continue;
+			if ($filterType && !in_array($filterType, array('proposal', 'correlation', 'warning'))) if (!in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType])) continue;
 			if (isset($attribute['distribution']) && $attribute['distribution'] != 4) unset($attribute['SharingGroup']);
 			$attribute['objectType'] = 0;
 			if (!empty($attribute['ShadowAttribute'])) $attribute['hasChildren'] = 1;
@@ -2717,7 +2717,7 @@ class Event extends AppModel {
 		}
 		return $conditions;
 	}
-	
+
 	public function handleModuleResult($result, $event_id) {
 		$resultArray = array();
 		$freetextResults = array();
@@ -2774,13 +2774,13 @@ class Event extends AppModel {
 					if (isset($r['data'])) $temp['data'] = $r['data'];
 					$resultArray[] = $temp;
 				}
-					
+
 			}
 			$resultArray = array_merge($resultArray, $freetextResults);
 		}
 		return $resultArray;
 	}
-	
+
 	public function export($user = false, $module = false, $options = array()) {
 		if (empty($user)) return 'Invalid user.';
 		if  (empty($module)) return 'Invalid module.';

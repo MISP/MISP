@@ -34,17 +34,17 @@
 				<td class="short"><?php echo $type['type']; ?></td>
 				<td id="update<?php echo $i; ?>" class="short" style="color:red;"><?php echo $type['lastModified']; ?></td>
 				<td>
-					<?php 
+					<?php
 						echo $type['description'];
 						if ($type['canHaveAttachments']):
 							if (Configure::read('MISP.cached_attachments')):
 					?>
 						<span class="green"> (Attachments are enabled on this instance)</span>
-					<?php 
+					<?php
 							else:
 					?>
 						<span class="red"> (Attachments are disabled on this instance)</span>
-					<?php 
+					<?php
 							endif;
 						endif;
 					?>

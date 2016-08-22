@@ -8,7 +8,7 @@
 			<div class="attributehistogram-legend-line col">
 	<?php
 		$cnt = 0;
-		foreach ($typeDb as $type => $colour): 
+		foreach ($typeDb as $type => $colour):
 	?>
 				<div class="attributehistogram-legend-line">
 					<div class="attributehistogram-legend-box" style="display: block;float: left;margin: 4px 6px 0 0;background-color:<?php echo $colour; ?>">&nbsp;</div>
@@ -46,15 +46,15 @@
 						foreach ($org['data'] as $orgType => $orgTypeCount):
 					?>
 							<li title="<?php echo h($orgType) . ' : ' . $orgTypeCount; ?>" class="type_<?php echo h($orgType); ?>" style="display:block;height:30px;float:left;width:<?php echo (100 * $orgTypeCount / $org['total']);?>%;background:<?php echo $typeDb[$orgType];?>">&nbsp;</li>
-					<?php 
+					<?php
 						endforeach;
 					?>
 						</ul>
 					</td>
 
 				</tr>
-			<?php 
-				endforeach; 
+			<?php
+				endforeach;
 			?>
 			</table>
 		</td>

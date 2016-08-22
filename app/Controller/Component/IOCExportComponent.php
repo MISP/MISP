@@ -59,7 +59,7 @@ class IOCExportComponent extends Component {
 				'link' => array('URL', 'UrlHistoryItem/URL', 'md5')
 		)
 	);
-	
+
 	private function __frameComposite($attribute) {
 		$types = explode('|', $attribute['type']);
 		$values = explode('|', $attribute['value']);
@@ -68,7 +68,7 @@ class IOCExportComponent extends Component {
 		$this->__frameIndicator($this->mapping['composite'][$attribute['type']][1], $attribute['uuid'], $values[1], true);
 		$this->final[] = '      </Indicator>';
 	}
-	
+
 	private function __frameIndicator($mapping, $uuid, $value, $extraIndent = false) {
 		$indent = "      ";
 		$padding = 6;
@@ -80,7 +80,7 @@ class IOCExportComponent extends Component {
 		$this->final[] = str_repeat(' ', ($padding + 2)) . '<Content type="' . $mapping[2] . '">' . h($value) . '</Content>';
 		$this->final[] = str_repeat(' ', $padding) . '</IndicatorItem>';
 	}
-	
+
 	// This method will turn each eligible attribute into an indicator
 	private function __buildAttribute($attribute) {
 		// Hop over attributes that don't have the to ids flag turned on and check whether the attribute is sent for IOC export based on category/type
@@ -94,7 +94,7 @@ class IOCExportComponent extends Component {
 			if (isset($this->mapping['simple'][$attribute['type']])) {
 				$this->__frameIndicator($this->mapping['simple'][$attribute['type']], $attribute['uuid'], $attribute['value'], false);
 			}
-		}		
+		}
 	}
 
 	// Just closing some tags at the bottom of the .ioc file

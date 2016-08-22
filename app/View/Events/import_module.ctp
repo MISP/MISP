@@ -21,26 +21,26 @@
 							echo ucfirst(h($configName));
 						?>
 					</span><br />
-					<?php 
+					<?php
 						if ($settings['type'] == 'checkbox'):
 							echo $this->Form->input('Event.config.' . $configName, $settings);
 							if (isset($config['message']) && !empty($config['message'])):
 								echo h($config['message']);
 					?>
 								<br />
-					<?php 
+					<?php
 							endif;
 						else:
-							if (isset($config['message']) && !empty($config['message'])): 
+							if (isset($config['message']) && !empty($config['message'])):
 							?>
 								<p><?php echo h($config['message']); ?></p>
-							<?php 
+							<?php
 							endif;
 							echo $this->Form->input('Event.config.' . $configName, $settings);
 						endif;
 					?>
 					<div class="input clear"></div><br />
-					<?php 
+					<?php
 				}
 			}
 			$source = 'paste';
@@ -51,7 +51,7 @@
 			}
 			?>
 
-			<?php 
+			<?php
 			echo $this->Form->input('Event.source', array(
 				'label' => false,
 				'checked' => $source == 'file' ? true : false,
@@ -68,7 +68,7 @@
 				<p class="bold">
 					Paste Input
 				</p>
-			<?php 
+			<?php
 					if (in_array('paste', $module['mispattributes']['inputSource'])) {
 						echo $this->Form->input('Event.paste', array(
 							'label' => false,
@@ -85,7 +85,7 @@
 				<p class="bold">
 					Input File
 				</p>
-			<?php 
+			<?php
 					if (in_array('file', $module['mispattributes']['inputSource'])) {
 						echo $this->Form->input('Event.fileupload', array(
 								'label' => false,

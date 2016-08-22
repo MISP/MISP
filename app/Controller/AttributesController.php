@@ -908,7 +908,7 @@ class AttributesController extends AppController {
 	 * @throws MethodNotAllowedException
 	 * @throws NotFoundException
 	 * @return CakeResponse
-     */
+	 */
 	public function restore($id = null) {
 		$attribute = $this->Attribute->find('first', array(
 				'conditions' => array('Attribute.id' => $id),
