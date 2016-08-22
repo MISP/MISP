@@ -3011,11 +3011,11 @@ class EventsController extends AppController {
 		if ($result['success'] == 1) {
 			// read the output file and pass it to the view
 			if (!$numeric) {
-				$this->header('Content-Disposition: download; filename="misp.stix.event.collection.' . $returnType . '"');
+				$name = 'misp.stix.event.collection.' . $returnType;
 			} else {
-				$this->header('Content-Disposition: download; filename="misp.stix.event' . $id . '.' . $returnType . '"');
+				$name = 'misp.stix.event' . $id . '.' . $returnType;
 			}
-			$this->set('data', $result['data']);
+			$this->response->file($result['data'], array('download' => true, 'name' => $name));
 		} else {
 			throw new Exception(h($result['message']));
 		}

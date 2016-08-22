@@ -2491,22 +2491,37 @@ class Event extends AppModel {
 	}
 
 
-	public function stix($id, $tags, $attachments, $user, $returnType = 'xml', $from = false, $to = false, $last = false) {
+	public function stix($id, $tags, $attachments, $user, $returnType = 'xml', $from = false, $to = false, $last = false, $jobId = false) {
 		$eventIDs = $this->Attribute->dissectArgs($id);
 		$tagIDs = $this->Attribute->dissectArgs($tags);
 		$idList = $this->getAccessibleEventIds($eventIDs[0], $eventIDs[1], $tagIDs[0], $tagIDs[1]);
-		if (empty($idList)) throw new Exception('No matching events found to export.');
-		//$events = $this->fetchEvent($user, array('idList' => $idList, 'last' => $last, 'from' => $from, 'to' => $to));
+		if (empty($idList)) {
+			return array('success' => 0, 'message' => 'No matching events found to export.');
+		}
 		$event_ids = $this->fetchEventIds($user, $from, $to, $last, true);
 		$event_ids = array_intersect($event_ids, $idList);
-		if (empty($event_ids)) throw new Exception('No matching events found to export.');
-
-		// generate a randomised filename for the temporary file that will be passed to the python script
+		if (empty($event_ids)) {
+			return array('success' => 0, 'message' => 'No matching events found to export.');
+		}
 		$randomFileName = $this->generateRandomFileName();
-		$tempFile = new File(APP . "files" . DS . "scripts" . DS . "tmp" . DS . $randomFileName, true, 0644);
-		$eventCount = 0;
+		$tmpDir = APP . "files" . DS . "scripts" . DS . "tmp";
+		$tempFile = new File($tmpDir . DS . $randomFileName, true, 0644);
+		$stixFile = new File($tmpDir . DS . $randomFileName . ".stix");
+		$stix_framing = shell_exec('python ' . APP . "files" . DS . "scripts" . DS . 'misp2stix_framing.py "' . Configure::read('MISP.baseurl') . '" "' . Configure::read('MISP.org') . '"');
+		if (empty($stix_framing)) {
+			$tempFile->delete();
+			$stixFile->delete();
+			return array('success' => 0, 'message' => 'There was an issue generating the STIX export.');
+		}
+		$stixFile->write(substr($stix_framing, 0, -1));
 		$result = array();
-		// If a second argument is passed (and it is either "yes", "true", or 1) base64 encode all of the attachments
+		if ($jobId) {
+			$this->Job = ClassRegistry::init('Job');
+			$this->Job->id = $jobId;
+			if (!$this->Job->exists()) $jobId = false;
+		}
+		$i = 0;
+		$eventCount = count($event_ids);
 		foreach ($event_ids as $event_id) {
 			$event = $this->fetchEvent($user, array('eventid' => $event_id));
 			if (empty($event)) continue;
@@ -2522,55 +2537,40 @@ class Event extends AppModel {
 			foreach ($event[0]['EventTag'] as $tag) {
 				$event[0]['Tag'][] = $tag['Tag'];
 			}
-
-			$eventCount++;
 			$tempFile->write(json_encode($event[0]));
-			// save the json_encoded event(s) to the temporary file
 			$tempFile->close();
+			unset($event);
 			$scriptFile = APP . "files" . DS . "scripts" . DS . "misp2stix.py";
-
-			// Execute the python script and point it to the temporary filename
-			$result = shell_exec('python ' . $scriptFile . ' ' . $randomFileName . ' ' . $returnType . ' ' . Configure::read('MISP.baseurl') . ' "' . Configure::read('MISP.org') . '"');
-
+			$result = shell_exec('python ' . $scriptFile . ' ' . $randomFileName . ' ' . $returnType . ' "' . escapeshellarg(Configure::read('MISP.baseurl')) . '" "' . escapeshellarg(Configure::read('MISP.org')) . '"');
 			// The result of the script will be a returned JSON object with 2 variables: success (boolean) and message
 			// If success = 1 then the temporary output file was successfully written, otherwise an error message is passed along
-			$decoded = json_decode($result);
-			$result = array();
-			$result['success'] = $decoded->success;
-			$result['message'] = $decoded->message;
-			if ($result['success'] == 1) {
-				$file = new File(APP . "files" . DS . "scripts" . DS . "tmp" . DS . $randomFileName . ".out");
-				$result['data'] = $file->read();
+			$decoded = json_decode($result, true);
+			if (!isset($decoded['success']) || !$decoded['success']) {
+				$tempFile->delete();
+				$stixFile->delete();
+				return array('success' => 0, 'message' => $decoded['message']);
+			}
+			$file = new File(APP . "files" . DS . "scripts" . DS . "tmp" . DS . $randomFileName . ".out");
+			$stix_event = '    ' . substr($file->read(), 0, -1);
+			$stix_event = str_replace("\n", "\n    ", $stix_event) . "\n";
+			$stixFile->append($stix_event);
+			$file->close();
+			$file->delete();
+			$i++;
+			if ($jobId) {
+				$this->Job->saveField('message', 'Event ' . $i . '/' . $eventCount);
+				if ($i % 10 == 0) {
+					$this->Job->saveField('progress', $i * 80 / $eventCount);
+				}
 			}
 		}
-		if ($eventCount == 0) {
+		$stixFile->append("</stix:STIX_Package>\n\n");
+		if ($i == 0) {
 			$tempFile->delete();
-			throw new Exception('No matching events found to export.');
+			$stixFile->delete();
+			return array('success' => 0, 'message' => 'No matching events found to export.');
 		}
-		$tempFile->append(']');
-
-		// save the json_encoded event(s) to the temporary file
-		$result = $tempFile->close();
-		$scriptFile = APP . "files" . DS . "scripts" . DS . "misp2stix.py";
-
-		// Execute the python script and point it to the temporary filename
-		$result = shell_exec('python ' . $scriptFile . ' ' . $randomFileName . ' ' . $returnType . ' ' . Configure::read('MISP.baseurl') . ' "' . Configure::read('MISP.org') . '"');
-
-		// The result of the script will be a returned JSON object with 2 variables: success (boolean) and message
-		// If success = 1 then the temporary output file was successfully written, otherwise an error message is passed along
-		$decoded = json_decode($result);
-		$result = array();
-		$result['success'] = $decoded->success;
-		$result['message'] = $decoded->message;
-
-		if ($result['success'] == 1) {
-			$file = new File(APP . "files" . DS . "scripts" . DS . "tmp" . DS . $randomFileName . ".out");
-			$result['data'] = $file->read();
-		}
-		$tempFile->delete();
-		$file = new File(APP . "files" . DS . "scripts" . DS . "tmp" . DS . $randomFileName . ".out");
-		$file->delete();
-		return $result;
+		return array('success' => 1, 'data' => $tmpDir . DS . $randomFileName . ".stix");
 	}
 
 	public function getAccessibleEventIds($include, $exclude, $includedTags, $excludedTags) {

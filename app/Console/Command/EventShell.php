@@ -108,15 +108,23 @@ class EventShell extends AppShell
 		$this->Job->id = $id;
 		$dir = new Folder(APP . 'tmp/cached_exports/stix', true, 0750);
 		if ($user['Role']['perm_site_admin']) {
-			$file = new File($dir->pwd() . DS . 'misp.stix' . '.ADMIN.xml');
+			$file = $dir->pwd() . DS . 'misp.stix' . '.ADMIN.xml';
 		} else {
-			$file = new File($dir->pwd() . DS . 'misp.stix' . '.' . $user['Organisation']['name'] . '.xml');
+			$file = $dir->pwd() . DS . 'misp.stix' . '.' . $user['Organisation']['name'] . '.xml';
 		}
-		$file->write($this->Event->stix(false, false, Configure::read('MISP.cached_attachments'), $user));
+		$result = $this->Event->stix(false, false, Configure::read('MISP.cached_attachments'), $user, 'xml', false, false, false, $id);
 		$timeDelta = (time()-$timeStart);
-		$this->Job->saveField('progress', 100);
-		$this->Job->saveField('message', 'Job done. (in '.$timeDelta.'s)');
 		$this->Job->saveField('date_modified', date("y-m-d H:i:s"));
+		if ($result['success']) {
+			rename ($result['data'], $file);
+			$this->Job->saveField('progress', 100);
+			$this->Job->saveField('message', 'Job done. (in '.$timeDelta.'s)');
+		} else {
+			$log = ClassRegistry::init('Log');
+			$log->create();
+			$log->createLogEntry($user, 'export', 'STIX export failed', $result['message']);
+			throw new InternalErrorException();
+		}
 	}
 
 	private function __recursiveEcho($array) {
@@ -403,6 +411,7 @@ class EventShell extends AppShell
 		$i = 0;
 		foreach ($users as $user) {
 			foreach ($this->Event->export_types as $k => $type) {
+				if ($k == 'stix') continue;
 				$this->Job->cache($k, $user['User']);
 				$i++;
 			}
