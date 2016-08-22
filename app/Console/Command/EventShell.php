@@ -281,26 +281,31 @@ class EventShell extends AppShell
 		} else {
 			$zipname = DS . 'misp.bro.' . $user['Organisation']['name'] . '.intel.zip';
 		}
-		$zip = new ZipArchive();
-		if ($zip->open($dir->pwd() . $zipname, ZIPARCHIVE::CREATE) === TRUE) {
-			foreach ($types as $k => $type) {
 
-				$final = $this->Attribute->bro($user, $type);
-				if ($user['Role']['perm_site_admin']) {
-					$filename = DS . 'misp.' . $type . '.ADMIN.intel';
-				} else {
-					$filename = DS . 'misp.' . $type . '.' . $user['Organisation']['name'] . '.intel';
-				}
-				$file = new File($dir->pwd() . $filename);
-				$file->write($broHeader);
-				foreach ($final as $attribute) {
-					$file->append($attribute . "\n");
-				}
-				$file->close();
-				$zip->addFile($dir->pwd() . $filename, $type . '.intel');
-				$this->Job->saveField('progress', $k / $typeCount * 100);
+		$zip = new File($dir->pwd() . $zipname);
+		foreach ($types as $k => $type) {
+			$final = $this->Attribute->bro($user, $type);
+			$filename = $type . '.intel';
+
+			$file = new File($dir->pwd() . $filename);
+			$file->write($broHeader);
+			foreach ($final as $attribute) {
+				$file->append($attribute . "\n");
 			}
+			$file->close();
+
+			$execRetval = '';
+			$execOutput = array();
+			exec('zip -gj  ' . $zip->path . ' ' . $dir->pwd() . $filename,
+				$execOutput, $execRetval);
+			if ($execRetval != 0) { // not EXIT_SUCCESS
+				throw new Exception('An error has occured while attempting to zip the intel files.');
+			}
+
+			$file->delete(); // delete the original non-zipped-file
+			$this->Job->saveField('progress', $k / $typeCount * 100);
 		}
+		$zip->close();
 		$this->Job->saveField('progress', 100);
 		$this->Job->saveField('message', 'Job done.');
 	}
