@@ -58,7 +58,7 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
     {
 
         //If the url contains sso=disable we return false so the main misp authentication form is used to log in
-        if(array_key_exists('sso', $request->query) && $request->query['sso'] == 'disable' || $_SESSION["sso_disable"] === True) {
+        if (array_key_exists('sso', $request->query) && $request->query['sso'] == 'disable' || $_SESSION["sso_disable"] === True) {
             $_SESSION["sso_disable"]=True;
             return false;
         }
@@ -73,7 +73,7 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
         $groupRoleMatching = Configure::read('ApacheShibbAuth.GroupRoleMatching');
 
         // Get user values
-        if(!isset($_SERVER[$mailTag])) return false;
+        if (!isset($_SERVER[$mailTag])) return false;
 
         $mispUsername = $_SERVER[$mailTag];
 
@@ -130,7 +130,7 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
         $result = "";
         $chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ\$_?!-0123456789";
         $charArray = str_split($chars);
-        for($i = 0; $i < $len; $i++) {
+        for ($i = 0; $i < $len; $i++) {
             $randItem = array_rand($charArray);
             $result .= "".$charArray[$randItem];
         }

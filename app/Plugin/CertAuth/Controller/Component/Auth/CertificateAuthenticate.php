@@ -90,16 +90,16 @@ class CertificateAuthenticate extends BaseAuthenticate
     private static function parse($s, $map=null)
     {
         $r=array();
-        if(preg_match_all('#(^/?|\/|\,)([a-zA-Z]+)\=([^\/\,]+)#', $s, $m)) {
-            foreach($m[2] as $i=>$k) {
+        if (preg_match_all('#(^/?|\/|\,)([a-zA-Z]+)\=([^\/\,]+)#', $s, $m)) {
+            foreach ($m[2] as $i=>$k) {
                 if ($map) {
-                    if(isset($map[$k])) {
+                    if (isset($map[$k])) {
                         $k = $map[$k];
                     } else {
                         $k = null;
                     }
                 }
-                if($k) {
+                if ($k) {
                     $v = $m[3][$i];
                     $r[$k] = $v;
                 }
@@ -140,7 +140,7 @@ class CertificateAuthenticate extends BaseAuthenticate
                         if ($sync) {
                             $write = array();
 
-                            if(!isset(self::$user['org_id']) && isset(self::$user['org'])) {
+                            if (!isset(self::$user['org_id']) && isset(self::$user['org'])) {
                                 self::$user['org_id']=$User->Organisation->createOrgFromName(self::$user['org'], $User->id, true);
                                 unset(self::$user['org']);
                             }
@@ -158,11 +158,11 @@ class CertificateAuthenticate extends BaseAuthenticate
                             unset($write);
                         }
                         self::$user = $User->getAuthUser($U[$cn]['id']);
-                        if(isset(self::$user['gpgkey'])) unset(self::$user['gpgkey']);
+                        if (isset(self::$user['gpgkey'])) unset(self::$user['gpgkey']);
                     } else if ($sync) {
                         $User->create();
                         $org=null;
-                        if(!isset(self::$user['org_id']) && isset(self::$user['org'])) {
+                        if (!isset(self::$user['org_id']) && isset(self::$user['org'])) {
                             $org = self::$user['org'];
                             unset(self::$user['org']);
                         }
@@ -175,14 +175,14 @@ class CertificateAuthenticate extends BaseAuthenticate
 
                         if ($User->save(self::$user, true)) {
                             $id = $User->id;
-                            if($org) {
+                            if ($org) {
                                 self::$user['org_id']=$User->Organisation->createOrgFromName($org, $User->id, true);
                                 $User->save(self::$user, true, array('org_id'));
                             }
 
                             self::$user = $User->getAuthUser($id);
                             unset($id);
-                            if(isset(self::$user['gpgkey'])) unset(self::$user['gpgkey']);
+                            if (isset(self::$user['gpgkey'])) unset(self::$user['gpgkey']);
                         } else {
                             CakeLog::write('alert', 'Could not insert model at database from RestAPI data.');
                         }
