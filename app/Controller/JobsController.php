@@ -46,7 +46,7 @@ class JobsController extends AppController {
 		$this->set('list', $jobs);
 		$this->set('queue', $queue);
 	}
-	
+
 	public function getError($id) {
 		$fields = array(
 			'Failed at' => 'failed_at',

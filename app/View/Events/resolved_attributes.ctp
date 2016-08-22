@@ -95,7 +95,7 @@
 					} else {
 						if (isset($item['category_default'])) $default = $item['category_default'];
 						else $default = array_search($item['categories'][0], $typeCategoryMapping[$item['default_type']]);
-						
+
 					}
 				?>
 				<select id="<?php echo 'Attribute' . $k . 'Category'; ?>" style='padding:0px;height:20px;margin-bottom:0px;'>

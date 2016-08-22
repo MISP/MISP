@@ -918,7 +918,7 @@ class User extends AppModel {
 		}
 		return $fields;
 	}
-	
+
 	public function getMembersCount() {
 		// for Organizations List
 		$fields = array('org_id', 'COUNT(User.id) AS num_members');

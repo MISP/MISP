@@ -2717,7 +2717,7 @@ class Event extends AppModel {
 		}
 		return $conditions;
 	}
-	
+
 	public function handleModuleResult($result, $event_id) {
 		$resultArray = array();
 		$freetextResults = array();
@@ -2774,13 +2774,13 @@ class Event extends AppModel {
 					if (isset($r['data'])) $temp['data'] = $r['data'];
 					$resultArray[] = $temp;
 				}
-					
+
 			}
 			$resultArray = array_merge($resultArray, $freetextResults);
 		}
 		return $resultArray;
 	}
-	
+
 	public function export($user = false, $module = false, $options = array()) {
 		if (empty($user)) return 'Invalid user.';
 		if  (empty($module)) return 'Invalid module.';

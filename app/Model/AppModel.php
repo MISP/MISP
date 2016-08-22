@@ -548,7 +548,7 @@ class AppModel extends Model {
 		if (!empty($value[$field])) return true;
 		return ucfirst($field) . ' cannot be empty.';
 	}
-	
+
 	public function valueIsID($value) {
 		$field = array_keys($value);
 		$field = $field[0];

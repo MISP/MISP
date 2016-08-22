@@ -204,7 +204,7 @@ class TaxonomiesController extends AppController {
 		$this->set('id', $id);
 		$this->render('ajax/taxonomy_mass_confirmation');
 	}
-	
+
 	public function delete($id) {
 		if ($this->request->is('post')) {
 			$result = $this->Taxonomy->delete($id, true);

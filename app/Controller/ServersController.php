@@ -209,7 +209,7 @@ class ServersController extends AppController {
 								'local' => 0,
 								'created_by' => $this->Auth->user('id')
 						));
-						
+
 						if (!$orgSave) {
 							$this->Session->setFlash(__('Couldn\'t save the new organisation, are you sure that the uuid is in the correct format?.'));
 							$fail = true;
@@ -323,7 +323,7 @@ class ServersController extends AppController {
 								'local' => 0,
 								'created_by' => $this->Auth->user('id')
 						));
-						
+
 						if (!$orgSave) {
 							$this->Session->setFlash(__('Couldn\'t save the new organisation, are you sure that the uuid is in the correct format?.'));
 							$fail = true;
@@ -692,7 +692,7 @@ class ServersController extends AppController {
 						)
 
 				);
-				
+
 				foreach ($phpSettings as $setting => &$settingArray) {
 					$settingArray['value'] = ini_get($setting);
 					if ($settingArray['unit']) $settingArray['value'] = intval(rtrim($settingArray['value'], $settingArray['unit']));
@@ -1096,7 +1096,7 @@ class ServersController extends AppController {
 		}
 		$this->redirect('/servers/serverSettings/diagnostics');
 	}
-	
+
 	public function clearWorkerQueue($worker) {
 		if (!$this->_isSiteAdmin() || !$this->request->is('Post') || $this->request->is('ajax')) throw new MethodNotAllowedException();
 		$worker_array = array('cache', 'default', 'email', 'prio');
