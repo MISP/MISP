@@ -1,0 +1,408 @@
+# LANGUAGE translation of CakePHP Application
+# Copyright YEAR NAME <EMAIL@ADDRESS>
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"POT-Creation-Date: 2012-10-24 17:52-0400\n"
+"PO-Revision-Date: YYYY-mm-DD HH:MM+ZZZZ\n"
+"Last-Translator: NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <EMAIL@ADDRESS>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+
+#: Console/Command/CakeResqueShell.php:64
+msgid "User running the workers"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:68
+msgid "Name of the queue. If multiple queues, separe with comma."
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:72
+msgid "Pause time in seconds between each works"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:76
+msgid "Number of workers to fork"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:80
+msgid "Log path"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:83
+msgid "Log Handler to use for logging."
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:86
+msgid "Log Handler arguments"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:95
+msgid "Force workers shutdown, forcing all the current jobs to finish (and fail)"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:100
+msgid "shutdown all workers"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:105
+msgid "Stop one or all workers"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:106
+msgid "Unless you force the stop with the --force option,"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:107
+msgid "the worker will wait for all jobs to complete"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:108
+msgid "before shutting down"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:116
+msgid "pause all workers"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:121
+msgid "Pause one or all workers"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:122
+msgid "Pausing is only supported on Unix system,"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:123;138;155
+msgid "with PHP pcntl extension installed"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:131
+msgid "resume all paused workers"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:136
+msgid "Resume one or all paused workers"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:137;154
+msgid "Resuming is only supported on Unix system,"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:146
+msgid "Clean up all workers"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:151
+msgid "Cleaning Up one or all paused workers"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:152
+msgid "Cleaning Up will immedately terminate the job"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:153
+msgid "the worker is currently working on."
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:160
+msgid "A Shell to manage PHP Resque"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:162
+msgid "Start a new worker."
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:166
+msgid "Stop a worker."
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:170
+msgid "Pause a worker."
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:174
+msgid "Resume a paused worker."
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:178
+msgid "Immediately terminate a worker job execution."
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:182
+msgid "Stop all Resque workers, and start a new one."
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:186
+msgid "View stats about processed/failed jobs."
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:189
+msgid "Tail the workers logs."
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:192
+msgid "Track a job status."
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:195
+msgid "Load a set of predefined workers."
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:203
+msgid "Adding a job to worker"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:205
+msgid "Wrong number of arguments"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:206
+msgid "Usage : enqueue <queue> <jobclass> <comma-separated-args>"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:215
+msgid "Succesfully enqueued Job #%s"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:248
+msgid "Tailing log file"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:250
+msgid "No log file to tail"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:259
+msgid "Choose a log file to tail"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:262
+msgid "Tailing %s"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:274
+msgid "Creating workers"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:312
+msgid "Starting worker "
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:323;391;462;540;611
+msgid "Done"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:325
+msgid "Fail"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:345
+msgid "Stopping workers"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:348
+msgid "There is no active workers to kill ..."
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:353;426;504
+msgid "Active workers list"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:363
+msgid "Stop all workers"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:367
+msgid "Worker to kill"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:383
+msgid "Killing %s ... "
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:414
+msgid "Cleaning up worker is not supported on your system. \nPlease install the PCNTL extension"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:418
+msgid "Cleaning up workers"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:421
+msgid "There is no active workers."
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:436
+msgid "Cleanup all workers"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:440
+msgid "Worker to cleanup"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:456
+msgid "Cleaning up %s ... "
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:481;562
+msgid "Pausing worker is not supported on your system. \nPlease install the PCNTL extension"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:485
+msgid "Pausing workers"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:499
+msgid "There is no active workers to pause ..."
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:514
+msgid "Pause all workers"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:518
+msgid "Worker to pause"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:534
+msgid "Pausing %s ... "
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:566
+msgid "Resuming workers"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:570
+msgid "There is no paused workers to resume ..."
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:575
+msgid "Paused workers list"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:585
+msgid "Resume all workers"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:589
+msgid "Worker to resume"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:605
+msgid "Resuming %s ... "
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:626
+msgid "Loading predefined workers"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:628
+msgid "You have no configured queues to load."
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:644
+msgid "Restarting workers"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:651
+msgid "No active workers found, will start brand new worker"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:658
+msgid "Resque Statistics"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:661
+msgid "Jobs Stats"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:662
+msgid "Processed Jobs : %s"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:663
+msgid "Failed Jobs    : %s"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:665
+msgid "Workers Stats"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:667
+msgid "Workers count : $s"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:673
+msgid "paused"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:674
+msgid "Started on"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:675
+msgid "Processed Jobs"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:677;678
+msgid "Failed Jobs"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:691
+msgid "Tracking job status"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:696
+msgid "Please provide a valid job ID"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:703;720
+msgid "Status"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:703
+msgid "Unknown"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:707
+msgid "waiting"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:708
+msgid "running"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:709
+msgid "failed"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:710
+msgid "complete"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:726
+msgid "Failed job details"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:840
+msgid "Interval time [%s] is not valid. Please enter a valid number"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:848
+msgid "Workers number [%s] is not valid. Please enter a valid number"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:860
+msgid "User [%s] does not exists. Please enter a valid system user"
+msgstr ""
+
+#: Console/Command/CakeResqueShell.php:872
+msgid "Error"
+msgstr ""
+

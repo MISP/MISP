@@ -1,0 +1,30 @@
+{
+  "name": "CakeResque",
+  "version": "4.1.2",
+  "description": "Resque plugin for CakePHP : for creating background jobs that can be processed offline later",
+  "keywords": [
+    "php-resque",
+    "resque",
+    "cli",
+    "cakephp",
+    "background jobs",
+    "scheduled jobs"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/kamisama/Cake-Resque.git"
+  },
+  "homepage": "http://cakeresque.kamisama.me/",
+  "author": {
+    "name": "Wan Qi Chen",
+    "url": "http://www.kamisama.me"
+  },
+  "license": "MIT",
+  "bugs": "https://github.com/kamisama/Cake-Resque/issues",
+  "github": "https://github.com/kamisama/Cake-Resque",
+  "devDependencies": {
+    "grunt-shell": "~0.2.2",
+    "grunt-contrib-watch": "~0.4.0",
+    "grunt-contrib-clean": "~0.4.1"
+  }
+}

@@ -1,0 +1,51 @@
+language: php
+
+php:
+  - 5.3
+  - 5.4
+  - 5.5
+
+env:
+  global:
+    - PLUGIN_NAME=CakeResque
+    - REQUIRE=""
+    - DB=mysql CAKE_VERSION=2.5
+  matrix:
+    - DB=mysql CAKE_VERSION=2.2
+    - DB=mysql CAKE_VERSION=2.3
+    - DB=mysql CAKE_VERSION=2.4
+    - DB=mysql CAKE_VERSION=2.5
+    - DB=mysql CAKE_VERSION=2.6
+    - DB=mysql CAKE_VERSION=master
+
+matrix:
+  include:
+    - php: 5.4
+      env:
+        - COVERALLS=1
+    - php: 5.4
+      env:
+        - PHPCS=1
+    - php: 5.4
+      env:
+        - FOC_VALIDATE=1
+
+services:
+  - redis-server
+
+before_script:
+  - echo "extension = redis.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
+  - git clone -b master https://github.com/FriendsOfCake/travis.git --depth 1 ../travis
+  - ../travis/before_script.sh
+  - if [[ $PHPCS != '1' ]]; then echo "
+
+    require dirname(__DIR__) . '/Vendor/autoload.php';" >> ../cakephp/app/Config/core.php; fi
+
+script:
+  - ../travis/script.sh
+
+after_success:
+  - ../travis/after_success.sh
+
+notifications:
+  email: false

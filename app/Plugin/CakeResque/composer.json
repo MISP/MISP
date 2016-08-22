@@ -1,0 +1,38 @@
+{
+	"name": "kamisama/cake-resque",
+	"description" : "A CakePHP plugin for creating background jobs with Resque",
+	"version": "4.1.2",
+	"keywords": ["php-resque", "resque", "cli", "cakephp", "background jobs", "scheduled jobs"],
+	"homepage": "http://cakeresque.kamisama.me",
+	"type": "cakephp-plugin",
+	"extra": {
+		"installer-name": "CakeResque"
+	},
+	"config": {
+		"vendor-dir": "Vendor"
+	},
+	"authors": [
+		{
+			"name": "Wan Chen",
+			"email": "kami@kamisama.me",
+			"homepage": "http://www.kamisama.me",
+			"role": "Developer"
+		}
+	],
+	"license": "MIT",
+	"require": {
+		"php": ">=5.3.0",
+		"composer/installers": "*",
+		"kamisama/php-resque-ex": ">=1.2.4",
+		"kamisama/php-resque-ex-scheduler": ">=1.1.1",
+		"kamisama/resque-status": ">=0.0.1"
+	},
+	"require-dev": {
+        "mikey179/vfsStream": ">=1.2.0"
+    },
+	"support": {
+		"email": "kami@kamisama.me",
+		"issues": "https://github.com/kamisama/Cake-Resque/issues",
+		"source": "https://github.com/kamisama/Cake-Resque"
+	}
+}

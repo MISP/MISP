@@ -1,0 +1,13 @@
+<phpunit colors="true">
+    <filter>
+        <whitelist addUncoveredFilesFromWhitelist="true">
+            <directory suffix=".php">../</directory>
+            <exclude>
+                <directory suffix=".php">../vendor/</directory>
+                <directory suffix=".php">./</directory>
+                <directory suffix=".php">../Config/</directory>
+                <file>../Lib/CakeResqueBootstrap.php</file>
+            </exclude>
+        </whitelist>
+    </filter>
+</phpunit>
