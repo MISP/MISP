@@ -60,6 +60,11 @@ function cancelPrompt() {
 	$("#confirmation_box").empty();
 }
 
+function showPrompt(){
+	$("#confirmation_box").fadeIn();
+	$("#gray_out").fadeIn();
+}
+
 function submitDeletion(context_id, action, type, id) {
 	var context = 'event';
 	if (type == 'template_elements') context = 'template';
@@ -2489,3 +2494,23 @@ $(".queryPopover").click(function() {
 	});
 });
 
+function requestAPIAccess() {
+	var destination = 'users';
+	var action = 'request_API';
+	url = "/" + destination + "/" + action + "/";
+	$.ajax({
+		type:"get",
+		url:url,
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+		success:function (data) {
+			$("#confirmation_box").html(data);
+			showPrompt();
+			$(".loading").hide();
+		},
+		error:function() {
+			showMessage('fail', 'Something went wrong - could not request API access.');
+		}
+	});
+}

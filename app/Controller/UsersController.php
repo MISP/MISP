@@ -34,33 +34,52 @@ class UsersController extends AppController {
 		$this->Auth->allow('login', 'logout');
 	}
 
-/**
- * view method
- *
- * @param string $id
- * @return void
- * @throws NotFoundException
- */
+	/**
+	 * view method
+	 *
+	 * @param string $id
+	 * @return void
+	 * @throws NotFoundException
+	 */
 	public function view($id = null) {
 		if ("me" == $id) $id = $this->Auth->user('id');
-		if (!$this->_isSiteAdmin() && $this->Auth->user('id') != $id) {
-			throw new NotFoundException(__('Invalid user or not authorised.'));
+		$responsibleAdmin = [];
+		if (!$this->_isSiteAdmin()) {
+			$responsibleAdmin = $this->User->findAdminsResponsibleForUser($id);
+			if($this->Auth->user('id') != $id)
+				throw new NotFoundException(__('Invalid user or not authorised.'));
 		}
 		$this->User->id = $id;
 		$this->User->recursive = 0;
+
 		if (!$this->User->exists()) {
 			throw new NotFoundException(__('Invalid user'));
 		}
 		$this->set('user', $this->User->read(null, $id));
 	}
 
-/**
- * edit method
- *
- * @param string $id
- * @return void
- * @throws NotFoundException
- */
+	public function request_API(){
+		$subject = "[MISP ".Configure::read('MISP.org')."] User requesting API access";
+		$body = "A user (".$this->Auth->user('email').") has sent you a request to enable his/her API key access. 
+		Click <a href=\"".Configure::read('MISP.baseurl')."\">here</a> to edit his profile to change his role.";
+		$user = $this->User->find('first', array('conditions' => array('User.id' => $this->Auth->user('id'))));
+		$result = $this->User->sendEmail($user, $body, false, $subject);
+		if($result)
+			$message = "API access requested.";
+		else
+			$message = "Something went wrong, please try again later.";
+
+		$this->set('message', $message);
+		$this->layout = 'ajax';
+	}
+
+	/**
+	 * edit method
+	 *
+	 * @param string $id
+	 * @return void
+	 * @throws NotFoundException
+	 */
 	public function edit($id = null) {
 		if (!$this->_isAdmin() && Configure::read('MISP.disableUserSelfManagement')) throw new MethodNotAllowedException('User self-management has been disabled on this instance.');
 		$me = false;
@@ -127,11 +146,11 @@ class UsersController extends AppController {
 		$this->set(compact('roles'));
 	}
 
-/**
- * admin_index method
- *
- * @return void
- */
+	/**
+	 * admin_index method
+	 *
+	 * @return void
+	 */
 	public function admin_index() {
 		$this->User->virtualFields['org_ci'] = 'UPPER(Organisation.name)';
 		$urlParams = "";
@@ -312,13 +331,13 @@ class UsersController extends AppController {
 		$this->layout = 'ajax';
 	}
 
-/**
- * admin_view method
- *
- * @param string $id
- * @return void
- * @throws NotFoundException
- */
+	/**
+	 * admin_view method
+	 *
+	 * @param string $id
+	 * @return void
+	 * @throws NotFoundException
+	 */
 	public function admin_view($id = null) {
 		$this->User->id = $id;
 		if (!$this->User->exists()) {
@@ -333,11 +352,11 @@ class UsersController extends AppController {
 		$this->set('user2', $this->User->read(null, $temp));
 	}
 
-/**
- * admin_add method
- *
- * @return void
- */
+	/**
+	 * admin_add method
+	 *
+	 * @return void
+	 */
 	public function admin_add() {
 		if (!$this->_isAdmin()) throw new Exception('Administrators only.');
 		$this->set('currentOrg', $this->Auth->user('org_id'));
@@ -406,13 +425,13 @@ class UsersController extends AppController {
 		$this->set(compact('syncRoles'));
 	}
 
-/**
- * admin_edit method
- *
- * @param string $id
- * @return void
- * @throws NotFoundException
- */
+	/**
+	 * admin_edit method
+	 *
+	 * @param string $id
+	 * @return void
+	 * @throws NotFoundException
+	 */
 	public function admin_edit($id = null) {
 		$this->set('currentOrg', $this->Auth->user('org_id'));
 		$this->User->id = $id;
@@ -548,14 +567,14 @@ class UsersController extends AppController {
 		$this->set(compact('syncRoles'));
 	}
 
-/**
- * admin_delete method
- *
- * @param string $id
- * @return void
- * @throws MethodNotAllowedException
- * @throws NotFoundException
- */
+	/**
+	 * admin_delete method
+	 *
+	 * @param string $id
+	 * @return void
+	 * @throws MethodNotAllowedException
+	 * @throws NotFoundException
+	 */
 	public function admin_delete($id = null) {
 		if (!$this->request->is('post')) {
 			throw new MethodNotAllowedException();
@@ -849,11 +868,11 @@ class UsersController extends AppController {
 		}
 	}
 
-/**
- * Used for fields_before and fields for audit
- *
- * @param $array
- */
+	/**
+	 * Used for fields_before and fields for audit
+	 *
+	 * @param $array
+	 */
 	public function arrayCopy(array $array) {
 		$result = array();
 		foreach ($array as $key => $val) {
@@ -868,9 +887,9 @@ class UsersController extends AppController {
 		return $result;
 	}
 
-/**
- * @throws NotFoundException
- **/
+	/**
+	 * @throws NotFoundException
+	 **/
 	public function checkAndCorrectPgps() {
 		if (!self::_isAdmin()) throw new NotFoundException();
 		$this->set('fails', $this->User->checkAndCorrectPgps());

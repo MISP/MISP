@@ -34,9 +34,13 @@
 		<dt><?php echo __('Authkey'); ?></dt>
 		<dd>
 			<?php
-				echo h($user['User']['authkey']);
-				if (!Configure::read('MISP.disableUserSelfManagement') || $isAdmin) {
-					echo '(' . $this->Html->link('reset', array('controller' => 'users', 'action' => 'resetauthkey', $user['User']['id'])) . ')';
+				if ($user['Role']['perm_auth']) {
+					echo h($user['User']['authkey']);
+					if (!Configure::read('MISP.disableUserSelfManagement') || $isAdmin) {
+						echo '(' . $this->Html->link('reset', array('controller' => 'users', 'action' => 'resetauthkey', $user['User']['id'])) . ')';
+					}
+				} else {
+					echo "<a onclick='requestAPIAccess()' style='cursor: pointer;'>Request API access</a>";
 				}
 			?>
 			&nbsp;

@@ -10,21 +10,21 @@ App::uses('AuthComponent', 'Controller/Component');
  */
 class User extends AppModel {
 
-/**
- * Display field
- *
- * @var string
- */
+	/**
+	 * Display field
+	 *
+	 * @var string
+	 */
 	public $displayField = 'email';
 
 	public $orgField = array('Organisation', 'name');	// TODO Audit, LogableBehaviour + org
 
 
-/**
- * Validation rules
- *
- * @var array
- */
+	/**
+	 * Validation rules
+	 *
+	 * @var array
+	 */
 	public $validate = array(
 		'role_id' => array(
 			'numeric' => array(
@@ -181,11 +181,11 @@ class User extends AppModel {
 
 	// The Associations below have been created with all possible keys, those that are not needed can be removed
 
-/**
- * belongsTo associations
- *
- * @var array
- */
+	/**
+	 * belongsTo associations
+	 *
+	 * @var array
+	 */
 	public $belongsTo = array(
 		'Role' => array(
 			'className' => 'Role',
@@ -210,11 +210,11 @@ class User extends AppModel {
 		)
 	);
 
-/**
- * hasMany associations
- *
- * @var array
- */
+	/**
+	 * hasMany associations
+	 *
+	 * @var array
+	 */
 	public $hasMany = array(
 		'Event' => array(
 			'className' => 'Event',
@@ -281,10 +281,10 @@ class User extends AppModel {
 		return true;
 	}
 
-/**
- * Checks if the GPG key is a valid key
- * But also import it in the keychain.
- */
+	/**
+	 * Checks if the GPG key is a valid key
+	 * But also import it in the keychain.
+	 */
 	// TODO: this will NOT fail on keys that can only be used for signing but not encryption!
 	// the method in verifyUsers will fail in that case.
 	public function validateGpgkey($check) {
@@ -418,9 +418,9 @@ class User extends AppModel {
 		return true;
 	}
 
-/**
- * Generates an authentication key for each user
- */
+	/**
+	 * Generates an authentication key for each user
+	 */
 	public function generateAuthKey() {
 		$length = 40;
 		$characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -934,5 +934,48 @@ class User extends AppModel {
 			$usersPerOrg[$value['User']['org_id']] = $value[0]['num_members'];
 		}
 		return $usersPerOrg;
+	}
+
+	public function findAdminsResponsibleForUser($id){
+		$userOrg = $this->find('first', array(
+			'conditions' => array(
+				'User.id' => $id,
+			),
+			'contain' => array(
+				'Organisation' => array('fields' => array('id')),
+			),
+			'fields' => array('Organisation.id')
+		));
+
+		$admin = $this->find('first', array(
+			'recursive' => -1,
+			'conditions' => array(
+				'Role.perm_site_admin' => 0,
+				'User.disabled' => 0,
+				'User.org_id' => $userOrg['Organisation']['id'],
+				'Role.perm_admin' => 1
+			),
+			'contain' => array(
+				'Organisation' => array('fields' => array('id')),
+				'Role' => array('fields' => array('perm_admin'))
+			),
+			'fields' => array('User.id', 'User.email', 'User.org_id')
+		));
+		if(count($admin) == 0) {
+			$admin = $this->find('first', array(
+				'recursive' => -1,
+				'conditions' => array(
+					'Role.perm_site_admin' => 1,
+					'User.disabled' => 0,
+				),
+				'contain' => array(
+					'Organisation' => array('fields' => array('id')),
+					'Role' => array('fields' => array('perm_site_admin'))
+				),
+				'fields' => array('User.id', 'User.email', 'User.org_id')
+			));
+		}
+
+		return $admin['User'];
 	}
 }
