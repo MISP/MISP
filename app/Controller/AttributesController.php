@@ -1196,7 +1196,7 @@ class AttributesController extends AppController {
 									$result = strtolower($result);
 									if (strpos($result, '|')) {
 										$resultParts = explode('|', $result);
-										if (!toInclude) {
+										if (!$toInclude) {
 											$temp2[] = array(
 												'AND' => array(
 													'LOWER(Attribute.value1) NOT LIKE' => $resultParts[0],
