@@ -2376,7 +2376,7 @@ class EventsController extends AppController {
 						if ($v == '') continue;
 						if (substr($v, 0, 1) == '!') {
 							// check for an IPv4 address and subnet in CIDR notation (e.g. 127.0.0.1/8)
-							if ($parameters[$k] === 'value' && preg_match('@^((\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.){3}(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])(\/(\d|[12]\d|3[012]))$@', substr($v, 1))) {
+							if ($parameters[$k] === 'value' && $this->Cidr->checkCIDR(substr($v, 1), 4)) {
 								$cidrresults = $this->Cidr->CIDR(substr($v, 1));
 								foreach ($cidrresults as $result) {
 									$subcondition['AND'][] = array('Attribute.value NOT LIKE' => $result);
@@ -2398,7 +2398,7 @@ class EventsController extends AppController {
 							}
 						} else {
 							// check for an IPv4 address and subnet in CIDR notation (e.g. 127.0.0.1/8)
-							if ($parameters[$k] === 'value' && preg_match('@^((\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.){3}(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])(\/(\d|[12]\d|3[012]))$@', $v)) {
+							if ($parameters[$k] === 'value' && $this->Cidr->checkCIDR($v, 4)) {
 								$cidrresults = $this->Cidr->CIDR($v);
 								foreach ($cidrresults as $result) {
 									if (!empty($result)) $subcondition['OR'][] = array('Attribute.value LIKE' => $result);
