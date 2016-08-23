@@ -204,6 +204,49 @@ Use semicolons instead (the search will automatically search for colons instead)
 	echo $baseurl.'/attributes/text/download/all/tag1&amp;&amp;tag2&amp;&amp;!tag3';
 ?>
 </pre>
+<h3>Bro IDS export</h3>
+<p>An export of all attributes of a specific bro type to a formatted plain text file. By default only published and IDS flagged attributes are exported.</p>
+<p>You can configure your tools to automatically download a file one of the Bro types. There is no option to download all attributes in the same file:</p>
+<pre>
+<?php
+$broTypes = array('ip', 'email', 'domain', 'filename', 'filehash', 'certhash', 'software', 'url');
+foreach ($broTypes as $broType) {
+	echo $baseurl.'/attributes/bro/download/'.$broType . "\n";
+}
+?>
+</pre>
+<p>To restrict the results by tags, use the usual syntax. Please be aware the colons (:) cannot be used in the tag search. Use semicolons instead (the search will automatically search for colons instead). To get ip values from events tagged tag1 but not tag2 use:</p>
+<pre>
+<?php
+	echo $baseurl.'/attributes/bro/download/ip/tag1&&!tag2';
+?>
+</pre>
+
+<p>As of version 2.3.38, it is possible to restrict the text exports on two additional flags. The first allows the user to restrict based on event ID, whilst the second is a boolean switch allowing non IDS flagged attributes to be exported. Additionally, choosing "all" in the type field will return all eligible attributes. </p>
+<pre>
+<?php
+	echo $baseurl.'/attributes/bro/download/[type]/[tags]/[event_id]/[allowNonIDS]/[from]/[to]/[last]';
+?>
+</pre>
+<b>type</b>: The attribute type, any valid Bro attribute type is accepted. The matching between Bro and MISP types is the following:<br />
+<pre>
+<b>ip</b>:ip-src, ip-dst, domain|ip
+<b>domain</b>: hostname, domain, , domain|ip
+<b>url</b>: url
+<b>filename</b>: filename, filename|md5, filename|sha1, filename|sha256, email-attachment
+<b>software</b>: user-agent
+<b>filehash</b>: md5, sha1, sha256, filename|md5, filename|sha1, filename|sha256
+<b>certhash</b>: x509-fingerprint-sha1
+<b>email</b>: email-src, email-dst
+</pre>
+<b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'.
+You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search.
+Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use:<br />
+<pre>
+<?php
+	echo $baseurl.'/attributes/bro/download/ip/tag1&amp;&amp;tag2&amp;&amp;!tag3';
+?>
+</pre>
 <p>
 <b>event_id</b>: Restrict the results to the given event IDs. <br />
 <b>allowNonIDS</b>: Allow attributes to be exported that are not marked as "to_ids".<br />

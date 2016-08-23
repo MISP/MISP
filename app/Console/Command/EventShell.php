@@ -299,6 +299,53 @@ class EventShell extends AppShell
 		$this->Job->saveField('date_modified', date("y-m-d H:i:s"));
 	}
 
+	public function cachebro()
+	{
+		$broHeader = "#fields indicator\tindicator_type\tmeta.source\tmeta.url\tmeta.do_notice\tmeta.if_in\n";
+		$userId = $this->args[0];
+		$user = $this->User->getAuthUser($userId);
+		$id = $this->args[1];
+		$this->Job->id = $id;
+		$format = $this->args[2];
+		$this->Job->saveField('progress', 1);
+		$types = array('ip', 'email', 'domain', 'filename', 'filehash', 'certhash', 'software', 'url'); //Bro types
+		$typeCount = count($types);
+		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $format, true, 0750);
+
+		if ($user['Role']['perm_site_admin']) {
+			$zipname = DS . 'misp.bro.ADMIN.intel.zip';
+		} else {
+			$zipname = DS . 'misp.bro.' . $user['Organisation']['name'] . '.intel.zip';
+		}
+		$tmpZipname = DS . "bro_export_tmp.zip";
+		$zip = new File($dir->pwd() . $tmpZipname);
+		foreach ($types as $k => $type) {
+			$final = $this->Attribute->bro($user, $type);
+			$filename = $type . '.intel';
+
+			$file = new File($dir->pwd() . DS . $filename);
+			$file->write($broHeader);
+			foreach ($final as $attribute) {
+				$file->append($attribute . "\n");
+			}
+			$file->close();
+
+			$execRetval = '';
+			$execOutput = array();
+			exec('zip -gj  ' . $zip->path . ' ' . $dir->pwd() . '/' . $filename,
+				$execOutput, $execRetval);
+			if ($execRetval != 0) { // not EXIT_SUCCESS
+				throw new Exception('An error has occured while attempting to zip the intel files.');
+			}
+			$file->delete(); // delete the original non-zipped-file
+			$this->Job->saveField('progress', $k / $typeCount * 100);
+		}
+		$zip->close();
+		rename($dir->pwd() . $tmpZipname, $dir->pwd() . $zipname);
+		$this->Job->saveField('progress', 100);
+		$this->Job->saveField('message', 'Job done.');
+	}
+
 	public function alertemail() {
 		$userId = $this->args[0];
 		$processId = $this->args[1];
