@@ -2638,6 +2638,9 @@ class Event extends AppModel {
 			else $attribute['hasChildren'] = 0;
 			if ($filterType === 'proposal' && $attribute['hasChildren'] == 0) continue;
 			if ($filterType === 'correlation' && !in_array($attribute['id'], $correlatedAttributes)) continue;
+			if ($attribute['type'] == 'attachment' && preg_match('/.*\.(jpg|png|jpeg|gif)$/i', $attribute['value'])) {
+				$attribute['image'] = $this->Attribute->base64EncodeAttachment($attribute);
+			}
 			$eventArray[] = $attribute;
 		}
 		unset($event['Attribute']);
@@ -2646,6 +2649,9 @@ class Event extends AppModel {
 				if ($filterType === 'correlation' && !in_array($shadowAttribute['id'], $correlatedShadowAttributes)) continue;
 				if ($filterType && !in_array($filterType, array('proposal', 'correlation', 'warning'))) if (!in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType])) continue;
 				$shadowAttribute['objectType'] = 2;
+				if ($shadowAttribute['type'] == 'attachment' && preg_match('/.*\.(jpg|png|jpeg|gif)$/i', $shadowAttribute['value'])) {
+					$shadowAttribute['image'] = $this->ShadowAttribute->base64EncodeAttachment($attribute);
+				}
 				$eventArray[] = $shadowAttribute;
 			}
 		}
