@@ -1,9 +1,5 @@
 <?php
 
-/**
- * CIDR conversion tool
- */
-
 class CidrComponent extends Component {
 	public function CIDR($cidr) {
 		list($address, $prefix) = explode('/', $cidr, 2);
@@ -39,5 +35,22 @@ class CidrComponent extends Component {
 			if ($length < 3) $results[$i] .= '.%';
 		}
 		return $results;
+	}
+
+	public function checkCIDR($cidr, $ipVersion) {
+		if (strpos($cidr, '/') === FALSE || substr_count($cidr, '/') !== 1) {
+			return false;
+		}
+		list($net, $maskbits) = explode('/', $cidr);
+		if (!is_numeric($maskbits) || $maskbits < 0) {
+			return false;
+		}
+		if ($ipVersion == 4) {
+			return ($maskbits <= 32) && filter_var($net, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4);
+		} else if ($ipVersion == 6) {
+			return ($maskbits <= 128) && filter_var($net, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6);
+		} else {
+			throw new InvalidArgumentException('checkCIDR does only support IPv4 & IPv6');
+		}
 	}
 }
