@@ -43,10 +43,7 @@ class UsersController extends AppController {
 	 */
 	public function view($id = null) {
 		if ("me" == $id) $id = $this->Auth->user('id');
-		$responsibleAdmin = [];
-		if (!$this->_isSiteAdmin()) {
-			$responsibleAdmin = $this->User->findAdminsResponsibleForUser($id);
-			if($this->Auth->user('id') != $id)
+		if (!$this->_isSiteAdmin() && ($this->Auth->user('id') != $id)) {
 				throw new NotFoundException(__('Invalid user or not authorised.'));
 		}
 		$this->User->id = $id;
@@ -59,16 +56,17 @@ class UsersController extends AppController {
 	}
 
 	public function request_API(){
-		$subject = "[MISP ".Configure::read('MISP.org')."] User requesting API access";
-		$body = "A user (".$this->Auth->user('email').") has sent you a request to enable his/her API key access. 
-		Click <a href=\"".Configure::read('MISP.baseurl')."\">here</a> to edit his profile to change his role.";
-		$user = $this->User->find('first', array('conditions' => array('User.id' => $this->Auth->user('id'))));
-		$result = $this->User->sendEmail($user, $body, false, $subject);
-		if($result)
-			$message = "API access requested.";
-		else
-			$message = "Something went wrong, please try again later.";
-
+		$responsibleAdmin = $this->User->findAdminsResponsibleForUser($this->Auth->user('id'));
+		$message = "Something went wrong, please try again later.";
+		if(isset($responsibleAdmin['email']) && !empty($responsibleAdmin['email'])){
+			$subject = "[MISP ".Configure::read('MISP.org')."] User requesting API access";
+			$body = "A user (".$this->Auth->user('email').") has sent you a request to enable his/her API key access.<br/>";
+			$body .= "Click <a href=\"".Configure::read('MISP.baseurl')."\">here</a> to edit his profile to change his role.";
+			$user = $this->User->find('first', array('conditions' => array('User.id' => $this->Auth->user('id'))));
+			$result = $this->User->sendEmail($user, $body, false, $subject);
+			if($result)
+				$message = "API access requested.";
+		}
 		$this->set('message', $message);
 		$this->layout = 'ajax';
 	}
@@ -590,7 +588,7 @@ class UsersController extends AppController {
 		}
 		$fieldsDescrStr = 'User (' . $id . '): ' . $user['User']['email'];
 		if ($this->User->delete($id)) {
-			$this->__extralog("delete", $fieldsDescrStr, '');	// TODO Audit, check: modify User
+			$this->__extralog("delete", $fieldsDescrStr, '');//TODO Audit, check: modify User
 			$this->Session->setFlash(__('User deleted'));
 			$this->redirect(array('action' => 'index'));
 		}
@@ -720,6 +718,10 @@ class UsersController extends AppController {
 		}
 		if (!$id) {
 			$this->Session->setFlash(__('Invalid id for user', true), 'default', array(), 'error');
+			$this->redirect(array('action' => 'view', $this->Auth->user('id')));
+		}
+		if (!$this->userRole['perm_auth']) {
+			$this->Session->setFlash(__('Invalid action', true), 'default', array(), 'error');
 			$this->redirect(array('action' => 'view', $this->Auth->user('id')));
 		}
 		// reset the key

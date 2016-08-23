@@ -40,7 +40,7 @@
 						echo '(' . $this->Html->link('reset', array('controller' => 'users', 'action' => 'resetauthkey', $user['User']['id'])) . ')';
 					}
 				} else {
-					echo "<a onclick='requestAPIAccess()' style='cursor: pointer;'>Request API access</a>";
+					echo "<a onclick=\"requestAPIAccess()\" style=\"cursor:pointer;\">Request API access</a>";
 				}
 			?>
 			&nbsp;

@@ -951,12 +951,11 @@ class User extends AppModel {
 			'recursive' => -1,
 			'conditions' => array(
 				'Role.perm_site_admin' => 0,
+				'Role.perm_admin' => 1,
 				'User.disabled' => 0,
-				'User.org_id' => $userOrg['Organisation']['id'],
-				'Role.perm_admin' => 1
+				'User.org_id' => $userOrg['Organisation']['id']
 			),
 			'contain' => array(
-				'Organisation' => array('fields' => array('id')),
 				'Role' => array('fields' => array('perm_admin'))
 			),
 			'fields' => array('User.id', 'User.email', 'User.org_id')
@@ -969,7 +968,6 @@ class User extends AppModel {
 					'User.disabled' => 0,
 				),
 				'contain' => array(
-					'Organisation' => array('fields' => array('id')),
 					'Role' => array('fields' => array('perm_site_admin'))
 				),
 				'fields' => array('User.id', 'User.email', 'User.org_id')
