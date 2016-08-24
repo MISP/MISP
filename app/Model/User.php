@@ -936,27 +936,17 @@ class User extends AppModel {
 		return $usersPerOrg;
 	}
 
-	public function findAdminsResponsibleForUser($id){
-		$userOrg = $this->find('first', array(
-			'conditions' => array(
-				'User.id' => $id,
-			),
-			'contain' => array(
-				'Organisation' => array('fields' => array('id')),
-			),
-			'fields' => array('Organisation.id')
-		));
-
+	public function findAdminsResponsibleForUser($user){
 		$admin = $this->find('first', array(
 			'recursive' => -1,
 			'conditions' => array(
 				'Role.perm_site_admin' => 0,
 				'Role.perm_admin' => 1,
 				'User.disabled' => 0,
-				'User.org_id' => $userOrg['Organisation']['id']
+				'User.org_id' => $user['org_id']
 			),
 			'contain' => array(
-				'Role' => array('fields' => array('perm_admin'))
+				'Role' => array('fields' => array('perm_admin', 'perm_site_admin'))
 			),
 			'fields' => array('User.id', 'User.email', 'User.org_id')
 		));

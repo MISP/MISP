@@ -56,7 +56,7 @@ class UsersController extends AppController {
 	}
 
 	public function request_API(){
-		$responsibleAdmin = $this->User->findAdminsResponsibleForUser($this->Auth->user('id'));
+		$responsibleAdmin = $this->User->findAdminsResponsibleForUser($this->Auth->user());
 		$message = "Something went wrong, please try again later.";
 		if(isset($responsibleAdmin['email']) && !empty($responsibleAdmin['email'])){
 			$subject = "[MISP ".Configure::read('MISP.org')."] User requesting API access";

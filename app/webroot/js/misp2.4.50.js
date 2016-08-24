@@ -2495,9 +2495,7 @@ $(".queryPopover").click(function() {
 });
 
 function requestAPIAccess() {
-	var destination = 'users';
-	var action = 'request_API';
-	url = "/" + destination + "/" + action + "/";
+	url = "/users/request_API/";
 	$.ajax({
 		type:"get",
 		url:url,
