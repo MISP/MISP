@@ -667,4 +667,8 @@ class AppController extends Controller {
 		$this->Session->setFlash('Caches cleared.');
 		$this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'diagnostics'));
 	}
+
+	public function checkFilename($filename) {
+		return preg_match('@^([a-z0-9_.]+[a-z0-9_.\- ]*[a-z0-9_.\-]|[a-z0-9_.])+$@i', $filename);
+	}
 }
