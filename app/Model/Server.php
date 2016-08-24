@@ -906,7 +906,7 @@ class Server extends AppModel {
 						'description' => 'The port that the pub/sub feature will use.',
 						'value' => 50000,
 						'errorMessage' => '',
-						'test' => 'testForPortNumber',
+						'test' => 'testForZMQPortNumber',
 						'type' => 'numeric',
 						'afterHook' => 'zmqAfterHook',
 					),
@@ -1046,7 +1046,7 @@ class Server extends AppModel {
 					'Enrichment_timeout' => array(
 							'level' => 1,
 							'description' => 'Set a timeout for the enrichment services',
-							'value' => 5,
+							'value' => 10,
 							'errorMessage' => '',
 							'test' => 'testForEmpty',
 							'type' => 'numeric'
@@ -1062,7 +1062,7 @@ class Server extends AppModel {
 					'Import_timeout' => array(
 							'level' => 1,
 							'description' => 'Set a timeout for the import services',
-							'value' => 5,
+							'value' => 10,
 							'errorMessage' => '',
 							'test' => 'testForEmpty',
 							'type' => 'numeric'
@@ -1110,7 +1110,7 @@ class Server extends AppModel {
 					'Export_timeout' => array(
 							'level' => 1,
 							'description' => 'Set a timeout for the import services',
-							'value' => 5,
+							'value' => 10,
 							'errorMessage' => '',
 							'test' => 'testForEmpty',
 							'type' => 'numeric'
@@ -1126,7 +1126,7 @@ class Server extends AppModel {
 					'Enrichment_hover_timeout' => array(
 							'level' => 1,
 							'description' => 'Set a timeout for the hover services',
-							'value' => 2,
+							'value' => 5,
 							'errorMessage' => '',
 							'test' => 'testForEmpty',
 							'type' => 'numeric'
@@ -2038,6 +2038,13 @@ class Server extends AppModel {
 	}
 
 	public function testForPortNumber($value) {
+		$numeric = $this->testForNumeric($value);
+		if ($numeric !== true) return $numeric;
+		if ($value < 21 || $value > 65535) return 'Make sure that you pick a valid port number.';
+		return true;
+	}
+
+	public function testForZMQPortNumber($value) {
 		$numeric = $this->testForNumeric($value);
 		if ($numeric !== true) return $numeric;
 		if ($value < 49152 || $value > 65535) return 'It is recommended that you pick a port number in the dynamic range (49152-65535). However, if you have a valid reason to use a different port, ignore this message.';

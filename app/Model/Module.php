@@ -136,9 +136,9 @@ class Module extends AppModel {
 		if (!$url) return false;
 		App::uses('HttpSocket', 'Network/Http');
 		if ($hover) {
-			$httpSocket = new HttpSocket(array('timeout' => Configure::read('Plugin.' . $moduleFamily . '_hover_timeout') ? Configure::read('Plugin.' . $moduleFamily . '_hover_timeout') : 2));
+			$httpSocket = new HttpSocket(array('timeout' => Configure::read('Plugin.' . $moduleFamily . '_hover_timeout') ? Configure::read('Plugin.' . $moduleFamily . '_hover_timeout') : 5));
 		} else {
-			$httpSocket = new HttpSocket(array('timeout' => Configure::read('Plugin.' . $moduleFamily . '_timeout') ? Configure::read('Plugin.' . $moduleFamily . '_timeout') : 5));
+			$httpSocket = new HttpSocket(array('timeout' => Configure::read('Plugin.' . $moduleFamily . '_timeout') ? Configure::read('Plugin.' . $moduleFamily . '_timeout') : 10));
 		}
 		try {
 			if ($post) $response = $httpSocket->post($url . $uri, $post);
