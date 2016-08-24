@@ -19,7 +19,6 @@ class User extends AppModel {
 
 	public $orgField = array('Organisation', 'name');	// TODO Audit, LogableBehaviour + org
 
-
 /**
  * Validation rules
  *
@@ -441,7 +440,6 @@ class User extends AppModel {
 		}
 		return $key;
 	}
-
 
 	public function checkAndCorrectPgps() {
 		$fails = array();
@@ -934,5 +932,15 @@ class User extends AppModel {
 			$usersPerOrg[$value['User']['org_id']] = $value[0]['num_members'];
 		}
 		return $usersPerOrg;
+	}
+
+	public function getUserMinimalInfo($id) {
+		$info = $this->find('first', array(
+			'conditions' => array(
+				'User.id' => $id,
+			),
+			'fields' => array('User.email', 'User.id')
+		));
+		return $info['User'];
 	}
 }

@@ -2797,17 +2797,4 @@ class Event extends AppModel {
 		);
 	}
 
-	public function getEventCreatorInfo($id) {
-		$creatorInfo = $this->find('first', array(
-			'recursive' => -1,
-			'conditions' => array(
-				'Event.id' => $id,
-			),
-			'contain' => array(
-				'User' => array('fields' => array('id')),
-			),
-			'fields' => array('User.email', 'User.id', 'Event.user_id')
-		));
-		return $creatorInfo['User'];
-	}
 }
