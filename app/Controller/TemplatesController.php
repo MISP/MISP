@@ -381,7 +381,7 @@ class TemplatesController extends AppController {
 			// filename checks
 			foreach ($this->request->data['Template']['file'] as $k => $file) {
 				if ($file['size'] > 0 && $file['error'] == 0) {
-					if (preg_match('@^[\w\-. ]+$@', $file['name'])) {
+					if (preg_match('@^[\w\-. ]+$@', $file['name'])) { // filename regex
 						$fn = $this->Template->generateRandomFileName();
 						move_uploaded_file($file['tmp_name'], APP . 'tmp/files/' . $fn);
 						$filenames[] =$file['name'];
@@ -420,7 +420,7 @@ class TemplatesController extends AppController {
 		if (!$this->request->is('post')) throw new MethodNotAllowedException('This action is restricted to accepting POST requests only.');
 		if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This action is only accessible through AJAX.');
 		$this->autoRender = false;
-		if (preg_match('/^[a-zA-Z0-9]{12}$/', $filename)) {
+		if (preg_match('/^[a-zA-Z0-9]{12}$/', $filename)) { // filename regex
 			$file = new File(APP . 'tmp/files/' . $filename);
 			if ($file->exists()) {
 				$file->delete();

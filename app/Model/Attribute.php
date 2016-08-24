@@ -1654,7 +1654,7 @@ class Attribute extends AppModel {
 			$element['to_ids'] = 0;
 		}
 		foreach ($files as $file) {
-			if (!preg_match('@^[\w\-. ]+$@', $file['filename'])) {
+			if (!preg_match('@^[\w\-. ]+$@', $file['filename'])) { // filename regex
 				$errors = 'Filename not allowed.';
 				continue;
 			}

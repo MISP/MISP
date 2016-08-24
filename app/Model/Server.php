@@ -1956,7 +1956,7 @@ class Server extends AppModel {
 
 	public function testForPath($value) {
 		if ($value === '') return true;
-		if (preg_match('/^[a-z0-9\-\_\:\/]+$/i', $value)) return true;
+		if (preg_match('/^[a-z0-9\-_:/]+$/i', $value)) return true;
 		return 'Invalid characters in the path.';
 	}
 
@@ -2171,7 +2171,7 @@ class Server extends AppModel {
 	// never come here directly, always go through a secondary check like testForTermsFile in order to also pass along the expected file path
 	private function __testForFile($value, $path) {
 		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
-		if (!preg_match('/^[\w,\s-]+(\.)?[A-Za-z0-9]+$/', $value)) return 'Invalid filename. Valid filenames can only include characters between a-z, A-Z or 0-9. They can also include - and _ and can optionally have an extension.';
+		if (!preg_match('/^[\w, \-_]+(\.)?[A-Za-z0-9]+$/', $value)) return 'Invalid filename. Valid filenames can only include characters between a-z, A-Z or 0-9. They can also include - and _ and can optionally have an extension.';
 		$file = $path . DS . $value;
 		if (!file_exists($file)) return 'Could not find the specified file. Make sure that it is uploaded into the following directory: ' . $path;
 		return true;
