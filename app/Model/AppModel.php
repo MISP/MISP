@@ -687,4 +687,8 @@ class AppModel extends Model {
 		));
 		return $delegations;
 	}
+
+	public function checkFilename($filename) {
+		return preg_match('@^([a-z0-9_.]+[a-z0-9_.\- ]*[a-z0-9_.\-]|[a-z0-9_.])+$@i', $filename);
+	}
 }

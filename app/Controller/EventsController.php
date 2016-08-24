@@ -1938,8 +1938,8 @@ class EventsController extends AppController {
 			$rootDir = APP . "files" . DS . $id . DS;
 			App::uses('Folder', 'Utility');
 			$dir = new Folder($rootDir, true);
-			if (!preg_match('@^[\w\-, .]+\.[A-Za-z0-9_]{2,4}$@', $this->data['Event']['submittedgfi']['name'])) {
-				throw new Exception ('Filename not allowed');
+			if (!$this->checkFilename($this->data['Event']['submittedgfi']['name'])) {
+				throw new Exception ('Filename not allowed.');
 			}
 			$zipFile = new File($rootDir . $this->data['Event']['submittedgfi']['name']);
 			$result = $zipFile->write($zipData);
@@ -1966,6 +1966,10 @@ class EventsController extends AppController {
 	public function _addIOCFile($id) {
 		if (!empty($this->data) && $this->data['Event']['submittedioc']['size'] > 0 &&
 				is_uploaded_file($this->data['Event']['submittedioc']['tmp_name'])) {
+			if (!$this->checkFilename($this->data['Event']['submittedioc']['name'])) {
+				throw new Exception ('Filename not allowed.');
+			}
+
 			App::uses('FileAccessTool', 'Tools');
 			$fileAccessTool = new FileAccessTool();
 			$iocData = $fileAccessTool->readFromFile($this->data['Event']['submittedioc']['tmp_name'], $this->data['Event']['submittedioc']['size']);
@@ -1975,9 +1979,6 @@ class EventsController extends AppController {
 			App::uses('Folder', 'Utility');
 			$dir = new Folder($rootDir . 'ioc', true);
 			$destPath = $rootDir . 'ioc';
-			if (!preg_match('@^[\w\-, .]+\.[A-Za-z0-9_]{2,4}$@', $this->data['Event']['submittedioc']['name'])) {
-				throw new Exception ('Filename not allowed');
-			}
 			App::uses('File', 'Utility');
 			$iocFile = new File($destPath . DS . $this->data['Event']['submittedioc']['name']);
 			$result = $iocFile->write($iocData);
@@ -2888,8 +2889,8 @@ class EventsController extends AppController {
 						App::uses('FileAccessTool', 'Tools');
 						$tmpdir = Configure::read('MISP.tmpdir') ? Configure::read('MISP.tmpdir') : '/tmp';
 						$tempFile = explode('|', $attribute['data']);
-						if (!preg_match('/^\w+$/i', $tempFile[0])) {
-							throw new MethodNotAllowedException('Invalid filename, stop tampering with it.');
+						if (!$this->checkFilename($tempFile[0])) {
+							throw new Exception('Invalid filename.');
 						}
 						$attribute['data'] = (new FileAccessTool())->readFromFile($tmpdir . '/' . $tempFile[0], $tempFile[1]);
 						unlink($tmpdir . '/' . $tempFile[0]);
