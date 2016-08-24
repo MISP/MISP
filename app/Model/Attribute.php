@@ -1775,7 +1775,7 @@ class Attribute extends AppModel {
 		if (isset($options['order'])) $params['order'] = $options['order'];
 		else ($params['order'] = array());
 		if (!$user['Role']['perm_sync'] || !isset($options['deleted']) || !$options['deleted']) $params['conditions']['AND']['Attribute.deleted'] = 0;
-		if (isset($options['group'])) $params['group'] = array_merge('Attribute.id', $options['group']);
+		if (isset($options['group'])) $params['group'] = array_merge(array('Attribute.id'), $options['group']);
 		if (Configure::read('MISP.unpublishedprivate')) $params['conditions']['AND'][] = array('OR' => array('Event.published' => 1, 'Event.orgc_id' => $user['org_id']));
 		$results = $this->find('all', $params);
 		if (isset($options['withAttachments']) && $options['withAttachments']) {
