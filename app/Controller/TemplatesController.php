@@ -25,7 +25,6 @@ class TemplatesController extends AppController {
 		$this->Security->unlockedActions = array('uploadFile', 'deleteTemporaryFile');
 	}
 
-
 	public function index() {
 		$conditions = array();
 		if (!$this->_isSiteAdmin()) {
@@ -273,7 +272,6 @@ class TemplatesController extends AppController {
 		$this->set('template_id', $template_id);
 		$this->set('event_id', $event_id);
 		if ($this->request->is('post')) {
-			$errors = array();
 			$this->set('template', $this->request->data);
 			$result = $this->Event->Attribute->checkTemplateAttributes($template, $this->request->data, $event_id);
 			if (isset($this->request->data['Template']['modify']) || !empty($result['errors'])) {
@@ -344,7 +342,7 @@ class TemplatesController extends AppController {
 					$this->Attribute->create();
 					if (!$this->Attribute->save(array('Attribute' => $attribute))) $fails++;
 				}
-				$count = $k + 1;
+				$count = isset($k) ? $k + 1 : 0;
 				$event = $this->Event->find('first', array(
 					'conditions' => array('Event.id' => $event_id),
 					'recursive' => -1
@@ -373,9 +371,6 @@ class TemplatesController extends AppController {
 		} else if ($this->request->is('post')) {
 			$fileArray = array();
 			$filenames = array();
-			$tmp_names = array();
-			$element_ids = array();
-			$result = array();
 			$added = 0;
 			$failed = 0;
 			// filename checks
@@ -384,7 +379,7 @@ class TemplatesController extends AppController {
 					if (preg_match('@^[\w\-. ]+$@', $file['name'])) { // filename regex
 						$fn = $this->Template->generateRandomFileName();
 						move_uploaded_file($file['tmp_name'], APP . 'tmp/files/' . $fn);
-						$filenames[] =$file['name'];
+						$filenames[] = $file['name'];
 						$fileArray[] = array('filename' => $file['name'], 'tmp_name' => $fn, 'element_id' => $elementId);
 						$added++;
 					} else $failed++;
@@ -402,15 +397,6 @@ class TemplatesController extends AppController {
 			$this->set('filenames', $filenames);
 			$this->set('fileArray', json_encode($fileArray));
 		}
-	}
-
-	private function __combineArrays($array, $array2) {
-		foreach ($array2 as $element) {
-			if (!in_array($element, $array)) {
-				$array[] = $element;
-			}
-		}
-		return $array;
 	}
 
 	// deletes a temporary file created by the user while populating a template
