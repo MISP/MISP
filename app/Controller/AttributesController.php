@@ -1190,7 +1190,7 @@ class AttributesController extends AppController {
 							}
 
 							// check for an IPv4 address and subnet in CIDR notation (e.g. 127.0.0.1/8)
-							if (preg_match('@^((\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])\.){3}(\d|[1-9]\d|1\d{2}|2[0-4]\d|25[0-5])(\/(\d|[12]\d|3[012]))$@', $saveWord)) {
+							if ($this->Cidr->checkCIDR($saveWord, 4)) {
 								$cidrresults = $this->Cidr->CIDR($saveWord);
 								foreach ($cidrresults as $result) {
 									$result = strtolower($result);
@@ -1595,7 +1595,8 @@ class AttributesController extends AppController {
 				foreach ($elements as $v) {
 					if (empty($v)) continue;
 					if (substr($v, 0, 1) == '!') {
-						if ($parameters[$k] === 'value' && preg_match('@^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(\d|[1-2]\d|3[0-2]))$@', substr($v, 1))) {
+						// check for an IPv4 address and subnet in CIDR notation (e.g. 127.0.0.1/8)
+						if ($parameters[$k] === 'value' && $this->Cidr->checkCIDR(substr($v, 1), 4)) {
 							$cidrresults = $this->Cidr->CIDR(substr($v, 1));
 							foreach ($cidrresults as $result) {
 								$subcondition['AND'][] = array('Attribute.value NOT LIKE' => $result);
@@ -1614,7 +1615,8 @@ class AttributesController extends AppController {
 							$subcondition['AND'][] = array('Attribute.' . $parameters[$k] . ' NOT LIKE' => '%'.substr($v, 1).'%');
 						}
 					} else {
-						if ($parameters[$k] === 'value' && preg_match('@^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(\d|[1-2]\d|3[0-2]))$@', $v)) {
+						// check for an IPv4 address and subnet in CIDR notation (e.g. 127.0.0.1/8)
+						if ($parameters[$k] === 'value' && $this->Cidr->checkCIDR($v, 4)) {
 							$cidrresults = $this->Cidr->CIDR($v);
 							foreach ($cidrresults as $result) {
 								$subcondition['OR'][] = array('Attribute.value LIKE' => $result);
