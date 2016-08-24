@@ -1938,7 +1938,7 @@ class EventsController extends AppController {
 			$rootDir = APP . "files" . DS . $id . DS;
 			App::uses('Folder', 'Utility');
 			$dir = new Folder($rootDir, true);
-			if (!preg_match('@^[\w-,\s,\.]+\.[A-Za-z0-9_]{2,4}$@', $this->data['Event']['submittedgfi']['name'])) {
+			if (!preg_match('@^[\w\-, .]+\.[A-Za-z0-9_]{2,4}$@', $this->data['Event']['submittedgfi']['name'])) {
 				throw new Exception ('Filename not allowed');
 			}
 			$zipFile = new File($rootDir . $this->data['Event']['submittedgfi']['name']);
@@ -1975,7 +1975,7 @@ class EventsController extends AppController {
 			App::uses('Folder', 'Utility');
 			$dir = new Folder($rootDir . 'ioc', true);
 			$destPath = $rootDir . 'ioc';
-			if (!preg_match('@^[\w-,\s,\.]+\.[A-Za-z0-9_]{2,4}$@', $this->data['Event']['submittedioc']['name'])) {
+			if (!preg_match('@^[\w\-, .]+\.[A-Za-z0-9_]{2,4}$@', $this->data['Event']['submittedioc']['name'])) {
 				throw new Exception ('Filename not allowed');
 			}
 			App::uses('File', 'Utility');
@@ -2888,7 +2888,7 @@ class EventsController extends AppController {
 						App::uses('FileAccessTool', 'Tools');
 						$tmpdir = Configure::read('MISP.tmpdir') ? Configure::read('MISP.tmpdir') : '/tmp';
 						$tempFile = explode('|', $attribute['data']);
-						if (!preg_match('/^[a-z0-9]*$/i', $tempFile[0])) {
+						if (!preg_match('/^\w+$/i', $tempFile[0])) {
 							throw new MethodNotAllowedException('Invalid filename, stop tampering with it.');
 						}
 						$attribute['data'] = (new FileAccessTool())->readFromFile($tmpdir . '/' . $tempFile[0], $tempFile[1]);
