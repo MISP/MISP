@@ -34,7 +34,7 @@ class NidsExport {
 			$this->explain();
 		}
 		// generate the rules
-		foreach ($items as &$item) {
+		foreach ($items as $item) {
 
 			# proto src_ip src_port direction dst_ip dst_port msg rule_content tag sid rev
 			$ruleFormatMsg = 'msg: "MISP e' . $item['Event']['id'] . ' %s"';
@@ -42,51 +42,48 @@ class NidsExport {
 			$ruleFormat = '%salert %s %s %s %s %s %s (' . $ruleFormatMsg . '; %s %s classtype:' . $this->classtype . '; sid:%d; rev:%d; priority:' . $item['Event']['threat_level_id'] . '; ' . $ruleFormatReference . ';) ';
 
 			$sid = $startSid + ($item['Attribute']['id'] * 10); // leave 9 possible rules per attribute type
-			$attribute = &$item['Attribute'];
-
 			$sid++;
 			switch ($attribute['type']) {
 				// LATER nids - test all the snort attributes
 				// LATER nids - add the tag keyword in the rules to capture network traffic
 				// LATER nids - sanitize every $attribute['value'] to not conflict with snort
 				case 'ip-dst':
-					$this->ipDstRule($ruleFormat, $attribute, $sid);
+					$this->ipDstRule($ruleFormat, $item['Attribute'], $sid);
 					break;
 				case 'ip-src':
-					$this->ipSrcRule($ruleFormat, $attribute, $sid);
+					$this->ipSrcRule($ruleFormat, $item['Attribute'], $sid);
 					break;
 				case 'email-src':
-					$this->emailSrcRule($ruleFormat, $attribute, $sid);
+					$this->emailSrcRule($ruleFormat, $item['Attribute'], $sid);
 					break;
 				case 'email-dst':
-					$this->emailDstRule($ruleFormat, $attribute, $sid);
+					$this->emailDstRule($ruleFormat, $item['Attribute'], $sid);
 					break;
 				case 'email-subject':
-					$this->emailSubjectRule($ruleFormat, $attribute, $sid);
+					$this->emailSubjectRule($ruleFormat, $item['Attribute'], $sid);
 					break;
 				case 'email-attachment':
-					$this->emailAttachmentRule($ruleFormat, $attribute, $sid);
+					$this->emailAttachmentRule($ruleFormat, $item['Attribute'], $sid);
 					break;
 				case 'domain':
-					$this->domainRule($ruleFormat, $attribute, $sid);
+					$this->domainRule($ruleFormat, $item['Attribute'], $sid);
 					break;
 				case 'hostname':
-					$this->hostnameRule($ruleFormat, $attribute, $sid);
+					$this->hostnameRule($ruleFormat, $item['Attribute'], $sid);
 					break;
 				case 'url':
-					$this->urlRule($ruleFormat, $attribute, $sid);
+					$this->urlRule($ruleFormat, $item['Attribute'], $sid);
 					break;
 				case 'user-agent':
-					$this->userAgentRule($ruleFormat, $attribute, $sid);
+					$this->userAgentRule($ruleFormat, $item['Attribute'], $sid);
 					break;
 				case 'snort':
-					$this->snortRule($ruleFormat, $attribute, $sid, $ruleFormatMsg, $ruleFormatReference);
+					$this->snortRule($ruleFormat, $item['Attribute'], $sid, $ruleFormatMsg, $ruleFormatReference);
 				default:
 					break;
 			}
 
 		}
-
 		return $this->rules;
 	}
 
@@ -421,7 +418,7 @@ class NidsExport {
 		// explode using the dot
 		$explodedNames = explode('.', $name);
 		// for each part
-		foreach ($explodedNames as &$explodedName) {
+		foreach ($explodedNames as $explodedName) {
 			// count the lenght of the part, and add |length| before
 			$length = strlen($explodedName);
 			if ($length > 255) log('WARNING: DNS name is too long for RFC: '.$name);
@@ -448,7 +445,7 @@ class NidsExport {
 		// explode using the dot
 		$explodedNames = explode('.', $name);
 		// for each part
-		foreach ($explodedNames as &$explodedName) {
+		foreach ($explodedNames as $explodedName) {
 			// count the lenght of the part, and add |length| before
 			$length = strlen($explodedName);
 			if ($length > 255) log('WARNING: DNS name is too long for RFC: '.$name);

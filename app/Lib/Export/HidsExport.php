@@ -17,20 +17,18 @@ class HidsExport {
 
 	public function export($items, $type = 'MD5', $continue = false) {
 		if (!empty($items)) {
-			foreach ($items as &$item) {
-				$attribute = &$item['Attribute'];
-
-				switch ($attribute['type']) {
+			foreach ($items as $item) {
+				switch ($item['Attribute']['type']) {
 					case 'md5':
 					case 'sha1':
 					case 'sha256':
-						if (!in_array ($attribute['value1'], $this->rules)) $this->rules[] = $attribute['value1'];
+						if (!in_array ($item['Attribute']['value1'], $this->rules)) $this->rules[] = $item['Attribute']['value1'];
 						break;
 					case 'filename|md5':
 					case 'malware-sample':
 					case 'filename|sha1':
 					case 'filename|sha256':
-						if (!in_array ($attribute['value2'], $this->rules)) $this->rules[] = $attribute['value2'];
+						if (!in_array ($item['Attribute']['value2'], $this->rules)) $this->rules[] = $item['Attribute']['value2'];
 						break;
 					default:
 						break;
