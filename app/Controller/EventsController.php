@@ -853,7 +853,6 @@ class EventsController extends AppController {
 	 * @return void
 	 * @throws NotFoundException
 	 */
-
 	public function view($id = null, $continue=false, $fromEvent=null) {
 		// find the id of the event, change $id to it and proceed to read the event as if the ID was entered.
 		if (Validation::uuid($id)) {

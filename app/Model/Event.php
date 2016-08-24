@@ -1293,10 +1293,14 @@ class Event extends AppModel {
 				),
 			)
 		);
-		if ($user['Role']['perm_site_admin']) {
+		if ($user['Role']['perm_site_admin'] | $user['Role']['perm_admin']) {
 			$params['contain']['User'] = array('fields' => 'email');
 		}
 		$results = $this->find('all', $params);
+		//remove the event creator info if the current user is just orgAdmin and the event belongs to a different Org.
+		if ($user['Role']['perm_admin'] &&  ($user['org_id'] != $results[0]['Event']['org_id'] && $user['org_id'] != $results[0]['Event']['orgc_id'])) {
+			unset($results[0]['User']);
+		}
 		if (empty($results)) return array();
 		// Do some refactoring with the event
 		$sgsids = $this->SharingGroup->fetchAllAuthorised($user);
