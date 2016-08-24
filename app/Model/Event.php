@@ -19,22 +19,22 @@ class Event extends AppModel {
 		'Containable',
 	);
 
-/**
- * Display field
- *
- * @var string
- */
+	/**
+	 * Display field
+	 *
+	 * @var string
+	 */
 	public $displayField = 'id';
 
 	public $virtualFields = array();
 
 	public $mispVersion = '2.4.0';
 
-/**
- * Description field
- *
- * @var array
- */
+	/**
+	 * Description field
+	 *
+	 * @var array
+	 */
 	public $fieldDescriptions = array(
 		'threat_level_id' => array('desc' => 'Risk levels: *low* means mass-malware, *medium* means APT malware, *high* means sophisticated APT malware or 0-day attack', 'formdesc' => 'Risk levels: low: mass-malware medium: APT malware high: sophisticated APT malware or 0-day attack'),
 		'classification' => array('desc' => 'Set the Traffic Light Protocol classification. <ol><li><em>TLP:AMBER</em>- Share only within the organization on a need-to-know basis</li><li><em>TLP:GREEN:NeedToKnow</em>- Share within your constituency on the need-to-know basis.</li><li><em>TLP:GREEN</em>- Share within your constituency.</li></ol>'),
@@ -160,11 +160,11 @@ class Event extends AppModel {
 		'event_tag' => array('object' => 'Tag', 'var' => 'name')
 	);
 
-/**
- * Validation rules
- *
- * @var array
- */
+	/**
+	 * Validation rules
+	 *
+	 * @var array
+	 */
 	public $validate = array(
 		'org_id' => array(
 			'valueNotEmpty' => array(
@@ -267,11 +267,11 @@ class Event extends AppModel {
 
 	// The Associations below have been created with all possible keys, those that are not needed can be removed
 
-/**
- * belongsTo associations
- *
- * @var array
- */
+	/**
+	 * belongsTo associations
+	 *
+	 * @var array
+	 */
 	public $belongsTo = array(
 		'User' => array(
 			'className' => 'User',
@@ -298,13 +298,13 @@ class Event extends AppModel {
 		)
 	);
 
-/**
- * hasMany associations
- *
- * @var array
- *
- * @throws InternalErrorException // TODO Exception
- */
+	/**
+	 * hasMany associations
+	 *
+	 * @var array
+	 *
+	 * @throws InternalErrorException // TODO Exception
+	 */
 	public $hasMany = array(
 		'Attribute' => array(
 			'className' => 'Attribute',
@@ -626,17 +626,17 @@ class Event extends AppModel {
 		return $relatedAttributes;
 	}
 
-/**
- * Clean up an Event Array that was received by an XML request.
- * The structure needs to be changed a little bit to be compatible with what CakePHP expects
- *
- * This function receives the reference of the variable, so no return is required as it directly
- * modifies the original data.
- *
- * @param &$data a reference to the variable
- *
- * @throws InternalErrorException
- */
+	/**
+	 * Clean up an Event Array that was received by an XML request.
+	 * The structure needs to be changed a little bit to be compatible with what CakePHP expects
+	 *
+	 * This function receives the reference of the variable, so no return is required as it directly
+	 * modifies the original data.
+	 *
+	 * @param &$data a reference to the variable
+	 *
+	 * @throws InternalErrorException
+	 */
 	public function cleanupEventArrayFromXML(&$data) {
 		$objects = array('Attribute', 'ShadowAttribute');
 		foreach ($objects as $object) {
@@ -767,12 +767,12 @@ class Event extends AppModel {
 		return 'Success';
 	}
 
-/**
- * Uploads the event and the associated Attributes to another Server
- * TODO move this to a component
- *
- * @return bool true if success, false or error message if failed
- */
+	/**
+	 * Uploads the event and the associated Attributes to another Server
+	 * TODO move this to a component
+	 *
+	 * @return bool true if success, false or error message if failed
+	 */
 	public function restfulEventToServer($event, $server, $urlPath, &$newLocation, &$newTextBody, $HttpSocket = null) {
 		if ($event['Event']['distribution'] == 4) {
 			if (!empty($event['SharingGroup']['SharingGroupServer'])) {
@@ -970,12 +970,12 @@ class Event extends AppModel {
 	}
 
 
-/**
- * Deletes the event and the associated Attributes from another Server
- * TODO move this to a component
- *
- * @return bool true if success, error message if failed
- */
+	/**
+	 * Deletes the event and the associated Attributes from another Server
+	 * TODO move this to a component
+	 *
+	 * @return bool true if success, error message if failed
+	 */
 	public function deleteEventFromServer($uuid, $server, $HttpSocket=null) {
 		// TODO private and delete(?)
 
@@ -1006,11 +1006,11 @@ class Event extends AppModel {
 		}
 	}
 
-/**
- * Download a specific event from a Server
- * TODO move this to a component
- * @return array|NULL
- */
+	/**
+	 * Download a specific event from a Server
+	 * TODO move this to a component
+	 * @return array|NULL
+	 */
 	public function downloadEventFromServer($eventId, $server, $HttpSocket=null, $proposalDownload = false) {
 		$url = $server['Server']['url'];
 		$authkey = $server['Server']['authkey'];
@@ -1297,6 +1297,7 @@ class Event extends AppModel {
 			$params['contain']['User'] = array('fields' => 'email');
 		}
 		$results = $this->find('all', $params);
+
 		if (empty($results)) return array();
 		// Do some refactoring with the event
 		$sgsids = $this->SharingGroup->fetchAllAuthorised($user);
@@ -2272,7 +2273,6 @@ class Event extends AppModel {
 		return $uploaded;
 	}
 
-
 	/**
 	 *
 	 * Sends out an email to all people within the same org
@@ -2567,7 +2567,6 @@ class Event extends AppModel {
 		return $fn;
 	}
 
-
 	public function sharingGroupRequired($field) {
 		if ($this->data[$this->alias]['distribution'] == 4) {
 			return (!empty($field));
@@ -2803,4 +2802,5 @@ class Event extends AppModel {
 				'response' => $module['mispattributes']['responseType']
 		);
 	}
+
 }

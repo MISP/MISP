@@ -853,7 +853,6 @@ class EventsController extends AppController {
 	 * @return void
 	 * @throws NotFoundException
 	 */
-
 	public function view($id = null, $continue=false, $fromEvent=null) {
 		// find the id of the event, change $id to it and proceed to read the event as if the ID was entered.
 		if (Validation::uuid($id)) {
@@ -883,6 +882,11 @@ class EventsController extends AppController {
 		}
 		$results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
 		if (empty($results)) throw new NotFoundException('Invalid event');
+		//if the current user is an org admin AND event belongs to his/her org, fetch also the event creator info
+		if ($this->userRole['perm_admin'] && !$this->_isSiteAdmin() && $this->Event->isOwnedByOrg($id, $this->Auth->user('org_id'))) {
+			$results[0]['User'] = $this->User->getUserMinimalInfo($results[0]['Event']['user_id']);
+		}
+
 		$event = &$results[0];
 		if ($this->_isRest()) {
 			$this->set('event', $event);
