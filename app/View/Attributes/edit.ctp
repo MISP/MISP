@@ -163,6 +163,10 @@ $(document).ready(function() {
 			} else {
 				$("#warning-message").hide();
 			}
+			if (select.value === 'Internal reference') {
+				$("#AttributeDistribution").val('0');
+				$('#SGContainer').hide();
+			}
 		}
 	    var $e = $(e.target);
         $('#'+e.currentTarget.id).popover('destroy');
