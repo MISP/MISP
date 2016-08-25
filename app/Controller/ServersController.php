@@ -582,6 +582,7 @@ class ServersController extends AppController {
 			$stixVersion = array(0 => 'Incorrect STIX version installed, found $current, expecting $expected', 1 => 'OK');
 			$cyboxVersion = array(0 => 'Incorrect CyBox version installed, found $current, expecting $expected', 1 => 'OK');
 			$sessionErrors = array(0 => 'OK', 1 => 'High', 2 => 'Alternative setting used', 3 => 'Test failed');
+			$moduleErrors = array(0 => 'OK', 1 => 'System not enabled', 2 => 'No modules found');
 
 			$finalSettings = $this->Server->serverSettingsRead();
 			$issues = array(
@@ -679,12 +680,17 @@ class ServersController extends AppController {
 				// if Proxy is set up in the settings, try to connect to a test URL
 				$proxyStatus = $this->Server->proxyDiagnostics($diagnostic_errors);
 
+				$moduleTypes = array('Enrichment', 'Import', 'Export');
+				foreach ($moduleTypes as $type) {
+					$moduleStatus[$type] = $this->Server->moduleDiagnostics($diagnostic_errors, $type);
+				}
+
 				// check the size of the session table
 				$sessionCount = 0;
 				$sessionStatus = $this->Server->sessionDiagnostics($diagnostic_errors, $sessionCount);
 				$this->set('sessionCount', $sessionCount);
 
-				$additionalViewVars = array('gpgStatus', 'sessionErrors', 'proxyStatus', 'sessionStatus', 'zmqStatus', 'stixVersion', 'cyboxVersion','gpgErrors', 'proxyErrors', 'zmqErrors', 'stixOperational', 'stix');
+				$additionalViewVars = array('gpgStatus', 'sessionErrors', 'proxyStatus', 'sessionStatus', 'zmqStatus', 'stixVersion', 'cyboxVersion', 'moduleStatus', 'gpgErrors', 'proxyErrors', 'zmqErrors', 'stixOperational', 'stix', 'moduleErrors', 'moduleTypes');
 			}
 			// check whether the files are writeable
 			$writeableDirs = $this->Server->writeableDirsDiagnostics($diagnostic_errors);

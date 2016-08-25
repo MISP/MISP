@@ -2525,6 +2525,21 @@ class Server extends AppModel {
 		return 3;
 	}
 
+	public function moduleDiagnostics(&$diagnostic_errors, $type = 'Enrichment') {
+		$this->Module = ClassRegistry::init('Module');
+		$types = array('Enrichment', 'Import', 'Export');
+		$diagnostic_errors++;
+		if (Configure::read('Plugin.' . $type . '_services_enable')) {
+			$exception = false;
+			$result = $this->Module->getModules(false, $type, $exception);
+			if ($exception) return $exception;
+			if (empty($result)) return 2;
+			$diagnostic_errors--;
+			return 0;
+		}
+		return 1;
+	}
+
 	public function proxyDiagnostics(&$diagnostic_errors) {
 		$proxyStatus = 0;
 		$proxy = Configure::read('Proxy');
