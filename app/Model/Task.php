@@ -1,11 +1,8 @@
 <?php
 App::uses('AppModel', 'Model');
-/**
- * Task Model
- *
- * @property Task $Task
-*/
+
 class Task extends AppModel {
+
 	public $tasks = array(
 			'cache_exports' => array(
 					'type' => 'cache_exports',

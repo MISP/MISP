@@ -2,10 +2,6 @@
 
 App::uses('AppModel', 'Model');
 
-/**
- * Thread Model
- *
-*/
 class Thread extends AppModel {
 	public $actsAs = array(
 			'Containable',

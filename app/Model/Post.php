@@ -3,10 +3,6 @@
 App::uses('AppModel', 'Model');
 App::uses('CakeEmail', 'Network/Email');
 
-/**
- * Post Model
- *
-*/
 class Post extends AppModel {
 	public $actsAs = array(
 			'Containable',

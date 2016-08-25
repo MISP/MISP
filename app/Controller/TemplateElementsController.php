@@ -2,12 +2,6 @@
 
 App::uses('AppController', 'Controller');
 
-/**
- * TemplateElements Controller
- *
- * @property TemplateElement $TemplateElements
-*/
-
 class TemplateElementsController extends AppController {
 	public $components = array('Security' ,'RequestHandler');
 

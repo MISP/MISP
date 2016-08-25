@@ -2,6 +2,7 @@
 App::uses('AppModel', 'Model');
 
 class Module extends AppModel {
+
 	public $useTable = false;
 
 	private $__validTypes = array(

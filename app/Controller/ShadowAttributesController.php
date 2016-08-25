@@ -3,13 +3,6 @@ App::uses('AppController', 'Controller');
 App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
 
-/**
- * ShadowAttributes Controller
- *
- * Handles requests to edit attributes, add attributes
- *
- * @property ShadowAttribute $ShadowAttribute
- */
 class ShadowAttributesController extends AppController {
 
 	public $components = array('Acl', 'Security', 'RequestHandler', 'Email');
@@ -180,10 +173,6 @@ class ShadowAttributesController extends AppController {
 		}
 	}
 
-/**
- * accept method
- *
- */
 	// Accept a proposed edit and update the attribute
 	public function accept($id = null) {
 		if (!$this->request->is('post')) {
@@ -261,10 +250,6 @@ class ShadowAttributesController extends AppController {
 			return false;
 	}
 
-/**
- * discard method
- *
- */
 	// This method will discard a proposed change. Users that can delete the proposals are the publishing users of the org that created the event and of the ones that created the proposal - in addition to site admins of course
 	public function discard($id = null) {
 		if ($this->request->is('post')) {
@@ -302,11 +287,6 @@ class ShadowAttributesController extends AppController {
 		}
 	}
 
-/**
- * add method
- *
- * @throws NotFoundException // TODO Exception
- */
 	public function add($eventId = null) {
 		if ($this->request->is('ajax'))	{
 			$this->set('ajax', true);
@@ -500,12 +480,6 @@ class ShadowAttributesController extends AppController {
 		$this->response->file($path . $file, array('download' => true, 'name' => $filename . '.' . $fileExt));
 	}
 
-/**
- * add_attachment method
- *
- * @return void
- * @throws InternalErrorException
- */
 	public function add_attachment($eventId = null) {
 		$event = $this->ShadowAttribute->Event->fetchEvent($this->Auth->user(), array('eventid' => $eventId));
 		if (empty($event)) throw new NotFoundException('Invalid Event');
@@ -626,13 +600,6 @@ class ShadowAttributesController extends AppController {
 		$this->set('uploadDefinitions', $this->ShadowAttribute->uploadDefinitions);
 	}
 
-/**
- * edit method
- *
- * @param string $id
- * @return void
- * @throws NotFoundException
- */
 	// Propose an edit to an attribute
 	// Fields that can be used to edit an attribute when using the API:
 	// type, category, value, comment, to_ids

@@ -4,12 +4,6 @@ App::uses('AppController', 'Controller');
 App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
 
-/**
- * Templates Controller
- *
- * @property Template $Templates
- */
-
 class TemplatesController extends AppController {
 	public $components = array('Security' ,'RequestHandler');
 

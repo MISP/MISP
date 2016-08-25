@@ -23,11 +23,6 @@ class Regexp extends AppModel {
 			)
 	);
 
-/**
- * Use table
- *
- * @var mixed False or table name
- */
 	public $useTable = 'regexp';
 
 	public function beforeValidate($options = array()) {

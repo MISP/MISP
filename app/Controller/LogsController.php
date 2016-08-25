@@ -2,11 +2,6 @@
 
 App::uses('AppController', 'Controller');
 
-/**
- * Logs Controller
- *
- * @property Log $Log
- */
 class LogsController extends AppController {
 
 	public $components = array(
@@ -33,11 +28,6 @@ class LogsController extends AppController {
 		}
 	}
 
-/**
- * admin_index method
- *
- * @return void
- */
 	public function admin_index() {
 		if (!$this->userRole['perm_audit']) $this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
 		$this->set('isSearch', 0);

@@ -2,10 +2,6 @@
 
 App::uses('AppModel', 'Model');
 
-/**
- * Log Model
- *
- */
 class Log extends AppModel {
 
 	public $validate = array(

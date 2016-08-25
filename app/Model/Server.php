@@ -1,12 +1,9 @@
 <?php
 App::uses('AppModel', 'Model');
-/**
- * Server Model
- *
- */
+
 class Server extends AppModel {
 
-	public $name = 'Server';					// TODO general
+	public $name = 'Server';
 
 	public $actsAs = array('SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable, check: 'userModel' and 'userKey' can be removed given default
 			'userModel' => 'User',
@@ -40,18 +37,8 @@ class Server extends AppModel {
 		),
 	);
 
-/**
- * Display field
- *
- * @var string
- */
 	public $displayField = 'url';
 
-/**
- * Validation rules
- *
- * @var array
- */
 	public $validate = array(
 		'url' => array( // TODO add extra validation to refuse multiple time the same url from the same org
 			'url' => array(
@@ -1490,11 +1477,7 @@ class Server extends AppModel {
 	}
 
 
-	/**
-	 * Get an array of event_ids that are present on the remote server
-	 * TODO move this to a component
-	 * @return array of event_ids
-	 */
+	// Get an array of event_ids that are present on the remote server
 	public function getEventIdsFromServer($server, $all = false, $HttpSocket=null, $force_uuid=false, $ignoreFilterRules = false) {
 		$url = $server['Server']['url'];
 		$authkey = $server['Server']['authkey'];

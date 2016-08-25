@@ -2,12 +2,10 @@
 
 App::uses('AppModel', 'Model');
 
-/**
- * TemplateElementAttribute Model
- *
-*/
 class TemplateElementAttribute extends AppModel {
+
 	public $actsAs = array('Containable');
+
 	public $belongsTo = array('TemplateElement');
 
 	public $validate = array(

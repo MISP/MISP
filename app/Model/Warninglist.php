@@ -1,8 +1,11 @@
 <?php
 App::uses('AppModel', 'Model');
 class Warninglist extends AppModel{
+
 	public $useTable = 'warninglists';
+
 	public $recursive = -1;
+
 	public $actsAs = array(
 			'Containable',
 	);

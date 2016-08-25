@@ -3,11 +3,6 @@ App::uses('AppController', 'Controller');
 App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
 
-/**
- * Attributes Controller
- *
- * @property Attribute $Attribute
- */
 class AttributesController extends AppController {
 
 	public $components = array('Security', 'RequestHandler', 'Cidr');
@@ -58,12 +53,6 @@ class AttributesController extends AppController {
 		}
 	}
 
-/**
- * index method
- *
- * @return void
- *
- */
 	public function index() {
 		$this->Attribute->recursive = 2;
 		$this->paginate['contain'] = array(
@@ -80,11 +69,6 @@ class AttributesController extends AppController {
 		$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
 	}
 
-/**
- * add method
- *
- * @throws NotFoundException // TODO Exception
- */
 	public function add($eventId = null) {
 		if (!$this->userRole['perm_add']) {
 			throw new MethodNotAllowedException('You don\'t have permissions to create attributes');
@@ -331,12 +315,6 @@ class AttributesController extends AppController {
 		$this->response->file($path . $file, array('download' => true, 'name' => $filename . '.' . $fileExt));
 	}
 
-	/**
-	 * add_attachment method
-	 *
-	 * @return void
-	 * @throws InternalErrorException
-	 */
 	public function add_attachment($eventId = null) {
 		if ($this->request->is('post')) {
 			$hashes = array('md5' => 'malware-sample', 'sha1' => 'filename|sha1', 'sha256' => 'filename|sha256');
@@ -478,10 +456,7 @@ class AttributesController extends AppController {
 	}
 
 
-	/**
-	 * Imports the CSV threatConnect file to multiple attributes
-	 * @param int $id  The id of the event
-	 */
+	// Imports the CSV threatConnect file to multiple attributes
 	public function add_threatconnect($eventId = null) {
 		if ($this->request->is('post')) {
 
@@ -643,13 +618,6 @@ class AttributesController extends AppController {
 	}
 
 
-/**
- * edit method
- *
- * @param string $id
- * @return void
- * @throws NotFoundException
- */
 	public function edit($id = null) {
 		$this->Attribute->id = $id;
 		$date = new DateTime();
@@ -845,15 +813,6 @@ class AttributesController extends AppController {
 		}
 	}
 
-/**
- * delete method
- *
- * @param string $id
- * @throws MethodNotAllowedException
- * @throws NotFoundException
- *
- * and is able to delete w/o question
- */
 	public function delete($id = null, $hard = false) {
 		$this->set('id', $id);
 		$conditions = array('id' => $id);
@@ -901,14 +860,6 @@ class AttributesController extends AppController {
 	}
 
 
-	/**
-	 * restore method
-	 *
-	 * @param null $id
-	 * @throws MethodNotAllowedException
-	 * @throws NotFoundException
-	 * @return CakeResponse
-	 */
 	public function restore($id = null) {
 		$attribute = $this->Attribute->find('first', array(
 				'conditions' => array('Attribute.id' => $id),
@@ -942,16 +893,7 @@ class AttributesController extends AppController {
 	}
 
 
-/**
- * unification of the actual delete for the multi-select
- *
- * @param unknown $id
- * @throws NotFoundException
- * @throws MethodNotAllowedException
- * @return boolean
- *
- * returns true/false based on success
- */
+	// unification of the actual delete for the multi-select
 	private function __delete($id, $hard = false) {
 		$this->Attribute->id = $id;
 		if (!$this->Attribute->exists()) {
@@ -1122,10 +1064,7 @@ class AttributesController extends AppController {
 		}
 	}
 
-/**
- * Deletes this specific attribute from all remote servers
- * TODO move this to a component(?)
- */
+	// Deletes this specific attribute from all remote servers
 	private function __deleteAttributeFromServers($uuid) {
 		// get a list of the servers with push active
 		$this->loadModel('Server');

@@ -2,13 +2,6 @@
 App::uses('AppController', 'Controller');
 App::uses('Xml', 'Utility');
 
-/**
- * Servers Controller
- *
- * @property Server $Server
- *
- * @throws ConfigureException // TODO Exception
- */
 class ServersController extends AppController {
 
 	public $components = array('Security' ,'RequestHandler');	// XXX ACL component
@@ -48,11 +41,6 @@ class ServersController extends AppController {
 		}
 	}
 
-/**
- * index method
- *
- * @return void
- */
 	public function index() {
 		if (!$this->_isSiteAdmin()) {
 			if (!$this->userRole['perm_sync'] && !$this->userRole['perm_admin']) $this->redirect(array('controller' => 'events', 'action' => 'index'));
@@ -163,11 +151,6 @@ class ServersController extends AppController {
 		$this->set('filter', $validatedFilterString);
 	}
 
-/**
- * add method
- *
- * @return void
- */
 	public function add() {
 		if (!$this->_isSiteAdmin()) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
 		if ($this->request->is('post')) {
@@ -270,13 +253,6 @@ class ServersController extends AppController {
 		$this->set('allTags', $allTags);
 	}
 
-/**
- * edit method
- *
- * @param string $id
- * @return void
- * @throws NotFoundException
- */
 	public function edit($id = null) {
 		$this->Server->id = $id;
 		if (!$this->Server->exists()) {
@@ -398,14 +374,6 @@ class ServersController extends AppController {
 		$this->set('server', $s);
 	}
 
-/**
- * delete method
- *
- * @param string $id
- * @return void
- * @throws MethodNotAllowedException
- * @throws NotFoundException
- */
 	public function delete($id = null) {
 		if (!$this->request->is('post')) {
 			throw new MethodNotAllowedException();
@@ -430,11 +398,6 @@ class ServersController extends AppController {
 	 *		full - download everything
 	 *		incremental - only new events
 	 *		<int>	- specific id of the event to pull
-	 * For example to download event 10 from server 2 to /servers/pull/2/5
-	 * @param int $id The id of the server
-	 * @param unknown_type $technique
-	 * @throws MethodNotAllowedException
-	 * @throws NotFoundException
 	 */
 	public function pull($id = null, $technique=false) {
 		$this->Server->id = $id;

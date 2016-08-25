@@ -5,11 +5,6 @@ App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
 App::uses('FinancialTool', 'Tools');
 
-/**
- * Attribute Model
- *
- * @property Event $Event
- */
 class Attribute extends AppModel {
 
 	public $combinedKeys = array('event_id', 'category', 'type');
@@ -26,30 +21,13 @@ class Attribute extends AppModel {
 		'Regexp' => array('fields' => array('value')),
 	);
 
-/**
- * hasMany relation to shadow attributes
- *
- * Display field
- *
- * @var string
- */
 	public $displayField = 'value';
 
-/**
- * Virtual field
- *
- * @var array
- */
 	public $virtualFields = array(
 			'value' => "CASE WHEN Attribute.value2 = '' THEN Attribute.value1 ELSE CONCAT(Attribute.value1, '|', Attribute.value2) END",
 	); // TODO hardcoded
 
-/**
- * Field Descriptions
- * explanations of certain fields to be used in various views
- *
- * @var array
- */
+	 // explanations of certain fields to be used in various views
 	public $fieldDescriptions = array(
 			'signature' => array('desc' => 'Is this attribute eligible to automatically create an IDS signature (network IDS or host IDS) out of it ?'),
 			'distribution' => array('desc' => 'Describes who will have access to the event.')
@@ -289,11 +267,6 @@ class Attribute extends AppModel {
 
 	public $order = array("Attribute.event_id" => "DESC");
 
-/**
- * Validation rules
- *
- * @var array
- */
 	public $validate = array(
 		'event_id' => array(
 			'numeric' => array(
@@ -401,13 +374,6 @@ class Attribute extends AppModel {
 		parent::__construct($id, $table, $ds);
 	}
 
-	// The Associations below have been created with all possible keys, those that are not needed can be removed
-
-/**
- * belongsTo associations
- *
- * @var array
- */
 	public $belongsTo = array(
 		'Event' => array(
 			'className' => 'Event',
@@ -442,12 +408,6 @@ class Attribute extends AppModel {
 		)
 	);
 
-/**
- * beforeSave
- *
- * @throws InternalErrorException
- * @return bool always true
- */
 	public function beforeSave($options = array()) {
 		// explode value of composite type in value1 and value2
 		// or copy value to value1 if not composite type
@@ -856,45 +816,6 @@ class Attribute extends AppModel {
 					$returnValue = true;
 				}
 				break;
-
-			/*
-			case 'btc':
-				$fTool = new FinancialTool();
-				if ($fTool->validateBTC($value)) {
-					$returnValue = true;
-				}
-				break;
-			case 'iban':
-				$fTool = new FinancialTool();
-				if ($fTool->validateIBAN($value)) {
-					$returnValue = true;
-				}
-				break;
-			case 'bic':
-				$fTool = new FinancialTool();
-				if ($fTool->validateBIC($value)) {
-					$returnValue = true;
-				}
-				break;
-			case 'bin':
-				$fTool = new FinancialTool();
-				if ($fTool->validateBIN($value)) {
-					$returnValue = true;
-				}
-				break;
-			case 'cc-number':
-				$fTool = new FinancialTool();
-				if ($fTool->validateCC($value)) {
-					$returnValue = true;
-				}
-				break;
-			case 'prtn':
-			case 'whois-registrant-phone':
-				if (is_numeric($value)) {
-					$returnValue = true;
-				}
-				break;
-			*/
 		}
 		return $returnValue;
 	}
@@ -1093,11 +1014,6 @@ class Attribute extends AppModel {
 		}
 	}
 
-/**
- * add_attachment method
- *
- * @return void
- */
 	public function uploadAttachment($fileP, $realFileName, $malware, $eventId = null, $category = null, $extraPath = '', $fullFileName = '', $dist, $fromGFI = false) {
 		// Check if there were problems with the file upload
 		// only keep the last part of the filename, this should prevent directory attacks

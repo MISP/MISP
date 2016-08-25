@@ -1,18 +1,9 @@
 <?php
 App::uses('AppController', 'Controller');
 App::uses('Xml', 'Utility');
-/**
- * Events Controller
- *
- * @property Event $Event
-*/
+
 class EventsController extends AppController {
 
-	/**
-	 * Components
-	 *
-	 * @var array
-	 */
 	public $components = array(
 			'Security',
 			'Email',
@@ -262,11 +253,6 @@ class EventsController extends AppController {
 		return $result;
 	}
 
-	/**
-	 * index method
-	 *
-	 * @return void
-	 */
 	public function index() {
 		// list the events
 		$passedArgsArray = array();
@@ -846,14 +832,6 @@ class EventsController extends AppController {
 		$this->set('typeGroups', array_keys($this->Event->Attribute->typeGroupings));
 	}
 
-	/**
-	 * view method
-	 *
-	 * @param int $id
-	 * @return void
-	 * @throws NotFoundException
-	 */
-
 	public function view($id = null, $continue=false, $fromEvent=null) {
 		// find the id of the event, change $id to it and proceed to read the event as if the ID was entered.
 		if (Validation::uuid($id)) {
@@ -991,9 +969,6 @@ class EventsController extends AppController {
 		return !$pivot['deletable'];
 	}
 
-	/**
-	 * add method
-	 */
 	public function add() {
 		if (!$this->userRole['perm_add']) {
 			throw new MethodNotAllowedException('You don\'t have permissions to create events');
@@ -1182,12 +1157,6 @@ class EventsController extends AppController {
 		}
 	}
 
-	/**
-	 * edit method
-	 *
-	 * @param int $id
-	 * @throws NotFoundException
-	 */
 	public function edit($id = null) {
 		$this->Event->id = $id;
 		if (!$this->Event->exists()) {
@@ -1300,14 +1269,6 @@ class EventsController extends AppController {
 		$this->set('event', $this->Event->data);
 	}
 
-	/**
-	 * delete method
-	 *
-	 * @param int $id
-	 * @return void
-	 * @throws MethodNotAllowedException
-	 * @throws NotFoundException
-	 */
 	public function delete($id = null) {
 		if (!$this->request->is('post') && !$this->_isRest()) {
 			throw new MethodNotAllowedException();
@@ -1353,11 +1314,7 @@ class EventsController extends AppController {
 		}
 	}
 
-	/**
-	 * Publishes the event without sending an alert email
-	 *
-	 * @throws NotFoundException
-	 */
+	// Publishes the event without sending an alert email
 	public function publish($id = null) {
 		$this->Event->id = $id;
 		if (!$this->Event->exists()) {
@@ -1417,12 +1374,8 @@ class EventsController extends AppController {
 		}
 	}
 
-	/**
-	 * Send out an alert email to all the users that wanted to be notified.
-	 * Users with a GPG key will get the mail encrypted, other users will get the mail unencrypted
-	 *
-	 * @throws NotFoundException
-	 */
+	// Send out an alert email to all the users that wanted to be notified.
+	// Users with a GPG key will get the mail encrypted, other users will get the mail unencrypted
 	public function alert($id = null) {
 		$this->Event->id = $id;
 		$this->Event->recursive = 0;
@@ -1497,12 +1450,8 @@ class EventsController extends AppController {
 		}
 	}
 
-	/**
-	 * Send out an contact email to the person who posted the event.
-	 * Users with a GPG key will get the mail encrypted, other users will get the mail unencrypted
-	 *
-	 * @throws NotFoundException
-	 */
+	// Send out an contact email to the person who posted the event.
+	// Users with a GPG key will get the mail encrypted, other users will get the mail unencrypted
 	public function contact($id = null) {
 		$this->Event->id = $id;
 		if (!$this->Event->exists()) {

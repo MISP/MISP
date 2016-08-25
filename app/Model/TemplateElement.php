@@ -2,12 +2,10 @@
 
 App::uses('AppModel', 'Model');
 
-/**
- * TemplateElement Model
- *
-*/
 class TemplateElement extends AppModel {
+
 	public $actsAs = array('Containable');
+
 	public $hasMany = array(
 		'TemplateElementAttribute' => array(
 			'dependent' => true
@@ -19,6 +17,7 @@ class TemplateElement extends AppModel {
 			'dependent' => true
 		)
 	);
+
 	public $belongsTo = array('Template');
 
 	public function lastPosition($template_id) {

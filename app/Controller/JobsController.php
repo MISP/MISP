@@ -2,11 +2,6 @@
 
 App::uses('AppController', 'Controller');
 
-/**
- * Jobs Controller
- *
- * @property Job $Job
-*/
 class JobsController extends AppController {
 	public $components = array('Security' ,'RequestHandler', 'Session');
 

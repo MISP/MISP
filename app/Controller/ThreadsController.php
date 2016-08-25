@@ -2,10 +2,6 @@
 
 App::uses('AppController', 'Controller');
 
-/**
- * Thread Controller
- *
- */
 class ThreadsController extends AppController {
 
 	public $components = array(

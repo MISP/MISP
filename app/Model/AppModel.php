@@ -23,21 +23,8 @@
 App::uses('Model', 'Model');
 App::uses('LogableBehavior', 'Assets.models/behaviors');
 
-/**
- * Application model for Cake.
- *
- * Add your application-wide methods in the class below, your models
- * will inherit them.
- *
- * @package       app.Model
- */
 class AppModel extends Model {
 
-/**
- * Model Name
- *
- * @var string
- */
 	public $name;
 
 	public function __construct($id = false, $table = null, $ds = null) {

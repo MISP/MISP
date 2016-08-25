@@ -2,10 +2,6 @@
 
 App::uses('AppModel', 'Model');
 
-/**
- * TemplateElementAttribute Model
- *
-*/
 class TemplateElementFile extends AppModel {
 	public $actsAs = array('Containable');
 	public $belongsTo = array('TemplateElement');
