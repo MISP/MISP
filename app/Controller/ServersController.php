@@ -515,6 +515,9 @@ class ServersController extends AppController {
 			App::uses('File', 'Utility');
 			App::uses('Folder', 'Utility');
 			App::uses('FileAccessTool', 'Tools');
+			if (!$this->checkFilename($server['Server']['submitted_cert']['name'])) {
+				throw new Exception ('Filename not allowed');
+			}
 			$file = new File($server['Server']['submitted_cert']['name']);
 			$ext = $file->ext();
 			if (($ext != 'pem') || !$server['Server']['submitted_cert']['size'] > 0) {
@@ -527,7 +530,6 @@ class ServersController extends AppController {
 
 			$destpath = APP . "files" . DS . "certs" . DS;
 			$dir = new Folder(APP . "files" . DS . "certs", true);
-			if (!preg_match('@^[\w\-, .]+\.[A-Za-z0-9_]{2,4}$@', $server['Server']['submitted_cert']['name'])) throw new Exception ('Filename not allowed');
 			$pemfile = new File($destpath . $id . '.' . $ext);
 			$result = $pemfile->write($pemData);
 			$s = $this->Server->read(null, $id);

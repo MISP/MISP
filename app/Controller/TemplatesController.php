@@ -327,7 +327,7 @@ class TemplatesController extends AppController {
 				$this->loadModel('Attribute');
 				$fails = 0;
 				foreach ($attributes as $k => &$attribute) {
-					if (isset($attribute['data']) && preg_match('/^[a-zA-Z0-9]{12}$/', $attribute['data'])) {
+					if (isset($attribute['data']) && $this->checkFilename($attribute['data'])) {
 						$file = new File(APP . 'tmp/files/' . $attribute['data']);
 						$content = $file->read();
 						$attribute['data'] = base64_encode($content);
@@ -370,7 +370,7 @@ class TemplatesController extends AppController {
 			// filename checks
 			foreach ($this->request->data['Template']['file'] as $k => $file) {
 				if ($file['size'] > 0 && $file['error'] == 0) {
-					if (preg_match('@^[\w\-. ]+$@', $file['name'])) { // filename regex
+					if ($this->checkFilename($file['name'])) {
 						$fn = $this->Template->generateRandomFileName();
 						move_uploaded_file($file['tmp_name'], APP . 'tmp/files/' . $fn);
 						$filenames[] = $file['name'];
@@ -400,7 +400,7 @@ class TemplatesController extends AppController {
 		if (!$this->request->is('post')) throw new MethodNotAllowedException('This action is restricted to accepting POST requests only.');
 		if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This action is only accessible through AJAX.');
 		$this->autoRender = false;
-		if (preg_match('/^[a-zA-Z0-9]{12}$/', $filename)) { // filename regex
+		if ($this->checkFilename($filename)) {
 			$file = new File(APP . 'tmp/files/' . $filename);
 			if ($file->exists()) {
 				$file->delete();
