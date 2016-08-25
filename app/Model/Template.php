@@ -1,6 +1,7 @@
 <?php
 
 App::uses('AppModel', 'Model');
+App::uses('RandomTool', 'Tools');
 
 class Template extends AppModel {
 
@@ -63,13 +64,6 @@ class Template extends AppModel {
 	}
 
 	public function generateRandomFileName() {
-		$length = 12;
-		$characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-		$charLen = strlen($characters) - 1;
-		$fn = '';
-		for ($p = 0; $p < $length; $p++) {
-			$fn .= $characters[rand(0, $charLen)];
-		}
-		return $fn;
+		return (new RandomTool())->random_str(FALSE, 12);
 	}
 }

@@ -1,6 +1,8 @@
 <?php
 
 App::uses('BaseAuthenticate', 'Controller/Component/Auth');
+App::uses('RandomTool', 'Tools');
+
 session_start();
 session_regenerate_id();
 /*
@@ -108,8 +110,11 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
 
 		CakeLog::write('info', "User ${mispUsername} not found in database.");
 		//Insert user in database if not existent
-		//Generate random password
-		$password = $this->randPasswordGen(40);
+
+		// Generate random password
+		$password = $userModel->generateRandomPassword();
+		// Generate random auth key
+		$authKey = $userModel->generateAuthKey();
 		// get maximum nids value
 		$nidsMax = $userModel->find('all', array(
 			'fields' => array('MAX(User.nids_sid) AS nidsMax'),
@@ -121,7 +126,7 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
 			'org_id' => $org,
 			'password' => $password, //Since it is done via shibboleth the password will be a random 40 character string
 			'confirm_password' => $password,
-			'authkey' => $userModel->generateAuthKey(),
+			'authkey' => $authKey,
 			'nids_sid' => ((int)$nidsMax[0][0]['nidsMax'])+1,
 			'newsread' => date('Y-m-d'),
 			'role_id' => $roleId,
@@ -135,17 +140,6 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
 		return $this->_findUser(
 			$mispUsername
 		);
-	}
-
-	private function randPasswordGen($len) {
-		$result = "";
-		$chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ\$_?!-0123456789";
-		$charArray = str_split($chars);
-		for ($i = 0; $i < $len; $i++) {
-			$randItem = array_rand($charArray);
-			$result .= "".$charArray[$randItem];
-		}
-		return $result;
 	}
 
 	/**
