@@ -42,6 +42,7 @@ class Warninglist extends AppModel{
 		foreach ($directories as &$dir) {
 			$file = new File($dir . DS . 'list.json');
 			$list = json_decode($file->read(), true);
+			file_put_contents('/tmp/test1', memory_get_peak_usage());
 			$file->close();
 			if (!isset($list['version'])) $list['version'] = 1;
 			if (!isset($list['type'])) {
@@ -55,7 +56,9 @@ class Warninglist extends AppModel{
 					'fields' => array('*')
 			));
 			if (empty($current) || $list['version'] > $current['Warninglist']['version']) {
+				file_put_contents('/tmp/test2', $dir . ' : ' . memory_get_peak_usage());
 				$result = $this->__updateList($list, $current);
+				file_put_contents('/tmp/test3', memory_get_peak_usage());
 				if (is_numeric($result)) {
 					$updated['success'][$result] = array('name' => $list['name'], 'new' => $list['version']);
 					if (!empty($current)) $updated['success'][$result]['old'] = $current['Warninglist']['version'];
@@ -80,18 +83,26 @@ class Warninglist extends AppModel{
 		}
 		$this->create();
 		if ($this->save($warninglist)) {
-			$data = array();
+			$db = $this->getDataSource();
+			$values = array();
 			foreach ($list['list'] as $value) {
-				$data[] = array('value' => $value, 'warninglist_id' => $this->id);
-			}
-			$this->WarninglistEntry->saveMany($data);
-
-			if (!empty($list['matching_attributes'])) {
-				$data = array();
-				foreach ($list['matching_attributes'] as $type) {
-					$data[] = array('type' => $type, 'warninglist_id' => $this->id);
+				if (!empty($value)) {
+					$values[] = array($value, $this->id);
 				}
-				$this->WarninglistType->saveMany($data);
+			}
+			unset($list['list']);
+			$result = $db->insertMulti('warninglist_entries', array('value', 'warninglist_id'), $values);
+			if ($result) {
+				$this->saveField('warninglist_entry_count', count($values));
+			} else {
+				return 'Could not insert values.';
+			}
+			if (!empty($list['matching_attributes'])) {
+				$values = array();
+				foreach ($list['matching_attributes'] as $type) {
+					$values[] = array('type' => $type, 'warninglist_id' => $this->id);
+				}
+				$this->WarninglistType->saveMany($values);
 			} else {
 				$this->WarninglistType->create();
 				$this->WarninglistType->save(array('WarninglistType' => array('type' => 'ALL', 'warninglist_id' => $this->id)));
