@@ -42,7 +42,6 @@ class Warninglist extends AppModel{
 		foreach ($directories as &$dir) {
 			$file = new File($dir . DS . 'list.json');
 			$list = json_decode($file->read(), true);
-			file_put_contents('/tmp/test1', memory_get_peak_usage());
 			$file->close();
 			if (!isset($list['version'])) $list['version'] = 1;
 			if (!isset($list['type'])) {
@@ -56,9 +55,7 @@ class Warninglist extends AppModel{
 					'fields' => array('*')
 			));
 			if (empty($current) || $list['version'] > $current['Warninglist']['version']) {
-				file_put_contents('/tmp/test2', $dir . ' : ' . memory_get_peak_usage());
 				$result = $this->__updateList($list, $current);
-				file_put_contents('/tmp/test3', memory_get_peak_usage());
 				if (is_numeric($result)) {
 					$updated['success'][$result] = array('name' => $list['name'], 'new' => $list['version']);
 					if (!empty($current)) $updated['success'][$result]['old'] = $current['Warninglist']['version'];
