@@ -1743,11 +1743,6 @@ class Event extends AppModel {
 			App::uses('AuthComponent', 'Controller/Component');
 		}
 		if (Configure::read('MISP.enableEventBlacklisting') && isset($data['Event']['uuid'])) {
-			$event = $this->find('first', array(
-					'recursive' => -1,
-					'fields' => array('uuid'),
-					'conditions' => array('id' => $this->id),
-			));
 			$this->EventBlacklist = ClassRegistry::init('EventBlacklist');
 			$r = $this->EventBlacklist->find('first', array('conditions' => array('event_uuid' => $data['Event']['uuid'])));
 			if (!empty($r))	return 'blocked';
