@@ -1109,6 +1109,7 @@ class Attribute extends AppModel {
 								),
 								'Attribute.type !=' => $this->nonCorrelatingTypes,
 							),
+							'Attribute.deleted' => 0
 						),
 						'recursive => -1',
 						'fields' => array('Attribute.event_id', 'Attribute.id', 'Attribute.distribution', 'Attribute.sharing_group_id'),
