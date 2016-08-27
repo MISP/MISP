@@ -1125,36 +1125,51 @@ class Attribute extends AppModel {
 			foreach ($correlatingAttributes as $k => $cA) {
 				foreach ($cA as $corr) {
 					$correlations[] = array(
-							'value' => $correlatingValues[$k],
-							'1_event_id' => $event['Event']['id'],
-							'1_attribute_id' => $a['id'],
-							'event_id' => $corr['Attribute']['event_id'],
-							'attribute_id' => $corr['Attribute']['id'],
-							'org_id' => $corr['Event']['org_id'],
-							'distribution' => $corr['Event']['distribution'],
-							'a_distribution' => $corr['Attribute']['distribution'],
-							'sharing_group_id' => $corr['Event']['sharing_group_id'],
-							'a_sharing_group_id' => $corr['Attribute']['sharing_group_id'],
-							'date' => $corr['Event']['date'],
-							'info' => $corr['Event']['info'],
+							$correlatingValues[$k],
+							$event['Event']['id'],
+							$a['id'],
+							$corr['Attribute']['event_id'],
+							$corr['Attribute']['id'],
+							$corr['Event']['org_id'],
+							$corr['Event']['distribution'],
+							$corr['Attribute']['distribution'],
+							$corr['Event']['sharing_group_id'],
+							$corr['Attribute']['sharing_group_id'],
+							$corr['Event']['date'],
+							$corr['Event']['info']
 					);
 					$correlations[] = array(
-							'value' => $correlatingValues[$k],
-							'1_event_id' => $corr['Event']['id'],
-							'1_attribute_id' => $corr['Attribute']['id'],
-							'event_id' => $a['event_id'],
-							'attribute_id' => $a['id'],
-							'org_id' => $event['Event']['org_id'],
-							'distribution' => $event['Event']['distribution'],
-							'a_distribution' => $a['distribution'],
-							'sharing_group_id' => $event['Event']['sharing_group_id'],
-							'a_sharing_group_id' => $a['sharing_group_id'],
-							'date' => $event['Event']['date'],
-							'info' => $event['Event']['info'],
+							$correlatingValues[$k],
+							$corr['Event']['id'],
+							$corr['Attribute']['id'],
+							$a['event_id'],
+							$a['id'],
+							$event['Event']['org_id'],
+							$event['Event']['distribution'],
+							$a['distribution'],
+							$event['Event']['sharing_group_id'],
+							$a['sharing_group_id'],
+							$event['Event']['date'],
+							$event['Event']['info']
 					);
 				}
 			}
-			$this->Correlation->saveMany($correlations);
+			$fields = array(
+					'value',
+					'1_event_id',
+					'1_attribute_id',
+					'event_id',
+					'attribute_id',
+					'org_id',
+					'distribution',
+					'a_distribution',
+					'sharing_group_id',
+					'a_sharing_group_id',
+					'date',
+					'info',
+			);
+			$db = $this->getDataSource();
+			$db->insertMulti('correlations', $fields, $correlations);
 		}
 	}
 
