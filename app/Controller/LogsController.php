@@ -104,15 +104,26 @@ class LogsController extends AppController {
 			$conditions['OR'][] = array('AND' => array ('Log.model LIKE' => 'Attribute', 'Log.title LIKE' => '%Event (' . $id . ')%'));
 		}
 		$conditions['OR'][] = array('AND' => array ('Log.model LIKE' => 'ShadowAttribute', 'Log.title LIKE' => '%Event (' . $id . ')%'));
-		$fieldList = array('title', 'created', 'model', 'model_id', 'action', 'change', 'org');
+		$fieldList = array('title', 'created', 'model', 'model_id', 'action', 'change', 'org', 'email');
 		$this->paginate = array(
 				'limit' => 60,
 				'conditions' => $conditions,
 				'order' => array('Log.id' => 'DESC'),
 				'fields' => $fieldList
 		);
+		$list = $this->paginate();
+		if (!$this->_isSiteAdmin()) {
+			$this->loadModel('User');
+			$emails = $this->User->find('list', array(
+					'conditions' => array('User.org_id' => $this->Auth->user('org_id')),
+					'fields' => array('User.id', 'User.email')
+			));
+			foreach ($list as &$item) {
+				if (!in_array($item['Log']['email'], $emails)) $item['Log']['email'] = '';
+			}
+		}
 		$this->set('event', $this->Event->data);
-		$this->set('list', $this->paginate());
+		$this->set('list', $list);
 		$this->set('eventId', $id);
 		$this->set('mayModify', $mayModify);
 	}
