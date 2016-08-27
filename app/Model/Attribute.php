@@ -1167,10 +1167,12 @@ class Attribute extends AppModel {
 					'sharing_group_id',
 					'a_sharing_group_id',
 					'date',
-					'info',
+					'info'
 			);
-			$db = $this->getDataSource();
-			$db->insertMulti('correlations', $fields, $correlations);
+			if (!empty($correlations)) {
+				$db = $this->getDataSource();
+				$db->insertMulti('correlations', $fields, $correlations);
+			}
 		}
 	}
 
