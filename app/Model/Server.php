@@ -1272,21 +1272,25 @@ class Server extends AppModel {
 							// Distribution
 							switch ($event['Event']['distribution']) {
 								case 1:
-								case 'This community only': // backwards compatibility
 									// if community only, downgrade to org only after pull
 									$event['Event']['distribution'] = '0';
 									break;
 								case 2:
-								case 'Connected communities': // backwards compatibility
 									// if connected communities downgrade to community only
 									$event['Event']['distribution'] = '1';
 									break;
-								case 'All communities': // backwards compatibility
-									$event['Event']['distribution'] = '3';
-									break;
-								case 'Your organisation only': // backwards compatibility
-									$event['Event']['distribution'] = '0';
-									break;
+							}
+							if (isset($event['Event']['Attribute']) && !empty($event['Event']['Attribute'])) {
+								foreach ($event['Event']['Attribute'] as &$a) {
+									switch ($a['distribution']) {
+										case '1':
+											$a['distribution'] = '0';
+											break;
+										case '2':
+											$a['distribution'] = '1';
+											break;
+									}
+								}
 							}
 						} else {
 							$fails[$eventId] = 'Event blocked by blacklist.';
