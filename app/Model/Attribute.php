@@ -5,11 +5,6 @@ App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
 App::uses('FinancialTool', 'Tools');
 
-/**
- * Attribute Model
- *
- * @property Event $Event
- */
 class Attribute extends AppModel {
 
 	public $combinedKeys = array('event_id', 'category', 'type');
@@ -26,30 +21,13 @@ class Attribute extends AppModel {
 		'Regexp' => array('fields' => array('value')),
 	);
 
-/**
- * hasMany relation to shadow attributes
- *
- * Display field
- *
- * @var string
- */
 	public $displayField = 'value';
 
-/**
- * Virtual field
- *
- * @var array
- */
 	public $virtualFields = array(
 			'value' => "CASE WHEN Attribute.value2 = '' THEN Attribute.value1 ELSE CONCAT(Attribute.value1, '|', Attribute.value2) END",
 	); // TODO hardcoded
 
-/**
- * Field Descriptions
- * explanations of certain fields to be used in various views
- *
- * @var array
- */
+	 // explanations of certain fields to be used in various views
 	public $fieldDescriptions = array(
 			'signature' => array('desc' => 'Is this attribute eligible to automatically create an IDS signature (network IDS or host IDS) out of it ?'),
 			'distribution' => array('desc' => 'Describes who will have access to the event.')
@@ -289,11 +267,6 @@ class Attribute extends AppModel {
 
 	public $order = array("Attribute.event_id" => "DESC");
 
-/**
- * Validation rules
- *
- * @var array
- */
 	public $validate = array(
 		'event_id' => array(
 			'numeric' => array(
@@ -401,13 +374,6 @@ class Attribute extends AppModel {
 		parent::__construct($id, $table, $ds);
 	}
 
-	// The Associations below have been created with all possible keys, those that are not needed can be removed
-
-/**
- * belongsTo associations
- *
- * @var array
- */
 	public $belongsTo = array(
 		'Event' => array(
 			'className' => 'Event',
@@ -442,12 +408,6 @@ class Attribute extends AppModel {
 		)
 	);
 
-/**
- * beforeSave
- *
- * @throws InternalErrorException
- * @return bool always true
- */
 	public function beforeSave($options = array()) {
 		// explode value of composite type in value1 and value2
 		// or copy value to value1 if not composite type
@@ -856,45 +816,6 @@ class Attribute extends AppModel {
 					$returnValue = true;
 				}
 				break;
-
-			/*
-			case 'btc':
-				$fTool = new FinancialTool();
-				if ($fTool->validateBTC($value)) {
-					$returnValue = true;
-				}
-				break;
-			case 'iban':
-				$fTool = new FinancialTool();
-				if ($fTool->validateIBAN($value)) {
-					$returnValue = true;
-				}
-				break;
-			case 'bic':
-				$fTool = new FinancialTool();
-				if ($fTool->validateBIC($value)) {
-					$returnValue = true;
-				}
-				break;
-			case 'bin':
-				$fTool = new FinancialTool();
-				if ($fTool->validateBIN($value)) {
-					$returnValue = true;
-				}
-				break;
-			case 'cc-number':
-				$fTool = new FinancialTool();
-				if ($fTool->validateCC($value)) {
-					$returnValue = true;
-				}
-				break;
-			case 'prtn':
-			case 'whois-registrant-phone':
-				if (is_numeric($value)) {
-					$returnValue = true;
-				}
-				break;
-			*/
 		}
 		return $returnValue;
 	}
@@ -1093,11 +1014,6 @@ class Attribute extends AppModel {
 		}
 	}
 
-/**
- * add_attachment method
- *
- * @return void
- */
 	public function uploadAttachment($fileP, $realFileName, $malware, $eventId = null, $category = null, $extraPath = '', $fullFileName = '', $dist, $fromGFI = false) {
 		// Check if there were problems with the file upload
 		// only keep the last part of the filename, this should prevent directory attacks
@@ -1181,7 +1097,6 @@ class Attribute extends AppModel {
 			}
 			$this->Correlation = ClassRegistry::init('Correlation');
 			$correlations = array();
-			$fields = array('value1', 'value2');
 			$correlatingValues = array($a['value1']);
 			if (!empty($a['value2'])) $correlatingValues[] = $a['value2'];
 			foreach ($correlatingValues as $k => $cV) {
@@ -1194,9 +1109,10 @@ class Attribute extends AppModel {
 								),
 								'Attribute.type !=' => $this->nonCorrelatingTypes,
 							),
+							'Attribute.deleted' => 0
 						),
 						'recursive => -1',
-						'fields' => array('Attribute.event_id', 'Attribute.id', 'Attribute.distribution', 'Attribute.sharing_group_id'),
+						'fields' => array('Attribute.event_id', 'Attribute.id', 'Attribute.distribution', 'Attribute.sharing_group_id', 'Attribute.deleted'),
 						'contain' => array('Event' => array('fields' => array('Event.id', 'Event.date', 'Event.info', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id'))),
 						'order' => array(),
 				));
@@ -1210,36 +1126,53 @@ class Attribute extends AppModel {
 			foreach ($correlatingAttributes as $k => $cA) {
 				foreach ($cA as $corr) {
 					$correlations[] = array(
-							'value' => $correlatingValues[$k],
-							'1_event_id' => $event['Event']['id'],
-							'1_attribute_id' => $a['id'],
-							'event_id' => $corr['Attribute']['event_id'],
-							'attribute_id' => $corr['Attribute']['id'],
-							'org_id' => $corr['Event']['org_id'],
-							'distribution' => $corr['Event']['distribution'],
-							'a_distribution' => $corr['Attribute']['distribution'],
-							'sharing_group_id' => $corr['Event']['sharing_group_id'],
-							'a_sharing_group_id' => $corr['Attribute']['sharing_group_id'],
-							'date' => $corr['Event']['date'],
-							'info' => $corr['Event']['info'],
+							$correlatingValues[$k],
+							$event['Event']['id'],
+							$a['id'],
+							$corr['Attribute']['event_id'],
+							$corr['Attribute']['id'],
+							$corr['Event']['org_id'],
+							$corr['Event']['distribution'],
+							$corr['Attribute']['distribution'],
+							$corr['Event']['sharing_group_id'],
+							$corr['Attribute']['sharing_group_id'],
+							$corr['Event']['date'],
+							$corr['Event']['info']
 					);
 					$correlations[] = array(
-							'value' => $correlatingValues[$k],
-							'1_event_id' => $corr['Event']['id'],
-							'1_attribute_id' => $corr['Attribute']['id'],
-							'event_id' => $a['event_id'],
-							'attribute_id' => $a['id'],
-							'org_id' => $event['Event']['org_id'],
-							'distribution' => $event['Event']['distribution'],
-							'a_distribution' => $a['distribution'],
-							'sharing_group_id' => $event['Event']['sharing_group_id'],
-							'a_sharing_group_id' => $a['sharing_group_id'],
-							'date' => $event['Event']['date'],
-							'info' => $event['Event']['info'],
+							$correlatingValues[$k],
+							$corr['Event']['id'],
+							$corr['Attribute']['id'],
+							$a['event_id'],
+							$a['id'],
+							$event['Event']['org_id'],
+							$event['Event']['distribution'],
+							$a['distribution'],
+							$event['Event']['sharing_group_id'],
+							$a['sharing_group_id'],
+							$event['Event']['date'],
+							$event['Event']['info']
 					);
 				}
 			}
-			$this->Correlation->saveMany($correlations);
+			$fields = array(
+					'value',
+					'1_event_id',
+					'1_attribute_id',
+					'event_id',
+					'attribute_id',
+					'org_id',
+					'distribution',
+					'a_distribution',
+					'sharing_group_id',
+					'a_sharing_group_id',
+					'date',
+					'info'
+			);
+			if (!empty($correlations)) {
+				$db = $this->getDataSource();
+				$db->insertMulti('correlations', $fields, $correlations);
+			}
 		}
 	}
 
@@ -1654,7 +1587,7 @@ class Attribute extends AppModel {
 			$element['to_ids'] = 0;
 		}
 		foreach ($files as $file) {
-			if (!preg_match('@^[\w\-. ]+$@', $file['filename'])) {
+			if (!$this->checkFilename($file['filename'])) {
 				$errors = 'Filename not allowed.';
 				continue;
 			}
@@ -1775,7 +1708,7 @@ class Attribute extends AppModel {
 		if (isset($options['order'])) $params['order'] = $options['order'];
 		else ($params['order'] = array());
 		if (!$user['Role']['perm_sync'] || !isset($options['deleted']) || !$options['deleted']) $params['conditions']['AND']['Attribute.deleted'] = 0;
-		if (isset($options['group'])) $params['group'] = array_merge('Attribute.id', $options['group']);
+		if (isset($options['group'])) $params['group'] = array_merge(array('Attribute.id'), $options['group']);
 		if (Configure::read('MISP.unpublishedprivate')) $params['conditions']['AND'][] = array('OR' => array('Event.published' => 1, 'Event.orgc_id' => $user['org_id']));
 		$results = $this->find('all', $params);
 		if (isset($options['withAttachments']) && $options['withAttachments']) {

@@ -2,11 +2,6 @@
 
 App::uses('AppController', 'Controller');
 
-/**
- * Tasks Controller
- *
- * @property Task $Task
-*/
 class TasksController extends AppController {
 	public $components = array('Security' ,'RequestHandler', 'Session');
 

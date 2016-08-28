@@ -2,10 +2,6 @@
 App::uses('AppModel', 'Model');
 App::uses('Sanitize', 'Utility');
 
-/**
- * Bruteforce Model
- *
- */
 class Bruteforce extends AppModel {
 
 	public function insert($ip, $username) {

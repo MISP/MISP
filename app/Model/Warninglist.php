@@ -1,8 +1,11 @@
 <?php
 App::uses('AppModel', 'Model');
 class Warninglist extends AppModel{
+
 	public $useTable = 'warninglists';
+
 	public $recursive = -1;
+
 	public $actsAs = array(
 			'Containable',
 	);
@@ -77,18 +80,26 @@ class Warninglist extends AppModel{
 		}
 		$this->create();
 		if ($this->save($warninglist)) {
-			$data = array();
+			$db = $this->getDataSource();
+			$values = array();
 			foreach ($list['list'] as $value) {
-				$data[] = array('value' => $value, 'warninglist_id' => $this->id);
-			}
-			$this->WarninglistEntry->saveMany($data);
-
-			if (!empty($list['matching_attributes'])) {
-				$data = array();
-				foreach ($list['matching_attributes'] as $type) {
-					$data[] = array('type' => $type, 'warninglist_id' => $this->id);
+				if (!empty($value)) {
+					$values[] = array($value, $this->id);
 				}
-				$this->WarninglistType->saveMany($data);
+			}
+			unset($list['list']);
+			$result = $db->insertMulti('warninglist_entries', array('value', 'warninglist_id'), $values);
+			if ($result) {
+				$this->saveField('warninglist_entry_count', count($values));
+			} else {
+				return 'Could not insert values.';
+			}
+			if (!empty($list['matching_attributes'])) {
+				$values = array();
+				foreach ($list['matching_attributes'] as $type) {
+					$values[] = array('type' => $type, 'warninglist_id' => $this->id);
+				}
+				$this->WarninglistType->saveMany($values);
 			} else {
 				$this->WarninglistType->create();
 				$this->WarninglistType->save(array('WarninglistType' => array('type' => 'ALL', 'warninglist_id' => $this->id)));

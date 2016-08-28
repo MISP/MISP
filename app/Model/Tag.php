@@ -1,26 +1,12 @@
 <?php
-
 App::uses('AppModel', 'Model');
 
-/**
- * Tag Model
- *
- */
 class Tag extends AppModel {
 
-/**
- * Use table
- *
- * @var mixed False or table name
- */
 	public $useTable = 'tags';
 
-/**
- * Display field
- *
- * @var string
- */
 	public $displayField = 'name';
+
 	public $actsAs = array(
 			'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
 					'roleModel' => 'Tag',

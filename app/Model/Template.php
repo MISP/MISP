@@ -2,12 +2,10 @@
 
 App::uses('AppModel', 'Model');
 
-/**
- * Template Model
- *
-*/
 class Template extends AppModel {
+
 	public $actsAs = array('Containable');
+
 	public $hasMany = array(
 		'TemplateTag' => array(
 			'dependent' => true,

@@ -2,13 +2,6 @@
 App::uses('AppController', 'Controller');
 App::uses('Xml', 'Utility');
 
-/**
- * Servers Controller
- *
- * @property Server $Server
- *
- * @throws ConfigureException // TODO Exception
- */
 class ServersController extends AppController {
 
 	public $components = array('Security' ,'RequestHandler');	// XXX ACL component
@@ -48,11 +41,6 @@ class ServersController extends AppController {
 		}
 	}
 
-/**
- * index method
- *
- * @return void
- */
 	public function index() {
 		if (!$this->_isSiteAdmin()) {
 			if (!$this->userRole['perm_sync'] && !$this->userRole['perm_admin']) $this->redirect(array('controller' => 'events', 'action' => 'index'));
@@ -163,11 +151,6 @@ class ServersController extends AppController {
 		$this->set('filter', $validatedFilterString);
 	}
 
-/**
- * add method
- *
- * @return void
- */
 	public function add() {
 		if (!$this->_isSiteAdmin()) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
 		if ($this->request->is('post')) {
@@ -276,13 +259,6 @@ class ServersController extends AppController {
 		$this->set('allTags', $allTags);
 	}
 
-/**
- * edit method
- *
- * @param string $id
- * @return void
- * @throws NotFoundException
- */
 	public function edit($id = null) {
 		$this->Server->id = $id;
 		if (!$this->Server->exists()) {
@@ -412,14 +388,6 @@ class ServersController extends AppController {
 		$this->set('server', $s);
 	}
 
-/**
- * delete method
- *
- * @param string $id
- * @return void
- * @throws MethodNotAllowedException
- * @throws NotFoundException
- */
 	public function delete($id = null) {
 		if (!$this->request->is('post')) {
 			throw new MethodNotAllowedException();
@@ -444,11 +412,6 @@ class ServersController extends AppController {
 	 *		full - download everything
 	 *		incremental - only new events
 	 *		<int>	- specific id of the event to pull
-	 * For example to download event 10 from server 2 to /servers/pull/2/5
-	 * @param int $id The id of the server
-	 * @param unknown_type $technique
-	 * @throws MethodNotAllowedException
-	 * @throws NotFoundException
 	 */
 	public function pull($id = null, $technique=false) {
 		$this->Server->id = $id;
@@ -575,6 +538,9 @@ class ServersController extends AppController {
 			App::uses('File', 'Utility');
 			App::uses('Folder', 'Utility');
 			App::uses('FileAccessTool', 'Tools');
+			if (!$this->checkFilename($server['Server'][$subm]['name'])) {
+				throw new Exception ('Filename not allowed');
+			}
 			$file = new File($server['Server'][$subm]['name']);
 			$ext = $file->ext();
 			if (($ext != 'pem') || !$server['Server'][$subm]['size'] > 0) {
@@ -587,7 +553,6 @@ class ServersController extends AppController {
 
 			$destpath = APP . "files" . DS . "certs" . DS;
 			$dir = new Folder(APP . "files" . DS . "certs", true);
-			if (!preg_match('@^[\w-,\s,\.]+\.[A-Za-z0-9_]{2,4}$@', $server['Server'][$subm]['name'])) throw new Exception ('Filename not allowed');
 			$pemfile = new File($destpath . $id . $ins . '.' . $ext);
 			$result = $pemfile->write($pemData);
 			$s = $this->Server->read(null, $id);
@@ -650,6 +615,7 @@ class ServersController extends AppController {
 			$stixVersion = array(0 => 'Incorrect STIX version installed, found $current, expecting $expected', 1 => 'OK');
 			$cyboxVersion = array(0 => 'Incorrect CyBox version installed, found $current, expecting $expected', 1 => 'OK');
 			$sessionErrors = array(0 => 'OK', 1 => 'High', 2 => 'Alternative setting used', 3 => 'Test failed');
+			$moduleErrors = array(0 => 'OK', 1 => 'System not enabled', 2 => 'No modules found');
 
 			$finalSettings = $this->Server->serverSettingsRead();
 			$issues = array(
@@ -750,12 +716,17 @@ class ServersController extends AppController {
 				// if Proxy is set up in the settings, try to connect to a test URL
 				$proxyStatus = $this->Server->proxyDiagnostics($diagnostic_errors);
 
+				$moduleTypes = array('Enrichment', 'Import', 'Export');
+				foreach ($moduleTypes as $type) {
+					$moduleStatus[$type] = $this->Server->moduleDiagnostics($diagnostic_errors, $type);
+				}
+
 				// check the size of the session table
 				$sessionCount = 0;
 				$sessionStatus = $this->Server->sessionDiagnostics($diagnostic_errors, $sessionCount);
 				$this->set('sessionCount', $sessionCount);
 
-				$additionalViewVars = array('gpgStatus', 'sessionErrors', 'proxyStatus', 'sessionStatus', 'zmqStatus', 'stixVersion', 'cyboxVersion','gpgErrors', 'proxyErrors', 'zmqErrors', 'stixOperational', 'stix');
+				$additionalViewVars = array('gpgStatus', 'sessionErrors', 'proxyStatus', 'sessionStatus', 'zmqStatus', 'stixVersion', 'cyboxVersion', 'moduleStatus', 'gpgErrors', 'proxyErrors', 'zmqErrors', 'stixOperational', 'stix', 'moduleErrors', 'moduleTypes');
 			}
 			// check whether the files are writeable
 			$writeableDirs = $this->Server->writeableDirsDiagnostics($diagnostic_errors);

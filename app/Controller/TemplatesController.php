@@ -4,12 +4,6 @@ App::uses('AppController', 'Controller');
 App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
 
-/**
- * Templates Controller
- *
- * @property Template $Templates
- */
-
 class TemplatesController extends AppController {
 	public $components = array('Security' ,'RequestHandler');
 
@@ -24,7 +18,6 @@ class TemplatesController extends AppController {
 		parent::beforeFilter();
 		$this->Security->unlockedActions = array('uploadFile', 'deleteTemporaryFile');
 	}
-
 
 	public function index() {
 		$conditions = array();
@@ -273,7 +266,6 @@ class TemplatesController extends AppController {
 		$this->set('template_id', $template_id);
 		$this->set('event_id', $event_id);
 		if ($this->request->is('post')) {
-			$errors = array();
 			$this->set('template', $this->request->data);
 			$result = $this->Event->Attribute->checkTemplateAttributes($template, $this->request->data, $event_id);
 			if (isset($this->request->data['Template']['modify']) || !empty($result['errors'])) {
@@ -335,7 +327,7 @@ class TemplatesController extends AppController {
 				$this->loadModel('Attribute');
 				$fails = 0;
 				foreach ($attributes as $k => &$attribute) {
-					if (isset($attribute['data']) && preg_match('/^[a-zA-Z0-9]{12}$/', $attribute['data'])) {
+					if (isset($attribute['data']) && $this->checkFilename($attribute['data'])) {
 						$file = new File(APP . 'tmp/files/' . $attribute['data']);
 						$content = $file->read();
 						$attribute['data'] = base64_encode($content);
@@ -344,7 +336,7 @@ class TemplatesController extends AppController {
 					$this->Attribute->create();
 					if (!$this->Attribute->save(array('Attribute' => $attribute))) $fails++;
 				}
-				$count = $k + 1;
+				$count = isset($k) ? $k + 1 : 0;
 				$event = $this->Event->find('first', array(
 					'conditions' => array('Event.id' => $event_id),
 					'recursive' => -1
@@ -373,18 +365,15 @@ class TemplatesController extends AppController {
 		} else if ($this->request->is('post')) {
 			$fileArray = array();
 			$filenames = array();
-			$tmp_names = array();
-			$element_ids = array();
-			$result = array();
 			$added = 0;
 			$failed = 0;
 			// filename checks
 			foreach ($this->request->data['Template']['file'] as $k => $file) {
 				if ($file['size'] > 0 && $file['error'] == 0) {
-					if (preg_match('@^[\w\-. ]+$@', $file['name'])) {
+					if ($this->checkFilename($file['name'])) {
 						$fn = $this->Template->generateRandomFileName();
 						move_uploaded_file($file['tmp_name'], APP . 'tmp/files/' . $fn);
-						$filenames[] =$file['name'];
+						$filenames[] = $file['name'];
 						$fileArray[] = array('filename' => $file['name'], 'tmp_name' => $fn, 'element_id' => $elementId);
 						$added++;
 					} else $failed++;
@@ -404,15 +393,6 @@ class TemplatesController extends AppController {
 		}
 	}
 
-	private function __combineArrays($array, $array2) {
-		foreach ($array2 as $element) {
-			if (!in_array($element, $array)) {
-				$array[] = $element;
-			}
-		}
-		return $array;
-	}
-
 	// deletes a temporary file created by the user while populating a template
 	// users can add files to attachment fields and when they change their mind about it, they can remove a file (deleting the temporary file)
 	// before it gets saved as an attribute and moved to the persistent attachment store
@@ -420,7 +400,7 @@ class TemplatesController extends AppController {
 		if (!$this->request->is('post')) throw new MethodNotAllowedException('This action is restricted to accepting POST requests only.');
 		if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This action is only accessible through AJAX.');
 		$this->autoRender = false;
-		if (preg_match('/^[a-zA-Z0-9]{12}$/', $filename)) {
+		if ($this->checkFilename($filename)) {
 			$file = new File(APP . 'tmp/files/' . $filename);
 			if ($file->exists()) {
 				$file->delete();

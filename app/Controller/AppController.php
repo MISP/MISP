@@ -397,9 +397,7 @@ class AppController extends Controller {
 		return $newArray;
 	}
 
-/**
- * checks if the currently logged user is an administrator (an admin that can manage the users and events of his own organisation)
- */
+	// checks if the currently logged user is an administrator (an admin that can manage the users and events of his own organisation)
 	protected function _isAdmin() {
 		if ($this->userRole['perm_site_admin'] || $this->userRole['perm_admin']) {
 			return true;
@@ -407,9 +405,7 @@ class AppController extends Controller {
 		return false;
 	}
 
-/**
- * checks if the currently logged user is a site administrator (an admin that can manage any user or event on the instance and create / edit the roles).
- */
+	// checks if the currently logged user is a site administrator (an admin that can manage any user or event on the instance and create / edit the roles).
 	protected function _isSiteAdmin() {
 		return $this->userRole['perm_site_admin'];
 	}
@@ -417,12 +413,6 @@ class AppController extends Controller {
 	protected function _checkOrg() {
 		return $this->Auth->user('org_id');
 	}
-
-/**
- *
- * @param $action
- * @return boolean
- */
 
 	// pass an action to this method for it to check the active user's access to the action
 	public function checkAction($action = 'perm_sync') {
@@ -441,11 +431,6 @@ class AppController extends Controller {
 		return $role['Role'];
 	}
 
-/**
- *
- * @param string $authkey
- * @return boolean or user array
- */
 	public function checkAuthUser($authkey) {
 		$this->loadModel('User');
 		$user = $this->User->getAuthUserByUuid($authkey);
@@ -666,5 +651,9 @@ class AppController extends Controller {
 		$this->Server->cleanCacheFiles();
 		$this->Session->setFlash('Caches cleared.');
 		$this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'diagnostics'));
+	}
+
+	public function checkFilename($filename) {
+		return preg_match('@^([a-z0-9_.]+[a-z0-9_.\- ]*[a-z0-9_.\-]|[a-z0-9_.])+$@i', $filename);
 	}
 }

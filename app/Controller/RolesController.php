@@ -30,14 +30,6 @@ class RolesController extends AppController {
 		parent::beforeFilter();
 	}
 
-/**
- * view method
- *
- * @param string $id
- * @return void
- *
- * @throws NotFoundException
- */
 	public function view($id = null) {
 		$this->Role->id = $id;
 		if (!$this->Role->exists()) {
@@ -48,11 +40,6 @@ class RolesController extends AppController {
 		$this->set('id', $id);
 	}
 
-/**
- * admin_add method
- *
- * @return void
- */
 	public function admin_add() {
 		if (!$this->_isSiteAdmin()) $this->redirect(array('controller' => 'roles', 'action' => 'index', 'admin' => false));
 		if ($this->request->is('post')) {
@@ -72,11 +59,6 @@ class RolesController extends AppController {
 		$this->set('options', $this->options);
 	}
 
-/**
- * admin_index method
- *
- * @return void
- */
 	public function admin_index() {
 		if (!$this->_isSiteAdmin()) $this->redirect(array('controller' => 'roles', 'action' => 'index', 'admin' => false));
 		$this->AdminCrud->adminIndex();
@@ -84,13 +66,6 @@ class RolesController extends AppController {
 		$this->set('options', $this->options);
 	}
 
-/**
- * admin_edit method
- *
- * @param string $id
- * @return void
- * @throws NotFoundException
- */
 	public function admin_edit($id = null) {
 		if (!$this->_isSiteAdmin()) $this->redirect(array('controller' => 'roles', 'action' => 'index', 'admin' => false));
 		$this->AdminCrud->adminEdit($id);
@@ -100,25 +75,10 @@ class RolesController extends AppController {
 		$this->set('id', $id);
 	}
 
-/**
- * admin_delete method
- *
- * @param string $id
- *
- * @throws MethodNotAllowedException
- * @throws NotFoundException
- *
- * @return void
- */
 	public function admin_delete($id = null) {
 		$this->AdminCrud->adminDelete($id);
 	}
 
-/**
- * index method
- *
- * @return void
- */
 	public function index() {
 		$this->recursive = 0;
 		$this->set('permFlags', $this->Role->permFlags);

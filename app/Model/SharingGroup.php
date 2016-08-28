@@ -11,6 +11,7 @@ class SharingGroup extends AppModel {
 					'change' => 'full'
 			),
 	);
+
 	public $validate = array(
 		'name' => array(
 			'unique' => array(
@@ -28,6 +29,7 @@ class SharingGroup extends AppModel {
 			),
 		)
 	);
+
 	public $hasMany = array(
 		'SharingGroupOrg' => array(
 			'className' => 'SharingGroupOrg',

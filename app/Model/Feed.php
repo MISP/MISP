@@ -21,11 +21,6 @@ class Feed extends AppModel {
 			)
 	);
 
-/**
- * Validation rules
- *
- * @var array
- */
 	public $validate = array(
 		'url' => array( // TODO add extra validation to refuse multiple time the same url from the same org
 			'rule' => array('url'),

@@ -2,12 +2,6 @@
 
 App::uses('AppController', 'Controller');
 
-/**
- * Tags Controller
- *
- * @property Tag $Tag
- */
-
 class TagsController extends AppController {
 	public $components = array('Security' ,'RequestHandler');
 

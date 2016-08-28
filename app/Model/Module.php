@@ -2,6 +2,7 @@
 App::uses('AppModel', 'Model');
 
 class Module extends AppModel {
+
 	public $useTable = false;
 
 	private $__validTypes = array(
@@ -69,8 +70,8 @@ class Module extends AppModel {
 	}
 
 
-	public function getModules($type = false, $moduleFamily = 'Enrichment') {
-		$modules = $this->queryModuleServer('/modules', false, false, $moduleFamily);
+	public function getModules($type = false, $moduleFamily = 'Enrichment', &$exception = false) {
+		$modules = $this->queryModuleServer('/modules', false, false, $moduleFamily, $exception);
 		if (!$modules) return 'Module service not reachable.';
 		if (!empty($modules)) {
 			$result = array('modules' => $modules);
@@ -131,20 +132,21 @@ class Module extends AppModel {
 		return $url . ':' . $port;
 	}
 
-	public function queryModuleServer($uri, $post = false, $hover = false, $moduleFamily = 'Enrichment') {
+	public function queryModuleServer($uri, $post = false, $hover = false, $moduleFamily = 'Enrichment', &$exception = false) {
 		$url = $this->__getModuleServer($moduleFamily);
 		if (!$url) return false;
 		App::uses('HttpSocket', 'Network/Http');
 		if ($hover) {
-			$httpSocket = new HttpSocket(array('timeout' => Configure::read('Plugin.' . $moduleFamily . '_hover_timeout') ? Configure::read('Plugin.' . $moduleFamily . '_hover_timeout') : 2));
+			$httpSocket = new HttpSocket(array('timeout' => Configure::read('Plugin.' . $moduleFamily . '_hover_timeout') ? Configure::read('Plugin.' . $moduleFamily . '_hover_timeout') : 5));
 		} else {
-			$httpSocket = new HttpSocket(array('timeout' => Configure::read('Plugin.' . $moduleFamily . '_timeout') ? Configure::read('Plugin.' . $moduleFamily . '_timeout') : 5));
+			$httpSocket = new HttpSocket(array('timeout' => Configure::read('Plugin.' . $moduleFamily . '_timeout') ? Configure::read('Plugin.' . $moduleFamily . '_timeout') : 10));
 		}
 		try {
 			if ($post) $response = $httpSocket->post($url . $uri, $post);
 			else $response = $httpSocket->get($url . $uri);
 			return json_decode($response->body, true);
 		} catch (Exception $e) {
+			$exception = $e->getMessage();
 			return false;
 		}
 	}

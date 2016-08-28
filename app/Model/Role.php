@@ -1,28 +1,14 @@
 <?php
 App::uses('AppModel', 'Model');
-/**
- * Role Model
- *
- * @property User $User
- */
+
 class Role extends AppModel {
 
-/**
- * Validation rules
- *
- * @var array
- */
 	public $validate = array(
 			'valueNotEmpty' => array(
 				'rule' => array('valueNotEmpty'),
 		),
 	);
 
-/**
- * hasMany associations
- *
- * @var array
- */
 	public $hasMany = array(
 		'User' => array(
 			'className' => 'User',
@@ -39,10 +25,6 @@ class Role extends AppModel {
 		)
 	);
 
-/**
- *
- * @var unknown_type
- */
 	public $actsAs = array(
 			'Trim',
 			'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
@@ -51,13 +33,6 @@ class Role extends AppModel {
 					'change' => 'full'
 			),
 	);
-
-
-/**
- * Virtual field
- *
- * @var array
- */
 
 	public $virtualFields = array(
 		'permission' => "CASE WHEN (Role.perm_add + Role.perm_modify + Role.perm_publish = 3) THEN '3' WHEN (Role.perm_add + Role.perm_modify_org = 2) THEN '2' WHEN (Role.perm_add = 1) THEN '1' ELSE '0' END",

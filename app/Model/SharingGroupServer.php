@@ -1,10 +1,9 @@
 <?php
 App::uses('AppModel', 'Model');
-class SharingGroupServer extends AppModel {
-	public $actsAs = array('Containable');
-	public $validate = array(
 
-	);
+class SharingGroupServer extends AppModel {
+
+	public $actsAs = array('Containable');
 
 	public $belongsTo = array(
 		'SharingGroup' => array(

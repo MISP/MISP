@@ -168,6 +168,30 @@
 		?>
 	</div>
 	<h3>
+	Module System
+	</h3>
+	<p>This tool tests the various module systems and whether they are reachable based on the module settings.</p>
+	<?php
+		foreach ($moduleTypes as $type):
+	?>
+		<div style="background-color:#f7f7f9;width:300px;">
+			<?php
+				$colour = 'green';
+				if (isset($moduleErrors[$moduleStatus[$type]])) {
+					$message = $moduleErrors[$moduleStatus[$type]];
+				} else {
+					$message = h($moduleStatus[$type]);
+				}
+				if ($moduleStatus[$type] > 0) {
+					$colour = 'red';
+				}
+				echo $type . ' module system....<span style="color:' . $colour . ';">' . $message . '</span>';
+			?>
+		</div>
+	<?php
+		endforeach;
+	?>
+	<h3>
 	Session table
 	</h3>
 	<p>This tool checks how large your database's session table is. <br />Sessions in CakePHP rely on PHP's garbage collection for cleanup and in certain distributions this can be disabled by default resulting in an ever growing cake session table. <br />If you are affected by this, just click the clean session table button below.</p>

@@ -2,24 +2,10 @@
 
 App::uses('AppModel', 'Model');
 
-/**
- * Whitelist Model
- *
- */
 class Whitelist extends AppModel {
 
-/**
- * Use table
- *
- * @var mixed False or table name
- */
 	public $useTable = 'whitelist';
 
-/**
- * Display field
- *
- * @var string
- */
 	public $displayField = 'name';
 
 	public $actsAs = array(
@@ -31,11 +17,6 @@ class Whitelist extends AppModel {
 			),
 	);
 
-/**
- * Validation rules
- *
- * @var array
- */
 	public $validate = array(
 		'name' => array(
 			'valueNotEmpty' => array(

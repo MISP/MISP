@@ -2,12 +2,7 @@
 App::uses('AppModel', 'Model');
 App::uses('CakeEmail', 'Network/Email');
 Configure::load('config'); // This is needed to load GnuPG.bodyonlyencrypted
-/**
- * Event Model
- *
- * @property User $User
- * @property Attribute $Attribute
- */
+
 class Event extends AppModel {
 
 	public $actsAs = array(
@@ -19,22 +14,12 @@ class Event extends AppModel {
 		'Containable',
 	);
 
-/**
- * Display field
- *
- * @var string
- */
 	public $displayField = 'id';
 
 	public $virtualFields = array();
 
 	public $mispVersion = '2.4.0';
 
-/**
- * Description field
- *
- * @var array
- */
 	public $fieldDescriptions = array(
 		'threat_level_id' => array('desc' => 'Risk levels: *low* means mass-malware, *medium* means APT malware, *high* means sophisticated APT malware or 0-day attack', 'formdesc' => 'Risk levels: low: mass-malware medium: APT malware high: sophisticated APT malware or 0-day attack'),
 		'classification' => array('desc' => 'Set the Traffic Light Protocol classification. <ol><li><em>TLP:AMBER</em>- Share only within the organization on a need-to-know basis</li><li><em>TLP:GREEN:NeedToKnow</em>- Share within your constituency on the need-to-know basis.</li><li><em>TLP:GREEN</em>- Share within your constituency.</li></ol>'),
@@ -167,11 +152,6 @@ class Event extends AppModel {
 		'event_tag' => array('object' => 'Tag', 'var' => 'name')
 	);
 
-/**
- * Validation rules
- *
- * @var array
- */
 	public $validate = array(
 		'org_id' => array(
 			'valueNotEmpty' => array(
@@ -274,11 +254,6 @@ class Event extends AppModel {
 
 	// The Associations below have been created with all possible keys, those that are not needed can be removed
 
-/**
- * belongsTo associations
- *
- * @var array
- */
 	public $belongsTo = array(
 		'User' => array(
 			'className' => 'User',
@@ -305,13 +280,6 @@ class Event extends AppModel {
 		)
 	);
 
-/**
- * hasMany associations
- *
- * @var array
- *
- * @throws InternalErrorException // TODO Exception
- */
 	public $hasMany = array(
 		'Attribute' => array(
 			'className' => 'Attribute',
@@ -633,17 +601,13 @@ class Event extends AppModel {
 		return $relatedAttributes;
 	}
 
-/**
- * Clean up an Event Array that was received by an XML request.
- * The structure needs to be changed a little bit to be compatible with what CakePHP expects
- *
- * This function receives the reference of the variable, so no return is required as it directly
- * modifies the original data.
- *
- * @param &$data a reference to the variable
- *
- * @throws InternalErrorException
- */
+	/**
+	 * Clean up an Event Array that was received by an XML request.
+	 * The structure needs to be changed a little bit to be compatible with what CakePHP expects
+	 *
+	 * This function receives the reference of the variable, so no return is required as it directly
+	 * modifies the original data.
+	 */
 	public function cleanupEventArrayFromXML(&$data) {
 		$objects = array('Attribute', 'ShadowAttribute');
 		foreach ($objects as $object) {
@@ -774,12 +738,7 @@ class Event extends AppModel {
 		return 'Success';
 	}
 
-/**
- * Uploads the event and the associated Attributes to another Server
- * TODO move this to a component
- *
- * @return bool true if success, false or error message if failed
- */
+	// Uploads the event and the associated Attributes to another Server
 	public function restfulEventToServer($event, $server, $urlPath, &$newLocation, &$newTextBody, $HttpSocket = null) {
 		if ($event['Event']['distribution'] == 4) {
 			if (!empty($event['SharingGroup']['SharingGroupServer'])) {
@@ -977,12 +936,6 @@ class Event extends AppModel {
 	}
 
 
-/**
- * Deletes the event and the associated Attributes from another Server
- * TODO move this to a component
- *
- * @return bool true if success, error message if failed
- */
 	public function deleteEventFromServer($uuid, $server, $HttpSocket=null) {
 		// TODO private and delete(?)
 
@@ -1013,11 +966,6 @@ class Event extends AppModel {
 		}
 	}
 
-/**
- * Download a specific event from a Server
- * TODO move this to a component
- * @return array|NULL
- */
 	public function downloadEventFromServer($eventId, $server, $HttpSocket=null, $proposalDownload = false) {
 		$url = $server['Server']['url'];
 		$authkey = $server['Server']['authkey'];
@@ -1796,21 +1744,12 @@ class Event extends AppModel {
 		return $data;
 	}
 
-	/**
-	 * Low level function to add an Event based on an Event $data array
-	 *
-	 * @return bool true if success
-	 */
+	// Low level function to add an Event based on an Event $data array
 	public function _add(&$data, $fromXml, $user, $org_id = 0, $passAlong = null, $fromPull = false, $jobId = null, &$created_id = 0, &$validationErrors = array()) {
 		if ($jobId) {
 			App::uses('AuthComponent', 'Controller/Component');
 		}
 		if (Configure::read('MISP.enableEventBlacklisting') && isset($data['Event']['uuid'])) {
-			$event = $this->find('first', array(
-					'recursive' => -1,
-					'fields' => array('uuid'),
-					'conditions' => array('id' => $this->id),
-			));
 			$this->EventBlacklist = ClassRegistry::init('EventBlacklist');
 			$r = $this->EventBlacklist->find('first', array('conditions' => array('event_uuid' => $data['Event']['uuid'])));
 			if (!empty($r))	return 'blocked';
@@ -2118,12 +2057,7 @@ class Event extends AppModel {
 		return true;
 	}
 
-	/**
-	 * Uploads this specific event to all remote servers
-	 * TODO move this to a component
-	 *
-	 * @return bool true if success, false if, partly, failed
-	 */
+	// Uploads this specific event to all remote servers
 	public function uploadEventToServersRouter($id, $passAlong = null) {
 		// make sure we have all the data of the Event
 		$event = $this->find('first', array(
@@ -2244,11 +2178,7 @@ class Event extends AppModel {
 		}
 	}
 
-	/**
-	 * Performs all the actions required to publish an event
-	 *
-	 * @param unknown_type $id
-	 */
+	// Performs all the actions required to publish an event
 	public function publish($id, $passAlong = null, $jobId = null) {
 		$this->id = $id;
 		$this->recursive = 0;
@@ -2282,22 +2212,7 @@ class Event extends AppModel {
 	}
 
 
-	/**
-	 *
-	 * Sends out an email to all people within the same org
-	 * with the request to be contacted about a specific event.
-	 * @todo move __sendContactEmail($id, $message) to a better place. (components?)
-	 *
-	 * @param unknown_type $id The id of the event for wich you want to contact the org.
-	 * @param unknown_type $message The custom message that will be appended to the email.
-	 * @param unknown_type $all, true: send to org, false: send to person.
-	 *
-	 * @codingStandardsIgnoreStart
-	 * @throws \UnauthorizedException as well. // TODO Exception NotFoundException
-	 * @codingStandardsIgnoreEnd
-	 *
-	 * @return True if success, False if error
-	 */
+	// Sends out an email to all people within the same org with the request to be contacted about a specific event.
 	public function sendContactEmailRouter($id, $message, $creator_only, $user, $isSiteAdmin, $JobId = false) {
 		if (Configure::read('MISP.background_jobs')) {
 			$job = ClassRegistry::init('Job');
@@ -2678,6 +2593,9 @@ class Event extends AppModel {
 			else $attribute['hasChildren'] = 0;
 			if ($filterType === 'proposal' && $attribute['hasChildren'] == 0) continue;
 			if ($filterType === 'correlation' && !in_array($attribute['id'], $correlatedAttributes)) continue;
+			if ($attribute['type'] == 'attachment' && preg_match('/.*\.(jpg|png|jpeg|gif)$/i', $attribute['value'])) {
+				$attribute['image'] = $this->Attribute->base64EncodeAttachment($attribute);
+			}
 			$eventArray[] = $attribute;
 		}
 		unset($event['Attribute']);
@@ -2686,6 +2604,9 @@ class Event extends AppModel {
 				if ($filterType === 'correlation' && !in_array($shadowAttribute['id'], $correlatedShadowAttributes)) continue;
 				if ($filterType && !in_array($filterType, array('proposal', 'correlation', 'warning'))) if (!in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType])) continue;
 				$shadowAttribute['objectType'] = 2;
+				if ($shadowAttribute['type'] == 'attachment' && preg_match('/.*\.(jpg|png|jpeg|gif)$/i', $shadowAttribute['value'])) {
+					$shadowAttribute['image'] = $this->ShadowAttribute->base64EncodeAttachment($attribute);
+				}
 				$eventArray[] = $shadowAttribute;
 			}
 		}

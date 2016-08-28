@@ -1,15 +1,12 @@
 <?php
-
 App::uses('AppModel', 'Model');
 
-/**
- * Sighting Model
- *
- */
 class Sighting extends AppModel {
 
 	public $useTable = 'sightings';
+
 	public $recursive = -1;
+
 	public $actsAs = array(
 			'Containable',
 	);

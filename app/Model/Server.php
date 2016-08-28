@@ -1,12 +1,9 @@
 <?php
 App::uses('AppModel', 'Model');
-/**
- * Server Model
- *
- */
+
 class Server extends AppModel {
 
-	public $name = 'Server';					// TODO general
+	public $name = 'Server';
 
 	public $actsAs = array('SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable, check: 'userModel' and 'userKey' can be removed given default
 			'userModel' => 'User',
@@ -40,18 +37,8 @@ class Server extends AppModel {
 		),
 	);
 
-/**
- * Display field
- *
- * @var string
- */
 	public $displayField = 'url';
 
-/**
- * Validation rules
- *
- * @var array
- */
 	public $validate = array(
 		'url' => array( // TODO add extra validation to refuse multiple time the same url from the same org
 			'url' => array(
@@ -915,7 +902,7 @@ class Server extends AppModel {
 						'description' => 'The port that the pub/sub feature will use.',
 						'value' => 50000,
 						'errorMessage' => '',
-						'test' => 'testForPortNumber',
+						'test' => 'testForZMQPortNumber',
 						'type' => 'numeric',
 						'afterHook' => 'zmqAfterHook',
 					),
@@ -1055,7 +1042,7 @@ class Server extends AppModel {
 					'Enrichment_timeout' => array(
 							'level' => 1,
 							'description' => 'Set a timeout for the enrichment services',
-							'value' => 5,
+							'value' => 10,
 							'errorMessage' => '',
 							'test' => 'testForEmpty',
 							'type' => 'numeric'
@@ -1071,7 +1058,7 @@ class Server extends AppModel {
 					'Import_timeout' => array(
 							'level' => 1,
 							'description' => 'Set a timeout for the import services',
-							'value' => 5,
+							'value' => 10,
 							'errorMessage' => '',
 							'test' => 'testForEmpty',
 							'type' => 'numeric'
@@ -1119,7 +1106,7 @@ class Server extends AppModel {
 					'Export_timeout' => array(
 							'level' => 1,
 							'description' => 'Set a timeout for the import services',
-							'value' => 5,
+							'value' => 10,
 							'errorMessage' => '',
 							'test' => 'testForEmpty',
 							'type' => 'numeric'
@@ -1135,7 +1122,7 @@ class Server extends AppModel {
 					'Enrichment_hover_timeout' => array(
 							'level' => 1,
 							'description' => 'Set a timeout for the hover services',
-							'value' => 2,
+							'value' => 5,
 							'errorMessage' => '',
 							'test' => 'testForEmpty',
 							'type' => 'numeric'
@@ -1501,11 +1488,7 @@ class Server extends AppModel {
 	}
 
 
-	/**
-	 * Get an array of event_ids that are present on the remote server
-	 * TODO move this to a component
-	 * @return array of event_ids
-	 */
+	// Get an array of event_ids that are present on the remote server
 	public function getEventIdsFromServer($server, $all = false, $HttpSocket=null, $force_uuid=false, $ignoreFilterRules = false) {
 		$url = $server['Server']['url'];
 		$authkey = $server['Server']['authkey'];
@@ -1979,7 +1962,7 @@ class Server extends AppModel {
 
 	public function testForPath($value) {
 		if ($value === '') return true;
-		if (preg_match('/^[a-z0-9\-\_\:\/]+$/i', $value)) return true;
+		if (preg_match('@^\/?(([a-z0-9_.]+[a-z0-9_.\- ]*[a-z0-9_.\-]|[a-z0-9_.])+\/?)+$@i', $value)) return true;
 		return 'Invalid characters in the path.';
 	}
 
@@ -2061,6 +2044,13 @@ class Server extends AppModel {
 	}
 
 	public function testForPortNumber($value) {
+		$numeric = $this->testForNumeric($value);
+		if ($numeric !== true) return $numeric;
+		if ($value < 21 || $value > 65535) return 'Make sure that you pick a valid port number.';
+		return true;
+	}
+
+	public function testForZMQPortNumber($value) {
 		$numeric = $this->testForNumeric($value);
 		if ($numeric !== true) return $numeric;
 		if ($value < 49152 || $value > 65535) return 'It is recommended that you pick a port number in the dynamic range (49152-65535). However, if you have a valid reason to use a different port, ignore this message.';
@@ -2187,7 +2177,7 @@ class Server extends AppModel {
 	// never come here directly, always go through a secondary check like testForTermsFile in order to also pass along the expected file path
 	private function __testForFile($value, $path) {
 		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
-		if (!preg_match('/^[\w,\s-]+(\.)?[A-Za-z0-9]+$/', $value)) return 'Invalid filename. Valid filenames can only include characters between a-z, A-Z or 0-9. They can also include - and _ and can optionally have an extension.';
+		if (!$this->checkFilename($value)) return 'Invalid filename.';
 		$file = $path . DS . $value;
 		if (!file_exists($file)) return 'Could not find the specified file. Make sure that it is uploaded into the following directory: ' . $path;
 		return true;
@@ -2556,6 +2546,21 @@ class Server extends AppModel {
 		if ($pubSubTool->checkIfRunning()) return 0;
 		$diagnostic_errors++;
 		return 3;
+	}
+
+	public function moduleDiagnostics(&$diagnostic_errors, $type = 'Enrichment') {
+		$this->Module = ClassRegistry::init('Module');
+		$types = array('Enrichment', 'Import', 'Export');
+		$diagnostic_errors++;
+		if (Configure::read('Plugin.' . $type . '_services_enable')) {
+			$exception = false;
+			$result = $this->Module->getModules(false, $type, $exception);
+			if ($exception) return $exception;
+			if (empty($result)) return 2;
+			$diagnostic_errors--;
+			return 0;
+		}
+		return 1;
 	}
 
 	public function proxyDiagnostics(&$diagnostic_errors) {

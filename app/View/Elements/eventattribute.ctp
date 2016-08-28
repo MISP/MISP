@@ -257,17 +257,25 @@
 										<?php
 											$sigDisplay = $object['value'];
 											if ('attachment' == $object['type'] || 'malware-sample' == $object['type'] ) {
-												$t = ($object['objectType'] == 0 ? 'attributes' : 'shadow_attributes');
-												$filenameHash = explode('|', nl2br(h($object['value'])));
-												if (strrpos($filenameHash[0], '\\')) {
-													$filepath = substr($filenameHash[0], 0, strrpos($filenameHash[0], '\\'));
-													$filename = substr($filenameHash[0], strrpos($filenameHash[0], '\\'));
-													echo h($filepath);
-													echo $this->Html->link($filename, array('controller' => $t, 'action' => 'download', $object['id']));
+												if ($object['type'] == 'attachment' && isset($object['image'])) {
+													$extension = explode('.', $object['value']);
+													$extension = end($extension);
+													$uri = 'data:image/' . strtolower(h($extension)) . ';base64,' . h($object['image']);
+													$img = '<img src="' . $uri . '" style="width:200px;" title="' . h($object['value']) . '" />';
+													echo '<a href="' . $baseurl . '/' . ($object['objectType'] == 0 ? 'attributes' : 'shadow_attributes') . '/download/' . h($object['id']) . '">' . $img . '</a>';
 												} else {
-													echo $this->Html->link($filenameHash[0], array('controller' => $t, 'action' => 'download', $object['id']));
+													$t = ($object['objectType'] == 0 ? 'attributes' : 'shadow_attributes');
+													$filenameHash = explode('|', nl2br(h($object['value'])));
+													if (strrpos($filenameHash[0], '\\')) {
+														$filepath = substr($filenameHash[0], 0, strrpos($filenameHash[0], '\\'));
+														$filename = substr($filenameHash[0], strrpos($filenameHash[0], '\\'));
+														echo h($filepath);
+														echo $this->Html->link($filename, array('controller' => $t, 'action' => 'download', $object['id']));
+													} else {
+														echo $this->Html->link($filenameHash[0], array('controller' => $t, 'action' => 'download', $object['id']));
+													}
+													if (isset($filenameHash[1])) echo ' | ' . $filenameHash[1];
 												}
-												if (isset($filenameHash[1])) echo ' | ' . $filenameHash[1];
 											} else if (strpos($object['type'], '|') !== false) {
 												$filenameHash = explode('|', $object['value']);
 												echo h($filenameHash[0]);

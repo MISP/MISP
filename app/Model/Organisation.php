@@ -1,8 +1,11 @@
 <?php
 App::uses('AppModel', 'Model');
 class Organisation extends AppModel{
+
 	public $useTable = 'organisations';
+
 	public $recursive = -1;
+
 	public $actsAs = array(
 		'Containable',
 		'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
@@ -11,6 +14,7 @@ class Organisation extends AppModel{
 				'change' => 'full'
 		),
 	);
+
 	public $validate = array(
 		'name' => array(
 			'unique' => array(
@@ -34,6 +38,7 @@ class Organisation extends AppModel{
 			),
 		)
 	);
+
 	public $hasMany = array(
 		'User' => array(
 			'className' => 'User',
@@ -71,17 +76,6 @@ class Organisation extends AppModel{
 			'Thread' => array('table' => 'threads', 'fields' => array('org_id')),
 			'User' => array('table' => 'users', 'fields' => array('org_id'))
 	);
-
-	/*
-	public $hasAndBelongsToMany = array(
-		'SharingGroup' => array(
-			'className' => 'SharingGroup',
-			'joinTable' => 'organisations_sharing_groups',
-			'foreignKey' => 'org_id',
-			'associationForeignKey' => 'sharing_group_id',
-		)
-	);
-	*/
 
 	public function beforeValidate($options = array()) {
 		parent::beforeValidate();

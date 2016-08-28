@@ -4,11 +4,6 @@ App::uses('AppModel', 'Model');
 App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
 
-/**
- * Attribute Model
- *
- * @property Event $Event
- */
 class ShadowAttribute extends AppModel {
 
 	public $combinedKeys = array('event_id', 'category', 'type');
@@ -25,11 +20,6 @@ class ShadowAttribute extends AppModel {
 		'Regexp' => array('fields' => array('value', 'value2')),
 	);
 
-/**
- * belongsTo associations
- *
- * @var array
- */
 	public $belongsTo = array(
 		'Event' => array(
 			'className' => 'Event',
@@ -49,28 +39,13 @@ class ShadowAttribute extends AppModel {
 		),
 	);
 
-/**
- * Display field
- *
- * @var string
- */
 	public $displayField = 'value';
 
-/**
- * Virtual field
- *
- * @var array
- */
 	public $virtualFields = array(
 			'value' => "CASE WHEN ShadowAttribute.value2 = '' THEN ShadowAttribute.value1 ELSE CONCAT(ShadowAttribute.value1, '|', ShadowAttribute.value2) END",
 	); // TODO hardcoded
 
-/**
- * Field Descriptions
- * explanations of certain fields to be used in various views
- *
- * @var array
- */
+	// explanations of certain fields to be used in various views
 	public $fieldDescriptions = array(
 			'signature' => array('desc' => 'Is this attribute eligible to automatically create an IDS signature (network IDS or host IDS) out of it ?'),
 			//'private' => array('desc' => 'Prevents upload of this single Attribute to other CyDefSIG servers', 'formdesc' => 'Prevents upload of <em>this single Attribute</em> to other CyDefSIG servers.<br/>Used only when the Event is NOT set as Private')
@@ -93,11 +68,6 @@ class ShadowAttribute extends AppModel {
 
 	public $order = array("ShadowAttribute.event_id" => "DESC", "ShadowAttribute.type" => "ASC");
 
-/**
- * Validation rules
- *
- * @var array
- */
 	public $validate = array(
 		'event_id' => array(
 			'numeric' => array(
@@ -168,12 +138,6 @@ class ShadowAttribute extends AppModel {
 
 	// The Associations below have been created with all possible keys, those that are not needed can be removed
 
-/**
- * beforeSave
- *
- * @throws InternalErrorException
- * @return bool always true
- */
 	public function beforeSave($options = array()) {
 		// explode value of composite type in value1 and value2
 		// or copy value to value1 if not composite type
