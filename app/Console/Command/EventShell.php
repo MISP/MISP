@@ -439,7 +439,7 @@ class EventShell extends AppShell
 		$this->Job->save($job);
 		$log = ClassRegistry::init('Log');
 		$log->create();
-		$log->createLogEntry($user, 'publish', 'Event (' . $id . '): published.', 'publised () => (1)');
+		$log->createLogEntry($user, 'publish', 'Event', $id, 'Event (' . $id . '): published.', 'publised () => (1)');
 	}
 
 }
