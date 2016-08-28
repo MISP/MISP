@@ -856,18 +856,18 @@ class Event extends AppModel {
 		if (isset($event['Event']['Attribute'])) {
 			foreach ($event['Event']['Attribute'] as $key => &$attribute) {
 			// do not keep attributes that are private, nor cluster
-				if ($attribute['distribution'] < 2) {
+				if (!$server['Server']['internal'] && $attribute['distribution'] < 2) {
 					unset($event['Event']['Attribute'][$key]);
 					continue; // stop processing this
 				}
 				// Downgrade the attribute from connected communities to community only
-				if ($attribute['distribution'] == 2) {
+				if (!$server['Server']['internal'] && $attribute['distribution'] == 2) {
 					$attribute['distribution'] = 1;
 				}
 
 				// If the attribute has a sharing group attached, make sure it can be transfered
 				if ($attribute['distribution'] == 4) {
-					if ($this->checkDistributionForPush(array('Attribute' => $attribute), $server, 'Attribute') === false) {
+					if (!$server['Server']['internal'] && $this->checkDistributionForPush(array('Attribute' => $attribute), $server, 'Attribute') === false) {
 						unset($event['Event']['Attribute'][$key]);
 						continue;
 					}
@@ -929,7 +929,7 @@ class Event extends AppModel {
 		}
 
 		// Downgrade the event from connected communities to community only
-		if ($event['Event']['distribution'] == 2) {
+		if (!$server['Server']['internal'] && $event['Event']['distribution'] == 2) {
 			$event['Event']['distribution'] = 1;
 		}
 		return $event;
@@ -2103,7 +2103,6 @@ class Event extends AppModel {
 				),
 		));
 		if (empty($event)) return true;
-
 		if ($event['Event']['distribution'] < 2) return true;
 		$event['Event']['locked'] = 1;
 		// get a list of the servers
