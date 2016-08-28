@@ -9,16 +9,15 @@
 		echo $this->Form->input('name', array(
 				'label' => 'Instance name',
 		));
-		if (!empty($host_org_id)):
+		if (!empty($host_org_id) && $this->request->data['Server']['remote_org_id'] == $host_org_id):
 	?>
-			<div class = "input clear" style="width:100%;">
+			<div id="InternalDiv" class = "input clear" style="width:100%;">
 				<hr />
 				<p class="red" style="width:50%;">You can set this instance up as an internal instance by checking the checkbox below. This means that any synchronisation between this instance and the remote will not be automatically degraded as it would in a normal synchronisation scenario. Please make sure that you own both instances and that you are OK with this otherwise dangerous change. This also requires that the current instance's host organisation and the remote sync organisation are the same.</p>
 	<?php
 				echo $this->Form->input('internal', array(
 						'label' => 'Internal instance',
 						'type' => 'checkbox',
-						'disabled' => empty($host_org_id) ? 1 : 0
 				));
 	?>
 			</div>
@@ -184,6 +183,7 @@ var tags = <?php echo json_encode($allTags); ?>;
 var orgs = <?php echo json_encode($allOrganisations); ?>;
 var delete_cert = false;
 var delete_client_cert = false;
+var host_org_id = "<?php echo h($host_org_id); ?>";
 var modelContext = 'Server';
 
 $(document).ready(function() {
@@ -235,6 +235,10 @@ $(document).ready(function() {
 	$('#remove_client_cert_file').click(function() {
 		$('#serverEditClientCertValue').html('<span class="green bold">Not set.</span>');
 		$('#ServerDeleteClientCert').prop('checked', true);
+	});
+
+	$('#ServerOrganisationType, #ServerLocal').change(function() {
+		serverOwnerOrganisationChange(host_org_id);
 	});
 });
 </script>

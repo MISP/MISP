@@ -2489,3 +2489,11 @@ $(".queryPopover").click(function() {
 	});
 });
 
+function serverOwnerOrganisationChange(host_org_id) {
+	if ($('#ServerOrganisationType').val() == "0" && $('#ServerLocal').val() == host_org_id) {
+		$('#InternalDiv').show();
+	} else {
+		$('#ServerInternal').prop("checked", false);
+		$('#InternalDiv').hide();
+	}
+}

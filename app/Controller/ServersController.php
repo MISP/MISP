@@ -257,6 +257,7 @@ class ServersController extends AppController {
 		$allTags = array();
 		foreach ($temp as $t) $allTags[] = array('id' => $t['Tag']['id'], 'name' => $t['Tag']['name']);
 		$this->set('allTags', $allTags);
+		$this->set('host_org_id', Configure::read('MISP.host_org_id'));
 	}
 
 	public function edit($id = null) {
@@ -386,6 +387,7 @@ class ServersController extends AppController {
 		foreach ($temp as $t) $allTags[] = array('id' => $t['Tag']['id'], 'name' => $t['Tag']['name']);
 		$this->set('allTags', $allTags);
 		$this->set('server', $s);
+		$this->set('host_org_id', Configure::read('MISP.host_org_id'));
 	}
 
 	public function delete($id = null) {
