@@ -1282,21 +1282,25 @@ class Server extends AppModel {
 							if (empty(Configure::read('MISP.host_org_id')) || !$server['Server']['internal'] ||  Configure::read('MISP.host_org_id') != $server['Server']['org_id']) {
 								switch ($event['Event']['distribution']) {
 									case 1:
-									case 'This community only': // backwards compatibility
 										// if community only, downgrade to org only after pull
 										$event['Event']['distribution'] = '0';
 										break;
 									case 2:
-									case 'Connected communities': // backwards compatibility
 										// if connected communities downgrade to community only
 										$event['Event']['distribution'] = '1';
 										break;
-									case 'All communities': // backwards compatibility
-										$event['Event']['distribution'] = '3';
-										break;
-									case 'Your organisation only': // backwards compatibility
-										$event['Event']['distribution'] = '0';
-										break;
+								}
+								if (isset($event['Event']['Attribute']) && !empty($event['Event']['Attribute'])) {
+									foreach ($event['Event']['Attribute'] as &$a) {
+										switch ($a['distribution']) {
+											case '1':
+												$a['distribution'] = '0';
+												break;
+											case '2':
+												$a['distribution'] = '1';
+												break;
+										}
+									}
 								}
 							}
 						} else {
@@ -1942,7 +1946,7 @@ class Server extends AppModel {
 		if (!is_numeric($value)) return 'This setting has to be a number.';
 		return true;
 	}
-	
+
 	public function testLocalOrg($value) {
 		$this->Organisation = ClassRegistry::init('Organisation');
 		if ($value == 0) return 'No organisation selected';
