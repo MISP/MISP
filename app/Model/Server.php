@@ -240,6 +240,15 @@ class Server extends AppModel {
 							'test' => 'testForEmpty',
 							'type' => 'string',
 					),
+					'host_org_id' => array(
+							'level' => 0,
+							'description' => 'The hosting organisation of this instance. If this is not selected then replication instances cannot be added.',
+							'value' => '0',
+							'errorMessage' => '',
+							'test' => 'testLocalOrg',
+							'type' => 'numeric',
+							'optionsSource' => 'LocalOrgs',
+					),
 					'logo' => array(
 							'level' => 3,
 							'description' => 'This setting is deprecated and can be safely removed.',
@@ -1270,25 +1279,27 @@ class Server extends AppModel {
 								$event['Event']['distribution'] = '1';
 							}
 							// Distribution
-							switch ($event['Event']['distribution']) {
-								case 1:
-									// if community only, downgrade to org only after pull
-									$event['Event']['distribution'] = '0';
-									break;
-								case 2:
-									// if connected communities downgrade to community only
-									$event['Event']['distribution'] = '1';
-									break;
-							}
-							if (isset($event['Event']['Attribute']) && !empty($event['Event']['Attribute'])) {
-								foreach ($event['Event']['Attribute'] as &$a) {
-									switch ($a['distribution']) {
-										case '1':
-											$a['distribution'] = '0';
-											break;
-										case '2':
-											$a['distribution'] = '1';
-											break;
+							if (empty(Configure::read('MISP.host_org_id')) || !$server['Server']['internal'] ||  Configure::read('MISP.host_org_id') != $server['Server']['org_id']) {
+								switch ($event['Event']['distribution']) {
+									case 1:
+										// if community only, downgrade to org only after pull
+										$event['Event']['distribution'] = '0';
+										break;
+									case 2:
+										// if connected communities downgrade to community only
+										$event['Event']['distribution'] = '1';
+										break;
+								}
+								if (isset($event['Event']['Attribute']) && !empty($event['Event']['Attribute'])) {
+									foreach ($event['Event']['Attribute'] as &$a) {
+										switch ($a['distribution']) {
+											case '1':
+												$a['distribution'] = '0';
+												break;
+											case '2':
+												$a['distribution'] = '1';
+												break;
+										}
 									}
 								}
 							}
@@ -1936,6 +1947,18 @@ class Server extends AppModel {
 		return true;
 	}
 
+	public function testLocalOrg($value) {
+		$this->Organisation = ClassRegistry::init('Organisation');
+		if ($value == 0) return 'No organisation selected';
+		$local_orgs = $this->Organisation->find('list', array(
+			'conditions' => array('local' => 1),
+			'recursive' => -1,
+			'fields' => array('Organisation.id', 'Organisation.name')
+		));
+		if (in_array($value, array_keys($local_orgs))) return true;
+		return 'Invalid organisation';
+	}
+
 	public function testForEmpty($value) {
 		if ($value === '') return 'Value not set.';
 		return true;
@@ -2166,7 +2189,7 @@ class Server extends AppModel {
 
 	public function serverSettingsSaveValue($setting, $value) {
 		Configure::write($setting, $value);
-		Configure::dump('config.php', 'default', array('MISP', 'GnuPG', 'SMIME', 'Proxy', 'SecureAuth', 'Security', 'debug', 'site_admin_debug', 'Plugin'));
+		Configure::dump('config.php', 'default', array('MISP', 'GnuPG', 'SMIME', 'Proxy', 'SecureAuth', 'Security', 'debug', 'site_admin_debug', 'Plugin', 'CertAuth', 'ApacheShibbAuth', 'ApacheSecureAuth'));
 	}
 
 	public function checkVersion($newest) {

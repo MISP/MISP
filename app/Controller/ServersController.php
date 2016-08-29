@@ -157,7 +157,7 @@ class ServersController extends AppController {
 			$json = json_decode($this->request->data['Server']['json'], true);
 
 			$fail = false;
-
+			if (empty(Configure::read('MISP.host_org_id'))) $this->request->data['Server']['internal'] = 0;
 			// test the filter fields
 			if (!empty($this->request->data['Server']['pull_rules']) && !$this->Server->isJson($this->request->data['Server']['pull_rules'])) {
 				$fail = true;
@@ -203,11 +203,17 @@ class ServersController extends AppController {
 						}
 					}
 				}
+				if (Configure::read('MISP.host_org_id') == 0 || $this->request->data['Server']['remote_org_id'] != Configure::read('MISP.host_org_id')) {
+					$this->request->data['Server']['internal'] = 0;
+				}
 				if (!$fail) {
 					$this->request->data['Server']['org_id'] = $this->Auth->user('org_id');
 					if ($this->Server->save($this->request->data)) {
 						if (isset($this->request->data['Server']['submitted_cert']) && $this->request->data['Server']['submitted_cert']['size'] != 0) {
-							$this->__saveCert($this->request->data, $this->Server->id);
+							$this->__saveCert($this->request->data, $this->Server->id, false);
+						}
+						if (isset($this->request->data['Server']['submitted_client_cert']) && $this->request->data['Server']['submitted_client_cert']['size'] != 0) {
+							$this->__saveCert($this->request->data, $this->Server->id, true);
 						}
 						$this->Session->setFlash(__('The server has been saved'));
 						$this->redirect(array('action' => 'index'));
@@ -239,7 +245,7 @@ class ServersController extends AppController {
 			$externalOrganisations[$o['Organisation']['id']] = $o['Organisation']['name'];
 			$allOrgs[] = array('id' => $o['Organisation']['id'], 'name' => $o['Organisation']['name']);
 		}
-
+		$this->set('host_org_id', Configure::read('MISP.host_org_id'));
 		$this->set('organisationOptions', $organisationOptions);
 		$this->set('localOrganisations', $localOrganisations);
 		$this->set('externalOrganisations', $externalOrganisations);
@@ -251,6 +257,7 @@ class ServersController extends AppController {
 		$allTags = array();
 		foreach ($temp as $t) $allTags[] = array('id' => $t['Tag']['id'], 'name' => $t['Tag']['name']);
 		$this->set('allTags', $allTags);
+		$this->set('host_org_id', Configure::read('MISP.host_org_id'));
 	}
 
 	public function edit($id = null) {
@@ -261,6 +268,7 @@ class ServersController extends AppController {
 		$s = $this->Server->read(null, $id);
 		if (!$this->_isSiteAdmin()) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
 		if ($this->request->is('post') || $this->request->is('put')) {
+			if (empty(Configure::read('MISP.host_org_id'))) $this->request->data['Server']['internal'] = 0;
 			$json = json_decode($this->request->data['Server']['json'], true);
 			$fail = false;
 
@@ -276,7 +284,7 @@ class ServersController extends AppController {
 			}
 			if (!$fail) {
 				// say what fields are to be updated
-				$fieldList = array('id', 'url', 'push', 'pull', 'remote_org_id', 'name' ,'self_signed', 'cert_file', 'push_rules', 'pull_rules');
+				$fieldList = array('id', 'url', 'push', 'pull', 'remote_org_id', 'name' ,'self_signed', 'cert_file', 'client_cert_file', 'push_rules', 'pull_rules', 'internal');
 				$this->request->data['Server']['id'] = $id;
 				if ("" != $this->request->data['Server']['authkey']) $fieldList[] = 'authkey';
 				if ($this->request->data['Server']['organisation_type'] < 2) $this->request->data['Server']['remote_org_id'] = $json['id'];
@@ -310,15 +318,22 @@ class ServersController extends AppController {
 						}
 					}
 				}
+				if (empty(Configure::read('MISP.host_org_id')) || $this->request->data['Server']['remote_org_id'] != Configure::read('MISP.host_org_id')) {
+					$this->request->data['Server']['internal'] = 0;
+				}
 			}
-
 			if (!$fail) {
 				// Save the data
 				if ($this->Server->save($this->request->data, true, $fieldList)) {
 					if (isset($this->request->data['Server']['submitted_cert']) && $this->request->data['Server']['submitted_cert']['size'] != 0 && !$this->request->data['Server']['delete_cert']) {
-						$this->__saveCert($this->request->data, $this->Server->id);
+						$this->__saveCert($this->request->data, $this->Server->id, false);
 					} else {
-						if ($this->request->data['Server']['delete_cert']) $this->__saveCert($this->request->data, $this->Server->id, true);
+						if ($this->request->data['Server']['delete_cert']) $this->__saveCert($this->request->data, $this->Server->id, false, true);
+					}
+					if (isset($this->request->data['Server']['submitted_client_cert']) && $this->request->data['Server']['submitted_client_cert']['size'] != 0 && !$this->request->data['Server']['delete_client_cert']) {
+						$this->__saveCert($this->request->data, $this->Server->id, true);
+					} else {
+						if ($this->request->data['Server']['delete_client_cert']) $this->__saveCert($this->request->data, $this->Server->id, true, true);
 					}
 					$this->Session->setFlash(__('The server has been saved'));
 					$this->redirect(array('action' => 'index'));
@@ -356,7 +371,7 @@ class ServersController extends AppController {
 
 		$oldRemoteSetting = 0;
 		if (!$this->Server->data['RemoteOrg']['local']) $oldRemoteSetting = 1;
-
+		$this->set('host_org_id', Configure::read('MISP.host_org_id'));
 		$this->set('oldRemoteSetting', $oldRemoteSetting);
 		$this->set('oldRemoteOrg', $this->Server->data['RemoteOrg']['id']);
 
@@ -372,6 +387,7 @@ class ServersController extends AppController {
 		foreach ($temp as $t) $allTags[] = array('id' => $t['Tag']['id'], 'name' => $t['Tag']['name']);
 		$this->set('allTags', $allTags);
 		$this->set('server', $s);
+		$this->set('host_org_id', Configure::read('MISP.host_org_id'));
 	}
 
 	public function delete($id = null) {
@@ -509,35 +525,44 @@ class ServersController extends AppController {
 		}
 	}
 
-	private function __saveCert($server, $id, $delete = false) {
+	private function __saveCert($server, $id, $client = false, $delete = false) {
+		if ($client) {
+			$subm = 'submitted_client_cert';
+			$attr = 'client_cert_file';
+			$ins  = '_client';
+		} else {
+			$subm = 'submitted_cert';
+			$attr = 'cert_file';
+			$ins  = '';
+		}
 		if (!$delete) {
 			$ext = '';
 			App::uses('File', 'Utility');
 			App::uses('Folder', 'Utility');
 			App::uses('FileAccessTool', 'Tools');
-			if (!$this->checkFilename($server['Server']['submitted_cert']['name'])) {
+			if (!$this->checkFilename($server['Server'][$subm]['name'])) {
 				throw new Exception ('Filename not allowed');
 			}
-			$file = new File($server['Server']['submitted_cert']['name']);
+			$file = new File($server['Server'][$subm]['name']);
 			$ext = $file->ext();
-			if (($ext != 'pem') || !$server['Server']['submitted_cert']['size'] > 0) {
+			if (($ext != 'pem') || !$server['Server'][$subm]['size'] > 0) {
 				$this->Session->setFlash('Incorrect extension or empty file.');
 				$this->redirect(array('action' => 'index'));
 			}
 
 			// read pem file data
-			$pemData = (new FileAccessTool())->readFromFile($server['Server']['submitted_cert']['tmp_name'], $server['Server']['submitted_cert']['size']);
+			$pemData = (new FileAccessTool())->readFromFile($server['Server'][$subm]['tmp_name'], $server['Server'][$subm]['size']);
 
 			$destpath = APP . "files" . DS . "certs" . DS;
 			$dir = new Folder(APP . "files" . DS . "certs", true);
-			$pemfile = new File($destpath . $id . '.' . $ext);
+			$pemfile = new File($destpath . $id . $ins . '.' . $ext);
 			$result = $pemfile->write($pemData);
 			$s = $this->Server->read(null, $id);
-			$s['Server']['cert_file'] = $s['Server']['id'] . '.' . $ext;
+			$s['Server'][$attr] = $s['Server']['id'] . $ins . '.' . $ext;
 			if ($result) $this->Server->save($s);
 		} else {
 			$s = $this->Server->read(null, $id);
-			$s['Server']['cert_file'] = '';
+			$s['Server'][$attr] = '';
 			$this->Server->save($s);
 		}
 	}
@@ -562,6 +587,16 @@ class ServersController extends AppController {
 		$this->set('k', $id);
 		$this->layout = false;
 		$this->render('/Elements/healthElements/settings_row');
+	}
+
+	private function __loadLocalOrgs() {
+		$this->loadModel('Organisation');
+		$local_orgs = $this->Organisation->find('list', array(
+				'conditions' => array('local' => 1),
+				'recursive' => -1,
+				'fields' => array('Organisation.id', 'Organisation.name')
+		));
+		return array_merge(array(0 => 'No organisation selected.'), $local_orgs);
 	}
 
 	public function serverSettings($tab=false) {
@@ -613,6 +648,9 @@ class ServersController extends AppController {
 					if ($result['level'] < $issues['overallHealth']) $issues['overallHealth'] = $result['level'];
 					$tabs[$result['tab']]['errors']++;
 					if ($result['level'] < $tabs[$result['tab']]['severity']) $tabs[$result['tab']]['severity'] = $result['level'];
+				}
+				if (isset($result['optionsSource']) && !empty($result['optionsSource'])) {
+					$result['options'] = $this->{'__load' . $result['optionsSource']}();
 				}
 				$dumpResults[] = $result;
 				if ($result['tab'] == $tab) {
@@ -804,6 +842,9 @@ class ServersController extends AppController {
 				$value = Configure::read($setting);
 				if ($value) $found['value'] = $value;
 				$found['setting'] = $setting;
+			}
+			if (isset($found['optionsSource']) && !empty($found['optionsSource'])) {
+				$found['options'] = $this->{'__load' . $found['optionsSource']}();
 			}
 			$subGroup = 'general';
 			$subGroup = explode('.', $setting);

@@ -42,7 +42,8 @@ class Log extends AppModel {
 							'request_delegation',
 							'merge',
 							'undelete',
-							'file_upload'
+							'file_upload',
+							'export'
 						)),
 			'message' => 'Options : ...'
 		)

@@ -97,6 +97,13 @@ class Event extends AppModel {
 					'canHaveAttachments' => false,
 					'description' => 'Click this to download all network related attributes that you have access to under the Snort rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a whitelist containing host, domain name and IP numbers to exclude from the NIDS export.',
 			),
+			'stix' => array(
+					'extension' => '.xml',
+					'type' => 'STIX',
+					'requiresPublished' => 1,
+					'canHaveAttachments' => true,
+					'description' => 'Click this to download an a STIX document containing the STIX version of all events and attributes that you have access to.'
+			),
 			'rpz' => array(
 					'extension' => '.txt',
 					'type' => 'RPZ',
@@ -849,18 +856,18 @@ class Event extends AppModel {
 		if (isset($event['Event']['Attribute'])) {
 			foreach ($event['Event']['Attribute'] as $key => &$attribute) {
 			// do not keep attributes that are private, nor cluster
-				if ($attribute['distribution'] < 2) {
+				if (!$server['Server']['internal'] && $attribute['distribution'] < 2) {
 					unset($event['Event']['Attribute'][$key]);
 					continue; // stop processing this
 				}
 				// Downgrade the attribute from connected communities to community only
-				if ($attribute['distribution'] == 2) {
+				if (!$server['Server']['internal'] && $attribute['distribution'] == 2) {
 					$attribute['distribution'] = 1;
 				}
 
 				// If the attribute has a sharing group attached, make sure it can be transfered
 				if ($attribute['distribution'] == 4) {
-					if ($this->checkDistributionForPush(array('Attribute' => $attribute), $server, 'Attribute') === false) {
+					if (!$server['Server']['internal'] && $this->checkDistributionForPush(array('Attribute' => $attribute), $server, 'Attribute') === false) {
 						unset($event['Event']['Attribute'][$key]);
 						continue;
 					}
@@ -922,7 +929,7 @@ class Event extends AppModel {
 		}
 
 		// Downgrade the event from connected communities to community only
-		if ($event['Event']['distribution'] == 2) {
+		if (!$server['Server']['internal'] && $event['Event']['distribution'] == 2) {
 			$event['Event']['distribution'] = 1;
 		}
 		return $event;
@@ -2036,7 +2043,9 @@ class Event extends AppModel {
 	// If the distribution is org only / comm only, return false
 	// If the distribution is sharing group only, check if the sync user is in the sharing group or not, return true if yes, false if no
 	public function checkDistributionForPush($object, $server, $context = 'Event') {
-		if ($object[$context]['distribution'] < 2) return false;
+		if (empty(Configure::read('MISP.host_org_id')) || !$server['Server']['internal'] ||  Configure::read('MISP.host_org_id') != $server['Server']['org_id']) {
+			if ($object[$context]['distribution'] < 2) return false;
+		}
 		if ($object[$context]['distribution'] == 4) {
 			if ($context === 'Event') {
 				return $this->SharingGroup->checkIfServerInSG($object['SharingGroup'], $server);
@@ -2094,7 +2103,6 @@ class Event extends AppModel {
 				),
 		));
 		if (empty($event)) return true;
-
 		if ($event['Event']['distribution'] < 2) return true;
 		$event['Event']['locked'] = 1;
 		// get a list of the servers
@@ -2395,56 +2403,87 @@ class Event extends AppModel {
 		}
 	}
 
-	public function stix($id, $tags, $attachments, $user, $returnType, $from = false, $to = false, $last = false) {
+
+	public function stix($id, $tags, $attachments, $user, $returnType = 'xml', $from = false, $to = false, $last = false, $jobId = false) {
 		$eventIDs = $this->Attribute->dissectArgs($id);
 		$tagIDs = $this->Attribute->dissectArgs($tags);
 		$idList = $this->getAccessibleEventIds($eventIDs[0], $eventIDs[1], $tagIDs[0], $tagIDs[1]);
-		if (empty($idList)) throw new Exception('No matching events found to export.');
-		$events = $this->fetchEvent($user, array('idList' => $idList, 'last' => $last, 'from' => $from, 'to' => $to));
-		if (empty($events)) throw new Exception('No matching events found to export.');
-
-		// If a second argument is passed (and it is either "yes", "true", or 1) base64 encode all of the attachments
-		if ($attachments == "yes" || $attachments == "true" || $attachments == 1) {
-			foreach ($events as &$event) {
-				foreach ($event['Attribute'] as &$attribute) {
+		if (empty($idList)) {
+			return array('success' => 0, 'message' => 'No matching events found to export.');
+		}
+		$event_ids = $this->fetchEventIds($user, $from, $to, $last, true);
+		$event_ids = array_intersect($event_ids, $idList);
+		if (empty($event_ids)) {
+			return array('success' => 0, 'message' => 'No matching events found to export.');
+		}
+		$randomFileName = $this->generateRandomFileName();
+		$tmpDir = APP . "files" . DS . "scripts" . DS . "tmp";
+		$tempFile = new File($tmpDir . DS . $randomFileName, true, 0644);
+		$stixFile = new File($tmpDir . DS . $randomFileName . ".stix");
+		$stix_framing = shell_exec('python ' . APP . "files" . DS . "scripts" . DS . 'misp2stix_framing.py "' . Configure::read('MISP.baseurl') . '" "' . Configure::read('MISP.org') . '"');
+		if (empty($stix_framing)) {
+			$tempFile->delete();
+			$stixFile->delete();
+			return array('success' => 0, 'message' => 'There was an issue generating the STIX export.');
+		}
+		$stixFile->write(substr($stix_framing, 0, -1));
+		$result = array();
+		if ($jobId) {
+			$this->Job = ClassRegistry::init('Job');
+			$this->Job->id = $jobId;
+			if (!$this->Job->exists()) $jobId = false;
+		}
+		$i = 0;
+		$eventCount = count($event_ids);
+		foreach ($event_ids as $event_id) {
+			$event = $this->fetchEvent($user, array('eventid' => $event_id));
+			if (empty($event)) continue;
+			if ($attachments == "yes" || $attachments == "true" || $attachments == 1) {
+				foreach ($event[0]['Attribute'] as &$attribute) {
 					if ($this->Attribute->typeIsAttachment($attribute['type'])) {
 						$encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
 						$attribute['data'] = $encodedFile;
 					}
 				}
 			}
-		}
-		if (Configure::read('MISP.tagging')) {
-			foreach ($events as &$event) {
-				$event['Tag'] = $this->EventTag->Tag->findEventTags($event['Event']['id']);
+			$event[0]['Tag'] = array();
+			foreach ($event[0]['EventTag'] as $tag) {
+				$event[0]['Tag'][] = $tag['Tag'];
+			}
+			$tempFile->write(json_encode($event[0]));
+			$tempFile->close();
+			unset($event);
+			$scriptFile = APP . "files" . DS . "scripts" . DS . "misp2stix.py";
+			$result = shell_exec('python ' . $scriptFile . ' ' . $randomFileName . ' ' . $returnType . ' "' . escapeshellarg(Configure::read('MISP.baseurl')) . '" "' . escapeshellarg(Configure::read('MISP.org')) . '"');
+			// The result of the script will be a returned JSON object with 2 variables: success (boolean) and message
+			// If success = 1 then the temporary output file was successfully written, otherwise an error message is passed along
+			$decoded = json_decode($result, true);
+			if (!isset($decoded['success']) || !$decoded['success']) {
+				$tempFile->delete();
+				$stixFile->delete();
+				return array('success' => 0, 'message' => $decoded['message']);
+			}
+			$file = new File(APP . "files" . DS . "scripts" . DS . "tmp" . DS . $randomFileName . ".out");
+			$stix_event = '    ' . substr($file->read(), 0, -1);
+			$stix_event = str_replace("\n", "\n    ", $stix_event) . "\n";
+			$stixFile->append($stix_event);
+			$file->close();
+			$file->delete();
+			$i++;
+			if ($jobId) {
+				$this->Job->saveField('message', 'Event ' . $i . '/' . $eventCount);
+				if ($i % 10 == 0) {
+					$this->Job->saveField('progress', $i * 80 / $eventCount);
+				}
 			}
 		}
-		// generate a randomised filename for the temporary file that will be passed to the python script
-		$randomFileName = $this->generateRandomFileName();
-		$tempFile = new File(APP . "files" . DS . "scripts" . DS . "tmp" . DS . $randomFileName, true, 0644);
-
-		// save the json_encoded event(s) to the temporary file
-		$result = $tempFile->write(json_encode($events));
-		$scriptFile = APP . "files" . DS . "scripts" . DS . "misp2stix.py";
-
-		// Execute the python script and point it to the temporary filename
-		$result = shell_exec('python ' . $scriptFile . ' ' . $randomFileName . ' ' . $returnType . ' ' . Configure::read('MISP.baseurl') . ' "' . Configure::read('MISP.org') . '"');
-
-		// The result of the script will be a returned JSON object with 2 variables: success (boolean) and message
-		// If success = 1 then the temporary output file was successfully written, otherwise an error message is passed along
-		$decoded = json_decode($result);
-		$result = array();
-		$result['success'] = $decoded->success;
-		$result['message'] = $decoded->message;
-
-		if ($result['success'] == 1) {
-			$file = new File(APP . "files" . DS . "scripts" . DS . "tmp" . DS . $randomFileName . ".out");
-			$result['data'] = $file->read();
+		$stixFile->append("</stix:STIX_Package>\n\n");
+		if ($i == 0) {
+			$tempFile->delete();
+			$stixFile->delete();
+			return array('success' => 0, 'message' => 'No matching events found to export.');
 		}
-		$tempFile->delete();
-		$file = new File(APP . "files" . DS . "scripts" . DS . "tmp" . DS . $randomFileName . ".out");
-		$file->delete();
-		return $result;
+		return array('success' => 1, 'data' => $tmpDir . DS . $randomFileName . ".stix");
 	}
 
 	public function getAccessibleEventIds($include, $exclude, $includedTags, $excludedTags) {

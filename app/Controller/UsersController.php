@@ -365,6 +365,8 @@ class UsersController extends AppController {
 			if (!empty($t['Server']['name'])) $servers[$t['Server']['id']] = $t['Server']['name'];
 			else $servers[$t['Server']['id']] = $t['Server']['url'];
 		}
+		$this->loadModel('AdminSetting');
+		$this->set('default_role_id', $this->AdminSetting->getSetting('default_role'));
 		$this->set('servers', $servers);
 		$this->set(compact('roles'));
 		$this->set(compact('syncRoles'));

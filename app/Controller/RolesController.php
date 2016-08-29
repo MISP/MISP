@@ -62,6 +62,8 @@ class RolesController extends AppController {
 	public function admin_index() {
 		if (!$this->_isSiteAdmin()) $this->redirect(array('controller' => 'roles', 'action' => 'index', 'admin' => false));
 		$this->AdminCrud->adminIndex();
+		$this->loadModel('AdminSetting');
+		$this->set('default_role_id', $this->AdminSetting->getSetting('default_role'));
 		$this->set('permFlags', $this->Role->permFlags);
 		$this->set('options', $this->options);
 	}
@@ -83,6 +85,21 @@ class RolesController extends AppController {
 		$this->recursive = 0;
 		$this->set('permFlags', $this->Role->permFlags);
 		$this->set('list', $this->paginate());
+		$this->loadModel('AdminSetting');
+		$this->set('default_role_id', $this->AdminSetting->getSetting('default_role'));
 		$this->set('options', $this->options);
+	}
+
+	public function admin_set_default($role_id = false) {
+		if (!is_numeric($role_id) && $role_id !== false) {
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid role.')),'status'=>200));
+		}
+		$this->loadModel('AdminSetting');
+		$result = $this->AdminSetting->changeSetting('default_role', $role_id);
+		if ($result === true) {
+			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $role_id ? 'Default role set.' : 'Default role unset.')),'status'=>200));
+		} else {
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $result)),'status'=>200));
+		}
 	}
 }
