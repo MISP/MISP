@@ -125,7 +125,13 @@ script:
     - ./curl_tests.sh $AUTH
     - popd
     - pushd PyMISP
-    - coverage run setup.py test
+    - pip install -U nose
+    - pip install coveralls
+    - pip install codecov
+    - pip install requests-mock
+    - pip install .
+    - nosetests --with-coverage --cover-package=pymisp tests/test_offline.py
+    - python tests/test.py
     - popd
     - cp PyMISP/tests/keys.py PyMISP/examples/events/
     - pushd PyMISP/examples/events/
