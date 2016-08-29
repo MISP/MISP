@@ -64,7 +64,13 @@
 		));
 
 		echo $this->Form->input('Server.submitted_cert', array(
-			'label' => '<b>Certificate file</b>',
+			'label' => '<b>Server certificate file</b>',
+			'type' => 'file',
+			'div' => 'clear'
+		));
+
+		echo $this->Form->input('Server.submitted_client_cert', array(
+			'label' => '<b>Client certificate file</b>',
 			'type' => 'file',
 			'div' => 'clear'
 		));
