@@ -429,6 +429,7 @@ class AppModel extends Model {
 				break;
 			case '2.4.51':
 				$sqlArray[] = 'ALTER TABLE `servers` ADD `internal` tinyint(1) NOT NULL DEFAULT 0;';
+				$sqlArray[] = 'ALTER TABLE `roles` ADD `default_role` tinyint(1) NOT NULL DEFAULT 0;';
 				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';

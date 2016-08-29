@@ -2497,3 +2497,23 @@ function serverOwnerOrganisationChange(host_org_id) {
 		$('#InternalDiv').hide();
 	}
 }
+
+$('.servers_default_role_checkbox').click(function() {
+	var id = $(this).data("id");
+	var state = $(this).is(":checked");
+	$(".servers_default_role_checkbox").not(this).attr('checked', false);
+	$.ajax({
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+		success:function (data, textStatus) {
+			handleGenericAjaxResponse(data);
+		},
+		complete:function() {
+			$(".loading").hide();
+		},
+		type:"get",
+		cache: false,
+		url: '/admin/roles/set_default/' + (state ? id : ""),
+	});
+});
