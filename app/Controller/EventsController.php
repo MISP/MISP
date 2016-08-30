@@ -538,6 +538,9 @@ class EventsController extends AppController {
 			if (isset($passedArgs['limit'])) {
 				$rules['limit'] = intval($passedArgs['limit']);
 			}
+			if (isset($passedArgs['page'])) {
+				$rules['page'] = intval($passedArgs['page']);
+			}
 			$rules['contain'] = $this->paginate['contain'];
 			if (Configure::read('MISP.tagging')) {
 				$rules['contain']['EventTag'] = array('Tag' => array('fields' => array('id', 'name', 'colour', 'exportable'), 'conditions' => array('Tag.exportable' => true)));
