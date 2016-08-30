@@ -2904,6 +2904,36 @@ class Server extends AppModel {
 		}
 	}
 
+	/* returns an array with the events
+	 * error codes:
+	 * 1: received non json response
+	 * 2: no route to host
+	 * 3: empty result set
+	 */
+	public function getRemoteVersion($id) {
+		$server = $this->find('first', array(
+				'conditions' => array('Server.id' => $id),
+		));
+		if (empty($server)) {
+			return 2;
+		}
+		App::uses('SyncTool', 'Tools');
+		$syncTool = new SyncTool();
+		$HttpSocket = $syncTool->setupHttpSocket($server);
+		$response = $HttpSocket->get($server['Server']['url'] . '/servers/getVersion', $data = '', $request);
+		if ($response->code == 200) {
+			try {
+				$data = json_decode($response->body, true);
+			} catch (Exception $e) {
+				return 1;
+			}
+			if (isset($data['version']) && !empty($data['version'])) {
+				return $data['version'];
+			} else return 3;
+			return $events;
+		} return 2;
+	}
+
 
 	/* returns an array with the events
 	 * error codes:
@@ -2915,6 +2945,9 @@ class Server extends AppModel {
 		$server = $this->find('first', array(
 			'conditions' => array('Server.id' => $id),
 		));
+		if (empty($server)) {
+			return 2;
+		}
 		App::uses('SyncTool', 'Tools');
 		$syncTool = new SyncTool();
 		$HttpSocket = $syncTool->setupHttpSocket($server);
@@ -2959,6 +2992,9 @@ class Server extends AppModel {
 		$server = $this->find('first', array(
 				'conditions' => array('Server.id' => $serverId),
 		));
+		if (empty($server)) {
+			return 2;
+		}
 		App::uses('SyncTool', 'Tools');
 		$syncTool = new SyncTool();
 		$HttpSocket = $syncTool->setupHttpSocket($server);
