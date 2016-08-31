@@ -504,12 +504,6 @@ class EventsController extends AppController {
 		}
 		if (Configure::read('MISP.tagging') && !$this->_isRest()) {
 			$this->Event->contain(array('User.email', 'EventTag' => array('Tag')));
-			$tags = $this->Event->EventTag->Tag->find('all', array('recursive' => -1));
-			$tagNames = array('None');
-			foreach ($tags as $k => $v) {
-				$tagNames[$v['Tag']['id']] = $v['Tag']['name'];
-			}
-			$this->set('tags', $tagNames);
 		} else {
 			$this->Event->contain('User.email');
 		}
