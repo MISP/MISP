@@ -1422,6 +1422,20 @@ class Event extends AppModel {
 			if (empty($event)) return false;
 			if (strtotime($event['Event']['date']) < $oldest) return true;
 		}
+		if (Configure::read('MISP.disable_emailing')) {
+			$this->Log = ClassRegistry::init('Log');
+			$this->Log->create();
+			$this->Log->save(array(
+					'org' => 'SYSTEM',
+					'model' => 'Event',
+					'model_id' => $id,
+					'email' => $user['email'],
+					'action' => 'publish',
+					'title' => 'E-mail alerts not sent out during publishing. Reason: Emailing is currently disabled on this instance.',
+					'change' => null,
+			));
+			return true;
+		}
 		if (Configure::read('MISP.background_jobs')) {
 			$job = ClassRegistry::init('Job');
 			$job->create();
