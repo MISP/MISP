@@ -596,7 +596,7 @@ class ServersController extends AppController {
 				'recursive' => -1,
 				'fields' => array('Organisation.id', 'Organisation.name')
 		));
-		return array_merge(array(0 => 'No organisation selected.'), $local_orgs);
+		return array_replace(array(0 => 'No organisation selected.'), $local_orgs);
 	}
 
 	public function serverSettings($tab=false) {
