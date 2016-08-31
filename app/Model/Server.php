@@ -2904,7 +2904,7 @@ class Server extends AppModel {
 		}
 	}
 
-	/* returns an array with the events
+	/* returns the version string of a connected instance
 	 * error codes:
 	 * 1: received non json response
 	 * 2: no route to host
