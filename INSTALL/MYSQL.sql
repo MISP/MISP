@@ -121,7 +121,7 @@ CREATE TABLE IF NOT EXISTS `events` (
   `publish_timestamp` int(11) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   UNIQUE INDEX `uuid` (`uuid`),
-  INDEX `info` (`info`),
+  INDEX `info` (`info`(255)),
   INDEX `sharing_group_id` (`sharing_group_id`),
   INDEX `org_id` (`org_id`),
   INDEX `orgc_id` (`orgc_id`)
