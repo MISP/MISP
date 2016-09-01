@@ -1096,7 +1096,6 @@ class Attribute extends AppModel {
 				));
 			}
 			$this->Correlation = ClassRegistry::init('Correlation');
-			$correlations = array();
 			$correlatingValues = array($a['value1']);
 			if (!empty($a['value2'])) $correlatingValues[] = $a['value2'];
 			foreach ($correlatingValues as $k => $cV) {

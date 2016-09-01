@@ -3646,10 +3646,8 @@ class EventsController extends AppController {
 			$modules = $this->Module->getEnabledModules();
 			if (!is_array($modules) || empty($modules)) throw new MethodNotAllowedException('No valid enrichment options found for this attribute.');
 			$options = array();
-			$found = false;
 			foreach ($modules['modules'] as &$temp) {
 				if ($temp['name'] == $module) {
-					$found = true;
 					if (isset($temp['meta']['config'])) {
 						foreach ($temp['meta']['config'] as $conf) {
 							$options[$conf] = Configure::read('Plugin.Enrichment_' . $module . '_' . $conf);
