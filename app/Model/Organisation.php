@@ -1,5 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
+App::uses('ConnectionManager', 'Model');
 class Organisation extends AppModel{
 
 	public $useTable = 'organisations';
@@ -192,13 +193,20 @@ class Organisation extends AppModel{
 		if (empty($currentOrg) || empty($targetOrg)) throw new MethodNotAllowedException('Something went wrong with the organisation merge. Organisation not found.');
 		$dir = new Folder();
 		$this->Log = ClassRegistry::init('Log');
+		$dataSourceConfig = ConnectionManager::getDataSource('default')->config;
+		$dataSource = $dataSourceConfig['datasource'];
 		$dirPath = APP . 'tmp' . DS . 'logs' . DS . 'merges';
 		if (!$dir->create($dirPath)) throw new MethodNotAllowedException('Merge halted because the log directory (default: /var/www/MISP/app/tmp/logs/merges) could not be created. This is most likely a permission issue, make sure that MISP can write to the logs directory and try again.');
 		$logFile = new File($dirPath . DS . 'merge_' . $currentOrg['Organisation']['id'] . '_' . $targetOrg['Organisation']['id'] . '_' . time() . '.log');
 		if (!$logFile->create()) throw new MethodNotAllowedException('Merge halted because the log file (default location: /var/www/MISP/app/tmp/logs/merges/[old_org_id]_[new_org_id]_timestamp.log) could not be created. This is most likely a permission issue, make sure that MISP can write to the logs directory and try again.');
 		$backupFile = new File($dirPath . DS . 'merge_' . $currentOrg['Organisation']['id'] . '_' . $targetOrg['Organisation']['id'] . '_' . time() . '.sql');
 		if (!$backupFile->create()) throw new MethodNotAllowedException('Merge halted because the backup script file (default location: /var/www/MISP/app/tmp/logs/merges/[old_org_id]_[new_org_id]_timestamp.sql) could not be created. This is most likely a permission issue, make sure that MISP can write to the logs directory and try again.');
-		$backupFile->append('INSERT INTO organisations (`' . implode('`, `', array_keys($currentOrg['Organisation'])) . '`) VALUES (\'' . implode('\', \'', array_values($currentOrg['Organisation'])) . '\');' . PHP_EOL);
+		if ($dataSource == 'Database/Mysql') {
+			$sql = 'INSERT INTO organisations (`' . implode('`, `', array_keys($currentOrg['Organisation'])) . '`) VALUES (\'' . implode('\', \'', array_values($currentOrg['Organisation'])) . '\');';
+		} else if ($dataSource == 'Database/Postgres') {
+			$sql = 'INSERT INTO organisations ("' . implode('", "', array_keys($currentOrg['Organisation'])) . '") VALUES (\'' . implode('\', \'', array_values($currentOrg['Organisation'])) . '\');';
+		}
+		$backupFile->append($sql . PHP_EOL);
 		$this->Log->create();
 		$this->Log->save(array(
 				'org' => $user['Organisation']['name'],
@@ -214,14 +222,29 @@ class Organisation extends AppModel{
 		$success = true;
 		foreach ($this->organisationAssociations as $model => $data) {
 			foreach ($data['fields'] as $field) {
-				$temp = $this->query('SELECT `id` FROM `' . $data['table'] . '` WHERE `' . $field . '` = "' . $currentOrg['Organisation']['id'] . '"');
+				if ($dataSource == 'Database/Mysql') {
+					$sql = 'SELECT `id` FROM `' . $data['table'] . '` WHERE `' . $field . '` = "' . $currentOrg['Organisation']['id'] . '"';
+				} else if ($dataSource == 'Database/Postgres') {
+					$sql = 'SELECT "id" FROM "' . $data['table'] . '" WHERE "' . $field . '" = "' . $currentOrg['Organisation']['id'] . '"';
+				}
+				$temp = $this->query($sql);
 				if (!empty($temp)) {
 					$dataMoved['values_changed'][$model][$field] = Set::extract('/' . $data['table'] . '/id', $temp);
 					if (!empty($dataMoved['values_changed'][$model][$field])) {
 						$this->Log->create();
 						try {
-							$result = $this->query('UPDATE `' . $data['table'] . '` SET `' . $field . '` = ' . $targetOrg['Organisation']['id'] . ' WHERE `' . $field . '` = ' . $currentOrg['Organisation']['id'] . ';');
-							$backupFile->append('UPDATE `' . $data['table'] . '` SET `' . $field . '` = ' . $currentOrg['Organisation']['id'] . ' WHERE `id` IN (' . implode(',', $dataMoved['values_changed'][$model][$field]) . ');' . PHP_EOL);
+							if ($dataSource == 'Database/Mysql') {
+								$sql = 'UPDATE `' . $data['table'] . '` SET `' . $field . '` = ' . $targetOrg['Organisation']['id'] . ' WHERE `' . $field . '` = ' . $currentOrg['Organisation']['id'] . ';';
+							} else if ($dataSource == 'Database/Postgres') {
+								$sql = 'UPDATE "' . $data['table'] . '" SET "' . $field . '" = ' . $targetOrg['Organisation']['id'] . ' WHERE "' . $field . '" = ' . $currentOrg['Organisation']['id'] . ';';
+							}
+							$result = $this->query($sql);
+							if ($dataSource == 'Database/Mysql') {
+								$sql = 'UPDATE `' . $data['table'] . '` SET `' . $field . '` = ' . $currentOrg['Organisation']['id'] . ' WHERE `id` IN (' . implode(',', $dataMoved['values_changed'][$model][$field]) . ');';
+							} else if ($dataSource == 'Database/Postgres') {
+								$sql = 'UPDATE "' . $data['table'] . '" SET "' . $field . '" = ' . $currentOrg['Organisation']['id'] . ' WHERE "id" IN (' . implode(',', $dataMoved['values_changed'][$model][$field]) . ');';
+							}
+							$backupFile->append($sql . PHP_EOL);
 							$this->Log->save(array(
 									'org' => $user['Organisation']['name'],
 									'model' => 'Organisation',

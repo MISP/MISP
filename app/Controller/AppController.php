@@ -22,6 +22,7 @@
 
 // TODO GPG encryption has issues when keys are expired
 
+App::uses('ConnectionManager', 'Model');
 App::uses('Controller', 'Controller');
 App::uses('File', 'Utility');
 App::uses('RequestRearrangeTool', 'Tools');
@@ -79,6 +80,13 @@ class AppController extends Controller {
 	);
 
 	public function beforeFilter() {
+		// check for a supported datasource configuration
+		$dataSourceConfig = ConnectionManager::getDataSource('default')->config;
+		$dataSource = $dataSourceConfig['datasource'];
+		if ($dataSource != 'Database/Mysql' && $dataSource != 'Database/Postgres') {
+			throw new Exception('datasource not supported: ' . $dataSource);
+		}
+
 		$this->set('jsVersion', $this->__jsVersion);
 		$this->loadModel('User');
 		$auth_user_fields = $this->User->describeAuthFields();

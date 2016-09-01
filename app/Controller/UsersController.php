@@ -556,6 +556,8 @@ class UsersController extends AppController {
 			// $this->redirect($this->Auth->redirectUrl());
 			$this->redirect(array('controller' => 'events', 'action' => 'index'));
 		} else {
+			$dataSourceConfig = ConnectionManager::getDataSource('default')->config;
+			$dataSource = $dataSourceConfig['datasource'];
 			// don't display authError before first login attempt
 			if (str_replace("//","/",$this->webroot . $this->Session->read('Auth.redirect')) == $this->webroot && $this->Session->read('Message.auth.message') == $this->Auth->authError) {
 				$this->Session->delete('Message.auth');
@@ -586,6 +588,11 @@ class UsersController extends AppController {
 					'perm_tagger' => 1,
 				));
 				$this->Role->save($siteAdmin);
+				// PostgreSQL: update value of auto incremented serial primary key after setting the column by force
+				if ($dataSource == 'Database/Postgres') {
+					$sql = "SELECT setval('roles_id_seq', (SELECT MAX(id) FROM roles));";
+					$this->Role->query($sql);
+				}
 			}
 			if ($this->User->Organisation->find('count', array('conditions' => array('Organisation.local' => true))) == 0) {
 				$org = array('Organisation' => array(
@@ -599,6 +606,11 @@ class UsersController extends AppController {
 						'nationality' => ''
 				));
 				$this->User->Organisation->save($org);
+				// PostgreSQL: update value of auto incremented serial primary key after setting the column by force
+				if ($dataSource == 'Database/Postgres') {
+					$sql = "SELECT setval('organisations_id_seq', (SELECT MAX(id) FROM organisations));";
+					$this->User->Organisation->query($sql);
+				}
 				$org_id = $this->User->Organisation->id;
 			} else {
 				$hostOrg = $this->User->Organisation->find('first', array('conditions' => array('Organisation.name' => Configure::read('MISP.org'), 'Organisation.local' => true), 'recursive' => -1));
@@ -625,6 +637,11 @@ class UsersController extends AppController {
 				));
 				$this->User->validator()->remove('password'); // password is too simple, remove validation
 				$this->User->save($admin);
+				// PostgreSQL: update value of auto incremented serial primary key after setting the column by force
+				if ($dataSource == 'Database/Postgres') {
+					$sql = "SELECT setval('users_id_seq', (SELECT MAX(id) FROM users));";
+					$this->User->query($sql);
+				}
 			}
 		}
 	}
@@ -693,6 +710,7 @@ class UsersController extends AppController {
 		));
 		$orgs = array();
 		foreach ($temp as $t) {
+			if (!isset($t['Event'])) $t['Event'] = $t[0]; // Postgres workaround, array element has index 0 instead of Event
 			$orgs[$t['Event']['orgc_id']] = $t['Orgc']['name'];
 		}
 		// What org posted what type of attribute
