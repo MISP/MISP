@@ -2273,8 +2273,6 @@ class AttributesController extends AppController {
 		}
 		$url = Configure::read('Plugin.Enrichment_services_url') ? Configure::read('Plugin.Enrichment_services_url') : $this->Server->serverSettings['Plugin']['Enrichment_services_url']['value'];
 		$port = Configure::read('Plugin.Enrichment_services_port') ? Configure::read('Plugin.Enrichment_services_port') : $this->Server->serverSettings['Plugin']['Enrichment_services_port']['value'];
-		App::uses('HttpSocket', 'Network/Http');
-		$httpSocket = new HttpSocket();
 		$resultArray = array();
 		foreach ($validTypes as &$type) {
 			$options = array();
