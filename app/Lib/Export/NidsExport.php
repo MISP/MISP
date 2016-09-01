@@ -43,7 +43,7 @@ class NidsExport {
 
 			$sid = $startSid + ($item['Attribute']['id'] * 10); // leave 9 possible rules per attribute type
 			$sid++;
-			switch ($attribute['type']) {
+			switch ($item['Attribute']['type']) {
 				// LATER nids - test all the snort attributes
 				// LATER nids - add the tag keyword in the rules to capture network traffic
 				// LATER nids - sanitize every $attribute['value'] to not conflict with snort
