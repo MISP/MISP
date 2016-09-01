@@ -1884,7 +1884,7 @@ class EventsController extends AppController {
 			$rootDir = APP . "files" . DS . $id . DS;
 			App::uses('Folder', 'Utility');
 			$dir = new Folder($rootDir, true);
-			if (!$this->checkFilename($this->data['Event']['submittedgfi']['name'])) {
+			if (!$this->Event->checkFilename($this->data['Event']['submittedgfi']['name'])) {
 				throw new Exception ('Filename not allowed.');
 			}
 			$zipFile = new File($rootDir . $this->data['Event']['submittedgfi']['name']);
@@ -1912,7 +1912,7 @@ class EventsController extends AppController {
 	public function _addIOCFile($id) {
 		if (!empty($this->data) && $this->data['Event']['submittedioc']['size'] > 0 &&
 				is_uploaded_file($this->data['Event']['submittedioc']['tmp_name'])) {
-			if (!$this->checkFilename($this->data['Event']['submittedioc']['name'])) {
+			if (!$this->Event->checkFilename($this->data['Event']['submittedioc']['name'])) {
 				throw new Exception ('Filename not allowed.');
 			}
 
@@ -2835,7 +2835,7 @@ class EventsController extends AppController {
 						App::uses('FileAccessTool', 'Tools');
 						$tmpdir = Configure::read('MISP.tmpdir') ? Configure::read('MISP.tmpdir') : '/tmp';
 						$tempFile = explode('|', $attribute['data']);
-						if (!$this->checkFilename($tempFile[0])) {
+						if (!$this->Event->checkFilename($tempFile[0])) {
 							throw new Exception('Invalid filename.');
 						}
 						$attribute['data'] = (new FileAccessTool())->readFromFile($tmpdir . '/' . $tempFile[0], $tempFile[1]);

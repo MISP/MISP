@@ -540,7 +540,7 @@ class ServersController extends AppController {
 			App::uses('File', 'Utility');
 			App::uses('Folder', 'Utility');
 			App::uses('FileAccessTool', 'Tools');
-			if (!$this->checkFilename($server['Server'][$subm]['name'])) {
+			if (!$this->Server->checkFilename($server['Server'][$subm]['name'])) {
 				throw new Exception ('Filename not allowed');
 			}
 			$file = new File($server['Server'][$subm]['name']);
