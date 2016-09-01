@@ -1247,8 +1247,8 @@ class AttributesController extends AppController {
 						else $include[] = $tagname;
 					}
 					$this->loadModel('Tag');
-					if (!empty($include)) $conditions['AND'][] = array('OR' => array('Attribute.event_id' => $this->Tag->findTags($include)));
-					if (!empty($exclude)) $conditions['AND'][] = array('Attribute.event_id !=' => $this->Tag->findTags($exclude));
+					if (!empty($include)) $conditions['AND'][] = array('OR' => array('Attribute.event_id' => $this->Tag->findEventIdsByTagNames($include)));
+					if (!empty($exclude)) $conditions['AND'][] = array('Attribute.event_id !=' => $this->Tag->findEventIdsByTagNames($exclude));
 				}
 				if ($type != 'ALL') {
 					$conditions['Attribute.type ='] = $type;

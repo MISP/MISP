@@ -69,17 +69,16 @@ class Tag extends AppModel {
 		$acceptIds = array();
 		$rejectIds = array();
 		if (!empty($accept)) {
-			$acceptIds = $this->findTags($accept);
+			$acceptIds = $this->findEventIdsByTagNames($accept);
 			if (empty($acceptIds)) $acceptIds[] = -1;
 		}
 		if (!empty($reject)) {
-			$rejectIds = $this->findTags($reject);
+			$rejectIds = $this->findEventIdsByTagNames($reject);
 		}
 		return array($acceptIds, $rejectIds);
 	}
 
-	// find all of the event Ids that belong to tags with certain names
-	public function findTags($array) {
+	public function findEventIdsByTagNames($array) {
 		$ids = array();
 		foreach ($array as $a) {
 			$conditions['OR'][] = array('LOWER(name) like' => strtolower($a));
@@ -87,7 +86,6 @@ class Tag extends AppModel {
 		$params = array(
 				'recursive' => 1,
 				'contain' => 'EventTag',
-				//'fields' => array('id', 'name'),
 				'conditions' => $conditions
 		);
 		$result = $this->find('all', $params);
