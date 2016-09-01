@@ -1,0 +1,84 @@
+---
+  - name: Prepare ModSecurity2 conf file
+    become: true
+    copy:
+      src={{ modsec_dir }}/modsecurity.conf-recommended
+      dest={{ modsec_dir }}/modsecurity.conf
+      remote_src=true
+    notify:
+      - restart apache
+
+  - name: Get ModSecurity configuration file path
+    stat: path={{ modsec_dir }}/modsecurity.conf
+    register: modsec_conf
+   
+  - name: Configure ModSecurity2 in {{ modsec_rule_engine }} mode
+    become: true
+    lineinfile:
+      dest={{ modsec_dir }}/modsecurity.conf
+      regexp={{ item.regexp }}
+      line={{ item.line }}
+      state=present
+      backup=yes
+    with_items:
+      - { regexp: "^SecRuleEngine ", line: "SecRuleEngine {{ modsec_rule_engine }}" }
+      - { regexp: "^SecRequestBodyLimit ", line: "SecRequestBodyLimit {{ modsec_req_body_limit }}" }
+      - { regexp: "^SecRequestBodyInMemoryLimit ", line: "SecRequestBodyInMemoryLimit {{ modsec_req_body_inmem_limit }}" }
+    when: modsec_conf.stat.exists
+
+  - name: Clone OWASP CRS for ModSecurity2
+    become: true
+    git:
+      repo=https://github.com/SpiderLabs/owasp-modsecurity-crs.git
+      dest={{ modsec_owasp_dir }}
+
+  - name: Verify owasp-crs directory exists
+    stat: path={{ modsec_owasp_dir }}
+    register: owasp_dir
+    
+  - name: Configure OWASP CRS
+    become: true
+    copy:
+      src={{ modsec_owasp_dir }}/modsecurity_crs_10_setup.conf.example
+      dest={{ modsec_owasp_dir }}/modsecurity_crs_10_setup.conf
+      remote_src=true
+    when: owasp_dir.stat.isdir is defined and owasp_dir.stat.isdir
+
+  - name: Collect OWASP CRS base rules
+    find: paths={{ modsec_owasp_dir }}/base_rules
+    register: base_rules
+
+  - name: Activate OWASP base rules
+    become: true
+    file: 
+      src={{ item.path }}
+      dest={{ modsec_owasp_dir }}/activated_rules/{{ item.path | basename }}
+      state=link
+    with_items:
+      - "{{ base_rules.files }}"
+
+  - name: Collect OWASP CRS optional rules
+    find: paths={{ modsec_owasp_dir }}/optional_rules
+    register: optional_rules
+
+  - name: Activate OWASP optional rules
+    become: true
+    file: 
+      src={{ item.path }}
+      dest={{ modsec_owasp_dir }}/activated_rules/{{ item.path | basename }}
+      state=link
+    with_items:
+      - "{{ optional_rules.files }}"
+
+  - name: Configure OWASP rules for apache2
+    become: true
+    lineinfile:
+      dest=/etc/apache2/mods-available/security2.conf
+      line={{ item }}
+      insertbefore="^</IfModule>"
+      backup=yes
+    with_items:
+      - "	Include {{ modsec_owasp_dir }}/*.conf"
+      - "	Include {{ modsec_owasp_dir }}/activated_rules/*.conf"
+    notify:
+      - restart apache

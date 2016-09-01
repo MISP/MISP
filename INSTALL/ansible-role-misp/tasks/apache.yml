@@ -1,0 +1,32 @@
+---
+  - name: Enable apache2 headers, rewrite, ssl, and modsecurity mods
+    become: true
+    apache2_module: 
+      name={{ item }}
+      state=present
+    with_items: "{{ apache_enable_mods }}"
+    notify: restart apache
+
+  - name: Configure MISP vhost
+    become: true
+    template:
+      src=misp-ssl.conf.j2
+      dest={{ apache_sites_available_path }}/misp-ssl.conf
+      owner=root
+      group=root
+      mode=0644
+    notify: restart apache
+
+  - name: Enable MISP vhost
+    become: true
+    file:
+      src={{ apache_sites_available_path }}/misp-ssl.conf
+      dest={{ apache_sites_enabled_path }}/misp-ssl.conf
+      state=link
+    notify: restart apache
+
+  - name: Ensure Apache is enabled on boot
+    service:
+      name: apache2
+      state: started
+      enabled: yes

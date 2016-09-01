@@ -1,0 +1,118 @@
+---
+  - name: Clone MISP repository
+    become: true
+    git: 
+      repo=https://github.com/MISP/MISP.git
+      dest={{ misp_root_path }}
+      force=no
+      recursive=yes
+
+  - name: Make git ignore filesystem permission differences
+    become: true
+    git_config: 
+      name=core.filemode 
+      value=false 
+      repo={{ misp_root_path }}
+
+  - name: Install CybOX v2.1.0.12 and STIX v1.1.1.4 for MISP
+    become: true
+    pip: 
+      name={{ item.name }}
+      state=present
+      version={{ item.version }}
+    with_items:
+      - { name: cybox, version: 2.1.0.12 }
+      - { name: stix, version: 1.1.1.4 }
+
+  - name: Initilize and update MISP submodules
+    become: true
+    command: "{{ item }}"
+    args:
+      chdir: "{{ misp_root_path }}"
+    with_items:
+      - git submodule init
+      - git submodule update
+
+  - name: Get PHP composer
+    become: true
+    get_url: 
+      url=https://getcomposer.org/composer.phar
+      dest={{ misp_root_path }}/app
+
+  - name: Setup PHP composer
+    become: true
+    copy: 
+      src={{ misp_root_path }}/app/composer.phar
+      dest=/usr/local/bin/composer
+      remote_src=true
+      mode=a+x
+
+  - name: Install CakeResque
+    become: true
+    composer:  
+      command: "require"
+      arguments: "kamisama/cake-resque:4.1.2"
+      working_dir: "{{ misp_root_path }}/app"
+
+  - name: Install CakeResque - Vendor configure
+    become: true
+    composer:
+      command: "config"
+      arguments: "vendor-dir Vendor"
+      working_dir: "{{ misp_root_path }}/app"
+
+  - name: Install CakeResque - PHP Composer
+    become: true
+    composer:
+      command: "install"
+      working_dir: "{{ misp_root_path }}/app"
+
+  - name: Get PHP version
+    command: 'php --version'
+    register: php_version
+    changed_when: false
+
+  - name: Verify CakeResque with PHP 5 Redis is enabled
+    become: true
+    shell: php5enmod redis
+    args:
+      creates: "{{ php5_redis }}"
+    when: "'PHP 5.' in php_version.stdout"
+
+  - name: Verify CakeResque with PHP 7 Redis is enabled
+    become: true
+    shell: phpenmod redis
+    args:
+      creates: "{{ php7_redis }}"
+    when: "'PHP 7.' in php_version.stdout"
+
+  - name: Enable MISP scheduler worker for scheduled tasks
+    become: true
+    copy:
+      src={{ misp_root_path }}/INSTALL/setup/config.php
+      dest={{ misp_root_path }}/app/Plugin/CakeResque/Config/config.php
+      remote_src=true
+
+  # Take advantge of Ansible's password lookup plugin to generate 32bit salt.
+  # The generated password (i.e: salt) is then set as a host fact to be used later in the playbook.
+  # This will generate a local file on the Ansible master with a file name as the ansible_fqdn.
+  # This runs when enable_auto_salt is set to ture
+  - name: Auto salt generation is enabled, generating random salt
+    set_fact: misp_salt={{ lookup('password','{{ ansible_fqdn }} length=32 chars=ascii_letters,numbers,digits,punctuation') }}
+    when: enable_auto_salt
+
+  # If enable_auto_salt is set to false, then use the hardcoded salt from the default variables.
+  - name: Auto salt generation is disbled, setting hardcoded salt
+    set_fact: misp_salt={{ hardcoded_salt }}
+    when: not enable_auto_salt
+
+  - name: Configure MISP configuration files
+    become: true
+    template:
+      src={{ item }}.j2
+      dest={{ misp_root_path }}/app/Config/{{ item }}
+    with_items:
+       - bootstrap.php
+       - config.php
+       - core.php
+       - database.php

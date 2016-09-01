@@ -1,0 +1,43 @@
+<VirtualHost *:{{ apache_ssl_port }}>
+        ServerAdmin {{ apache_server_admin }}
+        ServerName {{ apache_server_name }}
+        DocumentRoot {{ apache_document_root }}
+        <Directory {{ apache_document_root }}>
+                Options -Indexes
+                AllowOverride all
+                Order allow,deny
+                allow from all
+        </Directory>
+
+        RewriteEngine On
+        RewriteCond %{HTTPS} off
+        RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}
+
+        SSLEngine on
+        SSLProtocol {{ apache_ssl_protocols }}
+        SSLCipherSuite {{ apache_ssl_ciphers }}
+        SSLHonorCipherOrder {{ apache_ssl_ciper_order }}
+        SSLCompression {{ apache_ssl_compression }}
+        SSLUseStapling {{ apache_ssl_stapling_status }}
+        SSLStaplingResponderTimeout {{ apache_ssl_stapling_rtimeout }}
+        SSLStaplingReturnResponderErrors {{ apache_ssl_stapling_rerrors }}
+        # SSLSecssionTickets option is available on Apache2 >= 2.4.11. Current version is 2.4.7.
+        # SSLSessionTickets {{ apache_ssl_tickets }}
+        # SSLOpenSSLConfcmd requires OpenSSL 1.0.2. Current version is 1.0.1f.
+        # SSLOpenSSLConfCmd {{ apache_ssl_conf_cmd }}
+
+        # HSTS requires Apache2 headers module enabled.
+        Header always set Strict-Transport-Security "max-age={{ apache_hsts_max_age }}; includeSubDomains; preload"
+        Header always set X-Frame-Options {{ apache_x_frame }}
+        Header always set X-Content-Type-Options {{ apache_x_content }}
+        Header always set X-XSS-Protection "{{ apache_x_xss }}"
+
+        SSLCertificateFile {{ ssl_cert_file }}
+        SSLCertificateKeyFile {{ ssl_key_file }}
+
+        LogLevel warn
+        ErrorLog {{ apache_ssl_error_log }}
+        CustomLog {{ apache_ssl_custom_log }}
+</VirtualHost>
+
+SSLStaplingCache {{ apache_ssl_stapling_cache }}

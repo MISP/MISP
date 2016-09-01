@@ -1,0 +1,109 @@
+---
+  - name: Get PHP version
+    command: 'php --version'
+    register: php_version
+    changed_when: false
+
+  - name: Disbale risky functions in PHP 5
+    become: true
+    ini_file:
+      dest={{ php5_ini }}
+      section=PHP
+      option=disable_functions
+      value={{ php_disable_functions }}
+      backup=yes
+    when: "'PHP 5.' in php_version.stdout"
+
+  - name: Disbale risky functions in PHP 7
+    become: true
+    ini_file:
+      dest={{ php7_ini }}
+      section=PHP
+      option=disable_functions
+      value={{ php_disable_functions }}
+      backup=yes
+    when: "'PHP 7.' in php_version.stdout"
+
+  - name: Disbale exposures in PHP 5
+    become: true
+    ini_file:
+      dest={{ php5_ini }}
+      section=PHP
+      option={{ item }}
+      value=Off
+      backup=yes
+    with_items:
+      - expose_php
+      - display_errors
+      - track_errors
+      - html_errors
+    when: "'PHP 5.' in php_version.stdout"
+
+  - name: Disbale exposures in PHP 7
+    become: true
+    ini_file:
+      dest={{ php7_ini }}
+      section=PHP
+      option={{ item }}
+      value=Off
+      backup=yes
+    with_items:
+      - expose_php
+      - display_errors
+      - track_errors
+      - html_errors
+    when: "'PHP 7.' in php_version.stdout"
+
+  - name: Disable apache2 exposures
+    become: true
+    lineinfile:
+      dest=/etc/apache2/conf-enabled/security.conf
+      regexp={{ item.regexp }}
+      line={{ item.line }}
+      state=present
+      backup=yes
+    with_items:
+      - { regexp: "^ServerTokens ", line: "ServerTokens Prod" }
+      - { regexp: "^ServerSignature ", line: "ServerSignature Off" }
+      - { regexp: "^TraceEnable ", line: "TraceEnable Off" }
+    notify: restart apache
+
+  - name: Disable unecessary apache2 mods
+    become: true
+    apache2_module:
+      name={{ item }}
+      state=absent
+    with_items: "{{ apache_disable_mods }}"
+    notify: restart apache
+
+  - name: Disable default apache2 sites
+    become: true
+    file:
+      path={{ apache_sites_enabled_path }}/{{ item }}.conf
+      state=absent
+    with_items: "{{ apache_disable_sites }}"
+    notify: restart apache
+
+  - name: Remove MySQL anonymous users
+    become: true
+    mysql_user: 
+      name="" 
+      state=absent 
+      login_user={{ mysql_root_user }} 
+      login_password={{ mysql_root_pass }}
+
+  - name: Remove MySQL test database
+    become: true
+    mysql_db: 
+      name=test 
+      state=absent
+      login_user={{ mysql_root_user }}
+      login_password={{ mysql_root_pass }}
+
+  - name: Remove MySQL root remote login
+    become: true
+    command: 'mysql -u {{ mysql_root_user }} -NBe "{{ item }}"'
+    with_items:
+      - DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1')
+
+  # For removing privileges on test database, see https://github.com/ansible/ansible/issues/5125.

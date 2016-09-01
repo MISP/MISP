@@ -1,0 +1,51 @@
+---
+  - name: Verify GPG public key exists
+    become: true
+    stat: path={{ gpg_pub_key_dir }}/gpg.asc
+    register: pub_key_dir
+
+  - name: Verify GPG encryption key exists
+    become: true
+    stat: path={{ gpg_enc_key_dir }}
+    register: enc_key_dir
+ 
+  - name: Create GPG directory for MISP
+    become: true
+    file:
+      path={{ gpg_enc_key_dir }}
+      state=directory
+      owner={{ apache_web_owner }}
+      group={{ apache_web_group }}
+      mode=0700
+    register: key_dir_ready
+    when: enc_key_dir.stat.exists is not defined or not enc_key_dir.stat.exists
+
+  - name: Import GPG key local template for unattended generation
+    template:
+      src=gpgconf.j2
+      dest=/tmp/gpgconf
+    when:
+      (key_dir_ready|success)
+      and (not pub_key_dir.stat.exists or not enc_key_dir.stat.exists)
+
+  # Workaround for https://docs.ansible.com/ansible/become.html#becoming-an-unprivileged-user
+  # become_user not used
+  - name: Generate GPG key
+    become: true
+    command: sudo -u www-data gpg --homedir {{ gpg_enc_key_dir }} --batch --gen-key /tmp/gpgconf
+    register: key_generated
+    when:
+      (key_dir_ready|success)
+      and (not pub_key_dir.stat.exists or not enc_key_dir.stat.exists)
+
+  - name: Remove GPG local template
+    become: true
+    file:
+      path=/tmp/gpgconf
+      state=absent
+
+  # Workaround https://docs.ansible.com/ansible/become.html#becoming-an-unprivileged-user
+  # become_user not used
+  - name: Export GPG key
+    become: true
+    shell: sudo -u www-data gpg --homedir {{ gpg_enc_key_dir }} --export --armor {{ gpg_name_email }} > {{ gpg_pub_key_dir }}/gpg.asc

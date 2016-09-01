@@ -1,0 +1,64 @@
+---
+  - name: Ensure apache2 SSL folder exists, otherwise create it
+    become: true
+    file:
+      path={{ ssl_cert_path }}
+      state=directory
+      owner={{ ssl_cert_owner }}
+      group={{ ssl_cert_group }}
+      mode={{ ssl_cert_path_perms }}
+
+#  - name: Verify cert files exist
+#    stat: path={{ item }}
+#    become: true
+#    register: cert_files
+#    with_items:
+#      - "{{ ssl_cert_file }}"
+#      - "{{ ssl_key_file }}"
+
+  - name: Verify cert file exists
+    stat: path={{ ssl_cert_file }}
+    become: true
+    register: cert_file_stat
+
+  - name: Verify cert key file exits
+    stat: path={{ ssl_key_file }}
+    become: true
+    register: key_file_stat
+
+  - name: Force self-signed SSL certificate regeneration
+    become: true
+    register: cert_regen
+    file:
+      path={{ item }}
+      state=absent
+    with_items:
+      - "{{ ssl_key_file }}"
+      - "{{ ssl_cert_file }}"
+    when: 
+      (ssl_cert_generate)
+      and (cert_file_stat.stat.exists and key_file_stat.stat.exists)
+
+  - name: Generate private key and self-signed SSL certificate for MISP
+    become: true
+    command: openssl req -new -newkey rsa:{{ ssl_cert_rsa_size }} -days {{ ssl_cert_validity }} -nodes -x509 -subj {{ ssl_cert_subject }} -keyout {{ ssl_key_file }} -out {{ ssl_cert_file }}
+    args:
+      creates: "{{ item }}"
+    with_items:
+      - "{{ ssl_key_file }}"
+      - "{{ ssl_cert_file }}"
+    when: 
+      (cert_regen|changed)
+      or (not cert_file_stat.stat.exists and not key_file_stat.stat.exists)
+
+  - name: Verify permissions and ownership on certificate files
+    become: true
+    file:
+      path={{ item }}
+      owner={{ ssl_cert_owner }}
+      group={{ ssl_cert_group }}
+      mode={{ ssl_cert_files_perms }}
+    with_items:
+      - "{{ ssl_key_file }}"
+      - "{{ ssl_cert_file }}"
+    when: cert_file_stat.stat.exists and key_file_stat.stat.exists

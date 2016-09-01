@@ -1,0 +1,93 @@
+---
+  - name: Install MISP dependencies
+    become: yes
+    apt:
+      name={{ item }} 
+      state=present 
+      update_cache=yes 
+      force=no
+    with_items:
+      - curl
+      - zip
+      - gcc
+      - make
+      - git
+      - gnupg-agent
+      - openssl
+      - python-dev
+      - python-pip
+      - python3-dev
+      - python3-pip
+      - libxml2-dev
+      - libxslt1-dev
+      - zlib1g-dev
+      - apache2
+      - libapache2-mod-php5
+      - libapache2-mod-security2
+      - php-pear
+      - php-crypt-gpg
+      - php5-mysql
+      - php5-json
+      - mysql-server
+      - libmysqlclient-dev
+      - redis-server
+      - php5-redis
+      - rng-tools
+    when: (ansible_architecture == "x86_64" and ansible_distribution == "Ubuntu" and ansible_distribution_version == "14.04")
+
+  - name: Install MISP dependencies
+    become: yes
+    apt:
+      name={{ item }}
+      state=present
+      update_cache=yes
+      force=no
+    with_items:
+      - curl
+      - zip
+      - gcc
+      - make
+      - git
+      - gnupg-agent
+      - openssl
+      - python-dev
+      - python-pip
+      - python3-dev
+      - python3-pip
+      - libxml2-dev
+      - libxslt1-dev
+      - zlib1g-dev
+      - apache2
+      - libapache2-mod-php
+      - libapache2-mod-security2
+      - php-pear
+      - php-crypt-gpg
+      - php-mysql
+      - php-json
+      - php-readline
+      - php-redis
+      - php-cli
+      - mysql-server
+      - libmysqlclient-dev
+      - redis-server
+      - rng-tools
+    when: (ansible_distribution == "Ubuntu" and ansible_distribution_version == "16.04")
+
+  - name: Install pear modules
+    become: true
+    pear: name=Crypt_GPG state=present
+
+  - name: Install pip modules
+    become: true
+    pip: 
+      name={{ item }}
+      state=present
+    with_items:
+      - MySQL-python
+      - pymisp
+      - redis
+      - pyzmq
+
+  - name: Configure rngd
+    become: true
+    command: rngd -r /dev/urandom
