@@ -167,13 +167,13 @@ mysql -u misp -p misp < INSTALL/MYSQL.sql
 cp /var/www/MISP/INSTALL/apache.misp.centos7 /etc/httpd/conf.d/misp.conf
 
 # Since SELinux is enabled, we need to allow httpd to write to certain directories
-chcon -t httpd_sys_content_rw_t /var/www/MISP/app/files
-chcon -t httpd_sys_content_rw_t /var/www/MISP/app/files/terms
-chcon -t httpd_sys_content_rw_t /var/www/MISP/app/files/scripts/tmp
-chcon -t httpd_sys_content_rw_t /var/www/MISP/app/Plugin/CakeResque/tmp
-chcon -R -t httpd_sys_content_rw_t /var/www/MISP/app/tmp
-chcon -R -t httpd_sys_content_rw_t /var/www/MISP/app/webroot/img/orgs
-chcon -R -t httpd_sys_content_rw_t /var/www/MISP/app/webroot/img/custom
+chcon -t httpd_sys_rw_content_t /var/www/MISP/app/files
+chcon -t httpd_sys_rw_content_t /var/www/MISP/app/files/terms
+chcon -t httpd_sys_rw_content_t /var/www/MISP/app/files/scripts/tmp
+chcon -t httpd_sys_rw_content_t /var/www/MISP/app/Plugin/CakeResque/tmp
+chcon -R -t httpd_sys_rw_content_t /var/www/MISP/app/tmp
+chcon -R -t httpd_sys_rw_content_t /var/www/MISP/app/webroot/img/orgs
+chcon -R -t httpd_sys_rw_content_t /var/www/MISP/app/webroot/img/custom
 
 # Allow httpd to connect to the redis server and php-fpm over tcp/ip
 setsebool -P httpd_can_network_connect on
@@ -210,7 +210,7 @@ cp -a config.default.php config.php
 
 # If you want to be able to change configuration parameters from the webinterface:
 chown apache:apache /var/www/MISP/app/Config/config.php
-chcon -t httpd_sys_content_rw_t /var/www/MISP/app/Config/config.php
+chcon -t httpd_sys_rw_content_t /var/www/MISP/app/Config/config.php
 
 # Generate a GPG encryption key.
 # If the following command gives an error message, try it as root from the console
