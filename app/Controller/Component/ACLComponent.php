@@ -199,6 +199,7 @@ class ACLComponent extends Component {
 					'admin_delete' => array(),
 					'admin_edit' => array(),
 					'admin_index' => array('perm_admin'),
+					'admin_set_default' => array(),
 					'index' => array('*'),
 					'view' => array('*'),
 			),
