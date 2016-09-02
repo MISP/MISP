@@ -2930,7 +2930,6 @@ class Server extends AppModel {
 			if (isset($data['version']) && !empty($data['version'])) {
 				return $data['version'];
 			} else return 3;
-			return $events;
 		} return 2;
 	}
 
