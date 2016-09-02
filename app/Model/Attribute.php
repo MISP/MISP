@@ -165,7 +165,7 @@ class Attribute extends AppModel {
 	public $categoryDefinitions = array(
 			'Internal reference' => array(
 					'desc' => 'Reference used by the publishing party (e.g. ticket number)',
-					'types' => array('link', 'comment', 'text', 'other')
+					'types' => array('text', 'link', 'comment', 'other')
 					),
 			'Targeting data' => array(
 					'desc' => 'Internal Attack Targeting and Compromise Information',
