@@ -46,14 +46,15 @@ class UsersController extends AppController {
 	public function request_API(){
 		$responsibleAdmin = $this->User->findAdminsResponsibleForUser($this->Auth->user());
 		$message = "Something went wrong, please try again later.";
-		if(isset($responsibleAdmin['email']) && !empty($responsibleAdmin['email'])){
+		if (isset($responsibleAdmin['email']) && !empty($responsibleAdmin['email'])) {
 			$subject = "[MISP ".Configure::read('MISP.org')."] User requesting API access";
 			$body = "A user (".$this->Auth->user('email').") has sent you a request to enable his/her API key access.<br/>";
 			$body .= "Click <a href=\"".Configure::read('MISP.baseurl')."\">here</a> to edit his profile to change his role.";
 			$user = $this->User->find('first', array('conditions' => array('User.id' => $this->Auth->user('id'))));
 			$result = $this->User->sendEmail($user, $body, false, $subject);
-			if($result)
+			if ($result) {
 				$message = "API access requested.";
+			}
 		}
 		$this->set('message', $message);
 		$this->layout = 'ajax';

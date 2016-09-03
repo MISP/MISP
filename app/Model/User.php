@@ -913,7 +913,7 @@ class User extends AppModel {
 			),
 			'fields' => array('User.id', 'User.email', 'User.org_id')
 		));
-		if(count($admin) == 0) {
+		if (count($admin) == 0) {
 			$admin = $this->find('first', array(
 				'recursive' => -1,
 				'conditions' => array(
