@@ -60,11 +60,6 @@ function cancelPrompt() {
 	$("#confirmation_box").empty();
 }
 
-function showPrompt(){
-	$("#confirmation_box").fadeIn();
-	$("#gray_out").fadeIn();
-}
-
 function submitDeletion(context_id, action, type, id) {
 	var context = 'event';
 	if (type == 'template_elements') context = 'template';
@@ -2512,9 +2507,8 @@ function requestAPIAccess() {
 			$(".loading").show();
 		},
 		success:function (data) {
-			$("#confirmation_box").html(data);
-			showPrompt();
 			$(".loading").hide();
+			handleGenericAjaxResponse(data);
 		},
 		error:function() {
 			showMessage('fail', 'Something went wrong - could not request API access.');

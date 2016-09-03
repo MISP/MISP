@@ -1600,9 +1600,6 @@ a.discrete {
     background-image: linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.15) 75%, transparent 75%, transparent);
 }
 
-#confirmation_box .message2user div{text-align: center;}
-#confirmation_box .message2user .btn{margin: -1em 0.6em 0.6em;}
-
 @-webkit-keyframes rotation {
    from {-webkit-transform: rotate(0deg);}
    to {-webkit-transform: rotate(359deg);}

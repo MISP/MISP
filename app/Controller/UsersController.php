@@ -53,11 +53,10 @@ class UsersController extends AppController {
 			$user = $this->User->find('first', array('conditions' => array('User.id' => $this->Auth->user('id'))));
 			$result = $this->User->sendEmail($user, $body, false, $subject);
 			if ($result) {
-				$message = "API access requested.";
+				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'API access requested.')),'status'=>200));
 			}
 		}
-		$this->set('message', $message);
-		$this->layout = 'ajax';
+		return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Something went wrong, please try again later.')),'status'=>200));
 	}
 
 	public function edit($id = null) {
