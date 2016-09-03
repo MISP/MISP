@@ -334,6 +334,7 @@ class ACLComponent extends Component {
 					'logout' => array('*'),
 					'attributehistogram' => array('*'),
 					'resetauthkey' => array('*'),
+					'request_API' => array('*'),
 					'routeafterlogin' => array('*'),
 					'statistics' => array('*'),
 					'terms' => array('*'),

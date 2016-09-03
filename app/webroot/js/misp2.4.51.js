@@ -2498,6 +2498,24 @@ function serverOwnerOrganisationChange(host_org_id) {
 	}
 }
 
+function requestAPIAccess() {
+	url = "/users/request_API/";
+	$.ajax({
+		type:"get",
+		url:url,
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+		success:function (data) {
+			$(".loading").hide();
+			handleGenericAjaxResponse(data);
+		},
+		error:function() {
+			showMessage('fail', 'Something went wrong - could not request API access.');
+		}
+	});
+}
+
 $('.servers_default_role_checkbox').click(function() {
 	var id = $(this).data("id");
 	var state = $(this).is(":checked");

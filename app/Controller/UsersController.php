@@ -36,10 +36,27 @@ class UsersController extends AppController {
 		}
 		$this->User->id = $id;
 		$this->User->recursive = 0;
+
 		if (!$this->User->exists()) {
 			throw new NotFoundException(__('Invalid user'));
 		}
 		$this->set('user', $this->User->read(null, $id));
+	}
+
+	public function request_API(){
+		$responsibleAdmin = $this->User->findAdminsResponsibleForUser($this->Auth->user());
+		$message = "Something went wrong, please try again later.";
+		if (isset($responsibleAdmin['email']) && !empty($responsibleAdmin['email'])) {
+			$subject = "[MISP ".Configure::read('MISP.org')."] User requesting API access";
+			$body = "A user (".$this->Auth->user('email').") has sent you a request to enable his/her API key access.<br/>";
+			$body .= "Click <a href=\"".Configure::read('MISP.baseurl')."\">here</a> to edit his profile to change his role.";
+			$user = $this->User->find('first', array('conditions' => array('User.id' => $this->Auth->user('id'))));
+			$result = $this->User->sendEmail($user, $body, false, $subject);
+			if ($result) {
+				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'API access requested.')),'status'=>200));
+			}
+		}
+		return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Something went wrong, please try again later.')),'status'=>200));
 	}
 
 	public function edit($id = null) {
@@ -669,6 +686,10 @@ class UsersController extends AppController {
 		}
 		if (!$id) {
 			$this->Session->setFlash(__('Invalid id for user', true), 'default', array(), 'error');
+			$this->redirect(array('action' => 'view', $this->Auth->user('id')));
+		}
+		if (!$this->userRole['perm_auth']) {
+			$this->Session->setFlash(__('Invalid action', true), 'default', array(), 'error');
 			$this->redirect(array('action' => 'view', $this->Auth->user('id')));
 		}
 		// reset the key
