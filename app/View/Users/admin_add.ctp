@@ -63,11 +63,11 @@
 	?>
 		</div>
 	<?php
-		echo $this->Form->input('gpgkey', array('label' => 'GPG key', 'div' => 'clear', 'class' => 'input-xxlarge'));
+		echo $this->Form->input('gpgkey', array('label' => 'GPG key', 'div' => 'clear', 'class' => 'input-xxlarge', 'placeholder' => 'Paste the user\'s PGP key here or try to retrieve it from the MIT key server by clicking on "Fetch GPG key" below.'));
 	?>
 		<div class="clear"><span onClick="lookupPGPKey('UserEmail');" class="btn btn-inverse" style="margin-bottom:10px;">Fetch GPG key</span></div>
 	<?php
-		if (Configure::read('SMIME.enabled')) echo $this->Form->input('certif_public', array('label' => 'Public certificate (Encryption -- PEM format)', 'div' => 'clear', 'class' => 'input-xxlarge'));
+		if (Configure::read('SMIME.enabled')) echo $this->Form->input('certif_public', array('label' => 'SMIME key', 'div' => 'clear', 'class' => 'input-xxlarge', 'placeholder' => 'Paste the user\'s SMIME public key in PEM format here.'));
 		echo $this->Form->input('autoalert', array('label' => 'Receive alerts when events are published', 'type' => 'checkbox'));
 		echo $this->Form->input('contactalert', array('label' => 'Receive alerts from "contact reporter" requests', 'type' => 'checkbox'));
 	?>
@@ -77,7 +77,8 @@
 
 	?>
 	</fieldset>
-<?php echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary'));
+<?php
+	echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary'));
 	echo $this->Form->end();?>
 </div>
 <?php

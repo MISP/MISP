@@ -1017,8 +1017,13 @@ class UsersController extends AppController {
 		$this->Auth->login($newUser['User']);
 	}
 
-	public function fetchPGPKey($email) {
-		if (!$this->_isAdmin()) throw new Exception('Administrators only.');
+	public function fetchPGPKey($email = false) {
+		if (!$this->_isAdmin()) {
+			throw new Exception('Administrators only.');
+		}
+		if ($email == false) {
+			throw new NotFoundException('No email provided.');
+		}
 		$keys = $this->User->fetchPGPKey($email);
 		if (is_numeric($keys)) {
 			throw new NotFoundException('Could not retrieved any keys from the key server.');
