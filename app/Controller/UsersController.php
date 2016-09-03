@@ -44,6 +44,9 @@ class UsersController extends AppController {
 	}
 
 	public function request_API(){
+		if (Configure::read('MISP.disable_emailing')) {
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'API access request failed. E-mailing is currently disabled on this instance.')),'status'=>200));
+		}
 		$responsibleAdmin = $this->User->findAdminsResponsibleForUser($this->Auth->user());
 		$message = "Something went wrong, please try again later.";
 		if (isset($responsibleAdmin['email']) && !empty($responsibleAdmin['email'])) {
