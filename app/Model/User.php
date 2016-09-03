@@ -903,7 +903,6 @@ class User extends AppModel {
 		$admin = $this->find('first', array(
 			'recursive' => -1,
 			'conditions' => array(
-				'Role.perm_site_admin' => 0,
 				'Role.perm_admin' => 1,
 				'User.disabled' => 0,
 				'User.org_id' => $user['org_id']
