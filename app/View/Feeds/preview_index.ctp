@@ -3,7 +3,7 @@
 	<div class="pagination">
         <ul>
         <?php
-        	$eventViewURL = '/feeds/previewEvent/' . h($id) . '/';
+			$eventViewURL = '/feeds/previewEvent/' . h($id) . '/';
 	        $this->Paginator->options(array(
 				'url' => $id,
 	            'update' => '.span12',

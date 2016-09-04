@@ -4,7 +4,7 @@
 	<div class="pagination">
         <ul>
         <?php
-        	$eventViewURL = '/servers/previewEvent/' . h($id) . '/';
+			$eventViewURL = '/servers/previewEvent/' . h($id) . '/';
 	        $this->Paginator->options(array(
 				'url' => $id,
 	            'update' => '.span12',
