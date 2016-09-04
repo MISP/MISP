@@ -26,7 +26,7 @@
 			echo $this->Form->input('anonymise', array(
 						'type' => 'checkbox',
 						'checked' => $newsItem['News']['user_id'] == 0,
- 						'label' => 'Create anonymously',
+						'label' => 'Create anonymously',
 			));
 		?>
 	</fieldset>

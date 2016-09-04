@@ -719,7 +719,7 @@ class UsersController extends AppController {
 	}
 
 	public function attributehistogram() {
-	    //all code is called via JS
+		//all code is called via JS
 	}
 
 	public function histogram($selected = null) {

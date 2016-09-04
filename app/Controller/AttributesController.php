@@ -473,13 +473,13 @@ class AttributesController extends AppController {
 			// Check if there were problems with the file upload
 			$tmpfile = new File($this->request->data['Attribute']['value']['tmp_name']);
 			if ((isset($this->request->data['Attribute']['value']['error']) && $this->request->data['Attribute']['value']['error'] == 0) ||
-			        (!empty( $this->request->data['Attribute']['value']['tmp_name']) && $this->request->data['Attribute']['value']['tmp_name'] != 'none')
+					(!empty( $this->request->data['Attribute']['value']['tmp_name']) && $this->request->data['Attribute']['value']['tmp_name'] != 'none')
 			) {
-			    if (!is_uploaded_file($tmpfile->path))
-			        throw new InternalErrorException('PHP says file was not uploaded. Are you attacking me?');
+				if (!is_uploaded_file($tmpfile->path))
+					throw new InternalErrorException('PHP says file was not uploaded. Are you attacking me?');
 			} else {
-			    $this->Session->setFlash(__('There was a problem to upload the file.', true), 'default', array(), 'error');
-			    $this->redirect(array('controller' => 'attributes', 'action' => 'add_threatconnect', $this->request->data['Attribute']['event_id']));
+				$this->Session->setFlash(__('There was a problem to upload the file.', true), 'default', array(), 'error');
+				$this->redirect(array('controller' => 'attributes', 'action' => 'add_threatconnect', $this->request->data['Attribute']['event_id']));
 			}
 			// verify mime type
 			$file_info = $tmpfile->info();
@@ -546,9 +546,9 @@ class AttributesController extends AppController {
 						if (preg_match("#^[0-9a-f]{32}$#", $attribute['value']))
 							$attribute['type'] = 'md5';
 						else if (preg_match("#^[0-9a-f]{40}$#", $attribute['value']))
-						    $attribute['type'] = 'sha1';
+							$attribute['type'] = 'sha1';
 						else if (preg_match("#^[0-9a-f]{64}$#", $attribute['value']))
-						    $attribute['type'] = 'sha256';
+							$attribute['type'] = 'sha256';
 						else
 							// do not keep attributes that do not have a match
 							$attribute=NULL;

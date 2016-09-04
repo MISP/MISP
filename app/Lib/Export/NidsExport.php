@@ -339,18 +339,18 @@ class NidsExport {
 		$attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
 		$content = 'flow:to_server,established; content:"' . $attribute['value'] . '"; http_header;';
 		$this->rules[] = sprintf($ruleFormat,
-		        ($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
-		        'tcp',						// proto
-		        '$HOME_NET',					// src_ip
-		        'any',							// src_port
-		        '->',							// direction
-		        '$EXTERNAL_NET',				// dst_ip
-		        '$HTTP_PORTS',					// dst_port
-		        'Outgoing User-Agent: ' . $attribute['value'],		// msg
-		        $content,						// rule_content
-		        'tag:session,600,seconds;',		// tag
-		        $sid,							// sid
-		        1								// rev
+				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
+				'tcp',						// proto
+				'$HOME_NET',					// src_ip
+				'any',							// src_port
+				'->',							// direction
+				'$EXTERNAL_NET',				// dst_ip
+				'$HTTP_PORTS',					// dst_port
+				'Outgoing User-Agent: ' . $attribute['value'],		// msg
+				$content,						// rule_content
+				'tag:session,600,seconds;',		// tag
+				$sid,							// sid
+				1								// rev
 		);
 	}
 

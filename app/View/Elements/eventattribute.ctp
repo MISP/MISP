@@ -484,7 +484,7 @@ attributes or the appropriate distribution level. If you think there is a mistak
 		</div>
 	<?php endif;?>
 	<div class="pagination">
-  	  <ul>
+		<ul>
 		<?php
 			$url = array_merge(array('controller' => 'events', 'action' => 'viewEventAttributes', $event['Event']['id']), $this->request->named);
 			$this->Paginator->options(array(
