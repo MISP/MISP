@@ -1502,7 +1502,7 @@ class Attribute extends AppModel {
 	}
 
 
-	public function checkTemplateAttributes($template, &$data, $event_id) {
+	public function checkTemplateAttributes($template, $data, $event_id) {
 		$result = array();
 		$errors = array();
 		$attributes = array();

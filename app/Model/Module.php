@@ -82,7 +82,7 @@ class Module extends AppModel {
 	public function getEnabledModules($type = false, $moduleFamily = 'Enrichment') {
 		$modules = $this->getModules($type, $moduleFamily);
 		if (is_array($modules)) {
-			foreach ($modules['modules'] as $k => &$module) {
+			foreach ($modules['modules'] as $k => $module) {
 				if (!Configure::read('Plugin.' . $moduleFamily . '_' . $module['name'] . '_enabled') || ($type && in_array(strtolower($type), $module['meta']['module-type']))) {
 					unset($modules['modules'][$k]);
 				}
@@ -111,7 +111,7 @@ class Module extends AppModel {
 		$module = false;
 		if (!Configure::read('Plugin.' . $moduleFamily . '_' . $name . '_enabled')) return 'The requested module is not enabled.';
 		if (is_array($modules)) {
-			foreach ($modules['modules'] as $k => &$module) {
+			foreach ($modules['modules'] as $module) {
 				if ($module['name'] == $name) {
 					if ($type && in_array(strtolower($type), $module['meta']['module-type'])) {
 						return $module;

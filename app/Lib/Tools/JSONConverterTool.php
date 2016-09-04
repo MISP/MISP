@@ -63,20 +63,20 @@ class JSONConverterTool {
 				if (!is_array($temp)) {
 					$resultArray[] = '[' . $k .']' . $temp;
 				} else {
-					foreach ($temp as &$t) $resultArray[] = '[' . $k . ']' . $t;
+					foreach ($temp as $t) $resultArray[] = '[' . $k . ']' . $t;
 				}
 			}
 		} else $resultArray = ': ' . $array . PHP_EOL;
 		if ($root) {
 			$text = '';
-			foreach ($resultArray as &$r) $text .= $r;
+			foreach ($resultArray as $r) $text .= $r;
 			return $text;
 		} else return $resultArray;
 	}
 
 	public function eventCollection2Format($events, $isSiteAdmin=false) {
 		$results = array();
-		foreach ($events as &$event) $results[] = $this->event2JSON($event, $isSiteAdmin);
+		foreach ($events as $event) $results[] = $this->event2JSON($event, $isSiteAdmin);
 		return implode(',' . PHP_EOL, $results);
 	}
 

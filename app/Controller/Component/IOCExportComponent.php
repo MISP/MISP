@@ -6,7 +6,7 @@ class IOCExportComponent extends Component {
 
 	public function buildAll($user, $event) {
 		$this->__buildTop($event);
-		foreach ($event['Attribute'] as &$attribute) {
+		foreach ($event['Attribute'] as $attribute) {
 			$this->__buildAttribute($attribute);
 		}
 		$this->__buildBottom();

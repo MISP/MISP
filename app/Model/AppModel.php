@@ -79,7 +79,7 @@ class AppModel extends Model {
 		$this->Feed = ClassRegistry::init('Feed');
 		$this->Log = ClassRegistry::init('Log');
 		$feedNames = array();
-		foreach ($feeds as &$feed) $feedNames[] = $feed['name'];
+		foreach ($feeds as $feed) $feedNames[] = $feed['name'];
 		$feedNames = implode(', ', $feedNames);
 		$result = $this->Feed->addDefaultFeeds($feeds);
 		$this->Log->create();

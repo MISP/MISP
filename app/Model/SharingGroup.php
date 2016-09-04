@@ -463,7 +463,7 @@ class SharingGroup extends AppModel {
 		$this->Log = ClassRegistry::init('Log');
 		$this->User = ClassRegistry::init('User');
 		$syncUsers = array();
-		foreach ($sgs as &$sg) {
+		foreach ($sgs as $sg) {
 			if (!isset($syncUsers[$sg['SharingGroup']['sync_user_id']])) {
 				$syncUsers[$sg['SharingGroup']['sync_user_id']] = $this->User->getAuthUser($sg['SharingGroup']['sync_user_id']);
 				if (empty($syncUsers[$sg['SharingGroup']['sync_user_id']])) {
@@ -508,7 +508,7 @@ class SharingGroup extends AppModel {
 				'conditions' => array('local' => 1, 'roaming' => 0),
 				'contain' => array('SharingGroupServer')
 		));
-		foreach ($sgs as &$sg) {
+		foreach ($sgs as $sg) {
 			if (empty($sg['SharingGroupServer'])) {
 				$sg['SharingGroup']['roaming'] = 1;
 				$this->save($sg);

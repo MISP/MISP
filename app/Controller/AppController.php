@@ -363,7 +363,7 @@ class AppController extends Controller {
 	private function __convertEmailToName($email) {
 		$name = explode('@', $email);
 		$name = explode('.', $name[0]);
-		foreach ($name as &$temp) $temp = ucfirst($temp);
+		foreach ($name as $key => $value) $name[$key] = ucfirst($value);
 		$name = implode(' ', $name);
 		return $name;
 	}
@@ -582,7 +582,7 @@ class AppController extends Controller {
 		throw new ForbiddenException($message);
 	}
 
-	private function __customAuthentication(&$server) {
+	private function __customAuthentication($server) {
 		$result = false;
 		if (Configure::read('Plugin.CustomAuth_enable')) {
 			$header = Configure::read('Plugin.CustomAuth_header') ? Configure::read('Plugin.CustomAuth_header') : 'Authorization';

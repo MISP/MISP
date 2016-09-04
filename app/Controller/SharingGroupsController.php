@@ -197,8 +197,8 @@ class SharingGroupsController extends AppController {
 		$this->SharingGroup->read();
 		$sg = $this->SharingGroup->data;
 		if (isset($sg['SharingGroupServer'])) {
-			foreach ($sg['SharingGroupServer'] as &$sgs) {
-				if ($sgs['server_id'] == 0) $sgs['Server'] = array('name' => 'Local instance', 'url' => Configure::read('MISP.baseurl'));
+			foreach ($sg['SharingGroupServer'] as $key => $sgs) {
+				if ($sgs['server_id'] == 0) $sg['SharingGroupServer'][$key]['Server'] = array('name' => 'Local instance', 'url' => Configure::read('MISP.baseurl'));
 			}
 		}
 		if ($sg['SharingGroup']['sync_user_id']) {

@@ -228,7 +228,7 @@ class User extends AppModel {
 			$chars = implode('', $groups);
 			$pw .= $chars[mt_rand(0, strlen($chars)-1)];
 		}
-		foreach ($groups as &$group) {
+		foreach ($groups as $group) {
 			$pw .= $group[mt_rand(0, strlen($group)-1)];
 		}
 		return $pw;
@@ -630,10 +630,10 @@ class User extends AppModel {
 			'fields' => array('id', 'email', 'gpgkey', 'certif_public', 'org_id'),
 			'contain' => array('Role' => array('fields' => array('perm_site_admin'))),
 		));
-		foreach ($users as &$user) {
-			$temp = $user['User'];
-			unset($user['User']);
-			$user = array_merge($temp, $user);
+		foreach ($users as $k => $user) {
+			$user = $user['User'];
+			unset($users[$k]['User']);
+			$users[$k] = array_merge($user, $users[$k]);
 		}
 		return $users;
 	}

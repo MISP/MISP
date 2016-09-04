@@ -1010,36 +1010,36 @@ class AttributesController extends AppController {
 			}
 
 			if ($this->request->data['Attribute']['to_ids'] != 2) {
-				foreach ($attributes as &$attribute) {
-					$attribute['Attribute']['to_ids'] = ($this->request->data['Attribute']['to_ids'] == 0 ? false : true);
+				foreach ($attributes as $key => $attribute) {
+					$attributes[$key]['Attribute']['to_ids'] = ($this->request->data['Attribute']['to_ids'] == 0 ? false : true);
 				}
 			}
 
 			if ($this->request->data['Attribute']['distribution'] != 6) {
-				foreach ($attributes as &$attribute) {
-					$attribute['Attribute']['distribution'] = $this->request->data['Attribute']['distribution'];
+				foreach ($attributes as $key => $attribute) {
+					$attributes[$key]['Attribute']['distribution'] = $this->request->data['Attribute']['distribution'];
 				}
 				if ($this->request->data['Attribute']['distribution'] == 4) {
-					foreach ($attributes as &$attribute) {
-						$attribute['Attribute']['sharing_group_id'] = $this->request->data['Attribute']['sharing_group_id'];
+					foreach ($attributes as $key => $attribute) {
+						$attributes[$key]['Attribute']['sharing_group_id'] = $this->request->data['Attribute']['sharing_group_id'];
 					}
 				} else {
-					foreach ($attributes as &$attribute) {
-						$attribute['Attribute']['sharing_group_id'] = 0;
+					foreach ($attributes as $key => $attribute) {
+						$attributes[$key]['Attribute']['sharing_group_id'] = 0;
 					}
 				}
 			}
 
 			if ($this->request->data['Attribute']['comment'] != null) {
-				foreach ($attributes as &$attribute) {
-					$attribute['Attribute']['comment'] = $this->request->data['Attribute']['comment'];
+				foreach ($attributes as $key => $attribute) {
+					$attributes[$key]['Attribute']['comment'] = $this->request->data['Attribute']['comment'];
 				}
 			}
 
 			$date = new DateTime();
 			$timestamp = $date->getTimestamp();
-			foreach ($attributes as &$attribute) {
-				$attribute['Attribute']['timestamp'] = $timestamp;
+			foreach ($attributes as $key => $attribute) {
+				$attributes[$key]['Attribute']['timestamp'] = $timestamp;
 			}
 
 			if ($this->Attribute->saveMany($attributes)) {
@@ -1074,7 +1074,7 @@ class AttributesController extends AppController {
 		if (empty($servers))
 			return;
 		App::uses('SyncTool', 'Tools');
-		foreach ($servers as &$server) {
+		foreach ($servers as $server) {
 			$syncTool = new SyncTool();
 			$HttpSocket = $syncTool->setupHttpSocket($server);
 			$this->Attribute->deleteAttributeFromServer($uuid, $server, $HttpSocket);
@@ -1339,7 +1339,7 @@ class AttributesController extends AppController {
 						$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
 					}
 
-					foreach ($attributes as &$attribute) {
+					foreach ($attributes as $attribute) {
 						$attributeIdList[] = $attribute['Attribute']['id'];
 						if (!in_array($attribute['Attribute']['event_id'], $idList)) {
 							$idList[] = $attribute['Attribute']['event_id'];
@@ -1440,8 +1440,8 @@ class AttributesController extends AppController {
 				}
 			}
 		}
-		foreach ($events as &$event) {
-			$event['relevance'] = 100 * $event['to_ids'] / ($event['no_ids'] + $event['to_ids']);
+		foreach ($events as $key => $event) {
+			$events[$key]['relevance'] = 100 * $event['to_ids'] / ($event['no_ids'] + $event['to_ids']);
 		}
 		if (!empty($events)) $events = $this->__subval_sort($events, 'relevance');
 		return $events;
@@ -2026,10 +2026,11 @@ class AttributesController extends AppController {
 			));
 			$results = array('untouched' => count($oldAttributes), 'created' => 0, 'deleted' => 0, 'createdFail' => 0, 'deletedFail' => 0);
 
-			foreach ($newValues as &$value) {
-				$value = trim($value);
+			$newValues = array_map('trim', $newValues);
+
+			foreach ($newValues as $value) {
 				$found = false;
-				foreach ($oldAttributes as &$old) {
+				foreach ($oldAttributes as $old) {
 					if ($value == $old['Attribute']['value']) {
 						$found = true;
 					}
@@ -2052,7 +2053,7 @@ class AttributesController extends AppController {
 				}
 			}
 
-			foreach ($oldAttributes as &$old) {
+			foreach ($oldAttributes as $old) {
 				if (!in_array($old['Attribute']['value'], $newValues)) {
 					if ($this->Attribute->delete($old['Attribute']['id'])) {
 						$results['deleted']++;
@@ -2239,13 +2240,13 @@ class AttributesController extends AppController {
 				throw new Exception('Invalid script.');
 		}
 		$counter = 0;
-		foreach ($replaceConditions as &$rC) {
+		foreach ($replaceConditions as $rC) {
 			$searchPattern = '';
 			if (in_array($rC['condition'], array('endsWith', 'contains'))) $searchPattern .= '%';
 			$searchPattern .= $rC['from'];
 			if (in_array($rC['condition'], array('startsWith', 'contains'))) $searchPattern .= '%';
 			$attributes = $this->Attribute->find('all', array('conditions' => array($rC['search'] => $searchPattern), 'recursive' => -1));
-			foreach ($attributes as &$attribute) {
+			foreach ($attributes as $attribute) {
 				$regex = '/';
 				if (!in_array($rC['condition'], array('startsWith', 'contains'))) $regex .= '^';
 				$regex .= $rC['from'];
@@ -2274,10 +2275,10 @@ class AttributesController extends AppController {
 		$url = Configure::read('Plugin.Enrichment_services_url') ? Configure::read('Plugin.Enrichment_services_url') : $this->Server->serverSettings['Plugin']['Enrichment_services_url']['value'];
 		$port = Configure::read('Plugin.Enrichment_services_port') ? Configure::read('Plugin.Enrichment_services_port') : $this->Server->serverSettings['Plugin']['Enrichment_services_port']['value'];
 		$resultArray = array();
-		foreach ($validTypes as &$type) {
+		foreach ($validTypes as $type) {
 			$options = array();
 			$found = false;
-			foreach ($modules['modules'] as &$temp) {
+			foreach ($modules['modules'] as $temp) {
 				if ($temp['name'] == $type) {
 					$found = true;
 					if (isset($temp['meta']['config'])) {
@@ -2303,7 +2304,7 @@ class AttributesController extends AppController {
 				continue;
 			}
 			if (!empty($result['results'])) {
-				foreach ($result['results'] as &$r) {
+				foreach ($result['results'] as $r) {
 					if (is_array($r['values']) && !empty($r['values'])) {
 						$tempArray = array();
 						foreach ($r['values'] as $k => $v) {
