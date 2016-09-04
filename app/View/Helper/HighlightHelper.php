@@ -20,8 +20,8 @@ App::uses('AppHelper', 'View/Helper');
 			foreach ($keywordArray as $k => &$keywordArrayElement) {
 			    $keywordArrayElement = trim($keywordArrayElement);
 			    if ("" == $keywordArrayElement) {
-			    	unset($keywordArray[$k]);
-			    	continue;
+					unset($keywordArray[$k]);
+					continue;
 			    }
 			    $replacementArray[] = '<span style="color:red">'.$keywordArrayElement.'</span>';
 			}
