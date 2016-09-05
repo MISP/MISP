@@ -161,8 +161,8 @@ class AppController extends Controller {
 						if ($user) {
 							unset($user['User']['gpgkey']);
 							unset($user['User']['certif_public']);
-						    // User found in the db, add the user info to the session
-						    if (Configure::read('MISP.log_auth')) {
+							// User found in the db, add the user info to the session
+							if (Configure::read('MISP.log_auth')) {
 								$this->Log = ClassRegistry::init('Log');
 								$this->Log->create();
 								$log = array(
@@ -175,9 +175,9 @@ class AppController extends Controller {
 										'change' => 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->here,
 								);
 								$this->Log->save($log);
-						    }
-						    $this->Session->renew();
-						    $this->Session->write(AuthComponent::$sessionKey, $user['User']);
+							}
+							$this->Session->renew();
+							$this->Session->write(AuthComponent::$sessionKey, $user['User']);
 						} else {
 							// User not authenticated correctly
 							// reset the session information

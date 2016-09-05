@@ -4,9 +4,9 @@
 	<div class="pagination">
         <ul>
         <?php
-        	$eventViewURL = '/servers/previewEvent/' . h($id) . '/';
+			$eventViewURL = '/servers/previewEvent/' . h($id) . '/';
 	        $this->Paginator->options(array(
-	        	'url' => $id,
+				'url' => $id,
 	            'update' => '.span12',
 	            'evalScripts' => true,
 	            'before' => '$(".progress").show()',

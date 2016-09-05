@@ -18,15 +18,15 @@ App::uses('AppHelper', 'View/Helper');
 				$keywordArray = array($keywordArray);
 			}
 			foreach ($keywordArray as $k => &$keywordArrayElement) {
-			    $keywordArrayElement = trim($keywordArrayElement);
-			    if ("" == $keywordArrayElement) {
-			    	unset($keywordArray[$k]);
-			    	continue;
-			    }
-			    $replacementArray[] = '<span style="color:red">'.$keywordArrayElement.'</span>';
+				$keywordArrayElement = trim($keywordArrayElement);
+				if ("" == $keywordArrayElement) {
+					unset($keywordArray[$k]);
+					continue;
+				}
+				$replacementArray[] = '<span style="color:red">'.$keywordArrayElement.'</span>';
 			}
 			if (!empty($replacementArray))
-			    return array_combine($keywordArray, $replacementArray);
+				return array_combine($keywordArray, $replacementArray);
 		}
 
 		public function highlighter($str, $replacePairs) {

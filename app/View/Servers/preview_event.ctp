@@ -116,7 +116,7 @@
 	        <ul>
 	        <?php
 		        $this->Paginator->options(array(
-		        	'url' => array($server['Server']['id'], $event['Event']['id']),
+					'url' => array($server['Server']['id'], $event['Event']['id']),
 		            'evalScripts' => true,
 		            'before' => '$(".progress").show()',
 		            'complete' => '$(".progress").hide()',
@@ -139,7 +139,7 @@
 	        </ul>
 	    </div>
 	    <div id="attributeList" class="attributeListContainer">
-	    	<table class="table table-striped table-condensed">
+			<table class="table table-striped table-condensed">
 				<tr>
 					<th><?php echo $this->Paginator->sort('date');?></th>
 					<th><?php echo $this->Paginator->sort('category');?></th>
@@ -213,7 +213,7 @@
 	        <ul>
 	        <?php
 		        $this->Paginator->options(array(
-		        	'url' => array($server['Server']['id'], $event['Event']['id']),
+					'url' => array($server['Server']['id'], $event['Event']['id']),
 		            'evalScripts' => true,
 		            'before' => '$(".progress").show()',
 		            'complete' => '$(".progress").hide()',

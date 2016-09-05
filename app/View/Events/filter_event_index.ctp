@@ -174,12 +174,12 @@ var typeArray = {
 						{"id" : "2", "value" : "Medium"},
 						{"id" : "3", "value" : "Low"},
 						{"id" : "4", "value" : "Undefined"}
-		         		],
+						],
 		'analysis' : [
-		      			{"id" : "0", "value" : "Initial"},
-		      			{"id" : "1", "value" : "Ongoing"},
-		      			{"id" : "2", "value" : "Completed"}
-		      		]
+						{"id" : "0", "value" : "Initial"},
+						{"id" : "1", "value" : "Ongoing"},
+						{"id" : "2", "value" : "Completed"}
+					]
 };
 
 var filterContext = "event";

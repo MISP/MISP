@@ -353,15 +353,15 @@ class Event extends AppModel {
 		// TODO refactor analysis into an Enum (in the database)
 		if (isset($this->data['Event']['analysis'])) {
 			switch ($this->data['Event']['analysis']) {
-			    case 'Initial':
-			        $this->data['Event']['analysis'] = 0;
-			        break;
-			    case 'Ongoing':
-			        $this->data['Event']['analysis'] = 1;
-			        break;
-			    case 'Completed':
-			        $this->data['Event']['analysis'] = 2;
-			        break;
+				case 'Initial':
+					$this->data['Event']['analysis'] = 0;
+					break;
+				case 'Ongoing':
+					$this->data['Event']['analysis'] = 1;
+					break;
+				case 'Completed':
+					$this->data['Event']['analysis'] = 2;
+					break;
 			}
 		}
 		if (!isset($this->data['Event']['threat_level_id'])) $this->data['Event']['threat_level_id'] = Configure::read('MISP.default_event_threat_level') ? Configure::read('MISP.default_event_threat_level') : '1';
@@ -490,10 +490,10 @@ class Event extends AppModel {
 		//        iii. Attribute has a sharing group that the user is accessible to view
 		$conditionsCorrelation = $this->__buildEventConditionsCorrelation($user, $eventId, $sgids);
 		$correlations = $this->Correlation->find('all',array(
-		        'fields' => 'Correlation.event_id',
-		        'conditions' => $conditionsCorrelation,
-		        'recursive' => 0,
-		        'order' => array('Correlation.event_id DESC')));
+				'fields' => 'Correlation.event_id',
+				'conditions' => $conditionsCorrelation,
+				'recursive' => 0,
+				'order' => array('Correlation.event_id DESC')));
 
 		$relatedEventIds = array();
 		foreach ($correlations as $correlation) {
