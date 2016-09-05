@@ -2497,7 +2497,10 @@ class Event extends AppModel {
 			$stixFile->delete();
 			return array('success' => 0, 'message' => 'No matching events found to export.');
 		}
-		return array('success' => 1, 'data' => $tmpDir . DS . $randomFileName . ".stix");
+		$data = $stixFile->read();
+		$tempFile->delete();
+		$stixFile->delete();
+		return array('success' => 1, 'data' => $data);
 	}
 
 	public function getAccessibleEventIds($include, $exclude, $includedTags, $excludedTags) {
