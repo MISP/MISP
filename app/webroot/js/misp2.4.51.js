@@ -400,29 +400,6 @@ function submitForm(type, id, field, context) {
 	return false;
 };
 
-function submitTagForm(id) {
-	$.ajax({
-		data: $('#EventTag').closest("form").serialize(),
-		beforeSend: function (XMLHttpRequest) {
-			$(".loading").show();
-		},
-		success:function (data, textStatus) {
-			loadEventTags(id);
-			handleGenericAjaxResponse(data);
-		},
-		error:function() {
-			showMessage('fail', 'Could not add tag.');
-			loadEventTags(id);
-		},
-		complete:function() {
-			$(".loading").hide();
-		},
-		type:"post",
-		url:"/events/addTag/" + id
-	});
-	return false;
-}
-
 function quickSubmitTagForm(event_id, tag_id) {
 	$('#EventTag').val(tag_id);
 	$.ajax({
