@@ -258,12 +258,6 @@ class TagsController extends AppController {
 				'fields' => array('Tag.id', 'Tag.colour', 'Tag.name'),
 		));
 		$this->set('tags', $tags);
-		$tags = $this->Tag->find('all', array('recursive' => -1, 'order' => array('Tag.name ASC')));
-		$tagNames = array('None');
-		foreach ($tags as $k => $v) {
-			$tagNames[$v['Tag']['id']] = $v['Tag']['name'];
-		}
-		$this->set('allTags', $tagNames);
 		$event = $this->Tag->EventTag->Event->find('first', array(
 				'recursive' => -1,
 				'fields' => array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.user_id'),
