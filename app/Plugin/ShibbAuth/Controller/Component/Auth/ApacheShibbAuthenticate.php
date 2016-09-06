@@ -73,7 +73,7 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
 		$groupRoleMatching = Configure::read('ApacheShibbAuth.GroupRoleMatching');
 
 		// Get user values
-		if (!isset($_SERVER[$mailTag])){
+		if (!isset($_SERVER[$mailTag])) {
 			CakeLog::write('error', 'Mail tag is not given by the SSO SP. Not processing login.');
 			return false;
 		}
@@ -219,8 +219,7 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
 			if ($user) $orgUserId = $user['id'];
 			$orgId = $organisations->createOrgFromName($org, $orgUserId, 0); //Created with local set to 0 by default
 			CakeLog::write('info', "User organisation ${org} created with id ${orgId}.");
-		}
-		else{
+		} else {
 			CakeLog::write('info', "User organisation ${org} found with id ${orgId}.");
 		}
 		return $orgId;
