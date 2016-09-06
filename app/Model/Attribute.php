@@ -522,7 +522,6 @@ class Attribute extends AppModel {
 		$value = $fields['value'];
 		$eventId = $this->data['Attribute']['event_id'];
 		$type = $this->data['Attribute']['type'];
-		$toIds = $this->data['Attribute']['to_ids'];
 		$category = $this->data['Attribute']['category'];
 
 		// check if the attribute already exists in the same event
