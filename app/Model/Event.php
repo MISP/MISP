@@ -2117,7 +2117,6 @@ class Event extends AppModel {
 				),
 		));
 		if (empty($event)) return true;
-		if ($event['Event']['distribution'] < 2) return true;
 		$event['Event']['locked'] = 1;
 		// get a list of the servers
 		$this->Server = ClassRegistry::init('Server');
@@ -2132,6 +2131,9 @@ class Event extends AppModel {
 		$failedServers = array();
 		App::uses('SyncTool', 'Tools');
 		foreach ($servers as &$server) {
+			if ((!isset($server['Server']['internal']) || !$server['Server']['internal']) && $event['Event']['distribution'] < 2) {
+				return true;
+			}
 			$syncTool = new SyncTool();
 			$HttpSocket = $syncTool->setupHttpSocket($server);
 			// Skip servers where the event has come from.
