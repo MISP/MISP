@@ -19,12 +19,8 @@ class ServerTag extends AppModel {
 	);
 
 	public $belongsTo = array(
-		'Server' => array(
-			'className' => 'Server',
-		),
-		'Tag' => array(
-			'className' => 'Tag',
-		),
+		'Server',
+		'Tag'
 	);
 
 	public function attachTagToServer($server_id, $tag_id) {
