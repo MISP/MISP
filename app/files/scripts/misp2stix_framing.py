@@ -85,9 +85,9 @@ SCHEMALOC_DICT = {
 
 
 def main(args):
-    if len(sys.argv) < 2:
+    if len(sys.argv) < 4:
         sys.exit("Invalid parameters")
-    namespace = [sys.argv[0], sys.argv[1]]
+    namespace = [sys.argv[1], sys.argv[2]]
     NS_DICT[namespace[0]]=namespace[1]
     cybox.utils.idgen.set_id_namespace(Namespace(namespace[0], namespace[1]))
     stix.utils.idgen.set_id_namespace({namespace[0]: namespace[1]})
@@ -96,10 +96,13 @@ def main(args):
     stix_header.title="Export from " + namespace[1] + " MISP"
     stix_header.package_intents="Threat Report"
     stix_package.stix_header = stix_header
-    stix_string = stix_package.to_xml(auto_namespace=False, ns_dict=NS_DICT, schemaloc_dict=SCHEMALOC_DICT)
-    stix_string = stix_string.replace("</stix:STIX_Package>\n", "");
+    if sys.argv[3] == 'json':
+        stix_string = stix_package.to_json()[:-1]
+        stix_string += ', "related_packages": ['
+    else:
+        stix_string = stix_package.to_xml(auto_namespace=False, ns_dict=NS_DICT, schemaloc_dict=SCHEMALOC_DICT)
+        stix_string = stix_string.replace("</stix:STIX_Package>\n", "");
     print(stix_string)
-
 
 if __name__ == "__main__":
     main(sys.argv)

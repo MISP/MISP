@@ -2432,11 +2432,9 @@ class Event extends AppModel {
 		}
 		$randomFileName = $this->generateRandomFileName();
 		$tmpDir = APP . "files" . DS . "scripts" . DS . "tmp";
-		$tempFile = new File($tmpDir . DS . $randomFileName, true, 0644);
 		$stixFile = new File($tmpDir . DS . $randomFileName . ".stix");
-		$stix_framing = shell_exec('python ' . APP . "files" . DS . "scripts" . DS . 'misp2stix_framing.py "' . Configure::read('MISP.baseurl') . '" "' . Configure::read('MISP.org') . '"');
+		$stix_framing = shell_exec('python ' . APP . "files" . DS . "scripts" . DS . 'misp2stix_framing.py ' . escapeshellarg(Configure::read('MISP.baseurl')) . ' ' . escapeshellarg(Configure::read('MISP.org')) . ' ' . escapeshellarg($returnType));
 		if (empty($stix_framing)) {
-			$tempFile->delete();
 			$stixFile->delete();
 			return array('success' => 0, 'message' => 'There was an issue generating the STIX export.');
 		}
@@ -2450,6 +2448,7 @@ class Event extends AppModel {
 		$i = 0;
 		$eventCount = count($event_ids);
 		foreach ($event_ids as $event_id) {
+			$tempFile = new File($tmpDir . DS . $randomFileName, true, 0644);
 			$event = $this->fetchEvent($user, array('eventid' => $event_id));
 			if (empty($event)) continue;
 			if ($attachments == "yes" || $attachments == "true" || $attachments == 1) {
@@ -2465,10 +2464,9 @@ class Event extends AppModel {
 				$event[0]['Tag'][] = $tag['Tag'];
 			}
 			$tempFile->write(json_encode($event[0]));
-			$tempFile->close();
 			unset($event);
 			$scriptFile = APP . "files" . DS . "scripts" . DS . "misp2stix.py";
-			$result = shell_exec('python ' . $scriptFile . ' ' . $randomFileName . ' ' . $returnType . ' "' . escapeshellarg(Configure::read('MISP.baseurl')) . '" "' . escapeshellarg(Configure::read('MISP.org')) . '"');
+			$result = shell_exec('python ' . $scriptFile . ' ' . $randomFileName . ' ' . escapeshellarg($returnType) . ' ' . escapeshellarg(Configure::read('MISP.baseurl')) . ' ' . escapeshellarg(Configure::read('MISP.org')));
 			// The result of the script will be a returned JSON object with 2 variables: success (boolean) and message
 			// If success = 1 then the temporary output file was successfully written, otherwise an error message is passed along
 			$decoded = json_decode($result, true);
@@ -2478,8 +2476,12 @@ class Event extends AppModel {
 				return array('success' => 0, 'message' => $decoded['message']);
 			}
 			$file = new File(APP . "files" . DS . "scripts" . DS . "tmp" . DS . $randomFileName . ".out");
-			$stix_event = '    ' . substr($file->read(), 0, -1);
-			$stix_event = str_replace("\n", "\n    ", $stix_event) . "\n";
+			if ($returnType == 'xml') {
+				$stix_event = '    ' . substr($file->read(), 0, -1);
+				$stix_event = str_replace("\n", "\n    ", $stix_event) . "\n";
+			} else {
+				$stix_event = $file->read() . (($i + 1) != $eventCount ? ',' : '');
+			}
 			$stixFile->append($stix_event);
 			$file->close();
 			$file->delete();
@@ -2490,8 +2492,13 @@ class Event extends AppModel {
 					$this->Job->saveField('progress', $i * 80 / $eventCount);
 				}
 			}
+			$tempFile->close();
 		}
-		$stixFile->append("</stix:STIX_Package>\n\n");
+		if ($returnType == 'xml') {
+			$stixFile->append("</stix:STIX_Package>\n\n");
+		} else {
+			$stixFile->append("]}\n");
+		}
 		if ($i == 0) {
 			$tempFile->delete();
 			$stixFile->delete();

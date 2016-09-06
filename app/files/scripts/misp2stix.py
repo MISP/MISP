@@ -79,7 +79,7 @@ def saveFile(args, pathname, package):
         filename = pathname + "/tmp/" + args[1] + ".out"
         with open(filename, 'w') as f:
             if args[2] == 'json':
-                f.write(package.to_json())
+                f.write('{"package": ' + package.to_json() + "}")
             else:
                 f.write(package.to_xml(include_namespaces=False, include_schemalocs=False))
     except:
