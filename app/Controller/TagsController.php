@@ -23,10 +23,6 @@ class TagsController extends AppController {
 
 	public $helpers = array('TextColour');
 
-	public function beforeFilter() { // TODO REMOVE
-		parent::beforeFilter();
-	}
-
 	public function index($favouritesOnly = false) {
 		$this->loadModel('Event');
 		$this->loadModel('Taxonomy');
