@@ -2132,7 +2132,7 @@ class Event extends AppModel {
 		App::uses('SyncTool', 'Tools');
 		foreach ($servers as &$server) {
 			if ((!isset($server['Server']['internal']) || !$server['Server']['internal']) && $event['Event']['distribution'] < 2) {
-				return true;
+				continue;
 			}
 			$syncTool = new SyncTool();
 			$HttpSocket = $syncTool->setupHttpSocket($server);
@@ -2149,6 +2149,9 @@ class Event extends AppModel {
 			}
 		}
 		if (!$uploaded) {
+			if (empty($failedServers)) {
+				return true;
+			}
 			return $failedServers;
 		} else {
 			return true;
