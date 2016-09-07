@@ -27,8 +27,6 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
 	 *
 	 * 'ApacheShibbAuth' =>                      // Configuration for shibboleth authentication
 	 *     array(
-	 *      'apacheEnv' => 'REMOTE_USER',        // If proxy variable = HTTP_REMOTE_USER
-	 *      'ssoAuth' => 'AUTH_TYPE',            // NOT to modify
 	 *      'MailTag' => 'EMAIL_TAG',
 	 *      'OrgTag' => 'FEDERATION_TAG',
 	 *      'GroupTag' => 'GROUP_TAG',
@@ -38,7 +36,6 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
 	 *          'group_two' => 2,
 	 *          'group_one' => 1,
 	 *       ),
-	 *      'DefaultRoleId' => 3,
 	 *      'DefaultOrg' => 'MY_ORG',
 	 * ),
 	 * @param CakeRequest $request The request that contains login information.
@@ -64,7 +61,7 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
 		}
 
 		// Get Default parameters
-		$roleId = Configure::read('ApacheShibbAuth.DefaultRoleId');
+		$roleId = -1;
 		$org = Configure::read('ApacheShibbAuth.DefaultOrg');
 		// Get tags from SSO config
 		$mailTag = Configure::read('ApacheShibbAuth.MailTag');
@@ -96,6 +93,7 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
 
 		//Get user role from its list of groups
 		list($roleChanged, $roleId) = $this->getUserRoleFromGroup($groupTag, $groupRoleMatching, $roleId);
+		if($roleId < 0) return false; //Deny if the user is not in any egroup
 
 		// Database model object
 		$userModel = ClassRegistry::init($this->settings['userModel']);
@@ -187,7 +185,7 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
 				if (array_key_exists($group, $groupRoleMatching)) { //In case there is an group not defined in the config.php file
 					CakeLog::write('info', "User group ${group} found.");
 					$roleVal = $groupRoleMatching[$group];
-					if ($roleVal <= $roleId) {
+					if ($roleVal <= $roleId || $roleId == -1) {
 						$roleId = $roleVal;
 						$roleChanged = true;
 					}
