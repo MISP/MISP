@@ -70,7 +70,7 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
 		$groupRoleMatching = Configure::read('ApacheShibbAuth.GroupRoleMatching');
 
 		// Get user values
-		if (!isset($_SERVER[$mailTag])) {
+		if (!isset($_SERVER[$mailTag]) || filter_var($_SERVER[$mailTag], FILTER_VALIDATE_EMAIL) === FALSE) {
 			CakeLog::write('error', 'Mail tag is not given by the SSO SP. Not processing login.');
 			return false;
 		}
@@ -110,6 +110,11 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
 		//Insert user in database if not existent
 		//Generate random password
 		$password = $this->randPasswordGen(40);
+		// get maximum nids value
+		$nidsMax = $userModel->find('all', array(
+			'fields' => array('MAX(User.nids_sid) AS nidsMax'),
+			)
+		);
 		// create user
 		$userData = array('User' => array(
 			'email' => $mispUsername,
@@ -117,7 +122,7 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
 			'password' => $password, //Since it is done via shibboleth the password will be a random 40 character string
 			'confirm_password' => $password,
 			'authkey' => $userModel->generateAuthKey(),
-			'nids_sid' => 4000000,
+			'nids_sid' => ((int)$nidsMax[0][0]['nidsMax'])+1,
 			'newsread' => date('Y-m-d'),
 			'role_id' => $roleId,
 			'change_pw' => 0
