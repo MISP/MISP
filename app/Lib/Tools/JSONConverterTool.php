@@ -1,21 +1,20 @@
 <?php
 class JSONConverterTool {
 	public function event2JSON($event, $isSiteAdmin=false) {
-		$event['Event']['Org'] = $event['Org'];
-		$event['Event']['Orgc'] = $event['Orgc'];
-		if (isset($event['SharingGroup'])) $event['Event']['SharingGroup'] = $event['SharingGroup'];
-		$event['Event']['Attribute'] = $event['Attribute'];
-		$event['Event']['ShadowAttribute'] = $event['ShadowAttribute'];
-		$event['Event']['RelatedEvent'] = $event['RelatedEvent'];
+		$toRearrange = array('Org', 'Orgc', 'SharingGroup', 'Attribute', 'ShadowAttribute', 'RelatedAttribute', 'RelatedEvent');
+		foreach ($toRearrange as $object) {
+			if (isset($event[$object])) {
+				$event['Event'][$object] = $event[$object];
+				unset($event[$object]);
+			}
+		}
 
 		if (isset($event['EventTag'])) {
 			foreach ($event['EventTag'] as $k => $tag) {
 				$event['Event']['Tag'][$k] = $tag['Tag'];
 			}
 		}
-
-		if (isset($event['RelatedAttribute'])) $event['Event']['RelatedAttribute'] = $event['RelatedAttribute'];
-		else $event['Event']['RelatedAttribute'] = array();
+		
 		//
 		// cleanup the array from things we do not want to expose
 		//

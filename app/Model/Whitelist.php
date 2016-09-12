@@ -88,12 +88,14 @@ class Whitelist extends AppModel {
 			} else {
 			// if !$isAttributeArray, we know that we have an array of events that we need to parse through
 				foreach ($data as $ke => $event) {
-					// loop through each attribute and unset the ones that are whitelisted
-					foreach ($event['Attribute'] as $k => $attribute) {
-						// loop through each whitelist item and run a preg match against the attribute value. If it matches, unset the attribute
-						foreach ($whitelists as $wlitem) {
-							if (preg_match($wlitem, $attribute['value'])) {
-								unset($data[$ke]['Attribute'][$k]);
+					if (isset($event['Attribute'])) {
+						// loop through each attribute and unset the ones that are whitelisted
+						foreach ($event['Attribute'] as $k => $attribute) {
+							// loop through each whitelist item and run a preg match against the attribute value. If it matches, unset the attribute
+							foreach ($whitelists as $wlitem) {
+								if (preg_match($wlitem, $attribute['value'])) {
+									unset($data[$ke]['Attribute'][$k]);
+								}
 							}
 						}
 					}

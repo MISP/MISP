@@ -1088,7 +1088,7 @@ class Event extends AppModel {
 	// includeAttachments: true will attach the attachments to the attributes in the data field
 	public function fetchEvent($user, $options = array()) {
 		if (isset($options['Event.id'])) $options['eventid'] = $options['Event.id'];
-		$possibleOptions = array('eventid', 'idList', 'tags', 'from', 'to', 'last', 'to_ids', 'includeAllTags', 'includeAttachments', 'event_uuid', 'distribution', 'sharing_group_id', 'disableSiteAdmin');
+		$possibleOptions = array('eventid', 'idList', 'tags', 'from', 'to', 'last', 'to_ids', 'includeAllTags', 'includeAttachments', 'event_uuid', 'distribution', 'sharing_group_id', 'disableSiteAdmin', 'metadata');
 		foreach ($possibleOptions as &$opt) if (!isset($options[$opt])) $options[$opt] = false;
 		if ($options['eventid']) {
 			$conditions['AND'][] = array("Event.id" => $options['eventid']);
@@ -1248,6 +1248,10 @@ class Event extends AppModel {
 				),
 			)
 		);
+		if ($options['metadata']) {
+			unset($params['contain']['Attribute']);
+			unset($params['contain']['ShadowAttribute']);
+		}
 		if ($user['Role']['perm_site_admin']) {
 			$params['contain']['User'] = array('fields' => 'email');
 		}
@@ -1286,28 +1290,30 @@ class Event extends AppModel {
 					}
 				}
 			}
-			foreach ($event['Attribute'] as $key => &$attribute) {
-				if (isset($options['includeAttachments']) && $options['includeAttachments']) {
-					if ($this->Attribute->typeIsAttachment($attribute['type'])) {
-						$encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
-						$attribute['data'] = $encodedFile;
-					}
-				}
-				if (isset($attribute['SharingGroup']['SharingGroupServer'])) {
-					foreach ($attribute['SharingGroup']['SharingGroupServer'] as &$sgs) {
-						if ($sgs['server_id'] == 0) {
-							$sgs['Server'] = array('id' => '0', 'url' => Configure::read('MISP.baseurl'), 'name' => Configure::read('MISP.baseurl'));
+			if (isset($event['Attribute'])) {
+				foreach ($event['Attribute'] as $key => &$attribute) {
+					if (isset($options['includeAttachments']) && $options['includeAttachments']) {
+						if ($this->Attribute->typeIsAttachment($attribute['type'])) {
+							$encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
+							$attribute['data'] = $encodedFile;
 						}
 					}
-				}
-				$attribute['ShadowAttribute'] = array();
-				// If a shadowattribute can be linked to an attribute, link it to it then remove it from the event
-				// This is to differentiate between proposals that were made to an attribute for modification and between proposals for new attributes
-				foreach ($event['ShadowAttribute'] as $k => &$sa) {
-					if (!empty($sa['old_id'])) {
-						if ($sa['old_id'] == $attribute['id']) {
-							$results[$eventKey]['Attribute'][$key]['ShadowAttribute'][] = $sa;
-							unset($results[$eventKey]['ShadowAttribute'][$k]);
+					if (isset($attribute['SharingGroup']['SharingGroupServer'])) {
+						foreach ($attribute['SharingGroup']['SharingGroupServer'] as &$sgs) {
+							if ($sgs['server_id'] == 0) {
+								$sgs['Server'] = array('id' => '0', 'url' => Configure::read('MISP.baseurl'), 'name' => Configure::read('MISP.baseurl'));
+							}
+						}
+					}
+					$attribute['ShadowAttribute'] = array();
+					// If a shadowattribute can be linked to an attribute, link it to it then remove it from the event
+					// This is to differentiate between proposals that were made to an attribute for modification and between proposals for new attributes
+					foreach ($event['ShadowAttribute'] as $k => &$sa) {
+						if (!empty($sa['old_id'])) {
+							if ($sa['old_id'] == $attribute['id']) {
+								$results[$eventKey]['Attribute'][$key]['ShadowAttribute'][] = $sa;
+								unset($results[$eventKey]['ShadowAttribute'][$k]);
+							}
 						}
 					}
 				}
@@ -1317,8 +1323,10 @@ class Event extends AppModel {
 			}
 			// remove proposals to attributes that we cannot see
 			// if the shadow attribute wasn't moved within an attribute before, this is the case
-			foreach ($event['ShadowAttribute'] as $k => &$sa) {
-				if (!empty($sa['old_id'])) unset($event['ShadowAttribute'][$k]);
+			if (isset($event['ShadowAttribute'])) {
+				foreach ($event['ShadowAttribute'] as $k => &$sa) {
+					if (!empty($sa['old_id'])) unset($event['ShadowAttribute'][$k]);
+				}
 			}
 		}
 		return $results;

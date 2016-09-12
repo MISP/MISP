@@ -2259,7 +2259,7 @@ class EventsController extends AppController {
 	// the last 4 fields accept the following operators:
 	// && - you can use && between two search values to put a logical OR between them. for value, 1.1.1.1&&2.2.2.2 would find attributes with the value being either of the two.
 	// ! - you can negate a search term. For example: google.com&&!mail would search for all attributes with value google.com but not ones that include mail. www.google.com would get returned, mail.google.com wouldn't.
-	public function restSearch($key = 'download', $value = false, $type = false, $category = false, $org = false, $tags = false, $searchall = false, $from = false, $to = false, $last = false, $eventid = false, $withAttachments = false) {
+	public function restSearch($key = 'download', $value = false, $type = false, $category = false, $org = false, $tags = false, $searchall = false, $from = false, $to = false, $last = false, $eventid = false, $withAttachments = false, $metadata = false) {
 		if ($key!='download') {
 			$user = $this->checkAuthUser($key);
 		} else {
@@ -2285,7 +2285,7 @@ class EventsController extends AppController {
 			} else {
 				throw new BadRequestException('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct headers based on content type.');
 			}
-			$paramArray = array('value', 'type', 'category', 'org', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments');
+			$paramArray = array('value', 'type', 'category', 'org', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments', 'metadata');
 			foreach ($paramArray as $p) {
 				if (isset($data['request'][$p])) ${$p} = $data['request'][$p];
 				else ${$p} = null;
@@ -2411,7 +2411,7 @@ class EventsController extends AppController {
 				$final = "";
 				$final .= '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL . '<response>' . PHP_EOL;
 				foreach ($eventIds as $currentEventId) {
-					$result = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $currentEventId, 'includeAttachments' => $withAttachments));
+					$result = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $currentEventId, 'includeAttachments' => $withAttachments, 'metadata' => $metadata));
 					if (!empty($result)) {
 						$result = $this->Whitelist->removeWhitelistedFromArray($result, false);
 						$final .= $converter->event2XML($result[0]) . PHP_EOL;
@@ -2427,7 +2427,7 @@ class EventsController extends AppController {
 				$converter = new JSONConverterTool();
 				$final = '{"response":[';
 				foreach ($eventIds as $k => $currentEventId) {
-					$result = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $currentEventId, 'includeAttachments' => $withAttachments));
+					$result = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $currentEventId, 'includeAttachments' => $withAttachments, 'metadata' => $metadata));
 					$final .= $converter->event2JSON($result[0]);
 					if ($k < count($eventIds) -1 ) $final .= ',';
 				}
