@@ -40,7 +40,6 @@ class EventsController extends AppController {
 		$this->Auth->allow('hids_md5');
 		$this->Auth->allow('hids_sha1');
 		$this->Auth->allow('text');
-		$this->Auth->allow('dot');
 		$this->Auth->allow('restSearch');
 		$this->Auth->allow('stix');
 
