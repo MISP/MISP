@@ -565,6 +565,12 @@ class UsersController extends AppController {
 	}
 
 	public function login() {
+		$this->Bruteforce = ClassRegistry::init('Bruteforce');
+		if ($this->request->is('post') && isset($this->request->data['User']['email'])) {
+			if ($this->Bruteforce->isBlacklisted($_SERVER['REMOTE_ADDR'], $this->request->data['User']['email'])) {
+				throw new ForbiddenException('You have reached the maximum number of login attempts. Please wait ' . Configure::read('SecureAuth.expire') . ' seconds and try again.');
+			}
+		}
 		if ($this->Auth->login()) {
 			$this->__extralog("login");	// TODO Audit, __extralog, check: customLog i.s.o. __extralog, no auth user?: $this->User->customLog('login', $this->Auth->user('id'), array('title' => '','user_id' => $this->Auth->user('id'),'email' => $this->Auth->user('email'),'org' => 'IN2'));
 			$this->User->Behaviors->disable('SysLogLogable.SysLogLogable');
@@ -585,6 +591,9 @@ class UsersController extends AppController {
 			// don't display "invalid user" before first login attempt
 			if ($this->request->is('post')) {
 				$this->Session->setFlash(__('Invalid username or password, try again'));
+				if (isset($this->request->data['User']['email'])) {
+					$this->Bruteforce->insert($_SERVER['REMOTE_ADDR'], $this->request->data['User']['email']);
+				}
 			}
 			// populate the DB with the first role (site admin) if it's empty
 			$this->loadModel('Role');

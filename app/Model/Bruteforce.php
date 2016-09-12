@@ -6,30 +6,29 @@ App::uses('Sanitize', 'Utility');
 class Bruteforce extends AppModel {
 
 	public function insert($ip, $username) {
+		$this->Log = ClassRegistry::init('Log');
+		$this->Log->create();
 		$expire = time() + Configure::read('SecureAuth.expire');
-		$dataSourceConfig = ConnectionManager::getDataSource('default')->config;
-		$dataSource = $dataSourceConfig['datasource'];
-		// sanitize fields
-		$ip = Sanitize::clean($ip);
-		$username = Sanitize::clean($username);
-		if ($dataSource == 'Database/Mysql') {
-			$sql = "INSERT INTO bruteforces (ip, username, `expire`) VALUES ('$ip', '$username', '$expire');";
-		} else if ($dataSource == 'Database/Postgres') {
-			$sql = "INSERT INTO bruteforces (ip, username, expire) VALUES ('$ip', '$username', '$expire');";
-		}
-		$this->query($sql);
+		$expire = date('Y-m-d H:i:s', $expire);
+		$bruteforceEntry = array(
+			'ip' => $ip,
+			'username' => $username,
+			'expire' => $expire
+		);
+		$this->save($bruteforceEntry);
+		$title = 'Failed login attempt using username ' . $username . ' from IP: ' . $_SERVER['REMOTE_ADDR'] . '.';
 		if ($this->isBlacklisted($ip, $username)) {
-			$this->Log = ClassRegistry::init('Log');
-			$this->Log->create();
-			$this->Log->save(array(
+			$title .= 'This has tripped the bruteforce protection after  ' . Configure::read('SecureAuth.amount') . ' failed attempts. The user is now blacklisted for ' . Configure::read('SecureAuth.expire') . ' seconds.';
+		}
+		$log = array(
 				'org' => 'SYSTEM',
-				'model' => 'Blacklist',
+				'model' => 'User',
 				'model_id' => 0,
 				'email' => $username,
-				'action' => 'blacklist',
-				'title' => 'User from ' . $ip . ' claiming to be ' . $username . ' has been blacklisted after ' . Configure::read('SecureAuth.amount') . ' failed attempts'
-			));
-		}
+				'action' => 'login_fail',
+				'title' => $title
+		);
+		$this->Log->save($log);
 	}
 
 	public function clean() {

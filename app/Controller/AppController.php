@@ -72,9 +72,7 @@ class AppController extends Controller {
 				'authError' => 'Unauthorised access.',
 				'loginRedirect' => array('controller' => 'users', 'action' => 'routeafterlogin'),
 				'logoutRedirect' => array('controller' => 'users', 'action' => 'login', 'admin' => false),
-				//'authorize' => array('Controller', // Added this line
-				//'Actions' => array('actionPath' => 'controllers')) // TODO ACL, 4: tell actionPath
-				),
+			),
 			'Security',
 			'ACL'
 	);
@@ -108,7 +106,6 @@ class AppController extends Controller {
 				)
 			);
 		} else {
-			$this->Auth->className = 'SecureAuth';
 			$this->Auth->authenticate = array(
 				'Form' => array(
 					'fields' => array('username' => 'email'),
@@ -138,7 +135,6 @@ class AppController extends Controller {
 
 		$userLoggedIn = false;
 		if (Configure::read('Plugin.CustomAuth_enable')) $userLoggedIn = $this->__customAuthentication($_SERVER);
-
 		if (!$userLoggedIn) {
 			// REST authentication
 			if ($this->_isRest() || $this->_isAutomation()) {
