@@ -29,9 +29,6 @@ class NidsExport {
 		$this->Whitelist = ClassRegistry::init('Whitelist');
 		$this->whitelist = $this->Whitelist->getBlockedValues();
 
-		//For bro format organisation
-		$orgsName = array();
-
 		// output a short explanation
 		if (!$continue) {
 			$this->explain();
@@ -39,33 +36,14 @@ class NidsExport {
 		// generate the rules
 		foreach ($items as $item) {
 
-			if($format != 'bro') {
-				# proto src_ip src_port direction dst_ip dst_port msg rule_content tag sid rev
-				$ruleFormatMsg = 'msg: "MISP e' . $item['Event']['id'] . ' %s"';
-				$ruleFormatReference = 'reference:url,' . Configure::read('MISP.baseurl') . '/events/view/' . $item['Event']['id'];
-				$ruleFormat = '%salert %s %s %s %s %s %s (' . $ruleFormatMsg . '; %s %s classtype:' . $this->classtype . '; sid:%d; rev:%d; priority:' . $item['Event']['threat_level_id'] . '; ' . $ruleFormatReference . ';) ';
-			}
-			else{
-				if (array_key_exists($item['Event']['orgc_id'], $orgsName)) {
-					$orgName = $orgsName[$item['Event']['orgc_id']];
-				} else {
-					$orgModel = ClassRegistry::init('Organisation');
-					$org = $orgModel->find('first', array(
-							'fields' => array('Organisation.name'),
-							'conditions' => array('id' => $item['Event']['orgc_id']),
-						)
-					);
-					$orgName = $org['Organisation']['name'];
-					$orgsName[$item['Event']['orgc_id']] = $orgName;
-				}
-				$orgFormatReference = $orgName;
-				$ruleFormatReference = Configure::read('MISP.baseurl') . '/events/view/' . $item['Event']['id'];
-				$ruleFormat = "%s\t%s\t" . $orgFormatReference . "\t" . $ruleFormatReference . "\t%s\t%s";
-			}
+			# proto src_ip src_port direction dst_ip dst_port msg rule_content tag sid rev
+			$ruleFormatMsg = 'msg: "MISP e' . $item['Event']['id'] . ' %s"';
+			$ruleFormatReference = 'reference:url,' . Configure::read('MISP.baseurl') . '/events/view/' . $item['Event']['id'];
+			$ruleFormat = '%salert %s %s %s %s %s %s (' . $ruleFormatMsg . '; %s %s classtype:' . $this->classtype . '; sid:%d; rev:%d; priority:' . $item['Event']['threat_level_id'] . '; ' . $ruleFormatReference . ';) ';
 
 			$sid = $startSid + ($item['Attribute']['id'] * 10); // leave 9 possible rules per attribute type
 			$sid++;
-			switch ($attribute['type']) {
+			switch ($item['Attribute']['type']) {
 				// LATER nids - test all the snort attributes
 				// LATER nids - add the tag keyword in the rules to capture network traffic
 				// LATER nids - sanitize every $attribute['value'] to not conflict with snort
@@ -361,18 +339,18 @@ class NidsExport {
 		$attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
 		$content = 'flow:to_server,established; content:"' . $attribute['value'] . '"; http_header;';
 		$this->rules[] = sprintf($ruleFormat,
-		        ($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
-		        'tcp',						// proto
-		        '$HOME_NET',					// src_ip
-		        'any',							// src_port
-		        '->',							// direction
-		        '$EXTERNAL_NET',				// dst_ip
-		        '$HTTP_PORTS',					// dst_port
-		        'Outgoing User-Agent: ' . $attribute['value'],		// msg
-		        $content,						// rule_content
-		        'tag:session,600,seconds;',		// tag
-		        $sid,							// sid
-		        1								// rev
+				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
+				'tcp',						// proto
+				'$HOME_NET',					// src_ip
+				'any',							// src_port
+				'->',							// direction
+				'$EXTERNAL_NET',				// dst_ip
+				'$HTTP_PORTS',					// dst_port
+				'Outgoing User-Agent: ' . $attribute['value'],		// msg
+				$content,						// rule_content
+				'tag:session,600,seconds;',		// tag
+				$sid,							// sid
+				1								// rev
 		);
 	}
 
