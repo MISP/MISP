@@ -1719,7 +1719,6 @@ class EventsController extends AppController {
 		if ($last) $last = $this->Event->resolveTimeDelta($last);
 		// backwards compatibility, swap key and format
 		if ($format != 'snort' && $format != 'suricata') {
-			$key = $format;
 			$format = 'suricata'; // default format
 		}
 		$this->response->type('txt');	// set the content type
@@ -3142,10 +3141,10 @@ class EventsController extends AppController {
 					'checkbox' => false,
 			),
 			'bro' => array(
-				'url' => '/events/bro/download/' . $id,
-				'text' => 'Download Bro rules',
-				'requiresPublished' => true,
-				'checkbox' => false,
+					'url' => '/attributes/bro/download/all/false/' . $id,
+					'text' => 'Download Bro rules',
+					'requiresPublished' => true,
+					'checkbox' => false
 			),
 			'text' => array(
 					'url' => '/attributes/text/download/all/false/' . $id,

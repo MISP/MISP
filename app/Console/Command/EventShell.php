@@ -317,7 +317,8 @@ class EventShell extends AppShell
 		} else {
 			$zipname = DS . 'misp.bro.' . $user['Organisation']['name'] . '.intel.zip';
 		}
-		$tmpZipname = DS . "bro_export_tmp.zip";
+		$random_component = $this->Event->generateRandomFileName();
+		$tmpZipname = DS . "bro_export_tmp_" . $random_component . ".zip";
 		$zip = new File($dir->pwd() . $tmpZipname);
 		foreach ($types as $k => $type) {
 			$final = $this->Attribute->bro($user, $type);
@@ -332,7 +333,7 @@ class EventShell extends AppShell
 
 			$execRetval = '';
 			$execOutput = array();
-			exec('zip -gj  ' . $zip->path . ' ' . $dir->pwd() . '/' . $filename,
+			exec('zip -gj  ' . $zip->path . ' ' . $dir->pwd() . '/' .  $filename,
 				$execOutput, $execRetval);
 			if ($execRetval != 0) { // not EXIT_SUCCESS
 				throw new Exception('An error has occured while attempting to zip the intel files.');

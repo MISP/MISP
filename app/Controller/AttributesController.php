@@ -1871,7 +1871,11 @@ class AttributesController extends AppController {
 				}
 			}
 			$this->response->type('txt');    // set the content type
-			$this->header('Content-Disposition: download; filename="misp.' . $type . '.intel"');
+			$filename = 'misp.' . $type . '.intel';
+			if ($eventId) {
+				$filename = 'misp.' . $type . '.event_' . $eventId . '.intel';
+			}
+			$this->header('Content-Disposition: download; filename="' . $filename . '"');
 			$this->layout = 'text/default';
 			$attributes = array("#fields indicator\tindicator_type\tmeta.source\tmeta.url\tmeta.do_notice\tmeta.if_in");
 			$attributes = array_merge($attributes, $this->Attribute->bro($this->Auth->user(), $type, $tags, $eventId, $allowNonIDS, $from, $to, $last));
