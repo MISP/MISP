@@ -928,4 +928,15 @@ class User extends AppModel {
 
 		return $admin['User'];
 	}
+
+	public function getUserMinimalInfo($id) {
+		$info = $this->find('first', array(
+			'conditions' => array(
+				'User.id' => $id,
+			),
+			'fields' => array('User.email', 'User.id')
+		));
+		return $info['User'];
+	}
+
 }
