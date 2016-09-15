@@ -22,6 +22,7 @@
 
 // TODO GPG encryption has issues when keys are expired
 
+App::uses('ConnectionManager', 'Model');
 App::uses('Controller', 'Controller');
 App::uses('File', 'Utility');
 App::uses('RequestRearrangeTool', 'Tools');
@@ -45,14 +46,14 @@ class AppController extends Controller {
 
 	public $helpers = array('Utility');
 
-	private $__jsVersion = '2.4.50';
+	private $__jsVersion = '2.4.51';
 	public $phpmin = '5.5.9';
 	public $phprec = '5.6.0';
 
 	// Used for _isAutomation(), a check that returns true if the controller & action combo matches an action that is a non-xml and non-json automation method
 	// This is used to allow authentication via headers for methods not covered by _isRest() - as that only checks for JSON and XML formats
 	public $automationArray = array(
-		'events' => array('csv', 'nids', 'hids', 'xml', 'restSearch', 'stix', 'updateGraph'),
+		'events' => array('csv', 'nids', 'hids', 'xml', 'restSearch', 'stix', 'updateGraph', 'downloadOpenIOCEvent'),
 		'attributes' => array('text', 'downloadAttachment', 'returnAttributes', 'restSearch', 'rpz'),
 	);
 
@@ -71,14 +72,19 @@ class AppController extends Controller {
 				'authError' => 'Unauthorised access.',
 				'loginRedirect' => array('controller' => 'users', 'action' => 'routeafterlogin'),
 				'logoutRedirect' => array('controller' => 'users', 'action' => 'login', 'admin' => false),
-				//'authorize' => array('Controller', // Added this line
-				//'Actions' => array('actionPath' => 'controllers')) // TODO ACL, 4: tell actionPath
-				),
+			),
 			'Security',
 			'ACL'
 	);
 
 	public function beforeFilter() {
+		// check for a supported datasource configuration
+		$dataSourceConfig = ConnectionManager::getDataSource('default')->config;
+		$dataSource = $dataSourceConfig['datasource'];
+		if ($dataSource != 'Database/Mysql' && $dataSource != 'Database/Postgres') {
+			throw new Exception('datasource not supported: ' . $dataSource);
+		}
+
 		$this->set('jsVersion', $this->__jsVersion);
 		$this->loadModel('User');
 		$auth_user_fields = $this->User->describeAuthFields();
@@ -100,7 +106,6 @@ class AppController extends Controller {
 				)
 			);
 		} else {
-			$this->Auth->className = 'SecureAuth';
 			$this->Auth->authenticate = array(
 				'Form' => array(
 					'fields' => array('username' => 'email'),
@@ -130,7 +135,6 @@ class AppController extends Controller {
 
 		$userLoggedIn = false;
 		if (Configure::read('Plugin.CustomAuth_enable')) $userLoggedIn = $this->__customAuthentication($_SERVER);
-
 		if (!$userLoggedIn) {
 			// REST authentication
 			if ($this->_isRest() || $this->_isAutomation()) {
@@ -153,8 +157,8 @@ class AppController extends Controller {
 						if ($user) {
 							unset($user['User']['gpgkey']);
 							unset($user['User']['certif_public']);
-						    // User found in the db, add the user info to the session
-						    if (Configure::read('MISP.log_auth')) {
+							// User found in the db, add the user info to the session
+							if (Configure::read('MISP.log_auth')) {
 								$this->Log = ClassRegistry::init('Log');
 								$this->Log->create();
 								$log = array(
@@ -167,9 +171,9 @@ class AppController extends Controller {
 										'change' => 'HTTP method: ' . $_SERVER['REQUEST_METHOD'] . PHP_EOL . 'Target: ' . $this->here,
 								);
 								$this->Log->save($log);
-						    }
-						    $this->Session->renew();
-						    $this->Session->write(AuthComponent::$sessionKey, $user['User']);
+							}
+							$this->Session->renew();
+							$this->Session->write(AuthComponent::$sessionKey, $user['User']);
 						} else {
 							// User not authenticated correctly
 							// reset the session information
@@ -323,7 +327,7 @@ class AppController extends Controller {
 			$this->set('me', false);
 		}
 		if ($this->_isSiteAdmin()) {
-			if (Configure::read('Session.defaults') !== 'database') {
+			if (Configure::read('Session.defaults') == 'database') {
 				$db = ConnectionManager::getDataSource('default');
 				$sqlResult = $db->query('SELECT COUNT(id) AS session_count FROM cake_sessions WHERE expires < ' . time() . ';');
 				if (isset($sqlResult[0][0]['session_count']) && $sqlResult[0][0]['session_count'] > 1000) {
@@ -651,9 +655,5 @@ class AppController extends Controller {
 		$this->Server->cleanCacheFiles();
 		$this->Session->setFlash('Caches cleared.');
 		$this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'diagnostics'));
-	}
-
-	public function checkFilename($filename) {
-		return preg_match('@^([a-z0-9_.]+[a-z0-9_.\- ]*[a-z0-9_.\-]|[a-z0-9_.])+$@i', $filename);
 	}
 }

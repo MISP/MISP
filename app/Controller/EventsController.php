@@ -40,7 +40,6 @@ class EventsController extends AppController {
 		$this->Auth->allow('hids_md5');
 		$this->Auth->allow('hids_sha1');
 		$this->Auth->allow('text');
-		$this->Auth->allow('dot');
 		$this->Auth->allow('restSearch');
 		$this->Auth->allow('stix');
 
@@ -504,12 +503,6 @@ class EventsController extends AppController {
 		}
 		if (Configure::read('MISP.tagging') && !$this->_isRest()) {
 			$this->Event->contain(array('User.email', 'EventTag' => array('Tag')));
-			$tags = $this->Event->EventTag->Tag->find('all', array('recursive' => -1));
-			$tagNames = array('None');
-			foreach ($tags as $k => $v) {
-				$tagNames[$v['Tag']['id']] = $v['Tag']['name'];
-			}
-			$this->set('tags', $tagNames);
 		} else {
 			$this->Event->contain('User.email');
 		}
@@ -538,6 +531,9 @@ class EventsController extends AppController {
 			if (isset($passedArgs['limit'])) {
 				$rules['limit'] = intval($passedArgs['limit']);
 			}
+			if (isset($passedArgs['page'])) {
+				$rules['page'] = intval($passedArgs['page']);
+			}
 			$rules['contain'] = $this->paginate['contain'];
 			if (Configure::read('MISP.tagging')) {
 				$rules['contain']['EventTag'] = array('Tag' => array('fields' => array('id', 'name', 'colour', 'exportable'), 'conditions' => array('Tag.exportable' => true)));
@@ -560,23 +556,23 @@ class EventsController extends AppController {
 			$this->set('events', $events);
 		}
 
-	    if (!$this->Event->User->getPGP($this->Auth->user('id')) && Configure::read('GnuPG.onlyencrypted')) {
-	      // No GPG
-	      if (Configure::read('SMIME.enabled') && !$this->Event->User->getCertificate($this->Auth->user('id'))) {
-	        // No GPG and No SMIME
-	        $this->Session->setFlash(__('No x509 certificate or GPG key set in your profile. To receive emails, submit your public certificate or GPG key in your profile.'));
-	      } else if (!Configure::read('SMIME.enabled')) {
-	        $this->Session->setFlash(__('No GPG key set in your profile. To receive emails, submit your public key in your profile.'));
-	      }
-	    } else if ($this->Auth->user('autoalert') && !$this->Event->User->getPGP($this->Auth->user('id')) && Configure::read('GnuPG.bodyonlyencrypted')) {
-	      // No GPG & autoalert
-	      if ($this->Auth->user('autoalert') && Configure::read('SMIME.enabled') && !$this->Event->User->getCertificate($this->Auth->user('id'))) {
-	        // No GPG and No SMIME & autoalert
-	        $this->Session->setFlash(__('No x509 certificate or GPG key set in your profile. To receive attributes in emails, submit your public certificate or GPG key in your profile.'));
-	      } else if (!Configure::read('SMIME.enabled')) {
-	        $this->Session->setFlash(__('No GPG key set in your profile. To receive attributes in emails, submit your public key in your profile.'));
-	      }
-	    }
+		if (!$this->Event->User->getPGP($this->Auth->user('id')) && Configure::read('GnuPG.onlyencrypted')) {
+			// No GPG
+			if (Configure::read('SMIME.enabled') && !$this->Event->User->getCertificate($this->Auth->user('id'))) {
+				// No GPG and No SMIME
+				$this->Session->setFlash(__('No x509 certificate or GPG key set in your profile. To receive emails, submit your public certificate or GPG key in your profile.'));
+			} else if (!Configure::read('SMIME.enabled')) {
+				$this->Session->setFlash(__('No GPG key set in your profile. To receive emails, submit your public key in your profile.'));
+			}
+		} else if ($this->Auth->user('autoalert') && !$this->Event->User->getPGP($this->Auth->user('id')) && Configure::read('GnuPG.bodyonlyencrypted')) {
+			// No GPG & autoalert
+			if ($this->Auth->user('autoalert') && Configure::read('SMIME.enabled') && !$this->Event->User->getCertificate($this->Auth->user('id'))) {
+				// No GPG and No SMIME & autoalert
+				$this->Session->setFlash(__('No x509 certificate or GPG key set in your profile. To receive attributes in emails, submit your public certificate or GPG key in your profile.'));
+			} else if (!Configure::read('SMIME.enabled')) {
+				$this->Session->setFlash(__('No GPG key set in your profile. To receive attributes in emails, submit your public key in your profile.'));
+			}
+		}
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 		$this->set('analysisLevels', $this->Event->analysisLevels);
 		$this->set('distributionLevels', $this->Event->distributionLevels);
@@ -861,6 +857,10 @@ class EventsController extends AppController {
 		}
 		$results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
 		if (empty($results)) throw new NotFoundException('Invalid event');
+		//if the current user is an org admin AND event belongs to his/her org, fetch also the event creator info
+		if ($this->userRole['perm_admin'] && !$this->_isSiteAdmin() && ($results[0]['Org']['id'] == $this->Auth->user('org_id'))) {
+			$results[0]['User']['email'] = $this->User->field('email', array('id' , $results[0]['Event']['user_id']));
+		}
 		$event = &$results[0];
 		if ($this->_isRest()) {
 			$this->set('event', $event);
@@ -1886,7 +1886,7 @@ class EventsController extends AppController {
 			$rootDir = APP . "files" . DS . $id . DS;
 			App::uses('Folder', 'Utility');
 			$dir = new Folder($rootDir, true);
-			if (!$this->checkFilename($this->data['Event']['submittedgfi']['name'])) {
+			if (!$this->Event->checkFilename($this->data['Event']['submittedgfi']['name'])) {
 				throw new Exception ('Filename not allowed.');
 			}
 			$zipFile = new File($rootDir . $this->data['Event']['submittedgfi']['name']);
@@ -1914,7 +1914,7 @@ class EventsController extends AppController {
 	public function _addIOCFile($id) {
 		if (!empty($this->data) && $this->data['Event']['submittedioc']['size'] > 0 &&
 				is_uploaded_file($this->data['Event']['submittedioc']['tmp_name'])) {
-			if (!$this->checkFilename($this->data['Event']['submittedioc']['name'])) {
+			if (!$this->Event->checkFilename($this->data['Event']['submittedioc']['name'])) {
 				throw new Exception ('Filename not allowed.');
 			}
 
@@ -2262,17 +2262,15 @@ class EventsController extends AppController {
 	// the last 4 fields accept the following operators:
 	// && - you can use && between two search values to put a logical OR between them. for value, 1.1.1.1&&2.2.2.2 would find attributes with the value being either of the two.
 	// ! - you can negate a search term. For example: google.com&&!mail would search for all attributes with value google.com but not ones that include mail. www.google.com would get returned, mail.google.com wouldn't.
-	public function restSearch($key = 'download', $value = false, $type = false, $category = false, $org = false, $tags = false, $searchall = false, $from = false, $to = false, $last = false, $eventid = false, $withAttachments = false) {
-		if ($key!='download') {
-			$user = $this->checkAuthUser($key);
+	public function restSearch($key = 'download', $value = false, $type = false, $category = false, $org = false, $tags = false, $searchall = false, $from = false, $to = false, $last = false, $eventid = false, $withAttachments = false, $metadata = false) {
+		if ($key != 'download') {
+			if (!$this->checkAuthUser($key)) {
+				throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
+			}
 		} else {
 			if (!$this->Auth->user()) {
 				throw new UnauthorizedException('You are not authorized. Please send the Authorization header with your auth key along with an Accept header for application/xml.');
 			}
-			$user = $this->checkAuthUser($this->Auth->user('authkey'));
-		}
-		if (!$user) {
-			throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
 		}
 		if (!is_array($value)) $value = str_replace('|', '/', $value);
 		// request handler for POSTed queries. If the request is a post, the parameters (apart from the key) will be ignored and replaced by the terms defined in the posted json or xml object.
@@ -2288,7 +2286,7 @@ class EventsController extends AppController {
 			} else {
 				throw new BadRequestException('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct headers based on content type.');
 			}
-			$paramArray = array('value', 'type', 'category', 'org', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments');
+			$paramArray = array('value', 'type', 'category', 'org', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments', 'metadata');
 			foreach ($paramArray as $p) {
 				if (isset($data['request'][$p])) ${$p} = $data['request'][$p];
 				else ${$p} = null;
@@ -2414,7 +2412,7 @@ class EventsController extends AppController {
 				$final = "";
 				$final .= '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL . '<response>' . PHP_EOL;
 				foreach ($eventIds as $currentEventId) {
-					$result = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $currentEventId, 'includeAttachments' => $withAttachments));
+					$result = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $currentEventId, 'includeAttachments' => $withAttachments, 'metadata' => $metadata));
 					if (!empty($result)) {
 						$result = $this->Whitelist->removeWhitelistedFromArray($result, false);
 						$final .= $converter->event2XML($result[0]) . PHP_EOL;
@@ -2430,7 +2428,7 @@ class EventsController extends AppController {
 				$converter = new JSONConverterTool();
 				$final = '{"response":[';
 				foreach ($eventIds as $k => $currentEventId) {
-					$result = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $currentEventId, 'includeAttachments' => $withAttachments));
+					$result = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $currentEventId, 'includeAttachments' => $withAttachments, 'metadata' => $metadata));
 					$final .= $converter->event2JSON($result[0]);
 					if ($k < count($eventIds) -1 ) $final .= ',';
 				}
@@ -2446,7 +2444,7 @@ class EventsController extends AppController {
 		return $this->response;
 	}
 
-	public function downloadOpenIOCEvent($eventid) {
+	public function downloadOpenIOCEvent($key, $eventid) {
 		// return a downloadable text file called misp.openIOC.<eventId>.ioc for individual events
 		// TODO implement mass download of all events - maybe in a zip file?
 		$this->response->type('text');	// set the content type
@@ -2456,6 +2454,17 @@ class EventsController extends AppController {
 			$this->header('Content-Disposition: download; filename="misp.openIOC' . $eventid . '.ioc"');
 		}
 		$this->layout = 'text/default';
+
+		if ($key != 'download'){
+			$user = $this->checkAuthUser($key);
+			if (!$user){
+				throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
+			}
+		} else {
+			if (!$this->Auth->user('id')){
+				throw new UnauthorizedException('You have to be logged in to do that.');
+			}
+		}
 
 		// get the event if it exists and load it together with its attributes
 		$this->Event->id = $eventid;
@@ -2665,7 +2674,7 @@ class EventsController extends AppController {
 			if (empty($tag)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200));
 			$tag_id = $tag['Tag']['id'];
 		}
-		$this->Event->recurisve = -1;
+		$this->Event->recursive = -1;
 		$event = $this->Event->read(array('id', 'org_id', 'orgc_id', 'distribution', 'sharing_group_id'), $id);
 
 		if (!$this->_isSiteAdmin() && !$this->userRole['perm_sync']) {
@@ -2723,7 +2732,7 @@ class EventsController extends AppController {
 			$tag_id = $tag['Tag']['id'];
 		}
 		if (!is_numeric($id)) $id = $this->request->data['Event']['id'];
-		$this->Event->recurisve = -1;
+		$this->Event->recursive = -1;
 		$event = $this->Event->read(array('id', 'org_id', 'orgc_id', 'distribution'), $id);
 		// org should allow to tag too, so that an event that gets pushed can be tagged locally by the owning org
 		if ((($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id'] && $event['Event']['distribution'] == 0) || (!$this->userRole['perm_tagger'])) && !$this->_isSiteAdmin()) {
@@ -2837,7 +2846,7 @@ class EventsController extends AppController {
 						App::uses('FileAccessTool', 'Tools');
 						$tmpdir = Configure::read('MISP.tmpdir') ? Configure::read('MISP.tmpdir') : '/tmp';
 						$tempFile = explode('|', $attribute['data']);
-						if (!$this->checkFilename($tempFile[0])) {
+						if (!$this->Event->checkFilename($tempFile[0])) {
 							throw new Exception('Invalid filename.');
 						}
 						$attribute['data'] = (new FileAccessTool())->readFromFile($tmpdir . '/' . $tempFile[0], $tempFile[1]);
@@ -3093,7 +3102,7 @@ class EventsController extends AppController {
 					'checkbox_default' => true
 			),
 			'openIOC' => array(
-					'url' => '/events/downloadOpenIOCEvent/' . $id,
+					'url' => '/events/downloadOpenIOCEvent/download/' . $id,
 					'text' => 'OpenIOC (all indicators marked to IDS)',
 					'requiresPublished' => true,
 					'checkbox' => false,
@@ -3654,10 +3663,8 @@ class EventsController extends AppController {
 			$modules = $this->Module->getEnabledModules();
 			if (!is_array($modules) || empty($modules)) throw new MethodNotAllowedException('No valid enrichment options found for this attribute.');
 			$options = array();
-			$found = false;
 			foreach ($modules['modules'] as &$temp) {
 				if ($temp['name'] == $module) {
-					$found = true;
 					if (isset($temp['meta']['config'])) {
 						foreach ($temp['meta']['config'] as $conf) {
 							$options[$conf] = Configure::read('Plugin.Enrichment_' . $module . '_' . $conf);

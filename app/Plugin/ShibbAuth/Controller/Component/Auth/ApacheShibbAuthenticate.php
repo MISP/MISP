@@ -27,8 +27,6 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
 	 *
 	 * 'ApacheShibbAuth' =>                      // Configuration for shibboleth authentication
 	 *     array(
-	 *      'apacheEnv' => 'REMOTE_USER',        // If proxy variable = HTTP_REMOTE_USER
-	 *      'ssoAuth' => 'AUTH_TYPE',            // NOT to modify
 	 *      'MailTag' => 'EMAIL_TAG',
 	 *      'OrgTag' => 'FEDERATION_TAG',
 	 *      'GroupTag' => 'GROUP_TAG',
@@ -38,7 +36,6 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
 	 *          'group_two' => 2,
 	 *          'group_one' => 1,
 	 *       ),
-	 *      'DefaultRoleId' => 3,
 	 *      'DefaultOrg' => 'MY_ORG',
 	 * ),
 	 * @param CakeRequest $request The request that contains login information.
@@ -58,13 +55,13 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
 	{
 
 		//If the url contains sso=disable we return false so the main misp authentication form is used to log in
-		if (array_key_exists('sso', $request->query) && $request->query['sso'] == 'disable' || $_SESSION["sso_disable"] === True) {
+		if (array_key_exists('sso', $request->query) && $request->query['sso'] == 'disable' || (isset($_SESSION["sso_disable"]) &&  $_SESSION["sso_disable"] === True)) {
 			$_SESSION["sso_disable"]=True;
 			return false;
 		}
 
 		// Get Default parameters
-		$roleId = Configure::read('ApacheShibbAuth.DefaultRoleId');
+		$roleId = -1;
 		$org = Configure::read('ApacheShibbAuth.DefaultOrg');
 		// Get tags from SSO config
 		$mailTag = Configure::read('ApacheShibbAuth.MailTag');
@@ -73,9 +70,13 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
 		$groupRoleMatching = Configure::read('ApacheShibbAuth.GroupRoleMatching');
 
 		// Get user values
-		if (!isset($_SERVER[$mailTag])) return false;
+		if (!isset($_SERVER[$mailTag]) || filter_var($_SERVER[$mailTag], FILTER_VALIDATE_EMAIL) === FALSE) {
+			CakeLog::write('error', 'Mail tag is not given by the SSO SP. Not processing login.');
+			return false;
+		}
 
 		$mispUsername = $_SERVER[$mailTag];
+		CakeLog::write('info', "Trying login of user: ${mispUsername}.");
 
 		//Change username column for email (username in shibboleth attributes corresponds to the email in MISPs DB)
 		$this->settings['fields'] = array('username' => 'email');
@@ -92,19 +93,28 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
 
 		//Get user role from its list of groups
 		list($roleChanged, $roleId) = $this->getUserRoleFromGroup($groupTag, $groupRoleMatching, $roleId);
+		if($roleId < 0) return false; //Deny if the user is not in any egroup
 
 		// Database model object
 		$userModel = ClassRegistry::init($this->settings['userModel']);
 
 		if ($user) { // User already exists
+			CakeLog::write('info', "User ${mispUsername} found in database.");
 			$user = $this->updateUserRole($roleChanged, $user, $roleId, $userModel);
 			$user = $this->updateUserOrg($org, $user, $userModel);
+			CakeLog::write('info', "User ${mispUsername} logged in.");
 			return $user;
 		}
 
+		CakeLog::write('info', "User ${mispUsername} not found in database.");
 		//Insert user in database if not existent
 		//Generate random password
 		$password = $this->randPasswordGen(40);
+		// get maximum nids value
+		$nidsMax = $userModel->find('all', array(
+			'fields' => array('MAX(User.nids_sid) AS nidsMax'),
+			)
+		);
 		// create user
 		$userData = array('User' => array(
 			'email' => $mispUsername,
@@ -112,7 +122,7 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
 			'password' => $password, //Since it is done via shibboleth the password will be a random 40 character string
 			'confirm_password' => $password,
 			'authkey' => $userModel->generateAuthKey(),
-			'nids_sid' => 4000000,
+			'nids_sid' => ((int)$nidsMax[0][0]['nidsMax'])+1,
 			'newsread' => date('Y-m-d'),
 			'role_id' => $roleId,
 			'change_pw' => 0
@@ -120,7 +130,8 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
 
 		// save user
 		$userModel->save($userData, false);
-
+		CakeLog::write('info', "User ${mispUsername} saved in database.");
+		CakeLog::write('info', "User ${mispUsername} logged in.");
 		return $this->_findUser(
 			$mispUsername
 		);
@@ -147,6 +158,7 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
 	public function updateUserRole($roleChanged, $user, $roleId, $userModel)
 	{
 		if ($roleChanged && $user['role_id'] != $roleId) {
+			CakeLog::write('warning', "User role changed from ${user['role_id']} to ${roleId}.");
 			$user['role_id'] = $roleId; // Different role either increase or decrease permissions
 			$userUpdatedData = array('User' => $user);
 			$userModel->set(array(
@@ -176,11 +188,13 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
 			foreach ($groupList as $group) {
 				//TODO: Can be optimized inverting the search group and using only array_key_exists
 				if (array_key_exists($group, $groupRoleMatching)) { //In case there is an group not defined in the config.php file
+					CakeLog::write('info', "User group ${group} found.");
 					$roleVal = $groupRoleMatching[$group];
-					if ($roleVal <= $roleId) {
+					if ($roleVal <= $roleId || $roleId == -1) {
 						$roleId = $roleVal;
 						$roleChanged = true;
 					}
+					CakeLog::write('info', "User role ${roleId} assigned.");
 				}
 			}
 			return array($roleChanged, $roleId);
@@ -207,6 +221,9 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
 			$orgUserId = 1; //By default created by the admin
 			if ($user) $orgUserId = $user['id'];
 			$orgId = $organisations->createOrgFromName($org, $orgUserId, 0); //Created with local set to 0 by default
+			CakeLog::write('info', "User organisation ${org} created with id ${orgId}.");
+		} else {
+			CakeLog::write('info', "User organisation ${org} found with id ${orgId}.");
 		}
 		return $orgId;
 	}
@@ -214,6 +231,7 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
 	private function updateUserOrg($org, $user, $userModel)
 	{
 		if ($user['org_id'] != $org) {
+			CakeLog::write('warning', "User organisation ${org} changed.");
 			$user['org_id'] = $org; // Different role either increase or decrease permissions
 			$userUpdatedData = array('User' => $user);
 			$userModel->set(array(

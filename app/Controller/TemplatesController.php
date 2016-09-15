@@ -327,7 +327,7 @@ class TemplatesController extends AppController {
 				$this->loadModel('Attribute');
 				$fails = 0;
 				foreach ($attributes as $k => &$attribute) {
-					if (isset($attribute['data']) && $this->checkFilename($attribute['data'])) {
+					if (isset($attribute['data']) && $this->Template->checkFilename($attribute['data'])) {
 						$file = new File(APP . 'tmp/files/' . $attribute['data']);
 						$content = $file->read();
 						$attribute['data'] = base64_encode($content);
@@ -370,7 +370,7 @@ class TemplatesController extends AppController {
 			// filename checks
 			foreach ($this->request->data['Template']['file'] as $k => $file) {
 				if ($file['size'] > 0 && $file['error'] == 0) {
-					if ($this->checkFilename($file['name'])) {
+					if ($this->Template->checkFilename($file['name'])) {
 						$fn = $this->Template->generateRandomFileName();
 						move_uploaded_file($file['tmp_name'], APP . 'tmp/files/' . $fn);
 						$filenames[] = $file['name'];
@@ -400,7 +400,7 @@ class TemplatesController extends AppController {
 		if (!$this->request->is('post')) throw new MethodNotAllowedException('This action is restricted to accepting POST requests only.');
 		if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This action is only accessible through AJAX.');
 		$this->autoRender = false;
-		if ($this->checkFilename($filename)) {
+		if ($this->Template->checkFilename($filename)) {
 			$file = new File(APP . 'tmp/files/' . $filename);
 			if ($file->exists()) {
 				$file->delete();

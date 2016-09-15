@@ -35,6 +35,7 @@ simple_type_to_method.update(dict.fromkeys(["pattern-in-file", "pattern-in-traff
 misp_cybox_name = {"domain" : "DomainName", "hostname" : "Hostname", "url" : "URI", "AS" : "AutonomousSystem", "mutex" : "Mutex", "named pipe" : "Pipe", "link" : "URI"}
 cybox_name_attribute = {"DomainName" : "value", "Hostname" : "hostname_value", "URI" : "value", "AutonomousSystem" : "number", "Pipe" : "name", "Mutex" : "name"}
 misp_indicator_type = {"domain" : "Domain Watchlist", "hostname" : "Domain Watchlist", "url" : "URL Watchlist", "AS" : "", "mutex" : "Host Characteristics", "named pipe" : "Host Characteristics", "link" : ""}
+cybox_validation = {"AutonomousSystem": "isInt"}
 
 # mapping Windows Registry Hives and their abbreviations
 # see https://cybox.mitre.org/language/version2.1/xsddocs/objects/Win_Registry_Key_Object_xsd.html#RegistryHiveEnum
@@ -72,7 +73,9 @@ def generateObservable(indicator, attribute):
             action = getattr(this_module, simple_type_to_method[attribute["type"]], None)
             if (action != None):
                 property = action(indicator, attribute)
-		property.condition = "Equals"
+                if property is False:
+                    return False
+                property.condition = "Equals"
                 object = Object(property)
                 object.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":" + property.__class__.__name__ + "-" + attribute["uuid"]
                 observable = Observable(object)
@@ -180,6 +183,10 @@ def generateRegkeyObservable(indicator, attribute):
 
 def generateSimpleObservable(indicator, attribute):
     cyboxName = misp_cybox_name[attribute["type"]]
+    if cyboxName in cybox_validation:
+        validator = getattr(this_module, cybox_validation[cyboxName], None)
+        if not (validator(attribute["value"])):
+            return False
     constructor = getattr(this_module, cyboxName, None)
     indicatorType = misp_indicator_type[attribute["type"]]
     if (indicatorType != ""):
@@ -192,6 +199,7 @@ def generateSimpleObservable(indicator, attribute):
 def generateTM(indicator, attribute):
     if (attribute["type"] == "snort"):
         tm = SnortTestMechanism()
+        attribute["value"] = attribute["value"].encode('utf-8')
         tm.rules = [attribute["value"]]
     else:
         # remove the following line and uncomment the code below once yara test mechanisms get added to python-stix
@@ -301,3 +309,9 @@ def resolveRegHive(regStr):
         if regStrU.startswith(hive):
             return misp_reghive[hive], regStr[len(hive):]
     return None, regStr
+
+def isInt(var):
+    if var.isdigit():
+        return True
+    return False
+    

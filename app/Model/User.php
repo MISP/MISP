@@ -898,4 +898,34 @@ class User extends AppModel {
 		}
 		return $usersPerOrg;
 	}
+
+	public function findAdminsResponsibleForUser($user){
+		$admin = $this->find('first', array(
+			'recursive' => -1,
+			'conditions' => array(
+				'Role.perm_admin' => 1,
+				'User.disabled' => 0,
+				'User.org_id' => $user['org_id']
+			),
+			'contain' => array(
+				'Role' => array('fields' => array('perm_admin', 'perm_site_admin'))
+			),
+			'fields' => array('User.id', 'User.email', 'User.org_id')
+		));
+		if (count($admin) == 0) {
+			$admin = $this->find('first', array(
+				'recursive' => -1,
+				'conditions' => array(
+					'Role.perm_site_admin' => 1,
+					'User.disabled' => 0,
+				),
+				'contain' => array(
+					'Role' => array('fields' => array('perm_site_admin'))
+				),
+				'fields' => array('User.id', 'User.email', 'User.org_id')
+			));
+		}
+
+		return $admin['User'];
+	}
 }

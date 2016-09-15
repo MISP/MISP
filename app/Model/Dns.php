@@ -10,7 +10,7 @@ class Dns extends AppModel {
 	public $useTable = false;
 
 	// Checks for a valid internet name
- 	// Returns true if the name is an existing domain name, false otherwise
+	// Returns true if the name is an existing domain name, false otherwise
 	public function testipaddress($nametotest) {
 		if (intval($nametotest) > 0) {
 			return true;

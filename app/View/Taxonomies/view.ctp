@@ -58,7 +58,7 @@
     </div>
      <div id="attributeList" class="attributeListContainer">
 		<div class="tabMenuFixedContainer">
-	    	<div class="tabMenu tabMenuEditBlock noPrint mass-select" style="float:left;top:-1px;">
+			<div class="tabMenu tabMenuEditBlock noPrint mass-select" style="float:left;top:-1px;">
 				<span id="multi-edit-button" title="Create / update selected tags" class="icon-plus useCursorPointer" onClick="addSelectedTaxonomies(<?php echo $taxonomy['id']; ?>);"></span>
 			</div>
 			<div style="float:right !important;overflow:hidden;border:0px;padding:0px;padding-right:200px;">

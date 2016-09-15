@@ -2489,3 +2489,49 @@ $(".queryPopover").click(function() {
 	});
 });
 
+function serverOwnerOrganisationChange(host_org_id) {
+	if ($('#ServerOrganisationType').val() == "0" && $('#ServerLocal').val() == host_org_id) {
+		$('#InternalDiv').show();
+	} else {
+		$('#ServerInternal').prop("checked", false);
+		$('#InternalDiv').hide();
+	}
+}
+
+function requestAPIAccess() {
+	url = "/users/request_API/";
+	$.ajax({
+		type:"get",
+		url:url,
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+		success:function (data) {
+			$(".loading").hide();
+			handleGenericAjaxResponse(data);
+		},
+		error:function() {
+			showMessage('fail', 'Something went wrong - could not request API access.');
+		}
+	});
+}
+
+$('.servers_default_role_checkbox').click(function() {
+	var id = $(this).data("id");
+	var state = $(this).is(":checked");
+	$(".servers_default_role_checkbox").not(this).attr('checked', false);
+	$.ajax({
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+		success:function (data, textStatus) {
+			handleGenericAjaxResponse(data);
+		},
+		complete:function() {
+			$(".loading").hide();
+		},
+		type:"get",
+		cache: false,
+		url: '/admin/roles/set_default/' + (state ? id : ""),
+	});
+});

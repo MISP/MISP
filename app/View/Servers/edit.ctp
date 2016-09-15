@@ -9,6 +9,20 @@
 		echo $this->Form->input('name', array(
 				'label' => 'Instance name',
 		));
+		if (!empty($host_org_id) && $this->request->data['Server']['remote_org_id'] == $host_org_id):
+	?>
+			<div id="InternalDiv" class = "input clear" style="width:100%;">
+				<hr />
+				<p class="red" style="width:50%;">You can set this instance up as an internal instance by checking the checkbox below. This means that any synchronisation between this instance and the remote will not be automatically degraded as it would in a normal synchronisation scenario. Please make sure that you own both instances and that you are OK with this otherwise dangerous change. This also requires that the current instance's host organisation and the remote sync organisation are the same.</p>
+	<?php
+				echo $this->Form->input('internal', array(
+						'label' => 'Internal instance',
+						'type' => 'checkbox',
+				));
+	?>
+			</div>
+	<?php
+			endif;
 	?>
 		<div class="input clear"></div>
 
@@ -71,7 +85,7 @@
 	?>
 	<div class="clear">
 		<p>
-			<span class="bold">Ceritificate file: </span>
+			<span class="bold">Server ceritificate file: </span>
 			<span id="serverEditCertValue">
 				<?php
 					if (isset($server['Server']['cert_file']) && !empty($server['Server']['cert_file'])) echo h($server['Server']['cert_file']);
@@ -85,7 +99,29 @@
 		<div style="width: 0px;height: 0px;overflow: hidden;">
 		<?php
 			echo $this->Form->input('Server.submitted_cert', array(
-				'label' => false,
+				'label' => 'submitted_cert',
+				'type' => 'file',
+				'div' => false
+			));
+		?>
+		</div>
+	<div class="clear">
+		<p>
+			<span class="bold">Client ceritificate file: </span>
+			<span id="serverEditClientCertValue">
+				<?php
+					if (isset($server['Server']['client_cert_file']) && !empty($server['Server']['client_cert_file'])) echo h($server['Server']['client_cert_file']);
+					else echo '<span class="green bold">Not set.</span>';
+				?>
+			</span>
+			<br />
+			<span id="add_client_cert_file" class="btn btn-inverse" style="line-height:10px; padding: 4px 4px;">Add certificate file</span>
+			<span id="remove_client_cert_file" class="btn btn-inverse" style="line-height:10px; padding: 4px 4px;">Remove certificate file</span>
+		</p>
+		<div style="width: 0px;height: 0px;overflow: hidden;">
+		<?php
+			echo $this->Form->input('Server.submitted_client_cert', array(
+				'label' => 'submitted_client_cert',
 				'type' => 'file',
 				'div' => false
 			));
@@ -109,6 +145,7 @@
 		echo $this->Form->input('pull_rules', array('style' => 'display:none;', 'label' => false, 'div' => false));
 		echo $this->Form->input('json', array('style' => 'display:none;', 'label' => false, 'div' => false));
 		echo $this->Form->checkbox('delete_cert', array('style' => 'display:none;', 'label' => false, 'div' => false));
+		echo $this->Form->checkbox('delete_client_cert', array('style' => 'display:none;', 'label' => false, 'div' => false));
 	?>
 	</fieldset>
 	<span class="btn btn-primary" onClick="serverSubmitForm('Edit');">Submit</span>
@@ -135,6 +172,7 @@ var formInfoValues = {
 		'ServerPush' : "Allow the upload of events and their attributes.",
 		'ServerPull' : "Allow the download of events and their attributes from the server.",
 		'ServerSubmittedCert' : "You can also upload a certificate file if the instance you are trying to connect to has its own signing authority.",
+		'ServerSubmittedClientCert' : "You can also upload a client certificate file if the instance you are trying to connect requires this.",
 		'ServerSelfSigned' : "Click this, if you would like to allow a connection despite the other instance using a self-signed certificate (not recommended)."
 };
 
@@ -144,6 +182,8 @@ var validFields = ['tags', 'orgs'];
 var tags = <?php echo json_encode($allTags); ?>;
 var orgs = <?php echo json_encode($allOrganisations); ?>;
 var delete_cert = false;
+var delete_client_cert = false;
+var host_org_id = "<?php echo h($host_org_id); ?>";
 var modelContext = 'Server';
 
 $(document).ready(function() {
@@ -152,11 +192,11 @@ $(document).ready(function() {
 		serverOrgTypeChange();
 	});
 
-	$("#ServerUrl, #ServerOrganization, #ServerName, #ServerAuthkey, #ServerPush, #ServerPull, #ServerSubmittedCert, #ServerSelfSigned").on('mouseleave', function(e) {
+	$("#ServerUrl, #ServerOrganization, #ServerName, #ServerAuthkey, #ServerPush, #ServerPull, #ServerSubmittedCert, #ServerSubmittedClientCert, #ServerSelfSigned").on('mouseleave', function(e) {
 	    $('#'+e.currentTarget.id).popover('destroy');
 	});
 
-	$("#ServerUrl, #ServerOrganization, #ServerName, #ServerAuthkey, #ServerPush, #ServerPull, #ServerSubmittedCert, #ServerSelfSigned").on('mouseover', function(e) {
+	$("#ServerUrl, #ServerOrganization, #ServerName, #ServerAuthkey, #ServerPush, #ServerPull, #ServerSubmittedCert, #ServerSubmittedClientCert, #ServerSelfSigned").on('mouseover', function(e) {
 	    var $e = $(e.target);
 	        $('#'+e.currentTarget.id).popover('destroy');
 	        $('#'+e.currentTarget.id).popover({
@@ -177,14 +217,28 @@ $(document).ready(function() {
 	$('#add_cert_file').click(function() {
 		$('#ServerSubmittedCert').trigger('click');
 	});
-	$('input[type=file]').change(function() {
-		$('#serverEditCertValue').text($('input[type=file]').val());
+	$('#add_client_cert_file').click(function() {
+		$('#ServerSubmittedClientCert').trigger('click');
+	});
+	$('input[label=submitted_cert]').change(function() {
+		$('#serverEditCertValue').text($('input[label=submitted_cert]').val());
 		$('#ServerDeleteCert').prop('checked', false);
 	});
-
+	$('input[label=submitted_client_cert]').change(function() {
+		$('#serverEditClientCertValue').text($('input[label=submitted_client_cert]').val());
+		$('#ServerDeleteClientCert').prop('checked', false);
+	});
 	$('#remove_cert_file').click(function() {
 		$('#serverEditCertValue').html('<span class="green bold">Not set.</span>');
 		$('#ServerDeleteCert').prop('checked', true);
+	});
+	$('#remove_client_cert_file').click(function() {
+		$('#serverEditClientCertValue').html('<span class="green bold">Not set.</span>');
+		$('#ServerDeleteClientCert').prop('checked', true);
+	});
+
+	$('#ServerOrganisationType, #ServerLocal').change(function() {
+		serverOwnerOrganisationChange(host_org_id);
 	});
 });
 </script>

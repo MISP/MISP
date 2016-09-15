@@ -240,6 +240,15 @@ class Server extends AppModel {
 							'test' => 'testForEmpty',
 							'type' => 'string',
 					),
+					'host_org_id' => array(
+							'level' => 0,
+							'description' => 'The hosting organisation of this instance. If this is not selected then replication instances cannot be added.',
+							'value' => '0',
+							'errorMessage' => '',
+							'test' => 'testLocalOrg',
+							'type' => 'numeric',
+							'optionsSource' => 'LocalOrgs',
+					),
 					'logo' => array(
 							'level' => 3,
 							'description' => 'This setting is deprecated and can be safely removed.',
@@ -1270,25 +1279,27 @@ class Server extends AppModel {
 								$event['Event']['distribution'] = '1';
 							}
 							// Distribution
-							switch ($event['Event']['distribution']) {
-								case 1:
-									// if community only, downgrade to org only after pull
-									$event['Event']['distribution'] = '0';
-									break;
-								case 2:
-									// if connected communities downgrade to community only
-									$event['Event']['distribution'] = '1';
-									break;
-							}
-							if (isset($event['Event']['Attribute']) && !empty($event['Event']['Attribute'])) {
-								foreach ($event['Event']['Attribute'] as &$a) {
-									switch ($a['distribution']) {
-										case '1':
-											$a['distribution'] = '0';
-											break;
-										case '2':
-											$a['distribution'] = '1';
-											break;
+							if (empty(Configure::read('MISP.host_org_id')) || !$server['Server']['internal'] ||  Configure::read('MISP.host_org_id') != $server['Server']['org_id']) {
+								switch ($event['Event']['distribution']) {
+									case 1:
+										// if community only, downgrade to org only after pull
+										$event['Event']['distribution'] = '0';
+										break;
+									case 2:
+										// if connected communities downgrade to community only
+										$event['Event']['distribution'] = '1';
+										break;
+								}
+								if (isset($event['Event']['Attribute']) && !empty($event['Event']['Attribute'])) {
+									foreach ($event['Event']['Attribute'] as &$a) {
+										switch ($a['distribution']) {
+											case '1':
+												$a['distribution'] = '0';
+												break;
+											case '2':
+												$a['distribution'] = '1';
+												break;
+										}
 									}
 								}
 							}
@@ -1934,6 +1945,18 @@ class Server extends AppModel {
 	public function testForNumeric($value) {
 		if (!is_numeric($value)) return 'This setting has to be a number.';
 		return true;
+	}
+
+	public function testLocalOrg($value) {
+		$this->Organisation = ClassRegistry::init('Organisation');
+		if ($value == 0) return 'No organisation selected';
+		$local_orgs = $this->Organisation->find('list', array(
+			'conditions' => array('local' => 1),
+			'recursive' => -1,
+			'fields' => array('Organisation.id', 'Organisation.name')
+		));
+		if (in_array($value, array_keys($local_orgs))) return true;
+		return 'Invalid organisation';
 	}
 
 	public function testForEmpty($value) {
@@ -2882,6 +2905,35 @@ class Server extends AppModel {
 		}
 	}
 
+	/* returns the version string of a connected instance
+	 * error codes:
+	 * 1: received non json response
+	 * 2: no route to host
+	 * 3: empty result set
+	 */
+	public function getRemoteVersion($id) {
+		$server = $this->find('first', array(
+				'conditions' => array('Server.id' => $id),
+		));
+		if (empty($server)) {
+			return 2;
+		}
+		App::uses('SyncTool', 'Tools');
+		$syncTool = new SyncTool();
+		$HttpSocket = $syncTool->setupHttpSocket($server);
+		$response = $HttpSocket->get($server['Server']['url'] . '/servers/getVersion', $data = '', $request);
+		if ($response->code == 200) {
+			try {
+				$data = json_decode($response->body, true);
+			} catch (Exception $e) {
+				return 1;
+			}
+			if (isset($data['version']) && !empty($data['version'])) {
+				return $data['version'];
+			} else return 3;
+		} return 2;
+	}
+
 
 	/* returns an array with the events
 	 * error codes:
@@ -2893,6 +2945,9 @@ class Server extends AppModel {
 		$server = $this->find('first', array(
 			'conditions' => array('Server.id' => $id),
 		));
+		if (empty($server)) {
+			return 2;
+		}
 		App::uses('SyncTool', 'Tools');
 		$syncTool = new SyncTool();
 		$HttpSocket = $syncTool->setupHttpSocket($server);
@@ -2937,6 +2992,9 @@ class Server extends AppModel {
 		$server = $this->find('first', array(
 				'conditions' => array('Server.id' => $serverId),
 		));
+		if (empty($server)) {
+			return 2;
+		}
 		App::uses('SyncTool', 'Tools');
 		$syncTool = new SyncTool();
 		$HttpSocket = $syncTool->setupHttpSocket($server);

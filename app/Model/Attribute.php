@@ -165,7 +165,7 @@ class Attribute extends AppModel {
 	public $categoryDefinitions = array(
 			'Internal reference' => array(
 					'desc' => 'Reference used by the publishing party (e.g. ticket number)',
-					'types' => array('link', 'comment', 'text', 'other')
+					'types' => array('text', 'link', 'comment', 'other')
 					),
 			'Targeting data' => array(
 					'desc' => 'Internal Attack Targeting and Compromise Information',
@@ -484,7 +484,7 @@ class Attribute extends AppModel {
 
 		// set to_ids if it doesn't exist
 		if (empty($this->data['Attribute']['to_ids'])) {
-		    $this->data['Attribute']['to_ids'] = 0;
+			$this->data['Attribute']['to_ids'] = 0;
 		}
 		// generate UUID if it doesn't exist
 		if (empty($this->data['Attribute']['uuid'])) {
@@ -620,7 +620,7 @@ class Attribute extends AppModel {
 				break;
 			case 'http-method':
 				if (preg_match("#(OPTIONS|GET|HEAD|POST|PUT|DELETE|TRACE|CONNECT|PROPFIND|PROPPATCH|MKCOL|COPY|MOVE|LOCK|UNLOCK|VERSION-CONTROL|REPORT|CHECKOUT|CHECKIN|UNCHECKOUT|MKWORKSPACE|UPDATE|LABEL|MERGE|BASELINE-CONTROL|MKACTIVITY|ORDERPATCH|ACL|PATCH|SEARCH)#", $value)) {
-				    $returnValue = true;
+					$returnValue = true;
 				} else {
 					$returnValue = 'Unknown HTTP method.';
 				}
@@ -1096,7 +1096,6 @@ class Attribute extends AppModel {
 				));
 			}
 			$this->Correlation = ClassRegistry::init('Correlation');
-			$correlations = array();
 			$correlatingValues = array($a['value1']);
 			if (!empty($a['value2'])) $correlatingValues[] = $a['value2'];
 			foreach ($correlatingValues as $k => $cV) {

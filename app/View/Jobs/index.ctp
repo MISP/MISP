@@ -71,7 +71,7 @@
 			$progress_bar_type = 'progress progress-striped progress-warning active';
 		} else if ($item['Job']['progress'] == 0) {
 			$progress_bar_type = 'progress progress-striped progress-queued active';
-			$progress_message = 'Queued';
+			$progress_message = $item['Job']['status'] === 'Running' ? 'Running' : 'Queued';
 		} else {
 			$progress = h($item['Job']['progress']);
 			if ($item['Job']['progress'] == 100) {

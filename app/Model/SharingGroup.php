@@ -365,11 +365,7 @@ class SharingGroup extends AppModel {
 					$sgids = $existingSG['SharingGroup']['id'];
 					$editedSG = $existingSG['SharingGroup'];
 					$attributes = array('name', 'releasability', 'description', 'created', 'modified');
-					$different = false;
-					foreach ($attributes as &$a) {
-						if (!in_array($a, array('created', 'modified')) && $editedSG[$a] !== $sg[$a]) {
-							$different = true;
-						}
+					foreach ($attributes as $a) {
 						$editedSG[$a] = $sg[$a];
 					}
 					$this->save($editedSG);

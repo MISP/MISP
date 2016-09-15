@@ -104,6 +104,13 @@ class Event extends AppModel {
 					'canHaveAttachments' => false,
 					'description' => 'Click this to download all network related attributes that you have access to under the Bro rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a whitelist containing host, domain name and IP numbers to exclude from the NIDS export.',
 			),
+			'stix' => array(
+					'extension' => '.xml',
+					'type' => 'STIX',
+					'requiresPublished' => 1,
+					'canHaveAttachments' => true,
+					'description' => 'Click this to download an a STIX document containing the STIX version of all events and attributes that you have access to.'
+			),
 			'rpz' => array(
 					'extension' => '.txt',
 					'type' => 'RPZ',
@@ -353,15 +360,15 @@ class Event extends AppModel {
 		// TODO refactor analysis into an Enum (in the database)
 		if (isset($this->data['Event']['analysis'])) {
 			switch ($this->data['Event']['analysis']) {
-			    case 'Initial':
-			        $this->data['Event']['analysis'] = 0;
-			        break;
-			    case 'Ongoing':
-			        $this->data['Event']['analysis'] = 1;
-			        break;
-			    case 'Completed':
-			        $this->data['Event']['analysis'] = 2;
-			        break;
+				case 'Initial':
+					$this->data['Event']['analysis'] = 0;
+					break;
+				case 'Ongoing':
+					$this->data['Event']['analysis'] = 1;
+					break;
+				case 'Completed':
+					$this->data['Event']['analysis'] = 2;
+					break;
 			}
 		}
 		if (!isset($this->data['Event']['threat_level_id'])) $this->data['Event']['threat_level_id'] = Configure::read('MISP.default_event_threat_level') ? Configure::read('MISP.default_event_threat_level') : '1';
@@ -490,10 +497,10 @@ class Event extends AppModel {
 		//        iii. Attribute has a sharing group that the user is accessible to view
 		$conditionsCorrelation = $this->__buildEventConditionsCorrelation($user, $eventId, $sgids);
 		$correlations = $this->Correlation->find('all',array(
-		        'fields' => 'Correlation.event_id',
-		        'conditions' => $conditionsCorrelation,
-		        'recursive' => 0,
-		        'order' => array('Correlation.event_id DESC')));
+				'fields' => 'Correlation.event_id',
+				'conditions' => $conditionsCorrelation,
+				'recursive' => 0,
+				'order' => array('Correlation.event_id DESC')));
 
 		$relatedEventIds = array();
 		foreach ($correlations as $correlation) {
@@ -856,18 +863,18 @@ class Event extends AppModel {
 		if (isset($event['Event']['Attribute'])) {
 			foreach ($event['Event']['Attribute'] as $key => &$attribute) {
 			// do not keep attributes that are private, nor cluster
-				if ($attribute['distribution'] < 2) {
+				if (!$server['Server']['internal'] && $attribute['distribution'] < 2) {
 					unset($event['Event']['Attribute'][$key]);
 					continue; // stop processing this
 				}
 				// Downgrade the attribute from connected communities to community only
-				if ($attribute['distribution'] == 2) {
+				if (!$server['Server']['internal'] && $attribute['distribution'] == 2) {
 					$attribute['distribution'] = 1;
 				}
 
 				// If the attribute has a sharing group attached, make sure it can be transfered
 				if ($attribute['distribution'] == 4) {
-					if ($this->checkDistributionForPush(array('Attribute' => $attribute), $server, 'Attribute') === false) {
+					if (!$server['Server']['internal'] && $this->checkDistributionForPush(array('Attribute' => $attribute), $server, 'Attribute') === false) {
 						unset($event['Event']['Attribute'][$key]);
 						continue;
 					}
@@ -929,7 +936,7 @@ class Event extends AppModel {
 		}
 
 		// Downgrade the event from connected communities to community only
-		if ($event['Event']['distribution'] == 2) {
+		if (!$server['Server']['internal'] && $event['Event']['distribution'] == 2) {
 			$event['Event']['distribution'] = 1;
 		}
 		return $event;
@@ -1088,7 +1095,7 @@ class Event extends AppModel {
 	// includeAttachments: true will attach the attachments to the attributes in the data field
 	public function fetchEvent($user, $options = array()) {
 		if (isset($options['Event.id'])) $options['eventid'] = $options['Event.id'];
-		$possibleOptions = array('eventid', 'idList', 'tags', 'from', 'to', 'last', 'to_ids', 'includeAllTags', 'includeAttachments', 'event_uuid', 'distribution', 'sharing_group_id', 'disableSiteAdmin');
+		$possibleOptions = array('eventid', 'idList', 'tags', 'from', 'to', 'last', 'to_ids', 'includeAllTags', 'includeAttachments', 'event_uuid', 'distribution', 'sharing_group_id', 'disableSiteAdmin', 'metadata');
 		foreach ($possibleOptions as &$opt) if (!isset($options[$opt])) $options[$opt] = false;
 		if ($options['eventid']) {
 			$conditions['AND'][] = array("Event.id" => $options['eventid']);
@@ -1248,6 +1255,10 @@ class Event extends AppModel {
 				),
 			)
 		);
+		if ($options['metadata']) {
+			unset($params['contain']['Attribute']);
+			unset($params['contain']['ShadowAttribute']);
+		}
 		if ($user['Role']['perm_site_admin']) {
 			$params['contain']['User'] = array('fields' => 'email');
 		}
@@ -1286,28 +1297,30 @@ class Event extends AppModel {
 					}
 				}
 			}
-			foreach ($event['Attribute'] as $key => &$attribute) {
-				if (isset($options['includeAttachments']) && $options['includeAttachments']) {
-					if ($this->Attribute->typeIsAttachment($attribute['type'])) {
-						$encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
-						$attribute['data'] = $encodedFile;
-					}
-				}
-				if (isset($attribute['SharingGroup']['SharingGroupServer'])) {
-					foreach ($attribute['SharingGroup']['SharingGroupServer'] as &$sgs) {
-						if ($sgs['server_id'] == 0) {
-							$sgs['Server'] = array('id' => '0', 'url' => Configure::read('MISP.baseurl'), 'name' => Configure::read('MISP.baseurl'));
+			if (isset($event['Attribute'])) {
+				foreach ($event['Attribute'] as $key => &$attribute) {
+					if (isset($options['includeAttachments']) && $options['includeAttachments']) {
+						if ($this->Attribute->typeIsAttachment($attribute['type'])) {
+							$encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
+							$attribute['data'] = $encodedFile;
 						}
 					}
-				}
-				$attribute['ShadowAttribute'] = array();
-				// If a shadowattribute can be linked to an attribute, link it to it then remove it from the event
-				// This is to differentiate between proposals that were made to an attribute for modification and between proposals for new attributes
-				foreach ($event['ShadowAttribute'] as $k => &$sa) {
-					if (!empty($sa['old_id'])) {
-						if ($sa['old_id'] == $attribute['id']) {
-							$results[$eventKey]['Attribute'][$key]['ShadowAttribute'][] = $sa;
-							unset($results[$eventKey]['ShadowAttribute'][$k]);
+					if (isset($attribute['SharingGroup']['SharingGroupServer'])) {
+						foreach ($attribute['SharingGroup']['SharingGroupServer'] as &$sgs) {
+							if ($sgs['server_id'] == 0) {
+								$sgs['Server'] = array('id' => '0', 'url' => Configure::read('MISP.baseurl'), 'name' => Configure::read('MISP.baseurl'));
+							}
+						}
+					}
+					$attribute['ShadowAttribute'] = array();
+					// If a shadowattribute can be linked to an attribute, link it to it then remove it from the event
+					// This is to differentiate between proposals that were made to an attribute for modification and between proposals for new attributes
+					foreach ($event['ShadowAttribute'] as $k => &$sa) {
+						if (!empty($sa['old_id'])) {
+							if ($sa['old_id'] == $attribute['id']) {
+								$results[$eventKey]['Attribute'][$key]['ShadowAttribute'][] = $sa;
+								unset($results[$eventKey]['ShadowAttribute'][$k]);
+							}
 						}
 					}
 				}
@@ -1317,8 +1330,10 @@ class Event extends AppModel {
 			}
 			// remove proposals to attributes that we cannot see
 			// if the shadow attribute wasn't moved within an attribute before, this is the case
-			foreach ($event['ShadowAttribute'] as $k => &$sa) {
-				if (!empty($sa['old_id'])) unset($event['ShadowAttribute'][$k]);
+			if (isset($event['ShadowAttribute'])) {
+				foreach ($event['ShadowAttribute'] as $k => &$sa) {
+					if (!empty($sa['old_id'])) unset($event['ShadowAttribute'][$k]);
+				}
 			}
 		}
 		return $results;
@@ -1421,6 +1436,20 @@ class Event extends AppModel {
 			));
 			if (empty($event)) return false;
 			if (strtotime($event['Event']['date']) < $oldest) return true;
+		}
+		if (Configure::read('MISP.disable_emailing')) {
+			$this->Log = ClassRegistry::init('Log');
+			$this->Log->create();
+			$this->Log->save(array(
+					'org' => 'SYSTEM',
+					'model' => 'Event',
+					'model_id' => $id,
+					'email' => $user['email'],
+					'action' => 'publish',
+					'title' => 'E-mail alerts not sent out during publishing. Reason: Emailing is currently disabled on this instance.',
+					'change' => null,
+			));
+			return true;
 		}
 		if (Configure::read('MISP.background_jobs')) {
 			$job = ClassRegistry::init('Job');
@@ -1546,7 +1575,7 @@ class Event extends AppModel {
 				$ids = '';
 				if ($attribute['to_ids']) $ids = ' (IDS)';
 				if (isset($event['Event']['publish_timestamp']) && isset($attribute['timestamp']) && $attribute['timestamp'] > $event['Event']['publish_timestamp']) {
-					$line = '*' . $attribute['type'] . str_repeat(' ', $appendlen - 2 - strlen($attribute['type'])) . ': ' . $attribute['value'] . $ids . "\n";
+					$line = '* ' . $attribute['type'] . str_repeat(' ', $appendlen - 2 - strlen($attribute['type'])) . ': ' . $attribute['value'] . $ids . " *\n";
 				} else {
 					$line = $attribute['type'] . str_repeat(' ', $appendlen - 2 - strlen($attribute['type'])) . ': ' . $attribute['value'] . $ids .  "\n";
 				}
@@ -2043,7 +2072,9 @@ class Event extends AppModel {
 	// If the distribution is org only / comm only, return false
 	// If the distribution is sharing group only, check if the sync user is in the sharing group or not, return true if yes, false if no
 	public function checkDistributionForPush($object, $server, $context = 'Event') {
-		if ($object[$context]['distribution'] < 2) return false;
+		if (empty(Configure::read('MISP.host_org_id')) || !$server['Server']['internal'] ||  Configure::read('MISP.host_org_id') != $server['Server']['remote_org_id']) {
+			if ($object[$context]['distribution'] < 2) return false;
+		}
 		if ($object[$context]['distribution'] == 4) {
 			if ($context === 'Event') {
 				return $this->SharingGroup->checkIfServerInSG($object['SharingGroup'], $server);
@@ -2101,8 +2132,6 @@ class Event extends AppModel {
 				),
 		));
 		if (empty($event)) return true;
-
-		if ($event['Event']['distribution'] < 2) return true;
 		$event['Event']['locked'] = 1;
 		// get a list of the servers
 		$this->Server = ClassRegistry::init('Server');
@@ -2117,6 +2146,9 @@ class Event extends AppModel {
 		$failedServers = array();
 		App::uses('SyncTool', 'Tools');
 		foreach ($servers as &$server) {
+			if ((!isset($server['Server']['internal']) || !$server['Server']['internal']) && $event['Event']['distribution'] < 2) {
+				continue;
+			}
 			$syncTool = new SyncTool();
 			$HttpSocket = $syncTool->setupHttpSocket($server);
 			// Skip servers where the event has come from.
@@ -2132,6 +2164,9 @@ class Event extends AppModel {
 			}
 		}
 		if (!$uploaded) {
+			if (empty($failedServers)) {
+				return true;
+			}
 			return $failedServers;
 		} else {
 			return true;
@@ -2201,11 +2236,7 @@ class Event extends AppModel {
 				if (!empty($fullEvent)) $pubSubTool->publishEvent($fullEvent[0]);
 			}
 		}
-		if ($event['Event']['distribution'] > 1) {
-			$uploaded = $this->uploadEventToServersRouter($id, $passAlong);
-		} else {
-			return true;
-		}
+		$uploaded = $this->uploadEventToServersRouter($id, $passAlong);
 		return $uploaded;
 	}
 
@@ -2402,56 +2433,97 @@ class Event extends AppModel {
 		}
 	}
 
-	public function stix($id, $tags, $attachments, $user, $returnType, $from = false, $to = false, $last = false) {
+
+	public function stix($id, $tags, $attachments, $user, $returnType = 'xml', $from = false, $to = false, $last = false, $jobId = false) {
 		$eventIDs = $this->Attribute->dissectArgs($id);
 		$tagIDs = $this->Attribute->dissectArgs($tags);
 		$idList = $this->getAccessibleEventIds($eventIDs[0], $eventIDs[1], $tagIDs[0], $tagIDs[1]);
-		if (empty($idList)) throw new Exception('No matching events found to export.');
-		$events = $this->fetchEvent($user, array('idList' => $idList, 'last' => $last, 'from' => $from, 'to' => $to));
-		if (empty($events)) throw new Exception('No matching events found to export.');
-
-		// If a second argument is passed (and it is either "yes", "true", or 1) base64 encode all of the attachments
-		if ($attachments == "yes" || $attachments == "true" || $attachments == 1) {
-			foreach ($events as &$event) {
-				foreach ($event['Attribute'] as &$attribute) {
+		if (empty($idList)) {
+			return array('success' => 0, 'message' => 'No matching events found to export.');
+		}
+		$event_ids = $this->fetchEventIds($user, $from, $to, $last, true);
+		$event_ids = array_intersect($event_ids, $idList);
+		if (empty($event_ids)) {
+			return array('success' => 0, 'message' => 'No matching events found to export.');
+		}
+		$randomFileName = $this->generateRandomFileName();
+		$tmpDir = APP . "files" . DS . "scripts" . DS . "tmp";
+		$stixFile = new File($tmpDir . DS . $randomFileName . ".stix");
+		$stix_framing = shell_exec('python ' . APP . "files" . DS . "scripts" . DS . 'misp2stix_framing.py ' . escapeshellarg(Configure::read('MISP.baseurl')) . ' ' . escapeshellarg(Configure::read('MISP.org')) . ' ' . escapeshellarg($returnType));
+		if (empty($stix_framing)) {
+			$stixFile->delete();
+			return array('success' => 0, 'message' => 'There was an issue generating the STIX export.');
+		}
+		$stixFile->write(substr($stix_framing, 0, -1));
+		$result = array();
+		if ($jobId) {
+			$this->Job = ClassRegistry::init('Job');
+			$this->Job->id = $jobId;
+			if (!$this->Job->exists()) $jobId = false;
+		}
+		$i = 0;
+		$eventCount = count($event_ids);
+		foreach ($event_ids as $event_id) {
+			$tempFile = new File($tmpDir . DS . $randomFileName, true, 0644);
+			$event = $this->fetchEvent($user, array('eventid' => $event_id));
+			if (empty($event)) continue;
+			if ($attachments == "yes" || $attachments == "true" || $attachments == 1) {
+				foreach ($event[0]['Attribute'] as &$attribute) {
 					if ($this->Attribute->typeIsAttachment($attribute['type'])) {
 						$encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
 						$attribute['data'] = $encodedFile;
 					}
 				}
 			}
-		}
-		if (Configure::read('MISP.tagging')) {
-			foreach ($events as &$event) {
-				$event['Tag'] = $this->EventTag->Tag->findEventTags($event['Event']['id']);
+			$event[0]['Tag'] = array();
+			foreach ($event[0]['EventTag'] as $tag) {
+				$event[0]['Tag'][] = $tag['Tag'];
 			}
-		}
-		// generate a randomised filename for the temporary file that will be passed to the python script
-		$randomFileName = $this->generateRandomFileName();
-		$tempFile = new File(APP . "files" . DS . "scripts" . DS . "tmp" . DS . $randomFileName, true, 0644);
-
-		// save the json_encoded event(s) to the temporary file
-		$result = $tempFile->write(json_encode($events));
-		$scriptFile = APP . "files" . DS . "scripts" . DS . "misp2stix.py";
-
-		// Execute the python script and point it to the temporary filename
-		$result = shell_exec('python ' . $scriptFile . ' ' . $randomFileName . ' ' . $returnType . ' ' . Configure::read('MISP.baseurl') . ' "' . Configure::read('MISP.org') . '"');
-
-		// The result of the script will be a returned JSON object with 2 variables: success (boolean) and message
-		// If success = 1 then the temporary output file was successfully written, otherwise an error message is passed along
-		$decoded = json_decode($result);
-		$result = array();
-		$result['success'] = $decoded->success;
-		$result['message'] = $decoded->message;
-
-		if ($result['success'] == 1) {
+			$tempFile->write(json_encode($event[0]));
+			unset($event);
+			$scriptFile = APP . "files" . DS . "scripts" . DS . "misp2stix.py";
+			$result = shell_exec('python ' . $scriptFile . ' ' . $randomFileName . ' ' . escapeshellarg($returnType) . ' ' . escapeshellarg(Configure::read('MISP.baseurl')) . ' ' . escapeshellarg(Configure::read('MISP.org')));
+			// The result of the script will be a returned JSON object with 2 variables: success (boolean) and message
+			// If success = 1 then the temporary output file was successfully written, otherwise an error message is passed along
+			$decoded = json_decode($result, true);
+			if (!isset($decoded['success']) || !$decoded['success']) {
+				$tempFile->delete();
+				$stixFile->delete();
+				return array('success' => 0, 'message' => $decoded['message']);
+			}
 			$file = new File(APP . "files" . DS . "scripts" . DS . "tmp" . DS . $randomFileName . ".out");
-			$result['data'] = $file->read();
+			if ($returnType == 'xml') {
+				$stix_event = '    ' . substr($file->read(), 0, -1);
+				$stix_event = str_replace("\n", "\n    ", $stix_event) . "\n";
+			} else {
+				$stix_event = $file->read() . (($i + 1) != $eventCount ? ',' : '');
+			}
+			$stixFile->append($stix_event);
+			$file->close();
+			$file->delete();
+			$i++;
+			if ($jobId) {
+				$this->Job->saveField('message', 'Event ' . $i . '/' . $eventCount);
+				if ($i % 10 == 0) {
+					$this->Job->saveField('progress', $i * 80 / $eventCount);
+				}
+			}
+			$tempFile->close();
 		}
+		if ($returnType == 'xml') {
+			$stixFile->append("</stix:STIX_Package>\n\n");
+		} else {
+			$stixFile->append("]}\n");
+		}
+		if ($i == 0) {
+			$tempFile->delete();
+			$stixFile->delete();
+			return array('success' => 0, 'message' => 'No matching events found to export.');
+		}
+		$data = $stixFile->read();
 		$tempFile->delete();
-		$file = new File(APP . "files" . DS . "scripts" . DS . "tmp" . DS . $randomFileName . ".out");
-		$file->delete();
-		return $result;
+		$stixFile->delete();
+		return array('success' => 1, 'data' => $data);
 	}
 
 	public function getAccessibleEventIds($include, $exclude, $includedTags, $excludedTags) {

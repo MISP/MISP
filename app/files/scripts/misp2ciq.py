@@ -17,7 +17,7 @@ def resolveIdentityAttribute(incident, attribute, namespace):
         identity_spec.add_electronic_address_identifier(ElectronicAddressIdentifier(value = attribute["value"]))
     ciq_identity.specification = identity_spec
 
-    ciq_identity.id_ = "example:Identity-" + attribute["uuid"]
+    ciq_identity.id_ = namespace + ":Identity-" + attribute["uuid"]
 
     # is this a good idea?
     ciq_identity.name = attribute["type"] + ": " + attribute["value"] + " (MISP Attribute #" + attribute["id"] + ")"

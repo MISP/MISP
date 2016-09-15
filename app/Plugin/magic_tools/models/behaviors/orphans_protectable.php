@@ -23,8 +23,8 @@ class OrphansProtectableBehavior extends ModelBehavior {
   function setup(&$model, $settings) {
     $Model->_deletionError = null; // Stores the deletion error message
     $Model->orphansProtectableOptions = array_merge(array(
-	    'listPossibleOrphans' => true,
-	    'htmlError' => false
+		'listPossibleOrphans' => true,
+		'htmlError' => false
     ), $settings);
   }
 
@@ -50,7 +50,7 @@ class OrphansProtectableBehavior extends ModelBehavior {
 	  $possibleOrphans = array();
 
 	  foreach ($Model->hasMany as $model => $settings) {
-	    // Is relationship is dependent?
+		// Is relationship is dependent?
       if ($settings['dependent']) { // Yes! Possible orphans are deleted, too!
         // Do nothing
       } else { // No! Possible orphans should be protected!
@@ -114,11 +114,11 @@ class OrphansProtectableBehavior extends ModelBehavior {
 	function createDeletionErrorIds(&$model, $orphanModel, $ids) {
 	  $messageParts = array();
 	  if ($Model->orphansProtectableOptions['htmlError']) {
-	    foreach ($ids as $id) {
-	      $messageParts[] = '<a href="'.Inflector::pluralize(strtolower($orphanModel)).'/view/'.$id.'">'.$id.'</a>'; // TODO: Noch unschÃ¶n! --zivi-muh
-	    }
+		foreach ($ids as $id) {
+		  $messageParts[] = '<a href="'.Inflector::pluralize(strtolower($orphanModel)).'/view/'.$id.'">'.$id.'</a>'; // TODO: Noch unschÃ¶n! --zivi-muh
+		}
 	  } else {
-	    $messageParts = $ids;
+		$messageParts = $ids;
     }
     return implode($messageParts, ', ');
 	}

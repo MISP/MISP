@@ -493,11 +493,11 @@ Accept: application/json
 Content-type: application/json
 </pre>
 <b>Body</b>:
-<code>{"searchinfo":"Locky", "searchpublished":1, "searchdistribution":!0}</code><br /><br />
+<code>{"searcheventinfo":"Locky", "searchpublished":1, "searchdistribution":!0}</code><br /><br />
 <p>The above would return any event that is published, not restricted to your organisation only that has the term "Locky" in its event description. You can use exclamation marks to negate a value wherever appropriate.</p>
 <p><b>The list of valid parameters:</b></p>
 <p><b>searchpublished</b>: Filters on published or unpulished events [0,1] - negatable<br />
-<b>searchinfo</b>: Filters on strings found in the event info - negatable<br />
+<b>searcheventinfo</b>: Filters on strings found in the event info - negatable<br />
 <b>searchtag</b>: Filters on attached tag names - negatable<br />
 <b>searcheventid</b>: Filters on specific event IDs - negatable<br />
 <b>searchthreatlevel</b>: Filters on a given event threat level [1,2,3,4] - negatable<br />
