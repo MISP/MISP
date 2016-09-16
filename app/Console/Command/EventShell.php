@@ -339,38 +339,13 @@ class EventShell extends AppShell
 		$types = array('ip', 'email', 'domain', 'filename', 'filehash', 'certhash', 'software', 'url'); //Bro types
 		$typeCount = count($types);
 		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $format, true, 0750);
-
 		if ($user['Role']['perm_site_admin']) {
 			$zipname = DS . 'misp.bro.ADMIN.intel.zip';
 		} else {
 			$zipname = DS . 'misp.bro.' . $user['Organisation']['name'] . '.intel.zip';
 		}
-		$random_component = $this->Event->generateRandomFileName();
-		$tmpZipname = DS . "bro_export_tmp_" . $random_component . ".zip";
-		$zip = new File($dir->pwd() . $tmpZipname);
-		foreach ($types as $k => $type) {
-			$final = $this->Attribute->bro($user, $type);
-			$filename = $type . '.intel';
-
-			$file = new File($dir->pwd() . DS . $filename);
-			$file->write($broHeader);
-			foreach ($final as $attribute) {
-				$file->append($attribute . "\n");
-			}
-			$file->close();
-
-			$execRetval = '';
-			$execOutput = array();
-			exec('zip -gj  ' . $zip->path . ' ' . $dir->pwd() . '/' .  $filename,
-				$execOutput, $execRetval);
-			if ($execRetval != 0) { // not EXIT_SUCCESS
-				throw new Exception('An error has occured while attempting to zip the intel files.');
-			}
-			$file->delete(); // delete the original non-zipped-file
-			$this->Job->saveField('progress', $k / $typeCount * 100);
-		}
-		$zip->close();
-		rename($dir->pwd() . $tmpZipname, $dir->pwd() . $zipname);
+		$tmpZipname = $this->Attribute->brozip($user, false, false, false, false, false, false, $id);
+		rename($tmpZipname[0] . $tmpZipname[1], $dir->pwd() . $zipname);
 		$this->Job->saveField('progress', 100);
 		$this->Job->saveField('message', 'Job done.');
 	}

@@ -1449,7 +1449,7 @@ class Attribute extends AppModel {
 			}
 		}
 		$mispTypes = $export->getMispTypes($type);
-		$intel = array();
+		$intel = array($export->header);
 		foreach($mispTypes as $mispType) {
 			$conditions['AND']['Attribute.type'] = $mispType[0];
 			$intel = $this->__bro($intel, $user, $conditions, $mispType[1], $export, $this->whitelist, $instanceString);
@@ -1471,6 +1471,42 @@ class Attribute extends AppModel {
 				'fields' => array('Orgc.id', 'Orgc.name')
 		));
 		return $export->export($attributes, $orgs, $valueField, $intel, $whitelist, $instanceString);
+	}
+	
+	public function brozip($user, $tags, $eventId, $allowNonIDS, $from, $to, $last, $jobId = false) {
+		App::uses('BroExport', 'Export');
+		$export = new BroExport();
+		$types = array_keys($export->mispTypes);
+		$typeCount = count($types);
+		if ($jobId) {
+			$this->Job = ClassRegistry::init('Job');
+			$this->Job->id = $jobId;
+			if (!$this->Job->exists()) {
+				$jobId = false;
+			}
+		}
+		$dir = new Folder(APP . 'tmp/files/' . $this->Event->generateRandomFileName(), true, 0750);
+		$tmpZipname = DS . "bro_export_tmp.zip";
+		$zip = new File($dir->pwd() . $tmpZipname);
+		foreach ($types as $k => $type) {
+			$final = $this->bro($user, $type, $tags, $eventId, $allowNonIDS, $from, $to, $last);
+			$filename = $type . '.intel';
+			$file = new File($dir->pwd() . DS . $filename);
+			$file->write(implode(PHP_EOL, $final));
+			$file->close();
+			$execRetval = '';
+			$execOutput = array();
+			exec('zip -gj  ' . $zip->path . ' ' . $dir->pwd() . '/' .  $filename, $execOutput, $execRetval);
+			if ($execRetval != 0) { // not EXIT_SUCCESS
+				throw new Exception('An error has occured while attempting to zip the intel files.');
+			}
+			$file->delete(); // delete the original non-zipped-file
+			if ($jobId) {
+				$this->Job->saveField('progress', $k / $typeCount * 100);
+			}
+		}
+		$zip->close();
+		return array($dir->pwd(), $tmpZipname);
 	}
 
 	public function generateCorrelation($jobId = false, $startPercentage = 0) {

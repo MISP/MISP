@@ -1870,17 +1870,24 @@ class AttributesController extends AppController {
 					throw new UnauthorizedException('You have to be logged in to do that.');
 				}
 			}
-			$this->response->type('txt');    // set the content type
 			$filename = 'misp.' . $type . '.intel';
 			if ($eventId) {
 				$filename = 'misp.' . $type . '.event_' . $eventId . '.intel';
 			}
-			$this->header('Content-Disposition: download; filename="' . $filename . '"');
-			$this->layout = 'text/default';
-			$attributes = array("#fields indicator\tindicator_type\tmeta.source\tmeta.url\tmeta.do_notice\tmeta.if_in");
-			$attributes = array_merge($attributes, $this->Attribute->bro($this->Auth->user(), $type, $tags, $eventId, $allowNonIDS, $from, $to, $last));
-			$this->set('attributes', $attributes);
-			$this->render('/Attributes/bro');
+			if ($type != 'all') {
+				$responseFile = implode(PHP_EOL, $this->Attribute->bro($this->Auth->user(), $type, $tags, $eventId, $allowNonIDS, $from, $to, $last)) . PHP_EOL;
+				$this->response->body($responseFile);
+				$this->response->type('txt');
+			} else {
+				$tmpZipname = $this->Attribute->brozip($this->Auth->user(), $tags, $eventId, $allowNonIDS, $from, $to, $last);
+				$this->response->body(file_get_contents($tmpZipname[0] . $tmpZipname[1]));
+				$this->response->type('zip');
+				$folder = new Folder($tmpZipname[0]);
+				$folder->delete();
+				$filename .= '.zip';
+			}
+			$this->response->download($filename);
+			return $this->response;
 		}
 	}
 

@@ -4,6 +4,8 @@ class BroExport {
 	
 	public $rules = array();
 	
+	public $header = "#fields indicator\tindicator_type\tmeta.source\tmeta.url\tmeta.do_notice\tmeta.if_in";
+	
 	// mapping from misp attribute type to the bro intel type
 	// alternative mechanisms are:
 	// - alternate: array containing a detection regex and a replacement bro type
@@ -33,7 +35,7 @@ class BroExport {
 	
 	// export group to misp type mapping
 	// the mapped type is in an array format, first value being the misp type, second being the value field used
-	private $__mispTypes = array(
+	public $mispTypes = array(
 		'ip' => array(
 			array('ip-src', 1),
 			array('ip-dst', 1),
@@ -160,14 +162,8 @@ class BroExport {
 	
 	public function getMispTypes($type) {
 		$mispTypes = array();
-		if ($type !== 'all') {
-			if (isset($this->__mispTypes[$type])) {
-				$mispTypes = $this->__mispTypes[$type];	
-			}
-		} else {
-			foreach ($this->__mispTypes as $mispType) {
-				$mispTypes = array_merge($mispTypes, $mispType);
-			}
+		if (isset($this->mispTypes[$type])) {
+			$mispTypes = $this->mispTypes[$type];	
 		}
 		return $mispTypes;
 	}
