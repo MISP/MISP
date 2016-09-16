@@ -48,7 +48,6 @@ class UsersController extends AppController {
 			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'API access request failed. E-mailing is currently disabled on this instance.')),'status'=>200));
 		}
 		$responsibleAdmin = $this->User->findAdminsResponsibleForUser($this->Auth->user());
-		$message = "Something went wrong, please try again later.";
 		if (isset($responsibleAdmin['email']) && !empty($responsibleAdmin['email'])) {
 			$subject = "[MISP ".Configure::read('MISP.org')."] User requesting API access";
 			$body = "A user (".$this->Auth->user('email').") has sent you a request to enable his/her API key access.<br/>";
