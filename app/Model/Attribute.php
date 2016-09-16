@@ -1436,7 +1436,6 @@ class Attribute extends AppModel {
 			}
 			$conditions['AND'][] = $temp;
 		}
-
 		App::uses('BroExport', 'Export');
 		$export = new BroExport();
 		$this->Whitelist = ClassRegistry::init('Whitelist');

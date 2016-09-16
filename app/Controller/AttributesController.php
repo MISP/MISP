@@ -1851,7 +1851,21 @@ class AttributesController extends AppController {
 	}
 
 	public function bro($key='download', $type='all', $tags=false, $eventId=false, $allowNonIDS=false, $from=false, $to=false, $last=false) {
-		$simpleFalse = array('eventId', 'allowNonIDS', 'tags', 'from', 'to', 'last');
+		if ($this->request->is('post')) {
+			if ($this->request->input('json_decode', true)) {
+				$data = $this->request->input('json_decode', true);
+			} else {
+				$data = $this->request->data;
+			}
+			if (!empty($data) && !isset($data['request'])) {
+				$data = array('request' => $data);
+			}
+			$paramArray = array('type', 'tags', 'eventId', 'allowNonIDS', 'from', 'to', 'last');
+			foreach ($paramArray as $p) {
+				if (isset($data['request'][$p])) ${$p} = $data['request'][$p];
+			}
+		}
+		$simpleFalse = array('type', 'tags', 'eventId', 'allowNonIDS', 'from', 'to', 'last');
 		foreach ($simpleFalse as $sF) {
 			if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false')) ${$sF} = false;
 		}
