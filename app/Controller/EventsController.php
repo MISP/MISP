@@ -1483,6 +1483,17 @@ class EventsController extends AppController {
 		if (!$this->userRole['perm_auth']) {
 			$this->redirect(array('controller' => 'events', 'action' => 'index'));
 		}
+		App::uses('BroExport', 'Export');
+		$export = new BroExport();
+		$temp = $export->mispTypes;
+		$broTypes = array('all' => 'All types listed below.');
+		foreach ($temp as $broType => $mispTypes) {
+			foreach ($mispTypes as $mT) {
+				$broTypes[$broType][] = $mT[0];
+			}
+			$broTypes[$broType] = implode(', ', $broTypes[$broType]);
+		}
+		$this->set('broTypes', $broTypes);
 		// generate the list of Attribute types
 		$this->loadModel('Attribute');
 		$this->set('sigTypes', array_keys($this->Attribute->typeDefinitions));
