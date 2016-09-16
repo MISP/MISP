@@ -74,7 +74,7 @@
 						);
 						$popoverHTML = '';
 						foreach ($popover as $key => $popoverElement) {
-							$popoverHTML .= '<span class=\'bold\'>' . $key . '</span>: <span class=\'blue bold\'>' . $popoverElement . '</span><br />';
+							$popoverHTML .= '<span class="bold">' . $key . '</span>: <span class="blue bold">' . $popoverElement . '</span><br />';
 						}
 				?>
 						<a href="<?php echo $baseurl; ?>/events/view/<?php echo h($relation['Event']['id']);?>" data-toggle="popover" title="Attribute details" data-content="<?php echo h($popoverHTML); ?>" data-trigger="hover"><?php echo h($relation['Event']['id']);?></a>
@@ -98,38 +98,31 @@
 
 					}
 				?>
-				<select id="<?php echo 'Attribute' . $k . 'Category'; ?>" style='padding:0px;height:20px;margin-bottom:0px;'>
+				<select id="<?php echo 'Attribute' . $k . 'Category'; ?>" style="padding:0;height:20px;margin-bottom:0;">
 					<?php
-						foreach ($typeCategoryMapping[$item['default_type']] as $category) {
-							if (isset($item['categories']) && !in_array($category, $item['categories'])) {
-								continue;
-							}
-							echo '<option value="' . $category . '" ';
-							if ($category == $default) echo 'selected="selected"';
-							echo '>' . $category . '</option>';
-						}
-					?>
-				</select>
-			</td>
-			<td class="short">
-				<?php
-					$divVisibility = '';
-					$selectVisibility = '';
-					if (count($item['types']) == 1) {
-						$selectVisibility = 'display:none;';
-					} else {
-						$divVisibility = 'style="display:none;"';
-						if (!in_array(array_keys($item['types']), $options)) $options[] = array_values($item['types']);
+					//save all already added categories
+					$catAdded = [];
+					foreach ($typeCategoryMapping[$item['default_type']] as $type) {
+						$catAdded[] = $type;
 					}
-				?>
-				<div id = "<?php echo 'Attribute' . $k . 'TypeStatic'; ?>" <?php echo $divVisibility; ?> ><?php echo h($item['default_type']); ?></div>
-				<select id = "<?php echo 'Attribute' . $k . 'Type'; ?>" class='typeToggle' style='padding:0px;height:20px;margin-bottom:0px;<?php echo $selectVisibility; ?>'>
-					<?php
-						foreach ($item['types'] as $type) {
-							echo '<option value="' . $type . '" ';
-							echo ($type == $item['default_type'] ? 'selected="selected"' : '') . '>' . $type . '</option>';
+					if(isset($item['types']) && is_array($item['types']) && count($item['types']) > 1 &&
+						(in_array('domain', $item['types']) | in_array('filename', $item['types']))){
+						foreach($item['types'] as $category){
+							if(array_key_exists($category, $typeCategoryMapping)){
+								$catAdded = array_merge($catAdded, $typeCategoryMapping[$category]);
+							}
 						}
+					}
+					$catAdded = array_unique($catAdded);
+					asort($catAdded);
+					foreach($catAdded as $type){
+						echo '<option value="' . $type . '" ';
+						if ($type == $default)
+							echo 'selected="selected"';
+						echo '>' . $type . '</option>';
+					}
 					?>
+
 				</select>
 			</td>
 			<td class="short" style="width:40px;text-align:center;">

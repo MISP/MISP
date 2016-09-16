@@ -236,4 +236,22 @@ class Warninglist extends AppModel{
 		if (in_array($value, $listValues)) return true;
 		return false;
 	}
+
+	public function getAllIANAEntries() {
+		$result = $this->find('first', array(
+			'conditions' => array('Warninglist.name' => 'TLDs as known by IANA'),
+			'recursive' => -1,
+			'contain' => array(
+				'WarninglistEntry' => array(
+					'fields' => array('WarninglistEntry.value')
+				)
+			)
+		));
+		return array_map(
+			function ($element) {
+				return strtolower($element['value']);
+			},
+			$result['WarninglistEntry']
+		);
+	}
 }
