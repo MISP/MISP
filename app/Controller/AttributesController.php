@@ -1089,7 +1089,7 @@ class AttributesController extends AppController {
 			$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
 			// reset the paginate_conditions
 			$this->Session->write('paginate_conditions',array());
-			if ($this->request->is('post') && ($this->request->here == $fullAddress)) {
+			if ($this->request->is('post')) {
 				$keyword = $this->request->data['Attribute']['keyword'];
 				$keyword2 = $this->request->data['Attribute']['keyword2'];
 				$tags = $this->request->data['Attribute']['tags'];
