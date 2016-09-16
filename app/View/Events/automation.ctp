@@ -206,11 +206,10 @@ Use semicolons instead (the search will automatically search for colons instead)
 </pre>
 <h3>Bro IDS export</h3>
 <p>An export of all attributes of a specific bro type to a formatted plain text file. By default only published and IDS flagged attributes are exported.</p>
-<p>You can configure your tools to automatically download a file one of the Bro types. There is no option to download all attributes in the same file:</p>
+<p>You can configure your tools to automatically download a file one of the Bro types.</p>
 <pre>
 <?php
-$broTypes = array('ip', 'email', 'domain', 'filename', 'filehash', 'certhash', 'software', 'url');
-foreach ($broTypes as $broType) {
+foreach (array_keys($broTypes) as $broType) {
 	echo $baseurl.'/attributes/bro/download/'.$broType . "\n";
 }
 ?>
@@ -222,32 +221,44 @@ foreach ($broTypes as $broType) {
 ?>
 </pre>
 
-<p>As of version 2.3.38, it is possible to restrict the text exports on two additional flags. The first allows the user to restrict based on event ID, whilst the second is a boolean switch allowing non IDS flagged attributes to be exported. Additionally, choosing "all" in the type field will return all eligible attributes. </p>
+<p>It is possible to restrict the bro exports on based on a set of filters. POST a JSON object or an XML at the Bro API to filter the results.</p>
+<pre>
+<?php
+	echo $baseurl.'/attributes/bro/download';
+?>
+</pre>
+<p>JSON:</p>
+<pre>Headers
+Authorization: [your API key]
+Accept: application/json
+Content-type: application/json
+</pre>
+<code>{"request": {"type":"ip", "eventid":["!51","!62"],"withAttachment":false,"tags":["APT1","!OSINT"],"from":false,"to":"2015-02-15"}}</code><br /><br />
+<p>XML:</p>
+<pre>Headers
+Authorization: [your API key]
+Accept: application/json
+Content-type: application/json
+</pre>
+<code>&lt;request&gt;&lt;type&gt;ip&lt;/type&gt;&lt;eventid&gt;!51&lt;/eventid&gt;&lt;eventid&gt;!62&lt;/eventid&gt;&lt;withAttachment&gt;false&lt;/withAttachment&gt;&lt;tags&gt;APT1&lt;/tags&gt;&lt;tags&gt;!OSINT&lt;/tags&gt;&lt;from&gt;false&lt;/from&gt;&lt;to&gt;2015-02-15&lt;/to&gt;&lt;/request&gt;</code><br /><br />
+<p>Alternatively, it is also possible to pass the filters via the parameters in the URL, though it is highly advised to use POST requests with JSON objects instead. The format is as described below:</p>
 <pre>
 <?php
 	echo $baseurl.'/attributes/bro/download/[type]/[tags]/[event_id]/[allowNonIDS]/[from]/[to]/[last]';
 ?>
 </pre>
-<b>type</b>: The attribute type, any valid Bro attribute type is accepted. The matching between Bro and MISP types is the following:<br />
+<b>type</b>: The Bro type, any valid Bro type is accepted. The mapping between Bro and MISP types is as follows:<br />
 <pre>
-<b>ip</b>:ip-src, ip-dst, domain|ip
-<b>domain</b>: hostname, domain, , domain|ip
-<b>url</b>: url
-<b>filename</b>: filename, filename|md5, filename|sha1, filename|sha256, email-attachment
-<b>software</b>: user-agent
-<b>filehash</b>: md5, sha1, sha256, filename|md5, filename|sha1, filename|sha256
-<b>certhash</b>: x509-fingerprint-sha1
-<b>email</b>: email-src, email-dst
-</pre>
-<b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'.
-You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search.
-Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use:<br />
-<pre>
-<?php
-	echo $baseurl.'/attributes/bro/download/ip/tag1&amp;&amp;tag2&amp;&amp;!tag3';
+<?php 
+	foreach ($broTypes as $key => $value) {
+		echo '<b>' . h($key) . '</b>: ' . h($value) . PHP_EOL;
+	}
 ?>
 </pre>
 <p>
+<b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'.
+You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search.
+Use semicolons instead (the search will automatically search for colons instead).<br />
 <b>event_id</b>: Restrict the results to the given event IDs. <br />
 <b>allowNonIDS</b>: Allow attributes to be exported that are not marked as "to_ids".<br />
 <b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-15). This filter will use the date of the event.<br />
