@@ -1439,29 +1439,38 @@ class Attribute extends AppModel {
 
 		App::uses('BroExport', 'Export');
 		$export = new BroExport();
+		$this->Whitelist = ClassRegistry::init('Whitelist');
+		$this->whitelist = $this->Whitelist->getBlockedValues();
+		$instanceString = 'MISP';
+		if (Configure::read('MISP.host_org_id') && Configure::read('MISP.host_org_id') > 0) {
+			$this->Event->Orgc->id = Configure::read('MISP.host_org_id');
+			if ($this->Event->Orgc->exists()) {
+				$instanceString = $this->Event->Orgc->field('name') . ' MISP';
+			}
+		}
 		$mispTypes = $export->getMispTypes($type);
 		$intel = array();
 		foreach($mispTypes as $mispType) {
 			$conditions['AND']['Attribute.type'] = $mispType[0];
-			$intel = $this->__bro($intel, $user, $conditions, $mispType[1], $export);
+			$intel = $this->__bro($intel, $user, $conditions, $mispType[1], $export, $this->whitelist, $instanceString);
 		}
 		return $intel;
 	}
 
-	private function __bro($intel, $user, $conditions, $valueField, $export) {
+	private function __bro($intel, $user, $conditions, $valueField, $export, $whitelist, $instanceString) {
 		$attributes = $this->fetchAttributes($user, array(
 				'conditions' => $conditions, // array of conditions
 				'order' => 'Attribute.value' . $valueField . ' ASC',
 				'recursive' => -1, // int
 				'fields' => array('Attribute.id', 'Attribute.event_id', 'Attribute.type', 'Attribute.value' . $valueField . " as value"),
-				'contain' => array('Event' => array('fields' => array('Event.id', 'Event.threat_level_id', 'Event.orgc_id'))),
+				'contain' => array('Event' => array('fields' => array('Event.id', 'Event.threat_level_id', 'Event.orgc_id', 'Event.uuid'))),
 				'group' => array('Attribute.type', 'Attribute.value' . $valueField), // fields to GROUP BY
 			)
 		);
 		$orgs = $this->Event->Orgc->find('list', array(
 				'fields' => array('Orgc.id', 'Orgc.name')
 		));
-		return $export->export($attributes, $orgs, $valueField, $intel);
+		return $export->export($attributes, $orgs, $valueField, $intel, $whitelist, $instanceString);
 	}
 
 	public function generateCorrelation($jobId = false, $startPercentage = 0) {

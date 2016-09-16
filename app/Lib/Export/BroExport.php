@@ -79,9 +79,7 @@ class BroExport {
 
 	private $whitelist = null;
 
-	public function export($items, $orgs, $valueField, $intel) {
-		$this->Whitelist = ClassRegistry::init('Whitelist');
-		$this->whitelist = $this->Whitelist->getBlockedValues();
+	public function export($items, $orgs, $valueField, $intel, $whitelist, $instanceString) {
 		//For bro format organisation
 		$orgsName = array();
 		// generate the rules
@@ -89,11 +87,11 @@ class BroExport {
 			if (!isset($orgs[$item['Event']['orgc_id']])) {
 				continue;
 			} else {
-				$orgName = $orgs[$item['Event']['orgc_id']];
+				$orgName = $instanceString . ' (' . $item['Event']['uuid'] . ')' . ' - ' . $orgs[$item['Event']['orgc_id']];
 			}
 			$ruleFormatReference = Configure::read('MISP.baseurl') . '/events/view/' . $item['Event']['id'];
 			$ruleFormat = "%s\t%s\t" . $orgName . "\t" . $ruleFormatReference . "\t%s\t%s";
-			$rule = $this->__generateRule($item['Attribute'], $ruleFormat, $valueField);
+			$rule = $this->__generateRule($item['Attribute'], $ruleFormat, $valueField, $whitelist);
 			if (!empty($rule)) {
 				if (!in_array($rule, $intel)) {
 					$intel[] = $rule;
@@ -103,10 +101,10 @@ class BroExport {
 		return $intel;
 	}	
 	
-	private function __generateRule($attribute, $ruleFormat, $valueField) {
+	private function __generateRule($attribute, $ruleFormat, $valueField, $whitelist) {
 		if (isset($this->mapping[$attribute['type']])) {
 			$brotype = $this->mapping[$attribute['type']]['brotype'];
-			$overruled = $this->checkWhitelist($attribute['value']);
+			$overruled = $this->checkWhitelist($attribute['value'], $whitelist);
 			if (isset($this->mapping[$attribute['type']]['alternate'])) {
 				if (preg_match($this->mapping[$attribute['type']]['alternate'][0], $attribute['value'])) {
 					$brotype = $this->mapping[$attribute['type']]['alternate'][1];
@@ -151,8 +149,8 @@ class BroExport {
 		return strtr($value, $replace_pairs);
 	}
 	
-	public function checkWhitelist($value) {
-		foreach ($this->whitelist as $wlitem) {
+	public function checkWhitelist($value, $whitelist) {
+		foreach ($whitelist as $wlitem) {
 			if (preg_match($wlitem, $value)) {
 				return true;
 			}
