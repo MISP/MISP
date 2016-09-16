@@ -346,6 +346,8 @@ class EventShell extends AppShell
 		}
 		$tmpZipname = $this->Attribute->brozip($user, false, false, false, false, false, false, $id);
 		rename($tmpZipname[0] . $tmpZipname[1], $dir->pwd() . $zipname);
+		$folder = new Folder($tmpZipname[0]);
+		$folder->delete();
 		$this->Job->saveField('progress', 100);
 		$this->Job->saveField('message', 'Job done.');
 	}
