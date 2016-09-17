@@ -1483,6 +1483,17 @@ class EventsController extends AppController {
 		if (!$this->userRole['perm_auth']) {
 			$this->redirect(array('controller' => 'events', 'action' => 'index'));
 		}
+		App::uses('BroExport', 'Export');
+		$export = new BroExport();
+		$temp = $export->mispTypes;
+		$broTypes = array('all' => 'All types listed below.');
+		foreach ($temp as $broType => $mispTypes) {
+			foreach ($mispTypes as $mT) {
+				$broTypes[$broType][] = $mT[0];
+			}
+			$broTypes[$broType] = implode(', ', $broTypes[$broType]);
+		}
+		$this->set('broTypes', $broTypes);
 		// generate the list of Attribute types
 		$this->loadModel('Attribute');
 		$this->set('sigTypes', array_keys($this->Attribute->typeDefinitions));
@@ -1719,7 +1730,6 @@ class EventsController extends AppController {
 		if ($last) $last = $this->Event->resolveTimeDelta($last);
 		// backwards compatibility, swap key and format
 		if ($format != 'snort' && $format != 'suricata') {
-			$key = $format;
 			$format = 'suricata'; // default format
 		}
 		$this->response->type('txt');	// set the content type
@@ -3149,6 +3159,12 @@ class EventsController extends AppController {
 					'text' => 'Download Snort rules',
 					'requiresPublished' => true,
 					'checkbox' => false,
+			),
+			'bro' => array(
+					'url' => '/attributes/bro/download/all/false/' . $id,
+					'text' => 'Download Bro rules',
+					'requiresPublished' => true,
+					'checkbox' => false
 			),
 			'text' => array(
 					'url' => '/attributes/text/download/all/false/' . $id,
