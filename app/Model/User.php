@@ -908,7 +908,7 @@ class User extends AppModel {
 				'User.org_id' => $user['org_id']
 			),
 			'contain' => array(
-				'Role' => array('fields' => array('perm_admin', 'perm_site_admin'))
+				'Role' => array('fields' => array('perm_admin'))
 			),
 			'fields' => array('User.id', 'User.email', 'User.org_id')
 		));
