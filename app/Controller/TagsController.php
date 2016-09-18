@@ -28,7 +28,7 @@ class TagsController extends AppController {
 		$this->loadModel('Taxonomy');
 		$taxonomies = $this->Taxonomy->listTaxonomies(array('full' => false, 'enabled' => true));
 		$taxonomyNamespaces = array();
-		if (!empty($taxonomies)) foreach ($taxonomies as &$taxonomy) $taxonomyNamespaces[$taxonomy['namespace']] = $taxonomy;
+		if (!empty($taxonomies)) foreach ($taxonomies as $taxonomy) $taxonomyNamespaces[$taxonomy['namespace']] = $taxonomy;
 		$taxonomyTags = array();
 		$this->Event->recursive = -1;
 		if ($favouritesOnly) {
@@ -40,9 +40,9 @@ class TagsController extends AppController {
 			$this->paginate['conditions']['AND']['Tag.id'] = $tag_id_list;
 		}
 		$paginated = $this->paginate();
-		foreach ($paginated as $k => &$tag) {
+		foreach ($paginated as $k => $tag) {
 			$eventIDs = array();
-			if (empty($tag['EventTag'])) $tag['Tag']['count'] = 0;
+			if (empty($tag['EventTag'])) $paginated[$k]['Tag']['count'] = 0;
 			else {
 				foreach ($tag['EventTag'] as $eventTag) {
 					$eventIDs[] = $eventTag['event_id'];
@@ -61,28 +61,28 @@ class TagsController extends AppController {
 					'fields' => array('Event.id', 'Event.distribution', 'Event.orgc_id'),
 					'conditions' => $conditions
 				));
-				$tag['Tag']['count'] = count($events);
+				$paginated[$k]['Tag']['count'] = count($events);
 			}
-			unset($tag['EventTag']);
+			unset($paginated[$k]['EventTag']);
 			if (!empty($tag['FavouriteTag'])) {
-				foreach ($tag['FavouriteTag'] as &$ft) if ($ft['user_id'] == $this->Auth->user('id')) $tag['Tag']['favourite'] = true;
-				if (!isset($tag['Tag']['favourite'])) $tag['Tag']['favourite'] = false;
-			} else $tag['Tag']['favourite'] = false;
-			unset($tag['FavouriteTag']);
+				foreach ($tag['FavouriteTag'] as $ft) if ($ft['user_id'] == $this->Auth->user('id')) $paginated[$k]['Tag']['favourite'] = true;
+				if (!isset($tag['Tag']['favourite'])) $paginated[$k]['Tag']['favourite'] = false;
+			} else $paginated[$k]['Tag']['favourite'] = false;
+			unset($paginated[$k]['FavouriteTag']);
 			if (!empty($taxonomyNamespaces)) {
 				$taxonomyNamespaceArrayKeys = array_keys($taxonomyNamespaces);
-				foreach ($taxonomyNamespaceArrayKeys as &$tns) {
+				foreach ($taxonomyNamespaceArrayKeys as $tns) {
 					if (substr(strtoupper($tag['Tag']['name']), 0, strlen($tns)) === strtoupper($tns)) {
-						$tag['Tag']['Taxonomy'] = $taxonomyNamespaces[$tns];
+						$paginated[$k]['Tag']['Taxonomy'] = $taxonomyNamespaces[$tns];
 						if (!isset($taxonomyTags[$tns])) $taxonomyTags[$tns] = $this->Taxonomy->getTaxonomyTags($taxonomyNamespaces[$tns]['id'], true);
-						$tag['Tag']['Taxonomy']['expanded'] = $taxonomyTags[$tns][strtoupper($tag['Tag']['name'])];
+						$paginated[$k]['Tag']['Taxonomy']['expanded'] = $taxonomyTags[$tns][strtoupper($tag['Tag']['name'])];
 					}
 				}
 			}
 		}
 		if ($this->_isRest()) {
-			foreach ($paginated as &$tag) {
-				$tag = $tag['Tag'];
+			foreach ($paginated as $key => $tag) {
+				$paginated[$key] = $tag['Tag'];
 			}
 			$this->set('Tag', $paginated);
 			$this->set('_serialize', array('Tag'));
@@ -121,7 +121,7 @@ class TagsController extends AppController {
 		));
 		$orgs = array(0 => 'Unrestricted');
 		if (!empty($temp)) {
-			foreach ($temp as &$org) {
+			foreach ($temp as $org) {
 				$orgs[$org['Organisation']['id']] = $org['Organisation']['name'];
 			}
 		}
@@ -172,7 +172,7 @@ class TagsController extends AppController {
 		));
 		$orgs = array(0 => 'Unrestricted');
 		if (!empty($temp)) {
-			foreach ($temp as &$org) {
+			foreach ($temp as $org) {
 				$orgs[$org['Organisation']['id']] = $org['Organisation']['name'];
 			}
 		}
@@ -283,7 +283,7 @@ class TagsController extends AppController {
 		$favourites = $this->Tag->FavouriteTag->find('count', array('conditions' => array('FavouriteTag.user_id' => $this->Auth->user('id'))));
 		$this->loadModel('Taxonomy');
 		$options = $this->Taxonomy->find('list', array('conditions' => array('enabled' => true), 'fields' => array('namespace'), 'order' => array('Taxonomy.namespace ASC')));
-		foreach ($options as $k => &$option) {
+		foreach ($options as $k => $option) {
 			$tags = $this->Taxonomy->getTaxonomyTags($k, false, true);
 			if (empty($tags)) unset($options[$k]);
 		}
@@ -313,7 +313,7 @@ class TagsController extends AppController {
 		} else {
 			$taxonomies = $this->Taxonomy->getTaxonomy($taxonomy_id);
 			$options = array();
-			foreach ($taxonomies['entries'] as &$entry) {
+			foreach ($taxonomies['entries'] as $entry) {
 				if (!empty($entry['existing_tag']['Tag'])) {
 					$options[$entry['existing_tag']['Tag']['id']] = $entry['existing_tag']['Tag']['name'];
 					$expanded[$entry['existing_tag']['Tag']['id']] = $entry['expanded'];
@@ -376,11 +376,11 @@ class TagsController extends AppController {
 			arsort($taxonomies);
 		}
 		if ($percentage === 'true') {
-			foreach ($tags as $tag => &$count) {
-				$count = round(100 * $count / $totalCount, 3) . '%';
+			foreach ($tags as $tag => $count) {
+				$tags[$tag] = round(100 * $count / $totalCount, 3) . '%';
 			}
-			foreach ($taxonomies as $taxonomy => &$count) {
-				$count = round(100 * $count / $totalCount, 3) . '%';
+			foreach ($taxonomies as $taxonomy => $count) {
+				$taxonomies[$taxonomy] = round(100 * $count / $totalCount, 3) . '%';
 			}
 		}
 		$results = array('tags' => $tags, 'taxonomies' => $taxonomies);

@@ -49,7 +49,7 @@ class ColourPaletteTool {
 
 	function convertToHex($channels) {
 		$colour = '#';
-		foreach ($channels as &$channel) {
+		foreach ($channels as $channel) {
 			$channel = strval(dechex(round($channel*255)));
 			if (strlen($channel) == 1) $channel = '0' . $channel;
 			$colour .= $channel;

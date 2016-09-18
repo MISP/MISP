@@ -260,7 +260,7 @@ class EventsController extends AppController {
 		$passedArgs = $this->passedArgs;
 		if (isset($this->request->data)) {
 			if (isset($this->request->data['request'])) $this->request->data = $this->request->data['request'];
-			foreach ($overrideAbleParams as &$oap) {
+			foreach ($overrideAbleParams as $oap) {
 				if (isset($this->request->data['search' . $oap])) $this->request->data[$oap] = $this->request->data['search' . $oap];
 				if (isset($this->request->data[$oap])) $passedArgs['search' . $oap] = $this->request->data[$oap];
 			}
@@ -471,8 +471,8 @@ class EventsController extends AppController {
 								'recursive' => -1,
 								'fields' => array('id', 'name'),
 							));
-							foreach ($threatLevels as &$tl) {
-								$terms[$tl['ThreatLevel']['id']] =$tl['ThreatLevel']['name'];
+							foreach ($threatLevels as $tl) {
+								$terms[$tl['ThreatLevel']['id']] = $tl['ThreatLevel']['name'];
 							}
 						} else if ($searchTerm == 'analysis') {
 							$terms = $this->Event->analysisLevels;
@@ -540,11 +540,11 @@ class EventsController extends AppController {
 			}
 			if (isset($this->paginate['conditions'])) $rules['conditions'] = $this->paginate['conditions'];
 			$events = $this->Event->find('all', $rules);
-			foreach ($events as $k => &$event) {
-				foreach ($event['EventTag'] as $k2 => &$et) {
+			foreach ($events as $k => $event) {
+				foreach ($event['EventTag'] as $k2 => $et) {
 					if (empty($et['Tag'])) unset($events[$k]['EventTag'][$k2]);
 				}
-				$event['EventTag'] = array_values($event['EventTag']);
+				$events[$k]['EventTag'] = array_values($event['EventTag']);
 			}
 			$this->set('events', $events);
 		} else {
@@ -678,7 +678,7 @@ class EventsController extends AppController {
 		}
 		$results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
 		if (empty($results)) throw new NotFoundException('Invalid event');
-		$event = &$results[0];
+		$event = $results[0];
 		$emptyEvent = (!isset($event['Attribute']) || empty($event['Attribute']));
 		$this->set('emptyEvent', $emptyEvent);
 		$params = $this->Event->rearrangeEventForView($event, $this->passedArgs, $all);
@@ -686,13 +686,13 @@ class EventsController extends AppController {
 		// workaround to get the event dates in to the attribute relations
 		$relatedDates = array();
 		if (isset($event['RelatedEvent'])) {
-			foreach ($event['RelatedEvent'] as &$relation) {
+			foreach ($event['RelatedEvent'] as $relation) {
 				$relatedDates[$relation['Event']['id']] = $relation['Event']['date'];
 			}
 			if (isset($event['RelatedAttribute'])) {
-				foreach ($event['RelatedAttribute'] as &$relatedAttribute) {
-					foreach ($relatedAttribute as &$relation) {
-						$relation['date'] = $relatedDates[$relation['id']];
+				foreach ($event['RelatedAttribute'] as $key => $relatedAttribute) {
+					foreach ($relatedAttribute as $key2 => $relation) {
+						$event['RelatedAttribute'][$key][$key2]['date'] = $relatedDates[$relation['id']];
 					}
 				}
 			}
@@ -737,7 +737,7 @@ class EventsController extends AppController {
 			$proposalStatus = false;
 			if (isset($event['ShadowAttribute']) && !empty($event['ShadowAttribute'])) $proposalStatus = true;
 			if (!$proposalStatus && !empty($event['Attribute'])) {
-				foreach ($event['Attribute'] as &$temp) {
+				foreach ($event['Attribute'] as $temp) {
 					if (isset($temp['ShadowAttribute']) && !empty($temp['ShadowAttribute'])) {
 						$proposalStatus = true;
 					}
@@ -768,13 +768,13 @@ class EventsController extends AppController {
 		// workaround to get the event dates in to the attribute relations
 		$relatedDates = array();
 		if (isset($event['RelatedEvent'])) {
-			foreach ($event['RelatedEvent'] as &$relation) {
+			foreach ($event['RelatedEvent'] as $relation) {
 				$relatedDates[$relation['Event']['id']] = $relation['Event']['date'];
 			}
 			if (isset($event['RelatedAttribute'])) {
-				foreach ($event['RelatedAttribute'] as &$relatedAttribute) {
-					foreach ($relatedAttribute as &$relation) {
-						$relation['date'] = $relatedDates[$relation['id']];
+				foreach ($event['RelatedAttribute'] as $key => $relatedAttribute) {
+					foreach ($relatedAttribute as $key2 => $relation) {
+						$event['RelatedAttribute'][$key][$key2]['date'] = $relatedDates[$relation['id']];
 					}
 				}
 			}
@@ -861,7 +861,7 @@ class EventsController extends AppController {
 		if ($this->userRole['perm_admin'] && !$this->_isSiteAdmin() && ($results[0]['Org']['id'] == $this->Auth->user('org_id'))) {
 			$results[0]['User']['email'] = $this->User->field('email', array('id' , $results[0]['Event']['user_id']));
 		}
-		$event = &$results[0];
+		$event = $results[0];
 		if ($this->_isRest()) {
 			$this->set('event', $event);
 		}
@@ -1026,7 +1026,7 @@ class EventsController extends AppController {
 							}
 							// REST users want to see the newly created event
 							$results = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $created_id));
-							$event = &$results[0];
+							$event = $results[0];
 							if (!empty($validationErrors)) {
 								$event['errors'] = $validationErrors;
 							}
@@ -1185,7 +1185,7 @@ class EventsController extends AppController {
 				if ($result === true) {
 					// REST users want to see the newly created event
 					$results = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
-					$event = &$results[0];
+					$event = $results[0];
 					$this->set('event', $event);
 					$this->render('view');
 					return true;
@@ -1687,10 +1687,10 @@ class EventsController extends AppController {
 			if (empty($result)) continue;
 			$validEvents++;
 			if ($withAttachment) {
-				foreach ($result[0]['Attribute'] as &$attribute) {
+				foreach ($result[0]['Attribute'] as $key => $attribute) {
 					if ($this->Event->Attribute->typeIsAttachment($attribute['type'])) {
 						$encodedFile = $this->Event->Attribute->base64EncodeAttachment($attribute);
-						$attribute['data'] = $encodedFile;
+						$result[0]['Attribute'][$key]['data'] = $encodedFile;
 					}
 				}
 			}
@@ -1832,7 +1832,7 @@ class EventsController extends AppController {
 				$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
 			}
 			$list = array();
-			foreach ($attributes as &$attribute) {
+			foreach ($attributes as $attribute) {
 				$list[] = $attribute['Attribute']['id'];
 			}
 			$events = array($eventid);
@@ -2020,7 +2020,7 @@ class EventsController extends AppController {
 		} else {
 			$dataArray = json_decode($data, true);
 			if (isset($dataArray['response'][0])) {
-				foreach ($dataArray['response'] as $k => &$temp) {
+				foreach ($dataArray['response'] as $k => $temp) {
 					$dataArray['Event'][] = $temp['Event'];
 					unset($dataArray['response'][$k]);
 				}
@@ -2247,7 +2247,7 @@ class EventsController extends AppController {
 			$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
 		}
 		$idList = array();
-		foreach ($attributes as &$attribute) {
+		foreach ($attributes as $attribute) {
 			if (!in_array($attribute['Attribute']['event_id'], $idList)) {
 				$idList[] = $attribute['Attribute']['event_id'];
 			}
@@ -2641,13 +2641,13 @@ class EventsController extends AppController {
 					),
 		));
 		$events = $this->paginate();
-		foreach ($events as $k => &$event) {
+		foreach ($events as $k => $event) {
 			$orgs = array();
 			foreach ($event['ShadowAttribute'] as $sa) {
 				if (!in_array($sa['org_id'], $orgs)) $orgs[] = $sa['org_id'];
 			}
 			$events[$k]['orgArray'] = $orgs;
-			$event['Event']['proposal_count'] = count($event['ShadowAttribute']);
+			$events[$k]['Event']['proposal_count'] = count($event['ShadowAttribute']);
 		}
 		$this->set('events', $events);
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
@@ -2791,12 +2791,12 @@ class EventsController extends AppController {
 			App::uses('ComplexTypeTool', 'Tools');
 			$complexTypeTool = new ComplexTypeTool();
 			$resultArray = $complexTypeTool->checkComplexRouter($this->request->data['Attribute']['value'], 'FreeText');
-			foreach ($resultArray as &$r) {
+			foreach ($resultArray as $key => $r) {
 				$temp = array();
 				foreach ($r['types'] as $type) {
 					$temp[$type] = $type;
 				}
-				$r['types'] = $temp;
+				$resultArray[$key]['types'] = $temp;
 			}
 
 			// remove all duplicates
@@ -2805,13 +2805,13 @@ class EventsController extends AppController {
 					if (isset($resultArray[$i]) && $v == $resultArray[$i]) unset($resultArray[$k]);
 				}
 			}
-			foreach ($resultArray as &$result) {
+			foreach ($resultArray as $key => $result) {
 				$options = array(
 					'conditions' => array('OR' => array('Attribute.value1' => $result['value'], 'Attribute.value2' => $result['value'])),
 					'fields' => array('Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.comment'),
 					'order' => false
 				);
-				$result['related'] = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $options);
+				$resultArray[$key]['related'] = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $options);
 			}
 			$resultArray = array_values($resultArray);
 			$typeCategoryMapping = array();
@@ -3498,7 +3498,7 @@ class EventsController extends AppController {
 			$current_event_id = count($json['nodes'])-1;
 		}
 		$relatedEvents = array();
-		if (!empty($event[0]['RelatedEvent'])) foreach ($event[0]['RelatedEvent'] as &$re) {
+		if (!empty($event[0]['RelatedEvent'])) foreach ($event[0]['RelatedEvent'] as $re) {
 			$relatedEvents[$re['Event']['id']] = $re;
 		}
 		foreach ($event[0]['Attribute'] as $k => $att) {
@@ -3658,23 +3658,22 @@ class EventsController extends AppController {
 		if (empty($attribute)) throw new MethodNotAllowedException('Attribute not found or you are not authorised to see it.');
 		if ($this->request->is('ajax')) {
 			$this->loadModel('Module');
-			$modules = $this->Module->getEnabledModules();
-			if (!is_array($modules) || empty($modules)) throw new MethodNotAllowedException('No valid enrichment options found for this attribute.');
-			$temp = array();
-			foreach ($modules['modules'] as &$module) {
+			$enabledModules = $this->Module->getEnabledModules();
+			if (!is_array($enabledModules) || empty($enabledModules)) throw new MethodNotAllowedException('No valid enrichment options found for this attribute.');
+			$modules = array();
+			foreach ($enabledModules['modules'] as $module) {
 				if (in_array($attribute[0]['Attribute']['type'], $module['mispattributes']['input'])) {
-					$temp[] = array('name' => $module['name'], 'description' => $module['meta']['description']);
+					$modules[] = array('name' => $module['name'], 'description' => $module['meta']['description']);
 				}
 			}
-			$modules = &$temp;
 			foreach (array('attribute_id', 'modules') as $viewVar) $this->set($viewVar, $$viewVar);
 			$this->render('ajax/enrichmentChoice');
 		} else {
 			$this->loadModel('Module');
-			$modules = $this->Module->getEnabledModules();
-			if (!is_array($modules) || empty($modules)) throw new MethodNotAllowedException('No valid enrichment options found for this attribute.');
+			$enabledModules = $this->Module->getEnabledModules();
+			if (!is_array($enabledModules) || empty($enabledModules)) throw new MethodNotAllowedException('No valid enrichment options found for this attribute.');
 			$options = array();
-			foreach ($modules['modules'] as &$temp) {
+			foreach ($enabledModules['modules'] as $temp) {
 				if ($temp['name'] == $module) {
 					if (isset($temp['meta']['config'])) {
 						foreach ($temp['meta']['config'] as $conf) {
@@ -3703,20 +3702,20 @@ class EventsController extends AppController {
 					$typeCategoryMapping[$type][$k] = $k;
 				}
 			}
-			foreach ($resultArray as &$result) {
+			foreach ($resultArray as $key => $result) {
 				$options = array(
 						'conditions' => array('OR' => array('Attribute.value1' => $result['value'], 'Attribute.value2' => $result['value'])),
 						'fields' => array('Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.comment'),
 						'order' => false
 				);
-				$result['related'] = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $options);
+				$resultArray[$key]['related'] = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $options);
 				if (isset($result['data'])) {
 					App::uses('FileAccessTool', 'Tools');
 					$fileAccessTool = new FileAccessTool();
 					$tmpdir = Configure::read('MISP.tmpdir') ? Configure::read('MISP.tmpdir') : '/tmp';
 					$tempFile = $fileAccessTool->createTempFile($tmpdir, $prefix = 'MISP');
 					$fileAccessTool->writeToFile($tempFile, $result['data']);
-					$result['data'] = basename($tempFile) . '|' . filesize($tempFile);
+					$resultArray[$key]['data'] = basename($tempFile) . '|' . filesize($tempFile);
 				}
 			}
 
@@ -3799,13 +3798,13 @@ class EventsController extends AppController {
 							$typeCategoryMapping[$type][$k] = $k;
 						}
 					}
-					foreach ($resultArray as &$result) {
+					foreach ($resultArray as $key => $result) {
 						$options = array(
 								'conditions' => array('OR' => array('Attribute.value1' => $result['value'], 'Attribute.value2' => $result['value'])),
 								'fields' => array('Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.comment'),
 								'order' => false
 						);
-						$result['related'] = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $options);
+						$resultArray[$key]['related'] = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $options);
 					}
 					$this->set('event', array('Event' => array('id' => $eventId)));
 					$this->set('resultArray', $resultArray);

@@ -1,7 +1,7 @@
 <?php
 class CustomPaginationTool {
 
-	function createPaginationRules(&$items, $options, $model, $sort = 'id') {
+	function createPaginationRules($items, $options, $model, $sort = 'id') {
 		$params = array(
 			'model' => $model,
 			'current' => 1,

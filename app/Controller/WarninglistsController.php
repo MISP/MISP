@@ -40,7 +40,7 @@ class WarninglistsController extends AppController {
 		$successes = 0;
 		if (!empty($result)) {
 			if (isset($result['success'])) {
-				foreach ($result['success'] as $id => &$success) {
+				foreach ($result['success'] as $id => $success) {
 					if (isset($success['old'])) $change = $success['name'] . ': updated from v' . $success['old'] . ' to v' . $success['new'];
 					else $change = $success['name'] . ' v' . $success['new'] . ' installed';
 					$this->Log->create();
@@ -58,7 +58,7 @@ class WarninglistsController extends AppController {
 				}
 			}
 			if (isset($result['fails'])) {
-				foreach ($result['fails'] as $id => &$fail) {
+				foreach ($result['fails'] as $id => $fail) {
 					$this->Log->create();
 					$this->Log->save(array(
 							'org' => $this->Auth->user('Organisation')['name'],

@@ -1,6 +1,6 @@
 <?php
 class RequestRearrangeTool {
-	public function rearrangeArray(&$data, $rules) {
+	public function rearrangeArray($data, $rules) {
 		foreach ($rules as $from => $to) {
 			if (isset($data[$from])) {
 				if ($to !== false) {

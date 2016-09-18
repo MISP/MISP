@@ -21,9 +21,9 @@ class NewsController extends AppController {
 				'conditions' => array('User.id' => $this->Auth->user('id')),
 				'fields' => array('User.newsread')
 		));
-		foreach ($newsItems as &$item) {
-			if ($item['News']['date_created'] > $currentUser['User']['newsread']) $item['News']['new'] = true;
-			else $item['News']['new'] = false;
+		foreach ($newsItems as $key => $item) {
+			if ($item['News']['date_created'] > $currentUser['User']['newsread']) $newsItems[$key]['News']['new'] = true;
+			else $newsItems[$key]['News']['new'] = false;
 		}
 		$this->User->id = $this->Auth->user('id');
 		$this->User->saveField('newsread', time());

@@ -72,10 +72,10 @@ class TemplateElementsController extends AppController {
 				$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
 				$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
 				$categoryDefinitions = $this->Attribute->categoryDefinitions;
-				foreach ($categoryDefinitions as $k => &$catDef) {
+				foreach ($categoryDefinitions as $k => $catDef) {
 					foreach ($catDef['types'] as $l => $t) {
 						if ($t == 'malware-sample' || $t == 'attachment') {
-							unset($catDef['types'][$l]);
+							unset($categoryDefinitions[$k]['types'][$l]);
 						}
 					}
 				}
@@ -156,10 +156,10 @@ class TemplateElementsController extends AppController {
 				$categories = $this->_arrayToValuesIndexArray($categories);
 				$this->set('categories', compact('categories'));
 				$categoryDefinitions = $this->Attribute->categoryDefinitions;
-				foreach ($categoryDefinitions as $k => &$catDef) {
+				foreach ($categoryDefinitions as $k => $catDef) {
 					foreach ($catDef['types'] as $l => $t) {
 						if ($t == 'malware-sample' || $t == 'attachment') {
-							unset($catDef['types'][$l]);
+							unset($categoryDefinitions[$k]['types'][$l]);
 						}
 					}
 				}

@@ -162,22 +162,20 @@ class ShadowAttribute extends AppModel {
 		return true;
 	}
 
-	private function __beforeDeleteCorrelation(&$sa) {
-		$temp = $sa;
-		if (isset($temp['ShadowAttribute'])) $temp = $temp['ShadowAttribute'];
+	private function __beforeDeleteCorrelation($sa) {
+		if (isset($sa['ShadowAttribute'])) $sa = $sa['ShadowAttribute'];
 		$this->ShadowAttributeCorrelation = ClassRegistry::init('ShadowAttributeCorrelation');
-		$this->ShadowAttributeCorrelation->deleteAll(array('ShadowAttributeCorrelation.1_shadow_attribute_id' => $temp['id']));
+		$this->ShadowAttributeCorrelation->deleteAll(array('ShadowAttributeCorrelation.1_shadow_attribute_id' => $sa['id']));
 	}
 
-	private function __afterSaveCorrelation(&$sa) {
-		$temp = $sa;
-		if (isset($temp['ShadowAttribute'])) $temp = $temp['ShadowAttribute'];
-		if (in_array($temp['type'], $this->Event->Attribute->nonCorrelatingTypes)) return;
+	private function __afterSaveCorrelation($sa) {
+		if (isset($sa['ShadowAttribute'])) $sa = $sa['ShadowAttribute'];
+		if (in_array($sa['type'], $this->Event->Attribute->nonCorrelatingTypes)) return;
 		$this->ShadowAttributeCorrelation = ClassRegistry::init('ShadowAttributeCorrelation');
 		$shadow_attribute_correlations = array();
 		$fields = array('value1', 'value2');
-		$correlatingValues = array($temp['value1']);
-		if (!empty($temp['value2'])) $correlatingValues[] = $temp['value2'];
+		$correlatingValues = array($sa['value1']);
+		if (!empty($sa['value2'])) $correlatingValues[] = $sa['value2'];
 		foreach ($correlatingValues as $k => $cV) {
 			$correlatingAttributes[$k] = $this->Event->Attribute->find('all', array(
 					'conditions' => array(
@@ -199,8 +197,8 @@ class ShadowAttribute extends AppModel {
 				foreach ($cA as $corr) {
 					$shadow_attribute_correlations[] = array(
 							'value' => $correlatingValues[$key],
-							'1_event_id' => $temp['event_id'],
-							'1_shadow_attribute_id' => $temp['id'],
+							'1_event_id' => $sa['event_id'],
+							'1_shadow_attribute_id' => $sa['id'],
 							'event_id' => $corr['Attribute']['event_id'],
 							'attribute_id' => $corr['Attribute']['id'],
 							'org_id' => $corr['Event']['org_id'],
@@ -434,7 +432,7 @@ class ShadowAttribute extends AppModel {
 		$body .= 'To view the event in question, follow this link: ' . Configure::read('MISP.baseurl') . '/events/view/' . $id . "\n";
 		$subject =  "[" . Configure::read('MISP.org') . " MISP] Proposal to event #" . $id;
 		$result = true;
-		foreach ($orgMembers as &$user) {
+		foreach ($orgMembers as $user) {
 			$result = $this->User->sendEmail($user, $body, $body, $subject) && $result;
 		}
 		return $result;

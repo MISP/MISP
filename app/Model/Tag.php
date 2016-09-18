@@ -167,7 +167,7 @@ class Tag extends AppModel {
 				'conditions' => array('UPPER(name) LIKE' => strtoupper($namespace) . '%'),
 		));
 		$tags = array();
-		foreach ($tags_temp as &$temp) $tags[strtoupper($temp['Tag']['name'])] = $temp;
+		foreach ($tags_temp as $temp) $tags[strtoupper($temp['Tag']['name'])] = $temp;
 		return $tags;
 	}
 }

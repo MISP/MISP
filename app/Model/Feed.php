@@ -56,7 +56,7 @@ class Feed extends AppModel {
 			'recursive' => -1,
 			'fields' => array('Event.id', 'Event.uuid', 'Event.timestamp')
 		));
-		foreach ($events as &$event) {
+		foreach ($events as $event) {
 			if ($event['Event']['timestamp'] < $manifest[$event['Event']['uuid']]['timestamp']) $result['edit'][] = array('uuid' => $event['Event']['uuid'], 'id' => $event['Event']['id']);
 			unset($manifest[$event['Event']['uuid']]);
 		}
@@ -171,7 +171,7 @@ class Feed extends AppModel {
 		if (isset($feed['Feed']['rules']) && !empty($feed['Feed']['rules'])) {
 			$filterRules = json_decode($feed['Feed']['rules'], true);
 		}
-		foreach ($events as $k => &$event) {
+		foreach ($events as $k => $event) {
 			if (isset($filterRules['orgs']['OR']) && !empty($filterRules['orgs']['OR']) && !in_array($event['Orgc']['name'], $filterRules['orgs']['OR'])) {
 				unset($events[$k]);
 				continue;
@@ -183,7 +183,7 @@ class Feed extends AppModel {
 			if (isset($filterRules['tags']['OR']) && !empty($filterRules['tags']['OR'])) {
 				if (!isset($event['Tag']) || empty($event['Tag'])) unset($events[$k]);
 				$found = false;
-				foreach ($event['Tag'] as &$tag) {
+				foreach ($event['Tag'] as $tag) {
 					foreach ($filterRules['tags']['OR'] as $filterTag) {
 						if (strpos(strtolower($tag['name']), strtolower($filterTag))) $found = true;
 					}
@@ -196,7 +196,7 @@ class Feed extends AppModel {
 			if (isset($filterRules['tags']['NOT']) && !empty($filterRules['tags']['NOT'])) {
 				if (isset($event['Tag']) && !empty($event['Tag'])) {
 					$found = false;
-					foreach ($event['Tag'] as &$tag) {
+					foreach ($event['Tag'] as $tag) {
 						foreach ($filterRules['tags']['NOT'] as $filterTag) if (strpos(strtolower($tag['name']), strtolower($filterTag))) $found = true;
 					}
 					if ($found) {
@@ -254,7 +254,7 @@ class Feed extends AppModel {
 		if (!isset($event['Event']['uuid'])) return false;
 		$event['Event']['distribution'] = $feed['Feed']['distribution'];
 		$event['Event']['sharing_group_id'] = $feed['Feed']['sharing_group_id'];
-		foreach ($event['Event']['Attribute'] as &$attribute) $attribute['distribution'] = 5;
+		foreach ($event['Event']['Attribute'] as $key => $attribute) $event['Event']['Attribute'][$key]['distribution'] = 5;
 		if ($feed['Feed']['tag_id']) {
 			if (!isset($event['Event']['Tag'])) $event['Event']['Tag'] = array();
 			$found = false;

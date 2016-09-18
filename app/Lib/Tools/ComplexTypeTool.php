@@ -68,18 +68,20 @@ class ComplexTypeTool {
 		return array('type' => 'other', 'value' => $input);
 	}
 
-	private function __returnOddElements(&$array) {
-		foreach ($array as $k => &$v) if ($k % 2 != 1) unset($array[$k]);
+	private function __returnOddElements($array) {
+		foreach ($array as $k => $v) if ($k % 2 != 1) unset($array[$k]);
 		return array_values($array);
 	}
 
 	public function checkFreeText($input) {
 		$iocArray = preg_split("/\r\n|\n|\r|\s|\s+|,|;/", $input);
 		$quotedText = explode('"', $input);
-		foreach ($quotedText as $k => &$temp) {
+		foreach ($quotedText as $k => $temp) {
 			$temp = trim($temp);
 			if (empty($temp)) {
 				unset($quotedText[$k]);
+			} else {
+				$quotedText[$k] = $temp;
 			}
 		}
 		$iocArray = array_merge($iocArray, $this->__returnOddElements($quotedText));
@@ -116,7 +118,7 @@ class ComplexTypeTool {
 			$compositeParts = explode('|', $input);
 			if (count($compositeParts) == 2) {
 				if ($this->__resolveFilename($compositeParts[0])) {
-					foreach ($this->__hexHashTypes as $k => &$v) {
+					foreach ($this->__hexHashTypes as $k => $v) {
 						if (strlen($compositeParts[1]) == $k && preg_match("#[0-9a-f]{" . $k . "}$#i", $compositeParts[1])) return array('types' => $v['composite'], 'to_ids' => true, 'default_type' => $v['composite'][0]);
 					}
 					if (preg_match('#^[0-9]+:.+:.+$#', $compositeParts[1])) return array('types' => array('ssdeep'), 'to_ids' => true, 'default_type' => 'filename|ssdeep');
@@ -125,7 +127,7 @@ class ComplexTypeTool {
 		}
 
 		// check for hashes
-		foreach ($this->__hexHashTypes as $k => &$v) {
+		foreach ($this->__hexHashTypes as $k => $v) {
 			if (strlen($input) == $k && preg_match("#[0-9a-f]{" . $k . "}$#i", $input)) return array('types' => $v['single'], 'to_ids' => true, 'default_type' => $v['single'][0]);
 		}
 		if (preg_match('#^[0-9]+:.+:.+$#', $input)) return array('types' => array('ssdeep'), 'to_ids' => true, 'default_type' => 'ssdeep');
