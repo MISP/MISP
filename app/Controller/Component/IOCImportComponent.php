@@ -175,12 +175,12 @@ class IOCImportComponent extends Component {
 		$duplicateFilter = array();
 		// check if we have any attributes, if yes, add their UUIDs to our list of success-array
 		if (count ($event['Attribute']) > 0) {
-			foreach ($event['Attribute'] as $k => &$attribute) {
+			foreach ($event['Attribute'] as $k => $attribute) {
 				$condensed = strtolower($attribute['value']) . $attribute['category'] . $attribute['type'];
 				if (!in_array($condensed, $duplicateFilter)) {
 					$this->saved_uuids[] = $attribute['uuid'];
 					$duplicateFilter[] = $condensed;
-					$attribute['uuid'] = CakeText::uuid();
+					$event['Attribute'][$k]['uuid'] = CakeText::uuid();
 				} else unset($event['Attribute'][$k]);
 			}
 		}
@@ -207,12 +207,12 @@ class IOCImportComponent extends Component {
 
 	// traverse the oldTree and set the successful branches and leaves to "success true" if they got added to the attribute tree. Otherwise set false.
 	private function __setSuccesses($branch) {
-		foreach ($branch['leaves'] as &$value) {
-			$value['success'] = (in_array($value['uuid'], $this->saved_uuids) ? true : false);
+		foreach ($branch['leaves'] as $key => $value) {
+			$branch['leaves'][$key]['success'] = (in_array($value['uuid'], $this->saved_uuids) ? true : false);
 			if (!$value['success']) $this->fails[] = $value;
 		}
-		foreach ($branch['branches'] as &$value) {
-			$value = $this->__setSuccesses($value);
+		foreach ($branch['branches'] as $key => $value) {
+			$branch['branches'][$key] = $this->__setSuccesses($value);
 		}
 		$branch['success'] = (in_array($branch['uuid'], $this->saved_uuids) ? true : false);
 		return $branch;
@@ -220,13 +220,13 @@ class IOCImportComponent extends Component {
 
 	private function __traverseAndAnalyse($array) {
 		if (count($array['leaves']) > 0) {
-			foreach ($array['leaves'] as &$leaf) {
-				$leaf = $this->__analyseIndicator($leaf);
+			foreach ($array['leaves'] as $key => $leaf) {
+				$array['leaves'][$key] = $this->__analyseIndicator($leaf);
 			}
 		}
 		if (count($array['branches']) > 0) {
-			foreach ($array['branches'] as &$branch) {
-				$branch = $this->__traverseAndAnalyse($branch);
+			foreach ($array['branches'] as $key => $branch) {
+				$array['branches'][$key] = $this->__traverseAndAnalyse($branch);
 			}
 		}
 		return $array;
@@ -390,7 +390,7 @@ class IOCImportComponent extends Component {
 	}
 
 	// Create the array used in the visualisation of the original ioc file
-	private function __graphBranches(&$array, $level) {
+	private function __graphBranches($array, $level) {
 		$level++;
 		$spaces = '';
 		for ($i = 1; $i < $level; $i++) {
@@ -453,9 +453,9 @@ class IOCImportComponent extends Component {
 				$combinations = $this->__findCombinations($branch['branches']);
 				$current['branches'] = array('type' => 'AND', 'branches' => array());
 				$temp = array();
-				foreach ($combinations as &$current) {
+				foreach ($combinations as $key => $current) {
 					foreach ($branch['leaves'] as $leaf) {
-						array_push($current, $leaf);
+						array_push($combinations[$key], $leaf);
 					}
 					$temp[] = array('type' => 'AND', 'leaves' => $current, 'branches' => array(), 'uuid' => $uuid);
 				}
@@ -554,7 +554,7 @@ class IOCImportComponent extends Component {
 			if ($attempt) {
 				$attempt['uuid'] = $att[0]['uuid'];
 				$this->saved_uuids[] = $id;
-				foreach ($att as &$temp) {
+				foreach ($att as $temp) {
 					$this->saved_uuids[] = $temp['uuid'];
 				}
 				return $attempt;
@@ -579,11 +579,11 @@ class IOCImportComponent extends Component {
 	private function __convertToCompositeAttribute($att, $uuid) {
 		// check if the current attribute is one of the known pairs saved in the array $attributePairs
 		$tempArray = $values = $uuids = array();
-		foreach ($att as &$temp) $tempArray[$temp['type']] = $temp;
+		foreach ($att as $temp) $tempArray[$temp['type']] = $temp;
 		ksort($tempArray);
 		$keys = array_keys($tempArray);
 		$att = array_values($tempArray);
-		foreach ($att as &$temp) {
+		foreach ($att as $temp) {
 			$values[] = $temp['value'];
 			$uuids[] = $temp['uuid'];
 		}
@@ -592,7 +592,7 @@ class IOCImportComponent extends Component {
 			if (count($composition['components']) != count($att)) continue;
 			if ($keys === $composition['components']) {
 				$value = $composition['replace'];
-				foreach ($values as $k => &$v) {
+				foreach ($values as $k => $v) {
 					$value = str_replace('$' . $k, $v, $value);
 				}
 				return array(

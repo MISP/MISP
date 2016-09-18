@@ -302,7 +302,7 @@ class ShadowAttributesController extends AppController {
 			if (isset($this->request->data['request'])) $this->request->data = $this->request->data['request'];
 			// rearrange the request in case someone didn't RTFM
 			$invalidNames = array('Attribute', 'Proposal');
-			foreach ($invalidNames as &$iN) {
+			foreach ($invalidNames as $iN) {
 				if (isset($this->request->data[$iN]) && !isset($this->request->data['ShadowAttribute'])) {
 					$this->request->data['ShadowAttribute'] = $this->request->data[$iN];
 				}
@@ -625,7 +625,7 @@ class ShadowAttributesController extends AppController {
 			if (isset($this->request->data['request'])) $this->request->data = $this->request->data['request'];
 			// rearrange the request in case someone didn't RTFM
 			$invalidNames = array('Attribute', 'Proposal');
-			foreach ($invalidNames as &$iN) if (isset($this->request->data[$iN]) && !isset($this->request->data['ShadowAttribute'])) $this->request->data['ShadowAttribute'] = $this->request->data[$iN];
+			foreach ($invalidNames as $iN) if (isset($this->request->data[$iN]) && !isset($this->request->data['ShadowAttribute'])) $this->request->data['ShadowAttribute'] = $this->request->data[$iN];
 			if ($attachment) {
 				$fields = array(
 						'static' => array('old_id' => 'Attribute.id', 'uuid' => 'Attribute.uuid', 'event_id' => 'Attribute.event_id', 'event_uuid' => 'Event.uuid', 'event_org_id' => 'Event.orgc_id', 'category' => 'Attribute.category', 'type' => 'Attribute.type'),
@@ -853,10 +853,9 @@ class ShadowAttributesController extends AppController {
 					'EventOrg' => array('fields' => array('uuid', 'name')),
 				)
 		));
-		foreach ($temp as &$t) {
+		foreach ($temp as $key => $t) {
 			if ($this->ShadowAttribute->typeIsAttachment($t['ShadowAttribute']['type'])) {
-				$encodedFile = $this->ShadowAttribute->base64EncodeAttachment($t['ShadowAttribute']);
-				$t['ShadowAttribute']['data'] = $encodedFile;
+				$temp[$key]['ShadowAttribute']['data'] = $this->ShadowAttribute->base64EncodeAttachment($t['ShadowAttribute']);
 			}
 		}
 		if ($temp == null) {
@@ -890,10 +889,9 @@ class ShadowAttributesController extends AppController {
 					),
 			));
 			if (empty($temp)) continue;
-			foreach ($temp as &$t) {
+			foreach ($temp as $key => $t) {
 				if ($this->ShadowAttribute->typeIsAttachment($t['ShadowAttribute']['type'])) {
-					$encodedFile = $this->ShadowAttribute->base64EncodeAttachment($t['ShadowAttribute']);
-					$t['ShadowAttribute']['data'] = $encodedFile;
+					$temp[$key]['ShadowAttribute']['data'] = $this->ShadowAttribute->base64EncodeAttachment($t['ShadowAttribute']);
 				}
 			}
 			$result = array_merge($result, $temp);

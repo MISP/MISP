@@ -14,3 +14,7 @@
 	path = app/files/warninglists
 	url = https://github.com/MISP/misp-warninglists.git
 	branch = master
+[submodule "app/Lib/random_compat"]
+	path = app/Lib/random_compat
+	url = https://github.com/paragonie/random_compat
+	branch = master

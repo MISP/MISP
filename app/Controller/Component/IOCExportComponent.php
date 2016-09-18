@@ -6,7 +6,7 @@ class IOCExportComponent extends Component {
 
 	public function buildAll($user, $event) {
 		$this->__buildTop($event);
-		foreach ($event['Attribute'] as &$attribute) {
+		foreach ($event['Attribute'] as $attribute) {
 			$this->__buildAttribute($attribute);
 		}
 		$this->__buildBottom();
@@ -61,7 +61,6 @@ class IOCExportComponent extends Component {
 	);
 
 	private function __frameComposite($attribute) {
-		$types = explode('|', $attribute['type']);
 		$values = explode('|', $attribute['value']);
 		$this->final[] = '     <Indicator operator="AND" id="' . h($attribute['uuid']) . '">';
 		$this->__frameIndicator($this->mapping['composite'][$attribute['type']][0], $attribute['uuid'], $values[0], true);
@@ -70,7 +69,6 @@ class IOCExportComponent extends Component {
 	}
 
 	private function __frameIndicator($mapping, $uuid, $value, $extraIndent = false) {
-		$indent = "      ";
 		$padding = 6;
 		if ($extraIndent) {
 			$padding = 8;

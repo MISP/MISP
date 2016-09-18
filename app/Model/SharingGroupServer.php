@@ -105,7 +105,7 @@ class SharingGroupServer extends AppModel {
 		));
 		if (empty($sgs)) return array();
 		$sgids = array();
-		foreach ($sgs as &$temp) {
+		foreach ($sgs as $temp) {
 			$sgids[] = $temp[$this->alias]['id'];
 		}
 		return $sgids;

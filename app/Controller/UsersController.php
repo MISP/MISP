@@ -768,10 +768,11 @@ class UsersController extends AppController {
 			}
 		}
 		$max = 1;
-		foreach ($data as &$d) {
+		foreach ($data as $key => $d) {
 			foreach ($d['data'] as $t) {
 				$d['total'] += $t;
 			}
+			$data[$key]['total'] = $d['total'];
 			if ($d['total'] > $max) $max = $d['total'];
 		}
 		$this->set('data', $data);

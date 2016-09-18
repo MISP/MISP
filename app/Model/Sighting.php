@@ -1,5 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
+App::uses('RandomTool', 'Tools');
 
 class Sighting extends AppModel {
 
@@ -19,12 +20,8 @@ class Sighting extends AppModel {
 	);
 
 	public $belongsTo = array(
-			'Attribute' => array(
-					'className' => 'Attribute',
-			),
-			'Event' => array(
-					'className' => 'Event',
-			),
+			'Attribute',
+			'Event',
 			'Organisation' => array(
 					'className' => 'Organisation',
 					'foreignKey' => 'org_id'
@@ -68,7 +65,7 @@ class Sighting extends AppModel {
 		if (empty($sightings)) return array();
 		$anonymise = Configure::read('Plugin.Sightings_anonymise');
 
-		foreach ($sightings as $k => &$sighting) {
+		foreach ($sightings as $k => $sighting) {
 			if ($anonymise && !$user['Role']['perm_site_admin']) {
 				if ($sighting['Sighting']['org_id'] != $user['org_id']) {
 					unset($sightings[$k]['Sighting']['org_id']);
@@ -91,7 +88,7 @@ class Sighting extends AppModel {
 			else $conditions = array('Attribute.id' => $id);
 		} else {
 			if (!$values) return 0;
-			foreach ($values as &$value) {
+			foreach ($values as $value) {
 				foreach (array('value1', 'value2') as $field) {
 					$conditions['OR'][] = array(
 						'LOWER(Attribute.' . $field . ') LIKE' => strtolower($value)
@@ -102,7 +99,7 @@ class Sighting extends AppModel {
 		$attributes = $this->Attribute->fetchAttributes($user, array('conditions' => $conditions));
 		if (empty($attributes)) return 0;
 		$sightingsAdded = 0;
-		foreach ($attributes as &$attribute) {
+		foreach ($attributes as $attribute) {
 			$this->create();
 			$sighting = array(
 					'attribute_id' => $attribute['Attribute']['id'],
@@ -140,13 +137,6 @@ class Sighting extends AppModel {
 	}
 
 	public function generateRandomFileName() {
-		$length = 12;
-		$characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-		$charLen = strlen($characters) - 1;
-		$fn = '';
-		for ($p = 0; $p < $length; $p++) {
-			$fn .= $characters[rand(0, $charLen)];
-		}
-		return $fn;
+		return (new RandomTool())->random_str(FALSE, 12);
 	}
 }

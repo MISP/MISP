@@ -4,10 +4,6 @@ App::uses('AppController', 'Controller');
 class WarninglistsController extends AppController {
 	public $components = array('Session', 'RequestHandler');
 
-	public function beforeFilter() {
-		parent::beforeFilter();
-	}
-
 	public $paginate = array(
 			'limit' => 60,
 			'maxLimit' => 9999,	// LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
@@ -44,7 +40,7 @@ class WarninglistsController extends AppController {
 		$successes = 0;
 		if (!empty($result)) {
 			if (isset($result['success'])) {
-				foreach ($result['success'] as $id => &$success) {
+				foreach ($result['success'] as $id => $success) {
 					if (isset($success['old'])) $change = $success['name'] . ': updated from v' . $success['old'] . ' to v' . $success['new'];
 					else $change = $success['name'] . ' v' . $success['new'] . ' installed';
 					$this->Log->create();
@@ -62,7 +58,7 @@ class WarninglistsController extends AppController {
 				}
 			}
 			if (isset($result['fails'])) {
-				foreach ($result['fails'] as $id => &$fail) {
+				foreach ($result['fails'] as $id => $fail) {
 					$this->Log->create();
 					$this->Log->save(array(
 							'org' => $this->Auth->user('Organisation')['name'],

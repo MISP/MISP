@@ -16,10 +16,6 @@ class ThreadsController extends AppController {
 			'limit' => 60,
 	);
 
-	public function beforeFilter() {
-		parent::beforeFilter();
-	}
-
 	public function viewEvent($id) {
 		$this->loadModel('Event');
 		$result = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
@@ -65,9 +61,9 @@ class ThreadsController extends AppController {
 		);
 		$posts = $this->paginate('Post');
 		if (!$this->_isSiteAdmin()) {
-			foreach ($posts as &$post) {
+			foreach ($posts as $key => $post) {
 				if ($post['User']['org_id'] != $this->Auth->user('org_id')) {
-					$post['User']['email'] = 'User ' . $post['User']['id'] . ' (' . $post['User']['org_id'] . ')';
+					$posts[$key]['User']['email'] = 'User ' . $post['User']['id'] . ' (' . $post['User']['org_id'] . ')';
 				}
 			}
 		}
@@ -156,9 +152,9 @@ class ThreadsController extends AppController {
 			);
 			$posts = $this->paginate('Post');
 			if (!$this->_isSiteAdmin()) {
-				foreach ($posts as &$post) {
+				foreach ($posts as $key => $post) {
 					if ($post['User']['org_id'] != $this->Auth->user('org_id')) {
-						$post['User']['email'] = 'User ' . $post['User']['id'] . ' (' . $post['User']['org_id'] . ')';
+						$posts[$key]['User']['email'] = 'User ' . $post['User']['id'] . ' (' . $post['User']['org_id'] . ')';
 					}
 				}
 			}
@@ -226,9 +222,9 @@ class ThreadsController extends AppController {
 		);
 		$threadsBeforeEmailRemoval = $this->paginate();
 		if (!$this->_isSiteAdmin()) {
-			foreach ($threadsBeforeEmailRemoval as &$thread) {
-				if (empty($thread['Post'][0]['User']['org_id'])) $thread['Post'][0]['User']['email'] = 'Deactivated user';
-				else if ($thread['Post'][0]['User']['org_id'] != $this->Auth->user('org_id')) $thread['Post'][0]['User']['email'] = 'User ' . $thread['Post'][0]['User']['id'] . " (" . $thread['Post'][0]['User']['Organisation']['name'] . ")";
+			foreach ($threadsBeforeEmailRemoval as $key => $thread) {
+				if (empty($thread['Post'][0]['User']['org_id'])) $threadsBeforeEmailRemoval[$key]['Post'][0]['User']['email'] = 'Deactivated user';
+				else if ($thread['Post'][0]['User']['org_id'] != $this->Auth->user('org_id')) $threadsBeforeEmailRemoval[$key]['Post'][0]['User']['email'] = 'User ' . $thread['Post'][0]['User']['id'] . " (" . $thread['Post'][0]['User']['Organisation']['name'] . ")";
 			}
 		}
 		$this->set('threads', $threadsBeforeEmailRemoval);

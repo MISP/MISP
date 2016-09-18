@@ -1257,7 +1257,7 @@ class Server extends AppModel {
 				App::uses('SyncTool', 'Tools');
 				$syncTool = new SyncTool();
 				$HttpSocket = $syncTool->setupHttpSocket($server);
-				foreach ($eventIds as $k => &$eventId) {
+				foreach ($eventIds as $k => $eventId) {
 					$event = $eventModel->downloadEventFromServer(
 							$eventId,
 							$server);
@@ -1291,13 +1291,13 @@ class Server extends AppModel {
 										break;
 								}
 								if (isset($event['Event']['Attribute']) && !empty($event['Event']['Attribute'])) {
-									foreach ($event['Event']['Attribute'] as &$a) {
+									foreach ($event['Event']['Attribute'] as $key => $a) {
 										switch ($a['distribution']) {
 											case '1':
-												$a['distribution'] = '0';
+												$event['Event']['Attribute'][$key]['distribution'] = '0';
 												break;
 											case '2':
-												$a['distribution'] = '1';
+												$event['Event']['Attribute'][$key]['distribution'] = '1';
 												break;
 										}
 									}
@@ -1402,7 +1402,7 @@ class Server extends AppModel {
 			} else {
 				// Fallback for < 2.4.7 instances
 				$k = 0;
-				foreach ($events as $eid => &$event) {
+				foreach ($events as $eid => $event) {
 					$proposals = $eventModel->downloadEventFromServer($event, $server, null, true);
 					if (null != $proposals) {
 						if (isset($proposals['ShadowAttribute']['id'])) {
@@ -1478,8 +1478,8 @@ class Server extends AppModel {
 		foreach ($filter_rules as $field => $rules) {
 			$temp = array();
 			foreach ($rules as $operator => $elements) {
-				foreach ($elements as $k => &$element) {
-					if ($operator === 'NOT') $element = '!' . $element;
+				foreach ($elements as $k => $element) {
+					if ($operator === 'NOT') $elements[$k] = '!' . $element;
 					if (!empty($element)) $temp[] = $element;
 				}
 			}
@@ -1531,7 +1531,7 @@ class Server extends AppModel {
 				} else {
 					// multiple events, iterate over the array
 					$this->Event = ClassRegistry::init('Event');
-					foreach ($eventArray as $k => &$event) {
+					foreach ($eventArray as $k => $event) {
 						if (1 != $event['published']) {
 							unset($eventArray[$k]); // do not keep non-published events
 						}
@@ -1904,8 +1904,8 @@ class Server extends AppModel {
 					$finalSettingsUnsorted[$branchKey] = $branchValue;
 			}
 		}
-		foreach ($finalSettingsUnsorted as &$temp) if (in_array($temp['tab'], array_keys($this->__settingTabMergeRules))) {
-			$temp['tab'] = $this->__settingTabMergeRules[$temp['tab']];
+		foreach ($finalSettingsUnsorted as $key => $temp) if (in_array($temp['tab'], array_keys($this->__settingTabMergeRules))) {
+			$finalSettingsUnsorted[$key]['tab'] = $this->__settingTabMergeRules[$temp['tab']];
 		}
 		if ($unsorted) return $finalSettingsUnsorted;
 		$finalSettings = array();
@@ -2254,7 +2254,7 @@ class Server extends AppModel {
 		$validItems = $this->getFileRules();
 		App::uses('Folder', 'Utility');
 		App::uses('File', 'Utility');
-		foreach ($validItems as $k => &$item) {
+		foreach ($validItems as $k => $item) {
 			$dir = new Folder($item['path']);
 			$files = $dir->find($item['regex'], true);
 			foreach ($files as $file) {
@@ -2448,6 +2448,7 @@ class Server extends AppModel {
 				APP . 'tmp' . DS . 'xml' => 0,
 				APP . 'tmp' . DS . 'files' => 0,
 				APP . 'tmp' . DS . 'logs' => 0,
+				APP . 'tmp' . DS . 'bro' => 0,
 		);
 		foreach ($writeableDirs as $path => &$error) {
 			$dir = new Folder($path);
@@ -2642,11 +2643,11 @@ class Server extends AppModel {
 			}
 			$worker_array[$entry]['workers'][] = array('pid' => $pid, 'user' => $worker['user'], 'alive' => $alive, 'correct_user' => $correct_user, 'ok' => $ok);
 		}
-		foreach ($worker_array as $k => &$queue) {
+		foreach ($worker_array as $k => $queue) {
 			if ($k != 'scheduler') $worker_array[$k]['jobCount'] = CakeResque::getQueueSize($k);
 			if (!isset($queue['workers'])) {
 				$workerIssueCount++;
-				$queue['ok'] = false;
+				$worker_array[$k]['ok'] = false;
 			}
 		}
 		$worker_array['proc_accessible'] = $procAccessible;
@@ -2851,8 +2852,8 @@ class Server extends AppModel {
 			$this->Job->saveField('message', 'Starting organisation creation');
 		}
 		$orgMapping = array();
-		foreach ($orgs as $k => &$orgArray) {
-			foreach ($orgArray as &$org) {
+		foreach ($orgs as $k => $orgArray) {
+			foreach ($orgArray as $org) {
 				$orgMapping[$org] = $this->Organisation->createOrgFromName($org, $user_id, $k == 'local' ? true : false);
 			}
 		}
@@ -2971,11 +2972,11 @@ class Server extends AppModel {
 			} catch (Exception $e) {
 				return 1;
 			}
-			if (!empty($events)) foreach ($events as &$event) {
+			if (!empty($events)) foreach ($events as $k => $event) {
 				if (!isset($event['Orgc'])) $event['Orgc']['name'] = $event['orgc'];
 				if (!isset($event['Org'])) $event['Org']['name'] = $event['org'];
 				if (!isset($event['EventTag'])) $event['EventTag'] = array();
-				$event = array('Event' => $event);
+				$events[$k] = array('Event' => $event);
 			} else return 3;
 			return $events;
 		}

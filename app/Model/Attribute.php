@@ -4,6 +4,7 @@ App::uses('AppModel', 'Model');
 App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
 App::uses('FinancialTool', 'Tools');
+App::uses('RandomTool', 'Tools');
 
 class Attribute extends AppModel {
 
@@ -522,7 +523,6 @@ class Attribute extends AppModel {
 		$value = $fields['value'];
 		$eventId = $this->data['Attribute']['event_id'];
 		$type = $this->data['Attribute']['type'];
-		$toIds = $this->data['Attribute']['to_ids'];
 		$category = $this->data['Attribute']['category'];
 
 		// check if the attribute already exists in the same event
@@ -1411,6 +1411,103 @@ class Attribute extends AppModel {
 		return $values;
 	}
 
+	function bro($user, $type, $tags = false, $eventId = false, $from = false, $to = false, $last = false) {
+		//restricting to non-private or same org if the user is not a site-admin.
+		$conditions['AND'] = array('Attribute.to_ids =' => 1, 'Event.published =' => 1);
+		if ($from) $conditions['AND']['Event.date >='] = $from;
+		if ($to) $conditions['AND']['Event.date <='] = $to;
+		if ($last) $conditions['AND']['Event.publish_timestamp >='] = $last;
+		if ($eventId !== false) {
+			$conditions['AND'][] = array('Event.id' => $eventId);
+		} 
+		else if ($tags !== false) {
+			// If we sent any tags along, load the associated tag names for each attribute
+			$tag = ClassRegistry::init('Tag');
+			$args = $this->dissectArgs($tags);
+			$tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
+			$temp = array();
+			foreach ($tagArray[0] as $accepted) {
+				$temp['OR'][] = array('Event.id' => $accepted);
+			}
+			$conditions['AND'][] = $temp;
+			$temp = array();
+			foreach ($tagArray[1] as $rejected) {
+				$temp['AND'][] = array('Event.id !=' => $rejected);
+			}
+			$conditions['AND'][] = $temp;
+		}
+		App::uses('BroExport', 'Export');
+		$export = new BroExport();
+		$this->Whitelist = ClassRegistry::init('Whitelist');
+		$this->whitelist = $this->Whitelist->getBlockedValues();
+		$instanceString = 'MISP';
+		if (Configure::read('MISP.host_org_id') && Configure::read('MISP.host_org_id') > 0) {
+			$this->Event->Orgc->id = Configure::read('MISP.host_org_id');
+			if ($this->Event->Orgc->exists()) {
+				$instanceString = $this->Event->Orgc->field('name') . ' MISP';
+			}
+		}
+		$mispTypes = $export->getMispTypes($type);
+		$intel = array($export->header);
+		foreach($mispTypes as $mispType) {
+			$conditions['AND']['Attribute.type'] = $mispType[0];
+			$intel = $this->__bro($intel, $user, $conditions, $mispType[1], $export, $this->whitelist, $instanceString);
+		}
+		return $intel;
+	}
+
+	private function __bro($intel, $user, $conditions, $valueField, $export, $whitelist, $instanceString) {
+		$attributes = $this->fetchAttributes($user, array(
+				'conditions' => $conditions, // array of conditions
+				'order' => 'Attribute.value' . $valueField . ' ASC',
+				'recursive' => -1, // int
+				'fields' => array('Attribute.id', 'Attribute.event_id', 'Attribute.type', 'Attribute.value' . $valueField . " as value"),
+				'contain' => array('Event' => array('fields' => array('Event.id', 'Event.threat_level_id', 'Event.orgc_id', 'Event.uuid'))),
+				'group' => array('Attribute.type', 'Attribute.value' . $valueField), // fields to GROUP BY
+			)
+		);
+		$orgs = $this->Event->Orgc->find('list', array(
+				'fields' => array('Orgc.id', 'Orgc.name')
+		));
+		return $export->export($attributes, $orgs, $valueField, $intel, $whitelist, $instanceString);
+	}
+	
+	public function brozip($user, $tags, $eventId, $allowNonIDS, $from, $to, $last, $jobId = false) {
+		App::uses('BroExport', 'Export');
+		$export = new BroExport();
+		$types = array_keys($export->mispTypes);
+		$typeCount = count($types);
+		if ($jobId) {
+			$this->Job = ClassRegistry::init('Job');
+			$this->Job->id = $jobId;
+			if (!$this->Job->exists()) {
+				$jobId = false;
+			}
+		}
+		$dir = new Folder(APP . 'tmp/files/' . $this->Event->generateRandomFileName(), true, 0750);
+		$tmpZipname = DS . "bro_export_tmp.zip";
+		$zip = new File($dir->pwd() . $tmpZipname);
+		foreach ($types as $k => $type) {
+			$final = $this->bro($user, $type, $tags, $eventId, $allowNonIDS, $from, $to, $last);
+			$filename = $type . '.intel';
+			$file = new File($dir->pwd() . DS . $filename);
+			$file->write(implode(PHP_EOL, $final));
+			$file->close();
+			$execRetval = '';
+			$execOutput = array();
+			exec('zip -gj  ' . $zip->path . ' ' . $dir->pwd() . '/' .  $filename, $execOutput, $execRetval);
+			if ($execRetval != 0) { // not EXIT_SUCCESS
+				throw new Exception('An error has occured while attempting to zip the intel files.');
+			}
+			$file->delete(); // delete the original non-zipped-file
+			if ($jobId) {
+				$this->Job->saveField('progress', $k / $typeCount * 100);
+			}
+		}
+		$zip->close();
+		return array($dir->pwd(), $tmpZipname);
+	}
+
 	public function generateCorrelation($jobId = false, $startPercentage = 0) {
 		$this->Correlation = ClassRegistry::init('Correlation');
 		$this->Correlation->deleteAll(array('id !=' => 0), false);
@@ -1502,7 +1599,7 @@ class Attribute extends AppModel {
 	}
 
 
-	public function checkTemplateAttributes($template, &$data, $event_id) {
+	public function checkTemplateAttributes($template, $data, $event_id) {
 		$result = array();
 		$errors = array();
 		$attributes = array();
@@ -1696,12 +1793,12 @@ class Attribute extends AppModel {
 			'recursive' => -1,
 			'contain' => array(
 				'Event' => array(
-					'fields' => array('id', 'info', 'org_id'),
+					'fields' => array('id', 'info', 'org_id', 'orgc_id'),
 				),
 			),
 		);
 		if (isset($options['contain'])) $params['contain'] = array_merge_recursive($params['contain'], $options['contain']);
-		else $option['contain']['Event']['fields'] = array('id', 'info', 'org_id');
+		else $option['contain']['Event']['fields'] = array('id', 'info', 'org_id', 'orgc_id');
 		if (isset($options['fields'])) $params['fields'] = $options['fields'];
 		if (isset($options['conditions'])) $params['conditions']['AND'][] = $options['conditions'];
 		if (isset($options['order'])) $params['order'] = $options['order'];
@@ -1767,14 +1864,7 @@ class Attribute extends AppModel {
 	}
 
 	public function generateRandomFileName() {
-		$length = 12;
-		$characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-		$charLen = strlen($characters) - 1;
-		$fn = '';
-		for ($p = 0; $p < $length; $p++) {
-			$fn .= $characters[rand(0, $charLen)];
-		}
-		return $fn;
+		return (new RandomTool())->random_str(FALSE, 12);
 	}
 
 	public function resolveHashType($hash) {

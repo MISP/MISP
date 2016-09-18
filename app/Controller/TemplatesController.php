@@ -166,8 +166,8 @@ class TemplatesController extends AppController {
 		$this->autoRender = false;
 		$this->request->onlyAllow('ajax');
 		$orderedElements = $this->request->data;
-		foreach ($orderedElements as &$e) {
-			$e = ltrim($e, 'id_');
+		foreach ($orderedElements as $key => $e) {
+			$orderedElements[$key] = ltrim($e, 'id_');
 		}
 		$extractedIds = array();
 		foreach ($orderedElements as $element) $extractedIds[] = $element;
@@ -187,11 +187,11 @@ class TemplatesController extends AppController {
 		if (count($elements) != count($orderedElements)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Incomplete template element list passed as argument. Expecting ' . count($elements) . ' elements, only received positions for ' . count($orderedElements) . '.')),'status'=>200));
 		$template_id = $elements[0]['TemplateElement']['template_id'];
 
-		foreach ($elements as &$e) {
+		foreach ($elements as $key => $e) {
 			if ($template_id !== $e['TemplateElement']['template_id']) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Cannot sort template elements belonging to separate templates. You should never see this message during legitimate use.')),'status'=>200));
 			foreach ($orderedElements as $k => $orderedElement) {
 				if ($orderedElement == $e['TemplateElement']['id']) {
-					$e['TemplateElement']['position'] = $k+1;
+					$elements[$key]['TemplateElement']['position'] = $k+1;
 				}
 			}
 		}
@@ -326,11 +326,11 @@ class TemplatesController extends AppController {
 				$attributes = json_decode($this->request->data['Template']['attributes'], true);
 				$this->loadModel('Attribute');
 				$fails = 0;
-				foreach ($attributes as $k => &$attribute) {
+				foreach ($attributes as $k => $attribute) {
 					if (isset($attribute['data']) && $this->Template->checkFilename($attribute['data'])) {
 						$file = new File(APP . 'tmp/files/' . $attribute['data']);
 						$content = $file->read();
-						$attribute['data'] = base64_encode($content);
+						$attributes[$k]['data'] = base64_encode($content);
 						$file->delete();
 					}
 					$this->Attribute->create();
