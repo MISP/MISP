@@ -216,6 +216,25 @@ class User extends AppModel {
 		'Containable'
 	);
 
+	private function __generatePassword() {
+		$groups = array(
+				'0123456789',
+				'abcdefghijklmnopqrstuvwxyz',
+				'ABCDEFGHIJKLOMNOPQRSTUVWXYZ',
+				'!@#$%^&*()_-'
+		);
+		$passwordLength = Configure::read('Security.password_policy_length') ? Configure::read('Security.password_policy_length') : 12;
+		$pw = '';
+		for ($i = 0; $i < $passwordLength; $i++) {
+			$chars = implode('', $groups);
+			$pw .= $chars[mt_rand(0, strlen($chars)-1)];
+		}
+		foreach ($groups as $group) {
+			$pw .= $group[mt_rand(0, strlen($group)-1)];
+		}
+		return $pw;
+	}
+
 	public function beforeValidate($options = array()) {
 		if (!isset($this->data['User']['id'])) {
 			if ((isset($this->data['User']['enable_password']) && (!$this->data['User']['enable_password'])) || (empty($this->data['User']['password']) && empty($this->data['User']['confirm_password']))) {
@@ -611,10 +630,10 @@ class User extends AppModel {
 			'fields' => array('id', 'email', 'gpgkey', 'certif_public', 'org_id'),
 			'contain' => array('Role' => array('fields' => array('perm_site_admin'))),
 		));
-		foreach ($users as &$user) {
-			$temp = $user['User'];
-			unset($user['User']);
-			$user = array_merge($temp, $user);
+		foreach ($users as $k => $user) {
+			$user = $user['User'];
+			unset($users[$k]['User']);
+			$users[$k] = array_merge($user, $users[$k]);
 		}
 		return $users;
 	}

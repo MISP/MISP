@@ -10,9 +10,9 @@ class PubSubTool {
 				'redis_namespace' => 'mispq',
 				'port' => '50000',
 		);
-		foreach ($settings as $key => &$setting) {
+		foreach ($settings as $key => $setting) {
 			$temp = Configure::read('Plugin.ZeroMQ_' . $key);
-			if ($temp) $setting = $temp;
+			if ($temp) $settings[$key] = $temp;
 		}
 		$settingsFile = new File(APP . 'files' . DS . 'scripts' . DS . 'mispzmq' . DS . 'settings.json', true, 0644);
 		$settingsFile->write(json_encode($settings, true));

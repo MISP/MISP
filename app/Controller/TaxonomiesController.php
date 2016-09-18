@@ -4,10 +4,6 @@ App::uses('AppController', 'Controller');
 class TaxonomiesController extends AppController {
 	public $components = array('Session', 'RequestHandler');
 
-	public function beforeFilter() {
-		parent::beforeFilter();
-	}
-
 	public $paginate = array(
 			'limit' => 60,
 			'maxLimit' => 9999,	// LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
@@ -26,14 +22,14 @@ class TaxonomiesController extends AppController {
 		$this->paginate['recursive'] = -1;
 		$taxonomies = $this->paginate();
 		$this->loadModel('Tag');
-		foreach ($taxonomies as &$taxonomy) {
+		foreach ($taxonomies as $key => $taxonomy) {
 			$total = 0;
-			foreach ($taxonomy['TaxonomyPredicate'] as &$predicate) {
+			foreach ($taxonomy['TaxonomyPredicate'] as $predicate) {
 				$total += empty($predicate['TaxonomyEntry']) ? 1 : count($predicate['TaxonomyEntry']);
 			}
-			$taxonomy['total_count'] = $total;
-			$taxonomy['current_count'] = $this->Tag->find('count', array('conditions' => array('lower(Tag.name) LIKE ' => strtolower($taxonomy['Taxonomy']['namespace']) . ':%')));
-			unset($taxonomy['TaxonomyPredicate']);
+			$taxonomies[$key]['total_count'] = $total;
+			$taxonomies[$key]['current_count'] = $this->Tag->find('count', array('conditions' => array('lower(Tag.name) LIKE ' => strtolower($taxonomy['Taxonomy']['namespace']) . ':%')));
+			unset($taxonomies[$key]['TaxonomyPredicate']);
 		}
 		$this->set('taxonomies', $taxonomies);
 	}
@@ -121,7 +117,7 @@ class TaxonomiesController extends AppController {
 		$successes = 0;
 		if (!empty($result)) {
 			if (isset($result['success'])) {
-				foreach ($result['success'] as $id => &$success) {
+				foreach ($result['success'] as $id => $success) {
 					if (isset($success['old'])) $change = $success['namespace'] . ': updated from v' . $success['old'] . ' to v' . $success['new'];
 					else $change = $success['namespace'] . ' v' . $success['new'] . ' installed';
 					$this->Log->create();
@@ -139,7 +135,7 @@ class TaxonomiesController extends AppController {
 				}
 			}
 			if (isset($result['fails'])) {
-				foreach ($result['fails'] as $id => &$fail) {
+				foreach ($result['fails'] as $id => $fail) {
 					$this->Log->create();
 					$this->Log->save(array(
 							'org' => $this->Auth->user('Organisation')['name'],

@@ -658,7 +658,7 @@ class ServersController extends AppController {
 					else $tempArray['general'][] = $result;
 				}
 			}
-			$finalSettings = &$tempArray;
+			$finalSettings = $tempArray;
 			// Diagnostics portion
 			$diagnostic_errors = 0;
 			App::uses('File', 'Utility');
@@ -697,10 +697,10 @@ class ServersController extends AppController {
 
 				);
 
-				foreach ($phpSettings as $setting => &$settingArray) {
-					$settingArray['value'] = ini_get($setting);
-					if ($settingArray['unit']) $settingArray['value'] = intval(rtrim($settingArray['value'], $settingArray['unit']));
-					else $settingArray['value'] = intval($settingArray['value']);
+				foreach ($phpSettings as $setting => $settingArray) {
+					$phpSettings[$setting]['value'] = ini_get($setting);
+					if ($settingArray['unit']) $phpSettings[$setting]['value'] = intval(rtrim($settingArray['value'], $settingArray['unit']));
+					else $phpSettings[$setting]['value'] = intval($settingArray['value']);
 				}
 				$this->set('phpSettings', $phpSettings);
 
@@ -748,8 +748,8 @@ class ServersController extends AppController {
 				$this->set('worker_array', array());
 			}
 			if ($tab == 'download') {
-				foreach ($dumpResults as &$dr) {
-					unset($dr['description']);
+				foreach ($dumpResults as $key => $dr) {
+					unset($dumpResults[$key]['description']);
 				}
 				$dump = array('gpgStatus' => $gpgErrors[$gpgStatus], 'proxyStatus' => $proxyErrors[$proxyStatus], 'zmqStatus' => $zmqStatus, 'stix' => $stix, 'writeableDirs' => $writeableDirs, 'writeableFiles' => $writeableFiles,'finalSettings' => $dumpResults);
 				$this->response->body(json_encode($dump, JSON_PRETTY_PRINT));

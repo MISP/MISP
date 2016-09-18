@@ -1010,36 +1010,36 @@ class AttributesController extends AppController {
 			}
 
 			if ($this->request->data['Attribute']['to_ids'] != 2) {
-				foreach ($attributes as &$attribute) {
-					$attribute['Attribute']['to_ids'] = ($this->request->data['Attribute']['to_ids'] == 0 ? false : true);
+				foreach ($attributes as $key => $attribute) {
+					$attributes[$key]['Attribute']['to_ids'] = ($this->request->data['Attribute']['to_ids'] == 0 ? false : true);
 				}
 			}
 
 			if ($this->request->data['Attribute']['distribution'] != 6) {
-				foreach ($attributes as &$attribute) {
-					$attribute['Attribute']['distribution'] = $this->request->data['Attribute']['distribution'];
+				foreach ($attributes as $key => $attribute) {
+					$attributes[$key]['Attribute']['distribution'] = $this->request->data['Attribute']['distribution'];
 				}
 				if ($this->request->data['Attribute']['distribution'] == 4) {
-					foreach ($attributes as &$attribute) {
-						$attribute['Attribute']['sharing_group_id'] = $this->request->data['Attribute']['sharing_group_id'];
+					foreach ($attributes as $key => $attribute) {
+						$attributes[$key]['Attribute']['sharing_group_id'] = $this->request->data['Attribute']['sharing_group_id'];
 					}
 				} else {
-					foreach ($attributes as &$attribute) {
-						$attribute['Attribute']['sharing_group_id'] = 0;
+					foreach ($attributes as $key => $attribute) {
+						$attributes[$key]['Attribute']['sharing_group_id'] = 0;
 					}
 				}
 			}
 
 			if ($this->request->data['Attribute']['comment'] != null) {
-				foreach ($attributes as &$attribute) {
-					$attribute['Attribute']['comment'] = $this->request->data['Attribute']['comment'];
+				foreach ($attributes as $key => $attribute) {
+					$attributes[$key]['Attribute']['comment'] = $this->request->data['Attribute']['comment'];
 				}
 			}
 
 			$date = new DateTime();
 			$timestamp = $date->getTimestamp();
-			foreach ($attributes as &$attribute) {
-				$attribute['Attribute']['timestamp'] = $timestamp;
+			foreach ($attributes as $key => $attribute) {
+				$attributes[$key]['Attribute']['timestamp'] = $timestamp;
 			}
 
 			if ($this->Attribute->saveMany($attributes)) {
@@ -1074,7 +1074,7 @@ class AttributesController extends AppController {
 		if (empty($servers))
 			return;
 		App::uses('SyncTool', 'Tools');
-		foreach ($servers as &$server) {
+		foreach ($servers as $server) {
 			$syncTool = new SyncTool();
 			$HttpSocket = $syncTool->setupHttpSocket($server);
 			$this->Attribute->deleteAttributeFromServer($uuid, $server, $HttpSocket);
@@ -1089,7 +1089,7 @@ class AttributesController extends AppController {
 			$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
 			// reset the paginate_conditions
 			$this->Session->write('paginate_conditions',array());
-			if ($this->request->is('post') && ($this->request->here == $fullAddress)) {
+			if ($this->request->is('post')) {
 				$keyword = $this->request->data['Attribute']['keyword'];
 				$keyword2 = $this->request->data['Attribute']['keyword2'];
 				$tags = $this->request->data['Attribute']['tags'];
@@ -1339,7 +1339,7 @@ class AttributesController extends AppController {
 						$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
 					}
 
-					foreach ($attributes as &$attribute) {
+					foreach ($attributes as $attribute) {
 						$attributeIdList[] = $attribute['Attribute']['id'];
 						if (!in_array($attribute['Attribute']['event_id'], $idList)) {
 							$idList[] = $attribute['Attribute']['event_id'];
@@ -1440,8 +1440,8 @@ class AttributesController extends AppController {
 				}
 			}
 		}
-		foreach ($events as &$event) {
-			$event['relevance'] = 100 * $event['to_ids'] / ($event['no_ids'] + $event['to_ids']);
+		foreach ($events as $key => $event) {
+			$events[$key]['relevance'] = 100 * $event['to_ids'] / ($event['no_ids'] + $event['to_ids']);
 		}
 		if (!empty($events)) $events = $this->__subval_sort($events, 'relevance');
 		return $events;
@@ -1850,6 +1850,61 @@ class AttributesController extends AppController {
 		$this->render('/Attributes/rpz');
 	}
 
+	public function bro($key='download', $type='all', $tags=false, $eventId=false, $allowNonIDS=false, $from=false, $to=false, $last=false) {
+		if ($this->request->is('post')) {
+			if ($this->request->input('json_decode', true)) {
+				$data = $this->request->input('json_decode', true);
+			} else {
+				$data = $this->request->data;
+			}
+			if (!empty($data) && !isset($data['request'])) {
+				$data = array('request' => $data);
+			}
+			$paramArray = array('type', 'tags', 'eventId', 'allowNonIDS', 'from', 'to', 'last');
+			foreach ($paramArray as $p) {
+				if (isset($data['request'][$p])) ${$p} = $data['request'][$p];
+			}
+		}
+		$simpleFalse = array('type', 'tags', 'eventId', 'allowNonIDS', 'from', 'to', 'last');
+		foreach ($simpleFalse as $sF) {
+			if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false')) ${$sF} = false;
+		}
+		if ($type !== 'null' || $type !== '0' || $type !== 'false') {
+			if ($from) $from = $this->Attribute->Event->dateFieldCheck($from);
+			if ($to) $to = $this->Attribute->Event->dateFieldCheck($to);
+			if ($last) $last = $this->Attribute->Event->resolveTimeDelta($last);
+			if ($key != 'download') {
+				// check if the key is valid -> search for users based on key
+				$user = $this->checkAuthUser($key);
+				if (!$user) {
+					throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
+				}
+			} else {
+				if (!$this->Auth->user('id')) {
+					throw new UnauthorizedException('You have to be logged in to do that.');
+				}
+			}
+			$filename = 'misp.' . $type . '.intel';
+			if ($eventId) {
+				$filename = 'misp.' . $type . '.event_' . $eventId . '.intel';
+			}
+			if ($type != 'all') {
+				$responseFile = implode(PHP_EOL, $this->Attribute->bro($this->Auth->user(), $type, $tags, $eventId, $allowNonIDS, $from, $to, $last)) . PHP_EOL;
+				$this->response->body($responseFile);
+				$this->response->type('txt');
+			} else {
+				$tmpZipname = $this->Attribute->brozip($this->Auth->user(), $tags, $eventId, $allowNonIDS, $from, $to, $last);
+				$this->response->body(file_get_contents($tmpZipname[0] . $tmpZipname[1]));
+				$this->response->type('zip');
+				$folder = new Folder($tmpZipname[0]);
+				$folder->delete();
+				$filename .= '.zip';
+			}
+			$this->response->download($filename);
+			return $this->response;
+		}
+	}
+
 	public function reportValidationIssuesAttributes($eventId = false) {
 		// TODO improve performance of this function by eliminating the additional SQL query per attribute
 		// search for validation problems in the attributes
@@ -2026,10 +2081,11 @@ class AttributesController extends AppController {
 			));
 			$results = array('untouched' => count($oldAttributes), 'created' => 0, 'deleted' => 0, 'createdFail' => 0, 'deletedFail' => 0);
 
-			foreach ($newValues as &$value) {
-				$value = trim($value);
+			$newValues = array_map('trim', $newValues);
+
+			foreach ($newValues as $value) {
 				$found = false;
-				foreach ($oldAttributes as &$old) {
+				foreach ($oldAttributes as $old) {
 					if ($value == $old['Attribute']['value']) {
 						$found = true;
 					}
@@ -2052,7 +2108,7 @@ class AttributesController extends AppController {
 				}
 			}
 
-			foreach ($oldAttributes as &$old) {
+			foreach ($oldAttributes as $old) {
 				if (!in_array($old['Attribute']['value'], $newValues)) {
 					if ($this->Attribute->delete($old['Attribute']['id'])) {
 						$results['deleted']++;
@@ -2239,13 +2295,13 @@ class AttributesController extends AppController {
 				throw new Exception('Invalid script.');
 		}
 		$counter = 0;
-		foreach ($replaceConditions as &$rC) {
+		foreach ($replaceConditions as $rC) {
 			$searchPattern = '';
 			if (in_array($rC['condition'], array('endsWith', 'contains'))) $searchPattern .= '%';
 			$searchPattern .= $rC['from'];
 			if (in_array($rC['condition'], array('startsWith', 'contains'))) $searchPattern .= '%';
 			$attributes = $this->Attribute->find('all', array('conditions' => array($rC['search'] => $searchPattern), 'recursive' => -1));
-			foreach ($attributes as &$attribute) {
+			foreach ($attributes as $attribute) {
 				$regex = '/';
 				if (!in_array($rC['condition'], array('startsWith', 'contains'))) $regex .= '^';
 				$regex .= $rC['from'];
@@ -2274,10 +2330,10 @@ class AttributesController extends AppController {
 		$url = Configure::read('Plugin.Enrichment_services_url') ? Configure::read('Plugin.Enrichment_services_url') : $this->Server->serverSettings['Plugin']['Enrichment_services_url']['value'];
 		$port = Configure::read('Plugin.Enrichment_services_port') ? Configure::read('Plugin.Enrichment_services_port') : $this->Server->serverSettings['Plugin']['Enrichment_services_port']['value'];
 		$resultArray = array();
-		foreach ($validTypes as &$type) {
+		foreach ($validTypes as $type) {
 			$options = array();
 			$found = false;
-			foreach ($modules['modules'] as &$temp) {
+			foreach ($modules['modules'] as $temp) {
 				if ($temp['name'] == $type) {
 					$found = true;
 					if (isset($temp['meta']['config'])) {
@@ -2303,7 +2359,7 @@ class AttributesController extends AppController {
 				continue;
 			}
 			if (!empty($result['results'])) {
-				foreach ($result['results'] as &$r) {
+				foreach ($result['results'] as $r) {
 					if (is_array($r['values']) && !empty($r['values'])) {
 						$tempArray = array();
 						foreach ($r['values'] as $k => $v) {

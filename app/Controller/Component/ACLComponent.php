@@ -422,8 +422,8 @@ class ACLComponent extends Component {
 	public function findMissingFunctionNames($content = false) {
 		$results = $this->__findAllFunctions();
 		$missing = array();
-		foreach ($results as $controller => &$functions) {
-			foreach ($functions as &$function) {
+		foreach ($results as $controller => $functions) {
+			foreach ($functions as $function) {
 				if (!isset($this->__aclList[$controller])
 				|| !in_array($function, array_keys($this->__aclList[$controller])))
 					$missing[$controller][] = $function;
@@ -442,7 +442,7 @@ class ACLComponent extends Component {
 			'conditions' => $conditions
 		));
 		if (empty($roles)) throw new NotFoundException('Role not found.');
-		foreach ($roles as &$role) {
+		foreach ($roles as $role) {
 			$urls = $this->__checkRoleAccess($role['Role']);
 			$results[$role['Role']['id']] = array('name' => $role['Role']['name'], 'urls' => $urls);
 		}
@@ -451,7 +451,7 @@ class ACLComponent extends Component {
 
 	private function __checkRoleAccess($role) {
 		$result = array();
-		foreach ($this->__aclList as $controller => &$actions) {
+		foreach ($this->__aclList as $controller => $actions) {
 			$controllerNames = Inflector::variable($controller) == Inflector::underscore($controller) ? array(Inflector::variable($controller)) : array(Inflector::variable($controller), Inflector::underscore($controller));
 			foreach ($controllerNames as $controllerName) {
 				foreach ($actions as $action => $permissions) {

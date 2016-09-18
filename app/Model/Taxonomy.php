@@ -36,12 +36,13 @@ class Taxonomy extends AppModel {
 
 	public function update() {
 		$directories = glob(APP . 'files' . DS . 'taxonomies' . DS . '*', GLOB_ONLYDIR);
-		foreach ($directories as $k => &$dir) {
+		foreach ($directories as $k => $dir) {
 			$dir = str_replace(APP . 'files' . DS . 'taxonomies' . DS, '', $dir);
 			if ($dir === 'tools') unset($directories[$k]);
+			else $directories[$k] = $dir;
 		}
 		$updated = array();
-		foreach ($directories as &$dir) {
+		foreach ($directories as $dir) {
 			$file = new File(APP . 'files' . DS . 'taxonomies' . DS . $dir . DS . 'machinetag.json');
 			$vocab = json_decode($file->read(), true);
 			$file->close();
@@ -64,7 +65,7 @@ class Taxonomy extends AppModel {
 		return $updated;
 	}
 
-	private function __updateVocab(&$vocab, &$current, $skipUpdateFields = array()) {
+	private function __updateVocab($vocab, $current, $skipUpdateFields = array()) {
 		$enabled = 0;
 		$taxonomy = array();
 		if (!empty($current)) {
@@ -73,11 +74,11 @@ class Taxonomy extends AppModel {
 		}
 		$taxonomy['Taxonomy'] = array('namespace' => $vocab['namespace'], 'description' => $vocab['description'], 'version' => $vocab['version'], 'enabled' => $enabled);
 		$predicateLookup = array();
-		foreach ($vocab['predicates'] as $k => &$predicate) {
+		foreach ($vocab['predicates'] as $k => $predicate) {
 			$taxonomy['Taxonomy']['TaxonomyPredicate'][$k] = $predicate;
 			$predicateLookup[$predicate['value']] = $k;
 		}
-		if (!empty($vocab['values'])) foreach ($vocab['values'] as &$value) {
+		if (!empty($vocab['values'])) foreach ($vocab['values'] as $value) {
 			if (empty($taxonomy['Taxonomy']['TaxonomyPredicate'][$predicateLookup[$value['predicate']]]['TaxonomyEntry'])) {
 				$taxonomy['Taxonomy']['TaxonomyPredicate'][$predicateLookup[$value['predicate']]]['TaxonomyEntry'] = $value['entry'];
 			} else {
@@ -103,9 +104,9 @@ class Taxonomy extends AppModel {
 		));
 		if (empty($taxonomy)) return false;
 		$entries = array();
-		foreach ($taxonomy['TaxonomyPredicate'] as &$predicate) {
+		foreach ($taxonomy['TaxonomyPredicate'] as $predicate) {
 			if (isset($predicate['TaxonomyEntry']) && !empty($predicate['TaxonomyEntry'])) {
-				foreach ($predicate['TaxonomyEntry'] as &$entry) {
+				foreach ($predicate['TaxonomyEntry'] as $entry) {
 					$temp = array('tag' => $taxonomy['Taxonomy']['namespace'] . ':' . $predicate['value'] . '="' . $entry['value'] . '"');
 					$temp['expanded'] = (!empty($predicate['expanded']) ? $predicate['expanded'] : $predicate['value']) . ': ' . (!empty($entry['expanded']) ? $entry['expanded'] : $entry['value']);
 					$entries[] = $temp;
@@ -119,7 +120,7 @@ class Taxonomy extends AppModel {
 		$taxonomy = array('Taxonomy' => $taxonomy['Taxonomy']);
 		if ($filter) {
 			$namespaceLength = strlen($taxonomy['Taxonomy']['namespace']);
-			foreach ($entries as $k => &$entry) {
+			foreach ($entries as $k => $entry) {
 				if (strpos(substr(strtoupper($entry['tag']), $namespaceLength), strtoupper($filter)) === false) unset($entries[$k]);
 			}
 		}
@@ -134,7 +135,7 @@ class Taxonomy extends AppModel {
 		$taxonomyIdList = $this->find('list', array('fields' => array('id')));
 		$taxonomyIdList = array_keys($taxonomyIdList);
 		$allTaxonomyTags = array();
-		foreach ($taxonomyIdList as &$taxonomy) {
+		foreach ($taxonomyIdList as $taxonomy) {
 			$allTaxonomyTags = array_merge($allTaxonomyTags, array_keys($this->getTaxonomyTags($taxonomy, true)));
 		}
 		$conditions = array();
@@ -150,7 +151,7 @@ class Taxonomy extends AppModel {
 				'conditions' => $conditions
 			)
 		);
-		foreach ($allTags as $k => &$tag) {
+		foreach ($allTags as $k => $tag) {
 			if ($inverse && in_array(strtoupper($tag), $allTaxonomyTags)) unset($allTags[$k]);
 			if (!$inverse && !in_array(strtoupper($tag), $allTaxonomyTags)) unset($allTags[$k]);
 		}
@@ -162,11 +163,11 @@ class Taxonomy extends AppModel {
 		if ($existingOnly) {
 			$this->Tag = ClassRegistry::init('Tag');
 			$tags = $this->Tag->find('list', array('fields' => array('name'), 'order' => array('UPPER(Tag.name) ASC')));
-			foreach ($tags as &$tag) $tag = strtoupper($tag);
+			foreach ($tags as $key => $tag) $tags[$key] = strtoupper($tag);
 		}
 		$entries = array();
 		if ($taxonomy) {
-			foreach ($taxonomy['entries'] as $k => &$entry) {
+			foreach ($taxonomy['entries'] as $entry) {
 				$searchTerm = $uc ? strtoupper($entry['tag']) : $entry['tag'];
 				if ($existingOnly) {
 					if (in_array(strtoupper($entry['tag']), $tags)) {
@@ -187,8 +188,8 @@ class Taxonomy extends AppModel {
 			if (empty($taxonomy)) return false;
 			$tags = $this->Tag->getTagsForNamespace($taxonomy['Taxonomy']['namespace']);
 			if (isset($taxonomy['entries'])) {
-				foreach ($taxonomy['entries'] as &$temp) {
-					$temp['existing_tag'] = isset($tags[strtoupper($temp['tag'])]) ? $tags[strtoupper($temp['tag'])] : false;
+				foreach ($taxonomy['entries'] as $key => $temp) {
+					$taxonomy['entries'][$key]['existing_tag'] = isset($tags[strtoupper($temp['tag'])]) ? $tags[strtoupper($temp['tag'])] : false;
 				}
 			}
 		}
@@ -203,7 +204,7 @@ class Taxonomy extends AppModel {
 		$colours = $paletteTool->generatePaletteFromString($taxonomy['Taxonomy']['namespace'], count($taxonomy['entries']));
 		$this->Tag = ClassRegistry::init('Tag');
 		$tags = $this->Tag->getTagsForNamespace($taxonomy['Taxonomy']['namespace']);
-		foreach ($taxonomy['entries'] as $k => &$entry) {
+		foreach ($taxonomy['entries'] as $k => $entry) {
 			if (isset($tags[strtoupper($entry['tag'])])) {
 				$temp = $tags[strtoupper($entry['tag'])];
 				if ((in_array('colour', $skipUpdateFields) && $temp['Tag']['colour'] != $colours[$k]) || (in_array('name', $skipUpdateFields) && $temp['Tag']['name'] !== $entry['tag'])) {
@@ -224,7 +225,7 @@ class Taxonomy extends AppModel {
 		$taxonomy = $this->__getTaxonomy($id, array('full' => true));
 		$tags = $this->Tag->getTagsForNamespace($taxonomy['Taxonomy']['namespace']);
 		$colours = $paletteTool->generatePaletteFromString($taxonomy['Taxonomy']['namespace'], count($taxonomy['entries']));
-		foreach ($taxonomy['entries'] as $k => &$entry) {
+		foreach ($taxonomy['entries'] as $k => $entry) {
 			if ($tagList) {
 				foreach ($tagList as $tagName) {
 					if ($tagName === $entry['tag']) {
@@ -256,7 +257,7 @@ class Taxonomy extends AppModel {
 			'conditions' => $conditions
 		));
 		$taxonomies = array();
-		foreach ($temp as &$t) {
+		foreach ($temp as $t) {
 			$taxonomies[$t['Taxonomy']['namespace']] = $t['Taxonomy'];
 		}
 		return $taxonomies;

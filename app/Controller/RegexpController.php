@@ -13,10 +13,6 @@ class RegexpController extends AppController {
 			)
 	);
 
-	public function beforeFilter() {
-		parent::beforeFilter();
-	}
-
 	public function admin_add() {
 		$this->loadModel('Attribute');
 		$types = array_keys($this->Attribute->typeDefinitions);

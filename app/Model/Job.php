@@ -50,6 +50,11 @@ class Job extends AppModel {
 			$type = 'nids';
 			$extra2 = isset($user['nids_sid']) ? $user['nids_sid'] : 0;
 		}
+		if ($type === 'bro') {
+			$extra = $type;
+			$type = 'bro';
+			$extra2 = isset($user['nids_sid']) ? $user['nids_sid'] : 0;
+		}
 		if ($type === 'rpz') $extra = $type;
 		$this->save($data);
 		$id = $this->id;

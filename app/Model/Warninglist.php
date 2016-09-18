@@ -39,7 +39,7 @@ class Warninglist extends AppModel{
 	public function update() {
 		$directories = glob(APP . 'files' . DS . 'warninglists' . DS . 'lists' . DS . '*', GLOB_ONLYDIR);
 		$updated = array();
-		foreach ($directories as &$dir) {
+		foreach ($directories as $dir) {
 			$file = new File($dir . DS . 'list.json');
 			$list = json_decode($file->read(), true);
 			$file->close();
@@ -133,7 +133,7 @@ class Warninglist extends AppModel{
 		$eventWarnings = array();
 		foreach ($event['objects'] as &$object) {
 			if ($object['to_ids']) {
-				foreach ($warninglists as &$list) {
+				foreach ($warninglists as $list) {
 					if (in_array('ALL', $list['types']) || in_array($object['type'], $list['types'])) {
 						$result = $this->__checkValue($list['values'], $object['value'], $object['type'], $list['Warninglist']['type']);
 						if (!empty($result)) {
@@ -150,7 +150,7 @@ class Warninglist extends AppModel{
 		return $event;
 	}
 
-	private function __checkValue(&$listValues, $value, $type, $listType) {
+	private function __checkValue($listValues, $value, $type, $listType) {
 		if (strpos($type, '|')) $value = explode('|', $value);
 		else $value = array($value);
 		$components = array(0, 1);
@@ -168,7 +168,7 @@ class Warninglist extends AppModel{
 
 	// This requires an IP type attribute in a non CIDR notation format
 	// For the future we can expand this to look for CIDR overlaps?
-	private function __evalCIDRList(&$listValues, $value) {
+	private function __evalCIDRList($listValues, $value) {
 		$ipv4cidrlist = array();
 		$ipv6cidrlist = array();
 		// separate the CIDR list into IPv4 and IPv6
@@ -190,7 +190,7 @@ class Warninglist extends AppModel{
 
 	}
 
-	private function __evalCIDR($value, &$listValues, $function) {
+	private function __evalCIDR($value, $listValues, $function) {
 		$found = false;
 		foreach ($listValues as $lv) {
 			$found = $this->$function($value, $lv);
@@ -232,7 +232,7 @@ class Warninglist extends AppModel{
 		return $binaryip;
 	}
 
-	private function __evalString(&$listValues, $value) {
+	private function __evalString($listValues, $value) {
 		if (in_array($value, $listValues)) return true;
 		return false;
 	}

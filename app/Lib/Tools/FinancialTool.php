@@ -131,7 +131,7 @@ class FinancialTool {
 			unset($numberArray[count($numberArray) - 1]);
 			$numberArray = array_reverse($numberArray);
 			$sum = 0;
-			foreach ($numberArray as $k => &$number) {
+			foreach ($numberArray as $k => $number) {
 				$number = intval($number);
 				if ($k%2 == 0) $number *= 2;
 				if ($number > 9) $number -=9;
