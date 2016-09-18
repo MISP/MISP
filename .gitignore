@@ -61,3 +61,4 @@
 /app/tmp/cached_exports/csv_all/*
 /app/tmp/cached_exports/csv_sig/*
 *.swp
+*.iml
