@@ -19,12 +19,8 @@ class EventTag extends AppModel {
 	);
 
 	public $belongsTo = array(
-		'Event' => array(
-			'className' => 'Event',
-		),
-		'Tag' => array(
-			'className' => 'Tag',
-		),
+		'Event',
+		'Tag'
 	);
 
 	// take an array of tag names to be included and an array with tagnames to be excluded and find all event IDs that fit the criteria

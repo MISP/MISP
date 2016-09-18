@@ -16,10 +16,6 @@ class ThreadsController extends AppController {
 			'limit' => 60,
 	);
 
-	public function beforeFilter() {
-		parent::beforeFilter();
-	}
-
 	public function viewEvent($id) {
 		$this->loadModel('Event');
 		$result = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));

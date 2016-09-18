@@ -1089,7 +1089,7 @@ class AttributesController extends AppController {
 			$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
 			// reset the paginate_conditions
 			$this->Session->write('paginate_conditions',array());
-			if ($this->request->is('post') && ($this->request->here == $fullAddress)) {
+			if ($this->request->is('post')) {
 				$keyword = $this->request->data['Attribute']['keyword'];
 				$keyword2 = $this->request->data['Attribute']['keyword2'];
 				$tags = $this->request->data['Attribute']['tags'];
@@ -1848,6 +1848,61 @@ class AttributesController extends AppController {
 		$this->set('values', $values);
 		$this->set('rpzSettings', $rpzSettings);
 		$this->render('/Attributes/rpz');
+	}
+
+	public function bro($key='download', $type='all', $tags=false, $eventId=false, $allowNonIDS=false, $from=false, $to=false, $last=false) {
+		if ($this->request->is('post')) {
+			if ($this->request->input('json_decode', true)) {
+				$data = $this->request->input('json_decode', true);
+			} else {
+				$data = $this->request->data;
+			}
+			if (!empty($data) && !isset($data['request'])) {
+				$data = array('request' => $data);
+			}
+			$paramArray = array('type', 'tags', 'eventId', 'allowNonIDS', 'from', 'to', 'last');
+			foreach ($paramArray as $p) {
+				if (isset($data['request'][$p])) ${$p} = $data['request'][$p];
+			}
+		}
+		$simpleFalse = array('type', 'tags', 'eventId', 'allowNonIDS', 'from', 'to', 'last');
+		foreach ($simpleFalse as $sF) {
+			if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false')) ${$sF} = false;
+		}
+		if ($type !== 'null' || $type !== '0' || $type !== 'false') {
+			if ($from) $from = $this->Attribute->Event->dateFieldCheck($from);
+			if ($to) $to = $this->Attribute->Event->dateFieldCheck($to);
+			if ($last) $last = $this->Attribute->Event->resolveTimeDelta($last);
+			if ($key != 'download') {
+				// check if the key is valid -> search for users based on key
+				$user = $this->checkAuthUser($key);
+				if (!$user) {
+					throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
+				}
+			} else {
+				if (!$this->Auth->user('id')) {
+					throw new UnauthorizedException('You have to be logged in to do that.');
+				}
+			}
+			$filename = 'misp.' . $type . '.intel';
+			if ($eventId) {
+				$filename = 'misp.' . $type . '.event_' . $eventId . '.intel';
+			}
+			if ($type != 'all') {
+				$responseFile = implode(PHP_EOL, $this->Attribute->bro($this->Auth->user(), $type, $tags, $eventId, $allowNonIDS, $from, $to, $last)) . PHP_EOL;
+				$this->response->body($responseFile);
+				$this->response->type('txt');
+			} else {
+				$tmpZipname = $this->Attribute->brozip($this->Auth->user(), $tags, $eventId, $allowNonIDS, $from, $to, $last);
+				$this->response->body(file_get_contents($tmpZipname[0] . $tmpZipname[1]));
+				$this->response->type('zip');
+				$folder = new Folder($tmpZipname[0]);
+				$folder->delete();
+				$filename .= '.zip';
+			}
+			$this->response->download($filename);
+			return $this->response;
+		}
 	}
 
 	public function reportValidationIssuesAttributes($eventId = false) {

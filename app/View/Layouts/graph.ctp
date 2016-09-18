@@ -10,7 +10,6 @@
 	</title>
 	<?php
 		echo $this->Html->meta('icon');
-//		echo $this->Html->css('cake.generic');
 		echo $this->Html->css('roboto');
 		echo $this->Html->css('bootstrap'); // see http://twitter.github.io/bootstrap/base-css.html
 		echo $this->Html->css('bootstrap-datepicker');
@@ -19,9 +18,6 @@
 		echo $this->Html->css('main');
 		echo $this->Html->css('print', 'stylesheet', array('media' => 'print'));
 
-		// FIXME chri: re-add print stylesheet
-		//echo $this->Html->css(array('print'), 'stylesheet', array('media' => 'print'));
-
 		echo $this->fetch('meta');
 		echo $this->fetch('css');
 		echo $this->fetch('script');
@@ -29,7 +25,6 @@
 		echo $this->Html->script('jquery'); // Include jQuery library
 	?>
 
-<!--?php echo $scripts_for_layout; ?-->
 </head>
 <body>
 	<div id="gray_out" class="gray_out"></div>

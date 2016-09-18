@@ -19,12 +19,8 @@ class Sighting extends AppModel {
 	);
 
 	public $belongsTo = array(
-			'Attribute' => array(
-					'className' => 'Attribute',
-			),
-			'Event' => array(
-					'className' => 'Event',
-			),
+			'Attribute',
+			'Event',
 			'Organisation' => array(
 					'className' => 'Organisation',
 					'foreignKey' => 'org_id'
