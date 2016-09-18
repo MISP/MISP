@@ -30,7 +30,6 @@
 		echo $this->Html->script('jquery'); // Include jQuery library
 	?>
 
-<!--?php echo $scripts_for_layout; ?-->
 </head>
 <body>
 	<div id="popover_form" class="ajax_popover_form"></div>

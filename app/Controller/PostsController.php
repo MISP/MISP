@@ -20,10 +20,6 @@ class PostsController extends AppController {
 			'limit' => 60,
 	);
 
-	public function beforeFilter() {
-		parent::beforeFilter();
-	}
-
 	// Find the thread_id and post_id in advance. If a user clicks post comment on the event view, send the event's related thread's ID
 	// Usage:
 	// /posts/add : Creates new thread with the added post as the first post. Title set by user

@@ -12,10 +12,6 @@ class JobsController extends AppController {
 			),
 	);
 
-	public function beforeFilter() {
-		parent::beforeFilter();
-	}
-
 	public function index($queue = false) {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
 		if (!Configure::read('MISP.background_jobs')) throw new NotFoundException('Background jobs are not enabled on this instance.');
