@@ -3,7 +3,11 @@
 class RandomTool {
 	public function __construct() {
 		// import compatibility library for PHP < 7.0
-		require_once(APP . 'Lib' . DS . 'random_compat' . DS . 'lib' . DS . 'random.php');
+		if (!function_exists('random_int')) {
+			if (file_exists(APP . 'Lib' . DS . 'random_compat' . DS . 'lib' . DS . 'random.php')) {
+				require_once(APP . 'Lib' . DS . 'random_compat' . DS . 'lib' . DS . 'random.php');
+			}
+		}
 	}
 
 	/**
@@ -61,7 +65,7 @@ class RandomTool {
 		// Now that we have good data, this is the meat of our function:
 		$random_str = '';
 		for ($i = 0; $i < $length; ++$i) {
-			if ($crypto_secure) {
+			if ($crypto_secure && function_exists('random_int')) {
 				$r = random_int(0, $charset_max);
 			} else {
 				$r = mt_rand(0, $charset_max);
