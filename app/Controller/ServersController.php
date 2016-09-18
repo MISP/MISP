@@ -699,8 +699,8 @@ class ServersController extends AppController {
 
 				foreach ($phpSettings as $setting => $settingArray) {
 					$phpSettings[$setting]['value'] = ini_get($setting);
-					if ($settingArray['unit']) $phpSettings[$setting]['value'] = intval(rtrim($settingArray['value'], $settingArray['unit']));
-					else $phpSettings[$setting]['value'] = intval($settingArray['value']);
+					if ($settingArray['unit']) $phpSettings[$setting]['value'] = intval(rtrim($phpSettings[$setting]['value'], $phpSettings[$setting]['unit']));
+					else $phpSettings[$setting]['value'] = intval($phpSettings[$setting]['value']);
 				}
 				$this->set('phpSettings', $phpSettings);
 
