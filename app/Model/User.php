@@ -1,6 +1,7 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('AuthComponent', 'Controller/Component');
+App::uses('RandomTool', 'Tools');
 
 class User extends AppModel {
 
@@ -222,7 +223,7 @@ class User extends AppModel {
 				'ABCDEFGHIJKLOMNOPQRSTUVWXYZ',
 				'!@#$%^&*()_-'
 		);
-		$passwordLength = Configure::read('Security.password_policy_length') ? Configure::read('Security.password_policy_length') : 12;
+		$passwordLength = (Configure::read('Security.password_policy_length') && Configure::read('Security.password_policy_length') >= 12) ? Configure::read('Security.password_policy_length') : 12;
 		$pw = '';
 		for ($i = 0; $i < $passwordLength; $i++) {
 			$chars = implode('', $groups);
@@ -237,7 +238,7 @@ class User extends AppModel {
 	public function beforeValidate($options = array()) {
 		if (!isset($this->data['User']['id'])) {
 			if ((isset($this->data['User']['enable_password']) && (!$this->data['User']['enable_password'])) || (empty($this->data['User']['password']) && empty($this->data['User']['confirm_password']))) {
-				$this->data['User']['password'] = $this->__generatePassword();
+				$this->data['User']['password'] = $this->generateRandomPassword();
 				$this->data['User']['confirm_password'] = $this->data['User']['password'];
 			}
 		}
@@ -385,24 +386,23 @@ class User extends AppModel {
 	}
 
 	public function generateAuthKey() {
-		$length = 40;
-		$characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-		$charLen = strlen($characters) - 1;
-		$key = '';
-		for ($p = 0; $p < $length; $p++) {
-			$key .= $characters[rand(0, $charLen)];
-		}
-		return $key;
+		return (new RandomTool())->random_str(TRUE, 40);
 	}
 
-	public function generateRandomPassword($length = 12) {
-		$characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-+=!@#$%&*()<>/?';
-		$charLen = strlen($characters) - 1;
-		$key = '';
-		for ($p = 0; $p < $length; $p++) {
-			$key .= $characters[rand(0, $charLen)];
+	/**
+	 * Generates a cryptographically secure password
+	 *
+	 * @param int $passwordLength
+	 * @return string
+	 */
+	public function generateRandomPassword($passwordLength = 40) {
+		// makes sure, the password policy isn't undermined by setting a manual passwordLength
+		$policyPasswordLength = Configure::read('Security.password_policy_length') ? Configure::read('Security.password_policy_length') : false;
+		if (is_int($policyPasswordLength) && $policyPasswordLength > $passwordLength) {
+			$passwordLength = $policyPasswordLength;
 		}
-		return $key;
+		$characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-+=!@#$%^&*()<>/?';
+		return (new RandomTool())->random_str(TRUE, $passwordLength, $characters);
 	}
 
 

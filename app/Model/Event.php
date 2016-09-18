@@ -1,6 +1,7 @@
 <?php
 App::uses('AppModel', 'Model');
 App::uses('CakeEmail', 'Network/Email');
+App::uses('RandomTool', 'Tools');
 Configure::load('config'); // This is needed to load GnuPG.bodyonlyencrypted
 
 class Event extends AppModel {
@@ -2551,14 +2552,7 @@ class Event extends AppModel {
 	}
 
 	public function generateRandomFileName() {
-		$length = 12;
-		$characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-		$charLen = strlen($characters) - 1;
-		$fn = '';
-		for ($p = 0; $p < $length; $p++) {
-			$fn .= $characters[rand(0, $charLen)];
-		}
-		return $fn;
+		return (new RandomTool())->random_str(FALSE, 12);
 	}
 
 
