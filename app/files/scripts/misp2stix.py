@@ -21,39 +21,6 @@ from cybox.utils import Namespace
 
 namespace = ['https://github.com/MISP/MISP', 'MISP']
 
-NS_DICT = {
-	"http://cybox.mitre.org/common-2" : 'cyboxCommon',
-	"http://cybox.mitre.org/cybox-2" : 'cybox',
-	"http://cybox.mitre.org/default_vocabularies-2" : 'cyboxVocabs',
-	"http://cybox.mitre.org/objects#ASObject-1" : 'ASObj',
-	"http://cybox.mitre.org/objects#AddressObject-2" : 'AddressObj',
-	"http://cybox.mitre.org/objects#DomainNameObject-1" : 'DomainNameObj',
-	"http://cybox.mitre.org/objects#EmailMessageObject-2" : 'EmailMessageObj',
-	"http://cybox.mitre.org/objects#FileObject-2" : 'FileObj',
-	"http://cybox.mitre.org/objects#HTTPSessionObject-2" : 'HTTPSessionObj',
-	"http://cybox.mitre.org/objects#HostnameObject-1" : 'HostnameObj',
-	"http://cybox.mitre.org/objects#MutexObject-2" : 'MutexObj',
-	"http://cybox.mitre.org/objects#PipeObject-2" : 'PipeObj',
-	"http://cybox.mitre.org/objects#URIObject-2" : 'URIObj',
-	"http://cybox.mitre.org/objects#WinRegistryKeyObject-2" : 'WinRegistryKeyObj',
-	"http://data-marking.mitre.org/Marking-1" : 'marking',
-	"http://data-marking.mitre.org/extensions/MarkingStructure#TLP-1" : 'tlpMarking',
-	"http://stix.mitre.org/ExploitTarget-1" : 'et',
-	"http://stix.mitre.org/Incident-1" : 'incident',
-	"http://stix.mitre.org/Indicator-2" : 'indicator',
-	"http://stix.mitre.org/TTP-1" : 'ttp',
-	"http://stix.mitre.org/ThreatActor-1" : 'ta',
-	"http://stix.mitre.org/common-1" : 'stixCommon',
-	"http://stix.mitre.org/default_vocabularies-1" : 'stixVocabs',
-	"http://stix.mitre.org/extensions/Identity#CIQIdentity3.0-1" : 'stix-ciqidentity',
-	"http://stix.mitre.org/extensions/TestMechanism#Snort-1" : 'snortTM',
-	"http://stix.mitre.org/stix-1" : 'stix',
-	"http://www.w3.org/2001/XMLSchema-instance" : 'xsi',
-	"urn:oasis:names:tc:ciq:xal:3" : 'xal',
-	"urn:oasis:names:tc:ciq:xnl:3" : 'xnl',
-	"urn:oasis:names:tc:ciq:xpil:3" : 'xpil',
-}
-
 # mappings
 status_mapping = {'0' : 'New', '1' : 'Open', '2' : 'Closed'}
 TLP_mapping = {'0' : 'AMBER', '1' : 'GREEN', '2' : 'GREEN', '3' : 'GREEN'}
@@ -313,9 +280,8 @@ def main(args):
     if len(sys.argv) > 4:
         namespace[1] = sys.argv[4].replace(" ", "_")
         namespace[1] = re.sub('[\W]+', '', namespace[1])
-    NS_DICT[namespace[0]]=namespace[1]
-    cybox.utils.idgen.set_id_namespace(Namespace(namespace[0], namespace[1]))
-    stix.utils.idgen.set_id_namespace({namespace[0]: namespace[1]})
+    cybox.utils.idgen.set_id_namespace(Namespace(namespace[1], namespace[0]))
+    stix.utils.idgen.set_id_namespace({namespace[1]: namespace[0]})
     event = loadEvent(args, pathname)
     stix_package = generateEventPackage(event)
     saveFile(args, pathname, stix_package)
