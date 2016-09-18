@@ -223,7 +223,7 @@ class User extends AppModel {
 				'ABCDEFGHIJKLOMNOPQRSTUVWXYZ',
 				'!@#$%^&*()_-'
 		);
-		$passwordLength = Configure::read('Security.password_policy_length') ? Configure::read('Security.password_policy_length') : 12;
+		$passwordLength = (Configure::read('Security.password_policy_length') && Configure::read('Security.password_policy_length') >= 12) ? Configure::read('Security.password_policy_length') : 12;
 		$pw = '';
 		for ($i = 0; $i < $passwordLength; $i++) {
 			$chars = implode('', $groups);
