@@ -26,10 +26,6 @@ class RolesController extends AppController {
 			)
 	);
 
-	public function beforeFilter() {
-		parent::beforeFilter();
-	}
-
 	public function view($id = null) {
 		$this->Role->id = $id;
 		if (!$this->Role->exists()) {

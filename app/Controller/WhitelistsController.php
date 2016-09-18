@@ -16,10 +16,6 @@ class WhitelistsController extends AppController {
 			)
 	);
 
-	public function beforeFilter() { // TODO REMOVE
-		parent::beforeFilter();
-	}
-
 	public function admin_add() {
 		if (!$this->userRole['perm_regexp_access']) $this->redirect(array('controller' => 'regexp', 'action' => 'index', 'admin' => false));
 		$this->AdminCrud->adminAdd();
