@@ -13,7 +13,6 @@ class NewsController extends AppController {
 	);
 
 	public function index() {
-		$this->News->bindModel(array('belongsTo' => array('User' => array('className' => 'User'))));
 		$this->paginate['contain'] = array('User' => array('fields' => array('User.email')));
 		$newsItems = $this->paginate();
 		$this->loadModel('User');
