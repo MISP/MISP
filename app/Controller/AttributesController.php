@@ -2379,6 +2379,9 @@ class AttributesController extends AppController {
 
 	public function describeTypes() {
 		$result = array();
+		foreach ($this->Attribute->typeDefinitions as $key => $value) {
+			$result['sane_defaults'][$key] = array('default_category' => $value['default_category'], 'to_ids' => $value['to_ids']);				
+		}
 		$result['types'] = array_keys($this->Attribute->typeDefinitions);
 		$result['categories'] = array_keys($this->Attribute->categoryDefinitions);
 		foreach ($this->Attribute->categoryDefinitions as $cat => $data) {
