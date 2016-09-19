@@ -63,6 +63,9 @@ class SharingGroup extends AppModel {
 		if (empty($this->data['SharingGroup']['created'])) {
 			$this->data['SharingGroup']['created'] = $date;
 		}
+		if (!isset($this->data['SharingGroup']['active'])) {
+			$this->data['SharingGroup']['active'] = 0;
+		}
 		$this->data['SharingGroup']['modified'] = $date;
 
 		$sameNameSG = $this->find('first', array(
