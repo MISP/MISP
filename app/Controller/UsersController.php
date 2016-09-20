@@ -49,9 +49,9 @@ class UsersController extends AppController {
 		}
 		$responsibleAdmin = $this->User->findAdminsResponsibleForUser($this->Auth->user());
 		if (isset($responsibleAdmin['email']) && !empty($responsibleAdmin['email'])) {
-			$subject = "[MISP ".Configure::read('MISP.org')."] User requesting API access";
-			$body = "A user (".$this->Auth->user('email').") has sent you a request to enable his/her API key access.<br/>";
-			$body .= "Click <a href=\"".Configure::read('MISP.baseurl')."\">here</a> to edit his profile to change his role.";
+			$subject = "[MISP " . Configure::read('MISP.org') . "] User requesting API access";
+			$body = "A user (" . $this->Auth->user('email') . ") has sent you a request to enable his/her API key access." . PHP_EOL;
+			$body .= "You can edit the user's profile at " . Configure::read('MISP.baseurl') . '/admin/users/edit/' . $this->Auth->user('id');
 			$user = $this->User->find('first', array('conditions' => array('User.id' => $responsibleAdmin['id'])));
 			$result = $this->User->sendEmail($user, $body, false, $subject);
 			if ($result) {
