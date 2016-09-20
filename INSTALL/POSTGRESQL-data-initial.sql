@@ -66,19 +66,16 @@ INSERT INTO roles (id, name, created, modified, perm_add, perm_modify, perm_modi
 VALUES ('2', 'Org Admin', NOW(), NOW(), 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0);
 
 INSERT INTO roles (id, name, created, modified, perm_add, perm_modify, perm_modify_org, perm_publish, perm_sync, perm_admin, perm_audit, perm_full, perm_auth, perm_regexp_access, perm_tagger, perm_site_admin, perm_template, perm_sharing_group, perm_tag_editor, perm_delegate, default_role)
-VALUES ('3', 'User', NOW(), NOW(), 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1);
+VALUES ('3', 'User', NOW(), NOW(), 1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1);
 
 INSERT INTO roles (id, name, created, modified, perm_add, perm_modify, perm_modify_org, perm_publish, perm_sync, perm_admin, perm_audit, perm_full, perm_auth, perm_regexp_access, perm_tagger, perm_site_admin, perm_template, perm_sharing_group, perm_tag_editor, perm_delegate, default_role)
-VALUES ('4', 'Publisher', NOW(), NOW(), 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0);
+VALUES ('4', 'Publisher', NOW(), NOW(), 1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0);
 
 INSERT INTO roles (id, name, created, modified, perm_add, perm_modify, perm_modify_org, perm_publish, perm_sync, perm_admin, perm_audit, perm_full, perm_auth, perm_regexp_access, perm_tagger, perm_site_admin, perm_template, perm_sharing_group, perm_tag_editor, perm_delegate, default_role)
 VALUES ('5', 'Sync user', NOW(), NOW(), 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0);
 
 INSERT INTO roles (id, name, created, modified, perm_add, perm_modify, perm_modify_org, perm_publish, perm_sync, perm_admin, perm_audit, perm_full, perm_auth, perm_regexp_access, perm_tagger, perm_site_admin, perm_template, perm_sharing_group, perm_tag_editor, perm_delegate, default_role)
-VALUES ('6', 'Automation user', NOW(), NOW(), 1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0);
-
-INSERT INTO roles (id, name, created, modified, perm_add, perm_modify, perm_modify_org, perm_publish, perm_sync, perm_admin, perm_audit, perm_full, perm_auth, perm_regexp_access, perm_tagger, perm_site_admin, perm_template, perm_sharing_group, perm_tag_editor, perm_delegate, default_role)
-VALUES ('7', 'Read Only', NOW(), NOW(), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+VALUES ('6', 'Read Only', NOW(), NOW(), 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0);
 
 SELECT SETVAL('roles_id_seq', (SELECT MAX(id) FROM roles));
 
