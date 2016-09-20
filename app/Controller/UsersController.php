@@ -52,7 +52,7 @@ class UsersController extends AppController {
 			$subject = "[MISP ".Configure::read('MISP.org')."] User requesting API access";
 			$body = "A user (".$this->Auth->user('email').") has sent you a request to enable his/her API key access.<br/>";
 			$body .= "Click <a href=\"".Configure::read('MISP.baseurl')."\">here</a> to edit his profile to change his role.";
-			$user = $this->User->find('first', array('conditions' => array('User.id' => $this->Auth->user('id'))));
+			$user = $this->User->find('first', array('conditions' => array('User.id' => $responsibleAdmin['id'])));
 			$result = $this->User->sendEmail($user, $body, false, $subject);
 			if ($result) {
 				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'API access requested.')),'status'=>200));
