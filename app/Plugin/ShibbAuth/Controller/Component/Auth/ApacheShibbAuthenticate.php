@@ -3,7 +3,9 @@
 App::uses('BaseAuthenticate', 'Controller/Component/Auth');
 App::uses('RandomTool', 'Tools');
 
-session_start();
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
 session_regenerate_id();
 /*
  * custom class for Apache-based authentication
@@ -95,7 +97,10 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
 
 		//Get user role from its list of groups
 		list($roleChanged, $roleId) = $this->getUserRoleFromGroup($groupTag, $groupRoleMatching, $roleId);
-		if($roleId < 0) return false; //Deny if the user is not in any egroup
+		if($roleId < 0) {
+			CakeLog::write('error', 'No role was assigned, no egorup matched the configuration.');
+			return false; //Deny if the user is not in any egroup
+		}
 
 		// Database model object
 		$userModel = ClassRegistry::init($this->settings['userModel']);
@@ -209,7 +214,6 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
 				'conditions' => array('name' => $org),
 			)
 		);
-		$orgId = $orgAux['Organisation']['id'];
 		if ($orgAux == null) {
 			$organisations = new Organisation();
 			$orgUserId = 1; //By default created by the admin
@@ -217,6 +221,7 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
 			$orgId = $organisations->createOrgFromName($org, $orgUserId, 0); //Created with local set to 0 by default
 			CakeLog::write('info', "User organisation ${org} created with id ${orgId}.");
 		} else {
+			$orgId = $orgAux['Organisation']['id'];
 			CakeLog::write('info', "User organisation ${org} found with id ${orgId}.");
 		}
 		return $orgId;
