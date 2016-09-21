@@ -48,7 +48,6 @@ class TaxonomiesController extends AppController {
 		$taxonomy = $this->Taxonomy->getTaxonomy($id, array('full' => true, 'filter' => $filter));
 		$this->set('filter', $filter);
 		if (empty($taxonomy)) throw new NotFoundException('Taxonomy not found.');
-		$pageCount = count($taxonomy['entries']);
 		$customPagination = new CustomPaginationTool();
 		$params = $customPagination->createPaginationRules($taxonomy['entries'], $this->passedArgs, 'TaxonomyEntry');
 		$this->params->params['paging'] = array($this->modelClass => $params);
