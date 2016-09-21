@@ -41,9 +41,9 @@ class TagsController extends AppController {
 		}
 		$paginated = $this->paginate();
 		foreach ($paginated as $k => $tag) {
-			$eventIDs = array();
 			if (empty($tag['EventTag'])) $paginated[$k]['Tag']['count'] = 0;
 			else {
+				$eventIDs = array();
 				foreach ($tag['EventTag'] as $eventTag) {
 					$eventIDs[] = $eventTag['event_id'];
 				}
@@ -214,9 +214,9 @@ class TagsController extends AppController {
 					'contain' => array('EventTag' => array('fields' => 'event_id'))
 			));
 			if (empty($tag)) throw new MethodNotAllowedException('Invalid Tag');
-			$eventIDs = array();
 			if (empty($tag['EventTag'])) $tag['Tag']['count'] = 0;
 			else {
+				$eventIDs = array();
 				foreach ($tag['EventTag'] as $eventTag) {
 					$eventIDs[] = $eventTag['event_id'];
 				}
