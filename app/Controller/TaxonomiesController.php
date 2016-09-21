@@ -166,7 +166,7 @@ class TaxonomiesController extends AppController {
 		else if ($successes == 0) $this->Session->setFlash('Could not update any of the taxonomy libraries');
 		else {
 			$message = 'Successfully updated ' . $successes . ' taxonomy libraries.';
-			if ($fails != 0) $message . ' However, could not update ' . $fails . ' taxonomy libraries.';
+			if ($fails != 0) $message .= ' However, could not update ' . $fails . ' taxonomy libraries.';
 			$this->Session->setFlash($message);
 		}
 		$this->redirect(array('controller' => 'taxonomies', 'action' => 'index'));
