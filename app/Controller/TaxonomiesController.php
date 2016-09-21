@@ -48,7 +48,6 @@ class TaxonomiesController extends AppController {
 		$taxonomy = $this->Taxonomy->getTaxonomy($id, array('full' => true, 'filter' => $filter));
 		$this->set('filter', $filter);
 		if (empty($taxonomy)) throw new NotFoundException('Taxonomy not found.');
-		$pageCount = count($taxonomy['entries']);
 		$customPagination = new CustomPaginationTool();
 		$params = $customPagination->createPaginationRules($taxonomy['entries'], $this->passedArgs, 'TaxonomyEntry');
 		$this->params->params['paging'] = array($this->modelClass => $params);
@@ -167,7 +166,7 @@ class TaxonomiesController extends AppController {
 		else if ($successes == 0) $this->Session->setFlash('Could not update any of the taxonomy libraries');
 		else {
 			$message = 'Successfully updated ' . $successes . ' taxonomy libraries.';
-			if ($fails != 0) $message . ' However, could not update ' . $fails . ' taxonomy libraries.';
+			if ($fails != 0) $message .= ' However, could not update ' . $fails . ' taxonomy libraries.';
 			$this->Session->setFlash($message);
 		}
 		$this->redirect(array('controller' => 'taxonomies', 'action' => 'index'));
