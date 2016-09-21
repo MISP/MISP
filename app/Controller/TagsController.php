@@ -213,7 +213,7 @@ class TagsController extends AppController {
 					'recursive' => -1,
 					'contain' => array('EventTag' => array('fields' => 'event_id'))
 			));
-			if (empty($tag)) throw MethodNotAllowedException('Invalid Tag');
+			if (empty($tag)) throw new MethodNotAllowedException('Invalid Tag');
 			$eventIDs = array();
 			if (empty($tag['EventTag'])) $tag['Tag']['count'] = 0;
 			else {
