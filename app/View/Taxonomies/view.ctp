@@ -62,7 +62,7 @@
 				<span id="multi-edit-button" title="Create / update selected tags" class="icon-plus useCursorPointer" onClick="addSelectedTaxonomies(<?php echo $taxonomy['id']; ?>);"></span>
 			</div>
 			<div style="float:right !important;overflow:hidden;border:0px;padding:0px;padding-right:200px;">
-					<input type="text" id="quickFilterField" class="tabMenuFilterField taxFilter" value="<?php echo h($filter);?>"></input><span id="quickFilterButton" class="useCursorPointer taxFilterButton" onClick='quickFilterTaxonomy("<?php echo h($taxonomy['id']);?>");'>Filter</span>
+					<input type="text" id="quickFilterField" class="tabMenuFilterField taxFilter" value="<?php echo h($filter);?>" /><span id="quickFilterButton" class="useCursorPointer taxFilterButton" onClick='quickFilterTaxonomy("<?php echo h($taxonomy['id']);?>");'>Filter</span>
 			</div>
 		</div>
 		<table class="table table-striped table-hover table-condensed">
