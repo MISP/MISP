@@ -411,7 +411,7 @@ class Event extends AppModel {
 	}
 
 	// gets the logged in user + an array of events, attaches the correlation count to each
-	public function attachCorrelationCountToEvents($user, &$events) {
+	public function attachCorrelationCountToEvents($user, $events) {
 		$sgids = $this->SharingGroup->fetchAllAuthorised($user);
 		if (!isset($sgids) || empty($sgids)) $sgids = array(-1);
 		$this->Correlation = ClassRegistry::init('Correlation');
@@ -425,6 +425,23 @@ class Event extends AppModel {
 		));
 		$correlations = Hash::combine($correlations, '{n}.Correlation.1_event_id', '{n}.0.count');
 		foreach ($events as &$event) $event['Event']['correlation_count'] = (isset($correlations[$event['Event']['id']])) ? $correlations[$event['Event']['id']] : 0;
+		return $events;
+	}
+	
+	public function attachSightingsCountToEvents($user, $events) {
+		$eventIds = Set::extract('/Event/id', $events);
+		$this->Sighting = ClassRegistry::init('Sighting');
+		$sightings = $this->Sighting->find('all', array(
+			'fields' => array('Sighting.event_id', 'count(distinct(Sighting.event_id)) as count'),
+			'conditions' => array('event_id' => $eventIds),
+			'recursive' => -1,
+			'group' => array('event_id')	
+		));
+		$sightings = Hash::combine($sightings, '{n}.Sighting.event_id', '{n}.0.count');
+		foreach ($events as $key => $event) {
+			$events[$key]['Event']['sightings_count'] = (isset($sightings[$event['Event']['id']])) ? $sightings[$event['Event']['id']] : 0;
+		}
+		return $events;
 	}
 
 	private function __buildEventConditionsCorrelation($user, $eventIds, $sgids) {

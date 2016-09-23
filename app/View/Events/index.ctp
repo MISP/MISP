@@ -103,6 +103,9 @@
 			<?php if (Configure::read('MISP.showCorrelationsOnIndex')):?>
 				<th><?php echo $this->Paginator->sort('correlation_count', '#Corr.');?></th>
 			<?php endif; ?>
+			<?php if (Configure::read('MISP.showSightingsCountOnIndex')):?>
+				<th><?php echo $this->Paginator->sort('sighting_count', '#Sightings');?></th>
+			<?php endif; ?>
 			<?php if ($isSiteAdmin): ?>
 			<th><?php echo $this->Paginator->sort('user_id', 'Email');?></th>
 			<?php endif; ?>
@@ -180,6 +183,11 @@
 			<?php if (Configure::read('MISP.showCorrelationsOnIndex')):?>
 				<td class = "bold" style="width:30px;" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
 					<?php echo !empty($event['Event']['correlation_count']) ? h($event['Event']['correlation_count']) : ''; ?>&nbsp;
+				</td>
+			<?php endif; ?>
+			<?php if (Configure::read('MISP.showSightingsCountOnIndex')):?>
+				<td class = "bold" style="width:30px;" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
+					<?php echo !empty($event['Event']['sightings_count']) ? h($event['Event']['sightings_count']) : ''; ?>&nbsp;
 				</td>
 			<?php endif; ?>
 			<?php if ('true' == $isSiteAdmin): ?>
