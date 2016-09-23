@@ -77,7 +77,12 @@ class ServersController extends AppController {
 				$urlparams .= $filter . ':' . $this->passedArgs[$filter];
 			}
 		}
-		$events = $this->Server->previewIndex($id, $this->Auth->user(), array_merge($this->passedArgs, $passedArgs));
+		$combinedArgs = array_merge($this->passedArgs, $passedArgs);
+		if (!isset($combinedArgs['sort'])) {
+			$combinedArgs['sort'] = 'timestamp';
+			$combinedArgs['direction'] = 'desc';
+		}
+		$events = $this->Server->previewIndex($id, $this->Auth->user(), $combinedArgs);
 		$this->loadModel('Event');
 		$threat_levels = $this->Event->ThreatLevel->find('all');
 		$this->set('threatLevels', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.name'));
