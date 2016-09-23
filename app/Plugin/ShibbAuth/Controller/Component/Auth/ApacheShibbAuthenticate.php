@@ -91,9 +91,9 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
 		//Obtain default org. If not, org keeps the default value
 		if (isset($_SERVER[$OrgTag])) {
 			$org = $_SERVER[$OrgTag];
+			//Check if the organization exits and create it if not
+			$org = $this->checkOrganization($org, $user);
 		}
-		//Check if the organization exits and create it if not
-		$org = $this->checkOrganization($org, $user);
 
 		//Get user role from its list of groups
 		list($roleChanged, $roleId) = $this->getUserRoleFromGroup($groupTag, $groupRoleMatching, $roleId);
