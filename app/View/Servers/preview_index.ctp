@@ -112,6 +112,7 @@
 			<?php if (Configure::read('MISP.tagging')): ?>
 			<td style = "max-width: 200px;width:10px;">
 				<?php foreach ($event['Event']['EventTag'] as $tag):
+					if (empty($tag['Tag'])) continue;
 					$tagText = "";
 					if (Configure::read('MISP.full_tags_on_event_index') == 1) $tagText = $tag['Tag']['name'];
 					else if (Configure::read('MISP.full_tags_on_event_index') == 2) {
