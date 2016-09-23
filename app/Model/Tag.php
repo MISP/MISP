@@ -111,7 +111,12 @@ class Tag extends AppModel {
 				return $this->id;
 			} else return false;
 		} else {
-			if (!$user['Role']['perm_site_admin'] && $existingTag['Tag']['org_id'] != 0 && $existingTag['Tag']['org_id'] != $user['org_id']) return false;
+			if (!$user['Role']['perm_site_admin'] && $existingTag['Tag']['org_id'] != 0 && $existingTag['Tag']['org_id'] != $user['org_id']) {
+				return false;
+			}
+			if (in_array($existingTag['Tag']['org_id'], array('0', $user['org_id']))) {
+				return false;
+			}
 		}
 		return $existingTag['Tag']['id'];
 	}

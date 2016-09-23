@@ -26,6 +26,9 @@
 					if ($setting['level'] == 3) $bgColour = 'background-color:gray;color:white;';
 					if ($setting['type'] == 'boolean') $setting['value'] = ($setting['value'] === true ? 'true' : 'false');
 					if (isset($setting['options'])) $setting['value'] = ($setting['options'][$setting['value']]);
+					if ($setting['setting'] == 'Security.salt' && !isset($setting['error'])) {
+						continue;
+					}
 			?>
 			<tr id ="<?php echo h($subGroup) . '_' . $k; ?>_row" class="subGroup_<?php echo h($subGroup);?> hidden">
 				<td class="short" style="<?php echo $bgColour; ?>"><?php echo h($priorities[$setting['level']]);?></td>
