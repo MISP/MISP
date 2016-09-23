@@ -487,11 +487,23 @@ class AppModel extends Model {
 	}
 
 	private function __dropIndex($table, $field) {
+		$dataSourceConfig = ConnectionManager::getDataSource('default')->config;
+		$dataSource = $dataSourceConfig['datasource'];
 		$this->Log = ClassRegistry::init('Log');
-		$indexCheck = "SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema=DATABASE() AND table_name='" . $table . "' AND index_name LIKE '" . $field . "%';";
-		$indexCheckResult = $this->query($indexCheck);
+		$indexCheckResult = array();
+		if ($dataSource == 'Database/Mysql') {
+			$indexCheck = "SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema=DATABASE() AND table_name='" . $table . "' AND index_name LIKE '" . $field . "%';";
+			$indexCheckResult = $this->query($indexCheck);
+		} else if ($dataSource == 'Database/Postgres') {
+			$pgIndexName = 'idx_' . $table . '_' . $field;
+			$indexCheckResult[] = array('STATISTICS' => array('INDEX_NAME' => $pgIndexName));
+		}
 		foreach ($indexCheckResult as $icr) {
-			$dropIndex = 'ALTER TABLE ' . $table . ' DROP INDEX ' . $icr['STATISTICS']['INDEX_NAME'] . ';';
+			if ($dataSource == 'Database/Mysql') {
+				$dropIndex = 'ALTER TABLE ' . $table . ' DROP INDEX ' . $icr['STATISTICS']['INDEX_NAME'] . ';';
+			} else if ($dataSource == 'Database/Postgres') {
+				$dropIndex = 'DROP INDEX IF EXISTS ' . $icr['STATISTICS']['INDEX_NAME'] . ';';
+			}
 			$result = true;
 			try {
 				$this->query($dropIndex);
