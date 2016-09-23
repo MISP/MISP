@@ -421,11 +421,13 @@ class AppModel extends Model {
 				// Adding tag org restrictions
 				$sqlArray[] = "ALTER TABLE `tags` ADD `org_id` int(11) NOT NULL DEFAULT 0;";
 				$sqlArray[] = 'ALTER TABLE `tags` ADD INDEX `org_id` (`org_id`);';
+				$this->__dropIndex('tags', 'org_id');
 				break;
 			case '2.4.50':
 				$sqlArray[] = 'ALTER TABLE `cake_sessions` ADD INDEX `expires` (`expires`);';
 				$sqlArray[] = "ALTER TABLE `users` ADD `certif_public` longtext COLLATE utf8_bin AFTER `gpgkey`;";
 				$sqlArray[] = "ALTER TABLE `servers` ADD `client_cert_file` varchar(255) COLLATE utf8_bin DEFAULT NULL;";
+				$this->__dropIndex('cake_sessions', 'expires');
 				break;
 			case '2.4.51':
 				$sqlArray[] = 'ALTER TABLE `servers` ADD `internal` tinyint(1) NOT NULL DEFAULT 0;';
@@ -485,11 +487,23 @@ class AppModel extends Model {
 	}
 
 	private function __dropIndex($table, $field) {
+		$dataSourceConfig = ConnectionManager::getDataSource('default')->config;
+		$dataSource = $dataSourceConfig['datasource'];
 		$this->Log = ClassRegistry::init('Log');
-		$indexCheck = "SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema=DATABASE() AND table_name='" . $table . "' AND index_name LIKE '" . $field . "%';";
-		$indexCheckResult = $this->query($indexCheck);
+		$indexCheckResult = array();
+		if ($dataSource == 'Database/Mysql') {
+			$indexCheck = "SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema=DATABASE() AND table_name='" . $table . "' AND index_name LIKE '" . $field . "%';";
+			$indexCheckResult = $this->query($indexCheck);
+		} else if ($dataSource == 'Database/Postgres') {
+			$pgIndexName = 'idx_' . $table . '_' . $field;
+			$indexCheckResult[] = array('STATISTICS' => array('INDEX_NAME' => $pgIndexName));
+		}
 		foreach ($indexCheckResult as $icr) {
-			$dropIndex = 'ALTER TABLE ' . $table . ' DROP INDEX ' . $icr['STATISTICS']['INDEX_NAME'] . ';';
+			if ($dataSource == 'Database/Mysql') {
+				$dropIndex = 'ALTER TABLE ' . $table . ' DROP INDEX ' . $icr['STATISTICS']['INDEX_NAME'] . ';';
+			} else if ($dataSource == 'Database/Postgres') {
+				$dropIndex = 'DROP INDEX IF EXISTS ' . $icr['STATISTICS']['INDEX_NAME'] . ';';
+			}
 			$result = true;
 			try {
 				$this->query($dropIndex);
@@ -543,7 +557,7 @@ class AppModel extends Model {
 	public function valueIsID($value) {
 		$field = array_keys($value);
 		$field = $field[0];
-		if (!is_numeric($value[$field]) || $value[$field] < 0) 'Invalid ' . ucfirst($field) . ' ID';
+		if (!is_numeric($value[$field]) || $value[$field] < 0) return 'Invalid ' . ucfirst($field) . ' ID';
 		return true;
 	}
 
