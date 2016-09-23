@@ -557,7 +557,7 @@ class AppModel extends Model {
 	public function valueIsID($value) {
 		$field = array_keys($value);
 		$field = $field[0];
-		if (!is_numeric($value[$field]) || $value[$field] < 0) 'Invalid ' . ucfirst($field) . ' ID';
+		if (!is_numeric($value[$field]) || $value[$field] < 0) return 'Invalid ' . ucfirst($field) . ' ID';
 		return true;
 	}
 
