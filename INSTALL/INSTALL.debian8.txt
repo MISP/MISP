@@ -267,7 +267,35 @@ Recommended actions
 
 Optional features
 -------------------
-# MISP has a new pub/sub feature, using ZeroMQ. To enable it, simply run the following command
-sudo pip install pyzmq
+# MISP has a new pub/sub feature, using ZeroMQ. To enable it, simply run the following commands
+
 # ZeroMQ depends on the Python client for Redis
 sudo pip install redis
+
+# Debian has an ancient version of ZeroMQ, so manually install a current version
+
+## Install ZeroMQ and prerequisites
+sudo apt-get install pkg-config
+cd /usr/local/src/
+sudo git clone git://github.com/jedisct1/libsodium.git
+cd libsodium
+sudo ./autogen.sh
+sudo ./configure
+sudo make check
+sudo make
+sudo make install
+sudo ldconfig
+cd /usr/local/src/
+sudo wget https://archive.org/download/zeromq_4.1.5/zeromq-4.1.5.tar.gz
+sudo tar -xvf zeromq-4.1.5.tar.gz
+cd zeromq-4.1.5/
+sudo ./autogen.sh
+sudo ./configure
+sudo make check
+sudo make
+sudo make install
+sudo ldconfig
+
+## install pyzmq
+sudo pip install pyzmq
+
