@@ -11,7 +11,7 @@
 		));
 		if (!empty($host_org_id)):
 	?>
-			<div id="InternalDiv" class = "input clear" style="width:100%;">
+			<div id="InternalDiv" class = "input clear hidden" style="width:100%;">
 			<hr />
 				<p class="red" style="width:50%;">You can set this instance up as an internal instance by checking the checkbox below. This means that any synchronisation between this instance and the remote will not be automatically degraded as it would in a normal synchronisation scenario. Please make sure that you own both instances and that you are OK with this otherwise dangerous change.</p>
 	<?php
@@ -147,7 +147,18 @@ $(document).ready(function() {
 	$('#ServerOrganisationType').change(function() {
 		serverOrgTypeChange();
 	});
+	<?php 
+		if (!empty($host_org_id)):
+	?>
+			serverOwnerOrganisationChange(host_org_id);
+			$('#ServerOrganisationType, #ServerLocal').change(function() {
+				serverOwnerOrganisationChange(host_org_id);
+			});
+	<?php 
+		endif;
+	?>
 
+	
 	$("#ServerUrl, #ServerOrganization, #ServerName, #ServerAuthkey, #ServerPush, #ServerPull, #ServerSubmittedCert, #ServerSelfSigned").on('mouseleave', function(e) {
 	    $('#'+e.currentTarget.id).popover('destroy');
 	});
@@ -168,10 +179,6 @@ $(document).ready(function() {
 	});
 	$("#pull_modify").click(function() {
 		serverRuleFormActivate('pull');
-	});
-
-	$('#ServerOrganisationType, #ServerLocal').change(function() {
-		serverOwnerOrganisationChange(host_org_id);
 	});
 });
 </script>
