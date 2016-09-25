@@ -1723,7 +1723,7 @@ class Event extends AppModel {
 	}
 
 	// When we receive an event via REST, we might end up with organisations, sharing groups, tags that we do not know
-	// or which we need to update. All of that is controller in this method.
+	// or which we need to update. All of that is controlled in this method.
 	private function __captureObjects($data, $user) {
 		// First we need to check whether the event or any attributes are tied to a sharing group and whether the user is even allowed to create the sharing group / is part of it
 		// For this we first collect all the sharing groups
