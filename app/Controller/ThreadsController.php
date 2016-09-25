@@ -183,11 +183,19 @@ class ThreadsController extends AppController {
 		$conditions = null;
 		if (!$this->_isSiteAdmin()) {
 			$conditions['AND']['OR'] = array(
-					'Thread.distribution' => array(1, 2, 3),
+				'Thread.distribution' => array(1, 2, 3),
+				array(
 					'AND' => array(
-							'Thread.distribution' => 4,
-							'Thread.sharing_group_id' => $sgids,
-					),
+						'Thread.distribution' => 0,
+						'Thread.org_id' => $this->Auth->user('org_id'),
+					)
+				),
+				array(
+					'AND' => array(
+						'Thread.distribution' => 4,
+						'Thread.sharing_group_id' => $sgids,
+					)
+				)
 			);
 		}
 		$conditions['AND'][] = array('Thread.post_count >' => 0);
