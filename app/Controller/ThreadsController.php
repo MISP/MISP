@@ -185,10 +185,6 @@ class ThreadsController extends AppController {
 			$conditions['AND']['OR'] = array(
 					'Thread.distribution' => array(1, 2, 3),
 					'AND' => array(
-							'Thread.distribution' => 0,
-							'Thread.org_id' => $this->Auth->user('org_id'),
-					),
-					'AND' => array(
 							'Thread.distribution' => 4,
 							'Thread.sharing_group_id' => $sgids,
 					),
