@@ -1592,10 +1592,12 @@ class Event extends AppModel {
 				if ($attribute['distribution'] == 4 && !$sgModel->checkIfAuthorised($user, $attribute['sharing_group_id'])) continue;
 				$ids = '';
 				if ($attribute['to_ids']) $ids = ' (IDS)';
+				$strRepeatCount = $appendlen - 2 - strlen($attribute['type']);
+				$strRepeat = ($strRepeatCount > 0) ? str_repeat(' ', $strRepeatCount) : '';
 				if (isset($event['Event']['publish_timestamp']) && isset($attribute['timestamp']) && $attribute['timestamp'] > $event['Event']['publish_timestamp']) {
-					$line = '* ' . $attribute['type'] . str_repeat(' ', $appendlen - 2 - strlen($attribute['type'])) . ': ' . $attribute['value'] . $ids . " *\n";
+					$line = '* ' . $attribute['type'] . $strRepeat . ': ' . $attribute['value'] . $ids . " *\n";
 				} else {
-					$line = $attribute['type'] . str_repeat(' ', $appendlen - 2 - strlen($attribute['type'])) . ': ' . $attribute['value'] . $ids .  "\n";
+					$line = $attribute['type'] . $strRepeat . ': ' . $attribute['value'] . $ids .  "\n";
 				}
 				// Defanging URLs (Not "links") emails domains/ips in notification emails
 				if ('url' == $attribute['type']) {
