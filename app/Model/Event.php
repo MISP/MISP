@@ -1723,7 +1723,7 @@ class Event extends AppModel {
 	}
 
 	// When we receive an event via REST, we might end up with organisations, sharing groups, tags that we do not know
-	// or which we need to update. All of that is controller in this method.
+	// or which we need to update. All of that is controlled in this method.
 	private function __captureObjects($data, $user) {
 		// First we need to check whether the event or any attributes are tied to a sharing group and whether the user is even allowed to create the sharing group / is part of it
 		// For this we first collect all the sharing groups
@@ -1766,20 +1766,18 @@ class Event extends AppModel {
 		} else {
 			$data['Event']['orgc_id'] = $user['org_id'];
 		}
+
 		if (isset($data['Event']['EventTag'])) {
-			if (isset($data['Event']['EventTag']['id'])) {
-				$temp = $data['Event']['EventTag'];
-				unset($data['Event']['EventTag']);
-				$data['Event']['EventTag'][0] = $temp;
-			}
+			if (isset($data['Event']['EventTag']['id'])) $data['Event']['EventTag'] = array($data['Event']['EventTag']);
 			$eventTags = array();
 			foreach ($data['Event']['EventTag'] as $k => $tag) {
 				$eventTags[] = array('tag_id' => $this->EventTag->Tag->captureTag($data['Event']['EventTag'][$k]['Tag'], $user));
 				unset($data['Event']['EventTag'][$k]);
 			}
 			$data['Event']['EventTag'] = $eventTags;
+		} else {
+			$data['Event']['EventTag'] = array();
 		}
-		if (!isset($data['Event']['EventTag'])) $data['Event']['EventTag'] = array();
 		if (isset($data['Event']['Tag'])) {
 			if (isset($data['Event']['Tag']['name'])) $data['Event']['Tag'] = array($data['Event']['Tag']);
 			foreach ($data['Event']['Tag'] as $tag) {
