@@ -1766,20 +1766,18 @@ class Event extends AppModel {
 		} else {
 			$data['Event']['orgc_id'] = $user['org_id'];
 		}
+
 		if (isset($data['Event']['EventTag'])) {
-			if (isset($data['Event']['EventTag']['id'])) {
-				$temp = $data['Event']['EventTag'];
-				unset($data['Event']['EventTag']);
-				$data['Event']['EventTag'][0] = $temp;
-			}
+			if (isset($data['Event']['EventTag']['id'])) $data['Event']['EventTag'] = array($data['Event']['EventTag']);
 			$eventTags = array();
 			foreach ($data['Event']['EventTag'] as $k => $tag) {
 				$eventTags[] = array('tag_id' => $this->EventTag->Tag->captureTag($data['Event']['EventTag'][$k]['Tag'], $user));
 				unset($data['Event']['EventTag'][$k]);
 			}
 			$data['Event']['EventTag'] = $eventTags;
+		} else {
+			$data['Event']['EventTag'] = array();
 		}
-		if (!isset($data['Event']['EventTag'])) $data['Event']['EventTag'] = array();
 		if (isset($data['Event']['Tag'])) {
 			if (isset($data['Event']['Tag']['name'])) $data['Event']['Tag'] = array($data['Event']['Tag']);
 			foreach ($data['Event']['Tag'] as $tag) {
