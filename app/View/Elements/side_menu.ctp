@@ -45,7 +45,7 @@
 					<?php
 						$publishButtons = ' style="display:none;"';
 						$exportButtons = ' style="display:none;"';
-						if (isset($event['Event']['published']) && 0 == $event['Event']['published'] && ($isAdmin || (isset($mayPublish) && $mayPublish))) $publishButtons = "";
+						if (isset($event['Event']['published']) && 0 == $event['Event']['published'] && ($isSiteAdmin || (isset($mayPublish) && $mayPublish))) $publishButtons = "";
 						if (isset($event['Event']['published']) && $event['Event']['published']) $exportButtons = "";
 					?>
 					<li<?php echo $publishButtons; ?> class="publishButtons"><a href="#" onClick="publishPopup('<?php echo h($event['Event']['id']); ?>', 'alert')">Publish Event</a></li>
