@@ -157,11 +157,14 @@ class ComplexTypeTool {
 		// check for domain name, hostname, filename
 		if (strpos($inputRefanged, '.') !== false) {
 			$temp = explode('.', $inputRefanged);
-			// check for the new TLDs as known by IANA (IF the Warninglists are not empty)
+			// check for the new TLDs as known by IANA (if the Warninglists are not empty)
 			if (!empty($IANATLDentries)) {
 				$stringEnd = $temp[count($temp)-1];
 				if (in_array($stringEnd, $IANATLDentries)) {
-					return array('types' => array('filename', 'domain'), 'to_ids' => true, 'default_type' => 'filename');
+					$types = array('filename', 'domain');
+					if (count($temp) > 2)
+						$types[] = 'url';
+					return array('types' => $types, 'to_ids' => true, 'default_type' => 'filename', 'merge_categories' => true);
 				}
 			}
 			// TODO: use a more flexible matching approach, like the one below (that still doesn't support non-ASCII domains)

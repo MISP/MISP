@@ -99,16 +99,23 @@
 					}
 				?>
 				<select id="<?php echo 'Attribute' . $k . 'Category'; ?>" style="padding:0;height:20px;margin-bottom:0;">
-					<?php
-						foreach ($typeCategoryMapping[$item['default_type']] as $category) {
-							if (isset($item['categories']) && !in_array($category, $item['categories'])) {
-								continue;
-							}
-							echo '<option value="' . $category . '" ';
-							if ($category == $default) echo 'selected="selected"';
-							echo '>' . $category . '</option>';
+				<?php
+					$categoriesArray = $typeCategoryMapping[$item['default_type']];
+					if (isset($item['merge_categories']) && $item['merge_categories'] === true) {
+						$categoriesArray = [];
+						foreach ($item['types'] as $type) {
+							$categoriesArray = array_merge($categoriesArray, $typeCategoryMapping[$type]);
 						}
-					?>
+					}
+					foreach ($categoriesArray as $category) {
+						if (isset($item['categories']) && !in_array($category, $item['categories'])) {
+							continue;
+						}
+						echo '<option value="' . $category . '" ';
+						if ($category == $default) echo 'selected="selected"';
+						echo '>' . $category . '</option>';
+					}
+				?>
 				</select>
 			</td>
 			<td class="short">
