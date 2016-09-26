@@ -37,7 +37,8 @@ sudo apt-get install apache2 apache2-doc apache2-utils
 
 # Enable modules, settings, and default of SSL in Apache
 sudo a2dismod status
-sudo a2enmod ssl rewrite
+sudo a2enmod ssl
+sudo a2enmod rewrite
 sudo a2dissite 000-default
 sudo a2ensite default-ssl
 
