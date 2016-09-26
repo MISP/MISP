@@ -242,7 +242,7 @@
 		<li><b>Message</b>: This field shows when the job was queued by the scheduler for execution. </li>
 	</ul>
 	<br /><img src="<?php echo $baseurl;?>/img/doc/schedule.png" alt = "" title = "Site administrators can schedule reccuring tasks on this page."/><br />
-	<h2 ><a id="diagnostics"></a>Frequently asked questions</h2>
+	<h2 ><a id="faq"></a>Frequently asked questions</h2>
 	<b>Losing access to the platform and resetting the password</b><br /><br />
 	If you ever lock yourself out of MISP as a site admin, there is a command line tool to reset your password. This can also be handy if you have changed the salt key and invalidated all of the passwords.<br />
 	Simply run the command:<br />
