@@ -41,7 +41,7 @@ class EventDelegationsController extends AppController {
 			$this->EventDelegation->create();
 			$this->EventDelegation->save($this->request->data['EventDelegation']);
 			$org = $this->EventDelegation->Event->Org->find('first', array(
-					'conditions' => array('id' => $this->request->data['EventDelegation']['requester_org_id']),
+					'conditions' => array('id' => $this->request->data['EventDelegation']['org_id']),
 					'recursive' => -1,
 					'fields' => array('name')
 			));
