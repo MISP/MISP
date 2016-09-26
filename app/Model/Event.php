@@ -2082,6 +2082,31 @@ class Event extends AppModel {
 		}
 		return $event['Event']['id'];
 	}
+	
+	private function __savePreparedAttribute(&$attribute, $event) {
+		unset($attribute['id']);
+		$attribute['event_id'] = $event['Event']['id'];
+		$this->Attribute->create();
+		$this->Attribute->save($attribute);
+		foreach ($attribute['ShadowAttribute'] as $k => $sa) {
+			$this->__savePreparedShadowAttribute($sa, $event, $this->Attribute->id);
+		}
+	}
+	
+	private function __savePreparedShadowAttribute($shadow_attribute, $event, $old_id = 0) {
+		unset($shadow_attribute['id']);
+		$shadow_attribute['event_id'] = $event['Event']['id'];
+		$shadow_attribute['old_id'] = $old_id;
+		$this->ShadowAttribute->create();
+		$this->ShadowAttribute->save($shadow_attribute);
+	}
+	
+	private function __savePreparedEventTag($event_tag, $event) {
+		unset($event_tag['id']);
+		$event_tag['event_id'] = $event['Event']['id'];
+		$this->EventTag->create();
+		$this->EventTag->save($event_tag);
+	}
 
 	// pass an event or an attribute together with the server id.
 	// If the distribution of the object outright allows for it to be shared, return true
