@@ -29,7 +29,7 @@
 				<th>Similar Attributes</th>
 				<th>Category</th>
 				<th>Type</th>
-				<th>IDS<input type="checkbox" id="checkAll" style="margin:0px;margin-left:3px;"/></th>
+				<th>IDS<input type="checkbox" id="checkAll" style="margin:0;margin-left:3px;"/></th>
 				<th>Comment</th>
 				<th>Actions</th>
 		</tr>
@@ -55,7 +55,7 @@
 					echo $this->Form->input('Attribute' . $k . 'Value', array(
 							'label' => false,
 							'value' => h($item['value']),
-							'style' => 'padding:0px;height:20px;margin-bottom:0px;width:90%;',
+							'style' => 'padding:0;height:20px;margin-bottom:0;width:90%;',
 							'div' => false
 					));
 				?>
@@ -98,7 +98,7 @@
 
 					}
 				?>
-				<select id="<?php echo 'Attribute' . $k . 'Category'; ?>" style='padding:0px;height:20px;margin-bottom:0px;'>
+				<select id="<?php echo 'Attribute' . $k . 'Category'; ?>" style="padding:0;height:20px;margin-bottom:0;">
 					<?php
 						foreach ($typeCategoryMapping[$item['default_type']] as $category) {
 							if (isset($item['categories']) && !in_array($category, $item['categories'])) {
