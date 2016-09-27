@@ -29,7 +29,7 @@
 				<th>Similar Attributes</th>
 				<th>Category</th>
 				<th>Type</th>
-				<th>IDS<input type="checkbox" id="checkAll" style="margin:0;margin-left:3px;"/></th>
+				<th>IDS<input type="checkbox" id="checkAll" style="margin:0px;margin-left:3px;"/></th>
 				<th>Comment</th>
 				<th>Actions</th>
 		</tr>
@@ -55,7 +55,7 @@
 					echo $this->Form->input('Attribute' . $k . 'Value', array(
 							'label' => false,
 							'value' => h($item['value']),
-							'style' => 'padding:0;height:20px;margin-bottom:0;width:90%;',
+							'style' => 'padding:0px;height:20px;margin-bottom:0px;width:90%;',
 							'div' => false
 					));
 				?>
@@ -98,24 +98,17 @@
 
 					}
 				?>
-				<select id="<?php echo 'Attribute' . $k . 'Category'; ?>" style="padding:0;height:20px;margin-bottom:0;">
-				<?php
-					$categoriesArray = $typeCategoryMapping[$item['default_type']];
-					if (isset($item['merge_categories']) && $item['merge_categories'] === true) {
-						$categoriesArray = [];
-						foreach ($item['types'] as $type) {
-							$categoriesArray = array_merge($categoriesArray, $typeCategoryMapping[$type]);
+				<select id="<?php echo 'Attribute' . $k . 'Category'; ?>" style='padding:0px;height:20px;margin-bottom:0px;'>
+					<?php
+						foreach ($typeCategoryMapping[$item['default_type']] as $category) {
+							if (isset($item['categories']) && !in_array($category, $item['categories'])) {
+								continue;
+							}
+							echo '<option value="' . $category . '" ';
+							if ($category == $default) echo 'selected="selected"';
+							echo '>' . $category . '</option>';
 						}
-					}
-					foreach ($categoriesArray as $category) {
-						if (isset($item['categories']) && !in_array($category, $item['categories'])) {
-							continue;
-						}
-						echo '<option value="' . $category . '" ';
-						if ($category == $default) echo 'selected="selected"';
-						echo '>' . $category . '</option>';
-					}
-				?>
+					?>
 				</select>
 			</td>
 			<td class="short">
