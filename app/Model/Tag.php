@@ -54,6 +54,14 @@ class Tag extends AppModel {
 			'foreignKey' => 'org_id',
 		)
 	);
+	
+	public function beforeValidate($options = array()) {
+		parent::beforeValidate();
+		if (!isset($this->data['Tag']['org_id'])) {
+			$this->data['Tag']['org_id'] = 0;
+		}
+		return true;
+	}
 
 	public function validateColour($fields) {
 		if (!preg_match('/^#[0-9a-f]{6}$/i', $fields['colour'])) return false;
