@@ -11,6 +11,7 @@ class JSONConverterTool {
 
 		if (isset($event['EventTag'])) {
 			foreach ($event['EventTag'] as $k => $tag) {
+				unset($tag['Tag']['org_id']);
 				$event['Event']['Tag'][$k] = $tag['Tag'];
 			}
 		}
