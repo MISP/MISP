@@ -244,3 +244,4 @@
 	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'freetextResults'));
 ?>
 <?php echo $this->Js->writeBuffer(); // Write cached scripts ?>
+
