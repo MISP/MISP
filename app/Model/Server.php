@@ -1818,22 +1818,6 @@ class Server extends AppModel {
 		return true;
 	}
 
-	private function __getEnrichmentSettings() {
-		$modules = $this->getEnrichmentModules();
-		$result = array();
-		if (!empty($modules['modules'])) {
-			foreach ($modules['modules'] as $module) {
-				$result[$module['name']][0] = array('name' => 'enabled', 'type' => 'boolean');
-				if (isset($module['meta']['config'])) {
-					foreach ($module['meta']['config'] as $conf) {
-						$result[$module['name']][] = array('name' => $conf, 'type' => 'string');
-					}
-				}
-			}
-		}
-		return $result;
-	}
-
 	public function getCurrentServerSettings() {
 		$this->Module = ClassRegistry::init('Module');
 		$serverSettings = $this->serverSettings;
