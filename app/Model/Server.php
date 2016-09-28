@@ -2741,33 +2741,6 @@ class Server extends AppModel {
 		}
 	}
 
-	// currently unused, but let's keep it in the code-base in case we need it in the future.
-	private function __dropIndex($table, $field) {
-		$this->Log = ClassRegistry::init('Log');
-		$indexCheck = "SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema=DATABASE() AND table_name='" . $table . "' AND index_name LIKE '" . $field . "%'";
-		$indexCheckResult = $this->query($indexCheck);
-		foreach ($indexCheckResult as $icr) {
-			$dropIndex = 'ALTER TABLE ' . $table . ' DROP INDEX ' . $icr['STATISTICS']['INDEX_NAME'];
-			$result = true;
-			try {
-				$this->query($dropIndex);
-			} catch (Exception $e) {
-				$result = false;
-			}
-			$this->Log->create();
-			$this->Log->save(array(
-					'org' => 'SYSTEM',
-					'model' => 'Server',
-					'model_id' => 0,
-					'email' => 'SYSTEM',
-					'action' => 'update_database',
-					'user_id' => 0,
-					'title' => ($result ? 'Removed index ' : 'Failed to remove index ') . $icr['STATISTICS']['INDEX_NAME'] . ' from ' . $table,
-					'change' => ($result ? 'Removed index ' : 'Failed to remove index ') . $icr['STATISTICS']['INDEX_NAME'] . ' from ' . $table,
-			));
-		}
-	}
-
 	public function upgrade2324($user_id, $jobId = false) {
 		$this->cleanCacheFiles();
 		if (Configure::read('MISP.background_jobs') && $jobId) {
