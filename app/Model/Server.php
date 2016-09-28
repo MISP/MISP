@@ -2198,6 +2198,13 @@ class Server extends AppModel {
 
 	public function serverSettingsSaveValue($setting, $value) {
 		Configure::write($setting, $value);
+		if (Configure::read('Security.auth') && is_array(Configure::read('Security.auth')) && !empty(Configure::read('Security.auth'))) {
+			$authmethods = array();
+			foreach (Configure::read('Security.auth') as $auth) {
+				if (!in_array($auth, $authmethods)) $authmethods[] = $auth;
+			}
+			Configure::write('Security.auth', $authmethods);
+		}
 		Configure::dump('config.php', 'default', array('MISP', 'GnuPG', 'SMIME', 'Proxy', 'SecureAuth', 'Security', 'debug', 'site_admin_debug', 'Plugin', 'CertAuth', 'ApacheShibbAuth', 'ApacheSecureAuth'));
 	}
 
