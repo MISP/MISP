@@ -164,7 +164,7 @@ class ComplexTypeTool {
 					$types = array('filename', 'domain');
 					if (count($temp) > 2)
 						$types[] = 'url';
-					return array('types' => $types, 'to_ids' => true, 'default_type' => 'filename', 'merge_categories' => true);
+					return array('types' => $types, 'to_ids' => true, 'default_type' => 'domain', 'merge_categories' => true);
 				}
 			}
 			// TODO: use a more flexible matching approach, like the one below (that still doesn't support non-ASCII domains)
