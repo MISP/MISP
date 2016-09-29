@@ -1798,6 +1798,30 @@ class Event extends AppModel {
 			}
 			unset($data['Event']['Tag']);
 		}
+
+		if (Configure::read('MISP.attribute_tagging') && isset($data['Event']['Attribute'])) {
+			foreach ($data['Event']['Attribute'] as $k => $a) {
+				if (isset($data['Event']['Attribute'][$k]['AttributeTag'])) {
+					if (isset($data['Event']['Attribute'][$k]['AttributeTag']['id'])) $data['Event']['Attribute'][$k]['AttributeTag'] = array($data['Event']['Attribute'][$k]['AttributeTag']);
+					$attributeTags = array();
+					foreach ($data['Event']['Attribute'][$k]['AttributeTag'] as $tk => $tag) {
+						$attributeTags[] = array('tag_id' => $this->Attribute->AttributeTag->Tag->captureTag($data['Event']['Attribute'][$k]['AttributeTag'][$tk]['Tag'], $user));
+						unset($data['Event']['Attribute'][$k]['AttributeTag'][$tk]);
+					}
+					$data['Event']['Attribute'][$k]['AttributeTag'] = $attributeTags;
+				} else {
+					$data['Event']['Attribute'][$k]['AttributeTag'] = array();
+				}
+				if (isset($data['Event']['Attribute'][$k]['Tag'])) {
+					if (isset($data['Event']['Attribute'][$k]['Tag']['name'])) $data['Event']['Attribute'][$k]['Tag'] = array($data['Event']['Attribute'][$k]['Tag']);
+					foreach ($data['Event']['Attribute'][$k]['Tag'] as $tag) {
+						$tag_id = $this->Attribute->AttributeTag->Tag->captureTag($tag, $user);
+						if ($tag_id) $data['Event']['Attribute'][$k]['AttributeTag'][] = array('tag_id' => $tag_id);
+					}
+					unset($data['Event']['Attribute'][$k]['Tag']);
+				}
+			}
+		}
 		return $data;
 	}
 
