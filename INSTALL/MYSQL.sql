@@ -39,6 +39,21 @@ CREATE TABLE IF NOT EXISTS `attributes` (
   UNIQUE INDEX `uuid` (`uuid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
+-- -------------------------------------------------------
+
+--
+-- Table structure for table `attribute_tags`
+--
+
+CREATE TABLE IF NOT EXISTS `attribute_tags` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `attribute_id` int(11) NOT NULL,
+  `tag_id` int(11) NOT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `attribute_id` (`attribute_id`),
+  INDEX `tag_id` (`tag_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
 -- --------------------------------------------------------
 
 --
