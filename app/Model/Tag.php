@@ -193,9 +193,12 @@ class Tag extends AppModel {
 	}
 
 	public function getTagsForNamespace($namespace) {
+		$contain = array('EventTag');
+		if (Configure::read('MISP.attribute_tagging'))
+			$contain[] = 'AttributeTag';
 		$tags_temp = $this->find('all', array(
 				'recursive' => -1,
-				'contain' => 'EventTag',
+				'contain' => $contain,
 				'conditions' => array('UPPER(name) LIKE' => strtoupper($namespace) . '%'),
 		));
 		$tags = array();
