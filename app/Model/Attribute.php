@@ -391,6 +391,12 @@ class Attribute extends AppModel {
 		)
 	);
 
+	public $hasMany = array(
+		'AttributeTag' => array(
+			'dependent' => true
+		)
+	);
+
 	public $hashTypes = array(
 		'md5' => array(
 			'length' => 32,

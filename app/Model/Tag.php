@@ -45,6 +45,9 @@ class Tag extends AppModel {
 		'TemplateTag',
 		'FavouriteTag' => array(
 			'dependent' => true
+		),
+		'AttributeTag' => array(
+			'dependent' => true
 		)
 	);
 
