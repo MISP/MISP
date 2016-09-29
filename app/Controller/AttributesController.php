@@ -1085,232 +1085,369 @@ class AttributesController extends AppController {
 	}
 
 	public function search() {
-		$fullAddress = '/attributes/search';
-		if ($this->request->here == $fullAddress) {
-			$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
-			$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
-			$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
-			// reset the paginate_conditions
-			$this->Session->write('paginate_conditions',array());
-			if ($this->request->is('post')) {
-				$keyword = $this->request->data['Attribute']['keyword'];
-				$keyword2 = $this->request->data['Attribute']['keyword2'];
-				if (Configure::read('MISP.attribute_tagging'))
-					$attributeTags = $this->request->data['Attribute']['attributetags'];
-				$tags = $this->request->data['Attribute']['tags'];
-				$org = $this->request->data['Attribute']['org'];
-				$type = $this->request->data['Attribute']['type'];
-				$ioc = $this->request->data['Attribute']['ioc'];
-				$this->set('ioc', $ioc);
-				$category = $this->request->data['Attribute']['category'];
-				$this->set('keywordSearch', $keyword);
-				if (isset($attributeTags))
-					$this->set('attributeTags', $attributeTags);
-				$this->set('tags', $tags);
-				$keyWordText = null;
-				$keyWordText2 = null;
-				$keyWordText3 = null;
-				$this->set('typeSearch', $type);
-				$this->set('isSearch', 1);
-				$this->set('categorySearch', $category);
-				// search the db
-				$conditions = array();
-				if ($ioc) {
-					$conditions['AND'][] = array('Attribute.to_ids =' => 1);
-					$conditions['AND'][] = array('Event.published =' => 1);
-				}
-				// search on the value field
-				if (isset($keyword)) {
-					$keywordArray = explode("\n", $keyword);
-					$this->set('keywordArray', $keywordArray);
-					$i = 1;
-					$temp = array();
-					$temp2 = array();
-					foreach ($keywordArray as $keywordArrayElement) {
-						$saveWord = trim(strtolower($keywordArrayElement));
-						if ($saveWord != '') {
-							$toInclude = true;
-							if ($saveWord[0] == '!') {
-								$toInclude = false;
-								$saveWord = substr($saveWord, 1);
-							}
+		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
+		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
+		$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
 
-							// check for an IPv4 address and subnet in CIDR notation (e.g. 127.0.0.1/8)
-							if ($this->Cidr->checkCIDR($saveWord, 4)) {
-								$cidrresults = $this->Cidr->CIDR($saveWord);
-								foreach ($cidrresults as $result) {
-									$result = strtolower($result);
-									if (strpos($result, '|')) {
-										$resultParts = explode('|', $result);
+		$fullAddress = '/attributes/search';
+		// if no search is given, show the search form
+		if ($this->request->here == $fullAddress && !$this->request->is('post')) {
+			// adding filtering by category and type
+			// combobox for types
+			$types = array('' => array('ALL' => 'ALL'), 'types' => array());
+			$types['types'] = array_merge($types['types'], $this->_arrayToValuesIndexArray(array_keys($this->Attribute->typeDefinitions)));
+			ksort($types['types']);
+			$this->set('types', $types);
+			// combobox for categories
+			$categories['categories'] = array_merge(array('ALL' => 'ALL'), $this->_arrayToValuesIndexArray(array_keys($this->Attribute->categoryDefinitions)));
+			$this->set('categories', $categories);
+		} else {
+			$this->set('isSearch', 1);
+
+			$attributeTagQuery = '/attributetag';
+			// check if the request is a GET request for attributes with a specific tag (usually after clicking on an attributetag)
+			if (substr($this->request->here, strlen($fullAddress), strlen($attributeTagQuery)) == $attributeTagQuery) {
+				if (!Configure::read('MISP.attribute_tagging')) {
+					throw new MethodNotAllowedException('attribute_tagging isn\'t activated');
+				}
+				$attributeTagId = substr($this->request->here, (strlen($fullAddress) + strlen($attributeTagQuery) + 1));
+				if (!is_numeric($attributeTagId)) {
+					// either pagination active or no correct id
+					unset($attributeTagId);
+				}
+			}
+
+			// if this is no new search, get parameters from session
+			if ($this->request->here != $fullAddress && !isset($attributeTagId)) {
+				$keyword = $this->Session->read('paginate_conditions_keyword');
+				$keyword2 = $this->Session->read('paginate_conditions_keyword2');
+				if (Configure::read('MISP.attribute_tagging')) {
+					$attributeTags = $this->Session->read('paginate_conditions_attributetags');
+				}
+				$org = $this->Session->read('paginate_conditions_org');
+				$type = $this->Session->read('paginate_conditions_type');
+				$category = $this->Session->read('paginate_conditions_category');
+				$tags = $this->Session->read('paginate_conditions_tags');
+				$this->set('keywordSearch', $keyword);
+				$this->set('keywordSearch2', $keyword2);
+				if (isset($attributeTags)) {
+					$this->set('attributeTags', $attributeTags);
+				}
+				$this->set('orgSearch', $org);
+				$this->set('typeSearch', $type);
+				$this->set('tags', $tags);
+				$this->set('categorySearch', $category);
+
+				if (Configure::read('MISP.attribute_tagging')) {
+					$this->Attribute->contain(array('AttributeTag' => array('Tag')));
+				}
+
+				// re-get pagination
+				$this->Attribute->recursive = 0;
+				$this->paginate = $this->Session->read('paginate_conditions');
+				$this->set('attributes', $this->paginate());
+
+				// set the same view as the index page
+				$this->render('index');
+			} else {
+				// reset the paginate_conditions
+				$this->Session->write('paginate_conditions', array());
+				$conditions = array();
+				$alternateSearch = false;
+
+				if (isset($attributeTagId)) {
+					$this->loadModel('Tag');
+					$this->Tag->id = $attributeTagId;
+					if (!$this->Tag->exists()) {
+						throw new NotFoundException(__('Invalid tag'));
+					}
+
+					$attributeTags = $this->Tag->find('first', array(
+						'recursive' => -1,
+						'conditions' => array(
+							'id' => $attributeTagId
+						)
+					));
+					$attributeTags = $attributeTags['Tag']['name'];
+					$conditions['AND'][] = array('OR' => array('Attribute.id' => $this->Tag->findAttributeIdsByAttributeTagNames(array($attributeTags))));
+
+					$keyword = null;
+					$keyword2 = null;
+					$org = null;
+					$type = 'ALL';
+					$tags = null;
+					$category = 'ALL';
+					$ioc = false;
+
+					$this->set('keywordSearch', $keyword);
+					$this->set('keywordSearch2', $keyword2);
+				}
+
+				if ($this->request->is('post')) {
+					$keyword = $this->request->data['Attribute']['keyword'];
+					$keyword2 = $this->request->data['Attribute']['keyword2'];
+					if (Configure::read('MISP.attribute_tagging')) {
+						$attributeTags = $this->request->data['Attribute']['attributetags'];
+					}
+					$tags = $this->request->data['Attribute']['tags'];
+					$org = $this->request->data['Attribute']['org'];
+					$type = $this->request->data['Attribute']['type'];
+					$ioc = $this->request->data['Attribute']['ioc'];
+					$this->set('ioc', $ioc);
+					$category = $this->request->data['Attribute']['category'];
+
+					$keyWordText = null;
+					$keyWordText2 = null;
+					$keyWordText3 = null;
+
+					// search the db
+					if ($ioc) {
+						$conditions['AND'][] = array('Attribute.to_ids =' => 1);
+						$conditions['AND'][] = array('Event.published =' => 1);
+					}
+					// search on the value field
+					if (isset($keyword)) {
+						$keywordArray = explode("\n", $keyword);
+						$this->set('keywordArray', $keywordArray);
+						$i = 1;
+						$temp = array();
+						$temp2 = array();
+						foreach ($keywordArray as $keywordArrayElement) {
+							$saveWord = trim(strtolower($keywordArrayElement));
+							if ($saveWord != '') {
+								$toInclude = true;
+								if ($saveWord[0] == '!') {
+									$toInclude = false;
+									$saveWord = substr($saveWord, 1);
+								}
+
+								// check for an IPv4 address and subnet in CIDR notation (e.g. 127.0.0.1/8)
+								if ($this->Cidr->checkCIDR($saveWord, 4)) {
+									$cidrresults = $this->Cidr->CIDR($saveWord);
+									foreach ($cidrresults as $result) {
+										$result = strtolower($result);
+										if (strpos($result, '|')) {
+											$resultParts = explode('|', $result);
+											if (!$toInclude) {
+												$temp2[] = array(
+													'AND' => array(
+														'LOWER(Attribute.value1) NOT LIKE' => $resultParts[0],
+														'LOWER(Attribute.value2) NOT LIKE' => $resultParts[1],
+													));
+											} else {
+												$temp[] = array(
+													'AND' => array(
+														'LOWER(Attribute.value1)' => $resultParts[0],
+														'LOWER(Attribute.value2)' => $resultParts[1],
+													));
+											}
+										} else {
+											if (!$toInclude) {
+												array_push($temp2, array('LOWER(Attribute.value1) NOT LIKE' => $result));
+												array_push($temp2, array('LOWER(Attribute.value2) NOT LIKE' => $result));
+											} else {
+												array_push($temp, array('LOWER(Attribute.value1) LIKE' => $result));
+												array_push($temp, array('LOWER(Attribute.value2) LIKE' => $result));
+											}
+										}
+									}
+								} else {
+									if (strpos($saveWord, '|')) {
+										$resultParts = explode('|', $saveWord);
 										if (!$toInclude) {
 											$temp2[] = array(
 												'AND' => array(
-													'LOWER(Attribute.value1) NOT LIKE' => $resultParts[0],
-													'LOWER(Attribute.value2) NOT LIKE' => $resultParts[1],
-											));
+													'LOWER(Attribute.value1) NOT LIKE' => '%' . $resultParts[0],
+													'LOWER(Attribute.value2) NOT LIKE' => $resultParts[1] . '%',
+												));
 										} else {
-											$temp[] = array(
+											$temp2[] = array(
 												'AND' => array(
-													'LOWER(Attribute.value1)' => $resultParts[0],
-													'LOWER(Attribute.value2)' => $resultParts[1],
-											));
+													'LOWER(Attribute.value1)' => '%' . $resultParts[0],
+													'LOWER(Attribute.value2)' => $resultParts[1] . '%',
+												));
 										}
 									} else {
 										if (!$toInclude) {
-											array_push($temp2, array('LOWER(Attribute.value1) NOT LIKE' => $result));
-											array_push($temp2, array('LOWER(Attribute.value2) NOT LIKE' => $result));
+											array_push($temp2, array('LOWER(Attribute.value1) NOT LIKE' => '%' . $saveWord . '%'));
+											array_push($temp2, array('LOWER(Attribute.value2) NOT LIKE' => '%' . $saveWord . '%'));
 										} else {
-											array_push($temp, array('LOWER(Attribute.value1) LIKE' => $result));
-											array_push($temp, array('LOWER(Attribute.value2) LIKE' => $result));
+											array_push($temp, array('LOWER(Attribute.value1) LIKE' => '%' . $saveWord . '%'));
+											array_push($temp, array('LOWER(Attribute.value2) LIKE' => '%' . $saveWord . '%'));
 										}
 									}
 								}
-							} else {
-								if (strpos($saveWord, '|')) {
-									$resultParts = explode('|', $saveWord);
-									if (!$toInclude) {
-										$temp2[] = array(
-											'AND' => array(
-												'LOWER(Attribute.value1) NOT LIKE' => '%' . $resultParts[0],
-												'LOWER(Attribute.value2) NOT LIKE' => $resultParts[1] . '%',
-										));
-									} else {
-										$temp2[] = array(
-											'AND' => array(
-												'LOWER(Attribute.value1)' => '%' . $resultParts[0],
-												'LOWER(Attribute.value2)' => $resultParts[1] . '%',
-										));
-									}
+								if ($toInclude) {
+									array_push($temp, array('LOWER(Attribute.comment) LIKE' => '%' . $saveWord . '%'));
 								} else {
-									if (!$toInclude) {
-										array_push($temp2, array('LOWER(Attribute.value1) NOT LIKE' => '%' . $saveWord . '%'));
-										array_push($temp2, array('LOWER(Attribute.value2) NOT LIKE' => '%' . $saveWord . '%'));
-									} else {
-										array_push($temp, array('LOWER(Attribute.value1) LIKE' => '%' . $saveWord . '%'));
-										array_push($temp, array('LOWER(Attribute.value2) LIKE' => '%' . $saveWord . '%'));
-									}
+									array_push($temp2, array('LOWER(Attribute.comment) NOT LIKE' => '%' . $saveWord . '%'));
 								}
 							}
-							if ($toInclude) {
-								array_push($temp, array('LOWER(Attribute.comment) LIKE' => '%' . $saveWord . '%'));
+							if ($i == 1 && $saveWord != '') {
+								$keyWordText = $saveWord;
+							} else if (($i > 1 && $i < 10) && $saveWord != '') {
+								$keyWordText = $keyWordText . ', ' . $saveWord;
+							} else if ($i == 10 && $saveWord != '') {
+								$keyWordText = $keyWordText . ' and several other keywords';
+							}
+							$i++;
+						}
+						$this->set('keywordSearch', $keyWordText);
+						if (!empty($temp)) {
+							$conditions['AND']['OR'] = $temp;
+						}
+						if (!empty($temp2)) {
+							$conditions['AND'][] = $temp2;
+						}
+
+					}
+
+					// event IDs to be excluded
+					if (isset($keyword2)) {
+						$keywordArray2 = explode("\n", $keyword2);
+						$i = 1;
+						$temp = array();
+						foreach ($keywordArray2 as $keywordArrayElement) {
+							$saveWord = trim($keywordArrayElement);
+							if (empty($saveWord)) {
+								continue;
+							}
+							if ($saveWord[0] == '!') {
+								if (strlen(substr($saveWord, 1)) == 36) {
+									$temp[] = array('Event.uuid !=' => substr($saveWord, 1));
+								} else {
+									$temp[] = array('Attribute.event_id !=' => substr($saveWord, 1));
+								}
 							} else {
-								array_push($temp2, array('LOWER(Attribute.comment) NOT LIKE' => '%' . $saveWord . '%'));
+								if (strlen($saveWord) == 36) {
+									$temp['OR'][] = array('Event.uuid =' => $saveWord);
+								} else {
+									$temp['OR'][] = array('Attribute.event_id =' => $saveWord);
+								}
+							}
+							if ($i == 1 && $saveWord != '') {
+								$keyWordText2 = $saveWord;
+							} else if (($i > 1 && $i < 10) && $saveWord != '') {
+								$keyWordText2 = $keyWordText2 . ', ' . $saveWord;
+							} else if ($i == 10 && $saveWord != '') {
+								$keyWordText2 = $keyWordText2 . ' and several other events';
+							}
+							$i++;
+						}
+						$this->set('keywordSearch2', $keyWordText2);
+						if (!empty($temp)) {
+							$conditions['AND'][] = $temp;
+						}
+					}
+
+					if (!empty($attributeTags) || !empty($tags))
+						$this->loadModel('Tag');
+
+					if (!empty($attributeTags)) {
+						$includeAttributeTags = array();
+						$excludeAttributeTags = array();
+						$attributeTagsKeywordArray = explode("\n", $attributeTags);
+						foreach ($attributeTagsKeywordArray as $tagName) {
+							$tagName = trim($tagName);
+							if (empty($tagName)) {
+								continue;
+							}
+							if (substr($tagName, 0, 1) === '!') {
+								$excludeAttributeTags[] = substr($tagName, 1);
+							} else {
+								$includeAttributeTags[] = $tagName;
 							}
 						}
-						if ($i == 1 && $saveWord != '') $keyWordText = $saveWord;
-						else if (($i > 1 && $i < 10) && $saveWord != '') $keyWordText = $keyWordText . ', ' . $saveWord;
-						else if ($i == 10 && $saveWord != '') $keyWordText = $keyWordText . ' and several other keywords';
-						$i++;
+						if (!empty($includeAttributeTags)) {
+							$conditions['AND'][] = array('OR' => array('Attribute.id' => $this->Tag->findAttributeIdsByAttributeTagNames($includeAttributeTags)));
+						}
+						if (!empty($excludeAttributeTags)) {
+							$conditions['AND'][] = array('Attribute.id !=' => $this->Tag->findAttributeIdsByAttributeTagNames($excludeAttributeTags));
+						}
 					}
-					$this->set('keywordSearch', $keyWordText);
-					if (!empty($temp)) {
-						$conditions['AND']['OR'] = $temp;
-					}
-					if (!empty($temp2)) {
-						$conditions['AND'][] = $temp2;
-					}
-
-				}
-
-				// event IDs to be excluded
-				if (isset($keyword2)) {
-					$keywordArray2 = explode("\n", $keyword2);
-					$i = 1;
-					$temp = array();
-					foreach ($keywordArray2 as $keywordArrayElement) {
-						$saveWord = trim($keywordArrayElement);
-						if (empty($saveWord)) continue;
-						if ($saveWord[0] == '!') {
-							if (strlen(substr($saveWord, 1)) == 36) {
-								$temp[] = array('Event.uuid !=' => substr($saveWord, 1));
-							} else {
-								$temp[] = array('Attribute.event_id !=' => substr($saveWord, 1));
+					if (!empty($tags)) {
+						$include = array();
+						$exclude = array();
+						$keywordArray = explode("\n", $tags);
+						foreach ($keywordArray as $tagname) {
+							$tagname = trim($tagname);
+							if (empty($tagname)) {
+								continue;
 							}
-						} else {
-							if (strlen($saveWord) == 36) {
-								$temp['OR'][] = array('Event.uuid =' => $saveWord);
+							if (substr($tagname, 0, 1) === '!') {
+								$exclude[] = substr($tagname, 1);
 							} else {
-								$temp['OR'][] = array('Attribute.event_id =' => $saveWord);
+								$include[] = $tagname;
 							}
 						}
-						if ($i == 1 && $saveWord != '') $keyWordText2 = $saveWord;
-						else if (($i > 1 && $i < 10) && $saveWord != '') $keyWordText2 = $keyWordText2 . ', ' . $saveWord;
-						else if ($i == 10 && $saveWord != '') $keyWordText2 = $keyWordText2 . ' and several other events';
-						$i++;
+						if (!empty($include)) {
+							$conditions['AND'][] = array('OR' => array('Attribute.event_id' => $this->Tag->findEventIdsByTagNames($include)));
+						}
+						if (!empty($exclude)) {
+							$conditions['AND'][] = array('Attribute.event_id !=' => $this->Tag->findEventIdsByTagNames($exclude));
+						}
 					}
-					$this->set('keywordSearch2', $keyWordText2);
-					if (!empty($temp)) {
-						$conditions['AND'][] = $temp;
+					if ($type != 'ALL') {
+						$conditions['Attribute.type ='] = $type;
 					}
-				}
-
-				if (!empty($attributeTags) || !empty($tags))
-					$this->loadModel('Tag');
-
-				if (!empty($attributeTags)) {
-					$includeAttributeTags = array();
-					$excludeAttributeTags = array();
-					$attributeTagsKeywordArray = explode("\n", $attributeTags);
-					foreach ($attributeTagsKeywordArray as $tagName) {
-						$tagName = trim($tagName);
-						if (empty($tagName)) continue;
-						if (substr($tagName, 0, 1) === '!') $excludeAttributeTags[] = substr($tagName, 1);
-						else $includeAttributeTags[] = $tagName;
+					if ($category != 'ALL') {
+						$conditions['Attribute.category ='] = $category;
 					}
-					if (!empty($includeAttributeTags)) $conditions['AND'][] = array('OR' => array('Attribute.id' => $this->Tag->findAttributeIdsByAttributeTagNames($includeAttributeTags)));
-					if (!empty($excludeAttributeTags)) $conditions['AND'][] = array('Attribute.id !=' => $this->Tag->findAttributeIdsByAttributeTagNames($excludeAttributeTags));
-				}
-				if (!empty($tags)) {
-					$include = array();
-					$exclude = array();
-					$keywordArray = explode("\n", $tags);
-					foreach ($keywordArray as $tagname) {
-						$tagname = trim($tagname);
-						if (empty($tagname)) continue;
-						if (substr($tagname, 0, 1) === '!') $exclude[] = substr($tagname, 1);
-						else $include[] = $tagname;
-					}
-					if (!empty($include)) $conditions['AND'][] = array('OR' => array('Attribute.event_id' => $this->Tag->findEventIdsByTagNames($include)));
-					if (!empty($exclude)) $conditions['AND'][] = array('Attribute.event_id !=' => $this->Tag->findEventIdsByTagNames($exclude));
-				}
-				if ($type != 'ALL') {
-					$conditions['Attribute.type ='] = $type;
-				}
-				if ($category != 'ALL') {
-					$conditions['Attribute.category ='] = $category;
-				}
-				// organisation search field
-				$temp = array();
-				if (isset($org)) {
-					$this->loadModel('Organisation');
-					$orgArray = explode("\n", $org);
-					foreach ($orgArray as $i => $orgArrayElement) {
-						$saveWord = trim($orgArrayElement);
-						if (empty($saveWord)) continue;
-						if ($saveWord[0] == '!') {
-							$org_names = $this->Organisation->find('all', array(
-									'fields' => array('id', 'name'),
+					// organisation search field
+					if (isset($org)) {
+						$temp = array();
+						$this->loadModel('Organisation');
+						$orgArray = explode("\n", $org);
+						foreach ($orgArray as $i => $orgArrayElement) {
+							$saveWord = trim($orgArrayElement);
+							if (empty($saveWord)) {
+								continue;
+							}
+							if ($saveWord[0] == '!') {
+								$org_names = $this->Organisation->find('all', array(
+									'fields'     => array('id', 'name'),
 									'conditions' => array('lower(name) LIKE' => '%' . strtolower(substr($saveWord, 1)) . '%'),
-							));
-							foreach ($org_names as $org_name) $temp['AND'][] = array('Event.orgc_id !=' => $org_name['Organisation']['id']);
-						} else {
-							$org_names = $this->Organisation->find('all', array(
-									'fields' => array('id', 'name'),
+								));
+								foreach ($org_names as $org_name) {
+									$temp['AND'][] = array('Event.orgc_id !=' => $org_name['Organisation']['id']);
+								}
+							} else {
+								$org_names = $this->Organisation->find('all', array(
+									'fields'     => array('id', 'name'),
 									'conditions' => array('lower(name) LIKE' => '%' . strtolower($saveWord) . '%'),
-							));
-							foreach ($org_names as $org_name) $temp['OR'][] = array('Event.orgc_id' => $org_name['Organisation']['id']);
+								));
+								foreach ($org_names as $org_name) {
+									$temp['OR'][] = array('Event.orgc_id' => $org_name['Organisation']['id']);
+								}
+							}
+							if ($i == 0 && $saveWord != '') {
+								$keyWordText3 = $saveWord;
+							} else if (($i > 0 && $i < 9) && $saveWord != '') {
+								$keyWordText3 = $keyWordText3 . ', ' . $saveWord;
+							} else if ($i == 9 && $saveWord != '') {
+								$keyWordText3 = $keyWordText3 . ' and several other organisations';
+							}
 						}
-						if ($i == 0 && $saveWord != '') $keyWordText3 = $saveWord;
-						else if (($i > 0 && $i < 9) && $saveWord != '') $keyWordText3 = $keyWordText3 . ', ' . $saveWord;
-						else if ($i == 9 && $saveWord != '') $keyWordText3 = $keyWordText3 . ' and several other organisations';
+						$this->set('orgSearch', $keyWordText3);
+						if (!empty($temp)) {
+							$conditions['AND'][] = $temp;
+						}
 					}
-					$this->set('orgSearch', $keyWordText3);
-					if (!empty($temp)) {
-						$conditions['AND'][] = $temp;
+
+					if ($this->request->data['Attribute']['alternate']) {
+						$alternateSearch = true;
 					}
 				}
+
+				if (isset($attributeTags)) {
+					$this->set('attributeTags', $attributeTags);
+				}
+				$this->set('tags', $tags);
+				$this->set('typeSearch', $type);
+				$this->set('categorySearch', $category);
+
 				$conditions['AND'][] = array('Attribute.deleted' => 0);
-				if ($this->request->data['Attribute']['alternate']) {
+				if ($alternateSearch) {
 					$events = $this->searchAlternate($conditions);
 					$this->set('events', $events);
 					$this->render('alternate_search_result');
@@ -1371,6 +1508,7 @@ class AttributesController extends AppController {
 						}
 					}
 					$this->set('attributes', $attributes);
+
 					// and store into session
 					$this->Session->write('paginate_conditions', $this->paginate);
 					$this->Session->write('paginate_conditions_keyword', $keyword);
@@ -1388,53 +1526,7 @@ class AttributesController extends AppController {
 					// set the same view as the index page
 					$this->render('index');
 				}
-			} else {
-				// no search keyword is given, show the search form
-
-				// adding filtering by category and type
-				// combobox for types
-				$types = array('' => array('ALL' => 'ALL'), 'types' => array());
-				$types['types'] = array_merge($types['types'], $this->_arrayToValuesIndexArray(array_keys($this->Attribute->typeDefinitions)));
-				ksort($types['types']);
-				$this->set('types', $types);
-
-				// combobox for categories
-				$categories['categories'] = array_merge(array('ALL' => 'ALL'), $this->_arrayToValuesIndexArray(array_keys($this->Attribute->categoryDefinitions)));
-				$this->set('categories', $categories);
 			}
-		} else {
-			$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
-			$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
-			$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
-			// get from Session
-			$keyword = $this->Session->read('paginate_conditions_keyword');
-			$keyword2 = $this->Session->read('paginate_conditions_keyword2');
-			if (Configure::read('MISP.attribute_tagging'))
-				$attributeTags = $this->Session->read('paginate_conditions_attributetags');
-			$org = $this->Session->read('paginate_conditions_org');
-			$type = $this->Session->read('paginate_conditions_type');
-			$category = $this->Session->read('paginate_conditions_category');
-			$tags = $this->Session->read('paginate_conditions_tags');
-			$this->set('keywordSearch', $keyword);
-			$this->set('keywordSearch2', $keyword2);
-			if (isset($attributeTags))
-				$this->set('attributeTags', $attributeTags);
-			$this->set('orgSearch', $org);
-			$this->set('typeSearch', $type);
-			$this->set('tags', $tags);
-			$this->set('isSearch', 1);
-			$this->set('categorySearch', $category);
-
-			if (Configure::read('MISP.attribute_tagging'))
-				$this->Attribute->contain(array('AttributeTag' => array('Tag')));
-
-			// re-get pagination
-			$this->Attribute->recursive = 0;
-			$this->paginate = $this->Session->read('paginate_conditions');
-			$this->set('attributes', $this->paginate());
-
-			// set the same view as the index page
-			$this->render('index');
 		}
 	}
 
