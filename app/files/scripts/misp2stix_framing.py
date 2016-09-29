@@ -19,36 +19,36 @@ from stix.common.vocabs import IncidentStatus
 from cybox.utils import Namespace
 
 NS_DICT = {
-	'cyboxCommon' : "http://cybox.mitre.org/common-2",
-	'cybox': "http://cybox.mitre.org/cybox-2",
-	'cyboxVocabs' : "http://cybox.mitre.org/default_vocabularies-2",
-	'ASObj' : "http://cybox.mitre.org/objects#ASObject-1",
-	'AddressObj' : "http://cybox.mitre.org/objects#AddressObject-2",
-	'DomainNameObj' : "http://cybox.mitre.org/objects#DomainNameObject-1",
-	'EmailMessageObj' : "http://cybox.mitre.org/objects#EmailMessageObject-2",
-	'FileObj' : "http://cybox.mitre.org/objects#FileObject-2",
-	'HTTPSessionObj' : "http://cybox.mitre.org/objects#HTTPSessionObject-2",
-	'HostnameObj' : "http://cybox.mitre.org/objects#HostnameObject-1",
-	'MutexObj' : "http://cybox.mitre.org/objects#MutexObject-2",
-	'PipeObj' : "http://cybox.mitre.org/objects#PipeObject-2",
-	'URIObj' : "http://cybox.mitre.org/objects#URIObject-2",
-	'WinRegistryKeyObj' : "http://cybox.mitre.org/objects#WinRegistryKeyObject-2",
-	'marking' : "http://data-marking.mitre.org/Marking-1",
-	'tlpMarking' : "http://data-marking.mitre.org/extensions/MarkingStructure#TLP-1",
-	'et' : "http://stix.mitre.org/ExploitTarget-1",
-	'incident' : "http://stix.mitre.org/Incident-1",
-	'indicator' : "http://stix.mitre.org/Indicator-2",
-	'ttp' : "http://stix.mitre.org/TTP-1",
-	'ta' : "http://stix.mitre.org/ThreatActor-1",
-	'stixCommon' : "http://stix.mitre.org/common-1",
-	'stixVocabs' : "http://stix.mitre.org/default_vocabularies-1",
-	'stix-ciqidentity' : "http://stix.mitre.org/extensions/Identity#CIQIdentity3.0-1",
-	'snortTM' : "http://stix.mitre.org/extensions/TestMechanism#Snort-1",
-	'stix' : "http://stix.mitre.org/stix-1",
-	'xsi' : "http://www.w3.org/2001/XMLSchema-instance",
-	'xal' : "urn:oasis:names:tc:ciq:xal:3",
-	'xnl' : "urn:oasis:names:tc:ciq:xnl:3",
-	'xpil' : "urn:oasis:names:tc:ciq:xpil:3"
+        "http://cybox.mitre.org/common-2" : 'cyboxCommon',
+        "http://cybox.mitre.org/cybox-2" : 'cybox',
+        "http://cybox.mitre.org/default_vocabularies-2" : 'cyboxVocabs',
+        "http://cybox.mitre.org/objects#ASObject-1" : 'ASObj',
+        "http://cybox.mitre.org/objects#AddressObject-2" : 'AddressObj',
+        "http://cybox.mitre.org/objects#DomainNameObject-1" : 'DomainNameObj',
+        "http://cybox.mitre.org/objects#EmailMessageObject-2" : 'EmailMessageObj',
+        "http://cybox.mitre.org/objects#FileObject-2" : 'FileObj',
+        "http://cybox.mitre.org/objects#HTTPSessionObject-2" : 'HTTPSessionObj',
+        "http://cybox.mitre.org/objects#HostnameObject-1" : 'HostnameObj',
+        "http://cybox.mitre.org/objects#MutexObject-2" : 'MutexObj',
+        "http://cybox.mitre.org/objects#PipeObject-2" : 'PipeObj',
+        "http://cybox.mitre.org/objects#URIObject-2" : 'URIObj',
+        "http://cybox.mitre.org/objects#WinRegistryKeyObject-2" : 'WinRegistryKeyObj',
+        "http://data-marking.mitre.org/Marking-1" : 'marking',
+        "http://data-marking.mitre.org/extensions/MarkingStructure#TLP-1" : 'tlpMarking',
+        "http://stix.mitre.org/ExploitTarget-1" : 'et',
+        "http://stix.mitre.org/Incident-1" : 'incident',
+        "http://stix.mitre.org/Indicator-2" : 'indicator',
+        "http://stix.mitre.org/TTP-1" : 'ttp',
+        "http://stix.mitre.org/ThreatActor-1" : 'ta',
+        "http://stix.mitre.org/common-1" : 'stixCommon',
+        "http://stix.mitre.org/default_vocabularies-1" : 'stixVocabs',
+        "http://stix.mitre.org/extensions/Identity#CIQIdentity3.0-1" : 'stix-ciqidentity',
+        "http://stix.mitre.org/extensions/TestMechanism#Snort-1" : 'snortTM',
+        "http://stix.mitre.org/stix-1" : 'stix',
+        "http://www.w3.org/2001/XMLSchema-instance" : 'xsi',
+        "urn:oasis:names:tc:ciq:xal:3" : 'xal',
+        "urn:oasis:names:tc:ciq:xnl:3" : 'xnl',
+        "urn:oasis:names:tc:ciq:xpil:3" : 'xpil',
 }
 
 SCHEMALOC_DICT = {
@@ -88,7 +88,7 @@ def main(args):
     if len(sys.argv) < 4:
         sys.exit("Invalid parameters")
     namespace = [sys.argv[1], sys.argv[2]]
-    NS_DICT[namespace[1]]=namespace[0]
+    NS_DICT[namespace[0]]=namespace[1]
     cybox.utils.idgen.set_id_namespace(Namespace(namespace[0], namespace[1]))
     stix.utils.idgen.set_id_namespace({namespace[0]: namespace[1]})
     stix_package = STIXPackage()
