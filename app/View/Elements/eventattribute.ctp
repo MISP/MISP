@@ -150,6 +150,9 @@
 			<th><?php echo $this->Paginator->sort('category');?></th>
 			<th><?php echo $this->Paginator->sort('type');?></th>
 			<th><?php echo $this->Paginator->sort('value');?></th>
+			<?php if (Configure::read('MISP.attribute_tagging')): ?>
+			<th>Tags</th>
+			<?php endif; ?>
 			<th><?php echo $this->Paginator->sort('comment');?></th>
 			<th>Related Events</th>
 			<th title="<?php echo $attrDescriptions['signature']['desc'];?>"><?php echo $this->Paginator->sort('to_ids', 'IDS');?></th>
@@ -315,6 +318,24 @@
 									?>
 								</div>
 							</td>
+						<?php if (Configure::read('MISP.attribute_tagging')): ?>
+							<td class="shortish <?php echo $extra; ?>">
+								<div id = "<?php echo $currentType . '_' . $object['id'] . '_tags_placeholder'; ?>" class = "inline-field-placeholder"></div>
+								<?php foreach ($object['AttributeTag'] as $tag):
+									$tagText = "&nbsp;";
+									if (Configure::read('MISP.full_attribute_tags_on_event_view') == 1) $tagText = h($tag['Tag']['name']);
+									else if (Configure::read('MISP.full_attribute_tags_on_event_view') == 2) {
+										if (strpos($tag['Tag']['name'], '=')) {
+											$tagText = explode('=', $tag['Tag']['name']);
+											$tagText = h(trim(end($tagText), "\""));
+										}
+										else $tagText = h($tag['Tag']['name']);
+									}
+									?>
+									<span class="tag useCursorPointer" style="margin-bottom:3px;background-color:<?php echo h($tag['Tag']['colour']);?>;color:<?php echo $this->TextColour->getTextColour($tag['Tag']['colour']);?>;" title="<?php echo h($tag['Tag']['name']); ?>" onClick="document.location.href='<?php echo $baseurl; ?>/attributes/index/searchtag:<?php echo h($tag['Tag']['id']);?>';"><?php echo $tagText; ?></span>
+								<?php endforeach; ?>
+							</td>
+						<?php endif; ?>
 							<td class="showspaces bitwider <?php echo $extra; ?>">
 								<div id = "<?php echo $currentType . '_' . $object['id'] . '_comment_placeholder'; ?>" class = "inline-field-placeholder"></div>
 								<div id = "<?php echo $currentType . '_' . $object['id'] . '_comment_solid'; ?>" class="inline-field-solid" ondblclick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'comment', <?php echo $event['Event']['id'];?>);">

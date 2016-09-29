@@ -1277,6 +1277,9 @@ class Event extends AppModel {
 			unset($params['contain']['Attribute']);
 			unset($params['contain']['ShadowAttribute']);
 		}
+		if (Configure::read('MISP.attribute_tagging')) {
+			$params['contain']['Attribute']['AttributeTag'] = array('Tag' => array('conditions' => $tagConditions));
+		}
 		if ($user['Role']['perm_site_admin']) {
 			$params['contain']['User'] = array('fields' => 'email');
 		}
