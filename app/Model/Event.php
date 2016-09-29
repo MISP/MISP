@@ -1907,7 +1907,16 @@ class Event extends AppModel {
 					$attribute['event_id'] = $this->id;
 					unset($attribute['id']);
 					$this->Attribute->create();
-					if (!$this->Attribute->save($attribute, array('fieldList' => $fieldList['Attribute']))) {
+					$attributeSaveResult = $this->Attribute->save($attribute, array('fieldList' => $fieldList['Attribute']));
+					if ($attributeSaveResult) {
+						if (isset($attribute['AttributeTag'])) {
+							foreach ($attribute['AttributeTag'] as $at) {
+								$this->Attribute->AttributeTag->create();
+								$at['attribute_id'] = $this->Attribute->id;
+								$this->Attribute->AttributeTag->save($at);
+							}
+						}
+					} else {
 						$validationErrors['Attribute'][$k] = $this->Attribute->validationErrors;
 						$attribute_short = (isset($attribute['category']) ? $attribute['category'] : 'N/A') . '/' . (isset($attribute['type']) ? $attribute['type'] : 'N/A') . ' ' . (isset($attribute['value']) ? $attribute['value'] : 'N/A');
 						$this->Log->create();
