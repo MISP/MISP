@@ -1095,6 +1095,8 @@ class AttributesController extends AppController {
 			if ($this->request->is('post')) {
 				$keyword = $this->request->data['Attribute']['keyword'];
 				$keyword2 = $this->request->data['Attribute']['keyword2'];
+				if (Configure::read('MISP.attribute_tagging'))
+					$attributeTags = $this->request->data['Attribute']['attributetags'];
 				$tags = $this->request->data['Attribute']['tags'];
 				$org = $this->request->data['Attribute']['org'];
 				$type = $this->request->data['Attribute']['type'];
@@ -1102,6 +1104,8 @@ class AttributesController extends AppController {
 				$this->set('ioc', $ioc);
 				$category = $this->request->data['Attribute']['category'];
 				$this->set('keywordSearch', $keyword);
+				if (isset($attributeTags))
+					$this->set('attributeTags', $attributeTags);
 				$this->set('tags', $tags);
 				$keyWordText = null;
 				$keyWordText2 = null;
@@ -1239,6 +1243,23 @@ class AttributesController extends AppController {
 						$conditions['AND'][] = $temp;
 					}
 				}
+
+				if (!empty($attributeTags) || !empty($tags))
+					$this->loadModel('Tag');
+
+				if (!empty($attributeTags)) {
+					$includeAttributeTags = array();
+					$excludeAttributeTags = array();
+					$attributeTagsKeywordArray = explode("\n", $attributeTags);
+					foreach ($attributeTagsKeywordArray as $tagName) {
+						$tagName = trim($tagName);
+						if (empty($tagName)) continue;
+						if (substr($tagName, 0, 1) === '!') $excludeAttributeTags[] = substr($tagName, 1);
+						else $includeAttributeTags[] = $tagName;
+					}
+					if (!empty($includeAttributeTags)) $conditions['AND'][] = array('OR' => array('Attribute.id' => $this->Tag->findAttributeIdsByAttributeTagNames($includeAttributeTags)));
+					if (!empty($excludeAttributeTags)) $conditions['AND'][] = array('Attribute.id !=' => $this->Tag->findAttributeIdsByAttributeTagNames($excludeAttributeTags));
+				}
 				if (!empty($tags)) {
 					$include = array();
 					$exclude = array();
@@ -1249,7 +1270,6 @@ class AttributesController extends AppController {
 						if (substr($tagname, 0, 1) === '!') $exclude[] = substr($tagname, 1);
 						else $include[] = $tagname;
 					}
-					$this->loadModel('Tag');
 					if (!empty($include)) $conditions['AND'][] = array('OR' => array('Attribute.event_id' => $this->Tag->findEventIdsByTagNames($include)));
 					if (!empty($exclude)) $conditions['AND'][] = array('Attribute.event_id !=' => $this->Tag->findEventIdsByTagNames($exclude));
 				}
@@ -1314,6 +1334,8 @@ class AttributesController extends AppController {
 							),
 						)
 					);
+					if (Configure::read('MISP.attribute_tagging'))
+						$this->Attribute->contain(array('AttributeTag' => array('Tag')));
 					if (!$this->_isSiteAdmin()) {
 						// merge in private conditions
 						$this->paginate = Set::merge($this->paginate, array(
@@ -1353,6 +1375,8 @@ class AttributesController extends AppController {
 					$this->Session->write('paginate_conditions', $this->paginate);
 					$this->Session->write('paginate_conditions_keyword', $keyword);
 					$this->Session->write('paginate_conditions_keyword2', $keyword2);
+					if (isset($attributeTags))
+						$this->Session->write('paginate_conditions_attributetags', $attributeTags);
 					$this->Session->write('paginate_conditions_org', $org);
 					$this->Session->write('paginate_conditions_type', $type);
 					$this->Session->write('paginate_conditions_ioc', $ioc);
@@ -1385,17 +1409,24 @@ class AttributesController extends AppController {
 			// get from Session
 			$keyword = $this->Session->read('paginate_conditions_keyword');
 			$keyword2 = $this->Session->read('paginate_conditions_keyword2');
+			if (Configure::read('MISP.attribute_tagging'))
+				$attributeTags = $this->Session->read('paginate_conditions_attributetags');
 			$org = $this->Session->read('paginate_conditions_org');
 			$type = $this->Session->read('paginate_conditions_type');
 			$category = $this->Session->read('paginate_conditions_category');
 			$tags = $this->Session->read('paginate_conditions_tags');
 			$this->set('keywordSearch', $keyword);
 			$this->set('keywordSearch2', $keyword2);
+			if (isset($attributeTags))
+				$this->set('attributeTags', $attributeTags);
 			$this->set('orgSearch', $org);
 			$this->set('typeSearch', $type);
 			$this->set('tags', $tags);
 			$this->set('isSearch', 1);
 			$this->set('categorySearch', $category);
+
+			if (Configure::read('MISP.attribute_tagging'))
+				$this->Attribute->contain(array('AttributeTag' => array('Tag')));
 
 			// re-get pagination
 			$this->Attribute->recursive = 0;

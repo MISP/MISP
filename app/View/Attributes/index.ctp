@@ -4,6 +4,8 @@
 if ($isSearch == 1) {
 	echo "<h4>Results for all attributes";
 	if ($keywordSearch != null) echo " with the value containing \"<b>" . h($keywordSearch) . "</b>\"";
+	if (Configure::read('MISP.attribute_tagging'))
+		if ($attributeTags != null) echo " being tagged with \"<b>" . h($attributeTags) . "</b>\"";
 	if ($keywordSearch2 != null) echo " from the events \"<b>" . h($keywordSearch2) . "</b>\"";
 	if ($tags != null) echo " from events tagged \"<b>" . h($tags) . "</b>\"";
 	if ($categorySearch != "ALL") echo " of category \"<b>" . h($categorySearch) . "</b>\"";
