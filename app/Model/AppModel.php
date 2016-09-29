@@ -102,6 +102,8 @@ class AppModel extends Model {
 
 	// SQL scripts for updates
 	public function updateDatabase($command) {
+		$dataSourceConfig = ConnectionManager::getDataSource('default')->config;
+		$dataSource = $dataSourceConfig['datasource'];
 		$sql = '';
 		$this->Log = ClassRegistry::init('Log');
 		$clean = true;
@@ -432,6 +434,29 @@ class AppModel extends Model {
 			case '2.4.51':
 				$sqlArray[] = 'ALTER TABLE `servers` ADD `internal` tinyint(1) NOT NULL DEFAULT 0;';
 				$sqlArray[] = 'ALTER TABLE `roles` ADD `default_role` tinyint(1) NOT NULL DEFAULT 0;';
+				break;
+			case '2.4.53':
+				if ($dataSource == 'Database/Mysql') {
+					$sqlArray[] = 'CREATE TABLE IF NOT EXISTS `attribute_tags` (
+							  `id` int(11) NOT NULL AUTO_INCREMENT,
+							  `attribute_id` int(11) NOT NULL,
+							  `tag_id` int(11) NOT NULL,
+							  PRIMARY KEY (`id`)
+							) ENGINE=InnoDB DEFAULT CHARSET=utf8;';
+					$sqlArray[] = 'ALTER TABLE `attribute_tags` ADD INDEX `attribute_id` (`attribute_id`);';
+					$sqlArray[] = 'ALTER TABLE `attribute_tags` ADD INDEX `tag_id` (`tag_id`);';
+				} else if ($dataSource == 'Database/Postgres') {
+					$sqlArray[] = 'CREATE TABLE IF NOT EXISTS attribute_tags (
+							  id bigserial NOT NULL,
+							  attribute_id bigint NOT NULL,
+							  tag_id bigint NOT NULL,
+							  PRIMARY KEY (id)
+							);';
+					$sqlArray[] = 'CREATE INDEX idx_attribute_tags_attribute_id ON attribute_tags (attribute_id);';
+					$sqlArray[] = 'CREATE INDEX idx_attribute_tags_tag_id ON attribute_tags (tag_id);';
+				}
+				$this->__dropIndex('attribute_tags', 'attribute_id');
+				$this->__dropIndex('attribute_tags', 'tag_id');
 				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
