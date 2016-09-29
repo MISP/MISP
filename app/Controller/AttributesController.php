@@ -62,6 +62,9 @@ class AttributesController extends AppController {
 				'Orgc' => array('fields' => array('id', 'name'))
 			)
 		);
+		if (Configure::read('MISP.attribute_tagging') && !$this->_isRest()) {
+			$this->Attribute->contain(array('AttributeTag' => array('Tag')));
+		}
 		$this->set('isSearch', 0);
 		$this->set('attributes', $this->paginate());
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);

@@ -36,6 +36,9 @@ if ($isSearch == 1) {
 			<th><?php echo $this->Paginator->sort('category');?></th>
 			<th><?php echo $this->Paginator->sort('type');?></th>
 			<th><?php echo $this->Paginator->sort('value');?></th>
+			<?php if (Configure::read('MISP.attribute_tagging')): ?>
+			<th>Tags</th>
+			<?php endif; ?>
 			<th><?php echo $this->Paginator->sort('comment');?></th>
 			<th<?php echo ' title="' . $attrDescriptions['signature']['desc'] . '"';?>>
 			<?php echo $this->Paginator->sort('IDS');?></th>
@@ -101,6 +104,23 @@ foreach ($attributes as $attribute):
 			}
 			?>
 		</td>
+		<?php if (Configure::read('MISP.attribute_tagging')): ?>
+		<td style = "max-width:200px;width:10px;">
+			<?php foreach ($attribute['AttributeTag'] as $tag):
+				$tagText = "&nbsp;";
+				if (Configure::read('MISP.full_tags_on_attribute_index') == 1) $tagText = h($tag['Tag']['name']);
+				else if (Configure::read('MISP.full_tags_on_attribute_index') == 2) {
+					if (strpos($tag['Tag']['name'], '=')) {
+						$tagText = explode('=', $tag['Tag']['name']);
+						$tagText = h(trim(end($tagText), "\""));
+					}
+					else $tagText = h($tag['Tag']['name']);
+				}
+				?>
+				<span class="tag useCursorPointer" style="margin-bottom:3px;background-color:<?php echo h($tag['Tag']['colour']);?>;color:<?php echo $this->TextColour->getTextColour($tag['Tag']['colour']);?>;" title="<?php echo h($tag['Tag']['name']); ?>" onClick="document.location.href='<?php echo $baseurl; ?>/attributes/search/attributetag:<?php echo h($tag['Tag']['id']);?>';"><?php echo $tagText; ?></span>
+			<?php endforeach; ?>
+		</td>
+		<?php endif; ?>
 		<td ondblclick="document.location ='document.location ='<?php echo $baseurl;?>/events/view/<?php echo $attribute['Event']['id'];?>';">
 			<?php
 			$sigDisplay = nl2br(h($attribute['Attribute']['comment']));
