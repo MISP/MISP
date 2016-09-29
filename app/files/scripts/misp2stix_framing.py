@@ -89,7 +89,6 @@ def main(args):
         sys.exit("Invalid parameters")
     namespace = [sys.argv[1], sys.argv[2]]
     NS_DICT[namespace[0]]=namespace[1]
-    cybox.utils.idgen.set_id_namespace(Namespace(namespace[0], namespace[1]))
     stix.utils.idgen.set_id_namespace({namespace[0]: namespace[1]})
     stix_package = STIXPackage()
     stix_header = STIXHeader()
