@@ -1803,6 +1803,10 @@ class Attribute extends AppModel {
 				),
 			),
 		);
+		if (Configure::read('MISP.attribute_tagging')) {
+			$params['contain']['AttributeTag'] = array('Tag' => array('conditions' => array()));
+			if (empty($options['includeAllTags'])) $params['contain']['AttributeTag']['Tag']['conditions']['exportable'] = 1;
+		}
 		if (isset($options['contain'])) $params['contain'] = array_merge_recursive($params['contain'], $options['contain']);
 		else $option['contain']['Event']['fields'] = array('id', 'info', 'org_id', 'orgc_id');
 		if (isset($options['fields'])) $params['fields'] = $options['fields'];

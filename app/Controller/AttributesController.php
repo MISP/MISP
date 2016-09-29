@@ -806,9 +806,16 @@ class AttributesController extends AppController {
 			throw new NotFoundException('Invalid attribute');
 		}
 		if ($this->_isRest()) {
-			$attribute = $this->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id), 'withAttachments' => true));
+			$conditions = array('conditions' => array('Attribute.id' => $id), 'withAttachments' => true);
+			$conditions['includeAllTags'] = false;
+			$attribute = $this->Attribute->fetchAttributes($this->Auth->user(), $conditions);
 			if (empty($attribute)) throw new MethodNotAllowedException('Invalid attribute');
 			$attribute = $attribute[0];
+			if (isset($attribute['AttributeTag'])) {
+				foreach ($attribute['AttributeTag'] as $k => $tag) {
+					$attribute['Attribute']['Tag'][$k] = $tag['Tag'];
+				}
+			}
 			$this->set('Attribute', $attribute['Attribute']);
 			$this->set('_serialize', array('Attribute'));
 		} else {
