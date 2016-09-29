@@ -320,20 +320,9 @@
 							</td>
 						<?php if (Configure::read('MISP.attribute_tagging')): ?>
 							<td class="shortish <?php echo $extra; ?>">
-								<div id = "<?php echo $currentType . '_' . $object['id'] . '_tags_placeholder'; ?>" class = "inline-field-placeholder"></div>
-								<?php foreach ($object['AttributeTag'] as $tag):
-									$tagText = "&nbsp;";
-									if (Configure::read('MISP.full_attribute_tags_on_event_view') == 1) $tagText = h($tag['Tag']['name']);
-									else if (Configure::read('MISP.full_attribute_tags_on_event_view') == 2) {
-										if (strpos($tag['Tag']['name'], '=')) {
-											$tagText = explode('=', $tag['Tag']['name']);
-											$tagText = h(trim(end($tagText), "\""));
-										}
-										else $tagText = h($tag['Tag']['name']);
-									}
-									?>
-									<span class="tag useCursorPointer" style="margin-bottom:3px;background-color:<?php echo h($tag['Tag']['colour']);?>;color:<?php echo $this->TextColour->getTextColour($tag['Tag']['colour']);?>;" title="<?php echo h($tag['Tag']['name']); ?>" onClick="document.location.href='<?php echo $baseurl; ?>/attributes/index/searchtag:<?php echo h($tag['Tag']['id']);?>';"><?php echo $tagText; ?></span>
-								<?php endforeach; ?>
+								<div class="attributeTagContainer">
+									<?php echo $this->element('ajaxAttributeTags', array('attributeId' => $object['id'], 'attributeTags' => $object['AttributeTag'], 'tagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['org_id']) )); ?>
+								</div>
 							</td>
 						<?php endif; ?>
 							<td class="showspaces bitwider <?php echo $extra; ?>">

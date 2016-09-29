@@ -264,6 +264,34 @@ class TagsController extends AppController {
 		$this->render('/Events/ajax/ajaxTags');
 	}
 
+	public function showAttributeTag($id) {
+		$this->helpers[] = 'TextColour';
+		$this->loadModel('AttributeTag');
+
+		$this->Tag->AttributeTag->Attribute->id = $id;
+		if (!$this->Tag->AttributeTag->Attribute->exists()) throw new NotFoundException(__('Invalid attribute'));
+		$this->Tag->AttributeTag->Attribute->read();
+		$eventId = $this->Tag->AttributeTag->Attribute->data['Attribute']['event_id'];
+
+		$attributeTags = $this->AttributeTag->find('all', array(
+			'conditions' => array(
+				'attribute_id' => $id
+			),
+			'contain' => array('Tag'),
+			'fields' => array('Tag.id', 'Tag.colour', 'Tag.name'),
+		));
+		$event = $this->Tag->AttributeTag->Attribute->Event->find('first', array(
+			'recursive' => -1,
+			'fields' => array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.user_id'),
+			'conditions' => array('Event.id' => $eventId)
+		));
+		$this->set('event', $event);
+		$this->set('attributeTags', $attributeTags);
+		$this->set('attributeId', $id);
+		$this->layout = 'ajax';
+		$this->render('/Attributes/ajax/ajaxAttributeTags');
+	}
+
 	public function viewTag($id) {
 		$tag = $this->Tag->find('first', array(
 				'conditions' => array(
@@ -278,7 +306,7 @@ class TagsController extends AppController {
 	}
 
 
-	public function selectTaxonomy($event_id) {
+	public function selectTaxonomy($id, $attributeTag = false) {
 		if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) throw new NotFoundException('You don\'t have permission to do that.');
 		$favourites = $this->Tag->FavouriteTag->find('count', array('conditions' => array('FavouriteTag.user_id' => $this->Auth->user('id'))));
 		$this->loadModel('Taxonomy');
@@ -287,13 +315,16 @@ class TagsController extends AppController {
 			$tags = $this->Taxonomy->getTaxonomyTags($k, false, true);
 			if (empty($tags)) unset($options[$k]);
 		}
-		$this->set('event_id', $event_id);
+		if (Configure::read('MISP.attribute_tagging') && $attributeTag !== false) {
+			$this->set('attributeTag', true);
+		}
+		$this->set('object_id', $id);
 		$this->set('options', $options);
 		$this->set('favourites', $favourites);
 		$this->render('ajax/taxonomy_choice');
 	}
 
-	public function selectTag($event_id, $taxonomy_id) {
+	public function selectTag($id, $taxonomy_id, $attributeTag = false) {
 		if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) throw new NotFoundException('You don\'t have permission to do that.');
 		$this->loadModel('Taxonomy');
 		$expanded = array();
@@ -338,7 +369,10 @@ class TagsController extends AppController {
 				unset($expanded[$banned_tag]);
 			}
 		}
-		$this->set('event_id', $event_id);
+		if (Configure::read('MISP.attribute_tagging') && $attributeTag !== false) {
+			$this->set('attributeTag', true);
+		}
+		$this->set('object_id', $id);
 		$this->set('options', $options);
 		$this->set('expanded', $expanded);
 		$this->set('custom', $taxonomy_id == 0 ? true : false);
