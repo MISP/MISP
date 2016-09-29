@@ -39,6 +39,21 @@ CREATE INDEX idx_attributes_sharing_group_id ON attributes (sharing_group_id);
 CREATE INDEX idx_attributes_value1 ON attributes (value1);
 CREATE INDEX idx_attributes_value2 ON attributes (value2);
 
+-- -------------------------------------------------------
+
+--
+-- Table structure for table attribute_tags
+--
+
+CREATE TABLE IF NOT EXISTS attribute_tags (
+  id bigserial NOT NULL,
+  attribute_id bigint NOT NULL,
+  tag_id bigint NOT NULL,
+  PRIMARY KEY (id)
+);
+CREATE INDEX idx_attribute_tags_attribute_id ON attribute_tags (attribute_id);
+CREATE INDEX idx_attribute_tags_tag_id ON attribute_tags (tag_id);
+
 -- --------------------------------------------------------
 
 --
