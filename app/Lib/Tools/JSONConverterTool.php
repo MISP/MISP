@@ -39,6 +39,13 @@ class JSONConverterTool {
 						$ra = array('Attribute' => $ra);
 					}
 				}
+				if (isset($event['Event']['Attribute'][$key]['AttributeTag'])) {
+					foreach ($event['Event']['Attribute'][$key]['AttributeTag'] as $atk => $tag) {
+						unset($tag['Tag']['org_id']);
+						$event['Event']['Attribute'][$key]['Tag'][$atk] = $tag['Tag'];
+					}
+					unset($event['Event']['Attribute'][$key]['AttributeTag']);
+				}
 			}
 		}
 		unset($event['Event']['RelatedAttribute']);

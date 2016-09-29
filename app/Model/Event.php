@@ -1333,6 +1333,13 @@ class Event extends AppModel {
 							}
 						}
 					}
+					// unset empty attribute tags that got added because the tag wasn't exportable
+					if (!empty($attribute['AttributeTag'])) {
+						foreach ($attribute['AttributeTag'] as $atk => $attributeTag) {
+							if (empty($attributeTag['Tag'])) unset($attribute['AttributeTag'][$atk]);
+						}
+						$event['AttributeTag'] = array_values($attribute['AttributeTag']);
+					}
 					$attribute['ShadowAttribute'] = array();
 					// If a shadowattribute can be linked to an attribute, link it to it then remove it from the event
 					// This is to differentiate between proposals that were made to an attribute for modification and between proposals for new attributes
