@@ -1521,8 +1521,21 @@ class Event extends AppModel {
 		} else {
 			$subject = '';
 		}
-		$tplColorString = !empty(Configure::read('MISP.email_subject_TLP_string')) ? Configure::read('MISP.email_subject_TLP_string') : "TLP Amber";
-		$subject = "[" . Configure::read('MISP.org') . " MISP] Event " . $id . " - " . $subject . $event[0]['ThreatLevel']['name'] . " - ".$tplColorString;
+		$subjMarkingString = !empty(Configure::read('MISP.email_subject_TLP_string')) ? Configure::read('MISP.email_subject_TLP_string') : "TLP Amber";
+		$subjTag = !empty(Configure::read('MISP.email_subject_tag')) ? Configure::read('MISP.email_subject_tag') : "tlp";
+		$tagLen = strlen($subjTag);
+		foreach ($event[0]['EventTag'] as $k => $tag) {
+			$tagName=$tag['Tag']['name'];
+			if(strncasecmp($subjTag, $tagName, $tagLen) == 0 && strlen($tagName) > $tagLen && ($tagName[$tagLen] == ':' || $tagName[$tagLen] == '=')) {
+				if(Configure::read('MISP.email_subject_include_tag_name') === false) {
+					$subjMarkingString = trim(substr($tagName, $tagLen+1), '"');
+				} else {
+					$subjMarkingString = $tagName;
+				}
+				break;
+			}
+		}
+		$subject = "[" . Configure::read('MISP.org') . " MISP] Event " . $id . " - " . $subject . $event[0]['ThreatLevel']['name'] . " - ".$subjMarkingString;
 
 		// Initialise the Job class if we have a background process ID
 		// This will keep updating the process's progress bar
