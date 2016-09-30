@@ -142,16 +142,22 @@ def resolveIPType(attribute_value, attribute_type):
 
 def generateDomainIPObservable(indicator, attribute):
     indicator.add_indicator_type("Domain Watchlist")
-    compositeObject = ObservableComposition()
-    compositeObject.operator = "AND"
     domain = attribute["value"].split('|')[0]
     ip = attribute["value"].split('|')[1]
     address_object = resolveIPType(ip, attribute["type"])
+    address_object.parent.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":Address-" + attribute["uuid"]
+    address_observable=Observable(address_object)
+    address_observable.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":Address-" + attribute["uuid"]
     domain_object = DomainName()
     domain_object.value = domain
-    compositeObject.add(address_object)
-    compositeObject.add(domain_object)
-    return compositeObject
+    domain_object.parent.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":DomainName-" + attribute["uuid"]
+    domain_observable = Observable(domain_object)
+    domain_observable.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":DomainName-" + attribute["uuid"]
+    compositeObject = ObservableComposition(observables = [address_observable, domain_observable])
+    compositeObject.operator = "AND"
+    observable = Observable(id_ = cybox.utils.idgen.__generator.namespace.prefix + ":ObservableComposition-" + attribute["uuid"])
+    observable.observable_composition = compositeObject
+    return observable
 
 def generateIPObservable(indicator, attribute):
     indicator.add_indicator_type("IP Watchlist")
