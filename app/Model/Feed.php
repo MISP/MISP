@@ -133,13 +133,23 @@ class Feed extends AppModel {
 	private function __createFeedRequest() {
 		$version = $this->checkMISPVersion();
 		$version = implode('.', $version);
-		return array(
+		try {
+			$commit = trim(shell_exec('git log --pretty="%H" -n1 HEAD'));
+		} catch (Exception $e) {
+			$commit = false;			
+		}
+		
+		$result = array(
 			'header' => array(
 					'Accept' => 'application/json',
 					'Content-Type' => 'application/json',
 					'MISP-version' => $version,
 			)
 		);
+		if ($commit) {
+			$result['header']['commit'] = $commit;
+		}
+		return $result;
 	}
 
 	private function __checkIfEventBlockedByFilter($event, $filterRules) {
