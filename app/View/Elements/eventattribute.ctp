@@ -290,9 +290,13 @@
 											} else if ('link' == $object['type']) {
 												echo $this->Html->link($sigDisplay, $sigDisplay);
 											} else if ('text' == $object['type']) {
-												$sigDisplay = str_replace("\r", '', h($sigDisplay));
-												$sigDisplay = str_replace(" ", '&nbsp;', $sigDisplay);
-												echo nl2br($sigDisplay);
+												if ($object['category'] == 'External analysis' && preg_match('/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/i', $object['value'])) {
+													echo '<a href="' . $baseurl . '/events/view/' . h($object['value']) . '">' . h($object['value']) . '</a>';
+												} else {
+													$sigDisplay = str_replace("\r", '', h($sigDisplay));
+													$sigDisplay = str_replace(" ", '&nbsp;', $sigDisplay);
+													echo nl2br($sigDisplay);
+												}
 											} else {
 												$sigDisplay = str_replace("\r", '', $sigDisplay);
 												echo nl2br(h($sigDisplay));
