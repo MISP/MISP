@@ -116,6 +116,7 @@ class ACLComponent extends Component {
 					'viewEventAttributes' => array('*'),
 					'viewGraph' => array('*'),
 					'xml' => array('*'),
+					'merge' => array('perm_modify'),
 					'importChoice' => array('*'),
 					'importModule' => array('*'),
 					'exportModule' => array('*')

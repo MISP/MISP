@@ -1158,6 +1158,75 @@ class EventsController extends AppController {
 		}
 	}
 
+	public function merge($target_id = null) {
+		$this->Event->id = $target_id;
+		$eIds = $this->Event->fetchEventIds($this->Auth->user(), false, false, false, true);
+		// check if event exists and is readable for the current user
+		if (!$this->Event->exists() || !in_array($target_id, $eIds)) {
+			throw new NotFoundException(__('Invalid event'));
+		}
+		$this->Event->read(null, $target_id);
+		// check if private and user not authorised to edit
+		if (!$this->_isSiteAdmin() && ($this->Event->data['Event']['orgc_id'] != $this->_checkOrg() || !($this->userRole['perm_modify']))) {
+			$this->Session->setFlash(__('You are not authorised to do that. Please consider using the \'propose attribute\' feature.'));
+			$this->redirect(array('action' => 'view', $target_id));
+		}
+		if ($this->request->is('post')) {
+			$source_id = $this->request->data['Event']['source_id'];
+			$to_ids = $this->request->data['Event']['to_ids'];
+			if (!is_numeric($source_id)) {
+				$this->Session->setFlash(__('Invalid event ID entered.'));
+				return;
+			}
+			$this->Event->read(null, $source_id);
+			if (!$this->_isSiteAdmin()) {
+				if (!in_array($source_id, $eIds)) {
+					$this->Session->setFlash(__('You are not authorised to read the selected event.'));
+					return;
+				}
+				$r = array('results' => []);
+				foreach ($this->Event->data['Attribute'] as $a) {
+					if ($to_ids && !$a['to_ids']) {
+						continue;
+					}
+					$tmp = array();
+					$tmp['values']     = $a['value'];
+					$tmp['categories'] = $a['category'];
+					$tmp['types']      = $a['type'];
+					$tmp['to_ids']     = $a['to_ids'];
+					$tmp['comment']    = $a['comment'];
+					$r['results'][] = $tmp;
+				}
+				$resultArray = $this->Event->handleModuleResult($r, $target_id);
+				$typeCategoryMapping = array();
+				foreach ($this->Event->Attribute->categoryDefinitions as $k => $cat) {
+					foreach ($cat['types'] as $type) {
+						$typeCategoryMapping[$type][$k] = $k;
+					}
+				}
+				foreach ($resultArray as $key => $result) {
+					$options = array(
+							'conditions' => array('OR' => array('Attribute.value1' => $result['value'], 'Attribute.value2' => $result['value'])),
+							'fields' => array('Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.comment'),
+							'order' => false
+					);
+					$resultArray[$key]['related'] = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $options);
+				}
+				$this->set('event', array('Event' => array('id' => $target_id)));
+				$this->set('resultArray', $resultArray);
+				$this->set('typeList', array_keys($this->Event->Attribute->typeDefinitions));
+				$this->set('defaultCategories', $this->Event->Attribute->defaultCategories);
+				$this->set('typeCategoryMapping', $typeCategoryMapping);
+				$this->set('title', 'Merge Results');
+				$this->set('importComment', 'Merged from event ' . $source_id);
+				$this->render('resolved_attributes');
+			}
+		} else {
+			// set the target event id in the form
+			$this->request->data['Event']['target_id'] = $target_id;
+		}
+	}
+
 	public function edit($id = null) {
 		$this->Event->id = $id;
 		if (!$this->Event->exists()) {
