@@ -114,6 +114,7 @@ class Tag extends AppModel {
 						'name' => $tag['name'],
 						'colour' => $tag['colour'],
 						'exportable' => $tag['exportable'],
+						'org_id' => 0
 				);
 				$this->save($tag);
 				return $this->id;
