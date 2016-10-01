@@ -1079,28 +1079,32 @@ class EventsController extends AppController {
 		$distributions = $this->_arrayToValuesIndexArray($distributions);
 		$this->set('distributions', $distributions);
 		// tooltip for distribution
-		$this->set('distributionDescriptions', $this->Event->distributionDescriptions);
+		$info = array();
 		$distributionLevels = $this->Event->distributionLevels;
 		if (empty($sgs)) unset($distributionLevels[4]);
 		$this->set('distributionLevels', $distributionLevels);
-
+		foreach ($distributionLevels as $key => $value) {
+			$info['distribution'][$key] = array('key' => $value, 'desc' => $this->Event->distributionDescriptions[$key]['formdesc']);
+		}
+		
 		// combobox for risks
 		$threat_levels = $this->Event->ThreatLevel->find('all');
 		$this->set('threatLevels', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.name'));
-		$this->set('riskDescriptions', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.form_description'));
-
+		foreach ($threat_levels as $key => $threat_level) {
+			$info['threat_level'][$threat_level['ThreatLevel']['id']] = array('key' => $threat_level['ThreatLevel']['name'], 'desc' => $threat_level['ThreatLevel']['form_description']);
+		}
+		
 		// combobox for analysis
-		$analysiss = $this->Event->validate['analysis']['rule'][1];
-		$analysiss = $this->_arrayToValuesIndexArray($analysiss);
 		$this->set('sharingGroups', $sgs);
-		$this->set('analysiss',$analysiss);
 		// tooltip for analysis
+		foreach ($this->Event->analysisLevels as $key => $value) {
+			$info['analysis'][$key] = array('key' => $value, 'desc' => $this->Event->analysisDescriptions[$key]['formdesc']);
+		}
+		$this->set('info', $info);
 		$this->set('analysisDescriptions', $this->Event->analysisDescriptions);
 		$this->set('analysisLevels', $this->Event->analysisLevels);
-
-		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 	}
-
+	
 	public function addIOC($id) {
 		$this->Event->recursive = -1;
 		$this->Event->read(null, $id);
@@ -1241,31 +1245,35 @@ class EventsController extends AppController {
 		$distributions = $this->_arrayToValuesIndexArray($distributions);
 		$this->set('distributions', $distributions);
 
-		// tooltip for distribution
-		$this->set('distributionDescriptions', $this->Event->distributionDescriptions);
-
 		// even if the SG is not local, we still want the option to select the currently assigned SG
 		$sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name',  1);
 		$this->set('sharingGroups', $sgs);
 
+		// tooltip for distribution
+		$info = array();
 		$distributionLevels = $this->Event->distributionLevels;
 		if (empty($sgs)) unset($distributionLevels[4]);
 		$this->set('distributionLevels', $distributionLevels);
-
-		// combobox for types
+		foreach ($distributionLevels as $key => $value) {
+			$info['distribution'][$key] = array('key' => $value, 'desc' => $this->Event->distributionDescriptions[$key]['formdesc']);
+		}
+		
+		// combobox for risks
 		$threat_levels = $this->Event->ThreatLevel->find('all');
 		$this->set('threatLevels', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.name'));
-		$this->set('riskDescriptions', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.form_description'));
+		foreach ($threat_levels as $key => $threat_level) {
+			$info['threat_level'][$threat_level['ThreatLevel']['id']] = array('key' => $threat_level['ThreatLevel']['name'], 'desc' => $threat_level['ThreatLevel']['form_description']);
+		}
 
 		// combobox for analysis
-		$analysiss = $this->Event->validate['analysis']['rule'][1];
-		$analysiss = $this->_arrayToValuesIndexArray($analysiss);
-		$this->set('analysiss',$analysiss);
-
+		$this->set('sharingGroups', $sgs);
 		// tooltip for analysis
-		$this->set('analysisDescriptions', $this->Event->analysisDescriptions);
+		foreach ($this->Event->analysisLevels as $key => $value) {
+			$info['analysis'][$key] = array('key' => $value, 'desc' => $this->Event->analysisDescriptions[$key]['formdesc']);
+		}
 		$this->set('analysisLevels', $this->Event->analysisLevels);
 
+		$this->set('info', $info);
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 		$this->set('event', $this->Event->data);
 	}

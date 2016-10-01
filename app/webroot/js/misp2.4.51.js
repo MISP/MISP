@@ -2493,6 +2493,20 @@ function requestAPIAccess() {
 	});
 }
 
+function initPopoverContent() {
+	for (var property in formInfoFields) {
+		if (formInfoFields.hasOwnProperty(property)) {
+			console.log('#' + property + 'InfoPopover');
+			$('#' + property + 'InfoPopover').popover("destroy").popover({
+				placement: 'right',
+				html: 'true',
+				trigger: 'hover',
+				content: window[property + 'FormInfoValues'][$('#Event' + formInfoFields[property]).val()]
+			});
+		}
+	}
+}
+
 $('.servers_default_role_checkbox').click(function() {
 	var id = $(this).data("id");
 	var state = $(this).is(":checked");
