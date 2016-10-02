@@ -79,13 +79,13 @@ echo $this->Form->end();
 	});
 	
 	$("#EventDistribution, #EventAnalysis, #EventThreatLevelId").change(function() {
-		initPopoverContent();
+		initPopoverContent('Event');
 	});
 	
 	$(document).ready(function() {
 		if ($('#EventDistribution').val() == 4) $('#SGContainer').show();
 		else $('#SGContainer').hide();
-		initPopoverContent();
+		initPopoverContent('Event');
 	});
 </script>
 <?php echo $this->Js->writeBuffer();

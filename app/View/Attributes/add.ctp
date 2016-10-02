@@ -9,11 +9,13 @@
 			<?php
 			echo $this->Form->hidden('event_id');
 			echo $this->Form->input('category', array(
-					'empty' => '(choose one)'
-					));
+				'empty' => '(choose one)',
+				'label' => 'Category ' . $this->element('formInfo', array('type' => 'category')),
+			));
 			echo $this->Form->input('type', array(
-					'empty' => '(first choose category)'
-					));
+				'empty' => '(first choose category)',
+				'label' => 'Type ' . $this->element('formInfo', array('type' => 'type')),
+			));
 
 			$initialDistribution = 5;
 			if (Configure::read('MISP.default_attribute_distribution') != null) {
@@ -30,7 +32,7 @@
 
 			echo $this->Form->input('distribution', array(
 				'options' => array($distributionLevels),
-				'label' => 'Distribution',
+				'label' => 'Distribution ' . $this->element('formInfo', array('type' => 'distribution')),
 				'selected' => $initialDistribution,
 			));
 			?>
@@ -66,15 +68,11 @@
 			<?php
 			echo $this->Form->input('to_ids', array(
 						'checked' => false,
-						'data-content' => isset($attrDescriptions['signature']['formdesc']) ? $attrDescriptions['signature']['formdesc'] : $attrDescriptions['signature']['desc'],
 						'label' => 'for Intrusion Detection System',
 			));
 			echo $this->Form->input('batch_import', array(
-					'type' => 'checkbox',
-					'data-content' => 'Create multiple attributes one per line',
+					'type' => 'checkbox'
 			));
-			// link an onchange event to the form elements
-			$this->Js->get('#AttributeCategory')->event('change', 'formCategoryChanged("#AttributeCategory")');
 		?>
 		</div>
 	</fieldset>
@@ -110,23 +108,34 @@
 		echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'addAttribute', 'event' => $event));
 	}
 ?>
-
 <script type="text/javascript">
+<?php
+	$formInfoTypes = array('distribution' => 'Distribution', 'category' => 'Category', 'type' => 'Type');
+	echo 'var formInfoFields = ' . json_encode($formInfoTypes) . PHP_EOL;
+	foreach ($formInfoTypes as $formInfoType => $humanisedName) {
+		echo 'var ' . $formInfoType . 'FormInfoValues = {' . PHP_EOL;
+		foreach ($info[$formInfoType] as $key => $formInfoData) {
+			echo '"' . $key . '": "<span class=\"blue bold\">' . h($formInfoData['key']) . '</span>: ' . h($formInfoData['desc']) . '<br />",' . PHP_EOL; 
+		}
+		echo '}' . PHP_EOL;
+	}
+?>
+
 //
 //Generate Category / Type filtering array
 //
 var category_type_mapping = new Array();
 <?php
-foreach ($categoryDefinitions as $category => $def) {
-	echo "category_type_mapping['" . addslashes($category) . "'] = {";
-	$first = true;
-	foreach ($def['types'] as $type) {
-		if ($first) $first = false;
-		else echo ', ';
-		echo "'" . addslashes($type) . "' : '" . addslashes($type) . "'";
+	foreach ($categoryDefinitions as $category => $def) {
+		echo "category_type_mapping['" . addslashes($category) . "'] = {";
+		$first = true;
+		foreach ($def['types'] as $type) {
+			if ($first) $first = false;
+			else echo ', ';
+			echo "'" . addslashes($type) . "' : '" . addslashes($type) . "'";
+		}
+		echo "}; \n";
 	}
-	echo "}; \n";
-}
 ?>
 
 function formCategoryChanged(id) {
@@ -140,86 +149,28 @@ function formCategoryChanged(id) {
 	$('#AttributeType').prop('disabled', false);
 }
 
-
-//
-// Generate tooltip information
-//
-var formInfoValues = new Array();
-var fieldsArray = new Array('AttributeCategory', 'AttributeType', 'AttributeDistribution', 'AttributeValue', 'AttributeComment', 'AttributeToIds', 'AttributeBatchImport');
-<?php
-foreach ($typeDefinitions as $type => $def) {
-	$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
-	echo "formInfoValues['" . addslashes($type) . "'] = \"" . addslashes($info) . "\";\n";  // as we output JS code we need to add slashes
-}
-foreach ($categoryDefinitions as $category => $def) {
-	$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
-	echo "formInfoValues['" . addslashes($category) . "'] = \"" . addslashes($info) . "\";\n"; // as we output JS code we need to add slashes
-}
-foreach ($distributionDescriptions as $type => $def) {
-	$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
-	echo "formInfoValues['" . addslashes($type) . "'] = \"" . addslashes($info) . "\";\n";  // as we output JS code we need to add slashes
-}
-?>
-
 $(document).ready(function() {
-
+	initPopoverContent('Attribute');
 	$('#AttributeDistribution').change(function() {
 		if ($('#AttributeDistribution').val() == 4) $('#SGContainer').show();
 		else $('#SGContainer').hide();
 	});
 
-	$("#AttributeType, #AttributeCategory, #Attribute, #AttributeDistribution").on('mouseover', function(e) {
-	    var $e = $(e.target);
-	    if ($e.is('option')) {
-	        $('#'+e.currentTarget.id).popover('destroy');
-	        $('#'+e.currentTarget.id).popover({
-	            trigger: 'focus',
-	            placement: 'right',
-	            container: 'body',
-	            content: formInfoValues[$e.val()],
-	        }).popover('show');
-	    }
-	});
-
-	$("input, label").on('mouseleave', function(e) {
-	    $('#'+e.currentTarget.id).popover('destroy');
-	});
-
-	$("input, label").on('mouseover', function(e) {
-		var $e = $(e.target);
-		$('#'+e.currentTarget.id).popover('destroy');
-        $('#'+e.currentTarget.id).popover({
-            trigger: 'focus',
-            placement: 'right',
-            container: 'body',
-        }).popover('show');
-
-	});
-
-	// workaround for browsers like IE and Chrome that do now have an onmouseover on the 'options' of a select.
-	// disadvangate is that user needs to click on the item to see the tooltip.
-	// no solutions exist, except to generate the select completely using html.
-	$("#AttributeType, #AttributeCategory, #Attribute, #AttributeDistribution").on('change', function(e) {
-		if (this.id === "AttributeCategory") {
-			var select = document.getElementById("AttributeCategory");
-			if (select.value === 'Attribution' || select.value === 'Targeting data') {
-				$("#warning-message").show();
-			} else {
-				$("#warning-message").hide();
-			}
-			if (select.value === 'Internal reference') {
-				$("#AttributeDistribution").val('0');
-				$('#SGContainer').hide();
-			}
+	$("#AttributeCategory").on('change', function(e) {
+		formCategoryChanged('Attribute');
+		if ($(this).val() === 'Attribution' || $(this).val() === 'Targeting data') {
+			$("#warning-message").show();
+		} else {
+			$("#warning-message").hide();
 		}
-	    var $e = $(e.target);
-        $('#'+e.currentTarget.id).popover('destroy');
-        $('#'+e.currentTarget.id).popover({
-            trigger: 'focus',
-            placement: 'right',
-            container: 'body',
-            content: formInfoValues[$e.val()],
-        }).popover('show');
+		if ($(this).val() === 'Internal reference') {
+			$("#AttributeDistribution").val('0');
+			$('#SGContainer').hide();
+		}
+	});
+	
+	$("#AttributeCategory, #AttributeType, #AttributeDistribution").change(function() {
+		initPopoverContent('Attribute');
 	});
 
 	<?php if ($ajax): ?>
