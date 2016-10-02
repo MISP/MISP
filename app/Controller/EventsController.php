@@ -1404,7 +1404,7 @@ class EventsController extends AppController {
 		// only allow form submit CSRF protection
 		if ($this->request->is('post') || $this->request->is('put')) {
 			// send out the email
-			$emailResult = $this->Event->sendAlertEmailRouter($id, $this->Auth->user());
+			$emailResult = $this->Event->sendAlertEmailRouter($id, $this->Auth->user(), $this->Event->data['Event']['publish_timestamp']);
 			if (is_bool($emailResult) && $emailResult == true) {
 				// Performs all the actions required to publish an event
 				$result = $this->Event->publishRouter($id, null, $this->Auth->user());

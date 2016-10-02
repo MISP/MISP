@@ -1444,7 +1444,7 @@ class Event extends AppModel {
 		return $attributes;
 	}
 
-	public function sendAlertEmailRouter($id, $user) {
+	public function sendAlertEmailRouter($id, $user, $oldpublish = null) {
 		if (Configure::read('MISP.block_old_event_alert') && Configure::read('MISP.block_old_event_alert_age') && is_numeric(Configure::read('MISP.block_old_event_alert_age'))) {
 			$oldest = time() - (Configure::read('MISP.block_old_event_alert_age') * 86400);
 			$event = $this->find('first', array(
@@ -1487,17 +1487,17 @@ class Event extends AppModel {
 			$process_id = CakeResque::enqueue(
 					'email',
 					'EventShell',
-					array('alertemail', $user['id'], $jobId, $id),
+					array('alertemail', $user['id'], $jobId, $id, $oldpublish),
 					true
 			);
 			$job->saveField('process_id', $process_id);
 			return true;
 		} else {
-			return ($this->sendAlertEmail($id, $user));
+			return ($this->sendAlertEmail($id, $user, $oldpublish));
 		}
 	}
 
-	public function sendAlertEmail($id, $senderUser, $processId = null) {
+	public function sendAlertEmail($id, $senderUser, $oldpublish = null, $processId = null) {
 		$event = $this->fetchEvent($senderUser, array('eventid' => $id, 'includeAllTags' => true));
 		if (empty($event)) throw new MethodNotFoundException('Invalid Event.');
 		$userConditions = array('autoalert' => 1);
@@ -1533,7 +1533,7 @@ class Event extends AppModel {
 
 		$userCount = count($users);
 		foreach ($users as $k => $user) {
-			$body = $this->__buildAlertEmailBody($event[0], $user, $sgModel);
+			$body = $this->__buildAlertEmailBody($event[0], $user, $oldpublish, $sgModel);
 			$bodyNoEnc = "A new or modified event was just published on " . Configure::read('MISP.baseurl') . "/events/view/" . $event[0]['Event']['id'];
 			$this->User->sendEmail(array('User' => $user), $body, $bodyNoEnc, $subject);
 				if ($processId) {
@@ -1548,7 +1548,7 @@ class Event extends AppModel {
 		return true;
 	}
 
-	private function __buildAlertEmailBody($event, $user, $sgModel) {
+	private function __buildAlertEmailBody($event, $user, $oldpublish, $sgModel) {
 		$owner = false;
 		if ($user['org_id'] == $event['Event']['orgc_id'] || $user['org_id'] == $event['Event']['org_id'] || $user['Role']['perm_site_admin']) $owner = true;
 		// The mail body, h() is NOT needed as we are sending plain-text mails.
@@ -1594,7 +1594,7 @@ class Event extends AppModel {
 				if ($attribute['to_ids']) $ids = ' (IDS)';
 				$strRepeatCount = $appendlen - 2 - strlen($attribute['type']);
 				$strRepeat = ($strRepeatCount > 0) ? str_repeat(' ', $strRepeatCount) : '';
-				if (isset($event['Event']['publish_timestamp']) && isset($attribute['timestamp']) && $attribute['timestamp'] > $event['Event']['publish_timestamp']) {
+				if (isset($oldpublish) && isset($attribute['timestamp']) && $attribute['timestamp'] > $oldpublish) {
 					$line = '* ' . $attribute['type'] . $strRepeat . ': ' . $attribute['value'] . $ids . " *\n";
 				} else {
 					$line = $attribute['type'] . $strRepeat . ': ' . $attribute['value'] . $ids .  "\n";
@@ -2059,7 +2059,7 @@ class Event extends AppModel {
 			if ((!empty($data['Event']['published']) && 1 == $data['Event']['published'])) {
 				// do the necessary actions to publish the event (email, upload,...)
 				if (true != Configure::read('MISP.disablerestalert')) {
-					$this->sendAlertEmailRouter($id, $user);
+					$this->sendAlertEmailRouter($id, $user, $existingEvent['Event']['publish_timestamp']);
 				}
 				$this->publish($existingEvent['Event']['id']);
 			}
