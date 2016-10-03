@@ -2498,7 +2498,9 @@ class Event extends AppModel {
 			return array('success' => 0, 'message' => 'There was an issue generating the STIX export.');
 		}
 		$stixFile->write(substr($stix_framing, 0, -1));
-		$stixFile->append("    <stix:Related_Packages>\n");
+		if ($returnType === 'xml') {
+			$stixFile->append("    <stix:Related_Packages>\n");
+		}
 		$result = array();
 		if ($jobId) {
 			$this->Job = ClassRegistry::init('Job');
