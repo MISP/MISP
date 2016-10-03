@@ -87,12 +87,13 @@ SCHEMALOC_DICT = {
 def main(args):
     if len(sys.argv) < 4:
         sys.exit("Invalid parameters")
-    namespace = [sys.argv[1], sys.argv[2]]
+    namespace = [sys.argv[1], sys.argv[2].replace(" ", "_")]
+    namespace[1] = re.sub('[\W]+', '', namespace[1])
     NS_DICT[namespace[0]]=namespace[1]
     stix.utils.idgen.set_id_namespace({namespace[0]: namespace[1]})
     stix_package = STIXPackage()
     stix_header = STIXHeader()
-    stix_header.title="Export from " + namespace[1] + " MISP"
+    stix_header.title="Export from " + sys.argv[2] + " MISP"
     stix_header.package_intents="Threat Report"
     stix_package.stix_header = stix_header
     if sys.argv[3] == 'json':
