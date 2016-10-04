@@ -137,7 +137,7 @@ sudo cp /var/www/MISP/INSTALL/apache.misp.ssl /etc/apache2/sites-available/misp-
 # For more information, visit http://httpd.apache.org/docs/2.4/upgrading.html
 
 # If a valid SSL certificate is not already created for the server, create a self-signed certificate:
-openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
+sudo openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
 -subj "/C=<Country>/ST=<State>/L=<Locality>/O=<Organization>/OU=<Organizational Unit Name>/CN=<QDN.here>/emailAddress=admin@<your.FQDN.here>" \
 -keyout /etc/ssl/private/misp.local.key -out /etc/ssl/private/misp.local.crt
 

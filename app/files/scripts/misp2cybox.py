@@ -145,12 +145,12 @@ def generateDomainIPObservable(indicator, attribute):
     domain = attribute["value"].split('|')[0]
     ip = attribute["value"].split('|')[1]
     address_object = resolveIPType(ip, attribute["type"])
-    address_object.parent.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":Address-" + attribute["uuid"]
+    address_object.parent.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":AddressObject-" + attribute["uuid"]
     address_observable=Observable(address_object)
     address_observable.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":Address-" + attribute["uuid"]
     domain_object = DomainName()
     domain_object.value = domain
-    domain_object.parent.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":DomainName-" + attribute["uuid"]
+    domain_object.parent.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":DomainNameObject-" + attribute["uuid"]
     domain_observable = Observable(domain_object)
     domain_observable.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":DomainName-" + attribute["uuid"]
     compositeObject = ObservableComposition(observables = [address_observable, domain_observable])
@@ -265,7 +265,7 @@ def resolvePatternObservable(indicator, attribute):
 # create an artifact object for the malware-sample type.
 def createArtifactObject(indicator, attribute):
     artifact = Artifact(data = attribute["data"])
-    artifact.parent.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":artifact-" + attribute["uuid"]
+    artifact.parent.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":ArtifactObject-" + attribute["uuid"]
     observable = Observable(artifact)
     observable.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":observable-artifact-" + attribute["uuid"]
     indicator.add_observable(observable)
@@ -274,11 +274,11 @@ def createArtifactObject(indicator, attribute):
 def returnAttachmentComposition(attribute):
     file_object = File()
     file_object.file_name = attribute["value"]
-    file_object.parent.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":file-" + attribute["uuid"]
+    file_object.parent.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":FileObject-" + attribute["uuid"]
     observable = Observable()
     if "data" in attribute:
         artifact = Artifact(data = attribute["data"])
-        artifact.parent.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":artifact-" + attribute["uuid"]
+        artifact.parent.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":ArtifactObject-" + attribute["uuid"]
         observable_artifact = Observable(artifact)
         observable_artifact.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":observable-artifact-" + attribute["uuid"]
         observable_file = Observable(file_object)
@@ -300,9 +300,9 @@ def generateEmailAttachmentObject(indicator, attribute):
     email = EmailMessage()
     email.attachments = Attachments()
     email.add_related(file_object, "Contains", inline=True)
-    file_object.parent.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":file-" + attribute["uuid"]
+    file_object.parent.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":FileObject-" + attribute["uuid"]
     email.attachments.append(file_object.parent.id_)
-    email.parent.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":EmailMessage-" + attribute["uuid"]
+    email.parent.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":EmailMessageObject-" + attribute["uuid"]
     observable = Observable(email)
     observable.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":observable-" + attribute["uuid"]
     indicator.observable = observable
