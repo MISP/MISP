@@ -1730,7 +1730,7 @@ function organisationViewContent(context, id) {
 	organisationViewButtonHighlight(context);
 	var action = "/organisations/landingpage/";
 	if (context == 'members') {
-		action = "/users/index/";
+		action = "/admin/users/index/searchorg:";
 	}
 	if (context == 'events') {
 		action = "/events/index/searchorg:";
