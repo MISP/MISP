@@ -210,45 +210,6 @@ class UsersController extends AppController {
 		}
 	}
 
-	public function index($id) {
-		$this->autoRender = false;
-		$this->layout = false;
-		$passedArgs = $this->passedArgs;
-		$org = $this->User->Organisation->read(null, $id);
-		if (!$this->User->Organisation->exists() || !($this->_isSiteAdmin() || $this->Auth->user('org_id') == $id)) {
-			throw new MethodNotAllowedException('Organisation not found or no authorisation to view it.');
-		}
-		$user_fields = array('id', 'email', 'gpgkey', 'certif_public', 'nids_sid');
-		$conditions = array('org_id' => $id);
-		if ($this->_isSiteAdmin() || ($this->_isAdmin() && $this->Auth->user('org_id') == $id)) {
-			$user_fields = array_merge($user_fields, array('current_login', 'termsaccepted', 'change_pw', 'authkey'));
-		}
-		if (isset($this->request->data)) {
-			if (isset($this->request->data['searchall'])) $this->request->data['all'] = $this->request->data['searchall'];
-			if (isset($this->request->data['all']) && !empty($this->request->data['all'])) {
-				$passedArgs['searchall'] = $this->request->data['all'];
-				$conditions['OR'][] = array('User.email LIKE' => '%' . $passedArgs['searchall'] . '%');
-			}
-		}
-		$this->set('passedArgs', json_encode($passedArgs));
-		$this->paginate = array(
-			'conditions' => $conditions,
-			'recursive' => -1,
-			'fields' => $user_fields,
-			'contain' => array(
-				'Role' => array(
-					'fields' => array('id', 'name', 'perm_auth', 'perm_site_admin'),
-				),
-			),
-		);
-		// add roles to the list even though it is not used for the query itself, we can reuse the user_fields array in the view to build the table
-		$user_fields = array_merge(array_slice($user_fields, 0, 2), array('role'), array_slice($user_fields, 2));
-		$this->set('user_fields', $user_fields);
-		$this->set('users', $this->paginate());
-		$this->set('org', $org['Organisation']['name']);
-		$this->render('ajax/index');
-	}
-
 	public function admin_filterUserIndex() {
 		if (!$this->_isAdmin() && !$this->_isSiteAdmin()) throw new MethodNotAllowedException();
 		$passedArgsArray = array();
