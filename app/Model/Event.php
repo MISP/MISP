@@ -2814,6 +2814,9 @@ class Event extends AppModel {
 						$temp['default_category'] = $r['categories'][0];
 					}
 					if (isset($r['data'])) $temp['data'] = $r['data'];
+					// if data_is_handled is set then MISP assumes that the sample is already zipped and encrypted
+					// in this case it will not try to do this by itself - however it also won't create additional hashes
+					if (isset($r['data_is_handled'])) $temp['data_is_handled'] = $r['data_is_handled'];
 					$resultArray[] = $temp;
 				}
 

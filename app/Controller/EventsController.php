@@ -1194,6 +1194,11 @@ class EventsController extends AppController {
 				$tmp['types']      = $a['type'];
 				$tmp['to_ids']     = $a['to_ids'];
 				$tmp['comment']    = $a['comment'];
+				if ($this->Event->Attribute->typeIsAttachment($a['type'])) {
+					$encodedFile = $this->Event->Attribute->base64EncodeAttachment($a);
+					$tmp['data'] = $encodedFile;
+					$tmp['data_is_handled'] = true;
+				}
 				$r['results'][] = $tmp;
 			}
 			$resultArray = $this->Event->handleModuleResult($r, $target_id);
@@ -2925,29 +2930,31 @@ class EventsController extends AppController {
 					if ($attribute['type'] == 'ip-src/ip-dst') {
 						$types = array('ip-src', 'ip-dst');
 					} else if ($attribute['type'] == 'malware-sample') {
-						App::uses('FileAccessTool', 'Tools');
-						$tmpdir = Configure::read('MISP.tmpdir') ? Configure::read('MISP.tmpdir') : '/tmp';
-						$tempFile = explode('|', $attribute['data']);
-						if (!$this->Event->checkFilename($tempFile[0])) {
-							throw new Exception('Invalid filename.');
-						}
-						$attribute['data'] = (new FileAccessTool())->readFromFile($tmpdir . '/' . $tempFile[0], $tempFile[1]);
-						unlink($tmpdir . '/' . $tempFile[0]);
-						$result = $this->Event->Attribute->handleMaliciousBase64($id, $attribute['value'], $attribute['data'], array('md5', 'sha1', 'sha256'), $objectType == 'ShadowAttribute' ? true : false);
-						if (!$result['success']) {
-							$failed++;
-							continue;
-						}
-						$attribute['data'] = $result['data'];
-						$shortValue = $attribute['value'];
-						$attribute['value'] = $shortValue . '|' . $result['md5'];
-						$additionalHashes = array('sha1', 'sha256');
-						foreach ($additionalHashes as $hash) {
-							$temp = $attribute;
-							$temp['type'] = 'filename|' . $hash;
-							$temp['value'] = $shortValue . '|' . $result[$hash];
-							unset($temp['data']);
-							$ontheflyattributes[] = $temp;
+						if (!isset($attribute['data_is_handled']) || !$attribute['data_is_handled']) {
+							App::uses('FileAccessTool', 'Tools');
+							$tmpdir = Configure::read('MISP.tmpdir') ? Configure::read('MISP.tmpdir') : '/tmp';
+							$tempFile = explode('|', $attribute['data']);
+							if (!$this->Event->checkFilename($tempFile[0])) {
+								throw new Exception('Invalid filename.');
+							}
+							$attribute['data'] = (new FileAccessTool())->readFromFile($tmpdir . '/' . $tempFile[0], $tempFile[1]);
+							unlink($tmpdir . '/' . $tempFile[0]);
+							$result = $this->Event->Attribute->handleMaliciousBase64($id, $attribute['value'], $attribute['data'], array('md5', 'sha1', 'sha256'), $objectType == 'ShadowAttribute' ? true : false);
+							if (!$result['success']) {
+								$failed++;
+								continue;
+							}
+							$attribute['data'] = $result['data'];
+							$shortValue = $attribute['value'];
+							$attribute['value'] = $shortValue . '|' . $result['md5'];
+							$additionalHashes = array('sha1', 'sha256');
+							foreach ($additionalHashes as $hash) {
+								$temp = $attribute;
+								$temp['type'] = 'filename|' . $hash;
+								$temp['value'] = $shortValue . '|' . $result[$hash];
+								unset($temp['data']);
+								$ontheflyattributes[] = $temp;
+							}
 						}
 						$types = array($attribute['type']);
 					} else {
@@ -3789,7 +3796,6 @@ class EventsController extends AppController {
 					$resultArray[$key]['data'] = basename($tempFile) . '|' . filesize($tempFile);
 				}
 			}
-
 			$this->set('event', array('Event' => $attribute[0]['Event']));
 			$this->set('resultArray', $resultArray);
 			$this->set('typeList', array_keys($this->Event->Attribute->typeDefinitions));
