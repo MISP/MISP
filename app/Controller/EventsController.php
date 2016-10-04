@@ -578,6 +578,11 @@ class EventsController extends AppController {
 		$this->set('analysisLevels', $this->Event->analysisLevels);
 		$this->set('distributionLevels', $this->Event->distributionLevels);
 		$this->set('shortDist', $this->Event->shortDist);
+		if ($this->request->is('ajax')) {
+			$this->autoRender = false;
+			$this->layout = false;
+			$this->render('ajax/index');
+		}
 		$this->set('ajax', $this->request->is('ajax'));
 	}
 
