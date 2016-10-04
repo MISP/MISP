@@ -8,7 +8,8 @@ class UsersController extends AppController {
 	public $components = array(
 			'Security',
 			'Email',
-			);
+			'RequestHandler'
+	);
 
 	public $paginate = array(
 			'limit' => 60,
@@ -21,6 +22,8 @@ class UsersController extends AppController {
 				'Role' => array('id', 'name', 'perm_auth')
 			)
 	);
+	
+	public $helpers = array('Js' => array('Jquery'));
 
 	public function beforeFilter() {
 		parent::beforeFilter();
@@ -198,6 +201,12 @@ class UsersController extends AppController {
 					'conditions' => array($conditions),
 			);
 			$this->set('users', $this->paginate());
+		}
+		$this->set('ajax', $this->request->is('ajax'));
+		if ($this->request->is('ajax')) {
+			$this->autoRender = false;
+			$this->layout = false;
+			$this->render('ajax/admin_index');
 		}
 	}
 
