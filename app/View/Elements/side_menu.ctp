@@ -36,6 +36,7 @@
 					<?php if ($menuItem === 'populateFromtemplate'): ?>
 							<li class="active"><a href="<?php echo $baseurl;?>/templates/populateEventFromTemplate/<?php echo $template_id . '/' . h($event['Event']['id']); ?>">Populate From Template</a></li>
 						<?php endif; ?>
+					<li id='merge'><a href="<?php echo $baseurl;?>/events/merge/<?php echo h($event['Event']['id']);?>">Merge attributes from...</a></li>
 					<?php endif; ?>
 					<?php if (($isSiteAdmin && (!isset($mayModify) || !$mayModify)) || (!isset($mayModify) || !$mayModify)): ?>
 					<li id='liproposeAttribute'><a href="<?php echo $baseurl;?>/shadow_attributes/add/<?php echo h($event['Event']['id']);?>">Propose Attribute</a></li>

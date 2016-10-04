@@ -1702,7 +1702,8 @@ function freetextImportResultsSubmit(id, count) {
 				type:$('#Attribute' + i + 'Type').val(),
 				to_ids:$('#Attribute' + i + 'To_ids')[0].checked,
 				comment:$('#Attribute' + i + 'Comment').val(),
-				data:$('#Attribute' + i + 'Data').val()
+				data:$('#Attribute' + i + 'Data').val(),
+				data_is_handled:$('#Attribute' + i + 'DataIsHandled').val()
 			}
 			attributeArray[attributeArray.length] = temp;
 		}

@@ -49,6 +49,11 @@
 						'type' => 'hidden',
 						'value' => isset($item['data']) ? h($item['data']) : false,
 				));
+				echo $this->Form->input('Attribute' . $k . 'DataIsHandled', array(
+						'label' => false,
+						'type' => 'hidden',
+						'value' => isset($item['data_is_handled']) ? h($item['data_is_handled']) : false,
+				));
 			?>
 			<td>
 				<?php
