@@ -1179,48 +1179,46 @@ class EventsController extends AppController {
 				return;
 			}
 			$this->Event->read(null, $source_id);
-			if (!$this->_isSiteAdmin()) {
-				if (!in_array($source_id, $eIds)) {
-					$this->Session->setFlash(__('You are not authorised to read the selected event.'));
-					return;
-				}
-				$r = array('results' => []);
-				foreach ($this->Event->data['Attribute'] as $a) {
-					if ($to_ids && !$a['to_ids']) {
-						continue;
-					}
-					$tmp = array();
-					$tmp['values']     = $a['value'];
-					$tmp['categories'] = $a['category'];
-					$tmp['types']      = $a['type'];
-					$tmp['to_ids']     = $a['to_ids'];
-					$tmp['comment']    = $a['comment'];
-					$r['results'][] = $tmp;
-				}
-				$resultArray = $this->Event->handleModuleResult($r, $target_id);
-				$typeCategoryMapping = array();
-				foreach ($this->Event->Attribute->categoryDefinitions as $k => $cat) {
-					foreach ($cat['types'] as $type) {
-						$typeCategoryMapping[$type][$k] = $k;
-					}
-				}
-				foreach ($resultArray as $key => $result) {
-					$options = array(
-							'conditions' => array('OR' => array('Attribute.value1' => $result['value'], 'Attribute.value2' => $result['value'])),
-							'fields' => array('Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.comment'),
-							'order' => false
-					);
-					$resultArray[$key]['related'] = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $options);
-				}
-				$this->set('event', array('Event' => array('id' => $target_id)));
-				$this->set('resultArray', $resultArray);
-				$this->set('typeList', array_keys($this->Event->Attribute->typeDefinitions));
-				$this->set('defaultCategories', $this->Event->Attribute->defaultCategories);
-				$this->set('typeCategoryMapping', $typeCategoryMapping);
-				$this->set('title', 'Merge Results');
-				$this->set('importComment', 'Merged from event ' . $source_id);
-				$this->render('resolved_attributes');
+			if (!$this->_isSiteAdmin() && !in_array($source_id, $eIds)) {
+				$this->Session->setFlash(__('You are not authorised to read the selected event.'));
+				return;
 			}
+			$r = array('results' => []);
+			foreach ($this->Event->data['Attribute'] as $a) {
+				if ($to_ids && !$a['to_ids']) {
+					continue;
+				}
+				$tmp = array();
+				$tmp['values']     = $a['value'];
+				$tmp['categories'] = $a['category'];
+				$tmp['types']      = $a['type'];
+				$tmp['to_ids']     = $a['to_ids'];
+				$tmp['comment']    = $a['comment'];
+				$r['results'][] = $tmp;
+			}
+			$resultArray = $this->Event->handleModuleResult($r, $target_id);
+			$typeCategoryMapping = array();
+			foreach ($this->Event->Attribute->categoryDefinitions as $k => $cat) {
+				foreach ($cat['types'] as $type) {
+					$typeCategoryMapping[$type][$k] = $k;
+				}
+			}
+			foreach ($resultArray as $key => $result) {
+				$options = array(
+						'conditions' => array('OR' => array('Attribute.value1' => $result['value'], 'Attribute.value2' => $result['value'])),
+						'fields' => array('Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.comment'),
+						'order' => false
+				);
+				$resultArray[$key]['related'] = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $options);
+			}
+			$this->set('event', array('Event' => array('id' => $target_id)));
+			$this->set('resultArray', $resultArray);
+			$this->set('typeList', array_keys($this->Event->Attribute->typeDefinitions));
+			$this->set('defaultCategories', $this->Event->Attribute->defaultCategories);
+			$this->set('typeCategoryMapping', $typeCategoryMapping);
+			$this->set('title', 'Merge Results');
+			$this->set('importComment', 'Merged from event ' . $source_id);
+			$this->render('resolved_attributes');
 		} else {
 			// set the target event id in the form
 			$this->request->data['Event']['target_id'] = $target_id;
