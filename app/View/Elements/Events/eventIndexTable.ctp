@@ -26,9 +26,12 @@
 		<?php if (Configure::read('MISP.tagging')): ?>
 			<th class="filter">Tags</th>
 		<?php endif; ?>
-		<th><?php echo $this->Paginator->sort('attribute_count', '#Attr.');?></th>
+		<th title="Attribute Count"><?php echo $this->Paginator->sort('attribute_count', '#Attr.');?></th>
 		<?php if (Configure::read('MISP.showCorrelationsOnIndex')):?>
-			<th><?php echo $this->Paginator->sort('correlation_count', '#Corr.');?></th>
+			<th title="Sigthing Count"><?php echo $this->Paginator->sort('correlation_count', '#Corr.');?></th>
+		<?php endif; ?>
+			<?php if (Configure::read('MISP.showProposalsOnIndex')):?>
+			<th title="Proposal Count"><?php echo $this->Paginator->sort('proposal_count', '#Prop.');?></th>
 		<?php endif; ?>
 		<?php if (Configure::read('MISP.showSightingsCountOnIndex') && Configure::read('MISP.Plugin.Sightings_enable')):?>
 			<th><?php echo $this->Paginator->sort('sighting_count', '#Sightings');?></th>
@@ -108,15 +111,20 @@
 			<?php echo $event['Event']['attribute_count']; ?>&nbsp;
 		</td>
 		<?php if (Configure::read('MISP.showCorrelationsOnIndex')):?>
-			<td class = "bold" style="width:30px;" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
+			<td class = "bold" style="width:30px;" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'" title="<?php echo (!empty($event['Event']['correlation_count']) ? h($event['Event']['correlation_count']) : '0') . ' correlation(s)';?>">
 				<?php echo !empty($event['Event']['correlation_count']) ? h($event['Event']['correlation_count']) : ''; ?>&nbsp;
 			</td>
 		<?php endif; ?>
 		<?php if (Configure::read('MISP.showSightingsCountOnIndex') && Configure::read('MISP.Plugin.Sightings_enable')):?>
-			<td class = "bold" style="width:30px;" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
+			<td class = "bold" style="width:30px;" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'" title="<?php echo (!empty($event['Event']['sightings_count']) ? h($event['Event']['sightings_count']) : '0') . ' sighting(s)';?>">
 				<?php echo !empty($event['Event']['sightings_count']) ? h($event['Event']['sightings_count']) : ''; ?>&nbsp;
 			</td>
 		<?php endif; ?>
+		<?php if (Configure::read('MISP.showProposalsOnIndex')): ?>
+			<td class = "bold" style="width:30px;" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'" title="<?php echo (!empty($event['Event']['proposals_count']) ? h($event['Event']['proposals_count']) : '0') . ' proposal(s)';?>">
+				<?php echo !empty($event['Event']['proposals_count']) ? h($event['Event']['proposals_count']) : ''; ?>&nbsp;
+			</td>
+		<?php endif;?>
 		<?php if ('true' == $isSiteAdmin): ?>
 			<td class="short" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
 				<?php echo h($event['User']['email']); ?>&nbsp;

@@ -432,7 +432,7 @@ class Event extends AppModel {
 		$eventIds = Set::extract('/Event/id', $events);
 		$this->Sighting = ClassRegistry::init('Sighting');
 		$sightings = $this->Sighting->find('all', array(
-			'fields' => array('Sighting.event_id', 'count(distinct(Sighting.event_id)) as count'),
+			'fields' => array('Sighting.event_id', 'count(distinct(Sighting.id)) as count'),
 			'conditions' => array('event_id' => $eventIds),
 			'recursive' => -1,
 			'group' => array('event_id')	
@@ -440,6 +440,21 @@ class Event extends AppModel {
 		$sightings = Hash::combine($sightings, '{n}.Sighting.event_id', '{n}.0.count');
 		foreach ($events as $key => $event) {
 			$events[$key]['Event']['sightings_count'] = (isset($sightings[$event['Event']['id']])) ? $sightings[$event['Event']['id']] : 0;
+		}
+		return $events;
+	}
+	
+	public function attachProposalsCountToEvents($user, $events) {
+		$eventIds = Set::extract('/Event/id', $events);
+		$proposals = $this->ShadowAttribute->find('all', array(
+				'fields' => array('ShadowAttribute.event_id', 'count(distinct(ShadowAttribute.id)) as count'),
+				'conditions' => array('event_id' => $eventIds),
+				'recursive' => -1,
+				'group' => array('event_id')
+		));
+		$proposals = Hash::combine($proposals, '{n}.ShadowAttribute.event_id', '{n}.0.count');
+		foreach ($events as $key => $event) {
+			$events[$key]['Event']['proposals_count'] = (isset($proposals[$event['Event']['id']])) ? $proposals[$event['Event']['id']] : 0;
 		}
 		return $events;
 	}

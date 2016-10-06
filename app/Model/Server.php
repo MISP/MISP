@@ -572,6 +572,15 @@ class Server extends AppModel {
 							'type' => 'boolean',
 							'null' => true
 					),
+					'showProposalsCountOnIndex' => array(
+							'level' => 1,
+							'description' => 'When enabled, the number of proposals for the events are shown on the index.',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+							'null' => true
+					),
 					'showSightingsCountOnIndex' => array(
 							'level' => 1,
 							'description' => 'When enabled, the aggregate number of attribute sightings within the event becomes visible to the currently logged in user on the event index UI.',

@@ -256,7 +256,7 @@ class EventsController extends AppController {
 		// list the events
 		$passedArgsArray = array();
 		$urlparams = "";
-		$overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'Datefrom', 'Dateuntil', 'org', 'eventinfo', 'tag', 'distribution', 'analysis', 'threatlevel', 'email');
+		$overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'Datefrom', 'Dateuntil', 'org', 'eventinfo', 'tag', 'distribution', 'analysis', 'threatlevel', 'email', 'hasproposal');
 		$passedArgs = $this->passedArgs;
 		if (isset($this->request->data)) {
 			if (isset($this->request->data['request'])) $this->request->data = $this->request->data['request'];
@@ -284,6 +284,12 @@ class EventsController extends AppController {
 					case 'published' :
 						if ($v == 2) continue 2;
 						$this->paginate['conditions']['AND'][] = array('Event.' . substr($k, 6) . ' =' => $v);
+						break;
+					case 'hasproposal' :
+						if ($v == 2) continue 2;
+						$proposalQuery = 'exists (select id, deleted from shadow_attributes where shadow_attributes.event_id = Event.id and shadow_attributes.deleted = 0)';
+						if ($v == 0) $proposalQuery = 'not ' . $proposalQuery;
+						$this->paginate['conditions']['AND'][] = $proposalQuery;
 						break;
 					case 'eventid':
 						if ($v == "") continue 2;
@@ -554,6 +560,7 @@ class EventsController extends AppController {
 			}
 			if (Configure::read('MISP.showCorrelationsOnIndex')) $events = $this->Event->attachCorrelationCountToEvents($this->Auth->user(), $events);
 			if (Configure::read('MISP.showSightingsCountOnIndex') && Configure::read('MISP.Plugin.Sightings_enable')) $events = $this->Event->attachSightingsCountToEvents($this->Auth->user(), $events);
+			if (Configure::read('MISP.showProposalsCountOnIndex')) $events = $this->Event->attachProposalsCountToEvents($this->Auth->user(), $events);
 			$this->set('events', $events);
 		}
 
@@ -588,7 +595,6 @@ class EventsController extends AppController {
 
 	public function filterEventIndex() {
 		$passedArgsArray = array();
-
 		$filtering = array(
 			'published' => 2,
 			'org' => array('OR' => array(), 'NOT' => array()),
@@ -600,6 +606,7 @@ class EventsController extends AppController {
 			'distribution' => array('OR' => array(), 'NOT' => array()),
 			'analysis' => array('OR' => array(), 'NOT' => array()),
 			'attribute' => array('OR' => array(), 'NOT' => array()),
+			'hasproposal' => 2,
 		);
 
 		if ($this->_isSiteAdmin()) $filtering['email'] = array('OR' => array(), 'NOT' => array());
@@ -609,7 +616,8 @@ class EventsController extends AppController {
 				$searchTerm = substr($k, 6);
 				switch ($searchTerm) {
 					case 'published' :
-						$filtering['published'] = $v;
+					case 'hasproposal' :
+						$filtering[$searchTerm] = $v;
 						break;
 					case 'Datefrom' :
 						$filtering['date']['from'] = $v;
@@ -653,7 +661,7 @@ class EventsController extends AppController {
 			$eIds = $this->Event->fetchEventIds($this->Auth->user(), false, false, false, true);
 			$conditions['AND'][] = array('Event.id' => $eIds);
 		}
-		$rules = array('published', 'eventid', 'tag', 'date', 'eventinfo', 'threatlevel', 'distribution', 'analysis', 'attribute');
+		$rules = array('published', 'eventid', 'tag', 'date', 'eventinfo', 'threatlevel', 'distribution', 'analysis', 'attribute', 'hasproposal');
 		if ($this->_isSiteAdmin()) $rules[] = 'email';
 		if (Configure::read('MISP.showorg')) {
 			$orgs = $this->Event->find('list', array(
