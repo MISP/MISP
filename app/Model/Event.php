@@ -1364,6 +1364,7 @@ class Event extends AppModel {
 			// remove proposals to attributes that we cannot see
 			// if the shadow attribute wasn't moved within an attribute before, this is the case
 			if (isset($event['ShadowAttribute'])) {
+				$event['ShadowAttribute'] = array_values($event['ShadowAttribute']);
 				foreach ($event['ShadowAttribute'] as $k => &$sa) {
 					if (!empty($sa['old_id'])) unset($event['ShadowAttribute'][$k]);
 				}
