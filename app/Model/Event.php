@@ -448,7 +448,7 @@ class Event extends AppModel {
 		$eventIds = Set::extract('/Event/id', $events);
 		$proposals = $this->ShadowAttribute->find('all', array(
 				'fields' => array('ShadowAttribute.event_id', 'count(distinct(ShadowAttribute.id)) as count'),
-				'conditions' => array('event_id' => $eventIds),
+				'conditions' => array('event_id' => $eventIds, 'deleted' => 0),
 				'recursive' => -1,
 				'group' => array('event_id')
 		));
