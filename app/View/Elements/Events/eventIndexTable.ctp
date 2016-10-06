@@ -33,7 +33,7 @@
 			<?php if (Configure::read('MISP.showProposalsOnIndex')):?>
 			<th title="Proposal Count"><?php echo $this->Paginator->sort('proposal_count', '#Prop.');?></th>
 		<?php endif; ?>
-		<?php if (Configure::read('MISP.showSightingsCountOnIndex') && Configure::read('MISP.Plugin.Sightings_enable')):?>
+		<?php if (Configure::read('MISP.showSightingsCountOnIndex') && Configure::read('Plugin.Sightings_enable')):?>
 			<th><?php echo $this->Paginator->sort('sighting_count', '#Sightings');?></th>
 		<?php endif; ?>
 		<?php if ($isSiteAdmin): ?>
@@ -115,7 +115,7 @@
 				<?php echo !empty($event['Event']['correlation_count']) ? h($event['Event']['correlation_count']) : ''; ?>&nbsp;
 			</td>
 		<?php endif; ?>
-		<?php if (Configure::read('MISP.showSightingsCountOnIndex') && Configure::read('MISP.Plugin.Sightings_enable')):?>
+		<?php if (Configure::read('MISP.showSightingsCountOnIndex') && Configure::read('Plugin.Sightings_enable')):?>
 			<td class = "bold" style="width:30px;" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'" title="<?php echo (!empty($event['Event']['sightings_count']) ? h($event['Event']['sightings_count']) : '0') . ' sighting(s)';?>">
 				<?php echo !empty($event['Event']['sightings_count']) ? h($event['Event']['sightings_count']) : ''; ?>&nbsp;
 			</td>
