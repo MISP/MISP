@@ -287,7 +287,7 @@ class EventsController extends AppController {
 						break;
 					case 'hasproposal' :
 						if ($v == 2) continue 2;
-						$proposalQuery = 'exists (select id, deleted from shadow_attributes where shadow_attributes.event_id = Event.id and shadow_attributes.deleted = 0)';
+						$proposalQuery = "exists (select id, deleted from shadow_attributes where shadow_attributes.event_id = Event.id and shadow_attributes.deleted = 0)";
 						if ($v == 0) $proposalQuery = 'not ' . $proposalQuery;
 						$this->paginate['conditions']['AND'][] = $proposalQuery;
 						break;
