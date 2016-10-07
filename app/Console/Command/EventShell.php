@@ -357,8 +357,9 @@ class EventShell extends AppShell
 		$processId = $this->args[1];
 		$job = $this->Job->read(null, $processId);
 		$eventId = $this->args[2];
+		$oldpublish = $this->args[3];
 		$user = $this->User->getAuthUser($userId);
-		$result = $this->Event->sendAlertEmail($eventId, $user, $processId);
+		$result = $this->Event->sendAlertEmail($eventId, $user, $oldpublish, $processId);
 		$job['Job']['progress'] = 100;
 		$job['Job']['message'] = 'Emails sent.';
 		//$job['Job']['date_modified'] = date("y-m-d H:i:s");

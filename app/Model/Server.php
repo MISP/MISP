@@ -267,11 +267,27 @@ class Server extends AppModel {
 					),
 					'email_subject_TLP_string' => array(
 							'level' => 2,
-							'description' => 'This is the TLP string in alert e-mail sent when an event is published.',
+							'description' => 'This is the TLP string for e-mails when email_subject_tag is not found.',
 							'value' => 'TLP Amber',
 							'errorMessage' => '',
 							'test' => 'testForEmpty',
 							'type' => 'string',
+						),
+					'email_subject_tag' => array(
+							'level' => 2,
+							'description' => "If this tag is set on an event it's value will be sent in the E-mail subject. If the tag is not set the email_subject_TLP_string will be used.",
+							'value' => 'tlp',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+						),
+					'email_subject_include_tag_name' => array(
+							'level' => 2,
+							'description' => 'Include in name of the email_subject_tag in the subject. When false only the tag value is used.',
+							'value' => true,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
 						),
 					'taxii_sync' => array(
 							'level' => 3,
@@ -550,6 +566,15 @@ class Server extends AppModel {
 					'showCorrelationsOnIndex' => array(
 							'level' => 1,
 							'description' => 'When enabled, the number of correlations visible to the currently logged in user will be visible on the event index UI. This comes at a performance cost but can be very useful to see correlating events at a glance.',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+							'null' => true
+					),
+					'showProposalsCountOnIndex' => array(
+							'level' => 1,
+							'description' => 'When enabled, the number of proposals for the events are shown on the index.',
 							'value' => false,
 							'errorMessage' => '',
 							'test' => 'testBool',

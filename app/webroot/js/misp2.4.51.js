@@ -1702,7 +1702,8 @@ function freetextImportResultsSubmit(id, count) {
 				type:$('#Attribute' + i + 'Type').val(),
 				to_ids:$('#Attribute' + i + 'To_ids')[0].checked,
 				comment:$('#Attribute' + i + 'Comment').val(),
-				data:$('#Attribute' + i + 'Data').val()
+				data:$('#Attribute' + i + 'Data').val(),
+				data_is_handled:$('#Attribute' + i + 'DataIsHandled').val()
 			}
 			attributeArray[attributeArray.length] = temp;
 		}
@@ -1730,7 +1731,7 @@ function organisationViewContent(context, id) {
 	organisationViewButtonHighlight(context);
 	var action = "/organisations/landingpage/";
 	if (context == 'members') {
-		action = "/users/index/";
+		action = "/admin/users/index/searchorg:";
 	}
 	if (context == 'events') {
 		action = "/events/index/searchorg:";
@@ -2491,6 +2492,44 @@ function requestAPIAccess() {
 			showMessage('fail', 'Something went wrong - could not request API access.');
 		}
 	});
+}
+
+function initPopoverContent(context) {
+	for (var property in formInfoFields) {
+		if (formInfoFields.hasOwnProperty(property)) {
+			$('#' + property + 'InfoPopover').popover("destroy").popover({
+				placement: 'right',
+				html: 'true',
+				trigger: 'hover',
+				content: getFormInfoContent(property, '#' + context + formInfoFields[property])
+			});
+		}
+	}
+}
+
+function getFormInfoContent(property, field) {
+	var content = window[property + 'FormInfoValues'][$(field).val()];
+	if (content === undefined || content === null) {
+		return 'N/A';
+	}
+	return content;
+}
+
+function formCategoryChanged(context) {
+	var options = $('#' + context + 'Type').prop('options');
+	$('option', $('#' + context + 'Type')).remove();
+	$.each(category_type_mapping[$('#' + context + 'Category').val()], function(val, text) {
+		options[options.length] = new Option(text, val);
+	});
+	// enable the form element
+	$('#' + context + 'Type').prop('disabled', false);
+}
+
+function malwareCheckboxSetter(context) {
+	idDiv = "#" + context + "Category" +'Div';
+	var value = $("#" + context + "Category").val();  // get the selected value
+	// set the malware checkbox if the category is in the zip types
+	$("#" + context + "Malware").prop('checked', formZipTypeValues[value] == "true");
 }
 
 $('.servers_default_role_checkbox').click(function() {

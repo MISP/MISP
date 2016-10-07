@@ -256,7 +256,7 @@ class EventsController extends AppController {
 		// list the events
 		$passedArgsArray = array();
 		$urlparams = "";
-		$overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'Datefrom', 'Dateuntil', 'org', 'eventinfo', 'tag', 'distribution', 'analysis', 'threatlevel', 'email');
+		$overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'Datefrom', 'Dateuntil', 'org', 'eventinfo', 'tag', 'distribution', 'analysis', 'threatlevel', 'email', 'hasproposal');
 		$passedArgs = $this->passedArgs;
 		if (isset($this->request->data)) {
 			if (isset($this->request->data['request'])) $this->request->data = $this->request->data['request'];
@@ -284,6 +284,12 @@ class EventsController extends AppController {
 					case 'published' :
 						if ($v == 2) continue 2;
 						$this->paginate['conditions']['AND'][] = array('Event.' . substr($k, 6) . ' =' => $v);
+						break;
+					case 'hasproposal' :
+						if ($v == 2) continue 2;
+						$proposalQuery = "exists (select id, deleted from shadow_attributes where shadow_attributes.event_id = Event.id and shadow_attributes.deleted = 0)";
+						if ($v == 0) $proposalQuery = 'not ' . $proposalQuery;
+						$this->paginate['conditions']['AND'][] = $proposalQuery;
 						break;
 					case 'eventid':
 						if ($v == "") continue 2;
@@ -554,6 +560,7 @@ class EventsController extends AppController {
 			}
 			if (Configure::read('MISP.showCorrelationsOnIndex')) $events = $this->Event->attachCorrelationCountToEvents($this->Auth->user(), $events);
 			if (Configure::read('MISP.showSightingsCountOnIndex') && Configure::read('MISP.Plugin.Sightings_enable')) $events = $this->Event->attachSightingsCountToEvents($this->Auth->user(), $events);
+			if (Configure::read('MISP.showProposalsCountOnIndex')) $events = $this->Event->attachProposalsCountToEvents($this->Auth->user(), $events);
 			$this->set('events', $events);
 		}
 
@@ -578,12 +585,16 @@ class EventsController extends AppController {
 		$this->set('analysisLevels', $this->Event->analysisLevels);
 		$this->set('distributionLevels', $this->Event->distributionLevels);
 		$this->set('shortDist', $this->Event->shortDist);
+		if ($this->request->is('ajax')) {
+			$this->autoRender = false;
+			$this->layout = false;
+			$this->render('ajax/index');
+		}
 		$this->set('ajax', $this->request->is('ajax'));
 	}
 
 	public function filterEventIndex() {
 		$passedArgsArray = array();
-
 		$filtering = array(
 			'published' => 2,
 			'org' => array('OR' => array(), 'NOT' => array()),
@@ -595,6 +606,7 @@ class EventsController extends AppController {
 			'distribution' => array('OR' => array(), 'NOT' => array()),
 			'analysis' => array('OR' => array(), 'NOT' => array()),
 			'attribute' => array('OR' => array(), 'NOT' => array()),
+			'hasproposal' => 2,
 		);
 
 		if ($this->_isSiteAdmin()) $filtering['email'] = array('OR' => array(), 'NOT' => array());
@@ -604,7 +616,8 @@ class EventsController extends AppController {
 				$searchTerm = substr($k, 6);
 				switch ($searchTerm) {
 					case 'published' :
-						$filtering['published'] = $v;
+					case 'hasproposal' :
+						$filtering[$searchTerm] = $v;
 						break;
 					case 'Datefrom' :
 						$filtering['date']['from'] = $v;
@@ -648,7 +661,7 @@ class EventsController extends AppController {
 			$eIds = $this->Event->fetchEventIds($this->Auth->user(), false, false, false, true);
 			$conditions['AND'][] = array('Event.id' => $eIds);
 		}
-		$rules = array('published', 'eventid', 'tag', 'date', 'eventinfo', 'threatlevel', 'distribution', 'analysis', 'attribute');
+		$rules = array('published', 'eventid', 'tag', 'date', 'eventinfo', 'threatlevel', 'distribution', 'analysis', 'attribute', 'hasproposal');
 		if ($this->_isSiteAdmin()) $rules[] = 'email';
 		if (Configure::read('MISP.showorg')) {
 			$orgs = $this->Event->find('list', array(
@@ -1079,28 +1092,32 @@ class EventsController extends AppController {
 		$distributions = $this->_arrayToValuesIndexArray($distributions);
 		$this->set('distributions', $distributions);
 		// tooltip for distribution
-		$this->set('distributionDescriptions', $this->Event->distributionDescriptions);
+		$info = array();
 		$distributionLevels = $this->Event->distributionLevels;
 		if (empty($sgs)) unset($distributionLevels[4]);
 		$this->set('distributionLevels', $distributionLevels);
-
+		foreach ($distributionLevels as $key => $value) {
+			$info['distribution'][$key] = array('key' => $value, 'desc' => $this->Event->distributionDescriptions[$key]['formdesc']);
+		}
+		
 		// combobox for risks
 		$threat_levels = $this->Event->ThreatLevel->find('all');
 		$this->set('threatLevels', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.name'));
-		$this->set('riskDescriptions', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.form_description'));
-
+		foreach ($threat_levels as $key => $threat_level) {
+			$info['threat_level'][$threat_level['ThreatLevel']['id']] = array('key' => $threat_level['ThreatLevel']['name'], 'desc' => $threat_level['ThreatLevel']['form_description']);
+		}
+		
 		// combobox for analysis
-		$analysiss = $this->Event->validate['analysis']['rule'][1];
-		$analysiss = $this->_arrayToValuesIndexArray($analysiss);
 		$this->set('sharingGroups', $sgs);
-		$this->set('analysiss',$analysiss);
 		// tooltip for analysis
+		foreach ($this->Event->analysisLevels as $key => $value) {
+			$info['analysis'][$key] = array('key' => $value, 'desc' => $this->Event->analysisDescriptions[$key]['formdesc']);
+		}
+		$this->set('info', $info);
 		$this->set('analysisDescriptions', $this->Event->analysisDescriptions);
 		$this->set('analysisLevels', $this->Event->analysisLevels);
-
-		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 	}
-
+	
 	public function addIOC($id) {
 		$this->Event->recursive = -1;
 		$this->Event->read(null, $id);
@@ -1155,6 +1172,78 @@ class EventsController extends AppController {
 			}
 			$this->set('results', $results);
 			$this->render('add_misp_export_result');
+		}
+	}
+
+	public function merge($target_id = null) {
+		$this->Event->id = $target_id;
+		$eIds = $this->Event->fetchEventIds($this->Auth->user(), false, false, false, true);
+		// check if event exists and is readable for the current user
+		if (!$this->Event->exists() || !in_array($target_id, $eIds)) {
+			throw new NotFoundException(__('Invalid event'));
+		}
+		$this->Event->read(null, $target_id);
+		// check if private and user not authorised to edit
+		if (!$this->_isSiteAdmin() && ($this->Event->data['Event']['orgc_id'] != $this->_checkOrg() || !($this->userRole['perm_modify']))) {
+			$this->Session->setFlash(__('You are not authorised to do that. Please consider using the \'propose attribute\' feature.'));
+			$this->redirect(array('action' => 'view', $target_id));
+		}
+		if ($this->request->is('post')) {
+			$source_id = $this->request->data['Event']['source_id'];
+			$to_ids = $this->request->data['Event']['to_ids'];
+			if (!is_numeric($source_id)) {
+				$this->Session->setFlash(__('Invalid event ID entered.'));
+				return;
+			}
+			$this->Event->read(null, $source_id);
+			if (!$this->_isSiteAdmin() && !in_array($source_id, $eIds)) {
+				$this->Session->setFlash(__('You are not authorised to read the selected event.'));
+				return;
+			}
+			$r = array('results' => []);
+			foreach ($this->Event->data['Attribute'] as $a) {
+				if ($to_ids && !$a['to_ids']) {
+					continue;
+				}
+				$tmp = array();
+				$tmp['values']     = $a['value'];
+				$tmp['categories'] = $a['category'];
+				$tmp['types']      = $a['type'];
+				$tmp['to_ids']     = $a['to_ids'];
+				$tmp['comment']    = $a['comment'];
+				if ($this->Event->Attribute->typeIsAttachment($a['type'])) {
+					$encodedFile = $this->Event->Attribute->base64EncodeAttachment($a);
+					$tmp['data'] = $encodedFile;
+					$tmp['data_is_handled'] = true;
+				}
+				$r['results'][] = $tmp;
+			}
+			$resultArray = $this->Event->handleModuleResult($r, $target_id);
+			$typeCategoryMapping = array();
+			foreach ($this->Event->Attribute->categoryDefinitions as $k => $cat) {
+				foreach ($cat['types'] as $type) {
+					$typeCategoryMapping[$type][$k] = $k;
+				}
+			}
+			foreach ($resultArray as $key => $result) {
+				$options = array(
+						'conditions' => array('OR' => array('Attribute.value1' => $result['value'], 'Attribute.value2' => $result['value'])),
+						'fields' => array('Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.comment'),
+						'order' => false
+				);
+				$resultArray[$key]['related'] = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $options);
+			}
+			$this->set('event', array('Event' => array('id' => $target_id)));
+			$this->set('resultArray', $resultArray);
+			$this->set('typeList', array_keys($this->Event->Attribute->typeDefinitions));
+			$this->set('defaultCategories', $this->Event->Attribute->defaultCategories);
+			$this->set('typeCategoryMapping', $typeCategoryMapping);
+			$this->set('title', 'Merge Results');
+			$this->set('importComment', 'Merged from event ' . $source_id);
+			$this->render('resolved_attributes');
+		} else {
+			// set the target event id in the form
+			$this->request->data['Event']['target_id'] = $target_id;
 		}
 	}
 
@@ -1241,31 +1330,35 @@ class EventsController extends AppController {
 		$distributions = $this->_arrayToValuesIndexArray($distributions);
 		$this->set('distributions', $distributions);
 
-		// tooltip for distribution
-		$this->set('distributionDescriptions', $this->Event->distributionDescriptions);
-
 		// even if the SG is not local, we still want the option to select the currently assigned SG
 		$sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name',  1);
 		$this->set('sharingGroups', $sgs);
 
+		// tooltip for distribution
+		$info = array();
 		$distributionLevels = $this->Event->distributionLevels;
 		if (empty($sgs)) unset($distributionLevels[4]);
 		$this->set('distributionLevels', $distributionLevels);
-
-		// combobox for types
+		foreach ($distributionLevels as $key => $value) {
+			$info['distribution'][$key] = array('key' => $value, 'desc' => $this->Event->distributionDescriptions[$key]['formdesc']);
+		}
+		
+		// combobox for risks
 		$threat_levels = $this->Event->ThreatLevel->find('all');
 		$this->set('threatLevels', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.name'));
-		$this->set('riskDescriptions', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.form_description'));
+		foreach ($threat_levels as $key => $threat_level) {
+			$info['threat_level'][$threat_level['ThreatLevel']['id']] = array('key' => $threat_level['ThreatLevel']['name'], 'desc' => $threat_level['ThreatLevel']['form_description']);
+		}
 
 		// combobox for analysis
-		$analysiss = $this->Event->validate['analysis']['rule'][1];
-		$analysiss = $this->_arrayToValuesIndexArray($analysiss);
-		$this->set('analysiss',$analysiss);
-
+		$this->set('sharingGroups', $sgs);
 		// tooltip for analysis
-		$this->set('analysisDescriptions', $this->Event->analysisDescriptions);
+		foreach ($this->Event->analysisLevels as $key => $value) {
+			$info['analysis'][$key] = array('key' => $value, 'desc' => $this->Event->analysisDescriptions[$key]['formdesc']);
+		}
 		$this->set('analysisLevels', $this->Event->analysisLevels);
 
+		$this->set('info', $info);
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 		$this->set('event', $this->Event->data);
 	}
@@ -1396,7 +1489,7 @@ class EventsController extends AppController {
 		// only allow form submit CSRF protection
 		if ($this->request->is('post') || $this->request->is('put')) {
 			// send out the email
-			$emailResult = $this->Event->sendAlertEmailRouter($id, $this->Auth->user());
+			$emailResult = $this->Event->sendAlertEmailRouter($id, $this->Auth->user(), $this->Event->data['Event']['publish_timestamp']);
 			if (is_bool($emailResult) && $emailResult == true) {
 				// Performs all the actions required to publish an event
 				$result = $this->Event->publishRouter($id, null, $this->Auth->user());
@@ -2858,29 +2951,31 @@ class EventsController extends AppController {
 					if ($attribute['type'] == 'ip-src/ip-dst') {
 						$types = array('ip-src', 'ip-dst');
 					} else if ($attribute['type'] == 'malware-sample') {
-						App::uses('FileAccessTool', 'Tools');
-						$tmpdir = Configure::read('MISP.tmpdir') ? Configure::read('MISP.tmpdir') : '/tmp';
-						$tempFile = explode('|', $attribute['data']);
-						if (!$this->Event->checkFilename($tempFile[0])) {
-							throw new Exception('Invalid filename.');
-						}
-						$attribute['data'] = (new FileAccessTool())->readFromFile($tmpdir . '/' . $tempFile[0], $tempFile[1]);
-						unlink($tmpdir . '/' . $tempFile[0]);
-						$result = $this->Event->Attribute->handleMaliciousBase64($id, $attribute['value'], $attribute['data'], array('md5', 'sha1', 'sha256'), $objectType == 'ShadowAttribute' ? true : false);
-						if (!$result['success']) {
-							$failed++;
-							continue;
-						}
-						$attribute['data'] = $result['data'];
-						$shortValue = $attribute['value'];
-						$attribute['value'] = $shortValue . '|' . $result['md5'];
-						$additionalHashes = array('sha1', 'sha256');
-						foreach ($additionalHashes as $hash) {
-							$temp = $attribute;
-							$temp['type'] = 'filename|' . $hash;
-							$temp['value'] = $shortValue . '|' . $result[$hash];
-							unset($temp['data']);
-							$ontheflyattributes[] = $temp;
+						if (!isset($attribute['data_is_handled']) || !$attribute['data_is_handled']) {
+							App::uses('FileAccessTool', 'Tools');
+							$tmpdir = Configure::read('MISP.tmpdir') ? Configure::read('MISP.tmpdir') : '/tmp';
+							$tempFile = explode('|', $attribute['data']);
+							if (!$this->Event->checkFilename($tempFile[0])) {
+								throw new Exception('Invalid filename.');
+							}
+							$attribute['data'] = (new FileAccessTool())->readFromFile($tmpdir . '/' . $tempFile[0], $tempFile[1]);
+							unlink($tmpdir . '/' . $tempFile[0]);
+							$result = $this->Event->Attribute->handleMaliciousBase64($id, $attribute['value'], $attribute['data'], array('md5', 'sha1', 'sha256'), $objectType == 'ShadowAttribute' ? true : false);
+							if (!$result['success']) {
+								$failed++;
+								continue;
+							}
+							$attribute['data'] = $result['data'];
+							$shortValue = $attribute['value'];
+							$attribute['value'] = $shortValue . '|' . $result['md5'];
+							$additionalHashes = array('sha1', 'sha256');
+							foreach ($additionalHashes as $hash) {
+								$temp = $attribute;
+								$temp['type'] = 'filename|' . $hash;
+								$temp['value'] = $shortValue . '|' . $result[$hash];
+								unset($temp['data']);
+								$ontheflyattributes[] = $temp;
+							}
 						}
 						$types = array($attribute['type']);
 					} else {
@@ -3722,7 +3817,6 @@ class EventsController extends AppController {
 					$resultArray[$key]['data'] = basename($tempFile) . '|' . filesize($tempFile);
 				}
 			}
-
 			$this->set('event', array('Event' => $attribute[0]['Event']));
 			$this->set('resultArray', $resultArray);
 			$this->set('typeList', array_keys($this->Event->Attribute->typeDefinitions));

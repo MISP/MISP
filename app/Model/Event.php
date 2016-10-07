@@ -31,15 +31,15 @@ class Event extends AppModel {
 	);
 
 	public $analysisDescriptions = array(
-		0 => array('desc' => '*Initial* means the event has just been created', 'formdesc' => 'Creation started'),
-		1 => array('desc' => '*Ongoing* means that the event is being populated', 'formdesc' => 'Creation ongoing'),
-		2 => array('desc' => '*Complete* means that the event\'s creation is complete', 'formdesc' => 'Creation complete')
+		0 => array('desc' => '*Initial* means the event has just been created', 'formdesc' => 'Event has just been created and is in an initial state'),
+		1 => array('desc' => '*Ongoing* means that the event is being populated', 'formdesc' => 'The analysis is still ongoing'),
+		2 => array('desc' => '*Complete* means that the event\'s creation is complete', 'formdesc' => 'The event creator considers the analysis complete')
 	);
 
 	public $distributionDescriptions = array(
 		0 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "This setting will only allow members of your organisation on this server to see it."),
-		1 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "Users that are part of your MISP community will be able to see the event. This includes your own organisation, organisations on this MISP server and organisations running MISP servers that synchronise with this server. Any other organisations connected to such linked servers will be restricted from seeing the event. Use this option if you are on the central hub of this community."), // former Community
-		2 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "Users that are part of your MISP community will be able to see the event. This includes all organisations on this MISP server, all organisations on MISP servers synchronising with this server and the hosting organisations of servers that connect to those afore mentioned servers (so basically any server that is 2 hops away from this one). Any other organisations connected to linked servers that are 2 hops away from this will be restricted from seeing the event. Use this option if this server isn't the central MISP hub of the community but is connected to it."),
+		1 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "Organisations that are part of this MISP community will be able to see the event."),
+		2 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "Organisations that are either part of this MISP community or part of a directly connected MISP community will be able to see the event."),
 		3 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "This will share the event with all MISP communities, allowing the event to be freely propagated from one server to the next."),
 		4 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "This distribution of this event will be handled by the selected sharing group."),
 
@@ -432,7 +432,7 @@ class Event extends AppModel {
 		$eventIds = Set::extract('/Event/id', $events);
 		$this->Sighting = ClassRegistry::init('Sighting');
 		$sightings = $this->Sighting->find('all', array(
-			'fields' => array('Sighting.event_id', 'count(distinct(Sighting.event_id)) as count'),
+			'fields' => array('Sighting.event_id', 'count(distinct(Sighting.id)) as count'),
 			'conditions' => array('event_id' => $eventIds),
 			'recursive' => -1,
 			'group' => array('event_id')	
@@ -440,6 +440,21 @@ class Event extends AppModel {
 		$sightings = Hash::combine($sightings, '{n}.Sighting.event_id', '{n}.0.count');
 		foreach ($events as $key => $event) {
 			$events[$key]['Event']['sightings_count'] = (isset($sightings[$event['Event']['id']])) ? $sightings[$event['Event']['id']] : 0;
+		}
+		return $events;
+	}
+	
+	public function attachProposalsCountToEvents($user, $events) {
+		$eventIds = Set::extract('/Event/id', $events);
+		$proposals = $this->ShadowAttribute->find('all', array(
+				'fields' => array('ShadowAttribute.event_id', 'count(distinct(ShadowAttribute.id)) as count'),
+				'conditions' => array('event_id' => $eventIds, 'deleted' => 0),
+				'recursive' => -1,
+				'group' => array('event_id')
+		));
+		$proposals = Hash::combine($proposals, '{n}.ShadowAttribute.event_id', '{n}.0.count');
+		foreach ($events as $key => $event) {
+			$events[$key]['Event']['proposals_count'] = (isset($proposals[$event['Event']['id']])) ? $proposals[$event['Event']['id']] : 0;
 		}
 		return $events;
 	}
@@ -1349,6 +1364,7 @@ class Event extends AppModel {
 			// remove proposals to attributes that we cannot see
 			// if the shadow attribute wasn't moved within an attribute before, this is the case
 			if (isset($event['ShadowAttribute'])) {
+				$event['ShadowAttribute'] = array_values($event['ShadowAttribute']);
 				foreach ($event['ShadowAttribute'] as $k => &$sa) {
 					if (!empty($sa['old_id'])) unset($event['ShadowAttribute'][$k]);
 				}
@@ -1444,7 +1460,7 @@ class Event extends AppModel {
 		return $attributes;
 	}
 
-	public function sendAlertEmailRouter($id, $user) {
+	public function sendAlertEmailRouter($id, $user, $oldpublish = null) {
 		if (Configure::read('MISP.block_old_event_alert') && Configure::read('MISP.block_old_event_alert_age') && is_numeric(Configure::read('MISP.block_old_event_alert_age'))) {
 			$oldest = time() - (Configure::read('MISP.block_old_event_alert_age') * 86400);
 			$event = $this->find('first', array(
@@ -1487,17 +1503,17 @@ class Event extends AppModel {
 			$process_id = CakeResque::enqueue(
 					'email',
 					'EventShell',
-					array('alertemail', $user['id'], $jobId, $id),
+					array('alertemail', $user['id'], $jobId, $id, $oldpublish),
 					true
 			);
 			$job->saveField('process_id', $process_id);
 			return true;
 		} else {
-			return ($this->sendAlertEmail($id, $user));
+			return ($this->sendAlertEmail($id, $user, $oldpublish));
 		}
 	}
 
-	public function sendAlertEmail($id, $senderUser, $processId = null) {
+	public function sendAlertEmail($id, $senderUser, $oldpublish = null, $processId = null) {
 		$event = $this->fetchEvent($senderUser, array('eventid' => $id, 'includeAllTags' => true));
 		if (empty($event)) throw new MethodNotFoundException('Invalid Event.');
 		$userConditions = array('autoalert' => 1);
@@ -1521,8 +1537,21 @@ class Event extends AppModel {
 		} else {
 			$subject = '';
 		}
-		$tplColorString = !empty(Configure::read('MISP.email_subject_TLP_string')) ? Configure::read('MISP.email_subject_TLP_string') : "TLP Amber";
-		$subject = "[" . Configure::read('MISP.org') . " MISP] Event " . $id . " - " . $subject . $event[0]['ThreatLevel']['name'] . " - ".$tplColorString;
+		$subjMarkingString = !empty(Configure::read('MISP.email_subject_TLP_string')) ? Configure::read('MISP.email_subject_TLP_string') : "TLP Amber";
+		$subjTag = !empty(Configure::read('MISP.email_subject_tag')) ? Configure::read('MISP.email_subject_tag') : "tlp";
+		$tagLen = strlen($subjTag);
+		foreach ($event[0]['EventTag'] as $k => $tag) {
+			$tagName=$tag['Tag']['name'];
+			if(strncasecmp($subjTag, $tagName, $tagLen) == 0 && strlen($tagName) > $tagLen && ($tagName[$tagLen] == ':' || $tagName[$tagLen] == '=')) {
+				if(Configure::read('MISP.email_subject_include_tag_name') === false) {
+					$subjMarkingString = trim(substr($tagName, $tagLen+1), '"');
+				} else {
+					$subjMarkingString = $tagName;
+				}
+				break;
+			}
+		}
+		$subject = "[" . Configure::read('MISP.org') . " MISP] Event " . $id . " - " . $subject . $event[0]['ThreatLevel']['name'] . " - ".$subjMarkingString;
 
 		// Initialise the Job class if we have a background process ID
 		// This will keep updating the process's progress bar
@@ -1533,7 +1562,7 @@ class Event extends AppModel {
 
 		$userCount = count($users);
 		foreach ($users as $k => $user) {
-			$body = $this->__buildAlertEmailBody($event[0], $user, $sgModel);
+			$body = $this->__buildAlertEmailBody($event[0], $user, $oldpublish, $sgModel);
 			$bodyNoEnc = "A new or modified event was just published on " . Configure::read('MISP.baseurl') . "/events/view/" . $event[0]['Event']['id'];
 			$this->User->sendEmail(array('User' => $user), $body, $bodyNoEnc, $subject);
 				if ($processId) {
@@ -1548,7 +1577,7 @@ class Event extends AppModel {
 		return true;
 	}
 
-	private function __buildAlertEmailBody($event, $user, $sgModel) {
+	private function __buildAlertEmailBody($event, $user, $oldpublish, $sgModel) {
 		$owner = false;
 		if ($user['org_id'] == $event['Event']['orgc_id'] || $user['org_id'] == $event['Event']['org_id'] || $user['Role']['perm_site_admin']) $owner = true;
 		// The mail body, h() is NOT needed as we are sending plain-text mails.
@@ -1594,7 +1623,7 @@ class Event extends AppModel {
 				if ($attribute['to_ids']) $ids = ' (IDS)';
 				$strRepeatCount = $appendlen - 2 - strlen($attribute['type']);
 				$strRepeat = ($strRepeatCount > 0) ? str_repeat(' ', $strRepeatCount) : '';
-				if (isset($event['Event']['publish_timestamp']) && isset($attribute['timestamp']) && $attribute['timestamp'] > $event['Event']['publish_timestamp']) {
+				if (isset($oldpublish) && isset($attribute['timestamp']) && $attribute['timestamp'] > $oldpublish) {
 					$line = '* ' . $attribute['type'] . $strRepeat . ': ' . $attribute['value'] . $ids . " *\n";
 				} else {
 					$line = $attribute['type'] . $strRepeat . ': ' . $attribute['value'] . $ids .  "\n";
@@ -2059,7 +2088,7 @@ class Event extends AppModel {
 			if ((!empty($data['Event']['published']) && 1 == $data['Event']['published'])) {
 				// do the necessary actions to publish the event (email, upload,...)
 				if (true != Configure::read('MISP.disablerestalert')) {
-					$this->sendAlertEmailRouter($id, $user);
+					$this->sendAlertEmailRouter($id, $user, $existingEvent['Event']['publish_timestamp']);
 				}
 				$this->publish($existingEvent['Event']['id']);
 			}
@@ -2498,7 +2527,9 @@ class Event extends AppModel {
 			return array('success' => 0, 'message' => 'There was an issue generating the STIX export.');
 		}
 		$stixFile->write(substr($stix_framing, 0, -1));
-		$stixFile->append("    <stix:Related_Packages>\n");
+		if ($returnType === 'xml') {
+			$stixFile->append("    <stix:Related_Packages>\n");
+		}
 		$result = array();
 		if ($jobId) {
 			$this->Job = ClassRegistry::init('Job');
@@ -2814,6 +2845,9 @@ class Event extends AppModel {
 						$temp['default_category'] = $r['categories'][0];
 					}
 					if (isset($r['data'])) $temp['data'] = $r['data'];
+					// if data_is_handled is set then MISP assumes that the sample is already zipped and encrypted
+					// in this case it will not try to do this by itself - however it also won't create additional hashes
+					if (isset($r['data_is_handled'])) $temp['data_is_handled'] = $r['data_is_handled'];
 					$resultArray[] = $temp;
 				}
 
