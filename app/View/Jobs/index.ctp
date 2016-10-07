@@ -63,7 +63,8 @@
 	foreach ($list as $k => $item):
 		$progress = '100';
 		$startRefreshing = false;
-		if ($item['Job']['failed']) {
+		if ($item['Job']['failed'] || $item['Job']['status'] == 3) {
+			$item['Job']['job_status'] = 'Failed';
 			$progress_message = 'Failed';
 			$progress_bar_type = 'progress progress-danger active';
 		} else if (!$item['Job']['worker_status'] && $item['Job']['progress'] != 100) {
@@ -71,7 +72,7 @@
 			$progress_bar_type = 'progress progress-striped progress-warning active';
 		} else if ($item['Job']['progress'] == 0) {
 			$progress_bar_type = 'progress progress-striped progress-queued active';
-			$progress_message = $item['Job']['status'] === 'Running' ? 'Running' : 'Queued';
+			$progress_message = $item['Job']['job_status'] === 'Running' ? 'Running' : 'Queued';
 		} else {
 			$progress = h($item['Job']['progress']);
 			if ($item['Job']['progress'] == 100) {
@@ -96,7 +97,7 @@
 			<td class="short"><?php echo isset($item['Org']['name']) ? h($item['Org']['name']) : 'SYSTEM'; ?>&nbsp;</td>
 			<td class="short">
 			<?php
-				echo h($item['Job']['status']);
+				echo h($item['Job']['job_status']);
 				if ($item['Job']['failed']):
 			?>
 				<div class="icon-search useCursorPointer queryPopover" data-url="/jobs/getError" data-id="<?php echo h($item['Job']['process_id']); ?>"></div>

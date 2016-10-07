@@ -20,6 +20,64 @@
 				'placeholder' => 'URL of the feed',
 				'class' => 'form-control span6'
 		));
+		echo $this->Form->input('source_format', array(
+				'label' => 'Source Format',
+				'div' => 'input clear',
+				'options' => $feed_types,
+				'class' => 'form-control span6'
+		));
+	?>
+		<div id="TargetDiv">
+	<?php 
+		echo $this->Form->input('fixed_event', array(
+				'label' => 'Target Event',
+				'div' => 'input clear',
+				'options' => array('New Event Each Pull', 'Fixed Event'),
+				'class' => 'form-control span6'
+		));
+	?>
+		</div>
+		<div id="TargetEventDiv">
+	<?php
+		echo $this->Form->input('target_event', array(
+				'label' => 'Target Event ID',
+				'div' => 'input clear',
+				'placeholder' => 'Leave blank unless you want to reuse an existing event.',
+				'class' => 'form-control span6'
+		));
+	?>
+		</div>
+		<div id="PublishDiv" class="input clear">
+		<?php
+			echo $this->Form->input('publish', array(
+					'label' => 'Auto Publish',
+					'title' => 'Publish events directly after pulling the feed - if you would like to review the event before publishing uncheck this',
+					'type' => 'checkbox',
+					'class' => 'form-control'
+			));
+		?>
+		</div>
+		<div id="OverrideIdsDiv" class="input clear">
+		<?php
+			echo $this->Form->input('override_ids', array(
+					'label' => 'Override IDS Flag',
+					'title' => 'If checked, the IDS flags will always be set to off when pulling from this feed',
+					'type' => 'checkbox',
+					'class' => 'form-control'
+			));
+		?>
+		</div>
+		<div id="DeltaMergeDiv" class="input clear">
+		<?php
+			echo $this->Form->input('delta_merge', array(
+					'label' => 'Delta Merge',
+					'title' => 'Merge attributes (only add new attributes, remove revoked attributes)',
+					'type' => 'checkbox',
+					'class' => 'form-control'
+			));
+		?>
+		</div>
+	<?php 
 		echo $this->Form->input('distribution', array(
 				'options' => array($distributionLevels),
 				'div' => 'input clear',
@@ -65,18 +123,6 @@
 	echo $this->element('side_menu', array('menuList' => 'feeds', 'menuItem' => 'add'));
 ?>
 <script type="text/javascript">
-//
-var formInfoValues = {
-		'ServerUrl' : "The base-url to the external server you want to sync with. Example: https://foo.sig.mil.be",
-		'ServerName' : "A name that will make it clear to your users what this instance is. For example: Organisation A's instance",
-		'ServerOrganization' : "The organization having the external server you want to sync with. Example: BE",
-		'ServerAuthkey' : "You can find the authentication key on your profile on the external server.",
-		'ServerPush' : "Allow the upload of events and their attributes.",
-		'ServerPull' : "Allow the download of events and their attributes from the server.",
-		'ServerSubmittedCert' : "You can also upload a certificate file if the instance you are trying to connect to has its own signing authority.",
-		'ServerSelfSigned' : "Click this, if you would like to allow a connection despite the other instance using a self-signed certificate (not recommended)."
-};
-
 
 var rules = {"pull": {"tags": {"OR":[], "NOT":[]}, "orgs": {"OR":[], "NOT":[]}}};
 var validOptions = ['pull'];
@@ -91,5 +137,32 @@ $(document).ready(function() {
 	$("#FeedDistribution").change(function() {
 		feedDistributionChange();
 	});
+	feedFormUpdate();
 });
+
+$("#FeedSourceFormat, #FeedTarget").change(function() {
+	feedFormUpdate();
+});
+
+
+function feedFormUpdate() {
+	if ($('#FeedSourceFormat').val() == 'misp') {
+		$('#TargetDiv').hide();
+		$('#TargetEventDiv').hide();
+		$('#PublishDiv').hide();
+		$('#OverrideIdsDiv').hide();
+		$('#DeltaMergeDiv').hide();
+	} else if ($('#FeedSourceFormat').val() == 'freetext') {
+		$('#TargetDiv').show();
+		$('#OverrideIdsDiv').show();
+		$('#PublishDiv').show();
+		if ($('#FeedTarget').val() == 0) {
+			$('#TargetEventDiv').hide();
+			$('#DeltaMergeDiv').hide();
+		} else {
+			$('#TargetEventDiv').show();
+			$('#DeltaMergeDiv').show();
+		}
+	}
+}
 </script>
