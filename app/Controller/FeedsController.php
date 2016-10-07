@@ -206,6 +206,8 @@ class FeedsController extends AppController {
 		else $currentPage = 1;
 		$urlparams = '';
 		$passedArgs = array();
+		App::uses('SyncTool', 'Tools');
+		$syncTool = new SyncTool();
 		$HttpSocket = $syncTool->setupHttpSocketFeed($feed);
 		$events = $this->Feed->getManifest($feed, $HttpSocket);
 		if (isset($events['code'])) throw new NotFoundException('Feed could not be fetched. The HTTP error code returned was: ' .$events['code']);
