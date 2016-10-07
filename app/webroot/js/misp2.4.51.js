@@ -1158,6 +1158,11 @@ function indexEvaluateFiltering() {
 		} else {
 			$('#value_published').html("");
 		}
+		if (filtering.hasproposal != 2) {
+			$('#value_hasproposal').html(publishedOptions[filtering.hasproposal]);
+		} else {
+			$('#value_hasproposal').html("");
+		}
 		if (filtering.date.from != null || filtering.date.from != null) {
 			var text = "";
 			if (filtering.date.from != "") text = "From: " + filtering.date.from;
@@ -1243,6 +1248,10 @@ function indexCreateFilters() {
 	if (filterContext == 'event') {
 		if (filtering.published != "2") {
 			text += "searchpublished:" + filtering.published;
+		}
+		if (filtering.hasproposal != "2") {
+			if (text != "") text += "/";
+			text += "searchhasproposal:" + filtering.hasproposal;
 		}
 	} else {
 		for (var i = 0; i < differentFilters.length; i++) {
@@ -1347,6 +1356,9 @@ function indexAddRule(param) {
 		} else if (param.data.param1 == "published") {
 			var value = escape($('#EventSearchpublished').val());
 			if (value != "") filtering.published = value;
+		} else if (param.data.param1 == "hasproposal") {
+			var value = escape($('#EventSearchhasproposal').val());
+			if (value != "") filtering.hasproposal = value;
 		} else {
 			var value = escape($('#EventSearch' + param.data.param1).val());
 			var operator = operators[escape($('#EventSearchbool').val())];
@@ -1402,6 +1414,8 @@ function indexFilterClearRow(field) {
 		filtering.date.until = "";
 	} else if (field == "published") {
 		filtering.published = 2;
+	} else if (field == "hasproposal") {
+		filtering.hasproposal = 2;
 	} else if (differentFilters.indexOf(field) != -1) {
 		filtering[field] = "";
 	} else {
