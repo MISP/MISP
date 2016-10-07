@@ -444,7 +444,7 @@ class Feed extends AppModel {
 			}
 		}
 		if ($feed['Feed']['fixed_event'] && $feed['Feed']['delta_merge']) {
-			$event = $this->Event->find('first', array('conditions' => array('Event.id' => $event['Event']['id']), 'recursive' => -1, 'contain' => array('Attribute')));
+			$event = $this->Event->find('first', array('conditions' => array('Event.id' => $event['Event']['id']), 'recursive' => -1, 'contain' => array('Attribute' => array('conditions' => array('Attribute.deleted' => 0)))));
 			$to_delete = array();
 			foreach ($data as $k => $dataPoint) {
 				foreach ($event['Attribute'] as $attribute_key => $attribute) {
@@ -465,6 +465,7 @@ class Feed extends AppModel {
 			$data[$key]['event_id'] = $event['Event']['id'];
 			$data[$key]['distribution'] = $feed['Feed']['distribution'];
 			$data[$key]['sharing_group_id'] = $feed['Feed']['sharing_group_id'];
+			$data[$key]['to_ids'] = $feed['Feed']['override_ids'] ? 0 : $data[$key]['to_ids'];
 		}
 		if (!$this->Event->Attribute->saveMany($data)) {
 			return 'Could not save the parsed attributes.';

@@ -87,7 +87,7 @@ class FeedsController extends AppController {
 				}
 			}
 			$this->request->data['Feed']['event_id'] = $this->request->data['Feed']['fixed_event'] ? $this->request->data['Feed']['target_event'] : 0;
-			$fields = array('id', 'name', 'provider', 'enabled', 'rules', 'url', 'distribution', 'sharing_group_id', 'tag_id', 'fixed_event', 'event_id', 'publish', 'delta_merge');
+			$fields = array('id', 'name', 'provider', 'enabled', 'rules', 'url', 'distribution', 'sharing_group_id', 'tag_id', 'fixed_event', 'event_id', 'publish', 'delta_merge', 'override_ids');
 			$feed = array();
 			foreach ($fields as $field) $feed[$field] = $this->request->data['Feed'][$field];
 			$result = $this->Feed->save($feed);

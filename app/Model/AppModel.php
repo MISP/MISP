@@ -439,6 +439,7 @@ class AppModel extends Model {
 				$sqlArray[] = 'ALTER TABLE feeds ADD delta_merge tinyint(1) NOT NULL DEFAULT 0;';
 				$sqlArray[] = 'ALTER TABLE feeds ADD event_id int(11) NOT NULL DEFAULT 0;';
 				$sqlArray[] = 'ALTER TABLE feeds ADD publish tinyint(1) NOT NULL DEFAULT 0;';
+				$sqlArray[] = 'ALTER TABLE feeds ADD override_ids tinyint(1) NOT NULL DEFAULT 0;';
 				$sqlArray[] = "ALTER TABLE feeds ADD settings text NOT NULL DEFAULT '';";
 				break;
 			case 'fixNonEmptySharingGroupID':

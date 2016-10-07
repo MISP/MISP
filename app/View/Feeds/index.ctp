@@ -26,6 +26,7 @@
 			<th>Target</th>
 			<th>Publish</th>
 			<th>Delta Merge</th>
+			<th>Override IDS</th>
 			<th><?php echo $this->Paginator->sort('distribution');?></th>
 			<th><?php echo $this->Paginator->sort('tag');?></th>
 			<th><?php echo $this->Paginator->sort('enabled');?></th>
@@ -85,28 +86,21 @@ foreach ($feeds as $item):
 			endif;
 		 ?>		
 		</td>
-		<td>
-			<?php 
-				if ($item['Feed']['source_format'] == 'freetext'):
-			?>
-				<span class="<?php echo ($item['Feed']['publish'] ? 'icon-ok' : 'icon-remove'); ?>"></span>
-			<?php 
-				else:
-					echo ' ';
-				endif;
-			?>
-		</td>
-		<td>
-			<?php 
-				if ($item['Feed']['source_format'] == 'freetext'):
-			?>
-				<span class="<?php echo ($item['Feed']['delta_merge'] ? 'icon-ok' : 'icon-remove'); ?>"></span>
-			<?php 
-				else:
-					echo ' ';
-				endif;
-			?>
-		</td>
+		<?php 
+			if ($item['Feed']['source_format'] == 'freetext'):
+		?>
+				<td><span class="<?php echo ($item['Feed']['publish'] ? 'icon-ok' : 'icon-remove'); ?>"></span></td>
+				<td><span class="<?php echo ($item['Feed']['delta_merge'] ? 'icon-ok' : 'icon-remove'); ?>"></span></td>
+				<td><span class="<?php echo ($item['Feed']['override_ids'] ? 'icon-ok' : 'icon-remove'); ?>"></span></td>
+		<?php 
+			else:
+		?>
+				<td>&nbsp;</td>
+				<td>&nbsp;</td>
+				<td>&nbsp;</td>
+		<?php
+			endif;
+		?>
 		<td <?php if ($item['Feed']['distribution'] == 0) echo 'class="red"'; ?>>
 		<?php
 			echo $item['Feed']['distribution'] == 4 ? '<a href="' . $baseurl . '/sharing_groups/view/' . h($item['SharingGroup']['id']) . '">' . h($item['SharingGroup']['name']) . '</a>' : $distributionLevels[$item['Feed']['distribution']] ;

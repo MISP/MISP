@@ -57,6 +57,16 @@
 			));
 		?>
 		</div>
+		<div id="OverrideIdsDiv" class="input clear">
+		<?php
+			echo $this->Form->input('override_ids', array(
+					'label' => 'Override IDS Flag',
+					'title' => 'If checked, the IDS flags will always be set to off when pulling from this feed',
+					'type' => 'checkbox',
+					'class' => 'form-control'
+			));
+		?>
+		</div>
 		<div id="DeltaMergeDiv" class="input clear">
 		<?php
 			echo $this->Form->input('delta_merge', array(
@@ -140,8 +150,11 @@ function feedFormUpdate() {
 		$('#TargetDiv').hide();
 		$('#TargetEventDiv').hide();
 		$('#PublishDiv').hide();
+		$('#OverrideIdsDiv').hide();
+		$('#DeltaMergeDiv').hide();
 	} else if ($('#FeedSourceFormat').val() == 'freetext') {
 		$('#TargetDiv').show();
+		$('#OverrideIdsDiv').show();
 		$('#PublishDiv').show();
 		if ($('#FeedTarget').val() == 0) {
 			$('#TargetEventDiv').hide();
