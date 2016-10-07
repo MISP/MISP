@@ -2059,9 +2059,9 @@ class Event extends AppModel {
 					}
 				}
 			}
-			if (isset($data['Event']['Tag']) && $user['Role']['perm_tagger']) {
-				foreach ($data['Event']['Tag'] as $tag) {
-					$tag_id = $this->EventTag->Tag->captureTag($tag, $user);
+			if (isset($data['Event']['EventTag']) && $user['Role']['perm_tagger']) {
+				foreach ($data['Event']['EventTag'] as $tag) {
+					$tag_id = $this->EventTag->Tag->captureTag($tag['Tag'], $user);
 					if ($tag_id) {
 						$this->EventTag->attachTagToEvent($this->id, $tag_id);
 					} else {
