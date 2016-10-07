@@ -60,5 +60,9 @@
 /app/tmp/cached_exports/sha1/*
 /app/tmp/cached_exports/csv_all/*
 /app/tmp/cached_exports/csv_sig/*
+/app/tmp/cached_exports/stix/*
+/app/tmp/cached_exports/sha256/*
+.gnupg
+.smime
 *.swp
 *.iml
