@@ -20,8 +20,12 @@
 	<tr>
 			<th><?php echo $this->Paginator->sort('id');?></th>
 			<th><?php echo $this->Paginator->sort('name');?></th>
+			<th><?php echo $this->Paginator->sort('source_format', 'Feed Format');?></th>
 			<th><?php echo $this->Paginator->sort('provider');?></th>
 			<th><?php echo $this->Paginator->sort('url');?></th>
+			<th>Target</th>
+			<th>Publish</th>
+			<th>Delta Merge</th>
 			<th><?php echo $this->Paginator->sort('distribution');?></th>
 			<th><?php echo $this->Paginator->sort('tag');?></th>
 			<th><?php echo $this->Paginator->sort('enabled');?></th>
@@ -61,8 +65,48 @@ foreach ($feeds as $item):
 					endif;
 			?>
 		</td>
+		<td><?php echo $feed_types[$item['Feed']['source_format']]['name']; ?>&nbsp;</td>
 		<td><?php echo h($item['Feed']['provider']); ?>&nbsp;</td>
 		<td><?php echo h($item['Feed']['url']); ?>&nbsp;</td>
+		<td class="shortish">
+		<?php 
+			if ($item['Feed']['source_format'] == 'freetext'):
+				if ($item['Feed']['fixed_event']):
+					if ($item['Feed']['event_id']):
+					?>
+						<a href="<?php echo $baseurl;?>/events/view/<?php echo h($item['Feed']['event_id']); ?>">Fixed event <?php echo h($item['Feed']['event_id']); ?></a>
+					<?php 
+					else:
+						echo 'New fixed event';
+					endif;
+				endif;
+			else:
+				echo ' ';
+			endif;
+		 ?>		
+		</td>
+		<td>
+			<?php 
+				if ($item['Feed']['source_format'] == 'freetext'):
+			?>
+				<span class="<?php echo ($item['Feed']['publish'] ? 'icon-ok' : 'icon-remove'); ?>"></span>
+			<?php 
+				else:
+					echo ' ';
+				endif;
+			?>
+		</td>
+		<td>
+			<?php 
+				if ($item['Feed']['source_format'] == 'freetext'):
+			?>
+				<span class="<?php echo ($item['Feed']['delta_merge'] ? 'icon-ok' : 'icon-remove'); ?>"></span>
+			<?php 
+				else:
+					echo ' ';
+				endif;
+			?>
+		</td>
 		<td <?php if ($item['Feed']['distribution'] == 0) echo 'class="red"'; ?>>
 		<?php
 			echo $item['Feed']['distribution'] == 4 ? '<a href="' . $baseurl . '/sharing_groups/view/' . h($item['SharingGroup']['id']) . '">' . h($item['SharingGroup']['name']) . '</a>' : $distributionLevels[$item['Feed']['distribution']] ;

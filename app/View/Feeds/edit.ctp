@@ -4,29 +4,76 @@
 		<legend>Edit MISP Feed</legend>
 		<p>Edit a new MISP feed source.</p>
 	<?php
-		echo $this->Form->input('enabled', array());
-		echo $this->Form->input('name', array(
-				'div' => 'input clear',
-				'placeholder' => 'Feed name',
-				'class' => 'form-control span6',
-		));
-		echo $this->Form->input('provider', array(
-				'div' => 'input clear',
-				'placeholder' => 'Name of the content provider',
-				'class' => 'form-control span6'
-		));
-		echo $this->Form->input('url', array(
-				'div' => 'input clear',
-				'placeholder' => 'URL of the feed',
-				'class' => 'form-control span6'
-		));
-		echo $this->Form->input('distribution', array(
-				'options' => array($distributionLevels),
-				'div' => 'input clear',
-				'label' => 'Distribution',
-		));
+			echo $this->Form->input('enabled', array());
+			echo $this->Form->input('name', array(
+					'div' => 'input clear',
+					'placeholder' => 'Feed name',
+					'class' => 'form-control span6',
+			));
+			echo $this->Form->input('provider', array(
+					'div' => 'input clear',
+					'placeholder' => 'Name of the content provider',
+					'class' => 'form-control span6'
+			));
+			echo $this->Form->input('url', array(
+					'div' => 'input clear',
+					'placeholder' => 'URL of the feed',
+					'class' => 'form-control span6'
+			));
+			echo $this->Form->input('source_format', array(
+					'label' => 'Source Format',
+					'div' => 'input clear',
+					'options' => $feed_types,
+					'class' => 'form-control span6'
+			));
 		?>
-			<div id="SGContainer" style="display:none;">
+		<div id="TargetDiv">
+		<?php 
+			echo $this->Form->input('fixed_event', array(
+					'label' => 'Target Event',
+					'div' => 'input clear',
+					'options' => array('New Event Each Pull', 'Fixed Event'),
+					'class' => 'form-control span6'
+			));
+		?>
+		</div>
+		<div id="TargetEventDiv">
+		<?php
+			echo $this->Form->input('target_event', array(
+					'label' => 'Target Event ID',
+					'div' => 'input clear',
+					'placeholder' => 'Leave blank unless you want to reuse an existing event.',
+					'class' => 'form-control span6'
+			));
+		?>
+		</div>
+		<div id="PublishDiv" class="input clear">
+		<?php
+			echo $this->Form->input('publish', array(
+					'label' => 'Auto Publish',
+					'type' => 'checkbox',
+					'class' => 'form-control'
+			));
+		?>
+		</div>
+		<div id="DeltaMergeDiv" class="input clear">
+		<?php
+			echo $this->Form->input('delta_merge', array(
+					'label' => 'Delta Merge',
+					'title' => 'Merge attributes (only add new attributes, remove revoked attributes)',
+					'type' => 'checkbox',
+					'class' => 'form-control'
+			));
+		?>
+		</div>
+		<?php 
+			echo $this->Form->input('distribution', array(
+					'options' => array($distributionLevels),
+					'div' => 'input clear',
+					'label' => 'Distribution',
+			));
+		?>
+		<div id="SGContainer" style="display:none;">
 		<?php
 			if (!empty($sharingGroups)) {
 				echo $this->Form->input('sharing_group_id', array(
@@ -35,8 +82,8 @@
 				));
 			}
 		?>
-			</div>
-			<div class="input clear"></div>
+		</div>
+		<div class="input clear"></div>
 		<?php
 			echo $this->Form->input('tag_id', array(
 					'options' => $tags,
@@ -90,5 +137,28 @@ $(document).ready(function() {
 	$("#FeedDistribution").change(function() {
 		feedDistributionChange();
 	});
+	feedFormUpdate();
 });
+
+$("#FeedSourceFormat, #FeedFixedEvent").change(function() {
+	feedFormUpdate();
+});
+
+function feedFormUpdate() {
+	if ($('#FeedSourceFormat').val() == 'misp') {
+		$('#TargetDiv').hide();
+		$('#TargetEventDiv').hide();
+		$('#PublishDiv').hide();
+	} else if ($('#FeedSourceFormat').val() == 'freetext') {
+		$('#TargetDiv').show();
+		$('#PublishDiv').show();
+		if ($('#FeedFixedEvent').val() == 0) {
+			$('#TargetEventDiv').hide();
+			$('#DeltaMergeDiv').hide();
+		} else {
+			$('#TargetEventDiv').show();
+			$('#DeltaMergeDiv').show();
+		}
+	}
+}
 </script>

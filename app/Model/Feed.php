@@ -37,6 +37,24 @@ class Feed extends AppModel {
 				),
 		),
 	);
+	
+	// currently we only have an internal name and a display name, but later on we can expand this with versions, default settings, etc
+	public $feed_types = array(
+		'misp' => array(
+			'name' => 'MISP Feed'
+		),
+		'freetext' => array(
+			'name' => 'Freetext Parsed Feed'
+		)
+	);
+	
+	public function getFeedTypesOptions() {
+		$result = array();
+		foreach ($this->feed_types as $key => $value) {
+			$result[$key] = $value['name'];
+		}
+		return $result;
+	}
 
 	// gets the event UUIDs from the feed by ID
 	// returns an array with the UUIDs of events that are new or that need updating
@@ -77,6 +95,21 @@ class Feed extends AppModel {
 		}
 		$events = $this->__filterEventsIndex($events, $feed);
 		return $events;
+	}
+	
+	public function getFreetextFeed($feed, $HttpSocket) {
+		$result = array();
+		$response = $HttpSocket->get($feed['Feed']['url'], '', array());
+		if ($response->code == 200) {
+			App::uses('ComplexTypeTool', 'Tools');
+			$complexTypeTool = new ComplexTypeTool();
+			$resultArray = $complexTypeTool->checkComplexRouter($response->body, 'FreeText');
+		}
+		$this->Attribute = ClassRegistry::init('Attribute');
+		foreach ($resultArray as $key => $value) {
+			$resultArray[$key]['category'] = $this->Attribute->typeDefinitions[$value['default_type']]['default_category'];
+		}
+		return $resultArray;
 	}
 
 	public function downloadFromFeed($actions, $feed, $HttpSocket, $user, $jobId = false) {
@@ -379,5 +412,69 @@ class Feed extends AppModel {
 			$job->saveField('message', 'Job complete.');
 		}
 		return $result;
+	}
+	
+	public function saveFreetextFeedData($feed, $data, $user) {
+		$this->Event = ClassRegistry::init('Event');
+		$event = false;
+		if ($feed['Feed']['fixed_event'] && $feed['Feed']['event_id']) {
+			$event = $this->Event->find('first', array('conditions' => array('Event.id' => $feed['Feed']['event_id']), 'recursive' => -1));
+			if (empty($event)) return 'The target event is no longer valid. Make sure that the target event exists.';
+		}
+		if (!$event) {
+			$this->Event->create();
+			$event = array(
+					'info' => $feed['Feed']['name'] . ' feed',
+					'analysis' => 2,
+					'threat_level_id' => 4,
+					'orgc_id' => $user['org_id'],
+					'org_id' => $user['org_id'],
+					'date' => date('Y-m-d'),
+					'distribution' => $feed['Feed']['distribution'],
+					'sharing_group_id' => $feed['Feed']['sharing_group_id'],
+					'user_id' => $user['id']
+			);
+			$result = $this->Event->save($event);
+			if (!$result) return 'Something went wrong while creating a new event.';
+			$event = $this->Event->find('first', array('conditions' => array('Event.id' => $this->Event->id), 'recursive' => -1));
+			if (empty($event)) return 'The newly created event is no longer valid. Make sure that the target event exists.';
+			if ($feed['Feed']['fixed_event']) {
+				$feed['Feed']['event_id'] = $event['Event']['id'];
+				$this->save($feed);
+			}
+		}
+		if ($feed['Feed']['fixed_event'] && $feed['Feed']['delta_merge']) {
+			$event = $this->Event->find('first', array('conditions' => array('Event.id' => $event['Event']['id']), 'recursive' => -1, 'contain' => array('Attribute')));
+			$to_delete = array();
+			foreach ($data as $k => $dataPoint) {
+				foreach ($event['Attribute'] as $attribute_key => $attribute) {
+					if ($dataPoint['value'] == $attribute['value']) {
+						unset($data[$k]);
+						unset($event['Attribute'][$attribute_key]);
+					}
+				}
+			}
+			foreach ($event['Attribute'] as $attribute) {
+				$to_delete[] = $attribute['id'];
+			}
+			if (!empty($to_delete)) {
+				$this->Event->Attribute->deleteAll(array('Attribute.id' => $to_delete));
+			}
+		}
+		foreach ($data as $key => $value) {
+			$data[$key]['event_id'] = $event['Event']['id'];
+			$data[$key]['distribution'] = $feed['Feed']['distribution'];
+			$data[$key]['sharing_group_id'] = $feed['Feed']['sharing_group_id'];
+		}
+		if (!$this->Event->Attribute->saveMany($data)) {
+			return 'Could not save the parsed attributes.';
+		}
+		if ($feed['Feed']['publish']) {
+			$this->Event->publishRouter($event['Event']['id'], null, $user);
+		}
+		if ($feed['Feed']['tag_id']) {
+			$this->Event->EventTag->attachTagToEvent($event['Event']['id'], $feed['Feed']['tag_id']);
+		}
+		return $event['Event']['id'];
 	}
 }

@@ -121,7 +121,9 @@ class ComplexTypeTool {
 					foreach ($this->__hexHashTypes as $k => $v) {
 						if (strlen($compositeParts[1]) == $k && preg_match("#[0-9a-f]{" . $k . "}$#i", $compositeParts[1])) return array('types' => $v['composite'], 'to_ids' => true, 'default_type' => $v['composite'][0]);
 					}
-					if (preg_match('#^[0-9]+:.+:.+$#', $compositeParts[1])) return array('types' => array('ssdeep'), 'to_ids' => true, 'default_type' => 'filename|ssdeep');
+					if (preg_match('#^[0-9]+:.+:.+$#', $compositeParts[1]) && !preg_match('#^[0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2}$#', $compositeParts[1])) {
+						return array('types' => array('ssdeep'), 'to_ids' => true, 'default_type' => 'filename|ssdeep');
+					}
 				}
 			}
 		}
@@ -130,7 +132,7 @@ class ComplexTypeTool {
 		foreach ($this->__hexHashTypes as $k => $v) {
 			if (strlen($input) == $k && preg_match("#[0-9a-f]{" . $k . "}$#i", $input)) return array('types' => $v['single'], 'to_ids' => true, 'default_type' => $v['single'][0]);
 		}
-		if (preg_match('#^[0-9]+:.+:.+$#', $input)) return array('types' => array('ssdeep'), 'to_ids' => true, 'default_type' => 'ssdeep');
+		if (preg_match('#^[0-9]+:.+:.+$#', $input) && !preg_match('#^[0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2}$#', $input)) return array('types' => array('ssdeep'), 'to_ids' => true, 'default_type' => 'ssdeep');
 		$inputRefanged = $input;
 		foreach ($this->__refangRegexTable as $regex => $replacement) $inputRefanged = preg_replace($regex, $replacement , $inputRefanged);
 		$inputRefanged = rtrim($inputRefanged, ".");

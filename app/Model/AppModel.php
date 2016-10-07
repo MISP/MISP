@@ -36,7 +36,7 @@ class AppModel extends Model {
 	// major -> minor -> hotfix -> requires_logout
 	public $db_changes = array(
 		2 => array(
-			4 => array(18 => false, 19 => false, 20 => false, 25 => false, 27 => false, 32 => false, 33 => true, 38 => true, 39 => true, 40 => false, 42 => false, 44 => false, 45 => false, 49 => true, 50 => false, 51 => false)
+			4 => array(18 => false, 19 => false, 20 => false, 25 => false, 27 => false, 32 => false, 33 => true, 38 => true, 39 => true, 40 => false, 42 => false, 44 => false, 45 => false, 49 => true, 50 => false, 51 => false, 52 => false)
 		)
 	);
 
@@ -432,6 +432,14 @@ class AppModel extends Model {
 			case '2.4.51':
 				$sqlArray[] = 'ALTER TABLE `servers` ADD `internal` tinyint(1) NOT NULL DEFAULT 0;';
 				$sqlArray[] = 'ALTER TABLE `roles` ADD `default_role` tinyint(1) NOT NULL DEFAULT 0;';
+				break;
+			case '2.4.52':
+				$sqlArray[] = "ALTER TABLE feeds ADD source_format varchar(255) COLLATE utf8_bin DEFAULT 'misp';";
+				$sqlArray[] = 'ALTER TABLE feeds ADD fixed_event tinyint(1) NOT NULL DEFAULT 0;';
+				$sqlArray[] = 'ALTER TABLE feeds ADD delta_merge tinyint(1) NOT NULL DEFAULT 0;';
+				$sqlArray[] = 'ALTER TABLE feeds ADD event_id int(11) NOT NULL DEFAULT 0;';
+				$sqlArray[] = 'ALTER TABLE feeds ADD publish tinyint(1) NOT NULL DEFAULT 0;';
+				$sqlArray[] = "ALTER TABLE feeds ADD settings text NOT NULL DEFAULT '';";
 				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
