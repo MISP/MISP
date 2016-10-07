@@ -1,4 +1,4 @@
-<div class="eventBlacklists index">
+<div class="feed index">
 	<h2><?php echo __('Feeds');?></h2>
 	<div class="pagination">
         <ul>
@@ -73,12 +73,18 @@ foreach ($feeds as $item):
 		<?php 
 			if ($item['Feed']['source_format'] == 'freetext'):
 				if ($item['Feed']['fixed_event']):
-					if ($item['Feed']['event_id']):
-					?>
-						<a href="<?php echo $baseurl;?>/events/view/<?php echo h($item['Feed']['event_id']); ?>">Fixed event <?php echo h($item['Feed']['event_id']); ?></a>
-					<?php 
+					if (isset($item['Feed']['event_error'])):
+				?>
+					<span class="red bold">Error: Invalid event!</span>
+				<?php 
 					else:
-						echo 'New fixed event';
+						if ($item['Feed']['event_id']):
+						?>
+							<a href="<?php echo $baseurl;?>/events/view/<?php echo h($item['Feed']['event_id']); ?>">Fixed event <?php echo h($item['Feed']['event_id']); ?></a>
+						<?php 
+						else:
+							echo 'New fixed event';
+						endif;
 					endif;
 				endif;
 			else:
@@ -116,8 +122,10 @@ foreach ($feeds as $item):
 		<td class="short"><span class="<?php echo ($item['Feed']['enabled'] ? 'icon-ok' : 'icon-remove'); ?>"></span><span class="short <?php if (!$item['Feed']['enabled'] || empty($ruleDescription)) echo "hidden"; ?>" data-toggle="popover" title="Filter rules" data-content="<?php echo $ruleDescription; ?>"> (Rules)</span>
 		<td class="short action-links">
 			<?php
-				echo $this->Html->link('', array('action' => 'previewIndex', $item['Feed']['id']), array('class' => 'icon-search', 'title' => 'Explore the events remotely'));
-				if ($item['Feed']['enabled']) echo $this->Html->link('', array('action' => 'fetchFromFeed', $item['Feed']['id']), array('class' => 'icon-download', 'title' => 'Fetch all events'));
+				if (!isset($item['Feed']['event_error'])) {
+					echo $this->Html->link('', array('action' => 'previewIndex', $item['Feed']['id']), array('class' => 'icon-search', 'title' => 'Explore the events remotely'));
+					if ($item['Feed']['enabled']) echo $this->Html->link('', array('action' => 'fetchFromFeed', $item['Feed']['id']), array('class' => 'icon-download', 'title' => 'Fetch all events'));
+				}
 			?>
 			<a href="<?php echo $baseurl;?>/feeds/edit/<?php echo h($item['Feed']['id']); ?>"><span class="icon-edit" title="edit">&nbsp;</span></a>
 			<?php echo $this->Form->postLink('', array('action' => 'delete', h($item['Feed']['id'])), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to permanently remove the feed (%s)?', h($item['Feed']['name']))); ?>

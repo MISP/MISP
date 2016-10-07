@@ -80,13 +80,23 @@ class ServerShell extends AppShell
 		$user = $this->User->getAuthUser($userId);
 		$result = $this->Feed->downloadFromFeedInitiator($feedId, $user, $jobId);
 		$this->Job->id = $jobId;
-		$message = 'Job done.';
-		$this->Job->save(array(
-				'id' => $jobId,
-				'message' => $message,
-				'progress' => 100,
-				'status' => 4
-		));
+		if (!$result) {
+			$message = 'Job Failed.';
+			$this->Job->save(array(
+					'id' => $jobId,
+					'message' => $message,
+					'progress' => 0,
+					'status' => 3
+			));			
+		} else {
+			$message = 'Job done.';
+			$this->Job->save(array(
+					'id' => $jobId,
+					'message' => $message,
+					'progress' => 100,
+					'status' => 4
+			));
+		}
 	}
 
 	public function enqueuePull() {

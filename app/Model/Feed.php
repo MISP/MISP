@@ -396,20 +396,44 @@ class Feed extends AppModel {
 		$syncTool = new SyncTool();
 		$job = ClassRegistry::init('Job');
 		$this->read();
-		if ($jobId) {
-			$job->id = $jobId;
-			$job->saveField('message', 'Fetching event manifest.');
-		}
 		$HttpSocket = $syncTool->setupHttpSocketFeed($this->data);
-		$actions = $this->getNewEventUuids($this->data, $HttpSocket);
-		if ($jobId) {
-			$job->id = $jobId;
-			$job->saveField('message', 'Fetching events.');
-		}
-		$result = $this->downloadFromFeed($actions, $this->data, $HttpSocket, $user, $jobId);
-		if ($jobId) {
-			$job->id = $jobId;
-			$job->saveField('message', 'Job complete.');
+		if ($this->data['Feed']['source_format'] == 'misp') {
+			if ($jobId) {
+				$job->id = $jobId;
+				$job->saveField('message', 'Fetching event manifest.');
+			}
+			$actions = $this->getNewEventUuids($this->data, $HttpSocket);
+			if ($jobId) {
+				$job->id = $jobId;
+				$job->saveField('message', 'Fetching events.');
+			}
+			$result = $this->downloadFromFeed($actions, $this->data, $HttpSocket, $user, $jobId);
+			if ($jobId) {
+				$job->id = $jobId;
+				$job->saveField('message', 'Job complete.');
+			}
+		} else {
+			if ($jobId) {
+				$job->id = $jobId;
+				$job->saveField('message', 'Fetching data.');
+			}
+			$data = $this->getFreetextFeed($this->data, $HttpSocket);
+			foreach ($data as $key => $value) {
+				$data[$key] = array(
+					'category' => $value['category'],
+					'type' => $value['default_type'],
+					'value' => $value['value'],
+					'to_ids' => $value['to_ids']
+				);
+			}
+			$result = $this->saveFreetextFeedData($this->data, $data, $user);
+			$message = 'Job complete.';
+			if ($result !== true) {
+				return false;
+			}
+			if ($jobId) {
+				$job->saveField('message', 'Job complete.');
+			}
 		}
 		return $result;
 	}
@@ -461,6 +485,7 @@ class Feed extends AppModel {
 				$this->Event->Attribute->deleteAll(array('Attribute.id' => $to_delete));
 			}
 		}
+		$data = array_values($data);
 		foreach ($data as $key => $value) {
 			$data[$key]['event_id'] = $event['Event']['id'];
 			$data[$key]['distribution'] = $feed['Feed']['distribution'];
@@ -476,6 +501,6 @@ class Feed extends AppModel {
 		if ($feed['Feed']['tag_id']) {
 			$this->Event->EventTag->attachTagToEvent($event['Event']['id'], $feed['Feed']['tag_id']);
 		}
-		return $event['Event']['id'];
+		return true;
 	}
 }

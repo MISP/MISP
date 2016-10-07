@@ -25,7 +25,17 @@ class FeedsController extends AppController {
 	}
 
 	public function index() {
-		$this->set('feeds', $this->paginate());
+		$data = $this->paginate();
+		$this->loadModel('Event');
+		foreach ($data as $key => $value) {
+			if ($value['Feed']['event_id'] != 0 && $value['Feed']['fixed_event']) {
+				$event = $this->Event->find('first', array('conditions' => array('Event.id' => $value['Feed']['event_id']), 'recursive' => -1, 'fields' => array('Event.id')));
+				if (empty($event)) {
+					$data[$key]['Feed']['event_error'] = true;
+				}
+			}
+		}
+		$this->set('feeds', $data);
 		$this->loadModel('Event');
 		$this->set('feed_types', $this->Feed->feed_types);
 		$this->set('distributionLevels', $this->Event->distributionLevels);
@@ -158,9 +168,15 @@ class FeedsController extends AppController {
 			$message = 'Pull queued for background execution.';
 		} else {
 			$result = $this->Feed->downloadFromFeedInitiator($feedId, $this->Auth->user());
+			if (!$result) {
+				$this->Session->setFlash('Fetching the feed has failed.');
+				$this->redirect(array('action' => 'index'));
+			}
 			$message = 'Fetching the feed has successfuly completed.';
-			if (isset($result['add'])) $message .= ' Downloaded ' . count($result['add']) . ' new event(s).';
-			if (isset($result['edit'])) $message .= ' Updated ' . count($result['edit']) . ' event(s).';
+			if ($this->Feed->data['Feed']['source_format'] == 'misp') {
+				if (isset($result['add'])) $message .= ' Downloaded ' . count($result['add']) . ' new event(s).';
+				if (isset($result['edit'])) $message .= ' Updated ' . count($result['edit']) . ' event(s).';
+			}
 		}
 		$this->Session->setFlash($message);
 		$this->redirect(array('action' => 'index'));
@@ -344,12 +360,11 @@ class FeedsController extends AppController {
 		$feed = $this->Feed->read();
 		$data = json_decode($this->request->data['Feed']['data'], true);
 		$result = $this->Feed->saveFreetextFeedData($feed, $data, $this->Auth->user());
-		if (is_numeric($result)) {
+		if ($result === true) {
 			$this->Session->setFlash('Data pulled.');
-			$this->redirect(array('controller' => 'events', 'action' => 'view', $result));
 		} else {
 			$this->Session->setFlash('Could not pull the selected data. Reason: ' . $result);
-			$this->redirect(array('controller' => 'feeds', 'action' => 'index'));
 		}
+		$this->redirect(array('controller' => 'feeds', 'action' => 'index'));
 	}
 }
