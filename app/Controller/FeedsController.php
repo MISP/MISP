@@ -257,6 +257,7 @@ class FeedsController extends AppController {
 		if ($feed['Feed']['source_format'] != 'freetext') throw new MethodNotAllowedException('Invalid feed type.');
 		$HttpSocket = $syncTool->setupHttpSocketFeed($feed);
 		$resultArray = $this->Feed->getFreetextFeed($feed, $HttpSocket);
+		$resultArray = $this->Feed->getFreetextFeedCorrelations($resultArray);
 		// remove all duplicates
 		foreach ($resultArray as $k => $v) {
 			for ($i = 0; $i < $k; $i++) {

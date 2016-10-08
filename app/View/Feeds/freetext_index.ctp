@@ -15,6 +15,7 @@
 		<th>Type</th>
 		<th>Value</th>
 		<th>IDS</th>
+		<th>Correlations</th>
 		<th>Distribution</th>
 	</tr>
 	<?php 
@@ -28,6 +29,17 @@
 		<td class="short" id="<?php echo h($key);?>_type"><?php echo h($attribute['default_type']);?></td>
 		<td id="<?php echo h($key);?>_value"><?php echo h($attribute['value']);?></td>
 		<td class="short" id="<?php echo h($key);?>_to_ids" data-value="<?php echo h($attribute['to_ids']); ?>"><span class="icon-<?php echo $attribute['to_ids'] ? 'ok' : 'remove';?>"></span></td>
+		<td class="shortish">
+			<?php 
+				if (isset($attribute['correlations'])):
+					foreach ($attribute['correlations'] as $correlation):
+			?>
+						<a href="<?php echo $baseurl; ?>/events/view/<?php echo h($correlation); ?>"><?php echo h($correlation); ?></a>
+			<?php 
+					endforeach;
+				endif;
+			?>&nbsp;
+		</td>
 		<td class="short">
 			<?php
 				if ($feed['Feed']['distribution'] == 4):

@@ -111,6 +111,24 @@ class Feed extends AppModel {
 		}
 		return $resultArray;
 	}
+	
+	public function getFreetextFeedCorrelations($data) {
+		$start = microtime(true);
+		$values = array();
+		foreach ($data as $key => $value) {
+			$values[] = $value['value'];
+		}
+		$this->Attribute = ClassRegistry::init('Attribute');
+		// Adding a 3rd parameter to a list find seems to allow grouping several results into a key. If we ran a normal list with value => event_id we'd only get exactly one entry for each value
+		// The cost of this method is orders of magnitude lower than getting all id - event_id - value triplets and then doing a double loop comparison
+		$correlations = $this->Attribute->find('list', array('conditions' => array('Attribute.value' => $values, 'Attribute.deleted' => 0), 'fields' => array('Attribute.event_id', 'Attribute.event_id', 'Attribute.value')));
+		foreach ($data as $key => $value) {
+			if (isset($correlations[$value['value']])) {
+				$data[$key]['correlations'] = array_values($correlations[$value['value']]);
+			}
+		}
+		return $data;		
+	}
 
 	public function downloadFromFeed($actions, $feed, $HttpSocket, $user, $jobId = false) {
 		if ($jobId) {
