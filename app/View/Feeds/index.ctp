@@ -71,7 +71,7 @@ foreach ($feeds as $item):
 		<td><?php echo h($item['Feed']['url']); ?>&nbsp;</td>
 		<td class="shortish">
 		<?php 
-			if ($item['Feed']['source_format'] == 'freetext'):
+			if (in_array($item['Feed']['source_format'], array('freetext', 'csv'))):
 				if ($item['Feed']['fixed_event']):
 					if (isset($item['Feed']['event_error'])):
 				?>

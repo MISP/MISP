@@ -58,6 +58,10 @@ class FeedsController extends AppController {
 					 }
 				}
 			}
+			if (!isset($this->request->data['Feed']['settings'])) {
+				$this->request->data['Feed']['settings'] = array();
+			}
+			$this->request->data['Feed']['settings'] = json_encode($this->request->data['Feed']['settings']);
 			$this->request->data['Feed']['event_id'] = $this->request->data['Feed']['fixed_event'] ? $this->request->data['Feed']['target_event'] : 0;
 			if (!$error) {
 				$result = $this->Feed->save($this->request->data);
@@ -85,6 +89,9 @@ class FeedsController extends AppController {
 		$this->Feed->id = $feedId;
 		if (!$this->Feed->exists()) throw new NotFoundException('Invalid feed.');
 		$this->Feed->read();
+		if (!empty($this->Feed->data['Feed']['settings'])) {
+			$this->Feed->data['Feed']['settings'] = json_decode($this->Feed->data['Feed']['settings'], true);
+		}
 		if ($this->request->is('post') || $this->request->is('put')) {
 			if (isset($this->request->data['Feed']['pull_rules'])) $this->request->data['Feed']['rules'] = $this->request->data['Feed']['pull_rules'];
 			if ($this->request->data['Feed']['distribution'] != 4) $this->request->data['Feed']['sharing_group_id'] = 0;
@@ -97,7 +104,11 @@ class FeedsController extends AppController {
 				}
 			}
 			$this->request->data['Feed']['event_id'] = $this->request->data['Feed']['fixed_event'] ? $this->request->data['Feed']['target_event'] : 0;
-			$fields = array('id', 'name', 'provider', 'enabled', 'rules', 'url', 'distribution', 'sharing_group_id', 'tag_id', 'fixed_event', 'event_id', 'publish', 'delta_merge', 'override_ids');
+			if (!isset($this->request->data['Feed']['settings'])) {
+				$this->request->data['Feed']['settings'] = array();
+			}
+			$this->request->data['Feed']['settings'] = json_encode($this->request->data['Feed']['settings']);
+			$fields = array('id', 'name', 'provider', 'enabled', 'rules', 'url', 'distribution', 'sharing_group_id', 'tag_id', 'fixed_event', 'event_id', 'publish', 'delta_merge', 'override_ids', 'settings');
 			$feed = array();
 			foreach ($fields as $field) $feed[$field] = $this->request->data['Feed'][$field];
 			$result = $this->Feed->save($feed);
@@ -140,6 +151,9 @@ class FeedsController extends AppController {
 		$this->Feed->id = $feedId;
 		if (!$this->Feed->exists()) throw new NotFoundException('Invalid feed.');
 		$this->Feed->read();
+		if (!empty($this->Feed->data['Feed']['settings'])) {
+			$this->Feed->data['Feed']['settings'] = json_decode($this->Feed->data['Feed']['settings'], true);
+		}
 		if (!$this->Feed->data['Feed']['enabled']) {
 			$this->Session->setFlash('Feed is currently not enabled. Make sure you enable it.');
 			$this->redirect(array('action' => 'index'));
@@ -210,9 +224,12 @@ class FeedsController extends AppController {
 		$this->Feed->id = $feedId;
 		if (!$this->Feed->exists()) throw new NotFoundException('Invalid feed.');
 		$this->Feed->read();
+		if (!empty($this->Feed->data['Feed']['settings'])) {
+			$this->Feed->data['Feed']['settings'] = json_decode($this->Feed->data['Feed']['settings'], true);
+		}
 		if ($this->Feed->data['Feed']['source_format'] == 'misp') {
 			$this->__previewIndex($this->Feed->data);
-		} else if ($this->Feed->data['Feed']['source_format'] == 'freetext') {
+		} else if (in_array($this->Feed->data['Feed']['source_format'], array('freetext', 'csv'))) {
 			$this->__previewFreetext($this->Feed->data);
 		}
 	}
@@ -254,7 +271,28 @@ class FeedsController extends AppController {
 	private function __previewFreetext($feed) {
 		App::uses('SyncTool', 'Tools');
 		$syncTool = new SyncTool();
-		if ($feed['Feed']['source_format'] != 'freetext') throw new MethodNotAllowedException('Invalid feed type.');
+		if (!in_array($feed['Feed']['source_format'], array('freetext', 'csv'))) throw new MethodNotAllowedException('Invalid feed type.');
+		$HttpSocket = $syncTool->setupHttpSocketFeed($feed);
+		$resultArray = $this->Feed->getFreetextFeed($feed, $HttpSocket, $feed['Feed']['source_format']);
+		$resultArray = $this->Feed->getFreetextFeedCorrelations($resultArray);
+		// remove all duplicates
+		foreach ($resultArray as $k => $v) {
+			for ($i = 0; $i < $k; $i++) {
+				if (isset($resultArray[$i]) && $v == $resultArray[$i]) unset($resultArray[$k]);
+			}
+		}
+		$resultArray = array_values($resultArray);
+		$this->loadModel('Attribute');
+		$this->set('distributionLevels', $this->Attribute->distributionLevels);
+		$this->set('feed', $feed);
+		$this->set('attributes', $resultArray);
+		$this->render('freetext_index');
+	}
+	
+	private function __previewCSV($feed) {
+		App::uses('SyncTool', 'Tools');
+		$syncTool = new SyncTool();
+		if ($feed['Feed']['source_format'] != 'csv') throw new MethodNotAllowedException('Invalid feed type.');
 		$HttpSocket = $syncTool->setupHttpSocketFeed($feed);
 		$resultArray = $this->Feed->getFreetextFeed($feed, $HttpSocket);
 		$resultArray = $this->Feed->getFreetextFeedCorrelations($resultArray);
@@ -359,6 +397,9 @@ class FeedsController extends AppController {
 			throw new NotFoundException('Feed not found.');
 		}
 		$feed = $this->Feed->read();
+		if (!empty($feed['Feed']['settings'])) {
+			$feed['Feed']['settings'] = json_decode($feed['Feed']['settings'], true);
+		}
 		$data = json_decode($this->request->data['Feed']['data'], true);
 		$result = $this->Feed->saveFreetextFeedData($feed, $data, $this->Auth->user());
 		if ($result === true) {

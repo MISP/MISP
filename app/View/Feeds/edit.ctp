@@ -27,7 +27,7 @@
 					'class' => 'form-control span6'
 			));
 		?>
-		<div id="TargetDiv">
+		<div id="TargetDiv" class="optionalField">
 		<?php 
 			echo $this->Form->input('fixed_event', array(
 					'label' => 'Target Event',
@@ -37,7 +37,7 @@
 			));
 		?>
 		</div>
-		<div id="TargetEventDiv">
+		<div id="TargetEventDiv" class="optionalField">
 		<?php
 			echo $this->Form->input('target_event', array(
 					'label' => 'Target Event ID',
@@ -47,7 +47,18 @@
 			));
 		?>
 		</div>
-		<div id="PublishDiv" class="input clear">
+		<div id="settingsCsvValueDiv" class="optionalField">
+			<?php
+				echo $this->Form->input('Feed.settings.csv.value', array(
+						'label' => 'Value field(s) in the CSV',
+						'title' => 'Select one or several fields that should be parsed by the CSV parser and converted into MISP attributes',
+						'div' => 'input clear',
+						'placeholder' => '2,3,4 (column position separated by commas)',
+						'class' => 'form-control span6'
+				));
+			?>
+		</div>
+		<div id="PublishDiv" class="input clear optionalField">
 		<?php
 			echo $this->Form->input('publish', array(
 					'label' => 'Auto Publish',
@@ -56,7 +67,7 @@
 			));
 		?>
 		</div>
-		<div id="OverrideIdsDiv" class="input clear">
+		<div id="OverrideIdsDiv" class="input clear optionalField">
 		<?php
 			echo $this->Form->input('override_ids', array(
 					'label' => 'Override IDS Flag',
@@ -66,7 +77,7 @@
 			));
 		?>
 		</div>
-		<div id="DeltaMergeDiv" class="input clear">
+		<div id="DeltaMergeDiv" class="input clear optionalField">
 		<?php
 			echo $this->Form->input('delta_merge', array(
 					'label' => 'Delta Merge',
@@ -153,24 +164,4 @@ $(document).ready(function() {
 $("#FeedSourceFormat, #FeedFixedEvent").change(function() {
 	feedFormUpdate();
 });
-
-function feedFormUpdate() {
-	if ($('#FeedSourceFormat').val() == 'misp') {
-		$('#TargetDiv').hide();
-		$('#TargetEventDiv').hide();
-		$('#PublishDiv').hide();
-		$('#OverrideIdsDiv').hide();
-	} else if ($('#FeedSourceFormat').val() == 'freetext') {
-		$('#TargetDiv').show();
-		$('#OverrideIdsDiv').show();
-		$('#PublishDiv').show();
-		if ($('#FeedTarget').val() == 0) {
-			$('#TargetEventDiv').hide();
-			$('#DeltaMergeDiv').hide();
-		} else {
-			$('#TargetEventDiv').show();
-			$('#DeltaMergeDiv').show();
-		}
-	}
-}
 </script>

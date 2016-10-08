@@ -2546,6 +2546,31 @@ function malwareCheckboxSetter(context) {
 	$("#" + context + "Malware").prop('checked', formZipTypeValues[value] == "true");
 }
 
+function feedFormUpdate() {
+	$('.optionalField').hide();
+	switch($('#FeedSourceFormat').val()) {
+		case 'freetext':
+			$('#TargetDiv').show();
+			$('#OverrideIdsDiv').show();
+			$('#PublishDiv').show();
+			if ($('#FeedTarget').val() != 0) {
+				$('#TargetEventDiv').show();
+				$('#DeltaMergeDiv').show();
+			}
+			break;
+		case 'csv':
+			$('#TargetDiv').show();
+			$('#OverrideIdsDiv').show();
+			$('#PublishDiv').show();
+			if ($('#FeedTarget').val() != 0) {
+				$('#TargetEventDiv').show();
+				$('#DeltaMergeDiv').show();
+			}
+			$('#settingsCsvValueDiv').show();
+			break;
+	}
+}
+
 $('.servers_default_role_checkbox').click(function() {
 	var id = $(this).data("id");
 	var state = $(this).is(":checked");

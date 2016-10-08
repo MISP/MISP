@@ -2887,7 +2887,7 @@ class EventsController extends AppController {
 		if ($this->request->is('post')) {
 			App::uses('ComplexTypeTool', 'Tools');
 			$complexTypeTool = new ComplexTypeTool();
-			$resultArray = $complexTypeTool->checkComplexRouter($this->request->data['Attribute']['value'], 'FreeText');
+			$resultArray = $complexTypeTool->checkComplexRouter($this->request->data['Attribute']['value'], 'freetext');
 			foreach ($resultArray as $key => $r) {
 				$temp = array();
 				foreach ($r['types'] as $type) {

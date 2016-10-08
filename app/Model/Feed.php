@@ -45,6 +45,9 @@ class Feed extends AppModel {
 		),
 		'freetext' => array(
 			'name' => 'Freetext Parsed Feed'
+		),
+		'csv' => array(
+				'name' => 'Simple CSV Parsed Feed'
 		)
 	);
 	
@@ -97,13 +100,13 @@ class Feed extends AppModel {
 		return $events;
 	}
 	
-	public function getFreetextFeed($feed, $HttpSocket) {
+	public function getFreetextFeed($feed, $HttpSocket, $type = 'freetext') {
 		$result = array();
 		$response = $HttpSocket->get($feed['Feed']['url'], '', array());
 		if ($response->code == 200) {
 			App::uses('ComplexTypeTool', 'Tools');
 			$complexTypeTool = new ComplexTypeTool();
-			$resultArray = $complexTypeTool->checkComplexRouter($response->body, 'FreeText');
+			$resultArray = $complexTypeTool->checkComplexRouter($response->body, $type, isset($feed['Feed']['settings'][$type]) ? $feed['Feed']['settings'][$type] : array());
 		}
 		$this->Attribute = ClassRegistry::init('Attribute');
 		foreach ($resultArray as $key => $value) {
@@ -113,7 +116,6 @@ class Feed extends AppModel {
 	}
 	
 	public function getFreetextFeedCorrelations($data) {
-		$start = microtime(true);
 		$values = array();
 		foreach ($data as $key => $value) {
 			$values[] = $value['value'];
@@ -121,7 +123,9 @@ class Feed extends AppModel {
 		$this->Attribute = ClassRegistry::init('Attribute');
 		// Adding a 3rd parameter to a list find seems to allow grouping several results into a key. If we ran a normal list with value => event_id we'd only get exactly one entry for each value
 		// The cost of this method is orders of magnitude lower than getting all id - event_id - value triplets and then doing a double loop comparison
-		$correlations = $this->Attribute->find('list', array('conditions' => array('Attribute.value' => $values, 'Attribute.deleted' => 0), 'fields' => array('Attribute.event_id', 'Attribute.event_id', 'Attribute.value')));
+		$correlations = $this->Attribute->find('list', array('conditions' => array('Attribute.value1' => $values, 'Attribute.deleted' => 0), 'fields' => array('Attribute.event_id', 'Attribute.event_id', 'Attribute.value1')));
+		$correlations2 = $this->Attribute->find('list', array('conditions' => array('Attribute.value2' => $values, 'Attribute.deleted' => 0), 'fields' => array('Attribute.event_id', 'Attribute.event_id', 'Attribute.value2')));
+		$correlations = array_merge_recursive($correlations, $correlations2);
 		foreach ($data as $key => $value) {
 			if (isset($correlations[$value['value']])) {
 				$data[$key]['correlations'] = array_values($correlations[$value['value']]);
@@ -482,6 +486,7 @@ class Feed extends AppModel {
 			if (empty($event)) return 'The newly created event is no longer valid. Make sure that the target event exists.';
 			if ($feed['Feed']['fixed_event']) {
 				$feed['Feed']['event_id'] = $event['Event']['id'];
+				if (!empty($feed['Feed']['settings'])) $feed['Feed']['settings'] = json_encode($feed['Feed']['settings']);
 				$this->save($feed);
 			}
 		}

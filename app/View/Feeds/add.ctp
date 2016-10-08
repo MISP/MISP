@@ -143,26 +143,4 @@ $(document).ready(function() {
 $("#FeedSourceFormat, #FeedTarget").change(function() {
 	feedFormUpdate();
 });
-
-
-function feedFormUpdate() {
-	if ($('#FeedSourceFormat').val() == 'misp') {
-		$('#TargetDiv').hide();
-		$('#TargetEventDiv').hide();
-		$('#PublishDiv').hide();
-		$('#OverrideIdsDiv').hide();
-		$('#DeltaMergeDiv').hide();
-	} else if ($('#FeedSourceFormat').val() == 'freetext') {
-		$('#TargetDiv').show();
-		$('#OverrideIdsDiv').show();
-		$('#PublishDiv').show();
-		if ($('#FeedTarget').val() == 0) {
-			$('#TargetEventDiv').hide();
-			$('#DeltaMergeDiv').hide();
-		} else {
-			$('#TargetEventDiv').show();
-			$('#DeltaMergeDiv').show();
-		}
-	}
-}
 </script>

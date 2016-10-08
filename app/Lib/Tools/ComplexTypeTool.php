@@ -10,7 +10,7 @@ class ComplexTypeTool {
 		'/\.+/' => '.'
 	);
 
-	public function checkComplexRouter($input, $type) {
+	public function checkComplexRouter($input, $type, $settings = array()) {
 		switch ($type) {
 			case 'File':
 				return $this->checkComplexFile($input);
@@ -18,8 +18,11 @@ class ComplexTypeTool {
 			case 'CnC':
 				return $this->checkComplexCnC($input);
 				break;
-			case 'FreeText':
-				return $this->checkFreeText($input);
+			case 'freetext':
+				return $this->checkFreeText($input, $settings);
+				break;
+			case 'csv':
+				return $this->checkCSV($input, $settings);
 				break;
 			default:
 				return false;
@@ -72,8 +75,45 @@ class ComplexTypeTool {
 		foreach ($array as $k => $v) if ($k % 2 != 1) unset($array[$k]);
 		return array_values($array);
 	}
-
-	public function checkFreeText($input) {
+	
+	
+	/*
+	 * parse a CSV file with the given settings
+	 * All lines starting with # are stripped
+	 * The settings can contain the following:
+	 *     delimiter: Expects a delimiter string (default is a simple comma). 
+	 *                For example, to split the following line: "value1##comma##value2" simply pass $settings['delimiter'] = "##comma##";
+	 *     values:    Expects an array (or a comma separated string) with numeric values denoting the columns containing indicators. If this is not set then every value will be checked. (column numbers start at 1)
+	 */
+	public function checkCSV($input, $settings = array()) {
+		$delimiter = isset($settings['delimiter']) ? $settings['delimiter'] : ",";
+		$lines = explode("\n", $input);
+		$values = isset($settings['value']) ? $settings['value'] : array();
+		if (!is_array($values)) {
+			$values = explode(',', $values);
+		}
+		foreach ($values as $key => $value) {
+			$values[$key] = intval($value);
+		}
+		$iocArray = array();
+		foreach ($lines as $linePos => $line) {
+			$line = trim($line);
+			if (empty($line) || $line[0] === "#") continue;
+			$elements = explode($delimiter, $line);
+			foreach ($elements as $elementPos => $element) {
+				if ((!empty($values) && in_array(($elementPos + 1), $values)) || empty($values)) {
+					$element = trim($element, " \t\n\r\0\x0B\"\'");
+					$resolvedResult = $this->__resolveType($element);
+					if (!empty($resolvedResult)) {
+						$iocArray[] = $resolvedResult;
+					}
+				}
+			}
+		}
+		return $iocArray;
+	}
+	
+	public function checkFreeText($input, $settings = array()) {
 		$iocArray = preg_split("/\r\n|\n|\r|\s|\s+|,|;/", $input);
 		$quotedText = explode('"', $input);
 		foreach ($quotedText as $k => $temp) {
@@ -122,7 +162,7 @@ class ComplexTypeTool {
 						if (strlen($compositeParts[1]) == $k && preg_match("#[0-9a-f]{" . $k . "}$#i", $compositeParts[1])) return array('types' => $v['composite'], 'to_ids' => true, 'default_type' => $v['composite'][0]);
 					}
 					if (preg_match('#^[0-9]+:[0-9a-zA-Z\/\+]+:[0-9a-zA-Z\/\+]+$#', $compositeParts[1]) && !preg_match('#^[0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2}$#', $compositeParts[1])) {
-						return array('types' => array('ssdeep'), 'to_ids' => true, 'default_type' => 'filename|ssdeep');
+						return array('types' => array('ssdeep'), 'to_ids' => true, 'default_type' => 'filename|ssdeep', 'value' => $input);
 					}
 				}
 			}
@@ -132,12 +172,12 @@ class ComplexTypeTool {
 		foreach ($this->__hexHashTypes as $k => $v) {
 			if (strlen($input) == $k && preg_match("#[0-9a-f]{" . $k . "}$#i", $input)) return array('types' => $v['single'], 'to_ids' => true, 'default_type' => $v['single'][0]);
 		}
-		if (preg_match('#^[0-9]+:[0-9a-zA-Z\/\+]+:[0-9a-zA-Z\/\+]+$#', $input) && !preg_match('#^[0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2}$#', $input)) return array('types' => array('ssdeep'), 'to_ids' => true, 'default_type' => 'ssdeep');
+		if (preg_match('#^[0-9]+:[0-9a-zA-Z\/\+]+:[0-9a-zA-Z\/\+]+$#', $input) && !preg_match('#^[0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2}$#', $input)) return array('types' => array('ssdeep'), 'to_ids' => true, 'default_type' => 'ssdeep', 'value' => $input);
 		$inputRefanged = $input;
 		foreach ($this->__refangRegexTable as $regex => $replacement) $inputRefanged = preg_replace($regex, $replacement , $inputRefanged);
 		$inputRefanged = rtrim($inputRefanged, ".");
 		if (strpos($input, '@') !== false) {
-			if (filter_var($input, FILTER_VALIDATE_EMAIL)) return array('types' => array('email-src', 'email-dst'), 'to_ids' => true, 'default_type' => 'email-src');
+			if (filter_var($input, FILTER_VALIDATE_EMAIL)) return array('types' => array('email-src', 'email-dst'), 'to_ids' => true, 'default_type' => 'email-src', 'value' => $input);
 		}
 		// note down and remove the port if it's a url / domain name / hostname / ip
 		// input2 from here on is the variable containing the original input with the port removed. It is only used by url / domain name / hostname / ip
@@ -174,21 +214,21 @@ class ComplexTypeTool {
 					if (preg_match('/^https:\/\/(www.)?virustotal.com\//i', $inputRefangedNoPort)) return array('types' => array('link'), 'to_ids' => false, 'default_type' => 'link', 'comment' => $comment, 'value' => $inputRefangedNoPort);
 					if (strpos($inputRefangedNoPort, '/')) return array('types' => array('url'), 'to_ids' => true, 'default_type' => 'url', 'comment' => $comment, 'value' => $inputRefangedNoPort);
 				}
-				if ($this->__resolveFilename($input)) return array('types' => array('filename'), 'to_ids' => true, 'default_type' => 'filename');
+				if ($this->__resolveFilename($input)) return array('types' => array('filename'), 'to_ids' => true, 'default_type' => 'filename', 'value' => $inputRefanged);
 			}
 		}
 
 		if (strpos($input, '\\') !== false) {
 			$temp = explode('\\', $input);
 			if (strpos($temp[count($temp)-1], '.') || preg_match('/^.:/i', $temp[0])) {
-				if ($this->__resolveFilename($temp[count($temp)-1])) return array('types' => array('filename'), 'categories' => array('Payload installation'), 'to_ids' => true, 'default_type' => 'filename');
+				if ($this->__resolveFilename($temp[count($temp)-1])) return array('types' => array('filename'), 'categories' => array('Payload installation'), 'to_ids' => true, 'default_type' => 'filename', 'value' => $input);
 			} else {
-				return array('types' => array('regkey'), 'to_ids' => false, 'default_type' => 'regkey');
+				return array('types' => array('regkey'), 'to_ids' => false, 'default_type' => 'regkey', 'value' => $input);
 			}
 		}
 
 		// check for CVE
-		if (preg_match("#^cve-[0-9]{4}-[0-9]{4,9}$#i", $input)) return array('types' => array('vulnerability'), 'categories' => array('External analysis'), 'to_ids' => false, 'default_type' => 'vulnerability');
+		if (preg_match("#^cve-[0-9]{4}-[0-9]{4,9}$#i", $input)) return array('types' => array('vulnerability'), 'categories' => array('External analysis'), 'to_ids' => false, 'default_type' => 'vulnerability', 'value' => $input);
 
 		return false;
 	}
