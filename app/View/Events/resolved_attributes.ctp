@@ -29,12 +29,13 @@
 				<th>Similar Attributes</th>
 				<th>Category</th>
 				<th>Type</th>
-				<th>IDS<input type="checkbox" id="checkAll" style="margin:0px;margin-left:3px;"/></th>
+				<th>IDS<input type="checkbox" id="checkAll" style="margin:0;margin-left:3px;"/></th>
 				<th>Comment</th>
 				<th>Actions</th>
 		</tr>
 		<?php
 			$options = array();
+			$allTypes = array();
 			foreach ($resultArray as $k => $item):
 		?>
 		<tr id="row_<?php echo $k; ?>" class="freetext_row">
@@ -60,7 +61,7 @@
 					echo $this->Form->input('Attribute' . $k . 'Value', array(
 							'label' => false,
 							'value' => h($item['value']),
-							'style' => 'padding:0px;height:20px;margin-bottom:0px;width:90%;',
+							'style' => 'padding:0;height:20px;margin-bottom:0;width:90%;',
 							'div' => false
 					));
 				?>
@@ -103,17 +104,17 @@
 
 					}
 				?>
-				<select id="<?php echo 'Attribute' . $k . 'Category'; ?>" style='padding:0px;height:20px;margin-bottom:0px;'>
-					<?php
-						foreach ($typeCategoryMapping[$item['default_type']] as $category) {
-							if (isset($item['categories']) && !in_array($category, $item['categories'])) {
-								continue;
-							}
-							echo '<option value="' . $category . '" ';
-							if ($category == $default) echo 'selected="selected"';
-							echo '>' . $category . '</option>';
+				<select id="<?php echo 'Attribute' . $k . 'Category'; ?>" style="padding:0;height:20px;margin-bottom:0;">
+				<?php
+					foreach ($typeCategoryMapping[$item['default_type']] as $category) {
+						if (isset($item['categories']) && !in_array($category, $item['categories'])) {
+							continue;
 						}
-					?>
+						echo '<option value="' . $category . '" ';
+						if ($category == $default) echo 'selected="selected"';
+						echo '>' . $category . '</option>';
+					}
+				?>
 				</select>
 			</td>
 			<td class="short">
@@ -128,9 +129,10 @@
 					}
 				?>
 				<div id = "<?php echo 'Attribute' . $k . 'TypeStatic'; ?>" <?php echo $divVisibility; ?> ><?php echo h($item['default_type']); ?></div>
-				<select id = "<?php echo 'Attribute' . $k . 'Type'; ?>" class='typeToggle' style='padding:0px;height:20px;margin-bottom:0px;<?php echo $selectVisibility; ?>'>
+				<select id = "<?php echo 'Attribute' . $k . 'Type'; ?>" class="typeToggle" style="padding:0px;height:20px;margin-bottom:0px;<?php echo $selectVisibility; ?>">
 					<?php
 						foreach ($item['types'] as $type) {
+							if (!in_array($type, $allTypes))	$allTypes[$type] = $type;
 							echo '<option value="' . $type . '" ';
 							echo ($type == $item['default_type'] ? 'selected="selected"' : '') . '>' . $type . '</option>';
 						}
@@ -194,9 +196,40 @@
 	</span>
 </div>
 	<script>
+		var type_category_mapping = [];
+	<?php
+		// Categories per Type
+		foreach ($allTypes as $type => $def) {
+			echo "type_category_mapping['" . addslashes($type) . "'] = {";
+			$first = true;
+			$pos = strpos($type, '/');
+			if ($pos !== false) {//this should be extended to include the categories of the both types (rec)
+				$type = explode('/', $type);
+				$type = $type[0];
+			}
+			if (isset($typeCategoryMapping[$type]))
+				foreach ($typeCategoryMapping[$type] as $category => $def) {
+					if ($first) $first = false;
+					else echo ', ';
+					echo "'" . addslashes($category) . "' : '" . addslashes($category) . "'";
+				}
+			echo "}; \n";
+		}
+	?>
 		var options = <?php echo json_encode($optionsRearranged);?>;
 		$(document).ready(function(){
 			popoverStartup();
+			$('.typeToggle').change(function () {
+				var categorySelect = $('#'+$(this).attr('id').replace("Type", "Category"));
+				categorySelect.empty();
+				var options = categorySelect.prop('options');
+				$.each(type_category_mapping[$(this).val()], function(val, text) {
+					options[options.length] = new Option(text, val);
+					if (typeof alreadySelected != 'undefined' && val == alreadySelected) {
+						options[options.length-1].selected = true;
+					}
+				});
+			});
 	<?php
 		if (!empty($optionsRearranged)):
 	?>
@@ -215,3 +248,5 @@
 <?php
 	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'freetextResults'));
 ?>
+<?php echo $this->Js->writeBuffer(); // Write cached scripts ?>
+
