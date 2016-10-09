@@ -439,7 +439,7 @@ class Feed extends AppModel {
 				$job->id = $jobId;
 				$job->saveField('message', 'Fetching data.');
 			}
-			$data = $this->getFreetextFeed($this->data, $HttpSocket);
+			$data = $this->getFreetextFeed($this->data, $HttpSocket, $this->data['Feed']['source_format']);
 			foreach ($data as $key => $value) {
 				$data[$key] = array(
 					'category' => $value['category'],
