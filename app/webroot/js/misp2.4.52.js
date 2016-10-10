@@ -2529,14 +2529,15 @@ function getFormInfoContent(property, field) {
 	return content;
 }
 
-function formCategoryChanged(context) {
-	var options = $('#' + context + 'Type').prop('options');
-	$('option', $('#' + context + 'Type')).remove();
-	$.each(category_type_mapping[$('#' + context + 'Category').val()], function(val, text) {
+function formCategoryChanged(id) {
+	// fill in the types
+	var options = $('#AttributeType').prop('options');
+	$('option', $('#AttributeType')).remove();
+	$.each(category_type_mapping[$('#AttributeCategory').val()], function(val, text) {
 		options[options.length] = new Option(text, val);
 	});
 	// enable the form element
-	$('#' + context + 'Type').prop('disabled', false);
+	$('#AttributeType').prop('disabled', false);
 }
 
 function malwareCheckboxSetter(context) {

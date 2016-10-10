@@ -95,17 +95,6 @@ var category_type_mapping = new Array();
 	}
 ?>
 
-function formCategoryChanged(id) {
-	// fill in the types
-	var options = $('#AttributeType').prop('options');
-	$('option', $('#AttributeType')).remove();
-	$.each(category_type_mapping[$('#AttributeCategory').val()], function(val, text) {
-		options[options.length] = new Option(text, val);
-	});
-	// enable the form element
-	$('#AttributeType').prop('disabled', false);
-}
-
 $(document).ready(function() {
 	initPopoverContent('Attribute');
 	$('#AttributeDistribution').change(function() {
