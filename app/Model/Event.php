@@ -1760,7 +1760,7 @@ class Event extends AppModel {
 		// For this we first collect all the sharing groups
 		$sgs = array();
 		if ($data['Event']['distribution'] == 4) $sgs[$data['Event']['SharingGroup']['uuid']] = $data['Event']['SharingGroup'];
-		if (isset($data['Event']['Attribute'])) {
+		if (isset($data['Event']['Attribute']) && !empty($data['Event']['Attribute'])) {
 			if (!isset($data['Event']['Attribute'][0])) $data['Event']['Attribute'] = array(0 => $data['Event']['Attribute']);
 			foreach ($data['Event']['Attribute'] as &$attribute) {
 				if (isset($attribute['SharingGroup']) && !empty($attribute['SharingGroup']) && isset($attribute['SharingGroup'][0])) $attribute['SharingGroup'] = $attribute['SharingGroup'][0];
@@ -1897,7 +1897,7 @@ class Event extends AppModel {
 					$this->EventTag->save($et);
 				}
 			}
-			if (isset($data['Event']['Attribute'])) {
+			if (isset($data['Event']['Attribute']) && !empty($data['Event']['Attribute'])) {
 				foreach ($data['Event']['Attribute'] as $k => &$attribute) {
 					$attribute['event_id'] = $this->id;
 					unset($attribute['id']);
