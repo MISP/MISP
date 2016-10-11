@@ -513,7 +513,7 @@ Content-type: application/json
 <b>searcheventid</b>: Filters on specific event IDs - negatable<br />
 <b>searchthreatlevel</b>: Filters on a given event threat level [1,2,3,4] - negatable<br />
 <b>searchdistribution</b>: Filters on the distribution level [0,1,2,3] - negatable<br />
-<b>searchanalysis</b>: Filters on the given analysis phase of the event [0,1,2,3] - negatable<br />
+<b>searchanalysis</b>: Filters on the given analysis phase of the event [0,1,2] - negatable<br />
 <b>searchattribute</b>: Filters on a contained attribute value - negatable<br />
 <b>searchorg</b>: Filters on the creator organisation - negatable<br />
 <b>searchemail</b>: Filters on the creator user's email address (admin only) - negatable<br />
