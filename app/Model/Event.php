@@ -371,8 +371,10 @@ class Event extends AppModel {
 					$this->data['Event']['analysis'] = 2;
 					break;
 			}
+		} else {
+			$this->data['Event']['analysis'] = 0;
 		}
-		if (!isset($this->data['Event']['threat_level_id'])) $this->data['Event']['threat_level_id'] = Configure::read('MISP.default_event_threat_level') ? Configure::read('MISP.default_event_threat_level') : '1';
+		if (!isset($this->data['Event']['threat_level_id'])) $this->data['Event']['threat_level_id'] = Configure::read('MISP.default_event_threat_level') ? Configure::read('MISP.default_event_threat_level') : 4;
 
 		// generate UUID if it doesn't exist
 		if (empty($this->data['Event']['uuid'])) {
