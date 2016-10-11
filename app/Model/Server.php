@@ -399,7 +399,7 @@ class Server extends AppModel {
 					'default_event_threat_level' => array(
 							'level' => 1,
 							'description' => 'The default threat level setting when creating events.',
-							'value' => '1',
+							'value' => '4',
 							'errorMessage' => '',
 							'test' => 'testForEmpty',
 							'type' => 'string',
