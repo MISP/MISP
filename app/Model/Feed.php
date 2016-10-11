@@ -26,16 +26,12 @@ class Feed extends AppModel {
 			'rule' => array('url'),
 			'message' => 'Please enter a valid url.',
 		),
-		'provider' => array(
-			'valueNotEmpty' => array(
-				'rule' => array('valueNotEmpty'),
-			),
-		),
-		'name' => array(
-				'valueNotEmpty' => array(
-						'rule' => array('valueNotEmpty'),
-				),
-		),
+		'provider' => 'valueNotEmpty',
+		'name' => 'valueNotEmpty',
+		'event_id' => array(
+			'rule' => array('numeric'),
+			'message' => 'Please enter a numeric event ID or leave this field blank.',
+		)
 	);
 	
 	// currently we only have an internal name and a display name, but later on we can expand this with versions, default settings, etc
