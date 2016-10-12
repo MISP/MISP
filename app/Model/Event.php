@@ -1892,6 +1892,21 @@ class Event extends AppModel {
 		$saveResult = $this->save(array('Event' => $data['Event']), array('fieldList' => $fieldList['Event']));
 		$this->Log = ClassRegistry::init('Log');
 		if ($saveResult) {
+			if ($passAlong) {
+				$this->Server = ClassRegistry::init('Server');
+				$server = $this->Server->find('first', array('conditions' => array('Server.id' => $passAlong), 'recursive' => -1, 'fields' => array('Server.name', 'Server.id')));
+				$this->Log->create();
+				$this->Log->save(array(
+						'org' => $user['Organisation']['name'],
+						'model' => 'Event',
+						'model_id' => $saveResult['Event']['id'],
+						'email' => $user['email'],
+						'action' => 'add',
+						'user_id' => $user['id'],
+						'title' => 'Event pulled from Server(' . $server['Server']['id'] . ') - "' . $server['Server']['name'] . '"',
+						'change' => ''
+				));
+			}
 			if (isset($data['Event']['EventTag'])) {
 				foreach ($data['Event']['EventTag'] as $et) {
 					$this->EventTag->create();
