@@ -310,6 +310,9 @@ class TagsController extends AppController {
 				$options[$tag['FavouriteTag']['tag_id']] = $tag['Tag']['name'];
 				$expanded = $options;
 			}
+		} else if ($taxonomy_id === 'all') {
+			$options = $this->Tag->find('list', array('fields' => array('Tag.name'), 'conditions' => array('Tag.org_id' => array(0, $this->Auth->user('org_id')))));
+			$expanded = $options;
 		} else {
 			$taxonomies = $this->Taxonomy->getTaxonomy($taxonomy_id);
 			$options = array();

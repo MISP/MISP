@@ -10,6 +10,9 @@
 			<tr style="border-bottom:1px solid black;" class="templateChoiceButton">
 				<td style="padding-left:10px;padding-right:10px; text-align:center;width:100%;" onClick="getPopup('<?php echo h($event_id); ?>/0', 'tags', 'selectTag');">Custom Tags</td>
 			</tr>
+			<tr style="border-bottom:1px solid black;" class="templateChoiceButton">
+				<td style="padding-left:10px;padding-right:10px; text-align:center;width:100%;" onClick="getPopup('<?php echo h($event_id); ?>/all', 'tags', 'selectTag');">All Tags</td>
+			</tr>
 		<?php foreach ($options as $k => &$option): ?>
 			<tr style="border-bottom:1px solid black;" class="templateChoiceButton">
 				<td style="padding-left:10px;padding-right:10px; text-align:center;width:100%;" onClick="getPopup('<?php echo h($event_id); ?>/<?php echo h($k);?>', 'tags', 'selectTag');">Taxonomy Library: <?php echo h($option); ?></td>
