@@ -102,7 +102,7 @@ class FeedsController extends AppController {
 					}
 				}
 			}
-			$this->request->data['Feed']['event_id'] = $this->request->data['Feed']['fixed_event'] ? $this->request->data['Feed']['target_event'] : 0;
+			$this->request->data['Feed']['event_id'] = empty($this->request->data['Feed']['fixed_event']) ? $this->request->data['Feed']['target_event'] : 0;
 			if (!isset($this->request->data['Feed']['settings'])) {
 				$this->request->data['Feed']['settings'] = array();
 			}
