@@ -102,7 +102,7 @@ class FeedsController extends AppController {
 					}
 				}
 			}
-			$this->request->data['Feed']['event_id'] = empty($this->request->data['Feed']['fixed_event']) ? $this->request->data['Feed']['target_event'] : 0;
+			$this->request->data['Feed']['event_id'] = !empty($this->request->data['Feed']['fixed_event']) ? $this->request->data['Feed']['target_event'] : 0;
 			if (!isset($this->request->data['Feed']['settings'])) {
 				$this->request->data['Feed']['settings'] = array();
 			}
@@ -114,8 +114,9 @@ class FeedsController extends AppController {
 			if ($result) {
 				$this->Session->setFlash('Feed updated.');
 				$this->redirect(array('controller' => 'feeds', 'action' => 'index'));
+			} else {
+				$this->Session->setFlash('Feed could not be updated. Invalid fields: ' . implode(', ', array_keys($this->Feed->validationErrors)));
 			}
-			else $this->Session->setFlash('Feed could not be updated.');
 		} else {
 			if (!isset($this->request->data['Feed'])) {
 				$this->request->data = $this->Feed->data;
