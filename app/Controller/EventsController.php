@@ -873,7 +873,7 @@ class EventsController extends AppController {
 		if (empty($results)) throw new NotFoundException('Invalid event');
 		//if the current user is an org admin AND event belongs to his/her org, fetch also the event creator info
 		if ($this->userRole['perm_admin'] && !$this->_isSiteAdmin() && ($results[0]['Org']['id'] == $this->Auth->user('org_id'))) {
-			$results[0]['User']['email'] = $this->User->field('email', array('id' , $results[0]['Event']['user_id']));
+			$results[0]['User']['email'] = $this->User->field('email', array('id' => $results[0]['Event']['user_id']));
 		}
 		$event = $results[0];
 		if ($this->_isRest()) {
