@@ -1726,7 +1726,9 @@ class Attribute extends AppModel {
 		if ($element['complex']) {
 			App::uses('ComplexTypeTool', 'Tools');
 			$complexTypeTool = new ComplexTypeTool();
-			$result = $complexTypeTool->checkComplexRouter($value, ucfirst($element['type']));
+			$this->loadModel('Warninglist');
+			$IANATLDEntries = $this->Warninglist->getAllIANAEntries();
+			$result = $complexTypeTool->checkComplexRouter($value, ucfirst($element['type'], $IANATLDEntries));
 			if (isset($result['multi'])) {
 				$temp = $attribute;
 				$attribute = array();

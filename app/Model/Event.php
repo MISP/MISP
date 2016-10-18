@@ -2759,6 +2759,8 @@ class Event extends AppModel {
 		$freetextResults = array();
 		App::uses('ComplexTypeTool', 'Tools');
 		$complexTypeTool = new ComplexTypeTool();
+		$this->loadModel('Warninglist');
+		$IANATLDEntries = $this->Warninglist->getAllIANAEntries();
 		if (isset($result['results']) && !empty($result['results'])) {
 			foreach ($result['results'] as $k => &$r) {
 				if (!is_array($r['values'])) {
@@ -2778,7 +2780,7 @@ class Event extends AppModel {
 				foreach ($r['values'] as &$value) {
 					if (in_array('freetext', $r['types'])) {
 						if (is_array($value)) $value = json_encode($value);
-						$freetextResults = array_merge($freetextResults, $complexTypeTool->checkComplexRouter($value, 'FreeText'));
+						$freetextResults = array_merge($freetextResults, $complexTypeTool->checkComplexRouter($value, 'FreeText', $IANATLDEntries));
 						if (!empty($freetextResults)) {
 							foreach ($freetextResults as &$ft) {
 								$temp = array();
