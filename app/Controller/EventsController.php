@@ -1008,6 +1008,18 @@ class EventsController extends AppController {
 						is_uploaded_file($this->data['Event']['submittedgfi']['tmp_name'])) {
 					$this->Session->setFlash(__('You may only upload GFI Sandbox zip files.'));
 				} else {
+					if (!isset($this->request->data['Event']['distribution'])) {
+						$this->request->data['Event']['distribution'] = Configure::read('MISP.default_event_distribution') ? Configure::read('MISP.default_event_distribution') : 0;  
+					}
+					if (!isset($this->request->data['Event']['analysis'])) {
+						$this->request->data['Event']['analysis'] = 0;
+					}
+					if (!isset($this->request->data['Event']['threat_level_id'])) {
+						$this->request->data['Event']['threat_level_id'] = Configure::read('MISP.default_event_threat_level') ? Configure::read('MISP.default_event_threat_level') : 4;
+					}
+					if (!isset($this->request->data['Event']['date'])) {
+						$this->request->data['Event']['date'] = date('Y-m-d');
+					}
 					// If the distribution is set to sharing group, check if the id provided is really visible to the user, if not throw an error.
 					if ($this->request->data['Event']['distribution'] == 4) {
 						if ($this->userRole['perm_sync'] && $this->_isRest()) {
