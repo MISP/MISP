@@ -35,6 +35,7 @@
 		</tr>
 		<?php
 			$options = array();
+			$allTypes = array();
 			foreach ($resultArray as $k => $item):
 		?>
 		<tr id="row_<?php echo $k; ?>" class="freetext_row">
@@ -131,6 +132,8 @@
 				<select id = "<?php echo 'Attribute' . $k . 'Type'; ?>" class='typeToggle' style='padding:0px;height:20px;margin-bottom:0px;<?php echo $selectVisibility; ?>'>
 					<?php
 						foreach ($item['types'] as $type) {
+							if (!in_array($type, $allTypes))
+								$allTypes[$type] = $type;
 							echo '<option value="' . $type . '" ';
 							echo ($type == $item['default_type'] ? 'selected="selected"' : '') . '>' . $type . '</option>';
 						}
@@ -194,9 +197,41 @@
 	</span>
 </div>
 	<script>
+		var type_category_mapping = [];
+		<?php
+		// Categories per Type
+		foreach ($allTypes as $type => $def) {
+			echo "type_category_mapping['" . addslashes($type) . "'] = {";
+			$first = true;
+			$pos = strpos($type, '/');
+			if ($pos !== false) {//this should be extended to include the categories of the both types (rec)
+				$type = explode('/', $type);
+				$type = $type[0];
+			}
+			if (isset($typeCategoryMapping[$type]))
+				foreach ($typeCategoryMapping[$type] as $category => $def) {
+					if ($first) $first = false;
+					else echo ', ';
+					echo "'" . addslashes($category) . "' : '" . addslashes($category) . "'";
+				}
+			echo "}; \n";
+		}
+		?>
 		var options = <?php echo json_encode($optionsRearranged);?>;
 		$(document).ready(function(){
 			popoverStartup();
+			$('.typeToggle').change(function () {
+				var categorySelect = $('#'+$(this).attr('id').replace("Type", "Category"));
+				var alreadySelected = categorySelect.val();
+				categorySelect.empty();
+				var options = categorySelect.prop('options');
+				$.each(type_category_mapping[$(this).val()], function(val, text) {
+					options[options.length] = new Option(text, val);
+					if (typeof alreadySelected != 'undefined' && val == alreadySelected) {
+						options[options.length-1].selected = true;
+					}
+				});
+			});
 	<?php
 		if (!empty($optionsRearranged)):
 	?>
@@ -215,3 +250,4 @@
 <?php
 	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'freetextResults'));
 ?>
+<?php echo $this->Js->writeBuffer(); // Write cached scripts ?>

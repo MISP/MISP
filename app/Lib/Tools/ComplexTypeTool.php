@@ -10,7 +10,7 @@ class ComplexTypeTool {
 		'/\.+/' => '.'
 	);
 
-	public function checkComplexRouter($input, $type, $settings = array()) {
+	public function checkComplexRouter($input, $type, $settings = array(), $IANATLDEntries) {
 		switch ($type) {
 			case 'File':
 				return $this->checkComplexFile($input);
@@ -19,7 +19,10 @@ class ComplexTypeTool {
 				return $this->checkComplexCnC($input);
 				break;
 			case 'freetext':
-				return $this->checkFreeText($input, $settings);
+				$IANATLDEntriesStr = "";
+				if (is_array($IANATLDEntries) && count($IANATLDEntries)>1)
+					$IANATLDEntriesStr = implode("|", $IANATLDEntries);
+				return $this->checkFreeText($input, $settings, $IANATLDEntriesStr);
 				break;
 			case 'csv':
 				return $this->checkCSV($input, $settings);
@@ -113,7 +116,7 @@ class ComplexTypeTool {
 		return $iocArray;
 	}
 	
-	public function checkFreeText($input, $settings = array()) {
+	public function checkFreeText($input, $settings = array(), $IANATLDEntries) {
 		$iocArray = preg_split("/\r\n|\n|\r|\s|\s+|,|;/", $input);
 		$quotedText = explode('"', $input);
 		foreach ($quotedText as $k => $temp) {
@@ -133,7 +136,7 @@ class ComplexTypeTool {
 				$ioc = trim($ioc, ',');
 				$ioc = preg_replace('/\p{C}+/u', '', $ioc);
 				if (empty($ioc)) continue;
-				$typeArray = $this->__resolveType($ioc);
+				$typeArray = $this->__resolveType($ioc, $IANATLDEntries);
 				if ($typeArray === false) continue;
 				$temp = $typeArray;
 				if (!isset($temp['value'])) $temp['value'] = $ioc;
@@ -152,7 +155,7 @@ class ComplexTypeTool {
 		128 => array('single' => array('sha512'), 'composite' => array('filename|sha512'))
 	);
 
-	private function __resolveType($input) {
+	private function __resolveType($input, $IANATLDEntries) {
 		$input = trim($input);
 		if (strpos($input, '|')) {
 			$compositeParts = explode('|', $input);
@@ -200,6 +203,16 @@ class ComplexTypeTool {
 			$temp = explode('.', $inputRefanged);
 			// TODO: use a more flexible matching approach, like the one below (that still doesn't support non-ASCII domains)
 			//if (filter_var($input, FILTER_VALIDATE_URL)) {
+
+			// check for the new TLDs as known by IANA (if the Warninglists are not empty and enabled)
+			if (!empty($IANATLDEntries) && preg_match('/^([-\pL\pN]+\.)+([a-z]{2,25})(\:[0-9]{2,5})?$/iu', $inputRefanged) > 0) {
+				$stringEnd = $temp[count($temp)-1];
+				$types = array('filename');
+				if (strpos($IANATLDEntries, $stringEnd) !== false) $types[] = 'domain';
+				if (count($temp) > 2) $types[] = 'url';
+				return array('types' => $types, 'to_ids' => true, 'default_type' => 'domain', 'merge_categories' => true);
+			}
+
 			if (preg_match('/^([-\pL\pN]+\.)+([a-z][a-z]|biz|cat|com|edu|gov|int|mil|net|org|pro|tel|aero|arpa|asia|coop|info|jobs|mobi|name|museum|travel)(:[0-9]{2,5})?$/iu', $inputRefanged)) {
 				if (count($temp) > 2) {
 					return array('types' => array('hostname', 'domain', 'url'), 'to_ids' => true, 'default_type' => 'hostname', 'comment' => $comment, 'value' => $inputRefangedNoPort);
