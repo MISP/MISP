@@ -3596,7 +3596,7 @@ class EventsController extends AppController {
 				$image = Configure::read('MISP.baseurl') . '/img/orgs/MISP.png';
 			}
 			$json['nodes'][] = array(
-					'name' => strlen($event[0]['Event']['info']) > 32 ? substr($event[0]['Event']['info'], 0, 31) . '...' : $event[0]['Event']['info'],
+					'name' => '(' . $id . ') ' . (strlen($event[0]['Event']['info']) > 32 ? substr($event[0]['Event']['info'], 0, 31) . '...' : $event[0]['Event']['info']),
 					'type' => 'event',
 					'id' => $id, 'expanded' => 1,
 					'image' => $image,
@@ -3646,7 +3646,7 @@ class EventsController extends AppController {
 								$image = '/img/orgs/MISP.png';
 							}
 							$json['nodes'][] = array(
-									'name' => strlen($relatedEvents[$relation['id']]['Event']['info']) > 32 ? substr($relatedEvents[$relation['id']]['Event']['info'], 0, 31) . '...' : $relatedEvents[$relation['id']]['Event']['info'],
+									'name' => '(' . $relation['id'] . ') ' . (strlen($relatedEvents[$relation['id']]['Event']['info']) > 32 ? substr($relatedEvents[$relation['id']]['Event']['info'], 0, 31) . '...' : $relatedEvents[$relation['id']]['Event']['info']),
 									'type' => 'event', 'id' => $relation['id'],
 									'expanded' => 0, 'image' => $image,
 									'info' => $relatedEvents[$relation['id']]['Event']['info'],
