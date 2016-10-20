@@ -630,20 +630,20 @@ class AppController extends Controller {
 				} else {
 					// User not authenticated correctly
 					// reset the session information
-					$this->Session->destroy();
 					$this->Log = ClassRegistry::init('Log');
 					$this->Log->create();
 					$log = array(
-						'org' => 'SYSTEM',
-						'model' => 'User',
-						'model_id' => 0,
-						'email' => 'SYSTEM',
-						'action' => 'auth_fail',
-						'title' => 'Failed authentication using external key (' . trim($server[$headerNamespace . $header]) . ')',
-						'change' => null,
+							'org' => 'SYSTEM',
+							'model' => 'User',
+							'model_id' => 0,
+							'email' => 'SYSTEM',
+							'action' => 'auth_fail',
+							'title' => 'Failed authentication using external key (' . trim($server[$headerNamespace . $header]) . ')',
+							'change' => null,
 					);
 					$this->Log->save($log);
 					if (Configure::read('CustomAuth_required')) {
+						$this->Session->destroy();
 						$this->__preAuthException($authName . ' authentication failed. Contact your MISP support for additional information at: ' . Configure::read('MISP.contact'));
 					}
 				}
