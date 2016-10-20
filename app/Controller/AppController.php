@@ -588,7 +588,8 @@ class AppController extends Controller {
 			$header = Configure::read('Plugin.CustomAuth_header') ? Configure::read('Plugin.CustomAuth_header') : 'Authorization';
 			$header = strtoupper($header);
 			$authName = Configure::read('Plugin.CustomAuth_name') ? Configure::read('Plugin.CustomAuth_name') : 'External authentication';
-			if (isset($server['HTTP_' . $header]) && !empty($server['HTTP_' . $header])) {
+			$headerNamespace = Configure::read('Plugin.CustomAuth_use_header_namespace') ? (Configure::read('Plugin.CustomAuth_header_namespace') ? Configure::read('Plugin.CustomAuth_header_namespace') : 'HTTP_') : '';
+			if (isset($server[$headerNamespace . $header]) && !empty($server[$headerNamespace . $header])) {
 				if (Configure::read('Plugin.CustomAuth_only_allow_source') && Configure::read('Plugin.CustomAuth_only_allow_source') !== $server['REMOTE_ADDR']) {
 					$this->Log = ClassRegistry::init('Log');
 					$this->Log->create();
@@ -598,13 +599,13 @@ class AppController extends Controller {
 							'model_id' => 0,
 							'email' => 'SYSTEM',
 							'action' => 'auth_fail',
-							'title' => 'Failed authentication using external key (' . trim($server['HTTP_' . $header]) . ') - the user has not arrived from the expected address. Instead the request came from: ' . $server['REMOTE_ADDR'],
+							'title' => 'Failed authentication using external key (' . trim($server[$headerNamespace . $header]) . ') - the user has not arrived from the expected address. Instead the request came from: ' . $server['REMOTE_ADDR'],
 							'change' => null,
 					);
 					$this->Log->save($log);
 					$this->__preAuthException($authName . ' authentication failed. Contact your MISP support for additional information at: ' . Configure::read('MISP.contact'));
 				}
-				$temp = $this->checkExternalAuthUser($server['HTTP_' . $header]);
+				$temp = $this->checkExternalAuthUser($server[$headerNamespace . $header]);
 				$user['User'] = $temp;
 				if ($user['User']) {
 					unset($user['User']['gpgkey']);
@@ -638,7 +639,7 @@ class AppController extends Controller {
 						'model_id' => 0,
 						'email' => 'SYSTEM',
 						'action' => 'auth_fail',
-						'title' => 'Failed authentication using external key (' . trim($server['HTTP_' . $header]) . ')',
+						'title' => 'Failed authentication using external key (' . trim($server[$headerNamespace . $header]) . ')',
 						'change' => null,
 					);
 					$this->Log->save($log);

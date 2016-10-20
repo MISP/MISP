@@ -1030,6 +1030,24 @@ class Server extends AppModel {
 							'type' => 'string',
 							'null' => true
 					),
+					'CustomAuth_use_header_namespace' => array(
+							'level' => 2,
+							'description' => 'Use a header namespace for the auth header - default setting is enabled',
+							'value' => true,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+							'null' => true
+					),
+					'CustomAuth_header_namespace' => array(
+							'level' => 2,
+							'description' => 'The default header namespace for the auth header - default setting is HTTP_',
+							'value' => 'HTTP_',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+							'null' => true
+					),
 					'CustomAuth_required' => array(
 							'level' => 2,
 							'description' => 'If this setting is enabled then the only way to authenticate will be using the custom header. Altnertatively you can run in mixed mode that will log users in via the header if found, otherwise users will be redirected to the normal login page.',
