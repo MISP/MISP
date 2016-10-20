@@ -643,7 +643,9 @@ class AppController extends Controller {
 						'change' => null,
 					);
 					$this->Log->save($log);
-					$this->__preAuthException($authName . ' authentication failed. Contact your MISP support for additional information at: ' . Configure::read('MISP.contact'));
+					if (Configure::read('CustomAuth_required')) {
+						$this->__preAuthException($authName . ' authentication failed. Contact your MISP support for additional information at: ' . Configure::read('MISP.contact'));
+					}
 				}
 			}
 		}
