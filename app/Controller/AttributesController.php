@@ -1238,12 +1238,14 @@ class AttributesController extends AppController {
 						if ($saveWord[0] == '!') {
 							if (strlen(substr($saveWord, 1)) == 36) {
 								$temp[] = array('Event.uuid !=' => substr($saveWord, 1));
+								$temp[] = array('Attribute.uuid !=' => substr($saveWord, 1));
 							} else {
 								$temp[] = array('Attribute.event_id !=' => substr($saveWord, 1));
 							}
 						} else {
 							if (strlen($saveWord) == 36) {
 								$temp['OR'][] = array('Event.uuid =' => $saveWord);
+								$temp['OR'] = array('Attribute.uuid' => $saveWord);
 							} else {
 								$temp['OR'][] = array('Attribute.event_id =' => $saveWord);
 							}
