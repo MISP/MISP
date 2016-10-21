@@ -28,10 +28,10 @@
 		<?php endif; ?>
 		<th title="Attribute Count"><?php echo $this->Paginator->sort('attribute_count', '#Attr.');?></th>
 		<?php if (Configure::read('MISP.showCorrelationsOnIndex')):?>
-			<th title="Sigthing Count"><?php echo $this->Paginator->sort('correlation_count', '#Corr.');?></th>
+			<th title="Correlation Count"><?php echo $this->Paginator->sort('correlation_count', '#Corr.');?></th>
 		<?php endif; ?>
 		<?php if (Configure::read('MISP.showSightingsCountOnIndex') && Configure::read('Plugin.Sightings_enable')):?>
-			<th><?php echo $this->Paginator->sort('sighting_count', '#Sightings');?></th>
+			<th title="Sigthing Count"><?php echo $this->Paginator->sort('sighting_count', '#Sightings');?></th>
 		<?php endif; ?>
 		<?php if (Configure::read('MISP.showProposalsOnIndex')):?>
 			<th title="Proposal Count"><?php echo $this->Paginator->sort('proposal_count', '#Prop.');?></th>
