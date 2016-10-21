@@ -199,9 +199,9 @@
 					<?php if ($mayModify): ?>
 						<td class="<?php echo $extra; ?>" style="width:10px;">
 							<?php if ($object['objectType'] == 0): ?>
-								<input id = "select_<?php echo $object['id']; ?>" class="select_attribute" type="checkbox" data-id="<?php echo $object['id'];?>" />
+								<input id = "select_<?php echo $object['id']; ?>" class="select_attribute row_checkbox" type="checkbox" data-id="<?php echo $object['id'];?>" />
 							<?php else: ?>
-								<input id = "select_proposal_<?php echo $object['id']; ?>" class="select_proposal" type="checkbox" data-id="<?php echo $object['id'];?>" />
+								<input id = "select_proposal_<?php echo $object['id']; ?>" class="select_proposal row_checkbox" type="checkbox" data-id="<?php echo $object['id'];?>" />
 							<?php endif; ?>
 						</td>
 					<?php endif;
@@ -213,7 +213,7 @@
 							endfor;
 						else:
 					?>
-							<td class="short"><?php echo $object['objectType'] == 0 ? h($object['uuid']) : '&nbsp;'; ?></td>
+							<td class="short <?php echo $extra; ?>"><?php echo $object['objectType'] == 0 ? h($object['uuid']) : '&nbsp;'; ?></td>
 							<td class="short <?php echo $extra; ?>">
 								<div id = "<?php echo $currentType . '_' . $object['id'] . '_timestamp_solid'; ?>">
 									<?php
