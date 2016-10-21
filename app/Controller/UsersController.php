@@ -308,6 +308,7 @@ class UsersController extends AppController {
 			$this->loadModel('Role');
 			$this->Role->recursive = -1;
 			$chosenRole = $this->Role->findById($this->request->data['User']['role_id']);
+			if (empty($chosenRole)) throw new MethodNotAllowedException('Invalid role');
 			$this->request->data['User']['invited_by'] = $this->Auth->user('id');
 			if ($chosenRole['Role']['perm_sync']) {
 				$this->request->data['User']['change_pw'] = 0;
