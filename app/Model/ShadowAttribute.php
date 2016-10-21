@@ -185,7 +185,8 @@ class ShadowAttribute extends AppModel {
 											'Attribute.value2' => $cV
 									),
 									'Attribute.type !=' => $this->Event->Attribute->nonCorrelatingTypes,
-									'Attribute.deleted' => 0
+									'Attribute.deleted' => 0,
+									'Attribute.event_id !=' => $sa['event_id']
 							),
 					),
 					'recursive => -1',
