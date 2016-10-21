@@ -2000,7 +2000,7 @@ class EventsController extends AppController {
 			$zipData = $fileAccessTool->readFromFile($this->data['Event']['submittedgfi']['tmp_name'], $this->data['Event']['submittedgfi']['size']);
 
 			// write
-			$rootDir = APP . "files" . DS . $id . DS;
+			$rootDir = APP . "files" . DS . "GFI" . DS . $id . DS;
 			App::uses('Folder', 'Utility');
 			$dir = new Folder($rootDir, true);
 			if (!$this->Event->checkFilename($this->data['Event']['submittedgfi']['name'])) {
