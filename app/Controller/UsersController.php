@@ -293,15 +293,44 @@ class UsersController extends AppController {
 
 	public function admin_add() {
 		if (!$this->_isAdmin()) throw new Exception('Administrators only.');
-		$this->set('currentOrg', $this->Auth->user('org_id'));
-		$this->set('isSiteAdmin', $this->_isSiteAdmin());
 		$params = null;
 		if (!$this->_isSiteAdmin()) {
 			$params = array('conditions' => array('perm_site_admin !=' => 1, 'perm_sync !=' => 1, 'perm_regexp_access !=' => 1));
 		}
+		$this->loadModel('AdminSetting');
+		$default_role_id = $this->AdminSetting->getSetting('default_role');
 		$roles = $this->User->Role->find('list', $params);
 		$syncRoles = $this->User->Role->find('list', array('conditions' => array('perm_sync' => 1), 'recursive' => -1));
 		if ($this->request->is('post')) {
+			// In case we don't get the data encapsulated in a User object
+			if ($this->_isRest()) {
+				if (!isset($this->request->data['User'])) {
+					$this->request->data['User'] = $this->request->data;
+				}
+				$required_fields = array('role_id', 'email', 'org_id');
+				foreach ($required_fields as $field) {
+					if (empty($this->request->data['User'][$field])) {
+						return $this->RestResponse->saveFailResponse('User', 'admin_add', false, array($field => 'Mandatory field not set.'), $this->response->type());
+					}
+				}
+				if (isset($this->request->data['User']['id'])) {
+					unset($this->request->data['User']['id']);
+				}
+				$defaults = array(
+						'external_auth_required' => 0,
+						'external_auth_key' => '',
+						'server_id' => 0,
+						'gpgkey' => '',
+						'certif_public' => '',
+						'autoalert' => 0,
+						'contactalert' => 0,
+						'disabled' => 0,
+						'newsread' => 0
+				);
+				foreach ($defaults as $key => $value) {
+					if (!isset($this->request->data['User'][$key])) $this->request->data['User'][$key] = $value;
+				}
+			}
 			if (!array_key_exists($this->request->data['User']['role_id'], $syncRoles)) $this->request->data['User']['server_id'] = 0;
 			$this->User->create();
 			// set invited by
@@ -329,37 +358,55 @@ class UsersController extends AppController {
 				}
 			}
 			if ($this->User->save($this->request->data)) {
-				$this->Session->setFlash(__('The user has been saved'));
-				$this->redirect(array('action' => 'index'));
+				if ($this->_isRest()) {
+					$user = $this->User->find('first', array(
+							'conditions' => array('User.id' => $this->User->id),
+							'recursive' => -1
+					));
+					$user['User']['password'] = '******';
+					return $this->RestResponse->saveSuccessData($user, $this->response->type());
+				} else {
+					$this->Session->setFlash(__('The user has been saved'));
+					$this->redirect(array('action' => 'index'));
+				}
 			} else {
-				// reset auth key for a new user
-				$this->set('authkey', $this->newkey);
-				$this->Session->setFlash(__('The user could not be saved. Please, try again.'));
+				if ($this->_isRest()) {
+					return $this->RestResponse->saveFailResponse('User', 'admin_add', false, $this->User->validationErrors, $this->response->type());
+				} else {
+					// reset auth key for a new user
+					$this->set('authkey', $this->newkey);
+					$this->Session->setFlash(__('The user could not be saved. Please, try again.'));
+				}
 			}
 		} else {
 			$this->newkey = $this->User->generateAuthKey();
 			$this->set('authkey', $this->newkey);
 		}
-		$orgs = $this->User->Organisation->find('list', array(
-				'conditions' => array('local' => 1),
-				'order' => array('lower(name) asc')
-		));
-		$this->set('orgs', $orgs);
-		// generate auth key for a new user
-		$this->loadModel('Server');
-		$conditions = array();
-		if (!$this->_isSiteAdmin()) $conditions['Server.org_id LIKE'] = $this->Auth->user('org_id');
-		$temp = $this->Server->find('all', array('conditions' => $conditions, 'recursive' => -1, 'fields' => array('id', 'name', 'url')));
-		$servers = array(0 => 'Not bound to a server');
-		if (!empty($temp)) foreach ($temp as $t) {
-			if (!empty($t['Server']['name'])) $servers[$t['Server']['id']] = $t['Server']['name'];
-			else $servers[$t['Server']['id']] = $t['Server']['url'];
+		if ($this->_isRest()) {
+			
+		} else {
+			$orgs = $this->User->Organisation->find('list', array(
+					'conditions' => array('local' => 1),
+					'order' => array('lower(name) asc')
+			));
+			$this->set('orgs', $orgs);
+			// generate auth key for a new user
+			$this->loadModel('Server');
+			$conditions = array();
+			if (!$this->_isSiteAdmin()) $conditions['Server.org_id LIKE'] = $this->Auth->user('org_id');
+			$temp = $this->Server->find('all', array('conditions' => $conditions, 'recursive' => -1, 'fields' => array('id', 'name', 'url')));
+			$servers = array(0 => 'Not bound to a server');
+			if (!empty($temp)) foreach ($temp as $t) {
+				if (!empty($t['Server']['name'])) $servers[$t['Server']['id']] = $t['Server']['name'];
+				else $servers[$t['Server']['id']] = $t['Server']['url'];
+			}
+			$this->set('currentOrg', $this->Auth->user('org_id'));
+			$this->set('isSiteAdmin', $this->_isSiteAdmin());
+			$this->set('default_role_id', $default_role_id);
+			$this->set('servers', $servers);
+			$this->set(compact('roles'));
+			$this->set(compact('syncRoles'));
 		}
-		$this->loadModel('AdminSetting');
-		$this->set('default_role_id', $this->AdminSetting->getSetting('default_role'));
-		$this->set('servers', $servers);
-		$this->set(compact('roles'));
-		$this->set(compact('syncRoles'));
 	}
 
 	public function admin_edit($id = null) {

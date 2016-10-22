@@ -74,7 +74,8 @@ class AppController extends Controller {
 				'logoutRedirect' => array('controller' => 'users', 'action' => 'login', 'admin' => false),
 			),
 			'Security',
-			'ACL'
+			'ACL',
+			'RestResponse'
 	);
 
 	public function beforeFilter() {
