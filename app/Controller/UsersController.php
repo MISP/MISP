@@ -310,11 +310,11 @@ class UsersController extends AppController {
 				$required_fields = array('role_id', 'email', 'org_id');
 				foreach ($required_fields as $field) {
 					if (empty($this->request->data['User'][$field])) {
-						return $this->RestResponse->saveFailResponse('User', 'admin_add', false, array($field => 'Mandatory field not set.'), $this->response->type());
+						return $this->RestResponse->saveFailResponse('Users', 'admin_add', false, array($field => 'Mandatory field not set.'), $this->response->type());
 					}
 				}
-				if (isset($this->request->data['User']['id'])) {
-					unset($this->request->data['User']['id']);
+				if (isset($this->request->data['User']['password'])) {
+					$this->request->data['User']['confirm_password'] = $this->request->data['User']['password']; 
 				}
 				$defaults = array(
 						'external_auth_required' => 0,
@@ -357,7 +357,8 @@ class UsersController extends AppController {
 					throw new Exception('You are not authorised to assign that role to a user.');
 				}
 			}
-			if ($this->User->save($this->request->data)) {
+			$fieldList = array('password', 'email', 'external_auth_required', 'external_auth_key', 'enable_password', 'confirm_password', 'org_id', 'role_id', 'authkey', 'nids_sid', 'server_id', 'gpgkey', 'certif_public', 'autoalert', 'contactalert', 'disabled', 'invited_by', 'change_pw', 'termsaccepted', 'newsread');
+			if ($this->User->save($this->request->data, true, $fieldList)) {
 				if ($this->_isRest()) {
 					$user = $this->User->find('first', array(
 							'conditions' => array('User.id' => $this->User->id),
@@ -371,7 +372,7 @@ class UsersController extends AppController {
 				}
 			} else {
 				if ($this->_isRest()) {
-					return $this->RestResponse->saveFailResponse('User', 'admin_add', false, $this->User->validationErrors, $this->response->type());
+					return $this->RestResponse->saveFailResponse('Users', 'admin_add', false, $this->User->validationErrors, $this->response->type());
 				} else {
 					// reset auth key for a new user
 					$this->set('authkey', $this->newkey);
@@ -383,7 +384,7 @@ class UsersController extends AppController {
 			$this->set('authkey', $this->newkey);
 		}
 		if ($this->_isRest()) {
-			
+			return $this->RestResponse->describe('Users', 'admin_add', false, $this->response->type());
 		} else {
 			$orgs = $this->User->Organisation->find('list', array(
 					'conditions' => array('local' => 1),
@@ -417,6 +418,11 @@ class UsersController extends AppController {
 		}
 		$params = array();
 		$allowedRole = '';
+		$userToEdit = $this->User->find('first', array(
+				'conditions' => array('id' => $id),
+				'recursive' => -1,
+				'fields' => array('id', 'role_id', 'email'),
+		));
 		if (!$this->_isSiteAdmin()) {
 			// Org admins should be able to select the role that is already assigned to an org user when editing them.
 			// What happened previously:
@@ -425,11 +431,7 @@ class UsersController extends AppController {
 			// MISP automatically chooses the first available option for the user as the selected setting (usually user)
 			// Org admin is downgraded to a user
 			// Now we make an exception for the already assigned role, both in the form and the actual edit.
-			$userToEdit = $this->User->find('first', array(
-				'conditions' => array('id' => $id),
-				'recursive' => -1,
-				'fields' => array('id', 'role_id', 'email'),
-			));
+			if ($userToEdit['User']['org_id'] != $this->Auth->user('org_id')) throw new Exception('Invalid user');
 			$allowedRole = $userToEdit['User']['role_id'];
 			$params = array('conditions' => array(
 					'OR' => array(
@@ -445,7 +447,11 @@ class UsersController extends AppController {
 
 		$this->set('currentId', $id);
 		if ($this->request->is('post') || $this->request->is('put')) {
-			if (!array_key_exists($this->request->data['User']['role_id'], $syncRoles)) $this->request->data['User']['server_id'] = 0;
+			$this->request->data['User']['id'] = $id;
+			if (!isset($this->request->data['User']['email'])) {
+				$this->request->data['User']['email'] = $userToEdit['User']['email'];
+			}
+			if (isset($this->request->data['User']['role_id']) && !array_key_exists($this->request->data['User']['role_id'], $syncRoles)) $this->request->data['User']['server_id'] = 0;
 			$fields = array();
 			foreach (array_keys($this->request->data['User']) as $field) {
 				if ($field != 'password') array_push($fields, $field);
@@ -458,9 +464,16 @@ class UsersController extends AppController {
 				else array_push($fieldsOldValues, $this->User->field('password'));
 			}
 			// TODO Audit, __extralog, fields get orig END
-			if ("" != $this->request->data['User']['password'])
+			if (isset($this->request->data['User']['password']) && "" != $this->request->data['User']['password']) {
 				$fields[] = 'password';
-			$fields[] = 'role_id';
+				if ($this->_isRest() && !isset($this->request->data['User']['confirm_password'])) {
+					$this->request->data['User']['confirm_password'] = $this->request->data['User']['password'];
+					$fields[] = 'confirm_password';
+				}
+			}
+			if (!$this->_isRest()) {
+				$fields[] = 'role_id';
+			}
 			if (!$this->_isSiteAdmin()) {
 				$this->loadModel('Role');
 				$this->Role->recursive = -1;
@@ -506,13 +519,29 @@ class UsersController extends AppController {
 				$fieldsResultStr = substr($fieldsResultStr, 2);
 				$this->__extralog("edit", "user", $fieldsResultStr);	// TODO Audit, check: modify User
 				// TODO Audit, __extralog, fields compare END
-				$this->Session->setFlash(__('The user has been saved'));
-				$this->_refreshAuth(); // in case we modify ourselves
-				$this->redirect(array('action' => 'index'));
+				if ($this->_isRest()) {
+					$user = $this->User->find('first', array(
+							'conditions' => array('User.id' => $this->User->id),
+							'recursive' => -1
+					));
+					$user['User']['password'] = '******';
+					return $this->RestResponse->saveSuccessData($user, $this->response->type());
+				} else {
+					$this->Session->setFlash(__('The user has been saved'));
+					$this->_refreshAuth(); // in case we modify ourselves
+					$this->redirect(array('action' => 'index'));
+				}
 			} else {
-				$this->Session->setFlash(__('The user could not be saved. Please, try again.'));
+				if ($this->_isRest()) {
+					return $this->RestResponse->saveFailResponse('Users', 'admin_edit', $id, $this->User->validationErrors, $this->response->type());
+				} else {
+					$this->Session->setFlash(__('The user could not be saved. Please, try again.'));
+				}
 			}
 		} else {
+			if ($this->_isRest()) {
+				return $this->RestResponse->describe('Users', 'admin_edit', $id, $this->response->type());
+			}
 			$this->User->read(null, $id);
 			if (!$this->_isSiteAdmin() && $this->Auth->user('org_id') != $this->User->data['User']['org_id']) {
 				$this->redirect(array('controller' => 'users', 'action' => 'index', 'admin' => true));
