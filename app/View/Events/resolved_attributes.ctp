@@ -199,12 +199,12 @@
 	<script>
 		var type_category_mapping = [];
 		<?php
-		// Categories per Type
+		//Adding categories per Type based for all visible types (based on $allTypes array)
 		foreach ($allTypes as $type => $def) {
 			echo "type_category_mapping['" . addslashes($type) . "'] = {";
 			$first = true;
 			$pos = strpos($type, '/');
-			if ($pos !== false) {//this should be extended to include the categories of the both types (rec)
+			if ($pos !== false) {//added for hardcoded types, like ip-src/ip-des. This should maybe extended to include the categories of the both types (rec)
 				$type = explode('/', $type);
 				$type = $type[0];
 			}
@@ -250,4 +250,3 @@
 <?php
 	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'freetextResults'));
 ?>
-<?php echo $this->Js->writeBuffer(); // Write cached scripts ?>
