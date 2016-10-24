@@ -165,12 +165,15 @@
 				$extra = '';
 				$extra2 = '';
 				$extra3 = '';
+				$linkClass = 'white';
 				$currentType = 'denyForm';
 				if ($object['objectType'] == 0 ) {
 					$currentType = 'Attribute';
 					if ($object['hasChildren'] == 1) {
 						$extra = 'highlight1';
 						$extra3 = 'highlightBlueSides highlightBlueTop';
+					} else {
+						$linkClass = '';
 					}
 					if (!$mayModify) $currentType = 'ShadowAttribute';
 				} else {
@@ -272,9 +275,9 @@
 														$filepath = substr($filenameHash[0], 0, strrpos($filenameHash[0], '\\'));
 														$filename = substr($filenameHash[0], strrpos($filenameHash[0], '\\'));
 														echo h($filepath);
-														echo $this->Html->link($filename, array('controller' => $t, 'action' => 'download', $object['id']));
+														echo '<a href="' . $baseurl . h($t) . '/download/' . h($object['id']) . '" class="white">' . h($filename) . '</a>';
 													} else {
-														echo $this->Html->link($filenameHash[0], array('controller' => $t, 'action' => 'download', $object['id']));
+														echo '<a href="' . $baseurl . h($t) . '/download/' . h($object['id']) . '" class="white">' . h($filenameHash[0]) . '</a>';
 													}
 													if (isset($filenameHash[1])) echo ' | ' . $filenameHash[1];
 												}
@@ -288,12 +291,12 @@
 												} else {
 													$cveUrl = "http://www.google.com/search?q=";
 												}
-												echo $this->Html->link($sigDisplay, $cveUrl . $sigDisplay, array('target' => '_blank'));
+												echo $this->Html->link($sigDisplay, $cveUrl . $sigDisplay, array('target' => '_blank', 'class' => $linkClass));
 											} else if ('link' == $object['type']) {
-												echo $this->Html->link($sigDisplay, $sigDisplay);
+												echo $this->Html->link($sigDisplay, $sigDisplay, array('class' => $linkClass));
 											} else if ('text' == $object['type']) {
 												if ($object['category'] == 'External analysis' && preg_match('/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/i', $object['value'])) {
-													echo '<a href="' . $baseurl . '/events/view/' . h($object['value']) . '">' . h($object['value']) . '</a>';
+													echo '<a href="' . $baseurl . '/events/view/' . h($object['value']) . '" class="' . $linkClass . '">' . h($object['value']) . '</a>';
 												} else {
 													$sigDisplay = str_replace("\r", '', h($sigDisplay));
 													$sigDisplay = str_replace(" ", '&nbsp;', $sigDisplay);
