@@ -98,14 +98,15 @@ class FeedsController extends AppController {
 			if (isset($this->request->data['Feed']['pull_rules'])) $this->request->data['Feed']['rules'] = $this->request->data['Feed']['pull_rules'];
 			if ($this->request->data['Feed']['distribution'] != 4) $this->request->data['Feed']['sharing_group_id'] = 0;
 			$this->request->data['Feed']['id'] = $feedId;
-			if ($this->request->data['Feed']['source_format'] == 'freetext') {
+			if ($this->request->data['Feed']['source_format'] == 'freetext' || $this->request->data['Feed']['source_format'] == 'csv') {
 				if ($this->request->data['Feed']['fixed_event'] == 1) {
 					if (is_numeric($this->request->data['Feed']['target_event'])) {
 						$this->request->data['Feed']['event_id'] = $this->request->data['Feed']['target_event'];
+					} else {
+						$this->request->data['Feed']['event_id'] = 0;
 					}
 				}
 			}
-			$this->request->data['Feed']['event_id'] = !empty($this->request->data['Feed']['fixed_event']) ? $this->request->data['Feed']['target_event'] : 0;
 			if (!isset($this->request->data['Feed']['settings'])) {
 				$this->request->data['Feed']['settings'] = array();
 			}
