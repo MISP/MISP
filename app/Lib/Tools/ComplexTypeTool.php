@@ -208,9 +208,17 @@ class ComplexTypeTool {
 			if (!empty($IANATLDEntries) && preg_match('/^([-\pL\pN]+\.)+([a-z]{2,25})(\:[0-9]{2,5})?$/iu', $inputRefanged) > 0) {
 				$stringEnd = $temp[count($temp)-1];
 				$types = array('filename');
-				if (strpos($IANATLDEntries, $stringEnd) !== false) $types[] = 'domain';
-				if (count($temp) > 2) $types[] = 'url';
-				return array('types' => $types, 'to_ids' => true, 'default_type' => 'domain', 'merge_categories' => true);
+				$defaultType = 'filename';
+				if (strpos($IANATLDEntries, $stringEnd) !== false) {
+					$types[] = 'domain';
+					$defaultType = 'domain';
+				}
+				if (count($temp) > 2) {
+					$types[] = 'hostname';
+					$types[] = 'url';
+					$defaultType = 'hostname';
+				}
+				return array('types' => $types, 'to_ids' => true, 'default_type' => $defaultType, 'merge_categories' => true);
 			}
 
 			if (preg_match('/^([-\pL\pN]+\.)+([a-z][a-z]|biz|cat|com|edu|gov|int|mil|net|org|pro|tel|aero|arpa|asia|coop|info|jobs|mobi|name|museum|travel)(:[0-9]{2,5})?$/iu', $inputRefanged)) {
