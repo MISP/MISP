@@ -242,6 +242,7 @@
 </div>
 <script type="text/javascript">
 // tooltips
+var showContext = false;
 $(document).ready(function () {
 	popoverStartup();
 	//loadEventTags("<?php echo $event['Event']['id']; ?>");

@@ -138,6 +138,7 @@
 		<?php if ($me['Role']['perm_sync'] || $event['Orgc']['id'] == $me['org_id']): ?>
 			<div id="filter_deleted" title="Include deleted attributes" class="attribute_filter_text<?php if ($deleted) echo '_active'; ?>" onClick="toggleDeletedAttributes('<?php echo Router::url( $this->here, true );?>');">Include deleted attributes</div>
 		<?php endif; ?>
+		<div id="show_context" title="Show attribute context fields" class="attribute_filter_text" onClick="toggleContextFields();">Show context fields</div>
 	</div>
 
 	<table class="table table-striped table-condensed">
@@ -145,7 +146,7 @@
 			<?php if ($mayModify && !empty($event['objects'])): ?>
 				<th><input class="select_all" type="checkbox" onClick="toggleAllAttributeCheckboxes();" /></th>
 			<?php endif;?>
-			<th>UUID</th>
+			<th class="context hidden">UUID</th>
 			<th><?php echo $this->Paginator->sort('timestamp', 'Date');?></th>
 			<th><?php echo $this->Paginator->sort('Org.name', 'Org'); ?>
 			<th><?php echo $this->Paginator->sort('category');?></th>
@@ -216,7 +217,7 @@
 							endfor;
 						else:
 					?>
-							<td class="short <?php echo $extra; ?>"><?php echo $object['objectType'] == 0 ? h($object['uuid']) : '&nbsp;'; ?></td>
+							<td class="short context hidden <?php echo $extra; ?>"><?php echo $object['objectType'] == 0 ? h($object['uuid']) : '&nbsp;'; ?></td>
 							<td class="short <?php echo $extra; ?>">
 								<div id = "<?php echo $currentType . '_' . $object['id'] . '_timestamp_solid'; ?>">
 									<?php
@@ -239,13 +240,13 @@
 							}
 						?>
 							</td>
-							<td class="shortish <?php echo $extra; ?>">
+							<td class="short <?php echo $extra; ?>">
 								<div id = "<?php echo $currentType . '_' . $object['id'] . '_category_placeholder'; ?>" class = "inline-field-placeholder"></div>
 								<div id = "<?php echo $currentType . '_' . $object['id'] . '_category_solid'; ?>" class="inline-field-solid" ondblclick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'category', <?php echo $event['Event']['id'];?>);">
 									<?php echo h($object['category']); ?>
 								</div>
 							</td>
-							<td class="shortish <?php echo $extra; ?>">
+							<td class="short <?php echo $extra; ?>">
 								<div id = "<?php echo $currentType . '_' . $object['id'] . '_type_placeholder'; ?>" class = "inline-field-placeholder"></div>
 								<div id = "<?php echo $currentType . '_' . $object['id'] . '_type_solid'; ?>" class="inline-field-solid" ondblclick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'type', <?php echo $event['Event']['id'];?>);">
 									<?php echo h($object['type']); ?>
@@ -526,6 +527,7 @@ attributes or the appropriate distribution level. If you think there is a mistak
 	var timer;
 	var deleted = <?php echo (isset($deleted) && $deleted) ? 'true' : 'false';?>;
 	$(document).ready(function(){
+		setContextFields();
 		popoverStartup();
 		$('input:checkbox').removeAttr('checked');
 		$('.mass-select').hide();

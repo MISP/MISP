@@ -2591,3 +2591,24 @@ $('.servers_default_role_checkbox').click(function() {
 		url: '/admin/roles/set_default/' + (state ? id : ""),
 	});
 });
+
+function setContextFields() {
+	if (showContext) {
+		$('.context').show();
+		$('#show_context').addClass("attribute_filter_text_active");
+		$('#show_context').removeClass("attribute_filter_text");
+	} else {
+		$('.context').hide();
+		$('#show_context').addClass("attribute_filter_text");
+		$('#show_context').removeClass("attribute_filter_text_active");
+	}
+}
+
+function toggleContextFields() {
+	if (!showContext) {
+		showContext = true;
+	} else {
+		showContext = false;
+	}
+	setContextFields();
+}
