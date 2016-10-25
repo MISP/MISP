@@ -9,6 +9,14 @@ class ComplexTypeTool {
 		'/\\\./' => '.',
 		'/\.+/' => '.'
 	);
+	
+	private $__tlds = array();
+	
+	public function setTLDs($tlds = array()) {
+		if (!empty($tlds)) {
+			$this->__tlds = $tlds;
+		}
+	}
 
 	public function checkComplexRouter($input, $type, $settings = array()) {
 		switch ($type) {
@@ -200,7 +208,19 @@ class ComplexTypeTool {
 			$temp = explode('.', $inputRefanged);
 			// TODO: use a more flexible matching approach, like the one below (that still doesn't support non-ASCII domains)
 			//if (filter_var($input, FILTER_VALIDATE_URL)) {
-			if (preg_match('/^([-\pL\pN]+\.)+([a-z][a-z]|biz|cat|com|edu|gov|int|mil|net|org|pro|tel|aero|arpa|asia|coop|info|jobs|mobi|name|museum|travel)(:[0-9]{2,5})?$/iu', $inputRefanged)) {
+			$domainDetection = true;
+			if (preg_match('/^([-\pL\pN]+\.)+[a-z]+(:[0-9]{2,5})?$/iu', $inputRefanged)) {
+				if (empty($this->__tlds)) {
+					$this->__generateTLDList();	
+				}
+				$tldExploded = explode(':', $temp[count($temp)-1]);
+				if (!in_array(strtolower($tldExploded[0]), $this->__tlds)) {
+					$domainDetection = false;
+				}
+			} else {
+				$domainDetection = false;
+			}
+			if ($domainDetection) {
 				if (count($temp) > 2) {
 					return array('types' => array('hostname', 'domain', 'url'), 'to_ids' => true, 'default_type' => 'hostname', 'comment' => $comment, 'value' => $inputRefangedNoPort);
 				} else {
@@ -236,5 +256,18 @@ class ComplexTypeTool {
 	private function __resolveFilename($input) {
 		if ((preg_match('/^.:/', $input) || strpos($input, '.') !=0)) return true;
 		return false;
+	}
+	
+	private function __generateTLDList() {
+		$this->__tlds = array('biz', 'cat', 'com', 'edu', 'gov', 'int', 'mil', 'net', 'org', 'pro', 'tel', 'aero', 'arpa', 'asia', 'coop', 'info', 'jobs', 'mobi', 'name', 'museum', 'travel');
+		$char1 = $char2 = 'a';
+		for ($i = 0; $i < 26; $i++) {
+			for ($j = 0; $j < 26; $j++) {
+				$this->__tlds[] = $char1 . $char2;
+				$char2++;
+			}
+			$char1++;
+			$char2 = 'a';
+		}
 	}
 }

@@ -2832,6 +2832,8 @@ class Event extends AppModel {
 				foreach ($r['values'] as &$value) {
 					if (in_array('freetext', $r['types'])) {
 						if (is_array($value)) $value = json_encode($value);
+						$this->Warninglist = ClassRegistry::init('Warninglist');
+						$complexTypeTool->setTLDs($this->Warninglist->fetchTLDLists());
 						$freetextResults = array_merge($freetextResults, $complexTypeTool->checkComplexRouter($value, 'FreeText'));
 						if (!empty($freetextResults)) {
 							foreach ($freetextResults as &$ft) {

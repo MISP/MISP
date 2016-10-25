@@ -102,6 +102,8 @@ class Feed extends AppModel {
 		if ($response->code == 200) {
 			App::uses('ComplexTypeTool', 'Tools');
 			$complexTypeTool = new ComplexTypeTool();
+			$this->Warninglist = ClassRegistry::init('Warninglist');
+			$complexTypeTool->setTLDs($this->Warninglist->fetchTLDLists());
 			$resultArray = $complexTypeTool->checkComplexRouter($response->body, $type, isset($feed['Feed']['settings'][$type]) ? $feed['Feed']['settings'][$type] : array());
 		}
 		$this->Attribute = ClassRegistry::init('Attribute');

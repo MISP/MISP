@@ -2899,6 +2899,8 @@ class EventsController extends AppController {
 		if ($this->request->is('post')) {
 			App::uses('ComplexTypeTool', 'Tools');
 			$complexTypeTool = new ComplexTypeTool();
+			$this->loadModel('Warninglist');
+			$complexTypeTool->setTLDs($this->Warninglist->fetchTLDLists());
 			$resultArray = $complexTypeTool->checkComplexRouter($this->request->data['Attribute']['value'], 'freetext');
 			foreach ($resultArray as $key => $r) {
 				$temp = array();

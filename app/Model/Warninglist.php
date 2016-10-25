@@ -30,6 +30,10 @@ class Warninglist extends AppModel{
 				'dependent' => true
 			)
 	);
+	
+	private $__tlds = array(
+		'TLDs as known by IANA'
+	);
 
 	public function beforeValidate($options = array()) {
 		parent::beforeValidate();
@@ -235,5 +239,20 @@ class Warninglist extends AppModel{
 	private function __evalString($listValues, $value) {
 		if (in_array($value, $listValues)) return true;
 		return false;
+	}
+	
+	public function fetchTLDLists() {
+		$tldLists = $this->find('list', array('conditions' => array('Warninglist.name' => $this->__tlds, 'Warninglist.enabled' => 1), 'recursive' => -1, 'fields' => array('Warninglist.id', 'Warninglist.name')));
+		$tlds = array();
+		if (!empty($tldLists)) {
+			$tldLists = array_keys($tldLists);
+			$tlds = $this->WarninglistEntry->find('list', array('conditions' => array('WarninglistEntry.warninglist_id' => $tldLists), 'fields' => array('WarninglistEntry.value')));	
+			if (!empty($tlds)) {
+				foreach ($tlds as $key => $value) {
+					$tlds[$key] = strtolower($value);
+				}
+			}
+		}
+		return $tlds;
 	}
 }
