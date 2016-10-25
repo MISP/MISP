@@ -276,9 +276,9 @@
 														$filepath = substr($filenameHash[0], 0, strrpos($filenameHash[0], '\\'));
 														$filename = substr($filenameHash[0], strrpos($filenameHash[0], '\\'));
 														echo h($filepath);
-														echo '<a href="' . $baseurl . h($t) . '/download/' . h($object['id']) . '" class="white">' . h($filename) . '</a>';
+														echo '<a href="' . $baseurl . h($t) . '/download/' . h($object['id']) . '" class="' . $linkClass . '">' . h($filename) . '</a>';
 													} else {
-														echo '<a href="' . $baseurl . h($t) . '/download/' . h($object['id']) . '" class="white">' . h($filenameHash[0]) . '</a>';
+														echo '<a href="' . $baseurl . h($t) . '/download/' . h($object['id']) . '" class="' . $linkClass . '">' . h($filenameHash[0]) . '</a>';
 													}
 													if (isset($filenameHash[1])) echo ' | ' . $filenameHash[1];
 												}
