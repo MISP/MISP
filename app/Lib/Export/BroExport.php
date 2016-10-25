@@ -126,7 +126,7 @@ class BroExport {
 			return sprintf($ruleFormat,
 					($overruled) ? '#OVERRULED BY WHITELIST# ' :
 					$attribute['value'],	// value - for composite values only the relevant element is taken
-					'Intel:' . $brotype,	// type
+					'Intel::' . $brotype,	// type
 					'T',	// meta.do_notice
 					'-'  // meta.if_in
 			);
