@@ -11,7 +11,7 @@
 		<table style="width:100%;">
 		<tr>
 			<td style="text-align:right;width:100%;">
-				<input id="filterField" style="width:100%;border:0px;padding:0px;"></input>
+				<input id="filterField" style="width:100%;border:0px;padding:0px;text-align: center;" placeholder="search tags.."/>
 			</td>
 		</tr>
 		<?php foreach ($options as $k => &$option): ?>
