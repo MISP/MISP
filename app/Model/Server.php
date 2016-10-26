@@ -654,6 +654,15 @@ class Server extends AppModel {
 							'type' => 'string',
 							'null' => true,
 					),
+					'proposals_block_attributes' => array(
+							'level' => 0,
+							'description' => 'Enable this setting to allow blocking attributes from to_ids sensitive exports if a proposal has been made to it to remove the IDS flag or to remove the attribute altogether. This is a powerful tool to deal with false-positives efficiently.',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+							'null' => false,
+					)
 			),
 			'GnuPG' => array(
 					'branch' => 1,

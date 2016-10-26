@@ -1317,7 +1317,7 @@ class Attribute extends AppModel {
 	public function text($user, $type, $tags = false, $eventId = false, $allowNonIDS = false, $from = false, $to = false, $last = false) {
 		//restricting to non-private or same org if the user is not a site-admin.
 		$conditions['AND'] = array();
-		if ($allowNonIDS === false) $conditions['AND'] = array('Attribute.to_ids =' => 1, 'Event.published =' => 1);
+		if ($allowNonIDS === false) $conditions['AND'] = array('Attribute.to_ids' => 1, 'Event.published' => 1);
 		if ($type !== 'all') $conditions['AND']['Attribute.type'] = $type;
 		if ($from) $conditions['AND']['Event.date >='] = $from;
 		if ($to) $conditions['AND']['Event.date <='] = $to;
@@ -1378,13 +1378,12 @@ class Attribute extends AppModel {
 		}
 		$values = array();
 		foreach ($typesToFetch as $k => $v) {
+			$tempConditions = $conditions;
+			$tempConditions['type'] = $v;
 			$temp = $this->fetchAttributes(
 					$user,
 					array(
-						'conditions' => array(
-							$conditions,
-							array('type' => $v),
-						),
+						'conditions' => $tempConditions,
 						'fields' => array('Attribute.value'), // array of field names
 					)
 			);
@@ -1413,7 +1412,7 @@ class Attribute extends AppModel {
 
 	function bro($user, $type, $tags = false, $eventId = false, $from = false, $to = false, $last = false) {
 		//restricting to non-private or same org if the user is not a site-admin.
-		$conditions['AND'] = array('Attribute.to_ids =' => 1, 'Event.published =' => 1);
+		$conditions['AND'] = array('Attribute.to_ids' => 1, 'Event.published' => 1);
 		if ($from) $conditions['AND']['Event.date >='] = $from;
 		if ($to) $conditions['AND']['Event.date <='] = $to;
 		if ($last) $conditions['AND']['Event.publish_timestamp >='] = $last;
@@ -1799,6 +1798,24 @@ class Attribute extends AppModel {
 		);
 		if (isset($options['contain'])) $params['contain'] = array_merge_recursive($params['contain'], $options['contain']);
 		else $option['contain']['Event']['fields'] = array('id', 'info', 'org_id', 'orgc_id');
+		if (Configure::read('MISP.proposals_block_attributes') && isset($options['conditions']['AND']['Attribute.to_ids']) && $options['conditions']['AND']['Attribute.to_ids'] == 1) {
+			$this->bindModel(array('hasMany' => array('ShadowAttribute' => array('foreignKey' => 'old_id'))));
+			$proposalRestriction =  array(
+					'ShadowAttribute' => array(
+							'conditions' => array(
+									'AND' => array(
+											'ShadowAttribute.deleted' => 0,
+											'OR' => array(
+													'ShadowAttribute.proposal_to_delete' => 1,
+													'ShadowAttribute.to_ids' => 0
+											)
+									)
+							),
+							'fields' => array('ShadowAttribute.id')
+					)
+			);
+			$params['contain'] = array_merge($params['contain'], $proposalRestriction);
+		}
 		if (isset($options['fields'])) $params['fields'] = $options['fields'];
 		if (isset($options['conditions'])) $params['conditions']['AND'][] = $options['conditions'];
 		if (isset($options['order'])) $params['order'] = $options['order'];
@@ -1807,6 +1824,16 @@ class Attribute extends AppModel {
 		if (isset($options['group'])) $params['group'] = array_merge(array('Attribute.id'), $options['group']);
 		if (Configure::read('MISP.unpublishedprivate')) $params['conditions']['AND'][] = array('OR' => array('Event.published' => 1, 'Event.orgc_id' => $user['org_id']));
 		$results = $this->find('all', $params);
+		if (Configure::read('MISP.proposals_block_attributes')) {
+			foreach ($results as $key => $value) {
+				if (!empty($value['ShadowAttribute'])) {
+					unset($results[$key]);
+				} else {
+					unset($results[$key]['ShadowAttribute']);
+				}
+			}
+		}
+		$results = array_values($results);
 		if (isset($options['withAttachments']) && $options['withAttachments']) {
 			foreach ($results as &$attribute) {
 				if ($this->typeIsAttachment($attribute['Attribute']['type'])) {

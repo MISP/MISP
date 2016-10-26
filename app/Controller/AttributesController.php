@@ -1868,7 +1868,9 @@ class AttributesController extends AppController {
 		$this->header('Content-Disposition: download; filename="misp.rpz.' . $file . 'txt"');
 		$this->layout = 'text/default';
 		$this->loadModel('Whitelist');
-		$values = $this->Whitelist->removeWhitelistedValuesFromArray($values);
+		foreach ($values as $key => $value) {
+			$values[$key] = $this->Whitelist->removeWhitelistedValuesFromArray($value);
+		}
 		$this->set('values', $values);
 		$this->set('rpzSettings', $rpzSettings);
 		$this->render('/Attributes/rpz');

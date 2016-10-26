@@ -1325,19 +1325,19 @@ class Event extends AppModel {
 			$results[$eventKey]['RelatedAttribute'] = $this->getRelatedAttributes($user, $event['Event']['id'], $sgsids);
 			$results[$eventKey]['RelatedShadowAttribute'] = $this->getRelatedAttributes($user, $event['Event']['id'], $sgsids, true);
 			if (isset($event['ShadowAttribute']) && !empty($event['ShadowAttribute']) && isset($options['includeAttachments']) && $options['includeAttachments']) {
-				foreach ($event['ShadowAttribute'] as &$sa) {
+				foreach ($event['ShadowAttribute'] as $k => $sa) {
 					if ($this->ShadowAttribute->typeIsAttachment($sa['type'])) {
 						$encodedFile = $this->ShadowAttribute->base64EncodeAttachment($sa);
-						$sa['data'] = $encodedFile;
+						$event['ShadowAttribute'][$k]['data'] = $encodedFile;
 					}
 				}
 			}
 			if (isset($event['Attribute'])) {
-				foreach ($event['Attribute'] as $key => &$attribute) {
+				foreach ($event['Attribute'] as $key => $attribute) {
 					if (isset($options['includeAttachments']) && $options['includeAttachments']) {
 						if ($this->Attribute->typeIsAttachment($attribute['type'])) {
 							$encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
-							$attribute['data'] = $encodedFile;
+							$event['Attribute'][$key]['data'] = $encodedFile;
 						}
 					}
 					if (isset($attribute['SharingGroup']['SharingGroupServer'])) {
@@ -1347,18 +1347,28 @@ class Event extends AppModel {
 							}
 						}
 					}
-					$attribute['ShadowAttribute'] = array();
+					$event['Attribute'][$key]['ShadowAttribute'] = array();
 					// If a shadowattribute can be linked to an attribute, link it to it then remove it from the event
 					// This is to differentiate between proposals that were made to an attribute for modification and between proposals for new attributes
-					foreach ($event['ShadowAttribute'] as $k => &$sa) {
+					foreach ($event['ShadowAttribute'] as $k => $sa) {
 						if (!empty($sa['old_id'])) {
-							if ($sa['old_id'] == $attribute['id']) {
+							if ($event['ShadowAttribute'][$k]['old_id'] == $attribute['id']) {
 								$results[$eventKey]['Attribute'][$key]['ShadowAttribute'][] = $sa;
 								unset($results[$eventKey]['ShadowAttribute'][$k]);
 							}
 						}
 					}
+					if (Configure::read('MISP.proposals_block_attributes') && isset($options['to_ids']) && $options['to_ids']) {
+						foreach ($results[$eventKey]['Attribute'][$key]['ShadowAttribute'] as $sa) {
+							if ($sa['proposal_to_delete'] || $sa['to_ids'] == 0) {
+								unset($results[$eventKey]['Attribute'][$key]);
+								continue;
+							}
+						}
+						
+					}
 				}
+				$event['Attribute'] = array_values($event['Attribute']);
 			}
 			if (Configure::read('Plugin.Sightings_enable')) {
 				$event['Sighting'] = $this->Sighting->attachToEvent($event, $user);
@@ -1366,10 +1376,10 @@ class Event extends AppModel {
 			// remove proposals to attributes that we cannot see
 			// if the shadow attribute wasn't moved within an attribute before, this is the case
 			if (isset($event['ShadowAttribute'])) {
-				$event['ShadowAttribute'] = array_values($event['ShadowAttribute']);
-				foreach ($event['ShadowAttribute'] as $k => &$sa) {
+				foreach ($event['ShadowAttribute'] as $k => $sa) {
 					if (!empty($sa['old_id'])) unset($event['ShadowAttribute'][$k]);
 				}
+				$event['ShadowAttribute'] = array_values($event['ShadowAttribute']);
 			}
 		}
 		return $results;
@@ -1380,11 +1390,11 @@ class Event extends AppModel {
 		$conditions = array();
 		// If we are not in the search result csv download function then we need to check what can be downloaded. CSV downloads are already filtered by the search function.
 		if ($eventid !== 'search') {
-			if ($from) $conditions['AND'][] = array('Event.date >=' => $from);
-			if ($to) $conditions['AND'][] = array('Event.date <=' => $to);
-			if ($last) $conditions['AND'][] = array('Event.publish_timestamp >=' => $last);
+			if ($from) $conditions['AND']['Event.date >='] = $from;
+			if ($to) $conditions['AND']['Event.date <='] = $to;
+			if ($last) $conditions['AND']['Event.publish_timestamp >='] = $last;
 			// This is for both single event downloads and for full downloads. Org has to be the same as the user's or distribution not org only - if the user is no siteadmin
-			if ($ignore == false) $conditions['AND'][] = array('Event.published' => 1);
+			if ($ignore == false) $conditions['AND']['Event.published'] = 1;
 
 			// If we sent any tags along, load the associated tag names for each attribute
 			if ($tags) {
@@ -1406,9 +1416,9 @@ class Event extends AppModel {
 			if ($eventid) $conditions['AND'][] = array('Event.id' => $eventid);
 
 			//restricting to non-private or same org if the user is not a site-admin.
-			if (!$ignore) $conditions['AND'][] = array('Attribute.to_ids' => 1);
-			if ($type) $conditions['AND'][] = array('Attribute.type' => $type);
-			if ($category) $conditions['AND'][] = array('Attribute.category' => $category);
+			if (!$ignore) $conditions['AND']['Attribute.to_ids'] = 1;
+			if ($type) $conditions['AND']['Attribute.type'] = $type;
+			if ($category) $conditions['AND']['Attribute.category'] = $category;
 		}
 
 		if ($eventid === 'search') {
