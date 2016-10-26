@@ -1337,8 +1337,9 @@ a.proposal_link_red:hover {
 	max-height:400px;
 	overflow-y:auto;
 }
-.popover_choice_main table tr td{
-	cursor: pointer;
+
+.popover_choice_table {
+	width:100%;
 }
 
 .templateChoiceButton {

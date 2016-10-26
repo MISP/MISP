@@ -7,15 +7,13 @@
 			echo $this->Form->end();
 		?>
 	</div>
+	<div style="width:100%;">
+		<input id="filterField" style="width:98%;border:0px;padding:0px;margin:4px 1% 4px 1%;text-align: center;height: 23px;border: 1px solid #cccccc;box-shadow: 0 1px 1px rgba(0, 0, 0, 0.075) inset;" placeholder="search tags.."/>
+	</div>
 	<div class="popover_choice_main" id ="popover_choice_main">
-		<table style="width:100%;">
-		<tr>
-			<td style="text-align:right;width:100%;">
-				<input id="filterField" style="width:100%;border:0px;padding:0px;text-align: center;" placeholder="search tags.."/>
-			</td>
-		</tr>
+		<table class="popover_choice_table">
 		<?php foreach ($options as $k => &$option): ?>
-			<tr id="field_<?php echo h($k); ?>" style="border-bottom:1px solid black;" class="templateChoiceButton">
+			<tr id="field_<?php echo h($k); ?>" style="border-bottom:1px solid black;background-color: #eee;" class="templateChoiceButton">
 				<td style="padding-left:10px;padding-right:10px; text-align:center;width:100%;" onClick="quickSubmitTagForm('<?php echo h($event_id);?>', '<?php echo h($k); ?>');" title="<?php echo h($expanded[$k]);?>"><?php echo h($option); ?></td>
 			</tr>
 		<?php endforeach; ?>
