@@ -3844,6 +3844,7 @@ class EventsController extends AppController {
 
 	public function importModule($module, $eventId) {
 		$this->loadModel('Module');
+		$moduleName = $module;
 		$module = $this->Module->getEnabledModule($module, 'Import');
 		if (!is_array($module)) throw new MethodNotAllowedException($module);
 		if (!isset($module['mispattributes']['inputSource'])) $module['mispattributes']['inputSource'] = array('paste');
@@ -3852,6 +3853,11 @@ class EventsController extends AppController {
 			$modulePayload = array(
 					'module' => $module['name']
 			);
+			if (isset($module['meta']['config'])) {
+				foreach ($module['meta']['config'] as $conf) {
+					$modulePayload['config'][$conf] = Configure::read('Plugin.Import_' . $moduleName . '_' . $conf);
+				}
+			}
 			foreach ($module['mispattributes']['userConfig'] as $configName => $config) {
 				if (!$fail) {
 					$validation = call_user_func_array(array($this->Module, $this->Module->configTypes[$config['type']]['validation']), array($this->request->data['Event']['config'][$configName]));
@@ -3870,26 +3876,30 @@ class EventsController extends AppController {
 				}
 			}
 			if (!$fail) {
-				if (!isset($this->request->data['Event']['source'])) {
-					if (in_array('paste', $module['mispattributes']['inputSource'])) $this->request->data['Event']['source'] = '0';
-					else $this->request->data['Event']['source'] = '1';
-				}
-				if ($this->request->data['Event']['source'] == '1') {
-					if (!isset($this->request->data['Event']['fileupload']) || empty($this->request->data['Event']['fileupload'])) {
-						$fail = 'Invalid file upload.';
-					} else {
-						$fileupload = $this->request->data['Event']['fileupload'];
-						$tmpfile = new File($fileupload['tmp_name']);
-						if ((isset($fileupload['error']) && $fileupload['error'] == 0) || (!empty($fileupload['tmp_name']) && $fileupload['tmp_name'] != 'none') && is_uploaded_file($tmpfile->path)) {
-							$filename = basename($fileupload['name']);
-							App::uses('FileAccessTool', 'Tools');
-							$modulePayload['data'] = (new FileAccessTool())->readFromFile($fileupload['tmp_name'], $fileupload['size']);
-						} else {
+				if (!empty($module['mispattributes']['inputSource'])) {
+					if (!isset($this->request->data['Event']['source'])) {
+						if (in_array('paste', $module['mispattributes']['inputSource'])) $this->request->data['Event']['source'] = '0';
+						else $this->request->data['Event']['source'] = '1';
+					}
+					if ($this->request->data['Event']['source'] == '1') {
+						if (!isset($this->request->data['Event']['fileupload']) || empty($this->request->data['Event']['fileupload'])) {
 							$fail = 'Invalid file upload.';
+						} else {
+							$fileupload = $this->request->data['Event']['fileupload'];
+							$tmpfile = new File($fileupload['tmp_name']);
+							if ((isset($fileupload['error']) && $fileupload['error'] == 0) || (!empty($fileupload['tmp_name']) && $fileupload['tmp_name'] != 'none') && is_uploaded_file($tmpfile->path)) {
+								$filename = basename($fileupload['name']);
+								App::uses('FileAccessTool', 'Tools');
+								$modulePayload['data'] = (new FileAccessTool())->readFromFile($fileupload['tmp_name'], $fileupload['size']);
+							} else {
+								$fail = 'Invalid file upload.';
+							}
 						}
+					} else {
+						$modulePayload['data'] = $this->request->data['Event']['paste'];
 					}
 				} else {
-					$modulePayload['data'] = $this->request->data['Event']['paste'];
+					$modulePayload['data'] = '';
 				}
 				if (!$fail) {
 					$modulePayload['data'] = base64_encode($modulePayload['data']);
@@ -3923,13 +3933,12 @@ class EventsController extends AppController {
 					$this->set('typeList', array_keys($this->Event->Attribute->typeDefinitions));
 					$this->set('defaultCategories', $this->Event->Attribute->defaultCategories);
 					$this->set('typeCategoryMapping', $typeCategoryMapping);
-					$this->set('title', 'Enrichment Results');
+					$this->set('title', 'Import Results');
 					$this->set('importComment', $importComment);
 					$this->render('resolved_attributes');
 				}
 			}
 			$this->Session->setFlash($fail);
-		} else {
 		}
 		$this->set('configTypes', $this->Module->configTypes);
 		$this->set('module', $module);
