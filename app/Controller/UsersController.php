@@ -131,6 +131,7 @@ class UsersController extends AppController {
 	}
 
 	public function admin_index() {
+		if (!$this->_isAdmin()) throw new NotFoundException(__('Invalid user or not authorised.'));
 		$this->User->virtualFields['org_ci'] = 'UPPER(Organisation.name)';
 		$urlParams = "";
 		$passedArgsArray = array();
@@ -189,24 +190,42 @@ class UsersController extends AppController {
 				$passedArgsArray[$searchTerm] = $v;
 			}
 		}
-		$this->set('urlparams', $urlParams);
-		$this->set('passedArgsArray', $passedArgsArray);
-		$conditions = array();
-		if ($this->_isSiteAdmin()) {
-			$this->set('users', $this->paginate());
+		if ($this->_isRest()) {
+			$conditions = array();
+			if (isset($this->paginate['conditions'])) {
+				$conditions = $this->paginate['conditions'];
+			}
+			if (!$this->_isSiteAdmin()) {
+				$conditions['User.org_id'] = $this->Auth->user('org_id');
+			}
+			$users = $this->User->find('all', array(
+					'conditions' => $conditions,
+					'recursive' => -1,
+					'contain' => array(
+							'Organisation' => array('id', 'name'),
+							'Role' => array('id', 'name', 'perm_auth')
+					)
+			));
+			foreach ($users as $key => $value) {
+				unset($users['User']['password']);
+			}
+			return $this->RestResponse->viewData($users, $this->response->type());
 		} else {
-			if (!($this->_isAdmin())) throw new NotFoundException(__('Invalid user or not authorised.'));
-			$conditions['User.org_id'] = $this->Auth->user('org_id');
-			$this->paginate = array(
-					'conditions' => array($conditions),
-			);
-			$this->set('users', $this->paginate());
-		}
-		$this->set('ajax', $this->request->is('ajax'));
-		if ($this->request->is('ajax')) {
-			$this->autoRender = false;
-			$this->layout = false;
-			$this->render('ajax/admin_index');
+			$this->set('urlparams', $urlParams);
+			$this->set('passedArgsArray', $passedArgsArray);
+			$conditions = array();
+			if ($this->_isSiteAdmin()) {
+				$this->set('users', $this->paginate());
+			} else {
+				$conditions['User.org_id'] = $this->Auth->user('org_id');
+				$this->set('users', $this->paginate());
+			}
+			$this->set('ajax', $this->request->is('ajax'));
+			if ($this->request->is('ajax')) {
+				$this->autoRender = false;
+				$this->layout = false;
+				$this->render('ajax/admin_index');
+			}
 		}
 	}
 
@@ -286,9 +305,14 @@ class UsersController extends AppController {
 		if (!$this->_isSiteAdmin() && !($this->_isAdmin() && $this->Auth->user('org_id') == $this->User->data['User']['org_id'])) {
 			throw new MethodNotAllowedException();
 		}
-		$temp = $this->User->field('invited_by');
-		$this->set('id', $id);
-		$this->set('user2', $this->User->read(null, $temp));
+		if ($this->_isRest()) {
+			$this->User->data['User']['password'] = '*****';
+			return $this->RestResponse->viewData(array('User' => $this->User->data['User']), $this->response->type());	
+		} else {
+			$temp = $this->User->data['User']['invited_by'];
+			$this->set('id', $id);
+			$this->set('user2', $this->User->read(null, $temp));
+		}
 	}
 
 	public function admin_add() {
@@ -306,6 +330,9 @@ class UsersController extends AppController {
 			if ($this->_isRest()) {
 				if (!isset($this->request->data['User'])) {
 					$this->request->data['User'] = $this->request->data;
+				}
+				if (isset($this->request->data['User']['id'])) {
+					unset($this->request->data['User']['id']);
 				}
 				$required_fields = array('role_id', 'email', 'org_id');
 				foreach ($required_fields as $field) {
@@ -365,7 +392,7 @@ class UsersController extends AppController {
 							'recursive' => -1
 					));
 					$user['User']['password'] = '******';
-					return $this->RestResponse->saveSuccessData($user, $this->response->type());
+					return $this->RestResponse->viewData($user, $this->response->type());
 				} else {
 					$this->Session->setFlash(__('The user has been saved'));
 					$this->redirect(array('action' => 'index'));
@@ -421,7 +448,7 @@ class UsersController extends AppController {
 		$userToEdit = $this->User->find('first', array(
 				'conditions' => array('id' => $id),
 				'recursive' => -1,
-				'fields' => array('id', 'role_id', 'email'),
+				'fields' => array('id', 'role_id', 'email', 'org_id'),
 		));
 		if (!$this->_isSiteAdmin()) {
 			// Org admins should be able to select the role that is already assigned to an org user when editing them.
@@ -447,13 +474,23 @@ class UsersController extends AppController {
 
 		$this->set('currentId', $id);
 		if ($this->request->is('post') || $this->request->is('put')) {
+			if (!isset($this->request->data['User'])) {
+				$this->request->data['User'] = $this->request->data;
+			}
 			$this->request->data['User']['id'] = $id;
 			if (!isset($this->request->data['User']['email'])) {
 				$this->request->data['User']['email'] = $userToEdit['User']['email'];
 			}
 			if (isset($this->request->data['User']['role_id']) && !array_key_exists($this->request->data['User']['role_id'], $syncRoles)) $this->request->data['User']['server_id'] = 0;
 			$fields = array();
+			$blockedFields = array('id', 'invited_by');
+			if (!$this->_isSiteAdmin()) {
+				$blockedFields[] = 'org_id';
+			}
 			foreach (array_keys($this->request->data['User']) as $field) {
+				if (in_array($field, $blockedFields)) {
+					continue;
+				}
 				if ($field != 'password') array_push($fields, $field);
 			}
 			// TODO Audit, __extralog, fields get orig
@@ -525,7 +562,7 @@ class UsersController extends AppController {
 							'recursive' => -1
 					));
 					$user['User']['password'] = '******';
-					return $this->RestResponse->saveSuccessData($user, $this->response->type());
+					return $this->RestResponse->viewData($user, $this->response->type());
 				} else {
 					$this->Session->setFlash(__('The user has been saved'));
 					$this->_refreshAuth(); // in case we modify ourselves
@@ -579,18 +616,26 @@ class UsersController extends AppController {
 		}
 		if (!$this->_isAdmin()) throw new Exception('Administrators only.');
 		$this->User->id = $id;
+		$conditions = array('User.id' => $id);
+		if (!$this->_isSiteAdmin()) {
+			$conditions['org_id'] = $this->Auth->user('org_id');
+		}
 		$user = $this->User->find('first', array(
-				'conditions' => array('User.id' => $id),
+				'conditions' => $conditions,
 				'recursive' => -1
 		));
-		if (empty($user) || (!$this->_isSiteAdmin() && $user['User']['org_id'] != $this->Auth->user('id'))) {
+		if (empty($user)) {
 			throw new NotFoundException(__('Invalid user'));
 		}
 		$fieldsDescrStr = 'User (' . $id . '): ' . $user['User']['email'];
 		if ($this->User->delete($id)) {
-			$this->__extralog("delete", $fieldsDescrStr, '');	// TODO Audit, check: modify User
-			$this->Session->setFlash(__('User deleted'));
-			$this->redirect(array('action' => 'index'));
+			$this->__extralog("delete", $fieldsDescrStr, '');
+			if ($this->_isRest()) {
+				return $this->RestResponse->saveSuccessResponse('User', 'admin_delete', $id, $this->response->type(), 'User deleted.');	
+			} else {
+				$this->Session->setFlash(__('User deleted'));
+				$this->redirect(array('action' => 'index'));
+			}
 		}
 		$this->Session->setFlash(__('User was not deleted'));
 		$this->redirect(array('action' => 'index'));
@@ -742,25 +787,21 @@ class UsersController extends AppController {
 		if (!$this->_isAdmin() && Configure::read('MISP.disableUserSelfManagement')) {
 			throw new MethodNotAllowedException('User self-management has been disabled on this instance.');
 		}
-		if (!$id) {
-			$this->Session->setFlash(__('Invalid id for user', true), 'default', array(), 'error');
-			$this->redirect(array('action' => 'view', $this->Auth->user('id')));
+		if ($id == 'me') {
+			$id = $this->Auth->user('id');
 		}
 		if (!$this->userRole['perm_auth']) {
-			$this->Session->setFlash(__('Invalid action', true), 'default', array(), 'error');
-			$this->redirect(array('action' => 'view', $this->Auth->user('id')));
+			throw new MethodNotAllowedException('Invalid action.');
 		}
-		// reset the key
 		$this->User->id = $id;
-		if (!$this->User->exists($id)) {
-			$this->Session->setFlash(__('Invalid id for user', true), 'default', array(), 'error');
-			$this->redirect(array('action' => 'view', $this->Auth->user('id')));
+		if (!$id || !$this->User->exists($id)) {
+			throw new MethodNotAllowedException('Invalid user.');
 		}
 		$user = $this->User->read();
-		$oldKey = $this->User->data['User']['authkey'];
 		if ($id != 'me' && !$this->_isSiteAdmin() && !($this->_isAdmin() && $this->Auth->user('org_id') == $this->User->data['User']['org_id']) && ($this->Auth->user('id') != $id)) {
-			throw new MethodNotAllowedException();
+			throw new MethodNotAllowedException('You are not allowed to do that.');
 		}
+		$oldKey = $this->User->data['User']['authkey'];
 		$newkey = $this->User->generateAuthKey();
 		$this->User->saveField('authkey', $newkey);
 		$this->__extralog(
@@ -768,9 +809,13 @@ class UsersController extends AppController {
 				'Authentication key for user ' . $user['User']['id'] . ' (' . $user['User']['email'] . ')',
 				$fieldsResult = 'authkey(' . $oldKey . ') => (' . $newkey . ')'
 		);
-		$this->Session->setFlash(__('New authkey generated.', true));
-		$this->_refreshAuth();
-		$this->redirect($this->referer());
+		if (!$this->_isRest()) {
+			$this->Session->setFlash(__('New authkey generated.', true));
+			$this->_refreshAuth();
+			$this->redirect($this->referer());
+		} else {
+			return $this->RestResponse->saveSuccessResponse('User', 'resetauthkey', $id, $this->response->type(), 'User\'s authkey has been reset.');
+		}
 	}
 
 	public function attributehistogram() {

@@ -27,11 +27,13 @@ class RestResponseComponent extends Component {
 		return $this->__sendResponse($response, 403, $format);	
 	}
 	
-	public function saveSuccessResponse($controller, $action, $id = false, $format = false) {
+	public function saveSuccessResponse($controller, $action, $id = false, $format = false, $message = false) {
 		$action = $this->__dissectAdminRouting($action);
-		$response['name'] = Inflector::singularize($controller) . ' ' . $action['action'] . 'ed';
+		if (!$message) {
+			$message = Inflector::singularize($controller) . ' ' . $action['action'] . 'ed';
+		}
+		$response['name'] = $message;
 		$response['message'] = $response['name'];
-		$this->__generateURL($action, $controller, $id); 
 		$response['url'] = $this->__generateURL($action, $controller, $id);
 		return $this->__sendResponse($response, 200, $format);
 	}
@@ -60,7 +62,7 @@ class RestResponseComponent extends Component {
 		return array('action' => $action, 'admin' => $admin);
 	}
 	
-	public function saveSuccessData($data, $format = false) {
+	public function viewData($data, $format = false) {
 		return $this->__sendResponse($data, 200, $format);
 	}
 	
