@@ -1870,22 +1870,6 @@ class Server extends AppModel {
 		return true;
 	}
 
-	private function __getEnrichmentSettings() {
-		$modules = $this->getEnrichmentModules();
-		$result = array();
-		if (!empty($modules['modules'])) {
-			foreach ($modules['modules'] as $module) {
-				$result[$module['name']][0] = array('name' => 'enabled', 'type' => 'boolean');
-				if (isset($module['meta']['config'])) {
-					foreach ($module['meta']['config'] as $conf) {
-						$result[$module['name']][] = array('name' => $conf, 'type' => 'string');
-					}
-				}
-			}
-		}
-		return $result;
-	}
-
 	public function getCurrentServerSettings() {
 		$this->Module = ClassRegistry::init('Module');
 		$serverSettings = $this->serverSettings;
@@ -2797,33 +2781,6 @@ class Server extends AppModel {
 						'change' => 'Removing dead worker data. Worker was of type ' . $worker['queue'] . ' with pid ' . $pid
 				));
 			}
-		}
-	}
-
-	// currently unused, but let's keep it in the code-base in case we need it in the future.
-	private function __dropIndex($table, $field) {
-		$this->Log = ClassRegistry::init('Log');
-		$indexCheck = "SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema=DATABASE() AND table_name='" . $table . "' AND index_name LIKE '" . $field . "%'";
-		$indexCheckResult = $this->query($indexCheck);
-		foreach ($indexCheckResult as $icr) {
-			$dropIndex = 'ALTER TABLE ' . $table . ' DROP INDEX ' . $icr['STATISTICS']['INDEX_NAME'];
-			$result = true;
-			try {
-				$this->query($dropIndex);
-			} catch (Exception $e) {
-				$result = false;
-			}
-			$this->Log->create();
-			$this->Log->save(array(
-					'org' => 'SYSTEM',
-					'model' => 'Server',
-					'model_id' => 0,
-					'email' => 'SYSTEM',
-					'action' => 'update_database',
-					'user_id' => 0,
-					'title' => ($result ? 'Removed index ' : 'Failed to remove index ') . $icr['STATISTICS']['INDEX_NAME'] . ' from ' . $table,
-					'change' => ($result ? 'Removed index ' : 'Failed to remove index ') . $icr['STATISTICS']['INDEX_NAME'] . ' from ' . $table,
-			));
 		}
 	}
 

@@ -60,8 +60,6 @@ class ServersController extends AppController {
 	}
 
 	public function previewIndex($id) {
-		if (isset($this->passedArgs['pages'])) $currentPage = $this->passedArgs['pages'];
-		else $currentPage = 1;
 		$urlparams = '';
 		$passedArgs = array();
 		if (!$this->_isSiteAdmin()) {
@@ -86,7 +84,6 @@ class ServersController extends AppController {
 		$this->loadModel('Event');
 		$threat_levels = $this->Event->ThreatLevel->find('all');
 		$this->set('threatLevels', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.name'));
-		$pageCount = count($events);
 		App::uses('CustomPaginationTool', 'Tools');
 		$customPagination = new CustomPaginationTool();
 		$params = $customPagination->createPaginationRules($events, $this->passedArgs, $this->alias);
