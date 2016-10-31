@@ -34,7 +34,7 @@
 	});
 	
 	$('#filterField').keyup(function() {
-		var filterString =  $("#filterField").val();
+		var filterString =  $("#filterField").val().toLowerCase();
 		$.each(tags, function(index, value) {
 			if (value.toLowerCase().indexOf(filterString) == -1) {
 				$('#field_' + index).hide();
