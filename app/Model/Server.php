@@ -2461,6 +2461,40 @@ class Server extends AppModel {
 		}
 		return array('success' => $success, 'response' => $response, 'canPush' => $canPush, 'version' => $remoteVersion);
 	}
+	
+	/* This is a fallback for legacy remote instances that don't report back the current user's sync permission.
+	 * 
+	 * The idea is simple: If we have no way of determining the perm_sync flag from the remote instance, request 
+	 * /servers/testConnection from the remote. This API is used to check the remote connectivity and expects an ID to be passed
+	 * In this case however we are not passing an ID so ideally it will return 404, meaning that the instance is invalid.
+	 * We are abusing the fact that only sync users can use this functionality, if we don't have sync permission we'll get a 403
+	 * instead of the 404. It's hacky but it works fine and serves the purpose.
+	 */
+	public function checkLegacyServerSyncPrivilege($id, $HttpSocket = false) {
+		$server = $this->find('first', array('conditions' => array('Server.id' => $id)));
+		if (!$HttpSocket) {
+			App::uses('SyncTool', 'Tools');
+			$syncTool = new SyncTool();
+			$HttpSocket = $syncTool->setupHttpSocket($server);
+		}
+		$uri = $server['Server']['url'] . '/servers/testConnection';
+		$request = array(
+				'header' => array(
+						'Authorization' => $server['Server']['authkey'],
+						'Accept' => 'application/json',
+						'Content-Type' => 'application/json',
+				)
+		);
+		try {
+			$response = $HttpSocket->get($uri, '', $request);
+		} catch (Exception $e) {
+			return false;
+		}
+		if ($response->code == '404') {
+			return true;
+		}
+		return false;
+	}
 
 	public function isJson($string) {
 		return (json_last_error() == JSON_ERROR_NONE);

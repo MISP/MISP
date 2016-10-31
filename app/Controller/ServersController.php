@@ -1064,6 +1064,17 @@ class ServersController extends AppController {
 							}
 						}
 					}
+					if (!isset($version['perm_sync'])) {
+						if (!$this->Server->checkLegacyServerSyncPrivilege($id)) {
+							$result['status'] = 7;
+							return new CakeResponse(array('body'=> json_encode($result)));
+						}
+					} else {
+						if (!$version['perm_sync']) {
+							$result['status'] = 7;
+							return new CakeResponse(array('body'=> json_encode($result)));
+						}
+					}
 					return new CakeResponse(array('body'=> json_encode(array('status' => 1, 'local_version' => implode('.', $local_version), 'version' => implode('.', $version), 'mismatch' => $mismatch, 'newer' => $newer))));
 				} else {
 					$result['status'] = 3;
@@ -1124,7 +1135,13 @@ class ServersController extends AppController {
 	public function getVersion() {
 		if (!$this->userRole['perm_auth']) throw new MethodNotAllowedException('This action requires API access.');
 		$versionArray = $this->Server->checkMISPVersion();
-		$this->set('response', array('version' => $versionArray['major'] . '.' . $versionArray['minor'] . '.' . $versionArray['hotfix']));
+		$this->set('response', array('version' => $versionArray['major'] . '.' . $versionArray['minor'] . '.' . $versionArray['hotfix'], 'perm_sync' => $this->userRole['perm_sync']));
 		$this->set('_serialize', 'response');
+	}
+	
+	public function test() {
+		$this->Server->checkLegacyServerSyncPrivilege('9', $HttpSocket = false);
+		$this->Server->checkLegacyServerSyncPrivilege('10', $HttpSocket = false);
+		$this->Server->checkLegacyServerSyncPrivilege('11', $HttpSocket = false);
 	}
 }

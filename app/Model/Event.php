@@ -697,7 +697,14 @@ class Event extends AppModel {
 
 	public function uploadEventToServer($event, $server, $HttpSocket = null) {
 		$this->Server = ClassRegistry::init('Server');
-		$push = $this->Server->checkVersionCompatibility($server['Server']['id']);
+		$push = $this->Server->checkVersionCompatibility($server['Server']['id'], false, $HttpSocket);
+		if (!isset($push['perm_sync'])) {
+			$this->Server->checkLegacyServerSyncPrivilege($server['Server']['id'], $HttpSocket);
+		} else {
+			if (!$push['perm_sync']) {
+				return 'The remote user is not a sync user - the upload of the event has been blocked.';
+			}
+		}
 		$deletedAttributes = false;
 		if (($push['version'][0] > 2) ||
 			($push['version'][0] == 2 && $push['version'][1] > 4) ||

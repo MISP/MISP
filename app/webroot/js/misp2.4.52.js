@@ -2123,6 +2123,9 @@ function testConnection(id) {
 			case 6:
 				$("#connection_test_" + id).html('<span class="red bold" title="Authentication failed because the sync user on the remote has not accepted the terms of use. Log into the remote MISP to rectify this.">Terms not accepted</span>');
 				break;
+			case 7:
+				$("#connection_test_" + id).html('<span class="red bold" title="The user account on the remote instance is not a sync user.">Remote user not a sync user</span>');
+				break;
 	    	}
 	    }
 	})
