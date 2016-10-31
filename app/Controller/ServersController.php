@@ -1138,10 +1138,4 @@ class ServersController extends AppController {
 		$this->set('response', array('version' => $versionArray['major'] . '.' . $versionArray['minor'] . '.' . $versionArray['hotfix'], 'perm_sync' => $this->userRole['perm_sync']));
 		$this->set('_serialize', 'response');
 	}
-	
-	public function test() {
-		$this->Server->checkLegacyServerSyncPrivilege('9', $HttpSocket = false);
-		$this->Server->checkLegacyServerSyncPrivilege('10', $HttpSocket = false);
-		$this->Server->checkLegacyServerSyncPrivilege('11', $HttpSocket = false);
-	}
 }
