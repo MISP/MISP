@@ -1245,7 +1245,7 @@ class AttributesController extends AppController {
 						} else {
 							if (strlen($saveWord) == 36) {
 								$temp['OR'][] = array('Event.uuid =' => $saveWord);
-								$temp['OR'] = array('Attribute.uuid' => $saveWord);
+								$temp['OR'][] = array('Attribute.uuid' => $saveWord);
 							} else {
 								$temp['OR'][] = array('Attribute.event_id =' => $saveWord);
 							}
