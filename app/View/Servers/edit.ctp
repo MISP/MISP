@@ -85,7 +85,7 @@
 	?>
 	<div class="clear">
 		<p>
-			<span class="bold">Server ceritificate file: </span>
+			<span class="bold">Server certificate file: </span>
 			<span id="serverEditCertValue">
 				<?php
 					if (isset($server['Server']['cert_file']) && !empty($server['Server']['cert_file'])) echo h($server['Server']['cert_file']);
@@ -107,7 +107,7 @@
 		</div>
 	<div class="clear">
 		<p>
-			<span class="bold">Client ceritificate file: </span>
+			<span class="bold">Client certificate file: </span>
 			<span id="serverEditClientCertValue">
 				<?php
 					if (isset($server['Server']['client_cert_file']) && !empty($server['Server']['client_cert_file'])) echo h($server['Server']['client_cert_file']);
