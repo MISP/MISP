@@ -75,6 +75,11 @@ Feature Request
 
 [![Feature Requests](http://feathub.com/MISP/MISP?format=svg)](http://feathub.com/MISP/MISP)
 
+Roadmap
+-------
+
+To see the [![Roadmap](https://github.com/MISP/MISP/wiki/Planned-features-and-functionalities)](https://github.com/MISP/MISP/wiki/Planned-features-and-functionalities) for MISP have a look in the Wiki page
+
 License
 -------
 
