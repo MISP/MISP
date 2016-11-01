@@ -108,16 +108,16 @@ class EventShell extends AppShell
 		$this->Job->id = $id;
 		$dir = new Folder(APP . 'tmp/cached_exports/stix', true, 0750);
 		if ($user['Role']['perm_site_admin']) {
-			$stixFile = new File($dir->pwd() . DS . 'misp.stix' . '.ADMIN.xml');
+			$stixFilePath = $dir->pwd() . DS . 'misp.stix' . '.ADMIN.xml';
 		} else {
-			$stixFile = new File($dir->pwd() . DS . 'misp.stix' . '.' . $user['Organisation']['name'] . '.xml');
+			$stixFilePath = $dir->pwd() . DS . 'misp.stix' . '.' . $user['Organisation']['name'] . '.xml';
 		}
-		$result = $this->Event->stix(false, false, Configure::read('MISP.cached_attachments'), $user, 'xml', false, false, false, $id);
+		$result = $this->Event->stix(false, false, Configure::read('MISP.cached_attachments'), $user, 'xml', false, false, false, $id, true);
 		$timeDelta = (time()-$timeStart);
 		$this->Job->saveField('date_modified', date("y-m-d H:i:s"));
 		if ($result['success']) {
-			$stixFile->write($result['data']);
-			$stixFile->close();
+			rename($result['data'], $stixFilePath);
+			unlink($result['data']);
 			$this->Job->saveField('progress', 100);
 			$this->Job->saveField('message', 'Job done. (in '.$timeDelta.'s)');
 		} else {

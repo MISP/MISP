@@ -2540,7 +2540,7 @@ class Event extends AppModel {
 	}
 
 
-	public function stix($id, $tags, $attachments, $user, $returnType = 'xml', $from = false, $to = false, $last = false, $jobId = false) {
+	public function stix($id, $tags, $attachments, $user, $returnType = 'xml', $from = false, $to = false, $last = false, $jobId = false, $returnFile = false) {
 		$eventIDs = $this->Attribute->dissectArgs($id);
 		$tagIDs = $this->Attribute->dissectArgs($tags);
 		$idList = $this->getAccessibleEventIds($eventIDs[0], $eventIDs[1], $tagIDs[0], $tagIDs[1]);
@@ -2634,10 +2634,12 @@ class Event extends AppModel {
 			$stixFile->delete();
 			return array('success' => 0, 'message' => 'No matching events found to export.');
 		}
-		$data = $stixFile->read();
 		$tempFile->delete();
-		$stixFile->delete();
-		return array('success' => 1, 'data' => $data);
+		if (!$returnFile) {
+			$data = $stixFile->read();
+			$stixFile->delete();
+		}
+		return array('success' => 1, 'data' => $returnFile ? $stixFile->path : $data);
 	}
 
 	public function getAccessibleEventIds($include, $exclude, $includedTags, $excludedTags) {
