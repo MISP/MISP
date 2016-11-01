@@ -1610,6 +1610,7 @@ class EventsController extends AppController {
 	}
 
 	public function export() {
+		$filesize_units = array('B', 'KB', 'MB', 'GB', 'TB');
 		if ($this->_isSiteAdmin()) $this->Session->setFlash('Warning, you are logged in as a site admin, any export that you generate will contain the FULL UNRESTRICTED data-set. If you would like to generate an export for your own organisation, please log in with a different user.');
 		// Check if the background jobs are enabled - if not, fall back to old export page.
 		if (Configure::read('MISP.background_jobs')) {
@@ -1667,6 +1668,13 @@ class EventsController extends AppController {
 						$this->Event->export_types[$k]['recommendation'] = 1;
 					}
 				} else {
+					$filesize = $file->size();
+					$filesize_unit_index = 0;
+					while ($filesize > 1024) {
+						$filesize_unit_index++;
+						$filesize = $filesize / 1024;
+					}
+					$this->Event->export_types[$k]['filesize'] = round($filesize, 1) . $filesize_units[$filesize_unit_index];
 					$fileChange = $file->lastChange();
 					$lastModified = $this->__timeDifference($now, $fileChange);
 					if (empty($tempNewestEvent) || $fileChange > $tempNewestEvent['Event']['timestamp']) {
