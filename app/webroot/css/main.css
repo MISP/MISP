@@ -1337,6 +1337,13 @@ a.proposal_link_red:hover {
 	max-height:400px;
 	overflow-y:auto;
 }
+.popover_choice div input:focus {
+	border-color: rgba(82, 168, 236, 0.8) !important;
+	outline: 0;
+}
+.popover_choice_table {
+	width:100%;
+}
 
 .templateChoiceButton {
 	text-align:center;
@@ -1348,6 +1355,7 @@ a.proposal_link_red:hover {
 .templateChoiceButton:hover {
 	background-color:#0088cc !important;
 	color:white;
+	cursor: pointer;
 }
 
 .templateChoiceButtonLast {
