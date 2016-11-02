@@ -64,16 +64,12 @@ class UsersController extends AppController {
 		return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Something went wrong, please try again later.')),'status'=>200));
 	}
 
-	public function edit($id = null) {
+	public function edit() {
 		if (!$this->_isAdmin() && Configure::read('MISP.disableUserSelfManagement')) throw new MethodNotAllowedException('User self-management has been disabled on this instance.');
-		$me = false;
-		if ("me" == $id) {
-			$id = $this->Auth->user('id');
-			$me = true;
-		}
+		$id = $this->Auth->user('id');
 		$this->User->read(null, $id);
-		if (!$this->User->exists() && !$me && !$this->_isSiteAdmin() && !($this->_isAdmin() && $this->Auth->user('org_id') == $this->User->data['User']['org_id'])) {
-			throw new NotFoundException(__('Invalid user or not authorised.'));
+		if (!$this->User->exists()) {
+			throw new NotFoundException('Something went wrong. Your user account could not be accessed.');
 		}
 		if ($this->request->is('post') || $this->request->is('put')) {
 			// What fields should be saved (allowed to be saved)
@@ -89,11 +85,6 @@ class UsersController extends AppController {
 				$this->Session->setFlash(__('The profile could not be updated. Please, try again.'));
 			}
 		} else {
-			$this->User->recursive = 0;
-			$this->User->read(null, $id);
-			if (!$this->User->exists() || (!$this->_isSiteAdmin() && $this->Auth->user('org_id') != $this->User->data['User']['org_id'])) {
-				throw new NotFoundException(__('Invalid user or not authorised.'));
-			}
 			$this->User->set('password', '');
 			$this->request->data = $this->User->data;
 		}
@@ -682,7 +673,7 @@ class UsersController extends AppController {
 		}
 		$user = $this->User->read();
 		$oldKey = $this->User->data['User']['authkey'];
-		if ($id != 'me' && !$this->_isSiteAdmin() && !($this->_isAdmin() && $this->Auth->user('org_id') == $this->User->data['User']['org_id']) && ($this->Auth->user('id') != $id)) {
+		if (!$this->_isSiteAdmin() && !($this->_isAdmin() && $this->Auth->user('org_id') == $this->User->data['User']['org_id']) && ($this->Auth->user('id') != $id)) {
 			throw new MethodNotAllowedException();
 		}
 		$newkey = $this->User->generateAuthKey();
