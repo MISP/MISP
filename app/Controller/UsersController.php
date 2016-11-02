@@ -791,9 +791,8 @@ class UsersController extends AppController {
 		$user = $this->User->read();
 		$oldKey = $this->User->data['User']['authkey'];
 		if (!$this->_isSiteAdmin() && !($this->_isAdmin() && $this->Auth->user('org_id') == $this->User->data['User']['org_id']) && ($this->Auth->user('id') != $id)) {
-			throw new MethodNotAllowedException();
+			throw new MethodNotAllowedException('Invalid user.');
 		}
-		$oldKey = $this->User->data['User']['authkey'];
 		$newkey = $this->User->generateAuthKey();
 		$this->User->saveField('authkey', $newkey);
 		$this->__extralog(
