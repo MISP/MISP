@@ -23,6 +23,9 @@ git submodule update --init --force
 
 # 3. Update Mitre's STIX and its dependencies
 
+cd /var/www/MISP/app/files/scripts/
+rm -rf python-cybox
+rm -rf python-stix
 cd /var/www/MISP/app/files/scripts/python-cybox
 git checkout v2.1.0.12
 python setup.py install
