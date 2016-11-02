@@ -1,4 +1,4 @@
-<div class="popover_choice">
+<div class="popover_choice select_tag">
 	<legend>Select Tag</legend>
 	<div style="display:none;">
 		<?php
@@ -7,13 +7,11 @@
 			echo $this->Form->end();
 		?>
 	</div>
+	<div style="text-align:right;width:100%;" class="select_tag_search">
+		<input id="filterField" style="width:100%;border:0px;padding:0px;" placeholder="search tags..."/>
+	</div>
 	<div class="popover_choice_main" id ="popover_choice_main">
 		<table style="width:100%;">
-		<tr>
-			<td style="text-align:right;width:100%;">
-				<input id="filterField" style="width:100%;border:0px;padding:0px;"></input>
-			</td>
-		</tr>
 		<?php foreach ($options as $k => &$option): ?>
 			<tr id="field_<?php echo h($k); ?>" style="border-bottom:1px solid black;" class="templateChoiceButton">
 				<td style="padding-left:10px;padding-right:10px; text-align:center;width:100%;" onClick="quickSubmitTagForm('<?php echo h($event_id);?>', '<?php echo h($k); ?>');" title="<?php echo h($expanded[$k]);?>"><?php echo h($option); ?></td>
