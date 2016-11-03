@@ -2305,7 +2305,15 @@ class AttributesController extends AppController {
 		$orphans = $this->Attribute->find('list', array('conditions' => array('Attribute.event_id !=' => $events)));
 		if (count($orphans) > 0) $this->Attribute->deleteAll(array('Attribute.event_id !=' => $events), false, true);
 		$this->Session->setFlash('Removed ' . count($orphans) . ' attribute(s).');
-		$this->redirect('/pages/display/administration');
+		$this->redirect(Router::url($this->referer(), true));
+	}
+	
+	public function checkOrphanedAttributes() {
+		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException('You are not authorised to do that.');
+		$this->loadModel('Attribute');
+		$events = array_keys($this->Attribute->Event->find('list'));
+		$orphans = $this->Attribute->find('list', array('conditions' => array('Attribute.event_id !=' => $events)));
+		return new CakeResponse(array('body'=> count($orphans), 'status'=>200));
 	}
 
 	public function updateAttributeValues($script) {

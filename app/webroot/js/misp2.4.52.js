@@ -2615,3 +2615,26 @@ function toggleContextFields() {
 	}
 	setContextFields();
 }
+
+function checkOrphanedAttributes() {
+	$.ajax({
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+		success:function (data, textStatus) {
+			var color = 'red';
+			var text = ' (Removal recommended)';
+			if (data == '0') {
+				color = 'green';
+				text = ' (OK)';
+			}
+			$("#orphanedAttributeCount").html('<span class="' + color + '">' + data + text + '</span>');
+		},
+		complete:function() {
+			$(".loading").hide();
+		},
+		type:"get",
+		cache: false,
+		url: "/attributes/checkOrphanedAttributes/",
+	});
+}

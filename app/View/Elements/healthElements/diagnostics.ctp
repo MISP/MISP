@@ -217,6 +217,15 @@
 	<p>If you ever run into issues with missing database fields / tables, please run the following script to clean the model cache.</p>
 	<?php echo $this->Form->postLink('<span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;">Clean cache</span>', $baseurl . '/events/cleanModelCaches', array('escape' => false));?>
 	<h3>
+		Orphaned attributes
+	</h3>
+	<p>In some rare cases attributes can remain in the database after an event is deleted becoming orphaned attributes. This means that they do not belong to any event, which can cause issues with the correlation engine (known cases include event deletion directly in the database without cleaning up the attributes and situtations involving a race condition with an event deletion happening before all attributes are synchronised over).</p>
+	<div style="background-color:#f7f7f9;width:300px;">
+		Orphaned attributes....<span id="orphanedAttributeCount"><span style="color:orange;">Run the test below</span></span>
+	</div><br />
+	<span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick="checkOrphanedAttributes();">Check for orphaned attributes</span><br /><br />
+	<?php echo $this->Form->postButton('Remove orphaned attributes', $baseurl . '/attributes/pruneOrphanedAttributes', $options = array('class' => 'btn btn-primary', 'style' => 'padding-top:1px;padding-bottom:1px;')); ?>
+	<h3>
 		Legacy Administrative Tools
 	</h3>
 	<p>Click the following button to go to the legacy administrative tools page. There should in general be no need to do this unless you are upgrading a very old MISP instance (<2.4), all updates are done automatically with more current versions.</p>
