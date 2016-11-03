@@ -1,7 +1,7 @@
 [![Build Status](https://travis-ci.org/MISP/MISP.svg?branch=2.4)](https://travis-ci.org/MISP/MISP)
 
-MISP - Malware Information Sharing Platform
--------------------------------------------
+MISP - Malware Information Sharing Platform and Threat Sharing
+--------------------------------------------------------------
 
 [![Join the chat at https://gitter.im/MISP/MISP](https://badges.gitter.im/MISP/MISP.svg)](https://gitter.im/MISP/MISP?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
