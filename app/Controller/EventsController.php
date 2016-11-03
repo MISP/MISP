@@ -256,7 +256,7 @@ class EventsController extends AppController {
 		// list the events
 		$passedArgsArray = array();
 		$urlparams = "";
-		$overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'Datefrom', 'Dateuntil', 'org', 'eventinfo', 'tag', 'distribution', 'analysis', 'threatlevel', 'email', 'hasproposal');
+		$overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'Datefrom', 'Dateuntil', 'org', 'eventinfo', 'tag', 'distribution', 'analysis', 'threatlevel', 'email', 'hasproposal', 'timestamp', 'publishtimestamp');
 		$passedArgs = $this->passedArgs;
 		if (isset($this->request->data)) {
 			if (isset($this->request->data['request'])) $this->request->data = $this->request->data['request'];
@@ -320,6 +320,14 @@ class EventsController extends AppController {
 					case 'Dateuntil' :
 						if ($v == "") continue 2;
 						$this->paginate['conditions']['AND'][] = array('Event.date <=' => $v);
+						break;
+					case 'timestamp':
+						if ($v == "") continue 2;
+						$this->paginate['conditions']['AND'][] = array('Event.timestamp >=' => $v);
+						break;
+					case 'publishtimestamp':
+						if ($v == "") continue 2;
+						$this->paginate['conditions']['AND'][] = array('Event.publish_timestamp <=' => $v);
 						break;
 					case 'org' :
 						if ($v == "") continue 2;
