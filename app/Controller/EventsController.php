@@ -271,7 +271,7 @@ class EventsController extends AppController {
 			if (substr($k, 0, 6) === 'search') {
 				if ($urlparams != "") $urlparams .= "/";
 				$urlparams .= $k . ":" . $v;
-				$searchTerm = substr($k, 6);
+				$searchTerm = strtolower(substr($k, 6));
 				switch ($searchTerm) {
 					case 'all' :
 						if (!empty($passedArgs['searchall'])) $this->paginate['conditions']['AND'][] = array('Event.id' => $this->__quickFilter($passedArgs['searchall']));
@@ -313,11 +313,11 @@ class EventsController extends AppController {
 						}
 						$this->paginate['conditions']['AND'][] = $temp;
 						break;
-					case 'Datefrom' :
+					case 'datefrom':
 						if ($v == "") continue 2;
 						$this->paginate['conditions']['AND'][] = array('Event.date >=' => $v);
 						break;
-					case 'Dateuntil' :
+					case 'dateuntil':
 						if ($v == "") continue 2;
 						$this->paginate['conditions']['AND'][] = array('Event.date <=' => $v);
 						break;
