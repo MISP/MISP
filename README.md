@@ -1,7 +1,7 @@
 [![Build Status](https://travis-ci.org/MISP/MISP.svg?branch=2.4)](https://travis-ci.org/MISP/MISP)
 
-MISP - Malware Information Sharing Platform
--------------------------------------------
+MISP - Malware Information Sharing Platform and Threat Sharing
+--------------------------------------------------------------
 
 [![Join the chat at https://gitter.im/MISP/MISP](https://badges.gitter.im/MISP/MISP.svg)](https://gitter.im/MISP/MISP?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
@@ -37,11 +37,7 @@ Exchanging info results in *faster detection* of targeted attacks and improves t
 
 A sample event encoded in MISP:
 
-![red october](http://3.bp.blogspot.com/-B3h0xbX7RjI/Uftvmq05rHI/AAAAAAAAApo/I0OEYOAFUI4/s1600/red-oct-1.jpg)
-
-![red october](http://1.bp.blogspot.com/-LnMVhq4Rpyk/UftvmguodBI/AAAAAAAAAps/e22fomGL2MU/s1600/red-oct-2.jpg)
-
-
+![MISP event view](./INSTALL/screenshots/event-view.png?raw=true "MISP")
 
 Website / Support
 ------------------
