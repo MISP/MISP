@@ -600,6 +600,24 @@ class Server extends AppModel {
 							'null' => false,
 
 					),
+					'block_event_alert' => array(
+							'level' => 1,
+							'description' => 'Enable this setting to start blocking alert e-mails for events with a certain tag. Define the tag in MISP.block_event_alert_tag.',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+							'null' => false,
+					),
+					'block_event_alert_tag' => array(
+							'level' => 1,
+							'description' => 'If the MISP.block_event_alert setting is set, alert e-mails for events tagged with the tag defined by this setting will be blocked.',
+							'value' => 'no-alerts="true"',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+							'null' => false,
+					),
 					'block_old_event_alert' => array(
 							'level' => 1,
 							'description' => 'Enable this setting to start blocking alert e-mails for old events. The exact timing of what constitutes an old event is defined by MISP.block_old_event_alert_age.',

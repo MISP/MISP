@@ -1490,6 +1490,17 @@ class Event extends AppModel {
 			if (empty($event)) return false;
 			if (strtotime($event['Event']['date']) < $oldest) return true;
 		}
+		if (Configure::read('MISP.block_event_alert') && Configure::read('MISP.block_event_alert_tag') && !empty(Configure::read('MISP.block_event_alert_tag'))) {
+			$noAlertTag = Configure::read('MISP.block_event_alert_tag');
+			$tagLen = strlen($noAlertTag);
+			$event = $this->fetchEvent($user, array('eventid' => $id, 'includeAllTags' => true));
+			if (empty($event)) return false;
+			foreach ($event[0]['EventTag'] as $k => $tag) {
+				if(strcasecmp($noAlertTag, $tag['Tag']['name']) == 0) {
+					return true;
+				}
+			}
+		}
 		if (Configure::read('MISP.disable_emailing')) {
 			$this->Log = ClassRegistry::init('Log');
 			$this->Log->create();
