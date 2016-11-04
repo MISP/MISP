@@ -209,6 +209,7 @@ class UsersController extends AppController {
 				$this->set('users', $this->paginate());
 			} else {
 				$conditions['User.org_id'] = $this->Auth->user('org_id');
+				$this->paginate['conditions']['AND'][] = $conditions;
 				$this->set('users', $this->paginate());
 			}
 			$this->set('ajax', $this->request->is('ajax'));
@@ -1151,9 +1152,6 @@ class UsersController extends AppController {
 	}
 	
 	public function tagStatisticsGraph() {
-		$top_ten_tags = array();
-		$trending_tags = array();
-		$all_tags = array();
 		$this->loadModel('EventTag');
 		$tags = $this->EventTag->getSortedTagList();
 		$this->loadModel('Taxonomy');
@@ -1199,6 +1197,8 @@ class UsersController extends AppController {
 	}
 	
 	private function __statisticsTags($params = array()) {
+		$trending_tags = array();
+		$all_tags = array();
 		$this->render('statistics_tags');
 	}
 
