@@ -6,7 +6,7 @@
 	<?php 
 		foreach ($taxonomies as $k => $taxonomy):
 	?> 
-		<div class="span2" style="cursor: pointer;">
+		<div class="span3" style="cursor: pointer;">
 			<span id="<?php echo $taxonomy . '-colour'?>" class="attributehistogram-legend-box" style="display: block;float: left;margin: 4px 6px 0 0;background-color:white;">&nbsp;</span>
 			<span class="treemap-selector bold" data-treemap-selector="<?php echo h($taxonomy); ?>"><?php echo h($taxonomy); ?></span>
 		</div>
