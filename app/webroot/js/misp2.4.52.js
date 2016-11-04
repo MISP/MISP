@@ -2638,3 +2638,21 @@ function checkOrphanedAttributes() {
 		url: "/attributes/checkOrphanedAttributes/",
 	});
 }
+
+function loadTagTreemap() {
+	$.ajax({
+		async:true,
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+		success:function (data, textStatus) {
+			$(".treemapdiv").html(data);
+		},
+		complete:function() {
+			$(".loading").hide();
+		},
+		type:"get",
+		cache: false,
+		url: "/users/tagStatisticsGraph",
+	});
+}

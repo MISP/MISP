@@ -809,10 +809,6 @@ class UsersController extends AppController {
 		}
 	}
 
-	public function attributehistogram() {
-		//all code is called via JS
-	}
-
 	public function histogram($selected = null) {
 		if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This function can only be accessed via AJAX.');
 		if ($selected == '[]') $selected = null;
@@ -1045,7 +1041,21 @@ class UsersController extends AppController {
 	}
 
 	// shows some statistics about the instance
-	public function statistics() {
+	public function statistics($page = 'data') {
+		$this->set('page', $page);
+		$this->set('pages', array('data' => 'Usage data', 'orgs' => 'Organisations', 'tags' => 'Tags', 'attributehistogram' => 'Attribute histogram'));
+		if ($page == 'data') {
+			$this->__statisticsData($this->params['named']);
+		} else if ($page == 'orgs') {
+			$this->__statisticsOrgs($this->params['named']);
+		} else if ($page == 'tags') {
+			$this->__statisticsTags($this->params['named']);
+		} else if ($page == 'attributehistogram') {
+			$this->render('statistics_histogram');
+		}
+	}
+	
+	private function __statisticsData($params = array()) {
 		// set all of the data up for the heatmaps
 		$orgs = $this->User->Organisation->find('all', array('fields' => array('DISTINCT (name) AS name'), 'recursive' => -1));
 		$this->loadModel('Log');
@@ -1060,27 +1070,27 @@ class UsersController extends AppController {
 		$this_month = strtotime('first day of this month');
 		$stats[0] = $this->User->Event->find('count', null);
 		$stats[1] = $this->User->Event->find('count', array('conditions' => array('Event.timestamp >' => $this_month)));
-
+		
 		$stats[2] = $this->User->Event->Attribute->find('count', array('conditions' => array('Attribute.deleted' => 0)));
 		$stats[3] = $this->User->Event->Attribute->find('count', array('conditions' => array('Attribute.timestamp >' => $this_month, 'Attribute.deleted' => 0)));
-
+		
 		$this->loadModel('Correlation');
 		$this->Correlation->recursive = -1;
 		$stats[4] = $this->Correlation->find('count', null);
 		$stats[4] = $stats[4] / 2;
-
+		
 		$stats[5] = $this->User->Event->ShadowAttribute->find('count', null);
-
+		
 		$stats[6] = $this->User->find('count', null);
 		$stats[7] = count($orgs);
-
+		
 		$this->loadModel('Thread');
 		$stats[8] = $this->Thread->find('count', array('conditions' => array('Thread.post_count >' => 0)));
 		$stats[9] = $this->Thread->find('count', array('conditions' => array('Thread.date_created >' => date("Y-m-d H:i:s",$this_month), 'Thread.post_count >' => 0)));
-
+		
 		$stats[10] = $this->Thread->Post->find('count', null);
 		$stats[11] = $this->Thread->Post->find('count', array('conditions' => array('Post.date_created >' => date("Y-m-d H:i:s",$this_month))));
-
+		
 		$this->set('stats', $stats);
 		$this->set('orgs', $orgs);
 		$this->set('start', strtotime(date('Y-m-d H:i:s') . ' -5 months'));
@@ -1088,6 +1098,108 @@ class UsersController extends AppController {
 		$this->set('startDateCal', $year . ', ' . $month . ', 01');
 		$range = '[5, 10, 50, 100]';
 		$this->set('range', $range);
+		$this->render('statistics_data');
+	}
+	
+	private function __statisticsOrgs($params = array()) {
+		$this->loadModel('Organisation');
+		$conditions = array();
+		if (!isset($params['scope']) || $params['scope'] == 'local') {
+			$params['scope'] = 'local';
+			$conditions['Organisation.local'] = 1;
+		} elseif ($params['scope'] == 'external') {
+			$conditions['Organisation.local'] = 0;
+		}
+		$orgs = array();
+		$orgs = $this->Organisation->find('all', array(
+				'recursive' => -1,
+				'conditions' => $conditions,
+				'fields' => array('id', 'name', 'description', 'local', 'contacts', 'type', 'sector', 'nationality'),
+		));
+		$orgs = Set::combine($orgs, '{n}.Organisation.id', '{n}.Organisation');
+		$users = $this->User->find('all', array(
+			'group' => 'User.org_id',
+			'conditions' => array('User.org_id' => array_keys($orgs)),
+			'recursive' => -1,
+			'fields' => array('org_id', 'count(*)')	
+		));
+		foreach ($users as $user) {
+			$orgs[$user['User']['org_id']]['userCount'] = $user[0]['count(*)'];
+		}
+		unset($users);
+		$events = $this->User->Event->find('all', array(
+			'group' => 'Event.orgc_id',
+			'conditions' => array('Event.orgc_id' => array_keys($orgs)),
+			'recursive' => -1,
+			'fields' => array('Event.orgc_id', 'count(*)')
+		));
+		foreach ($events as $event) {
+			$orgs[$event['Event']['orgc_id']]['eventCount'] = $event[0]['count(*)'];
+		}
+		unset($events);
+		$orgs = Set::combine($orgs, '{n}.name', '{n}');
+		// f*** php
+		uksort($orgs, 'strcasecmp');
+		foreach ($orgs as $k => $value) {
+			if (file_exists(APP . 'webroot' . DS . 'img' . DS . 'orgs' . DS . $k . '.png')) {
+				$orgs[$k]['logo'] = true;
+			}
+		}
+		$this->set('scope', $params['scope']);
+		$this->set('orgs', $orgs);
+		$this->render('statistics_orgs');
+	}
+	
+	public function tagStatisticsGraph() {
+		$top_ten_tags = array();
+		$trending_tags = array();
+		$all_tags = array();
+		$this->loadModel('EventTag');
+		$tags = $this->EventTag->getSortedTagList();
+		$this->loadModel('Taxonomy');
+		$taxonomies = $this->Taxonomy->find('list', array(
+				'conditions' => array('enabled' => true),
+				'fields' => array('Taxonomy.namespace')
+		));
+		$flatData = array();
+		foreach ($tags as $key => $value) {
+			$name = explode(':', $value['name']);
+			$tags[$key]['taxonomy'] = 'custom';
+			if (count($name) > 1) {
+				if (in_array($name[0], $taxonomies)) {
+					$tags[$key]['taxonomy'] = $name[0];
+				}
+			}
+			$flatData[$tags[$key]['taxonomy']][$value['name']] = array('name' => $value['name'], 'size' => $value['eventCount']); 
+		}
+		$treemap = array(
+				'name' => 'tags',
+				'children' => array()
+		);
+		
+		foreach ($flatData as $key => $value) {
+			 $newElement = array(
+				'name' => $key,
+				'children' => array()
+			);
+			foreach ($value as $tag) {
+				$newElement['children'][] = array('name' => $tag['name'], 'size' => $tag['size']);
+			}
+			$treemap['children'][] = $newElement;
+		}
+		$taxonomyColourCodes = array();
+		$taxonomies = array_merge(array('custom'), $taxonomies);
+		$this->set('taxonomyColourCodes', $taxonomyColourCodes);
+		$this->set('taxonomies', $taxonomies);
+		$this->set('flatData', $flatData);
+		$this->set('treemap', $treemap);
+		$this->set('tags', $tags);
+		$this->layout = 'treemap';
+		$this->render('ajax/tag_statistics_graph');
+	}
+	
+	private function __statisticsTags($params = array()) {
+		$this->render('statistics_tags');
 	}
 
 	public function verifyGPG() {

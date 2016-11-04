@@ -88,7 +88,6 @@
 							<li><a href="<?php echo $baseurl;?>/pages/display/doc/quickstart">User Guide</a></li>
 							<li><a href="<?php echo $baseurl;?>/users/terms">Terms &amp; Conditions</a></li>
 							<li><a href="<?php echo $baseurl;?>/users/statistics">Statistics</a></li>
-							<li><a href="<?php echo $baseurl;?>/users/attributehistogram">Attribute Histogram</a></li>
 						</ul>
 					</li>
 
