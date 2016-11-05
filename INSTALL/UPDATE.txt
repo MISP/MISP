@@ -23,12 +23,18 @@ git submodule update --init --force
 
 # 3. Update Mitre's STIX and its dependencies
 
-cd /var/www/MISP/app/files/scripts/python-cybox
-git checkout v2.1.0.12
+cd /var/www/MISP/app/files/scripts/
+rm -rf python-cybox
+rm -rf python-stix
+sudo -u www-data git clone https://github.com/CybOXProject/python-cybox.git
+sudo -u www-data git clone https://github.com/STIXProject/python-stix.git
+cd /var/www/MISP/app/files/scripts/python-cybox 
+sudo -u www-data git checkout v2.1.0.12
+python setup.py install 
+cd /var/www/MISP/app/files/scripts/python-stix 
+sudo -u www-data git checkout v1.1.1.4
 python setup.py install
-cd /var/www/MISP/app/files/scripts/python-stix
-git checkout v1.1.1.4
-python setup.py install
+
 
 
 # 4. Update CakeResque and its dependencies
