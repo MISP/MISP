@@ -1,4 +1,4 @@
-<div class="popover_choice">
+<div class="popover_choice  select_tag_source">
 	<legend>Select Tag Source</legend>
 	<div class="popover_choice_main" id ="popover_choice_main">
 		<table style="width:100%;">
