@@ -26,8 +26,8 @@
     </div>
 	<table class="table table-striped table-hover table-condensed" style="width:50%;">
 	<tr>
-			<th>Name</th>
 			<th>Logo</th>
+			<th>Name</th>
 			<th>Users</th>
 			<th>Events</th>
 			<th>Nationality</th>
@@ -38,7 +38,6 @@
 		foreach ($orgs as $data):
 	?>
 		<tr class="org_row" data-orgid="<?php echo h($data['id']); ?>">
-			<td class="short"><?php echo h($data['name']); ?></td>
 			<td class="short">
 				<?php 
 					if (isset($data['logo'])):
@@ -51,6 +50,7 @@
 					
 				?>
 			</td>
+			<td class="short"><?php echo h($data['name']); ?></td>
 			<td class="short"><span class="<?php echo isset($data['userCount']) ? 'blue bold' : 'grey'; ?>"><?php echo isset($data['userCount']) ? h($data['userCount']) : '0';?></span></td>
 			<td class="short"><span class="<?php echo isset($data['eventCount']) ? 'blue bold' : 'grey'; ?>"><?php echo isset($data['eventCount']) ? h($data['eventCount']) : '0';?></span></td>
 			<td class="shortish"><?php echo isset($data['nationality']) && $data['nationality'] !== 'Not specified' ? h($data['nationality']) : '&nbsp;'; ?></td>
