@@ -321,7 +321,7 @@ class UsersController extends AppController {
 			// In case we don't get the data encapsulated in a User object
 			if ($this->_isRest()) {
 				if (!isset($this->request->data['User'])) {
-					$this->request->data['User'] = $this->request->data;
+					$this->request->data = array('User' => $this->request->data);
 				}
 				if (isset($this->request->data['User']['id'])) {
 					unset($this->request->data['User']['id']);
@@ -344,7 +344,9 @@ class UsersController extends AppController {
 						'autoalert' => 0,
 						'contactalert' => 0,
 						'disabled' => 0,
-						'newsread' => 0
+						'newsread' => 0,
+						'change_pw' => 1,
+						'termsaccepted' => 0
 				);
 				foreach ($defaults as $key => $value) {
 					if (!isset($this->request->data['User'][$key])) $this->request->data['User'][$key] = $value;
@@ -358,12 +360,14 @@ class UsersController extends AppController {
 			$chosenRole = $this->Role->findById($this->request->data['User']['role_id']);
 			if (empty($chosenRole)) throw new MethodNotAllowedException('Invalid role');
 			$this->request->data['User']['invited_by'] = $this->Auth->user('id');
-			if ($chosenRole['Role']['perm_sync']) {
-				$this->request->data['User']['change_pw'] = 0;
-				$this->request->data['User']['termsaccepted'] = 1;
-			} else {
-				$this->request->data['User']['change_pw'] = 1;
-				$this->request->data['User']['termsaccepted'] = 0;
+			if (!$this->_isRest()) {
+				if ($chosenRole['Role']['perm_sync']) {
+					$this->request->data['User']['change_pw'] = 0;
+					$this->request->data['User']['termsaccepted'] = 1;
+				} else {
+					$this->request->data['User']['change_pw'] = 1;
+					$this->request->data['User']['termsaccepted'] = 0;
+				}
 			}
 			if (!isset($this->request->data['User']['disabled'])) $this->request->data['User']['disabled'] = false;
 			$this->request->data['User']['newsread'] = 0;
