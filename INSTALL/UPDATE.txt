@@ -1,9 +1,21 @@
-# After installing MISP you can keep it up to date by periodically running the commands below.
-# use this between hotfix versions (such as 2.4.3 -> 2.4.13)
+# In general, updating MISP between point releases (for exampe 2.4.50 -> 2.4.53) happens with one of the following two options (both are to be executed as root):
+
+# Option 1: To update to the latest commit from the 2.4 branch simply pull the latest commit
+cd /var/www/MISP
+git pull origin 2.4
+git submodule update --init --force
+
+# Option 2: If you want to stick to a point release instead of pulling the latest commit directly:
+cd /var/www/MISP
+git fetch
+git checkout tags/$(git describe --tags `git rev-list --tags --max-count=1`)
+git submodule update --init --force
+
 # If you would like to upgrade from a minor version to another, look at the UPGRADE.txt file instead (such as 2.3.142 -> 2.4.13)
 
-# 1. Update the MISP code to the latest hotfix. If a new minor or major version (2.4.x) has been released, refer to UPGRADE.txt instead.
+# If for any reason something goes wrong with the above instructions, walk through the following manual upgrade
 
+# 1. Update the MISP code to the latest hotfix.
 As user root, do the following:
 
 cd /var/www/MISP
