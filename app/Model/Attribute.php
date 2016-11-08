@@ -1060,7 +1060,7 @@ class Attribute extends AppModel {
 			$execOutput = array();
 			exec('zip -j -P infected ' . escapeshellarg($zipfile->path) . ' ' . escapeshellarg($tmpfile->path), $execOutput, $execRetval);
 			if ($execRetval != 0) { // not EXIT_SUCCESS
-				throw new Exception('An error has occured while attempting to zip the malware file.');
+				throw new Exception('An error has occurred while attempting to zip the malware file.');
 			}
 			$fileInZip->delete(); // delete the original non-zipped-file
 			if(!file_exists($file->path)) {
