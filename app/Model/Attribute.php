@@ -1286,7 +1286,7 @@ class Attribute extends AppModel {
 		$rules = array();
 		foreach ($eventIds as $event) {
 			$conditions['AND'] = array('Attribute.to_ids' => 1, "Event.published" => 1, 'Attribute.event_id' => $event['Event']['id']);
-			$valid_types = array('ip-dst', 'ip-src', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'domain', 'hostname', 'url', 'user-agent', 'snort');
+			$valid_types = array('ip-dst', 'ip-src', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'domain', 'domain|ip', 'hostname', 'url', 'user-agent', 'snort');
 			$conditions['AND']['Attribute.type'] = $valid_types;
 			if (!empty($type)) {
 				$conditions['AND'][] = array('Attribute.type' => $type);
