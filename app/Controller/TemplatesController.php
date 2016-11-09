@@ -305,12 +305,11 @@ class TemplatesController extends AppController {
 			}
 
 			$template = $this->Template->find('first', array(
-					'id' => $template_id,
+					'conditions' => array('Template.id' => $template_id),
 					'recursive' => -1,
 					'contain' => 'TemplateTag',
 					'fields' => 'id',
 			));
-
 			foreach ($template['TemplateTag'] as $tag) {
 				$exists = false;
 				foreach ($event['EventTag'] as $eventTag) {
