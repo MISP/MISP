@@ -1018,14 +1018,14 @@ class Attribute extends AppModel {
 		// Check if there were problems with the file upload
 		// only keep the last part of the filename, this should prevent directory attacks
 		$filename = basename($fileP);
-		$fileFromFileP = new File($fileP);
+		$currentFile = new File($fileP);
 
 		// save the file-info in the database
 		$this->create();
 		$this->data['Attribute']['event_id'] = $eventId;
 		$this->data['Attribute']['distribution'] = $dist;
 		if ($malware) {
-			$md5 = !$fileFromFileP->size() ? md5_file($fileP) : $fileFromFileP->md5();
+			$md5 = !$currentFile->size() ? md5_file($fileP) : $currentFile->md5();
 			$this->data['Attribute']['category'] = $category ? $category : "Payload delivery";
 			$this->data['Attribute']['type'] = "malware-sample";
 			$this->data['Attribute']['value'] = $fullFileName ? $fullFileName . '|' . $md5 : $filename . '|' . $md5; // TODO gives problems with bigger files
@@ -1060,14 +1060,14 @@ class Attribute extends AppModel {
 		if ($malware) {
 			$execRetval = '';
 			$execOutput = array();
-			exec('zip -j -P infected ' . escapeshellarg($zipfile->path) . ' ' . escapeshellarg($fileFromFileP->path), $execOutput, $execRetval);
+			exec('zip -j -P infected ' . escapeshellarg($zipfile->path) . ' ' . escapeshellarg($currentFile->path), $execOutput, $execRetval);
 			if ($execRetval != 0) { // not EXIT_SUCCESS
 				throw new Exception('An error has occurred while attempting to zip the malware file.');
 			}
-			$fileFromFileP->delete(); // delete the original non-zipped-file
+			$currentFile->delete(); // delete the original non-zipped-file
 			rename($zipfile->path, $file->path); // rename the .zip to .nothing
 		} else {
-			rename($fileFromFileP->path, $file->path);
+			rename($currentFile->path, $file->path);
 		}
 	}
 
