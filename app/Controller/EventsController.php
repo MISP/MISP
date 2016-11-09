@@ -2234,15 +2234,17 @@ class EventsController extends AppController {
 				if ((string)$key == 'filename') $realFileName = (string)$val;
 			}
 		}
-		$rootDir = APP . "files" . DS . $id . DS;
-		$malware = $rootDir . DS . 'sample';
-		$this->Event->Attribute->uploadAttachment($malware,	$realFileName,	true, $id, null, '', $this->Event->data['Event']['uuid'] . '-sample', $dist, true);
+		$rootDir = APP . "files" . DS . "GFI" . DS . $id . DS;
+		$sampleFile = $rootDir . 'sample';
+		//some GFI files do not contain a sample file:
+		if(file_exists($sampleFile)) {
+			$this->Event->Attribute->uploadAttachment($sampleFile, $realFileName, true, $id, null, '', $this->Event->data['Event']['uuid'] . '-sample', $dist, true);
+		}
 
 		// Network activity -- .pcap
 		$realFileName = 'analysis.pcap';
-		$rootDir = APP . "files" . DS . $id . DS;
-		$malware = $rootDir . DS . 'Analysis' . DS . 'analysis.pcap';
-		$this->Event->Attribute->uploadAttachment($malware,	$realFileName,	false, $id, 'Network activity', '', $this->Event->data['Event']['uuid'] . '-analysis.pcap', $dist, true);
+		$pcapFile = $rootDir . 'Analysis' . DS . 'analysis.pcap';
+		$this->Event->Attribute->uploadAttachment($pcapFile,	$realFileName,	false, $id, 'Network activity', '', $this->Event->data['Event']['uuid'] . '-analysis.pcap', $dist, true);
 
 		// Artifacts dropped -- filename|md5
 		$files = array();
