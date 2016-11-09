@@ -39,7 +39,12 @@ class TagsController extends AppController {
 			if (empty($tag_id_list)) $tag_id_list = array(-1);
 			$this->paginate['conditions']['AND']['Tag.id'] = $tag_id_list;
 		}
-		$paginated = $this->paginate();
+		if ($this->_isRest()) {
+			unset($this->paginate['limit']);
+			$paginated = $this->Tag->find('all', $this->paginate);
+		} else {
+			$paginated = $this->paginate();
+		}
 		foreach ($paginated as $k => $tag) {
 			if (empty($tag['EventTag'])) $paginated[$k]['Tag']['count'] = 0;
 			else {
@@ -75,7 +80,7 @@ class TagsController extends AppController {
 					if (substr(strtoupper($tag['Tag']['name']), 0, strlen($tns)) === strtoupper($tns)) {
 						$paginated[$k]['Tag']['Taxonomy'] = $taxonomyNamespaces[$tns];
 						if (!isset($taxonomyTags[$tns])) $taxonomyTags[$tns] = $this->Taxonomy->getTaxonomyTags($taxonomyNamespaces[$tns]['id'], true);
-						$paginated[$k]['Tag']['Taxonomy']['expanded'] = $taxonomyTags[$tns][strtoupper($tag['Tag']['name'])];
+						$paginated[$k]['Tag']['Taxonomy']['expanded'] = isset($taxonomyTags[$tns][strtoupper($tag['Tag']['name'])]) ? $taxonomyTags[$tns][strtoupper($tag['Tag']['name'])] : $tag['Tag']['name'];
 					}
 				}
 			}
