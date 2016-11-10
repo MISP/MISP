@@ -2888,7 +2888,7 @@ class EventsController extends AppController {
 		$this->Event->recursive = -1;
 		$event = $this->Event->read(array('id', 'org_id', 'orgc_id', 'distribution'), $id);
 		// org should allow to tag too, so that an event that gets pushed can be tagged locally by the owning org
-		if ((($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id'] && $event['Event']['distribution'] == 0) || (!$this->userRole['perm_tagger'])) && !$this->_isSiteAdmin()) {
+		if ((($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id']) || (!$this->userRole['perm_tagger'])) && !$this->_isSiteAdmin()) {
 			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')),'status'=>200));
 		}
 		$eventTag = $this->Event->EventTag->find('first', array(
