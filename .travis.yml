@@ -22,7 +22,7 @@ addons:
         - localhost
     apt:
         packages:
-            - mysql-server
+            - mysql-server-5.5
             - python-dev
             - python-pip
             - libxml2-dev
