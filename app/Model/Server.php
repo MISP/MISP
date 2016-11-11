@@ -2593,7 +2593,7 @@ class Server extends AppModel {
 			$scriptResult['operational'] = $scriptResult['success'];
 			if ($scriptResult['operational'] == 0) {
 				$diagnostic_errors++;
-				return $scriptResult;
+				return array('operational' => 0, 'stix' => array('expected' => $expected['stix']), 'cybox' => array('expected' => $expected['cybox']));
 			}
 		} else {
 			return array('operational' => 0, 'stix' => array('expected' => $expected['stix']), 'cybox' => array('expected' => $expected['cybox']));
