@@ -113,7 +113,11 @@ class FeedsController extends AppController {
 			$this->request->data['Feed']['settings'] = json_encode($this->request->data['Feed']['settings']);
 			$fields = array('id', 'name', 'provider', 'enabled', 'rules', 'url', 'distribution', 'sharing_group_id', 'tag_id', 'fixed_event', 'event_id', 'publish', 'delta_merge', 'override_ids', 'settings');
 			$feed = array();
-			foreach ($fields as $field) $feed[$field] = $this->request->data['Feed'][$field];
+			foreach ($fields as $field) {
+				if (isset($this->request->data['Feed'][$field])) {
+					$feed[$field] = $this->request->data['Feed'][$field];
+				}
+			}
 			$result = $this->Feed->save($feed);
 			if ($result) {
 				$this->Session->setFlash('Feed updated.');
