@@ -2656,3 +2656,35 @@ function loadTagTreemap() {
 		url: "/users/tagStatisticsGraph",
 	});
 }
+
+function quickEditEvent(id, field) {
+	$.ajax({
+		async:true,
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+		success:function (data, textStatus) {
+			$("#" + field + "Field").html(data);
+		},
+		complete:function() {
+			$(".loading").hide();
+		},
+		type:"get",
+		cache: false,
+		url: "/events/quickEdit/" + id + "/" + field,
+	});	
+}
+
+function selectAllInbetween(last, current) {
+	if (last === false || last == current) return false;
+	if (last < current) {
+		var temp = current;
+		current = last;
+		last = temp;
+	}
+	$('.select_proposal, .select_attribute').each(function () {
+		if ($(this).parent().data('position') > current && $(this).parent().data('position') < last) {
+			$(this).prop('checked', true);
+		}
+	});
+}

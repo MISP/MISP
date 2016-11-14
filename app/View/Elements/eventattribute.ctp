@@ -201,7 +201,7 @@
 				?>
 				<tr id = "<?php echo $currentType . '_' . $object['id'] . '_tr'; ?>" class="<?php echo $extra3; ?>">
 					<?php if ($mayModify): ?>
-						<td class="<?php echo $extra; ?>" style="width:10px;">
+						<td class="<?php echo $extra; ?>" style="width:10px;" data-position="<?php echo h($k); ?>">
 							<?php if ($object['objectType'] == 0): ?>
 								<input id = "select_<?php echo $object['id']; ?>" class="select_attribute row_checkbox" type="checkbox" data-id="<?php echo $object['id'];?>" />
 							<?php else: ?>
@@ -525,6 +525,7 @@ attributes or the appropriate distribution level. If you think there is a mistak
 	var currentUri = "<?php echo isset($currentUri) ? h($currentUri) : '/events/viewEventAttributes/' . h($event['Event']['id']); ?>";
 	var ajaxResults = [];
 	var timer;
+	var lastSelected = false;
 	var deleted = <?php echo (isset($deleted) && $deleted) ? 'true' : 'false';?>;
 	$(document).ready(function(){
 		setContextFields();
@@ -532,13 +533,28 @@ attributes or the appropriate distribution level. If you think there is a mistak
 		$('input:checkbox').removeAttr('checked');
 		$('.mass-select').hide();
 		$('.mass-proposal-select').hide();
-		$('.select_attribute, .select_all').click(function(){
+		$('.select_attribute').click(function(e) {
+			if ($(this).is(':checked')) {
+				if (e.shiftKey) {
+					selectAllInbetween(lastSelected, $(this).parent().data('position'));
+				}
+				lastSelected = $(this).parent().data('position');
+			}
 			attributeListAnyAttributeCheckBoxesChecked();
 		});
-		$('.select_proposal, .select_all').click(function(){
+		$('.select_proposal').click(function(e){
+			if ($(this).is(':checked')) {
+				if (e.shiftKey) {
+					selectAllInbetween(lastSelected, $(this).parent().data('position'));
+				}
+				lastSelected = $(this).parent().data('position');
+			}
 			attributeListAnyProposalCheckBoxesChecked();
 		});
-
+		$('.select_all').click(function() {
+			attributeListAnyAttributeCheckBoxesChecked();
+			attributeListAnyProposalCheckBoxesChecked();
+		});
 	});
 </script>
 <?php
