@@ -8,6 +8,7 @@ php:
 
 services:
     - redis
+    - mysql
 
 sudo: required
 dist: trusty
@@ -22,7 +23,6 @@ addons:
         - localhost
     apt:
         packages:
-            - mysql-server
             - python-dev
             - python-pip
             - libxml2-dev
