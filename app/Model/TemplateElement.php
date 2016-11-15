@@ -27,6 +27,9 @@ class TemplateElement extends AppModel {
 			'order' => array('id'),
 			'group' => array('id')
 		));
+		if (empty($result)) {
+			return 0;
+		}
 		return $result[0]['pos'];
 	}
 }
