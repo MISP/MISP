@@ -773,7 +773,7 @@ class AttributesController extends AppController {
 
 	// ajax edit - post a single edited field and this method will attempt to save it and return a json with the validation errors if they occur.
 	public function editField($id) {
-		if ((!$this->request->is('post') && !$this->request->is('put')) || !$this->request->is('ajax')) throw new MethodNotAllowedException();
+		if ((!$this->request->is('post') && !$this->request->is('put'))) throw new MethodNotAllowedException();
 		$this->Attribute->id = $id;
 		if (!$this->Attribute->exists()) {
 			return new CakeResponse(array('body'=> json_encode(array('fail' => false, 'errors' => 'Invalid attribute')),'status'=>200));
@@ -791,13 +791,27 @@ class AttributesController extends AppController {
 				return new CakeResponse(array('body'=> json_encode(array('fail' => false, 'errors' => 'Invalid attribute')),'status'=>200));
 			}
 		}
-
+		$validFields = array('value', 'category', 'type', 'comment', 'to_ids', 'distribution');
+		$changed = false;
+		if (empty($this->request->data['Attribute'])) {
+			$this->request->data = array('Attribute' => $this->request->data);
+			if (empty($this->request->data['Attribute'])) {
+				throw new MethodNotAllowedException('Invalid input.');
+			}
+		}
 		foreach ($this->request->data['Attribute'] as $changedKey => $changedField) {
+			if (!in_array($changedKey, $validFields)) {
+				throw new MethodNotAllowedException('Invalid field.');
+			}
 			if ($attribute['Attribute'][$changedKey] == $changedField) {
 				$this->autoRender = false;
 				return new CakeResponse(array('body'=> json_encode('nochange'),'status'=>200));
 			}
 			$attribute['Attribute'][$changedKey] = $changedField;
+			$changed = true;
+		}
+		if (!$changed) {
+			return new CakeResponse(array('body'=> json_encode('nochange'),'status'=>200));
 		}
 		$date = new DateTime();
 		$attribute['Attribute']['timestamp'] = $date->getTimestamp();
