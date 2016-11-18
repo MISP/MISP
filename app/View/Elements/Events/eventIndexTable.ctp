@@ -28,13 +28,13 @@
 		<?php endif; ?>
 		<th title="Attribute Count"><?php echo $this->Paginator->sort('attribute_count', '#Attr.');?></th>
 		<?php if (Configure::read('MISP.showCorrelationsOnIndex')):?>
-			<th title="Correlation Count"><?php echo $this->Paginator->sort('correlation_count', '#Corr.');?></th>
+			<th title="Correlation Count">#Corr.</th>
 		<?php endif; ?>
 		<?php if (Configure::read('MISP.showSightingsCountOnIndex') && Configure::read('Plugin.Sightings_enable')):?>
-			<th title="Sigthing Count"><?php echo $this->Paginator->sort('sighting_count', '#Sightings');?></th>
+			<th title="Sigthing Count">#Sightings</th>
 		<?php endif; ?>
 		<?php if (Configure::read('MISP.showProposalsOnIndex')):?>
-			<th title="Proposal Count"><?php echo $this->Paginator->sort('proposal_count', '#Prop.');?></th>
+			<th title="Proposal Count">#Prop</th>
 		<?php endif; ?>
 		<?php if ($isSiteAdmin): ?>
 		<th><?php echo $this->Paginator->sort('user_id', 'Email');?></th>
