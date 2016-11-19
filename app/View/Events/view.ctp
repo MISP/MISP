@@ -7,16 +7,33 @@
 			$ownSightings = array();
 			$orgSightings = array();
 			foreach ($event['Sighting'] as $sighting) {
+				debug($sighting);
 				if (isset($sighting['org_id']) && $sighting['org_id'] == $me['org_id']) $ownSightings[] = $sighting;
 				if (isset($sighting['org_id'])) {
-					if (isset($orgSightings[$sighting['Organisation']['name']])) $orgSightings[$sighting['Organisation']['name']]++;
-					else $orgSightings[$sighting['Organisation']['name']] = 1;
+					if (isset($orgSightings[$sighting['Organisation']['name']])) {
+						$orgSightings[$sighting['Organisation']['name']]['count']++;
+						if (!isset($orgSightings[$sighting['Organisation']['name']]['date']) || $orgSightings[$sighting['Organisation']['name']]['date'] < $sighting['date_sighting']) {
+							$orgSightings[$sighting['Organisation']['name']]['date'] = $sighting['date_sighting'];
+						}
+					} else {
+						$orgSightings[$sighting['Organisation']['name']]['count'] = 1;
+						$orgSightings[$sighting['Organisation']['name']]['date'] = $sighting['date_sighting'];
+					}
 				} else {
-					if (isset($orgSightings['Other organisations'])) $orgSightings['Other organisations']++;
-					else $orgSightings['Other organisations'] = 1;
+					if (isset($orgSightings['Other organisations']['count'])) {
+						$orgSightings['Other organisations']['count']++;
+						if (!isset($orgSightings['Other organisations']['date']) || $orgSightings['Other organisations']['date'] < $sighting['date_sighting']) {
+							$orgSightings['Other organisations']['date'] = $sighting['date_sighting'];
+						}
+					} else {
+						$orgSightings['Other organisations']['count'] = 1;
+						$orgSightings['Other organisations']['date'] = $sighting['date_sighting'];
+					}
 				}
 			}
-			foreach ($orgSightings as $org => $sightingCount) $sightingPopover .= '<span class=\'bold\'>' . h($org) . '</span>: <span class=\'green\'>' . h($sightingCount) . '</span><br />';
+			foreach ($orgSightings as $org => $data) {
+				$sightingPopover .= '<span class=\'bold\'>' . h($org) . '</span>: <span class=\'green bold\'>' . h($data['count']) . ' (' . date('Y-m-d h:i:s', $data['date']) . ')' . '</span><br />';
+			}
 		}
 	}
 	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'viewEvent', 'mayModify' => $mayModify, 'mayPublish' => $mayPublish));
@@ -121,7 +138,18 @@
 				</dd>
 				<dt title="<?php echo $eventDescriptions['analysis']['desc'];?>">Analysis</dt>
 				<dd>
-					<?php echo h($analysisLevels[$event['Event']['analysis']]); ?>
+					<span id="analysisField">
+					<?php 
+						echo h($analysisLevels[$event['Event']['analysis']]);
+					?>
+					</span>
+					<?php 
+						if ($isSiteAdmin || $mayModify):
+					?>
+							<span onClick="quickEditEvent('<?php echo $event['Event']['id']; ?>', 'analysis');" class = "icon-edit useCursorPointer" title = "Edit Analysis"></span>
+					<?php 
+						endif;
+					?>
 					&nbsp;
 				</dd>
 				<dt>Distribution</dt>
