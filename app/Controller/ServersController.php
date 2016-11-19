@@ -766,6 +766,7 @@ class ServersController extends AppController {
 			$priorityErrorColours = array(0 => 'red', 1 => 'yellow', 2 => 'green');
 			$this->set('priorityErrorColours', $priorityErrorColours);
 			$this->set('phpversion', phpversion());
+			$this->set('extensions', $this->Server->extensionDiagnostics());
 			$this->set('phpmin', $this->phpmin);
 			$this->set('phprec', $this->phprec);
 		}

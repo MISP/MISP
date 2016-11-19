@@ -2569,6 +2569,7 @@ class Server extends AppModel {
 	public function writeableFilesDiagnostics(&$diagnostic_errors) {
 		$writeableFiles = array(
 				'Config' . DS . 'config.php' => 0,
+				'files/scripts/selftest.php' => 0
 		);
 		foreach ($writeableFiles as $path => &$error) {
 			if (!file_exists(APP . $path)) {
@@ -3126,5 +3127,20 @@ class Server extends AppModel {
 			$validServers[] = $server;
 		}
 		return $validServers;
+	}
+	
+	public function extensionDiagnostics() {
+		$results = array();
+		$extensions = array('redis');
+		foreach ($extensions as $extension) {
+			$results['web']['extensions'][$extension] = extension_loaded($extension); 
+		}
+		if (!is_readable(APP . '/files/scripts/selftest.php')) {
+			$results['cli'] = false;
+		} else {
+			$results['cli'] = exec('php ' . APP . '/files/scripts/selftest.php');
+			$results['cli'] = json_decode($results['cli'], true);
+		}
+		return $results;
 	}
 }

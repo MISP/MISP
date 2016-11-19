@@ -79,6 +79,27 @@
 	<?php
 		$phpcolour = 'green';
 		$phptext = 'Up to date';
+		$phpversions = array();
+		$phpversions['web']['phpversion'] = $phpversion;
+		$phpversions['cli']['phpversion'] = isset($extensions['cli']['phpversion']) ? $extensions['cli']['phpversion'] : false;
+		foreach (array('web', 'cli') as $source) {
+			if (!$phpversions[$source]['phpversion']) {
+				$phpversions[$source]['phpversion'] = 'Unknown';
+				$phpversions[$source]['phpcolour'] = 'red';
+				$phpversions[$source]['phptext'] = 'Issues determining version';
+				continue;
+			}
+			$phpversions[$source]['phpcolour'] = 'green';
+			$phpversions[$source]['phptext'] = 'Up to date';
+			if (version_compare($phpversions[$source]['phpversion'], $phprec) < 1) {
+				$phpversions[$source]['phpcolour'] = 'orange';
+				$phpversions[$source]['phptext'] = 'Update highly recommended';
+				if (version_compare($phpversions[$source]['phpversion'], $phpmin) < 1) {
+					$phpversions[$source]['phpcolour'] = 'red';
+					$phpversions[$source]['phptext'] = 'Version unsupported, update ASAP';
+				}
+			}
+		}
 		if (version_compare($phpversion, $phprec) < 1) {
 			$phpcolour = 'orange';
 			$phptext = 'Update highly recommended';
@@ -88,7 +109,8 @@
 			}
 		}
 	?>
-	<p><span class="bold">PHP Version (><?php echo $phprec; ?> recommended): </span><span class="<?php echo $phpcolour; ?>"><?php echo h($phpversion) . ' (' . $phptext . ')';?></span></p>
+	<p><span class="bold">PHP Version (><?php echo $phprec; ?> recommended): </span><span class="<?php echo $phpversions['web']['phpcolour']; ?>"><?php echo h($phpversions['web']['phpversion']) . ' (' . $phpversions['web']['phptext'] . ')';?></span><br />
+	<span class="bold">PHP CLI Version (><?php echo $phprec; ?> recommended): </span><span class="<?php echo $phpversions['cli']['phpcolour']; ?>"><?php echo h($phpversions['cli']['phpversion']) . ' (' . $phpversions['cli']['phptext'] . ')';?></span></p>
 	<p>The following settings might have a negative impact on certain functionalities of MISP with their current and recommended minimum settings. You can adjust these in your php.ini. Keep in mind that the recommendations are not requirements, just recommendations. Depending on usage you might want to go beyond the recommended values.</p>
 	<?php
 		foreach ($phpSettings as $settingName => &$phpSetting):
@@ -100,6 +122,29 @@
 	<?php
 		endforeach;
 	?>
+	<h4>PHP Extensions</h4>
+		<?php 
+			foreach (array('web', 'cli') as $context):
+		?>
+			<div style="background-color:#f7f7f9;width:300px;">
+				<b><?php echo ucfirst(h($context));?></b><br />
+				<?php 
+					if (isset($extensions[$context]['extensions'])):
+						foreach ($extensions[$context]['extensions'] as $extension => $status):
+				?>
+							<?php echo h($extension); ?>:.... <span style="color:<?php echo $status ? 'green' : 'red';?>;font-weight:bold;"><?php echo $status ? 'OK' : 'Not loaded'; ?></span>
+				<?php 
+						endforeach;
+					else:
+				?>
+						<span class="red">Issues reading PHP settings. This could be due to the test script not being readable.</span>
+				<?php 
+					endif;
+				?>
+			</div><br />
+		<?php 
+			endforeach;
+		?>
 	<h3>
 	STIX and Cybox libraries
 	</h3>
