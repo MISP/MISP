@@ -2412,7 +2412,7 @@ class EventsController extends AppController {
 	// the last 4 fields accept the following operators:
 	// && - you can use && between two search values to put a logical OR between them. for value, 1.1.1.1&&2.2.2.2 would find attributes with the value being either of the two.
 	// ! - you can negate a search term. For example: google.com&&!mail would search for all attributes with value google.com but not ones that include mail. www.google.com would get returned, mail.google.com wouldn't.
-	public function restSearch($key = 'download', $value = false, $type = false, $category = false, $org = false, $tags = false, $searchall = false, $from = false, $to = false, $last = false, $eventid = false, $withAttachments = false, $metadata = false) {
+	public function restSearch($key = 'download', $value = false, $type = false, $category = false, $org = false, $tags = false, $searchall = false, $from = false, $to = false, $last = false, $eventid = false, $withAttachments = false, $metadata = false, $uuid = false) {
 		if ($key != 'download') {
 			if (!$this->checkAuthUser($key)) {
 				throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
@@ -2436,13 +2436,13 @@ class EventsController extends AppController {
 			} else {
 				throw new BadRequestException('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct headers based on content type.');
 			}
-			$paramArray = array('value', 'type', 'category', 'org', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments', 'metadata');
+			$paramArray = array('value', 'type', 'category', 'org', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments', 'metadata', 'uuid');
 			foreach ($paramArray as $p) {
 				if (isset($data['request'][$p])) ${$p} = $data['request'][$p];
 				else ${$p} = null;
 			}
 		}
-		$simpleFalse = array('value' , 'type', 'category', 'org', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments');
+		$simpleFalse = array('value' , 'type', 'category', 'org', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid');
 		foreach ($simpleFalse as $sF) {
 			if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false')) {
 				${$sF} = false;
@@ -2460,7 +2460,7 @@ class EventsController extends AppController {
 		if (isset($searchall) && ($searchall == 1 || $searchall === true || $searchall == 'true')) {
 			$eventIds = $this->__quickFilter($value);
 		} else {
-			$parameters = array('value', 'type', 'category', 'org', 'eventid');
+			$parameters = array('value', 'type', 'category', 'org', 'eventid', 'uuid');
 			foreach ($parameters as $k => $param) {
 				if (isset(${$parameters[$k]})) {
 					if (is_array(${$parameters[$k]})) {
@@ -2488,6 +2488,9 @@ class EventsController extends AppController {
 									}
 								} else if ($parameters[$k] === 'eventid') {
 									$subcondition['AND'][] = array('Attribute.event_id !=' => substr($v, 1));
+								} else if ($parameters[$k] === 'uuid') {
+									$subcondition['AND'][] = array('Event.uuid !=' => substr($v, 1));
+									$subcondition['AND'][] = array('Attribute.uuid !=' => substr($v, 1));
 								} else {
 									$subcondition['AND'][] = array('Attribute.' . $parameters[$k] . ' NOT LIKE' => '%'.substr($v, 1).'%');
 								}
@@ -2510,7 +2513,10 @@ class EventsController extends AppController {
 									}
 								} else if ($parameters[$k] === 'eventid') {
 									$subcondition['OR'][] = array('Attribute.event_id' => $v);
-								} else {
+								} else if ($parameters[$k] === 'uuid') { 
+									$subcondition['OR'][] = array('Attribute.uuid' => $v);
+									$subcondition['OR'][] = array('Event.uuid' => $v);
+								}else {
 									if (!empty($v)) $subcondition['OR'][] = array('Attribute.' . $parameters[$k] . ' LIKE' => '%'.$v.'%');
 								}
 							}
