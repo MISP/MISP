@@ -497,6 +497,25 @@ CREATE INDEX idx_sharing_groups_organisation_uuid ON sharing_groups (organisatio
 -- --------------------------------------------------------
 
 --
+-- Table structure for table sightings
+--
+
+CREATE TABLE IF NOT EXISTS sightings (
+  id int(11) NOT NULL AUTO_INCREMENT,
+  attribute_id int(11) NOT NULL,
+  event_id int(11) NOT NULL,
+  org_id int(11) NOT NULL,
+  date_sighting bigint(20) NOT NULL,
+  PRIMARY KEY (id)
+);
+
+CREATE INDEX idx_sightings_attribute_id ON sightings (attribute_id);
+CREATE INDEX idx_sightings_event_id ON sightings (event_id);
+CREATE INDEX idx_sightings_org_id ON sightings (org_id);
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table tags
 --
 

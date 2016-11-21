@@ -125,16 +125,16 @@ class AppModel extends Model {
 				$sql = 'ALTER TABLE  `event_blacklists` ADD  `event_orgc` VARCHAR( 255 ) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL , ADD  `event_info` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL, ADD `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL;';
 				break;
 			case 'addSightings':
-				$sql = "CREATE TABLE IF NOT EXISTS `sightings` (
-				`id` int(11) NOT NULL AUTO_INCREMENT,
-				`attribute_id` int(11) NOT NULL,
-				`event_id` int(11) NOT NULL,
-				`org_id` int(11) NOT NULL,
-				`date_sighting` bigint(20) NOT NULL,
-				PRIMARY KEY (`id`),
-				INDEX `attribute_id` (`attribute_id`),
-				INDEX `event_id` (`event_id`),
-				INDEX `org_id` (`org_id`)
+				$sql = "CREATE TABLE IF NOT EXISTS sightings (
+				id int(11) NOT NULL AUTO_INCREMENT,
+				attribute_id int(11) NOT NULL,
+				event_id int(11) NOT NULL,
+				org_id int(11) NOT NULL,
+				date_sighting bigint(20) NOT NULL,
+				PRIMARY KEY (id),
+				INDEX attribute_id (attribute_id),
+				INDEX event_id (event_id),
+				INDEX org_id (org_id)
 				) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
 				break;
 			case 'makeAttributeUUIDsUnique':
