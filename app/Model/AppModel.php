@@ -69,6 +69,9 @@ class AppModel extends Model {
 				$this->SharingGroup->correctSyncedSharingGroups();
 				$this->SharingGroup->updateRoaming();
 				break;
+			case '2.4.55':
+				$this->updateDatabase('addSightings');
+				break;
 			default:
 				$this->updateDatabase($command);
 				break;

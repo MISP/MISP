@@ -1,13 +1,12 @@
 <?php
 	$mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Orgc']['id'] == $me['org_id']) || ($isAclModifyOrg && $event['Orgc']['id'] == $me['org_id']));
 	$mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
-	if (Configure::read('Plugin.Sightings_enable')) {
+	if (Configure::read('Plugin.Sightings_enable') !== false) {
 		$sightingPopover = '';
 		if (isset($event['Sighting']) && !empty($event['Sighting'])) {
 			$ownSightings = array();
 			$orgSightings = array();
 			foreach ($event['Sighting'] as $sighting) {
-				debug($sighting);
 				if (isset($sighting['org_id']) && $sighting['org_id'] == $me['org_id']) $ownSightings[] = $sighting;
 				if (isset($sighting['org_id'])) {
 					if (isset($orgSightings[$sighting['Organisation']['name']])) {
@@ -171,7 +170,7 @@
 				</dd>
 				<dt class="<?php echo ($event['Event']['published'] == 0) ? (($isAclPublish && $me['org_id'] == $event['Event']['orgc_id']) ? 'background-red bold' : 'bold') : 'bold'; ?>">Published</dt>
 				<dd class="<?php echo ($event['Event']['published'] == 0) ? (($isAclPublish && $me['org_id'] == $event['Event']['orgc_id']) ? 'background-red bold' : 'red bold') : 'green bold'; ?>"><?php echo ($event['Event']['published'] == 0) ? 'No' : 'Yes'; ?></dd>
-				<?php if (Configure::read('Plugin.Sightings_enable')): ?>
+				<?php if (Configure::read('Plugin.Sightings_enable') !== false): ?>
 				<dt>Sightings</dt>
 				<dd style="word-wrap: break-word;">
 						<span id="eventSightingCount" class="bold sightingsCounter" data-toggle="popover" data-trigger="hover" data-content="<?php echo $sightingPopover; ?>"><?php echo count($event['Sighting']); ?></span>
