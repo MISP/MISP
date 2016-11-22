@@ -1308,7 +1308,9 @@ class Event extends AppModel {
 		if (empty($results)) return array();
 		// Do some refactoring with the event
 		$sgsids = $this->SharingGroup->fetchAllAuthorised($user);
-		if (Configure::read('Plugin.Sightings_enable')) $this->Sighting = ClassRegistry::init('Sighting');
+		if (Configure::read('Plugin.Sightings_enable') !== false) {
+			$this->Sighting = ClassRegistry::init('Sighting');
+		}
 		foreach ($results as $eventKey => &$event) {
 			// unset the empty sharing groups that are created due to the way belongsTo is handled
 			if (isset($event['SharingGroup']['SharingGroupServer'])) {
@@ -1377,7 +1379,7 @@ class Event extends AppModel {
 				}
 				$event['Attribute'] = array_values($event['Attribute']);
 			}
-			if (Configure::read('Plugin.Sightings_enable')) {
+			if (Configure::read('Plugin.Sightings_enable') !== false) {
 				$event['Sighting'] = $this->Sighting->attachToEvent($event, $user);
 			}
 			// remove proposals to attributes that we cannot see

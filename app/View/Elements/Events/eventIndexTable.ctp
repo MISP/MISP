@@ -30,7 +30,7 @@
 		<?php if (Configure::read('MISP.showCorrelationsOnIndex')):?>
 			<th title="Correlation Count">#Corr.</th>
 		<?php endif; ?>
-		<?php if (Configure::read('MISP.showSightingsCountOnIndex') && Configure::read('Plugin.Sightings_enable')):?>
+		<?php if (Configure::read('MISP.showSightingsCountOnIndex') && Configure::read('Plugin.Sightings_enable') !== false):?>
 			<th title="Sigthing Count">#Sightings</th>
 		<?php endif; ?>
 		<?php if (Configure::read('MISP.showProposalsOnIndex')):?>
@@ -115,7 +115,7 @@
 				<?php echo !empty($event['Event']['correlation_count']) ? h($event['Event']['correlation_count']) : ''; ?>&nbsp;
 			</td>
 		<?php endif; ?>
-		<?php if (Configure::read('MISP.showSightingsCountOnIndex') && Configure::read('Plugin.Sightings_enable')):?>
+		<?php if (Configure::read('MISP.showSightingsCountOnIndex') && Configure::read('Plugin.Sightings_enable') !== false):?>
 			<td class = "bold" style="width:30px;" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'" title="<?php echo (!empty($event['Event']['sightings_count']) ? h($event['Event']['sightings_count']) : '0') . ' sighting(s)';?>">
 				<?php echo !empty($event['Event']['sightings_count']) ? h($event['Event']['sightings_count']) : ''; ?>&nbsp;
 			</td>

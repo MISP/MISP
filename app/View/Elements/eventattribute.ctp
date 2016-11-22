@@ -10,7 +10,7 @@
 	} else {
 		$page = 0;
 	}
-	if (Configure::read('Plugin.Sightings_enable')) {
+	if (Configure::read('Plugin.Sightings_enable') !== false) {
 		$attributeSightings = array();
 		$attributeOwnSightings = array();
 		$attributeSightingsPopover = array();
@@ -171,7 +171,7 @@
 			<th>Related Events</th>
 			<th title="<?php echo $attrDescriptions['signature']['desc'];?>"><?php echo $this->Paginator->sort('to_ids', 'IDS');?></th>
 			<th title="<?php echo $attrDescriptions['distribution']['desc'];?>"><?php echo $this->Paginator->sort('distribution');?></th>
-			<?php if (Configure::read('Plugin.Sightings_enable')): ?>
+			<?php if (Configure::read('Plugin.Sightings_enable') !== false): ?>
 				<th>Sightings</th>
 			<?php endif; ?>
 			<th class="actions">Actions</th>
@@ -409,7 +409,7 @@
 							</td>
 					<?php
 						endif;
-						if (Configure::read('Plugin.Sightings_enable')):
+						if (Configure::read('Plugin.Sightings_enable') !== false):
 					?>
 					<td class="short <?php echo $extra;?>">
 						<span id="sightingForm_<?php echo h($object['id']);?>">

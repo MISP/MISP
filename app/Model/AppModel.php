@@ -36,7 +36,7 @@ class AppModel extends Model {
 	// major -> minor -> hotfix -> requires_logout
 	public $db_changes = array(
 		2 => array(
-			4 => array(18 => false, 19 => false, 20 => false, 25 => false, 27 => false, 32 => false, 33 => true, 38 => true, 39 => true, 40 => false, 42 => false, 44 => false, 45 => false, 49 => true, 50 => false, 51 => false, 52 => false)
+			4 => array(18 => false, 19 => false, 20 => false, 25 => false, 27 => false, 32 => false, 33 => true, 38 => true, 39 => true, 40 => false, 42 => false, 44 => false, 45 => false, 49 => true, 50 => false, 51 => false, 52 => false, 55 => true)
 		)
 	);
 
@@ -68,6 +68,9 @@ class AppModel extends Model {
 				$this->SharingGroup = ClassRegistry::init('SharingGroup');
 				$this->SharingGroup->correctSyncedSharingGroups();
 				$this->SharingGroup->updateRoaming();
+				break;
+			case '2.4.55':
+				$this->updateDatabase('addSightings');
 				break;
 			default:
 				$this->updateDatabase($command);
@@ -122,16 +125,16 @@ class AppModel extends Model {
 				$sql = 'ALTER TABLE  `event_blacklists` ADD  `event_orgc` VARCHAR( 255 ) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL , ADD  `event_info` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL, ADD `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL;';
 				break;
 			case 'addSightings':
-				$sql = "CREATE TABLE IF NOT EXISTS `sightings` (
-				`id` int(11) NOT NULL AUTO_INCREMENT,
-				`attribute_id` int(11) NOT NULL,
-				`event_id` int(11) NOT NULL,
-				`org_id` int(11) NOT NULL,
-				`date_sighting` bigint(20) NOT NULL,
-				PRIMARY KEY (`id`),
-				INDEX `attribute_id` (`attribute_id`),
-				INDEX `event_id` (`event_id`),
-				INDEX `org_id` (`org_id`)
+				$sql = "CREATE TABLE IF NOT EXISTS sightings (
+				id int(11) NOT NULL AUTO_INCREMENT,
+				attribute_id int(11) NOT NULL,
+				event_id int(11) NOT NULL,
+				org_id int(11) NOT NULL,
+				date_sighting bigint(20) NOT NULL,
+				PRIMARY KEY (id),
+				INDEX attribute_id (attribute_id),
+				INDEX event_id (event_id),
+				INDEX org_id (org_id)
 				) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
 				break;
 			case 'makeAttributeUUIDsUnique':
