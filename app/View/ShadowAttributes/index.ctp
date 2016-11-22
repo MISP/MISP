@@ -16,15 +16,27 @@
         </ul>
     </div>
 
-
+	<div class="tabMenuFixedContainer" style="display:<?php echo !$all ? 'none' : 'block';?>;">
+		<span class="tabMenuFixed tabMenuSides useCursorPointer " style="margin-left:50px;">
+			<span class="" onclick="window.location.href='<?php echo $baseurl; ?>/shadow_attributes/index'">My Org's Events</span>
+		</span>
+	</div>
+	<div class="tabMenuFixedContainer" style="display:<?php echo $all ? 'none' : 'block';?>;">
+		<span class="tabMenuFixed tabMenuSides useCursorPointer " style="margin-left:50px;">
+			<span onclick="window.location.href='<?php echo $baseurl; ?>/shadow_attributes/index/all:1'">All Events</span>
+		</span>
+	</div>
 	<table class="table table-striped table-hover table-condensed">
 		<tr>
 			<th>Event</th>
 			<th>
-				<?php echo $this->Paginator->sort('org', 'Org');?>
+				<?php echo $this->Paginator->sort('org', 'Proposal by');?>
 			</th>
 			<th>
 				Type
+			</th>
+			<th>
+				<?php echo $this->Paginator->sort('Event.Orgc.name', 'Event creator');?>
 			</th>
 			<th>
 				<?php echo $this->Paginator->sort('id', 'Event Info');?>
@@ -64,6 +76,9 @@
 						echo 'New Attribute';
 					}
 				?>
+			</td>
+			<td class="short" onclick="document.location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
+				<?php echo h($event['Event']['Orgc']['name']); ?>
 			</td>
 			<td onclick="document.location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
 				<?php echo h($event['Event']['info']); ?>
