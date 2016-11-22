@@ -38,6 +38,9 @@
 			<th>
 				<?php echo $this->Paginator->sort('type', 'Type');?>
 			</th>
+			<th>
+				<?php echo $this->Paginator->sort('timestamp', 'Created');?>
+			</th>
 		</tr>
 		<?php foreach ($shadowAttributes as $event):?>
 		<tr>
@@ -73,6 +76,9 @@
 			</td>
 			<td class="short" onclick="document.location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
 				<?php echo h($event['ShadowAttribute']['type']);?>
+			</td>
+			<td class="short" onclick="document.location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
+				<?php echo date('Y-m-d h:i:s', $event['ShadowAttribute']['timestamp']);?>
 			</td>
 		</tr>
 		<?php endforeach; ?>

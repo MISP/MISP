@@ -818,7 +818,7 @@ class ShadowAttributesController extends AppController {
 		if ($this->_isRest()) {
 			$temp = $this->ShadowAttribute->find('all', array(
 					'conditions' => $conditions,
-					'fields' => array('ShadowAttribute.id', 'ShadowAttribute.old_id', 'ShadowAttribute.event_id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.uuid', 'ShadowAttribute.to_ids', 'ShadowAttribute.value', 'ShadowAttribute.comment', 'ShadowAttribute.org_id'),
+					'fields' => array('ShadowAttribute.id', 'ShadowAttribute.old_id', 'ShadowAttribute.event_id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.uuid', 'ShadowAttribute.to_ids', 'ShadowAttribute.value', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.timestamp'),
 					'contain' => array(
 							'Event' => array(
 									'fields' => array('id', 'org_id', 'info', 'orgc_id'),
@@ -840,7 +840,7 @@ class ShadowAttributesController extends AppController {
 		} else {
 			$this->paginate = array(
 					'conditions' => $conditions,
-					'fields' => array('ShadowAttribute.id', 'ShadowAttribute.old_id', 'ShadowAttribute.event_id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.uuid', 'ShadowAttribute.to_ids', 'ShadowAttribute.value', 'ShadowAttribute.comment', 'ShadowAttribute.org_id'),
+					'fields' => array('ShadowAttribute.id', 'ShadowAttribute.old_id', 'ShadowAttribute.event_id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.uuid', 'ShadowAttribute.to_ids', 'ShadowAttribute.value', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.timestamp'),
 					'contain' => array(
 							'Event' => array(
 									'fields' => array('id', 'org_id', 'info', 'orgc_id'),
