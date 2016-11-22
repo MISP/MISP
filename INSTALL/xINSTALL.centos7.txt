@@ -190,6 +190,11 @@ systemctl start  httpd.service
 firewall-cmd --zone=public --add-port=80/tcp --permanent
 firewall-cmd --reload
 
+# Note: if you use the minimal ISO you will need to install and enable firewall manually:
+yum install firewalld
+systemctl enable firewalld.service
+systemctl start firewalld.service
+
 # We seriously recommend using only SSL !
 # Check out the apache.misp.ssl file for an example
 
@@ -215,6 +220,9 @@ cp -a config.default.php config.php
 # If you want to be able to change configuration parameters from the webinterface:
 chown apache:apache /var/www/MISP/app/Config/config.php
 chcon -t httpd_sys_rw_content_t /var/www/MISP/app/Config/config.php
+
+# The file selftest.php also needs to be writable for the Apache user:
+chcon -t httpd_sys_rw_content_t /var/www/MISP/app/files/scripts/selftest.php
 
 # Generate a GPG encryption key.
 # If the following command gives an error message, try it as root from the console
