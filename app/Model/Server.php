@@ -1015,11 +1015,10 @@ class Server extends AppModel {
 					'Sightings_enable' => array(
 						'level' => 1,
 						'description' => 'Enables or disables the sighting functionality. When enabled, users can use the UI or the appropriate APIs to submit sightings data about indicators.',
-						'value' => false,
+						'value' => true,
 						'errorMessage' => '',
 						'test' => 'testBool',
 						'type' => 'boolean',
-						'beforeHook' => 'sightingsBeforeHook',
 					),
 					'Sightings_policy' => array(
 						'level' => 1,
