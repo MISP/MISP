@@ -137,19 +137,7 @@
 				</dd>
 				<dt title="<?php echo $eventDescriptions['analysis']['desc'];?>">Analysis</dt>
 				<dd>
-					<span id="analysisField">
-					<?php 
-						echo h($analysisLevels[$event['Event']['analysis']]);
-					?>
-					</span>
-					<?php 
-						if ($isSiteAdmin || $mayModify):
-					?>
-							<span onClick="quickEditEvent('<?php echo $event['Event']['id']; ?>', 'analysis');" class = "icon-edit useCursorPointer" title = "Edit Analysis"></span>
-					<?php 
-						endif;
-					?>
-					&nbsp;
+					<?php echo h($analysisLevels[$event['Event']['analysis']]); ?>
 				</dd>
 				<dt>Distribution</dt>
 				<dd <?php if ($event['Event']['distribution'] == 0) echo 'class = "privateRedText"';?> title = "<?php echo h($distributionDescriptions[$event['Event']['distribution']]['formdesc'])?>">
