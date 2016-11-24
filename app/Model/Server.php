@@ -2568,8 +2568,7 @@ class Server extends AppModel {
 
 	public function writeableFilesDiagnostics(&$diagnostic_errors) {
 		$writeableFiles = array(
-				'Config' . DS . 'config.php' => 0,
-				'files/scripts/selftest.php' => 0
+				'Config' . DS . 'config.php' => 0
 		);
 		foreach ($writeableFiles as $path => &$error) {
 			if (!file_exists(APP . $path)) {
