@@ -2567,19 +2567,32 @@ class Server extends AppModel {
 
 	public function writeableFilesDiagnostics(&$diagnostic_errors) {
 		$writeableFiles = array(
-				'Config' . DS . 'config.php' => 0
+				APP . 'Config' . DS . 'config.php' => 0,
 		);
 		foreach ($writeableFiles as $path => &$error) {
-			if (!file_exists(APP . $path)) {
+			if (!file_exists($path)) {
 				$error = 1;
 				continue;
 			}
-			if (!is_writeable(APP . $path)) {
+			if (!is_writeable($path)) {
 				$error = 2;
 				$diagnostic_errors++;
 			}
 		}
 		return $writeableFiles;
+	}
+	
+	public function readableFilesDiagnostics(&$diagnostic_errors) {
+		$readableFiles = array(
+				APP . 'files' . DS . 'scripts' . DS . 'stixtest.py' => 0
+		);
+		foreach ($readableFiles as $path => &$error) {
+			if (!is_readable($path)) {
+				$error = 1;
+				continue;
+			}
+		}
+		return $readableFiles;
 	}
 
 	public function stixDiagnostics(&$diagnostic_errors, &$stixVersion, &$cyboxVersion) {
