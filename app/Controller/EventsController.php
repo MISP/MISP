@@ -2436,7 +2436,7 @@ class EventsController extends AppController {
 			} else {
 				throw new BadRequestException('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct headers based on content type.');
 			}
-			$paramArray = array('value', 'type', 'category', 'org', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments', 'metadata', 'uuid');
+			$paramArray = array('value', 'type', 'category', 'org', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments', 'metadata', 'uuid', 'published');
 			foreach ($paramArray as $p) {
 				if (isset($data['request'][$p])) ${$p} = $data['request'][$p];
 				else ${$p} = null;
@@ -2546,6 +2546,7 @@ class EventsController extends AppController {
 			if ($from) $conditions['AND'][] = array('Event.date >=' => $from);
 			if ($to) $conditions['AND'][] = array('Event.date <=' => $to);
 			if ($last) $conditions['AND'][] = array('Event.publish_timestamp >=' => $last);
+			if ($published) $conditions['AND'][] = array('Event.published' => $published);
 			$params = array(
 					'conditions' => $conditions,
 					'fields' => array('DISTINCT(Attribute.event_id)'),
