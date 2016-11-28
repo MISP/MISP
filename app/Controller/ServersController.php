@@ -611,7 +611,8 @@ class ServersController extends AppController {
 					'Security' => array('count' => 0, 'errors' => 0, 'severity' => 5),
 					'Plugin' => array('count' => 0, 'errors' => 0, 'severity' => 5)
 			);
-			$writeableErrors = array(0 => 'OK', 1 => 'doesn\'t exist', 2 => 'is not writeable');
+			$writeableErrors = array(0 => 'OK', 1 => 'not found', 2 => 'is not writeable');
+			$readableErrors = array(0 => 'OK', 1 => 'not readable');
 			$gpgErrors = array(0 => 'OK', 1 => 'FAIL: settings not set', 2 => 'FAIL: Failed to load GPG', 3 => 'FAIL: Issues with the key/passphrase', 4 => 'FAIL: encrypt failed');
 			$proxyErrors = array(0 => 'OK', 1 => 'not configured (so not tested)', 2 => 'Getting URL via proxy failed');
 			$zmqErrors = array(0 => 'OK', 1 => 'not enabled (so not tested)', 2 => 'Python ZeroMQ library not installed correctly.', 3 => 'ZeroMQ script not running.');
@@ -735,9 +736,10 @@ class ServersController extends AppController {
 			// check whether the files are writeable
 			$writeableDirs = $this->Server->writeableDirsDiagnostics($diagnostic_errors);
 			$writeableFiles = $this->Server->writeableFilesDiagnostics($diagnostic_errors);
+			$readableFiles = $this->Server->readableFilesDiagnostics($diagnostic_errors);
 
 			$viewVars = array(
-					'diagnostic_errors', 'tabs', 'tab', 'issues', 'finalSettings', 'writeableErrors', 'writeableDirs', 'writeableFiles'
+					'diagnostic_errors', 'tabs', 'tab', 'issues', 'finalSettings', 'writeableErrors', 'readableErrors', 'writeableDirs', 'writeableFiles', 'readableFiles'
 			);
 			$viewVars = array_merge($viewVars, $additionalViewVars);
 			foreach ($viewVars as $viewVar) $this->set($viewVar, ${$viewVar});
