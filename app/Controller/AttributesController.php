@@ -633,6 +633,14 @@ class AttributesController extends AppController {
 
 
 	public function edit($id = null) {
+		if (Validation::uuid($id)) {
+			$this->Attribute->recursive = -1;
+			$temp = $this->Attribute->findByUuid($id);
+			if ($temp == null) throw new NotFoundException('Invalid attribute');
+			$id = $temp['Attribute']['id'];
+		} else if (!is_numeric($id)) {
+			throw new NotFoundException(__('Invalid event id.'));
+		}
 		$this->Attribute->id = $id;
 		$date = new DateTime();
 		if (!$this->Attribute->exists()) {
@@ -662,15 +670,10 @@ class AttributesController extends AppController {
 			$this->set('attachment', false);
 		}
 		if ($this->request->is('post') || $this->request->is('put')) {
-			// reposition to get the attribute.id with given uuid
-			// Notice (8): Undefined index: uuid [APP/Controller/AttributesController.php, line 502]
-			// Fixed - uuid was not passed back from the form since it's not a field. Set the uuid in a variable for non rest users, rest should have uuid.
-			// Generally all of this should be _isRest() only, but that's something for later to think about
-			if ($this->_isRest() || $this->response->type() === 'application/json') {
-				$existingAttribute = $this->Attribute->findByUuid($this->request->data['Attribute']['uuid']);
-			} else {
-				$existingAttribute = $this->Attribute->findByUuid($this->Attribute->data['Attribute']['uuid']);
+			if (!isset($this->request->data['Attribute'])) {
+				$this->request->data['Attribute'] = $this->request->data; 
 			}
+			$existingAttribute = $this->Attribute->findByUuid($this->Attribute->data['Attribute']['uuid']);
 			// check if the attribute has a timestamp already set (from a previous instance that is trying to edit via synchronisation)
 			// check which attribute is newer
 			if (count($existingAttribute) && !$existingAttribute['Attribute']['deleted']) {
@@ -773,6 +776,14 @@ class AttributesController extends AppController {
 
 	// ajax edit - post a single edited field and this method will attempt to save it and return a json with the validation errors if they occur.
 	public function editField($id) {
+		if (Validation::uuid($id)) {
+			$this->Attribute->recursive = -1;
+			$temp = $this->Attribute->findByUuid($id);
+			if ($temp == null) throw new NotFoundException('Invalid attribute');
+			$id = $temp['Attribute']['id'];
+		} else if (!is_numeric($id)) {
+			throw new NotFoundException(__('Invalid event id.'));
+		}
 		if ((!$this->request->is('post') && !$this->request->is('put'))) throw new MethodNotAllowedException();
 		$this->Attribute->id = $id;
 		if (!$this->Attribute->exists()) {
