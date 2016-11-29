@@ -27,6 +27,7 @@ class ComplexTypeTool {
 				return $this->checkComplexCnC($input);
 				break;
 			case 'freetext':
+			case 'FreeText':
 				return $this->checkFreeText($input, $settings);
 				break;
 			case 'csv':
