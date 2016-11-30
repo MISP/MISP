@@ -161,6 +161,7 @@
 			<?php if ($mayModify && !empty($event['objects'])): ?>
 				<th><input class="select_all" type="checkbox" onClick="toggleAllAttributeCheckboxes();" /></th>
 			<?php endif;?>
+			<th class="context hidden"><?php echo $this->Paginator->sort('id');?></th>
 			<th class="context hidden">UUID</th>
 			<th><?php echo $this->Paginator->sort('timestamp', 'Date');?></th>
 			<th><?php echo $this->Paginator->sort('Org.name', 'Org'); ?>
@@ -232,6 +233,7 @@
 							endfor;
 						else:
 					?>
+							<td class="short context hidden <?php echo $extra; ?>"><?php echo $object['objectType'] == 0 ? h($object['id']) : '&nbsp;'; ?></td>
 							<td class="short context hidden <?php echo $extra; ?>"><?php echo $object['objectType'] == 0 ? h($object['uuid']) : '&nbsp;'; ?></td>
 							<td class="short <?php echo $extra; ?>">
 								<div id = "<?php echo $currentType . '_' . $object['id'] . '_timestamp_solid'; ?>">
