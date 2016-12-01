@@ -2877,6 +2877,7 @@ class Event extends AppModel {
 									$temp[$type] = $type;
 								}
 								$ft['types'] = $temp;
+								$ft['comment'] = isset($r['comment']) ? $r['comment'] : false;
 							}
 						}
 						$r['types'] = array_diff($r['types'], array('freetext'));
