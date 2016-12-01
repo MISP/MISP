@@ -1175,7 +1175,7 @@ class Server extends AppModel {
 					),
 					'Export_services_enable' => array(
 							'level' => 0,
-							'description' => 'Enable/disable the import services',
+							'description' => 'Enable/disable the export services',
 							'value' => false,
 							'errorMessage' => '',
 							'test' => 'testBool',
