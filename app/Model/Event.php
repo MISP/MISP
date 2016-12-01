@@ -2850,6 +2850,9 @@ class Event extends AppModel {
 				if (!is_array($r['values'])) {
 					$r['values'] = array($r['values']);
 				}
+				if (!isset($r['types']) && isset($r['type'])) {
+					$r['types'] = array($r['type']);
+				}
 				if (!is_array($r['types'])) {
 					$r['types'] = array($r['types']);
 				}
