@@ -27,6 +27,7 @@ class ComplexTypeTool {
 				return $this->checkComplexCnC($input);
 				break;
 			case 'freetext':
+			case 'FreeText':
 				return $this->checkFreeText($input, $settings);
 				break;
 			case 'csv':
@@ -96,7 +97,7 @@ class ComplexTypeTool {
 	public function checkCSV($input, $settings = array()) {
 		$delimiter = isset($settings['delimiter']) ? $settings['delimiter'] : ",";
 		$lines = explode("\n", $input);
-		$values = isset($settings['value']) ? $settings['value'] : array();
+		$values = !empty($settings['value']) ? $settings['value'] : array();
 		if (!is_array($values)) {
 			$values = explode(',', $values);
 		}
@@ -122,6 +123,7 @@ class ComplexTypeTool {
 	}
 	
 	public function checkFreeText($input, $settings = array()) {
+		$charactersToTrim = array('\'', '"', ',', '(', ')');
 		$iocArray = preg_split("/\r\n|\n|\r|\s|\s+|,|;/", $input);
 		$quotedText = explode('"', $input);
 		foreach ($quotedText as $k => $temp) {
@@ -137,8 +139,9 @@ class ComplexTypeTool {
 		if (!empty($iocArray)) {
 			foreach ($iocArray as $ioc) {
 				$ioc = trim($ioc);
-				$ioc = trim($ioc, '"');
-				$ioc = trim($ioc, ',');
+				foreach ($charactersToTrim as $c) {
+					$ioc = trim($ioc, $c);
+				}
 				$ioc = preg_replace('/\p{C}+/u', '', $ioc);
 				if (empty($ioc)) continue;
 				$typeArray = $this->__resolveType($ioc);
