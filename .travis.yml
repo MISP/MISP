@@ -28,6 +28,7 @@ addons:
             - libxml2-dev
             - zlib1g-dev
             - php5-dev
+            - php5-cli
             - apache2
             - libapache2-mod-php5
             - curl
