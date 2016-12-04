@@ -611,6 +611,9 @@ class AppModel extends Model {
 	}
 	
 	private function __addIndex($table, $field) {
+		$dataSourceConfig = ConnectionManager::getDataSource('default')->config;
+		$dataSource = $dataSourceConfig['datasource'];
+		$this->Log = ClassRegistry::init('Log');
 		if ($dataSource == 'Database/Postgres') {
 			$addIndex = "CREATE INDEX idx_" . $table . "_" . $field . " ON " . $table . " (" . $field . ");";
 		} else {
