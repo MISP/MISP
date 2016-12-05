@@ -490,7 +490,7 @@ class AppModel extends Model {
 					) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
 				
 				$this->__addIndex('galaxy_elements', 'key');
-				$this->__addIndex('galaxy_elements', 'value');
+				$this->__addIndex('galaxy_elements', 'value', 255);
 
 				$sqlArray[] =
 					"CREATE TABLE IF NOT EXISTS galaxy_reference (
@@ -505,8 +505,8 @@ class AppModel extends Model {
 				
 				$this->__addIndex('galaxy_reference', 'galaxy_cluster_id');
 				$this->__addIndex('galaxy_reference', 'referenced_galaxy_cluster_id');
-				$this->__addIndex('galaxy_reference', 'referenced_galaxy_cluster_value');
-				$this->__addIndex('galaxy_reference', 'referenced_galaxy_cluster_type');
+				$this->__addIndex('galaxy_reference', 'referenced_galaxy_cluster_value', 255);
+				$this->__addIndex('galaxy_reference', 'referenced_galaxy_cluster_type', 255);
 				
 				break;
 			case 'fixNonEmptySharingGroupID':

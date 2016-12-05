@@ -271,8 +271,8 @@ CREATE TABLE IF NOT EXISTS galaxy_reference (
   PRIMARY KEY (id),
   INDEX `galaxy_cluster_id` (`galaxy_cluster_id`),
   INDEX `referenced_galaxy_cluster_id` (`referenced_galaxy_cluster_id`),
-  INDEX `referenced_galaxy_cluster_value` (`referenced_galaxy_cluster_value`),
-  INDEX `referenced_galaxy_cluster_type` (`referenced_galaxy_cluster_typ`)
+  INDEX `referenced_galaxy_cluster_value` (`referenced_galaxy_cluster_value`(255)),
+  INDEX `referenced_galaxy_cluster_type` (`referenced_galaxy_cluster_type`(255))
 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
