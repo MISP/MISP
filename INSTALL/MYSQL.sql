@@ -203,12 +203,12 @@ CREATE TABLE IF NOT EXISTS `feeds` (
 --
 
 CREATE TABLE IF NOT EXISTS galaxies (
-  id int(11) NOT NULL AUTO_INCREMENT,
-  uuid varchar(255) COLLATE utf8_bin NOT NULL,
-  name varchar(255) COLLATE utf8_bin NOT NULL DEFAULT '',
-  type varchar(255) COLLATE utf8_bin NOT NULL,
-  description text COLLATE utf8_bin NOT NULL,
-  version varchar(255) COLLATE utf8_bin NOT NULL,
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `uuid` varchar(255) COLLATE utf8_bin NOT NULL,
+  `name` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT '',
+  `type` varchar(255) COLLATE utf8_bin NOT NULL,
+  `description` text COLLATE utf8_bin NOT NULL,
+  `version` varchar(255) COLLATE utf8_bin NOT NULL,
   PRIMARY KEY (id),
   INDEX `name` (`name`),
   INDEX `uuid` (`uuid`),
@@ -223,15 +223,15 @@ CREATE TABLE IF NOT EXISTS galaxies (
 
 
 CREATE TABLE IF NOT EXISTS galaxy_clusters (
-  id int(11) NOT NULL AUTO_INCREMENT,
-  uuid varchar(255) COLLATE utf8_bin NOT NULL,
-  type varchar(255) COLLATE utf8_bin NOT NULL,
-  value text COLLATE utf8_bin NOT NULL,
-  tag_name varchar(255) COLLATE utf8_bin NOT NULL DEFAULT '',
-  description text COLLATE utf8_bin NOT NULL,
-  galaxy_id int(11) NOT NULL,
-  source varchar(255) COLLATE utf8_bin NOT NULL DEFAULT '',
-  authors text COLLATE utf8_bin NOT NULL,
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `uuid` varchar(255) COLLATE utf8_bin NOT NULL,
+  `type` varchar(255) COLLATE utf8_bin NOT NULL,
+  `value` text COLLATE utf8_bin NOT NULL,
+  `tag_name` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT '',
+  `description` text COLLATE utf8_bin NOT NULL,
+  `galaxy_id` int(11) NOT NULL,
+  `source` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT '',
+  `authors` text COLLATE utf8_bin NOT NULL,
   PRIMARY KEY (id),
   INDEX `value` (`value`(255)),
   INDEX `uuid` (`uuid`),
@@ -246,13 +246,13 @@ CREATE TABLE IF NOT EXISTS galaxy_clusters (
 --
 
 CREATE TABLE IF NOT EXISTS galaxy_elements (
-  id int(11) NOT NULL AUTO_INCREMENT,
-  galaxy_cluster_id int(11) NOT NULL,
-  key varchar(255) COLLATE utf8_bin NOT NULL DEFAULT '',
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `galaxy_cluster_id` int(11) NOT NULL,
+  `key` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT '',
   `value` text COLLATE utf8_bin NOT NULL,
-  PRIMARY KEY (id),
+  PRIMARY KEY (`id`),
   INDEX `key` (`key`),
-  INDEX `value` (`value`)
+  INDEX `value` (`value`(255))
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- -------------------------------------------------------
@@ -262,12 +262,12 @@ CREATE TABLE IF NOT EXISTS galaxy_elements (
 --
 
 CREATE TABLE IF NOT EXISTS galaxy_reference (
-  id int(11) NOT NULL AUTO_INCREMENT,
-  galaxy_cluster_id int(11) NOT NULL,
-  referenced_galaxy_cluster_id int(11) NOT NULL,
-  referenced_galaxy_cluster_uuid varchar(255) COLLATE utf8_bin NOT NULL,
-  referenced_galaxy_cluster_type text COLLATE utf8_bin NOT NULL,
-  referenced_galaxy_cluster_value text COLLATE utf8_bin NOT NULL,
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `galaxy_cluster_id` int(11) NOT NULL,
+  `referenced_galaxy_cluster_id` int(11) NOT NULL,
+  `referenced_galaxy_cluster_uuid` varchar(255) COLLATE utf8_bin NOT NULL,
+  `referenced_galaxy_cluster_type` text COLLATE utf8_bin NOT NULL,
+  `referenced_galaxy_cluster_value` text COLLATE utf8_bin NOT NULL,
   PRIMARY KEY (id),
   INDEX `galaxy_cluster_id` (`galaxy_cluster_id`),
   INDEX `referenced_galaxy_cluster_id` (`referenced_galaxy_cluster_id`),
