@@ -69,4 +69,64 @@ class GalaxyClustersController extends AppController {
 		}
 		$this->set('cluster', $cluster);
 	}
+	
+	public function attachToEvent($event_id, $tag_name) {
+		$this->loadModel('Event');
+		$this->Event->id = $event_id;
+		$this->Event->recursive = -1;
+		$event = $this->Event->read(array('id', 'org_id', 'orgc_id', 'distribution', 'sharing_group_id'), $id);
+		if (empty($event)) {
+			throw new MethodNotAllowedException('Invalid Event.');
+		}
+		if (!$this->_isSiteAdmin() && !$this->userRole['perm_sync']) {
+			if (!$this->userRole['perm_tagger'] || ($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id'])) {
+				throw new MethodNotAllowedException('Invalid Event.');
+			}
+		}
+		$tag = $this->EventTag->Tag->find('first', array('conditions' => array('Tag.name' => $tag_name), 'recursive' => -1));
+		if (empty($tag)) {
+			$this->EventTag->Tag->create();
+			$this->EventTag->Tag->save(array('name' => $tag_name, 'colour' => '#0088cc', 'exportable' => 1));
+			$tag_id = $this->EventTag->Tag->id;
+		} else {
+			$tag_id = $tag['Tag']['id'];
+		}
+		$existingEventTag = $this->EventTag->find('first', array('conditions' => array('EventTag.tag_id' => $tag_id, 'EventTag.event_id' => $event_id), 'recursive' => -1));
+		if (empty($existingEventTag)) {
+			$this->EventTag->create();
+			$this->EventTag->save(array('EventTag.tag_id' => $tag_id, 'EventTag.event_id' => $event_id));
+			$this->Session->setFlash('Galaxy attached.');
+		} else {
+			$this->Session->setFlash('Galaxy already attached.');
+		}
+		$this->redirect($this->referer());
+	}
+	
+	public function detachFromEvent($event_id, $tag_name) {
+		$this->loadModel('Event');
+		$this->Event->id = $event_id;
+		$this->Event->recursive = -1;
+		$event = $this->Event->read(array('id', 'org_id', 'orgc_id', 'distribution', 'sharing_group_id'), $id);
+		if (empty($event)) {
+			throw new MethodNotAllowedException('Invalid Event.');
+		}
+		if (!$this->_isSiteAdmin() && !$this->userRole['perm_sync']) {
+			if (!$this->userRole['perm_tagger'] || ($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id'])) {
+				throw new MethodNotAllowedException('Invalid Event.');
+			}
+		}
+		$tag = $this->EventTag->Tag->find('first', array('conditions' => array('Tag.name' => $tag_name), 'recursive' => -1));
+		if (empty($tag)) {
+			$this->Session->setFlash('Galaxy not attached.');
+		} else {
+			$existingEventTag = $this->EventTag->find('first', array('conditions' => array('EventTag.tag_id' => $tag['Tag']['id'], 'EventTag.event_id' => $event_id), 'recursive' => -1));
+			if (empty($existingEventTag)) {
+				$this->Session->setFlash('Galaxy not attached.');
+			} else {
+				$this->EventTag->delete($eexistingEventTag['EventTag']['id']);
+				$this->Session->setFlash('Galaxy successfully detached.');
+			}
+		}
+		$this->redirect($this->referer());
+	}
 }
