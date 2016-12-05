@@ -478,7 +478,7 @@ class AppModel extends Model {
 					PRIMARY KEY (id)
 					) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
 				
-				$this->__addIndex('galaxy_clusters', 'value');
+				$this->__addIndex('galaxy_clusters', 'value', 255);
 				$this->__addIndex('galaxy_clusters', 'tag_name');
 				$this->__addIndex('galaxy_clusters', 'uuid');
 				$this->__addIndex('galaxy_clusters', 'type');
@@ -610,14 +610,18 @@ class AppModel extends Model {
 		}
 	}
 	
-	private function __addIndex($table, $field) {
+	private function __addIndex($table, $field, $length = false) {
 		$dataSourceConfig = ConnectionManager::getDataSource('default')->config;
 		$dataSource = $dataSourceConfig['datasource'];
 		$this->Log = ClassRegistry::init('Log');
 		if ($dataSource == 'Database/Postgres') {
 			$addIndex = "CREATE INDEX idx_" . $table . "_" . $field . " ON " . $table . " (" . $field . ");";
 		} else {
-			$addIndex = "ALTER TABLE `" . $table . "` ADD INDEX `" . $field . "` (`" . $field . "`);";
+			if (isset($length)) {
+				$addIndex = "ALTER TABLE `" . $table . "` ADD INDEX `" . $field . "` (`" . $field . "`);";
+			} else {
+				$addIndex = "ALTER TABLE `" . $table . "` ADD INDEX `" . $field . "` (`" . $field . "`(" . $length . "));";
+			}
 		}
 		$result = true;
 		try {

@@ -233,7 +233,7 @@ CREATE TABLE IF NOT EXISTS galaxy_clusters (
   source varchar(255) COLLATE utf8_bin NOT NULL DEFAULT '',
   authors text COLLATE utf8_bin NOT NULL,
   PRIMARY KEY (id),
-  INDEX `value` (`value`),
+  INDEX `value` (`value`(255)),
   INDEX `uuid` (`uuid`),
   INDEX `tag_name` (`tag_name`),
   INDEX `type` (`type`)
