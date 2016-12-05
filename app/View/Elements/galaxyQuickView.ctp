@@ -2,26 +2,23 @@
 	$fixed_fields = array('decription', 'source', 'authors');
 	foreach ($event['Galaxy'] as $galaxy):
 ?>
-		<div class="bold blue useCursorPointer" style="font-size:14px;">
-			<span title="<?php echo isset($galaxy['description']) ? h($galaxy['description']) : h($galaxy['name']);?>" class="expandable"><?php echo h($galaxy['name']); ?></span>
+		<div class="useCursorPointer">
+			<span title="<?php echo isset($galaxy['description']) ? h($galaxy['description']) : h($galaxy['name']);?>" class="expandable bold blue" style="font-size:14px;">
+				<?php echo h($galaxy['name']); ?>
+			</span>
 	<?php
 		foreach ($galaxy['GalaxyCluster'] as $cluster):
 	?>
-			<div style="margin-left:20px;" class="bold blue hidden useCursorPointer">
-				<span class="expandable"><?php echo h($cluster['value']); ?></span>&nbsp;
+			<div style="margin-left:20px;" class="hidden useCursorPointer">
+				<span class="bold blue expandable"><?php echo h($cluster['value']); ?></span>&nbsp;
 				<?php
 					echo $this->Form->postLink('',
-						array(
-							'admin' => true,
-							'action' => 'delete',
-							$org['Organisation']['id']
-						),
+						$baseurl . '/events/removeTag/' . $event['Event']['id'] . '/' . $cluster['tag_id'],
 						array('class' => 'icon-trash', 'title' => 'Delete'),
-						__('Are you sure you want to delete %s?', $org['Organisation']['name'])
+						__('Are you sure you want to detach %s from this event?', h($cluster['value']))
 					);
 				?>
-				<span class="icon-trash delete-cluster" data-tag-name="<?php echo h($cluster['tag_name']);?>"></span>
-				<div style="margin-left:40px;" class="hidden">
+				<div style="margin-left:40px;" class="hidden blue">
 					<table style="width:100%">
 						<?php
 							foreach ($fixed_fields as $fixed_field):
