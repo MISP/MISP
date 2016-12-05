@@ -3,17 +3,17 @@
 	foreach ($event['Galaxy'] as $galaxy):
 ?>
 		<div class="useCursorPointer">
-			<span title="<?php echo isset($galaxy['description']) ? h($galaxy['description']) : h($galaxy['name']);?>" class="expandable bold blue" style="font-size:14px;">
+			<span title="<?php echo isset($galaxy['description']) ? h($galaxy['description']) : h($galaxy['name']);?>" class="bold blue" style="font-size:14px;">
 				<?php echo h($galaxy['name']); ?>
 			</span>
 	<?php
 		foreach ($galaxy['GalaxyCluster'] as $cluster):
 	?>
-			<div style="margin-left:20px;" class="hidden useCursorPointer">
+			<div style="margin-left:20px;" class="useCursorPointer">
 				<span class="bold blue expandable"><?php echo h($cluster['value']); ?></span>&nbsp;
 				<?php
 					echo $this->Form->postLink('',
-						$baseurl . '/events/removeTag/' . $event['Event']['id'] . '/' . $cluster['tag_id'],
+						$baseurl . '/galaxy_clusters/detachFromEvent/' . $event['Event']['id'] . '/' . $cluster['tag_id'],
 						array('class' => 'icon-trash', 'title' => 'Delete'),
 						__('Are you sure you want to detach %s from this event?', h($cluster['value']))
 					);
