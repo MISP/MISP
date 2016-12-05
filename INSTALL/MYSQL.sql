@@ -249,7 +249,7 @@ CREATE TABLE IF NOT EXISTS galaxy_elements (
   id int(11) NOT NULL AUTO_INCREMENT,
   galaxy_cluster_id int(11) NOT NULL,
   key varchar(255) COLLATE utf8_bin NOT NULL DEFAULT '',
-  value text COLLATE utf8_bin NOT NULL,
+  `value` text COLLATE utf8_bin NOT NULL,
   PRIMARY KEY (id),
   INDEX `key` (`key`),
   INDEX `value` (`value`)
