@@ -225,16 +225,16 @@
 	</div>
 	<br />
 	<div class="toggleButtons">
-		<button class="btn btn-inverse toggle-left btn.active qet toggle-button" id="pivots_toggle" data-toggle-type="pivots">
+		<button class="btn btn-inverse toggle-left btn.active qet galaxy-toggle-button" id="pivots_toggle" data-toggle-type="pivots">
 			<span class="icon-minus icon-white" style="vertical-align:top;"></span>Pivots
 		</button>
-		<button class="btn btn-inverse toggle qet toggle-button" id="galaxies_toggle" data-toggle-type="galaxies">
+		<button class="btn btn-inverse toggle qet galaxy-toggle-button" id="galaxies_toggle" data-toggle-type="galaxies">
 			<span class="icon-minus icon-white" style="vertical-align:top;"></span>Galaxy
 		</button>
-		<button class="btn btn-inverse toggle qet toggle-button" id="attributes_toggle" data-toggle-type="attributes">
+		<button class="btn btn-inverse toggle qet galaxy-toggle-button" id="attributes_toggle" data-toggle-type="attributes">
 			<span class="icon-minus icon-white" style="vertical-align:top;"></span>Attributes
 		</button>
-		<button class="btn btn-inverse toggle-right qet toggle-button" id="discussions_toggle" data-toggle-type="discussions">
+		<button class="btn btn-inverse toggle-right qet galaxy-toggle-button" id="discussions_toggle" data-toggle-type="discussions">
 			<span class="icon-minus icon-white" style="vertical-align:top;"></span>Discussion
 		</button>
 	</div>
@@ -244,7 +244,9 @@
 		<?php if (sizeOf($allPivots) > 1) echo $this->element('pivot'); ?>
 	</div>
 	<div id="galaxies_div" class="info_container" style="width:33%">
-		<h4 class="blue">Galaxies</h4>
+		<h4 class="blue">Galaxies 
+			<span class="useCursorPointer blue bold" id="addGalaxy" data-event-id="<?php echo h($event['Event']['id']); ?>">+</span>
+		</h4>
 		<?php echo $this->element('galaxyQuickView', array()); ?>
 	</div>
 	<div id="attributes_div">
@@ -259,27 +261,13 @@
 var showContext = false;
 $(document).ready(function () {
 	popoverStartup();
+	
 	$("th, td, dt, div, span, li").tooltip({
 		'placement': 'top',
 		'container' : 'body',
 		delay: { show: 500, hide: 100 }
-		});
-	var toggles = ['discussions', 'attributes', 'pivots', 'galaxies'];
-	$('.toggle-button').click(function() {
-		var element = $(this).data('toggle-type'); 
-		if ($(this).children('span').hasClass('icon-minus')) {
-			$(this).children('span').addClass('icon-plus');
-			$(this).children('span').removeClass('icon-minus');
-			$('#' + element + '_div').hide();
-		} else {
-			$(this).children('span').removeClass('icon-plus');
-			$(this).children('span').addClass('icon-minus');
-			$('#' + element + '_div').show();
-		}
 	});
-//	$.get("/events/viewEventAttributes/<?php echo $event['Event']['id']; ?>", function(data) {
-//		$("#attributes_div").html(data);
-//	});
+	
 	$.get("/threads/view/<?php echo $event['Event']['id']; ?>/true", function(data) {
 		$("#discussions_div").html(data);
 	});

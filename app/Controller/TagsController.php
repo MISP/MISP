@@ -352,6 +352,11 @@ class TagsController extends AppController {
 				unset($expanded[$banned_tag]);
 			}
 		}
+		foreach ($options as $k => $v) {
+			if (substr($v, 0, strlen('misp-galaxy:')) === 'misp-galaxy:') {
+				unset($options[$k]);
+			}
+		}
 		$this->set('event_id', $event_id);
 		$this->set('options', $options);
 		$this->set('expanded', $expanded);
