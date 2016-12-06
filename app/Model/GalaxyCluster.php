@@ -166,7 +166,7 @@ class GalaxyCluster extends AppModel{
 				if (substr($eventTag['Tag']['name'], 0, strlen('misp-galaxy:')) === 'misp-galaxy:') {
 					$cluster = $this->getCluster($eventTag['Tag']['name']);
 					if ($cluster) {
-						$events[$k]['GalaxyCluster'] = $cluster['GalaxyCluster'];
+						$events[$k]['GalaxyCluster'][] = $cluster['GalaxyCluster'];
 						if ($replace) {
 							unset($events[$k]['EventTag'][$k2]);
 						}

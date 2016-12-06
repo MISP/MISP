@@ -23,6 +23,7 @@
 			endif;
 		?>
 		<th><?php echo $this->Paginator->sort('id');?></th>
+		<th>Clusters</th>
 		<?php if (Configure::read('MISP.tagging')): ?>
 			<th class="filter">Tags</th>
 		<?php endif; ?>
@@ -89,6 +90,36 @@
 		<?php endif; ?>
 		<td style="width:30px;">
 			<a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] ?>"><?php echo $event['Event']['id'];?></a>
+		</td>
+		<td class="shortish">
+			<?php 
+				$clusterList = array();
+				$galaxyList = array();
+				$galaxy_id = 0;
+				if (isset($event['GalaxyCluster'])):
+					foreach ($event['GalaxyCluster'] as $cluster):
+						$galaxy_id = $cluster['Galaxy']['id'];
+						if (!isset($galaxyList[$cluster['Galaxy']['id']])) {
+							$galaxyList[$cluster['Galaxy']['id']] = $cluster['Galaxy']['name'];
+						}
+						$clusterList[$cluster['Galaxy']['id']][] = array('value' => $cluster['value'], 'id' => $cluster['id']);
+					endforeach;
+				endif;
+				foreach ($clusterList as $galaxy_id => $clusters):
+				?>
+					<span class="blue bold"><a href="<?php echo $baseurl; ?>/galaxies/view/<?php echo h($galaxy_id); ?>"><?php echo h($galaxyList[$galaxy_id]); ?></a>:</span>
+				<?php
+					foreach ($clusters as $cluster):
+					?>
+						<br />
+						<span class="blue">
+							&nbsp;&nbsp;&nbsp;&nbsp;
+							<a href="<?php echo $baseurl; ?>/galaxy_clusters/view/<?php echo h($cluster['id']); ?>"><?php echo h($cluster['value']); ?></a>
+						</span>
+					<?php
+					endforeach;
+				endforeach;
+			?>&nbsp;
 		</td>
 		<?php if (Configure::read('MISP.tagging')): ?>
 			<td style = "max-width: 200px;width:10px;">

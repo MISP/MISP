@@ -5,6 +5,9 @@ foreach ($events as $key => $event) {
     unset($events[$key]['Event']);
     $events[$key]['Org'] = $event['Org'];
     $events[$key]['Orgc'] = $event['Orgc'];
+    if (isset($event['GalaxyCluster'])) {
+    	$events[$key]['GalaxyCluster'] = $event['GalaxyCluster'];
+    }
     if (isset($event['EventTag'])) $events[$key]['EventTag'] = $event['EventTag'];
     $events[$key]['SharingGroup'] = $event['SharingGroup'];
 
