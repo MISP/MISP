@@ -2875,6 +2875,9 @@ class Event extends AppModel {
 				if (!is_array($r['values'])) {
 					$r['values'] = array($r['values']);
 				}
+				if (!isset($r['types']) && isset($r['type'])) {
+					$r['types'] = array($r['type']);
+				}
 				if (!is_array($r['types'])) {
 					$r['types'] = array($r['types']);
 				}
@@ -2886,7 +2889,11 @@ class Event extends AppModel {
 						$r['values'] = array($r['values']);
 					}
 				}
-				foreach ($r['values'] as &$value) {
+				foreach ($r['values'] as $valueKey => &$value) {
+					if (empty($value)) {
+						unset($r['values'][$valueKey]);
+						continue;
+					}
 					if (in_array('freetext', $r['types'])) {
 						if (is_array($value)) $value = json_encode($value);
 						$this->Warninglist = ClassRegistry::init('Warninglist');
@@ -2899,6 +2906,7 @@ class Event extends AppModel {
 									$temp[$type] = $type;
 								}
 								$ft['types'] = $temp;
+								$ft['comment'] = isset($r['comment']) ? $r['comment'] : false;
 							}
 						}
 						$r['types'] = array_diff($r['types'], array('freetext'));
