@@ -2,7 +2,7 @@
 App::uses('AppHelper', 'View/Helper');
 
 //this helper simply replaces quotes between [QUOTE][/QUOTE] with div tags.
-// And now [thread][/thread], [event][/event], [link][/link]
+// And now [thread][/thread], [event][/event], [link][/link], [code][/code]
 
 
 	class CommandHelper extends AppHelper {
@@ -36,6 +36,18 @@ App::uses('AppHelper', 'View/Helper');
 					$string = preg_replace('%\[link\]\s*' . $matches[1] . '\s*\[/link\]%is', '<a href="' . htmlentities($matches[1]) . '">' . htmlentities($matches[1]) . '</a>', $string);
 				} else {
 					$string = preg_replace('%\[link\]\s*' . $matches[1] . '\s*\[/link\]%is', '%Malformed_Link%', $string);
+				}
+				$matches = array();
+			}
+
+			$matches = array();
+
+			// htmlentities = never trust user inputs			
+			while (preg_match ('%\[code\](.*?)\[/code\]%is', $string, $matches)) {
+				if (!empty($matches) ) {
+					$string = preg_replace('%\[code\]' . $matches[1] . '\[/code\]%is', '<pre>' . htmlentities($matches[1]) . '</pre>', $string);
+				} else {
+					$string = preg_replace('%\[code\]' . $matches[1] . '\[/code\]%is', '%Empty_Code%', $string);
 				}
 				$matches = array();
 			}
