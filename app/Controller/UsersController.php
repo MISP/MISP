@@ -1167,6 +1167,8 @@ class UsersController extends AppController {
 				'fields' => array('Taxonomy.namespace')
 		));
 		$flatData = array();
+		$tagIds = $this->EventTag->Tag->find('list', array('fields' => array('Tag.name', 'Tag.id')));
+		$this->set('tagIds', $tagIds);
 		foreach ($tags as $key => $value) {
 			$name = explode(':', $value['name']);
 			$tags[$key]['taxonomy'] = 'custom';

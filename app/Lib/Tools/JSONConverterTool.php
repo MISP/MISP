@@ -1,7 +1,7 @@
 <?php
 class JSONConverterTool {
 	public function event2JSON($event, $isSiteAdmin=false) {
-		$toRearrange = array('Org', 'Orgc', 'SharingGroup', 'Attribute', 'ShadowAttribute', 'RelatedAttribute', 'RelatedEvent');
+		$toRearrange = array('Org', 'Orgc', 'SharingGroup', 'Attribute', 'ShadowAttribute', 'RelatedAttribute', 'RelatedEvent', 'Galaxy');
 		foreach ($toRearrange as $object) {
 			if (isset($event[$object])) {
 				$event['Event'][$object] = $event[$object];

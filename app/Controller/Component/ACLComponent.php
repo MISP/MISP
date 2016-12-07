@@ -142,6 +142,23 @@ class ACLComponent extends Component {
 					'previewIndex' => array(),
 					'view' => array(),
 			),
+			'galaxies' => array(
+				'attachClusterToEvent' => array('perm_tagger'),
+				'index' => array('*'),
+				'selectGalaxy' => array('perm_tagger'),
+				'selectCluster' => array('perm_tagger'),
+				'update' => array(),
+				'view' => array('*')
+			),
+			'galaxyClusters' => array(
+				'attachToEvent' => array('perm_tagger'),
+				'detachFromEvent' => array('perm_tagger'),
+				'index' => array(),
+				'view' => array()
+			),
+			'galaxyElements' => array(
+					'index' => array('*')
+			),
 			'jobs' => array(
 					'cache' => array('*'),
 					'getGenerateCorrelationProgress' => array('*'),

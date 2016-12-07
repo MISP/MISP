@@ -528,6 +528,7 @@ class EventsController extends AppController {
 					'ThreatLevel.name'))
 			),
 		));
+		$this->loadModel('GalaxyCluster');
 		// for REST, don't use the pagination. With this, we'll escape the limit of events shown on the index.
 		if ($this->_isRest()) {
 			$rules = array();
@@ -560,6 +561,7 @@ class EventsController extends AppController {
 				}
 				$events[$k]['EventTag'] = array_values($events[$k]['EventTag']);
 			}
+			$events = $this->GalaxyCluster->attachClustersToEventIndex($events);
 			$this->set('events', $events);
 		} else {
 			$events = $this->paginate();
@@ -569,6 +571,7 @@ class EventsController extends AppController {
 			if (Configure::read('MISP.showCorrelationsOnIndex')) $events = $this->Event->attachCorrelationCountToEvents($this->Auth->user(), $events);
 			if (Configure::read('MISP.showSightingsCountOnIndex') && Configure::read('MISP.Plugin.Sightings_enable') !== false) $events = $this->Event->attachSightingsCountToEvents($this->Auth->user(), $events);
 			if (Configure::read('MISP.showProposalsCountOnIndex')) $events = $this->Event->attachProposalsCountToEvents($this->Auth->user(), $events);
+			$events = $this->GalaxyCluster->attachClustersToEventIndex($events, true);
 			$this->set('events', $events);
 		}
 
@@ -812,6 +815,13 @@ class EventsController extends AppController {
 				$this->set($alias, $currentModel->{$variable});
 			}
 		}
+		$this->loadModel('GalaxyCluster');
+		$cluster_names = $this->GalaxyCluster->find('list', array('fields' => array('GalaxyCluster.tag_name'), 'group' => array('GalaxyCluster.tag_name')));
+		foreach ($event['EventTag'] as $k => $eventTag) {
+			if (in_array($eventTag['Tag']['name'], $cluster_names)) {
+				unset($event['EventTag'][$k]);
+			}
+		}
 		$params = $this->Event->rearrangeEventForView($event);
 		$this->params->params['paging'] = array($this->modelClass => $params);
 		$this->set('event', $event);
@@ -877,6 +887,7 @@ class EventsController extends AppController {
 		if (isset($this->params['named']['public']) && $this->params['named']['public']) {
 			$conditions['distribution'] = array(3, 5);
 		}
+		$conditions['includeGalaxy'] = true;
 		$results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
 		if (empty($results)) throw new NotFoundException('Invalid event');
 		//if the current user is an org admin AND event belongs to his/her org, fetch also the event creator info
@@ -2905,7 +2916,7 @@ class EventsController extends AppController {
 		}
 	}
 
-	public function removeTag($id = false, $tag_id = false) {
+	public function removeTag($id = false, $tag_id = false, $galaxy = false) {
 		if (!$this->request->is('post')) {
 			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that. Only POST requests are accepted.')), 'status'=>200));
 		}
@@ -2920,10 +2931,10 @@ class EventsController extends AppController {
 		$this->request->data = $RearrangeTool->rearrangeArray($this->request->data, $rearrangeRules);
 		if ($id === false) $id = $this->request->data['event'];
 		if ($tag_id === false) $tag_id = $this->request->data['tag'];
-		if (empty($tag_id)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')),'status'=>200));
+		if (empty($tag_id)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid ' . ($galaxy ? 'Galaxy' : 'Tag') . '.')),'status'=>200));
 		if (!is_numeric($tag_id)) {
 			$tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => array('LOWER(Tag.name) LIKE' => strtolower(trim($tag_id)))));
-			if (empty($tag)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200));
+			if (empty($tag)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid ' . ($galaxy ? 'Galaxy' : 'Tag') . '.')), 'status'=>200));
 			$tag_id = $tag['Tag']['id'];
 		}
 		if (!is_numeric($id)) $id = $this->request->data['Event']['id'];
@@ -2941,7 +2952,7 @@ class EventsController extends AppController {
 			'recursive' => -1,
 		));
 		$this->autoRender = false;
-		if (empty($eventTag)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid event - tag combination.')),'status'=>200));
+		if (empty($eventTag)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid event - ' . ($galaxy ? 'galaxy' : 'tag') . ' combination.')),'status'=>200));
 		$tag = $this->Event->EventTag->Tag->find('first', array(
 			'conditions' => array('Tag.id' => $tag_id),
 			'recursive' => -1,
@@ -2950,9 +2961,9 @@ class EventsController extends AppController {
 		if ($this->Event->EventTag->delete($eventTag['EventTag']['id'])) {
 			$log = ClassRegistry::init('Log');
 			$log->createLogEntry($this->Auth->user(), 'tag', 'Event', $id, 'Removed tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" from event (' . $id . ')', 'Event (' . $id . ') untagged of Tag (' . $tag_id . ')');
-			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Tag removed.')), 'status'=>200));
+			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => ($galaxy ? 'Galaxy' : 'Tag') . ' removed.')), 'status'=>200));
 		} else {
-			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Tag could not be removed.')),'status'=>200));
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => ($galaxy ? 'Galaxy' : 'Tag') . ' could not be removed.')),'status'=>200));
 		}
 	}
 
