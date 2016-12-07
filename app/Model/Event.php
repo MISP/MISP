@@ -1138,7 +1138,7 @@ class Event extends AppModel {
 	public function fetchEvent($user, $options = array()) {
 		if (isset($options['Event.id'])) $options['eventid'] = $options['Event.id'];
 		$possibleOptions = array('eventid', 'idList', 'tags', 'from', 'to', 'last', 'to_ids', 'includeAllTags', 'includeAttachments', 'event_uuid', 'distribution', 'sharing_group_id', 'disableSiteAdmin', 'metadata', 'includeGalaxy');
-		if (isset($options['includeGalaxy']) && $options['includeGalaxy']) { 
+		if (!isset($options['excludeGalaxy']) || !$options['excludeGalaxy']) { 
 			$this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
 		}
 		foreach ($possibleOptions as &$opt) if (!isset($options[$opt])) $options[$opt] = false;
@@ -1330,7 +1330,7 @@ class Event extends AppModel {
 						unset($event['EventTag'][$k]);
 						continue;
 					}
-					if (isset($options['includeGalaxy']) && $options['includeGalaxy']) {
+					if (!isset($options['excludeGalaxy']) || !$options['excludeGalaxy']) {
 						if (substr($eventTag['Tag']['name'], 0, strlen('misp-galaxy:')) === 'misp-galaxy:') {
 							$cluster = $this->GalaxyCluster->getCluster($eventTag['Tag']['name']);
 							if ($cluster) {
