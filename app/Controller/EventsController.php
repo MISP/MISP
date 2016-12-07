@@ -887,7 +887,6 @@ class EventsController extends AppController {
 		if (isset($this->params['named']['public']) && $this->params['named']['public']) {
 			$conditions['distribution'] = array(3, 5);
 		}
-		$conditions['includeGalaxy'] = true;
 		$results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
 		if (empty($results)) throw new NotFoundException('Invalid event');
 		//if the current user is an org admin AND event belongs to his/her org, fetch also the event creator info
