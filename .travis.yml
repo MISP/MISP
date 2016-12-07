@@ -39,7 +39,7 @@ before_install:
     - git config --global user.name "TravisCI"
 
 install:
-    - sudo apt-get install python3-pip
+    - sudo apt-get install python3-pip python3-nose
     - git pull --recurse-submodules && git submodule update
     - pip3 install --user pip -U
     - pip3 install --user pyzmq
@@ -129,7 +129,7 @@ script:
     - pip3 install codecov
     - pip3 install requests-mock
     - pip3 install .
-    - nosetests3 --with-coverage --cover-package=pymisp tests/test_offline.py
+    - nosetests --with-coverage --cover-package=pymisp tests/test_offline.py
     - python3 tests/test.py
     - popd
     - cp PyMISP/tests/keys.py PyMISP/examples/events/
