@@ -107,6 +107,7 @@ class ServerShell extends AppShell
 		if ($timestamp != $task['Task']['next_execution_time']) {
 			return;
 		}
+		if ($task['Task']['timer'] > 0)	$this->Task->reQueue($task, 'default', 'ServerShell', 'enqueuePull', $userId, $taskId);
 		$user = $this->User->getAuthUser($userId);
 		$servers = $this->Server->find('all', array('recursive' => -1, 'conditions' => array('pull' => 1)));
 		$count = count($servers);
@@ -125,9 +126,6 @@ class ServerShell extends AppShell
 			);
 			$this->Job->save($data);
 			$jobId = $this->Job->id;
-
-			if ($task['Task']['timer'] > 0)	$this->Task->reQueue($task, 'default', 'ServerShell', 'enqueuePull', $userId, $taskId);
-
 			App::uses('SyncTool', 'Tools');
 			$syncTool = new SyncTool();
 			$result = $this->Server->pull($user, $server['Server']['id'], 'full', $server, $jobId);
