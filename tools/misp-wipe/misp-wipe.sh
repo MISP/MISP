@@ -1,0 +1,93 @@
+#@IgnoreInspection BashAddShebang
+#/!bin/sh
+##
+## script to wipe MISP on debian/ubuntu
+##
+## Adapted from misp-backup by daverstephens@gmail.com
+## https://github.com/daverstephens/The-SOC-Shop
+## and @alexanderjaeger
+## https://github.com/deralexxx/misp-backup
+
+##
+## This script can be used to reset a MISP instance
+## by clearing all events, orgs and users.
+## It is highy recommended ## to run misp-backup.sh first!
+##
+## Tested against MISP 2.4.55
+##
+## Run the script as the standard user with the command below
+##
+## cp misp-wipe.conf.sample misp-wipe.conf
+## vi misp-wipe.conf # adjust values
+## sudo sh -x misp-wipe.sh 2>&1 | tee misp-wipe.log
+##
+## Time to set some variables
+##
+
+
+FILE=./misp-wipe.conf
+SQL=./misp-wipe.sql
+
+# Source configuration file
+if [ -f $FILE ];
+then
+   echo "File $FILE exists."
+   . $FILE
+else
+        echo "Config File $FILE does not exist. Please enter values manually"
+        ## MySQL stuff
+        echo 'Please enter your MySQL root account username'
+        read MySQLRUser
+        echo 'Please enter your MySQL root account password'
+        read MySQLRPass
+        echo 'What would you like to call the backup archive?'
+        echo 'Eg. MISPBackup'
+        read OutputFileName
+        echo 'Where would you like to save the file?'
+        echo 'Eg. /tmp'
+        read OutputDirName
+fi
+
+
+# Fill in any missing values with defaults
+
+# MISP path
+MISPPath=${MISPPath:-$(locate MISP/app/webroot/index.php|sed 's/\/app\/webroot\/index\.php//')}
+# Output
+OutputFileName=${OutputFileName:-MISP-Backup}
+OutputDirName=${OutputDirName:-/tmp}
+# database.php
+MySQLUUser=$(grep -o -P "(?<='login' => ').*(?=')" $MISPPath/app/Config/database.php)
+MySQLUPass=$(grep -o -P "(?<='password' => ').*(?=')" $MISPPath/app/Config/database.php)
+MISPDB=$(grep -o -P "(?<='database' => ').*(?=')" $MISPPath/app/Config/database.php)
+DB_Port=$(grep -o -P "(?<='port' => ).*(?=,)" $MISPPath/app/Config/database.php)
+MISPDBHost=$(grep -o -P "(?<='host' => ').*(?=')" $MISPPath/app/Config/database.php)
+# config.php
+Salt=$(grep -o -P "(?<='salt' => ').*(?=')" $MISPPath/app/Config/config.php)
+BaseURL=$(grep -o -P "(?<='baseurl' => ').*(?=')" $MISPPath/app/Config/config.php)
+OrgName=$(grep -o -P "(?<='org' => ').*(?=')" $MISPPath/app/Config/config.php)
+LogEmail=$(grep -o -P "(?<='email' => ').*(?=')" $MISPPath/app/Config/config.php|head -1)
+AdminEmail=$(grep -o -P "(?<='contact' => ').*(?=')" $MISPPath/app/Config/config.php)
+GnuPGEmail=$(sed -n -e '/GnuPG/,$p' $MISPPath/app/Config/config.php|grep -o -P "(?<='email' => ').*(?=')")
+GnuPGHomeDir=$(grep -o -P "(?<='homedir' => ').*(?=')" $MISPPath/app/Config/config.php)
+GnuPGPass=$(grep -o -P "(?<='password' => ').*(?=')" $MISPPath/app/Config/config.php)
+
+echo "Wiping MySQL tables"
+MySQLRUser=${MySQLRUser:-$MySQLUUser}
+MySQLRPass=${MySQLRPass:-$MySQLUPass}
+mysql -u $MySQLRUser -p$MySQLRPass $MISPDB < $SQL
+
+echo "Inserting default values to MySQL tables"
+TMP=/tmp/misp-wipe-$$.sql
+cd $MISPPath
+sed -n '/Default values for initial installation/ { s///; :a; n; p; ba; }' INSTALL/MYSQL.sql | egrep -v '(admin_settings|db_version)' > $TMP
+mysql -u $MySQLRUser -p$MySQLRPass $MISPDB < $TMP
+rm -f $TMP
+
+echo "Wiping files"
+git clean -f -x app/webroot/img/orgs
+#git clean -f -x app/webroot/img/custom
+git clean -f -x app/tmp/logs/
+git clean -f -d -x app/files
+
+echo 'MISP Wipe Complete!!!'
