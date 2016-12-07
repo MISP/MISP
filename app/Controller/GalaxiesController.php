@@ -26,42 +26,6 @@ class GalaxiesController extends AppController {
 		$this->redirect(array('controller' => 'galaxies', 'action' => 'index'));
 	}
 
-	public function toggleEnable() {
-		$id = $this->request->data['Warninglist']['data'];
-		if (!is_numeric($id)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Warninglist not found.')), 'status' => 200));
-		$currentState = $this->Warninglist->find('first', array('conditions' => array('id' => $id), 'recursive' => -1));
-		if (empty($currentState)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Warninglist not found.')), 'status' => 200));
-		if ($currentState['Warninglist']['enabled']) {
-			$currentState['Warninglist']['enabled'] = 0;
-			$message = 'disabled';
-		} else {
-			$currentState['Warninglist']['enabled'] = 1;
-			$message = 'enabled';
-		}
-		if ($this->Warninglist->save($currentState)) {
-			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Warninglist ' . $message)), 'status' => 200));
-		} else {
-			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Warninglist could not be enabled.')), 'status' => 200));
-		}
-	}
-
-	public function enableWarninglist($id, $enable = false) {
-		$this->Warninglist->id = $id;
-		debug($id);
-		if (!$this->Warninglist->exists()) throw new NotFoundException('Invalid Warninglist.');
-		// DBMS interoperability: convert boolean false to integer 0 so cakephp doesn't try to insert an empty string into the database
-		if ($enable === false) $enable = 0;
-		$this->Warninglist->saveField('enabled', $enable);
-		$this->Session->setFlash('Warninglist enabled');
-		$this->redirect(array('controller' => 'warninglists', 'action' => 'view', $id));
-	}
-
-	public function getToggleField() {
-		if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This action is available via AJAX only.');
-		$this->layout = 'ajax';
-		$this->render('ajax/getToggleField');
-	}
-
 	public function view($id) {
 		if (!is_numeric($id)) throw new NotFoundException('Invalid galaxy.');
 		if ($this->_isRest()) {
