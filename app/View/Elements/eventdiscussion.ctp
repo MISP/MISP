@@ -144,7 +144,7 @@
 			<button type="button" title="Insert a link to an event - just enter the event ID between the [event][/event] tags." class="toggle btn btn-inverse qet" id = "event"  onclick="insertEvent()">Event</button>
 			<button type="button" title="Insert a link to a discussion thread - enter the thread's ID between the [thread][/thread] tags." class="toggle-right btn btn-inverse qet" id = "thread"  onclick="insertThread()">Thread</button>
 			<button type="button" title="Insert a link [link][/link] tags." class="toggle-right btn btn-inverse qet" id = "link"  onclick="insertLink()">Link</button>
-			<button type="button" title="Insert a link [code][/code] tags." class="toggle-right btn btn-inverse qet" id = "link"  onclick="insertCode()">Link</button>
+			<button type="button" title="Insert a code [code][/code] tags." class="toggle-right btn btn-inverse qet" id = "code"  onclick="insertCode()">Code</button>
 		</div>
 		<?php
 			echo $this->Form->input('message', array(
