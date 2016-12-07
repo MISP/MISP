@@ -9,8 +9,8 @@
 	<?php
 		foreach ($galaxy['GalaxyCluster'] as $cluster):
 	?>
-			<div style="margin-left:20px;" class="useCursorPointer">
-				<span class="bold blue expandable"><?php echo h($cluster['value']); ?></span>&nbsp;
+			<div style="margin-left:20px;">
+				<span class="bold blue expandable useCursorPointer"><?php echo h($cluster['value']); ?></span>&nbsp;
 				<?php
 					echo $this->Form->postLink('',
 						$baseurl . '/galaxy_clusters/detachFromEvent/' . $event['Event']['id'] . '/' . $cluster['tag_id'],
@@ -44,7 +44,18 @@
 						?>
 								<tr>
 									<td style="width:25%;vertical-align: text-top; padding-bottom:10px;"><?php echo h(ucfirst($key)); ?></td>
-									<td style="width:75%; padding-bottom:10px;"><?php echo nl2br(h(implode("\n", $value))); ?></td>
+									<td style="width:75%; padding-bottom:10px;">
+										<?php 
+											if ($key == 'refs'):
+												foreach ($value as $k => $v):
+													$value[$k] = '<a href="' . h($v) . '">' . h($v) . '</a>';
+												endforeach;
+												echo nl2br(implode("\n", $value));
+											else:
+												echo nl2br(h(implode("\n", $value)));
+											endif; 
+										?>
+									</td>
 								</tr>
 						<?php 
 							endforeach;
