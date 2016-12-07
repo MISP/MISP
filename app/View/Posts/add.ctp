@@ -39,7 +39,7 @@
 				'label' => false,
 				'type' => 'textarea',
 				'div' => 'input clear',
-				'class' => 'input-xxlarge'
+				'class' => 'input-xxlarge',
 				'default' => $quote
 		));
 	?>
