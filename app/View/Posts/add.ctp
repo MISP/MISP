@@ -32,13 +32,14 @@
 			<button type="button" title="Insert a quote - just paste your quote between the [quote][/quote] tags." class="toggle-left btn btn-inverse qet" id = "quote"  onclick="insertQuote()">Quote</button>
 			<button type="button" title="Insert a link to an event - just enter the event ID between the [event][/event] tags." class="toggle btn btn-inverse qet" id = "event"  onclick="insertEvent()">Event</button>
 			<button type="button" title="Insert a link to a discussion thread - enter the thread's ID between the [thread][/thread] tags." class="toggle-right btn btn-inverse qet" id = "thread"  onclick="insertThread()">Thread</button>
+			<button type="button" title="Insert a link [link][/link] tags." class="toggle-right btn btn-inverse qet" id = "link"  onclick="insertLink()">Link</button>
 		</div>
 		<?php
 		echo $this->Form->input('message', array(
 				'label' => false,
 				'type' => 'textarea',
 				'div' => 'input clear',
-				'class' => 'input-xxlarge',
+				'class' => 'input-xxlarge'
 				'default' => $quote
 		));
 	?>
@@ -52,6 +53,9 @@
 		}
 		function insertThread() {
 			document.getElementById("PostMessage").value+="[Thread][/Thread]";
+		}
+		function insertLink() {
+			document.getElementById("PostMessage").value+="[Link][/Link]";
 		}
 	</script>
 <?php
