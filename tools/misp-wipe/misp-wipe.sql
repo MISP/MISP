@@ -29,7 +29,7 @@ TRUNCATE `template_element_files`;
 TRUNCATE `template_element_texts`;
 
 -- Remove entries from tables and reset index
-DELETE FROM `users` WHERE id > 2;
-ALTER TABLE `users` AUTO_INCREMENT = 3;
+DELETE FROM `users` WHERE id > 3;
+ALTER TABLE `users` AUTO_INCREMENT = 4;
 DELETE FROM `organisations` WHERE id > 2;
 ALTER TABLE `organisations` AUTO_INCREMENT = 3;
