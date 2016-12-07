@@ -1519,7 +1519,7 @@ class AttributesController extends AppController {
 	// the last 4 fields accept the following operators:
 	// && - you can use && between two search values to put a logical OR between them. for value, 1.1.1.1&&2.2.2.2 would find attributes with the value being either of the two.
 	// ! - you can negate a search term. For example: google.com&&!mail would search for all attributes with value google.com but not ones that include mail. www.google.com would get returned, mail.google.com wouldn't.
-	public function restSearch($key='download', $value=false, $type=false, $category=false, $org=false, $tags=false, $from=false, $to=false, $last=false, $eventid=false, $withAttachments=false, $uuid=false, $publish_timestamp=false) {
+	public function restSearch($key = 'download', $value = false, $type = false, $category = false, $org = false, $tags = false, $from = false, $to = false, $last = false, $eventid = false, $withAttachments = false, $uuid = false, $publish_timestamp = false, $published = false) {
 		if ($tags) $tags = str_replace(';', ':', $tags);
 		$simpleFalse = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp');
 		foreach ($simpleFalse as $sF) {

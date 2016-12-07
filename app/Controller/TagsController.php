@@ -143,7 +143,7 @@ class TagsController extends AppController {
 		}
 		$this->redirect($this->referer());
 	}
-
+	
 	public function edit($id) {
 		if (!$this->_isSiteAdmin() && !$this->userRole['perm_tag_editor']) {
 			throw new NotFoundException('You don\'t have permission to do that.');
@@ -249,11 +249,17 @@ class TagsController extends AppController {
 	}
 
 	public function showEventTag($id) {
-		$this->helpers[] = 'TextColour';
 		$this->loadModel('EventTag');
+		if (!$this->EventTag->Event->checkIfAuthorised($this->Auth->user(), $id)) {
+			throw new MethodNotAllowedException('Invalid event.');
+		}
+		$this->loadModel('GalaxyCluster');
+		$cluster_names = $this->GalaxyCluster->find('list', array('fields' => array('GalaxyCluster.tag_name'), 'group' => array('GalaxyCluster.tag_name')));
+		$this->helpers[] = 'TextColour';
 		$tags = $this->EventTag->find('all', array(
 				'conditions' => array(
-						'event_id' => $id
+						'event_id' => $id,
+						'Tag.name !=' => $cluster_names
 				),
 				'contain' => array('Tag'),
 				'fields' => array('Tag.id', 'Tag.colour', 'Tag.name'),
@@ -344,6 +350,11 @@ class TagsController extends AppController {
 			foreach ($banned_tags as $banned_tag) {
 				unset($options[$banned_tag]);
 				unset($expanded[$banned_tag]);
+			}
+		}
+		foreach ($options as $k => $v) {
+			if (substr($v, 0, strlen('misp-galaxy:')) === 'misp-galaxy:') {
+				unset($options[$k]);
 			}
 		}
 		$this->set('event_id', $event_id);

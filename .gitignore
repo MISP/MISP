@@ -22,6 +22,8 @@
 !/app/files/scripts/
 !/app/files/warninglists
 !/app/files/warninglists/*
+!/app/files/misp-galaxy
+!/app/files/misp-galaxy/*
 /app/files/scripts/python-stix/
 /app/files/scripts/python-cybox/
 /app/files/scripts/*.pyc

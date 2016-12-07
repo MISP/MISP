@@ -1137,7 +1137,10 @@ class Event extends AppModel {
 	// includeAttachments: true will attach the attachments to the attributes in the data field
 	public function fetchEvent($user, $options = array()) {
 		if (isset($options['Event.id'])) $options['eventid'] = $options['Event.id'];
-		$possibleOptions = array('eventid', 'idList', 'tags', 'from', 'to', 'last', 'to_ids', 'includeAllTags', 'includeAttachments', 'event_uuid', 'distribution', 'sharing_group_id', 'disableSiteAdmin', 'metadata');
+		$possibleOptions = array('eventid', 'idList', 'tags', 'from', 'to', 'last', 'to_ids', 'includeAllTags', 'includeAttachments', 'event_uuid', 'distribution', 'sharing_group_id', 'disableSiteAdmin', 'metadata', 'includeGalaxy');
+		if (!isset($options['excludeGalaxy']) || !$options['excludeGalaxy']) { 
+			$this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
+		}
 		foreach ($possibleOptions as &$opt) if (!isset($options[$opt])) $options[$opt] = false;
 		if ($options['eventid']) {
 			$conditions['AND'][] = array("Event.id" => $options['eventid']);
@@ -1291,10 +1294,8 @@ class Event extends AppModel {
 				),
 				'SharingGroup' => $fieldsSharingGroup[(($user['Role']['perm_site_admin'] || $user['Role']['perm_sync']) ? 1 : 0)],
 				'EventTag' => array(
-					'Tag' => array(
-						'conditions' => $tagConditions
-					),
-				),
+					'Tag' => array('conditions' => $tagConditions)
+				)
 			)
 		);
 		if ($options['metadata']) {
@@ -1321,10 +1322,34 @@ class Event extends AppModel {
 				}
 			}
 			if ($event['SharingGroup']['id'] == null) unset($event['SharingGroup']);
+			$event['Galaxy'] = array();
 			// unset empty event tags that got added because the tag wasn't exportable
 			if (!empty($event['EventTag'])) {
 				foreach ($event['EventTag'] as $k => &$eventTag) {
-					if (empty($eventTag['Tag'])) unset($event['EventTag'][$k]);
+					if (empty($eventTag['Tag'])) {
+						unset($event['EventTag'][$k]);
+						continue;
+					}
+					if (!isset($options['excludeGalaxy']) || !$options['excludeGalaxy']) {
+						if (substr($eventTag['Tag']['name'], 0, strlen('misp-galaxy:')) === 'misp-galaxy:') {
+							$cluster = $this->GalaxyCluster->getCluster($eventTag['Tag']['name']);
+							if ($cluster) {
+								$found = false;
+								foreach ($event['Galaxy'] as $k => $galaxy) {
+									if ($galaxy['id'] == $cluster['GalaxyCluster']['Galaxy']['id']) {
+										$found = true;
+										unset($cluster['GalaxyCluster']['Galaxy']);
+										$event['Galaxy'][$k]['GalaxyCluster'][] = $cluster['GalaxyCluster'];
+									}
+								}
+								if (!$found) {
+									$event['Galaxy'][] = $cluster['GalaxyCluster']['Galaxy'];
+									unset($cluster['GalaxyCluster']['Galaxy']);
+									$event['Galaxy'][count($event['Galaxy']) - 1]['GalaxyCluster'][] = $cluster['GalaxyCluster'];
+								}
+							}
+						}
+					}
 				}
 				$event['EventTag'] = array_values($event['EventTag']);
 			}
@@ -2691,7 +2716,7 @@ class Event extends AppModel {
 		return true;
 	}
 
-	// convenience method to check whther a user can see an event
+	// convenience method to check whether a user can see an event
 	public function checkIfAuthorised($user, $id) {
 		if (!isset($user['id'])) throw new MethodNotAllowedException('Invalid user.');
 		$this->id = $id;
