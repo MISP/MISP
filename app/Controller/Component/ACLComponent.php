@@ -56,6 +56,7 @@ class ACLComponent extends Component {
 					'restSearch' => array('*'),
 					'returnAttributes' => array('*'),
 					'rpz' => array('*'),
+					'bro' => array('*'),
 					'search' => array('*'),
 					'searchAlternate' => array('*'),
 					'text' => array('*'),
