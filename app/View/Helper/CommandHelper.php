@@ -9,46 +9,10 @@ App::uses('AppHelper', 'View/Helper');
 		public function convertQuotes($string) {
 			$string = str_ireplace('[QUOTE]', '<div class="quote">', $string);
 			$string = str_ireplace('[/QUOTE]', '</div>', $string);
-			$matches = array();
-			while (preg_match ('%\[event\](.*?)\[/event\]%is', $string, $matches)) {
-				if (!empty($matches) && is_numeric($matches[1])) {
-					$string = preg_replace('%\[event\]' . $matches[1] . '\[/event\]%i', '<a href=' . h(Configure::read('MISP.baseurl')) . '/events/view/' . $matches[1] . '> Event ' . $matches[1] . '</a>', $string);
-				} else {
-					$string = preg_replace('%\[event\]' . $matches[1] . '\[/event\]%i', '%Malformed_Event_Link%', $string);
-				}
-			}
-			$matches = array();
-
-			while (preg_match ('%\[thread\](.*?)\[/thread\]%is', $string, $matches)) {
-				if (!empty($matches) && is_numeric($matches[1])) {
-					$string = preg_replace('%\[thread\]' . $matches[1] . '\[/thread\]%i', '<a href=' . h(Configure::read('MISP.baseurl')) . '/threads/view/' . $matches[1] . '> Thread ' . $matches[1] . '</a>', $string);
-				} else {
-					$string = preg_replace('%\[thread\]' . $matches[1] . '\[/thread\]%i', '%Malformed_Thread_Link%', $string);
-				}
-				$matches = array();
-			}
-
-			$matches = array();
-
-			while (preg_match ('%\[link\]\s*(.*?)\s*\[/link\]%is', $string, $matches)) {
-				if (!empty($matches) && preg_match('/^((http|https|git|ftp|ftps):\/\/.*)$/isU', $matches[1])) {
-					$string = preg_replace('%\[link\]\s*' . $matches[1] . '\s*\[/link\]%is', '<a href="' . $matches[1] . '">' . $matches[1] . '</a>', $string);
-				} else {
-					$string = preg_replace('%\[link\]\s*' . $matches[1] . '\s*\[/link\]%is', '%Malformed_Link%', $string);
-				}
-				$matches = array();
-			}
-
-			$matches = array();
-
-			while (preg_match ('%\[code\](.*?)\[/code\]%is', $string, $matches)) {
-				if (!empty($matches) ) {
-					$string = preg_replace('%\[code\]' . $matches[1] . '\[/code\]%is', '<pre>' . $matches[1] . '</pre>', $string);
-				} else {
-					$string = preg_replace('%\[code\]' . $matches[1] . '\[/code\]%is', '%Empty_Code%', $string);
-				}
-				$matches = array();
-			}
+      $string = preg_replace('%\[event\]\s*(\d*)\s*\[/event\]%isU', '<a href="' . h(Configure::read('MISP.baseurl')). '/events/view/$1> Event $1</a>', $string);
+      $string = preg_replace('%\[thread\]\s*(\d*)\s*\[/thread\]%isU', '<a href="' . h(Configure::read('MISP.baseurl')). '/threads/view/$1> Thread $1</a>', $string);
+      $string = preg_replace('%\[link\]\s*(http|https|ftp|git|ftps)(.*)\s*\[/link\]%isU', '<a href="$1$2">$1$2</a>', $string);
+      $string = preg_replace('%\[code\](.*)\[/code\]%isU', '<pre>$1</pre>', $string);
 
 			return $string;
 		}
