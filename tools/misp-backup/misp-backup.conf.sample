@@ -1,4 +1,3 @@
-MySQLRUser="misp"
-MySQLRPass="FILLME"
+MISPPath=/var/www/MISP
 OutputFileName="MISP-Backup"
 OutputDirName="./"
