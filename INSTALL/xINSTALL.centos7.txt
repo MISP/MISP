@@ -221,9 +221,6 @@ cp -a config.default.php config.php
 chown apache:apache /var/www/MISP/app/Config/config.php
 chcon -t httpd_sys_rw_content_t /var/www/MISP/app/Config/config.php
 
-# The file selftest.php also needs to be writable for the Apache user:
-chcon -t httpd_sys_rw_content_t /var/www/MISP/app/files/scripts/selftest.php
-
 # Generate a GPG encryption key.
 # If the following command gives an error message, try it as root from the console
 gpg --gen-key
