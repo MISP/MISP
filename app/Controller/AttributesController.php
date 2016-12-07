@@ -23,6 +23,7 @@ class AttributesController extends AppController {
 		$this->Auth->allow('downloadAttachment');
 		$this->Auth->allow('text');
 		$this->Auth->allow('rpz');
+		$this->Auth->allow('bro');
 
 		// permit reuse of CSRF tokens on the search page.
 		if ('search' == $this->request->params['action']) {
@@ -459,7 +460,7 @@ class AttributesController extends AppController {
 			$info['distribution'][$key] = array('key' => $value, 'desc' => $this->Attribute->distributionDescriptions[$key]['formdesc']);
 		}
 		$this->set('info', $info);
-		
+
 		$this->loadModel('SharingGroup');
 		$sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', 1);
 		$this->set('sharingGroups', $sgs);
@@ -671,7 +672,7 @@ class AttributesController extends AppController {
 		}
 		if ($this->request->is('post') || $this->request->is('put')) {
 			if (!isset($this->request->data['Attribute'])) {
-				$this->request->data['Attribute'] = $this->request->data; 
+				$this->request->data['Attribute'] = $this->request->data;
 			}
 			$existingAttribute = $this->Attribute->findByUuid($this->Attribute->data['Attribute']['uuid']);
 			// check if the attribute has a timestamp already set (from a previous instance that is trying to edit via synchronisation)
@@ -1624,7 +1625,7 @@ class AttributesController extends AppController {
 							foreach ($found_orgs as $o) $subcondition['OR'][] = array('Event.orgc_id' => $o['Org']['id']);
 						} else if ($parameters[$k] === 'eventid') {
 							if (!empty($v)) $subcondition['OR'][] = array('Attribute.event_id' => $v);
-						} else if ($parameters[$k] === 'uuid') { 
+						} else if ($parameters[$k] === 'uuid') {
 							$subcondition['OR'][] = array('Attribute.uuid' => $v);
 							$subcondition['OR'][] = array('Event.uuid' => $v);
 						} else {
@@ -1666,7 +1667,7 @@ class AttributesController extends AppController {
 		}
 		if ($last) $conditions['AND'][] = array('Event.publish_timestamp >=' => $last);
 		if ($published) $conditions['AND'][] = array('Event.published' => $published);
-		
+
 		// change the fields here for the attribute export!!!! Don't forget to check for the permissions, since you are not going through fetchevent. Maybe create fetchattribute?
 		$params = array(
 				'conditions' => $conditions,
@@ -1919,7 +1920,7 @@ class AttributesController extends AppController {
 		$this->render('/Attributes/rpz');
 	}
 
-	public function bro($key='download', $type='all', $tags=false, $eventId=false, $allowNonIDS=false, $from=false, $to=false, $last=false) {
+	public function bro($key='download', $type='all', $tags=false, $eventId=false, $from=false, $to=false, $last=false) {
 		if ($this->request->is('post')) {
 			if ($this->request->input('json_decode', true)) {
 				$data = $this->request->input('json_decode', true);
@@ -1929,49 +1930,39 @@ class AttributesController extends AppController {
 			if (!empty($data) && !isset($data['request'])) {
 				$data = array('request' => $data);
 			}
-			$paramArray = array('type', 'tags', 'eventId', 'allowNonIDS', 'from', 'to', 'last');
+			$paramArray = array('type', 'tags', 'eventId', 'from', 'to', 'last');
 			foreach ($paramArray as $p) {
 				if (isset($data['request'][$p])) ${$p} = $data['request'][$p];
 			}
 		}
-		$simpleFalse = array('type', 'tags', 'eventId', 'allowNonIDS', 'from', 'to', 'last');
+		$simpleFalse = array('type', 'tags', 'eventId', 'from', 'to', 'last');
 		foreach ($simpleFalse as $sF) {
 			if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false')) ${$sF} = false;
 		}
-		if ($type !== 'null' || $type !== '0' || $type !== 'false') {
-			if ($from) $from = $this->Attribute->Event->dateFieldCheck($from);
-			if ($to) $to = $this->Attribute->Event->dateFieldCheck($to);
-			if ($last) $last = $this->Attribute->Event->resolveTimeDelta($last);
-			if ($key != 'download') {
-				// check if the key is valid -> search for users based on key
-				$user = $this->checkAuthUser($key);
-				if (!$user) {
-					throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
-				}
-			} else {
-				if (!$this->Auth->user('id')) {
-					throw new UnauthorizedException('You have to be logged in to do that.');
-				}
+		if ($type === 'null' || $type === '0' || $type === 'false') $type = 'all';
+		if ($from) $from = $this->Attribute->Event->dateFieldCheck($from);
+		if ($to) $to = $this->Attribute->Event->dateFieldCheck($to);
+		if ($last) $last = $this->Attribute->Event->resolveTimeDelta($last);
+		if ($key != 'download') {
+			// check if the key is valid -> search for users based on key
+			$user = $this->checkAuthUser($key);
+			if (!$user) {
+				throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
 			}
-			$filename = 'misp.' . $type . '.intel';
-			if ($eventId) {
-				$filename = 'misp.' . $type . '.event_' . $eventId . '.intel';
+		} else {
+			if (!$this->Auth->user('id')) {
+				throw new UnauthorizedException('You have to be logged in to do that.');
 			}
-			if ($type != 'all') {
-				$responseFile = implode(PHP_EOL, $this->Attribute->bro($this->Auth->user(), $type, $tags, $eventId, $allowNonIDS, $from, $to, $last)) . PHP_EOL;
-				$this->response->body($responseFile);
-				$this->response->type('txt');
-			} else {
-				$tmpZipname = $this->Attribute->brozip($this->Auth->user(), $tags, $eventId, $allowNonIDS, $from, $to, $last);
-				$this->response->body(file_get_contents($tmpZipname[0] . $tmpZipname[1]));
-				$this->response->type('zip');
-				$folder = new Folder($tmpZipname[0]);
-				$folder->delete();
-				$filename .= '.zip';
-			}
-			$this->response->download($filename);
-			return $this->response;
 		}
+		$filename = 'misp.' . $type . '.txt';
+		if ($eventId) {
+			$filename = 'misp.' . $type . '.event_' . $eventId . '.txt';
+		}
+		$responseFile = implode(PHP_EOL, $this->Attribute->bro($this->Auth->user(), $type, $tags, $eventId, $from, $to, $last)) . PHP_EOL;
+		$this->response->body($responseFile);
+		$this->response->type('txt');
+		$this->response->download($filename);
+		return $this->response;
 	}
 
 	public function reportValidationIssuesAttributes($eventId = false) {
@@ -2350,7 +2341,7 @@ class AttributesController extends AppController {
 		$this->Session->setFlash('Removed ' . count($orphans) . ' attribute(s).');
 		$this->redirect(Router::url($this->referer(), true));
 	}
-	
+
 	public function checkOrphanedAttributes() {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException('You are not authorised to do that.');
 		$this->loadModel('Attribute');
@@ -2457,7 +2448,7 @@ class AttributesController extends AppController {
 	public function describeTypes() {
 		$result = array();
 		foreach ($this->Attribute->typeDefinitions as $key => $value) {
-			$result['sane_defaults'][$key] = array('default_category' => $value['default_category'], 'to_ids' => $value['to_ids']);				
+			$result['sane_defaults'][$key] = array('default_category' => $value['default_category'], 'to_ids' => $value['to_ids']);
 		}
 		$result['types'] = array_keys($this->Attribute->typeDefinitions);
 		$result['categories'] = array_keys($this->Attribute->categoryDefinitions);
