@@ -11,6 +11,7 @@
 	?>
 			<div style="margin-left:20px;">
 				<span class="bold blue expandable useCursorPointer"><?php echo h($cluster['value']); ?></span>&nbsp;
+				<a href="<?php echo $baseurl; ?>/events/index/searchtag:<?php echo h($cluster['tag_id']); ?>" class="icon-th-list" title="View all events containing this cluster."></a>
 				<?php
 					echo $this->Form->postLink('',
 						$baseurl . '/galaxy_clusters/detachFromEvent/' . $event['Event']['id'] . '/' . $cluster['tag_id'],
