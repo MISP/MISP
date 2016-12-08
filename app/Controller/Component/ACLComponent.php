@@ -153,8 +153,8 @@ class ACLComponent extends Component {
 			'galaxyClusters' => array(
 				'attachToEvent' => array('perm_tagger'),
 				'detachFromEvent' => array('perm_tagger'),
-				'index' => array(),
-				'view' => array()
+				'index' => array('*'),
+				'view' => array('*')
 			),
 			'galaxyElements' => array(
 					'index' => array('*')
