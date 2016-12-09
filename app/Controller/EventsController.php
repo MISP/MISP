@@ -816,7 +816,7 @@ class EventsController extends AppController {
 			}
 		}
 		$this->loadModel('GalaxyCluster');
-		$cluster_names = $this->GalaxyCluster->find('list', array('fields' => array('GalaxyCluster.tag_name'), 'group' => array('GalaxyCluster.tag_name')));
+		$cluster_names = $this->GalaxyCluster->find('list', array('fields' => array('GalaxyCluster.tag_name'), 'group' => array('GalaxyCluster.tag_name', 'GalaxyCluster.id')));
 		foreach ($event['EventTag'] as $k => $eventTag) {
 			if (in_array($eventTag['Tag']['name'], $cluster_names)) {
 				unset($event['EventTag'][$k]);
@@ -1027,7 +1027,7 @@ class EventsController extends AppController {
 					$this->Session->setFlash(__('You may only upload GFI Sandbox zip files.'));
 				} else {
 					if (!isset($this->request->data['Event']['distribution'])) {
-						$this->request->data['Event']['distribution'] = Configure::read('MISP.default_event_distribution') ? Configure::read('MISP.default_event_distribution') : 0;  
+						$this->request->data['Event']['distribution'] = Configure::read('MISP.default_event_distribution') ? Configure::read('MISP.default_event_distribution') : 0;
 					}
 					if (!isset($this->request->data['Event']['analysis'])) {
 						$this->request->data['Event']['analysis'] = 0;
@@ -1129,14 +1129,14 @@ class EventsController extends AppController {
 		foreach ($distributionLevels as $key => $value) {
 			$info['distribution'][$key] = array('key' => $value, 'desc' => $this->Event->distributionDescriptions[$key]['formdesc']);
 		}
-		
+
 		// combobox for risks
 		$threat_levels = $this->Event->ThreatLevel->find('all');
 		$this->set('threatLevels', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.name'));
 		foreach ($threat_levels as $key => $threat_level) {
 			$info['threat_level'][$threat_level['ThreatLevel']['id']] = array('key' => $threat_level['ThreatLevel']['name'], 'desc' => $threat_level['ThreatLevel']['form_description']);
 		}
-		
+
 		// combobox for analysis
 		$this->set('sharingGroups', $sgs);
 		// tooltip for analysis
@@ -1147,7 +1147,7 @@ class EventsController extends AppController {
 		$this->set('analysisDescriptions', $this->Event->analysisDescriptions);
 		$this->set('analysisLevels', $this->Event->analysisLevels);
 	}
-	
+
 	public function addIOC($id) {
 		$this->Event->recursive = -1;
 		$this->Event->read(null, $id);
@@ -1372,7 +1372,7 @@ class EventsController extends AppController {
 		foreach ($distributionLevels as $key => $value) {
 			$info['distribution'][$key] = array('key' => $value, 'desc' => $this->Event->distributionDescriptions[$key]['formdesc']);
 		}
-		
+
 		// combobox for risks
 		$threat_levels = $this->Event->ThreatLevel->find('all');
 		$this->set('threatLevels', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.name'));
@@ -1864,14 +1864,14 @@ class EventsController extends AppController {
 				else ${$p} = null;
 			}
 		}
-		
+
 		$simpleFalse = array('id', 'continue', 'tags', 'from', 'to', 'last', 'type');
 		foreach ($simpleFalse as $sF) {
 			if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false')) {
 				${$sF} = false;
 			}
 		}
-		
+
 		if ($from) $from = $this->Event->dateFieldCheck($from);
 		if ($to) $to = $this->Event->dateFieldCheck($to);
 		if ($tags) $tags = str_replace(';', ':', $tags);
@@ -2542,7 +2542,7 @@ class EventsController extends AppController {
 									}
 								} else if ($parameters[$k] === 'eventid') {
 									$subcondition['OR'][] = array('Attribute.event_id' => $v);
-								} else if ($parameters[$k] === 'uuid') { 
+								} else if ($parameters[$k] === 'uuid') {
 									$subcondition['OR'][] = array('Attribute.uuid' => $v);
 									$subcondition['OR'][] = array('Event.uuid' => $v);
 								}else {
@@ -2580,7 +2580,7 @@ class EventsController extends AppController {
 					$conditions['AND'][] = array('Event.publish_timestamp <=' => $publish_timestamp[1]);
 				} else {
 					$conditions['AND'][] = array('Event.publish_timestamp >=' => $publish_timestamp);
-				}				
+				}
 			}
 			if ($timestamp) {
 				if (is_array($timestamp)) {
