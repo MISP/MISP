@@ -8,7 +8,7 @@ class GalaxiesController extends AppController {
 			'limit' => 60,
 			'maxLimit' => 9999,	// LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
 			'contain' => array(
-				
+
 			),
 			'order' => array(
 				'Galaxy.id' => 'DESC'
@@ -32,7 +32,7 @@ class GalaxiesController extends AppController {
 			$galaxy = $this->Galaxy->find('first', array(
 					'contain' => array('GalaxyCluster' => array('GalaxyElement'/*, 'GalaxyReference'*/)),
 					'recursive' => -1,
-					'conditions' => array('Galaxy.id' => $id) 
+					'conditions' => array('Galaxy.id' => $id)
 			));
 			if (empty($galaxy)) {
 				throw new NotFoundException('Galaxy not found.');
@@ -50,16 +50,15 @@ class GalaxiesController extends AppController {
 			$this->set('galaxy', $galaxy);
 		}
 	}
-	
+
 	public function selectGalaxy($event_id) {
 		$galaxies = $this->Galaxy->find('all', array('recursive' => -1));
 		$this->set('galaxies', $galaxies);
 		$this->set('event_id', $event_id);
 		$this->render('ajax/galaxy_choice');
 	}
-	
-	public function selectCluster($event_id) {
-		$selectGalaxy = isset($this->request->data['Galaxy']['id']) ? $this->request->data['Galaxy']['id'] : false; 
+
+	public function selectCluster($event_id, $selectGalaxy = false) {
 		$conditions = array();
 		if ($selectGalaxy) {
 			$conditions = array('GalaxyCluster.galaxy_id' => $selectGalaxy);
@@ -97,7 +96,7 @@ class GalaxiesController extends AppController {
 		$this->set('lookup_table', $lookup_table);
 		$this->render('ajax/cluster_choice');
 	}
-	
+
 	public function attachClusterToEvent($event_id) {
 		$cluster_id = $this->request->data['Galaxy']['target_id'];
 		$cluster = $this->Galaxy->GalaxyCluster->find('first', array('recursive' => -1, 'conditions' => array('id' => $cluster_id), 'fields' => array('tag_name')));
