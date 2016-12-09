@@ -24,7 +24,7 @@ class GalaxyCluster extends AppModel{
 			'Tag.name = GalaxyCluster.tag_name'
 		)
 	);
-	
+
 
 	public $hasMany = array(
 		'GalaxyElement' => array('dependent' => true),
@@ -33,14 +33,17 @@ class GalaxyCluster extends AppModel{
 
 	public function beforeValidate($options = array()) {
 		parent::beforeValidate();
+		if (!isset($this->data['GalaxyCluster']['description'])) {
+			$this->data['GalaxyCluster']['description'] = '';
+		}
 		return true;
 	}
 
 	public function beforeDelete($cascade = true) {
 		$this->GalaxyElement->deleteAll(array('GalaxyElement.galaxy_cluster_id' => $this->id));
 	}
-	
-	
+
+
 	// receive a full galaxy and add all new clusters, update existing ones contained in the new galaxy, cull old clusters that are removed from the galaxy
 	public function update($id, $galaxy) {
 		$existingClusters = $this->find('all', array(
@@ -91,7 +94,7 @@ class GalaxyCluster extends AppModel{
 		));
 		$this->GalaxyElement->update($id, $existingClusters, $galaxy['values']);
 	}
-	
+
 	/* Return a list of all tags associated with the cluster specific cluster within the galaxy (or all clusters if $clusterValue is false)
 	 * The counts are restricted to the event IDs that the user is allowed to see.
 	*/
@@ -117,7 +120,7 @@ class GalaxyCluster extends AppModel{
 		}
 		return $tags;
 	}
-	
+
 	/* Fetch a cluster along with all elements and the galaxy it belongs to
 	 *   - In the future, once we move to galaxy 2.0, pass a user along for access control
 	 *   - maybe in the future remove the galaxy itself once we have logos with each galaxy
@@ -159,7 +162,7 @@ class GalaxyCluster extends AppModel{
 		}
 		return $cluster;
 	}
-	
+
 	public function attachClustersToEventIndex($events, $replace = false) {
 		foreach ($events as $k => $event) {
 			foreach ($event['EventTag'] as $k2 => $eventTag) {
