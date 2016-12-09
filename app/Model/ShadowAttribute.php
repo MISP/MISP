@@ -264,7 +264,13 @@ class ShadowAttribute extends AppModel {
 		parent::beforeValidate();
 		// remove leading and trailing blanks
 		//$this->trimStringFields(); // TODO
-		if (isset($this->data['ShadowAttribute']['value'])) $this->data['ShadowAttribute']['value'] = trim($this->data['ShadowAttribute']['value']);
+		if (isset($this->data['ShadowAttribute']['value'])) {
+			$this->data['ShadowAttribute']['value'] = trim($this->data['ShadowAttribute']['value']);
+		}
+
+		if (!isset($this->data['ShadowAttribute']['comment'])) {
+			$this->data['ShadowAttribute']['comment'] = '';
+		}
 
 		if (!isset($this->data['ShadowAttribute']['type'])) {
 			return false;
