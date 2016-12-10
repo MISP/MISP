@@ -22,7 +22,7 @@ class UsersController extends AppController {
 				'Role' => array('id', 'name', 'perm_auth')
 			)
 	);
-	
+
 	public $helpers = array('Js' => array('Jquery'));
 
 	public function beforeFilter() {
@@ -299,7 +299,7 @@ class UsersController extends AppController {
 		}
 		if ($this->_isRest()) {
 			$this->User->data['User']['password'] = '*****';
-			return $this->RestResponse->viewData(array('User' => $this->User->data['User']), $this->response->type());	
+			return $this->RestResponse->viewData(array('User' => $this->User->data['User']), $this->response->type());
 		} else {
 			$temp = $this->User->data['User']['invited_by'];
 			$this->set('id', $id);
@@ -333,7 +333,7 @@ class UsersController extends AppController {
 					}
 				}
 				if (isset($this->request->data['User']['password'])) {
-					$this->request->data['User']['confirm_password'] = $this->request->data['User']['password']; 
+					$this->request->data['User']['confirm_password'] = $this->request->data['User']['password'];
 				}
 				$defaults = array(
 						'external_auth_required' => 0,
@@ -627,7 +627,7 @@ class UsersController extends AppController {
 		if ($this->User->delete($id)) {
 			$this->__extralog("delete", $fieldsDescrStr, '');
 			if ($this->_isRest()) {
-				return $this->RestResponse->saveSuccessResponse('User', 'admin_delete', $id, $this->response->type(), 'User deleted.');	
+				return $this->RestResponse->saveSuccessResponse('User', 'admin_delete', $id, $this->response->type(), 'User deleted.');
 			} else {
 				$this->Session->setFlash(__('User deleted'));
 				$this->redirect(array('action' => 'index'));
@@ -737,26 +737,28 @@ class UsersController extends AppController {
 				}
 			}
 
-			// populate the DB with the first user if it's empty
-			if ($this->User->find('count') == 0 ) {
-				$admin = array('User' => array(
-					'id' => 1,
-					'email' => 'admin@admin.test',
-					'org_id' => $org_id,
-					'password' => 'admin',
-					'confirm_password' => 'admin',
-					'authkey' => $this->User->generateAuthKey(),
-					'nids_sid' => 4000000,
-					'newsread' => 0,
-					'role_id' => 1,
-					'change_pw' => 1
-				));
-				$this->User->validator()->remove('password'); // password is too simple, remove validation
-				$this->User->save($admin);
-				// PostgreSQL: update value of auto incremented serial primary key after setting the column by force
-				if ($dataSource == 'Database/Postgres') {
-					$sql = "SELECT setval('users_id_seq', (SELECT MAX(id) FROM users));";
-					$this->User->query($sql);
+			if (Configure::read('Security.salt')) {
+				// populate the DB with the first user if it's empty
+				if ($this->User->find('count') == 0 ) {
+					$admin = array('User' => array(
+						'id' => 1,
+						'email' => 'admin@admin.test',
+						'org_id' => $org_id,
+						'password' => 'admin',
+						'confirm_password' => 'admin',
+						'authkey' => $this->User->generateAuthKey(),
+						'nids_sid' => 4000000,
+						'newsread' => 0,
+						'role_id' => 1,
+						'change_pw' => 1
+					));
+					$this->User->validator()->remove('password'); // password is too simple, remove validation
+					$this->User->save($admin);
+					// PostgreSQL: update value of auto incremented serial primary key after setting the column by force
+					if ($dataSource == 'Database/Postgres') {
+						$sql = "SELECT setval('users_id_seq', (SELECT MAX(id) FROM users));";
+						$this->User->query($sql);
+					}
 				}
 			}
 		}
@@ -1062,7 +1064,7 @@ class UsersController extends AppController {
 			$this->render('statistics_histogram');
 		}
 	}
-	
+
 	private function __statisticsData($params = array()) {
 		// set all of the data up for the heatmaps
 		$orgs = $this->User->Organisation->find('all', array('fields' => array('DISTINCT (name) AS name'), 'recursive' => -1));
@@ -1078,27 +1080,27 @@ class UsersController extends AppController {
 		$this_month = strtotime('first day of this month');
 		$stats[0] = $this->User->Event->find('count', null);
 		$stats[1] = $this->User->Event->find('count', array('conditions' => array('Event.timestamp >' => $this_month)));
-		
+
 		$stats[2] = $this->User->Event->Attribute->find('count', array('conditions' => array('Attribute.deleted' => 0)));
 		$stats[3] = $this->User->Event->Attribute->find('count', array('conditions' => array('Attribute.timestamp >' => $this_month, 'Attribute.deleted' => 0)));
-		
+
 		$this->loadModel('Correlation');
 		$this->Correlation->recursive = -1;
 		$stats[4] = $this->Correlation->find('count', null);
 		$stats[4] = $stats[4] / 2;
-		
+
 		$stats[5] = $this->User->Event->ShadowAttribute->find('count', null);
-		
+
 		$stats[6] = $this->User->find('count', null);
 		$stats[7] = count($orgs);
-		
+
 		$this->loadModel('Thread');
 		$stats[8] = $this->Thread->find('count', array('conditions' => array('Thread.post_count >' => 0)));
 		$stats[9] = $this->Thread->find('count', array('conditions' => array('Thread.date_created >' => date("Y-m-d H:i:s",$this_month), 'Thread.post_count >' => 0)));
-		
+
 		$stats[10] = $this->Thread->Post->find('count', null);
 		$stats[11] = $this->Thread->Post->find('count', array('conditions' => array('Post.date_created >' => date("Y-m-d H:i:s",$this_month))));
-		
+
 		$this->set('stats', $stats);
 		$this->set('orgs', $orgs);
 		$this->set('start', strtotime(date('Y-m-d H:i:s') . ' -5 months'));
@@ -1108,7 +1110,7 @@ class UsersController extends AppController {
 		$this->set('range', $range);
 		$this->render('statistics_data');
 	}
-	
+
 	private function __statisticsOrgs($params = array()) {
 		$this->loadModel('Organisation');
 		$conditions = array();
@@ -1129,7 +1131,7 @@ class UsersController extends AppController {
 			'group' => 'User.org_id',
 			'conditions' => array('User.org_id' => array_keys($orgs)),
 			'recursive' => -1,
-			'fields' => array('org_id', 'count(*)')	
+			'fields' => array('org_id', 'count(*)')
 		));
 		foreach ($users as $user) {
 			$orgs[$user['User']['org_id']]['userCount'] = $user[0]['count(*)'];
@@ -1157,7 +1159,7 @@ class UsersController extends AppController {
 		$this->set('orgs', $orgs);
 		$this->render('statistics_orgs');
 	}
-	
+
 	public function tagStatisticsGraph() {
 		$this->loadModel('EventTag');
 		$tags = $this->EventTag->getSortedTagList();
@@ -1177,13 +1179,13 @@ class UsersController extends AppController {
 					$tags[$key]['taxonomy'] = $name[0];
 				}
 			}
-			$flatData[$tags[$key]['taxonomy']][$value['name']] = array('name' => $value['name'], 'size' => $value['eventCount']); 
+			$flatData[$tags[$key]['taxonomy']][$value['name']] = array('name' => $value['name'], 'size' => $value['eventCount']);
 		}
 		$treemap = array(
 				'name' => 'tags',
 				'children' => array()
 		);
-		
+
 		foreach ($flatData as $key => $value) {
 			 $newElement = array(
 				'name' => $key,
@@ -1204,7 +1206,7 @@ class UsersController extends AppController {
 		$this->layout = 'treemap';
 		$this->render('ajax/tag_statistics_graph');
 	}
-	
+
 	private function __statisticsTags($params = array()) {
 		$trending_tags = array();
 		$all_tags = array();
