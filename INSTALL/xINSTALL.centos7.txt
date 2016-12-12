@@ -204,7 +204,7 @@ cp -a core.default.php core.php
 cp -a config.default.php config.php
 
 # Configure the fields in the newly created files:
-# config.php   : baseurl (example: 'baseurl' => 'http://msip',) - don't use "localhost" it causes issues when browsing externally
+# config.php   : baseurl (example: 'baseurl' => 'http://misp',) - don't use "localhost" it causes issues when browsing externally
 # database.php : login, port, password, database
 
 # Important! Change the salt key in /var/www/MISP/app/Config/config.php
