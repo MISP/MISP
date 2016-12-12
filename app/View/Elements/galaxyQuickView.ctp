@@ -1,5 +1,5 @@
 <?php
-	$fixed_fields = array('decription', 'source', 'authors');
+	$fixed_fields = array('synonyms', 'description', 'meta', 'authors', 'source');
 	foreach ($event['Galaxy'] as $galaxy):
 ?>
 		<div>
@@ -22,48 +22,50 @@
 				<div style="margin-left:40px;" class="hidden blue">
 					<table style="width:100%">
 						<?php
-							foreach ($fixed_fields as $fixed_field):
-								if (isset($cluster[$fixed_field])):
-						?>
-									<tr>
-										<td style="width:25%;vertical-align: text-top; padding-bottom:10px;"><?php echo h(ucfirst($fixed_field)); ?></td>
-										<td style="width:75%; padding-bottom:10px;">
-											<?php 
-												if (is_array($cluster[$fixed_field])) {	
-													$cluster[$fixed_field] = implode("\n", $cluster[$fixed_field]);
-													echo nl2br(h($cluster[$fixed_field]));
-												} else {
-													echo h($cluster[$fixed_field]);
-												}
-											?>
-										</td>
-									</tr>
-						<?php
-								endif;
-							endforeach;
-							foreach ($cluster['meta'] as $key => $value):
+							$cluster_fields = array();
+							if (isset($cluster['description'])) {
+								$cluster_fields[] = array('key' => 'description', 'value' => $cluster['description']);
+							}
+							if (isset($cluster['meta']['synonyms'])) {
+								$cluster_fields[] = array('key' => 'synonyms', 'value' => $cluster['meta']['synonyms']);
+							}
+							if (isset($cluster['source'])) {
+								$cluster_fields[] = array('key' => 'source', 'value' => $cluster['source']);
+							}
+							if (isset($cluster['meta'])) {
+								foreach ($cluster['meta'] as $metaKey => $metaField) {
+									if ($metaField != 'synonyms') {
+										$cluster_fields[] = array('key' => $metaKey, 'value' => $metaField);
+									}
+								}
+							}
+							foreach ($cluster_fields as $cluster_field):
 						?>
 								<tr>
-									<td style="width:25%;vertical-align: text-top; padding-bottom:10px;"><?php echo h(ucfirst($key)); ?></td>
+									<td style="width:25%;vertical-align: text-top; padding-bottom:10px;"><?php echo h(ucfirst($cluster_field['key'])); ?></td>
 									<td style="width:75%; padding-bottom:10px;">
-										<?php 
-											if ($key == 'refs'):
-												foreach ($value as $k => $v):
-													$value[$k] = '<a href="' . h($v) . '">' . h($v) . '</a>';
-												endforeach;
-												echo nl2br(implode("\n", $value));
-											else:
-												echo nl2br(h(implode("\n", $value)));
-											endif; 
+										<?php
+											if (is_array($cluster_field['value'])) {
+												if ($cluster_field['key'] == 'refs') {
+													foreach ($cluster_field['value'] as $k => $v):
+														$value[$k] = '<a href="' . h($v) . '">' . h($v) . '</a>';
+													endforeach;
+													echo nl2br(implode("\n", $value));
+												} else {
+													echo nl2br(h(implode("\n", $cluster_field['value'])));
+												}
+											} else {
+												echo h($cluster_field['value']);
+											}
 										?>
 									</td>
 								</tr>
-						<?php 
+						<?php
 							endforeach;
 						?>
 					</table>
-					<?php 
-						
+					<?php
+
 					?>
 				</div>
 			</div>
@@ -71,7 +73,7 @@
 		endforeach;
 ?>
 	</div>
-<?php 
+<?php
 	endforeach;
 ?>
 <script type="text/javascript">
