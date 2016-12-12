@@ -113,7 +113,7 @@ class Tag extends AppModel {
 				$tag = array(
 						'name' => $tag['name'],
 						'colour' => $tag['colour'],
-						'exportable' => $tag['exportable'],
+						'exportable' => isset($tag['exportable']) ? $tag['exportable'] : 0,
 						'org_id' => 0
 				);
 				$this->save($tag);
@@ -151,7 +151,7 @@ class Tag extends AppModel {
 		return $colour;
 	}
 
-	public function quickAdd($name, $colour = false) {
+	public function quickAdd($name, $colour = false, $returnId = false) {
 		$this->create();
 		if ($colour === false) $colour = $this->random_color();
 		$data = array(

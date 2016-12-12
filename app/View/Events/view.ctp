@@ -108,14 +108,16 @@
 					?>
 					&nbsp;
 				</dd>
-				<?php if (isset($event['User']['email']) && ($isSiteAdmin || ($isAdmin && $me['org_id'] == $event['Event']['org_id']))): ?>
-				<dt>Email</dt>
-				<dd>
-					<?php echo h($event['User']['email']); ?>
-					&nbsp;
-				</dd>
-				<?php endif; ?>
-				<?php
+				<?php 
+					if (isset($event['User']['email']) && ($isSiteAdmin || ($isAdmin && $me['org_id'] == $event['Event']['org_id']))): 
+				?>
+						<dt>Email</dt>
+						<dd>
+							<?php echo h($event['User']['email']); ?>
+							&nbsp;
+						</dd>
+				<?php 
+					endif; 
 					if (Configure::read('MISP.tagging')): ?>
 						<dt>Tags</dt>
 						<dd class="eventTagContainer">
@@ -137,19 +139,7 @@
 				</dd>
 				<dt title="<?php echo $eventDescriptions['analysis']['desc'];?>">Analysis</dt>
 				<dd>
-					<span id="analysisField">
-					<?php 
-						echo h($analysisLevels[$event['Event']['analysis']]);
-					?>
-					</span>
-					<?php 
-						if ($isSiteAdmin || $mayModify):
-					?>
-							<span onClick="quickEditEvent('<?php echo $event['Event']['id']; ?>', 'analysis');" class = "icon-edit useCursorPointer" title = "Edit Analysis"></span>
-					<?php 
-						endif;
-					?>
-					&nbsp;
+					<?php echo h($analysisLevels[$event['Event']['analysis']]); ?>
 				</dd>
 				<dt>Distribution</dt>
 				<dd <?php if ($event['Event']['distribution'] == 0) echo 'class = "privateRedText"';?> title = "<?php echo h($distributionDescriptions[$event['Event']['distribution']]['formdesc'])?>">
@@ -235,29 +225,29 @@
 	</div>
 	<br />
 	<div class="toggleButtons">
-		<button class="btn btn-inverse toggle-left btn.active qet" id="pivots_active">
+		<button class="btn btn-inverse toggle-left btn.active qet galaxy-toggle-button" id="pivots_toggle" data-toggle-type="pivots">
 			<span class="icon-minus icon-white" style="vertical-align:top;"></span>Pivots
 		</button>
-		<button class="btn btn-inverse toggle-left qet" style="display:none;" id="pivots_inactive">
-			<span class="icon-plus icon-white" style="vertical-align:top;"></span>Pivots
+		<button class="btn btn-inverse toggle qet galaxy-toggle-button" id="galaxies_toggle" data-toggle-type="galaxies">
+			<span class="icon-minus icon-white" style="vertical-align:top;"></span>Galaxy
 		</button>
-		<button class="btn btn-inverse toggle qet" id="attributes_active">
+		<button class="btn btn-inverse toggle qet galaxy-toggle-button" id="attributes_toggle" data-toggle-type="attributes">
 			<span class="icon-minus icon-white" style="vertical-align:top;"></span>Attributes
 		</button>
-		<button class="btn btn-inverse toggle qet" id="attributes_inactive" style="display:none;">
-			<span class="icon-plus icon-white" style="vertical-align:top;"></span>Attributes
-		</button>
-		<button class="btn btn-inverse toggle-right qet" id="discussions_active">
+		<button class="btn btn-inverse toggle-right qet galaxy-toggle-button" id="discussions_toggle" data-toggle-type="discussions">
 			<span class="icon-minus icon-white" style="vertical-align:top;"></span>Discussion
-		</button>
-		<button class="btn btn-inverse toggle-right qet" id="discussions_inactive" style="display:none;">
-			<span class="icon-plus icon-white" style="vertical-align:top;"></span>Discussion
 		</button>
 	</div>
 	<br />
 	<br />
 	<div id="pivots_div">
 		<?php if (sizeOf($allPivots) > 1) echo $this->element('pivot'); ?>
+	</div>
+	<div id="galaxies_div" class="info_container" style="width:33%">
+		<h4 class="blue">Galaxies 
+			<span class="useCursorPointer blue bold" id="addGalaxy" data-event-id="<?php echo h($event['Event']['id']); ?>">+</span>
+		</h4>
+		<?php echo $this->element('galaxyQuickView', array()); ?>
 	</div>
 	<div id="attributes_div">
 		<?php echo $this->element('eventattribute'); ?>
@@ -268,50 +258,16 @@
 	</div>
 </div>
 <script type="text/javascript">
-// tooltips
 var showContext = false;
 $(document).ready(function () {
 	popoverStartup();
-	//loadEventTags("<?php echo $event['Event']['id']; ?>");
+	
 	$("th, td, dt, div, span, li").tooltip({
 		'placement': 'top',
 		'container' : 'body',
 		delay: { show: 500, hide: 100 }
-		});
-	$('#discussions_active').click(function() {
-		  $('#discussions_div').hide();
-		  $('#discussions_active').hide();
-		  $('#discussions_inactive').show();
-		});
-	$('#discussions_inactive').click(function() {
-		  $('#discussions_div').show();
-		  $('#discussions_active').show();
-		  $('#discussions_inactive').hide();
-		});
-	$('#attributes_active').click(function() {
-		  $('#attributes_div').hide();
-		  $('#attributes_active').hide();
-		  $('#attributes_inactive').show();
-		});
-	$('#attributes_inactive').click(function() {
-		  $('#attributes_div').show();
-		  $('#attributes_active').show();
-		  $('#attributes_inactive').hide();
-		});
-	$('#pivots_active').click(function() {
-		  $('#pivots_div').hide();
-		  $('#pivots_active').hide();
-		  $('#pivots_inactive').show();
-		});
-	$('#pivots_inactive').click(function() {
-		  $('#pivots_div').show();
-		  $('#pivots_active').show();
-		  $('#pivots_inactive').hide();
-		});
-
-//	$.get("/events/viewEventAttributes/<?php echo $event['Event']['id']; ?>", function(data) {
-//		$("#attributes_div").html(data);
-//	});
+	});
+	
 	$.get("/threads/view/<?php echo $event['Event']['id']; ?>/true", function(data) {
 		$("#discussions_div").html(data);
 	});

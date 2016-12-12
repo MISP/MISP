@@ -309,7 +309,7 @@ class NidsExport {
 				);
 		$sid++;
 		// also do http requests,
-		$content = 'flow:to_server,established; content: "Host|3a|"; nocase; http_header; content:"' . $attribute['value'] . '"; nocase; http_header; pcre: "/(^|[^A-Za-z0-9-])' . preg_quote($attribute['value']) . '[^A-Za-z0-9-\.]/H";';
+		$content = 'flow:to_server,established; content: "Host|3a|"; nocase; http_header; content:"' . $attribute['value'] . '"; fast_pattern; nocase; http_header; pcre: "/(^|[^A-Za-z0-9-])' . preg_quote($attribute['value']) . '[^A-Za-z0-9-\.]/H";';
 		$this->rules[] = sprintf($ruleFormat,
 			($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
 				'tcp',						// proto

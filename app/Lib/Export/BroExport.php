@@ -1,11 +1,11 @@
 <?php
 
 class BroExport {
-	
+
 	public $rules = array();
-	
-	public $header = "#fields indicator\tindicator_type\tmeta.source\tmeta.url\tmeta.do_notice\tmeta.if_in";
-	
+
+	public $header = "#fields\tindicator\tindicator_type\tmeta.source\tmeta.desc\tmeta.url\tmeta.do_notice\tmeta.if_in";
+
 	// mapping from misp attribute type to the bro intel type
 	// alternative mechanisms are:
 	// - alternate: array containing a detection regex and a replacement bro type
@@ -32,7 +32,7 @@ class BroExport {
 		'filename|sha256' => array('brotype' => 'FILE_NAME', 'composite' => 'FILE_HASH'),
 		'x509-fingerprint-sha1' => array('brotype' => 'CERT_HASH'),
 	);
-	
+
 	// export group to misp type mapping
 	// the mapped type is in an array format, first value being the misp type, second being the value field used
 	public $mispTypes = array(
@@ -81,7 +81,8 @@ class BroExport {
 
 	private $whitelist = null;
 
-	public function export($items, $orgs, $valueField, $intel, $whitelist, $instanceString) {
+	public function export($items, $orgs, $valueField, $whitelist, $instanceString) {
+		$intel = array();
 		//For bro format organisation
 		$orgsName = array();
 		// generate the rules
@@ -92,65 +93,62 @@ class BroExport {
 				$orgName = $instanceString . ' (' . $item['Event']['uuid'] . ')' . ' - ' . $orgs[$item['Event']['orgc_id']];
 			}
 			$ruleFormatReference = Configure::read('MISP.baseurl') . '/events/view/' . $item['Event']['id'];
-			$ruleFormat = "%s\t%s\t" . $orgName . "\t" . $ruleFormatReference . "\t%s\t%s";
+			$ruleFormat = "%s\t%s\t" . $orgName . "\t" . $this->replaceIllegalChars($item['Event']['info']) . ". %s" . "\t" . $ruleFormatReference . "\t%s\t%s";
 			$rule = $this->__generateRule($item['Attribute'], $ruleFormat, $valueField, $whitelist);
 			if (!empty($rule)) {
-				if (!in_array($rule, $intel)) {
-					$intel[] = $rule;
-				}
+				$intel[] = $rule;
 			}
 		}
 		return $intel;
-	}	
-	
+	}
+
 	private function __generateRule($attribute, $ruleFormat, $valueField, $whitelist) {
 		if (isset($this->mapping[$attribute['type']])) {
-			$brotype = $this->mapping[$attribute['type']]['brotype'];
-			$overruled = $this->checkWhitelist($attribute['value'], $whitelist);
-			if (isset($this->mapping[$attribute['type']]['alternate'])) {
-				if (preg_match($this->mapping[$attribute['type']]['alternate'][0], $attribute['value'])) {
-					$brotype = $this->mapping[$attribute['type']]['alternate'][1];
+			if (! $this->checkWhitelist($attribute['value'], $whitelist)) {
+				$brotype = $this->mapping[$attribute['type']]['brotype'];
+				if (isset($this->mapping[$attribute['type']]['alternate'])) {
+					if (preg_match($this->mapping[$attribute['type']]['alternate'][0], $attribute['value'])) {
+						$brotype = $this->mapping[$attribute['type']]['alternate'][1];
+					}
 				}
-			}
-			if ($valueField == 2 && isset($this->mapping[$attribute['type']]['composite'])) {
-				$brotype = $this->mapping[$attribute['type']]['composite'];
-			}
-			$attribute['value'] = $this->replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
-			if (isset($this->mapping[$attribute['type']]['replace'])) {
-				$attribute['value'] = preg_replace(
-					$this->mapping[$attribute['type']]['replace'][0],
-					$this->mapping[$attribute['type']]['replace'][1],
-					$attribute['value']
-				);
-			}
-			return sprintf($ruleFormat,
-					($overruled) ? '#OVERRULED BY WHITELIST# ' :
-					$attribute['value'],	// value - for composite values only the relevant element is taken
-					'Intel::' . $brotype,	// type
-					'T',	// meta.do_notice
-					'-'  // meta.if_in
+		if ($valueField == 2 && isset($this->mapping[$attribute['type']]['composite'])) {
+			$brotype = $this->mapping[$attribute['type']]['composite'];
+		}
+		$attribute['value'] = $this->replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
+		if (isset($this->mapping[$attribute['type']]['replace'])) {
+			$attribute['value'] = preg_replace(
+				$this->mapping[$attribute['type']]['replace'][0],
+				$this->mapping[$attribute['type']]['replace'][1],
+				$attribute['value']
 			);
-		} 
+		}
+		return sprintf($ruleFormat,
+                        $attribute['value'],    // value - for composite values only the relevant element is taken
+                        'Intel::' . $brotype,   // type
+                        $attribute['comment'],
+                        'T',    // meta.do_notice
+                        '-'  // meta.if_in
+                        );
+			}
+		}
 		return false;
 	}
-	
+
 	/**
 	 * Replaces characters that are not allowed in a signature.
-	 *   example: " is converted to |22|
 	 * @param unknown_type $value
 	 */
 	public static function replaceIllegalChars($value) {
 		$replace_pairs = array(
-				'|' => '|7c|', // Needs to stay on top !
-				'"' => '|22|',
-				';' => '|3b|',
-				':' => '|3a|',
-				'\\' => '|5c|',
-				'0x' => '|30 78|'
+				"\t" => ' ',
+				"\x0B" => ' ',
+				"\r" => ' ',
+				"\r\n" => ' ',
+				"\n" => ' '
 		);
-		return strtr($value, $replace_pairs);
+		return html_entity_decode(filter_var(strtr($value, $replace_pairs), FILTER_SANITIZE_STRING, FILTER_FLAG_STRIP_HIGH));
 	}
-	
+
 	public function checkWhitelist($value, $whitelist) {
 		foreach ($whitelist as $wlitem) {
 			if (preg_match($wlitem, $value)) {
@@ -159,11 +157,11 @@ class BroExport {
 		}
 		return false;
 	}
-	
+
 	public function getMispTypes($type) {
 		$mispTypes = array();
 		if (isset($this->mispTypes[$type])) {
-			$mispTypes = $this->mispTypes[$type];	
+			$mispTypes = $this->mispTypes[$type];
 		}
 		return $mispTypes;
 	}

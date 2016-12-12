@@ -2688,3 +2688,26 @@ function selectAllInbetween(last, current) {
 		}
 	});
 }
+
+$('.galaxy-toggle-button').click(function() {
+	var element = $(this).data('toggle-type'); 
+	if ($(this).children('span').hasClass('icon-minus')) {
+		$(this).children('span').addClass('icon-plus');
+		$(this).children('span').removeClass('icon-minus');
+		$('#' + element + '_div').hide();
+	} else {
+		$(this).children('span').removeClass('icon-plus');
+		$(this).children('span').addClass('icon-minus');
+		$('#' + element + '_div').show();
+	}
+});
+
+$('#addGalaxy').click(function() {
+	getPopup($(this).data('event-id'), 'galaxies', 'selectGalaxy');
+});
+
+function quickSubmitGalaxyForm(event_id, cluster_id) {
+	$('#GalaxyTargetId').val(cluster_id);
+	$('#GalaxySelectClusterForm').submit();
+	return false;
+}

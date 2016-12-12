@@ -4,14 +4,16 @@ class ComplexTypeTool {
 
 	private $__refangRegexTable = array(
 		'/^hxxp/i' => 'http',
+		'/^meow/i' => 'http',
+		'/^h\[tt\]p/i' => 'http',
 		'/\[\.\]/' => '.',
 		'/\[dot\]/' => '.',
-		'/\\\./' => '.',
+		'/\\\\\./' => '.',
 		'/\.+/' => '.'
 	);
-	
+
 	private $__tlds = array();
-	
+
 	public function setTLDs($tlds = array()) {
 		if (!empty($tlds)) {
 			$this->__tlds = $tlds;
@@ -27,6 +29,7 @@ class ComplexTypeTool {
 				return $this->checkComplexCnC($input);
 				break;
 			case 'freetext':
+			case 'FreeText':
 				return $this->checkFreeText($input, $settings);
 				break;
 			case 'csv':
@@ -83,20 +86,20 @@ class ComplexTypeTool {
 		foreach ($array as $k => $v) if ($k % 2 != 1) unset($array[$k]);
 		return array_values($array);
 	}
-	
-	
+
+
 	/*
 	 * parse a CSV file with the given settings
 	 * All lines starting with # are stripped
 	 * The settings can contain the following:
-	 *     delimiter: Expects a delimiter string (default is a simple comma). 
+	 *     delimiter: Expects a delimiter string (default is a simple comma).
 	 *                For example, to split the following line: "value1##comma##value2" simply pass $settings['delimiter'] = "##comma##";
 	 *     values:    Expects an array (or a comma separated string) with numeric values denoting the columns containing indicators. If this is not set then every value will be checked. (column numbers start at 1)
 	 */
 	public function checkCSV($input, $settings = array()) {
 		$delimiter = isset($settings['delimiter']) ? $settings['delimiter'] : ",";
 		$lines = explode("\n", $input);
-		$values = isset($settings['value']) ? $settings['value'] : array();
+		$values = !empty($settings['value']) ? $settings['value'] : array();
 		if (!is_array($values)) {
 			$values = explode(',', $values);
 		}
@@ -120,8 +123,9 @@ class ComplexTypeTool {
 		}
 		return $iocArray;
 	}
-	
+
 	public function checkFreeText($input, $settings = array()) {
+		$charactersToTrim = array('\'', '"', ',', '(', ')');
 		$iocArray = preg_split("/\r\n|\n|\r|\s|\s+|,|;/", $input);
 		$quotedText = explode('"', $input);
 		foreach ($quotedText as $k => $temp) {
@@ -137,8 +141,9 @@ class ComplexTypeTool {
 		if (!empty($iocArray)) {
 			foreach ($iocArray as $ioc) {
 				$ioc = trim($ioc);
-				$ioc = trim($ioc, '"');
-				$ioc = trim($ioc, ',');
+				foreach ($charactersToTrim as $c) {
+					$ioc = trim($ioc, $c);
+				}
 				$ioc = preg_replace('/\p{C}+/u', '', $ioc);
 				if (empty($ioc)) continue;
 				$typeArray = $this->__resolveType($ioc);
@@ -182,7 +187,9 @@ class ComplexTypeTool {
 		}
 		if (preg_match('#^[0-9]+:[0-9a-zA-Z\/\+]+:[0-9a-zA-Z\/\+]+$#', $input) && !preg_match('#^[0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2}$#', $input)) return array('types' => array('ssdeep'), 'to_ids' => true, 'default_type' => 'ssdeep', 'value' => $input);
 		$inputRefanged = $input;
-		foreach ($this->__refangRegexTable as $regex => $replacement) $inputRefanged = preg_replace($regex, $replacement , $inputRefanged);
+		foreach ($this->__refangRegexTable as $regex => $replacement) {
+			$inputRefanged = preg_replace($regex, $replacement , $inputRefanged);
+		}
 		$inputRefanged = rtrim($inputRefanged, ".");
 		if (strpos($input, '@') !== false) {
 			if (filter_var($input, FILTER_VALIDATE_EMAIL)) return array('types' => array('email-src', 'email-dst'), 'to_ids' => true, 'default_type' => 'email-src', 'value' => $input);
@@ -211,7 +218,7 @@ class ComplexTypeTool {
 			$domainDetection = true;
 			if (preg_match('/^([-\pL\pN]+\.)+[a-z]+(:[0-9]{2,5})?$/iu', $inputRefanged)) {
 				if (empty($this->__tlds)) {
-					$this->__generateTLDList();	
+					$this->__generateTLDList();
 				}
 				$tldExploded = explode(':', $temp[count($temp)-1]);
 				if (!in_array(strtolower($tldExploded[0]), $this->__tlds)) {
@@ -257,7 +264,7 @@ class ComplexTypeTool {
 		if ((preg_match('/^.:/', $input) || strpos($input, '.') !=0)) return true;
 		return false;
 	}
-	
+
 	private function __generateTLDList() {
 		$this->__tlds = array('biz', 'cat', 'com', 'edu', 'gov', 'int', 'mil', 'net', 'org', 'pro', 'tel', 'aero', 'arpa', 'asia', 'coop', 'info', 'jobs', 'mobi', 'name', 'museum', 'travel');
 		$char1 = $char2 = 'a';

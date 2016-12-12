@@ -488,7 +488,7 @@ class Feed extends AppModel {
 				$this->save($feed);
 			}
 		}
-		if ($feed['Feed']['fixed_event'] && $feed['Feed']['delta_merge']) {
+		if ($feed['Feed']['fixed_event']) {
 			$event = $this->Event->find('first', array('conditions' => array('Event.id' => $event['Event']['id']), 'recursive' => -1, 'contain' => array('Attribute' => array('conditions' => array('Attribute.deleted' => 0)))));
 			$to_delete = array();
 			foreach ($data as $k => $dataPoint) {
@@ -499,14 +499,19 @@ class Feed extends AppModel {
 					}
 				}
 			}
-			foreach ($event['Attribute'] as $attribute) {
-				$to_delete[] = $attribute['id'];
-			}
-			if (!empty($to_delete)) {
-				$this->Event->Attribute->deleteAll(array('Attribute.id' => $to_delete));
+			if ($feed['Feed']['delta_merge']) {
+				foreach ($event['Attribute'] as $attribute) {
+					$to_delete[] = $attribute['id'];
+				}
+				if (!empty($to_delete)) {
+					$this->Event->Attribute->deleteAll(array('Attribute.id' => $to_delete));
+				}
 			}
 		}
 		$data = array_values($data);
+		if (empty($data)) {
+			return true;
+		}
 		foreach ($data as $key => $value) {
 			$data[$key]['event_id'] = $event['Event']['id'];
 			$data[$key]['distribution'] = $feed['Feed']['distribution'];

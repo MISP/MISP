@@ -528,6 +528,7 @@ class EventsController extends AppController {
 					'ThreatLevel.name'))
 			),
 		));
+		$this->loadModel('GalaxyCluster');
 		// for REST, don't use the pagination. With this, we'll escape the limit of events shown on the index.
 		if ($this->_isRest()) {
 			$rules = array();
@@ -560,6 +561,7 @@ class EventsController extends AppController {
 				}
 				$events[$k]['EventTag'] = array_values($events[$k]['EventTag']);
 			}
+			$events = $this->GalaxyCluster->attachClustersToEventIndex($events);
 			$this->set('events', $events);
 		} else {
 			$events = $this->paginate();
@@ -569,6 +571,7 @@ class EventsController extends AppController {
 			if (Configure::read('MISP.showCorrelationsOnIndex')) $events = $this->Event->attachCorrelationCountToEvents($this->Auth->user(), $events);
 			if (Configure::read('MISP.showSightingsCountOnIndex') && Configure::read('MISP.Plugin.Sightings_enable') !== false) $events = $this->Event->attachSightingsCountToEvents($this->Auth->user(), $events);
 			if (Configure::read('MISP.showProposalsCountOnIndex')) $events = $this->Event->attachProposalsCountToEvents($this->Auth->user(), $events);
+			$events = $this->GalaxyCluster->attachClustersToEventIndex($events, true);
 			$this->set('events', $events);
 		}
 
@@ -812,6 +815,13 @@ class EventsController extends AppController {
 				$this->set($alias, $currentModel->{$variable});
 			}
 		}
+		$this->loadModel('GalaxyCluster');
+		$cluster_names = $this->GalaxyCluster->find('list', array('fields' => array('GalaxyCluster.tag_name'), 'group' => array('GalaxyCluster.tag_name', 'GalaxyCluster.id')));
+		foreach ($event['EventTag'] as $k => $eventTag) {
+			if (in_array($eventTag['Tag']['name'], $cluster_names)) {
+				unset($event['EventTag'][$k]);
+			}
+		}
 		$params = $this->Event->rearrangeEventForView($event);
 		$this->params->params['paging'] = array($this->modelClass => $params);
 		$this->set('event', $event);
@@ -1017,7 +1027,7 @@ class EventsController extends AppController {
 					$this->Session->setFlash(__('You may only upload GFI Sandbox zip files.'));
 				} else {
 					if (!isset($this->request->data['Event']['distribution'])) {
-						$this->request->data['Event']['distribution'] = Configure::read('MISP.default_event_distribution') ? Configure::read('MISP.default_event_distribution') : 0;  
+						$this->request->data['Event']['distribution'] = Configure::read('MISP.default_event_distribution') ? Configure::read('MISP.default_event_distribution') : 0;
 					}
 					if (!isset($this->request->data['Event']['analysis'])) {
 						$this->request->data['Event']['analysis'] = 0;
@@ -1119,14 +1129,14 @@ class EventsController extends AppController {
 		foreach ($distributionLevels as $key => $value) {
 			$info['distribution'][$key] = array('key' => $value, 'desc' => $this->Event->distributionDescriptions[$key]['formdesc']);
 		}
-		
+
 		// combobox for risks
 		$threat_levels = $this->Event->ThreatLevel->find('all');
 		$this->set('threatLevels', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.name'));
 		foreach ($threat_levels as $key => $threat_level) {
 			$info['threat_level'][$threat_level['ThreatLevel']['id']] = array('key' => $threat_level['ThreatLevel']['name'], 'desc' => $threat_level['ThreatLevel']['form_description']);
 		}
-		
+
 		// combobox for analysis
 		$this->set('sharingGroups', $sgs);
 		// tooltip for analysis
@@ -1137,7 +1147,7 @@ class EventsController extends AppController {
 		$this->set('analysisDescriptions', $this->Event->analysisDescriptions);
 		$this->set('analysisLevels', $this->Event->analysisLevels);
 	}
-	
+
 	public function addIOC($id) {
 		$this->Event->recursive = -1;
 		$this->Event->read(null, $id);
@@ -1362,7 +1372,7 @@ class EventsController extends AppController {
 		foreach ($distributionLevels as $key => $value) {
 			$info['distribution'][$key] = array('key' => $value, 'desc' => $this->Event->distributionDescriptions[$key]['formdesc']);
 		}
-		
+
 		// combobox for risks
 		$threat_levels = $this->Event->ThreatLevel->find('all');
 		$this->set('threatLevels', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.name'));
@@ -1854,14 +1864,14 @@ class EventsController extends AppController {
 				else ${$p} = null;
 			}
 		}
-		
+
 		$simpleFalse = array('id', 'continue', 'tags', 'from', 'to', 'last', 'type');
 		foreach ($simpleFalse as $sF) {
 			if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false')) {
 				${$sF} = false;
 			}
 		}
-		
+
 		if ($from) $from = $this->Event->dateFieldCheck($from);
 		if ($to) $to = $this->Event->dateFieldCheck($to);
 		if ($tags) $tags = str_replace(';', ':', $tags);
@@ -1932,10 +1942,23 @@ class EventsController extends AppController {
 	// $eventid can be one of 3 options: left empty it will get all the visible to_ids attributes,
 	// $ignore is a flag that allows the export tool to ignore the ids flag. 0 = only IDS signatures, 1 = everything.
 	public function csv($key, $eventid = false, $ignore = false, $tags = false, $category = false, $type = false, $includeContext = false, $from = false, $to = false, $last = false, $headerless = false) {
-		$simpleFalse = array('eventid', 'ignore', 'tags', 'category', 'type', 'includeContext', 'from', 'to', 'last', 'headerless');
-		foreach ($simpleFalse as $sF) {
-			if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false')) {
-				${$sF} = false;
+		$paramArray = array('eventid', 'ignore', 'tags', 'category', 'type', 'includeContext', 'from', 'to', 'last', 'headerless');
+		if ($this->request->is('post')) {
+			if (empty($this->request->data)) {
+				throw new BadRequestException('Either specify the search terms in the url, or POST a json or xml with the filter parameters.');
+			} else {
+				$data = $this->request->data;
+			}
+			if (!isset($data['request'])) {
+				$data = array('request' => $data);
+			}
+			foreach ($paramArray as $p) {
+				if (isset($data['request'][$p])) ${$p} = $data['request'][$p];
+			}
+		}
+		foreach ($paramArray as $p) {
+			if (!is_array(${$p}) && (${$p} === 'null' || ${$p} == '0' || ${$p} === false || strtolower(${$p}) === 'false')) {
+				${$p} = false;
 			}
 		}
 		$exportType = $eventid;
@@ -2412,7 +2435,7 @@ class EventsController extends AppController {
 	// the last 4 fields accept the following operators:
 	// && - you can use && between two search values to put a logical OR between them. for value, 1.1.1.1&&2.2.2.2 would find attributes with the value being either of the two.
 	// ! - you can negate a search term. For example: google.com&&!mail would search for all attributes with value google.com but not ones that include mail. www.google.com would get returned, mail.google.com wouldn't.
-	public function restSearch($key = 'download', $value = false, $type = false, $category = false, $org = false, $tags = false, $searchall = false, $from = false, $to = false, $last = false, $eventid = false, $withAttachments = false, $metadata = false, $uuid = false) {
+	public function restSearch($key = 'download', $value = false, $type = false, $category = false, $org = false, $tags = false, $searchall = false, $from = false, $to = false, $last = false, $eventid = false, $withAttachments = false, $metadata = false, $uuid = false, $publish_timestamp = false, $timestamp = false, $published = false) {
 		if ($key != 'download') {
 			if (!$this->checkAuthUser($key)) {
 				throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
@@ -2436,13 +2459,19 @@ class EventsController extends AppController {
 			} else {
 				throw new BadRequestException('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct headers based on content type.');
 			}
-			$paramArray = array('value', 'type', 'category', 'org', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments', 'metadata', 'uuid');
+			if (!isset($data['request'])) {
+				$data['request'] = $data;
+			}
+			$paramArray = array('value', 'type', 'category', 'org', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments', 'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp');
 			foreach ($paramArray as $p) {
-				if (isset($data['request'][$p])) ${$p} = $data['request'][$p];
-				else ${$p} = null;
+				if (isset($data['request'][$p])) {
+					${$p} = $data['request'][$p];
+				} else {
+					${$p} = null;
+				}
 			}
 		}
-		$simpleFalse = array('value' , 'type', 'category', 'org', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid');
+		$simpleFalse = array('value' , 'type', 'category', 'org', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp');
 		foreach ($simpleFalse as $sF) {
 			if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false')) {
 				${$sF} = false;
@@ -2513,7 +2542,7 @@ class EventsController extends AppController {
 									}
 								} else if ($parameters[$k] === 'eventid') {
 									$subcondition['OR'][] = array('Attribute.event_id' => $v);
-								} else if ($parameters[$k] === 'uuid') { 
+								} else if ($parameters[$k] === 'uuid') {
 									$subcondition['OR'][] = array('Attribute.uuid' => $v);
 									$subcondition['OR'][] = array('Event.uuid' => $v);
 								}else {
@@ -2545,7 +2574,24 @@ class EventsController extends AppController {
 
 			if ($from) $conditions['AND'][] = array('Event.date >=' => $from);
 			if ($to) $conditions['AND'][] = array('Event.date <=' => $to);
+			if ($publish_timestamp) {
+				if (is_array($publish_timestamp)) {
+					$conditions['AND'][] = array('Event.publish_timestamp >=' => $publish_timestamp[0]);
+					$conditions['AND'][] = array('Event.publish_timestamp <=' => $publish_timestamp[1]);
+				} else {
+					$conditions['AND'][] = array('Event.publish_timestamp >=' => $publish_timestamp);
+				}
+			}
+			if ($timestamp) {
+				if (is_array($timestamp)) {
+					$conditions['AND'][] = array('Event.timestamp >=' => $timestamp[0]);
+					$conditions['AND'][] = array('Event.timestamp <=' => $timestamp[1]);
+				} else {
+					$conditions['AND'][] = array('Event.timestamp >=' => $timestamp);
+				}
+			}
 			if ($last) $conditions['AND'][] = array('Event.publish_timestamp >=' => $last);
+			if ($published) $conditions['AND'][] = array('Event.published' => $published);
 			$params = array(
 					'conditions' => $conditions,
 					'fields' => array('DISTINCT(Attribute.event_id)'),
@@ -2869,7 +2915,7 @@ class EventsController extends AppController {
 		}
 	}
 
-	public function removeTag($id = false, $tag_id = false) {
+	public function removeTag($id = false, $tag_id = false, $galaxy = false) {
 		if (!$this->request->is('post')) {
 			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that. Only POST requests are accepted.')), 'status'=>200));
 		}
@@ -2884,10 +2930,10 @@ class EventsController extends AppController {
 		$this->request->data = $RearrangeTool->rearrangeArray($this->request->data, $rearrangeRules);
 		if ($id === false) $id = $this->request->data['event'];
 		if ($tag_id === false) $tag_id = $this->request->data['tag'];
-		if (empty($tag_id)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')),'status'=>200));
+		if (empty($tag_id)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid ' . ($galaxy ? 'Galaxy' : 'Tag') . '.')),'status'=>200));
 		if (!is_numeric($tag_id)) {
 			$tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => array('LOWER(Tag.name) LIKE' => strtolower(trim($tag_id)))));
-			if (empty($tag)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200));
+			if (empty($tag)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid ' . ($galaxy ? 'Galaxy' : 'Tag') . '.')), 'status'=>200));
 			$tag_id = $tag['Tag']['id'];
 		}
 		if (!is_numeric($id)) $id = $this->request->data['Event']['id'];
@@ -2905,7 +2951,7 @@ class EventsController extends AppController {
 			'recursive' => -1,
 		));
 		$this->autoRender = false;
-		if (empty($eventTag)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid event - tag combination.')),'status'=>200));
+		if (empty($eventTag)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid event - ' . ($galaxy ? 'galaxy' : 'tag') . ' combination.')),'status'=>200));
 		$tag = $this->Event->EventTag->Tag->find('first', array(
 			'conditions' => array('Tag.id' => $tag_id),
 			'recursive' => -1,
@@ -2914,9 +2960,9 @@ class EventsController extends AppController {
 		if ($this->Event->EventTag->delete($eventTag['EventTag']['id'])) {
 			$log = ClassRegistry::init('Log');
 			$log->createLogEntry($this->Auth->user(), 'tag', 'Event', $id, 'Removed tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" from event (' . $id . ')', 'Event (' . $id . ') untagged of Tag (' . $tag_id . ')');
-			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Tag removed.')), 'status'=>200));
+			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => ($galaxy ? 'Galaxy' : 'Tag') . ' removed.')), 'status'=>200));
 		} else {
-			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Tag could not be removed.')),'status'=>200));
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => ($galaxy ? 'Galaxy' : 'Tag') . ' could not be removed.')),'status'=>200));
 		}
 	}
 
