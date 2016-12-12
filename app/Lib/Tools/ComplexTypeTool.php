@@ -4,6 +4,8 @@ class ComplexTypeTool {
 
 	private $__refangRegexTable = array(
 		'/^hxxp/i' => 'http',
+		'/^meow/i' => 'http',
+		'/^h\[tt\]p/i' => 'http',
 		'/\[\.\]/' => '.',
 		'/\[dot\]/' => '.',
 		'/\\\\\./' => '.',
