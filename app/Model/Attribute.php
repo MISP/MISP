@@ -756,7 +756,7 @@ class Attribute extends AppModel {
 				$returnValue = true;
 				break;
 			case 'link':
-				if (preg_match('#^(http|ftp)(s)?\:\/\/((([a-z|0-9|\-]{1,25})(\.)?){2,7})($|/.*$)#i', $value) && !preg_match("#\n#", $value)) {
+				if (filter_var($value, FILTER_VALIDATE_URL, FILTER_FLAG_SCHEME_REQUIRED) && !preg_match("#\n#", $value)) {
 					$returnValue = true;
 				}
 				break;
