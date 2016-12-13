@@ -2620,7 +2620,11 @@ class EventsController extends AppController {
 					}
 				}
 				$final .= '</response>' . PHP_EOL;
-				$final_filename="misp.search.events.results.xml";
+				if (isset($eventid) && $eventid) {
+					$final_filename="misp.event." . $eventid . "." . $result[0]['Event']['uuid'] . ".xml";
+				} else {
+					$final_filename="misp.search.events.results.xml";
+				}
 				$this->response->body($final);
 				$this->response->type('xml');
 				$this->response->download($final_filename);
@@ -2634,7 +2638,11 @@ class EventsController extends AppController {
 					if ($k < count($eventIds) -1 ) $final .= ',';
 				}
 				$final .= ']}';
-				$final_filename="misp.search.events.results.json";
+				if (isset($eventid) && $eventid) {
+					$final_filename="misp.event." . $eventid . "." . $result[0]['Event']['uuid'] . ".json";
+				} else {
+					$final_filename="misp.search.events.results.json";
+				}
 				$this->response->body($final);
 				$this->response->type('json');
 				$this->response->download($final_filename);
