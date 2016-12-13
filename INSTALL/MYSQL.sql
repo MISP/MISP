@@ -86,6 +86,7 @@ CREATE TABLE IF NOT EXISTS `correlations` (
   `date` date NOT NULL,
   `info` text COLLATE utf8_bin NOT NULL,
   PRIMARY KEY (`id`),
+  FULLTEXT INDEX `value` (`value`),
   INDEX `event_id` (`event_id`),
   INDEX `1_event_id` (`1_event_id`),
   INDEX `attribute_id` (`attribute_id`),
@@ -121,7 +122,7 @@ CREATE TABLE IF NOT EXISTS `events` (
   `publish_timestamp` int(11) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   UNIQUE INDEX `uuid` (`uuid`),
-  INDEX `info` (`info`(255)),
+  FULLTEXT INDEX `info` (`info`(255)),
   INDEX `sharing_group_id` (`sharing_group_id`),
   INDEX `org_id` (`org_id`),
   INDEX `orgc_id` (`orgc_id`)
@@ -356,7 +357,7 @@ CREATE TABLE `organisations` (
   `landingpage` text CHARACTER SET utf8 COLLATE utf8_unicode_ci,
   PRIMARY KEY (`id`),
   INDEX `uuid` (`uuid`),
-  INDEX `name` (`name`)
+  FULLTEXT INDEX `name` (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- --------------------------------------------------------
@@ -605,6 +606,7 @@ CREATE TABLE IF NOT EXISTS `tags` (
   `exportable` tinyint(1) NOT NULL,
   `org_id` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
+  FULLTEXT INDEX `name` (`name`),
   INDEX `org_id` (`org_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
