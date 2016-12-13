@@ -31,7 +31,7 @@
 				}
 			}
 			foreach ($orgSightings as $org => $data) {
-				$sightingPopover .= '<span class=\'bold\'>' . h($org) . '</span>: <span class=\'green bold\'>' . h($data['count']) . ' (' . date('Y-m-d h:i:s', $data['date']) . ')' . '</span><br />';
+				$sightingPopover .= '<span class=\'bold\'>' . h($org) . '</span>: <span class=\'green bold\'>' . h($data['count']) . ' (' . date('Y-m-d H:i:s', $data['date']) . ')' . '</span><br />';
 			}
 		}
 	}

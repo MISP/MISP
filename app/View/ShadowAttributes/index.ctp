@@ -93,7 +93,7 @@
 				<?php echo h($event['ShadowAttribute']['type']);?>
 			</td>
 			<td class="short" onclick="document.location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
-				<?php echo date('Y-m-d h:i:s', $event['ShadowAttribute']['timestamp']);?>
+				<?php echo date('Y-m-d H:i:s', $event['ShadowAttribute']['timestamp']);?>
 			</td>
 		</tr>
 		<?php endforeach; ?>
