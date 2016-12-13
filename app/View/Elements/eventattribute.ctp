@@ -55,7 +55,7 @@
 				foreach ($attributeSightingsPopover as $aid =>  &$attribute) {
 					$attributeSightingsPopoverText[$aid] = '';
 					foreach ($attribute as $org => $data) {
-						$attributeSightingsPopoverText[$aid] .= '<span class=\'bold\'>' . h($org) . '</span>: <span class=\'green bold\'>' . h($data['count']) . ' (' . date('Y-m-d h:i:s', $data['date']) . ')</span><br />';
+						$attributeSightingsPopoverText[$aid] .= '<span class=\'bold\'>' . h($org) . '</span>: <span class=\'green bold\'>' . h($data['count']) . ' (' . date('Y-m-d H:i:s', $data['date']) . ')</span><br />';
 					}
 				}
 			}
