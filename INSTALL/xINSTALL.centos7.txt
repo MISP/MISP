@@ -190,7 +190,8 @@ systemctl start  httpd.service
 firewall-cmd --zone=public --add-port=80/tcp --permanent
 firewall-cmd --reload
 
-# We seriously recommend using only SSL !
+# We seriously recommend using only HTTPS / SSL !
+# Add SSL support by running: yum install mod_ssl
 # Check out the apache.misp.ssl file for an example
 
 
@@ -205,6 +206,7 @@ cp -a config.default.php config.php
 
 # Configure the fields in the newly created files:
 # config.php   : baseurl (example: 'baseurl' => 'http://misp',) - don't use "localhost" it causes issues when browsing externally
+# config.php   : Uncomment and set the timezone: `// date_default_timezone_set('UTC');`
 # database.php : login, port, password, database
 
 # Important! Change the salt key in /var/www/MISP/app/Config/config.php
