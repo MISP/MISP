@@ -108,16 +108,16 @@
 					?>
 					&nbsp;
 				</dd>
-				<?php 
-					if (isset($event['User']['email']) && ($isSiteAdmin || ($isAdmin && $me['org_id'] == $event['Event']['org_id']))): 
+				<?php
+					if (isset($event['User']['email']) && ($isSiteAdmin || ($isAdmin && $me['org_id'] == $event['Event']['org_id']))):
 				?>
 						<dt>Email</dt>
 						<dd>
 							<?php echo h($event['User']['email']); ?>
 							&nbsp;
 						</dd>
-				<?php 
-					endif; 
+				<?php
+					endif;
 					if (Configure::read('MISP.tagging')): ?>
 						<dt>Tags</dt>
 						<dd class="eventTagContainer">
@@ -244,10 +244,8 @@
 		<?php if (sizeOf($allPivots) > 1) echo $this->element('pivot'); ?>
 	</div>
 	<div id="galaxies_div" class="info_container" style="width:33%">
-		<h4 class="blue">Galaxies 
-			<span class="useCursorPointer blue bold" id="addGalaxy" data-event-id="<?php echo h($event['Event']['id']); ?>">+</span>
-		</h4>
-		<?php echo $this->element('galaxyQuickView', array()); ?>
+		<h4 class="blue">Galaxies</h4>
+		<?php echo $this->element('galaxyQuickView', array('mayModify' => $mayModify, 'isAclTagger' => $isAclTagger)); ?>
 	</div>
 	<div id="attributes_div">
 		<?php echo $this->element('eventattribute'); ?>
@@ -261,13 +259,13 @@
 var showContext = false;
 $(document).ready(function () {
 	popoverStartup();
-	
+
 	$("th, td, dt, div, span, li").tooltip({
 		'placement': 'top',
 		'container' : 'body',
 		delay: { show: 500, hide: 100 }
 	});
-	
+
 	$.get("/threads/view/<?php echo $event['Event']['id']; ?>/true", function(data) {
 		$("#discussions_div").html(data);
 	});

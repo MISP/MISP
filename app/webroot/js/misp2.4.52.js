@@ -2672,7 +2672,7 @@ function quickEditEvent(id, field) {
 		type:"get",
 		cache: false,
 		url: "/events/quickEdit/" + id + "/" + field,
-	});	
+	});
 }
 
 function selectAllInbetween(last, current) {
@@ -2690,7 +2690,7 @@ function selectAllInbetween(last, current) {
 }
 
 $('.galaxy-toggle-button').click(function() {
-	var element = $(this).data('toggle-type'); 
+	var element = $(this).data('toggle-type');
 	if ($(this).children('span').hasClass('icon-minus')) {
 		$(this).children('span').addClass('icon-plus');
 		$(this).children('span').removeClass('icon-minus');

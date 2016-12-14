@@ -92,7 +92,7 @@
 			<a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] ?>"><?php echo $event['Event']['id'];?></a>
 		</td>
 		<td class="shortish">
-			<?php 
+			<?php
 				$clusterList = array();
 				$galaxyList = array();
 				$galaxy_id = 0;
@@ -102,7 +102,7 @@
 						if (!isset($galaxyList[$cluster['Galaxy']['id']])) {
 							$galaxyList[$cluster['Galaxy']['id']] = $cluster['Galaxy']['name'];
 						}
-						$clusterList[$cluster['Galaxy']['id']][] = array('value' => $cluster['value'], 'id' => $cluster['id']);
+						$clusterList[$cluster['Galaxy']['id']][] = array('value' => $cluster['value'], 'id' => $cluster['id'], 'tag_id' => $cluster['tag_id']);
 					endforeach;
 				endif;
 				foreach ($clusterList as $galaxy_id => $clusters):
@@ -113,8 +113,9 @@
 					?>
 						<br />
 						<span class="blue">
-							&nbsp;&nbsp;&nbsp;&nbsp;
-							<a href="<?php echo $baseurl; ?>/galaxy_clusters/view/<?php echo h($cluster['id']); ?>"><?php echo h($cluster['value']); ?></a>
+							&nbsp;
+							<a href="<?php echo $baseurl; ?>/events/index/searchtag:<?php echo h($cluster['tag_id']); ?>"><?php echo h($cluster['value']); ?></a>
+							<a href="<?php echo $baseurl; ?>/galaxy_clusters/view/<?php echo h($cluster['id']); ?>" class="icon-search"></a>
 						</span>
 					<?php
 					endforeach;
@@ -189,7 +190,7 @@
 				if (0 == $event['Event']['published'] && ($isSiteAdmin || ($isAclPublish && $event['Event']['orgc_id'] == $me['org_id'])))
 					echo $this->Form->postLink('', array('action' => 'alert', $event['Event']['id']), array('class' => 'icon-download-alt', 'title' => 'Publish Event'), 'Are you sure this event is complete and everyone should be informed?');
 				else if (0 == $event['Event']['published']) echo 'Not published';
-	
+
 				if ($isSiteAdmin || ($isAclModify && $event['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $event['Event']['orgc_id'] == $me['org_id'])):
 			?>
 					<a href='<?php echo $baseurl."/events/edit/".$event['Event']['id'];?>' class = "icon-edit" title = "Edit"></a>
