@@ -74,7 +74,7 @@ GnuPGEmail=$(sed -n -e '/GnuPG/,$p' $MISPPath/app/Config/config.php|grep -o -P "
 GnuPGHomeDir=$(grep -o -P "(?<='homedir' => ').*(?=')" $MISPPath/app/Config/config.php)
 GnuPGPass=$(grep -o -P "(?<='password' => ').*(?=')" $MISPPath/app/Config/config.php)
 # Create backup files
-TmpDir="$(mktemp -d)"
+TmpDir="$(mktemp --tmpdir=$OutputDirName -d)"
 cp $GnuPGHomeDir/* $TmpDir/
 echo "copy of org images and other custom images"
 cp -r $MISPPath/app/webroot/img/orgs $TmpDir/
