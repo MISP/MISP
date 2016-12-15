@@ -159,7 +159,56 @@ class Attribute extends AppModel {
 			// 'mailslot' => array('desc' => 'MailSlot interprocess communication'), // currently not mapped!
 			// 'pipe' => array('desc' => 'Pipeline (for named pipes use the attribute type "named pipe")'), // currently not mapped!
 			// 'ssl-cert-attributes' => array('desc' => 'SSL certificate attributes'), // currently not mapped!
-			'x509-fingerprint-sha1' => array('desc' => 'X509 fingerprint in SHA-1 format', 'default_category' => 'Network activity', 'to_ids' => 1)
+			'x509-fingerprint-sha1' => array('desc' => 'X509 fingerprint in SHA-1 format', 'default_category' => 'Network activity', 'to_ids' => 1),
+			'dns-soa-email' => array('desc' => 'RFC1035 mandates that DNS zones should have a SOA (Statement Of Authority) record that contains an email address where a PoC for the domain could be contacted. This can sometimes be used for attribution/linkage between different domains even if protected by whois privacy', 'default_category' => 'Attribution', 'to_ids' => 0),
+			'size-in-bytes' => array('desc' => 'Size expressed in bytes', 'default_category' => 'Other', 'to_ids' => 0),
+			'counter' => array('desc' => 'An integer counter, generally to be used in objects', 'default_category' => 'Other', 'to_ids' => 0),
+			'datetime' => array('desc' => 'Datetime in the ISO 8601 format', 'default_category' => 'Other', 'to_ids' => 0),
+			'cpe' => array('desc' => 'Common platform enumeration', 'default_category' => 'Other', 'to_ids' => 0),
+			'port' => array('desc' => 'Port number', 'default_category' => 'Network activity', 'to_ids' => 0),
+			'ip-dst|port' => array('desc' => 'IP destination and port number seperated by a |', 'default_category' => 'Network activity', 'to_ids' => 1),
+			'ip-src|port' => array('desc' => 'IP source and port number seperated by a |', 'default_category' => 'Network activity', 'to_ids' => 1),
+			'hostname|port' => array('desc' => 'Hostname and port number seperated by a |', 'default_category' => 'Network activity', 'to_ids' => 1),
+			// verify IDS flag defaults for these
+			'email-dst-display-name' => array('desc' => 'Email destination display name', 'default_category' => 'Payload delivery', 'to_ids' => 0),
+			'email-src-display-name' => array('desc' => 'Email source display name', 'default_category' => 'Payload delivery', 'to_ids' => 0),
+			'email-header' => array('desc' => 'Email header', 'default_category' => 'Payload delivery', 'to_ids' => 0),
+			'email-reply-to' => array('desc' => 'Email reply to header', 'default_category' => 'Payload delivery', 'to_ids' => 0),
+			'email-x-mailer' => array('desc' => 'Email x-mailer header', 'default_category' => 'Payload delivery', 'to_ids' => 0),
+			'email-mime-boundary' => array('desc' => 'The email mime boundary separating parts in a multipart email', 'default_category' => 'Payload delivery', 'to_ids' => 0),
+			'email-thread-index' => array('desc' => 'The email thread index header', 'default_category' => 'Payload delivery', 'to_ids' => 0),
+			'email-message-id' => array('desc' => '', 'default_category' => '', 'to_ids' => 0),
+			'github-username' => array('desc' => 'A github user name', 'default_category' => 'Social network', 'to_ids' => 0),
+			'github-repository' => array('desc' => 'A github repository', 'default_category' => 'Social network', 'to_ids' => 0),
+			'github-organisation' => array('desc' => 'A github organisation', 'default_category' => 'Social network', 'to_ids' => 0),
+			'jabber-id' => array('desc' => 'Jabber ID', 'default_category' => 'Social network', 'to_ids' => 0),
+			'first-name' => array('desc' => 'First name of a natural person', 'default_category' => 'Person', 'to_ids' => 0),
+			'middle-name' => array('desc' => 'Middle name of a natural person', 'default_category' => 'Person', 'to_ids' => 0),
+			'last-name' => array('desc' => 'Last name of a natural person', 'default_category' => 'Person', 'to_ids' => 0),
+			'date-of-birth' => array('desc' => 'Date of birth of a natural person (in YYYY-MM-DD format)', 'default_category' => 'Person', 'to_ids' => 0),
+			'place-of-birth' => array('desc' => 'Place of birth of a natural person', 'default_category' => 'Person', 'to_ids' => 0),
+			'gender' => array('desc' => 'The gender of a natural person (Male, Female, Other, Prefer not to say)', 'default_category' => '', 'to_ids' => 0),
+			'passport-number' => array('desc' => 'The passport number of a natural person', 'default_category' => 'Person', 'to_ids' => 0),
+			'passport-country' => array('desc' => 'The country in which the passport was issued', 'default_category' => 'Person', 'to_ids' => 0),
+			'passport-expiration' => array('desc' => 'The expiration date of a passport', 'default_category' => 'Person', 'to_ids' => 0),
+			'redress-number' => array('desc' => 'The Redress Control Number is the record identifier for people who apply for redress through the DHS Travel Redress Inquiry Program (DHS TRIP). DHS TRIP is for travelers who have been repeatedly identified for additional screening and who want to file an inquiry to have erroneous information corrected in DHS systems', 'default_category' => 'Person', 'to_ids' => 0),
+			'nationality' => array('desc' => 'The nationality of a natural person', 'default_category' => 'Person', 'to_ids' => 0),
+			'visa-number' => array('desc' => 'Visa number', 'default_category' => 'Person', 'to_ids' => 0),
+			'issue-date-of-the-visa' => array('desc' => 'The date on which the visa was issued', 'default_category' => 'Person', 'to_ids' => 0),
+			'primary-residence' => array('desc' => 'The primary residence of a natural person', 'default_category' => 'Person', 'to_ids' => 0),
+			'country-of-residence' => array('desc' => 'The country of residence of a natural person', 'default_category' => 'Person', 'to_ids' => 0),
+			'special-service-request' => array('desc' => 'A Special Service Request is a function to an airline to provide a particular facility for A Passenger or passengers. ', 'default_category' => 'Person', 'to_ids' => 0),
+			'frequent-flyer-number' => array('desc' => 'The frequent flyer number of a passenger', 'default_category' => 'Person', 'to_ids' => 0),
+			// Do we really need remarks? Or just use comment/text for this?
+			//'remarks' => array('desc' => '', 'default_category' => 'Person', 'to_ids' => 0),
+			'travel-details' => array('desc' => 'Travel details', 'default_category' => 'Person', 'to_ids' => 0),
+			'payment-details' => array('desc' => 'Payment details', 'default_category' => 'Person', 'to_ids' => 0),
+			'place-port-of-original-embarkation' => array('desc' => 'The orignal port of embarkation', 'default_category' => 'Person', 'to_ids' => 0),
+			'place-port-of-clearance' => array('desc' => 'The port of clearance', 'default_category' => 'Person', 'to_ids' => 0),
+			'place-port-of-onward-foreign-destination' => array('desc' => 'A Port where the passenger is transiting to', 'default_category' => 'Person', 'to_ids' => 0),
+			'passenger-name-record-locator-number' => array('desc' => 'The Passenger Name Record Locator is a key under which the reservation for a trip is stored in the system. The PNR contains, among other data, the name, flight segments and address of the passenger. It is defined by a combination of five or six letters and numbers.', 'default_category' => 'Person', 'to_ids' => 0),
+			// Not convinced about this.
+			//'url-regex' => array('desc' => '', 'default_category' => 'Person', 'to_ids' => 0),
 	);
 
 	// definitions of categories
@@ -181,7 +230,7 @@ class Attribute extends AppModel {
 			'Payload delivery' => array(
 					'desc' => 'Information about how the malware is delivered',
 					'formdesc' => 'Information about the way the malware payload is initially delivered, for example information about the email or web-site, vulnerability used, originating IP etc. Malware sample itself should be attached here.',
-					'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'authentihash', 'pehash', 'tlsh', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|pehash', 'ip-src', 'ip-dst', 'hostname', 'domain', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'url', 'user-agent', 'AS', 'pattern-in-file', 'pattern-in-traffic', 'yara', 'attachment', 'malware-sample', 'link', 'malware-type', 'comment', 'text', 'vulnerability', 'x509-fingerprint-sha1', 'other')
+					'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'authentihash', 'pehash', 'tlsh', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|pehash', 'ip-src', 'ip-dst', 'hostname', 'domain', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'url', 'user-agent', 'AS', 'pattern-in-file', 'pattern-in-traffic', 'yara', 'attachment', 'malware-sample', 'link', 'malware-type', 'comment', 'text', 'vulnerability', 'x509-fingerprint-sha1', 'other', 'ip-dst|port', 'ip-src|port', 'hostname|port', 'email-dst-display-name', 'email-src-display-name', 'email-header', 'email-reply-to', 'email-x-mailer', 'email-mime-boundary', 'email-thread-index', 'email-message-id')
 					),
 			'Artifacts dropped' => array(
 					'desc' => 'Any artifact (files, registry keys etc.) dropped by the malware or other modifications to the system',
@@ -220,9 +269,22 @@ class Attribute extends AppModel {
 					'formdesc' => 'Financial Fraud indicators, for example: IBAN Numbers, BIC codes, Credit card numbers, etc.',
 					'types' => array('btc', 'iban', 'bic', 'bank-account-nr', 'aba-rtn', 'bin', 'cc-number', 'prtn', 'comment', 'text', 'other'),
 					),
+			'Suport Tool' => array(
+					'desc' => 'Tools supporting analysis or detection of the event',
+					'types' => array('link', 'text', 'attachment', 'comment', 'text', 'other')
+			),
+			'Social network' => array(
+					'desc' => 'Social networks and platforms',
+					// email-src and email-dst or should we go with a new email type that is neither / both?
+					'types' => array('github-username', 'github-repository', 'github-organisation', 'jabber-id', 'email-src', 'email-dst', 'comment', 'text', 'other')
+			),
+			'Person' => array(
+					'desc' => 'A human being - natural person',
+					'types' => array('first-name', 'middle-name', 'last-name', 'date-of-birth', 'place-of-birth', 'gender', 'passport-number', 'passport-country', 'passport-expiration', 'redress-number', 'nationality', 'visa-number', 'issue-date-of-the-visa', 'primary-residence', 'country-of-residence', 'special-service-request', 'frequent-flyer-number', 'travel-details', 'payment-details', 'place-port-of-original-embarkation', 'place-port-of-clearance', 'place-port-of-onward-foreign-destination', 'passenger-name-record-locator-number', 'comment', 'text', 'other')
+			),
 			'Other' => array(
-					'desc' => 'Attributes that are not part of any other category',
-					'types' => array('comment', 'text', 'other')
+					'desc' => 'Attributes that are not part of any other category or are meant to be used as a component in MISP objects in the future',
+					'types' => array('size-in-bytes', 'counter', 'datetime', 'cpe', 'port', 'comment', 'text', 'other')
 					)
 	);
 
@@ -693,12 +755,36 @@ class Attribute extends AppModel {
 					$returnValue = 'IP address has an invalid format. Please double check the value or select type "other".';
 				}
 				break;
+			case 'port':
+				if (!is_numeric($value) || $value > 1 || $value < 65536) {
+					$returnValue = 'Port numbers have to be positive integers under 65536.';
+				} else {
+					$returnValue = true;
+				}
+				break;
+			case 'ip-dst|port':
+			case 'ip-src|port':
+				$parts = explode('|', $value);
+				if (filter_var($parts[0], FILTER_VALIDATE_IP)) {
+					if (!is_numeric($parts[1]) || $parts[1] > 1 || $parts[1] < 65536) {
+						$returnValue = true;
+					}
+				}
+				break;
 			case 'hostname':
 			case 'domain':
 				if (preg_match("#^[A-Z0-9.\-_]+\.[A-Z]{2,}$#i", $value)) {
 					$returnValue = true;
 				} else {
 					$returnValue = 'Domain name has an invalid format. Please double check the value or select type "other".';
+				}
+				break;
+			case 'hostname|port':
+				$parts = explode('|', $value);
+				if (preg_match("#^[A-Z0-9.\-_]+\.[A-Z]{2,}$#i", $parts[0])) {
+					if (!is_numeric($parts[1]) || $parts[1] > 1 || $parts[1] < 65536) {
+						$returnValue = true;
+					}
 				}
 				break;
 			case 'domain|ip':
@@ -717,6 +803,8 @@ class Attribute extends AppModel {
 			case 'email-dst':
 			case 'target-email':
 			case 'whois-registrant-email':
+			case 'dns-soa-email':
+			case 'jabber-id':
 				// we don't use the native function to prevent issues with partial email addresses
 				if (preg_match("#^[A-Z0-9._&%+-=~]*@[A-Z0-9.\-_]+\.[A-Z]{2,}$#i", $value)) {
 					$returnValue = true;
@@ -756,6 +844,7 @@ class Attribute extends AppModel {
 				$returnValue = true;
 				break;
 			case 'link':
+				// Moved to a native function whilst still enforcing the scheme as a requirement
 				if (filter_var($value, FILTER_VALIDATE_URL, FILTER_FLAG_SCHEME_REQUIRED) && !preg_match("#\n#", $value)) {
 					$returnValue = true;
 				}
@@ -776,6 +865,7 @@ class Attribute extends AppModel {
 			case 'email-subject':
 			case 'email-attachment':
 			case 'malware-type':
+			// TODO: review url/uri validation
 			case 'url':
 			case 'uri':
 			case 'user-agent':
@@ -787,8 +877,59 @@ class Attribute extends AppModel {
 			case 'whois-registrant-name':
 			case 'whois-registrar':
 			case 'whois-creation-date':
+			case 'first-name':
+			case 'middle-name':
+			case 'last-name':
+			case 'date-of-birth':
+			case 'place-of-birth':
+			case 'gender':
+			case 'passport-number':
+			case 'passport-country':
+			case 'passport-expiration':
+			case 'redress-number':
+			case 'nationality':
+			case 'visa-number':
+			case 'issue-date-of-the-visa':
+			case 'primary-residence':
+			case 'country-of-residence':
+			case 'special-service-request':
+			case 'frequent-flyer-number':
+			case 'travel-details':
+			case 'payment-details':
+			case 'place-port-of-original-embarkation':
+			case 'place-port-of-clearance':
+			case 'place-port-of-onward-foreign-destination':
+			case 'passenger-name-record-locator-number':
+			case 'email-dst-display-name':
+			case 'email-src-display-name':
+			case 'email-header':
+			case 'email-reply-to':
+			case 'email-x-mailer':
+			case 'email-mime-boundary':
+			case 'email-thread-index':
+			case 'email-message-id':
+			case 'github-username':
+			case 'github-repository':
+			case 'github-organisation':
+			case 'cpe':
 				// no newline
 				if (!preg_match("#\n#", $value)) {
+					$returnValue = true;
+				}
+				break;
+			case 'datetime':
+				try {
+					new DateTime($value);
+					$returnValue = true;
+				} catch (Exception $e) {
+					$returnValue = 'Datetime has to be in the ISO 8601 format.';
+				}
+				break;
+			case 'size-in-bytes':
+			case 'counter':
+				if (!is_numeric($value) || $value < 0) {
+					$returnValue = 'The value has to be a number greater or equal 0.';
+				} else {
 					$returnValue = true;
 				}
 				break;
@@ -816,6 +957,9 @@ class Attribute extends AppModel {
 					$returnValue = true;
 				}
 				break;
+			default:
+				return 5;
+			break;
 		}
 		return $returnValue;
 	}
