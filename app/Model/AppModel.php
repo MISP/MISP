@@ -36,7 +36,12 @@ class AppModel extends Model {
 	// major -> minor -> hotfix -> requires_logout
 	public $db_changes = array(
 		2 => array(
-			4 => array(18 => false, 19 => false, 20 => false, 25 => false, 27 => false, 32 => false, 33 => true, 38 => true, 39 => true, 40 => false, 42 => false, 44 => false, 45 => false, 49 => true, 50 => false, 51 => false, 52 => false, 55 => true, 56 => true)
+			4 => array(
+				18 => false, 19 => false, 20 => false, 25 => false, 27 => false,
+				32 => false, 33 => true, 38 => true, 39 => true, 40 => false,
+				42 => false, 44 => false, 45 => false, 49 => true, 50 => false,
+				51 => false, 52 => false, 55 => true, 56 => true, 57 => true
+			)
 		)
 	);
 
@@ -446,7 +451,7 @@ class AppModel extends Model {
 				$sqlArray[] = "ALTER TABLE feeds ADD settings text NOT NULL DEFAULT '';";
 				break;
 			case '2.4.56':
-				$sqlArray[] = 
+				$sqlArray[] =
 					"CREATE TABLE IF NOT EXISTS galaxies (
 					`id` int(11) NOT NULL AUTO_INCREMENT,
 					`uuid` varchar(255) COLLATE utf8_bin NOT NULL,
@@ -456,12 +461,12 @@ class AppModel extends Model {
 					`version` varchar(255) COLLATE utf8_bin NOT NULL,
 					PRIMARY KEY (id)
 					) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
-				
+
 				$this->__addIndex('galaxies', 'name');
 				$this->__addIndex('galaxies', 'uuid');
 				$this->__addIndex('galaxies', 'type');
-				
-				$sqlArray[] = 
+
+				$sqlArray[] =
 					"CREATE TABLE IF NOT EXISTS galaxy_clusters (
 					`id` int(11) NOT NULL AUTO_INCREMENT,
 					`uuid` varchar(255) COLLATE utf8_bin NOT NULL,
@@ -474,13 +479,13 @@ class AppModel extends Model {
 					`authors` text COLLATE utf8_bin NOT NULL,
 					PRIMARY KEY (id)
 					) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
-				
+
 				$this->__addIndex('galaxy_clusters', 'value', 255);
 				$this->__addIndex('galaxy_clusters', 'tag_name');
 				$this->__addIndex('galaxy_clusters', 'uuid');
 				$this->__addIndex('galaxy_clusters', 'type');
-				
-				$sqlArray[] = 
+
+				$sqlArray[] =
 					"CREATE TABLE IF NOT EXISTS galaxy_elements (
 					`id` int(11) NOT NULL AUTO_INCREMENT,
 					`galaxy_cluster_id` int(11) NOT NULL,
@@ -488,7 +493,7 @@ class AppModel extends Model {
 					`value` text COLLATE utf8_bin NOT NULL,
 					PRIMARY KEY (id)
 					) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
-				
+
 				$this->__addIndex('galaxy_elements', 'key');
 				$this->__addIndex('galaxy_elements', 'value', 255);
 
@@ -502,12 +507,19 @@ class AppModel extends Model {
 					`referenced_galaxy_cluster_value` text COLLATE utf8_bin NOT NULL,
 					PRIMARY KEY (id)
 					) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
-				
+
 				$this->__addIndex('galaxy_reference', 'galaxy_cluster_id');
 				$this->__addIndex('galaxy_reference', 'referenced_galaxy_cluster_id');
 				$this->__addIndex('galaxy_reference', 'referenced_galaxy_cluster_value', 255);
 				$this->__addIndex('galaxy_reference', 'referenced_galaxy_cluster_type', 255);
-				
+
+				break;
+			case '2.4.57':
+				$sqlArray[] = 'ALTER TABLE tags ADD hide_tag tinyint(1) NOT NULL DEFAULT 0;';
+				// new indeces to match the changes in #1766
+				$this->__dropIndex('correlations', '1_event_id');
+				$this->__addIndex('correlations', '1_event_id');
+				$this->__addIndex('warninglist_entries', 'warninglist_id');
 				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -599,7 +611,7 @@ class AppModel extends Model {
 			));
 		}
 	}
-	
+
 	private function __addIndex($table, $field, $length = false) {
 		$dataSourceConfig = ConnectionManager::getDataSource('default')->config;
 		$dataSource = $dataSourceConfig['datasource'];

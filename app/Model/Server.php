@@ -680,6 +680,15 @@ class Server extends AppModel {
 							'test' => 'testBool',
 							'type' => 'boolean',
 							'null' => false,
+					),
+					'incoming_tags_disabled_by_default' => array(
+							'level' => 1,
+							'description' => 'Enable this settings if new tags synced / added via incoming events from any source should not be selectable by users by default.',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+							'null' => false
 					)
 			),
 			'GnuPG' => array(
@@ -2478,10 +2487,10 @@ class Server extends AppModel {
 		}
 		return array('success' => $success, 'response' => $response, 'canPush' => $canPush, 'version' => $remoteVersion);
 	}
-	
+
 	/* This is a fallback for legacy remote instances that don't report back the current user's sync permission.
-	 * 
-	 * The idea is simple: If we have no way of determining the perm_sync flag from the remote instance, request 
+	 *
+	 * The idea is simple: If we have no way of determining the perm_sync flag from the remote instance, request
 	 * /servers/testConnection from the remote. This API is used to check the remote connectivity and expects an ID to be passed
 	 * In this case however we are not passing an ID so ideally it will return 404, meaning that the instance is invalid.
 	 * We are abusing the fact that only sync users can use this functionality, if we don't have sync permission we'll get a 403
@@ -2581,7 +2590,7 @@ class Server extends AppModel {
 		}
 		return $writeableFiles;
 	}
-	
+
 	public function readableFilesDiagnostics(&$diagnostic_errors) {
 		$readableFiles = array(
 				APP . 'files' . DS . 'scripts' . DS . 'stixtest.py' => 0
@@ -3139,12 +3148,12 @@ class Server extends AppModel {
 		}
 		return $validServers;
 	}
-	
+
 	public function extensionDiagnostics() {
 		$results = array();
 		$extensions = array('redis');
 		foreach ($extensions as $extension) {
-			$results['web']['extensions'][$extension] = extension_loaded($extension); 
+			$results['web']['extensions'][$extension] = extension_loaded($extension);
 		}
 		if (!is_readable(APP . '/files/scripts/selftest.php')) {
 			$results['cli'] = false;

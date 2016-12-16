@@ -18,6 +18,12 @@
 			'type' => 'checkbox', 'checked' => true
 		));
 	?>
+		<div class="clear"></div>
+	<?php
+		echo $this->Form->input('hide_tag', array(
+			'type' => 'checkbox', 'checked' => false
+		));
+	?>
 	</fieldset>
 <?php
 echo $this->Form->button('Add', array('class' => 'btn btn-primary'));

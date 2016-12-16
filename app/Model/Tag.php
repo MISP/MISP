@@ -54,11 +54,14 @@ class Tag extends AppModel {
 			'foreignKey' => 'org_id',
 		)
 	);
-	
+
 	public function beforeValidate($options = array()) {
 		parent::beforeValidate();
 		if (!isset($this->data['Tag']['org_id'])) {
 			$this->data['Tag']['org_id'] = 0;
+		}
+		if (!isset($this->data['Tag']['hide_tag'])) {
+			$this->data['Tag']['hide_tag'] = Configure::read('MISP.incoming_tags_disabled_by_default') ? 1 : 0;
 		}
 		return true;
 	}
@@ -114,7 +117,8 @@ class Tag extends AppModel {
 						'name' => $tag['name'],
 						'colour' => $tag['colour'],
 						'exportable' => isset($tag['exportable']) ? $tag['exportable'] : 0,
-						'org_id' => 0
+						'org_id' => 0,
+						'hide_tag' => Configure::read('MISP.incoming_tags_disabled_by_default') ? 1 : 0
 				);
 				$this->save($tag);
 				return $this->id;
