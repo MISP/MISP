@@ -511,7 +511,7 @@ CREATE TABLE IF NOT EXISTS `shadow_attribute_correlations` (
   INDEX `attribute_id` (`attribute_id`),
   INDEX `a_sharing_group_id` (`a_sharing_group_id`),
   INDEX `event_id` (`event_id`),
-  INDEX `1_event_id` (`event_id`),
+  INDEX `1_event_id` (`1_event_id`),
   INDEX `sharing_group_id` (`sharing_group_id`),
   INDEX `1_shadow_attribute_id` (`1_shadow_attribute_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
@@ -867,7 +867,8 @@ CREATE TABLE IF NOT EXISTS `warninglist_entries` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `value` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `warninglist_id` int(11) NOT NULL,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  INDEX `warninglist_id` (`warninglist_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
