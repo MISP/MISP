@@ -15,7 +15,7 @@
 				<a href="<?php echo $baseurl; ?>/galaxy_clusters/view/<?php echo h($cluster['id']); ?>" class="icon-search" title="View details about this cluster"></a>&nbsp;
 				<a href="<?php echo $baseurl; ?>/events/index/searchtag:<?php echo h($cluster['tag_id']); ?>" class="icon-th-list" title="View all events containing this cluster."></a>
 				<?php
-					if ($mayModify && $isAclTagger) {
+					if ($isSiteAdmin || ($mayModify && $isAclTagger)) {
 						echo $this->Form->postLink('',
 							$baseurl . '/galaxy_clusters/detachFromEvent/' . $event['Event']['id'] . '/' . $cluster['tag_id'],
 							array('class' => 'icon-trash', 'title' => 'Delete'),
@@ -91,7 +91,7 @@
 	endforeach;
 ?>
 <?php
-	if ($mayModify && $isAclTagger):
+	if ($isSiteAdmin || ($mayModify && $isAclTagger)):
 ?>
 		<span class="useCursorPointer btn btn-inverse" id="addGalaxy" data-event-id="<?php echo h($event['Event']['id']); ?>" style="margin-top:20px;padding: 1px 5px !important;font-size: 12px !important;">Add new cluster</span>
 <?php
