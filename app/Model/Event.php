@@ -429,7 +429,7 @@ class Event extends AppModel {
 		foreach ($events as &$event) $event['Event']['correlation_count'] = (isset($correlations[$event['Event']['id']])) ? $correlations[$event['Event']['id']] : 0;
 		return $events;
 	}
-	
+
 	public function attachSightingsCountToEvents($user, $events) {
 		$eventIds = Set::extract('/Event/id', $events);
 		$this->Sighting = ClassRegistry::init('Sighting');
@@ -437,7 +437,7 @@ class Event extends AppModel {
 			'fields' => array('Sighting.event_id', 'count(distinct(Sighting.id)) as count'),
 			'conditions' => array('event_id' => $eventIds),
 			'recursive' => -1,
-			'group' => array('event_id')	
+			'group' => array('event_id')
 		));
 		$sightings = Hash::combine($sightings, '{n}.Sighting.event_id', '{n}.0.count');
 		foreach ($events as $key => $event) {
@@ -445,7 +445,7 @@ class Event extends AppModel {
 		}
 		return $events;
 	}
-	
+
 	public function attachProposalsCountToEvents($user, $events) {
 		$eventIds = Set::extract('/Event/id', $events);
 		$proposals = $this->ShadowAttribute->find('all', array(
@@ -1138,7 +1138,7 @@ class Event extends AppModel {
 	public function fetchEvent($user, $options = array()) {
 		if (isset($options['Event.id'])) $options['eventid'] = $options['Event.id'];
 		$possibleOptions = array('eventid', 'idList', 'tags', 'from', 'to', 'last', 'to_ids', 'includeAllTags', 'includeAttachments', 'event_uuid', 'distribution', 'sharing_group_id', 'disableSiteAdmin', 'metadata', 'includeGalaxy');
-		if (!isset($options['excludeGalaxy']) || !$options['excludeGalaxy']) { 
+		if (!isset($options['excludeGalaxy']) || !$options['excludeGalaxy']) {
 			$this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
 		}
 		foreach ($possibleOptions as &$opt) if (!isset($options[$opt])) $options[$opt] = false;
@@ -1367,7 +1367,16 @@ class Event extends AppModel {
 				}
 			}
 			if (isset($event['Attribute'])) {
+				if (isset($options['enforceWarninglist'])) {
+
+				}
+				$this->Warninglist = ClassRegistry::init('Warninglist');
+				$warninglists = $this->Warninglist->fetchForEventView();
 				foreach ($event['Attribute'] as $key => $attribute) {
+					if (!$this->__filterWarninglistAttributes($warninglists, $attribute, $this->Warninglist)) {
+						unset($event['Attribute'][$key]);
+						continue;
+					}
 					if (isset($options['includeAttachments']) && $options['includeAttachments']) {
 						if ($this->Attribute->typeIsAttachment($attribute['type'])) {
 							$encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
@@ -1399,7 +1408,7 @@ class Event extends AppModel {
 								continue;
 							}
 						}
-						
+
 					}
 				}
 				$event['Attribute'] = array_values($event['Attribute']);
@@ -2185,7 +2194,7 @@ class Event extends AppModel {
 		}
 		return $event['Event']['id'];
 	}
-	
+
 	private function __savePreparedAttribute(&$attribute, $event) {
 		unset($attribute['id']);
 		$attribute['event_id'] = $event['Event']['id'];
@@ -2195,7 +2204,7 @@ class Event extends AppModel {
 			$this->__savePreparedShadowAttribute($sa, $event, $this->Attribute->id);
 		}
 	}
-	
+
 	private function __savePreparedShadowAttribute($shadow_attribute, $event, $old_id = 0) {
 		unset($shadow_attribute['id']);
 		$shadow_attribute['event_id'] = $event['Event']['id'];
@@ -2203,7 +2212,7 @@ class Event extends AppModel {
 		$this->ShadowAttribute->create();
 		$this->ShadowAttribute->save($shadow_attribute);
 	}
-	
+
 	private function __savePreparedEventTag($event_tag, $event) {
 		unset($event_tag['id']);
 		$event_tag['event_id'] = $event['Event']['id'];
@@ -2956,5 +2965,22 @@ class Event extends AppModel {
 				'extension' => $module['mispattributes']['outputFileExtension'],
 				'response' => $module['mispattributes']['responseType']
 		);
+	}
+
+	private function __filterWarninglistAttributes($warninglists, $attribute, $warninglistModel) {
+		foreach ($warninglists as $warninglist) {
+			if (in_array($attribute['type'], $warninglist['types']) || in_array('ALL', $warninglist['types'])) {
+				if ($warninglist['Warninglist']['type'] == 'cidr') {
+					return !$warninglistModel->__evalCIDRList($warninglist['values'], $attribute['value']);
+				} else {
+					foreach ($warninglist['values'] as $entry) {
+						if (strpos($attribute['value'], $entry) !== false) {
+							return false;
+						}
+					}
+				}
+			}
+			return true;
+		}
 	}
 }
