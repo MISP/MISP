@@ -182,6 +182,7 @@ class Attribute extends AppModel {
 			'github-repository' => array('desc' => 'A github repository', 'default_category' => 'Social network', 'to_ids' => 0),
 			'github-organisation' => array('desc' => 'A github organisation', 'default_category' => 'Social network', 'to_ids' => 0),
 			'jabber-id' => array('desc' => 'Jabber ID', 'default_category' => 'Social network', 'to_ids' => 0),
+			'twitter-id' => array('desc' => 'Twitter ID', 'default_category' => 'Social network', 'to_ids' => 0),
 			'first-name' => array('desc' => 'First name of a natural person', 'default_category' => 'Person', 'to_ids' => 0),
 			'middle-name' => array('desc' => 'Middle name of a natural person', 'default_category' => 'Person', 'to_ids' => 0),
 			'last-name' => array('desc' => 'Last name of a natural person', 'default_category' => 'Person', 'to_ids' => 0),
@@ -262,7 +263,7 @@ class Attribute extends AppModel {
 			'External analysis' => array(
 					'desc' => 'Any other result from additional analysis of the malware like tools output',
 					'formdesc' => 'Any other result from additional analysis of the malware like tools output Examples: pdf-parser output, automated sandbox analysis, reverse engineering report.',
-					'types' => array('md5', 'sha1', 'sha256','filename', 'filename|md5', 'filename|sha1', 'filename|sha256', 'ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'hostname', 'domain', 'domain|ip', 'url', 'user-agent', 'regkey', 'regkey|value', 'AS', 'snort', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'vulnerability', 'attachment', 'malware-sample', 'link', 'comment', 'text', 'x509-fingerprint-sha1', 'other')
+					'types' => array('md5', 'sha1', 'sha256','filename', 'filename|md5', 'filename|sha1', 'filename|sha256', 'ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'hostname', 'domain', 'domain|ip', 'url', 'user-agent', 'regkey', 'regkey|value', 'AS', 'snort', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'vulnerability', 'attachment', 'malware-sample', 'link', 'comment', 'text', 'x509-fingerprint-sha1', 'github-repository', 'other')
 					),
 			'Financial fraud' => array(
 					'desc' => 'Financial Fraud indicators',
@@ -276,7 +277,7 @@ class Attribute extends AppModel {
 			'Social network' => array(
 					'desc' => 'Social networks and platforms',
 					// email-src and email-dst or should we go with a new email type that is neither / both?
-					'types' => array('github-username', 'github-repository', 'github-organisation', 'jabber-id', 'email-src', 'email-dst', 'comment', 'text', 'other')
+					'types' => array('github-username', 'github-repository', 'github-organisation', 'jabber-id', 'twitter-id', 'email-src', 'email-dst', 'comment', 'text', 'other')
 			),
 			'Person' => array(
 					'desc' => 'A human being - natural person',
@@ -912,6 +913,7 @@ class Attribute extends AppModel {
 			case 'github-repository':
 			case 'github-organisation':
 			case 'cpe':
+			case 'twitter-id':
 				// no newline
 				if (!preg_match("#\n#", $value)) {
 					$returnValue = true;
