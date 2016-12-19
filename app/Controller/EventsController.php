@@ -2676,11 +2676,11 @@ class EventsController extends AppController {
 
 		if ($key != 'download'){
 			$user = $this->checkAuthUser($key);
-			if (!$user){
+			if (!$user) {
 				throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
 			}
 		} else {
-			if (!$this->Auth->user('id')){
+			if (!$this->Auth->user('id')) {
 				throw new UnauthorizedException('You have to be logged in to do that.');
 			}
 		}
