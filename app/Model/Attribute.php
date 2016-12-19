@@ -275,7 +275,7 @@ class Attribute extends AppModel {
 					'formdesc' => 'Financial Fraud indicators, for example: IBAN Numbers, BIC codes, Credit card numbers, etc.',
 					'types' => array('btc', 'iban', 'bic', 'bank-account-nr', 'aba-rtn', 'bin', 'cc-number', 'prtn', 'comment', 'text', 'other'),
 					),
-			'Suport Tool' => array(
+			'Support Tool' => array(
 					'desc' => 'Tools supporting analysis or detection of the event',
 					'types' => array('link', 'text', 'attachment', 'comment', 'text', 'other')
 			),
