@@ -67,7 +67,11 @@ class Attribute extends AppModel {
 			'vulnerability',
 			'comment',
 			'http-method',
-			'aba-rtn'
+			'aba-rtn',
+			'gender',
+			'counter',
+			'port',
+			'nationality'
 	);
 
 	public $typeDefinitions = array(
@@ -208,6 +212,7 @@ class Attribute extends AppModel {
 			'place-port-of-clearance' => array('desc' => 'The port of clearance', 'default_category' => 'Person', 'to_ids' => 0),
 			'place-port-of-onward-foreign-destination' => array('desc' => 'A Port where the passenger is transiting to', 'default_category' => 'Person', 'to_ids' => 0),
 			'passenger-name-record-locator-number' => array('desc' => 'The Passenger Name Record Locator is a key under which the reservation for a trip is stored in the system. The PNR contains, among other data, the name, flight segments and address of the passenger. It is defined by a combination of five or six letters and numbers.', 'default_category' => 'Person', 'to_ids' => 0),
+			'mobile-application-id' => array('desc' => 'The application id of a mobile application', 'default_category' => 'Payload delivery', 'to_ids' => 1)
 			// Not convinced about this.
 			//'url-regex' => array('desc' => '', 'default_category' => 'Person', 'to_ids' => 0),
 	);
@@ -240,7 +245,7 @@ class Attribute extends AppModel {
 			'Payload installation' => array(
 					'desc' => 'Info on where the malware gets installed in the system',
 					'formdesc' => 'Location where the payload was placed in the system and the way it was installed. For example, a filename|md5 type attribute can be added here like this: c:\\windows\\system32\\malicious.exe|41d8cd98f00b204e9800998ecf8427e.',
-					'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'authentihash', 'pehash', 'tlsh', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|pehash', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'yara', 'vulnerability', 'attachment', 'malware-sample', 'malware-type', 'comment', 'text', 'x509-fingerprint-sha1', 'other')
+					'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'authentihash', 'pehash', 'tlsh', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|pehash', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'yara', 'vulnerability', 'attachment', 'malware-sample', 'malware-type', 'comment', 'text', 'x509-fingerprint-sha1', 'mobile-application-id', 'other')
 					),
 			'Persistence mechanism' => array(
 					'desc' => 'Mechanisms used by the malware to start at boot',
@@ -581,7 +586,7 @@ class Attribute extends AppModel {
 		return false;
 	}
 
-	public function valueIsUnique ($fields) {
+		public function valueIsUnique ($fields) {
 		if (isset($this->data['Attribute']['deleted']) && $this->data['Attribute']['deleted']) return true;
 		$value = $fields['value'];
 		$eventId = $this->data['Attribute']['event_id'];
@@ -914,6 +919,7 @@ class Attribute extends AppModel {
 			case 'github-organisation':
 			case 'cpe':
 			case 'twitter-id':
+			case 'mobile-application-id':
 				// no newline
 				if (!preg_match("#\n#", $value)) {
 					$returnValue = true;
@@ -1415,7 +1421,7 @@ class Attribute extends AppModel {
 	}
 
 
-	public function nids($user, $format, $id = false, $continue = false, $tags = false, $from = false, $to = false, $last = false, $type = false) {
+	public function nids($user, $format, $id = false, $continue = false, $tags = false, $from = false, $to = false, $last = false, $type = false, $enforceWarninglist = false) {
 		if (empty($user)) throw new MethodNotAllowedException('Could not read user.');
 		$eventIds = $this->Event->fetchEventIds($user, $from, $to, $last);
 
@@ -1460,6 +1466,7 @@ class Attribute extends AppModel {
 					'fields' => array('Attribute.id', 'Attribute.event_id', 'Attribute.type', 'Attribute.value'),
 					'contain' => array('Event'=> array('fields' => array('Event.id', 'Event.threat_level_id'))),
 					'group' => array('Attribute.type', 'Attribute.value1'), // fields to GROUP BY
+					'enforceWarninglist' => $enforceWarninglist
 			);
 			$items = $this->fetchAttributes($user, $params);
 			if (empty($items)) continue;
@@ -1968,26 +1975,35 @@ class Attribute extends AppModel {
 		if (isset($options['fields'])) $params['fields'] = $options['fields'];
 		if (isset($options['conditions'])) $params['conditions']['AND'][] = $options['conditions'];
 		if (isset($options['order'])) $params['order'] = $options['order'];
+		if (!isset($options['withAttachments'])) $options['withAttachments'] = false;
 		else ($params['order'] = array());
+		if (!isset($options['enforceWarninglist'])) $options['enforceWarninglist'] = false;
 		if (!$user['Role']['perm_sync'] || !isset($options['deleted']) || !$options['deleted']) $params['conditions']['AND']['Attribute.deleted'] = 0;
 		if (isset($options['group'])) $params['group'] = array_merge(array('Attribute.id'), $options['group']);
 		if (Configure::read('MISP.unpublishedprivate')) $params['conditions']['AND'][] = array('OR' => array('Event.published' => 1, 'Event.orgc_id' => $user['org_id']));
 		$results = $this->find('all', $params);
-		if (Configure::read('MISP.proposals_block_attributes')) {
-			foreach ($results as $key => $value) {
-				if (!empty($value['ShadowAttribute'])) {
+		if ($options['enforceWarninglist']) {
+			$this->Warninglist = ClassRegistry::init('Warninglist');
+			$warninglists = $this->Warninglist->fetchForEventView();
+		}
+		$results = array_values($results);
+		$proposals_block_attributes = Configure::read('MISP.proposals_block_attributes');
+		foreach ($results as $key => $attribute) {
+			if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttributes($warninglists, $attribute['Attribute'], $this->Warninglist)) {
+				unset($results[$key]);
+				continue;
+			}
+			if ($proposals_block_attributes) {
+				if (!empty($attribute['ShadowAttribute'])) {
 					unset($results[$key]);
 				} else {
 					unset($results[$key]['ShadowAttribute']);
 				}
 			}
-		}
-		$results = array_values($results);
-		if (isset($options['withAttachments']) && $options['withAttachments']) {
-			foreach ($results as &$attribute) {
+			if ($options['withAttachments']) {
 				if ($this->typeIsAttachment($attribute['Attribute']['type'])) {
 					$encodedFile = $this->base64EncodeAttachment($attribute['Attribute']);
-					$attribute['Attribute']['data'] = $encodedFile;
+					$results[$key]['Attribute']['data'] = $encodedFile;
 				}
 			}
 		}
