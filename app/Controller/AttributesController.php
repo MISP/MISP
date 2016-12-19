@@ -1520,9 +1520,9 @@ class AttributesController extends AppController {
 	// the last 4 fields accept the following operators:
 	// && - you can use && between two search values to put a logical OR between them. for value, 1.1.1.1&&2.2.2.2 would find attributes with the value being either of the two.
 	// ! - you can negate a search term. For example: google.com&&!mail would search for all attributes with value google.com but not ones that include mail. www.google.com would get returned, mail.google.com wouldn't.
-	public function restSearch($key = 'download', $value = false, $type = false, $category = false, $org = false, $tags = false, $from = false, $to = false, $last = false, $eventid = false, $withAttachments = false, $uuid = false, $publish_timestamp = false, $published = false, $timestamp = false) {
+	public function restSearch($key = 'download', $value = false, $type = false, $category = false, $org = false, $tags = false, $from = false, $to = false, $last = false, $eventid = false, $withAttachments = false, $uuid = false, $publish_timestamp = false, $published = false, $timestamp = false, $enforceWarninglist = false) {
 		if ($tags) $tags = str_replace(';', ':', $tags);
-		$simpleFalse = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp');
+		$simpleFalse = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist');
 		foreach ($simpleFalse as $sF) {
 			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
 		}
@@ -1551,13 +1551,13 @@ class AttributesController extends AppController {
 			if (!isset($data['request'])) {
 				$data['request'] = $data;
 			}
-			$paramArray = array('value', 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'uuid', 'published', 'publish_timestamp', 'timestamp');
+			$paramArray = array('value', 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist');
 			foreach ($paramArray as $p) {
 				if (isset($data['request'][$p])) ${$p} = $data['request'][$p];
 				else ${$p} = null;
 			}
 		}
-		$simpleFalse = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp');
+		$simpleFalse = array('value' , 'type', 'category', 'org', 'tags', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist');
 		foreach ($simpleFalse as $sF) {
 			if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false')) ${$sF} = false;
 		}
@@ -1673,7 +1673,8 @@ class AttributesController extends AppController {
 		$params = array(
 				'conditions' => $conditions,
 				'fields' => array('Attribute.*', 'Event.org_id', 'Event.distribution'),
-				'withAttachments' => $withAttachments
+				'withAttachments' => $withAttachments,
+				'enforceWarninglist' => $enforceWarninglist
 		);
 		$results = $this->Attribute->fetchAttributes($this->Auth->user(), $params);
 		$this->loadModel('Whitelist');
@@ -1843,7 +1844,7 @@ class AttributesController extends AppController {
 		$this->render('/Attributes/text');
 	}
 
-	public function rpz($key='download', $tags=false, $eventId=false, $from=false, $to=false, $policy=false, $walled_garden = false, $ns = false, $email = false, $serial = false, $refresh = false, $retry = false, $expiry = false, $minimum_ttl = false, $ttl = false) {
+	public function rpz($key='download', $tags=false, $eventId=false, $from=false, $to=false, $policy=false, $walled_garden = false, $ns = false, $email = false, $serial = false, $refresh = false, $retry = false, $expiry = false, $minimum_ttl = false, $ttl = false, $enforceWarninglist = false) {
 		// request handler for POSTed queries. If the request is a post, the parameters (apart from the key) will be ignored and replaced by the terms defined in the posted json or xml object.
 		// The correct format for both is a "request" root element, as shown by the examples below:
 		// For Json: {"request":{"policy": "walled-garden","garden":"garden.example.com"}}
@@ -1856,14 +1857,14 @@ class AttributesController extends AppController {
 				$data = $this->request->data;
 			}
 			if (empty($data)) throw new BadRequestException('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct headers based on content type.');
-			$paramArray = array('eventId', 'tags', 'from', 'to', 'policy', 'walled_garden', 'ns', 'email', 'serial', 'refresh', 'retry', 'expiry', 'minimum_ttl', 'ttl');
+			$paramArray = array('eventId', 'tags', 'from', 'to', 'policy', 'walled_garden', 'ns', 'email', 'serial', 'refresh', 'retry', 'expiry', 'minimum_ttl', 'ttl', 'enforceWarninglist');
 			foreach ($paramArray as $p) {
 				if (isset($data['request'][$p])) ${$p} = $data['request'][$p];
 				else ${$p} = null;
 			}
 		}
 
-		$simpleFalse = array('eventId', 'tags', 'from', 'to', 'policy', 'walled_garden', 'ns', 'email', 'serial', 'refresh', 'retry', 'expiry', 'minimum_ttl', 'ttl');
+		$simpleFalse = array('eventId', 'tags', 'from', 'to', 'policy', 'walled_garden', 'ns', 'email', 'serial', 'refresh', 'retry', 'expiry', 'minimum_ttl', 'ttl', 'enforceWarninglist');
 		foreach ($simpleFalse as $sF) {
 			if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false')) ${$sF} = false;
 		}
@@ -1901,7 +1902,7 @@ class AttributesController extends AppController {
 		else throw new MethodNotAllowedException('Invalid event ID format.');
 		$values = array();
 		foreach ($eventIds as $k => $eventId) {
-			$values = array_merge_recursive($values, $this->Attribute->rpz($this->Auth->user(), $tags, $eventId, $from, $to));
+			$values = array_merge_recursive($values, $this->Attribute->rpz($this->Auth->user(), $tags, $eventId, $from, $to, $enforceWarninglist));
 		}
 		$this->response->type('txt');	// set the content type
 		$file = '';
@@ -1921,7 +1922,7 @@ class AttributesController extends AppController {
 		$this->render('/Attributes/rpz');
 	}
 
-	public function bro($key = 'download', $type = 'all', $tags = false, $eventId = false, $from = false, $to = false, $last = false) {
+	public function bro($key = 'download', $type = 'all', $tags = false, $eventId = false, $from = false, $to = false, $last = false, $enforceWarninglist = false) {
 		if ($this->request->is('post')) {
 			if ($this->request->input('json_decode', true)) {
 				$data = $this->request->input('json_decode', true);
