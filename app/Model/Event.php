@@ -1608,7 +1608,11 @@ class Event extends AppModel {
 				break;
 			}
 		}
-		$subject = "[" . Configure::read('MISP.org') . " MISP] Event " . $id . " - " . $subject . $event[0]['ThreatLevel']['name'] . " - ".$subjMarkingString;
+		$threatLevel = $event[0]['ThreatLevel']['name'] . " - ";
+		if(Configure::read('MISP.threatlevel_in_email_subject') === false) {
+			$threatLevel = '';
+		}
+		$subject = "[" . Configure::read('MISP.org') . " MISP] Event " . $id . " - " . $subject . $threatLevel . $subjMarkingString;
 
 		// Initialise the Job class if we have a background process ID
 		// This will keep updating the process's progress bar
