@@ -265,6 +265,14 @@ class Server extends AppModel {
 							'test' => 'testBool',
 							'type' => 'boolean',
 					),
+					'threatlevel_in_email_subject' => array(
+							'level' => 2,
+							'description' => 'Put the event threat level in the notification E-mail subject.',
+							'value' => true,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+						),
 					'email_subject_TLP_string' => array(
 							'level' => 2,
 							'description' => 'This is the TLP string for e-mails when email_subject_tag is not found.',
