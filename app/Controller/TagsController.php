@@ -143,7 +143,7 @@ class TagsController extends AppController {
 		}
 		$this->redirect($this->referer());
 	}
-	
+
 	public function edit($id) {
 		if (!$this->_isSiteAdmin() && !$this->userRole['perm_tag_editor']) {
 			throw new NotFoundException('You don\'t have permission to do that.');
@@ -312,8 +312,9 @@ class TagsController extends AppController {
 			$options = $this->Taxonomy->getAllTaxonomyTags(true);
 			$expanded = $options;
 		} else if ($taxonomy_id === 'favourites') {
+			$conditions = array('FavouriteTag.user_id' => $this->Auth->user('id'));
 			$tags = $this->Tag->FavouriteTag->find('all', array(
-				'conditions' => array('FavouriteTag.user_id' => $this->Auth->user('id')),
+				'conditions' => $conditions,
 				'recursive' => -1,
 				'contain' => array('Tag.name')
 			));
@@ -322,7 +323,11 @@ class TagsController extends AppController {
 				$expanded = $options;
 			}
 		} else if ($taxonomy_id === 'all') {
-			$options = $this->Tag->find('list', array('fields' => array('Tag.name'), 'conditions' => array('Tag.org_id' => array(0, $this->Auth->user('org_id')))));
+			$conditions = array('Tag.org_id' => array(0, $this->Auth->user('org_id')));
+			if (Configure::read('MISP.incoming_tags_disabled_by_default')) {
+				$conditions['Tag.hide_tag'] = 0;
+			}
+			$options = $this->Tag->find('list', array('fields' => array('Tag.name'), 'conditions' => $conditions));
 			$expanded = $options;
 		} else {
 			$taxonomies = $this->Taxonomy->getTaxonomy($taxonomy_id);

@@ -147,6 +147,9 @@ class Taxonomy extends AppModel {
 				$conditions = array('Tag.org_id' => array(0, $user['org_id']));
 			}
 		}
+		if (Configure::read('MISP.incoming_tags_disabled_by_default')) {
+			$conditions['Tag.hide_tag'] = 0;
+		}
 		$allTags = $this->Tag->find(
 			'list', array(
 				'fields' => array('name'),
