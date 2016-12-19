@@ -1137,7 +1137,7 @@ class Event extends AppModel {
 	// includeAttachments: true will attach the attachments to the attributes in the data field
 	public function fetchEvent($user, $options = array()) {
 		if (isset($options['Event.id'])) $options['eventid'] = $options['Event.id'];
-		$possibleOptions = array('eventid', 'idList', 'tags', 'from', 'to', 'last', 'to_ids', 'includeAllTags', 'includeAttachments', 'event_uuid', 'distribution', 'sharing_group_id', 'disableSiteAdmin', 'metadata', 'includeGalaxy');
+		$possibleOptions = array('eventid', 'idList', 'tags', 'from', 'to', 'last', 'to_ids', 'includeAllTags', 'includeAttachments', 'event_uuid', 'distribution', 'sharing_group_id', 'disableSiteAdmin', 'metadata', 'includeGalaxy', 'enforceWarninglist');
 		if (!isset($options['excludeGalaxy']) || !$options['excludeGalaxy']) {
 			$this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
 		}
@@ -1367,13 +1367,12 @@ class Event extends AppModel {
 				}
 			}
 			if (isset($event['Attribute'])) {
-				if (isset($options['enforceWarninglist'])) {
-
+				if ($options['enforceWarninglist']) {
+					$this->Warninglist = ClassRegistry::init('Warninglist');
+					$warninglists = $this->Warninglist->fetchForEventView();
 				}
-				$this->Warninglist = ClassRegistry::init('Warninglist');
-				$warninglists = $this->Warninglist->fetchForEventView();
 				foreach ($event['Attribute'] as $key => $attribute) {
-					if (!$this->__filterWarninglistAttributes($warninglists, $attribute, $this->Warninglist)) {
+					if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttributes($warninglists, $attribute, $this->Warninglist)) {
 						unset($event['Attribute'][$key]);
 						continue;
 					}
@@ -2965,22 +2964,5 @@ class Event extends AppModel {
 				'extension' => $module['mispattributes']['outputFileExtension'],
 				'response' => $module['mispattributes']['responseType']
 		);
-	}
-
-	private function __filterWarninglistAttributes($warninglists, $attribute, $warninglistModel) {
-		foreach ($warninglists as $warninglist) {
-			if (in_array($attribute['type'], $warninglist['types']) || in_array('ALL', $warninglist['types'])) {
-				if ($warninglist['Warninglist']['type'] == 'cidr') {
-					return !$warninglistModel->__evalCIDRList($warninglist['values'], $attribute['value']);
-				} else {
-					foreach ($warninglist['values'] as $entry) {
-						if (strpos($attribute['value'], $entry) !== false) {
-							return false;
-						}
-					}
-				}
-			}
-			return true;
-		}
 	}
 }

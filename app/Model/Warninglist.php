@@ -257,4 +257,21 @@ class Warninglist extends AppModel{
 		}
 		return $tlds;
 	}
+
+	public function filterWarninglistAttributes($warninglists, $attribute, $warninglistModel) {
+		foreach ($warninglists as $warninglist) {
+			if (in_array($attribute['type'], $warninglist['types']) || in_array('ALL', $warninglist['types'])) {
+				if ($warninglist['Warninglist']['type'] == 'cidr') {
+					return !$warninglistModel->__evalCIDRList($warninglist['values'], $attribute['value']);
+				} else {
+					foreach ($warninglist['values'] as $entry) {
+						if (strpos($attribute['value'], $entry) !== false) {
+							return false;
+						}
+					}
+				}
+			}
+		}
+		return true;
+	}
 }

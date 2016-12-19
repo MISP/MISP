@@ -1848,14 +1848,14 @@ class EventsController extends AppController {
 		return $results;
 	}
 
-	public function nids($format = 'suricata', $key = 'download', $id = false, $continue = false, $tags = false, $from = false, $to = false, $last = false, $type = false) {
+	public function nids($format = 'suricata', $key = 'download', $id = false, $continue = false, $tags = false, $from = false, $to = false, $last = false, $type = false, $enforceWarninglist = false) {
 		if ($this->request->is('post')) {
 			if (empty($this->request->data)) {
 				throw new BadRequestException('Either specify the search terms in the url, or POST a json or xml with the filter parameters. Valid filters: id (event ID), tags (list of tags), from (from date in YYYY-MM-DD format), to (to date in YYYY-MM-DD format), last (events with a published timestamp newer than - valid options are in time + unit format such as 6d or 2w, etc)');
 			} else {
 				$data = $this->request->data;
 			}
-			$paramArray = array('id', 'continue', 'tags', 'from', 'to', 'last', 'type');
+			$paramArray = array('id', 'continue', 'tags', 'from', 'to', 'last', 'type', 'enforceWarninglist');
 			if (!isset($data['request'])) {
 				$data = array('request' => $data);
 			}
@@ -1865,7 +1865,7 @@ class EventsController extends AppController {
 			}
 		}
 
-		$simpleFalse = array('id', 'continue', 'tags', 'from', 'to', 'last', 'type');
+		$simpleFalse = array('id', 'continue', 'tags', 'from', 'to', 'last', 'type', 'enforceWarninglist');
 		foreach ($simpleFalse as $sF) {
 			if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false')) {
 				${$sF} = false;
@@ -1901,7 +1901,7 @@ class EventsController extends AppController {
 
 		// display the full snort rulebase
 		$this->loadModel('Attribute');
-		$rules = $this->Attribute->nids($user, $format, $id, $continue, $tags, $from, $to, $last, $type);
+		$rules = $this->Attribute->nids($user, $format, $id, $continue, $tags, $from, $to, $last, $type, $enforceWarninglist);
 		$this->set('rules', $rules);
 		$this->render('/Events/nids');
 	}
@@ -2435,7 +2435,7 @@ class EventsController extends AppController {
 	// the last 4 fields accept the following operators:
 	// && - you can use && between two search values to put a logical OR between them. for value, 1.1.1.1&&2.2.2.2 would find attributes with the value being either of the two.
 	// ! - you can negate a search term. For example: google.com&&!mail would search for all attributes with value google.com but not ones that include mail. www.google.com would get returned, mail.google.com wouldn't.
-	public function restSearch($key = 'download', $value = false, $type = false, $category = false, $org = false, $tags = false, $searchall = false, $from = false, $to = false, $last = false, $eventid = false, $withAttachments = false, $metadata = false, $uuid = false, $publish_timestamp = false, $timestamp = false, $published = false) {
+	public function restSearch($key = 'download', $value = false, $type = false, $category = false, $org = false, $tags = false, $searchall = false, $from = false, $to = false, $last = false, $eventid = false, $withAttachments = false, $metadata = false, $uuid = false, $publish_timestamp = false, $timestamp = false, $published = false, $enforceWarninglist = false) {
 		if ($key != 'download') {
 			if (!$this->checkAuthUser($key)) {
 				throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
@@ -2462,7 +2462,7 @@ class EventsController extends AppController {
 			if (!isset($data['request'])) {
 				$data['request'] = $data;
 			}
-			$paramArray = array('value', 'type', 'category', 'org', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments', 'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp');
+			$paramArray = array('value', 'type', 'category', 'org', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments', 'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist');
 			foreach ($paramArray as $p) {
 				if (isset($data['request'][$p])) {
 					${$p} = $data['request'][$p];
@@ -2471,7 +2471,7 @@ class EventsController extends AppController {
 				}
 			}
 		}
-		$simpleFalse = array('value' , 'type', 'category', 'org', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp');
+		$simpleFalse = array('value' , 'type', 'category', 'org', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments', 'uuid', 'publish_timestamp', 'timestamp', 'enforceWarninglist');
 		foreach ($simpleFalse as $sF) {
 			if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false')) {
 				${$sF} = false;
@@ -2613,7 +2613,12 @@ class EventsController extends AppController {
 				$final = "";
 				$final .= '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL . '<response>' . PHP_EOL;
 				foreach ($eventIds as $currentEventId) {
-					$result = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $currentEventId, 'includeAttachments' => $withAttachments, 'metadata' => $metadata));
+					$result = $this->Event->fetchEvent($this->Auth->user(), array(
+						'eventid' => $currentEventId,
+						'includeAttachments' => $withAttachments,
+						'metadata' => $metadata,
+						'enforceWarninglist' => $enforceWarningist
+					));
 					if (!empty($result)) {
 						$result = $this->Whitelist->removeWhitelistedFromArray($result, false);
 						$final .= $converter->event2XML($result[0]) . PHP_EOL;
@@ -2633,7 +2638,12 @@ class EventsController extends AppController {
 				$converter = new JSONConverterTool();
 				$final = '{"response":[';
 				foreach ($eventIds as $k => $currentEventId) {
-					$result = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $currentEventId, 'includeAttachments' => $withAttachments, 'metadata' => $metadata));
+					$result = $this->Event->fetchEvent($this->Auth->user(), array(
+						'eventid' => $currentEventId,
+						'includeAttachments' => $withAttachments,
+						'metadata' => $metadata,
+						'enforceWarninglist' => $enforceWarninglist
+					));
 					$final .= $converter->event2JSON($result[0]);
 					if ($k < count($eventIds) -1 ) $final .= ',';
 				}
