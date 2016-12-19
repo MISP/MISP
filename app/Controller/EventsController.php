@@ -1906,8 +1906,8 @@ class EventsController extends AppController {
 		$this->render('/Events/nids');
 	}
 
-	public function hids($type, $key = 'download', $tags = false, $from = false, $to = false, $last = false) {
-		$simpleFalse = array('tags', 'from', 'to', 'last');
+	public function hids($type, $key = 'download', $tags = false, $from = false, $to = false, $last = false, $enforceWarninglist = false) {
+		$simpleFalse = array('tags', 'from', 'to', 'last', 'enforceWarninglist');
 		foreach ($simpleFalse as $sF) {
 			if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false')) {
 				${$sF} = false;
@@ -1933,7 +1933,7 @@ class EventsController extends AppController {
 			}
 		}
 		$this->loadModel('Attribute');
-		$rules = $this->Attribute->hids($this->Auth->user(), $type, $tags, $from, $to, $last);
+		$rules = $this->Attribute->hids($this->Auth->user(), $type, $tags, $from, $to, $last, false, $enforceWarninglist);
 		$this->set('rules', $rules);
 	}
 
@@ -1941,8 +1941,8 @@ class EventsController extends AppController {
 	// Usage: csv($key, $eventid)   - key can be a valid auth key or the string 'download'. Download requires the user to be logged in interactively and will generate a .csv file
 	// $eventid can be one of 3 options: left empty it will get all the visible to_ids attributes,
 	// $ignore is a flag that allows the export tool to ignore the ids flag. 0 = only IDS signatures, 1 = everything.
-	public function csv($key, $eventid = false, $ignore = false, $tags = false, $category = false, $type = false, $includeContext = false, $from = false, $to = false, $last = false, $headerless = false) {
-		$paramArray = array('eventid', 'ignore', 'tags', 'category', 'type', 'includeContext', 'from', 'to', 'last', 'headerless');
+	public function csv($key, $eventid = false, $ignore = false, $tags = false, $category = false, $type = false, $includeContext = false, $from = false, $to = false, $last = false, $headerless = false, $enforceWarninglist = false) {
+		$paramArray = array('eventid', 'ignore', 'tags', 'category', 'type', 'includeContext', 'from', 'to', 'last', 'headerless', 'enforceWarninglist');
 		if ($this->request->is('post')) {
 			if (empty($this->request->data)) {
 				throw new BadRequestException('Either specify the search terms in the url, or POST a json or xml with the filter parameters.');
@@ -2018,7 +2018,7 @@ class EventsController extends AppController {
 		}
 		if (isset($events)) {
 			foreach ($events as $eventid) {
-				$attributes = $this->Event->csv($user, $eventid, $ignore, $list, false, $category, $type, $includeContext);
+				$attributes = $this->Event->csv($user, $eventid, $ignore, $list, false, $category, $type, $includeContext, $enforceWarninglist);
 				$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
 				foreach ($attributes as $attribute) {
 					$line = $attribute['Attribute']['uuid'] . ',' . $attribute['Attribute']['event_id'] . ',' . $attribute['Attribute']['category'] . ',' . $attribute['Attribute']['type'] . ',' . $attribute['Attribute']['value'] . ',' . $attribute['Attribute']['comment'] . ',' . intval($attribute['Attribute']['to_ids']) . ',' . $attribute['Attribute']['timestamp'];
@@ -2663,7 +2663,7 @@ class EventsController extends AppController {
 		return $this->response;
 	}
 
-	public function downloadOpenIOCEvent($key, $eventid) {
+	public function downloadOpenIOCEvent($key, $eventid, $enforceWarninglist = false) {
 		// return a downloadable text file called misp.openIOC.<eventId>.ioc for individual events
 		// TODO implement mass download of all events - maybe in a zip file?
 		$this->response->type('text');	// set the content type
@@ -2690,7 +2690,7 @@ class EventsController extends AppController {
 		if (!$this->Event->exists()) {
 			throw new NotFoundException(__('Invalid event or not authorised.'));
 		}
-		$event = $this->Event->fetchEvent($this->Auth->user(), $options = array('eventid' => $eventid, 'to_ids' => 1));
+		$event = $this->Event->fetchEvent($this->Auth->user(), $options = array('eventid' => $eventid, 'to_ids' => 1, 'enforceWarninglist' => $enforceWarninglist));
 		if (empty($event)) throw new NotFoundException('Invalid event or not authorised.');
 		$this->loadModel('Whitelist');
 		$temp = $this->Whitelist->removeWhitelistedFromArray(array($event[0]), false);

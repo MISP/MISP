@@ -1368,7 +1368,7 @@ class Attribute extends AppModel {
 	}
 
 
-	public function hids($user, $type, $tags = '', $from = false, $to = false, $last = false, $jobId = false) {
+	public function hids($user, $type, $tags = '', $from = false, $to = false, $last = false, $jobId = false, $enforceWarninglist = false) {
 		if (empty($user)) throw new MethodNotAllowedException('Could not read user.');
 		// check if it's a valid type
 		if ($type != 'md5' && $type != 'sha1' && $type != 'sha256') {
@@ -1407,6 +1407,7 @@ class Attribute extends AppModel {
 			$options = array(
 					'conditions' => $conditions,
 					'group' => array('Attribute.type', 'Attribute.value1'),
+					'enforceWarninglist' => $enforceWarninglist
 			);
 			$items = $this->fetchAttributes($user, $options);
 			if (empty($items)) continue;
@@ -1486,7 +1487,7 @@ class Attribute extends AppModel {
 		return $rules;
 	}
 
-	public function text($user, $type, $tags = false, $eventId = false, $allowNonIDS = false, $from = false, $to = false, $last = false) {
+	public function text($user, $type, $tags = false, $eventId = false, $allowNonIDS = false, $from = false, $to = false, $last = false, $enforceWarninglist = false) {
 		//restricting to non-private or same org if the user is not a site-admin.
 		$conditions['AND'] = array();
 		if ($allowNonIDS === false) $conditions['AND'] = array('Attribute.to_ids' => 1, 'Event.published' => 1);
@@ -1519,11 +1520,13 @@ class Attribute extends AppModel {
 				'fields' => array('value'),
 				'contain' => array('Event' => array(
 					'fields' => array('Event.id', 'Event.published', 'Event.date', 'Event.publish_timestamp'),
-		))));
+				)),
+				'enforceWarninglist' => $enforceWarninglist
+		));
 		return $attributes;
 	}
 
-	public function rpz($user, $tags = false, $eventId = false, $from = false, $to = false) {
+	public function rpz($user, $tags = false, $eventId = false, $from = false, $to = false, $enforceWarninglist = false) {
 		// we can group hostname and domain as well as ip-src and ip-dst in this case
 		$conditions['AND'] = array('Attribute.to_ids' => 1, 'Event.published' => 1);
 		$typesToFetch = array('ip' => array('ip-src', 'ip-dst'), 'domain' => array('domain'), 'hostname' => array('hostname'));
@@ -1557,6 +1560,7 @@ class Attribute extends AppModel {
 					array(
 						'conditions' => $tempConditions,
 						'fields' => array('Attribute.value'), // array of field names
+						'enforceWarninglist' => $enforceWarninglist
 					)
 			);
 			if (empty($temp)) continue;
@@ -1582,7 +1586,7 @@ class Attribute extends AppModel {
 		return $values;
 	}
 
-	public function bro($user, $type, $tags = false, $eventId = false, $from = false, $to = false, $last = false) {
+	public function bro($user, $type, $tags = false, $eventId = false, $from = false, $to = false, $last = false, $enforceWarninglist = false) {
 		App::uses('BroExport', 'Export');
 		$export = new BroExport();
 		if ($type == 'all') {
@@ -1638,7 +1642,7 @@ class Attribute extends AppModel {
 			$mispTypes = $export->getMispTypes($type);
 			foreach($mispTypes as $mispType) {
 				$conditions['AND']['Attribute.type'] = $mispType[0];
-				$intel = array_merge($intel, $this->__bro($user, $conditions, $mispType[1], $export, $this->whitelist, $instanceString));
+				$intel = array_merge($intel, $this->__bro($user, $conditions, $mispType[1], $export, $this->whitelist, $instanceString, $enforceWarninglist));
 			}
 		}
 		natsort($intel);
@@ -1647,7 +1651,7 @@ class Attribute extends AppModel {
 		return $intel;
 	}
 
-	private function __bro($user, $conditions, $valueField, $export, $whitelist, $instanceString) {
+	private function __bro($user, $conditions, $valueField, $export, $whitelist, $instanceString, $enforceWarninglist) {
 		$attributes = $this->fetchAttributes($user, array(
 				'conditions' => $conditions, // array of conditions
 				'order' => 'Attribute.value' . $valueField . ' ASC',
@@ -1655,6 +1659,7 @@ class Attribute extends AppModel {
 				'fields' => array('Attribute.id', 'Attribute.event_id', 'Attribute.type', 'Attribute.comment', 'Attribute.value' . $valueField . " as value"),
 				'contain' => array('Event' => array('fields' => array('Event.id', 'Event.threat_level_id', 'Event.orgc_id', 'Event.uuid'))),
 				'group' => array('Attribute.type', 'Attribute.value' . $valueField), // fields to GROUP BY
+				'enforceWarninglist' => $enforceWarninglist
 			)
 		);
 		$orgs = $this->Event->Orgc->find('list', array(
