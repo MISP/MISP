@@ -1574,7 +1574,7 @@ class Server extends AppModel {
 			$temp = array();
 			foreach ($rules as $operator => $elements) {
 				foreach ($elements as $k => $element) {
-					if ($operator === 'NOT') $elements[$k] = '!' . $element;
+					if ($operator === 'NOT') $element = '!' . $element;
 					if (!empty($element)) $temp[] = $element;
 				}
 			}
