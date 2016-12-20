@@ -126,11 +126,25 @@ $config = array(
 			'ldapReaderUser'     => 'cn=userWithReadAccess,ou=users,dc=example,dc=com', // DN ou RDN LDAP with reader user right
 			'ldapReaderPassword' => 'UserPassword', // the LDAP reader user password
 			'ldapDN'             => 'dc=example,dc=com',
+            'ldapSearchFilter'   => '', // Search filter to limit results from ldapsearh fx to specfic group. FX
+	 		//'ldapSearchFilter'   => '(objectclass=InetOrgPerson)(!(nsaccountlock=True))(memberOf=cn=misp,cn=groups,cn=accounts,dc=example,dc=com)',
 			'ldapSearchAttribut' => 'uid',          // filter for search
 			'ldapFilter'         => array(
 				'mail',
+            //	'memberOf', //Needed filter if roles should be added depending on group membership.
 			),
 			'ldapDefaultRoleId'  => 3,               // 3:User, 1:admin. May be good to set "1" for the first user
+            //ldapDefaultRoleId can also be set as an array to support creating users into different group, depending on ldap membership.
+			//This will only work if the ldap server supports memberOf
+			//'ldapDefaultRoleId'  => array(
+            //                         'misp_admin' => 1,
+            //                         'misp_orgadmin' => 2,
+            //                         'misp_user' => 3,
+            //                         'misp_publisher' => 4,
+            //                         'misp_syncuser' => 5,
+            //                         'misp_readonly' => 6,
+            //                         ),
+			//
 			'ldapDefaultOrg'     => '1',      // uses 1st local org in MISP if undefined
 		),
 	*/
