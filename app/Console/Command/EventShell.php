@@ -342,9 +342,9 @@ class EventShell extends AppShell
 		$typeCount = count($types);
 		$dir = new Folder(APP . DS . '/tmp/cached_exports/bro', true, 0750);
 		if ($user['Role']['perm_site_admin']) {
-			$file = new File($dir->pwd() . DS . 'misp.bro.ADMIN.txt');
+			$file = new File($dir->pwd() . DS . 'misp.bro.ADMIN.intel');
 		} else {
-			$file = new File($dir->pwd() . DS . 'misp.bro.' . $user['Organisation']['name'] . '.txt');
+			$file = new File($dir->pwd() . DS . 'misp.bro.' . $user['Organisation']['name'] . '.intel');
 		}
 
 		foreach ($types as $k => $type) {
