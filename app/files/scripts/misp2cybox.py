@@ -85,21 +85,27 @@ def generateObservable(indicator, attribute):
 def resolveFileObservable(indicator, attribute):
     hashValue = ""
     filenameValue = ""
+    fuzzy = False
     if (attribute["type"] in hash_type_attributes["composite"]):
         values = attribute["value"].split('|')
         filenameValue = values[0]
         hashValue = values[1]
         indicator.add_indicator_type("File Hash Watchlist")
+        composite = attribute["type"].split('|')
+        if (composite[1] == "ssdeep"):
+          fuzzy = True
     else:
         if (attribute["type"] in ("filename", "attachment")):
             filenameValue = attribute["value"]
         else:
             hashValue = attribute["value"]
             indicator.add_indicator_type("File Hash Watchlist")
-    observable = generateFileObservable(filenameValue, hashValue)
+            if (attribute["type"] == "ssdeep"):
+              fuzzy = True
+    observable = generateFileObservable(filenameValue, hashValue, fuzzy)
     return observable
 
-def generateFileObservable(filenameValue, hashValue):
+def generateFileObservable(filenameValue, hashValue, fuzzy):
     file_object = File()
     if (filenameValue != ""):
         if (("/" in filenameValue) or ("\\" in filenameValue)):
@@ -112,6 +118,12 @@ def generateFileObservable(filenameValue, hashValue):
             file_object.file_name.condition = "Equals"
     if (hashValue != ""):
         file_object.add_hash(Hash(hash_value=hashValue, exact=True))
+        if (fuzzy):
+            file_object._fields["Hashes"]._inner[0].simple_hash_value = None
+            file_object._fields["Hashes"]._inner[0].fuzzy_hash_value = hashValue
+            file_object._fields["Hashes"]._inner[0].fuzzy_hash_value.condition = "Equals"
+            file_object._fields["Hashes"]._inner[0].type_ = Hash.TYPE_SSDEEP
+            file_object._fields["Hashes"]._inner[0].type_.condition = "Equals"
     return file_object
 
 def resolveIPType(attribute_value, attribute_type):
