@@ -123,9 +123,9 @@ class BroExport {
 			);
 		}
 		return sprintf($ruleFormat,
-                        $attribute['value'],    // value - for composite values only the relevant element is taken
+                        $this->replaceIllegalChars($attribute['value']),    // value - for composite values only the relevant element is taken
                         'Intel::' . $brotype,   // type
-                        $attribute['comment'],
+                        $this->replaceIllegalChars($attribute['comment']),
                         'T',    // meta.do_notice
                         '-'  // meta.if_in
                         );
