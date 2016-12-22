@@ -442,6 +442,9 @@ function handleAjaxEditResponse(data, name, type, id, field, event) {
 	if (type == 'ShadowAttribute') {
 		updateIndex(event, 'event');
 	}
+	if ('undefined' != responseArray['check_publish']) {
+		checkAndSetPublishedInfo();
+	}
 }
 
 function handleGenericAjaxResponse(data) {
@@ -452,6 +455,9 @@ function handleGenericAjaxResponse(data) {
 	}
 	if (responseArray.saved) {
 		showMessage('success', responseArray.success);
+		if ('undefined' != responseArray['check_publish']) {
+			checkAndSetPublishedInfo();
+		}
 		return true;
 	} else {
 		showMessage('fail', responseArray.errors);
@@ -999,13 +1005,14 @@ function templateElementFileCategoryChange(category) {
 	}
 }
 
-function getPopup(id, context, target, admin) {
+function getPopup(id, context, target, admin, popupType) {
 	$("#gray_out").fadeIn();
 	var url = "";
-	if (typeof admin !== 'undefined') url+= "/admin";
+	if (typeof admin !== 'undefined' && admin != '') url+= "/admin";
 	if (context != '') url += "/" + context;
 	if (target != '') url += "/" + target;
 	if (id != '') url += "/" + id;
+	if (popupType == '' || typeof popupType == 'undefined') popupType = '#popover_form';
 	$.ajax({
 		beforeSend: function (XMLHttpRequest) {
 			$(".loading").show();
@@ -1014,8 +1021,8 @@ function getPopup(id, context, target, admin) {
 		cache: false,
 		success:function (data, textStatus) {
 			$(".loading").hide();
-			$("#popover_form").html(data);
-			$("#popover_form").fadeIn();
+			$(popupType).html(data);
+			$(popupType).fadeIn();
 		},
 		url: url,
 		//url:"/templates/templateChoices/" + id,
@@ -2710,4 +2717,17 @@ function quickSubmitGalaxyForm(event_id, cluster_id) {
 	$('#GalaxyTargetId').val(cluster_id);
 	$('#GalaxySelectClusterForm').submit();
 	return false;
+}
+
+function checkAndSetPublishedInfo() {
+	var id = $('#hiddenSideMenuData').data('event-id');
+	$.get( "/events/checkPublishedStatus/" + id, function(data) {
+		if (data == 1) {
+			$('.published').show();
+			$('.not-published').hide();
+		} else {
+			$('.published').hide();
+			$('.not-published').show();
+		}
+	});
 }

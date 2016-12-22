@@ -158,8 +158,11 @@
 					<?php echo nl2br(h($event['Event']['info'])); ?>
 					&nbsp;
 				</dd>
-				<dt class="<?php echo ($event['Event']['published'] == 0) ? (($isAclPublish && $me['org_id'] == $event['Event']['orgc_id']) ? 'background-red bold' : 'bold') : 'bold'; ?>">Published</dt>
-				<dd class="<?php echo ($event['Event']['published'] == 0) ? (($isAclPublish && $me['org_id'] == $event['Event']['orgc_id']) ? 'background-red bold' : 'red bold') : 'green bold'; ?>"><?php echo ($event['Event']['published'] == 0) ? 'No' : 'Yes'; ?></dd>
+				<dt class="hidden"></dt><dd class="hidden"></dd>
+				<dt class="background-red bold not-published <?php echo ($event['Event']['published'] == 0) ? '' : 'hidden'; ?>">Published</dt>
+				<dd class="background-red bold not-published <?php echo ($event['Event']['published'] == 0) ? '' : 'hidden'; ?>">No</dd>
+				<dt class="bold published <?php echo ($event['Event']['published'] == 0) ? 'hidden' : ''; ?>">Published</dt>
+				<dd class="green bold published <?php echo ($event['Event']['published'] == 0) ? 'hidden' : ''; ?>">Yes</dd>
 				<?php if (Configure::read('Plugin.Sightings_enable') !== false): ?>
 				<dt>Sightings</dt>
 				<dd style="word-wrap: break-word;">
@@ -180,6 +183,28 @@
 					<dt class="background-red bold">Delegation request</dt>
 					<dd class="background-red bold"><?php echo h($subject);?> requested that <?php echo h($target)?> take over this event. (<a href="#" style="color:white;" onClick="genericPopup('<?php echo $baseurl;?>/eventDelegations/view/<?php echo h($delegationRequest['EventDelegation']['id']);?>', '#confirmation_box');">View request details</a>)</dd>
 				<?php endif;?>
+				<?php
+					if (!Configure::read('MISP.completely_disable_correlation')):
+				?>
+						<dt <?php echo $event['Event']['disable_correlation'] ? 'class="background-red bold"' : '';?>>Correlation</dt>
+						<dd <?php echo $event['Event']['disable_correlation'] ? 'class="background-red bold"' : '';?>>
+								<?php
+									if ($mayModify):
+								 		if ($event['Event']['disable_correlation']):
+								?>
+											Disabled (<a onClick="getPopup('<?php echo h($event['Event']['id']); ?>', 'events', 'toggleCorrelation', '', '#confirmation_box');" style="color:white;cursor:pointer;" style="font-weight:normal;">enable</a>)
+								<?php
+										else:
+								?>
+											Enabled (<a onClick="getPopup('<?php echo h($event['Event']['id']); ?>', 'events', 'toggleCorrelation', '', '#confirmation_box');" style="cursor:pointer;" style="font-weight:normal;">disable</a>)
+								<?php
+										endif;
+									endif;
+								?>
+						</dd>
+				<?php
+					endif;
+				?>
 			</dl>
 		</div>
 		<div class="related span4">

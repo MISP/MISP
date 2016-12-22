@@ -1258,10 +1258,13 @@ class Attribute extends AppModel {
 			if (!$event) {
 				$event = $this->Event->find('first', array(
 						'recursive' => -1,
-						'fields' => array('Event.distribution', 'Event.id', 'Event.info', 'Event.org_id', 'Event.date', 'Event.sharing_group_id'),
+						'fields' => array('Event.distribution', 'Event.id', 'Event.info', 'Event.org_id', 'Event.date', 'Event.sharing_group_id', 'Event.disable_correlation'),
 						'conditions' => array('id' => $a['event_id']),
 						'order' => array(),
 				));
+			}
+			if ($event['Event']['disable_correlation']) {
+				return true;
 			}
 			$this->Correlation = ClassRegistry::init('Correlation');
 			$correlatingValues = array($a['value1']);
@@ -1275,6 +1278,8 @@ class Attribute extends AppModel {
 										'Attribute.value2' => $cV
 								),
 								'Attribute.type !=' => $this->nonCorrelatingTypes,
+								'Attribute.disable_correlation' => 0,
+								'Event.disable_correlation' => 0
 							),
 							'Attribute.deleted' => 0
 						),
@@ -1668,11 +1673,15 @@ class Attribute extends AppModel {
 		return $export->export($attributes, $orgs, $valueField, $whitelist, $instanceString);
 	}
 
-	public function generateCorrelation($jobId = false, $startPercentage = 0) {
+	public function generateCorrelation($jobId = false, $startPercentage = 0, $eventId = false, $attributeId = false) {
 		$this->Correlation = ClassRegistry::init('Correlation');
-		$this->Correlation->deleteAll(array('id !=' => 0), false);
+		$this->purgeCorrelations($eventId);
 		// get all attributes..
-		$eventIds = $this->Event->find('list', array('recursive' => -1, 'fields' => array('Event.id')));
+		if (!$eventId) {
+			$eventIds = $this->Event->find('list', array('recursive' => -1, 'fields' => array('Event.id')));
+		} else {
+			$eventIds = array($eventId);
+		}
 		$attributeCount = 0;
 		if (Configure::read('MISP.background_jobs') && $jobId) {
 			$this->Job = ClassRegistry::init('Job');
@@ -1681,16 +1690,24 @@ class Attribute extends AppModel {
 		}
 		foreach (array_values($eventIds) as $j => $id) {
 			if ($jobId && Configure::read('MISP.background_jobs')) {
-				$this->Job->saveField('message', 'Correlating Event ' . $id);
+				if ($attributeId) {
+					$this->Job->saveField('message', 'Correlating Attribute ' . $attributeId);
+				} else {
+					$this->Job->saveField('message', 'Correlating Event ' . $id);
+				}
 				$this->Job->saveField('progress', ($startPercentage + ($j / $eventCount * (100 - $startPercentage))));
 			}
 			$event = $this->Event->find('first', array(
 					'recursive' => -1,
-					'fields' => array('Event.distribution', 'Event.id', 'Event.info', 'Event.org_id', 'Event.date', 'Event.sharing_group_id'),
+					'fields' => array('Event.distribution', 'Event.id', 'Event.info', 'Event.org_id', 'Event.date', 'Event.sharing_group_id', 'Event.disable_correlation'),
 					'conditions' => array('id' => $id),
 					'order' => array()
 			));
-			$attributes = $this->find('all', array('recursive' => -1, 'conditions' => array('Attribute.event_id' => $id, 'Attribute.deleted' => 0), 'order' => array()));
+			$attributeConditions = array('Attribute.event_id' => $id, 'Attribute.deleted' => 0);
+			if ($attributeId) {
+				$attributeConditions['Attribute.id'] = $attributeId;
+			}
+			$attributes = $this->find('all', array('recursive' => -1, 'conditions' => $attributeConditions, 'order' => array()));
 			foreach ($attributes as $k => $attribute) {
 				$this->__afterSaveCorrelation($attribute['Attribute'], true, $event);
 				$attributeCount++;
@@ -1698,6 +1715,23 @@ class Attribute extends AppModel {
 		}
 		if ($jobId && Configure::read('MISP.background_jobs')) $this->Job->saveField('message', 'Job done.');
 		return $attributeCount;
+	}
+
+	public function purgeCorrelations($eventId = false, $attributeId = false) {
+		if (!$eventId) {
+			$this->query('TRUNCATE TABLE correlations;');
+		} else if (!$attributeId) {
+			$this->Correlation = ClassRegistry::init('Correlation');
+			$this->Correlation->deleteAll(array('OR' => array(
+				'Correlation.1_event_id' => $eventId,
+				'Correlation.event_id' => $eventId))
+			);
+		} else {
+			$this->Correlation->deleteAll(array('OR' => array(
+				'Correlation.1_attribute_id' => $attributeId,
+				'Correlation.attribute_id' => $attributeId))
+			);
+		}
 	}
 
 	public function reportValidationIssuesAttributes($eventId) {

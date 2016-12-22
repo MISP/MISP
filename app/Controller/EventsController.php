@@ -2900,7 +2900,7 @@ class EventsController extends AppController {
 			$tag_id = $tag['Tag']['id'];
 		}
 		$this->Event->recursive = -1;
-		$event = $this->Event->read(array('id', 'org_id', 'orgc_id', 'distribution', 'sharing_group_id'), $id);
+		$event = $this->Event->read(array(), $id);
 
 		if (!$this->_isSiteAdmin() && !$this->userRole['perm_sync']) {
 			if (!$this->userRole['perm_tagger'] || ($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id'])) {
@@ -2927,9 +2927,13 @@ class EventsController extends AppController {
 		if (!empty($found)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Tag is already attached to this event.')), 'status'=>200));
 		$this->Event->EventTag->create();
 		if ($this->Event->EventTag->save(array('event_id' => $id, 'tag_id' => $tag_id))) {
+			$event['Event']['published'] = 0;
+			$date = new DateTime();
+			$event['Event']['timestamp'] = $date->getTimestamp();
+			$this->Event->save($event);
 			$log = ClassRegistry::init('Log');
 			$log->createLogEntry($this->Auth->user(), 'tag', 'Event', $id, 'Attached tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" to event (' . $id . ')', 'Event (' . $id . ') tagged as Tag (' . $tag_id . ')');
-			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Tag added.')), 'status'=>200));
+			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Tag added.', 'check_publish' => true)), 'status'=>200));
 		} else {
 			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Tag could not be added.')),'status'=>200));
 		}
@@ -2958,7 +2962,7 @@ class EventsController extends AppController {
 		}
 		if (!is_numeric($id)) $id = $this->request->data['Event']['id'];
 		$this->Event->recursive = -1;
-		$event = $this->Event->read(array('id', 'org_id', 'orgc_id', 'distribution'), $id);
+		$event = $this->Event->read(array(), $id);
 		// org should allow to tag too, so that an event that gets pushed can be tagged locally by the owning org
 		if ((($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id']) || (!$this->userRole['perm_tagger'])) && !$this->_isSiteAdmin()) {
 			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')),'status'=>200));
@@ -2978,9 +2982,13 @@ class EventsController extends AppController {
 			'fields' => array('Tag.name')
 		));
 		if ($this->Event->EventTag->delete($eventTag['EventTag']['id'])) {
+			$event['Event']['published'] = 0;
+			$date = new DateTime();
+			$event['Event']['timestamp'] = $date->getTimestamp();
+			$this->Event->save($event);
 			$log = ClassRegistry::init('Log');
 			$log->createLogEntry($this->Auth->user(), 'tag', 'Event', $id, 'Removed tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" from event (' . $id . ')', 'Event (' . $id . ') untagged of Tag (' . $tag_id . ')');
-			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => ($galaxy ? 'Galaxy' : 'Tag') . ' removed.')), 'status'=>200));
+			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => ($galaxy ? 'Galaxy' : 'Tag') . ' removed.', 'check_publish' => true)), 'status'=>200));
 		} else {
 			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => ($galaxy ? 'Galaxy' : 'Tag') . ' could not be removed.')),'status'=>200));
 		}
@@ -4059,5 +4067,66 @@ class EventsController extends AppController {
 		$this->response->type($result['response']);
 		$this->response->download('misp.event.' . $id . '.' . $module . '.export.' . $result['extension']);
 		return $this->response;
+	}
+
+	public function toggleCorrelation($id) {
+		if (!$this->_isSiteAdmin() && Configure.read('MISP.allow_disabling_correlation')) {
+			throw new MethodNotAllowedException('Disabling the correlation is not permitted on this instance.');
+		}
+		$this->Event->id = $id;
+		if (!$this->Event->exists()) {
+			throw new NotFoundException('Invalid Event.');
+		}
+		if (!$this->Auth->user('Role')['perm_modify']) {
+			throw new MethodNotAllowedException('You don\'t have permission to do that.');
+		}
+		$conditions = array('Event.id' => $id);
+		if (!$this->_isSiteAdmin()) {
+			$conditions['Event.orgc_id'] = $this->Auth->user('org_id');
+		}
+		$event = $this->Event->find('first', array(
+			'conditions' => $conditions,
+			'recursive' => -1
+		));
+		if (empty($event)) {
+			throw new NotFoundException('Invalid Event.');
+		}
+		if (!$this->Auth->user('Role')['perm_modify_org'] && $this->Auth->user('id') != $event['Event']['user_id']) {
+			throw new MethodNotAllowedException('You don\'t have permission to do that.');
+		}
+		if ($this->request->is('post')) {
+			if ($event['Event']['disable_correlation']) {
+				$event['Event']['disable_correlation'] = 0;
+				$this->Event->save($event);
+				$attributes = $this->Event->Attribute->find('all', array(
+					'conditions' => array('Attribute.event_id' => $id),
+					'recursive' => -1
+				));
+				foreach ($attributes as $attribute) {
+					$this->Event->Attribute->__afterSaveCorrelation($attribute['Attribute'], false, $event);
+				}
+			} else {
+				$event['Event']['disable_correlation'] = 1;
+				$this->Event->save($event);
+				$this->Event->Attribute->purgeCorrelations($id);
+			}
+			if ($this->_isRest()) {
+				return $this->RestResponse->saveSuccessResponse('events', 'toggleCorrelation', $id, false, 'Correlation ' . ($event['Event']['disable_correlation'] ? 'disabled' : 'enabled') . '.');
+			} else {
+				$this->Session->setFlash('Correlation ' . ($event['Event']['disable_correlation'] ? 'disabled' : 'enabled') . '.');
+				$this->redirect(array('controller' => 'events', 'action' => 'view', $id));
+			}
+		} else {
+			$this->set('event', $event);
+			$this->render('ajax/toggle_correlation');
+		}
+	}
+
+	public function checkPublishedStatus($id) {
+		$event = $this->Event->fetchEvent($this->Auth->user(), array('metadata' => 1, 'eventid' => $id));
+		if (empty($event)) {
+			throw new NotFoundException('Invalid event');
+		}
+		return new CakeResponse(array('body'=> h($event[0]['Event']['published']), 'status'=>200));
 	}
 }
