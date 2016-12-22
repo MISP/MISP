@@ -15,6 +15,17 @@ class AdminShell extends AppShell
 		$this->Job->saveField('status', 4);
 	}
 
+	public function jobPurgeCorrelation() {
+		$jobId = $this->args[0];
+		$this->loadModel('Job');
+		$this->Job->id = $jobId;
+		$this->loadModel('Attribute');
+		$this->Attribute->purgeCorrelations();
+		$this->Job->saveField('progress', 100);
+		$this->Job->saveField('message', 'Job done.');
+		$this->Job->saveField('status', 4);
+	}
+
 	public function jobGenerateShadowAttributeCorrelation() {
 		$jobId = $this->args[0];
 		$this->loadModel('Job');

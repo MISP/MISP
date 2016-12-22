@@ -697,7 +697,35 @@ class Server extends AppModel {
 							'test' => 'testBool',
 							'type' => 'boolean',
 							'null' => false
-					)
+					),
+					'completely_disable_correlation' => array(
+							'level' => 0,
+							'description' => '*WARNING* This setting will completely disable the correlation on this instance and remove any existing saved correlations. Enabling this will trigger a full recorrelation of all data which is an extremely long and costly procedure. Only enable this if you know what you\'re doing.',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBoolFalse',
+							'type' => 'boolean',
+							'null' => true,
+							'afterHook' => 'correlationAfterHook',
+					),
+					'allow_disabling_correlation' => array(
+							'level' => 0,
+							'description' => '*WARNING* This setting will give event creators the possibility to disable the correlation of individual events / attributes that they have created.',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBoolFalse',
+							'type' => 'boolean',
+							'null' => true
+					),
+					'showCorrelationsOnIndex' => array(
+							'level' => 1,
+							'description' => 'When enabled, the number of correlations visible to the currently logged in user will be visible on the event index UI. This comes at a performance cost but can be very useful to see correlating events at a glance.',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+							'null' => true
+					),
 			),
 			'GnuPG' => array(
 					'branch' => 1,
@@ -2099,6 +2127,17 @@ class Server extends AppModel {
 		return true;
 	}
 
+	public function testBoolFalse($value) {
+		if (!$this->testBool($value)) {
+			return $this->testBool($value);
+		}
+		if ($value !== false) {
+			return 'It is highly recommended that this setting is disabled. Make sure you understand the impact of having this setting turned on.';
+		} else {
+			return true;
+		}
+	}
+
 	public function testSalt($value) {
 		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
 		if (strlen($value) < 32) return 'The salt has to be an at least 32 byte long string.';
@@ -2212,6 +2251,45 @@ class Server extends AppModel {
 		}
 		$pubSubTool->reloadServer();
 		return true;
+	}
+
+	public function correlationAfterHook($setting, $value) {
+		if (!Configure::read('MISP.background_jobs')) {
+			$this->Attribute = ClassRegistry::init('Attribute');
+			if ($value) {
+				$k = $this->Attribute->purgeCorrelations();
+			} else {
+				$k = $this->Attribute->generateCorrelation();
+			}
+		} else {
+			$job = ClassRegistry::init('Job');
+			$job->create();
+			if ($value == true) {
+				$jobType = 'jobPurgeCorrelation';
+				$jobTypeText = 'purge correlations';
+			} else {
+				$jobType = 'jobGenerateCorrelation';
+				$jobTypeText = 'generate correlation';
+			}
+			$data = array(
+					'worker' => 'default',
+					'job_type' => $jobTypeText,
+					'job_input' => 'All attributes',
+					'status' => 0,
+					'retries' => 0,
+					'org' => 'ADMIN',
+					'message' => 'Job created.',
+			);
+			$job->save($data);
+			$jobId = $job->id;
+			$process_id = CakeResque::enqueue(
+					'default',
+					'AdminShell',
+					array($jobType, $jobId),
+					true
+			);
+			$job->saveField('process_id', $process_id);
+		}
 	}
 
 	public function ipLogBeforeHook($setting, $value) {

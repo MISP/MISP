@@ -1,6 +1,7 @@
 <?php
 	$mayModify = ($isSiteAdmin || ($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Orgc']['id'] == $me['org_id']) || ($isAclModifyOrg && $event['Orgc']['id'] == $me['org_id']));
 	$mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
+	$mayChangeCorrelation = !Configure::read('MISP.completely_disable_correlation') && ($isSiteAdmin || ($mayModify && Configure::read('MISP.allow_disabling_correlation')));
 	$possibleAction = 'Proposal';
 	if ($mayModify) $possibleAction = 'Attribute';
 	$all = false;
@@ -169,6 +170,13 @@
 			<th><?php echo $this->Paginator->sort('type');?></th>
 			<th><?php echo $this->Paginator->sort('value');?></th>
 			<th><?php echo $this->Paginator->sort('comment');?></th>
+			<?php
+				if ($mayChangeCorrelation):
+			?>
+					<th>Correlate</th>
+			<?php
+				endif;
+			?>
 			<th>Related Events</th>
 			<th title="<?php echo $attrDescriptions['signature']['desc'];?>"><?php echo $this->Paginator->sort('to_ids', 'IDS');?></th>
 			<th title="<?php echo $attrDescriptions['distribution']['desc'];?>"><?php echo $this->Paginator->sort('distribution');?></th>
@@ -348,6 +356,19 @@
 									<?php echo nl2br(h($object['comment'])); ?>&nbsp;
 								</div>
 							</td>
+							<?php
+								if ($mayChangeCorrelation):
+									if ($object['objectType'] == 0):
+							?>
+										<td class="short" style="padding-top:3px;">
+											<input class="correlation-toggle" type="checkbox" data-attribute-id="<?php echo h($object['id']); ?>" <?php echo $object['disable_correlation'] ? '' : 'checked'; ?>>
+										</td>
+							<?php
+									else:
+										echo '&nbsp;';
+									endif;
+								endif;
+							?>
 							<td class="shortish <?php echo $extra; ?>">
 								<ul class="inline" style="margin:0px;">
 									<?php
@@ -547,7 +568,8 @@ attributes or the appropriate distribution level. If you think there is a mistak
 	$(document).ready(function(){
 		setContextFields();
 		popoverStartup();
-		$('input:checkbox').removeAttr('checked');
+		$('.select_attribute').removeAttr('checked');
+		$('.select_proposal').removeAttr('checked');
 		$('.mass-select').hide();
 		$('.mass-proposal-select').hide();
 		$('.select_attribute').click(function(e) {
@@ -571,6 +593,11 @@ attributes or the appropriate distribution level. If you think there is a mistak
 		$('.select_all').click(function() {
 			attributeListAnyAttributeCheckBoxesChecked();
 			attributeListAnyProposalCheckBoxesChecked();
+		});
+		$('.correlation-toggle').click(function() {
+			var attribute_id = $(this).data('attribute-id');
+			getPopup(attribute_id, 'attributes', 'toggleCorrelation', '', '#confirmation_box');
+			return false;
 		});
 	});
 </script>

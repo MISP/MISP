@@ -999,13 +999,14 @@ function templateElementFileCategoryChange(category) {
 	}
 }
 
-function getPopup(id, context, target, admin) {
+function getPopup(id, context, target, admin, popupType) {
 	$("#gray_out").fadeIn();
 	var url = "";
-	if (typeof admin !== 'undefined') url+= "/admin";
+	if (typeof admin !== 'undefined' && admin != '') url+= "/admin";
 	if (context != '') url += "/" + context;
 	if (target != '') url += "/" + target;
 	if (id != '') url += "/" + id;
+	if (popupType == '') popupType = '#popover_form';
 	$.ajax({
 		beforeSend: function (XMLHttpRequest) {
 			$(".loading").show();
@@ -1014,8 +1015,8 @@ function getPopup(id, context, target, admin) {
 		cache: false,
 		success:function (data, textStatus) {
 			$(".loading").hide();
-			$("#popover_form").html(data);
-			$("#popover_form").fadeIn();
+			$(popupType).html(data);
+			$(popupType).fadeIn();
 		},
 		url: url,
 		//url:"/templates/templateChoices/" + id,

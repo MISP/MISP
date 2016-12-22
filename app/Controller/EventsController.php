@@ -4058,4 +4058,57 @@ class EventsController extends AppController {
 		$this->response->download('misp.event.' . $id . '.' . $module . '.export.' . $result['extension']);
 		return $this->response;
 	}
+
+	public function toggleCorrelation($id) {
+		if (!$this->_isSiteAdmin() && Configure.read('MISP.allow_disabling_correlation')) {
+			throw new MethodNotAllowedException('Disabling the correlation is not permitted on this instance.');
+		}
+		$this->Event->id = $id;
+		if (!$this->Event->exists()) {
+			throw new NotFoundException('Invalid Event.');
+		}
+		if (!$this->Auth->user('Role')['perm_modify']) {
+			throw new MethodNotAllowedException('You don\'t have permission to do that.');
+		}
+		$conditions = array('Event.id' => $id);
+		if (!$this->_isSiteAdmin()) {
+			$conditions['Event.orgc_id'] = $this->Auth->user('org_id');
+		}
+		$event = $this->Event->find('first', array(
+			'conditions' => $conditions,
+			'recursive' => -1
+		));
+		if (empty($event)) {
+			throw new NotFoundException('Invalid Event.');
+		}
+		if (!$this->Auth->user('Role')['perm_modify_org'] && $this->Auth->user('id') != $event['Event']['user_id']) {
+			throw new MethodNotAllowedException('You don\'t have permission to do that.');
+		}
+		if ($this->request->is('post')) {
+			if ($event['Event']['disable_correlation']) {
+				$event['Event']['disable_correlation'] = 0;
+				$this->Event->save($event);
+				$attributes = $this->Event->Attribute->find('all', array(
+					'conditions' => array('Attribute.event_id' => $id),
+					'recursive' => -1
+				));
+				foreach ($attributes as $attribute) {
+					$this->Event->Attribute->__afterSaveCorrelation($attribute['Attribute'], false, $event);
+				}
+			} else {
+				$event['Event']['disable_correlation'] = 1;
+				$this->Event->save($event);
+				$this->Event->Attribute->purgeCorrelations($id);
+			}
+			if ($this->_isRest()) {
+				return $this->RestResponse->saveSuccessResponse('events', 'toggleCorrelation', $id, false, 'Correlation ' . ($event['Event']['disable_correlation'] ? 'disabled' : 'enabled') . '.');
+			} else {
+				$this->Session->setFlash('Correlation ' . ($event['Event']['disable_correlation'] ? 'disabled' : 'enabled') . '.');
+				$this->redirect(array('controller' => 'events', 'action' => 'view', $id));
+			}
+		} else {
+			$this->set('event', $event);
+			$this->render('ajax/toggle_correlation');
+		}
+	}
 }

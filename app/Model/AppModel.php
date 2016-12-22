@@ -40,7 +40,8 @@ class AppModel extends Model {
 				18 => false, 19 => false, 20 => false, 25 => false, 27 => false,
 				32 => false, 33 => true, 38 => true, 39 => true, 40 => false,
 				42 => false, 44 => false, 45 => false, 49 => true, 50 => false,
-				51 => false, 52 => false, 55 => true, 56 => true, 57 => true
+				51 => false, 52 => false, 55 => true, 56 => true, 57 => true,
+				58 => false
 			)
 		)
 	);
@@ -536,6 +537,10 @@ class AppModel extends Model {
 				$sqlArray[] = 'ALTER TABLE `shadow_attributes` DROP `event_org`;';
 				$sqlArray[] = 'ALTER TABLE `threads` DROP `org`;';
 				$sqlArray[] = 'ALTER TABLE `users` DROP `org`;';
+				break;
+			case '2.4.58':
+				$sqlArray[] = "ALTER TABLE `events` ADD `disable_correlation` tinyint(1) NOT NULL DEFAULT 0;";
+				$sqlArray[] = "ALTER TABLE `attributes` ADD `disable_correlation` tinyint(1) NOT NULL DEFAULT 0;";
 				break;
 			default:
 				return false;
