@@ -4121,11 +4121,10 @@ class EventsController extends AppController {
 	}
 
 	public function checkPublishedStatus($id) {
-		$event = $this->Event->fetchEvent($this->Auth->user(), array('metadata' => 1, 'event_id' => $id));
+		$event = $this->Event->fetchEvent($this->Auth->user(), array('metadata' => 1, 'eventid' => $id));
 		if (empty($event)) {
 			throw new NotFoundException('Invalid event');
 		}
-		$this->set('current_event_published', $event[0]['Event']['published'] ? 1 : 0);
-		$this->set('_serialize', 'current_event_published');
+		return new CakeResponse(array('body'=> h($event[0]['Event']['published']), 'status'=>200));
 	}
 }

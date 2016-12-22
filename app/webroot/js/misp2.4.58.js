@@ -2721,7 +2721,7 @@ function quickSubmitGalaxyForm(event_id, cluster_id) {
 
 function checkAndSetPublishedInfo() {
 	var id = $('#hiddenSideMenuData').data('event-id');
-	$.get( "/events/checkPublishedStatus/" + id + '.json', function(data) {
+	$.get( "/events/checkPublishedStatus/" + id, function(data) {
 		if (data == 1) {
 			$('.published').show();
 			$('.not-published').hide();
