@@ -7,7 +7,7 @@
 	<div style="padding-left:5px;padding-right:5px;padding-bottom:5px;">
 		<p>
     <?php
-      if ($attribute['Event']['disable_correlation']) {
+      if ($attribute['Attribute']['disable_correlation']) {
         echo 'Re-enable the correlation for this attribute.';
       } else {
         echo 'This will remove all correlations that already exist for this attribute and prevents any attributes to be related as long as this setting is disabled. Make sure you understand the downasides of disabling correlations.';
