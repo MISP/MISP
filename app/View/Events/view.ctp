@@ -196,7 +196,7 @@
 								<?php
 										else:
 								?>
-											Enabled (<a onClick="getPopup('<?php echo h($event['Event']['id']); ?>', 'events', 'toggleCorrelation', '', '#confirmation_box');" style="cursor:pointer;" style="font-weight:normal;">disable</span>)
+											Enabled (<a onClick="getPopup('<?php echo h($event['Event']['id']); ?>', 'events', 'toggleCorrelation', '', '#confirmation_box');" style="cursor:pointer;" style="font-weight:normal;">disable</a>)
 								<?php
 										endif;
 									endif;
