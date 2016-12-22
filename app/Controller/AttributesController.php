@@ -1956,9 +1956,9 @@ class AttributesController extends AppController {
 				throw new UnauthorizedException('You have to be logged in to do that.');
 			}
 		}
-		$filename = 'misp.' . $type . '.txt';
+		$filename = 'misp.' . $type . '.intel';
 		if ($eventId) {
-			$filename = 'misp.' . $type . '.event_' . $eventId . '.txt';
+			$filename = 'misp.' . $type . '.event_' . $eventId . '.intel';
 		}
 		$responseFile = implode(PHP_EOL, $this->Attribute->bro($this->Auth->user(), $type, $tags, $eventId, $from, $to, $last, $enforceWarninglist)) . PHP_EOL;
 		$this->response->body($responseFile);

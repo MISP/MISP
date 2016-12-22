@@ -99,7 +99,7 @@ class Event extends AppModel {
 					'description' => 'Click this to download all network related attributes that you have access to under the Snort rule format. Only published events and attributes marked as IDS Signature are exported. Administration is able to maintain a whitelist containing host, domain name and IP numbers to exclude from the NIDS export.',
 			),
 			'bro' => array(
-					'extension' => '.txt',
+					'extension' => '.intel',
 					'type' => 'Bro',
 					'requiresPublished' => 1,
 					'canHaveAttachments' => false,

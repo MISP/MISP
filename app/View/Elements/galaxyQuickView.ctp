@@ -41,7 +41,7 @@
 							}
 							if (isset($cluster['meta'])) {
 								foreach ($cluster['meta'] as $metaKey => $metaField) {
-									if ($metaField != 'synonyms') {
+									if ($metaKey != 'synonyms') {
 										$cluster_fields[] = array('key' => $metaKey, 'value' => $metaField);
 									}
 								}

@@ -2209,6 +2209,7 @@ class EventsController extends AppController {
 				}
 				$event = array('Event' => $event);
 				$created_id = 0;
+				$event['Event']['locked'] = 1;
 				$result['result'] = $this->Event->_add($event, true, $this->Auth->user(), '', null, false, null, $created_id, $validationIssues);
 				$result['id'] = $created_id;
 				$result['validationIssues'] = $validationIssues;
@@ -2221,6 +2222,7 @@ class EventsController extends AppController {
 				unset($temp['Event']['Orgc']);
 			}
 			$created_id = 0;
+			$temp['Event']['locked'] = 1;
 			$result = $this->Event->_add($temp, true, $this->Auth->user(), '', null, false, null, $created_id, $validationIssues);
 			$results = array(0 => array('info' => $temp['Event']['info'], 'result' => $result, 'id' => $created_id, 'validationIssues' => $validationIssues));
 		}
