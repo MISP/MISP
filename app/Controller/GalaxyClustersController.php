@@ -44,7 +44,7 @@ class GalaxyClustersController extends AppController {
 			$this->render('ajax/index');
 		}
 	}
-	
+
 	public function view($id) {
 		$cluster = $this->GalaxyCluster->find('first', array(
 			'recursive' => -1,
@@ -65,16 +65,16 @@ class GalaxyClustersController extends AppController {
 			if (!empty($tag)) {
 				$cluster['GalaxyCluster']['tag_count'] = count($tag['EventTag']);
 				$cluster['GalaxyCluster']['tag_id'] = $tag['Tag']['id'];
-			}	
+			}
 		}
 		$this->set('cluster', $cluster);
 	}
-	
+
 	public function attachToEvent($event_id, $tag_name) {
 		$this->loadModel('Event');
 		$this->Event->id = $event_id;
 		$this->Event->recursive = -1;
-		$event = $this->Event->read(array('id', 'org_id', 'orgc_id', 'distribution', 'sharing_group_id'), $event_id);
+		$event = $this->Event->read(array(), $event_id);
 		if (empty($event)) {
 			throw new MethodNotAllowedException('Invalid Event.');
 		}
@@ -95,18 +95,22 @@ class GalaxyClustersController extends AppController {
 		if (empty($existingEventTag)) {
 			$this->Event->EventTag->create();
 			$this->Event->EventTag->save(array('EventTag.tag_id' => $tag_id, 'EventTag.event_id' => $event_id));
+			$event['Event']['published'] = 0;
+			$date = new DateTime();
+			$event['Event']['timestamp'] = $date->getTimestamp();
+			$this->Event->save($event);
 			$this->Session->setFlash('Galaxy attached.');
 		} else {
 			$this->Session->setFlash('Galaxy already attached.');
 		}
 		$this->redirect($this->referer());
 	}
-	
+
 	public function detachFromEvent($event_id, $tag_id) {
 		$this->loadModel('Event');
 		$this->Event->id = $event_id;
 		$this->Event->recursive = -1;
-		$event = $this->Event->read(array('id', 'org_id', 'orgc_id', 'distribution', 'sharing_group_id'), $event_id);
+		$event = $this->Event->read(array(), $event_id);
 		if (empty($event)) {
 			throw new MethodNotAllowedException('Invalid Event.');
 		}
@@ -120,6 +124,10 @@ class GalaxyClustersController extends AppController {
 			$this->Session->setFlash('Galaxy not attached.');
 		} else {
 			$this->Event->EventTag->delete($existingEventTag['EventTag']['id']);
+			$event['Event']['published'] = 0;
+			$date = new DateTime();
+			$event['Event']['timestamp'] = $date->getTimestamp();
+			$this->Event->save($event);
 			$this->Session->setFlash('Galaxy successfully detached.');
 		}
 		$this->redirect($this->referer());

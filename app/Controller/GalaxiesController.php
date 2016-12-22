@@ -101,6 +101,11 @@ class GalaxiesController extends AppController {
 		$cluster_id = $this->request->data['Galaxy']['target_id'];
 		$cluster = $this->Galaxy->GalaxyCluster->find('first', array('recursive' => -1, 'conditions' => array('id' => $cluster_id), 'fields' => array('tag_name')));
 		$this->loadModel('Tag');
+		$event = $this->Tag->EventTag->Event->fetchEvent($this->Auth->user(), array('eventid' => $event_id, 'metadata' => 1));
+		if (empty($event)) {
+			throw new NotFoundException('Invalid event.');
+		}
+		$event = $event[0];
 		$tag_id = $this->Tag->captureTag(array('name' => $cluster['GalaxyCluster']['tag_name'], 'colour' => '#0088cc', 'exportable' => 1), $this->Auth->user());
 		if ($tag_id === false) {
 			throw new MethodNotAllowedException('Could not attach cluster.');
@@ -113,6 +118,10 @@ class GalaxiesController extends AppController {
 		}
 		$result = $this->Tag->EventTag->save(array('event_id' => $event_id, 'tag_id' => $tag_id));
 		if ($result) {
+			$event['Event']['published'] = 0;
+			$date = new DateTime();
+			$event['Event']['timestamp'] = $date->getTimestamp();
+			$this->Tag->EventTag->Event->save($event);
 			$this->Session->setFlash('Cluster attached');
 			$this->redirect($this->referer());
 		} else {
