@@ -171,7 +171,7 @@
 			<th><?php echo $this->Paginator->sort('value');?></th>
 			<th><?php echo $this->Paginator->sort('comment');?></th>
 			<?php
-				if ($mayChangeCorrelation):
+				if ($mayChangeCorrelation && !$event['Event']['disable_correlation']):
 			?>
 					<th>Correlate</th>
 			<?php
@@ -357,7 +357,7 @@
 								</div>
 							</td>
 							<?php
-								if ($mayChangeCorrelation):
+								if ($mayChangeCorrelation && !$event['Event']['disable_correlation']):
 									if ($object['objectType'] == 0):
 							?>
 										<td class="short" style="padding-top:3px;">
