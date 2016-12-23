@@ -74,7 +74,7 @@ Feature Request
 Roadmap
 -------
 
-To see the [![Roadmap](https://github.com/MISP/MISP/wiki/Planned-features-and-functionalities)](https://github.com/MISP/MISP/wiki/Planned-features-and-functionalities) for MISP have a look in the Wiki page
+To see the [[Roadmap](https://github.com/MISP/MISP/wiki/Planned-features-and-functionalities)](https://github.com/MISP/MISP/wiki/Planned-features-and-functionalities) for MISP have a look in the Wiki page
 
 License
 -------
