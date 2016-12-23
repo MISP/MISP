@@ -92,7 +92,7 @@ def resolveFileObservable(indicator, attribute):
         hashValue = values[1]
         indicator.add_indicator_type("File Hash Watchlist")
         composite = attribute["type"].split('|')
-        if (composite[1] == "ssdeep"):
+        if (len(composite) > 1 and composite[1] == "ssdeep"):
           fuzzy = True
     else:
         if (attribute["type"] in ("filename", "attachment")):
