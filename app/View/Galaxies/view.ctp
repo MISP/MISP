@@ -16,13 +16,11 @@
 				<dd><?php echo h($galaxy['Galaxy']['description']); ?></dd>
 				<dt>Version</dt>
 				<dd><?php echo h($galaxy['Galaxy']['version']); ?></dd>
-				
+
 			</dl>
 		</div>
 	</div>
-	<div id="clusters_div">
-		<?php echo $this->element('galaxyclusters'); ?>
-	</div>
+	<div id="clusters_div"></div>
 </div>
 <script type="text/javascript">
 $(document).ready(function () {

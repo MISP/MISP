@@ -31,13 +31,13 @@
 				</dd>
 				<dt>Events</dt>
 				<dd>
-					<?php 
+					<?php
 						if (isset($cluster['GalaxyCluster']['tag_count'])):
 					?>
 						<a href="<?php echo $baseurl; ?>/events/index/searchtag:<?php echo h($cluster['GalaxyCluster']['tag_id']); ?>"><?php echo h($cluster['GalaxyCluster']['tag_count']); ?> event(s)</a>
 					<?php
 						else:
-							echo '0';						
+							echo '0';
 						endif;
 					?>
 				</dd>
@@ -45,9 +45,7 @@
 		</div>
 	</div>
 	<div class="row-fluid">
-		<div id="elements_div" class="span8">
-			<?php echo $this->element('galaxyelements'); ?>
-		</div>
+		<div id="elements_div" class="span8"></div>
 	</div>
 </div>
 <script type="text/javascript">
