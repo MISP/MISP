@@ -118,7 +118,7 @@ function toggleSetting(e, setting, id) {
 			handleGenericAjaxResponse(data);
 		},
 		complete:function() {
-			$.get( replacementForm, function(data) {
+			$.get(replacementForm, function(data) {
 				$('#hiddenFormDiv').html(data);
 			});
 			$(".loading").hide();
@@ -442,7 +442,7 @@ function handleAjaxEditResponse(data, name, type, id, field, event) {
 	if (type == 'ShadowAttribute') {
 		updateIndex(event, 'event');
 	}
-	if ('undefined' != responseArray['check_publish']) {
+	if (responseArray.hasOwnProperty('check_publish')) {
 		checkAndSetPublishedInfo();
 	}
 }
@@ -455,7 +455,7 @@ function handleGenericAjaxResponse(data) {
 	}
 	if (responseArray.saved) {
 		showMessage('success', responseArray.success);
-		if ('undefined' != responseArray['check_publish']) {
+		if (responseArray.hasOwnProperty('check_publish')) {
 			checkAndSetPublishedInfo();
 		}
 		return true;
