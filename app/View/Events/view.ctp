@@ -223,7 +223,7 @@
 					<div data-toggle="popover" data-content="<?php echo h($popover); ?>" data-trigger="hover">
 					<?php
 					$linkText = $relatedEvent['Event']['date'] . ' (' . $relatedEvent['Event']['id'] . ')';
-					if ($relatedEvent['Event']['org_id'] == $me['org_id']) {
+					if ($relatedEvent['Event']['orgc_id'] == $me['org_id']) {
 						echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id'], true, $event['Event']['id']), array('style' => 'color:red;'));
 					} else {
 						echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id'], true, $event['Event']['id']));
