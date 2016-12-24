@@ -41,7 +41,7 @@ class AppModel extends Model {
 				32 => false, 33 => true, 38 => true, 39 => true, 40 => false,
 				42 => false, 44 => false, 45 => false, 49 => true, 50 => false,
 				51 => false, 52 => false, 55 => true, 56 => true, 57 => true,
-				58 => false
+				58 => false, 59 => false
 			)
 		)
 	);
@@ -521,6 +521,10 @@ class AppModel extends Model {
 				$this->__dropIndex('correlations', '1_event_id');
 				$this->__addIndex('correlations', '1_event_id');
 				$this->__addIndex('warninglist_entries', 'warninglist_id');
+				break;
+			case '2.4.58':
+				$sqlArray[] = "ALTER TABLE taxonomy_entries ADD `colour` varchar(7) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL DEFAULT '';";
+				$sqlArray[] = "ALTER TABLE taxonomy_predicates ADD `colour` varchar(7) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL DEFAULT '';";
 				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
