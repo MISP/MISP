@@ -523,8 +523,8 @@ class AppModel extends Model {
 				$this->__addIndex('warninglist_entries', 'warninglist_id');
 				break;
 			case '2.4.58':
-				$sqlArray[] = "ALTER TABLE taxonomy_entries ADD `colour` varchar(7) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL DEFAULT '';";
-				$sqlArray[] = "ALTER TABLE taxonomy_predicates ADD `colour` varchar(7) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL DEFAULT '';";
+				$sqlArray[] = "ALTER TABLE taxonomy_entries ADD colour varchar(7) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL DEFAULT '';";
+				$sqlArray[] = "ALTER TABLE taxonomy_predicates ADD colour varchar(7) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL DEFAULT '';";
 				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
