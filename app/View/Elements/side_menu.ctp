@@ -3,6 +3,9 @@
 		<?php
 			switch ($menuList) {
 				case 'event':
+		?>
+					<div id="hiddenSideMenuData" class="hidden" data-event-id="<?php echo isset($event['Event']['id']) ? $event['Event']['id'] : 0; ?>"></div>
+		<?php
 					if ($menuItem === 'addAttribute' ||
 						$menuItem === 'addAttachment' ||
 						$menuItem === 'addIOC' ||
@@ -36,6 +39,7 @@
 					<?php if ($menuItem === 'populateFromtemplate'): ?>
 							<li class="active"><a href="<?php echo $baseurl;?>/templates/populateEventFromTemplate/<?php echo $template_id . '/' . h($event['Event']['id']); ?>">Populate From Template</a></li>
 						<?php endif; ?>
+					<li id='merge'><a href="<?php echo $baseurl;?>/events/merge/<?php echo h($event['Event']['id']);?>">Merge attributes from...</a></li>
 					<?php endif; ?>
 					<?php if (($isSiteAdmin && (!isset($mayModify) || !$mayModify)) || (!isset($mayModify) || !$mayModify)): ?>
 					<li id='liproposeAttribute'><a href="<?php echo $baseurl;?>/shadow_attributes/add/<?php echo h($event['Event']['id']);?>">Propose Attribute</a></li>
@@ -48,8 +52,8 @@
 						if (isset($event['Event']['published']) && 0 == $event['Event']['published'] && ($isSiteAdmin || (isset($mayPublish) && $mayPublish))) $publishButtons = "";
 						if (isset($event['Event']['published']) && $event['Event']['published']) $exportButtons = "";
 					?>
-					<li<?php echo $publishButtons; ?> class="publishButtons"><a href="#" onClick="publishPopup('<?php echo h($event['Event']['id']); ?>', 'alert')">Publish Event</a></li>
-					<li<?php echo $publishButtons; ?> class="publishButtons"><a href="#" onClick="publishPopup('<?php echo h($event['Event']['id']); ?>', 'publish')">Publish (no email)</a></li>
+					<li<?php echo $publishButtons; ?> class="publishButtons not-published"><a href="#" onClick="publishPopup('<?php echo h($event['Event']['id']); ?>', 'alert')">Publish Event</a></li>
+					<li<?php echo $publishButtons; ?> class="publishButtons not-published"><a href="#" onClick="publishPopup('<?php echo h($event['Event']['id']); ?>', 'publish')">Publish (no email)</a></li>
 					<?php if (Configure::read('MISP.delegation')):?>
 						<?php if ((Configure::read('MISP.unpublishedprivate') || (isset($event['Event']['distribution']) && $event['Event']['distribution'] == 0)) && (!isset($delegationRequest) || !$delegationRequest) && ($isSiteAdmin || (isset($isAclDelegate) && $isAclDelegate))): ?>
 								<li id='lidelegateEvent'><a href="#" onClick="delegatePopup('<?php echo h($event['Event']['id']); ?>');">Delegate Publishing</a></li>
@@ -131,7 +135,7 @@
 
 				case 'globalActions':
 					if (((Configure::read('MISP.disableUserSelfManagement') && $isAdmin) || !Configure::read('MISP.disableUserSelfManagement')) && ($menuItem === 'edit' || $menuItem === 'view')): ?>
-					<li id='liedit'><?php echo $this->Html->link(__('Edit User', true), array('action' => 'edit', $user['User']['id'])); ?></li>
+					<li id='liedit'><?php echo $this->Html->link(__('Edit My Profile', true), array('action' => 'edit')); ?></li>
 					<li class="divider"></li>
 					<?php elseif (Configure::read('Plugin.CustomAuth_custom_password_reset')): ?>
 					<li id='lipwreset'><a href="<?php echo h(Configure::read('Plugin.CustomAuth_custom_password_reset'));?>">Reset Password</a></li>
@@ -154,7 +158,6 @@
 					<li id='liuserGuide'><a href="<?php echo $baseurl;?>/pages/display/doc/general">User Guide</a></li>
 					<li id='literms'><a href="<?php echo $baseurl;?>/users/terms">Terms &amp; Conditions</a></li>
 					<li id='listatistics'><a href="<?php echo $baseurl;?>/users/statistics">Statistics</a></li>
-					<li id='limembers'><a href="<?php echo $baseurl;?>/users/attributehistogram">Attribute Histogram</a></li>
 					<?php
 				break;
 
@@ -321,11 +324,33 @@
 				case 'news': ?>
 					<li id='liindex'><a href="<?php echo $baseurl;?>/news/index">View News</a></li>
 				<?php
-					if ($isSiteAdmin): ?>
+					if ($isSiteAdmin):
+				?>
 						<li id='liadd'><a href="<?php echo $baseurl;?>/news/add">Add News Item</a></li>
 						<?php if ($menuItem === 'edit'): ?>
 							<li class="active"><a href="#">Edit News Item</a></li>
 						<?php endif;
+					endif;
+				break;
+
+				case 'galaxies':
+				?>
+					<li id='liindex'><a href="<?php echo $baseurl;?>/galaxies/index">List Galaxies</a></li>
+				<?php
+					if ($isSiteAdmin):
+				?>
+						<li><?php echo $this->Form->postLink('Update Galaxies', array('controller' => 'galaxies', 'action' => 'update'), null, __('Are you sure you want to reimport all galaxies from the submodule?')); ?></li>
+				<?php
+					endif;
+					if ($menuItem === 'view'):
+				?>
+						<li class="active"><a href="#">View Galaxy</a></li>
+				<?php
+					endif;
+					if ($menuItem === 'view_cluster'):
+				?>
+						<li class="active"><a href="#">View Cluster</a></li>
+				<?php
 					endif;
 				break;
 			}

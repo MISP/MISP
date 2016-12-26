@@ -25,8 +25,19 @@ class FeedsController extends AppController {
 	}
 
 	public function index() {
-		$this->set('feeds', $this->paginate());
+		$data = $this->paginate();
 		$this->loadModel('Event');
+		foreach ($data as $key => $value) {
+			if ($value['Feed']['event_id'] != 0 && $value['Feed']['fixed_event']) {
+				$event = $this->Event->find('first', array('conditions' => array('Event.id' => $value['Feed']['event_id']), 'recursive' => -1, 'fields' => array('Event.id')));
+				if (empty($event)) {
+					$data[$key]['Feed']['event_error'] = true;
+				}
+			}
+		}
+		$this->set('feeds', $data);
+		$this->loadModel('Event');
+		$this->set('feed_types', $this->Feed->feed_types);
 		$this->set('distributionLevels', $this->Event->distributionLevels);
 	}
 
@@ -36,58 +47,103 @@ class FeedsController extends AppController {
 
 	public function add() {
 		if ($this->request->is('post')) {
+			$error = false;
 			if (isset($this->request->data['Feed']['pull_rules'])) $this->request->data['Feed']['rules'] = $this->request->data['Feed']['pull_rules'];
 			if ($this->request->data['Feed']['distribution'] != 4) $this->request->data['Feed']['sharing_group_id'] = 0;
 			$this->request->data['Feed']['default'] = 0;
-			$result = $this->Feed->save($this->request->data);
-			if ($result) {
-				$this->Session->setFlash('Feed added.');
-				$this->redirect(array('controller' => 'feeds', 'action' => 'index'));
+			if ($this->request->data['Feed']['source_format'] == 'freetext') {
+				if ($this->request->data['Feed']['fixed_event'] == 1) {
+					 if (is_numeric($this->request->data['Feed']['target_event'])) {
+					 	$this->request->data['Feed']['event_id'] = $this->request->data['Feed']['target_event'];
+					 }
+				}
 			}
-			else $this->Session->setFlash('Feed could not be added.');
-		} else {
-			$this->loadModel('Event');
-			$sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name',  1);
-			$distributionLevels = $this->Event->distributionLevels;
-			if (empty($sgs)) unset($distributionLevels[4]);
-			$this->set('distributionLevels', $distributionLevels);
-			$this->set('sharingGroups', $sgs);
-			$tags = $this->Event->EventTag->Tag->find('list', array('fields' => array('Tag.name'), 'order' => array('lower(Tag.name) asc')));
-			$tags[0] = 'None';
-			$this->set('tags', $tags);
+			if (!isset($this->request->data['Feed']['settings'])) {
+				$this->request->data['Feed']['settings'] = array();
+			}
+			if (empty($this->request->data['Feed']['target_event'])) {
+				$this->request->data['Feed']['target_event'] = 0;
+			}
+			$this->request->data['Feed']['settings'] = json_encode($this->request->data['Feed']['settings']);
+			$this->request->data['Feed']['event_id'] = !empty($this->request->data['Feed']['fixed_event']) ? $this->request->data['Feed']['target_event'] : 0;
+			if (!$error) {
+				$result = $this->Feed->save($this->request->data);
+				if ($result) {
+					$this->Session->setFlash('Feed added.');
+					$this->redirect(array('controller' => 'feeds', 'action' => 'index'));
+				}
+				else $this->Session->setFlash('Feed could not be added. Invalid field: ' . array_keys($this->Feed->validationErrors)[0]);
+			}
 		}
+		$this->loadModel('Event');
+		$sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name',  1);
+		$distributionLevels = $this->Event->distributionLevels;
+		if (empty($sgs)) unset($distributionLevels[4]);
+		$this->set('distributionLevels', $distributionLevels);
+		$this->set('sharingGroups', $sgs);
+		$this->set('feed_types', $this->Feed->getFeedTypesOptions());
+		$tags = $this->Event->EventTag->Tag->find('list', array('fields' => array('Tag.name'), 'order' => array('lower(Tag.name) asc')));
+		$tags[0] = 'None';
+		$this->set('tags', $tags);
 	}
 
 	public function edit($feedId) {
 		$this->Feed->id = $feedId;
 		if (!$this->Feed->exists()) throw new NotFoundException('Invalid feed.');
 		$this->Feed->read();
+		if (!empty($this->Feed->data['Feed']['settings'])) {
+			$this->Feed->data['Feed']['settings'] = json_decode($this->Feed->data['Feed']['settings'], true);
+		}
 		if ($this->request->is('post') || $this->request->is('put')) {
 			if (isset($this->request->data['Feed']['pull_rules'])) $this->request->data['Feed']['rules'] = $this->request->data['Feed']['pull_rules'];
 			if ($this->request->data['Feed']['distribution'] != 4) $this->request->data['Feed']['sharing_group_id'] = 0;
 			$this->request->data['Feed']['id'] = $feedId;
-			$fields = array('id', 'name', 'provider', 'enabled', 'rules', 'url', 'distribution', 'sharing_group_id', 'tag_id');
+			if ($this->request->data['Feed']['source_format'] == 'freetext' || $this->request->data['Feed']['source_format'] == 'csv') {
+				if ($this->request->data['Feed']['fixed_event'] == 1) {
+					if (is_numeric($this->request->data['Feed']['target_event'])) {
+						$this->request->data['Feed']['event_id'] = $this->request->data['Feed']['target_event'];
+					} else {
+						$this->request->data['Feed']['event_id'] = 0;
+					}
+				}
+			}
+			if (!isset($this->request->data['Feed']['settings'])) {
+				$this->request->data['Feed']['settings'] = array();
+			}
+			$this->request->data['Feed']['settings'] = json_encode($this->request->data['Feed']['settings']);
+			$fields = array('id', 'name', 'provider', 'enabled', 'rules', 'url', 'distribution', 'sharing_group_id', 'tag_id', 'fixed_event', 'event_id', 'publish', 'delta_merge', 'override_ids', 'settings');
 			$feed = array();
-			foreach ($fields as $field) $feed[$field] = $this->request->data['Feed'][$field];
+			foreach ($fields as $field) {
+				if (isset($this->request->data['Feed'][$field])) {
+					$feed[$field] = $this->request->data['Feed'][$field];
+				}
+			}
 			$result = $this->Feed->save($feed);
 			if ($result) {
 				$this->Session->setFlash('Feed updated.');
 				$this->redirect(array('controller' => 'feeds', 'action' => 'index'));
+			} else {
+				$this->Session->setFlash('Feed could not be updated. Invalid fields: ' . implode(', ', array_keys($this->Feed->validationErrors)));
 			}
-			else $this->Session->setFlash('Feed could not be updated.');
 		} else {
-			$this->request->data = $this->Feed->data;
+			if (!isset($this->request->data['Feed'])) {
+				$this->request->data = $this->Feed->data;
+				if ($this->Feed->data['Feed']['event_id']) {
+					$this->request->data['Feed']['target_event'] = $this->Feed->data['Feed']['event_id'];
+				}
+			}
 			$this->request->data['Feed']['pull_rules'] = $this->request->data['Feed']['rules'];
-			$this->loadModel('Event');
-			$sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name',  1);
-			$distributionLevels = $this->Event->distributionLevels;
-			if (empty($sgs)) unset($distributionLevels[4]);
-			$this->set('distributionLevels', $distributionLevels);
-			$this->set('sharingGroups', $sgs);
-			$tags = $this->Event->EventTag->Tag->find('list', array('fields' => array('Tag.name'), 'order' => array('lower(Tag.name) asc')));
-			$tags[0] = 'None';
-			$this->set('tags', $tags);
 		}
+		$this->loadModel('Event');
+		$sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name',  1);
+		$distributionLevels = $this->Event->distributionLevels;
+		if (empty($sgs)) unset($distributionLevels[4]);
+		$this->set('distributionLevels', $distributionLevels);
+		$this->set('sharingGroups', $sgs);
+		$tags = $this->Event->EventTag->Tag->find('list', array('fields' => array('Tag.name'), 'order' => array('lower(Tag.name) asc')));
+		$tags[0] = 'None';
+		$this->set('feed_types', $this->Feed->getFeedTypesOptions());
+		$this->set('tags', $tags);
 	}
 
 	public function delete($feedId) {
@@ -103,6 +159,9 @@ class FeedsController extends AppController {
 		$this->Feed->id = $feedId;
 		if (!$this->Feed->exists()) throw new NotFoundException('Invalid feed.');
 		$this->Feed->read();
+		if (!empty($this->Feed->data['Feed']['settings'])) {
+			$this->Feed->data['Feed']['settings'] = json_decode($this->Feed->data['Feed']['settings'], true);
+		}
 		if (!$this->Feed->data['Feed']['enabled']) {
 			$this->Session->setFlash('Feed is currently not enabled. Make sure you enable it.');
 			$this->redirect(array('action' => 'index'));
@@ -131,9 +190,15 @@ class FeedsController extends AppController {
 			$message = 'Pull queued for background execution.';
 		} else {
 			$result = $this->Feed->downloadFromFeedInitiator($feedId, $this->Auth->user());
+			if (!$result) {
+				$this->Session->setFlash('Fetching the feed has failed.');
+				$this->redirect(array('action' => 'index'));
+			}
 			$message = 'Fetching the feed has successfuly completed.';
-			if (isset($result['add'])) $message .= ' Downloaded ' . count($result['add']) . ' new event(s).';
-			if (isset($result['edit'])) $message .= ' Updated ' . count($result['edit']) . ' event(s).';
+			if ($this->Feed->data['Feed']['source_format'] == 'misp') {
+				if (isset($result['add'])) $message .= ' Downloaded ' . count($result['add']) . ' new event(s).';
+				if (isset($result['edit'])) $message .= ' Updated ' . count($result['edit']) . ' event(s).';
+			}
 		}
 		$this->Session->setFlash($message);
 		$this->redirect(array('action' => 'index'));
@@ -166,16 +231,26 @@ class FeedsController extends AppController {
 	public function previewIndex($feedId) {
 		$this->Feed->id = $feedId;
 		if (!$this->Feed->exists()) throw new NotFoundException('Invalid feed.');
+		$this->Feed->read();
+		if (!empty($this->Feed->data['Feed']['settings'])) {
+			$this->Feed->data['Feed']['settings'] = json_decode($this->Feed->data['Feed']['settings'], true);
+		}
+		if ($this->Feed->data['Feed']['source_format'] == 'misp') {
+			$this->__previewIndex($this->Feed->data);
+		} else if (in_array($this->Feed->data['Feed']['source_format'], array('freetext', 'csv'))) {
+			$this->__previewFreetext($this->Feed->data);
+		}
+	}
+	
+	private function __previewIndex($feed) {
 		if (isset($this->passedArgs['pages'])) $currentPage = $this->passedArgs['pages'];
 		else $currentPage = 1;
 		$urlparams = '';
 		$passedArgs = array();
-
 		App::uses('SyncTool', 'Tools');
 		$syncTool = new SyncTool();
-		$this->Feed->read();
-		$HttpSocket = $syncTool->setupHttpSocketFeed($this->Feed->data);
-		$events = $this->Feed->getManifest($this->Feed->data, $HttpSocket);
+		$HttpSocket = $syncTool->setupHttpSocketFeed($feed);
+		$events = $this->Feed->getManifest($feed, $HttpSocket);
 		if (isset($events['code'])) throw new NotFoundException('Feed could not be fetched. The HTTP error code returned was: ' .$events['code']);
 		$pageCount = count($events);
 		App::uses('CustomPaginationTool', 'Tools');
@@ -184,7 +259,7 @@ class FeedsController extends AppController {
 		$this->params->params['paging'] = array($this->modelClass => $params);
 		if (is_array($events)) $customPagination->truncateByPagination($events, $params);
 		else ($events = array());
-
+		
 		$this->set('events', $events);
 		$this->loadModel('Event');
 		$threat_levels = $this->Event->ThreatLevel->find('all');
@@ -194,11 +269,53 @@ class FeedsController extends AppController {
 		$this->set('distributionLevels', $this->Event->distributionLevels);
 		$shortDist = array(0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All', 4 => ' sharing Group');
 		$this->set('shortDist', $shortDist);
-		$this->set('id', $feedId);
-		$this->set('feed', $this->Feed->data);
+		$this->set('id', $feed['Feed']['id']);
+		$this->set('feed', $feed);
 		$this->set('urlparams', $urlparams);
 		$this->set('passedArgs', json_encode($passedArgs));
 		$this->set('passedArgsArray', $passedArgs);
+	}
+	
+	private function __previewFreetext($feed) {
+		App::uses('SyncTool', 'Tools');
+		$syncTool = new SyncTool();
+		if (!in_array($feed['Feed']['source_format'], array('freetext', 'csv'))) throw new MethodNotAllowedException('Invalid feed type.');
+		$HttpSocket = $syncTool->setupHttpSocketFeed($feed);
+		$resultArray = $this->Feed->getFreetextFeed($feed, $HttpSocket, $feed['Feed']['source_format']);
+		$resultArray = $this->Feed->getFreetextFeedCorrelations($resultArray);
+		// remove all duplicates
+		foreach ($resultArray as $k => $v) {
+			for ($i = 0; $i < $k; $i++) {
+				if (isset($resultArray[$i]) && $v == $resultArray[$i]) unset($resultArray[$k]);
+			}
+		}
+		$resultArray = array_values($resultArray);
+		$this->loadModel('Attribute');
+		$this->set('distributionLevels', $this->Attribute->distributionLevels);
+		$this->set('feed', $feed);
+		$this->set('attributes', $resultArray);
+		$this->render('freetext_index');
+	}
+	
+	private function __previewCSV($feed) {
+		App::uses('SyncTool', 'Tools');
+		$syncTool = new SyncTool();
+		if ($feed['Feed']['source_format'] != 'csv') throw new MethodNotAllowedException('Invalid feed type.');
+		$HttpSocket = $syncTool->setupHttpSocketFeed($feed);
+		$resultArray = $this->Feed->getFreetextFeed($feed, $HttpSocket);
+		$resultArray = $this->Feed->getFreetextFeedCorrelations($resultArray);
+		// remove all duplicates
+		foreach ($resultArray as $k => $v) {
+			for ($i = 0; $i < $k; $i++) {
+				if (isset($resultArray[$i]) && $v == $resultArray[$i]) unset($resultArray[$k]);
+			}
+		}
+		$resultArray = array_values($resultArray);
+		$this->loadModel('Attribute');
+		$this->set('distributionLevels', $this->Attribute->distributionLevels);
+		$this->set('feed', $feed);
+		$this->set('attributes', $resultArray);
+		$this->render('freetext_index');
 	}
 
 
@@ -277,5 +394,27 @@ class FeedsController extends AppController {
 		$action = $enable ? 'enable' : 'disable';
 		$result['message'] = $fail ? 'Could not ' . $action . ' feed.' : 'Feed ' . $action . 'd.';
 		return $result;
+	}
+	
+	public function fetchSelectedFromFreetextIndex($id) {
+		if (!$this->request->is('Post')) {
+			throw new MethodNotAllowedException('Only POST requests are allowed.');
+		}
+		$this->Feed->id = $id;
+		if (!$this->Feed->exists()) {
+			throw new NotFoundException('Feed not found.');
+		}
+		$feed = $this->Feed->read();
+		if (!empty($feed['Feed']['settings'])) {
+			$feed['Feed']['settings'] = json_decode($feed['Feed']['settings'], true);
+		}
+		$data = json_decode($this->request->data['Feed']['data'], true);
+		$result = $this->Feed->saveFreetextFeedData($feed, $data, $this->Auth->user());
+		if ($result === true) {
+			$this->Session->setFlash('Data pulled.');
+		} else {
+			$this->Session->setFlash('Could not pull the selected data. Reason: ' . $result);
+		}
+		$this->redirect(array('controller' => 'feeds', 'action' => 'index'));
 	}
 }

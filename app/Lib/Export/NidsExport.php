@@ -68,6 +68,9 @@ class NidsExport {
 				case 'domain':
 					$this->domainRule($ruleFormat, $item['Attribute'], $sid);
 					break;
+				case 'domain|ip':
+					$this->domainIpRule($ruleFormat, $item['Attribute'], $sid);
+					break;
 				case 'hostname':
 					$this->hostnameRule($ruleFormat, $item['Attribute'], $sid);
 					break;
@@ -85,6 +88,18 @@ class NidsExport {
 
 		}
 		return $this->rules;
+	}
+	
+	public function domainIpRule($ruleFormat, $attribute, &$sid) {
+		$values = explode('|', $attribute['value']);
+		$attributeCopy = $attribute;
+		$attributeCopy['value'] = $values[0];
+		$this->domainRule($ruleFormat, $attributeCopy, $sid);
+		$sid++;
+		$attributeCopy['value'] = $values[1];
+		$this->ipDstRule($ruleFormat, $attributeCopy, $sid);
+		$sid++;
+		$this->ipSrcRule($ruleFormat, $attributeCopy, $sid);
 	}
 
 	public function ipDstRule($ruleFormat, $attribute, &$sid) {
@@ -294,7 +309,7 @@ class NidsExport {
 				);
 		$sid++;
 		// also do http requests,
-		$content = 'flow:to_server,established; content: "Host|3a|"; nocase; http_header; content:"' . $attribute['value'] . '"; nocase; http_header; pcre: "/(^|[^A-Za-z0-9-])' . preg_quote($attribute['value']) . '[^A-Za-z0-9-\.]/H";';
+		$content = 'flow:to_server,established; content: "Host|3a|"; nocase; http_header; content:"' . $attribute['value'] . '"; fast_pattern; nocase; http_header; pcre: "/(^|[^A-Za-z0-9-])' . preg_quote($attribute['value']) . '[^A-Za-z0-9-\.]/H";';
 		$this->rules[] = sprintf($ruleFormat,
 			($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
 				'tcp',						// proto
@@ -397,10 +412,8 @@ class NidsExport {
 			$extraForRule .= $ruleFormatReference . ';';
 		}
 		$tmpRule = preg_replace('/;\s*\)/', '; ' . $extraForRule . ')', $tmpRule);
-
 		// finally the rule is cleaned up and can be outputed
 		$this->rules[] = $tmpRule;
-
 		return true;
 	}
 

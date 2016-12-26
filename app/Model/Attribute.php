@@ -35,12 +35,12 @@ class Attribute extends AppModel {
 	);
 
 	public $distributionDescriptions = array(
-			0 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "This setting will only allow members of your organisation on this server to see it."),
-			1 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "Users that are part of your MISP community will be able to see the event. This includes your own organisation, organisations on this MISP server and organisations running MISP servers that synchronise with this server. Any other organisations connected to such linked servers will be restricted from seeing the event. Use this option if you are on the central hub of this community."), // former Community
-			2 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "Users that are part of your MISP community will be able to see the event. This includes all organisations on this MISP server, all organisations on MISP servers synchronising with this server and the hosting organisations of servers that connect to those afore mentioned servers (so basically any server that is 2 hops away from this one). Any other organisations connected to linked servers that are 2 hops away from this will be restricted from seeing the event. Use this option if this server isn't the central MISP hub of the community but is connected to it."),
-			3 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "This will share the event with all MISP communities, allowing the event to be freely propagated from one server to the next."),
-			4 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "This setting allows you to select a sharing group as the distribution. Keep in mind that the selection here and the event's distribution settings together will form the releasability of this attribute. Both the attribute and the event has to be visible to a user."),
-			5 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "Inherit the event's distribution settings"),
+		0 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "This setting will only allow members of your organisation on this server to see it."),
+		1 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "Organisations that are part of this MISP community will be able to see the event."),
+		2 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "Organisations that are either part of this MISP community or part of a directly connected MISP community will be able to see the event."),
+		3 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "This will share the event with all MISP communities, allowing the event to be freely propagated from one server to the next."),
+		4 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "This distribution of this event will be handled by the selected sharing group."),
+		5 => array('desc' => 'This field determines the current distribution of the event', 'formdesc' => "Inherit the event's distribution settings"),
 	);
 
 	public $distributionLevels = array(
@@ -67,7 +67,11 @@ class Attribute extends AppModel {
 			'vulnerability',
 			'comment',
 			'http-method',
-			'aba-rtn'
+			'aba-rtn',
+			'gender',
+			'counter',
+			'port',
+			'nationality'
 	);
 
 	public $typeDefinitions = array(
@@ -159,7 +163,58 @@ class Attribute extends AppModel {
 			// 'mailslot' => array('desc' => 'MailSlot interprocess communication'), // currently not mapped!
 			// 'pipe' => array('desc' => 'Pipeline (for named pipes use the attribute type "named pipe")'), // currently not mapped!
 			// 'ssl-cert-attributes' => array('desc' => 'SSL certificate attributes'), // currently not mapped!
-			'x509-fingerprint-sha1' => array('desc' => 'X509 fingerprint in SHA-1 format', 'default_category' => 'Network activity', 'to_ids' => 1)
+			'x509-fingerprint-sha1' => array('desc' => 'X509 fingerprint in SHA-1 format', 'default_category' => 'Network activity', 'to_ids' => 1),
+			'dns-soa-email' => array('desc' => 'RFC1035 mandates that DNS zones should have a SOA (Statement Of Authority) record that contains an email address where a PoC for the domain could be contacted. This can sometimes be used for attribution/linkage between different domains even if protected by whois privacy', 'default_category' => 'Attribution', 'to_ids' => 0),
+			'size-in-bytes' => array('desc' => 'Size expressed in bytes', 'default_category' => 'Other', 'to_ids' => 0),
+			'counter' => array('desc' => 'An integer counter, generally to be used in objects', 'default_category' => 'Other', 'to_ids' => 0),
+			'datetime' => array('desc' => 'Datetime in the ISO 8601 format', 'default_category' => 'Other', 'to_ids' => 0),
+			'cpe' => array('desc' => 'Common platform enumeration', 'default_category' => 'Other', 'to_ids' => 0),
+			'port' => array('desc' => 'Port number', 'default_category' => 'Network activity', 'to_ids' => 0),
+			'ip-dst|port' => array('desc' => 'IP destination and port number seperated by a |', 'default_category' => 'Network activity', 'to_ids' => 1),
+			'ip-src|port' => array('desc' => 'IP source and port number seperated by a |', 'default_category' => 'Network activity', 'to_ids' => 1),
+			'hostname|port' => array('desc' => 'Hostname and port number seperated by a |', 'default_category' => 'Network activity', 'to_ids' => 1),
+			// verify IDS flag defaults for these
+			'email-dst-display-name' => array('desc' => 'Email destination display name', 'default_category' => 'Payload delivery', 'to_ids' => 0),
+			'email-src-display-name' => array('desc' => 'Email source display name', 'default_category' => 'Payload delivery', 'to_ids' => 0),
+			'email-header' => array('desc' => 'Email header', 'default_category' => 'Payload delivery', 'to_ids' => 0),
+			'email-reply-to' => array('desc' => 'Email reply to header', 'default_category' => 'Payload delivery', 'to_ids' => 0),
+			'email-x-mailer' => array('desc' => 'Email x-mailer header', 'default_category' => 'Payload delivery', 'to_ids' => 0),
+			'email-mime-boundary' => array('desc' => 'The email mime boundary separating parts in a multipart email', 'default_category' => 'Payload delivery', 'to_ids' => 0),
+			'email-thread-index' => array('desc' => 'The email thread index header', 'default_category' => 'Payload delivery', 'to_ids' => 0),
+			'email-message-id' => array('desc' => '', 'default_category' => '', 'to_ids' => 0),
+			'github-username' => array('desc' => 'A github user name', 'default_category' => 'Social network', 'to_ids' => 0),
+			'github-repository' => array('desc' => 'A github repository', 'default_category' => 'Social network', 'to_ids' => 0),
+			'github-organisation' => array('desc' => 'A github organisation', 'default_category' => 'Social network', 'to_ids' => 0),
+			'jabber-id' => array('desc' => 'Jabber ID', 'default_category' => 'Social network', 'to_ids' => 0),
+			'twitter-id' => array('desc' => 'Twitter ID', 'default_category' => 'Social network', 'to_ids' => 0),
+			'first-name' => array('desc' => 'First name of a natural person', 'default_category' => 'Person', 'to_ids' => 0),
+			'middle-name' => array('desc' => 'Middle name of a natural person', 'default_category' => 'Person', 'to_ids' => 0),
+			'last-name' => array('desc' => 'Last name of a natural person', 'default_category' => 'Person', 'to_ids' => 0),
+			'date-of-birth' => array('desc' => 'Date of birth of a natural person (in YYYY-MM-DD format)', 'default_category' => 'Person', 'to_ids' => 0),
+			'place-of-birth' => array('desc' => 'Place of birth of a natural person', 'default_category' => 'Person', 'to_ids' => 0),
+			'gender' => array('desc' => 'The gender of a natural person (Male, Female, Other, Prefer not to say)', 'default_category' => '', 'to_ids' => 0),
+			'passport-number' => array('desc' => 'The passport number of a natural person', 'default_category' => 'Person', 'to_ids' => 0),
+			'passport-country' => array('desc' => 'The country in which the passport was issued', 'default_category' => 'Person', 'to_ids' => 0),
+			'passport-expiration' => array('desc' => 'The expiration date of a passport', 'default_category' => 'Person', 'to_ids' => 0),
+			'redress-number' => array('desc' => 'The Redress Control Number is the record identifier for people who apply for redress through the DHS Travel Redress Inquiry Program (DHS TRIP). DHS TRIP is for travelers who have been repeatedly identified for additional screening and who want to file an inquiry to have erroneous information corrected in DHS systems', 'default_category' => 'Person', 'to_ids' => 0),
+			'nationality' => array('desc' => 'The nationality of a natural person', 'default_category' => 'Person', 'to_ids' => 0),
+			'visa-number' => array('desc' => 'Visa number', 'default_category' => 'Person', 'to_ids' => 0),
+			'issue-date-of-the-visa' => array('desc' => 'The date on which the visa was issued', 'default_category' => 'Person', 'to_ids' => 0),
+			'primary-residence' => array('desc' => 'The primary residence of a natural person', 'default_category' => 'Person', 'to_ids' => 0),
+			'country-of-residence' => array('desc' => 'The country of residence of a natural person', 'default_category' => 'Person', 'to_ids' => 0),
+			'special-service-request' => array('desc' => 'A Special Service Request is a function to an airline to provide a particular facility for A Passenger or passengers. ', 'default_category' => 'Person', 'to_ids' => 0),
+			'frequent-flyer-number' => array('desc' => 'The frequent flyer number of a passenger', 'default_category' => 'Person', 'to_ids' => 0),
+			// Do we really need remarks? Or just use comment/text for this?
+			//'remarks' => array('desc' => '', 'default_category' => 'Person', 'to_ids' => 0),
+			'travel-details' => array('desc' => 'Travel details', 'default_category' => 'Person', 'to_ids' => 0),
+			'payment-details' => array('desc' => 'Payment details', 'default_category' => 'Person', 'to_ids' => 0),
+			'place-port-of-original-embarkation' => array('desc' => 'The orignal port of embarkation', 'default_category' => 'Person', 'to_ids' => 0),
+			'place-port-of-clearance' => array('desc' => 'The port of clearance', 'default_category' => 'Person', 'to_ids' => 0),
+			'place-port-of-onward-foreign-destination' => array('desc' => 'A Port where the passenger is transiting to', 'default_category' => 'Person', 'to_ids' => 0),
+			'passenger-name-record-locator-number' => array('desc' => 'The Passenger Name Record Locator is a key under which the reservation for a trip is stored in the system. The PNR contains, among other data, the name, flight segments and address of the passenger. It is defined by a combination of five or six letters and numbers.', 'default_category' => 'Person', 'to_ids' => 0),
+			'mobile-application-id' => array('desc' => 'The application id of a mobile application', 'default_category' => 'Payload delivery', 'to_ids' => 1)
+			// Not convinced about this.
+			//'url-regex' => array('desc' => '', 'default_category' => 'Person', 'to_ids' => 0),
 	);
 
 	// definitions of categories
@@ -181,7 +236,7 @@ class Attribute extends AppModel {
 			'Payload delivery' => array(
 					'desc' => 'Information about how the malware is delivered',
 					'formdesc' => 'Information about the way the malware payload is initially delivered, for example information about the email or web-site, vulnerability used, originating IP etc. Malware sample itself should be attached here.',
-					'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'authentihash', 'pehash', 'tlsh', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|pehash', 'ip-src', 'ip-dst', 'hostname', 'domain', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'url', 'user-agent', 'AS', 'pattern-in-file', 'pattern-in-traffic', 'yara', 'attachment', 'malware-sample', 'link', 'malware-type', 'comment', 'text', 'vulnerability', 'x509-fingerprint-sha1', 'other')
+					'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'authentihash', 'pehash', 'tlsh', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|pehash', 'ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'hostname', 'domain', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'url', 'user-agent', 'AS', 'pattern-in-file', 'pattern-in-traffic', 'yara', 'attachment', 'malware-sample', 'link', 'malware-type', 'comment', 'text', 'vulnerability', 'x509-fingerprint-sha1', 'other', 'ip-dst|port', 'ip-src|port', 'hostname|port', 'email-dst-display-name', 'email-src-display-name', 'email-header', 'email-reply-to', 'email-x-mailer', 'email-mime-boundary', 'email-thread-index', 'email-message-id', 'mobile-application-id')
 					),
 			'Artifacts dropped' => array(
 					'desc' => 'Any artifact (files, registry keys etc.) dropped by the malware or other modifications to the system',
@@ -190,7 +245,7 @@ class Attribute extends AppModel {
 			'Payload installation' => array(
 					'desc' => 'Info on where the malware gets installed in the system',
 					'formdesc' => 'Location where the payload was placed in the system and the way it was installed. For example, a filename|md5 type attribute can be added here like this: c:\\windows\\system32\\malicious.exe|41d8cd98f00b204e9800998ecf8427e.',
-					'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'authentihash', 'pehash', 'tlsh', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|pehash', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'yara', 'vulnerability', 'attachment', 'malware-sample', 'malware-type', 'comment', 'text', 'x509-fingerprint-sha1', 'other')
+					'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'authentihash', 'pehash', 'tlsh', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|pehash', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'yara', 'vulnerability', 'attachment', 'malware-sample', 'malware-type', 'comment', 'text', 'x509-fingerprint-sha1', 'mobile-application-id', 'other')
 					),
 			'Persistence mechanism' => array(
 					'desc' => 'Mechanisms used by the malware to start at boot',
@@ -199,7 +254,7 @@ class Attribute extends AppModel {
 					),
 			'Network activity' => array(
 					'desc' => 'Information about network traffic generated by the malware',
-					'types' => array('ip-src', 'ip-dst', 'hostname', 'domain', 'domain|ip', 'email-dst', 'url', 'uri', 'user-agent', 'http-method', 'AS', 'snort', 'pattern-in-file', 'pattern-in-traffic', 'attachment', 'comment', 'text', 'x509-fingerprint-sha1', 'other')
+					'types' => array('ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'hostname', 'domain', 'domain|ip', 'email-dst', 'url', 'uri', 'user-agent', 'http-method', 'AS', 'snort', 'pattern-in-file', 'pattern-in-traffic', 'attachment', 'comment', 'text', 'x509-fingerprint-sha1', 'other')
 					),
 			'Payload type' => array(
 					'desc' => 'Information about the final payload(s)',
@@ -213,16 +268,29 @@ class Attribute extends AppModel {
 			'External analysis' => array(
 					'desc' => 'Any other result from additional analysis of the malware like tools output',
 					'formdesc' => 'Any other result from additional analysis of the malware like tools output Examples: pdf-parser output, automated sandbox analysis, reverse engineering report.',
-					'types' => array('md5', 'sha1', 'sha256','filename', 'filename|md5', 'filename|sha1', 'filename|sha256', 'ip-src', 'ip-dst', 'hostname', 'domain', 'domain|ip', 'url', 'user-agent', 'regkey', 'regkey|value', 'AS', 'snort', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'vulnerability', 'attachment', 'malware-sample', 'link', 'comment', 'text', 'x509-fingerprint-sha1', 'other')
+					'types' => array('md5', 'sha1', 'sha256','filename', 'filename|md5', 'filename|sha1', 'filename|sha256', 'ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'hostname', 'domain', 'domain|ip', 'url', 'user-agent', 'regkey', 'regkey|value', 'AS', 'snort', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'vulnerability', 'attachment', 'malware-sample', 'link', 'comment', 'text', 'x509-fingerprint-sha1', 'github-repository', 'other')
 					),
 			'Financial fraud' => array(
 					'desc' => 'Financial Fraud indicators',
 					'formdesc' => 'Financial Fraud indicators, for example: IBAN Numbers, BIC codes, Credit card numbers, etc.',
 					'types' => array('btc', 'iban', 'bic', 'bank-account-nr', 'aba-rtn', 'bin', 'cc-number', 'prtn', 'comment', 'text', 'other'),
 					),
+			'Support Tool' => array(
+					'desc' => 'Tools supporting analysis or detection of the event',
+					'types' => array('link', 'text', 'attachment', 'comment', 'text', 'other')
+			),
+			'Social network' => array(
+					'desc' => 'Social networks and platforms',
+					// email-src and email-dst or should we go with a new email type that is neither / both?
+					'types' => array('github-username', 'github-repository', 'github-organisation', 'jabber-id', 'twitter-id', 'email-src', 'email-dst', 'comment', 'text', 'other')
+			),
+			'Person' => array(
+					'desc' => 'A human being - natural person',
+					'types' => array('first-name', 'middle-name', 'last-name', 'date-of-birth', 'place-of-birth', 'gender', 'passport-number', 'passport-country', 'passport-expiration', 'redress-number', 'nationality', 'visa-number', 'issue-date-of-the-visa', 'primary-residence', 'country-of-residence', 'special-service-request', 'frequent-flyer-number', 'travel-details', 'payment-details', 'place-port-of-original-embarkation', 'place-port-of-clearance', 'place-port-of-onward-foreign-destination', 'passenger-name-record-locator-number', 'comment', 'text', 'other')
+			),
 			'Other' => array(
-					'desc' => 'Attributes that are not part of any other category',
-					'types' => array('comment', 'text', 'other')
+					'desc' => 'Attributes that are not part of any other category or are meant to be used as a component in MISP objects in the future',
+					'types' => array('size-in-bytes', 'counter', 'datetime', 'cpe', 'port', 'comment', 'text', 'other')
 					)
 	);
 
@@ -524,7 +592,7 @@ class Attribute extends AppModel {
 		return false;
 	}
 
-	public function valueIsUnique ($fields) {
+		public function valueIsUnique ($fields) {
 		if (isset($this->data['Attribute']['deleted']) && $this->data['Attribute']['deleted']) return true;
 		$value = $fields['value'];
 		$eventId = $this->data['Attribute']['event_id'];
@@ -699,12 +767,36 @@ class Attribute extends AppModel {
 					$returnValue = 'IP address has an invalid format. Please double check the value or select type "other".';
 				}
 				break;
+			case 'port':
+				if (!is_numeric($value) || $value > 1 || $value < 65536) {
+					$returnValue = 'Port numbers have to be positive integers under 65536.';
+				} else {
+					$returnValue = true;
+				}
+				break;
+			case 'ip-dst|port':
+			case 'ip-src|port':
+				$parts = explode('|', $value);
+				if (filter_var($parts[0], FILTER_VALIDATE_IP)) {
+					if (!is_numeric($parts[1]) || $parts[1] > 1 || $parts[1] < 65536) {
+						$returnValue = true;
+					}
+				}
+				break;
 			case 'hostname':
 			case 'domain':
 				if (preg_match("#^[A-Z0-9.\-_]+\.[A-Z]{2,}$#i", $value)) {
 					$returnValue = true;
 				} else {
 					$returnValue = 'Domain name has an invalid format. Please double check the value or select type "other".';
+				}
+				break;
+			case 'hostname|port':
+				$parts = explode('|', $value);
+				if (preg_match("#^[A-Z0-9.\-_]+\.[A-Z]{2,}$#i", $parts[0])) {
+					if (!is_numeric($parts[1]) || $parts[1] > 1 || $parts[1] < 65536) {
+						$returnValue = true;
+					}
 				}
 				break;
 			case 'domain|ip':
@@ -723,6 +815,8 @@ class Attribute extends AppModel {
 			case 'email-dst':
 			case 'target-email':
 			case 'whois-registrant-email':
+			case 'dns-soa-email':
+			case 'jabber-id':
 				// we don't use the native function to prevent issues with partial email addresses
 				if (preg_match("#^[A-Z0-9._&%+-=~]*@[A-Z0-9.\-_]+\.[A-Z]{2,}$#i", $value)) {
 					$returnValue = true;
@@ -762,7 +856,8 @@ class Attribute extends AppModel {
 				$returnValue = true;
 				break;
 			case 'link':
-				if (preg_match('#^(http|ftp)(s)?\:\/\/((([a-z|0-9|\-]{1,25})(\.)?){2,7})($|/.*$)#i', $value) && !preg_match("#\n#", $value)) {
+				// Moved to a native function whilst still enforcing the scheme as a requirement
+				if (filter_var($value, FILTER_VALIDATE_URL, FILTER_FLAG_SCHEME_REQUIRED) && !preg_match("#\n#", $value)) {
 					$returnValue = true;
 				}
 				break;
@@ -782,6 +877,7 @@ class Attribute extends AppModel {
 			case 'email-subject':
 			case 'email-attachment':
 			case 'malware-type':
+			// TODO: review url/uri validation
 			case 'url':
 			case 'uri':
 			case 'user-agent':
@@ -793,8 +889,61 @@ class Attribute extends AppModel {
 			case 'whois-registrant-name':
 			case 'whois-registrar':
 			case 'whois-creation-date':
+			case 'first-name':
+			case 'middle-name':
+			case 'last-name':
+			case 'date-of-birth':
+			case 'place-of-birth':
+			case 'gender':
+			case 'passport-number':
+			case 'passport-country':
+			case 'passport-expiration':
+			case 'redress-number':
+			case 'nationality':
+			case 'visa-number':
+			case 'issue-date-of-the-visa':
+			case 'primary-residence':
+			case 'country-of-residence':
+			case 'special-service-request':
+			case 'frequent-flyer-number':
+			case 'travel-details':
+			case 'payment-details':
+			case 'place-port-of-original-embarkation':
+			case 'place-port-of-clearance':
+			case 'place-port-of-onward-foreign-destination':
+			case 'passenger-name-record-locator-number':
+			case 'email-dst-display-name':
+			case 'email-src-display-name':
+			case 'email-header':
+			case 'email-reply-to':
+			case 'email-x-mailer':
+			case 'email-mime-boundary':
+			case 'email-thread-index':
+			case 'email-message-id':
+			case 'github-username':
+			case 'github-repository':
+			case 'github-organisation':
+			case 'cpe':
+			case 'twitter-id':
+			case 'mobile-application-id':
 				// no newline
 				if (!preg_match("#\n#", $value)) {
+					$returnValue = true;
+				}
+				break;
+			case 'datetime':
+				try {
+					new DateTime($value);
+					$returnValue = true;
+				} catch (Exception $e) {
+					$returnValue = 'Datetime has to be in the ISO 8601 format.';
+				}
+				break;
+			case 'size-in-bytes':
+			case 'counter':
+				if (!is_numeric($value) || $value < 0) {
+					$returnValue = 'The value has to be a number greater or equal 0.';
+				} else {
 					$returnValue = true;
 				}
 				break;
@@ -903,6 +1052,25 @@ class Attribute extends AppModel {
 					// convert IPv6 address to compressed format
 					$value = inet_ntop(inet_pton($value));
 				}
+				break;
+			case 'ip-dst|port':
+			case 'ip-src|port':
+					if (strpos($value, ':')) {
+						$parts = explode(':', $value);
+					} else if (strpos($value, '|')) {
+						$parts = explode('|', $value);
+					} else {
+						return $value;
+					}
+					if (filter_var($parts[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+						// convert IPv6 address to compressed format
+						$parts[0] = inet_ntop(inet_pton($parts[0]));
+					}
+					return $parts[0] . '|' . $parts[1];
+				break;
+			case 'hostname|port':
+				$value = strtolower($value);
+				str_replace(':', '|', $value);
 				break;
 		}
 		return $value;
@@ -1096,10 +1264,13 @@ class Attribute extends AppModel {
 			if (!$event) {
 				$event = $this->Event->find('first', array(
 						'recursive' => -1,
-						'fields' => array('Event.distribution', 'Event.id', 'Event.info', 'Event.org_id', 'Event.date', 'Event.sharing_group_id'),
+						'fields' => array('Event.distribution', 'Event.id', 'Event.info', 'Event.org_id', 'Event.date', 'Event.sharing_group_id', 'Event.disable_correlation'),
 						'conditions' => array('id' => $a['event_id']),
 						'order' => array(),
 				));
+			}
+			if ($event['Event']['disable_correlation']) {
+				return true;
 			}
 			$this->Correlation = ClassRegistry::init('Correlation');
 			$correlatingValues = array($a['value1']);
@@ -1113,6 +1284,8 @@ class Attribute extends AppModel {
 										'Attribute.value2' => $cV
 								),
 								'Attribute.type !=' => $this->nonCorrelatingTypes,
+								'Attribute.disable_correlation' => 0,
+								'Event.disable_correlation' => 0
 							),
 							'Attribute.deleted' => 0
 						),
@@ -1206,7 +1379,7 @@ class Attribute extends AppModel {
 	}
 
 
-	public function hids($user, $type, $tags = '', $from = false, $to = false, $last = false, $jobId = false) {
+	public function hids($user, $type, $tags = '', $from = false, $to = false, $last = false, $jobId = false, $enforceWarninglist = false) {
 		if (empty($user)) throw new MethodNotAllowedException('Could not read user.');
 		// check if it's a valid type
 		if ($type != 'md5' && $type != 'sha1' && $type != 'sha256') {
@@ -1245,6 +1418,7 @@ class Attribute extends AppModel {
 			$options = array(
 					'conditions' => $conditions,
 					'group' => array('Attribute.type', 'Attribute.value1'),
+					'enforceWarninglist' => $enforceWarninglist
 			);
 			$items = $this->fetchAttributes($user, $options);
 			if (empty($items)) continue;
@@ -1259,7 +1433,7 @@ class Attribute extends AppModel {
 	}
 
 
-	public function nids($user, $format, $id = false, $continue = false, $tags = false, $from = false, $to = false, $last = false) {
+	public function nids($user, $format, $id = false, $continue = false, $tags = false, $from = false, $to = false, $last = false, $type = false, $enforceWarninglist = false) {
 		if (empty($user)) throw new MethodNotAllowedException('Could not read user.');
 		$eventIds = $this->Event->fetchEventIds($user, $from, $to, $last);
 
@@ -1292,8 +1466,11 @@ class Attribute extends AppModel {
 		$rules = array();
 		foreach ($eventIds as $event) {
 			$conditions['AND'] = array('Attribute.to_ids' => 1, "Event.published" => 1, 'Attribute.event_id' => $event['Event']['id']);
-			$valid_types = array('ip-dst', 'ip-src', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'domain', 'hostname', 'url', 'user-agent', 'snort');
+			$valid_types = array('ip-dst', 'ip-src', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'domain', 'domain|ip', 'hostname', 'url', 'user-agent', 'snort');
 			$conditions['AND']['Attribute.type'] = $valid_types;
+			if (!empty($type)) {
+				$conditions['AND'][] = array('Attribute.type' => $type);
+			}
 
 			$params = array(
 					'conditions' => $conditions, // array of conditions
@@ -1301,6 +1478,7 @@ class Attribute extends AppModel {
 					'fields' => array('Attribute.id', 'Attribute.event_id', 'Attribute.type', 'Attribute.value'),
 					'contain' => array('Event'=> array('fields' => array('Event.id', 'Event.threat_level_id'))),
 					'group' => array('Attribute.type', 'Attribute.value1'), // fields to GROUP BY
+					'enforceWarninglist' => $enforceWarninglist
 			);
 			$items = $this->fetchAttributes($user, $params);
 			if (empty($items)) continue;
@@ -1320,10 +1498,10 @@ class Attribute extends AppModel {
 		return $rules;
 	}
 
-	public function text($user, $type, $tags = false, $eventId = false, $allowNonIDS = false, $from = false, $to = false, $last = false) {
+	public function text($user, $type, $tags = false, $eventId = false, $allowNonIDS = false, $from = false, $to = false, $last = false, $enforceWarninglist = false) {
 		//restricting to non-private or same org if the user is not a site-admin.
 		$conditions['AND'] = array();
-		if ($allowNonIDS === false) $conditions['AND'] = array('Attribute.to_ids =' => 1, 'Event.published =' => 1);
+		if ($allowNonIDS === false) $conditions['AND'] = array('Attribute.to_ids' => 1, 'Event.published' => 1);
 		if ($type !== 'all') $conditions['AND']['Attribute.type'] = $type;
 		if ($from) $conditions['AND']['Event.date >='] = $from;
 		if ($to) $conditions['AND']['Event.date <='] = $to;
@@ -1353,11 +1531,13 @@ class Attribute extends AppModel {
 				'fields' => array('value'),
 				'contain' => array('Event' => array(
 					'fields' => array('Event.id', 'Event.published', 'Event.date', 'Event.publish_timestamp'),
-		))));
+				)),
+				'enforceWarninglist' => $enforceWarninglist
+		));
 		return $attributes;
 	}
 
-	public function rpz($user, $tags = false, $eventId = false, $from = false, $to = false) {
+	public function rpz($user, $tags = false, $eventId = false, $from = false, $to = false, $enforceWarninglist = false) {
 		// we can group hostname and domain as well as ip-src and ip-dst in this case
 		$conditions['AND'] = array('Attribute.to_ids' => 1, 'Event.published' => 1);
 		$typesToFetch = array('ip' => array('ip-src', 'ip-dst'), 'domain' => array('domain'), 'hostname' => array('hostname'));
@@ -1384,14 +1564,14 @@ class Attribute extends AppModel {
 		}
 		$values = array();
 		foreach ($typesToFetch as $k => $v) {
+			$tempConditions = $conditions;
+			$tempConditions['type'] = $v;
 			$temp = $this->fetchAttributes(
 					$user,
 					array(
-						'conditions' => array(
-							$conditions,
-							array('type' => $v),
-						),
+						'conditions' => $tempConditions,
 						'fields' => array('Attribute.value'), // array of field names
+						'enforceWarninglist' => $enforceWarninglist
 					)
 			);
 			if (empty($temp)) continue;
@@ -1417,108 +1597,97 @@ class Attribute extends AppModel {
 		return $values;
 	}
 
-	function bro($user, $type, $tags = false, $eventId = false, $from = false, $to = false, $last = false) {
-		//restricting to non-private or same org if the user is not a site-admin.
-		$conditions['AND'] = array('Attribute.to_ids =' => 1, 'Event.published =' => 1);
-		if ($from) $conditions['AND']['Event.date >='] = $from;
-		if ($to) $conditions['AND']['Event.date <='] = $to;
-		if ($last) $conditions['AND']['Event.publish_timestamp >='] = $last;
-		if ($eventId !== false) {
-			$conditions['AND'][] = array('Event.id' => $eventId);
-		} 
-		else if ($tags !== false) {
-			// If we sent any tags along, load the associated tag names for each attribute
-			$tag = ClassRegistry::init('Tag');
-			$args = $this->dissectArgs($tags);
-			$tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
-			$temp = array();
-			foreach ($tagArray[0] as $accepted) {
-				$temp['OR'][] = array('Event.id' => $accepted);
-			}
-			$conditions['AND'][] = $temp;
-			$temp = array();
-			foreach ($tagArray[1] as $rejected) {
-				$temp['AND'][] = array('Event.id !=' => $rejected);
-			}
-			$conditions['AND'][] = $temp;
-		}
+	public function bro($user, $type, $tags = false, $eventId = false, $from = false, $to = false, $last = false, $enforceWarninglist = false) {
 		App::uses('BroExport', 'Export');
 		$export = new BroExport();
-		$this->Whitelist = ClassRegistry::init('Whitelist');
-		$this->whitelist = $this->Whitelist->getBlockedValues();
-		$instanceString = 'MISP';
-		if (Configure::read('MISP.host_org_id') && Configure::read('MISP.host_org_id') > 0) {
-			$this->Event->Orgc->id = Configure::read('MISP.host_org_id');
-			if ($this->Event->Orgc->exists()) {
-				$instanceString = $this->Event->Orgc->field('name') . ' MISP';
+		if ($type == 'all') {
+		  $types = array_keys($export->mispTypes);
+		} else {
+		  $types = array($type);
+		}
+		$intel = array();
+		foreach ($types as $type) {
+			//restricting to non-private or same org if the user is not a site-admin.
+			$conditions['AND'] = array('Attribute.to_ids =' => 1, 'Event.published =' => 1);
+			if ($from) $conditions['AND']['Event.date >='] = $from;
+			if ($to) $conditions['AND']['Event.date <='] = $to;
+			if ($last) $conditions['AND']['Event.publish_timestamp >='] = $last;
+			if ($eventId !== false) {
+				$temp = array();
+				$args = $this->dissectArgs($eventId);
+				foreach ($args[0] as $accepted) {
+					$temp['OR'][] = array('Event.id' => $accepted);
+				}
+				$conditions['AND'][] = $temp;
+				$temp = array();
+				foreach ($args[1] as $rejected) {
+					$temp['AND'][] = array('Event.id !=' => $rejected);
+				}
+				$conditions['AND'][] = $temp;
+			}
+			if ($tags !== false) {
+				// If we sent any tags along, load the associated tag names for each attribute
+				$tag = ClassRegistry::init('Tag');
+				$args = $this->dissectArgs($tags);
+				$tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
+				$temp = array();
+				foreach ($tagArray[0] as $accepted) {
+					$temp['OR'][] = array('Event.id' => $accepted);
+				}
+				$conditions['AND'][] = $temp;
+				$temp = array();
+				foreach ($tagArray[1] as $rejected) {
+					$temp['AND'][] = array('Event.id !=' => $rejected);
+				}
+				$conditions['AND'][] = $temp;
+			}
+			$this->Whitelist = ClassRegistry::init('Whitelist');
+			$this->whitelist = $this->Whitelist->getBlockedValues();
+			$instanceString = 'MISP';
+			if (Configure::read('MISP.host_org_id') && Configure::read('MISP.host_org_id') > 0) {
+				$this->Event->Orgc->id = Configure::read('MISP.host_org_id');
+				if ($this->Event->Orgc->exists()) {
+					$instanceString = $this->Event->Orgc->field('name') . ' MISP';
+				}
+			}
+			$mispTypes = $export->getMispTypes($type);
+			foreach($mispTypes as $mispType) {
+				$conditions['AND']['Attribute.type'] = $mispType[0];
+				$intel = array_merge($intel, $this->__bro($user, $conditions, $mispType[1], $export, $this->whitelist, $instanceString, $enforceWarninglist));
 			}
 		}
-		$mispTypes = $export->getMispTypes($type);
-		$intel = array($export->header);
-		foreach($mispTypes as $mispType) {
-			$conditions['AND']['Attribute.type'] = $mispType[0];
-			$intel = $this->__bro($intel, $user, $conditions, $mispType[1], $export, $this->whitelist, $instanceString);
-		}
+		natsort($intel);
+		$intel = array_unique($intel);
+		array_unshift($intel, $export->header);
 		return $intel;
 	}
 
-	private function __bro($intel, $user, $conditions, $valueField, $export, $whitelist, $instanceString) {
+	private function __bro($user, $conditions, $valueField, $export, $whitelist, $instanceString, $enforceWarninglist) {
 		$attributes = $this->fetchAttributes($user, array(
 				'conditions' => $conditions, // array of conditions
 				'order' => 'Attribute.value' . $valueField . ' ASC',
 				'recursive' => -1, // int
-				'fields' => array('Attribute.id', 'Attribute.event_id', 'Attribute.type', 'Attribute.value' . $valueField . " as value"),
+				'fields' => array('Attribute.id', 'Attribute.event_id', 'Attribute.type', 'Attribute.comment', 'Attribute.value' . $valueField . " as value"),
 				'contain' => array('Event' => array('fields' => array('Event.id', 'Event.threat_level_id', 'Event.orgc_id', 'Event.uuid'))),
 				'group' => array('Attribute.type', 'Attribute.value' . $valueField), // fields to GROUP BY
+				'enforceWarninglist' => $enforceWarninglist
 			)
 		);
 		$orgs = $this->Event->Orgc->find('list', array(
 				'fields' => array('Orgc.id', 'Orgc.name')
 		));
-		return $export->export($attributes, $orgs, $valueField, $intel, $whitelist, $instanceString);
-	}
-	
-	public function brozip($user, $tags, $eventId, $allowNonIDS, $from, $to, $last, $jobId = false) {
-		App::uses('BroExport', 'Export');
-		$export = new BroExport();
-		$types = array_keys($export->mispTypes);
-		$typeCount = count($types);
-		if ($jobId) {
-			$this->Job = ClassRegistry::init('Job');
-			$this->Job->id = $jobId;
-			if (!$this->Job->exists()) {
-				$jobId = false;
-			}
-		}
-		$dir = new Folder(APP . 'tmp/files/' . $this->Event->generateRandomFileName(), true, 0750);
-		$tmpZipname = DS . "bro_export_tmp.zip";
-		$zip = new File($dir->pwd() . $tmpZipname);
-		foreach ($types as $k => $type) {
-			$final = $this->bro($user, $type, $tags, $eventId, $allowNonIDS, $from, $to, $last);
-			$filename = $type . '.intel';
-			$file = new File($dir->pwd() . DS . $filename);
-			$file->write(implode(PHP_EOL, $final));
-			$file->close();
-			$execRetval = '';
-			$execOutput = array();
-			exec('zip -gj  ' . $zip->path . ' ' . $dir->pwd() . '/' .  $filename, $execOutput, $execRetval);
-			if ($execRetval != 0) { // not EXIT_SUCCESS
-				throw new Exception('An error has occured while attempting to zip the intel files.');
-			}
-			$file->delete(); // delete the original non-zipped-file
-			if ($jobId) {
-				$this->Job->saveField('progress', $k / $typeCount * 100);
-			}
-		}
-		$zip->close();
-		return array($dir->pwd(), $tmpZipname);
+		return $export->export($attributes, $orgs, $valueField, $whitelist, $instanceString);
 	}
 
-	public function generateCorrelation($jobId = false, $startPercentage = 0) {
+	public function generateCorrelation($jobId = false, $startPercentage = 0, $eventId = false, $attributeId = false) {
 		$this->Correlation = ClassRegistry::init('Correlation');
-		$this->Correlation->deleteAll(array('id !=' => 0), false);
+		$this->purgeCorrelations($eventId);
 		// get all attributes..
-		$eventIds = $this->Event->find('list', array('recursive' => -1, 'fields' => array('Event.id')));
+		if (!$eventId) {
+			$eventIds = $this->Event->find('list', array('recursive' => -1, 'fields' => array('Event.id')));
+		} else {
+			$eventIds = array($eventId);
+		}
 		$attributeCount = 0;
 		if (Configure::read('MISP.background_jobs') && $jobId) {
 			$this->Job = ClassRegistry::init('Job');
@@ -1527,16 +1696,24 @@ class Attribute extends AppModel {
 		}
 		foreach (array_values($eventIds) as $j => $id) {
 			if ($jobId && Configure::read('MISP.background_jobs')) {
-				$this->Job->saveField('message', 'Correlating Event ' . $id);
+				if ($attributeId) {
+					$this->Job->saveField('message', 'Correlating Attribute ' . $attributeId);
+				} else {
+					$this->Job->saveField('message', 'Correlating Event ' . $id);
+				}
 				$this->Job->saveField('progress', ($startPercentage + ($j / $eventCount * (100 - $startPercentage))));
 			}
 			$event = $this->Event->find('first', array(
 					'recursive' => -1,
-					'fields' => array('Event.distribution', 'Event.id', 'Event.info', 'Event.org_id', 'Event.date', 'Event.sharing_group_id'),
+					'fields' => array('Event.distribution', 'Event.id', 'Event.info', 'Event.org_id', 'Event.date', 'Event.sharing_group_id', 'Event.disable_correlation'),
 					'conditions' => array('id' => $id),
 					'order' => array()
 			));
-			$attributes = $this->find('all', array('recursive' => -1, 'conditions' => array('Attribute.event_id' => $id, 'Attribute.deleted' => 0), 'order' => array()));
+			$attributeConditions = array('Attribute.event_id' => $id, 'Attribute.deleted' => 0);
+			if ($attributeId) {
+				$attributeConditions['Attribute.id'] = $attributeId;
+			}
+			$attributes = $this->find('all', array('recursive' => -1, 'conditions' => $attributeConditions, 'order' => array()));
 			foreach ($attributes as $k => $attribute) {
 				$this->__afterSaveCorrelation($attribute['Attribute'], true, $event);
 				$attributeCount++;
@@ -1544,6 +1721,23 @@ class Attribute extends AppModel {
 		}
 		if ($jobId && Configure::read('MISP.background_jobs')) $this->Job->saveField('message', 'Job done.');
 		return $attributeCount;
+	}
+
+	public function purgeCorrelations($eventId = false, $attributeId = false) {
+		if (!$eventId) {
+			$this->query('TRUNCATE TABLE correlations;');
+		} else if (!$attributeId) {
+			$this->Correlation = ClassRegistry::init('Correlation');
+			$this->Correlation->deleteAll(array('OR' => array(
+				'Correlation.1_event_id' => $eventId,
+				'Correlation.event_id' => $eventId))
+			);
+		} else {
+			$this->Correlation->deleteAll(array('OR' => array(
+				'Correlation.1_attribute_id' => $attributeId,
+				'Correlation.attribute_id' => $attributeId))
+			);
+		}
 	}
 
 	public function reportValidationIssuesAttributes($eventId) {
@@ -1809,19 +2003,56 @@ class Attribute extends AppModel {
 		}
 		if (isset($options['contain'])) $params['contain'] = array_merge_recursive($params['contain'], $options['contain']);
 		else $option['contain']['Event']['fields'] = array('id', 'info', 'org_id', 'orgc_id');
+		if (Configure::read('MISP.proposals_block_attributes') && isset($options['conditions']['AND']['Attribute.to_ids']) && $options['conditions']['AND']['Attribute.to_ids'] == 1) {
+			$this->bindModel(array('hasMany' => array('ShadowAttribute' => array('foreignKey' => 'old_id'))));
+			$proposalRestriction =  array(
+					'ShadowAttribute' => array(
+							'conditions' => array(
+									'AND' => array(
+											'ShadowAttribute.deleted' => 0,
+											'OR' => array(
+													'ShadowAttribute.proposal_to_delete' => 1,
+													'ShadowAttribute.to_ids' => 0
+											)
+									)
+							),
+							'fields' => array('ShadowAttribute.id')
+					)
+			);
+			$params['contain'] = array_merge($params['contain'], $proposalRestriction);
+		}
 		if (isset($options['fields'])) $params['fields'] = $options['fields'];
 		if (isset($options['conditions'])) $params['conditions']['AND'][] = $options['conditions'];
 		if (isset($options['order'])) $params['order'] = $options['order'];
+		if (!isset($options['withAttachments'])) $options['withAttachments'] = false;
 		else ($params['order'] = array());
+		if (!isset($options['enforceWarninglist'])) $options['enforceWarninglist'] = false;
 		if (!$user['Role']['perm_sync'] || !isset($options['deleted']) || !$options['deleted']) $params['conditions']['AND']['Attribute.deleted'] = 0;
 		if (isset($options['group'])) $params['group'] = array_merge(array('Attribute.id'), $options['group']);
 		if (Configure::read('MISP.unpublishedprivate')) $params['conditions']['AND'][] = array('OR' => array('Event.published' => 1, 'Event.orgc_id' => $user['org_id']));
 		$results = $this->find('all', $params);
-		if (isset($options['withAttachments']) && $options['withAttachments']) {
-			foreach ($results as &$attribute) {
+		if ($options['enforceWarninglist']) {
+			$this->Warninglist = ClassRegistry::init('Warninglist');
+			$warninglists = $this->Warninglist->fetchForEventView();
+		}
+		$results = array_values($results);
+		$proposals_block_attributes = Configure::read('MISP.proposals_block_attributes');
+		foreach ($results as $key => $attribute) {
+			if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttributes($warninglists, $attribute['Attribute'], $this->Warninglist)) {
+				unset($results[$key]);
+				continue;
+			}
+			if ($proposals_block_attributes) {
+				if (!empty($attribute['ShadowAttribute'])) {
+					unset($results[$key]);
+				} else {
+					unset($results[$key]['ShadowAttribute']);
+				}
+			}
+			if ($options['withAttachments']) {
 				if ($this->typeIsAttachment($attribute['Attribute']['type'])) {
 					$encodedFile = $this->base64EncodeAttachment($attribute['Attribute']);
-					$attribute['Attribute']['data'] = $encodedFile;
+					$results[$key]['Attribute']['data'] = $encodedFile;
 				}
 			}
 		}

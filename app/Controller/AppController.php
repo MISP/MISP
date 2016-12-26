@@ -46,7 +46,7 @@ class AppController extends Controller {
 
 	public $helpers = array('Utility');
 
-	private $__jsVersion = '2.4.51';
+	private $__jsVersion = '2.4.58';
 	public $phpmin = '5.5.9';
 	public $phprec = '5.6.0';
 
@@ -54,7 +54,7 @@ class AppController extends Controller {
 	// This is used to allow authentication via headers for methods not covered by _isRest() - as that only checks for JSON and XML formats
 	public $automationArray = array(
 		'events' => array('csv', 'nids', 'hids', 'xml', 'restSearch', 'stix', 'updateGraph', 'downloadOpenIOCEvent'),
-		'attributes' => array('text', 'downloadAttachment', 'returnAttributes', 'restSearch', 'rpz'),
+		'attributes' => array('text', 'downloadAttachment', 'returnAttributes', 'restSearch', 'rpz', 'bro'),
 	);
 
 	public function __construct($id = false, $table = null, $ds = null) {
@@ -74,7 +74,8 @@ class AppController extends Controller {
 				'logoutRedirect' => array('controller' => 'users', 'action' => 'login', 'admin' => false),
 			),
 			'Security',
-			'ACL'
+			'ACL',
+			'RestResponse'
 	);
 
 	public function beforeFilter() {
@@ -588,7 +589,8 @@ class AppController extends Controller {
 			$header = Configure::read('Plugin.CustomAuth_header') ? Configure::read('Plugin.CustomAuth_header') : 'Authorization';
 			$header = strtoupper($header);
 			$authName = Configure::read('Plugin.CustomAuth_name') ? Configure::read('Plugin.CustomAuth_name') : 'External authentication';
-			if (isset($server['HTTP_' . $header]) && !empty($server['HTTP_' . $header])) {
+			$headerNamespace = Configure::read('Plugin.CustomAuth_use_header_namespace') ? (Configure::read('Plugin.CustomAuth_header_namespace') ? Configure::read('Plugin.CustomAuth_header_namespace') : 'HTTP_') : '';
+			if (isset($server[$headerNamespace . $header]) && !empty($server[$headerNamespace . $header])) {
 				if (Configure::read('Plugin.CustomAuth_only_allow_source') && Configure::read('Plugin.CustomAuth_only_allow_source') !== $server['REMOTE_ADDR']) {
 					$this->Log = ClassRegistry::init('Log');
 					$this->Log->create();
@@ -598,13 +600,13 @@ class AppController extends Controller {
 							'model_id' => 0,
 							'email' => 'SYSTEM',
 							'action' => 'auth_fail',
-							'title' => 'Failed authentication using external key (' . trim($server['HTTP_' . $header]) . ') - the user has not arrived from the expected address. Instead the request came from: ' . $server['REMOTE_ADDR'],
+							'title' => 'Failed authentication using external key (' . trim($server[$headerNamespace . $header]) . ') - the user has not arrived from the expected address. Instead the request came from: ' . $server['REMOTE_ADDR'],
 							'change' => null,
 					);
 					$this->Log->save($log);
 					$this->__preAuthException($authName . ' authentication failed. Contact your MISP support for additional information at: ' . Configure::read('MISP.contact'));
 				}
-				$temp = $this->checkExternalAuthUser($server['HTTP_' . $header]);
+				$temp = $this->checkExternalAuthUser($server[$headerNamespace . $header]);
 				$user['User'] = $temp;
 				if ($user['User']) {
 					unset($user['User']['gpgkey']);
@@ -629,20 +631,22 @@ class AppController extends Controller {
 				} else {
 					// User not authenticated correctly
 					// reset the session information
-					$this->Session->destroy();
 					$this->Log = ClassRegistry::init('Log');
 					$this->Log->create();
 					$log = array(
-						'org' => 'SYSTEM',
-						'model' => 'User',
-						'model_id' => 0,
-						'email' => 'SYSTEM',
-						'action' => 'auth_fail',
-						'title' => 'Failed authentication using external key (' . trim($server['HTTP_' . $header]) . ')',
-						'change' => null,
+							'org' => 'SYSTEM',
+							'model' => 'User',
+							'model_id' => 0,
+							'email' => 'SYSTEM',
+							'action' => 'auth_fail',
+							'title' => 'Failed authentication using external key (' . trim($server[$headerNamespace . $header]) . ')',
+							'change' => null,
 					);
 					$this->Log->save($log);
-					$this->__preAuthException($authName . ' authentication failed. Contact your MISP support for additional information at: ' . Configure::read('MISP.contact'));
+					if (Configure::read('CustomAuth_required')) {
+						$this->Session->destroy();
+						$this->__preAuthException($authName . ' authentication failed. Contact your MISP support for additional information at: ' . Configure::read('MISP.contact'));
+					}
 				}
 			}
 		}

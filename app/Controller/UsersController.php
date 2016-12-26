@@ -8,7 +8,8 @@ class UsersController extends AppController {
 	public $components = array(
 			'Security',
 			'Email',
-			);
+			'RequestHandler'
+	);
 
 	public $paginate = array(
 			'limit' => 60,
@@ -21,6 +22,8 @@ class UsersController extends AppController {
 				'Role' => array('id', 'name', 'perm_auth')
 			)
 	);
+
+	public $helpers = array('Js' => array('Jquery'));
 
 	public function beforeFilter() {
 		parent::beforeFilter();
@@ -61,16 +64,12 @@ class UsersController extends AppController {
 		return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Something went wrong, please try again later.')),'status'=>200));
 	}
 
-	public function edit($id = null) {
+	public function edit() {
 		if (!$this->_isAdmin() && Configure::read('MISP.disableUserSelfManagement')) throw new MethodNotAllowedException('User self-management has been disabled on this instance.');
-		$me = false;
-		if ("me" == $id) {
-			$id = $this->Auth->user('id');
-			$me = true;
-		}
+		$id = $this->Auth->user('id');
 		$this->User->read(null, $id);
-		if (!$this->User->exists() && !$me && !$this->_isSiteAdmin() && !($this->_isAdmin() && $this->Auth->user('org_id') == $this->User->data['User']['org_id'])) {
-			throw new NotFoundException(__('Invalid user or not authorised.'));
+		if (!$this->User->exists()) {
+			throw new NotFoundException('Something went wrong. Your user account could not be accessed.');
 		}
 		if ($this->request->is('post') || $this->request->is('put')) {
 			// What fields should be saved (allowed to be saved)
@@ -86,11 +85,6 @@ class UsersController extends AppController {
 				$this->Session->setFlash(__('The profile could not be updated. Please, try again.'));
 			}
 		} else {
-			$this->User->recursive = 0;
-			$this->User->read(null, $id);
-			if (!$this->User->exists() || (!$this->_isSiteAdmin() && $this->Auth->user('org_id') != $this->User->data['User']['org_id'])) {
-				throw new NotFoundException(__('Invalid user or not authorised.'));
-			}
 			$this->User->set('password', '');
 			$this->request->data = $this->User->data;
 		}
@@ -128,6 +122,7 @@ class UsersController extends AppController {
 	}
 
 	public function admin_index() {
+		if (!$this->_isAdmin()) throw new NotFoundException(__('Invalid user or not authorised.'));
 		$this->User->virtualFields['org_ci'] = 'UPPER(Organisation.name)';
 		$urlParams = "";
 		$passedArgsArray = array();
@@ -186,58 +181,44 @@ class UsersController extends AppController {
 				$passedArgsArray[$searchTerm] = $v;
 			}
 		}
-		$this->set('urlparams', $urlParams);
-		$this->set('passedArgsArray', $passedArgsArray);
-		$conditions = array();
-		if ($this->_isSiteAdmin()) {
-			$this->set('users', $this->paginate());
+		if ($this->_isRest()) {
+			$conditions = array();
+			if (isset($this->paginate['conditions'])) {
+				$conditions = $this->paginate['conditions'];
+			}
+			if (!$this->_isSiteAdmin()) {
+				$conditions['User.org_id'] = $this->Auth->user('org_id');
+			}
+			$users = $this->User->find('all', array(
+					'conditions' => $conditions,
+					'recursive' => -1,
+					'contain' => array(
+							'Organisation' => array('id', 'name'),
+							'Role' => array('id', 'name', 'perm_auth')
+					)
+			));
+			foreach ($users as $key => $value) {
+				unset($users['User']['password']);
+			}
+			return $this->RestResponse->viewData($users, $this->response->type());
 		} else {
-			if (!($this->_isAdmin())) throw new NotFoundException(__('Invalid user or not authorised.'));
-			$conditions['User.org_id'] = $this->Auth->user('org_id');
-			$this->paginate = array(
-					'conditions' => array($conditions),
-			);
-			$this->set('users', $this->paginate());
-		}
-	}
-
-	public function index($id) {
-		$this->autoRender = false;
-		$this->layout = false;
-		$passedArgs = $this->passedArgs;
-		$org = $this->User->Organisation->read(null, $id);
-		if (!$this->User->Organisation->exists() || !($this->_isSiteAdmin() || $this->Auth->user('org_id') == $id)) {
-			throw new MethodNotAllowedException('Organisation not found or no authorisation to view it.');
-		}
-		$user_fields = array('id', 'email', 'gpgkey', 'certif_public', 'nids_sid');
-		$conditions = array('org_id' => $id);
-		if ($this->_isSiteAdmin() || ($this->_isAdmin() && $this->Auth->user('org_id') == $id)) {
-			$user_fields = array_merge($user_fields, array('current_login', 'termsaccepted', 'change_pw', 'authkey'));
-		}
-		if (isset($this->request->data)) {
-			if (isset($this->request->data['searchall'])) $this->request->data['all'] = $this->request->data['searchall'];
-			if (isset($this->request->data['all']) && !empty($this->request->data['all'])) {
-				$passedArgs['searchall'] = $this->request->data['all'];
-				$conditions['OR'][] = array('User.email LIKE' => '%' . $passedArgs['searchall'] . '%');
+			$this->set('urlparams', $urlParams);
+			$this->set('passedArgsArray', $passedArgsArray);
+			$conditions = array();
+			if ($this->_isSiteAdmin()) {
+				$this->set('users', $this->paginate());
+			} else {
+				$conditions['User.org_id'] = $this->Auth->user('org_id');
+				$this->paginate['conditions']['AND'][] = $conditions;
+				$this->set('users', $this->paginate());
+			}
+			$this->set('ajax', $this->request->is('ajax'));
+			if ($this->request->is('ajax')) {
+				$this->autoRender = false;
+				$this->layout = false;
+				$this->render('ajax/admin_index');
 			}
 		}
-		$this->set('passedArgs', json_encode($passedArgs));
-		$this->paginate = array(
-			'conditions' => $conditions,
-			'recursive' => -1,
-			'fields' => $user_fields,
-			'contain' => array(
-				'Role' => array(
-					'fields' => array('id', 'name', 'perm_auth', 'perm_site_admin'),
-				),
-			),
-		);
-		// add roles to the list even though it is not used for the query itself, we can reuse the user_fields array in the view to build the table
-		$user_fields = array_merge(array_slice($user_fields, 0, 2), array('role'), array_slice($user_fields, 2));
-		$this->set('user_fields', $user_fields);
-		$this->set('users', $this->paginate());
-		$this->set('org', $org['Organisation']['name']);
-		$this->render('ajax/index');
 	}
 
 	public function admin_filterUserIndex() {
@@ -316,35 +297,77 @@ class UsersController extends AppController {
 		if (!$this->_isSiteAdmin() && !($this->_isAdmin() && $this->Auth->user('org_id') == $this->User->data['User']['org_id'])) {
 			throw new MethodNotAllowedException();
 		}
-		$temp = $this->User->field('invited_by');
-		$this->set('id', $id);
-		$this->set('user2', $this->User->read(null, $temp));
+		if ($this->_isRest()) {
+			$this->User->data['User']['password'] = '*****';
+			return $this->RestResponse->viewData(array('User' => $this->User->data['User']), $this->response->type());
+		} else {
+			$temp = $this->User->data['User']['invited_by'];
+			$this->set('id', $id);
+			$this->set('user2', $this->User->read(null, $temp));
+		}
 	}
 
 	public function admin_add() {
 		if (!$this->_isAdmin()) throw new Exception('Administrators only.');
-		$this->set('currentOrg', $this->Auth->user('org_id'));
-		$this->set('isSiteAdmin', $this->_isSiteAdmin());
 		$params = null;
 		if (!$this->_isSiteAdmin()) {
 			$params = array('conditions' => array('perm_site_admin !=' => 1, 'perm_sync !=' => 1, 'perm_regexp_access !=' => 1));
 		}
+		$this->loadModel('AdminSetting');
+		$default_role_id = $this->AdminSetting->getSetting('default_role');
 		$roles = $this->User->Role->find('list', $params);
 		$syncRoles = $this->User->Role->find('list', array('conditions' => array('perm_sync' => 1), 'recursive' => -1));
 		if ($this->request->is('post')) {
+			// In case we don't get the data encapsulated in a User object
+			if ($this->_isRest()) {
+				if (!isset($this->request->data['User'])) {
+					$this->request->data = array('User' => $this->request->data);
+				}
+				if (isset($this->request->data['User']['id'])) {
+					unset($this->request->data['User']['id']);
+				}
+				$required_fields = array('role_id', 'email', 'org_id');
+				foreach ($required_fields as $field) {
+					if (empty($this->request->data['User'][$field])) {
+						return $this->RestResponse->saveFailResponse('Users', 'admin_add', false, array($field => 'Mandatory field not set.'), $this->response->type());
+					}
+				}
+				if (isset($this->request->data['User']['password'])) {
+					$this->request->data['User']['confirm_password'] = $this->request->data['User']['password'];
+				}
+				$defaults = array(
+						'external_auth_required' => 0,
+						'external_auth_key' => '',
+						'server_id' => 0,
+						'gpgkey' => '',
+						'certif_public' => '',
+						'autoalert' => 0,
+						'contactalert' => 0,
+						'disabled' => 0,
+						'newsread' => 0,
+						'change_pw' => 1,
+						'termsaccepted' => 0
+				);
+				foreach ($defaults as $key => $value) {
+					if (!isset($this->request->data['User'][$key])) $this->request->data['User'][$key] = $value;
+				}
+			}
 			if (!array_key_exists($this->request->data['User']['role_id'], $syncRoles)) $this->request->data['User']['server_id'] = 0;
 			$this->User->create();
 			// set invited by
 			$this->loadModel('Role');
 			$this->Role->recursive = -1;
 			$chosenRole = $this->Role->findById($this->request->data['User']['role_id']);
+			if (empty($chosenRole)) throw new MethodNotAllowedException('Invalid role');
 			$this->request->data['User']['invited_by'] = $this->Auth->user('id');
-			if ($chosenRole['Role']['perm_sync']) {
-				$this->request->data['User']['change_pw'] = 0;
-				$this->request->data['User']['termsaccepted'] = 1;
-			} else {
-				$this->request->data['User']['change_pw'] = 1;
-				$this->request->data['User']['termsaccepted'] = 0;
+			if (!$this->_isRest()) {
+				if ($chosenRole['Role']['perm_sync']) {
+					$this->request->data['User']['change_pw'] = 0;
+					$this->request->data['User']['termsaccepted'] = 1;
+				} else {
+					$this->request->data['User']['change_pw'] = 1;
+					$this->request->data['User']['termsaccepted'] = 0;
+				}
 			}
 			if (!isset($this->request->data['User']['disabled'])) $this->request->data['User']['disabled'] = false;
 			$this->request->data['User']['newsread'] = 0;
@@ -357,38 +380,57 @@ class UsersController extends AppController {
 					throw new Exception('You are not authorised to assign that role to a user.');
 				}
 			}
-			if ($this->User->save($this->request->data)) {
-				$this->Session->setFlash(__('The user has been saved'));
-				$this->redirect(array('action' => 'index'));
+			$fieldList = array('password', 'email', 'external_auth_required', 'external_auth_key', 'enable_password', 'confirm_password', 'org_id', 'role_id', 'authkey', 'nids_sid', 'server_id', 'gpgkey', 'certif_public', 'autoalert', 'contactalert', 'disabled', 'invited_by', 'change_pw', 'termsaccepted', 'newsread');
+			if ($this->User->save($this->request->data, true, $fieldList)) {
+				if ($this->_isRest()) {
+					$user = $this->User->find('first', array(
+							'conditions' => array('User.id' => $this->User->id),
+							'recursive' => -1
+					));
+					$user['User']['password'] = '******';
+					return $this->RestResponse->viewData($user, $this->response->type());
+				} else {
+					$this->Session->setFlash(__('The user has been saved'));
+					$this->redirect(array('action' => 'index'));
+				}
 			} else {
-				// reset auth key for a new user
-				$this->set('authkey', $this->newkey);
-				$this->Session->setFlash(__('The user could not be saved. Please, try again.'));
+				if ($this->_isRest()) {
+					return $this->RestResponse->saveFailResponse('Users', 'admin_add', false, $this->User->validationErrors, $this->response->type());
+				} else {
+					// reset auth key for a new user
+					$this->set('authkey', $this->newkey);
+					$this->Session->setFlash(__('The user could not be saved. Please, try again.'));
+				}
 			}
 		} else {
 			$this->newkey = $this->User->generateAuthKey();
 			$this->set('authkey', $this->newkey);
 		}
-		$orgs = $this->User->Organisation->find('list', array(
-				'conditions' => array('local' => 1),
-				'order' => array('lower(name) asc')
-		));
-		$this->set('orgs', $orgs);
-		// generate auth key for a new user
-		$this->loadModel('Server');
-		$conditions = array();
-		if (!$this->_isSiteAdmin()) $conditions['Server.org_id LIKE'] = $this->Auth->user('org_id');
-		$temp = $this->Server->find('all', array('conditions' => $conditions, 'recursive' => -1, 'fields' => array('id', 'name', 'url')));
-		$servers = array(0 => 'Not bound to a server');
-		if (!empty($temp)) foreach ($temp as $t) {
-			if (!empty($t['Server']['name'])) $servers[$t['Server']['id']] = $t['Server']['name'];
-			else $servers[$t['Server']['id']] = $t['Server']['url'];
+		if ($this->_isRest()) {
+			return $this->RestResponse->describe('Users', 'admin_add', false, $this->response->type());
+		} else {
+			$orgs = $this->User->Organisation->find('list', array(
+					'conditions' => array('local' => 1),
+					'order' => array('lower(name) asc')
+			));
+			$this->set('orgs', $orgs);
+			// generate auth key for a new user
+			$this->loadModel('Server');
+			$conditions = array();
+			if (!$this->_isSiteAdmin()) $conditions['Server.org_id LIKE'] = $this->Auth->user('org_id');
+			$temp = $this->Server->find('all', array('conditions' => $conditions, 'recursive' => -1, 'fields' => array('id', 'name', 'url')));
+			$servers = array(0 => 'Not bound to a server');
+			if (!empty($temp)) foreach ($temp as $t) {
+				if (!empty($t['Server']['name'])) $servers[$t['Server']['id']] = $t['Server']['name'];
+				else $servers[$t['Server']['id']] = $t['Server']['url'];
+			}
+			$this->set('currentOrg', $this->Auth->user('org_id'));
+			$this->set('isSiteAdmin', $this->_isSiteAdmin());
+			$this->set('default_role_id', $default_role_id);
+			$this->set('servers', $servers);
+			$this->set(compact('roles'));
+			$this->set(compact('syncRoles'));
 		}
-		$this->loadModel('AdminSetting');
-		$this->set('default_role_id', $this->AdminSetting->getSetting('default_role'));
-		$this->set('servers', $servers);
-		$this->set(compact('roles'));
-		$this->set(compact('syncRoles'));
 	}
 
 	public function admin_edit($id = null) {
@@ -399,6 +441,11 @@ class UsersController extends AppController {
 		}
 		$params = array();
 		$allowedRole = '';
+		$userToEdit = $this->User->find('first', array(
+				'conditions' => array('id' => $id),
+				'recursive' => -1,
+				'fields' => array('id', 'role_id', 'email', 'org_id'),
+		));
 		if (!$this->_isSiteAdmin()) {
 			// Org admins should be able to select the role that is already assigned to an org user when editing them.
 			// What happened previously:
@@ -407,11 +454,7 @@ class UsersController extends AppController {
 			// MISP automatically chooses the first available option for the user as the selected setting (usually user)
 			// Org admin is downgraded to a user
 			// Now we make an exception for the already assigned role, both in the form and the actual edit.
-			$userToEdit = $this->User->find('first', array(
-				'conditions' => array('id' => $id),
-				'recursive' => -1,
-				'fields' => array('id', 'role_id', 'email'),
-			));
+			if ($userToEdit['User']['org_id'] != $this->Auth->user('org_id')) throw new Exception('Invalid user');
 			$allowedRole = $userToEdit['User']['role_id'];
 			$params = array('conditions' => array(
 					'OR' => array(
@@ -427,9 +470,23 @@ class UsersController extends AppController {
 
 		$this->set('currentId', $id);
 		if ($this->request->is('post') || $this->request->is('put')) {
-			if (!array_key_exists($this->request->data['User']['role_id'], $syncRoles)) $this->request->data['User']['server_id'] = 0;
+			if (!isset($this->request->data['User'])) {
+				$this->request->data['User'] = $this->request->data;
+			}
+			$this->request->data['User']['id'] = $id;
+			if (!isset($this->request->data['User']['email'])) {
+				$this->request->data['User']['email'] = $userToEdit['User']['email'];
+			}
+			if (isset($this->request->data['User']['role_id']) && !array_key_exists($this->request->data['User']['role_id'], $syncRoles)) $this->request->data['User']['server_id'] = 0;
 			$fields = array();
+			$blockedFields = array('id', 'invited_by');
+			if (!$this->_isSiteAdmin()) {
+				$blockedFields[] = 'org_id';
+			}
 			foreach (array_keys($this->request->data['User']) as $field) {
+				if (in_array($field, $blockedFields)) {
+					continue;
+				}
 				if ($field != 'password') array_push($fields, $field);
 			}
 			// TODO Audit, __extralog, fields get orig
@@ -440,14 +497,21 @@ class UsersController extends AppController {
 				else array_push($fieldsOldValues, $this->User->field('password'));
 			}
 			// TODO Audit, __extralog, fields get orig END
-			if ("" != $this->request->data['User']['password'])
+			if (isset($this->request->data['User']['password']) && "" != $this->request->data['User']['password']) {
 				$fields[] = 'password';
-			$fields[] = 'role_id';
+				if ($this->_isRest() && !isset($this->request->data['User']['confirm_password'])) {
+					$this->request->data['User']['confirm_password'] = $this->request->data['User']['password'];
+					$fields[] = 'confirm_password';
+				}
+			}
+			if (!$this->_isRest()) {
+				$fields[] = 'role_id';
+			}
 			if (!$this->_isSiteAdmin()) {
 				$this->loadModel('Role');
 				$this->Role->recursive = -1;
 				$chosenRole = $this->Role->findById($this->request->data['User']['role_id']);
-				if (($chosenRole['Role']['id'] != $allowedRole) && ($chosenRole['Role']['perm_site_admin'] == 1 || $chosenRole['Role']['perm_regexp_access'] == 1 || $chosenRole['Role']['perm_sync'] == 1)) {
+				if (empty($chosenRole) || (($chosenRole['Role']['id'] != $allowedRole) && ($chosenRole['Role']['perm_site_admin'] == 1 || $chosenRole['Role']['perm_regexp_access'] == 1 || $chosenRole['Role']['perm_sync'] == 1))) {
 					throw new Exception('You are not authorised to assign that role to a user.');
 				}
 			}
@@ -488,13 +552,29 @@ class UsersController extends AppController {
 				$fieldsResultStr = substr($fieldsResultStr, 2);
 				$this->__extralog("edit", "user", $fieldsResultStr);	// TODO Audit, check: modify User
 				// TODO Audit, __extralog, fields compare END
-				$this->Session->setFlash(__('The user has been saved'));
-				$this->_refreshAuth(); // in case we modify ourselves
-				$this->redirect(array('action' => 'index'));
+				if ($this->_isRest()) {
+					$user = $this->User->find('first', array(
+							'conditions' => array('User.id' => $this->User->id),
+							'recursive' => -1
+					));
+					$user['User']['password'] = '******';
+					return $this->RestResponse->viewData($user, $this->response->type());
+				} else {
+					$this->Session->setFlash(__('The user has been saved'));
+					$this->_refreshAuth(); // in case we modify ourselves
+					$this->redirect(array('action' => 'index'));
+				}
 			} else {
-				$this->Session->setFlash(__('The user could not be saved. Please, try again.'));
+				if ($this->_isRest()) {
+					return $this->RestResponse->saveFailResponse('Users', 'admin_edit', $id, $this->User->validationErrors, $this->response->type());
+				} else {
+					$this->Session->setFlash(__('The user could not be saved. Please, try again.'));
+				}
 			}
 		} else {
+			if ($this->_isRest()) {
+				return $this->RestResponse->describe('Users', 'admin_edit', $id, $this->response->type());
+			}
 			$this->User->read(null, $id);
 			if (!$this->_isSiteAdmin() && $this->Auth->user('org_id') != $this->User->data['User']['org_id']) {
 				$this->redirect(array('controller' => 'users', 'action' => 'index', 'admin' => true));
@@ -532,18 +612,26 @@ class UsersController extends AppController {
 		}
 		if (!$this->_isAdmin()) throw new Exception('Administrators only.');
 		$this->User->id = $id;
+		$conditions = array('User.id' => $id);
+		if (!$this->_isSiteAdmin()) {
+			$conditions['org_id'] = $this->Auth->user('org_id');
+		}
 		$user = $this->User->find('first', array(
-				'conditions' => array('User.id' => $id),
+				'conditions' => $conditions,
 				'recursive' => -1
 		));
-		if (empty($user) || (!$this->_isSiteAdmin() && $user['User']['org_id'] != $this->Auth->user('id'))) {
+		if (empty($user)) {
 			throw new NotFoundException(__('Invalid user'));
 		}
 		$fieldsDescrStr = 'User (' . $id . '): ' . $user['User']['email'];
 		if ($this->User->delete($id)) {
-			$this->__extralog("delete", $fieldsDescrStr, '');	// TODO Audit, check: modify User
-			$this->Session->setFlash(__('User deleted'));
-			$this->redirect(array('action' => 'index'));
+			$this->__extralog("delete", $fieldsDescrStr, '');
+			if ($this->_isRest()) {
+				return $this->RestResponse->saveSuccessResponse('User', 'admin_delete', $id, $this->response->type(), 'User deleted.');
+			} else {
+				$this->Session->setFlash(__('User deleted'));
+				$this->redirect(array('action' => 'index'));
+			}
 		}
 		$this->Session->setFlash(__('User was not deleted'));
 		$this->redirect(array('action' => 'index'));
@@ -649,26 +737,28 @@ class UsersController extends AppController {
 				}
 			}
 
-			// populate the DB with the first user if it's empty
-			if ($this->User->find('count') == 0 ) {
-				$admin = array('User' => array(
-					'id' => 1,
-					'email' => 'admin@admin.test',
-					'org_id' => $org_id,
-					'password' => 'admin',
-					'confirm_password' => 'admin',
-					'authkey' => $this->User->generateAuthKey(),
-					'nids_sid' => 4000000,
-					'newsread' => 0,
-					'role_id' => 1,
-					'change_pw' => 1
-				));
-				$this->User->validator()->remove('password'); // password is too simple, remove validation
-				$this->User->save($admin);
-				// PostgreSQL: update value of auto incremented serial primary key after setting the column by force
-				if ($dataSource == 'Database/Postgres') {
-					$sql = "SELECT setval('users_id_seq', (SELECT MAX(id) FROM users));";
-					$this->User->query($sql);
+			if (Configure::read('Security.salt')) {
+				// populate the DB with the first user if it's empty
+				if ($this->User->find('count') == 0 ) {
+					$admin = array('User' => array(
+						'id' => 1,
+						'email' => 'admin@admin.test',
+						'org_id' => $org_id,
+						'password' => 'admin',
+						'confirm_password' => 'admin',
+						'authkey' => $this->User->generateAuthKey(),
+						'nids_sid' => 4000000,
+						'newsread' => 0,
+						'role_id' => 1,
+						'change_pw' => 1
+					));
+					$this->User->validator()->remove('password'); // password is too simple, remove validation
+					$this->User->save($admin);
+					// PostgreSQL: update value of auto incremented serial primary key after setting the column by force
+					if ($dataSource == 'Database/Postgres') {
+						$sql = "SELECT setval('users_id_seq', (SELECT MAX(id) FROM users));";
+						$this->User->query($sql);
+					}
 				}
 			}
 		}
@@ -695,24 +785,20 @@ class UsersController extends AppController {
 		if (!$this->_isAdmin() && Configure::read('MISP.disableUserSelfManagement')) {
 			throw new MethodNotAllowedException('User self-management has been disabled on this instance.');
 		}
-		if (!$id) {
-			$this->Session->setFlash(__('Invalid id for user', true), 'default', array(), 'error');
-			$this->redirect(array('action' => 'view', $this->Auth->user('id')));
+		if ($id == 'me') {
+			$id = $this->Auth->user('id');
 		}
 		if (!$this->userRole['perm_auth']) {
-			$this->Session->setFlash(__('Invalid action', true), 'default', array(), 'error');
-			$this->redirect(array('action' => 'view', $this->Auth->user('id')));
+			throw new MethodNotAllowedException('Invalid action.');
 		}
-		// reset the key
 		$this->User->id = $id;
-		if (!$this->User->exists($id)) {
-			$this->Session->setFlash(__('Invalid id for user', true), 'default', array(), 'error');
-			$this->redirect(array('action' => 'view', $this->Auth->user('id')));
+		if (!$id || !$this->User->exists($id)) {
+			throw new MethodNotAllowedException('Invalid user.');
 		}
 		$user = $this->User->read();
 		$oldKey = $this->User->data['User']['authkey'];
-		if ($id != 'me' && !$this->_isSiteAdmin() && !($this->_isAdmin() && $this->Auth->user('org_id') == $this->User->data['User']['org_id']) && ($this->Auth->user('id') != $id)) {
-			throw new MethodNotAllowedException();
+		if (!$this->_isSiteAdmin() && !($this->_isAdmin() && $this->Auth->user('org_id') == $this->User->data['User']['org_id']) && ($this->Auth->user('id') != $id)) {
+			throw new MethodNotAllowedException('Invalid user.');
 		}
 		$newkey = $this->User->generateAuthKey();
 		$this->User->saveField('authkey', $newkey);
@@ -721,13 +807,13 @@ class UsersController extends AppController {
 				'Authentication key for user ' . $user['User']['id'] . ' (' . $user['User']['email'] . ')',
 				$fieldsResult = 'authkey(' . $oldKey . ') => (' . $newkey . ')'
 		);
-		$this->Session->setFlash(__('New authkey generated.', true));
-		$this->_refreshAuth();
-		$this->redirect($this->referer());
-	}
-
-	public function attributehistogram() {
-		//all code is called via JS
+		if (!$this->_isRest()) {
+			$this->Session->setFlash(__('New authkey generated.', true));
+			$this->_refreshAuth();
+			$this->redirect($this->referer());
+		} else {
+			return $this->RestResponse->saveSuccessResponse('User', 'resetauthkey', $id, $this->response->type(), 'User\'s authkey has been reset.');
+		}
 	}
 
 	public function histogram($selected = null) {
@@ -775,6 +861,9 @@ class UsersController extends AppController {
 			$data[$key]['total'] = $d['total'];
 			if ($d['total'] > $max) $max = $d['total'];
 		}
+		uasort($data, function($a, $b) {
+			return $b['total'] - $a['total'];
+		});
 		$this->set('data', $data);
 		$this->set('max', $max);
 		$this->set('selectedTypes', $selectedTypes);
@@ -962,7 +1051,21 @@ class UsersController extends AppController {
 	}
 
 	// shows some statistics about the instance
-	public function statistics() {
+	public function statistics($page = 'data') {
+		$this->set('page', $page);
+		$this->set('pages', array('data' => 'Usage data', 'orgs' => 'Organisations', 'tags' => 'Tags', 'attributehistogram' => 'Attribute histogram'));
+		if ($page == 'data') {
+			$this->__statisticsData($this->params['named']);
+		} else if ($page == 'orgs') {
+			$this->__statisticsOrgs($this->params['named']);
+		} else if ($page == 'tags') {
+			$this->__statisticsTags($this->params['named']);
+		} else if ($page == 'attributehistogram') {
+			$this->render('statistics_histogram');
+		}
+	}
+
+	private function __statisticsData($params = array()) {
 		// set all of the data up for the heatmaps
 		$orgs = $this->User->Organisation->find('all', array('fields' => array('DISTINCT (name) AS name'), 'recursive' => -1));
 		$this->loadModel('Log');
@@ -1005,6 +1108,109 @@ class UsersController extends AppController {
 		$this->set('startDateCal', $year . ', ' . $month . ', 01');
 		$range = '[5, 10, 50, 100]';
 		$this->set('range', $range);
+		$this->render('statistics_data');
+	}
+
+	private function __statisticsOrgs($params = array()) {
+		$this->loadModel('Organisation');
+		$conditions = array();
+		if (!isset($params['scope']) || $params['scope'] == 'local') {
+			$params['scope'] = 'local';
+			$conditions['Organisation.local'] = 1;
+		} elseif ($params['scope'] == 'external') {
+			$conditions['Organisation.local'] = 0;
+		}
+		$orgs = array();
+		$orgs = $this->Organisation->find('all', array(
+				'recursive' => -1,
+				'conditions' => $conditions,
+				'fields' => array('id', 'name', 'description', 'local', 'contacts', 'type', 'sector', 'nationality'),
+		));
+		$orgs = Set::combine($orgs, '{n}.Organisation.id', '{n}.Organisation');
+		$users = $this->User->find('all', array(
+			'group' => 'User.org_id',
+			'conditions' => array('User.org_id' => array_keys($orgs)),
+			'recursive' => -1,
+			'fields' => array('org_id', 'count(*)')
+		));
+		foreach ($users as $user) {
+			$orgs[$user['User']['org_id']]['userCount'] = $user[0]['count(*)'];
+		}
+		unset($users);
+		$events = $this->User->Event->find('all', array(
+			'group' => 'Event.orgc_id',
+			'conditions' => array('Event.orgc_id' => array_keys($orgs)),
+			'recursive' => -1,
+			'fields' => array('Event.orgc_id', 'count(*)')
+		));
+		foreach ($events as $event) {
+			$orgs[$event['Event']['orgc_id']]['eventCount'] = $event[0]['count(*)'];
+		}
+		unset($events);
+		$orgs = Set::combine($orgs, '{n}.name', '{n}');
+		// f*** php
+		uksort($orgs, 'strcasecmp');
+		foreach ($orgs as $k => $value) {
+			if (file_exists(APP . 'webroot' . DS . 'img' . DS . 'orgs' . DS . $k . '.png')) {
+				$orgs[$k]['logo'] = true;
+			}
+		}
+		$this->set('scope', $params['scope']);
+		$this->set('orgs', $orgs);
+		$this->render('statistics_orgs');
+	}
+
+	public function tagStatisticsGraph() {
+		$this->loadModel('EventTag');
+		$tags = $this->EventTag->getSortedTagList();
+		$this->loadModel('Taxonomy');
+		$taxonomies = $this->Taxonomy->find('list', array(
+				'conditions' => array('enabled' => true),
+				'fields' => array('Taxonomy.namespace')
+		));
+		$flatData = array();
+		$tagIds = $this->EventTag->Tag->find('list', array('fields' => array('Tag.name', 'Tag.id')));
+		$this->set('tagIds', $tagIds);
+		foreach ($tags as $key => $value) {
+			$name = explode(':', $value['name']);
+			$tags[$key]['taxonomy'] = 'custom';
+			if (count($name) > 1) {
+				if (in_array($name[0], $taxonomies)) {
+					$tags[$key]['taxonomy'] = $name[0];
+				}
+			}
+			$flatData[$tags[$key]['taxonomy']][$value['name']] = array('name' => $value['name'], 'size' => $value['eventCount']);
+		}
+		$treemap = array(
+				'name' => 'tags',
+				'children' => array()
+		);
+
+		foreach ($flatData as $key => $value) {
+			 $newElement = array(
+				'name' => $key,
+				'children' => array()
+			);
+			foreach ($value as $tag) {
+				$newElement['children'][] = array('name' => $tag['name'], 'size' => $tag['size']);
+			}
+			$treemap['children'][] = $newElement;
+		}
+		$taxonomyColourCodes = array();
+		$taxonomies = array_merge(array('custom'), $taxonomies);
+		$this->set('taxonomyColourCodes', $taxonomyColourCodes);
+		$this->set('taxonomies', $taxonomies);
+		$this->set('flatData', $flatData);
+		$this->set('treemap', $treemap);
+		$this->set('tags', $tags);
+		$this->layout = 'treemap';
+		$this->render('ajax/tag_statistics_graph');
+	}
+
+	private function __statisticsTags($params = array()) {
+		$trending_tags = array();
+		$all_tags = array();
+		$this->render('statistics_tags');
 	}
 
 	public function verifyGPG() {

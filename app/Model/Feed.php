@@ -26,17 +26,34 @@ class Feed extends AppModel {
 			'rule' => array('url'),
 			'message' => 'Please enter a valid url.',
 		),
-		'provider' => array(
-			'valueNotEmpty' => array(
-				'rule' => array('valueNotEmpty'),
-			),
-		),
-		'name' => array(
-				'valueNotEmpty' => array(
-						'rule' => array('valueNotEmpty'),
-				),
-		),
+		'provider' => 'valueNotEmpty',
+		'name' => 'valueNotEmpty',
+		'event_id' => array(
+			'rule' => array('numeric'),
+			'message' => 'Please enter a numeric event ID or leave this field blank.',
+		)
 	);
+	
+	// currently we only have an internal name and a display name, but later on we can expand this with versions, default settings, etc
+	public $feed_types = array(
+		'misp' => array(
+			'name' => 'MISP Feed'
+		),
+		'freetext' => array(
+			'name' => 'Freetext Parsed Feed'
+		),
+		'csv' => array(
+				'name' => 'Simple CSV Parsed Feed'
+		)
+	);
+	
+	public function getFeedTypesOptions() {
+		$result = array();
+		foreach ($this->feed_types as $key => $value) {
+			$result[$key] = $value['name'];
+		}
+		return $result;
+	}
 
 	// gets the event UUIDs from the feed by ID
 	// returns an array with the UUIDs of events that are new or that need updating
@@ -77,6 +94,42 @@ class Feed extends AppModel {
 		}
 		$events = $this->__filterEventsIndex($events, $feed);
 		return $events;
+	}
+	
+	public function getFreetextFeed($feed, $HttpSocket, $type = 'freetext') {
+		$result = array();
+		$response = $HttpSocket->get($feed['Feed']['url'], '', array());
+		if ($response->code == 200) {
+			App::uses('ComplexTypeTool', 'Tools');
+			$complexTypeTool = new ComplexTypeTool();
+			$this->Warninglist = ClassRegistry::init('Warninglist');
+			$complexTypeTool->setTLDs($this->Warninglist->fetchTLDLists());
+			$resultArray = $complexTypeTool->checkComplexRouter($response->body, $type, isset($feed['Feed']['settings'][$type]) ? $feed['Feed']['settings'][$type] : array());
+		}
+		$this->Attribute = ClassRegistry::init('Attribute');
+		foreach ($resultArray as $key => $value) {
+			$resultArray[$key]['category'] = $this->Attribute->typeDefinitions[$value['default_type']]['default_category'];
+		}
+		return $resultArray;
+	}
+	
+	public function getFreetextFeedCorrelations($data) {
+		$values = array();
+		foreach ($data as $key => $value) {
+			$values[] = $value['value'];
+		}
+		$this->Attribute = ClassRegistry::init('Attribute');
+		// Adding a 3rd parameter to a list find seems to allow grouping several results into a key. If we ran a normal list with value => event_id we'd only get exactly one entry for each value
+		// The cost of this method is orders of magnitude lower than getting all id - event_id - value triplets and then doing a double loop comparison
+		$correlations = $this->Attribute->find('list', array('conditions' => array('Attribute.value1' => $values, 'Attribute.deleted' => 0), 'fields' => array('Attribute.event_id', 'Attribute.event_id', 'Attribute.value1')));
+		$correlations2 = $this->Attribute->find('list', array('conditions' => array('Attribute.value2' => $values, 'Attribute.deleted' => 0), 'fields' => array('Attribute.event_id', 'Attribute.event_id', 'Attribute.value2')));
+		$correlations = array_merge_recursive($correlations, $correlations2);
+		foreach ($data as $key => $value) {
+			if (isset($correlations[$value['value']])) {
+				$data[$key]['correlations'] = array_values($correlations[$value['value']]);
+			}
+		}
+		return $data;		
 	}
 
 	public function downloadFromFeed($actions, $feed, $HttpSocket, $user, $jobId = false) {
@@ -133,13 +186,23 @@ class Feed extends AppModel {
 	private function __createFeedRequest() {
 		$version = $this->checkMISPVersion();
 		$version = implode('.', $version);
-		return array(
+		try {
+			$commit = trim(shell_exec('git log --pretty="%H" -n1 HEAD'));
+		} catch (Exception $e) {
+			$commit = false;			
+		}
+		
+		$result = array(
 			'header' => array(
 					'Accept' => 'application/json',
 					'Content-Type' => 'application/json',
 					'MISP-version' => $version,
 			)
 		);
+		if ($commit) {
+			$result['header']['commit'] = $commit;
+		}
+		return $result;
 	}
 
 	private function __checkIfEventBlockedByFilter($event, $filterRules) {
@@ -353,21 +416,117 @@ class Feed extends AppModel {
 		$syncTool = new SyncTool();
 		$job = ClassRegistry::init('Job');
 		$this->read();
-		if ($jobId) {
-			$job->id = $jobId;
-			$job->saveField('message', 'Fetching event manifest.');
-		}
 		$HttpSocket = $syncTool->setupHttpSocketFeed($this->data);
-		$actions = $this->getNewEventUuids($this->data, $HttpSocket);
-		if ($jobId) {
-			$job->id = $jobId;
-			$job->saveField('message', 'Fetching events.');
-		}
-		$result = $this->downloadFromFeed($actions, $this->data, $HttpSocket, $user, $jobId);
-		if ($jobId) {
-			$job->id = $jobId;
-			$job->saveField('message', 'Job complete.');
+		if ($this->data['Feed']['source_format'] == 'misp') {
+			if ($jobId) {
+				$job->id = $jobId;
+				$job->saveField('message', 'Fetching event manifest.');
+			}
+			$actions = $this->getNewEventUuids($this->data, $HttpSocket);
+			if ($jobId) {
+				$job->id = $jobId;
+				$job->saveField('message', 'Fetching events.');
+			}
+			$result = $this->downloadFromFeed($actions, $this->data, $HttpSocket, $user, $jobId);
+			if ($jobId) {
+				$job->id = $jobId;
+				$job->saveField('message', 'Job complete.');
+			}
+		} else {
+			if ($jobId) {
+				$job->id = $jobId;
+				$job->saveField('message', 'Fetching data.');
+			}
+			$data = $this->getFreetextFeed($this->data, $HttpSocket, $this->data['Feed']['source_format']);
+			foreach ($data as $key => $value) {
+				$data[$key] = array(
+					'category' => $value['category'],
+					'type' => $value['default_type'],
+					'value' => $value['value'],
+					'to_ids' => $value['to_ids']
+				);
+			}
+			$result = $this->saveFreetextFeedData($this->data, $data, $user);
+			$message = 'Job complete.';
+			if ($result !== true) {
+				return false;
+			}
+			if ($jobId) {
+				$job->saveField('message', 'Job complete.');
+			}
 		}
 		return $result;
+	}
+	
+	public function saveFreetextFeedData($feed, $data, $user) {
+		$this->Event = ClassRegistry::init('Event');
+		$event = false;
+		if ($feed['Feed']['fixed_event'] && $feed['Feed']['event_id']) {
+			$event = $this->Event->find('first', array('conditions' => array('Event.id' => $feed['Feed']['event_id']), 'recursive' => -1));
+			if (empty($event)) return 'The target event is no longer valid. Make sure that the target event exists.';
+		}
+		if (!$event) {
+			$this->Event->create();
+			$event = array(
+					'info' => $feed['Feed']['name'] . ' feed',
+					'analysis' => 2,
+					'threat_level_id' => 4,
+					'orgc_id' => $user['org_id'],
+					'org_id' => $user['org_id'],
+					'date' => date('Y-m-d'),
+					'distribution' => $feed['Feed']['distribution'],
+					'sharing_group_id' => $feed['Feed']['sharing_group_id'],
+					'user_id' => $user['id']
+			);
+			$result = $this->Event->save($event);
+			if (!$result) return 'Something went wrong while creating a new event.';
+			$event = $this->Event->find('first', array('conditions' => array('Event.id' => $this->Event->id), 'recursive' => -1));
+			if (empty($event)) return 'The newly created event is no longer valid. Make sure that the target event exists.';
+			if ($feed['Feed']['fixed_event']) {
+				$feed['Feed']['event_id'] = $event['Event']['id'];
+				if (!empty($feed['Feed']['settings'])) $feed['Feed']['settings'] = json_encode($feed['Feed']['settings']);
+				$this->save($feed);
+			}
+		}
+		if ($feed['Feed']['fixed_event']) {
+			$event = $this->Event->find('first', array('conditions' => array('Event.id' => $event['Event']['id']), 'recursive' => -1, 'contain' => array('Attribute' => array('conditions' => array('Attribute.deleted' => 0)))));
+			$to_delete = array();
+			foreach ($data as $k => $dataPoint) {
+				foreach ($event['Attribute'] as $attribute_key => $attribute) {
+					if ($dataPoint['value'] == $attribute['value']) {
+						unset($data[$k]);
+						unset($event['Attribute'][$attribute_key]);
+					}
+				}
+			}
+			if ($feed['Feed']['delta_merge']) {
+				foreach ($event['Attribute'] as $attribute) {
+					$to_delete[] = $attribute['id'];
+				}
+				if (!empty($to_delete)) {
+					$this->Event->Attribute->deleteAll(array('Attribute.id' => $to_delete));
+				}
+			}
+		}
+		$data = array_values($data);
+		if (empty($data)) {
+			return true;
+		}
+		foreach ($data as $key => $value) {
+			$data[$key]['event_id'] = $event['Event']['id'];
+			$data[$key]['distribution'] = $feed['Feed']['distribution'];
+			$data[$key]['sharing_group_id'] = $feed['Feed']['sharing_group_id'];
+			$data[$key]['to_ids'] = $feed['Feed']['override_ids'] ? 0 : $data[$key]['to_ids'];
+		}
+		if (!$this->Event->Attribute->saveMany($data)) {
+			return 'Could not save the parsed attributes.';
+		}
+		if ($feed['Feed']['publish']) {
+			$this->Event->publishRouter($event['Event']['id'], null, $user);
+		}
+		if ($feed['Feed']['tag_id']) {
+			$this->Event->EventTag->attachTagToEvent($event['Event']['id'], $feed['Feed']['tag_id']);
+		}
+		return true;
 	}
 }

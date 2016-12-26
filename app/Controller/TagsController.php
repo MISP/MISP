@@ -44,7 +44,12 @@ class TagsController extends AppController {
 			if (empty($tag_id_list)) $tag_id_list = array(-1);
 			$this->paginate['conditions']['AND']['Tag.id'] = $tag_id_list;
 		}
-		$paginated = $this->paginate();
+		if ($this->_isRest()) {
+			unset($this->paginate['limit']);
+			$paginated = $this->Tag->find('all', $this->paginate);
+		} else {
+			$paginated = $this->paginate();
+		}
 		foreach ($paginated as $k => $tag) {
 			if (empty($tag['EventTag'])) $paginated[$k]['Tag']['count'] = 0;
 			else {
@@ -111,7 +116,7 @@ class TagsController extends AppController {
 					if (substr(strtoupper($tag['Tag']['name']), 0, strlen($tns)) === strtoupper($tns)) {
 						$paginated[$k]['Tag']['Taxonomy'] = $taxonomyNamespaces[$tns];
 						if (!isset($taxonomyTags[$tns])) $taxonomyTags[$tns] = $this->Taxonomy->getTaxonomyTags($taxonomyNamespaces[$tns]['id'], true);
-						$paginated[$k]['Tag']['Taxonomy']['expanded'] = $taxonomyTags[$tns][strtoupper($tag['Tag']['name'])];
+						$paginated[$k]['Tag']['Taxonomy']['expanded'] = isset($taxonomyTags[$tns][strtoupper($tag['Tag']['name'])]) ? $taxonomyTags[$tns][strtoupper($tag['Tag']['name'])] : $tag['Tag']['name'];
 					}
 				}
 			}
@@ -314,11 +319,17 @@ class TagsController extends AppController {
 	}
 
 	public function showEventTag($id) {
-		$this->helpers[] = 'TextColour';
 		$this->loadModel('EventTag');
+		if (!$this->EventTag->Event->checkIfAuthorised($this->Auth->user(), $id)) {
+			throw new MethodNotAllowedException('Invalid event.');
+		}
+		$this->loadModel('GalaxyCluster');
+		$cluster_names = $this->GalaxyCluster->find('list', array('fields' => array('GalaxyCluster.tag_name'), 'group' => array('GalaxyCluster.tag_name')));
+		$this->helpers[] = 'TextColour';
 		$tags = $this->EventTag->find('all', array(
 				'conditions' => array(
-						'event_id' => $id
+						'event_id' => $id,
+						'Tag.name !=' => $cluster_names
 				),
 				'contain' => array('Tag'),
 				'fields' => array('Tag.id', 'Tag.colour', 'Tag.name'),
@@ -402,8 +413,9 @@ class TagsController extends AppController {
 			$options = $this->Taxonomy->getAllTaxonomyTags(true);
 			$expanded = $options;
 		} else if ($taxonomy_id === 'favourites') {
+			$conditions = array('FavouriteTag.user_id' => $this->Auth->user('id'));
 			$tags = $this->Tag->FavouriteTag->find('all', array(
-				'conditions' => array('FavouriteTag.user_id' => $this->Auth->user('id')),
+				'conditions' => $conditions,
 				'recursive' => -1,
 				'contain' => array('Tag.name')
 			));
@@ -411,6 +423,13 @@ class TagsController extends AppController {
 				$options[$tag['FavouriteTag']['tag_id']] = $tag['Tag']['name'];
 				$expanded = $options;
 			}
+		} else if ($taxonomy_id === 'all') {
+			$conditions = array('Tag.org_id' => array(0, $this->Auth->user('org_id')));
+			if (Configure::read('MISP.incoming_tags_disabled_by_default')) {
+				$conditions['Tag.hide_tag'] = 0;
+			}
+			$options = $this->Tag->find('list', array('fields' => array('Tag.name'), 'conditions' => $conditions));
+			$expanded = $options;
 		} else {
 			$taxonomies = $this->Taxonomy->getTaxonomy($taxonomy_id);
 			$options = array();
@@ -443,6 +462,12 @@ class TagsController extends AppController {
 			$this->set('attributeTag', true);
 		}
 		$this->set('object_id', $id);
+		foreach ($options as $k => $v) {
+			if (substr($v, 0, strlen('misp-galaxy:')) === 'misp-galaxy:') {
+				unset($options[$k]);
+			}
+		}
+		$this->set('event_id', $event_id);
 		$this->set('options', $options);
 		$this->set('expanded', $expanded);
 		$this->set('custom', $taxonomy_id == 0 ? true : false);

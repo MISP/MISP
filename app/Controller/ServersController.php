@@ -60,8 +60,6 @@ class ServersController extends AppController {
 	}
 
 	public function previewIndex($id) {
-		if (isset($this->passedArgs['pages'])) $currentPage = $this->passedArgs['pages'];
-		else $currentPage = 1;
 		$urlparams = '';
 		$passedArgs = array();
 		if (!$this->_isSiteAdmin()) {
@@ -86,7 +84,6 @@ class ServersController extends AppController {
 		$this->loadModel('Event');
 		$threat_levels = $this->Event->ThreatLevel->find('all');
 		$this->set('threatLevels', Set::combine($threat_levels, '{n}.ThreatLevel.id', '{n}.ThreatLevel.name'));
-		$pageCount = count($events);
 		App::uses('CustomPaginationTool', 'Tools');
 		$customPagination = new CustomPaginationTool();
 		$params = $customPagination->createPaginationRules($events, $this->passedArgs, $this->alias);
@@ -614,7 +611,8 @@ class ServersController extends AppController {
 					'Security' => array('count' => 0, 'errors' => 0, 'severity' => 5),
 					'Plugin' => array('count' => 0, 'errors' => 0, 'severity' => 5)
 			);
-			$writeableErrors = array(0 => 'OK', 1 => 'doesn\'t exist', 2 => 'is not writeable');
+			$writeableErrors = array(0 => 'OK', 1 => 'not found', 2 => 'is not writeable');
+			$readableErrors = array(0 => 'OK', 1 => 'not readable');
 			$gpgErrors = array(0 => 'OK', 1 => 'FAIL: settings not set', 2 => 'FAIL: Failed to load GPG', 3 => 'FAIL: Issues with the key/passphrase', 4 => 'FAIL: encrypt failed');
 			$proxyErrors = array(0 => 'OK', 1 => 'not configured (so not tested)', 2 => 'Getting URL via proxy failed');
 			$zmqErrors = array(0 => 'OK', 1 => 'not enabled (so not tested)', 2 => 'Python ZeroMQ library not installed correctly.', 3 => 'ZeroMQ script not running.');
@@ -738,9 +736,11 @@ class ServersController extends AppController {
 			// check whether the files are writeable
 			$writeableDirs = $this->Server->writeableDirsDiagnostics($diagnostic_errors);
 			$writeableFiles = $this->Server->writeableFilesDiagnostics($diagnostic_errors);
+			$readableFiles = $this->Server->readableFilesDiagnostics($diagnostic_errors);
+			$extensions = $this->Server->extensionDiagnostics();
 
 			$viewVars = array(
-					'diagnostic_errors', 'tabs', 'tab', 'issues', 'finalSettings', 'writeableErrors', 'writeableDirs', 'writeableFiles'
+					'diagnostic_errors', 'tabs', 'tab', 'issues', 'finalSettings', 'writeableErrors', 'readableErrors', 'writeableDirs', 'writeableFiles', 'readableFiles', 'extensions'
 			);
 			$viewVars = array_merge($viewVars, $additionalViewVars);
 			foreach ($viewVars as $viewVar) $this->set($viewVar, ${$viewVar});
@@ -756,7 +756,20 @@ class ServersController extends AppController {
 				foreach ($dumpResults as $key => $dr) {
 					unset($dumpResults[$key]['description']);
 				}
-				$dump = array('gpgStatus' => $gpgErrors[$gpgStatus], 'proxyStatus' => $proxyErrors[$proxyStatus], 'zmqStatus' => $zmqStatus, 'stix' => $stix, 'writeableDirs' => $writeableDirs, 'writeableFiles' => $writeableFiles,'finalSettings' => $dumpResults);
+				$dump = array(
+						'version' => $version,
+						'phpSettings' => $phpSettings,
+						'gpgStatus' => $gpgErrors[$gpgStatus],
+						'proxyStatus' => $proxyErrors[$proxyStatus],
+						'zmqStatus' => $zmqStatus,
+						'stix' => $stix,
+						'moduleStatus' => $moduleStatus,
+						'writeableDirs' => $writeableDirs,
+						'writeableFiles' => $writeableFiles,
+						'readableFiles' => $readableFiles,
+						'finalSettings' => $dumpResults,
+						'extensions' => $extensions
+				);
 				$this->response->body(json_encode($dump, JSON_PRETTY_PRINT));
 				$this->response->type('json');
 				$this->response->download('MISP.report.json');
@@ -780,8 +793,8 @@ class ServersController extends AppController {
 		if (!in_array($type, $validTypes)) throw new MethodNotAllowedException('Invalid worker type.');
 		$prepend = '';
 		if (Configure::read('MISP.rh_shell_fix')) $prepend = 'export PATH=$PATH:"/opt/rh/rh-php56/root/usr/bin:/opt/rh/rh-php56/root/usr/sbin"; ';
-		if ($type != 'scheduler') shell_exec($prepend . APP . 'Console' . DS . 'cake ' . DS . 'CakeResque.CakeResque start --interval 5 --queue ' . $type .' > /dev/null 2>&1 &');
-		else shell_exec($prepend . APP . 'Console' . DS . 'cake ' . DS . 'CakeResque.CakeResque startscheduler -i 5 > /dev/null 2>&1 &');
+		if ($type != 'scheduler') shell_exec($prepend . APP . 'Console' . DS . 'cake CakeResque.CakeResque start --interval 5 --queue ' . $type .' > /dev/null 2>&1 &');
+		else shell_exec($prepend . APP . 'Console' . DS . 'cake CakeResque.CakeResque startscheduler -i 5 > /dev/null 2>&1 &');
 		$this->redirect('/servers/serverSettings/workers');
 	}
 
@@ -1067,6 +1080,17 @@ class ServersController extends AppController {
 							}
 						}
 					}
+					if (!isset($version['perm_sync'])) {
+						if (!$this->Server->checkLegacyServerSyncPrivilege($id)) {
+							$result['status'] = 7;
+							return new CakeResponse(array('body'=> json_encode($result)));
+						}
+					} else {
+						if (!$version['perm_sync']) {
+							$result['status'] = 7;
+							return new CakeResponse(array('body'=> json_encode($result)));
+						}
+					}
 					return new CakeResponse(array('body'=> json_encode(array('status' => 1, 'local_version' => implode('.', $local_version), 'version' => implode('.', $version), 'mismatch' => $mismatch, 'newer' => $newer))));
 				} else {
 					$result['status'] = 3;
@@ -1127,7 +1151,7 @@ class ServersController extends AppController {
 	public function getVersion() {
 		if (!$this->userRole['perm_auth']) throw new MethodNotAllowedException('This action requires API access.');
 		$versionArray = $this->Server->checkMISPVersion();
-		$this->set('response', array('version' => $versionArray['major'] . '.' . $versionArray['minor'] . '.' . $versionArray['hotfix']));
+		$this->set('response', array('version' => $versionArray['major'] . '.' . $versionArray['minor'] . '.' . $versionArray['hotfix'], 'perm_sync' => $this->userRole['perm_sync']));
 		$this->set('_serialize', 'response');
 	}
 }

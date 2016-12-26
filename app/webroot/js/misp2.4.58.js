@@ -118,7 +118,7 @@ function toggleSetting(e, setting, id) {
 			handleGenericAjaxResponse(data);
 		},
 		complete:function() {
-			$.get( replacementForm, function(data) {
+			$.get(replacementForm, function(data) {
 				$('#hiddenFormDiv').html(data);
 			});
 			$(".loading").hide();
@@ -468,6 +468,9 @@ function handleAjaxEditResponse(data, name, type, id, field, event) {
 	if (type == 'ShadowAttribute') {
 		updateIndex(event, 'event');
 	}
+	if (responseArray.hasOwnProperty('check_publish')) {
+		checkAndSetPublishedInfo();
+	}
 }
 
 function handleGenericAjaxResponse(data) {
@@ -478,6 +481,9 @@ function handleGenericAjaxResponse(data) {
 	}
 	if (responseArray.saved) {
 		showMessage('success', responseArray.success);
+		if (responseArray.hasOwnProperty('check_publish')) {
+			checkAndSetPublishedInfo();
+		}
 		return true;
 	} else {
 		showMessage('fail', responseArray.errors);
@@ -1060,13 +1066,14 @@ function templateElementFileCategoryChange(category) {
 	}
 }
 
-function getPopup(id, context, target, admin) {
+function getPopup(id, context, target, admin, popupType) {
 	$("#gray_out").fadeIn();
 	var url = "";
-	if (typeof admin !== 'undefined') url+= "/admin";
+	if (typeof admin !== 'undefined' && admin != '') url+= "/admin";
 	if (context != '') url += "/" + context;
 	if (target != '') url += "/" + target;
 	if (id != '') url += "/" + id;
+	if (popupType == '' || typeof popupType == 'undefined') popupType = '#popover_form';
 	$.ajax({
 		beforeSend: function (XMLHttpRequest) {
 			$(".loading").show();
@@ -1075,8 +1082,8 @@ function getPopup(id, context, target, admin) {
 		cache: false,
 		success:function (data, textStatus) {
 			$(".loading").hide();
-			$("#popover_form").html(data);
-			$("#popover_form").fadeIn();
+			$(popupType).html(data);
+			$(popupType).fadeIn();
 		},
 		url: url,
 		//url:"/templates/templateChoices/" + id,
@@ -1219,6 +1226,11 @@ function indexEvaluateFiltering() {
 		} else {
 			$('#value_published').html("");
 		}
+		if (filtering.hasproposal != 2) {
+			$('#value_hasproposal').html(publishedOptions[filtering.hasproposal]);
+		} else {
+			$('#value_hasproposal').html("");
+		}
 		if (filtering.date.from != null || filtering.date.from != null) {
 			var text = "";
 			if (filtering.date.from != "") text = "From: " + filtering.date.from;
@@ -1304,6 +1316,10 @@ function indexCreateFilters() {
 	if (filterContext == 'event') {
 		if (filtering.published != "2") {
 			text += "searchpublished:" + filtering.published;
+		}
+		if (filtering.hasproposal != "2") {
+			if (text != "") text += "/";
+			text += "searchhasproposal:" + filtering.hasproposal;
 		}
 	} else {
 		for (var i = 0; i < differentFilters.length; i++) {
@@ -1408,6 +1424,9 @@ function indexAddRule(param) {
 		} else if (param.data.param1 == "published") {
 			var value = escape($('#EventSearchpublished').val());
 			if (value != "") filtering.published = value;
+		} else if (param.data.param1 == "hasproposal") {
+			var value = escape($('#EventSearchhasproposal').val());
+			if (value != "") filtering.hasproposal = value;
 		} else {
 			var value = escape($('#EventSearch' + param.data.param1).val());
 			var operator = operators[escape($('#EventSearchbool').val())];
@@ -1463,6 +1482,8 @@ function indexFilterClearRow(field) {
 		filtering.date.until = "";
 	} else if (field == "published") {
 		filtering.published = 2;
+	} else if (field == "hasproposal") {
+		filtering.hasproposal = 2;
 	} else if (differentFilters.indexOf(field) != -1) {
 		filtering[field] = "";
 	} else {
@@ -1763,7 +1784,8 @@ function freetextImportResultsSubmit(id, count) {
 				type:$('#Attribute' + i + 'Type').val(),
 				to_ids:$('#Attribute' + i + 'To_ids')[0].checked,
 				comment:$('#Attribute' + i + 'Comment').val(),
-				data:$('#Attribute' + i + 'Data').val()
+				data:$('#Attribute' + i + 'Data').val(),
+				data_is_handled:$('#Attribute' + i + 'DataIsHandled').val()
 			}
 			attributeArray[attributeArray.length] = temp;
 		}
@@ -1791,7 +1813,7 @@ function organisationViewContent(context, id) {
 	organisationViewButtonHighlight(context);
 	var action = "/organisations/landingpage/";
 	if (context == 'members') {
-		action = "/users/index/";
+		action = "/admin/users/index/searchorg:";
 	}
 	if (context == 'events') {
 		action = "/events/index/searchorg:";
@@ -2168,6 +2190,9 @@ function testConnection(id) {
 				break;
 			case 6:
 				$("#connection_test_" + id).html('<span class="red bold" title="Authentication failed because the sync user on the remote has not accepted the terms of use. Log into the remote MISP to rectify this.">Terms not accepted</span>');
+				break;
+			case 7:
+				$("#connection_test_" + id).html('<span class="red bold" title="The user account on the remote instance is not a sync user.">Remote user not a sync user</span>');
 				break;
 	    	}
 	    }
@@ -2554,6 +2579,70 @@ function requestAPIAccess() {
 	});
 }
 
+function initPopoverContent(context) {
+	for (var property in formInfoFields) {
+		if (formInfoFields.hasOwnProperty(property)) {
+			$('#' + property + 'InfoPopover').popover("destroy").popover({
+				placement: 'right',
+				html: 'true',
+				trigger: 'hover',
+				content: getFormInfoContent(property, '#' + context + formInfoFields[property])
+			});
+		}
+	}
+}
+
+function getFormInfoContent(property, field) {
+	var content = window[property + 'FormInfoValues'][$(field).val()];
+	if (content === undefined || content === null) {
+		return 'N/A';
+	}
+	return content;
+}
+
+function formCategoryChanged(id) {
+	// fill in the types
+	var options = $('#AttributeType').prop('options');
+	$('option', $('#AttributeType')).remove();
+	$.each(category_type_mapping[$('#AttributeCategory').val()], function(val, text) {
+		options[options.length] = new Option(text, val);
+	});
+	// enable the form element
+	$('#AttributeType').prop('disabled', false);
+}
+
+function malwareCheckboxSetter(context) {
+	idDiv = "#" + context + "Category" +'Div';
+	var value = $("#" + context + "Category").val();  // get the selected value
+	// set the malware checkbox if the category is in the zip types
+	$("#" + context + "Malware").prop('checked', formZipTypeValues[value] == "true");
+}
+
+function feedFormUpdate() {
+	$('.optionalField').hide();
+	switch($('#FeedSourceFormat').val()) {
+		case 'freetext':
+			$('#TargetDiv').show();
+			$('#OverrideIdsDiv').show();
+			$('#PublishDiv').show();
+			if ($('#FeedTarget').val() != 0) {
+				$('#TargetEventDiv').show();
+				$('#DeltaMergeDiv').show();
+			}
+			break;
+		case 'csv':
+			$('#TargetDiv').show();
+			$('#OverrideIdsDiv').show();
+			$('#PublishDiv').show();
+			if ($('#FeedTarget').val() != 0) {
+				$('#TargetEventDiv').show();
+				$('#DeltaMergeDiv').show();
+			}
+			$('#settingsCsvValueDiv').show();
+			break;
+	}
+}
+
 $('.servers_default_role_checkbox').click(function() {
 	var id = $(this).data("id");
 	var state = $(this).is(":checked");
@@ -2573,3 +2662,133 @@ $('.servers_default_role_checkbox').click(function() {
 		url: '/admin/roles/set_default/' + (state ? id : ""),
 	});
 });
+
+function setContextFields() {
+	if (showContext) {
+		$('.context').show();
+		$('#show_context').addClass("attribute_filter_text_active");
+		$('#show_context').removeClass("attribute_filter_text");
+	} else {
+		$('.context').hide();
+		$('#show_context').addClass("attribute_filter_text");
+		$('#show_context').removeClass("attribute_filter_text_active");
+	}
+}
+
+function toggleContextFields() {
+	if (!showContext) {
+		showContext = true;
+	} else {
+		showContext = false;
+	}
+	setContextFields();
+}
+
+function checkOrphanedAttributes() {
+	$.ajax({
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+		success:function (data, textStatus) {
+			var color = 'red';
+			var text = ' (Removal recommended)';
+			if (data == '0') {
+				color = 'green';
+				text = ' (OK)';
+			}
+			$("#orphanedAttributeCount").html('<span class="' + color + '">' + data + text + '</span>');
+		},
+		complete:function() {
+			$(".loading").hide();
+		},
+		type:"get",
+		cache: false,
+		url: "/attributes/checkOrphanedAttributes/",
+	});
+}
+
+function loadTagTreemap() {
+	$.ajax({
+		async:true,
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+		success:function (data, textStatus) {
+			$(".treemapdiv").html(data);
+		},
+		complete:function() {
+			$(".loading").hide();
+		},
+		type:"get",
+		cache: false,
+		url: "/users/tagStatisticsGraph",
+	});
+}
+
+function quickEditEvent(id, field) {
+	$.ajax({
+		async:true,
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+		success:function (data, textStatus) {
+			$("#" + field + "Field").html(data);
+		},
+		complete:function() {
+			$(".loading").hide();
+		},
+		type:"get",
+		cache: false,
+		url: "/events/quickEdit/" + id + "/" + field,
+	});
+}
+
+function selectAllInbetween(last, current) {
+	if (last === false || last == current) return false;
+	if (last < current) {
+		var temp = current;
+		current = last;
+		last = temp;
+	}
+	$('.select_proposal, .select_attribute').each(function () {
+		if ($(this).parent().data('position') > current && $(this).parent().data('position') < last) {
+			$(this).prop('checked', true);
+		}
+	});
+}
+
+$('.galaxy-toggle-button').click(function() {
+	var element = $(this).data('toggle-type');
+	if ($(this).children('span').hasClass('icon-minus')) {
+		$(this).children('span').addClass('icon-plus');
+		$(this).children('span').removeClass('icon-minus');
+		$('#' + element + '_div').hide();
+	} else {
+		$(this).children('span').removeClass('icon-plus');
+		$(this).children('span').addClass('icon-minus');
+		$('#' + element + '_div').show();
+	}
+});
+
+$('#addGalaxy').click(function() {
+	getPopup($(this).data('event-id'), 'galaxies', 'selectGalaxy');
+});
+
+function quickSubmitGalaxyForm(event_id, cluster_id) {
+	$('#GalaxyTargetId').val(cluster_id);
+	$('#GalaxySelectClusterForm').submit();
+	return false;
+}
+
+function checkAndSetPublishedInfo() {
+	var id = $('#hiddenSideMenuData').data('event-id');
+	$.get( "/events/checkPublishedStatus/" + id, function(data) {
+		if (data == 1) {
+			$('.published').show();
+			$('.not-published').hide();
+		} else {
+			$('.published').hide();
+			$('.not-published').show();
+		}
+	});
+}

@@ -51,8 +51,8 @@
 			</td>
 			<td class="short" ondblclick="document.location.href ='<?php echo $eventViewURL . h($uuid);?>'">
 				<?php
-					echo h($threatLevels[$event['threat_level_id']]);
-				?>&nbsp;
+					echo h($threatLevels[isset($event['threat_level_id']) ? $event['threat_level_id'] : (Configure::read('MISP.default_event_threat_level') ? Configure::read('MISP.default_event_threat_level') : 4)]);
+				?>
 			</td>
 			<td class="short" ondblclick="document.location.href ='<?php echo $eventViewURL . h($uuid);?>'">
 				<?php echo $analysisLevels[$event['analysis']]; ?>&nbsp;

@@ -117,7 +117,6 @@ class WarninglistsController extends AppController {
 
 	public function enableWarninglist($id, $enable = false) {
 		$this->Warninglist->id = $id;
-		debug($id);
 		if (!$this->Warninglist->exists()) throw new NotFoundException('Invalid Warninglist.');
 		// DBMS interoperability: convert boolean false to integer 0 so cakephp doesn't try to insert an empty string into the database
 		if ($enable === false) $enable = 0;

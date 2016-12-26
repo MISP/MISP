@@ -47,14 +47,19 @@
 				echo $this->Form->input('Attribute' . $k . 'Data', array(
 						'label' => false,
 						'type' => 'hidden',
-						'value' => isset($item['data']) ? h($item['data']) : false,
+						'value' => isset($item['data']) ? $item['data'] : false,
+				));
+				echo $this->Form->input('Attribute' . $k . 'DataIsHandled', array(
+						'label' => false,
+						'type' => 'hidden',
+						'value' => isset($item['data_is_handled']) ? h($item['data_is_handled']) : false,
 				));
 			?>
 			<td>
 				<?php
 					echo $this->Form->input('Attribute' . $k . 'Value', array(
 							'label' => false,
-							'value' => h($item['value']),
+							'value' => $item['value'],
 							'style' => 'padding:0px;height:20px;margin-bottom:0px;width:90%;',
 							'div' => false
 					));

@@ -265,13 +265,37 @@ class Server extends AppModel {
 							'test' => 'testBool',
 							'type' => 'boolean',
 					),
+					'threatlevel_in_email_subject' => array(
+							'level' => 2,
+							'description' => 'Put the event threat level in the notification E-mail subject.',
+							'value' => true,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+						),
 					'email_subject_TLP_string' => array(
 							'level' => 2,
-							'description' => 'This is the TLP string in alert e-mail sent when an event is published.',
+							'description' => 'This is the TLP string for e-mails when email_subject_tag is not found.',
 							'value' => 'TLP Amber',
 							'errorMessage' => '',
 							'test' => 'testForEmpty',
 							'type' => 'string',
+						),
+					'email_subject_tag' => array(
+							'level' => 2,
+							'description' => "If this tag is set on an event it's value will be sent in the E-mail subject. If the tag is not set the email_subject_TLP_string will be used.",
+							'value' => 'tlp',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+						),
+					'email_subject_include_tag_name' => array(
+							'level' => 2,
+							'description' => 'Include in name of the email_subject_tag in the subject. When false only the tag value is used.',
+							'value' => true,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
 						),
 					'taxii_sync' => array(
 							'level' => 3,
@@ -383,7 +407,7 @@ class Server extends AppModel {
 					'default_event_threat_level' => array(
 							'level' => 1,
 							'description' => 'The default threat level setting when creating events.',
-							'value' => '1',
+							'value' => '4',
 							'errorMessage' => '',
 							'test' => 'testForEmpty',
 							'type' => 'string',
@@ -556,6 +580,15 @@ class Server extends AppModel {
 							'type' => 'boolean',
 							'null' => true
 					),
+					'showProposalsCountOnIndex' => array(
+							'level' => 1,
+							'description' => 'When enabled, the number of proposals for the events are shown on the index.',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+							'null' => true
+					),
 					'showSightingsCountOnIndex' => array(
 							'level' => 1,
 							'description' => 'When enabled, the aggregate number of attribute sightings within the event becomes visible to the currently logged in user on the event index UI.',
@@ -574,6 +607,24 @@ class Server extends AppModel {
 							'type' => 'boolean',
 							'null' => false,
 
+					),
+					'block_event_alert' => array(
+							'level' => 1,
+							'description' => 'Enable this setting to start blocking alert e-mails for events with a certain tag. Define the tag in MISP.block_event_alert_tag.',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+							'null' => false,
+					),
+					'block_event_alert_tag' => array(
+							'level' => 1,
+							'description' => 'If the MISP.block_event_alert setting is set, alert e-mails for events tagged with the tag defined by this setting will be blocked.',
+							'value' => 'no-alerts="true"',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+							'null' => false,
 					),
 					'block_old_event_alert' => array(
 							'level' => 1,
@@ -628,6 +679,52 @@ class Server extends AppModel {
 							'test' => 'testForStyleFile',
 							'type' => 'string',
 							'null' => true,
+					),
+					'proposals_block_attributes' => array(
+							'level' => 0,
+							'description' => 'Enable this setting to allow blocking attributes from to_ids sensitive exports if a proposal has been made to it to remove the IDS flag or to remove the attribute altogether. This is a powerful tool to deal with false-positives efficiently.',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+							'null' => false,
+					),
+					'incoming_tags_disabled_by_default' => array(
+							'level' => 1,
+							'description' => 'Enable this settings if new tags synced / added via incoming events from any source should not be selectable by users by default.',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+							'null' => false
+					),
+					'completely_disable_correlation' => array(
+							'level' => 0,
+							'description' => '*WARNING* This setting will completely disable the correlation on this instance and remove any existing saved correlations. Enabling this will trigger a full recorrelation of all data which is an extremely long and costly procedure. Only enable this if you know what you\'re doing.',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBoolFalse',
+							'type' => 'boolean',
+							'null' => true,
+							'afterHook' => 'correlationAfterHook',
+					),
+					'allow_disabling_correlation' => array(
+							'level' => 0,
+							'description' => '*WARNING* This setting will give event creators the possibility to disable the correlation of individual events / attributes that they have created.',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBoolFalse',
+							'type' => 'boolean',
+							'null' => true
+					),
+					'showCorrelationsOnIndex' => array(
+							'level' => 1,
+							'description' => 'When enabled, the number of correlations visible to the currently logged in user will be visible on the event index UI. This comes at a performance cost but can be very useful to see correlating events at a glance.',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+							'null' => true
 					),
 			),
 			'GnuPG' => array(
@@ -963,11 +1060,10 @@ class Server extends AppModel {
 					'Sightings_enable' => array(
 						'level' => 1,
 						'description' => 'Enables or disables the sighting functionality. When enabled, users can use the UI or the appropriate APIs to submit sightings data about indicators.',
-						'value' => false,
+						'value' => true,
 						'errorMessage' => '',
 						'test' => 'testBool',
 						'type' => 'boolean',
-						'beforeHook' => 'sightingsBeforeHook',
 					),
 					'Sightings_policy' => array(
 						'level' => 1,
@@ -1000,6 +1096,24 @@ class Server extends AppModel {
 							'level' => 2,
 							'description' => 'Set the header that MISP should look for here. If left empty it will default to the Authorization header.',
 							'value' => 'Authorization',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+							'null' => true
+					),
+					'CustomAuth_use_header_namespace' => array(
+							'level' => 2,
+							'description' => 'Use a header namespace for the auth header - default setting is enabled',
+							'value' => true,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+							'null' => true
+					),
+					'CustomAuth_header_namespace' => array(
+							'level' => 2,
+							'description' => 'The default header namespace for the auth header - default setting is HTTP_',
+							'value' => 'HTTP_',
 							'errorMessage' => '',
 							'test' => 'testForEmpty',
 							'type' => 'string',
@@ -1488,7 +1602,7 @@ class Server extends AppModel {
 			$temp = array();
 			foreach ($rules as $operator => $elements) {
 				foreach ($elements as $k => $element) {
-					if ($operator === 'NOT') $elements[$k] = '!' . $element;
+					if ($operator === 'NOT') $element = '!' . $element;
 					if (!empty($element)) $temp[] = $element;
 				}
 			}
@@ -1818,22 +1932,6 @@ class Server extends AppModel {
 		return true;
 	}
 
-	private function __getEnrichmentSettings() {
-		$modules = $this->getEnrichmentModules();
-		$result = array();
-		if (!empty($modules['modules'])) {
-			foreach ($modules['modules'] as $module) {
-				$result[$module['name']][0] = array('name' => 'enabled', 'type' => 'boolean');
-				if (isset($module['meta']['config'])) {
-					foreach ($module['meta']['config'] as $conf) {
-						$result[$module['name']][] = array('name' => $conf, 'type' => 'string');
-					}
-				}
-			}
-		}
-		return $result;
-	}
-
 	public function getCurrentServerSettings() {
 		$this->Module = ClassRegistry::init('Module');
 		$serverSettings = $this->serverSettings;
@@ -2029,6 +2127,17 @@ class Server extends AppModel {
 		return true;
 	}
 
+	public function testBoolFalse($value) {
+		if (!$this->testBool($value)) {
+			return $this->testBool($value);
+		}
+		if ($value !== false) {
+			return 'It is highly recommended that this setting is disabled. Make sure you understand the impact of having this setting turned on.';
+		} else {
+			return true;
+		}
+	}
+
 	public function testSalt($value) {
 		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
 		if (strlen($value) < 32) return 'The salt has to be an at least 32 byte long string.';
@@ -2144,6 +2253,45 @@ class Server extends AppModel {
 		return true;
 	}
 
+	public function correlationAfterHook($setting, $value) {
+		if (!Configure::read('MISP.background_jobs')) {
+			$this->Attribute = ClassRegistry::init('Attribute');
+			if ($value) {
+				$k = $this->Attribute->purgeCorrelations();
+			} else {
+				$k = $this->Attribute->generateCorrelation();
+			}
+		} else {
+			$job = ClassRegistry::init('Job');
+			$job->create();
+			if ($value == true) {
+				$jobType = 'jobPurgeCorrelation';
+				$jobTypeText = 'purge correlations';
+			} else {
+				$jobType = 'jobGenerateCorrelation';
+				$jobTypeText = 'generate correlation';
+			}
+			$data = array(
+					'worker' => 'default',
+					'job_type' => $jobTypeText,
+					'job_input' => 'All attributes',
+					'status' => 0,
+					'retries' => 0,
+					'org' => 'ADMIN',
+					'message' => 'Job created.',
+			);
+			$job->save($data);
+			$jobId = $job->id;
+			$process_id = CakeResque::enqueue(
+					'default',
+					'AdminShell',
+					array($jobType, $jobId),
+					true
+			);
+			$job->saveField('process_id', $process_id);
+		}
+	}
+
 	public function ipLogBeforeHook($setting, $value) {
 		if ($setting == 'MISP.log_client_ip') {
 			if ($value == true) {
@@ -2198,6 +2346,13 @@ class Server extends AppModel {
 
 	public function serverSettingsSaveValue($setting, $value) {
 		Configure::write($setting, $value);
+		if (Configure::read('Security.auth') && is_array(Configure::read('Security.auth')) && !empty(Configure::read('Security.auth'))) {
+			$authmethods = array();
+			foreach (Configure::read('Security.auth') as $auth) {
+				if (!in_array($auth, $authmethods)) $authmethods[] = $auth;
+			}
+			Configure::write('Security.auth', $authmethods);
+		}
 		Configure::dump('config.php', 'default', array('MISP', 'GnuPG', 'SMIME', 'Proxy', 'SecureAuth', 'Security', 'debug', 'site_admin_debug', 'Plugin', 'CertAuth', 'ApacheShibbAuth', 'ApacheSecureAuth'));
 	}
 
@@ -2419,6 +2574,40 @@ class Server extends AppModel {
 		return array('success' => $success, 'response' => $response, 'canPush' => $canPush, 'version' => $remoteVersion);
 	}
 
+	/* This is a fallback for legacy remote instances that don't report back the current user's sync permission.
+	 *
+	 * The idea is simple: If we have no way of determining the perm_sync flag from the remote instance, request
+	 * /servers/testConnection from the remote. This API is used to check the remote connectivity and expects an ID to be passed
+	 * In this case however we are not passing an ID so ideally it will return 404, meaning that the instance is invalid.
+	 * We are abusing the fact that only sync users can use this functionality, if we don't have sync permission we'll get a 403
+	 * instead of the 404. It's hacky but it works fine and serves the purpose.
+	 */
+	public function checkLegacyServerSyncPrivilege($id, $HttpSocket = false) {
+		$server = $this->find('first', array('conditions' => array('Server.id' => $id)));
+		if (!$HttpSocket) {
+			App::uses('SyncTool', 'Tools');
+			$syncTool = new SyncTool();
+			$HttpSocket = $syncTool->setupHttpSocket($server);
+		}
+		$uri = $server['Server']['url'] . '/servers/testConnection';
+		$request = array(
+				'header' => array(
+						'Authorization' => $server['Server']['authkey'],
+						'Accept' => 'application/json',
+						'Content-Type' => 'application/json',
+				)
+		);
+		try {
+			$response = $HttpSocket->get($uri, '', $request);
+		} catch (Exception $e) {
+			return false;
+		}
+		if ($response->code == '404') {
+			return true;
+		}
+		return false;
+	}
+
 	public function isJson($string) {
 		return (json_last_error() == JSON_ERROR_NONE);
 	}
@@ -2473,19 +2662,32 @@ class Server extends AppModel {
 
 	public function writeableFilesDiagnostics(&$diagnostic_errors) {
 		$writeableFiles = array(
-				'Config' . DS . 'config.php' => 0,
+				APP . 'Config' . DS . 'config.php' => 0,
 		);
 		foreach ($writeableFiles as $path => &$error) {
-			if (!file_exists(APP . $path)) {
+			if (!file_exists($path)) {
 				$error = 1;
 				continue;
 			}
-			if (!is_writeable(APP . $path)) {
+			if (!is_writeable($path)) {
 				$error = 2;
 				$diagnostic_errors++;
 			}
 		}
 		return $writeableFiles;
+	}
+
+	public function readableFilesDiagnostics(&$diagnostic_errors) {
+		$readableFiles = array(
+				APP . 'files' . DS . 'scripts' . DS . 'stixtest.py' => 0
+		);
+		foreach ($readableFiles as $path => &$error) {
+			if (!is_readable($path)) {
+				$error = 1;
+				continue;
+			}
+		}
+		return $readableFiles;
 	}
 
 	public function stixDiagnostics(&$diagnostic_errors, &$stixVersion, &$cyboxVersion) {
@@ -2498,7 +2700,7 @@ class Server extends AppModel {
 			$scriptResult['operational'] = $scriptResult['success'];
 			if ($scriptResult['operational'] == 0) {
 				$diagnostic_errors++;
-				return $scriptResult;
+				return array('operational' => 0, 'stix' => array('expected' => $expected['stix']), 'cybox' => array('expected' => $expected['cybox']));
 			}
 		} else {
 			return array('operational' => 0, 'stix' => array('expected' => $expected['stix']), 'cybox' => array('expected' => $expected['cybox']));
@@ -2738,33 +2940,6 @@ class Server extends AppModel {
 						'change' => 'Removing dead worker data. Worker was of type ' . $worker['queue'] . ' with pid ' . $pid
 				));
 			}
-		}
-	}
-
-	// currently unused, but let's keep it in the code-base in case we need it in the future.
-	private function __dropIndex($table, $field) {
-		$this->Log = ClassRegistry::init('Log');
-		$indexCheck = "SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema=DATABASE() AND table_name='" . $table . "' AND index_name LIKE '" . $field . "%'";
-		$indexCheckResult = $this->query($indexCheck);
-		foreach ($indexCheckResult as $icr) {
-			$dropIndex = 'ALTER TABLE ' . $table . ' DROP INDEX ' . $icr['STATISTICS']['INDEX_NAME'];
-			$result = true;
-			try {
-				$this->query($dropIndex);
-			} catch (Exception $e) {
-				$result = false;
-			}
-			$this->Log->create();
-			$this->Log->save(array(
-					'org' => 'SYSTEM',
-					'model' => 'Server',
-					'model_id' => 0,
-					'email' => 'SYSTEM',
-					'action' => 'update_database',
-					'user_id' => 0,
-					'title' => ($result ? 'Removed index ' : 'Failed to remove index ') . $icr['STATISTICS']['INDEX_NAME'] . ' from ' . $table,
-					'change' => ($result ? 'Removed index ' : 'Failed to remove index ') . $icr['STATISTICS']['INDEX_NAME'] . ' from ' . $table,
-			));
 		}
 	}
 
@@ -3058,5 +3233,20 @@ class Server extends AppModel {
 			$validServers[] = $server;
 		}
 		return $validServers;
+	}
+
+	public function extensionDiagnostics() {
+		$results = array();
+		$extensions = array('redis');
+		foreach ($extensions as $extension) {
+			$results['web']['extensions'][$extension] = extension_loaded($extension);
+		}
+		if (!is_readable(APP . '/files/scripts/selftest.php')) {
+			$results['cli'] = false;
+		} else {
+			$results['cli'] = exec('php ' . APP . '/files/scripts/selftest.php');
+			$results['cli'] = json_decode($results['cli'], true);
+		}
+		return $results;
 	}
 }

@@ -36,7 +36,13 @@ class AppModel extends Model {
 	// major -> minor -> hotfix -> requires_logout
 	public $db_changes = array(
 		2 => array(
-			4 => array(18 => false, 19 => false, 20 => false, 25 => false, 27 => false, 32 => false, 33 => true, 38 => true, 39 => true, 40 => false, 42 => false, 44 => false, 45 => false, 49 => true, 50 => false, 51 => false)
+			4 => array(
+				18 => false, 19 => false, 20 => false, 25 => false, 27 => false,
+				32 => false, 33 => true, 38 => true, 39 => true, 40 => false,
+				42 => false, 44 => false, 45 => false, 49 => true, 50 => false,
+				51 => false, 52 => false, 55 => true, 56 => true, 57 => true,
+				58 => false
+			)
 		)
 	);
 
@@ -68,6 +74,9 @@ class AppModel extends Model {
 				$this->SharingGroup = ClassRegistry::init('SharingGroup');
 				$this->SharingGroup->correctSyncedSharingGroups();
 				$this->SharingGroup->updateRoaming();
+				break;
+			case '2.4.55':
+				$this->updateDatabase('addSightings');
 				break;
 			default:
 				$this->updateDatabase($command);
@@ -124,16 +133,16 @@ class AppModel extends Model {
 				$sql = 'ALTER TABLE  `event_blacklists` ADD  `event_orgc` VARCHAR( 255 ) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL , ADD  `event_info` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL, ADD `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL;';
 				break;
 			case 'addSightings':
-				$sql = "CREATE TABLE IF NOT EXISTS `sightings` (
-				`id` int(11) NOT NULL AUTO_INCREMENT,
-				`attribute_id` int(11) NOT NULL,
-				`event_id` int(11) NOT NULL,
-				`org_id` int(11) NOT NULL,
-				`date_sighting` bigint(20) NOT NULL,
-				PRIMARY KEY (`id`),
-				INDEX `attribute_id` (`attribute_id`),
-				INDEX `event_id` (`event_id`),
-				INDEX `org_id` (`org_id`)
+				$sql = "CREATE TABLE IF NOT EXISTS sightings (
+				id int(11) NOT NULL AUTO_INCREMENT,
+				attribute_id int(11) NOT NULL,
+				event_id int(11) NOT NULL,
+				org_id int(11) NOT NULL,
+				date_sighting bigint(20) NOT NULL,
+				PRIMARY KEY (id),
+				INDEX attribute_id (attribute_id),
+				INDEX event_id (event_id),
+				INDEX org_id (org_id)
 				) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
 				break;
 			case 'makeAttributeUUIDsUnique':
@@ -435,22 +444,102 @@ class AppModel extends Model {
 				$sqlArray[] = 'ALTER TABLE `servers` ADD `internal` tinyint(1) NOT NULL DEFAULT 0;';
 				$sqlArray[] = 'ALTER TABLE `roles` ADD `default_role` tinyint(1) NOT NULL DEFAULT 0;';
 				break;
-			case '2.4.53':
+			case '2.4.52':
+				$sqlArray[] = "ALTER TABLE feeds ADD source_format varchar(255) COLLATE utf8_bin DEFAULT 'misp';";
+				$sqlArray[] = 'ALTER TABLE feeds ADD fixed_event tinyint(1) NOT NULL DEFAULT 0;';
+				$sqlArray[] = 'ALTER TABLE feeds ADD delta_merge tinyint(1) NOT NULL DEFAULT 0;';
+				$sqlArray[] = 'ALTER TABLE feeds ADD event_id int(11) NOT NULL DEFAULT 0;';
+				$sqlArray[] = 'ALTER TABLE feeds ADD publish tinyint(1) NOT NULL DEFAULT 0;';
+				$sqlArray[] = 'ALTER TABLE feeds ADD override_ids tinyint(1) NOT NULL DEFAULT 0;';
+				$sqlArray[] = "ALTER TABLE feeds ADD settings text NOT NULL DEFAULT '';";
+				break;
+			case '2.4.56':
+				$sqlArray[] =
+					"CREATE TABLE IF NOT EXISTS galaxies (
+					`id` int(11) NOT NULL AUTO_INCREMENT,
+					`uuid` varchar(255) COLLATE utf8_bin NOT NULL,
+					`name` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT '',
+					`type` varchar(255) COLLATE utf8_bin NOT NULL,
+					`description` text COLLATE utf8_bin NOT NULL,
+					`version` varchar(255) COLLATE utf8_bin NOT NULL,
+					PRIMARY KEY (id)
+					) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
+
+				$this->__addIndex('galaxies', 'name');
+				$this->__addIndex('galaxies', 'uuid');
+				$this->__addIndex('galaxies', 'type');
+
+				$sqlArray[] =
+					"CREATE TABLE IF NOT EXISTS galaxy_clusters (
+					`id` int(11) NOT NULL AUTO_INCREMENT,
+					`uuid` varchar(255) COLLATE utf8_bin NOT NULL,
+					`type` varchar(255) COLLATE utf8_bin NOT NULL,
+					`value` text COLLATE utf8_bin NOT NULL,
+					`tag_name` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT '',
+					`description` text COLLATE utf8_bin NOT NULL,
+					`galaxy_id` int(11) NOT NULL,
+					`source` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT '',
+					`authors` text COLLATE utf8_bin NOT NULL,
+					PRIMARY KEY (id)
+					) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
+
+				$this->__addIndex('galaxy_clusters', 'value', 255);
+				$this->__addIndex('galaxy_clusters', 'tag_name');
+				$this->__addIndex('galaxy_clusters', 'uuid');
+				$this->__addIndex('galaxy_clusters', 'type');
+
+				$sqlArray[] =
+					"CREATE TABLE IF NOT EXISTS galaxy_elements (
+					`id` int(11) NOT NULL AUTO_INCREMENT,
+					`galaxy_cluster_id` int(11) NOT NULL,
+					`key` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT '',
+					`value` text COLLATE utf8_bin NOT NULL,
+					PRIMARY KEY (id)
+					) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
+
+				$this->__addIndex('galaxy_elements', 'key');
+				$this->__addIndex('galaxy_elements', 'value', 255);
+
+				$sqlArray[] =
+					"CREATE TABLE IF NOT EXISTS galaxy_reference (
+					`id` int(11) NOT NULL AUTO_INCREMENT,
+					`galaxy_cluster_id` int(11) NOT NULL,
+					`referenced_galaxy_cluster_id` int(11) NOT NULL,
+					`referenced_galaxy_cluster_uuid` varchar(255) COLLATE utf8_bin NOT NULL,
+					`referenced_galaxy_cluster_type` text COLLATE utf8_bin NOT NULL,
+					`referenced_galaxy_cluster_value` text COLLATE utf8_bin NOT NULL,
+					PRIMARY KEY (id)
+					) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;";
+
+				$this->__addIndex('galaxy_reference', 'galaxy_cluster_id');
+				$this->__addIndex('galaxy_reference', 'referenced_galaxy_cluster_id');
+				$this->__addIndex('galaxy_reference', 'referenced_galaxy_cluster_value', 255);
+				$this->__addIndex('galaxy_reference', 'referenced_galaxy_cluster_type', 255);
+
+				break;
+			case '2.4.57':
+				$sqlArray[] = 'ALTER TABLE tags ADD hide_tag tinyint(1) NOT NULL DEFAULT 0;';
+				// new indeces to match the changes in #1766
+				$this->__dropIndex('correlations', '1_event_id');
+				$this->__addIndex('correlations', '1_event_id');
+				$this->__addIndex('warninglist_entries', 'warninglist_id');
+				break;
+			case '2.4.59':
 				if ($dataSource == 'Database/Mysql') {
 					$sqlArray[] = 'CREATE TABLE IF NOT EXISTS `attribute_tags` (
-							  `id` int(11) NOT NULL AUTO_INCREMENT,
-							  `attribute_id` int(11) NOT NULL,
-							  `tag_id` int(11) NOT NULL,
-							  PRIMARY KEY (`id`)
+								`id` int(11) NOT NULL AUTO_INCREMENT,
+								`attribute_id` int(11) NOT NULL,
+								`tag_id` int(11) NOT NULL,
+								PRIMARY KEY (`id`)
 							) ENGINE=InnoDB DEFAULT CHARSET=utf8;';
 					$sqlArray[] = 'ALTER TABLE `attribute_tags` ADD INDEX `attribute_id` (`attribute_id`);';
 					$sqlArray[] = 'ALTER TABLE `attribute_tags` ADD INDEX `tag_id` (`tag_id`);';
 				} else if ($dataSource == 'Database/Postgres') {
 					$sqlArray[] = 'CREATE TABLE IF NOT EXISTS attribute_tags (
-							  id bigserial NOT NULL,
-							  attribute_id bigint NOT NULL,
-							  tag_id bigint NOT NULL,
-							  PRIMARY KEY (id)
+								id bigserial NOT NULL,
+								attribute_id bigint NOT NULL,
+								tag_id bigint NOT NULL,
+								PRIMARY KEY (id)
 							);';
 					$sqlArray[] = 'CREATE INDEX idx_attribute_tags_attribute_id ON attribute_tags (attribute_id);';
 					$sqlArray[] = 'CREATE INDEX idx_attribute_tags_tag_id ON attribute_tags (tag_id);';
@@ -473,6 +562,10 @@ class AppModel extends Model {
 				$sqlArray[] = 'ALTER TABLE `shadow_attributes` DROP `event_org`;';
 				$sqlArray[] = 'ALTER TABLE `threads` DROP `org`;';
 				$sqlArray[] = 'ALTER TABLE `users` DROP `org`;';
+				break;
+			case '2.4.58':
+				$sqlArray[] = "ALTER TABLE `events` ADD `disable_correlation` tinyint(1) NOT NULL DEFAULT 0;";
+				$sqlArray[] = "ALTER TABLE `attributes` ADD `disable_correlation` tinyint(1) NOT NULL DEFAULT 0;";
 				break;
 			default:
 				return false;
@@ -547,6 +640,38 @@ class AppModel extends Model {
 					'change' => ($result ? 'Removed index ' : 'Failed to remove index ') . $icr['STATISTICS']['INDEX_NAME'] . ' from ' . $table,
 			));
 		}
+	}
+
+	private function __addIndex($table, $field, $length = false) {
+		$dataSourceConfig = ConnectionManager::getDataSource('default')->config;
+		$dataSource = $dataSourceConfig['datasource'];
+		$this->Log = ClassRegistry::init('Log');
+		if ($dataSource == 'Database/Postgres') {
+			$addIndex = "CREATE INDEX idx_" . $table . "_" . $field . " ON " . $table . " (" . $field . ");";
+		} else {
+			if (isset($length)) {
+				$addIndex = "ALTER TABLE `" . $table . "` ADD INDEX `" . $field . "` (`" . $field . "`);";
+			} else {
+				$addIndex = "ALTER TABLE `" . $table . "` ADD INDEX `" . $field . "` (`" . $field . "`(" . $length . "));";
+			}
+		}
+		$result = true;
+		try {
+			$this->query($addIndex);
+		} catch (Exception $e) {
+			$result = false;
+		}
+		$this->Log->create();
+		$this->Log->save(array(
+				'org' => 'SYSTEM',
+				'model' => 'Server',
+				'model_id' => 0,
+				'email' => 'SYSTEM',
+				'action' => 'update_database',
+				'user_id' => 0,
+				'title' => ($result ? 'Added index ' : 'Failed to add index ') . $field . ' to ' . $table,
+				'change' => ($result ? 'Added index ' : 'Failed to add index ') . $field . ' to ' . $table,
+		));
 	}
 
 	public function cleanCacheFiles() {

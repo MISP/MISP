@@ -43,6 +43,9 @@ class Taxonomy extends AppModel {
 		}
 		$updated = array();
 		foreach ($directories as $dir) {
+			if (!file_exists(APP . 'files' . DS . 'taxonomies' . DS . $dir . DS . 'machinetag.json')) {
+				continue;
+			}
 			$file = new File(APP . 'files' . DS . 'taxonomies' . DS . $dir . DS . 'machinetag.json');
 			$vocab = json_decode($file->read(), true);
 			$file->close();
@@ -143,6 +146,9 @@ class Taxonomy extends AppModel {
 			if (!$user['Role']['perm_site_admin']) {
 				$conditions = array('Tag.org_id' => array(0, $user['org_id']));
 			}
+		}
+		if (Configure::read('MISP.incoming_tags_disabled_by_default')) {
+			$conditions['Tag.hide_tag'] = 0;
 		}
 		$allTags = $this->Tag->find(
 			'list', array(

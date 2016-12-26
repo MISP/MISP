@@ -442,7 +442,13 @@ class ShadowAttributesController extends AppController {
 		$categories = array_keys($this->ShadowAttribute->Event->Attribute->categoryDefinitions);
 		$categories = $this->_arrayToValuesIndexArray($categories);
 		$this->set('categories', compact('categories'));
-		// combobox for distribution
+		foreach ($this->ShadowAttribute->Event->Attribute->categoryDefinitions as $key => $value) {
+			$info['category'][$key] = array('key' => $key, 'desc' => isset($value['formdesc'])? $value['formdesc'] : $value['desc']);
+		}
+		foreach ($this->ShadowAttribute->Event->Attribute->typeDefinitions as $key => $value) {
+			$info['type'][$key] = array('key' => $key, 'desc' => isset($value['formdesc'])? $value['formdesc'] : $value['desc']);
+		}
+		$this->set('info', $info);
 		$this->set('typeDefinitions', $this->ShadowAttribute->typeDefinitions);
 		$this->set('categoryDefinitions', $this->ShadowAttribute->categoryDefinitions);
 	}
@@ -591,7 +597,13 @@ class ShadowAttributesController extends AppController {
 		}
 		$categories = $this->_arrayToValuesIndexArray($selectedCategories);
 		$this->set('categories',$categories);
-
+		foreach ($this->ShadowAttribute->Event->Attribute->categoryDefinitions as $key => $value) {
+			$info['category'][$key] = array('key' => $key, 'desc' => isset($value['formdesc'])? $value['formdesc'] : $value['desc']);
+		}
+		foreach ($this->ShadowAttribute->Event->Attribute->typeDefinitions as $key => $value) {
+			$info['type'][$key] = array('key' => $key, 'desc' => isset($value['formdesc'])? $value['formdesc'] : $value['desc']);
+		}
+		$this->set('info', $info);
 		$this->set('attrDescriptions', $this->ShadowAttribute->fieldDescriptions);
 		$this->set('typeDefinitions', $this->ShadowAttribute->typeDefinitions);
 		$this->set('categoryDefinitions', $this->ShadowAttribute->categoryDefinitions);
@@ -699,7 +711,13 @@ class ShadowAttributesController extends AppController {
 		$categories = $this->_arrayToValuesIndexArray(array_keys($this->ShadowAttribute->Event->Attribute->categoryDefinitions));
 		$categories = $this->_arrayToValuesIndexArray($categories);
 		$this->set('categories', $categories);
-
+		foreach ($this->ShadowAttribute->Event->Attribute->categoryDefinitions as $key => $value) {
+			$info['category'][$key] = array('key' => $key, 'desc' => isset($value['formdesc'])? $value['formdesc'] : $value['desc']);
+		}
+		foreach ($this->ShadowAttribute->Event->Attribute->typeDefinitions as $key => $value) {
+			$info['type'][$key] = array('key' => $key, 'desc' => isset($value['formdesc'])? $value['formdesc'] : $value['desc']);
+		}
+		$this->set('info', $info);
 		$this->set('attrDescriptions', $this->ShadowAttribute->fieldDescriptions);
 		$this->set('typeDefinitions', $this->ShadowAttribute->typeDefinitions);
 		$this->set('categoryDefinitions', $this->ShadowAttribute->Event->Attribute->categoryDefinitions);
@@ -791,19 +809,30 @@ class ShadowAttributesController extends AppController {
 	}
 
 	public function index($eventId = false) {
+		if (isset($this->request['named']['all'])) {
+			$all = $this->request['named']['all'];
+		} else {
+			$all = false;
+		}
 		$conditions = array();
 		if (!$this->_isSiteAdmin()) {
-			$conditions = array('Event.org_id' => $this->Auth->user('org_id'));
+			if (!$all) {
+				$conditions = array('Event.orgc_id' => $this->Auth->user('org_id'));
+			} else {
+				$conditions['AND'][] = array('ShadowAttribute.event_id' => $this->ShadowAttribute->Event->fetchEventIds($this->Auth->user(), false, false, false, true));
+			}
 		}
 		if ($eventId && is_numeric($eventId)) $conditions['ShadowAttribute.event_id'] = $eventId;
-		$conditions[] = array('deleted' => 0);
+		$conditions['deleted'] = 0;
+		$this->set('all', $all);
 		if ($this->_isRest()) {
 			$temp = $this->ShadowAttribute->find('all', array(
 					'conditions' => $conditions,
-					'fields' => array('ShadowAttribute.id', 'ShadowAttribute.old_id', 'ShadowAttribute.event_id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.uuid', 'ShadowAttribute.to_ids', 'ShadowAttribute.value', 'ShadowAttribute.comment', 'ShadowAttribute.org_id'),
+					'fields' => array('ShadowAttribute.id', 'ShadowAttribute.old_id', 'ShadowAttribute.event_id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.uuid', 'ShadowAttribute.to_ids', 'ShadowAttribute.value', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.timestamp'),
 					'contain' => array(
 							'Event' => array(
 									'fields' => array('id', 'org_id', 'info', 'orgc_id'),
+									'Orgc' => array('fields' => array('Orgc.name'))
 							),
 							'Org' => array(
 								'fields' => array('name'),
@@ -822,10 +851,11 @@ class ShadowAttributesController extends AppController {
 		} else {
 			$this->paginate = array(
 					'conditions' => $conditions,
-					'fields' => array('ShadowAttribute.id', 'ShadowAttribute.old_id', 'ShadowAttribute.event_id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.uuid', 'ShadowAttribute.to_ids', 'ShadowAttribute.value', 'ShadowAttribute.comment', 'ShadowAttribute.org_id'),
+					'fields' => array('ShadowAttribute.id', 'ShadowAttribute.old_id', 'ShadowAttribute.event_id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.uuid', 'ShadowAttribute.to_ids', 'ShadowAttribute.value', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.timestamp'),
 					'contain' => array(
 							'Event' => array(
 									'fields' => array('id', 'org_id', 'info', 'orgc_id'),
+									'Orgc' => array('fields' => array('Orgc.name'))
 							),
 							'Org' => array(
 								'fields' => array('name'),

@@ -24,7 +24,7 @@ class JobsController extends AppController {
 		$jobs = $this->paginate();
 		foreach ($jobs as &$job) {
 			if ($job['Job']['process_id'] !== false) {
-				$job['Job']['status'] = $this->__jobStatusConverter(CakeResque::getJobStatus($job['Job']['process_id']));
+				$job['Job']['job_status'] = $this->__jobStatusConverter(CakeResque::getJobStatus($job['Job']['process_id']));
 				$job['Job']['failed'] = false;
 				if ($job['Job']['status'] === 'Failed') {
 					$job['Job']['failed'] = true;

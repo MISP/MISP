@@ -108,16 +108,16 @@ class EventShell extends AppShell
 		$this->Job->id = $id;
 		$dir = new Folder(APP . 'tmp/cached_exports/stix', true, 0750);
 		if ($user['Role']['perm_site_admin']) {
-			$stixFile = new File($dir->pwd() . DS . 'misp.stix' . '.ADMIN.xml');
+			$stixFilePath = $dir->pwd() . DS . 'misp.stix' . '.ADMIN.xml';
 		} else {
-			$stixFile = new File($dir->pwd() . DS . 'misp.stix' . '.' . $user['Organisation']['name'] . '.xml');
+			$stixFilePath = $dir->pwd() . DS . 'misp.stix' . '.' . $user['Organisation']['name'] . '.xml';
 		}
-		$result = $this->Event->stix(false, false, Configure::read('MISP.cached_attachments'), $user, 'xml', false, false, false, $id);
+		$result = $this->Event->stix(false, false, Configure::read('MISP.cached_attachments'), $user, 'xml', false, false, false, $id, true);
 		$timeDelta = (time()-$timeStart);
 		$this->Job->saveField('date_modified', date("y-m-d H:i:s"));
 		if ($result['success']) {
-			$stixFile->write($result['data']);
-			$stixFile->close();
+			rename($result['data'], $stixFilePath);
+			unlink($result['data']);
 			$this->Job->saveField('progress', 100);
 			$this->Job->saveField('message', 'Job done. (in '.$timeDelta.'s)');
 		} else {
@@ -329,27 +329,36 @@ class EventShell extends AppShell
 
 	public function cachebro()
 	{
-		$broHeader = "#fields indicator\tindicator_type\tmeta.source\tmeta.url\tmeta.do_notice\tmeta.if_in\n";
+		$timeStart = time();
+		$broHeader = "#fields\tindicator\tindicator_type\tmeta.source\tmeta.desc\tmeta.url\tmeta.do_notice\tmeta.if_in\n";
 		$userId = $this->args[0];
 		$user = $this->User->getAuthUser($userId);
 		$id = $this->args[1];
 		$this->Job->id = $id;
-		$format = $this->args[2];
 		$this->Job->saveField('progress', 1);
-		$types = array('ip', 'email', 'domain', 'filename', 'filehash', 'certhash', 'software', 'url'); //Bro types
+		App::uses('BroExport', 'Export');
+		$export = new BroExport();
+		$types = array_keys($export->mispTypes);
 		$typeCount = count($types);
-		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $format, true, 0750);
+		$dir = new Folder(APP . DS . '/tmp/cached_exports/bro', true, 0750);
 		if ($user['Role']['perm_site_admin']) {
-			$zipname = DS . 'misp.bro.ADMIN.intel.zip';
+			$file = new File($dir->pwd() . DS . 'misp.bro.ADMIN.intel');
 		} else {
-			$zipname = DS . 'misp.bro.' . $user['Organisation']['name'] . '.intel.zip';
+			$file = new File($dir->pwd() . DS . 'misp.bro.' . $user['Organisation']['name'] . '.intel');
 		}
-		$tmpZipname = $this->Attribute->brozip($user, false, false, false, false, false, false, $id);
-		rename($tmpZipname[0] . $tmpZipname[1], $dir->pwd() . $zipname);
-		$folder = new Folder($tmpZipname[0]);
-		$folder->delete();
+
+		foreach ($types as $k => $type) {
+			$final = $this->Attribute->bro($user, $type);
+			foreach ($final as $attribute) {
+				$file->append($attribute . PHP_EOL);
+			}
+			$this->Job->saveField('progress', $k / $typeCount * 100);
+		}
+		$file->close();
+		$timeDelta = (time()-$timeStart);
 		$this->Job->saveField('progress', 100);
-		$this->Job->saveField('message', 'Job done.');
+		$this->Job->saveField('message', 'Job done. (in '.$timeDelta.'s)');
+		$this->Job->saveField('date_modified', date("y-m-d H:i:s"));
 	}
 
 	public function alertemail() {
@@ -357,8 +366,9 @@ class EventShell extends AppShell
 		$processId = $this->args[1];
 		$job = $this->Job->read(null, $processId);
 		$eventId = $this->args[2];
+		$oldpublish = $this->args[3];
 		$user = $this->User->getAuthUser($userId);
-		$result = $this->Event->sendAlertEmail($eventId, $user, $processId);
+		$result = $this->Event->sendAlertEmail($eventId, $user, $oldpublish, $processId);
 		$job['Job']['progress'] = 100;
 		$job['Job']['message'] = 'Emails sent.';
 		//$job['Job']['date_modified'] = date("y-m-d H:i:s");

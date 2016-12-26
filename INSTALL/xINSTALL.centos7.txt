@@ -1,47 +1,42 @@
 INSTALLATION INSTRUCTIONS
-------------------------- for CentOS 6.x
+------------------------- for CentOS 7.x
 
 1/ Minimal CentOS install
 -------------------------
 
-Install a minimal CentOS 6.x system with the software:
+Install a minimal CentOS 7.x system with the software:
 
 - OpenSSH server
 - LAMP server (actually, this is done below)
 - Mail server
 
+# Make sure you set your hostname CORRECTLY vs. like an animal (manually in /etc/hostname)
+hostnamectl set-hostname misp # or whatever you want it to be
+
 # Make sure your system is up2date:
 yum update
-
 
 2/ Dependencies *
 ----------------
 Once the system is installed you can perform the following steps as root:
 
 # We need some packages from the Extra Packages for Enterprise Linux repository
-curl -o epel.rpm http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
-rpm -Uvh epel.rpm
+yum install epel-release
 
 # Since MISP 2.4 PHP 5.5 is a minimal requirement, so we need a newer version than CentOS base provides
 # Software Collections is a way do to this, see https://wiki.centos.org/AdditionalResources/Repositories/SCL
 yum install centos-release-scl
 
-# Because vim is just so practical
-yum install vim
-
 # Install the dependencies:
-yum install gcc git httpd zip redis mysql-server python-devel python-pip libxslt-devel zlib-devel
+yum install gcc git httpd zip redis mariadb mariadb-server python-devel python-pip libxslt-devel zlib-devel
 
 # Install PHP 5.6 from SCL, see https://www.softwarecollections.org/en/scls/rhscl/rh-php56/
-yum install rh-php56 rh-php56-php-fpm rh-php56-php-devel rh-php56-php-mysqlnd rh-php56-php-mbstring
+yum install rh-php56 rh-php56-php-fpm rh-php56-php-devel rh-php56-php-mysqlnd rh-php56-php-mbstring rh-php56-bcmath
 
 # rh-php56-php only provided mod_php for httpd24-httpd from SCL
 # if we want to use httpd from CentOS base we can use rh-php56-php-fpm instead
-chkconfig rh-php56-php-fpm on
-service rh-php56-php-fpm start
-
-# php-fpm is accessed using the fcgi interface
-yum install mod_fcgid mod_proxy_fcgi
+systemctl enable rh-php56-php-fpm.service
+systemctl start  rh-php56-php-fpm.service
 
 # Start a new shell with rh-php56 enabled
 scl enable rh-php56 bash
@@ -50,27 +45,35 @@ pear channel-update pear.php.net
 
 pear install Crypt_GPG    # we need version >1.3.0
 
+NOTE: if using rh-php56 the command needs to be run through its terminal: /usr/bin/scl enable rh-php56 "pear list | grep Crypt_GPG"
+
 # GPG needs lots of entropy, haveged provides entropy
 yum install haveged
-chkconfig haveged on
-service haveged start
+systemctl enable haveged.service
+systemctl start  haveged.service
 
 # Enable and start redis
-chkconfig redis on
-service redis start
+systemctl enable redis.service
+systemctl start  redis.service
 
 3/ MISP code
 ------------
 # Download MISP using git in the /var/www/ directory.
 cd /var/www/
 git clone https://github.com/MISP/MISP.git
+cd /var/www/MISP
+git checkout tags/$(git describe --tags `git rev-list --tags --max-count=1`)
+# if the last shortcut doesn't work, specify the latest version manually
+# example: git checkout tags/v2.4.XY
+# the message regarding a "detached HEAD state" is expected behaviour
+# (you only have to create a new branch, if you want to change stuff and do a pull request for example)
 
 # Make git ignore filesystem permission differences
-cd /var/www/MISP
 git config core.filemode false
 
 # install Mitre's STIX and its dependencies by running the following commands:
-yum install python-importlib python-lxml python-dateutil python-six
+pip install importlib
+yum install python-lxml python-dateutil python-six
 cd /var/www/MISP/app/files/scripts
 git clone https://github.com/CybOXProject/python-cybox.git
 git clone https://github.com/STIXProject/python-stix.git
@@ -104,11 +107,13 @@ php composer.phar require kamisama/cake-resque:4.1.2
 php composer.phar config vendor-dir Vendor
 php composer.phar install
 
-# CakeResque normally uses phpredis to connect to redis, but it has a (buggy) fallback connector through Redisent. It is highly advised to install phpredis
-pecl install redis
+# CakeResque normally uses phpredis to connect to redis, but it has a (buggy) fallback connector through Redisent. It is highly advised to install phpredis using "yum install php-redis"
+pecl install redis-2.2.8
 echo "extension=redis.so" > /etc/opt/rh/rh-php56/php-fpm.d/redis.ini
 ln -s ../php-fpm.d/redis.ini /etc/opt/rh/rh-php56/php.d/99-redis.ini
-service rh-php56-php-fpm restart
+systemctl restart rh-php56-php-fpm.service
+
+Note: if using rh-php56 redis needs to be installed through its terminal: /usr/bin/scl enable rh-php56  "pecl install redis-2.2.8"
 
 # If you have not yet set a timezone in php.ini
 echo 'date.timezone = "Europe/Amsterdam"' > /etc/opt/rh/rh-php56/php-fpm.d/timezone.ini
@@ -135,20 +140,22 @@ chown -R apache:apache /var/www/MISP/app/webroot/img/custom
 6/ Create a database and user
 -----------------------------
 # Enable, start and secure your mysql database server
-chkconfig mysqld on
-service mysqld start
+systemctl enable mariadb.service
+systemctl start  mariadb.service
 mysql_secure_installation
+
 # Additionally, it is probably a good idea to make the database server listen on localhost only
-# Add the following to the [mysqld] of /etc/my.cnf
-# bind-address=127.0.0.1
+echo [mysqld] > /etc/my.cnf.d/bind-address.cnf
+echo bind-address=127.0.0.1 >> /etc/my.cnf.d/bind-address.cnf
+systemctl restart mariadb.service
 
 # Enter the mysql shell
 mysql -u root -p
 
-mysql> create database misp;
-mysql> grant usage on *.* to misp@localhost identified by 'XXXXXXXXX';
-mysql> grant all privileges on misp.* to misp@localhost ;
-mysql> exit
+MariaDB [(none)]> create database misp;
+MariaDB [(none)]> grant usage on *.* to misp@localhost identified by 'XXXXXXXXX';
+MariaDB [(none)]> grant all privileges on misp.* to misp@localhost ;
+MariaDB [(none)]> exit
 
 cd /var/www/MISP
 
@@ -159,22 +166,32 @@ mysql -u misp -p misp < INSTALL/MYSQL.sql
 7/ Apache configuration
 -----------------------
 # Now configure your apache server with the DocumentRoot /var/www/MISP/app/webroot/
-# A sample vhost can be found in /var/www/MISP/INSTALL/apache.misp.centos6
+# A sample vhost can be found in /var/www/MISP/INSTALL/apache.misp.centos7
 
-cp /var/www/MISP/INSTALL/apache.misp.centos6 /etc/httpd/conf.d/misp.conf
+cp /var/www/MISP/INSTALL/apache.misp.centos7 /etc/httpd/conf.d/misp.conf
+
+# Since SELinux is enabled, we need to allow httpd to write to certain directories
+chcon -t httpd_sys_rw_content_t /var/www/MISP/app/files
+chcon -t httpd_sys_rw_content_t /var/www/MISP/app/files/terms
+chcon -t httpd_sys_rw_content_t /var/www/MISP/app/files/scripts/tmp
+chcon -t httpd_sys_rw_content_t /var/www/MISP/app/Plugin/CakeResque/tmp
+chcon -R -t httpd_sys_rw_content_t /var/www/MISP/app/tmp
+chcon -R -t httpd_sys_rw_content_t /var/www/MISP/app/webroot/img/orgs
+chcon -R -t httpd_sys_rw_content_t /var/www/MISP/app/webroot/img/custom
 
 # Allow httpd to connect to the redis server and php-fpm over tcp/ip
 setsebool -P httpd_can_network_connect on
 
 # Enable and start the httpd service
-chkconfig httpd on
-service httpd start
+systemctl enable httpd.service
+systemctl start  httpd.service
 
 # Open a hole in the iptables firewall
-iptables -I INPUT 5 -p tcp --dport 80 -m state --state NEW,ESTABLISHED -j ACCEPT
-service iptables save
+firewall-cmd --zone=public --add-port=80/tcp --permanent
+firewall-cmd --reload
 
-# We seriously recommend using only SSL !
+# We seriously recommend using only HTTPS / SSL !
+# Add SSL support by running: yum install mod_ssl
 # Check out the apache.misp.ssl file for an example
 
 
@@ -188,7 +205,8 @@ cp -a core.default.php core.php
 cp -a config.default.php config.php
 
 # Configure the fields in the newly created files:
-# config.php   : baseurl
+# config.php   : baseurl (example: 'baseurl' => 'http://misp',) - don't use "localhost" it causes issues when browsing externally
+# config.php   : Uncomment and set the timezone: `// date_default_timezone_set('UTC');`
 # database.php : login, port, password, database
 
 # Important! Change the salt key in /var/www/MISP/app/Config/config.php
@@ -198,6 +216,7 @@ cp -a config.default.php config.php
 
 # If you want to be able to change configuration parameters from the webinterface:
 chown apache:apache /var/www/MISP/app/Config/config.php
+chcon -t httpd_sys_rw_content_t /var/www/MISP/app/Config/config.php
 
 # Generate a GPG encryption key.
 # If the following command gives an error message, try it as root from the console
@@ -206,7 +225,7 @@ mv ~/.gnupg /var/www/MISP/
 chown -R apache:apache /var/www/MISP/.gnupg
 
 # The email address should match the one set in the config.php configuration file
-# Make sure that you use the same settings in the MISP Server Settings tool (Described on line 232)
+# Make sure that you use the same settings in the MISP Server Settings tool (Described on line 246)
 
 # And export the public key to the webroot
 sudo -u apache gpg --homedir /var/www/MISP/.gnupg --export --armor YOUR-EMAIL > /var/www/MISP/app/webroot/gpg.asc
@@ -219,8 +238,10 @@ su -s /bin/bash apache -c 'scl enable rh-php56 /var/www/MISP/app/Console/worker/
 vi /etc/rc.local
 # Add the following line at the end
 su -s /bin/bash apache -c 'scl enable rh-php56 /var/www/MISP/app/Console/worker/start.sh'
+# and make sure it will execute
+chmod +x /etc/rc.local
 
-# Now log in using the webinterface:
+# Now log in using the webinterface: http://misp/users/login
 # The default user/pass = admin@admin.test/admin
 
 # Using the server settings tool in the admin interface (Administration -> Server Settings), set MISP up to your preference

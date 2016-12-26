@@ -46,7 +46,7 @@ Use semicolons instead (the search will automatically search for colons instead)
 <p>You can configure your tools to automatically download the following file:</p>
 <pre><?php echo $baseurl;?>/events/csv/download/</pre>
 <p>You can specify additional flags for CSV exports as follows::</p>
-<pre><?php echo $baseurl;?>/events/csv/download/[eventid]/[ignore]/[tags]/[category]/[type]/[includeContext]/[from]/[to]/[last]/[headerless]</pre>
+<pre><?php echo $baseurl;?>/events/csv/download/[eventid]/[ignore]/[tags]/[category]/[type]/[includeContext]/[from]/[to]/[last]/[headerless]/[enforceWarninglist]</pre>
 <p>
 <b>eventid</b>: Restrict the download to a single event<br />
 <b>ignore</b>: Setting this flag to true will include attributes that are not marked "to_ids".<br />
@@ -64,6 +64,7 @@ Use semicolons instead (the search will automatically search for colons instead)
 <b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-15). This filter will use the date of the event.<br />
 <b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m).This filter will use the published timestamp of the event.<br />
 <b>headerless</b>: The CSV created when this setting is set to true will not contain the header row.
+<b>enforceWarninglist</b>: All attributes that have a hit on a warninglist will be excluded.
 </p>
 <p>The keywords false or null should be used for optional empty parameters in the URL.</p>
 <p>To export the attributes of all events that are of the type "domain", use the following syntax:</p>
@@ -75,7 +76,7 @@ Use semicolons instead (the search will automatically search for colons instead)
 <pre><?php echo $baseurl;?>/events/nids/suricata/download
 <?php echo $baseurl;?>/events/nids/snort/download</pre>
 <p>The full API syntax is as follows:</p>
-<pre><?php echo $baseurl;?>/events/nids/[format]/download/[eventid]/[frame]/[tags]/[from]/[to]/[last]</pre>
+<pre><?php echo $baseurl;?>/events/nids/[format]/download/[eventid]/[frame]/[tags]/[from]/[to]/[last]/[type]/[enforceWarninglist]</pre>
 <p>
 <b>format</b>: The export format, can be "suricata" or "snort"<br />
 <b>eventid</b>: Restrict the download to a single event<br />
@@ -87,6 +88,8 @@ Use semicolons instead (the search will automatically search for colons instead)
 <b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-15). This filter will use the date of the event.<br />
 <b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-15). This filter will use the date of the event.<br />
 <b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 6d or 12h or 30m). This filter will use the published timestamp of the event.<br />
+<b>type</b>: Restrict the export to only use the given types.<br />
+<b>enforceWarninglist</b>: All attributes that have a hit on a warninglist will be excluded.<br />
 <p>The keywords false or null should be used for optional empty parameters in the URL.</p>
 <p>An example for a suricata export for all events excluding those tagged tag1, without all of the commented information at the start of the file would look like this:</p>
 <pre><?php echo $baseurl;?>/events/nids/suricata/download/null/true/!tag1</pre>
@@ -100,7 +103,7 @@ Use semicolons instead (the search will automatically search for colons instead)
 <h4>sha1</h4>
 <pre><?php echo $baseurl;?>/events/hids/sha1/download</pre>
 <p>The API's full format is as follows: </p>
-<pre><?php echo $baseurl;?>/events/hids/[format]/download/[tags]/[from]/[to]/[last]</pre>
+<pre><?php echo $baseurl;?>/events/hids/[format]/download/[tags]/[from]/[to]/[last]/[enforceWarninglist]</pre>
 <b>format</b>: The export format, can be "md5" or "sha1"<br />
 <b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'.
 You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search.
@@ -110,6 +113,7 @@ Use semicolons instead (the search will automatically search for colons instead)
 <b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-15). This filter will use the date of the event. <br />
 <b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-15). This filter will use the date of the event.<br />
 <b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m). This filter will use the published timestamp of the event.<br />
+<b>enforceWarninglist</b>: All attributes that have a hit on a warninglist will be excluded.<br />
 </p>
 <p>The keywords false or null should be used for optional empty parameters in the URL.</p>
 <p>For example, to only show sha1 values from events tagged tag1, use:</p>
@@ -140,27 +144,6 @@ Use semicolons instead (the search will automatically search for colons instead)
 <p>XML:</p>
 <pre><?php echo $baseurl;?>/events/stix/download</pre>
 <code>&lt;request&gt;&lt;id&gt;!51&lt;/id&gt;&lt;id&gt;!62&lt;/id&gt;&lt;withAttachment&gt;false&lt;/withAttachment&gt;&lt;tags&gt;APT1&lt;/tags&gt;&lt;tags&gt;!OSINT&lt;/tags&gt;&lt;from&gt;false&lt;/from&gt;&lt;to&gt;2015-02-15&lt;/to&gt;&lt;/request&gt;</code><br /><br />
-
-<h3>RPZ export</h3>
-<p>You can export RPZ zone files for DNS level firewalling by using the RPZ export functionality of MISP. The file generated will include all of the IDS flagged domain, hostname and IP-src/IP-dst attribute values that you have access to.</p>
-<p>It is possible to further restrict the exported values using the following filters:</p>
-<p>
-	<b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'.
-	You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search when passed through the url.
-	Use semicolons instead (the search will automatically search for colons instead).<br />
-	<b>id</b>: The event's ID<br />
-	<b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-03)<br />
-	<b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-03)
-</p>
-<p>MISP will inject header values into the zone file as well as define the action taken for each of the values that can all be overriden. By default these values are either the default values shipped with the application, or ones that are overriden by your site administrator. The values are as follows:</p>
-<?php foreach ($rpzSettings as $k => $v): ?>
-<b><?php echo h($k);?></b>: <?php echo h($v);?><br />
-<?php endforeach; ?>
-<p>To override the above values, either use the url parameters as described below:</p>
-<pre><?php echo $baseurl;?>/attributes/rpz/download/[tags]/[eventId]/[from]/[to]/[policy]/[walled_garden]/[ns]/[email]/[serial]/[refresh]/[retry]/[expiry]/[minimum_ttl]/[ttl]</pre>
-<p>or POST an XML or JSON object with the above listed options: </p>
-<code><?php echo h('<request><tags>OSINT&&!OUTDATED</tags><policy>walled-garden</policy><walled_garden>teamliquid.net</walled_garden><refresh>5h</refresh></request>');?></code><br /><br />
-<code>{"request": {"tags": ["OSINT", "!OUTDATED"], "policy": "walled-garden", "walled_garden": "teamliquid.net", "refresh": "5h"}</code>
 <h4>Various ways to narrow down the search results of the STIX export</h4>
 <p>For example, to retrieve all events tagged "APT1" but excluding events tagged "OSINT" and excluding events #51 and #62 without any attachments:
 <pre><?php echo $baseurl;?>/events/stix/download/!51&amp;&amp;!62/false/APT1&amp;&amp;!OSINT/2015-02-15</pre>
@@ -172,6 +155,29 @@ Use semicolons instead (the search will automatically search for colons instead)
 <pre><?php echo $baseurl;?>/events/stix/download</pre>
 <p>The same search could be accomplished using the following POSTed XML object (note that ampersands need to be escaped, or alternatively separate id and tag elements can be used): </p>
 <code>&lt;request&gt;&lt;id&gt;!51&lt;/id&gt;&lt;id&gt;!62&lt;/id&gt;&lt;tags&gt;APT1&lt;/tags&gt;&lt;tags&gt;!OSINT&lt;/tags&gt;&lt;from&gt;2015-02-15&lt;/from&gt;&lt;/request&gt;</code>
+
+<h3>RPZ export</h3>
+<p>You can export RPZ zone files for DNS level firewalling by using the RPZ export functionality of MISP. The file generated will include all of the IDS flagged domain, hostname and IP-src/IP-dst attribute values that you have access to.</p>
+<p>It is possible to further restrict the exported values using the following filters:</p>
+<p>
+	<b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'.
+	You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search when passed through the url.
+	Use semicolons instead (the search will automatically search for colons instead).<br />
+	<b>id</b>: The event's ID<br />
+	<b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-03)<br />
+	<b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-03)<br />
+	<b>enforceWarninglist</b>: All attributes that have a hit on a warninglist will be excluded.
+</p>
+<p>MISP will inject header values into the zone file as well as define the action taken for each of the values that can all be overriden. By default these values are either the default values shipped with the application, or ones that are overriden by your site administrator. The values are as follows:</p>
+<?php foreach ($rpzSettings as $k => $v): ?>
+<b><?php echo h($k);?></b>: <?php echo h($v);?><br />
+<?php endforeach; ?>
+<p>To override the above values, either use the url parameters as described below:</p>
+<pre><?php echo $baseurl;?>/attributes/rpz/download/[tags]/[eventId]/[from]/[to]/[policy]/[walled_garden]/[ns]/[email]/[serial]/[refresh]/[retry]/[expiry]/[minimum_ttl]/[ttl]</pre>
+<p>or POST an XML or JSON object with the above listed options: </p>
+<code><?php echo h('<request><tags>OSINT&&!OUTDATED</tags><policy>walled-garden</policy><walled_garden>teamliquid.net</walled_garden><refresh>5h</refresh></request>');?></code><br /><br />
+<code>{"request": {"tags": ["OSINT", "!OUTDATED"], "policy": "walled-garden", "walled_garden": "teamliquid.net", "refresh": "5h"}</code>
+
 <h3>Text export</h3>
 <p>An export of all attributes of a specific type to a plain text file. By default only published and IDS flagged attributes are exported.</p>
 <p>You can configure your tools to automatically download the following files:</p>
@@ -197,6 +203,12 @@ foreach ($sigTypes as $sigType) {
 </pre>
 <b>type</b>: The attribute type, any valid MISP attribute type is accepted.<br />
 <b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'.
+<b>eventId</b>: Only export the attributes of the given event ID<br />
+<b>allowNonIDS</b>: Include attributes that are not marked to_ids, even if they would normally be excluded. Also overrides the whitelist functionality.<br />
+<b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-15). This filter will use the date of the event. <br />
+<b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-15). This filter will use the date of the event.<br />
+<b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m). This filter will use the published timestamp of the event.<br />
+<b>enforceWarninglist</b>: All attributes that have a hit on a warninglist will be excluded.<br />
 You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search.
 Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use:<br />
 <pre>
@@ -249,7 +261,7 @@ Content-type: application/json
 </pre>
 <b>type</b>: The Bro type, any valid Bro type is accepted. The mapping between Bro and MISP types is as follows:<br />
 <pre>
-<?php 
+<?php
 	foreach ($broTypes as $key => $value) {
 		echo '<b>' . h($key) . '</b>: ' . h($value) . PHP_EOL;
 	}
@@ -264,6 +276,7 @@ Use semicolons instead (the search will automatically search for colons instead)
 <b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-15). This filter will use the date of the event.<br />
 <b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-15). This filter will use the date of the event.<br />
 <b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m). This filter will use the published timestamp of the event.<br />
+<b>enforceWarninglist</b>: All attributes that have a hit on a warninglist will be excluded.<br />
 </p>
 <p>The keywords false or null should be used for optional empty parameters in the URL.</p>
 <p>For example, to retrieve all attributes for event #5, including non IDS marked attributes too, use the following line:</p>
@@ -278,7 +291,7 @@ Use semicolons instead (the search will automatically search for colons instead)
 <p>To return an event with all of its attributes, relations, shadowAttributes, use the following syntax:</p>
 <pre>
 <?php
-	echo $baseurl.'/events/restSearch/download/[value]/[type]/[category]/[org]/[tag]/[quickfilter]/[from]/[to]/[last]/[event_id]/[withAttachments]';
+	echo $baseurl.'/events/restSearch/download/[value]/[type]/[category]/[org]/[tag]/[quickfilter]/[from]/[to]/[last]/[event_id]/[withAttachments]/[metadata]/[uuid]/[publish_timestamp]/[timestamp]/[published]/[enforceWarninglist]';
 ?>
 </pre>
 <b>value</b>: Search for the given value in the attributes' value field.<br />
@@ -299,6 +312,12 @@ Use semicolons instead (the search will automatically search for colons instead)
 <b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m). This filter will use the published timestamp of the event.<br />
 <b>eventid</b>: The events that should be included / excluded from the search<br />
 <b>withAttachments</b>: If set, encodes the attachments / zipped malware samples as base64 in the data field within each attribute<br />
+<b>metadata</b>: Only the metadata (event, tags, relations) is returned, attributes and proposals are omitted.<br />
+<b>uuid</b>: Restrict the results by uuid.<br />
+<b>publish_timestamp</b>: Restrict the results by the last publish timestamp (newer than).<br />
+<b>timestamp</b>: Restrict the results by the timestamp (last edit). Any event with a timestamp newer than the given timestamp will be returned.<br />
+<b>published</b>: Set whether published or unpublished events should be returned. Do not set the parameter if you want both.<br />
+<b>enforceWarninglist</b>: Remove any attributes from the result that would cause a hit on a warninglist entry.<br />
 <p>The keywords false or null should be used for optional empty parameters in the URL.</p>
 <p>For example, to find any event with the term "red october" mentioned, use the following syntax (the example is shown as a POST request instead of a GET, which is highly recommended):</p>
 <p>POST to:</p>
@@ -323,7 +342,12 @@ Use semicolons instead (the search will automatically search for colons instead)
 <b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-15)<br />
 <b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m). This filter will use the published timestamp of the event.<br />
 <b>eventid</b>: The events that should be included / excluded from the search<br />
-<b>withAttachments</b>: If set, encodes the attachments / zipped malware samples as base64 in the data field within each attribute<br /><br />
+<b>withAttachments</b>: If set, encodes the attachments / zipped malware samples as base64 in the data field within each attribute<br />
+<b>uuid</b>: Restrict the results by uuid.<br />
+<b>publish_timestamp</b>: Restrict the results by the last publish timestamp (newer than).<br />
+<b>published</b>: Set whether published or unpublished events should be returned. Do not set the parameter if you want both.<br />
+<b>timestamp</b>: Restrict the results by the timestamp (of the attribute). Any attributes with a timestamp newer than the given timestamp will be returned.<br />
+<b>enforceWarninglist</b>: Remove any attributes from the result that would cause a hit on a warninglist entry.<br /><br />
 <p>The keywords false or null should be used for optional empty parameters in the URL.</p>
 <pre>
 <?php
@@ -513,7 +537,7 @@ Content-type: application/json
 <b>searcheventid</b>: Filters on specific event IDs - negatable<br />
 <b>searchthreatlevel</b>: Filters on a given event threat level [1,2,3,4] - negatable<br />
 <b>searchdistribution</b>: Filters on the distribution level [0,1,2,3] - negatable<br />
-<b>searchanalysis</b>: Filters on the given analysis phase of the event [0,1,2,3] - negatable<br />
+<b>searchanalysis</b>: Filters on the given analysis phase of the event [0,1,2] - negatable<br />
 <b>searchattribute</b>: Filters on a contained attribute value - negatable<br />
 <b>searchorg</b>: Filters on the creator organisation - negatable<br />
 <b>searchemail</b>: Filters on the creator user's email address (admin only) - negatable<br />

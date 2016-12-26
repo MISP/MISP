@@ -1,6 +1,7 @@
 <?php
 	$mayModify = ($isSiteAdmin || ($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Orgc']['id'] == $me['org_id']) || ($isAclModifyOrg && $event['Orgc']['id'] == $me['org_id']));
 	$mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
+	$mayChangeCorrelation = !Configure::read('MISP.completely_disable_correlation') && ($isSiteAdmin || ($mayModify && Configure::read('MISP.allow_disabling_correlation')));
 	$possibleAction = 'Proposal';
 	if ($mayModify) $possibleAction = 'Attribute';
 	$all = false;
@@ -10,7 +11,7 @@
 	} else {
 		$page = 0;
 	}
-	if (Configure::read('Plugin.Sightings_enable')) {
+	if (Configure::read('Plugin.Sightings_enable') !== false) {
 		$attributeSightings = array();
 		$attributeOwnSightings = array();
 		$attributeSightingsPopover = array();
@@ -18,20 +19,35 @@
 			foreach ($event['Sighting'] as $sighting) {
 				$attributeSightings[$sighting['attribute_id']][] = $sighting;
 				if (isset($sighting['org_id']) && $sighting['org_id'] == $me['org_id']) {
-					if (isset($attributeOwnSightings[$sighting['attribute_id']])) $attributeOwnSightings[$sighting['attribute_id']]++;
-					else $attributeOwnSightings[$sighting['attribute_id']] = 1;
+					if (isset($attributeOwnSightings[$sighting['attribute_id']])) {
+						$attributeOwnSightings[$sighting['attribute_id']]['count']++;
+						if (!isset($attributeOwnSightings[$sighting['attribute_id']]['date']) || $attributeOwnSightings[$sighting['attribute_id']]['date'] < $sighting['date_sighting']) {
+							$attributeOwnSightings[$sighting['attribute_id']]['date'] = $sighting['date_sighting'];
+						}
+					} else {
+						$attributeOwnSightings[$sighting['attribute_id']]['count'] = 1;
+						$attributeOwnSightings[$sighting['attribute_id']]['date'] = $sighting['date_sighting'];
+					}
 				}
 				if (isset($sighting['org_id'])) {
 					if (isset($attributeSightingsPopover[$sighting['attribute_id']][$sighting['Organisation']['name']])) {
-						$attributeSightingsPopover[$sighting['attribute_id']][$sighting['Organisation']['name']]++;
+						$attributeSightingsPopover[$sighting['attribute_id']][$sighting['Organisation']['name']]['count']++;
+						if (!isset($attributeSightingsPopover[$sighting['attribute_id']][$sighting['Organisation']['name']]['date']) || $attributeSightingsPopover[$sighting['attribute_id']][$sighting['Organisation']['name']]['date'] < $sighting['date_sighting']) {
+							$attributeSightingsPopover[$sighting['attribute_id']][$sighting['Organisation']['name']]['date'] = $sighting['date_sighting'];
+						}
 					} else {
-						$attributeSightingsPopover[$sighting['attribute_id']][$sighting['Organisation']['name']] = 1;
+						$attributeSightingsPopover[$sighting['attribute_id']][$sighting['Organisation']['name']]['count'] = 1;
+						$attributeSightingsPopover[$sighting['attribute_id']][$sighting['Organisation']['name']]['date'] = $sighting['date_sighting'];
 					}
 				} else {
 					if (isset($attributeSightingsPopover[$sighting['attribute_id']]['Other organisations'])) {
-						$attributeSightingsPopover[$sighting['attribute_id']]['Other organisations']++;
+						$attributeSightingsPopover[$sighting['attribute_id']]['Other organisations']['count']++;
+						if (!isset($attributeSightingsPopover[$sighting['attribute_id']]['Other organisations']['date']) || $attributeSightingsPopover[$sighting['attribute_id']]['Other organisations']['date'] < $sighting['date_sighting']) {
+							$attributeSightingsPopover[$sighting['attribute_id']]['Other organisations']['date'] = $sighting['date_sighting'];
+						}
 					} else {
-						$attributeSightingsPopover[$sighting['attribute_id']]['Other organisations'] = 1;
+						$attributeSightingsPopover[$sighting['attribute_id']]['Other organisations']['count'] = 1;
+						$attributeSightingsPopover[$sighting['attribute_id']]['Other organisations']['date'] = $sighting['date_sighting'];
 					}
 				}
 			}
@@ -39,8 +55,8 @@
 				$attributeSightingsPopoverText = array();
 				foreach ($attributeSightingsPopover as $aid =>  &$attribute) {
 					$attributeSightingsPopoverText[$aid] = '';
-					foreach ($attribute as $org => $count) {
-						$attributeSightingsPopoverText[$aid] .= '<span class=\'bold\'>' . h($org) . '</span>: <span class=\'green\'>' . h($count) . '</span><br />';
+					foreach ($attribute as $org => $data) {
+						$attributeSightingsPopoverText[$aid] .= '<span class=\'bold\'>' . h($org) . '</span>: <span class=\'green bold\'>' . h($data['count']) . ' (' . date('Y-m-d H:i:s', $data['date']) . ')</span><br />';
 					}
 				}
 			}
@@ -138,6 +154,7 @@
 		<?php if ($me['Role']['perm_sync'] || $event['Orgc']['id'] == $me['org_id']): ?>
 			<div id="filter_deleted" title="Include deleted attributes" class="attribute_filter_text<?php if ($deleted) echo '_active'; ?>" onClick="toggleDeletedAttributes('<?php echo Router::url( $this->here, true );?>');">Include deleted attributes</div>
 		<?php endif; ?>
+		<div id="show_context" title="Show attribute context fields" class="attribute_filter_text" onClick="toggleContextFields();">Show context fields</div>
 	</div>
 
 	<table class="table table-striped table-condensed">
@@ -145,6 +162,8 @@
 			<?php if ($mayModify && !empty($event['objects'])): ?>
 				<th><input class="select_all" type="checkbox" onClick="toggleAllAttributeCheckboxes();" /></th>
 			<?php endif;?>
+			<th class="context hidden"><?php echo $this->Paginator->sort('id');?></th>
+			<th class="context hidden">UUID</th>
 			<th><?php echo $this->Paginator->sort('timestamp', 'Date');?></th>
 			<th><?php echo $this->Paginator->sort('Org.name', 'Org'); ?>
 			<th><?php echo $this->Paginator->sort('category');?></th>
@@ -154,10 +173,17 @@
 			<th>Tags</th>
 			<?php endif; ?>
 			<th><?php echo $this->Paginator->sort('comment');?></th>
+			<?php
+				if ($mayChangeCorrelation && !$event['Event']['disable_correlation']):
+			?>
+					<th>Correlate</th>
+			<?php
+				endif;
+			?>
 			<th>Related Events</th>
 			<th title="<?php echo $attrDescriptions['signature']['desc'];?>"><?php echo $this->Paginator->sort('to_ids', 'IDS');?></th>
 			<th title="<?php echo $attrDescriptions['distribution']['desc'];?>"><?php echo $this->Paginator->sort('distribution');?></th>
-			<?php if (Configure::read('Plugin.Sightings_enable')): ?>
+			<?php if (Configure::read('Plugin.Sightings_enable') !== false): ?>
 				<th>Sightings</th>
 			<?php endif; ?>
 			<th class="actions">Actions</th>
@@ -167,12 +193,15 @@
 				$extra = '';
 				$extra2 = '';
 				$extra3 = '';
+				$linkClass = 'white';
 				$currentType = 'denyForm';
 				if ($object['objectType'] == 0 ) {
 					$currentType = 'Attribute';
 					if ($object['hasChildren'] == 1) {
 						$extra = 'highlight1';
 						$extra3 = 'highlightBlueSides highlightBlueTop';
+					} else {
+						$linkClass = '';
 					}
 					if (!$mayModify) $currentType = 'ShadowAttribute';
 				} else {
@@ -199,11 +228,11 @@
 				?>
 				<tr id = "<?php echo $currentType . '_' . $object['id'] . '_tr'; ?>" class="<?php echo $extra3; ?>">
 					<?php if ($mayModify): ?>
-						<td class="<?php echo $extra; ?>" style="width:10px;">
+						<td class="<?php echo $extra; ?>" style="width:10px;" data-position="<?php echo h($k); ?>">
 							<?php if ($object['objectType'] == 0): ?>
-								<input id = "select_<?php echo $object['id']; ?>" class="select_attribute" type="checkbox" data-id="<?php echo $object['id'];?>" />
+								<input id = "select_<?php echo $object['id']; ?>" class="select_attribute row_checkbox" type="checkbox" data-id="<?php echo $object['id'];?>" />
 							<?php else: ?>
-								<input id = "select_proposal_<?php echo $object['id']; ?>" class="select_proposal" type="checkbox" data-id="<?php echo $object['id'];?>" />
+								<input id = "select_proposal_<?php echo $object['id']; ?>" class="select_proposal row_checkbox" type="checkbox" data-id="<?php echo $object['id'];?>" />
 							<?php endif; ?>
 						</td>
 					<?php endif;
@@ -215,6 +244,8 @@
 							endfor;
 						else:
 					?>
+							<td class="short context hidden <?php echo $extra; ?>"><?php echo $object['objectType'] == 0 ? h($object['id']) : '&nbsp;'; ?></td>
+							<td class="short context hidden <?php echo $extra; ?>"><?php echo $object['objectType'] == 0 ? h($object['uuid']) : '&nbsp;'; ?></td>
 							<td class="short <?php echo $extra; ?>">
 								<div id = "<?php echo $currentType . '_' . $object['id'] . '_timestamp_solid'; ?>">
 									<?php
@@ -237,13 +268,13 @@
 							}
 						?>
 							</td>
-							<td class="shortish <?php echo $extra; ?>">
+							<td class="short <?php echo $extra; ?>">
 								<div id = "<?php echo $currentType . '_' . $object['id'] . '_category_placeholder'; ?>" class = "inline-field-placeholder"></div>
 								<div id = "<?php echo $currentType . '_' . $object['id'] . '_category_solid'; ?>" class="inline-field-solid" ondblclick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'category', <?php echo $event['Event']['id'];?>);">
 									<?php echo h($object['category']); ?>
 								</div>
 							</td>
-							<td class="shortish <?php echo $extra; ?>">
+							<td class="short <?php echo $extra; ?>">
 								<div id = "<?php echo $currentType . '_' . $object['id'] . '_type_placeholder'; ?>" class = "inline-field-placeholder"></div>
 								<div id = "<?php echo $currentType . '_' . $object['id'] . '_type_solid'; ?>" class="inline-field-solid" ondblclick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'type', <?php echo $event['Event']['id'];?>);">
 									<?php echo h($object['type']); ?>
@@ -273,9 +304,9 @@
 														$filepath = substr($filenameHash[0], 0, strrpos($filenameHash[0], '\\'));
 														$filename = substr($filenameHash[0], strrpos($filenameHash[0], '\\'));
 														echo h($filepath);
-														echo $this->Html->link($filename, array('controller' => $t, 'action' => 'download', $object['id']));
+														echo '<a href="' . $baseurl . '/' . h($t) . '/download/' . h($object['id']) . '" class="' . $linkClass . '">' . h($filename) . '</a>';
 													} else {
-														echo $this->Html->link($filenameHash[0], array('controller' => $t, 'action' => 'download', $object['id']));
+														echo '<a href="' . $baseurl . '/' . h($t) . '/download/' . h($object['id']) . '" class="' . $linkClass . '">' . h($filenameHash[0]) . '</a>';
 													}
 													if (isset($filenameHash[1])) echo ' | ' . $filenameHash[1];
 												}
@@ -289,13 +320,17 @@
 												} else {
 													$cveUrl = "http://www.google.com/search?q=";
 												}
-												echo $this->Html->link($sigDisplay, $cveUrl . $sigDisplay, array('target' => '_blank'));
+												echo $this->Html->link($sigDisplay, $cveUrl . $sigDisplay, array('target' => '_blank', 'class' => $linkClass));
 											} else if ('link' == $object['type']) {
-												echo $this->Html->link($sigDisplay, $sigDisplay);
+												echo $this->Html->link($sigDisplay, $sigDisplay, array('class' => $linkClass));
 											} else if ('text' == $object['type']) {
-												$sigDisplay = str_replace("\r", '', h($sigDisplay));
-												$sigDisplay = str_replace(" ", '&nbsp;', $sigDisplay);
-												echo nl2br($sigDisplay);
+												if ($object['category'] == 'External analysis' && preg_match('/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/i', $object['value'])) {
+													echo '<a href="' . $baseurl . '/events/view/' . h($object['value']) . '" class="' . $linkClass . '">' . h($object['value']) . '</a>';
+												} else {
+													$sigDisplay = str_replace("\r", '', h($sigDisplay));
+													$sigDisplay = str_replace(" ", '&nbsp;', $sigDisplay);
+													echo nl2br($sigDisplay);
+												}
 											} else {
 												$sigDisplay = str_replace("\r", '', $sigDisplay);
 												echo nl2br(h($sigDisplay));
@@ -331,6 +366,19 @@
 									<?php echo nl2br(h($object['comment'])); ?>&nbsp;
 								</div>
 							</td>
+							<?php
+								if ($mayChangeCorrelation && !$event['Event']['disable_correlation']):
+									if ($object['objectType'] == 0):
+							?>
+										<td class="short" style="padding-top:3px;">
+											<input class="correlation-toggle" type="checkbox" data-attribute-id="<?php echo h($object['id']); ?>" <?php echo $object['disable_correlation'] ? '' : 'checked'; ?>>
+										</td>
+							<?php
+									else:
+										echo '&nbsp;';
+									endif;
+								endif;
+							?>
 							<td class="shortish <?php echo $extra; ?>">
 								<ul class="inline" style="margin:0px;">
 									<?php
@@ -394,7 +442,7 @@
 							</td>
 					<?php
 						endif;
-						if (Configure::read('Plugin.Sightings_enable')):
+						if (Configure::read('Plugin.Sightings_enable') !== false):
 					?>
 					<td class="short <?php echo $extra;?>">
 						<span id="sightingForm_<?php echo h($object['id']);?>">
@@ -405,11 +453,11 @@
 						?>
 						</span>
 						<span class="icon-thumbs-up useCursorPointer" onClick="addSighting('<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']);?>', '<?php echo h($page); ?>');">&nbsp;</span>
-						<span id="sightingCount_<?php echo h($object['id']); ?>" class="bold sightingsCounter_<?php echo h($object['id']); ?>"  data-toggle="popover" data-trigger="hover" data-content="<?php echo isset($attributeSightingsPopoverText[$object['id']]) ? $attributeSightingsPopoverText[$object['id']] : ''; ?>">
+						<span id="sightingCount_<?php echo h($object['id']); ?>" class="bold sightingsCounter_<?php echo h($object['id']); ?>"  data-placement="top" data-toggle="popover" data-trigger="hover" data-content="<?php echo isset($attributeSightingsPopoverText[$object['id']]) ? $attributeSightingsPopoverText[$object['id']] : ''; ?>">
 							<?php echo (!empty($attributeSightings[$object['id']]) ? count($attributeSightings[$object['id']]) : 0); ?>
 						</span>
-						<span id="ownSightingCount_<?php echo h($object['id']); ?>" class="bold green sightingsCounter_<?php echo h($object['id']); ?>" data-toggle="popover" data-trigger="hover" data-content="<?php echo isset($attributeSightingsPopoverText[$object['id']]) ? $attributeSightingsPopoverText[$object['id']] : ''; ?>">
-							<?php echo '(' . (isset($attributeOwnSightings[$object['id']]) ? $attributeOwnSightings[$object['id']] : 0) . ')'; ?>
+						<span id="ownSightingCount_<?php echo h($object['id']); ?>" class="bold green sightingsCounter_<?php echo h($object['id']); ?>" data-placement="top" data-toggle="popover" data-trigger="hover" data-content="<?php echo isset($attributeSightingsPopoverText[$object['id']]) ? $attributeSightingsPopoverText[$object['id']] : ''; ?>">
+							<?php echo '(' . (isset($attributeOwnSightings[$object['id']]['count']) ? $attributeOwnSightings[$object['id']]['count'] : 0) . ')'; ?>
 						</span>
 						<?php
 							endif;
@@ -525,19 +573,42 @@ attributes or the appropriate distribution level. If you think there is a mistak
 	var currentUri = "<?php echo isset($currentUri) ? h($currentUri) : '/events/viewEventAttributes/' . h($event['Event']['id']); ?>";
 	var ajaxResults = [];
 	var timer;
+	var lastSelected = false;
 	var deleted = <?php echo (isset($deleted) && $deleted) ? 'true' : 'false';?>;
 	$(document).ready(function(){
+		setContextFields();
 		popoverStartup();
-		$('input:checkbox').removeAttr('checked');
+		$('.select_attribute').removeAttr('checked');
+		$('.select_proposal').removeAttr('checked');
 		$('.mass-select').hide();
 		$('.mass-proposal-select').hide();
-		$('.select_attribute, .select_all').click(function(){
+		$('.select_attribute').click(function(e) {
+			if ($(this).is(':checked')) {
+				if (e.shiftKey) {
+					selectAllInbetween(lastSelected, $(this).parent().data('position'));
+				}
+				lastSelected = $(this).parent().data('position');
+			}
 			attributeListAnyAttributeCheckBoxesChecked();
 		});
-		$('.select_proposal, .select_all').click(function(){
+		$('.select_proposal').click(function(e){
+			if ($(this).is(':checked')) {
+				if (e.shiftKey) {
+					selectAllInbetween(lastSelected, $(this).parent().data('position'));
+				}
+				lastSelected = $(this).parent().data('position');
+			}
 			attributeListAnyProposalCheckBoxesChecked();
 		});
-
+		$('.select_all').click(function() {
+			attributeListAnyAttributeCheckBoxesChecked();
+			attributeListAnyProposalCheckBoxesChecked();
+		});
+		$('.correlation-toggle').click(function() {
+			var attribute_id = $(this).data('attribute-id');
+			getPopup(attribute_id, 'attributes', 'toggleCorrelation', '', '#confirmation_box');
+			return false;
+		});
 	});
 </script>
 <?php

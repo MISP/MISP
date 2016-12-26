@@ -1,7 +1,7 @@
 <?php
 	$mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Orgc']['id'] == $me['org_id']) || ($isAclModifyOrg && $event['Orgc']['id'] == $me['org_id']));
 	$mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
-	if (Configure::read('Plugin.Sightings_enable')) {
+	if (Configure::read('Plugin.Sightings_enable') !== false) {
 		$sightingPopover = '';
 		if (isset($event['Sighting']) && !empty($event['Sighting'])) {
 			$ownSightings = array();
@@ -9,14 +9,30 @@
 			foreach ($event['Sighting'] as $sighting) {
 				if (isset($sighting['org_id']) && $sighting['org_id'] == $me['org_id']) $ownSightings[] = $sighting;
 				if (isset($sighting['org_id'])) {
-					if (isset($orgSightings[$sighting['Organisation']['name']])) $orgSightings[$sighting['Organisation']['name']]++;
-					else $orgSightings[$sighting['Organisation']['name']] = 1;
+					if (isset($orgSightings[$sighting['Organisation']['name']])) {
+						$orgSightings[$sighting['Organisation']['name']]['count']++;
+						if (!isset($orgSightings[$sighting['Organisation']['name']]['date']) || $orgSightings[$sighting['Organisation']['name']]['date'] < $sighting['date_sighting']) {
+							$orgSightings[$sighting['Organisation']['name']]['date'] = $sighting['date_sighting'];
+						}
+					} else {
+						$orgSightings[$sighting['Organisation']['name']]['count'] = 1;
+						$orgSightings[$sighting['Organisation']['name']]['date'] = $sighting['date_sighting'];
+					}
 				} else {
-					if (isset($orgSightings['Other organisations'])) $orgSightings['Other organisations']++;
-					else $orgSightings['Other organisations'] = 1;
+					if (isset($orgSightings['Other organisations']['count'])) {
+						$orgSightings['Other organisations']['count']++;
+						if (!isset($orgSightings['Other organisations']['date']) || $orgSightings['Other organisations']['date'] < $sighting['date_sighting']) {
+							$orgSightings['Other organisations']['date'] = $sighting['date_sighting'];
+						}
+					} else {
+						$orgSightings['Other organisations']['count'] = 1;
+						$orgSightings['Other organisations']['date'] = $sighting['date_sighting'];
+					}
 				}
 			}
-			foreach ($orgSightings as $org => $sightingCount) $sightingPopover .= '<span class=\'bold\'>' . h($org) . '</span>: <span class=\'green\'>' . h($sightingCount) . '</span><br />';
+			foreach ($orgSightings as $org => $data) {
+				$sightingPopover .= '<span class=\'bold\'>' . h($org) . '</span>: <span class=\'green bold\'>' . h($data['count']) . ' (' . date('Y-m-d H:i:s', $data['date']) . ')' . '</span><br />';
+			}
 		}
 	}
 	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'viewEvent', 'mayModify' => $mayModify, 'mayPublish' => $mayPublish));
@@ -92,14 +108,16 @@
 					?>
 					&nbsp;
 				</dd>
-				<?php if (isset($event['User']['email']) && ($isSiteAdmin || ($isAdmin && $me['org_id'] == $event['Event']['org_id']))): ?>
-				<dt>Email</dt>
-				<dd>
-					<?php echo h($event['User']['email']); ?>
-					&nbsp;
-				</dd>
-				<?php endif; ?>
 				<?php
+					if (isset($event['User']['email']) && ($isSiteAdmin || ($isAdmin && $me['org_id'] == $event['Event']['org_id']))):
+				?>
+						<dt>Email</dt>
+						<dd>
+							<?php echo h($event['User']['email']); ?>
+							&nbsp;
+						</dd>
+				<?php
+					endif;
 					if (Configure::read('MISP.tagging')): ?>
 						<dt>Tags</dt>
 						<dd class="eventTagContainer">
@@ -122,7 +140,6 @@
 				<dt title="<?php echo $eventDescriptions['analysis']['desc'];?>">Analysis</dt>
 				<dd>
 					<?php echo h($analysisLevels[$event['Event']['analysis']]); ?>
-					&nbsp;
 				</dd>
 				<dt>Distribution</dt>
 				<dd <?php if ($event['Event']['distribution'] == 0) echo 'class = "privateRedText"';?> title = "<?php echo h($distributionDescriptions[$event['Event']['distribution']]['formdesc'])?>">
@@ -141,9 +158,12 @@
 					<?php echo nl2br(h($event['Event']['info'])); ?>
 					&nbsp;
 				</dd>
-				<dt class="<?php echo ($event['Event']['published'] == 0) ? (($isAclPublish && $me['org_id'] == $event['Event']['orgc_id']) ? 'background-red bold' : 'bold') : 'bold'; ?>">Published</dt>
-				<dd class="<?php echo ($event['Event']['published'] == 0) ? (($isAclPublish && $me['org_id'] == $event['Event']['orgc_id']) ? 'background-red bold' : 'red bold') : 'green bold'; ?>"><?php echo ($event['Event']['published'] == 0) ? 'No' : 'Yes'; ?></dd>
-				<?php if (Configure::read('Plugin.Sightings_enable')): ?>
+				<dt class="hidden"></dt><dd class="hidden"></dd>
+				<dt class="background-red bold not-published <?php echo ($event['Event']['published'] == 0) ? '' : 'hidden'; ?>">Published</dt>
+				<dd class="background-red bold not-published <?php echo ($event['Event']['published'] == 0) ? '' : 'hidden'; ?>">No</dd>
+				<dt class="bold published <?php echo ($event['Event']['published'] == 0) ? 'hidden' : ''; ?>">Published</dt>
+				<dd class="green bold published <?php echo ($event['Event']['published'] == 0) ? 'hidden' : ''; ?>">Yes</dd>
+				<?php if (Configure::read('Plugin.Sightings_enable') !== false): ?>
 				<dt>Sightings</dt>
 				<dd style="word-wrap: break-word;">
 						<span id="eventSightingCount" class="bold sightingsCounter" data-toggle="popover" data-trigger="hover" data-content="<?php echo $sightingPopover; ?>"><?php echo count($event['Sighting']); ?></span>
@@ -163,6 +183,28 @@
 					<dt class="background-red bold">Delegation request</dt>
 					<dd class="background-red bold"><?php echo h($subject);?> requested that <?php echo h($target)?> take over this event. (<a href="#" style="color:white;" onClick="genericPopup('<?php echo $baseurl;?>/eventDelegations/view/<?php echo h($delegationRequest['EventDelegation']['id']);?>', '#confirmation_box');">View request details</a>)</dd>
 				<?php endif;?>
+				<?php
+					if (!Configure::read('MISP.completely_disable_correlation')):
+				?>
+						<dt <?php echo $event['Event']['disable_correlation'] ? 'class="background-red bold"' : '';?>>Correlation</dt>
+						<dd <?php echo $event['Event']['disable_correlation'] ? 'class="background-red bold"' : '';?>>
+								<?php
+									if ($mayModify):
+								 		if ($event['Event']['disable_correlation']):
+								?>
+											Disabled (<a onClick="getPopup('<?php echo h($event['Event']['id']); ?>', 'events', 'toggleCorrelation', '', '#confirmation_box');" style="color:white;cursor:pointer;" style="font-weight:normal;">enable</a>)
+								<?php
+										else:
+								?>
+											Enabled (<a onClick="getPopup('<?php echo h($event['Event']['id']); ?>', 'events', 'toggleCorrelation', '', '#confirmation_box');" style="cursor:pointer;" style="font-weight:normal;">disable</a>)
+								<?php
+										endif;
+									endif;
+								?>
+						</dd>
+				<?php
+					endif;
+				?>
 			</dl>
 		</div>
 		<div class="related span4">
@@ -181,7 +223,7 @@
 					<div data-toggle="popover" data-content="<?php echo h($popover); ?>" data-trigger="hover">
 					<?php
 					$linkText = $relatedEvent['Event']['date'] . ' (' . $relatedEvent['Event']['id'] . ')';
-					if ($relatedEvent['Event']['org_id'] == $me['org_id']) {
+					if ($relatedEvent['Event']['orgc_id'] == $me['org_id']) {
 						echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id'], true, $event['Event']['id']), array('style' => 'color:red;'));
 					} else {
 						echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id'], true, $event['Event']['id']));
@@ -208,29 +250,27 @@
 	</div>
 	<br />
 	<div class="toggleButtons">
-		<button class="btn btn-inverse toggle-left btn.active qet" id="pivots_active">
+		<button class="btn btn-inverse toggle-left btn.active qet galaxy-toggle-button" id="pivots_toggle" data-toggle-type="pivots">
 			<span class="icon-minus icon-white" style="vertical-align:top;"></span>Pivots
 		</button>
-		<button class="btn btn-inverse toggle-left qet" style="display:none;" id="pivots_inactive">
-			<span class="icon-plus icon-white" style="vertical-align:top;"></span>Pivots
+		<button class="btn btn-inverse toggle qet galaxy-toggle-button" id="galaxies_toggle" data-toggle-type="galaxies">
+			<span class="icon-minus icon-white" style="vertical-align:top;"></span>Galaxy
 		</button>
-		<button class="btn btn-inverse toggle qet" id="attributes_active">
+		<button class="btn btn-inverse toggle qet galaxy-toggle-button" id="attributes_toggle" data-toggle-type="attributes">
 			<span class="icon-minus icon-white" style="vertical-align:top;"></span>Attributes
 		</button>
-		<button class="btn btn-inverse toggle qet" id="attributes_inactive" style="display:none;">
-			<span class="icon-plus icon-white" style="vertical-align:top;"></span>Attributes
-		</button>
-		<button class="btn btn-inverse toggle-right qet" id="discussions_active">
+		<button class="btn btn-inverse toggle-right qet galaxy-toggle-button" id="discussions_toggle" data-toggle-type="discussions">
 			<span class="icon-minus icon-white" style="vertical-align:top;"></span>Discussion
-		</button>
-		<button class="btn btn-inverse toggle-right qet" id="discussions_inactive" style="display:none;">
-			<span class="icon-plus icon-white" style="vertical-align:top;"></span>Discussion
 		</button>
 	</div>
 	<br />
 	<br />
 	<div id="pivots_div">
 		<?php if (sizeOf($allPivots) > 1) echo $this->element('pivot'); ?>
+	</div>
+	<div id="galaxies_div" class="info_container" style="width:33%">
+		<h4 class="blue">Galaxies</h4>
+		<?php echo $this->element('galaxyQuickView', array('mayModify' => $mayModify, 'isAclTagger' => $isAclTagger)); ?>
 	</div>
 	<div id="attributes_div">
 		<?php echo $this->element('eventattribute'); ?>
@@ -241,49 +281,16 @@
 	</div>
 </div>
 <script type="text/javascript">
-// tooltips
+var showContext = false;
 $(document).ready(function () {
 	popoverStartup();
-	//loadEventTags("<?php echo $event['Event']['id']; ?>");
+
 	$("th, td, dt, div, span, li").tooltip({
 		'placement': 'top',
 		'container' : 'body',
 		delay: { show: 500, hide: 100 }
-		});
-	$('#discussions_active').click(function() {
-		  $('#discussions_div').hide();
-		  $('#discussions_active').hide();
-		  $('#discussions_inactive').show();
-		});
-	$('#discussions_inactive').click(function() {
-		  $('#discussions_div').show();
-		  $('#discussions_active').show();
-		  $('#discussions_inactive').hide();
-		});
-	$('#attributes_active').click(function() {
-		  $('#attributes_div').hide();
-		  $('#attributes_active').hide();
-		  $('#attributes_inactive').show();
-		});
-	$('#attributes_inactive').click(function() {
-		  $('#attributes_div').show();
-		  $('#attributes_active').show();
-		  $('#attributes_inactive').hide();
-		});
-	$('#pivots_active').click(function() {
-		  $('#pivots_div').hide();
-		  $('#pivots_active').hide();
-		  $('#pivots_inactive').show();
-		});
-	$('#pivots_inactive').click(function() {
-		  $('#pivots_div').show();
-		  $('#pivots_active').show();
-		  $('#pivots_inactive').hide();
-		});
+	});
 
-//	$.get("/events/viewEventAttributes/<?php echo $event['Event']['id']; ?>", function(data) {
-//		$("#attributes_div").html(data);
-//	});
 	$.get("/threads/view/<?php echo $event['Event']['id']; ?>/true", function(data) {
 		$("#discussions_div").html(data);
 	});

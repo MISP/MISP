@@ -31,6 +31,10 @@ class Warninglist extends AppModel{
 			)
 	);
 
+	private $__tlds = array(
+		'TLDs as known by IANA'
+	);
+
 	public function beforeValidate($options = array()) {
 		parent::beforeValidate();
 		return true;
@@ -193,7 +197,9 @@ class Warninglist extends AppModel{
 	private function __evalCIDR($value, $listValues, $function) {
 		$found = false;
 		foreach ($listValues as $lv) {
-			$found = $this->$function($value, $lv);
+			if ($this->$function($value, $lv)) {
+				$found = true;
+			}
 		}
 		if ($found) return true;
 		return false;
@@ -235,5 +241,37 @@ class Warninglist extends AppModel{
 	private function __evalString($listValues, $value) {
 		if (in_array($value, $listValues)) return true;
 		return false;
+	}
+
+	public function fetchTLDLists() {
+		$tldLists = $this->find('list', array('conditions' => array('Warninglist.name' => $this->__tlds, 'Warninglist.enabled' => 1), 'recursive' => -1, 'fields' => array('Warninglist.id', 'Warninglist.name')));
+		$tlds = array();
+		if (!empty($tldLists)) {
+			$tldLists = array_keys($tldLists);
+			$tlds = $this->WarninglistEntry->find('list', array('conditions' => array('WarninglistEntry.warninglist_id' => $tldLists), 'fields' => array('WarninglistEntry.value')));
+			if (!empty($tlds)) {
+				foreach ($tlds as $key => $value) {
+					$tlds[$key] = strtolower($value);
+				}
+			}
+		}
+		return $tlds;
+	}
+
+	public function filterWarninglistAttributes($warninglists, $attribute, $warninglistModel) {
+		foreach ($warninglists as $warninglist) {
+			if (in_array($attribute['type'], $warninglist['types']) || in_array('ALL', $warninglist['types'])) {
+				if ($warninglist['Warninglist']['type'] == 'cidr') {
+					return !$warninglistModel->__evalCIDRList($warninglist['values'], $attribute['value']);
+				} else {
+					foreach ($warninglist['values'] as $entry) {
+						if (strpos($attribute['value'], $entry) !== false) {
+							return false;
+						}
+					}
+				}
+			}
+		}
+		return true;
 	}
 }

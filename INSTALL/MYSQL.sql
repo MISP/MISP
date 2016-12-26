@@ -101,6 +101,7 @@ CREATE TABLE IF NOT EXISTS `correlations` (
   `date` date NOT NULL,
   `info` text COLLATE utf8_bin NOT NULL,
   PRIMARY KEY (`id`),
+  FULLTEXT INDEX `value` (`value`),
   INDEX `event_id` (`event_id`),
   INDEX `1_event_id` (`1_event_id`),
   INDEX `attribute_id` (`attribute_id`),
@@ -136,7 +137,7 @@ CREATE TABLE IF NOT EXISTS `events` (
   `publish_timestamp` int(11) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   UNIQUE INDEX `uuid` (`uuid`),
-  INDEX `info` (`info`(255)),
+  FULLTEXT INDEX `info` (`info`(255)),
   INDEX `sharing_group_id` (`sharing_group_id`),
   INDEX `org_id` (`org_id`),
   INDEX `orgc_id` (`orgc_id`)
@@ -210,6 +211,86 @@ CREATE TABLE IF NOT EXISTS `feeds` (
   `default` tinyint(1) NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- -------------------------------------------------------
+
+--
+-- Table structure for `galaxies`
+--
+
+CREATE TABLE IF NOT EXISTS galaxies (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `uuid` varchar(255) COLLATE utf8_bin NOT NULL,
+  `name` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT '',
+  `type` varchar(255) COLLATE utf8_bin NOT NULL,
+  `description` text COLLATE utf8_bin NOT NULL,
+  `version` varchar(255) COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (id),
+  INDEX `name` (`name`),
+  INDEX `uuid` (`uuid`),
+  INDEX `type` (`type`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+-- -------------------------------------------------------
+
+--
+-- Table structure for `galaxy_clusters`
+--
+
+
+CREATE TABLE IF NOT EXISTS galaxy_clusters (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `uuid` varchar(255) COLLATE utf8_bin NOT NULL,
+  `type` varchar(255) COLLATE utf8_bin NOT NULL,
+  `value` text COLLATE utf8_bin NOT NULL,
+  `tag_name` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT '',
+  `description` text COLLATE utf8_bin NOT NULL,
+  `galaxy_id` int(11) NOT NULL,
+  `source` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT '',
+  `authors` text COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (id),
+  INDEX `value` (`value`(255)),
+  INDEX `uuid` (`uuid`),
+  INDEX `tag_name` (`tag_name`),
+  INDEX `type` (`type`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+-- -------------------------------------------------------
+
+--
+-- Table structure for `galaxy_elements`
+--
+
+CREATE TABLE IF NOT EXISTS galaxy_elements (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `galaxy_cluster_id` int(11) NOT NULL,
+  `key` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT '',
+  `value` text COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `key` (`key`),
+  INDEX `value` (`value`(255))
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+-- -------------------------------------------------------
+
+--
+-- Table structure for `galaxy_reference`
+--
+
+CREATE TABLE IF NOT EXISTS galaxy_reference (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `galaxy_cluster_id` int(11) NOT NULL,
+  `referenced_galaxy_cluster_id` int(11) NOT NULL,
+  `referenced_galaxy_cluster_uuid` varchar(255) COLLATE utf8_bin NOT NULL,
+  `referenced_galaxy_cluster_type` text COLLATE utf8_bin NOT NULL,
+  `referenced_galaxy_cluster_value` text COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (id),
+  INDEX `galaxy_cluster_id` (`galaxy_cluster_id`),
+  INDEX `referenced_galaxy_cluster_id` (`referenced_galaxy_cluster_id`),
+  INDEX `referenced_galaxy_cluster_value` (`referenced_galaxy_cluster_value`(255)),
+  INDEX `referenced_galaxy_cluster_type` (`referenced_galaxy_cluster_type`(255))
+
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- --------------------------------------------------------
 
@@ -291,7 +372,7 @@ CREATE TABLE `organisations` (
   `landingpage` text CHARACTER SET utf8 COLLATE utf8_unicode_ci,
   PRIMARY KEY (`id`),
   INDEX `uuid` (`uuid`),
-  INDEX `name` (`name`)
+  FULLTEXT INDEX `name` (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- --------------------------------------------------------
@@ -410,7 +491,7 @@ CREATE TABLE IF NOT EXISTS `shadow_attributes` (
   `event_uuid` varchar(40) COLLATE utf8_bin NOT NULL,
   `deleted` tinyint(1) NOT NULL DEFAULT 0,
   `timestamp` int(11) NOT NULL DEFAULT 0,
-  `proposal_to_delete` BOOLEAN NOT NULL,
+  `proposal_to_delete` BOOLEAN NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   INDEX `event_id` (`event_id`),
   INDEX `event_uuid` (`event_uuid`),
@@ -445,7 +526,7 @@ CREATE TABLE IF NOT EXISTS `shadow_attribute_correlations` (
   INDEX `attribute_id` (`attribute_id`),
   INDEX `a_sharing_group_id` (`a_sharing_group_id`),
   INDEX `event_id` (`event_id`),
-  INDEX `1_event_id` (`event_id`),
+  INDEX `1_event_id` (`1_event_id`),
   INDEX `sharing_group_id` (`sharing_group_id`),
   INDEX `1_shadow_attribute_id` (`1_shadow_attribute_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
@@ -512,6 +593,24 @@ CREATE TABLE `sharing_groups` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table sightings
+--
+
+CREATE TABLE IF NOT EXISTS sightings (
+  id int(11) NOT NULL AUTO_INCREMENT,
+  attribute_id int(11) NOT NULL,
+  event_id int(11) NOT NULL,
+  org_id int(11) NOT NULL,
+  date_sighting bigint(20) NOT NULL,
+  PRIMARY KEY (id),
+  INDEX attribute_id (attribute_id),
+  INDEX event_id (event_id),
+  INDEX org_id (org_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `tags`
 --
 
@@ -522,6 +621,7 @@ CREATE TABLE IF NOT EXISTS `tags` (
   `exportable` tinyint(1) NOT NULL,
   `org_id` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
+  FULLTEXT INDEX `name` (`name`),
   INDEX `org_id` (`org_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
@@ -782,7 +882,8 @@ CREATE TABLE IF NOT EXISTS `warninglist_entries` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `value` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `warninglist_id` int(11) NOT NULL,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  INDEX `warninglist_id` (`warninglist_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------

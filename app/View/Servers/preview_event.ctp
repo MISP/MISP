@@ -28,7 +28,7 @@
 					<dd class="eventTagContainer">
 					<?php if (!empty($event['Tag'])) foreach ($event['Tag'] as $tag): ?>
 						<span style="padding-right:0px;">
-							<a href="/servers/previewIndex/<?php echo h($server['Server']['id']); ?>/searchtag:<?php echo h($tag['name']); ?>" class="tagFirstHalf" style="background-color:#00ffcf;color:<?php echo h($tag['colour']); ?>"><?php echo h($tag['name']); ?></a>
+							<span onclick="document.location.href='/servers/previewIndex/<?php echo h($server['Server']['id']); ?>/searchtag:<?php echo h($tag['name']); ?>';" class="tagFirstHalf" style="background-color:<?php echo h($tag['colour']);?>;color:<?php echo $this->TextColour->getTextColour($tag['colour']);?>"><?php echo h($tag['name']); ?></span>
 						</span>
 					<?php endforeach; ?>&nbsp;
 					</dd>

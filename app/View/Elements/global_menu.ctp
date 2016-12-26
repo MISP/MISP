@@ -52,6 +52,17 @@
 
 					<li class="dropdown">
 						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
+							Galaxies
+							<b class="caret"></b>
+						</a>
+						<ul class="dropdown-menu">
+							<li><a href="<?php echo $baseurl;?>/galaxies/index">List Galaxies</a></li>
+						</ul>
+					</li>
+					
+					
+					<li class="dropdown">
+						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
 							Input Filters
 							<b class="caret"></b>
 						</a>
@@ -88,7 +99,9 @@
 							<li><a href="<?php echo $baseurl;?>/pages/display/doc/quickstart">User Guide</a></li>
 							<li><a href="<?php echo $baseurl;?>/users/terms">Terms &amp; Conditions</a></li>
 							<li><a href="<?php echo $baseurl;?>/users/statistics">Statistics</a></li>
-							<li><a href="<?php echo $baseurl;?>/users/attributehistogram">Attribute Histogram</a></li>
+							<li class="divider"></li>
+							<li><a href="<?php echo $baseurl;?>/threads/index">List Discussions</a></li>
+							<li><a href="<?php echo $baseurl;?>/posts/add">Start Discussion</a></li>
 						</ul>
 					</li>
 
@@ -163,16 +176,6 @@
 						</ul>
 					</li>
 					<?php endif;?>
-					<li class="dropdown">
-						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
-							Discussions
-							<b class="caret"></b>
-						</a>
-						<ul class="dropdown-menu">
-							<li><a href="<?php echo $baseurl;?>/threads/index">List Discussions</a></li>
-							<li><a href="<?php echo $baseurl;?>/posts/add">Start Discussion</a></li>
-						</ul>
-					</li>
 				</ul>
 			</div>
 			<div class="nav-collapse collapse pull-right">

@@ -1,7 +1,7 @@
 <div class="users form">
 <?php echo $this->Form->create('User', array('novalidate' => true));?>
 	<fieldset>
-		<legend><?php echo __('Edit User'); ?></legend>
+		<legend><?php echo __('Edit My Profile'); ?></legend>
 	<?php
 		echo $this->Form->input('email');
 		echo $this->Form->input('password');

@@ -26,6 +26,7 @@
 			<th style="text-align:center;">Last Update</th>
 			<th style="text-align:center;">Description</th>
 			<th style="text-align:center;">Outdated</th>
+			<th style="text-align:center;">Filesize</th>
 			<th style="text-align:center;">Progress</th>
 			<th style="text-align:center;">Actions</th>
 		</tr>
@@ -56,6 +57,17 @@
 						} else {
 							echo 'No';
 						}
+					?>
+				</td>
+				<td class="short" style="text-align:right;">
+					<?php 
+						if (isset($type['filesize'])):
+							echo h($type['filesize']);
+						else:
+					?>
+							<span class="red">N/A</span>
+					<?php 
+						endif;
 					?>
 				</td>
 				<td style="width:150px;">

@@ -305,12 +305,11 @@ class TemplatesController extends AppController {
 			}
 
 			$template = $this->Template->find('first', array(
-					'id' => $template_id,
+					'conditions' => array('Template.id' => $template_id),
 					'recursive' => -1,
 					'contain' => 'TemplateTag',
 					'fields' => 'id',
 			));
-
 			foreach ($template['TemplateTag'] as $tag) {
 				$exists = false;
 				foreach ($event['EventTag'] as $eventTag) {
@@ -331,10 +330,14 @@ class TemplatesController extends AppController {
 						$file = new File(APP . 'tmp/files/' . $attribute['data']);
 						$content = $file->read();
 						$attributes[$k]['data'] = base64_encode($content);
+						if ($this->Event->Attribute->typeIsMalware($attributes[$k]['type'])) {
+							$hashes = $this->Event->Attribute->handleMaliciousBase64($event_id, explode('|', $attributes[$k]['value'])[0], $attributes[$k]['data'], array('md5'));
+							$attributes[$k]['data'] = $hashes['data'];
+						}
 						$file->delete();
 					}
 					$this->Attribute->create();
-					if (!$this->Attribute->save(array('Attribute' => $attribute))) $fails++;
+					if (!$this->Attribute->save(array('Attribute' => $attributes[$k]))) $fails++;
 				}
 				$count = isset($k) ? $k + 1 : 0;
 				$event = $this->Event->find('first', array(
@@ -386,7 +389,6 @@ class TemplatesController extends AppController {
 			} else {
 				$this->set('upload_error', false);
 			}
-
 			$this->set('result', $result);
 			$this->set('filenames', $filenames);
 			$this->set('fileArray', json_encode($fileArray));

@@ -85,21 +85,27 @@ def generateObservable(indicator, attribute):
 def resolveFileObservable(indicator, attribute):
     hashValue = ""
     filenameValue = ""
+    fuzzy = False
     if (attribute["type"] in hash_type_attributes["composite"]):
         values = attribute["value"].split('|')
         filenameValue = values[0]
         hashValue = values[1]
         indicator.add_indicator_type("File Hash Watchlist")
+        composite = attribute["type"].split('|')
+        if (len(composite) > 1 and composite[1] == "ssdeep"):
+          fuzzy = True
     else:
         if (attribute["type"] in ("filename", "attachment")):
             filenameValue = attribute["value"]
         else:
             hashValue = attribute["value"]
             indicator.add_indicator_type("File Hash Watchlist")
-    observable = generateFileObservable(filenameValue, hashValue)
+            if (attribute["type"] == "ssdeep"):
+              fuzzy = True
+    observable = generateFileObservable(filenameValue, hashValue, fuzzy)
     return observable
 
-def generateFileObservable(filenameValue, hashValue):
+def generateFileObservable(filenameValue, hashValue, fuzzy):
     file_object = File()
     if (filenameValue != ""):
         if (("/" in filenameValue) or ("\\" in filenameValue)):
@@ -112,6 +118,12 @@ def generateFileObservable(filenameValue, hashValue):
             file_object.file_name.condition = "Equals"
     if (hashValue != ""):
         file_object.add_hash(Hash(hash_value=hashValue, exact=True))
+        if (fuzzy):
+            file_object._fields["Hashes"]._inner[0].simple_hash_value = None
+            file_object._fields["Hashes"]._inner[0].fuzzy_hash_value = hashValue
+            file_object._fields["Hashes"]._inner[0].fuzzy_hash_value.condition = "Equals"
+            file_object._fields["Hashes"]._inner[0].type_ = Hash.TYPE_SSDEEP
+            file_object._fields["Hashes"]._inner[0].type_.condition = "Equals"
     return file_object
 
 def resolveIPType(attribute_value, attribute_type):
@@ -142,16 +154,22 @@ def resolveIPType(attribute_value, attribute_type):
 
 def generateDomainIPObservable(indicator, attribute):
     indicator.add_indicator_type("Domain Watchlist")
-    compositeObject = ObservableComposition()
-    compositeObject.operator = "AND"
     domain = attribute["value"].split('|')[0]
     ip = attribute["value"].split('|')[1]
     address_object = resolveIPType(ip, attribute["type"])
+    address_object.parent.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":AddressObject-" + attribute["uuid"]
+    address_observable=Observable(address_object)
+    address_observable.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":Address-" + attribute["uuid"]
     domain_object = DomainName()
     domain_object.value = domain
-    compositeObject.add(address_object)
-    compositeObject.add(domain_object)
-    return compositeObject
+    domain_object.parent.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":DomainNameObject-" + attribute["uuid"]
+    domain_observable = Observable(domain_object)
+    domain_observable.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":DomainName-" + attribute["uuid"]
+    compositeObject = ObservableComposition(observables = [address_observable, domain_observable])
+    compositeObject.operator = "AND"
+    observable = Observable(id_ = cybox.utils.idgen.__generator.namespace.prefix + ":ObservableComposition-" + attribute["uuid"])
+    observable.observable_composition = compositeObject
+    return observable
 
 def generateIPObservable(indicator, attribute):
     indicator.add_indicator_type("IP Watchlist")
@@ -259,7 +277,7 @@ def resolvePatternObservable(indicator, attribute):
 # create an artifact object for the malware-sample type.
 def createArtifactObject(indicator, attribute):
     artifact = Artifact(data = attribute["data"])
-    artifact.parent.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":artifact-" + attribute["uuid"]
+    artifact.parent.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":ArtifactObject-" + attribute["uuid"]
     observable = Observable(artifact)
     observable.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":observable-artifact-" + attribute["uuid"]
     indicator.add_observable(observable)
@@ -268,11 +286,11 @@ def createArtifactObject(indicator, attribute):
 def returnAttachmentComposition(attribute):
     file_object = File()
     file_object.file_name = attribute["value"]
-    file_object.parent.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":file-" + attribute["uuid"]
+    file_object.parent.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":FileObject-" + attribute["uuid"]
     observable = Observable()
     if "data" in attribute:
         artifact = Artifact(data = attribute["data"])
-        artifact.parent.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":artifact-" + attribute["uuid"]
+        artifact.parent.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":ArtifactObject-" + attribute["uuid"]
         observable_artifact = Observable(artifact)
         observable_artifact.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":observable-artifact-" + attribute["uuid"]
         observable_file = Observable(file_object)
@@ -294,9 +312,9 @@ def generateEmailAttachmentObject(indicator, attribute):
     email = EmailMessage()
     email.attachments = Attachments()
     email.add_related(file_object, "Contains", inline=True)
-    file_object.parent.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":file-" + attribute["uuid"]
+    file_object.parent.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":FileObject-" + attribute["uuid"]
     email.attachments.append(file_object.parent.id_)
-    email.parent.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":EmailMessage-" + attribute["uuid"]
+    email.parent.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":EmailMessageObject-" + attribute["uuid"]
     observable = Observable(email)
     observable.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":observable-" + attribute["uuid"]
     indicator.observable = observable
