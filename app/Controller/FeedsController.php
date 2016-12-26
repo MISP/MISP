@@ -35,6 +35,15 @@ class FeedsController extends AppController {
 				}
 			}
 		}
+		if ($this->_isRest()) {
+			foreach ($data as $k => $v) {
+				unset($data[$k]['SharingGroup']);
+				if (empty($data[$k]['Tag']['id'])) {
+					unset($data[$k]['Tag']);
+				}
+			}
+			return $this->RestResponse->viewData($data, $this->response->type());
+		}
 		$this->set('feeds', $data);
 		$this->loadModel('Event');
 		$this->set('feed_types', $this->Feed->feed_types);
@@ -241,7 +250,7 @@ class FeedsController extends AppController {
 			$this->__previewFreetext($this->Feed->data);
 		}
 	}
-	
+
 	private function __previewIndex($feed) {
 		if (isset($this->passedArgs['pages'])) $currentPage = $this->passedArgs['pages'];
 		else $currentPage = 1;
@@ -259,7 +268,7 @@ class FeedsController extends AppController {
 		$this->params->params['paging'] = array($this->modelClass => $params);
 		if (is_array($events)) $customPagination->truncateByPagination($events, $params);
 		else ($events = array());
-		
+
 		$this->set('events', $events);
 		$this->loadModel('Event');
 		$threat_levels = $this->Event->ThreatLevel->find('all');
@@ -275,7 +284,7 @@ class FeedsController extends AppController {
 		$this->set('passedArgs', json_encode($passedArgs));
 		$this->set('passedArgsArray', $passedArgs);
 	}
-	
+
 	private function __previewFreetext($feed) {
 		App::uses('SyncTool', 'Tools');
 		$syncTool = new SyncTool();
@@ -296,7 +305,7 @@ class FeedsController extends AppController {
 		$this->set('attributes', $resultArray);
 		$this->render('freetext_index');
 	}
-	
+
 	private function __previewCSV($feed) {
 		App::uses('SyncTool', 'Tools');
 		$syncTool = new SyncTool();
@@ -395,7 +404,7 @@ class FeedsController extends AppController {
 		$result['message'] = $fail ? 'Could not ' . $action . ' feed.' : 'Feed ' . $action . 'd.';
 		return $result;
 	}
-	
+
 	public function fetchSelectedFromFreetextIndex($id) {
 		if (!$this->request->is('Post')) {
 			throw new MethodNotAllowedException('Only POST requests are allowed.');
