@@ -70,18 +70,18 @@ foreach ($feeds as $item):
 		<td><?php echo h($item['Feed']['provider']); ?>&nbsp;</td>
 		<td><?php echo h($item['Feed']['url']); ?>&nbsp;</td>
 		<td class="shortish">
-		<?php 
+		<?php
 			if (in_array($item['Feed']['source_format'], array('freetext', 'csv'))):
 				if ($item['Feed']['fixed_event']):
 					if (isset($item['Feed']['event_error'])):
 				?>
 					<span class="red bold">Error: Invalid event!</span>
-				<?php 
+				<?php
 					else:
 						if ($item['Feed']['event_id']):
 						?>
 							<a href="<?php echo $baseurl;?>/events/view/<?php echo h($item['Feed']['event_id']); ?>">Fixed event <?php echo h($item['Feed']['event_id']); ?></a>
-						<?php 
+						<?php
 						else:
 							echo 'New fixed event';
 						endif;
@@ -90,15 +90,15 @@ foreach ($feeds as $item):
 			else:
 				echo ' ';
 			endif;
-		 ?>		
+		 ?>
 		</td>
-		<?php 
-			if ($item['Feed']['source_format'] == 'freetext'):
+		<?php
+			if ($item['Feed']['source_format'] != 'misp'):
 		?>
 				<td><span class="<?php echo ($item['Feed']['publish'] ? 'icon-ok' : 'icon-remove'); ?>"></span></td>
 				<td><span class="<?php echo ($item['Feed']['delta_merge'] ? 'icon-ok' : 'icon-remove'); ?>"></span></td>
 				<td><span class="<?php echo ($item['Feed']['override_ids'] ? 'icon-ok' : 'icon-remove'); ?>"></span></td>
-		<?php 
+		<?php
 			else:
 		?>
 				<td>&nbsp;</td>
