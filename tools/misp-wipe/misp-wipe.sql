@@ -16,6 +16,10 @@ TRUNCATE `sharing_group_orgs`;
 TRUNCATE `sharing_group_servers`;
 TRUNCATE `sightings`;
 TRUNCATE `threads`;
+TRUNCATE `bruteforces`;
+TRUNCATE `news`;
+TRUNCATE `template_tags`;
+TRUNCATE `whitelist`;
 
 -- Clear tables that have defaults
 TRUNCATE `feeds`;
