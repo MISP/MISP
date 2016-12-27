@@ -523,6 +523,10 @@ class AppModel extends Model {
 				$this->__addIndex('warninglist_entries', 'warninglist_id');
 				break;
 			case '2.4.58':
+				$sqlArray[] = "ALTER TABLE `events` ADD `disable_correlation` tinyint(1) NOT NULL DEFAULT 0;";
+				$sqlArray[] = "ALTER TABLE `attributes` ADD `disable_correlation` tinyint(1) NOT NULL DEFAULT 0;";
+				break;
+			case '2.4.59':
 				$sqlArray[] = "ALTER TABLE taxonomy_entries ADD colour varchar(7) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL DEFAULT '';";
 				$sqlArray[] = "ALTER TABLE taxonomy_predicates ADD colour varchar(7) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL DEFAULT '';";
 				break;
@@ -541,10 +545,6 @@ class AppModel extends Model {
 				$sqlArray[] = 'ALTER TABLE `shadow_attributes` DROP `event_org`;';
 				$sqlArray[] = 'ALTER TABLE `threads` DROP `org`;';
 				$sqlArray[] = 'ALTER TABLE `users` DROP `org`;';
-				break;
-			case '2.4.58':
-				$sqlArray[] = "ALTER TABLE `events` ADD `disable_correlation` tinyint(1) NOT NULL DEFAULT 0;";
-				$sqlArray[] = "ALTER TABLE `attributes` ADD `disable_correlation` tinyint(1) NOT NULL DEFAULT 0;";
 				break;
 			default:
 				return false;
