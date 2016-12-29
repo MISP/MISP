@@ -71,6 +71,13 @@ class Log extends AppModel {
 		'email' => array('values' => array('admin_email'))
 	);
 
+	public function beforeValidete() {
+		parent::beforeValidate();
+		if (!isset($this->data['Log']['org']) || empty($this->data['Log']['org'])) {
+			$this->data['Log']['org'] = 'SYSTEM';
+		}
+	}
+
 	public function beforeSave($options = array()) {
 		if (Configure::read('MISP.log_client_ip') && isset($_SERVER['REMOTE_ADDR'])) $this->data['Log']['ip'] = $_SERVER['REMOTE_ADDR'];
 		$setEmpty = array('title' => '', 'model' => '', 'model_id' => 0, 'action' => '', 'user_id' => 0, 'change' => '', 'email' => '', 'org' => '', 'description' => '');
