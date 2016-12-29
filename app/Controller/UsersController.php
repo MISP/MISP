@@ -1236,9 +1236,6 @@ class UsersController extends AppController {
 	}
 
 	public function fetchPGPKey($email = false) {
-		if (!$this->_isAdmin()) {
-			throw new Exception('Administrators only.');
-		}
 		if ($email == false) {
 			throw new NotFoundException('No email provided.');
 		}
