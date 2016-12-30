@@ -18,6 +18,7 @@
 /app/tmp/cache/persistent/myapp*
 /app/tmp/cache/views/myapp*
 /app/files/*
+/app/tmp/cache/feeds/*.cache
 !/app/files/empty
 !/app/files/scripts/
 !/app/files/warninglists
@@ -64,6 +65,7 @@
 /app/tmp/cached_exports/csv_sig/*
 /app/tmp/cached_exports/stix/*
 /app/tmp/cached_exports/sha256/*
+/app/tmp/cached_exports/bro/*
 .gnupg
 .smime
 *.swp

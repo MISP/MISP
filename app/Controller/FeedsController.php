@@ -70,6 +70,9 @@ class FeedsController extends AppController {
 			if (!isset($this->request->data['Feed']['settings'])) {
 				$this->request->data['Feed']['settings'] = array();
 			}
+			if (isset($this->request->data['Feed']['settings']['separator']) && empty($this->request->data['Feed']['settings']['separator'])) {
+				$this->request->data['Feed']['settings']['separator'] = ',';
+			}
 			if (empty($this->request->data['Feed']['target_event'])) {
 				$this->request->data['Feed']['target_event'] = 0;
 			}
@@ -119,6 +122,9 @@ class FeedsController extends AppController {
 			if (!isset($this->request->data['Feed']['settings'])) {
 				$this->request->data['Feed']['settings'] = array();
 			}
+			if (isset($this->request->data['Feed']['settings']['separator']) && empty($this->request->data['Feed']['settings']['separator'])) {
+				$this->request->data['Feed']['settings']['separator'] = ',';
+			}
 			$this->request->data['Feed']['settings'] = json_encode($this->request->data['Feed']['settings']);
 			$fields = array('id', 'name', 'provider', 'enabled', 'rules', 'url', 'distribution', 'sharing_group_id', 'tag_id', 'fixed_event', 'event_id', 'publish', 'delta_merge', 'override_ids', 'settings');
 			$feed = array();
@@ -129,6 +135,10 @@ class FeedsController extends AppController {
 			}
 			$result = $this->Feed->save($feed);
 			if ($result) {
+				$feedCache = APP . 'tmp' . DS . 'cache' . DS . 'feeds' . DS . intval($feed['Feed']['id']) . '.cache';
+				if (file_exists($feedCache)) {
+					unlink($feedCache);
+				}
 				$this->Session->setFlash('Feed updated.');
 				$this->redirect(array('controller' => 'feeds', 'action' => 'index'));
 			} else {
@@ -286,11 +296,18 @@ class FeedsController extends AppController {
 	}
 
 	private function __previewFreetext($feed) {
+		if (isset($this->passedArgs['page'])) $currentPage = $this->passedArgs['page'];
+		else if (isset($this->passedArgs['page'])) $currentPage = $this->passedArgs['page'];
+		else $currentPage = 1;
+		$urlparams = '';
 		App::uses('SyncTool', 'Tools');
 		$syncTool = new SyncTool();
 		if (!in_array($feed['Feed']['source_format'], array('freetext', 'csv'))) throw new MethodNotAllowedException('Invalid feed type.');
 		$HttpSocket = $syncTool->setupHttpSocketFeed($feed);
-		$resultArray = $this->Feed->getFreetextFeed($feed, $HttpSocket, $feed['Feed']['source_format']);
+		$params = array();
+		// params is passed as reference here, the pagination happens in the method, which isn't ideal but considering the performance gains here it's worth it
+		$resultArray = $this->Feed->getFreetextFeed($feed, $HttpSocket, $feed['Feed']['source_format'], $currentPage, 60, $params);
+		$this->params->params['paging'] = array($this->modelClass => $params);
 		$resultArray = $this->Feed->getFreetextFeedCorrelations($resultArray);
 		// remove all duplicates
 		foreach ($resultArray as $k => $v) {
@@ -307,11 +324,13 @@ class FeedsController extends AppController {
 	}
 
 	private function __previewCSV($feed) {
+		if (isset($this->passedArgs['pages'])) $currentPage = $this->passedArgs['pages'];
+		else $currentPage = 1;
 		App::uses('SyncTool', 'Tools');
 		$syncTool = new SyncTool();
 		if ($feed['Feed']['source_format'] != 'csv') throw new MethodNotAllowedException('Invalid feed type.');
 		$HttpSocket = $syncTool->setupHttpSocketFeed($feed);
-		$resultArray = $this->Feed->getFreetextFeed($feed, $HttpSocket);
+		$resultArray = $this->Feed->getFreetextFeed($feed, $HttpSocket, $feed['Feed']['source_format'], $currentPage);
 		$resultArray = $this->Feed->getFreetextFeedCorrelations($resultArray);
 		// remove all duplicates
 		foreach ($resultArray as $k => $v) {

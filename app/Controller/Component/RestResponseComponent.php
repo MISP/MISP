@@ -1,7 +1,7 @@
 <?php
 
 class RestResponseComponent extends Component {
-	
+
 	private $__descriptions = array(
 			'User' => array(
 				'admin_add' => array(
@@ -15,7 +15,7 @@ class RestResponseComponent extends Component {
 				)
 			)
 	);
-	
+
 	public function saveFailResponse($controller, $action, $id = false, $validationErrors, $format = false) {
 		$this->autoRender = false;
 		$response = array();
@@ -24,9 +24,9 @@ class RestResponseComponent extends Component {
 		$response['message'] = $response['name'];
 		$response['url'] = $this->__generateURL($action, $controller, $id);
 		$response['errors'] = $validationErrors;
-		return $this->__sendResponse($response, 403, $format);	
+		return $this->__sendResponse($response, 403, $format);
 	}
-	
+
 	public function saveSuccessResponse($controller, $action, $id = false, $format = false, $message = false) {
 		$action = $this->__dissectAdminRouting($action);
 		if (!$message) {
@@ -37,7 +37,7 @@ class RestResponseComponent extends Component {
 		$response['url'] = $this->__generateURL($action, $controller, $id);
 		return $this->__sendResponse($response, 200, $format);
 	}
-	
+
 	private function __sendResponse($response, $code, $format = false) {
 		if (strtolower($format) === 'application/xml') {
 			$response = Xml::build($response);
@@ -48,11 +48,11 @@ class RestResponseComponent extends Component {
 		}
 		return new CakeResponse(array('body'=> $response,'status' => $code, 'type' => $type));
 	}
-	
+
 	private function __generateURL($action, $controller, $id) {
 		return ($action['admin'] ? '/admin' : '') . '/' . strtolower($controller) . '/' . $action['action'] . ($id ? '/' . $id : '');
 	}
-	
+
 	private function __dissectAdminRouting($action) {
 		$admin = false;
 		if (strlen($action) > 6 && substr($action, 0, 6) == 'admin_') {
@@ -61,11 +61,11 @@ class RestResponseComponent extends Component {
 		}
 		return array('action' => $action, 'admin' => $admin);
 	}
-	
+
 	public function viewData($data, $format = false) {
 		return $this->__sendResponse($data, 200, $format);
 	}
-	
+
 	public function describe($controller, $action, $id = false, $format = false) {
 		$actionArray = $this->__dissectAdminRouting($action);
 		$response['name'] = $this->__generateURL($actionArray, $controller, false) . ' API description';
