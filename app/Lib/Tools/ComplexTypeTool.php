@@ -99,6 +99,7 @@ class ComplexTypeTool {
 	public function checkCSV($input, $settings = array()) {
 		$delimiter = isset($settings['delimiter']) ? $settings['delimiter'] : ",";
 		$lines = explode("\n", $input);
+		unset($input);
 		$values = !empty($settings['value']) ? $settings['value'] : array();
 		if (!is_array($values)) {
 			$values = explode(',', $values);

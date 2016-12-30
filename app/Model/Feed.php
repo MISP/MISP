@@ -33,7 +33,7 @@ class Feed extends AppModel {
 			'message' => 'Please enter a numeric event ID or leave this field blank.',
 		)
 	);
-	
+
 	// currently we only have an internal name and a display name, but later on we can expand this with versions, default settings, etc
 	public $feed_types = array(
 		'misp' => array(
@@ -46,7 +46,7 @@ class Feed extends AppModel {
 				'name' => 'Simple CSV Parsed Feed'
 		)
 	);
-	
+
 	public function getFeedTypesOptions() {
 		$result = array();
 		foreach ($this->feed_types as $key => $value) {
@@ -95,24 +95,46 @@ class Feed extends AppModel {
 		$events = $this->__filterEventsIndex($events, $feed);
 		return $events;
 	}
-	
-	public function getFreetextFeed($feed, $HttpSocket, $type = 'freetext') {
+
+	public function getFreetextFeed($feed, $HttpSocket, $type = 'freetext', $page = 1, $limit = 60, &$params = array()) {
 		$result = array();
-		$response = $HttpSocket->get($feed['Feed']['url'], '', array());
-		if ($response->code == 200) {
-			App::uses('ComplexTypeTool', 'Tools');
-			$complexTypeTool = new ComplexTypeTool();
-			$this->Warninglist = ClassRegistry::init('Warninglist');
-			$complexTypeTool->setTLDs($this->Warninglist->fetchTLDLists());
-			$resultArray = $complexTypeTool->checkComplexRouter($response->body, $type, isset($feed['Feed']['settings'][$type]) ? $feed['Feed']['settings'][$type] : array());
+		$feedCache = APP . 'tmp' . DS . 'cache' . DS . 'feeds' . DS . intval($feed['Feed']['id']) . '.cache';
+		$doFetch = true;
+		if (file_exists($feedCache)) {
+			$file = new File($feedCache);
+			if (time() - $file->lastChange() < 600) {
+				$doFetch = false;
+				$data = file_get_contents($feedCache);
+			}
 		}
+		if ($doFetch) {
+			$response = $HttpSocket->get($feed['Feed']['url'], '', array());
+			if ($response->code == 200) {
+				$data = $response->body;
+				file_put_contents($feedCache, $data);
+			}
+		}
+		$data = explode("\n", $data);
+		App::uses('CustomPaginationTool', 'Tools');
+		$customPagination = new CustomPaginationTool();
+		$params = $customPagination->createPaginationRules($data, array('page' => $page, 'limit' => $limit), 'Feed', $sort = false);
+		if (!empty($page) && $page != 'all') {
+			$start = ($page - 1) * $limit;
+			$data = array_slice($data, $start, $limit);
+		}
+		$data = implode("\n", $data);
+		App::uses('ComplexTypeTool', 'Tools');
+		$complexTypeTool = new ComplexTypeTool();
+		$this->Warninglist = ClassRegistry::init('Warninglist');
+		$complexTypeTool->setTLDs($this->Warninglist->fetchTLDLists());
+		$resultArray = $complexTypeTool->checkComplexRouter($data, $type, isset($feed['Feed']['settings'][$type]) ? $feed['Feed']['settings'][$type] : array());
 		$this->Attribute = ClassRegistry::init('Attribute');
 		foreach ($resultArray as $key => $value) {
 			$resultArray[$key]['category'] = $this->Attribute->typeDefinitions[$value['default_type']]['default_category'];
 		}
 		return $resultArray;
 	}
-	
+
 	public function getFreetextFeedCorrelations($data) {
 		$values = array();
 		foreach ($data as $key => $value) {
@@ -129,7 +151,7 @@ class Feed extends AppModel {
 				$data[$key]['correlations'] = array_values($correlations[$value['value']]);
 			}
 		}
-		return $data;		
+		return $data;
 	}
 
 	public function downloadFromFeed($actions, $feed, $HttpSocket, $user, $jobId = false) {
@@ -189,9 +211,9 @@ class Feed extends AppModel {
 		try {
 			$commit = trim(shell_exec('git log --pretty="%H" -n1 HEAD'));
 		} catch (Exception $e) {
-			$commit = false;			
+			$commit = false;
 		}
-		
+
 		$result = array(
 			'header' => array(
 					'Accept' => 'application/json',
@@ -457,7 +479,7 @@ class Feed extends AppModel {
 		}
 		return $result;
 	}
-	
+
 	public function saveFreetextFeedData($feed, $data, $user) {
 		$this->Event = ClassRegistry::init('Event');
 		$event = false;
