@@ -350,7 +350,7 @@ class ACLComponent extends Component {
 					'delete' => array('perm_admin'),
 					'downloadTerms' => array('*'),
 					'edit' => array('*'),
-					'fetchPGPKey' => array('perm_admin'),
+					'fetchPGPKey' => array('*'),
 					'histogram' => array('*'),
 					'index' => array('*'),
 					'initiatePasswordReset' => array('perm_admin'),
