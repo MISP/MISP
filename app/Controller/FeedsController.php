@@ -129,8 +129,8 @@ class FeedsController extends AppController {
 			if (!isset($this->request->data['Feed']['settings'])) {
 				$this->request->data['Feed']['settings'] = array();
 			}
-			if (isset($this->request->data['Feed']['settings']['separator']) && empty($this->request->data['Feed']['settings']['separator'])) {
-				$this->request->data['Feed']['settings']['separator'] = ',';
+			if (isset($this->request->data['Feed']['settings']['delimiter']) && empty($this->request->data['Feed']['settings']['delimiter'])) {
+				$this->request->data['Feed']['settings']['delimiter'] = ',';
 			}
 			if (empty($this->request->data['Feed']['target_event'])) {
 				$this->request->data['Feed']['target_event'] = 0;
@@ -181,8 +181,8 @@ class FeedsController extends AppController {
 			if (!isset($this->request->data['Feed']['settings'])) {
 				$this->request->data['Feed']['settings'] = array();
 			}
-			if (isset($this->request->data['Feed']['settings']['separator']) && empty($this->request->data['Feed']['settings']['separator'])) {
-				$this->request->data['Feed']['settings']['separator'] = ',';
+			if (isset($this->request->data['Feed']['settings']['delimiter']) && empty($this->request->data['Feed']['settings']['delimiter'])) {
+				$this->request->data['Feed']['settings']['delimiter'] = ',';
 			}
 			$this->request->data['Feed']['settings'] = json_encode($this->request->data['Feed']['settings']);
 			$fields = array('id', 'name', 'provider', 'enabled', 'rules', 'url', 'distribution', 'sharing_group_id', 'tag_id', 'fixed_event', 'event_id', 'publish', 'delta_merge', 'override_ids', 'settings');
