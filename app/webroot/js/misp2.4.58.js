@@ -2578,7 +2578,7 @@ function feedFormUpdate() {
 				$('#DeltaMergeDiv').show();
 			}
 			$('#settingsCsvValueDiv').show();
-			$('#settingsCsvSeparatorDiv').show();
+			$('#settingsCsvDelimiterDiv').show();
 			break;
 	}
 }

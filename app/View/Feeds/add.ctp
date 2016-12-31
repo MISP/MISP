@@ -58,11 +58,11 @@
 				));
 			?>
 		</div>
-		<div id="settingsCsvSeparatorDiv" class="optionalField">
+		<div id="settingsCsvDelimiterDiv" class="optionalField">
 			<?php
-				echo $this->Form->input('Feed.settings.csv.separator', array(
-						'label' => 'Separator',
-						'title' => 'Set the default CSV separator (default = ",")',
+				echo $this->Form->input('Feed.settings.csv.delimiter', array(
+						'label' => 'Delimiter',
+						'title' => 'Set the default CSV delimiter (default = ",")',
 						'div' => 'input clear',
 						'placeholder' => ',',
 						'class' => 'form-control span6',
