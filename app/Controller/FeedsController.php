@@ -74,10 +74,16 @@ class FeedsController extends AppController {
 	public function importFeeds() {
 		if ($this->request->is('post')) {
 			$feeds = json_decode($this->request->data['Feed']['json'], true);
+			if (!isset($feeds[0])) {
+				$feeds = array($feeds);
+			}
 			if (empty($feeds)) throw new NotFoundException('No valid ');
 			$existingFeeds = $this->Feed->find('all', array());
 			$fail = $success = 0;
 			foreach ($feeds as $feed) {
+				if (isset($feed['Feed']['id'])) {
+					unset($feed['Feed']['id']);
+				}
 				$found = false;
 				foreach ($existingFeeds as $existingFeed) {
 					if ($existingFeed['Feed']['url'] == $feed['Feed']['url']) {
