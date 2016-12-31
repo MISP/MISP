@@ -89,7 +89,7 @@ class FeedsController extends AppController {
 				$message .= ' ' . $fail . ' feeds could not be added (possibly because they already exist)';
 			}
 			if ($this->_isRest()) {
-
+				return $this->RestResponse->saveSuccessResponse('Feed', 'importFeeds', false, $this->response->type(), $message);
 			} else {
 				$this->Session->setFlash($message);
 				$this->redirect(array('controller' => 'Feeds', 'action' => 'index', 'all'));
