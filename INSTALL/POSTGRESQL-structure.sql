@@ -574,6 +574,7 @@ CREATE TABLE IF NOT EXISTS taxonomy_entries (
   taxonomy_predicate_id bigint NOT NULL,
   value text NOT NULL,
   expanded text,
+  colour varchar(7) NOT NULL,
   PRIMARY KEY (id)
 );
 CREATE INDEX idx_taxonomy_entries_taxonomy_predicate_id ON taxonomy_entries (taxonomy_predicate_id);
@@ -589,6 +590,7 @@ CREATE TABLE IF NOT EXISTS taxonomy_predicates (
   taxonomy_id bigint NOT NULL,
   value text NOT NULL,
   expanded text,
+  colour varchar(7) NOT NULL,
   PRIMARY KEY (id)
 );
 CREATE INDEX idx_taxonomy_predicates_taxonomy_id ON taxonomy_predicates (taxonomy_id);
@@ -813,4 +815,3 @@ CREATE TABLE IF NOT EXISTS whitelist (
   name text NOT NULL,
   PRIMARY KEY (id)
 );
-
