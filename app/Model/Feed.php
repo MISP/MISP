@@ -120,6 +120,9 @@ class Feed extends AppModel {
 		$params = $customPagination->createPaginationRules($data, array('page' => $page, 'limit' => $limit), 'Feed', $sort = false);
 		if (!empty($page) && $page != 'all') {
 			$start = ($page - 1) * $limit;
+			if ($start > count($data)) {
+				return false;
+			}
 			$data = array_slice($data, $start, $limit);
 		}
 		$data = implode("\n", $data);
@@ -459,14 +462,18 @@ class Feed extends AppModel {
 				$job->id = $jobId;
 				$job->saveField('message', 'Fetching data.');
 			}
-			$data = $this->getFreetextFeed($this->data, $HttpSocket, $this->data['Feed']['source_format']);
-			foreach ($data as $key => $value) {
-				$data[$key] = array(
+			$temp = $this->getFreetextFeed($this->data, $HttpSocket, $this->data['Feed']['source_format'], 'all');
+			foreach ($temp as $key => $value) {
+				$data[] = array(
 					'category' => $value['category'],
 					'type' => $value['default_type'],
 					'value' => $value['value'],
 					'to_ids' => $value['to_ids']
 				);
+			}
+			if ($jobId) {
+				$job->saveField('progress', 50);
+				$job->saveField('message', 'Saving data.');
 			}
 			$result = $this->saveFreetextFeedData($this->data, $data, $user);
 			$message = 'Job complete.';
@@ -474,13 +481,14 @@ class Feed extends AppModel {
 				return false;
 			}
 			if ($jobId) {
+				$job->saveField('progress', '100');
 				$job->saveField('message', 'Job complete.');
 			}
 		}
 		return $result;
 	}
 
-	public function saveFreetextFeedData($feed, $data, $user) {
+	public function saveFreetextFeedData($feed, $data, $user, $jobId = false) {
 		$this->Event = ClassRegistry::init('Event');
 		$event = false;
 		if ($feed['Feed']['fixed_event'] && $feed['Feed']['event_id']) {
@@ -515,7 +523,7 @@ class Feed extends AppModel {
 			$to_delete = array();
 			foreach ($data as $k => $dataPoint) {
 				foreach ($event['Attribute'] as $attribute_key => $attribute) {
-					if ($dataPoint['value'] == $attribute['value']) {
+					if ($dataPoint['value'] == $attribute['value'] && $dataPoint['type'] == $attribute['type'] && $attribute['category'] == $dataPoint['category']) {
 						unset($data[$k]);
 						unset($event['Attribute'][$attribute_key]);
 					}
@@ -540,8 +548,16 @@ class Feed extends AppModel {
 			$data[$key]['sharing_group_id'] = $feed['Feed']['sharing_group_id'];
 			$data[$key]['to_ids'] = $feed['Feed']['override_ids'] ? 0 : $data[$key]['to_ids'];
 		}
-		if (!$this->Event->Attribute->saveMany($data)) {
-			return 'Could not save the parsed attributes.';
+		if ($jobId) {
+			$job = ClassRegistry::init('Job');
+			$job->id = $jobId;
+		}
+		$data = array_chunk($data, 100);
+		foreach ($data as $k => $chunk) {
+			$this->Event->Attribute->saveMany($chunk);
+			if ($jobId) {
+				$job->saveField('progress', 50 + round((50 * ((($k + 1) * 100) / count($data)))));
+			}
 		}
 		if ($feed['Feed']['publish']) {
 			$this->Event->publishRouter($event['Event']['id'], null, $user);
