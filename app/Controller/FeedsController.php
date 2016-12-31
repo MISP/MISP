@@ -58,7 +58,17 @@ class FeedsController extends AppController {
 	}
 
 	public function view($feedId) {
-		$feed = $this->Feed->find('first', array('conditions' => array('Feed.id' => $feedId)));
+		$feed = $this->Feed->find('first', array(
+			'conditions' => array('Feed.id' => $feedId),
+			'recursive' => -1,
+			'contain' => array('Tag')
+		));
+		if ($this->_isRest()) {
+			if (empty($feed['Tag']['id'])) {
+				unset($feed['Tag']);
+			}
+			return $this->RestResponse->viewData($feed, $this->response->type());
+		}
 	}
 
 	public function importFeeds() {
