@@ -56,7 +56,7 @@ class Taxonomy extends AppModel {
 				'fields' => array('version', 'enabled', 'namespace')
 			));
 			if (empty($current) || $vocab['version'] > $current['Taxonomy']['version']) {
-				$result = $this->__updateVocab($vocab, $current, array('colour'));
+				$result = $this->__updateVocab($vocab, $current);
 				if (is_numeric($result)) {
 					$updated['success'][$result] = array('namespace' => $vocab['namespace'], 'new' => $vocab['version']);
 					if (!empty($current)) $updated['success'][$result]['old'] = $current['Taxonomy']['version'];
@@ -112,11 +112,17 @@ class Taxonomy extends AppModel {
 				foreach ($predicate['TaxonomyEntry'] as $entry) {
 					$temp = array('tag' => $taxonomy['Taxonomy']['namespace'] . ':' . $predicate['value'] . '="' . $entry['value'] . '"');
 					$temp['expanded'] = (!empty($predicate['expanded']) ? $predicate['expanded'] : $predicate['value']) . ': ' . (!empty($entry['expanded']) ? $entry['expanded'] : $entry['value']);
+					if (isset($entry['colour']) && !empty($entry['colour'])) {
+						$temp['colour'] = $entry['colour'];
+					}
 					$entries[] = $temp;
 				}
 			} else {
 				$temp = array('tag' => $taxonomy['Taxonomy']['namespace'] . ':' . $predicate['value']);
 				$temp['expanded'] = !empty($predicate['expanded']) ? $predicate['expanded'] : $predicate['value'];
+				if (isset($predicate['colour']) && !empty($predicate['colour'])) {
+					$temp['colour'] = $predicate['colour'];
+				}
 				$entries[] = $temp;
 			}
 		}
@@ -214,7 +220,7 @@ class Taxonomy extends AppModel {
 			if (isset($tags[strtoupper($entry['tag'])])) {
 				$temp = $tags[strtoupper($entry['tag'])];
 				if ((in_array('colour', $skipUpdateFields) && $temp['Tag']['colour'] != $colours[$k]) || (in_array('name', $skipUpdateFields) && $temp['Tag']['name'] !== $entry['tag'])) {
-					if (!in_array('colour', $skipUpdateFields)) $temp['Tag']['colour'] = $colours[$k];
+					if (!in_array('colour', $skipUpdateFields)) $temp['Tag']['colour'] = (isset($entry['colour']) && !empty($entry['colour'])) ? $entry['colour'] : $colours[$k];
 					if (!in_array('name', $skipUpdateFields)) $temp['Tag']['name'] = $entry['tag'];
 					$this->Tag->save($temp['Tag']);
 				}
@@ -232,21 +238,25 @@ class Taxonomy extends AppModel {
 		$tags = $this->Tag->getTagsForNamespace($taxonomy['Taxonomy']['namespace']);
 		$colours = $paletteTool->generatePaletteFromString($taxonomy['Taxonomy']['namespace'], count($taxonomy['entries']));
 		foreach ($taxonomy['entries'] as $k => $entry) {
+			$colour = $colours[$k];
+			if (isset($entry['colour']) && !empty($entry['colour'])) {
+				$colour = $entry['colour'];
+			}
 			if ($tagList) {
 				foreach ($tagList as $tagName) {
 					if ($tagName === $entry['tag']) {
 						if (isset($tags[strtoupper($entry['tag'])])) {
-							$this->Tag->quickEdit($tags[strtoupper($entry['tag'])], $tagName, $colours[$k]);
+							$this->Tag->quickEdit($tags[strtoupper($entry['tag'])], $tagName, $colour);
 						} else {
-							$this->Tag->quickAdd($tagName, $colours[$k]);
+							$this->Tag->quickAdd($tagName, $colour);
 						}
 					}
 				}
 			} else {
 				if (isset($tags[strtoupper($entry['tag'])])) {
-					$this->Tag->quickEdit($tags[strtoupper($entry['tag'])], $entry['tag'], $colours[$k]);
+					$this->Tag->quickEdit($tags[strtoupper($entry['tag'])], $entry['tag'], $colour);
 				} else {
-					$this->Tag->quickAdd($entry['tag'], $colours[$k]);
+					$this->Tag->quickAdd($entry['tag'], $colour);
 				}
 			}
 		}

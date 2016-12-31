@@ -140,6 +140,7 @@ class ACLComponent extends Component {
 					'fetchFromFeed' => array(),
 					'fetchSelectedFromFreetextIndex' => array(),
 					'getEvent' => array(),
+					'importFeeds' => array(),
 					'index' => array(),
 					'previewEvent' => array(),
 					'previewIndex' => array(),

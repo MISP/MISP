@@ -25,6 +25,12 @@ class FeedsController extends AppController {
 	}
 
 	public function index() {
+		$scope = isset($this->passedArgs['scope']) ? $this->passedArgs['scope'] : 'default';
+		if ($scope !== 'all') {
+			$this->paginate['conditions'][] = array(
+				'Feed.default' => $scope == 'custom' ? 0 : 1
+			);
+		}
 		$data = $this->paginate();
 		$this->loadModel('Event');
 		foreach ($data as $key => $value) {
@@ -44,6 +50,7 @@ class FeedsController extends AppController {
 			}
 			return $this->RestResponse->viewData($data, $this->response->type());
 		}
+		$this->set('scope', $scope);
 		$this->set('feeds', $data);
 		$this->loadModel('Event');
 		$this->set('feed_types', $this->Feed->feed_types);
@@ -51,7 +58,59 @@ class FeedsController extends AppController {
 	}
 
 	public function view($feedId) {
-		$feed = $this->Feed->find('first', array('conditions' => array('Feed.id' => $feedId)));
+		$feed = $this->Feed->find('first', array(
+			'conditions' => array('Feed.id' => $feedId),
+			'recursive' => -1,
+			'contain' => array('Tag')
+		));
+		if ($this->_isRest()) {
+			if (empty($feed['Tag']['id'])) {
+				unset($feed['Tag']);
+			}
+			return $this->RestResponse->viewData($feed, $this->response->type());
+		}
+	}
+
+	public function importFeeds() {
+		if ($this->request->is('post')) {
+			$feeds = json_decode($this->request->data['Feed']['json'], true);
+			if (!isset($feeds[0])) {
+				$feeds = array($feeds);
+			}
+			if (empty($feeds)) throw new NotFoundException('No valid ');
+			$existingFeeds = $this->Feed->find('all', array());
+			$fail = $success = 0;
+			foreach ($feeds as $feed) {
+				if (isset($feed['Feed']['id'])) {
+					unset($feed['Feed']['id']);
+				}
+				$found = false;
+				foreach ($existingFeeds as $existingFeed) {
+					if ($existingFeed['Feed']['url'] == $feed['Feed']['url']) {
+						$found = true;
+					}
+				}
+				if (!$found) {
+					$this->Feed->create();
+					if (!$this->Feed->save($feed, true, array('name', 'provider', 'url', 'rules', 'source_format', 'fixed_event', 'delta_merge', 'override_ids', 'publish', 'settings'))) {
+						$fail++;
+						$this->Session->setFlash('Could not save feeds. Reason: ' . json_encode($this->Feed->validationErros));
+					} else {
+						$success++;
+					}
+				}
+			}
+			$message = $success . ' new feeds added.';
+			if ($fail) {
+				$message .= ' ' . $fail . ' feeds could not be added (possibly because they already exist)';
+			}
+			if ($this->_isRest()) {
+				return $this->RestResponse->saveSuccessResponse('Feed', 'importFeeds', false, $this->response->type(), $message);
+			} else {
+				$this->Session->setFlash($message);
+				$this->redirect(array('controller' => 'Feeds', 'action' => 'index', 'all'));
+			}
+		}
 	}
 
 	public function add() {
@@ -69,6 +128,9 @@ class FeedsController extends AppController {
 			}
 			if (!isset($this->request->data['Feed']['settings'])) {
 				$this->request->data['Feed']['settings'] = array();
+			}
+			if (isset($this->request->data['Feed']['settings']['delimiter']) && empty($this->request->data['Feed']['settings']['delimiter'])) {
+				$this->request->data['Feed']['settings']['delimiter'] = ',';
 			}
 			if (empty($this->request->data['Feed']['target_event'])) {
 				$this->request->data['Feed']['target_event'] = 0;
@@ -119,6 +181,9 @@ class FeedsController extends AppController {
 			if (!isset($this->request->data['Feed']['settings'])) {
 				$this->request->data['Feed']['settings'] = array();
 			}
+			if (isset($this->request->data['Feed']['settings']['delimiter']) && empty($this->request->data['Feed']['settings']['delimiter'])) {
+				$this->request->data['Feed']['settings']['delimiter'] = ',';
+			}
 			$this->request->data['Feed']['settings'] = json_encode($this->request->data['Feed']['settings']);
 			$fields = array('id', 'name', 'provider', 'enabled', 'rules', 'url', 'distribution', 'sharing_group_id', 'tag_id', 'fixed_event', 'event_id', 'publish', 'delta_merge', 'override_ids', 'settings');
 			$feed = array();
@@ -129,6 +194,10 @@ class FeedsController extends AppController {
 			}
 			$result = $this->Feed->save($feed);
 			if ($result) {
+				$feedCache = APP . 'tmp' . DS . 'cache' . DS . 'feeds' . DS . intval($feedId) . '.cache';
+				if (file_exists($feedCache)) {
+					unlink($feedCache);
+				}
 				$this->Session->setFlash('Feed updated.');
 				$this->redirect(array('controller' => 'feeds', 'action' => 'index'));
 			} else {
@@ -286,11 +355,22 @@ class FeedsController extends AppController {
 	}
 
 	private function __previewFreetext($feed) {
+		if (isset($this->passedArgs['page'])) $currentPage = $this->passedArgs['page'];
+		else if (isset($this->passedArgs['page'])) $currentPage = $this->passedArgs['page'];
+		else $currentPage = 1;
+		$urlparams = '';
 		App::uses('SyncTool', 'Tools');
 		$syncTool = new SyncTool();
 		if (!in_array($feed['Feed']['source_format'], array('freetext', 'csv'))) throw new MethodNotAllowedException('Invalid feed type.');
 		$HttpSocket = $syncTool->setupHttpSocketFeed($feed);
-		$resultArray = $this->Feed->getFreetextFeed($feed, $HttpSocket, $feed['Feed']['source_format']);
+		$params = array();
+		// params is passed as reference here, the pagination happens in the method, which isn't ideal but considering the performance gains here it's worth it
+		$resultArray = $this->Feed->getFreetextFeed($feed, $HttpSocket, $feed['Feed']['source_format'], $currentPage, 60, $params);
+		// we want false as a valid option for the split fetch, but we don't want it for the preview
+		if ($resultArray == false) {
+			$resultArray = array();
+		}
+		$this->params->params['paging'] = array($this->modelClass => $params);
 		$resultArray = $this->Feed->getFreetextFeedCorrelations($resultArray);
 		// remove all duplicates
 		foreach ($resultArray as $k => $v) {
@@ -307,11 +387,17 @@ class FeedsController extends AppController {
 	}
 
 	private function __previewCSV($feed) {
+		if (isset($this->passedArgs['pages'])) $currentPage = $this->passedArgs['pages'];
+		else $currentPage = 1;
 		App::uses('SyncTool', 'Tools');
 		$syncTool = new SyncTool();
 		if ($feed['Feed']['source_format'] != 'csv') throw new MethodNotAllowedException('Invalid feed type.');
 		$HttpSocket = $syncTool->setupHttpSocketFeed($feed);
-		$resultArray = $this->Feed->getFreetextFeed($feed, $HttpSocket);
+		$resultArray = $this->Feed->getFreetextFeed($feed, $HttpSocket, $feed['Feed']['source_format'], $currentPage);
+		// we want false as a valid option for the split fetch, but we don't want it for the preview
+		if ($resultArray == false) {
+			$resultArray = array();
+		}
 		$resultArray = $this->Feed->getFreetextFeedCorrelations($resultArray);
 		// remove all duplicates
 		foreach ($resultArray as $k => $v) {
