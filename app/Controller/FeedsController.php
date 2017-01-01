@@ -114,6 +114,16 @@ class FeedsController extends AppController {
 	}
 
 	public function add() {
+		$this->loadModel('Event');
+		$sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name',  1);
+		$distributionLevels = $this->Event->distributionLevels;
+		if (empty($sgs)) unset($distributionLevels[4]);
+		$this->set('distributionLevels', $distributionLevels);
+		$this->set('sharingGroups', $sgs);
+		$this->set('feed_types', $this->Feed->getFeedTypesOptions());
+		$tags = $this->Event->EventTag->Tag->find('list', array('fields' => array('Tag.name'), 'order' => array('lower(Tag.name) asc')));
+		$tags[0] = 'None';
+		$this->set('tags', $tags);
 		if ($this->request->is('post')) {
 			$error = false;
 			if (isset($this->request->data['Feed']['pull_rules'])) $this->request->data['Feed']['rules'] = $this->request->data['Feed']['pull_rules'];
@@ -128,6 +138,11 @@ class FeedsController extends AppController {
 			}
 			if (!isset($this->request->data['Feed']['settings'])) {
 				$this->request->data['Feed']['settings'] = array();
+			} else {
+				if (!empty($this->request->data['Feed']['settings']['common']['excluderegex']) && !$this->__checkRegex($this->request->data['Feed']['settings']['common']['excluderegex'])) {
+					$this->Session->setFlash('Invalid exclude regex. Make sure it\'s a delimited PCRE regex pattern.');
+					return true;
+				}
 			}
 			if (isset($this->request->data['Feed']['settings']['delimiter']) && empty($this->request->data['Feed']['settings']['delimiter'])) {
 				$this->request->data['Feed']['settings']['delimiter'] = ',';
@@ -146,22 +161,29 @@ class FeedsController extends AppController {
 				else $this->Session->setFlash('Feed could not be added. Invalid field: ' . array_keys($this->Feed->validationErrors)[0]);
 			}
 		}
-		$this->loadModel('Event');
-		$sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name',  1);
-		$distributionLevels = $this->Event->distributionLevels;
-		if (empty($sgs)) unset($distributionLevels[4]);
-		$this->set('distributionLevels', $distributionLevels);
-		$this->set('sharingGroups', $sgs);
-		$this->set('feed_types', $this->Feed->getFeedTypesOptions());
-		$tags = $this->Event->EventTag->Tag->find('list', array('fields' => array('Tag.name'), 'order' => array('lower(Tag.name) asc')));
-		$tags[0] = 'None';
-		$this->set('tags', $tags);
+	}
+
+	private function __checkRegex($pattern) {
+		if (@preg_match($pattern, null) === false) {
+			return false;
+		}
+		return true;
 	}
 
 	public function edit($feedId) {
 		$this->Feed->id = $feedId;
 		if (!$this->Feed->exists()) throw new NotFoundException('Invalid feed.');
 		$this->Feed->read();
+		$this->loadModel('Event');
+		$sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name',  1);
+		$distributionLevels = $this->Event->distributionLevels;
+		if (empty($sgs)) unset($distributionLevels[4]);
+		$this->set('distributionLevels', $distributionLevels);
+		$this->set('sharingGroups', $sgs);
+		$tags = $this->Event->EventTag->Tag->find('list', array('fields' => array('Tag.name'), 'order' => array('lower(Tag.name) asc')));
+		$tags[0] = 'None';
+		$this->set('feed_types', $this->Feed->getFeedTypesOptions());
+		$this->set('tags', $tags);
 		if (!empty($this->Feed->data['Feed']['settings'])) {
 			$this->Feed->data['Feed']['settings'] = json_decode($this->Feed->data['Feed']['settings'], true);
 		}
@@ -180,6 +202,11 @@ class FeedsController extends AppController {
 			}
 			if (!isset($this->request->data['Feed']['settings'])) {
 				$this->request->data['Feed']['settings'] = array();
+			} else {
+				if (!empty($this->request->data['Feed']['settings']['common']['excluderegex']) && !$this->__checkRegex($this->request->data['Feed']['settings']['common']['excluderegex'])) {
+					$this->Session->setFlash('Invalid exclude regex. Make sure it\'s a delimited PCRE regex pattern.');
+					return true;
+				}
 			}
 			if (isset($this->request->data['Feed']['settings']['delimiter']) && empty($this->request->data['Feed']['settings']['delimiter'])) {
 				$this->request->data['Feed']['settings']['delimiter'] = ',';
@@ -212,16 +239,6 @@ class FeedsController extends AppController {
 			}
 			$this->request->data['Feed']['pull_rules'] = $this->request->data['Feed']['rules'];
 		}
-		$this->loadModel('Event');
-		$sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name',  1);
-		$distributionLevels = $this->Event->distributionLevels;
-		if (empty($sgs)) unset($distributionLevels[4]);
-		$this->set('distributionLevels', $distributionLevels);
-		$this->set('sharingGroups', $sgs);
-		$tags = $this->Event->EventTag->Tag->find('list', array('fields' => array('Tag.name'), 'order' => array('lower(Tag.name) asc')));
-		$tags[0] = 'None';
-		$this->set('feed_types', $this->Feed->getFeedTypesOptions());
-		$this->set('tags', $tags);
 	}
 
 	public function delete($feedId) {

@@ -2568,6 +2568,7 @@ function feedFormUpdate() {
 				$('#TargetEventDiv').show();
 				$('#DeltaMergeDiv').show();
 			}
+			$('#settingsCommonExcluderegexDiv').show();
 			break;
 		case 'csv':
 			$('#TargetDiv').show();
@@ -2579,6 +2580,7 @@ function feedFormUpdate() {
 			}
 			$('#settingsCsvValueDiv').show();
 			$('#settingsCsvDelimiterDiv').show();
+			$('#settingsCommonExcluderegexDiv').show();
 			break;
 	}
 }

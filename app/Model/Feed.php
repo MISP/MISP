@@ -118,7 +118,14 @@ class Feed extends AppModel {
 		$complexTypeTool = new ComplexTypeTool();
 		$this->Warninglist = ClassRegistry::init('Warninglist');
 		$complexTypeTool->setTLDs($this->Warninglist->fetchTLDLists());
-		$resultArray = $complexTypeTool->checkComplexRouter($data, $type, isset($feed['Feed']['settings'][$type]) ? $feed['Feed']['settings'][$type] : array());
+		$settings = array();
+		if (isset($feed['Feed']['settings'][$type])) {
+			$settings = $feed['Feed']['settings'][$type];
+		}
+		if (isset($feed['Feed']['settings']['common'])) {
+			$settings = array_merge($settings, $feed['Feed']['settings']['common']);
+		}
+		$resultArray = $complexTypeTool->checkComplexRouter($data, $type, $settings);
 		$this->Attribute = ClassRegistry::init('Attribute');
 		foreach ($resultArray as $key => $value) {
 			$resultArray[$key]['category'] = $this->Attribute->typeDefinitions[$value['default_type']]['default_category'];
