@@ -98,7 +98,7 @@ class Feed extends AppModel {
 
 	public function getFreetextFeed($feed, $HttpSocket, $type = 'freetext', $page = 1, $limit = 60, &$params = array()) {
 		$result = array();
-		$feedCache = APP . 'tmp' . DS . 'cache' . DS . 'feeds' . DS . intval($feed['Feed']['id']) . '.cache';
+		$feedCache = APP . 'tmp' . DS . 'cache' . DS . 'misp_feed_' . intval($feed['Feed']['id']) . '.cache';
 		$doFetch = true;
 		if (file_exists($feedCache)) {
 			$file = new File($feedCache);

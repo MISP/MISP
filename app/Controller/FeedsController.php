@@ -194,7 +194,7 @@ class FeedsController extends AppController {
 			}
 			$result = $this->Feed->save($feed);
 			if ($result) {
-				$feedCache = APP . 'tmp' . DS . 'cache' . DS . 'feeds' . DS . intval($feedId) . '.cache';
+				$feedCache = APP . 'tmp' . DS . 'cache' . DS . 'misp_feed_' . intval($feed['Feed']['id']) . '.cache';
 				if (file_exists($feedCache)) {
 					unlink($feedCache);
 				}
