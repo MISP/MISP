@@ -25,7 +25,7 @@ class FeedsController extends AppController {
 	}
 
 	public function index() {
-		$scope = isset($this->passedArgs['scope']) ? $this->passedArgs['scope'] : 'default';
+		$scope = isset($this->passedArgs['scope']) ? $this->passedArgs['scope'] : 'all';
 		if ($scope !== 'all') {
 			$this->paginate['conditions'][] = array(
 				'Feed.default' => $scope == 'custom' ? 0 : 1
@@ -194,7 +194,7 @@ class FeedsController extends AppController {
 			}
 			$result = $this->Feed->save($feed);
 			if ($result) {
-				$feedCache = APP . 'tmp' . DS . 'cache' . DS . 'misp_feed_' . intval($feed['Feed']['id']) . '.cache';
+				$feedCache = APP . 'tmp' . DS . 'cache' . DS . 'misp_feed_' . intval($feedId) . '.cache';
 				if (file_exists($feedCache)) {
 					unlink($feedCache);
 				}
