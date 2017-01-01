@@ -69,6 +69,17 @@
 				));
 			?>
 		</div>
+		<div id="settingsCommonExcluderegexDiv" class="optionalField">
+			<?php
+				echo $this->Form->input('Feed.settings.common.excluderegex', array(
+						'label' => 'Exclusion Regex',
+						'title' => 'Add a regex pattern for detecting iocs that should be skipped (this can be useful to exclude any references to the actual report / feed for example)',
+						'div' => 'input clear',
+						'placeholder' => 'Regex pattern, for example: "/^https://myfeedurl/i"',
+						'class' => 'form-control span6'
+				));
+			?>
+		</div>
 		<div id="PublishDiv" class="input clear optionalField">
 		<?php
 			echo $this->Form->input('publish', array(
