@@ -115,6 +115,11 @@ class ComplexTypeTool {
 			foreach ($elements as $elementPos => $element) {
 				if ((!empty($values) && in_array(($elementPos + 1), $values)) || empty($values)) {
 					$element = trim($element, " \t\n\r\0\x0B\"\'");
+					if (isset($settings['excluderegex']) && !empty($settings['excluderegex'])) {
+						if (preg_match($settings['excluderegex'], $element)) {
+							continue;
+						}
+					}
 					$resolvedResult = $this->__resolveType($element);
 					if (!empty($resolvedResult)) {
 						$iocArray[] = $resolvedResult;
@@ -147,6 +152,11 @@ class ComplexTypeTool {
 				}
 				$ioc = preg_replace('/\p{C}+/u', '', $ioc);
 				if (empty($ioc)) continue;
+				if (isset($settings['excluderegex']) && !empty($settings['excluderegex'])) {
+					if (preg_match($settings['excluderegex'], $element)) {
+						continue;
+					}
+				}
 				$typeArray = $this->__resolveType($ioc);
 				if ($typeArray === false) continue;
 				$temp = $typeArray;
