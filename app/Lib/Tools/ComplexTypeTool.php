@@ -153,7 +153,7 @@ class ComplexTypeTool {
 				$ioc = preg_replace('/\p{C}+/u', '', $ioc);
 				if (empty($ioc)) continue;
 				if (isset($settings['excluderegex']) && !empty($settings['excluderegex'])) {
-					if (preg_match($settings['excluderegex'], $element)) {
+					if (preg_match($settings['excluderegex'], $ioc)) {
 						continue;
 					}
 				}
