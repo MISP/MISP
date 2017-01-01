@@ -114,18 +114,6 @@ class Feed extends AppModel {
 				file_put_contents($feedCache, $data);
 			}
 		}
-		$data = explode("\n", $data);
-		App::uses('CustomPaginationTool', 'Tools');
-		$customPagination = new CustomPaginationTool();
-		$params = $customPagination->createPaginationRules($data, array('page' => $page, 'limit' => $limit), 'Feed', $sort = false);
-		if (!empty($page) && $page != 'all') {
-			$start = ($page - 1) * $limit;
-			if ($start > count($data)) {
-				return false;
-			}
-			$data = array_slice($data, $start, $limit);
-		}
-		$data = implode("\n", $data);
 		App::uses('ComplexTypeTool', 'Tools');
 		$complexTypeTool = new ComplexTypeTool();
 		$this->Warninglist = ClassRegistry::init('Warninglist');
@@ -135,6 +123,17 @@ class Feed extends AppModel {
 		foreach ($resultArray as $key => $value) {
 			$resultArray[$key]['category'] = $this->Attribute->typeDefinitions[$value['default_type']]['default_category'];
 		}
+		App::uses('CustomPaginationTool', 'Tools');
+		$customPagination = new CustomPaginationTool();
+		$params = $customPagination->createPaginationRules($resultArray, array('page' => $page, 'limit' => $limit), 'Feed', $sort = false);
+		if (!empty($page) && $page != 'all') {
+			$start = ($page - 1) * $limit;
+			if ($start > count($resultArray)) {
+				return false;
+			}
+			$resultArray = array_slice($resultArray, $start, $limit);
+		}
+
 		return $resultArray;
 	}
 
@@ -441,6 +440,9 @@ class Feed extends AppModel {
 		$syncTool = new SyncTool();
 		$job = ClassRegistry::init('Job');
 		$this->read();
+		if (isset($this->data['Feed']['settings']) && !empty($this->data['Feed']['settings'])) {
+			$this->data['Feed']['settings'] = json_decode($this->data['Feed']['settings'], true);
+		}
 		$HttpSocket = $syncTool->setupHttpSocketFeed($this->data);
 		if ($this->data['Feed']['source_format'] == 'misp') {
 			if ($jobId) {
