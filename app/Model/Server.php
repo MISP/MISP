@@ -932,7 +932,7 @@ class Server extends AppModel {
 					),
 					'timeout' => array(
 							'level' => 0,
-							'description' => 'The timeout duration of sessions. Keep in mind that autoregenerate can be used to extend the session on user activity.',
+							'description' => 'The timeout duration of sessions (in MINUTES). Keep in mind that autoregenerate can be used to extend the session on user activity.',
 							'value' => '',
 							'errorMessage' => '',
 							'test' => 'testForNumeric',
