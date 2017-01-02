@@ -2104,6 +2104,7 @@ class Server extends AppModel {
 	}
 
 	public function testForEmpty($value) {
+		$value = trim($value);
 		if ($value === '') return 'Value not set.';
 		return true;
 	}
