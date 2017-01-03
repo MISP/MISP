@@ -360,12 +360,14 @@
 								if ($mayChangeCorrelation && !$event['Event']['disable_correlation']):
 									if ($object['objectType'] == 0):
 							?>
-										<td class="short" style="padding-top:3px;">
+										<td class="short <?php echo $extra; ?>" style="padding-top:3px;">
 											<input class="correlation-toggle" type="checkbox" data-attribute-id="<?php echo h($object['id']); ?>" <?php echo $object['disable_correlation'] ? '' : 'checked'; ?>>
 										</td>
 							<?php
 									else:
-										echo '&nbsp;';
+							?>
+										<td class="short <?php echo $extra; ?>" style="padding-top:3px;">&nbsp;</td>
+							<?php
 									endif;
 								endif;
 							?>
