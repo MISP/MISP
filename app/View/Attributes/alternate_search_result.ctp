@@ -6,19 +6,20 @@
 			<th>Event id</th>
 			<th>Org</th>
 			<th>Event info</th>
+			<th>Event date</th>
 			<th>Event graph</th>
 			<th>Matches</th>
 			<th>Attribute Count</th>
 
 		</tr>
-	
-	<?php 
+
+	<?php
 		foreach ($events as $event) {
 			?>
 			<tr>
 				<td class="short"><a href="<?php echo $baseurl;?>/events/view/<?php echo (h($event['Event']['id'])); ?>"><?php echo (h($event['Event']['id'])); ?></a></td>
 				<td class="short">
-					<?php 
+					<?php
 						$imgRelativePath = 'orgs' . DS . h($event['Event']['Orgc']['name']) . '.png';
 						$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
 						if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($event['Event']['Orgc']['name']) . '.png', array('alt' => h($event['Event']['Orgc']['name']), 'title' => h($event['Event']['Orgc']['name']), 'style' => 'width:24px; height:24px'));
@@ -26,14 +27,15 @@
 					?>
 				</td>
 				<td>
-					<?php 
-						if (strlen(h($event['Event']['info'])) > 63) { 
-							echo (substr(h($event['Event']['info']), 0, 60)) . '...'; 
-						} else 	echo h($event['Event']['info']);
+					<?php
+						if (strlen(h($event['Event']['info'])) > 63) {
+							echo (substr(h($event['Event']['info']), 0, 60)) . '...';
+						} else	echo h($event['Event']['info']);
 					?>
 				</td>
-				<?php 
-					$to_ids =  100 * h($event['to_ids']) / (h($event['to_ids']) + h($event['no_ids'])); 
+				<td class="short"><?php echo h($event['Event']['date']); ?></td>
+				<?php
+					$to_ids =  100 * h($event['to_ids']) / (h($event['to_ids']) + h($event['no_ids']));
 				?>
 				<td>
 					<div class="progress" style="width:300px;">
@@ -45,11 +47,11 @@
 				<td class="short"><?php echo h($event['to_ids']) + h($event['no_ids']) ?></td>
 				<td class="short"><?php echo (h($event['Event']['attribute_count'])) ?></td>
 			</tr>
-			<?php 
+			<?php
 		}
 	?>
 	</table>
 </div>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'event-collection', 'menuItem' => 'searchAttributes'));
 ?>

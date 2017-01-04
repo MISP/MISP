@@ -1,7 +1,7 @@
 <?php
 
 class RPZExport {
-	
+
 	private $__policies = array(
 			'walled-garden' => array(
 					'explanation' => 'returns the defined alternate location.',
@@ -24,17 +24,17 @@ class RPZExport {
 					'setting_id' => 0,
 			),
 	);
-	
+
 	public function getPolicyById($id) {
 		foreach ($this->__policies as $k => $v) {
 			if ($id == $v['setting_id']) return $k;
 		}
 	}
-	
+
 	public function getIdByPolicy($policy) {
 		return $this->__policies[$policy]['setting_id'];
 	}
-	
+
 	public function explain($type, $policy) {
 		$explanations = array(
 			'ip' => '; The following list of IP addresses will ',
@@ -49,7 +49,7 @@ class RPZExport {
 		);
 		return $explanations[$type] . $this->__policies[$policy]['explanation'] . PHP_EOL;
 	}
-	
+
 	public function buildHeader($rpzSettings) {
 		$rpzSettings['serial'] = str_replace('$date', date('Ymd'), $rpzSettings['serial']);
 		$header = '';
@@ -58,13 +58,13 @@ class RPZExport {
 		$header .= '                NS ' . $rpzSettings['ns'] . PHP_EOL . PHP_EOL;
 		return $header;
 	}
-	
+
 	public function export($items, $rpzSettings) {
 		$result = $this->buildHeader($rpzSettings);
 		$policy = $this->getPolicyById($rpzSettings['policy']);
 		$action = $this->__policies[$policy]['action'];
 		if ($policy == 'walled-garden') $action = str_replace('$walled_garden', $rpzSettings['walled_garden'], $action);
-		
+
 		if (isset($items['ip'])) {
 			$result .= $this->explain('ip', $policy);
 			foreach ($items['ip'] as $item) {
@@ -72,7 +72,7 @@ class RPZExport {
 			}
 			$result .= PHP_EOL;
 		}
-		
+
 		if (isset($items['domain'])) {
 			$result .= $this->explain('domain', $policy);
 			foreach ($items['domain'] as $item) {
@@ -80,7 +80,7 @@ class RPZExport {
 			}
 			$result .= PHP_EOL;
 		}
-		
+
 		if (isset($items['hostname'])) {
 			$result .= $this->explain('hostname', $policy);
 			foreach ($items['hostname'] as $item) {
@@ -94,12 +94,12 @@ class RPZExport {
 	private function __convertdomain($input, $action) {
 		return $input . ' CNAME ' . $action . PHP_EOL . '*.' . $input . ' CNAME ' . $action . PHP_EOL;
 	}
-	
+
 	private function __converthostname($input, $action) {
 		return $input . ' CNAME ' . $action . PHP_EOL;
 	}
-	
-	private function __convertip($input, $action) {
+
+	private function __convertIP($input, $action) {
 		$type = filter_var($input, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) ? 'ipv6' : 'ipv4';
 		if ($type == 'ipv6') $prefix = '128';
 		else $prefix = '32';
@@ -108,14 +108,14 @@ class RPZExport {
 		}
 		return $prefix . '.' . $this->{'__' . $type}($input) . '.rpz-ip CNAME ' . $action . PHP_EOL;
 	}
-	
+
 	private function __ipv6($input) {
 		return implode('.', array_reverse(preg_split('/:/', str_replace('::', ':zz:', $input), NULL, PREG_SPLIT_NO_EMPTY)));
 	}
-	
+
 	private function __ipv4($input) {
 		return implode('.', array_reverse(explode('.', $input)));
-		
+
 	}
 
 }

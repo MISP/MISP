@@ -5,9 +5,9 @@ $xmlArray = array();
 //
 if (isset($proposal['ShadowAttribute']['id'])) {
 	$temp = $proposal['ShadowAttribute'];
-	unset ($proposal['ShadowAttribute']);
+	unset($proposal['ShadowAttribute']);
 	$proposal['ShadowAttribute'][0] = $temp;
-	unset ($temp);
+	unset($temp);
 }
 $xmlArray['response']['ShadowAttribute'] = array();
 foreach ($proposal as &$temp) {

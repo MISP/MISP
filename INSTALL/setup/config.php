@@ -23,21 +23,21 @@
  *
  * ## Mandatory indexes :
  * Redis
- * 		Redis server settings
+ *		Redis server settings
  * Worker
- * 		Workers default settings
+ *		Workers default settings
  * Resque
- * 		Default values used to init the php-resque library path
+ *		Default values used to init the php-resque library path
  *
  * ## Optional indexes :
  * Queues
- * 		An array of queues to start with Resque::load()
- * 		Used when you have multiple queues, as you don't need
- * 		to start each queues individually each time you start Resque
+ *		An array of queues to start with Resque::load()
+ *		Used when you have multiple queues, as you don't need
+ *		to start each queues individually each time you start Resque
  * Env
- * 		Additional environment variables to pass to Resque
+ *		Additional environment variables to pass to Resque
  * Log
- * 		Log handler and its arguments, to save the log with Monolog
+ *		Log handler and its arguments, to save the log with Monolog
  *
  *
  * There are many ways to configure the plugin:
@@ -77,13 +77,13 @@ $config['CakeResque'] = array(
 		'queue' => 'default',		// Name of the default queue
 		'interval' => 5,			// Number of second between each poll
 		'workers' => 1,				// Number of workers to create
-		// 'user' => 'www-data' 	// User running the worker process
+		// 'user' => 'www-data'	// User running the worker process
 
 		// Path to the log file
 		// Can be an
 		// - absolute path,
 		// - an relative path, that will be relative to
-		// 	 app/tmp/logs folder
+		//	app/tmp/logs folder
 		// - a simple filename, file will be created inside app/tmp/logs
 		'log' => TMP . 'logs' . DS . 'resque-worker-error.log',
 
@@ -146,11 +146,11 @@ $config['CakeResque'] = array(
 	// As of now, the following handler are supported:
 	//
 	// [HANDLER]		[TARGET]
-	// Cube 			Cube server address (e.g: udp://127.0.0.1:1180)
-	// RotatingFile 	Path to the log file (e.g: /path/to/resque.log)
-	// Syslog 			Facility name
-	// Socket 			Address (e.g: udp://127.0.0.1:23)
-	// MongoDB 			MongoDB server address  (e.g: mongodb://localhost:27017)
+	// Cube			Cube server address (e.g: udp://127.0.0.1:1180)
+	// RotatingFile	Path to the log file (e.g: /path/to/resque.log)
+	// Syslog			Facility name
+	// Socket			Address (e.g: udp://127.0.0.1:23)
+	// MongoDB			MongoDB server address  (e.g: mongodb://localhost:27017)
 	'Log' => array(
 		'handler' => 'RotatingFile',
 		'target' => TMP . 'logs' . DS . 'resque.log'

@@ -1,7 +1,7 @@
 <div class="index">
 	<h2><?php echo h($title);?></h2>
 	<p>Below you can see the attributes that are to be created. Make sure that the categories and the types are correct, often several options will be offered based on an inconclusive automatic resolution. </p>
-	<?php 
+	<?php
 		echo $this->Form->create('Attribute', array('url' => '/events/saveFreeText/' . $event['Event']['id'], 'class' => 'mainForm'));
 		if ($isSiteAdmin) {
 			echo $this->Form->input('force', array(
@@ -14,6 +14,12 @@
 				'type' => 'text',
 				'style' => 'display:none;',
 				'value' => '',
+		));
+		echo $this->Form->input('default_comment', array(
+				'label' => false,
+				'type' => 'text',
+				'style' => 'display:none;',
+				'value' => $importComment,
 		));
 		echo $this->Form->end();
 	?>
@@ -32,7 +38,7 @@
 			foreach ($resultArray as $k => $item):
 		?>
 		<tr id="row_<?php echo $k; ?>" class="freetext_row">
-			<?php 
+			<?php
 				echo $this->Form->input('Attribute' . $k . 'Save', array(
 						'label' => false,
 						'style' => 'display:none;',
@@ -41,22 +47,27 @@
 				echo $this->Form->input('Attribute' . $k . 'Data', array(
 						'label' => false,
 						'type' => 'hidden',
-						'value' => isset($item['data']) ? h($item['data']) : false,
+						'value' => isset($item['data']) ? $item['data'] : false,
+				));
+				echo $this->Form->input('Attribute' . $k . 'DataIsHandled', array(
+						'label' => false,
+						'type' => 'hidden',
+						'value' => isset($item['data_is_handled']) ? h($item['data_is_handled']) : false,
 				));
 			?>
 			<td>
-				<?php 
+				<?php
 					echo $this->Form->input('Attribute' . $k . 'Value', array(
 							'label' => false,
-							'value' => h($item['value']),
+							'value' => $item['value'],
 							'style' => 'padding:0px;height:20px;margin-bottom:0px;width:90%;',
 							'div' => false
 					));
 				?>
 				<input type="hidden" id="<?php echo 'Attribute' . $k . 'Save'; ?>" value=1 >
 			</td>
-			<td style="shortish">
-				<?php 
+			<td class="shortish">
+				<?php
 					foreach ($item['related'] as $relation):
 						$popover = array(
 							'Event ID' => $relation['Event']['id'],
@@ -72,32 +83,41 @@
 						}
 				?>
 						<a href="<?php echo $baseurl; ?>/events/view/<?php echo h($relation['Event']['id']);?>" data-toggle="popover" title="Attribute details" data-content="<?php echo h($popoverHTML); ?>" data-trigger="hover"><?php echo h($relation['Event']['id']);?></a>
-				<?php 
+				<?php
 					endforeach;
-					// Category/type: 
 					$correlationPopover = array('<span>', );
 				?>
 			</td>
 			<td class="short">
-				<?php 
-					if (!isset($item['category'])) {
-						$default = array_search($defaultCategories[$item['default_type']], $typeCategoryMapping[$item['default_type']]);
+				<?php
+					if (!isset($item['categories'])) {
+						if (isset($defaultCategories[$item['default_type']])) {
+							$default = array_search($defaultCategories[$item['default_type']], $typeCategoryMapping[$item['default_type']]);
+						} else {
+							reset($typeCategoryMapping[$item['default_type']]);
+							$default = key($typeCategoryMapping[$item['default_type']]);
+						}
 					} else {
-						$default = array_search($item['category'], $typeCategoryMapping[$item['default_type']]);
+						if (isset($item['category_default'])) $default = $item['category_default'];
+						else $default = array_search($item['categories'][0], $typeCategoryMapping[$item['default_type']]);
+
 					}
 				?>
 				<select id="<?php echo 'Attribute' . $k . 'Category'; ?>" style='padding:0px;height:20px;margin-bottom:0px;'>
-					<?php 
-						foreach ($typeCategoryMapping[$item['default_type']] as $type) {
-							echo '<option value="' . $type . '" ';
-							if ($type == $default) echo 'selected="selected"';
-							echo '>' . $type . '</option>';
+					<?php
+						foreach ($typeCategoryMapping[$item['default_type']] as $category) {
+							if (isset($item['categories']) && !in_array($category, $item['categories'])) {
+								continue;
+							}
+							echo '<option value="' . $category . '" ';
+							if ($category == $default) echo 'selected="selected"';
+							echo '>' . $category . '</option>';
 						}
 					?>
 				</select>
 			</td>
 			<td class="short">
-				<?php 
+				<?php
 					$divVisibility = '';
 					$selectVisibility = '';
 					if (count($item['types']) == 1) {
@@ -109,7 +129,7 @@
 				?>
 				<div id = "<?php echo 'Attribute' . $k . 'TypeStatic'; ?>" <?php echo $divVisibility; ?> ><?php echo h($item['default_type']); ?></div>
 				<select id = "<?php echo 'Attribute' . $k . 'Type'; ?>" class='typeToggle' style='padding:0px;height:20px;margin-bottom:0px;<?php echo $selectVisibility; ?>'>
-					<?php 
+					<?php
 						foreach ($item['types'] as $type) {
 							echo '<option value="' . $type . '" ';
 							echo ($type == $item['default_type'] ? 'selected="selected"' : '') . '>' . $type . '</option>';
@@ -121,7 +141,7 @@
 				<input type="checkbox" id="<?php echo 'Attribute' . $k . 'To_ids'; ?>" <?php if ($item['to_ids']) echo 'checked'; ?> class="idsCheckbox" />
 			</td>
 			<td class="short">
-				<input type="text" class="freetextCommentField" id="<?php echo 'Attribute' . $k . 'Comment'; ?>" style="padding:0px;height:20px;margin-bottom:0px;" placeholder="Imported via the freetext import." <?php if (isset($item['comment']) && $item['comment'] !== false) echo 'value="' . $item['comment'] . '"'?>/>
+				<input type="text" class="freetextCommentField" id="<?php echo 'Attribute' . $k . 'Comment'; ?>" style="padding:0px;height:20px;margin-bottom:0px;" placeholder="<?php echo h($importComment); ?>" <?php if (isset($item['comment']) && $item['comment'] !== false) echo 'value="' . $item['comment'] . '"'?>/>
 			</td>
 			<td class="action short">
 				<span class="icon-remove pointer" onClick="freetextRemoveRow('<?php echo $k; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
@@ -133,7 +153,7 @@
 		foreach ($options as $group) {
 			foreach ($group as $k => $element) {
 				$temp = $group;
-				unset ($temp[$k]);
+				unset($temp[$k]);
 				if (!isset($optionsRearranged[$element])) $optionsRearranged[$element] = array();
 				$optionsRearranged[$element] = array_merge($optionsRearranged[$element], $temp);
 			}
@@ -147,22 +167,22 @@
 				if (!empty($optionsRearranged)):
 			?>
 				<select id="changeFrom" style="margin-left:50px;margin-top:10px;">
-					<?php 
+					<?php
 						foreach (array_keys($optionsRearranged) as $fromElement):
 					?>
 							<option><?php echo $fromElement; ?></option>
-					<?php 	
+					<?php
 						endforeach;
 					?>
 				</select>
 				<span class="icon-arrow-right"></span>
 				<select id="changeTo" style="margin-top:10px;">
-					<?php 
+					<?php
 						$keys = array_keys($optionsRearranged);
 						foreach ($optionsRearranged[$keys[0]] as $toElement):
 					?>
 							<option value="<?php echo $toElement; ?>"><?php echo $toElement; ?></option>
-					<?php 	
+					<?php
 						endforeach;
 					?>
 				</select>
@@ -173,11 +193,13 @@
 		</span>
 	</span>
 </div>
-<?php if (!empty($optionsRearranged)):?>
 	<script>
 		var options = <?php echo json_encode($optionsRearranged);?>;
 		$(document).ready(function(){
 			popoverStartup();
+	<?php
+		if (!empty($optionsRearranged)):
+	?>
 			$('#changeFrom').change(function(){
 				changeFreetextImportFrom();
 			});
@@ -185,9 +207,11 @@
 			$('#checkAll').change(function() {
 				$('.idsCheckbox').prop('checked', $('#checkAll').is(':checked'));
 			});
+	<?php
+		endif;
+	?>
 		});
 	</script>
-<?php 
-	endif;
+<?php
 	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'freetextResults'));
 ?>

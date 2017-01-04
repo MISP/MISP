@@ -11,10 +11,10 @@
 	<div class="right" style="float:left;"><?php echo h($templateData['Template']['org']); ?></div><br />
 	<div class="left" style="float:left;">Description:</div>
 	<div class="right" style="float:left;"><?php echo h($templateData['Template']['description']); ?></div><br />
-	<div class="left" style="float:left;">Tags automatically assigned:</div> 
+	<div class="left" style="float:left;">Tags automatically assigned:</div>
 	<div class="right" style="float:left;">
-		<?php 
-			foreach($templateData['TemplateTag'] as $tag) {
+		<?php
+			foreach ($templateData['TemplateTag'] as $tag) {
 				echo $this->element('ajaxTemplateTag', array('editable' => 'no', 'tag' => array('Tag' => $tag['Tag'])));
 			}
 		?>

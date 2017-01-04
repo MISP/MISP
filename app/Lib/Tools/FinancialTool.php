@@ -87,7 +87,7 @@ class FinancialTool {
 			'VG' => '24',
 			'XK' => '20'
 	);
-	
+
 	public function validateRouter($type, $value) {
 		$validationRoutes = array(
 			'cc-number' => 'CC',
@@ -99,7 +99,34 @@ class FinancialTool {
 		if (in_array($type, array_keys($validationRoutes))) return $this->{'validate' . strtoupper($validationRoutes[$type])}($value);
 		return true;
 	}
-	
+
+/**
+	*
+	* alternative to bcmod from: http://au2.php.net/manual/en/function.bcmod.php#38474
+	*
+	* my_bcmod - get modulus (substitute for bcmod)
+	* string my_bcmod ( string left_operand, int modulus )
+	* left_operand can be really big, but be carefull with modulus :(
+	* by Andrius Baranauskas and Laurynas Butkus :) Vilnius, Lithuania
+**/
+private function my_bcmod( $x, $y )
+{
+    // how many numbers to take at once? carefull not to exceed (int)
+    $take = 5;
+    $mod = '';
+
+    do
+    {
+        $a = (int)$mod.substr( $x, 0, $take );
+        $x = substr( $x, $take );
+        $mod = $a % $y;
+    }
+    while ( strlen($x) );
+
+    return (int)$mod;
+}
+
+
 	// validating using method described on wikipedia @ https://en.wikipedia.org/wiki/International_Bank_Account_Number#Algorithms
 	public function validateIBAN($iban) {
 		if (strlen($iban) < 15 || strlen($iban) > 32) return false;
@@ -109,20 +136,24 @@ class FinancialTool {
 			if (is_numeric($temp[$i])) $temp2 .= $temp[$i];
 			else $temp2 .= ord(strtolower($temp[$i])) - 87;
 		}
-		$temp = bcmod($temp2, 97);
-		return intval($temp)===1 ? true : false; 
+		if (function_exists('bcmod')) {
+			$temp = bcmod($temp2, 97);
+		} else {
+			$temp = $this->my_bcmod($temp2, 97);
+		}
+		return intval($temp)===1 ? true : false;
 	}
-	
+
 	public function validateBIC($bic) {
 		if (preg_match('/^([A-Z]{4})([A-Z]){2}([0-9A-Z]){2}([0-9A-Z]{3})?$/i', $bic)) return true;
 		return false;
 	}
-	
+
 	public function validateBIN($bin) {
 		if (is_numeric($bin) && strlen($bin) == 6) return true;
 		return false;
 	}
-	
+
 	// based on the explanation at www.freeformatter.com/credit-card-number-generator-validator.html#validate
 	public function validateCC($cc) {
 		if (is_numeric($cc) && strlen($cc) > 12 && strlen($cc) < 20) {
@@ -131,7 +162,7 @@ class FinancialTool {
 			unset($numberArray[count($numberArray) - 1]);
 			$numberArray = array_reverse($numberArray);
 			$sum = 0;
-			foreach ($numberArray as $k => &$number) {
+			foreach ($numberArray as $k => $number) {
 				$number = intval($number);
 				if ($k%2 == 0) $number *= 2;
 				if ($number > 9) $number -=9;
@@ -142,30 +173,30 @@ class FinancialTool {
 			return false;
 		}
 		return false;
-	} 
-	
+	}
+
 	// based on the php implementation of the BTC address validation example from
 	// http://rosettacode.org/wiki/Bitcoin/address_validation
-	public function validateBTC($address){
+	public function validateBTC($address) {
 		if (strlen($address) < 26 || strlen($address) > 35) return false;
 		$decoded = $this->__decodeBase58($address);
 		if ($decoded === false) return false;
-		
+
 		$d1 = hash("sha256", substr($decoded,0,21), true);
 		$d2 = hash("sha256", $d1, true);
-	
-		if(substr_compare($decoded, $d2, 21, 4)){
+
+		if (substr_compare($decoded, $d2, 21, 4)) {
 			return false;
 		}
 		return true;
 	}
-	
+
 	private function __decodeBase58($input) {
 		$alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
-	
+
 		$out = array_fill(0, 25, 0);
-		for($i=0;$i<strlen($input);$i++){
-			if(($p=strpos($alphabet, $input[$i]))===false){
+		for ($i=0;$i<strlen($input);$i++) {
+			if (($p=strpos($alphabet, $input[$i]))===false) {
 				return false;
 			}
 			$c = $p;
@@ -175,16 +206,16 @@ class FinancialTool {
 				$c /= 256;
 				$c = (int)$c;
 			}
-			if($c != 0){
+			if ($c != 0) {
 				return false;
 			}
 		}
-	
+
 		$result = "";
-		foreach($out as $val){
+		foreach ($out as $val) {
 			$result .= chr($val);
 		}
-	
+
 		return $result;
 	}
 }

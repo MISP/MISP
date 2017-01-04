@@ -1,7 +1,7 @@
 <div class="confirmation">
 <legend>Event Delegation</legend>
 <div style="padding-left:5px;padding-right:5px;padding-bottom:5px;">
-<?php 
+<?php
 $target = $me['org_id'] == $delegation['Org']['id'] ? 'your organisation' : $delegation['Org']['name'];
 $requester = $me['org_id'] == $delegation['RequesterOrg']['id'] ? 'Your organisation' : $delegation['RequesterOrg']['name'];
 ?>

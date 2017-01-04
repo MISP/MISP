@@ -6,7 +6,7 @@ to write to a log database table.
 https://github.com/eskil-saatvedt/CakePHP-Assets/blob/master/models/behaviors/LogableBehavior.php
 
 	Adds the logable Model Behavior.
-	
+
 http://bakery.cakephp.org/articles/rikdc/2010/06/07/syslog-component
 
 	Adds the syslog capability.

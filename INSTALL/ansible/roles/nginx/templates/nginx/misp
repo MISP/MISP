@@ -1,0 +1,27 @@
+# MISP WEB SERVER CONFIGURATION
+server {
+    server_name {{servername}};
+    listen 443 ssl spdy;
+
+    root /opt/misp-server/misp/app/webroot;
+    index index.php;
+
+    # Configure Crypto Keys/Certificates/DH
+    ssl_certificate         /etc/nginx/ssl/misp.crt;
+    ssl_certificate_key     /etc/nginx/ssl/misp.key;
+
+    # enable HSTS
+    add_header Strict-Transport-Security "max-age=15768000; includeSubdomains";
+    add_header X-Frame-Options SAMEORIGIN;
+
+    location / {
+        try_files $uri $uri/ /index.php;
+    }
+
+    location ~ \.php$ {
+        fastcgi_split_path_info ^(.+\.php)(/.+)$;
+        fastcgi_pass unix:/var/run/php5-fpm.sock;
+        fastcgi_index index.php;
+        include fastcgi_params;
+    }
+}

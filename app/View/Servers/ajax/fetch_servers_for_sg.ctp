@@ -1,4 +1,4 @@
-<div class="confirmation">	
+<div class="confirmation">
 <legend>Select instances to add</legend>
 	<div style="padding:10px;">
 		<table>
@@ -6,7 +6,7 @@
 				<td style="width:285px;">
 					<p>Available Instances</p>
 					<select id="leftValues" size="5" multiple style="width:285px;">
-						<?php 
+						<?php
 							foreach ($servers as $server) {
 								echo '<option data-url="' . h($server['url']) . '" value="' . h($server['id']) . '" selected>' . h($server['name']) . '</option>';
 							}

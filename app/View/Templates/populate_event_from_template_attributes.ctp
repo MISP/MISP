@@ -24,7 +24,7 @@ endforeach;?>
 	<div style="float:left;">
 		<?php echo $this->Form->create('Template', array('url' => '/templates/submitEventPopulation/' . $template_id . '/' . $event_id));?>
 			<fieldset>
-				<?php 
+				<?php
 					echo $this->Form->input('attributes', array(
 							'id' => 'attributes',
 							'label' => false,
@@ -42,7 +42,7 @@ endforeach;?>
 	<div>
 		<?php echo $this->Form->create('Template');?>
 			<fieldset>
-				<?php 
+				<?php
 					foreach ($template['Template'] as $k => $v) {
 						if (strpos($k, 'ile_')) $v = serialize($v);
 						echo $this->Form->input($k, array(
@@ -75,6 +75,6 @@ endforeach;?>
 	</div>
 
 </div>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'template_populate_results'));
 ?>

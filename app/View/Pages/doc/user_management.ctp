@@ -49,7 +49,7 @@ To alter any details regarding your profile, use the "My Profile" menu button to
 MISP also provides its users with some information about itself and its users through the links provided in the Global Actions menu.<br><br>
 <ul>
 	<li><b>News:</b> To read about the news regarding the system itself, click on News on the left menu. This will bring up a list of news items concerning updates and changes to MISP itself.<br /><br /></li>
-	<li><b>Member statistics:</b> By using the Members List menu button on the left, you can get a quick overview over how many users each organisation has registered on your server, and a histogram, depicting the distribution of attribute types created by each organisation.<br /><br /></li>
+	<li><b>Member statistics:</b> By using the Attribute Histogram menu button on the left, you can see a quick histogram depicting the distribution of attribute types created by each organisation.<br /><br /></li>
 	<li><b>User Guide:</b> The user guide is also accessible via the Global Actions menu. You can find out more about how to use the system by reading this.<br /><br /></li>
 	<li><b>Terms &amp; Conditions:</b> It is possible to review the terms &amp; conditions that were shown during the first run of the system by clicking on the terms &amp; conditions link in the Global Actions menu.<br /><br /></li>
 	<li><b>Statistics:</b> View statistics about the users and the data contained within this instance.
@@ -70,4 +70,3 @@ All the events and attributes that get entered into MISP will be run through a s
 	<li><b>Signature Whitelist:</b> This list (can) contain a set of addresses that are allowed to be entered as attribute values but will be blocked from being exported to NIDS-es.<br /><br /> </li>
 </ul>
 </div>
-

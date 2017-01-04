@@ -2,60 +2,73 @@
 
 App::uses('AppController', 'Controller');
 
-/**
- * Jobs Controller
- *
- * @property Job $Job
-*/
 class JobsController extends AppController {
 	public $components = array('Security' ,'RequestHandler', 'Session');
-	
+
 	public $paginate = array(
 			'limit' => 20,
 			'order' => array(
 					'Job.id' => 'desc'
 			),
 	);
-	
-	public function beforeFilter() {
-		parent::beforeFilter();
-	}
-	
+
 	public function index($queue = false) {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
 		if (!Configure::read('MISP.background_jobs')) throw new NotFoundException('Background jobs are not enabled on this instance.');
+		$this->loadModel('Server');
+		$issueCount = 0;
+		$workers = $this->Server->workerDiagnostics($issueCount);
 		$this->recursive = 0;
-		$queues = array('email', 'default', 'cache');
+		$queues = array('email', 'default', 'cache', 'prio');
 		if ($queue && in_array($queue, $queues)) $this->paginate['conditions'] = array('Job.worker' => $queue);
 		$jobs = $this->paginate();
-		foreach($jobs as &$job) {
-			if ($job['Job']['process_id']) {
-				$job['Job']['status'] = $this->__jobStatusConverter(CakeResque::getJobStatus($job['Job']['process_id']));
+		foreach ($jobs as &$job) {
+			if ($job['Job']['process_id'] !== false) {
+				$job['Job']['job_status'] = $this->__jobStatusConverter(CakeResque::getJobStatus($job['Job']['process_id']));
+				$job['Job']['failed'] = false;
+				if ($job['Job']['status'] === 'Failed') {
+					$job['Job']['failed'] = true;
+				}
 			} else {
-				$job['Job']['status'] = '???';
+				$job['Job']['status'] = 'Unknown';
 			}
+			$job['Job']['worker_status'] = isset($workers[$job['Job']['worker']]) && $workers[$job['Job']['worker']]['ok'] ? true : false;
 		}
 		$this->set('list', $jobs);
 		$this->set('queue', $queue);
 	}
-	
+
+	public function getError($id) {
+		$fields = array(
+			'Failed at' => 'failed_at',
+			'Exception' => 'exception',
+			'Error' => 'error'
+		);
+		$this->set('fields', $fields);
+		$this->set('response', CakeResque::getFailedJobLog($id));
+		$this->render('/Jobs/ajax/error');
+	}
+
 	private function __jobStatusConverter($status) {
 		switch ($status) {
 			case 1:
-				return 'In progress...';
+				return 'Waiting';
 				break;
 			case 2:
-				return 'Unknown';
+				return 'Running';
 				break;
 			case 3:
-				return 'Unknown';
+				return 'Failed';
 				break;
 			case 4:
 				return 'Completed';
 				break;
+			default:
+				return 'Unknown';
+				break;
 		}
 	}
-	
+
 	public function getGenerateCorrelationProgress($id) {
 		if (!self::_isSiteAdmin()) throw new NotFoundException();
 		$progress = $this->Job->findById($id);
@@ -66,14 +79,15 @@ class JobsController extends AppController {
 		}
 		return new CakeResponse(array('body' => json_encode($progress)));
 	}
-	
+
 	public function getProgress($type) {
-		$org = $this->Auth->user('Organisation')['name'];
-		if ($this->_isSiteAdmin()) $org = 'ADMIN'; 
+		$org_id = $this->Auth->user('org_id');
+		if ($this->_isSiteAdmin()) $org_id = 0;
+
 		$progress = $this->Job->find('first', array(
 			'conditions' => array(
 				'job_type' => $type,
-				'org_id' => $org
+				'org_id' => $org_id
 			),
 			'fields' => array('id', 'progress'),
 			'order' => array('Job.id' => 'desc'),
@@ -85,14 +99,14 @@ class JobsController extends AppController {
 		}
 		return new CakeResponse(array('body' => json_encode($progress)));
 	}
-	
+
 	public function cache($type) {
 		if ($this->_isSiteAdmin()) {
 			$target = 'All events.';
-		} else { 
+		} else {
 			$target = 'Events visible to: '.$this->Auth->user('Organisation')['name'];
 		}
-		$id = $this->Job->cache($type, $this->Auth->user(), $target);
+		$id = $this->Job->cache($type, $this->Auth->user());
 		return new CakeResponse(array('body' => json_encode($id)));
 	}
 }

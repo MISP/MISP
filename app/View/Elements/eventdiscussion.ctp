@@ -11,7 +11,7 @@
 	            'before' => '$(".loading").show()',
 	            'complete' => '$(".loading").hide()',
 	        ));
-	
+
 	            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
 	            echo $this->Paginator->numbers(array('modulus' => 10, 'separator' => '', 'tag' => 'li', 'currentClass' => 'red', 'currentTag' => 'span'));
 	            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
@@ -19,7 +19,7 @@
 	        </ul>
 	    </div>
 	    <div id = "posts">
-			<?php 
+			<?php
 				foreach ($posts as $post) {
 			?>
 					<a name="message_<?php echo h($post['Post']['id']);?>"></a>
@@ -30,9 +30,9 @@
 								<table style="width:100%">
 									<tr>
 										<td>
-			<?php 
+			<?php
 											echo 'Date: ' . h($post['Post']['date_created']);
-			?>					
+			?>
 										</td>
 										<td style="text-align:right">
 											<a href="#top" class="whitelink">Top</a> |
@@ -45,19 +45,23 @@
 						</tr>
 						<tr>
 							<td class="discussionBoxTD discussionBoxTDMid discussionBoxTDMidLeft">
-								<?php 
+								<?php
+								if (isset($post['User']['Organisation'])) {
 									$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . 'orgs' . DS . h($post['User']['Organisation']['name']) . '.png';
 									if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($post['User']['Organisation']['name']) . '.png', array('alt' => h($post['User']['Organisation']['name']), 'title' => h($post['User']['Organisation']['name']), 'style' => 'width:48px; height:48px'));
-									else echo $this->Html->tag('span', h($post['User']['Organisation']['name']), array('class' => 'welcome', 'style' => 'float:center;'));								
+									else echo $this->Html->tag('span', h($post['User']['Organisation']['name']), array('class' => 'welcome', 'style' => 'float:center;'));
+								} else {
+									echo 'Deactivated user';
+								}
 								?>
 							</td>
 							<td class="discussionBoxTD discussionBoxTDMid discussionBoxTDMidRight">
-			<?php 
+			<?php
 									echo $this->Command->convertQuotes(nl2br(h($post['Post']['contents'])));
 									if ($post['Post']['post_id'] !=0 || ($post['Post']['date_created'] != $post['Post']['date_modified'])) {
 			?>
 										<br /><br />
-			<?php 
+			<?php
 									}
 									if ($post['Post']['post_id'] != 0) {
 			?>
@@ -65,7 +69,7 @@
 											In reply to post
 											<a href="<?php echo "#".h($post['Post']['post_id']); ?>">#<?php echo h($post['Post']['post_id'])?></a>
 										</span>
-			<?php 
+			<?php
 									}
 									if ($post['Post']['date_created'] != $post['Post']['date_modified']) {
 										echo '<span style="font-style:italic">Message edited at ' . h($post['Post']['date_modified']) . '<span>';
@@ -81,7 +85,7 @@
 											<?php echo h($post['User']['email']); ?>
 										</td>
 										<td style="text-align:right">
-			<?php 
+			<?php
 										if (!$isSiteAdmin) {
 											if ($post['Post']['user_id'] == $myuserid) {
 												echo $this->Html->link('', array('controller' => 'posts', 'action' => 'edit', h($post['Post']['id']), h($context)), array('class' => 'icon-edit', 'title' => 'Edit'));
@@ -89,15 +93,15 @@
 											} else {
 			?>
 												<a href="<?php echo $baseurl.'/posts/add/post/'.h($post['Post']['id']); ?>" class="icon-comment" title = "Reply"></a>
-			<?php 							
+			<?php
 											}
 										} else {
 											echo $this->Html->link('', array('controller' => 'posts', 'action' => 'edit', h($post['Post']['id']), h($context)), array('class' => 'icon-edit', 'title' => 'Edit'));
 											echo $this->Form->postLink('', array('controller' => 'posts', 'action' => 'delete', h($post['Post']['id']), h($context)), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete this post?'));
 			?>
 												<a href = "<?php echo $baseurl.'/posts/add/post/'.h($post['Post']['id']); ?>" class="icon-comment" title = "Reply"></a>
-			<?php 	
-								
+			<?php
+
 										}
 			?>
 										</td>
@@ -107,7 +111,7 @@
 						</tr>
 					</table>
 					<br />
-			<?php 
+			<?php
 				}
 			?>
 			</div>
@@ -130,7 +134,7 @@
     <?php endif; ?>
 	<div class="comment">
 	<?php
-		if (isset($currentEvent)) $url = '/posts/add/event/' . $currentEvent; 
+		if (isset($currentEvent)) $url = '/posts/add/event/' . $currentEvent;
 		else $url = '/posts/add/thread/' . $thread_id;
 		echo $this->Form->create('Post', array('url' => $url));
 	?>
@@ -139,6 +143,8 @@
 			<button type="button" title="Insert a quote - just paste your quote between the [quote][/quote] tags." class="toggle-left btn btn-inverse qet" id = "quote"  onclick="insertQuote()">Quote</button>
 			<button type="button" title="Insert a link to an event - just enter the event ID between the [event][/event] tags." class="toggle btn btn-inverse qet" id = "event"  onclick="insertEvent()">Event</button>
 			<button type="button" title="Insert a link to a discussion thread - enter the thread's ID between the [thread][/thread] tags." class="toggle-right btn btn-inverse qet" id = "thread"  onclick="insertThread()">Thread</button>
+			<button type="button" title="Insert a link [link][/link] tags." class="toggle-right btn btn-inverse qet" id = "link"  onclick="insertLink()">Link</button>
+			<button type="button" title="Insert a code [code][/code] tags." class="toggle-right btn btn-inverse qet" id = "code"  onclick="insertCode()">Code</button>
 		</div>
 		<?php
 			echo $this->Form->input('message', array(
@@ -149,27 +155,27 @@
 			));
 		?>
 		</fieldset>
+		<button class="btn btn-primary" onClick="submitMessageForm('<?php echo h($url);?>', 'PostViewForm', 'top'); return false;">Send</button>
 	<?php
-	echo $this->Js->submit('Send', array(
-			'before'=>$this->Js->get('#loading')->effect('fadeIn'),
-			'success'=>$this->Js->get('#loading')->effect('fadeOut'),
-			'update'=>'#top',
-			'class'=>'btn btn-primary',
-			'url' => $url
-	));
-	echo $this->Form->end();
+		echo $this->Form->end();
 	?>
 	</div>
 </div>
-<script type="text/javascript"> 
+<script type="text/javascript">
 	function insertQuote() {
-		document.getElementById("PostMessage").value+="[Quote][/Quote]"; 
+		document.getElementById("PostMessage").value+="[Quote][/Quote]";
 	}
 	function insertEvent() {
-		document.getElementById("PostMessage").value+="[Event][/Event]"; 
+		document.getElementById("PostMessage").value+="[Event][/Event]";
 	}
 	function insertThread() {
-		document.getElementById("PostMessage").value+="[Thread][/Thread]"; 
+		document.getElementById("PostMessage").value+="[Thread][/Thread]";
+	}
+	function insertLink() {
+		document.getElementById("PostMessage").value+="[Link][/Link]";
+	}
+	function insertCode() {
+		document.getElementById("PostMessage").value+="[Code][/Code]";
 	}
 	<?php if (isset($post_id) && $post_id): ?>
 		$(document).ready(function() {

@@ -35,4 +35,3 @@ You can also sort the table by using the sort and direction parameters. For exam
 
 To export all the events at once, with their attributes, use the export functionality.
  -->
- 

@@ -169,7 +169,7 @@ def index(model) :
 	url = base_url + '/'+model+'s/index'
 	h = httplib2.Http()
 	h.disable_ssl_certificate_validation=True
-	response, content = h.request(url, 
+	response, content = h.request(url,
 		'GET',
 		headers={
 			'Accept': 'application/xml',
@@ -177,13 +177,13 @@ def index(model) :
 		}
 	)
 	return response, content
-	
+
 # Get the content of a specific model entry
 def view(model, entry_id) :
 	url = base_url + '/'+model+'s/view/'+str(entry_id)
 	h = httplib2.Http()
 	h.disable_ssl_certificate_validation=True
-	response, content = h.request(url, 
+	response, content = h.request(url,
 		'GET',
 		headers={
 			'Accept': 'application/xml',
@@ -197,8 +197,8 @@ def add(model, xml_body) :
 	url = base_url + '/'+model+'s/'
 	h = httplib2.Http()
 	h.disable_ssl_certificate_validation=True
-	response, content = h.request(url, 
-		'POST', 
+	response, content = h.request(url,
+		'POST',
 		body=xml_body,
 		headers={
 			'Accept': 'application/xml',
@@ -226,4 +226,3 @@ response, content = view('event', 672)
 
 print response
 print content
-

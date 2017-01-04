@@ -26,6 +26,6 @@ $(document).ready(function() {
 	templateFileHiddenAdd(fileArray, '<?php echo $element_id; ?>', '<?php echo $batch; ?>');
 	showMessage('<?php echo $upload_error ? 'fail' : 'success'; ?>', '<?php echo $result; ?>', 'iframe');
 	<?php endif; ?>
-}); 
+});
 
 </script>

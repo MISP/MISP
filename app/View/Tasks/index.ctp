@@ -19,11 +19,11 @@
     </div>
 	<?php
 		echo $this->Form->create('Task', array(
-		'action' => 'setTask',
+		'url' => 'setTask',
 		'controller' => 'Tasks',
 		'inputDefaults' => array(
 		'label' => false
-		))); 
+		)));
 	?>
 	<table class="table table-striped table-hover table-condensed">
 	<tr>
@@ -106,18 +106,18 @@ endforeach; ?>
         </ul>
     </div>
 </div>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'tasks'));
 ?>
 <script type="text/javascript">
 	function activate1(id, type){
 		$("#"+id+"-"+type+"-active").show();
 		$("#"+id+"-"+type+"-passive").hide();
-	} 
+	}
 
 	function activate2(id, type, defaultValue){
 		$("#"+id+"-"+type+"-active").show();
 		$("#"+id+"-"+type+"-passive").hide();
 		$('#timepicker'+id).timepicker({defaultTime: defaultValue, minuteStep: 1, showMeridian: false});
-	} 
+	}
 </script>

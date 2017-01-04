@@ -33,7 +33,7 @@ $mayPublish = ($isAclPublish && $this->request->data['Event']['orgc_id'] == $me[
 	</fieldset>
 	<div id="confirmation_box" class="confirmation_box"></div>
 </div>
-<?php 
+<?php
 	$event = $this->data;
 	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'contact', 'event' => $event));
 ?>

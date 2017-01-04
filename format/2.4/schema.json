@@ -225,7 +225,7 @@
               },
               "Event": {
                 "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/RelatedEvent/0/Event",
-                "type": "array",
+                "type": "object",
                 "items": {
                   "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/RelatedEvent/0/Event/0",
                   "type": "object",

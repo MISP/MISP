@@ -2,10 +2,6 @@
 
 App::uses('AppModel', 'Model');
 
-/**
- * Log Model
- *
- */
 class Log extends AppModel {
 
 	public $validate = array(
@@ -44,7 +40,10 @@ class Log extends AppModel {
 							'disable',
 							'accept_delegation',
 							'request_delegation',
-							'merge'
+							'merge',
+							'undelete',
+							'file_upload',
+							'export'
 						)),
 			'message' => 'Options : ...'
 		)
@@ -59,17 +58,39 @@ class Log extends AppModel {
 		'delete' => array('desc' => 'Delete action', 'formdesc' => "Delete action"),
 		'publish' => array('desc' => "Publish action", 'formdesc' => "Publish action")
 	);
-	
+
+	public $logMeta = array(
+		'email' => array('values' => array('email'), 'name' => 'Emails'),
+		'auth_issues' => array('values' => array('login_fail', 'auth_fail'), 'name' => 'Authentication issues')
+	);
+
+	public $logMetaAdmin = array(
+		'update' => array('values' => array('update_database'), 'name' => 'MISP Update results'),
+		'settings' => array('values' => array('serverSettingsEdit', 'remove_dead_workers'), 'name' => 'Setting changes'),
+		'errors' => array('values' => array('warning', 'errors', 'version_warning'), 'name' => 'Warnings and errors'),
+		'email' => array('values' => array('admin_email'))
+	);
+
+	public function beforeValidete() {
+		parent::beforeValidate();
+		if (!isset($this->data['Log']['org']) || empty($this->data['Log']['org'])) {
+			$this->data['Log']['org'] = 'SYSTEM';
+		}
+	}
+
 	public function beforeSave($options = array()) {
 		if (Configure::read('MISP.log_client_ip') && isset($_SERVER['REMOTE_ADDR'])) $this->data['Log']['ip'] = $_SERVER['REMOTE_ADDR'];
 		$setEmpty = array('title' => '', 'model' => '', 'model_id' => 0, 'action' => '', 'user_id' => 0, 'change' => '', 'email' => '', 'org' => '', 'description' => '');
 		foreach ($setEmpty as $field => $empty) {
-			if (!isset($this->data['Log'][$field]) || empty($this->data['Log'][$field])) $this->data['Log'][$field] = $empty;  
+			if (!isset($this->data['Log'][$field]) || empty($this->data['Log'][$field])) $this->data['Log'][$field] = $empty;
 		}
+		if (!isset($this->data['Log']['created'])) $this->data['Log']['created'] = date('Y-m-d H:i:s');
 		return true;
 	}
-	
+
 	public function returnDates($org = 'all') {
+		$dataSourceConfig = ConnectionManager::getDataSource('default')->config;
+		$dataSource = $dataSourceConfig['datasource'];
 		$conditions = array();
 		$this->Organisation = ClassRegistry::init('Organisation');
 		if ($org !== 'all') {
@@ -78,19 +99,34 @@ class Log extends AppModel {
 			$conditions['org'] = $org['Organisation']['name'];
 		}
 		$conditions['AND']['NOT'] = array('action' => array('login', 'logout', 'changepw'));
-		$validDates = $this->find('all', array(
-				'fields' => array('DISTINCT UNIX_TIMESTAMP(DATE(created)) AS Date', 'count(id) AS count'),
-				'conditions' => $conditions,
-				'group' => array('DATE(created)'),
-				'order' => array('Date')
-		));
+		if ($dataSource == 'Database/Mysql') {
+			$validDates = $this->find('all', array(
+					'fields' => array('DISTINCT UNIX_TIMESTAMP(DATE(created)) AS Date', 'count(id) AS count'),
+					'conditions' => $conditions,
+					'group' => array('Date'),
+					'order' => array('Date')
+			));
+		} else if ($dataSource == 'Database/Postgres') {
+			// manually generate the query for Postgres
+			// cakephp ORM would escape "DATE" datatype in CAST expression
+			$condnotinaction = "'" . implode("', '", $conditions['AND']['NOT']['action']) . "'";
+			if (!empty($conditions['org'])) $condOrg = ' AND org = "' . $conditions['org'] . '"';
+			else $condOrg = '';
+			$sql = 'SELECT DISTINCT EXTRACT(EPOCH FROM CAST(created AS DATE)) AS "Date",
+									COUNT(id) AS count
+					FROM logs
+					WHERE action NOT IN (' . $condnotinaction . ')
+					' . $condOrg . '
+					GROUP BY "Date" ORDER BY "Date"';
+			$validDates = $this->query($sql);
+		}
 		$data = array();
 		foreach ($validDates as $k => $date) {
 			$data[$date[0]['Date']] = intval($date[0]['count']);
 		}
 		return $data;
 	}
-	
+
 	public function createLogEntry($user = array('Organisation' => array('name' => 'SYSTEM'), 'email' => 'SYSTEM', 'id' => 0), $action, $model, $model_id = 0, $title = '', $change = '') {
 		$this->create();
 		$this->save(array(

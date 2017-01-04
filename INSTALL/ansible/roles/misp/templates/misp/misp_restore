@@ -1,0 +1,45 @@
+#!/bin/bash
+
+###########################################
+#######      MISP RESTORE SCRIPT    #######
+###########################################
+
+ARCHIVE=$1
+EXTRACTION=${ARCHIVE::-7}
+
+BACKUP_MYSQL_DUMP_FILE="./$EXTRACTION/mysql/mysql_dump.sql"
+BACKUP_CONFIG_DIR="./$EXTRACTION/misp/Config/"
+BACKUP_FILES_DIR="./$EXTRACTION/misp/files/"
+
+MISP_INSTALL_DIR="/opt/misp-server/misp/"
+MISP_INSTALL_APP_DIR="$MISP_INSTALL_DIR/app/"
+
+MYSQL_USER="misp"
+MYSQL_DATABASE="misp"
+
+echo "------ MISP RESTORE SCRIPT ------"
+
+#### 0 | OPEN BACKUP ARCHIVE ####
+echo "*** Unpacking $1 ***"
+tar -xf $ARCHIVE
+echo "Done."
+
+#### 1 | RESTORE MYSQL ####
+echo "*** Restoring MySQL misp database ***"
+echo "Connecting to MySQL database:"
+echo "database:$MYSQL_DATABASE"
+echo "user:$MYSQL_USER"
+mysql -u $MYSQL_USER -p $MYSQL_DATABASE < $BACKUP_MYSQL_DUMP_FILE
+echo "Done."
+
+#### 2 | RESTORE CONFIGURATION FILES ####
+echo "*** Restoring MISP configuration files ***"
+cp -R $BACKUP_CONFIG_DIR $MISP_INSTALL_APP_DIR
+echo "Done."
+
+#### 3 | RESTORE MISP FILES ####
+echo "*** Restoring MISP files ***"
+cp -R $BACKUP_FILES_DIR $MISP_INSTALL_APP_DIR
+echo "Done."
+
+echo "------ COMPLETE ------"

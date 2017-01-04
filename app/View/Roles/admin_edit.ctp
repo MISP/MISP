@@ -6,12 +6,12 @@
 		echo $this->Form->input('name');?>
 		<?php echo $this->Form->input('permission', array('label' => 'Permissions', 'type' => 'select', 'options' => $options), array('value' => '3'));?>
 		<div class = 'input clear'></div>
-		<?php 
+		<?php
 			$counter = 1;
 			foreach ($permFlags as $k => $flag) {
 				echo $this->Form->input($k, array('type' => 'checkbox'));
 				if ($counter%3 == 0) echo "<div class = 'input clear'></div>";
-				$counter++;	
+				$counter++;
 			}
 		?>
 	</fieldset>
@@ -20,7 +20,7 @@
 	echo $this->Form->end();
 ?>
 </div>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'editRole'));
 	$this->Js->get('#RolePermission')->event('change', 'deactivateActions()');
 	foreach ($permFlags as $k => $flag) {
@@ -36,11 +36,11 @@
 function deactivateActions() {
 	var e = document.getElementById("RolePermission");
 	if (e.options[e.selectedIndex].value == '0' || e.options[e.selectedIndex].value == '1') {
-		<?php 
+		<?php
 			foreach ($permFlags as $k => $flag):
 		?>
 			document.getElementById("<?php echo $flag['id']; ?>").checked = false;
-		<?php 
+		<?php
 			endforeach;
 		?>
 	}
@@ -48,12 +48,12 @@ function deactivateActions() {
 
 function activateAll() {
 	if (document.getElementById("RolePermSiteAdmin").checked) {
-		<?php 
+		<?php
 		foreach ($permFlags as $k => $flag):
 			if ($k !== 'perm_site_admin'):
 		?>
 			document.getElementById("<?php echo $flag['id']; ?>").checked = true;
-		<?php 
+		<?php
 			endif;
 		endforeach;
 		?>

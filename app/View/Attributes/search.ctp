@@ -2,12 +2,12 @@
 <?php echo $this->Form->create('Attribute');?>
 	<fieldset>
 		<legend>Search Attribute</legend>
-		You can search for attributes based on contained expression within the value, event ID, submiting organisation, category and type. <br />For the value, event ID and organisation, you can enter several search terms by entering each term as a new line. To exclude things from a result, use the NOT operator (!) infront of the term.<br/><br />
+		You can search for attributes based on contained expression within the value, event ID, submitting organisation, category and type. <br />For the value, event ID and organisation, you can enter several search terms by entering each term as a new line. To exclude things from a result, use the NOT operator (!) in front of the term.<br/><br />
 		<?php
-			echo $this->Form->input('keyword', array('type' => 'textarea', 'label' => 'Containing the following expressions', 'div' => 'clear', 'class' => 'input-xxlarge'));
-			echo $this->Form->input('keyword2', array('type' => 'textarea', 'label' => 'Being attributes of the following event IDs or event UUIDs', 'div' => 'clear', 'class' => 'input-xxlarge'));
-			echo $this->Form->input('tags', array('type' => 'textarea', 'label' => 'Being an attribute of an event matching the following tags', 'div' => 'clear', 'class' => 'input-xxlarge'));
-			
+			echo $this->Form->input('keyword', array('type' => 'textarea', 'rows' => 2, 'label' => 'Containing the following expressions', 'div' => 'clear', 'class' => 'input-xxlarge'));
+			echo $this->Form->input('keyword2', array('type' => 'textarea', 'rows' => 2, 'label' => 'Being attributes of the following event IDs, event UUIDs or attribute UUIDs', 'div' => 'clear', 'class' => 'input-xxlarge'));
+			echo $this->Form->input('tags', array('type' => 'textarea', 'rows' => 2, 'label' => 'Being an attribute of an event matching the following tags', 'div' => 'clear', 'class' => 'input-xxlarge'));
+
 		?>
 		<?php
 			if (Configure::read('MISP.showorg') || $isAdmin)
@@ -15,6 +15,7 @@
 						'type' => 'textarea',
 						'label' => 'From the following organisation(s)',
 						'div' => 'input clear',
+						'rows' => 2,
 						'class' => 'input-xxlarge'));
 		?>
 		<?php
@@ -28,7 +29,7 @@
 		<?php
 			echo $this->Form->input('ioc', array(
 				'type' => 'checkbox',
-				'label' => 'Only find valid IOCs',
+				'label' => 'Only find IOCs to use in IDS',
 			));
 			echo $this->Form->input('alternate', array(
 					'type' => 'checkbox',
@@ -43,12 +44,12 @@ echo $this->Form->end();
 </div>
 <script type="text/javascript">
 //
-//Generate Category / Type filtering array
+// Generate Category / Type filtering array
 //
 var category_type_mapping = new Array();
 
 <?php
-// all types for Categorie ALL
+// all types for Category ALL
 echo "category_type_mapping['ALL'] = {";
 $first = true;
 foreach ($typeDefinitions as $type => $def) {
@@ -58,7 +59,7 @@ foreach ($typeDefinitions as $type => $def) {
 }
 echo "}; \n";
 
-//all types for empty Categorie
+// all types for empty Category
 echo "category_type_mapping[''] = {";
 $first = true;
 foreach ($typeDefinitions as $type => $def) {
@@ -68,7 +69,7 @@ foreach ($typeDefinitions as $type => $def) {
 }
 echo "}; \n";
 
-// Types per Categorie
+// Types per Category
 foreach ($categoryDefinitions as $category => $def) {
 	echo "category_type_mapping['" . addslashes($category) . "'] = {";
 	$first = true;
@@ -82,7 +83,7 @@ foreach ($categoryDefinitions as $category => $def) {
 ?>
 
 //
-//Generate Type / Category filtering array
+// Generate Type / Category filtering array
 //
 var type_category_mapping = new Array();
 
@@ -182,7 +183,7 @@ $(document).ready(function() {
 	});
 
 	// workaround for browsers like IE and Chrome that do now have an onmouseover on the 'options' of a select.
-	// disadvangate is that user needs to click on the item to see the tooltip.
+	// disadvantage is that user needs to click on the item to see the tooltip.
 	// no solutions exist, except to generate the select completely using html.
 	$("#AttributeType, #AttributeCategory").on('change', function(e) {
 	    var $e = $(e.target);
@@ -195,8 +196,13 @@ $(document).ready(function() {
 	});
 
 });
+$('.input-xxlarge').keydown(function (e) {
+	  if (e.ctrlKey && e.keyCode == 13) {
+		  $('#AttributeSearchForm').submit();
+	  }
+});
 </script>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'event-collection', 'menuItem' => 'searchAttributes'));
 ?>
 <?php echo $this->Js->writeBuffer(); // Write cached scripts ?>

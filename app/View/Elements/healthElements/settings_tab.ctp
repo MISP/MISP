@@ -1,6 +1,6 @@
 <div style="border:1px solid #dddddd; margin-top:1px; width:95%; padding:10px">
-<?php 
-	foreach ($finalSettings as $subGroup => &$settings): 
+<?php
+	foreach ($finalSettings as $subGroup => &$settings):
 ?>
 	<div>
 		<table class="table table-hover table-condensed" style="border:1px solid #dddddd; margin-top:1px; margin-bottom:0px; width:100%; padding:10px">
@@ -26,6 +26,9 @@
 					if ($setting['level'] == 3) $bgColour = 'background-color:gray;color:white;';
 					if ($setting['type'] == 'boolean') $setting['value'] = ($setting['value'] === true ? 'true' : 'false');
 					if (isset($setting['options'])) $setting['value'] = ($setting['options'][$setting['value']]);
+					if ($setting['setting'] == 'Security.salt' && !isset($setting['error'])) {
+						continue;
+					}
 			?>
 			<tr id ="<?php echo h($subGroup) . '_' . $k; ?>_row" class="subGroup_<?php echo h($subGroup);?> hidden">
 				<td class="short" style="<?php echo $bgColour; ?>"><?php echo h($priorities[$setting['level']]);?></td>
@@ -40,12 +43,12 @@
 				<td style="<?php echo $bgColour; ?>"><?php if (isset($setting['error']) && $setting['level'] != 3) echo h($setting['errorMessage']); ?></td>
 			</tr>
 		<?php
-			endforeach; 
+			endforeach;
 		?>
 		</table>
 		<div class="subGroup_<?php echo h($subGroup);?> hidden" style="margin-bottom:30px;"></div>
 	</div>
-<?php 
+<?php
 	endforeach;
 ?>
 </div>

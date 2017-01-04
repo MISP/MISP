@@ -2,7 +2,7 @@
 App::uses('AppHelper', 'View/Helper');
 
 	class PivotHelper extends AppHelper {
-		
+
 		private function __doConvert($pivot, $currentEvent, $activeText=false) {
 			$data = null;
 			$text = $pivot['id'] . ': ';
@@ -10,11 +10,11 @@ App::uses('AppHelper', 'View/Helper');
 			$pivot['info'] = h($pivot['info']);
 			// Truncate string if longer than (11 - length of event id) chars to fit the pivot bubble
 			if (strlen($pivot['info']) > (11 - strlen((string)$pivot['id'])) && strlen($pivot['info']) > 9) {
-				$text .= mb_substr($pivot['info'], 0, 6) . '...';				
+				$text .= mb_substr($pivot['info'], 0, 6) . '...';
 			} else {
 				$text .= $pivot['info'];
 			}
-			
+
 			// Colour the text white if it is a highlighted pivot element
 			$pivotType = 'pivotText';
 			$pivotSpanType = '';
@@ -22,7 +22,7 @@ App::uses('AppHelper', 'View/Helper');
 				$pivotType = 'pivotTextBlue';
 				$pivotSpanType = 'pivotSpanBlue';
 			}
-			
+
 			$data[] = '<span class ="'.$pivotSpanType.'">';
 			if ($pivot['deletable']) {
 				$data[] = '<a class="pivotDelete icon-remove" href="' . h(Configure::read('MISP.baseurl')) . '/events/removePivot/' . $pivot['id'] . '/' . $currentEvent . '"></a>';
@@ -50,7 +50,7 @@ App::uses('AppHelper', 'View/Helper');
 			}
 			return $data;
 		}
-		
+
 		public function convertPivotToHTML($pivot, $currentEvent) {
 			$lookingAtRoot = false;
 			$pivotType = '';
@@ -66,7 +66,7 @@ App::uses('AppHelper', 'View/Helper');
 			$data = array_merge($data, array('</div>'));
 			foreach ($data as $k => $v) {
 				echo ($v);
-			}		
+			}
 		}
 
 		private function __findMaxHeight($pivot) {
@@ -80,6 +80,5 @@ App::uses('AppHelper', 'View/Helper');
 			return $height + $heightToAdd;
 		}
 	}
-	
-?>
 
+?>

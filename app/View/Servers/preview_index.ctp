@@ -1,11 +1,12 @@
 <div class="events <?php if (!$ajax) echo 'index'; ?>">
-	<h4 class="visibleDL notPublished" >You are currently viewing the event index of the remote instance "<?php echo h($server['Server']['name']); ?>" (@ <?php echo h($server['Server']['url']); ?>)</h4>
+	<?php $serverName = $server['Server']['name'] ? '"' . $server['Server']['name'] . '" (' . $server['Server']['url'] . ')' : '"' . $server['Server']['url'] . '"'; ?>
+	<h4 class="visibleDL notPublished" >You are currently viewing the event index of the remote instance <?php echo h($serverName);?></h4>
 	<div class="pagination">
         <ul>
         <?php
-        	$eventViewURL = '/servers/previewEvent/' . h($id) . '/';
+			$eventViewURL = '/servers/previewEvent/' . h($id) . '/';
 	        $this->Paginator->options(array(
-	        	'url' => $id,
+				'url' => $id,
 	            'update' => '.span12',
 	            'evalScripts' => true,
 	            'before' => '$(".progress").show()',
@@ -25,8 +26,8 @@
 			$filtered = true;
 		}
 	?>
-	
-	
+
+
 	<div class="tabMenuFixedContainer" style="display:inline-block;">
 		<span class="tabMenuFixed tabMenuFixed<?php echo $tab; ?> tabMenuSides">
 			<span id="create-button" title="Modify filters" class="icon-search useCursorPointer" onClick="getPopup('<?php echo h($urlparams);?>', 'servers', 'filterEventIndex/<?php echo h($id);?>');"></span>
@@ -54,12 +55,12 @@
 			?>
 				<th class="filter"><?php echo $this->Paginator->sort('Org', 'Source org'); ?></th>
 				<th class="filter"><?php echo $this->Paginator->sort('Org', 'Member org'); ?></th>
-			<?php 
+			<?php
 				else:
 			?>
 				<th class="filter"><?php echo $this->Paginator->sort('Org'); ?></th>
 				<th class="filter"><?php echo $this->Paginator->sort('owner org');?></th>
-			<?php 
+			<?php
 				endif;
 			?>
 			<th><?php echo $this->Paginator->sort('id');?></th>
@@ -80,7 +81,7 @@
 
 		</tr>
 		<?php if (!empty($events)) foreach ($events as $event): ?>
-		<tr <?php if($event['Event']['distribution'] == 0) echo 'class = "privateRed"'?>>
+		<tr <?php if ($event['Event']['distribution'] == 0) echo 'class = "privateRed"'?>>
 			<td class="short" ondblclick="document.location.href ='<?php echo $eventViewURL . h($event['Event']['id']);?>'">
 				<?php
 				if ($event['Event']['published'] == 1) {
@@ -111,10 +112,18 @@
 			<?php if (Configure::read('MISP.tagging')): ?>
 			<td style = "max-width: 200px;width:10px;">
 				<?php foreach ($event['Event']['EventTag'] as $tag):
-					$tagText = "&nbsp;";
-					if (Configure::read('MISP.full_tags_on_event_index')) $tagText = $tag['Tag']['name'];
+					if (empty($tag['Tag'])) continue;
+					$tagText = "";
+					if (Configure::read('MISP.full_tags_on_event_index') == 1) $tagText = $tag['Tag']['name'];
+					else if (Configure::read('MISP.full_tags_on_event_index') == 2) {
+						if (strpos($tag['Tag']['name'], '=')) {
+							$tagText = explode('=', $tag['Tag']['name']);
+							$tagText = h(trim(end($tagText), "\""));
+						}
+						else $tagText = $tag['Tag']['name'];
+					}
 				?>
-					<span class=tag style="margin-bottom:3px;background-color:<?php echo h($tag['Tag']['colour']);?>;color:<?php echo $this->TextColour->getTextColour($tag['Tag']['colour']);?>;" title="<?php echo h($tag['Tag']['name']); ?>"><?php echo h($tagText); ?></span>
+					<span class=tag style="margin-bottom:3px;background-color:<?php echo h($tag['Tag']['colour']);?>;color:<?php echo $this->TextColour->getTextColour($tag['Tag']['colour']);?>;" title="<?php echo h($tag['Tag']['name']); ?>"><?php echo h($tagText); ?>&nbsp;</span>
 				<?php endforeach; ?>
 			</td>
 			<?php endif; ?>
@@ -125,7 +134,7 @@
 				<?php echo $event['Event']['date']; ?>&nbsp;
 			</td>
 			<td class="short" ondblclick="document.location.href ='<?php echo $eventViewURL . h($event['Event']['id']);?>'">
-				<?php 
+				<?php
 					echo h($threatLevels[$event['Event']['threat_level_id']]);
 				?>&nbsp;
 			</td>
@@ -138,7 +147,7 @@
 			<td class="short <?php if ($event['Event']['distribution'] == 0) echo 'privateRedText';?>" ondblclick="document.location.href ='<?php echo $eventViewURL . h($event['Event']['id']);?>'" title = "<?php echo $event['Event']['distribution'] != 3 ? $distributionLevels[$event['Event']['distribution']] : 'All';?>">
 				<?php if ($event['Event']['distribution'] == 4):?>
 					<a href="/sharingGroups/view/<?php echo h($event['Event']['SharingGroup']['id']); ?>"><?php echo h($event['Event']['SharingGroup']['name']);?></a>
-				<?php else: 
+				<?php else:
 					echo h($shortDist[$event['Event']['distribution']]);
 				endif;
 				?>

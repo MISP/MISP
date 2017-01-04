@@ -4,7 +4,10 @@
 			<legend><?php echo __('Propose Attachment'); ?></legend>
 	<?php
 		echo $this->Form->hidden('event_id');
-		echo $this->Form->input('category');
+		echo $this->Form->input('category', array(
+			'default' => 'Payload delivery',
+			'label' => 'Category ' . $this->element('formInfo', array('type' => 'category'))
+		));
 		echo $this->Form->input('comment', array(
 				'type' => 'text',
 				'label' => 'Contextual Comment',
@@ -26,9 +29,6 @@
 				'type' => 'checkbox',
 				'checked' => false,
 		));
-		// link an onchange event to the form elements
-		$this->Js->get('#ShadowAttributeType')->event('change', 'showFormInfo("#ShadowAttributeType")');
-		$this->Js->get('#ShadowAttributeCategory')->event('change', 'showFormInfo("#ShadowAttributeCategory")');
 	?>
 	</fieldset>
 <?php
@@ -36,73 +36,47 @@
 	echo $this->Form->end();
 ?>
 </div>
-<?php 
+<?php
 	$event['Event']['id'] = $this->request->data['ShadowAttribute']['event_id'];
 	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'proposeAttachment', 'event' => $event));
 ?>
-	
+
 <script type="text/javascript">
+<?php
+	$formInfoTypes = array('category' => 'Category');
+	echo 'var formInfoFields = ' . json_encode($formInfoTypes) . PHP_EOL;
+	foreach ($formInfoTypes as $formInfoType => $humanisedName) {
+		echo 'var ' . $formInfoType . 'FormInfoValues = {' . PHP_EOL;
+		foreach ($info[$formInfoType] as $key => $formInfoData) {
+			echo '"' . $key . '": "<span class=\"blue bold\">' . h($formInfoData['key']) . '</span>: ' . h($formInfoData['desc']) . '<br />",' . PHP_EOL; 
+		}
+		echo '}' . PHP_EOL;
+	}
+?>
+
+var formZipTypeValues = new Array();
+<?php
+	foreach ($categoryDefinitions as $category => $def) {
+		$types = $def['types'];
+		$alreadySet = false;
+		foreach ($types as $type) {
+			if (in_array($type, $zippedDefinitions) && !$alreadySet) {
+				$alreadySet = true;
+				echo "formZipTypeValues['$category'] = \"true\";\n";
+			}
+		}
+		if (!$alreadySet) {
+			echo "formZipTypeValues['$category'] = \"false\";\n";
+		}
+	}
+?>
 
 $(document).ready(function() {
-
-	$("#ShadowAttributeCategory, #ShadowAttribute").on('mouseover', function(e) {
-	    var $e = $(e.target);
-	    if ($e.is('option')) {
-	        $('#'+e.currentTarget.id).popover('destroy');
-	        $('#'+e.currentTarget.id).popover({
-	            trigger: 'focus',
-	            placement: 'right',
-	            content: formInfoValues[$e.val()],
-	        }).popover('show');
-	    }
+	initPopoverContent('ShadowAttribute');
+	$('#ShadowAttributeCategory').change(function() {
+		malwareCheckboxSetter('ShadowAttribute');
 	});
-
-	// workaround for browsers like IE and Chrome that do now have an onmouseover on the 'options' of a select.
-	// disadvangate is that user needs to click on the item to see the tooltip.
-	// no solutions exist, except to generate the select completely using html.
-	$("#ShadowAttributeCategory, #ShadowAttribute").on('change', function(e) {
-	    var $e = $(e.target);
-      $('#'+e.currentTarget.id).popover('destroy');
-      $('#'+e.currentTarget.id).popover({
-          trigger: 'focus',
-          placement: 'right',
-          content: formInfoValues[$e.val()],
-      }).popover('show');
-	});
-
 });
-
-//
-//Generate tooltip information
-//
-var formInfoValues = new Array();
-<?php
-foreach ($typeDefinitions as $type => $def) {
-	$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
-	echo "formInfoValues['" . addslashes($type) . "'] = \"" . addslashes($info) . "\";\n";  // as we output JS code we need to add slashes
-}
-foreach ($categoryDefinitions as $category => $def) {
-	$info = isset($def['formdesc']) ? $def['formdesc'] : $def['desc'];
-	echo "formInfoValues['" . addslashes($category) . "'] = \"" . addslashes($info) . "\";\n"; // as we output JS code we need to add slashes
-}
-?>
-function showFormInfo(id) {
-	idDiv = id+'Div';
-	// LATER use nice animations
-	//$(idDiv).hide('fast');
-	// change the content
-	var value = $(id).val();    // get the selected value
-	$(idDiv).html(formInfoValues[value]);    // search in a lookup table
-
-	// show it again
-	$(idDiv).fadeIn('slow');
-}
-
-//hide the formInfo things
-$('#ShadowAttributeTypeDiv').hide();
-$('#ShadowAttributeCategoryDiv').hide();
-$('#ShadowAttributeType').prop('disabled', true);
 
 </script>
 <?php echo $this->Js->writeBuffer(); // Write cached scripts
-	

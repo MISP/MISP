@@ -28,16 +28,16 @@
 							Actions
 						</div>
 						<div class="">
-							<?php 
+							<?php
 								if ($mayModify) {
-									echo $this->Form->create('TemplateElement', array('class' => 'inline-delete', 'style' => 'display:inline-block;', 'id' => 'TemplateElement_' . h($element_id) . '_delete', 'action' => 'delete'));
+									echo $this->Form->create('TemplateElement', array('class' => 'inline-delete', 'style' => 'display:inline-block;', 'id' => 'TemplateElement_' . h($element_id) . '_delete', 'url' => array('action' => 'delete')));
 							?>
 									<span class="icon-trash useCursorPointer" onClick="deleteObject('template_elements', 'delete' ,'<?php echo h($element_id); ?>', '<?php echo h($element['TemplateElement']['template_id']); ?>');"></span>
-							<?php 
+							<?php
 									echo $this->Form->end();
 							?>
 									<span class="icon-edit useCursorPointer" onClick="editTemplateElement('text' ,'<?php echo h($element_id); ?>');"></span>
-							<?php 
+							<?php
 								} else {
 									echo '&nbsp;';
 								}

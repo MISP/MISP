@@ -1,9 +1,9 @@
-<?php 
+<?php
 App::uses('AppShell', 'Console/Command');
 class AdminShell extends AppShell
 {
 	public $uses = array('Event');
-	
+
 	public function jobGenerateCorrelation() {
 		$jobId = $this->args[0];
 		$this->loadModel('Job');
@@ -14,7 +14,18 @@ class AdminShell extends AppShell
 		$this->Job->saveField('message', 'Job done.');
 		$this->Job->saveField('status', 4);
 	}
-	
+
+	public function jobPurgeCorrelation() {
+		$jobId = $this->args[0];
+		$this->loadModel('Job');
+		$this->Job->id = $jobId;
+		$this->loadModel('Attribute');
+		$this->Attribute->purgeCorrelations();
+		$this->Job->saveField('progress', 100);
+		$this->Job->saveField('message', 'Job done.');
+		$this->Job->saveField('status', 4);
+	}
+
 	public function jobGenerateShadowAttributeCorrelation() {
 		$jobId = $this->args[0];
 		$this->loadModel('Job');
@@ -22,7 +33,7 @@ class AdminShell extends AppShell
 		$this->loadModel('ShadowAttribute');
 		$this->ShadowAttribute->generateCorrelation($jobId);
 	}
-	
+
 	public function jobUpgrade24() {
 		$jobId = $this->args[0];
 		$user_id = $this->args[1];
@@ -35,4 +46,3 @@ class AdminShell extends AppShell
 		$this->Job->saveField('status', 4);
 	}
 }
-

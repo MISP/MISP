@@ -1,8 +1,11 @@
 <?php
 App::uses('AppModel', 'Model');
 class OrgBlacklist extends AppModel{
+
 	public $useTable = 'org_blacklists';
+
 	public $recursive = -1;
+
 	public $actsAs = array(
 			'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
 					'userModel' => 'User',

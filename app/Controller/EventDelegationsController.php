@@ -4,10 +4,6 @@ App::uses('AppController', 'Controller');
 class EventDelegationsController extends AppController {
 	public $components = array('Session', 'RequestHandler');
 
-	public function beforeFilter() {
-		parent::beforeFilter();
-	}
-
 	public $paginate = array(
 			'limit' => 60,
 			'maxLimit' => 9999,	// LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
@@ -35,7 +31,7 @@ class EventDelegationsController extends AppController {
 				'fields' => array('Event.id', 'Event.orgc_id', 'Event.distribution')
 		));
 		if (!$this->_isSiteAdmin() && $this->Auth->user('org_id') !== $event['Event']['orgc_id']) throw new MethodNotAllowedException('You are not authorised to do that.');
-		if ($event['Event']['distribution'] != 0) throw new MethodNotAllowedException('Only events with the distribution setting "Your Organisation Only" can be delegated.');
+		if (!Configure::read('MISP.unpublishedprivate') && $event['Event']['distribution'] != 0) throw new MethodNotAllowedException('Only events with the distribution setting "Your Organisation Only" can be delegated.');
 		$existingDelegations = $this->EventDelegation->find('first', array('conditions' => array('event_id' => $id), 'recursive' => -1));
 		if (!empty($existingDelegations)) throw new MethodNotAllowedException('This event already has a pending delegation request. Please revoke that before creating a new request.');
 		if ($this->request->is('Post')) {
@@ -45,7 +41,7 @@ class EventDelegationsController extends AppController {
 			$this->EventDelegation->create();
 			$this->EventDelegation->save($this->request->data['EventDelegation']);
 			$org = $this->EventDelegation->Event->Org->find('first', array(
-					'conditions' => array('id' => $this->request->data['EventDelegation']['requester_org_id']),
+					'conditions' => array('id' => $this->request->data['EventDelegation']['org_id']),
 					'recursive' => -1,
 					'fields' => array('name')
 			));
@@ -83,7 +79,7 @@ class EventDelegationsController extends AppController {
 			$this->render('ajax/delegate_event');
 		}
 	}
-	
+
 	public function acceptDelegation($id) {
 		$delegation = $this->EventDelegation->find('first', array(
 				'conditions' => array('EventDelegation.id' => $id),
@@ -128,7 +124,7 @@ class EventDelegationsController extends AppController {
 			$this->render('ajax/accept_delegation');
 		}
 	}
-	
+
 	public function deleteDelegation($id) {
 		$delegation = $this->EventDelegation->find('first', array(
 			'conditions' => array('EventDelegation.id' => $id),
@@ -145,6 +141,6 @@ class EventDelegationsController extends AppController {
 			$this->render('ajax/delete_delegation');
 		}
 	}
-	
-	
+
+
 }

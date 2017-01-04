@@ -25,16 +25,17 @@
 			<th><?php echo $this->Paginator->sort('date_created', 'Thread started On');?></th>
 			<th>Posts</th>
 			<th>Distribution</th>
+			<th>Actions</th>
 	</tr>
 	<?php
 	$url = Configure::read('MISP.baseurl');
-foreach ($threads as $thread): 
+foreach ($threads as $thread):
 	$lastPost = end($thread['Post']);
 	?>
 
 		<tr>
 			<td class="short" style="text-align: left;" ondblclick="document.location.href ='<?php echo $url;?>/threads/view/<?php echo $thread['Thread']['id'];?>'">
-				<?php 
+				<?php
 					$imgRelativePath = 'orgs' . DS . h($thread['Organisation']['name']) . '.png';
 					$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
 					if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($thread['Organisation']['name']) . '.png', array('alt' => h($thread['Organisation']['name']), 'title' => h($thread['Organisation']['name']), 'style' => 'width:24px; height:24px'));
@@ -48,14 +49,14 @@ foreach ($threads as $thread):
 				?>
 			</td>
 			<td class="short" style="text-align: center;" ondblclick="document.location.href ='<?php echo $url;?>/threads/view/<?php echo $thread['Thread']['id'];?>'">
-				<?php 
+				<?php
 					echo h($thread['Thread']['date_modified']);
 				?>
 				&nbsp;
 			</td>
 			<td class="short" style="text-align: center;" ondblclick="document.location.href ='<?php echo $url;?>/threads/view/<?php echo $thread['Thread']['id'];?>'">
-				<?php 
-					echo h($lastPost['User']['email']);
+				<?php
+					echo isset($lastPost['User']['email']) ? h($lastPost['User']['email']) : '';
 				?>
 				&nbsp;
 			</td>
@@ -73,6 +74,11 @@ foreach ($threads as $thread):
 				<?php
 					if ($thread['Thread']['distribution'] < 4) echo $distributionLevels[$thread['Thread']['distribution']];
 					else echo '<a href="/sharing_groups/view/' . h($thread['Thread']['sharing_group_id']) . '" title="' . h($thread['SharingGroup']['name']) . '">Sharing group</a>';
+				?>
+			</td>
+			<td class="short action-links">
+				<?php
+					echo $this->Html->link('', array('action' => 'view', $thread['Thread']['id']), array('class' => 'icon-list-alt', 'title' => 'View Discussion'));
 				?>
 			</td>
 		</tr>
@@ -97,6 +103,6 @@ endforeach; ?>
     </div>
 
 </div>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'threads', 'menuItem' => 'index'));
 ?>

@@ -10,12 +10,11 @@
 		var intervalArray = new Array();
 		function queueInterval(i, k, id, progress, modified) {
 			jobsArray[i] = id;
-			//if (id != -1) alert (i + " - "+ k + " - " + progress + " - " + id + " - " + modified);
 			intervalArray[i] = setInterval(function(){
 					if (id != -1 && progress < 100 && modified != "N/A") {
 						queryTask(k, i);
 					}
-				}, 1000);
+				}, 3000);
 		}
 		function editMessage(id, text) {
 			document.getElementById("message" + id).innerHTML = text;
@@ -27,6 +26,7 @@
 			<th style="text-align:center;">Last Update</th>
 			<th style="text-align:center;">Description</th>
 			<th style="text-align:center;">Outdated</th>
+			<th style="text-align:center;">Filesize</th>
 			<th style="text-align:center;">Progress</th>
 			<th style="text-align:center;">Actions</th>
 		</tr>
@@ -34,22 +34,48 @@
 			<tr>
 				<td class="short"><?php echo $type['type']; ?></td>
 				<td id="update<?php echo $i; ?>" class="short" style="color:red;"><?php echo $type['lastModified']; ?></td>
-				<td><?php echo $type['description']; ?></td>
+				<td>
+					<?php
+						echo $type['description'];
+						if ($type['canHaveAttachments']):
+							if (Configure::read('MISP.cached_attachments')):
+					?>
+						<span class="green"> (Attachments are enabled on this instance)</span>
+					<?php
+							else:
+					?>
+						<span class="red"> (Attachments are disabled on this instance)</span>
+					<?php
+							endif;
+						endif;
+					?>
+				</td>
 				<td id="outdated<?php echo $i; ?>">
-					<?php 
+					<?php
 						if ($type['recommendation']) {
 							echo '<span style="color:red;">Yes</span>';
 						} else {
 							echo 'No';
-						} 
+						}
+					?>
+				</td>
+				<td class="short" style="text-align:right;">
+					<?php 
+						if (isset($type['filesize'])):
+							echo h($type['filesize']);
+						else:
+					?>
+							<span class="red">N/A</span>
+					<?php 
+						endif;
 					?>
 				</td>
 				<td style="width:150px;">
 					<div id="barFrame<?php echo $i; ?>" class="progress progress-striped active" style="margin-bottom: 0px;display:none;">
 					  <div id="bar<?php echo $i; ?>" class="bar" style="width: <?php echo $type['progress']; ?>%;">
-					 	 <?php 
-					 	 	if ($type['progress'] > 0 && $type['progress'] < 100) echo $type['progress'] . '%'; 
-					 	 ?>
+						<?php
+							if ($type['progress'] > 0 && $type['progress'] < 100) echo $type['progress'] . '%';
+						?>
 					  </div>
 					</div>
 					<div id="message<?php echo $i; ?>" style="text-align:center;display:block;">Loading...</div>
@@ -67,23 +93,23 @@
 					</script>
 				</td>
 				<td style="width:150px;">
-					<?php 
+					<?php
 						if ($k !== 'text') {
 							echo $this->Html->link('Download', array('action' => 'downloadExport', $k), array('class' => 'btn btn-inverse toggle-left btn.active qet'));
 						?>
 							<button class = "btn btn-inverse toggle-right btn.active qet" id=button<?php echo $i;?> onClick = "generate('<?php echo $temp; ?>')" <?php if (!$type['recommendation']) echo 'disabled';?>>Generate</button>
-						<?php 
-						} else { 
+						<?php
+						} else {
 						?>
 							<button class = "btn btn-inverse btn.active qet" id=button<?php echo $i;?> onClick = "generate('<?php echo $temp; ?>')" <?php if (!$type['recommendation']) echo 'disabled';?>>Generate</button>
 						<?php
-						}  
+						}
 						?>
 
 				</td>
 			</tr>
-		<?php 
-			$i++; 
+		<?php
+			$i++;
 		endforeach; ?>
 	</table>
 	<ul class="inline">
@@ -95,7 +121,7 @@
 	<?php endforeach; ?>
 	</ul>
 </div>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'event-collection', 'menuItem' => 'export'));
 ?>
 <script type="text/javascript">
@@ -110,10 +136,10 @@
 				disableButton(i);
 			});
 		}
-	
+
 	function queryTask(type, i){
 		$.getJSON('/jobs/getProgress/cache_' + type, function(data) {
-			var x = document.getElementById("bar" + i); 
+			var x = document.getElementById("bar" + i);
 			x.style.width = data+"%";
 			if (data > -1 && data < 100) {
 				x.innerHTML = data + "%";

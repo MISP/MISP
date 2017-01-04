@@ -19,21 +19,21 @@
 	?>
 		<div class="clear"></div>
 		<div id="externalAuthDiv">
-		<?php 
+		<?php
 			echo $this->Form->input('external_auth_key', array('type' => 'text'));
 		?>
 		</div>
-	<?php 
+	<?php
 		endif;
 	?>
 	<div class="clear"></div>
 	<div id="passwordDivDiv">
-		<?php 
+		<?php
 			echo $this->Form->input('enable_password', array('type' => 'checkbox', 'label' => 'Set password'));
 		?>
 		<div id="PasswordDiv">
 			<div class="clear"></div>
-			<?php 
+			<?php
 				echo $this->Form->input('password');
 				echo $this->Form->input('confirm_password', array('type' => 'password', 'div' => array('class' => 'input password required')));
 			?>
@@ -52,34 +52,34 @@
 		echo $this->Form->input('nids_sid');
 	?>
 		<div id = "syncServers" class="hidden">
-	<?php 
+	<?php
 			echo $this->Form->input('server_id', array('label' => 'Sync user for', 'div' => 'clear', 'options' => $servers));
 	?>
 		</div>
-	<?php 
-		echo $this->Form->input('gpgkey', array('label' => 'GPG key', 'div' => 'clear', 'class' => 'input-xxlarge'));
-	?>
-			<div class="clear"><span onClick="lookupPGPKey('UserEmail');" class="btn btn-inverse" style="margin-bottom:10px;">Fetch GPG key</span></div>
 	<?php
-		echo $this->Form->input('certif_public', array('label' => 'Public certificate (Encryption -- PEM format)', 'div' => 'clear', 'class' => 'input-xxlarge'));
+		echo $this->Form->input('gpgkey', array('label' => 'GPG key', 'div' => 'clear', 'class' => 'input-xxlarge', 'placeholder' => 'Paste the user\'s PGP key here or try to retrieve it from the MIT key server by clicking on "Fetch GPG key" below.'));
+	?>
+		<div class="clear"><span onClick="lookupPGPKey('UserEmail');" class="btn btn-inverse" style="margin-bottom:10px;">Fetch GPG key</span></div>
+	<?php
+		if (Configure::read('SMIME.enabled')) echo $this->Form->input('certif_public', array('label' => 'SMIME key', 'div' => 'clear', 'class' => 'input-xxlarge', 'placeholder' => 'Paste the user\'s SMIME public key in PEM format here.'));
 		echo $this->Form->input('termsaccepted', array('label' => 'Terms accepted'));
 		echo $this->Form->input('change_pw', array('type' => 'checkbox', 'label' => 'Change Password'));
-		echo $this->Form->input('autoalert', array('label' => 'Receive alerts when events are published'));
-		echo $this->Form->input('contactalert', array('label' => 'Receive alerts from "contact reporter" requests'));
+		echo $this->Form->input('autoalert', array('label' => 'Receive alerts when events are published', 'type' => 'checkbox'));
+		echo $this->Form->input('contactalert', array('label' => 'Receive alerts from "contact reporter" requests', 'type' => 'checkbox'));
 
 		echo $this->Html->link('Reset Auth Key', array('controller' => 'users', 'action' => 'resetauthkey', $currentId));
 	?>
 		<div class="clear"></div>
 	<?php
 		echo $this->Form->input('disabled', array('label' => 'Disable this user account'));
-		
+
 	?>
 	</fieldset>
 <?php
 	echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary'));
 echo $this->Form->end();?>
 </div>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'editUser'));
 ?>
 

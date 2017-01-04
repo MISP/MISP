@@ -1,4 +1,4 @@
-<div class="confirmation">	
+<div class="confirmation">
 <legend>Select organisations to add</legend>
 	<div style="padding:10px;">
 		<table>
@@ -6,7 +6,7 @@
 				<td style="width:285px;">
 					<p>Available Organisations</p>
 					<select id="leftValues" size="5" multiple style="width:285px;">
-						<?php 
+						<?php
 							foreach ($orgs as $org) {
 								echo '<option value="' . h($org['id']) . '" selected>' . h($org['name']) . '</option>';
 							}

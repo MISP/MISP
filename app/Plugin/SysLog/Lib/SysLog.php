@@ -26,13 +26,13 @@ class SysLog {
  *
  * @var string
  */
-    var $_ident = null;
+	var $_ident = null;
 /**
  * The facility to use for storing log files.
  *
  * @var string
  */
-    var $_facility = null;
+	var $_facility = null;
 /**
  * Constructs a new SysLog Logger.
  *
@@ -44,25 +44,12 @@ class SysLog {
  * @param array $options Options for the SysLog, see above.
  * @return void
  */
-    function SysLog($options = array()) {
-        if ($this->isWindows()) {
-            $default_facility = LOG_USER;
-        } else {
-            $default_facility= LOG_LOCAL0;
-        }
-        $options += array('ident' => LOGS, 'facility' => $default_facility);
-        $this->_ident = $options['ident'];
-        $this->_facility = $options['facility'];
-    }
-
-/**
- * Utilty method to identify if we're running on a Windows box.
- *
- * @return boolean if running on windows.
- */
-    function isWindows() {
-        return (DIRECTORY_SEPARATOR == '\\' ? true : false);
-    }
+	function SysLog($options = array()) {
+		$default_facility = LOG_LOCAL0;
+		$options += array('ident' => LOGS, 'facility' => $default_facility);
+		$this->_ident = $options['ident'];
+		$this->_facility = $options['facility'];
+	}
 
 /**
  * Implements writing to the specified syslog
@@ -71,21 +58,21 @@ class SysLog {
  * @param string $message The message you want to log.
  * @return boolean success of write.
  */
-    function write($type, $message) {
-        $debugTypes = array('notice', 'info', 'debug');
-        $priority = LOG_INFO;
-        if ($type == 'error' || $type == 'warning') {
-            $priority = LOG_ERR;
-        } elseif (in_array($type, $debugTypes)) {
-            $priority = LOG_DEBUG;
-        }
-        $output = date('Y-m-d H:i:s') . ' ' . ucfirst($type) . ': ' . $message . "\n";
-        if (!openlog($this->_ident, LOG_PID | LOG_PERROR, $this->_facility)) {
-            return false;
-        }
-        $result = syslog($priority, $output);
-        closelog();
-        return $result;
-    }
+	function write($type, $message) {
+		$debugTypes = array('notice', 'info', 'debug');
+		$priority = LOG_INFO;
+		if ($type == 'error' || $type == 'warning') {
+			$priority = LOG_ERR;
+		} else if (in_array($type, $debugTypes)) {
+			$priority = LOG_DEBUG;
+		}
+		$output = date('Y-m-d H:i:s') . ' ' . ucfirst($type) . ': ' . $message . "\n";
+		if (!openlog($this->_ident, LOG_PID | LOG_PERROR, $this->_facility)) {
+			return false;
+		}
+		$result = syslog($priority, $output);
+		closelog();
+		return $result;
+	}
 }
 ?>

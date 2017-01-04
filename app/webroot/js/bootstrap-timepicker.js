@@ -29,6 +29,7 @@
     this.template = options.template;
     this.appendWidgetTo = options.appendWidgetTo;
     this.showWidgetOnAddonClick = options.showWidgetOnAddonClick;
+    this.maxHours = options.maxHours-1;
 
     this._init();
   };
@@ -119,7 +120,7 @@
         }
       } else {
         if (this.hour <= 0) {
-          this.hour = 23;
+          this.hour = this.maxHours;
         } else {
           this.hour--;
         }
@@ -513,7 +514,7 @@
           this.hour = 0;
         }
       }
-      if (this.hour === 23) {
+      if (this.hour === this.maxHours) {
         this.hour = 0;
 
         return;
@@ -809,8 +810,8 @@
             hour = 12;
           }
         } else {
-          if (hour >= 24) {
-            hour = 23;
+          if (hour > this.maxHours) {
+            hour = this.maxHours;
           } else if (hour < 0) {
             hour = 0;
           }
@@ -1050,7 +1051,7 @@
     },
 
     widgetKeyup: function(e) {
-      if ((e.keyCode === 65) || (e.keyCode === 77) || (e.keyCode === 80) || (e.keyCode === 46) || (e.keyCode === 8) || (e.keyCode >= 46 && e.keyCode <= 57)) {
+      if ((e.keyCode === 65) || (e.keyCode === 77) || (e.keyCode === 80) || (e.keyCode === 46) || (e.keyCode === 8) || (e.keyCode >= 46 && e.keyCode <= 57) || (e.keyCode >= 96 && e.keyCode <= 105)) {
         this.updateFromWidgetInputs();
       }
     }
@@ -1089,9 +1090,24 @@
     showMeridian: true,
     template: 'dropdown',
     appendWidgetTo: 'body',
-    showWidgetOnAddonClick: true
+    showWidgetOnAddonClick: true,
+    maxHours: 24
   };
 
   $.fn.timepicker.Constructor = Timepicker;
+
+  $(document).on(
+    'focus.timepicker.data-api click.timepicker.data-api',
+    '[data-provide="timepicker"]',
+    function(e){
+      var $this = $(this);
+      if ($this.data('timepicker')) {
+        return;
+      }
+      e.preventDefault();
+      // component click requires us to explicitly show it
+      $this.timepicker();
+    }
+  );
 
 })(jQuery, window, document);

@@ -70,7 +70,7 @@ class BlackListComponent extends Component {
 			}
 		}
 	}
-	
+
 	public function edit($rest = false, $id) {
 		if (strlen($id) == 36) {
 			$blockEntry = $this->controller->{$this->controller->defaultModel}->find('first', array('conditions' => array('uuid' => $id)));
@@ -126,7 +126,7 @@ class BlackListComponent extends Component {
 		if (!$this->controller->request->is('post') && !$rest) {
 			throw new MethodNotAllowedException();
 		}
-		
+
 		$this->controller->{$this->controller->defaultModel}->id = $id;
 		if (!$this->controller->{$this->controller->defaultModel}->exists()) {
 			throw new NotFoundException(__('Invalid blacklist entry'));
@@ -138,7 +138,7 @@ class BlackListComponent extends Component {
 			$this->controller->Session->setFlash(__('Could not remove the blacklist entry'));
 		}
 		$this->controller->redirect(array('action' => 'index'));
-	}	
+	}
 
 	public $controller;
 
@@ -149,7 +149,7 @@ class BlackListComponent extends Component {
 	public function startup(Controller $controller) {
 		$this->controller = $controller;
 	}
-	
+
 	public function __construct(ComponentCollection $collection, $settings = array()) {
 		$this->settings = Set::merge($this->settings, $settings);
 		parent::__construct($collection, $this->settings);

@@ -3,9 +3,9 @@
 	<div class="pagination">
         <ul>
         <?php
-        	$eventViewURL = '/feeds/previewEvent/' . h($id) . '/';
+			$eventViewURL = '/feeds/previewEvent/' . h($id) . '/';
 	        $this->Paginator->options(array(
-	        	'url' => $id,
+				'url' => $id,
 	            'update' => '.span12',
 	            'evalScripts' => true,
 	            'before' => '$(".progress").show()',
@@ -25,14 +25,14 @@
 			$filtered = true;
 		}
 	?>
-	
+
 	<table class="table table-striped table-hover table-condensed">
 		<tr>
 			<th class="filter"><?php echo $this->Paginator->sort('Org', 'org'); ?></th>
 			<th class="filter">Tags</th>
 			<th class="filter"><?php echo $this->Paginator->sort('date');?></th>
 			<th class="filter" title="<?php echo $eventDescriptions['threat_level_id']['desc'];?>"><?php echo $this->Paginator->sort('threat_level_id');?></th>
-			<th title="<?php echo $eventDescriptions['analysis']['desc'];?>"><?php echo $this->Paginator->sort('analysis');?></th>	
+			<th title="<?php echo $eventDescriptions['analysis']['desc'];?>"><?php echo $this->Paginator->sort('analysis');?></th>
 			<th class="filter"><?php echo $this->Paginator->sort('info');?></th>
 			<th class="filter"><?php echo $this->Paginator->sort('timestamp');?></th>
 			<th class="actions">Actions</th>
@@ -47,12 +47,12 @@
 				<?php endforeach; ?>
 			</td>
 			<td class="short" ondblclick="document.location.href ='<?php echo $eventViewURL . h($uuid);?>'">
-				<?php echo $event['date']; ?>&nbsp;
+				<?php echo h($event['date']); ?>&nbsp;
 			</td>
 			<td class="short" ondblclick="document.location.href ='<?php echo $eventViewURL . h($uuid);?>'">
-				<?php 
-					echo h($threatLevels[$event['threat_level_id']]);
-				?>&nbsp;
+				<?php
+					echo h($threatLevels[isset($event['threat_level_id']) ? $event['threat_level_id'] : (Configure::read('MISP.default_event_threat_level') ? Configure::read('MISP.default_event_threat_level') : 4)]);
+				?>
 			</td>
 			<td class="short" ondblclick="document.location.href ='<?php echo $eventViewURL . h($uuid);?>'">
 				<?php echo $analysisLevels[$event['analysis']]; ?>&nbsp;

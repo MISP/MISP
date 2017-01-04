@@ -1,28 +1,14 @@
 <?php
 App::uses('AppModel', 'Model');
-/**
- * Role Model
- *
- * @property User $User
- */
+
 class Role extends AppModel {
 
-/**
- * Validation rules
- *
- * @var array
- */
 	public $validate = array(
 			'valueNotEmpty' => array(
 				'rule' => array('valueNotEmpty'),
 		),
 	);
 
-/**
- * hasMany associations
- *
- * @var array
- */
 	public $hasMany = array(
 		'User' => array(
 			'className' => 'User',
@@ -39,10 +25,6 @@ class Role extends AppModel {
 		)
 	);
 
-/**
- *
- * @var unknown_type
- */
 	public $actsAs = array(
 			'Trim',
 			'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
@@ -52,15 +34,8 @@ class Role extends AppModel {
 			),
 	);
 
-
-/**
- * Virtual field
- *
- * @var array
- */
-
 	public $virtualFields = array(
-		'permission' => "IF (Role.perm_add && Role.perm_modify && Role.perm_publish, '3', IF (Role.perm_add && Role.perm_modify_org, '2', IF (Role.perm_add, '1', '0')))",
+		'permission' => "CASE WHEN (Role.perm_add + Role.perm_modify + Role.perm_publish = 3) THEN '3' WHEN (Role.perm_add + Role.perm_modify_org = 2) THEN '2' WHEN (Role.perm_add = 1) THEN '1' ELSE '0' END",
 	);
 
 	public $permFlags = array(
@@ -74,35 +49,36 @@ class Role extends AppModel {
 		'perm_tag_editor' => array('id' => 'RolePermTagEditor', 'text' => 'Tag Editor'),
 		'perm_template' => array('id' => 'RolePermTemplate', 'text' => 'Template Editor'),
 		'perm_sharing_group' => array('id' => 'RolePermSharingGroup', 'text' => 'Sharing Group Editor'),
+		'perm_delegate' => array('id' => 'RolePermDelegate', 'text' => 'Delegations access')
 	);
-	
+
 	public $premissionLevelName = array('Read Only', 'Manage Own Events', 'Manage Organisation Events', 'Manage and Publish Organisation Events');
 
 	public function beforeSave($options = array()) {
 		switch ($this->data['Role']['permission']) {
 			case '0':
-				$this->data['Role']['perm_add'] = false;
-				$this->data['Role']['perm_modify'] = false;
-				$this->data['Role']['perm_modify_org'] = false;
-				$this->data['Role']['perm_publish'] = false;
+				$this->data['Role']['perm_add'] = 0;
+				$this->data['Role']['perm_modify'] = 0;
+				$this->data['Role']['perm_modify_org'] = 0;
+				$this->data['Role']['perm_publish'] = 0;
 				break;
 			case '1':
-				$this->data['Role']['perm_add'] = true;
-				$this->data['Role']['perm_modify'] = true; // SHOULD BE true
-				$this->data['Role']['perm_modify_org'] = false;
-				$this->data['Role']['perm_publish'] = false;
+				$this->data['Role']['perm_add'] = 1;
+				$this->data['Role']['perm_modify'] = 1; // SHOULD BE true
+				$this->data['Role']['perm_modify_org'] = 0;
+				$this->data['Role']['perm_publish'] = 0;
 				break;
 			case '2':
-				$this->data['Role']['perm_add'] = true;
-				$this->data['Role']['perm_modify'] = true;
-				$this->data['Role']['perm_modify_org'] = true;
-				$this->data['Role']['perm_publish'] = false;
+				$this->data['Role']['perm_add'] = 1;
+				$this->data['Role']['perm_modify'] = 1;
+				$this->data['Role']['perm_modify_org'] = 1;
+				$this->data['Role']['perm_publish'] = 0;
 				break;
 			case '3':
-				$this->data['Role']['perm_add'] = true;
-				$this->data['Role']['perm_modify'] = true; // ?
-				$this->data['Role']['perm_modify_org'] = true; // ?
-				$this->data['Role']['perm_publish'] = true;
+				$this->data['Role']['perm_add'] = 1;
+				$this->data['Role']['perm_modify'] = 1; // ?
+				$this->data['Role']['perm_modify_org'] = 1; // ?
+				$this->data['Role']['perm_publish'] = 1;
 				break;
 			default:
 				break;

@@ -2,24 +2,10 @@
 
 App::uses('AppModel', 'Model');
 
-/**
- * Whitelist Model
- *
- */
 class Whitelist extends AppModel {
 
-/**
- * Use table
- *
- * @var mixed False or table name
- */
 	public $useTable = 'whitelist';
 
-/**
- * Display field
- *
- * @var string
- */
 	public $displayField = 'name';
 
 	public $actsAs = array(
@@ -31,11 +17,6 @@ class Whitelist extends AppModel {
 			),
 	);
 
-/**
- * Validation rules
- *
- * @var array
- */
 	public $validate = array(
 		'name' => array(
 			'valueNotEmpty' => array(
@@ -43,7 +24,7 @@ class Whitelist extends AppModel {
 			),
 			'userdefined' => array(
 				'rule' => array('validateValue'),
- 				'message' => 'Name not in the right format. Whitelist entries have to be enclosed by a valid php delimiter (which can be most non-alphanumeric / non-whitespace character). Format: "/8.8.8.8/" Please double check the name.', 				//'allowEmpty' => false,
+				'message' => 'Name not in the right format. Whitelist entries have to be enclosed by a valid php delimiter (which can be most non-alphanumeric / non-whitespace character). Format: "/8.8.8.8/" Please double check the name.',				//'allowEmpty' => false,
 				//'allowEmpty' => false,
 				//'required' => true,
 				//'last' => false, // Stop validation after this rule
@@ -107,12 +88,14 @@ class Whitelist extends AppModel {
 			} else {
 			// if !$isAttributeArray, we know that we have an array of events that we need to parse through
 				foreach ($data as $ke => $event) {
-					// loop through each attribute and unset the ones that are whitelisted
-					foreach ($event['Attribute'] as $k => $attribute) {
-						// loop through each whitelist item and run a preg match against the attribute value. If it matches, unset the attribute
-						foreach ($whitelists as $wlitem) {
-							if (preg_match($wlitem, $attribute['value'])) {
-								unset($data[$ke]['Attribute'][$k]);
+					if (isset($event['Attribute'])) {
+						// loop through each attribute and unset the ones that are whitelisted
+						foreach ($event['Attribute'] as $k => $attribute) {
+							// loop through each whitelist item and run a preg match against the attribute value. If it matches, unset the attribute
+							foreach ($whitelists as $wlitem) {
+								if (preg_match($wlitem, $attribute['value'])) {
+									unset($data[$ke]['Attribute'][$k]);
+								}
 							}
 						}
 					}
@@ -121,7 +104,7 @@ class Whitelist extends AppModel {
 		}
 		return $data;
 	}
-	
+
 	// A simplified whitelist removal, for when we just want to throw values against the list instead of attributes / events
 	public function removeWhitelistedValuesFromArray($data) {
 		$whitelists = $this->getBlockedValues();

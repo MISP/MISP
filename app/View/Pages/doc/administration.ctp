@@ -51,7 +51,7 @@
 	<p><img src="<?php echo $baseurl;?>/img/doc/settings_3.png" alt = "" title = "The workers tab."/></p><br />
 	<p>The workers tab shows a list of the workers that MISP can use. You can restart the workers using the restart all workers, If the button doesn't work, make sure that the workers were started using the apache user. This can however only be done using the command line, refer to the INSTALL.txt documentation on how to let the workers automatically start on each boot.</p>
 	<ul>
-		<li><b>Worker Type</b>: The worker type is determined by the queue it monitors. MISP currently has 4 queues (cache, default, email and a special _schdlr_ queue).</li>
+		<li><b>Worker Type</b>: The worker type is determined by the queue it monitors. MISP currently has 5 queues (cache, default, prio, email and a special _schdlr_ queue).</li>
 		<li><b>Worker Id</b>: The ID is made up of the machine name, the PID of the worker and the queue it monitors.</li>
 		<li><b>Status</b>: Displays OK if the worker is running. If the _schdlr_ worker is the only one not running make sure that you copy the config file into the cakeresque directory as described in the INSTALL.txt documentation.</li>
 	</ul>
@@ -205,7 +205,7 @@
 	<h2><a id="background"></a>Background Processing</h2>
 	If enabled, MISP can delegate a lot of the time intensive tasks to the background workers. These will then be executed in order, allowing the users of the instance to keep using the system without a hiccup and without having to wait for the process to finish. It also allows for certain tasks to be scheduled and automated.
 	<h3>Command Line Tools for the Background Workers</h3>
-	The background workers are powered by <a href="https://github.com/kamisama/Cake-Resque">CakeResque</a>, so all of the CakeResque commands work. 
+	The background workers are powered by <a href="https://github.com/kamisama/Cake-Resque">CakeResque</a>, so all of the CakeResque commands work.
 	To start all of the workers needed by MISP go to your <code>/var/www/MISP/app/Console/worker</code> (assuming a standard installation path) and execute start.sh.
 	To interact with the workers, here is a list of useful commands. Go to your <code>/var/www/MISP/app/Console</code> (assuming a standard installation path) and execute one of the following commands as a parameter to <code>./cake CakeResque.CakeResque</code> (for example: <code>./cake CakeResque.CakeResque tail</code>):<br /><br />
 	<ul>
@@ -242,7 +242,7 @@
 		<li><b>Message</b>: This field shows when the job was queued by the scheduler for execution. </li>
 	</ul>
 	<br /><img src="<?php echo $baseurl;?>/img/doc/schedule.png" alt = "" title = "Site administrators can schedule reccuring tasks on this page."/><br />
-	<h2 ><a id="diagnostics"></a>Frequently asked questions</h2>
+	<h2 ><a id="faq"></a>Frequently asked questions</h2>
 	<b>Losing access to the platform and resetting the password</b><br /><br />
 	If you ever lock yourself out of MISP as a site admin, there is a command line tool to reset your password. This can also be handy if you have changed the salt key and invalidated all of the passwords.<br />
 	Simply run the command:<br />

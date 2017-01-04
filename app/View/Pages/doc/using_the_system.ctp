@@ -136,7 +136,7 @@ You can also upload attachments, such as the malware itself, report files from e
 <h3>Propose a change to an event that belongs to another organisation</h3>
 If you would like to propose a modification to an attribute, or to propose some additional attributes to the creating organisation, you can do this with the buttons that replace the add attribute field on the left and the edit icon on the right end of each listed attribute in the event view. The creating organisation of the event will be able to see any proposals and discard or accept the changes.
 <p><img src="<?php echo $baseurl;?>/img/doc/proposal.png" alt = "Propose attribute" title = "An attribute with a proposal attached will turn blue and the proposal itself will be grey. If there is a grey proposal without a blue attribute infront of it, it means that someone has proposed a new attribute"/></p><br />
-If the organisation that has created the event is on another connected server, they will be able to accept the proposal once they initiate a pull and receive your proposal. After this they can republish the event, sending the altered attribute back to your instance. 
+If the organisation that has created the event is on another connected server, they will be able to accept the proposal once they initiate a pull and receive your proposal. After this they can republish the event, sending the altered attribute back to your instance.
 <hr />
 <h3>Populate from OpenIOC</h3>
 It is also possible to attempt to import the data contained in a .ioc file, The import tool will attempt to gather as many IndicatorItems within nested logical operators as possible without breaking their validity. After the procedure is done, you'll be presented with a list of successfully created attributes and a list of failed IndicatorItems as well as a graph of the .ioc file.
@@ -151,7 +151,7 @@ You can also import the data from a ThreatConnect export csv file. The following
 Once all the attributes and attachments that you want to include with the event are uploaded / set, it is time to finalise its creation by publishing the event (click on publish event in the event view). This will alert the eligible users of it (based on the private-controls of the event and its attributes/attachments and whether they have auto-alert turned on), push the event to instances that your instance connects to and propagate it further based on the distribution rules. It also readies the network related attributes for NIDS signature creation (through the NIDS signature export feature, for more information, go to the export section.).<br /><br />
 There is an alternate way of publishing an event without alerting any other users, by using the "publish (no email)" button. This should only be used for minor edits (such as correcting a typo). <br />
 <br />
-If your instance has background jobs enabled then the event might not get published immediately. 
+If your instance has background jobs enabled then the event might not get published immediately.
 <hr />
 <a id="browsing_events"></a><h2>Browsing past events:</h2>
 The MISP interface allows the user to have an overview over or to search for events and attributes of events that are already stored in the system in various ways.<br /><br />
@@ -190,7 +190,7 @@ On the left menu bar, the option "List events" will generate a list of the last 
 	<li style="list-style: none;">
 		<ul>
 			<li><b>Publish:</b> Publishing an event will have several effects: The system will e-mail all eligible users that have auto-alert turned on (and having the needed privileges for the event, depending on its private classification) with a description of your newly published event, it will be flagged as published and it will be pushed to all eligible servers (to read more about synchronisation between servers, have a look at the <?php echo $this->Html->link(__('section on connecting servers', true), array('controller' => 'pages', 'action' => 'display', 'doc', 'using_the_system', '#' => 'connect')); ?>).</li>
-			<li><b>Edit:</b> Clicking on the edit button will bring up the same same screen as the one used for creating new events, with the exception that all fields come filled out with the data of the event that is being edited. The distribution of an event can only be edited if you are a user of the creating organisation of the event. For more information on this view, refer to the section on <a href="#create">creating an event</a>.</li>
+			<li><b>Edit:</b> Clicking on the edit button will bring up the same screen as the one used for creating new events, with the exception that all fields come filled out with the data of the event that is being edited. The distribution of an event can only be edited if you are a user of the creating organisation of the event. For more information on this view, refer to the section on <a href="#create">creating an event</a>.</li>
 			<li><b>Delete:</b> The system will prompt you before erasing the unwanted event.</li>
 			<li><b>View:</b> Will bring up the event view, which besides the basic information contained in the event list, will also include the following:<br /><br />
 		</ul>
@@ -217,7 +217,7 @@ On the left menu bar, the option "List events" will generate a list of the last 
 <b>List of Related Events</b><br />
 The list of relations is shown on the right hand side of the general event information. Events can be related by having one or more attributes that are exact matches. For example, if two events both contain a source IP attribute of 11.11.11.11 then they are related. The list of events that are related the currently shown one, are listed under "Related Events", as links (titled the related event's date and ID number) to the events themselves.<br /><br />
 <b>Data Element Toggles</b><br />
-<p>You can control some of the data that is shown on this page using three toggles. The elements that can be disabled are the pivot threads, the attributes (and proposals) and the Discussions. You can collapse these elements and then expand them again using the same button.</p> 
+<p>You can control some of the data that is shown on this page using three toggles. The elements that can be disabled are the pivot threads, the attributes (and proposals) and the Discussions. You can collapse these elements and then expand them again using the same button.</p>
 <b>Pivot Threads</b><br />
 While moving from event to event through the relation links (a process that we refer to as pivoting), you create a path that shows which events you have traversed. This path is reset by leaving the event view and navigating elsewhere in the application or by deleting the root pivot element. <br />
 Each event visited is represented by a bubble in the pivot thread graph, connected by lines that show how the user has arrived at the next connected event. It is possible to jump back to an earlier relation and pivot to another event through that, creating branches in the graph.<br />
@@ -247,7 +247,7 @@ Depending on the colour coding of the row, you can have an attribute, a proposal
 </ul>
 Using the modify button will bring up the attribute creation view, with all data filled out with the attribute's currently stored data.<br /><br />
 <b>Event Discussion Thread</b><br />
-Each event has its own assigned discussion where users (that are eligible to see the event) can participate in an open discussion. The users are anonymised in the messages, all that other users will see is their user ID number and their organisation. To post a message on the Event Discussion, either use the reply button on a previous post or use the quickresponse field at the bottom of the page. 
+Each event has its own assigned discussion where users (that are eligible to see the event) can participate in an open discussion. The users are anonymised in the messages, all that other users will see is their user ID number and their organisation. To post a message on the Event Discussion, either use the reply button on a previous post or use the quickresponse field at the bottom of the page.
 Each post is made up of the following:<br /><br />
 <ul>
 	<li><b>Date: </b>The date when the post was created.</li>
@@ -261,10 +261,10 @@ Here is a list of the various tools you can use while using this feature:<br /><
 <ul>
 	<li><b>Pagination:</b> There are 5 posts visible on each event page, if there have been more messages posted, use the previous and next button to navigate through the thread. This will not reload the rest of the page.</li>
 	<li><b>Discussion Tags:</b> Users can quote something by encapsulating it in [quote][/quote] tags, they can create a link to another event with the [event][/event] tags or to another discussion thread with [thread][/thread].</li>
-	<li><b>Quick Post:</b> Adding a post will take the user to a separate add Post page, something that can be a bit of an inconvenience. To avoid this, there is a quick post button, where users can add messages on the fly without having to reload the page. On top of the quick post field, 3 buttons allow users to generate quote, event and thread tags quickly. </li>		
+	<li><b>Quick Post:</b> Adding a post will take the user to a separate add Post page, something that can be a bit of an inconvenience. To avoid this, there is a quick post button, where users can add messages on the fly without having to reload the page. On top of the quick post field, 3 buttons allow users to generate quote, event and thread tags quickly. </li>
 </ul>
 <hr />
-<h3>Event History:</h3> 
+<h3>Event History:</h3>
 <p>View the logs of the event that show how the event has changed over time, including the contribution from other organisations in the form of proposals. There are two ways to get to this view, either by clicking on View Event History on the side menu of an event view, or by clicking on a contribing organisation's logo on the event view. The latter will show a restricted form of the logs, showing only Proposals created by the selected organisation. The fields shown in this view are as described as follows:</p>
 <ul>
 <li><b>Org</b>: The logo (or in the lack thereof a string representation) of the organisation.</li>
@@ -302,7 +302,7 @@ Once it is found, the edit button (whether it be under actions when events/attri
 Keep in mind that editing any event (either directly or indirectly through an attribute) will unpublish it, meaning that you'll have to publish it (through the event view) again once you are done.<br /><br />
 <hr />
 <a id="tagging"></a><h2>Tagging:</h2>
-<p>As described earlier, users with tagging rights can arbitrarily tag events using tags chosen from a pool of available options. If you have tagging privileges and would like to create a new tag, navigate to Event Actions - Add Tag. You'll be presented with the following form:</p> 
+<p>As described earlier, users with tagging rights can arbitrarily tag events using tags chosen from a pool of available options. If you have tagging privileges and would like to create a new tag, navigate to Event Actions - Add Tag. You'll be presented with the following form:</p>
 <img src="<?php echo $baseurl;?>/img/doc/tag.png" alt = "Add tag" title = "Enter a name for the tag and click on the color field to be able to pick a colour for it."/><br /><br />
 <p>Fill out the following fields:</p>
 <ul>
@@ -366,7 +366,7 @@ It is possible to quickly and conveniently export the data contained within the 
 To find out about the various export formats and the usage within the automation functions, please read the page on <a href="<?php echo $baseurl;?>/events/automation">automation</a>.
 <hr />
 <a id="export"></a><h2>Exporting data:</h2>
-For users that do not have authentication key access, an alternate export feature is available that relies on your interactive login to the site. To access these, just use the export menu button to the left and you'll be presented with a list of export options.<br /><br/> 
+For users that do not have authentication key access, an alternate export feature is available that relies on your interactive login to the site. To access these, just use the export menu button to the left and you'll be presented with a list of export options.<br /><br/>
 Depending on your server's configuration, you will be presented with one of two possible pages, depending on whether you have background processing enabled or not. (The setting on this instance is currently set to: <code><?php echo (Configure::read('MISP.background_jobs') == true ? 'On' : 'Off'); ?></code>)<br /><br />
 <br /><h4>Export page with background jobs <code>disabled</code></h4>
 The page will list a set of export formats that you can immediately download as a file. Just click on the desired export format and MISP will start collecting all the data that you will receive in a file. Keep in mind that this can be a lengthy process. To avoid having to wait, consult with your instance's site administrator about enabling the background processing.<br />

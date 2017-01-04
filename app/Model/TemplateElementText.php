@@ -2,14 +2,10 @@
 
 App::uses('AppModel', 'Model');
 
-/**
- * TemplateElementText Model
- *
-*/
 class TemplateElementText extends AppModel {
 	public $actsAs = array('Containable');
 	public $belongsTo = array('TemplateElement');
-	
+
 	public $validate = array(
 			'name' => array(
 					'rule' => array('valueNotEmpty'),
