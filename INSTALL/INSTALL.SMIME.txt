@@ -1,9 +1,5 @@
 #SMIME patch
 
-## Update the database schema
-
-mysql -u misp -p misp < INSTALL/patch_smime.sql
-
 ## Create SMIME directory
 
 mkdir /var/www/MISP/.smime
@@ -33,23 +29,4 @@ Due to this action, the MISP users will be able to download your public certific
 chown www-data:www-data /var/www/MISP/app/webroot/public_certificate.pem
 chmod 440 /var/www/MISP/app/webroot/public_certificate.pem
 
-## Configure the section "SMIME" in file /var/www/MISP/app/Config/config.php
-
-Fill out the section "SMIME"
-
-
-```
-  'SMIME' => 
-  array (
-    'onlyencrypted' => false,
-    'email' => 'email@address.com',
-    'cert_public_sign' => '/var/www/MISP/.smime/email@address.com.pem',
-    'key_sign' => '/var/www/MISP/.smime/email@address.com.key',
-    'password' => 'XXXXXXXXXXXXXXXXXXXXXX',
-```
-
-## Copy a specific transport class to send SMIME with CakePHP (add SMIME headers)
-
-cp -fa /var/www/MISP/INSTALL/setup/SmimeTransport.php /var/www/MISP/app/Lib/cakephp/lib/Cake/Network/Email/SmimeTransport.php
-chown www-data:www-data /var/www/MISP/app/Lib/cakephp/lib/Cake/Network/Email/SmimeTransport.php
-chmod 750 /var/www/MISP/app/Lib/cakephp/lib/Cake/Network/Email/SmimeTransport.php
+## Configure the section "SMIME" in the server settings (Administration -> Server settings -> Encryption tab)

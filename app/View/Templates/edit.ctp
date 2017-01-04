@@ -1,5 +1,5 @@
 <div class="templates form">
-<?php 
+<?php
 	echo $this->Form->create('Template');
 ?>
 	<fieldset>
@@ -31,8 +31,8 @@
 						</td>
 					</tr>
 				</table>
-			</div><br />		
-	<?php 
+			</div><br />
+	<?php
 		echo $this->Form->input('description', array(
 			'label' => 'Template Description',
 			'div' => 'clear',
@@ -42,18 +42,19 @@
 		));
 		echo $this->Form->input('share', array(
 			'label' => 'Share this template with others',
+			'type' => 'checkbox'
 		));
 	?>
 	</fieldset>
 <?php echo $this->Form->button(__('Edit'), array('class' => 'btn btn-primary'));
 	echo $this->Form->end();?>
 </div>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'templates', 'menuItem' => 'edit', 'id' => $id, 'mayModify' => $mayModify));
 ?>
 <script type="text/javascript">
 var selectedTags = [
-	<?php 
+	<?php
 		foreach ($currentTags as $k => $t) {
 			if ($k != 0) echo ', ';
 			echo '"' . $t['Tag']['id'] . '"';
@@ -61,7 +62,7 @@ var selectedTags = [
 	?>
 ];
 var allTags = [
-	<?php 
+	<?php
 		foreach ($tagInfo as $tag) {
 			echo "{'id' : '" . h($tag['Tags']['id']) . "', 'name' : '" . h($tag['Tags']['name']) . "', 'colour' : '" . h($tag['Tags']['colour']) . "'},";
 		}

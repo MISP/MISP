@@ -10,6 +10,7 @@
 	</Directory>
 
 	<IfModule !mod_php5.c>
+		SetEnvIfNoCase Authorization "(.*)" HTTP_AUTHORIZATION=$1
 		DirectoryIndex /index.php index.php
 		ProxyPassMatch ^/(.*\.php(/.*)?)$ fcgi://127.0.0.1:9000/var/www/MISP/app/webroot/$1
 	</IfModule>

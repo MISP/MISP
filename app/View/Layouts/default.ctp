@@ -7,27 +7,30 @@
 		<?php echo $title_for_layout, ' - MISP'; ?>
 	</title>
 	<?php
+		if (!isset($debugMode)) {
+			$debugMode == 'debugOff';
+		}
 		echo $this->Html->meta('icon');
-// 		echo $this->Html->css('cake.generic');
 		echo $this->Html->css('roboto');
-		echo $this->Html->css('bootstrap'); // see http://twitter.github.io/bootstrap/base-css.html
-		echo $this->Html->css('datepicker');
+		echo $this->Html->css('bootstrap');
+		echo $this->Html->css('bootstrap-datepicker');
 		echo $this->Html->css('bootstrap-timepicker');
-		echo $this->Html->css('bootstrap-colorpicker.min');
+		echo $this->Html->css('bootstrap-colorpicker');
+		echo $this->Html->css('famfamfam-flags');
 		echo $this->Html->css('main');
+		if (Configure::read('MISP.custom_css')) {
+			$css = preg_replace('/\.css$/i', '', Configure::read('MISP.custom_css'));
+			echo $this->Html->css($css);
+		}
 		echo $this->Html->css('print', 'stylesheet', array('media' => 'print'));
-
-		// FIXME chri: re-add print stylesheet
-		//echo $this->Html->css(array('print'), 'stylesheet', array('media' => 'print'));
 
 		echo $this->fetch('meta');
 		echo $this->fetch('css');
 		echo $this->fetch('script');
 
-		echo $this->Html->script('jquery-2.1.0.min'); // Include jQuery library
+		echo $this->Html->script('jquery'); // Include jQuery library
 	?>
 
-<!--?php echo $scripts_for_layout; ?-->
 </head>
 <body>
 	<div id="popover_form" class="ajax_popover_form"></div>
@@ -61,10 +64,10 @@
 			if (Configure::read('debug') > 1) {
 				$topGap = 10;
 			} else {
-	 			if ($has_flash) $topGap += 50;
-	 		}
+				if ($has_flash) $topGap += 50;
+			}
 		?>
-		<div style="padding-top:<?php echo $topGap; ?>px !important;">	
+		<div style="padding-top:<?php echo $topGap; ?>px !important;">
 			<?php echo $this->fetch('content'); ?>
 		</div>
 	</div>
@@ -72,12 +75,11 @@
 	echo $this->element('footer');
 	echo $this->element('sql_dump');
 	echo $this->Html->script('bootstrap');
-	// echo $this->Html->script('bootstrap.min');
 	echo $this->Html->script('bootstrap-timepicker');
 	echo $this->Html->script('bootstrap-datepicker');
-	echo $this->Html->script('bootstrap-colorpicker.min');
+	echo $this->Html->script('bootstrap-colorpicker');
 	echo $this->Html->script('main');
-	echo $this->Html->script('ajaxification');
+	echo $this->Html->script('misp' . $jsVersion);
 	?>
 	<div id = "ajax_success_container" class="ajax_container">
 		<div id="ajax_success" class="ajax_result ajax_success"></div>
@@ -97,7 +99,7 @@
 			$('.actions').css('left',-$(window).scrollLeft());
 		});
 	</script>
-	<?php 
+	<?php
 		endif;
 	?>
 </body>

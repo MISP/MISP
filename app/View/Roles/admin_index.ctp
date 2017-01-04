@@ -19,22 +19,24 @@
 	<table class="table table-striped table-hover table-condensed">
 	<tr>
 			<th><?php echo $this->Paginator->sort('id');?></th>
+			<th>Default</th>
 			<th><?php echo $this->Paginator->sort('name');?></th>
 			<th><?php echo $this->Paginator->sort('permission', 'Permission');?></th>
-			<?php 
+			<?php
 				foreach ($permFlags as $k => $flags):
 			?>
 				<th><?php echo $this->Paginator->sort($k, $flags['text']);?></th>
-			<?php 
+			<?php
 				endforeach;
 			?>
 			<th class="actions"><?php echo __('Actions');?></th>
 	</tr><?php
 foreach ($list as $item): ?>
 	<tr>
-		<td class="short"><?php echo $this->Html->link(h($item['Role']['id']), array('admin' => true, 'action' => 'edit', $item['Role']['id'])); ?>&nbsp;</td>
+		<td><?php echo $this->Html->link(h($item['Role']['id']), array('admin' => true, 'action' => 'edit', $item['Role']['id'])); ?>&nbsp;</td>
+		<td class="short" style="text-align:center;width:20px;"><input class="servers_default_role_checkbox" type="checkbox" data-id="<?php echo h($item['Role']['id']); ?>" <?php if ($default_role_id && $default_role_id == $item['Role']['id']) echo 'checked'; ?>></td>
 		<td><?php echo h($item['Role']['name']); ?>&nbsp;</td>
-		<td class="short"><?php echo h($options[$item['Role']['permission']]); ?>&nbsp;</td>
+		<td><?php echo h($options[$item['Role']['permission']]); ?>&nbsp;</td>
 		<?php foreach ($permFlags as $k => $flags): ?>
 			<td class="short"><span class="<?php if ($item['Role'][$k]) echo 'icon-ok'; ?>"></span>&nbsp;</td>
 		<?php endforeach; ?>
@@ -61,8 +63,7 @@ endforeach; ?>
         ?>
         </ul>
     </div>
-
 </div>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'indexRole'));
 ?>

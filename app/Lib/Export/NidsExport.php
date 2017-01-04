@@ -14,7 +14,7 @@ class NidsExport {
 		$this->rules[] = '# These NIDS rules contain some variables that need to exist in your configuration.';
 		$this->rules[] = '# Make sure you have set:';
 		$this->rules[] = '#';
-		$this->rules[] = '# $HOME_NET	 - Your internal network range';
+		$this->rules[] = '# $HOME_NET	- Your internal network range';
 		$this->rules[] = '# $EXTERNAL_NET - The network considered as outside';
 		$this->rules[] = '# $SMTP_SERVERS - All your internal SMTP servers';
 		$this->rules[] = '# $HTTP_PORTS   - The ports used to contain HTTP traffic (not required with suricata export)';
@@ -34,7 +34,7 @@ class NidsExport {
 			$this->explain();
 		}
 		// generate the rules
-		foreach ($items as &$item) {
+		foreach ($items as $item) {
 
 			# proto src_ip src_port direction dst_ip dst_port msg rule_content tag sid rev
 			$ruleFormatMsg = 'msg: "MISP e' . $item['Event']['id'] . ' %s"';
@@ -42,52 +42,64 @@ class NidsExport {
 			$ruleFormat = '%salert %s %s %s %s %s %s (' . $ruleFormatMsg . '; %s %s classtype:' . $this->classtype . '; sid:%d; rev:%d; priority:' . $item['Event']['threat_level_id'] . '; ' . $ruleFormatReference . ';) ';
 
 			$sid = $startSid + ($item['Attribute']['id'] * 10); // leave 9 possible rules per attribute type
-			$attribute = &$item['Attribute'];
-
 			$sid++;
-			switch ($attribute['type']) {
+			switch ($item['Attribute']['type']) {
 				// LATER nids - test all the snort attributes
 				// LATER nids - add the tag keyword in the rules to capture network traffic
 				// LATER nids - sanitize every $attribute['value'] to not conflict with snort
 				case 'ip-dst':
-					$this->ipDstRule($ruleFormat, $attribute, $sid);
+					$this->ipDstRule($ruleFormat, $item['Attribute'], $sid);
 					break;
 				case 'ip-src':
-					$this->ipSrcRule($ruleFormat, $attribute, $sid);
+					$this->ipSrcRule($ruleFormat, $item['Attribute'], $sid);
 					break;
 				case 'email-src':
-					$this->emailSrcRule($ruleFormat, $attribute, $sid);
+					$this->emailSrcRule($ruleFormat, $item['Attribute'], $sid);
 					break;
 				case 'email-dst':
-					$this->emailDstRule($ruleFormat, $attribute, $sid);
+					$this->emailDstRule($ruleFormat, $item['Attribute'], $sid);
 					break;
 				case 'email-subject':
-					$this->emailSubjectRule($ruleFormat, $attribute, $sid);
+					$this->emailSubjectRule($ruleFormat, $item['Attribute'], $sid);
 					break;
 				case 'email-attachment':
-					$this->emailAttachmentRule($ruleFormat, $attribute, $sid);
+					$this->emailAttachmentRule($ruleFormat, $item['Attribute'], $sid);
 					break;
 				case 'domain':
-					$this->domainRule($ruleFormat, $attribute, $sid);
+					$this->domainRule($ruleFormat, $item['Attribute'], $sid);
+					break;
+				case 'domain|ip':
+					$this->domainIpRule($ruleFormat, $item['Attribute'], $sid);
 					break;
 				case 'hostname':
-					$this->hostnameRule($ruleFormat, $attribute, $sid);
+					$this->hostnameRule($ruleFormat, $item['Attribute'], $sid);
 					break;
 				case 'url':
-					$this->urlRule($ruleFormat, $attribute, $sid);
+					$this->urlRule($ruleFormat, $item['Attribute'], $sid);
 					break;
 				case 'user-agent':
-					$this->userAgentRule($ruleFormat, $attribute, $sid);
+					$this->userAgentRule($ruleFormat, $item['Attribute'], $sid);
 					break;
 				case 'snort':
-					$this->snortRule($ruleFormat, $attribute, $sid, $ruleFormatMsg, $ruleFormatReference);
+					$this->snortRule($ruleFormat, $item['Attribute'], $sid, $ruleFormatMsg, $ruleFormatReference);
 				default:
 					break;
 			}
 
 		}
-
 		return $this->rules;
+	}
+	
+	public function domainIpRule($ruleFormat, $attribute, &$sid) {
+		$values = explode('|', $attribute['value']);
+		$attributeCopy = $attribute;
+		$attributeCopy['value'] = $values[0];
+		$this->domainRule($ruleFormat, $attributeCopy, $sid);
+		$sid++;
+		$attributeCopy['value'] = $values[1];
+		$this->ipDstRule($ruleFormat, $attributeCopy, $sid);
+		$sid++;
+		$this->ipSrcRule($ruleFormat, $attributeCopy, $sid);
 	}
 
 	public function ipDstRule($ruleFormat, $attribute, &$sid) {
@@ -297,7 +309,7 @@ class NidsExport {
 				);
 		$sid++;
 		// also do http requests,
-		$content = 'flow:to_server,established; content: "Host|3a|"; nocase; http_header; content:"' . $attribute['value'] . '"; nocase; http_header; pcre: "/(^|[^A-Za-z0-9-])' . preg_quote($attribute['value']) . '[^A-Za-z0-9-\.]/H";';
+		$content = 'flow:to_server,established; content: "Host|3a|"; nocase; http_header; content:"' . $attribute['value'] . '"; fast_pattern; nocase; http_header; pcre: "/(^|[^A-Za-z0-9-])' . preg_quote($attribute['value']) . '[^A-Za-z0-9-\.]/H";';
 		$this->rules[] = sprintf($ruleFormat,
 			($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
 				'tcp',						// proto
@@ -342,18 +354,18 @@ class NidsExport {
 		$attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
 		$content = 'flow:to_server,established; content:"' . $attribute['value'] . '"; http_header;';
 		$this->rules[] = sprintf($ruleFormat,
-		        ($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
-		        'tcp',						// proto
-		        '$HOME_NET',					// src_ip
-		        'any',							// src_port
-		        '->',							// direction
-		        '$EXTERNAL_NET',				// dst_ip
-		        '$HTTP_PORTS',					// dst_port
-		        'Outgoing User-Agent: ' . $attribute['value'],		// msg
-		        $content,						// rule_content
-		        'tag:session,600,seconds;',		// tag
-		        $sid,							// sid
-		        1								// rev
+				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
+				'tcp',						// proto
+				'$HOME_NET',					// src_ip
+				'any',							// src_port
+				'->',							// direction
+				'$EXTERNAL_NET',				// dst_ip
+				'$HTTP_PORTS',					// dst_port
+				'Outgoing User-Agent: ' . $attribute['value'],		// msg
+				$content,						// rule_content
+				'tag:session,600,seconds;',		// tag
+				$sid,							// sid
+				1								// rev
 		);
 	}
 
@@ -372,18 +384,18 @@ class NidsExport {
 		//   tag	   - '/tag\s*:\s*.+?;/'
 		$replaceCount = array();
 		$tmpRule = preg_replace('/sid\s*:\s*[0-9]+\s*;/', 'sid:' . $sid . ';', $tmpRule, -1, $replaceCount['sid']);
-		if (null == $tmpRule ) break;	// don't output the rule on error with the regex
+		if (null == $tmpRule) return false;	// don't output the rule on error with the regex
 		$tmpRule = preg_replace('/rev\s*:\s*[0-9]+\s*;/', 'rev:1;', $tmpRule, -1, $replaceCount['rev']);
-		if (null == $tmpRule ) break;	// don't output the rule on error with the regex
+		if (null == $tmpRule) return false;	// don't output the rule on error with the regex
 		$tmpRule = preg_replace('/classtype:[a-zA-Z_-]+;/', 'classtype:' . $this->classtype . ';', $tmpRule, -1, $replaceCount['classtype']);
-		if (null == $tmpRule ) break;	// don't output the rule on error with the regex
+		if (null == $tmpRule) return false;	// don't output the rule on error with the regex
 		$tmpMessage = sprintf($ruleFormatMsg, 'snort-rule');
 		$tmpRule = preg_replace('/msg\s*:\s*".*?"\s*;/', $tmpMessage . ';', $tmpRule, -1, $replaceCount['msg']);
-		if (null == $tmpRule ) break;	// don't output the rule on error with the regex
+		if (null == $tmpRule) return false;	// don't output the rule on error with the regex
 		$tmpRule = preg_replace('/reference\s*:\s*.+?;/', $ruleFormatReference . ';', $tmpRule, -1, $replaceCount['reference']);
-		if (null == $tmpRule ) break;	// don't output the rule on error with the regex
+		if (null == $tmpRule) return false;	// don't output the rule on error with the regex
 		$tmpRule = preg_replace('/reference\s*:\s*.+?;/', $ruleFormatReference . ';', $tmpRule, -1, $replaceCount['reference']);
-		if (null == $tmpRule ) break;	// don't output the rule on error with the regex
+		if (null == $tmpRule) return false;	// don't output the rule on error with the regex
 		// FIXME nids -  implement priority overwriting
 
 		// some values were not replaced, so we need to add them ourselves, and insert them in the rule
@@ -400,9 +412,9 @@ class NidsExport {
 			$extraForRule .= $ruleFormatReference . ';';
 		}
 		$tmpRule = preg_replace('/;\s*\)/', '; ' . $extraForRule . ')', $tmpRule);
-
 		// finally the rule is cleaned up and can be outputed
 		$this->rules[] = $tmpRule;
+		return true;
 	}
 
 	/**
@@ -419,10 +431,10 @@ class NidsExport {
 		// explode using the dot
 		$explodedNames = explode('.', $name);
 		// for each part
-		foreach ($explodedNames as &$explodedName) {
+		foreach ($explodedNames as $explodedName) {
 			// count the lenght of the part, and add |length| before
 			$length = strlen($explodedName);
-			if ($length > 255) $this->log('WARNING: dns name is to long for RFC: '.$name);
+			if ($length > 255) log('WARNING: DNS name is too long for RFC: '.$name);
 			$hexLength = dechex($length);
 			if (1 == strlen($hexLength)) $hexLength = '0' . $hexLength;
 			$rawName .= '|' . $hexLength . '|' . $explodedName;
@@ -446,10 +458,10 @@ class NidsExport {
 		// explode using the dot
 		$explodedNames = explode('.', $name);
 		// for each part
-		foreach ($explodedNames as &$explodedName) {
+		foreach ($explodedNames as $explodedName) {
 			// count the lenght of the part, and add |length| before
 			$length = strlen($explodedName);
-			if ($length > 255) exit('ERROR: dns name is to long for RFC'); // LATER log correctly without dying
+			if ($length > 255) log('WARNING: DNS name is too long for RFC: '.$name);
 			$hexLength = dechex($length);
 			$rawName .= '(' . $hexLength . ')' . $explodedName;
 		}

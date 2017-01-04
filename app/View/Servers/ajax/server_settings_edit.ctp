@@ -1,10 +1,10 @@
 <?php
 	echo $this->Form->create('Server', array('class' => 'inline-form inline-field-form', 'url' => '/servers/serverSettingsEdit/' . $setting['setting'] . '/' . $id . '/' . '1', 'id' => 'setting_' . $subGroup . '_' . $id . '_form'));
 ?>
-	<div class='inline-input inline-input-container'>	
-	<div class="inline-input-accept inline-input-button inline-input-passive"><span class = "icon-ok"></span></div>	
-	<div class="inline-input-decline inline-input-button inline-input-passive"><span class = "icon-remove"></span></div>	
-<?php 
+	<div class='inline-input inline-input-container'>
+	<div class="inline-input-accept inline-input-button inline-input-passive"><span class = "icon-ok"></span></div>
+	<div class="inline-input-decline inline-input-button inline-input-passive"><span class = "icon-remove"></span></div>
+<?php
 	if (isset($setting['options'])) {
 		echo $this->Form->input('value', array(
 			'label' => false,
@@ -39,6 +39,6 @@
 	}
 ?>
 	</div>
-<?php 
+<?php
 	echo $this->Form->end();
 ?>

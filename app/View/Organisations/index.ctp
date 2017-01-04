@@ -1,5 +1,5 @@
 <div class="organisations index">
-<?php 
+<?php
 	$texts = array(
 			'all' => array(
 					'text' => 'All organisations',
@@ -34,12 +34,12 @@ echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escap
         </ul>
     </div>
     <div class="tabMenuFixedContainer" style="display:inline-block;">
-    <?php 
-    	foreach (array('local', 'external', 'all') as $scopeChoice):
-    ?>
-    	<span class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php if ($scope === $scopeChoice) echo 'tabMenuActive';?>" onClick="window.location='/organisations/index/scope:<?php echo h($scopeChoice);?>'"><?php echo $texts[$scopeChoice]['text'];?></span>
     <?php
-    	endforeach; 	
+		foreach (array('local', 'external', 'all') as $scopeChoice):
+    ?>
+		<span class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php if ($scope === $scopeChoice) echo 'tabMenuActive';?>" onClick="window.location='/organisations/index/scope:<?php echo h($scopeChoice);?>'"><?php echo $texts[$scopeChoice]['text'];?></span>
+    <?php
+		endforeach;
     ?>
 		<span id="quickFilterButton" class="tabMenuFilterFieldButton useCursorPointer" onClick="quickFilter(<?php echo  h($passedArgs); ?>, '<?php echo $baseurl . '/organisations/index'; ?>');">Filter</span>
 		<input class="tabMenuFilterField" type="text" id="quickFilterField"></input>
@@ -61,6 +61,7 @@ echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escap
 				<th>Added by</th>
 			<?php endif; ?>
 			<th><?php echo $this->Paginator->sort('local');?></th>
+			<th>Users</th>
 			<th class="actions">Actions</th>
 	</tr>
 	<?php
@@ -88,6 +89,7 @@ foreach ($orgs as $org): ?>
 			<td class="short" ondblclick="document.location.href ='/organisations/view/<?php echo $org['Organisation']['id'];?>'"><?php echo h($org_creator_ids[$org['Organisation']['created_by']]); ?></td>
 		<?php endif; ?>
 		<td class="short <?php echo $org['Organisation']['local'] ? 'green' : 'red';?>" ondblclick="document.location.href ='/organisations/view/<?php echo $org['Organisation']['id'];?>'"><?php echo $org['Organisation']['local'] ? 'Yes' : 'No';?></td>
+		<td class="short"><?php echo isset($members[$org['Organisation']['id']]) ? $members[$org['Organisation']['id']] : '0';?></td>
 		<td class="short action-links">
 			<?php if ($isSiteAdmin): ?>
 				<a href='/admin/organisations/edit/<?php echo $org['Organisation']['id'];?>' class = "icon-edit" title = "Edit"></a>
@@ -119,7 +121,7 @@ endforeach; ?>
     </div>
 
 </div>
-<?php 
+<?php
 	if ($isSiteAdmin) echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'indexOrg'));
 	else echo $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'indexOrg'));
 ?>

@@ -20,7 +20,7 @@
 				$initialDistribution = 3;
 				if (Configure::read('MISP.default_attribute_distribution') != null) {
 					if (Configure::read('MISP.default_attribute_distribution') === 'event') {
-						$initialDistribution = 5;	
+						$initialDistribution = 5;
 					} else {
 						$initialDistribution = Configure::read('MISP.default_attribute_distribution');
 					}
@@ -80,7 +80,6 @@
 							'class'=>'btn btn-primary',
 							'url' => '/attributes/add/' . $event['Event']['id']
 					));
-						//echo $this->Form->button('Submit', array('class' => 'btn btn-primary'));
 					?>
 				</td>
 				<td style="width:540px;">
@@ -92,7 +91,7 @@
 				</tr>
 			</table>
 		</div>
-	<?php 
+	<?php
 		echo $this->Form->end();
 	?>
 
@@ -123,8 +122,8 @@
 		// enable the form element
 		$('#AttributeType').prop('disabled', false);
 	}
-	
-	
+
+
 	//
 	// Generate tooltip information
 	//
@@ -143,9 +142,9 @@
 		echo "formInfoValues['" . addslashes($type) . "'] = \"" . addslashes($info) . "\";\n";  // as we output JS code we need to add slashes
 	}
 	?>
-	
+
 	$(document).ready(function() {
-	
+
 		$("#AttributeType, #AttributeCategory, #Attribute, #AttributeDistribution").on('mouseover', function(e) {
 		    var $e = $(e.target);
 		    if ($e.is('option')) {
@@ -158,11 +157,11 @@
 		        }).popover('show');
 		    }
 		});
-	
+
 		$("input, label").on('mouseleave', function(e) {
 		    $('#'+e.currentTarget.id).popover('destroy');
 		});
-	
+
 		$("input, label").on('mouseover', function(e) {
 			var $e = $(e.target);
 			$('#'+e.currentTarget.id).popover('destroy');
@@ -171,11 +170,9 @@
 	            placement: 'right',
 	            container: 'body',
 	        }).popover('show');
-	       // $('#'+e.currentTarget.id).on('mouseleave', $('#'+e.currentTarget.id).popover('destroy');
-	        //$('#'+e.currentTarget.id).on('mouseout', $('#'+e.currentTarget.id).popover('destroy'));
-	       
+
 		});
-	
+
 		// workaround for browsers like IE and Chrome that do now have an onmouseover on the 'options' of a select.
 		// disadvangate is that user needs to click on the item to see the tooltip.
 		// no solutions exist, except to generate the select completely using html.

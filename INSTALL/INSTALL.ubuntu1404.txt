@@ -27,17 +27,22 @@ Once the system is installed you can perform the following steps as root:
 apt-get install vim
 
 # Install the dependencies:
-apt-get install gcc zip php-pear git redis-server make python-dev python-pip libxml2-dev libxslt1-dev zlib1g-dev php5-dev libapache2-mod-php5 php5-mysql curl gnupg-agent
-pear install Crypt_GPG    # we need version >1.3.0 
+apt-get install gcc zip php-pear git redis-server make python-dev python-pip libxml2-dev libxslt1-dev zlib1g-dev php5-dev libapache2-mod-php5 php5-mysql php5-json php5-redis curl gnupg-agent
+pear install Crypt_GPG    # we need version >1.3.0
 
 3/ MISP code
 ------------
-# Download MISP using git in the /var/www/ directory. 
-cd /var/www/
-git clone https://github.com/MISP/MISP.git 
+# Download MISP using git in the /var/www/ directory.
+mkdir /var/www/MISP
+cd /var/www/MISP
+git clone https://github.com/MISP/MISP.git /var/www/MISP
+git checkout tags/$(git describe --tags `git rev-list --tags --max-count=1`)
+# if the last shortcut doesn't work, specify the latest version manually
+# example: git checkout tags/v2.4.XY
+# the message regarding a "detached HEAD state" is expected behaviour
+# (you only have to create a new branch, if you want to change stuff and do a pull request for example)
 
 # Make git ignore filesystem permission differences
-cd /var/www/MISP
 git config core.filemode false
 
 # install Mitre's STIX and its dependencies by running the following commands:
@@ -67,14 +72,8 @@ php composer.phar require kamisama/cake-resque:4.1.2
 php composer.phar config vendor-dir Vendor
 php composer.phar install
 
-# CakeResque normally uses phpredis to connect to redis, but it has a (buggy) fallback connector through Redisent. It is highly advised to install phpredis
-pecl install redis
-apt-get install php5-redis
-# Note that the php5-redis package in Debian oldstable (wheezy) only exists in the backports repository: http://backports.debian.org/Instructions/
-# After installing it, enable it in your php.ini file
-vim /etc/php5/apache2/php.ini
-# add the following line:
-extension=redis.so
+# Enable CakeResque with php5-redis
+sudo php5enmod redis
 
 # To use the scheduler worker for scheduled tasks, do the following:
 cp -fa /var/www/MISP/INSTALL/setup/config.php /var/www/MISP/app/Plugin/CakeResque/Config/config.php
@@ -101,7 +100,7 @@ mysql> exit
 
 cd /var/www/MISP
 
-# Import the empty MySQL database from MYSQL.sql 
+# Import the empty MySQL database from MYSQL.sql
 mysql -u misp -p misp < INSTALL/MYSQL.sql
 #enter the password you set previously
 
@@ -113,10 +112,10 @@ mysql -u misp -p misp < INSTALL/MYSQL.sql
 
 cp /var/www/MISP/INSTALL/apache.misp.ubuntu /etc/apache2/sites-available/misp.conf
 
-# Be aware that the configuration files for apache 2.4 and up have changed. 
+# Be aware that the configuration files for apache 2.4 and up have changed.
 # The configuration file has to have the .conf extension in the sites-available directory
 # For more information, visit http://httpd.apache.org/docs/2.4/upgrading.html
- 
+
 a2dissite 000-default
 # 000-default can be called default based on distribution, in which case run a2dissite default
 a2ensite misp
@@ -127,7 +126,7 @@ a2enmod rewrite
 # Restart apache
 service apache2 reload
 
-# We seriously recommend using only SSL ! 
+# We seriously recommend using only SSL !
 # Check out the apache.misp.ssl file for an example
 
 
@@ -139,14 +138,14 @@ cp -a bootstrap.default.php bootstrap.php
 cp -a database.default.php database.php
 cp -a core.default.php core.php
 cp -a config.default.php config.php
- 
+
 # Configure the fields in the newly created files:
 # database.php : login, port, password, database
 
 # Important! Change the salt key in /var/www/MISP/app/Config/config.php
 # The salt key must be an at least 32 byte long string.
 # The admin user account will be generated on the first login, make sure that the salt is changed before you create that user
-# If you forget to do this step, and you are still dealing with a fresh installation, just alter the salt, 
+# If you forget to do this step, and you are still dealing with a fresh installation, just alter the salt,
 # delete the user from mysql and log in again using the default admin credentials (admin@admin.test / admin)
 
 # Change base url in config.php
@@ -178,7 +177,7 @@ sudo vim /etc/rc.local
 sudo -u www-data bash /var/www/MISP/app/Console/worker/start.sh
 
 # Now log in using the webinterface:
-# The default user/pass = admin@admin.test/admin 
+# The default user/pass = admin@admin.test/admin
 
 # Using the server settings tool in the admin interface (Administration -> Server Settings), set MISP up to your preference
 # It is especially vital that no critical issues remain!

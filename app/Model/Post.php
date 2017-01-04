@@ -3,10 +3,6 @@
 App::uses('AppModel', 'Model');
 App::uses('CakeEmail', 'Network/Email');
 
-/**
- * Post Model
- *
-*/
 class Post extends AppModel {
 	public $actsAs = array(
 			'Containable',
@@ -16,10 +12,16 @@ class Post extends AppModel {
 					'change' => 'full'
 			),
 	);
-	
+
 	public $belongsTo = array(
 			'Thread',
 			'User'
+	);
+
+	public $validate = array(
+			'contents' => array(
+					'rule' => array('valueNotEmpty'),
+			),
 	);
 
 	public function sendPostsEmailRouter($user_id, $post_id, $event_id, $title, $message, $JobId = false) {
@@ -41,7 +43,8 @@ class Post extends AppModel {
 			$process_id = CakeResque::enqueue(
 					'email',
 					'EventShell',
-					array('postsemail', $user_id, $post_id, $event_id, $title, $message, $jobId)
+					array('postsemail', $user_id, $post_id, $event_id, $title, $message, $jobId),
+					true
 			);
 			$job->saveField('process_id', $process_id);
 			return true;
@@ -84,7 +87,7 @@ class Post extends AppModel {
 		$temp = $this->findAllByThreadId($post['Post']['thread_id'],array('user_id'));
 		foreach ($temp as $tempElement) {
 			$user = $this->User->findById($tempElement['Post']['user_id'], array('email', 'gpgkey', 'certif_public', 'contactalert', 'id'));
-			if(!empty($user) && $user['User']['id'] != $user_id && !in_array($user, $orgMembers)) {
+			if (!empty($user) && $user['User']['id'] != $user_id && !in_array($user, $orgMembers)) {
 				array_push($orgMembers, $user);
 			}
 		}
@@ -111,13 +114,14 @@ class Post extends AppModel {
 		$bodyDetail .= "The following message was added: \n";
 		$bodyDetail .= "\n";
 		$bodyDetail .= $message . "\n";
-		$subject = "[" . Configure::read('MISP.org') . " MISP] New post in discussion " . $post['Post']['thread_id'] . " - TLP Amber";
-		foreach ($orgMembers as &$recipient) {
+		$tplColorString = !empty(Configure::read('MISP.email_subject_TLP_string')) ? Configure::read('MISP.email_subject_TLP_string') : "TLP Amber";
+		$subject = "[" . Configure::read('MISP.org') . " MISP] New post in discussion " . $post['Post']['thread_id'] . " - ".$tplColorString;
+		foreach ($orgMembers as $recipient) {
 			$this->User->sendEmail($recipient, $bodyDetail, $body, $subject);
 		}
 	}
-	
-	public function findPageNr($id, $context = 'thread', &$post_id = false) {
+
+	public function findPageNr($id, $context = 'thread', $post_id = false) {
 		// find the current post and its position in the thread
 		if ($context == 'event') $conditions = array('Thread.event_id' => $id);
 		else $conditions = array('Thread.id' => $id);

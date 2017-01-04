@@ -94,7 +94,7 @@ foreach ($categoryDefinitions as $category => $def) {
 	echo "formInfoValues['" . addslashes($category) . "'] = \"" . addslashes($info) . "\";\n"; // as we output JS code we need to add slashes
 }
 ?>
-	
+
 $(document).ready(function() {
 	$("#AttributeType, #AttributeCategory").on('mouseover', function(e) {
 	    var $e = $(e.target);
@@ -144,10 +144,10 @@ $(document).ready(function() {
             content: formInfoValues[$e.val()],
         }).popover('show');
 	});
-	
+
 	$('#cancel_attribute_add').click(function() {
 		cancelPopoverForm();
-	});	
+	});
 });
 </script>
 <?php echo $this->Js->writeBuffer(); // Write cached scripts

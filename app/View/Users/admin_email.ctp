@@ -1,7 +1,8 @@
 <div class="events form">
+	<h2>Contact User(s)</h2>
+
 <?php echo $this->Form->create('User');?>
 	<fieldset>
-		<legend><?php echo __('Contact User(s)', true); ?></legend>
 		<h4>Messaging - here's a quick guide on how this feature works</h4>
 		You can use this view to send messages to your current or future users or send them a temporary password.
 		<ul>
@@ -53,7 +54,7 @@
 		</div>
 	</fieldset>
 </div>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'contact'));
 ?>
 <script>

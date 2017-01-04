@@ -6,7 +6,7 @@ class OrganisationsController extends AppController {
 
 	public function beforeFilter() {
 		parent::beforeFilter();
-		if(!empty($this->request->params['admin']) && !$this->_isSiteAdmin()) $this->redirect('/');
+		if (!empty($this->request->params['admin']) && !$this->_isSiteAdmin()) $this->redirect('/');
 	}
 
 	public $paginate = array(
@@ -34,7 +34,7 @@ class OrganisationsController extends AppController {
 			$passedArgs['searchall'] = $searchall;
 			$allSearchFields = array('name', 'description', 'nationality', 'sector', 'type', 'contacts');
 			foreach ($allSearchFields as $field) {
-				$conditions['OR'][] = array('Organisation.' . $field . ' LIKE' => '%' . $passedArgs['searchall'] . '%');
+				$conditions['OR'][] = array('LOWER(Organisation.' . $field . ') LIKE' => '%' . strtolower($passedArgs['searchall']) . '%');
 			}
 		}
 		$this->set('passedArgs', json_encode($passedArgs));
@@ -42,6 +42,7 @@ class OrganisationsController extends AppController {
 				'conditions' => $conditions,
 				'recursive' => -1,
 		);
+		$usersPerOrg = $this->User->getMembersCount();
 		$orgs = $this->paginate();
 		if ($this->_isSiteAdmin()) {
 			$this->loadModel('User');
@@ -60,16 +61,16 @@ class OrganisationsController extends AppController {
 		}
 		$this->set('scope', $scope);
 		$this->set('orgs', $orgs);
+		$this->set('members', $usersPerOrg);
 	}
 
 	public function admin_add() {
-		if($this->request->is('post')) {
+		if ($this->request->is('post')) {
 			$this->Organisation->create();
 			$this->request->data['Organisation']['created_by'] = $this->Auth->user('id');
 			if ($this->Organisation->save($this->request->data)) {
 				$this->Session->setFlash('The organisation has been successfully added.');
 				$this->redirect(array('admin' => false, 'action' => 'index'));
-				//$this->redirect(array('admin' => false, 'action' => 'view', $this->Organisation->id));
 			} else {
 				$this->Session->setFlash('The organisation could not be added.');
 			}
@@ -118,7 +119,7 @@ class OrganisationsController extends AppController {
 	}
 
 	public function admin_generateuuid() {
-		$this->set('uuid', $this->Organisation->generateUuid());
+		$this->set('uuid', CakeText::uuid());
 		$this->set('_serialize', array('uuid'));
 	}
 
@@ -126,10 +127,10 @@ class OrganisationsController extends AppController {
 		$this->Organisation->id = $id;
 		if (!$this->Organisation->exists()) throw new NotFoundException('Invalid organisation');
 		$fullAccess = false;
-		$fields = array('id', 'name', 'date_created', 'date_modified', 'type', 'nationality', 'sector', 'contacts', 'description', 'local');
+		$fields = array('id', 'name', 'date_created', 'date_modified', 'type', 'nationality', 'sector', 'contacts', 'description', 'local', 'uuid');
 		if ($this->_isSiteAdmin() || $this->Auth->user('Organisation')['id'] == $id) {
 			$fullAccess = true;
-			$fields = array_merge($fields, array('created_by', 'uuid'));
+			$fields = array_merge($fields, array('created_by'));
 		}
 		$org = $this->Organisation->find('first', array(
 				'conditions' => array('id' => $id),
@@ -205,7 +206,7 @@ class OrganisationsController extends AppController {
 		}
 		return new CakeResponse(array('body'=> json_encode($orgs)));
 	}
-	
+
 	public function admin_merge($id) {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException('You are not authorised to do that.');
 		if ($this->request->is('Post')) {
@@ -216,13 +217,13 @@ class OrganisationsController extends AppController {
 		} else {
 			$currentOrg = $this->Organisation->find('first', array('fields' => array('id', 'name', 'uuid', 'local'), 'recursive' => -1, 'conditions' => array('Organisation.id' => $id)));
 			$orgs['local'] = $this->Organisation->find('all', array(
-					'fields' => array('id', 'name', 'uuid'), 
+					'fields' => array('id', 'name', 'uuid'),
 					'conditions' => array('Organisation.id !=' => $id, 'Organisation.local' => true),
 					'order' => 'lower(Organisation.name) ASC'
 			));
 			$orgs['external'] = $this->Organisation->find('all', array(
 					'fields' => array('id', 'name', 'uuid'),
-					'conditions' => array('Organisation.id !=' => $id, 'Organisation.local' => false),
+					'conditions' => array('Organisation.id !=' => $id, 'Organisation.local' => 0),
 					'order' => 'lower(Organisation.name) ASC'
 			));
 			foreach (array('local', 'external') as $type) {

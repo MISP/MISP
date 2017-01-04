@@ -7,10 +7,21 @@
 		));
 		echo $this->Form->input('colour', array(
 		));
+		echo $this->Form->input('org_id', array(
+				'options' => $orgs,
+				'label' => 'Restrict tagging to'
+		));
 	?>
 		<div class="clear"></div>
-	<?php 
+	<?php
 		echo $this->Form->input('exportable', array(
+			'type' => 'checkbox', 'checked' => true
+		));
+	?>
+		<div class="clear"></div>
+	<?php
+		echo $this->Form->input('hide_tag', array(
+			'type' => 'checkbox', 'checked' => false
 		));
 	?>
 	</fieldset>
@@ -19,7 +30,7 @@ echo $this->Form->button('Add', array('class' => 'btn btn-primary'));
 echo $this->Form->end();
 ?>
 </div>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'tags', 'menuItem' => 'add'));
 ?>
 <script>

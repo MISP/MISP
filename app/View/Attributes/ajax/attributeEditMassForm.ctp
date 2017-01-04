@@ -1,5 +1,5 @@
 <div class="attributes">
-<?php 
+<?php
 	echo $this->Form->create('Attribute', array('url' => '/attributes/editSelected/' . $id));
 ?>
 	<fieldset>
@@ -24,7 +24,7 @@
 				));
 			?>
 				</div>
-			<?php 
+			<?php
 			echo $this->Form->input('to_ids', array(
 					'options' => array('No', 'Yes', 'Do not alter current settings'),
 					'data-content' => isset($attrDescriptions['signature']['formdesc']) ? $attrDescriptions['signature']['formdesc'] : $attrDescriptions['signature']['desc'],
@@ -60,7 +60,7 @@
 				</tr>
 			</table>
 		</div>
-	<?php 
+	<?php
 		echo $this->Form->end();
 	?>
 </div>
@@ -85,9 +85,9 @@ $(document).ready(function() {
 		if ($('#AttributeDistribution').val() == 4) $('#SGContainer').show();
 		else $('#SGContainer').hide();
 	});
-	
+
 	$('#AttributeAttributeIds').attr('value', getSelected());
-	
+
 	$("#Attribute, #AttributeDistribution").on('mouseover', function(e) {
 	    var $e = $(e.target);
 	    if ($e.is('option')) {
@@ -112,7 +112,7 @@ $(document).ready(function() {
             trigger: 'focus',
             placement: 'right',
             container: 'body',
-        }).popover('show');     
+        }).popover('show');
 	});
 
 	// workaround for browsers like IE and Chrome that do now have an onmouseover on the 'options' of a select.
@@ -131,7 +131,7 @@ $(document).ready(function() {
 	$('#cancel_attribute_add').click(function() {
 		$('#gray_out').fadeOut();
 		$('#popover_form').fadeOut();
-	});	
+	});
 });
 
 </script>

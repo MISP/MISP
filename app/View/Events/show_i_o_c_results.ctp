@@ -52,7 +52,7 @@ foreach ($graph as $line): ?>
 endforeach; ?>
 </div>
 </div>
-<?php 
+<?php
 	$event['Event']['id'] = $eventId;
 	$event['Event']['published'] = 0;
 	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'addIOC', 'event' => $event));

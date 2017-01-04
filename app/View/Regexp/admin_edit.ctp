@@ -22,14 +22,14 @@
 	<div class="input clear">	</div>
 	<?php
 		if ($all) {
-			foreach($types as $key => $type) {
+			foreach ($types as $key => $type) {
 				echo $this->Form->input($key, array(
 				'checked' => $value[$key],
 				'label' => $type,
 				));
 			}
 		} else {
-			foreach($types as $key => $type) {
+			foreach ($types as $key => $type) {
 				echo $this->Form->input($key, array(
 					'checked' => $value[$key],
 					'label' => $type,
@@ -43,7 +43,6 @@ echo $this->Form->button('Add', array('class' => 'btn btn-primary'));
 echo $this->Form->end();
 ?>
 </div>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'regexp', 'menuItem' => 'edit', 'id' => $this->Form->value('Regexp.id')));
 ?>
-

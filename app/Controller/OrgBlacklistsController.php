@@ -6,7 +6,7 @@ class OrgBlacklistsController extends AppController {
 
 	public function beforeFilter() {
 		parent::beforeFilter();
-		if(!$this->_isSiteAdmin()) $this->redirect('/');
+		if (!$this->_isSiteAdmin()) $this->redirect('/');
 		if (!Configure::read('MISP.enableOrgBlacklisting')) {
 			$this->Session->setFlash(__('Organisation Blacklisting is not currently enabled on this instance.'));
 			$this->redirect('/');
@@ -28,7 +28,7 @@ class OrgBlacklistsController extends AppController {
 	public function add() {
 		$this->BlackList->add($this->_isRest());
 	}
-	
+
 	public function edit($id) {
 		$this->BlackList->edit($this->_isRest(), $id);
 	}

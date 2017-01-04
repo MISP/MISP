@@ -28,13 +28,13 @@ if (!$isSiteAdmin) exit();
 	</ul>
 	<h4>Upgrading a 2.3 instance to 2.4</h4>
 	<span class="red-background white">Warning: Running this scripts below can result in the loss of data. Make sure that you back your database up before running them.</span>
-	<div> The order for the 2.4 upgrade procedure is: 
+	<div> The order for the 2.4 upgrade procedure is:
 	<ol>
 		<li><?php echo $this->Form->postLink('Upgrade to 2.4', $baseurl . '/servers/upgrade2324');?> - run this to migrate the 2.3 data to the 2.4 format</li>
 		<li>If it completes successfuly, run the <?php echo $this->Form->postLink('2.3->2.4 cleanup script', $baseurl . '/servers/updateDatabase/cleanupAfterUpgrade', array(), 'If the migration of your data from 2.4 is not complete this will lead to the loss of data. Backing your DB up is highly recommended. Are you ready to start removing the obsolete fields?');?> to remove the fields that are specific to 2.3. Make sure that the migration of the data to the 2.4 format was successful (you can check the result in the audit logs). If you have run the 2.4 upgrade script previously but are running into SQL errors on the column 'org', run this script.</li>
 	</ol>
 	</div>
 </div>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'adminTools'));
 ?>

@@ -4,7 +4,7 @@
 		<?php foreach ($templates as $k => $template): ?>
 			<div class="templateChoiceButton" style="width:100%;" title="<?php echo h($template['Template']['description']); ?>" onClick="document.location.href ='<?php echo $baseurl;?>/templates/populateEventFromTemplate/<?php echo $template['Template']['id'];?>/<?php echo $id; ?>'">
 				<div style="float:left;">
-				<?php 
+				<?php
 					$imgRelativePath = 'orgs' . DS . h($template['Template']['org']) . '.png';
 					$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
 					if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($template['Template']['org']) . '.png', array('alt' => h($template['Template']['org']), 'title' => h($template['Template']['org']), 'style' => 'width:24px; height:24px'));

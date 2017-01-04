@@ -4,12 +4,6 @@ App::uses('AppController', 'Controller');
 App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
 
-/**
- * Templates Controller
- *
- * @property Template $Templates
- */
-
 class TemplatesController extends AppController {
 	public $components = array('Security' ,'RequestHandler');
 
@@ -24,29 +18,28 @@ class TemplatesController extends AppController {
 		parent::beforeFilter();
 		$this->Security->unlockedActions = array('uploadFile', 'deleteTemporaryFile');
 	}
-	
-	
+
 	public function index() {
 		$conditions = array();
 		if (!$this->_isSiteAdmin()) {
-			$conditions['OR'] = array('org' => $this->Auth->user('Organisation')['name'], 'share' => true);
+			$conditions['OR'] = array('org' => $this->Auth->user('Organisation')['name'], 'share' => 1);
 		}
 		if (!$this->_isSiteAdmin()) {
 			$this->paginate = Set::merge($this->paginate,array(
 					'conditions' =>
 					array("OR" => array(
 							array('org' => $this->Auth->user('Organisation')['name']),
-							array('share' => true),
+							array('share' => 1),
 			))));
 		}
 		$this->set('list', $this->paginate());
 	}
-	
+
 	public function edit($id) {
 		$template = $this->Template->checkAuthorisation($id, $this->Auth->user(), true);
 		if (!$this->_isSiteAdmin() && !$template) throw new MethodNotAllowedException('No template with the provided ID exists, or you are not authorised to edit it.');
 		$this->set('mayModify', true);
-		
+
 		if ($this->request->is('post') || $this->request->is('put')) {
 			$this->request->data['Template']['id'] = $id;
 			unset($this->request->data['Template']['tagsPusher']);
@@ -68,12 +61,12 @@ class TemplatesController extends AppController {
 					'recursive' => -1,
 					'conditions' => array('id' => $tagArray)
 				));
-				
-				foreach($oldTags as $k => $oT) {
-					if (!in_array($oT['Tag'], $newTags)) $this->TemplateTag->delete($oT['TemplateTag']['id']); 
+
+				foreach ($oldTags as $k => $oT) {
+					if (!in_array($oT['Tag'], $newTags)) $this->TemplateTag->delete($oT['TemplateTag']['id']);
 				}
-				
-				foreach($newTags as $k => $nT) {
+
+				foreach ($newTags as $k => $nT) {
 					if (!in_array($nT['Tag'], $oldTags)) {
 						$this->TemplateTag->create();
 						$this->TemplateTag->save(array('TemplateTag' => array('template_id' => $id, 'tag_id' => $nT['Tag']['id'])));
@@ -93,7 +86,7 @@ class TemplatesController extends AppController {
 		foreach ($tags as $tag) {
 			$tagArray[$tag['Tags']['id']] = $tag['Tags']['name'];
 		}
-		
+
 		//get all tags currently assigned to the event
 		$currentTags = $this->Template->TemplateTag->find('all', array(
 			'recursive' => -1,
@@ -106,7 +99,7 @@ class TemplatesController extends AppController {
 		$this->set('tags', $tagArray);
 		$this->set('tagInfo', $tags);
 	}
-	
+
 	public function view($id) {
 		if (!$this->_isSiteAdmin() && !$this->Template->checkAuthorisation($id, $this->Auth->user(), false)) throw new MethodNotAllowedException('No template with the provided ID exists, or you are not authorised to see it.');
 		if ($this->Template->checkAuthorisation($id, $this->Auth->user(), true)) $this->set('mayModify', true);
@@ -124,13 +117,13 @@ class TemplatesController extends AppController {
 		));
 		if (empty($template)) throw new NotFoundException('No template with the provided ID exists, or you are not authorised to see it.');
 		$tagArray = array();
-		foreach($template['TemplateTag'] as $tt) {
+		foreach ($template['TemplateTag'] as $tt) {
 			$tagArray[] = $tt;
 		}
 		$this->set('id', $id);
 		$this->set('template', $template);
 	}
-	
+
 	public function add() {
 		if (!$this->userRole['perm_template']) throw new MethodNotAllowedException('You are not authorised to do that.');
 		if ($this->request->is('post')) {
@@ -167,14 +160,14 @@ class TemplatesController extends AppController {
 		$this->set('tags', $tagArray);
 		$this->set('tagInfo', $tags);
 	}
-	
+
 	public function saveElementSorting() {
 		// check if user can edit the template
 		$this->autoRender = false;
 		$this->request->onlyAllow('ajax');
 		$orderedElements = $this->request->data;
-		foreach($orderedElements as &$e) {
-			$e = ltrim($e, 'id_');
+		foreach ($orderedElements as $key => $e) {
+			$orderedElements[$key] = ltrim($e, 'id_');
 		}
 		$extractedIds = array();
 		foreach ($orderedElements as $element) $extractedIds[] = $element;
@@ -183,9 +176,9 @@ class TemplatesController extends AppController {
 			'recursive' => -1,
 			'fields' => array('id', 'template_id'),
 		));
-		
+
 		if (!$this->_isSiteAdmin() && !$this->Template->checkAuthorisation($template_id['TemplateElement']['template_id'], $this->Auth->user(), true)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You are not authorised to do that.')), 'status' => 200));
-		
+
 		$elements = $this->Template->TemplateElement->find('all', array(
 				'conditions' => array('template_id' => $template_id['TemplateElement']['template_id']),
 				'recursive' => -1,
@@ -193,19 +186,19 @@ class TemplatesController extends AppController {
 		if (empty($elements)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Something went wrong, the supplied template elements don\'t exist, or you are not eligible to edit them.')),'status'=>200));
 		if (count($elements) != count($orderedElements)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Incomplete template element list passed as argument. Expecting ' . count($elements) . ' elements, only received positions for ' . count($orderedElements) . '.')),'status'=>200));
 		$template_id = $elements[0]['TemplateElement']['template_id'];
-		
-		foreach ($elements as &$e) {
+
+		foreach ($elements as $key => $e) {
 			if ($template_id !== $e['TemplateElement']['template_id']) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Cannot sort template elements belonging to separate templates. You should never see this message during legitimate use.')),'status'=>200));
 			foreach ($orderedElements as $k => $orderedElement) {
 				if ($orderedElement == $e['TemplateElement']['id']) {
-					$e['TemplateElement']['position'] = $k+1;
+					$elements[$key]['TemplateElement']['position'] = $k+1;
 				}
 			}
 		}
 		$this->Template->TemplateElement->saveMany($elements);
 		return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Elements repositioned.')),'status'=>200));
 	}
-	
+
 	public function delete($id) {
 		$template = $this->Template->checkAuthorisation($id, $this->Auth->user(), true);
 		if (!$this->request->is('post')) throw new MethodNotAllowedException('This action can only be invoked via a post request.');
@@ -218,7 +211,7 @@ class TemplatesController extends AppController {
 			$this->redirect(array('action' => 'index'));
 		}
 	}
-	
+
 
 	public function templateChoices($id) {
 		$this->loadModel('Event');
@@ -228,10 +221,10 @@ class TemplatesController extends AppController {
 				'fields' => array('orgc_id', 'id'),
 		));
 		if (empty($event) || (!$this->_isSiteAdmin() && $event['Event']['orgc_id'] != $this->Auth->user('org_id'))) throw new NotFoundException('Event not found or you are not authorised to edit it.');
-	
+
 		$conditions = array();
 		if (!$this->_isSiteAdmin) {
-			$conditions['OR'] = array('Template.org' => $this->Auth->user('Organisation')['name'], 'Template.share' => true);
+			$conditions['OR'] = array('Template.org' => $this->Auth->user('Organisation')['name'], 'Template.share' => 1);
 		}
 		$templates = $this->Template->find('all', array(
 				'recursive' => -1,
@@ -241,7 +234,7 @@ class TemplatesController extends AppController {
 		$this->set('id', $id);
 		$this->render('ajax/template_choices');
 	}
-	
+
 	public function populateEventFromTemplate($template_id, $event_id) {
 		$template = $this->Template->find('first', array(
 			'conditions' => array('Template.id' => $template_id),
@@ -249,7 +242,7 @@ class TemplatesController extends AppController {
 				'TemplateElement' => array(
 					'TemplateElementAttribute',
 					'TemplateElementText',
-					'TemplateElementFile'	
+					'TemplateElementFile'
 				),
 				'TemplateTag' => array(
 					'Tag'
@@ -267,13 +260,12 @@ class TemplatesController extends AppController {
 		if (empty($template)) throw new MethodNotAllowedException('Template not found or you are not authorised to edit it.');
 		if (!$this->_isSiteAdmin()) {
 			if ($event['Event']['orgc_id'] != $this->Auth->user('org_id')) throw new MethodNotAllowedException('Event not found or you are not authorised to edit it.');
-			if ($template['Template']['org'] != $this->Auth->user('Organisation')['name'] && !$template['Template']['share']) throw new MethodNotAllowedException('Template not found or you are not authorised to use it.');	
+			if ($template['Template']['org'] != $this->Auth->user('Organisation')['name'] && !$template['Template']['share']) throw new MethodNotAllowedException('Template not found or you are not authorised to use it.');
 		}
-		
+
 		$this->set('template_id', $template_id);
 		$this->set('event_id', $event_id);
 		if ($this->request->is('post')) {
-			$errors = array();
 			$this->set('template', $this->request->data);
 			$result = $this->Event->Attribute->checkTemplateAttributes($template, $this->request->data, $event_id);
 			if (isset($this->request->data['Template']['modify']) || !empty($result['errors'])) {
@@ -295,8 +287,8 @@ class TemplatesController extends AppController {
 			$this->set('validTypeGroups', $this->Event->Attribute->validTypeGroups);
 		}
 	}
-	
-	
+
+
 	// called when the user is finished populating a template and is has finished reviewing the resulting attributes at the last stage of the process
 	public function submitEventPopulation($template_id, $event_id) {
 		if ($this->request->is('post')) {
@@ -313,12 +305,11 @@ class TemplatesController extends AppController {
 			}
 
 			$template = $this->Template->find('first', array(
-					'id' => $template_id,
+					'conditions' => array('Template.id' => $template_id),
 					'recursive' => -1,
 					'contain' => 'TemplateTag',
 					'fields' => 'id',
 			));
-			
 			foreach ($template['TemplateTag'] as $tag) {
 				$exists = false;
 				foreach ($event['EventTag'] as $eventTag) {
@@ -329,22 +320,26 @@ class TemplatesController extends AppController {
 					$this->Event->EventTag->save(array('event_id' => $event_id, 'tag_id' => $tag['tag_id']));
 				}
 			}
-			
+
 			if (isset($this->request->data['Template']['attributes'])) {
 				$attributes = json_decode($this->request->data['Template']['attributes'], true);
 				$this->loadModel('Attribute');
 				$fails = 0;
-				foreach($attributes as $k => &$attribute) {
-					if (isset($attribute['data']) && preg_match('/^[a-zA-Z0-9]{12}$/', $attribute['data'])) {
+				foreach ($attributes as $k => $attribute) {
+					if (isset($attribute['data']) && $this->Template->checkFilename($attribute['data'])) {
 						$file = new File(APP . 'tmp/files/' . $attribute['data']);
 						$content = $file->read();
-						$attribute['data'] = base64_encode($content);
+						$attributes[$k]['data'] = base64_encode($content);
+						if ($this->Event->Attribute->typeIsMalware($attributes[$k]['type'])) {
+							$hashes = $this->Event->Attribute->handleMaliciousBase64($event_id, explode('|', $attributes[$k]['value'])[0], $attributes[$k]['data'], array('md5'));
+							$attributes[$k]['data'] = $hashes['data'];
+						}
 						$file->delete();
 					}
 					$this->Attribute->create();
-					if (!$this->Attribute->save(array('Attribute' => $attribute))) $fails++;
+					if (!$this->Attribute->save(array('Attribute' => $attributes[$k]))) $fails++;
 				}
-				$count = $k + 1;
+				$count = isset($k) ? $k + 1 : 0;
 				$event = $this->Event->find('first', array(
 					'conditions' => array('Event.id' => $event_id),
 					'recursive' => -1
@@ -356,14 +351,14 @@ class TemplatesController extends AppController {
 				if ($fails == 0) $this->Session->setFlash(__('Event populated, ' . $count . ' attributes successfully created.'));
 				else $this->Session->setFlash(__('Event populated, but ' . $fails . ' attributes could not be saved.'));
 				$this->redirect(array('controller' => 'events', 'action' => 'view', $event_id));
-			} else { 
+			} else {
 				throw new MethodNotAllowedException('No attributes submitted for creation.');
 			}
 		} else {
 			throw new MethodNotAllowedException();
 		}
 	}
-	
+
 	public function uploadFile($elementId, $batch) {
 		$this->layout = 'iframe';
 		$this->set('batch', $batch);
@@ -373,18 +368,15 @@ class TemplatesController extends AppController {
 		} else if ($this->request->is('post')) {
 			$fileArray = array();
 			$filenames = array();
-			$tmp_names = array();
-			$element_ids = array();
-			$result = array();
 			$added = 0;
 			$failed = 0;
 			// filename checks
 			foreach ($this->request->data['Template']['file'] as $k => $file) {
 				if ($file['size'] > 0 && $file['error'] == 0) {
-					if (preg_match('@^[\w\-. ]+$@', $file['name'])) {
+					if ($this->Template->checkFilename($file['name'])) {
 						$fn = $this->Template->generateRandomFileName();
 						move_uploaded_file($file['tmp_name'], APP . 'tmp/files/' . $fn);
-						$filenames[] =$file['name'];
+						$filenames[] = $file['name'];
 						$fileArray[] = array('filename' => $file['name'], 'tmp_name' => $fn, 'element_id' => $elementId);
 						$added++;
 					} else $failed++;
@@ -397,30 +389,20 @@ class TemplatesController extends AppController {
 			} else {
 				$this->set('upload_error', false);
 			}
-			
 			$this->set('result', $result);
 			$this->set('filenames', $filenames);
 			$this->set('fileArray', json_encode($fileArray));
 		}
 	}
-	
-	private function __combineArrays($array, $array2) {
-		foreach ($array2 as $element) {
-			if (!in_array($element, $array)) {
-				$array[] = $element;
-			}
-		}
-		return $array;
-	}
 
-	// deletes a temporary file created by the user while populating a template 
-	// users can add files to attachment fields and when they change their mind about it, they can remove a file (deleting the temporary file) 
+	// deletes a temporary file created by the user while populating a template
+	// users can add files to attachment fields and when they change their mind about it, they can remove a file (deleting the temporary file)
 	// before it gets saved as an attribute and moved to the persistent attachment store
 	public function deleteTemporaryFile($filename) {
 		if (!$this->request->is('post')) throw new MethodNotAllowedException('This action is restricted to accepting POST requests only.');
-		//if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This action is only accessible through AJAX.');
+		if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This action is only accessible through AJAX.');
 		$this->autoRender = false;
-		if (preg_match('/^[a-zA-Z0-9]{12}$/', $filename)) {
+		if ($this->Template->checkFilename($filename)) {
 			$file = new File(APP . 'tmp/files/' . $filename);
 			if ($file->exists()) {
 				$file->delete();

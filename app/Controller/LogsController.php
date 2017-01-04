@@ -2,11 +2,6 @@
 
 App::uses('AppController', 'Controller');
 
-/**
- * Logs Controller
- *
- * @property Log $Log
- */
 class LogsController extends AppController {
 
 	public $components = array(
@@ -33,29 +28,28 @@ class LogsController extends AppController {
 		}
 	}
 
-/**
- * admin_index method
- *
- * @return void
- */
 	public function admin_index() {
-		if(!$this->userRole['perm_audit']) $this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
+		if (!$this->userRole['perm_audit']) $this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
 		$this->set('isSearch', 0);
-		if ($this->_isSiteAdmin()) {
-			$this->AdminCrud->adminIndex();
-		} else {
-			$orgRestriction = null;
-			$orgRestriction = $this->Auth->user('org');
-			$conditions['Log.org LIKE'] = '%' . $orgRestriction . '%';
-			$this->recursive = 0;
+		$this->recursive = 0;
+		$validFilters = $this->Log->logMeta;
+		if (!$this->_isSiteAdmin()) {
+			$orgRestriction = $this->Auth->user('Organisation')['name'];
+			$conditions['Log.org'] = $orgRestriction;
 			$this->paginate = array(
 					'limit' => 60,
 					'conditions' => $conditions,
 					'order' => array('Log.id' => 'DESC')
 			);
-
-			$this->set('list', $this->paginate());
+		} else {
+			$validFilters = array_merge_recursive($validFilters, $this->Log->logMetaAdmin);
 		}
+		if (isset($this->params['named']['filter']) && in_array($this->params['named']['filter'], array_keys($validFilters))) {
+			$this->paginate['conditions']['Log.action'] = $validFilters[$this->params['named']['filter']]['values'];
+		}
+		$this->set('validFilters', $validFilters);
+		$this->set('filter', isset($this->params['named']['filter']) ? $this->params['named']['filter'] : false);
+		$this->set('list', $this->paginate());
 	}
 
 	// Shows a minimalistic history for the currently selected event
@@ -80,16 +74,15 @@ class LogsController extends AppController {
 		}
 		$this->set('published', $this->Event->data['Event']['published']);
 		if ($mineOrAdmin && $this->userRole['perm_modify']) $mayModify = true;
-		
-		
+
 		$conditions['OR'][] = array('AND' => array('Log.model LIKE' => 'Event', 'Log.model_id LIKE' => $id));
 		if ($org) $conditions['AND'][] = array('Log.org LIKE' => $org, 'Log.model LIKE' => 'ShadowAttribute');
 		// if we are not the owners of the event and we aren't site admins, then we should only see the entries for attributes that are not private
 		// This means that we will not be able to see deleted attributes - since those could have been private
 		if (!$mayModify) {
 			$sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user());
-		// get a list of the attributes that belong to the event
-		
+
+			// get a list of the attributes that belong to the event
 			$this->loadModel('Attribute');
 			$this->Attribute->recursive = -1;
 			$attributes = $this->Attribute->find('all', array(
@@ -111,16 +104,26 @@ class LogsController extends AppController {
 			$conditions['OR'][] = array('AND' => array ('Log.model LIKE' => 'Attribute', 'Log.title LIKE' => '%Event (' . $id . ')%'));
 		}
 		$conditions['OR'][] = array('AND' => array ('Log.model LIKE' => 'ShadowAttribute', 'Log.title LIKE' => '%Event (' . $id . ')%'));
-		//$conditions['OR'][] = array('AND' => array ('Log.model LIKE' => 'ShadowAttribute', 'Log.title LIKE' => '%Event (' . $id . ')%'));
-		$fieldList = array('title', 'created', 'model', 'model_id', 'action', 'change', 'org');
+		$fieldList = array('title', 'created', 'model', 'model_id', 'action', 'change', 'org', 'email');
 		$this->paginate = array(
 				'limit' => 60,
 				'conditions' => $conditions,
 				'order' => array('Log.id' => 'DESC'),
 				'fields' => $fieldList
 		);
+		$list = $this->paginate();
+		if (!$this->_isSiteAdmin()) {
+			$this->loadModel('User');
+			$emails = $this->User->find('list', array(
+					'conditions' => array('User.org_id' => $this->Auth->user('org_id')),
+					'fields' => array('User.id', 'User.email')
+			));
+			foreach ($list as &$item) {
+				if (!in_array($item['Log']['email'], $emails)) $item['Log']['email'] = '';
+			}
+		}
 		$this->set('event', $this->Event->data);
-		$this->set('list', $this->paginate());
+		$this->set('list', $list);
 		$this->set('eventId', $id);
 		$this->set('mayModify', $mayModify);
 	}
@@ -128,26 +131,30 @@ class LogsController extends AppController {
 	public $helpers = array('Js' => array('Jquery'), 'Highlight');
 
 	public function admin_search($new = false) {
-		if(!$this->userRole['perm_audit']) $this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
+		if (!$this->userRole['perm_audit']) $this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
 		$orgRestriction = null;
 		if ($this->_isSiteAdmin()) {
 			$orgRestriction = false;
 		} else {
-			$orgRestriction = $this->Auth->user('org');
+			$orgRestriction = $this->Auth->user('Organisation')['name'];
 		}
 		$this->set('orgRestriction', $orgRestriction);
+		$validFilters = $this->Log->logMeta;
+		if ($this->_isSiteAdmin()) $validFilters = array_merge_recursive($validFilters, $this->Log->logMetaAdmin);
+		$this->set('validFilters', $validFilters);
+		$this->set('filters', false);
 		if ($new !== false) {
 			$this->set('actionDefinitions', $this->{$this->defaultModel}->actionDefinitions);
 
 			// reset the paginate_conditions
 			$this->Session->write('paginate_conditions_log', array());
 			if ($this->request->is('post')) { // FIXME remove this crap check
-				
+
 				$filters['email'] = $this->request->data['Log']['email'];
 				if (!$orgRestriction) {
 					$filters['org'] = $this->request->data['Log']['org'];
 				} else {
-					$filters['org'] = $this->Auth->user('org');
+					$filters['org'] = $this->Auth->user('Organisation')['name'];
 				}
 				$filters['action'] = $this->request->data['Log']['action'];
 				$filters['model'] = $this->request->data['Log']['model'];
@@ -200,7 +207,7 @@ class LogsController extends AppController {
 				$filters['title'] = $this->Session->read('paginate_conditions_log_title');
 				$filters['change'] = $this->Session->read('paginate_conditions_log_change');
 				if (Configure::read('MISP.log_client_ip')) $filters['ip'] = $this->Session->read('paginate_conditions_log_ip');
-				
+
 				// for info on what was searched for
 				$this->set('emailSearch', $filters['email']);
 				$this->set('orgSearch', $filters['org']);
@@ -211,7 +218,7 @@ class LogsController extends AppController {
 				$this->set('changeSearch', $filters['change']);
 				if (Configure::read('MISP.log_client_ip')) $this->set('ipSearch', $filters['ip']);
 				$this->set('isSearch', 1);
-				
+
 				// re-get pagination
 				$this->{$this->defaultModel}->recursive = 0;
 				$this->paginate = $this->Session->read('paginate_conditions_log');
@@ -219,28 +226,29 @@ class LogsController extends AppController {
 				$conditions = $this->__buildSearchConditions($filters);
 				$this->paginate['conditions'] = $conditions;
 				$this->set('list', $this->paginate());
-				
+
 				// set the same view as the index page
 				$this->render('admin_index');
 			}
 		} else {
 			// no search keyword is given, show the search form
-			
+
 			// combobox for actions
 			$actions = array('' => array('ALL' => 'ALL'), 'actions' => array());
 			$actions['actions'] = array_merge($actions['actions'], $this->_arrayToValuesIndexArray($this->{$this->defaultModel}->validate['action']['rule'][1]));
 			$this->set('actions', $actions);
-			
+
 			// combobox for models
 			$models = array('Attribute', 'Event', 'EventBlacklist', 'EventTag', 'Organisation', 'Post', 'Regexp', 'Role', 'Server', 'ShadowAttribute', 'SharingGroup', 'Tag', 'Task', 'Taxonomy', 'Template', 'Thread', 'User', 'Whitelist');
 			$existing_models = $this->Log->find('list', array(
-					'fields' => array('Log.model'),
-					'group' => array('Log.model')
+					'recursive' => -1,
+					'conditions' => array('Log.model !=' => ''),
+					'fields' => array('Log.model', 'Log.model'),
+					'group' => array('Log.model'),
 			));
 			$models = array_intersect($models, $existing_models);
 			$models = array('' => 'ALL') + $this->_arrayToValuesIndexArray($models);
 			$this->set('models', $models);
-			
 			$this->set('actionDefinitions', $this->{$this->defaultModel}->actionDefinitions);
 		}
 	}
@@ -273,14 +281,10 @@ class LogsController extends AppController {
 		}
 		return $conditions;
 	}
-	
+
 	public function returnDates($org = 'all') {
 		$data = $this->Log->returnDates($org);
 		$this->set('data', $data);
 		$this->set('_serialize', 'data');
-	}
-	
-	public function maxDateActivity() {
-		return $this->Log->maxDateActivity();
 	}
 }

@@ -1,6 +1,6 @@
 <?php
 class ColourPaletteTool {
-	
+
 	// pass the number of distinct colours to receive an array of colours
 	function createColourPalette($count) {
 		$interval = 1 / $count;
@@ -10,7 +10,7 @@ class ColourPaletteTool {
 		}
 		return $colours;
 	}
-	
+
 	function HSVtoRGB(array $hsv) {
 		list($H,$S,$V) = $hsv;
 		//1
@@ -46,17 +46,17 @@ class ColourPaletteTool {
 		}
 		return $this->convertToHex(array($R, $G, $B));
 	}
-	
+
 	function convertToHex($channels) {
 		$colour = '#';
-		foreach ($channels as &$channel) {
+		foreach ($channels as $channel) {
 			$channel = strval(dechex(round($channel*255)));
 			if (strlen($channel) == 1) $channel = '0' . $channel;
 			$colour .= $channel;
 		}
 		return $colour;
 	}
-	
+
 	// pass the element's id from the list along to get a colour for a single item
 	function generatePaletteFromString($string, $items, $onlySpecific = false) {
 		$hue = $this->__stringToNumber($string);
@@ -74,7 +74,7 @@ class ColourPaletteTool {
 		}
 		return $results;
 	}
-	
+
 	private function __stringToNumber($string) {
 		$string = mb_convert_encoding($string, 'ASCII');
 		$number = 0;

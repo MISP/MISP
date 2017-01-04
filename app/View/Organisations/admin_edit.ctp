@@ -17,17 +17,17 @@
 		<div id="logoDiv" style="margin-top:40px;">No image uploaded for this identifier</div>
 		<div class="clear"></div>
 		<div style="float:left;width:425px;">
-		<?php 
+		<?php
 			echo $this->Form->input('uuid', array('div' => 'clear', 'placeholder' => 'Paste UUID or click generate', 'style' => 'width:405px;'));
 		?>
 		</div>
 		<span class="btn btn-inverse" style="margin-top:25px;" onClick="generateOrgUUID();">Generate UUID</span>
-	<?php 
+	<?php
 		echo $this->Form->input('description', array('label' => 'A brief description of the organisation', 'div' => 'clear', 'class' => 'input-xxlarge', 'type' => 'textarea', 'placeholder' => 'A description of the organisation that is purely informational.'));
 	?>
 		<hr />
 		<p style="font-weight:bold;">The following fields are all optional.</p>
-	<?php 
+	<?php
 		echo $this->Form->input('nationality', array('options' => $countries));
 		echo $this->Form->input('sector', array('placeholder' => 'For example "financial".', 'style' => 'width:300px;'));
 		echo $this->Form->input('type', array('class' => 'input-xxlarge', 'label' => 'Type of organisation', 'div' => 'clear', 'placeholder' => 'Freetext description of the org.'));
@@ -37,7 +37,7 @@
 <?php echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary'));
 	echo $this->Form->end();?>
 </div>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'editOrg', 'orgId' => $orgId));
 ?>
 <script type="text/javascript">

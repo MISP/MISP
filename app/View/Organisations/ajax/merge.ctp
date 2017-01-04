@@ -1,13 +1,13 @@
 <div class="events">
 <?php echo $this->Form->create('Organisation', array(
-		'onsubmit' => 'return confirm("This will remove the selected organisation and hand over all objects belonging to it to the target organisation. This process is irreversible. Are you sure you");',
+		'onsubmit' => 'return confirm("This will remove the selected organisation and hand over all objects belonging to it to the target organisation. This process is irreversible. Are you sure you want to proceed?");',
 ));?>
 	<div class="legend">Merge Organisation</div>
 			<p class="red-background white">Warning: Merging an organisation into another will be transfer all users and data belonging to the organisation to another.</p>
 	<div class="overlay_spacing bottomGap">
 		<div class="row-fluid">
 			<div class="span6">
-			<?php 
+			<?php
 				echo $this->Form->input('targetType', array(
 						'options' => array('Local', 'External'),
 						'label' => 'Organisation type',
@@ -18,7 +18,7 @@
 			?>
 			</div>
 			<div id="orgsLocal" class="span6">
-				<?php 
+				<?php
 					echo $this->Form->input('orgsLocal', array(
 							'options' => $orgOptions['local'],
 							'class' => 'input mergeUpdate',
@@ -29,7 +29,7 @@
 				?>
 			</div>
 			<div id="orgsExternal" class="span6" style="display:none;">
-				<?php 
+				<?php
 					echo $this->Form->input('orgsExternal', array(
 							'options' => $orgOptions['external'],
 							'class' => 'input mergeUpdate',
@@ -66,7 +66,7 @@
 var formInfoValues = {};
 var orgArray = <?php echo $orgs; ?>;
 var types = ['local', 'external'];
-		
+
 $(document).ready(function() {
 	mergeOrganisationUpdate();
 	$('#OrganisationTargetType').change(function() {

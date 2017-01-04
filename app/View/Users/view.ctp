@@ -1,6 +1,6 @@
 <div class="users view">
 <h2><?php  echo __('User');?></h2>
-	<dl>
+	<dl style="width:700px;">
 		<dt><?php echo __('Id'); ?></dt>
 		<dd>
 			<?php echo h($user['User']['id']); ?>
@@ -33,10 +33,14 @@
 		</dd>
 		<dt><?php echo __('Authkey'); ?></dt>
 		<dd>
-			<?php 
-				echo h($user['User']['authkey']); 
-				if (!Configure::read('MISP.disableUserSelfManagement') || $isAdmin) {
-					echo '(' . $this->Html->link('reset', array('controller' => 'users', 'action' => 'resetauthkey', $user['User']['id'])) . ')';
+			<?php
+				if ($user['Role']['perm_auth']) {
+					echo h($user['User']['authkey']);
+					if (!Configure::read('MISP.disableUserSelfManagement') || $isAdmin) {
+						echo '(' . $this->Html->link('reset', array('controller' => 'users', 'action' => 'resetauthkey', $user['User']['id'])) . ')';
+					}
+				} else {
+					echo "<a onclick=\"requestAPIAccess()\" style=\"cursor:pointer;\">Request API access</a>";
 				}
 			?>
 			&nbsp;
@@ -51,31 +55,18 @@
 			<?php echo h((0 == $user['User']['termsaccepted'])? 'No' : 'Yes'); ?>
 			&nbsp;
 		</dd>
-		<dt><?php echo __('GPG Key'); ?></dt>
-		<dd>
-		<?php
-if (!empty($user['User']['gpgkey'])) {
-	echo "<code>" . nl2br(h($user['User']['gpgkey'])) . "</code>";
-} else {
-	echo "N/A";
-}
-		?>
-			&nbsp;
+		<dt><?php echo __('PGP key'); ?></dt>
+		<dd class="red">
+			<?php echo (h($user['User']['gpgkey'])) ? $this->Utility->space2nbsp(nl2br(h($user['User']['gpgkey']))) : "N/A"; ?>
 		</dd>
-    <dt><?php echo __('certif_public'); ?></dt>
-    <dd>
-    <?php
-if (!empty($user['User']['certif_public'])) {
-  echo "<code>" . nl2br(h($user['User']['certif_public'])) . "</code>";
-} else {
-  echo "N/A";
-}
-    ?>
-      &nbsp;
-    </dd>
+		<?php if (Configure::read('SMIME.enabled')): ?>
+			<dt><?php echo __('SMIME Public certificate'); ?></dt>
+			<dd class="red">
+				<?php echo (h($user['User']['certif_public'])) ? $this->Utility->space2nbsp(nl2br(h($user['User']['certif_public']))) : "N/A"; ?>
+			</dd>
+		<?php endif; ?>
 	</dl>
 </div>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'view'));
 ?>
-

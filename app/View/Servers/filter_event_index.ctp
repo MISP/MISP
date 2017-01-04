@@ -7,7 +7,7 @@
 		<p><?php echo h(implode(', ', $validFilters)); ?></p>
 		<p>Example:</p>
 		<p><code>/searchdistribution:2/searchorg:Org1|!Org2/searchpublished:1</code></p>
-		<?php 
+		<?php
 				echo $this->Form->input('filter', array(
 						'label' => false,
 						'class' => 'input-large',
@@ -27,7 +27,7 @@
 
 <script type="text/javascript">
 var filterContext = "event";
-var actionUrl = "<?php echo '/servers/previewIndex/' . h($id); ?>"	
+var actionUrl = "<?php echo '/servers/previewIndex/' . h($id); ?>"
 $(document).ready(function() {
 	$('.datepicker').datepicker().on('changeDate', function(ev) {
 		$('.dropdown-menu').hide();

@@ -1,14 +1,12 @@
-<?php 
+<?php
 App::uses('Folder', 'Utility');
 App::uses('File', 'Utility');
-//App::uses('AppShell', 'Console/Command');
 require_once 'AppShell.php';
 class ServerShell extends AppShell
 {
 	public $uses = array('Server', 'Task', 'Job', 'User', 'Feed');
-	
+
 	public function pull() {
-		//$user, $id = null, $technique=false, $server
 		$userId = $this->args[0];
 		$serverId = $this->args[1];
 		$technique = $this->args[2];
@@ -43,14 +41,13 @@ class ServerShell extends AppShell
 					$this->Job->saveField('message', 'Invalid technique chosen.');
 					return;
 					break;
-						
+
 			}
 		}
 	}
-	
+
 	public function push() {
 		$serverId = $this->args[0];
-		$technique = $this->args[1];
 		$jobId = $this->args[2];
 		$userId = $this->args[3];
 		$this->Job->read(null, $jobId);
@@ -73,7 +70,7 @@ class ServerShell extends AppShell
 			$this->Task->saveField('message', 'Job(s) started at ' . date('d/m/Y - H:i:s') . '.');
 		}
 	}
-	
+
 
 	public function fetchFeed() {
 		$userId = $this->args[0];
@@ -83,15 +80,25 @@ class ServerShell extends AppShell
 		$user = $this->User->getAuthUser($userId);
 		$result = $this->Feed->downloadFromFeedInitiator($feedId, $user, $jobId);
 		$this->Job->id = $jobId;
-		$message = 'Job done.';
-		$this->Job->save(array(
-				'id' => $jobId,
-				'message' => $message,
-				'progress' => 100,
-				'status' => 4
-		));
+		if (!$result) {
+			$message = 'Job Failed.';
+			$this->Job->save(array(
+					'id' => $jobId,
+					'message' => $message,
+					'progress' => 0,
+					'status' => 3
+			));			
+		} else {
+			$message = 'Job done.';
+			$this->Job->save(array(
+					'id' => $jobId,
+					'message' => $message,
+					'progress' => 100,
+					'status' => 4
+			));
+		}
 	}
-	
+
 	public function enqueuePull() {
 		$timestamp = $this->args[0];
 		$userId = $this->args[1];
@@ -100,6 +107,7 @@ class ServerShell extends AppShell
 		if ($timestamp != $task['Task']['next_execution_time']) {
 			return;
 		}
+		if ($task['Task']['timer'] > 0)	$this->Task->reQueue($task, 'default', 'ServerShell', 'enqueuePull', $userId, $taskId);
 		$user = $this->User->getAuthUser($userId);
 		$servers = $this->Server->find('all', array('recursive' => -1, 'conditions' => array('pull' => 1)));
 		$count = count($servers);
@@ -118,9 +126,6 @@ class ServerShell extends AppShell
 			);
 			$this->Job->save($data);
 			$jobId = $this->Job->id;
-			
-			if ($task['Task']['timer'] > 0)	$this->Task->reQueue($task, 'default', 'ServerShell', 'enqueuePull', $userId, $taskId);
-			
 			App::uses('SyncTool', 'Tools');
 			$syncTool = new SyncTool();
 			$result = $this->Server->pull($user, $server['Server']['id'], 'full', $server, $jobId);
@@ -144,7 +149,7 @@ class ServerShell extends AppShell
 					case '4' :
 						$this->Job->saveField('message', 'Invalid technique chosen.');
 						break;
-			
+
 				}
 				$failCount++;
 			}
@@ -152,7 +157,7 @@ class ServerShell extends AppShell
 		$this->Task->id = $task['Task']['id'];
 		$this->Task->saveField('message', count($servers) . ' job(s) completed at ' . date('d/m/Y - H:i:s') . '. Failed jobs: ' . $failCount . '/' . $count);
 	}
-	
+
 	public function enqueuePush() {
 		$timestamp = $this->args[0];
 		$taskId = $this->args[1];
@@ -163,11 +168,10 @@ class ServerShell extends AppShell
 			return;
 		}
 		if ($task['Task']['timer'] > 0)	$this->Task->reQueue($task, 'default', 'ServerShell', 'enqueuePush', $userId, $taskId);
-		
+
 		$this->User->recursive = -1;
 		$user = $this->User->getAuthUser($userId);
 		$servers = $this->Server->find('all', array('recursive' => -1, 'conditions' => array('push' => 1)));
-		$count = count($servers);
 		foreach ($servers as $k => $server) {
 			$this->Job->create();
 			$data = array(

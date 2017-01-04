@@ -1,18 +1,18 @@
 <div class="template_element_add_text">
-<?php 
+<?php
 	echo $this->Form->create('TemplateElementText', array('id', 'url' => '/templateElements/edit/text/' . $id));
 ?>
 	<legend><?php echo __('Add Text Element To Template'); ?></legend>
 	<fieldset>
 		<div class="add_attribute_fields">
-			<?php 
+			<?php
 				echo $this->Form->input('name', array(
 						'type' => 'text',
 						'error' => array('escape' => false),
 						'div' => 'input clear',
 						'class' => 'input-xxlarge'
 				));
-				
+
 				echo $this->Form->input('text', array(
 						'type' => 'textarea',
 						'error' => array('escape' => false),
@@ -37,7 +37,7 @@
 			</tr>
 		</table>
 	</div>
-	<?php 
+	<?php
 		echo $this->Form->end();
 	?>
 </div>
