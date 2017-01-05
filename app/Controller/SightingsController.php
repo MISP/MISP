@@ -51,16 +51,9 @@ class SightingsController extends AppController {
 			}
 		} else {
 			if ($error) {
-				$this->set('errors', $error);
-				$this->set('name', 'Could not add the Sighting.');
-				$this->set('message', 'Could not add the Sighting.');
-				$this->set('_serialize', array('name', 'message', 'errors'));
+				return $this->RestResponse->saveFailResponse('Sighting', 'add', $id, $error);
 			} else {
-				$this->set('name', 'Sighting added.');
-				$this->set('message', $result . ' sighting' . (($result == 1) ? '' : 's') . ' successfuly added.');
-				$this->set('url', '/sightings/add/' . $id);
-				$this->set('id', $this->Sighting->id);
-				$this->set('_serialize', array('name', 'message', 'url', 'id'));
+				return $this->RestResponse->saveSuccessResponse('Sighting', 'add', $id, false, $result . ' sighting' . (($result == 1) ? '' : 's') . ' successfuly added.');
 			}
 		}
 	}
@@ -76,15 +69,37 @@ class SightingsController extends AppController {
 		}
 		$result = $this->Sighting->delete($sighting['Sighting']['id']);
 		if (!$result) {
-			$this->set('errors', '');
-			$this->set('name', 'Failed');
-			$this->set('message', 'Could not delete the Sighting.');
-			$this->set('_serialize', array('name', 'message', 'errors'));
+			return $this->RestResponse->saveFailResponse('Sighting', 'delete', $id, 'Could not delete the Sighting.');
 		} else {
-			$this->set('name', 'Success');
-			$this->set('message', 'Sighting successfuly deleted.');
-			$this->set('url', '/sightings/delete/' . $id);
-			$this->set('_serialize', array('name', 'message', 'url'));
+			return $this->RestResponse->saveSuccessResponse('Sighting', 'delete', $id, false, 'Sighting successfuly deleted.');
 		}
+	}
+
+	public function index($eventId = false, $type = 'simple') {
+		$this->loadModel('Event');
+		$rules = array(
+			'recursive' => -1,
+			'fields' => array('Sighting.event_id'),
+			'group' => array('Sighting.event_id'),
+			'conditions' => array()
+		);
+		if ($this->_isSiteAdmin() || !Configure::read('Plugin.Sightings_anonymise') && $type != 'simple') {
+			$rules['fields'][] = 'Sighting.org_id';
+			$rules['group'][] = 'Sighting.org_id';
+		}
+		if (!$this->_isSiteAdmin() && (Configure::read('Plugin.Sightings_policy') == 0 || Configure::read('Plugin.Sightings_policy') == false)) {
+			$eventIds = $this->Event->find('list', array('conditions' => array('Event.orgc_id' => $this->Auth->user('org_id')), 'fields' => array('Event.id')));
+			$rules['conditions']['OR'][] = array('Sighting.event_id' => $eventIds, 'Sighting.org_id' => $this->Auth->user('org_id'));
+		} else if (!$this->_isSiteAdmin() && Configure::read('Plugin.Sightings_policy') == 1) {
+			$rules['conditions'][] = array('Sighting.org_id' => $this->Auth->user('org_id'));
+		} else if (!$this->_isSiteAdmin() && Configure::read('Plugin.Sightings_policy') == 2) {
+			$eventIds = $this->Event->fetchEventIds($this->Auth->user(), false, false, false, true);
+			$rules['conditions']['OR'][] = array('Sighting.event_id' => $eventIds);
+		}
+		debug($rules);
+		$this->Sighting->virtualFields['count'] = 0;
+		$this->Sighting->virtualFields['latest'] = 0;
+		$sightings = $this->Sighting->find('all', $rules);
+		debug($sightings);
 	}
 }
