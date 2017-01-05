@@ -160,8 +160,10 @@ var formInfoValues = {
 		'ServerOrganization' : "The organization having the external server you want to sync with. Example: BE",
 		'ServerAuthkey' : "You can find the authentication key on your profile on the external server.",
 		'ServerPush' : "Allow the upload of events and their attributes.",
-		'ServerPull' : "Allow the download of events and their attributes from the server.",
-		'ServerSubmittedCert' : "You can also upload a certificate file if the instance you are trying to connect to has its own signing authority.",
+        'ServerPull' : "Allow the download of events and their attributes from the server.",
+        'ServerUnpublishEvent' : 'Unpublish new event (working with Push event).',
+        'ServerPublishWithoutEmail' : 'Publish new event without email (working with Pull event).',
+        'ServerSubmittedCert' : "You can also upload a certificate file if the instance you are trying to connect to has its own signing authority.",
 		'ServerSelfSigned' : "Click this, if you would like to allow a connection despite the other instance using a self-signed certificate (not recommended)."
 };
 
