@@ -105,7 +105,13 @@
 						$clusterList[$cluster['Galaxy']['id']][] = array('value' => $cluster['value'], 'id' => $cluster['id'], 'tag_id' => $cluster['tag_id']);
 					endforeach;
 				endif;
+				$first = true;
 				foreach ($clusterList as $galaxy_id => $clusters):
+					if (!$first) {
+						echo '<br />';
+					} else {
+						$first = false;
+					}
 				?>
 					<span class="blue bold"><a href="<?php echo $baseurl; ?>/galaxies/view/<?php echo h($galaxy_id); ?>"><?php echo h($galaxyList[$galaxy_id]); ?></a>:</span>
 				<?php

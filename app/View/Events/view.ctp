@@ -184,7 +184,7 @@
 					<dd class="background-red bold"><?php echo h($subject);?> requested that <?php echo h($target)?> take over this event. (<a href="#" style="color:white;" onClick="genericPopup('<?php echo $baseurl;?>/eventDelegations/view/<?php echo h($delegationRequest['EventDelegation']['id']);?>', '#confirmation_box');">View request details</a>)</dd>
 				<?php endif;?>
 				<?php
-					if (!Configure::read('MISP.completely_disable_correlation')):
+					if (!Configure::read('MISP.completely_disable_correlation') && Configure::read('MISP.allow_disabling_correlation')):
 				?>
 						<dt <?php echo $event['Event']['disable_correlation'] ? 'class="background-red bold"' : '';?>>Correlation</dt>
 						<dd <?php echo $event['Event']['disable_correlation'] ? 'class="background-red bold"' : '';?>>
@@ -198,6 +198,12 @@
 								?>
 											Enabled (<a onClick="getPopup('<?php echo h($event['Event']['id']); ?>', 'events', 'toggleCorrelation', '', '#confirmation_box');" style="cursor:pointer;" style="font-weight:normal;">disable</a>)
 								<?php
+										endif;
+									else:
+										if ($event['Event']['disable_correlation']):
+											echo 'Disabled';
+										else:
+											echo 'Enabled';
 										endif;
 									endif;
 								?>
