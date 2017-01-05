@@ -76,6 +76,18 @@
 
 		echo $this->Form->input('pull', array(
 		));
+    ?>
+        <div class = "input clear"></div>
+	<?php
+		echo $this->Form->input('unpublish_event', array(
+			'type' => 'checkbox',
+		));
+	?>
+        <div class = "input clear"></div>
+	<?php
+		echo $this->Form->input('publish_without_email', array(
+			'type' => 'checkbox',
+		));
 	?>
 		<div class = "input clear"></div>
 	<?php
@@ -170,7 +182,9 @@ var formInfoValues = {
 		'ServerName' : "A name that will make it clear to your users what this instance is. For example: Organisation A's instance",
 		'ServerAuthkey' : "You can find the authentication key on your profile on the external server.",
 		'ServerPush' : "Allow the upload of events and their attributes.",
-		'ServerPull' : "Allow the download of events and their attributes from the server.",
+        'ServerPull' : "Allow the download of events and their attributes from the server.",
+        'ServerUnpublishEvent' : 'Unpublish new event (working with Push event).',
+        'ServerPublishWithoutEmail' : 'Publish new event without email (working with Pull event).',
 		'ServerSubmittedCert' : "You can also upload a certificate file if the instance you are trying to connect to has its own signing authority.",
 		'ServerSubmittedClientCert' : "You can also upload a client certificate file if the instance you are trying to connect requires this.",
 		'ServerSelfSigned' : "Click this, if you would like to allow a connection despite the other instance using a self-signed certificate (not recommended)."
@@ -192,11 +206,11 @@ $(document).ready(function() {
 		serverOrgTypeChange();
 	});
 
-	$("#ServerUrl, #ServerOrganization, #ServerName, #ServerAuthkey, #ServerPush, #ServerPull, #ServerSubmittedCert, #ServerSubmittedClientCert, #ServerSelfSigned").on('mouseleave', function(e) {
+	$("#ServerUrl, #ServerOrganization, #ServerName, #ServerAuthkey, #ServerPush, #ServerPull, #ServerUnpublishEvent, #ServerPublishWithoutEmail, #ServerSubmittedCert, #ServerSubmittedClientCert, #ServerSelfSigned").on('mouseleave', function(e) {
 	    $('#'+e.currentTarget.id).popover('destroy');
 	});
 
-	$("#ServerUrl, #ServerOrganization, #ServerName, #ServerAuthkey, #ServerPush, #ServerPull, #ServerSubmittedCert, #ServerSubmittedClientCert, #ServerSelfSigned").on('mouseover', function(e) {
+	$("#ServerUrl, #ServerOrganization, #ServerName, #ServerAuthkey, #ServerPush, #ServerPull, #ServerUnpublishEvent, #ServerPublishWithoutEmail, #ServerSubmittedCert, #ServerSubmittedClientCert, #ServerSelfSigned").on('mouseover', function(e) {
 	    var $e = $(e.target);
 	        $('#'+e.currentTarget.id).popover('destroy');
 	        $('#'+e.currentTarget.id).popover({
