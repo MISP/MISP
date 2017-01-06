@@ -75,31 +75,31 @@ class SightingsController extends AppController {
 		}
 	}
 
-	public function index($eventId = false, $type = 'simple') {
+	public function index($eventid = false) {
 		$this->loadModel('Event');
-		$rules = array(
-			'recursive' => -1,
+		$sightingConditions = array();
+		if ($eventid) {
+			$sightingConditions = array('Sighting.event_id' => $eventid);
+		}
+		$sightedEvents = $this->Sighting->find('list', array(
+			'group' => 'Sighting.event_id',
 			'fields' => array('Sighting.event_id'),
-			'group' => array('Sighting.event_id'),
-			'conditions' => array()
-		);
-		if ($this->_isSiteAdmin() || !Configure::read('Plugin.Sightings_anonymise') && $type != 'simple') {
-			$rules['fields'][] = 'Sighting.org_id';
-			$rules['group'][] = 'Sighting.org_id';
+			'conditions' => $sightingConditions
+		));
+		if (empty($sightedEvents)) {
+			$this->RestResponse->viewData(array());
 		}
-		if (!$this->_isSiteAdmin() && (Configure::read('Plugin.Sightings_policy') == 0 || Configure::read('Plugin.Sightings_policy') == false)) {
-			$eventIds = $this->Event->find('list', array('conditions' => array('Event.orgc_id' => $this->Auth->user('org_id')), 'fields' => array('Event.id')));
-			$rules['conditions']['OR'][] = array('Sighting.event_id' => $eventIds, 'Sighting.org_id' => $this->Auth->user('org_id'));
-		} else if (!$this->_isSiteAdmin() && Configure::read('Plugin.Sightings_policy') == 1) {
-			$rules['conditions'][] = array('Sighting.org_id' => $this->Auth->user('org_id'));
-		} else if (!$this->_isSiteAdmin() && Configure::read('Plugin.Sightings_policy') == 2) {
-			$eventIds = $this->Event->fetchEventIds($this->Auth->user(), false, false, false, true);
-			$rules['conditions']['OR'][] = array('Sighting.event_id' => $eventIds);
+		$conditions = array('metadata' => true, 'contain' => false);
+		if ($eventid) {
+			$conditions['eventid'] = $sightedEvents;
 		}
-		debug($rules);
-		$this->Sighting->virtualFields['count'] = 0;
-		$this->Sighting->virtualFields['latest'] = 0;
-		$sightings = $this->Sighting->find('all', $rules);
-		debug($sightings);
+		$events = $this->Event->fetchEventIds($this->Auth->user(), false, false, false, false, false, false, $sightedEvents);
+		$sightings = array();
+		if (!empty($events)) {
+			foreach ($events as $k => $event) {
+				$sightings = array_merge($sightings, $this->Sighting->attachToEvent($event, $this->Auth->user()));
+			}
+		}
+		return $this->RestResponse->viewData($sightings);
 	}
 }

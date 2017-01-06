@@ -1078,7 +1078,7 @@ class Event extends AppModel {
 		}
 	}
 
-	public function fetchEventIds($user, $from = false, $to = false, $last = false, $list = false, $timestamp = false, $publish_timestamp = false) {
+	public function fetchEventIds($user, $from = false, $to = false, $last = false, $list = false, $timestamp = false, $publish_timestamp = false, $eventIdList = false) {
 		$conditions = array();
 		// restricting to non-private or same org if the user is not a site-admin.
 		if (!$user['Role']['perm_site_admin']) {
@@ -1109,6 +1109,7 @@ class Event extends AppModel {
 		if ($last) $conditions['AND'][] = array('Event.publish_timestamp >=' => $last);
 		if ($timestamp) $conditions['AND'][] = array('Event.timestamp >=' => $timestamp);
 		if ($publish_timestamp) $conditions['AND'][] = array('Event.publish_timestamp >=' => $publish_timestamp);
+		if ($eventIdList) $conditions['AND'][] = array('Event.id' => $eventIdList);
 		if ($list) {
 			$params = array(
 				'conditions' => $conditions,
