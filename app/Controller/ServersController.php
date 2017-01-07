@@ -910,6 +910,7 @@ class ServersController extends AppController {
 					return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $beforeResult)),'status'=>200));
 				}
 			}
+			$this->request->data['Server']['value'] = trim($this->request->data['Server']['value']);
 			if ($found['type'] == 'boolean') {
 				$this->request->data['Server']['value'] = ($this->request->data['Server']['value'] ? true : false);
 			}
