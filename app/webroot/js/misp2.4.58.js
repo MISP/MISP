@@ -2726,11 +2726,12 @@ function checkAndSetPublishedInfo() {
 	var id = $('#hiddenSideMenuData').data('event-id');
 	$.get( "/events/checkPublishedStatus/" + id, function(data) {
 		if (data == 1) {
-			$('.published').show();
-			$('.not-published').hide();
+			$('.published').removeClass('hidden');
+			$('.not-published').addClass('hidden');
 		} else {
-			$('.published').hide();
-			$('.not-published').show();
+			alert(1);
+			$('.published').addClass('hidden');
+			$('.not-published').removeClass('hidden');
 		}
 	});
 }
