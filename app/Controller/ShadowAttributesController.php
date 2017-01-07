@@ -181,6 +181,7 @@ class ShadowAttributesController extends AppController {
 		$response = $this->__accept($id);
 		if ($this->_isRest()) {
 			if (isset($response['success'])) {
+				$response['check_publish'] = true;
 				$this->set('name', $response['success']);
 				$this->set('message', $response['success']);
 				$this->set('url', '/shadow_attributes/accept/' . $id);
