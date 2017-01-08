@@ -1155,4 +1155,9 @@ class ServersController extends AppController {
 		$this->set('response', array('version' => $versionArray['major'] . '.' . $versionArray['minor'] . '.' . $versionArray['hotfix'], 'perm_sync' => $this->userRole['perm_sync']));
 		$this->set('_serialize', 'response');
 	}
+
+	public function getPyMISPVersion() {
+		$this->set('response', array('version' => $this->pyMispVersion));
+		$this->set('_serialize', 'response');
+	}
 }
