@@ -2729,7 +2729,6 @@ function checkAndSetPublishedInfo() {
 			$('.published').removeClass('hidden');
 			$('.not-published').addClass('hidden');
 		} else {
-			alert(1);
 			$('.published').addClass('hidden');
 			$('.not-published').removeClass('hidden');
 		}
