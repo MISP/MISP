@@ -845,22 +845,6 @@ class AttributesController extends AppController {
 		}
 	}
 
-	public function view($id) {
-		$this->Attribute->id = $id;
-		if (!$this->Attribute->exists()) {
-			throw new NotFoundException('Invalid attribute');
-		}
-		if ($this->_isRest()) {
-			$attribute = $this->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id), 'withAttachments' => true));
-			if (empty($attribute)) throw new MethodNotAllowedException('Invalid attribute');
-			$attribute = $attribute[0];
-			$this->set('Attribute', $attribute['Attribute']);
-			$this->set('_serialize', array('Attribute'));
-		} else {
-			$this->redirect('/events/view/' . $this->Attribute->data['Attribute']['event_id']);
-		}
-	}
-
 	public function delete($id = null, $hard = false) {
 		$this->set('id', $id);
 		$conditions = array('id' => $id);
