@@ -128,7 +128,7 @@ class OrganisationsController extends AppController {
 		if (!$this->Organisation->exists()) throw new NotFoundException('Invalid organisation');
 		$fullAccess = false;
 		$fields = array('id', 'name', 'date_created', 'date_modified', 'type', 'nationality', 'sector', 'contacts', 'description', 'local', 'uuid');
-		if ($this->_isSiteAdmin() || $this->Auth->user('Organisation')['id'] == $id) {
+		if ($this->_isSiteAdmin() || ($this->_isAdmin() && $this->Auth->user('Organisation')['id'] == $id)) {
 			$fullAccess = true;
 			$fields = array_merge($fields, array('created_by'));
 		}
