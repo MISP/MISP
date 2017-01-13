@@ -41,7 +41,7 @@ class AppModel extends Model {
 				32 => false, 33 => true, 38 => true, 39 => true, 40 => false,
 				42 => false, 44 => false, 45 => false, 49 => true, 50 => false,
 				51 => false, 52 => false, 55 => true, 56 => true, 57 => true,
-				58 => false
+				58 => false, 60 => false
 			)
 		)
 	);
@@ -524,7 +524,7 @@ class AppModel extends Model {
 				$this->__addIndex('correlations', '1_event_id');
 				$this->__addIndex('warninglist_entries', 'warninglist_id');
 				break;
-			case '2.4.59':
+			case '2.4.60':
 				if ($dataSource == 'Database/Mysql') {
 					$sqlArray[] = 'CREATE TABLE IF NOT EXISTS `attribute_tags` (
 								`id` int(11) NOT NULL AUTO_INCREMENT,

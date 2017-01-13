@@ -467,7 +467,6 @@ class TagsController extends AppController {
 				unset($options[$k]);
 			}
 		}
-		$this->set('event_id', $event_id);
 		$this->set('options', $options);
 		$this->set('expanded', $expanded);
 		$this->set('custom', $taxonomy_id == 0 ? true : false);
