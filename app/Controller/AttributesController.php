@@ -2666,7 +2666,7 @@ class AttributesController extends AppController {
 		$this->autoRender = false;
 		if (!empty($found)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Tag is already attached to this attribute.')), 'status' => 200));
 		$this->Attribute->AttributeTag->create();
-		if ($this->Attribute->AttributeTag->save(array('attribute_id' => $id, 'tag_id' => $tag_id))) {
+		if ($this->Attribute->AttributeTag->save(array('attribute_id' => $id, 'tag_id' => $tag_id, 'event_id' => $eventId))) {
 			$log = ClassRegistry::init('Log');
 			$log->createLogEntry($this->Auth->user(), 'tag', 'Attribute', $id, 'Attached tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" to attribute (' . $id . ')', 'Attribute (' . $id . ') tagged as Tag (' . $tag_id . ')');
 			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Tag added.')), 'status' => 200));

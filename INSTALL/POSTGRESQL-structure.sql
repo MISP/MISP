@@ -48,10 +48,12 @@ CREATE INDEX idx_attributes_value2 ON attributes (value2);
 CREATE TABLE IF NOT EXISTS attribute_tags (
   id bigserial NOT NULL,
   attribute_id bigint NOT NULL,
+  event_id bigint NOT NULL,
   tag_id bigint NOT NULL,
   PRIMARY KEY (id)
 );
 CREATE INDEX idx_attribute_tags_attribute_id ON attribute_tags (attribute_id);
+CREATE INDEX idx_attribute_tags_event_id ON attribute_tags (event_id);
 CREATE INDEX idx_attribute_tags_tag_id ON attribute_tags (tag_id);
 
 -- --------------------------------------------------------
@@ -828,4 +830,3 @@ CREATE TABLE IF NOT EXISTS whitelist (
   name text NOT NULL,
   PRIMARY KEY (id)
 );
-

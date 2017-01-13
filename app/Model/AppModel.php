@@ -529,19 +529,23 @@ class AppModel extends Model {
 					$sqlArray[] = 'CREATE TABLE IF NOT EXISTS `attribute_tags` (
 								`id` int(11) NOT NULL AUTO_INCREMENT,
 								`attribute_id` int(11) NOT NULL,
+								`event_id` int(11) NOT NULL,
 								`tag_id` int(11) NOT NULL,
 								PRIMARY KEY (`id`)
 							) ENGINE=InnoDB DEFAULT CHARSET=utf8;';
 					$sqlArray[] = 'ALTER TABLE `attribute_tags` ADD INDEX `attribute_id` (`attribute_id`);';
+					$sqlArray[] = 'ALTER TABLE `attribute_tags` ADD INDEX `event_id` (`event_id`);';
 					$sqlArray[] = 'ALTER TABLE `attribute_tags` ADD INDEX `tag_id` (`tag_id`);';
 				} else if ($dataSource == 'Database/Postgres') {
 					$sqlArray[] = 'CREATE TABLE IF NOT EXISTS attribute_tags (
 								id bigserial NOT NULL,
 								attribute_id bigint NOT NULL,
+								event_id bigint NOT NULL,
 								tag_id bigint NOT NULL,
 								PRIMARY KEY (id)
 							);';
 					$sqlArray[] = 'CREATE INDEX idx_attribute_tags_attribute_id ON attribute_tags (attribute_id);';
+					$sqlArray[] = 'CREATE INDEX idx_attribute_tags_event_id ON attribute_tags (event_id);';
 					$sqlArray[] = 'CREATE INDEX idx_attribute_tags_tag_id ON attribute_tags (tag_id);';
 				}
 				$this->__dropIndex('attribute_tags', 'attribute_id');
