@@ -1302,9 +1302,7 @@ class Event extends AppModel {
 			unset($params['contain']['Attribute']);
 			unset($params['contain']['ShadowAttribute']);
 		}
-		if (Configure::read('MISP.attribute_tagging')) {
-			$params['contain']['Attribute']['AttributeTag'] = array('Tag' => array('conditions' => $tagConditions));
-		}
+		$params['contain']['Attribute']['AttributeTag'] = array('Tag' => array('conditions' => $tagConditions));
 		if ($user['Role']['perm_site_admin']) {
 			$params['contain']['User'] = array('fields' => 'email');
 		}
@@ -1898,7 +1896,7 @@ class Event extends AppModel {
 			unset($data['Event']['Tag']);
 		}
 
-		if (Configure::read('MISP.attribute_tagging') && isset($data['Event']['Attribute'])) {
+		if (isset($data['Event']['Attribute'])) {
 			foreach ($data['Event']['Attribute'] as $k => $a) {
 				if (isset($data['Event']['Attribute'][$k]['AttributeTag'])) {
 					if (isset($data['Event']['Attribute'][$k]['AttributeTag']['id'])) $data['Event']['Attribute'][$k]['AttributeTag'] = array($data['Event']['Attribute'][$k]['AttributeTag']);

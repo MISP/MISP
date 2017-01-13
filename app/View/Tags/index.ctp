@@ -32,9 +32,7 @@
 			<th>Restricted to</th>
 			<th>Taxonomy</th>
 			<th>Tagged events</th>
-		<?php if (Configure::read('MISP.attribute_tagging')): ?>
 			<th>Tagged attributes</th>
-		<?php endif; ?>
 			<th>Favourite</th>
 			<?php if ($isAclTagEditor): ?>
 			<th class="actions"><?php echo __('Actions');?></th>
@@ -62,9 +60,7 @@ foreach ($list as $item): ?>
 		&nbsp;
 		</td>
 		<td class="shortish"><?php echo h($item['Tag']['count']); ?>&nbsp;</td>
-	<?php if (Configure::read('MISP.attribute_tagging')): ?>
 		<td class="shortish"><a href="<?php echo $baseurl . "/attributes/search/attributetag:" . $item['Tag']['id']; ?>"><?php echo h($item['Tag']['attribute_count']); ?></a> </td>
-	<?php endif; ?>
 		<td class="short" id ="checkbox_row_<?php echo h($item['Tag']['id']);?>">
 			<input id="checkBox_<?php echo h($item['Tag']['id']); ?>" type="checkbox" onClick="toggleSetting(event, 'favourite_tag', '<?php echo h($item['Tag']['id']); ?>')" <?php echo $item['Tag']['favourite'] ? 'checked' : ''; ?>/>
 		</td>

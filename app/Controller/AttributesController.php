@@ -63,7 +63,7 @@ class AttributesController extends AppController {
 				'Orgc' => array('fields' => array('id', 'name'))
 			)
 		);
-		if (Configure::read('MISP.attribute_tagging') && !$this->_isRest()) {
+		if (!$this->_isRest()) {
 			$this->Attribute->contain(array('AttributeTag' => array('Tag')));
 		}
 		$this->set('isSearch', 0);
@@ -1162,9 +1162,6 @@ class AttributesController extends AppController {
 			$attributeTagQuery = '/attributetag';
 			// check if the request is a GET request for attributes with a specific tag (usually after clicking on an attributetag)
 			if (substr($this->request->here, strlen($fullAddress), strlen($attributeTagQuery)) == $attributeTagQuery) {
-				if (!Configure::read('MISP.attribute_tagging')) {
-					throw new MethodNotAllowedException('attribute_tagging isn\'t activated');
-				}
 				$attributeTagId = substr($this->request->here, (strlen($fullAddress) + strlen($attributeTagQuery) + 1));
 				if (!is_numeric($attributeTagId)) {
 					// either pagination active or no correct id
@@ -1176,9 +1173,7 @@ class AttributesController extends AppController {
 			if ($this->request->here != $fullAddress && !isset($attributeTagId)) {
 				$keyword = $this->Session->read('paginate_conditions_keyword');
 				$keyword2 = $this->Session->read('paginate_conditions_keyword2');
-				if (Configure::read('MISP.attribute_tagging')) {
-					$attributeTags = $this->Session->read('paginate_conditions_attributetags');
-				}
+				$attributeTags = $this->Session->read('paginate_conditions_attributetags');
 				$org = $this->Session->read('paginate_conditions_org');
 				$type = $this->Session->read('paginate_conditions_type');
 				$category = $this->Session->read('paginate_conditions_category');
@@ -1192,10 +1187,7 @@ class AttributesController extends AppController {
 				$this->set('typeSearch', $type);
 				$this->set('tags', $tags);
 				$this->set('categorySearch', $category);
-
-				if (Configure::read('MISP.attribute_tagging')) {
-					$this->Attribute->contain(array('AttributeTag' => array('Tag')));
-				}
+				$this->Attribute->contain(array('AttributeTag' => array('Tag')));
 
 				// re-get pagination
 				$this->Attribute->recursive = 0;
@@ -1241,9 +1233,7 @@ class AttributesController extends AppController {
 				if ($this->request->is('post')) {
 					$keyword = $this->request->data['Attribute']['keyword'];
 					$keyword2 = $this->request->data['Attribute']['keyword2'];
-					if (Configure::read('MISP.attribute_tagging')) {
-						$attributeTags = $this->request->data['Attribute']['attributetags'];
-					}
+					$attributeTags = $this->request->data['Attribute']['attributetags'];
 					$tags = $this->request->data['Attribute']['tags'];
 					$org = $this->request->data['Attribute']['org'];
 					$type = $this->request->data['Attribute']['type'];
@@ -1396,7 +1386,7 @@ class AttributesController extends AppController {
 							$conditions['AND'][] = $temp;
 						}
 					}
-					
+
 					if (!empty($attributeTags) || !empty($tags)) {
 						$this->loadModel('Tag');
 					}
@@ -1529,8 +1519,7 @@ class AttributesController extends AppController {
 							),
 						)
 					);
-					if (Configure::read('MISP.attribute_tagging'))
-						$this->Attribute->contain(array('AttributeTag' => array('Tag')));
+					$this->Attribute->contain(array('AttributeTag' => array('Tag')));
 					if (!$this->_isSiteAdmin()) {
 						// merge in private conditions
 						$this->paginate = Set::merge($this->paginate, array(
@@ -2625,9 +2614,6 @@ class AttributesController extends AppController {
 		if (!$this->request->is('post')) {
 			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that. Only POST requests are accepted.')), 'status' => 200));
 		}
-		if (!Configure::read('MISP.attribute_tagging')) {
-			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that, attribute tagging is disabled.')), 'status' => 200));
-		}
 
 		$this->Attribute->id = $id;
 		if (!$this->Attribute->exists()) throw new NotFoundException(__('Invalid attribute'));
@@ -2693,10 +2679,6 @@ class AttributesController extends AppController {
 		if (!$this->request->is('post')) {
 			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that. Only POST requests are accepted.')), 'status' => 200));
 		}
-		if (!Configure::read('MISP.attribute_tagging')) {
-			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that, attribute tagging is disabled.')), 'status' => 200));
-		}
-
 		$this->Attribute->id = $id;
 		if (!$this->Attribute->exists()) throw new NotFoundException(__('Invalid attribute'));
 		$this->Attribute->read();

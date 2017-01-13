@@ -73,9 +73,7 @@
 					<th><?php echo $this->Paginator->sort('tag');?></th>
 					<th><?php echo $this->Paginator->sort('expanded');?></th>
 					<th><?php echo $this->Paginator->sort('events');?></th>
-				<?php if (Configure::read('MISP.attribute_tagging')): ?>
 					<th><?php echo $this->Paginator->sort('attributes');?></th>
-				<?php endif; ?>
 					<th><?php echo $this->Paginator->sort('tag');?></th>
 					<th>Action</th>
 			</tr><?php
@@ -99,19 +97,17 @@
 					}
 				?>
 				</td>
-				<?php if (Configure::read('MISP.attribute_tagging')): ?>
 				<td class="short">
 				<?php
-					if ($item['existing_tag']) {
+					if ($item['existing_tag']):
 				?>
 						<a href='<?php echo $baseurl."/attributes/search/attributetag:". h($item['existing_tag']['Tag']['id']);?>'><?php echo count($item['existing_tag']['AttributeTag']);?></a>
 				<?php
-					} else {
+					else:
 						echo 'N/A';
-					}
+					endif;
 				?>
 				</td>
-				<?php endif; ?>
 				<td class="short">
 				<?php
 					if ($item['existing_tag']):

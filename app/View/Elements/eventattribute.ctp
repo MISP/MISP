@@ -169,9 +169,7 @@
 			<th><?php echo $this->Paginator->sort('category');?></th>
 			<th><?php echo $this->Paginator->sort('type');?></th>
 			<th><?php echo $this->Paginator->sort('value');?></th>
-			<?php if (Configure::read('MISP.attribute_tagging')): ?>
 			<th>Tags</th>
-			<?php endif; ?>
 			<th><?php echo $this->Paginator->sort('comment');?></th>
 			<?php
 				if ($mayChangeCorrelation && !$event['Event']['disable_correlation']):
@@ -353,13 +351,11 @@
 									?>
 								</div>
 							</td>
-						<?php if (Configure::read('MISP.attribute_tagging')): ?>
 							<td class="shortish <?php echo $extra; ?>">
 								<div class="attributeTagContainer">
 									<?php echo $this->element('ajaxAttributeTags', array('attributeId' => $object['id'], 'attributeTags' => $object['AttributeTag'], 'tagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['org_id']) )); ?>
 								</div>
 							</td>
-						<?php endif; ?>
 							<td class="showspaces bitwider <?php echo $extra; ?>">
 								<div id = "<?php echo $currentType . '_' . $object['id'] . '_comment_placeholder'; ?>" class = "inline-field-placeholder"></div>
 								<div id = "<?php echo $currentType . '_' . $object['id'] . '_comment_solid'; ?>" class="inline-field-solid" ondblclick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'comment', <?php echo $event['Event']['id'];?>);">

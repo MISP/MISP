@@ -5,9 +5,7 @@
 		You can search for attributes based on contained expression within the value, event ID, submitting organisation, category and type. <br />For the value, event ID and organisation, you can enter several search terms by entering each term as a new line. To exclude things from a result, use the NOT operator (!) in front of the term.<br/><br />
 		<?php
 			echo $this->Form->input('keyword', array('type' => 'textarea', 'rows' => 2, 'label' => 'Containing the following expressions', 'div' => 'clear', 'class' => 'input-xxlarge'));
-			if (Configure::read('MISP.attribute_tagging')) {
-				echo $this->Form->input('attributetags', array('type' => 'textarea', 'rows' => 2, 'label' => 'Being an attribute matching the following tags', 'div' => 'clear', 'class' => 'input-xxlarge'));
-			}
+			echo $this->Form->input('attributetags', array('type' => 'textarea', 'rows' => 2, 'label' => 'Being an attribute matching the following tags', 'div' => 'clear', 'class' => 'input-xxlarge'));
 			echo $this->Form->input('keyword2', array('type' => 'textarea', 'rows' => 2, 'label' => 'Being attributes of the following event IDs, event UUIDs or attribute UUIDs', 'div' => 'clear', 'class' => 'input-xxlarge'));
 			echo $this->Form->input('tags', array('type' => 'textarea', 'rows' => 2, 'label' => 'Being an attribute of an event matching the following tags', 'div' => 'clear', 'class' => 'input-xxlarge'));
 

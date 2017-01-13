@@ -27,8 +27,7 @@ class TagsController extends AppController {
 	public $helpers = array('TextColour');
 
 	public function index($favouritesOnly = false) {
-		if (Configure::read('MISP.attribute_tagging'))
-			$this->loadModel('Attribute');
+		$this->loadModel('Attribute');
 		$this->loadModel('Event');
 		$this->loadModel('Taxonomy');
 		$taxonomies = $this->Taxonomy->listTaxonomies(array('full' => false, 'enabled' => true));
@@ -74,37 +73,35 @@ class TagsController extends AppController {
 				$paginated[$k]['Tag']['count'] = count($events);
 			}
 			unset($paginated[$k]['EventTag']);
-			if (Configure::read('MISP.attribute_tagging')) {
-				if (empty($tag['AttributeTag'])) {
-					$paginated[$k]['Tag']['attribute_count'] = 0;
-				} else {
-					$attributeIDs = array();
-					foreach ($tag['AttributeTag'] as $attributeTag) {
-						$attributeIDs[] = $attributeTag['attribute_id'];
-					}
-					$conditions = array('Attribute.id' => $attributeIDs);
-					if (!$this->_isSiteAdmin()) {
-						$conditions = array_merge(
-							$conditions,
-							array('OR' => array(
-								array('AND' => array(
-									array('Attribute.deleted =' => 0),
-									array('Attribute.distribution >' => 0),
-									array('Event.distribution >' => 0),
-									array('Event.published =' => 1)
-								)),
-								array('Event.orgc_id' => $this->Auth->user('org_id'))
-							)));
-					}
-					$attributes = $this->Attribute->find('all', array(
-						'fields'     => array('Attribute.id', 'Attribute.deleted', 'Attribute.distribution', 'Event.id', 'Event.distribution', 'Event.orgc_id'),
-						'contain'    => array('Event' => array('fields' => array('id', 'distribution', 'orgc_id'))),
-						'conditions' => $conditions
-					));
-					$paginated[$k]['Tag']['attribute_count'] = count($attributes);
+			if (empty($tag['AttributeTag'])) {
+				$paginated[$k]['Tag']['attribute_count'] = 0;
+			} else {
+				$attributeIDs = array();
+				foreach ($tag['AttributeTag'] as $attributeTag) {
+					$attributeIDs[] = $attributeTag['attribute_id'];
 				}
-				unset($paginated[$k]['AttributeTag']);
+				$conditions = array('Attribute.id' => $attributeIDs);
+				if (!$this->_isSiteAdmin()) {
+					$conditions = array_merge(
+						$conditions,
+						array('OR' => array(
+							array('AND' => array(
+								array('Attribute.deleted =' => 0),
+								array('Attribute.distribution >' => 0),
+								array('Event.distribution >' => 0),
+								array('Event.published =' => 1)
+							)),
+							array('Event.orgc_id' => $this->Auth->user('org_id'))
+						)));
+				}
+				$attributes = $this->Attribute->find('all', array(
+					'fields'     => array('Attribute.id', 'Attribute.deleted', 'Attribute.distribution', 'Event.id', 'Event.distribution', 'Event.orgc_id'),
+					'contain'    => array('Event' => array('fields' => array('id', 'distribution', 'orgc_id'))),
+					'conditions' => $conditions
+				));
+				$paginated[$k]['Tag']['attribute_count'] = count($attributes);
 			}
+			unset($paginated[$k]['AttributeTag']);
 			if (!empty($tag['FavouriteTag'])) {
 				foreach ($tag['FavouriteTag'] as $ft) if ($ft['user_id'] == $this->Auth->user('id')) $paginated[$k]['Tag']['favourite'] = true;
 				if (!isset($tag['Tag']['favourite'])) $paginated[$k]['Tag']['favourite'] = false;
@@ -250,8 +247,7 @@ class TagsController extends AppController {
 	public function view($id) {
 		if ($this->_isRest()) {
 			$contain = array('EventTag' => array('fields' => 'event_id'));
-			if (Configure::read('MISP.attribute_tagging'))
-				$contain['AttributeTag'] = array('fields' => 'attribute_id');
+			$contain['AttributeTag'] = array('fields' => 'attribute_id');
 			$tag = $this->Tag->find('first', array(
 					'conditions' => array('id' => $id),
 					'recursive' => -1,
@@ -281,37 +277,35 @@ class TagsController extends AppController {
 				$tag['Tag']['count'] = count($events);
 			}
 			unset($tag['EventTag']);
-			if (Configure::read('MISP.attribute_tagging')) {
-				if (empty($tag['AttributeTag'])) {
-					$tag['Tag']['attribute_count'] = 0;
-				} else {
-					$attributeIDs = array();
-					foreach ($tag['AttributeTag'] as $attributeTag) {
-						$attributeIDs[] = $attributeTag['attribute_id'];
-					}
-					$conditions = array('Attribute.id' => $attributeIDs);
-					if (!$this->_isSiteAdmin()) {
-						$conditions = array_merge(
-							$conditions,
-							array('OR' => array(
-								array('AND' => array(
-									array('Attribute.deleted =' => 0),
-									array('Attribute.distribution >' => 0),
-									array('Event.distribution >' => 0),
-									array('Event.published =' => 1)
-								)),
-								array('Event.orgc_id' => $this->Auth->user('org_id'))
-							)));
-					}
-					$attributes = $this->Tag->AttributeTag->Attribute->find('all', array(
-						'fields'     => array('Attribute.id', 'Attribute.deleted', 'Attribute.distribution', 'Event.id', 'Event.distribution', 'Event.orgc_id'),
-						'contain'    => array('Event' => array('fields' => array('id', 'distribution', 'orgc_id'))),
-						'conditions' => $conditions
-					));
-					$tag['Tag']['attribute_count'] = count($attributes);
+			if (empty($tag['AttributeTag'])) {
+				$tag['Tag']['attribute_count'] = 0;
+			} else {
+				$attributeIDs = array();
+				foreach ($tag['AttributeTag'] as $attributeTag) {
+					$attributeIDs[] = $attributeTag['attribute_id'];
 				}
-				unset($tag['AttributeTag']);
+				$conditions = array('Attribute.id' => $attributeIDs);
+				if (!$this->_isSiteAdmin()) {
+					$conditions = array_merge(
+						$conditions,
+						array('OR' => array(
+							array('AND' => array(
+								array('Attribute.deleted =' => 0),
+								array('Attribute.distribution >' => 0),
+								array('Event.distribution >' => 0),
+								array('Event.published =' => 1)
+							)),
+							array('Event.orgc_id' => $this->Auth->user('org_id'))
+						)));
+				}
+				$attributes = $this->Tag->AttributeTag->Attribute->find('all', array(
+					'fields'     => array('Attribute.id', 'Attribute.deleted', 'Attribute.distribution', 'Event.id', 'Event.distribution', 'Event.orgc_id'),
+					'contain'    => array('Event' => array('fields' => array('id', 'distribution', 'orgc_id'))),
+					'conditions' => $conditions
+				));
+				$tag['Tag']['attribute_count'] = count($attributes);
 			}
+			unset($tag['AttributeTag']);
 			$this->set('Tag', $tag['Tag']);
 			$this->set('_serialize', 'Tag');
 		} else throw new MethodNotAllowedException('This action is only for REST users.');
@@ -396,7 +390,7 @@ class TagsController extends AppController {
 			$tags = $this->Taxonomy->getTaxonomyTags($k, false, true);
 			if (empty($tags)) unset($options[$k]);
 		}
-		if (Configure::read('MISP.attribute_tagging') && $attributeTag !== false) {
+		if ($attributeTag !== false) {
 			$this->set('attributeTag', true);
 		}
 		$this->set('object_id', $id);
@@ -458,7 +452,7 @@ class TagsController extends AppController {
 				unset($expanded[$banned_tag]);
 			}
 		}
-		if (Configure::read('MISP.attribute_tagging') && $attributeTag !== false) {
+		if ($attributeTag !== false) {
 			$this->set('attributeTag', true);
 		}
 		$this->set('object_id', $id);
