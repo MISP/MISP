@@ -1278,6 +1278,13 @@ class EventsController extends AppController {
 	}
 
 	public function edit($id = null) {
+		if (Validation::uuid($id)) {
+			$temp = $this->Event->find('first', array('recursive' => -1, 'fields' => array('Event.id'), 'conditions' => array('Event.uuid' => $id)));
+			if (empty($temp)) throw new NotFoundException('Invalid event');
+			$id = $temp['Event']['id'];
+		} else if (!is_numeric($id)) {
+			throw new NotFoundException(__('Invalid event'));
+		}
 		$this->Event->id = $id;
 		if (!$this->Event->exists()) {
 			throw new NotFoundException(__('Invalid event'));
