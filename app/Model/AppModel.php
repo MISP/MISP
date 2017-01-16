@@ -41,11 +41,7 @@ class AppModel extends Model {
 				32 => false, 33 => true, 38 => true, 39 => true, 40 => false,
 				42 => false, 44 => false, 45 => false, 49 => true, 50 => false,
 				51 => false, 52 => false, 55 => true, 56 => true, 57 => true,
-<<<<<<< HEAD
-				58 => false, 60 => false
-=======
-				58 => false, 59 => false
->>>>>>> 2.4
+				58 => false, 59 => false, 60 => false
 			)
 		)
 	);
