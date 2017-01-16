@@ -1340,14 +1340,17 @@ class Event extends AppModel {
 								foreach ($event['Galaxy'] as $k => $galaxy) {
 									if ($galaxy['id'] == $cluster['GalaxyCluster']['Galaxy']['id']) {
 										$found = true;
-										unset($cluster['GalaxyCluster']['Galaxy']);
-										$event['Galaxy'][$k]['GalaxyCluster'][] = $cluster['GalaxyCluster'];
+										$temp = $cluster;
+										unset($temp['GalaxyCluster']['Galaxy']);
+										$event['Galaxy'][$k]['GalaxyCluster'][] = $temp['GalaxyCluster'];
+										continue;
 									}
 								}
 								if (!$found) {
 									$event['Galaxy'][] = $cluster['GalaxyCluster']['Galaxy'];
-									unset($cluster['GalaxyCluster']['Galaxy']);
-									$event['Galaxy'][count($event['Galaxy']) - 1]['GalaxyCluster'][] = $cluster['GalaxyCluster'];
+									$temp = $cluster;
+									unset($temp['GalaxyCluster']['Galaxy']);
+									$event['Galaxy'][count($event['Galaxy']) - 1]['GalaxyCluster'][] = $temp['GalaxyCluster'];
 								}
 							}
 						}
@@ -1401,11 +1404,14 @@ class Event extends AppModel {
 					$event['Attribute'][$key]['ShadowAttribute'] = array();
 					// If a shadowattribute can be linked to an attribute, link it to it then remove it from the event
 					// This is to differentiate between proposals that were made to an attribute for modification and between proposals for new attributes
-					foreach ($event['ShadowAttribute'] as $k => $sa) {
-						if (!empty($sa['old_id'])) {
-							if ($event['ShadowAttribute'][$k]['old_id'] == $attribute['id']) {
-								$results[$eventKey]['Attribute'][$key]['ShadowAttribute'][] = $sa;
-								unset($results[$eventKey]['ShadowAttribute'][$k]);
+
+					if (isset($event['ShadowAttribute'])) {
+						foreach ($event['ShadowAttribute'] as $k => $sa) {
+							if (!empty($sa['old_id'])) {
+								if ($event['ShadowAttribute'][$k]['old_id'] == $attribute['id']) {
+									$results[$eventKey]['Attribute'][$key]['ShadowAttribute'][] = $sa;
+									unset($results[$eventKey]['ShadowAttribute'][$k]);
+								}
 							}
 						}
 					}
