@@ -242,6 +242,7 @@ class User extends AppModel {
 				$this->data['User']['confirm_password'] = $this->data['User']['password'];
 			}
 		}
+		if (!isset($this->data['User']['certif_public']) || empty($this->data['User']['certif_public'])) $this->data['User']['certif_public'] = '';
 		if (!isset($this->data['User']['authkey']) || empty($this->data['User']['authkey'])) $this->data['User']['authkey'] = $this->generateAuthKey();
 		if (!isset($this->data['User']['nids_sid']) || empty($this->data['User']['nids_sid'])) $this->data['User']['nids_sid'] = mt_rand(1000000, 9999999);
 		return true;

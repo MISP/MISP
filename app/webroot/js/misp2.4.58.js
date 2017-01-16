@@ -2629,6 +2629,7 @@ function feedFormUpdate() {
 				$('#TargetEventDiv').show();
 				$('#DeltaMergeDiv').show();
 			}
+			$('#settingsCommonExcluderegexDiv').show();
 			break;
 		case 'csv':
 			$('#TargetDiv').show();
@@ -2639,6 +2640,8 @@ function feedFormUpdate() {
 				$('#DeltaMergeDiv').show();
 			}
 			$('#settingsCsvValueDiv').show();
+			$('#settingsCsvDelimiterDiv').show();
+			$('#settingsCommonExcluderegexDiv').show();
 			break;
 	}
 }
@@ -2784,11 +2787,11 @@ function checkAndSetPublishedInfo() {
 	var id = $('#hiddenSideMenuData').data('event-id');
 	$.get( "/events/checkPublishedStatus/" + id, function(data) {
 		if (data == 1) {
-			$('.published').show();
-			$('.not-published').hide();
+			$('.published').removeClass('hidden');
+			$('.not-published').addClass('hidden');
 		} else {
-			$('.published').hide();
-			$('.not-published').show();
+			$('.published').addClass('hidden');
+			$('.not-published').removeClass('hidden');
 		}
 	});
 }

@@ -312,6 +312,7 @@
 				case 'feeds': ?>
 					<li id='liindex'><a href="<?php echo $baseurl;?>/feeds/index">List Feeds</a></li>
 					<li id='liadd'><a href="<?php echo $baseurl;?>/feeds/add">Add Feed</a></li>
+					<li id='liadd'><a href="<?php echo $baseurl;?>/feeds/importFeeds">Import Feeds from JSON</a></li>
 					<?php if ($menuItem === 'edit'): ?>
 						<li class="active"><a href="#">Edit Feed</a></li>
 					<?php elseif ($menuItem === 'previewIndex'): ?>
