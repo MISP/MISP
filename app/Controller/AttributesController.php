@@ -2615,12 +2615,6 @@ class AttributesController extends AppController {
 			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that. Only POST requests are accepted.')), 'status' => 200));
 		}
 
-		$this->Attribute->id = $id;
-		if (!$this->Attribute->exists()) throw new NotFoundException(__('Invalid attribute'));
-		$this->Attribute->read();
-		if ($this->Attribute->data['Attribute']['deleted']) throw new NotFoundException(__('Invalid attribute'));
-		$eventId = $this->Attribute->data['Attribute']['event_id'];
-
 		$rearrangeRules = array(
 			'request' => false,
 			'Attribute' => false,
@@ -2637,6 +2631,11 @@ class AttributesController extends AppController {
 			if (empty($tag)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status' => 200));
 			$tag_id = $tag['Tag']['id'];
 		}
+		$this->Attribute->id = $id;
+		if (!$this->Attribute->exists()) throw new NotFoundException(__('Invalid attribute'));
+		$this->Attribute->read();
+		if ($this->Attribute->data['Attribute']['deleted']) throw new NotFoundException(__('Invalid attribute'));
+		$eventId = $this->Attribute->data['Attribute']['event_id'];
 
 		$this->Attribute->Event->recursive = -1;
 		$event = $this->Attribute->Event->read(array('id', 'org_id', 'orgc_id'), $eventId);
@@ -2679,12 +2678,6 @@ class AttributesController extends AppController {
 		if (!$this->request->is('post')) {
 			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that. Only POST requests are accepted.')), 'status' => 200));
 		}
-		$this->Attribute->id = $id;
-		if (!$this->Attribute->exists()) throw new NotFoundException(__('Invalid attribute'));
-		$this->Attribute->read();
-		if ($this->Attribute->data['Attribute']['deleted']) throw new NotFoundException(__('Invalid attribute'));
-		$eventId = $this->Attribute->data['Attribute']['event_id'];
-
 		$rearrangeRules = array(
 			'request' => false,
 			'Attribute' => false,
@@ -2696,6 +2689,11 @@ class AttributesController extends AppController {
 		$this->request->data = $RearrangeTool->rearrangeArray($this->request->data, $rearrangeRules);
 		if ($id === false) $id = $this->request->data['attribute'];
 		if ($tag_id === false) $tag_id = $this->request->data['tag'];
+		$this->Attribute->id = $id;
+		if (!$this->Attribute->exists()) throw new NotFoundException(__('Invalid attribute'));
+		$this->Attribute->read();
+		if ($this->Attribute->data['Attribute']['deleted']) throw new NotFoundException(__('Invalid attribute'));
+		$eventId = $this->Attribute->data['Attribute']['event_id'];
 		if (empty($tag_id)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status' => 200));
 		if (!is_numeric($tag_id)) {
 			$tag = $this->Attribute->AttributeTag->Tag->find('first', array('recursive' => -1, 'conditions' => array('LOWER(Tag.name) LIKE' => strtolower(trim($tag_id)))));
