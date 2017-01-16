@@ -714,7 +714,7 @@ class AttributesController extends AppController {
 					$saved_attribute = $this->Attribute->find('first', array(
 							'conditions' => array('id' => $this->Attribute->id),
 							'recursive' => -1,
-							'fields' => array('id', 'type', 'to_ids', 'category', 'uuid', 'event_id', 'distribution', 'timestamp', 'comment', 'value'),
+							'fields' => array('id', 'type', 'to_ids', 'category', 'uuid', 'event_id', 'distribution', 'timestamp', 'comment', 'value', 'disable_correlation'),
 					));
 					$response = array('response' => array('Attribute' => $saved_attribute['Attribute']));
 					$this->set('response', $response);
