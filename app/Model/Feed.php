@@ -33,7 +33,7 @@ class Feed extends AppModel {
 			'message' => 'Please enter a numeric event ID or leave this field blank.',
 		)
 	);
-	
+
 	// currently we only have an internal name and a display name, but later on we can expand this with versions, default settings, etc
 	public $feed_types = array(
 		'misp' => array(
@@ -46,7 +46,7 @@ class Feed extends AppModel {
 				'name' => 'Simple CSV Parsed Feed'
 		)
 	);
-	
+
 	public function getFeedTypesOptions() {
 		$result = array();
 		foreach ($this->feed_types as $key => $value) {
@@ -95,24 +95,55 @@ class Feed extends AppModel {
 		$events = $this->__filterEventsIndex($events, $feed);
 		return $events;
 	}
-	
-	public function getFreetextFeed($feed, $HttpSocket, $type = 'freetext') {
+
+	public function getFreetextFeed($feed, $HttpSocket, $type = 'freetext', $page = 1, $limit = 60, &$params = array()) {
 		$result = array();
-		$response = $HttpSocket->get($feed['Feed']['url'], '', array());
-		if ($response->code == 200) {
-			App::uses('ComplexTypeTool', 'Tools');
-			$complexTypeTool = new ComplexTypeTool();
-			$this->Warninglist = ClassRegistry::init('Warninglist');
-			$complexTypeTool->setTLDs($this->Warninglist->fetchTLDLists());
-			$resultArray = $complexTypeTool->checkComplexRouter($response->body, $type, isset($feed['Feed']['settings'][$type]) ? $feed['Feed']['settings'][$type] : array());
+		$feedCache = APP . 'tmp' . DS . 'cache' . DS . 'misp_feed_' . intval($feed['Feed']['id']) . '.cache';
+		$doFetch = true;
+		if (file_exists($feedCache)) {
+			$file = new File($feedCache);
+			if (time() - $file->lastChange() < 600) {
+				$doFetch = false;
+				$data = file_get_contents($feedCache);
+			}
 		}
+		if ($doFetch) {
+			$response = $HttpSocket->get($feed['Feed']['url'], '', array());
+			if ($response->code == 200) {
+				$data = $response->body;
+				file_put_contents($feedCache, $data);
+			}
+		}
+		App::uses('ComplexTypeTool', 'Tools');
+		$complexTypeTool = new ComplexTypeTool();
+		$this->Warninglist = ClassRegistry::init('Warninglist');
+		$complexTypeTool->setTLDs($this->Warninglist->fetchTLDLists());
+		$settings = array();
+		if (isset($feed['Feed']['settings'][$type])) {
+			$settings = $feed['Feed']['settings'][$type];
+		}
+		if (isset($feed['Feed']['settings']['common'])) {
+			$settings = array_merge($settings, $feed['Feed']['settings']['common']);
+		}
+		$resultArray = $complexTypeTool->checkComplexRouter($data, $type, $settings);
 		$this->Attribute = ClassRegistry::init('Attribute');
 		foreach ($resultArray as $key => $value) {
 			$resultArray[$key]['category'] = $this->Attribute->typeDefinitions[$value['default_type']]['default_category'];
 		}
+		App::uses('CustomPaginationTool', 'Tools');
+		$customPagination = new CustomPaginationTool();
+		$params = $customPagination->createPaginationRules($resultArray, array('page' => $page, 'limit' => $limit), 'Feed', $sort = false);
+		if (!empty($page) && $page != 'all') {
+			$start = ($page - 1) * $limit;
+			if ($start > count($resultArray)) {
+				return false;
+			}
+			$resultArray = array_slice($resultArray, $start, $limit);
+		}
+
 		return $resultArray;
 	}
-	
+
 	public function getFreetextFeedCorrelations($data) {
 		$values = array();
 		foreach ($data as $key => $value) {
@@ -129,7 +160,7 @@ class Feed extends AppModel {
 				$data[$key]['correlations'] = array_values($correlations[$value['value']]);
 			}
 		}
-		return $data;		
+		return $data;
 	}
 
 	public function downloadFromFeed($actions, $feed, $HttpSocket, $user, $jobId = false) {
@@ -189,9 +220,9 @@ class Feed extends AppModel {
 		try {
 			$commit = trim(shell_exec('git log --pretty="%H" -n1 HEAD'));
 		} catch (Exception $e) {
-			$commit = false;			
+			$commit = false;
 		}
-		
+
 		$result = array(
 			'header' => array(
 					'Accept' => 'application/json',
@@ -416,6 +447,9 @@ class Feed extends AppModel {
 		$syncTool = new SyncTool();
 		$job = ClassRegistry::init('Job');
 		$this->read();
+		if (isset($this->data['Feed']['settings']) && !empty($this->data['Feed']['settings'])) {
+			$this->data['Feed']['settings'] = json_decode($this->data['Feed']['settings'], true);
+		}
 		$HttpSocket = $syncTool->setupHttpSocketFeed($this->data);
 		if ($this->data['Feed']['source_format'] == 'misp') {
 			if ($jobId) {
@@ -437,14 +471,18 @@ class Feed extends AppModel {
 				$job->id = $jobId;
 				$job->saveField('message', 'Fetching data.');
 			}
-			$data = $this->getFreetextFeed($this->data, $HttpSocket, $this->data['Feed']['source_format']);
-			foreach ($data as $key => $value) {
-				$data[$key] = array(
+			$temp = $this->getFreetextFeed($this->data, $HttpSocket, $this->data['Feed']['source_format'], 'all');
+			foreach ($temp as $key => $value) {
+				$data[] = array(
 					'category' => $value['category'],
 					'type' => $value['default_type'],
 					'value' => $value['value'],
 					'to_ids' => $value['to_ids']
 				);
+			}
+			if ($jobId) {
+				$job->saveField('progress', 50);
+				$job->saveField('message', 'Saving data.');
 			}
 			$result = $this->saveFreetextFeedData($this->data, $data, $user);
 			$message = 'Job complete.';
@@ -452,13 +490,14 @@ class Feed extends AppModel {
 				return false;
 			}
 			if ($jobId) {
+				$job->saveField('progress', '100');
 				$job->saveField('message', 'Job complete.');
 			}
 		}
 		return $result;
 	}
-	
-	public function saveFreetextFeedData($feed, $data, $user) {
+
+	public function saveFreetextFeedData($feed, $data, $user, $jobId = false) {
 		$this->Event = ClassRegistry::init('Event');
 		$event = false;
 		if ($feed['Feed']['fixed_event'] && $feed['Feed']['event_id']) {
@@ -493,7 +532,7 @@ class Feed extends AppModel {
 			$to_delete = array();
 			foreach ($data as $k => $dataPoint) {
 				foreach ($event['Attribute'] as $attribute_key => $attribute) {
-					if ($dataPoint['value'] == $attribute['value']) {
+					if ($dataPoint['value'] == $attribute['value'] && $dataPoint['type'] == $attribute['type'] && $attribute['category'] == $dataPoint['category']) {
 						unset($data[$k]);
 						unset($event['Attribute'][$attribute_key]);
 					}
@@ -518,8 +557,16 @@ class Feed extends AppModel {
 			$data[$key]['sharing_group_id'] = $feed['Feed']['sharing_group_id'];
 			$data[$key]['to_ids'] = $feed['Feed']['override_ids'] ? 0 : $data[$key]['to_ids'];
 		}
-		if (!$this->Event->Attribute->saveMany($data)) {
-			return 'Could not save the parsed attributes.';
+		if ($jobId) {
+			$job = ClassRegistry::init('Job');
+			$job->id = $jobId;
+		}
+		$data = array_chunk($data, 100);
+		foreach ($data as $k => $chunk) {
+			$this->Event->Attribute->saveMany($chunk);
+			if ($jobId) {
+				$job->saveField('progress', 50 + round((50 * ((($k + 1) * 100) / count($data)))));
+			}
 		}
 		if ($feed['Feed']['publish']) {
 			$this->Event->publishRouter($event['Event']['id'], null, $user);

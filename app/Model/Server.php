@@ -911,6 +911,34 @@ class Server extends AppModel {
 							'type' => 'string',
 					),
 			),
+			'Session' => array(
+					'branch' => 1,
+					'autoRegenerate' => array(
+							'level' => 1,
+							'description' => 'Set to true to automatically regenerate sessions on activity. (Recommended)',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+					),
+					'defaults' => array(
+							'level' => 0,
+							'description' => 'The session type used by MISP. The default setting is database, which will use the MySQL tables for the session data (supported options: database, php). The recommended option is php and setting your PHP up to use redis sessions via your php.ini. Just add \'session.save_handler = redis\' and "session.save_path = \'tcp://localhost:6379\'" (replace the latter with your redis connection) to ',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForSessionDefaults',
+							'type' => 'string',
+							'options' => array('php' => 'php', 'database' => 'database', 'cake' => 'cake', 'cache' => 'cache'),
+					),
+					'timeout' => array(
+							'level' => 0,
+							'description' => 'The timeout duration of sessions (in MINUTES). Keep in mind that autoregenerate can be used to extend the session on user activity.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForNumeric',
+							'type' => 'string',
+					)
+			),
 			'Plugin' => array(
 					'branch' => 1,
 					'RPZ_policy' => array(
@@ -1308,7 +1336,8 @@ class Server extends AppModel {
 			'GnuPG' => 'Encryption',
 			'SMIME' => 'Encryption',
 			'misc' => 'Security',
-			'Security' => 'Security'
+			'Security' => 'Security',
+			'Session' => 'Security'
 	);
 
 	public $validEventIndexFilters = array('searchall', 'searchpublished', 'searchorg', 'searchtag', 'searcheventid', 'searchdate', 'searcheventinfo', 'searchthreatlevel', 'searchdistribution', 'searchanalysis', 'searchattribute');
@@ -2054,6 +2083,14 @@ class Server extends AppModel {
 		return true;
 	}
 
+	public function testForSessionDefaults($value) {
+		if (empty($value) || !in_array($value, array('php', 'database', 'cake', 'cache'))) {
+			return 'Please choose a valid session handler. Recommended values: php or database. Alternate options are cake (cakephp file based sessions) and cache.';
+		} else {
+			return true;
+		}
+	}
+
 	public function testLocalOrg($value) {
 		$this->Organisation = ClassRegistry::init('Organisation');
 		if ($value == 0) return 'No organisation selected';
@@ -2067,6 +2104,7 @@ class Server extends AppModel {
 	}
 
 	public function testForEmpty($value) {
+		$value = trim($value);
 		if ($value === '') return 'Value not set.';
 		return true;
 	}
@@ -2122,7 +2160,6 @@ class Server extends AppModel {
 	}
 
 	public function testBool($value) {
-		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
 		if ($value !== true && $value !== false) return 'Value is not a boolean, make sure that you convert \'true\' to true for example.';
 		return true;
 	}
@@ -2353,7 +2390,14 @@ class Server extends AppModel {
 			}
 			Configure::write('Security.auth', $authmethods);
 		}
-		Configure::dump('config.php', 'default', array('MISP', 'GnuPG', 'SMIME', 'Proxy', 'SecureAuth', 'Security', 'debug', 'site_admin_debug', 'Plugin', 'CertAuth', 'ApacheShibbAuth', 'ApacheSecureAuth'));
+		$settingsToSave = array('debug', 'MISP', 'GnuPG', 'SMIME', 'Proxy', 'SecureAuth', 'Security', 'Session.defaults', 'Session.timeout', 'Session.autoRegenerate', 'site_admin_debug', 'Plugin', 'CertAuth', 'ApacheShibbAuth', 'ApacheSecureAuth');
+		$settingsArray = array();
+		foreach ($settingsToSave as $setting) {
+			$settingsArray[$setting] = Configure::read($setting);
+		}
+		$settingsString = var_export($settingsArray, true);
+		$settingsString = '<?php' . "\n" . '$config = ' . $settingsString . ';';
+		file_put_contents(APP . 'Config' . DS . 'config.php', $settingsString);
 	}
 
 	public function checkVersion($newest) {

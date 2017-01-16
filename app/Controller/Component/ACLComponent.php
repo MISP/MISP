@@ -140,6 +140,7 @@ class ACLComponent extends Component {
 					'fetchFromFeed' => array(),
 					'fetchSelectedFromFreetextIndex' => array(),
 					'getEvent' => array(),
+					'importFeeds' => array(),
 					'index' => array(),
 					'previewEvent' => array(),
 					'previewIndex' => array(),
@@ -234,6 +235,7 @@ class ACLComponent extends Component {
 					'edit' => array(),
 					'fetchServersForSG' => array('*'),
 					'filterEventIndex' => array(),
+					'getPyMISPVersion' => array('*'),
 					'getVersion' => array('*'),
 					'index' => array('OR' => array('perm_sync', 'perm_admin')),
 					'previewEvent' => array(),
@@ -282,6 +284,7 @@ class ACLComponent extends Component {
 			'sightings' => array(
 					'add' => array('perm_add'),
 					'delete' => array('perm_add'),
+					'index' => array('*')
 			),
 			'tags' => array(
 					'add' => array('perm_tag_editor'),
@@ -351,7 +354,7 @@ class ACLComponent extends Component {
 					'delete' => array('perm_admin'),
 					'downloadTerms' => array('*'),
 					'edit' => array('*'),
-					'fetchPGPKey' => array('perm_admin'),
+					'fetchPGPKey' => array('*'),
 					'histogram' => array('*'),
 					'index' => array('*'),
 					'initiatePasswordReset' => array('perm_admin'),

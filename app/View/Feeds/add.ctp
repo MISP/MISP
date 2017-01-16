@@ -28,7 +28,7 @@
 		));
 	?>
 		<div id="TargetDiv" class="optionalField">
-	<?php 
+	<?php
 		echo $this->Form->input('fixed_event', array(
 				'label' => 'Target Event',
 				'div' => 'input clear',
@@ -54,6 +54,29 @@
 						'title' => 'Select one or several fields that should be parsed by the CSV parser and converted into MISP attributes',
 						'div' => 'input clear',
 						'placeholder' => '2,3,4 (column position separated by commas)',
+						'class' => 'form-control span6'
+				));
+			?>
+		</div>
+		<div id="settingsCsvDelimiterDiv" class="optionalField">
+			<?php
+				echo $this->Form->input('Feed.settings.csv.delimiter', array(
+						'label' => 'Delimiter',
+						'title' => 'Set the default CSV delimiter (default = ",")',
+						'div' => 'input clear',
+						'placeholder' => ',',
+						'class' => 'form-control span6',
+						'value' => ','
+				));
+			?>
+		</div>
+		<div id="settingsCommonExcluderegexDiv" class="optionalField">
+			<?php
+				echo $this->Form->input('Feed.settings.common.excluderegex', array(
+						'label' => 'Exclusion Regex',
+						'title' => 'Add a regex pattern for detecting iocs that should be skipped (this can be useful to exclude any references to the actual report / feed for example)',
+						'div' => 'input clear',
+						'placeholder' => 'Regex pattern, for example: "/^https://myfeedurl/i',
 						'class' => 'form-control span6'
 				));
 			?>
@@ -88,7 +111,7 @@
 			));
 		?>
 		</div>
-	<?php 
+	<?php
 		echo $this->Form->input('distribution', array(
 				'options' => array($distributionLevels),
 				'div' => 'input clear',

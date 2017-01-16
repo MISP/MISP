@@ -1078,7 +1078,7 @@ class Event extends AppModel {
 		}
 	}
 
-	public function fetchEventIds($user, $from = false, $to = false, $last = false, $list = false, $timestamp = false, $publish_timestamp = false) {
+	public function fetchEventIds($user, $from = false, $to = false, $last = false, $list = false, $timestamp = false, $publish_timestamp = false, $eventIdList = false) {
 		$conditions = array();
 		// restricting to non-private or same org if the user is not a site-admin.
 		if (!$user['Role']['perm_site_admin']) {
@@ -1109,6 +1109,7 @@ class Event extends AppModel {
 		if ($last) $conditions['AND'][] = array('Event.publish_timestamp >=' => $last);
 		if ($timestamp) $conditions['AND'][] = array('Event.timestamp >=' => $timestamp);
 		if ($publish_timestamp) $conditions['AND'][] = array('Event.publish_timestamp >=' => $publish_timestamp);
+		if ($eventIdList) $conditions['AND'][] = array('Event.id' => $eventIdList);
 		if ($list) {
 			$params = array(
 				'conditions' => $conditions,
@@ -2018,31 +2019,58 @@ class Event extends AppModel {
 				foreach ($data['Event']['Attribute'] as $k => &$attribute) {
 					$attribute['event_id'] = $this->id;
 					unset($attribute['id']);
-					$this->Attribute->create();
-					$attributeSaveResult = $this->Attribute->save($attribute, array('fieldList' => $fieldList['Attribute']));
-					if ($attributeSaveResult) {
-						if (isset($attribute['AttributeTag'])) {
-							foreach ($attribute['AttributeTag'] as $at) {
-								$this->Attribute->AttributeTag->create();
-								$at['attribute_id'] = $this->Attribute->id;
-								$at['event_id'] = $this->id;
-								$this->Attribute->AttributeTag->save($at);
+					if (isset($attribute['encrypt'])) {
+						$saveResult = $this->Attribute->saveAndEncryptAttribute($attribute, $user);
+						if ($saveResult !== true) {
+							$validationErrors['Attribute'][$k] = $saveResult;
+							$attribute_short = (isset($attribute['category']) ? $attribute['category'] : 'N/A') . '/' . (isset($attribute['type']) ? $attribute['type'] : 'N/A') . ' ' . (isset($attribute['value']) ? $attribute['value'] : 'N/A');
+							$this->Log->create();
+							$this->Log->save(array(
+									'org' => $user['Organisation']['name'],
+									'model' => 'Attribute',
+									'model_id' => 0,
+									'email' => $user['email'],
+									'action' => 'add',
+									'user_id' => $user['id'],
+									'title' => 'Attribute dropped due to validation for Event ' . $this->id . ' failed: ' . $attribute_short,
+									'change' => json_encode($saveResult ? $saveResult : array()),
+							));
+						} else {
+							if (isset($attribute['AttributeTag'])) {
+								foreach ($attribute['AttributeTag'] as $at) {
+									$this->Attribute->AttributeTag->create();
+									$at['attribute_id'] = $this->Attribute->id;
+									$at['event_id'] = $this->id;
+									$this->Attribute->AttributeTag->save($at);
+								}
 							}
 						}
 					} else {
-						$validationErrors['Attribute'][$k] = $this->Attribute->validationErrors;
-						$attribute_short = (isset($attribute['category']) ? $attribute['category'] : 'N/A') . '/' . (isset($attribute['type']) ? $attribute['type'] : 'N/A') . ' ' . (isset($attribute['value']) ? $attribute['value'] : 'N/A');
-						$this->Log->create();
-						$this->Log->save(array(
-								'org' => $user['Organisation']['name'],
-								'model' => 'Attribute',
-								'model_id' => 0,
-								'email' => $user['email'],
-								'action' => 'add',
-								'user_id' => $user['id'],
-								'title' => 'Attribute dropped due to validation for Event ' . $this->id . ' failed: ' . $attribute_short,
-								'change' => json_encode($this->Attribute->validationErrors),
-						));
+						$this->Attribute->create();
+						if (!$this->Attribute->save($attribute, array('fieldList' => $fieldList['Attribute']))) {
+							$validationErrors['Attribute'][$k] = $this->Attribute->validationErrors;
+							$attribute_short = (isset($attribute['category']) ? $attribute['category'] : 'N/A') . '/' . (isset($attribute['type']) ? $attribute['type'] : 'N/A') . ' ' . (isset($attribute['value']) ? $attribute['value'] : 'N/A');
+							$this->Log->create();
+							$this->Log->save(array(
+									'org' => $user['Organisation']['name'],
+									'model' => 'Attribute',
+									'model_id' => 0,
+									'email' => $user['email'],
+									'action' => 'add',
+									'user_id' => $user['id'],
+									'title' => 'Attribute dropped due to validation for Event ' . $this->id . ' failed: ' . $attribute_short,
+									'change' => json_encode($this->Attribute->validationErrors),
+							));
+						} else {
+							if (isset($attribute['AttributeTag'])) {
+								foreach ($attribute['AttributeTag'] as $at) {
+									$this->Attribute->AttributeTag->create();
+									$at['attribute_id'] = $this->Attribute->id;
+									$at['event_id'] = $this->id;
+									$this->Attribute->AttributeTag->save($at);
+								}
+							}
+						}
 					}
 				}
 			}
@@ -2118,8 +2146,8 @@ class Event extends AppModel {
 		if (isset($data['Event']['published']) && $data['Event']['published'] && !$user['Role']['perm_publish']) $data['Event']['published'] = 0;
 		if (!isset($data['Event']['published'])) $data['Event']['published'] = 0;
 		$fieldList = array(
-				'Event' => array('date', 'threat_level_id', 'analysis', 'info', 'published', 'uuid', 'distribution', 'timestamp', 'sharing_group_id'),
-				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'distribution', 'timestamp', 'comment', 'sharing_group_id', 'deleted')
+				'Event' => array('date', 'threat_level_id', 'analysis', 'info', 'published', 'uuid', 'distribution', 'timestamp', 'sharing_group_id', 'disable_correlation'),
+				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'distribution', 'timestamp', 'comment', 'sharing_group_id', 'deleted', 'disable_correlation')
 		);
 		$saveResult = $this->save(array('Event' => $data['Event']), array('fieldList' => $fieldList['Event']));
 		$this->Log = ClassRegistry::init('Log');
@@ -2127,37 +2155,75 @@ class Event extends AppModel {
 			$validationErrors = array();
 			if (isset($data['Event']['Attribute'])) {
 				foreach ($data['Event']['Attribute'] as $k => $attribute) {
-					if (isset($attribute['uuid'])) {
-						$existingAttribute = $this->Attribute->findByUuid($attribute['uuid']);
-						if (count($existingAttribute)) {
-							if ($existingAttribute['Attribute']['event_id'] != $id) {
-								$result = $this->Log->save(array(
+					$attribute['event_id'] = $existingEvent['Event']['id'];
+					if (isset($attribute['encrypt'])) {
+						if (isset($attribute['uuid'])) {
+							$existingAttribute = $this->Attribute->findByUuid($attribute['uuid']);
+							if (!empty($existingAttribute)) {
+								$this->Log->create();
+								$this->Log->save(array(
 										'org' => $user['Organisation']['name'],
-										'model' => 'Event',
-										'model_id' => $id,
+										'model' => 'Attribute',
+										'model_id' => 0,
 										'email' => $user['email'],
-										'action' => 'edit',
+										'action' => 'add',
 										'user_id' => $user['id'],
-										'title' => 'Duplicate UUID found in attribute',
-										'change' => 'An attribute was blocked from being saved due to a duplicate UUID. The uuid in question is: ' . $attribute['uuid'],
+										'title' => 'Attribute dropped because the encrypt parameter was passed along an attribute that already exists',
+										'change' => '',
 								));
-								unset($data['Event']['Attribute'][$k]);
-							} else {
-								// If a field is not set in the request, just reuse the old value
-								$recoverFields = array('value', 'to_ids', 'distribution', 'category', 'type', 'comment', 'sharing_group_id');
-								foreach ($recoverFields as $rF) if (!isset($attribute[$rF])) $data['Event']['Attribute'][$k][$rF] = $existingAttribute['Attribute'][$rF];
-								$data['Event']['Attribute'][$k]['id'] = $existingAttribute['Attribute']['id'];
-								// Check if the attribute's timestamp is bigger than the one that already exists.
-								// If yes, it means that it's newer, so insert it. If no, it means that it's the same attribute or older - don't insert it, insert the old attribute.
-								// Alternatively, we could unset this attribute from the request, but that could lead with issues if we decide that we want to start deleting attributes that don't exist in a pushed event.
-								if (isset($data['Event']['Attribute'][$k]['timestamp'])) {
-									if ($data['Event']['Attribute'][$k]['timestamp'] <= $existingAttribute['Attribute']['timestamp']) {
-										unset($data['Event']['Attribute'][$k]);
-										continue;
-									}
+							}
+							continue;
+						}
+						$saveResult = $this->Attribute->saveAndEncryptAttribute($attribute, $user);
+						if ($saveResult !== true) {
+							$attribute_short = (isset($attribute['category']) ? $attribute['category'] : 'N/A') . '/' . (isset($attribute['type']) ? $attribute['type'] : 'N/A') . ' ' . (isset($attribute['value']) ? $attribute['value'] : 'N/A');
+							$this->Log->create();
+							$this->Log->save(array(
+									'org' => $user['Organisation']['name'],
+									'model' => 'Attribute',
+									'model_id' => 0,
+									'email' => $user['email'],
+									'action' => 'add',
+									'user_id' => $user['id'],
+									'title' => 'Attribute dropped due to validation for Event ' . $id . ' failed: ' . $attribute_short,
+									'change' => json_encode($saveResult ? $saveResult : array()),
+							));
+						}
+					} else {
+						if (isset($attribute['uuid'])) {
+							$existingAttribute = $this->Attribute->findByUuid($attribute['uuid']);
+							if (count($existingAttribute)) {
+								if ($existingAttribute['Attribute']['event_id'] != $id) {
+									$result = $this->Log->save(array(
+											'org' => $user['Organisation']['name'],
+											'model' => 'Attribute',
+											'model_id' => 0,
+											'email' => $user['email'],
+											'action' => 'edit',
+											'user_id' => $user['id'],
+											'title' => 'Duplicate UUID found in attribute',
+											'change' => 'An attribute was blocked from being saved due to a duplicate UUID. The uuid in question is: ' . $attribute['uuid'],
+									));
+									unset($data['Event']['Attribute'][$k]);
 								} else {
-									$data['Event']['Attribute'][$k]['timestamp'] = $date;
+									// If a field is not set in the request, just reuse the old value
+									$recoverFields = array('value', 'to_ids', 'distribution', 'category', 'type', 'comment', 'sharing_group_id');
+									foreach ($recoverFields as $rF) if (!isset($attribute[$rF])) $data['Event']['Attribute'][$k][$rF] = $existingAttribute['Attribute'][$rF];
+									$data['Event']['Attribute'][$k]['id'] = $existingAttribute['Attribute']['id'];
+									// Check if the attribute's timestamp is bigger than the one that already exists.
+									// If yes, it means that it's newer, so insert it. If no, it means that it's the same attribute or older - don't insert it, insert the old attribute.
+									// Alternatively, we could unset this attribute from the request, but that could lead with issues if we decide that we want to start deleting attributes that don't exist in a pushed event.
+									if (isset($data['Event']['Attribute'][$k]['timestamp'])) {
+										if ($data['Event']['Attribute'][$k]['timestamp'] <= $existingAttribute['Attribute']['timestamp']) {
+											unset($data['Event']['Attribute'][$k]);
+											continue;
+										}
+									} else {
+										$data['Event']['Attribute'][$k]['timestamp'] = $date;
+									}
 								}
+							} else {
+								$this->Attribute->create();
 							}
 						} else {
 							$this->Attribute->create();

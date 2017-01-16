@@ -41,7 +41,11 @@ class AppModel extends Model {
 				32 => false, 33 => true, 38 => true, 39 => true, 40 => false,
 				42 => false, 44 => false, 45 => false, 49 => true, 50 => false,
 				51 => false, 52 => false, 55 => true, 56 => true, 57 => true,
+<<<<<<< HEAD
 				58 => false, 60 => false
+=======
+				58 => false, 59 => false
+>>>>>>> 2.4
 			)
 		)
 	);
@@ -524,6 +528,14 @@ class AppModel extends Model {
 				$this->__addIndex('correlations', '1_event_id');
 				$this->__addIndex('warninglist_entries', 'warninglist_id');
 				break;
+			case '2.4.58':
+				$sqlArray[] = "ALTER TABLE `events` ADD `disable_correlation` tinyint(1) NOT NULL DEFAULT 0;";
+				$sqlArray[] = "ALTER TABLE `attributes` ADD `disable_correlation` tinyint(1) NOT NULL DEFAULT 0;";
+				break;
+			case '2.4.59':
+				$sqlArray[] = "ALTER TABLE taxonomy_entries ADD colour varchar(7) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL DEFAULT '';";
+				$sqlArray[] = "ALTER TABLE taxonomy_predicates ADD colour varchar(7) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL DEFAULT '';";
+				break;
 			case '2.4.60':
 				if ($dataSource == 'Database/Mysql') {
 					$sqlArray[] = 'CREATE TABLE IF NOT EXISTS `attribute_tags` (
@@ -550,7 +562,7 @@ class AppModel extends Model {
 				}
 				$this->__dropIndex('attribute_tags', 'attribute_id');
 				$this->__dropIndex('attribute_tags', 'tag_id');
-				break;
+			break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
 				$sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -566,10 +578,6 @@ class AppModel extends Model {
 				$sqlArray[] = 'ALTER TABLE `shadow_attributes` DROP `event_org`;';
 				$sqlArray[] = 'ALTER TABLE `threads` DROP `org`;';
 				$sqlArray[] = 'ALTER TABLE `users` DROP `org`;';
-				break;
-			case '2.4.58':
-				$sqlArray[] = "ALTER TABLE `events` ADD `disable_correlation` tinyint(1) NOT NULL DEFAULT 0;";
-				$sqlArray[] = "ALTER TABLE `attributes` ADD `disable_correlation` tinyint(1) NOT NULL DEFAULT 0;";
 				break;
 			default:
 				return false;

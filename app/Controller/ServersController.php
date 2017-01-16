@@ -910,6 +910,7 @@ class ServersController extends AppController {
 					return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $beforeResult)),'status'=>200));
 				}
 			}
+			$this->request->data['Server']['value'] = trim($this->request->data['Server']['value']);
 			if ($found['type'] == 'boolean') {
 				$this->request->data['Server']['value'] = ($this->request->data['Server']['value'] ? true : false);
 			}
@@ -1152,6 +1153,11 @@ class ServersController extends AppController {
 		if (!$this->userRole['perm_auth']) throw new MethodNotAllowedException('This action requires API access.');
 		$versionArray = $this->Server->checkMISPVersion();
 		$this->set('response', array('version' => $versionArray['major'] . '.' . $versionArray['minor'] . '.' . $versionArray['hotfix'], 'perm_sync' => $this->userRole['perm_sync']));
+		$this->set('_serialize', 'response');
+	}
+
+	public function getPyMISPVersion() {
+		$this->set('response', array('version' => $this->pyMispVersion));
 		$this->set('_serialize', 'response');
 	}
 }

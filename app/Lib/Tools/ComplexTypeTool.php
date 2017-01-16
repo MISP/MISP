@@ -99,6 +99,7 @@ class ComplexTypeTool {
 	public function checkCSV($input, $settings = array()) {
 		$delimiter = isset($settings['delimiter']) ? $settings['delimiter'] : ",";
 		$lines = explode("\n", $input);
+		unset($input);
 		$values = !empty($settings['value']) ? $settings['value'] : array();
 		if (!is_array($values)) {
 			$values = explode(',', $values);
@@ -114,6 +115,11 @@ class ComplexTypeTool {
 			foreach ($elements as $elementPos => $element) {
 				if ((!empty($values) && in_array(($elementPos + 1), $values)) || empty($values)) {
 					$element = trim($element, " \t\n\r\0\x0B\"\'");
+					if (isset($settings['excluderegex']) && !empty($settings['excluderegex'])) {
+						if (preg_match($settings['excluderegex'], $element)) {
+							continue;
+						}
+					}
 					$resolvedResult = $this->__resolveType($element);
 					if (!empty($resolvedResult)) {
 						$iocArray[] = $resolvedResult;
@@ -146,6 +152,11 @@ class ComplexTypeTool {
 				}
 				$ioc = preg_replace('/\p{C}+/u', '', $ioc);
 				if (empty($ioc)) continue;
+				if (isset($settings['excluderegex']) && !empty($settings['excluderegex'])) {
+					if (preg_match($settings['excluderegex'], $ioc)) {
+						continue;
+					}
+				}
 				$typeArray = $this->__resolveType($ioc);
 				if ($typeArray === false) continue;
 				$temp = $typeArray;
@@ -172,7 +183,7 @@ class ComplexTypeTool {
 			if (count($compositeParts) == 2) {
 				if ($this->__resolveFilename($compositeParts[0])) {
 					foreach ($this->__hexHashTypes as $k => $v) {
-						if (strlen($compositeParts[1]) == $k && preg_match("#[0-9a-f]{" . $k . "}$#i", $compositeParts[1])) return array('types' => $v['composite'], 'to_ids' => true, 'default_type' => $v['composite'][0]);
+						if (strlen($compositeParts[1]) == $k && preg_match("#[0-9a-f]{" . $k . "}$#i", $compositeParts[1])) return array('types' => $v['composite'], 'to_ids' => true, 'default_type' => $v['composite'][0], 'value' => $input);
 					}
 					if (preg_match('#^[0-9]+:[0-9a-zA-Z\/\+]+:[0-9a-zA-Z\/\+]+$#', $compositeParts[1]) && !preg_match('#^[0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2}$#', $compositeParts[1])) {
 						return array('types' => array('ssdeep'), 'to_ids' => true, 'default_type' => 'filename|ssdeep', 'value' => $input);
@@ -183,7 +194,7 @@ class ComplexTypeTool {
 
 		// check for hashes
 		foreach ($this->__hexHashTypes as $k => $v) {
-			if (strlen($input) == $k && preg_match("#[0-9a-f]{" . $k . "}$#i", $input)) return array('types' => $v['single'], 'to_ids' => true, 'default_type' => $v['single'][0]);
+			if (strlen($input) == $k && preg_match("#[0-9a-f]{" . $k . "}$#i", $input)) return array('types' => $v['single'], 'to_ids' => true, 'default_type' => $v['single'][0], 'value' => $input);
 		}
 		if (preg_match('#^[0-9]+:[0-9a-zA-Z\/\+]+:[0-9a-zA-Z\/\+]+$#', $input) && !preg_match('#^[0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2}$#', $input)) return array('types' => array('ssdeep'), 'to_ids' => true, 'default_type' => 'ssdeep', 'value' => $input);
 		$inputRefanged = $input;
