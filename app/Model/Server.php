@@ -2104,7 +2104,6 @@ class Server extends AppModel {
 	}
 
 	public function testForEmpty($value) {
-		if ($value === false) return true;
 		$value = trim($value);
 		if ($value === '') return 'Value not set.';
 		return true;
@@ -2161,7 +2160,6 @@ class Server extends AppModel {
 	}
 
 	public function testBool($value) {
-		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
 		if ($value !== true && $value !== false) return 'Value is not a boolean, make sure that you convert \'true\' to true for example.';
 		return true;
 	}
