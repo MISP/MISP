@@ -1194,9 +1194,9 @@ class EventsController extends AppController {
 				if (isset($this->data['Event']['submittedfile'])) {
 					if (Configure::read('MISP.take_ownership_xml_import')
 						&& (isset($this->data['Event']['takeownership']) && $this->data['Event']['takeownership'] == 1)) {
-						$results = $this->_addMISPExportFile($ext, true);
+						$results = $this->_addMISPExportFile($ext, true, $this->data['Event']['publish']);
 					} else {
-						$results = $this->_addMISPExportFile($ext);
+						$results = $this->_addMISPExportFile($ext, false, $this->data['Event']['publish']);
 					}
 				}
 			}
@@ -2179,7 +2179,7 @@ class EventsController extends AppController {
 		}
 	}
 
-	public function _addMISPExportFile($ext, $take_ownership = false) {
+	public function _addMISPExportFile($ext, $take_ownership = false, $publish = false) {
 		App::uses('FileAccessTool', 'Tools');
 		$data = (new FileAccessTool())->readFromFile($this->data['Event']['submittedfile']['tmp_name'], $this->data['Event']['submittedfile']['size']);
 
@@ -2217,6 +2217,7 @@ class EventsController extends AppController {
 				$event = array('Event' => $event);
 				$created_id = 0;
 				$event['Event']['locked'] = 1;
+				$event['Event']['published'] = $publish;
 				$result['result'] = $this->Event->_add($event, true, $this->Auth->user(), '', null, false, null, $created_id, $validationIssues);
 				$result['id'] = $created_id;
 				$result['validationIssues'] = $validationIssues;
@@ -2230,6 +2231,7 @@ class EventsController extends AppController {
 			}
 			$created_id = 0;
 			$temp['Event']['locked'] = 1;
+			$temp['Event']['published'] = $publish;
 			$result = $this->Event->_add($temp, true, $this->Auth->user(), '', null, false, null, $created_id, $validationIssues);
 			$results = array(0 => array('info' => $temp['Event']['info'], 'result' => $result, 'id' => $created_id, 'validationIssues' => $validationIssues));
 		}
