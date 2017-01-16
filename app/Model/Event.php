@@ -2228,8 +2228,6 @@ class Event extends AppModel {
 						} else {
 							$this->Attribute->create();
 						}
-					} else {
-						$this->Attribute->create();
 					}
 					$data['Event']['Attribute'][$k]['event_id'] = $this->id;
 					if ($data['Event']['Attribute'][$k]['distribution'] == 4) {

@@ -22,7 +22,6 @@
 
 App::uses('Model', 'Model');
 App::uses('LogableBehavior', 'Assets.models/behaviors');
-
 class AppModel extends Model {
 
 	public $name;
@@ -558,7 +557,7 @@ class AppModel extends Model {
 				}
 				$this->__dropIndex('attribute_tags', 'attribute_id');
 				$this->__dropIndex('attribute_tags', 'tag_id');
-			break;
+				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
 				$sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
