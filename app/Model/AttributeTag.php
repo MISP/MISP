@@ -27,4 +27,19 @@ class AttributeTag extends AppModel {
 		),
 	);
 
+	public function attachTagToAttribute($attribute_id, $event_id, $tag_id) {
+		$existingAssociation = $this->find('first', array(
+			'recursive' => -1,
+			'conditions' => array(
+				'tag_id' => $tag_id,
+				'attribute_id' => $attribute_id
+			)
+		));
+		if (empty($existingAssociation)) {
+			$this->create();
+			if (!$this->save(array('attribute_id' => $attribute_id, 'event_id' => $event_id, 'tag_id' => $tag_id))) return false;
+		}
+		return true;
+	}
+
 }

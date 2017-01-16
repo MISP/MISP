@@ -2025,6 +2025,7 @@ class Event extends AppModel {
 							foreach ($attribute['AttributeTag'] as $at) {
 								$this->Attribute->AttributeTag->create();
 								$at['attribute_id'] = $this->Attribute->id;
+								$at['event_id'] = $this->id;
 								$this->Attribute->AttributeTag->save($at);
 							}
 						}
@@ -2182,6 +2183,32 @@ class Event extends AppModel {
 							'title' => 'Attribute dropped due to validation for Event ' . $this->id . ' failed: ' . $attribute_short,
 							'change' => json_encode($this->Attribute->validationErrors),
 						));
+					} else {
+						if (isset($data['Event']['Attribute'][$k]['Tag']) && $user['Role']['perm_tagger']) {
+							foreach ($data['Event']['Attribute'][$k]['Tag'] as $tag) {
+								$tag_id = $this->Attribute->AttributeTag->Tag->captureTag($tag, $user);
+								if ($tag_id) {
+									$this->Attribute->AttributeTag->attachTagToAttribute($this->Attribute->id, $this->id, $tag_id);
+								} else {
+									// If we couldn't attach the tag it is most likely because we couldn't create it - which could have many reasons
+									// However, if a tag couldn't be added, it could also be that the user is a tagger but not a tag editor
+									// In which case if no matching tag is found, no tag ID is returned. Logging these is pointless as it is the correct behaviour.
+									if ($user['Role']['perm_tag_editor']) {
+										$this->Log->create();
+										$this->Log->save(array(
+											'org' => $user['Organisation']['name'],
+											'model' => 'Attrubute',
+											'model_id' => $this->Attribute->id,
+											'email' => $user['email'],
+											'action' => 'edit',
+											'user_id' => $user['id'],
+											'title' => 'Failed create or attach Tag ' . $tag['name'] . ' to the attribute.',
+											'change' => ''
+										));
+									}
+								}
+							}
+						}
 					}
 				}
 			}

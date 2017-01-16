@@ -1008,7 +1008,9 @@ class EventsController extends AppController {
 		$sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name',  1);
 		if ($this->request->is('post')) {
 			if ($this->_isRest()) {
-
+				if (empty($this->data)) {
+					throw new MethodNotAllowedException('No valid event data received.');
+				}
 				// rearrange the response if the event came from an export
 				if (isset($this->request->data['response'])) $this->request->data = $this->request->data['response'];
 
