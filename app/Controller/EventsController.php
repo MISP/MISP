@@ -3680,8 +3680,12 @@ class EventsController extends AppController {
 		} else {
 			$json = $this->__buildGraphJson($id);
 		}
-		$this->set('json', $json);
-		$this->set('_serialize', 'json');
+		array_walk_recursive($json, function(&$item, $key){
+			if(!mb_detect_encoding($item, 'utf-8', true)){
+				$item = utf8_encode($item);
+			}
+		});
+		return new CakeResponse(array('body' => json_encode($json), 'status' => 200));
 	}
 
 	private function __buildGraphJson($id, $json = array()) {
@@ -3782,6 +3786,13 @@ class EventsController extends AppController {
 				$links[] = $temp;
 			}
 			$json['links'] = $links;
+		} else {
+			if (!isset($json['links'])) {
+				$json['links'] = array();
+			}
+			if (!isset($json['nodes'])) {
+				$json['nodes'] = array();
+			}
 		}
 		return $json;
 	}
