@@ -169,6 +169,7 @@
 			<th><?php echo $this->Paginator->sort('category');?></th>
 			<th><?php echo $this->Paginator->sort('type');?></th>
 			<th><?php echo $this->Paginator->sort('value');?></th>
+			<th>Tags</th>
 			<th><?php echo $this->Paginator->sort('comment');?></th>
 			<?php
 				if ($mayChangeCorrelation && !$event['Event']['disable_correlation']):
@@ -348,6 +349,11 @@
 											echo ' <span class="icon-warning-sign" data-placement="right" data-toggle="popover" data-content="' . h($temp) . '" data-trigger="hover">&nbsp;</span>';
 										}
 									?>
+								</div>
+							</td>
+							<td class="shortish <?php echo $extra; ?>">
+								<div class="attributeTagContainer">
+									<?php echo $this->element('ajaxAttributeTags', array('attributeId' => $object['id'], 'attributeTags' => $object['AttributeTag'], 'tagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['org_id']) )); ?>
 								</div>
 							</td>
 							<td class="showspaces bitwider <?php echo $extra; ?>">
