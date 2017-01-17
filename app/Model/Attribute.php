@@ -459,6 +459,12 @@ class Attribute extends AppModel {
 		)
 	);
 
+	public $hasMany = array(
+		'AttributeTag' => array(
+			'dependent' => true
+		)
+	);
+
 	public $hashTypes = array(
 		'md5' => array(
 			'length' => 32,
@@ -1991,6 +1997,8 @@ class Attribute extends AppModel {
 				),
 			),
 		);
+		$params['contain']['AttributeTag'] = array('Tag' => array('conditions' => array()));
+		if (empty($options['includeAllTags'])) $params['contain']['AttributeTag']['Tag']['conditions']['exportable'] = 1;
 		if (isset($options['contain'])) $params['contain'] = array_merge_recursive($params['contain'], $options['contain']);
 		else $option['contain']['Event']['fields'] = array('id', 'info', 'org_id', 'orgc_id');
 		if (Configure::read('MISP.proposals_block_attributes') && isset($options['conditions']['AND']['Attribute.to_ids']) && $options['conditions']['AND']['Attribute.to_ids'] == 1) {

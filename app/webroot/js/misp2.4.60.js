@@ -426,6 +426,32 @@ function quickSubmitTagForm(event_id, tag_id) {
 	return false;
 }
 
+function quickSubmitAttributeTagForm(attribute_id, tag_id) {
+	$('#AttributeTag').val(tag_id);
+	$.ajax({
+		data: $('#AttributeSelectTagForm').closest("form").serialize(),
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+		success:function (data, textStatus) {
+			loadAttributeTags(attribute_id);
+			handleGenericAjaxResponse(data);
+		},
+		error:function() {
+			showMessage('fail', 'Could not add tag.');
+			loadAttributeTags(attribute_id);
+		},
+		complete:function() {
+			$("#popover_form").fadeOut();
+			$("#gray_out").fadeOut();
+			$(".loading").hide();
+		},
+		type:"post",
+		url:"/attributes/addTag/" + attribute_id
+	});
+	return false;
+}
+
 function handleAjaxEditResponse(data, name, type, id, field, event) {
 	responseArray = JSON.parse(data);
 	if (type == 'Attribute') {
@@ -618,6 +644,41 @@ function removeEventTag(event, tag) {
 			url:"/events/removeTag/" + event + '/' + tag,
 			success:function (data, textStatus) {
 				loadEventTags(event);
+				handleGenericAjaxResponse(data);
+			},
+			complete:function() {
+				$(".loading").hide();
+			}
+		});
+	}
+	return false;
+}
+
+function loadAttributeTags(id) {
+	$.ajax({
+		dataType:"html",
+		cache: false,
+		success:function (data, textStatus) {
+			$("#Attribute_"+id+"_tr .attributeTagContainer").html(data);
+		},
+		url:"/tags/showAttributeTag/" + id
+	});
+}
+
+function removeAttributeTag(attribute, tag) {
+	var answer = confirm("Are you sure you want to remove this tag from the attribute?");
+	if (answer) {
+		var formData = $('#removeAttributeTag_' + tag).serialize();
+		$.ajax({
+			beforeSend: function (XMLHttpRequest) {
+				$(".loading").show();
+			},
+			data: formData,
+			type:"POST",
+			cache: false,
+			url:"/attributes/removeTag/" + attribute + '/' + tag,
+			success:function (data, textStatus) {
+				loadAttributeTags(attribute);
 				handleGenericAjaxResponse(data);
 			},
 			complete:function() {
@@ -2734,3 +2795,13 @@ function checkAndSetPublishedInfo() {
 		}
 	});
 }
+
+$(document).keyup(function(e){
+    if (e.keyCode === 27) {
+    	$("#gray_out").fadeOut();
+		$("#popover_form").fadeOut();
+		$("#confirmation_box").fadeOut();
+		$(".loading").hide();
+		resetForms();
+    }
+});

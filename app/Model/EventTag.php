@@ -63,7 +63,7 @@ class EventTag extends AppModel {
 		}
 		return true;
 	}
-	
+
 	public function getSortedTagList($context = false) {
 		$conditions = array();
 		$tag_counts = $this->find('all', array(

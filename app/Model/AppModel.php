@@ -22,7 +22,6 @@
 
 App::uses('Model', 'Model');
 App::uses('LogableBehavior', 'Assets.models/behaviors');
-
 class AppModel extends Model {
 
 	public $name;
@@ -41,7 +40,7 @@ class AppModel extends Model {
 				32 => false, 33 => true, 38 => true, 39 => true, 40 => false,
 				42 => false, 44 => false, 45 => false, 49 => true, 50 => false,
 				51 => false, 52 => false, 55 => true, 56 => true, 57 => true,
-				58 => false, 59 => false
+				58 => false, 59 => false, 60 => false
 			)
 		)
 	);
@@ -111,6 +110,8 @@ class AppModel extends Model {
 
 	// SQL scripts for updates
 	public function updateDatabase($command) {
+		$dataSourceConfig = ConnectionManager::getDataSource('default')->config;
+		$dataSource = $dataSourceConfig['datasource'];
 		$sql = '';
 		$this->Log = ClassRegistry::init('Log');
 		$clean = true;
@@ -529,6 +530,33 @@ class AppModel extends Model {
 			case '2.4.59':
 				$sqlArray[] = "ALTER TABLE taxonomy_entries ADD colour varchar(7) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL DEFAULT '';";
 				$sqlArray[] = "ALTER TABLE taxonomy_predicates ADD colour varchar(7) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL DEFAULT '';";
+				break;
+			case '2.4.60':
+				if ($dataSource == 'Database/Mysql') {
+					$sqlArray[] = 'CREATE TABLE IF NOT EXISTS `attribute_tags` (
+								`id` int(11) NOT NULL AUTO_INCREMENT,
+								`attribute_id` int(11) NOT NULL,
+								`event_id` int(11) NOT NULL,
+								`tag_id` int(11) NOT NULL,
+								PRIMARY KEY (`id`)
+							) ENGINE=InnoDB DEFAULT CHARSET=utf8;';
+					$sqlArray[] = 'ALTER TABLE `attribute_tags` ADD INDEX `attribute_id` (`attribute_id`);';
+					$sqlArray[] = 'ALTER TABLE `attribute_tags` ADD INDEX `event_id` (`event_id`);';
+					$sqlArray[] = 'ALTER TABLE `attribute_tags` ADD INDEX `tag_id` (`tag_id`);';
+				} else if ($dataSource == 'Database/Postgres') {
+					$sqlArray[] = 'CREATE TABLE IF NOT EXISTS attribute_tags (
+								id bigserial NOT NULL,
+								attribute_id bigint NOT NULL,
+								event_id bigint NOT NULL,
+								tag_id bigint NOT NULL,
+								PRIMARY KEY (id)
+							);';
+					$sqlArray[] = 'CREATE INDEX idx_attribute_tags_attribute_id ON attribute_tags (attribute_id);';
+					$sqlArray[] = 'CREATE INDEX idx_attribute_tags_event_id ON attribute_tags (event_id);';
+					$sqlArray[] = 'CREATE INDEX idx_attribute_tags_tag_id ON attribute_tags (tag_id);';
+				}
+				$this->__dropIndex('attribute_tags', 'attribute_id');
+				$this->__dropIndex('attribute_tags', 'tag_id');
 				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
