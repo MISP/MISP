@@ -2638,7 +2638,7 @@ class AttributesController extends AppController {
 		$eventId = $this->Attribute->data['Attribute']['event_id'];
 
 		$this->Attribute->Event->recursive = -1;
-		$event = $this->Attribute->Event->read(array('id', 'org_id', 'orgc_id'), $eventId);
+		$event = $this->Attribute->Event->read(array(), $eventId);
 		if (!$this->_isSiteAdmin() && !$this->userRole['perm_sync']) {
 			if (!$this->userRole['perm_tagger'] || ($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id'])) {
 				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status' => 200));
@@ -2666,9 +2666,13 @@ class AttributesController extends AppController {
 		if (!empty($found)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Tag is already attached to this attribute.')), 'status' => 200));
 		$this->Attribute->AttributeTag->create();
 		if ($this->Attribute->AttributeTag->save(array('attribute_id' => $id, 'tag_id' => $tag_id, 'event_id' => $eventId))) {
+			$event['Event']['published'] = 0;
+			$date = new DateTime();
+			$event['Event']['timestamp'] = $date->getTimestamp();
+			$this->Attribute->Event->save($event);
 			$log = ClassRegistry::init('Log');
 			$log->createLogEntry($this->Auth->user(), 'tag', 'Attribute', $id, 'Attached tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" to attribute (' . $id . ')', 'Attribute (' . $id . ') tagged as Tag (' . $tag_id . ')');
-			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Tag added.')), 'status' => 200));
+			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Tag added.', 'check_publish' => true)), 'status' => 200));
 		} else {
 			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Tag could not be added.')), 'status' => 200));
 		}
@@ -2703,7 +2707,7 @@ class AttributesController extends AppController {
 		if (!is_numeric($id)) $id = $this->request->data['Attribute']['id'];
 
 		$this->Attribute->Event->recursive = -1;
-		$event = $this->Attribute->Event->read(array('id', 'org_id', 'orgc_id', 'distribution'), $eventId);
+		$event = $this->Attribute->Event->read(array(), $eventId);
 		// org should allow to (un)tag too, so that an event that gets pushed can be (un)tagged locally by the owning org
 		if ((($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id'] && $event['Event']['distribution'] == 0) || (!$this->userRole['perm_tagger'])) && !$this->_isSiteAdmin()) {
 			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status' => 200));
@@ -2725,9 +2729,13 @@ class AttributesController extends AppController {
 			'fields' => array('Tag.name')
 		));
 		if ($this->Attribute->AttributeTag->delete($attributeTag['AttributeTag']['id'])) {
+			$event['Event']['published'] = 0;
+			$date = new DateTime();
+			$event['Event']['timestamp'] = $date->getTimestamp();
+			$this->Attribute->Event->save($event);
 			$log = ClassRegistry::init('Log');
 			$log->createLogEntry($this->Auth->user(), 'tag', 'Attribute', $id, 'Removed tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" from attribute (' . $id . ')', 'Attribute (' . $id . ') untagged of Tag (' . $tag_id . ')');
-			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Tag removed.')), 'status' => 200));
+			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Tag removed.', 'check_publish' => true)), 'status' => 200));
 		} else {
 			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Tag could not be removed.')), 'status' => 200));
 		}
