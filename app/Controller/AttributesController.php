@@ -2670,6 +2670,8 @@ class AttributesController extends AppController {
 			$date = new DateTime();
 			$event['Event']['timestamp'] = $date->getTimestamp();
 			$this->Attribute->Event->save($event);
+			$this->Attribute->data['Attribute']['timestamp'] = $date->getTimestamp();
+			$this->Attribute->save($this->Attribute->data);
 			$log = ClassRegistry::init('Log');
 			$log->createLogEntry($this->Auth->user(), 'tag', 'Attribute', $id, 'Attached tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" to attribute (' . $id . ')', 'Attribute (' . $id . ') tagged as Tag (' . $tag_id . ')');
 			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Tag added.', 'check_publish' => true)), 'status' => 200));
@@ -2733,6 +2735,8 @@ class AttributesController extends AppController {
 			$date = new DateTime();
 			$event['Event']['timestamp'] = $date->getTimestamp();
 			$this->Attribute->Event->save($event);
+			$this->Attribute->data['Attribute']['timestamp'] = $date->getTimestamp();
+			$this->Attribute->save($this->Attribute->data);
 			$log = ClassRegistry::init('Log');
 			$log->createLogEntry($this->Auth->user(), 'tag', 'Attribute', $id, 'Removed tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" from attribute (' . $id . ')', 'Attribute (' . $id . ') untagged of Tag (' . $tag_id . ')');
 			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Tag removed.', 'check_publish' => true)), 'status' => 200));
