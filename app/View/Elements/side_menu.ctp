@@ -47,13 +47,11 @@
 					<?php endif; ?>
 					<li class="divider"></li>
 					<?php
-						$publishButtons = ' style="display:none;"';
-						$exportButtons = ' style="display:none;"';
+						$publishButtons = ' hidden';
 						if (isset($event['Event']['published']) && 0 == $event['Event']['published'] && ($isSiteAdmin || (isset($mayPublish) && $mayPublish))) $publishButtons = "";
-						if (isset($event['Event']['published']) && $event['Event']['published']) $exportButtons = "";
 					?>
-					<li<?php echo $publishButtons; ?> class="publishButtons not-published"><a href="#" onClick="publishPopup('<?php echo h($event['Event']['id']); ?>', 'alert')">Publish Event</a></li>
-					<li<?php echo $publishButtons; ?> class="publishButtons not-published"><a href="#" onClick="publishPopup('<?php echo h($event['Event']['id']); ?>', 'publish')">Publish (no email)</a></li>
+					<li class="publishButtons not-published<?php echo h($publishButtons); ?>"><a href="#" onClick="publishPopup('<?php echo h($event['Event']['id']); ?>', 'alert')">Publish Event</a></li>
+					<li class="publishButtons not-published<?php echo h($publishButtons); ?>"><a href="#" onClick="publishPopup('<?php echo h($event['Event']['id']); ?>', 'publish')">Publish (no email)</a></li>
 					<?php if (Configure::read('MISP.delegation')):?>
 						<?php if ((Configure::read('MISP.unpublishedprivate') || (isset($event['Event']['distribution']) && $event['Event']['distribution'] == 0)) && (!isset($delegationRequest) || !$delegationRequest) && ($isSiteAdmin || (isset($isAclDelegate) && $isAclDelegate))): ?>
 								<li id='lidelegateEvent'><a href="#" onClick="delegatePopup('<?php echo h($event['Event']['id']); ?>');">Delegate Publishing</a></li>
