@@ -3678,7 +3678,7 @@ class EventsController extends AppController {
 		} else {
 			$json = $this->__buildGraphJson($id);
 		}
-		return new CakeResponse(array('body'=> json_encode($json), 'status' => 200));
+		return new CakeResponse(array('body' => json_encode($json), 'status' => 200));
 	}
 
 	private function __buildGraphJson($id, $json = array()) {
@@ -3779,6 +3779,13 @@ class EventsController extends AppController {
 				$links[] = $temp;
 			}
 			$json['links'] = $links;
+		} else {
+			if (!isset($json['links'])) {
+				$json['links'] = array();
+			}
+			if (!isset($json['nodes'])) {
+				$json['nodes'] = array();
+			}
 		}
 		return $json;
 	}
