@@ -17,7 +17,7 @@
 	<div class="popover_choice_main" id ="popover_choice_main">
 		<table style="width:100%;">
 		<?php foreach ($options as $k => &$option): ?>
-			<tr style="border-bottom:1px solid black;" class="templateChoiceButton" id="field_<?php echo h($k); ?>">
+			<tr style="border-top:1px solid black;" class="templateChoiceButton" id="field_<?php echo h($k); ?>">
 				<?php if (isset($attributeTag)): ?>
 				<td style="padding-left:10px;padding-right:10px; text-align:center;width:100%;" onClick="quickSubmitAttributeTagForm('<?php echo h($object_id);?>', '<?php echo h($k); ?>');" title="<?php echo h($expanded[$k]);?>"><?php echo h($option); ?></td>
 				<?php else: ?>
@@ -25,11 +25,9 @@
 				<?php endif; ?>
 			</tr>
 		<?php endforeach; ?>
-		<tr style="border-bottom:1px solid black;" class="templateChoiceButton">
-			<td style="padding-left:10px;padding-right:10px; text-align:center;width:100%;" onClick="getPopup('<?php echo h($object_id); if (isset($attributeTag)) echo '/true'; ?>', 'tags', 'selectTaxonomy');" title="Select Taxonomy">Back to Taxonomy Selection</td>
-		</tr>
 		</table>
 	</div>
+	<div class="popover-back useCursorPointer" onClick="getPopup('<?php echo h($object_id); if (isset($attributeTag)) echo '/true'; ?>', 'tags', 'selectTaxonomy');" title="Select Taxonomy">Back to Taxonomy Selection</div>
 	<div class="templateChoiceButton templateChoiceButtonLast" onClick="cancelPopoverForm();">Cancel</div>
 </div>
 <script type="text/javascript">
@@ -49,7 +47,6 @@
 			}
 		});
 	});
-
 	$(window).resize(function() {
 		resizePopoverBody();
 	});

@@ -1627,6 +1627,15 @@ table.table.table-striped tr.deleted_row td {
 	width: 0;
 }
 
+.popover-back {
+	border-top:1px solid black;
+	line-height: 30px;
+	padding-top: 1px;
+	padding-bottom: 1px;
+	text-align:center;
+	width:100%;
+}
+
 @-webkit-keyframes rotation {
    from {-webkit-transform: rotate(0deg);}
    to {-webkit-transform: rotate(359deg);}
