@@ -3678,6 +3678,11 @@ class EventsController extends AppController {
 		} else {
 			$json = $this->__buildGraphJson($id);
 		}
+		array_walk_recursive($json, function(&$item, $key){
+			if(!mb_detect_encoding($item, 'utf-8', true)){
+				$item = utf8_encode($item);
+			}
+		});
 		return new CakeResponse(array('body' => json_encode($json), 'status' => 200));
 	}
 
