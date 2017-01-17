@@ -2797,10 +2797,11 @@ function checkAndSetPublishedInfo() {
 }
 
 $(document).keyup(function(e){
-    if(e.keyCode === 27)
+    if (e.keyCode === 27) {
     	$("#gray_out").fadeOut();
 		$("#popover_form").fadeOut();
 		$("#confirmation_box").fadeOut();
 		$(".loading").hide();
 		resetForms();
+    }
 });
