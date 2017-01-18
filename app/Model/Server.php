@@ -2126,10 +2126,40 @@ class Server extends AppModel {
 		return true;
 	}
 
+
+	public function getHost() {
+		if (function_exists('apache_request_headers')){
+				 $headers = apache_request_headers();
+		} else {
+				 $headers = $_SERVER;
+		}
+
+		if ( array_key_exists( 'X-Forwarded-Host', $headers ) ) {
+				 $host = $headers['X-Forwarded-Host'];
+		} else {
+				 $host = $headers['HTTP_HOST'];
+		}
+		return $host;
+	}
+
+	public function getProto() {
+		if (function_exists('apache_request_headers')){
+				 $headers = apache_request_headers();
+		} else {
+				 $headers = $_SERVER;
+		}
+
+		if (array_key_exists('X-Forwarded-Proto',$headers)){
+				 $proto = $headers['X-Forwarded-Proto'];
+		} else {
+				 $proto = ((!empty($headers['HTTPS']) && $headers['HTTPS'] !== 'off') || $headers['SERVER_PORT'] == 443) === true ? 'HTTPS' : 'HTTP';
+		}       
+		return $proto;
+	}       
+
 	public function testBaseURL($value) {
 		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
-		$protocol = ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $_SERVER['SERVER_PORT'] == 443) === true ? 'HTTPS' : 'HTTP';
-		if ($value != strtolower($protocol) . '://' . $_SERVER['HTTP_HOST']) return false;
+		if ($value != strtolower($this->getProto()) . '://' . $this->getHost()) return false;
 		return true;
 	}
 
