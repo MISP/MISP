@@ -352,9 +352,19 @@
 								</div>
 							</td>
 							<td class="shortish <?php echo $extra; ?>">
-								<div class="attributeTagContainer">
-									<?php echo $this->element('ajaxAttributeTags', array('attributeId' => $object['id'], 'attributeTags' => $object['AttributeTag'], 'tagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['org_id']) )); ?>
-								</div>
+								<?php 
+									if ($object['objectType'] == 0):
+								?>
+									<div class="attributeTagContainer">
+										<?php echo $this->element('ajaxAttributeTags', array('attributeId' => $object['id'], 'attributeTags' => $object['AttributeTag'], 'tagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['org_id']) )); ?>
+									</div>
+								<?php 
+									else:
+								?>
+									&nbsp;
+								<?php 
+									endif;
+								?>
 							</td>
 							<td class="showspaces bitwider <?php echo $extra; ?>">
 								<div id = "<?php echo $currentType . '_' . $object['id'] . '_comment_placeholder'; ?>" class = "inline-field-placeholder"></div>
