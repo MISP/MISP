@@ -203,7 +203,7 @@ class ComplexTypeTool {
 		}
 		$inputRefanged = rtrim($inputRefanged, ".");
 		if (strpos($input, '@') !== false) {
-			if (filter_var($input, FILTER_VALIDATE_EMAIL)) return array('types' => array('email-src', 'email-dst'), 'to_ids' => true, 'default_type' => 'email-src', 'value' => $input);
+			if (filter_var($input, FILTER_VALIDATE_EMAIL)) return array('types' => array('email-src', 'email-dst', 'whois-registrant-email'), 'to_ids' => true, 'default_type' => 'email-src', 'value' => $input);
 		}
 		// note down and remove the port if it's a url / domain name / hostname / ip
 		// input2 from here on is the variable containing the original input with the port removed. It is only used by url / domain name / hostname / ip
