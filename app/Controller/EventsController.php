@@ -792,11 +792,11 @@ class EventsController extends AppController {
 
 		// workaround to get the event dates in to the attribute relations
 		$relatedDates = array();
-		if (isset($event['RelatedEvent'])) {
+		if (!empty($event['RelatedEvent'])) {
 			foreach ($event['RelatedEvent'] as $relation) {
 				$relatedDates[$relation['Event']['id']] = $relation['Event']['date'];
 			}
-			if (isset($event['RelatedAttribute'])) {
+			if (!empty($event['RelatedAttribute'])) {
 				foreach ($event['RelatedAttribute'] as $key => $relatedAttribute) {
 					foreach ($relatedAttribute as $key2 => $relation) {
 						$event['RelatedAttribute'][$key][$key2]['date'] = $relatedDates[$relation['id']];
