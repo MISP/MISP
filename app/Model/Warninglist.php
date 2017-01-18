@@ -164,6 +164,8 @@ class Warninglist extends AppModel{
 				$result = $this->__evalCIDRList($listValues, $value[$component]);
 			} else if ($listType === 'string') {
 				$result = $this->__evalString($listValues, $value[$component]);
+			} else if ($listType === 'substring') {
+				$result = $this->__evalSubString($listValues, $value[$component]);
 			}
 			if ($result) return ($component + 1);
 		}
@@ -240,6 +242,15 @@ class Warninglist extends AppModel{
 
 	private function __evalString($listValues, $value) {
 		if (in_array($value, $listValues)) return true;
+		return false;
+	}
+	
+	private function __evalSubString($listValues, $value) {
+		foreach ($listValues as $listValue) {
+			if (strpos($value, $listValue) !== false) {
+				return true;
+			}
+		}
 		return false;
 	}
 
