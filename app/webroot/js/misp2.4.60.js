@@ -45,9 +45,9 @@ function screenshotPopup(screenshotData, title) {
 	popupHtml = '<img src="' + screenshotData + '" id="screenshot-image" title="' + title + '" />';
 	popupHtml += '<div class="close-icon useCursorPointer" onClick="closeScreenshot();"></div>';
 	$('#screenshot_box').html(popupHtml);
+	$('#screenshot_box').show();
 	left = ($(window).width() / 2) - ($('#screenshot-image').width() / 2);
 	$('#screenshot_box').css({'left': left + 'px'});
-	$('#screenshot_box').show();
 	$("#gray_out").fadeIn();
 }
 
