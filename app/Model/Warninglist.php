@@ -166,6 +166,8 @@ class Warninglist extends AppModel{
 				$result = $this->__evalString($listValues, $value[$component]);
 			} else if ($listType === 'substring') {
 				$result = $this->__evalSubString($listValues, $value[$component]);
+			} else if ($listType === 'hostname') {
+				$result = $this->__evalHostname($listValues, $value[$component]);
 			}
 			if ($result) return ($component + 1);
 		}
@@ -248,6 +250,35 @@ class Warninglist extends AppModel{
 	private function __evalSubString($listValues, $value) {
 		foreach ($listValues as $listValue) {
 			if (strpos($value, $listValue) !== false) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	private function __evalHostname($listValues, $value) {
+		// php's parse_url is dumb, so let's use some hacky workarounds
+		$testValue = $value;
+		if (strpos($value, '//') == false) {
+			$testValue = 'http://' . $value;
+		}
+		$hostname = parse_url($testValue, PHP_URL_HOST);
+		// If the hostname is not found, just return false
+		if (!isset($hostname)) {
+			return false;
+		}
+		$value = explode('.', $value);
+		$pieces = count($value);
+		foreach ($listValues as $listValue) {
+			$listValue = explode('.', $listValue);
+			if (count($listValue) > $pieces) {
+				continue;
+			}
+			$piecesListValue = count($listValue);
+			$listValue = implode('.', $listValue);
+			$temp = array_slice($value, -$piecesListValue, $piecesListValue);
+			$temp = implode('.', $temp);
+			if ($listValue == $temp) {
 				return true;
 			}
 		}
