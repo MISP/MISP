@@ -82,6 +82,11 @@ class AppController extends Controller {
 	public function beforeFilter() {
 		// check for a supported datasource configuration
 		$dataSourceConfig = ConnectionManager::getDataSource('default')->config;
+		if (!isset($dataSourceConfig['encoding'])) {
+			$db = ConnectionManager::getDataSource('default');
+			$db->setConfig(array('encoding' => 'utf8'));
+			ConnectionManager::create('default', $db->config);
+		}
 		$dataSource = $dataSourceConfig['datasource'];
 		if ($dataSource != 'Database/Mysql' && $dataSource != 'Database/Postgres') {
 			throw new Exception('datasource not supported: ' . $dataSource);
