@@ -617,7 +617,7 @@ attributes or the appropriate distribution level. If you think there is a mistak
 			return false;
 		});
 		$('.screenshot').click(function() {
-			$(this).toggleClass('screenshot-collapsed');
+			screenshotPopup($(this).attr('src'), $(this).attr('title'));
 		});
 	});
 </script>

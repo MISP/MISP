@@ -41,6 +41,16 @@ function genericPopup(url, popupTarget) {
 	});
 }
 
+function screenshotPopup(screenshotData, title) {
+	popupHtml = '<img src="' + screenshotData + '" id="screenshot-image" title="' + title + '" />';
+	popupHtml += '<div class="close-icon useCursorPointer" onClick="closeScreenshot();"></div>';
+	$('#screenshot_box').html(popupHtml);
+	left = ($(window).width() / 2) - ($('#screenshot-image').width() / 2);
+	$('#screenshot_box').css({'left': left + 'px'});
+	$('#screenshot_box').show();
+	$("#gray_out").fadeIn();
+}
+
 function submitPublish(id, type) {
 	$("#PromptForm").submit();
 }
@@ -2800,8 +2810,14 @@ $(document).keyup(function(e){
     if (e.keyCode === 27) {
     	$("#gray_out").fadeOut();
 		$("#popover_form").fadeOut();
+		$("#screenshot_box").fadeOut();
 		$("#confirmation_box").fadeOut();
 		$(".loading").hide();
 		resetForms();
     }
 });
+
+function closeScreenshot() {
+	$("#screenshot_box").fadeOut();
+	$("#gray_out").fadeOut();
+}
