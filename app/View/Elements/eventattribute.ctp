@@ -293,8 +293,7 @@
 													$extension = explode('.', $object['value']);
 													$extension = end($extension);
 													$uri = 'data:image/' . strtolower(h($extension)) . ';base64,' . h($object['image']);
-													$img = '<img src="' . $uri . '" style="width:200px;" title="' . h($object['value']) . '" />';
-													echo '<a href="' . $baseurl . '/' . ($object['objectType'] == 0 ? 'attributes' : 'shadow_attributes') . '/download/' . h($object['id']) . '">' . $img . '</a>';
+													echo '<img class="screenshot screenshot-collapsed useCursorPointer" src="' . $uri . '" title="' . h($object['value']) . '" />';
 												} else {
 													$t = ($object['objectType'] == 0 ? 'attributes' : 'shadow_attributes');
 													$filenameHash = explode('|', nl2br(h($object['value'])));
@@ -616,6 +615,9 @@ attributes or the appropriate distribution level. If you think there is a mistak
 			var attribute_id = $(this).data('attribute-id');
 			getPopup(attribute_id, 'attributes', 'toggleCorrelation', '', '#confirmation_box');
 			return false;
+		});
+		$('.screenshot').click(function() {
+			$(this).toggleClass('screenshot-collapsed');
 		});
 	});
 </script>
