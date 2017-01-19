@@ -1636,6 +1636,10 @@ table.table.table-striped tr.deleted_row td {
 	width:100%;
 }
 
+.screenshot-collapsed {
+	width:200px;
+}
+
 @-webkit-keyframes rotation {
    from {-webkit-transform: rotate(0deg);}
    to {-webkit-transform: rotate(359deg);}
