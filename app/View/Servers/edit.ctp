@@ -85,7 +85,7 @@
 	?>
 	<div class="clear">
 		<p>
-			<span class="bold">Server certificate file: </span>
+			<span class="bold">Server certificate file (*.pem): </span>
 			<span id="serverEditCertValue">
 				<?php
 					if (isset($server['Server']['cert_file']) && !empty($server['Server']['cert_file'])) echo h($server['Server']['cert_file']);
