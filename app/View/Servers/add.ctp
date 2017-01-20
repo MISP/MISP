@@ -129,7 +129,7 @@ var formInfoValues = {
 		'ServerAuthkey' : "You can find the authentication key on your profile on the external server.",
 		'ServerPush' : "Allow the upload of events and their attributes.",
 		'ServerPull' : "Allow the download of events and their attributes from the server.",
-		'ServerSubmittedCert' : "You can also upload a certificate file if the instance you are trying to connect to has its own signing authority.",
+		'ServerSubmittedCert' : "You can also upload a certificate file if the instance you are trying to connect to has its own signing authority.  (*.pem)",
 		'ServerSelfSigned' : "Click this, if you would like to allow a connection despite the other instance using a self-signed certificate (not recommended)."
 };
 
