@@ -1,5 +1,3 @@
-[![Build Status](https://travis-ci.org/MISP/MISP.svg?branch=2.4)](https://travis-ci.org/MISP/MISP)
-
 MISP - Malware Information Sharing Platform and Threat Sharing
 --------------------------------------------------------------
 
@@ -10,10 +8,25 @@ MISP - Malware Information Sharing Platform and Threat Sharing
   <td>Latest Release</td>
   <td><a href="https://badge.fury.io/gh/MISP%2FMISP"><img src="https://badge.fury.io/gh/MISP%2FMISP.svg" alt="GitHub version" height="18"></a></td>
 </tr>
-
+<tr>
+  <td>Travis</td>
+  <td><a href="https://travis-ci.org/MISP/MISP.svg?branch=2.4"><img src="https://img.shields.io/travis/MISP/MISP/2.4.svg" /></td>
+</tr>
 <tr>
   <td>Gitter</td>
-  <td><a href="https://gitter.im/MISP/MISP?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge"><img src="https://badges.gitter.im/MISP/MISP.svg" /></a><td>
+  <td><a href="https://gitter.im/MISP/MISP?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge"><img src="https://badges.gitter.im/MISP/MISP.svg" /></a></td>
+</tr>
+<tr>
+  <td>Twitter</td>
+  <td><a href="https://twitter.com/MISPProject"><img src="https://img.shields.io/twitter/follow/MISPProject.svg?style=social&label=Follow" /></a></td>
+</tr>
+<tr>
+  <td>Contributors</td>
+  <td><img src="https://img.shields.io/github/contributors/MISP/MISP.svg" /></td>
+</tr>
+<tr>
+  <td>License</td>
+  <td><img src="https://img.shields.io/github/license/MISP/MISP.svg" /></td>
 </tr>
 
 </table>
