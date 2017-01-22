@@ -1863,7 +1863,7 @@ class Event extends AppModel {
 			unset($data['Event']['SharingGroup']);
 		}
 		if (isset($data['Event']['Attribute'])) {
-			foreach ($data['Event']['Attribute'] as $k => &$a) {
+			foreach ($data['Event']['Attribute'] as $k => $a) {
 				unset($data['Event']['Attribute']['id']);
 				if (isset($a['distribution']) && $a['distribution'] == 4) {
 					$data['Event']['Attribute'][$k]['sharing_group_id'] = $this->SharingGroup->captureSG($data['Event']['Attribute'][$k]['SharingGroup'], $user);
