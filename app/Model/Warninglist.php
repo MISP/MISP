@@ -258,16 +258,15 @@ class Warninglist extends AppModel{
 	
 	private function __evalHostname($listValues, $value) {
 		// php's parse_url is dumb, so let's use some hacky workarounds
-		$testValue = $value;
 		if (strpos($value, '//') == false) {
-			$testValue = 'http://' . $value;
+			$value = 'http://' . $value;
 		}
-		$hostname = parse_url($testValue, PHP_URL_HOST);
+		$hostname = parse_url($value, PHP_URL_HOST);
 		// If the hostname is not found, just return false
 		if (!isset($hostname)) {
 			return false;
 		}
-		$value = explode('.', $value);
+		$value = explode('.', $hostname);
 		$pieces = count($value);
 		foreach ($listValues as $listValue) {
 			$listValue = explode('.', $listValue);
