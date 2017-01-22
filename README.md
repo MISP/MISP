@@ -3,9 +3,20 @@
 MISP - Malware Information Sharing Platform and Threat Sharing
 --------------------------------------------------------------
 
-[![Join the chat at https://gitter.im/MISP/MISP](https://badges.gitter.im/MISP/MISP.svg)](https://gitter.im/MISP/MISP?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-
 ![logo](./INSTALL/logos/misp-logo.png?raw=true "MISP")
+
+<table>
+<tr>
+  <td>Latest Release</td>
+  <td><a href="https://badge.fury.io/gh/MISP%2FMISP"><img src="https://badge.fury.io/gh/MISP%2FMISP.svg" alt="GitHub version" height="18"></a></td>
+</tr>
+
+<tr>
+  <td>Gitter</td>
+  <td><a href="https://gitter.im/MISP/MISP?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge"><img src="https://badges.gitter.im/MISP/MISP.svg" /></a><td>
+</tr>
+
+</table>
 
 MISP, Malware Information Sharing Platform and Threat Sharing, is an open source software solution for collecting, storing, distributing and sharing cyber security indicators and threat about cyber security incidents analysis and malware analysis. MISP is designed by and for incident analysts, security and ICT professionals or malware reverser to support their day-to-day operations to share structured informations efficiently.
 
