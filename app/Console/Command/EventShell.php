@@ -347,6 +347,7 @@ class EventShell extends AppShell
 			$file = new File($dir->pwd() . DS . 'misp.bro.' . $user['Organisation']['name'] . '.intel');
 		}
 
+		$file->write('');
 		foreach ($types as $k => $type) {
 			$final = $this->Attribute->bro($user, $type);
 			foreach ($final as $attribute) {
