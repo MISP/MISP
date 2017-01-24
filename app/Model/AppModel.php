@@ -40,7 +40,7 @@ class AppModel extends Model {
 				32 => false, 33 => true, 38 => true, 39 => true, 40 => false,
 				42 => false, 44 => false, 45 => false, 49 => true, 50 => false,
 				51 => false, 52 => false, 55 => true, 56 => true, 57 => true,
-				58 => false, 59 => false, 60 => false
+				58 => false, 59 => false, 60 => false, 61 => false
 			)
 		)
 	);
@@ -113,6 +113,8 @@ class AppModel extends Model {
 		$dataSourceConfig = ConnectionManager::getDataSource('default')->config;
 		$dataSource = $dataSourceConfig['datasource'];
 		$sql = '';
+		$sqlArray = array();
+		$indexArray = array();
 		$this->Log = ClassRegistry::init('Log');
 		$clean = true;
 		switch ($command) {
@@ -558,6 +560,10 @@ class AppModel extends Model {
 				$this->__dropIndex('attribute_tags', 'attribute_id');
 				$this->__dropIndex('attribute_tags', 'tag_id');
 				break;
+			case '2.4.61':
+				$sqlArray[] = 'ALTER TABLE feeds ADD input_source varchar(255) COLLATE utf8_bin NOT NULL DEFAULT "network";';
+				$indexArray[] = array('feeds', 'input_source');
+				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
 				$sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -605,6 +611,34 @@ class AppModel extends Model {
 						'title' => 'Issues executing the SQL query for ' . $command,
 						'change' => 'The executed SQL query was: ' . $sql . PHP_EOL . ' The returned error is: ' . $e->getMessage()
 				));
+			}
+			foreach ($indexArray as $iA) {
+				try {
+					$this->__addIndex($iA[0], $iA[1]);
+					$this->Log->create();
+					$this->Log->save(array(
+							'org' => 'SYSTEM',
+							'model' => 'Server',
+							'model_id' => 0,
+							'email' => 'SYSTEM',
+							'action' => 'update_database',
+							'user_id' => 0,
+							'title' => 'Successfuly executed the SQL query for ' . $command,
+							'change' => 'New index for field ' . $iA[1] . ' added to table ' . $iA[0],
+					));
+				} catch (Exception $e) {
+					$this->Log->create();
+					$this->Log->save(array(
+							'org' => 'SYSTEM',
+							'model' => 'Server',
+							'model_id' => 0,
+							'email' => 'SYSTEM',
+							'action' => 'update_database',
+							'user_id' => 0,
+							'title' => 'Issues executing the SQL query for ' . $command,
+							'change' => 'Failed to add index for field ' . $iA[1] . ' for table ' . $iA[0],
+					));
+				}
 			}
 		}
 		if ($clean) $this->cleanCacheFiles();

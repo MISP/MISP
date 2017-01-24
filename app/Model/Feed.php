@@ -23,8 +23,8 @@ class Feed extends AppModel {
 
 	public $validate = array(
 		'url' => array( // TODO add extra validation to refuse multiple time the same url from the same org
-			'rule' => array('url'),
-			'message' => 'Please enter a valid url.',
+			'rule' => array('urlOrExistingFilepath'),
+			'message' => 'Please enter a valid url or file path (make sure that the choice matches the input source setting).',
 		),
 		'provider' => 'valueNotEmpty',
 		'name' => 'valueNotEmpty',
@@ -47,6 +47,20 @@ class Feed extends AppModel {
 		)
 	);
 
+	public function urlOrExistingFilepath($fields) {
+		$input_source = empty($this->data['Feed']['input_source']) ? 'network' : $this->data['Feed']['input_source'];
+		if ($input_source == 'local') {
+			if (!file_exists($this->data['Feed']['url']) && !is_dir($this->data['Feed']['url'])) {
+				return false;
+			}
+		} else {
+			if (!filter_var($url, FILTER_VALIDATE_URL)) {
+				return false;
+			}
+		}
+		return true;
+	}
+
 	public function getFeedTypesOptions() {
 		$result = array();
 		foreach ($this->feed_types as $key => $value) {
@@ -59,11 +73,19 @@ class Feed extends AppModel {
 	// returns an array with the UUIDs of events that are new or that need updating
 	public function getNewEventUuids($feed, $HttpSocket) {
 		$result = array();
-		$request = $this->__createFeedRequest();
-		$uri = $feed['Feed']['url'] . '/manifest.json';
-		$response = $HttpSocket->get($uri, '', $request);
-		if ($response->code != 200) return 1;
-		$manifest = json_decode($response->body, true);
+		if (isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] == 'local') {
+			if (file_exists($feed['Feed']['url'] . '/manifest.json')) {
+				$data = file_get_contents($feed['Feed']['url'] . '/manifest.json');
+			}
+		} else {
+			$request = $this->__createFeedRequest();
+			$uri = $feed['Feed']['url'] . '/manifest.json';
+			$response = $HttpSocket->get($uri, '', $request);
+			if ($response->code != 200) return 1;
+			$data = $response->body;
+			unset($response);
+		}
+		$manifest = json_decode($data, true);
 		if (!$manifest) return 2;
 		$this->Event = ClassRegistry::init('Event');
 		$events = $this->Event->find('all', array(
@@ -85,10 +107,21 @@ class Feed extends AppModel {
 	public function getManifest($feed, $HttpSocket) {
 		$result = array();
 		$request = $this->__createFeedRequest();
-		$uri = $feed['Feed']['url'] . '/manifest.json';
-		$response = $HttpSocket->get($uri, '', $request);
+		if (isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] == 'local') {
+			if (file_exists($feed['Feed']['url'] . '/manifest.json')) {
+				$data = file_get_contents($feed['Feed']['url'] . '/manifest.json');
+			}
+		} else {
+			$uri = $feed['Feed']['url'] . '/manifest.json';
+			$response = $HttpSocket->get($uri, '', $request);
+			if ($response->code != 200) {
+				return false;
+			}
+			$data = $response->body;
+			unset($response);
+		}
 		try {
-			$events = json_decode($response->body, true);
+			$events = json_decode($data, true);
 		} catch (Exception $e) {
 			return false;
 		}
@@ -98,20 +131,26 @@ class Feed extends AppModel {
 
 	public function getFreetextFeed($feed, $HttpSocket, $type = 'freetext', $page = 1, $limit = 60, &$params = array()) {
 		$result = array();
-		$feedCache = APP . 'tmp' . DS . 'cache' . DS . 'misp_feed_' . intval($feed['Feed']['id']) . '.cache';
-		$doFetch = true;
-		if (file_exists($feedCache)) {
-			$file = new File($feedCache);
-			if (time() - $file->lastChange() < 600) {
-				$doFetch = false;
-				$data = file_get_contents($feedCache);
+		if (isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] == 'local') {
+			if (file_exists($feed['Feed']['url'])) {
+				$data = file_get_contents($feed['Feed']['url']);
 			}
-		}
-		if ($doFetch) {
-			$response = $HttpSocket->get($feed['Feed']['url'], '', array());
-			if ($response->code == 200) {
-				$data = $response->body;
-				file_put_contents($feedCache, $data);
+		} else {
+			$feedCache = APP . 'tmp' . DS . 'cache' . DS . 'misp_feed_' . intval($feed['Feed']['id']) . '.cache';
+			$doFetch = true;
+			if (file_exists($feedCache)) {
+				$file = new File($feedCache);
+				if (time() - $file->lastChange() < 600) {
+					$doFetch = false;
+					$data = file_get_contents($feedCache);
+				}
+			}
+			if ($doFetch) {
+				$response = $HttpSocket->get($feed['Feed']['url'], '', array());
+				if ($response->code == 200) {
+					$data = $response->body;
+					file_put_contents($feedCache, $data);
+				}
 			}
 		}
 		App::uses('ComplexTypeTool', 'Tools');
@@ -309,15 +348,22 @@ class Feed extends AppModel {
 	}
 
 	public function downloadEventFromFeed($feed, $uuid, $user) {
-		$HttpSocket = $this->__setupHttpSocket($feed);
-		$request = $this->__createFeedRequest();
-		$uri = $feed['Feed']['url'] . '/' . $uuid . '.json';
-		$response = $HttpSocket->get($uri, '', $request);
-		if ($response->code != 200) {
-			return false;
+		$path = $feed['Feed']['url'] . '/' . $uuid . '.json';
+		if (isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] == 'local') {
+			if (file_exists($path)) {
+				$data = file_get_contents($path);
+			}
 		} else {
-			return $this->__prepareEvent($response->body, $feed);
+			$HttpSocket = $this->__setupHttpSocket($feed);
+			$request = $this->__createFeedRequest();
+			$response = $HttpSocket->get($path, '', $request);
+			if ($response->code != 200) {
+				return false;
+			}
+			$data = $response->body;
+			unset($response->body);
 		}
+		return $this->__prepareEvent($data, $feed);
 	}
 
 	private function __saveEvent($event, $user) {
@@ -392,31 +438,49 @@ class Feed extends AppModel {
 	}
 
 	private function __addEventFromFeed($HttpSocket, $feed, $uuid, $user, $filterRules) {
-		$request = $this->__createFeedRequest();
-		$uri = $feed['Feed']['url'] . '/' . $uuid . '.json';
-		$response = $HttpSocket->get($uri, '', $request);
-		if ($response->code != 200) {
+		if (!Validation::uuid($uuid)) {
 			return false;
-		} else {
-			$event = $this->__prepareEvent($response->body, $feed);
-			if (is_array($event)) {
-				$this->Event = ClassRegistry::init('Event');
-				return $this->Event->_add($event, true, $user);
-			} else return $event;
 		}
+		$path = $feed['Feed']['url'] . '/' . $uuid . '.json';
+		if (isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] == 'local') {
+			if (file_exists($path)) {
+				$data = file_get_contents($path);
+			}
+		} else {
+			$request = $this->__createFeedRequest();
+			$response = $HttpSocket->get($path, '', $request);
+			if ($response->code != 200) {
+				return false;
+			}
+			$data = $response->body;
+			unset($response);
+		}
+		$event = $this->__prepareEvent($data, $feed);
+		if (is_array($event)) {
+			$this->Event = ClassRegistry::init('Event');
+			return $this->Event->_add($event, true, $user);
+		} else return $event;
 	}
 
 	private function __updateEventFromFeed($HttpSocket, $feed, $uuid, $eventId, $user, $filterRules) {
-		$request = $this->__createFeedRequest();
-		$uri = $feed['Feed']['url'] . '/' . $uuid . '.json';
-		$response = $HttpSocket->get($uri, '', $request);
-		if ($response->code != 200) {
+		if (!Validation::uuid($uuid)) {
 			return false;
-		} else {
-			$event = $this->__prepareEvent($response->body, $feed);
-			$this->Event = ClassRegistry::init('Event');
-			return $this->Event->_edit($event, $user, $uuid, $jobId = null);
 		}
+		$path = $feed['Feed']['url'] . '/' . $uuid . '.json';
+		if (isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] == 'local') {
+			if (file_exists($path)) {
+				$data = file_get_contents($path);
+			}
+		} else {
+			$request = $this->__createFeedRequest();
+			$response = $HttpSocket->get($path, '', $request);
+			if ($response->code != 200) {
+				return false;
+			}
+		}
+		$event = $this->__prepareEvent($response->body, $feed);
+		$this->Event = ClassRegistry::init('Event');
+		return $this->Event->_edit($event, $user, $uuid, $jobId = null);
 	}
 
 	public function addDefaultFeeds($newFeeds) {
@@ -450,7 +514,11 @@ class Feed extends AppModel {
 		if (isset($this->data['Feed']['settings']) && !empty($this->data['Feed']['settings'])) {
 			$this->data['Feed']['settings'] = json_decode($this->data['Feed']['settings'], true);
 		}
-		$HttpSocket = $syncTool->setupHttpSocketFeed($this->data);
+		if (isset($this->data['Feed']['input_source']) && $this->data['Feed']['input_source'] == 'local') {
+			$HttpSocket = false;
+		} else {
+			$HttpSocket = $syncTool->setupHttpSocketFeed($this->data);
+		}
 		if ($this->data['Feed']['source_format'] == 'misp') {
 			if ($jobId) {
 				$job->id = $jobId;
