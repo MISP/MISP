@@ -15,6 +15,12 @@
 					'placeholder' => 'Name of the content provider',
 					'class' => 'form-control span6'
 			));
+			echo $this->Form->input('input_source', array(
+					'label' => 'Source Format',
+					'div' => 'input clear',
+					'options' => array('network' => 'Network', 'local' => 'Local'),
+					'class' => 'form-control span6'
+			));
 			echo $this->Form->input('url', array(
 					'div' => 'input clear',
 					'placeholder' => 'URL of the feed',
