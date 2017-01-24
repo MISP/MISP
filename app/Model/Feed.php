@@ -105,7 +105,9 @@ class Feed extends AppModel {
 			if ($event['Event']['timestamp'] < $manifest[$event['Event']['uuid']]['timestamp']) $result['edit'][] = array('uuid' => $event['Event']['uuid'], 'id' => $event['Event']['id']);
 			unset($manifest[$event['Event']['uuid']]);
 		}
-		$result['add'] = array_keys($manifest);
+		if (!empty($manifest)) {
+			$result['add'] = array_keys($manifest);
+		}
 		return $result;
 	}
 
@@ -536,6 +538,13 @@ class Feed extends AppModel {
 			if ($jobId) {
 				$job->id = $jobId;
 				$job->saveField('message', 'Fetching events.');
+			}
+			if (empty($actions)) {
+				if ($jobId) {
+					$job->id = $jobId;
+					$job->saveField('message', 'Job complete.');
+				}
+				return true;	
 			}
 			$result = $this->downloadFromFeed($actions, $this->data, $HttpSocket, $user, $jobId);
 			if ($jobId) {
