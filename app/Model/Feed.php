@@ -50,8 +50,14 @@ class Feed extends AppModel {
 	public function urlOrExistingFilepath($fields) {
 		$input_source = empty($this->data['Feed']['input_source']) ? 'network' : $this->data['Feed']['input_source'];
 		if ($input_source == 'local') {
-			if (!file_exists($this->data['Feed']['url']) && !is_dir($this->data['Feed']['url'])) {
-				return false;
+			if ($this->data['Feed']['source_format'] == 'misp') {
+				if (!is_dir($this->data['Feed']['url'])) {
+					return 'For MISP type local feeds, please specify the containing directory.';
+				}
+			} else {
+				if (!file_exists($this->data['Feed']['url'])) {
+					return 'For non-MISP type local feeds, please specify the file to be ingested.';
+				}
 			}
 		} else {
 			if (!filter_var($url, FILTER_VALIDATE_URL)) {
@@ -394,7 +400,9 @@ class Feed extends AppModel {
 		if (!isset($event['Event']['uuid'])) return false;
 		$event['Event']['distribution'] = $feed['Feed']['distribution'];
 		$event['Event']['sharing_group_id'] = $feed['Feed']['sharing_group_id'];
-		foreach ($event['Event']['Attribute'] as $key => $attribute) $event['Event']['Attribute'][$key]['distribution'] = 5;
+		if (!empty($event['Event']['Attribute'])) {
+			foreach ($event['Event']['Attribute'] as $key => $attribute) $event['Event']['Attribute'][$key]['distribution'] = 5;
+		}
 		if ($feed['Feed']['tag_id']) {
 			if (!isset($event['Event']['Tag'])) $event['Event']['Tag'] = array();
 			$found = false;
