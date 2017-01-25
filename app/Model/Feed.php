@@ -60,7 +60,7 @@ class Feed extends AppModel {
 				}
 			}
 		} else {
-			if (!filter_var($url, FILTER_VALIDATE_URL)) {
+			if (!filter_var($this->data['Feed']['url'], FILTER_VALIDATE_URL)) {
 				return false;
 			}
 		}
@@ -102,7 +102,11 @@ class Feed extends AppModel {
 			'fields' => array('Event.id', 'Event.uuid', 'Event.timestamp')
 		));
 		foreach ($events as $event) {
-			if ($event['Event']['timestamp'] < $manifest[$event['Event']['uuid']]['timestamp']) $result['edit'][] = array('uuid' => $event['Event']['uuid'], 'id' => $event['Event']['id']);
+			if ($event['Event']['timestamp'] < $manifest[$event['Event']['uuid']]['timestamp']) {
+				$result['edit'][] = array('uuid' => $event['Event']['uuid'], 'id' => $event['Event']['id']);
+			} else {
+				$this->__cleanupFile($feed, '/' . $event['Event']['uuid'] . '.json');
+			}
 			unset($manifest[$event['Event']['uuid']]);
 		}
 		if (!empty($manifest)) {
@@ -229,6 +233,7 @@ class Feed extends AppModel {
 		if (isset($actions['add']) && !empty($actions['add'])) {
 			foreach ($actions['add'] as $uuid) {
 				$result = $this->__addEventFromFeed($HttpSocket, $feed, $uuid, $user, $filterRules);
+				$this->__cleanupFile($feed, '/' . $uuid . '.json');
 				if ($result === 'blocked') continue;
 				if ($result === true) {
 					$results['add']['success'] = $uuid;
@@ -245,6 +250,7 @@ class Feed extends AppModel {
 		if (isset($actions['edit']) && !empty($actions['edit'])) {
 			foreach ($actions['edit'] as $editTarget) {
 				$result = $this->__updateEventFromFeed($HttpSocket, $feed, $editTarget['uuid'], $editTarget['id'], $user, $filterRules);
+				$this->__cleanupFile($feed, '/' . $uuid . '.json');
 				if ($result === 'blocked') continue;
 				if ($result === true) {
 					$results['edit']['success'] = $uuid;
@@ -544,9 +550,10 @@ class Feed extends AppModel {
 					$job->id = $jobId;
 					$job->saveField('message', 'Job complete.');
 				}
-				return true;	
+				return true;
 			}
 			$result = $this->downloadFromFeed($actions, $this->data, $HttpSocket, $user, $jobId);
+			$this->__cleanupFile($feed, '/manifest.json');
 			if ($jobId) {
 				$job->id = $jobId;
 				$job->saveField('message', 'Job complete.');
@@ -574,12 +581,24 @@ class Feed extends AppModel {
 			if ($result !== true) {
 				return false;
 			}
+			$this->__cleanupFile($this->data, '');
 			if ($jobId) {
 				$job->saveField('progress', '100');
 				$job->saveField('message', 'Job complete.');
 			}
 		}
 		return $result;
+	}
+
+	private function __cleanupFile($feed, $file) {
+		if (isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] == 'local') {
+			if (isset($feed['Feed']['delete_local_file']) && $feed['Feed']['delete_local_file']) {
+				if (file_exists($feed['Feed']['url'] . $file)) {
+					unlink($feed['Feed']['url'] . $file);
+				}
+			}
+		}
+		return true;
 	}
 
 	public function saveFreetextFeedData($feed, $data, $user, $jobId = false) {
