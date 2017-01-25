@@ -80,6 +80,8 @@ For installation guide see [INSTALL](https://github.com/MISP/MISP/tree/2.4/INSTA
 Contributing
 ------------
 
+Please see our [Code of conduct](code_of_conduct.md).
+
 Feel free to fork the code, play with it, make some patches and send us the pull requests via the [issues](https://github.com/MISP/MISP/issues).
 
 Feel free to contact us, create [issues](https://github.com/MISP/MISP/issues), if you have questions, remarks or bug reports.
