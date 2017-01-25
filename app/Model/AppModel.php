@@ -562,6 +562,7 @@ class AppModel extends Model {
 				break;
 			case '2.4.61':
 				$sqlArray[] = 'ALTER TABLE feeds ADD input_source varchar(255) COLLATE utf8_bin NOT NULL DEFAULT "network";';
+				$sqlArray[] = 'ALTER TABLE feeds ADD delete_local_file tinyint(1) DEFAULT 0;';
 				$indexArray[] = array('feeds', 'input_source');
 				break;
 			case 'fixNonEmptySharingGroupID':
