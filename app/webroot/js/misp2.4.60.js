@@ -2654,6 +2654,11 @@ function feedFormUpdate() {
 			$('#settingsCommonExcluderegexDiv').show();
 			break;
 	}
+	if ($('#FeedInputSource').val() == 'local') {
+		$('#DeleteLocalFileDiv').show();
+	} else {
+		$('#DeleteLocalFileDiv').hide();
+	}
 }
 
 $('.servers_default_role_checkbox').click(function() {
