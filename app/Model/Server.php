@@ -2124,7 +2124,6 @@ class Server extends AppModel {
 	}
 
 	public function testDebugAdmin($value) {
-		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
 		if ($this->testBool($value) !== true) return 'This setting has to be either true or false.';
 		if (!$value) return true;
 		return 'Enabling debug is not recommended. Turn this on temporarily if you need to see a stack trace to debug an issue, but make sure this is not left on.';
