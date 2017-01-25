@@ -97,7 +97,7 @@ class ComplexTypeTool {
 	 *     values:    Expects an array (or a comma separated string) with numeric values denoting the columns containing indicators. If this is not set then every value will be checked. (column numbers start at 1)
 	 */
 	public function checkCSV($input, $settings = array()) {
-		$delimiter = isset($settings['delimiter']) ? $settings['delimiter'] : ",";
+		$delimiter = !empty($settings['delimiter']) ? $settings['delimiter'] : ",";
 		$lines = explode("\n", $input);
 		unset($input);
 		$values = !empty($settings['value']) ? $settings['value'] : array();
