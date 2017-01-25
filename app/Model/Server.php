@@ -1329,6 +1329,7 @@ class Server extends AppModel {
 					'errorMessage' => '',
 					'test' => 'testDebugAdmin',
 					'type' => 'boolean',
+					'null' => true
 			),
 	);
 
@@ -3293,7 +3294,7 @@ class Server extends AppModel {
 		}
 		return $results;
 	}
-	
+
 	public function databaseEncodingDiagnostics(&$diagnostic_errors) {
 		if (!isset($this->getDataSource()->config['encoding']) || strtolower($this->getDataSource()->config['encoding']) != 'utf8') {
 			$diagnostic_errors++;
