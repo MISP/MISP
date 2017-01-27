@@ -437,6 +437,11 @@ class ShadowAttributesController extends AppController {
 		$this->set('event_id', $eventId);
 		// combobox for types
 		$types = array_keys($this->ShadowAttribute->typeDefinitions);
+		foreach ($types as $key => $value) {
+			if (in_array($value, array('malware-sample', 'attachment'))) {
+				unset($types[$key]);
+			}
+		}
 		$types = $this->_arrayToValuesIndexArray($types);
 		$this->set('types', $types);
 		// combobox for categories
@@ -706,6 +711,11 @@ class ShadowAttributesController extends AppController {
 
 		// combobox for types
 		$types = array_keys($this->ShadowAttribute->typeDefinitions);
+		foreach ($types as $key => $value) {
+			if (in_array($value, array('malware-sample', 'attachment'))) {
+				unset($types[$key]);
+			}
+		}
 		$types = $this->_arrayToValuesIndexArray($types);
 		$this->set('types', $types);
 		// combobox for categories
