@@ -1210,7 +1210,6 @@ class Event extends AppModel {
 		if ($options['to']) $conditions['AND'][] = array('Event.date <=' => $options['to']);
 		if ($options['last']) $conditions['AND'][] = array('Event.publish_timestamp >=' => $options['last']);
 		if ($options['event_uuid']) $conditions['AND'][] = array('Event.uuid' => $options['event_uuid']);
-
 		if (isset($options['deleted']) && $options['deleted']) {
 			if (!$user['Role']['perm_sync']) {
 				$conditionsAttributes['AND'][] = array(
