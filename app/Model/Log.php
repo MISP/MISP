@@ -43,7 +43,8 @@ class Log extends AppModel {
 							'merge',
 							'undelete',
 							'file_upload',
-							'export'
+							'export',
+							'pruneUpdateLogs'
 						)),
 			'message' => 'Options : ...'
 		)
@@ -139,5 +140,70 @@ class Log extends AppModel {
 				'model' => $model,
 				'model_id' => $model_id,
 		));
+	}
+
+	// to combat a certain bug that causes the upgrade scripts to loop without being able to set the correct version
+	// this function remedies a fixed upgrade bug instance by eliminating the massive number of erroneous upgrade log entries
+	public function pruneUpdateLogs($jobId = false, $user) {
+		$max = $this->find('first', array('fields' => array('MAX(id) AS lastid')));
+		if (!empty($max)) {
+			$max = $max[0]['lastid'];
+		}
+		if ($jobId) {
+			$this->Job = ClassRegistry::init('Job');
+			$this->Job->id = $jobId;
+			if (!$this->Job->exists()) {
+				$jobId = false;
+			}
+		}
+		$iterations = ($max / 1000);
+		for ($i = 0; $i < $iterations; $i++) {
+			$this->deleteAll(array('action' => 'update_database', 'id >' => $i * 1000, 'id <' => ($i+1) * 1000));
+			if ($jobId) {
+				$this->Job->saveField('progress', $i * 100 / $iterations);
+			}
+		}
+		$this->create();
+		$this->save(array(
+				'org' => $user['Organisation']['name'],
+				'email' =>$user['email'],
+				'user_id' => $user['id'],
+				'action' => 'pruneUpdateLogs',
+				'title' => 'Pruning updates',
+				'change' => 'Pruning completed in ' . $i . ' iteration(s).',
+				'model' => 'Log',
+				'model_id' => 0
+		));
+	}
+
+
+	public function pruneUpdateLogsRouter($user) {
+		if (Configure::read('MISP.background_jobs')) {
+			$job = ClassRegistry::init('Job');
+			$job->create();
+			$data = array(
+					'worker' => 'default',
+					'job_type' => 'prune_update_logs',
+					'job_input' => 'All update entries',
+					'status' => 0,
+					'retries' => 0,
+					'org_id' => $user['org_id'],
+					'org' => $user['Organisation']['name'],
+					'message' => 'Purging the heretic.',
+			);
+			$job->save($data);
+			$jobId = $job->id;
+			$process_id = CakeResque::enqueue(
+					'default',
+					'AdminShell',
+					array('prune_update_logs', $jobId, $user['id']),
+					true
+			);
+			$job->saveField('process_id', $process_id);
+			return $process_id;
+		} else {
+			$result = $this->pruneUpdateLogs(false, $user);
+			return $result;
+		}
 	}
 }
