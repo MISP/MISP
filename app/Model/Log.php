@@ -158,7 +158,16 @@ class Log extends AppModel {
 		}
 		$iterations = ($max / 1000);
 		for ($i = 0; $i < $iterations; $i++) {
-			$this->deleteAll(array('action' => 'update_database', 'id >' => $i * 1000, 'id <' => ($i+1) * 1000));
+			$this->deleteAll(array(
+				'OR' => array(
+						'action' => 'update_database',
+						'AND' => array(
+							'action' => 'edit',
+							'model' => 'AdminSetting'
+						)
+				),
+				'id >' => $i * 1000,
+				'id <' => ($i+1) * 1000));
 			if ($jobId) {
 				$this->Job->saveField('progress', $i * 100 / $iterations);
 			}
