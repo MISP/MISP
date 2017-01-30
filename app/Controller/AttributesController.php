@@ -238,7 +238,7 @@ class AttributesController extends AppController {
 							$message .= '[' . $k . ']: ' . $v[0] . PHP_EOL;
 						}
 						throw new NotFoundException('Could not save the attribute. ' . $message);
-					}  else if ($this->request->is('ajax')) {
+					} else if ($this->request->is('ajax')) {
 						$this->autoRender = false;
 						return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $this->Attribute->validationErrors)),'status'=>200));
 					} else {
