@@ -7,10 +7,10 @@
 			<div style="padding:1px; overflow:hidden; white-space:nowrap; display:flex; float:left; margin-right:2px;">
 				<a href="<?php echo $baseurl;?>/events/index/searchtag:<?php echo h($tag['Tag']['id']); ?>" class="<?php echo $tagClass; ?>" style="display:inline-block; background-color:<?php echo h($tag['Tag']['colour']);?>;color:<?php echo $this->TextColour->getTextColour($tag['Tag']['colour']);?>"><?php echo h($tag['Tag']['name']); ?></a>
 				<?php if ($full): ?>
-					<div class="tagSecondHalf useCursorPointer noPrint" onClick="removeEventTag('<?php echo h($event['Event']['id']); ?>', '<?php echo h($tag['Tag']['id']); ?>');">x</div>
+					<div class="tagSecondHalf useCursorPointer noPrint" onClick="removeObjectTagPopup('event', '<?php echo h($event['Event']['id']); ?>', '<?php echo h($tag['Tag']['id']); ?>');">x</div>
 				<?php endif;?>
 			</div>
-	<?php 
+	<?php
 		endforeach;
 	?>
 		<div style="float:left">

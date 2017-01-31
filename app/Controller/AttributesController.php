@@ -238,7 +238,7 @@ class AttributesController extends AppController {
 							$message .= '[' . $k . ']: ' . $v[0] . PHP_EOL;
 						}
 						throw new NotFoundException('Could not save the attribute. ' . $message);
-					}  else if ($this->request->is('ajax')) {
+					} else if ($this->request->is('ajax')) {
 						$this->autoRender = false;
 						return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $this->Attribute->validationErrors)),'status'=>200));
 					} else {
@@ -2704,66 +2704,70 @@ class AttributesController extends AppController {
 
 	public function removeTag($id = false, $tag_id = false) {
 		if (!$this->request->is('post')) {
-			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that. Only POST requests are accepted.')), 'status' => 200));
-		}
-		$rearrangeRules = array(
-			'request' => false,
-			'Attribute' => false,
-			'tag_id' => 'tag',
-			'attribute_id' => 'attribute',
-			'id' => 'attribute'
-		);
-		$RearrangeTool = new RequestRearrangeTool();
-		$this->request->data = $RearrangeTool->rearrangeArray($this->request->data, $rearrangeRules);
-		if ($id === false) $id = $this->request->data['attribute'];
-		if ($tag_id === false) $tag_id = $this->request->data['tag'];
-		$this->Attribute->id = $id;
-		if (!$this->Attribute->exists()) throw new NotFoundException(__('Invalid attribute'));
-		$this->Attribute->read();
-		if ($this->Attribute->data['Attribute']['deleted']) throw new NotFoundException(__('Invalid attribute'));
-		$eventId = $this->Attribute->data['Attribute']['event_id'];
-		if (empty($tag_id)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status' => 200));
-		if (!is_numeric($tag_id)) {
-			$tag = $this->Attribute->AttributeTag->Tag->find('first', array('recursive' => -1, 'conditions' => array('LOWER(Tag.name) LIKE' => strtolower(trim($tag_id)))));
-			if (empty($tag)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status' => 200));
-			$tag_id = $tag['Tag']['id'];
-		}
-		if (!is_numeric($id)) $id = $this->request->data['Attribute']['id'];
-
-		$this->Attribute->Event->recursive = -1;
-		$event = $this->Attribute->Event->read(array(), $eventId);
-		// org should allow to (un)tag too, so that an event that gets pushed can be (un)tagged locally by the owning org
-		if ((($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id'] && $event['Event']['distribution'] == 0) || (!$this->userRole['perm_tagger'])) && !$this->_isSiteAdmin()) {
-			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status' => 200));
-		}
-
-		$this->Attribute->recursive = -1;
-		$attributeTag = $this->Attribute->AttributeTag->find('first', array(
-			'conditions' => array(
-				'attribute_id' => $id,
-				'tag_id' => $tag_id
-			),
-			'recursive' => -1,
-		));
-		$this->autoRender = false;
-		if (empty($attributeTag)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid attribute - tag combination.')), 'status' => 200));
-		$tag = $this->Attribute->AttributeTag->Tag->find('first', array(
-			'conditions' => array('Tag.id' => $tag_id),
-			'recursive' => -1,
-			'fields' => array('Tag.name')
-		));
-		if ($this->Attribute->AttributeTag->delete($attributeTag['AttributeTag']['id'])) {
-			$event['Event']['published'] = 0;
-			$date = new DateTime();
-			$event['Event']['timestamp'] = $date->getTimestamp();
-			$this->Attribute->Event->save($event);
-			$this->Attribute->data['Attribute']['timestamp'] = $date->getTimestamp();
-			$this->Attribute->save($this->Attribute->data);
-			$log = ClassRegistry::init('Log');
-			$log->createLogEntry($this->Auth->user(), 'tag', 'Attribute', $id, 'Removed tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" from attribute (' . $id . ')', 'Attribute (' . $id . ') untagged of Tag (' . $tag_id . ')');
-			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Tag removed.', 'check_publish' => true)), 'status' => 200));
+			$this->set('id', $id);
+			$this->set('tag_id', $tag_id);
+			$this->set('model', 'Attribute');
+			$this->render('ajax/tagRemoveConfitrmation');
 		} else {
-			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Tag could not be removed.')), 'status' => 200));
+			$rearrangeRules = array(
+				'request' => false,
+				'Attribute' => false,
+				'tag_id' => 'tag',
+				'attribute_id' => 'attribute',
+				'id' => 'attribute'
+			);
+			$RearrangeTool = new RequestRearrangeTool();
+			$this->request->data = $RearrangeTool->rearrangeArray($this->request->data, $rearrangeRules);
+			if ($id === false) $id = $this->request->data['attribute'];
+			if ($tag_id === false) $tag_id = $this->request->data['tag'];
+			$this->Attribute->id = $id;
+			if (!$this->Attribute->exists()) throw new NotFoundException(__('Invalid attribute'));
+			$this->Attribute->read();
+			if ($this->Attribute->data['Attribute']['deleted']) throw new NotFoundException(__('Invalid attribute'));
+			$eventId = $this->Attribute->data['Attribute']['event_id'];
+			if (empty($tag_id)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status' => 200));
+			if (!is_numeric($tag_id)) {
+				$tag = $this->Attribute->AttributeTag->Tag->find('first', array('recursive' => -1, 'conditions' => array('LOWER(Tag.name) LIKE' => strtolower(trim($tag_id)))));
+				if (empty($tag)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status' => 200));
+				$tag_id = $tag['Tag']['id'];
+			}
+			if (!is_numeric($id)) $id = $this->request->data['Attribute']['id'];
+
+			$this->Attribute->Event->recursive = -1;
+			$event = $this->Attribute->Event->read(array(), $eventId);
+			// org should allow to (un)tag too, so that an event that gets pushed can be (un)tagged locally by the owning org
+			if ((($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id'] && $event['Event']['distribution'] == 0) || (!$this->userRole['perm_tagger'])) && !$this->_isSiteAdmin()) {
+				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status' => 200));
+			}
+
+			$this->Attribute->recursive = -1;
+			$attributeTag = $this->Attribute->AttributeTag->find('first', array(
+				'conditions' => array(
+					'attribute_id' => $id,
+					'tag_id' => $tag_id
+				),
+				'recursive' => -1,
+			));
+			$this->autoRender = false;
+			if (empty($attributeTag)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid attribute - tag combination.')), 'status' => 200));
+			$tag = $this->Attribute->AttributeTag->Tag->find('first', array(
+				'conditions' => array('Tag.id' => $tag_id),
+				'recursive' => -1,
+				'fields' => array('Tag.name')
+			));
+			if ($this->Attribute->AttributeTag->delete($attributeTag['AttributeTag']['id'])) {
+				$event['Event']['published'] = 0;
+				$date = new DateTime();
+				$event['Event']['timestamp'] = $date->getTimestamp();
+				$this->Attribute->Event->save($event);
+				$this->Attribute->data['Attribute']['timestamp'] = $date->getTimestamp();
+				$this->Attribute->save($this->Attribute->data);
+				$log = ClassRegistry::init('Log');
+				$log->createLogEntry($this->Auth->user(), 'tag', 'Attribute', $id, 'Removed tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" from attribute (' . $id . ')', 'Attribute (' . $id . ') untagged of Tag (' . $tag_id . ')');
+				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Tag removed.', 'check_publish' => true)), 'status' => 200));
+			} else {
+				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Tag could not be removed.')), 'status' => 200));
+			}
 		}
 	}
 

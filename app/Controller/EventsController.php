@@ -2952,56 +2952,60 @@ class EventsController extends AppController {
 
 	public function removeTag($id = false, $tag_id = false, $galaxy = false) {
 		if (!$this->request->is('post')) {
-			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that. Only POST requests are accepted.')), 'status'=>200));
-		}
-		$rearrangeRules = array(
-				'request' => false,
-				'Event' => false,
-				'tag_id' => 'tag',
-				'event_id' => 'event',
-				'id' => 'event'
-		);
-		$RearrangeTool = new RequestRearrangeTool();
-		$this->request->data = $RearrangeTool->rearrangeArray($this->request->data, $rearrangeRules);
-		if ($id === false) $id = $this->request->data['event'];
-		if ($tag_id === false) $tag_id = $this->request->data['tag'];
-		if (empty($tag_id)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid ' . ($galaxy ? 'Galaxy' : 'Tag') . '.')),'status'=>200));
-		if (!is_numeric($tag_id)) {
-			$tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => array('LOWER(Tag.name) LIKE' => strtolower(trim($tag_id)))));
-			if (empty($tag)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid ' . ($galaxy ? 'Galaxy' : 'Tag') . '.')), 'status'=>200));
-			$tag_id = $tag['Tag']['id'];
-		}
-		if (!is_numeric($id)) $id = $this->request->data['Event']['id'];
-		$this->Event->recursive = -1;
-		$event = $this->Event->read(array(), $id);
-		// org should allow to tag too, so that an event that gets pushed can be tagged locally by the owning org
-		if ((($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id']) || (!$this->userRole['perm_tagger'])) && !$this->_isSiteAdmin()) {
-			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')),'status'=>200));
-		}
-		$eventTag = $this->Event->EventTag->find('first', array(
-			'conditions' => array(
-				'event_id' => $id,
-				'tag_id' => $tag_id
-			),
-			'recursive' => -1,
-		));
-		$this->autoRender = false;
-		if (empty($eventTag)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid event - ' . ($galaxy ? 'galaxy' : 'tag') . ' combination.')),'status'=>200));
-		$tag = $this->Event->EventTag->Tag->find('first', array(
-			'conditions' => array('Tag.id' => $tag_id),
-			'recursive' => -1,
-			'fields' => array('Tag.name')
-		));
-		if ($this->Event->EventTag->delete($eventTag['EventTag']['id'])) {
-			$event['Event']['published'] = 0;
-			$date = new DateTime();
-			$event['Event']['timestamp'] = $date->getTimestamp();
-			$this->Event->save($event);
-			$log = ClassRegistry::init('Log');
-			$log->createLogEntry($this->Auth->user(), 'tag', 'Event', $id, 'Removed tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" from event (' . $id . ')', 'Event (' . $id . ') untagged of Tag (' . $tag_id . ')');
-			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => ($galaxy ? 'Galaxy' : 'Tag') . ' removed.', 'check_publish' => true)), 'status'=>200));
+			$this->set('id', $id);
+			$this->set('tag_id', $tag_id);
+			$this->set('model', 'Event');
+			$this->render('/Attributes/ajax/tagRemoveConfitrmation');
 		} else {
-			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => ($galaxy ? 'Galaxy' : 'Tag') . ' could not be removed.')),'status'=>200));
+			$rearrangeRules = array(
+					'request' => false,
+					'Event' => false,
+					'tag_id' => 'tag',
+					'event_id' => 'event',
+					'id' => 'event'
+			);
+			$RearrangeTool = new RequestRearrangeTool();
+			$this->request->data = $RearrangeTool->rearrangeArray($this->request->data, $rearrangeRules);
+			if ($id === false) $id = $this->request->data['event'];
+			if ($tag_id === false) $tag_id = $this->request->data['tag'];
+			if (empty($tag_id)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid ' . ($galaxy ? 'Galaxy' : 'Tag') . '.')),'status'=>200));
+			if (!is_numeric($tag_id)) {
+				$tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => array('LOWER(Tag.name) LIKE' => strtolower(trim($tag_id)))));
+				if (empty($tag)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid ' . ($galaxy ? 'Galaxy' : 'Tag') . '.')), 'status'=>200));
+				$tag_id = $tag['Tag']['id'];
+			}
+			if (!is_numeric($id)) $id = $this->request->data['Event']['id'];
+			$this->Event->recursive = -1;
+			$event = $this->Event->read(array(), $id);
+			// org should allow to tag too, so that an event that gets pushed can be tagged locally by the owning org
+			if ((($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id']) || (!$this->userRole['perm_tagger'])) && !$this->_isSiteAdmin()) {
+				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')),'status'=>200));
+			}
+			$eventTag = $this->Event->EventTag->find('first', array(
+				'conditions' => array(
+					'event_id' => $id,
+					'tag_id' => $tag_id
+				),
+				'recursive' => -1,
+			));
+			$this->autoRender = false;
+			if (empty($eventTag)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid event - ' . ($galaxy ? 'galaxy' : 'tag') . ' combination.')),'status'=>200));
+			$tag = $this->Event->EventTag->Tag->find('first', array(
+				'conditions' => array('Tag.id' => $tag_id),
+				'recursive' => -1,
+				'fields' => array('Tag.name')
+			));
+			if ($this->Event->EventTag->delete($eventTag['EventTag']['id'])) {
+				$event['Event']['published'] = 0;
+				$date = new DateTime();
+				$event['Event']['timestamp'] = $date->getTimestamp();
+				$this->Event->save($event);
+				$log = ClassRegistry::init('Log');
+				$log->createLogEntry($this->Auth->user(), 'tag', 'Event', $id, 'Removed tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" from event (' . $id . ')', 'Event (' . $id . ') untagged of Tag (' . $tag_id . ')');
+				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => ($galaxy ? 'Galaxy' : 'Tag') . ' removed.', 'check_publish' => true)), 'status'=>200));
+			} else {
+				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => ($galaxy ? 'Galaxy' : 'Tag') . ' could not be removed.')),'status'=>200));
+			}
 		}
 	}
 
