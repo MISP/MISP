@@ -1694,17 +1694,17 @@ class Event extends AppModel {
 		$body .= 'Tags: ' . $tags . "\n";
 		$body .= 'Threat Level: ' . $event['ThreatLevel']['name'] . "\n";
 		$body .= 'Analysis    : ' . $this->analysisLevels[$event['Event']['analysis']] . "\n";
-		$body .= 'Description : ' . $event['Event']['info'] . "\n\n";
+		$body .= 'Description : ' . $event['Event']['info'] . "\n";
 		$relatedEvents = $this->getRelatedEvents($user, $event['Event']['id'], array());
 		if (!empty($relatedEvents)) {
 			$body .= '==============================================' . "\n";
-			$body .= 'Related to : '. "\n";
+			$body .= 'Related to: '. "\n";
 			foreach ($relatedEvents as &$relatedEvent) {
 				$body .= Configure::read('MISP.baseurl') . '/events/view/' . $relatedEvent['Event']['id'] . ' (' . $relatedEvent['Event']['date'] . ') ' ."\n";
 			}
 			$body .= '==============================================' . "\n";
 		}
-		$body .= 'Attributes (* indicates a new or modified attribute)  :' . "\n";
+		$body .= 'Attributes (* indicates a new or modified attribute):' . "\n";
 		$bodyTempOther = "";
 		if (isset($event['Attribute'])) {
 			foreach ($event['Attribute'] as &$attribute) {
@@ -1715,9 +1715,9 @@ class Event extends AppModel {
 				$strRepeatCount = $appendlen - 2 - strlen($attribute['type']);
 				$strRepeat = ($strRepeatCount > 0) ? str_repeat(' ', $strRepeatCount) : '';
 				if (isset($oldpublish) && isset($attribute['timestamp']) && $attribute['timestamp'] > $oldpublish) {
-					$line = '* ' . $attribute['type'] . $strRepeat . ': ' . $attribute['value'] . $ids . " *\n";
+					$line = '* ' . $attribute['category'] . '/' . $attribute['type'] . $strRepeat . ': ' . $attribute['value'] . $ids . " *\n";
 				} else {
-					$line = $attribute['type'] . $strRepeat . ': ' . $attribute['value'] . $ids .  "\n";
+					$line = $attribute['category'] . '/' . $attribute['type'] . $strRepeat . ': ' . $attribute['value'] . $ids .  "\n";
 				}
 				// Defanging URLs (Not "links") emails domains/ips in notification emails
 				if ('url' == $attribute['type']) {
@@ -1729,7 +1729,16 @@ class Event extends AppModel {
 				else if ('hostname' == $attribute['type'] or 'domain' == $attribute['type'] or 'ip-src' == $attribute['type'] or 'ip-dst' == $attribute['type']) {
 					$line = str_replace(".","[.]", $line);
 				}
-
+				if (!empty($attribute['AttributeTag'])) {
+					$line .= '  - Tags: ';
+					foreach ($attribute['AttributeTag'] as $k => $aT) {
+						if ($k > 0) {
+							$line .= ', ';
+						}
+						$line .= $aT['Tag']['name'];
+					}
+					$line .= "\n";
+				}
 				if ('other' == $attribute['type']) // append the 'other' attribute types to the bottom.
 					$bodyTempOther .= $line;
 				else $body .= $line;
