@@ -1437,6 +1437,11 @@ class Event extends AppModel {
 				}
 				$event['ShadowAttribute'] = array_values($event['ShadowAttribute']);
 			}
+			// for auditor user : 
+			// insert into roles values (7,"Auditor","2017-01-27","2017-01-27",0,0,0,0,0,0, 0,1,0,1, 0,0,0,0,0,0,0);
+			if ($user['Role']['perm_audit']) {
+				$event['Event']['event_creator_id'] = $event['Event']['user_id'];
+			}
 		}
 		return $results;
 	}
