@@ -2707,7 +2707,7 @@ class AttributesController extends AppController {
 			$this->set('id', $id);
 			$this->set('tag_id', $tag_id);
 			$this->set('model', 'Attribute');
-			$this->render('ajax/tagRemoveConfitrmation');
+			$this->render('ajax/tagRemoveConfirmation');
 		} else {
 			$rearrangeRules = array(
 				'request' => false,
