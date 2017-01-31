@@ -2955,7 +2955,7 @@ class EventsController extends AppController {
 			$this->set('id', $id);
 			$this->set('tag_id', $tag_id);
 			$this->set('model', 'Event');
-			$this->render('/Attributes/ajax/tagRemoveConfitrmation');
+			$this->render('/Attributes/ajax/tagRemoveConfirmation');
 		} else {
 			$rearrangeRules = array(
 					'request' => false,
