@@ -1440,7 +1440,9 @@ class Event extends AppModel {
 			// for auditor user : 
 			// insert into roles values (7,"Auditor","2017-01-27","2017-01-27",0,0,0,0,0,0, 0,1,0,1, 0,0,0,0,0,0,0);
 			if ($user['Role']['perm_audit']) {
-				$event['Event']['event_creator_id'] = $event['Event']['user_id'];
+				$this->User = ClassRegistry::init('User');
+				$UserEmail = $this->User->getAuthUser($event['Event']['user_id'])['email'];
+				$event['Event']['event_creator_email'] = $UserEmail;
 			}
 		}
 		return $results;
