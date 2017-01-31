@@ -3085,8 +3085,13 @@ class Event extends AppModel {
 							'default_type' => $r['types'][0],
 							'comment' => isset($r['comment']) ? $r['comment'] : false,
 							'to_ids' => isset($r['to_ids']) ? $r['to_ids'] : false,
-							'value' => $value
+							'value' => $value,
 					);
+					if (isset($r['required'])) {
+						$temp['required'] = $r['required'];
+						if (isset($r['pattern']) && !empty($r['pattern']))
+							$temp['pattern'] = $r['pattern'];
+					}
 					if (isset($r['categories'])) {
 						$temp['categories'] = $r['categories'];
 						$temp['default_category'] = $r['categories'][0];

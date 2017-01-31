@@ -1799,6 +1799,20 @@ function freetextImportResultsSubmit(id, count) {
 	var temp;
 	for (i = 0; i < count; i++) {
 		if ($('#Attribute' + i + 'Save').val() == 1) {
+			var crtAttrValFld = $('#Attribute' + i + 'Value');
+			if (crtAttrValFld.prop('required')) {
+				if (crtAttrValFld.val().length == 0) {
+					crtAttrValFld.attr('placeholder', 'Please fill in this field').focus();
+					return false;
+				} else {
+					if (crtAttrValFld.prop('pattern') != '') {
+						if (new RegExp(crtAttrValFld.prop('pattern'), '').test(crtAttrValFld.val()) !== true) {
+							crtAttrValFld.focus();
+							return false;
+						}
+					}
+				}
+			}
 			temp = {
 				value:$('#Attribute' + i + 'Value').val(),
 				category:$('#Attribute' + i + 'Category').val(),
