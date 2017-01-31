@@ -675,27 +675,38 @@ function loadAttributeTags(id) {
 	});
 }
 
-function removeAttributeTag(attribute, tag) {
-	var answer = confirm("Are you sure you want to remove this tag from the attribute?");
-	if (answer) {
-		var formData = $('#removeAttributeTag_' + tag).serialize();
-		$.ajax({
-			beforeSend: function (XMLHttpRequest) {
-				$(".loading").show();
-			},
-			data: formData,
-			type:"POST",
-			cache: false,
-			url:"/attributes/removeTag/" + attribute + '/' + tag,
-			success:function (data, textStatus) {
-				loadAttributeTags(attribute);
-				handleGenericAjaxResponse(data);
-			},
-			complete:function() {
-				$(".loading").hide();
+function removeObjectTagPopup(context, object, tag) {
+	$.get( "/" + context + "s/removeTag/" + object + '/' + tag, function(data) {
+		$("#confirmation_box").html(data);
+		$("#confirmation_box").fadeIn();
+		$("#gray_out").fadeIn();
+	});
+}
+
+function removeObjectTag(context, object, tag) {
+	var formData = $('#PromptForm').serialize();
+	$.ajax({
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+		data: formData,
+		type:"POST",
+		cache: false,
+		url:"/" + context.toLowerCase() + "s/removeTag/" + object + '/' + tag,
+		success:function (data, textStatus) {
+			$("#confirmation_box").fadeOut();
+			$("#gray_out").fadeOut();
+			if (context == 'Attribute') {
+				loadAttributeTags(object);
+			} else {
+				loadEventTags(object);
 			}
-		});
-	}
+			handleGenericAjaxResponse(data);
+		},
+		complete:function() {
+			$(".loading").hide();
+		}
+	});
 	return false;
 }
 

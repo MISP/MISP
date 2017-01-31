@@ -167,10 +167,10 @@ class ACLComponent extends Component {
 			),
 			'jobs' => array(
 					'cache' => array('*'),
+					'getError' => array(),
 					'getGenerateCorrelationProgress' => array('*'),
 					'getProgress' => array('*'),
-					'index' => array(),
-					'getError' => array()
+					'index' => array()
 			),
 			'logs' => array(
 					'admin_index' => array('perm_audit'),
@@ -178,6 +178,7 @@ class ACLComponent extends Component {
 					'event_index' => array('*'),
 					'maxDateActivity' => array('*'),
 					'returnDates' => array('*'),
+					'pruneUpdateLogs' => array()
 			),
 			'news' => array(
 					'add' => array(),

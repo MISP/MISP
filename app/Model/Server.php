@@ -923,7 +923,7 @@ class Server extends AppModel {
 					),
 					'defaults' => array(
 							'level' => 0,
-							'description' => 'The session type used by MISP. The default setting is database, which will use the MySQL tables for the session data (supported options: database, php). The recommended option is php and setting your PHP up to use redis sessions via your php.ini. Just add \'session.save_handler = redis\' and "session.save_path = \'tcp://localhost:6379\'" (replace the latter with your redis connection) to ',
+							'description' => 'The session type used by MISP. The default setting is php, which will use the session settings configured in php.ini for the session data (supported options: php, database). The recommended option is php and setting your PHP up to use redis sessions via your php.ini. Just add \'session.save_handler = redis\' and "session.save_path = \'tcp://localhost:6379\'" (replace the latter with your redis connection) to ',
 							'value' => '',
 							'errorMessage' => '',
 							'test' => 'testForSessionDefaults',

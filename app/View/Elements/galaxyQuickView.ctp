@@ -69,7 +69,11 @@
 													echo nl2br(h(implode("\n", $cluster_field['value'])));
 												}
 											} else {
-												echo h($cluster_field['value']);
+												 if ($cluster_field['key'] == 'source' && filter_var($cluster_field['value'], FILTER_VALIDATE_URL)) {
+													 echo '<a href="' . h($cluster_field['value']) . '">' . h($cluster_field['value']) . '</a>';;
+												 } else {
+													echo h($cluster_field['value']);
+												 }
 											}
 										?>
 									</td>
