@@ -1210,7 +1210,6 @@ class Event extends AppModel {
 		if ($options['to']) $conditions['AND'][] = array('Event.date <=' => $options['to']);
 		if ($options['last']) $conditions['AND'][] = array('Event.publish_timestamp >=' => $options['last']);
 		if ($options['event_uuid']) $conditions['AND'][] = array('Event.uuid' => $options['event_uuid']);
-
 		if (isset($options['deleted']) && $options['deleted']) {
 			if (!$user['Role']['perm_sync']) {
 				$conditionsAttributes['AND'][] = array(
@@ -1397,9 +1396,9 @@ class Event extends AppModel {
 					// unset empty attribute tags that got added because the tag wasn't exportable
 					if (!empty($attribute['AttributeTag'])) {
 						foreach ($attribute['AttributeTag'] as $atk => $attributeTag) {
-							if (empty($attributeTag['Tag'])) unset($attribute['AttributeTag'][$atk]);
+							if (empty($attributeTag['Tag'])) unset($event['Attribute'][$key]['AttributeTag'][$atk]);
 						}
-						$event['AttributeTag'] = array_values($attribute['AttributeTag']);
+						$event['Attribute'][$key]['AttributeTag'] = array_values($event['Attribute'][$key]['AttributeTag']);
 					}
 					$event['Attribute'][$key]['ShadowAttribute'] = array();
 					// If a shadowattribute can be linked to an attribute, link it to it then remove it from the event
@@ -2282,9 +2281,13 @@ class Event extends AppModel {
 					}
 				}
 			}
-			if (isset($data['Event']['EventTag']) && $user['Role']['perm_tagger']) {
-				foreach ($data['Event']['EventTag'] as $tag) {
-					$tag_id = $this->EventTag->Tag->captureTag($tag['Tag'], $user);
+			if (isset($event['Event']['EventTag'])) {
+				$event['Event']['Tag'] = $event['Event']['EventTag']['Tag'];
+				unset($event['Event']['EventTag']);
+			}
+			if (isset($data['Event']['Tag']) && $user['Role']['perm_tagger']) {
+				foreach ($data['Event']['Tag'] as $tag) {
+					$tag_id = $this->EventTag->Tag->captureTag($tag, $user);
 					if ($tag_id) {
 						$this->EventTag->attachTagToEvent($this->id, $tag_id);
 					} else {

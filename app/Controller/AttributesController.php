@@ -255,6 +255,11 @@ class AttributesController extends AppController {
 
 		// combobox for types
 		$types = array_keys($this->Attribute->typeDefinitions);
+		foreach ($types as $key => $value) {
+			if (in_array($value, array('malware-sample', 'attachment'))) {
+				unset($types[$key]);
+			}
+		}
 		$types = $this->_arrayToValuesIndexArray($types);
 		$this->set('types', $types);
 		// combobox for categories
@@ -747,6 +752,11 @@ class AttributesController extends AppController {
 		// needed for RBAC
 		// combobox for types
 		$types = array_keys($this->Attribute->typeDefinitions);
+		foreach ($types as $key => $value) {
+			if (in_array($value, array('malware-sample', 'attachment'))) {
+				unset($types[$key]);
+			}
+		}
 		$types = $this->_arrayToValuesIndexArray($types);
 		$this->set('types', $types);
 		// combobox for categories
