@@ -772,7 +772,16 @@ class AppModel extends Model {
 			$requiresLogout = true;
 		} else {
 			$this->__runCleanDB();
-			$db_version = $this->AdminSetting->find('first', array('conditions' => array('setting' => 'db_version')));
+			$db_version = $this->AdminSetting->find('all', array('conditions' => array('setting' => 'db_version')));
+			if (count($db_version) > 1) {
+				// we ran into a bug where we have more than one db_version entry. This bug happened in some rare circumstances around 2.4.50-2.4.57
+				foreach ($db_version as $k => $v) {
+					if ($k > 0) {
+						$this->AdminSetting->delete($v['AdminSetting']['id']);
+					}
+				}
+			}
+			$db_version = $db_version[0];
 			$updates = $this->__findUpgrades($db_version['AdminSetting']['value']);
 			if (!empty($updates)) {
 				foreach ($updates as $update => $temp) {
