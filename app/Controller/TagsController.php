@@ -513,4 +513,130 @@ class TagsController extends AppController {
 		$this->response->type('json');
 		$this->render('/Servers/json/simple');
 	}
+
+	private function __findObjectByUuid($object_uuid, &$type) {
+		$this->loadModel('Event');
+		$object = $this->Event->find('first', array(
+			'conditions' => array(
+				'Event.uuid' => $object_uuid,
+			),
+			'fields' => array('Event.orgc_id', 'Event.id'),
+			'recursive' => -1
+		));
+		$type = 'Event';
+		if (!empty($object)) {
+			if (!$this->_isSiteAdmin() && $object['Event']['orgc_id'] != $this->Auth->user('org_id')) {
+					throw new MethodNotAllowedException('Invalid Target.');
+			}
+		} else {
+			$type = 'Attribute';
+			$object = $this->Event->Attribute->find('first', array(
+				'conditions' => array(
+					'Attribute.uuid' => $object_uuid,
+				),
+				'fields' => array('Attribute.id'),
+				'recursive' => -1,
+				'contain' => array('Event.orgc_id')
+			));
+			if (!empty($object)) {
+				if (!$this->_isSiteAdmin() && $object['Event']['orgc_id'] != $this->Auth->user('org_id')) {
+						throw new MethodNotAllowedException('Invalid Target.');
+				}
+			} else {
+					throw new MethodNotAllowedException('Invalid Target.');
+			}
+		}
+		return $object;
+	}
+
+	public function attachTagToObject($object_uuid, $tag) {
+		if (!Validation::uuid($object_uuid)) {
+			throw new InvalidArgumentException('Invalid UUID');
+		}
+		if (is_numeric($tag)) {
+			$conditions = array('Tag.id' => $tag);
+		} else {
+			$conditions = array('LOWER(Tag.name) LIKE' => strtolower(trim($tag)));
+		}
+		$objectType = '';
+		$object = $this->__findObjectByUuid($object_uuid, $objectType);
+		$existingTag = $this->Tag->find('first', array('conditions' => $conditions, 'recursive' => -1));
+		if (empty($existingTag)) {
+			if (!is_numeric($tag)) {
+				if (!$this->userRole['perm_tag_editor']) {
+					throw new InvalidArgumentException('Tag not found and insufficient privileges to create it.');
+				}
+				$this->Tag->create();
+				$this->Tag->save(array('Tag' => array('name' => $tag, 'colour' => $this->Tag->random_color())));
+				$existingTag = $this->Tag->find('first', array('recursive' => -1, 'conditions' => array('Tag.id' => $this->Tag->id)));
+			} else {
+				throw new InvalidArgumentException('Invalid Tag.');
+			}
+		}
+		if (!$this->_isSiteAdmin()) {
+			if (!in_array($existingTag['Tag']['org_id'], array(0, $this->Auth->user('org_id')))) {
+				throw new MethodNotAllowedException('Invalid Tag.');
+			}
+		}
+		$this->loadModel($objectType);
+		$connectorObject = $objectType . 'Tag';
+		$existingAssociation = $this->$objectType->$connectorObject->find('first', array(
+			'conditions' => array(
+				strtolower($objectType) . '_id' => $object[$objectType]['id'],
+				'tag_id' => $existingTag['Tag']['id']
+			)
+		));
+		if (!empty($existingAssociation)) {
+			throw new MethodNotAllowedException('Cannot attach tag, ' . $objectType . ' already has the tag attached.');
+		}
+		$this->$objectType->$connectorObject->create();
+		$result = $this->$objectType->$connectorObject->save(array($connectorObject => array(
+			strtolower($objectType) . '_id' => $object[$objectType]['id'],
+			'tag_id' => $existingTag['Tag']['id']
+		)));
+		if ($result) {
+			$message = 'Tag ' . $existingTag['Tag']['name'] . '(' . $existingTag['Tag']['id'] . ') successfully attached to ' . $objectType . '(' . $object[$objectType]['id'] . ').';
+			return $this->RestResponse->saveSuccessResponse('Tags', 'attachTagToObject', false, $this->response->type(), $message);
+		} else {
+			return $this->RestResponse->saveFailResponse('Tags', 'attachTagToObject', false, 'Failed to attach tag to object.', $this->response->type());
+		}
+	}
+
+	public function removeTagFromObject($object_uuid, $tag) {
+		if (!Validation::uuid($object_uuid)) {
+			throw new InvalidArgumentException('Invalid UUID');
+		}
+		if (is_numeric($tag)) {
+			$conditions = array('Tag.id' => $tag);
+		} else {
+			$conditions = array('LOWER(Tag.name) LIKE' => strtolower(trim($tag)));
+		}
+		$existingTag = $this->Tag->find('first', array('conditions' => $conditions, 'recursive' => -1));
+		if (empty($existingTag)) {
+			throw new MethodNotAllowedException('Invalid Tag.');
+		}
+		$objectType = '';
+		$object = $this->__findObjectByUuid($object_uuid, $objectType);
+		if (empty($object)) {
+			throw new MethodNotAllowedException('Invalid Target.');
+		}
+		$connectorObject = $objectType . 'Tag';
+		$this->loadModel($objectType);
+		$existingAssociation = $this->$objectType->$connectorObject->find('first', array(
+			'conditions' => array(
+				strtolower($objectType) . '_id' => $object[$objectType]['id'],
+				'tag_id' => $existingTag['Tag']['id']
+			)
+		));
+		if (empty($existingAssociation)) {
+			throw new MethodNotAllowedException('Could not remove tag as it is not attached to the target ' . $objectType);
+		}
+		$result = $this->$objectType->$connectorObject->delete($existingAssociation[$connectorObject]['id']);
+		if ($result) {
+			$message = 'Tag ' . $existingTag['Tag']['name'] . '(' . $existingTag['Tag']['id'] . ') successfully removed from ' . $objectType . '(' . $object[$objectType]['id'] . ').';
+			return $this->RestResponse->saveSuccessResponse('Tags', 'removeTagFromObject', false, $this->response->type(), $message);
+		} else {
+			return $this->RestResponse->saveFailResponse('Tags', 'removeTagFromObject', false, 'Failed to remove tag from object.', $this->response->type());
+		}
+	}
 }
