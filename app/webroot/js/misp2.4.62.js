@@ -684,7 +684,7 @@ function removeObjectTagPopup(context, object, tag) {
 }
 
 function removeObjectTag(context, object, tag) {
-	var formData = $('#remove' + context.charAt(0).toUpperCase() + 'Tag_' + tag).serialize();
+	var formData = $('#PromptForm').serialize();
 	$.ajax({
 		beforeSend: function (XMLHttpRequest) {
 			$(".loading").show();
@@ -692,7 +692,7 @@ function removeObjectTag(context, object, tag) {
 		data: formData,
 		type:"POST",
 		cache: false,
-		url:"/" + context + "s/removeTag/" + object + '/' + tag,
+		url:"/" + context.toLowerCase() + "s/removeTag/" + object + '/' + tag,
 		success:function (data, textStatus) {
 			$("#confirmation_box").fadeOut();
 			$("#gray_out").fadeOut();
