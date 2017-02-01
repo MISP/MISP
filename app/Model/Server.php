@@ -598,6 +598,15 @@ class Server extends AppModel {
 							'type' => 'boolean',
 							'null' => true
 					),
+					'showDiscussionsCountOnIndex' => array(
+							'level' => 1,
+							'description' => 'When enabled, the aggregate number of discussion posts for the event becomes visible to the currently logged in user on the event index UI.',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+							'null' => true
+					),
 					'disableUserSelfManagement' => array(
 							'level' => 1,
 							'description' => 'When enabled only Org and Site admins can edit a user\'s profile.',

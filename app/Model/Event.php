@@ -461,6 +461,38 @@ class Event extends AppModel {
 		return $events;
 	}
 
+	public function attachDiscussionsCountToEvents($user, $events) {
+		$eventIds = Set::extract('/Event/id', $events);
+		$this->Thread = ClassRegistry::init('Thread');
+		$threads = $this->Thread->find('list', array(
+			'conditions' => array('Thread.event_id' => $eventIds),
+			'fields' => array('Thread.event_id', 'Thread.id')
+		));
+		$posts = $this->Thread->Post->find('all', array(
+			'conditions' => array('Post.thread_id' => $threads),
+			'recursive' => -1,
+			'fields' => array('Count(id) AS post_count', 'thread_id', 'max(date_modified) as last_post'),
+			'group' => array('Post.thread_id')
+		));
+		$event_threads = array();
+		foreach ($posts as $k => $v) {
+			foreach ($threads as $k2 => $v2) {
+				if ($v2 == $v['Post']['thread_id']) {
+					$event_threads[$k2] = array(
+						'post_count' => $v[0]['post_count'],
+						'last_post' => strtotime($v[0]['last_post'])
+					);
+				}
+			}
+		}
+		foreach ($events as $k => $v) {
+			$events[$k]['Event']['post_count'] = !empty($event_threads[$events[$k]['Event']['id']]) ? $event_threads[$events[$k]['Event']['id']]['post_count'] : 0;
+			$events[$k]['Event']['last_post'] = !empty($event_threads[$events[$k]['Event']['id']]) ? $event_threads[$events[$k]['Event']['id']]['last_post'] : 0;
+
+		}
+		return $events;
+	}
+
 	private function __buildEventConditionsCorrelation($user, $eventIds, $sgids) {
 		if (!is_array($eventIds)) $eventIds = array($eventIds);
 		if (!$user['Role']['perm_site_admin']) {
