@@ -5,38 +5,38 @@
 ?>
 <div class = "index">
 <h2>Statistics</h2>
-<?php 
+<?php
 	echo $this->element('Users/statisticsMenu');
 ?>
 <p>Some statistics about this instance. The changes since the beginning of this month are noted in brackets wherever applicable</p>
 <div style="width:250px;">
 	<dl>
 		<dt>Events</dt>
-		<dd><?php echo h($stats[0]);
-			if ($stats[1]) echo ' <span style="color:green">(+' . h($stats[1]) . ')</span>&nbsp;';
+		<dd><?php echo h($stats['event_count']);
+			if ($stats['event_count_month']) echo ' <span style="color:green">(+' . h($stats['event_count_month']) . ')</span>&nbsp;';
 			else echo ' <span style="color:red">(0)</span>&nbsp;';?>
 		</dd>
 		<dt><?php echo 'Attributes'; ?></dt>
-		<dd><?php echo h($stats[2]);
-			if ($stats[1]) echo ' <span style="color:green">(+' . h($stats[3]) . ')</span>&nbsp;';
+		<dd><?php echo h($stats['attribute_count']);
+			if ($stats['event_count_month']) echo ' <span style="color:green">(+' . h($stats['attribute_count_month']) . ')</span>&nbsp;';
 			else echo ' <span style="color:red">(0)</span>&nbsp;';?>
 		</dd>
 		<dt><?php echo 'Correlations found'; ?></dt>
-		<dd><?php echo h($stats[4]); ?>&nbsp;</dd>
+		<dd><?php echo h($stats['correlation_count']); ?>&nbsp;</dd>
 		<dt><?php echo 'Proposals active'; ?></dt>
-		<dd><?php echo h($stats[5]); ?>&nbsp;</dd>
+		<dd><?php echo h($stats['proposal_count']); ?>&nbsp;</dd>
 		<dt><?php echo 'Users'; ?></dt>
-		<dd><?php echo h($stats[6]); ?>&nbsp;</dd>
+		<dd><?php echo h($stats['user_count']); ?>&nbsp;</dd>
 		<dt><?php echo 'Organisations'; ?></dt>
-		<dd><?php echo h($stats[7]); ?>&nbsp;</dd>
+		<dd><?php echo h($stats['org_count']); ?>&nbsp;</dd>
 		<dt><?php echo 'Discussion threads'; ?></dt>
-		<dd><?php echo h($stats[8]);
-			if ($stats[9]) echo ' <span style="color:green">(+' . h($stats[9]) . ')</span>&nbsp;';
+		<dd><?php echo h($stats['thread_count']);
+			if ($stats['thread_count_month']) echo ' <span style="color:green">(+' . h($stats['thread_count_month']) . ')</span>&nbsp;';
 			else echo ' <span style="color:red">(0)</span>&nbsp;';?>
 		</dd>
 		<dt><?php echo 'Discussion posts'; ?></dt>
-		<dd><?php echo h($stats[10]);
-			if ($stats[11]) echo ' <span style="color:green">(+' . h($stats[11]) . ')</span>&nbsp;';
+		<dd><?php echo h($stats['post_count']);
+			if ($stats['post_count_month']) echo ' <span style="color:green">(+' . h($stats['post_count_month']) . ')</span>&nbsp;';
 			else echo ' <span style="color:red">(0)</span>&nbsp;';?>
 		</dd>
 	</dl>
