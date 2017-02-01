@@ -305,12 +305,12 @@
 													} else {
 														echo '<a href="' . $baseurl . '/' . h($t) . '/download/' . h($object['id']) . '" class="' . $linkClass . '">' . h($filenameHash[0]) . '</a>';
 													}
-													if (isset($filenameHash[1])) echo ' | ' . $filenameHash[1];
+													if (isset($filenameHash[1])) echo '<br />' . $filenameHash[1];
 												}
 											} else if (strpos($object['type'], '|') !== false) {
 												$filenameHash = explode('|', $object['value']);
 												echo h($filenameHash[0]);
-												if (isset($filenameHash[1])) echo ' | ' . $filenameHash[1];
+												if (isset($filenameHash[1])) echo '<br />' . $filenameHash[1];
 											} else if ('vulnerability' == $object['type']) {
 												if (! is_null(Configure::read('MISP.cveurl'))) {
 													$cveUrl = Configure::read('MISP.cveurl');
@@ -351,17 +351,17 @@
 								</div>
 							</td>
 							<td class="shortish <?php echo $extra; ?>">
-								<?php 
+								<?php
 									if ($object['objectType'] == 0):
 								?>
 									<div class="attributeTagContainer">
 										<?php echo $this->element('ajaxAttributeTags', array('attributeId' => $object['id'], 'attributeTags' => $object['AttributeTag'], 'tagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['org_id']) )); ?>
 									</div>
-								<?php 
+								<?php
 									else:
 								?>
 									&nbsp;
-								<?php 
+								<?php
 									endif;
 								?>
 							</td>
