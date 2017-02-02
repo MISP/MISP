@@ -900,6 +900,15 @@ class Server extends AppModel {
 							'test' => 'testPasswordRegex',
 							'type' => 'string',
 					),
+					'sanitise_attribute_on_delete' => array(
+						'level' => 1,
+						'description' => 'Enabling this setting will sanitise the contents of an attribute on a soft delete',
+						'value' => false,
+						'errorMessage' => '',
+						'test' => 'testBool',
+						'type' => 'boolean',
+						'null' => true
+					)
 			),
 			'SecureAuth' => array(
 					'branch' => 1,
