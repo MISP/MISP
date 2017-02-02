@@ -155,7 +155,7 @@ class Warninglist extends AppModel{
 	}
 
 	private function __checkValue($listValues, $value, $type, $listType) {
-		if (strpos($type, '|')) $value = explode('|', $value);
+		if (strpos($type, '|') || $type = 'malware-sample') $value = explode('|', $value);
 		else $value = array($value);
 		$components = array(0, 1);
 		foreach ($components as $component) {
@@ -246,7 +246,7 @@ class Warninglist extends AppModel{
 		if (in_array($value, $listValues)) return true;
 		return false;
 	}
-	
+
 	private function __evalSubString($listValues, $value) {
 		foreach ($listValues as $listValue) {
 			if (strpos($value, $listValue) !== false) {
@@ -255,7 +255,7 @@ class Warninglist extends AppModel{
 		}
 		return false;
 	}
-	
+
 	private function __evalHostname($listValues, $value) {
 		// php's parse_url is dumb, so let's use some hacky workarounds
 		if (strpos($value, '//') == false) {

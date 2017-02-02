@@ -382,6 +382,15 @@ class UsersController extends AppController {
 			}
 			$fieldList = array('password', 'email', 'external_auth_required', 'external_auth_key', 'enable_password', 'confirm_password', 'org_id', 'role_id', 'authkey', 'nids_sid', 'server_id', 'gpgkey', 'certif_public', 'autoalert', 'contactalert', 'disabled', 'invited_by', 'change_pw', 'termsaccepted', 'newsread');
 			if ($this->User->save($this->request->data, true, $fieldList)) {
+				$notification_message = '';
+				if ($this->request->data['User']['notify']) {
+					$user = $this->User->find('first', array('conditions' => array('User.id' => $this->User->id), 'recursive' => -1));
+					$password = isset($this->request->data['User']['password']) ? $this->request->data['User']['password'] : false;
+					$result = $this->User->initiatePasswordReset($user, true, true, $password);
+					if ($result) {
+						$notification_message .= ' User notified of new credentials.';
+					}
+				}
 				if ($this->_isRest()) {
 					$user = $this->User->find('first', array(
 							'conditions' => array('User.id' => $this->User->id),
@@ -390,7 +399,7 @@ class UsersController extends AppController {
 					$user['User']['password'] = '******';
 					return $this->RestResponse->viewData($user, $this->response->type());
 				} else {
-					$this->Session->setFlash(__('The user has been saved'));
+					$this->Session->setFlash(__('The user has been saved.' . $notification_message));
 					$this->redirect(array('action' => 'index'));
 				}
 			} else {
@@ -817,7 +826,7 @@ class UsersController extends AppController {
 	}
 
 	public function histogram($selected = null) {
-		if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This function can only be accessed via AJAX.');
+		if (!$this->request->is('ajax') && !$this->_isRest()) throw new MethodNotAllowedException('This function can only be accessed via AJAX or the API.');
 		if ($selected == '[]') $selected = null;
 		$selectedTypes = array();
 		if ($selected) $selectedTypes = json_decode($selected);
@@ -877,9 +886,13 @@ class UsersController extends AppController {
 		foreach ($sigTypes as $k => $type) {
 			$typeDb[$type] = $colours[$k];
 		}
-		$this->set('typeDb', $typeDb);
-		$this->set('sigTypes', $sigTypes);
-		$this->layout = 'ajax';
+		if ($this->_isRest()) {
+			return $this->RestResponse->viewData($data, $this->response->type());
+		} else {
+			$this->set('typeDb', $typeDb);
+			$this->set('sigTypes', $sigTypes);
+			$this->layout = 'ajax';
+		}
 	}
 
 	public function terms() {
@@ -1022,26 +1035,7 @@ class UsersController extends AppController {
 		}
 		if ($this->request->is('post')) {
 			if (isset($this->request->data['User']['firstTime'])) $firstTime = $this->request->data['User']['firstTime'];
-			$org = Configure::read('MISP.org');
-			$options = array('passwordResetText', 'newUserText');
-			$subjects = array('[' . $org . ' MISP] New user registration', '[' . $org .  ' MISP] Password reset');
-			$textToFetch = $options[($firstTime ? 0 : 1)];
-			$subject = $subjects[($firstTime ? 0 : 1)];
-			$this->loadModel('Server');
-			$body = Configure::read('MISP.' . $textToFetch);
-			if (!$body) $body = $this->Server->serverSettings['MISP'][$textToFetch]['value'];
-			$body = $this->User->adminMessageResolve($body);
-			$password = $this->User->generateRandomPassword();
-			$body = str_replace('$password', $password, $body);
-			$body = str_replace('$username', $user['User']['email'], $body);
-			$result = $this->User->sendEmail($user, $body, false, $subject);
-			if ($result) {
-				$this->User->id = $user['User']['id'];
-				$this->User->saveField('password', $password);
-				$this->User->saveField('change_pw', '1');
-				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'New credentials sent.')),'status'=>200));
-			}
-			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'There was an error notifying the user. His/her credentials were not altered.')),'status'=>200));
+			return new CakeResponse($this->User->initiatePasswordReset($user, $id, $firstTime));
 		} else {
 			$this->layout = 'ajax';
 			$this->set('user', $user);
@@ -1054,14 +1048,22 @@ class UsersController extends AppController {
 	public function statistics($page = 'data') {
 		$this->set('page', $page);
 		$this->set('pages', array('data' => 'Usage data', 'orgs' => 'Organisations', 'tags' => 'Tags', 'attributehistogram' => 'Attribute histogram'));
+		$result = array();
 		if ($page == 'data') {
-			$this->__statisticsData($this->params['named']);
+			$result = $this->__statisticsData($this->params['named']);
 		} else if ($page == 'orgs') {
-			$this->__statisticsOrgs($this->params['named']);
+			$result = $this->__statisticsOrgs($this->params['named']);
 		} else if ($page == 'tags') {
-			$this->__statisticsTags($this->params['named']);
+			$result = $this->__statisticsTags($this->params['named']);
 		} else if ($page == 'attributehistogram') {
-			$this->render('statistics_histogram');
+			if ($this->_isRest()) {
+				return $this->histogram($selected = null);
+			} else {
+				$this->render('statistics_histogram');
+			}
+		}
+		if ($this->_isRest()) {
+			return $result;
 		}
 	}
 
@@ -1078,37 +1080,45 @@ class UsersController extends AppController {
 		}
 		// Some additional statistics
 		$this_month = strtotime('first day of this month');
-		$stats[0] = $this->User->Event->find('count', null);
-		$stats[1] = $this->User->Event->find('count', array('conditions' => array('Event.timestamp >' => $this_month)));
+		$stats['event_count'] = $this->User->Event->find('count', null);
+		$stats['event_count_month'] = $this->User->Event->find('count', array('conditions' => array('Event.timestamp >' => $this_month)));
 
-		$stats[2] = $this->User->Event->Attribute->find('count', array('conditions' => array('Attribute.deleted' => 0)));
-		$stats[3] = $this->User->Event->Attribute->find('count', array('conditions' => array('Attribute.timestamp >' => $this_month, 'Attribute.deleted' => 0)));
+		$stats['attribute_count'] = $this->User->Event->Attribute->find('count', array('conditions' => array('Attribute.deleted' => 0)));
+		$stats['attribute_count_month'] = $this->User->Event->Attribute->find('count', array('conditions' => array('Attribute.timestamp >' => $this_month, 'Attribute.deleted' => 0)));
 
 		$this->loadModel('Correlation');
 		$this->Correlation->recursive = -1;
-		$stats[4] = $this->Correlation->find('count', null);
-		$stats[4] = $stats[4] / 2;
+		$stats['correlation_count'] = $this->Correlation->find('count', null);
+		$stats['correlation_count'] = $stats['correlation_count'] / 2;
 
-		$stats[5] = $this->User->Event->ShadowAttribute->find('count', null);
+		$stats['proposal_count'] = $this->User->Event->ShadowAttribute->find('count', null);
 
-		$stats[6] = $this->User->find('count', null);
-		$stats[7] = count($orgs);
+		$stats['user_count'] = $this->User->find('count', null);
+		$stats['org_count'] = count($orgs);
 
 		$this->loadModel('Thread');
-		$stats[8] = $this->Thread->find('count', array('conditions' => array('Thread.post_count >' => 0)));
-		$stats[9] = $this->Thread->find('count', array('conditions' => array('Thread.date_created >' => date("Y-m-d H:i:s",$this_month), 'Thread.post_count >' => 0)));
+		$stats['thread_count'] = $this->Thread->find('count', array('conditions' => array('Thread.post_count >' => 0)));
+		$stats['thread_count_month'] = $this->Thread->find('count', array('conditions' => array('Thread.date_created >' => date("Y-m-d H:i:s",$this_month), 'Thread.post_count >' => 0)));
 
-		$stats[10] = $this->Thread->Post->find('count', null);
-		$stats[11] = $this->Thread->Post->find('count', array('conditions' => array('Post.date_created >' => date("Y-m-d H:i:s",$this_month))));
+		$stats['post_count'] = $this->Thread->Post->find('count', null);
+		$stats['post_count_month'] = $this->Thread->Post->find('count', array('conditions' => array('Post.date_created >' => date("Y-m-d H:i:s",$this_month))));
 
-		$this->set('stats', $stats);
-		$this->set('orgs', $orgs);
-		$this->set('start', strtotime(date('Y-m-d H:i:s') . ' -5 months'));
-		$this->set('end', strtotime(date('Y-m-d H:i:s')));
-		$this->set('startDateCal', $year . ', ' . $month . ', 01');
-		$range = '[5, 10, 50, 100]';
-		$this->set('range', $range);
-		$this->render('statistics_data');
+
+		if ($this->_isRest()) {
+			$data = array(
+				'stats' => $stats
+			);
+			return $this->RestResponse->viewData($data, $this->response->type());
+		} else {
+			$this->set('stats', $stats);
+			$this->set('orgs', $orgs);
+			$this->set('start', strtotime(date('Y-m-d H:i:s') . ' -5 months'));
+			$this->set('end', strtotime(date('Y-m-d H:i:s')));
+			$this->set('startDateCal', $year . ', ' . $month . ', 01');
+			$range = '[5, 10, 50, 100]';
+			$this->set('range', $range);
+			$this->render('statistics_data');
+		}
 	}
 
 	private function __statisticsOrgs($params = array()) {
@@ -1155,9 +1165,13 @@ class UsersController extends AppController {
 				$orgs[$k]['logo'] = true;
 			}
 		}
-		$this->set('scope', $params['scope']);
-		$this->set('orgs', $orgs);
-		$this->render('statistics_orgs');
+		if ($this->_isRest()) {
+			return $this->RestResponse->viewData($orgs, $this->response->type());
+		} else {
+			$this->set('scope', $params['scope']);
+			$this->set('orgs', $orgs);
+			$this->render('statistics_orgs');
+		}
 	}
 
 	public function tagStatisticsGraph() {
@@ -1198,19 +1212,31 @@ class UsersController extends AppController {
 		}
 		$taxonomyColourCodes = array();
 		$taxonomies = array_merge(array('custom'), $taxonomies);
-		$this->set('taxonomyColourCodes', $taxonomyColourCodes);
-		$this->set('taxonomies', $taxonomies);
-		$this->set('flatData', $flatData);
-		$this->set('treemap', $treemap);
-		$this->set('tags', $tags);
-		$this->layout = 'treemap';
-		$this->render('ajax/tag_statistics_graph');
+		if ($this->_isRest()) {
+			$data = array(
+				'flatData' => $flatData,
+				'treemap' => $treemap
+			);
+			return $this->RestResponse->viewData($data, $this->response->type());
+		} else {
+			$this->set('taxonomyColourCodes', $taxonomyColourCodes);
+			$this->set('taxonomies', $taxonomies);
+			$this->set('flatData', $flatData);
+			$this->set('treemap', $treemap);
+			$this->set('tags', $tags);
+			$this->layout = 'treemap';
+			$this->render('ajax/tag_statistics_graph');
+		}
 	}
 
 	private function __statisticsTags($params = array()) {
 		$trending_tags = array();
 		$all_tags = array();
-		$this->render('statistics_tags');
+		if ($this->_isRest()) {
+			return $this->tagStatisticsGraph();
+		} else {
+			$this->render('statistics_tags');
+		}
 	}
 
 	public function verifyGPG() {
