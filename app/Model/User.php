@@ -3,7 +3,7 @@ App::uses('AppModel', 'Model');
 App::uses('AuthComponent', 'Controller/Component');
 App::uses('RandomTool', 'Tools');
 
-class User extends AppModel {
+ class User extends AppModel {
 
 	public $displayField = 'email';
 
@@ -939,5 +939,41 @@ class User extends AppModel {
 		}
 
 		return $admin['User'];
+	}
+
+	public function initiatePasswordReset($user, $firstTime = false, $simpleReturn = false, $fixedPassword = false) {
+		$org = Configure::read('MISP.org');
+		$options = array('passwordResetText', 'newUserText');
+		$subjects = array('[' . $org . ' MISP] New user registration', '[' . $org .  ' MISP] Password reset');
+		$textToFetch = $options[($firstTime ? 0 : 1)];
+		$subject = $subjects[($firstTime ? 0 : 1)];
+		$this->Server = ClassRegistry::init('Server');
+		$body = Configure::read('MISP.' . $textToFetch);
+		if (!$body) $body = $this->Server->serverSettings['MISP'][$textToFetch]['value'];
+		$body = $this->adminMessageResolve($body);
+		if ($fixedPassword) {
+			$password = $fixedPassword;
+		} else {
+			$password = $this->generateRandomPassword();	
+		}
+		$body = str_replace('$password', $password, $body);
+		$body = str_replace('$username', $user['User']['email'], $body);
+		$result = $this->sendEmail($user, $body, false, $subject);
+		if ($result) {
+			$this->id = $user['User']['id'];
+			$this->saveField('password', $password);
+			$this->saveField('change_pw', '1');
+			if ($simpleReturn) {
+				return true;
+			} else {
+				return array('body'=> json_encode(array('saved' => true, 'success' => 'New credentials sent.')),'status'=>200);
+			}
+		}
+		if ($simpleReturn) {
+			return false;
+		} else {
+			return array('body'=> json_encode(array('saved' => false, 'errors' => 'There was an error notifying the user. His/her credentials were not altered.')),'status'=>200);
+		}
+
 	}
 }
