@@ -18,6 +18,7 @@
     </div>
 	<table class="table table-striped table-hover table-condensed">
 	<tr>
+			<th><?php echo $this->Paginator->sort('id');?></th>
 			<th><?php echo $this->Paginator->sort('name');?></th>
 			<th>Connection test</th>
 			<th><?php echo $this->Paginator->sort('internal');?></th>
@@ -57,6 +58,7 @@ foreach ($servers as $server):
 	}
 ?>
 	<tr>
+		<td class="short"><?php echo h($server['Server']['id']); ?></td>
 		<td>
 			<?php
 				if (!empty($server['Server']['name'])) echo h($server['Server']['name']);
