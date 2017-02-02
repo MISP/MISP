@@ -1047,7 +1047,7 @@ class Event extends AppModel {
 		}
 	}
 
-	public function downloadEventFromServer($eventId, $server, $HttpSocket=null, $proposalDownload = false) {
+	public function downloadEventFromServer($eventId, $server, $HttpSocket=null) {
 		$url = $server['Server']['url'];
 		$authkey = $server['Server']['authkey'];
 		if (null == $HttpSocket) {
@@ -1066,18 +1066,12 @@ class Event extends AppModel {
 						//'Connection' => 'keep-alive' // // LATER followup cakephp issue about this problem: https://github.com/cakephp/cakephp/issues/1961
 				)
 		);
-		if (!$proposalDownload) {
-			$uri = $url . '/events/view/' . $eventId . '/deleted:true';
-		} else {
-			$uri = $url . '/shadow_attributes/getProposalsByUuid/' . $eventId;
-		}
+		$uri = $url . '/events/view/' . $eventId . '/deleted:true';
 		$response = $HttpSocket->get($uri, $data = '', $request);
 		if ($response->isOk()) {
 			return json_decode($response->body, true);
-		} else {
-			// TODO parse the XML response and keep the reason why it failed
-			return null;
 		}
+		return null;
 	}
 
 	public function downloadProposalsFromServer($uuidList, $server, $HttpSocket = null) {
@@ -1100,13 +1094,8 @@ class Event extends AppModel {
 		$response = $HttpSocket->post($uri, json_encode($uuidList), $request);
 		if ($response->isOk()) {
 			return(json_decode($response->body, true));
-		} else if ($response->code == '405') {
-			// HACKY: without correct permission, the returning null causes Fallback for < 2.4.7 instances
-			// which queries every event, for proposal, which it doesn't have permission for
-			return array();
 		} else {
-			// TODO parse the XML response and keep the reason why it failed
-			return null;
+			return false;
 		}
 	}
 

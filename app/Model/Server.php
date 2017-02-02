@@ -1571,54 +1571,18 @@ class Server extends AppModel {
 					}
 				}
 			} else {
-				// Fallback for < 2.4.7 instances
-				$k = 0;
-				foreach ($events as $eid => $event) {
-					$proposals = $eventModel->downloadEventFromServer($event, $server, null, true);
-					if (null != $proposals) {
-						if (isset($proposals['ShadowAttribute']['id'])) {
-							$temp = $proposals['ShadowAttribute'];
-							$proposals['ShadowAttribute'] = array(0 => $temp);
-						}
-						foreach ($proposals['ShadowAttribute'] as &$proposal) {
-							$oldsa = $shadowAttribute->findOldProposal($proposal);
-							$proposal['event_id'] = $eid;
-							if (!$oldsa || $oldsa['timestamp'] < $proposal['timestamp']) {
-								if ($oldsa) $shadowAttribute->delete($oldsa['id']);
-								if (!isset($pulledProposals[$eid])) $pulledProposals[$eid] = 0;
-								$pulledProposals[$eid]++;
-								if (isset($proposal['old_id'])) {
-									$oldAttribute = $eventModel->Attribute->find('first', array('recursive' => -1, 'conditions' => array('uuid' => $proposal['uuid'])));
-									if ($oldAttribute) $proposal['old_id'] = $oldAttribute['Attribute']['id'];
-									else $proposal['old_id'] = 0;
-								}
-								// check if this is a proposal from an old MISP instance
-								if (!isset($proposal['Org']) && isset($proposal['org']) && !empty($proposal['org'])) {
-									$proposal['Org'] = $proposal['org'];
-									$proposal['EventOrg'] = $proposal['event_org'];
-								} else if (!isset($proposal['Org']) && !isset($proposal['EventOrg'])) {
-									continue;
-								}
-								$proposal['org_id'] = $this->Organisation->captureOrg($proposal['Org'], $user);
-								$proposal['event_org_id'] = $this->Organisation->captureOrg($proposal['EventOrg'], $user);
-								unset($proposal['Org']);
-								unset($proposal['EventOrg']);
-								$shadowAttribute->create();
-								if (!isset($proposal['deleted']) || !$proposal['deleted']) {
-									if ($shadowAttribute->save($proposal)) $shadowAttribute->sendProposalAlertEmail($eid);
-								}
-
-							}
-						}
-					}
-					if ($jobId) {
-						if ($k % 10 == 0) {
-							$job->id = $jobId;
-							$job->saveField('progress', 50 * (($k + 1) / count($events)));
-						}
-					}
-					$k++;
-				}
+				$this->Log = ClassRegistry::init('Log');
+				$this->Log->create();
+				$this->Log->save(array(
+					'org' => $user['Organisation']['name'],
+					'model' => 'Server',
+					'model_id' => $id,
+					'email' => $user['email'],
+					'action' => 'error',
+					'user_id' => $user['id'],
+					'title' => 'Pulling of proposals has failed.',
+					'change' => ''
+				));
 			}
 		}
 		if ($jobId) {
