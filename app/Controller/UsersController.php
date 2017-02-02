@@ -382,6 +382,15 @@ class UsersController extends AppController {
 			}
 			$fieldList = array('password', 'email', 'external_auth_required', 'external_auth_key', 'enable_password', 'confirm_password', 'org_id', 'role_id', 'authkey', 'nids_sid', 'server_id', 'gpgkey', 'certif_public', 'autoalert', 'contactalert', 'disabled', 'invited_by', 'change_pw', 'termsaccepted', 'newsread');
 			if ($this->User->save($this->request->data, true, $fieldList)) {
+				$notification_message = '';
+				if ($this->request->data['User']['notify']) {
+					$user = $this->User->find('first', array('conditions' => array('User.id' => $this->User->id), 'recursive' => -1));
+					$password = isset($this->request->data['User']['password']) ? $this->request->data['User']['password'] : false;
+					$result = $this->User->initiatePasswordReset($user, true, true, $password);
+					if ($result) {
+						$notification_message .= ' User notified of new credentials.';
+					}
+				}
 				if ($this->_isRest()) {
 					$user = $this->User->find('first', array(
 							'conditions' => array('User.id' => $this->User->id),
@@ -390,7 +399,7 @@ class UsersController extends AppController {
 					$user['User']['password'] = '******';
 					return $this->RestResponse->viewData($user, $this->response->type());
 				} else {
-					$this->Session->setFlash(__('The user has been saved'));
+					$this->Session->setFlash(__('The user has been saved.' . $notification_message));
 					$this->redirect(array('action' => 'index'));
 				}
 			} else {
@@ -1026,26 +1035,7 @@ class UsersController extends AppController {
 		}
 		if ($this->request->is('post')) {
 			if (isset($this->request->data['User']['firstTime'])) $firstTime = $this->request->data['User']['firstTime'];
-			$org = Configure::read('MISP.org');
-			$options = array('passwordResetText', 'newUserText');
-			$subjects = array('[' . $org . ' MISP] New user registration', '[' . $org .  ' MISP] Password reset');
-			$textToFetch = $options[($firstTime ? 0 : 1)];
-			$subject = $subjects[($firstTime ? 0 : 1)];
-			$this->loadModel('Server');
-			$body = Configure::read('MISP.' . $textToFetch);
-			if (!$body) $body = $this->Server->serverSettings['MISP'][$textToFetch]['value'];
-			$body = $this->User->adminMessageResolve($body);
-			$password = $this->User->generateRandomPassword();
-			$body = str_replace('$password', $password, $body);
-			$body = str_replace('$username', $user['User']['email'], $body);
-			$result = $this->User->sendEmail($user, $body, false, $subject);
-			if ($result) {
-				$this->User->id = $user['User']['id'];
-				$this->User->saveField('password', $password);
-				$this->User->saveField('change_pw', '1');
-				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'New credentials sent.')),'status'=>200));
-			}
-			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'There was an error notifying the user. His/her credentials were not altered.')),'status'=>200));
+			return new CakeResponse($this->User->initiatePasswordReset($user, $id, $firstTime));
 		} else {
 			$this->layout = 'ajax';
 			$this->set('user', $user);
