@@ -992,7 +992,14 @@ class AttributesController extends AppController {
 		if ($hard) {
 			$save = $this->Attribute->delete($id);
 		} else {
-			$result['Attribute']['deleted'] = true;
+			if (Configure::read('Security.sanitise_attribute_on_delete')) {
+					$result['Attribute']['category'] = 'Other';
+					$result['Attribute']['type'] = 'comment';
+					$result['Attribute']['value'] = 'deleted';
+					$result['Attribute']['comment'] = '';
+					$result['Attribute']['to_ids'] = 0;
+			}
+			$result['Attribute']['deleted'] = 1;
 			$result['Attribute']['timestamp'] = $date->getTimestamp();
 			$save = $this->Attribute->save($result);
 		}
