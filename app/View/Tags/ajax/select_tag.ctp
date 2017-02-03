@@ -7,6 +7,7 @@
 			} else {
 				echo $this->Form->create('Event', array('url' => '/events/addTag/' . $object_id, 'style' => 'margin:0px;'));
 			}
+			echo $this->Form->input('attribute_ids', array('style' => 'display:none;', 'label' => false));
 			echo $this->Form->input('tag', array('value' => 0));
 			echo $this->Form->end();
 		?>
