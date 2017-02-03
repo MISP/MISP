@@ -128,6 +128,15 @@ class Server extends AppModel {
 							'test' => 'testLive',
 							'type' => 'boolean',
 					),
+					'enable_advanced_correlations' => array(
+							'level' => 0,
+							'description' => 'Enable some performance heavy correlations (currently CIDR correlation)',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+							'null' => true
+					),
 					'maintenance_message' => array(
 							'level' => 2,
 							'description' => 'The message that users will see if the instance is not live.',
