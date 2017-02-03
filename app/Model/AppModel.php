@@ -40,7 +40,8 @@ class AppModel extends Model {
 				32 => false, 33 => true, 38 => true, 39 => true, 40 => false,
 				42 => false, 44 => false, 45 => false, 49 => true, 50 => false,
 				51 => false, 52 => false, 55 => true, 56 => true, 57 => true,
-				58 => false, 59 => false, 60 => false, 61 => false, 62 => false
+				58 => false, 59 => false, 60 => false, 61 => false, 62 => false,
+				63 => false
 			)
 		)
 	);
@@ -119,22 +120,22 @@ class AppModel extends Model {
 		$clean = true;
 		switch ($command) {
 			case 'extendServerOrganizationLength':
-				$sql = 'ALTER TABLE `servers` MODIFY COLUMN `organization` varchar(255) NOT NULL;';
+				$sqlArray[] = 'ALTER TABLE `servers` MODIFY COLUMN `organization` varchar(255) NOT NULL;';
 				break;
 			case 'convertLogFieldsToText':
-				$sql = 'ALTER TABLE `logs` MODIFY COLUMN `title` text, MODIFY COLUMN `change` text;';
+				$sqlArray[] = 'ALTER TABLE `logs` MODIFY COLUMN `title` text, MODIFY COLUMN `change` text;';
 				break;
 			case 'addEventBlacklists':
-				$sql = 'CREATE TABLE IF NOT EXISTS `event_blacklists` ( `id` int(11) NOT NULL AUTO_INCREMENT, `event_uuid` varchar(40) COLLATE utf8_bin NOT NULL, `created` datetime NOT NULL, PRIMARY KEY (`id`), `event_info` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL, `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL, `event_orgc` VARCHAR( 255 ) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;';
+				$sqlArray[] = 'CREATE TABLE IF NOT EXISTS `event_blacklists` ( `id` int(11) NOT NULL AUTO_INCREMENT, `event_uuid` varchar(40) COLLATE utf8_bin NOT NULL, `created` datetime NOT NULL, PRIMARY KEY (`id`), `event_info` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL, `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL, `event_orgc` VARCHAR( 255 ) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;';
 				break;
 			case 'addOrgBlacklists':
-				$sql = 'CREATE TABLE IF NOT EXISTS `org_blacklists` ( `id` int(11) NOT NULL AUTO_INCREMENT, `org_uuid` varchar(40) COLLATE utf8_bin NOT NULL, `created` datetime NOT NULL, PRIMARY KEY (`id`), `org_name` varchar(255) COLLATE utf8_bin NOT NULL, `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;';
+				$sqlArray[] = 'CREATE TABLE IF NOT EXISTS `org_blacklists` ( `id` int(11) NOT NULL AUTO_INCREMENT, `org_uuid` varchar(40) COLLATE utf8_bin NOT NULL, `created` datetime NOT NULL, PRIMARY KEY (`id`), `org_name` varchar(255) COLLATE utf8_bin NOT NULL, `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;';
 				break;
 			case 'addEventBlacklistsContext':
-				$sql = 'ALTER TABLE  `event_blacklists` ADD  `event_orgc` VARCHAR( 255 ) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL , ADD  `event_info` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL, ADD `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL;';
+				$sqlArray[] = 'ALTER TABLE  `event_blacklists` ADD  `event_orgc` VARCHAR( 255 ) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL , ADD  `event_info` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL, ADD `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL;';
 				break;
 			case 'addSightings':
-				$sql = "CREATE TABLE IF NOT EXISTS sightings (
+				$sqlArray[] = "CREATE TABLE IF NOT EXISTS sightings (
 				id int(11) NOT NULL AUTO_INCREMENT,
 				attribute_id int(11) NOT NULL,
 				event_id int(11) NOT NULL,
@@ -148,22 +149,22 @@ class AppModel extends Model {
 				break;
 			case 'makeAttributeUUIDsUnique':
 				$this->__dropIndex('attributes', 'uuid');
-				$sql = 'ALTER TABLE `attributes` ADD UNIQUE (uuid);';
+				$sqlArray[] = 'ALTER TABLE `attributes` ADD UNIQUE (uuid);';
 				break;
 			case 'makeEventUUIDsUnique':
 				$this->__dropIndex('events', 'uuid');
-				$sql = 'ALTER TABLE `events` ADD UNIQUE (uuid);';
+				$sqlArray[] = 'ALTER TABLE `events` ADD UNIQUE (uuid);';
 				break;
 			case 'cleanSessionTable':
-				$sql = 'DELETE FROM cake_sessions WHERE expires < ' . time() . ';';
+				$sqlArray[] = 'DELETE FROM cake_sessions WHERE expires < ' . time() . ';';
 				$clean = false;
 				break;
 			case 'destroyAllSessions':
-				$sql = 'DELETE FROM cake_sessions;';
+				$sqlArray[] = 'DELETE FROM cake_sessions;';
 				$clean = false;
 				break;
 			case 'addIPLogging':
-				$sql = 'ALTER TABLE `logs` ADD  `ip` varchar(45) COLLATE utf8_bin DEFAULT NULL;';
+				$sqlArray[] = 'ALTER TABLE `logs` ADD  `ip` varchar(45) COLLATE utf8_bin DEFAULT NULL;';
 				break;
 			case 'addCustomAuth':
 				$sqlArray[] = "ALTER TABLE `users` ADD `external_auth_required` tinyint(1) NOT NULL DEFAULT 0;";
@@ -569,6 +570,11 @@ class AppModel extends Model {
 				$sqlArray[] = 'ALTER TABLE logs CHANGE `org` `org` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT "";';
 				$sqlArray[] = 'ALTER TABLE logs CHANGE `email` `email` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT "";';
 				$sqlArray[] = 'ALTER TABLE logs CHANGE `change` `change` text COLLATE utf8_bin NOT NULL DEFAULT "";';
+				break;
+			case '2.4.63':
+				$sqlArray[] = 'ALTER TABLE events DROP COLUMN org;';
+				$sqlArray[] = 'ALTER TABLE events DROP COLUMN orgc;';
+				$sqlArray[] = 'ALTER TABLE event_blacklists CHANGE comment comment TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci;';
 				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
