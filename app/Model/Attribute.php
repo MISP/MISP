@@ -1498,10 +1498,13 @@ class Attribute extends AppModel {
 		return $rules;
 	}
 
-	public function text($user, $type, $tags = false, $eventId = false, $allowNonIDS = false, $from = false, $to = false, $last = false, $enforceWarninglist = false) {
+	public function text($user, $type, $tags = false, $eventId = false, $allowNonIDS = false, $from = false, $to = false, $last = false, $enforceWarninglist = false, $allowNotPublished = false) {
 		//restricting to non-private or same org if the user is not a site-admin.
 		$conditions['AND'] = array();
-		if ($allowNonIDS === false) $conditions['AND'] = array('Attribute.to_ids' => 1, 'Event.published' => 1);
+		if ($allowNonIDS === false) {
+			$conditions['AND']['Attribute.to_ids'] = 1;
+			if ($allowNotPublished === false) $conditions['AND']['Event.published'] = 1;
+		}
 		if ($type !== 'all') $conditions['AND']['Attribute.type'] = $type;
 		if ($from) $conditions['AND']['Event.date >='] = $from;
 		if ($to) $conditions['AND']['Event.date <='] = $to;

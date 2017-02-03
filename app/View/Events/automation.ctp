@@ -198,7 +198,7 @@ foreach ($sigTypes as $sigType) {
 <p>As of version 2.3.38, it is possible to restrict the text exports on two additional flags. The first allows the user to restrict based on event ID, whilst the second is a boolean switch allowing non IDS flagged attributes to be exported. Additionally, choosing "all" in the type field will return all eligible attributes. </p>
 <pre>
 <?php
-	echo $baseurl.'/attributes/text/download/[type]/[tags]/[event_id]/[allowNonIDS]/[from]/[to]/[last]';
+	echo $baseurl.'/attributes/text/download/[type]/[tags]/[event_id]/[allowNonIDS]/[from]/[to]/[last]/[enforceWarninglist]/[allowNotPublished]';
 ?>
 </pre>
 <b>type</b>: The attribute type, any valid MISP attribute type is accepted.<br />
@@ -209,6 +209,7 @@ foreach ($sigTypes as $sigType) {
 <b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-15). This filter will use the date of the event.<br />
 <b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m). This filter will use the published timestamp of the event.<br />
 <b>enforceWarninglist</b>: All attributes that have a hit on a warninglist will be excluded.<br />
+<b>allowNotPublished</b>: Include not published Events.</b>
 You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search.
 Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use:<br />
 <pre>
