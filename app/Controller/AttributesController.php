@@ -1966,7 +1966,7 @@ class AttributesController extends AppController {
 		$this->__downloadAttachment($this->Attribute->data['Attribute']);
 	}
 
-	public function text($key='download', $type = 'all', $tags = false, $eventId = false, $allowNonIDS = false, $from = false, $to = false, $last = false, $enforceWarninglist = false) {
+	public function text($key='download', $type = 'all', $tags = false, $eventId = false, $allowNonIDS = false, $from = false, $to = false, $last = false, $enforceWarninglist = false, $allowNotPublished = false) {
 		$simpleFalse = array('eventId', 'allowNonIDS', 'tags', 'from', 'to', 'last', 'enforceWarninglist');
 		foreach ($simpleFalse as $sF) {
 			if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false')) ${$sF} = false;
@@ -1989,7 +1989,7 @@ class AttributesController extends AppController {
 		$this->response->type('txt');	// set the content type
 		$this->header('Content-Disposition: download; filename="misp.' . $type . '.txt"');
 		$this->layout = 'text/default';
-		$attributes = $this->Attribute->text($this->Auth->user(), $type, $tags, $eventId, $allowNonIDS, $from, $to, $last, $enforceWarninglist);
+		$attributes = $this->Attribute->text($this->Auth->user(), $type, $tags, $eventId, $allowNonIDS, $from, $to, $last, $enforceWarninglist, $allowNotPublished);
 		$this->loadModel('Whitelist');
 		$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
 		$this->set('attributes', $attributes);
