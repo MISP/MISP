@@ -1258,6 +1258,93 @@ class Attribute extends AppModel {
 		}
 	}
 
+	// using Alnitak's solution from http://stackoverflow.com/questions/594112/matching-an-ip-to-a-cidr-mask-in-php5
+	private function __ipv4InCidr($ip, $cidr) {
+		list ($subnet, $bits) = explode('/', $cidr);
+		$ip = ip2long($ip);
+		$subnet = ip2long($subnet);
+		$mask = -1 << (32 - $bits);
+		$subnet &= $mask; # nb: in case the supplied subnet wasn't correctly aligned
+		return ($ip & $mask) == $subnet;
+	}
+
+	// using Snifff's solution from http://stackoverflow.com/questions/7951061/matching-ipv6-address-to-a-cidr-subnet
+	private function __ipv6InCidr($ip, $cidr) {
+		$ip = inet_pton($ip);
+		$binaryip = $this->__inet_to_bits($ip);
+		list($net, $maskbits) = explode('/', $cidr);
+		$net = inet_pton($net);
+		$binarynet = $this->__inet_to_bits($net);
+		$ip_net_bits = substr($binaryip, 0, $maskbits);
+		$net_bits = substr($binarynet, 0, $maskbits);
+		return ($ip_net_bits === $net_bits);
+	}
+
+	private function __cidrCorrelation($a) {
+		$ipValues = array();
+		$ip = $a['type'] == 'domain-ip' ? $a['value2'] : $a['value1'];
+		if (strpos($ip, '/') !== false) {
+			$ip_array = explode('/', $ip);
+			$ip_version = filter_var($ip_array[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
+			$ipList = $this->find('list', array(
+				'conditions' => array(
+					'type' => array('ip-src', 'ip-dst', 'domain_ip'),
+				),
+				'fields' => array('value1', 'value2'),
+				'order' => false
+			));
+			$ipList = array_merge(array_keys($ipList), array_values($ipList));
+			foreach ($ipList as $key => $value) {
+				if ($value == '') {
+					unset($ipList[$key]);
+				}
+			}
+			foreach ($ipList as $ipToCheck) {
+				if (filter_var($ipToCheck, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) && $ip_version == 4) {
+					if ($ip_version == 4) {
+						if ($this->__ipv4InCidr($ipToCheck, $ip)) {
+							$ipValues[] = $ipToCheck;
+						}
+					} else {
+						if ($this->__ipv6InCidr($ipToCheck, $ip)) {
+							$ipValues[] = $ipToCheck;
+						}
+					}
+				}
+			}
+		} else {
+			$ip = $a['value1'];
+			$ip_version = filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
+			$cidrList = $this->find('list', array(
+				'conditions' => array(
+					'type' => array('ip-src', 'ip-dst'),
+					'value1 LIKE' => '%/%'
+				),
+				'fields' => array('value1'),
+				'order' => false
+			));
+			foreach ($cidrList as $cidr) {
+				$cidr_ip = explode('/', $cidr)[0];
+				if (filter_var($cidr_ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) && $ip_version == 4) {
+					if ($this->__ipv4InCidr($ip, $cidr)) {
+						$ipValues[] = $cidr;
+					}
+				} else {
+					if ($this->__ipv6InCidr($ip, $cidr)) {
+						$ipValues[] = $cidr;
+					}
+				}
+			}
+		}
+		if (!empty($ipValues)) {
+			$extraConditions = array('OR' => array(
+				'Attribute.value1' => $ipValues,
+				'Attribute.value2' => $ipValues
+			));
+		}
+		return $extraConditions;
+	}
+
 	public function __afterSaveCorrelation($a, $full = false, $event = false) {
 		// Don't do any correlation if the type is a non correlating type
 		if (!in_array($a['type'], $this->nonCorrelatingTypes)) {
@@ -1272,23 +1359,30 @@ class Attribute extends AppModel {
 			if ($event['Event']['disable_correlation']) {
 				return true;
 			}
+			if (Configure::read('MISP.enable_advanced_correlations') && in_array($a['type'], array('ip-src', 'ip-dst', 'domain-ip'))) {
+				$extraConditions = $this->__cidrCorrelation($a);
+			}
 			$this->Correlation = ClassRegistry::init('Correlation');
 			$correlatingValues = array($a['value1']);
 			if (!empty($a['value2'])) $correlatingValues[] = $a['value2'];
 			foreach ($correlatingValues as $k => $cV) {
-				$correlatingAttributes[$k] = $this->find('all', array(
-						'conditions' => array(
-							'AND' => array(
-								'OR' => array(
-										'Attribute.value1' => $cV,
-										'Attribute.value2' => $cV
-								),
-								'Attribute.type !=' => $this->nonCorrelatingTypes,
-								'Attribute.disable_correlation' => 0,
-								'Event.disable_correlation' => 0
-							),
-							'Attribute.deleted' => 0
+				$conditions = array(
+					'AND' => array(
+						'OR' => array(
+								'Attribute.value1' => $cV,
+								'Attribute.value2' => $cV
 						),
+						'Attribute.type !=' => $this->nonCorrelatingTypes,
+						'Attribute.disable_correlation' => 0,
+						'Event.disable_correlation' => 0
+					),
+					'Attribute.deleted' => 0
+				);
+				if (isset($extraConditions)) {
+					$conditions['AND']['OR'][] = $extraConditions;
+				}
+				$correlatingAttributes[$k] = $this->find('all', array(
+						'conditions' => $conditions,
 						'recursive => -1',
 						'fields' => array('Attribute.event_id', 'Attribute.id', 'Attribute.distribution', 'Attribute.sharing_group_id', 'Attribute.deleted'),
 						'contain' => array('Event' => array('fields' => array('Event.id', 'Event.date', 'Event.info', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id'))),
