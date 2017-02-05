@@ -28,6 +28,8 @@ class SightingsController extends AppController {
 			if ($result['success']) {
 				$result['data'] = json_decode($result['data'], true);
 				$timestamp = isset($result['data']['timestamp']) ? strtotime($result['data']['timestamp']) : $now;
+				$type = '0';
+				$source = '';
 				if (isset($result['data']['values'])) $values = $result['data']['values'];
 				else $error = 'No valid values found could be extracted from the sightings document.';
 			} $error = $result['message'];
@@ -38,8 +40,10 @@ class SightingsController extends AppController {
 			if (isset($this->request->data['value'])) $this->request->data['values'] = array($this->request->data['value']);
 			$values = isset($this->request->data['values']) ? $this->request->data['values'] : false;
 			if (!$id && isset($this->request->data['id'])) $id = $this->request->data['id'];
+			$type = isset($this->request->data['type']) ? $this->request->data['type'] : '0';
+			$source = isset($this->request->data['type']) ? $this->request->data['type'] : '';
 		}
-		if (!$error) $result = $this->Sighting->saveSightings($id, $values, $timestamp, $this->Auth->user());
+		if (!$error) $result = $this->Sighting->saveSightings($id, $values, $timestamp, $this->Auth->user(), $type, $source);
 		if ($result == 0) $error = 'No valid attributes found that would match the sighting criteria.';
 
 		if ($this->request->is('ajax')) {
@@ -47,13 +51,13 @@ class SightingsController extends AppController {
 				$error_message = 'Could not add the Sighting. Reason: ' . $error;
 				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $error_message)), 'status' => 200));
 			} else {
-				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $result . ' sighting' . (($result == 1) ? '' : 's') . '  added.')), 'status' => 200));
+				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $result . ' ' . $this->Sighting->type[$type] . (($result == 1) ? '' : 's') . '  added.')), 'status' => 200));
 			}
 		} else {
 			if ($error) {
 				return $this->RestResponse->saveFailResponse('Sighting', 'add', $id, $error);
 			} else {
-				return $this->RestResponse->saveSuccessResponse('Sighting', 'add', $id, false, $result . ' sighting' . (($result == 1) ? '' : 's') . ' successfuly added.');
+				return $this->RestResponse->saveSuccessResponse('Sighting', 'add', $id, false, $result . ' ' . $this->Sighting->type[$type] . (($result == 1) ? '' : 's') . ' successfuly added.');
 			}
 		}
 	}

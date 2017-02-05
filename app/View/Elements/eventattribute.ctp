@@ -15,49 +15,38 @@
 		$attributeSightings = array();
 		$attributeOwnSightings = array();
 		$attributeSightingsPopover = array();
-		if (isset($event['Sighting']) && !empty($event['Sighting'])) {
+		$sightingsData = array();
+		if (!empty($event['Sighting'])) {
 			foreach ($event['Sighting'] as $sighting) {
-				$attributeSightings[$sighting['attribute_id']][] = $sighting;
-				if (isset($sighting['org_id']) && $sighting['org_id'] == $me['org_id']) {
-					if (isset($attributeOwnSightings[$sighting['attribute_id']])) {
-						$attributeOwnSightings[$sighting['attribute_id']]['count']++;
-						if (!isset($attributeOwnSightings[$sighting['attribute_id']]['date']) || $attributeOwnSightings[$sighting['attribute_id']]['date'] < $sighting['date_sighting']) {
-							$attributeOwnSightings[$sighting['attribute_id']]['date'] = $sighting['date_sighting'];
-						}
-					} else {
-						$attributeOwnSightings[$sighting['attribute_id']]['count'] = 1;
-						$attributeOwnSightings[$sighting['attribute_id']]['date'] = $sighting['date_sighting'];
-					}
+				$type = $sightingTypes[$sighting['type']];
+				if (!isset($sightingsData[$sighting['attribute_id']][$type])) {
+					$sightingsData[$sighting['attribute_id']][$type] = array('count' => 0);
 				}
-				if (isset($sighting['org_id'])) {
-					if (isset($attributeSightingsPopover[$sighting['attribute_id']][$sighting['Organisation']['name']])) {
-						$attributeSightingsPopover[$sighting['attribute_id']][$sighting['Organisation']['name']]['count']++;
-						if (!isset($attributeSightingsPopover[$sighting['attribute_id']][$sighting['Organisation']['name']]['date']) || $attributeSightingsPopover[$sighting['attribute_id']][$sighting['Organisation']['name']]['date'] < $sighting['date_sighting']) {
-							$attributeSightingsPopover[$sighting['attribute_id']][$sighting['Organisation']['name']]['date'] = $sighting['date_sighting'];
-						}
-					} else {
-						$attributeSightingsPopover[$sighting['attribute_id']][$sighting['Organisation']['name']]['count'] = 1;
-						$attributeSightingsPopover[$sighting['attribute_id']][$sighting['Organisation']['name']]['date'] = $sighting['date_sighting'];
-					}
+				$sightingsData[$sighting['attribute_id']][$type]['count']++;
+				$orgName = isset($sighting['Organisation']['name']) ? $sighting['Organisation']['name'] : 'Others';
+				if (!isset($sightingsData[$sighting['attribute_id']][$type]['orgs'][$orgName])) {
+					$sightingsData[$sighting['attribute_id']][$type]['orgs'][$orgName] = array('count' => 1, 'date' => $sighting['date_sighting']);
 				} else {
-					if (isset($attributeSightingsPopover[$sighting['attribute_id']]['Other organisations'])) {
-						$attributeSightingsPopover[$sighting['attribute_id']]['Other organisations']['count']++;
-						if (!isset($attributeSightingsPopover[$sighting['attribute_id']]['Other organisations']['date']) || $attributeSightingsPopover[$sighting['attribute_id']]['Other organisations']['date'] < $sighting['date_sighting']) {
-							$attributeSightingsPopover[$sighting['attribute_id']]['Other organisations']['date'] = $sighting['date_sighting'];
-						}
-					} else {
-						$attributeSightingsPopover[$sighting['attribute_id']]['Other organisations']['count'] = 1;
-						$attributeSightingsPopover[$sighting['attribute_id']]['Other organisations']['date'] = $sighting['date_sighting'];
+					$sightingsData[$sighting['attribute_id']][$type]['orgs'][$orgName]['count']++;
+					if ($sightingsData[$sighting['attribute_id']][$type]['orgs'][$orgName]['date'] < $sighting['date_sighting']) {
+						$sightingsData[$sighting['attribute_id']][$type]['orgs'][$orgName]['date'] = $sighting['date_sighting'];
 					}
 				}
 			}
-			if (!empty($attributeSightingsPopover)) {
-				$attributeSightingsPopoverText = array();
-				foreach ($attributeSightingsPopover as $aid =>  &$attribute) {
-					$attributeSightingsPopoverText[$aid] = '';
-					foreach ($attribute as $org => $data) {
-						$attributeSightingsPopoverText[$aid] .= '<span class=\'bold\'>' . h($org) . '</span>: <span class=\'green bold\'>' . h($data['count']) . ' (' . date('Y-m-d H:i:s', $data['date']) . ')</span><br />';
+			foreach ($sightingsData as $aid => $data) {
+				$sightingsData[$aid]['html'] = '';
+				foreach ($data as $type => $typeData) {
+					$name = (($type != 'expiration') ? Inflector::pluralize($type) : $type);
+					$sightingsData[$aid]['html'] .= '<span class=\'blue bold\'>' . ucfirst(h($name)) . '</span><br />';
+					foreach ($typeData['orgs'] as $org => $orgData) {
+						$extra = (($org == $me['Organisation']['name']) ? " class=	'bold'" : "");
+						if ($type == 'expiration') {
+							$sightingsData[$aid]['html'] .= '<span ' . $extra . '>' . h($org) . '</span>: <span class=\'orange bold\'>' . date('Y-m-d H:i:s', $orgData['date']) . '</span><br />';
+						} else {
+							$sightingsData[$aid]['html'] .= '<span ' . $extra . '>' . h($org) . '</span>: <span class=\'' . (($type == 'sighting') ? 'green' : 'red') . ' bold\'>' . h($orgData['count']) . ' (' . date('Y-m-d H:i:s', $orgData['date']) . ')</span><br />';
+						}
 					}
+					$sightingsData[$aid]['html'] .= '<br />';
 				}
 			}
 		}
@@ -452,20 +441,27 @@
 						endif;
 						if (Configure::read('Plugin.Sightings_enable') !== false):
 					?>
-					<td class="short <?php echo $extra;?>">
+					<td class="shortish <?php echo $extra;?>">
 						<span id="sightingForm_<?php echo h($object['id']);?>">
 						<?php
 							if ($object['objectType'] == 0):
 								echo $this->Form->create('Sighting', array('id' => 'Sighting_' . $object['id'], 'url' => '/sightings/add/' . $object['id'], 'style' => 'display:none;'));
+								echo $this->Form->input('type', array('label' => false, 'id' => 'Sighting_' . $object['id'] . '_type'));
 								echo $this->Form->end();
 						?>
 						</span>
-						<span class="icon-thumbs-up useCursorPointer" onClick="addSighting('<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']);?>', '<?php echo h($page); ?>');">&nbsp;</span>
-						<span id="sightingCount_<?php echo h($object['id']); ?>" class="bold sightingsCounter_<?php echo h($object['id']); ?>"  data-placement="top" data-toggle="popover" data-trigger="hover" data-content="<?php echo isset($attributeSightingsPopoverText[$object['id']]) ? $attributeSightingsPopoverText[$object['id']] : ''; ?>">
-							<?php echo (!empty($attributeSightings[$object['id']]) ? count($attributeSightings[$object['id']]) : 0); ?>
+						<span class="icon-thumbs-up useCursorPointer" onClick="addSighting('0', '<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']);?>', '<?php echo h($page); ?>');">&nbsp;</span>
+						<span class="icon-thumbs-down useCursorPointer" onClick="addSighting('1', '<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']);?>', '<?php echo h($page); ?>');">&nbsp;</span>
+						<span class="icon-wrench useCursorPointer" onClick="addSighting('<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']);?>', '<?php echo h($page); ?>');">&nbsp;</span>
+						<span id="sightingCount_<?php echo h($object['id']); ?>" class="bold sightingsCounter_<?php echo h($object['id']); ?>"  data-placement="top" data-toggle="popover" data-trigger="hover" data-content="<?php echo isset($sightingsData[$object['id']]['html']) ? $sightingsData[$object['id']]['html'] : ''; ?>">
+							<?php
+								$s = (!empty($sightingsData[$object['id']]['sighting']['count']) ? $sightingsData[$object['id']]['sighting']['count'] : 0);
+								$f = (!empty($sightingsData[$object['id']]['false-positive']['count']) ? $sightingsData[$object['id']]['false-positive']['count'] : 0);
+								$e = (!empty($sightingsData[$object['id']]['expiration']['count']) ? $sightingsData[$object['id']]['expiration']['count'] : 0);
+							?>
 						</span>
-						<span id="ownSightingCount_<?php echo h($object['id']); ?>" class="bold green sightingsCounter_<?php echo h($object['id']); ?>" data-placement="top" data-toggle="popover" data-trigger="hover" data-content="<?php echo isset($attributeSightingsPopoverText[$object['id']]) ? $attributeSightingsPopoverText[$object['id']] : ''; ?>">
-							<?php echo '(' . (isset($attributeOwnSightings[$object['id']]['count']) ? $attributeOwnSightings[$object['id']]['count'] : 0) . ')'; ?>
+						<span id="ownSightingCount_<?php echo h($object['id']); ?>" class="bold sightingsCounter_<?php echo h($object['id']); ?>" data-placement="top" data-toggle="popover" data-trigger="hover" data-content="<?php echo isset($sightingsData[$object['id']]['html']) ? $sightingsData[$object['id']]['html'] : ''; ?>">
+							<?php echo '(<span class="green">' . h($s) . '</span>/<span class="red">' . h($f) . '</span>/<span class="orange">' . h($e) . '</span>)'; ?>
 						</span>
 						<?php
 							endif;

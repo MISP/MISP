@@ -28,11 +28,20 @@ class Sighting extends AppModel {
 			),
 	);
 
+	public $type = array(
+		0 => 'sighting',
+		1 => 'false-positive',
+		2 => 'expiration'
+	);
+
 	public function beforeValidate($options = array()) {
 		parent::beforeValidate();
 		$date = date('Y-m-d H:i:s');
 		if (empty($this->data['Sighting']['id']) && empty($this->data['Sighting']['date_sighting'])) {
 			$this->data['Sighting']['date_sighting'] = $date;
+		}
+		if (empty($this->data['Sighting']['uuid'])) {
+			$this->data['Sighting']['uuid'] = CakeText::uuid();
 		}
 		return true;
 	}
@@ -81,7 +90,7 @@ class Sighting extends AppModel {
 		return $sightings;
 	}
 
-	public function saveSightings($id, $values, $timestamp, $user) {
+	public function saveSightings($id, $values, $timestamp, $user, $type = false, $source = false) {
 		$conditions = array();
 		if ($id && $id !== 'stix') {
 			if (strlen($id) == 36) $conditions = array('Attribute.uuid' => $id);
@@ -106,6 +115,8 @@ class Sighting extends AppModel {
 					'event_id' => $attribute['Attribute']['event_id'],
 					'org_id' => $user['org_id'],
 					'date_sighting' => $timestamp,
+					'type' => $type,
+					'source' => $source
 			);
 			$sightingsAdded += $this->save($sighting) ? 1 : 0;
 		}
@@ -138,5 +149,14 @@ class Sighting extends AppModel {
 
 	public function generateRandomFileName() {
 		return (new RandomTool())->random_str(FALSE, 12);
+	}
+
+	public function addUuids() {
+		$sightings = $this->find('all', array(
+			'recursive' => -1,
+			'conditions' => array('uuid' => '')
+		));
+		$this->saveMany($sightings);
+		return true;
 	}
 }
