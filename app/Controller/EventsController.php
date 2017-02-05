@@ -748,6 +748,8 @@ class EventsController extends AppController {
 		$this->set('attributeFilter', isset($this->params['named']['attributeFilter']) ? $this->params['named']['attributeFilter'] : 'all');
 		$this->disableCache();
 		$this->layout = 'ajax';
+		$this->loadModel('Sighting');
+		$this->set('sightingTypes', $this->Sighting->type);
 		$this->set('currentUri', $this->params->here);
 		$this->render('/Elements/eventattribute');
 	}
@@ -859,6 +861,8 @@ class EventsController extends AppController {
 		}
 		$this->set('contributors', $contributors);
 		$this->set('typeGroups', array_keys($this->Event->Attribute->typeGroupings));
+		$this->loadModel('Sighting');
+		$this->set('sightingTypes', $this->Sighting->type);
 	}
 
 	public function view($id = null, $continue=false, $fromEvent=null) {

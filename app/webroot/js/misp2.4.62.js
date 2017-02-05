@@ -340,7 +340,8 @@ function postActivationScripts(name, type, id, field, event) {
 	$(name + '_solid').hide();
 }
 
-function addSighting(attribute_id, event_id, $page) {
+function addSighting(type, attribute_id, event_id, page) {
+	$('#Sighting_' + attribute_id + '_type').val(type);
 	$.ajax({
 		data: $('#Sighting_' + attribute_id).closest("form").serialize(),
 		cache: false,
