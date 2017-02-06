@@ -729,7 +729,7 @@ class UsersController extends AppController {
 						'local' => 1,
 						'sector' => '',
 						'nationality' => '',
-                        'date_created' => Date("Y-m-d H:i:s")
+                        			'date_created' => Date("Y-m-d H:i:s")
 				));
 				$this->User->Organisation->save($org);
 				// PostgreSQL: update value of auto incremented serial primary key after setting the column by force
