@@ -106,4 +106,41 @@ class SightingsController extends AppController {
 		}
 		return $this->RestResponse->viewData($sightings);
 	}
+
+	public function viewSightings($id, $context = 'attribute') {
+		$this->loadModel('Event');
+		if ($context === 'attribute') {
+			$object = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id, 'Attribute.deleted' => 0)));
+		} else {
+			// let's set the context to event here, since we reuse the variable later on for some additional lookups.
+			// Passing $context = 'org' could have interesting results otherwise...
+			$context = 'event';
+			$object = $this->Event->fetchEvent($this->Auth->user(), $options = array('eventid' => $id, 'metadata' => true));
+		}
+		if (empty($object)) {
+			throw new MethodNotAllowedException('Invalid object.');
+		}
+		$results = array();
+		$csv = array();
+		foreach (array('0', '1') as $type) {
+			$raw[$type] = $this->Sighting->find('all', array(
+				'conditions' => array('Sighting.' . $context . '_id' => $id, 'Sighting.type' => $type),
+				'recursive' => -1,
+				'contain' => array('Organisation.name')
+			));
+			foreach ($raw[$type] as $sighting) {
+				$results[$type][date('Y-m-d', $sighting['Sighting']['date_sighting'])][] = $sighting;
+			}
+		}
+		$csv = array('0' => '', '1' => '');
+		foreach ($results as $type => $data) {
+			foreach ($data as $date => $sighting) {
+				$csv[$type] .= $date . ', ' . count($sighting) . PHP_EOL;
+			}
+		}
+		$this->set('csv', $csv);
+		$this->set('results', $results);
+		$this->layout = 'ajax';
+		$this->render('ajax/view_sightings');
+	}
 }
