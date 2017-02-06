@@ -96,7 +96,7 @@ class OrganisationsController extends AppController {
 			if ($this->_isRest()) {
 				if (!isset($this->request->data['Organisation']['local'])) {
 					$this->request->data['Organisation']['local'] = true;
-				}				
+				}
 			}
 			if ($this->Organisation->save($this->request->data)) {
 				if ($this->_isRest()) {
@@ -212,6 +212,13 @@ class OrganisationsController extends AppController {
 	}
 
 	public function view($id) {
+		if (Validation::uuid($id)) {
+			$temp = $this->Organisation->find('first', array('recursive' => -1, 'fields' => array('Organisation.id'), 'conditions' => array('Organisation.uuid' => $id)));
+			if (empty($temp)) throw new NotFoundException('Invalid organisation.');
+			$id = $temp['Organisation']['id'];
+		} else if (!is_numeric($id)) {
+			throw new NotFoundException('Invalid organisation.');
+		}
 		$this->Organisation->id = $id;
 		if (!$this->Organisation->exists()) throw new NotFoundException('Invalid organisation');
 		$fullAccess = false;
@@ -230,7 +237,7 @@ class OrganisationsController extends AppController {
 		if ($fullAccess) {
 			 $creator = $this->Organisation->User->find('first', array(
 			 		'conditions' => array('User.id' => $org['Organisation']['created_by']),
-			 		'fields' => array('email'), 
+			 		'fields' => array('email'),
 			 		'recursive' => -1
 			 	)
 			 );
