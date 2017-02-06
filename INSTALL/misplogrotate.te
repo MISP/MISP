@@ -1,0 +1,8 @@
+module misplogrotate 1.0;
+require {
+	type logrotate_t;
+	type httpd_sys_content_t;
+	class dir { ioctl read getattr lock search open };
+}
+#============= logrotate_t ==============
+allow logrotate_t httpd_sys_content_t:dir { ioctl read getattr lock search open };
