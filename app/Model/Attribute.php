@@ -1593,7 +1593,7 @@ class Attribute extends AppModel {
 	}
 
 	public function text($user, $type, $tags = false, $eventId = false, $allowNonIDS = false, $from = false, $to = false, $last = false, $enforceWarninglist = false, $allowNotPublished = false) {
-		//restricting to non-private or same org if the user is not a site-admin.
+		//permissions are taken care of in fetchAttributes()
 		$conditions['AND'] = array();
 		if ($allowNonIDS === false) {
 			$conditions['AND']['Attribute.to_ids'] = 1;
