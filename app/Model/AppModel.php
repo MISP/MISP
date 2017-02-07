@@ -41,7 +41,7 @@ class AppModel extends Model {
 				42 => false, 44 => false, 45 => false, 49 => true, 50 => false,
 				51 => false, 52 => false, 55 => true, 56 => true, 57 => true,
 				58 => false, 59 => false, 60 => false, 61 => false, 62 => false,
-				63 => false
+				63 => false, 64 => false
 			)
 		)
 	);
@@ -576,6 +576,25 @@ class AppModel extends Model {
 				$sqlArray[] = 'ALTER TABLE events DROP COLUMN orgc;';
 				$sqlArray[] = 'ALTER TABLE event_blacklists CHANGE comment comment TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci;';
 				break;
+			case '2.4.64':
+				$indexArray[] = array('feeds', 'input_source');
+				$indexArray[] = array('attributes', 'value1', 255);
+				$indexArray[] = array('attributes', 'value2', 255);
+				$indexArray[] = array('attributes', 'type');
+				$indexArray[] = array('galaxy_reference', 'galaxy_cluster_id');
+				$indexArray[] = array('galaxy_reference', 'referenced_galaxy_cluster_id');
+				$indexArray[] = array('galaxy_reference', 'referenced_galaxy_cluster_value', 255);
+				$indexArray[] = array('galaxy_reference', 'referenced_galaxy_cluster_type', 255);
+				$indexArray[] = array('correlations', '1_event_id');
+				$indexArray[] = array('warninglist_entries', 'warninglist_id');
+				$indexArray[] = array('galaxy_clusters', 'value', 255);
+				$indexArray[] = array('galaxy_clusters', 'tag_name');
+				$indexArray[] = array('galaxy_clusters', 'uuid');
+				$indexArray[] = array('galaxy_clusters', 'type');
+				$indexArray[] = array('galaxies', 'name');
+				$indexArray[] = array('galaxies', 'uuid');
+				$indexArray[] = array('galaxies', 'type');
+				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
 				$sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -624,33 +643,12 @@ class AppModel extends Model {
 						'change' => 'The executed SQL query was: ' . $sql . PHP_EOL . ' The returned error is: ' . $e->getMessage()
 				));
 			}
-			foreach ($indexArray as $iA) {
-				try {
-					$this->__addIndex($iA[0], $iA[1]);
-					$this->Log->create();
-					$this->Log->save(array(
-							'org' => 'SYSTEM',
-							'model' => 'Server',
-							'model_id' => 0,
-							'email' => 'SYSTEM',
-							'action' => 'update_database',
-							'user_id' => 0,
-							'title' => 'Successfuly executed the SQL query for ' . $command,
-							'change' => 'New index for field ' . $iA[1] . ' added to table ' . $iA[0],
-					));
-				} catch (Exception $e) {
-					$this->Log->create();
-					$this->Log->save(array(
-							'org' => 'SYSTEM',
-							'model' => 'Server',
-							'model_id' => 0,
-							'email' => 'SYSTEM',
-							'action' => 'update_database',
-							'user_id' => 0,
-							'title' => 'Issues executing the SQL query for ' . $command,
-							'change' => 'Failed to add index for field ' . $iA[1] . ' for table ' . $iA[0],
-					));
-				}
+		}
+		foreach ($indexArray as $iA) {
+			if (isset($iA[2])) {
+				$this->__addIndex($iA[0], $iA[1], $iA[2]);
+			} else {
+				$this->__addIndex($iA[0], $iA[1]);
 			}
 		}
 		if ($clean) $this->cleanCacheFiles();
@@ -702,7 +700,7 @@ class AppModel extends Model {
 		if ($dataSource == 'Database/Postgres') {
 			$addIndex = "CREATE INDEX idx_" . $table . "_" . $field . " ON " . $table . " (" . $field . ");";
 		} else {
-			if (isset($length)) {
+			if (!$length) {
 				$addIndex = "ALTER TABLE `" . $table . "` ADD INDEX `" . $field . "` (`" . $field . "`);";
 			} else {
 				$addIndex = "ALTER TABLE `" . $table . "` ADD INDEX `" . $field . "` (`" . $field . "`(" . $length . "));";
@@ -712,6 +710,7 @@ class AppModel extends Model {
 		try {
 			$this->query($addIndex);
 		} catch (Exception $e) {
+			$duplicate = (strpos($e->getMessage(), '1061') !== false);
 			$result = false;
 		}
 		$this->Log->create();
@@ -722,8 +721,8 @@ class AppModel extends Model {
 				'email' => 'SYSTEM',
 				'action' => 'update_database',
 				'user_id' => 0,
-				'title' => ($result ? 'Added index ' : 'Failed to add index ') . $field . ' to ' . $table,
-				'change' => ($result ? 'Added index ' : 'Failed to add index ') . $field . ' to ' . $table,
+				'title' => ($result ? 'Added index ' : 'Failed to add index ') . $field . ' to ' . $table . ($duplicate ? ' (index already set)' : ''),
+				'change' => ($result ? 'Added index ' : 'Failed to add index ') . $field . ' to ' . $table . ($duplicate ? ' (index already set)' : ''),
 		));
 	}
 
