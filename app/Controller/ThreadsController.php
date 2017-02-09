@@ -22,24 +22,21 @@ class ThreadsController extends AppController {
 		$thread_id = false;
 		if ($result) {
 			$thread_id = $this->Thread->find('first', array('recursive' => -1, 'conditions' => array('Thread.event_id' => $id), 'fields' => array('Thread.id')));
-				if ($thread_id) {
-					$thread_id = $thread_id['Thread']['id'];
+			if ($thread_id) {
+				if (!$this->_isRest()) {
+					$this->redirect(array('action' => 'view', $thread_id['Thread']['id'], true));
 				} else {
-					if ($this->_isRest()) {
-						return $this->RestResponse->viewData($array(), $this->response->type());
-					}
-					$thread_id = false;
+					return $this->__view($thread_id['Thread']['id'], false, false);
 				}
-		}
-		if ($thread_id) {
-			$post_id = false;
-			if (isset($this->passedArgs['post_id'])) $post_id = $this->passedArgs['post_id'];
-			$response = $this->__view($thread_id, false, $post_id);
-			if ($this->_isRest()) {
-				return $response;
+			} else {
+				if ($this->_isRest()) {
+					return $this->RestResponse->viewData(array(), $this->response->type());
+				} else {
+					throw new NotFoundException('Invalid Thread.');
+				}
 			}
 		} else {
-			throw new NotFoundException('Invalid Thread.');
+			throw new NotFoundException('Invalid Event.');
 		}
 	}
 
@@ -83,7 +80,6 @@ class ThreadsController extends AppController {
 				throw new NotFoundException('Invalid thread.');
 			}
 			$thread = $this->Thread->read();
-
 			// If the thread belongs to an event, we have to make sure that the event's distribution level hasn't changed.
 			// This is also a good time to update the thread's distribution level if that did happen.
 			if (!empty($thread['Thread']['event_id'])) {
