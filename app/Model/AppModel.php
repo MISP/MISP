@@ -594,6 +594,7 @@ class AppModel extends Model {
 				$indexArray[] = array('galaxies', 'name');
 				$indexArray[] = array('galaxies', 'uuid');
 				$indexArray[] = array('galaxies', 'type');
+				$sqlArray[] = $sqlArray[] = 'ALTER TABLE feeds CHANGE `enabled `enabled` boolean;';
 				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
