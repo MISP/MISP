@@ -714,6 +714,7 @@ class AppModel extends Model {
 			}
 		}
 		$result = true;
+		$duplicate = false;
 		try {
 			$this->query($addIndex);
 		} catch (Exception $e) {
