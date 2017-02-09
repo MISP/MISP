@@ -16,7 +16,7 @@
 				'class' => 'form-control span6'
 		));
 		echo $this->Form->input('input_source', array(
-				'label' => 'Source Format',
+				'label' => 'Input Source',
 				'div' => 'input clear',
 				'options' => array('network' => 'Network', 'local' => 'Local'),
 				'class' => 'form-control span6'
