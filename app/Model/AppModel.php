@@ -113,7 +113,6 @@ class AppModel extends Model {
 	public function updateDatabase($command) {
 		$dataSourceConfig = ConnectionManager::getDataSource('default')->config;
 		$dataSource = $dataSourceConfig['datasource'];
-		$sql = '';
 		$sqlArray = array();
 		$indexArray = array();
 		$this->Log = ClassRegistry::init('Log');
@@ -622,7 +621,6 @@ class AppModel extends Model {
 				return false;
 				break;
 		}
-		if (!isset($sqlArray)) $sqlArray = array($sql);
 		foreach ($sqlArray as $sql) {
 			try {
 				$this->query($sql);
