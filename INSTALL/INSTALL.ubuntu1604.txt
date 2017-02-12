@@ -190,7 +190,7 @@ sudo systemctl restart apache2
 # MISP saves the stdout and stderr of its workers in /var/www/MISP/app/tmp/logs
 # To rotate these logs install the supplied logrotate script:
 
-cp INSTALL/misp.logrotate /etc/logrotate.d/misp
+sudo cp INSTALL/misp.logrotate /etc/logrotate.d/misp
 
 9/ MISP configuration
 ---------------------
