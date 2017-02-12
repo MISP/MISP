@@ -1341,8 +1341,9 @@ class Attribute extends AppModel {
 				'Attribute.value1' => $ipValues,
 				'Attribute.value2' => $ipValues
 			));
+			return $extraConditions;
 		}
-		return $extraConditions;
+		return false;
 	}
 
 	public function __afterSaveCorrelation($a, $full = false, $event = false) {
@@ -1378,7 +1379,7 @@ class Attribute extends AppModel {
 					),
 					'Attribute.deleted' => 0
 				);
-				if (isset($extraConditions)) {
+				if (!empty($extraConditions)) {
 					$conditions['AND']['OR'][] = $extraConditions;
 				}
 				$correlatingAttributes[$k] = $this->find('all', array(
