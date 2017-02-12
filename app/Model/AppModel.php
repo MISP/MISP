@@ -41,7 +41,7 @@ class AppModel extends Model {
 				42 => false, 44 => false, 45 => false, 49 => true, 50 => false,
 				51 => false, 52 => false, 55 => true, 56 => true, 57 => true,
 				58 => false, 59 => false, 60 => false, 61 => false, 62 => false,
-				63 => false, 64 => false
+				63 => false, 64 => false, 65 => false
 			)
 		)
 	);
@@ -113,7 +113,6 @@ class AppModel extends Model {
 	public function updateDatabase($command) {
 		$dataSourceConfig = ConnectionManager::getDataSource('default')->config;
 		$dataSource = $dataSourceConfig['datasource'];
-		$sql = '';
 		$sqlArray = array();
 		$indexArray = array();
 		$this->Log = ClassRegistry::init('Log');
@@ -595,6 +594,13 @@ class AppModel extends Model {
 				$indexArray[] = array('galaxies', 'uuid');
 				$indexArray[] = array('galaxies', 'type');
 				break;
+			case '2.4.65':
+				$sqlArray[] = 'ALTER TABLE feeds CHANGE `enabled` `enabled` tinyint(1) DEFAULT 0;';
+				$sqlArray[] = 'ALTER TABLE feeds CHANGE `default` `default` tinyint(1) DEFAULT 0;';
+				$sqlArray[] = 'ALTER TABLE feeds CHANGE `distribution` `distribution` tinyint(4) NOT NULL DEFAULT 0;';
+				$sqlArray[] = 'ALTER TABLE feeds CHANGE `sharing_group_id` `sharing_group_id` int(11) NOT NULL DEFAULT 0;';
+				$sqlArray[] = 'ALTER TABLE attributes CHANGE `comment` `comment` text COLLATE utf8_bin;';
+				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
 				$sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -615,7 +621,6 @@ class AppModel extends Model {
 				return false;
 				break;
 		}
-		if (!isset($sqlArray)) $sqlArray = array($sql);
 		foreach ($sqlArray as $sql) {
 			try {
 				$this->query($sql);
@@ -707,6 +712,7 @@ class AppModel extends Model {
 			}
 		}
 		$result = true;
+		$duplicate = false;
 		try {
 			$this->query($addIndex);
 		} catch (Exception $e) {

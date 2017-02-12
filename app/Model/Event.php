@@ -1474,6 +1474,10 @@ class Event extends AppModel {
 				}
 				$event['ShadowAttribute'] = array_values($event['ShadowAttribute']);
 			}
+			if ($event['Event']['orgc_id'] === $user['org_id'] && $user['Role']['perm_audit']) {
+				$UserEmail = $this->User->getAuthUser($event['Event']['user_id'])['email'];
+				$event['Event']['event_creator_email'] = $UserEmail;
+			}
 		}
 		return $results;
 	}
