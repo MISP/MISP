@@ -48,7 +48,7 @@
 							}
 							foreach ($cluster_fields as $cluster_field):
 						?>
-								<tr>
+								<tr id="cluster_<?php echo h($cluster_field['key']); ?>">
 									<td style="width:25%;vertical-align: text-top; padding-bottom:10px;"><?php echo h(ucfirst($cluster_field['key'])); ?></td>
 									<td style="width:75%; padding-bottom:10px;">
 										<?php
