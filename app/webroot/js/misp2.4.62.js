@@ -438,13 +438,20 @@ function quickSubmitTagForm(event_id, tag_id) {
 
 function quickSubmitAttributeTagForm(attribute_id, tag_id) {
 	$('#AttributeTag').val(tag_id);
+	if (attribute_id == 'selected') {
+		$('#AttributeAttributeIds').val(getSelected());
+	}
 	$.ajax({
 		data: $('#AttributeSelectTagForm').closest("form").serialize(),
 		beforeSend: function (XMLHttpRequest) {
 			$(".loading").show();
 		},
 		success:function (data, textStatus) {
-			loadAttributeTags(attribute_id);
+			if (attribute_id == 'selected') {
+				updateIndex(0, 'event');
+			} else {
+				loadAttributeTags(attribute_id);
+			}
 			handleGenericAjaxResponse(data);
 		},
 		error:function() {

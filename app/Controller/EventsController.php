@@ -3093,6 +3093,8 @@ class EventsController extends AppController {
 				foreach (${$source} as $k => $attribute) {
 					if ($attribute['type'] == 'ip-src/ip-dst') {
 						$types = array('ip-src', 'ip-dst');
+					} else if ($attribute['type'] == 'ip-src|port/ip-dst|port') {
+						$types = array('ip-src|port', 'ip-dst|port');
 					} else if ($attribute['type'] == 'malware-sample') {
 						if (!isset($attribute['data_is_handled']) || !$attribute['data_is_handled']) {
 							App::uses('FileAccessTool', 'Tools');

@@ -918,8 +918,14 @@ class Event extends AppModel {
 			// cleanup the array from things we do not want to expose
 			foreach (array('Org', 'org_id', 'orgc_id', 'proposal_email_lock', 'org', 'orgc') as $field) unset($event['Event'][$field]);
 			foreach ($event['Event']['EventTag'] as $kt => $tag) {
-				if (!$tag['Tag']['exportable']) unset($event['Event']['EventTag'][$kt]);
+				if (!$tag['Tag']['exportable']) {
+					unset($event['Event']['EventTag'][$kt]);
+				} else {
+					unset($tag['org_id']);
+					$event['Event']['Tag'][] = $tag['Tag'];
+				}
 			}
+			unset($event['Event']['EventTag']);
 
 			// Add the local server to the list of instances in the SG
 			if (isset($event['Event']['SharingGroup']) && isset($event['Event']['SharingGroup']['SharingGroupServer'])) {
@@ -961,6 +967,16 @@ class Event extends AppModel {
 						}
 					}
 				}
+				foreach ($attribute['AttributeTag'] as $kt => $tag) {
+					if (!$tag['Tag']['exportable']) {
+						unset($attribute['AttributeTag'][$kt]);
+					} else {
+						unset($tag['Tag']['org_id']);
+						$attribute['Tag'][] = $tag['Tag'];
+					}
+				}
+				unset($attribute['AttributeTag']);
+
 
 				// remove value1 and value2 from the output
 				unset($attribute['value1']);
@@ -1457,6 +1473,10 @@ class Event extends AppModel {
 					if (!empty($sa['old_id'])) unset($event['ShadowAttribute'][$k]);
 				}
 				$event['ShadowAttribute'] = array_values($event['ShadowAttribute']);
+			}
+			if ($event['Event']['orgc_id'] === $user['org_id'] && $user['Role']['perm_audit']) {
+				$UserEmail = $this->User->getAuthUser($event['Event']['user_id'])['email'];
+				$event['Event']['event_creator_email'] = $UserEmail;
 			}
 		}
 		return $results;
@@ -2435,7 +2455,8 @@ class Event extends AppModel {
 												'fields' => array('id', 'url', 'name')
 											)
 										),
-								)
+								),
+								'AttributeTag' => array('Tag')
 						),
 						'EventTag' => array('Tag'),
 						'Org' => array('fields' => array('id', 'uuid', 'name', 'local')),

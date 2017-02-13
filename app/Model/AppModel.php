@@ -40,7 +40,8 @@ class AppModel extends Model {
 				32 => false, 33 => true, 38 => true, 39 => true, 40 => false,
 				42 => false, 44 => false, 45 => false, 49 => true, 50 => false,
 				51 => false, 52 => false, 55 => true, 56 => true, 57 => true,
-				58 => false, 59 => false, 60 => false, 61 => false, 62 => false
+				58 => false, 59 => false, 60 => false, 61 => false, 62 => false,
+				63 => false, 64 => false, 65 => false
 			)
 		)
 	);
@@ -112,29 +113,28 @@ class AppModel extends Model {
 	public function updateDatabase($command) {
 		$dataSourceConfig = ConnectionManager::getDataSource('default')->config;
 		$dataSource = $dataSourceConfig['datasource'];
-		$sql = '';
 		$sqlArray = array();
 		$indexArray = array();
 		$this->Log = ClassRegistry::init('Log');
 		$clean = true;
 		switch ($command) {
 			case 'extendServerOrganizationLength':
-				$sql = 'ALTER TABLE `servers` MODIFY COLUMN `organization` varchar(255) NOT NULL;';
+				$sqlArray[] = 'ALTER TABLE `servers` MODIFY COLUMN `organization` varchar(255) NOT NULL;';
 				break;
 			case 'convertLogFieldsToText':
-				$sql = 'ALTER TABLE `logs` MODIFY COLUMN `title` text, MODIFY COLUMN `change` text;';
+				$sqlArray[] = 'ALTER TABLE `logs` MODIFY COLUMN `title` text, MODIFY COLUMN `change` text;';
 				break;
 			case 'addEventBlacklists':
-				$sql = 'CREATE TABLE IF NOT EXISTS `event_blacklists` ( `id` int(11) NOT NULL AUTO_INCREMENT, `event_uuid` varchar(40) COLLATE utf8_bin NOT NULL, `created` datetime NOT NULL, PRIMARY KEY (`id`), `event_info` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL, `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL, `event_orgc` VARCHAR( 255 ) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;';
+				$sqlArray[] = 'CREATE TABLE IF NOT EXISTS `event_blacklists` ( `id` int(11) NOT NULL AUTO_INCREMENT, `event_uuid` varchar(40) COLLATE utf8_bin NOT NULL, `created` datetime NOT NULL, PRIMARY KEY (`id`), `event_info` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL, `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL, `event_orgc` VARCHAR( 255 ) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;';
 				break;
 			case 'addOrgBlacklists':
-				$sql = 'CREATE TABLE IF NOT EXISTS `org_blacklists` ( `id` int(11) NOT NULL AUTO_INCREMENT, `org_uuid` varchar(40) COLLATE utf8_bin NOT NULL, `created` datetime NOT NULL, PRIMARY KEY (`id`), `org_name` varchar(255) COLLATE utf8_bin NOT NULL, `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;';
+				$sqlArray[] = 'CREATE TABLE IF NOT EXISTS `org_blacklists` ( `id` int(11) NOT NULL AUTO_INCREMENT, `org_uuid` varchar(40) COLLATE utf8_bin NOT NULL, `created` datetime NOT NULL, PRIMARY KEY (`id`), `org_name` varchar(255) COLLATE utf8_bin NOT NULL, `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;';
 				break;
 			case 'addEventBlacklistsContext':
-				$sql = 'ALTER TABLE  `event_blacklists` ADD  `event_orgc` VARCHAR( 255 ) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL , ADD  `event_info` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL, ADD `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL;';
+				$sqlArray[] = 'ALTER TABLE  `event_blacklists` ADD  `event_orgc` VARCHAR( 255 ) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL , ADD  `event_info` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL, ADD `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL;';
 				break;
 			case 'addSightings':
-				$sql = "CREATE TABLE IF NOT EXISTS sightings (
+				$sqlArray[] = "CREATE TABLE IF NOT EXISTS sightings (
 				id int(11) NOT NULL AUTO_INCREMENT,
 				attribute_id int(11) NOT NULL,
 				event_id int(11) NOT NULL,
@@ -148,22 +148,22 @@ class AppModel extends Model {
 				break;
 			case 'makeAttributeUUIDsUnique':
 				$this->__dropIndex('attributes', 'uuid');
-				$sql = 'ALTER TABLE `attributes` ADD UNIQUE (uuid);';
+				$sqlArray[] = 'ALTER TABLE `attributes` ADD UNIQUE (uuid);';
 				break;
 			case 'makeEventUUIDsUnique':
 				$this->__dropIndex('events', 'uuid');
-				$sql = 'ALTER TABLE `events` ADD UNIQUE (uuid);';
+				$sqlArray[] = 'ALTER TABLE `events` ADD UNIQUE (uuid);';
 				break;
 			case 'cleanSessionTable':
-				$sql = 'DELETE FROM cake_sessions WHERE expires < ' . time() . ';';
+				$sqlArray[] = 'DELETE FROM cake_sessions WHERE expires < ' . time() . ';';
 				$clean = false;
 				break;
 			case 'destroyAllSessions':
-				$sql = 'DELETE FROM cake_sessions;';
+				$sqlArray[] = 'DELETE FROM cake_sessions;';
 				$clean = false;
 				break;
 			case 'addIPLogging':
-				$sql = 'ALTER TABLE `logs` ADD  `ip` varchar(45) COLLATE utf8_bin DEFAULT NULL;';
+				$sqlArray[] = 'ALTER TABLE `logs` ADD  `ip` varchar(45) COLLATE utf8_bin DEFAULT NULL;';
 				break;
 			case 'addCustomAuth':
 				$sqlArray[] = "ALTER TABLE `users` ADD `external_auth_required` tinyint(1) NOT NULL DEFAULT 0;";
@@ -570,6 +570,37 @@ class AppModel extends Model {
 				$sqlArray[] = 'ALTER TABLE logs CHANGE `email` `email` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT "";';
 				$sqlArray[] = 'ALTER TABLE logs CHANGE `change` `change` text COLLATE utf8_bin NOT NULL DEFAULT "";';
 				break;
+			case '2.4.63':
+				$sqlArray[] = 'ALTER TABLE events DROP COLUMN org;';
+				$sqlArray[] = 'ALTER TABLE events DROP COLUMN orgc;';
+				$sqlArray[] = 'ALTER TABLE event_blacklists CHANGE comment comment TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci;';
+				break;
+			case '2.4.64':
+				$indexArray[] = array('feeds', 'input_source');
+				$indexArray[] = array('attributes', 'value1', 255);
+				$indexArray[] = array('attributes', 'value2', 255);
+				$indexArray[] = array('attributes', 'type');
+				$indexArray[] = array('galaxy_reference', 'galaxy_cluster_id');
+				$indexArray[] = array('galaxy_reference', 'referenced_galaxy_cluster_id');
+				$indexArray[] = array('galaxy_reference', 'referenced_galaxy_cluster_value', 255);
+				$indexArray[] = array('galaxy_reference', 'referenced_galaxy_cluster_type', 255);
+				$indexArray[] = array('correlations', '1_event_id');
+				$indexArray[] = array('warninglist_entries', 'warninglist_id');
+				$indexArray[] = array('galaxy_clusters', 'value', 255);
+				$indexArray[] = array('galaxy_clusters', 'tag_name');
+				$indexArray[] = array('galaxy_clusters', 'uuid');
+				$indexArray[] = array('galaxy_clusters', 'type');
+				$indexArray[] = array('galaxies', 'name');
+				$indexArray[] = array('galaxies', 'uuid');
+				$indexArray[] = array('galaxies', 'type');
+				break;
+			case '2.4.65':
+				$sqlArray[] = 'ALTER TABLE feeds CHANGE `enabled` `enabled` tinyint(1) DEFAULT 0;';
+				$sqlArray[] = 'ALTER TABLE feeds CHANGE `default` `default` tinyint(1) DEFAULT 0;';
+				$sqlArray[] = 'ALTER TABLE feeds CHANGE `distribution` `distribution` tinyint(4) NOT NULL DEFAULT 0;';
+				$sqlArray[] = 'ALTER TABLE feeds CHANGE `sharing_group_id` `sharing_group_id` int(11) NOT NULL DEFAULT 0;';
+				$sqlArray[] = 'ALTER TABLE attributes CHANGE `comment` `comment` text COLLATE utf8_bin;';
+				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
 				$sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -590,7 +621,6 @@ class AppModel extends Model {
 				return false;
 				break;
 		}
-		if (!isset($sqlArray)) $sqlArray = array($sql);
 		foreach ($sqlArray as $sql) {
 			try {
 				$this->query($sql);
@@ -618,33 +648,12 @@ class AppModel extends Model {
 						'change' => 'The executed SQL query was: ' . $sql . PHP_EOL . ' The returned error is: ' . $e->getMessage()
 				));
 			}
-			foreach ($indexArray as $iA) {
-				try {
-					$this->__addIndex($iA[0], $iA[1]);
-					$this->Log->create();
-					$this->Log->save(array(
-							'org' => 'SYSTEM',
-							'model' => 'Server',
-							'model_id' => 0,
-							'email' => 'SYSTEM',
-							'action' => 'update_database',
-							'user_id' => 0,
-							'title' => 'Successfuly executed the SQL query for ' . $command,
-							'change' => 'New index for field ' . $iA[1] . ' added to table ' . $iA[0],
-					));
-				} catch (Exception $e) {
-					$this->Log->create();
-					$this->Log->save(array(
-							'org' => 'SYSTEM',
-							'model' => 'Server',
-							'model_id' => 0,
-							'email' => 'SYSTEM',
-							'action' => 'update_database',
-							'user_id' => 0,
-							'title' => 'Issues executing the SQL query for ' . $command,
-							'change' => 'Failed to add index for field ' . $iA[1] . ' for table ' . $iA[0],
-					));
-				}
+		}
+		foreach ($indexArray as $iA) {
+			if (isset($iA[2])) {
+				$this->__addIndex($iA[0], $iA[1], $iA[2]);
+			} else {
+				$this->__addIndex($iA[0], $iA[1]);
 			}
 		}
 		if ($clean) $this->cleanCacheFiles();
@@ -696,16 +705,18 @@ class AppModel extends Model {
 		if ($dataSource == 'Database/Postgres') {
 			$addIndex = "CREATE INDEX idx_" . $table . "_" . $field . " ON " . $table . " (" . $field . ");";
 		} else {
-			if (isset($length)) {
+			if (!$length) {
 				$addIndex = "ALTER TABLE `" . $table . "` ADD INDEX `" . $field . "` (`" . $field . "`);";
 			} else {
 				$addIndex = "ALTER TABLE `" . $table . "` ADD INDEX `" . $field . "` (`" . $field . "`(" . $length . "));";
 			}
 		}
 		$result = true;
+		$duplicate = false;
 		try {
 			$this->query($addIndex);
 		} catch (Exception $e) {
+			$duplicate = (strpos($e->getMessage(), '1061') !== false);
 			$result = false;
 		}
 		$this->Log->create();
@@ -716,8 +727,8 @@ class AppModel extends Model {
 				'email' => 'SYSTEM',
 				'action' => 'update_database',
 				'user_id' => 0,
-				'title' => ($result ? 'Added index ' : 'Failed to add index ') . $field . ' to ' . $table,
-				'change' => ($result ? 'Added index ' : 'Failed to add index ') . $field . ' to ' . $table,
+				'title' => ($result ? 'Added index ' : 'Failed to add index ') . $field . ' to ' . $table . ($duplicate ? ' (index already set)' : ''),
+				'change' => ($result ? 'Added index ' : 'Failed to add index ') . $field . ' to ' . $table . ($duplicate ? ' (index already set)' : ''),
 		));
 	}
 

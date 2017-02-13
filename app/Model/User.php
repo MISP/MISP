@@ -900,6 +900,9 @@ App::uses('RandomTool', 'Tools');
 				'conditions' => $conditions
 		);
 		$orgs = $this->find($findType, $params);
+    if (empty($orgs)) {
+      return 0;
+    }
 		if ($org_id !== false) {
 			return $orgs[0]['num_members'];
 		} else {
@@ -954,7 +957,7 @@ App::uses('RandomTool', 'Tools');
 		if ($fixedPassword) {
 			$password = $fixedPassword;
 		} else {
-			$password = $this->generateRandomPassword();	
+			$password = $this->generateRandomPassword();
 		}
 		$body = str_replace('$password', $password, $body);
 		$body = str_replace('$username', $user['User']['email'], $body);

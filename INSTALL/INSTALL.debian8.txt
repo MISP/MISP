@@ -184,8 +184,14 @@ sudo a2ensite misp-ssl
 # Restart apache
 sudo systemctl restart apache2
 
+8/ Log rotation
+---------------
+# MISP saves the stdout and stderr of its workers in /var/www/MISP/app/tmp/logs
+# To rotate these logs install the supplied logrotate script:
 
-8/ MISP configuration
+sudo cp INSTALL/misp.logrotate /etc/logrotate.d/misp
+
+9/ MISP configuration
 ---------------------
 # There are 4 sample configuration files in /var/www/MISP/app/Config that need to be copied
 sudo -u www-data cp -a /var/www/MISP/app/Config/bootstrap.default.php /var/www/MISP/app/Config/bootstrap.php

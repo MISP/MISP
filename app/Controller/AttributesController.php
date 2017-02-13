@@ -1966,8 +1966,8 @@ class AttributesController extends AppController {
 		$this->__downloadAttachment($this->Attribute->data['Attribute']);
 	}
 
-	public function text($key='download', $type = 'all', $tags = false, $eventId = false, $allowNonIDS = false, $from = false, $to = false, $last = false, $enforceWarninglist = false) {
-		$simpleFalse = array('eventId', 'allowNonIDS', 'tags', 'from', 'to', 'last', 'enforceWarninglist');
+	public function text($key='download', $type = 'all', $tags = false, $eventId = false, $allowNonIDS = false, $from = false, $to = false, $last = false, $enforceWarninglist = false, $allowNotPublished = false) {
+		$simpleFalse = array('eventId', 'allowNonIDS', 'tags', 'from', 'to', 'last', 'enforceWarninglist', 'allowNotPublished');
 		foreach ($simpleFalse as $sF) {
 			if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false')) ${$sF} = false;
 		}
@@ -1989,7 +1989,7 @@ class AttributesController extends AppController {
 		$this->response->type('txt');	// set the content type
 		$this->header('Content-Disposition: download; filename="misp.' . $type . '.txt"');
 		$this->layout = 'text/default';
-		$attributes = $this->Attribute->text($this->Auth->user(), $type, $tags, $eventId, $allowNonIDS, $from, $to, $last, $enforceWarninglist);
+		$attributes = $this->Attribute->text($this->Auth->user(), $type, $tags, $eventId, $allowNonIDS, $from, $to, $last, $enforceWarninglist, $allowNotPublished);
 		$this->loadModel('Whitelist');
 		$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
 		$this->set('attributes', $attributes);
@@ -2653,59 +2653,92 @@ class AttributesController extends AppController {
 		);
 		$RearrangeTool = new RequestRearrangeTool();
 		$this->request->data = $RearrangeTool->rearrangeArray($this->request->data, $rearrangeRules);
-		if ($id === false) $id = $this->request->data['attribute'];
+		if ($id === false) {
+			$id = $this->request->data['attribute'];
+		}
+		if ($id === 'selected') {
+			$idList = json_decode($this->request->data['attribute_ids'], true);
+		}
 		if ($tag_id === false) $tag_id = $this->request->data['tag'];
 		if (!is_numeric($tag_id)) {
 			$tag = $this->Attribute->AttributeTag->Tag->find('first', array('recursive' => -1, 'conditions' => array('LOWER(Tag.name) LIKE' => strtolower(trim($tag_id)))));
 			if (empty($tag)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status' => 200));
 			$tag_id = $tag['Tag']['id'];
 		}
-		$this->Attribute->id = $id;
-		if (!$this->Attribute->exists()) throw new NotFoundException(__('Invalid attribute'));
-		$this->Attribute->read();
-		if ($this->Attribute->data['Attribute']['deleted']) throw new NotFoundException(__('Invalid attribute'));
-		$eventId = $this->Attribute->data['Attribute']['event_id'];
+		if (!isset($idList)) {
+			$idList = array($id);
+		}
+		$success = 0;
+		$fails = 0;
+		foreach ($idList as $id) {
+			$this->Attribute->id = $id;
+			if (!$this->Attribute->exists()) throw new NotFoundException(__('Invalid attribute'));
+			$this->Attribute->read();
+			if ($this->Attribute->data['Attribute']['deleted']) throw new NotFoundException(__('Invalid attribute'));
+			$eventId = $this->Attribute->data['Attribute']['event_id'];
 
-		$this->Attribute->Event->recursive = -1;
-		$event = $this->Attribute->Event->read(array(), $eventId);
-		if (!$this->_isSiteAdmin() && !$this->userRole['perm_sync']) {
-			if (!$this->userRole['perm_tagger'] || ($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id'])) {
-				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status' => 200));
+			$this->Attribute->Event->recursive = -1;
+			$event = $this->Attribute->Event->read(array(), $eventId);
+			if (!$this->_isSiteAdmin() && !$this->userRole['perm_sync']) {
+				if (!$this->userRole['perm_tagger'] || ($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id'])) {
+					return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status' => 200));
+				}
+			}
+
+			$this->Attribute->recursive = -1;
+			$this->Attribute->AttributeTag->Tag->id = $tag_id;
+			if (!$this->Attribute->AttributeTag->Tag->exists()) {
+				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status' => 200));
+			}
+			$tag = $this->Attribute->AttributeTag->Tag->find('first', array(
+				'conditions' => array('Tag.id' => $tag_id),
+				'recursive' => -1,
+				'fields' => array('Tag.name')
+			));
+			$found = $this->Attribute->AttributeTag->find('first', array(
+				'conditions' => array(
+					'attribute_id' => $id,
+					'tag_id' => $tag_id
+				),
+				'recursive' => -1,
+			));
+			$this->autoRender = false;
+			if (!empty($found)) {
+				$fails++;
+				continue;
+			}
+			$this->Attribute->AttributeTag->create();
+			if ($this->Attribute->AttributeTag->save(array('attribute_id' => $id, 'tag_id' => $tag_id, 'event_id' => $eventId))) {
+				$event['Event']['published'] = 0;
+				$date = new DateTime();
+				$event['Event']['timestamp'] = $date->getTimestamp();
+				$this->Attribute->Event->save($event);
+				$this->Attribute->data['Attribute']['timestamp'] = $date->getTimestamp();
+				$this->Attribute->save($this->Attribute->data);
+				$log = ClassRegistry::init('Log');
+				$log->createLogEntry($this->Auth->user(), 'tag', 'Attribute', $id, 'Attached tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" to attribute (' . $id . ')', 'Attribute (' . $id . ') tagged as Tag (' . $tag_id . ')');
+				$success++;
+			} else {
+				$fails++;
 			}
 		}
-
-		$this->Attribute->recursive = -1;
-		$this->Attribute->AttributeTag->Tag->id = $tag_id;
-		if (!$this->Attribute->AttributeTag->Tag->exists()) {
-			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status' => 200));
-		}
-		$tag = $this->Attribute->AttributeTag->Tag->find('first', array(
-			'conditions' => array('Tag.id' => $tag_id),
-			'recursive' => -1,
-			'fields' => array('Tag.name')
-		));
-		$found = $this->Attribute->AttributeTag->find('first', array(
-			'conditions' => array(
-				'attribute_id' => $id,
-				'tag_id' => $tag_id
-			),
-			'recursive' => -1,
-		));
-		$this->autoRender = false;
-		if (!empty($found)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Tag is already attached to this attribute.')), 'status' => 200));
-		$this->Attribute->AttributeTag->create();
-		if ($this->Attribute->AttributeTag->save(array('attribute_id' => $id, 'tag_id' => $tag_id, 'event_id' => $eventId))) {
-			$event['Event']['published'] = 0;
-			$date = new DateTime();
-			$event['Event']['timestamp'] = $date->getTimestamp();
-			$this->Attribute->Event->save($event);
-			$this->Attribute->data['Attribute']['timestamp'] = $date->getTimestamp();
-			$this->Attribute->save($this->Attribute->data);
-			$log = ClassRegistry::init('Log');
-			$log->createLogEntry($this->Auth->user(), 'tag', 'Attribute', $id, 'Attached tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" to attribute (' . $id . ')', 'Attribute (' . $id . ') tagged as Tag (' . $tag_id . ')');
-			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Tag added.', 'check_publish' => true)), 'status' => 200));
+		if ($fails == 0) {
+			if ($success == 1) {
+				$message = 'Tag added.';
+			} else {
+				$message = $success . ' tags added.';
+			}
+			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $message, 'check_publish' => true)), 'status' => 200));
 		} else {
-			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Tag could not be added.')), 'status' => 200));
+			if ($fails == 1) {
+				$message = 'Tag could not be added.';
+			} else {
+				$message = $fails . ' tags could not be added.';
+			}
+			if ($success > 0) {
+				$message .= ' However, ' . $success . ' tag(s) were added.';
+			}
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $message)), 'status' => 200));
 		}
 	}
 

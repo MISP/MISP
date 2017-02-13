@@ -33,6 +33,8 @@
 			));
 			?>
 				<div class="input clear"></div>
+
+				<div class="input clear"></div>
 			<?php
 			echo $this->Form->input('comment', array(
 					'type' => 'textarea',
