@@ -213,6 +213,7 @@ class ComplexTypeTool {
 			$inputRefangedNoPort = str_replace($port[0], '', $inputRefanged);
 			$port = substr($port[0], 1);
 		} else {
+			unset($port);
 			$inputRefangedNoPort = $inputRefanged;
 		}
 		// check for IP
