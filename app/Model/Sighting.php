@@ -46,10 +46,13 @@ class Sighting extends AppModel {
 		return true;
 	}
 
-	public function attachToEvent(&$event, $user) {
+	public function attachToEvent($event, $user, $attribute_id = false) {
 		$ownEvent = false;
 		if ($user['Role']['perm_site_admin'] || $event['Event']['org_id'] == $user['org_id']) $ownEvent = true;
 		$conditions = array('Sighting.event_id' => $event['Event']['id']);
+		if ($attribute_id) {
+			$conditions[] = array('Sighting.attribute_id' => $attribute_id);
+		}
 		if (!$ownEvent && (!Configure::read('Plugin.Sightings_policy') || Configure::read('Plugin.Sightings_policy') == 0)) {
 			$conditions['Sighting.org_id'] = $user['org_id'];
 		}
@@ -109,6 +112,10 @@ class Sighting extends AppModel {
 		if (empty($attributes)) return 0;
 		$sightingsAdded = 0;
 		foreach ($attributes as $attribute) {
+			if ($type === '2') {
+				// remove existing expiration by the same org if it exists
+				$this->deleteAll(array('Sighting.org_id' => $user['org_id'], 'Sighting.type' => $type, 'Sighting.attribute_id' => $attribute['Attribute']['id']));
+			}
 			$this->create();
 			$sighting = array(
 					'attribute_id' => $attribute['Attribute']['id'],
@@ -158,5 +165,18 @@ class Sighting extends AppModel {
 		));
 		$this->saveMany($sightings);
 		return true;
+	}
+
+	public function explodeIdList($id) {
+		if (strpos($id, '|')) {
+			$id = explode('|', $id);
+			foreach ($id as $k => $v) {
+				if (!is_numeric($v)) {
+					unset($id[$k]);
+				}
+			}
+			$id = array_values($id);
+		}
+		return $id;
 	}
 }
