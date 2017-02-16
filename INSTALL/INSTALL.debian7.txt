@@ -28,7 +28,7 @@ apt-get install vim
 
 # Note that the php5-redis package in Debian oldstable (wheezy) only exists in the backports repository: http://backports.debian.org/Instructions/
 # Install the dependencies:
-apt-get install gcc zip php-pear git redis-server make python-dev python-pip libxml2-dev libxslt1-dev zlib1g-dev php5-dev libapache2-mod-php5 php-xml php5-mysql php5-json php5-redis curl
+apt-get install gcc zip php-pear git redis-server make python-dev python-pip libxml2-dev libxslt1-dev zlib1g-dev php5-dev libapache2-mod-php5 php5-xml php5-mysql php5-json php5-redis curl
 pear install Crypt_GPG    # we need version >1.3.0
 #if you are using a proxy do:
 pear config-set http_proxy http://username:password@yourproxy:80
