@@ -187,7 +187,10 @@ class CertificateAuthenticate extends BaseAuthenticate
 							CakeLog::write('alert', 'Could not insert model at database from RestAPI data.');
 						}
 						unset($org);
-					}
+					} else {
+                        // No match -- User doesn't exist !!!
+                        self::$user = false;
+                    }
 					unset($U, $User, $q, $k);
 				}
 				unset($cn);
