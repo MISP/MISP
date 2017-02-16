@@ -13,6 +13,18 @@ class RestResponseComponent extends Component {
 					'description' => "POST a User object in JSON format to this API to edit a user.",
 					'optional' => array('email', 'org_id', 'role_id', 'password', 'external_auth_required', 'external_auth_key', 'enable_password', 'nids_sid', 'server_id', 'gpgkey', 'certif_public', 'autoalert', 'contactalert', 'disabled', 'change_pw', 'termsaccepted', 'newsread')
 				)
+			),
+			'Organisation' => array(
+				'admin_add' => array(
+					'description' => "POST an Organisation object in JSON format to this API to create a new organsiation.",
+					'mandatory' => array('name'),
+					'optional' => array('anonymise', 'description', 'type', 'nationality', 'sector', 'uuid', 'contacts', 'local')
+				),
+				'admin_edit' => array(
+					'description' => "POST an Organisation object in JSON format to this API to create a new organsiation.",
+					'mandatory' => array('name'),
+					'optional' => array('anonymise', 'description', 'type', 'nationality', 'sector', 'uuid', 'contacts', 'local')
+				)
 			)
 	);
 
@@ -30,7 +42,7 @@ class RestResponseComponent extends Component {
 	public function saveSuccessResponse($controller, $action, $id = false, $format = false, $message = false) {
 		$action = $this->__dissectAdminRouting($action);
 		if (!$message) {
-			$message = Inflector::singularize($controller) . ' ' . $action['action'] . 'ed';
+			$message = Inflector::singularize($controller) . ' ' . $action['action'] . ((substr($action['action'], -1) == 'e') ? 'd' : 'ed');
 		}
 		$response['name'] = $message;
 		$response['message'] = $response['name'];

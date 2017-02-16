@@ -51,16 +51,9 @@ class SightingsController extends AppController {
 			}
 		} else {
 			if ($error) {
-				$this->set('errors', $error);
-				$this->set('name', 'Could not add the Sighting.');
-				$this->set('message', 'Could not add the Sighting.');
-				$this->set('_serialize', array('name', 'message', 'errors'));
+				return $this->RestResponse->saveFailResponse('Sighting', 'add', $id, $error);
 			} else {
-				$this->set('name', 'Sighting added.');
-				$this->set('message', $result . ' sighting' . (($result == 1) ? '' : 's') . ' successfuly added.');
-				$this->set('url', '/sightings/add/' . $id);
-				$this->set('id', $this->Sighting->id);
-				$this->set('_serialize', array('name', 'message', 'url', 'id'));
+				return $this->RestResponse->saveSuccessResponse('Sighting', 'add', $id, false, $result . ' sighting' . (($result == 1) ? '' : 's') . ' successfuly added.');
 			}
 		}
 	}
@@ -76,15 +69,37 @@ class SightingsController extends AppController {
 		}
 		$result = $this->Sighting->delete($sighting['Sighting']['id']);
 		if (!$result) {
-			$this->set('errors', '');
-			$this->set('name', 'Failed');
-			$this->set('message', 'Could not delete the Sighting.');
-			$this->set('_serialize', array('name', 'message', 'errors'));
+			return $this->RestResponse->saveFailResponse('Sighting', 'delete', $id, 'Could not delete the Sighting.');
 		} else {
-			$this->set('name', 'Success');
-			$this->set('message', 'Sighting successfuly deleted.');
-			$this->set('url', '/sightings/delete/' . $id);
-			$this->set('_serialize', array('name', 'message', 'url'));
+			return $this->RestResponse->saveSuccessResponse('Sighting', 'delete', $id, false, 'Sighting successfuly deleted.');
 		}
+	}
+
+	public function index($eventid = false) {
+		$this->loadModel('Event');
+		$sightingConditions = array();
+		if ($eventid) {
+			$sightingConditions = array('Sighting.event_id' => $eventid);
+		}
+		$sightedEvents = $this->Sighting->find('list', array(
+			'group' => 'Sighting.event_id',
+			'fields' => array('Sighting.event_id'),
+			'conditions' => $sightingConditions
+		));
+		if (empty($sightedEvents)) {
+			$this->RestResponse->viewData(array());
+		}
+		$conditions = array('metadata' => true, 'contain' => false);
+		if ($eventid) {
+			$conditions['eventid'] = $sightedEvents;
+		}
+		$events = $this->Event->fetchEventIds($this->Auth->user(), false, false, false, false, false, false, $sightedEvents);
+		$sightings = array();
+		if (!empty($events)) {
+			foreach ($events as $k => $event) {
+				$sightings = array_merge($sightings, $this->Sighting->attachToEvent($event, $this->Auth->user()));
+			}
+		}
+		return $this->RestResponse->viewData($sightings);
 	}
 }

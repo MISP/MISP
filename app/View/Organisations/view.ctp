@@ -43,10 +43,10 @@
 			<dt><?php echo 'Created by'; ?></dt>
 			<dd>
 				<?php
-				if (isset($creator['User']['email'])) {
-					echo h($creator['User']['email']);
+				if (isset($org['Organisation']['created_by_email'])) {
+					echo h($org['Organisation']['created_by_email']);
 				} else {
-					echo "SYSTEM";
+					echo "Unknown";
 				}
 				?>
 				&nbsp;

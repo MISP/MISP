@@ -67,13 +67,14 @@
 	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'addAttribute', 'event' => $event));
 ?>
 <script type="text/javascript">
+var fieldsArray = new Array('AttributeCategory', 'AttributeType', 'AttributeValue', 'AttributeDistribution', 'AttributeComment', 'AttributeToIds', 'AttributeBatchImport', 'AttributeSharingGroupId');
 <?php
 	$formInfoTypes = array('distribution' => 'Distribution', 'category' => 'Category', 'type' => 'Type');
 	echo 'var formInfoFields = ' . json_encode($formInfoTypes) . PHP_EOL;
 	foreach ($formInfoTypes as $formInfoType => $humanisedName) {
 		echo 'var ' . $formInfoType . 'FormInfoValues = {' . PHP_EOL;
 		foreach ($info[$formInfoType] as $key => $formInfoData) {
-			echo '"' . $key . '": "<span class=\"blue bold\">' . h($formInfoData['key']) . '</span>: ' . h($formInfoData['desc']) . '<br />",' . PHP_EOL; 
+			echo '"' . $key . '": "<span class=\"blue bold\">' . h($formInfoData['key']) . '</span>: ' . h($formInfoData['desc']) . '<br />",' . PHP_EOL;
 		}
 		echo '}' . PHP_EOL;
 	}
@@ -101,7 +102,7 @@ $(document).ready(function() {
 		if ($('#AttributeDistribution').val() == 4) $('#SGContainer').show();
 		else $('#SGContainer').hide();
 	});
-	
+
 	$("#AttributeCategory").on('change', function(e) {
 		formCategoryChanged('Attribute');
 		if ($(this).val() === 'Attribution' || $(this).val() === 'Targeting data') {
@@ -114,7 +115,7 @@ $(document).ready(function() {
 			$('#SGContainer').hide();
 		}
 	});
-	
+
 	$("#AttributeCategory, #AttributeType, #AttributeDistribution").change(function() {
 		initPopoverContent('Attribute');
 	});

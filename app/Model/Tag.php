@@ -45,6 +45,9 @@ class Tag extends AppModel {
 		'TemplateTag',
 		'FavouriteTag' => array(
 			'dependent' => true
+		),
+		'AttributeTag' => array(
+			'dependent' => true
 		)
 	);
 
@@ -99,6 +102,25 @@ class Tag extends AppModel {
 		foreach ($result as $tag) {
 			foreach ($tag['EventTag'] as $eventTag) {
 				$ids[] = $eventTag['event_id'];
+			}
+		}
+		return $ids;
+	}
+
+	public function findAttributeIdsByAttributeTagNames($array) {
+		$ids = array();
+		foreach ($array as $a) {
+			$conditions['OR'][] = array('LOWER(name) LIKE' => strtolower($a));
+		}
+		$params = array(
+				'recursive' => 1,
+				'contain' => 'AttributeTag',
+				'conditions' => $conditions
+		);
+		$result = $this->find('all', $params);
+		foreach ($result as $tag) {
+			foreach ($tag['AttributeTag'] as $attributeTag) {
+				$ids[] = $attributeTag['attribute_id'];
 			}
 		}
 		return $ids;
@@ -176,9 +198,11 @@ class Tag extends AppModel {
 	}
 
 	public function getTagsForNamespace($namespace) {
+		$contain = array('EventTag');
+		$contain[] = 'AttributeTag';
 		$tags_temp = $this->find('all', array(
 				'recursive' => -1,
-				'contain' => 'EventTag',
+				'contain' => $contain,
 				'conditions' => array('UPPER(name) LIKE' => strtoupper($namespace) . '%'),
 		));
 		$tags = array();

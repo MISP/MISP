@@ -41,6 +41,16 @@ function genericPopup(url, popupTarget) {
 	});
 }
 
+function screenshotPopup(screenshotData, title) {
+	popupHtml = '<img src="' + screenshotData + '" id="screenshot-image" title="' + title + '" />';
+	popupHtml += '<div class="close-icon useCursorPointer" onClick="closeScreenshot();"></div>';
+	$('#screenshot_box').html(popupHtml);
+	$('#screenshot_box').show();
+	left = ($(window).width() / 2) - ($('#screenshot-image').width() / 2);
+	$('#screenshot_box').css({'left': left + 'px'});
+	$("#gray_out").fadeIn();
+}
+
 function submitPublish(id, type) {
 	$("#PromptForm").submit();
 }
@@ -426,6 +436,39 @@ function quickSubmitTagForm(event_id, tag_id) {
 	return false;
 }
 
+function quickSubmitAttributeTagForm(attribute_id, tag_id) {
+	$('#AttributeTag').val(tag_id);
+	if (attribute_id == 'selected') {
+		$('#AttributeAttributeIds').val(getSelected());
+	}
+	$.ajax({
+		data: $('#AttributeSelectTagForm').closest("form").serialize(),
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+		success:function (data, textStatus) {
+			if (attribute_id == 'selected') {
+				updateIndex(0, 'event');
+			} else {
+				loadAttributeTags(attribute_id);
+			}
+			handleGenericAjaxResponse(data);
+		},
+		error:function() {
+			showMessage('fail', 'Could not add tag.');
+			loadAttributeTags(attribute_id);
+		},
+		complete:function() {
+			$("#popover_form").fadeOut();
+			$("#gray_out").fadeOut();
+			$(".loading").hide();
+		},
+		type:"post",
+		url:"/attributes/addTag/" + attribute_id
+	});
+	return false;
+}
+
 function handleAjaxEditResponse(data, name, type, id, field, event) {
 	responseArray = JSON.parse(data);
 	if (type == 'Attribute') {
@@ -625,6 +668,52 @@ function removeEventTag(event, tag) {
 			}
 		});
 	}
+	return false;
+}
+
+function loadAttributeTags(id) {
+	$.ajax({
+		dataType:"html",
+		cache: false,
+		success:function (data, textStatus) {
+			$("#Attribute_"+id+"_tr .attributeTagContainer").html(data);
+		},
+		url:"/tags/showAttributeTag/" + id
+	});
+}
+
+function removeObjectTagPopup(context, object, tag) {
+	$.get( "/" + context + "s/removeTag/" + object + '/' + tag, function(data) {
+		$("#confirmation_box").html(data);
+		$("#confirmation_box").fadeIn();
+		$("#gray_out").fadeIn();
+	});
+}
+
+function removeObjectTag(context, object, tag) {
+	var formData = $('#PromptForm').serialize();
+	$.ajax({
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+		data: formData,
+		type:"POST",
+		cache: false,
+		url:"/" + context.toLowerCase() + "s/removeTag/" + object + '/' + tag,
+		success:function (data, textStatus) {
+			$("#confirmation_box").fadeOut();
+			$("#gray_out").fadeOut();
+			if (context == 'Attribute') {
+				loadAttributeTags(object);
+			} else {
+				loadEventTags(object);
+			}
+			handleGenericAjaxResponse(data);
+		},
+		complete:function() {
+			$(".loading").hide();
+		}
+	});
 	return false;
 }
 
@@ -2583,6 +2672,11 @@ function feedFormUpdate() {
 			$('#settingsCommonExcluderegexDiv').show();
 			break;
 	}
+	if ($('#FeedInputSource').val() == 'local') {
+		$('#DeleteLocalFileDiv').show();
+	} else {
+		$('#DeleteLocalFileDiv').hide();
+	}
 }
 
 $('.servers_default_role_checkbox').click(function() {
@@ -2726,11 +2820,27 @@ function checkAndSetPublishedInfo() {
 	var id = $('#hiddenSideMenuData').data('event-id');
 	$.get( "/events/checkPublishedStatus/" + id, function(data) {
 		if (data == 1) {
-			$('.published').show();
-			$('.not-published').hide();
+			$('.published').removeClass('hidden');
+			$('.not-published').addClass('hidden');
 		} else {
-			$('.published').hide();
-			$('.not-published').show();
+			$('.published').addClass('hidden');
+			$('.not-published').removeClass('hidden');
 		}
 	});
+}
+
+$(document).keyup(function(e){
+    if (e.keyCode === 27) {
+    	$("#gray_out").fadeOut();
+		$("#popover_form").fadeOut();
+		$("#screenshot_box").fadeOut();
+		$("#confirmation_box").fadeOut();
+		$(".loading").hide();
+		resetForms();
+    }
+});
+
+function closeScreenshot() {
+	$("#screenshot_box").fadeOut();
+	$("#gray_out").fadeOut();
 }
