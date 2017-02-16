@@ -15,22 +15,37 @@
 			),
 	);
 	if (!in_array($scope, array_keys($texts))) $scope = 'local';
+	$partial = array();
+	foreach($named as $key => $value):
+		if ($key == 'page' || $key == 'viewall'):
+			continue;
+		endif;
+		$partial[] = h($key) . ':' . h($value);
+	endforeach;
+	$viewall_button_text = 'Paginate';
+	if (!$viewall):
+		$viewall_button_text = 'View all';
+		$partial[] = 'viewall:1';
+	endif;
 ?>
-<h2><?php echo $texts[$scope]['text'] . $texts[$scope]['extra']; ?></h2>
-<div class="pagination">
-<ul>
-<?php
-$this->Paginator->options(array(
-		'update' => '.span12',
-		'evalScripts' => true,
-		'before' => '$(".progress").show()',
-		'complete' => '$(".progress").hide()',
-));
-
-echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-?>
+	<h2><?php echo $texts[$scope]['text'] . $texts[$scope]['extra']; ?></h2>
+	<div class="pagination">
+		<ul>
+			<?php
+				$this->Paginator->options(array(
+						'update' => '.span12',
+						'evalScripts' => true,
+						'before' => '$(".progress").show()',
+						'complete' => '$(".progress").hide()',
+				));
+				
+				echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
+				echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
+				echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
+			?>
+			<li class="all">
+				<a href="<?php echo $baseurl . '/organisations/index/' . implode('/', $partial); ?>"><?php echo $viewall_button_text; ?></a>
+			</li>
         </ul>
     </div>
     <div class="tabMenuFixedContainer" style="display:inline-block;">
@@ -86,10 +101,12 @@ foreach ($orgs as $org): ?>
 		<td class="short" ondblclick="document.location.href ='/organisations/view/<?php echo $org['Organisation']['id'];?>'"><?php echo h($org['Organisation']['type']); ?></td>
 		<td><?php echo h($org['Organisation']['contacts']); ?></td>
 		<?php if ($isSiteAdmin): ?>
-			<td class="short" ondblclick="document.location.href ='/organisations/view/<?php echo $org['Organisation']['id'];?>'"><?php echo h($org_creator_ids[$org['Organisation']['created_by']]); ?></td>
+			<td class="short" ondblclick="document.location.href ='/organisations/view/<?php echo $org['Organisation']['id'];?>'">
+				<?php echo (isset($org['Organisation']['created_by_email'])) ? h($org['Organisation']['created_by_email']) : '&nbsp;'; ?>
+			</td>
 		<?php endif; ?>
 		<td class="short <?php echo $org['Organisation']['local'] ? 'green' : 'red';?>" ondblclick="document.location.href ='/organisations/view/<?php echo $org['Organisation']['id'];?>'"><?php echo $org['Organisation']['local'] ? 'Yes' : 'No';?></td>
-		<td class="short"><?php echo isset($members[$org['Organisation']['id']]) ? $members[$org['Organisation']['id']] : '0';?></td>
+		<td class="short"><?php echo isset($org['Organisation']['user_count']) ? $org['Organisation']['user_count'] : '0';?></td>
 		<td class="short action-links">
 			<?php if ($isSiteAdmin): ?>
 				<a href='/admin/organisations/edit/<?php echo $org['Organisation']['id'];?>' class = "icon-edit" title = "Edit"></a>
@@ -117,6 +134,9 @@ endforeach; ?>
             echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
             echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
         ?>
+        	<li class="all">
+				<a href="<?php echo $baseurl . '/organisations/index/' . implode('/', $partial); ?>"><?php echo $viewall_button_text; ?></a>
+			</li>
         </ul>
     </div>
 

@@ -48,7 +48,7 @@
 							}
 							foreach ($cluster_fields as $cluster_field):
 						?>
-								<tr>
+								<tr class="cluster_<?php echo h($cluster_field['key']); ?>">
 									<td style="width:25%;vertical-align: text-top; padding-bottom:10px;"><?php echo h(ucfirst($cluster_field['key'])); ?></td>
 									<td style="width:75%; padding-bottom:10px;">
 										<?php
@@ -69,7 +69,11 @@
 													echo nl2br(h(implode("\n", $cluster_field['value'])));
 												}
 											} else {
-												echo h($cluster_field['value']);
+												 if ($cluster_field['key'] == 'source' && filter_var($cluster_field['value'], FILTER_VALIDATE_URL)) {
+													 echo '<a href="' . h($cluster_field['value']) . '">' . h($cluster_field['value']) . '</a>';;
+												 } else {
+													echo h($cluster_field['value']);
+												 }
 											}
 										?>
 									</td>

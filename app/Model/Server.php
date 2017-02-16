@@ -128,6 +128,15 @@ class Server extends AppModel {
 							'test' => 'testLive',
 							'type' => 'boolean',
 					),
+					'enable_advanced_correlations' => array(
+							'level' => 0,
+							'description' => 'Enable some performance heavy correlations (currently CIDR correlation)',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+							'null' => true
+					),
 					'maintenance_message' => array(
 							'level' => 2,
 							'description' => 'The message that users will see if the instance is not live.',
@@ -598,6 +607,15 @@ class Server extends AppModel {
 							'type' => 'boolean',
 							'null' => true
 					),
+					'showDiscussionsCountOnIndex' => array(
+							'level' => 1,
+							'description' => 'When enabled, the aggregate number of discussion posts for the event becomes visible to the currently logged in user on the event index UI.',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+							'null' => true
+					),
 					'disableUserSelfManagement' => array(
 							'level' => 1,
 							'description' => 'When enabled only Org and Site admins can edit a user\'s profile.',
@@ -891,6 +909,15 @@ class Server extends AppModel {
 							'test' => 'testPasswordRegex',
 							'type' => 'string',
 					),
+					'sanitise_attribute_on_delete' => array(
+						'level' => 1,
+						'description' => 'Enabling this setting will sanitise the contents of an attribute on a soft delete',
+						'value' => false,
+						'errorMessage' => '',
+						'test' => 'testBool',
+						'type' => 'boolean',
+						'null' => true
+					)
 			),
 			'SecureAuth' => array(
 					'branch' => 1,
@@ -923,7 +950,7 @@ class Server extends AppModel {
 					),
 					'defaults' => array(
 							'level' => 0,
-							'description' => 'The session type used by MISP. The default setting is database, which will use the MySQL tables for the session data (supported options: database, php). The recommended option is php and setting your PHP up to use redis sessions via your php.ini. Just add \'session.save_handler = redis\' and "session.save_path = \'tcp://localhost:6379\'" (replace the latter with your redis connection) to ',
+							'description' => 'The session type used by MISP. The default setting is php, which will use the session settings configured in php.ini for the session data (supported options: php, database). The recommended option is php and setting your PHP up to use redis sessions via your php.ini. Just add \'session.save_handler = redis\' and "session.save_path = \'tcp://localhost:6379\'" (replace the latter with your redis connection) to ',
 							'value' => '',
 							'errorMessage' => '',
 							'test' => 'testForSessionDefaults',
@@ -1329,6 +1356,7 @@ class Server extends AppModel {
 					'errorMessage' => '',
 					'test' => 'testDebugAdmin',
 					'type' => 'boolean',
+					'null' => true
 			),
 	);
 
@@ -1552,54 +1580,18 @@ class Server extends AppModel {
 					}
 				}
 			} else {
-				// Fallback for < 2.4.7 instances
-				$k = 0;
-				foreach ($events as $eid => $event) {
-					$proposals = $eventModel->downloadEventFromServer($event, $server, null, true);
-					if (null != $proposals) {
-						if (isset($proposals['ShadowAttribute']['id'])) {
-							$temp = $proposals['ShadowAttribute'];
-							$proposals['ShadowAttribute'] = array(0 => $temp);
-						}
-						foreach ($proposals['ShadowAttribute'] as &$proposal) {
-							$oldsa = $shadowAttribute->findOldProposal($proposal);
-							$proposal['event_id'] = $eid;
-							if (!$oldsa || $oldsa['timestamp'] < $proposal['timestamp']) {
-								if ($oldsa) $shadowAttribute->delete($oldsa['id']);
-								if (!isset($pulledProposals[$eid])) $pulledProposals[$eid] = 0;
-								$pulledProposals[$eid]++;
-								if (isset($proposal['old_id'])) {
-									$oldAttribute = $eventModel->Attribute->find('first', array('recursive' => -1, 'conditions' => array('uuid' => $proposal['uuid'])));
-									if ($oldAttribute) $proposal['old_id'] = $oldAttribute['Attribute']['id'];
-									else $proposal['old_id'] = 0;
-								}
-								// check if this is a proposal from an old MISP instance
-								if (!isset($proposal['Org']) && isset($proposal['org']) && !empty($proposal['org'])) {
-									$proposal['Org'] = $proposal['org'];
-									$proposal['EventOrg'] = $proposal['event_org'];
-								} else if (!isset($proposal['Org']) && !isset($proposal['EventOrg'])) {
-									continue;
-								}
-								$proposal['org_id'] = $this->Organisation->captureOrg($proposal['Org'], $user);
-								$proposal['event_org_id'] = $this->Organisation->captureOrg($proposal['EventOrg'], $user);
-								unset($proposal['Org']);
-								unset($proposal['EventOrg']);
-								$shadowAttribute->create();
-								if (!isset($proposal['deleted']) || !$proposal['deleted']) {
-									if ($shadowAttribute->save($proposal)) $shadowAttribute->sendProposalAlertEmail($eid);
-								}
-
-							}
-						}
-					}
-					if ($jobId) {
-						if ($k % 10 == 0) {
-							$job->id = $jobId;
-							$job->saveField('progress', 50 * (($k + 1) / count($events)));
-						}
-					}
-					$k++;
-				}
+				$this->Log = ClassRegistry::init('Log');
+				$this->Log->create();
+				$this->Log->save(array(
+					'org' => $user['Organisation']['name'],
+					'model' => 'Server',
+					'model_id' => $id,
+					'email' => $user['email'],
+					'action' => 'error',
+					'user_id' => $user['id'],
+					'title' => 'Pulling of proposals has failed.',
+					'change' => ''
+				));
 			}
 		}
 		if ($jobId) {
@@ -2123,7 +2115,6 @@ class Server extends AppModel {
 	}
 
 	public function testDebugAdmin($value) {
-		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
 		if ($this->testBool($value) !== true) return 'This setting has to be either true or false.';
 		if (!$value) return true;
 		return 'Enabling debug is not recommended. Turn this on temporarily if you need to see a stack trace to debug an issue, but make sure this is not left on.';
@@ -2160,7 +2151,6 @@ class Server extends AppModel {
 	}
 
 	public function testBool($value) {
-		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
 		if ($value !== true && $value !== false) return 'Value is not a boolean, make sure that you convert \'true\' to true for example.';
 		return true;
 	}
@@ -3293,5 +3283,13 @@ class Server extends AppModel {
 			$results['cli'] = json_decode($results['cli'], true);
 		}
 		return $results;
+	}
+
+	public function databaseEncodingDiagnostics(&$diagnostic_errors) {
+		if (!isset($this->getDataSource()->config['encoding']) || strtolower($this->getDataSource()->config['encoding']) != 'utf8') {
+			$diagnostic_errors++;
+			return false;
+		}
+		return true;
 	}
 }

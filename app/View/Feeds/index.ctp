@@ -27,6 +27,7 @@
 			<th><?php echo $this->Paginator->sort('name');?></th>
 			<th><?php echo $this->Paginator->sort('source_format', 'Feed Format');?></th>
 			<th><?php echo $this->Paginator->sort('provider');?></th>
+			<th><?php echo $this->Paginator->sort('input_source', 'Input');?></th>
 			<th><?php echo $this->Paginator->sort('url');?></th>
 			<th>Target</th>
 			<th>Publish</th>
@@ -73,6 +74,7 @@ foreach ($feeds as $item):
 		</td>
 		<td><?php echo $feed_types[$item['Feed']['source_format']]['name']; ?>&nbsp;</td>
 		<td><?php echo h($item['Feed']['provider']); ?>&nbsp;</td>
+		<td><?php echo h($item['Feed']['input_source']); ?>&nbsp;</td>
 		<td><?php echo h($item['Feed']['url']); ?>&nbsp;</td>
 		<td class="shortish">
 		<?php

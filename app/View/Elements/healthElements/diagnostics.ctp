@@ -1,4 +1,11 @@
 <div style="border:1px solid #dddddd; margin-top:1px; width:95%; padding:10px">
+<?php
+	if (!$dbEncodingStatus):
+?>
+		<div style="font-size:12pt;padding-left:3px;width:100%;background-color:red;color:white;font-weight:bold;">Incorrect database encoding setting: Your database connection is currently NOT set to UTF-8. Please make sure to uncomment the 'encoding' => 'utf8' line in <?php echo APP; ?>Config/database.php</div>
+<?php
+	endif;
+?>
 	<h3>MISP version</h3>
 	<p>Since version 2.3.14, every version of MISP includes a json file with the current version. This is checked against the latest tag on github, if there is a version mismatch the tool will warn you about it. Make sure that you update MISP regularly.</p>
 	<div style="background-color:#f7f7f9;width:400px;">
@@ -89,7 +96,7 @@
 			}
 		?>
 	</div>
-	
+
 	<h3>PHP Settings</h3>
 	<?php
 		$phpcolour = 'green';
@@ -138,26 +145,26 @@
 		endforeach;
 	?>
 	<h4>PHP Extensions</h4>
-		<?php 
+		<?php
 			foreach (array('web', 'cli') as $context):
 		?>
 			<div style="background-color:#f7f7f9;width:400px;">
 				<b><?php echo ucfirst(h($context));?></b><br />
-				<?php 
+				<?php
 					if (isset($extensions[$context]['extensions'])):
 						foreach ($extensions[$context]['extensions'] as $extension => $status):
 				?>
 							<?php echo h($extension); ?>:.... <span style="color:<?php echo $status ? 'green' : 'red';?>;font-weight:bold;"><?php echo $status ? 'OK' : 'Not loaded'; ?></span>
-				<?php 
+				<?php
 						endforeach;
 					else:
 				?>
 						<span class="red">Issues reading PHP settings. This could be due to the test script not being readable.</span>
-				<?php 
+				<?php
 					endif;
 				?>
 			</div><br />
-		<?php 
+		<?php
 			endforeach;
 		?>
 	<h3>
@@ -177,7 +184,7 @@
 						echo 'STIX and CyBox.... <span class="red">Could not read test script (stixtest.py).</span>';
 						$testReadError = true;
 					}
-				} 
+				}
 			}
 			if (!$testReadError) {
 				if ($stix['operational'] == 0) {
@@ -299,6 +306,11 @@
 	</div><br />
 	<span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick="checkOrphanedAttributes();">Check for orphaned attributes</span><br /><br />
 	<?php echo $this->Form->postButton('Remove orphaned attributes', $baseurl . '/attributes/pruneOrphanedAttributes', $options = array('class' => 'btn btn-primary', 'style' => 'padding-top:1px;padding-bottom:1px;')); ?>
+	<h3>
+		Database cleanup scripts
+	</h3>
+	<p>If you run into an issue with an infinite upgrade loop (when upgrading from version ~2.4.50) that ends up filling your database with upgrade script log messages, run the following script.</p>
+	<?php echo $this->Form->postButton('Prune upgrade logs', $baseurl . '/logs/pruneUpdateLogs', $options = array('class' => 'btn btn-primary', 'style' => 'padding-top:1px;padding-bottom:1px;')); ?>
 	<h3>
 		Legacy Administrative Tools
 	</h3>

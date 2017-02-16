@@ -145,6 +145,9 @@
 					<th><?php echo $this->Paginator->sort('category');?></th>
 					<th><?php echo $this->Paginator->sort('type');?></th>
 					<th><?php echo $this->Paginator->sort('value');?></th>
+				<?php if (Configure::read('MISP.attribute_tagging')): ?>
+					<th>Tags</th>
+				<?php endif; ?>
 					<th><?php echo $this->Paginator->sort('comment');?></th>
 					<th>Related Events</th>
 					<th title="<?php echo $attrDescriptions['signature']['desc'];?>"><?php echo $this->Paginator->sort('to_ids', 'IDS');?></th>
@@ -177,6 +180,15 @@
 						<td class="shortish <?php echo $extra; ?>"><?php echo h($object['category']); ?></td>
 						<td class="shortish <?php echo $extra; ?>"><?php echo h($object['type']); ?></td>
 						<td class="shortish <?php echo $extra; ?>"><?php echo h($object['value']); ?></td>
+					<?php if (Configure::read('MISP.attribute_tagging')): ?>
+						<td class="shortish <?php echo $extra; ?>">
+							<?php if (!empty($object['Tag'])) foreach ($object['Tag'] as $tag): ?>
+								<span class="tag" style="background-color:<?php echo h($tag['colour']); ?>;color:<?php echo $this->TextColour->getTextColour($tag['colour']);?>">
+								<?php echo h($tag['name']); ?>
+								</span>
+							<?php endforeach; ?>&nbsp;
+						</td>
+					<?php endif; ?>
 						<td class="shortish <?php echo $extra; ?>"><?php echo h($object['comment']); ?></td>
 						<td class="shortish <?php echo $extra; ?>">
 							<ul class="inline" style="margin:0px;">

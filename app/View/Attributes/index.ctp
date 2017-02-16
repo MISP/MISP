@@ -4,6 +4,7 @@
 if ($isSearch == 1) {
 	echo "<h4>Results for all attributes";
 	if ($keywordSearch != null) echo " with the value containing \"<b>" . h($keywordSearch) . "</b>\"";
+	if ($attributeTags != null) echo " being tagged with \"<b>" . h($attributeTags) . "</b>\"";
 	if ($keywordSearch2 != null) echo " from the events \"<b>" . h($keywordSearch2) . "</b>\"";
 	if ($tags != null) echo " from events tagged \"<b>" . h($tags) . "</b>\"";
 	if ($categorySearch != "ALL") echo " of category \"<b>" . h($categorySearch) . "</b>\"";
@@ -36,6 +37,7 @@ if ($isSearch == 1) {
 			<th><?php echo $this->Paginator->sort('category');?></th>
 			<th><?php echo $this->Paginator->sort('type');?></th>
 			<th><?php echo $this->Paginator->sort('value');?></th>
+			<th>Tags</th>
 			<th><?php echo $this->Paginator->sort('comment');?></th>
 			<th<?php echo ' title="' . $attrDescriptions['signature']['desc'] . '"';?>>
 			<?php echo $this->Paginator->sort('IDS');?></th>
@@ -100,6 +102,21 @@ foreach ($attributes as $attribute):
 				echo $sigDisplay;
 			}
 			?>
+		</td>
+		<td style = "max-width:200px;width:10px;">
+			<?php foreach ($attribute['AttributeTag'] as $tag):
+				$tagText = "&nbsp;";
+				if (Configure::read('MISP.full_tags_on_attribute_index') == 1) $tagText = h($tag['Tag']['name']);
+				else if (Configure::read('MISP.full_tags_on_attribute_index') == 2) {
+					if (strpos($tag['Tag']['name'], '=')) {
+						$tagText = explode('=', $tag['Tag']['name']);
+						$tagText = h(trim(end($tagText), "\""));
+					}
+					else $tagText = h($tag['Tag']['name']);
+				}
+				?>
+				<span class="tag useCursorPointer" style="margin-bottom:3px;background-color:<?php echo h($tag['Tag']['colour']);?>;color:<?php echo $this->TextColour->getTextColour($tag['Tag']['colour']);?>;" title="<?php echo h($tag['Tag']['name']); ?>" onClick="document.location.href='<?php echo $baseurl; ?>/attributes/search/attributetag:<?php echo h($tag['Tag']['id']);?>';"><?php echo $tagText; ?></span>
+			<?php endforeach; ?>
 		</td>
 		<td ondblclick="document.location ='document.location ='<?php echo $baseurl;?>/events/view/<?php echo $attribute['Event']['id'];?>';">
 			<?php

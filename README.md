@@ -1,11 +1,35 @@
-[![Build Status](https://travis-ci.org/MISP/MISP.svg?branch=2.4)](https://travis-ci.org/MISP/MISP)
-
 MISP - Malware Information Sharing Platform and Threat Sharing
 --------------------------------------------------------------
 
-[![Join the chat at https://gitter.im/MISP/MISP](https://badges.gitter.im/MISP/MISP.svg)](https://gitter.im/MISP/MISP?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-
 ![logo](./INSTALL/logos/misp-logo.png?raw=true "MISP")
+
+<table>
+<tr>
+  <td>Latest Release</td>
+  <td><a href="https://badge.fury.io/gh/MISP%2FMISP"><img src="https://badge.fury.io/gh/MISP%2FMISP.svg" alt="GitHub version" height="18"></a></td>
+</tr>
+<tr>
+  <td>Travis</td>
+  <td><a href="https://travis-ci.org/MISP/MISP.svg?branch=2.4"><img src="https://img.shields.io/travis/MISP/MISP/2.4.svg" /></td>
+</tr>
+<tr>
+  <td>Gitter</td>
+  <td><a href="https://gitter.im/MISP/MISP?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge"><img src="https://badges.gitter.im/MISP/MISP.svg" /></a></td>
+</tr>
+<tr>
+  <td>Twitter</td>
+  <td><a href="https://twitter.com/MISPProject"><img src="https://img.shields.io/twitter/follow/MISPProject.svg?style=social&label=Follow" /></a></td>
+</tr>
+<tr>
+  <td>Contributors</td>
+  <td><img src="https://img.shields.io/github/contributors/MISP/MISP.svg" /></td>
+</tr>
+<tr>
+  <td>License</td>
+  <td><img src="https://img.shields.io/github/license/MISP/MISP.svg" /></td>
+</tr>
+
+</table>
 
 MISP, Malware Information Sharing Platform and Threat Sharing, is an open source software solution for collecting, storing, distributing and sharing cyber security indicators and threat about cyber security incidents analysis and malware analysis. MISP is designed by and for incident analysts, security and ICT professionals or malware reverser to support their day-to-day operations to share structured informations efficiently.
 
@@ -56,6 +80,8 @@ For installation guide see [INSTALL](https://github.com/MISP/MISP/tree/2.4/INSTA
 Contributing
 ------------
 
+Please see our [Code of conduct](code_of_conduct.md).
+
 Feel free to fork the code, play with it, make some patches and send us the pull requests via the [issues](https://github.com/MISP/MISP/issues).
 
 Feel free to contact us, create [issues](https://github.com/MISP/MISP/issues), if you have questions, remarks or bug reports.
@@ -84,7 +110,8 @@ This software is licensed under [GNU Affero General Public License version 3](ht
 * Copyright (C) 2012 Christophe Vandeplas
 * Copyright (C) 2012 Belgian Defence
 * Copyright (C) 2012 NATO / NCIRC
-* Copyright (C) 2013-2016 Andras Iklody
-* Copyright (C) 2015-2016 CIRCL - Computer Incident Response Center Luxembourg
+* Copyright (C) 2013-2017 Andras Iklody
+* Copyright (C) 2015-2017 CIRCL - Computer Incident Response Center Luxembourg
+* Copyright (C) 2016 Andreas Ziegler
 
 For more information, [the list of authors and contributors](AUTHORS) is available.

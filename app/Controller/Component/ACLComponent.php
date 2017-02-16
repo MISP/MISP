@@ -31,6 +31,7 @@ class ACLComponent extends Component {
 					'add' => array('perm_add'),
 					'add_attachment' => array('perm_add'),
 					'add_threatconnect' => array('perm_add'),
+					'addTag' => array('perm_tagger'),
 					'attributeReplace' => array('perm_add'),
 					'attributeStatistics' => array('*'),
 					'bro' => array('*'),
@@ -51,6 +52,7 @@ class ACLComponent extends Component {
 					'hoverEnrichment' => array('perm_add'),
 					'index' => array('*'),
 					'pruneOrphanedAttributes' => array(),
+					'removeTag' => array('perm_tagger'),
 					'reportValidationIssuesAttributes' => array(),
 					'restore' => array('perm_add'),
 					'restSearch' => array('*'),
@@ -165,10 +167,10 @@ class ACLComponent extends Component {
 			),
 			'jobs' => array(
 					'cache' => array('*'),
+					'getError' => array(),
 					'getGenerateCorrelationProgress' => array('*'),
 					'getProgress' => array('*'),
-					'index' => array(),
-					'getError' => array()
+					'index' => array()
 			),
 			'logs' => array(
 					'admin_index' => array('perm_audit'),
@@ -176,6 +178,7 @@ class ACLComponent extends Component {
 					'event_index' => array('*'),
 					'maxDateActivity' => array('*'),
 					'returnDates' => array('*'),
+					'pruneUpdateLogs' => array()
 			),
 			'news' => array(
 					'add' => array(),
@@ -235,6 +238,7 @@ class ACLComponent extends Component {
 					'edit' => array(),
 					'fetchServersForSG' => array('*'),
 					'filterEventIndex' => array(),
+					'getPyMISPVersion' => array('*'),
 					'getVersion' => array('*'),
 					'index' => array('OR' => array('perm_sync', 'perm_admin')),
 					'previewEvent' => array(),
@@ -283,16 +287,20 @@ class ACLComponent extends Component {
 			'sightings' => array(
 					'add' => array('perm_add'),
 					'delete' => array('perm_add'),
+					'index' => array('*')
 			),
 			'tags' => array(
 					'add' => array('perm_tag_editor'),
+					'attachTagToObject' => array('perm_tagger'),
 					'delete' => array('perm_tag_editor'),
 					'edit' => array('perm_tag_editor'),
 					'index' => array('*'),
 					'quickAdd' => array('perm_tag_editor'),
+					'removeTagFromObject' => array('perm_tagger'),
 					'selectTag' => array('perm_tagger'),
 					'selectTaxonomy' => array('perm_tagger'),
 					'showEventTag' => array('*'),
+					'showAttributeTag' => array('*'),
 					'tagStatistics' => array('*'),
 					'view' => array('*'),
 					'viewTag' => array('*'),

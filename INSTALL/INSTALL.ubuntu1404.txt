@@ -27,7 +27,7 @@ Once the system is installed you can perform the following steps as root:
 apt-get install vim
 
 # Install the dependencies:
-apt-get install gcc zip php-pear git redis-server make python-dev python-pip libxml2-dev libxslt1-dev zlib1g-dev php5-dev libapache2-mod-php5 php5-mysql php5-json php5-redis curl gnupg-agent
+apt-get install gcc zip php-pear git redis-server make python-dev python-pip libxml2-dev libxslt1-dev zlib1g-dev php5-dev php5-xml libapache2-mod-php5 php5-mysql php5-json php5-redis curl gnupg-agent
 pear install Crypt_GPG    # we need version >1.3.0
 
 3/ MISP code
@@ -129,8 +129,14 @@ service apache2 reload
 # We seriously recommend using only SSL !
 # Check out the apache.misp.ssl file for an example
 
+8/ Log rotation
+---------------
+# MISP saves the stdout and stderr of its workers in /var/www/MISP/app/tmp/logs
+# To rotate these logs install the supplied logrotate script:
 
-8/ MISP configuration
+cp INSTALL/misp.logrotate /etc/logrotate.d/misp
+
+9/ MISP configuration
 ---------------------
 # There are 4 sample configuration files in /var/www/MISP/app/Config that need to be copied
 cd /var/www/MISP/app/Config

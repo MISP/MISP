@@ -287,4 +287,17 @@ class LogsController extends AppController {
 		$this->set('data', $data);
 		$this->set('_serialize', 'data');
 	}
+
+	public function pruneUpdateLogs() {
+		if (!$this->request->is('post')) {
+			//throw new MethodNotAllowedException('This functionality is only accessible via POST requests');
+		}
+		$this->Log->pruneUpdateLogsRouter($this->Auth->user());
+		if (Configure::read('MISP.background_jobs')) {
+			$this->Session->setFlash('The pruning job is queued.');
+		} else {
+			$this->Session->setFlash('The pruning is complete.');
+		}
+		$this->redirect($this->referer());
+	}
 }

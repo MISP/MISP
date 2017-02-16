@@ -33,7 +33,7 @@ yum install vim
 yum install gcc git httpd zip redis mysql-server python-devel python-pip libxslt-devel zlib-devel
 
 # Install PHP 5.6 from SCL, see https://www.softwarecollections.org/en/scls/rhscl/rh-php56/
-yum install rh-php56 rh-php56-php-fpm rh-php56-php-devel rh-php56-php-mysqlnd rh-php56-php-mbstring rh-php56-bcmath
+yum install rh-php56 rh-php56-php-fpm rh-php56-php-devel rh-php56-php-mysqlnd rh-php56-php-mbstring rh-php56-php-xml rh-php56-bcmath
 
 # rh-php56-php only provided mod_php for httpd24-httpd from SCL
 # if we want to use httpd from CentOS base we can use rh-php56-php-fpm instead
@@ -177,8 +177,14 @@ service iptables save
 # We seriously recommend using only SSL !
 # Check out the apache.misp.ssl file for an example
 
+8/ Log rotation
+---------------
+# MISP saves the stdout and stderr of its workers in /var/www/MISP/app/tmp/logs
+# To rotate these logs install the supplied logrotate script:
 
-8/ MISP configuration
+cp INSTALL/misp.logrotate /etc/logrotate.d/misp
+
+9/ MISP configuration
 ---------------------
 # There are 4 sample configuration files in /var/www/MISP/app/Config that need to be copied
 cd /var/www/MISP/app/Config
