@@ -27,7 +27,7 @@ Once the system is installed you can perform the following steps as root:
 apt-get install vim
 
 # Install the dependencies:
-apt-get install gcc zip php-pear git redis-server make python-dev python-pip libxml2-dev libxslt1-dev zlib1g-dev php5-dev libapache2-mod-php5 php5-mysql php5-json php5-redis curl gnupg-agent
+apt-get install gcc zip php-pear git redis-server make python-dev python-pip libxml2-dev libxslt1-dev zlib1g-dev php5-dev php5-xml libapache2-mod-php5 php5-mysql php5-json php5-redis curl gnupg-agent
 pear install Crypt_GPG    # we need version >1.3.0
 
 3/ MISP code

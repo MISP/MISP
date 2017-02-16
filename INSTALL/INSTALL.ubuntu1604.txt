@@ -43,7 +43,7 @@ sudo a2dissite 000-default
 sudo a2ensite default-ssl
 
 # Install PHP and dependencies
-sudo apt-get install libapache2-mod-php php php-cli php-crypt-gpg php-dev php-json php-mysql php-opcache php-readline php-redis
+sudo apt-get install libapache2-mod-php php php-cli php-crypt-gpg php-dev php-json php-mysql php-opcache php-readline php-redis php-xml
 
 # Apply all changes
 sudo systemctl restart apache2
