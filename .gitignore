@@ -2,6 +2,7 @@
 /app/Vendor
 /app/composer*
 !/app/composer.phar
+!/app/composer.license
 /app/composer.json
 /lib
 /.project
