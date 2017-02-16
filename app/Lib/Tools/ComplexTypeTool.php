@@ -211,7 +211,11 @@ class ComplexTypeTool {
 		if (preg_match('/(:[0-9]{2,5})$/', $inputRefanged, $port)) {
 			$comment = 'On port ' . substr($port[0], 1);
 			$inputRefangedNoPort = str_replace($port[0], '', $inputRefanged);
-		} else $inputRefangedNoPort = $inputRefanged;
+			$port = substr($port[0], 1);
+		} else {
+			unset($port);
+			$inputRefangedNoPort = $inputRefanged;
+		}
 		// check for IP
 		if (filter_var($inputRefangedNoPort, FILTER_VALIDATE_IP)) return array('types' => array('ip-dst', 'ip-src', 'ip-src/ip-dst'), 'to_ids' => true, 'default_type' => 'ip-dst', 'comment' => $comment, 'value' => $inputRefangedNoPort);
 		if (strpos($inputRefangedNoPort, '/')) {
