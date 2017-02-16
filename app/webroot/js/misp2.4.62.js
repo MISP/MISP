@@ -123,13 +123,13 @@ function removeSighting(id, rawid, context) {
 			$(".loading").hide();
 			$("#confirmation_box").fadeOut();
 			var org = "/" + $('#org_id').text();
-			$.get( "/sightings/listSightings/" + attribute_id + "/" + context + org, function(data) {
+			$.get( "/sightings/listSightings/" + rawid + "/" + context + org, function(data) {
 				$("#sightingsData").html(data);
 			});
 		},
 		type:"post",
 		cache: false,
-		url:"/sightings/quickDelete/" + id,
+		url:"/sightings/quickDelete/" + id + "/" + rawid + "/" + context,
 	});
 }
 
