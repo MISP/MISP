@@ -63,8 +63,6 @@
 					}
 				}
 			}
-
-
 			unset($sparklineData);
 			foreach ($sightingsData as $aid => $data) {
 				$sightingsData[$aid]['html'] = '';
@@ -209,6 +207,7 @@
 			<th title="<?php echo $attrDescriptions['distribution']['desc'];?>"><?php echo $this->Paginator->sort('distribution');?></th>
 			<?php if (Configure::read('Plugin.Sightings_enable') !== false): ?>
 				<th>Sightings</th>
+				<th>Sparkline</th>
 			<?php endif; ?>
 			<th class="actions">Actions</th>
 		</tr>
@@ -494,8 +493,6 @@
 							if (isset($csv[$object['id']]['sighting'])) {
 								$temp[1] = $csv[$object['id']]['false-positive'];
 							}
-
-							echo $this->element('sparkline', array('id' => $object['id'], 'csv' => $temp));
 						?>
 						<span class="icon-thumbs-up useCursorPointer" onClick="addSighting('0', '<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']);?>', '<?php echo h($page); ?>');">&nbsp;</span>
 						<span class="icon-thumbs-down useCursorPointer" onClick="addSighting('1', '<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']);?>', '<?php echo h($page); ?>');">&nbsp;</span>
@@ -512,6 +509,13 @@
 						</span>
 						<?php
 							endif;
+						?>
+					</td>
+					<td class="short <?php echo $extra; ?>">
+						<?php
+							if ($object['objectType'] == 0) {
+								echo $this->element('sparkline', array('id' => $object['id'], 'csv' => $temp));
+							}
 						?>
 					</td>
 					<?php

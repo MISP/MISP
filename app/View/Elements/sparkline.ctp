@@ -35,9 +35,9 @@ Modified version of http://www.tnoda.com/blog/2013-12-19
        .attr('d', line);
     svg.append('circle')
        .attr('class', 'sparkcircle')
-       .attr('cx', x(data[0].close))
-       .attr('cy', y(data[0].date))
-       .attr('r', 1.5);
+       .attr('cx', x(data[data.length - 1].date))
+       .attr('cy', y(data[data.length - 1].close))
+       .attr('r', 2);
   }
 
   var myData = "<?php echo isset($csv[0]) ? $csv[0] : ''; ?>";
