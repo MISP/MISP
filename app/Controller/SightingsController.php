@@ -71,9 +71,11 @@ class SightingsController extends AppController {
 			} else {
 				$this->layout = false;
 				$this->loadModel('Attribute');
-				if (empty($this->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id))))) {
+				$attributes = $this->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id)));
+				if (empty($attributes)) {
 					throw new MethodNotAllowedExeption('Invalid Attribute.');
 				}
+				$this->set('event_id', $attributes[0]['Attribute']['event_id']);
 				$this->set('id', $id);
 				$this->render('ajax/add_sighting');
 			}

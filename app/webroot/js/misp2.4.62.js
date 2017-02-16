@@ -75,7 +75,7 @@ function editTemplateElement(type, id) {
 }
 
 function cancelPrompt(isolated) {
-	if (isolated == 'undefined') {
+	if (isolated == undefined) {
 		$("#gray_out").fadeOut();
 	}
 	$("#confirmation_box").fadeOut();

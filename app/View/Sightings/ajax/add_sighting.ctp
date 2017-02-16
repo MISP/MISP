@@ -1,9 +1,10 @@
 <h3>Add Sighting</h3>
+<div id="sightingsEventId" class="hidden" data-event-id="<?php echo h($event_id); ?>"></div>
 <?php
   echo $this->Form->create('Sighting', array('id', 'url' => '/sightings/add/' . $id, 'style' => 'margin-bottom:0px;'));
   echo $this->Form->input('type', array(
       'options' => array('Sighting', 'Fase-positive', 'Expiration'),
-      'default' => 2,
+      'default' => 0,
       'style' => 'width:230px;margin-right:0px;'
   ));
   echo $this->Form->input('source', array(
