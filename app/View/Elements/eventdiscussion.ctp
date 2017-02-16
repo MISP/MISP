@@ -22,8 +22,8 @@
 			<?php
 				foreach ($posts as $post) {
 			?>
-					<a name="message_<?php echo h($post['Post']['id']);?>"></a>
-					<table class="discussionBox" id=<?php echo '"' . h($post['Post']['id']) . '"';?> >
+					<a name="message_<?php echo h($post['id']);?>"></a>
+					<table class="discussionBox" id=<?php echo '"' . h($post['id']) . '"';?> >
 						<tr>
 							<td class="discussionBoxTD discussionBoxTDtop" colspan="2">
 							<div>
@@ -31,12 +31,12 @@
 									<tr>
 										<td>
 			<?php
-											echo 'Date: ' . h($post['Post']['date_created']);
+											echo 'Date: ' . h($post['date_created']);
 			?>
 										</td>
 										<td style="text-align:right">
 											<a href="#top" class="whitelink">Top</a> |
-											<a href="<?php echo "#".$post['Post']['id']; ?>" class="whitelink">#<?php echo h($post['Post']['id'])?></a>
+											<a href="<?php echo "#".$post['id']; ?>" class="whitelink">#<?php echo h($post['id'])?></a>
 										</td>
 									</tr>
 								</table>
@@ -46,10 +46,10 @@
 						<tr>
 							<td class="discussionBoxTD discussionBoxTDMid discussionBoxTDMidLeft">
 								<?php
-								if (isset($post['User']['Organisation'])) {
-									$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . 'orgs' . DS . h($post['User']['Organisation']['name']) . '.png';
-									if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($post['User']['Organisation']['name']) . '.png', array('alt' => h($post['User']['Organisation']['name']), 'title' => h($post['User']['Organisation']['name']), 'style' => 'width:48px; height:48px'));
-									else echo $this->Html->tag('span', h($post['User']['Organisation']['name']), array('class' => 'welcome', 'style' => 'float:center;'));
+								if (isset($post['org_name'])) {
+									$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . 'orgs' . DS . h($post['org_name']) . '.png';
+									if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($post['org_name']) . '.png', array('alt' => h($post['org_name']), 'title' => h($post['org_name']), 'style' => 'width:48px; height:48px'));
+									else echo $this->Html->tag('span', h($post['org_name']), array('class' => 'welcome', 'style' => 'float:center;'));
 								} else {
 									echo 'Deactivated user';
 								}
@@ -57,22 +57,22 @@
 							</td>
 							<td class="discussionBoxTD discussionBoxTDMid discussionBoxTDMidRight">
 			<?php
-									echo $this->Command->convertQuotes(nl2br(h($post['Post']['contents'])));
-									if ($post['Post']['post_id'] !=0 || ($post['Post']['date_created'] != $post['Post']['date_modified'])) {
+									echo $this->Command->convertQuotes(nl2br(h($post['contents'])));
+									if ($post['post_id'] !=0 || ($post['date_created'] != $post['date_modified'])) {
 			?>
 										<br /><br />
 			<?php
 									}
-									if ($post['Post']['post_id'] != 0) {
+									if ($post['post_id'] != 0) {
 			?>
 										<span style="font-style:italic">
 											In reply to post
-											<a href="<?php echo "#".h($post['Post']['post_id']); ?>">#<?php echo h($post['Post']['post_id'])?></a>
+											<a href="<?php echo "#".h($post['post_id']); ?>">#<?php echo h($post['post_id'])?></a>
 										</span>
 			<?php
 									}
-									if ($post['Post']['date_created'] != $post['Post']['date_modified']) {
-										echo '<span style="font-style:italic">Message edited at ' . h($post['Post']['date_modified']) . '<span>';
+									if ($post['date_created'] != $post['date_modified']) {
+										echo '<span style="font-style:italic">Message edited at ' . h($post['date_modified']) . '<span>';
 									}
 			?>
 							</td>
@@ -82,24 +82,24 @@
 								<table style="width:100%">
 									<tr>
 										<td>
-											<?php echo h($post['User']['email']); ?>
+											<?php echo !empty($post['user_email']) ? h($post['user_email']) : 'User ' . h($post['user_id']) . ' (' . (h($post['org_name'])) . ')'; ?>
 										</td>
 										<td style="text-align:right">
 			<?php
 										if (!$isSiteAdmin) {
-											if ($post['Post']['user_id'] == $myuserid) {
-												echo $this->Html->link('', array('controller' => 'posts', 'action' => 'edit', h($post['Post']['id']), h($context)), array('class' => 'icon-edit', 'title' => 'Edit'));
-												echo $this->Form->postLink('', array('controller' => 'posts', 'action' => 'delete', h($post['Post']['id']), h($context)), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete this post?'));
+											if ($post['user_id'] == $myuserid) {
+												echo $this->Html->link('', array('controller' => 'posts', 'action' => 'edit', h($post['id']), h($context)), array('class' => 'icon-edit', 'title' => 'Edit'));
+												echo $this->Form->postLink('', array('controller' => 'posts', 'action' => 'delete', h($post['id']), h($context)), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete this post?'));
 											} else {
 			?>
-												<a href="<?php echo $baseurl.'/posts/add/post/'.h($post['Post']['id']); ?>" class="icon-comment" title = "Reply"></a>
+												<a href="<?php echo $baseurl.'/posts/add/post/'.h($post['id']); ?>" class="icon-comment" title = "Reply"></a>
 			<?php
 											}
 										} else {
-											echo $this->Html->link('', array('controller' => 'posts', 'action' => 'edit', h($post['Post']['id']), h($context)), array('class' => 'icon-edit', 'title' => 'Edit'));
-											echo $this->Form->postLink('', array('controller' => 'posts', 'action' => 'delete', h($post['Post']['id']), h($context)), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete this post?'));
+											echo $this->Html->link('', array('controller' => 'posts', 'action' => 'edit', h($post['id']), h($context)), array('class' => 'icon-edit', 'title' => 'Edit'));
+											echo $this->Form->postLink('', array('controller' => 'posts', 'action' => 'delete', h($post['id']), h($context)), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete this post?'));
 			?>
-												<a href = "<?php echo $baseurl.'/posts/add/post/'.h($post['Post']['id']); ?>" class="icon-comment" title = "Reply"></a>
+												<a href = "<?php echo $baseurl.'/posts/add/post/'.h($post['id']); ?>" class="icon-comment" title = "Reply"></a>
 			<?php
 
 										}
@@ -135,7 +135,7 @@
 	<div class="comment">
 	<?php
 		if (isset($currentEvent)) $url = '/posts/add/event/' . $currentEvent;
-		else $url = '/posts/add/thread/' . $thread_id;
+		else $url = '/posts/add/thread/' . $thread['Thread']['id'];
 		echo $this->Form->create('Post', array('url' => $url));
 	?>
 		<fieldset>

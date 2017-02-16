@@ -720,7 +720,7 @@ class ServersController extends AppController {
 
 				// if Proxy is set up in the settings, try to connect to a test URL
 				$proxyStatus = $this->Server->proxyDiagnostics($diagnostic_errors);
-
+				
 				$moduleTypes = array('Enrichment', 'Import', 'Export');
 				foreach ($moduleTypes as $type) {
 					$moduleStatus[$type] = $this->Server->moduleDiagnostics($diagnostic_errors, $type);
@@ -738,9 +738,12 @@ class ServersController extends AppController {
 			$writeableFiles = $this->Server->writeableFilesDiagnostics($diagnostic_errors);
 			$readableFiles = $this->Server->readableFilesDiagnostics($diagnostic_errors);
 			$extensions = $this->Server->extensionDiagnostics();
+			
+			// check if the encoding is not set to utf8
+			$dbEncodingStatus = $this->Server->databaseEncodingDiagnostics($diagnostic_errors);
 
 			$viewVars = array(
-					'diagnostic_errors', 'tabs', 'tab', 'issues', 'finalSettings', 'writeableErrors', 'readableErrors', 'writeableDirs', 'writeableFiles', 'readableFiles', 'extensions'
+					'diagnostic_errors', 'tabs', 'tab', 'issues', 'finalSettings', 'writeableErrors', 'readableErrors', 'writeableDirs', 'writeableFiles', 'readableFiles', 'extensions', 'dbEncodingStatus'
 			);
 			$viewVars = array_merge($viewVars, $additionalViewVars);
 			foreach ($viewVars as $viewVar) $this->set($viewVar, ${$viewVar});
@@ -1153,6 +1156,11 @@ class ServersController extends AppController {
 		if (!$this->userRole['perm_auth']) throw new MethodNotAllowedException('This action requires API access.');
 		$versionArray = $this->Server->checkMISPVersion();
 		$this->set('response', array('version' => $versionArray['major'] . '.' . $versionArray['minor'] . '.' . $versionArray['hotfix'], 'perm_sync' => $this->userRole['perm_sync']));
+		$this->set('_serialize', 'response');
+	}
+
+	public function getPyMISPVersion() {
+		$this->set('response', array('version' => $this->pyMispVersion));
 		$this->set('_serialize', 'response');
 	}
 }

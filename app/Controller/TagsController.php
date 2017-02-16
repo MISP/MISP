@@ -11,6 +11,9 @@ class TagsController extends AppController {
 					'Tag.name' => 'asc'
 			),
 			'contain' => array(
+				'AttributeTag' => array(
+					'fields' => array('attribute_id')
+				),
 				'EventTag' => array(
 					'fields' => array('event_id')
 				),
@@ -24,6 +27,7 @@ class TagsController extends AppController {
 	public $helpers = array('TextColour');
 
 	public function index($favouritesOnly = false) {
+		$this->loadModel('Attribute');
 		$this->loadModel('Event');
 		$this->loadModel('Taxonomy');
 		$taxonomies = $this->Taxonomy->listTaxonomies(array('full' => false, 'enabled' => true));
@@ -69,6 +73,35 @@ class TagsController extends AppController {
 				$paginated[$k]['Tag']['count'] = count($events);
 			}
 			unset($paginated[$k]['EventTag']);
+			if (empty($tag['AttributeTag'])) {
+				$paginated[$k]['Tag']['attribute_count'] = 0;
+			} else {
+				$attributeIDs = array();
+				foreach ($tag['AttributeTag'] as $attributeTag) {
+					$attributeIDs[] = $attributeTag['attribute_id'];
+				}
+				$conditions = array('Attribute.id' => $attributeIDs);
+				if (!$this->_isSiteAdmin()) {
+					$conditions = array_merge(
+						$conditions,
+						array('OR' => array(
+							array('AND' => array(
+								array('Attribute.deleted =' => 0),
+								array('Attribute.distribution >' => 0),
+								array('Event.distribution >' => 0),
+								array('Event.published =' => 1)
+							)),
+							array('Event.orgc_id' => $this->Auth->user('org_id'))
+						)));
+				}
+				$attributes = $this->Attribute->find('all', array(
+					'fields'     => array('Attribute.id', 'Attribute.deleted', 'Attribute.distribution', 'Event.id', 'Event.distribution', 'Event.orgc_id'),
+					'contain'    => array('Event' => array('fields' => array('id', 'distribution', 'orgc_id'))),
+					'conditions' => $conditions
+				));
+				$paginated[$k]['Tag']['attribute_count'] = count($attributes);
+			}
+			unset($paginated[$k]['AttributeTag']);
 			if (!empty($tag['FavouriteTag'])) {
 				foreach ($tag['FavouriteTag'] as $ft) if ($ft['user_id'] == $this->Auth->user('id')) $paginated[$k]['Tag']['favourite'] = true;
 				if (!isset($tag['Tag']['favourite'])) $paginated[$k]['Tag']['favourite'] = false;
@@ -213,10 +246,12 @@ class TagsController extends AppController {
 
 	public function view($id) {
 		if ($this->_isRest()) {
+			$contain = array('EventTag' => array('fields' => 'event_id'));
+			$contain['AttributeTag'] = array('fields' => 'attribute_id');
 			$tag = $this->Tag->find('first', array(
 					'conditions' => array('id' => $id),
 					'recursive' => -1,
-					'contain' => array('EventTag' => array('fields' => 'event_id'))
+					'contain' => $contain
 			));
 			if (empty($tag)) throw new MethodNotAllowedException('Invalid Tag');
 			if (empty($tag['EventTag'])) $tag['Tag']['count'] = 0;
@@ -242,6 +277,35 @@ class TagsController extends AppController {
 				$tag['Tag']['count'] = count($events);
 			}
 			unset($tag['EventTag']);
+			if (empty($tag['AttributeTag'])) {
+				$tag['Tag']['attribute_count'] = 0;
+			} else {
+				$attributeIDs = array();
+				foreach ($tag['AttributeTag'] as $attributeTag) {
+					$attributeIDs[] = $attributeTag['attribute_id'];
+				}
+				$conditions = array('Attribute.id' => $attributeIDs);
+				if (!$this->_isSiteAdmin()) {
+					$conditions = array_merge(
+						$conditions,
+						array('OR' => array(
+							array('AND' => array(
+								array('Attribute.deleted =' => 0),
+								array('Attribute.distribution >' => 0),
+								array('Event.distribution >' => 0),
+								array('Event.published =' => 1)
+							)),
+							array('Event.orgc_id' => $this->Auth->user('org_id'))
+						)));
+				}
+				$attributes = $this->Tag->AttributeTag->Attribute->find('all', array(
+					'fields'     => array('Attribute.id', 'Attribute.deleted', 'Attribute.distribution', 'Event.id', 'Event.distribution', 'Event.orgc_id'),
+					'contain'    => array('Event' => array('fields' => array('id', 'distribution', 'orgc_id'))),
+					'conditions' => $conditions
+				));
+				$tag['Tag']['attribute_count'] = count($attributes);
+			}
+			unset($tag['AttributeTag']);
 			$this->set('Tag', $tag['Tag']);
 			$this->set('_serialize', 'Tag');
 		} else throw new MethodNotAllowedException('This action is only for REST users.');
@@ -275,6 +339,34 @@ class TagsController extends AppController {
 		$this->render('/Events/ajax/ajaxTags');
 	}
 
+	public function showAttributeTag($id) {
+		$this->helpers[] = 'TextColour';
+		$this->loadModel('AttributeTag');
+
+		$this->Tag->AttributeTag->Attribute->id = $id;
+		if (!$this->Tag->AttributeTag->Attribute->exists()) throw new NotFoundException(__('Invalid attribute'));
+		$this->Tag->AttributeTag->Attribute->read();
+		$eventId = $this->Tag->AttributeTag->Attribute->data['Attribute']['event_id'];
+
+		$attributeTags = $this->AttributeTag->find('all', array(
+			'conditions' => array(
+				'attribute_id' => $id
+			),
+			'contain' => array('Tag'),
+			'fields' => array('Tag.id', 'Tag.colour', 'Tag.name'),
+		));
+		$event = $this->Tag->AttributeTag->Attribute->Event->find('first', array(
+			'recursive' => -1,
+			'fields' => array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.user_id'),
+			'conditions' => array('Event.id' => $eventId)
+		));
+		$this->set('event', $event);
+		$this->set('attributeTags', $attributeTags);
+		$this->set('attributeId', $id);
+		$this->layout = 'ajax';
+		$this->render('/Attributes/ajax/ajaxAttributeTags');
+	}
+
 	public function viewTag($id) {
 		$tag = $this->Tag->find('first', array(
 				'conditions' => array(
@@ -289,7 +381,7 @@ class TagsController extends AppController {
 	}
 
 
-	public function selectTaxonomy($event_id) {
+	public function selectTaxonomy($id, $attributeTag = false) {
 		if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) throw new NotFoundException('You don\'t have permission to do that.');
 		$favourites = $this->Tag->FavouriteTag->find('count', array('conditions' => array('FavouriteTag.user_id' => $this->Auth->user('id'))));
 		$this->loadModel('Taxonomy');
@@ -298,13 +390,16 @@ class TagsController extends AppController {
 			$tags = $this->Taxonomy->getTaxonomyTags($k, false, true);
 			if (empty($tags)) unset($options[$k]);
 		}
-		$this->set('event_id', $event_id);
+		if ($attributeTag !== false) {
+			$this->set('attributeTag', true);
+		}
+		$this->set('object_id', $id);
 		$this->set('options', $options);
 		$this->set('favourites', $favourites);
 		$this->render('ajax/taxonomy_choice');
 	}
 
-	public function selectTag($event_id, $taxonomy_id) {
+	public function selectTag($id, $taxonomy_id, $attributeTag = false) {
 		if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) throw new NotFoundException('You don\'t have permission to do that.');
 		$this->loadModel('Taxonomy');
 		$expanded = array();
@@ -357,12 +452,15 @@ class TagsController extends AppController {
 				unset($expanded[$banned_tag]);
 			}
 		}
+		if ($attributeTag !== false) {
+			$this->set('attributeTag', true);
+		}
+		$this->set('object_id', $id);
 		foreach ($options as $k => $v) {
 			if (substr($v, 0, strlen('misp-galaxy:')) === 'misp-galaxy:') {
 				unset($options[$k]);
 			}
 		}
-		$this->set('event_id', $event_id);
 		$this->set('options', $options);
 		$this->set('expanded', $expanded);
 		$this->set('custom', $taxonomy_id == 0 ? true : false);
@@ -414,5 +512,131 @@ class TagsController extends AppController {
 		$this->set('flags', JSON_PRETTY_PRINT);
 		$this->response->type('json');
 		$this->render('/Servers/json/simple');
+	}
+
+	private function __findObjectByUuid($object_uuid, &$type) {
+		$this->loadModel('Event');
+		$object = $this->Event->find('first', array(
+			'conditions' => array(
+				'Event.uuid' => $object_uuid,
+			),
+			'fields' => array('Event.orgc_id', 'Event.id'),
+			'recursive' => -1
+		));
+		$type = 'Event';
+		if (!empty($object)) {
+			if (!$this->_isSiteAdmin() && $object['Event']['orgc_id'] != $this->Auth->user('org_id')) {
+					throw new MethodNotAllowedException('Invalid Target.');
+			}
+		} else {
+			$type = 'Attribute';
+			$object = $this->Event->Attribute->find('first', array(
+				'conditions' => array(
+					'Attribute.uuid' => $object_uuid,
+				),
+				'fields' => array('Attribute.id'),
+				'recursive' => -1,
+				'contain' => array('Event.orgc_id')
+			));
+			if (!empty($object)) {
+				if (!$this->_isSiteAdmin() && $object['Event']['orgc_id'] != $this->Auth->user('org_id')) {
+						throw new MethodNotAllowedException('Invalid Target.');
+				}
+			} else {
+					throw new MethodNotAllowedException('Invalid Target.');
+			}
+		}
+		return $object;
+	}
+
+	public function attachTagToObject($object_uuid, $tag) {
+		if (!Validation::uuid($object_uuid)) {
+			throw new InvalidArgumentException('Invalid UUID');
+		}
+		if (is_numeric($tag)) {
+			$conditions = array('Tag.id' => $tag);
+		} else {
+			$conditions = array('LOWER(Tag.name) LIKE' => strtolower(trim($tag)));
+		}
+		$objectType = '';
+		$object = $this->__findObjectByUuid($object_uuid, $objectType);
+		$existingTag = $this->Tag->find('first', array('conditions' => $conditions, 'recursive' => -1));
+		if (empty($existingTag)) {
+			if (!is_numeric($tag)) {
+				if (!$this->userRole['perm_tag_editor']) {
+					throw new InvalidArgumentException('Tag not found and insufficient privileges to create it.');
+				}
+				$this->Tag->create();
+				$this->Tag->save(array('Tag' => array('name' => $tag, 'colour' => $this->Tag->random_color())));
+				$existingTag = $this->Tag->find('first', array('recursive' => -1, 'conditions' => array('Tag.id' => $this->Tag->id)));
+			} else {
+				throw new InvalidArgumentException('Invalid Tag.');
+			}
+		}
+		if (!$this->_isSiteAdmin()) {
+			if (!in_array($existingTag['Tag']['org_id'], array(0, $this->Auth->user('org_id')))) {
+				throw new MethodNotAllowedException('Invalid Tag.');
+			}
+		}
+		$this->loadModel($objectType);
+		$connectorObject = $objectType . 'Tag';
+		$existingAssociation = $this->$objectType->$connectorObject->find('first', array(
+			'conditions' => array(
+				strtolower($objectType) . '_id' => $object[$objectType]['id'],
+				'tag_id' => $existingTag['Tag']['id']
+			)
+		));
+		if (!empty($existingAssociation)) {
+			throw new MethodNotAllowedException('Cannot attach tag, ' . $objectType . ' already has the tag attached.');
+		}
+		$this->$objectType->$connectorObject->create();
+		$result = $this->$objectType->$connectorObject->save(array($connectorObject => array(
+			strtolower($objectType) . '_id' => $object[$objectType]['id'],
+			'tag_id' => $existingTag['Tag']['id']
+		)));
+		if ($result) {
+			$message = 'Tag ' . $existingTag['Tag']['name'] . '(' . $existingTag['Tag']['id'] . ') successfully attached to ' . $objectType . '(' . $object[$objectType]['id'] . ').';
+			return $this->RestResponse->saveSuccessResponse('Tags', 'attachTagToObject', false, $this->response->type(), $message);
+		} else {
+			return $this->RestResponse->saveFailResponse('Tags', 'attachTagToObject', false, 'Failed to attach tag to object.', $this->response->type());
+		}
+	}
+
+	public function removeTagFromObject($object_uuid, $tag) {
+		if (!Validation::uuid($object_uuid)) {
+			throw new InvalidArgumentException('Invalid UUID');
+		}
+		if (is_numeric($tag)) {
+			$conditions = array('Tag.id' => $tag);
+		} else {
+			$conditions = array('LOWER(Tag.name) LIKE' => strtolower(trim($tag)));
+		}
+		$existingTag = $this->Tag->find('first', array('conditions' => $conditions, 'recursive' => -1));
+		if (empty($existingTag)) {
+			throw new MethodNotAllowedException('Invalid Tag.');
+		}
+		$objectType = '';
+		$object = $this->__findObjectByUuid($object_uuid, $objectType);
+		if (empty($object)) {
+			throw new MethodNotAllowedException('Invalid Target.');
+		}
+		$connectorObject = $objectType . 'Tag';
+		$this->loadModel($objectType);
+		$existingAssociation = $this->$objectType->$connectorObject->find('first', array(
+			'conditions' => array(
+				strtolower($objectType) . '_id' => $object[$objectType]['id'],
+				'tag_id' => $existingTag['Tag']['id']
+			)
+		));
+		if (empty($existingAssociation)) {
+			throw new MethodNotAllowedException('Could not remove tag as it is not attached to the target ' . $objectType);
+		}
+		$result = $this->$objectType->$connectorObject->delete($existingAssociation[$connectorObject]['id']);
+		if ($result) {
+			$message = 'Tag ' . $existingTag['Tag']['name'] . '(' . $existingTag['Tag']['id'] . ') successfully removed from ' . $objectType . '(' . $object[$objectType]['id'] . ').';
+			return $this->RestResponse->saveSuccessResponse('Tags', 'removeTagFromObject', false, $this->response->type(), $message);
+		} else {
+			return $this->RestResponse->saveFailResponse('Tags', 'removeTagFromObject', false, 'Failed to remove tag from object.', $this->response->type());
+		}
 	}
 }

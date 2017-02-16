@@ -88,7 +88,7 @@ class Attribute extends AppModel {
 			'hostname' => array('desc' => 'A full host/dnsname of an attacker', 'formdesc' => "A full host/dnsname of an attacker. Also set the IDS flag on when this hostname is hardcoded in malware", 'default_category' => 'Network activity', 'to_ids' => 1),
 			'domain' => array('desc' => 'A domain name used in the malware', 'formdesc' => "A domain name used in the malware. Use this instead of hostname when the upper domain is important or can be used to create links between events.", 'default_category' => 'Network activity', 'to_ids' => 1),
 			'domain|ip' => array('desc' => 'A domain name and its IP address (as found in DNS lookup) separated by a |','formdesc' => "A domain name and its IP address (as found in DNS lookup) separated by a | (no spaces)", 'default_category' => 'Network activity', 'to_ids' => 1),
-			'email-src' => array('desc' => "The email address (or domainname) used to send the malware.", 'default_category' => 'Payload delivery', 'to_ids' => 1),
+			'email-src' => array('desc' => "The email address used to send the malware.", 'default_category' => 'Payload delivery', 'to_ids' => 1),
 			'email-dst' => array('desc' => "A recipient email address", 'formdesc' => "A recipient email address that is not related to your constituency.", 'default_category' => 'Network activity', 'to_ids' => 1),
 			'email-subject' => array('desc' => "The subject of the email", 'default_category' => 'Payload delivery', 'to_ids' => 0),
 			'email-attachment' => array('desc' => "File name of the email attachment.", 'default_category' => 'Payload delivery', 'to_ids' => 1),
@@ -456,6 +456,12 @@ class Attribute extends AppModel {
 		'SharingGroup' => array(
 				'className' => 'SharingGroup',
 				'foreignKey' => 'sharing_group_id'
+		)
+	);
+
+	public $hasMany = array(
+		'AttributeTag' => array(
+			'dependent' => true
 		)
 	);
 
@@ -1252,6 +1258,94 @@ class Attribute extends AppModel {
 		}
 	}
 
+	// using Alnitak's solution from http://stackoverflow.com/questions/594112/matching-an-ip-to-a-cidr-mask-in-php5
+	private function __ipv4InCidr($ip, $cidr) {
+		list ($subnet, $bits) = explode('/', $cidr);
+		$ip = ip2long($ip);
+		$subnet = ip2long($subnet);
+		$mask = -1 << (32 - $bits);
+		$subnet &= $mask; # nb: in case the supplied subnet wasn't correctly aligned
+		return ($ip & $mask) == $subnet;
+	}
+
+	// using Snifff's solution from http://stackoverflow.com/questions/7951061/matching-ipv6-address-to-a-cidr-subnet
+	private function __ipv6InCidr($ip, $cidr) {
+		$ip = inet_pton($ip);
+		$binaryip = $this->__inet_to_bits($ip);
+		list($net, $maskbits) = explode('/', $cidr);
+		$net = inet_pton($net);
+		$binarynet = $this->__inet_to_bits($net);
+		$ip_net_bits = substr($binaryip, 0, $maskbits);
+		$net_bits = substr($binarynet, 0, $maskbits);
+		return ($ip_net_bits === $net_bits);
+	}
+
+	private function __cidrCorrelation($a) {
+		$ipValues = array();
+		$ip = $a['type'] == 'domain-ip' ? $a['value2'] : $a['value1'];
+		if (strpos($ip, '/') !== false) {
+			$ip_array = explode('/', $ip);
+			$ip_version = filter_var($ip_array[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
+			$ipList = $this->find('list', array(
+				'conditions' => array(
+					'type' => array('ip-src', 'ip-dst', 'domain_ip'),
+				),
+				'fields' => array('value1', 'value2'),
+				'order' => false
+			));
+			$ipList = array_merge(array_keys($ipList), array_values($ipList));
+			foreach ($ipList as $key => $value) {
+				if ($value == '') {
+					unset($ipList[$key]);
+				}
+			}
+			foreach ($ipList as $ipToCheck) {
+				if (filter_var($ipToCheck, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) && $ip_version == 4) {
+					if ($ip_version == 4) {
+						if ($this->__ipv4InCidr($ipToCheck, $ip)) {
+							$ipValues[] = $ipToCheck;
+						}
+					} else {
+						if ($this->__ipv6InCidr($ipToCheck, $ip)) {
+							$ipValues[] = $ipToCheck;
+						}
+					}
+				}
+			}
+		} else {
+			$ip = $a['value1'];
+			$ip_version = filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
+			$cidrList = $this->find('list', array(
+				'conditions' => array(
+					'type' => array('ip-src', 'ip-dst'),
+					'value1 LIKE' => '%/%'
+				),
+				'fields' => array('value1'),
+				'order' => false
+			));
+			foreach ($cidrList as $cidr) {
+				$cidr_ip = explode('/', $cidr)[0];
+				if (filter_var($cidr_ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) && $ip_version == 4) {
+					if ($this->__ipv4InCidr($ip, $cidr)) {
+						$ipValues[] = $cidr;
+					}
+				} else {
+					if ($this->__ipv6InCidr($ip, $cidr)) {
+						$ipValues[] = $cidr;
+					}
+				}
+			}
+		}
+		if (!empty($ipValues)) {
+			$extraConditions = array('OR' => array(
+				'Attribute.value1' => $ipValues,
+				'Attribute.value2' => $ipValues
+			));
+			return $extraConditions;
+		}
+		return false;
+	}
+
 	public function __afterSaveCorrelation($a, $full = false, $event = false) {
 		// Don't do any correlation if the type is a non correlating type
 		if (!in_array($a['type'], $this->nonCorrelatingTypes)) {
@@ -1266,23 +1360,30 @@ class Attribute extends AppModel {
 			if ($event['Event']['disable_correlation']) {
 				return true;
 			}
+			if (Configure::read('MISP.enable_advanced_correlations') && in_array($a['type'], array('ip-src', 'ip-dst', 'domain-ip'))) {
+				$extraConditions = $this->__cidrCorrelation($a);
+			}
 			$this->Correlation = ClassRegistry::init('Correlation');
 			$correlatingValues = array($a['value1']);
 			if (!empty($a['value2'])) $correlatingValues[] = $a['value2'];
 			foreach ($correlatingValues as $k => $cV) {
-				$correlatingAttributes[$k] = $this->find('all', array(
-						'conditions' => array(
-							'AND' => array(
-								'OR' => array(
-										'Attribute.value1' => $cV,
-										'Attribute.value2' => $cV
-								),
-								'Attribute.type !=' => $this->nonCorrelatingTypes,
-								'Attribute.disable_correlation' => 0,
-								'Event.disable_correlation' => 0
-							),
-							'Attribute.deleted' => 0
+				$conditions = array(
+					'AND' => array(
+						'OR' => array(
+								'Attribute.value1' => $cV,
+								'Attribute.value2' => $cV
 						),
+						'Attribute.type !=' => $this->nonCorrelatingTypes,
+						'Attribute.disable_correlation' => 0,
+						'Event.disable_correlation' => 0
+					),
+					'Attribute.deleted' => 0
+				);
+				if (!empty($extraConditions)) {
+					$conditions['AND']['OR'][] = $extraConditions;
+				}
+				$correlatingAttributes[$k] = $this->find('all', array(
+						'conditions' => $conditions,
 						'recursive => -1',
 						'fields' => array('Attribute.event_id', 'Attribute.id', 'Attribute.distribution', 'Attribute.sharing_group_id', 'Attribute.deleted'),
 						'contain' => array('Event' => array('fields' => array('Event.id', 'Event.date', 'Event.info', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id'))),
@@ -1492,10 +1593,13 @@ class Attribute extends AppModel {
 		return $rules;
 	}
 
-	public function text($user, $type, $tags = false, $eventId = false, $allowNonIDS = false, $from = false, $to = false, $last = false, $enforceWarninglist = false) {
-		//restricting to non-private or same org if the user is not a site-admin.
+	public function text($user, $type, $tags = false, $eventId = false, $allowNonIDS = false, $from = false, $to = false, $last = false, $enforceWarninglist = false, $allowNotPublished = false) {
+		//permissions are taken care of in fetchAttributes()
 		$conditions['AND'] = array();
-		if ($allowNonIDS === false) $conditions['AND'] = array('Attribute.to_ids' => 1, 'Event.published' => 1);
+		if ($allowNonIDS === false) {
+			$conditions['AND']['Attribute.to_ids'] = 1;
+			if ($allowNotPublished === false) $conditions['AND']['Event.published'] = 1;
+		}
 		if ($type !== 'all') $conditions['AND']['Attribute.type'] = $type;
 		if ($from) $conditions['AND']['Event.date >='] = $from;
 		if ($to) $conditions['AND']['Event.date <='] = $to;
@@ -1991,6 +2095,8 @@ class Attribute extends AppModel {
 				),
 			),
 		);
+		$params['contain']['AttributeTag'] = array('Tag' => array('conditions' => array()));
+		if (empty($options['includeAllTags'])) $params['contain']['AttributeTag']['Tag']['conditions']['exportable'] = 1;
 		if (isset($options['contain'])) $params['contain'] = array_merge_recursive($params['contain'], $options['contain']);
 		else $option['contain']['Event']['fields'] = array('id', 'info', 'org_id', 'orgc_id');
 		if (Configure::read('MISP.proposals_block_attributes') && isset($options['conditions']['AND']['Attribute.to_ids']) && $options['conditions']['AND']['Attribute.to_ids'] == 1) {
@@ -2141,5 +2247,36 @@ class Attribute extends AppModel {
 			return true;
 		}
 		else return 'Could not save changes.';
+	}
+
+	public function saveAndEncryptAttribute($attribute, $user) {
+		$hashes = array('md5' => 'malware-sample', 'sha1' => 'filename|sha1', 'sha256' => 'filename|sha256');
+		if ($attribute['encrypt']) {
+			$result = $this->handleMaliciousBase64($attribute['event_id'], $attribute['value'], $attribute['data'], array_keys($hashes));
+			if (!$result['success']) {
+				return 'Could not handle the sample';
+			}
+			foreach ($hashes as $hash => $typeName) {
+				if (!$result[$hash]) continue;
+				$attributeToSave = array(
+					'Attribute' => array(
+						'value' => $attribute['value'] . '|' . $result[$hash],
+						'category' => $attribute['category'],
+						'type' => $typeName,
+						'event_id' => $attribute['event_id'],
+						'comment' => $attribute['comment'],
+						'to_ids' => 1,
+						'distribution' => $attribute['distribution'],
+						'sharing_group_id' => isset($attribute['sharing_group_id']) ? $attribute['sharing_group_id'] : 0,
+					)
+				);
+				if ($hash == 'md5') $attributeToSave['Attribute']['data'] = $result['data'];
+				$this->create();
+				if (!$this->save($attributeToSave)) {
+					return $this->validationErrors;
+				}
+			}
+		}
+		return true;
 	}
 }

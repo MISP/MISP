@@ -39,11 +39,13 @@ class UserInitShell extends AppShell {
 		}
 
 		if ($this->Organisation->find('count', array('conditions' => array('Organisation.local' => true))) == 0) {
+			$date = date('Y-m-d H:i:s');
 			$org = array('Organisation' => array(
 					'id' => 1,
 					'name' => !empty(Configure::read('MISP.org')) ? Configure::read('MISP.org') : 'ADMIN',
 					'description' => 'Automatically generated admin organisation',
 					'type' => 'ADMIN',
+					'date_created' => $date,
 					'uuid' => CakeText::uuid(),
 					'local' => 1
 			));

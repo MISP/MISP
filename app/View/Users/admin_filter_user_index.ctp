@@ -1,7 +1,7 @@
 <div class="events">
 	<?php echo $this->Form->create('User');?>
 		<fieldset>
-			<legend>Filter Event Index</legend>
+			<legend>Filter User Index</legend>
 			<div class="overlay_spacing">
 			<?php
 				echo $this->Form->input('rule', array(

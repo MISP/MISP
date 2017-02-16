@@ -15,6 +15,23 @@
 					'placeholder' => 'Name of the content provider',
 					'class' => 'form-control span6'
 			));
+			echo $this->Form->input('input_source', array(
+					'label' => 'Input Source',
+					'div' => 'input clear',
+					'options' => array('network' => 'Network', 'local' => 'Local'),
+					'class' => 'form-control span6'
+			));
+			?>
+			<div class="input clear"></div>
+			<div id="DeleteLocalFileDiv" class="optionalField">
+					<?php
+						echo $this->Form->input('delete_local_file', array(
+								'label' => 'Remove input after ingestion'
+						));
+				?>
+			</div>
+			<div class="input clear"></div>
+			<?php
 			echo $this->Form->input('url', array(
 					'div' => 'input clear',
 					'placeholder' => 'URL of the feed',
@@ -183,7 +200,7 @@ $(document).ready(function() {
 	feedFormUpdate();
 });
 
-$("#FeedSourceFormat, #FeedFixedEvent").change(function() {
+$("#FeedSourceFormat, #FeedFixedEvent, #FeedInputSource").change(function() {
 	feedFormUpdate();
 });
 </script>

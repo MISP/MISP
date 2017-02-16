@@ -70,6 +70,6 @@ class DATABASE_CONFIG {
 		'password' => 'db password',
 		'database' => 'misp',
 		'prefix' => '',
-		//'encoding' => 'utf8',
+		'encoding' => 'utf8',
 	);
 }

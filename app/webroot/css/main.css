@@ -784,6 +784,16 @@ a.proposal_link_red:hover {
 	z-index:5;
 }
 
+.screenshot_box {
+	display:none;
+	position: fixed;
+	top:150px;
+	background-color:#f4f4f4;
+	border-radius: 11px 11px 10px 10px;
+	box-shadow: 4px 4px 4px #333;
+	z-index:5;
+}
+
 .ajax_popover_form legend, .ajax_popover_form .legend {
 	border-radius: 10px 10px 0px 0px;
 	padding-left:10px;
@@ -1625,6 +1635,41 @@ table.table.table-striped tr.deleted_row td {
 	opacity: 0.3;
 	vertical-align: top;
 	width: 0;
+}
+
+.popover-back {
+	border-top:1px solid black;
+	line-height: 30px;
+	padding-top: 1px;
+	padding-bottom: 1px;
+	text-align:center;
+	width:100%;
+}
+
+.screenshot-collapsed {
+	width:200px;
+}
+
+/*
+	nifty close-icon from http://stackoverflow.com/a/20139794/2622597
+*/
+.close-icon
+{
+  position:absolute;
+  top:-10px;
+  right:-10px;
+  display:block;
+  box-sizing:border-box;
+  width:20px;
+  height:20px;
+  border-width:3px;
+  border-style: solid;
+  border-color:black;
+  border-radius:100%;
+  background: -webkit-linear-gradient(-45deg, transparent 0%, transparent 46%, white 46%,  white 56%,transparent 56%, transparent 100%), -webkit-linear-gradient(45deg, transparent 0%, transparent 46%, white 46%,  white 56%,transparent 56%, transparent 100%);
+  background-color:black;
+  box-shadow:0px 0px 5px 2px rgba(0,0,0,0.5);
+  transition: all 0.3s ease;
 }
 
 @-webkit-keyframes rotation {

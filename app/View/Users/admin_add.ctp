@@ -68,13 +68,13 @@
 		<div class="clear"><span onClick="lookupPGPKey('UserEmail');" class="btn btn-inverse" style="margin-bottom:10px;">Fetch GPG key</span></div>
 	<?php
 		if (Configure::read('SMIME.enabled')) echo $this->Form->input('certif_public', array('label' => 'SMIME key', 'div' => 'clear', 'class' => 'input-xxlarge', 'placeholder' => 'Paste the user\'s SMIME public key in PEM format here.'));
-		echo $this->Form->input('autoalert', array('label' => 'Receive alerts when events are published', 'type' => 'checkbox'));
-		echo $this->Form->input('contactalert', array('label' => 'Receive alerts from "contact reporter" requests', 'type' => 'checkbox'));
+		echo $this->Form->input('autoalert', array('label' => 'Receive alerts when events are published', 'type' => 'checkbox', 'checked' => true));
+		echo $this->Form->input('contactalert', array('label' => 'Receive alerts from "contact reporter" requests', 'type' => 'checkbox', 'checked' => true));
 	?>
 		<div class="clear"></div>
 	<?php
 		echo $this->Form->input('disabled', array('label' => 'Disable this user account'));
-
+		echo $this->Form->input('notify', array('label' => 'Send credentials automatically', 'type' => 'checkbox', 'checked' => true));
 	?>
 	</fieldset>
 <?php

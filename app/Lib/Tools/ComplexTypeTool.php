@@ -8,6 +8,7 @@ class ComplexTypeTool {
 		'/^h\[tt\]p/i' => 'http',
 		'/\[\.\]/' => '.',
 		'/\[dot\]/' => '.',
+		'/\(dot\)/' => '.',
 		'/\\\\\./' => '.',
 		'/\.+/' => '.'
 	);
@@ -97,7 +98,7 @@ class ComplexTypeTool {
 	 *     values:    Expects an array (or a comma separated string) with numeric values denoting the columns containing indicators. If this is not set then every value will be checked. (column numbers start at 1)
 	 */
 	public function checkCSV($input, $settings = array()) {
-		$delimiter = isset($settings['delimiter']) ? $settings['delimiter'] : ",";
+		$delimiter = !empty($settings['delimiter']) ? $settings['delimiter'] : ",";
 		$lines = explode("\n", $input);
 		unset($input);
 		$values = !empty($settings['value']) ? $settings['value'] : array();
@@ -203,17 +204,26 @@ class ComplexTypeTool {
 		}
 		$inputRefanged = rtrim($inputRefanged, ".");
 		if (strpos($input, '@') !== false) {
-			if (filter_var($input, FILTER_VALIDATE_EMAIL)) return array('types' => array('email-src', 'email-dst'), 'to_ids' => true, 'default_type' => 'email-src', 'value' => $input);
+			if (filter_var($input, FILTER_VALIDATE_EMAIL)) return array('types' => array('email-src', 'email-dst', 'whois-registrant-email'), 'to_ids' => true, 'default_type' => 'email-src', 'value' => $input);
 		}
 		// note down and remove the port if it's a url / domain name / hostname / ip
 		// input2 from here on is the variable containing the original input with the port removed. It is only used by url / domain name / hostname / ip
 		$comment = false;
 		if (preg_match('/(:[0-9]{2,5})$/', $inputRefanged, $port)) {
-			$comment = 'On port ' . substr($port[0], 1);
 			$inputRefangedNoPort = str_replace($port[0], '', $inputRefanged);
-		} else $inputRefangedNoPort = $inputRefanged;
+			$port = substr($port[0], 1);
+		} else {
+			unset($port);
+			$inputRefangedNoPort = $inputRefanged;
+		}
 		// check for IP
-		if (filter_var($inputRefangedNoPort, FILTER_VALIDATE_IP)) return array('types' => array('ip-dst', 'ip-src', 'ip-src/ip-dst'), 'to_ids' => true, 'default_type' => 'ip-dst', 'comment' => $comment, 'value' => $inputRefangedNoPort);
+		if (filter_var($inputRefangedNoPort, FILTER_VALIDATE_IP)) {
+			if (isset($port)) {
+				return array('types' => array('ip-dst|port', 'ip-src|port', 'ip-src|port/ip-dst|port'), 'to_ids' => true, 'default_type' => 'ip-dst|port', 'comment' => $comment, 'value' => $inputRefangedNoPort . '|' . $port);
+			} else {
+				return array('types' => array('ip-dst', 'ip-src', 'ip-src/ip-dst'), 'to_ids' => true, 'default_type' => 'ip-dst', 'comment' => $comment, 'value' => $inputRefangedNoPort);
+			}
+		}
 		if (strpos($inputRefangedNoPort, '/')) {
 			$temp = explode('/', $inputRefangedNoPort);
 			if (count($temp) == 2) {

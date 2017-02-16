@@ -46,9 +46,10 @@ class AppController extends Controller {
 
 	public $helpers = array('Utility');
 
-	private $__jsVersion = '2.4.58';
+	private $__jsVersion = '2.4.62';
+	public $pyMispVersion = '2.4.65';
 	public $phpmin = '5.5.9';
-	public $phprec = '5.6.0';
+	public $phprec = '7.0.0';
 
 	// Used for _isAutomation(), a check that returns true if the controller & action combo matches an action that is a non-xml and non-json automation method
 	// This is used to allow authentication via headers for methods not covered by _isRest() - as that only checks for JSON and XML formats
@@ -81,6 +82,11 @@ class AppController extends Controller {
 	public function beforeFilter() {
 		// check for a supported datasource configuration
 		$dataSourceConfig = ConnectionManager::getDataSource('default')->config;
+		if (!isset($dataSourceConfig['encoding'])) {
+			$db = ConnectionManager::getDataSource('default');
+			$db->setConfig(array('encoding' => 'utf8'));
+			ConnectionManager::create('default', $db->config);
+		}
 		$dataSource = $dataSourceConfig['datasource'];
 		if ($dataSource != 'Database/Mysql' && $dataSource != 'Database/Postgres') {
 			throw new Exception('datasource not supported: ' . $dataSource);

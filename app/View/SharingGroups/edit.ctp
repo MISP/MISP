@@ -16,7 +16,7 @@
 			<textarea class="input-xxlarge" placeholder="A description of the sharing group." cols="30" rows="6" id="SharingGroupDescription"><?php echo h($sharingGroup['SharingGroup']['description']); ?></textarea>
 			<div style="display:block;">
 				<input type="checkbox" style="float:left;" title="Active sharing groups can be selected by users of the local instance when creating events. Generally, sharing groups received through synchronisation will have this disabled until manually enabled." <?php if ($sharingGroup['SharingGroup']['active']) echo "checked"; ?> id="SharingGroupActive"></input>
-				<label for="SharingGroupActive" style="padding-left:20px;">Make the sharing group selectable</label>
+				<label for="SharingGroupActive" style="padding-left:20px;">Make the sharing group selectable (active)</label>
 			</div>
 			<span class="btn btn-inverse" onClick="simpleTabPage(2);">Next page</span>
 		</div>

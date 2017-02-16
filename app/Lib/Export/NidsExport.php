@@ -496,4 +496,32 @@ class NidsExport {
 		}
 		return false;
 	}
+
+    public static function getProtocolPort($protocol, $customPort) {
+        if($customPort == null) {
+            switch ($protocol) {
+                case "http":
+                    return '$HTTP_PORTS';
+                case "https":
+                    return '443';
+                case "ssh":
+                    return '22';
+                case "ftp":
+                    return '[20,21]';
+                default:
+                    return 'any';
+            }
+        } else {
+            return $customPort;
+        }
+    }
+
+    public static function getCustomIP($customIP) {
+        if(filter_var($customIP, FILTER_VALIDATE_IP)) {
+            return $customIP;
+        }
+        else {
+            return '$EXTERNAL_NET';
+        }
+    }
 }

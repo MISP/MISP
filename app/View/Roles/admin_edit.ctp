@@ -24,6 +24,9 @@
 	echo $this->element('side_menu', array('menuList' => 'admin', 'menuItem' => 'editRole'));
 	$this->Js->get('#RolePermission')->event('change', 'deactivateActions()');
 	foreach ($permFlags as $k => $flag) {
+		if ($k == 'perm_audit' || $k == 'perm_auth') {
+			continue;
+		}
 		if ($k !== 'perm_site_admin') $this->Js->get('#' . $flag['id'])->event('change', 'checkPerms("' . $flag['id'] . '")');
 		else $this->Js->get('#RolePermSiteAdmin')->event('change', 'checkPerms("RolePermSiteAdmin");activateAll();');
 	}

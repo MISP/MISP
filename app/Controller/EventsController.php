@@ -571,6 +571,7 @@ class EventsController extends AppController {
 			if (Configure::read('MISP.showCorrelationsOnIndex')) $events = $this->Event->attachCorrelationCountToEvents($this->Auth->user(), $events);
 			if (Configure::read('MISP.showSightingsCountOnIndex') && Configure::read('MISP.Plugin.Sightings_enable') !== false) $events = $this->Event->attachSightingsCountToEvents($this->Auth->user(), $events);
 			if (Configure::read('MISP.showProposalsCountOnIndex')) $events = $this->Event->attachProposalsCountToEvents($this->Auth->user(), $events);
+			if (Configure::read('MISP.showDiscussionsCountOnIndex')) $events = $this->Event->attachDiscussionsCountToEvents($this->Auth->user(), $events);
 			$events = $this->GalaxyCluster->attachClustersToEventIndex($events, true);
 			$this->set('events', $events);
 		}
@@ -792,11 +793,11 @@ class EventsController extends AppController {
 
 		// workaround to get the event dates in to the attribute relations
 		$relatedDates = array();
-		if (isset($event['RelatedEvent'])) {
+		if (!empty($event['RelatedEvent'])) {
 			foreach ($event['RelatedEvent'] as $relation) {
 				$relatedDates[$relation['Event']['id']] = $relation['Event']['date'];
 			}
-			if (isset($event['RelatedAttribute'])) {
+			if (!empty($event['RelatedAttribute'])) {
 				foreach ($event['RelatedAttribute'] as $key => $relatedAttribute) {
 					foreach ($relatedAttribute as $key2 => $relation) {
 						$event['RelatedAttribute'][$key][$key2]['date'] = $relatedDates[$relation['id']];
@@ -1008,7 +1009,9 @@ class EventsController extends AppController {
 		$sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name',  1);
 		if ($this->request->is('post')) {
 			if ($this->_isRest()) {
-
+				if (empty($this->data)) {
+					throw new MethodNotAllowedException('No valid event data received.');
+				}
 				// rearrange the response if the event came from an export
 				if (isset($this->request->data['response'])) $this->request->data = $this->request->data['response'];
 
@@ -1194,9 +1197,9 @@ class EventsController extends AppController {
 				if (isset($this->data['Event']['submittedfile'])) {
 					if (Configure::read('MISP.take_ownership_xml_import')
 						&& (isset($this->data['Event']['takeownership']) && $this->data['Event']['takeownership'] == 1)) {
-						$results = $this->_addMISPExportFile($ext, true);
+						$results = $this->_addMISPExportFile($ext, true, $this->data['Event']['publish']);
 					} else {
-						$results = $this->_addMISPExportFile($ext);
+						$results = $this->_addMISPExportFile($ext, false, $this->data['Event']['publish']);
 					}
 				}
 			}
@@ -1278,6 +1281,13 @@ class EventsController extends AppController {
 	}
 
 	public function edit($id = null) {
+		if (Validation::uuid($id)) {
+			$temp = $this->Event->find('first', array('recursive' => -1, 'fields' => array('Event.id'), 'conditions' => array('Event.uuid' => $id)));
+			if (empty($temp)) throw new NotFoundException('Invalid event');
+			$id = $temp['Event']['id'];
+		} else if (!is_numeric($id)) {
+			throw new NotFoundException(__('Invalid event'));
+		}
 		$this->Event->id = $id;
 		if (!$this->Event->exists()) {
 			throw new NotFoundException(__('Invalid event'));
@@ -2172,7 +2182,7 @@ class EventsController extends AppController {
 		}
 	}
 
-	public function _addMISPExportFile($ext, $take_ownership = false) {
+	public function _addMISPExportFile($ext, $take_ownership = false, $publish = false) {
 		App::uses('FileAccessTool', 'Tools');
 		$data = (new FileAccessTool())->readFromFile($this->data['Event']['submittedfile']['tmp_name'], $this->data['Event']['submittedfile']['size']);
 
@@ -2210,6 +2220,7 @@ class EventsController extends AppController {
 				$event = array('Event' => $event);
 				$created_id = 0;
 				$event['Event']['locked'] = 1;
+				$event['Event']['published'] = $publish;
 				$result['result'] = $this->Event->_add($event, true, $this->Auth->user(), '', null, false, null, $created_id, $validationIssues);
 				$result['id'] = $created_id;
 				$result['validationIssues'] = $validationIssues;
@@ -2223,6 +2234,7 @@ class EventsController extends AppController {
 			}
 			$created_id = 0;
 			$temp['Event']['locked'] = 1;
+			$temp['Event']['published'] = $publish;
 			$result = $this->Event->_add($temp, true, $this->Auth->user(), '', null, false, null, $created_id, $validationIssues);
 			$results = array(0 => array('info' => $temp['Event']['info'], 'result' => $result, 'id' => $created_id, 'validationIssues' => $validationIssues));
 		}
@@ -2941,56 +2953,60 @@ class EventsController extends AppController {
 
 	public function removeTag($id = false, $tag_id = false, $galaxy = false) {
 		if (!$this->request->is('post')) {
-			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that. Only POST requests are accepted.')), 'status'=>200));
-		}
-		$rearrangeRules = array(
-				'request' => false,
-				'Event' => false,
-				'tag_id' => 'tag',
-				'event_id' => 'event',
-				'id' => 'event'
-		);
-		$RearrangeTool = new RequestRearrangeTool();
-		$this->request->data = $RearrangeTool->rearrangeArray($this->request->data, $rearrangeRules);
-		if ($id === false) $id = $this->request->data['event'];
-		if ($tag_id === false) $tag_id = $this->request->data['tag'];
-		if (empty($tag_id)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid ' . ($galaxy ? 'Galaxy' : 'Tag') . '.')),'status'=>200));
-		if (!is_numeric($tag_id)) {
-			$tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => array('LOWER(Tag.name) LIKE' => strtolower(trim($tag_id)))));
-			if (empty($tag)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid ' . ($galaxy ? 'Galaxy' : 'Tag') . '.')), 'status'=>200));
-			$tag_id = $tag['Tag']['id'];
-		}
-		if (!is_numeric($id)) $id = $this->request->data['Event']['id'];
-		$this->Event->recursive = -1;
-		$event = $this->Event->read(array(), $id);
-		// org should allow to tag too, so that an event that gets pushed can be tagged locally by the owning org
-		if ((($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id']) || (!$this->userRole['perm_tagger'])) && !$this->_isSiteAdmin()) {
-			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')),'status'=>200));
-		}
-		$eventTag = $this->Event->EventTag->find('first', array(
-			'conditions' => array(
-				'event_id' => $id,
-				'tag_id' => $tag_id
-			),
-			'recursive' => -1,
-		));
-		$this->autoRender = false;
-		if (empty($eventTag)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid event - ' . ($galaxy ? 'galaxy' : 'tag') . ' combination.')),'status'=>200));
-		$tag = $this->Event->EventTag->Tag->find('first', array(
-			'conditions' => array('Tag.id' => $tag_id),
-			'recursive' => -1,
-			'fields' => array('Tag.name')
-		));
-		if ($this->Event->EventTag->delete($eventTag['EventTag']['id'])) {
-			$event['Event']['published'] = 0;
-			$date = new DateTime();
-			$event['Event']['timestamp'] = $date->getTimestamp();
-			$this->Event->save($event);
-			$log = ClassRegistry::init('Log');
-			$log->createLogEntry($this->Auth->user(), 'tag', 'Event', $id, 'Removed tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" from event (' . $id . ')', 'Event (' . $id . ') untagged of Tag (' . $tag_id . ')');
-			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => ($galaxy ? 'Galaxy' : 'Tag') . ' removed.', 'check_publish' => true)), 'status'=>200));
+			$this->set('id', $id);
+			$this->set('tag_id', $tag_id);
+			$this->set('model', 'Event');
+			$this->render('/Attributes/ajax/tagRemoveConfirmation');
 		} else {
-			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => ($galaxy ? 'Galaxy' : 'Tag') . ' could not be removed.')),'status'=>200));
+			$rearrangeRules = array(
+					'request' => false,
+					'Event' => false,
+					'tag_id' => 'tag',
+					'event_id' => 'event',
+					'id' => 'event'
+			);
+			$RearrangeTool = new RequestRearrangeTool();
+			$this->request->data = $RearrangeTool->rearrangeArray($this->request->data, $rearrangeRules);
+			if ($id === false) $id = $this->request->data['event'];
+			if ($tag_id === false) $tag_id = $this->request->data['tag'];
+			if (empty($tag_id)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid ' . ($galaxy ? 'Galaxy' : 'Tag') . '.')),'status'=>200));
+			if (!is_numeric($tag_id)) {
+				$tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => array('LOWER(Tag.name) LIKE' => strtolower(trim($tag_id)))));
+				if (empty($tag)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid ' . ($galaxy ? 'Galaxy' : 'Tag') . '.')), 'status'=>200));
+				$tag_id = $tag['Tag']['id'];
+			}
+			if (!is_numeric($id)) $id = $this->request->data['Event']['id'];
+			$this->Event->recursive = -1;
+			$event = $this->Event->read(array(), $id);
+			// org should allow to tag too, so that an event that gets pushed can be tagged locally by the owning org
+			if ((($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id']) || (!$this->userRole['perm_tagger'])) && !$this->_isSiteAdmin()) {
+				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')),'status'=>200));
+			}
+			$eventTag = $this->Event->EventTag->find('first', array(
+				'conditions' => array(
+					'event_id' => $id,
+					'tag_id' => $tag_id
+				),
+				'recursive' => -1,
+			));
+			$this->autoRender = false;
+			if (empty($eventTag)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid event - ' . ($galaxy ? 'galaxy' : 'tag') . ' combination.')),'status'=>200));
+			$tag = $this->Event->EventTag->Tag->find('first', array(
+				'conditions' => array('Tag.id' => $tag_id),
+				'recursive' => -1,
+				'fields' => array('Tag.name')
+			));
+			if ($this->Event->EventTag->delete($eventTag['EventTag']['id'])) {
+				$event['Event']['published'] = 0;
+				$date = new DateTime();
+				$event['Event']['timestamp'] = $date->getTimestamp();
+				$this->Event->save($event);
+				$log = ClassRegistry::init('Log');
+				$log->createLogEntry($this->Auth->user(), 'tag', 'Event', $id, 'Removed tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" from event (' . $id . ')', 'Event (' . $id . ') untagged of Tag (' . $tag_id . ')');
+				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => ($galaxy ? 'Galaxy' : 'Tag') . ' removed.', 'check_publish' => true)), 'status'=>200));
+			} else {
+				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => ($galaxy ? 'Galaxy' : 'Tag') . ' could not be removed.')),'status'=>200));
+			}
 		}
 	}
 
@@ -3077,6 +3093,8 @@ class EventsController extends AppController {
 				foreach (${$source} as $k => $attribute) {
 					if ($attribute['type'] == 'ip-src/ip-dst') {
 						$types = array('ip-src', 'ip-dst');
+					} else if ($attribute['type'] == 'ip-src|port/ip-dst|port') {
+						$types = array('ip-src|port', 'ip-dst|port');
 					} else if ($attribute['type'] == 'malware-sample') {
 						if (!isset($attribute['data_is_handled']) || !$attribute['data_is_handled']) {
 							App::uses('FileAccessTool', 'Tools');
@@ -3480,10 +3498,10 @@ class EventsController extends AppController {
 		$this->loadModel('Log');
 		$hashes = array('md5' => 'malware-sample', 'sha1' => 'filename|sha1', 'sha256' => 'filename|sha256');
 		$categoryDefinitions = $this->Event->Attribute->categoryDefinitions;
-		$types = array();
+		$categories = array();
 		foreach ($categoryDefinitions as $k => $v) {
-			if (in_array('malware-sample', $v['types']) && !in_array($k, $types)) {
-				$types[] = $k;
+			if (in_array('malware-sample', $v['types']) && !in_array($k, $categories)) {
+				$categories[] = $k;
 			}
 		}
 		$parameter_options = array(
@@ -3492,7 +3510,7 @@ class EventsController extends AppController {
 				'analysis' => array('valid_options' => array(0, 1, 2), 'default' => 0),
 				'info' => array('default' =>  'Malware samples uploaded on ' . date('Y-m-d')),
 				'to_ids' => array('valid_options' => array(0, 1), 'default' => 1),
-				'category' => array('valid_options' => $types, 'default' => 'Payload installation'),
+				'category' => array('valid_options' => $categories, 'default' => 'Payload installation'),
 				'comment' => array('default' => '')
 		);
 
@@ -3554,6 +3572,8 @@ class EventsController extends AppController {
 			));
 			if (empty($event)) throw new NotFoundException('Event not found.');
 			$this->Event->id = $data['event_id'];
+			$date = new DateTime();
+			$this->Event->saveField('timestamp', $date->getTimestamp());
 			$this->Event->saveField('published', 0);
 		} else {
 			$this->Event->create();
@@ -3590,69 +3610,44 @@ class EventsController extends AppController {
 		$successCount = 0;
 		$errors = array();
 		foreach ($data['files'] as $file) {
-			if ($data['to_ids']) {
-				$temp = $this->Event->Attribute->handleMaliciousBase64($data['event_id'], $file['filename'], $file['data'], array_keys($hashes));
-				if ($temp['success']) {
-					foreach ($hashes as $hash => $typeName) {
-						if ($temp[$hash] == false) continue;
-						$file[$hash] = $temp[$hash];
-						$file['data'] = $temp['data'];
-						$this->Event->Attribute->create();
-						$attribute = array(
-								'value' => $file['filename'] . '|' . $file[$hash],
-								'distribution' => $data['distribution'],
-								'category' => $data['category'],
-								'type' => $typeName,
-								'event_id' => $data['event_id'],
-								'to_ids' => $data['to_ids'],
-								'comment' => $data['comment']
-						);
-						if ($hash == 'md5') $attribute['data'] = $file['data'];
-						$result = $this->Event->Attribute->save($attribute);
-						if (!$result) {
-							$this->Log->save(array(
-									'org' => $this->Auth->user('Organisation')['name'],
-									'model' => 'Event',
-									'model_id' => $data['event_id'],
-									'email' => $this->Auth->user('email'),
-									'action' => 'upload_sample',
-									'user_id' => $this->Auth->user('id'),
-									'title' => 'Error: Failed to create attribute using the upload sample functionality',
-									'change' => 'There was an issue creating an attribute (' . $typeName . ': ' . $file['filename'] . '|' . $file[$hash] . '). ' . 'The validation errors were: ' . json_encode($this->Event->Attribute->validationErrors),
-							));
-							if ($typeName == 'malware-sample') {
-								$errors[] = array('filename' => $file['filename'], 'hash' => $file[$hash], 'error' => $this->Event->Attribute->validationErrors);
-							}
-						} else if ($typeName == 'malware-sample') {
-							$successCount++;
+			$temp = $this->Event->Attribute->handleMaliciousBase64($data['event_id'], $file['filename'], $file['data'], array_keys($hashes));
+			if ($temp['success']) {
+				foreach ($hashes as $hash => $typeName) {
+					if ($temp[$hash] == false) continue;
+					$file[$hash] = $temp[$hash];
+					$file['data'] = $temp['data'];
+					$this->Event->Attribute->create();
+					$attribute = array(
+							'value' => $file['filename'] . '|' . $file[$hash],
+							'distribution' => $data['distribution'],
+							'category' => $data['category'],
+							'type' => $typeName,
+							'event_id' => $data['event_id'],
+							'to_ids' => $data['to_ids'],
+							'comment' => $data['comment']
+					);
+					if ($hash == 'md5') $attribute['data'] = $file['data'];
+					$result = $this->Event->Attribute->save($attribute);
+					if (!$result) {
+						$this->Log->save(array(
+								'org' => $this->Auth->user('Organisation')['name'],
+								'model' => 'Event',
+								'model_id' => $data['event_id'],
+								'email' => $this->Auth->user('email'),
+								'action' => 'upload_sample',
+								'user_id' => $this->Auth->user('id'),
+								'title' => 'Error: Failed to create attribute using the upload sample functionality',
+								'change' => 'There was an issue creating an attribute (' . $typeName . ': ' . $file['filename'] . '|' . $file[$hash] . '). ' . 'The validation errors were: ' . json_encode($this->Event->Attribute->validationErrors),
+						));
+						if ($typeName == 'malware-sample') {
+							$errors[] = array('filename' => $file['filename'], 'hash' => $file[$hash], 'error' => $this->Event->Attribute->validationErrors);
 						}
+					} else if ($typeName == 'malware-sample') {
+						$successCount++;
 					}
-				} else {
-					$errors[] = array('filename' => $file['filename'], 'hash' => $file['hash'], 'error' => 'Failed to encrypt and compress the file.');
 				}
 			} else {
-				$this->Event->Attribute->create();
-				$attribute = array(
-						'value' => $file['filename'],
-						'distribution' => $data['distribution'],
-						'category' => $data['category'],
-						'type' => 'attachment',
-						'event_id' => $data['event_id'],
-						'to_ids' => $data['to_ids'],
-						'data' => $file['data'],
-						'comment' => $data['comment']
-				);
-				$result = $this->Event->Attribute->save($attribute);
-				$this->Log->save(array(
-						'org' => $this->Auth->user('Organisation')['name'],
-						'model' => 'Event',
-						'model_id' => $data['event_id'],
-						'email' => $this->Auth->user('email'),
-						'action' => 'upload_sample',
-						'user_id' => $this->Auth->user('id'),
-						'title' => 'Error: Failed to create attribute using the upload sample functionality',
-						'change' => 'There was an issue creating an attribute (attachment: ' . $file['filename'] . '). ' . 'The validation errors were: ' . json_encode($this->Event->Attribute->validationErrors),
-				));
+				$errors[] = array('filename' => $file['filename'], 'hash' => $file['hash'], 'error' => 'Failed to encrypt and compress the file.');
 			}
 		}
 		if (!empty($errors)) {
@@ -3692,8 +3687,12 @@ class EventsController extends AppController {
 		} else {
 			$json = $this->__buildGraphJson($id);
 		}
-		$this->set('json', $json);
-		$this->set('_serialize', 'json');
+		array_walk_recursive($json, function(&$item, $key){
+			if(!mb_detect_encoding($item, 'utf-8', true)){
+				$item = utf8_encode($item);
+			}
+		});
+		return new CakeResponse(array('body' => json_encode($json), 'status' => 200));
 	}
 
 	private function __buildGraphJson($id, $json = array()) {
@@ -3794,6 +3793,13 @@ class EventsController extends AppController {
 				$links[] = $temp;
 			}
 			$json['links'] = $links;
+		} else {
+			if (!isset($json['links'])) {
+				$json['links'] = array();
+			}
+			if (!isset($json['nodes'])) {
+				$json['nodes'] = array();
+			}
 		}
 		return $json;
 	}
