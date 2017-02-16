@@ -720,6 +720,7 @@ class UsersController extends AppController {
 				}
 			}
 			if ($this->User->Organisation->find('count', array('conditions' => array('Organisation.local' => true))) == 0) {
+				$date = date('Y-m-d H:i:s');
 				$org = array('Organisation' => array(
 						'id' => 1,
 						'name' => !empty(Configure::read('MISP.org')) ? Configure::read('MISP.org') : 'ADMIN',
@@ -727,6 +728,7 @@ class UsersController extends AppController {
 						'type' => 'ADMIN',
 						'uuid' => CakeText::uuid(),
 						'local' => 1,
+						'date_created' => $date,
 						'sector' => '',
 						'nationality' => ''
 				));
