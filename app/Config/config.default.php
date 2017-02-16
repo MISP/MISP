@@ -74,7 +74,7 @@ $config = array(
             'caId'         => 'O',          // Certificate field used to verify the CA. In this example, the field O (organization) of the client certificate has to equal to 'FIRST.Org' in order to validate the CA
 
             // User/client configuration
-			'userModel'    => 'User',       // name of the User class (MISP class) to check if user exists
+			'userModel'    => 'User',       // name of the User class (MISP class) to check if the user exists
             'userModelKey' => 'email',      // User field that will be used for querying. In this example, the field email of the MISP accounts will be used to search if the user exists.
             'map'          => array(        // maps client certificate attributes to User properties. This map will be used as conditions to find if the user exists. In this example, the client certificate fields 'O' (organization) and 'emailAddress' have to match with the MISP fields 'org' and 'email' to validate the user.
 				'O'            => 'org',
