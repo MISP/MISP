@@ -1,6 +1,8 @@
 /vendors
 /app/Vendor
 /app/composer*
+!/app/composer.phar
+/app/composer.json
 /lib
 /.project
 /.settings
@@ -9,7 +11,6 @@
 .DS_Store
 /.htaccess
 /app/Vendor
-/app/composer*
 /README
 /app/tmp/GPG*
 /app/tmp/sessions/sess_*
