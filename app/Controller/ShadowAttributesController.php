@@ -181,6 +181,7 @@ class ShadowAttributesController extends AppController {
 		$response = $this->__accept($id);
 		if ($this->_isRest()) {
 			if (isset($response['success'])) {
+				$response['check_publish'] = true;
 				$this->set('name', $response['success']);
 				$this->set('message', $response['success']);
 				$this->set('url', '/shadow_attributes/accept/' . $id);
@@ -436,6 +437,11 @@ class ShadowAttributesController extends AppController {
 		$this->set('event_id', $eventId);
 		// combobox for types
 		$types = array_keys($this->ShadowAttribute->typeDefinitions);
+		foreach ($types as $key => $value) {
+			if (in_array($value, array('malware-sample', 'attachment'))) {
+				unset($types[$key]);
+			}
+		}
 		$types = $this->_arrayToValuesIndexArray($types);
 		$this->set('types', $types);
 		// combobox for categories
@@ -705,6 +711,11 @@ class ShadowAttributesController extends AppController {
 
 		// combobox for types
 		$types = array_keys($this->ShadowAttribute->typeDefinitions);
+		foreach ($types as $key => $value) {
+			if (in_array($value, array('malware-sample', 'attachment'))) {
+				unset($types[$key]);
+			}
+		}
 		$types = $this->_arrayToValuesIndexArray($types);
 		$this->set('types', $types);
 		// combobox for categories

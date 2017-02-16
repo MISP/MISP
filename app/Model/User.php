@@ -3,7 +3,7 @@ App::uses('AppModel', 'Model');
 App::uses('AuthComponent', 'Controller/Component');
 App::uses('RandomTool', 'Tools');
 
-class User extends AppModel {
+ class User extends AppModel {
 
 	public $displayField = 'email';
 
@@ -242,6 +242,7 @@ class User extends AppModel {
 				$this->data['User']['confirm_password'] = $this->data['User']['password'];
 			}
 		}
+		if (!isset($this->data['User']['certif_public']) || empty($this->data['User']['certif_public'])) $this->data['User']['certif_public'] = '';
 		if (!isset($this->data['User']['authkey']) || empty($this->data['User']['authkey'])) $this->data['User']['authkey'] = $this->generateAuthKey();
 		if (!isset($this->data['User']['nids_sid']) || empty($this->data['User']['nids_sid'])) $this->data['User']['nids_sid'] = mt_rand(1000000, 9999999);
 		return true;
@@ -882,21 +883,35 @@ class User extends AppModel {
 		return $fields;
 	}
 
-	public function getMembersCount() {
+	public function getMembersCount($org_id = false) {
 		// for Organizations List
+		$conditions = array();
+		$findType = 'all';
+		if ($org_id !== false) {
+			$findType = 'first';
+			$conditions = array('User.org_id' => $org_id);
+		}
 		$fields = array('org_id', 'COUNT(User.id) AS num_members');
 		$params = array(
 				'fields' => $fields,
 				'recursive' => -1,
 				'group' => array('org_id'),
 				'order' => array('org_id'),
+				'conditions' => $conditions
 		);
-		$orgs = $this->find('all', $params);
-		$usersPerOrg = [];
-		foreach ($orgs as $key => $value) {
-			$usersPerOrg[$value['User']['org_id']] = $value[0]['num_members'];
+		$orgs = $this->find($findType, $params);
+    if (empty($orgs)) {
+      return 0;
+    }
+		if ($org_id !== false) {
+			return $orgs[0]['num_members'];
+		} else {
+			$usersPerOrg = [];
+			foreach ($orgs as $key => $value) {
+				$usersPerOrg[$value['User']['org_id']] = $value[0]['num_members'];
+			}
+			return $usersPerOrg;
 		}
-		return $usersPerOrg;
 	}
 
 	public function findAdminsResponsibleForUser($user){
@@ -927,5 +942,41 @@ class User extends AppModel {
 		}
 
 		return $admin['User'];
+	}
+
+	public function initiatePasswordReset($user, $firstTime = false, $simpleReturn = false, $fixedPassword = false) {
+		$org = Configure::read('MISP.org');
+		$options = array('passwordResetText', 'newUserText');
+		$subjects = array('[' . $org . ' MISP] New user registration', '[' . $org .  ' MISP] Password reset');
+		$textToFetch = $options[($firstTime ? 0 : 1)];
+		$subject = $subjects[($firstTime ? 0 : 1)];
+		$this->Server = ClassRegistry::init('Server');
+		$body = Configure::read('MISP.' . $textToFetch);
+		if (!$body) $body = $this->Server->serverSettings['MISP'][$textToFetch]['value'];
+		$body = $this->adminMessageResolve($body);
+		if ($fixedPassword) {
+			$password = $fixedPassword;
+		} else {
+			$password = $this->generateRandomPassword();
+		}
+		$body = str_replace('$password', $password, $body);
+		$body = str_replace('$username', $user['User']['email'], $body);
+		$result = $this->sendEmail($user, $body, false, $subject);
+		if ($result) {
+			$this->id = $user['User']['id'];
+			$this->saveField('password', $password);
+			$this->saveField('change_pw', '1');
+			if ($simpleReturn) {
+				return true;
+			} else {
+				return array('body'=> json_encode(array('saved' => true, 'success' => 'New credentials sent.')),'status'=>200);
+			}
+		}
+		if ($simpleReturn) {
+			return false;
+		} else {
+			return array('body'=> json_encode(array('saved' => false, 'errors' => 'There was an error notifying the user. His/her credentials were not altered.')),'status'=>200);
+		}
+
 	}
 }

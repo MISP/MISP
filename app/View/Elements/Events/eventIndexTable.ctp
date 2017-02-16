@@ -21,6 +21,8 @@
 		<?php
 				endif;
 			endif;
+			$date = time();
+			$day = 86400;
 		?>
 		<th><?php echo $this->Paginator->sort('id');?></th>
 		<th>Clusters</th>
@@ -36,6 +38,9 @@
 		<?php endif; ?>
 		<?php if (Configure::read('MISP.showProposalsOnIndex')):?>
 			<th title="Proposal Count">#Prop</th>
+		<?php endif; ?>
+		<?php if (Configure::read('MISP.showDiscussionsCountOnIndex')):?>
+			<th title="Post Count">#Posts</th>
 		<?php endif; ?>
 		<?php if ($isSiteAdmin): ?>
 		<th><?php echo $this->Paginator->sort('user_id', 'Email');?></th>
@@ -161,6 +166,21 @@
 		<?php if (Configure::read('MISP.showProposalsOnIndex')): ?>
 			<td class = "bold" style="width:30px;" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'" title="<?php echo (!empty($event['Event']['proposals_count']) ? h($event['Event']['proposals_count']) : '0') . ' proposal(s)';?>">
 				<?php echo !empty($event['Event']['proposals_count']) ? h($event['Event']['proposals_count']) : ''; ?>&nbsp;
+			</td>
+		<?php endif;?>
+		<?php if (Configure::read('MISP.showDiscussionsCountOnIndex')): ?>
+			<td class = "bold" style="width:30px;" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'" title="<?php echo (!empty($event['Event']['proposals_count']) ? h($event['Event']['proposals_count']) : '0') . ' proposal(s)';?>">
+				<?php
+					if (!empty($event['Event']['post_count'])) {
+						$post_count = h($event['Event']['post_count']);
+						if (($date - $event['Event']['last_post']) < $day) {
+							$post_count .=  ' (<span class="red bold">NEW</span>)';
+						}
+					} else {
+						$post_count = '';
+					}
+				?>
+				<span style=" white-space: nowrap;"><?php echo $post_count?></span>&nbsp;
 			</td>
 		<?php endif;?>
 		<?php if ('true' == $isSiteAdmin): ?>

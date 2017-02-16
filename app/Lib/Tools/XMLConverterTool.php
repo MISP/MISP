@@ -115,6 +115,13 @@ class XMLConverterTool {
 					$event['Event']['Attribute'][$key]['SharingGroup'][0] = $event['Event']['Attribute'][$key]['SharingGroup'];
 					unset($event['Event']['Attribute'][$key]['SharingGroup']);
 				}
+				if (isset($event['Event']['Attribute'][$key]['AttributeTag'])) {
+					foreach ($event['Event']['Attribute'][$key]['AttributeTag'] as $atk => $tag) {
+						unset($tag['Tag']['org_id']);
+						$event['Event']['Attribute'][$key]['Tag'][$atk] = $tag['Tag'];
+					}
+					unset($event['Event']['Attribute'][$key]['AttributeTag']);
+				}
 			}
 		}
 		unset($event['Event']['RelatedAttribute']);

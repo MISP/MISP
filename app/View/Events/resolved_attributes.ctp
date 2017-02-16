@@ -197,19 +197,19 @@
 		var options = <?php echo json_encode($optionsRearranged);?>;
 		$(document).ready(function(){
 			popoverStartup();
-	<?php
-		if (!empty($optionsRearranged)):
-	?>
-			$('#changeFrom').change(function(){
-				changeFreetextImportFrom();
-			});
-			$('#changeFrom').trigger('change');
+		<?php
+			if (!empty($optionsRearranged)):
+		?>
+				$('#changeFrom').change(function(){
+					changeFreetextImportFrom();
+				});
+				$('#changeFrom').trigger('change');
+		<?php
+			endif;
+		?>
 			$('#checkAll').change(function() {
 				$('.idsCheckbox').prop('checked', $('#checkAll').is(':checked'));
 			});
-	<?php
-		endif;
-	?>
 		});
 	</script>
 <?php

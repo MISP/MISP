@@ -129,6 +129,7 @@
 	<div class="tabMenu tabMenuEditBlock noPrint">
 		<span id="create-button" title="Add attribute" class="icon-plus useCursorPointer" onClick="clickCreateButton(<?php echo $event['Event']['id']; ?>, '<?php echo $possibleAction; ?>');"></span>
 		<span id="multi-edit-button" title="Edit selected Attributes" class="icon-edit mass-select useCursorPointer" onClick="editSelectedAttributes(<?php echo $event['Event']['id']; ?>);"></span>
+		<span id="multi-tag-button" title="Tag selected Attributes" class="icon-tag mass-select useCursorPointer" onClick="getPopup('selected/true', 'tags', 'selectTaxonomy');"></span>
 		<span id="multi-delete-button" title="Delete selected Attributes" class = "icon-trash mass-select useCursorPointer" onClick="multiSelectAction(<?php echo $event['Event']['id']; ?>, 'deleteAttributes');"></span>
 		<span id="multi-accept-button" title="Accept selected Proposals" class="icon-ok mass-proposal-select useCursorPointer" onClick="multiSelectAction(<?php echo $event['Event']['id']; ?>, 'acceptProposals');"></span>
 		<span id="multi-discard-button" title="Discard selected Proposals" class = "icon-remove mass-proposal-select useCursorPointer" onClick="multiSelectAction(<?php echo $event['Event']['id']; ?>, 'discardProposals');"></span>
@@ -169,6 +170,7 @@
 			<th><?php echo $this->Paginator->sort('category');?></th>
 			<th><?php echo $this->Paginator->sort('type');?></th>
 			<th><?php echo $this->Paginator->sort('value');?></th>
+			<th>Tags</th>
 			<th><?php echo $this->Paginator->sort('comment');?></th>
 			<?php
 				if ($mayChangeCorrelation && !$event['Event']['disable_correlation']):
@@ -292,8 +294,7 @@
 													$extension = explode('.', $object['value']);
 													$extension = end($extension);
 													$uri = 'data:image/' . strtolower(h($extension)) . ';base64,' . h($object['image']);
-													$img = '<img src="' . $uri . '" style="width:200px;" title="' . h($object['value']) . '" />';
-													echo '<a href="' . $baseurl . '/' . ($object['objectType'] == 0 ? 'attributes' : 'shadow_attributes') . '/download/' . h($object['id']) . '">' . $img . '</a>';
+													echo '<img class="screenshot screenshot-collapsed useCursorPointer" src="' . $uri . '" title="' . h($object['value']) . '" />';
 												} else {
 													$t = ($object['objectType'] == 0 ? 'attributes' : 'shadow_attributes');
 													$filenameHash = explode('|', nl2br(h($object['value'])));
@@ -305,12 +306,12 @@
 													} else {
 														echo '<a href="' . $baseurl . '/' . h($t) . '/download/' . h($object['id']) . '" class="' . $linkClass . '">' . h($filenameHash[0]) . '</a>';
 													}
-													if (isset($filenameHash[1])) echo ' | ' . $filenameHash[1];
+													if (isset($filenameHash[1])) echo '<br />' . $filenameHash[1];
 												}
 											} else if (strpos($object['type'], '|') !== false) {
 												$filenameHash = explode('|', $object['value']);
 												echo h($filenameHash[0]);
-												if (isset($filenameHash[1])) echo ' | ' . $filenameHash[1];
+												if (isset($filenameHash[1])) echo '<br />' . $filenameHash[1];
 											} else if ('vulnerability' == $object['type']) {
 												if (! is_null(Configure::read('MISP.cveurl'))) {
 													$cveUrl = Configure::read('MISP.cveurl');
@@ -350,6 +351,21 @@
 									?>
 								</div>
 							</td>
+							<td class="shortish <?php echo $extra; ?>">
+								<?php
+									if ($object['objectType'] == 0):
+								?>
+									<div class="attributeTagContainer">
+										<?php echo $this->element('ajaxAttributeTags', array('attributeId' => $object['id'], 'attributeTags' => $object['AttributeTag'], 'tagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['org_id']) )); ?>
+									</div>
+								<?php
+									else:
+								?>
+									&nbsp;
+								<?php
+									endif;
+								?>
+							</td>
 							<td class="showspaces bitwider <?php echo $extra; ?>">
 								<div id = "<?php echo $currentType . '_' . $object['id'] . '_comment_placeholder'; ?>" class = "inline-field-placeholder"></div>
 								<div id = "<?php echo $currentType . '_' . $object['id'] . '_comment_solid'; ?>" class="inline-field-solid" ondblclick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'comment', <?php echo $event['Event']['id'];?>);">
@@ -360,12 +376,14 @@
 								if ($mayChangeCorrelation && !$event['Event']['disable_correlation']):
 									if ($object['objectType'] == 0):
 							?>
-										<td class="short" style="padding-top:3px;">
+										<td class="short <?php echo $extra; ?>" style="padding-top:3px;">
 											<input class="correlation-toggle" type="checkbox" data-attribute-id="<?php echo h($object['id']); ?>" <?php echo $object['disable_correlation'] ? '' : 'checked'; ?>>
 										</td>
 							<?php
 									else:
-										echo '&nbsp;';
+							?>
+										<td class="short <?php echo $extra; ?>" style="padding-top:3px;">&nbsp;</td>
+							<?php
 									endif;
 								endif;
 							?>
@@ -598,6 +616,9 @@ attributes or the appropriate distribution level. If you think there is a mistak
 			var attribute_id = $(this).data('attribute-id');
 			getPopup(attribute_id, 'attributes', 'toggleCorrelation', '', '#confirmation_box');
 			return false;
+		});
+		$('.screenshot').click(function() {
+			screenshotPopup($(this).attr('src'), $(this).attr('title'));
 		});
 	});
 </script>
