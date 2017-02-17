@@ -1064,7 +1064,7 @@ class UsersController extends AppController {
 				$this->render('statistics_histogram');
 			}
 		} else if ($page == 'sightings') {
-			$this->__statisticsSightings($this->params['named']);
+			$result = $this->__statisticsSightings($this->params['named']);
 		}
 		if ($this->_isRest()) {
 			return $result;
@@ -1133,11 +1133,16 @@ class UsersController extends AppController {
 		}
 		$sightings = $this->Sighting->find('all', array(
 			'conditions' => $conditions,
-			'fields' => array('Sighting.date_sighting', 'Sighting.type', 'Sighting.source')
+			'fields' => array('Sighting.date_sighting', 'Sighting.type', 'Sighting.source', 'Sighting.event_id')
 		));
 		$data = array();
 		$toplist = array();
+		$eventids = array();
 		foreach ($sightings as $k => $v) {
+			if ($v['Sighting']['source'] == '') {
+				$v['Sighting']['source'] = 'Undefined';
+			}
+			$v['Sighting']['type'] = array('sighting', 'false-positive', 'expiration')[$v['Sighting']['type']];
 			if (isset($data[$v['Sighting']['source']][$v['Sighting']['type']])) {
 				$data[$v['Sighting']['source']][$v['Sighting']['type']]++;
 			} else {
@@ -1148,11 +1153,25 @@ class UsersController extends AppController {
 			} else {
 				$toplist[$v['Sighting']['source']]++;
 			}
+			if (!isset($eventids[$v['Sighting']['source']][$v['Sighting']['type']])) {
+				$eventids[$v['Sighting']['source']][$v['Sighting']['type']] = array();
+			}
+			if (!in_array($v['Sighting']['event_id'], $eventids[$v['Sighting']['source']][$v['Sighting']['type']])) {
+				$eventids[$v['Sighting']['source']][$v['Sighting']['type']][] = $v['Sighting']['event_id'];
+			}
 		}
 		arsort($toplist);
-		$this->set('toplist', $toplist);
-		$this->set('data', $data);
-		$this->render('statistics_sightings');
+		if ($this->_isRest()) {
+			$data = array(
+				'toplist' => $toplist
+			);
+			return $this->RestResponse->viewData($data, $this->response->type());
+		} else {
+			$this->set('eventids', $eventids);
+			$this->set('toplist', $toplist);
+			$this->set('data', $data);
+			$this->render('statistics_sightings');
+		}
 	}
 
 	private function __statisticsOrgs($params = array()) {
