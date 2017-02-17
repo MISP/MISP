@@ -14,6 +14,14 @@ function deleteObject(type, action, id, event) {
 	});
 }
 
+function quickDeleteSighting(id, rawId, context) {
+	url = "/sightings/quickDelete/" + id + "/" + rawId + "/" + context;
+	$.get(url, function(data) {
+		$("#confirmation_box").fadeIn();
+		$("#confirmation_box").html(data);
+	});
+}
+
 function publishPopup(id, type) {
 	var action = "alert";
 	if (type == "publish") action = "publish";
@@ -37,6 +45,8 @@ function genericPopup(url, popupTarget) {
 	$.get(url, function(data) {
 		$(popupTarget).html(data);
 		$(popupTarget).fadeIn();
+		left = ($(window).width() / 2) - ($(popupTarget).width() / 2);
+		$(popupTarget).css({'left': left + 'px'});
 		$("#gray_out").fadeIn();
 	});
 }
@@ -64,9 +74,11 @@ function editTemplateElement(type, id) {
 	});
 }
 
-function cancelPrompt() {
-	$("#confirmation_box").fadeIn();
-	$("#gray_out").fadeOut();
+function cancelPrompt(isolated) {
+	if (isolated == undefined) {
+		$("#gray_out").fadeOut();
+	}
+	$("#confirmation_box").fadeOut();
 	$("#confirmation_box").empty();
 }
 
@@ -91,6 +103,34 @@ function submitDeletion(context_id, action, type, id) {
 		type:"post",
 		cache: false,
 		url:"/" + type + "/" + action + "/" + id,
+	});
+}
+
+function removeSighting(id, rawid, context) {
+	if (context != 'attribute') {
+		context = 'event';
+	}
+	var formData = $('#PromptForm').serialize();
+	$.ajax({
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+		data: formData,
+		success:function (data, textStatus) {
+			handleGenericAjaxResponse(data);
+		},
+		complete:function() {
+			$(".loading").hide();
+			$("#confirmation_box").fadeOut();
+			var org = "/" + $('#org_id').text();
+			updateIndex(id, 'event');
+			$.get( "/sightings/listSightings/" + rawid + "/" + context + org, function(data) {
+				$("#sightingsData").html(data);
+			});
+		},
+		type:"post",
+		cache: false,
+		url:"/sightings/quickDelete/" + id + "/" + rawid + "/" + context,
 	});
 }
 
@@ -340,7 +380,8 @@ function postActivationScripts(name, type, id, field, event) {
 	$(name + '_solid').hide();
 }
 
-function addSighting(attribute_id, event_id, $page) {
+function addSighting(type, attribute_id, event_id, page) {
+	$('#Sighting_' + attribute_id + '_type').val(type);
 	$.ajax({
 		data: $('#Sighting_' + attribute_id).closest("form").serialize(),
 		cache: false,
@@ -527,13 +568,13 @@ function toggleAllTaxonomyCheckboxes() {
 }
 
 function attributeListAnyAttributeCheckBoxesChecked() {
-	if ($('.select_attribute:checked').length > 0) $('.mass-select').show();
-	else $('.mass-select').hide();
+	if ($('.select_attribute:checked').length > 0) $('.mass-select').removeClass('hidden');
+	else $('.mass-select').addClass('hidden');
 }
 
 function attributeListAnyProposalCheckBoxesChecked() {
-	if ($('.select_proposal:checked').length > 0) $('.mass-proposal-select').show();
-	else $('.mass-proposal-select').hide();
+	if ($('.select_proposal:checked').length > 0) $('.mass-proposal-select').removeClass('hidden');
+	else $('.mass-proposal-select').addClass('hidden');
 }
 
 function taxonomyListAnyCheckBoxesChecked() {
@@ -731,6 +772,7 @@ function submitPopoverForm(context_id, referer, update_context_id) {
 	var url = null;
 	var context = 'event';
 	var contextNamingConvention = 'Attribute';
+	var closePopover = true;
 	switch (referer) {
 		case 'add':
 			url = "/attributes/add/" + context_id;
@@ -777,20 +819,38 @@ function submitPopoverForm(context_id, referer, update_context_id) {
 		case 'replaceAttributes':
 			url = "/attributes/attributeReplace/" + context_id;
 			break;
+		case 'addSighting':
+			url = "/sightings/add/" + context_id;
+			closePopover = false;
+			break;
 	}
 
 	if (url !== null) {
 		$.ajax({
 			beforeSend: function (XMLHttpRequest) {
 				$(".loading").show();
-				$("#gray_out").fadeOut();
-				$("#popover_form").fadeOut();
+				if (closePopover) {
+					$("#gray_out").fadeOut();
+					$("#popover_form").fadeOut();
+				}
 			},
 			data: $("#submitButton").closest("form").serialize(),
 			success:function (data, textStatus) {
-				var result = handleAjaxPopoverResponse(data, context_id, url, referer, context, contextNamingConvention);
+				if (closePopover) {
+					var result = handleAjaxPopoverResponse(data, context_id, url, referer, context, contextNamingConvention);
+				}
+				if (referer == 'addSighting') {
+					updateIndex(update_context_id, 'event');
+					$.get( "/sightings/listSightings/" + id + "/attribute", function(data) {
+						$("#sightingsData").html(data);
+					});
+					$('.sightingsToggle').removeClass('btn-primary');
+					$('.sightingsToggle').addClass('btn-inverse');
+					$('#sightingsListAllToggle').removeClass('btn-inverse');
+					$('#sightingsListAllToggle').addClass('btn-primary');
+				}
 				if (context == 'event' && (referer == 'add' || referer == 'massEdit' || referer == 'replaceAttributes')) eventUnpublish();
-				$(".loading").show();
+				$(".loading").hide();
 			},
 			type:"post",
 			url:url
@@ -904,7 +964,10 @@ function showMessage(success, message, context) {
 }
 
 function cancelPopoverForm() {
-	$("#popover_form").empty();
+	$("#gray_out").fadeOut();
+	$("#popover_form").fadeOut();
+	$("#screenshot_box").fadeOut();
+	$("#confirmation_box").fadeOut();
 	$('#gray_out').fadeOut();
 	$('#popover_form').fadeOut();
 }
@@ -1107,6 +1170,7 @@ function getPopup(id, context, target, admin, popupType) {
 			$(".loading").show();
 		},
 		dataType:"html",
+		async: true,
 		cache: false,
 		success:function (data, textStatus) {
 			$(".loading").hide();
@@ -1125,6 +1189,7 @@ function simplePopup(url) {
 			$(".loading").show();
 		},
 		dataType:"html",
+		async: true,
 		cache: false,
 		success:function (data, textStatus) {
 			$(".loading").hide();
@@ -1925,7 +1990,6 @@ function simpleTabPageLast() {
 	if ($('#SharingGroupRoaming').is(":checked")) {
 		summaryservers = "any interconnected instances linked by an eligible organisation.";
 	} else {
-		console.log(servercounter);
 		if (servercounter == 0) {
 			summaryservers = "data marked with this sharing group will not be pushed.";
 		}
@@ -2302,6 +2366,7 @@ function serverRuleUpdate() {
 				});
 			}
 			statusOptions.forEach(function(status) {
+				console.log();
 				if (rules[type][field][status].length > 0) {
 					$('#' + type + '_' + field + '_' + status).show();
 					var t = '';
@@ -2831,7 +2896,7 @@ function checkAndSetPublishedInfo() {
 
 $(document).keyup(function(e){
     if (e.keyCode === 27) {
-    	$("#gray_out").fadeOut();
+    $("#gray_out").fadeOut();
 		$("#popover_form").fadeOut();
 		$("#screenshot_box").fadeOut();
 		$("#confirmation_box").fadeOut();
@@ -2843,4 +2908,10 @@ $(document).keyup(function(e){
 function closeScreenshot() {
 	$("#screenshot_box").fadeOut();
 	$("#gray_out").fadeOut();
+}
+
+function loadSightingGraph(id, scope) {
+	$.get( "/sightings/viewSightings/" + id + "/" + scope, function(data) {
+		$("#sightingsData").html(data);
+	});
 }

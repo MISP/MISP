@@ -1336,14 +1336,14 @@ class Attribute extends AppModel {
 				}
 			}
 		}
+		$extraConditions = array();
 		if (!empty($ipValues)) {
 			$extraConditions = array('OR' => array(
 				'Attribute.value1' => $ipValues,
 				'Attribute.value2' => $ipValues
 			));
-			return $extraConditions;
 		}
-		return false;
+		return $extraConditions;
 	}
 
 	public function __afterSaveCorrelation($a, $full = false, $event = false) {
