@@ -103,7 +103,7 @@ if (h($user['User']['change_pw']) == 1) {
 <script type="text/javascript">
 	$(document).ready(function () {
 		$.ajax({
-		    url: '<?php echo $baseurl . "/events/index/searchemail:" . h($user['User']['email']); ?>',
+		    url: '<?php echo $baseurl . "/events/index/searchemail:" . urlencode(h($user['User']['email'])); ?>',
 		    type:'GET',
 			beforeSend: function (XMLHttpRequest) {
 				$(".loading").show();

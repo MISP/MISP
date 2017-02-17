@@ -31,7 +31,7 @@ yum install centos-release-scl
 yum install gcc git httpd zip redis mariadb mariadb-server python-devel python-pip libxslt-devel zlib-devel
 
 # Install PHP 5.6 from SCL, see https://www.softwarecollections.org/en/scls/rhscl/rh-php56/
-yum install rh-php56 rh-php56-php-fpm rh-php56-php-devel rh-php56-php-mysqlnd rh-php56-php-mbstring rh-php56-php-bcmath
+yum install rh-php56 rh-php56-php-fpm rh-php56-php-devel rh-php56-php-mysqlnd rh-php56-php-mbstring rh-php56-php-xml rh-php56-php-bcmath
 
 # rh-php56-php only provided mod_php for httpd24-httpd from SCL
 # if we want to use httpd from CentOS base we can use rh-php56-php-fpm instead
@@ -102,7 +102,6 @@ git submodule update
 
 # Once done, install CakeResque along with its dependencies if you intend to use the built in background jobs:
 cd /var/www/MISP/app
-curl -s https://getcomposer.org/installer | php
 php composer.phar require kamisama/cake-resque:4.1.2
 php composer.phar config vendor-dir Vendor
 php composer.phar install
