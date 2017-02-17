@@ -614,7 +614,7 @@ CREATE TABLE `sharing_groups` (
 --
 
 CREATE TABLE IF NOT EXISTS sightings (
-  `id int(11)` NOT NULL AUTO_INCREMENT,
+  `id` int(11) NOT NULL AUTO_INCREMENT,
   `attribute_id` int(11) NOT NULL,
   `event_id` int(11) NOT NULL,
   `org_id` int(11) NOT NULL,
