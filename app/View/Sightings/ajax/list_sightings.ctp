@@ -1,6 +1,5 @@
 <div>
   <div id="org_id" class="hidden"><?php echo h($org_id); ?></div>
-	<h2>Galaxies</h2>
 	<table class="table table-striped table-hover table-condensed" style="display:block; overflow-y:auto;max-height:500px;">
 	<tr>
       <th>Date</th>
