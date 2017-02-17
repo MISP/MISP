@@ -148,13 +148,13 @@
 <div id="attributeList" class="attributeListContainer">
 	<div class="tabMenu tabMenuEditBlock noPrint">
 		<span id="create-button" title="Add attribute" class="icon-plus useCursorPointer" onClick="clickCreateButton(<?php echo $event['Event']['id']; ?>, '<?php echo $possibleAction; ?>');"></span>
-		<span id="multi-edit-button" title="Edit selected Attributes" class="icon-edit mass-select useCursorPointer" onClick="editSelectedAttributes(<?php echo $event['Event']['id']; ?>);"></span>
-		<span id="multi-tag-button" title="Tag selected Attributes" class="icon-tag mass-select useCursorPointer" onClick="getPopup('selected/true', 'tags', 'selectTaxonomy');"></span>
-		<span id="multi-delete-button" title="Delete selected Attributes" class = "icon-trash mass-select useCursorPointer" onClick="multiSelectAction(<?php echo $event['Event']['id']; ?>, 'deleteAttributes');"></span>
-		<span id="multi-accept-button" title="Accept selected Proposals" class="icon-ok mass-proposal-select useCursorPointer" onClick="multiSelectAction(<?php echo $event['Event']['id']; ?>, 'acceptProposals');"></span>
-		<span id="multi-discard-button" title="Discard selected Proposals" class = "icon-remove mass-proposal-select useCursorPointer" onClick="multiSelectAction(<?php echo $event['Event']['id']; ?>, 'discardProposals');"></span>
+		<span id="multi-edit-button" title="Edit selected Attributes" class="hidden icon-edit mass-select useCursorPointer" onClick="editSelectedAttributes(<?php echo $event['Event']['id']; ?>);"></span>
+		<span id="multi-tag-button" title="Tag selected Attributes" class="hidden icon-tag mass-select useCursorPointer" onClick="getPopup('selected/true', 'tags', 'selectTaxonomy');"></span>
+		<span id="multi-delete-button" title="Delete selected Attributes" class="hidden icon-trash mass-select useCursorPointer" onClick="multiSelectAction(<?php echo $event['Event']['id']; ?>, 'deleteAttributes');"></span>
+		<span id="multi-accept-button" title="Accept selected Proposals" class="hidden icon-ok mass-proposal-select useCursorPointer" onClick="multiSelectAction(<?php echo $event['Event']['id']; ?>, 'acceptProposals');"></span>
+		<span id="multi-discard-button" title="Discard selected Proposals" class="hidden icon-remove mass-proposal-select useCursorPointer" onClick="multiSelectAction(<?php echo $event['Event']['id']; ?>, 'discardProposals');"></span>
 		<?php if (Configure::read('Plugin.Sightings_enable')): ?>
-			<span id="multi-sighting-button" title="Sightings display for selected attributes" class = "icon-wrench mass-select useCursorPointer sightings_advanced_add" data-object-id="selected"></span>
+			<span id="multi-sighting-button" title="Sightings display for selected attributes" class="hidden icon-wrench mass-select useCursorPointer sightings_advanced_add" data-object-id="selected"></span>
 		<?php endif; ?>
 	</div>
 	<div class="tabMenu tabMenuToolsBlock noPrint">
@@ -641,8 +641,6 @@ attributes or the appropriate distribution level. If you think there is a mistak
 		popoverStartup();
 		$('.select_attribute').removeAttr('checked');
 		$('.select_proposal').removeAttr('checked');
-		$('.mass-select').hide();
-		$('.mass-proposal-select').hide();
 		$('.select_attribute').click(function(e) {
 			if ($(this).is(':checked')) {
 				if (e.shiftKey) {
