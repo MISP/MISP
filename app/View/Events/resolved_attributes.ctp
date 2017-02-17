@@ -61,10 +61,12 @@
 							'label' => false,
 							'value' => $item['value'],
 							'style' => 'padding:0px;height:20px;margin-bottom:0px;width:90%;',
-							'div' => false
+							'div' => false,
+							'required' => (isset($item['required']) && $item['required'] === true) ? $item['required'] : false,
+							'pattern' => isset($item['pattern']) ? $item['pattern'] : '.+',
 					));
 				?>
-				<input type="hidden" id="<?php echo 'Attribute' . $k . 'Save'; ?>" value=1 >
+				<input type="hidden" id="<?php echo 'Attribute' . $k . 'Save'; ?>" value="1" />
 			</td>
 			<td class="shortish">
 				<?php
