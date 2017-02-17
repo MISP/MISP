@@ -26,12 +26,12 @@
 				}
 				$sightingsData[$sighting['attribute_id']][$type]['count']++;
 				$orgName = isset($sighting['Organisation']['name']) ? $sighting['Organisation']['name'] : 'Others';
+				if (!isset($startDates[$sighting['attribute_id']]) || $startDates[$sighting['attribute_id']] > $sighting['date_sighting']) {
+					$startDates[$sighting['attribute_id']] = $sighting['date_sighting'];
+				}
 				if (!isset($sightingsData[$sighting['attribute_id']][$type]['orgs'][$orgName])) {
 					$sightingsData[$sighting['attribute_id']][$type]['orgs'][$orgName] = array('count' => 1, 'date' => $sighting['date_sighting']);
 				} else {
-					if (!isset($startDates[$sighting['attribute_id']]) || $startDates[$sighting['attribute_id']] > $sighting['date_sighting']) {
-						$startDates[$sighting['attribute_id']] = $sighting['date_sighting'];
-					}
 					$sightingsData[$sighting['attribute_id']][$type]['orgs'][$orgName]['count']++;
 					if ($sightingsData[$sighting['attribute_id']][$type]['orgs'][$orgName]['date'] < $sighting['date_sighting']) {
 						$sightingsData[$sighting['attribute_id']][$type]['orgs'][$orgName]['date'] = $sighting['date_sighting'];
@@ -496,7 +496,7 @@
 							if (isset($csv[$object['id']]['sighting'])) {
 								$temp[0] = $csv[$object['id']]['sighting'];
 							}
-							if (isset($csv[$object['id']]['sighting'])) {
+							if (isset($csv[$object['id']]['false-positive'])) {
 								$temp[1] = $csv[$object['id']]['false-positive'];
 							}
 						?>
