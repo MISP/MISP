@@ -660,11 +660,13 @@ class AppModel extends Model {
 				));
 			}
 		}
-		foreach ($indexArray as $iA) {
-			if (isset($iA[2])) {
-				$this->__addIndex($iA[0], $iA[1], $iA[2]);
-			} else {
-				$this->__addIndex($iA[0], $iA[1]);
+		if (!empty($indexArray)) {
+			foreach ($indexArray as $iA) {
+				if (isset($iA[2])) {
+					$this->__addIndex($iA[0], $iA[1], $iA[2]);
+				} else {
+					$this->__addIndex($iA[0], $iA[1]);
+				}
 			}
 		}
 		if ($clean) $this->cleanCacheFiles();
