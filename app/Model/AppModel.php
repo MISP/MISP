@@ -612,6 +612,9 @@ class AppModel extends Model {
 				$indexArray[] = array('sightings', 'uuid');
 				$indexArray[] = array('sightings', 'source');
 				$indexArray[] = array('sightings', 'type');
+				$indexArray[] = array('attributes', 'category');
+				$indexArray[] = array('shadow_attributes', 'category');
+				$indexArray[] = array('shadow_attributes', 'type');
 				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
