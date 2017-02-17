@@ -69,19 +69,25 @@ $config = array(
 	// Uncomment the following to enable client SSL certificate authentication
 	/*
 	'CertAuth'         =>
-		array(
-			'ca'           => array('FIRST.Org'), // allowed CAs
-			'caId'         => 'O',          // which attribute will be used to verify the CA
-			'userModel'    => 'User',       // name of the User class to check if user exists
-			'userModelKey' => 'nids_sid',   // User field that will be used for querying
-			'map'          => array(        // maps client certificate attributes to User properties
+        array(
+
+            // CA
+            'ca'           => array('FIRST.Org'), // List of CAs authorized
+            'caId'         => 'O',          // Certificate field used to verify the CA. In this example, the field O (organization) of the client certificate has to equal to 'FIRST.Org' in order to validate the CA
+
+            // User/client configuration
+			'userModel'    => 'User',       // name of the User class (MISP class) to check if the user exists
+            'userModelKey' => 'email',      // User field that will be used for querying. In this example, the field email of the MISP accounts will be used to search if the user exists.
+            'map'          => array(        // maps client certificate attributes to User properties. This map will be used as conditions to find if the user exists. In this example, the client certificate fields 'O' (organization) and 'emailAddress' have to match with the MISP fields 'org' and 'email' to validate the user.
 				'O'            => 'org',
 				'emailAddress' => 'email',
-			),
+            ),
+
+            // Synchronization/RestAPI
 			'syncUser'     => true,         // should the User be synchronized with an external REST API
-			'userDefaults' => array(          // default user attributes, only used when creating new users
-				'role_id' => 4,
-			),
+			'userDefaults' => array(          // default user attributes, only used when creating new users. By default, new users are "Read only" users (role_id: 6).
+				'role_id' => 6,
+            ),
 			'restApi'      => array(        // API parameters
 				'url'     => 'https://example.com/data/users',  // URL to query
 				'headers' => array(),                           // additional headers, used for authentication
@@ -93,7 +99,7 @@ $config = array(
 					'pgp_public' => 'gpgkey',
 				),
 			),
-			'userDefaults' => array('role_id' => 3),          // default attributes for new users
+			'userDefaults' => array('role_id' => 6),          // default attributes for new users. By default, new users are "Read only" users (role_id: 6).
 		),
 	*/
 	/*
