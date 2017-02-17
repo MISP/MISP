@@ -37,7 +37,7 @@
         <td class="short"><?php echo h($item['Sighting']['attribute_id']);?></td>
     		<td class="short action-links">
           <?php
-            if ($isSiteAdmin || ($item['Sighting']['org_id'] == $me['org_id'] && $perm_add)):
+            if ($isSiteAdmin || ($item['Sighting']['org_id'] == $me['org_id'] && $isAclAdd)):
           ?>
             <span class="icon-trash useCursorPointer" onClick="quickDeleteSighting('<?php echo h($item['Sighting']['id']); ?>', '<?php echo h($rawId); ?>', '<?php echo h($context); ?>');"></span>
           <?php
