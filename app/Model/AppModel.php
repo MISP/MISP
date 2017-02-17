@@ -661,6 +661,7 @@ class AppModel extends Model {
 			}
 		}
 		if (!empty($indexArray)) {
+			if ($clean) $this->cleanCacheFiles();
 			foreach ($indexArray as $iA) {
 				if (isset($iA[2])) {
 					$this->__addIndex($iA[0], $iA[1], $iA[2]);
