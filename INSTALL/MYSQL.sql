@@ -31,11 +31,13 @@ CREATE TABLE IF NOT EXISTS `attributes` (
   `sharing_group_id` int(11) NOT NULL,
   `comment` text COLLATE utf8_bin,
   `deleted` tinyint(1) NOT NULL DEFAULT 0,
+  `disable_correlation` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   INDEX `event_id` (`event_id`),
   INDEX `value1` (`value1`(255)),
   INDEX `value2` (`value2`(255)),
   INDEX `type` (`type`),
+  INDEX `category` (`category`),
   INDEX `sharing_group_id` (`sharing_group_id`),
   UNIQUE INDEX `uuid` (`uuid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
@@ -487,7 +489,7 @@ CREATE TABLE IF NOT EXISTS `servers` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `shadow_attributes`
+-- Table structure for table ``)ributes`
 --
 
 CREATE TABLE IF NOT EXISTS `shadow_attributes` (
@@ -516,7 +518,9 @@ CREATE TABLE IF NOT EXISTS `shadow_attributes` (
   INDEX `uuid` (`uuid`),
   INDEX `old_id` (`old_id`),
   INDEX `value1` (`value1`(255)),
-  INDEX `value2` (`value2`(255))
+  INDEX `value2` (`value2`(255)),
+  INDEX `type` (`type`),
+  INDEX `category` (`category`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- --------------------------------------------------------
