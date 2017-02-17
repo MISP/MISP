@@ -20,9 +20,39 @@
 			<tr>
 				<td style="width:20%;"><?php echo empty($source) ? 'Undefined' : h($source);?></td>
 				<td style="width:20%;"><?php echo h($total);?></td>
-				<td style="width:20%;"><?php echo isset($data[$source][0]) ? h($data[$source][0]) : 0;?></td>
-				<td style="width:20%;"><?php echo isset($data[$source][1]) ? h($data[$source][1]) : 0;?></td>
-				<td style="width:20%;"><?php echo isset($data[$source][2]) ? h($data[$source][2]) : 0;?></td>
+				<td style="width:20%;">
+					<?php
+						if (isset($data[$source]['sighting'])):
+					?>
+							<a href="<?php echo $baseurl; ?>/events/index/searcheventid:<?php echo h(implode('|', $eventids[$source]['sighting'])); ?>"><?php echo h($data[$source]['sighting']); ?></a>
+					<?php
+						else:
+							echo '0';
+						endif;
+					?>
+				</td>
+				<td style="width:20%;">
+					<?php
+						if (isset($data[$source]['false-positive'])):
+					?>
+							<a href="<?php echo $baseurl; ?>/events/index/searcheventid:<?php echo h(implode('|', $eventids[$source]['false-positive'])); ?>"><?php echo h($data[$source]['false-positive']); ?></a>
+					<?php
+						else:
+							echo '0';
+						endif;
+					?>
+				</td>
+				<td style="width:20%;">
+					<?php
+						if (isset($data[$source]['expiration'])):
+					?>
+							<a href="<?php echo $baseurl; ?>/events/index/searcheventid:<?php echo h(implode('|', $eventids[$source]['expiration'])); ?>"><?php echo h($data[$source]['expiration']); ?></a>
+					<?php
+						else:
+							echo '0';
+						endif;
+					?>
+				</td>
 
 			</tr>
 	<?php
