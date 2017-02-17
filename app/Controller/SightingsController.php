@@ -251,7 +251,12 @@ class SightingsController extends AppController {
 				}
 				$temp = array();
 				foreach ($sighting as $sightingInstance) {
-					$temp[$sightingInstance['Organisation']['name']] = isset($temp[$sightingInstance['Organisation']['name']]) ? $temp[$sightingInstance['Organisation']['name']] + 1 : 1;
+					if (!isset($sightingInstance['Organisation']['name'])) {
+						$org = 'Anonymised';
+					} else {
+						$org = $sightingInstance['Organisation']['name'];
+					}
+					$temp[$org] = isset($temp[$org]) ? $temp[$org] + 1 : 1;
 				}
 				$dataPoints[$date][$type] = array('count' => count($sighting), 'details' => $temp);
 			}
