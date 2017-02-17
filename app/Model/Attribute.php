@@ -1336,6 +1336,7 @@ class Attribute extends AppModel {
 				}
 			}
 		}
+		$extraConditions = array();
 		if (!empty($ipValues)) {
 			$extraConditions = array('OR' => array(
 				'Attribute.value1' => $ipValues,
@@ -1378,7 +1379,7 @@ class Attribute extends AppModel {
 					),
 					'Attribute.deleted' => 0
 				);
-				if (isset($extraConditions)) {
+				if (!empty($extraConditions)) {
 					$conditions['AND']['OR'][] = $extraConditions;
 				}
 				$correlatingAttributes[$k] = $this->find('all', array(
