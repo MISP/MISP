@@ -207,7 +207,7 @@
 			<th title="<?php echo $attrDescriptions['distribution']['desc'];?>"><?php echo $this->Paginator->sort('distribution');?></th>
 			<?php if (Configure::read('Plugin.Sightings_enable') !== false): ?>
 				<th>Sightings</th>
-				<th>Sparkline</th>
+				<th>Activity</th>
 			<?php endif; ?>
 			<th class="actions">Actions</th>
 		</tr>
