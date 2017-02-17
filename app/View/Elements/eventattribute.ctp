@@ -335,7 +335,13 @@
 											} else if (strpos($object['type'], '|') !== false) {
 												$filenameHash = explode('|', $object['value']);
 												echo h($filenameHash[0]);
-												if (isset($filenameHash[1])) echo '<br />' . $filenameHash[1];
+												if (isset($filenameHash[1])) {
+													$separator = '<br />';
+													if (in_array($object['type'], array('ip-dst|port', 'ip-src|port'))) {
+														$separator = ':';
+													}
+													echo $separator . h($filenameHash[1]);
+												}
 											} else if ('vulnerability' == $object['type']) {
 												if (! is_null(Configure::read('MISP.cveurl'))) {
 													$cveUrl = Configure::read('MISP.cveurl');
