@@ -1,7 +1,7 @@
 <h3>Add Sighting</h3>
 <div id="sightingsEventId" class="hidden" data-event-id="<?php echo h($event_id); ?>"></div>
 <?php
-  echo $this->Form->create('Sighting', array('id', 'url' => '/sightings/add/' . $id, 'style' => 'margin-bottom:0px;'));
+  echo $this->Form->create('Sighting', array('id', 'url' => '/sightings/add/' . urlencode(h($id)), 'style' => 'margin-bottom:0px;'));
   echo $this->Form->input('type', array(
       'options' => array('Sighting', 'Fase-positive', 'Expiration'),
       'default' => 0,
@@ -30,7 +30,7 @@
     'label' => false
   ));
 ?>
-<span id="submitButton" class="btn btn-primary" onClick="submitPopoverForm('<?php echo h($id);?>', 'addSighting')">Add</span>
+<span id="submitButton" class="btn btn-primary" onClick="submitPopoverForm('<?php echo h($id);?>', 'addSighting', '<?php echo h($event_id); ?>')">Add</span>
 <div class="input clear"></div>
 <?php
   echo $this->Form->end();

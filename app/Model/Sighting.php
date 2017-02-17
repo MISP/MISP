@@ -96,7 +96,8 @@ class Sighting extends AppModel {
 	public function saveSightings($id, $values, $timestamp, $user, $type = false, $source = false) {
 		$conditions = array();
 		if ($id && $id !== 'stix') {
-			if (strlen($id) == 36) $conditions = array('Attribute.uuid' => $id);
+			$id = $this->explodeIdList($id);
+			if (!is_array($id) && strlen($id) == 36) $conditions = array('Attribute.uuid' => $id);
 			else $conditions = array('Attribute.id' => $id);
 		} else {
 			if (!$values) return 0;

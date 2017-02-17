@@ -123,6 +123,7 @@ function removeSighting(id, rawid, context) {
 			$(".loading").hide();
 			$("#confirmation_box").fadeOut();
 			var org = "/" + $('#org_id').text();
+			updateIndex(id, 'event');
 			$.get( "/sightings/listSightings/" + rawid + "/" + context + org, function(data) {
 				$("#sightingsData").html(data);
 			});
@@ -837,6 +838,16 @@ function submitPopoverForm(context_id, referer, update_context_id) {
 			success:function (data, textStatus) {
 				if (closePopover) {
 					var result = handleAjaxPopoverResponse(data, context_id, url, referer, context, contextNamingConvention);
+				}
+				if (referer == 'addSighting') {
+					updateIndex(update_context_id, 'event');
+					$.get( "/sightings/listSightings/" + id + "/attribute", function(data) {
+						$("#sightingsData").html(data);
+					});
+					$('.sightingsToggle').removeClass('btn-primary');
+					$('.sightingsToggle').addClass('btn-inverse');
+					$('#sightingsListAllToggle').removeClass('btn-inverse');
+					$('#sightingsListAllToggle').addClass('btn-primary');
 				}
 				if (context == 'event' && (referer == 'add' || referer == 'massEdit' || referer == 'replaceAttributes')) eventUnpublish();
 				$(".loading").hide();
