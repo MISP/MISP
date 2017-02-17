@@ -1163,7 +1163,8 @@ class UsersController extends AppController {
 		arsort($toplist);
 		if ($this->_isRest()) {
 			$data = array(
-				'toplist' => $toplist
+				'toplist' => $toplist,
+				'eventids' => $eventids
 			);
 			return $this->RestResponse->viewData($data, $this->response->type());
 		} else {
