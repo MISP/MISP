@@ -568,13 +568,13 @@ function toggleAllTaxonomyCheckboxes() {
 }
 
 function attributeListAnyAttributeCheckBoxesChecked() {
-	if ($('.select_attribute:checked').length > 0) $('.mass-select').show();
-	else $('.mass-select').hide();
+	if ($('.select_attribute:checked').length > 0) $('.mass-select').removeClass('hidden');
+	else $('.mass-select').addClass('hidden');
 }
 
 function attributeListAnyProposalCheckBoxesChecked() {
-	if ($('.select_proposal:checked').length > 0) $('.mass-proposal-select').show();
-	else $('.mass-proposal-select').hide();
+	if ($('.select_proposal:checked').length > 0) $('.mass-proposal-select').removeClass('hidden');
+	else $('.mass-proposal-select').addClass('hidden');
 }
 
 function taxonomyListAnyCheckBoxesChecked() {
