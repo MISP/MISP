@@ -1049,7 +1049,7 @@ class UsersController extends AppController {
 	// shows some statistics about the instance
 	public function statistics($page = 'data') {
 		$this->set('page', $page);
-		$this->set('pages', array('data' => 'Usage data', 'orgs' => 'Organisations', 'tags' => 'Tags', 'attributehistogram' => 'Attribute histogram'));
+		$this->set('pages', array('data' => 'Usage data', 'orgs' => 'Organisations', 'tags' => 'Tags', 'attributehistogram' => 'Attribute histogram', 'sightings' => 'Sightings toplists'));
 		$result = array();
 		if ($page == 'data') {
 			$result = $this->__statisticsData($this->params['named']);
@@ -1063,6 +1063,8 @@ class UsersController extends AppController {
 			} else {
 				$this->render('statistics_histogram');
 			}
+		} else if ($page == 'sightings') {
+			$this->__statisticsSightings($this->params['named']);
 		}
 		if ($this->_isRest()) {
 			return $result;
@@ -1121,6 +1123,36 @@ class UsersController extends AppController {
 			$this->set('range', $range);
 			$this->render('statistics_data');
 		}
+	}
+
+	private function __statisticsSightings($params = array()) {
+		$this->loadModel('Sighting');
+		$conditions = array('Sighting.org_id' => $this->Auth->user('org_id'));
+		if (isset($params['timestamp'])) {
+			$conditions['Sighting.date_sighting >'] = $params['timestamp'];
+		}
+		$sightings = $this->Sighting->find('all', array(
+			'conditions' => $conditions,
+			'fields' => array('Sighting.date_sighting', 'Sighting.type', 'Sighting.source')
+		));
+		$data = array();
+		$toplist = array();
+		foreach ($sightings as $k => $v) {
+			if (isset($data[$v['Sighting']['source']][$v['Sighting']['type']])) {
+				$data[$v['Sighting']['source']][$v['Sighting']['type']]++;
+			} else {
+				$data[$v['Sighting']['source']][$v['Sighting']['type']] = 1;
+			}
+			if (!isset($toplist[$v['Sighting']['source']])) {
+				$toplist[$v['Sighting']['source']] = 1;
+			} else {
+				$toplist[$v['Sighting']['source']]++;
+			}
+		}
+		arsort($toplist);
+		$this->set('toplist', $toplist);
+		$this->set('data', $data);
+		$this->render('statistics_sightings');
 	}
 
 	private function __statisticsOrgs($params = array()) {
