@@ -2366,6 +2366,7 @@ function serverRuleUpdate() {
 				});
 			}
 			statusOptions.forEach(function(status) {
+				console.log();
 				if (rules[type][field][status].length > 0) {
 					$('#' + type + '_' + field + '_' + status).show();
 					var t = '';
