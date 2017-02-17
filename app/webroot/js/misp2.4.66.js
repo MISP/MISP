@@ -2826,6 +2826,28 @@ function loadTagTreemap() {
 	});
 }
 
+function loadSightingsData(timestamp) {
+	url = "/sightings/toplist";
+	if (timestamp != undefined) {
+		url = url + '/' + timestamp;
+	}
+	$.ajax({
+		async:true,
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+		success:function (data, textStatus) {
+			$(".sightingsdiv").html(data);
+		},
+		complete:function() {
+			$(".loading").hide();
+		},
+		type:"get",
+		cache: false,
+		url: url,
+	});
+}
+
 function quickEditEvent(id, field) {
 	$.ajax({
 		async:true,
