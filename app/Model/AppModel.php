@@ -562,8 +562,6 @@ class AppModel extends Model {
 					$sqlArray[] = 'CREATE INDEX idx_attribute_tags_event_id ON attribute_tags (event_id);';
 					$sqlArray[] = 'CREATE INDEX idx_attribute_tags_tag_id ON attribute_tags (tag_id);';
 				}
-				$this->__dropIndex('attribute_tags', 'attribute_id');
-				$this->__dropIndex('attribute_tags', 'tag_id');
 				break;
 			case '2.4.61':
 				$sqlArray[] = 'ALTER TABLE feeds ADD input_source varchar(255) COLLATE utf8_bin NOT NULL DEFAULT "network";';
@@ -611,6 +609,9 @@ class AppModel extends Model {
 				$sqlArray[] = 'ALTER TABLE sightings ADD COLUMN uuid varchar(255) COLLATE utf8_bin DEFAULT "";';
 				$sqlArray[] = 'ALTER TABLE sightings ADD COLUMN source varchar(255) COLLATE utf8_bin DEFAULT "";';
 				$sqlArray[] = 'ALTER TABLE sightings ADD COLUMN type int(11) DEFAULT 0;';
+				$indexArray[] = array('sightings', 'uuid');
+				$indexArray[] = array('sightings', 'source');
+				$indexArray[] = array('sightings', 'type');
 				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
