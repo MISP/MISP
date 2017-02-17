@@ -46,9 +46,9 @@ class AppController extends Controller {
 
 	public $helpers = array('Utility');
 
-	private $__jsVersion = '2.4.62';
+	private $__jsVersion = '2.4.66';
 	public $pyMispVersion = '2.4.65';
-	public $phpmin = '5.5.9';
+	public $phpmin = '5.6.5';
 	public $phprec = '7.0.0';
 
 	// Used for _isAutomation(), a check that returns true if the controller & action combo matches an action that is a non-xml and non-json automation method

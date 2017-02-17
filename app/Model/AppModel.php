@@ -41,7 +41,7 @@ class AppModel extends Model {
 				42 => false, 44 => false, 45 => false, 49 => true, 50 => false,
 				51 => false, 52 => false, 55 => true, 56 => true, 57 => true,
 				58 => false, 59 => false, 60 => false, 61 => false, 62 => false,
-				63 => false, 64 => false, 65 => false
+				63 => false, 64 => false, 65 => false, 66 => false
 			)
 		)
 	);
@@ -77,6 +77,11 @@ class AppModel extends Model {
 				break;
 			case '2.4.55':
 				$this->updateDatabase('addSightings');
+				break;
+			case '2.4.64':
+				$this->updateDatabase('2.4.64');
+				$this->Sighting = Classregistry::init('Sighting');
+				$this->Sighting->addUuids();
 				break;
 			default:
 				$this->updateDatabase($command);
@@ -557,8 +562,6 @@ class AppModel extends Model {
 					$sqlArray[] = 'CREATE INDEX idx_attribute_tags_event_id ON attribute_tags (event_id);';
 					$sqlArray[] = 'CREATE INDEX idx_attribute_tags_tag_id ON attribute_tags (tag_id);';
 				}
-				$this->__dropIndex('attribute_tags', 'attribute_id');
-				$this->__dropIndex('attribute_tags', 'tag_id');
 				break;
 			case '2.4.61':
 				$sqlArray[] = 'ALTER TABLE feeds ADD input_source varchar(255) COLLATE utf8_bin NOT NULL DEFAULT "network";';
@@ -603,7 +606,15 @@ class AppModel extends Model {
 				break;
 			case '2.4.66':
 				$sqlArray[] = 'ALTER TABLE shadow_attributes CHANGE old_id old_id int(11) DEFAULT 0;';
-
+				$sqlArray[] = 'ALTER TABLE sightings ADD COLUMN uuid varchar(255) COLLATE utf8_bin DEFAULT "";';
+				$sqlArray[] = 'ALTER TABLE sightings ADD COLUMN source varchar(255) COLLATE utf8_bin DEFAULT "";';
+				$sqlArray[] = 'ALTER TABLE sightings ADD COLUMN type int(11) DEFAULT 0;';
+				$indexArray[] = array('sightings', 'uuid');
+				$indexArray[] = array('sightings', 'source');
+				$indexArray[] = array('sightings', 'type');
+				$indexArray[] = array('attributes', 'category');
+				$indexArray[] = array('shadow_attributes', 'category');
+				$indexArray[] = array('shadow_attributes', 'type');
 				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -653,11 +664,14 @@ class AppModel extends Model {
 				));
 			}
 		}
-		foreach ($indexArray as $iA) {
-			if (isset($iA[2])) {
-				$this->__addIndex($iA[0], $iA[1], $iA[2]);
-			} else {
-				$this->__addIndex($iA[0], $iA[1]);
+		if (!empty($indexArray)) {
+			if ($clean) $this->cleanCacheFiles();
+			foreach ($indexArray as $iA) {
+				if (isset($iA[2])) {
+					$this->__addIndex($iA[0], $iA[1], $iA[2]);
+				} else {
+					$this->__addIndex($iA[0], $iA[1]);
+				}
 			}
 		}
 		if ($clean) $this->cleanCacheFiles();

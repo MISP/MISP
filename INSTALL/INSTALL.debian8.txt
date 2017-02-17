@@ -183,11 +183,6 @@ sudo a2ensite misp-ssl
 # Restart apache
 sudo systemctl restart apache2
 
-8/ Log rotation
----------------
-# MISP saves the stdout and stderr of its workers in /var/www/MISP/app/tmp/logs
-# To rotate these logs install the supplied logrotate script:
-
 sudo cp INSTALL/misp.logrotate /etc/logrotate.d/misp
 
 9/ MISP configuration
@@ -303,4 +298,3 @@ sudo ldconfig
 
 ## install pyzmq
 sudo pip install pyzmq
-
