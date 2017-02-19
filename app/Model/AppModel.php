@@ -78,8 +78,9 @@ class AppModel extends Model {
 			case '2.4.55':
 				$this->updateDatabase('addSightings');
 				break;
-			case '2.4.64':
-				$this->updateDatabase('2.4.64');
+			case '2.4.66':
+				$this->updateDatabase('2.4.66');
+				$this->cleanCacheFiles();
 				$this->Sighting = Classregistry::init('Sighting');
 				$this->Sighting->addUuids();
 				break;
