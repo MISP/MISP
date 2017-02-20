@@ -31,8 +31,10 @@ class SightingsController extends AppController {
 					$type = '0';
 					$source = '';
 					if (isset($result['data']['values'])) $values = $result['data']['values'];
-					else $error = 'No valid values found could be extracted from the sightings document.';
-				} $error = $result['message'];
+					else $error = 'No valid values found that could be extracted from the sightings document.';
+				} else {
+					$error = $result['message'];
+				}
 			} else {
 				if (isset($this->request->data['request'])) $this->request->data = $this->request->data['request'];
 				if (isset($this->request->data['Sighting'])) $this->request->data = $this->request->data['Sighting'];
@@ -48,9 +50,12 @@ class SightingsController extends AppController {
 				$type = isset($this->request->data['type']) ? $this->request->data['type'] : '0';
 				$source = isset($this->request->data['source']) ? trim($this->request->data['source']) : '';
 			}
-			if (!$error) $result = $this->Sighting->saveSightings($id, $values, $timestamp, $this->Auth->user(), $type, $source);
-			if ($result == 0) $error = 'No valid attributes found that would match the sighting criteria.';
-
+			if (!$error) {
+				$result = $this->Sighting->saveSightings($id, $values, $timestamp, $this->Auth->user(), $type, $source);
+			}
+			if (!is_numeric($result)) {
+				$error = $result;
+			}
 			if ($this->request->is('ajax')) {
 				if ($error) {
 					$error_message = 'Could not add the Sighting. Reason: ' . $error;
