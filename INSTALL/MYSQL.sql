@@ -29,12 +29,15 @@ CREATE TABLE IF NOT EXISTS `attributes` (
   `timestamp` int(11) NOT NULL DEFAULT 0,
   `distribution` tinyint(4) NOT NULL DEFAULT 0,
   `sharing_group_id` int(11) NOT NULL,
-  `comment` text COLLATE utf8_bin NOT NULL,
+  `comment` text COLLATE utf8_bin,
   `deleted` tinyint(1) NOT NULL DEFAULT 0,
+  `disable_correlation` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   INDEX `event_id` (`event_id`),
   INDEX `value1` (`value1`(255)),
   INDEX `value2` (`value2`(255)),
+  INDEX `type` (`type`),
+  INDEX `category` (`category`),
   INDEX `sharing_group_id` (`sharing_group_id`),
   UNIQUE INDEX `uuid` (`uuid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
@@ -137,6 +140,7 @@ CREATE TABLE IF NOT EXISTS `events` (
   `locked` tinyint(1) NOT NULL DEFAULT 0,
   `threat_level_id` int(11) NOT NULL,
   `publish_timestamp` int(11) NOT NULL DEFAULT 0,
+  `disable_correlation` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   UNIQUE INDEX `uuid` (`uuid`),
   FULLTEXT INDEX `info` (`info`(255)),
@@ -206,13 +210,25 @@ CREATE TABLE IF NOT EXISTS `feeds` (
   `provider` varchar(255) COLLATE utf8_bin NOT NULL,
   `url` varchar(255) COLLATE utf8_bin NOT NULL,
   `rules` text COLLATE utf8_bin DEFAULT NULL,
-  `enabled` BOOLEAN NOT NULL,
-  `distribution` tinyint(4) NOT NULL,
+  `enabled` tinyint(1) DEFAULT 0,
+  `distribution` tinyint(4) NOT NULL DEFAULT 0,
   `sharing_group_id` int(11) NOT NULL DEFAULT 0,
   `tag_id` int(11) NOT NULL DEFAULT 0,
-  `default` tinyint(1) NOT NULL,
-  PRIMARY KEY (`id`)
+  `default` tinyint(1) DEFAULT 0,
+  `source_format` varchar(255) COLLATE utf8_bin DEFAULT 'misp',
+  `fixed_event` tinyint(1) NOT NULL DEFAULT 0,
+  `delta_merge` tinyint(1) NOT NULL DEFAULT 0,
+  `event_id` int(11) NOT NULL DEFAULT 0,
+  `publish` tinyint(1) NOT NULL DEFAULT 0,
+  `override_ids` tinyint(1) NOT NULL DEFAULT 0,
+  `settings` text NOT NULL DEFAULT '',
+  `input_source` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT "network",
+  `delete_local_file` tinyint(1) DEFAULT 0,
+  PRIMARY KEY (`id`),
+  INDEX `input_source` (`input_source`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
 
 -- -------------------------------------------------------
 
@@ -330,9 +346,9 @@ CREATE TABLE IF NOT EXISTS `logs` (
   `model_id` int(11) NOT NULL,
   `action` varchar(20) COLLATE utf8_bin NOT NULL,
   `user_id` int(11) NOT NULL,
-  `change` text CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,
-  `email` varchar(255) COLLATE utf8_bin NOT NULL,
-  `org` varchar(255) COLLATE utf8_bin NOT NULL,
+  `change` text COLLATE utf8_bin NOT NULL DEFAULT "",
+  `email` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT "",
+  `org` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT "",
   `description` text CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
@@ -475,12 +491,12 @@ CREATE TABLE IF NOT EXISTS `servers` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `shadow_attributes`
+-- Table structure for table ``)ributes`
 --
 
 CREATE TABLE IF NOT EXISTS `shadow_attributes` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `old_id` int(11) NOT NULL,
+  `old_id` int(11) DEFAULT 0,
   `event_id` int(11) NOT NULL,
   `type` varchar(100) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `category` varchar(255) COLLATE utf8_bin NOT NULL,
@@ -496,6 +512,7 @@ CREATE TABLE IF NOT EXISTS `shadow_attributes` (
   `deleted` tinyint(1) NOT NULL DEFAULT 0,
   `timestamp` int(11) NOT NULL DEFAULT 0,
   `proposal_to_delete` BOOLEAN NOT NULL DEFAULT 0,
+  `disable_correlation` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   INDEX `event_id` (`event_id`),
   INDEX `event_uuid` (`event_uuid`),
@@ -503,7 +520,9 @@ CREATE TABLE IF NOT EXISTS `shadow_attributes` (
   INDEX `uuid` (`uuid`),
   INDEX `old_id` (`old_id`),
   INDEX `value1` (`value1`(255)),
-  INDEX `value2` (`value2`(255))
+  INDEX `value2` (`value2`(255)),
+  INDEX `type` (`type`),
+  INDEX `category` (`category`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- --------------------------------------------------------
@@ -601,15 +620,21 @@ CREATE TABLE `sharing_groups` (
 --
 
 CREATE TABLE IF NOT EXISTS sightings (
-  id int(11) NOT NULL AUTO_INCREMENT,
-  attribute_id int(11) NOT NULL,
-  event_id int(11) NOT NULL,
-  org_id int(11) NOT NULL,
-  date_sighting bigint(20) NOT NULL,
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `attribute_id` int(11) NOT NULL,
+  `event_id` int(11) NOT NULL,
+  `org_id` int(11) NOT NULL,
+  `date_sighting` bigint(20) NOT NULL,
+  `uuid` varchar(255) COLLATE utf8_bin DEFAULT "",
+  `source` varchar(255) COLLATE utf8_bin DEFAULT "",
+  `type` int(11) DEFAULT 0,
   PRIMARY KEY (id),
-  INDEX attribute_id (attribute_id),
-  INDEX event_id (event_id),
-  INDEX org_id (org_id)
+  INDEX `attribute_id` (`attribute_id`),
+  INDEX `event_id` (`event_id`),
+  INDEX `org_id` (`org_id`),
+  INDEX `uuid` (`uuid`),
+  INDEX `source` (`source`),
+  INDEX `type` (`type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- --------------------------------------------------------
@@ -624,6 +649,7 @@ CREATE TABLE IF NOT EXISTS `tags` (
   `colour` varchar(7) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
   `exportable` tinyint(1) NOT NULL,
   `org_id` tinyint(1) NOT NULL DEFAULT 0,
+  `hide_tag` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   FULLTEXT INDEX `name` (`name`),
   INDEX `org_id` (`org_id`)
@@ -924,7 +950,7 @@ CREATE TABLE IF NOT EXISTS `whitelist` (
 --
 
 INSERT INTO `admin_settings` (`id`, `setting`, `value`) VALUES
-(1, 'db_version', '2.4.51');
+(1, 'db_version', '2.4.66');
 
 INSERT INTO `feeds` (`id`, `provider`, `name`, `url`, `distribution`, `default`, `enabled`) VALUES
 (1, 'CIRCL', 'CIRCL OSINT Feed', 'https://www.circl.lu/doc/misp/feed-osint', 3, 1, 0),

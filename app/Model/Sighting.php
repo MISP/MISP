@@ -28,19 +28,31 @@ class Sighting extends AppModel {
 			),
 	);
 
+	public $type = array(
+		0 => 'sighting',
+		1 => 'false-positive',
+		2 => 'expiration'
+	);
+
 	public function beforeValidate($options = array()) {
 		parent::beforeValidate();
 		$date = date('Y-m-d H:i:s');
 		if (empty($this->data['Sighting']['id']) && empty($this->data['Sighting']['date_sighting'])) {
 			$this->data['Sighting']['date_sighting'] = $date;
 		}
+		if (empty($this->data['Sighting']['uuid'])) {
+			$this->data['Sighting']['uuid'] = CakeText::uuid();
+		}
 		return true;
 	}
 
-	public function attachToEvent(&$event, $user) {
+	public function attachToEvent($event, $user, $attribute_id = false) {
 		$ownEvent = false;
 		if ($user['Role']['perm_site_admin'] || $event['Event']['org_id'] == $user['org_id']) $ownEvent = true;
 		$conditions = array('Sighting.event_id' => $event['Event']['id']);
+		if ($attribute_id) {
+			$conditions[] = array('Sighting.attribute_id' => $attribute_id);
+		}
 		if (!$ownEvent && (!Configure::read('Plugin.Sightings_policy') || Configure::read('Plugin.Sightings_policy') == 0)) {
 			$conditions['Sighting.org_id'] = $user['org_id'];
 		}
@@ -81,10 +93,11 @@ class Sighting extends AppModel {
 		return $sightings;
 	}
 
-	public function saveSightings($id, $values, $timestamp, $user) {
+	public function saveSightings($id, $values, $timestamp, $user, $type = false, $source = false) {
 		$conditions = array();
 		if ($id && $id !== 'stix') {
-			if (strlen($id) == 36) $conditions = array('Attribute.uuid' => $id);
+			$id = $this->explodeIdList($id);
+			if (!is_array($id) && strlen($id) == 36) $conditions = array('Attribute.uuid' => $id);
 			else $conditions = array('Attribute.id' => $id);
 		} else {
 			if (!$values) return 0;
@@ -100,12 +113,18 @@ class Sighting extends AppModel {
 		if (empty($attributes)) return 0;
 		$sightingsAdded = 0;
 		foreach ($attributes as $attribute) {
+			if ($type === '2') {
+				// remove existing expiration by the same org if it exists
+				$this->deleteAll(array('Sighting.org_id' => $user['org_id'], 'Sighting.type' => $type, 'Sighting.attribute_id' => $attribute['Attribute']['id']));
+			}
 			$this->create();
 			$sighting = array(
 					'attribute_id' => $attribute['Attribute']['id'],
 					'event_id' => $attribute['Attribute']['event_id'],
 					'org_id' => $user['org_id'],
 					'date_sighting' => $timestamp,
+					'type' => $type,
+					'source' => $source
 			);
 			$sightingsAdded += $this->save($sighting) ? 1 : 0;
 		}
@@ -138,5 +157,27 @@ class Sighting extends AppModel {
 
 	public function generateRandomFileName() {
 		return (new RandomTool())->random_str(FALSE, 12);
+	}
+
+	public function addUuids() {
+		$sightings = $this->find('all', array(
+			'recursive' => -1,
+			'conditions' => array('uuid' => '')
+		));
+		$this->saveMany($sightings);
+		return true;
+	}
+
+	public function explodeIdList($id) {
+		if (strpos($id, '|')) {
+			$id = explode('|', $id);
+			foreach ($id as $k => $v) {
+				if (!is_numeric($v)) {
+					unset($id[$k]);
+				}
+			}
+			$id = array_values($id);
+		}
+		return $id;
 	}
 }
