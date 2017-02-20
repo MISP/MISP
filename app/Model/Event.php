@@ -1350,6 +1350,11 @@ class Event extends AppModel {
 			$this->Sighting = ClassRegistry::init('Sighting');
 		}
 		foreach ($results as $eventKey => &$event) {
+			// Add information for auditor user
+			if ($event['Event']['orgc_id'] === $user['org_id'] && $user['Role']['perm_audit']) {
+				$UserEmail = $this->User->getAuthUser($event['Event']['user_id'])['email'];
+				$event['Event']['event_creator_email'] = $UserEmail;
+			}
 			// unset the empty sharing groups that are created due to the way belongsTo is handled
 			if (isset($event['SharingGroup']['SharingGroupServer'])) {
 				foreach ($event['SharingGroup']['SharingGroupServer'] as &$sgs) {
