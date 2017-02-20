@@ -41,7 +41,7 @@ class AppModel extends Model {
 				42 => false, 44 => false, 45 => false, 49 => true, 50 => false,
 				51 => false, 52 => false, 55 => true, 56 => true, 57 => true,
 				58 => false, 59 => false, 60 => false, 61 => false, 62 => false,
-				63 => false, 64 => false, 65 => false, 66 => false
+				63 => false, 64 => false, 65 => false, 66 => false, 67 => true
 			)
 		)
 	);
@@ -82,6 +82,12 @@ class AppModel extends Model {
 				$this->updateDatabase('2.4.64');
 				$this->Sighting = Classregistry::init('Sighting');
 				$this->Sighting->addUuids();
+				break;
+			case '2.4.67':
+				$this->updateDatabase('2.4.67');
+				$this->Sighting = Classregistry::init('Sighting');
+				$this->Sighting->addUuids();
+				$this->Sighting->deleteAll(array('NOT' => array('Sighting.type' => array(0, 1, 2))));
 				break;
 			default:
 				$this->updateDatabase($command);
@@ -615,6 +621,10 @@ class AppModel extends Model {
 				$indexArray[] = array('attributes', 'category');
 				$indexArray[] = array('shadow_attributes', 'category');
 				$indexArray[] = array('shadow_attributes', 'type');
+				break;
+			case '2.4.67':
+				$sqlArray[] = "ALTER TABLE `roles` ADD `perm_sighting` tinyint(1) NOT NULL DEFAULT 0;";
+				$sqlArray[] = 'UPDATE `roles` SET `perm_sighting` = 1 WHERE `perm_add` = 1;';
 				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';

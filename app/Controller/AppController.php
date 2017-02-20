@@ -329,6 +329,7 @@ class AppController extends Controller {
 			$this->set('isAclTagEditor', $role['perm_tag_editor']);
 			$this->set('isAclTemplate', $role['perm_template']);
 			$this->set('isAclSharingGroup', $role['perm_sharing_group']);
+			$this->set('isAclSighting', isset($role['perm_sighting']) ? $role['perm_sighting'] : false);
 			$this->userRole = $role;
 		} else {
 			$this->set('me', false);
