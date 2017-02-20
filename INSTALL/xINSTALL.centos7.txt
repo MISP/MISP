@@ -194,7 +194,24 @@ firewall-cmd --reload
 # Check out the apache.misp.ssl file for an example
 
 
-8/ MISP configuration
+8/ Log rotation
+---------------
+# MISP saves the stdout and stderr of it's workers in /var/www/MISP/app/tmp/logs
+# To rotate these logs install the supplied logrotate script:
+
+cp INSTALL/misp.logrotate /etc/logrotate.d/misp
+
+# Now make logrotate work under SELinux as well
+# Allow logrotate to modify the log files
+semanage fcontext -a -t httpd_log_t "/var/www/MISP/app/tmp/logs(/.*)?"
+chcon -R -t httpd_log_t /var/www/MISP/app/tmp/logs
+
+# Allow logrotate to read /var/www
+checkmodule -M -m -o /tmp/misplogrotate.mod INSTALL/misplogrotate.te
+semodule_package -o /tmp/misplogrotate.pp -m /tmp/misplogrotate.mod
+semodule -i /tmp/misplogrotate.pp
+
+9/ MISP configuration
 ---------------------
 # There are 4 sample configuration files in /var/www/MISP/app/Config that need to be copied
 cd /var/www/MISP/app/Config
