@@ -2937,3 +2937,16 @@ function loadSightingGraph(id, scope) {
 		$("#sightingsData").html(data);
 	});
 }
+
+function checkRolePerms() {
+	if ($("#RolePermission").val() == '0' || $("#RolePermission").val() == '1') {
+		$('.readonlydisabled').prop('checked', false);
+		$('.readonlydisabled').hide();
+	} else {
+		$('.readonlydisabled').show();
+		$('.permFlags').show();
+	}
+	if ($("#RolePermSiteAdmin").prop('checked')) {
+		$('.checkbox').prop('checked', true);
+	}
+}
