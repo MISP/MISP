@@ -16,7 +16,11 @@ class Sighting extends AppModel {
 		'event_id' => 'numeric',
 		'attribute_id' => 'numeric',
 		'org_id' => 'numeric',
-		'date_sighting' => 'numeric'
+		'date_sighting' => 'numeric',
+		'type' => array(
+			'rule' => array('inList', array(0, 1, 2)),
+      'message' => 'Invalid type. Valid options are: 0 (Sighting), 1 (False-positive), 2 (Expiration).'
+		)
 	);
 
 	public $belongsTo = array(
@@ -46,7 +50,7 @@ class Sighting extends AppModel {
 		return true;
 	}
 
-	public function attachToEvent($event, $user, $attribute_id = false) {
+	public function attachToEvent($event, $user, $attribute_id = false, $extraConditions = false) {
 		$ownEvent = false;
 		if ($user['Role']['perm_site_admin'] || $event['Event']['org_id'] == $user['org_id']) $ownEvent = true;
 		$conditions = array('Sighting.event_id' => $event['Event']['id']);
@@ -55,6 +59,9 @@ class Sighting extends AppModel {
 		}
 		if (!$ownEvent && (!Configure::read('Plugin.Sightings_policy') || Configure::read('Plugin.Sightings_policy') == 0)) {
 			$conditions['Sighting.org_id'] = $user['org_id'];
+		}
+		if ($extraConditions !== false) {
+			$conditions['AND'] = $extraConditions;
 		}
 		$contain = array();
 		if (Configure::read('MISP.showorg')) {
@@ -100,7 +107,7 @@ class Sighting extends AppModel {
 			if (!is_array($id) && strlen($id) == 36) $conditions = array('Attribute.uuid' => $id);
 			else $conditions = array('Attribute.id' => $id);
 		} else {
-			if (!$values) return 0;
+			if (!$values) return -1;
 			foreach ($values as $value) {
 				foreach (array('value1', 'value2') as $field) {
 					$conditions['OR'][] = array(
@@ -110,7 +117,7 @@ class Sighting extends AppModel {
 			}
 		}
 		$attributes = $this->Attribute->fetchAttributes($user, array('conditions' => $conditions));
-		if (empty($attributes)) return 0;
+		if (empty($attributes)) return 'No valid attributes found that match the criteria.';
 		$sightingsAdded = 0;
 		foreach ($attributes as $attribute) {
 			if ($type === '2') {
@@ -126,7 +133,14 @@ class Sighting extends AppModel {
 					'type' => $type,
 					'source' => $source
 			);
+			$result = $this->save($sighting);
+			if ($result === false) {
+				return json_encode($this->validationErrors);
+			}
 			$sightingsAdded += $this->save($sighting) ? 1 : 0;
+		}
+		if ($sightingsAdded == 0) {
+			return 'There was nothing to add.';
 		}
 		return $sightingsAdded;
 	}
