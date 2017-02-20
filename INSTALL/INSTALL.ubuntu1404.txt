@@ -128,14 +128,8 @@ service apache2 reload
 # We seriously recommend using only SSL !
 # Check out the apache.misp.ssl file for an example
 
-8/ Log rotation
----------------
-# MISP saves the stdout and stderr of its workers in /var/www/MISP/app/tmp/logs
-# To rotate these logs install the supplied logrotate script:
 
-cp INSTALL/misp.logrotate /etc/logrotate.d/misp
-
-9/ MISP configuration
+8/ MISP configuration
 ---------------------
 # There are 4 sample configuration files in /var/www/MISP/app/Config that need to be copied
 cd /var/www/MISP/app/Config

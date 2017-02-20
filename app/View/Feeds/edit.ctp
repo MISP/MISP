@@ -16,7 +16,7 @@
 					'class' => 'form-control span6'
 			));
 			echo $this->Form->input('input_source', array(
-					'label' => 'Input Source',
+					'label' => 'Source Format',
 					'div' => 'input clear',
 					'options' => array('network' => 'Network', 'local' => 'Local'),
 					'class' => 'form-control span6'
@@ -189,9 +189,12 @@ var rules = {"pull": {"tags": {"OR":[], "NOT":[]}, "orgs": {"OR":[], "NOT":[]}}}
 var validOptions = ['pull'];
 var validFields = ['tags', 'orgs'];
 var modelContext = 'Feed';
+var tags = [];
+var orgs = [];
 
 $(document).ready(function() {
 	rules = convertServerFilterRules(rules);
+	serverRulePopulateTagPicklist();
 	feedDistributionChange();
 	$("#pull_modify").click(function() {
 		serverRuleFormActivate('pull');
