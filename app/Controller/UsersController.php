@@ -346,6 +346,7 @@ class UsersController extends AppController {
 						'disabled' => 0,
 						'newsread' => 0,
 						'change_pw' => 1,
+						'authkey' => $this->User->generateAuthKey(),
 						'termsaccepted' => 0
 				);
 				foreach ($defaults as $key => $value) {
