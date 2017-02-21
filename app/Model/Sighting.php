@@ -107,7 +107,7 @@ class Sighting extends AppModel {
 			if (!is_array($id) && strlen($id) == 36) $conditions = array('Attribute.uuid' => $id);
 			else $conditions = array('Attribute.id' => $id);
 		} else {
-			if (!$values) return -1;
+			if (!$values) return 'No valid attributes found.';
 			foreach ($values as $value) {
 				foreach (array('value1', 'value2') as $field) {
 					$conditions['OR'][] = array(
