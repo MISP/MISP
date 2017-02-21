@@ -770,7 +770,15 @@ class Server extends AppModel {
 							'errorMessage' => '',
 							'test' => 'testBool',
 							'type' => 'boolean',
-					),
+                    ),
+                    'sign' => array(
+                            'level' => 2,
+                            'description' => 'Enable the signing of GPG emails. By default, GPG emails are signed',
+                            'value' => 'true',
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean',
+                    ),
 					'email' => array(
 							'level' => 0,
 							'description' => 'The e-mail address that the instance\'s PGP key is tied to.',
