@@ -25,6 +25,13 @@ class RestResponseComponent extends Component {
 					'mandatory' => array('name'),
 					'optional' => array('anonymise', 'description', 'type', 'nationality', 'sector', 'uuid', 'contacts', 'local')
 				)
+			),
+			'Server' => array(
+				'add' => array(
+					'description' => "POST an Server object in JSON format to this API to add a server.",
+					'mandatory' => array('url', 'name', 'organisation_type', 'authkey', 'json'),
+					'optional' => array('push', 'pull', 'push_rules', 'pul_rules', 'submitted_cert', 'submitted_client_cert')
+				)
 			)
 	);
 

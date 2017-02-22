@@ -156,6 +156,11 @@ class ServersController extends AppController {
 	public function add() {
 		if (!$this->_isSiteAdmin()) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
 		if ($this->request->is('post')) {
+			if($this->_isRest()) {
+				if (!isset($this->request->data['Server'])) {
+					$this->request->data = array('Server' => $this->request->data);
+				}
+			}
 			$json = json_decode($this->request->data['Server']['json'], true);
 
 			$fail = false;
@@ -163,12 +168,22 @@ class ServersController extends AppController {
 			// test the filter fields
 			if (!empty($this->request->data['Server']['pull_rules']) && !$this->Server->isJson($this->request->data['Server']['pull_rules'])) {
 				$fail = true;
-				$this->Session->setFlash(__('The pull filter rules must be in valid JSON format.'));
+				$error_msg = __('The pull filter rules must be in valid JSON format.');
+				if($this->_isRest()) {
+					return $this->RestResponse->saveFailResponse('Servers', 'add', false, array('pull_rules' => $error_msg), $this->response->type());
+				} else {
+					$this->Session->setFlash($error_msg);
+				}
 			}
 
 			if (!$fail && !empty($this->request->data['Server']['push_rules']) && !$this->Server->isJson($this->request->data['Server']['push_rules'])) {
 				$fail = true;
-				$this->Session->setFlash(__('The push filter rules must be in valid JSON format.'));
+				$error_msg = __('The push filter rules must be in valid JSON format.');
+				if($this->_isRest()) {
+					return $this->RestResponse->saveFailResponse('Servers', 'add', false, array('push_rules' => $error_msg), $this->response->type());
+				} else {
+					$this->Session->setFlash($error_msg);
+				}
 			}
 
 			if (!$fail) {
@@ -183,7 +198,11 @@ class ServersController extends AppController {
 					));
 					if (!empty($existingOrgs)) {
 						$fail = true;
-						$this->Session->setFlash(__('That organisation could not be created as the uuid is in use already.'));
+						if($this->_isRest()) {
+							return $this->RestResponse->saveFailResponse('Servers', 'add', false, array('Organisation' => 'Remote Organisation\'s uuid already used'), $this->response->type());
+						} else {
+							$this->Session->setFlash(__('That organisation could not be created as the uuid is in use already.'));
+						}
 					}
 
 					if (!$fail) {
@@ -196,7 +215,11 @@ class ServersController extends AppController {
 						));
 
 						if (!$orgSave) {
-							$this->Session->setFlash(__('Couldn\'t save the new organisation, are you sure that the uuid is in the correct format?.'));
+							if($this->_isRest()) {
+								return $this->RestResponse->saveFailResponse('Servers', 'add', false, $this->Server->Organisation->validationError, $this->response->type());
+							} else {
+								$this->Session->setFlash(__('Couldn\'t save the new organisation, are you sure that the uuid is in the correct format?.'));
+							}
 							$fail = true;
 							$this->request->data['Server']['external_name'] = $json['name'];
 							$this->request->data['Server']['external_uuid'] = $json['uuid'];
@@ -217,49 +240,65 @@ class ServersController extends AppController {
 						if (isset($this->request->data['Server']['submitted_client_cert']) && $this->request->data['Server']['submitted_client_cert']['size'] != 0) {
 							$this->__saveCert($this->request->data, $this->Server->id, true);
 						}
-						$this->Session->setFlash(__('The server has been saved'));
-						$this->redirect(array('action' => 'index'));
+						if($this->_isRest()) {
+							$server = $this->Server->find('first', array(
+									'conditions' => array('Server.id' => $this->Server->id),
+									'recursive' => -1
+							));
+							return $this->RestResponse->viewData($server, $this->response->type());
+						} else {
+							$this->Session->setFlash(__('The server has been saved'));
+							$this->redirect(array('action' => 'index'));
+						}
 					} else {
-						$this->Session->setFlash(__('The server could not be saved. Please, try again.'));
+						if($this->_isRest()) {
+							return $this->RestResponse->saveFailResponse('Servers', 'add', false, $this->Server->validationError, $this->response->type());
+						} else {
+							$this->Session->setFlash(__('The server could not be saved. Please, try again.'));
+						}
 					}
 				}
 			}
 		}
-		$organisationOptions = array(0 => 'Local organisation', 1 => 'External organisation', 2 => 'New external organisation');
-		$temp = $this->Server->Organisation->find('all', array(
-				'conditions' => array('local' => true),
-				'fields' => array('id', 'name'),
-				'order' => array('lower(Organisation.name) ASC')
-		));
-		$localOrganisations = array();
-		$allOrgs = array();
-		foreach ($temp as $o) {
-			$localOrganisations[$o['Organisation']['id']] = $o['Organisation']['name'];
-			$allOrgs[] = array('id' => $o['Organisation']['id'], 'name' => $o['Organisation']['name']);
-		}
-		$temp = $this->Server->Organisation->find('all', array(
-				'conditions' => array('local' => false),
-				'fields' => array('id', 'name'),
-				'order' => array('lower(Organisation.name) ASC')
-		));
-		$externalOrganisations = array();
-		foreach ($temp as $o) {
-			$externalOrganisations[$o['Organisation']['id']] = $o['Organisation']['name'];
-			$allOrgs[] = array('id' => $o['Organisation']['id'], 'name' => $o['Organisation']['name']);
-		}
-		$this->set('host_org_id', Configure::read('MISP.host_org_id'));
-		$this->set('organisationOptions', $organisationOptions);
-		$this->set('localOrganisations', $localOrganisations);
-		$this->set('externalOrganisations', $externalOrganisations);
-		$this->set('allOrganisations', $allOrgs);
+		if($this->_isRest()) {
+			return $this->RestResponse->describe('Servers', 'add', false, $this->response->type());
+		} else {
+			$organisationOptions = array(0 => 'Local organisation', 1 => 'External organisation', 2 => 'New external organisation');
+			$temp = $this->Server->Organisation->find('all', array(
+					'conditions' => array('local' => true),
+					'fields' => array('id', 'name'),
+					'order' => array('lower(Organisation.name) ASC')
+			));
+			$localOrganisations = array();
+			$allOrgs = array();
+			foreach ($temp as $o) {
+				$localOrganisations[$o['Organisation']['id']] = $o['Organisation']['name'];
+				$allOrgs[] = array('id' => $o['Organisation']['id'], 'name' => $o['Organisation']['name']);
+			}
+			$temp = $this->Server->Organisation->find('all', array(
+					'conditions' => array('local' => false),
+					'fields' => array('id', 'name'),
+					'order' => array('lower(Organisation.name) ASC')
+			));
+			$externalOrganisations = array();
+			foreach ($temp as $o) {
+				$externalOrganisations[$o['Organisation']['id']] = $o['Organisation']['name'];
+				$allOrgs[] = array('id' => $o['Organisation']['id'], 'name' => $o['Organisation']['name']);
+			}
+			$this->set('host_org_id', Configure::read('MISP.host_org_id'));
+			$this->set('organisationOptions', $organisationOptions);
+			$this->set('localOrganisations', $localOrganisations);
+			$this->set('externalOrganisations', $externalOrganisations);
+			$this->set('allOrganisations', $allOrgs);
 
-		// list all tags for the rule picker
-		$this->loadModel('Tag');
-		$temp = $this->Tag->find('all', array('recursive' => -1));
-		$allTags = array();
-		foreach ($temp as $t) $allTags[] = array('id' => $t['Tag']['id'], 'name' => $t['Tag']['name']);
-		$this->set('allTags', $allTags);
-		$this->set('host_org_id', Configure::read('MISP.host_org_id'));
+			// list all tags for the rule picker
+			$this->loadModel('Tag');
+			$temp = $this->Tag->find('all', array('recursive' => -1));
+			$allTags = array();
+			foreach ($temp as $t) $allTags[] = array('id' => $t['Tag']['id'], 'name' => $t['Tag']['name']);
+			$this->set('allTags', $allTags);
+			$this->set('host_org_id', Configure::read('MISP.host_org_id'));
+		}
 	}
 
 	public function edit($id = null) {
