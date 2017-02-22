@@ -5,7 +5,7 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
 ?>
 <div class="users view">
 <h2><?php  echo __('User');?></h2>
-	<dl style="width:700px;">
+	<dl style="width:800px;">
 		<dt><?php echo __('Id'); ?></dt>
 		<dd>
 			<?php echo h($user['User']['id']); ?>
@@ -49,9 +49,27 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
 			&nbsp;
 		</dd>
 		<dt><?php echo __('PGP key'); ?></dt>
-		<dd class="red">
-			<?php echo (h($user['User']['gpgkey'])) ? $this->Utility->space2nbsp(nl2br(h($user['User']['gpgkey']))) : "N/A"; ?>
+		<dd class="<?php echo $user['User']['gpgkey'] ? 'green' : 'bold red'; ?>">
+			<?php echo $user['User']['gpgkey'] ? nl2br(h($user['User']['gpgkey'])) : "N/A"; ?>
 		</dd>
+		<?php
+			if (!empty($user['User']['gpgkey'])):
+		?>
+			<dt>PGP fingerprint</dt>
+			<dd class="bold <?php echo $user['User']['fingerprint'] ? 'green': 'red'; ?>">
+				<?php
+					echo $user['User']['fingerprint'] ? chunk_split(h($user['User']['fingerprint']), 4, ' ') : 'N/A';
+				?>
+			</dd>
+			<dt>PGP status</dt>
+			<dd class="bold <?php echo (empty($user['User']['pgp_status']) || $user['User']['pgp_status'] != 'OK') ? 'red': 'green'; ?>">
+				<?php
+					echo !empty($user['User']['pgp_status']) ? h($user['User']['pgp_status']) : 'N/A';
+				?>
+			</dd>
+		<?php
+			endif;
+		?>
 		<?php if (Configure::read('SMIME.enabled')): ?>
 			<dt><?php echo __('SMIME Public certificate'); ?></dt>
 			<dd class="red">

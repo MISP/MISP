@@ -39,11 +39,11 @@ class UsersController extends AppController {
 		}
 		$this->User->id = $id;
 		$this->User->recursive = 0;
-
 		if (!$this->User->exists()) {
 			throw new NotFoundException(__('Invalid user'));
 		}
-		$this->set('user', $this->User->read(null, $id));
+		$user = $this->User->read(null, $id);
+		$this->set('user', $user);
 	}
 
 	public function request_API(){
@@ -293,13 +293,19 @@ class UsersController extends AppController {
 		if (!$this->User->exists()) {
 			throw new NotFoundException(__('Invalid user'));
 		}
-		$this->set('user', $this->User->read(null, $id));
-		if (!$this->_isSiteAdmin() && !($this->_isAdmin() && $this->Auth->user('org_id') == $this->User->data['User']['org_id'])) {
+		$user = $this->User->read(null, $id);
+		if (!empty($user['User']['gpgkey'])) {
+			$pgpDetails = $this->User->verifySingleGPG($user);
+			$user['User']['pgp_status'] = isset($pgpDetails[2]) ? $pgpDetails[2] : 'OK';
+			$user['User']['fingerprint'] = !empty($pgpDetails[4]) ? $pgpDetails[4] : 'N/A';
+		}
+		$this->set('user', $user);
+		if (!$this->_isSiteAdmin() && !($this->_isAdmin() && $this->Auth->user('org_id') == $user['User']['org_id'])) {
 			throw new MethodNotAllowedException();
 		}
 		if ($this->_isRest()) {
-			$this->User->data['User']['password'] = '*****';
-			return $this->RestResponse->viewData(array('User' => $this->User->data['User']), $this->response->type());
+			$user['User']['password'] = '*****';
+			return $this->RestResponse->viewData(array('User' => $user['User']), $this->response->type());
 		} else {
 			$temp = $this->User->data['User']['invited_by'];
 			$this->set('id', $id);
