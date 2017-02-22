@@ -2950,3 +2950,13 @@ function checkRolePerms() {
 		$('.checkbox').prop('checked', true);
 	}
 }
+
+// clicking on an element with this class will select all of its contents in a
+// single click
+$('.quickSelect').click(function() {
+	var range = document.createRange();
+	var selection = window.getSelection();
+	range.selectNodeContents(this);
+	selection.removeAllRanges();
+	selection.addRange(range);
+});

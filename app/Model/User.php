@@ -989,6 +989,28 @@ App::uses('RandomTool', 'Tools');
 		} else {
 			return array('body'=> json_encode(array('saved' => false, 'errors' => 'There was an error notifying the user. His/her credentials were not altered.')),'status'=>200);
 		}
-
 	}
+
+  public function getOrgAdminsForOrg($org_id, $excludeUserId = false) {
+    $adminRoles = $this->Role->find('list', array(
+      'recursive' => -1,
+      'conditions' => array('perm_admin' => 1),
+      'fields' => array('Role.id', 'Role.id')
+    ));
+    $conditions = array(
+      'User.org_id' => $org_id,
+      'User.disabled' => 0,
+      'User.role_id' => $adminRoles
+    );
+    if ($excludeUserId) {
+      $conditions['User.id !='] = $excludeUserId;
+    }
+    return $this->find('list', array(
+      'recursive' => -1,
+      'conditions' => $conditions,
+      'fields' => array(
+        'User.id', 'User.email'
+      )
+    ));
+  }
 }
