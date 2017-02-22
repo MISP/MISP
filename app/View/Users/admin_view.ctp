@@ -39,7 +39,7 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
 		</dd>
 		<dt><?php echo __('Authkey'); ?></dt>
 		<dd>
-			<?php echo h($user['User']['authkey']); ?>
+			<span class="quickSelect"><?php echo h($user['User']['authkey']); ?></span>
 			(<?php echo $this->Html->link('reset', array('controller' => 'users', 'action' => 'resetauthkey', $user['User']['id']));?>)
 			&nbsp;
 		</dd>
@@ -48,15 +48,31 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
 			<?php echo h($user2['User']['email']); ?>
 			&nbsp;
 		</dd>
+		<dt>Org admin</dt>
+		<dd>
+			<?php
+
+				foreach ($user['User']['orgAdmins'] as $orgAdminId => $orgAdminEmail):
+			?>
+					<a href="<?php echo $baseurl; ?>/admin/users/view/<?php echo h($orgAdminId); ?>"><?php echo h($orgAdminEmail); ?></a>
+					<a class="icon-envelope" href="<?php echo $baseurl; ?>/admin/users/quickEmail/<?php echo h($orgAdminId); ?>"></a>
+			<?php
+				if ($orgAdminEmail !== end($user['User']['orgAdmins'])) {
+					echo '<br />';
+				}
+				endforeach;
+			?>
+			&nbsp;
+		</dd>
 		<dt><?php echo __('PGP key'); ?></dt>
-		<dd class="<?php echo $user['User']['gpgkey'] ? 'green' : 'bold red'; ?>">
+		<dd class="quickSelect <?php echo $user['User']['gpgkey'] ? 'green' : 'bold red'; ?>">
 			<?php echo $user['User']['gpgkey'] ? nl2br(h($user['User']['gpgkey'])) : "N/A"; ?>
 		</dd>
 		<?php
 			if (!empty($user['User']['gpgkey'])):
 		?>
 			<dt>PGP fingerprint</dt>
-			<dd class="bold <?php echo $user['User']['fingerprint'] ? 'green': 'red'; ?>">
+			<dd class="quickSelect bold <?php echo $user['User']['fingerprint'] ? 'green': 'red'; ?>">
 				<?php
 					echo $user['User']['fingerprint'] ? chunk_split(h($user['User']['fingerprint']), 4, ' ') : 'N/A';
 				?>
@@ -72,7 +88,7 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
 		?>
 		<?php if (Configure::read('SMIME.enabled')): ?>
 			<dt><?php echo __('SMIME Public certificate'); ?></dt>
-			<dd class="red">
+			<dd class="quickSelect red">
 				<?php echo (h($user['User']['certif_public'])) ? $this->Utility->space2nbsp(nl2br(h($user['User']['certif_public']))) : "N/A"; ?>
 			</dd>
 		<?php endif; ?>
