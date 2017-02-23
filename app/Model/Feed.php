@@ -122,6 +122,9 @@ class Feed extends AppModel {
 		if (isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] == 'local') {
 			if (file_exists($feed['Feed']['url'] . '/manifest.json')) {
 				$data = file_get_contents($feed['Feed']['url'] . '/manifest.json');
+				if (empty($data)) return false;
+			} else {
+				throw new NotFoundException('Invalid file.');
 			}
 		} else {
 			$uri = $feed['Feed']['url'] . '/manifest.json';
@@ -655,12 +658,20 @@ class Feed extends AppModel {
 		if (empty($data)) {
 			return true;
 		}
+		$prunedCopy = array();
 		foreach ($data as $key => $value) {
+			foreach ($prunedCopy as $copy) {
+ 				if ($copy['type'] == $value['type'] && $copy['category'] == $value['category'] && $copy['value'] == $value['value']) {
+					continue 2;
+				}
+			}
 			$data[$key]['event_id'] = $event['Event']['id'];
 			$data[$key]['distribution'] = $feed['Feed']['distribution'];
 			$data[$key]['sharing_group_id'] = $feed['Feed']['sharing_group_id'];
 			$data[$key]['to_ids'] = $feed['Feed']['override_ids'] ? 0 : $data[$key]['to_ids'];
+			$prunedCopy[] = $data[$key];
 		}
+		$data = $prunedCopy;
 		if ($jobId) {
 			$job = ClassRegistry::init('Job');
 			$job->id = $jobId;

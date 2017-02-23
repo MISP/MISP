@@ -1,0 +1,10 @@
+/var/www/MISP/app/tmp/logs/resque-*-error.log {
+	rotate 30
+	dateext
+	missingok
+	notifempty
+	compress
+	weekly
+	copytruncate
+}
+
