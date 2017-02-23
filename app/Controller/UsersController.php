@@ -1005,9 +1005,9 @@ class UsersController extends AppController {
 			$error = 'Cannot send an e-mail to this user as the account is disabled.';
 		}
 		$encryption = false;
-		if (!$error && isset($user['User']['gpgkey'])) {
+		if (!$error && !empty($user['User']['gpgkey'])) {
 			$encryption = 'PGP';
-		} else if (!$error && isset($user['User']['certif_public'])){
+		} else if (!$error && !empty($user['User']['certif_public'])){
 			$encryption = 'SMIME';
 		}
 		$this->set('encryption', $encryption);
@@ -1053,6 +1053,7 @@ class UsersController extends AppController {
 		} else if ($this->_isRest()) {
 			return $this->RestResponse->describe('Users', 'admin_quickEmail', false, $this->response->type());
 		}
+		$this->set('encryption', $encryption);
 		$this->set('user', $user);
 	}
 
