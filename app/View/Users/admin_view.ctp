@@ -23,7 +23,7 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
 		</dd>
 		<dt><?php echo __('Email'); ?></dt>
 		<dd>
-			<?php echo h($user['User']['email']); ?>
+			<?php echo h($user['User']['email']); ?>&nbsp;<a class="icon-envelope" href="<?php echo $baseurl; ?>/admin/users/quickEmail/<?php echo h($user['User']['id']); ?>"></a>
 			&nbsp;
 		</dd>
 		<dt><?php echo __('Autoalert'); ?></dt>
