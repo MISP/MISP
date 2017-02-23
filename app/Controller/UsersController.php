@@ -997,13 +997,29 @@ class UsersController extends AppController {
 			'conditions' => $conditions,
 			'recursive' => -1
 		));
-		if ($user['User']['disabled']) {
+		$error = false;
+		if (empty($user)) {
+			$error = 'Invalid user.';
+		}
+		if (!$error && $user['User']['disabled']) {
 			$error = 'Cannot send an e-mail to this user as the account is disabled.';
+		}
+		$encryption = false;
+		if (!$error && isset($user['User']['gpgkey'])) {
+			$encryption = 'PGP';
+		} else if (!$error && isset($user['User']['certif_public'])){
+			$encryption = 'SMIME';
+		}
+		$this->set('encryption', $encryption);
+		if (!$error && !$encryption && (Configure::read('GnuPG.onlyencrypted') || Configure::read('GnuPG.bodyonlyencrypted'))) {
+			$error = 'No encryption key found for the user and the instance posture blocks non encrypted e-mails from being sent.';
+		}
+		if ($error) {
 			if ($this->_isRest()) {
-				return $this->RestResponse->saveFailResponse('Users', 'admin_quickEmail', false, $message, $this->response->type());
+				return $this->RestResponse->saveFailResponse('Users', 'admin_quickEmail', false, $error, $this->response->type());
 			} else {
 				$this->Session->setFlash('Cannot send an e-mail to this user as the account is disabled.');
-				$this->redirect($this->referer);
+				$this->redirect('/admin/users/view/' . $user_id);
 			}
 		}
 		if ($this->request->is('post')) {
