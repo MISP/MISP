@@ -735,15 +735,6 @@ class Server extends AppModel {
 							'type' => 'boolean',
 							'null' => true
 					),
-					'showCorrelationsOnIndex' => array(
-							'level' => 1,
-							'description' => 'When enabled, the number of correlations visible to the currently logged in user will be visible on the event index UI. This comes at a performance cost but can be very useful to see correlating events at a glance.',
-							'value' => false,
-							'errorMessage' => '',
-							'test' => 'testBool',
-							'type' => 'boolean',
-							'null' => true
-					),
 			),
 			'GnuPG' => array(
 					'branch' => 1,
