@@ -2374,12 +2374,18 @@ class Server extends AppModel {
 
 	public function serverSettingsSaveValue($setting, $value) {
 		Configure::write($setting, $value);
-		if (Configure::read('Security.auth') && is_array(Configure::read('Security.auth')) && !empty(Configure::read('Security.auth'))) {
-			$authmethods = array();
-			foreach (Configure::read('Security.auth') as $auth) {
-				if (!in_array($auth, $authmethods)) $authmethods[] = $auth;
+		$arrayFix = array(
+			'Security.auth',
+			'ApacheSecureAuth.ldapFilter'
+		);
+		foreach ($arrayFix as $settingFix) {
+			if (Configure::read($settingFix) && is_array(Configure::read($settingFix)) && !empty(Configure::read($settingFix))) {
+				$arrayElements = array();
+				foreach (Configure::read($settingFix) as $array) {
+					if (!in_array($array, $arrayElements)) $arrayElements[] = $array;
+				}
+				Configure::write($settingFix, $arrayElements);
 			}
-			Configure::write('Security.auth', $authmethods);
 		}
 		$settingsToSave = array('debug', 'MISP', 'GnuPG', 'SMIME', 'Proxy', 'SecureAuth', 'Security', 'Session.defaults', 'Session.timeout', 'Session.autoRegenerate', 'site_admin_debug', 'Plugin', 'CertAuth', 'ApacheShibbAuth', 'ApacheSecureAuth');
 		$settingsArray = array();
