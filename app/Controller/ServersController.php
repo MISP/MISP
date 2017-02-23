@@ -310,7 +310,11 @@ class ServersController extends AppController {
 		if (!$this->_isSiteAdmin()) $this->redirect(array('controller' => 'servers', 'action' => 'index'));
 		if ($this->request->is('post') || $this->request->is('put')) {
 			if (empty(Configure::read('MISP.host_org_id'))) $this->request->data['Server']['internal'] = 0;
-			$json = json_decode($this->request->data['Server']['json'], true);
+			if(isset($this->request->data['Server']['json'])) {
+				$json = json_decode($this->request->data['Server']['json'], true);
+			} else {
+				$json = NULL;
+			}
 			$fail = false;
 
 			// test the filter fields
@@ -325,56 +329,60 @@ class ServersController extends AppController {
 			}
 			if (!$fail) {
 				// say what fields are to be updated
-				$fieldList = array('id', 'url', 'push', 'pull', 'remote_org_id', 'name' ,'self_signed', 'cert_file', 'client_cert_file', 'push_rules', 'pull_rules', 'internal');
+				$fieldList = array('id', 'url', 'push', 'pull', 'name' ,'self_signed', 'cert_file', 'client_cert_file', 'push_rules', 'pull_rules', 'internal');
 				$this->request->data['Server']['id'] = $id;
-				if ("" != $this->request->data['Server']['authkey']) $fieldList[] = 'authkey';
-				if ($this->request->data['Server']['organisation_type'] < 2) $this->request->data['Server']['remote_org_id'] = $json['id'];
-				else {
-					$existingOrgs = $this->Server->Organisation->find('first', array(
-							'conditions' => array('uuid' => $json['uuid']),
-							'recursive' => -1,
-							'fields' => array('id', 'uuid')
-					));
-					if (!empty($existingOrgs)) {
-						$fail = true;
-						$this->Session->setFlash(__('That organisation could not be created as the uuid is in use already.'));
-					}
-
-					if (!$fail) {
-						$this->Server->Organisation->create();
-						$orgSave = $this->Server->Organisation->save(array(
-								'name' => $json['name'],
-								'uuid' => $json['uuid'],
-								'local' => 0,
-								'created_by' => $this->Auth->user('id')
+				if (isset($this->request->data['Server']['authkey']) && "" != $this->request->data['Server']['authkey']) $fieldList[] = 'authkey';
+				if(isset($this->request->data['Server']['organisation_type']) && isset($json)) {
+					// adds 'remote_org_id' in the fields to update
+					$fieldList[] = 'remote_org_id';
+					if ($this->request->data['Server']['organisation_type'] < 2) $this->request->data['Server']['remote_org_id'] = $json['id'];
+					else {
+						$existingOrgs = $this->Server->Organisation->find('first', array(
+								'conditions' => array('uuid' => $json['uuid']),
+								'recursive' => -1,
+								'fields' => array('id', 'uuid')
 						));
-
-						if (!$orgSave) {
-							$this->Session->setFlash(__('Couldn\'t save the new organisation, are you sure that the uuid is in the correct format?.'));
+						if (!empty($existingOrgs)) {
 							$fail = true;
-							$this->request->data['Server']['external_name'] = $json['name'];
-							$this->request->data['Server']['external_uuid'] = $json['uuid'];
-						} else {
-							$this->request->data['Server']['remote_org_id'] = $this->Server->Organisation->id;
+							$this->Session->setFlash(__('That organisation could not be created as the uuid is in use already.'));
+						}
+
+						if (!$fail) {
+							$this->Server->Organisation->create();
+							$orgSave = $this->Server->Organisation->save(array(
+									'name' => $json['name'],
+									'uuid' => $json['uuid'],
+									'local' => 0,
+									'created_by' => $this->Auth->user('id')
+							));
+
+							if (!$orgSave) {
+								$this->Session->setFlash(__('Couldn\'t save the new organisation, are you sure that the uuid is in the correct format?.'));
+								$fail = true;
+								$this->request->data['Server']['external_name'] = $json['name'];
+								$this->request->data['Server']['external_uuid'] = $json['uuid'];
+							} else {
+								$this->request->data['Server']['remote_org_id'] = $this->Server->Organisation->id;
+							}
 						}
 					}
-				}
-				if (empty(Configure::read('MISP.host_org_id')) || $this->request->data['Server']['remote_org_id'] != Configure::read('MISP.host_org_id')) {
-					$this->request->data['Server']['internal'] = 0;
+					if (empty(Configure::read('MISP.host_org_id')) || $this->request->data['Server']['remote_org_id'] != Configure::read('MISP.host_org_id')) {
+						$this->request->data['Server']['internal'] = 0;
+					}
 				}
 			}
 			if (!$fail) {
 				// Save the data
 				if ($this->Server->save($this->request->data, true, $fieldList)) {
-					if (isset($this->request->data['Server']['submitted_cert']) && $this->request->data['Server']['submitted_cert']['size'] != 0 && !$this->request->data['Server']['delete_cert']) {
+					if (isset($this->request->data['Server']['submitted_cert']) && $this->request->data['Server']['submitted_cert']['size'] != 0 && (!isset($this->request->data['Server']['delete_cert']) || !$this->request->data['Server']['delete_cert'])) {
 						$this->__saveCert($this->request->data, $this->Server->id, false);
 					} else {
-						if ($this->request->data['Server']['delete_cert']) $this->__saveCert($this->request->data, $this->Server->id, false, true);
+						if (isset($this->request->data['Server']['delete_cert']) && $this->request->data['Server']['delete_cert']) $this->__saveCert($this->request->data, $this->Server->id, false, true);
 					}
-					if (isset($this->request->data['Server']['submitted_client_cert']) && $this->request->data['Server']['submitted_client_cert']['size'] != 0 && !$this->request->data['Server']['delete_client_cert']) {
+					if (isset($this->request->data['Server']['submitted_client_cert']) && $this->request->data['Server']['submitted_client_cert']['size'] != 0 && (!isset($this->request->data['Server']['delete_client_cert']) || !$this->request->data['Server']['delete_client_cert'])) {
 						$this->__saveCert($this->request->data, $this->Server->id, true);
 					} else {
-						if ($this->request->data['Server']['delete_client_cert']) $this->__saveCert($this->request->data, $this->Server->id, true, true);
+						if (isset($this->request->data['Server']['delete_client_cert']) && $this->request->data['Server']['delete_client_cert']) $this->__saveCert($this->request->data, $this->Server->id, true, true);
 					}
 					$this->Session->setFlash(__('The server has been saved'));
 					$this->redirect(array('action' => 'index'));
