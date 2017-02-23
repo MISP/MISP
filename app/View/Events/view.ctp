@@ -6,6 +6,7 @@
 		if (isset($event['Sighting']) && !empty($event['Sighting'])) {
 			$ownSightings = array();
 			$orgSightings = array();
+			$sparklineData = array();
 			foreach ($event['Sighting'] as $sighting) {
 				if (isset($sighting['org_id']) && $sighting['org_id'] == $me['org_id']) $ownSightings[] = $sighting;
 				if (isset($sighting['org_id'])) {
@@ -29,10 +30,43 @@
 						$orgSightings['Other organisations']['date'] = $sighting['date_sighting'];
 					}
 				}
+				$date = date("Ymd", $sighting['date_sighting']);
+				if (!isset($sparklineData[$sighting['type']][$date])) {
+					$sparklineData[$sighting['type']][$date] = 1;
+				} else {
+					$sparklineData[$sighting['type']][$date]++;
+				}
+				if (!isset($startDate) || $startDate > $sighting['date_sighting']) {
+					$startDate = $sighting['date_sighting'];
+				}
 			}
 			foreach ($orgSightings as $org => $data) {
 				$sightingPopover .= '<span class=\'bold\'>' . h($org) . '</span>: <span class=\'green bold\'>' . h($data['count']) . ' (' . date('Y-m-d H:i:s', $data['date']) . ')' . '</span><br />';
 			}
+		}
+		$csv = array();
+		$to = new DateTime();
+		$date = new DateTime();
+		foreach ($sparklineData as $type => $sighting) {
+			$date->setTimestamp(($startDate - 259200));
+			for ($date; $date < $to; $date->modify('+1 day')) {
+				if (!isset($csv[$type])) {
+					$csv[$type] = 'Date,Close\n';
+				}
+				$currentDate = $date->format('Ymd');
+				if (isset($sighting[$currentDate])) {
+					$csv[$type] .= $currentDate . ',' . $sighting[$currentDate] . '\n';
+				} else {
+					$csv[$type] .= $currentDate . ',0\n';
+				}
+			}
+		}
+		$temp = array();
+		if (isset($csv['sighting'])) {
+			$temp[0] = $csv['sighting'];
+		}
+		if (isset($csv['false-positive'])) {
+			$temp[1] = $csv['false-positive'];
 		}
 	}
 	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'viewEvent', 'mayModify' => $mayModify, 'mayPublish' => $mayPublish));
@@ -169,6 +203,13 @@
 						<span id="eventSightingCount" class="bold sightingsCounter" data-toggle="popover" data-trigger="hover" data-content="<?php echo $sightingPopover; ?>"><?php echo count($event['Sighting']); ?></span>
 						(<span id="eventOwnSightingCount" class="green bold sightingsCounter" data-toggle="popover" data-trigger="hover" data-content="<?php echo $sightingPopover; ?>"><?php echo isset($ownSightings) ? count($ownSightings) : 0; ?></span>)
 						<?php if (!Configure::read('Plugin.Sightings_policy')) echo '- restricted to own organisation only.'; ?>
+						<span class="icon-wrench useCursorPointer sightings_advanced_add" data-object-id="<?php echo h($event['Event']['id']); ?>" data-object-context="event">&nbsp;</span>
+				</dd>
+				<dt>Activity</dt>
+				<dd>
+					<?php
+						echo $this->element('sparkline', array('id' => $event['Event']['id'], 'csv' => $csv));
+					?>
 				</dd>
 				<?php endif;
 					if (!empty($delegationRequest)):
