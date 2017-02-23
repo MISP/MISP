@@ -76,18 +76,17 @@
 		?>
 		</div>
 	</fieldset>
-	<p style="color:red;font-weight:bold;display:none;<?php if (isset($ajax) && $ajax) echo "text-align:center;"?>" id="warning-message">Warning: You are about to share data that is of a sensitive nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>
 	<?php if ($ajax): ?>
 		<div class="overlay_spacing">
 			<table>
 				<tr>
-				<td style="vertical-align:top">
+				<td style="vertical-align:bottom">
 					<span id="submitButton" class="btn btn-primary" onClick="submitPopoverForm('<?php echo $event_id;?>', 'add')">Submit</span>
 				</td>
-				<td style="width:540px;">
-					<p style="color:red;font-weight:bold;display:none;text-align:center" id="warning-message">Warning: You are about to share data that is of a classified nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>
+				<td style="width:540px;margin-bottom:0px;">
+					<p style="color:red;font-weight:bold;display:none;text-align:center;margin-bottom:0px;" id="warning-message">Warning: You are about to share data that is of a classified nature. Make sure that you are authorised to share this.</p>
 				</td>
-				<td style="vertical-align:top;">
+				<td style="vertical-align:bottom;">
 					<span class="btn btn-inverse" id="cancel_attribute_add">Cancel</span>
 				</td>
 				</tr>
@@ -95,6 +94,9 @@
 		</div>
 	<?php
 		else:
+	?>
+		<p style="color:red;font-weight:bold;display:none;" id="warning-message">Warning: You are about to share data that is of a classified nature. Make sure that you are authorised to share this.</p>
+	<?php
 			echo $this->Form->button('Submit', array('class' => 'btn btn-primary'));
 		endif;
 		echo $this->Form->end();
