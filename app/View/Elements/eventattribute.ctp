@@ -154,7 +154,7 @@
 		<span id="multi-accept-button" title="Accept selected Proposals" class="hidden icon-ok mass-proposal-select useCursorPointer" onClick="multiSelectAction(<?php echo $event['Event']['id']; ?>, 'acceptProposals');"></span>
 		<span id="multi-discard-button" title="Discard selected Proposals" class="hidden icon-remove mass-proposal-select useCursorPointer" onClick="multiSelectAction(<?php echo $event['Event']['id']; ?>, 'discardProposals');"></span>
 		<?php if (Configure::read('Plugin.Sightings_enable')): ?>
-			<span id="multi-sighting-button" title="Sightings display for selected attributes" class="hidden icon-wrench mass-select useCursorPointer sightings_advanced_add" data-object-id="selected"></span>
+			<span id="multi-sighting-button" title="Sightings display for selected attributes" class="hidden icon-wrench mass-select useCursorPointer sightings_advanced_add" data-object-id="selected" data-object-context="attribute"></span>
 		<?php endif; ?>
 	</div>
 	<div class="tabMenu tabMenuToolsBlock noPrint">
@@ -502,7 +502,7 @@
 						?>
 						<span class="icon-thumbs-up useCursorPointer" onClick="addSighting('0', '<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']);?>', '<?php echo h($page); ?>');">&nbsp;</span>
 						<span class="icon-thumbs-down useCursorPointer" onClick="addSighting('1', '<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']);?>', '<?php echo h($page); ?>');">&nbsp;</span>
-						<span class="icon-wrench useCursorPointer sightings_advanced_add" data-object-id="<?php echo h($object['id']); ?>">&nbsp;</span>
+						<span class="icon-wrench useCursorPointer sightings_advanced_add" data-object-id="<?php echo h($object['id']); ?>" data-object-context="attribute">&nbsp;</span>
 						<span id="sightingCount_<?php echo h($object['id']); ?>" class="bold sightingsCounter_<?php echo h($object['id']); ?>" data-placement="top" data-toggle="popover" data-trigger="hover" data-content="<?php echo isset($sightingsData[$object['id']]['html']) ? $sightingsData[$object['id']]['html'] : ''; ?>">
 							<?php
 								$s = (!empty($sightingsData[$object['id']]['sighting']['count']) ? $sightingsData[$object['id']]['sighting']['count'] : 0);
@@ -673,6 +673,7 @@ attributes or the appropriate distribution level. If you think there is a mistak
 		});
 		$('.sightings_advanced_add').click(function() {
 			var selected = [];
+			var object_context = $(this).data('object-context');
 			var object_id = $(this).data('object-id');
 			if (object_id == 'selected') {
 				$(".select_attribute").each(function() {
@@ -682,7 +683,7 @@ attributes or the appropriate distribution level. If you think there is a mistak
 				});
 				object_id = selected.join('|');
 			}
-			url = "<?php echo $baseurl; ?>" + "/sightings/advanced/" + object_id;
+			url = "<?php echo $baseurl; ?>" + "/sightings/advanced/" + object_id + "/" + object_context;
 			genericPopup(url, '#screenshot_box');
 		});
 	});

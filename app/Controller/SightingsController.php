@@ -87,17 +87,26 @@ class SightingsController extends AppController {
 		}
 	}
 
-	public function advanced($id) {
+	public function advanced($id, $context = 'attribute') {
 		if (empty($id)) {
-			throw new MethodNotAllowedException('Invalid attribute.');
+			throw new MethodNotAllowedException('Invalid ' . $context . '.');
 		}
 		$input_id = $id;
 		$id = $this->Sighting->explodeIdList($id);
-		$this->loadModel('Attribute');
-		$attributes = $this->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id)));
-		if (empty($attributes)) {
-			throw new MethodNotAllowedException('Invalid attribute.');
+		if ($context == 'attribute') {
+			$this->loadModel('Attribute');
+			$attributes = $this->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id)));
+			if (empty($attributes)) {
+				throw new MethodNotAllowedException('Invalid attribute.');
+			}
+		} else {
+			$this->loadModel('Event');
+			$events = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id, 'metadata' => true));
+			if (empty($events)) {
+				throw new MethodNotAllowedException('Invalid event.');
+			}
 		}
+		$this->set('context', $context);
 		$this->set('id', $input_id);
 		$this->render('/Sightings/ajax/advanced');
 	}
