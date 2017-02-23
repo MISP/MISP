@@ -49,6 +49,9 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc_id'] == $me['org_id']);
 
 ?>
 	</fieldset>
+	<div class="notice"><?php
+		echo $unpublished_notice;?><br/>
+	</div>
 <?php
 echo $this->Form->button('Submit', array('class' => 'btn btn-primary'));
 echo $this->Form->end();

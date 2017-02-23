@@ -270,7 +270,7 @@ class AppController extends Controller {
 		if ($this->Auth->user() && !Configure::read('MISP.live')) {
 			$role = $this->getActions();
 			if (!$role['perm_site_admin']) {
-				$message = Configure::read('MISP.maintenance_message');
+					$message = Configure::read('MISP.maintenance_message');
 				if (empty($message)) {
 					$this->loadModel('Server');
 					$message = $this->Server->serverSettings['MISP']['maintenance_message']['value'];

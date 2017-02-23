@@ -511,6 +511,22 @@ class Server extends AppModel {
 							'test' => 'testBool',
 							'type' => 'boolean'
 					),
+					'unpublishedprivate_on_notice' => array(
+						'level' => 2,
+						'description' => 'The message that users will see if the unpublishedprivate setting is enabled.',
+						'value' => 'With the current configuration settings the unpublished events are only visible to users from the event owner organisation.',
+						'errorMessage' => 'If this is not set the default value will be used.',
+						'test' => 'testForEmpty',
+						'type' => 'string',
+					),
+					'unpublishedprivate_off_notice' => array(
+						'level' => 2,
+						'description' => 'The message that users will see if the unpublishedprivate setting is disabled.',
+						'value' => 'With the current configuration settings all unpublished events are visible, as long as the the distribution level allows it.',
+						'errorMessage' => 'If this is not set the default value will be used.',
+						'test' => 'testForEmpty',
+						'type' => 'string',
+					),
 					'newUserText' => array(
 							'level' => 1,
 							'bigField' => true,
