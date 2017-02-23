@@ -31,6 +31,10 @@ class RestResponseComponent extends Component {
 					'description' => "POST an Server object in JSON format to this API to add a server.",
 					'mandatory' => array('url', 'name', 'organisation_type', 'authkey', 'json'),
 					'optional' => array('push', 'pull', 'push_rules', 'pul_rules', 'submitted_cert', 'submitted_client_cert')
+				),
+				'edit' => array(
+					'description' => "POST an Server object in JSON format to this API to edit a server.",
+					'optional' => array('url', 'name', 'organisation_type', 'authkey', 'json', 'push', 'pull', 'push_rules', 'pul_rules', 'submitted_cert', 'submitted_client_cert')
 				)
 			)
 	);
