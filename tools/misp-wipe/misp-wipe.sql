@@ -21,6 +21,18 @@ TRUNCATE `news`;
 TRUNCATE `template_tags`;
 TRUNCATE `whitelist`;
 
+-- Clear tables that can be re-populated
+TRUNCATE `taxonomies`;
+TRUNCATE `taxonomy_entries`;
+TRUNCATE `taxonomy_predicates`;
+TRUNCATE `warninglists`;
+TRUNCATE `warninglist_entries`;
+TRUNCATE `warninglist_types`;
+TRUNCATE `galaxies`;
+TRUNCATE `galaxy_clusters`;
+TRUNCATE `galaxy_elements`;
+TRUNCATE `galaxy_reference`;
+
 -- Clear tables that have defaults
 TRUNCATE `feeds`;
 TRUNCATE `regexp`;
