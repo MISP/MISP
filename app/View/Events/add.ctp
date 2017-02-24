@@ -51,6 +51,9 @@
 				));
 		?>
 	</fieldset>
+	<div class="notice"><?php
+			echo $unpublished_notice;?><br/>
+	</div>
 <?php
 echo $this->Form->button('Add', array('class' => 'btn btn-primary'));
 echo $this->Form->end();

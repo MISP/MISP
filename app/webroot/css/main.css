@@ -201,7 +201,7 @@ div.visualisation{
 	box-shadow: 5px 5px 6px #B2B2B2;
 }
 
-div.message{
+div.message, div.notice{
 	font-size: 133%;
 	opacity: 50;
 	margin-bottom: 15px;
@@ -211,6 +211,18 @@ div.message{
 	background-color: #C11B17;
 	border-radius: 10px;
 	box-shadow: 5px 5px 8px #B2B2B2;
+}
+
+div.notice{
+	font-size: 110%;
+	color: #000;
+	background-color: #cfefff;
+	float: none;
+}
+.events .notice {
+	display: table;
+	max-width:460px;
+	min-width:210px;
 }
 
 .clear{

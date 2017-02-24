@@ -1153,6 +1153,13 @@ class EventsController extends AppController {
 		$this->set('info', $info);
 		$this->set('analysisDescriptions', $this->Event->analysisDescriptions);
 		$this->set('analysisLevels', $this->Event->analysisLevels);
+		$this->loadModel('Server');
+		if (Configure::read('MISP.unpublishedprivate')) {
+			$unpublished_notice = !empty(Configure::read('MISP.unpublishedprivate_on_notice')) ? (Configure::read('MISP.unpublishedprivate_on_notice')) : ($this->Server->serverSettings['MISP']['unpublishedprivate_on_notice']['value']);
+		} else {
+			$unpublished_notice = !empty(Configure::read('MISP.unpublishedprivate_off_notice')) ? (Configure::read('MISP.unpublishedprivate_off_notice')) : ($this->Server->serverSettings['MISP']['unpublishedprivate_off_notice']['value']);
+		}
+		$this->set('unpublished_notice', $unpublished_notice);
 	}
 
 	public function addIOC($id) {
