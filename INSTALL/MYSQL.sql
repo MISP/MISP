@@ -346,10 +346,10 @@ CREATE TABLE IF NOT EXISTS `logs` (
   `model_id` int(11) NOT NULL,
   `action` varchar(20) COLLATE utf8_bin NOT NULL,
   `user_id` int(11) NOT NULL,
-  `change` text COLLATE utf8_bin NOT NULL DEFAULT "",
+  `change` text COLLATE utf8_bin,
   `email` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT "",
   `org` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT "",
-  `description` text CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,
+  `description` text CHARACTER SET utf8 COLLATE utf8_bin,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
