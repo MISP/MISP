@@ -221,7 +221,7 @@ CREATE TABLE IF NOT EXISTS `feeds` (
   `event_id` int(11) NOT NULL DEFAULT 0,
   `publish` tinyint(1) NOT NULL DEFAULT 0,
   `override_ids` tinyint(1) NOT NULL DEFAULT 0,
-  `settings` text NOT NULL DEFAULT '',
+  `settings` text,
   `input_source` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT "network",
   `delete_local_file` tinyint(1) DEFAULT 0,
   PRIMARY KEY (`id`),
