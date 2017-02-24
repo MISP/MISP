@@ -221,7 +221,7 @@ CREATE TABLE IF NOT EXISTS `feeds` (
   `event_id` int(11) NOT NULL DEFAULT 0,
   `publish` tinyint(1) NOT NULL DEFAULT 0,
   `override_ids` tinyint(1) NOT NULL DEFAULT 0,
-  `settings` text NOT NULL DEFAULT '',
+  `settings` text,
   `input_source` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT "network",
   `delete_local_file` tinyint(1) DEFAULT 0,
   PRIMARY KEY (`id`),
@@ -346,10 +346,10 @@ CREATE TABLE IF NOT EXISTS `logs` (
   `model_id` int(11) NOT NULL,
   `action` varchar(20) COLLATE utf8_bin NOT NULL,
   `user_id` int(11) NOT NULL,
-  `change` text COLLATE utf8_bin NOT NULL DEFAULT "",
+  `change` text COLLATE utf8_bin,
   `email` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT "",
   `org` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT "",
-  `description` text CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,
+  `description` text CHARACTER SET utf8 COLLATE utf8_bin,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
