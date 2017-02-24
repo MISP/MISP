@@ -3,8 +3,14 @@
     <div style="margin:10px;">
         <span id="sightingsGraphToggle" class="btn btn-primary qet toggle-left sightingsToggle" data-type="graph">Graph</span>
         <span id="sightingsListAllToggle" class="btn btn-inverse qet toggle sightingsToggle" data-type="all">All</span>
-        <span id="sightingsListMyToggle" class="btn btn-inverse qet toggle sightingsToggle" data-type="org">My org</span>
-        <span id="sightingsAddToggle" class="btn btn-inverse qet toggle-right sightingsToggle" data-type="add">Add sighting</span>
+        <span id="sightingsListMyToggle" class="btn btn-inverse qet toggle<?php echo $context == 'event' ? '-right' : ''; ?> sightingsToggle" data-type="org">My org</span>
+					<?php
+						if ($context == 'attribute'):
+					?>
+	        		<span id="sightingsAddToggle" class="btn btn-inverse qet toggle-right sightingsToggle" data-type="add">Add sighting</span>
+					<?php
+						endif;
+					?>
       </div>
       <div id="mainContents" style="margin-top:40px;padding:10px;">
         <div id="sightingsData" class="sightingTab"></div>
@@ -14,6 +20,7 @@
 </div>
 
 <script type="text/javascript">
+var object_context = "<?php echo h($context);?>";
 $(document).ready(function() {
   id = "<?php echo h($id); ?>";
 	$('#cancel').click(function() {
@@ -32,7 +39,7 @@ $(document).ready(function() {
     showSeconds: true,
     maxHours: 24
   });
-  loadSightingGraph(id, "attribute");
+  loadSightingGraph(id, object_context);
 });
 $('.sightingsToggle').click(function() {
   $('.sightingsToggle').removeClass('btn-primary');
@@ -42,7 +49,7 @@ $('.sightingsToggle').click(function() {
   var type = $(this).data('type');
   $('.sightingTab').empty();
   if (type == 'graph') {
-    loadSightingGraph(id, "attribute");
+    loadSightingGraph(id, object_context);
   } else if (type == 'add') {
     $.get( "/sightings/add/" + id, function(data) {
       $("#sightingsData").html(data);
@@ -50,7 +57,7 @@ $('.sightingsToggle').click(function() {
   } else {
     var org = "";
     if (type == 'org') org = "/<?php echo h($me['org_id']);?>"
-    $.get( "/sightings/listSightings/" + id + "/attribute" + org, function(data) {
+    $.get( "/sightings/listSightings/" + id + "/" + object_context + org, function(data) {
       $("#sightingsData").html(data);
     });
   }

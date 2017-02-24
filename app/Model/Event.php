@@ -3166,4 +3166,83 @@ class Event extends AppModel {
 				'response' => $module['mispattributes']['responseType']
 		);
 	}
+
+	public function getSightingData($event) {
+		$this->Sighting = ClassRegistry::init('Sighting');
+		if (!empty($event['Sighting'])) {
+			$attributeSightings = array();
+			$attributeOwnSightings = array();
+			$attributeSightingsPopover = array();
+			$sightingsData = array();
+			$sparklineData = array();
+			$startDates = array();
+			$range = (!empty(Configure::read('MISP.Sightings_range')) && is_numeric(Configure::read('MISP.Sightings_range'))) ? Configure::read('MISP.Sightings_range') : 365;
+			$range = strtotime("-" . $range . " days", time());
+			foreach ($event['Sighting'] as $sighting) {
+				$type = $this->Sighting->type[$sighting['type']];
+				if (!isset($sightingsData[$sighting['attribute_id']][$type])) {
+					$sightingsData[$sighting['attribute_id']][$type] = array('count' => 0);
+				}
+				$sightingsData[$sighting['attribute_id']][$type]['count']++;
+				$orgName = isset($sighting['Organisation']['name']) ? $sighting['Organisation']['name'] : 'Others';
+				if ($sighting['type'] == '0' && (!isset($startDates[$sighting['attribute_id']]) || $startDates[$sighting['attribute_id']] > $sighting['date_sighting'])) {
+					if ($sighting['date_sighting'] >= $range) {
+						$startDates[$sighting['attribute_id']] = $sighting['date_sighting'];
+					}
+				}
+				if ($sighting['type'] == '0' && (!isset($startDates['event']) || $startDates['event'] > $sighting['date_sighting'])) {
+					if ($sighting['date_sighting'] >= $range) {
+						$startDates['event'] = $sighting['date_sighting'];
+					}
+				}
+				if (!isset($sightingsData[$sighting['attribute_id']][$type]['orgs'][$orgName])) {
+					$sightingsData[$sighting['attribute_id']][$type]['orgs'][$orgName] = array('count' => 1, 'date' => $sighting['date_sighting']);
+				} else {
+					$sightingsData[$sighting['attribute_id']][$type]['orgs'][$orgName]['count']++;
+					if ($sightingsData[$sighting['attribute_id']][$type]['orgs'][$orgName]['date'] < $sighting['date_sighting']) {
+						$sightingsData[$sighting['attribute_id']][$type]['orgs'][$orgName]['date'] = $sighting['date_sighting'];
+					}
+				}
+				$date = date("Y-m-d", $sighting['date_sighting']);
+				if (!isset($sparklineData[$sighting['attribute_id']][$date])) {
+					$sparklineData[$sighting['attribute_id']][$date] = 1;
+				} else {
+					$sparklineData[$sighting['attribute_id']][$date]++;
+				}
+				if (!isset($sparklineData['event'][$date])) {
+					$sparklineData['event'][$date] = 1;
+				} else {
+					$sparklineData['event'][$date]++;
+				}
+			}
+			$csv = array();
+			foreach ($startDates as $k => $v) {
+				$startDates[$k] = date('Y-m-d', $v);
+			}
+			$range = (!empty(Configure::read('MISP.Sightings_range')) && is_numeric(Configure::read('MISP.Sightings_range'))) ? Configure::read('MISP.Sightings_range') : 365;
+			foreach ($sparklineData as $aid => $data) {
+				$startDate = $startDates[$aid];
+				if (strtotime($startDate) < strtotime('-' . $range . ' days', time())) {
+					$startDate = date('Y-m-d');
+				}
+				$startDate = date('Y-m-d',strtotime("-3 days", strtotime($startDate)));
+				$to = date('Y-m-d', time());
+				$sighting = $data;
+				for ($date = $startDate; strtotime($date) <= strtotime($to); $date = date('Y-m-d',strtotime("+1 day", strtotime($date)))) {
+					if (!isset($csv[$aid])) {
+						$csv[$aid] = 'Date,Close\n';
+					}
+					if (isset($sighting[$date])) {
+						$csv[$aid] .= $date . ',' . $sighting[$date] . '\n';
+					} else {
+						$csv[$aid] .= $date . ',0\n';
+					}
+				}
+			}
+		}
+		return array(
+			'data' => $sightingsData,
+			'csv' => $csv
+		);
+	}
 }

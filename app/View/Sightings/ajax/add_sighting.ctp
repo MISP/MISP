@@ -3,7 +3,7 @@
 <?php
   echo $this->Form->create('Sighting', array('id', 'url' => '/sightings/add/' . urlencode(h($id)), 'style' => 'margin-bottom:0px;'));
   echo $this->Form->input('type', array(
-      'options' => array('Sighting', 'Fase-positive', 'Expiration'),
+      'options' => array('Sighting', 'False-positive', 'Expiration'),
       'default' => 0,
       'style' => 'width:230px;margin-right:0px;'
   ));
