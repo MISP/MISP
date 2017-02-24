@@ -256,12 +256,16 @@ class SightingsController extends AppController {
 		}
 		$tsv = 'date\tSighting\tFalse-positive\n';
 		$dataPoints = array();
-		$startDate = (date('Ymd') - 3);
+		$startDate = (date('Ymd'));
 		$details = array();
+		$range = (!empty(Configure::read('MISP.Sightings_range')) && is_numeric(Configure::read('MISP.Sightings_range'))) ? Configure::read('MISP.Sightings_range') : 365;
+		$range = date('Ymd', strtotime("-" . $range . " days", time()));
 		foreach ($results as $type => $data) {
 			foreach ($data as $date => $sighting) {
 				if ($date < $startDate) {
-					$startDate = $date;
+					if ($date >= $range) {
+						$startDate = $date;
+					}
 				}
 				$temp = array();
 				foreach ($sighting as $sightingInstance) {
@@ -275,6 +279,7 @@ class SightingsController extends AppController {
 				$dataPoints[$date][$type] = array('count' => count($sighting), 'details' => $temp);
 			}
 		}
+		$startDate = date('Ymd',strtotime("-3 days", strtotime($startDate)));
 		for ($i = $startDate; $i < date('Ymd') + 1; $i++) {
 			if (checkdate(substr($i, 4, 2), substr($i, 6, 2), substr($i, 0, 4))) {
 				$tsv .= $i . '\t' . (isset($dataPoints[$i][0]['count']) ? $dataPoints[$i][0]['count'] : 0) . '\t' . (isset($dataPoints[$i][1]['count']) ? $dataPoints[$i][1]['count'] : 0) . '\n';

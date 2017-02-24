@@ -11,7 +11,7 @@ Modified version of http://www.tnoda.com/blog/2013-12-19
   var height = 25;
   var x = d3.scale.linear().range([0, width - 2]);
   var y = d3.scale.linear().range([height - 4, 0]);
-  var parseDate = d3.time.format("%Y%m%d").parse;
+  var parseDate = d3.time.format("%Y-%m-%d").parse;
   var line = d3.svg.line()
                .interpolate("linear")
                .x(function(d) { return x(d.date); })
@@ -40,7 +40,7 @@ Modified version of http://www.tnoda.com/blog/2013-12-19
        .attr('r', 2);
   }
 
-  var myData = "<?php echo isset($csv[0]) ? $csv[0] : ''; ?>";
+  var myData = "<?php echo isset($csv) ? $csv : ''; ?>";
   if (myData != '') {
     var data = d3.csv.parse(myData);
     sparkline('#spark_<?php echo h($id); ?>', data);

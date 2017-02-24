@@ -1137,6 +1137,14 @@ class Server extends AppModel {
 						'test' => 'testBool',
 						'type' => 'boolean',
 					),
+					'Sightings_range' => array(
+						'level' => 1,
+						'description' => 'Set the range in which sightings will be taken into account when generating graphs. For example a sighting with a sighted_date of 7 years ago might not be relevant anymore. Setting given in number of days, default is 365 days',
+						'value' => 365,
+						'errorMessage' => '',
+						'test' => 'testForNumeric',
+						'type' => 'numeric'
+					),
 					'CustomAuth_enable' => array(
 							'level' => 2,
 							'description' => 'Enable this functionality if you would like to handle the authentication via an external tool and authenticate with MISP using a custom header.',

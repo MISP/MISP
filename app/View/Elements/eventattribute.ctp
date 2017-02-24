@@ -12,72 +12,21 @@
 		$page = 0;
 	}
 	if (Configure::read('Plugin.Sightings_enable') !== false) {
-		$attributeSightings = array();
-		$attributeOwnSightings = array();
-		$attributeSightingsPopover = array();
-		$sightingsData = array();
-		$sparklineData = array();
-		$startDates = array();
 		if (!empty($event['Sighting'])) {
-			foreach ($event['Sighting'] as $sighting) {
-				$type = $sightingTypes[$sighting['type']];
-				if (!isset($sightingsData[$sighting['attribute_id']][$type])) {
-					$sightingsData[$sighting['attribute_id']][$type] = array('count' => 0);
-				}
-				$sightingsData[$sighting['attribute_id']][$type]['count']++;
-				$orgName = isset($sighting['Organisation']['name']) ? $sighting['Organisation']['name'] : 'Others';
-				if (!isset($startDates[$sighting['attribute_id']]) || $startDates[$sighting['attribute_id']] > $sighting['date_sighting']) {
-					$startDates[$sighting['attribute_id']] = $sighting['date_sighting'];
-				}
-				if (!isset($sightingsData[$sighting['attribute_id']][$type]['orgs'][$orgName])) {
-					$sightingsData[$sighting['attribute_id']][$type]['orgs'][$orgName] = array('count' => 1, 'date' => $sighting['date_sighting']);
-				} else {
-					$sightingsData[$sighting['attribute_id']][$type]['orgs'][$orgName]['count']++;
-					if ($sightingsData[$sighting['attribute_id']][$type]['orgs'][$orgName]['date'] < $sighting['date_sighting']) {
-						$sightingsData[$sighting['attribute_id']][$type]['orgs'][$orgName]['date'] = $sighting['date_sighting'];
-					}
-				}
-				$date = date("Ymd", $sighting['date_sighting']);
-				if (!isset($sparklineData[$sighting['attribute_id']][$type][$date])) {
-					$sparklineData[$sighting['attribute_id']][$type][$date] = 1;
-				} else {
-					$sparklineData[$sighting['attribute_id']][$type][$date]++;
-				}
-			}
-			$csv = array();
-			$to = new DateTime();
-			$from = new DateTime();
-			foreach ($sparklineData as $aid => $data) {
-				foreach ($data as $type => $sighting) {
-					$from->setTimestamp(($startDates[$aid] - 259200));
-					for ($date = clone $from; $date < $to; $date->modify('+1 day')) {
-						if (!isset($csv[$aid][$type])) {
-							$csv[$aid][$type] = 'Date,Close\n';
-						}
-						$currentDate = $date->format('Ymd');
-						if (isset($sighting[$currentDate])) {
-							$csv[$aid][$type] .= $currentDate . ',' . $sighting[$currentDate] . '\n';
-						} else {
-							$csv[$aid][$type] .= $currentDate . ',0\n';
-						}
-					}
-				}
-			}
-			unset($sparklineData);
-			foreach ($sightingsData as $aid => $data) {
-				$sightingsData[$aid]['html'] = '';
+			foreach ($sightingsData['data'] as $aid => $data) {
+				$sightingsData['data'][$aid]['html'] = '';
 				foreach ($data as $type => $typeData) {
 					$name = (($type != 'expiration') ? Inflector::pluralize($type) : $type);
-					$sightingsData[$aid]['html'] .= '<span class=\'blue bold\'>' . ucfirst(h($name)) . '</span><br />';
+					$sightingsData['data'][$aid]['html'] .= '<span class=\'blue bold\'>' . ucfirst(h($name)) . '</span><br />';
 					foreach ($typeData['orgs'] as $org => $orgData) {
 						$extra = (($org == $me['Organisation']['name']) ? " class=	'bold'" : "");
 						if ($type == 'expiration') {
-							$sightingsData[$aid]['html'] .= '<span ' . $extra . '>' . h($org) . '</span>: <span class=\'orange bold\'>' . date('Y-m-d H:i:s', $orgData['date']) . '</span><br />';
+							$sightingsData['data'][$aid]['html'] .= '<span ' . $extra . '>' . h($org) . '</span>: <span class=\'orange bold\'>' . date('Y-m-d H:i:s', $orgData['date']) . '</span><br />';
 						} else {
-							$sightingsData[$aid]['html'] .= '<span ' . $extra . '>' . h($org) . '</span>: <span class=\'' . (($type == 'sighting') ? 'green' : 'red') . ' bold\'>' . h($orgData['count']) . ' (' . date('Y-m-d H:i:s', $orgData['date']) . ')</span><br />';
+							$sightingsData['data'][$aid]['html'] .= '<span ' . $extra . '>' . h($org) . '</span>: <span class=\'' . (($type == 'sighting') ? 'green' : 'red') . ' bold\'>' . h($orgData['count']) . ' (' . date('Y-m-d H:i:s', $orgData['date']) . ')</span><br />';
 						}
 					}
-					$sightingsData[$aid]['html'] .= '<br />';
+					$sightingsData['data'][$aid]['html'] .= '<br />';
 				}
 			}
 		}
@@ -493,24 +442,21 @@
 						</span>
 						<?php
 							$temp = array();
-							if (isset($csv[$object['id']]['sighting'])) {
-								$temp[0] = $csv[$object['id']]['sighting'];
-							}
-							if (isset($csv[$object['id']]['false-positive'])) {
-								$temp[1] = $csv[$object['id']]['false-positive'];
+							if (isset($sightingsData['csv'][$object['id']])) {
+								$temp = $sightingsData['csv'][$object['id']];
 							}
 						?>
 						<span class="icon-thumbs-up useCursorPointer" onClick="addSighting('0', '<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']);?>', '<?php echo h($page); ?>');">&nbsp;</span>
 						<span class="icon-thumbs-down useCursorPointer" onClick="addSighting('1', '<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']);?>', '<?php echo h($page); ?>');">&nbsp;</span>
 						<span class="icon-wrench useCursorPointer sightings_advanced_add" data-object-id="<?php echo h($object['id']); ?>" data-object-context="attribute">&nbsp;</span>
-						<span id="sightingCount_<?php echo h($object['id']); ?>" class="bold sightingsCounter_<?php echo h($object['id']); ?>" data-placement="top" data-toggle="popover" data-trigger="hover" data-content="<?php echo isset($sightingsData[$object['id']]['html']) ? $sightingsData[$object['id']]['html'] : ''; ?>">
+						<span id="sightingCount_<?php echo h($object['id']); ?>" class="bold sightingsCounter_<?php echo h($object['id']); ?>" data-placement="top" data-toggle="popover" data-trigger="hover" data-content="<?php echo isset($sightingsData['data'][$object['id']]['html']) ? $sightingsData['data'][$object['id']]['html'] : ''; ?>">
 							<?php
-								$s = (!empty($sightingsData[$object['id']]['sighting']['count']) ? $sightingsData[$object['id']]['sighting']['count'] : 0);
-								$f = (!empty($sightingsData[$object['id']]['false-positive']['count']) ? $sightingsData[$object['id']]['false-positive']['count'] : 0);
-								$e = (!empty($sightingsData[$object['id']]['expiration']['count']) ? $sightingsData[$object['id']]['expiration']['count'] : 0);
+								$s = (!empty($sightingsData['data'][$object['id']]['sighting']['count']) ? $sightingsData['data'][$object['id']]['sighting']['count'] : 0);
+								$f = (!empty($sightingsData['data'][$object['id']]['false-positive']['count']) ? $sightingsData['data'][$object['id']]['false-positive']['count'] : 0);
+								$e = (!empty($sightingsData['data'][$object['id']]['expiration']['count']) ? $sightingsData['data'][$object['id']]['expiration']['count'] : 0);
 							?>
 						</span>
-						<span id="ownSightingCount_<?php echo h($object['id']); ?>" class="bold sightingsCounter_<?php echo h($object['id']); ?>" data-placement="top" data-toggle="popover" data-trigger="hover" data-content="<?php echo isset($sightingsData[$object['id']]['html']) ? $sightingsData[$object['id']]['html'] : ''; ?>">
+						<span id="ownSightingCount_<?php echo h($object['id']); ?>" class="bold sightingsCounter_<?php echo h($object['id']); ?>" data-placement="top" data-toggle="popover" data-trigger="hover" data-content="<?php echo isset($sightingsData['data'][$object['id']]['html']) ? $sightingsData['data'][$object['id']]['html'] : ''; ?>">
 							<?php echo '(<span class="green">' . h($s) . '</span>/<span class="red">' . h($f) . '</span>/<span class="orange">' . h($e) . '</span>)'; ?>
 						</span>
 						<?php

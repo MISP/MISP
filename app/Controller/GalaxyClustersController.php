@@ -12,32 +12,80 @@ class GalaxyClustersController extends AppController {
 				'GalaxyCluster.value' => 'ASC'
 			),
 			'contain' => array(
+				'Tag' => array(
+					'fields' => array('Tag.id'),
+					'EventTag' => array(
+						'fields' => array('EventTag.event_id')
+					),
+					'AttributeTag' => array(
+						'fields' => array('AttributeTag.event_id', 'AttributeTag.attribute_id')
+					)
+				),
 				'GalaxyElement' => array(
 					'conditions' => array('GalaxyElement.key' => 'synonyms'),
 					'fields' => array('value')
-				)
+				),
 			)
 	);
 
 	public function index($id) {
 		$this->paginate['conditions'] = array('GalaxyCluster.galaxy_id' => $id);
 		$clusters = $this->paginate();
+		$sightedEventsToFetch = array();
+		$sightings = array();
 		if (!empty($clusters)) {
 			$galaxyType = $clusters[0]['GalaxyCluster']['type'];
-			$tagPattern = 'misp-galaxy:' . $galaxyType . '="%s"';
-			$tags = $this->GalaxyCluster->getTags($galaxyType, false, $this->Auth->user());
 			foreach ($clusters as $k => $v) {
+				$clusters[$k]['event_ids'] = array();
+				if (!empty($v['Tag']['EventTag'])) {
+					$clusters[$k]['GalaxyCluster']['tags'] = array('tag_id' => $v['Tag']['id'], 'count' => count($v['Tag']['EventTag']));
+					foreach ($v['Tag']['EventTag'] as $eventTag) {
+						if (!in_array($eventTag['event_id'], $sightedEventsToFetch)) {
+							$sightedEventsToFetch[] = $eventTag['event_id'];
+						}
+						$clusters[$k]['event_ids'][] = $eventTag['event_id'];
+					}
+				} else {
+					$clusters[$k]['GalaxyCluster']['tags'] = 0;
+				}
 				$clusters[$k]['GalaxyCluster']['synonyms'] = array();
 				foreach ($v['GalaxyElement'] as $element) {
 					$clusters[$k]['GalaxyCluster']['synonyms'][] = $element['value'];
 				}
-				if (isset($tags[sprintf($tagPattern, $v['GalaxyCluster']['value'])])) {
-					$clusters[$k]['GalaxyCluster']['tags'] = $tags[sprintf($tagPattern, $v['GalaxyCluster']['value'])];
+			}
+		}
+		$this->loadModel('Sighting');
+		$sightings['event'] = $this->Sighting->getSightingsForObjectIds($this->Auth->user(), $sightedEventsToFetch);
+		foreach ($clusters as $k => $cluster) {
+			$objects = array('event');
+			foreach ($objects as $object) {
+				foreach ($cluster[$object . '_ids'] as $objectid) {
+					if (isset($sightings[$object][$objectid])) {
+						foreach ($sightings[$object][$objectid] as $date => $sightingCount) {
+							if (!isset($cluster['sightings'][$date])) {
+								$cluster['sightings'][$date] = $sightingCount;
+							} else {
+								$cluster['sightings'][$date] += $sightingCount;
+							}
+						}
+					}
+				}
+			}
+			$startDate = !empty($cluster['sightings']) ? min(array_keys($cluster['sightings'])) : date('Y-m-d');
+			$startDate = date('Y-m-d', strtotime("-3 days", strtotime($startDate)));
+			$to = date('Y-m-d', time());
+			for ($date = $startDate; strtotime($date) <= strtotime($to); $date = date('Y-m-d',strtotime("+1 day", strtotime($date)))) {
+				if (!isset($csv[$k])) {
+					$csv[$k] = 'Date,Close\n';
+				}
+				if (isset($cluster['sightings'][$date])) {
+					$csv[$k] .= $date . ',' . $cluster['sightings'][$date] . '\n';
 				} else {
-					$clusters[$k]['GalaxyCluster']['tags'] = 0;
+					$csv[$k] .= $date . ',0\n';
 				}
 			}
 		}
+		$this->set('csv', $csv);
 		$this->set('list', $clusters);
 		if ($this->request->is('ajax')) {
 			$this->layout = 'ajax';

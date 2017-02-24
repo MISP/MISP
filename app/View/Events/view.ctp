@@ -31,41 +31,6 @@
 						$orgSightings['Other organisations']['date'] = $sighting['date_sighting'];
 					}
 				}
-				$date = date("Ymd", $sighting['date_sighting']);
-				if (!isset($sparklineData[$sighting['type']][$date])) {
-					$sparklineData[$sighting['type']][$date] = 1;
-				} else {
-					$sparklineData[$sighting['type']][$date]++;
-				}
-				if (!isset($startDate) || $startDate > $sighting['date_sighting']) {
-					$startDate = $sighting['date_sighting'];
-				}
-			}
-			foreach ($orgSightings as $org => $data) {
-				$sightingPopover .= '<span class=\'bold\'>' . h($org) . '</span>: <span class=\'green bold\'>' . h($data['count']) . ' (' . date('Y-m-d H:i:s', $data['date']) . ')' . '</span><br />';
-			}
-			$to = new DateTime();
-			$date = new DateTime();
-			foreach ($sparklineData as $type => $sighting) {
-				$date->setTimestamp(($startDate - 259200));
-				for ($date; $date < $to; $date->modify('+1 day')) {
-					if (!isset($csv[$type])) {
-						$csv[$type] = 'Date,Close\n';
-					}
-					$currentDate = $date->format('Ymd');
-					if (isset($sighting[$currentDate])) {
-						$csv[$type] .= $currentDate . ',' . $sighting[$currentDate] . '\n';
-					} else {
-						$csv[$type] .= $currentDate . ',0\n';
-					}
-				}
-			}
-			$temp = array();
-			if (isset($csv['sighting'])) {
-				$temp[0] = $csv['sighting'];
-			}
-			if (isset($csv['false-positive'])) {
-				$temp[1] = $csv['false-positive'];
 			}
 		}
 	}
@@ -210,7 +175,7 @@
 						<dt>Activity</dt>
 						<dd>
 							<?php
-								echo $this->element('sparkline', array('id' => $event['Event']['id'], 'csv' => $csv));
+								echo $this->element('sparkline', array('id' => $event['Event']['id'], 'csv' => $sightingsData['csv']['event']));
 							?>
 						</dd>
 				<?php
