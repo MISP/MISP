@@ -197,4 +197,31 @@ class Sighting extends AppModel {
 		}
 		return $id;
 	}
+
+	public function getSightingsForObjectIds($user, $ids, $context = 'event', $type = '0') {
+		//$attributes = $this->Attribute->listVisibleAttributes($user, array('conditions' => array('Attribute.event_id' => array_values($eventIds))));
+		$range = (!empty(Configure::read('MISP.Sightings_range')) && is_numeric(Configure::read('MISP.Sightings_range'))) ? Configure::read('MISP.Sightings_range') : 365;
+		$conditions = array(
+			'Sighting.' . $context . '_id' => $ids,
+			'Sighting.date_sighting >' => strtotime("-" . $range . " days")
+		);
+		if ($type !== false) {
+			$conditions['Sighting.type'] = $type;
+		}
+		$sightings = $this->find('all', array(
+			'recursive' => -1,
+			'conditions' => $conditions,
+			'fields' => array('Sighting.id', 'Sighting.' . $context . '_id', 'Sighting.date_sighting')
+		));
+		$sightingsRearranged = array();
+		foreach ($sightings as $sighting) {
+			$date = date("Y-m-d", $sighting['Sighting']['date_sighting']);
+			if (isset($sightingsRearranged[$sighting['Sighting'][$context . '_id']][$date])) {
+				$sightingsRearranged[$sighting['Sighting'][$context . '_id']][$date]++;
+			} else {
+				$sightingsRearranged[$sighting['Sighting'][$context . '_id']][$date] = 1;
+			}
+		}
+		return $sightingsRearranged;
+	}
 }

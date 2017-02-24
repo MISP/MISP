@@ -2077,6 +2077,18 @@ class Attribute extends AppModel {
 		return $conditions;
 	}
 
+	public function listVisibleAttributes($user, $options = array()) {
+		$params = array(
+			'conditions' => $this->buildConditions($user),
+			'recursive' => -1,
+			'fields' => array('Attribute.id', 'Attribute.id'),
+		);
+		if (isset($options['conditions'])) {
+			$params['conditions']['AND'][] = $options['conditions'];
+		}
+		return $this->find('list', $params);
+	}
+
 	// Method that fetches all attributes for the various exports
 	// very flexible, it's basically a replacement for find, with the addition that it restricts access based on user
 	// options:
