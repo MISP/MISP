@@ -785,7 +785,7 @@ class Attribute extends AppModel {
 				break;
 			case 'hostname':
 			case 'domain':
-				if (preg_match("#^[A-Z0-9.\-_]+\.[A-Z]{2,}$#i", $value)) {
+				if (preg_match("#^[A-Z0-9.\-_]+\.[A-Z0-9\-]{2,}$#i", $value)) {
 					$returnValue = true;
 				} else {
 					$returnValue = 'Domain name has an invalid format. Please double check the value or select type "other".';
@@ -2075,6 +2075,18 @@ class Attribute extends AppModel {
 			);
 		}
 		return $conditions;
+	}
+
+	public function listVisibleAttributes($user, $options = array()) {
+		$params = array(
+			'conditions' => $this->buildConditions($user),
+			'recursive' => -1,
+			'fields' => array('Attribute.id', 'Attribute.id'),
+		);
+		if (isset($options['conditions'])) {
+			$params['conditions']['AND'][] = $options['conditions'];
+		}
+		return $this->find('list', $params);
 	}
 
 	// Method that fetches all attributes for the various exports

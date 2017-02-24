@@ -39,7 +39,7 @@
 				<td ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
 					<?php echo h($user['User']['email']); ?>&nbsp;
 				</td>
-				<td ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';" class="<?php echo $user['Role']['perm_auth'] ? 'bold' : 'grey'; ?>">
+				<td ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';" class="quickSelect <?php echo $user['Role']['perm_auth'] ? 'bold' : 'grey'; ?>">
 					<?php echo h($user['User']['authkey']); ?>&nbsp;
 				</td>
 				<td class="short" ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">

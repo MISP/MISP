@@ -31,8 +31,10 @@ class SightingsController extends AppController {
 					$type = '0';
 					$source = '';
 					if (isset($result['data']['values'])) $values = $result['data']['values'];
-					else $error = 'No valid values found could be extracted from the sightings document.';
-				} $error = $result['message'];
+					else $error = 'No valid values found that could be extracted from the sightings document.';
+				} else {
+					$error = $result['message'];
+				}
 			} else {
 				if (isset($this->request->data['request'])) $this->request->data = $this->request->data['request'];
 				if (isset($this->request->data['Sighting'])) $this->request->data = $this->request->data['Sighting'];
@@ -48,9 +50,12 @@ class SightingsController extends AppController {
 				$type = isset($this->request->data['type']) ? $this->request->data['type'] : '0';
 				$source = isset($this->request->data['source']) ? trim($this->request->data['source']) : '';
 			}
-			if (!$error) $result = $this->Sighting->saveSightings($id, $values, $timestamp, $this->Auth->user(), $type, $source);
-			if ($result == 0) $error = 'No valid attributes found that would match the sighting criteria.';
-
+			if (!$error) {
+				$result = $this->Sighting->saveSightings($id, $values, $timestamp, $this->Auth->user(), $type, $source);
+			}
+			if (!is_numeric($result)) {
+				$error = $result;
+			}
 			if ($this->request->is('ajax')) {
 				if ($error) {
 					$error_message = 'Could not add the Sighting. Reason: ' . $error;
@@ -82,17 +87,26 @@ class SightingsController extends AppController {
 		}
 	}
 
-	public function advanced($id) {
+	public function advanced($id, $context = 'attribute') {
 		if (empty($id)) {
-			throw new MethodNotAllowedException('Invalid attribute.');
+			throw new MethodNotAllowedException('Invalid ' . $context . '.');
 		}
 		$input_id = $id;
 		$id = $this->Sighting->explodeIdList($id);
-		$this->loadModel('Attribute');
-		$attributes = $this->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id)));
-		if (empty($attributes)) {
-			throw new MethodNotAllowedException('Invalid attribute.');
+		if ($context == 'attribute') {
+			$this->loadModel('Attribute');
+			$attributes = $this->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id)));
+			if (empty($attributes)) {
+				throw new MethodNotAllowedException('Invalid attribute.');
+			}
+		} else {
+			$this->loadModel('Event');
+			$events = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id, 'metadata' => true));
+			if (empty($events)) {
+				throw new MethodNotAllowedException('Invalid event.');
+			}
 		}
+		$this->set('context', $context);
 		$this->set('id', $input_id);
 		$this->render('/Sightings/ajax/advanced');
 	}
@@ -242,12 +256,16 @@ class SightingsController extends AppController {
 		}
 		$tsv = 'date\tSighting\tFalse-positive\n';
 		$dataPoints = array();
-		$startDate = (date('Ymd') - 3);
+		$startDate = (date('Ymd'));
 		$details = array();
+		$range = (!empty(Configure::read('MISP.Sightings_range')) && is_numeric(Configure::read('MISP.Sightings_range'))) ? Configure::read('MISP.Sightings_range') : 365;
+		$range = date('Ymd', strtotime("-" . $range . " days", time()));
 		foreach ($results as $type => $data) {
 			foreach ($data as $date => $sighting) {
 				if ($date < $startDate) {
-					$startDate = $date;
+					if ($date >= $range) {
+						$startDate = $date;
+					}
 				}
 				$temp = array();
 				foreach ($sighting as $sightingInstance) {
@@ -261,6 +279,7 @@ class SightingsController extends AppController {
 				$dataPoints[$date][$type] = array('count' => count($sighting), 'details' => $temp);
 			}
 		}
+		$startDate = date('Ymd',strtotime("-3 days", strtotime($startDate)));
 		for ($i = $startDate; $i < date('Ymd') + 1; $i++) {
 			if (checkdate(substr($i, 4, 2), substr($i, 6, 2), substr($i, 0, 4))) {
 				$tsv .= $i . '\t' . (isset($dataPoints[$i][0]['count']) ? $dataPoints[$i][0]['count'] : 0) . '\t' . (isset($dataPoints[$i][1]['count']) ? $dataPoints[$i][1]['count'] : 0) . '\n';

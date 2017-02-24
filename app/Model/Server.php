@@ -1128,6 +1128,14 @@ class Server extends AppModel {
 						'test' => 'testBool',
 						'type' => 'boolean',
 					),
+					'Sightings_range' => array(
+						'level' => 1,
+						'description' => 'Set the range in which sightings will be taken into account when generating graphs. For example a sighting with a sighted_date of 7 years ago might not be relevant anymore. Setting given in number of days, default is 365 days',
+						'value' => 365,
+						'errorMessage' => '',
+						'test' => 'testForNumeric',
+						'type' => 'numeric'
+					),
 					'CustomAuth_enable' => array(
 							'level' => 2,
 							'description' => 'Enable this functionality if you would like to handle the authentication via an external tool and authenticate with MISP using a custom header.',
@@ -2395,12 +2403,18 @@ class Server extends AppModel {
 
 	public function serverSettingsSaveValue($setting, $value) {
 		Configure::write($setting, $value);
-		if (Configure::read('Security.auth') && is_array(Configure::read('Security.auth')) && !empty(Configure::read('Security.auth'))) {
-			$authmethods = array();
-			foreach (Configure::read('Security.auth') as $auth) {
-				if (!in_array($auth, $authmethods)) $authmethods[] = $auth;
+		$arrayFix = array(
+			'Security.auth',
+			'ApacheSecureAuth.ldapFilter'
+		);
+		foreach ($arrayFix as $settingFix) {
+			if (Configure::read($settingFix) && is_array(Configure::read($settingFix)) && !empty(Configure::read($settingFix))) {
+				$arrayElements = array();
+				foreach (Configure::read($settingFix) as $array) {
+					if (!in_array($array, $arrayElements)) $arrayElements[] = $array;
+				}
+				Configure::write($settingFix, $arrayElements);
 			}
-			Configure::write('Security.auth', $authmethods);
 		}
 		$settingsToSave = array('debug', 'MISP', 'GnuPG', 'SMIME', 'Proxy', 'SecureAuth', 'Security', 'Session.defaults', 'Session.timeout', 'Session.autoRegenerate', 'site_admin_debug', 'Plugin', 'CertAuth', 'ApacheShibbAuth', 'ApacheSecureAuth');
 		$settingsArray = array();
@@ -2556,17 +2570,21 @@ class Server extends AppModel {
 		try {
 			$response = $HttpSocket->get($uri, '', $request);
 		} catch (Exception $e) {
-			$this->Log = ClassRegistry::init('Log');
-			$this->Log->create();
-			$this->Log->save(array(
-					'org' => $user['Organisation']['name'],
-					'model' => 'Server',
-					'model_id' => $id,
-					'email' => $user['email'],
-					'action' => 'error',
-					'user_id' => $user['id'],
-					'title' => 'Error: Connection to the server has failed.',
-			));
+			if ($response->code != '200') {
+				$this->Log = ClassRegistry::init('Log');
+				$this->Log->create();
+				$this->Log->save(array(
+						'org' => $user['Organisation']['name'],
+						'model' => 'Server',
+						'model_id' => $id,
+						'email' => $user['email'],
+						'action' => 'error',
+						'user_id' => $user['id'],
+						'title' => 'Error: Connection to the server has failed.',
+				));
+			}
+		}
+		if ($response->code != '200') {
 			return 1;
 		}
 		$remoteVersion = json_decode($response->body, true);

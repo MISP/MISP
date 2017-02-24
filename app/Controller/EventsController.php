@@ -738,6 +738,8 @@ class EventsController extends AppController {
 				$this->set($variable, $currentModel->{$variable});
 			}
 		}
+		$sightingsData = $this->Event->getSightingData($event);
+		$this->set('sightingsData', $sightingsData);
 		if (Configure::read('Plugin.Enrichment_services_enable')) {
 			$this->loadModel('Module');
 			$modules = $this->Module->getEnabledModules();
@@ -853,7 +855,8 @@ class EventsController extends AppController {
 																						'recursive' => -1,
 																						'contain' => array('Org', 'RequesterOrg'))));
 		}
-
+		$sightingsData = $this->Event->getSightingData($event);
+		$this->set('sightingsData', $sightingsData);
 		if (Configure::read('Plugin.Enrichment_services_enable')) {
 			$this->loadModel('Module');
 			$modules = $this->Module->getEnabledModules();
