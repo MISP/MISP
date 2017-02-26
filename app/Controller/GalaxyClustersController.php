@@ -31,18 +31,16 @@ class GalaxyClustersController extends AppController {
 	public function index($id) {
 		$this->paginate['conditions'] = array('GalaxyCluster.galaxy_id' => $id);
 		$clusters = $this->paginate();
-		$sightedEventsToFetch = array();
+		$tagIds = array();
 		$sightings = array();
 		if (!empty($clusters)) {
 			$galaxyType = $clusters[0]['GalaxyCluster']['type'];
 			foreach ($clusters as $k => $v) {
 				$clusters[$k]['event_ids'] = array();
 				if (!empty($v['Tag']['EventTag'])) {
+					$tagIds[] = $v['Tag']['id'];
 					$clusters[$k]['GalaxyCluster']['tags'] = array('tag_id' => $v['Tag']['id'], 'count' => count($v['Tag']['EventTag']));
 					foreach ($v['Tag']['EventTag'] as $eventTag) {
-						if (!in_array($eventTag['event_id'], $sightedEventsToFetch)) {
-							$sightedEventsToFetch[] = $eventTag['event_id'];
-						}
 						$clusters[$k]['event_ids'][] = $eventTag['event_id'];
 					}
 				} else {
@@ -55,7 +53,7 @@ class GalaxyClustersController extends AppController {
 			}
 		}
 		$this->loadModel('Sighting');
-		$sightings['event'] = $this->Sighting->getSightingsForObjectIds($this->Auth->user(), $sightedEventsToFetch);
+		$sightings['event'] = $this->Sighting->getSightingsForObjectIds($this->Auth->user(), $tagIds);
 		foreach ($clusters as $k => $cluster) {
 			$objects = array('event');
 			foreach ($objects as $object) {

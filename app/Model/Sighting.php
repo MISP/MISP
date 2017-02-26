@@ -198,20 +198,29 @@ class Sighting extends AppModel {
 		return $id;
 	}
 
-	public function getSightingsForObjectIds($user, $ids, $context = 'event', $type = '0') {
-		//$attributes = $this->Attribute->listVisibleAttributes($user, array('conditions' => array('Attribute.event_id' => array_values($eventIds))));
+	public function getSightingsForObjectIds($user, $tagList, $context = 'event', $type = '0') {
 		$range = (!empty(Configure::read('MISP.Sightings_range')) && is_numeric(Configure::read('MISP.Sightings_range'))) ? Configure::read('MISP.Sightings_range') : 365;
 		$conditions = array(
-			'Sighting.' . $context . '_id' => $ids,
-			'Sighting.date_sighting >' => strtotime("-" . $range . " days")
+			'Sighting.date_sighting >' => strtotime("-" . $range . " days"),
+			ucfirst($context) . 'Tag.tag_id' => $tagList
+			
+		);
+		$contain = array(
+			ucfirst($context) => array(
+				ucfirst($context) . 'Tag' => array(
+					'Tag'
+				)
+			)	
 		);
 		if ($type !== false) {
 			$conditions['Sighting.type'] = $type;
 		}
+		$this->bindModel(array('hasOne' => array(ucfirst($context) . 'Tag' => array('foreignKey' => false, 'conditions' => ucfirst($context) . 'Tag.' . $context . '_id = Sighting.' . $context . '_id'))));
 		$sightings = $this->find('all', array(
 			'recursive' => -1,
+			'contain' => array(ucfirst($context) . 'Tag'),
 			'conditions' => $conditions,
-			'fields' => array('Sighting.id', 'Sighting.' . $context . '_id', 'Sighting.date_sighting')
+			'fields' => array('Sighting.id', 'Sighting.' . $context . '_id', 'Sighting.date_sighting', ucfirst($context) . 'Tag.tag_id')
 		));
 		$sightingsRearranged = array();
 		foreach ($sightings as $sighting) {

@@ -462,6 +462,10 @@ class Attribute extends AppModel {
 	public $hasMany = array(
 		'AttributeTag' => array(
 			'dependent' => true
+		),
+		'Sighting' => array(
+				'className' => 'Sighting',
+				'dependent' => true,
 		)
 	);
 
