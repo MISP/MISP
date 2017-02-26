@@ -797,14 +797,14 @@ class Attribute extends AppModel {
 				break;
 			case 'hostname|port':
 				$parts = explode('|', $value);
-				if (preg_match("#^[A-Z0-9.\-_]+\.[A-Z]{2,}$#i", $parts[0])) {
+				if (preg_match("#^[A-Z0-9.\-_]+\.[A-Z0-9\-]{2,}$#i", $parts[0])) {
 					if (!is_numeric($parts[1]) || $parts[1] > 1 || $parts[1] < 65536) {
 						$returnValue = true;
 					}
 				}
 				break;
 			case 'domain|ip':
-				if (preg_match("#^[A-Z0-9.\-_]+\.[A-Z]{2,}\|.*$#i", $value)) {
+				if (preg_match("#^[A-Z0-9.\-_]+\.[A-Z0-9\-]{2,}\|.*$#i", $value)) {
 					$parts = explode('|', $value);
 					if (filter_var($parts[1], FILTER_VALIDATE_IP)) {
 						$returnValue = true;
@@ -822,7 +822,7 @@ class Attribute extends AppModel {
 			case 'dns-soa-email':
 			case 'jabber-id':
 				// we don't use the native function to prevent issues with partial email addresses
-				if (preg_match("#^[A-Z0-9._&%+-=~]*@[A-Z0-9.\-_]+\.[A-Z]{2,}$#i", $value)) {
+				if (preg_match("#^[A-Z0-9._&%+-=~]*@[A-Z0-9.\-_]+\.[A-Z0-9\-]{2,}$#i", $value)) {
 					$returnValue = true;
 				} else {
 					$returnValue = 'Email address has an invalid format. Please double check the value or select type "other".';
