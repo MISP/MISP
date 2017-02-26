@@ -318,6 +318,10 @@ class Event extends AppModel {
 		'EventTag' => array(
 			'className' => 'EventTag',
 			'dependent' => true,
+		),
+		'Sighting' => array(
+			'className' => 'Sighting',
+			'dependent' => true,
 		)
 	);
 
@@ -3239,10 +3243,11 @@ class Event extends AppModel {
 					}
 				}
 			}
+			return array(
+					'data' => $sightingsData,
+					'csv' => $csv
+			);
 		}
-		return array(
-			'data' => $sightingsData,
-			'csv' => $csv
-		);
+		return array('data' => array(), 'csv' => array());
 	}
 }

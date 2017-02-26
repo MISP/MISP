@@ -49,10 +49,10 @@ class TagsController extends AppController {
 		} else {
 			$paginated = $this->paginate();
 		}
-		$sightedEventsToFetch = array();
-		$sightedAttributesToFetch = array();
+		$tagList = array();
 		$csv = array();
 		foreach ($paginated as $k => $tag) {
+			$tagList[] = $tag['Tag']['id'];
 			if (empty($tag['EventTag'])) {
 				$paginated[$k]['Tag']['count'] = 0;
 			} else {
@@ -79,16 +79,10 @@ class TagsController extends AppController {
 			$paginated[$k]['event_ids'] = array();
 			$paginated[$k]['attribute_ids'] = array();
 			foreach($paginated[$k]['EventTag'] as $et) {
-				if (!in_array($et['event_id'], $sightedEventsToFetch)) {
-					$sightedEventsToFetch[] = $et['event_id'];
-				}
 				$paginated[$k]['event_ids'][] = $et['event_id'];
 			}
 			unset($paginated[$k]['EventTag']);
 			foreach($paginated[$k]['AttributeTag'] as $at) {
-				if (!in_array($at['attribute_id'], $sightedAttributesToFetch)) {
-					$sightedAttributesToFetch[] = $at['attribute_id'];
-				}
 				$paginated[$k]['attribute_ids'][] = $at['attribute_id'];
 			}
 
@@ -138,8 +132,8 @@ class TagsController extends AppController {
 			}
 		}
 		$this->loadModel('Sighting');
-		$sightings['event'] = $this->Sighting->getSightingsForObjectIds($this->Auth->user(), $sightedEventsToFetch);
-		$sightings['attribute'] = $this->Sighting->getSightingsForObjectIds($this->Auth->user(), $sightedAttributesToFetch, 'attribute');
+		$sightings['event'] = $this->Sighting->getSightingsForObjectIds($this->Auth->user(), $tagList);
+		$sightings['attribute'] = $this->Sighting->getSightingsForObjectIds($this->Auth->user(), $tagList, 'attribute');
 		foreach ($paginated as $k => $tag) {
 			$objects = array('event', 'attribute');
 			foreach ($objects as $object) {

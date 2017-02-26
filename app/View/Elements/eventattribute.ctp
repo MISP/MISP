@@ -465,7 +465,7 @@
 					</td>
 					<td class="short <?php echo $extra; ?>">
 						<?php
-							if ($object['objectType'] == 0) {
+							if ($object['objectType'] == 0 && !empty($temp)) {
 								echo $this->element('sparkline', array('id' => $object['id'], 'csv' => $temp));
 							}
 						?>

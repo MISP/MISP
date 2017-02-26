@@ -175,7 +175,11 @@
 						<dt>Activity</dt>
 						<dd>
 							<?php
-								echo $this->element('sparkline', array('id' => $event['Event']['id'], 'csv' => $sightingsData['csv']['event']));
+								if (!empty($sightingsData['data'])) {
+									echo $this->element('sparkline', array('id' => $event['Event']['id'], 'csv' => $sightingsData['csv']['event']));
+								} else {
+									echo '&nbsp';
+								}
 							?>
 						</dd>
 				<?php
