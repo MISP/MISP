@@ -823,6 +823,21 @@ class Event extends AppModel {
 		return 'Success';
 	}
 
+	public function addHeaders($request) {
+		$version = $this->checkMISPVersion();
+		$version = implode('.', $version);
+		try {
+			$commit = trim(shell_exec('git log --pretty="%H" -n1 HEAD'));
+		} catch (Exception $e) {
+			$commit = false;
+		}
+		$request['header']['MISP-version'] = $version;
+		if ($commit) {
+			$request['header']['commit'] = $commit;
+		}
+		return $request;
+	}
+
 	// Uploads the event and the associated Attributes to another Server
 	public function restfulEventToServer($event, $server, $urlPath, &$newLocation, &$newTextBody, $HttpSocket = null) {
 		if ($event['Event']['distribution'] == 4) {
@@ -853,9 +868,11 @@ class Event extends AppModel {
 						'Authorization' => $authkey,
 						'Accept' => 'application/json',
 						'Content-Type' => 'application/json',
+
 						//'Connection' => 'keep-alive' // // LATER followup cakephp issue about this problem: https://github.com/cakephp/cakephp/issues/1961
 				)
 		);
+		$request = $this->addHeaders($request);
 		$uri = $url . '/events';
 		if (isset($urlPath)) {
 			$pieces = explode('/', $urlPath);
@@ -1054,6 +1071,7 @@ class Event extends AppModel {
 						//'Connection' => 'keep-alive' // // LATER followup cakephp issue about this problem: https://github.com/cakephp/cakephp/issues/1961
 				)
 		);
+		$request = $this->addHeaders($request);
 		$uri = $url . '/events/0?uuid=' . $uuid;
 
 		// LATER validate HTTPS SSL certificate
@@ -1085,6 +1103,7 @@ class Event extends AppModel {
 						//'Connection' => 'keep-alive' // // LATER followup cakephp issue about this problem: https://github.com/cakephp/cakephp/issues/1961
 				)
 		);
+		$request = $this->addHeaders($request);
 		$uri = $url . '/events/view/' . $eventId . '/deleted:true';
 		$response = $HttpSocket->get($uri, $data = '', $request);
 		if ($response->isOk()) {
@@ -1109,6 +1128,7 @@ class Event extends AppModel {
 						//'Connection' => 'keep-alive' // LATER followup cakephp issue about this problem: https://github.com/cakephp/cakephp/issues/1961
 				)
 		);
+		$request = $this->addHeaders($request);
 		$uri = $url . '/shadow_attributes/getProposalsByUuidList';
 		$response = $HttpSocket->post($uri, json_encode($uuidList), $request);
 		if ($response->isOk()) {
