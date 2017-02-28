@@ -102,7 +102,6 @@ git submodule update
 
 # Once done, install CakeResque along with its dependencies if you intend to use the built in background jobs:
 cd /var/www/MISP/app
-curl -s https://getcomposer.org/installer | php
 php composer.phar require kamisama/cake-resque:4.1.2
 php composer.phar config vendor-dir Vendor
 php composer.phar install
@@ -193,6 +192,7 @@ firewall-cmd --reload
 # We seriously recommend using only HTTPS / SSL !
 # Add SSL support by running: yum install mod_ssl
 # Check out the apache.misp.ssl file for an example
+
 
 8/ Log rotation
 ---------------

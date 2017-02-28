@@ -33,12 +33,13 @@
 			<th>Taxonomy</th>
 			<th>Tagged events</th>
 			<th>Tagged attributes</th>
+			<th>Activity</th>
 			<th>Favourite</th>
 			<?php if ($isAclTagEditor): ?>
 			<th class="actions"><?php echo __('Actions');?></th>
 			<?php endif; ?>
 	</tr><?php
-foreach ($list as $item): ?>
+foreach ($list as $k => $item): ?>
 	<tr>
 		<td class="short"><?php echo h($item['Tag']['id']); ?>&nbsp;</td>
 		<td class="short"><span class="<?php echo ($item['Tag']['exportable'] ? 'icon-ok' : 'icon-remove'); ?>"></span></td>
@@ -61,6 +62,9 @@ foreach ($list as $item): ?>
 		</td>
 		<td class="shortish"><?php echo h($item['Tag']['count']); ?>&nbsp;</td>
 		<td class="shortish"><a href="<?php echo $baseurl . "/attributes/search/attributetag:" . $item['Tag']['id']; ?>"><?php echo h($item['Tag']['attribute_count']); ?></a> </td>
+		<td class="shortish">
+			<?php echo $this->element('sparkline', array('id' => $item['Tag']['id'], 'csv' => $csv[$k])); ?>
+		</td>
 		<td class="short" id ="checkbox_row_<?php echo h($item['Tag']['id']);?>">
 			<input id="checkBox_<?php echo h($item['Tag']['id']); ?>" type="checkbox" onClick="toggleSetting(event, 'favourite_tag', '<?php echo h($item['Tag']['id']); ?>')" <?php echo $item['Tag']['favourite'] ? 'checked' : ''; ?>/>
 		</td>

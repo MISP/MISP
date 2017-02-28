@@ -735,15 +735,6 @@ class Server extends AppModel {
 							'type' => 'boolean',
 							'null' => true
 					),
-					'showCorrelationsOnIndex' => array(
-							'level' => 1,
-							'description' => 'When enabled, the number of correlations visible to the currently logged in user will be visible on the event index UI. This comes at a performance cost but can be very useful to see correlating events at a glance.',
-							'value' => false,
-							'errorMessage' => '',
-							'test' => 'testBool',
-							'type' => 'boolean',
-							'null' => true
-					),
 			),
 			'GnuPG' => array(
 					'branch' => 1,
@@ -1144,6 +1135,14 @@ class Server extends AppModel {
 						'errorMessage' => '',
 						'test' => 'testBool',
 						'type' => 'boolean',
+					),
+					'Sightings_range' => array(
+						'level' => 1,
+						'description' => 'Set the range in which sightings will be taken into account when generating graphs. For example a sighting with a sighted_date of 7 years ago might not be relevant anymore. Setting given in number of days, default is 365 days',
+						'value' => 365,
+						'errorMessage' => '',
+						'test' => 'testForNumeric',
+						'type' => 'numeric'
 					),
 					'CustomAuth_enable' => array(
 							'level' => 2,
@@ -2134,10 +2133,40 @@ class Server extends AppModel {
 		return true;
 	}
 
+
+	public function getHost() {
+		if (function_exists('apache_request_headers')){
+				 $headers = apache_request_headers();
+		} else {
+				 $headers = $_SERVER;
+		}
+
+		if ( array_key_exists( 'X-Forwarded-Host', $headers ) ) {
+				 $host = $headers['X-Forwarded-Host'];
+		} else {
+				 $host = $_SERVER['HTTP_HOST'];
+		}
+		return $host;
+	}
+
+	public function getProto() {
+		if (function_exists('apache_request_headers')){
+				 $headers = apache_request_headers();
+		} else {
+				 $headers = $_SERVER;
+		}
+
+		if (array_key_exists('X-Forwarded-Proto',$headers)){
+				 $proto = $headers['X-Forwarded-Proto'];
+		} else {
+				 $proto = ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $_SERVER['SERVER_PORT'] == 443) === true ? 'HTTPS' : 'HTTP';
+		}
+		return $proto;
+	}
+
 	public function testBaseURL($value) {
 		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
-		$protocol = ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $_SERVER['SERVER_PORT'] == 443) === true ? 'HTTPS' : 'HTTP';
-		if ($value != strtolower($protocol) . '://' . $_SERVER['HTTP_HOST']) return false;
+		if ($value != strtolower($this->getProto()) . '://' . $this->getHost()) return false;
 		return true;
 	}
 
@@ -2382,12 +2411,18 @@ class Server extends AppModel {
 
 	public function serverSettingsSaveValue($setting, $value) {
 		Configure::write($setting, $value);
-		if (Configure::read('Security.auth') && is_array(Configure::read('Security.auth')) && !empty(Configure::read('Security.auth'))) {
-			$authmethods = array();
-			foreach (Configure::read('Security.auth') as $auth) {
-				if (!in_array($auth, $authmethods)) $authmethods[] = $auth;
+		$arrayFix = array(
+			'Security.auth',
+			'ApacheSecureAuth.ldapFilter'
+		);
+		foreach ($arrayFix as $settingFix) {
+			if (Configure::read($settingFix) && is_array(Configure::read($settingFix)) && !empty(Configure::read($settingFix))) {
+				$arrayElements = array();
+				foreach (Configure::read($settingFix) as $array) {
+					if (!in_array($array, $arrayElements)) $arrayElements[] = $array;
+				}
+				Configure::write($settingFix, $arrayElements);
 			}
-			Configure::write('Security.auth', $authmethods);
 		}
 		$settingsToSave = array('debug', 'MISP', 'GnuPG', 'SMIME', 'Proxy', 'SecureAuth', 'Security', 'Session.defaults', 'Session.timeout', 'Session.autoRegenerate', 'site_admin_debug', 'Plugin', 'CertAuth', 'ApacheShibbAuth', 'ApacheSecureAuth');
 		$settingsArray = array();
@@ -2543,17 +2578,21 @@ class Server extends AppModel {
 		try {
 			$response = $HttpSocket->get($uri, '', $request);
 		} catch (Exception $e) {
-			$this->Log = ClassRegistry::init('Log');
-			$this->Log->create();
-			$this->Log->save(array(
-					'org' => $user['Organisation']['name'],
-					'model' => 'Server',
-					'model_id' => $id,
-					'email' => $user['email'],
-					'action' => 'error',
-					'user_id' => $user['id'],
-					'title' => 'Error: Connection to the server has failed.',
-			));
+			if ($response->code != '200') {
+				$this->Log = ClassRegistry::init('Log');
+				$this->Log->create();
+				$this->Log->save(array(
+						'org' => $user['Organisation']['name'],
+						'model' => 'Server',
+						'model_id' => $id,
+						'email' => $user['email'],
+						'action' => 'error',
+						'user_id' => $user['id'],
+						'title' => 'Error: Connection to the server has failed.',
+				));
+			}
+		}
+		if ($response->code != '200') {
 			return 1;
 		}
 		$remoteVersion = json_decode($response->body, true);

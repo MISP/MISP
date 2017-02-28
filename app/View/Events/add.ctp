@@ -1,4 +1,8 @@
 <div class="events form">
+	<div class="message">
+		<?php echo 'The event created will be restricted to ' . (Configure::read('MISP.unpublishedprivate') ? 'your organisation only' : 'the organisations included in the distribution setting on the local instance only') . ' until it is published.';?>
+	</div>
+
 <?php echo $this->Form->create('', array('type' => 'file'));?>
 	<fieldset>
 		<legend>Add Event</legend>
@@ -67,21 +71,21 @@ echo $this->Form->end();
 		foreach ($formInfoTypes as $formInfoType => $humanisedName) {
 			echo 'var ' . $formInfoType . 'FormInfoValues = {' . PHP_EOL;
 			foreach ($info[$formInfoType] as $key => $formInfoData) {
-				echo '"' . $key . '": "<span class=\"blue bold\">' . h($formInfoData['key']) . '</span>: ' . h($formInfoData['desc']) . '<br />",' . PHP_EOL; 
+				echo '"' . $key . '": "<span class=\"blue bold\">' . h($formInfoData['key']) . '</span>: ' . h($formInfoData['desc']) . '<br />",' . PHP_EOL;
 			}
 			echo '}' . PHP_EOL;
 		}
 	?>
-	
+
 	$('#EventDistribution').change(function() {
 		if ($('#EventDistribution').val() == 4) $('#SGContainer').show();
 		else $('#SGContainer').hide();
 	});
-	
+
 	$("#EventDistribution, #EventAnalysis, #EventThreatLevelId").change(function() {
 		initPopoverContent('Event');
 	});
-	
+
 	$(document).ready(function() {
 		if ($('#EventDistribution').val() == 4) $('#SGContainer').show();
 		else $('#SGContainer').hide();

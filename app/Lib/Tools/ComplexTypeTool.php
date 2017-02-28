@@ -210,6 +210,7 @@ class ComplexTypeTool {
 		// input2 from here on is the variable containing the original input with the port removed. It is only used by url / domain name / hostname / ip
 		$comment = false;
 		if (preg_match('/(:[0-9]{2,5})$/', $inputRefanged, $port)) {
+			$comment = 'On port ' . substr($port[0], 1);
 			$inputRefangedNoPort = str_replace($port[0], '', $inputRefanged);
 			$port = substr($port[0], 1);
 		} else {

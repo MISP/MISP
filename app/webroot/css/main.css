@@ -762,6 +762,20 @@ a.proposal_link_red:hover {
 	color:white;
 }
 
+.popover-legend {
+	border-radius: 5px 5px 0px 0px;
+	margin-bottom:5px;
+	padding-left:0px;
+	background-color:black;
+	color:white;
+	font-size: 21px;
+	line-height: 40px;
+}
+
+.popover-legend p {
+	padding-left:10px;
+}
+
 .legend {
 	display: block;
 	width: 100%;
@@ -1483,6 +1497,14 @@ a.proposal_link_red:hover {
 	background-color:red;
 }
 
+.blue-background {
+	background-color:#0088cc;
+}
+
+.green-background {
+	background-color:green;
+}
+
 .bold {
 	font-weight: bold;
 }
@@ -1670,6 +1692,21 @@ table.table.table-striped tr.deleted_row td {
   background-color:black;
   box-shadow:0px 0px 5px 2px rgba(0,0,0,0.5);
   transition: all 0.3s ease;
+}
+
+.sparkline {
+  fill: none;
+  stroke: #000;
+  stroke-width: 0.5px;
+}
+.sparkcircle {
+  fill: #f00;
+  stroke: none;
+}
+
+.sightings_advanced
+{
+	width:1000px;
 }
 
 @-webkit-keyframes rotation {

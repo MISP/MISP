@@ -41,6 +41,20 @@ in the list given by apache.
          'DefaultOrg' => 'DEFAULT_ORG',
     ),
 ```
+If used with Apache as webserver it might be useful to make a distinction to filter out API/Syncs from SSO login. It can be added to the vhost as follows:
 
+```Apache
+  <If "-T reqenv('HTTP_AUTHORIZATION')">
+    Require all granted
+    AuthType None
+  </If>
+  <Else>
+    Require valid-user
+    AuthType shibboleth
+    ShibRequestSetting requiresession On
+    ShibRequestSetting shibexportassertion Off
+    ShibUseHeaders On
+  </Else>
+```
 
 
