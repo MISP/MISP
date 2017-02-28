@@ -39,11 +39,16 @@ class UsersController extends AppController {
 		}
 		$this->User->id = $id;
 		$this->User->recursive = 0;
-
 		if (!$this->User->exists()) {
 			throw new NotFoundException(__('Invalid user'));
 		}
-		$this->set('user', $this->User->read(null, $id));
+		$user = $this->User->read(null, $id);
+		if (!empty($user['User']['gpgkey'])) {
+			$pgpDetails = $this->User->verifySingleGPG($user);
+			$user['User']['pgp_status'] = isset($pgpDetails[2]) ? $pgpDetails[2] : 'OK';
+			$user['User']['fingerprint'] = !empty($pgpDetails[4]) ? $pgpDetails[4] : 'N/A';
+		}
+		$this->set('user', $user);
 	}
 
 	public function request_API(){
@@ -293,13 +298,20 @@ class UsersController extends AppController {
 		if (!$this->User->exists()) {
 			throw new NotFoundException(__('Invalid user'));
 		}
-		$this->set('user', $this->User->read(null, $id));
-		if (!$this->_isSiteAdmin() && !($this->_isAdmin() && $this->Auth->user('org_id') == $this->User->data['User']['org_id'])) {
+		$user = $this->User->read(null, $id);
+		if (!empty($user['User']['gpgkey'])) {
+			$pgpDetails = $this->User->verifySingleGPG($user);
+			$user['User']['pgp_status'] = isset($pgpDetails[2]) ? $pgpDetails[2] : 'OK';
+			$user['User']['fingerprint'] = !empty($pgpDetails[4]) ? $pgpDetails[4] : 'N/A';
+		}
+		$user['User']['orgAdmins'] = $this->User->getOrgAdminsForOrg($user['User']['org_id'], $user['User']['id']);
+		$this->set('user', $user);
+		if (!$this->_isSiteAdmin() && !($this->_isAdmin() && $this->Auth->user('org_id') == $user['User']['org_id'])) {
 			throw new MethodNotAllowedException();
 		}
 		if ($this->_isRest()) {
-			$this->User->data['User']['password'] = '*****';
-			return $this->RestResponse->viewData(array('User' => $this->User->data['User']), $this->response->type());
+			$user['User']['password'] = '*****';
+			return $this->RestResponse->viewData(array('User' => $user['User']), $this->response->type());
 		} else {
 			$temp = $this->User->data['User']['invited_by'];
 			$this->set('id', $id);
@@ -346,6 +358,7 @@ class UsersController extends AppController {
 						'disabled' => 0,
 						'newsread' => 0,
 						'change_pw' => 1,
+						'authkey' => $this->User->generateAuthKey(),
 						'termsaccepted' => 0
 				);
 				foreach ($defaults as $key => $value) {
@@ -973,6 +986,76 @@ class UsersController extends AppController {
 	public function checkAndCorrectPgps() {
 		if (!self::_isAdmin()) throw new NotFoundException();
 		$this->set('fails', $this->User->checkAndCorrectPgps());
+	}
+
+	public function admin_quickEmail($user_id) {
+		if (!$this->_isAdmin()) throw new MethodNotAllowedException();
+		$conditions = array('User.id' => $user_id);
+		if (!$this->_isSiteAdmin()) {
+			$conditions['User.org_id'] = $this->Auth->user('org_id');
+		}
+		$user = $this->User->find('first', array(
+			'conditions' => $conditions,
+			'recursive' => -1
+		));
+		$error = false;
+		if (empty($user)) {
+			$error = 'Invalid user.';
+		}
+		if (!$error && $user['User']['disabled']) {
+			$error = 'Cannot send an e-mail to this user as the account is disabled.';
+		}
+		$encryption = false;
+		if (!$error && !empty($user['User']['gpgkey'])) {
+			$encryption = 'PGP';
+		} else if (!$error && !empty($user['User']['certif_public'])){
+			$encryption = 'SMIME';
+		}
+		$this->set('encryption', $encryption);
+		if (!$error && !$encryption && (Configure::read('GnuPG.onlyencrypted') || Configure::read('GnuPG.bodyonlyencrypted'))) {
+			$error = 'No encryption key found for the user and the instance posture blocks non encrypted e-mails from being sent.';
+		}
+		if ($error) {
+			if ($this->_isRest()) {
+				return $this->RestResponse->saveFailResponse('Users', 'admin_quickEmail', false, $error, $this->response->type());
+			} else {
+				$this->Session->setFlash('Cannot send an e-mail to this user as the account is disabled.');
+				$this->redirect('/admin/users/view/' . $user_id);
+			}
+		}
+		if ($this->request->is('post')) {
+			if (!isset($this->request->data['User'])) {
+				$this->request->data['User'] = $this->request->data;
+			}
+			if (empty($this->request->data['User']['subject']) || empty($this->request->data['User']['body'])) {
+				$message = 'Both the subject and the body have to be set.';
+				if ($this->_isRest()) {
+					throw new MethodNotAllowedException($message);
+				} else {
+					$this->Session->setFlash($message);
+					$this->redirect('/admin/users/quickEmail/' . $user_id);
+				}
+			}
+			$result = $this->User->sendEmail($user, $this->request->data['User']['body'], false, $this->request->data['User']['subject']);
+			if ($this->_isRest()) {
+				if ($result) {
+					return $this->RestResponse->saveSuccessResponse('User', 'admin_quickEmail', $id, $this->response->type(), 'User deleted.');
+				} else {
+					return $this->RestResponse->saveFailResponse('Users', 'admin_quickEmail', false, $this->User->validationErrors, $this->response->type());
+				}
+			} else {
+				if ($result) {
+					$this->Session->setFlash('Email sent.');
+				} else {
+					$this->Session->setFlash('Could not send e-mail.');
+				}
+				$this->redirect('/admin/users/view/' . $user_id);
+			}
+		} else if ($this->_isRest()) {
+			return $this->RestResponse->describe('Users', 'admin_quickEmail', false, $this->response->type());
+		}
+		$this->set('encryption', $encryption);
+		$this->set('user', $user);
 	}
 
 	public function admin_email() {

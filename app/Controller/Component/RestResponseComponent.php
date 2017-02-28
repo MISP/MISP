@@ -12,6 +12,10 @@ class RestResponseComponent extends Component {
 				'admin_edit' => array(
 					'description' => "POST a User object in JSON format to this API to edit a user.",
 					'optional' => array('email', 'org_id', 'role_id', 'password', 'external_auth_required', 'external_auth_key', 'enable_password', 'nids_sid', 'server_id', 'gpgkey', 'certif_public', 'autoalert', 'contactalert', 'disabled', 'change_pw', 'termsaccepted', 'newsread')
+				),
+				'admin_quickEmail' => array(
+					'description' => "POST a body and a subject in a JSON to send an e-mail through MISP to the user ID given in the URL",
+					'mandatory' => array('subject', 'body')
 				)
 			),
 			'Organisation' => array(

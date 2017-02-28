@@ -1,4 +1,8 @@
 <div class="events form">
+	<div class="message">
+		<?php echo 'The event created will be restricted to ' . (Configure::read('MISP.unpublishedprivate') ? 'your organisation only' : 'the organisations included in the distribution setting on the local instance only') . ' until it is published.';?>
+	</div>
+
 <?php echo $this->Form->create('', array('type' => 'file'));?>
 	<fieldset>
 		<legend>Add Event</legend>

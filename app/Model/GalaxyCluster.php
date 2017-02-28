@@ -19,9 +19,8 @@ class GalaxyCluster extends AppModel{
 			'foreignKey' => 'galaxy_id',
 		),
 		'Tag' => array(
-			'className' => 'Tag',
 			'foreignKey' => false,
-			'Tag.name = GalaxyCluster.tag_name'
+			'conditions' => array('GalaxyCluster.tag_name = Tag.name')
 		)
 	);
 
