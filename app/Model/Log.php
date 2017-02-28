@@ -87,6 +87,12 @@ class Log extends AppModel {
 		}
 		if (!isset($this->data['Log']['created'])) $this->data['Log']['created'] = date('Y-m-d H:i:s');
 		if (!isset($this->data['Log']['org'])) $this->data['Log']['org'] = 'SYSTEM';
+		if (isset($this->data['Log']['title'])) {
+			if (strlen($this->data['Log']['title']) >= 65535) {
+				$this->data['Log']['title'] = substr($this->data['Log']['title'], 0, 65532) . '...';
+			}
+		}
+
 		return true;
 	}
 

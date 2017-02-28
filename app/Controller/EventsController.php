@@ -738,6 +738,8 @@ class EventsController extends AppController {
 				$this->set($variable, $currentModel->{$variable});
 			}
 		}
+		$sightingsData = $this->Event->getSightingData($event);
+		$this->set('sightingsData', $sightingsData);
 		if (Configure::read('Plugin.Enrichment_services_enable')) {
 			$this->loadModel('Module');
 			$modules = $this->Module->getEnabledModules();
@@ -853,7 +855,8 @@ class EventsController extends AppController {
 																						'recursive' => -1,
 																						'contain' => array('Org', 'RequesterOrg'))));
 		}
-
+		$sightingsData = $this->Event->getSightingData($event);
+		$this->set('sightingsData', $sightingsData);
 		if (Configure::read('Plugin.Enrichment_services_enable')) {
 			$this->loadModel('Module');
 			$modules = $this->Module->getEnabledModules();
@@ -3097,6 +3100,8 @@ class EventsController extends AppController {
 				foreach (${$source} as $k => $attribute) {
 					if ($attribute['type'] == 'ip-src/ip-dst') {
 						$types = array('ip-src', 'ip-dst');
+					} else if ($attribute['type'] == 'ip-src|port/ip-dst|port') {
+						$types = array('ip-src|port', 'ip-dst|port');
 					} else if ($attribute['type'] == 'malware-sample') {
 						if (!isset($attribute['data_is_handled']) || !$attribute['data_is_handled']) {
 							App::uses('FileAccessTool', 'Tools');

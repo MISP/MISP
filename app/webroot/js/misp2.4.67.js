@@ -2937,3 +2937,26 @@ function loadSightingGraph(id, scope) {
 		$("#sightingsData").html(data);
 	});
 }
+
+function checkRolePerms() {
+	if ($("#RolePermission").val() == '0' || $("#RolePermission").val() == '1') {
+		$('.readonlydisabled').prop('checked', false);
+		$('.readonlydisabled').hide();
+	} else {
+		$('.readonlydisabled').show();
+		$('.permFlags').show();
+	}
+	if ($("#RolePermSiteAdmin").prop('checked')) {
+		$('.checkbox').prop('checked', true);
+	}
+}
+
+// clicking on an element with this class will select all of its contents in a
+// single click
+$('.quickSelect').click(function() {
+	var range = document.createRange();
+	var selection = window.getSelection();
+	range.selectNodeContents(this);
+	selection.removeAllRanges();
+	selection.addRange(range);
+});

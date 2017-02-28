@@ -46,7 +46,7 @@ class AppController extends Controller {
 
 	public $helpers = array('Utility');
 
-	private $__jsVersion = '2.4.66';
+	private $__jsVersion = '2.4.67';
 	public $pyMispVersion = '2.4.65';
 	public $phpmin = '5.6.5';
 	public $phprec = '7.0.0';
@@ -329,6 +329,7 @@ class AppController extends Controller {
 			$this->set('isAclTagEditor', $role['perm_tag_editor']);
 			$this->set('isAclTemplate', $role['perm_template']);
 			$this->set('isAclSharingGroup', $role['perm_sharing_group']);
+			$this->set('isAclSighting', isset($role['perm_sighting']) ? $role['perm_sighting'] : false);
 			$this->userRole = $role;
 		} else {
 			$this->set('me', false);
