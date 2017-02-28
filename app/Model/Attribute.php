@@ -330,7 +330,7 @@ class Attribute extends AppModel {
 	// This helps generate quick filtering for the event view, but we may reuse this and enhance it in the future for other uses (such as the API?)
 	public $typeGroupings = array(
 		'file' => array('attachment', 'pattern-in-file', 'md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'authentihash', 'pehash', 'tlsh', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|pehash', 'malware-sample', 'x509-fingerprint-sha1'),
-		'network' => array('ip-src', 'ip-dst', 'hostname', 'domain', 'domain|ip', 'email-dst', 'url', 'uri', 'user-agent', 'http-method', 'AS', 'snort', 'pattern-in-traffic', 'x509-fingerprint-sha1'),
+		'network' => array('ip-src', 'ip-dst', 'ip-src|port', 'ip-dst|port', 'hostname', 'hostname|port', 'domain', 'domain|ip', 'email-dst', 'url', 'uri', 'user-agent', 'http-method', 'AS', 'snort', 'pattern-in-traffic', 'x509-fingerprint-sha1'),
 		'financial' => array('btc', 'iban', 'bic', 'bank-account-nr', 'aba-rtn', 'bin', 'cc-number', 'prtn')
 	);
 
@@ -462,6 +462,10 @@ class Attribute extends AppModel {
 	public $hasMany = array(
 		'AttributeTag' => array(
 			'dependent' => true
+		),
+		'Sighting' => array(
+				'className' => 'Sighting',
+				'dependent' => true,
 		)
 	);
 
@@ -785,7 +789,7 @@ class Attribute extends AppModel {
 				break;
 			case 'hostname':
 			case 'domain':
-				if (preg_match("#^[A-Z0-9.\-_]+\.[A-Z]{2,}$#i", $value)) {
+				if (preg_match("#^[A-Z0-9.\-_]+\.[A-Z0-9\-]{2,}$#i", $value)) {
 					$returnValue = true;
 				} else {
 					$returnValue = 'Domain name has an invalid format. Please double check the value or select type "other".';
@@ -793,14 +797,14 @@ class Attribute extends AppModel {
 				break;
 			case 'hostname|port':
 				$parts = explode('|', $value);
-				if (preg_match("#^[A-Z0-9.\-_]+\.[A-Z]{2,}$#i", $parts[0])) {
+				if (preg_match("#^[A-Z0-9.\-_]+\.[A-Z0-9\-]{2,}$#i", $parts[0])) {
 					if (!is_numeric($parts[1]) || $parts[1] > 1 || $parts[1] < 65536) {
 						$returnValue = true;
 					}
 				}
 				break;
 			case 'domain|ip':
-				if (preg_match("#^[A-Z0-9.\-_]+\.[A-Z]{2,}\|.*$#i", $value)) {
+				if (preg_match("#^[A-Z0-9.\-_]+\.[A-Z0-9\-]{2,}\|.*$#i", $value)) {
 					$parts = explode('|', $value);
 					if (filter_var($parts[1], FILTER_VALIDATE_IP)) {
 						$returnValue = true;
@@ -818,7 +822,7 @@ class Attribute extends AppModel {
 			case 'dns-soa-email':
 			case 'jabber-id':
 				// we don't use the native function to prevent issues with partial email addresses
-				if (preg_match("#^[A-Z0-9._&%+-=~]*@[A-Z0-9.\-_]+\.[A-Z]{2,}$#i", $value)) {
+				if (preg_match("#^[A-Z0-9._&%+-=~]*@[A-Z0-9.\-_]+\.[A-Z0-9\-]{2,}$#i", $value)) {
 					$returnValue = true;
 				} else {
 					$returnValue = 'Email address has an invalid format. Please double check the value or select type "other".';
@@ -1336,14 +1340,14 @@ class Attribute extends AppModel {
 				}
 			}
 		}
+		$extraConditions = array();
 		if (!empty($ipValues)) {
 			$extraConditions = array('OR' => array(
 				'Attribute.value1' => $ipValues,
 				'Attribute.value2' => $ipValues
 			));
-			return $extraConditions;
 		}
-		return false;
+		return $extraConditions;
 	}
 
 	public function __afterSaveCorrelation($a, $full = false, $event = false) {
@@ -2075,6 +2079,18 @@ class Attribute extends AppModel {
 			);
 		}
 		return $conditions;
+	}
+
+	public function listVisibleAttributes($user, $options = array()) {
+		$params = array(
+			'conditions' => $this->buildConditions($user),
+			'recursive' => -1,
+			'fields' => array('Attribute.id', 'Attribute.id'),
+		);
+		if (isset($options['conditions'])) {
+			$params['conditions']['AND'][] = $options['conditions'];
+		}
+		return $this->find('list', $params);
 	}
 
 	// Method that fetches all attributes for the various exports

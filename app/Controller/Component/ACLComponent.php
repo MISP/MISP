@@ -285,9 +285,13 @@ class ACLComponent extends Component {
 					'view' => array('*'),
 			),
 			'sightings' => array(
-					'add' => array('perm_add'),
-					'delete' => array('perm_add'),
-					'index' => array('*')
+					'add' => array('perm_sighting'),
+					'advanced' => array('perm_sighting'),
+					'delete' => array('perm_sighting'),
+					'index' => array('*'),
+					'listSightings' => array('perm_sighting'),
+					'quickDelete' => array('perm_sighting'),
+					'viewSightings' => array('perm_sighting')
 			),
 			'tags' => array(
 					'add' => array('perm_tag_editor'),
@@ -351,8 +355,10 @@ class ACLComponent extends Component {
 					'admin_email' => array('perm_admin'),
 					'admin_filterUserIndex' => array('perm_admin'),
 					'admin_index' => array('perm_admin'),
+					'admin_quickEmail' => array('perm_admin'),
 					'admin_view' => array('perm_admin'),
 					'arrayCopy' => array(),
+					'attributehistogram' => array('*'),
 					'change_pw' => array('*'),
 					'checkAndCorrectPgps' => array(),
 					'dashboard' => array('*'),
@@ -365,7 +371,6 @@ class ACLComponent extends Component {
 					'initiatePasswordReset' => array('perm_admin'),
 					'login' => array('*'),
 					'logout' => array('*'),
-					'attributehistogram' => array('*'),
 					'resetauthkey' => array('*'),
 					'request_API' => array('*'),
 					'routeafterlogin' => array('*'),

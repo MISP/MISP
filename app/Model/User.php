@@ -434,8 +434,47 @@ App::uses('RandomTool', 'Tools');
 				)));
 	}
 
+  public function verifySingleGPG($user, $gpg = false) {
+    if (!$gpg) {
+      require_once 'Crypt/GPG.php';
+      $gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
+    }
+    $result = array();
+    try {
+      $currentTimestamp = time();
+      $temp = $gpg->importKey($user['User']['gpgkey']);
+      $key = $gpg->getKeys($temp['fingerprint']);
+      $subKeys = $key[0]->getSubKeys();
+      $sortedKeys = array('valid' => 0, 'expired' => 0, 'noEncrypt' => 0);
+      foreach ($subKeys as $subKey) {
+        $expiration = $subKey->getExpirationDate();
+        if ($expiration != 0 && $currentTimestamp > $expiration) {
+          $sortedKeys['expired']++;
+          continue;
+        }
+        if (!$subKey->canEncrypt()) {
+          $sortedKeys['noEncrypt']++;
+          continue;
+        }
+        $sortedKeys['valid']++;
+      }
+      if (!$sortedKeys['valid']) {
+        $result[2] = 'The user\'s PGP key does not include a valid subkey that could be used for encryption.';
+        if ($sortedKeys['expired']) $result[2] .= ' Found ' . $sortedKeys['expired'] . ' subkey(s) that have expired.';
+        if ($sortedKeys['noEncrypt']) $result[2] .= ' Found ' . $sortedKeys['noEncrypt'] . ' subkey(s) that are sign only.';
+        $result[0] = true;
+      }
+    } catch (Exception $e) {
+      $result[2] = $e->getMessage();
+      $result[0] = true;
+    }
+    $result[1] = $user['User']['email'];
+    $result[4] = $temp['fingerprint'];
+    return $result;
+  }
+
 	public function verifyGPG($id = false) {
-		require_once 'Crypt/GPG.php';
+    require_once 'Crypt/GPG.php';
 		$this->Behaviors->detach('Trim');
 		$results = array();
 		$conditions = array('not' => array('gpgkey' => ''));
@@ -445,37 +484,10 @@ App::uses('RandomTool', 'Tools');
 			'recursive' => -1,
 		));
 		if (empty($users)) return $results;
-		$currentTimestamp = time();
 		$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
 		foreach ($users as $k => $user) {
-			try {
-				$temp = $gpg->importKey($user['User']['gpgkey']);
-				$key = $gpg->getKeys($temp['fingerprint']);
-				$subKeys = $key[0]->getSubKeys();
-				$sortedKeys = array('valid' => 0, 'expired' => 0, 'noEncrypt' => 0);
-				foreach ($subKeys as $subKey) {
-					$expiration = $subKey->getExpirationDate();
-					if ($expiration != 0 && $currentTimestamp > $expiration) {
-						$sortedKeys['expired']++;
-						continue;
-					}
-					if (!$subKey->canEncrypt()) {
-						$sortedKeys['noEncrypt']++;
-						continue;
-					}
-					$sortedKeys['valid']++;
-				}
-				if (!$sortedKeys['valid']) {
-					$results[$user['User']['id']][2] = 'The user\'s PGP key does not include a valid subkey that could be used for encryption.';
-					if ($sortedKeys['expired']) $results[$user['User']['id']][2] .= ' Found ' . $sortedKeys['expired'] . ' subkey(s) that have expired.';
-					if ($sortedKeys['noEncrypt']) $results[$user['User']['id']][2] .= ' Found ' . $sortedKeys['noEncrypt'] . ' subkey(s) that are sign only.';
-					$results[$user['User']['id']][0] = true;
-				}
-			} catch (Exception $e) {
-				$results[$user['User']['id']][2] = $e->getMessage();
-				$results[$user['User']['id']][0] = true;
-			}
-			$results[$user['User']['id']][1] = $user['User']['email'];
+      $results[$user['User']['id']] = $this->verifySingleGPG($user, $gpg);
+
 		}
 		return $results;
 	}
@@ -977,6 +989,28 @@ App::uses('RandomTool', 'Tools');
 		} else {
 			return array('body'=> json_encode(array('saved' => false, 'errors' => 'There was an error notifying the user. His/her credentials were not altered.')),'status'=>200);
 		}
-
 	}
+
+  public function getOrgAdminsForOrg($org_id, $excludeUserId = false) {
+    $adminRoles = $this->Role->find('list', array(
+      'recursive' => -1,
+      'conditions' => array('perm_admin' => 1),
+      'fields' => array('Role.id', 'Role.id')
+    ));
+    $conditions = array(
+      'User.org_id' => $org_id,
+      'User.disabled' => 0,
+      'User.role_id' => $adminRoles
+    );
+    if ($excludeUserId) {
+      $conditions['User.id !='] = $excludeUserId;
+    }
+    return $this->find('list', array(
+      'recursive' => -1,
+      'conditions' => $conditions,
+      'fields' => array(
+        'User.id', 'User.email'
+      )
+    ));
+  }
 }

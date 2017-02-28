@@ -122,6 +122,9 @@ class Feed extends AppModel {
 		if (isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] == 'local') {
 			if (file_exists($feed['Feed']['url'] . '/manifest.json')) {
 				$data = file_get_contents($feed['Feed']['url'] . '/manifest.json');
+				if (empty($data)) return false;
+			} else {
+				throw new NotFoundException('Invalid file.');
 			}
 		} else {
 			$uri = $feed['Feed']['url'] . '/manifest.json';
@@ -658,7 +661,7 @@ class Feed extends AppModel {
 		$prunedCopy = array();
 		foreach ($data as $key => $value) {
 			foreach ($prunedCopy as $copy) {
-				if ($copy['type'] == $value['type'] && $copy['category'] == $value['category'] && $copy['value'] == $value['value']) {
+ 				if ($copy['type'] == $value['type'] && $copy['category'] == $value['category'] && $copy['value'] == $value['value']) {
 					continue 2;
 				}
 			}
