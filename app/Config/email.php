@@ -46,7 +46,8 @@ class EmailConfig {
 	// to set the return-path header, simply uncomment the line below and change you@localhost to the desired e-mail address
 	public $default = array(
 		'transport'            => 'Mail',
-		'charset'              => 'utf-8',
+        'charset'              => 'utf-8',
+        'headers'              => array('Precedence' => 'bulk'),
 		//'additionalParameters' => '-f you@localhost'
 	);
 
