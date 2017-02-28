@@ -11,11 +11,11 @@ class TagsController extends AppController {
 					'Tag.name' => 'asc'
 			),
 			'contain' => array(
-				'AttributeTag' => array(
-					'fields' => array('attribute_id')
-				),
 				'EventTag' => array(
-					'fields' => array('event_id')
+					'fields' => array('EventTag.event_id')
+				),
+				'AttributeTag' => array(
+					'fields' => array('AttributeTag.event_id', 'AttributeTag.attribute_id')
 				),
 				'FavouriteTag',
 				'Organisation' => array(
@@ -49,9 +49,13 @@ class TagsController extends AppController {
 		} else {
 			$paginated = $this->paginate();
 		}
+		$tagList = array();
+		$csv = array();
 		foreach ($paginated as $k => $tag) {
-			if (empty($tag['EventTag'])) $paginated[$k]['Tag']['count'] = 0;
-			else {
+			$tagList[] = $tag['Tag']['id'];
+			if (empty($tag['EventTag'])) {
+				$paginated[$k]['Tag']['count'] = 0;
+			} else {
 				$eventIDs = array();
 				foreach ($tag['EventTag'] as $eventTag) {
 					$eventIDs[] = $eventTag['event_id'];
@@ -72,7 +76,16 @@ class TagsController extends AppController {
 				));
 				$paginated[$k]['Tag']['count'] = count($events);
 			}
+			$paginated[$k]['event_ids'] = array();
+			$paginated[$k]['attribute_ids'] = array();
+			foreach($paginated[$k]['EventTag'] as $et) {
+				$paginated[$k]['event_ids'][] = $et['event_id'];
+			}
 			unset($paginated[$k]['EventTag']);
+			foreach($paginated[$k]['AttributeTag'] as $at) {
+				$paginated[$k]['attribute_ids'][] = $at['attribute_id'];
+			}
+
 			if (empty($tag['AttributeTag'])) {
 				$paginated[$k]['Tag']['attribute_count'] = 0;
 			} else {
@@ -118,6 +131,39 @@ class TagsController extends AppController {
 				}
 			}
 		}
+		$this->loadModel('Sighting');
+		$sightings['event'] = $this->Sighting->getSightingsForObjectIds($this->Auth->user(), $tagList);
+		$sightings['attribute'] = $this->Sighting->getSightingsForObjectIds($this->Auth->user(), $tagList, 'attribute');
+		foreach ($paginated as $k => $tag) {
+			$objects = array('event', 'attribute');
+			foreach ($objects as $object) {
+				foreach ($tag[$object . '_ids'] as $objectid) {
+					if (isset($sightings[$object][$objectid])) {
+						foreach ($sightings[$object][$objectid] as $date => $sightingCount) {
+							if (!isset($tag['sightings'][$date])) {
+								$tag['sightings'][$date] = $sightingCount;
+							} else {
+								$tag['sightings'][$date] += $sightingCount;
+							}
+						}
+					}
+				}
+			}
+			$startDate = !empty($tag['sightings']) ? min(array_keys($tag['sightings'])) : date('Y-m-d');
+			$startDate = date('Y-m-d', strtotime("-3 days", strtotime($startDate)));
+			$to = date('Y-m-d', time());
+			for ($date = $startDate; strtotime($date) <= strtotime($to); $date = date('Y-m-d',strtotime("+1 day", strtotime($date)))) {
+				if (!isset($csv[$k])) {
+					$csv[$k] = 'Date,Close\n';
+				}
+				if (isset($tag['sightings'][$date])) {
+					$csv[$k] .= $date . ',' . $tag['sightings'][$date] . '\n';
+				} else {
+					$csv[$k] .= $date . ',0\n';
+				}
+			}
+			unset($paginated[$k]['event_ids']);
+		}
 		if ($this->_isRest()) {
 			foreach ($paginated as $key => $tag) {
 				$paginated[$key] = $tag['Tag'];
@@ -125,6 +171,7 @@ class TagsController extends AppController {
 			$this->set('Tag', $paginated);
 			$this->set('_serialize', array('Tag'));
 		} else {
+			$this->set('csv', $csv);
 			$this->set('list', $paginated);
 			$this->set('favouritesOnly', $favouritesOnly);
 		}

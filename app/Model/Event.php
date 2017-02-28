@@ -318,6 +318,10 @@ class Event extends AppModel {
 		'EventTag' => array(
 			'className' => 'EventTag',
 			'dependent' => true,
+		),
+		'Sighting' => array(
+			'className' => 'Sighting',
+			'dependent' => true,
 		)
 	);
 
@@ -819,6 +823,21 @@ class Event extends AppModel {
 		return 'Success';
 	}
 
+	public function addHeaders($request) {
+		$version = $this->checkMISPVersion();
+		$version = implode('.', $version);
+		try {
+			$commit = trim(shell_exec('git log --pretty="%H" -n1 HEAD'));
+		} catch (Exception $e) {
+			$commit = false;
+		}
+		$request['header']['MISP-version'] = $version;
+		if ($commit) {
+			$request['header']['commit'] = $commit;
+		}
+		return $request;
+	}
+
 	// Uploads the event and the associated Attributes to another Server
 	public function restfulEventToServer($event, $server, $urlPath, &$newLocation, &$newTextBody, $HttpSocket = null) {
 		if ($event['Event']['distribution'] == 4) {
@@ -849,9 +868,11 @@ class Event extends AppModel {
 						'Authorization' => $authkey,
 						'Accept' => 'application/json',
 						'Content-Type' => 'application/json',
+
 						//'Connection' => 'keep-alive' // // LATER followup cakephp issue about this problem: https://github.com/cakephp/cakephp/issues/1961
 				)
 		);
+		$request = $this->addHeaders($request);
 		$uri = $url . '/events';
 		if (isset($urlPath)) {
 			$pieces = explode('/', $urlPath);
@@ -977,7 +998,6 @@ class Event extends AppModel {
 				}
 				unset($attribute['AttributeTag']);
 
-
 				// remove value1 and value2 from the output
 				unset($attribute['value1']);
 				unset($attribute['value2']);
@@ -1051,6 +1071,7 @@ class Event extends AppModel {
 						//'Connection' => 'keep-alive' // // LATER followup cakephp issue about this problem: https://github.com/cakephp/cakephp/issues/1961
 				)
 		);
+		$request = $this->addHeaders($request);
 		$uri = $url . '/events/0?uuid=' . $uuid;
 
 		// LATER validate HTTPS SSL certificate
@@ -1082,6 +1103,7 @@ class Event extends AppModel {
 						//'Connection' => 'keep-alive' // // LATER followup cakephp issue about this problem: https://github.com/cakephp/cakephp/issues/1961
 				)
 		);
+		$request = $this->addHeaders($request);
 		$uri = $url . '/events/view/' . $eventId . '/deleted:true';
 		$response = $HttpSocket->get($uri, $data = '', $request);
 		if ($response->isOk()) {
@@ -1106,6 +1128,7 @@ class Event extends AppModel {
 						//'Connection' => 'keep-alive' // LATER followup cakephp issue about this problem: https://github.com/cakephp/cakephp/issues/1961
 				)
 		);
+		$request = $this->addHeaders($request);
 		$uri = $url . '/shadow_attributes/getProposalsByUuidList';
 		$response = $HttpSocket->post($uri, json_encode($uuidList), $request);
 		if ($response->isOk()) {
@@ -1351,6 +1374,11 @@ class Event extends AppModel {
 			$this->Sighting = ClassRegistry::init('Sighting');
 		}
 		foreach ($results as $eventKey => &$event) {
+			// Add information for auditor user
+			if ($event['Event']['orgc_id'] === $user['org_id'] && $user['Role']['perm_audit']) {
+				$UserEmail = $this->User->getAuthUser($event['Event']['user_id'])['email'];
+				$event['Event']['event_creator_email'] = $UserEmail;
+			}
 			// unset the empty sharing groups that are created due to the way belongsTo is handled
 			if (isset($event['SharingGroup']['SharingGroupServer'])) {
 				foreach ($event['SharingGroup']['SharingGroupServer'] as &$sgs) {
@@ -2042,8 +2070,8 @@ class Event extends AppModel {
 		}
 		// FIXME chri: validatebut  the necessity for all these fields...impact on security !
 		$fieldList = array(
-				'Event' => array('org_id', 'orgc_id', 'date', 'threat_level_id', 'analysis', 'info', 'user_id', 'published', 'uuid', 'timestamp', 'distribution', 'sharing_group_id', 'locked'),
-				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'timestamp', 'distribution', 'comment', 'sharing_group_id', 'deleted'),
+				'Event' => array('org_id', 'orgc_id', 'date', 'threat_level_id', 'analysis', 'info', 'user_id', 'published', 'uuid', 'timestamp', 'distribution', 'sharing_group_id', 'locked', 'disable_correlation'),
+				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'timestamp', 'distribution', 'comment', 'sharing_group_id', 'deleted', 'disable_correlation'),
 		);
 		$saveResult = $this->save(array('Event' => $data['Event']), array('fieldList' => $fieldList['Event']));
 		$this->Log = ClassRegistry::init('Log');
@@ -2455,8 +2483,8 @@ class Event extends AppModel {
 												'fields' => array('id', 'url', 'name')
 											)
 										),
-								),
-								'AttributeTag' => array('Tag')
+									),
+									'AttributeTag' => array('Tag')
 						),
 						'EventTag' => array('Tag'),
 						'Org' => array('fields' => array('id', 'uuid', 'name', 'local')),
@@ -3161,5 +3189,85 @@ class Event extends AppModel {
 				'extension' => $module['mispattributes']['outputFileExtension'],
 				'response' => $module['mispattributes']['responseType']
 		);
+	}
+
+	public function getSightingData($event) {
+		$this->Sighting = ClassRegistry::init('Sighting');
+		if (!empty($event['Sighting'])) {
+			$attributeSightings = array();
+			$attributeOwnSightings = array();
+			$attributeSightingsPopover = array();
+			$sightingsData = array();
+			$sparklineData = array();
+			$startDates = array();
+			$range = (!empty(Configure::read('MISP.Sightings_range')) && is_numeric(Configure::read('MISP.Sightings_range'))) ? Configure::read('MISP.Sightings_range') : 365;
+			$range = strtotime("-" . $range . " days", time());
+			foreach ($event['Sighting'] as $sighting) {
+				$type = $this->Sighting->type[$sighting['type']];
+				if (!isset($sightingsData[$sighting['attribute_id']][$type])) {
+					$sightingsData[$sighting['attribute_id']][$type] = array('count' => 0);
+				}
+				$sightingsData[$sighting['attribute_id']][$type]['count']++;
+				$orgName = isset($sighting['Organisation']['name']) ? $sighting['Organisation']['name'] : 'Others';
+				if ($sighting['type'] == '0' && (!isset($startDates[$sighting['attribute_id']]) || $startDates[$sighting['attribute_id']] > $sighting['date_sighting'])) {
+					if ($sighting['date_sighting'] >= $range) {
+						$startDates[$sighting['attribute_id']] = $sighting['date_sighting'];
+					}
+				}
+				if ($sighting['type'] == '0' && (!isset($startDates['event']) || $startDates['event'] > $sighting['date_sighting'])) {
+					if ($sighting['date_sighting'] >= $range) {
+						$startDates['event'] = $sighting['date_sighting'];
+					}
+				}
+				if (!isset($sightingsData[$sighting['attribute_id']][$type]['orgs'][$orgName])) {
+					$sightingsData[$sighting['attribute_id']][$type]['orgs'][$orgName] = array('count' => 1, 'date' => $sighting['date_sighting']);
+				} else {
+					$sightingsData[$sighting['attribute_id']][$type]['orgs'][$orgName]['count']++;
+					if ($sightingsData[$sighting['attribute_id']][$type]['orgs'][$orgName]['date'] < $sighting['date_sighting']) {
+						$sightingsData[$sighting['attribute_id']][$type]['orgs'][$orgName]['date'] = $sighting['date_sighting'];
+					}
+				}
+				$date = date("Y-m-d", $sighting['date_sighting']);
+				if (!isset($sparklineData[$sighting['attribute_id']][$date])) {
+					$sparklineData[$sighting['attribute_id']][$date] = 1;
+				} else {
+					$sparklineData[$sighting['attribute_id']][$date]++;
+				}
+				if (!isset($sparklineData['event'][$date])) {
+					$sparklineData['event'][$date] = 1;
+				} else {
+					$sparklineData['event'][$date]++;
+				}
+			}
+			$csv = array();
+			foreach ($startDates as $k => $v) {
+				$startDates[$k] = date('Y-m-d', $v);
+			}
+			$range = (!empty(Configure::read('MISP.Sightings_range')) && is_numeric(Configure::read('MISP.Sightings_range'))) ? Configure::read('MISP.Sightings_range') : 365;
+			foreach ($sparklineData as $aid => $data) {
+				$startDate = $startDates[$aid];
+				if (strtotime($startDate) < strtotime('-' . $range . ' days', time())) {
+					$startDate = date('Y-m-d');
+				}
+				$startDate = date('Y-m-d',strtotime("-3 days", strtotime($startDate)));
+				$to = date('Y-m-d', time());
+				$sighting = $data;
+				for ($date = $startDate; strtotime($date) <= strtotime($to); $date = date('Y-m-d',strtotime("+1 day", strtotime($date)))) {
+					if (!isset($csv[$aid])) {
+						$csv[$aid] = 'Date,Close\n';
+					}
+					if (isset($sighting[$date])) {
+						$csv[$aid] .= $date . ',' . $sighting[$date] . '\n';
+					} else {
+						$csv[$aid] .= $date . ',0\n';
+					}
+				}
+			}
+			return array(
+					'data' => $sightingsData,
+					'csv' => $csv
+			);
+		}
+		return array('data' => array(), 'csv' => array());
 	}
 }

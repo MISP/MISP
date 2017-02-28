@@ -34,8 +34,8 @@
 </head>
 <body>
 	<div id="popover_form" class="ajax_popover_form"></div>
-	<div id="confirmation_box" class="confirmation_box"></div>
 	<div id="screenshot_box" class="screenshot_box"></div>
+	<div id="confirmation_box" class="confirmation_box"></div>
 	<div id="gray_out" class="gray_out"></div>
 		<div id="container">
 			<?php echo $this->element('global_menu');
