@@ -1706,7 +1706,7 @@ class Attribute extends AppModel {
 		$intel = array();
 		foreach ($types as $type) {
 			//restricting to non-private or same org if the user is not a site-admin.
-			$conditions['AND'] = array('Attribute.to_ids =' => 1, 'Event.published =' => 1);
+			$conditions['AND'] = array('Attribute.to_ids' => 1, 'Event.published' => 1);
 			if ($from) $conditions['AND']['Event.date >='] = $from;
 			if ($to) $conditions['AND']['Event.date <='] = $to;
 			if ($last) $conditions['AND']['Event.publish_timestamp >='] = $last;
