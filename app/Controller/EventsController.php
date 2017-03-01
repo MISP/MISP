@@ -3937,7 +3937,7 @@ class EventsController extends AppController {
 				$importComment = $result['comment'];
 			}
 			else {
-				$importComment = 'Enriched via the ' . $module . ' module';
+				$importComment = $attribute[0]['Attribute']['value'] . ': Enriched via the ' . $module . ' module';
 			}
 			$typeCategoryMapping = array();
 			foreach ($this->Event->Attribute->categoryDefinitions as $k => $cat) {
