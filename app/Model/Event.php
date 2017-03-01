@@ -1112,6 +1112,77 @@ class Event extends AppModel {
 		return null;
 	}
 
+	public function quickDelete($event) {
+		$id = $event['Event']['id'];
+		$this->Thread = ClassRegistry::init('Thread');
+		$thread = $this->Thread->find('first', array(
+			'conditions' => array('Thread.event_id' => $id),
+			'fields' => array('Thread.id'),
+			'recursive' => -1
+		));
+		$thread_id = !empty($thread) ? $thread['Thread']['id'] : false;
+		$relations = array(
+			array(
+				'table' => 'attributes',
+				'foreign_key' => 'event_id',
+				'value' => $id
+			),
+			array(
+				'table' => 'shadow_attributes',
+				'foreign_key' => 'event_id',
+				'value' => $id
+			),
+			array(
+				'table' => 'event_tags',
+				'foreign_key' => 'event_id',
+				'value' => $id
+			),
+			array(
+				'table' => 'attribute_tags',
+				'foreign_key' => 'event_id',
+				'value' => $id
+			),
+			array(
+				'table' => 'threads',
+				'foreign_key' => 'event_id',
+				'value' => $id
+			),
+			array(
+				'table' => 'correlations',
+				'foreign_key' => 'event_id',
+				'value' => $id
+			),
+			array(
+				'table' => 'correlations',
+				'foreign_key' => '1_event_id',
+				'value' => $id
+			),
+			array(
+				'table' => 'sightings',
+				'foreign_key' => 'event_id',
+				'value' => $id
+			),
+			array(
+				'table' => 'event_delegations',
+				'foreign_key' => 'event_id',
+				'value' => $id
+			)
+		);
+		if ($thread_id) {
+			$relations[] = 	array(
+				'table' => 'posts',
+				'foreign_key' => 'thread_id',
+				'value' => $thread_id
+			);
+		}
+		App::uses('QueryTool', 'Tools');
+		$queryTool = new QueryTool();
+		foreach ($relations as $relation) {
+				$queryTool->quickDelete($relation['table'], $relation['foreign_key'], $relation['value'], $this);
+		}
+		return $this->delete($id, false);
+	}
+
 	public function downloadProposalsFromServer($uuidList, $server, $HttpSocket = null) {
 		$url = $server['Server']['url'];
 		$authkey = $server['Server']['authkey'];
