@@ -519,7 +519,10 @@ class UsersController extends AppController {
 				else array_push($fieldsOldValues, $this->User->field('password'));
 			}
 			// TODO Audit, __extralog, fields get orig END
-			if (isset($this->request->data['User']['password']) && "" != $this->request->data['User']['password']) {
+			if (
+				isset($this->request->data['User']['enable_password']) && $this->request->data['User']['enable_password'] != '0' &&
+				isset($this->request->data['User']['password']) && "" != $this->request->data['User']['password']
+			) {
 				$fields[] = 'password';
 				if ($this->_isRest() && !isset($this->request->data['User']['confirm_password'])) {
 					$this->request->data['User']['confirm_password'] = $this->request->data['User']['password'];
