@@ -1420,16 +1420,17 @@ class EventsController extends AppController {
 			throw new NotFoundException(__('Invalid event'));
 		}
 
-		// find the uuid
-		$result = $this->Event->findById($id);
-		$this->Event->read();
-
+		$event = $this->Event->find('first', array(
+			'conditions' => array('Event.id' => $id),
+			'fields' => array('Event.orgc_id', 'Event.id'),
+			'recursive' => -1
+		));
 		if (!$this->_isSiteAdmin()) {
-			if ($this->Event->data['Event']['orgc_id'] != $this->_checkOrg() || !$this->userRole['perm_modify']) {
+			if ($event['Event']['orgc_id'] != $this->_checkOrg() || !$this->userRole['perm_modify']) {
 				throw new MethodNotAllowedException();
 			}
 		}
-		if ($this->Event->delete()) {
+		if ($this->Event->quickDelete($event)) {
 			if ($this->_isRest() || $this->response->type() === 'application/json') {
 				$this->set('message', 'Event deleted.');
 				$this->set('_serialize', array('message'));
