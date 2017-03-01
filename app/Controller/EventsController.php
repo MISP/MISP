@@ -3283,7 +3283,7 @@ class EventsController extends AppController {
 		$message= "";
 		$success = true;
 		$counter = 0;
-		if (!$this->userRole['perm_sync']) throw new MethodNotAllowedException('You do not have the permission to do that.');
+		if (!$this->userRole['perm_sync'] || !$this->userRole['perm_add']) throw new MethodNotAllowedException('You do not have the permission to do that.');
 		if ($this->request->is('post')) {
 			$event = $this->Event->find('first', array(
 					'conditions' => array('Event.uuid' => $uuid),
