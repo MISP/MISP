@@ -1649,7 +1649,7 @@ class EventsController extends AppController {
 		$filesize_units = array('B', 'KB', 'MB', 'GB', 'TB');
 		if ($this->_isSiteAdmin()) $this->Session->setFlash('Warning, you are logged in as a site admin, any export that you generate will contain the FULL UNRESTRICTED data-set. If you would like to generate an export for your own organisation, please log in with a different user.');
 		// Check if the background jobs are enabled - if not, fall back to old export page.
-		if (Configure::read('MISP.background_jobs')) {
+		if (Configure::read('MISP.background_jobs') && !Configure::read('MISP.disable_cached_exports')) {
 			$now = time();
 
 			// as a site admin we'll use the ADMIN identifier, not to overwrite the cached files of our own org with a file that includes too much data.
@@ -1746,6 +1746,9 @@ class EventsController extends AppController {
 	}
 
 	public function downloadExport($type, $extra = null) {
+		if (Configure::read('MISP.disable_cached_exports')) {
+			throw new MethodNotAllowedException('This feature is currently disabled');
+		}
 		if ($this->_isSiteAdmin()) $org = 'ADMIN';
 		else $org = $this->Auth->user('Organisation')['name'];
 		$this->autoRender = false;
@@ -3283,7 +3286,7 @@ class EventsController extends AppController {
 		$message= "";
 		$success = true;
 		$counter = 0;
-		if (!$this->userRole['perm_sync']) throw new MethodNotAllowedException('You do not have the permission to do that.');
+		if (!$this->userRole['perm_sync'] || !$this->userRole['perm_add']) throw new MethodNotAllowedException('You do not have the permission to do that.');
 		if ($this->request->is('post')) {
 			$event = $this->Event->find('first', array(
 					'conditions' => array('Event.uuid' => $uuid),
