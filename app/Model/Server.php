@@ -161,6 +161,16 @@ class Server extends AppModel {
 							'test' => 'testForEmpty',
 							'type' => 'string',
 					),
+					'disable_cached_exports' => array(
+							'level' => 1,
+							'description' => 'Cached exports can take up a considerable amount of space and can be disabled instance wide using this setting. Disabling the cached exports is not recommended as it\'s a valuable feature, however, if your server is having free space issues it might make sense to take this step.',
+							'value' => false,
+							'null' => true,
+							'errorMessage' => '',
+							'test' => 'testDisableCache',
+							'type' => 'boolean',
+							'afterHook' => 'disableCacheAfterHook',
+					),
 					'header' => array(
 							'level' => 3,
 							'description' => 'This setting is deprecated and can be safely removed.',
@@ -2173,6 +2183,11 @@ class Server extends AppModel {
 		return true;
 	}
 
+	public function testDisableCache($value) {
+		if (isset($value) && $value) return 'Export caches are disabled.';
+		return true;
+	}
+
 	public function testLive($value) {
 		if ($this->testBool($value) !== true) return $this->testBool($value);
 		if (!$value) return 'MISP disabled.';
@@ -2307,6 +2322,29 @@ class Server extends AppModel {
 			return true;
 		}
 		$pubSubTool->reloadServer();
+		return true;
+	}
+
+	public function disableCacheAfterHook($setting, $value) {
+		if ($value) {
+			$this->Event = ClassRegistry::init('Event');
+			App::uses('Folder', 'Utility');
+			App::uses('File', 'Utility');
+			// delete all cache files
+			foreach ($this->Event->export_types as $type => $settings) {
+				$dir = new Folder(APP . 'tmp/cached_exports/' . $type);
+				// No caches created for this type of export, move on
+				if ($dir == null) {
+					continue;
+				}
+				$files = $dir->find('.*' . $settings['extension']);
+				foreach ($files as $file) {
+					$file = new File($dir->pwd() . DS . $file);
+					$file->delete();
+					$file->close();
+				}
+			}
+		}
 		return true;
 	}
 
