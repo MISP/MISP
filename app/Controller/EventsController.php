@@ -2642,7 +2642,7 @@ class EventsController extends AppController {
 						'eventid' => $currentEventId,
 						'includeAttachments' => $withAttachments,
 						'metadata' => $metadata,
-						'enforceWarninglist' => $enforceWarningist
+						'enforceWarninglist' => $enforceWarninglist
 					));
 					if (!empty($result)) {
 						$result = $this->Whitelist->removeWhitelistedFromArray($result, false);
