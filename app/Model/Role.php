@@ -41,7 +41,7 @@ class Role extends AppModel {
 	public $permFlags = array(
 		'perm_admin' => array('id' => 'RolePermAdmin', 'text' => 'Admin', 'readonlyenabled' => false),
 		'perm_site_admin' => array('id' => 'RolePermSiteAdmin', 'text' => 'Site Admin', 'readonlyenabled' => false),
-		'perm_sync' => array('id' => 'RolePermSync', 'text' => 'Sync Actions', 'readonlyenabled' => false),
+		'perm_sync' => array('id' => 'RolePermSync', 'text' => 'Sync Actions', 'readonlyenabled' => true),
 		'perm_audit' => array('id' => 'RolePermAudit', 'text' => 'Audit Actions', 'readonlyenabled' => true),
 		'perm_auth' => array('id' => 'RolePermAuth', 'text' => 'Auth key access', 'readonlyenabled' => true),
 		'perm_regexp_access' => array('id' => 'RolePermRegexpAccess', 'text' => 'Regex Actions', 'readonlyenabled' => false),
