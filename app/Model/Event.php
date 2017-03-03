@@ -2010,7 +2010,7 @@ class Event extends AppModel {
 			$data['Event']['sharing_group_id'] = $sg;
 			unset($data['Event']['SharingGroup']);
 		}
-		if (isset($data['Event']['Attribute'])) {
+		if (!empty($data['Event']['Attribute'])) {
 			foreach ($data['Event']['Attribute'] as $k => $a) {
 				unset($data['Event']['Attribute']['id']);
 				if (isset($a['distribution']) && $a['distribution'] == 4) {
@@ -2051,7 +2051,7 @@ class Event extends AppModel {
 			unset($data['Event']['Tag']);
 		}
 
-		if (isset($data['Event']['Attribute'])) {
+		if (!empty($data['Event']['Attribute'])) {
 			foreach ($data['Event']['Attribute'] as $k => $a) {
 				if (isset($data['Event']['Attribute'][$k]['AttributeTag'])) {
 					if (isset($data['Event']['Attribute'][$k]['AttributeTag']['id'])) $data['Event']['Attribute'][$k]['AttributeTag'] = array($data['Event']['Attribute'][$k]['AttributeTag']);
@@ -2213,7 +2213,7 @@ class Event extends AppModel {
 									'action' => 'add',
 									'user_id' => $user['id'],
 									'title' => 'Attribute dropped due to validation for Event ' . $this->id . ' failed: ' . $attribute_short,
-									'change' => json_encode($this->Attribute->validationErrors),
+									'change' => 'Validation errors: ' . json_encode($this->Attribute->validationErrors) . ' Full Attribute: ' . json_encode($attribute),
 							));
 						} else {
 							if (isset($attribute['AttributeTag'])) {
@@ -2399,7 +2399,7 @@ class Event extends AppModel {
 							'action' => 'edit',
 							'user_id' => $user['id'],
 							'title' => 'Attribute dropped due to validation for Event ' . $this->id . ' failed: ' . $attribute_short,
-							'change' => json_encode($this->Attribute->validationErrors),
+							'change' => 'Validation errors: ' . json_encode($this->Attribute->validationErrors) . ' Full Attribute: ' . json_encode($attribute),
 						));
 					} else {
 						if (isset($data['Event']['Attribute'][$k]['Tag']) && $user['Role']['perm_tagger']) {
