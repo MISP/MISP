@@ -280,6 +280,8 @@ class ShadowAttribute extends AppModel {
 			$date = new DateTime();
 			$this->data['ShadowAttribute']['timestamp'] = $date->getTimestamp();
 		}
+		
+		if (!isset($this->data['ShadowAttribute']['proposal_to_delete'])) $this->data['ShadowAttribute']['proposal_to_delete'] = 0;
 
 		// make some last changes to the inserted value
 		$this->data['ShadowAttribute']['value'] = $this->Event->Attribute->modifyBeforeValidation($this->data['ShadowAttribute']['type'], $this->data['ShadowAttribute']['value']);
