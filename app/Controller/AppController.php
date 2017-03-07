@@ -518,7 +518,7 @@ class AppController extends Controller {
 		$counter = 0;
 
 		// load this so we can remove the blacklist item that will be created, this is the one case when we do not want it.
-		if (Configure::read('MISP.enableEventBlacklisting')) $this->EventBlacklist = ClassRegistry::init('EventBlacklist');
+		if (Configure::read('MISP.enableEventBlacklisting') !== false) $this->EventBlacklist = ClassRegistry::init('EventBlacklist');
 
 		foreach ($duplicates as $duplicate) {
 			$events = $this->Event->find('all', array(
@@ -532,7 +532,7 @@ class AppController extends Controller {
 					$counter++;
 					// remove the blacklist entry that we just created with the event deletion, if the feature is enabled
 					// We do not want to block the UUID, since we just deleted a copy
-					if (Configure::read('MISP.enableEventBlacklisting')) {
+					if (Configure::read('MISP.enableEventBlacklisting') !== false) {
 						$this->EventBlacklist->deleteAll(array('EventBlacklist.event_uuid' => $uuid));
 					}
 				}
