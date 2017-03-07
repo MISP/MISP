@@ -41,7 +41,8 @@ class AppModel extends Model {
 				42 => false, 44 => false, 45 => false, 49 => true, 50 => false,
 				51 => false, 52 => false, 55 => true, 56 => true, 57 => true,
 				58 => false, 59 => false, 60 => false, 61 => false, 62 => false,
-				63 => false, 64 => false, 65 => false, 66 => false, 67 => true
+				63 => false, 64 => false, 65 => false, 66 => false, 67 => true,
+				68 => false
 			)
 		)
 	);
@@ -626,6 +627,33 @@ class AppModel extends Model {
 			case '2.4.67':
 				$sqlArray[] = "ALTER TABLE `roles` ADD `perm_sighting` tinyint(1) NOT NULL DEFAULT 0;";
 				$sqlArray[] = 'UPDATE `roles` SET `perm_sighting` = 1 WHERE `perm_add` = 1;';
+				break;
+			case '2.4.68':
+				$sqlArray[] = 'ALTER TABLE events CHANGE attribute_count attribute_count int(11) unsigned DEFAULT 0;';
+				$sqlArray[] = 'CREATE TABLE IF NOT EXISTS `event_blacklists` (
+				  `id` int(11) NOT NULL AUTO_INCREMENT,
+				  `event_uuid` varchar(40) COLLATE utf8_bin NOT NULL,
+				  `created` datetime NOT NULL,
+				  `event_info` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+				  `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+				  `event_orgc` VARCHAR( 255 ) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+				  PRIMARY KEY (`id`)
+				) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;';
+				$indexArray[] = array('event_blacklists', 'event_uuid');
+				$indexArray[] = array('event_blacklists', 'event_orgc');
+				$sqlArray[] = 'CREATE TABLE IF NOT EXISTS `org_blacklists` (
+				  `id` int(11) NOT NULL AUTO_INCREMENT,
+				  `org_uuid` varchar(40) COLLATE utf8_bin NOT NULL,
+				  `created` datetime NOT NULL, PRIMARY KEY (`id`),
+				  `org_name` varchar(255) COLLATE utf8_bin NOT NULL,
+				  `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+				  PRIMARY KEY (`id`),
+				  INDEX `org_uuid` (`org_uuid`),
+				  INDEX `org_name` (`org_name`)
+				) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;';
+				$indexArray[] = array('org_blacklists', 'org_uuid');
+				$indexArray[] = array('org_blacklists', 'org_name');
+				$sqlArray[] = "ALTER TABLE shadow_attributes CHANGE proposal_to_delete proposal_to_delete BOOLEAN DEFAULT 0";
 				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';

@@ -131,7 +131,7 @@ CREATE TABLE IF NOT EXISTS `events` (
   `uuid` varchar(40) COLLATE utf8_bin NOT NULL,
   `published` tinyint(1) NOT NULL DEFAULT 0,
   `analysis` tinyint(4) NOT NULL,
-  `attribute_count` int(11) unsigned DEFAULT NULL,
+  `attribute_count` int(11) unsigned DEFAULT 0,
   `orgc_id` int(11) NOT NULL,
   `timestamp` int(11) NOT NULL DEFAULT 0,
   `distribution` tinyint(4) NOT NULL DEFAULT 0,
@@ -147,6 +147,18 @@ CREATE TABLE IF NOT EXISTS `events` (
   INDEX `sharing_group_id` (`sharing_group_id`),
   INDEX `org_id` (`org_id`),
   INDEX `orgc_id` (`orgc_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+CREATE TABLE IF NOT EXISTS `event_blacklists` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `event_uuid` varchar(40) COLLATE utf8_bin NOT NULL,
+  `created` datetime NOT NULL,
+  `event_info` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+  `event_orgc` VARCHAR( 255 ) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `event_uuid` (`event_uuid`),
+  INDEX `event_orgc` (`event_orgc`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- -------------------------------------------------------
@@ -393,6 +405,17 @@ CREATE TABLE `organisations` (
   FULLTEXT INDEX `name` (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
+
+CREATE TABLE IF NOT EXISTS `org_blacklists` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `org_uuid` varchar(40) COLLATE utf8_bin NOT NULL,
+  `created` datetime NOT NULL, PRIMARY KEY (`id`),
+  `org_name` varchar(255) COLLATE utf8_bin NOT NULL,
+  `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+  PRIMARY KEY (`id`),
+  INDEX `org_uuid` (`org_uuid`),
+  INDEX `org_name` (`org_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 -- --------------------------------------------------------
 
 --

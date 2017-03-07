@@ -542,18 +542,16 @@ class Server extends AppModel {
 					'enableEventBlacklisting' => array(
 							'level' => 1,
 							'description' => 'Since version 2.3.107 you can start blacklisting event UUIDs to prevent them from being pushed to your instance. This functionality will also happen silently whenever an event is deleted, preventing a deleted event from being pushed back from another instance.',
-							'value' => false,
+							'value' => true,
 							'type' => 'boolean',
-							'test' => 'testBool',
-							'beforeHook' => 'eventBlacklistingBeforeHook'
+							'test' => 'testBool'
 					),
 					'enableOrgBlacklisting' => array(
 							'level' => 1,
 							'description' => 'Blacklisting organisation UUIDs to prevent the creation of any event created by the blacklisted organisation.',
 							'value' => false,
 							'type' => 'boolean',
-							'test' => 'testBool',
-							'beforeHook' => 'orgBlacklistingBeforeHook'
+							'test' => 'testBool'
 					),
 					'log_client_ip' => array(
 							'level' => 1,
@@ -1452,7 +1450,7 @@ class Server extends AppModel {
 							$server);
 					if (null != $event) {
 						$blocked = false;
-						if (Configure::read('MISP.enableEventBlacklisting')) {
+						if (Configure::read('MISP.enableEventBlacklisting') !== false) {
 							$this->EventBlacklist = ClassRegistry::init('EventBlacklist');
 							$r = $this->EventBlacklist->find('first', array('conditions' => array('event_uuid' => $event['Event']['uuid'])));
 							if (!empty($r))	{
@@ -2396,39 +2394,11 @@ class Server extends AppModel {
 		return true;
 	}
 
-	public function eventBlacklistingBeforeHook($setting, $value) {
-		$this->cleanCacheFiles();
-		if ($value) {
-			try {
-				$this->EventBlacklist = ClassRegistry::init('EventBlacklist');
-				$schema = $this->EventBlacklist->schema();
-				if (!isset($schema['event_info'])) $this->updateDatabase('addEventBlacklistsContext');
-			} catch (Exception $e) {
-				$this->updateDatabase('addEventBlacklists');
-			}
-		}
-		return true;
-	}
-
 	public function customAuthBeforeHook($setting, $value) {
 		if ($value) $this->updateDatabase('addCustomAuth');
 		$this->cleanCacheFiles();
 		return true;
 	}
-
-	public function orgBlacklistingBeforeHook($setting, $value) {
-		$this->cleanCacheFiles();
-		if ($value) {
-			try {
-				$this->OrgBlacklist = ClassRegistry::init('OrgBlacklist');
-				$schema = $this->OrgBlacklist->schema();
-			} catch (Exception $e) {
-				$this->updateDatabase('addOrgBlacklists');
-			}
-		}
-		return true;
-	}
-
 
 	// never come here directly, always go through a secondary check like testForTermsFile in order to also pass along the expected file path
 	private function __testForFile($value, $path) {

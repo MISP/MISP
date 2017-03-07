@@ -59,8 +59,8 @@
 							<li><a href="<?php echo $baseurl;?>/galaxies/index">List Galaxies</a></li>
 						</ul>
 					</li>
-					
-					
+
+
 					<li class="dropdown">
 						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
 							Input Filters
@@ -149,12 +149,12 @@
 									<li class="divider"></li>
 									<li><a href="<?php echo $baseurl;?>/tasks">Scheduled Tasks</a></li>
 								<?php endif; ?>
-								<?php if (Configure::read('MISP.enableEventBlacklisting') && $isSiteAdmin): ?>
+								<?php if (Configure::read('MISP.enableEventBlacklisting') !== false && $isSiteAdmin): ?>
 									<li class="divider"></li>
 									<li><a href="<?php echo $baseurl;?>/eventBlacklists/add">Blacklist Event</a></li>
 									<li><a href="<?php echo $baseurl;?>/eventBlacklists">Manage Event Blacklists</a></li>
 								<?php endif; ?>
-								<?php if (Configure::read('MISP.enableEventBlacklisting') && $isSiteAdmin): ?>
+								<?php if (Configure::read('MISP.enableEventBlacklisting') !== false && $isSiteAdmin): ?>
 									<li class="divider"></li>
 									<li><a href="<?php echo $baseurl;?>/orgBlacklists/add">Blacklist Organisation</a></li>
 									<li><a href="<?php echo $baseurl;?>/orgBlacklists">Manage Org Blacklists</a></li>
