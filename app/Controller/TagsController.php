@@ -596,9 +596,26 @@ class TagsController extends AppController {
 		return $object;
 	}
 
-	public function attachTagToObject($object_uuid, $tag) {
-		if (!Validation::uuid($object_uuid)) {
+	public function attachTagToObject($uuid = false, $tag = false) {
+		if (!$this->request->is('post')) {
+			throw new MethodNotAllowedException('This method is only accessible via POST requests.');
+		}
+		if (empty($uuid)) {
+			if (!empty($this->request->data['uuid'])) {
+				$uuid = $this->request->data['uuid'];
+			} else {
+				throw new MethodNotAllowedException('Invalid object uuid');
+			}
+		}
+		if (!Validation::uuid($uuid)) {
 			throw new InvalidArgumentException('Invalid UUID');
+		}
+		if (empty($tag)) {
+			if (!empty($this->request->data['tag'])) {
+				$uuid = $this->request->data['tag'];
+			} else {
+				throw new MethodNotAllowedException('Invalid tag');
+			}
 		}
 		if (is_numeric($tag)) {
 			$conditions = array('Tag.id' => $tag);
@@ -606,7 +623,7 @@ class TagsController extends AppController {
 			$conditions = array('LOWER(Tag.name) LIKE' => strtolower(trim($tag)));
 		}
 		$objectType = '';
-		$object = $this->__findObjectByUuid($object_uuid, $objectType);
+		$object = $this->__findObjectByUuid($uuid, $objectType);
 		$existingTag = $this->Tag->find('first', array('conditions' => $conditions, 'recursive' => -1));
 		if (empty($existingTag)) {
 			if (!is_numeric($tag)) {
@@ -649,9 +666,26 @@ class TagsController extends AppController {
 		}
 	}
 
-	public function removeTagFromObject($object_uuid, $tag) {
-		if (!Validation::uuid($object_uuid)) {
+	public function removeTagFromObject($uuid = false, $tag = false) {
+		if (!$this->request->is('post')) {
+			throw new MethodNotAllowedException('This method is only accessible via POST requests.');
+		}
+		if (empty($uuid)) {
+			if (!empty($this->request->data['uuid'])) {
+				$uuid = $this->request->data['uuid'];
+			} else {
+				throw new MethodNotAllowedException('Invalid object uuid');
+			}
+		}
+		if (!Validation::uuid($uuid)) {
 			throw new InvalidArgumentException('Invalid UUID');
+		}
+		if (empty($tag)) {
+			if (!empty($this->request->data['tag'])) {
+				$uuid = $this->request->data['tag'];
+			} else {
+				throw new MethodNotAllowedException('Invalid tag');
+			}
 		}
 		if (is_numeric($tag)) {
 			$conditions = array('Tag.id' => $tag);
@@ -663,7 +697,7 @@ class TagsController extends AppController {
 			throw new MethodNotAllowedException('Invalid Tag.');
 		}
 		$objectType = '';
-		$object = $this->__findObjectByUuid($object_uuid, $objectType);
+		$object = $this->__findObjectByUuid($uuid, $objectType);
 		if (empty($object)) {
 			throw new MethodNotAllowedException('Invalid Target.');
 		}

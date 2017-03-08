@@ -6,7 +6,7 @@
 			<table>
 				<tr>
 					<td style="width:120px;">
-						<p style="color:green;font-weight:bold;">Allowed Tags</p>
+						<p style="color:green;font-weight:bold;">Allowed Tags (OR)</p>
 						<select id="tagspushLeftValues" size="5" multiple style="width:185px;">
 						</select>
 					</td>
@@ -24,17 +24,20 @@
 						<span class="btn btn-inverse" id="tagspushRightRight" onClick="serverRuleMoveFilter('push', 'tags', 'Middle', 'Right');" style="padding:2px;">&gt;&gt;</span>
 					</td>
 					<td style="width:120px;">
-						<p style="color:red;font-weight:bold;">Blocked Tags</p>
+						<p style="color:red;font-weight:bold;">Blocked Tags (AND NOT)</p>
 						<select id="tagspushRightValues" size="5" multiple style="width:185px;"></select>
 					</td>
 				</tr>
-			</table>
-		</div>
-		<div style="padding:10px;">
-			<table>
+				<tr>
+					<td class="bold green center" style="padding-bottom:15px;padding-top:15px;">AND</td>
+					<td>&nbsp;</td>
+					<td>&nbsp;</td>
+					<td>&nbsp;</td>
+					<td class="bold red center" style="padding-bottom:15px;padding-top:15px;">AND NOT</td>
+				</tr>
 				<tr>
 					<td style="width:120px;">
-						<p style="color:green;font-weight:bold;">Allowed Organisations</p>
+						<p style="color:green;font-weight:bold;">Allowed Orgs (OR)</p>
 						<select id="orgspushLeftValues" size="5" multiple style="width:185px;">
 						</select>
 					</td>
@@ -52,14 +55,12 @@
 						<span class="btn btn-inverse" id="orgspushRightRight" onClick="serverRuleMoveFilter('push', 'orgs', 'Middle', 'Right');" style="padding:2px;">&gt;&gt;</span>
 					</td>
 					<td style="width:120px;">
-						<p style="color:red;font-weight:bold;">Blocked Organisations</p>
+						<p style="color:red;font-weight:bold;">Blocked Orgs (AND NOT)</p>
 						<select id="orgspushRightValues" size="5" multiple style="width:185px;"></select>
 					</td>
 				</tr>
 			</table>
 		</div>
-
-
 			<table>
 				<tr>
 					<td style="vertical-align:top">
