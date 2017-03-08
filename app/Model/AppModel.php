@@ -654,6 +654,8 @@ class AppModel extends Model {
 				$indexArray[] = array('org_blacklists', 'org_uuid');
 				$indexArray[] = array('org_blacklists', 'org_name');
 				$sqlArray[] = "ALTER TABLE shadow_attributes CHANGE proposal_to_delete proposal_to_delete BOOLEAN DEFAULT 0";
+				$sqlArray[] = "ALTER TABLE taxonomy_predicates CHANGE colour colour varchar(7) CHARACTER SET utf8 COLLATE utf8_bin;";
+				$sqlArray[] = "ALTER TABLE taxonomy_entrie CHANGE colour colour varchar(7) CHARACTER SET utf8 COLLATE utf8_bin;";
 				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
