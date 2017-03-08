@@ -35,9 +35,15 @@ class NidsExport {
 		}
 		// generate the rules
 		foreach ($items as $item) {
+			// retrieve all tags for this item to add them to the msg
+			$tagsArray = [];
+			foreach ($item['AttributeTag'] as $tag_attr) {
+				array_push($tagsArray, $tag_attr['Tag']['name']);
+			}
+			$ruleFormatMsgTags = implode(",", $tagsArray);
 
 			# proto src_ip src_port direction dst_ip dst_port msg rule_content tag sid rev
-			$ruleFormatMsg = 'msg: "MISP e' . $item['Event']['id'] . ' %s"';
+			$ruleFormatMsg = 'msg: "MISP e' . $item['Event']['id'] . ' [' . $ruleFormatMsgTags . '] %s"';
 			$ruleFormatReference = 'reference:url,' . Configure::read('MISP.baseurl') . '/events/view/' . $item['Event']['id'];
 			$ruleFormat = '%salert %s %s %s %s %s %s (' . $ruleFormatMsg . '; %s %s classtype:' . $this->classtype . '; sid:%d; rev:%d; priority:' . $item['Event']['threat_level_id'] . '; ' . $ruleFormatReference . ';) ';
 
