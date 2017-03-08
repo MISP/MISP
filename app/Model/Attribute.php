@@ -92,6 +92,7 @@ class Attribute extends AppModel {
 			'email-dst' => array('desc' => "A recipient email address", 'formdesc' => "A recipient email address that is not related to your constituency.", 'default_category' => 'Network activity', 'to_ids' => 1),
 			'email-subject' => array('desc' => "The subject of the email", 'default_category' => 'Payload delivery', 'to_ids' => 0),
 			'email-attachment' => array('desc' => "File name of the email attachment.", 'default_category' => 'Payload delivery', 'to_ids' => 1),
+			'float' => array('desc' => "A floating point value.", 'default_category' => 'Other', 'to_ids' => 0),
 			'url' => array('desc' => 'url', 'default_category' => 'External analysis', 'to_ids' => 1),
 			'http-method' => array('desc' => "HTTP method used by the malware (e.g. POST, GET, ...).", 'default_category' => 'Network activity', 'to_ids' => 0),
 			'user-agent' => array('desc' => "The user-agent used by the malware in the HTTP request.", 'default_category' => 'Network activity', 'to_ids' => 0),
@@ -290,7 +291,7 @@ class Attribute extends AppModel {
 			),
 			'Other' => array(
 					'desc' => 'Attributes that are not part of any other category or are meant to be used as a component in MISP objects in the future',
-					'types' => array('size-in-bytes', 'counter', 'datetime', 'cpe', 'port', 'comment', 'text', 'other')
+					'types' => array('comment', 'text', 'other', 'size-in-bytes', 'counter', 'datetime', 'cpe', 'port', 'float')
 					)
 	);
 
@@ -975,6 +976,12 @@ class Attribute extends AppModel {
 					$returnValue = true;
 				}
 				break;
+			case 'float':
+				$value = floatval($value);
+				if (is_float($value)) {
+					$returnValue = true;
+				}
+				break;
 		}
 		return $returnValue;
 	}
@@ -1075,6 +1082,9 @@ class Attribute extends AppModel {
 			case 'hostname|port':
 				$value = strtolower($value);
 				str_replace(':', '|', $value);
+				break;
+			case 'float':
+				$value = floatval($value);
 				break;
 		}
 		return $value;
