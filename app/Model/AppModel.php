@@ -644,7 +644,7 @@ class AppModel extends Model {
 				$sqlArray[] = 'CREATE TABLE IF NOT EXISTS `org_blacklists` (
 				  `id` int(11) NOT NULL AUTO_INCREMENT,
 				  `org_uuid` varchar(40) COLLATE utf8_bin NOT NULL,
-				  `created` datetime NOT NULL, PRIMARY KEY (`id`),
+				  `created` datetime NOT NULL,
 				  `org_name` varchar(255) COLLATE utf8_bin NOT NULL,
 				  `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci,
 				  PRIMARY KEY (`id`),
