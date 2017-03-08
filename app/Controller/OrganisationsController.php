@@ -99,6 +99,14 @@ class OrganisationsController extends AppController {
 				}
 			}
 			if ($this->Organisation->save($this->request->data)) {
+				if (isset($this->request->data['Organisation']['logo']['size']) && $this->request->data['Organisation']['logo']['size'] > 0 && $this->request->data['Organisation']['logo']['error'] == 0) {
+					$filename = basename($this->request->data['Organisation']['name'] . '.png');
+					if (preg_match("/^[0-9a-z\-\_\.]*\.(png)$/i", $filename)) {
+						if (!empty($this->request->data['Organisation']['logo']['tmp_name']) && is_uploaded_file($this->request->data['Organisation']['logo']['tmp_name'])) {
+							$result = move_uploaded_file($this->request->data['Organisation']['logo']['tmp_name'], APP . 'webroot/img/orgs/' . $filename);
+						}
+					}
+				}
 				if ($this->_isRest()) {
 					$org = $this->Organisation->find('first', array(
 							'conditions' => array('Organisation.id' => $this->Organisation->id),
@@ -149,6 +157,14 @@ class OrganisationsController extends AppController {
 			}
 			$this->request->data['Organisation']['id'] = $id;
 			if ($this->Organisation->save($this->request->data)) {
+				if (isset($this->request->data['Organisation']['logo']['size']) && $this->request->data['Organisation']['logo']['size'] > 0 && $this->request->data['Organisation']['logo']['error'] == 0) {
+					$filename = basename($this->request->data['Organisation']['name'] . '.png');
+					if (preg_match("/^[0-9a-z\-\_\.]*\.(png)$/i", $filename)) {
+						if (!empty($this->request->data['Organisation']['logo']['tmp_name']) && is_uploaded_file($this->request->data['Organisation']['logo']['tmp_name'])) {
+							$result = move_uploaded_file($this->request->data['Organisation']['logo']['tmp_name'], APP . 'webroot/img/orgs/' . $filename);
+						}
+					}
+				}
 				if ($this->_isRest()) {
 					$org = $this->Organisation->find('first', array(
 							'conditions' => array('Organisation.id' => $this->Organisation->id),
