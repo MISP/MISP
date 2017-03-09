@@ -1049,6 +1049,7 @@ class Event extends AppModel {
 		if (!$server['Server']['internal'] && $event['Event']['distribution'] == 2) {
 			$event['Event']['distribution'] = 1;
 		}
+		$event['Event']['Attribute'] = array_values($event['Event']['Attribute']);
 		return $event;
 	}
 
