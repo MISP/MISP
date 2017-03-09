@@ -612,7 +612,7 @@ class TagsController extends AppController {
 		}
 		if (empty($tag)) {
 			if (!empty($this->request->data['tag'])) {
-				$uuid = $this->request->data['tag'];
+				$tag = $this->request->data['tag'];
 			} else {
 				throw new MethodNotAllowedException('Invalid tag');
 			}
@@ -682,7 +682,7 @@ class TagsController extends AppController {
 		}
 		if (empty($tag)) {
 			if (!empty($this->request->data['tag'])) {
-				$uuid = $this->request->data['tag'];
+				$tag = $this->request->data['tag'];
 			} else {
 				throw new MethodNotAllowedException('Invalid tag');
 			}
