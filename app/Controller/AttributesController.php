@@ -87,7 +87,9 @@ class AttributesController extends AppController {
 			if ($this->request->is('ajax')) $this->autoRender = false;
 			$this->loadModel('Event');
 			$date = new DateTime();
-
+			if (!isset($this->request->data['Attribute'])) {
+				$this->request->data = array('Attribute' => $this->request->data);
+			}
 			// remove the published flag from the event
 			$this->Event->recursive = -1;
 			if (isset($eventId)) {
@@ -680,7 +682,7 @@ class AttributesController extends AppController {
 		}
 		if ($this->request->is('post') || $this->request->is('put')) {
 			if (!isset($this->request->data['Attribute'])) {
-				$this->request->data['Attribute'] = $this->request->data;
+				$this->request->data = array('Attribute' => $this->request->data);
 			}
 			$existingAttribute = $this->Attribute->findByUuid($this->Attribute->data['Attribute']['uuid']);
 			// check if the attribute has a timestamp already set (from a previous instance that is trying to edit via synchronisation)
