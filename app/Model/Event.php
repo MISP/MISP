@@ -695,6 +695,7 @@ class Event extends AppModel {
 					// single attribute
 					$data['Event'][$object] = array(0 => $data['Event'][$object]);
 				}
+				$data['Event'][$object] = array_values($data['Event'][$object]);
 			}
 		}
 		$objects = array('Org', 'Orgc', 'SharingGroup');
@@ -2309,6 +2310,7 @@ class Event extends AppModel {
 		if ($saveResult) {
 			$validationErrors = array();
 			if (isset($data['Event']['Attribute'])) {
+				$data['Event']['Attribute'] = array_values($data['Event']['Attribute']);
 				foreach ($data['Event']['Attribute'] as $k => $attribute) {
 					$attribute['event_id'] = $existingEvent['Event']['id'];
 					if (isset($attribute['encrypt'])) {
