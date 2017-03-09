@@ -38,7 +38,9 @@ class NidsExport {
 			// retrieve all tags for this item to add them to the msg
 			$tagsArray = [];
 			foreach ($item['AttributeTag'] as $tag_attr) {
-				array_push($tagsArray, $tag_attr['Tag']['name']);
+				if (array_key_exists('name', $tag_attr['Tag'])) {
+					array_push($tagsArray, $tag_attr['Tag']['name']);
+				}
 			}
 			$ruleFormatMsgTags = implode(",", $tagsArray);
 
