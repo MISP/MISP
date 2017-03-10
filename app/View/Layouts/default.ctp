@@ -81,7 +81,7 @@
 	echo $this->Html->script('bootstrap-colorpicker');
 	echo $this->Html->script('main');
 	if ($me) {
-		echo $this->Html->script('misp' . $jsVersion);
+		echo $this->Html->script('misp.js?' . $jsVersion);
 	}
 	?>
 	<div id = "ajax_success_container" class="ajax_container">
