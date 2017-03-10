@@ -12,7 +12,18 @@
         SSLEngine On
         SSLCertificateFile /etc/ssl/private/misp.local.crt
         SSLCertificateKeyFile /etc/ssl/private/misp.local.key
-        SSLCertificateChainFile /etc/ssl/private/misp-chain.crt
+#        SSLCertificateChainFile /etc/ssl/private/misp-chain.crt
+        SSLProtocol             all -SSLv3 -TLSv1 -TLSv1.1
+        SSLCipherSuite          ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256
+        SSLHonorCipherOrder     on
+        SSLCompression          off
+        SSLSessionTickets       off
+
+        # HSTS (mod_headers is required) (15768000 seconds = 6 months)
+        Header always set Strict-Transport-Security "max-age=15768000  includeSubDomains; preload;"
+        Header always set X-Content-Type-Options nosniff
+        header always set X-Frame-Options "SAMEORIGIN"
+        header always set X-XSS-Protection "1; mode=block"
 
         LogLevel warn
         ErrorLog /var/log/apache2/misp.local_error.log
