@@ -249,6 +249,7 @@ App::uses('RandomTool', 'Tools');
 	}
 
 	public function beforeSave($options = array()) {
+    $this->data[$this->alias]['date_modified'] = time();
 		if (isset($this->data[$this->alias]['password'])) {
 			$this->data[$this->alias]['password'] = AuthComponent::password($this->data[$this->alias]['password']);
 		}
