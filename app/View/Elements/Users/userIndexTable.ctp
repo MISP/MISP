@@ -14,6 +14,7 @@
 		<th><?php echo $this->Paginator->sort('nids_sid');?></th>
 		<th><?php echo $this->Paginator->sort('termsaccepted');?></th>
 		<th><?php echo $this->Paginator->sort('current_login', 'Last login');?></th>
+		<th><?php echo $this->Paginator->sort('date_created', 'Created');?></th>
 		<?php
 			if (Configure::read('Plugin.CustomAuth_enable') && !Configure::read('Plugin.CustomAuth_required')):
 		?>
@@ -64,6 +65,9 @@
 				</td>
 				<td class="short" ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';" title="<?php echo !$user['User']['current_login'] ? 'N/A' : h(date("Y-m-d H:i:s",$user['User']['current_login']));?>">
 					<?php echo !$user['User']['current_login'] ? 'N/A' : h(date("Y-m-d",$user['User']['current_login'])); ?>&nbsp;
+				</td>
+				<td class="short" ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';" title="<?php echo !$user['User']['current_login'] ? 'N/A' : h(date("Y-m-d H:i:s",$user['User']['current_login']));?>">
+					<?php echo !$user['User']['date_created'] ? 'N/A' : h(date("Y-m-d",$user['User']['date_created'])); ?>&nbsp;
 				</td>
 				<?php
 					if (Configure::read('Plugin.CustomAuth_enable') && !Configure::read('Plugin.CustomAuth_required')):
