@@ -1326,10 +1326,10 @@ function indexEvaluateFiltering() {
 		}
 		if (filtering.date.from != null || filtering.date.from != null) {
 			var text = "";
-			if (filtering.date.from != "") text = "From: " + filtering.date.from;
+			if (filtering.date.from != "") text = "From: " + $('<span>').text(filtering.date.from).html();
 			if (filtering.date.until != "") {
 				if (text != "") text += " ";
-				text += "Until: " + filtering.date.until;
+				text += "Until: " + $('<span>').text(filtering.date.until).html();
 			}
 		}
 		$('#value_date').html(text);
@@ -1343,9 +1343,9 @@ function indexEvaluateFiltering() {
 				var text = "";
 				if (filtering[differentFilters[i]] == 1) text = "Yes";
 				else if (filtering[differentFilters[i]] == 0) text = "No";
-				$('#value_' + differentFilters[i]).html(text);
+				$('#value_' + differentFilters[i]).text(text);
 			} else {
-				$('#value_' + differentFilters[i]).html("");
+				$('#value_' + differentFilters[i]).text("");
 			}
 		}
 		for (var i = 0; i < simpleFilters.length; i++) {
@@ -1354,7 +1354,7 @@ function indexEvaluateFiltering() {
 	}
 	indexSetTableVisibility();
 	indexSetRowVisibility();
-	$('#generatedURLContent').html(indexCreateFilters());
+	$('#generatedURLContent').text(indexCreateFilters());
 }
 
 function quickFilter(passedArgs, url) {
@@ -1476,11 +1476,11 @@ function indexEvaluateSimpleFiltering(field) {
 		for (var i = 0; i < filtering[field].OR.length; i++) {
 			if (i > 0) text += '<span class="green bold"> OR </span>';
 			if (typedFields.indexOf(field) == -1) {
-				text += filtering[field].OR[i];
+				text += $('<span>').text(filtering[field].OR[i]).html();
 			} else {
 				for (var j = 0; j < typeArray[field].length; j++) {
 					if (typeArray[field][j].id == filtering[field].OR[i]) {
-						text += typeArray[field][j].value;
+						text += $('<span>').text(typeArray[field][j].value).html();
 					}
 				}
 			}
@@ -1493,11 +1493,11 @@ function indexEvaluateSimpleFiltering(field) {
 				else text += '<span class="red bold">NOT </span>';
 			} else text += '<span class="red bold"> AND NOT </span>';
 			if (typedFields.indexOf(field) == -1) {
-				text += filtering[field].NOT[i];
+				text += $('<span>').text(filtering[field].NOT[i]).html();
 			} else {
 				for (var j = 0; j < typeArray[field].length; j++) {
 					if (typeArray[field][j].id == filtering[field].NOT[i]) {
-						text += typeArray[field][j].value;
+						text += $('<span>').text(typeArray[field][j].value).html();
 					}
 				}
 			}
