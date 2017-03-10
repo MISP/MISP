@@ -288,12 +288,15 @@ class ShadowAttributesController extends AppController {
 		}
 	}
 
-	public function add($eventId = null) {
+	public function add($eventId) {
 		if ($this->request->is('ajax'))	{
 			$this->set('ajax', true);
 			$this->layout = 'ajax';
 		} else {
 			$this->set('ajax', false);
+		}
+		if (empty($eventId)) {
+			if (empty($event)) throw new NotFoundException('Invalid Event');
 		}
 		$event = $this->ShadowAttribute->Event->fetchEvent($this->Auth->user(), array('eventid' => $eventId));
 		if (empty($event)) throw new NotFoundException('Invalid Event');
@@ -311,11 +314,11 @@ class ShadowAttributesController extends AppController {
 			if ($this->request->is('ajax')) $this->autoRender = false;
 			// Give error if someone tried to submit a attribute with attachment or malware-sample type.
 			// TODO change behavior attachment options - this is bad ... it should rather by a messagebox or should be filtered out on the view level
-			if (isset($this->request->data['ShadowAttribute']['type']) && $this->ShadowAttribute->typeIsAttachment($this->request->data['ShadowAttribute']['type'])) {
+			if (isset($this->request->data['ShadowAttribute']['type']) && $this->ShadowAttribute->typeIsAttachment($this->request->data['ShadowAttribute']['type']) && !$this->_isRest()) {
 				$this->Session->setFlash(__('Attribute has not been added: attachments are added by "Add attachment" button', true), 'default', array(), 'error');
-				$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['ShadowAttribute']['event_id']));
+				$this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
 			}
-			if (isset($eventId)) $this->request->data['ShadowAttribute']['event_id'] = $eventId;
+			$this->request->data['ShadowAttribute']['event_id'] = $eventId;
 			//
 			// multiple attributes in batch import
 			//
