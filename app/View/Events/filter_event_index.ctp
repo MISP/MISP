@@ -135,7 +135,7 @@
 						<tr id="row_<?php echo $field; ?>" class="hidden filterTableRow">
 							<td id="key_<?php echo $field;?>" style="border:1px solid #cccccc;font-weight:bold;"><?php echo ucfirst($field); ?></td>
 							<td id="value_<?php echo $field;?>" style="border:1px solid #cccccc;border-right:0px;"></td>
-							<td id="delete_<?php echo $field;?>" style="border:1px solid #cccccc;border-left:0px;"><span class="icon-trash" onClick="indexFilterClearRow('<?php echo $field;?>')"></span></td>
+							<td id="delete_<?php echo $field;?>" style="border:1px solid #cccccc;border-left:0px;"><span class="icon-trash" title="Delete filter" role="button" tabindex="0" aria-label="Delete filter" onClick="indexFilterClearRow('<?php echo $field;?>')"></span></td>
 						</tr>
 					<?php
 						endforeach;

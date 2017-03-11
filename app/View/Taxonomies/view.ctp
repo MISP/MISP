@@ -59,7 +59,7 @@
      <div id="attributeList" class="attributeListContainer">
 		<div class="tabMenuFixedContainer">
 			<div class="tabMenu tabMenuEditBlock noPrint mass-select" style="float:left;top:-1px;">
-				<span id="multi-edit-button" title="Create / update selected tags" class="icon-plus useCursorPointer" onClick="addSelectedTaxonomies(<?php echo $taxonomy['id']; ?>);"></span>
+				<span id="multi-edit-button" title="Create / update selected tags" role="button" tabindex="0" aria-label="Create and/or update selected tags" class="icon-plus useCursorPointer" onClick="addSelectedTaxonomies(<?php echo $taxonomy['id']; ?>);"></span>
 			</div>
 			<div style="float:right !important;overflow:hidden;border:0px;padding:0px;padding-right:200px;">
 					<input type="text" id="quickFilterField" class="tabMenuFilterField taxFilter" value="<?php echo h($filter);?>" /><span id="quickFilterButton" class="useCursorPointer taxFilterButton" onClick='quickFilterTaxonomy("<?php echo h($taxonomy['id']);?>");'>Filter</span>
@@ -126,7 +126,7 @@
 						echo $this->Form->input('name', array('type' => 'hidden', 'value' => $item['tag']));
 						echo $this->Form->input('taxonomy_id', array('type' => 'hidden', 'value' => $taxonomy['id']));
 					?>
-						<span class="<?php echo $item['existing_tag'] ? 'icon-refresh' : 'icon-plus'; ?> useCursorPointer" onClick="submitQuickTag('<?php echo 'quick_' . h($k); ?>');"></span>
+						<span class="<?php echo $item['existing_tag'] ? 'icon-refresh' : 'icon-plus'; ?> useCursorPointer" title="Refresh or enable" role="button" tabindex="0" aria-label="Refresh or enable" onClick="submitQuickTag('<?php echo 'quick_' . h($k); ?>');"></span>
 					<?php
 						echo $this->Form->end();
 					} else {

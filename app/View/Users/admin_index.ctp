@@ -25,7 +25,7 @@
 	?>
 	<div class="tabMenuFixedContainer" style="display:inline-block;">
 		<span class="tabMenuFixed tabMenuFixed<?php echo $tab; ?> tabMenuSides">
-			<span id="create-button" title="Modify filters" class="icon-search useCursorPointer" onClick="getPopup('<?php echo h($urlparams);?>', 'admin/users', 'filterUserIndex');"></span>
+			<span id="create-button" title="Modify filters" role="button" tabindex="0" aria-label="Modify filters" class="icon-search useCursorPointer" onClick="getPopup('<?php echo h($urlparams);?>', 'admin/users', 'filterUserIndex');"></span>
 		</span>
 		<?php if ($filtered):
 			foreach ($passedArgsArray as $k => $v):?>
@@ -40,7 +40,7 @@
 		<span id="quickFilterButton" class="tabMenuFilterFieldButton useCursorPointer" onClick="quickFilter(<?php echo h($passedArgs); ?>, '<?php echo $baseurl . '/users/admin_index'; ?>');">Filter</span>
 		<input class="tabMenuFilterField" type="text" id="quickFilterField"></input>
 	</div>
-	<?php 
+	<?php
 		echo $this->element('Users/userIndexTable');
 	?>
 	<p>

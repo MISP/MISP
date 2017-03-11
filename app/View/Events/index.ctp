@@ -27,9 +27,9 @@
 	?>
 	<div class="tabMenuFixedContainer" style="display:inline-block;">
 		<span class="tabMenuFixed tabMenuFixed<?php echo $tab; ?> tabMenuSides">
-			<span id="create-button" title="Modify filters" class="icon-search useCursorPointer" onClick="getPopup('<?php echo h($urlparams);?>', 'events', 'filterEventIndex');"></span>
+			<span id="create-button" title="Modify filters" class="icon-search useCursorPointer" title="Filter events" role="button" tabindex="0" aria-label="Filter events" onClick="getPopup('<?php echo h($urlparams);?>', 'events', 'filterEventIndex');"></span>
 		</span>
-		<?php 
+		<?php
 			if ($filtered):
 				foreach ($passedArgsArray as $k => $v):?>
 					<span class="tabMenuFixed tabMenuFixedElement">
@@ -71,8 +71,8 @@
 				<span id="myOrgButton" title="Modify filters" onClick="executeFilter(<?php echo h($tempArgs);?>, '<?php echo $baseurl;?>/events/index');">Org Events</span>
 			</span>
 		</div>
-	<?php 
-		endif; 
+	<?php
+		endif;
 		echo $this->element('Events/eventIndexTable');
 	?>
 	<p>
