@@ -12,7 +12,7 @@ class Attribute extends AppModel {
 
 	public $name = 'Attribute';				// TODO general
 
-	public $actsAs = array(
+	public $actsAs = array( $pieces = explode
 		'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
 			'userModel' => 'User',
 			'userKey' => 'user_id',
