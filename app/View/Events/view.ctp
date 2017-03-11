@@ -170,7 +170,7 @@
 								<span id="eventSightingCount" class="bold sightingsCounter" data-toggle="popover" data-trigger="hover" data-content="<?php echo $sightingPopover; ?>"><?php echo count($event['Sighting']); ?></span>
 								(<span id="eventOwnSightingCount" class="green bold sightingsCounter" data-toggle="popover" data-trigger="hover" data-content="<?php echo $sightingPopover; ?>"><?php echo isset($ownSightings) ? count($ownSightings) : 0; ?></span>)
 								<?php if (!Configure::read('Plugin.Sightings_policy')) echo '- restricted to own organisation only.'; ?>
-								<span class="icon-wrench useCursorPointer sightings_advanced_add" data-object-id="<?php echo h($event['Event']['id']); ?>" data-object-context="event">&nbsp;</span>
+								<span class="icon-wrench useCursorPointer sightings_advanced_add" title="Advanced Sightings" role="button" tabindex="0" aria-label="Advanced sightings" data-object-id="<?php echo h($event['Event']['id']); ?>" data-object-context="event">&nbsp;</span>
 						</dd>
 						<dt>Activity</dt>
 						<dd>
@@ -270,16 +270,16 @@
 	<br />
 	<div class="toggleButtons">
 		<button class="btn btn-inverse toggle-left btn.active qet galaxy-toggle-button" id="pivots_toggle" data-toggle-type="pivots">
-			<span class="icon-minus icon-white" style="vertical-align:top;"></span>Pivots
+			<span class="icon-minus icon-white" title="Toggle pivot graph" role="button" tabindex="0" aria-label="Toggle pivot graph" style="vertical-align:top;"></span>Pivots
 		</button>
 		<button class="btn btn-inverse toggle qet galaxy-toggle-button" id="galaxies_toggle" data-toggle-type="galaxies">
-			<span class="icon-minus icon-white" style="vertical-align:top;"></span>Galaxy
+			<span class="icon-minus icon-white" title="Toggle galaxies" role="button" tabindex="0" aria-label="Toggle galaxies" style="vertical-align:top;"></span>Galaxy
 		</button>
 		<button class="btn btn-inverse toggle qet galaxy-toggle-button" id="attributes_toggle" data-toggle-type="attributes">
-			<span class="icon-minus icon-white" style="vertical-align:top;"></span>Attributes
+			<span class="icon-minus icon-white" title="Toggle attributes" role="button" tabindex="0" aria-label="Toggle attributes" style="vertical-align:top;"></span>Attributes
 		</button>
 		<button class="btn btn-inverse toggle-right qet galaxy-toggle-button" id="discussions_toggle" data-toggle-type="discussions">
-			<span class="icon-minus icon-white" style="vertical-align:top;"></span>Discussion
+			<span class="icon-minus icon-white" title="Toggle discussions" role="button" tabindex="0" aria-label="Toggle discussions" style="vertical-align:top;"></span>Discussion
 		</button>
 	</div>
 	<br />

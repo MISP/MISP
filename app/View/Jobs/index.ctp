@@ -100,7 +100,7 @@
 				echo h($item['Job']['job_status']);
 				if ($item['Job']['failed']):
 			?>
-				<div class="icon-search useCursorPointer queryPopover" data-url="/jobs/getError" data-id="<?php echo h($item['Job']['process_id']); ?>"></div>
+				<div class="icon-search useCursorPointer queryPopover" title="View stacktrace" role="button" tabindex="0" aria-label="Viw stacktrace" data-url="/jobs/getError" data-id="<?php echo h($item['Job']['process_id']); ?>"></div>
 			<?php
 				endif;
 			?>
