@@ -9,12 +9,12 @@
 		<table>
 			<tr>
 				<td style="vertical-align:top">
-					<span id="PromptYesButton" class="btn btn-primary" onClick="<?php echo $action; ?>">Yes</span>
+					<span id="PromptYesButton" class="btn btn-primary" title="Remove" role="button" tabindex="0" aria-label="Remove" onClick="<?php echo $action; ?>">Yes</span>
 				</td>
 				<td style="width:540px;">
 				</td>
 				<td style="vertical-align:top;">
-					<span class="btn btn-inverse" id="PromptNoButton" onClick="cancelPrompt();">No</span>
+					<span class="btn btn-inverse" id="PromptNoButton" title="Cancel" role="button" tabindex="0" aria-label="Cancel" onClick="cancelPrompt();">No</span>
 				</td>
 			</tr>
 		</table>
