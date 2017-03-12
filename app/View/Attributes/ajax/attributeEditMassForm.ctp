@@ -53,11 +53,11 @@
 			<table>
 				<tr>
 				<td style="vertical-align:top">
-					<span id="submitButton" class="btn btn-primary" onClick="submitPopoverForm('<?php echo $id;?>', 'massEdit')">Submit</span>
+					<span id="submitButton" class="btn btn-primary" title="Submit" role="button" tabindex="0" aria-label="Submit" onClick="submitPopoverForm('<?php echo $id;?>', 'massEdit')">Submit</span>
 				</td>
 				<td style="width:540px;">&nbsp;</td>
 				<td style="vertical-align:top;">
-					<span class="btn btn-inverse" id="cancel_attribute_add">Cancel</span>
+					<span class="btn btn-inverse" title="Cancel" role="button" tabindex="0" aria-label="Cancel" id="cancel_attribute_add">Cancel</span>
 				</td>
 				</tr>
 			</table>
