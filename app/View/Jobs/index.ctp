@@ -39,10 +39,10 @@
 	<div id="attributeList" class="attributeListContainer">
 		<div class="tabMenu tabMenuFiltersBlock noPrint" style="padding-right:0px !important;">
 			<span id="filter_header" class="attribute_filter_header">Filters: </span>
-			<div id="filter_all" title="Show all queues" class="attribute_filter_text<?php if (!$queue) echo '_active';?>" onClick="window.location='/jobs/index';">All</div>
-			<div id="filter_default" title="Show default queue" class="attribute_filter_text<?php if ($queue === 'default') echo '_active';?>" onClick="window.location='/jobs/index/default';">Default</div>
-			<div id="filter_email" title="Show default queue" class="attribute_filter_text<?php if ($queue === 'email') echo '_active';?>" onClick="window.location='/jobs/index/email';">Email</div>
-			<div id="filter_cache" title="Show default queue" class="attribute_filter_text<?php if ($queue === 'cache') echo '_active';?>" onClick="window.location='/jobs/index/cache';">Cache</div>
+			<div id="filter_all" title="Show all queues" role="button" tabindex="0" aria-label="Show all queues" class="attribute_filter_text<?php if (!$queue) echo '_active';?>" onClick="window.location='/jobs/index';">All</div>
+			<div id="filter_default" title="Show default queue" role="button" tabindex="0" aria-label="Show default queue" class="attribute_filter_text<?php if ($queue === 'default') echo '_active';?>" onClick="window.location='/jobs/index/default';">Default</div>
+			<div id="filter_email" title="Show email queue" role="button" tabindex="0" aria-label="Show email queue" class="attribute_filter_text<?php if ($queue === 'email') echo '_active';?>" onClick="window.location='/jobs/index/email';">Email</div>
+			<div id="filter_cache" title="Show cache queue" role="button" tabindex="0" aria-label="Show cache queue" class="attribute_filter_text<?php if ($queue === 'cache') echo '_active';?>" onClick="window.location='/jobs/index/cache';">Cache</div>
 		</div>
 		<table class="table table-striped table-hover table-condensed">
 		<tr>

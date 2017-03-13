@@ -189,7 +189,7 @@
 				<span role="button" tabindex="0" aria-label="Apply changes to all applicable resolved attributes" title="Apply changes to all applicable resolved attributes" class="btn btn-inverse" onClick="changeFreetextImportExecute();">Change all</span><br />
 			<?php endif; ?>
 			<input type="text" id="changeComments" style="margin-left:50px;margin-top:10px;width:446px;" placeholder="Update all comment fields">
-			<span class="btn btn-inverse" onClick="changeFreetextImportCommentExecute();">Change all</span>
+			<span role="button" tabindex="0" aria-label="Change all" title="Change all" class="btn btn-inverse" onClick="changeFreetextImportCommentExecute();">Change all</span>
 		</span>
 	</span>
 </div>
