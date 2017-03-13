@@ -12,7 +12,7 @@
 	?>
 				<div class="attributehistogram-legend-line">
 					<div class="attributehistogram-legend-box" style="display: block;float: left;margin: 4px 6px 0 0;background-color:<?php echo $colour; ?>">&nbsp;</div>
-					<div style="display: inline-block;cursor: pointer;<?php if (in_array($type, $selectedTypes)) echo 'font-weight:bold';?>" onClick='toggleHistogramType("<?php echo $type; ?>", [<?php foreach ($selectedTypes as $t) echo '"' . $t . '", ' ?>]);'><?php echo $type;?></div>
+					<div style="display: inline-block;cursor: pointer;<?php if (in_array($type, $selectedTypes)) echo 'font-weight:bold';?>" role="button" tabindex="0" aria-label="Toggle histogram" tite="Toggle histogram" onClick='toggleHistogramType("<?php echo $type; ?>", [<?php foreach ($selectedTypes as $t) echo '"' . $t . '", ' ?>]);'><?php echo $type;?></div>
 				</div>
 	<?php
 		if ($cnt % 12 == 11):

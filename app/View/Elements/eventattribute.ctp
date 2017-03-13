@@ -133,7 +133,7 @@
 	<table class="table table-striped table-condensed">
 		<tr>
 			<?php if ($mayModify && !empty($event['objects'])): ?>
-				<th><input class="select_all" type="checkbox" onClick="toggleAllAttributeCheckboxes();" /></th>
+				<th><input class="select_all" type="checkbox" title="Select all" role="button" tabindex="0" aria-label="Select all attributes/proposals on current page" onClick="toggleAllAttributeCheckboxes();" /></th>
 			<?php endif;?>
 			<th class="context hidden"><?php echo $this->Paginator->sort('id');?></th>
 			<th class="context hidden">UUID</th>
