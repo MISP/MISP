@@ -230,9 +230,9 @@
 		?>
 	</div>
 	<div>
-		<span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick = "zeroMQServerAction('start')">Start / Restart</span>
-		<span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick = "zeroMQServerAction('stop')">Stop</span>
-		<span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick = "zeroMQServerAction('status')">Status</span>
+		<span class="btn btn-inverse" role="button" tabindex="0" aria-label="Start or restart ZMQ service" title="Start or restart ZeroMQ service" style="padding-top:1px;padding-bottom:1px;" onClick = "zeroMQServerAction('start')">Start / Restart</span>
+		<span class="btn btn-inverse" role="button" tabindex="0" aria-label="Stop ZeroMQ service" title="Stop ZeroMQ service" style="padding-top:1px;padding-bottom:1px;" onClick = "zeroMQServerAction('stop')">Stop</span>
+		<span class="btn btn-inverse" role="button" tabindex="0" aria-label="Check ZeroMQ service status" title="Check ZeroMQ service status" style="padding-top:1px;padding-bottom:1px;" onClick = "zeroMQServerAction('status')">Status</span>
 	</div>
 	<h3>
 	Proxy
@@ -304,7 +304,7 @@
 	<div style="background-color:#f7f7f9;width:400px;">
 		Orphaned attributes....<span id="orphanedAttributeCount"><span style="color:orange;">Run the test below</span></span>
 	</div><br />
-	<span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick="checkOrphanedAttributes();">Check for orphaned attributes</span><br /><br />
+	<span class="btn btn-inverse" role="button" tabindex="0" aria-label="Check for orphaned attribute" title="Check for orphaned attributes" style="padding-top:1px;padding-bottom:1px;" onClick="checkOrphanedAttributes();">Check for orphaned attributes</span><br /><br />
 	<?php echo $this->Form->postButton('Remove orphaned attributes', $baseurl . '/attributes/pruneOrphanedAttributes', $options = array('class' => 'btn btn-primary', 'style' => 'padding-top:1px;padding-bottom:1px;')); ?>
 	<h3>
 		Database cleanup scripts
