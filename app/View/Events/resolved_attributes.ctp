@@ -246,8 +246,8 @@
 				if ($(this).val() == 4) $(this).parent().next('.SGContainer').show();
 				else $(this).parent().next('.SGContainer').hide();
 			});
-		});
 		<?php endif; ?>
+		});
 	</script>
 <?php
 	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'freetextResults'));
