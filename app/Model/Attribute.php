@@ -308,7 +308,7 @@ class Attribute extends AppModel {
 			'sha512/256' => 'Payload delivery',
 			'authentihash' => 'Payload delivery',
 			'imphash' => 'Payload delivery',
-			'impfuzzy'=> 'Payload delivery'
+			'impfuzzy'=> 'Payload delivery',
 			'pehash' => 'Payload delivery',
 			'filename|md5' => 'Payload delivery',
 			'filename|sha1' => 'Payload delivery',
