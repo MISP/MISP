@@ -73,9 +73,28 @@ class AttributesController extends AppController {
 		$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
 	}
 
-	public function add($eventId = null) {
+	public function add($eventId) {
 		if (!$this->userRole['perm_add']) {
 			throw new MethodNotAllowedException('You don\'t have permissions to create attributes');
+		}
+		$this->loadModel('Event');
+		if (Validation::uuid($eventId)) {
+			$temp = $this->Event->find('first', array('recursive' => -1, 'fields' => array('Event.id'), 'conditions' => array('Event.uuid' => $eventId)));
+			if (empty($temp)) throw new NotFoundException('Invalid event');
+			$eventId = $temp['Event']['id'];
+		} else if (!is_numeric($eventId)) {
+			throw new NotFoundException(__('Invalid event'));
+		}
+		$this->Event->id = $eventId;
+		if (!$this->Event->exists()) {
+			throw new NotFoundException(__('Invalid event'));
+		}
+		// remove the published flag from the event
+		$this->Event->recursive = -1;
+		$this->Event->read(null, $eventId);
+		$this->request->data['Attribute']['event_id'] = $eventId;
+		if (!$this->_isSiteAdmin() && ($this->Event->data['Event']['orgc_id'] != $this->_checkOrg() || !$this->userRole['perm_modify'])) {
+			throw new UnauthorizedException('You do not have permission to do that.');
 		}
 		if ($this->request->is('ajax'))	{
 			$this->set('ajax', true);
@@ -85,19 +104,9 @@ class AttributesController extends AppController {
 		}
 		if ($this->request->is('post')) {
 			if ($this->request->is('ajax')) $this->autoRender = false;
-			$this->loadModel('Event');
 			$date = new DateTime();
 			if (!isset($this->request->data['Attribute'])) {
 				$this->request->data = array('Attribute' => $this->request->data);
-			}
-			// remove the published flag from the event
-			$this->Event->recursive = -1;
-			if (isset($eventId)) {
-				$this->Event->read(null, $eventId);
-				$this->request->data['Attribute']['event_id'] = $eventId;
-			} else $this->Event->read(null, $this->request->data['Attribute']['event_id']);
-			if (!$this->_isSiteAdmin() && ($this->Event->data['Event']['orgc_id'] != $this->_checkOrg() || !$this->userRole['perm_modify'])) {
-				throw new UnauthorizedException('You do not have permission to do that.');
 			}
 			$this->Event->set('timestamp', $date->getTimestamp());
 			$this->Event->set('published', 0);
@@ -650,7 +659,7 @@ class AttributesController extends AppController {
 			if ($temp == null) throw new NotFoundException('Invalid attribute');
 			$id = $temp['Attribute']['id'];
 		} else if (!is_numeric($id)) {
-			throw new NotFoundException(__('Invalid event id.'));
+			throw new NotFoundException(__('Invalid attribute'));
 		}
 		$this->Attribute->id = $id;
 		$date = new DateTime();
@@ -883,7 +892,15 @@ class AttributesController extends AppController {
 		}
 	}
 
-	public function delete($id = null, $hard = false) {
+	public function delete($id, $hard = false) {
+		if (Validation::uuid($id)) {
+			$this->Attribute->recursive = -1;
+			$temp = $this->Attribute->findByUuid($id);
+			if ($temp == null) throw new NotFoundException('Invalid attribute');
+			$id = $temp['Attribute']['id'];
+		} else if (!is_numeric($id)) {
+			throw new NotFoundException('Invalid attribute');
+		}
 		$this->set('id', $id);
 		$conditions = array('id' => $id);
 		if (!$hard) $conditions['deleted'] = 0;
