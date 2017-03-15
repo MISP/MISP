@@ -122,6 +122,7 @@
 					<th><?php echo $this->Paginator->sort('type');?></th>
 					<th><?php echo $this->Paginator->sort('value');?></th>
 					<th><?php echo $this->Paginator->sort('comment');?></th>
+					<th><?php echo $this->Paginator->sort('is_regex');?></th>
 					<th title="<?php echo $attrDescriptions['signature']['desc'];?>"><?php echo $this->Paginator->sort('to_ids', 'IDS');?></th>
 				</tr>
 			    <?php
@@ -133,6 +134,7 @@
 						<td class="shortish"><?php echo h($object['type']); ?></td>
 						<td class="shortish"><?php echo h($object['value']); ?></td>
 						<td class="shortish"><?php echo h($object['comment']); ?></td>
+						<td class="shortish"><?php echo ($object['is_regex']) ? 'Yes' : 'No'; ?></td>
 						<td class="shortish"><?php echo ($object['to_ids']) ? 'Yes' : 'No'; ?></td>
 					</tr>
 				<?php

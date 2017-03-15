@@ -53,6 +53,9 @@
 			echo $this->Form->input('batch_import', array(
 					'type' => 'checkbox',
 			));
+			echo $this->Form->input('is_regex', array(
+					'label' => 'Is this value a regex',
+			));
 		?>
 	</fieldset>
 		<p style="color:red;font-weight:bold;display:none;<?php if (isset($ajax) && $ajax) echo "text-align:center;";?> " id="warning-message">Warning: You are about to share data that is of a sensitive nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>

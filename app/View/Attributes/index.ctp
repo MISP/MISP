@@ -115,7 +115,7 @@ foreach ($attributes as $attribute):
 					else $tagText = h($tag['Tag']['name']);
 				}
 				?>
-				<span class="tag useCursorPointer" style="margin-bottom:3px;background-color:<?php echo h($tag['Tag']['colour']);?>;color:<?php echo $this->TextColour->getTextColour($tag['Tag']['colour']);?>;" title="<?php echo h($tag['Tag']['name']); ?>" role="button" tabindex="0" aria-label="Search events tagged <?php echo h($tag['Tag']['name'])?>" onClick="document.location.href='<?php echo $baseurl; ?>/attributes/search/attributetag:<?php echo h($tag['Tag']['id']);?>';"><?php echo $tagText; ?></span>
+				<span class="tag useCursorPointer" style="margin-bottom:3px;background-color:<?php echo h($tag['Tag']['colour']);?>;color:<?php echo $this->TextColour->getTextColour($tag['Tag']['colour']);?>;" title="<?php echo h($tag['Tag']['name']); ?>" onClick="document.location.href='<?php echo $baseurl; ?>/attributes/search/attributetag:<?php echo h($tag['Tag']['id']);?>';"><?php echo $tagText; ?></span>
 			<?php endforeach; ?>
 		</td>
 		<td ondblclick="document.location ='document.location ='<?php echo $baseurl;?>/events/view/<?php echo $attribute['Event']['id'];?>';">
@@ -130,6 +130,9 @@ foreach ($attributes as $attribute):
 		</td>
 		<td class="short" ondblclick="document.location ='document.location ='/events/view/<?php echo $attribute['Event']['id'];?>';">
 			<?php echo $attribute['Attribute']['to_ids'] ? 'Yes' : 'No'; ?>&nbsp;
+		</td>
+		<td class="short" ondblclick="document.location ='document.location ='/events/view/<?php echo $attribute['Event']['id'];?>';">
+			<?php echo $attribute['Attribute']['is_regex'] ? 'Yes' : 'No'; ?>&nbsp;
 		</td>
 		<td class="short action-links">
 	<?php

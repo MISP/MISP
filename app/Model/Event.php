@@ -318,16 +318,12 @@ class Event extends AppModel {
 		'EventTag' => array(
 			'className' => 'EventTag',
 			'dependent' => true,
-		),
-		'Sighting' => array(
-			'className' => 'Sighting',
-			'dependent' => true,
 		)
 	);
 
 	public function beforeDelete($cascade = true) {
 		// blacklist the event UUID if the feature is enabled
-		if (Configure::read('MISP.enableEventBlacklisting') !== false) {
+		if (Configure::read('MISP.enableEventBlacklisting')) {
 			$this->EventBlacklist = ClassRegistry::init('EventBlacklist');
 			$this->EventBlacklist->create();
 			$orgc = $this->Orgc->find('first', array('conditions' => array('Orgc.id' => $this->data['Event']['orgc_id']), 'recursive' => -1, 'fields' => array('Orgc.name')));
@@ -695,7 +691,6 @@ class Event extends AppModel {
 					// single attribute
 					$data['Event'][$object] = array(0 => $data['Event'][$object]);
 				}
-				$data['Event'][$object] = array_values($data['Event'][$object]);
 			}
 		}
 		$objects = array('Org', 'Orgc', 'SharingGroup');
@@ -824,21 +819,6 @@ class Event extends AppModel {
 		return 'Success';
 	}
 
-	public function addHeaders($request) {
-		$version = $this->checkMISPVersion();
-		$version = implode('.', $version);
-		try {
-			$commit = trim(shell_exec('git log --pretty="%H" -n1 HEAD'));
-		} catch (Exception $e) {
-			$commit = false;
-		}
-		$request['header']['MISP-version'] = $version;
-		if ($commit) {
-			$request['header']['commit'] = $commit;
-		}
-		return $request;
-	}
-
 	// Uploads the event and the associated Attributes to another Server
 	public function restfulEventToServer($event, $server, $urlPath, &$newLocation, &$newTextBody, $HttpSocket = null) {
 		if ($event['Event']['distribution'] == 4) {
@@ -869,11 +849,9 @@ class Event extends AppModel {
 						'Authorization' => $authkey,
 						'Accept' => 'application/json',
 						'Content-Type' => 'application/json',
-
 						//'Connection' => 'keep-alive' // // LATER followup cakephp issue about this problem: https://github.com/cakephp/cakephp/issues/1961
 				)
 		);
-		$request = $this->addHeaders($request);
 		$uri = $url . '/events';
 		if (isset($urlPath)) {
 			$pieces = explode('/', $urlPath);
@@ -940,14 +918,8 @@ class Event extends AppModel {
 			// cleanup the array from things we do not want to expose
 			foreach (array('Org', 'org_id', 'orgc_id', 'proposal_email_lock', 'org', 'orgc') as $field) unset($event['Event'][$field]);
 			foreach ($event['Event']['EventTag'] as $kt => $tag) {
-				if (!$tag['Tag']['exportable']) {
-					unset($event['Event']['EventTag'][$kt]);
-				} else {
-					unset($tag['org_id']);
-					$event['Event']['Tag'][] = $tag['Tag'];
-				}
+				if (!$tag['Tag']['exportable']) unset($event['Event']['EventTag'][$kt]);
 			}
-			unset($event['Event']['EventTag']);
 
 			// Add the local server to the list of instances in the SG
 			if (isset($event['Event']['SharingGroup']) && isset($event['Event']['SharingGroup']['SharingGroupServer'])) {
@@ -989,15 +961,6 @@ class Event extends AppModel {
 						}
 					}
 				}
-				foreach ($attribute['AttributeTag'] as $kt => $tag) {
-					if (!$tag['Tag']['exportable']) {
-						unset($attribute['AttributeTag'][$kt]);
-					} else {
-						unset($tag['Tag']['org_id']);
-						$attribute['Tag'][] = $tag['Tag'];
-					}
-				}
-				unset($attribute['AttributeTag']);
 
 				// remove value1 and value2 from the output
 				unset($attribute['value1']);
@@ -1050,7 +1013,6 @@ class Event extends AppModel {
 		if (!$server['Server']['internal'] && $event['Event']['distribution'] == 2) {
 			$event['Event']['distribution'] = 1;
 		}
-		$event['Event']['Attribute'] = array_values($event['Event']['Attribute']);
 		return $event;
 	}
 
@@ -1073,7 +1035,6 @@ class Event extends AppModel {
 						//'Connection' => 'keep-alive' // // LATER followup cakephp issue about this problem: https://github.com/cakephp/cakephp/issues/1961
 				)
 		);
-		$request = $this->addHeaders($request);
 		$uri = $url . '/events/0?uuid=' . $uuid;
 
 		// LATER validate HTTPS SSL certificate
@@ -1105,84 +1066,12 @@ class Event extends AppModel {
 						//'Connection' => 'keep-alive' // // LATER followup cakephp issue about this problem: https://github.com/cakephp/cakephp/issues/1961
 				)
 		);
-		$request = $this->addHeaders($request);
 		$uri = $url . '/events/view/' . $eventId . '/deleted:true';
 		$response = $HttpSocket->get($uri, $data = '', $request);
 		if ($response->isOk()) {
 			return json_decode($response->body, true);
 		}
 		return null;
-	}
-
-	public function quickDelete($event) {
-		$id = $event['Event']['id'];
-		$this->Thread = ClassRegistry::init('Thread');
-		$thread = $this->Thread->find('first', array(
-			'conditions' => array('Thread.event_id' => $id),
-			'fields' => array('Thread.id'),
-			'recursive' => -1
-		));
-		$thread_id = !empty($thread) ? $thread['Thread']['id'] : false;
-		$relations = array(
-			array(
-				'table' => 'attributes',
-				'foreign_key' => 'event_id',
-				'value' => $id
-			),
-			array(
-				'table' => 'shadow_attributes',
-				'foreign_key' => 'event_id',
-				'value' => $id
-			),
-			array(
-				'table' => 'event_tags',
-				'foreign_key' => 'event_id',
-				'value' => $id
-			),
-			array(
-				'table' => 'attribute_tags',
-				'foreign_key' => 'event_id',
-				'value' => $id
-			),
-			array(
-				'table' => 'threads',
-				'foreign_key' => 'event_id',
-				'value' => $id
-			),
-			array(
-				'table' => 'correlations',
-				'foreign_key' => 'event_id',
-				'value' => $id
-			),
-			array(
-				'table' => 'correlations',
-				'foreign_key' => '1_event_id',
-				'value' => $id
-			),
-			array(
-				'table' => 'sightings',
-				'foreign_key' => 'event_id',
-				'value' => $id
-			),
-			array(
-				'table' => 'event_delegations',
-				'foreign_key' => 'event_id',
-				'value' => $id
-			)
-		);
-		if ($thread_id) {
-			$relations[] = 	array(
-				'table' => 'posts',
-				'foreign_key' => 'thread_id',
-				'value' => $thread_id
-			);
-		}
-		App::uses('QueryTool', 'Tools');
-		$queryTool = new QueryTool();
-		foreach ($relations as $relation) {
-				$queryTool->quickDelete($relation['table'], $relation['foreign_key'], $relation['value'], $this);
-		}
-		return $this->delete($id, false);
 	}
 
 	public function downloadProposalsFromServer($uuidList, $server, $HttpSocket = null) {
@@ -1201,7 +1090,6 @@ class Event extends AppModel {
 						//'Connection' => 'keep-alive' // LATER followup cakephp issue about this problem: https://github.com/cakephp/cakephp/issues/1961
 				)
 		);
-		$request = $this->addHeaders($request);
 		$uri = $url . '/shadow_attributes/getProposalsByUuidList';
 		$response = $HttpSocket->post($uri, json_encode($uuidList), $request);
 		if ($response->isOk()) {
@@ -1386,8 +1274,8 @@ class Event extends AppModel {
 
 		// do not expose all the data ...
 		$fields = array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.date', 'Event.threat_level_id', 'Event.info', 'Event.published', 'Event.uuid', 'Event.attribute_count', 'Event.analysis', 'Event.timestamp', 'Event.distribution', 'Event.proposal_email_lock', 'Event.user_id', 'Event.locked', 'Event.publish_timestamp', 'Event.sharing_group_id', 'Event.disable_correlation');
-		$fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.timestamp', 'Attribute.comment', 'Attribute.sharing_group_id', 'Attribute.deleted', 'Attribute.disable_correlation');
-		$fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.proposal_to_delete', 'ShadowAttribute.timestamp');
+		$fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.is_regex', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.timestamp', 'Attribute.comment', 'Attribute.sharing_group_id', 'Attribute.deleted', 'Attribute.disable_correlation');
+		$fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids','ShadowAttribute.is_regex', 'ShadowAttribute.uuid', 'ShadowAttribute.event_uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.proposal_to_delete', 'ShadowAttribute.timestamp');
 		$fieldsOrg = array('id', 'name', 'uuid');
 		$fieldsServer = array('id', 'url', 'name');
 		$fieldsSharingGroup = array(
@@ -1574,10 +1462,6 @@ class Event extends AppModel {
 					if (!empty($sa['old_id'])) unset($event['ShadowAttribute'][$k]);
 				}
 				$event['ShadowAttribute'] = array_values($event['ShadowAttribute']);
-			}
-			if ($event['Event']['orgc_id'] === $user['org_id'] && $user['Role']['perm_audit']) {
-				$UserEmail = $this->User->getAuthUser($event['Event']['user_id'])['email'];
-				$event['Event']['event_creator_email'] = $UserEmail;
 			}
 		}
 		return $results;
@@ -1846,13 +1730,15 @@ class Event extends AppModel {
 				if (!$owner && $attribute['distribution'] == 0) continue;
 				if ($attribute['distribution'] == 4 && !$sgModel->checkIfAuthorised($user, $attribute['sharing_group_id'])) continue;
 				$ids = '';
+				$$is_regex = '';
 				if ($attribute['to_ids']) $ids = ' (IDS)';
+				if ($attribute['$is_regex']) $is_regex = ' (Regex)';
 				$strRepeatCount = $appendlen - 2 - strlen($attribute['type']);
 				$strRepeat = ($strRepeatCount > 0) ? str_repeat(' ', $strRepeatCount) : '';
 				if (isset($oldpublish) && isset($attribute['timestamp']) && $attribute['timestamp'] > $oldpublish) {
-					$line = '* ' . $attribute['category'] . '/' . $attribute['type'] . $strRepeat . ': ' . $attribute['value'] . $ids . " *\n";
+					$line = '* ' . $attribute['category'] . '/' . $attribute['type'] . $strRepeat . ': ' . $attribute['value'] . $is_regex . $ids . " *\n";
 				} else {
-					$line = $attribute['category'] . '/' . $attribute['type'] . $strRepeat . ': ' . $attribute['value'] . $ids .  "\n";
+					$line = $attribute['category'] . '/' . $attribute['type'] . $strRepeat . ': ' . $attribute['value'] . $is_regex . $ids .  "\n";
 				}
 				// Defanging URLs (Not "links") emails domains/ips in notification emails
 				if ('url' == $attribute['type']) {
@@ -2012,7 +1898,7 @@ class Event extends AppModel {
 			$data['Event']['sharing_group_id'] = $sg;
 			unset($data['Event']['SharingGroup']);
 		}
-		if (!empty($data['Event']['Attribute'])) {
+		if (isset($data['Event']['Attribute'])) {
 			foreach ($data['Event']['Attribute'] as $k => $a) {
 				unset($data['Event']['Attribute']['id']);
 				if (isset($a['distribution']) && $a['distribution'] == 4) {
@@ -2053,7 +1939,7 @@ class Event extends AppModel {
 			unset($data['Event']['Tag']);
 		}
 
-		if (!empty($data['Event']['Attribute'])) {
+		if (isset($data['Event']['Attribute'])) {
 			foreach ($data['Event']['Attribute'] as $k => $a) {
 				if (isset($data['Event']['Attribute'][$k]['AttributeTag'])) {
 					if (isset($data['Event']['Attribute'][$k]['AttributeTag']['id'])) $data['Event']['Attribute'][$k]['AttributeTag'] = array($data['Event']['Attribute'][$k]['AttributeTag']);
@@ -2084,7 +1970,7 @@ class Event extends AppModel {
 		if ($jobId) {
 			App::uses('AuthComponent', 'Controller/Component');
 		}
-		if (Configure::read('MISP.enableEventBlacklisting') !== false && isset($data['Event']['uuid'])) {
+		if (Configure::read('MISP.enableEventBlacklisting') && isset($data['Event']['uuid'])) {
 			$this->EventBlacklist = ClassRegistry::init('EventBlacklist');
 			$r = $this->EventBlacklist->find('first', array('conditions' => array('event_uuid' => $data['Event']['uuid'])));
 			if (!empty($r))	return 'blocked';
@@ -2143,8 +2029,8 @@ class Event extends AppModel {
 		}
 		// FIXME chri: validatebut  the necessity for all these fields...impact on security !
 		$fieldList = array(
-				'Event' => array('org_id', 'orgc_id', 'date', 'threat_level_id', 'analysis', 'info', 'user_id', 'published', 'uuid', 'timestamp', 'distribution', 'sharing_group_id', 'locked', 'disable_correlation'),
-				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'timestamp', 'distribution', 'comment', 'sharing_group_id', 'deleted', 'disable_correlation'),
+				'Event' => array('org_id', 'orgc_id', 'date', 'threat_level_id', 'analysis', 'info', 'user_id', 'published', 'uuid', 'timestamp', 'distribution', 'sharing_group_id', 'locked'),
+				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'is_regex', 'uuid', 'timestamp', 'distribution', 'comment', 'sharing_group_id', 'deleted'),
 		);
 		$saveResult = $this->save(array('Event' => $data['Event']), array('fieldList' => $fieldList['Event']));
 		$this->Log = ClassRegistry::init('Log');
@@ -2215,7 +2101,7 @@ class Event extends AppModel {
 									'action' => 'add',
 									'user_id' => $user['id'],
 									'title' => 'Attribute dropped due to validation for Event ' . $this->id . ' failed: ' . $attribute_short,
-									'change' => 'Validation errors: ' . json_encode($this->Attribute->validationErrors) . ' Full Attribute: ' . json_encode($attribute),
+									'change' => json_encode($this->Attribute->validationErrors),
 							));
 						} else {
 							if (isset($attribute['AttributeTag'])) {
@@ -2303,14 +2189,13 @@ class Event extends AppModel {
 		if (!isset($data['Event']['published'])) $data['Event']['published'] = 0;
 		$fieldList = array(
 				'Event' => array('date', 'threat_level_id', 'analysis', 'info', 'published', 'uuid', 'distribution', 'timestamp', 'sharing_group_id', 'disable_correlation'),
-				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'revision', 'distribution', 'timestamp', 'comment', 'sharing_group_id', 'deleted', 'disable_correlation')
+				'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'is_regex', 'uuid', 'revision', 'distribution', 'timestamp', 'comment', 'sharing_group_id', 'deleted', 'disable_correlation')
 		);
 		$saveResult = $this->save(array('Event' => $data['Event']), array('fieldList' => $fieldList['Event']));
 		$this->Log = ClassRegistry::init('Log');
 		if ($saveResult) {
 			$validationErrors = array();
 			if (isset($data['Event']['Attribute'])) {
-				$data['Event']['Attribute'] = array_values($data['Event']['Attribute']);
 				foreach ($data['Event']['Attribute'] as $k => $attribute) {
 					$attribute['event_id'] = $existingEvent['Event']['id'];
 					if (isset($attribute['encrypt'])) {
@@ -2364,7 +2249,7 @@ class Event extends AppModel {
 									unset($data['Event']['Attribute'][$k]);
 								} else {
 									// If a field is not set in the request, just reuse the old value
-									$recoverFields = array('value', 'to_ids', 'distribution', 'category', 'type', 'comment', 'sharing_group_id');
+									$recoverFields = array('value', 'to_ids', 'is_regex', 'distribution', 'category', 'type', 'comment', 'sharing_group_id');
 									foreach ($recoverFields as $rF) if (!isset($attribute[$rF])) $data['Event']['Attribute'][$k][$rF] = $existingAttribute['Attribute'][$rF];
 									$data['Event']['Attribute'][$k]['id'] = $existingAttribute['Attribute']['id'];
 									// Check if the attribute's timestamp is bigger than the one that already exists.
@@ -2402,7 +2287,7 @@ class Event extends AppModel {
 							'action' => 'edit',
 							'user_id' => $user['id'],
 							'title' => 'Attribute dropped due to validation for Event ' . $this->id . ' failed: ' . $attribute_short,
-							'change' => 'Validation errors: ' . json_encode($this->Attribute->validationErrors) . ' Full Attribute: ' . json_encode($attribute),
+							'change' => json_encode($this->Attribute->validationErrors),
 						));
 					} else {
 						if (isset($data['Event']['Attribute'][$k]['Tag']) && $user['Role']['perm_tagger']) {
@@ -2557,8 +2442,7 @@ class Event extends AppModel {
 												'fields' => array('id', 'url', 'name')
 											)
 										),
-									),
-									'AttributeTag' => array('Tag')
+								)
 						),
 						'EventTag' => array('Tag'),
 						'Org' => array('fields' => array('id', 'uuid', 'name', 'local')),
@@ -3229,6 +3113,7 @@ class Event extends AppModel {
 							'default_type' => $r['types'][0],
 							'comment' => isset($r['comment']) ? $r['comment'] : false,
 							'to_ids' => isset($r['to_ids']) ? $r['to_ids'] : false,
+							'is_regex' => isset($r['is_regex']) ? $r['is_regex'] : false,
 							'value' => $value
 					);
 					if (isset($r['categories'])) {
@@ -3263,85 +3148,5 @@ class Event extends AppModel {
 				'extension' => $module['mispattributes']['outputFileExtension'],
 				'response' => $module['mispattributes']['responseType']
 		);
-	}
-
-	public function getSightingData($event) {
-		$this->Sighting = ClassRegistry::init('Sighting');
-		if (!empty($event['Sighting'])) {
-			$attributeSightings = array();
-			$attributeOwnSightings = array();
-			$attributeSightingsPopover = array();
-			$sightingsData = array();
-			$sparklineData = array();
-			$startDates = array();
-			$range = (!empty(Configure::read('MISP.Sightings_range')) && is_numeric(Configure::read('MISP.Sightings_range'))) ? Configure::read('MISP.Sightings_range') : 365;
-			$range = strtotime("-" . $range . " days", time());
-			foreach ($event['Sighting'] as $sighting) {
-				$type = $this->Sighting->type[$sighting['type']];
-				if (!isset($sightingsData[$sighting['attribute_id']][$type])) {
-					$sightingsData[$sighting['attribute_id']][$type] = array('count' => 0);
-				}
-				$sightingsData[$sighting['attribute_id']][$type]['count']++;
-				$orgName = isset($sighting['Organisation']['name']) ? $sighting['Organisation']['name'] : 'Others';
-				if ($sighting['type'] == '0' && (!isset($startDates[$sighting['attribute_id']]) || $startDates[$sighting['attribute_id']] > $sighting['date_sighting'])) {
-					if ($sighting['date_sighting'] >= $range) {
-						$startDates[$sighting['attribute_id']] = $sighting['date_sighting'];
-					}
-				}
-				if ($sighting['type'] == '0' && (!isset($startDates['event']) || $startDates['event'] > $sighting['date_sighting'])) {
-					if ($sighting['date_sighting'] >= $range) {
-						$startDates['event'] = $sighting['date_sighting'];
-					}
-				}
-				if (!isset($sightingsData[$sighting['attribute_id']][$type]['orgs'][$orgName])) {
-					$sightingsData[$sighting['attribute_id']][$type]['orgs'][$orgName] = array('count' => 1, 'date' => $sighting['date_sighting']);
-				} else {
-					$sightingsData[$sighting['attribute_id']][$type]['orgs'][$orgName]['count']++;
-					if ($sightingsData[$sighting['attribute_id']][$type]['orgs'][$orgName]['date'] < $sighting['date_sighting']) {
-						$sightingsData[$sighting['attribute_id']][$type]['orgs'][$orgName]['date'] = $sighting['date_sighting'];
-					}
-				}
-				$date = date("Y-m-d", $sighting['date_sighting']);
-				if (!isset($sparklineData[$sighting['attribute_id']][$date])) {
-					$sparklineData[$sighting['attribute_id']][$date] = 1;
-				} else {
-					$sparklineData[$sighting['attribute_id']][$date]++;
-				}
-				if (!isset($sparklineData['event'][$date])) {
-					$sparklineData['event'][$date] = 1;
-				} else {
-					$sparklineData['event'][$date]++;
-				}
-			}
-			$csv = array();
-			foreach ($startDates as $k => $v) {
-				$startDates[$k] = date('Y-m-d', $v);
-			}
-			$range = (!empty(Configure::read('MISP.Sightings_range')) && is_numeric(Configure::read('MISP.Sightings_range'))) ? Configure::read('MISP.Sightings_range') : 365;
-			foreach ($sparklineData as $aid => $data) {
-				$startDate = $startDates[$aid];
-				if (strtotime($startDate) < strtotime('-' . $range . ' days', time())) {
-					$startDate = date('Y-m-d');
-				}
-				$startDate = date('Y-m-d',strtotime("-3 days", strtotime($startDate)));
-				$to = date('Y-m-d', time());
-				$sighting = $data;
-				for ($date = $startDate; strtotime($date) <= strtotime($to); $date = date('Y-m-d',strtotime("+1 day", strtotime($date)))) {
-					if (!isset($csv[$aid])) {
-						$csv[$aid] = 'Date,Close\n';
-					}
-					if (isset($sighting[$date])) {
-						$csv[$aid] .= $date . ',' . $sighting[$date] . '\n';
-					} else {
-						$csv[$aid] .= $date . ',0\n';
-					}
-				}
-			}
-			return array(
-					'data' => $sightingsData,
-					'csv' => $csv
-			);
-		}
-		return array('data' => array(), 'csv' => array());
 	}
 }

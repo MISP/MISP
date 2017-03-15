@@ -242,13 +242,13 @@ class EventShell extends AppShell
 		} else {
 			$file = new File($dir->pwd() . DS . 'misp.' . $extra . '.' . $user['Organisation']['name'] . '.csv');
 		}
-		$file->write('uuid,event_id,category,type,value,to_ids,date' . PHP_EOL);
+		$file->write('uuid,event_id,category,type,value,to_ids,is_regex,date' . PHP_EOL);
 		foreach ($eventIds as $k => $eventId) {
 			$chunk = "";
 			$attributes = $this->Event->csv($user, $eventId['Event']['id'], $ignore);
 			$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
 			foreach ($attributes as $attribute) {
-				$chunk .= $attribute['Attribute']['uuid'] . ',' . $attribute['Attribute']['event_id'] . ',' . $attribute['Attribute']['category'] . ',' . $attribute['Attribute']['type'] . ',' . $attribute['Attribute']['value'] . ',' . intval($attribute['Attribute']['to_ids']) . ',' . $attribute['Attribute']['timestamp'] . PHP_EOL;
+				$chunk .= $attribute['Attribute']['uuid'] . ',' . $attribute['Attribute']['event_id'] . ',' . $attribute['Attribute']['category'] . ',' . $attribute['Attribute']['type'] . ',' . $attribute['Attribute']['value'] . ',' . intval($attribute['Attribute']['to_ids']) . ',' . intval($attribute['Attribute']['is_regex']) . ',' . $attribute['Attribute']['timestamp'] . PHP_EOL;
 			}
 			$file->append($chunk);
 			if ($k % 10 == 0) {

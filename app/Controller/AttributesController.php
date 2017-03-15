@@ -73,28 +73,9 @@ class AttributesController extends AppController {
 		$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
 	}
 
-	public function add($eventId) {
+	public function add($eventId = null) {
 		if (!$this->userRole['perm_add']) {
 			throw new MethodNotAllowedException('You don\'t have permissions to create attributes');
-		}
-		$this->loadModel('Event');
-		if (Validation::uuid($eventId)) {
-			$temp = $this->Event->find('first', array('recursive' => -1, 'fields' => array('Event.id'), 'conditions' => array('Event.uuid' => $eventId)));
-			if (empty($temp)) throw new NotFoundException('Invalid event');
-			$eventId = $temp['Event']['id'];
-		} else if (!is_numeric($eventId)) {
-			throw new NotFoundException(__('Invalid event'));
-		}
-		$this->Event->id = $eventId;
-		if (!$this->Event->exists()) {
-			throw new NotFoundException(__('Invalid event'));
-		}
-		// remove the published flag from the event
-		$this->Event->recursive = -1;
-		$this->Event->read(null, $eventId);
-		$this->request->data['Attribute']['event_id'] = $eventId;
-		if (!$this->_isSiteAdmin() && ($this->Event->data['Event']['orgc_id'] != $this->_checkOrg() || !$this->userRole['perm_modify'])) {
-			throw new UnauthorizedException('You do not have permission to do that.');
 		}
 		if ($this->request->is('ajax'))	{
 			$this->set('ajax', true);
@@ -104,9 +85,17 @@ class AttributesController extends AppController {
 		}
 		if ($this->request->is('post')) {
 			if ($this->request->is('ajax')) $this->autoRender = false;
+			$this->loadModel('Event');
 			$date = new DateTime();
-			if (!isset($this->request->data['Attribute'])) {
-				$this->request->data = array('Attribute' => $this->request->data);
+
+			// remove the published flag from the event
+			$this->Event->recursive = -1;
+			if (isset($eventId)) {
+				$this->Event->read(null, $eventId);
+				$this->request->data['Attribute']['event_id'] = $eventId;
+			} else $this->Event->read(null, $this->request->data['Attribute']['event_id']);
+			if (!$this->_isSiteAdmin() && ($this->Event->data['Event']['orgc_id'] != $this->_checkOrg() || !$this->userRole['perm_modify'])) {
+				throw new UnauthorizedException('You do not have permission to do that.');
 			}
 			$this->Event->set('timestamp', $date->getTimestamp());
 			$this->Event->set('published', 0);
@@ -226,7 +215,7 @@ class AttributesController extends AppController {
 						$saved_attribute = $this->Attribute->find('first', array(
 								'conditions' => array('id' => $this->Attribute->id),
 								'recursive' => -1,
-								'fields' => array('id', 'type', 'to_ids', 'category', 'uuid', 'event_id', 'distribution', 'timestamp', 'comment', 'value'),
+								'fields' => array('id', 'type', 'to_ids', 'is_regex', 'category', 'uuid', 'event_id', 'distribution', 'timestamp', 'comment', 'value'),
 						));
 						$response = array('response' => array('Attribute' => $saved_attribute['Attribute']));
 						$this->set('response', $response);
@@ -388,6 +377,7 @@ class AttributesController extends AppController {
 								'event_id' => $this->request->data['Attribute']['event_id'],
 								'comment' => $this->request->data['Attribute']['comment'],
 								'to_ids' => 1,
+								'is_regex' => 0,
 								'distribution' => $this->request->data['Attribute']['distribution'],
 								'sharing_group_id' => isset($this->request->data['Attribute']['sharing_group_id']) ? $this->request->data['Attribute']['sharing_group_id'] : 0,
 							)
@@ -415,6 +405,7 @@ class AttributesController extends AppController {
 								'data' => base64_encode($tmpfile->read()),
 								'comment' => $this->request->data['Attribute']['comment'],
 								'to_ids' => 0,
+								'is_regex' => 0,
 								'distribution' => $this->request->data['Attribute']['distribution'],
 								'sharing_group_id' => isset($this->request->data['Attribute']['sharing_group_id']) ? $this->request->data['Attribute']['sharing_group_id'] : 0,
 							)
@@ -551,6 +542,7 @@ class AttributesController extends AppController {
 				$attribute = array();
 				$attribute['event_id'] = $this->request->data['Attribute']['event_id'];
 				$attribute['value'] = $entry['Value'];
+				$attribute['is_regex'] = $entry['is_regex'];
 				$attribute['to_ids'] = ($entry['Confidence'] > 51) ? 1 : 0; // To IDS if high confidence
 				$attribute['comment'] = 'ThreatConnect: ' . $entry['Description'];
 				$attribute['distribution'] = '3'; // 'All communities'
@@ -659,7 +651,7 @@ class AttributesController extends AppController {
 			if ($temp == null) throw new NotFoundException('Invalid attribute');
 			$id = $temp['Attribute']['id'];
 		} else if (!is_numeric($id)) {
-			throw new NotFoundException(__('Invalid attribute'));
+			throw new NotFoundException(__('Invalid event id.'));
 		}
 		$this->Attribute->id = $id;
 		$date = new DateTime();
@@ -691,7 +683,7 @@ class AttributesController extends AppController {
 		}
 		if ($this->request->is('post') || $this->request->is('put')) {
 			if (!isset($this->request->data['Attribute'])) {
-				$this->request->data = array('Attribute' => $this->request->data);
+				$this->request->data['Attribute'] = $this->request->data;
 			}
 			$existingAttribute = $this->Attribute->findByUuid($this->Attribute->data['Attribute']['uuid']);
 			// check if the attribute has a timestamp already set (from a previous instance that is trying to edit via synchronisation)
@@ -701,7 +693,7 @@ class AttributesController extends AppController {
 				$dateObj = new DateTime();
 				if (!isset($this->request->data['Attribute']['timestamp'])) $this->request->data['Attribute']['timestamp'] = $dateObj->getTimestamp();
 				if ($this->request->data['Attribute']['timestamp'] > $existingAttribute['Attribute']['timestamp']) {
-					$recoverFields = array('value', 'to_ids', 'distribution', 'category', 'type', 'comment');
+					$recoverFields = array('value', 'to_ids', 'is_regex', 'distribution', 'category', 'type', 'comment');
 					foreach ($recoverFields as $rF) {
 						if (!isset($this->request->data['Attribute'][$rF])) $this->request->data['Attribute'][$rF] = $existingAttribute['Attribute'][$rF];
 					}
@@ -733,7 +725,7 @@ class AttributesController extends AppController {
 					$saved_attribute = $this->Attribute->find('first', array(
 							'conditions' => array('id' => $this->Attribute->id),
 							'recursive' => -1,
-							'fields' => array('id', 'type', 'to_ids', 'category', 'uuid', 'event_id', 'distribution', 'timestamp', 'comment', 'value', 'disable_correlation'),
+							'fields' => array('id', 'type', 'to_ids', 'is_regex', 'category', 'uuid', 'event_id', 'distribution', 'timestamp', 'comment', 'value', 'disable_correlation'),
 					));
 					$response = array('response' => array('Attribute' => $saved_attribute['Attribute']));
 					$this->set('response', $response);
@@ -827,7 +819,7 @@ class AttributesController extends AppController {
 				return new CakeResponse(array('body'=> json_encode(array('fail' => false, 'errors' => 'Invalid attribute')),'status'=>200));
 			}
 		}
-		$validFields = array('value', 'category', 'type', 'comment', 'to_ids', 'distribution');
+		$validFields = array('value', 'category', 'type', 'comment', 'to_ids', 'is_regex', 'distribution');
 		$changed = false;
 		if (empty($this->request->data['Attribute'])) {
 			$this->request->data = array('Attribute' => $this->request->data);
@@ -892,15 +884,7 @@ class AttributesController extends AppController {
 		}
 	}
 
-	public function delete($id, $hard = false) {
-		if (Validation::uuid($id)) {
-			$this->Attribute->recursive = -1;
-			$temp = $this->Attribute->findByUuid($id);
-			if ($temp == null) throw new NotFoundException('Invalid attribute');
-			$id = $temp['Attribute']['id'];
-		} else if (!is_numeric($id)) {
-			throw new NotFoundException('Invalid attribute');
-		}
+	public function delete($id = null, $hard = false) {
 		$this->set('id', $id);
 		$conditions = array('id' => $id);
 		if (!$hard) $conditions['deleted'] = 0;
@@ -1017,6 +1001,7 @@ class AttributesController extends AppController {
 					$result['Attribute']['value'] = 'deleted';
 					$result['Attribute']['comment'] = '';
 					$result['Attribute']['to_ids'] = 0;
+					$result['Attribute']['is_regex'] = 0;
 			}
 			$result['Attribute']['deleted'] = 1;
 			$result['Attribute']['timestamp'] = $date->getTimestamp();
@@ -1106,6 +1091,12 @@ class AttributesController extends AppController {
 			if ($this->request->data['Attribute']['to_ids'] != 2) {
 				foreach ($attributes as $key => $attribute) {
 					$attributes[$key]['Attribute']['to_ids'] = ($this->request->data['Attribute']['to_ids'] == 0 ? false : true);
+				}
+			}
+
+			if ($this->request->data['Attribute']['is_regex'] != 2) {
+				foreach ($attributes as $key => $attribute) {
+					$attributes[$key]['Attribute']['is_regex'] = ($this->request->data['Attribute']['is_regex'] == 0 ? false : true);
 				}
 			}
 
@@ -1625,7 +1616,7 @@ class AttributesController extends AppController {
 				),
 				'contain' => array('Event' => array('Orgc' => array('fields' => array('Orgc.name')))),
 				'fields' => array(
-					'Attribute.id', 'Attribute.event_id', 'Attribute.type', 'Attribute.category', 'Attribute.to_ids', 'Attribute.value', 'Attribute.distribution',
+					'Attribute.id', 'Attribute.event_id', 'Attribute.type', 'Attribute.category', 'Attribute.to_ids', 'Attribute.is_regex', 'Attribute.value', 'Attribute.distribution',
 					'Event.id', 'Event.org_id', 'Event.orgc_id', 'Event.info', 'Event.distribution', 'Event.attribute_count', 'Event.date',
 				)
 			)
@@ -2178,7 +2169,7 @@ class AttributesController extends AppController {
 	}
 
 	public function fetchViewValue($id, $field = null) {
-		$validFields = array('value', 'comment', 'type', 'category', 'to_ids', 'distribution', 'timestamp');
+		$validFields = array('value', 'comment', 'type', 'category', 'to_ids', 'is_regex', 'distribution', 'timestamp');
 		if (!isset($field) || !in_array($field, $validFields)) throw new MethodNotAllowedException('Invalid field requested.');
 		if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This function can only be accessed via AJAX.');
 		$this->Attribute->id = $id;
@@ -2210,7 +2201,7 @@ class AttributesController extends AppController {
 	}
 
 	public function fetchEditForm($id, $field = null) {
-		$validFields = array('value', 'comment', 'type', 'category', 'to_ids', 'distribution');
+		$validFields = array('value', 'comment', 'type', 'category', 'to_ids', 'is_regex', 'distribution');
 		if (!isset($field) || !in_array($field, $validFields)) throw new MethodNotAllowedException('Invalid field requested.');
 		if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This function can only be accessed via AJAX.');
 		$this->Attribute->id = $id;
@@ -2300,6 +2291,7 @@ class AttributesController extends AppController {
 			$category = $this->request->data['Attribute']['category'];
 			$type = $this->request->data['Attribute']['type'];
 			$to_ids = $this->request->data['Attribute']['to_ids'];
+			$is_regex = $this->request->data['Attribute']['is_regex'];
 
 			if (!$this->_isSiteAdmin() && $this->Auth->user('org_id') != $event['Event']['orgc_id'] && !$this->userRole['perm_add']) throw new MethodNotAllowedException('You are not authorised to do that.');
 
@@ -2331,6 +2323,7 @@ class AttributesController extends AppController {
 							'type' => $type,
 							'distribution' => $event['Event']['distribution'],
 							'to_ids' => $to_ids,
+							'is_regex' => $is_regex,
 					);
 					$this->Attribute->create();
 					if ($this->Attribute->save(array('Attribute' => $attribute))) {
