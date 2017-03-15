@@ -37,7 +37,7 @@
 			<?php echo $this->Html->link('', array('controller' => 'users', 'action' => 'index', 'admin' => true), array('class' => 'icon-remove', 'title' => 'Remove filters'));?>
 		</span>
 		<?php endif;?>
-		<span id="quickFilterButton" class="tabMenuFilterFieldButton useCursorPointer" onClick="quickFilter(<?php echo h($passedArgs); ?>, '<?php echo $baseurl . '/users/admin_index'; ?>');">Filter</span>
+		<span id="quickFilterButton" role="button" tabindex="0" aria-label="Filter user index" class="tabMenuFilterFieldButton useCursorPointer" onClick="quickFilter(<?php echo h($passedArgs); ?>, '<?php echo $baseurl . '/users/admin_index'; ?>');">Filter</span>
 		<input class="tabMenuFilterField" type="text" id="quickFilterField"></input>
 	</div>
 	<?php

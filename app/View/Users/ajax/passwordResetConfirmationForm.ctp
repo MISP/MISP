@@ -24,12 +24,12 @@
 	<table>
 		<tr>
 			<td style="vertical-align:top">
-				<span id="PromptYesButton" class="btn btn-primary" onClick="submitPasswordReset('<?php echo $user['User']['id']; ?>');">Yes</span>
+				<span id="PromptYesButton" role="button" tabindex="0" aria-label="Submit password reset" class="btn btn-primary" onClick="submitPasswordReset('<?php echo $user['User']['id']; ?>');">Yes</span>
 			</td>
 			<td style="width:540px;">
 			</td>
 			<td style="vertical-align:top;">
-				<span class="btn btn-inverse" id="PromptNoButton" onClick="cancelPrompt();">No</span>
+				<span role="button" tabindex="0" aria-label="Cancel" class="btn btn-inverse" id="PromptNoButton" onClick="cancelPrompt();">No</span>
 			</td>
 		</tr>
 	</table>
