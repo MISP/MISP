@@ -16,6 +16,7 @@ foreach ($attributes as $item):?>
 		<td><?php echo h($item['type']); ?></td>
 		<td><?php echo h($item['value']); ?></td>
 		<td><?php echo h($item['comment']); ?></td>
+		<td><?php echo ($item['is_regex'] ? 'Yes' : 'No'); ?></td>
 		<td><?php echo ($item['to_ids'] ? 'Yes' : 'No'); ?></td>
 		<td><?php echo $distributionLevels[$item['distribution']]; ?></td>
 	</tr><?php

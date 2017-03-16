@@ -18,6 +18,10 @@ echo $this->Form->create('Attribute', array('id', 'url' => '/attributes/attribut
 					'type' => 'checkbox',
 					'label' => 'Mark all new attributes as to IDS',
 			));
+			echo $this->Form->input('is_regex', array(
+					'type' => 'checkbox',
+					'label' => 'Mark all new attributes as a regex',
+			));
 			echo $this->Form->input('value', array(
 					'type' => 'textarea',
 					'error' => array('escape' => false),
@@ -35,13 +39,13 @@ echo $this->Form->create('Attribute', array('id', 'url' => '/attributes/attribut
 			<table>
 				<tr>
 				<td style="vertical-align:top">
-					<span id="submitButton" class="btn btn-primary" title="Replace attributes" role="button" tabindex="0" aria-label="Replaceattributes" onClick="submitPopoverForm('<?php echo $event_id;?>', 'replaceAttributes')">Submit</span>
+					<span id="submitButton" class="btn btn-primary" onClick="submitPopoverForm('<?php echo $event_id;?>', 'replaceAttributes')">Submit</span>
 				</td>
 				<td style="width:540px;">
 					<p style="color:red;font-weight:bold;display:none;text-align:center" id="warning-message">Warning: You are about to share data that is of a classified nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>
 				</td>
 				<td style="vertical-align:top;">
-					<span class="btn btn-inverse" id="cancel_attribute_add" title="Cancel" role="button" tabindex="0" aria-label="Cancel">Cancel</span>
+					<span class="btn btn-inverse" id="cancel_attribute_add">Cancel</span>
 				</td>
 				</tr>
 			</table>

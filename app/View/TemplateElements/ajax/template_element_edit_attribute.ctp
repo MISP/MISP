@@ -62,6 +62,14 @@
 				?>
 			</div>
 			<div class="input clear"></div>
+			<div title="When checked, attributes created using this element will automatically be marked as a regex.">
+				<?php
+					echo $this->Form->input('is_regex', array(
+							'label' => 'Automatically mark as a regex',
+					));
+				?>
+			</div>
+			<div class="input clear"></div>
 			<div title="This setting will make this element mandatory.">
 				<?php
 					echo $this->Form->input('mandatory', array(
@@ -83,13 +91,13 @@
 		<table>
 			<tr>
 			<td style="vertical-align:top">
-				<button aria-label="Submit attribute element changes" title="Submit attribute element changes" class="btn btn-primary" onClick="submitPopoverForm('<?php echo $id;?>', 'editAttributeElement', '<?php echo $template_id; ?>')">Submit</button>
+				<span id="submitButton" class="btn btn-primary" onClick="submitPopoverForm('<?php echo $id;?>', 'editAttributeElement', '<?php echo $template_id; ?>')">Submit</span>
 			</td>
 			<td style="width:540px;">
 				<p style="color:red;font-weight:bold;display:none;text-align:center" id="warning-message">Warning: You are about to share data that is of a classified nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>
 			</td>
 			<td style="vertical-align:top;">
-				<button title="Cancel" class="btn btn-inverse" id="cancel_attribute_add" onClick="cancelPopoverForm();">Cancel</button>
+				<span class="btn btn-inverse" id="cancel_attribute_add" onClick="cancelPopoverForm();">Cancel</span>
 			</td>
 			</tr>
 		</table>

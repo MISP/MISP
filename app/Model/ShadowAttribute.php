@@ -111,6 +111,12 @@ class ShadowAttribute extends AppModel {
 				'required' => false,
 			),
 		),
+		'is_regex' => array(
+			'boolean' => array(
+				'rule' => array('boolean'),
+				'required' => false,
+			),
+		),
 		'uuid' => array(
 			'uuid' => array(
 				'rule' => array('uuid'),
@@ -280,8 +286,6 @@ class ShadowAttribute extends AppModel {
 			$date = new DateTime();
 			$this->data['ShadowAttribute']['timestamp'] = $date->getTimestamp();
 		}
-		
-		if (!isset($this->data['ShadowAttribute']['proposal_to_delete'])) $this->data['ShadowAttribute']['proposal_to_delete'] = 0;
 
 		// make some last changes to the inserted value
 		$this->data['ShadowAttribute']['value'] = $this->Event->Attribute->modifyBeforeValidation($this->data['ShadowAttribute']['type'], $this->data['ShadowAttribute']['value']);
@@ -398,6 +402,7 @@ class ShadowAttribute extends AppModel {
 				'type' => $sa['type'],
 				'category' => $sa['category'],
 				'to_ids' => $sa['to_ids'],
+				'is_regex' => $sa['is_regex'],
 				'comment' => $sa['comment']
 			),
 		));

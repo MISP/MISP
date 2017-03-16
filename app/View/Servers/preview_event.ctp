@@ -28,7 +28,7 @@
 					<dd class="eventTagContainer">
 					<?php if (!empty($event['Tag'])) foreach ($event['Tag'] as $tag): ?>
 						<span style="padding-right:0px;">
-							<span role="button" tabindex="0" aria-label="Filter the remote instance by tag: <?php echo h($tag['name']); ?>" title="Filter the remote instance on the tag: <?php echo h($tag['name']); ?>" onclick="document.location.href='/servers/previewIndex/<?php echo h($server['Server']['id']); ?>/searchtag:<?php echo h($tag['name']); ?>';" class="tagFirstHalf" style="background-color:<?php echo h($tag['colour']);?>;color:<?php echo $this->TextColour->getTextColour($tag['colour']);?>"><?php echo h($tag['name']); ?></span>
+							<span onclick="document.location.href='/servers/previewIndex/<?php echo h($server['Server']['id']); ?>/searchtag:<?php echo h($tag['name']); ?>';" class="tagFirstHalf" style="background-color:<?php echo h($tag['colour']);?>;color:<?php echo $this->TextColour->getTextColour($tag['colour']);?>"><?php echo h($tag['name']); ?></span>
 						</span>
 					<?php endforeach; ?>&nbsp;
 					</dd>
@@ -150,6 +150,7 @@
 				<?php endif; ?>
 					<th><?php echo $this->Paginator->sort('comment');?></th>
 					<th>Related Events</th>
+					<th title="<?php echo $attrDescriptions['signature']['desc'];?>"><?php echo $this->Paginator->sort('is_regex', 'Regex');?></th>
 					<th title="<?php echo $attrDescriptions['signature']['desc'];?>"><?php echo $this->Paginator->sort('to_ids', 'IDS');?></th>
 					<th title="<?php echo $attrDescriptions['distribution']['desc'];?>"><?php echo $this->Paginator->sort('distribution');?></th>
 				</tr>
@@ -203,6 +204,7 @@
 							?>
 							</ul>
 						</td>
+						<td class="shortish <?php echo $extra; ?>"><?php echo ($object['is_regex']) ? 'Yes' : 'No'; ?></td>
 						<td class="shortish <?php echo $extra; ?>"><?php echo ($object['to_ids']) ? 'Yes' : 'No'; ?></td>
 						<td class="shortish <?php echo $extra; ?>">
 						<?php

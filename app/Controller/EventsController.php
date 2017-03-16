@@ -738,8 +738,6 @@ class EventsController extends AppController {
 				$this->set($variable, $currentModel->{$variable});
 			}
 		}
-		$sightingsData = $this->Event->getSightingData($event);
-		$this->set('sightingsData', $sightingsData);
 		if (Configure::read('Plugin.Enrichment_services_enable')) {
 			$this->loadModel('Module');
 			$modules = $this->Module->getEnabledModules();
@@ -855,8 +853,7 @@ class EventsController extends AppController {
 																						'recursive' => -1,
 																						'contain' => array('Org', 'RequesterOrg'))));
 		}
-		$sightingsData = $this->Event->getSightingData($event);
-		$this->set('sightingsData', $sightingsData);
+
 		if (Configure::read('Plugin.Enrichment_services_enable')) {
 			$this->loadModel('Module');
 			$modules = $this->Module->getEnabledModules();
@@ -1231,6 +1228,7 @@ class EventsController extends AppController {
 		if ($this->request->is('post')) {
 			$source_id = $this->request->data['Event']['source_id'];
 			$to_ids = $this->request->data['Event']['to_ids'];
+			$is_regex = $this->request->data['Event']['is_regex'];
 			if (!is_numeric($source_id)) {
 				$this->Session->setFlash(__('Invalid event ID entered.'));
 				return;
@@ -1250,6 +1248,7 @@ class EventsController extends AppController {
 				$tmp['categories'] = $a['category'];
 				$tmp['types']      = $a['type'];
 				$tmp['to_ids']     = $a['to_ids'];
+				$tmp['is_regex']     = $a['is_regex'];
 				$tmp['comment']    = $a['comment'];
 				if ($this->Event->Attribute->typeIsAttachment($a['type'])) {
 					$encodedFile = $this->Event->Attribute->base64EncodeAttachment($a);
@@ -1420,17 +1419,16 @@ class EventsController extends AppController {
 			throw new NotFoundException(__('Invalid event'));
 		}
 
-		$event = $this->Event->find('first', array(
-			'conditions' => array('Event.id' => $id),
-			'fields' => array('Event.orgc_id', 'Event.id'),
-			'recursive' => -1
-		));
+		// find the uuid
+		$result = $this->Event->findById($id);
+		$this->Event->read();
+
 		if (!$this->_isSiteAdmin()) {
-			if ($event['Event']['orgc_id'] != $this->_checkOrg() || !$this->userRole['perm_modify']) {
+			if ($this->Event->data['Event']['orgc_id'] != $this->_checkOrg() || !$this->userRole['perm_modify']) {
 				throw new MethodNotAllowedException();
 			}
 		}
-		if ($this->Event->quickDelete($event)) {
+		if ($this->Event->delete()) {
 			if ($this->_isRest() || $this->response->type() === 'application/json') {
 				$this->set('message', 'Event deleted.');
 				$this->set('_serialize', array('message'));
@@ -1649,7 +1647,7 @@ class EventsController extends AppController {
 		$filesize_units = array('B', 'KB', 'MB', 'GB', 'TB');
 		if ($this->_isSiteAdmin()) $this->Session->setFlash('Warning, you are logged in as a site admin, any export that you generate will contain the FULL UNRESTRICTED data-set. If you would like to generate an export for your own organisation, please log in with a different user.');
 		// Check if the background jobs are enabled - if not, fall back to old export page.
-		if (Configure::read('MISP.background_jobs') && !Configure::read('MISP.disable_cached_exports')) {
+		if (Configure::read('MISP.background_jobs')) {
 			$now = time();
 
 			// as a site admin we'll use the ADMIN identifier, not to overwrite the cached files of our own org with a file that includes too much data.
@@ -1746,9 +1744,6 @@ class EventsController extends AppController {
 	}
 
 	public function downloadExport($type, $extra = null) {
-		if (Configure::read('MISP.disable_cached_exports')) {
-			throw new MethodNotAllowedException('This feature is currently disabled');
-		}
 		if ($this->_isSiteAdmin()) $org = 'ADMIN';
 		else $org = $this->Auth->user('Organisation')['name'];
 		$this->autoRender = false;
@@ -2039,10 +2034,10 @@ class EventsController extends AppController {
 		}
 		if (isset($events)) {
 			foreach ($events as $eventid) {
-				$attributes = $this->Event->csv($user, $eventid, $ignore, $list, false, $category, $type, $includeContext, $enforceWarninglist);
+				$attributes = $this->Event->csv($user, $eventid, $ignore, $list, false, $category, $type, $is_regex, $includeContext, $enforceWarninglist);
 				$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
 				foreach ($attributes as $attribute) {
-					$line = $attribute['Attribute']['uuid'] . ',' . $attribute['Attribute']['event_id'] . ',' . $attribute['Attribute']['category'] . ',' . $attribute['Attribute']['type'] . ',' . $attribute['Attribute']['value'] . ',' . $attribute['Attribute']['comment'] . ',' . intval($attribute['Attribute']['to_ids']) . ',' . $attribute['Attribute']['timestamp'];
+					$line = $attribute['Attribute']['uuid'] . ',' . $attribute['Attribute']['event_id'] . ',' . $attribute['Attribute']['category'] . ',' . $attribute['Attribute']['type'] . ',' . $attribute['Attribute']['is_regex'] . ',' . $attribute['Attribute']['value'] . ',' . $attribute['Attribute']['comment'] . ',' . intval($attribute['Attribute']['to_ids']) . ',' . $attribute['Attribute']['timestamp'];
 					if ($includeContext) {
 						foreach ($this->Event->csv_event_context_fields_to_fetch as $header => $field) {
 							if ($field['object']) $line .= ',' . $attribute['Event'][$field['object']][$field['var']];
@@ -2062,7 +2057,7 @@ class EventsController extends AppController {
 			$this->header('Content-Disposition: download; filename="misp.event_' . $exportType . '.csv"');
 		}
 		$this->layout = 'text/default';
-		$headers = array('uuid', 'event_id', 'category', 'type', 'value', 'comment', 'to_ids', 'date');
+		$headers = array('uuid', 'event_id', 'category', 'type', 'value', 'is_regex', 'comment', 'to_ids', 'date');
 		if ($includeContext) $headers = array_merge($headers, array_keys($this->Event->csv_event_context_fields_to_fetch));
 		$this->set('headers', $headers);
 		$this->set('final', $final);
@@ -2165,6 +2160,7 @@ class EventsController extends AppController {
 				'type' => 'attachment',
 				'value' => $this->data['Event']['submittedioc']['name'],
 				'to_ids' => false,
+				'is_regex' => false,
 				'distribution' => $dist,
 				'data' => base64_encode($xmlFileData),
 				'comment' => 'OpenIOC import source file'
@@ -2177,7 +2173,7 @@ class EventsController extends AppController {
 
 			$fieldList = array(
 					'Event' => array('published', 'timestamp'),
-					'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'uuid', 'distribution', 'timestamp', 'comment')
+					'Attribute' => array('event_id', 'category', 'type', 'value', 'value1', 'value2', 'to_ids', 'is_regex', 'uuid', 'distribution', 'timestamp', 'comment')
 			);
 			// Save it all
 			$saveResult = $this->Event->saveAssociated($saveEvent, array('validate' => true, 'fieldList' => $fieldList));
@@ -2363,6 +2359,7 @@ class EventsController extends AppController {
 					'type' => 'ip-dst',
 					'value' => $ip,
 					'to_ids' => false,
+					'is_regex' => false,
 					'distribution' => $dist,
 					'comment' => 'GFI import',
 					));
@@ -2376,6 +2373,7 @@ class EventsController extends AppController {
 					'type' => 'hostname',
 					'value' => $hostname,
 					'to_ids' => false,
+					'is_regex' => false,
 					'distribution' => $dist,
 					'comment' => 'GFI import',
 			));
@@ -2406,7 +2404,8 @@ class EventsController extends AppController {
 					'type' => 'regkey|value',
 					'value' => $key . '|' . $val,
 					'distribution' => $dist,
-					'to_ids' => false
+					'to_ids' => false,
+					'is_regex' => false
 				));
 			}
 		}
@@ -2642,7 +2641,7 @@ class EventsController extends AppController {
 						'eventid' => $currentEventId,
 						'includeAttachments' => $withAttachments,
 						'metadata' => $metadata,
-						'enforceWarninglist' => $enforceWarninglist
+						'enforceWarninglist' => $enforceWarningist
 					));
 					if (!empty($result)) {
 						$result = $this->Whitelist->removeWhitelistedFromArray($result, false);
@@ -2785,6 +2784,7 @@ class EventsController extends AppController {
 					'type' => $type,
 					'value' => $defaultValues[$type],
 					'to_ids' => '0',
+					'is_regex' => '0',
 					'distribution' => '0',
 				);
 			}
@@ -2825,6 +2825,7 @@ class EventsController extends AppController {
 						'type' => 'text',
 						'value' => $value,
 						'to_ids' => '0',
+						'is_regex' => '0',
 						'distribution' => '0',
 						'value1' => $value,
 						'value2' => '',
@@ -3104,8 +3105,6 @@ class EventsController extends AppController {
 				foreach (${$source} as $k => $attribute) {
 					if ($attribute['type'] == 'ip-src/ip-dst') {
 						$types = array('ip-src', 'ip-dst');
-					} else if ($attribute['type'] == 'ip-src|port/ip-dst|port') {
-						$types = array('ip-src|port', 'ip-dst|port');
 					} else if ($attribute['type'] == 'malware-sample') {
 						if (!isset($attribute['data_is_handled']) || !$attribute['data_is_handled']) {
 							App::uses('FileAccessTool', 'Tools');
@@ -3286,7 +3285,7 @@ class EventsController extends AppController {
 		$message= "";
 		$success = true;
 		$counter = 0;
-		if (!$this->userRole['perm_sync'] || !$this->userRole['perm_add']) throw new MethodNotAllowedException('You do not have the permission to do that.');
+		if (!$this->userRole['perm_sync']) throw new MethodNotAllowedException('You do not have the permission to do that.');
 		if ($this->request->is('post')) {
 			$event = $this->Event->find('first', array(
 					'conditions' => array('Event.uuid' => $uuid),
@@ -3303,7 +3302,7 @@ class EventsController extends AppController {
 					if (isset($event['ShadowAttribute'])) {
 						foreach ($event['ShadowAttribute'] as $oldk => $oldsa) {
 							$temp = json_encode($oldsa);
-							if ($sa['event_uuid'] == $oldsa['event_uuid'] && $sa['value'] == $oldsa['value'] && $sa['type'] == $oldsa['type'] && $sa['category'] == $oldsa['category'] && $sa['to_ids'] == $oldsa['to_ids']) {
+							if ($sa['event_uuid'] == $oldsa['event_uuid'] && $sa['value'] == $oldsa['value'] && $sa['type'] == $oldsa['type'] && $sa['category'] == $oldsa['category'] && $sa['to_ids'] == $oldsa['to_ids'] && $sa['is_regex'] == $oldsa['is_regex']) {
 								if ($oldsa['timestamp'] < $sa['timestamp']) {
 									$this->Event->ShadowAttribute->delete($oldsa['id']);
 								} else {
@@ -3521,6 +3520,7 @@ class EventsController extends AppController {
 				'analysis' => array('valid_options' => array(0, 1, 2), 'default' => 0),
 				'info' => array('default' =>  'Malware samples uploaded on ' . date('Y-m-d')),
 				'to_ids' => array('valid_options' => array(0, 1), 'default' => 1),
+				'is_regex' => array('valid_options' => array(0, 1), 'default' => 0),
 				'category' => array('valid_options' => $categories, 'default' => 'Payload installation'),
 				'comment' => array('default' => '')
 		);
@@ -3635,6 +3635,7 @@ class EventsController extends AppController {
 							'type' => $typeName,
 							'event_id' => $data['event_id'],
 							'to_ids' => $data['to_ids'],
+							'is_regex' => $data['is_regex'],
 							'comment' => $data['comment']
 					);
 					if ($hash == 'md5') $attribute['data'] = $file['data'];
@@ -3940,7 +3941,7 @@ class EventsController extends AppController {
 				$importComment = $result['comment'];
 			}
 			else {
-				$importComment = $attribute[0]['Attribute']['value'] . ': Enriched via the ' . $module . ' module';
+				$importComment = 'Enriched via the ' . $module . ' module';
 			}
 			$typeCategoryMapping = array();
 			foreach ($this->Event->Attribute->categoryDefinitions as $k => $cat) {

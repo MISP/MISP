@@ -509,6 +509,7 @@ Authorization: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX</pre>
 			&lt;type&gt;other&lt;/type&gt;
 			&lt;category&gt;Artifacts dropped&lt;/category&gt;
 			&lt;to_ids&gt;1&lt;/to_ids&gt;
+			&lt;is_regex&gt;1&lt;/is_regex&gt;
 			&lt;uuid&gt;50aa54bd-adec-4544-b494-10f0ff32448e&lt;/uuid&gt;
 			&lt;event_id&gt;57&lt;/event_id&gt;
 			&lt;distribution&gt;1&lt;/distribution&gt;
@@ -541,6 +542,7 @@ Authorization: <?php echo h($user['authkey']); ?></pre>
 		&lt;type&gt;other&lt;/type&gt;
 		&lt;category&gt;Artifacts dropped&lt;/category&gt;
 		&lt;to_ids&gt;1&lt;/to_ids&gt;
+		&lt;is_regex&gt;1&lt;/is_regex&gt;
 		&lt;distribution&gt;1&lt;/distribution&gt;
 		&lt;comment&gt;This is an Attribute&lt;/comment&gt;
 		&lt;value&gt;Some_attribute&lt;/value&gt;
@@ -581,6 +583,7 @@ Content-Type: application/xml
 			&lt;type&gt;other&lt;/type&gt;
 			&lt;category&gt;Artifacts dropped&lt;/category&gt;
 			&lt;to_ids&gt;1&lt;/to_ids&gt;
+			&lt;is_regex&gt;1&lt;/is_regex&gt;
 			&lt;uuid&gt;50aa54bd-adec-4544-b412-10f0ff32448e&lt;/uuid&gt;
 			&lt;event_id&gt;76&lt;/event_id&gt;
 			&lt;distribution&gt;1&lt;/distribution&gt;

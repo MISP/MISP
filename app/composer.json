@@ -1,6 +1,8 @@
 {
     "require": {
-        "kamisama/cake-resque": ">=4.1.2"
+        "kamisama/cake-resque": "4.1.2"
+    },
+    "config": {
+        "vendor-dir": "Vendor"
     }
 }
-

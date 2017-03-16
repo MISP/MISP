@@ -91,7 +91,7 @@ class ShadowAttributesController extends AppController {
 				$this->Attribute->delete($activeAttribute['Attribute']['id']);
 			} else {
 				// Update the live attribute with the shadow data
-				$fieldsToUpdate = array('value1', 'value2', 'value', 'type', 'category', 'comment', 'to_ids');
+				$fieldsToUpdate = array('value1', 'value2', 'value', 'type', 'category', 'comment', 'to_ids', 'is_regex');
 				foreach ($fieldsToUpdate as $f) $activeAttribute['Attribute'][$f] = $shadow[$f];
 				$activeAttribute['Attribute']['timestamp'] = $date->getTimestamp();
 				$this->Attribute->save($activeAttribute['Attribute']);
@@ -288,15 +288,12 @@ class ShadowAttributesController extends AppController {
 		}
 	}
 
-	public function add($eventId) {
+	public function add($eventId = null) {
 		if ($this->request->is('ajax'))	{
 			$this->set('ajax', true);
 			$this->layout = 'ajax';
 		} else {
 			$this->set('ajax', false);
-		}
-		if (empty($eventId)) {
-			if (empty($event)) throw new NotFoundException('Invalid Event');
 		}
 		$event = $this->ShadowAttribute->Event->fetchEvent($this->Auth->user(), array('eventid' => $eventId));
 		if (empty($event)) throw new NotFoundException('Invalid Event');
@@ -314,11 +311,11 @@ class ShadowAttributesController extends AppController {
 			if ($this->request->is('ajax')) $this->autoRender = false;
 			// Give error if someone tried to submit a attribute with attachment or malware-sample type.
 			// TODO change behavior attachment options - this is bad ... it should rather by a messagebox or should be filtered out on the view level
-			if (isset($this->request->data['ShadowAttribute']['type']) && $this->ShadowAttribute->typeIsAttachment($this->request->data['ShadowAttribute']['type']) && !$this->_isRest()) {
+			if (isset($this->request->data['ShadowAttribute']['type']) && $this->ShadowAttribute->typeIsAttachment($this->request->data['ShadowAttribute']['type'])) {
 				$this->Session->setFlash(__('Attribute has not been added: attachments are added by "Add attachment" button', true), 'default', array(), 'error');
-				$this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
+				$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['ShadowAttribute']['event_id']));
 			}
-			$this->request->data['ShadowAttribute']['event_id'] = $eventId;
+			if (isset($eventId)) $this->request->data['ShadowAttribute']['event_id'] = $eventId;
 			//
 			// multiple attributes in batch import
 			//
@@ -407,7 +404,7 @@ class ShadowAttributesController extends AppController {
 							array(
 								'conditions' => array('ShadowAttribute.id' => $this->ShadowAttribute->id),
 								'recursive' => -1,
-								'fields' => array('id', 'old_id', 'event_id', 'type', 'category', 'value', 'comment','to_ids', 'uuid', 'event_org_id', 'email', 'deleted', 'timestamp')
+								'fields' => array('id', 'old_id', 'event_id', 'type', 'category', 'value', 'comment','to_ids', 'is_regex', 'uuid', 'event_org_id', 'email', 'deleted', 'timestamp')
 							)
 						);
 						$this->set('ShadowAttribute', $sa['ShadowAttribute']);
@@ -535,6 +532,7 @@ class ShadowAttributesController extends AppController {
 									'event_id' => $this->request->data['ShadowAttribute']['event_id'],
 									'comment' => $this->request->data['ShadowAttribute']['comment'],
 									'to_ids' => 1,
+									'is_regex' => 0,
 									'email' => $this->Auth->user('email'),
 									'org_id' => $this->Auth->user('org_id'),
 									'event_uuid' => $event['Event']['uuid'],
@@ -557,6 +555,7 @@ class ShadowAttributesController extends AppController {
 								'comment' => $this->request->data['ShadowAttribute']['comment'],
 								'data' => base64_encode($tmpfile->read()),
 								'to_ids' => 0,
+								'is_regex' => 0,
 								'email' => $this->Auth->user('email'),
 								'org_id' => $this->Auth->user('org_id'),
 								'event_uuid' => $event['Event']['uuid'],
@@ -644,18 +643,18 @@ class ShadowAttributesController extends AppController {
 
 		if ($this->request->is('post') || $this->request->is('put')) {
 			if (isset($this->request->data['request'])) $this->request->data = $this->request->data['request'];
-			// rearrange the request in case someone didn't RTFM
+			// rearrange the request in case someone didn't RTFM :)
 			$invalidNames = array('Attribute', 'Proposal');
 			foreach ($invalidNames as $iN) if (isset($this->request->data[$iN]) && !isset($this->request->data['ShadowAttribute'])) $this->request->data['ShadowAttribute'] = $this->request->data[$iN];
 			if ($attachment) {
 				$fields = array(
 						'static' => array('old_id' => 'Attribute.id', 'uuid' => 'Attribute.uuid', 'event_id' => 'Attribute.event_id', 'event_uuid' => 'Event.uuid', 'event_org_id' => 'Event.orgc_id', 'category' => 'Attribute.category', 'type' => 'Attribute.type'),
-						'optional' => array('value', 'to_ids', 'comment')
+						'optional' => array('value', 'to_ids', 'is_regex', 'comment')
 				);
 			} else {
 				$fields = array(
 						'static' => array('old_id' => 'Attribute.id', 'uuid' => 'Attribute.uuid', 'event_id' => 'Attribute.event_id', 'event_uuid' => 'Event.uuid', 'event_org_id' => 'Event.orgc_id'),
-						'optional' => array('category', 'type', 'value', 'to_ids', 'comment')
+						'optional' => array('category', 'type', 'value', 'to_ids', 'is_regex', 'comment')
 				);
 			}
 			foreach ($fields['static'] as $k => $v) {
@@ -684,7 +683,7 @@ class ShadowAttributesController extends AppController {
 							array(
 									'conditions' => array('ShadowAttribute.id' => $this->ShadowAttribute->id),
 									'recursive' => -1,
-									'fields' => array('id', 'old_id', 'event_id', 'type', 'category', 'value', 'comment','to_ids', 'uuid', 'event_org_id', 'email', 'deleted', 'timestamp')
+									'fields' => array('id', 'old_id', 'event_id', 'type', 'category', 'value', 'comment','to_ids', 'is_regex', 'uuid', 'event_org_id', 'email', 'deleted', 'timestamp')
 							)
 					);
 					$this->set('ShadowAttribute', $sa['ShadowAttribute']);
@@ -767,6 +766,7 @@ class ShadowAttributesController extends AppController {
 					'category' => $existingAttribute['Attribute']['category'],
 					'type' => $existingAttribute['Attribute']['type'],
 					'to_ids' => $existingAttribute['Attribute']['to_ids'],
+					'is_regex' => $existingAttribute['Attribute']['is_regex'],
 					'value' => $existingAttribute['Attribute']['value'],
 					'email' => $this->Auth->user('email'),
 					'org_id' => $this->Auth->user('org_id'),
@@ -802,7 +802,7 @@ class ShadowAttributesController extends AppController {
 				'recursive' => -1,
 				'contain' => 'Event',
 				'fields' => array(
-					'ShadowAttribute.id', 'ShadowAttribute.old_id', 'ShadowAttribute.event_id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.uuid', 'ShadowAttribute.to_ids', 'ShadowAttribute.value', 'ShadowAttribute.comment', 'ShadowAttribute.org_id',
+					'ShadowAttribute.id', 'ShadowAttribute.old_id', 'ShadowAttribute.event_id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.uuid', 'ShadowAttribute.to_ids', 'ShadowAttribute.is_regex', 'ShadowAttribute.value', 'ShadowAttribute.comment', 'ShadowAttribute.org_id',
 					'Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.distribution', 'Event.uuid'
 				),
 				'conditions' => array('AND' => array('ShadowAttribute.id' => $id, $distConditions, 'ShadowAttribute.deleted' => 0))
@@ -842,7 +842,7 @@ class ShadowAttributesController extends AppController {
 		if ($this->_isRest()) {
 			$temp = $this->ShadowAttribute->find('all', array(
 					'conditions' => $conditions,
-					'fields' => array('ShadowAttribute.id', 'ShadowAttribute.old_id', 'ShadowAttribute.event_id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.uuid', 'ShadowAttribute.to_ids', 'ShadowAttribute.value', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.timestamp'),
+					'fields' => array('ShadowAttribute.id', 'ShadowAttribute.old_id', 'ShadowAttribute.event_id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.uuid', 'ShadowAttribute.to_ids','ShadowAttribute.is_regex', 'ShadowAttribute.value', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.timestamp'),
 					'contain' => array(
 							'Event' => array(
 									'fields' => array('id', 'org_id', 'info', 'orgc_id'),
@@ -865,7 +865,7 @@ class ShadowAttributesController extends AppController {
 		} else {
 			$this->paginate = array(
 					'conditions' => $conditions,
-					'fields' => array('ShadowAttribute.id', 'ShadowAttribute.old_id', 'ShadowAttribute.event_id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.uuid', 'ShadowAttribute.to_ids', 'ShadowAttribute.value', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.timestamp'),
+					'fields' => array('ShadowAttribute.id', 'ShadowAttribute.old_id', 'ShadowAttribute.event_id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.uuid', 'ShadowAttribute.to_ids', 'ShadowAttribute.is_regex', 'ShadowAttribute.value', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.timestamp'),
 					'contain' => array(
 							'Event' => array(
 									'fields' => array('id', 'org_id', 'info', 'orgc_id'),
@@ -956,7 +956,7 @@ class ShadowAttributesController extends AppController {
 	}
 
 	public function fetchEditForm($id, $field = null) {
-		$validFields = array('value', 'comment', 'type', 'category', 'to_ids');
+		$validFields = array('value', 'comment', 'type', 'category', 'to_ids', 'is_regex');
 		if (!isset($field) || !in_array($field, $validFields)) throw new MethodNotAllowedException('Invalid field requested.');
 		$this->loadModel('Attribute');
 		$this->Attribute->id = $id;
@@ -1027,7 +1027,7 @@ class ShadowAttributesController extends AppController {
 			}
 		}
 
-		$keys = array_flip(array('uuid', 'event_id', 'value', 'type', 'category', 'to_ids'));
+		$keys = array_flip(array('uuid', 'event_id', 'value', 'type', 'category', 'to_ids','is_regex'));
 
 		$proposal = array_intersect_key($attribute['Attribute'], $keys);
 		$proposal['email'] = $this->Auth->user('email');
