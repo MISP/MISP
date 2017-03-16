@@ -48,7 +48,6 @@
 !/app/webroot/img/orgs/MISP.png
 !/app/webroot/img/orgs/NATO.png
 !/app/webroot/img/orgs/NCIRC.png
-!/app/webroot/img/orgs/RISKIQ.png
 /app/Config/bootstrap.php
 /app/Config/database.php
 /app/Config/core.php
