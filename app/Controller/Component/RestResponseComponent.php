@@ -89,7 +89,10 @@ class RestResponseComponent extends Component {
 		return array('action' => $action, 'admin' => $admin);
 	}
 
-	public function viewData($data, $format = false) {
+	public function viewData($data, $format = false, $errors = false) {
+		if (!empty($errors)) {
+			$data['errors'] = $errors;
+		}
 		return $this->__sendResponse($data, 200, $format);
 	}
 
