@@ -163,7 +163,7 @@ class AttributesController extends AppController {
 					foreach ($uuids as $k => $uuid) {
 						if (in_array($uuid, $existingAttributes)) {
 							unset($attributes[$k]);
-							$fails[$k] = json_encode(array('uuid' => array('An attribute with this uuid already exists.')));
+							$fails["attribute_$k"] = array('uuid' => array('An attribute with this uuid already exists.'));
 							unset($uuids[$k]);
 						}
 					}
@@ -173,7 +173,7 @@ class AttributesController extends AppController {
 				$this->Attribute->create();
 				$result = $this->Attribute->save($attribute);
 				if (!$result) {
-					$fails[$k] = json_encode($this->Attribute->validationErrors);
+					$fails["attribute_$k"] = $this->Attribute->validationErrors;
 				} else {
 					$successes[$k] = $this->Attribute->id;
 				}
@@ -192,10 +192,10 @@ class AttributesController extends AppController {
 					if (count($attributes) == 1) {
 						$attributes = $attributes[0];
 					}
-					return $this->RestResponse->viewData($attributes, $this->response->type());
+					return $this->RestResponse->viewData($attributes, $this->response->type(), $fails);
 				} else {
 					if ($attributeCount == 1) {
-						return $this->RestResponse->saveFailResponse('Attributes', 'add', false, $fails[0], $this->response->type());
+						return $this->RestResponse->saveFailResponse('Attributes', 'add', false, $fails["attribute_0"], $this->response->type());
 					} else {
 						return $this->RestResponse->saveFailResponse('Attributes', 'add', false, $fails, $this->response->type());
 					}
