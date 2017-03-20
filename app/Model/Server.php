@@ -743,6 +743,15 @@ class Server extends AppModel {
 							'type' => 'boolean',
 							'null' => true
 					),
+					'enable_attribute_tag_search' => array(
+							'level' => 2,
+							'description' => 'Enable this setting for including attribute level tags in search queries.',
+							'value' => true,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+							'null' => true
+					),
 			),
 			'GnuPG' => array(
 					'branch' => 1,

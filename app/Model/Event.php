@@ -84,6 +84,13 @@ class Event extends AppModel {
 					'canHaveAttachments' => false,
 					'description' => 'Click this to download all attributes that you have access to <small>(except file attachments)</small> in CSV format.',
 			),
+			'csv_mod' => array(
+					'extension' => '.csv',
+					'type' => 'CSV_mod',
+					'requiresPublished' => 0,
+					'canHaveAttachments' => false,
+					'description' => 'Click this to download all attributes that you have selected<small>(except file attachments)</small> in CSV format.',
+			),
 			'suricata' => array(
 					'extension' => '.rules',
 					'type' => 'Suricata',

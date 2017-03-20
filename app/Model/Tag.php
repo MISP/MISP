@@ -1,5 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
+//Configure::load('config');
 
 class Tag extends AppModel {
 
@@ -83,20 +84,24 @@ class Tag extends AppModel {
 		$rejectIdsBuf = array();
 		if (!empty($accept)) {
 			$acceptIds = $this->findEventIdsByTagNames($accept);
-			$acceptIdsBuf = $this->findEventIdsByAttributeTagNames($accept);
-			foreach ($acceptIdsBuf as $value) {
-				if (!in_array($value, $acceptIds, true)){
-					array_push($acceptIds, $value);
+			if (Configure::read('MISP.enable_attribute_tag_search')){
+				$acceptIdsBuf = $this->findEventIdsByAttributeTagNames($accept);
+				foreach ($acceptIdsBuf as $value) {
+					if (!in_array($value, $acceptIds, true)){
+						array_push($acceptIds, $value);
+					}
 				}
 			}
 			if (empty($acceptIds)) $acceptIds[] = -1;
 		}
 		if (!empty($reject)) {
 			$rejectIds = $this->findEventIdsByTagNames($reject);
-			$rejectIdsBuf = $this->findEventIdsByAttributeTagNames($reject);
-			foreach ($rejectIdsBuf as $value) {
-				if (!in_array($value, $rejectIds, true)){
-					array_push($rejectIds, $value);
+			if (Configure::read('MISP.enable_attribute_tag_search')){
+				$rejectIdsBuf = $this->findEventIdsByAttributeTagNames($reject);
+				foreach ($rejectIdsBuf as $value) {
+					if (!in_array($value, $rejectIds, true)){
+						array_push($rejectIds, $value);
+					}
 				}
 			}
 		}

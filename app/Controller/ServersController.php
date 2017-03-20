@@ -609,7 +609,8 @@ class ServersController extends AppController {
 					'Encryption' => array('count' => 0, 'errors' => 0, 'severity' => 5),
 					'Proxy' => array('count' => 0, 'errors' => 0, 'severity' => 5),
 					'Security' => array('count' => 0, 'errors' => 0, 'severity' => 5),
-					'Plugin' => array('count' => 0, 'errors' => 0, 'severity' => 5)
+					'Plugin' => array('count' => 0, 'errors' => 0, 'severity' => 5),
+					'Search' => array('count' => 0, 'errors' => 0, 'severity' => 5)
 			);
 			$writeableErrors = array(0 => 'OK', 1 => 'not found', 2 => 'is not writeable');
 			$readableErrors = array(0 => 'OK', 1 => 'not readable');
