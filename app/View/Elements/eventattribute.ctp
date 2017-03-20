@@ -435,7 +435,7 @@
                                                     $i++;
                                                     $countEvents = sizeof($event['Related' . $relatedObject][$object['id']]) - 9;
                                                     if ($i == 10 && $countEvents > 0):
-                                                    $buf = '<a id="toggleButton" onclick="toggleText(\'less\', \'' . $object['id'] . '\');" href="javascript:void(0);">(' . $countEvents . ')</a>';
+                                                    $buf = '<a id="toggleButton" onclick="toggleText(\'less\', \'' . $object['id'] . '\');" href="javascript:void(0);">(+' . $countEvents . ')</a>';
                                                     echo $buf;
                                                     break;
                                                     endif;
