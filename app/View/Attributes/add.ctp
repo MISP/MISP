@@ -105,7 +105,7 @@
 </div>
 <?php
 	if (!$ajax) {
-		$event['Event']['id'] = $this->request->data['Attribute']['event_id'];
+		$event['Event']['id'] = $event_id;
 		$event['Event']['published'] = $published;
 		echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'addAttribute', 'event' => $event));
 	}
