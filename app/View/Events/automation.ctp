@@ -76,7 +76,7 @@ Use semicolons instead (the search will automatically search for colons instead)
 <pre><?php echo $baseurl;?>/events/nids/suricata/download
 <?php echo $baseurl;?>/events/nids/snort/download</pre>
 <p>The full API syntax is as follows:</p>
-<pre><?php echo $baseurl;?>/events/nids/[format]/download/[eventid]/[frame]/[tags]/[from]/[to]/[last]/[type]/[enforceWarninglist]</pre>
+<pre><?php echo $baseurl;?>/events/nids/[format]/download/[eventid]/[frame]/[tags]/[from]/[to]/[last]/[type]/[enforceWarninglist]/[includeAllTags]</pre>
 <p>
 <b>format</b>: The export format, can be "suricata" or "snort"<br />
 <b>eventid</b>: Restrict the download to a single event<br />
@@ -90,6 +90,7 @@ Use semicolons instead (the search will automatically search for colons instead)
 <b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 6d or 12h or 30m). This filter will use the published timestamp of the event.<br />
 <b>type</b>: Restrict the export to only use the given types.<br />
 <b>enforceWarninglist</b>: All attributes that have a hit on a warninglist will be excluded.<br />
+<b>includeAllTags</b>: All tags will be included even if not exportable.<br />
 <p>The keywords false or null should be used for optional empty parameters in the URL.</p>
 <p>An example for a suricata export for all events excluding those tagged tag1, without all of the commented information at the start of the file would look like this:</p>
 <pre><?php echo $baseurl;?>/events/nids/suricata/download/null/true/!tag1</pre>
