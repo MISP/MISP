@@ -1544,7 +1544,7 @@ class Attribute extends AppModel {
 	}
 
 
-	public function nids($user, $format, $id = false, $continue = false, $tags = false, $from = false, $to = false, $last = false, $type = false, $enforceWarninglist = false) {
+	public function nids($user, $format, $id = false, $continue = false, $tags = false, $from = false, $to = false, $last = false, $type = false, $enforceWarninglist = false, $includeAllTags = false) {
 		if (empty($user)) throw new MethodNotAllowedException('Could not read user.');
 		$eventIds = $this->Event->fetchEventIds($user, $from, $to, $last);
 
@@ -1589,7 +1589,8 @@ class Attribute extends AppModel {
 					'fields' => array('Attribute.id', 'Attribute.event_id', 'Attribute.type', 'Attribute.value'),
 					'contain' => array('Event'=> array('fields' => array('Event.id', 'Event.threat_level_id'))),
 					'group' => array('Attribute.type', 'Attribute.value1'), // fields to GROUP BY
-					'enforceWarninglist' => $enforceWarninglist
+					'enforceWarninglist' => $enforceWarninglist,
+					'includeAllTags' => $includeAllTags
 			);
 			$items = $this->fetchAttributes($user, $params);
 			if (empty($items)) continue;
