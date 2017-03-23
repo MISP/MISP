@@ -2565,9 +2565,10 @@ class Server extends AppModel {
 				'Content-Type' => 'application/json',
 			)
 		);
+		$testFile = file_get_contents(APP . 'files/scripts/test_payload.txt');
 		$uri = $server['Server']['url'] . '/servers/postTest';
 		try {
-			$response = $HttpSocket->post($uri, json_encode(array('testString' => '##comma##')), $request);
+			$response = $HttpSocket->post($uri, json_encode(array('testString' => $testFile)), $request);
 			$response = json_decode($response, true);
 		} catch (Exception $e) {
 			$this->Log = ClassRegistry::init('Log');
@@ -2583,7 +2584,7 @@ class Server extends AppModel {
 			));
 			return 8;
 		}
-		if (!isset($response['body']['testString']) || $response['body']['testString'] !== '##comma##') {
+		if (!isset($response['body']['testString']) || $response['body']['testString'] !== $testFile) {
 			return 9;
 		}
 		$headers = array('Accept', 'Content-type');
