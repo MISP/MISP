@@ -3339,4 +3339,39 @@ class Server extends AppModel {
 		}
 		return true;
 	}
+
+	public function getLatestGitRemote() {
+		return exec('git ls-remote https://github.com/MISP/MISP | head -1 | sed "s/HEAD//"');
+	}
+
+	public function getCurrentGitStatus() {
+		$status = array();
+		$status['commit'] = exec('git rev-parse HEAD');
+		$status['branch'] = $this->getCurrentBranch();
+		$status['latestCommit'] = $this->getLatestGitremote();
+		return $status;
+	}
+
+	public function getCurrentBranch() {
+		return exec("git symbolic-ref HEAD | sed 's!refs\/heads\/!!'");
+	}
+
+	public function checkoutMain() {
+		$mainBranch = '2.4';
+		return exec('git checkout ' . $mainBranch);
+	}
+
+	public function update($status) {
+		$final = '';
+		$command1 = 'git pull origin ' . $status['branch'] . ' 2>&1';
+		$command2 = 'git submodule init && git submodule update 2>&1';
+		$final = $command1 . "\n\n";
+		exec($command1, $output);
+		$final .= implode("\n", $output) . "\n\n=================================\n\n";
+		$output = array();
+		$final .= $command2 . "\n\n";
+		exec($command2, $output);
+		$final .= implode("\n", $output);
+		return $final;
+	}
 }

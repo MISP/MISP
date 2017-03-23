@@ -2960,3 +2960,33 @@ $('.quickSelect').click(function() {
 	selection.removeAllRanges();
 	selection.addRange(range);
 });
+
+function updateMISP() {
+	$.get( "/servers/update", function(data) {
+		$("#confirmation_box").html(data);
+		$("#confirmation_box").fadeIn();
+		$("#gray_out").fadeIn();
+	});
+}
+
+function submitMISPUpdate() {
+	var formData = $('#PromptForm').serialize();
+	$.ajax({
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+		data: formData,
+		success:function (data, textStatus) {
+			$('#gitResult').text(data);
+			$('#gitResult').removeClass('hidden');
+		},
+		complete:function() {
+			$(".loading").hide();
+			$("#confirmation_box").fadeOut();
+			$("#gray_out").fadeOut();
+		},
+		type:"post",
+		cache: false,
+		url:"/servers/update",
+	});
+}

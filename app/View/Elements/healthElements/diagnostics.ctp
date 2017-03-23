@@ -7,8 +7,8 @@
 	endif;
 ?>
 	<h3>MISP version</h3>
-	<p>Since version 2.3.14, every version of MISP includes a json file with the current version. This is checked against the latest tag on github, if there is a version mismatch the tool will warn you about it. Make sure that you update MISP regularly.</p>
-	<div style="background-color:#f7f7f9;width:400px;">
+	<p>Every version of MISP includes a json file with the current version. This is checked against the latest tag on github, if there is a version mismatch the tool will warn you about it. Make sure that you update MISP regularly.</p>
+	<div style="background-color:#f7f7f9;width:100%;">
 		<span>Currently installed version.....
 			<?php
 
@@ -32,14 +32,14 @@
 			?>
 			<span style="color:<?php echo $fontColour; ?>;">
 				<?php
-					echo $version['current'];
+					echo $version['current'] . ' (' . h($commit) . ')';
 				?>
 			</span>
 		</span><br />
 		<span>Latest available version.....
 			<span style="color:<?php echo $fontColour; ?>;">
 				<?php
-					echo $version['newest'];
+					echo $version['newest'] . ' (' . $latestCommit . ')';
 				?>
 			</span>
 		</span><br />
@@ -49,7 +49,19 @@
 					echo $versionText;
 				?>
 			</span>
-		</span>
+		</span><br />
+		<span>Current branch.....
+			<?php
+				$branchColour = $branch == '2.4' ? 'green' : 'red bold';
+			?>
+			<span class="<?php echo h($branchColour); ?>">
+				<?php
+					echo h($branch);
+				?>
+			</span>
+		</span><br />
+		<pre class="hidden red" id="gitResult"></pre>
+		<button title="Pull the latest MISP version from github" class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick = "updateMISP();">Update MISP</button>
 	</div>
 	<h3>Writeable Directories and files</h3>
 	<p>The following directories and files have to be writeable for MISP to function properly. Make sure that the apache user has write privileges for the directories below.</p>
