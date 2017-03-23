@@ -205,11 +205,11 @@
 									if ($mayModify):
 								 		if ($event['Event']['disable_correlation']):
 								?>
-											Disabled (<a onClick="getPopup('<?php echo h($event['Event']['id']); ?>', 'events', 'toggleCorrelation', '', '#confirmation_box');" style="color:white;cursor:pointer;" style="font-weight:normal;">enable</a>)
+											Disabled (<a onClick="getPopup('<?php echo h($event['Event']['id']); ?>', 'events', 'toggleCorrelation', '', '#confirmation_box');" style="color:white;cursor:pointer;font-weight:normal;">enable</a>)
 								<?php
 										else:
 								?>
-											Enabled (<a onClick="getPopup('<?php echo h($event['Event']['id']); ?>', 'events', 'toggleCorrelation', '', '#confirmation_box');" style="cursor:pointer;" style="font-weight:normal;">disable</a>)
+											Enabled (<a onClick="getPopup('<?php echo h($event['Event']['id']); ?>', 'events', 'toggleCorrelation', '', '#confirmation_box');" style="cursor:pointer;font-weight:normal;">disable</a>)
 								<?php
 										endif;
 									else:
