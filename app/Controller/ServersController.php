@@ -762,6 +762,10 @@ class ServersController extends AppController {
 				// check if the current version of MISP is outdated or not
 				$version = $this->__checkVersion();
 				$this->set('version', $version);
+				$gitStatus = $this->Server->getCurrentGitStatus();
+				$this->set('branch', $gitStatus['branch']);
+				$this->set('commit', $gitStatus['commit']);
+				$this->set('latestCommit', $gitStatus['latestCommit']);
 				$phpSettings = array(
 						'max_execution_time' => array(
 							'explanation' => 'The maximum duration that a script can run (does not affect the background workers). A too low number will break long running scripts like comprehensive API exports',
@@ -806,7 +810,7 @@ class ServersController extends AppController {
 
 				// if Proxy is set up in the settings, try to connect to a test URL
 				$proxyStatus = $this->Server->proxyDiagnostics($diagnostic_errors);
-				
+
 				$moduleTypes = array('Enrichment', 'Import', 'Export');
 				foreach ($moduleTypes as $type) {
 					$moduleStatus[$type] = $this->Server->moduleDiagnostics($diagnostic_errors, $type);
@@ -824,7 +828,7 @@ class ServersController extends AppController {
 			$writeableFiles = $this->Server->writeableFilesDiagnostics($diagnostic_errors);
 			$readableFiles = $this->Server->readableFilesDiagnostics($diagnostic_errors);
 			$extensions = $this->Server->extensionDiagnostics();
-			
+
 			// check if the encoding is not set to utf8
 			$dbEncodingStatus = $this->Server->databaseEncodingDiagnostics($diagnostic_errors);
 
@@ -1248,5 +1252,25 @@ class ServersController extends AppController {
 	public function getPyMISPVersion() {
 		$this->set('response', array('version' => $this->pyMispVersion));
 		$this->set('_serialize', 'response');
+	}
+
+	public function getGit() {
+		$status = $this->Server->getCurrentGitStatus();
+	}
+
+	public function checkout() {
+		$result = $this->Server->checkoutMain();
+	}
+
+	public function update() {
+		if ($this->request->is('post')) {
+			$status = $this->Server->getCurrentGitStatus();
+			$update = $this->Server->update($status);
+			return new CakeResponse(array('body'=> $update));
+		} else {
+			$branch = $this->Server->getCurrentBranch();
+			$this->set('branch', $branch);
+			$this->render('ajax/update');
+		}
 	}
 }
