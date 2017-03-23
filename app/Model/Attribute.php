@@ -1544,7 +1544,7 @@ class Attribute extends AppModel {
 	}
 
 
-	public function nids($user, $format, $id = false, $continue = false, $tags = false, $from = false, $to = false, $last = false, $type = false, $enforceWarninglist = false) {
+	public function nids($user, $format, $id = false, $continue = false, $tags = false, $from = false, $to = false, $last = false, $type = false, $enforceWarninglist = false, $includeAllTags = false) {
 		if (empty($user)) throw new MethodNotAllowedException('Could not read user.');
 		$eventIds = $this->Event->fetchEventIds($user, $from, $to, $last);
 
@@ -1577,7 +1577,7 @@ class Attribute extends AppModel {
 		$rules = array();
 		foreach ($eventIds as $event) {
 			$conditions['AND'] = array('Attribute.to_ids' => 1, "Event.published" => 1, 'Attribute.event_id' => $event['Event']['id']);
-			$valid_types = array('ip-dst', 'ip-src', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'domain', 'domain|ip', 'hostname', 'url', 'user-agent', 'snort');
+			$valid_types = array('ip-dst', 'ip-src', 'ip-dst|port', 'ip-src|port', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'domain', 'domain|ip', 'hostname', 'url', 'user-agent', 'snort');
 			$conditions['AND']['Attribute.type'] = $valid_types;
 			if (!empty($type)) {
 				$conditions['AND'][] = array('Attribute.type' => $type);
@@ -1589,7 +1589,8 @@ class Attribute extends AppModel {
 					'fields' => array('Attribute.id', 'Attribute.event_id', 'Attribute.type', 'Attribute.value'),
 					'contain' => array('Event'=> array('fields' => array('Event.id', 'Event.threat_level_id'))),
 					'group' => array('Attribute.type', 'Attribute.value1'), // fields to GROUP BY
-					'enforceWarninglist' => $enforceWarninglist
+					'enforceWarninglist' => $enforceWarninglist,
+					'includeAllTags' => $includeAllTags
 			);
 			$items = $this->fetchAttributes($user, $params);
 			if (empty($items)) continue;
