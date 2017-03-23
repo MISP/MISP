@@ -2261,10 +2261,27 @@ function testConnection(id) {
 					else status_message = "Remote outdated, notify admin!"
 					colours.status = 'class="' + issue_colour + '"';
 				}
+				if (result.post != false) {
+					var post_colour = "red";
+					if (result.post == 1) {
+						post_colour = "green";
+						post_result = "Received sent package";
+					} else if (result.post == 8) {
+						post_result = "Could not POST message";
+					} else if (result.post == 9) {
+						post_result = "Invalid headers";
+					} else if (result.post == 10) {
+						post_result = "Invalid body";
+					} else {
+						post_colour = "orange";
+						post_result = "Remote too old for this test";
+					}
+				}
 				resultDiv = '<div>Local version: <span ' + colours.local + '>' + result.local_version + '</span><br />';
 				resultDiv += '<div>Remote version: <span ' + colours.remote + '>' + result.version + '</span><br />';
 				resultDiv += '<div>Status: <span ' + colours.status + '>' + status_message + '</span><br />';
 				resultDiv += '<div>Compatiblity: <span class="' + compatibility_colour + '">' + compatibility + '</span><br />';
+				resultDiv += '<div>POST test: <span class="' + post_colour + '">' + post_result + '</span><br />';
 				$("#connection_test_" + id).html(resultDiv);
 				//$("#connection_test_" + id).html('<span class="green bold" title="Connection established, correct response received.">OK</span>');
 				break;

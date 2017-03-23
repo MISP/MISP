@@ -2553,6 +2553,48 @@ class Server extends AppModel {
 		}
 	}
 
+	public function runPOSTtest($id) {
+		$server = $this->find('first', array('conditions' => array('Server.id' => $id)));
+		App::uses('SyncTool', 'Tools');
+		$syncTool = new SyncTool();
+		$HttpSocket = $syncTool->setupHttpSocket($server);
+		$request = array(
+			'header' => array(
+				'Authorization' => $server['Server']['authkey'],
+				'Accept' => 'application/json',
+				'Content-Type' => 'application/json',
+			)
+		);
+		$uri = $server['Server']['url'] . '/servers/postTest';
+		try {
+			$response = $HttpSocket->post($uri, json_encode(array('testString' => '##comma##')), $request);
+			$response = json_decode($response, true);
+		} catch (Exception $e) {
+			$this->Log = ClassRegistry::init('Log');
+			$this->Log->create();
+			$this->Log->save(array(
+					'org' => 'SYSTEM',
+					'model' => 'Server',
+					'model_id' => $id,
+					'email' => 'SYSTEM',
+					'action' => 'error',
+					'user_id' => 0,
+					'title' => 'Error: POST connection test failed. Reason: ' . json_encode($e->getMessage()),
+			));
+			return 8;
+		}
+		if (!isset($response['body']['testString']) || $response['body']['testString'] !== '##comma##') {
+			return 9;
+		}
+		$headers = array('Accept', 'Content-type');
+		foreach ($headers as $header) {
+			if (!isset($response['headers'][$header]) || $response['headers'][$header] != 'application/json') {
+				return 10;
+			}
+		}
+		return 1;
+	}
+
 	public function checkVersionCompatibility($id, $user = array(), $HttpSocket = false) {
 		// for event publishing when we don't have a user.
 		if (empty($user)) $user = array('Organisation' => array('name' => 'SYSTEM'), 'email' => 'SYSTEM', 'id' => 0);
