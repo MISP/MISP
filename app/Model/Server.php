@@ -2110,7 +2110,7 @@ class Server extends AppModel {
 
 	public function testForPath($value) {
 		if ($value === '') return true;
-		if (preg_match('@^\/?(([a-z0-9_.]+[a-z0-9_.\- ]*[a-z0-9_.\-]|[a-z0-9_.])+\/?)+$@i', $value)) return true;
+		if (preg_match('@^\/?(([a-z0-9_.]+[a-z0-9_.\-.\:]*[a-z0-9_.\-.\:]|[a-z0-9_.])+\/?)+$@i', $value)) return true;
 		return 'Invalid characters in the path.';
 	}
 

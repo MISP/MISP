@@ -1869,7 +1869,7 @@ class EventsController extends AppController {
 		return $results;
 	}
 
-	public function nids($format = 'suricata', $key = 'download', $id = false, $continue = false, $tags = false, $from = false, $to = false, $last = false, $type = false, $enforceWarninglist = false) {
+	public function nids($format = 'suricata', $key = 'download', $id = false, $continue = false, $tags = false, $from = false, $to = false, $last = false, $type = false, $enforceWarninglist = false, $includeAllTags = false) {
 		if ($this->request->is('post')) {
 			if (empty($this->request->data)) {
 				throw new BadRequestException('Either specify the search terms in the url, or POST a json or xml with the filter parameters. Valid filters: id (event ID), tags (list of tags), from (from date in YYYY-MM-DD format), to (to date in YYYY-MM-DD format), last (events with a published timestamp newer than - valid options are in time + unit format such as 6d or 2w, etc)');
@@ -1886,7 +1886,7 @@ class EventsController extends AppController {
 			}
 		}
 
-		$simpleFalse = array('id', 'continue', 'tags', 'from', 'to', 'last', 'type', 'enforceWarninglist');
+		$simpleFalse = array('id', 'continue', 'tags', 'from', 'to', 'last', 'type', 'enforceWarninglist', 'includeAllTags');
 		foreach ($simpleFalse as $sF) {
 			if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false')) {
 				${$sF} = false;
@@ -1922,7 +1922,7 @@ class EventsController extends AppController {
 
 		// display the full snort rulebase
 		$this->loadModel('Attribute');
-		$rules = $this->Attribute->nids($user, $format, $id, $continue, $tags, $from, $to, $last, $type, $enforceWarninglist);
+		$rules = $this->Attribute->nids($user, $format, $id, $continue, $tags, $from, $to, $last, $type, $enforceWarninglist, $includeAllTags);
 		$this->set('rules', $rules);
 		$this->render('/Events/nids');
 	}
