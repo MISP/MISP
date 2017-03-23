@@ -1145,6 +1145,20 @@ class ServersController extends AppController {
 		$this->render('ajax/fetch_servers_for_sg');
 	}
 
+	public function postTest() {
+		if ($this->request->is('post')) {
+			$headers = getallheaders();
+			$result = array();
+			$result['body'] = $this->request->data;
+			$result['headers']['Content-type'] = isset($headers['Content-type']) ? $headers['Content-type'] : 0;
+			$result['headers']['Accept'] = isset($headers['Accept']) ? $headers['Accept'] : 0;
+			$result['headers']['Authorization'] = isset($headers['Authorization']) ? 'OK' : 0;
+			return new CakeResponse(array('body'=> json_encode($result)));
+		} else {
+			throw new MethodNotAllowedException('Invalid request, expecting a POST request.');
+		}
+	}
+
 	public function testConnection($id = false) {
 			if (!$this->Auth->user('Role')['perm_sync'] && !$this->Auth->user('Role')['perm_site_admin']) throw new MethodNotAllowedException('You don\'t have permission to do that.');
 			$this->Server->id = $id;
@@ -1163,6 +1177,10 @@ class ServersController extends AppController {
 					$mismatch = false;
 					$newer = false;
 					$parts = array('major', 'minor', 'hotfix');
+					if ($version[0] == 2 && $version[1] == 4 && $version[2] > 68) {
+						$post = $this->Server->runPOSTTest($id);
+					}
+					$testPost = false;
 					foreach ($parts as $k => $v) {
 						if (!$mismatch) {
 							if ($version[$k] > $local_version[$v]) {
@@ -1185,7 +1203,7 @@ class ServersController extends AppController {
 							return new CakeResponse(array('body'=> json_encode($result)));
 						}
 					}
-					return new CakeResponse(array('body'=> json_encode(array('status' => 1, 'local_version' => implode('.', $local_version), 'version' => implode('.', $version), 'mismatch' => $mismatch, 'newer' => $newer))));
+					return new CakeResponse(array('body'=> json_encode(array('status' => 1, 'local_version' => implode('.', $local_version), 'version' => implode('.', $version), 'mismatch' => $mismatch, 'newer' => $newer, 'post' => isset($post) ? $post : 'too old'))));
 				} else {
 					$result['status'] = 3;
 				}
