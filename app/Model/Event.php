@@ -890,49 +890,44 @@ class Event extends AppModel {
 		$data = json_encode($event);
 		// LATER validate HTTPS SSL certificate
 		$this->Dns = ClassRegistry::init('Dns');
-		file_put_contents('/tmp/misp_sync_test.log', " - Testing IP address\n", FILE_APPEND);
-		if ($this->Dns->testipaddress(parse_url($uri, PHP_URL_HOST))) {
-			// TODO NETWORK for now do not know how to catch the following..
-			// TODO NETWORK No route to host
-			file_put_contents('/tmp/misp_sync_test.log', " - POSTing event.\n", FILE_APPEND);
-			$response = $HttpSocket->post($uri, $data, $request);
-			file_put_contents('/tmp/misp_sync_test.log', " - POST response code: " . $response->code . "\n", FILE_APPEND);
-			switch ($response->code) {
-				case '200':	// 200 (OK) + entity-action-result
-					if ($response->isOk()) {
-						$newTextBody = $response->body();
-						$newLocation = null;
+		file_put_contents('/tmp/misp_sync_test.log', " - POSTing event.\n", FILE_APPEND);
+		$response = $HttpSocket->post($uri, $data, $request);
+		file_put_contents('/tmp/misp_sync_test.log', " - POST response code: " . $response->code . "\n", FILE_APPEND);
+		switch ($response->code) {
+			case '200':	// 200 (OK) + entity-action-result
+				if ($response->isOk()) {
+					$newTextBody = $response->body();
+					$newLocation = null;
+					return true;
+				} else {
+					try {
+						$jsonArray = json_decode($response->body, true);
+					} catch (Exception $e) {
+						return true; // TODO should be false
+					}
+					if (strpos($jsonArray['name'],"Event already exists")) {	// strpos, so i can piggyback some value if needed.
 						return true;
 					} else {
-						try {
-							$jsonArray = json_decode($response->body, true);
-						} catch (Exception $e) {
-							return true; // TODO should be false
-						}
-						if (strpos($jsonArray['name'],"Event already exists")) {	// strpos, so i can piggyback some value if needed.
-							return true;
-						} else {
-							return $jsonArray['name'];
-						}
+						return $jsonArray['name'];
 					}
-					break;
-				case '302': // Found
-					$newLocation = $response->headers['Location'];
-					$newTextBody = $response->body();
-					return true;
-					break;
-				case '404': // Not Found
-					$newLocation = $response->headers['Location'];
-					$newTextBody = $response->body();
-					return 404;
-					break;
-				case '405':
-					return 405;
-					break;
-				case '403': // Not authorised
-					return 403;
-					break;
-			}
+				}
+				break;
+			case '302': // Found
+				$newLocation = $response->headers['Location'];
+				$newTextBody = $response->body();
+				return true;
+				break;
+			case '404': // Not Found
+				$newLocation = $response->headers['Location'];
+				$newTextBody = $response->body();
+				return 404;
+				break;
+			case '405':
+				return 405;
+				break;
+			case '403': // Not authorised
+				return 403;
+				break;
 		}
 	}
 
