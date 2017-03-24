@@ -3338,6 +3338,7 @@ class Server extends AppModel {
 	public function eventFilterPushableServers($event, $servers) {
 		$eventTags = array();
 		$validServers = array();
+		file_put_contents('/tmp/misp_sync_test.log', " - Pushable servers: \n", FILE_APPEND);
 		foreach ($event['EventTag'] as $tag) $eventTags[] = $tag['tag_id'];
 		foreach ($servers as $server) {
 			$push_rules = json_decode($server['Server']['push_rules'], true);
@@ -3355,8 +3356,10 @@ class Server extends AppModel {
 			if (!empty($push_rules['orgs']['NOT'])) {
 				if (in_array($event['Event']['orgc_id'], $push_rules['orgs']['NOT'])) continue;
 			}
+			file_put_contents('/tmp/misp_sync_test.log', "   - " . $server['Server']['url'] . " \n", FILE_APPEND);
 			$validServers[] = $server;
 		}
+
 		return $validServers;
 	}
 

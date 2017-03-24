@@ -735,8 +735,10 @@ class Event extends AppModel {
 	public function uploadEventToServer($event, $server, $HttpSocket = null) {
 		$this->Server = ClassRegistry::init('Server');
 		$push = $this->Server->checkVersionCompatibility($server['Server']['id'], false, $HttpSocket);
+		file_put_contents('/tmp/misp_sync_test.log', " - Version compatibility test result: " . json_encode($push) . "\n", FILE_APPEND);
 		if (!isset($push['perm_sync'])) {
-			$this->Server->checkLegacyServerSyncPrivilege($server['Server']['id'], $HttpSocket);
+			$test = $this->Server->checkLegacyServerSyncPrivilege($server['Server']['id'], $HttpSocket);
+			file_put_contents('/tmp/misp_sync_test.log', " - Legacy sync privilege test result: " . json_encode($test) . "\n", FILE_APPEND);
 		} else {
 			if (!$push['perm_sync']) {
 				return 'The remote user is not a sync user - the upload of the event has been blocked.';
@@ -769,6 +771,7 @@ class Event extends AppModel {
 		}
 		if (strlen($newLocation) || $result) { // HTTP/1.1 200 OK or 302 Found and Location: http://<newLocation>
 			if (strlen($newLocation)) { // HTTP/1.1 302 Found and Location: http://<newLocation>
+				file_put_contents('/tmp/misp_sync_test.log', " - Warning, event exists - redirecting to edit! \n", FILE_APPEND);
 				$result = $this->restfulEventToServer($event, $server, $newLocation, $newLocation, $newTextBody, $HttpSocket);
 				if (is_numeric($result)) {
 					$error = $this->__resolveErrorCode($result, $event, $server);
@@ -778,6 +781,7 @@ class Event extends AppModel {
 			$uploadFailed = false;
 			try { // TODO Xml::build() does not throw the XmlException
 				$json = json_decode($newTextBody, true);
+				file_put_contents('/tmp/misp_sync_test.log', " - Event uploaded. \n", FILE_APPEND);
 			} catch (Exception $e) {
 				$uploadFailed = true;
 			}
@@ -847,14 +851,18 @@ class Event extends AppModel {
 				foreach ($event['SharingGroup']['SharingGroupServer'] as $sgs) {
 					if ($sgs['server_id'] == $server['Server']['id']) $found = true;
 				}
+				file_put_contents('/tmp/misp_sync_test.log', " - Warning event's sharing group blocks it from being pushed! \n", FILE_APPEND);
 				if (!$found) return 403;
 			}
 		}
 		$serverModel = ClassRegistry::init('Server');
+		file_put_contents('/tmp/misp_sync_test.log', " - Filtering server for push rules \n", FILE_APPEND);
 		$server = $serverModel->eventFilterPushableServers($event, array($server));
 		if (empty($server)) return 403;
 		$server = $server[0];
+		file_put_contents('/tmp/misp_sync_test.log', " - Checking event distribution for push\n", FILE_APPEND);
 		if ($this->checkDistributionForPush($event, $server, $context = 'Event')) {
+			file_put_contents('/tmp/misp_sync_test.log', " - Updating event to prepare for sync \n", FILE_APPEND);
 			$event = $this->__updateEventForSync($event, $server);
 		} else return 403;
 		$url = $server['Server']['url'];
@@ -882,10 +890,13 @@ class Event extends AppModel {
 		$data = json_encode($event);
 		// LATER validate HTTPS SSL certificate
 		$this->Dns = ClassRegistry::init('Dns');
+		file_put_contents('/tmp/misp_sync_test.log', " - Testing IP address\n", FILE_APPEND);
 		if ($this->Dns->testipaddress(parse_url($uri, PHP_URL_HOST))) {
 			// TODO NETWORK for now do not know how to catch the following..
 			// TODO NETWORK No route to host
+			file_put_contents('/tmp/misp_sync_test.log', " - POSTing event.\n", FILE_APPEND);
 			$response = $HttpSocket->post($uri, $data, $request);
+			file_put_contents('/tmp/misp_sync_test.log', " - POST response code: " . $response->code . "\n", FILE_APPEND);
 			switch ($response->code) {
 				case '200':	// 200 (OK) + entity-action-result
 					if ($response->isOk()) {
@@ -2589,6 +2600,8 @@ class Event extends AppModel {
 		$conditions = array('push' => 1);
 		if ($passAlong) $conditions[] = array('Server.id !=' => $passAlong);
 		$servers = $this->Server->find('all', array('conditions' => $conditions));
+		file_put_contents('/tmp/misp_sync_test.log', "\n\n==================================\n\n" . date('h:i:s', time()) . " :: Initiating synchronisation\n\n", FILE_APPEND);
+		file_put_contents('/tmp/misp_sync_test.log', "Servers used for sync:\n", FILE_APPEND);
 		// iterate over the servers and upload the event
 		if (empty($servers))
 			return true;
@@ -2597,6 +2610,7 @@ class Event extends AppModel {
 		$failedServers = array();
 		App::uses('SyncTool', 'Tools');
 		foreach ($servers as &$server) {
+			file_put_contents('/tmp/misp_sync_test.log', $server['Server']['url'], FILE_APPEND);
 			if ((!isset($server['Server']['internal']) || !$server['Server']['internal']) && $event['Event']['distribution'] < 2) {
 				continue;
 			}
@@ -2604,6 +2618,7 @@ class Event extends AppModel {
 			$HttpSocket = $syncTool->setupHttpSocket($server);
 			// Skip servers where the event has come from.
 			if (($passAlong != $server)) {
+				file_put_contents('/tmp/misp_sync_test.log', " - uploading: \n", FILE_APPEND);
 				$thisUploaded = $this->uploadEventToServer($event, $server, $HttpSocket);
 				if (!$thisUploaded) {
 					$uploaded = !$uploaded ? $uploaded : $thisUploaded;
