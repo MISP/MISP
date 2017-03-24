@@ -2597,13 +2597,13 @@ class Server extends AppModel {
 	}
 
 	public function checkVersionCompatibility($id, $user = array(), $HttpSocket = false) {
+		file_put_contents('/tmp/misp_sync_test.log', " - Initialising version compatibilitytest\n", FILE_APPEND);
 		// for event publishing when we don't have a user.
 		if (empty($user)) $user = array('Organisation' => array('name' => 'SYSTEM'), 'email' => 'SYSTEM', 'id' => 0);
 		App::uses('Folder', 'Utility');
 		$file = new File(ROOT . DS . 'VERSION.json', true);
 		$localVersion = json_decode($file->read(), true);
 		$file->close();
-
 		$server = $this->find('first', array('conditions' => array('Server.id' => $id)));
 		if (!$HttpSocket) {
 			App::uses('SyncTool', 'Tools');
@@ -2619,7 +2619,9 @@ class Server extends AppModel {
 				)
 		);
 		try {
+			file_put_contents('/tmp/misp_sync_test.log', " - Compatibility uri: " . $uri . "\n", FILE_APPEND);
 			$response = $HttpSocket->get($uri, '', $request);
+			file_put_contents('/tmp/misp_sync_test.log', " - Compatibility response: " . json_encode($response->body) . "\n", FILE_APPEND);
 		} catch (Exception $e) {
 			if ($response->code != '200') {
 				$this->Log = ClassRegistry::init('Log');
@@ -2639,6 +2641,7 @@ class Server extends AppModel {
 			return 1;
 		}
 		$remoteVersion = json_decode($response->body, true);
+		$canPush = isset($remoteVersion['perm_sync']) ? $remoteVersion['perm_sync'] : false;
 		$remoteVersion = explode('.', $remoteVersion['version']);
 		if (!isset($remoteVersion[0])) {
 			$this->Log = ClassRegistry::init('Log');
@@ -2656,23 +2659,19 @@ class Server extends AppModel {
 		}
 		$response = false;
 		$success = false;
-		$canPush = false;
 		$issueLevel = "warning";
 		if ($localVersion['major'] > $remoteVersion[0]) $response = "Sync to Server ('" . $id . "') aborted. The remote instance's MISP version is behind by a major version.";
 		if ($response === false && $localVersion['major'] < $remoteVersion[0]) {
 			$response = "Sync to Server ('" . $id . "') aborted. The remote instance is at least a full major version ahead - make sure you update your MISP instance!";
-			$canPush = true;
 		}
 		if ($response === false && $localVersion['minor'] > $remoteVersion[1]) $response = "Sync to Server ('" . $id . "') aborted. The remote instance's MISP version is behind by a minor version.";
 		if ($response === false && $localVersion['minor'] < $remoteVersion[1]) {
 			$response = "Sync to Server ('" . $id . "') aborted. The remote instance is at least a full minor version ahead - make sure you update your MISP instance!";
-			$canPush = true;
 		}
 
 		// if we haven't set a message yet, we're good to go. We are only behind by a hotfix version
 		if ($response === false) {
 			$success = true;
-			$canPush = true;
 		}
 		else $issueLevel = "error";
 		if ($response === false && $localVersion['hotfix'] > $remoteVersion[2]) $response = "Sync to Server ('" . $id . "') initiated, but the remote instance is a few hotfixes behind.";

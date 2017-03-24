@@ -736,11 +736,11 @@ class Event extends AppModel {
 		$this->Server = ClassRegistry::init('Server');
 		$push = $this->Server->checkVersionCompatibility($server['Server']['id'], false, $HttpSocket);
 		file_put_contents('/tmp/misp_sync_test.log', " - Version compatibility test result: " . json_encode($push) . "\n", FILE_APPEND);
-		if (!isset($push['perm_sync'])) {
+		if (!isset($push['canPush'])) {
 			$test = $this->Server->checkLegacyServerSyncPrivilege($server['Server']['id'], $HttpSocket);
 			file_put_contents('/tmp/misp_sync_test.log', " - Legacy sync privilege test result: " . json_encode($test) . "\n", FILE_APPEND);
 		} else {
-			if (!$push['perm_sync']) {
+			if (!$push['canPush']) {
 				return 'The remote user is not a sync user - the upload of the event has been blocked.';
 			}
 		}
