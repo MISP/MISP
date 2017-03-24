@@ -241,6 +241,7 @@ class ACLComponent extends Component {
 					'getPyMISPVersion' => array('*'),
 					'getVersion' => array('*'),
 					'index' => array('OR' => array('perm_sync', 'perm_admin')),
+					'postTest' => array('perm_sync'),
 					'previewEvent' => array(),
 					'previewIndex' => array(),
 					'pull' => array(),
