@@ -735,10 +735,10 @@ class Event extends AppModel {
 	public function uploadEventToServer($event, $server, $HttpSocket = null) {
 		$this->Server = ClassRegistry::init('Server');
 		$push = $this->Server->checkVersionCompatibility($server['Server']['id'], false, $HttpSocket);
-		if (!isset($push['perm_sync'])) {
-			$this->Server->checkLegacyServerSyncPrivilege($server['Server']['id'], $HttpSocket);
+		if (!isset($push['canPush'])) {
+			$test = $this->Server->checkLegacyServerSyncPrivilege($server['Server']['id'], $HttpSocket);
 		} else {
-			if (!$push['perm_sync']) {
+			if (!$push['canPush']) {
 				return 'The remote user is not a sync user - the upload of the event has been blocked.';
 			}
 		}
@@ -755,10 +755,7 @@ class Event extends AppModel {
 			$event['Attribute'] = array_values($event['Attribute']);
 		}
 		if (!isset($push['canPush']) || !$push['canPush']) {
-			if ($push === 'mangle' && $event['Event']['distribution'] != 4) {
-				$event['Event']['orgc'] = $event['Orgc']['name'];
-				$event['mangle'] = true;
-			} else return 'Trying to push to an outdated instance.';
+			return 'Trying to push to an outdated instance.';
 		}
 		$updated = null;
 		$newLocation = $newTextBody = '';
@@ -881,85 +878,74 @@ class Event extends AppModel {
 		}
 		$data = json_encode($event);
 		// LATER validate HTTPS SSL certificate
-		$this->Dns = ClassRegistry::init('Dns');
-		if ($this->Dns->testipaddress(parse_url($uri, PHP_URL_HOST))) {
-			// TODO NETWORK for now do not know how to catch the following..
-			// TODO NETWORK No route to host
-			$response = $HttpSocket->post($uri, $data, $request);
-			switch ($response->code) {
-				case '200':	// 200 (OK) + entity-action-result
-					if ($response->isOk()) {
-						$newTextBody = $response->body();
-						$newLocation = null;
+		$response = $HttpSocket->post($uri, $data, $request);
+		switch ($response->code) {
+			case '200':	// 200 (OK) + entity-action-result
+				if ($response->isOk()) {
+					$newTextBody = $response->body();
+					$newLocation = null;
+					return true;
+				} else {
+					try {
+						$jsonArray = json_decode($response->body, true);
+					} catch (Exception $e) {
+						return true; // TODO should be false
+					}
+					if (strpos($jsonArray['name'],"Event already exists")) {	// strpos, so i can piggyback some value if needed.
 						return true;
 					} else {
-						try {
-							$jsonArray = json_decode($response->body, true);
-						} catch (Exception $e) {
-							return true; // TODO should be false
-						}
-						if (strpos($jsonArray['name'],"Event already exists")) {	// strpos, so i can piggyback some value if needed.
-							return true;
-						} else {
-							return $jsonArray['name'];
-						}
+						return $jsonArray['name'];
 					}
-					break;
-				case '302': // Found
-					$newLocation = $response->headers['Location'];
-					$newTextBody = $response->body();
-					return true;
-					break;
-				case '404': // Not Found
-					$newLocation = $response->headers['Location'];
-					$newTextBody = $response->body();
-					return 404;
-					break;
-				case '405':
-					return 405;
-					break;
-				case '403': // Not authorised
-					return 403;
-					break;
-			}
+				}
+				break;
+			case '302': // Found
+				$newLocation = $response->headers['Location'];
+				$newTextBody = $response->body();
+				return true;
+				break;
+			case '404': // Not Found
+				$newLocation = $response->headers['Location'];
+				$newTextBody = $response->body();
+				return 404;
+				break;
+			case '405':
+				return 405;
+				break;
+			case '403': // Not authorised
+				return 403;
+				break;
 		}
 	}
 
 	private function __updateEventForSync($event, $server) {
-		$mangle = isset($event['mangle']);
-		if (!$mangle) {
-			// rearrange things to be compatible with the Xml::fromArray()
-			$objectsToRearrange = array('Attribute', 'Orgc', 'SharingGroup', 'EventTag', 'Org', 'ShadowAttribute');
-			foreach ($objectsToRearrange as $o) {
-				if (isset($event[$o])) {
-					$event['Event'][$o] = $event[$o];
-					unset($event[$o]);
-				}
+		// rearrange things to be compatible with the Xml::fromArray()
+		$objectsToRearrange = array('Attribute', 'Orgc', 'SharingGroup', 'EventTag', 'Org', 'ShadowAttribute');
+		foreach ($objectsToRearrange as $o) {
+			if (isset($event[$o])) {
+				$event['Event'][$o] = $event[$o];
+				unset($event[$o]);
 			}
+		}
 
-			// cleanup the array from things we do not want to expose
-			foreach (array('Org', 'org_id', 'orgc_id', 'proposal_email_lock', 'org', 'orgc') as $field) unset($event['Event'][$field]);
-			foreach ($event['Event']['EventTag'] as $kt => $tag) {
-				if (!$tag['Tag']['exportable']) {
-					unset($event['Event']['EventTag'][$kt]);
-				} else {
-					unset($tag['org_id']);
-					$event['Event']['Tag'][] = $tag['Tag'];
-				}
+		// cleanup the array from things we do not want to expose
+		foreach (array('Org', 'org_id', 'orgc_id', 'proposal_email_lock', 'org', 'orgc') as $field) unset($event['Event'][$field]);
+		foreach ($event['Event']['EventTag'] as $kt => $tag) {
+			if (!$tag['Tag']['exportable']) {
+				unset($event['Event']['EventTag'][$kt]);
+			} else {
+				unset($tag['org_id']);
+				$event['Event']['Tag'][] = $tag['Tag'];
 			}
-			unset($event['Event']['EventTag']);
+		}
+		unset($event['Event']['EventTag']);
 
-			// Add the local server to the list of instances in the SG
-			if (isset($event['Event']['SharingGroup']) && isset($event['Event']['SharingGroup']['SharingGroupServer'])) {
-				foreach ($event['Event']['SharingGroup']['SharingGroupServer'] as &$s) {
-					if ($s['server_id'] == 0) {
-						$s['Server'] = array('id' => 0, 'url' => Configure::read('MISP.baseurl'));
-					}
+		// Add the local server to the list of instances in the SG
+		if (isset($event['Event']['SharingGroup']) && isset($event['Event']['SharingGroup']['SharingGroupServer'])) {
+			foreach ($event['Event']['SharingGroup']['SharingGroupServer'] as &$s) {
+				if ($s['server_id'] == 0) {
+					$s['Server'] = array('id' => 0, 'url' => Configure::read('MISP.baseurl'));
 				}
 			}
-		} else {
-			foreach (array('org_id', 'orgc_id', 'proposal_email_lock', 'org') as $field) unset($event['Event'][$field]);
-			foreach (array('Org', 'Orgc', 'SharingGroup', 'EventTag') as $field) unset($event[$field]);
 		}
 		// remove value1 and value2 from the output
 		if (isset($event['Event']['Attribute'])) {
@@ -1015,75 +1001,12 @@ class Event extends AppModel {
 			}
 		}
 
-		if ($mangle) {
-			$event['Event']['timestamp'] = $event['Event']['timestamp'] -1;
-			if (isset($event['Attribute'])) {
-				foreach ($event['Attribute'] as $key => &$attribute) {
-					$event['Attribute'][$key]['timestamp'] = $event['Attribute'][$key]['timestamp'] -1;
-					if ($attribute['distribution'] == 5) $attribute['distribution'] = $event['Event']['distribution'];
-					if ($attribute['distribution'] < 2) {
-						unset($event['Event']['Attribute'][$key]);
-						continue;
-					}
-					if ($attribute['distribution'] == 2) {
-						$attribute['distribution'] = 1;
-					}
-					unset($event['Attribute'][$key]['SharingGroup'], $event['Attribute'][$key]['sharing_group_id']);
-					if ($attribute['distribution'] == 4) {
-						unset($event['Event']['Attribute'][$key]);
-						continue;
-					}
-					// remove value1 and value2 from the output
-					unset($attribute['value1']);
-					unset($attribute['value2']);
-					// also add the encoded attachment
-					if ($this->Attribute->typeIsAttachment($attribute['type'])) {
-						$encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
-						$attribute['data'] = $encodedFile;
-					}
-					unset($attribute['id']);
-				}
-			}
-		}
-
 		// Downgrade the event from connected communities to community only
 		if (!$server['Server']['internal'] && $event['Event']['distribution'] == 2) {
 			$event['Event']['distribution'] = 1;
 		}
 		$event['Event']['Attribute'] = array_values($event['Event']['Attribute']);
 		return $event;
-	}
-
-
-	public function deleteEventFromServer($uuid, $server, $HttpSocket=null) {
-		// TODO private and delete(?)
-
-		$url = $server['Server']['url'];
-		$authkey = $server['Server']['authkey'];
-		if (null == $HttpSocket) {
-			App::uses('SyncTool', 'Tools');
-			$syncTool = new SyncTool();
-			$HttpSocket = $syncTool->setupHttpSocket($server);
-		}
-		$request = array(
-				'header' => array(
-						'Authorization' => $authkey,
-						'Accept' => 'application/xml',
-						'Content-Type' => 'application/xml',
-						//'Connection' => 'keep-alive' // // LATER followup cakephp issue about this problem: https://github.com/cakephp/cakephp/issues/1961
-				)
-		);
-		$request = $this->addHeaders($request);
-		$uri = $url . '/events/0?uuid=' . $uuid;
-
-		// LATER validate HTTPS SSL certificate
-		$this->Dns = ClassRegistry::init('Dns');
-		if ($this->Dns->testipaddress(parse_url($uri, PHP_URL_HOST))) {
-			// TODO NETWORK for now do not know how to catch the following..
-			// TODO NETWORK No route to host
-			$response = $HttpSocket->delete($uri, array(), $request);
-			// TODO REST, DELETE, some responce needed
-		}
 	}
 
 	public function downloadEventFromServer($eventId, $server, $HttpSocket=null) {
@@ -2590,9 +2513,9 @@ class Event extends AppModel {
 		if ($passAlong) $conditions[] = array('Server.id !=' => $passAlong);
 		$servers = $this->Server->find('all', array('conditions' => $conditions));
 		// iterate over the servers and upload the event
-		if (empty($servers))
+		if (empty($servers)) {
 			return true;
-
+		}
 		$uploaded = true;
 		$failedServers = array();
 		App::uses('SyncTool', 'Tools');
