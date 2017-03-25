@@ -570,15 +570,6 @@ class Server extends AppModel {
 							'test' => 'testBool',
 							'type' => 'boolean',
 					),
-					'ManglePushTo23' => array(
-							'level' => 0,
-							'description' => 'When enabled, your 2.4+ instance can push events to MISP 2.3 installations. This is highly advised against and will result in degraded events and lost information. Use this at your own risk.',
-							'value' => false,
-							'errorMessage' => '',
-							'test' => 'testMangle',
-							'type' => 'boolean',
-							'null' => true
-					),
 					'delegation' => array(
 							'level' => 1,
 							'description' => 'This feature allows users to created org only events and ask another organisation to take owenership of the event. This allows organisations to remain anonymous by asking a partner to publish an event for them.',
@@ -1738,20 +1729,17 @@ class Server extends AppModel {
 		} else {
 			$this->redirect(array('action' => 'index'));
 		}
-
-		if ($push !== 'mangle') {
-			$sgs = $this->Event->SharingGroup->find('all', array(
-				'recursive' => -1,
-				'contain' => array('Organisation', 'SharingGroupOrg', 'SharingGroupServer')
-			));
-			$sgIds = array();
-			foreach ($sgs as $k => $sg) {
-				if (!$this->Event->SharingGroup->checkIfServerInSG($sg, $this->data)) {
-					unset($sgs[$k]);
-					continue;
-				}
-				$sgIds[] = $sg['SharingGroup']['id'];
+		$sgs = $this->Event->SharingGroup->find('all', array(
+			'recursive' => -1,
+			'contain' => array('Organisation', 'SharingGroupOrg', 'SharingGroupServer')
+		));
+		$sgIds = array();
+		foreach ($sgs as $k => $sg) {
+			if (!$this->Event->SharingGroup->checkIfServerInSG($sg, $this->data)) {
+				unset($sgs[$k]);
+				continue;
 			}
+			$sgIds[] = $sg['SharingGroup']['id'];
 		}
 		if (!isset($sgIds) || empty($sgIds)) {
 			$sgIds = array(-1);
@@ -2167,12 +2155,6 @@ class Server extends AppModel {
 	public function testBaseURL($value) {
 		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
 		if ($value != strtolower($this->getProto()) . '://' . $this->getHost()) return false;
-		return true;
-	}
-
-	public function testMangle($value) {
-		if ($this->testBool($value) !== true) return $this->testBool($value);
-		if ($value) return 'Enabled, expect issues.';
 		return true;
 	}
 
@@ -2603,7 +2585,6 @@ class Server extends AppModel {
 		$file = new File(ROOT . DS . 'VERSION.json', true);
 		$localVersion = json_decode($file->read(), true);
 		$file->close();
-
 		$server = $this->find('first', array('conditions' => array('Server.id' => $id)));
 		if (!$HttpSocket) {
 			App::uses('SyncTool', 'Tools');
@@ -2639,6 +2620,7 @@ class Server extends AppModel {
 			return 1;
 		}
 		$remoteVersion = json_decode($response->body, true);
+		$canPush = isset($remoteVersion['perm_sync']) ? $remoteVersion['perm_sync'] : false;
 		$remoteVersion = explode('.', $remoteVersion['version']);
 		if (!isset($remoteVersion[0])) {
 			$this->Log = ClassRegistry::init('Log');
@@ -2656,32 +2638,23 @@ class Server extends AppModel {
 		}
 		$response = false;
 		$success = false;
-		$canPush = false;
 		$issueLevel = "warning";
 		if ($localVersion['major'] > $remoteVersion[0]) $response = "Sync to Server ('" . $id . "') aborted. The remote instance's MISP version is behind by a major version.";
 		if ($response === false && $localVersion['major'] < $remoteVersion[0]) {
 			$response = "Sync to Server ('" . $id . "') aborted. The remote instance is at least a full major version ahead - make sure you update your MISP instance!";
-			$canPush = true;
 		}
 		if ($response === false && $localVersion['minor'] > $remoteVersion[1]) $response = "Sync to Server ('" . $id . "') aborted. The remote instance's MISP version is behind by a minor version.";
 		if ($response === false && $localVersion['minor'] < $remoteVersion[1]) {
 			$response = "Sync to Server ('" . $id . "') aborted. The remote instance is at least a full minor version ahead - make sure you update your MISP instance!";
-			$canPush = true;
 		}
 
 		// if we haven't set a message yet, we're good to go. We are only behind by a hotfix version
 		if ($response === false) {
 			$success = true;
-			$canPush = true;
 		}
 		else $issueLevel = "error";
 		if ($response === false && $localVersion['hotfix'] > $remoteVersion[2]) $response = "Sync to Server ('" . $id . "') initiated, but the remote instance is a few hotfixes behind.";
 		if ($response === false && $localVersion['hotfix'] < $remoteVersion[2]) $response = "Sync to Server ('" . $id . "') initiated, but the remote instance is a few hotfixes ahead. Make sure you keep your instance up to date!";
-
-		if (Configure::read('MISP.ManglePushTo23') && !$canPush) {
-			$canPush = 'mangle';
-			$response = "Sync to Server ('" . $id . "') should have been blocked, but mangle sync override is enabled. A downgraded synchronisation is highly advised again, please upgrade your instance as soon as possible.";
-		}
 
 		if ($response !== false) {
 			$this->Log = ClassRegistry::init('Log');
@@ -3357,6 +3330,7 @@ class Server extends AppModel {
 			}
 			$validServers[] = $server;
 		}
+
 		return $validServers;
 	}
 
