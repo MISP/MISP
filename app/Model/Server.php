@@ -570,15 +570,6 @@ class Server extends AppModel {
 							'test' => 'testBool',
 							'type' => 'boolean',
 					),
-					'ManglePushTo23' => array(
-							'level' => 0,
-							'description' => 'When enabled, your 2.4+ instance can push events to MISP 2.3 installations. This is highly advised against and will result in degraded events and lost information. Use this at your own risk.',
-							'value' => false,
-							'errorMessage' => '',
-							'test' => 'testMangle',
-							'type' => 'boolean',
-							'null' => true
-					),
 					'delegation' => array(
 							'level' => 1,
 							'description' => 'This feature allows users to created org only events and ask another organisation to take owenership of the event. This allows organisations to remain anonymous by asking a partner to publish an event for them.',
@@ -1738,20 +1729,17 @@ class Server extends AppModel {
 		} else {
 			$this->redirect(array('action' => 'index'));
 		}
-
-		if ($push !== 'mangle') {
-			$sgs = $this->Event->SharingGroup->find('all', array(
-				'recursive' => -1,
-				'contain' => array('Organisation', 'SharingGroupOrg', 'SharingGroupServer')
-			));
-			$sgIds = array();
-			foreach ($sgs as $k => $sg) {
-				if (!$this->Event->SharingGroup->checkIfServerInSG($sg, $this->data)) {
-					unset($sgs[$k]);
-					continue;
-				}
-				$sgIds[] = $sg['SharingGroup']['id'];
+		$sgs = $this->Event->SharingGroup->find('all', array(
+			'recursive' => -1,
+			'contain' => array('Organisation', 'SharingGroupOrg', 'SharingGroupServer')
+		));
+		$sgIds = array();
+		foreach ($sgs as $k => $sg) {
+			if (!$this->Event->SharingGroup->checkIfServerInSG($sg, $this->data)) {
+				unset($sgs[$k]);
+				continue;
 			}
+			$sgIds[] = $sg['SharingGroup']['id'];
 		}
 		if (!isset($sgIds) || empty($sgIds)) {
 			$sgIds = array(-1);
@@ -2167,12 +2155,6 @@ class Server extends AppModel {
 	public function testBaseURL($value) {
 		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
 		if ($value != strtolower($this->getProto()) . '://' . $this->getHost()) return false;
-		return true;
-	}
-
-	public function testMangle($value) {
-		if ($this->testBool($value) !== true) return $this->testBool($value);
-		if ($value) return 'Enabled, expect issues.';
 		return true;
 	}
 
@@ -2597,7 +2579,6 @@ class Server extends AppModel {
 	}
 
 	public function checkVersionCompatibility($id, $user = array(), $HttpSocket = false) {
-		file_put_contents('/tmp/misp_sync_test.log', " - Initialising version compatibilitytest\n", FILE_APPEND);
 		// for event publishing when we don't have a user.
 		if (empty($user)) $user = array('Organisation' => array('name' => 'SYSTEM'), 'email' => 'SYSTEM', 'id' => 0);
 		App::uses('Folder', 'Utility');
@@ -2619,9 +2600,7 @@ class Server extends AppModel {
 				)
 		);
 		try {
-			file_put_contents('/tmp/misp_sync_test.log', " - Compatibility uri: " . $uri . "\n", FILE_APPEND);
 			$response = $HttpSocket->get($uri, '', $request);
-			file_put_contents('/tmp/misp_sync_test.log', " - Compatibility response: " . json_encode($response->body) . "\n", FILE_APPEND);
 		} catch (Exception $e) {
 			if ($response->code != '200') {
 				$this->Log = ClassRegistry::init('Log');
@@ -2676,11 +2655,6 @@ class Server extends AppModel {
 		else $issueLevel = "error";
 		if ($response === false && $localVersion['hotfix'] > $remoteVersion[2]) $response = "Sync to Server ('" . $id . "') initiated, but the remote instance is a few hotfixes behind.";
 		if ($response === false && $localVersion['hotfix'] < $remoteVersion[2]) $response = "Sync to Server ('" . $id . "') initiated, but the remote instance is a few hotfixes ahead. Make sure you keep your instance up to date!";
-
-		if (Configure::read('MISP.ManglePushTo23') && !$canPush) {
-			$canPush = 'mangle';
-			$response = "Sync to Server ('" . $id . "') should have been blocked, but mangle sync override is enabled. A downgraded synchronisation is highly advised again, please upgrade your instance as soon as possible.";
-		}
 
 		if ($response !== false) {
 			$this->Log = ClassRegistry::init('Log');
@@ -3337,7 +3311,6 @@ class Server extends AppModel {
 	public function eventFilterPushableServers($event, $servers) {
 		$eventTags = array();
 		$validServers = array();
-		file_put_contents('/tmp/misp_sync_test.log', " - Pushable servers: \n", FILE_APPEND);
 		foreach ($event['EventTag'] as $tag) $eventTags[] = $tag['tag_id'];
 		foreach ($servers as $server) {
 			$push_rules = json_decode($server['Server']['push_rules'], true);
@@ -3355,7 +3328,6 @@ class Server extends AppModel {
 			if (!empty($push_rules['orgs']['NOT'])) {
 				if (in_array($event['Event']['orgc_id'], $push_rules['orgs']['NOT'])) continue;
 			}
-			file_put_contents('/tmp/misp_sync_test.log', "   - " . $server['Server']['url'] . " \n", FILE_APPEND);
 			$validServers[] = $server;
 		}
 
