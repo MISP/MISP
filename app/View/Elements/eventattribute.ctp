@@ -308,6 +308,9 @@
 													$sigDisplay = str_replace(" ", '&nbsp;', $sigDisplay);
 													echo nl2br($sigDisplay);
 												}
+											} else if ('hex' == $object['type']) {
+												$sigDisplay = str_replace("\r", '', $sigDisplay);
+												echo '<span class="hex-value" title="Hexadecimal representation">' . nl2br(h($sigDisplay)) . '</span>&nbsp;<span role="button" tabindex="0" aria-label="Switch to binary representation" class="icon-repeat hex-value-convert useCursorPointer" title="Switch to binary representation"></span>';
 											} else {
 												$sigDisplay = str_replace("\r", '', $sigDisplay);
 												echo nl2br(h($sigDisplay));
@@ -632,6 +635,32 @@ attributes or the appropriate distribution level. If you think there is a mistak
 			url = "<?php echo $baseurl; ?>" + "/sightings/advanced/" + object_id + "/" + object_context;
 			genericPopup(url, '#screenshot_box');
 		});
+	});
+	$('.hex-value-convert').click(function() {
+		var val = $(this).parent().children(':first-child').text();
+		if ($(this).parent().children(':first-child').attr('data-original-title') == 'Hexadecimal representation') {
+			var bin = [];
+			var temp;
+			val.split('').forEach(function(entry) {
+				temp = parseInt(entry, 16).toString(2);
+				bin.push(Array(5 - (temp.length)).join('0') + temp);
+			});
+			bin = bin.join(' ');
+			$(this).parent().children(':first-child').text(bin);
+			$(this).parent().children(':first-child').attr('data-original-title', 'Binary representation');
+			$(this).parent().children(':nth-child(2)').attr('data-original-title', 'Switch to hexadecimal representation');
+			$(this).parent().children(':nth-child(2)').attr('aria-label', 'Switch to hexadecimal representation');
+		} else {
+			val = val.split(' ');
+			hex = '';
+			val.forEach(function(entry) {
+				hex += parseInt(entry , 2).toString(16).toUpperCase();
+			});
+			$(this).parent().children(':first-child').text(hex);
+			$(this).parent().children(':first-child').attr('data-original-title', 'Hexadecimal representation');
+			$(this).parent().children(':nth-child(2)').attr('data-original-title', 'Switch to binary representation');
+			$(this).parent().children(':nth-child(2)').attr('aria-label', 'Switch to binary representation');
+		}
 	});
 </script>
 <?php
