@@ -104,12 +104,14 @@ class Attribute extends AppModel {
 			'pattern-in-traffic' => array('desc' => 'Pattern in network traffic that identifies the malware', 'default_category' => 'Network activity', 'to_ids' => 1),
 			'pattern-in-memory' => array('desc' => 'Pattern in memory dump that identifies the malware', 'default_category' => 'Payload installation', 'to_ids' => 1),
 			'yara' => array('desc' => 'Yara signature', 'default_category' => 'Payload installation', 'to_ids' => 1),
+			'sigma' => array('desc' => 'Sigma - Generic Signature Format for SIEM Systems', 'default_category' => 'Payload installation', 'to_ids' => 1),
 			'vulnerability' => array('desc' => 'A reference to the vulnerability used in the exploit', 'default_category' => 'External analysis', 'to_ids' => 0),
 			'attachment' => array('desc' => 'Attachment with external information', 'formdesc' => "Please upload files using the <em>Upload Attachment</em> button.", 'default_category' => 'External analysis', 'to_ids' => 0),
 			'malware-sample' => array('desc' => 'Attachment containing encrypted malware sample', 'formdesc' => "Please upload files using the <em>Upload Attachment</em> button.", 'default_category' => 'Payload delivery', 'to_ids' => 1),
 			'link' => array('desc' => 'Link to an external information', 'default_category' => 'External analysis', 'to_ids' => 0),
 			'comment' => array('desc' => 'Comment or description in a human language', 'formdesc' => 'Comment or description in a human language.  This will not be correlated with other attributes', 'default_category' => 'Other', 'to_ids' => 0),
 			'text' => array('desc' => 'Name, ID or a reference', 'default_category' => 'Other', 'to_ids' => 0),
+			'hex' => array('desc' => 'A value in hexadecimal format', 'default_category' => 'Other', 'to_ids' => 0),
 			'other' => array('desc' => 'Other attribute', 'default_category' => 'Other', 'to_ids' => 0),
 			'named pipe' => array('desc' => 'Named pipe, use the format \\.\pipe\<PipeName>', 'default_category' => 'Artifacts dropped', 'to_ids' => 0),
 			'mutex' => array('desc' => 'Mutex, use the format \BaseNamedObjects\<Mutex>', 'default_category' => 'Artifacts dropped', 'to_ids' => 1),
@@ -224,7 +226,7 @@ class Attribute extends AppModel {
 	public $categoryDefinitions = array(
 			'Internal reference' => array(
 					'desc' => 'Reference used by the publishing party (e.g. ticket number)',
-					'types' => array('text', 'link', 'comment', 'other')
+					'types' => array('text', 'link', 'comment', 'other', 'hex')
 					),
 			'Targeting data' => array(
 					'desc' => 'Internal Attack Targeting and Compromise Information',
@@ -234,30 +236,30 @@ class Attribute extends AppModel {
 			'Antivirus detection' => array(
 					'desc' => 'All the info about how the malware is detected by the antivirus products',
 					'formdesc' => 'List of anti-virus vendors detecting the malware or information on detection performance (e.g. 13/43 or 67%). Attachment with list of detection or link to VirusTotal could be placed here as well.',
-					'types' => array('link', 'comment', 'text', 'attachment', 'other')
+					'types' => array('link', 'comment', 'text', 'hex', 'attachment', 'other')
 					),
 			'Payload delivery' => array(
 					'desc' => 'Information about how the malware is delivered',
 					'formdesc' => 'Information about the way the malware payload is initially delivered, for example information about the email or web-site, vulnerability used, originating IP etc. Malware sample itself should be attached here.',
-					'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'impfuzzy','authentihash', 'pehash', 'tlsh', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash','filename|impfuzzy', 'filename|pehash', 'ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'hostname', 'domain', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'url', 'user-agent', 'AS', 'pattern-in-file', 'pattern-in-traffic', 'yara', 'attachment', 'malware-sample', 'link', 'malware-type', 'comment', 'text', 'vulnerability', 'x509-fingerprint-sha1', 'other', 'ip-dst|port', 'ip-src|port', 'hostname|port', 'email-dst-display-name', 'email-src-display-name', 'email-header', 'email-reply-to', 'email-x-mailer', 'email-mime-boundary', 'email-thread-index', 'email-message-id', 'mobile-application-id')
+					'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'impfuzzy','authentihash', 'pehash', 'tlsh', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash','filename|impfuzzy', 'filename|pehash', 'ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'hostname', 'domain', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'url', 'user-agent', 'AS', 'pattern-in-file', 'pattern-in-traffic', 'yara', 'sigma', 'attachment', 'malware-sample', 'link', 'malware-type', 'comment', 'text', 'hex', 'vulnerability', 'x509-fingerprint-sha1', 'other', 'ip-dst|port', 'ip-src|port', 'hostname|port', 'email-dst-display-name', 'email-src-display-name', 'email-header', 'email-reply-to', 'email-x-mailer', 'email-mime-boundary', 'email-thread-index', 'email-message-id', 'mobile-application-id')
 					),
 			'Artifacts dropped' => array(
 					'desc' => 'Any artifact (files, registry keys etc.) dropped by the malware or other modifications to the system',
-					'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'impfuzzy','authentihash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy','filename|pehash', 'regkey', 'regkey|value', 'pattern-in-file', 'pattern-in-memory','pdb', 'yara', 'attachment', 'malware-sample', 'named pipe', 'mutex', 'windows-scheduled-task', 'windows-service-name', 'windows-service-displayname', 'comment', 'text', 'x509-fingerprint-sha1', 'other')
+					'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'impfuzzy','authentihash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy','filename|pehash', 'regkey', 'regkey|value', 'pattern-in-file', 'pattern-in-memory','pdb', 'yara', 'sigma', 'attachment', 'malware-sample', 'named pipe', 'mutex', 'windows-scheduled-task', 'windows-service-name', 'windows-service-displayname', 'comment', 'text', 'hex', 'x509-fingerprint-sha1', 'other')
 					),
 			'Payload installation' => array(
 					'desc' => 'Info on where the malware gets installed in the system',
 					'formdesc' => 'Location where the payload was placed in the system and the way it was installed. For example, a filename|md5 type attribute can be added here like this: c:\\windows\\system32\\malicious.exe|41d8cd98f00b204e9800998ecf8427e.',
-					'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash','impfuzzy','authentihash', 'pehash', 'tlsh', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy','filename|pehash', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'yara', 'vulnerability', 'attachment', 'malware-sample', 'malware-type', 'comment', 'text', 'x509-fingerprint-sha1', 'mobile-application-id', 'other')
+					'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash','impfuzzy','authentihash', 'pehash', 'tlsh', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy','filename|pehash', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'yara', 'sigma', 'vulnerability', 'attachment', 'malware-sample', 'malware-type', 'comment', 'text', 'hex', 'x509-fingerprint-sha1', 'mobile-application-id', 'other')
 					),
 			'Persistence mechanism' => array(
 					'desc' => 'Mechanisms used by the malware to start at boot',
 					'formdesc' => 'Mechanisms used by the malware to start at boot. This could be a registry key, legitimate driver modification, LNK file in startup',
-					'types' => array('filename', 'regkey', 'regkey|value', 'comment', 'text', 'other')
+					'types' => array('filename', 'regkey', 'regkey|value', 'comment', 'text', 'other', 'hex')
 					),
 			'Network activity' => array(
 					'desc' => 'Information about network traffic generated by the malware',
-					'types' => array('ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'hostname', 'domain', 'domain|ip', 'email-dst', 'url', 'uri', 'user-agent', 'http-method', 'AS', 'snort', 'pattern-in-file', 'pattern-in-traffic', 'attachment', 'comment', 'text', 'x509-fingerprint-sha1', 'other')
+					'types' => array('ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'hostname', 'domain', 'domain|ip', 'email-dst', 'url', 'uri', 'user-agent', 'http-method', 'AS', 'snort', 'pattern-in-file', 'pattern-in-traffic', 'attachment', 'comment', 'text', 'x509-fingerprint-sha1', 'other', 'hex')
 					),
 			'Payload type' => array(
 					'desc' => 'Information about the final payload(s)',
@@ -276,11 +278,11 @@ class Attribute extends AppModel {
 			'Financial fraud' => array(
 					'desc' => 'Financial Fraud indicators',
 					'formdesc' => 'Financial Fraud indicators, for example: IBAN Numbers, BIC codes, Credit card numbers, etc.',
-					'types' => array('btc', 'iban', 'bic', 'bank-account-nr', 'aba-rtn', 'bin', 'cc-number', 'prtn', 'comment', 'text', 'other'),
+					'types' => array('btc', 'iban', 'bic', 'bank-account-nr', 'aba-rtn', 'bin', 'cc-number', 'prtn', 'comment', 'text', 'other', 'hex'),
 					),
 			'Support Tool' => array(
 					'desc' => 'Tools supporting analysis or detection of the event',
-					'types' => array('link', 'text', 'attachment', 'comment', 'text', 'other')
+					'types' => array('link', 'text', 'attachment', 'comment', 'text', 'other', 'hex')
 			),
 			'Social network' => array(
 					'desc' => 'Social networks and platforms',
@@ -293,7 +295,7 @@ class Attribute extends AppModel {
 			),
 			'Other' => array(
 					'desc' => 'Attributes that are not part of any other category or are meant to be used as a component in MISP objects in the future',
-					'types' => array('comment', 'text', 'other', 'size-in-bytes', 'counter', 'datetime', 'cpe', 'port', 'float')
+					'types' => array('comment', 'text', 'other', 'size-in-bytes', 'counter', 'datetime', 'cpe', 'port', 'float', 'hex')
 					)
 	);
 
@@ -324,6 +326,7 @@ class Attribute extends AppModel {
 			'email-src' => 'Payload delivery',
 			'email-dst' => 'Payload delivery',
 			'text' => 'Other',
+			'hex' => 'Other',
 			'attachment' => 'External analysis',
 			'malware-sample' => 'Payload delivery'
 	);
@@ -858,6 +861,7 @@ class Attribute extends AppModel {
 			case 'pattern-in-traffic':
 			case 'pattern-in-memory':
 			case 'yara':
+			case 'sigma':
 			case 'attachment':
 			case 'malware-sample':
 				$returnValue = true;
@@ -872,6 +876,11 @@ class Attribute extends AppModel {
 			case 'text':
 			case 'other':
 				$returnValue = true;
+				break;
+			case 'hex':
+				if (preg_match("/^[0-9a-f]*$/i", $value)) {
+					$returnValue = true;
+				}
 				break;
 			case 'target-user':
 			case 'campaign-name':
@@ -1087,6 +1096,9 @@ class Attribute extends AppModel {
 				break;
 			case 'float':
 				$value = floatval($value);
+				break;
+			case 'hex':
+				$value = strtoupper($value);
 				break;
 		}
 		return $value;
