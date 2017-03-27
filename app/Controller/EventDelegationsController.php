@@ -135,7 +135,7 @@ class EventDelegationsController extends AppController {
 		if ($this->request->is('post')) {
 			$this->EventDelegation->delete($delegation['EventDelegation']['id']);
 			$this->Session->setFlash('Delegation request deleted.');
-			$this->redirect(array('controller' => 'events', 'action' => 'view', $delegation['EventDelegation']['event_id']));
+			$this->redirect(array('controller' => 'events', 'action' => 'index'));
 		} else {
 			$this->set('delegationRequest', $delegation);
 			$this->render('ajax/delete_delegation');
