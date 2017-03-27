@@ -3071,6 +3071,11 @@ class EventsController extends AppController {
 					$typeCategoryMapping[$type][$k] = $k;
 				}
 			}
+			$sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name',  1);
+			$distributionLevels = $this->Event->Attribute->distributionLevels;
+			if (empty($sgs)) unset($distributionLevels[4]);
+			$this->set('distributionLevels', $distributionLevels);
+			$this->set('sharingGroups', $sgs);
 			$this->set('event', $event);
 			$this->set('typeList', array_keys($this->Event->Attribute->typeDefinitions));
 			$this->set('defaultCategories', $this->Event->Attribute->defaultCategories);
@@ -3140,7 +3145,8 @@ class EventsController extends AppController {
 					foreach ($types as $type) {
 						$this->Event->$objectType->create();
 						$attribute['type'] = $type;
-						$attribute['distribution'] = 5;
+						if (!isset($attribute['distribution']))
+							$attribute['distribution'] = 5;
 						if (empty($attribute['comment'])) $attribute['comment'] = $this->request->data['Attribute']['default_comment'];
 						$attribute['event_id'] = $id;
 						if ($objectType == 'ShadowAttribute') {
@@ -4061,6 +4067,11 @@ class EventsController extends AppController {
 						);
 						$resultArray[$key]['related'] = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $options);
 					}
+					$sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name',  1);
+					$distributionLevels = $this->Event->Attribute->distributionLevels;
+					if (empty($sgs)) unset($distributionLevels[4]);
+					$this->set('distributionLevels', $distributionLevels);
+					$this->set('sharingGroups', $sgs);
 					$this->set('event', array('Event' => array('id' => $eventId)));
 					$this->set('resultArray', $resultArray);
 					$this->set('typeList', array_keys($this->Event->Attribute->typeDefinitions));
