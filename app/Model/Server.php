@@ -752,6 +752,15 @@ class Server extends AppModel {
 							'type' => 'boolean',
 							'null' => true
 					),
+					'enable_attribute_tag_syncing' => array(
+							'level' => 2,
+							'description' => 'Enable this setting for including attribute level tags in syncing.',
+							'value' => true,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+							'null' => true
+					),
 			),
 			'GnuPG' => array(
 					'branch' => 1,
@@ -1786,7 +1795,10 @@ class Server extends AppModel {
 						)
 				), // array of conditions
 				'recursive' => -1, //int
-				'contain' => array('EventTag' => array('fields' => array('EventTag.tag_id'))),
+				'contain' => array(
+					'EventTag' => array('fields' => array('EventTag.tag_id')),
+					'Attribute' => array('AttributeTag.tag_id' => array('fields' => array('AttributeTag.tag_id')))
+					),
 				'fields' => array('Event.id', 'Event.timestamp', 'Event.uuid', 'Event.orgc_id'), // array of field names
 		);
 		$eventIds = $this->Event->find('all', $findParams);
@@ -3305,6 +3317,16 @@ class Server extends AppModel {
 		$eventTags = array();
 		$validServers = array();
 		foreach ($event['EventTag'] as $tag) $eventTags[] = $tag['tag_id'];
+		// include attribute level tags for syncing only if setting is set to true
+		if (Configure::read('MISP.enable_attribute_tag_syncing')){
+			foreach ($event['Attribute'] as $attribute) {
+		 		foreach ($attribute['AttributeTag'] as $attributeTag) {
+		 			if (!in_array($attributeTag['tag_id'], $eventTags)){
+		 				$eventTags[] = $attributeTag['tag_id'];
+		 			}
+		 		}
+			}
+		}
 		foreach ($servers as $server) {
 			$push_rules = json_decode($server['Server']['push_rules'], true);
 			if (!empty($push_rules['tags']['OR'])) {
