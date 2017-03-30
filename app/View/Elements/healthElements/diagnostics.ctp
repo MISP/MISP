@@ -319,6 +319,11 @@
 	<span class="btn btn-inverse" role="button" tabindex="0" aria-label="Check for orphaned attribute" title="Check for orphaned attributes" style="padding-top:1px;padding-bottom:1px;" onClick="checkOrphanedAttributes();">Check for orphaned attributes</span><br /><br />
 	<?php echo $this->Form->postButton('Remove orphaned attributes', $baseurl . '/attributes/pruneOrphanedAttributes', $options = array('class' => 'btn btn-primary', 'style' => 'padding-top:1px;padding-bottom:1px;')); ?>
 	<h3>
+		Verify PGP keys
+	</h3>
+	<p>Run a full validation of all PGP keys within this instance's userbase. The script will try to identify possible issues with each key and report back on the results.</p>
+	<span class="btn btn-inverse" onClick="location.href='<?php echo $baseurl;?>/users/verifyGPG';">Verify GPG keys</span> (Check whether every user's GPG key is usable)</li>
+	<h3>
 		Database cleanup scripts
 	</h3>
 	<p>If you run into an issue with an infinite upgrade loop (when upgrading from version ~2.4.50) that ends up filling your database with upgrade script log messages, run the following script.</p>
