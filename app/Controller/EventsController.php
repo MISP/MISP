@@ -2630,60 +2630,56 @@ class EventsController extends AppController {
 				if (!in_array($attribute['Attribute']['event_id'], $eventIds)) $eventIds[] = $attribute['Attribute']['event_id'];
 			}
 		}
-		if (!empty($eventIds)) {
-			$this->loadModel('Whitelist');
-			if ((!isset($this->request->params['ext']) || $this->request->params['ext'] !== 'json') && $this->response->type() !== 'application/json') {
-				App::uses('XMLConverterTool', 'Tools');
-				$converter = new XMLConverterTool();
-				$final = "";
-				$final .= '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL . '<response>' . PHP_EOL;
-				foreach ($eventIds as $currentEventId) {
-					$result = $this->Event->fetchEvent($this->Auth->user(), array(
-						'eventid' => $currentEventId,
-						'includeAttachments' => $withAttachments,
-						'metadata' => $metadata,
-						'enforceWarninglist' => $enforceWarninglist
-					));
-					if (!empty($result)) {
-						$result = $this->Whitelist->removeWhitelistedFromArray($result, false);
-						$final .= $converter->event2XML($result[0]) . PHP_EOL;
-					}
+		$this->loadModel('Whitelist');
+		if ((!isset($this->request->params['ext']) || $this->request->params['ext'] !== 'json') && $this->response->type() !== 'application/json') {
+			App::uses('XMLConverterTool', 'Tools');
+			$converter = new XMLConverterTool();
+			$final = "";
+			$final .= '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL . '<response>' . PHP_EOL;
+			foreach ($eventIds as $currentEventId) {
+				$result = $this->Event->fetchEvent($this->Auth->user(), array(
+					'eventid' => $currentEventId,
+					'includeAttachments' => $withAttachments,
+					'metadata' => $metadata,
+					'enforceWarninglist' => $enforceWarninglist
+				));
+				if (!empty($result)) {
+					$result = $this->Whitelist->removeWhitelistedFromArray($result, false);
+					$final .= $converter->event2XML($result[0]) . PHP_EOL;
 				}
-				$final .= '</response>' . PHP_EOL;
-				if (isset($eventid) && $eventid) {
-					$final_filename="misp.event." . $eventid . "." . $result[0]['Event']['uuid'] . ".xml";
-				} else {
-					$final_filename="misp.search.events.results.xml";
-				}
-				$this->response->body($final);
-				$this->response->type('xml');
-				$this->response->download($final_filename);
-			} else {
-				App::uses('JSONConverterTool', 'Tools');
-				$converter = new JSONConverterTool();
-				$final = '{"response":[';
-				foreach ($eventIds as $k => $currentEventId) {
-					$result = $this->Event->fetchEvent($this->Auth->user(), array(
-						'eventid' => $currentEventId,
-						'includeAttachments' => $withAttachments,
-						'metadata' => $metadata,
-						'enforceWarninglist' => $enforceWarninglist
-					));
-					$final .= $converter->event2JSON($result[0]);
-					if ($k < count($eventIds) -1 ) $final .= ',';
-				}
-				$final .= ']}';
-				if (isset($eventid) && $eventid) {
-					$final_filename="misp.event." . $eventid . "." . $result[0]['Event']['uuid'] . ".json";
-				} else {
-					$final_filename="misp.search.events.results.json";
-				}
-				$this->response->body($final);
-				$this->response->type('json');
-				$this->response->download($final_filename);
 			}
+			$final .= '</response>' . PHP_EOL;
+			if (isset($eventid) && $eventid) {
+				$final_filename="misp.event." . $eventid . "." . $result[0]['Event']['uuid'] . ".xml";
+			} else {
+				$final_filename="misp.search.events.results.xml";
+			}
+			$this->response->body($final);
+			$this->response->type('xml');
+			$this->response->download($final_filename);
 		} else {
-			throw new NotFoundException('No matches.');
+			App::uses('JSONConverterTool', 'Tools');
+			$converter = new JSONConverterTool();
+			$final = '{"response":[';
+			foreach ($eventIds as $k => $currentEventId) {
+				$result = $this->Event->fetchEvent($this->Auth->user(), array(
+					'eventid' => $currentEventId,
+					'includeAttachments' => $withAttachments,
+					'metadata' => $metadata,
+					'enforceWarninglist' => $enforceWarninglist
+				));
+				$final .= $converter->event2JSON($result[0]);
+				if ($k < count($eventIds) -1 ) $final .= ',';
+			}
+			$final .= ']}';
+			if (isset($eventid) && $eventid) {
+				$final_filename="misp.event." . $eventid . "." . $result[0]['Event']['uuid'] . ".json";
+			} else {
+				$final_filename="misp.search.events.results.json";
+			}
+			$this->response->body($final);
+			$this->response->type('json');
+			$this->response->download($final_filename);
 		}
 		return $this->response;
 	}

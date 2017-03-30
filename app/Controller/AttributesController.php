@@ -1818,7 +1818,6 @@ class AttributesController extends AppController {
 		$results = $this->Attribute->fetchAttributes($this->Auth->user(), $params);
 		$this->loadModel('Whitelist');
 		$results = $this->Whitelist->removeWhitelistedFromArray($results, true);
-		if (empty($results)) throw new NotFoundException('No matches.');
 		$this->set('results', $results);
 	}
 
