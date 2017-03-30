@@ -202,7 +202,7 @@
 						<dt <?php echo $event['Event']['disable_correlation'] ? 'class="background-red bold"' : '';?>>Correlation</dt>
 						<dd <?php echo $event['Event']['disable_correlation'] ? 'class="background-red bold"' : '';?>>
 								<?php
-									if ($mayModify):
+									if ($mayModify || $isSiteAdmin):
 								 		if ($event['Event']['disable_correlation']):
 								?>
 											Disabled (<a onClick="getPopup('<?php echo h($event['Event']['id']); ?>', 'events', 'toggleCorrelation', '', '#confirmation_box');" style="color:white;cursor:pointer;" style="font-weight:normal;">enable</a>)
