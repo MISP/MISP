@@ -1878,11 +1878,19 @@ function freetextImportResultsSubmit(id, count) {
 				to_ids:$('#Attribute' + i + 'To_ids')[0].checked,
 				comment:$('#Attribute' + i + 'Comment').val(),
 				data:$('#Attribute' + i + 'Data').val(),
+				sharing_group_id:0,
 				data_is_handled:$('#Attribute' + i + 'DataIsHandled').val()
+			};
+			if ($('#Attribute' + i + 'Distribution').val() != undefined &&
+				typeof $('#Attribute' + i + 'Distribution').val() == 'string') {
+				temp.distribution = $('#Attribute' + i + 'Distribution').val();
+				if (temp.distribution == 4)
+					temp.sharing_group_id = $('#Attribute' + i + 'SharingGroupId').val();
 			}
+
 			attributeArray[attributeArray.length] = temp;
 		}
-	};
+	}
 	$("#AttributeJsonObject").val(JSON.stringify(attributeArray));
 	var formData = $(".mainForm").serialize();
 	$.ajax({
