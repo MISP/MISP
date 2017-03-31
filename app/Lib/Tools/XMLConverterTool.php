@@ -4,6 +4,14 @@ class XMLConverterTool {
 	private $__toEscape = array("&", "<", ">", "\"", "'");
 	private $__escapeWith = array('&amp;', '&lt;', '&gt;', '&quot;', '&apos;');
 
+	public function generateTop() {
+		return '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL . '<response>' . PHP_EOL;
+	}
+
+	public function generateBottom() {
+		return '</response>' . PHP_EOL;
+	}
+
 	public function recursiveEcho($array) {
 		$text = "";
 		if (is_array($array)) foreach ($array as $k => $v) {
@@ -27,7 +35,7 @@ class XMLConverterTool {
 		return $text;
 	}
 
-	public function event2xmlArray($event, $isSiteAdmin=false) {
+	public function convertArray($event, $isSiteAdmin=false) {
 		$event['Event']['Org'][0] = $event['Org'];
 		$event['Event']['Orgc'][0] = $event['Orgc'];
 		if (isset($event['SharingGroup']['SharingGroupOrg'])) {
@@ -157,8 +165,8 @@ class XMLConverterTool {
 		return $result;
 	}
 
-	public function event2XML($event, $isSiteAdmin=false) {
-		$xmlArray = $this->event2xmlArray($event, $isSiteAdmin);
+	public function convert($event, $isSiteAdmin=false) {
+		$xmlArray = $this->convertArray($event, $isSiteAdmin);
 		$result = array('Event' => array(0 => $xmlArray['Event']));
 		if (isset($xmlArray['errors']) && !empty($xmlArray['errors'])) $result['errors'] = array($xmlArray['errors']);
 		return $this->recursiveEcho($result);
@@ -171,7 +179,7 @@ class XMLConverterTool {
 
 	public function eventCollection2Format($events, $isSiteAdmin=false) {
 		$result = "";
-		foreach ($events as $event) $result .= $this->event2XML($event) . PHP_EOL;
+		foreach ($events as $event) $result .= $this->convert($event) . PHP_EOL;
 		return $result;
 	}
 

@@ -74,6 +74,24 @@ class Attribute extends AppModel {
 			'nationality'
 	);
 
+	public $searchResponseTypes = array(
+		'xml' => array(
+			'type' => 'xml',
+			'layout' => 'xml/default',
+			'header' => 'Content-Disposition: download; filename="misp.search.attribute.results.xml"'
+		),
+		'json' => array(
+			'type' => 'json',
+			'layout' => 'json/default',
+			'header' => 'Content-Disposition: download; filename="misp.search.attribute.results.json"'
+		),
+		'openioc' => array(
+			'type' => 'xml',
+			'layout' => 'xml/default',
+			'header' => 'Content-Disposition: download; filename="misp.search.attribute.results.openioc.xml"'
+		),
+	);
+
 	public $typeDefinitions = array(
 			'md5' => array('desc' => 'A checksum in md5 format', 'formdesc' => "You are encouraged to use filename|md5 instead. A checksum in md5 format, only use this if you don't know the correct filename", 'default_category' => 'Payload delivery', 'to_ids' => 1),
 			'sha1' => array('desc' => 'A checksum in sha1 format', 'formdesc' => "You are encouraged to use filename|sha1 instead. A checksum in sha1 format, only use this if you don't know the correct filename", 'default_category' => 'Payload delivery', 'to_ids' => 1),
@@ -2319,5 +2337,112 @@ class Attribute extends AppModel {
 			}
 		}
 		return true;
+	}
+
+	public function convertToOpenIOC($user, $attributes) {
+		return $this->IOCExport->buildAll($this->Auth->user(), $event);
+	}
+
+	public function setTagConditions($tags, $conditions) {
+		$args = $this->dissectArgs($tags);
+		$tagArray = $this->AttributeTag->Tag->fetchEventTagIds($args[0], $args[1]);
+		$temp = array();
+		foreach ($tagArray[0] as $accepted) {
+			$temp['OR'][] = array('Event.id' => $accepted);
+		}
+		$conditions['AND'][] = $temp;
+		$temp = array();
+		foreach ($tagArray[1] as $rejected) {
+			$temp['AND'][] = array('Event.id !=' => $rejected);
+		}
+		$conditions['AND'][] = $temp;
+		return $conditions;
+	}
+
+	public function setPublishTimestampConditions($publish_timestamp, $conditions) {
+		if (is_array($publish_timestamp)) {
+			$conditions['AND'][] = array('Event.publish_timestamp >=' => $publish_timestamp[0]);
+			$conditions['AND'][] = array('Event.publish_timestamp <=' => $publish_timestamp[1]);
+		} else {
+			$conditions['AND'][] = array('Event.publish_timestamp >=' => $publish_timestamp);
+		}
+		return $conditions;
+	}
+
+	public function setTimestampConditions($timestamp, $conditions, $scope = 'Event') {
+		if (is_array($timestamp)) {
+			$conditions['AND'][] = array($scope . '.timestamp >=' => $timestamp[0]);
+			$conditions['AND'][] = array($scope . '.timestamp <=' => $timestamp[1]);
+		} else {
+			$conditions['AND'][] = array($scope . '.timestamp >=' => $timestamp);
+		}
+		return $conditions;
+	}
+
+	public function setToIDSConditions($to_ids, $conditions) {
+		if ($to_ids === 'exclude') {
+			$conditions['AND'][] = array('Attribute.to_ids' => 0);
+		} else {
+			$conditions['AND'][] = array('Attribute.to_ids' => 1);
+		}
+		return $conditions;
+	}
+
+	public function setSimpleConditions($parameterKey, $parameterValue, $conditions) {
+		$subcondition = array();
+		App::uses('CIDRTool', 'Tools');
+		$cidr = new CIDRTool();
+		if (is_array($parameterValue)) $elements = $parameterValue;
+		else $elements = explode('&&', $parameterValue);
+		foreach ($elements as $v) {
+			if (empty($v)) continue;
+			if (substr($v, 0, 1) == '!') {
+				// check for an IPv4 address and subnet in CIDR notation (e.g. 127.0.0.1/8)
+				if ($parameterKey === 'value' && $cidr->checkCIDR(substr($v, 1), 4)) {
+					$cidrresults = $cidr->CIDR(substr($v, 1));
+					foreach ($cidrresults as $result) {
+						$subcondition['AND'][] = array('Attribute.value NOT LIKE' => $result);
+					}
+				} else if ($parameterKey === 'org') {
+						// from here
+						$found_orgs = $this->Event->Org->find('all', array(
+								'recursive' => -1,
+								'conditions' => array('LOWER(name) LIKE' => '%' . strtolower(substr($v, 1)) . '%'),
+						));
+						foreach ($found_orgs as $o) $subcondition['AND'][] = array('Event.orgc_id !=' => $o['Org']['id']);
+				} else if ($parameterKey === 'eventid') {
+					$subcondition['AND'][] = array('Attribute.event_id !=' => substr($v, 1));
+				} else if ($parameterKey === 'uuid') {
+					$subcondition['AND'][] = array('Event.uuid !=' => substr($v, 1));
+					$subcondition['AND'][] = array('Attribute.uuid !=' => substr($v, 1));
+				} else {
+					$subcondition['AND'][] = array('Attribute.' . $parameterKey . ' NOT LIKE' => '%'.substr($v, 1).'%');
+				}
+			} else {
+				// check for an IPv4 address and subnet in CIDR notation (e.g. 127.0.0.1/8)
+				if ($parameterKey === 'value' && $cidr->checkCIDR($v, 4)) {
+					$cidrresults = $cidr->CIDR($v);
+					foreach ($cidrresults as $result) {
+						$subcondition['OR'][] = array('Attribute.value LIKE' => $result);
+					}
+				} else if ($parameterKey === 'org') {
+					// from here
+					$found_orgs = $this->Event->Org->find('all', array(
+							'recursive' => -1,
+							'conditions' => array('LOWER(name) LIKE' => '%' . strtolower($v) . '%'),
+					));
+					foreach ($found_orgs as $o) $subcondition['OR'][] = array('Event.orgc_id' => $o['Org']['id']);
+				} else if ($parameterKey === 'eventid') {
+					if (!empty($v)) $subcondition['OR'][] = array('Attribute.event_id' => $v);
+				} else if ($parameterKey === 'uuid') {
+					$subcondition['OR'][] = array('Attribute.uuid' => $v);
+					$subcondition['OR'][] = array('Event.uuid' => $v);
+				} else {
+					if (!empty($v)) $subcondition['OR'][] = array('Attribute.' . $parameterKey . ' LIKE' => '%'.$v.'%');
+				}
+			}
+		}
+		array_push ($conditions['AND'], $subcondition);
+		return $conditions;
 	}
 }

@@ -1,6 +1,15 @@
 <?php
 class JSONConverterTool {
-	public function event2JSON($event, $isSiteAdmin=false) {
+
+	public function generateTop() {
+		return '{"response":[';
+	}
+
+	public function generateBottom() {
+		return ']}' . PHP_EOL;
+	}
+
+	public function convert($event, $isSiteAdmin=false) {
 		$toRearrange = array('Org', 'Orgc', 'SharingGroup', 'Attribute', 'ShadowAttribute', 'RelatedAttribute', 'RelatedEvent', 'Galaxy');
 		foreach ($toRearrange as $object) {
 			if (isset($event[$object])) {
@@ -15,7 +24,7 @@ class JSONConverterTool {
 				$event['Event']['Tag'][$k] = $tag['Tag'];
 			}
 		}
-		
+
 		//
 		// cleanup the array from things we do not want to expose
 		//
@@ -84,7 +93,7 @@ class JSONConverterTool {
 
 	public function eventCollection2Format($events, $isSiteAdmin=false) {
 		$results = array();
-		foreach ($events as $event) $results[] = $this->event2JSON($event, $isSiteAdmin);
+		foreach ($events as $event) $results[] = $this->convert($event, $isSiteAdmin);
 		return implode(',' . PHP_EOL, $results);
 	}
 

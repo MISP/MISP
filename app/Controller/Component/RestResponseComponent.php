@@ -65,12 +65,14 @@ class RestResponseComponent extends Component {
 		return $this->__sendResponse($response, 200, $format);
 	}
 
-	private function __sendResponse($response, $code, $format = false) {
+	private function __sendResponse($response, $code, $format = false, $raw = false) {
 		if (strtolower($format) === 'application/xml') {
-			$response = Xml::build($response);
+			if (!$raw) $response = Xml::build($response);
+			$type = 'xml';
+		} else if(strtolower($format) == 'openioc') {
 			$type = 'xml';
 		} else {
-			$response = json_encode($response, JSON_PRETTY_PRINT);
+			if (!$raw) $response = json_encode($response, JSON_PRETTY_PRINT);
 			$type = 'json';
 		}
 		return new CakeResponse(array('body'=> $response,'status' => $code, 'type' => $type));
@@ -89,11 +91,11 @@ class RestResponseComponent extends Component {
 		return array('action' => $action, 'admin' => $admin);
 	}
 
-	public function viewData($data, $format = false, $errors = false) {
+	public function viewData($data, $format = false, $errors = false, $raw = false) {
 		if (!empty($errors)) {
 			$data['errors'] = $errors;
 		}
-		return $this->__sendResponse($data, 200, $format);
+		return $this->__sendResponse($data, 200, $format, $raw);
 	}
 
 	public function describe($controller, $action, $id = false, $format = false) {

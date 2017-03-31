@@ -63,7 +63,7 @@ class PubSubTool {
 		$settings = $this->__setupPubServer();
 		App::uses('JSONConverterTool', 'Tools');
 		$jsonTool = new JSONConverterTool();
-		$json = $jsonTool->event2JSON($event);
+		$json = $jsonTool->convert($event);
 		$redis = new Redis();
 		$redis->connect($settings['redis_host'], $settings['redis_port']);
 		$redis->select($settings['redis_database']);
