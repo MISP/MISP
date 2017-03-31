@@ -3267,4 +3267,71 @@ class Event extends AppModel {
 		}
 		return array('data' => array(), 'csv' => array());
 	}
+
+	public function setSimpleConditions($parameterKey, $parameterValue, $conditions) {
+		if (is_array($parameterValue)) {
+			$elements = $parameterValue;
+		} else {
+			$elements = explode('&&', $parameterValue);
+		}
+		App::uses('CIDRTool', 'Tools');
+		$cidr = new CIDRTool();
+		$subcondition = array();
+		foreach ($elements as $v) {
+			if ($v == '') continue;
+			if (substr($v, 0, 1) == '!') {
+				// check for an IPv4 address and subnet in CIDR notation (e.g. 127.0.0.1/8)
+				if ($parameterKey === 'value' && $cidr->checkCIDR(substr($v, 1), 4)) {
+					$cidrresults = $cidr->CIDR(substr($v, 1));
+					foreach ($cidrresults as $result) {
+						$subcondition['AND'][] = array('Attribute.value NOT LIKE' => $result);
+					}
+				} else {
+					if ($parameterKey === 'org') {
+						$found_orgs = $this->Org->find('all', array(
+							'recursive' => -1,
+							'conditions' => array('LOWER(name) LIKE' => '%' . strtolower(substr($v, 1)) . '%'),
+						));
+						foreach ($found_orgs as $o) {
+							$subcondition['AND'][] = array('Event.orgc_id !=' => $o['Org']['id']);
+						}
+					} else if ($parameterKey === 'eventid') {
+						$subcondition['AND'][] = array('Attribute.event_id !=' => substr($v, 1));
+					} else if ($parameterKey === 'uuid') {
+						$subcondition['AND'][] = array('Event.uuid !=' => substr($v, 1));
+						$subcondition['AND'][] = array('Attribute.uuid !=' => substr($v, 1));
+					} else {
+						$subcondition['AND'][] = array('Attribute.' . $parameterKey . ' NOT LIKE' => '%'.substr($v, 1).'%');
+					}
+				}
+			} else {
+				// check for an IPv4 address and subnet in CIDR notation (e.g. 127.0.0.1/8)
+				if ($parameterKey === 'value' && $cidr->checkCIDR($v, 4)) {
+					$cidrresults = $cidr->CIDR($v);
+					foreach ($cidrresults as $result) {
+						if (!empty($result)) $subcondition['OR'][] = array('Attribute.value LIKE' => $result);
+					}
+				} else {
+					if ($parameterKey === 'org') {
+						$found_orgs = $this->Org->find('all', array(
+								'recursive' => -1,
+								'conditions' => array('LOWER(name) LIKE' => '%' . strtolower($v) . '%'),
+						));
+						foreach ($found_orgs as $o) {
+							$subcondition['OR'][] = array('Event.orgc_id' => $o['Org']['id']);
+						}
+					} else if ($parameterKey === 'eventid') {
+						$subcondition['OR'][] = array('Attribute.event_id' => $v);
+					} else if ($parameterKey === 'uuid') {
+						$subcondition['OR'][] = array('Attribute.uuid' => $v);
+						$subcondition['OR'][] = array('Event.uuid' => $v);
+					}else {
+						if (!empty($v)) $subcondition['OR'][] = array('Attribute.' . $parameterKey . ' LIKE' => '%'.$v.'%');
+					}
+				}
+			}
+		}
+		if (!empty($subcondition)) array_push ($conditions['AND'], $subcondition);
+		return $conditions;
+	}
 }

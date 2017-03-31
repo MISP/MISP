@@ -1641,6 +1641,8 @@ class AttributesController extends AppController {
 		$this->set('fails', $this->Attribute->checkComposites());
 	}
 
+
+
 	// Use the rest interface to search for attributes. Usage:
 	// MISP-base-url/attributes/restSearch/[api-key]/[value]/[type]/[category]/[orgc]
 	// value, type, category, orgc are optional
@@ -1653,14 +1655,14 @@ class AttributesController extends AppController {
 		foreach ($simpleFalse as $sF) {
 			if (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false') ${$sF} = false;
 		}
-		if ($key != null && $key != 'download') {
+		if ($key != null && strlen($key) == 40) {
 			$user = $this->checkAuthUser($key);
+			if (!$user) {
+				throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
+			}
 		} else {
+			$key = strtolower($key);
 			if (!$this->Auth->user()) throw new UnauthorizedException('You are not authorized. Please send the Authorization header with your auth key along with an Accept header for application/xml.');
-			$user = $this->checkAuthUser($this->Auth->user('authkey'));
-		}
-		if (!$user) {
-			throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
 		}
 		// request handler for POSTed queries. If the request is a post, the parameters (apart from the key) will be ignored and replaced by the terms defined in the posted json or xml object.
 		// The correct format for both is a "request" root element, as shown by the examples below:
@@ -1669,8 +1671,14 @@ class AttributesController extends AppController {
 		// the response type is used to determine the parsing method (xml/json)
 		if ($this->request->is('post')) {
 			if ($this->response->type() === 'application/json') {
+				if ($key == 'xml') {
+					throw new MethodNotAllowedException('Content type and parameter mismatch. Expecting JSON.');
+				}
 				$data = $this->request->input('json_decode', true);
 			} else if ($this->response->type() === 'application/xml' && !empty($this->request->data)) {
+				if ($key == 'json') {
+					throw new MethodNotAllowedException('Content type and parameter mismatch. Expecting XML.');
+				}
 				$data = $this->request->data;
 			} else {
 				throw new BadRequestException('Either specify the search terms in the url, or POST a json array / xml (with the root element being "request" and specify the correct accept and content type headers.');
@@ -1692,116 +1700,26 @@ class AttributesController extends AppController {
 		if ($from) $from = $this->Attribute->Event->dateFieldCheck($from);
 		if ($to) $to = $this->Attribute->Event->dateFieldCheck($to);
 		if ($last) $last = $this->Attribute->Event->resolveTimeDelta($last);
-
-		if (!isset($this->request->params['ext']) || $this->request->params['ext'] !== 'json') {
-			$this->response->type('xml');	// set the content type
-			$this->layout = 'xml/default';
-			$this->header('Content-Disposition: download; filename="misp.search.attribute.results.xml"');
-		} else {
-			$this->response->type('json');	// set the content type
-			$this->layout = 'json/default';
-			$this->header('Content-Disposition: download; filename="misp.search.attribute.results.json"');
-		}
 		$conditions['AND'] = array();
 		$subcondition = array();
 		$this->loadModel('Attribute');
 		// add the values as specified in the 2nd parameter to the conditions
 		$parameters = array('value', 'type', 'category', 'org', 'eventid', 'uuid');
 		foreach ($parameters as $k => $param) {
-			if (isset(${$parameters[$k]}) && ${$parameters[$k]}!==false) {
-				if (is_array(${$parameters[$k]})) $elements = ${$parameters[$k]};
-				else $elements = explode('&&', ${$parameters[$k]});
-				foreach ($elements as $v) {
-					if (empty($v)) continue;
-					if (substr($v, 0, 1) == '!') {
-						// check for an IPv4 address and subnet in CIDR notation (e.g. 127.0.0.1/8)
-						if ($parameters[$k] === 'value' && $this->Cidr->checkCIDR(substr($v, 1), 4)) {
-							$cidrresults = $this->Cidr->CIDR(substr($v, 1));
-							foreach ($cidrresults as $result) {
-								$subcondition['AND'][] = array('Attribute.value NOT LIKE' => $result);
-							}
-						} else if ($parameters[$k] === 'org') {
-
-								// from here
-								$found_orgs = $this->Attribute->Event->Org->find('all', array(
-										'recursive' => -1,
-										'conditions' => array('LOWER(name) LIKE' => '%' . strtolower(substr($v, 1)) . '%'),
-								));
-								foreach ($found_orgs as $o) $subcondition['AND'][] = array('Event.orgc_id !=' => $o['Org']['id']);
-						} else if ($parameters[$k] === 'eventid') {
-							$subcondition['AND'][] = array('Attribute.event_id !=' => substr($v, 1));
-						} else if ($parameters[$k] === 'uuid') {
-							$subcondition['AND'][] = array('Event.uuid !=' => substr($v, 1));
-							$subcondition['AND'][] = array('Attribute.uuid !=' => substr($v, 1));
-						} else {
-							$subcondition['AND'][] = array('Attribute.' . $parameters[$k] . ' NOT LIKE' => '%'.substr($v, 1).'%');
-						}
-					} else {
-						// check for an IPv4 address and subnet in CIDR notation (e.g. 127.0.0.1/8)
-						if ($parameters[$k] === 'value' && $this->Cidr->checkCIDR($v, 4)) {
-							$cidrresults = $this->Cidr->CIDR($v);
-							foreach ($cidrresults as $result) {
-								$subcondition['OR'][] = array('Attribute.value LIKE' => $result);
-							}
-						} else if ($parameters[$k] === 'org') {
-							// from here
-							$found_orgs = $this->Attribute->Event->Org->find('all', array(
-									'recursive' => -1,
-									'conditions' => array('LOWER(name) LIKE' => '%' . strtolower($v) . '%'),
-							));
-							foreach ($found_orgs as $o) $subcondition['OR'][] = array('Event.orgc_id' => $o['Org']['id']);
-						} else if ($parameters[$k] === 'eventid') {
-							if (!empty($v)) $subcondition['OR'][] = array('Attribute.event_id' => $v);
-						} else if ($parameters[$k] === 'uuid') {
-							$subcondition['OR'][] = array('Attribute.uuid' => $v);
-							$subcondition['OR'][] = array('Event.uuid' => $v);
-						} else {
-							if (!empty($v)) $subcondition['OR'][] = array('Attribute.' . $parameters[$k] . ' LIKE' => '%'.$v.'%');
-						}
-					}
-				}
-				array_push ($conditions['AND'], $subcondition);
-				$subcondition = array();
+			if (isset(${$parameters[$k]}) && ${$parameters[$k]} !== false) {
+				$conditions = $this->Attribute->setSimpleConditions($parameters[$k], ${$parameters[$k]}, $conditions);
 			}
 		}
 
 		// If we sent any tags along, load the associated tag names for each attribute
-		if ($tags) {
-			$args = $this->Attribute->dissectArgs($tags);
-			$this->loadModel('Tag');
-			$tagArray = $this->Tag->fetchEventTagIds($args[0], $args[1]);
-			$temp = array();
-			foreach ($tagArray[0] as $accepted) {
-				$temp['OR'][] = array('Event.id' => $accepted);
-			}
-			$conditions['AND'][] = $temp;
-			$temp = array();
-			foreach ($tagArray[1] as $rejected) {
-				$temp['AND'][] = array('Event.id !=' => $rejected);
-			}
-			$conditions['AND'][] = $temp;
-		}
-
+		if ($tags) $conditions = $this->Attribute->setTagConditions($tags, $conditions);
 		if ($from) $conditions['AND'][] = array('Event.date >=' => $from);
 		if ($to) $conditions['AND'][] = array('Event.date <=' => $to);
-		if ($publish_timestamp) {
-			if (is_array($publish_timestamp)) {
-				$conditions['AND'][] = array('Event.publish_timestamp >=' => $publish_timestamp[0]);
-				$conditions['AND'][] = array('Event.publish_timestamp <=' => $publish_timestamp[1]);
-			} else {
-				$conditions['AND'][] = array('Event.publish_timestamp >=' => $publish_timestamp);
-			}
-		}
+		if ($publish_timestamp) $conditions = $this->Attribute->setPublishTimestampConditions($publish_timestamp, $conditions);
 		if ($last) $conditions['AND'][] = array('Event.publish_timestamp >=' => $last);
 		if ($published) $conditions['AND'][] = array('Event.published' => $published);
 		if ($timestamp) $conditions['AND'][] = array('Attribute.timestamp >=' => $timestamp);
-		if ($to_ids) {
-			if ($to_ids === 'exclude') {
-				$conditions['AND'][] = array('Attribute.to_ids' => 0);
-			} else {
-				$conditions['AND'][] = array('Attribute.to_ids' => 1);
-			}
-		}
+		if ($to_ids) $conditions = $this->Attribute->setToIDSConditions($to_ids, $conditions);
 		// change the fields here for the attribute export!!!! Don't forget to check for the permissions, since you are not going through fetchevent. Maybe create fetchattribute?
 		$params = array(
 				'conditions' => $conditions,
@@ -1818,7 +1736,25 @@ class AttributesController extends AppController {
 		$results = $this->Attribute->fetchAttributes($this->Auth->user(), $params);
 		$this->loadModel('Whitelist');
 		$results = $this->Whitelist->removeWhitelistedFromArray($results, true);
-		$this->set('results', $results);
+		if ($key == 'openioc') {
+			App::uses('IOCExportTool', 'Tools');
+			$this->IOCExport = new IOCExportTool();
+			$results = $this->IOCExport->buildAll($this->Auth->user(), $results, 'attribute');
+		} else {
+			$results = array('response' => array('Attribute' => $results));
+			foreach ($results['response']['Attribute'] as $k => $v) {
+				$results['response']['Attribute'][$k] = $results['response']['Attribute'][$k]['Attribute'];
+				unset(
+						$results['response']['Attribute'][$k]['value1'],
+						$results['response']['Attribute'][$k]['value2']
+				);
+			}
+		}
+		$responseType = $this->response->type();
+		if ($key == 'openioc') {
+			$responseType = 'openioc';
+		}
+		return $this->RestResponse->viewData($results, $responseType);
 	}
 
 	// returns an XML with attributes that belong to an event. The type of attributes to be returned can be restricted by type using the 3rd parameter.

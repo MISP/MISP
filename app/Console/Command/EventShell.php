@@ -55,7 +55,7 @@ class EventShell extends AppShell
 		if (!empty($eventIds)) {
 			foreach ($eventIds as $k => $eventId) {
 				$temp = $this->Event->fetchEvent($user, array('eventid' => $eventId['Event']['id'], 'includeAttachments' => Configure::read('MISP.cached_attachments')));
-				$file->append($converter->event2XML($temp[0], $user['Role']['perm_site_admin']) . PHP_EOL);
+				$file->append($converter->convert($temp[0], $user['Role']['perm_site_admin']) . PHP_EOL);
 				$this->Job->saveField('progress', ($k+1) / $eventCount *100);
 			}
 		}
@@ -88,7 +88,7 @@ class EventShell extends AppShell
 		$file->write('{"response":[');
 		foreach ($eventIds as $k => $eventId) {
 			$result = $this->Event->fetchEvent($user, array('eventid' => $eventId['Event']['id'], 'includeAttachments' => Configure::read('MISP.cached_attachments')));
-			$file->append($converter->event2JSON($result[0]));
+			$file->append($converter->convert($result[0]));
 			if ($k < count($eventIds) -1 ) $file->append(',');
 			$this->Job->saveField('progress', ($k+1) / $eventCount *100);
 		}
