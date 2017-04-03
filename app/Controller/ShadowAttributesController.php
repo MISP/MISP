@@ -311,6 +311,9 @@ class ShadowAttributesController extends AppController {
 					$this->request->data['ShadowAttribute'] = $this->request->data[$iN];
 				}
 			}
+			if (!isset($this->request->data['ShadowAttribute'])) {
+				$this->request->data = array('ShadowAttribute' => $this->request->data);
+			}
 			if ($this->request->is('ajax')) $this->autoRender = false;
 			// Give error if someone tried to submit a attribute with attachment or malware-sample type.
 			// TODO change behavior attachment options - this is bad ... it should rather by a messagebox or should be filtered out on the view level
