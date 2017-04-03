@@ -30,6 +30,7 @@
 				<th>Category</th>
 				<th>Type</th>
 				<th>IDS<input type="checkbox" id="checkAll" style="margin:0px;margin-left:3px;"/></th>
+				<?php if (isset($distributionLevels)) {?><th>Distribution</th><?php } ?>
 				<th>Comment</th>
 				<th>Actions</th>
 		</tr>
@@ -64,7 +65,7 @@
 							'div' => false
 					));
 				?>
-				<input type="hidden" id="<?php echo 'Attribute' . $k . 'Save'; ?>" value=1 >
+				<input type="hidden" id="<?php echo 'Attribute' . $k . 'Save'; ?>" value="1" />
 			</td>
 			<td class="shortish">
 				<?php
@@ -140,6 +141,34 @@
 			<td class="short" style="width:40px;text-align:center;">
 				<input type="checkbox" id="<?php echo 'Attribute' . $k . 'To_ids'; ?>" <?php if ($item['to_ids']) echo 'checked'; ?> class="idsCheckbox" />
 			</td>
+			<?php
+				if (isset($distributionLevels)) :
+			?>
+			<td class="short distribution" style="width:40px;text-align:center;"><?php
+				$initialDistribution = 5;
+				if (Configure::read('MISP.default_attribute_distribution') != null) {
+						$initialDistribution = Configure::read('MISP.default_attribute_distribution');
+						if ($initialDistribution == 'event') $initialDistribution = 5;
+				}
+				echo $this->Form->input('Attribute' . $k . 'Distribution', array(
+						'options' => array($distributionLevels),
+						'label' => false,
+						'selected' => $initialDistribution,
+						'class' => 'AttributeDistribution'
+						));
+				?>
+				<div class="SGContainer" style="display:none;">
+				<?php
+				if (!empty($sharingGroups)) {
+					echo $this->Form->input('Attribute' . $k . 'SharingGroupId', array(
+						'options' => array($sharingGroups),
+						'label' => 'select Sharing Group',
+					));
+				}
+				?>
+				</div>
+			</td>
+			<?php endif; ?>
 			<td class="short">
 				<input type="text" class="freetextCommentField" id="<?php echo 'Attribute' . $k . 'Comment'; ?>" style="padding:0px;height:20px;margin-bottom:0px;" placeholder="<?php echo h($importComment); ?>" <?php if (isset($item['comment']) && $item['comment'] !== false) echo 'value="' . $item['comment'] . '"'?>/>
 			</td>
@@ -193,7 +222,7 @@
 		</span>
 	</span>
 </div>
-	<script>
+	<script type="text/javascript">
 		var options = <?php echo json_encode($optionsRearranged);?>;
 		$(document).ready(function(){
 			popoverStartup();
@@ -210,6 +239,14 @@
 			$('#checkAll').change(function() {
 				$('.idsCheckbox').prop('checked', $('#checkAll').is(':checked'));
 			});
+		<?php
+			if (isset($distributionLevels)):
+		?>
+			$('.AttributeDistribution').on('change', function(){
+			if ($(this).val() == 4) $(this).parent().next('.SGContainer').show();
+			else $(this).parent().next('.SGContainer').hide();
+			});
+		<?php endif; ?>
 		});
 	</script>
 <?php

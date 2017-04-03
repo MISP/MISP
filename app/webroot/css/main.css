@@ -1708,7 +1708,9 @@ table.table.table-striped tr.deleted_row td {
 {
 	width:1000px;
 }
-
+.freetext_row .distribution select{
+	padding:0;height:20px;margin-bottom:0;
+}
 @-webkit-keyframes rotation {
    from {-webkit-transform: rotate(0deg);}
    to {-webkit-transform: rotate(359deg);}
