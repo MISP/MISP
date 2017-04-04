@@ -2556,7 +2556,10 @@ class EventsController extends AppController {
 		App::uses($converters[$responseType], 'Tools');
 		$converter = new $converters[$responseType]();
 		$final = $converter->generateTop($this->Auth->user());
+		$eventCount = count($eventIds);
+		$i = 0;
 		foreach ($eventIds as $currentEventId) {
+			$i++;
 			$result = $this->Event->fetchEvent($this->Auth->user(), array(
 				'eventid' => $currentEventId,
 				'includeAttachments' => $withAttachments,
@@ -2566,6 +2569,9 @@ class EventsController extends AppController {
 			if (!empty($result)) {
 				$result = $this->Whitelist->removeWhitelistedFromArray($result, false);
 				$final .= $converter->convert($result[0]);
+				if ($i < $eventCount) {
+					$final .= ',' . PHP_EOL;
+				}
 			}
 		}
 		$final .= $converter->generateBottom($responseType, $final);
