@@ -1,6 +1,6 @@
 <div class="attributes <?php if (!isset($ajax) || !$ajax) echo 'form';?>">
 <?php
-	echo $this->Form->create('Attribute', array('id'));
+	echo $this->Form->create('Attribute', array('id', 'url' => '/attributes/add/' . $event_id));
 ?>
 	<fieldset>
 		<legend><?php echo __('Add Attribute'); ?></legend>
