@@ -8,8 +8,7 @@ function deleteObject(type, action, id, event) {
 	if (alternateDestinations.indexOf(type) > -1) destination = type;
 	url = "/" + destination + "/" + action + "/" + id;
 	$.get(url, function(data) {
-		$("#confirmation_box").fadeIn();
-		$("#gray_out").fadeIn();
+		openPopup("#confirmation_box");
 		$("#confirmation_box").html(data);
 	});
 }
@@ -17,8 +16,8 @@ function deleteObject(type, action, id, event) {
 function quickDeleteSighting(id, rawId, context) {
 	url = "/sightings/quickDelete/" + id + "/" + rawId + "/" + context;
 	$.get(url, function(data) {
-		$("#confirmation_box").fadeIn();
 		$("#confirmation_box").html(data);
+		openPopup("#confirmation_box");
 	});
 }
 
@@ -28,17 +27,12 @@ function publishPopup(id, type) {
 	var destination = 'attributes';
 	$.get( "/events/" + action + "/" + id, function(data) {
 		$("#confirmation_box").html(data);
-		$("#confirmation_box").fadeIn();
-		$("#gray_out").fadeIn();
+		openPopup("#confirmation_box");
 	});
 }
 
 function delegatePopup(id) {
-	$.get( "/event_delegations/delegateEvent/" + id, function(data) {
-		$("#popover_form").html(data);
-		$("#popover_form").fadeIn();
-		$("#gray_out").fadeIn();
-	});
+	simplePopup("/event_delegations/delegateEvent/" + id);
 }
 
 function genericPopup(url, popupTarget) {
@@ -66,12 +60,7 @@ function submitPublish(id, type) {
 }
 
 function editTemplateElement(type, id) {
-	$.get( "/template_elements/edit/" + type + "/" + id, function(data) {
-		$("#popover_form").fadeIn();
-		$("#gray_out").fadeIn();
-		$("#popover_form").html(data);
-
-	});
+	simplePopup("/template_elements/edit/" + type + "/" + id);
 }
 
 function cancelPrompt(isolated) {
@@ -186,9 +175,8 @@ function toggleSetting(e, setting, id) {
 
 function initiatePasswordReset(id) {
 	$.get( "/users/initiatePasswordReset/" + id, function(data) {
-		$("#confirmation_box").fadeIn();
-		$("#gray_out").fadeIn();
 		$("#confirmation_box").html(data);
+		openPopup("#confirmation_box");
 	});
 }
 
@@ -633,24 +621,18 @@ function multiSelectAction(event, context) {
 }
 
 function editSelectedAttributes(event) {
-	$.get("/attributes/editSelected/"+event, function(data) {
-		$("#popover_form").fadeIn();
-		$("#gray_out").fadeIn();
-		$("#popover_form").html(data);
-	});
+	simplePopup("/attributes/editSelected/" + event);
 }
 
 function addSelectedTaxonomies(taxonomy) {
 	$.get("/taxonomies/taxonomyMassConfirmation/"+taxonomy, function(data) {
-		$("#confirmation_box").fadeIn();
-		$("#gray_out").fadeIn();
 		$("#confirmation_box").html(data);
+		openPopup("#confirmation_box");
 	});
 }
 
 function submitMassTaxonomyTag() {
 	$('#PromptForm').submit();
-
 }
 
 function getSelected() {
@@ -726,8 +708,7 @@ function loadAttributeTags(id) {
 function removeObjectTagPopup(context, object, tag) {
 	$.get( "/" + context + "s/removeTag/" + object + '/' + tag, function(data) {
 		$("#confirmation_box").html(data);
-		$("#confirmation_box").fadeIn();
-		$("#gray_out").fadeIn();
+		openPopup("#confirmation_box");
 	});
 }
 
@@ -761,11 +742,7 @@ function removeObjectTag(context, object, tag) {
 function clickCreateButton(event, type) {
 	var destination = 'attributes';
 	if (type == 'Proposal') destination = 'shadow_attributes';
-	$.get( "/" + destination + "/add/" + event, function(data) {
-		$("#popover_form").fadeIn();
-		$("#gray_out").fadeIn();
-		$("#popover_form").html(data);
-	});
+	simplePopup("/" + destination + "/add/" + event);
 }
 
 function submitPopoverForm(context_id, referer, update_context_id) {
@@ -875,9 +852,8 @@ function handleAjaxPopoverResponse(response, context_id, url, referer, context, 
 			async:true,
 			dataType:"html",
 			success:function (data, textStatus) {
-				$("#gray_out").fadeIn();
-				$("#popover_form").fadeIn();
 				$("#popover_form").html(data);
+				openPopup("#popover_form");
 				var error_context = context.charAt(0).toUpperCase() + context.slice(1);
 				handleValidationErrors(responseArray.errors, context, contextNamingConvention);
 				if (!isEmpty(responseArray)) {
@@ -1046,31 +1022,11 @@ function saveElementSorting(order) {
 }
 
 function templateAddElementClicked(id) {
-	$("#gray_out").fadeIn();
-	$.ajax({
-		beforeSend: function (XMLHttpRequest) {
-			$(".loading").show();
-		},
-		dataType:"html",
-		cache: false,
-		success:function (data, textStatus) {
-			$(".loading").hide();
-			$("#popover_form").html(data);
-			$("#popover_form").fadeIn();
-		},
-		url:"/template_elements/templateElementAddChoices/" + id,
-	});
+	simplePopup("/template_elements/templateElementAddChoices/" + id);
 }
 
 function templateAddElement(type, id) {
-	$.ajax({
-		dataType:"html",
-		cache: false,
-		success:function (data, textStatus) {
-			$("#popover_form").html(data);
-		},
-		url:"/template_elements/add/" + type + "/" + id,
-	});
+	simplePopup("/template_elements/add/" + type + "/" + id);
 }
 
 function templateUpdateAvailableTypes() {
@@ -1157,6 +1113,25 @@ function templateElementFileCategoryChange(category) {
 	}
 }
 
+function openPopup(id) {
+	var window_height = $(window).height();
+	var popup_height = $(id).height();
+	if (window_height < popup_height) {
+		$(id).css("top", 0);
+		$(id).css("height", window_height);
+		$(id).addClass('vertical-scroll');
+	} else {
+		if (window_height > (300 + popup_height)) {
+			var top_offset = ((window_height - popup_height) / 2) - 150;
+		} else {
+			var top_offset = (window_height - popup_height) / 2;
+		}
+		$(id).css("top", top_offset + 'px');
+	}
+	$("#gray_out").fadeIn();
+	$(id).fadeIn();
+}
+
 function getPopup(id, context, target, admin, popupType) {
 	$("#gray_out").fadeIn();
 	var url = "";
@@ -1175,10 +1150,9 @@ function getPopup(id, context, target, admin, popupType) {
 		success:function (data, textStatus) {
 			$(".loading").hide();
 			$(popupType).html(data);
-			$(popupType).fadeIn();
+			openPopup(popupType);
 		},
-		url: url,
-		//url:"/templates/templateChoices/" + id,
+		url: url
 	});
 }
 
@@ -1194,7 +1168,7 @@ function simplePopup(url) {
 		success:function (data, textStatus) {
 			$(".loading").hide();
 			$("#popover_form").html(data);
-			$("#popover_form").fadeIn();
+			openPopup("#popover_form");
 		},
 		url: url,
 	});
@@ -1846,23 +1820,7 @@ function importChoiceSelect(url, elementId, ajax) {
 	if (ajax == 'false') {
 		document.location.href = url;
 	} else {
-		$.ajax({
-		    url: url,
-		    type:'GET',
-			beforeSend: function (XMLHttpRequest) {
-				$(".loading").show();
-			},
-		    error: function(){
-		    	$("#popover_form").html('An error has occured, please reload the page.');
-		    },
-		    success: function(response){
-		    	$("#popover_form").html(response);
-		    	$("#popover_form").fadeIn();
-		    },
-			complete: function() {
-				$(".loading").hide();
-			},
-		});
+		simplePopup(url);
 	}
 }
 
@@ -2071,24 +2029,7 @@ function sharingGroupAdd(context, type) {
 		url = '/servers/fetchServersForSG/' + jsonids
 	}
 	$("#gray_out").fadeIn();
-
-	$.ajax({
-	    url: url,
-	    type:'GET',
-		beforeSend: function (XMLHttpRequest) {
-			$(".loading").show();
-		},
-	    error: function(){
-	    	$("#popover_form").html('An error has occured, please reload the page.');
-	    },
-	    success: function(response){
-	    	$("#popover_form").html(response);
-	    	$("#popover_form").fadeIn();
-	    },
-		complete: function() {
-			$(".loading").hide();
-		},
-	});
+	simplePopup(url);
 }
 
 function sharingGroupRemoveOrganisation(id) {
@@ -2326,18 +2267,7 @@ function pgpChoiceSelect(uri) {
 }
 
 function lookupPGPKey(emailFieldName) {
-	$.ajax({
-		type: "get",
-		url: "/users/fetchPGPKey/" + $('#' + emailFieldName).val(),
-		success: function (data) {
-			$("#popover_form").fadeIn();
-			$("#gray_out").fadeIn();
-			$("#popover_form").html(data);
-		},
-		error: function (data, textStatus, errorThrown) {
-			showMessage('fail', textStatus + ": " + errorThrown);
-		}
-	});
+	simplePopup("/users/fetchPGPKey/" + $('#' + emailFieldName).val());
 }
 
 function zeroMQServerAction(action) {
@@ -2353,8 +2283,7 @@ function zeroMQServerAction(action) {
 				window.location.reload();
 			} else {
 				$("#confirmation_box").html(data);
-				$("#confirmation_box").fadeIn();
-				$("#gray_out").fadeIn();
+				openPopup("#confirmation_box");
 			}
 		},
 		error: function (data, textStatus, errorThrown) {
@@ -2657,8 +2586,7 @@ $(".queryPopover").click(function() {
 	id = $(this).data('id');
 	$.get(url + '/' + id, function(data) {
 		$('#popover_form').html(data);
-		$('#popover_form').fadeIn();
-		$("#gray_out").fadeIn();
+		openPopup('#popover_form');
 	});
 });
 
@@ -2981,8 +2909,7 @@ $('.quickSelect').click(function() {
 function updateMISP() {
 	$.get( "/servers/update", function(data) {
 		$("#confirmation_box").html(data);
-		$("#confirmation_box").fadeIn();
-		$("#gray_out").fadeIn();
+		openPopup("#confirmation_box");
 	});
 }
 
