@@ -46,7 +46,7 @@ class AppController extends Controller {
 
 	public $helpers = array('Utility');
 
-	private $__jsVersion = '3';
+	private $__queryVersion = '4';
 	public $pyMispVersion = '2.4.68';
 	public $phpmin = '5.6.5';
 	public $phprec = '7.0.0';
@@ -92,7 +92,7 @@ class AppController extends Controller {
 			throw new Exception('datasource not supported: ' . $dataSource);
 		}
 
-		$this->set('jsVersion', $this->__jsVersion);
+		$this->set('queryVersion', $this->queryVersion);
 		$this->loadModel('User');
 		$auth_user_fields = $this->User->describeAuthFields();
 
