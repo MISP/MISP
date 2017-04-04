@@ -101,7 +101,6 @@
 		endif;
 		echo $this->Form->end();
 	?>
-	<div id="confirmation_box" class="confirmation_box"></div>
 </div>
 <?php
 	if (!$ajax) {
