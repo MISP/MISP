@@ -1741,13 +1741,17 @@ class AttributesController extends AppController {
 			$this->IOCExport = new IOCExportTool();
 			$results = $this->IOCExport->buildAll($this->Auth->user(), $results, 'attribute');
 		} else {
-			$results = array('response' => array('Attribute' => $results));
-			foreach ($results['response']['Attribute'] as $k => $v) {
-				$results['response']['Attribute'][$k] = $results['response']['Attribute'][$k]['Attribute'];
-				unset(
-						$results['response']['Attribute'][$k]['value1'],
-						$results['response']['Attribute'][$k]['value2']
-				);
+			if (!empty($results)) {
+				$results = array('response' => array('Attribute' => $results));
+				foreach ($results['response']['Attribute'] as $k => $v) {
+					$results['response']['Attribute'][$k] = $results['response']['Attribute'][$k]['Attribute'];
+					unset(
+							$results['response']['Attribute'][$k]['value1'],
+							$results['response']['Attribute'][$k]['value2']
+					);
+				}
+			} else {
+				$results = array('response' => array());
 			}
 		}
 		$responseType = $this->response->type();
