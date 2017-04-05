@@ -38,8 +38,8 @@ else
         ## MySQL stuff
         echo 'Please enter your MySQL root account username'
         read MySQLRUser
-        echo 'Please enter your MySQL root account password'
-        read MySQLRPass
+        echo 'Please enter your MySQL root account password (will not be echoed)'
+        read -s MySQLRPass
 fi
 
 
