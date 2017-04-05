@@ -24,6 +24,12 @@
 ## Time to set some variables
 ##
 
+if (( $EUID > 0 ))
+  then 
+  echo "Please run this as a privileged user"
+  echo "(usually 'sudo !!' will cover you)"
+  exit
+fi
 
 FILE=./misp-wipe.conf
 SQL=./misp-wipe.sql
@@ -38,8 +44,8 @@ else
         ## MySQL stuff
         echo 'Please enter your MySQL root account username'
         read MySQLRUser
-        echo 'Please enter your MySQL root account password'
-        read MySQLRPass
+        echo 'Please enter your MySQL root account password (will not be echoed)'
+        read -s MySQLRPass
 fi
 
 
