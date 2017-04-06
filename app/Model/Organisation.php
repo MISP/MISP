@@ -80,7 +80,7 @@ class Organisation extends AppModel{
 
 	public function beforeValidate($options = array()) {
 		parent::beforeValidate();
-		if (empty($this->data['Organisation']['uuid']) && (isset($this->data['Organisation']['local']) && $this->data['Organisation']['local'])) {
+		if (empty($this->data['Organisation']['uuid'])) {
 			$this->data['Organisation']['uuid'] = CakeText::uuid();
 		}
 		$date = date('Y-m-d H:i:s');
