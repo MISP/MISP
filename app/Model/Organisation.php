@@ -29,14 +29,16 @@ class Organisation extends AppModel{
 		'uuid' => array(
 			'unique' => array(
 				'rule' => 'isUnique',
-				'message' => 'An organisation with this UUID already exists.',
-				'allowEmpty' => true
+				'message' => 'An organisation with this UUID already exists.'
 			),
 			'uuid' => array(
 				'rule' => array('uuid'),
 				'message' => 'Please provide a valid UUID',
 				'allowEmpty' => true
 			),
+			'valueNotEmpty' => array(
+				'rule' => array('valueNotEmpty'),
+			)
 		)
 	);
 
