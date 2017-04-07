@@ -233,7 +233,7 @@
 					<?php foreach ($event['RelatedEvent'] as $relatedEvent): ?>
 					<li>
 					<?php
-					$relatedData = array('Orgc' => $relatedEvent['Orgc']['name'], 'Date' => $relatedEvent['Event']['date'], 'Info' => $relatedEvent['Event']['info']);
+					$relatedData = array('Orgc' => $relatedEvent['Event']['Orgc']['name'], 'Date' => $relatedEvent['Event']['date'], 'Info' => $relatedEvent['Event']['info']);
 					$popover = '';
 					foreach ($relatedData as $k => $v) {
 						$popover .= '<span class=\'bold\'>' . h($k) . '</span>: <span class="blue">' . h($v) . '</span><br />';

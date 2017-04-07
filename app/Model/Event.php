@@ -597,6 +597,15 @@ class Event extends AppModel {
 				)
 			)
 		);
+		$fieldsToRearrange = array('Org', 'Orgc');
+		foreach ($relatedEvents as $k => $relatedEvent) {
+			foreach ($fieldsToRearrange as $field) {
+				if (isset($relatedEvent[$field])) {
+					$relatedEvents[$k]['Event'][$field] = $relatedEvent[$field];
+					unset($relatedEvents[$k][$field]);
+				}
+			}
+		}
 		return $relatedEvents;
 	}
 
