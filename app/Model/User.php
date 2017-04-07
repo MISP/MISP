@@ -368,7 +368,7 @@ App::uses('RandomTool', 'Tools');
 	 */
 	public function complexPassword($check) {
 		$regex = Configure::read('Security.password_policy_complexity');
-		if (empty($regex) || @preg_match($regex, 'test') === false) $regex = '/((?=.*\d)|(?=.*\W+))(?![\n])(?=.*[A-Z])(?=.*[a-z]).*$/';
+		if (empty($regex) || @preg_match($regex, 'test') === false) $regex = '/^((?=.*\d)|(?=.*\W+))(?![\n])(?=.*[A-Z])(?=.*[a-z]).*$|.{16,}/';
 		$value = array_values($check);
 		$value = $value[0];
 		return preg_match($regex, $value);
