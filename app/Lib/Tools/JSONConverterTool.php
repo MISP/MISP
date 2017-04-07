@@ -43,7 +43,7 @@ class JSONConverterTool {
 			// remove value1 and value2 from the output and remove invalid utf8 characters for the xml parser
 			foreach ($event['Event']['Attribute'] as $key => $value) {
 				if (isset($value['SharingGroup']) && empty($value['SharingGroup'])) {
-					unset($event['Event']['Attribute'][$k]['SharingGroup']);
+					unset($event['Event']['Attribute'][$key]['SharingGroup']);
 				}
 				unset($event['Event']['Attribute'][$key]['value1']);
 				unset($event['Event']['Attribute'][$key]['value2']);
