@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
   "title": "Validator for misp events",
-  "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json",
+  "id": "https://github.com/MISP/MISP/blob/2.4/format/2.4/schema.json",
   "defs": {
     "org": {
       "type": "object",
