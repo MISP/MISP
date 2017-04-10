@@ -91,6 +91,18 @@ class AppModel extends Model {
 				$this->Sighting->addUuids();
 				$this->Sighting->deleteAll(array('NOT' => array('Sighting.type' => array(0, 1, 2))));
 				break;
+			case '2.4.71':
+				$this->OrgBlacklist = Classregistry::init('OrgBlacklist');
+				$values = array(
+					array('org_uuid' => '58d38339-7b24-4386-b4b4-4c0f950d210f', 'org_name' => 'Setec Astrononomy', 'comment' => 'default example'),
+					array('org_uuid' => '58d38326-eda8-443a-9fa8-4e12950d210f', 'org_name' => 'Acme Finance', 'comment' => 'default example')
+				);
+				foreach ($values as $value) {
+					$this->EventBlacklist->create();
+					$this->EventBlacklist->save($value);
+				}
+				$this->updateDatabase($command);
+				break;
 			default:
 				$this->updateDatabase($command);
 				break;
@@ -661,6 +673,10 @@ class AppModel extends Model {
 				$sqlArray[] = "ALTER TABLE taxonomy_entries CHANGE colour colour varchar(7) CHARACTER SET utf8 COLLATE utf8_bin;";
 				$sqlArray[] = "ALTER TABLE users ADD COLUMN date_created bigint(20);";
 				$sqlArray[] = "ALTER TABLE users ADD COLUMN date_modified bigint(20);";
+				break;
+			case '2.4.71':
+				$sqlArray[] = "ALTER TABLE attributes CHANGE comment comment text COLLATE utf8_bin DEFAULT '';";
+				$sqlArray[] = "ALTER TABLE SET comments = '' WHERE comments = NULL";
 				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';

@@ -207,3 +207,8 @@ INSERT INTO template_element_texts (id, name, template_element_id, text) VALUES
 (11, 'Persistence mechanism', 41, 'The following fields allow you to describe the persistence mechanism used by the malware'),
 (12, 'Indicators', 45, 'Just paste your list of indicators based on type into the appropriate field. All of the fields are optional, so inputting a list of IP addresses into the Network indicator field for example is sufficient to complete this template.');
 SELECT SETVAL('template_element_texts_id_seq', (SELECT MAX(id) FROM template_element_texts));
+
+INSERT INTO org_blacklists (id, org_uuid, created, org_name, comment) VALUES
+(1, '58d38339-7b24-4386-b4b4-4c0f950d210f', NOW(), 'Setec Astrononomy', 'default example'),
+(2, '58d38326-eda8-443a-9fa8-4e12950d210f', NOW(), 'Acme Finance', 'default example');
+SELECT SETVAL('org_blacklists_id_seq', (SELECT MAX(id) FROM org_blacklists));

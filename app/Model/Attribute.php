@@ -589,6 +589,10 @@ class Attribute extends AppModel {
 		if (empty($this->data['Attribute']['to_ids'])) {
 			$this->data['Attribute']['to_ids'] = 0;
 		}
+
+		if (empty($this->data['Attribute']['comment'])) {
+			$this->data['Attribute']['comment'] = "";
+		}
 		// generate UUID if it doesn't exist
 		if (empty($this->data['Attribute']['uuid'])) {
 			$this->data['Attribute']['uuid'] = CakeText::uuid();
