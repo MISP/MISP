@@ -403,8 +403,7 @@ class NidsExport {
 		if (null == $tmpRule) return false;	// don't output the rule on error with the regex
 		$tmpRule = preg_replace('/classtype:[a-zA-Z_-]+;/', 'classtype:' . $this->classtype . ';', $tmpRule, -1, $replaceCount['classtype']);
 		if (null == $tmpRule) return false;	// don't output the rule on error with the regex
-		$tmpMessage = sprintf($ruleFormatMsg, 'snort-rule');
-		$tmpRule = preg_replace('/msg\s*:\s*".*?"\s*;/', $tmpMessage . ';', $tmpRule, -1, $replaceCount['msg']);
+		$tmpRule = preg_replace('/msg\s*:\s*"(.*?)"\s*;/', sprintf($ruleFormatMsg, 'snort-rule | $1') . ';', $tmpRule, -1, $replaceCount['msg']);
 		if (null == $tmpRule) return false;	// don't output the rule on error with the regex
 		$tmpRule = preg_replace('/reference\s*:\s*.+?;/', $ruleFormatReference . ';', $tmpRule, -1, $replaceCount['reference']);
 		if (null == $tmpRule) return false;	// don't output the rule on error with the regex
