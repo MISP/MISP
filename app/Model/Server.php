@@ -70,9 +70,9 @@ class Server extends AppModel {
 		'push' => array(
 			'boolean' => array(
 				'rule' => array('boolean'),
-				//'message' => 'Your custom message here',
+				'message' => 'push parameter is mandatory. type(boolean)',
 				'allowEmpty' => true,
-				'required' => false,
+				'required' => true,
 				//'last' => false, // Stop validation after this rule
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
@@ -80,11 +80,35 @@ class Server extends AppModel {
 		'pull' => array(
 			'boolean' => array(
 				'rule' => array('boolean'),
-				//'message' => 'Your custom message here',
+				'message' => 'pull parameter is mandatory. type(boolean)',
 				'allowEmpty' => true,
-				//'required' => false,
+				'required' => true,
 				//'last' => false, // Stop validation after this rule
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
+			),
+		),
+		'self_signed' => array(
+			'boolean' => array(
+				'rule' => array('boolean'),
+				'message' => 'self_signed parameter is mandatory. type(boolean)',
+				'allowEmpty' => true,
+				'required' => true,
+				//'last' => false, // Stop validation after this rule
+				//'on' => 'create', // Limit validation to 'create' or 'update' operations
+			),
+		),
+		'push_rules' => array(
+			'alphaNumeric' => array(
+				'rule' => array('alphaNumeric'),
+				'message' => 'push_rules parameter is mandatory. type(string), could be empty',
+				'allowEmpty' => true,
+			),
+		),
+		'pull_rules' => array(
+			'alphaNumeric' => array(
+				'rule' => array('alphaNumeric'),
+				'message' => 'pull_rules parameter is mandatory. type(string), could be empty',
+				'allowEmpty' => true,
 			),
 		),
 		'lastpushedid' => array(
