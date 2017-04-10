@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS `attributes` (
   `timestamp` int(11) NOT NULL DEFAULT 0,
   `distribution` tinyint(4) NOT NULL DEFAULT 0,
   `sharing_group_id` int(11) NOT NULL,
-  `comment` text COLLATE utf8_bin,
+  `comment` text COLLATE utf8_bin DEFAULT "",
   `deleted` tinyint(1) NOT NULL DEFAULT 0,
   `disable_correlation` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
@@ -1163,3 +1163,7 @@ INSERT INTO `template_element_texts` (`id`, `name`, `template_element_id`, `text
 (10, 'Other Network Activity', 33, 'If any other Network activity (such as an internet connection test) was detected during the analysis, please specify it using the following fields'),
 (11, 'Persistence mechanism', 41, 'The following fields allow you to describe the persistence mechanism used by the malware'),
 (12, 'Indicators', 45, 'Just paste your list of indicators based on type into the appropriate field. All of the fields are optional, so inputting a list of IP addresses into the Network indicator field for example is sufficient to complete this template.');
+
+INSERT INTO `org_blacklists` (`org_uuid`, `created`, `org_name`, `comment`) VALUES
+('58d38339-7b24-4386-b4b4-4c0f950d210f', NOW(), 'Setec Astrononomy', 'default example'),
+('58d38326-eda8-443a-9fa8-4e12950d210f', NOW(), 'Acme Finance', 'default example');
