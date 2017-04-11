@@ -549,7 +549,7 @@ class Server extends AppModel {
 					'enableOrgBlacklisting' => array(
 							'level' => 1,
 							'description' => 'Blacklisting organisation UUIDs to prevent the creation of any event created by the blacklisted organisation.',
-							'value' => false,
+							'value' => true,
 							'type' => 'boolean',
 							'test' => 'testBool'
 					),
