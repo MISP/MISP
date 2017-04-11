@@ -10,7 +10,8 @@
   },
   "devDependencies": {},
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build":"browserify -t [ babelify --presets [ es2015 ] ] misp.js.es6 -o misp.js"
   },
   "repository": {
     "type": "git",
