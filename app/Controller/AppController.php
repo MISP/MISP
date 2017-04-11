@@ -46,10 +46,10 @@ class AppController extends Controller {
 
 	public $helpers = array('Utility');
 
-	private $__queryVersion = '5';
-	public $pyMispVersion = '2.4.68';
+	private $__queryVersion = '6';
+	public $pyMispVersion = '2.4.71';
 	public $phpmin = '5.6.5';
-	public $phprec = '7.0.0';
+	public $phprec = '7.0.16';
 
 	// Used for _isAutomation(), a check that returns true if the controller & action combo matches an action that is a non-xml and non-json automation method
 	// This is used to allow authentication via headers for methods not covered by _isRest() - as that only checks for JSON and XML formats
