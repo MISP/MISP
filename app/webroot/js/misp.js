@@ -1834,6 +1834,8 @@ function freetextImportResultsSubmit(id, count) {
 				type:$('#Attribute' + i + 'Type').val(),
 				to_ids:$('#Attribute' + i + 'To_ids')[0].checked,
 				comment:$('#Attribute' + i + 'Comment').val(),
+				distribution:$('#Attribute' + i + 'Distribution').val(),
+				sharing_group_id:$('#Attribute' + i + 'SharingGroupId').val(),
 				data:$('#Attribute' + i + 'Data').val(),
 				data_is_handled:$('#Attribute' + i + 'DataIsHandled').val()
 			}
