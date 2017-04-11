@@ -42,7 +42,7 @@ class AppModel extends Model {
 				51 => false, 52 => false, 55 => true, 56 => true, 57 => true,
 				58 => false, 59 => false, 60 => false, 61 => false, 62 => false,
 				63 => false, 64 => false, 65 => false, 66 => false, 67 => true,
-				68 => false, 69 => false
+				68 => false, 69 => false, 71 => false
 			)
 		)
 	);
@@ -98,8 +98,11 @@ class AppModel extends Model {
 					array('org_uuid' => '58d38326-eda8-443a-9fa8-4e12950d210f', 'org_name' => 'Acme Finance', 'comment' => 'default example')
 				);
 				foreach ($values as $value) {
-					$this->EventBlacklist->create();
-					$this->EventBlacklist->save($value);
+					$found = $this->OrgBlacklist->find('first', array('org_uuid' => $value['org_uuid'], 'recursive' => -1));
+					if (empty($found)) {
+						$this->OrgBlacklist->create();
+						$this->OrgBlacklist->save($value);
+					}
 				}
 				$this->updateDatabase($command);
 				break;
@@ -675,8 +678,8 @@ class AppModel extends Model {
 				$sqlArray[] = "ALTER TABLE users ADD COLUMN date_modified bigint(20);";
 				break;
 			case '2.4.71':
-				$sqlArray[] = "ALTER TABLE attributes CHANGE comment comment text COLLATE utf8_bin DEFAULT '';";
-				$sqlArray[] = "ALTER TABLE SET comments = '' WHERE comments = NULL";
+				$sqlArray[] = "UPDATE attributes SET comment = '' WHERE comment is NULL;";
+				$sqlArray[] = "ALTER TABLE attributes CHANGE comment comment text COLLATE utf8_bin NOT NULL;";
 				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
