@@ -73,4 +73,4 @@
 *.swp
 *.iml
 misp.js
-node_packages
+node_modules
