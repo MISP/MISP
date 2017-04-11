@@ -48,6 +48,8 @@ sudo apt-get install libapache2-mod-php php php-cli php-crypt-gpg php-dev php-js
 # Apply all changes
 sudo systemctl restart apache2
 
+# Install npm and node (I'm so sorry)
+sudo apt-get install nodejs
 
 3/ MISP code
 ------------
@@ -77,6 +79,10 @@ cd /var/www/MISP/app/files/scripts/python-stix
 sudo -u www-data git checkout v1.1.1.4
 sudo python setup.py install
 
+# Install JS deps
+cd /var/www/MISP/app/webroot/js
+sudo -u www-data npm i
+sudo -u www-data npm build
 
 4/ CakePHP
 -----------
