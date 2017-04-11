@@ -628,13 +628,13 @@ class TagsController extends AppController {
 		if (empty($existingTag)) {
 			if (!is_numeric($tag)) {
 				if (!$this->userRole['perm_tag_editor']) {
-					throw new InvalidArgumentException('Tag not found and insufficient privileges to create it.');
+					throw new MethodNotAllowedException('Tag not found and insufficient privileges to create it.');
 				}
 				$this->Tag->create();
 				$this->Tag->save(array('Tag' => array('name' => $tag, 'colour' => $this->Tag->random_color())));
 				$existingTag = $this->Tag->find('first', array('recursive' => -1, 'conditions' => array('Tag.id' => $this->Tag->id)));
 			} else {
-				throw new InvalidArgumentException('Invalid Tag.');
+				throw new NotFoundException('Invalid Tag.');
 			}
 		}
 		if (!$this->_isSiteAdmin()) {
