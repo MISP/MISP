@@ -801,7 +801,6 @@ function submitPopoverForm(context_id, referer, update_context_id) {
 			closePopover = false;
 			break;
 	}
-
 	if (url !== null) {
 		$.ajax({
 			beforeSend: function (XMLHttpRequest) {
@@ -2312,7 +2311,6 @@ function serverRuleUpdate() {
 				});
 			}
 			statusOptions.forEach(function(status) {
-				console.log();
 				if (rules[type][field][status].length > 0) {
 					$('#' + type + '_' + field + '_' + status).show();
 					var t = '';
@@ -2934,3 +2932,10 @@ function submitMISPUpdate() {
 		url:"/servers/update",
 	});
 }
+
+(function(){
+    "use strict";
+    $(".datepicker").datepicker({
+        format: 'yyyy-mm-dd',
+    });
+}());

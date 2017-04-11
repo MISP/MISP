@@ -885,8 +885,8 @@ class Server extends AppModel {
 					),
 					'password_policy_length' => array(
 							'level' => 2,
-							'description' => 'Password length requirement. If it is not set or it is set to 0, then the default value is assumed (6).',
-							'value' => '',
+							'description' => 'Password length requirement. If it is not set or it is set to 0, then the default value is assumed (12).',
+							'value' => '12',
 							'errorMessage' => '',
 							'test' => 'testPasswordLength',
 							'type' => 'numeric',
@@ -894,7 +894,7 @@ class Server extends AppModel {
 					'password_policy_complexity' => array(
 							'level' => 2,
 							'description' => 'Password complexity requirement. Leave it empty for the default setting (3 out of 4, with either a digit or a special char) or enter your own regex. Keep in mind that the length is checked in another key. Default (simple 3 out of 4 or minimum 16 characters): /^((?=.*\d)|(?=.*\W+))(?![\n])(?=.*[A-Z])(?=.*[a-z]).*$|.{16,}/',
-							'value' => '',
+							'value' => '/^((?=.*\d)|(?=.*\W+))(?![\n])(?=.*[A-Z])(?=.*[a-z]).*$|.{16,}/',
 							'errorMessage' => '',
 							'test' => 'testPasswordRegex',
 							'type' => 'string',

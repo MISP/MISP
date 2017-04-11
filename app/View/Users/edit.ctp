@@ -7,7 +7,11 @@
 	?>
 		<div class="input clear"></div>
 	<?php
-		echo $this->Form->input('password');
+		$passwordPopover = '<span class=\"blue bold\">Length</span>: ' . h($length) . '<br />';
+		$passwordPopover .= '<span class=\"blue bold\">Complexity</span>: ' . h($complexity);
+		echo $this->Form->input('password', array(
+			'label' => 'Password <span id = "PasswordPopover" class="icon-info-sign" ></span>'
+		));
 		echo $this->Form->input('confirm_password', array('type' => 'password', 'div' => array('class' => 'input password required')));
 	?>
 		<div class="input clear"></div>
@@ -32,3 +36,14 @@ echo $this->Form->end();?>
 	$user['User']['id'] = $id;
 	echo $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'edit', 'user' => $user));
 ?>
+<script type="text/javascript">
+	$(document).ready(function() {
+		$('#PasswordPopover').popover("destroy").popover({
+			placement: 'right',
+			html: 'true',
+			trigger: 'hover',
+			content: '<?php echo $passwordPopover; ?>'
+		});
+	});
+</script>
+<?php echo $this->Js->writeBuffer();
