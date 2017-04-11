@@ -2978,6 +2978,13 @@ class EventsController extends AppController {
 					$typeCategoryMapping[$type][$k] = $k;
 				}
 			}
+			$distributions = $this->Event->Attribute->distributionLevels;
+			$sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name',  1);
+			if (empty($sgs)) {
+				unset($distributions[4]);
+			}
+			$this->set('distributions', $distributions);
+			$this->set('sgs', $sgs);
 			$this->set('event', $event);
 			$this->set('typeList', array_keys($this->Event->Attribute->typeDefinitions));
 			$this->set('defaultCategories', $this->Event->Attribute->defaultCategories);
@@ -3047,7 +3054,6 @@ class EventsController extends AppController {
 					foreach ($types as $type) {
 						$this->Event->$objectType->create();
 						$attribute['type'] = $type;
-						$attribute['distribution'] = 5;
 						if (empty($attribute['comment'])) $attribute['comment'] = $this->request->data['Attribute']['default_comment'];
 						$attribute['event_id'] = $id;
 						if ($objectType == 'ShadowAttribute') {
@@ -3871,6 +3877,13 @@ class EventsController extends AppController {
 					$resultArray[$key]['data'] = basename($tempFile) . '|' . filesize($tempFile);
 				}
 			}
+			$distributions = $this->Event->Attribute->distributionLevels;
+			$sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name',  1);
+			if (empty($sgs)) {
+				unset($distributions[4]);
+			}
+			$this->set('distributions', $distributions);
+			$this->set('sgs', $sgs);
 			$this->set('event', array('Event' => $attribute[0]['Event']));
 			$this->set('resultArray', $resultArray);
 			$this->set('typeList', array_keys($this->Event->Attribute->typeDefinitions));
