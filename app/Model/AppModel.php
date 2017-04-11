@@ -98,7 +98,7 @@ class AppModel extends Model {
 					array('org_uuid' => '58d38326-eda8-443a-9fa8-4e12950d210f', 'org_name' => 'Acme Finance', 'comment' => 'default example')
 				);
 				foreach ($values as $value) {
-					$found = $this->OrgBlacklist->find('first', array('org_uuid' => $value['org_uuid'], 'recursive' => -1));
+					$found = $this->OrgBlacklist->find('first', array('conditions' => array('org_uuid' => $value['org_uuid']), 'recursive' => -1));
 					if (empty($found)) {
 						$this->OrgBlacklist->create();
 						$this->OrgBlacklist->save($value);
