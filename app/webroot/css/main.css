@@ -1701,6 +1701,10 @@ table.table.table-striped tr.deleted_row td {
 	overflow-x: hidden;
 }
 
+.popover {
+	max-width:100%;
+}
+
 @-webkit-keyframes rotation {
    from {-webkit-transform: rotate(0deg);}
    to {-webkit-transform: rotate(359deg);}
