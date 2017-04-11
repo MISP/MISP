@@ -877,17 +877,13 @@ function isEmpty(obj) {
 
 //before we update the form (in case the action failed), we want to retrieve the data from every field, so that we can set the fields in the new form that we fetch
 function saveValuesForPersistance() {
-	var formPersistanceArray = new Array();
-	for (i = 0; i < fieldsArray.length; i++) {
-		formPersistanceArray[fieldsArray[i]] = document.getElementById(fieldsArray[i]).value;
-	}
-	return formPersistanceArray;
+    return fieldsArray.map((i)=>$("#"+i).val());
 }
 
 function recoverValuesFromPersistance(formPersistanceArray) {
-	for (i = 0; i < fieldsArray.length; i++) {
-		document.getElementById(fieldsArray[i]).value = formPersistanceArray[fieldsArray[i]];
-	}
+	formPersistanceArray.map((val, ind) => {
+        $("#"+fieldsArray[ind]).val(val)
+    })
 }
 
 function handleValidationErrors(responseArray, context, contextNamingConvention) {
