@@ -3,7 +3,11 @@
 	<fieldset>
 		<legend><?php echo __('Change Password'); ?></legend>
 	<?php
-		echo $this->Form->input('password');
+		$passwordPopover = '<span class=\"blue bold\">Length</span>: ' . h($length) . '<br />';
+		$passwordPopover .= '<span class=\"blue bold\">Complexity</span>: ' . h($complexity);
+		echo $this->Form->input('password', array(
+			'label' => 'Password <span id = "PasswordPopover" class="icon-info-sign" ></span>'
+		));
 		echo $this->Form->input('confirm_password', array('type' => 'password', 'div' => array('class' => 'input password required')));
 	?>
 	</fieldset>
