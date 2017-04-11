@@ -83,7 +83,6 @@
 	echo $this->Html->script('bootstrap-timepicker');
 	echo $this->Html->script('bootstrap-datepicker');
 	echo $this->Html->script('bootstrap-colorpicker');
-	echo $this->Html->script('main');
 	if ($me) {
 		echo $this->Html->script('misp.js?' . $queryVersion);
 	}
