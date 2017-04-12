@@ -2549,11 +2549,11 @@ class Server extends AppModel {
 		);
 		$testFile = file_get_contents(APP . 'files/scripts/test_payload.txt');
 		$uri = $server['Server']['url'] . '/servers/postTest';
+		$this->Log = ClassRegistry::init('Log');
 		try {
 			$response = $HttpSocket->post($uri, json_encode(array('testString' => $testFile)), $request);
 			$response = json_decode($response, true);
 		} catch (Exception $e) {
-			$this->Log = ClassRegistry::init('Log');
 			$this->Log->create();
 			$this->Log->save(array(
 					'org' => 'SYSTEM',
@@ -2567,11 +2567,33 @@ class Server extends AppModel {
 			return 8;
 		}
 		if (!isset($response['body']['testString']) || $response['body']['testString'] !== $testFile) {
+			$responseString = isset($response['body']['testString']) ? $response['body']['testString'] : 'Response was empty.';
+			$this->Log->create();
+			$this->Log->save(array(
+					'org' => 'SYSTEM',
+					'model' => 'Server',
+					'model_id' => $id,
+					'email' => 'SYSTEM',
+					'action' => 'error',
+					'user_id' => 0,
+					'title' => 'Error: POST connection test failed due to the message body not containing the expected data. Response: ' . PHP_EOL . PHP_EOL . $responseString,
+			));
 			return 9;
 		}
 		$headers = array('Accept', 'Content-type');
 		foreach ($headers as $header) {
 			if (!isset($response['headers'][$header]) || $response['headers'][$header] != 'application/json') {
+				$responseHeader = isset($response['headers'][$header]) ? $response['headers'][$header] : 'Header was not set.'
+				$this->Log->create();
+				$this->Log->save(array(
+						'org' => 'SYSTEM',
+						'model' => 'Server',
+						'model_id' => $id,
+						'email' => 'SYSTEM',
+						'action' => 'error',
+						'user_id' => 0,
+						'title' => 'Error: POST connection test failed due to a header not matching the expected value. Expected: "application/json", received "' . $responseHeader,
+				));
 				return 10;
 			}
 		}
