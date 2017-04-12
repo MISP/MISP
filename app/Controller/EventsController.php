@@ -3679,8 +3679,8 @@ class EventsController extends AppController {
 					} else {
 						$current_relation_id = $this->__graphJsonContains('event', $relation, $json);
 						if ($current_relation_id === false) {
-							if ($this->__orgImgExists($relatedEvents[$relation['id']]['Orgc']['name'])) {
-								$image = '/img/orgs/' . $relatedEvents[$relation['id']]['Orgc']['name'] . '.png';
+							if ($this->__orgImgExists($relatedEvents[$relation['id']]['Event']['Orgc']['name'])) {
+								$image = '/img/orgs/' . $relatedEvents[$relation['id']]['Event']['Orgc']['name'] . '.png';
 							} else {
 								$image = '/img/orgs/MISP.png';
 							}
@@ -3689,7 +3689,7 @@ class EventsController extends AppController {
 									'type' => 'event', 'id' => $relation['id'],
 									'expanded' => 0, 'image' => $image,
 									'info' => $relatedEvents[$relation['id']]['Event']['info'],
-									'org' => $relatedEvents[$relation['id']]['Orgc']['name'],
+									'org' => $relatedEvents[$relation['id']]['Event']['Orgc']['name'],
 									'analysis' => $this->Event->analysisLevels[$relatedEvents[$relation['id']]['Event']['analysis']],
 									'date' => $relatedEvents[$relation['id']]['Event']['date']
 							);
