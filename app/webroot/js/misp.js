@@ -855,7 +855,7 @@ function handleAjaxPopoverResponse(response, context_id, url, referer, context, 
 				openPopup("#popover_form");
 				var error_context = context.charAt(0).toUpperCase() + context.slice(1);
 				handleValidationErrors(responseArray.errors, context, contextNamingConvention);
-				if (!isEmpty(responseArray)) {
+				if (!$.isEmptyObject(responseArray)) {
 					$("#formWarning").show();
 					$("#formWarning").html('The object(s) could not be saved. Please, try again.');
 				}
@@ -867,26 +867,18 @@ function handleAjaxPopoverResponse(response, context_id, url, referer, context, 
 	}
 }
 
-function isEmpty(obj) {
-	var name;
-	for (name in obj) {
-		return false;
-	}
-	return true;
-}
-
 //before we update the form (in case the action failed), we want to retrieve the data from every field, so that we can set the fields in the new form that we fetch
 function saveValuesForPersistance() {
 	var formPersistanceArray = new Array();
 	for (i = 0; i < fieldsArray.length; i++) {
-		formPersistanceArray[fieldsArray[i]] = document.getElementById(fieldsArray[i]).value;
+		formPersistanceArray[fieldsArray[i]] = $('#' + fieldsArray[i]).val();
 	}
 	return formPersistanceArray;
 }
 
 function recoverValuesFromPersistance(formPersistanceArray) {
 	for (i = 0; i < fieldsArray.length; i++) {
-		document.getElementById(fieldsArray[i]).value = formPersistanceArray[fieldsArray[i]];
+		$('#' + fieldsArray[i]).val(formPersistanceArray[fieldsArray[i]]);
 	}
 }
 
