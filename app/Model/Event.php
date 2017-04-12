@@ -1203,7 +1203,7 @@ class Event extends AppModel {
 	// includeAttachments: true will attach the attachments to the attributes in the data field
 	public function fetchEvent($user, $options = array()) {
 		if (isset($options['Event.id'])) $options['eventid'] = $options['Event.id'];
-		$possibleOptions = array('eventid', 'idList', 'tags', 'from', 'to', 'last', 'to_ids', 'includeAllTags', 'includeAttachments', 'event_uuid', 'distribution', 'sharing_group_id', 'disableSiteAdmin', 'metadata', 'includeGalaxy', 'enforceWarninglist');
+		$possibleOptions = array('eventid', 'idList', 'tags', 'from', 'to', 'last', 'to_ids', 'includeAllTags', 'includeAttachments', 'event_uuid', 'distribution', 'sharing_group_id', 'disableSiteAdmin', 'metadata', 'includeGalaxy', 'enforceWarninglist', 'sgReferenceOnly');
 		if (!isset($options['excludeGalaxy']) || !$options['excludeGalaxy']) {
 			$this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
 		}
@@ -1338,7 +1338,8 @@ class Event extends AppModel {
 		if (!$options['includeAllTags']) $tagConditions = array('exportable' => 1);
 		else $tagConditions = array();
 
-		$params = array('conditions' => $conditions,
+		$params = array(
+			'conditions' => $conditions,
 			'recursive' => 0,
 			'fields' => $fields,
 			'contain' => array(
@@ -1363,6 +1364,10 @@ class Event extends AppModel {
 				)
 			)
 		);
+		if ($options['sgReferenceOnly']) {
+			unset($params['contain']['SharingGroup']);
+			unset($params['contain']['Attribute']['SharingGroup']);
+		}
 		if ($options['metadata']) {
 			unset($params['contain']['Attribute']);
 			unset($params['contain']['ShadowAttribute']);
@@ -1385,14 +1390,16 @@ class Event extends AppModel {
 				$event['Event']['event_creator_email'] = $UserEmail;
 			}
 			// unset the empty sharing groups that are created due to the way belongsTo is handled
-			if (isset($event['SharingGroup']['SharingGroupServer'])) {
-				foreach ($event['SharingGroup']['SharingGroupServer'] as &$sgs) {
-					if ($sgs['server_id'] == 0) {
-						$sgs['Server'] = array('id' => '0', 'url' => Configure::read('MISP.baseurl'), 'name' => Configure::read('MISP.baseurl'));
+			if (isset($event['SharingGroup'])) {
+				if (isset($event['SharingGroup']['SharingGroupServer'])) {
+					foreach ($event['SharingGroup']['SharingGroupServer'] as &$sgs) {
+						if ($sgs['server_id'] == 0) {
+							$sgs['Server'] = array('id' => '0', 'url' => Configure::read('MISP.baseurl'), 'name' => Configure::read('MISP.baseurl'));
+						}
 					}
 				}
+				if ($event['SharingGroup']['id'] == null) unset($event['SharingGroup']);
 			}
-			if ($event['SharingGroup']['id'] == null) unset($event['SharingGroup']);
 			$event['Galaxy'] = array();
 			// unset empty event tags that got added because the tag wasn't exportable
 			if (!empty($event['EventTag'])) {
@@ -1456,10 +1463,12 @@ class Event extends AppModel {
 							$event['Attribute'][$key]['data'] = $encodedFile;
 						}
 					}
-					if (isset($attribute['SharingGroup']['SharingGroupServer'])) {
-						foreach ($attribute['SharingGroup']['SharingGroupServer'] as &$sgs) {
-							if ($sgs['server_id'] == 0) {
-								$sgs['Server'] = array('id' => '0', 'url' => Configure::read('MISP.baseurl'), 'name' => Configure::read('MISP.baseurl'));
+					if (isset($attribute['SharingGroup'])) {
+						if (isset($attribute['SharingGroup']['SharingGroupServer'])) {
+							foreach ($attribute['SharingGroup']['SharingGroupServer'] as &$sgs) {
+								if ($sgs['server_id'] == 0) {
+									$sgs['Server'] = array('id' => '0', 'url' => Configure::read('MISP.baseurl'), 'name' => Configure::read('MISP.baseurl'));
+								}
 							}
 						}
 					}
