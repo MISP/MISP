@@ -20,7 +20,7 @@
 			<?php
 				if (!empty($sgs)) {
 					echo $this->Form->input('sharing_group_id', array(
-							'options' => empty($sgs) ? array() : array($sgs),
+							'options' => array($sgs),
 							'label' => 'Sharing Group',
 					));
 				}
