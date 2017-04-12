@@ -2211,9 +2211,9 @@ function testConnection(id) {
 					} else if (result.post == 8) {
 						post_result = "Could not POST message";
 					} else if (result.post == 9) {
-						post_result = "Invalid headers";
-					} else if (result.post == 10) {
 						post_result = "Invalid body";
+					} else if (result.post == 10) {
+						post_result = "Invalid headers";
 					} else {
 						post_colour = "orange";
 						post_result = "Remote too old for this test";
