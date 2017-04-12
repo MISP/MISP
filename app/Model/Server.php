@@ -2583,7 +2583,7 @@ class Server extends AppModel {
 		$headers = array('Accept', 'Content-type');
 		foreach ($headers as $header) {
 			if (!isset($response['headers'][$header]) || $response['headers'][$header] != 'application/json') {
-				$responseHeader = isset($response['headers'][$header]) ? $response['headers'][$header] : 'Header was not set.'
+				$responseHeader = isset($response['headers'][$header]) ? $response['headers'][$header] : 'Header was not set.';
 				$this->Log->create();
 				$this->Log->save(array(
 						'org' => 'SYSTEM',
