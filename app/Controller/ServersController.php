@@ -1147,7 +1147,18 @@ class ServersController extends AppController {
 
 	public function postTest() {
 		if ($this->request->is('post')) {
-			$headers = getallheaders();
+			// Fix for PHP-FPM / Nginx / etc
+			// Fix via https://www.popmartian.com/tipsntricks/2015/07/14/howto-use-php-getallheaders-under-fastcgi-php-fpm-nginx-etc/
+			if (!function_exists('getallheaders')) {
+				$headers = [];
+				foreach ($_SERVER as $name => $value) {
+				    if (substr($name, 0, 5) == 'HTTP_') {
+				        $headers[str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))))] = $value;
+				    }
+				}
+			} else {
+				$headers = getallheaders();
+			}
 			$result = array();
 			$result['body'] = $this->request->data;
 			$result['headers']['Content-type'] = isset($headers['Content-type']) ? $headers['Content-type'] : 0;
