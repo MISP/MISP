@@ -1199,6 +1199,7 @@ class UsersController extends AppController {
 
 		$stats['attribute_count'] = $this->User->Event->Attribute->find('count', array('conditions' => array('Attribute.deleted' => 0)));
 		$stats['attribute_count_month'] = $this->User->Event->Attribute->find('count', array('conditions' => array('Attribute.timestamp >' => $this_month, 'Attribute.deleted' => 0)));
+    $stats['attributes_per_event'] = round($stats['attribute_count'] / $stats['event_count']);
 
 		$this->loadModel('Correlation');
 		$this->Correlation->recursive = -1;
