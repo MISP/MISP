@@ -1654,6 +1654,7 @@ class Server extends AppModel {
 				)
 		);
 		$uri = $url . '/events/index';
+		$filter_rules['minimal'] = 1;
 		try {
 			$response = $HttpSocket->post($uri, json_encode($filter_rules), $request);
 			if ($response->isOk()) {
