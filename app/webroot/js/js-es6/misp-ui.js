@@ -2024,10 +2024,10 @@ module.exports.sharingGroupPopulateUsers = function() {
 module.exports.sharingGroupAdd = function(context, type) {
 	if (context == 'organisation') {
 		var jsonids = JSON.stringify(orgids);
-		url = '/organisations/fetchOrgsForSG/' + jsonids + '/' + type
+		var url = '/organisations/fetchOrgsForSG/' + jsonids + '/' + type
 	} else if (context == 'server') {
 		var jsonids = JSON.stringify(serverids);
-		url = '/servers/fetchServersForSG/' + jsonids
+		var url = '/servers/fetchServersForSG/' + jsonids
 	}
 	$("#gray_out").fadeIn();
 	simplePopup(url);
