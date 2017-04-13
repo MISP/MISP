@@ -404,7 +404,7 @@ class UsersController extends AppController {
 			$fieldList = array('password', 'email', 'external_auth_required', 'external_auth_key', 'enable_password', 'confirm_password', 'org_id', 'role_id', 'authkey', 'nids_sid', 'server_id', 'gpgkey', 'certif_public', 'autoalert', 'contactalert', 'disabled', 'invited_by', 'change_pw', 'termsaccepted', 'newsread', 'date_created', 'date_modified');
 			if ($this->User->save($this->request->data, true, $fieldList)) {
 				$notification_message = '';
-				if ($this->request->data['User']['notify']) {
+				if (!empty($this->request->data['User']['notify'])) {
 					$user = $this->User->find('first', array('conditions' => array('User.id' => $this->User->id), 'recursive' => -1));
 					$password = isset($this->request->data['User']['password']) ? $this->request->data['User']['password'] : false;
 					$result = $this->User->initiatePasswordReset($user, true, true, $password);
