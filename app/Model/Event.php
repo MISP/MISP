@@ -2054,7 +2054,11 @@ class Event extends AppModel {
 		}
 		if (!Configure::check('MISP.enableOrgBlacklisting') || Configure::read('MISP.enableOrgBlacklisting') !== false) {
 			$this->OrgBlacklist = ClassRegistry::init('OrgBlacklist');
-			$orgc = $this->Orgc->find('first', array('conditions' => array('Orgc.id' => $data['Event']['orgc_id']), 'fields' => array('Orgc.uuid'), 'recursive' => -1));
+			if (!isset($data['Event']['Orgc']['uuid'])) {
+				$orgc = $this->Orgc->find('first', array('conditions' => array('Orgc.id' => $data['Event']['orgc_id']), 'fields' => array('Orgc.uuid'), 'recursive' => -1));
+			} else {
+				$orgc = array('Orgc' => array('uuid' => $data['Event']['Orgc']['uuid']));
+			}
 			if ($this->OrgBlacklist->hasAny(array('OrgBlacklist.org_uuid' => $orgc['Orgc']['uuid']))) return 'blocked';
 		}
 		if ($fromXml) {
