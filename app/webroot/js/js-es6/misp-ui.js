@@ -1,8 +1,12 @@
+require("jquery-ui/ui/widgets/datepicker");
+
+var MISPUI = window.MISPUI || {};
+
 String.prototype.ucfirst = function() {
 	return this.charAt(0).toUpperCase() + this.slice(1);
 }
 
-function deleteObject(type, action, id, event) {
+module.exports.deleteObject = function(type, action, id, event) {
 	var destination = 'attributes';
 	var alternateDestinations = ['shadow_attributes', 'template_elements', 'taxonomies'];
 	if (alternateDestinations.indexOf(type) > -1) destination = type;
@@ -13,7 +17,7 @@ function deleteObject(type, action, id, event) {
 	});
 }
 
-function quickDeleteSighting(id, rawId, context) {
+module.exports.quickDeleteSighting = function(id, rawId, context) {
 	url = "/sightings/quickDelete/" + id + "/" + rawId + "/" + context;
 	$.get(url, function(data) {
 		$("#confirmation_box").html(data);
@@ -21,7 +25,7 @@ function quickDeleteSighting(id, rawId, context) {
 	});
 }
 
-function publishPopup(id, type) {
+module.exports.publishPopup = function(id, type) {
 	var action = "alert";
 	if (type == "publish") action = "publish";
 	var destination = 'attributes';
@@ -31,11 +35,11 @@ function publishPopup(id, type) {
 	});
 }
 
-function delegatePopup(id) {
+module.exports.delegatePopup = function(id) {
 	simplePopup("/event_delegations/delegateEvent/" + id);
 }
 
-function genericPopup(url, popupTarget) {
+module.exports.genericPopup = function(url, popupTarget) {
 	$.get(url, function(data) {
 		$(popupTarget).html(data);
 		$(popupTarget).fadeIn();
@@ -45,7 +49,7 @@ function genericPopup(url, popupTarget) {
 	});
 }
 
-function screenshotPopup(screenshotData, title) {
+module.exports.screenshotPopup = function(screenshotData, title) {
 	popupHtml = '<img src="' + screenshotData + '" id="screenshot-image" title="' + title + '" />';
 	popupHtml += '<div class="close-icon useCursorPointer" onClick="closeScreenshot();"></div>';
 	$('#screenshot_box').html(popupHtml);
@@ -55,15 +59,15 @@ function screenshotPopup(screenshotData, title) {
 	$("#gray_out").fadeIn();
 }
 
-function submitPublish(id, type) {
+module.exports.submitPublish = function(id, type) {
 	$("#PromptForm").submit();
 }
 
-function editTemplateElement(type, id) {
+module.exports.editTemplateElement = function(type, id) {
 	simplePopup("/template_elements/edit/" + type + "/" + id);
 }
 
-function cancelPrompt(isolated) {
+module.exports.cancelPrompt = function(isolated) {
 	if (isolated == undefined) {
 		$("#gray_out").fadeOut();
 	}
@@ -71,7 +75,7 @@ function cancelPrompt(isolated) {
 	$("#confirmation_box").empty();
 }
 
-function submitDeletion(context_id, action, type, id) {
+module.exports.submitDeletion = function(context_id, action, type, id) {
 	var context = 'event';
 	if (type == 'template_elements') context = 'template';
 	var formData = $('#PromptForm').serialize();
@@ -95,7 +99,7 @@ function submitDeletion(context_id, action, type, id) {
 	});
 }
 
-function removeSighting(id, rawid, context) {
+module.exports.removeSighting = function(id, rawid, context) {
 	if (context != 'attribute') {
 		context = 'event';
 	}
@@ -123,7 +127,7 @@ function removeSighting(id, rawid, context) {
 	});
 }
 
-function toggleSetting(e, setting, id) {
+module.exports.toggleSetting = function(e, setting, id) {
 	e.preventDefault();
 	e.stopPropagation();
 	switch (setting) {
@@ -173,14 +177,14 @@ function toggleSetting(e, setting, id) {
 	});
 }
 
-function initiatePasswordReset(id) {
+module.exports.initiatePasswordReset = function(id) {
 	$.get( "/users/initiatePasswordReset/" + id, function(data) {
 		$("#confirmation_box").html(data);
 		openPopup("#confirmation_box");
 	});
 }
 
-function submitPasswordReset(id) {
+module.exports.submitPasswordReset = function(id) {
 	var formData = $('#PromptForm').serialize();
 	var url = "/users/initiatePasswordReset/" + id;
 	$.ajax({
@@ -202,7 +206,7 @@ function submitPasswordReset(id) {
 	});
 }
 
-function submitMessageForm(url, form, target) {
+module.exports.submitMessageForm = function(url, form, target) {
 	if (!$('#PostMessage').val()) {
 		showMessage("fail", "Cannot submit empty message.");
 	} else {
@@ -210,7 +214,7 @@ function submitMessageForm(url, form, target) {
 	}
 }
 
-function submitGenericForm(url, form, target) {
+module.exports.submitGenericForm = function(url, form, target) {
 	$.ajax({
 		beforeSend: function (XMLHttpRequest) {
 			$(".loading").show();
@@ -229,7 +233,7 @@ function submitGenericForm(url, form, target) {
 	});
 }
 
-function acceptObject(type, id, event) {
+module.exports.acceptObject = function(type, id, event) {
 	name = '#ShadowAttribute_' + id + '_accept';
 	var formData = $(name).serialize();
 	$.ajax({
@@ -245,14 +249,14 @@ function acceptObject(type, id, event) {
 	});
 }
 
-function eventUnpublish() {
+module.exports.eventUnpublish = function() {
 	$('.publishButtons').show();
 	$('.exportButtons').hide();
 	$('.published').hide();
 	$('.notPublished').show();
 }
 
-function updateIndex(id, context, newPage) {
+module.exports.updateIndex = function(id, context, newPage) {
 	if (typeof newPage !== 'undefined') page = newPage;
 	var url, div;
 	if (context == 'event') {
@@ -277,7 +281,7 @@ function updateIndex(id, context, newPage) {
 	});
 }
 
-function updateAttributeFieldOnSuccess(name, type, id, field, event) {
+module.exports.updateAttributeFieldOnSuccess = function(name, type, id, field, event) {
 	$.ajax({
 		beforeSend: function (XMLHttpRequest) {
 			if (field != 'timestamp') {
@@ -300,7 +304,7 @@ function updateAttributeFieldOnSuccess(name, type, id, field, event) {
 	});
 }
 
-function activateField(type, id, field, event) {
+module.exports.activateField = function(type, id, field, event) {
 	resetForms();
 	if (type == 'denyForm') return;
 	var objectType = 'attributes';
@@ -323,13 +327,13 @@ function activateField(type, id, field, event) {
 	});
 }
 
-function submitQuickTag(form) {
+module.exports.submitQuickTag = function(form) {
 	$('#' + form).submit();
 }
 
 //if someone clicks an inactive field, replace it with the hidden form field. Also, focus it and bind a focusout event, so that it gets saved if the user clicks away.
 //If a user presses enter, submit the form
-function postActivationScripts(name, type, id, field, event) {
+module.exports.postActivationScripts = function(name, type, id, field, event) {
 	$(name + '_field').focus();
 	inputFieldButtonActive(name + '_field');
 	if (field == 'value' || field == 'comment') {
@@ -368,7 +372,7 @@ function postActivationScripts(name, type, id, field, event) {
 	$(name + '_solid').hide();
 }
 
-function addSighting(type, attribute_id, event_id, page) {
+module.exports.addSighting = function(type, attribute_id, event_id, page) {
 	$('#Sighting_' + attribute_id + '_type').val(type);
 	$.ajax({
 		data: $('#Sighting_' + attribute_id).closest("form").serialize(),
@@ -392,29 +396,29 @@ function addSighting(type, attribute_id, event_id, page) {
 	});
 }
 
-function resetForms() {
+module.exports.resetForms = function() {
 	$('.inline-field-solid').show();
 	$('.inline-field-placeholder').empty();
 }
 
-function inputFieldButtonActive(selector) {
+module.exports.inputFieldButtonActive = function(selector) {
 	$(selector).closest('.inline-input-container').children('.inline-input-accept').removeClass('inline-input-passive').addClass('inline-input-active');
 	$(selector).closest('.inline-input-container').children('.inline-input-decline').removeClass('inline-input-passive').addClass('inline-input-active');
 }
 
-function inputFieldButtonPassive(selector) {
+module.exports.inputFieldButtonPassive = function(selector) {
 	$(selector).closest('.inline-input-container').children('.inline-input-accept').addClass('inline-input-passive').removeClass('inline-input-active');
 	$(selector).closest('.inline-input-container').children('.inline-input-daecline').addClass('inline-input-passive').removeClass('inline-input-active');
 }
 
-function autoresize(textarea) {
+module.exports.autoresize = function(textarea) {
     textarea.style.height = '20px';
     textarea.style.height = (textarea.scrollHeight) + 'px';
 }
 
 // submit the form - this can be triggered by unfocusing the activated form field or by submitting the form (hitting enter)
 // after the form is submitted, intercept the response and act on it
-function submitForm(type, id, field, context) {
+module.exports.submitForm = function(type, id, field, context) {
 	var object_type = 'attributes';
 	var action = "editField";
 	var name = '#' + type + '_' + id + '_' + field;
@@ -439,7 +443,7 @@ function submitForm(type, id, field, context) {
 	return false;
 };
 
-function quickSubmitTagForm(event_id, tag_id) {
+module.exports.quickSubmitTagForm = function(event_id, tag_id) {
 	$('#EventTag').val(tag_id);
 	$.ajax({
 		data: $('#EventSelectTagForm').closest("form").serialize(),
@@ -465,7 +469,7 @@ function quickSubmitTagForm(event_id, tag_id) {
 	return false;
 }
 
-function quickSubmitAttributeTagForm(attribute_id, tag_id) {
+module.exports.quickSubmitAttributeTagForm = function(attribute_id, tag_id) {
 	$('#AttributeTag').val(tag_id);
 	if (attribute_id == 'selected') {
 		$('#AttributeAttributeIds').val(getSelected());
@@ -498,7 +502,7 @@ function quickSubmitAttributeTagForm(attribute_id, tag_id) {
 	return false;
 }
 
-function handleAjaxEditResponse(data, name, type, id, field, event) {
+module.exports.handleAjaxEditResponse = function(data, name, type, id, field, event) {
 	responseArray = JSON.parse(data);
 	if (type == 'Attribute') {
 		if (responseArray.saved) {
@@ -519,7 +523,7 @@ function handleAjaxEditResponse(data, name, type, id, field, event) {
 	}
 }
 
-function handleGenericAjaxResponse(data) {
+module.exports.handleGenericAjaxResponse = function(data) {
 	if (typeof data == 'string') {
 		responseArray = JSON.parse(data);
 	} else {
@@ -537,7 +541,7 @@ function handleGenericAjaxResponse(data) {
 	}
 }
 
-function toggleAllAttributeCheckboxes() {
+module.exports.toggleAllAttributeCheckboxes = function() {
 	if ($(".select_all").is(":checked")) {
 		$(".select_attribute").prop("checked", true);
 		$(".select_proposal").prop("checked", true);
@@ -547,7 +551,7 @@ function toggleAllAttributeCheckboxes() {
 	}
 }
 
-function toggleAllTaxonomyCheckboxes() {
+module.exports.toggleAllTaxonomyCheckboxes = function() {
 	if ($(".select_all").is(":checked")) {
 		$(".select_taxonomy").prop("checked", true);
 	} else {
@@ -555,22 +559,22 @@ function toggleAllTaxonomyCheckboxes() {
 	}
 }
 
-function attributeListAnyAttributeCheckBoxesChecked() {
+module.exports.attributeListAnyAttributeCheckBoxesChecked = function() {
 	if ($('.select_attribute:checked').length > 0) $('.mass-select').removeClass('hidden');
 	else $('.mass-select').addClass('hidden');
 }
 
-function attributeListAnyProposalCheckBoxesChecked() {
+module.exports.attributeListAnyProposalCheckBoxesChecked = function() {
 	if ($('.select_proposal:checked').length > 0) $('.mass-proposal-select').removeClass('hidden');
 	else $('.mass-proposal-select').addClass('hidden');
 }
 
-function taxonomyListAnyCheckBoxesChecked() {
+module.exports.taxonomyListAnyCheckBoxesChecked = function() {
 	if ($('.select_taxonomy:checked').length > 0) $('.mass-select').show();
 	else $('.mass-select').hide();
 }
 
-function multiSelectAction(event, context) {
+module.exports.multiSelectAction = function(event, context) {
 	var settings = {
 			deleteAttributes: {
 				confirmation: "Are you sure you want to delete all selected attributes?",
@@ -620,22 +624,22 @@ function multiSelectAction(event, context) {
 	return false;
 }
 
-function editSelectedAttributes(event) {
+module.exports.editSelectedAttributes = function(event) {
 	simplePopup("/attributes/editSelected/" + event);
 }
 
-function addSelectedTaxonomies(taxonomy) {
+module.exports.addSelectedTaxonomies = function(taxonomy) {
 	$.get("/taxonomies/taxonomyMassConfirmation/"+taxonomy, function(data) {
 		$("#confirmation_box").html(data);
 		openPopup("#confirmation_box");
 	});
 }
 
-function submitMassTaxonomyTag() {
+module.exports.submitMassTaxonomyTag = function() {
 	$('#PromptForm').submit();
 }
 
-function getSelected() {
+module.exports.getSelected = function() {
 	var selected = [];
 	$(".select_attribute").each(function() {
 		if ($(this).is(":checked")) {
@@ -646,7 +650,7 @@ function getSelected() {
 	return JSON.stringify(selected);
 }
 
-function getSelectedTaxonomyNames() {
+module.exports.getSelectedTaxonomyNames = function() {
 	var selected = [];
 	$(".select_taxonomy").each(function() {
 		if ($(this).is(":checked")) {
@@ -659,7 +663,7 @@ function getSelectedTaxonomyNames() {
 	$('#TaxonomyNameList').val(JSON.stringify(selected));
 }
 
-function loadEventTags(id) {
+module.exports.loadEventTags = function(id) {
 	$.ajax({
 		dataType:"html",
 		cache: false,
@@ -670,7 +674,7 @@ function loadEventTags(id) {
 	});
 }
 
-function removeEventTag(event, tag) {
+module.exports.removeEventTag = function(event, tag) {
 	var answer = confirm("Are you sure you want to remove this tag from the event?");
 	if (answer) {
 		var formData = $('#removeTag_' + tag).serialize();
@@ -694,7 +698,7 @@ function removeEventTag(event, tag) {
 	return false;
 }
 
-function loadAttributeTags(id) {
+module.exports.loadAttributeTags = function(id) {
 	$.ajax({
 		dataType:"html",
 		cache: false,
@@ -705,14 +709,14 @@ function loadAttributeTags(id) {
 	});
 }
 
-function removeObjectTagPopup(context, object, tag) {
+module.exports.removeObjectTagPopup = function(context, object, tag) {
 	$.get( "/" + context + "s/removeTag/" + object + '/' + tag, function(data) {
 		$("#confirmation_box").html(data);
 		openPopup("#confirmation_box");
 	});
 }
 
-function removeObjectTag(context, object, tag) {
+module.exports.removeObjectTag = function(context, object, tag) {
 	var formData = $('#PromptForm').serialize();
 	$.ajax({
 		beforeSend: function (XMLHttpRequest) {
@@ -739,13 +743,13 @@ function removeObjectTag(context, object, tag) {
 	return false;
 }
 
-function clickCreateButton(event, type) {
+module.exports.clickCreateButton = function(event, type) {
 	var destination = 'attributes';
 	if (type == 'Proposal') destination = 'shadow_attributes';
 	simplePopup("/" + destination + "/add/" + event);
 }
 
-function submitPopoverForm(context_id, referer, update_context_id) {
+module.exports.submitPopoverForm = function(context_id, referer, update_context_id) {
 	var url = null;
 	var context = 'event';
 	var contextNamingConvention = 'Attribute';
@@ -834,7 +838,7 @@ function submitPopoverForm(context_id, referer, update_context_id) {
 	}
 };
 
-function handleAjaxPopoverResponse(response, context_id, url, referer, context, contextNamingConvention) {
+module.exports.handleAjaxPopoverResponse = function(response, context_id, url, referer, context, contextNamingConvention) {
 	responseArray = JSON.parse(response);
 	var message = null;
 	if (responseArray.saved) {
@@ -867,7 +871,7 @@ function handleAjaxPopoverResponse(response, context_id, url, referer, context, 
 	}
 }
 
-function isEmpty(obj) {
+module.exports.isEmpty = function(obj) {
 	var name;
 	for (name in obj) {
 		return false;
@@ -876,17 +880,17 @@ function isEmpty(obj) {
 }
 
 //before we update the form (in case the action failed), we want to retrieve the data from every field, so that we can set the fields in the new form that we fetch
-function saveValuesForPersistance() {
+module.exports.saveValuesForPersistance = function() {
     return fieldsArray.map((i)=>$("#"+i).val());
 }
 
-function recoverValuesFromPersistance(formPersistanceArray) {
+module.exports.recoverValuesFromPersistance = function(formPersistanceArray) {
 	formPersistanceArray.map((val, ind) => {
         $("#"+fieldsArray[ind]).val(val)
     })
 }
 
-function handleValidationErrors(responseArray, context, contextNamingConvention) {
+module.exports.handleValidationErrors = function(responseArray, context, contextNamingConvention) {
 	for (var k in responseArray) {
 		var elementName = k.charAt(0).toUpperCase() + k.slice(1);
 		$("#" + contextNamingConvention + elementName).parent().addClass("error");
@@ -894,7 +898,7 @@ function handleValidationErrors(responseArray, context, contextNamingConvention)
 	}
 }
 
-function toggleHistogramType(type, old) {
+module.exports.toggleHistogramType = function(type, old) {
 	var done = false;
 	old.forEach(function(entry) {
 		if (type == entry) {
@@ -906,7 +910,7 @@ function toggleHistogramType(type, old) {
 	updateHistogram(JSON.stringify(old));
 }
 
-function updateHistogram(selected) {
+module.exports.updateHistogram = function(selected) {
 	$.ajax({
 		beforeSend: function (XMLHttpRequest) {
 			$(".loading").show();
@@ -921,7 +925,7 @@ function updateHistogram(selected) {
 	});
 }
 
-function showMessage(success, message, context) {
+module.exports.showMessage = function(success, message, context) {
 	if (typeof context !== "undefined") {
 		$("#ajax_" + success, window.parent.document).html(message);
 		var duration = 1000 + (message.length * 40);
@@ -934,7 +938,7 @@ function showMessage(success, message, context) {
 	$("#ajax_" + success + "_container").delay(duration).fadeOut("slow");
 }
 
-function cancelPopoverForm() {
+module.exports.cancelPopoverForm = function() {
 	$("#gray_out").fadeOut();
 	$("#popover_form").fadeOut();
 	$("#screenshot_box").fadeOut();
@@ -943,12 +947,12 @@ function cancelPopoverForm() {
 	$('#popover_form').fadeOut();
 }
 
-function activateTagField() {
+module.exports.activateTagField = function() {
 	$("#addTagButton").hide();
 	$("#addTagField").show();
 }
 
-function tagFieldChange() {
+module.exports.tagFieldChange = function() {
 	if ($("#addTagField :selected").val() > 0) {
 		var selected_id = $("#addTagField :selected").val();
 		var selected_text = $("#addTagField :selected").text();
@@ -961,7 +965,7 @@ function tagFieldChange() {
 	$("#addTagField").hide();
 }
 
-function appendTemplateTag(selected_id) {
+module.exports.appendTemplateTag = function(selected_id) {
 	$.ajax({
 		beforeSend: function (XMLHttpRequest) {
 			$(".loading").show();
@@ -977,14 +981,14 @@ function appendTemplateTag(selected_id) {
 	updateSelectedTags();
 }
 
-function addAllTags(tagArray) {
+module.exports.addAllTags = function(tagArray) {
 	parsedTagArray = JSON.parse(tagArray);
 	parsedTagArray.forEach(function(tag) {
 		appendTemplateTag(tag);
 	});
 }
 
-function removeTemplateTag(id, name) {
+module.exports.removeTemplateTag = function(id, name) {
 	selectedTags.forEach(function(tag) {
 		if (tag == id) {
 			var index = selectedTags.indexOf(id);
@@ -997,11 +1001,11 @@ function removeTemplateTag(id, name) {
 	$('#tag_bubble_' + id).remove();
 }
 
-function updateSelectedTags() {
+module.exports.updateSelectedTags = function() {
 	$('#hiddenTags').attr("value", JSON.stringify(selectedTags));
 }
 
-function saveElementSorting(order) {
+module.exports.saveElementSorting = function(order) {
 	$.ajax({
 		data: order,
 		dataType:"json",
@@ -1016,15 +1020,15 @@ function saveElementSorting(order) {
 	});
 }
 
-function templateAddElementClicked(id) {
+module.exports.templateAddElementClicked = function(id) {
 	simplePopup("/template_elements/templateElementAddChoices/" + id);
 }
 
-function templateAddElement(type, id) {
+module.exports.templateAddElement = function(type, id) {
 	simplePopup("/template_elements/add/" + type + "/" + id);
 }
 
-function templateUpdateAvailableTypes() {
+module.exports.templateUpdateAvailableTypes = function() {
 	$("#innerTypes").empty();
 	var type = $("#TemplateElementAttributeType option:selected").text();
 	var complex = $('#TemplateElementAttributeComplex:checked').val();
@@ -1037,7 +1041,7 @@ function templateUpdateAvailableTypes() {
 	else $('#outerTypes').hide();
 }
 
-function populateTemplateTypeDropdown() {
+module.exports.populateTemplateTypeDropdown = function() {
 	var cat = $("#TemplateElementAttributeCategory option:selected").text();
 	currentTypes = [];
 	if (cat == 'Select Category') {
@@ -1061,7 +1065,7 @@ function populateTemplateTypeDropdown() {
 	}
 }
 
-function templateElementAttributeTypeChange() {
+module.exports.templateElementAttributeTypeChange = function() {
 	var complex = $('#TemplateElementAttributeComplex:checked').val();
 	var type = $("#TemplateElementAttributeType option:selected").text();
 	currentTypes = [];
@@ -1080,7 +1084,7 @@ function templateElementAttributeTypeChange() {
 	templateUpdateAvailableTypes();
 }
 
-function templateElementAttributeCategoryChange(category) {
+module.exports.templateElementAttributeCategoryChange = function(category) {
 	if (category in typeGroupCategoryMapping) {
 		$('#complexToggle').show();
 	} else {
@@ -1092,7 +1096,7 @@ function templateElementAttributeCategoryChange(category) {
 	templateUpdateAvailableTypes();
 }
 
-function templateElementFileCategoryChange(category) {
+module.exports.templateElementFileCategoryChange = function(category) {
 	if (category == '') {
 		$("#TemplateElementFileMalware")[0].disabled = true;
 		$("#TemplateElementFileMalware")[0].checked = false;
@@ -1108,7 +1112,7 @@ function templateElementFileCategoryChange(category) {
 	}
 }
 
-function openPopup(id) {
+module.exports.openPopup = function(id) {
 	var window_height = $(window).height();
 	var popup_height = $(id).height();
 	if (window_height < popup_height) {
@@ -1127,7 +1131,7 @@ function openPopup(id) {
 	$(id).fadeIn();
 }
 
-function getPopup(id, context, target, admin, popupType) {
+module.exports.getPopup = function(id, context, target, admin, popupType) {
 	$("#gray_out").fadeIn();
 	var url = "";
 	if (typeof admin !== 'undefined' && admin != '') url+= "/admin";
@@ -1151,7 +1155,7 @@ function getPopup(id, context, target, admin, popupType) {
 	});
 }
 
-function simplePopup(url) {
+module.exports.simplePopup = function(url) {
 	$("#gray_out").fadeIn();
 	$.ajax({
 		beforeSend: function (XMLHttpRequest) {
@@ -1169,24 +1173,24 @@ function simplePopup(url) {
 	});
 }
 
-function resizePopoverBody() {
+module.exports.resizePopoverBody = function() {
 	var bodyheight = $(window).height();
 	bodyheight = 3 * bodyheight / 4 - 150;
 	$("#popover_choice_main").css({"max-height": bodyheight});
 }
 
-function populateTemplateHiddenFileDiv(files) {
+module.exports.populateTemplateHiddenFileDiv = function(files) {
 	$('#TemplateFileArray').val(JSON.stringify(files));
 }
 
-function populateTemplateFileBubbles() {
+module.exports.populateTemplateFileBubbles = function() {
 	var fileObjectArray = JSON.parse($('#TemplateFileArray').val());
 	fileObjectArray.forEach(function(entry) {
 		templateAddFileBubble(entry.element_id, false, entry.filename, entry.tmp_name, 'yes');
 	});
 }
 
-function templateFileHiddenAdd(files, element_id, batch) {
+module.exports.templateFileHiddenAdd = function(files, element_id, batch) {
 	var fileArray = $.parseJSON($('#TemplateFileArray', window.parent.document).val());
 	var contained = false;
 	for (var j=0; j< files.length; j++) {
@@ -1209,11 +1213,11 @@ function templateFileHiddenAdd(files, element_id, batch) {
 	}
 }
 
-function htmlEncode(value){
+module.exports.htmlEncode = function(value){
 	return $('<div/>').text(value).html();
 }
 
-function templateAddFileBubble(element_id, iframe, filename, tmp_name, batch) {
+module.exports.templateAddFileBubble = function(element_id, iframe, filename, tmp_name, batch) {
 	filename = htmlEncode(filename);
 	tmp_name = htmlEncode(tmp_name);
 	if (batch == 'no') {
@@ -1231,7 +1235,7 @@ function templateAddFileBubble(element_id, iframe, filename, tmp_name, batch) {
 	}
 }
 
-function templateDeleteFileBubble(filename, tmp_name, element_id, context, batch) {
+module.exports.templateDeleteFileBubble = function(filename, tmp_name, element_id, context, batch) {
 	$(".loading").show();
 	$.ajax({
 		type:"post",
@@ -1269,11 +1273,11 @@ function templateDeleteFileBubble(filename, tmp_name, element_id, context, batch
 	$(".loading").hide();
 }
 
-function templateFileUploadTriggerBrowse(id) {
+module.exports.templateFileUploadTriggerBrowse = function(id) {
 	$('#upload_' + id + '_file').click();
 }
 
-function freetextRemoveRow(id, event_id) {
+module.exports.freetextRemoveRow = function(id, event_id) {
 	$('#row_' + id).hide();
 	$('#Attribute' + id + 'Save').attr("value", "0");
 	if ($(".freetext_row:visible").length == 0) {
@@ -1281,7 +1285,7 @@ function freetextRemoveRow(id, event_id) {
 	}
 }
 
-function indexEvaluateFiltering() {
+module.exports.indexEvaluateFiltering = function() {
 	if (filterContext == "event") {
 		if (filtering.published != 2) {
 			$('#value_published').html(publishedOptions[filtering.published]);
@@ -1326,7 +1330,7 @@ function indexEvaluateFiltering() {
 	$('#generatedURLContent').text(indexCreateFilters());
 }
 
-function quickFilter(passedArgs, url) {
+module.exports.quickFilter = function(passedArgs, url) {
 	passedArgs["searchall"] = $('#quickFilterField').val().trim();
 	for (var key in passedArgs) {
 		url += "/" + key + ":" + passedArgs[key];
@@ -1334,17 +1338,17 @@ function quickFilter(passedArgs, url) {
 	window.location.href=url;
 }
 
-function executeFilter(passedArgs, url) {
+module.exports.executeFilter = function(passedArgs, url) {
 	for (var key in passedArgs) url += "/" + key + ":" + passedArgs[key];
 	window.location.href=url;
 }
 
-function quickFilterTaxonomy(taxonomy_id, passedArgs) {
+module.exports.quickFilterTaxonomy = function(taxonomy_id, passedArgs) {
 	var url = "/taxonomies/view/" + taxonomy_id + "/filter:" + $('#quickFilterField').val();
 	window.location.href=url;
 }
 
-function quickFilterRemoteEvents(passedArgs, id) {
+module.exports.quickFilterRemoteEvents = function(passedArgs, id) {
 	passedArgs["searchall"] = $('#quickFilterField').val();
 	var url = "/servers/previewIndex/" + id;
 	for (var key in passedArgs) {
@@ -1363,17 +1367,17 @@ $('#quickFilterField').keyup(function(e){
 	}
 });
 
-function remoteIndexApplyFilters() {
+module.exports.remoteIndexApplyFilters = function() {
 	var url = actionUrl + '/' + $("#EventFilter").val();
 	window.location.href = url;
 }
 
-function indexApplyFilters() {
+module.exports.indexApplyFilters = function() {
 	var url = indexCreateFilters();
 	window.location.href = url;
 }
 
-function indexCreateFilters() {
+module.exports.indexCreateFilters = function() {
 	text = "";
 	if (filterContext == 'event') {
 		if (filtering.published != "2") {
@@ -1409,7 +1413,7 @@ function indexCreateFilters() {
 	}
 }
 
-function indexBuildArray(type, text) {
+module.exports.indexBuildArray = function(type, text) {
 	temp = "";
 	if (text != "") temp += "/";
 	temp += "search" + type + ":";
@@ -1425,7 +1429,7 @@ function indexBuildArray(type, text) {
 	return text;
 }
 
-function indexSetRowVisibility() {
+module.exports.indexSetRowVisibility = function() {
 	for (var i = 0; i < allFields.length; i++) {
 		if ($("#value_" + allFields[i]).text().trim() != "") {
 			$("#row_" + allFields[i]).show();
@@ -1435,7 +1439,7 @@ function indexSetRowVisibility() {
 	}
 }
 
-function indexEvaluateSimpleFiltering(field) {
+module.exports.indexEvaluateSimpleFiltering = function(field) {
 	text = "";
 	if (filtering[field].OR.length == 0 && filtering[field].NOT.length == 0) {
 		$('#value_' + field).html(text);
@@ -1475,7 +1479,7 @@ function indexEvaluateSimpleFiltering(field) {
 	$('#value_' + field).html(text);
 }
 
-function indexAddRule(param) {
+module.exports.indexAddRule = function(param) {
 	var found = false;
 	if (filterContext == 'event') {
 		if (param.data.param1 == "date") {
@@ -1507,7 +1511,7 @@ function indexAddRule(param) {
 	indexEvaluateFiltering();
 }
 
-function indexSetTableVisibility() {
+module.exports.indexSetTableVisibility = function() {
 	var visible = false;
 	if ($("[id^='value_']").text().trim()!="" && $("[id^='value_']").text().trim()!="-1") {
 		visible = true;
@@ -1516,7 +1520,7 @@ function indexSetTableVisibility() {
 	else $('#FilterplaceholderTable').show();
 }
 
-function indexRuleChange() {
+module.exports.indexRuleChange = function() {
 	var context = filterContext.charAt(0).toUpperCase() + filterContext.slice(1);
 	$('[id^=' + context + 'Search]').hide();
 	var rule = $('#' + context + 'Rule').val();
@@ -1536,7 +1540,7 @@ function indexRuleChange() {
 	$('#addRuleButton').click({param1: rule}, indexAddRule);
 }
 
-function indexFilterClearRow(field) {
+module.exports.indexFilterClearRow = function(field) {
 	$('#value_' + field).html("");
 	$('#row_' + field).hide();
 	if (field == "date") {
@@ -1557,7 +1561,7 @@ function indexFilterClearRow(field) {
 }
 
 
-function restrictEventViewPagination() {
+module.exports.restrictEventViewPagination = function() {
 	var showPages = new Array();
 	var start;
 	var end;
@@ -1600,7 +1604,7 @@ function restrictEventViewPagination() {
 	}
 }
 
-function expandPagination(bottom, right) {
+module.exports.expandPagination = function(bottom, right) {
 	var i;
 	var prefix = "a";
 	if (bottom == 1) prefix = "b";
@@ -1616,7 +1620,7 @@ function expandPagination(bottom, right) {
 	}
 }
 
-function getSubGroupFromSetting(setting) {
+module.exports.getSubGroupFromSetting = function(setting) {
 	var temp = setting.split('.');
 	if (temp[0] == "Plugin") {
 		temp = temp[1];
@@ -1628,7 +1632,7 @@ function getSubGroupFromSetting(setting) {
 	return 'general';
 }
 
-function serverSettingsActivateField(setting, id) {
+module.exports.serverSettingsActivateField = function(setting, id) {
 	resetForms();
 	$('.inline-field-placeholder').hide();
 	var fieldName = "#setting_" + getSubGroupFromSetting(setting) + "_" + id;
@@ -1649,7 +1653,7 @@ function serverSettingsActivateField(setting, id) {
 	});
 }
 
-function serverSettingsPostActivationScripts(name, setting, id) {
+module.exports.serverSettingsPostActivationScripts = function(name, setting, id) {
 	$(name + '_field').focus();
 	inputFieldButtonActive(name + '_field');
 
@@ -1683,7 +1687,7 @@ function serverSettingsPostActivationScripts(name, setting, id) {
 	$(name + '_solid').hide();
 }
 
-function serverSettingSubmitForm(name, setting, id) {
+module.exports.serverSettingSubmitForm = function(name, setting, id) {
 	subGroup = getSubGroupFromSetting(setting);
 	var formData = $(name + '_field').closest("form").serialize();
 	$.ajax({
@@ -1718,7 +1722,7 @@ function serverSettingSubmitForm(name, setting, id) {
 	return false;
 }
 
-function updateOrgCreateImageField(string) {
+module.exports.updateOrgCreateImageField = function(string) {
 	string = escape(string);
 	$.ajax({
 	    url:'/img/orgs/' + string + '.png',
@@ -1734,7 +1738,7 @@ function updateOrgCreateImageField(string) {
 	});
 }
 
-function generateOrgUUID() {
+module.exports.generateOrgUUID = function() {
 	$.ajax({
 	    url:'/admin/organisations/generateuuid.json',
 	    success:
@@ -1745,17 +1749,17 @@ function generateOrgUUID() {
 }
 
 
-function sharingGroupIndexMembersCollapse(id) {
+module.exports.sharingGroupIndexMembersCollapse = function(id) {
 	$('#' + id + '_down').show();
 	$('#' + id + '_up').hide();
 }
 
-function sharingGroupIndexMembersExpand(id) {
+module.exports.sharingGroupIndexMembersExpand = function(id) {
 	$('#' + id + '_down').hide();
 	$('#' + id + '_up').show();
 }
 
-function popoverStartup() {
+module.exports.popoverStartup = function() {
     $('[data-toggle="popover"]').popover({
         animation: true,
         html: true,
@@ -1770,18 +1774,18 @@ function popoverStartup() {
     });
 }
 
-function changeFreetextImportFrom() {
+module.exports.changeFreetextImportFrom = function() {
 	$('#changeTo').find('option').remove();
 	options[$('#changeFrom').val()].forEach(function(element) {
 		$('#changeTo').append('<option value="' + element + '">' + element + '</option>');
 	});
 }
 
-function changeFreetextImportCommentExecute() {
+module.exports.changeFreetextImportCommentExecute = function() {
 	$('.freetextCommentField').val($('#changeComments').val());
 }
 
-function changeFreetextImportExecute() {
+module.exports.changeFreetextImportExecute = function() {
 	var from = $('#changeFrom').val();
 	var to = $('#changeTo').val();
 	$('.typeToggle').each(function() {
@@ -1791,7 +1795,7 @@ function changeFreetextImportExecute() {
 	});
 }
 
-function selectContainsOption(selectid, value) {
+module.exports.selectContainsOption = function(selectid, value) {
 	var exists = false;
 	$(selectid + ' option').each(function(){
 	    if (this.value == value) {
@@ -1802,7 +1806,7 @@ function selectContainsOption(selectid, value) {
 	return exists;
 }
 
-function exportChoiceSelect(url, elementId, checkbox) {
+module.exports.exportChoiceSelect = function(url, elementId, checkbox) {
 	if (checkbox == 1) {
 		if ($('#' + elementId + '_toggle').prop('checked')) {
 			url = $('#' + elementId + '_set').html();
@@ -1811,7 +1815,7 @@ function exportChoiceSelect(url, elementId, checkbox) {
 	document.location.href = url;
 }
 
-function importChoiceSelect(url, elementId, ajax) {
+module.exports.importChoiceSelect = function(url, elementId, ajax) {
 	if (ajax == 'false') {
 		document.location.href = url;
 	} else {
@@ -1819,7 +1823,7 @@ function importChoiceSelect(url, elementId, ajax) {
 	}
 }
 
-function freetextImportResultsSubmit(id, count) {
+module.exports.freetextImportResultsSubmit = function(id, count) {
 	var attributeArray = [];
 	var temp;
 	for (i = 0; i < count; i++) {
@@ -1857,7 +1861,7 @@ function freetextImportResultsSubmit(id, count) {
 	});
 }
 
-function organisationViewContent(context, id) {
+module.exports.organisationViewContent = function(context, id) {
 	organisationViewButtonHighlight(context);
 	var action = "/organisations/landingpage/";
 	if (context == 'members') {
@@ -1884,14 +1888,14 @@ function organisationViewContent(context, id) {
 	});
 }
 
-function organisationViewButtonHighlight(context) {
+module.exports.organisationViewButtonHighlight = function(context) {
 	$(".orgViewButtonActive").hide();
 	$(".orgViewButton").show();
 	$("#button_" + context).hide();
 	$("#button_" + context + "_active").show();
 }
 
-function simpleTabPage(page) {
+module.exports.simpleTabPage = function(page) {
 	$(".tabMenuSides").removeClass("tabMenuActive");
 	$("#page" + page + "_tab").addClass("tabMenuActive");
 	$(".tabContent").hide();
@@ -1899,7 +1903,7 @@ function simpleTabPage(page) {
 	if (page == lastPage) simpleTabPageLast();
 }
 
-function simpleTabPageLast() {
+module.exports.simpleTabPageLast = function() {
 	var summaryorgs = summaryextendorgs = remotesummaryorgs = remotesummaryextendorgs = summaryservers = "";
 	var orgcounter = extendcounter = remoteorgcounter = remoteextendcounter = servercounter = 0;
 	var sgname = "[Sharing group name not set!]";
@@ -1956,7 +1960,7 @@ function simpleTabPageLast() {
 	$('#summaryservers').text(summaryservers);
 }
 
-function sharingGroupPopulateOrganisations() {
+module.exports.sharingGroupPopulateOrganisations = function() {
 	$('input[id=SharingGroupOrganisations]').val(JSON.stringify(organisations));
 	$('.orgRow').remove();
 	var id = 0;
@@ -1983,7 +1987,7 @@ function sharingGroupPopulateOrganisations() {
 	});
 }
 
-function sharingGroupPopulateServers() {
+module.exports.sharingGroupPopulateServers = function() {
 	$('input[id=SharingGroupServers]').val(JSON.stringify(servers));
 	$('.serverRow').remove();
 	var id = 0;
@@ -2005,19 +2009,19 @@ function sharingGroupPopulateServers() {
 	});
 }
 
-function sharingGroupExtendOrg(id) {
+module.exports.sharingGroupExtendOrg = function(id) {
 	organisations[id].extend = $('#orgExtend' + id).is(":checked");
 }
 
-function sharingGroupServerAddOrgs(id) {
+module.exports.sharingGroupServerAddOrgs = function(id) {
 	servers[id].all_orgs = $('#serverAddOrgs' + id).is(":checked");
 }
 
-function sharingGroupPopulateUsers() {
+module.exports.sharingGroupPopulateUsers = function() {
 	$('input[id=SharingGroupServers]').val(JSON.stringify(organisations));
 }
 
-function sharingGroupAdd(context, type) {
+module.exports.sharingGroupAdd = function(context, type) {
 	if (context == 'organisation') {
 		var jsonids = JSON.stringify(orgids);
 		url = '/organisations/fetchOrgsForSG/' + jsonids + '/' + type
@@ -2029,19 +2033,19 @@ function sharingGroupAdd(context, type) {
 	simplePopup(url);
 }
 
-function sharingGroupRemoveOrganisation(id) {
+module.exports.sharingGroupRemoveOrganisation = function(id) {
 	organisations.splice(id, 1);
 	orgids.splice(id, 1);
 	sharingGroupPopulateOrganisations();
 }
 
-function sharingGroupRemoveServer(id) {
+module.exports.sharingGroupRemoveServer = function(id) {
 	servers.splice(id, 1);
 	serverids.splice(id, 1);
 	sharingGroupPopulateServers();
 }
 
-function submitPicklistValues(context, local) {
+module.exports.submitPicklistValues = function(context, local) {
 	if (context == 'org') {
 		var localType = 'local';
 		if (local == 0) localType = 'remote';
@@ -2078,12 +2082,12 @@ function submitPicklistValues(context, local) {
 	$("#popover_form").fadeOut();
 }
 
-function cancelPicklistValues() {
+module.exports.cancelPicklistValues = function() {
 	$("#popover_form").fadeOut();
 	$("#gray_out").fadeOut();
 }
 
-function sgSubmitForm(action) {
+module.exports.sgSubmitForm = function(action) {
 	var ajax = {
 			'organisations': organisations,
 			'servers': servers,
@@ -2100,7 +2104,7 @@ function sgSubmitForm(action) {
 	$(formName).submit();
 }
 
-function serverSubmitForm(action) {
+module.exports.serverSubmitForm = function(action) {
 	var ajax = {};
 	switch ($('#ServerOrganisationType').val()) {
 	case '0':
@@ -2126,7 +2130,7 @@ function serverSubmitForm(action) {
 	$(formName).submit();
 }
 
-function serverOrgTypeChange() {
+module.exports.serverOrgTypeChange = function() {
 	$(".hiddenField").hide();
 	switch ($('#ServerOrganisationType').val()) {
 		case '0':
@@ -2142,7 +2146,7 @@ function serverOrgTypeChange() {
 	}
 }
 
-function sharingGroupPopulateFromJson() {
+module.exports.sharingGroupPopulateFromJson = function() {
 	var jsonparsed = JSON.parse($('#SharingGroupJson').val());
 	organisations = jsonparsed.organisations;
 	servers = jsonparsed.servers;
@@ -2158,7 +2162,7 @@ function sharingGroupPopulateFromJson() {
 	$('#SharingGroupDescription').text(jsonparsed.sharingGroup.description);
 }
 
-function testConnection(id) {
+module.exports.testConnection = function(id) {
 	$.ajax({
 	    url: '/servers/testConnection/' + id,
 	    type:'GET',
@@ -2246,7 +2250,7 @@ function testConnection(id) {
 	})
 }
 
-function pgpChoiceSelect(uri) {
+module.exports.pgpChoiceSelect = function(uri) {
 	$("#popover_form").fadeOut();
 	$("#gray_out").fadeOut();
 	$.ajax({
@@ -2263,11 +2267,11 @@ function pgpChoiceSelect(uri) {
 	});
 }
 
-function lookupPGPKey(emailFieldName) {
+module.exports.lookupPGPKey = function(emailFieldName) {
 	simplePopup("/users/fetchPGPKey/" + $('#' + emailFieldName).val());
 }
 
-function zeroMQServerAction(action) {
+module.exports.zeroMQServerAction = function(action) {
 	$.ajax({
 		type: "get",
 		url: "/servers/" + action + "ZeroMQServer/",
@@ -2289,7 +2293,7 @@ function zeroMQServerAction(action) {
 	});
 }
 
-function convertServerFilterRules(rules) {
+module.exports.convertServerFilterRules = function(rules) {
 	validOptions.forEach(function (type) {
 		container = "#"+ modelContext + type.ucfirst() + "Rules";
 		if($(container).val() != '') rules[type] = JSON.parse($(container).val());
@@ -2298,7 +2302,7 @@ function convertServerFilterRules(rules) {
 	return rules;
 }
 
-function serverRuleUpdate() {
+module.exports.serverRuleUpdate = function() {
 	var statusOptions = ["OR", "NOT"];
 	validOptions.forEach(function(type) {
 		validFields.forEach(function(field) {
@@ -2327,19 +2331,19 @@ function serverRuleUpdate() {
 	serverRuleGenerateJSON();
 }
 
-function serverRuleFormActivate(type) {
+module.exports.serverRuleFormActivate = function(type) {
 	if (type != 'pull' && type != 'push') return false;
 	$('.server_rule_popover').hide();
 	$('#gray_out').fadeIn();
 	$('#server_' + type + '_rule_popover').show();
 }
 
-function serverRuleCancel() {
+module.exports.serverRuleCancel = function() {
 	$("#gray_out").fadeOut();
 	$(".server_rule_popover").fadeOut();
 }
 
-function serverRuleGenerateJSON() {
+module.exports.serverRuleGenerateJSON = function() {
 	validOptions.forEach(function(type) {
 		if ($('#Server' + type.ucfirst() + "Rules").length) {
 			$('#Server' + type.ucfirst() + "Rules").val(JSON.stringify(rules[type]));
@@ -2349,7 +2353,7 @@ function serverRuleGenerateJSON() {
 	});
 }
 
-function serverRulePopulateTagPicklist() {
+module.exports.serverRulePopulateTagPicklist = function() {
 	var fields = ["tags", "orgs"];
 	var target = "";
 	fields.forEach(function(field) {
@@ -2380,7 +2384,7 @@ function serverRulePopulateTagPicklist() {
 	});
 }
 
-function submitServerRulePopulateTagPicklistValues(context) {
+module.exports.submitServerRulePopulateTagPicklistValues = function(context) {
 	validFields.forEach(function(field) {
 		rules[context][field]["OR"] = [];
 		$("#" + field + context + "LeftValues option").each(function() {
@@ -2398,7 +2402,7 @@ function submitServerRulePopulateTagPicklistValues(context) {
 }
 
 // type = pull/push, field = tags/orgs, from = Left/Middle/Right, to = Left/Middle/Right
-function serverRuleMoveFilter(type, field, from, to) {
+module.exports.serverRuleMoveFilter = function(type, field, from, to) {
 	var opposites = {"Left": "Right", "Right": "Left"};
 	// first fetch the value
 	var value = "";
@@ -2435,7 +2439,7 @@ function serverRuleMoveFilter(type, field, from, to) {
 	}
 }
 
-function syncUserSelected() {
+module.exports.syncUserSelected = function() {
 	if ($('#UserRoleId :selected').val() in syncRoles) {
 		$('#syncServers').show();
 	} else {
@@ -2443,7 +2447,7 @@ function syncUserSelected() {
 	}
 }
 
-function filterAttributes(filter, id) {
+module.exports.filterAttributes = function(filter, id) {
 	url = "/events/viewEventAttributes/" + id + "/attributeFilter:" + filter;
 	if (deleted) url += '/deleted:true';
 	$.ajax({
@@ -2462,7 +2466,7 @@ function filterAttributes(filter, id) {
 	});
 }
 
-function toggleDeletedAttributes(url) {
+module.exports.toggleDeletedAttributes = function(url) {
 	url = url.replace(/view\//i, 'viewEventAttributes/');
 	if (url.indexOf('deleted:') > -1) {
 		url = url.replace(/\/deleted:[^\/]*/i, '');
@@ -2485,7 +2489,7 @@ function toggleDeletedAttributes(url) {
 	});
 }
 
-function mergeOrganisationUpdate() {
+module.exports.mergeOrganisationUpdate = function() {
 	var orgTypeOptions = ['local', 'external'];
 	var orgTypeSelects = ['OrganisationOrgsLocal', 'OrganisationOrgsExternal'];
 	orgType = orgTypeSelects[$('#OrganisationTargetType').val()];
@@ -2497,7 +2501,7 @@ function mergeOrganisationUpdate() {
 	$('#org_local').text(orgTypeOptions[$('#OrganisationTargetType').val()]);
 }
 
-function mergeOrganisationTypeToggle() {
+module.exports.mergeOrganisationTypeToggle = function() {
 	if ($('#OrganisationTargetType').val() == 0) {
 		$('#orgsLocal').show();
 		$('#orgsExternal').hide();
@@ -2507,12 +2511,12 @@ function mergeOrganisationTypeToggle() {
 	}
 }
 
-function feedDistributionChange() {
+module.exports.feedDistributionChange = function() {
 	if ($('#FeedDistribution').val() == 4) $('#SGContainer').show();
 	else $('#SGContainer').hide();
 }
 
-function checkUserPasswordEnabled() {
+module.exports.checkUserPasswordEnabled = function() {
 	if ($('#UserEnablePassword').is(':checked')) {
 		$('#PasswordDiv').show();
 	} else {
@@ -2520,7 +2524,7 @@ function checkUserPasswordEnabled() {
 	}
 }
 
-function checkUserExternalAuth() {
+module.exports.checkUserExternalAuth = function() {
 	if ($('#UserExternalAuthRequired').is(':checked')) {
 		$('#externalAuthDiv').show();
 		$('#passwordDivDiv').hide();
@@ -2530,11 +2534,11 @@ function checkUserExternalAuth() {
 	}
 }
 
-function toggleSettingSubGroup(group) {
+module.exports.toggleSettingSubGroup = function(group) {
 	$('.subGroup_' + group).toggle();
 }
 
-function runHoverLookup(type, id) {
+module.exports.runHoverLookup = function(type, id) {
 	$.ajax({
 		success:function (html) {
 			ajaxResults[type + "_" + id] = html;
@@ -2586,7 +2590,7 @@ $(".queryPopover").click(function() {
 	});
 });
 
-function serverOwnerOrganisationChange(host_org_id) {
+module.exports.serverOwnerOrganisationChange = function(host_org_id) {
 	if ($('#ServerOrganisationType').val() == "0" && $('#ServerLocal').val() == host_org_id) {
 		$('#InternalDiv').show();
 	} else {
@@ -2595,7 +2599,7 @@ function serverOwnerOrganisationChange(host_org_id) {
 	}
 }
 
-function requestAPIAccess() {
+module.exports.requestAPIAccess = function() {
 	url = "/users/request_API/";
 	$.ajax({
 		type:"get",
@@ -2613,7 +2617,7 @@ function requestAPIAccess() {
 	});
 }
 
-function initPopoverContent(context) {
+module.exports.initPopoverContent = function(context) {
 	for (var property in formInfoFields) {
 		if (formInfoFields.hasOwnProperty(property)) {
 			$('#' + property + 'InfoPopover').popover("destroy").popover({
@@ -2626,7 +2630,7 @@ function initPopoverContent(context) {
 	}
 }
 
-function getFormInfoContent(property, field) {
+module.exports.getFormInfoContent = function(property, field) {
 	var content = window[property + 'FormInfoValues'][$(field).val()];
 	if (content === undefined || content === null) {
 		return 'N/A';
@@ -2634,7 +2638,7 @@ function getFormInfoContent(property, field) {
 	return content;
 }
 
-function formCategoryChanged(id) {
+module.exports.formCategoryChanged = function(id) {
 	// fill in the types
 	var options = $('#AttributeType').prop('options');
 	$('option', $('#AttributeType')).remove();
@@ -2645,14 +2649,14 @@ function formCategoryChanged(id) {
 	$('#AttributeType').prop('disabled', false);
 }
 
-function malwareCheckboxSetter(context) {
+module.exports.malwareCheckboxSetter = function(context) {
 	idDiv = "#" + context + "Category" +'Div';
 	var value = $("#" + context + "Category").val();  // get the selected value
 	// set the malware checkbox if the category is in the zip types
 	$("#" + context + "Malware").prop('checked', formZipTypeValues[value] == "true");
 }
 
-function feedFormUpdate() {
+module.exports.feedFormUpdate = function() {
 	$('.optionalField').hide();
 	switch($('#FeedSourceFormat').val()) {
 		case 'freetext':
@@ -2705,7 +2709,7 @@ $('.servers_default_role_checkbox').click(function() {
 	});
 });
 
-function setContextFields() {
+module.exports.setContextFields = function() {
 	if (showContext) {
 		$('.context').show();
 		$('#show_context').addClass("attribute_filter_text_active");
@@ -2717,7 +2721,7 @@ function setContextFields() {
 	}
 }
 
-function toggleContextFields() {
+module.exports.toggleContextFields = function() {
 	if (!showContext) {
 		showContext = true;
 	} else {
@@ -2726,7 +2730,7 @@ function toggleContextFields() {
 	setContextFields();
 }
 
-function checkOrphanedAttributes() {
+module.exports.checkOrphanedAttributes = function() {
 	$.ajax({
 		beforeSend: function (XMLHttpRequest) {
 			$(".loading").show();
@@ -2749,7 +2753,7 @@ function checkOrphanedAttributes() {
 	});
 }
 
-function loadTagTreemap() {
+module.exports.loadTagTreemap = function() {
 	$.ajax({
 		async:true,
 		beforeSend: function (XMLHttpRequest) {
@@ -2767,7 +2771,7 @@ function loadTagTreemap() {
 	});
 }
 
-function loadSightingsData(timestamp) {
+module.exports.loadSightingsData = function(timestamp) {
 	url = "/sightings/toplist";
 	if (timestamp != undefined) {
 		url = url + '/' + timestamp;
@@ -2789,7 +2793,7 @@ function loadSightingsData(timestamp) {
 	});
 }
 
-function quickEditEvent(id, field) {
+module.exports.quickEditEvent = function(id, field) {
 	$.ajax({
 		async:true,
 		beforeSend: function (XMLHttpRequest) {
@@ -2807,7 +2811,7 @@ function quickEditEvent(id, field) {
 	});
 }
 
-function selectAllInbetween(last, current) {
+module.exports.selectAllInbetween = function(last, current) {
 	if (last === false || last == current) return false;
 	if (last < current) {
 		var temp = current;
@@ -2838,13 +2842,13 @@ $('#addGalaxy').click(function() {
 	getPopup($(this).data('event-id'), 'galaxies', 'selectGalaxy');
 });
 
-function quickSubmitGalaxyForm(event_id, cluster_id) {
+module.exports.quickSubmitGalaxyForm = function(event_id, cluster_id) {
 	$('#GalaxyTargetId').val(cluster_id);
 	$('#GalaxySelectClusterForm').submit();
 	return false;
 }
 
-function checkAndSetPublishedInfo() {
+module.exports.checkAndSetPublishedInfo = function() {
 	var id = $('#hiddenSideMenuData').data('event-id');
 	$.get( "/events/checkPublishedStatus/" + id, function(data) {
 		if (data == 1) {
@@ -2868,18 +2872,18 @@ $(document).keyup(function(e){
     }
 });
 
-function closeScreenshot() {
+module.exports.closeScreenshot = function() {
 	$("#screenshot_box").fadeOut();
 	$("#gray_out").fadeOut();
 }
 
-function loadSightingGraph(id, scope) {
+module.exports.loadSightingGraph = function(id, scope) {
 	$.get( "/sightings/viewSightings/" + id + "/" + scope, function(data) {
 		$("#sightingsData").html(data);
 	});
 }
 
-function checkRolePerms() {
+module.exports.checkRolePerms = function() {
 	if ($("#RolePermission").val() == '0' || $("#RolePermission").val() == '1') {
 		$('.readonlydisabled').prop('checked', false);
 		$('.readonlydisabled').hide();
@@ -2902,14 +2906,14 @@ $('.quickSelect').click(function() {
 	selection.addRange(range);
 });
 
-function updateMISP() {
+module.exports.updateMISP = function() {
 	$.get( "/servers/update", function(data) {
 		$("#confirmation_box").html(data);
 		openPopup("#confirmation_box");
 	});
 }
 
-function submitMISPUpdate() {
+module.exports.submitMISPUpdate = function() {
 	var formData = $('#PromptForm').serialize();
 	$.ajax({
 		beforeSend: function (XMLHttpRequest) {
