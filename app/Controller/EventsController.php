@@ -569,6 +569,9 @@ class EventsController extends AppController {
 				$events = $this->GalaxyCluster->attachClustersToEventIndex($events);
 				$this->set('events', $events);
 			} else {
+				foreach ($events as $key => $event) {
+					$events[$key] = $event['Event'];
+				}
 				return $this->RestResponse->viewData($events, $this->response->type());
 			}
 		} else {
