@@ -48,9 +48,6 @@ sudo apt-get install libapache2-mod-php php php-cli php-crypt-gpg php-dev php-js
 # Apply all changes
 sudo systemctl restart apache2
 
-# Install npm and node (I'm so sorry)
-sudo apt-get install nodejs
-
 3/ MISP code
 ------------
 # Download MISP using git in the /var/www/ directory.
