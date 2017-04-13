@@ -18,7 +18,7 @@ module.exports.deleteObject = function(type, action, id, event) {
 }
 
 module.exports.quickDeleteSighting = function(id, rawId, context) {
-	url = "/sightings/quickDelete/" + id + "/" + rawId + "/" + context;
+	var url = "/sightings/quickDelete/" + id + "/" + rawId + "/" + context;
 	$.get(url, function(data) {
 		$("#confirmation_box").html(data);
 		openPopup("#confirmation_box");
@@ -50,7 +50,7 @@ module.exports.genericPopup = function(url, popupTarget) {
 }
 
 module.exports.screenshotPopup = function(screenshotData, title) {
-	popupHtml = '<img src="' + screenshotData + '" id="screenshot-image" title="' + title + '" />';
+	var popupHtml = '<img src="' + screenshotData + '" id="screenshot-image" title="' + title + '" />';
 	popupHtml += '<div class="close-icon useCursorPointer" onClick="closeScreenshot();"></div>';
 	$('#screenshot_box').html(popupHtml);
 	$('#screenshot_box').show();
@@ -132,16 +132,16 @@ module.exports.toggleSetting = function(e, setting, id) {
 	e.stopPropagation();
 	switch (setting) {
 	case 'warninglist_enable':
-		formID = '#WarninglistIndexForm';
-		dataDiv = '#WarninglistData';
-		replacementForm = '/warninglists/getToggleField/';
-		searchString = 'enabled';
+		var formID = '#WarninglistIndexForm';
+		var dataDiv = '#WarninglistData';
+		var replacementForm = '/warninglists/getToggleField/';
+		var searchString = 'enabled';
 		break;
 	case 'favourite_tag':
-		formID = '#FavouriteTagIndexForm';
-		dataDiv = '#FavouriteTagData';
-		replacementForm = '/favourite_tags/getToggleField/';
-		searchString = 'Adding';
+		var formID = '#FavouriteTagIndexForm';
+		var dataDiv = '#FavouriteTagData';
+		var replacementForm = '/favourite_tags/getToggleField/';
+		var searchString = 'Adding';
 		break;
 	}
 	$(dataDiv).val(id);
@@ -234,7 +234,7 @@ module.exports.submitGenericForm = function(url, form, target) {
 }
 
 module.exports.acceptObject = function(type, id, event) {
-	name = '#ShadowAttribute_' + id + '_accept';
+	var name = '#ShadowAttribute_' + id + '_accept';
 	var formData = $(name).serialize();
 	$.ajax({
 		data: formData,
@@ -1068,7 +1068,7 @@ module.exports.populateTemplateTypeDropdown = function() {
 module.exports.templateElementAttributeTypeChange = function() {
 	var complex = $('#TemplateElementAttributeComplex:checked').val();
 	var type = $("#TemplateElementAttributeType option:selected").text();
-	currentTypes = [];
+	var currentTypes = [];
 	if (type != 'Select Type') {
 		if (complex) {
 			complexTypes[type]["types"].forEach(function(entry) {
@@ -1175,7 +1175,7 @@ module.exports.simplePopup = function(url) {
 
 module.exports.resizePopoverBody = function() {
 	var bodyheight = $(window).height();
-	bodyheight = 3 * bodyheight / 4 - 150;
+	var bodyheight = 3 * bodyheight / 4 - 150;
 	$("#popover_choice_main").css({"max-height": bodyheight});
 }
 
@@ -1218,8 +1218,8 @@ module.exports.htmlEncode = function(value){
 }
 
 module.exports.templateAddFileBubble = function(element_id, iframe, filename, tmp_name, batch) {
-	filename = htmlEncode(filename);
-	tmp_name = htmlEncode(tmp_name);
+	var filename = htmlEncode(filename);
+	var tmp_name = htmlEncode(tmp_name);
 	if (batch == 'no') {
 		if (iframe == true) {
 			$('#filenames_' + element_id, window.parent.document).html('<div id ="' + tmp_name + '_container" class ="template_file_box_container"><span class="tagFirstHalf template_file_box">' + filename + '</span><span onClick="templateDeleteFileBubble(\'' + filename + '\', \'' + tmp_name + '\', \'' + element_id + '\', \'normal\', \'no\');" class="tagSecondHalf useCursorPointer">x</span></div>');
@@ -1378,7 +1378,7 @@ module.exports.indexApplyFilters = function() {
 }
 
 module.exports.indexCreateFilters = function() {
-	text = "";
+	var text = "";
 	if (filterContext == 'event') {
 		if (filtering.published != "2") {
 			text += "searchpublished:" + filtering.published;
@@ -1414,7 +1414,7 @@ module.exports.indexCreateFilters = function() {
 }
 
 module.exports.indexBuildArray = function(type, text) {
-	temp = "";
+	var temp = "";
 	if (text != "") temp += "/";
 	temp += "search" + type + ":";
 	if (filtering[type].NOT.length == 0 && filtering[type].OR.length == 0) return text;
@@ -1440,7 +1440,7 @@ module.exports.indexSetRowVisibility = function() {
 }
 
 module.exports.indexEvaluateSimpleFiltering = function(field) {
-	text = "";
+	var text = "";
 	if (filtering[field].OR.length == 0 && filtering[field].NOT.length == 0) {
 		$('#value_' + field).html(text);
 		return false;
@@ -1723,7 +1723,7 @@ module.exports.serverSettingSubmitForm = function(name, setting, id) {
 }
 
 module.exports.updateOrgCreateImageField = function(string) {
-	string = escape(string);
+	var string = escape(string);
 	$.ajax({
 	    url:'/img/orgs/' + string + '.png',
 	    type:'HEAD',
@@ -2148,7 +2148,7 @@ module.exports.serverOrgTypeChange = function() {
 
 module.exports.sharingGroupPopulateFromJson = function() {
 	var jsonparsed = JSON.parse($('#SharingGroupJson').val());
-	organisations = jsonparsed.organisations;
+	var organisations = jsonparsed.organisations;
 	servers = jsonparsed.servers;
 	if (jsonparsed.sharingGroup.active == 1) {
 		$("#SharingGroupActive").prop("checked", true);
@@ -2295,7 +2295,7 @@ module.exports.zeroMQServerAction = function(action) {
 
 module.exports.convertServerFilterRules = function(rules) {
 	validOptions.forEach(function (type) {
-		container = "#"+ modelContext + type.ucfirst() + "Rules";
+		var container = "#"+ modelContext + type.ucfirst() + "Rules";
 		if($(container).val() != '') rules[type] = JSON.parse($(container).val());
 	});
 	serverRuleUpdate();
@@ -2448,7 +2448,7 @@ module.exports.syncUserSelected = function() {
 }
 
 module.exports.filterAttributes = function(filter, id) {
-	url = "/events/viewEventAttributes/" + id + "/attributeFilter:" + filter;
+	var url = "/events/viewEventAttributes/" + id + "/attributeFilter:" + filter;
 	if (deleted) url += '/deleted:true';
 	$.ajax({
 		type:"get",
@@ -2467,7 +2467,7 @@ module.exports.filterAttributes = function(filter, id) {
 }
 
 module.exports.toggleDeletedAttributes = function(url) {
-	url = url.replace(/view\//i, 'viewEventAttributes/');
+	var url = url.replace(/view\//i, 'viewEventAttributes/');
 	if (url.indexOf('deleted:') > -1) {
 		url = url.replace(/\/deleted:[^\/]*/i, '');
 	} else {
@@ -2559,8 +2559,8 @@ module.exports.runHoverLookup = function(type, id) {
 
 $(".eventViewAttributeHover").mouseenter(function() {
 	$('.popover').remove();
-	type = $(this).attr('data-object-type');
-	id = $(this).attr('data-object-id');
+	var type = $(this).attr('data-object-type');
+	var id = $(this).attr('data-object-id');
 	if (type + "_" + id in ajaxResults) {
 		$('#' + type + '_' + id + '_container').popover({
 			title: 'Lookup results:',
@@ -2571,7 +2571,7 @@ $(".eventViewAttributeHover").mouseenter(function() {
 			container: 'body'
 		}).popover('show');
 	} else {
-		timer = setTimeout(function() {
+		var timer = setTimeout(function() {
 				runHoverLookup(type, id)
 			},
 			500
@@ -2582,8 +2582,8 @@ $(".eventViewAttributeHover").mouseenter(function() {
 });
 
 $(".queryPopover").click(function() {
-	url = $(this).data('url');
-	id = $(this).data('id');
+	var url = $(this).data('url');
+	var id = $(this).data('id');
 	$.get(url + '/' + id, function(data) {
 		$('#popover_form').html(data);
 		openPopup('#popover_form');
@@ -2600,7 +2600,7 @@ module.exports.serverOwnerOrganisationChange = function(host_org_id) {
 }
 
 module.exports.requestAPIAccess = function() {
-	url = "/users/request_API/";
+	var url = "/users/request_API/";
 	$.ajax({
 		type:"get",
 		url:url,
@@ -2650,7 +2650,7 @@ module.exports.formCategoryChanged = function(id) {
 }
 
 module.exports.malwareCheckboxSetter = function(context) {
-	idDiv = "#" + context + "Category" +'Div';
+	var idDiv = "#" + context + "Category" +'Div';
 	var value = $("#" + context + "Category").val();  // get the selected value
 	// set the malware checkbox if the category is in the zip types
 	$("#" + context + "Malware").prop('checked', formZipTypeValues[value] == "true");
@@ -2772,7 +2772,7 @@ module.exports.loadTagTreemap = function() {
 }
 
 module.exports.loadSightingsData = function(timestamp) {
-	url = "/sightings/toplist";
+	var url = "/sightings/toplist";
 	if (timestamp != undefined) {
 		url = url + '/' + timestamp;
 	}
