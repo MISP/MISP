@@ -2176,11 +2176,11 @@ module.exports.testConnection = function(id) {
 	    	var result = JSON.parse(response);
 	    	switch (result.status) {
 			case 1:
-				status_message = "OK";
-				compatibility = "Compatible";
-				compatibility_colour = "green";
-				colours = {'local': 'class="green"', 'remote': 'class="green"', 'status': 'class="green"'};
-				issue_colour = "red";
+				var status_message = "OK";
+				var compatibility = "Compatible";
+				var compatibility_colour = "green";
+				var colours = {'local': 'class="green"', 'remote': 'class="green"', 'status': 'class="green"'};
+				var issue_colour = "red";
 				if (result.mismatch == "hotfix") issue_colour = "orange";
 				if (result.newer == "local") {
 					colours.remote = 'class="' + issue_colour + '"';
@@ -2205,6 +2205,7 @@ module.exports.testConnection = function(id) {
 				}
 				if (result.post != false) {
 					var post_colour = "red";
+					var post_result = "";
 					if (result.post == 1) {
 						post_colour = "green";
 						post_result = "Received sent package";
@@ -2219,7 +2220,7 @@ module.exports.testConnection = function(id) {
 						post_result = "Remote too old for this test";
 					}
 				}
-				resultDiv = '<div>Local version: <span ' + colours.local + '>' + result.local_version + '</span><br />';
+				var resultDiv = '<div>Local version: <span ' + colours.local + '>' + result.local_version + '</span><br />';
 				resultDiv += '<div>Remote version: <span ' + colours.remote + '>' + result.version + '</span><br />';
 				resultDiv += '<div>Status: <span ' + colours.status + '>' + status_message + '</span><br />';
 				resultDiv += '<div>Compatiblity: <span class="' + compatibility_colour + '">' + compatibility + '</span><br />';
