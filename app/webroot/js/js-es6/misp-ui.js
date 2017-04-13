@@ -1688,7 +1688,7 @@ module.exports.serverSettingsPostActivationScripts = function(name, setting, id)
 }
 
 module.exports.serverSettingSubmitForm = function(name, setting, id) {
-	subGroup = getSubGroupFromSetting(setting);
+	var subGroup = getSubGroupFromSetting(setting);
 	var formData = $(name + '_field').closest("form").serialize();
 	$.ajax({
 		data: formData,
