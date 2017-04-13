@@ -255,7 +255,7 @@ class EventsController extends AppController {
 		// list the events
 		$passedArgsArray = array();
 		$urlparams = "";
-		$overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'Datefrom', 'Dateuntil', 'org', 'eventinfo', 'tag', 'distribution', 'analysis', 'threatlevel', 'email', 'hasproposal', 'timestamp', 'publishtimestamp');
+		$overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'Datefrom', 'Dateuntil', 'org', 'eventinfo', 'tag', 'distribution', 'analysis', 'threatlevel', 'email', 'hasproposal', 'timestamp', 'publishtimestamp', 'minimal');
 		$passedArgs = $this->passedArgs;
 		if (isset($this->request->data)) {
 			if (isset($this->request->data['request'])) $this->request->data = $this->request->data['request'];
@@ -515,9 +515,9 @@ class EventsController extends AppController {
 			}
 		}
 		if (Configure::read('MISP.tagging') && !$this->_isRest()) {
-			$this->Event->contain(array('User.email', 'EventTag' => array('Tag')));
+			$this->paginate['contain'] = array_merge($this->paginate['contain'], array('User.email', 'EventTag' => array('Tag')));
 		} else {
-			$this->Event->contain('User.email');
+			$this->paginate['contain'] = array_merge($this->paginate['contain'], array('User.email'));
 		}
 		$this->set('urlparams', $urlparams);
 		$this->set('passedArgsArray', $passedArgsArray);
@@ -549,19 +549,28 @@ class EventsController extends AppController {
 				$rules['page'] = intval($passedArgs['page']);
 			}
 			$rules['contain'] = $this->paginate['contain'];
-			if (Configure::read('MISP.tagging')) {
+			if (Configure::read('MISP.tagging') && empty($passedArgs['searchminimal'])) {
 				$rules['contain']['EventTag'] = array('Tag' => array('fields' => array('id', 'name', 'colour', 'exportable'), 'conditions' => array('Tag.exportable' => true)));
 			}
 			if (isset($this->paginate['conditions'])) $rules['conditions'] = $this->paginate['conditions'];
-			$events = $this->Event->find('all', $rules);
-			foreach ($events as $k => $event) {
-				foreach ($event['EventTag'] as $k2 => $et) {
-					if (empty($et['Tag'])) unset($events[$k]['EventTag'][$k2]);
-				}
-				$events[$k]['EventTag'] = array_values($events[$k]['EventTag']);
+			if (!empty($passedArgs['searchminimal'])) {
+				unset($rules['contain']);
+				$rules['recursive'] = -1;
+				$rules['fields'] = array('id', 'timestamp', 'published', 'uuid');
 			}
-			$events = $this->GalaxyCluster->attachClustersToEventIndex($events);
-			$this->set('events', $events);
+			$events = $this->Event->find('all', $rules);
+			if (empty($passedArgs['searchminimal'])) {
+				foreach ($events as $k => $event) {
+					foreach ($event['EventTag'] as $k2 => $et) {
+						if (empty($et['Tag'])) unset($events[$k]['EventTag'][$k2]);
+					}
+					$events[$k]['EventTag'] = array_values($events[$k]['EventTag']);
+				}
+				$events = $this->GalaxyCluster->attachClustersToEventIndex($events);
+				$this->set('events', $events);
+			} else {
+				return $this->RestResponse->viewData($events, $this->response->type());
+			}
 		} else {
 			$events = $this->paginate();
 			if (count($events) == 1 && isset($this->passedArgs['searchall'])) {
