@@ -503,7 +503,7 @@ module.exports.quickSubmitAttributeTagForm = function(attribute_id, tag_id) {
 }
 
 module.exports.handleAjaxEditResponse = function(data, name, type, id, field, event) {
-	responseArray = JSON.parse(data);
+	var responseArray = JSON.parse(data);
 	if (type == 'Attribute') {
 		if (responseArray.saved) {
 			showMessage('success', responseArray.success);
@@ -525,9 +525,9 @@ module.exports.handleAjaxEditResponse = function(data, name, type, id, field, ev
 
 module.exports.handleGenericAjaxResponse = function(data) {
 	if (typeof data == 'string') {
-		responseArray = JSON.parse(data);
+		var responseArray = JSON.parse(data);
 	} else {
-		responseArray = data;
+		var responseArray = data;
 	}
 	if (responseArray.saved) {
 		showMessage('success', responseArray.success);
@@ -839,7 +839,7 @@ module.exports.submitPopoverForm = function(context_id, referer, update_context_
 };
 
 module.exports.handleAjaxPopoverResponse = function(response, context_id, url, referer, context, contextNamingConvention) {
-	responseArray = JSON.parse(response);
+	var responseArray = JSON.parse(response);
 	var message = null;
 	if (responseArray.saved) {
 		updateIndex(context_id, context);
