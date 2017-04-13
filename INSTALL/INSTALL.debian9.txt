@@ -1,10 +1,10 @@
 INSTALLATION INSTRUCTIONS
-------------------------- for Ubuntu 16.04-server
+------------------------- for Debian 9 "stretch" server
 
-1/ Minimal Ubuntu install
+1/ Minimal Debian install
 -------------------------
 
-# Install a minimal Ubuntu 16.04-server system with the software:
+# Install a minimal Debian 9 "stretch" server system with the software:
 - OpenSSH server
 
 # Make sure your system is up2date:
@@ -33,13 +33,11 @@ sudo apt-get install mariadb-client mariadb-server
 sudo mysql_secure_installation
 
 # Install Apache2
-sudo apt-get install apache2 apache2-doc apache2-utils
+sudo apt-get install -y apache2 apache2-doc apache2-utils
 
 # Enable modules, settings, and default of SSL in Apache
 sudo a2dismod status
-sudo a2enmod ssl
-sudo a2enmod rewrite
-sudo a2enmod headers
+sudo a2enmod ssl rewrite headers
 sudo a2dissite 000-default
 
 # Install PHP and dependencies
@@ -63,7 +61,7 @@ sudo -u www-data git checkout tags/$(git describe --tags `git rev-list --tags --
 sudo -u www-data git config core.filemode false
 
 # install Mitre's STIX and its dependencies by running the following commands:
-sudo apt-get install python-dev python-pip libxml2-dev libxslt1-dev zlib1g-dev python-setuptools
+sudo apt-get install python-dev python-pip libxml2-dev libxslt1-dev zlib1g-dev
 cd /var/www/MISP/app/files/scripts
 sudo -u www-data git clone https://github.com/CybOXProject/python-cybox.git
 sudo -u www-data git clone https://github.com/STIXProject/python-stix.git
@@ -89,7 +87,7 @@ sudo -u www-data php composer.phar config vendor-dir Vendor
 sudo -u www-data php composer.phar install
 
 # Enable CakeResque with php-redis
-sudo phpenmod redis
+sudo php5enmod redis
 
 # To use the scheduler worker for scheduled tasks, do the following:
 sudo -u www-data cp -fa /var/www/MISP/INSTALL/setup/config.php /var/www/MISP/app/Plugin/CakeResque/Config/config.php
@@ -128,13 +126,13 @@ sudo -u www-data sh -c "mysql -u misp -p misp < /var/www/MISP/INSTALL/MYSQL.sql"
 
 sudo cp /var/www/MISP/INSTALL/apache.misp.ssl /etc/apache2/sites-available/misp-ssl.conf
 
-# Be aware that the configuration files for apache 2.4 and up have changed.
+# Be aware that the configuration files for Apache 2.4 and up have changed.
 # The configuration file has to have the .conf extension in the sites-available directory
 # For more information, visit http://httpd.apache.org/docs/2.4/upgrading.html
 
 # If a valid SSL certificate is not already created for the server, create a self-signed certificate:
-sudo openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
--subj "/C=<Country>/ST=<State>/L=<Locality>/O=<Organization>/OU=<Organizational Unit Name>/CN=<QDN.here>/emailAddress=admin@<your.FQDN.here>" \
+openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
+-subj "/C=<Country>/ST=<State>/L=<Locality>/O=<Organization>/OU=<Organizational Unit Name>/CN=<your.FQDN.here>/emailAddress=admin@<your.FQDN.here>" \
 -keyout /etc/ssl/private/misp.local.key -out /etc/ssl/private/misp.local.crt
 
 # Otherwise, copy the SSLCertificateFile, SSLCertificateKeyFile, and SSLCertificateChainFile to /etc/ssl/private/. (Modify path and config to fit your environment)
@@ -178,7 +176,6 @@ sudo openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
         header always set X-Frame-Options "SAMEORIGIN"
         header always set X-XSS-Protection "1; mode=block"
 
-
         LogLevel warn
         ErrorLog /var/log/apache2/misp.local_error.log
         CustomLog /var/log/apache2/misp.local_access.log combined
@@ -187,7 +184,6 @@ sudo openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
 ============================================= End sample working SSL config for MISP
 
 # activate new vhost
-sudo a2dissite default-ssl
 sudo a2ensite misp-ssl
 
 # Restart apache
@@ -195,14 +191,14 @@ sudo systemctl restart apache2
 
 sudo cp INSTALL/misp.logrotate /etc/logrotate.d/misp
 
-8/ Log rotation
+9/ Log rotation
 ---------------
 # MISP saves the stdout and stderr of its workers in /var/www/MISP/app/tmp/logs
 # To rotate these logs install the supplied logrotate script:
 
 sudo cp INSTALL/misp.logrotate /etc/logrotate.d/misp
 
-9/ MISP configuration
+10/ MISP configuration
 ---------------------
 # There are 4 sample configuration files in /var/www/MISP/app/Config that need to be copied
 sudo -u www-data cp -a /var/www/MISP/app/Config/bootstrap.default.php /var/www/MISP/app/Config/bootstrap.php
@@ -230,10 +226,21 @@ sudo -u www-data vim /var/www/MISP/app/Config/config.php
 sudo chown -R www-data:www-data /var/www/MISP/app/Config
 sudo chmod -R 750 /var/www/MISP/app/Config
 
+# Ensure that GPG has enough entropy to generate keys
+sudo apt-get install rng-tools
+
+# Install might fail if it can't find a hardware Random Number Generator, in that case:
+
+Edit /etc/default/rng-tools
+HRNGDEVICE=/dev/urandom
+
+sudo service rng-tools restart
+
 # Generate a GPG encryption key.
 sudo -u www-data mkdir /var/www/MISP/.gnupg
 sudo chmod 700 /var/www/MISP/.gnupg
-sudo -u www-data gpg --homedir /var/www/MISP/.gnupg --gen-key
+# when using su or sudo with newer versions of GPG --pinentry-mode loopback must be passed
+sudo -u www-data gpg --pinentry-mode loopback --homedir /var/www/MISP/.gnupg --gen-key
 # The email address should match the one set in the config.php / set in the configuration menu in the administration menu configuration file
 
 # And export the public key to the webroot
@@ -241,9 +248,9 @@ sudo -u www-data sh -c "gpg --homedir /var/www/MISP/.gnupg --export --armor YOUR
 
 # To make the background workers start on boot
 sudo chmod +x /var/www/MISP/app/Console/worker/start.sh
-sudo vim /etc/rc.local
-# Add the following line before the last line (exit 0). Make sure that you replace www-data with your apache user:
-sudo -u www-data bash /var/www/MISP/app/Console/worker/start.sh
+sudo crontab -e
+# Add the following line
+@reboot sudo -u www-data bash /var/www/MISP/app/Console/worker/start.sh > /dev/null 2>&1
 
 # Now log in using the webinterface:
 # The default user/pass = admin@admin.test/admin
@@ -284,7 +291,7 @@ Recommended actions
 
 Optional features
 -------------------
-# MISP has a new pub/sub feature, using ZeroMQ. To enable it, simply run the following command
+# MISP has a new pub/sub feature, using ZeroMQ. To enable it, simply run the following commands
 
 # ZeroMQ depends on the Python client for Redis
 sudo pip install redis

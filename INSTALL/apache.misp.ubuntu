@@ -9,6 +9,12 @@
 		allow from all
 	</Directory>
 
+	# HSTS (mod_headers is required) (15768000 seconds = 6 months)
+    Header always set Strict-Transport-Security "max-age=15768000  includeSubDomains; preload;"
+    Header always set X-Content-Type-Options nosniff
+    header always set X-Frame-Options "SAMEORIGIN"
+    header always set X-XSS-Protection "1; mode=block"
+
 	LogLevel warn
 	ErrorLog /var/log/apache2/misp.local_error.log
 	CustomLog /var/log/apache2/misp.local_access.log combined
