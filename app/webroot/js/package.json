@@ -13,7 +13,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "browserify -t [ babelify --presets [ es2015 ] ] misp.js.es6 -o misp.js",
-    "watch": "watchify -t [ babelify --presets [ es2015 react ] ] misp.es6.js -o misp.js",
+    "watch": "watchify -t [ babelify --presets [ es2015 ] ] misp.es6.js -o misp.js",
     "prod": "npm run build && npm run dist"
   },
   "repository": {
