@@ -7,13 +7,15 @@
     "babel-preset-es2015": "^6.24.1",
     "babelify": "^7.3.0",
     "browserify": "^14.3.0",
+    "uglify": "^0.1.5",
     "watchify": "^3.9.0"
   },
   "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "browserify -t [ babelify --presets [ es2015 ] ] misp.js.es6 -o misp.js",
+    "build": "browserify -t [ babelify --presets [ es2015 ] ] misp.es6.js -o misp.js",
     "watch": "watchify -t [ babelify --presets [ es2015 ] ] misp.es6.js -o misp.js",
+    "dist": "uglifyjs misp.js -o misp.js",
     "prod": "npm run build && npm run dist"
   },
   "repository": {
