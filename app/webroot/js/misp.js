@@ -872,7 +872,7 @@ module.exports.handleAjaxPopoverResponse = function (response, context_id, url, 
 				openPopup("#popover_form");
 				var error_context = context.charAt(0).toUpperCase() + context.slice(1);
 				handleValidationErrors(responseArray.errors, context, contextNamingConvention);
-				if (!$.isEmptyObject(responseArray)) {
+				if (!isEmpty(responseArray)) {
 					$("#formWarning").show();
 					$("#formWarning").html('The object(s) could not be saved. Please, try again.');
 				}
@@ -1705,7 +1705,7 @@ module.exports.serverSettingsPostActivationScripts = function (name, setting, id
 };
 
 module.exports.serverSettingSubmitForm = function (name, setting, id) {
-	subGroup = getSubGroupFromSetting(setting);
+	var subGroup = getSubGroupFromSetting(setting);
 	var formData = $(name + '_field').closest("form").serialize();
 	$.ajax({
 		data: formData,
@@ -2223,9 +2223,9 @@ module.exports.testConnection = function (id) {
 						} else if (result.post == 8) {
 							post_result = "Could not POST message";
 						} else if (result.post == 9) {
-							post_result = "Invalid body";
+							post_result = "Invalid headers";
 						} else if (result.post == 10) {
-              post_result = "Invalid headers";
+							post_result = "Invalid body";
 						} else {
 							post_colour = "orange";
 							post_result = "Remote too old for this test";
