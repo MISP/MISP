@@ -21,6 +21,8 @@
 			if ($stats['event_count_month']) echo ' <span style="color:green">(+' . h($stats['attribute_count_month']) . ')</span>&nbsp;';
 			else echo ' <span style="color:red">(0)</span>&nbsp;';?>
 		</dd>
+		<dt>Attributes / event</dt>
+		<dd><?php echo h($stats['attributes_per_event']); ?>&nbsp;</dd>
 		<dt><?php echo 'Correlations found'; ?></dt>
 		<dd><?php echo h($stats['correlation_count']); ?>&nbsp;</dd>
 		<dt><?php echo 'Proposals active'; ?></dt>
