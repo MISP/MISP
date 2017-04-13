@@ -72,5 +72,4 @@
 .smime
 *.swp
 *.iml
-misp.js
 node_modules
