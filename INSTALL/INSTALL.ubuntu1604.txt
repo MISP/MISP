@@ -76,11 +76,6 @@ cd /var/www/MISP/app/files/scripts/python-stix
 sudo -u www-data git checkout v1.1.1.4
 sudo python setup.py install
 
-# Install JS deps
-cd /var/www/MISP/app/webroot/js
-sudo -u www-data npm i
-sudo -u www-data npm build
-
 4/ CakePHP
 -----------
 # CakePHP is included as a submodule of MISP, execute the following commands to let git fetch it:
