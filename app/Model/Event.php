@@ -327,7 +327,7 @@ class Event extends AppModel {
 
 	public function beforeDelete($cascade = true) {
 		// blacklist the event UUID if the feature is enabled
-		if (Configure::read('MISP.enableEventBlacklisting')) {
+		if (Configure::read('MISP.enableEventBlacklisting') !== false) {
 			$this->EventBlacklist = ClassRegistry::init('EventBlacklist');
 			$this->EventBlacklist->create();
 			$orgc = $this->Orgc->find('first', array('conditions' => array('Orgc.id' => $this->data['Event']['orgc_id']), 'recursive' => -1, 'fields' => array('Orgc.name')));
@@ -597,6 +597,15 @@ class Event extends AppModel {
 				)
 			)
 		);
+		$fieldsToRearrange = array('Org', 'Orgc');
+		foreach ($relatedEvents as $k => $relatedEvent) {
+			foreach ($fieldsToRearrange as $field) {
+				if (isset($relatedEvent[$field])) {
+					$relatedEvents[$k]['Event'][$field] = $relatedEvent[$field];
+					unset($relatedEvents[$k][$field]);
+				}
+			}
+		}
 		return $relatedEvents;
 	}
 
@@ -695,6 +704,7 @@ class Event extends AppModel {
 					// single attribute
 					$data['Event'][$object] = array(0 => $data['Event'][$object]);
 				}
+				$data['Event'][$object] = array_values($data['Event'][$object]);
 			}
 		}
 		$objects = array('Org', 'Orgc', 'SharingGroup');
@@ -734,10 +744,10 @@ class Event extends AppModel {
 	public function uploadEventToServer($event, $server, $HttpSocket = null) {
 		$this->Server = ClassRegistry::init('Server');
 		$push = $this->Server->checkVersionCompatibility($server['Server']['id'], false, $HttpSocket);
-		if (!isset($push['perm_sync'])) {
-			$this->Server->checkLegacyServerSyncPrivilege($server['Server']['id'], $HttpSocket);
+		if (!isset($push['canPush'])) {
+			$test = $this->Server->checkLegacyServerSyncPrivilege($server['Server']['id'], $HttpSocket);
 		} else {
-			if (!$push['perm_sync']) {
+			if (!$push['canPush']) {
 				return 'The remote user is not a sync user - the upload of the event has been blocked.';
 			}
 		}
@@ -754,10 +764,7 @@ class Event extends AppModel {
 			$event['Attribute'] = array_values($event['Attribute']);
 		}
 		if (!isset($push['canPush']) || !$push['canPush']) {
-			if ($push === 'mangle' && $event['Event']['distribution'] != 4) {
-				$event['Event']['orgc'] = $event['Orgc']['name'];
-				$event['mangle'] = true;
-			} else return 'Trying to push to an outdated instance.';
+			return 'Trying to push to an outdated instance.';
 		}
 		$updated = null;
 		$newLocation = $newTextBody = '';
@@ -880,85 +887,74 @@ class Event extends AppModel {
 		}
 		$data = json_encode($event);
 		// LATER validate HTTPS SSL certificate
-		$this->Dns = ClassRegistry::init('Dns');
-		if ($this->Dns->testipaddress(parse_url($uri, PHP_URL_HOST))) {
-			// TODO NETWORK for now do not know how to catch the following..
-			// TODO NETWORK No route to host
-			$response = $HttpSocket->post($uri, $data, $request);
-			switch ($response->code) {
-				case '200':	// 200 (OK) + entity-action-result
-					if ($response->isOk()) {
-						$newTextBody = $response->body();
-						$newLocation = null;
+		$response = $HttpSocket->post($uri, $data, $request);
+		switch ($response->code) {
+			case '200':	// 200 (OK) + entity-action-result
+				if ($response->isOk()) {
+					$newTextBody = $response->body();
+					$newLocation = null;
+					return true;
+				} else {
+					try {
+						$jsonArray = json_decode($response->body, true);
+					} catch (Exception $e) {
+						return true; // TODO should be false
+					}
+					if (strpos($jsonArray['name'],"Event already exists")) {	// strpos, so i can piggyback some value if needed.
 						return true;
 					} else {
-						try {
-							$jsonArray = json_decode($response->body, true);
-						} catch (Exception $e) {
-							return true; // TODO should be false
-						}
-						if (strpos($jsonArray['name'],"Event already exists")) {	// strpos, so i can piggyback some value if needed.
-							return true;
-						} else {
-							return $jsonArray['name'];
-						}
+						return $jsonArray['name'];
 					}
-					break;
-				case '302': // Found
-					$newLocation = $response->headers['Location'];
-					$newTextBody = $response->body();
-					return true;
-					break;
-				case '404': // Not Found
-					$newLocation = $response->headers['Location'];
-					$newTextBody = $response->body();
-					return 404;
-					break;
-				case '405':
-					return 405;
-					break;
-				case '403': // Not authorised
-					return 403;
-					break;
-			}
+				}
+				break;
+			case '302': // Found
+				$newLocation = $response->headers['Location'];
+				$newTextBody = $response->body();
+				return true;
+				break;
+			case '404': // Not Found
+				$newLocation = $response->headers['Location'];
+				$newTextBody = $response->body();
+				return 404;
+				break;
+			case '405':
+				return 405;
+				break;
+			case '403': // Not authorised
+				return 403;
+				break;
 		}
 	}
 
 	private function __updateEventForSync($event, $server) {
-		$mangle = isset($event['mangle']);
-		if (!$mangle) {
-			// rearrange things to be compatible with the Xml::fromArray()
-			$objectsToRearrange = array('Attribute', 'Orgc', 'SharingGroup', 'EventTag', 'Org', 'ShadowAttribute');
-			foreach ($objectsToRearrange as $o) {
-				if (isset($event[$o])) {
-					$event['Event'][$o] = $event[$o];
-					unset($event[$o]);
-				}
+		// rearrange things to be compatible with the Xml::fromArray()
+		$objectsToRearrange = array('Attribute', 'Orgc', 'SharingGroup', 'EventTag', 'Org', 'ShadowAttribute');
+		foreach ($objectsToRearrange as $o) {
+			if (isset($event[$o])) {
+				$event['Event'][$o] = $event[$o];
+				unset($event[$o]);
 			}
+		}
 
-			// cleanup the array from things we do not want to expose
-			foreach (array('Org', 'org_id', 'orgc_id', 'proposal_email_lock', 'org', 'orgc') as $field) unset($event['Event'][$field]);
-			foreach ($event['Event']['EventTag'] as $kt => $tag) {
-				if (!$tag['Tag']['exportable']) {
-					unset($event['Event']['EventTag'][$kt]);
-				} else {
-					unset($tag['org_id']);
-					$event['Event']['Tag'][] = $tag['Tag'];
-				}
+		// cleanup the array from things we do not want to expose
+		foreach (array('Org', 'org_id', 'orgc_id', 'proposal_email_lock', 'org', 'orgc') as $field) unset($event['Event'][$field]);
+		foreach ($event['Event']['EventTag'] as $kt => $tag) {
+			if (!$tag['Tag']['exportable']) {
+				unset($event['Event']['EventTag'][$kt]);
+			} else {
+				unset($tag['org_id']);
+				$event['Event']['Tag'][] = $tag['Tag'];
 			}
-			unset($event['Event']['EventTag']);
+		}
+		unset($event['Event']['EventTag']);
 
-			// Add the local server to the list of instances in the SG
-			if (isset($event['Event']['SharingGroup']) && isset($event['Event']['SharingGroup']['SharingGroupServer'])) {
-				foreach ($event['Event']['SharingGroup']['SharingGroupServer'] as &$s) {
-					if ($s['server_id'] == 0) {
-						$s['Server'] = array('id' => 0, 'url' => Configure::read('MISP.baseurl'));
-					}
+		// Add the local server to the list of instances in the SG
+		if (isset($event['Event']['SharingGroup']) && isset($event['Event']['SharingGroup']['SharingGroupServer'])) {
+			foreach ($event['Event']['SharingGroup']['SharingGroupServer'] as &$s) {
+				if ($s['server_id'] == 0) {
+					$s['Server'] = array('id' => 0, 'url' => Configure::read('MISP.baseurl'));
 				}
 			}
-		} else {
-			foreach (array('org_id', 'orgc_id', 'proposal_email_lock', 'org') as $field) unset($event['Event'][$field]);
-			foreach (array('Org', 'Orgc', 'SharingGroup', 'EventTag') as $field) unset($event[$field]);
 		}
 		// remove value1 and value2 from the output
 		if (isset($event['Event']['Attribute'])) {
@@ -1014,74 +1010,12 @@ class Event extends AppModel {
 			}
 		}
 
-		if ($mangle) {
-			$event['Event']['timestamp'] = $event['Event']['timestamp'] -1;
-			if (isset($event['Attribute'])) {
-				foreach ($event['Attribute'] as $key => &$attribute) {
-					$event['Attribute'][$key]['timestamp'] = $event['Attribute'][$key]['timestamp'] -1;
-					if ($attribute['distribution'] == 5) $attribute['distribution'] = $event['Event']['distribution'];
-					if ($attribute['distribution'] < 2) {
-						unset($event['Event']['Attribute'][$key]);
-						continue;
-					}
-					if ($attribute['distribution'] == 2) {
-						$attribute['distribution'] = 1;
-					}
-					unset($event['Attribute'][$key]['SharingGroup'], $event['Attribute'][$key]['sharing_group_id']);
-					if ($attribute['distribution'] == 4) {
-						unset($event['Event']['Attribute'][$key]);
-						continue;
-					}
-					// remove value1 and value2 from the output
-					unset($attribute['value1']);
-					unset($attribute['value2']);
-					// also add the encoded attachment
-					if ($this->Attribute->typeIsAttachment($attribute['type'])) {
-						$encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
-						$attribute['data'] = $encodedFile;
-					}
-					unset($attribute['id']);
-				}
-			}
-		}
-
 		// Downgrade the event from connected communities to community only
 		if (!$server['Server']['internal'] && $event['Event']['distribution'] == 2) {
 			$event['Event']['distribution'] = 1;
 		}
+		$event['Event']['Attribute'] = array_values($event['Event']['Attribute']);
 		return $event;
-	}
-
-
-	public function deleteEventFromServer($uuid, $server, $HttpSocket=null) {
-		// TODO private and delete(?)
-
-		$url = $server['Server']['url'];
-		$authkey = $server['Server']['authkey'];
-		if (null == $HttpSocket) {
-			App::uses('SyncTool', 'Tools');
-			$syncTool = new SyncTool();
-			$HttpSocket = $syncTool->setupHttpSocket($server);
-		}
-		$request = array(
-				'header' => array(
-						'Authorization' => $authkey,
-						'Accept' => 'application/xml',
-						'Content-Type' => 'application/xml',
-						//'Connection' => 'keep-alive' // // LATER followup cakephp issue about this problem: https://github.com/cakephp/cakephp/issues/1961
-				)
-		);
-		$request = $this->addHeaders($request);
-		$uri = $url . '/events/0?uuid=' . $uuid;
-
-		// LATER validate HTTPS SSL certificate
-		$this->Dns = ClassRegistry::init('Dns');
-		if ($this->Dns->testipaddress(parse_url($uri, PHP_URL_HOST))) {
-			// TODO NETWORK for now do not know how to catch the following..
-			// TODO NETWORK No route to host
-			$response = $HttpSocket->delete($uri, array(), $request);
-			// TODO REST, DELETE, some responce needed
-		}
 	}
 
 	public function downloadEventFromServer($eventId, $server, $HttpSocket=null) {
@@ -1110,6 +1044,77 @@ class Event extends AppModel {
 			return json_decode($response->body, true);
 		}
 		return null;
+	}
+
+	public function quickDelete($event) {
+		$id = $event['Event']['id'];
+		$this->Thread = ClassRegistry::init('Thread');
+		$thread = $this->Thread->find('first', array(
+			'conditions' => array('Thread.event_id' => $id),
+			'fields' => array('Thread.id'),
+			'recursive' => -1
+		));
+		$thread_id = !empty($thread) ? $thread['Thread']['id'] : false;
+		$relations = array(
+			array(
+				'table' => 'attributes',
+				'foreign_key' => 'event_id',
+				'value' => $id
+			),
+			array(
+				'table' => 'shadow_attributes',
+				'foreign_key' => 'event_id',
+				'value' => $id
+			),
+			array(
+				'table' => 'event_tags',
+				'foreign_key' => 'event_id',
+				'value' => $id
+			),
+			array(
+				'table' => 'attribute_tags',
+				'foreign_key' => 'event_id',
+				'value' => $id
+			),
+			array(
+				'table' => 'threads',
+				'foreign_key' => 'event_id',
+				'value' => $id
+			),
+			array(
+				'table' => 'correlations',
+				'foreign_key' => 'event_id',
+				'value' => $id
+			),
+			array(
+				'table' => 'correlations',
+				'foreign_key' => '1_event_id',
+				'value' => $id
+			),
+			array(
+				'table' => 'sightings',
+				'foreign_key' => 'event_id',
+				'value' => $id
+			),
+			array(
+				'table' => 'event_delegations',
+				'foreign_key' => 'event_id',
+				'value' => $id
+			)
+		);
+		if ($thread_id) {
+			$relations[] = 	array(
+				'table' => 'posts',
+				'foreign_key' => 'thread_id',
+				'value' => $thread_id
+			);
+		}
+		App::uses('QueryTool', 'Tools');
+		$queryTool = new QueryTool();
+		foreach ($relations as $relation) {
+				$queryTool->quickDelete($relation['table'], $relation['foreign_key'], $relation['value'], $this);
+		}
+		return $this->delete($id, false);
 	}
 
 	public function downloadProposalsFromServer($uuidList, $server, $HttpSocket = null) {
@@ -1198,7 +1203,7 @@ class Event extends AppModel {
 	// includeAttachments: true will attach the attachments to the attributes in the data field
 	public function fetchEvent($user, $options = array()) {
 		if (isset($options['Event.id'])) $options['eventid'] = $options['Event.id'];
-		$possibleOptions = array('eventid', 'idList', 'tags', 'from', 'to', 'last', 'to_ids', 'includeAllTags', 'includeAttachments', 'event_uuid', 'distribution', 'sharing_group_id', 'disableSiteAdmin', 'metadata', 'includeGalaxy', 'enforceWarninglist');
+		$possibleOptions = array('eventid', 'idList', 'tags', 'from', 'to', 'last', 'to_ids', 'includeAllTags', 'includeAttachments', 'event_uuid', 'distribution', 'sharing_group_id', 'disableSiteAdmin', 'metadata', 'includeGalaxy', 'enforceWarninglist', 'sgReferenceOnly');
 		if (!isset($options['excludeGalaxy']) || !$options['excludeGalaxy']) {
 			$this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
 		}
@@ -1333,7 +1338,8 @@ class Event extends AppModel {
 		if (!$options['includeAllTags']) $tagConditions = array('exportable' => 1);
 		else $tagConditions = array();
 
-		$params = array('conditions' => $conditions,
+		$params = array(
+			'conditions' => $conditions,
 			'recursive' => 0,
 			'fields' => $fields,
 			'contain' => array(
@@ -1358,6 +1364,10 @@ class Event extends AppModel {
 				)
 			)
 		);
+		if ($options['sgReferenceOnly']) {
+			unset($params['contain']['SharingGroup']);
+			unset($params['contain']['Attribute']['SharingGroup']);
+		}
 		if ($options['metadata']) {
 			unset($params['contain']['Attribute']);
 			unset($params['contain']['ShadowAttribute']);
@@ -1380,14 +1390,16 @@ class Event extends AppModel {
 				$event['Event']['event_creator_email'] = $UserEmail;
 			}
 			// unset the empty sharing groups that are created due to the way belongsTo is handled
-			if (isset($event['SharingGroup']['SharingGroupServer'])) {
-				foreach ($event['SharingGroup']['SharingGroupServer'] as &$sgs) {
-					if ($sgs['server_id'] == 0) {
-						$sgs['Server'] = array('id' => '0', 'url' => Configure::read('MISP.baseurl'), 'name' => Configure::read('MISP.baseurl'));
+			if (isset($event['SharingGroup'])) {
+				if (isset($event['SharingGroup']['SharingGroupServer'])) {
+					foreach ($event['SharingGroup']['SharingGroupServer'] as &$sgs) {
+						if ($sgs['server_id'] == 0) {
+							$sgs['Server'] = array('id' => '0', 'url' => Configure::read('MISP.baseurl'), 'name' => Configure::read('MISP.baseurl'));
+						}
 					}
 				}
+				if ($event['SharingGroup']['id'] == null) unset($event['SharingGroup']);
 			}
-			if ($event['SharingGroup']['id'] == null) unset($event['SharingGroup']);
 			$event['Galaxy'] = array();
 			// unset empty event tags that got added because the tag wasn't exportable
 			if (!empty($event['EventTag'])) {
@@ -1451,10 +1463,12 @@ class Event extends AppModel {
 							$event['Attribute'][$key]['data'] = $encodedFile;
 						}
 					}
-					if (isset($attribute['SharingGroup']['SharingGroupServer'])) {
-						foreach ($attribute['SharingGroup']['SharingGroupServer'] as &$sgs) {
-							if ($sgs['server_id'] == 0) {
-								$sgs['Server'] = array('id' => '0', 'url' => Configure::read('MISP.baseurl'), 'name' => Configure::read('MISP.baseurl'));
+					if (isset($attribute['SharingGroup'])) {
+						if (isset($attribute['SharingGroup']['SharingGroupServer'])) {
+							foreach ($attribute['SharingGroup']['SharingGroupServer'] as &$sgs) {
+								if ($sgs['server_id'] == 0) {
+									$sgs['Server'] = array('id' => '0', 'url' => Configure::read('MISP.baseurl'), 'name' => Configure::read('MISP.baseurl'));
+								}
 							}
 						}
 					}
@@ -1939,7 +1953,7 @@ class Event extends AppModel {
 			$data['Event']['sharing_group_id'] = $sg;
 			unset($data['Event']['SharingGroup']);
 		}
-		if (isset($data['Event']['Attribute'])) {
+		if (!empty($data['Event']['Attribute'])) {
 			foreach ($data['Event']['Attribute'] as $k => $a) {
 				unset($data['Event']['Attribute']['id']);
 				if (isset($a['distribution']) && $a['distribution'] == 4) {
@@ -1980,7 +1994,7 @@ class Event extends AppModel {
 			unset($data['Event']['Tag']);
 		}
 
-		if (isset($data['Event']['Attribute'])) {
+		if (!empty($data['Event']['Attribute'])) {
 			foreach ($data['Event']['Attribute'] as $k => $a) {
 				if (isset($data['Event']['Attribute'][$k]['AttributeTag'])) {
 					if (isset($data['Event']['Attribute'][$k]['AttributeTag']['id'])) $data['Event']['Attribute'][$k]['AttributeTag'] = array($data['Event']['Attribute'][$k]['AttributeTag']);
@@ -2011,7 +2025,7 @@ class Event extends AppModel {
 		if ($jobId) {
 			App::uses('AuthComponent', 'Controller/Component');
 		}
-		if (Configure::read('MISP.enableEventBlacklisting') && isset($data['Event']['uuid'])) {
+		if (Configure::read('MISP.enableEventBlacklisting') !== false && isset($data['Event']['uuid'])) {
 			$this->EventBlacklist = ClassRegistry::init('EventBlacklist');
 			$r = $this->EventBlacklist->find('first', array('conditions' => array('event_uuid' => $data['Event']['uuid'])));
 			if (!empty($r))	return 'blocked';
@@ -2038,7 +2052,7 @@ class Event extends AppModel {
 			}
 			if (isset($data['Event']['orgc_id']) && $data['Event']['orgc_id'] != $user['org_id'] && !$user['Role']['perm_sync'] && !$user['Role']['perm_site_admin']) throw new MethodNotAllowedException('Event cannot be created as you are not a member of the creator organisation.');
 		}
-		if (Configure::read('MISP.enableOrgBlacklisting')) {
+		if (!Configure::check('MISP.enableOrgBlacklisting') || Configure::read('MISP.enableOrgBlacklisting') !== false) {
 			$this->OrgBlacklist = ClassRegistry::init('OrgBlacklist');
 			$orgc = $this->Orgc->find('first', array('conditions' => array('Orgc.id' => $data['Event']['orgc_id']), 'fields' => array('Orgc.uuid'), 'recursive' => -1));
 			if ($this->OrgBlacklist->hasAny(array('OrgBlacklist.org_uuid' => $orgc['Orgc']['uuid']))) return 'blocked';
@@ -2142,7 +2156,7 @@ class Event extends AppModel {
 									'action' => 'add',
 									'user_id' => $user['id'],
 									'title' => 'Attribute dropped due to validation for Event ' . $this->id . ' failed: ' . $attribute_short,
-									'change' => json_encode($this->Attribute->validationErrors),
+									'change' => 'Validation errors: ' . json_encode($this->Attribute->validationErrors) . ' Full Attribute: ' . json_encode($attribute),
 							));
 						} else {
 							if (isset($attribute['AttributeTag'])) {
@@ -2237,6 +2251,7 @@ class Event extends AppModel {
 		if ($saveResult) {
 			$validationErrors = array();
 			if (isset($data['Event']['Attribute'])) {
+				$data['Event']['Attribute'] = array_values($data['Event']['Attribute']);
 				foreach ($data['Event']['Attribute'] as $k => $attribute) {
 					$attribute['event_id'] = $existingEvent['Event']['id'];
 					if (isset($attribute['encrypt'])) {
@@ -2328,7 +2343,7 @@ class Event extends AppModel {
 							'action' => 'edit',
 							'user_id' => $user['id'],
 							'title' => 'Attribute dropped due to validation for Event ' . $this->id . ' failed: ' . $attribute_short,
-							'change' => json_encode($this->Attribute->validationErrors),
+							'change' => 'Validation errors: ' . json_encode($this->Attribute->validationErrors) . ' Full Attribute: ' . json_encode($attribute),
 						));
 					} else {
 						if (isset($data['Event']['Attribute'][$k]['Tag']) && $user['Role']['perm_tagger']) {
@@ -2448,7 +2463,7 @@ class Event extends AppModel {
 	// If the distribution is org only / comm only, return false
 	// If the distribution is sharing group only, check if the sync user is in the sharing group or not, return true if yes, false if no
 	public function checkDistributionForPush($object, $server, $context = 'Event') {
-		if (empty(Configure::read('MISP.host_org_id')) || !$server['Server']['internal'] ||  Configure::read('MISP.host_org_id') != $server['Server']['remote_org_id']) {
+		if (empty(Configure::read('MISP.host_org_id')) || !$server['Server']['internal'] || Configure::read('MISP.host_org_id') != $server['Server']['remote_org_id']) {
 			if ($object[$context]['distribution'] < 2) return false;
 		}
 		if ($object[$context]['distribution'] == 4) {
@@ -2516,9 +2531,9 @@ class Event extends AppModel {
 		if ($passAlong) $conditions[] = array('Server.id !=' => $passAlong);
 		$servers = $this->Server->find('all', array('conditions' => $conditions));
 		// iterate over the servers and upload the event
-		if (empty($servers))
+		if (empty($servers)) {
 			return true;
-
+		}
 		$uploaded = true;
 		$failedServers = array();
 		App::uses('SyncTool', 'Tools');
@@ -3269,5 +3284,72 @@ class Event extends AppModel {
 			);
 		}
 		return array('data' => array(), 'csv' => array());
+	}
+
+	public function setSimpleConditions($parameterKey, $parameterValue, $conditions) {
+		if (is_array($parameterValue)) {
+			$elements = $parameterValue;
+		} else {
+			$elements = explode('&&', $parameterValue);
+		}
+		App::uses('CIDRTool', 'Tools');
+		$cidr = new CIDRTool();
+		$subcondition = array();
+		foreach ($elements as $v) {
+			if ($v == '') continue;
+			if (substr($v, 0, 1) == '!') {
+				// check for an IPv4 address and subnet in CIDR notation (e.g. 127.0.0.1/8)
+				if ($parameterKey === 'value' && $cidr->checkCIDR(substr($v, 1), 4)) {
+					$cidrresults = $cidr->CIDR(substr($v, 1));
+					foreach ($cidrresults as $result) {
+						$subcondition['AND'][] = array('Attribute.value NOT LIKE' => $result);
+					}
+				} else {
+					if ($parameterKey === 'org') {
+						$found_orgs = $this->Org->find('all', array(
+							'recursive' => -1,
+							'conditions' => array('LOWER(name) LIKE' => '%' . strtolower(substr($v, 1)) . '%'),
+						));
+						foreach ($found_orgs as $o) {
+							$subcondition['AND'][] = array('Event.orgc_id !=' => $o['Org']['id']);
+						}
+					} else if ($parameterKey === 'eventid') {
+						$subcondition['AND'][] = array('Attribute.event_id !=' => substr($v, 1));
+					} else if ($parameterKey === 'uuid') {
+						$subcondition['AND'][] = array('Event.uuid !=' => substr($v, 1));
+						$subcondition['AND'][] = array('Attribute.uuid !=' => substr($v, 1));
+					} else {
+						$subcondition['AND'][] = array('Attribute.' . $parameterKey . ' NOT LIKE' => '%'.substr($v, 1).'%');
+					}
+				}
+			} else {
+				// check for an IPv4 address and subnet in CIDR notation (e.g. 127.0.0.1/8)
+				if ($parameterKey === 'value' && $cidr->checkCIDR($v, 4)) {
+					$cidrresults = $cidr->CIDR($v);
+					foreach ($cidrresults as $result) {
+						if (!empty($result)) $subcondition['OR'][] = array('Attribute.value LIKE' => $result);
+					}
+				} else {
+					if ($parameterKey === 'org') {
+						$found_orgs = $this->Org->find('all', array(
+								'recursive' => -1,
+								'conditions' => array('LOWER(name) LIKE' => '%' . strtolower($v) . '%'),
+						));
+						foreach ($found_orgs as $o) {
+							$subcondition['OR'][] = array('Event.orgc_id' => $o['Org']['id']);
+						}
+					} else if ($parameterKey === 'eventid') {
+						$subcondition['OR'][] = array('Attribute.event_id' => $v);
+					} else if ($parameterKey === 'uuid') {
+						$subcondition['OR'][] = array('Attribute.uuid' => $v);
+						$subcondition['OR'][] = array('Event.uuid' => $v);
+					}else {
+						if (!empty($v)) $subcondition['OR'][] = array('Attribute.' . $parameterKey . ' LIKE' => '%'.$v.'%');
+					}
+				}
+			}
+		}
+		if (!empty($subcondition)) array_push ($conditions['AND'], $subcondition);
+		return $conditions;
 	}
 }

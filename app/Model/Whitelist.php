@@ -85,6 +85,7 @@ class Whitelist extends AppModel {
 						}
 					}
 				}
+				$data = array_values($data);
 			} else {
 			// if !$isAttributeArray, we know that we have an array of events that we need to parse through
 				foreach ($data as $ke => $event) {
@@ -98,6 +99,7 @@ class Whitelist extends AppModel {
 								}
 							}
 						}
+						$data[$ke]['Attribute'] = array_values($data[$ke]['Attribute']);
 					}
 				}
 			}
@@ -117,6 +119,7 @@ class Whitelist extends AppModel {
 					}
 				}
 			}
+			$data = array_values($data);
 		}
 		return $data;
 	}

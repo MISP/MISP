@@ -4,16 +4,25 @@
 		<legend><?php echo __('Edit My Profile'); ?></legend>
 	<?php
 		echo $this->Form->input('email');
-		echo $this->Form->input('password');
+	?>
+		<div class="input clear"></div>
+	<?php
+		$passwordPopover = '<span class=\"blue bold\">Length</span>: ' . h($length) . '<br />';
+		$passwordPopover .= '<span class=\"blue bold\">Complexity</span>: ' . h($complexity);
+		echo $this->Form->input('password', array(
+			'label' => 'Password <span id = "PasswordPopover" class="icon-info-sign" ></span>'
+		));
 		echo $this->Form->input('confirm_password', array('type' => 'password', 'div' => array('class' => 'input password required')));
-		if ($isAdmin) echo $this->Form->input('org', array('label' => 'Organisation', 'div' => 'input clear'));
-		else echo $this->Form->input('org', array('disabled' => 'disabled', 'label' => 'Organisation', 'div' => 'input clear'));
-		if ($isAdmin) echo $this->Form->input('role_id');
-		else echo $this->Form->input('role_id', array('disabled' => 'disabled'));	// TODO ACL, check, My Profile not edit role_id.
+	?>
+		<div class="input clear"></div>
+	<?php
 		echo $this->Form->input('nids_sid');
+	?>
+		<div class="input clear"></div>
+	<?php
 		echo $this->Form->input('gpgkey', array('label' => 'GPG key', 'div' => 'clear', 'class' => 'input-xxlarge'));
 		?>
-			<div class="clear"><span onClick="lookupPGPKey('UserEmail');" class="btn btn-inverse" style="margin-bottom:10px;">Fetch GPG key</span></div>
+			<div class="clear"><span role="button" tabindex="0" aria-label="Fetch PGP key" onClick="lookupPGPKey('UserEmail');" class="btn btn-inverse" style="margin-bottom:10px;">Fetch GPG key</span></div>
 		<?php
 		if (Configure::read('SMIME.enabled')) echo $this->Form->input('certif_public', array('label' => 'SMIME Public certificate (PEM format)', 'div' => 'clear', 'class' => 'input-xxlarge'));
 		echo $this->Form->input('autoalert', array('label' => 'Receive alerts when events are published', 'type' => 'checkbox'));
@@ -27,3 +36,14 @@ echo $this->Form->end();?>
 	$user['User']['id'] = $id;
 	echo $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'edit', 'user' => $user));
 ?>
+<script type="text/javascript">
+	$(document).ready(function() {
+		$('#PasswordPopover').popover("destroy").popover({
+			placement: 'right',
+			html: 'true',
+			trigger: 'hover',
+			content: '<?php echo $passwordPopover; ?>'
+		});
+	});
+</script>
+<?php echo $this->Js->writeBuffer();

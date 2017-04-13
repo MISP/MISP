@@ -18,12 +18,12 @@
 
 	<div class="tabMenuFixedContainer" style="display:<?php echo !$all ? 'none' : 'block';?>;">
 		<span class="tabMenuFixed tabMenuSides useCursorPointer " style="margin-left:50px;">
-			<span class="" onclick="window.location.href='<?php echo $baseurl; ?>/shadow_attributes/index'">My Org's Events</span>
+			<span role="button" tabindex="0" aria-label="Only list proposals of my organisation" title="Only list proposals of my organisation" class="" onclick="window.location.href='<?php echo $baseurl; ?>/shadow_attributes/index'">My Org's Events</span>
 		</span>
 	</div>
 	<div class="tabMenuFixedContainer" style="display:<?php echo $all ? 'none' : 'block';?>;">
 		<span class="tabMenuFixed tabMenuSides useCursorPointer " style="margin-left:50px;">
-			<span onclick="window.location.href='<?php echo $baseurl; ?>/shadow_attributes/index/all:1'">All Events</span>
+			<span role="button" tabindex="0" aria-label="List all proposals" title="List all proposals" onclick="window.location.href='<?php echo $baseurl; ?>/shadow_attributes/index/all:1'">All Events</span>
 		</span>
 	</div>
 	<table class="table table-striped table-hover table-condensed">

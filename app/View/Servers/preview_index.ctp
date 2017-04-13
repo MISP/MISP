@@ -30,7 +30,7 @@
 
 	<div class="tabMenuFixedContainer" style="display:inline-block;">
 		<span class="tabMenuFixed tabMenuFixed<?php echo $tab; ?> tabMenuSides">
-			<span id="create-button" title="Modify filters" class="icon-search useCursorPointer" onClick="getPopup('<?php echo h($urlparams);?>', 'servers', 'filterEventIndex/<?php echo h($id);?>');"></span>
+			<span id="create-button" title="Modify filters" role="button" tabindex="0" aria-label="Modify filters" class="icon-search useCursorPointer" onClick="getPopup('<?php echo h($urlparams);?>', 'servers', 'filterEventIndex/<?php echo h($id);?>');"></span>
 		</span>
 		<?php if ($filtered):
 			foreach ($passedArgsArray as $k => $v):?>
@@ -42,7 +42,7 @@
 			<?php echo $this->Html->link('', '/servers/previewIndex/' . h($id), array('class' => 'icon-remove', 'title' => 'Remove filters'));?>
 		</span>
 		<?php endif;?>
-		<span id="quickFilterButton" class="tabMenuFilterFieldButton useCursorPointer" onClick='quickFilterRemoteEvents(<?php echo h($passedArgs);?>, <?php echo h($id); ?>);'>Filter</span>
+		<span id="quickFilterButton" role="button" tabindex="0" aria-label="Filter" title="Filter" class="tabMenuFilterFieldButton useCursorPointer" onClick='quickFilterRemoteEvents(<?php echo h($passedArgs);?>, <?php echo h($id); ?>);'>Filter</span>
 		<input class="tabMenuFilterField" type="text" id="quickFilterField"></input>
 	</div>
 	<table class="table table-striped table-hover table-condensed">

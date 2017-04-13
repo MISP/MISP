@@ -224,11 +224,11 @@
 							<li class="divider"></li>
 							<li id='litasks'><a href="<?php echo $baseurl;?>/tasks">Scheduled Tasks</a></li>
 						<?php endif;
-						if (Configure::read('MISP.enableEventBlacklisting')): ?>
+						if (Configure::read('MISP.enableEventBlacklisting') !== false): ?>
 							<li <?php if ($menuItem === 'eventBlacklistsAdd') echo 'class="active"';?>><a href="<?php echo $baseurl;?>/eventBlacklists/add">Blacklists Event</a></li>
 							<li <?php if ($menuItem === 'eventBlacklists') echo 'class="active"';?>><a href="<?php echo $baseurl;?>/eventBlacklists">Manage Event Blacklists</a></li>
 						<?php endif;
-						if (Configure::read('MISP.enableOrgBlacklisting')): ?>
+						if (!Configure::check('MISP.enableOrgBlacklisting') || Configure::read('MISP.enableOrgBlacklisting') !== false): ?>
 							<li <?php if ($menuItem === 'orgBlacklistsAdd') echo 'class="active"';?>><a href="<?php echo $baseurl;?>/orgBlacklists/add">Blacklists Organisation</a></li>
 							<li <?php if ($menuItem === 'orgBlacklists') echo 'class="active"';?>><a href="<?php echo $baseurl;?>/orgBlacklists">Manage Org Blacklists</a></li>
 						<?php endif;

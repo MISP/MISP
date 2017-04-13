@@ -66,6 +66,9 @@ class Tag extends AppModel {
 		if (!isset($this->data['Tag']['hide_tag'])) {
 			$this->data['Tag']['hide_tag'] = Configure::read('MISP.incoming_tags_disabled_by_default') ? 1 : 0;
 		}
+		if (!isset($this->data['Tag']['exportable'])) {
+			$this->data['Tag']['exportable'] = 1;
+		}
 		return true;
 	}
 

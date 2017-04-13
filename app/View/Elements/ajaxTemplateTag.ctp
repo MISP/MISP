@@ -7,7 +7,7 @@
 				</td>
 				<?php if ($editable == 'yes'): ?>
 				<td style="padding-left:0px;padding-right:5px;">
-					<span class="tagSecondHalf useCursorPointer" onClick="removeTemplateTag('<?php echo h($tag['Tag']['id']); ?>', '<?php echo h($tag['Tag']['name']); ?>');">x</span>
+					<span class="tagSecondHalf useCursorPointer" title="Remove tag" role="button" tabindex="0" aria-label="Remove tag" onClick="removeTemplateTag('<?php echo h($tag['Tag']['id']); ?>', '<?php echo h($tag['Tag']['name']); ?>');">x</span>
 				</td>
 				<?php endif; ?>
 			</tr>

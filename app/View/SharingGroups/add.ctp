@@ -2,10 +2,10 @@
 	<fieldset>
 		<legend><?php echo __('New Sharing Group'); ?></legend>
 		<div class="tabMenuFixedContainer">
-			<span id="page1_tab" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer tabMenuActive" onClick="simpleTabPage(1);">General</span>
-			<span id="page2_tab" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer" onClick="simpleTabPage(2);">Organisations</span>
-			<span id="page3_tab" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer" onClick="simpleTabPage(3);">MISP Instances</span>
-			<span id="page4_tab" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer" onClick="simpleTabPage(4);">Summary and Save</span>
+			<span id="page1_tab" role="button" tabindex="0" aria-label="General tab" title="General tab" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer tabMenuActive" onClick="simpleTabPage(1);">General</span>
+			<span id="page2_tab" role="button" tabindex="0" aria-label="Organisations tab" title="Organisations tab" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer" onClick="simpleTabPage(2);">Organisations</span>
+			<span id="page3_tab" role="button" tabindex="0" aria-label="MISP instances tab" title="MISP instances tab" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer" onClick="simpleTabPage(3);">MISP Instances</span>
+			<span id="page4_tab" role="button" tabindex="0" aria-label="Sharing group summary" title="Sharing group summary" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer" onClick="simpleTabPage(4);">Summary and Save</span>
 		</div>
 		<div id="page1_content" class="multi-page-form-div tabContent" style="width:544px;">
 			<label for="SharingGroupName">Name</label>
@@ -18,12 +18,12 @@
 				<input type="checkbox" style="float:left;" title="Active sharing groups can be selected by users of the local instance when creating events. Generally, sharing groups received through synchronisation will have this disabled until manually enabled." value="1" id="SharingGroupActive" checked></input>
 				<label for="SharingGroupActive" style="padding-left:20px;">Make the sharing group selectable (active)</label>
 			</div>
-			<span class="btn btn-inverse" onClick="simpleTabPage(2);">Next page</span>
+			<span role="button" tabindex="0" aria-label="Next page" title="Next page" class="btn btn-inverse" onClick="simpleTabPage(2);">Next page</span>
 		</div>
 		<div id="page2_content" class="multi-page-form-div tabContent" style="display:none;width:544px;">
 			<div class="tabMenuFixedContainer">
-				<span class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer" onClick="sharingGroupAdd('organisation', 'local');">Add local organisation</span>
-				<span class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer" onClick="sharingGroupAdd('organisation', 'remote');">Add remote organisation</span>
+				<span role="button" tabindex="0" aria-label="Add local organisation(s) to the sharing group" title="Add local organisation(s) to the sharing group" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer" onClick="sharingGroupAdd('organisation', 'local');">Add local organisation</span>
+				<span role="button" tabindex="0" aria-label="Add remote organisations to the sharing group" title="Add remote organisations to the sharing group" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer" onClick="sharingGroupAdd('organisation', 'remote');">Add remote organisation</span>
 			</div>
 			<table id="organisations_table" class="table table-striped table-hover table-condensed">
 				<tr id="organisations_table_header">
@@ -34,8 +34,8 @@
 					<th>Actions</th>
 				</tr>
 			</table>
-				<span class="btn btn-inverse" onClick="simpleTabPage(1);">Previous page</span>
-				<span class="btn btn-inverse" onClick="simpleTabPage(3);">Next page</span>
+				<span role="button" tabindex="0" aria-label="Previous page" title="Previous page" class="btn btn-inverse" onClick="simpleTabPage(1);">Previous page</span>
+				<span role="button" tabindex="0" aria-label="Next page" title="Next page" class="btn btn-inverse" onClick="simpleTabPage(3);">Next page</span>
 		</div>
 		<div id="page3_content" class="multi-page-form-div tabContent" style="display:none;width:544px;">
 			<div style="display:block;">
@@ -44,7 +44,7 @@
 			</div>
 			<div id="serverList">
 				<div class="tabMenuFixedContainer">
-					<span class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer" onClick="sharingGroupAdd('server');">Add instance</span>
+					<span role="button" tabindex="0" aria-label="Add instance" title="Add instance" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer" onClick="sharingGroupAdd('server');">Add instance</span>
 				</div>
 				<table id="servers_table" class="table table-striped table-hover table-condensed">
 					<tr>
@@ -55,8 +55,8 @@
 					</tr>
 				</table>
 			</div>
-				<span class="btn btn-inverse" onClick="simpleTabPage(2);">Previous page</span>
-				<span class="btn btn-inverse" onClick="simpleTabPage(4);">Next page</span>
+				<span role="button" tabindex="0" aria-label="Previous page" title="Previous page" class="btn btn-inverse" onClick="simpleTabPage(2);">Previous page</span>
+				<span role="button" tabindex="0" aria-label="Next page" title="Next page" class="btn btn-inverse" onClick="simpleTabPage(4);">Next page</span>
 		</div>
 	</fieldset>
 	<div id="page4_content" class="multi-page-form-div tabContent" style="display:none;width:544px;">
@@ -71,8 +71,8 @@
 			//echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary'));
 			echo $this->Form->end();
 		?>
-		<span class="btn btn-inverse" onClick="simpleTabPage(3);">Previous page</span>
-		<span class="btn btn-primary" onClick="sgSubmitForm('Add');">Submit</span>
+		<span role="button" tabindex="0" aria-label="Previous page" title="Previous page" class="btn btn-inverse" onClick="simpleTabPage(3);">Previous page</span>
+		<span role="button" tabindex="0" aria-label="Submit and create sharing group" title="Submit and create sharing group" class="btn btn-primary" onClick="sgSubmitForm('Add');">Submit</span>
 	</div>
 </div>
 <?php

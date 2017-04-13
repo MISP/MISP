@@ -101,6 +101,9 @@ class JobsController extends AppController {
 	}
 
 	public function cache($type) {
+		if (Configure::read('MISP.disable_cached_exports')) {
+			throw new MethodNotAllowedException('This feature is currently disabled');
+		}
 		if ($this->_isSiteAdmin()) {
 			$target = 'All events.';
 		} else {

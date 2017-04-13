@@ -26,7 +26,6 @@
 echo $this->Form->button('Merge', array('class' => 'btn btn-primary'));
 echo $this->Form->end();
 ?>
-	<div id="confirmation_box" class="confirmation_box"></div>
 </div>
 <?php
 	$event['Event']['id'] = $this->request->data['Event']['target_id'];

@@ -27,9 +27,9 @@
 	?>
 	<div class="tabMenuFixedContainer" style="display:inline-block;">
 		<span class="tabMenuFixed tabMenuFixed<?php echo $tab; ?> tabMenuSides">
-			<span id="create-button" title="Modify filters" class="icon-search useCursorPointer" onClick="getPopup('<?php echo h($urlparams);?>', 'events', 'filterEventIndex');"></span>
+			<span role="button" tabindex="0" aria-label="Modify filters" id="create-button" title="Modify filters" class="icon-search useCursorPointer" title="Filter events" role="button" tabindex="0" aria-label="Filter events" onClick="getPopup('<?php echo h($urlparams);?>', 'events', 'filterEventIndex');"></span>
 		</span>
-		<?php 
+		<?php
 			if ($filtered):
 				foreach ($passedArgsArray as $k => $v):?>
 					<span class="tabMenuFixed tabMenuFixedElement">
@@ -40,7 +40,7 @@
 				<?php echo $this->Html->link('', array('controller' => 'events', 'action' => 'index'), array('class' => 'icon-remove', 'title' => 'Remove filters'));?>
 			</span>
 			<?php endif;?>
-			<span id="quickFilterButton" class="tabMenuFilterFieldButton useCursorPointer" onClick='quickFilter(<?php echo h($passedArgs);?>, "/events/index");'>Filter</span>
+			<span role="button" tabindex="0" aria-label="Quickfilter" title="Quickfilter" id="quickFilterButton" class="tabMenuFilterFieldButton useCursorPointer" onClick='quickFilter(<?php echo h($passedArgs);?>, "/events/index");'>Filter</span>
 			<input class="tabMenuFilterField" type="text" id="quickFilterField"></input>
 			<?php
 				$tempArgs = json_decode($passedArgs, true);
@@ -54,7 +54,7 @@
 				$tempArgs = json_encode($tempArgs);
 			?>
 			<span class="tabMenuFixed tabMenuFixedLeft tabMenuSides useCursorPointer <?php echo $tabBackground; ?>" style="margin-left:50px;">
-				<span id="myOrgButton" title="Modify filters" onClick="executeFilter(<?php echo h($tempArgs);?>, '<?php echo $baseurl;?>/events/index');">My Events</span>
+				<span role="button" tabindex="0" aria-label="My events only" title="My events only" id="myOrgButton" title="Modify filters" onClick="executeFilter(<?php echo h($tempArgs);?>, '<?php echo $baseurl;?>/events/index');">My Events</span>
 			</span>
 			<?php
 				$tempArgs = json_decode($passedArgs, true);
@@ -68,11 +68,11 @@
 				$tempArgs = json_encode($tempArgs);
 			?>
 			<span class="tabMenuFixed tabMenuFixedRight tabMenuSides useCursorPointer <?php echo $tabBackground; ?>">
-				<span id="myOrgButton" title="Modify filters" onClick="executeFilter(<?php echo h($tempArgs);?>, '<?php echo $baseurl;?>/events/index');">Org Events</span>
+				<span role="button" tabindex="0" aria-label="My organisation's events only" id="myOrgButton" title="My organisation's events only" onClick="executeFilter(<?php echo h($tempArgs);?>, '<?php echo $baseurl;?>/events/index');">Org Events</span>
 			</span>
 		</div>
-	<?php 
-		endif; 
+	<?php
+		endif;
 		echo $this->element('Events/eventIndexTable');
 	?>
 	<p>

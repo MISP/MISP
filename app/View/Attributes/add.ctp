@@ -1,6 +1,6 @@
 <div class="attributes <?php if (!isset($ajax) || !$ajax) echo 'form';?>">
 <?php
-	echo $this->Form->create('Attribute', array('id'));
+	echo $this->Form->create('Attribute', array('id', 'url' => '/attributes/add/' . $event_id));
 ?>
 	<fieldset>
 		<legend><?php echo __('Add Attribute'); ?></legend>
@@ -81,13 +81,13 @@
 			<table>
 				<tr>
 				<td style="vertical-align:bottom">
-					<span id="submitButton" class="btn btn-primary" onClick="submitPopoverForm('<?php echo $event_id;?>', 'add')">Submit</span>
+					<span id="submitButton" class="btn btn-primary" title="Submit" role="button" tabindex="0" aria-label="Submit" onClick="submitPopoverForm('<?php echo $event_id;?>', 'add')">Submit</span>
 				</td>
 				<td style="width:540px;margin-bottom:0px;">
 					<p style="color:red;font-weight:bold;display:none;text-align:center;margin-bottom:0px;" id="warning-message">Warning: You are about to share data that is of a classified nature. Make sure that you are authorised to share this.</p>
 				</td>
 				<td style="vertical-align:bottom;">
-					<span class="btn btn-inverse" id="cancel_attribute_add">Cancel</span>
+					<span class="btn btn-inverse" title="Cancel" role="button" tabindex="0" aria-label="Cancel" id="cancel_attribute_add">Cancel</span>
 				</td>
 				</tr>
 			</table>
@@ -101,11 +101,10 @@
 		endif;
 		echo $this->Form->end();
 	?>
-	<div id="confirmation_box" class="confirmation_box"></div>
 </div>
 <?php
 	if (!$ajax) {
-		$event['Event']['id'] = $this->request->data['Attribute']['event_id'];
+		$event['Event']['id'] = $event_id;
 		$event['Event']['published'] = $published;
 		echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'addAttribute', 'event' => $event));
 	}
