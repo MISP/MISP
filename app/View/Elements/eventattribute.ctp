@@ -359,7 +359,7 @@
 									if ($object['objectType'] == 0):
 							?>
 										<td class="short <?php echo $extra; ?>" style="padding-top:3px;">
-											<input class="correlation-toggle" type="checkbox" data-attribute-id="<?php echo h($object['id']); ?>" <?php echo $object['disable_correlation'] ? '' : 'checked'; ?>>
+											<input id="correlation_toggle_<?php echo h($object['id']); ?>" class="correlation-toggle" type="checkbox" data-attribute-id="<?php echo h($object['id']); ?>" <?php echo $object['disable_correlation'] ? '' : 'checked'; ?>>
 										</td>
 							<?php
 									else:
@@ -585,7 +585,7 @@ attributes or the appropriate distribution level. If you think there is a mistak
 	var timer;
 	var lastSelected = false;
 	var deleted = <?php echo (isset($deleted) && $deleted) ? 'true' : 'false';?>;
-	$(document).ready(function(){
+	$(document).ready(function() {
 		setContextFields();
 		popoverStartup();
 		$('.select_attribute').removeAttr('checked');
