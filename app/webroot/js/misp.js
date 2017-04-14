@@ -245,6 +245,27 @@ function acceptObject(type, id, event) {
 	});
 }
 
+function toggleCorrelation(id) {
+	$.ajax({
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+		data: $('#PromptForm').serialize(),
+		success:function (data, textStatus) {
+			handleGenericAjaxResponse(data);
+			$("#correlation_toggle_" + id).prop('checked', !$("#correlation_toggle_" + id).is(':checked'));
+		},
+		complete:function() {
+			$(".loading").hide();
+			$("#confirmation_box").fadeOut();
+			$("#gray_out").fadeOut();
+		},
+		type:"post",
+		cache: false,
+		url:'/attributes/toggleCorrelation/' + id,
+	});
+}
+
 function eventUnpublish() {
 	$('.publishButtons').show();
 	$('.exportButtons').hide();

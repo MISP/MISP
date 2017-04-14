@@ -17,7 +17,7 @@
 		<table>
 			<tr>
 				<td style="vertical-align:top">
-					<span id="PromptYesButton" title="Toggle correlation for attribute" role="button" tabindex="0" aria-label="Toggle correlation for attribute" class="btn btn-primary" onClick="submitPublish();">Yes</span>
+					<span id="PromptYesButton" title="Toggle correlation for attribute" role="button" tabindex="0" aria-label="Toggle correlation for attribute" class="btn btn-primary" onClick="toggleCorrelation(<?php echo h($attribute['Attribute']['id']); ?>);">Yes</span>
 				</td>
 				<td style="width:540px;">
 				</td>
