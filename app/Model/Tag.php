@@ -191,13 +191,23 @@ class Tag extends AppModel {
 		return ($this->save($data));
 	}
 
-	public function quickEdit($tag, $name, $colour) {
-		if ($tag['Tag']['colour'] !== $colour || $tag['Tag']['name'] !== $name) {
+	public function quickEdit($tag, $name, $colour, $hide = false) {
+		if ($tag['Tag']['colour'] !== $colour || $tag['Tag']['name'] !== $name || $hide !== false) {
 			$tag['Tag']['name'] = $name;
 			$tag['Tag']['colour'] = $colour;
+			if ($hide !== false) {
+				$tag['Tag']['hide_tag'] = $hide;
+			}
 			return ($this->save($tag['Tag']));
 		}
 		return true;
+	}
+
+	public function disableTags($tags) {
+		foreach ($tags as $k => $v) {
+			$tags[$k]['Tag']['hide_tag'] = 1;
+		}
+		return ($this->saveAll($tags));
 	}
 
 	public function getTagsForNamespace($namespace) {
