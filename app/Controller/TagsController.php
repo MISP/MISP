@@ -466,9 +466,7 @@ class TagsController extends AppController {
 			}
 		} else if ($taxonomy_id === 'all') {
 			$conditions = array('Tag.org_id' => array(0, $this->Auth->user('org_id')));
-			if (Configure::read('MISP.incoming_tags_disabled_by_default')) {
-				$conditions['Tag.hide_tag'] = 0;
-			}
+			$conditions['Tag.hide_tag'] = 0;
 			$options = $this->Tag->find('list', array('fields' => array('Tag.name'), 'conditions' => $conditions));
 			$expanded = $options;
 		} else {
@@ -498,6 +496,14 @@ class TagsController extends AppController {
 				unset($options[$banned_tag]);
 				unset($expanded[$banned_tag]);
 			}
+		}
+		$hidden_tags = $this->Tag->find('list', array(
+				'conditions' => array('Tag.hide_tag' => 1),
+				'fields' => array('Tag.id')
+		));
+		foreach ($hidden_tags as $hidden_tag) {
+			unset($options[$hidden_tag]);
+			unset($expanded[$hidden_tag]);
 		}
 		if ($attributeTag !== false) {
 			$this->set('attributeTag', true);
