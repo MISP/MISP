@@ -2154,7 +2154,11 @@ class AttributesController extends AppController {
 			}
 		}
 		$this->layout = 'ajax';
-		if ($field == 'distribution') $this->set('distributionLevels', $this->Attribute->shortDist);
+		if ($field == 'distribution') {
+			$distributionLevels = $this->Attribute->shortDist;
+			unset($distributionLevels[4]);
+			$this->set('distributionLevels', $distributionLevels);
+		}
 		if ($field == 'category') {
 			$typeCategory = array();
 			foreach ($this->Attribute->categoryDefinitions as $k => $category) {
