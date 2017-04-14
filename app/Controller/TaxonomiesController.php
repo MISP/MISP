@@ -28,7 +28,7 @@ class TaxonomiesController extends AppController {
 				$total += empty($predicate['TaxonomyEntry']) ? 1 : count($predicate['TaxonomyEntry']);
 			}
 			$taxonomies[$key]['total_count'] = $total;
-			$taxonomies[$key]['current_count'] = $this->Tag->find('count', array('conditions' => array('lower(Tag.name) LIKE ' => strtolower($taxonomy['Taxonomy']['namespace']) . ':%')));
+			$taxonomies[$key]['current_count'] = $this->Tag->find('count', array('conditions' => array('lower(Tag.name) LIKE ' => strtolower($taxonomy['Taxonomy']['namespace']) . ':%', 'hide_tag' => 0)));
 			unset($taxonomies[$key]['TaxonomyPredicate']);
 		}
 		$this->set('taxonomies', $taxonomies);
@@ -195,6 +195,24 @@ class TaxonomiesController extends AppController {
 		} else {
 			$this->Session->setFlash('The tag(s) could not be saved. Please, try again.');
 		}
+		$this->redirect($this->referer());
+	}
+
+	public function disableTag($taxonomy_id = false) {
+		if ((!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) || !$this->request->is('post')) throw new NotFoundException('You don\'t have permission to do that.');
+		if ($taxonomy_id) {
+			$result = $this->Taxonomy->disableTags($taxonomy_id);
+		} else {
+			if (isset($this->request->data['Taxonomy'])) {
+				$this->request->data['Tag'] = $this->request->data['Taxonomy'];
+				unset($this->request->data['Taxonomy']);
+			}
+			if (isset($this->request->data['Tag']['request'])) $this->request->data['Tag'] = $this->request->data['Tag']['request'];
+			if (!isset($this->request->data['Tag']['nameList'])) $this->request->data['Tag']['nameList'] = array($this->request->data['Tag']['name']);
+			else $this->request->data['Tag']['nameList'] = json_decode($this->request->data['Tag']['nameList'], true);
+			$result = $this->Taxonomy->disableTags($this->request->data['Tag']['taxonomy_id'], $this->request->data['Tag']['nameList']);
+		}
+		$this->Session->setFlash($result ? 'The tag(s) has been hidden.' : 'The tag(s) could not be hidden. Please, try again.');
 		$this->redirect($this->referer());
 	}
 
