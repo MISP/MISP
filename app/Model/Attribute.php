@@ -779,24 +779,20 @@ class Attribute extends AppModel {
 				break;
 			case 'ip-src':
 			case 'ip-dst':
-				$parts = explode("/", $value);
-				// [0] = the IP
-				// [1] = the network address
-				if (count($parts) <= 2 ) {
-					// IPv4 and IPv6 matching
-					if (filter_var($parts[0], FILTER_VALIDATE_IP)) {
-						// IP is validated, now check if we have a valid network mask
-						if (empty($parts[1])) {
-							$returnValue = true;
-						} else {
-							if (is_numeric($parts[1]) && $parts[1] < 129) {
-								$returnValue = true;
-							}
-						}
+				$returnValue = true;
+				if (strpos($value, '/') !== false) {
+					$parts = explode("/", $value);
+					// [0] = the IP
+					// [1] = the network address
+					if (count($parts) != 2 || (!is_numeric($parts[1]) || !($parts[1] < 129 && $parts[1] > 0))) {
+							$returnValue = 'Invalid CIDR notation value found.';
 					}
+					$ip = $parts[0];
+				} else {
+					$ip = $value;
 				}
-				if (!$returnValue) {
-					$returnValue = 'IP address has an invalid format. Please double check the value or select type "other".';
+				if (!filter_var($ip, FILTER_VALIDATE_IP)) {
+					$returnValue = 'IP address has an invalid format.';
 				}
 				break;
 			case 'port':
