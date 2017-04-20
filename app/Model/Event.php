@@ -3201,6 +3201,11 @@ class Event extends AppModel {
 		$events = $this->fetchEvent($user, $options);
 		if (empty($events)) return 'Invalid event.';
 		$modulePayload = array('module' => $module['name']);
+		if (isset($module['meta']['config'])) {
+			foreach ($module['meta']['config'] as $conf) {
+				$modulePayload['config'][$conf] = Configure::read('Plugin.Export_' . $module['name'] . '_' . $conf);
+			}
+		}
 		$modulePayload['data'] = $events;
 		$result = $this->Module->queryModuleServer('/query', json_encode($modulePayload, true), false, 'Export');
 		return array(
