@@ -3994,6 +3994,13 @@ class EventsController extends AppController {
 						);
 						$resultArray[$key]['related'] = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $options);
 					}
+					$distributions = $this->Event->Attribute->distributionLevels;
+					$sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name',  1);
+					if (empty($sgs)) {
+						unset($distributions[4]);
+					}
+					$this->set('distributions', $distributions);
+					$this->set('sgs', $sgs);
 					$this->set('event', array('Event' => array('id' => $eventId)));
 					$this->set('resultArray', $resultArray);
 					$this->set('typeList', array_keys($this->Event->Attribute->typeDefinitions));
