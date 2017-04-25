@@ -255,7 +255,7 @@ class EventsController extends AppController {
 		// list the events
 		$passedArgsArray = array();
 		$urlparams = "";
-		$overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'Datefrom', 'Dateuntil', 'org', 'eventinfo', 'tag', 'distribution', 'analysis', 'threatlevel', 'email', 'hasproposal', 'timestamp', 'publishtimestamp', 'minimal');
+		$overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'Datefrom', 'Dateuntil', 'org', 'eventinfo', 'tag', 'distribution', 'analysis', 'threatlevel', 'email', 'hasproposal', 'timestamp', 'publishtimestamp', 'publish_timestamp', 'minimal');
 		$passedArgs = $this->passedArgs;
 		if (isset($this->request->data)) {
 			if (isset($this->request->data['request'])) $this->request->data = $this->request->data['request'];
@@ -268,8 +268,10 @@ class EventsController extends AppController {
 		// check each of the passed arguments whether they're a filter (could also be a sort for example) and if yes, add it to the pagination conditions
 		foreach ($passedArgs as $k => $v) {
 			if (substr($k, 0, 6) === 'search') {
-				if ($urlparams != "") $urlparams .= "/";
-				$urlparams .= $k . ":" . $v;
+				if (!is_array($v)) {
+					if ($urlparams != "") $urlparams .= "/";
+					$urlparams .= $k . ":" . $v;
+				}
 				$searchTerm = strtolower(substr($k, 6));
 				switch ($searchTerm) {
 					case 'all' :
@@ -324,9 +326,16 @@ class EventsController extends AppController {
 						if ($v == "") continue 2;
 						$this->paginate['conditions']['AND'][] = array('Event.timestamp >=' => $v);
 						break;
+					case 'publish_timestamp':
 					case 'publishtimestamp':
 						if ($v == "") continue 2;
-						$this->paginate['conditions']['AND'][] = array('Event.publish_timestamp <=' => $v);
+						if (is_array($v) && isset($v[0]) && isset($v[1])) {
+							$this->paginate['conditions']['AND'][] = array('Event.publish_timestamp >=' => $v[0]);
+							$this->paginate['conditions']['AND'][] = array('Event.publish_timestamp <=' => $v[1]);
+						} else {
+							$this->paginate['conditions']['AND'][] = array('Event.publish_timestamp >=' => $v);
+						}
+
 						break;
 					case 'org' :
 						if ($v == "") continue 2;
