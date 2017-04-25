@@ -249,6 +249,7 @@ App::uses('RandomTool', 'Tools');
 	}
 
 	public function beforeSave($options = array()) {
+    $this->data[$this->alias]['date_modified'] = time();
 		if (isset($this->data[$this->alias]['password'])) {
 			$this->data[$this->alias]['password'] = AuthComponent::password($this->data[$this->alias]['password']);
 		}
@@ -349,7 +350,7 @@ App::uses('RandomTool', 'Tools');
 
 	public function passwordLength($check) {
 		$length = Configure::read('Security.password_policy_length');
-		if (empty($length) || $length < 0) $length = 6;
+		if (empty($length) || $length < 0) $length = 12;
 		$value = array_values($check);
 		$value = $value[0];
 		if (strlen($value) < $length) return false;
@@ -367,7 +368,7 @@ App::uses('RandomTool', 'Tools');
 	 */
 	public function complexPassword($check) {
 		$regex = Configure::read('Security.password_policy_complexity');
-		if (empty($regex) || @preg_match($regex, 'test') === false) $regex = '/((?=.*\d)|(?=.*\W+))(?![\n])(?=.*[A-Z])(?=.*[a-z]).*$/';
+		if (empty($regex) || @preg_match($regex, 'test') === false) $regex = '/^((?=.*\d)|(?=.*\W+))(?![\n])(?=.*[A-Z])(?=.*[a-z]).*$|.{16,}/';
 		$value = array_values($check);
 		$value = $value[0];
 		return preg_match($regex, $value);
@@ -636,7 +637,6 @@ App::uses('RandomTool', 'Tools');
 			$conditions['AND']['OR'][] = array('role_id' => $roleIDs);
 		}
 		$conditions['AND'][] = $userConditions;
-
 		$users = $this->find('all', array(
 			'conditions' => $conditions,
 			'recursive' => -1,

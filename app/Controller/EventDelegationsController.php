@@ -84,7 +84,7 @@ class EventDelegationsController extends AppController {
 		$delegation = $this->EventDelegation->find('first', array(
 				'conditions' => array('EventDelegation.id' => $id),
 				'recursive' => -1,
-				'contain' => array('Org', 'Event'),
+				'contain' => array('Org', 'Event', 'RequesterOrg'),
 		));
 		if (empty($delegation) || (!$this->_isSiteAdmin() && $this->Auth->user('org_id') != $delegation['EventDelegation']['org_id'])) throw new MethodNotAllowedException('You are not authorised to do that.');
 		if ($this->request->is('post')) {
@@ -129,13 +129,13 @@ class EventDelegationsController extends AppController {
 		$delegation = $this->EventDelegation->find('first', array(
 			'conditions' => array('EventDelegation.id' => $id),
 			'recursive' => -1,
-			'contain' => array('Org', 'Event'),
+			'contain' => array('Org', 'Event', 'RequesterOrg'),
 		));
 		if (empty($delegation) || (!$this->_isSiteAdmin() && !in_array($this->Auth->user('org_id'), array($delegation['EventDelegation']['requester_org_id'], $delegation['EventDelegation']['org_id'])))) throw new MethodNotAllowedException('You are not authorised to do that.');
 		if ($this->request->is('post')) {
 			$this->EventDelegation->delete($delegation['EventDelegation']['id']);
 			$this->Session->setFlash('Delegation request deleted.');
-			$this->redirect(array('controller' => 'events', 'action' => 'view', $delegation['EventDelegation']['event_id']));
+			$this->redirect(array('controller' => 'events', 'action' => 'index'));
 		} else {
 			$this->set('delegationRequest', $delegation);
 			$this->render('ajax/delete_delegation');

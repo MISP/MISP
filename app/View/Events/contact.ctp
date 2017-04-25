@@ -31,7 +31,6 @@ $mayPublish = ($isAclPublish && $this->request->data['Event']['orgc_id'] == $me[
 	?>
 		</div>
 	</fieldset>
-	<div id="confirmation_box" class="confirmation_box"></div>
 </div>
 <?php
 	$event = $this->data;

@@ -58,7 +58,7 @@
 		</div>
 		<br />
 		<?php echo $this->Form->submit('Merge', array('div' => false, 'class' => 'btn btn-primary')); ?>
-		<span class="btn btn-inverse" onClick="cancelPopoverForm();" style="float:right;">Cancel</span>
+		<span role="button" tabindex="0" aria-label="Cancel" title="Cancel" class="btn btn-inverse" onClick="cancelPopoverForm();" style="float:right;">Cancel</span>
 		<?php echo $this->Form->end(); ?>
 	</div>
 </div>

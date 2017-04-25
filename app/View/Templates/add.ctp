@@ -14,7 +14,7 @@
 					<tr>
 						<td><table><tr id = "tags"></tr></table></td>
 						<td id = "addTagButtonTD">
-							<span onClick="activateTagField()" id="addTagButton" class="btn btn-inverse noPrint" style="line-height:10px; padding: 4px 4px;">+</span>
+							<button onClick="activateTagField()" id="addTagButton" title="Add tag" class="btn btn-inverse noPrint" style="line-height:10px; padding: 4px 4px;">+</button>
 						</td>
 						<td id = "addTagFieldTD">
 							<?php

@@ -14,7 +14,7 @@
 						if (isset($response[$content])):
 			?>
 							<span class="bold red"><?php echo h($name); ?></span>: <?php echo h($response[$content]); ?><br />
-			<?php 
+			<?php
 						endif;
 					endforeach;
 			?>
@@ -23,15 +23,15 @@
 					<div id="stacktrace" class="hidden">
 						<?php echo $stackTrace; ?>
 					</div>
-			<?php 
+			<?php
 				else:
 			?>
 				<p>No error data found. Generally job error data is purged from Redis after 24 hours, however, you can still view the errors in the log files in "/app/tmp/logs".</p>
-			<?php 
+			<?php
 				endif;
 			?>
 		</div>
-		<span class="btn btn-inverse" id="PromptNoButton" onClick="cancelPopoverForm();">Close</span>
+		<span role="button" tabindex="0" aria-label="Cancel" title="Cancel" class="btn btn-inverse" id="PromptNoButton" onClick="cancelPopoverForm();">Close</span>
 	</div>
 </div>
 <script type="text/javascript">

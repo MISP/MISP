@@ -20,16 +20,16 @@
 		<?php foreach ($options as $k => &$option): ?>
 			<tr style="border-top:1px solid black;" class="templateChoiceButton" id="field_<?php echo h($k); ?>">
 				<?php if (isset($attributeTag)): ?>
-				<td style="padding-left:10px;padding-right:10px; text-align:center;width:100%;" onClick="quickSubmitAttributeTagForm('<?php echo h($object_id);?>', '<?php echo h($k); ?>');" title="<?php echo h($expanded[$k]);?>"><?php echo h($option); ?></td>
+				<td style="padding-left:10px;padding-right:10px; text-align:center;width:100%;" onClick="quickSubmitAttributeTagForm('<?php echo h($object_id);?>', '<?php echo h($k); ?>');" title="<?php echo h($expanded[$k]);?>" role="button" tabindex="0" aria-label="Attach tag <?php echo h($option); ?>"><?php echo h($option); ?></td>
 				<?php else: ?>
-				<td style="padding-left:10px;padding-right:10px; text-align:center;width:100%;" onClick="quickSubmitTagForm('<?php echo h($object_id);?>', '<?php echo h($k); ?>');" title="<?php echo h($expanded[$k]);?>"><?php echo h($option); ?></td>
+				<td style="padding-left:10px;padding-right:10px; text-align:center;width:100%;" onClick="quickSubmitTagForm('<?php echo h($object_id);?>', '<?php echo h($k); ?>');" title="<?php echo h($expanded[$k]);?>" role="button" tabindex="0" aria-label="Attach tag <?php echo h($option); ?>"><?php echo h($option); ?></td>
 				<?php endif; ?>
 			</tr>
 		<?php endforeach; ?>
 		</table>
 	</div>
-	<div class="popover-back useCursorPointer" onClick="getPopup('<?php echo h($object_id); if (isset($attributeTag)) echo '/true'; ?>', 'tags', 'selectTaxonomy');" title="Select Taxonomy">Back to Taxonomy Selection</div>
-	<div class="templateChoiceButton templateChoiceButtonLast" onClick="cancelPopoverForm();">Cancel</div>
+	<div role="button" tabindex="0" aria-label="Return to taxonomy selection" class="popover-back useCursorPointer" onClick="getPopup('<?php echo h($object_id); if (isset($attributeTag)) echo '/true'; ?>', 'tags', 'selectTaxonomy');" title="Select Taxonomy">Back to Taxonomy Selection</div>
+	<div role="button" tabindex="0" aria-label="Cancel" class="templateChoiceButton templateChoiceButtonLast" onClick="cancelPopoverForm();">Cancel</div>
 </div>
 <script type="text/javascript">
 	var tags = <?php echo json_encode($options); ?>;

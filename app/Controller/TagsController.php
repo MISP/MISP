@@ -466,9 +466,7 @@ class TagsController extends AppController {
 			}
 		} else if ($taxonomy_id === 'all') {
 			$conditions = array('Tag.org_id' => array(0, $this->Auth->user('org_id')));
-			if (Configure::read('MISP.incoming_tags_disabled_by_default')) {
-				$conditions['Tag.hide_tag'] = 0;
-			}
+			$conditions['Tag.hide_tag'] = 0;
 			$options = $this->Tag->find('list', array('fields' => array('Tag.name'), 'conditions' => $conditions));
 			$expanded = $options;
 		} else {
@@ -498,6 +496,14 @@ class TagsController extends AppController {
 				unset($options[$banned_tag]);
 				unset($expanded[$banned_tag]);
 			}
+		}
+		$hidden_tags = $this->Tag->find('list', array(
+				'conditions' => array('Tag.hide_tag' => 1),
+				'fields' => array('Tag.id')
+		));
+		foreach ($hidden_tags as $hidden_tag) {
+			unset($options[$hidden_tag]);
+			unset($expanded[$hidden_tag]);
 		}
 		if ($attributeTag !== false) {
 			$this->set('attributeTag', true);
@@ -612,7 +618,7 @@ class TagsController extends AppController {
 		}
 		if (empty($tag)) {
 			if (!empty($this->request->data['tag'])) {
-				$uuid = $this->request->data['tag'];
+				$tag = $this->request->data['tag'];
 			} else {
 				throw new MethodNotAllowedException('Invalid tag');
 			}
@@ -628,13 +634,13 @@ class TagsController extends AppController {
 		if (empty($existingTag)) {
 			if (!is_numeric($tag)) {
 				if (!$this->userRole['perm_tag_editor']) {
-					throw new InvalidArgumentException('Tag not found and insufficient privileges to create it.');
+					throw new MethodNotAllowedException('Tag not found and insufficient privileges to create it.');
 				}
 				$this->Tag->create();
 				$this->Tag->save(array('Tag' => array('name' => $tag, 'colour' => $this->Tag->random_color())));
 				$existingTag = $this->Tag->find('first', array('recursive' => -1, 'conditions' => array('Tag.id' => $this->Tag->id)));
 			} else {
-				throw new InvalidArgumentException('Invalid Tag.');
+				throw new NotFoundException('Invalid Tag.');
 			}
 		}
 		if (!$this->_isSiteAdmin()) {
@@ -682,7 +688,7 @@ class TagsController extends AppController {
 		}
 		if (empty($tag)) {
 			if (!empty($this->request->data['tag'])) {
-				$uuid = $this->request->data['tag'];
+				$tag = $this->request->data['tag'];
 			} else {
 				throw new MethodNotAllowedException('Invalid tag');
 			}

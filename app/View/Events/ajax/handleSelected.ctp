@@ -14,12 +14,12 @@
 		<table>
 			<tr>
 				<td style="vertical-align:top">
-					<span id="PromptYesButton" class="btn btn-primary" onClick="multiSelectAction('<?php echo h($id); ?>', '<?php echo h($action); ?>');">Yes</span>
+					<span role="button" tabindex="0" aria-label="Yes" title="Yes" id="PromptYesButton" class="btn btn-primary" onClick="multiSelectAction('<?php echo h($id); ?>', '<?php echo h($action); ?>');">Yes</span>
 				</td>
 				<td style="width:540px;">
 				</td>
 				<td style="vertical-align:top;">
-					<span class="btn btn-inverse" id="PromptNoButton" onClick="cancelPrompt();">No</span>
+					<span class="btn btn-inverse" id="PromptNoButton" role="button" tabindex="0" aria-label="No" title="No" onClick="cancelPrompt();">No</span>
 				</td>
 			</tr>
 		</table>
