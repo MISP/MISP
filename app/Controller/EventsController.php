@@ -1338,6 +1338,7 @@ class EventsController extends AppController {
 				}
 				// Workaround for different structure in XML/array than what CakePHP expects
 				if (isset($this->request->data['response'])) $this->request->data = $this->request->data['response'];
+				if (!isset($this->request->data['Event'])) $this->request->data = array('Event' => $this->request->data);
 				$result = $this->Event->_edit($this->request->data, $this->Auth->user(), $id);
 				if ($result === true) {
 					// REST users want to see the newly created event
