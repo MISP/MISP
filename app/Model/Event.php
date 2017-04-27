@@ -766,6 +766,10 @@ class Event extends AppModel {
 		if (!isset($push['canPush']) || !$push['canPush']) {
 			return 'Trying to push to an outdated instance.';
 		}
+    $unpublish_event = $server['Server']['unpublish_event'];
+    if ($unpublish_event) {
+      $event['Event']['published'] = 0;
+    }  
 		$updated = null;
 		$newLocation = $newTextBody = '';
 		$result = $this->restfulEventToServer($event, $server, null, $newLocation, $newTextBody, $HttpSocket);
@@ -2179,7 +2183,7 @@ class Event extends AppModel {
 			if ($fromXml) $created_id = $this->id;
 			if (!empty($data['Event']['published']) && 1 == $data['Event']['published']) {
 				// do the necessary actions to publish the event (email, upload,...)
-				if ('true' != Configure::read('MISP.disablerestalert')) {
+				if (('true' != Configure::read('MISP.disablerestalert')) && ('0' == $server['Server']['unpublish_event'])) {
 					$this->sendAlertEmailRouter($this->getID(), $user);
 				}
 				$this->publish($this->getID(), $passAlong);
