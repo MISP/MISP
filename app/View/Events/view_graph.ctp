@@ -74,6 +74,10 @@ $mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
 	<li id="attribute-info-pane-type"></li>
 	<li id="attribute-info-pane-comment"></li>
 </ul>
+<ul id="tag-info-pane" class="menu" style="width:200px;">
+	<li id="tag-info-pane-title" style="background-color:#0088cc;color:white;"></li>
+	<li id="tag-info-pane-name"></li>
+</ul>
 </div>
 <?php
 	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'viewEventGraph', 'mayModify' => $mayModify, 'mayPublish' => $mayPublish));
@@ -241,6 +245,7 @@ function showPane(context, d, side) {
 	d3.select('#attribute-info-pane').style('display', 'none');
 	d3.select('#context-menu').style('display', 'none');
 	d3.select('#event-info-pane').style('display', 'none');
+	d3.select('#tag-info-pane').style('display', 'none');
 	var offset = (graphElementScale * 24) + 6;
 	var offsety = -10;
 	if (side == 'left') {
@@ -271,6 +276,9 @@ function showPane(context, d, side) {
 		$('#event-info-pane-org').text('Organisation: ' + d.org);
 		$('#event-info-pane-url').attr('href', '/events/' + tempid);
 		$('#event-info-pane-url').text('Go to event');
+	}
+	if (d.type == 'tag') {
+		$('#tag-info-pane-title').text('Tag: ' + d.name);
 	}
 }
 

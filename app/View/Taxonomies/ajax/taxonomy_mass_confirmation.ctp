@@ -16,12 +16,12 @@
 	<table>
 		<tr>
 			<td style="vertical-align:top">
-				<span id="PromptYesButton" class="btn btn-primary" onClick="submitMassTaxonomyTag()">Yes</span>
+				<span id="PromptYesButton" role="button" tabindex="0" aria-label="Create / update all selected taxonomy entries as tags" title="Create / update all taxonomy entries as tags" class="btn btn-primary" onClick="submitMassTaxonomyTag();">Yes</span>
 			</td>
 			<td style="width:540px;">
 			</td>
 			<td style="vertical-align:top;">
-				<span class="btn btn-inverse" id="PromptNoButton" onClick="cancelPrompt();">No</span>
+				<span role="button" tabindex="0" aria-label="Cancel" title="Cancel" class="btn btn-inverse" id="PromptNoButton" onClick="cancelPrompt();">No</span>
 			</td>
 		</tr>
 	</table>

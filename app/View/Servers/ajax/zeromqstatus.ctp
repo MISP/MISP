@@ -8,6 +8,6 @@
 	<?php else: ?>
 		<p>The ZeroMQ server is unreachable.</p>
 	<?php endif; ?>
-		<span class="btn btn-inverse" id="PromptNoButton" onClick="cancelPrompt();">OK</span>
+		<span role="button" tabindex="0" aria-label="Cancel prompt" title="Cancel prompt" class="btn btn-inverse" id="PromptNoButton" onClick="cancelPrompt();">OK</span>
 	</div>
 </div>

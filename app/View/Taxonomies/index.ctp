@@ -45,7 +45,7 @@ foreach ($taxonomies as $item): ?>
 				}
 			?>
 			<a href='<?php echo $baseurl."/taxonomies/view/". h($item['Taxonomy']['id']);?>' class = "icon-list-alt" title = "View"></a>
-			<span class="icon-trash useCursorPointer" onClick="deleteObject('taxonomies', 'delete', '<?php echo h($item['Taxonomy']['id']); ?>', '<?php echo h($item['Taxonomy']['id']); ?>');"></span>
+			<span class="icon-trash useCursorPointer" title="Delete taxonomy" role="button" tabindex="0" aria-label="Delete taxonomy" onClick="deleteObject('taxonomies', 'delete', '<?php echo h($item['Taxonomy']['id']); ?>', '<?php echo h($item['Taxonomy']['id']); ?>');"></span>
 		</td>
 	</tr><?php
 endforeach; ?>

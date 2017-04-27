@@ -17,8 +17,8 @@ echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escap
         </ul>
     </div>
 	<div class="tabMenuFixedContainer">
-		<span class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php if ($passive !== true) echo 'tabMenuActive';?>" onClick="window.location='/sharing_groups/index'">Active Sharing Groups</span>
-		<span class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php if ($passive === true) echo 'tabMenuActive';?>" onClick="window.location='/sharing_groups/index/true'">Passive Sharing Groups</span>
+		<span role="button" tabindex="0" aria-label="View only active sharing groups" title="View only active sharing groups" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php if ($passive !== true) echo 'tabMenuActive';?>" onClick="window.location='/sharing_groups/index'">Active Sharing Groups</span>
+		<span role="button" tabindex="0" aria-label="View only passive sharing groups" title="View only passive sharing groups" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php if ($passive === true) echo 'tabMenuActive';?>" onClick="window.location='/sharing_groups/index/true'">Passive Sharing Groups</span>
 	</div>
 	<table class="table table-striped table-hover table-condensed">
 	<tr>

@@ -285,7 +285,7 @@ class Warninglist extends AppModel{
 	}
 
 	public function fetchTLDLists() {
-		$tldLists = $this->find('list', array('conditions' => array('Warninglist.name' => $this->__tlds, 'Warninglist.enabled' => 1), 'recursive' => -1, 'fields' => array('Warninglist.id', 'Warninglist.name')));
+		$tldLists = $this->find('list', array('conditions' => array('Warninglist.name' => $this->__tlds), 'recursive' => -1, 'fields' => array('Warninglist.id', 'Warninglist.name')));
 		$tlds = array();
 		if (!empty($tldLists)) {
 			$tldLists = array_keys($tldLists);

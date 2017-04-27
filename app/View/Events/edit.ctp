@@ -53,7 +53,6 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc_id'] == $me['org_id']);
 echo $this->Form->button('Submit', array('class' => 'btn btn-primary'));
 echo $this->Form->end();
 ?>
-<div id="confirmation_box" class="confirmation_box"></div>
 </div>
 <?php
 	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'editEvent', 'mayModify' => $mayModify, 'mayPublish' => $mayPublish));
@@ -66,7 +65,7 @@ echo $this->Form->end();
 		foreach ($formInfoTypes as $formInfoType => $humanisedName) {
 			echo 'var ' . $formInfoType . 'FormInfoValues = {' . PHP_EOL;
 			foreach ($info[$formInfoType] as $key => $formInfoData) {
-				echo '"' . $key . '": "<span class=\"blue bold\">' . h($formInfoData['key']) . '</span>: ' . h($formInfoData['desc']) . '<br />",' . PHP_EOL; 
+				echo '"' . $key . '": "<span class=\"blue bold\">' . h($formInfoData['key']) . '</span>: ' . h($formInfoData['desc']) . '<br />",' . PHP_EOL;
 			}
 			echo '}' . PHP_EOL;
 		}
@@ -74,16 +73,16 @@ echo $this->Form->end();
 	$(document).ready(function() {
 		if ($('#EventDistribution').val() == 4) $('#SGContainer').show();
 		else $('#SGContainer').hide();
-	
+
 		$('#EventDistribution').change(function() {
 			if ($('#EventDistribution').val() == 4) $('#SGContainer').show();
 			else $('#SGContainer').hide();
 		});
-	
+
 		$("#EventDistribution, #EventAnalysis, #EventThreatLevelId").change(function() {
 			initPopoverContent('Event');
 		});
-	
+
 		$(document).ready(function() {
 			if ($('#EventDistribution').val() == 4) $('#SGContainer').show();
 			else $('#SGContainer').hide();

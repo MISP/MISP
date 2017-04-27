@@ -38,7 +38,7 @@
 						'before' => '$(".progress").show()',
 						'complete' => '$(".progress").hide()',
 				));
-				
+
 				echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
 				echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
 				echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
@@ -52,11 +52,11 @@
     <?php
 		foreach (array('local', 'external', 'all') as $scopeChoice):
     ?>
-		<span class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php if ($scope === $scopeChoice) echo 'tabMenuActive';?>" onClick="window.location='/organisations/index/scope:<?php echo h($scopeChoice);?>'"><?php echo $texts[$scopeChoice]['text'];?></span>
+		<span role="button" tabindex="0" aria-label="<?php echo h($scopeChoice); ?>" title="<?php echo h($scopeChoice); ?>" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php if ($scope === $scopeChoice) echo 'tabMenuActive';?>" onClick="window.location='/organisations/index/scope:<?php echo h($scopeChoice);?>'"><?php echo $texts[$scopeChoice]['text'];?></span>
     <?php
 		endforeach;
     ?>
-		<span id="quickFilterButton" class="tabMenuFilterFieldButton useCursorPointer" onClick="quickFilter(<?php echo  h($passedArgs); ?>, '<?php echo $baseurl . '/organisations/index'; ?>');">Filter</span>
+		<span role="button" tabindex="0" aria-label="Filtr" title="Filter" id="quickFilterButton" class="tabMenuFilterFieldButton useCursorPointer" onClick="quickFilter(<?php echo  h($passedArgs); ?>, '<?php echo $baseurl . '/organisations/index'; ?>');">Filter</span>
 		<input class="tabMenuFilterField" type="text" id="quickFilterField"></input>
     </div>
 	<table class="table table-striped table-hover table-condensed">
@@ -88,7 +88,7 @@ foreach ($orgs as $org): ?>
 				$imgRelativePath = 'orgs' . DS . h($org['Organisation']['name']) . '.png';
 				$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
 				if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($org['Organisation']['name']) . '.png', array('alt' => h($org['Organisation']['name']), 'title' => h($org['Organisation']['name']), 'style' => 'width:24px; height:24px'));
-				else echo $this->Html->tag('span', h($org['Organisation']['name']), array('class' => 'welcome', 'style' => 'float:left;'));
+				else echo 'N/A';
 			?>
 		</td>
 		<td class="short" ondblclick="document.location.href ='/organisations/view/<?php echo $org['Organisation']['id'];?>'"><?php echo h($org['Organisation']['name']); ?></td>

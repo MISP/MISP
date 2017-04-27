@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS attributes (
   timestamp bigint NOT NULL DEFAULT 0,
   distribution smallint NOT NULL DEFAULT 0,
   sharing_group_id bigint NOT NULL,
-  comment text NOT NULL,
+  comment text DEFAULT "",
   deleted smallint NOT NULL DEFAULT 0,
   PRIMARY KEY (id),
   UNIQUE (uuid)

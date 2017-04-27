@@ -59,8 +59,8 @@
 							<li><a href="<?php echo $baseurl;?>/galaxies/index">List Galaxies</a></li>
 						</ul>
 					</li>
-					
-					
+
+
 					<li class="dropdown">
 						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
 							Input Filters
@@ -149,12 +149,12 @@
 									<li class="divider"></li>
 									<li><a href="<?php echo $baseurl;?>/tasks">Scheduled Tasks</a></li>
 								<?php endif; ?>
-								<?php if (Configure::read('MISP.enableEventBlacklisting') && $isSiteAdmin): ?>
+								<?php if (Configure::read('MISP.enableEventBlacklisting') !== false && $isSiteAdmin): ?>
 									<li class="divider"></li>
 									<li><a href="<?php echo $baseurl;?>/eventBlacklists/add">Blacklist Event</a></li>
 									<li><a href="<?php echo $baseurl;?>/eventBlacklists">Manage Event Blacklists</a></li>
 								<?php endif; ?>
-								<?php if (Configure::read('MISP.enableEventBlacklisting') && $isSiteAdmin): ?>
+								<?php if (Configure::read('MISP.enableEventBlacklisting') !== false && $isSiteAdmin): ?>
 									<li class="divider"></li>
 									<li><a href="<?php echo $baseurl;?>/orgBlacklists/add">Blacklist Organisation</a></li>
 									<li><a href="<?php echo $baseurl;?>/orgBlacklists">Manage Org Blacklists</a></li>
@@ -190,7 +190,7 @@
 					</li>
 					<li>
 						<a href="<?php echo $baseurl;?>/users/dashboard" style="padding-left:0px;padding-right:0px;">
-							<span class="notification-<?php echo ($notifications['total'] > 0) ? 'active' : 'passive';?>"><span style="float:left;margin-top:3px;margin-right:3px;margin-left:3px;" class="icon-envelope icon-white"></span></span>
+							<span class="notification-<?php echo ($notifications['total'] > 0) ? 'active' : 'passive';?>"><span style="float:left;margin-top:3px;margin-right:3px;margin-left:3px;" class="icon-envelope icon-white" title="Dashboard" role="button" tabindex="0" aria-label="Dashboard"></span></span>
 						</a>
 					</li>
 					<?php if (!$externalAuthUser || !Configure::read('Plugin.CustomAuth_disable_logout')): ?>

@@ -18,8 +18,8 @@
 		?>
 		</div>
 		<div class="overlay_spacing">
-		<span class="btn btn-primary" onClick="remoteIndexApplyFilters(actionUrl);">Apply</span>
-		<span class="btn btn-inverse" onClick="cancelPopoverForm();" style="float:right;">Cancel</span>
+		<span role="button" tabindex="0" aria-label="Apply filters to the remote instance's index" title="Apply filters to the remote instance's index" class="btn btn-primary" onClick="remoteIndexApplyFilters(actionUrl);">Apply</span>
+		<span role="button" tabindex="0" aria-label="Cancel" title="Cancel" class="btn btn-inverse" onClick="cancelPopoverForm();" style="float:right;">Cancel</span>
 		</div>
 	</fieldset>
 	<?php echo $this->Form->end();?>

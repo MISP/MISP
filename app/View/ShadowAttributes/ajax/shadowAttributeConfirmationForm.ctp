@@ -8,12 +8,12 @@ echo $this->Form->create('ShadowAttribute', array('style' => 'margin:0px;', 'id'
 	<table>
 		<tr>
 			<td style="vertical-align:top">
-				<span id="PromptYesButton" class="btn btn-primary" onClick="submitDeletion(<?php echo $event_id; ?>, 'discard', 'shadow_attributes', <?php echo $id;?>)">Yes</span>
+				<span role="button" tabindex="0" aria-label="Delete proposal" title="Delete proposal" id="PromptYesButton" class="btn btn-primary" onClick="submitDeletion(<?php echo $event_id; ?>, 'discard', 'shadow_attributes', <?php echo $id;?>)">Yes</span>
 			</td>
 			<td style="width:540px;">
 			</td>
 			<td style="vertical-align:top;">
-				<span class="btn btn-inverse" id="PromptNoButton" onClick="cancelPrompt();">No</span>
+				<span role="button" tabindex="0" aria-label="Cancel" title="Cancel" class="btn btn-inverse" id="PromptNoButton" onClick="cancelPrompt();">No</span>
 			</td>
 		</tr>
 	</table>

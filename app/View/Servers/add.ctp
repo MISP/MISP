@@ -119,7 +119,7 @@
 		echo $this->Form->input('json', array('style' => 'display:none;', 'label' => false, 'div' => false));
 	?>
 	</fieldset>
-	<span class="btn btn-primary" onClick="serverSubmitForm('Add');">Submit</span>
+	<span role="button" tabindex="0" aria-label="Submit" title="Submit" class="btn btn-primary" onClick="serverSubmitForm('Add');">Submit</span>
 <?php
 echo $this->Form->end();
 ?>
@@ -161,19 +161,19 @@ $(document).ready(function() {
 	$('#ServerOrganisationType').change(function() {
 		serverOrgTypeChange();
 	});
-	<?php 
+	<?php
 		if (!empty($host_org_id)):
 	?>
 			serverOwnerOrganisationChange(host_org_id);
 			$('#ServerOrganisationType, #ServerLocal').change(function() {
 				serverOwnerOrganisationChange(host_org_id);
 			});
-	<?php 
+	<?php
 		endif;
 	?>
 
-	
-	$("#ServerUrl, #ServerOrganization, #ServerName, #ServerAuthkey, #ServerPush, #ServerPull, #ServerUnpublishEvent, #ServerPublishWithoutEmail, #ServerSubmittedCert, #ServerSelfSigned").on('mouseleave', function(e) {
+
+  $("#ServerUrl, #ServerOrganization, #ServerName, #ServerAuthkey, #ServerPush, #ServerPull, #ServerUnpublishEvent, #ServerPublishWithoutEmail, #ServerSubmittedCert, #ServerSelfSigned").on('mouseleave', function(e) {
 	    $('#'+e.currentTarget.id).popover('destroy');
 	});
 

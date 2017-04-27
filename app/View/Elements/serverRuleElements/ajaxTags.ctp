@@ -14,7 +14,7 @@
 						<?php
 							echo $this->Form->create('Server', array('id' => 'removeTag_' . h($tag['Tag']['id']),  'url' => '/servers/removeTag/' . h($server['Server']['id']) . '/' . h($tag['Tag']['id']), 'style' => 'margin:0px;'));
 						?>
-						<div class="tagSecondHalf useCursorPointer noPrint" onClick="removeServerTag('<?php echo h($server['Server']['id']); ?>', '<?php echo h($tag['Tag']['id']); ?>');">x</div>
+						<div title="Remove tag" role="button" tabindex="0" aria-label="Remove tag" class="tagSecondHalf useCursorPointer noPrint" onClick="removeServerTag('<?php echo h($server['Server']['id']); ?>', '<?php echo h($tag['Tag']['id']); ?>');">x</div>
 						<?php
 							echo $this->Form->end();
 						?>
@@ -28,7 +28,7 @@
 	?>
 		<div style="float:left">
 			<?php if ($isSiteAdmin): ?>
-				<button id="addTagButton" class="btn btn-inverse noPrint" style="line-height:10px; padding: 4px 4px;" onClick="getPopup('<?php echo h($server['Server']['id']); ?>', 'tags', 'selectTaxonomy');">+</button>
+				<button title="Add a tag" id="addTagButton" class="btn btn-inverse noPrint" style="line-height:10px; padding: 4px 4px;" onClick="getPopup('<?php echo h($server['Server']['id']); ?>', 'tags', 'selectTaxonomy');">+</button>
 			<?php else:?>
 				&nbsp;
 			<?php endif; ?>

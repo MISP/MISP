@@ -41,7 +41,8 @@ class AppModel extends Model {
 				42 => false, 44 => false, 45 => false, 49 => true, 50 => false,
 				51 => false, 52 => false, 55 => true, 56 => true, 57 => true,
 				58 => false, 59 => false, 60 => false, 61 => false, 62 => false,
-				63 => false, 64 => false, 65 => false, 66 => false, 67 => true
+				63 => false, 64 => false, 65 => false, 66 => false, 67 => true,
+				68 => false, 69 => false, 71 => false
 			)
 		)
 	);
@@ -89,6 +90,21 @@ class AppModel extends Model {
 				$this->Sighting = Classregistry::init('Sighting');
 				$this->Sighting->addUuids();
 				$this->Sighting->deleteAll(array('NOT' => array('Sighting.type' => array(0, 1, 2))));
+				break;
+			case '2.4.71':
+				$this->OrgBlacklist = Classregistry::init('OrgBlacklist');
+				$values = array(
+					array('org_uuid' => '58d38339-7b24-4386-b4b4-4c0f950d210f', 'org_name' => 'Setec Astrononomy', 'comment' => 'default example'),
+					array('org_uuid' => '58d38326-eda8-443a-9fa8-4e12950d210f', 'org_name' => 'Acme Finance', 'comment' => 'default example')
+				);
+				foreach ($values as $value) {
+					$found = $this->OrgBlacklist->find('first', array('conditions' => array('org_uuid' => $value['org_uuid']), 'recursive' => -1));
+					if (empty($found)) {
+						$this->OrgBlacklist->create();
+						$this->OrgBlacklist->save($value);
+					}
+				}
+				$this->updateDatabase($command);
 				break;
 			default:
 				$this->updateDatabase($command);
@@ -626,6 +642,44 @@ class AppModel extends Model {
 			case '2.4.67':
 				$sqlArray[] = "ALTER TABLE `roles` ADD `perm_sighting` tinyint(1) NOT NULL DEFAULT 0;";
 				$sqlArray[] = 'UPDATE `roles` SET `perm_sighting` = 1 WHERE `perm_add` = 1;';
+				break;
+			case '2.4.68':
+				$sqlArray[] = 'ALTER TABLE events CHANGE attribute_count attribute_count int(11) unsigned DEFAULT 0;';
+				$sqlArray[] = 'CREATE TABLE IF NOT EXISTS `event_blacklists` (
+				  `id` int(11) NOT NULL AUTO_INCREMENT,
+				  `event_uuid` varchar(40) COLLATE utf8_bin NOT NULL,
+				  `created` datetime NOT NULL,
+				  `event_info` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+				  `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+				  `event_orgc` VARCHAR( 255 ) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+				  PRIMARY KEY (`id`)
+				) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;';
+				$indexArray[] = array('event_blacklists', 'event_uuid');
+				$indexArray[] = array('event_blacklists', 'event_orgc');
+				$sqlArray[] = 'CREATE TABLE IF NOT EXISTS `org_blacklists` (
+				  `id` int(11) NOT NULL AUTO_INCREMENT,
+				  `org_uuid` varchar(40) COLLATE utf8_bin NOT NULL,
+				  `created` datetime NOT NULL,
+				  `org_name` varchar(255) COLLATE utf8_bin NOT NULL,
+				  `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+				  PRIMARY KEY (`id`),
+				  INDEX `org_uuid` (`org_uuid`),
+				  INDEX `org_name` (`org_name`)
+				) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;';
+				$indexArray[] = array('org_blacklists', 'org_uuid');
+				$indexArray[] = array('org_blacklists', 'org_name');
+				$sqlArray[] = "ALTER TABLE shadow_attributes CHANGE proposal_to_delete proposal_to_delete BOOLEAN DEFAULT 0";
+				$sqlArray[] = "ALTER TABLE taxonomy_predicates CHANGE colour colour varchar(7) CHARACTER SET utf8 COLLATE utf8_bin;";
+				$sqlArray[] = "ALTER TABLE taxonomy_entries CHANGE colour colour varchar(7) CHARACTER SET utf8 COLLATE utf8_bin;";
+				break;
+			case '2.4.69':
+				$sqlArray[] = "ALTER TABLE taxonomy_entries CHANGE colour colour varchar(7) CHARACTER SET utf8 COLLATE utf8_bin;";
+				$sqlArray[] = "ALTER TABLE users ADD COLUMN date_created bigint(20);";
+				$sqlArray[] = "ALTER TABLE users ADD COLUMN date_modified bigint(20);";
+				break;
+			case '2.4.71':
+				$sqlArray[] = "UPDATE attributes SET comment = '' WHERE comment is NULL;";
+				$sqlArray[] = "ALTER TABLE attributes CHANGE comment comment text COLLATE utf8_bin NOT NULL;";
 				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';

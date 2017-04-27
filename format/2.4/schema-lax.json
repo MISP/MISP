@@ -1,319 +1,420 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Validator for misp events",
   "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json",
-  "type": "object",
-  "properties": {
-    "Event": {
-      "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event",
+  "defs": {
+    "org": {
       "type": "object",
       "properties": {
         "id": {
-          "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/id",
           "type": "string"
         },
-        "orgc_id": {
-          "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/orgc_id",
+        "name": {
+          "type": "string"
+        },
+        "uuid": {
+          "type": "string"
+        }
+      }
+    },
+    "orgc": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "uuid": {
+          "type": "string"
+        }
+      }
+    },
+    "sharing_group": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "releasability": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "uuid": {
+          "type": "string"
+        },
+        "organisation_uuid": {
           "type": "string"
         },
         "org_id": {
-          "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/org_id",
           "type": "string"
         },
-        "date": {
-          "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/date",
+        "sync_user_id": {
           "type": "string"
         },
-        "threat_level_id": {
-          "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/threat_level_id",
-          "type": "string"
-        },
-        "info": {
-          "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/info",
-          "type": "string"
-        },
-        "published": {
-          "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/published",
+        "active": {
           "type": "boolean"
         },
-        "uuid": {
-          "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/uuid",
+        "created": {
           "type": "string"
         },
-        "attribute_count": {
-          "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/attribute_count",
+        "modified": {
           "type": "string"
         },
-        "analysis": {
-          "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/analysis",
-          "type": "string"
-        },
-        "timestamp": {
-          "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/timestamp",
-          "type": "string"
-        },
-        "distribution": {
-          "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/distribution",
-          "type": "string"
-        },
-        "proposal_email_lock": {
-          "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/proposal_email_lock",
+        "local": {
           "type": "boolean"
         },
-        "locked": {
-          "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/locked",
+        "roaming": {
           "type": "boolean"
         },
-        "publish_timestamp": {
-          "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/publish_timestamp",
+        "Organisation": {
+          "$ref": "#/defs/org"
+        },
+        "SharingGroupOrg": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/defs/sharing_group_org"
+          }
+        },
+        "SharingGroupServer": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/defs/sharing_group_server"
+          }
+        }
+      }
+    },
+    "sharing_group_org": {
+      "type": "object",
+      "properties": {
+        "id": {
           "type": "string"
         },
         "sharing_group_id": {
-          "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/sharing_group_id",
+          "type": "string"
+        },
+        "org_id": {
+          "type": "string"
+        },
+        "extend": {
+          "type": "boolean"
+        },
+        "Organisation": {
+          "$ref": "#/defs/org"
+        }
+      }
+    },
+    "sharing_group_server": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "sharing_group_id": {
+          "type": "string"
+        },
+        "server_id": {
+          "type": "string"
+        },
+        "all_orgs": {
+          "type": "boolean"
+        },
+        "Server": {
+          "$ref": "#/defs/server"
+        }
+      }
+    },
+    "server": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    },
+    "attribute": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "to_ids": {
+          "type": "boolean"
+        },
+        "uuid": {
+          "type": "string"
+        },
+        "event_id": {
+          "type": "string"
+        },
+        "distribution": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "string"
+        },
+        "comment": {
+          "type": "string"
+        },
+        "sharing_group_id": {
+          "type": "string"
+        },
+        "deleted": {
+          "type": "boolean"
+        },
+        "disable_correlation": {
+          "type": "boolean"
+        },
+        "value": {
+          "type": "string"
+        },
+        "data": {
+          "type": "string"
+        },
+        "SharingGroup": {
+          "$ref": "#/defs/sharing_group"
+        },
+        "ShadowAttribute": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/defs/attribute"
+          }
+        },
+        "Tag": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/defs/tag"
+          }
+        }
+      }
+    },
+    "event": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "orgc_id": {
+          "type": "string"
+        },
+        "org_id": {
+          "type": "string"
+        },
+        "date": {
+          "type": "string"
+        },
+        "threat_level_id": {
+          "type": "string"
+        },
+        "info": {
+          "type": "string"
+        },
+        "published": {
+          "type": "boolean"
+        },
+        "uuid": {
+          "type": "string"
+        },
+        "attribute_count": {
+          "type": "string"
+        },
+        "analysis": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "string"
+        },
+        "distribution": {
+          "type": "string"
+        },
+        "proposal_email_lock": {
+          "type": "boolean"
+        },
+        "locked": {
+          "type": "boolean"
+        },
+        "publish_timestamp": {
+          "type": "string"
+        },
+        "sharing_group_id": {
+          "type": "string"
+        },
+        "disable_correlation": {
+          "type": "boolean"
+        },
+        "event_creator_email": {
           "type": "string"
         },
         "Org": {
-          "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/Org",
-          "type": "object",
-          "properties": {
-            "id": {
-              "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/Org/id",
-              "type": "string"
-            },
-            "name": {
-              "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/Org/name",
-              "type": "string"
-            },
-            "uuid": {
-              "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/Org/uuid",
-              "type": "string"
-            }
-          }
+          "$ref": "#/defs/org"
         },
         "Orgc": {
-          "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/Orgc",
-          "type": "object",
-          "properties": {
-            "id": {
-              "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/Orgc/id",
-              "type": "string"
-            },
-            "name": {
-              "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/Orgc/name",
-              "type": "string"
-            },
-            "uuid": {
-              "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/Orgc/uuid",
-              "type": "string"
+          "$ref": "#/defs/org"
+        },
+        "SharingGroup": {
+          "$ref": "#/defs/sharing_group"
+        },
+        "Attribute": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/defs/attribute"
+          }
+        },
+        "ShadowAttribute": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/defs/attribute"
+          }
+        },
+        "RelatedEvent": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "properties": {
+                "Event":{
+                  "$ref": "#/defs/event"
+                }
             }
           }
         },
-        "Attribute": {
-          "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/Attribute",
+        "Galaxy": {
           "type": "array",
+          "uniqueItems": true,
           "items": {
-            "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/Attribute/17",
-            "type": "object",
-            "properties": {
-              "id": {
-                "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/Attribute/17/id",
-                "type": "string"
-              },
-              "type": {
-                "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/Attribute/17/type",
-                "type": "string"
-              },
-              "category": {
-                "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/Attribute/17/category",
-                "type": "string"
-              },
-              "to_ids": {
-                "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/Attribute/17/to_ids",
-                "type": "boolean"
-              },
-              "uuid": {
-                "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/Attribute/17/uuid",
-                "type": "string"
-              },
-              "event_id": {
-                "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/Attribute/17/event_id",
-                "type": "string"
-              },
-              "distribution": {
-                "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/Attribute/17/distribution",
-                "type": "string"
-              },
-              "timestamp": {
-                "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/Attribute/17/timestamp",
-                "type": "string"
-              },
-              "comment": {
-                "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/Attribute/17/comment",
-                "type": "string"
-              },
-              "sharing_group_id": {
-                "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/Attribute/17/sharing_group_id",
-                "type": "string"
-              },
-              "value": {
-                "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/Attribute/17/value",
-                "type": "string"
-              },
-              "SharingGroup": {
-                "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/Attribute/17/SharingGroup",
-                "type": "array",
-                "items": {},
-                "additionalItems": false
-              },
-              "ShadowAttribute": {
-                "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/Attribute/17/ShadowAttribute",
-                "type": "array",
-                "items": {},
-                "additionalItems": false
-              }
-            }
-          },
-          "additionalItems": false
-        },
-        "ShadowAttribute": {
-          "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/ShadowAttribute",
-          "type": "array",
-          "items": {},
-          "additionalItems": false
-        },
-        "RelatedEvent": {
-          "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/RelatedEvent",
-          "type": "array",
-          "items": {
-            "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/RelatedEvent/0",
-            "type": "object",
-            "properties": {
-              "Org": {
-                "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/RelatedEvent/0/Org",
-                "type": "object",
-                "properties": {
-                  "id": {
-                    "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/RelatedEvent/0/Org/id",
-                    "type": "string"
-                  },
-                  "name": {
-                    "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/RelatedEvent/0/Org/name",
-                    "type": "string"
-                  },
-                  "uuid": {
-                    "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/RelatedEvent/0/Org/uuid",
-                    "type": "string"
-                  }
-                }
-              },
-              "Orgc": {
-                "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/RelatedEvent/0/Orgc",
-                "type": "object",
-                "properties": {
-                  "id": {
-                    "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/RelatedEvent/0/Orgc/id",
-                    "type": "string"
-                  },
-                  "name": {
-                    "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/RelatedEvent/0/Orgc/name",
-                    "type": "string"
-                  },
-                  "uuid": {
-                    "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/RelatedEvent/0/Orgc/uuid",
-                    "type": "string"
-                  }
-                }
-              },
-              "Event": {
-                "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/RelatedEvent/0/Event",
-                "type": "array",
-                "items": {
-                  "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/RelatedEvent/0/Event/0",
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/RelatedEvent/0/Event/0/id",
-                      "type": "string"
-                    },
-                    "date": {
-                      "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/RelatedEvent/0/Event/0/date",
-                      "type": "string"
-                    },
-                    "threat_level_id": {
-                      "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/RelatedEvent/0/Event/0/threat_level_id",
-                      "type": "string"
-                    },
-                    "info": {
-                      "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/RelatedEvent/0/Event/0/info",
-                      "type": "string"
-                    },
-                    "published": {
-                      "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/RelatedEvent/0/Event/0/published",
-                      "type": "boolean"
-                    },
-                    "uuid": {
-                      "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/RelatedEvent/0/Event/0/uuid",
-                      "type": "string"
-                    },
-                    "analysis": {
-                      "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/RelatedEvent/0/Event/0/analysis",
-                      "type": "string"
-                    },
-                    "timestamp": {
-                      "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/RelatedEvent/0/Event/0/timestamp",
-                      "type": "string"
-                    },
-                    "distribution": {
-                      "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/RelatedEvent/0/Event/0/distribution",
-                      "type": "string"
-                    },
-                    "org_id": {
-                      "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/RelatedEvent/0/Event/0/org_id",
-                      "type": "string"
-                    },
-                    "orgc_id": {
-                      "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/RelatedEvent/0/Event/0/orgc_id",
-                      "type": "string"
-                    }
-                  }
-                },
-                "additionalItems": false
-              }
-            }
-          },
-          "additionalItems": false
+            "$ref": "#/defs/galaxy"
+          }
         },
         "Tag": {
-          "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/Tag",
           "type": "array",
+          "uniqueItems": true,
           "items": {
-            "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/Tag/2",
-            "type": "object",
-            "properties": {
-              "id": {
-                "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/Tag/2/id",
-                "type": "string"
-              },
-              "name": {
-                "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/Tag/2/name",
-                "type": "string"
-              },
-              "colour": {
-                "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/Tag/2/colour",
-                "type": "string"
-              },
-              "exportable": {
-                "id": "https://www.github.com/MISP/MISP/format/2.4/schema.json/Event/Tag/2/exportable",
-                "type": "boolean"
-              }
-            }
-          },
-          "additionalItems": false
+            "$ref": "#/defs/tag"
+          }
         }
-      },
-      "required": [
-        "info",
-        "Attribute"
-      ]
+      }
+    },
+    "tag": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "colour": {
+          "type": "string"
+        },
+        "exportable": {
+          "type": "boolean"
+        },
+        "hide_tag": {
+          "type": "boolean"
+        }
+      }
+    },
+    "galaxy": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "uuid": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "GalaxyCluster": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/defs/galaxy_cluster"
+          }
+        }
+      }
+    },
+    "galaxy_cluster": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "uuid": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "tag_name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "galaxy_id": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "authors": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "tag_id": {
+          "type": "string"
+        },
+        "meta": {
+          "type": "object"
+        }
+      }
+    }
+  },
+  "type": "object",
+  "properties": {
+    "Event": {
+      "$ref": "#/defs/event"
     }
   },
   "required": [
