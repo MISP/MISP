@@ -499,6 +499,8 @@ CREATE TABLE IF NOT EXISTS `servers` (
   `lastpushedid` int(11) DEFAULT NULL,
   `organization` varchar(10) COLLATE utf8_bin DEFAULT NULL,
   `remote_org_id` int(11) NOT NULL,
+  `publish_without_email` tinyint(1) NOT NULL DEFAULT 0,
+  `unpublish_event` tinyint(1) NOT NULL DEFAULT 0,
   `self_signed` tinyint(1) NOT NULL,
   `pull_rules` text COLLATE utf8_bin NOT NULL,
   `push_rules` text COLLATE utf8_bin NOT NULL,
