@@ -70,7 +70,19 @@
 
 		echo $this->Form->input('pull', array(
 		));
-	?>
+    ?>
+        <div class = "input clear"></div>
+	<?php
+		echo $this->Form->input('unpublish_event', array(
+			'type' => 'checkbox',
+		));
+    ?>
+		<div class = "input clear"></div>
+	<?php
+		echo $this->Form->input('publish_without_email', array(
+			'type' => 'checkbox',
+		));
+    ?>
 		<div class = "input clear"></div>
 	<?php
 		echo $this->Form->input('self_signed', array(
@@ -129,6 +141,8 @@ var formInfoValues = {
 		'ServerAuthkey' : "You can find the authentication key on your profile on the external server.",
 		'ServerPush' : "Allow the upload of events and their attributes.",
 		'ServerPull' : "Allow the download of events and their attributes from the server.",
+    'ServerUnpublishEvent' : 'Unpublish new event (working with Pull event).',
+    'ServerPublishWithoutEmail' : 'Publish new event without email (working with Push event).',
 		'ServerSubmittedCert' : "You can also upload a certificate file if the instance you are trying to connect to has its own signing authority.  (*.pem)",
 		'ServerSelfSigned' : "Click this, if you would like to allow a connection despite the other instance using a self-signed certificate (not recommended)."
 };
@@ -159,11 +173,11 @@ $(document).ready(function() {
 	?>
 
 
-	$("#ServerUrl, #ServerOrganization, #ServerName, #ServerAuthkey, #ServerPush, #ServerPull, #ServerSubmittedCert, #ServerSelfSigned").on('mouseleave', function(e) {
+  $("#ServerUrl, #ServerOrganization, #ServerName, #ServerAuthkey, #ServerPush, #ServerPull, #ServerUnpublishEvent, #ServerPublishWithoutEmail, #ServerSubmittedCert, #ServerSelfSigned").on('mouseleave', function(e) {
 	    $('#'+e.currentTarget.id).popover('destroy');
 	});
 
-	$("#ServerUrl, #ServerOrganization, #ServerName, #ServerAuthkey, #ServerPush, #ServerPull, #ServerSubmittedCert, #ServerSelfSigned").on('mouseover', function(e) {
+	$("#ServerUrl, #ServerOrganization, #ServerName, #ServerAuthkey, #ServerPush, #ServerPull, #ServerUnpublishEvent, #ServerPublishWithoutEmail, #ServerSubmittedCert, #ServerSelfSigned").on('mouseover', function(e) {
 	    var $e = $(e.target);
 	        $('#'+e.currentTarget.id).popover('destroy');
 	        $('#'+e.currentTarget.id).popover({

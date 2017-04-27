@@ -378,6 +378,8 @@ CREATE TABLE IF NOT EXISTS servers (
   lastpushedid bigint DEFAULT NULL,
   organization varchar(10) DEFAULT NULL,
   remote_org_id bigint NOT NULL,
+  publish_without_email smallint NOT NULL DEFAULT 0,
+  unpublish_event smallint NOT NULL DEFAULT 0,
   self_signed smallint NOT NULL,
   pull_rules text NOT NULL,
   push_rules text NOT NULL,
