@@ -162,6 +162,8 @@
 				<dd class="background-red bold not-published <?php echo ($event['Event']['published'] == 0) ? '' : 'hidden'; ?>">No</dd>
 				<dt class="bold published <?php echo ($event['Event']['published'] == 0) ? 'hidden' : ''; ?>">Published</dt>
 				<dd class="green bold published <?php echo ($event['Event']['published'] == 0) ? 'hidden' : ''; ?>">Yes</dd>
+				<dt>#Attributes</dt>
+				<dd><?php echo h($attribute_count);?></dd>
 				<?php
 					if (Configure::read('Plugin.Sightings_enable') !== false):
 				?>
