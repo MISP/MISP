@@ -1328,10 +1328,10 @@ class Event extends AppModel {
 				'fields' => array('SharingGroup.*'),
 					'Organisation' => array('fields' => $fieldsOrg),
 					'SharingGroupOrg' => array(
-						'Organisation' => array('fields' => $fieldsOrg),
+						'Organisation' => array('fields' => $fieldsOrg, 'order' => false),
 					),
 					'SharingGroupServer' => array(
-						'Server' => array('fields' => $fieldsServer),
+						'Server' => array('fields' => $fieldsServer, 'order' => false),
 				),
 			),
 		);
@@ -1352,15 +1352,18 @@ class Event extends AppModel {
 					'fields' => $fieldsAtt,
 					'conditions' => $conditionsAttributes,
 					'SharingGroup' => $fieldsSharingGroup[(($user['Role']['perm_site_admin'] || $user['Role']['perm_sync']) ? 1 : 0)],
+					'order' => false
 				),
 				'ShadowAttribute' => array(
 					'fields' => $fieldsShadowAtt,
 					'conditions' => array('deleted' => 0),
-					'Org' => array('fields' => $fieldsOrg)
+					'Org' => array('fields' => $fieldsOrg),
+					'order' => false
 				),
 				'SharingGroup' => $fieldsSharingGroup[(($user['Role']['perm_site_admin'] || $user['Role']['perm_sync']) ? 1 : 0)],
 				'EventTag' => array(
-					'Tag' => array('conditions' => $tagConditions)
+					'Tag' => array('conditions' => $tagConditions, 'order' => false),
+					'order' => false
 				)
 			)
 		);
