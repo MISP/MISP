@@ -20,5 +20,5 @@
 echo $this->Html->css('bootstrap');
 echo $this->Html->css('main');
 echo $this->Html->script('jquery');
-echo $this->Html->script('misp' . $jsVersion);
+echo $this->Html->script('misp.js?' . $queryVersion);
 echo $content_for_layout; ?>

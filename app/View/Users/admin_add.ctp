@@ -34,7 +34,11 @@
 		<div id="PasswordDiv">
 			<div class="clear"></div>
 			<?php
-				echo $this->Form->input('password');
+				$passwordPopover = '<span class=\"blue bold\">Length</span>: ' . h($length) . '<br />';
+				$passwordPopover .= '<span class=\"blue bold\">Complexity</span>: ' . h($complexity);
+				echo $this->Form->input('password', array(
+					'label' => 'Password <span id = "PasswordPopover" class="icon-info-sign" ></span>'
+				));
 				echo $this->Form->input('confirm_password', array('type' => 'password', 'div' => array('class' => 'input password required')));
 			?>
 		</div>
@@ -65,7 +69,7 @@
 	<?php
 		echo $this->Form->input('gpgkey', array('label' => 'GPG key', 'div' => 'clear', 'class' => 'input-xxlarge', 'placeholder' => 'Paste the user\'s PGP key here or try to retrieve it from the MIT key server by clicking on "Fetch GPG key" below.'));
 	?>
-		<div class="clear"><span onClick="lookupPGPKey('UserEmail');" class="btn btn-inverse" style="margin-bottom:10px;">Fetch GPG key</span></div>
+		<div class="clear"><span  role="button" tabindex="0" aria-label="Fetch the user's PGP key" onClick="lookupPGPKey('UserEmail');" class="btn btn-inverse" style="margin-bottom:10px;">Fetch GPG key</span></div>
 	<?php
 		if (Configure::read('SMIME.enabled')) echo $this->Form->input('certif_public', array('label' => 'SMIME key', 'div' => 'clear', 'class' => 'input-xxlarge', 'placeholder' => 'Paste the user\'s SMIME public key in PEM format here.'));
 		echo $this->Form->input('autoalert', array('label' => 'Receive alerts when events are published', 'type' => 'checkbox', 'checked' => true));
@@ -98,6 +102,12 @@ $(document).ready(function() {
 	});
 	$('#UserExternalAuthRequired').change(function() {
 		checkUserExternalAuth();
+	});
+	$('#PasswordPopover').popover("destroy").popover({
+		placement: 'right',
+		html: 'true',
+		trigger: 'hover',
+		content: '<?php echo $passwordPopover; ?>'
 	});
 });
 </script>

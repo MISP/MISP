@@ -30,7 +30,7 @@
     'label' => false
   ));
 ?>
-<span id="submitButton" class="btn btn-primary" onClick="submitPopoverForm('<?php echo h($id);?>', 'addSighting', '<?php echo h($event_id); ?>')">Add</span>
+<span id="submitButton" role="button" tabindex="0" aria-label="Add sighting" title="Add sighting" class="btn btn-primary" onClick="submitPopoverForm('<?php echo h($id);?>', 'addSighting', '<?php echo h($event_id); ?>')">Add</span>
 <div class="input clear"></div>
 <?php
   echo $this->Form->end();

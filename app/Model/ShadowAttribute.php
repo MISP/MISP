@@ -71,13 +71,18 @@ class ShadowAttribute extends AppModel {
 	public $validate = array(
 		'event_id' => array(
 			'numeric' => array(
-				'rule' => array('numeric'),
-				//'message' => 'Your custom message here',
-				//'allowEmpty' => false,
-				//'required' => false,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
-			),
+				'rule' => array('numeric')
+			)
+		),
+		'org_id' => array(
+			'numeric' => array(
+				'rule' => array('numeric')
+			)
+		),
+		'event_org_id' => array(
+			'numeric' => array(
+				'rule' => array('numeric')
+			)
 		),
 		'type' => array(
 			// currently when adding a new attribute type we need to change it in both places
@@ -280,6 +285,8 @@ class ShadowAttribute extends AppModel {
 			$date = new DateTime();
 			$this->data['ShadowAttribute']['timestamp'] = $date->getTimestamp();
 		}
+
+		if (!isset($this->data['ShadowAttribute']['proposal_to_delete'])) $this->data['ShadowAttribute']['proposal_to_delete'] = 0;
 
 		// make some last changes to the inserted value
 		$this->data['ShadowAttribute']['value'] = $this->Event->Attribute->modifyBeforeValidation($this->data['ShadowAttribute']['type'], $this->data['ShadowAttribute']['value']);

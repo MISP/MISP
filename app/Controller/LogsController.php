@@ -118,14 +118,22 @@ class LogsController extends AppController {
 					'conditions' => array('User.org_id' => $this->Auth->user('org_id')),
 					'fields' => array('User.id', 'User.email')
 			));
-			foreach ($list as &$item) {
-				if (!in_array($item['Log']['email'], $emails)) $item['Log']['email'] = '';
+			foreach ($list as $k => $item) {
+				if (!in_array($item['Log']['email'], $emails)) $list[$k]['Log']['email'] = '';
 			}
 		}
-		$this->set('event', $this->Event->data);
-		$this->set('list', $list);
-		$this->set('eventId', $id);
-		$this->set('mayModify', $mayModify);
+		if ($this->_isRest()) {
+			foreach ($list as $k => $item) {
+				$list[$k] = $item['Log'];
+			}
+			$list = array('Log' => $list);
+			return $this->RestResponse->viewData($list, $this->response->type());
+		} else {
+			$this->set('event', $this->Event->data);
+			$this->set('list', $list);
+			$this->set('eventId', $id);
+			$this->set('mayModify', $mayModify);
+		}
 	}
 
 	public $helpers = array('Js' => array('Jquery'), 'Highlight');

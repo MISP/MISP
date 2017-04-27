@@ -4,12 +4,12 @@
 		<table style="width:100%;">
 		<?php foreach ($imports as $k => $import): ?>
 			<tr style="border-bottom:1px solid black;" class="templateChoiceButton">
-				<td style="padding-left:10px; text-align:center;width:100%;" onClick="importChoiceSelect('<?php echo h($import['url']); ?>', '<?php echo h($k); ?>', '<?php echo $import['ajax'] ? h($import['target']) : "false"; ?>')"><?php echo h($import['text']); ?></td>
+				<td role="button" tabindex="0" aria-label="Import <?php echo h($import['text']); ?>" style="padding-left:10px; text-align:center;width:100%;" onClick="importChoiceSelect('<?php echo h($import['url']); ?>', '<?php echo h($k); ?>', '<?php echo $import['ajax'] ? h($import['target']) : "false"; ?>')"><?php echo h($import['text']); ?></td>
 			</tr>
 		<?php endforeach; ?>
 		</table>
 	</div>
-	<div class="templateChoiceButton templateChoiceButtonLast" onClick="cancelPopoverForm();">Cancel</div>
+	<div role="button" tabindex="0" aria-label="Cancel" title="Cancel" class="templateChoiceButton templateChoiceButtonLast" onClick="cancelPopoverForm();">Cancel</div>
 </div>
 <script type="text/javascript">
 	$(document).ready(function() {

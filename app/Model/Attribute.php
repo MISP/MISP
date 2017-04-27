@@ -47,7 +47,7 @@ class Attribute extends AppModel {
 			0 => 'Your organisation only', 1 => 'This community only', 2 => 'Connected communities', 3 => 'All communities', 4 => 'Sharing group', 5 => 'Inherit event'
 	);
 
-	public $shortDist = array(0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All', 4 => ' sharing Group', 5 => 'Inherit');
+	public $shortDist = array(0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All', 4 => ' Sharing Group', 5 => 'Inherit');
 
 	// these are definitions of possible types + their descriptions and maybe later other behaviors
 	// e.g. if the attribute should be correlated with others or not
@@ -74,6 +74,24 @@ class Attribute extends AppModel {
 			'nationality'
 	);
 
+	public $searchResponseTypes = array(
+		'xml' => array(
+			'type' => 'xml',
+			'layout' => 'xml/default',
+			'header' => 'Content-Disposition: download; filename="misp.search.attribute.results.xml"'
+		),
+		'json' => array(
+			'type' => 'json',
+			'layout' => 'json/default',
+			'header' => 'Content-Disposition: download; filename="misp.search.attribute.results.json"'
+		),
+		'openioc' => array(
+			'type' => 'xml',
+			'layout' => 'xml/default',
+			'header' => 'Content-Disposition: download; filename="misp.search.attribute.results.openioc.xml"'
+		),
+	);
+
 	public $typeDefinitions = array(
 			'md5' => array('desc' => 'A checksum in md5 format', 'formdesc' => "You are encouraged to use filename|md5 instead. A checksum in md5 format, only use this if you don't know the correct filename", 'default_category' => 'Payload delivery', 'to_ids' => 1),
 			'sha1' => array('desc' => 'A checksum in sha1 format', 'formdesc' => "You are encouraged to use filename|sha1 instead. A checksum in sha1 format, only use this if you don't know the correct filename", 'default_category' => 'Payload delivery', 'to_ids' => 1),
@@ -92,6 +110,7 @@ class Attribute extends AppModel {
 			'email-dst' => array('desc' => "A recipient email address", 'formdesc' => "A recipient email address that is not related to your constituency.", 'default_category' => 'Network activity', 'to_ids' => 1),
 			'email-subject' => array('desc' => "The subject of the email", 'default_category' => 'Payload delivery', 'to_ids' => 0),
 			'email-attachment' => array('desc' => "File name of the email attachment.", 'default_category' => 'Payload delivery', 'to_ids' => 1),
+			'float' => array('desc' => "A floating point value.", 'default_category' => 'Other', 'to_ids' => 0),
 			'url' => array('desc' => 'url', 'default_category' => 'External analysis', 'to_ids' => 1),
 			'http-method' => array('desc' => "HTTP method used by the malware (e.g. POST, GET, ...).", 'default_category' => 'Network activity', 'to_ids' => 0),
 			'user-agent' => array('desc' => "The user-agent used by the malware in the HTTP request.", 'default_category' => 'Network activity', 'to_ids' => 0),
@@ -103,12 +122,14 @@ class Attribute extends AppModel {
 			'pattern-in-traffic' => array('desc' => 'Pattern in network traffic that identifies the malware', 'default_category' => 'Network activity', 'to_ids' => 1),
 			'pattern-in-memory' => array('desc' => 'Pattern in memory dump that identifies the malware', 'default_category' => 'Payload installation', 'to_ids' => 1),
 			'yara' => array('desc' => 'Yara signature', 'default_category' => 'Payload installation', 'to_ids' => 1),
+			'sigma' => array('desc' => 'Sigma - Generic Signature Format for SIEM Systems', 'default_category' => 'Payload installation', 'to_ids' => 1),
 			'vulnerability' => array('desc' => 'A reference to the vulnerability used in the exploit', 'default_category' => 'External analysis', 'to_ids' => 0),
 			'attachment' => array('desc' => 'Attachment with external information', 'formdesc' => "Please upload files using the <em>Upload Attachment</em> button.", 'default_category' => 'External analysis', 'to_ids' => 0),
 			'malware-sample' => array('desc' => 'Attachment containing encrypted malware sample', 'formdesc' => "Please upload files using the <em>Upload Attachment</em> button.", 'default_category' => 'Payload delivery', 'to_ids' => 1),
 			'link' => array('desc' => 'Link to an external information', 'default_category' => 'External analysis', 'to_ids' => 0),
 			'comment' => array('desc' => 'Comment or description in a human language', 'formdesc' => 'Comment or description in a human language.  This will not be correlated with other attributes', 'default_category' => 'Other', 'to_ids' => 0),
 			'text' => array('desc' => 'Name, ID or a reference', 'default_category' => 'Other', 'to_ids' => 0),
+			'hex' => array('desc' => 'A value in hexadecimal format', 'default_category' => 'Other', 'to_ids' => 0),
 			'other' => array('desc' => 'Other attribute', 'default_category' => 'Other', 'to_ids' => 0),
 			'named pipe' => array('desc' => 'Named pipe, use the format \\.\pipe\<PipeName>', 'default_category' => 'Artifacts dropped', 'to_ids' => 0),
 			'mutex' => array('desc' => 'Mutex, use the format \BaseNamedObjects\<Mutex>', 'default_category' => 'Artifacts dropped', 'to_ids' => 1),
@@ -135,6 +156,7 @@ class Attribute extends AppModel {
 			'ssdeep' => array('desc' => 'A checksum in ssdeep format', 'formdesc' => "You are encouraged to use filename|ssdeep instead. A checksum in the SSDeep format, only use this if you don't know the correct filename", 'default_category' => 'Payload delivery', 'to_ids' => 1),
 			'imphash' => array('desc' => 'Import hash - a hash created based on the imports in the sample.', 'formdesc' => "You are encouraged to use filename|imphash instead. A hash created based on the imports in the sample, only use this if you don't know the correct filename", 'default_category' => 'Payload delivery', 'to_ids' => 1),
 			'pehash' => array('desc' => 'PEhash - a hash calculated based of certain pieces of a PE executable file', 'default_category' => 'Payload delivery', 'to_ids' => 1),
+			'impfuzzy' => array('desc' => 'A fuzzy hash of import table of Portable Executable format', 'formdesc' => "You are encouraged to use filename|impfuzzy instead. A fuzzy hash created based on the imports in the sample, only use this if you don't know the correct filename", 'default_category' => 'Payload delivery', 'to_ids' => 1),
 			'sha224' => array('desc' => 'A checksum in sha-224 format', 'formdesc' => "You are encouraged to use filename|sha224 instead. A checksum in sha224 format, only use this if you don't know the correct filename", 'default_category' => 'Payload delivery', 'to_ids' => 1),
 			'sha384' => array('desc' => 'A checksum in sha-384 format', 'formdesc' => "You are encouraged to use filename|sha384 instead. A checksum in sha384 format, only use this if you don't know the correct filename", 'default_category' => 'Payload delivery', 'to_ids' => 1),
 			'sha512' => array('desc' => 'A checksum in sha-512 format', 'formdesc' => "You are encouraged to use filename|sha512 instead. A checksum in sha512 format, only use this if you don't know the correct filename", 'default_category' => 'Payload delivery', 'to_ids' => 1),
@@ -144,6 +166,7 @@ class Attribute extends AppModel {
 			'filename|authentihash' => array('desc' => 'A checksum in md5 format', 'default_category' => 'Payload delivery', 'to_ids' => 1),
 			'filename|ssdeep' => array('desc' => 'A checksum in ssdeep format', 'default_category' => 'Payload delivery', 'to_ids' => 1),
 			'filename|imphash' => array('desc' => 'Import hash - a hash created based on the imports in the sample.', 'default_category' => 'Payload delivery', 'to_ids' => 1),
+			'filename|impfuzzy' => array('desc' => 'Import fuzzy hash - a fuzzy hash created based on the imports in the sample.', 'default_category' => 'Payload delivery', 'to_ids' => 1),
 			'filename|pehash' => array('desc' => 'A filename and a PEhash separated by a |', 'default_category' => 'Payload delivery', 'to_ids' => 1),
 			'filename|sha224' => array('desc' => 'A filename and a sha-224 hash separated by a |', 'default_category' => 'Payload delivery', 'to_ids' => 1),
 			'filename|sha384' => array('desc' => 'A filename and a sha-384 hash separated by a |', 'default_category' => 'Payload delivery', 'to_ids' => 1),
@@ -221,7 +244,7 @@ class Attribute extends AppModel {
 	public $categoryDefinitions = array(
 			'Internal reference' => array(
 					'desc' => 'Reference used by the publishing party (e.g. ticket number)',
-					'types' => array('text', 'link', 'comment', 'other')
+					'types' => array('text', 'link', 'comment', 'other', 'hex')
 					),
 			'Targeting data' => array(
 					'desc' => 'Internal Attack Targeting and Compromise Information',
@@ -231,30 +254,30 @@ class Attribute extends AppModel {
 			'Antivirus detection' => array(
 					'desc' => 'All the info about how the malware is detected by the antivirus products',
 					'formdesc' => 'List of anti-virus vendors detecting the malware or information on detection performance (e.g. 13/43 or 67%). Attachment with list of detection or link to VirusTotal could be placed here as well.',
-					'types' => array('link', 'comment', 'text', 'attachment', 'other')
+					'types' => array('link', 'comment', 'text', 'hex', 'attachment', 'other')
 					),
 			'Payload delivery' => array(
 					'desc' => 'Information about how the malware is delivered',
 					'formdesc' => 'Information about the way the malware payload is initially delivered, for example information about the email or web-site, vulnerability used, originating IP etc. Malware sample itself should be attached here.',
-					'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'authentihash', 'pehash', 'tlsh', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|pehash', 'ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'hostname', 'domain', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'url', 'user-agent', 'AS', 'pattern-in-file', 'pattern-in-traffic', 'yara', 'attachment', 'malware-sample', 'link', 'malware-type', 'comment', 'text', 'vulnerability', 'x509-fingerprint-sha1', 'other', 'ip-dst|port', 'ip-src|port', 'hostname|port', 'email-dst-display-name', 'email-src-display-name', 'email-header', 'email-reply-to', 'email-x-mailer', 'email-mime-boundary', 'email-thread-index', 'email-message-id', 'mobile-application-id')
+					'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'impfuzzy','authentihash', 'pehash', 'tlsh', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash','filename|impfuzzy', 'filename|pehash', 'ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'hostname', 'domain', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'url', 'user-agent', 'AS', 'pattern-in-file', 'pattern-in-traffic', 'yara', 'sigma', 'attachment', 'malware-sample', 'link', 'malware-type', 'comment', 'text', 'hex', 'vulnerability', 'x509-fingerprint-sha1', 'other', 'ip-dst|port', 'ip-src|port', 'hostname|port', 'email-dst-display-name', 'email-src-display-name', 'email-header', 'email-reply-to', 'email-x-mailer', 'email-mime-boundary', 'email-thread-index', 'email-message-id', 'mobile-application-id')
 					),
 			'Artifacts dropped' => array(
 					'desc' => 'Any artifact (files, registry keys etc.) dropped by the malware or other modifications to the system',
-					'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'authentihash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|pehash', 'regkey', 'regkey|value', 'pattern-in-file', 'pattern-in-memory','pdb', 'yara', 'attachment', 'malware-sample', 'named pipe', 'mutex', 'windows-scheduled-task', 'windows-service-name', 'windows-service-displayname', 'comment', 'text', 'x509-fingerprint-sha1', 'other')
+					'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'impfuzzy','authentihash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy','filename|pehash', 'regkey', 'regkey|value', 'pattern-in-file', 'pattern-in-memory','pdb', 'yara', 'sigma', 'attachment', 'malware-sample', 'named pipe', 'mutex', 'windows-scheduled-task', 'windows-service-name', 'windows-service-displayname', 'comment', 'text', 'hex', 'x509-fingerprint-sha1', 'other')
 					),
 			'Payload installation' => array(
 					'desc' => 'Info on where the malware gets installed in the system',
 					'formdesc' => 'Location where the payload was placed in the system and the way it was installed. For example, a filename|md5 type attribute can be added here like this: c:\\windows\\system32\\malicious.exe|41d8cd98f00b204e9800998ecf8427e.',
-					'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'authentihash', 'pehash', 'tlsh', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|pehash', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'yara', 'vulnerability', 'attachment', 'malware-sample', 'malware-type', 'comment', 'text', 'x509-fingerprint-sha1', 'mobile-application-id', 'other')
+					'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash','impfuzzy','authentihash', 'pehash', 'tlsh', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy','filename|pehash', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'yara', 'sigma', 'vulnerability', 'attachment', 'malware-sample', 'malware-type', 'comment', 'text', 'hex', 'x509-fingerprint-sha1', 'mobile-application-id', 'other')
 					),
 			'Persistence mechanism' => array(
 					'desc' => 'Mechanisms used by the malware to start at boot',
 					'formdesc' => 'Mechanisms used by the malware to start at boot. This could be a registry key, legitimate driver modification, LNK file in startup',
-					'types' => array('filename', 'regkey', 'regkey|value', 'comment', 'text', 'other')
+					'types' => array('filename', 'regkey', 'regkey|value', 'comment', 'text', 'other', 'hex')
 					),
 			'Network activity' => array(
 					'desc' => 'Information about network traffic generated by the malware',
-					'types' => array('ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'hostname', 'domain', 'domain|ip', 'email-dst', 'url', 'uri', 'user-agent', 'http-method', 'AS', 'snort', 'pattern-in-file', 'pattern-in-traffic', 'attachment', 'comment', 'text', 'x509-fingerprint-sha1', 'other')
+					'types' => array('ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'hostname', 'domain', 'domain|ip', 'email-dst', 'url', 'uri', 'user-agent', 'http-method', 'AS', 'snort', 'pattern-in-file', 'pattern-in-traffic', 'attachment', 'comment', 'text', 'x509-fingerprint-sha1', 'other', 'hex')
 					),
 			'Payload type' => array(
 					'desc' => 'Information about the final payload(s)',
@@ -273,11 +296,11 @@ class Attribute extends AppModel {
 			'Financial fraud' => array(
 					'desc' => 'Financial Fraud indicators',
 					'formdesc' => 'Financial Fraud indicators, for example: IBAN Numbers, BIC codes, Credit card numbers, etc.',
-					'types' => array('btc', 'iban', 'bic', 'bank-account-nr', 'aba-rtn', 'bin', 'cc-number', 'prtn', 'comment', 'text', 'other'),
+					'types' => array('btc', 'iban', 'bic', 'bank-account-nr', 'aba-rtn', 'bin', 'cc-number', 'prtn', 'comment', 'text', 'other', 'hex'),
 					),
 			'Support Tool' => array(
 					'desc' => 'Tools supporting analysis or detection of the event',
-					'types' => array('link', 'text', 'attachment', 'comment', 'text', 'other')
+					'types' => array('link', 'text', 'attachment', 'comment', 'text', 'other', 'hex')
 			),
 			'Social network' => array(
 					'desc' => 'Social networks and platforms',
@@ -290,7 +313,7 @@ class Attribute extends AppModel {
 			),
 			'Other' => array(
 					'desc' => 'Attributes that are not part of any other category or are meant to be used as a component in MISP objects in the future',
-					'types' => array('size-in-bytes', 'counter', 'datetime', 'cpe', 'port', 'comment', 'text', 'other')
+					'types' => array('comment', 'text', 'other', 'size-in-bytes', 'counter', 'datetime', 'cpe', 'port', 'float', 'hex')
 					)
 	);
 
@@ -305,6 +328,7 @@ class Attribute extends AppModel {
 			'sha512/256' => 'Payload delivery',
 			'authentihash' => 'Payload delivery',
 			'imphash' => 'Payload delivery',
+			'impfuzzy'=> 'Payload delivery',
 			'pehash' => 'Payload delivery',
 			'filename|md5' => 'Payload delivery',
 			'filename|sha1' => 'Payload delivery',
@@ -320,6 +344,7 @@ class Attribute extends AppModel {
 			'email-src' => 'Payload delivery',
 			'email-dst' => 'Payload delivery',
 			'text' => 'Other',
+			'hex' => 'Other',
 			'attachment' => 'External analysis',
 			'malware-sample' => 'Payload delivery'
 	);
@@ -329,7 +354,7 @@ class Attribute extends AppModel {
 	// whilst filenames and hashes are file related attribute types
 	// This helps generate quick filtering for the event view, but we may reuse this and enhance it in the future for other uses (such as the API?)
 	public $typeGroupings = array(
-		'file' => array('attachment', 'pattern-in-file', 'md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'authentihash', 'pehash', 'tlsh', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|pehash', 'malware-sample', 'x509-fingerprint-sha1'),
+		'file' => array('attachment', 'pattern-in-file', 'md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'impfuzzy','authentihash', 'pehash', 'tlsh', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|pehash', 'malware-sample', 'x509-fingerprint-sha1'),
 		'network' => array('ip-src', 'ip-dst', 'ip-src|port', 'ip-dst|port', 'hostname', 'hostname|port', 'domain', 'domain|ip', 'email-dst', 'url', 'uri', 'user-agent', 'http-method', 'AS', 'snort', 'pattern-in-traffic', 'x509-fingerprint-sha1'),
 		'financial' => array('btc', 'iban', 'bic', 'bank-account-nr', 'aba-rtn', 'bin', 'cc-number', 'prtn')
 	);
@@ -493,16 +518,15 @@ class Attribute extends AppModel {
 		if (!empty($this->data['Attribute']['type'])) {
 			$compositeTypes = $this->getCompositeTypes();
 			// explode composite types in value1 and value2
-			$pieces = explode('|', $this->data['Attribute']['value']);
 			if (in_array($this->data['Attribute']['type'], $compositeTypes)) {
+				$pieces = explode('|', $this->data['Attribute']['value']);
 				if (2 != count($pieces)) {
 					throw new InternalErrorException('Composite type, but value not explodable');
 				}
 				$this->data['Attribute']['value1'] = $pieces[0];
 				$this->data['Attribute']['value2'] = $pieces[1];
 			} else {
-				$total = implode('|', $pieces);
-				$this->data['Attribute']['value1'] = $total;
+				$this->data['Attribute']['value1'] = $this->data['Attribute']['value'];
 				$this->data['Attribute']['value2'] = '';
 			}
 		}
@@ -564,6 +588,10 @@ class Attribute extends AppModel {
 		// set to_ids if it doesn't exist
 		if (empty($this->data['Attribute']['to_ids'])) {
 			$this->data['Attribute']['to_ids'] = 0;
+		}
+
+		if (empty($this->data['Attribute']['comment'])) {
+			$this->data['Attribute']['comment'] = "";
 		}
 		// generate UUID if it doesn't exist
 		if (empty($this->data['Attribute']['uuid'])) {
@@ -751,24 +779,20 @@ class Attribute extends AppModel {
 				break;
 			case 'ip-src':
 			case 'ip-dst':
-				$parts = explode("/", $value);
-				// [0] = the IP
-				// [1] = the network address
-				if (count($parts) <= 2 ) {
-					// IPv4 and IPv6 matching
-					if (filter_var($parts[0], FILTER_VALIDATE_IP)) {
-						// IP is validated, now check if we have a valid network mask
-						if (empty($parts[1])) {
-							$returnValue = true;
-						} else {
-							if (is_numeric($parts[1]) && $parts[1] < 129) {
-								$returnValue = true;
-							}
-						}
+				$returnValue = true;
+				if (strpos($value, '/') !== false) {
+					$parts = explode("/", $value);
+					// [0] = the IP
+					// [1] = the network address
+					if (count($parts) != 2 || (!is_numeric($parts[1]) || !($parts[1] < 129 && $parts[1] > 0))) {
+							$returnValue = 'Invalid CIDR notation value found.';
 					}
+					$ip = $parts[0];
+				} else {
+					$ip = $value;
 				}
-				if (!$returnValue) {
-					$returnValue = 'IP address has an invalid format. Please double check the value or select type "other".';
+				if (!filter_var($ip, FILTER_VALIDATE_IP)) {
+					$returnValue = 'IP address has an invalid format.';
 				}
 				break;
 			case 'port':
@@ -855,6 +879,7 @@ class Attribute extends AppModel {
 			case 'pattern-in-traffic':
 			case 'pattern-in-memory':
 			case 'yara':
+			case 'sigma':
 			case 'attachment':
 			case 'malware-sample':
 				$returnValue = true;
@@ -869,6 +894,11 @@ class Attribute extends AppModel {
 			case 'text':
 			case 'other':
 				$returnValue = true;
+				break;
+			case 'hex':
+				if (preg_match("/^[0-9a-f]*$/i", $value)) {
+					$returnValue = true;
+				}
 				break;
 			case 'target-user':
 			case 'campaign-name':
@@ -975,6 +1005,12 @@ class Attribute extends AppModel {
 					$returnValue = true;
 				}
 				break;
+			case 'float':
+				$value = floatval($value);
+				if (is_float($value)) {
+					$returnValue = true;
+				}
+				break;
 		}
 		return $returnValue;
 	}
@@ -1075,6 +1111,12 @@ class Attribute extends AppModel {
 			case 'hostname|port':
 				$value = strtolower($value);
 				str_replace(':', '|', $value);
+				break;
+			case 'float':
+				$value = floatval($value);
+				break;
+			case 'hex':
+				$value = strtoupper($value);
 				break;
 		}
 		return $value;
@@ -1532,7 +1574,7 @@ class Attribute extends AppModel {
 	}
 
 
-	public function nids($user, $format, $id = false, $continue = false, $tags = false, $from = false, $to = false, $last = false, $type = false, $enforceWarninglist = false) {
+	public function nids($user, $format, $id = false, $continue = false, $tags = false, $from = false, $to = false, $last = false, $type = false, $enforceWarninglist = false, $includeAllTags = false) {
 		if (empty($user)) throw new MethodNotAllowedException('Could not read user.');
 		$eventIds = $this->Event->fetchEventIds($user, $from, $to, $last);
 
@@ -1565,7 +1607,7 @@ class Attribute extends AppModel {
 		$rules = array();
 		foreach ($eventIds as $event) {
 			$conditions['AND'] = array('Attribute.to_ids' => 1, "Event.published" => 1, 'Attribute.event_id' => $event['Event']['id']);
-			$valid_types = array('ip-dst', 'ip-src', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'domain', 'domain|ip', 'hostname', 'url', 'user-agent', 'snort');
+			$valid_types = array('ip-dst', 'ip-src', 'ip-dst|port', 'ip-src|port', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'domain', 'domain|ip', 'hostname', 'url', 'user-agent', 'snort');
 			$conditions['AND']['Attribute.type'] = $valid_types;
 			if (!empty($type)) {
 				$conditions['AND'][] = array('Attribute.type' => $type);
@@ -1577,7 +1619,8 @@ class Attribute extends AppModel {
 					'fields' => array('Attribute.id', 'Attribute.event_id', 'Attribute.type', 'Attribute.value'),
 					'contain' => array('Event'=> array('fields' => array('Event.id', 'Event.threat_level_id'))),
 					'group' => array('Attribute.type', 'Attribute.value1'), // fields to GROUP BY
-					'enforceWarninglist' => $enforceWarninglist
+					'enforceWarninglist' => $enforceWarninglist,
+					'includeAllTags' => $includeAllTags
 			);
 			$items = $this->fetchAttributes($user, $params);
 			if (empty($items)) continue;
@@ -1710,7 +1753,7 @@ class Attribute extends AppModel {
 		$intel = array();
 		foreach ($types as $type) {
 			//restricting to non-private or same org if the user is not a site-admin.
-			$conditions['AND'] = array('Attribute.to_ids =' => 1, 'Event.published =' => 1);
+			$conditions['AND'] = array('Attribute.to_ids' => 1, 'Event.published' => 1);
 			if ($from) $conditions['AND']['Event.date >='] = $from;
 			if ($to) $conditions['AND']['Event.date <='] = $to;
 			if ($last) $conditions['AND']['Event.publish_timestamp >='] = $last;
@@ -2294,5 +2337,112 @@ class Attribute extends AppModel {
 			}
 		}
 		return true;
+	}
+
+	public function convertToOpenIOC($user, $attributes) {
+		return $this->IOCExport->buildAll($this->Auth->user(), $event);
+	}
+
+	public function setTagConditions($tags, $conditions) {
+		$args = $this->dissectArgs($tags);
+		$tagArray = $this->AttributeTag->Tag->fetchEventTagIds($args[0], $args[1]);
+		$temp = array();
+		foreach ($tagArray[0] as $accepted) {
+			$temp['OR'][] = array('Event.id' => $accepted);
+		}
+		$conditions['AND'][] = $temp;
+		$temp = array();
+		foreach ($tagArray[1] as $rejected) {
+			$temp['AND'][] = array('Event.id !=' => $rejected);
+		}
+		$conditions['AND'][] = $temp;
+		return $conditions;
+	}
+
+	public function setPublishTimestampConditions($publish_timestamp, $conditions) {
+		if (is_array($publish_timestamp)) {
+			$conditions['AND'][] = array('Event.publish_timestamp >=' => $publish_timestamp[0]);
+			$conditions['AND'][] = array('Event.publish_timestamp <=' => $publish_timestamp[1]);
+		} else {
+			$conditions['AND'][] = array('Event.publish_timestamp >=' => $publish_timestamp);
+		}
+		return $conditions;
+	}
+
+	public function setTimestampConditions($timestamp, $conditions, $scope = 'Event') {
+		if (is_array($timestamp)) {
+			$conditions['AND'][] = array($scope . '.timestamp >=' => $timestamp[0]);
+			$conditions['AND'][] = array($scope . '.timestamp <=' => $timestamp[1]);
+		} else {
+			$conditions['AND'][] = array($scope . '.timestamp >=' => $timestamp);
+		}
+		return $conditions;
+	}
+
+	public function setToIDSConditions($to_ids, $conditions) {
+		if ($to_ids === 'exclude') {
+			$conditions['AND'][] = array('Attribute.to_ids' => 0);
+		} else {
+			$conditions['AND'][] = array('Attribute.to_ids' => 1);
+		}
+		return $conditions;
+	}
+
+	public function setSimpleConditions($parameterKey, $parameterValue, $conditions) {
+		$subcondition = array();
+		App::uses('CIDRTool', 'Tools');
+		$cidr = new CIDRTool();
+		if (is_array($parameterValue)) $elements = $parameterValue;
+		else $elements = explode('&&', $parameterValue);
+		foreach ($elements as $v) {
+			if (empty($v)) continue;
+			if (substr($v, 0, 1) == '!') {
+				// check for an IPv4 address and subnet in CIDR notation (e.g. 127.0.0.1/8)
+				if ($parameterKey === 'value' && $cidr->checkCIDR(substr($v, 1), 4)) {
+					$cidrresults = $cidr->CIDR(substr($v, 1));
+					foreach ($cidrresults as $result) {
+						$subcondition['AND'][] = array('Attribute.value NOT LIKE' => $result);
+					}
+				} else if ($parameterKey === 'org') {
+						// from here
+						$found_orgs = $this->Event->Org->find('all', array(
+								'recursive' => -1,
+								'conditions' => array('LOWER(name) LIKE' => '%' . strtolower(substr($v, 1)) . '%'),
+						));
+						foreach ($found_orgs as $o) $subcondition['AND'][] = array('Event.orgc_id !=' => $o['Org']['id']);
+				} else if ($parameterKey === 'eventid') {
+					$subcondition['AND'][] = array('Attribute.event_id !=' => substr($v, 1));
+				} else if ($parameterKey === 'uuid') {
+					$subcondition['AND'][] = array('Event.uuid !=' => substr($v, 1));
+					$subcondition['AND'][] = array('Attribute.uuid !=' => substr($v, 1));
+				} else {
+					$subcondition['AND'][] = array('Attribute.' . $parameterKey . ' NOT LIKE' => '%'.substr($v, 1).'%');
+				}
+			} else {
+				// check for an IPv4 address and subnet in CIDR notation (e.g. 127.0.0.1/8)
+				if ($parameterKey === 'value' && $cidr->checkCIDR($v, 4)) {
+					$cidrresults = $cidr->CIDR($v);
+					foreach ($cidrresults as $result) {
+						$subcondition['OR'][] = array('Attribute.value LIKE' => $result);
+					}
+				} else if ($parameterKey === 'org') {
+					// from here
+					$found_orgs = $this->Event->Org->find('all', array(
+							'recursive' => -1,
+							'conditions' => array('LOWER(name) LIKE' => '%' . strtolower($v) . '%'),
+					));
+					foreach ($found_orgs as $o) $subcondition['OR'][] = array('Event.orgc_id' => $o['Org']['id']);
+				} else if ($parameterKey === 'eventid') {
+					if (!empty($v)) $subcondition['OR'][] = array('Attribute.event_id' => $v);
+				} else if ($parameterKey === 'uuid') {
+					$subcondition['OR'][] = array('Attribute.uuid' => $v);
+					$subcondition['OR'][] = array('Event.uuid' => $v);
+				} else {
+					if (!empty($v)) $subcondition['OR'][] = array('Attribute.' . $parameterKey . ' LIKE' => '%'.$v.'%');
+				}
+			}
+		}
+		array_push ($conditions['AND'], $subcondition);
+		return $conditions;
 	}
 }

@@ -18,9 +18,9 @@ $requester = $me['org_id'] == $delegation['RequesterOrg']['id'] ? 'Your organisa
 <p><b>Message from requester</b><br /><?php echo h($delegation['EventDelegation']['message']); ?></p>
 	<div class="row-fluid">
 		<?php if ($isSiteAdmin || $me['org_id'] == $delegation['Org']['id']):?>
-			<span class="btn btn-primary" onClick="genericPopup('<?php echo $baseurl?>/event_delegations/acceptDelegation/<?php echo h($delegation['EventDelegation']['id']); ?>', '#confirmation_box');">Accept</span>
+			<span role="button" tabindex="0" aria-label="Accept delegation request" title="Accept delegation request" class="btn btn-primary" onClick="genericPopup('<?php echo $baseurl?>/event_delegations/acceptDelegation/<?php echo h($delegation['EventDelegation']['id']); ?>', '#confirmation_box');">Accept</span>
 		<?php endif;?>
-		<span class="btn btn-inverse" onClick="genericPopup('<?php echo $baseurl?>/event_delegations/deleteDelegation/<?php echo h($delegation['EventDelegation']['id']); ?>', '#confirmation_box');">Discard</span>
-		<span class="btn btn-inverse" style="float:right;" id="PromptNoButton" onClick="cancelPrompt();">Cancel</span>
+		<span role="button" tabindex="0" aria-label="Decline and remove delegation request" title="Decline and remove delegation request" class="btn btn-inverse" onClick="genericPopup('<?php echo $baseurl?>/event_delegations/deleteDelegation/<?php echo h($delegation['EventDelegation']['id']); ?>', '#confirmation_box');">Discard</span>
+		<span role="button" tabindex="0" aria-label="Cancel" title="Cancel" class="btn btn-inverse" style="float:right;" id="PromptNoButton" onClick="cancelPrompt();">Cancel</span>
 	</div>
 </div>

@@ -48,7 +48,7 @@ foreach ($list as $item):?>
 					'id' => $item['Task']['id'] . '-timer-active'
 				));
 			?>
-			<div id="<?php echo $item['Task']['id'];?>-timer-passive" onClick="activate1(<?php echo $item['Task']['id'];?>, 'timer')">
+			<div id="<?php echo $item['Task']['id'];?>-timer-passive" role="button" tabindex="0" aria-label="Set frequency timer for scheduled task" title="Set frequency timer for scheduled task" onClick="activate1(<?php echo $item['Task']['id'];?>, 'timer')">
 				<?php echo h($item['Task']['timer']); ?>
 			</div>
 		</td>
@@ -63,7 +63,7 @@ foreach ($list as $item):?>
 					));
 				?>
 			</div>
-			<div id="<?php echo $item['Task']['id'];?>-scheduled_time-passive" onClick="activate2(<?php echo $item['Task']['id'];?>, 'scheduled_time', '<?php echo h($item['Task']['scheduled_time']);?>')">
+			<div id="<?php echo $item['Task']['id'];?>-scheduled_time-passive" role="button" tabindex="0" aria-label="Set scheduled time for task" title="set scheduled time for task" onClick="activate2(<?php echo $item['Task']['id'];?>, 'scheduled_time', '<?php echo h($item['Task']['scheduled_time']);?>')">
 				<?php echo h($item['Task']['scheduled_time']); ?>
 			</div>
 		</td>
@@ -78,7 +78,7 @@ foreach ($list as $item):?>
 					));
 				?>
 			</div>
-			<div id="<?php echo $item['Task']['id'];?>-next_execution_time-passive" onClick="activate1(<?php echo $item['Task']['id'];?>, 'next_execution_time')">
+			<div id="<?php echo $item['Task']['id'];?>-next_execution_time-passive" role="button" tabindex="0" aria-label="Next execution time" onClick="activate1(<?php echo $item['Task']['id'];?>, 'next_execution_time')">
 				<?php echo h(date("Y-m-d", $item['Task']['next_execution_time'])); ?>
 			</div>
 		</td>

@@ -46,10 +46,10 @@ class AppController extends Controller {
 
 	public $helpers = array('Utility');
 
-	private $__jsVersion = '2.4.67';
-	public $pyMispVersion = '2.4.65';
+	private $__queryVersion = '9';
+	public $pyMispVersion = '2.4.71';
 	public $phpmin = '5.6.5';
-	public $phprec = '7.0.0';
+	public $phprec = '7.0.16';
 
 	// Used for _isAutomation(), a check that returns true if the controller & action combo matches an action that is a non-xml and non-json automation method
 	// This is used to allow authentication via headers for methods not covered by _isRest() - as that only checks for JSON and XML formats
@@ -92,7 +92,7 @@ class AppController extends Controller {
 			throw new Exception('datasource not supported: ' . $dataSource);
 		}
 
-		$this->set('jsVersion', $this->__jsVersion);
+		$this->set('queryVersion', $this->__queryVersion);
 		$this->loadModel('User');
 		$auth_user_fields = $this->User->describeAuthFields();
 
@@ -518,7 +518,7 @@ class AppController extends Controller {
 		$counter = 0;
 
 		// load this so we can remove the blacklist item that will be created, this is the one case when we do not want it.
-		if (Configure::read('MISP.enableEventBlacklisting')) $this->EventBlacklist = ClassRegistry::init('EventBlacklist');
+		if (Configure::read('MISP.enableEventBlacklisting') !== false) $this->EventBlacklist = ClassRegistry::init('EventBlacklist');
 
 		foreach ($duplicates as $duplicate) {
 			$events = $this->Event->find('all', array(
@@ -532,7 +532,7 @@ class AppController extends Controller {
 					$counter++;
 					// remove the blacklist entry that we just created with the event deletion, if the feature is enabled
 					// We do not want to block the UUID, since we just deleted a copy
-					if (Configure::read('MISP.enableEventBlacklisting')) {
+					if (Configure::read('MISP.enableEventBlacklisting') !== false) {
 						$this->EventBlacklist->deleteAll(array('EventBlacklist.event_uuid' => $uuid));
 					}
 				}

@@ -160,7 +160,7 @@
 		echo $this->Form->checkbox('delete_client_cert', array('style' => 'display:none;', 'label' => false, 'div' => false));
 	?>
 	</fieldset>
-	<span class="btn btn-primary" onClick="serverSubmitForm('Edit');">Submit</span>
+	<span role="button" tabindex="0" aria-label="Submit" title="Submit" class="btn btn-primary" onClick="serverSubmitForm('Edit');">Submit</span>
 <?php
 	echo $this->Form->end();
 ?>

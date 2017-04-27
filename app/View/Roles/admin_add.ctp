@@ -12,7 +12,12 @@
 		?>
 				<div class="permFlags<?php echo ' ' . ($flag['readonlyenabled'] ? 'readonlyenabled' : 'readonlydisabled'); ?>">
 		<?php
-					echo $this->Form->input($k, array('type' => 'checkbox', 'class' => 'checkbox ' . ($flag['readonlyenabled'] ? 'readonlyenabled' : 'readonlydisabled'), 'checked' => false));
+					echo $this->Form->input($k, array(
+						'type' => 'checkbox',
+						'class' => 'checkbox ' . ($flag['readonlyenabled'] ? 'readonlyenabled' : 'readonlydisabled'),
+						'checked' => false,
+						'label' => Inflector::humanize(substr($k, 5))
+					));
 					if ($counter%3 == 0) echo "<div class = 'input clear'></div>";
 					$counter++;
 		?>

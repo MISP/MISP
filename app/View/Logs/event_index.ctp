@@ -67,7 +67,6 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc_id'] == $me['org_id']);
 		?>
 		</ul>
 	</div>
-	<div id="confirmation_box" class="confirmation_box"></div>
 </div>
 <?php
 	// We mimic the $event from some other views to pass the ID back to the sidemenu

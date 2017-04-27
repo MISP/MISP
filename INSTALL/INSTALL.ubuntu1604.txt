@@ -48,7 +48,6 @@ sudo apt-get install libapache2-mod-php php php-cli php-crypt-gpg php-dev php-js
 # Apply all changes
 sudo systemctl restart apache2
 
-
 3/ MISP code
 ------------
 # Download MISP using git in the /var/www/ directory.
@@ -76,7 +75,6 @@ sudo python setup.py install
 cd /var/www/MISP/app/files/scripts/python-stix
 sudo -u www-data git checkout v1.1.1.4
 sudo python setup.py install
-
 
 4/ CakePHP
 -----------
