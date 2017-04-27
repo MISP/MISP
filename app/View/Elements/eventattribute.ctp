@@ -117,7 +117,7 @@
 	</div>
 	<div class="tabMenu tabMenuFiltersBlock noPrint" style="padding-right:0px !important;">
 		<span id="filter_header" class="attribute_filter_header">Filters: </span>
-		<div id="filter_all" title="Show all attributes" role="button" tabindex="0" aria-label="Show all attributes" class="attribute_filter_text<?php if ($attributeFilter == 'all') echo '_active'; ?>" onClick="filterAttributes('all', '<?php echo h($event['Event']['id']); ?>');">All (<?php echo h($this->Paginator->params()['count']); ?>)</div>
+		<div id="filter_all" title="Show all attributes" role="button" tabindex="0" aria-label="Show all attributes" class="attribute_filter_text<?php if ($attributeFilter == 'all') echo '_active'; ?>" onClick="filterAttributes('all', '<?php echo h($event['Event']['id']); ?>');">All (<?php echo h($this->Paginator->params()['total_elements']); ?>)</div>
 		<?php foreach ($typeGroups as $group): ?>
 			<div id="filter_<?php echo h($group); ?>" title="Only show <?php echo $group; ?> related attributes" role="button" tabindex="0" aria-label="Only show <?php echo h($group); ?> related attributes" class="attribute_filter_text<?php if ($attributeFilter == $group) echo '_active'; ?>" onClick="filterAttributes('<?php echo $group; ?>', '<?php echo h($event['Event']['id']); ?>');"><?php echo ucfirst($group); ?></div>
 		<?php endforeach; ?>
