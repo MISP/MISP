@@ -672,7 +672,8 @@ class Event extends AppModel {
 				'fields' => $settings[$context]['correlationModel'] . '.*',
 				'conditions' => $conditionsCorrelation,
 				'recursive' => 0,
-				'order' => array($settings[$context]['correlationModel'] . '.event_id DESC')));
+				'order' => false
+		));
 		$relatedAttributes = array();
 		foreach ($correlations as $correlation) {
 			$current = array(
@@ -769,7 +770,7 @@ class Event extends AppModel {
     $unpublish_event = $server['Server']['unpublish_event'];
     if ($unpublish_event) {
       $event['Event']['published'] = 0;
-    }  
+    }
 		$updated = null;
 		$newLocation = $newTextBody = '';
 		$result = $this->restfulEventToServer($event, $server, null, $newLocation, $newTextBody, $HttpSocket);
@@ -3030,12 +3031,17 @@ class Event extends AppModel {
 		$eventArray = array();
 		$correlatedAttributes = isset($event['RelatedAttribute']) ? array_keys($event['RelatedAttribute']) : array();
 		$correlatedShadowAttributes = isset($event['RelatedShadowAttribute']) ? array_keys($event['RelatedShadowAttribute']) : array();
+		$totalElements = count($event['Attribute']);
 		foreach ($event['Attribute'] as $attribute) {
+			$totalElements += isset($attribute['ShadowAttribute']) ? count($attribute['ShadowAttribute']) : 0;
 			if ($filterType && !in_array($filterType, array('proposal', 'correlation', 'warning'))) if (!in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType])) continue;
 			if (isset($attribute['distribution']) && $attribute['distribution'] != 4) unset($attribute['SharingGroup']);
 			$attribute['objectType'] = 0;
-			if (!empty($attribute['ShadowAttribute'])) $attribute['hasChildren'] = 1;
-			else $attribute['hasChildren'] = 0;
+			if (!empty($attribute['ShadowAttribute'])) {
+				$attribute['hasChildren'] = 1;
+			} else {
+				$attribute['hasChildren'] = 0;
+			}
 			if ($filterType === 'proposal' && $attribute['hasChildren'] == 0) continue;
 			if ($filterType === 'correlation' && !in_array($attribute['id'], $correlatedAttributes)) continue;
 			if ($attribute['type'] == 'attachment' && preg_match('/.*\.(jpg|png|jpeg|gif)$/i', $attribute['value'])) {
@@ -3045,6 +3051,7 @@ class Event extends AppModel {
 		}
 		unset($event['Attribute']);
 		if (isset($event['ShadowAttribute'])) {
+			$totalElements += count($event['ShadowAttribute']);
 			foreach ($event['ShadowAttribute'] as $shadowAttribute) {
 				if ($filterType === 'correlation' && !in_array($shadowAttribute['id'], $correlatedShadowAttributes)) continue;
 				if ($filterType && !in_array($filterType, array('proposal', 'correlation', 'warning'))) if (!in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType])) continue;
@@ -3060,7 +3067,6 @@ class Event extends AppModel {
 		$customPagination = new CustomPaginationTool();
 		if ($all) $passedArgs['page'] = 0;
 		$eventArrayWithProposals = array();
-
 		foreach ($eventArray as $k => &$object) {
 			if ($object['category'] === 'Financial fraud') {
 				if (!$fTool->validateRouter($object['type'], $object['value'])) {
@@ -3095,6 +3101,7 @@ class Event extends AppModel {
 			$event['objects'] = array_values($event['objects']);
 		}
 		$params = $customPagination->applyRulesOnArray($event['objects'], $passedArgs, 'events', 'category');
+		$params['total_elements'] = $totalElements;
 		return $params;
 	}
 

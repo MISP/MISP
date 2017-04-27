@@ -778,7 +778,8 @@ class EventsController extends AppController {
 	private function __viewUI($event, $continue, $fromEvent) {
 		$emptyEvent = (!isset($event['Attribute']) || empty($event['Attribute']));
 		$this->set('emptyEvent', $emptyEvent);
-		$this->set('attribute_count', isset($event['Attribute']) ? count($event['Attribute']) : 0);
+		$attributeCount = isset($event['Attribute']) ? count($event['Attribute']) : 0;
+		$this->set('attribute_count', $attributeCount);
 		// set the data for the contributors / history field
 		$org_ids = $this->Event->ShadowAttribute->getEventContributors($event['Event']['id']);
 		$contributors = $this->Event->Org->find('list', array('fields' => array('Org.name'), 'conditions' => array('Org.id' => $org_ids)));
