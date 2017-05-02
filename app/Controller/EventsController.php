@@ -4018,6 +4018,9 @@ class EventsController extends AppController {
 				}
 				if (!$fail) {
 					$modulePayload['data'] = base64_encode($modulePayload['data']);
+					if (!empty($filename)) {
+						$modulePayload['filename'] = $filename;
+					}
 					$result = $this->Module->queryModuleServer('/query', json_encode($modulePayload, true), false, $moduleFamily = 'Import');
 					if (!$result) throw new Exception('Import service not reachable.');
 					if (isset($result['error'])) $this->Session->setFlash($result['error']);
