@@ -71,7 +71,8 @@ class Attribute extends AppModel {
 			'gender',
 			'counter',
 			'port',
-			'nationality'
+			'nationality',
+			'cortex'
 	);
 
 	public $searchResponseTypes = array(
@@ -235,7 +236,8 @@ class Attribute extends AppModel {
 			'place-port-of-clearance' => array('desc' => 'The port of clearance', 'default_category' => 'Person', 'to_ids' => 0),
 			'place-port-of-onward-foreign-destination' => array('desc' => 'A Port where the passenger is transiting to', 'default_category' => 'Person', 'to_ids' => 0),
 			'passenger-name-record-locator-number' => array('desc' => 'The Passenger Name Record Locator is a key under which the reservation for a trip is stored in the system. The PNR contains, among other data, the name, flight segments and address of the passenger. It is defined by a combination of five or six letters and numbers.', 'default_category' => 'Person', 'to_ids' => 0),
-			'mobile-application-id' => array('desc' => 'The application id of a mobile application', 'default_category' => 'Payload delivery', 'to_ids' => 1)
+			'mobile-application-id' => array('desc' => 'The application id of a mobile application', 'default_category' => 'Payload delivery', 'to_ids' => 1),
+			'cortex' => array('desc' => 'Cortex analysis result', 'default_category' => 'External analysis', 'to_ids' => 0)
 			// Not convinced about this.
 			//'url-regex' => array('desc' => '', 'default_category' => 'Person', 'to_ids' => 0),
 	);
@@ -291,7 +293,7 @@ class Attribute extends AppModel {
 			'External analysis' => array(
 					'desc' => 'Any other result from additional analysis of the malware like tools output',
 					'formdesc' => 'Any other result from additional analysis of the malware like tools output Examples: pdf-parser output, automated sandbox analysis, reverse engineering report.',
-					'types' => array('md5', 'sha1', 'sha256','filename', 'filename|md5', 'filename|sha1', 'filename|sha256', 'ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'hostname', 'domain', 'domain|ip', 'url', 'user-agent', 'regkey', 'regkey|value', 'AS', 'snort', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'vulnerability', 'attachment', 'malware-sample', 'link', 'comment', 'text', 'x509-fingerprint-sha1', 'github-repository', 'other')
+					'types' => array('md5', 'sha1', 'sha256','filename', 'filename|md5', 'filename|sha1', 'filename|sha256', 'ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'hostname', 'domain', 'domain|ip', 'url', 'user-agent', 'regkey', 'regkey|value', 'AS', 'snort', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'vulnerability', 'attachment', 'malware-sample', 'link', 'comment', 'text', 'x509-fingerprint-sha1', 'github-repository', 'other', 'cortex')
 					),
 			'Financial fraud' => array(
 					'desc' => 'Financial Fraud indicators',
@@ -346,7 +348,8 @@ class Attribute extends AppModel {
 			'text' => 'Other',
 			'hex' => 'Other',
 			'attachment' => 'External analysis',
-			'malware-sample' => 'Payload delivery'
+			'malware-sample' => 'Payload delivery',
+			'cortex' => 'External analysis'
 	);
 
 	// typeGroupings are a mapping to high level groups for attributes
@@ -1004,6 +1007,10 @@ class Attribute extends AppModel {
 				if (is_numeric($value)) {
 					$returnValue = true;
 				}
+				break;
+			case 'cortex':
+				json_decode($value);
+				$returnValue = (json_last_error() == JSON_ERROR_NONE);
 				break;
 			case 'float':
 				$value = floatval($value);
