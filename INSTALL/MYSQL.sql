@@ -164,6 +164,22 @@ CREATE TABLE IF NOT EXISTS `event_blacklists` (
 -- -------------------------------------------------------
 
 --
+-- Table structure for `event_blacklists`
+--
+
+CREATE TABLE IF NOT EXISTS `event_blacklists` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `event_uuid` varchar(40) COLLATE utf8_bin NOT NULL,
+  `created` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  `event_info` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `event_orgc` VARCHAR( 255 ) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+-- -------------------------------------------------------
+
+--
 -- Table structure for `event_delegations`
 --
 
@@ -379,6 +395,21 @@ CREATE TABLE IF NOT EXISTS `news` (
   `date_created` int(11) unsigned NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- -------------------------------------------------------
+
+--
+-- Table structure for `org_blacklists`
+--
+
+CREATE TABLE IF NOT EXISTS `org_blacklists` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `org_uuid` varchar(40) COLLATE utf8_bin NOT NULL,
+  `created` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  `org_name` varchar(255) COLLATE utf8_bin NOT NULL,
+  `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- --------------------------------------------------------
 
