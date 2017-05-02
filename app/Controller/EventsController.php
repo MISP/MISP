@@ -2972,6 +2972,12 @@ class EventsController extends AppController {
 			$complexTypeTool = new ComplexTypeTool();
 			$this->loadModel('Warninglist');
 			$complexTypeTool->setTLDs($this->Warninglist->fetchTLDLists());
+			if (!isset($this->request->data['Attribute'])) {
+				$this->request->data = array('Attribute' => $this->request->data);
+			}
+			if (!isset($this->request->data['Attribute']['value'])) {
+				$this->request->data['Attribute'] = array('value' => $this->request->data);
+			}
 			$resultArray = $complexTypeTool->checkComplexRouter($this->request->data['Attribute']['value'], 'freetext');
 			foreach ($resultArray as $key => $r) {
 				$temp = array();
@@ -2986,6 +2992,9 @@ class EventsController extends AppController {
 				for ($i = 0; $i < $k; $i++) {
 					if (isset($resultArray[$i]) && $v == $resultArray[$i]) unset($resultArray[$k]);
 				}
+			}
+			if ($this->_isRest()) {
+				return $this->__pushFreetext($resultArray, $id, isset($this->request->data['Attribute']['distribution']) ? $this->request->data['Attribute']['distribution'] : false);
 			}
 			foreach ($resultArray as $key => $result) {
 				$options = array(
@@ -3007,6 +3016,7 @@ class EventsController extends AppController {
 			if (empty($sgs)) {
 				unset($distributions[4]);
 			}
+
 			$this->set('distributions', $distributions);
 			$this->set('sgs', $sgs);
 			$this->set('event', $event);
@@ -3018,6 +3028,34 @@ class EventsController extends AppController {
 			$this->set('title', 'Freetext Import Results');
 			$this->render('resolved_attributes');
 		}
+	}
+
+	public function __pushFreetext($resultArray, $eventId, $distribution = false, $sg = false) {
+		foreach ($resultArray as $k => $result) {
+			$result['type'] = $result['default_type'];
+			unset($result['default_type']);
+			unset($result['types']);
+			$result['category'] = $this->Event->Attribute->defaultCategories[$result['type']];
+			if ($distribution === false) {
+				if (Configure::read('MISP.default_attribute_distribution') != null) {
+					if (Configure::read('MISP.default_attribute_distribution') == 'event') {
+						$distribution = 5;
+					} else {
+						$distribution = Configure::read('MISP.default_attribute_distribution');
+					}
+				} else {
+					$distribution = 0;
+				}
+			}
+			$result['distribution'] = $distribution;
+			$result['event_id'] = $eventId;
+			$resultArray[$k] = $result;
+			$this->Event->Attribute->create();
+			if (!$this->Event->Attribute->save($result)) {
+				unset($resultArray[$k]);
+			}
+		}
+		return $this->RestResponse->viewData($resultArray, $this->response->type());
 	}
 
 	public function saveFreeText($id) {
