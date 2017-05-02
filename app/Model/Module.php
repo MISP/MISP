@@ -141,8 +141,13 @@ class Module extends AppModel {
 		} else {
 			$httpSocket = new HttpSocket(array('timeout' => Configure::read('Plugin.' . $moduleFamily . '_timeout') ? Configure::read('Plugin.' . $moduleFamily . '_timeout') : 10));
 		}
+		$request = array(
+				'header' => array(
+						'Content-Type' => 'application/json',
+				)
+		);
 		try {
-			if ($post) $response = $httpSocket->post($url . $uri, $post);
+			if ($post) $response = $httpSocket->post($url . $uri, $post, $request);
 			else $response = $httpSocket->get($url . $uri);
 			return json_decode($response->body, true);
 		} catch (Exception $e) {
