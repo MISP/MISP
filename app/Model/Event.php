@@ -2104,7 +2104,7 @@ class Event extends AppModel {
 		if ($saveResult) {
 			if ($passAlong) {
 				$this->Server = ClassRegistry::init('Server');
-				$server = $this->Server->find('first', array('conditions' => array('Server.id' => $passAlong), 'recursive' => -1, 'fields' => array('Server.name', 'Server.id')));
+				$server = $this->Server->find('first', array('conditions' => array('Server.id' => $passAlong), 'recursive' => -1, 'fields' => array('Server.name', 'Server.id', 'Server.unpublish_event')));
 				$this->Log->create();
 				$this->Log->save(array(
 						'org' => $user['Organisation']['name'],
