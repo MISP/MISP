@@ -1,3 +1,11 @@
+<?php
+	$emptyDate = 'Date,Close\n';
+	$date = new DateTime();
+	$date->modify("-1 day");
+	$emptyDate .= $date->format("Y-m-d") . ',0\n';
+	$date->modify("+1 day");
+	$emptyDate .= $date->format("Y-m-d") . ',0\n';
+?>
 <div class="tags index">
 	<h2><?php echo $favouritesOnly ? 'Your Favourite Tags' : 'Tags';?></h2>
 	<div class="pagination">
@@ -63,7 +71,7 @@ foreach ($list as $k => $item): ?>
 		<td class="shortish"><?php echo h($item['Tag']['count']); ?>&nbsp;</td>
 		<td class="shortish"><a href="<?php echo $baseurl . "/attributes/search/attributetag:" . $item['Tag']['id']; ?>"><?php echo h($item['Tag']['attribute_count']); ?></a> </td>
 		<td class="shortish">
-			<?php echo $this->element('sparkline', array('id' => $item['Tag']['id'], 'csv' => $csv[$k])); ?>
+			<?php echo $this->element('sparkline', array('id' => $item['Tag']['id'], 'csv' => isset($csv[$k]) ? $csv[$k] : $emptyDate)); ?>
 		</td>
 		<td class="short" id ="checkbox_row_<?php echo h($item['Tag']['id']);?>">
 			<input id="checkBox_<?php echo h($item['Tag']['id']); ?>" type="checkbox" onClick="toggleSetting(event, 'favourite_tag', '<?php echo h($item['Tag']['id']); ?>')" <?php echo $item['Tag']['favourite'] ? 'checked' : ''; ?>/>
