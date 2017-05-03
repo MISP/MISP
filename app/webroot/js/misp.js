@@ -2948,6 +2948,29 @@ function submitMISPUpdate() {
 	});
 }
 
+$(".cortex-json").click(function() {
+	var cortex_data = $(this).data('cortex-json');
+	cortex_data = JSON.stringify(cortex_data, null, 2);
+	var popupHtml = '<pre class="simplepre">' + cortex_data + '</pre>';
+	popupHtml += '<div class="close-icon useCursorPointer" onClick="closeScreenshot();"></div>';
+	$('#screenshot_box').html(popupHtml);
+	$('#screenshot_box').show();
+	$('#screenshot_box').css({'padding': '5px'});
+	left = ($(window).width() / 2) - ($('#screenshot-image').width() / 2);
+	$('#screenshot_box').css({'left': left + 'px'});
+	$("#gray_out").fadeIn();
+});
+
+function screenshotPopup(screenshotData, title) {
+	popupHtml = '<img src="' + screenshotData + '" id="screenshot-image" title="' + title + '" />';
+	popupHtml += '<div class="close-icon useCursorPointer" onClick="closeScreenshot();"></div>';
+	$('#screenshot_box').html(popupHtml);
+	$('#screenshot_box').show();
+	left = ($(window).width() / 2) - ($('#screenshot-image').width() / 2);
+	$('#screenshot_box').css({'left': left + 'px'});
+	$("#gray_out").fadeIn();
+}
+
 (function(){
     "use strict";
     $(".datepicker").datepicker({

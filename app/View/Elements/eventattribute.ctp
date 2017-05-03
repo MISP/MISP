@@ -300,6 +300,8 @@
 												echo $this->Html->link($sigDisplay, $cveUrl . $sigDisplay, array('target' => '_blank', 'class' => $linkClass));
 											} else if ('link' == $object['type']) {
 												echo $this->Html->link($sigDisplay, $sigDisplay, array('class' => $linkClass));
+											} else if ('cortex' == $object['type']) {
+												echo '<div class="cortex-json" data-cortex-json="' . h($object['value']) . '">Cortex object</div>';
 											} else if ('text' == $object['type']) {
 												if ($object['category'] == 'External analysis' && preg_match('/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/i', $object['value'])) {
 													echo '<a href="' . $baseurl . '/events/view/' . h($object['value']) . '" class="' . $linkClass . '">' . h($object['value']) . '</a>';
