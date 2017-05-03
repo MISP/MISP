@@ -190,7 +190,7 @@
 	?>
 	</table>
 	<span>
-		<button class="btn btn-primary" style="float:left;" onClick="freetextImportResultsSubmit('<?php echo h($event['Event']['id']); ?>', '<?php echo count($resultArray); ?>');">Submit</button>
+		<button class="btn btn-primary" style="float:left;" onClick="freetextImportResultsSubmit('<?php echo h($event['Event']['id']); ?>', '<?php echo count($resultArray); ?>', '<?php echo h($type); ?>');">Submit</button>
 		<span style="float:right">
 			<?php
 				if (!empty($optionsRearranged)):

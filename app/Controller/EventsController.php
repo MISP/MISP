@@ -3895,6 +3895,7 @@ class EventsController extends AppController {
 				}
 			}
 			foreach (array('attribute_id', 'modules') as $viewVar) $this->set($viewVar, $$viewVar);
+			$this->set('type', $type);
 			$this->render('ajax/enrichmentChoice');
 		} else {
 			$this->loadModel('Module');
@@ -3916,7 +3917,7 @@ class EventsController extends AppController {
 			}
 			if (!empty($options)) $data['config'] = $options;
 			$data = json_encode($data);
-			$result = $this->Module->queryModuleServer('/query', $data);
+			$result = $this->Module->queryModuleServer('/query', $data, false, $type);
 			if (!$result) throw new MethodNotAllowedException($type . ' service not reachable.');
 			if (isset($result['error'])) $this->Session->setFlash($result['error']);
 			if (!is_array($result)) throw new Exception($result);
@@ -3925,7 +3926,7 @@ class EventsController extends AppController {
 				$importComment = $result['comment'];
 			}
 			else {
-				$importComment = $attribute[0]['Attribute']['value'] . ': Enriched via the ' . $module . ' module';
+				$importComment = $attribute[0]['Attribute']['value'] . ': Enriched via the ' . $module . ($type != 'Enrichment' ? ' ' . $type : '')  . ' module';
 			}
 			$typeCategoryMapping = array();
 			foreach ($this->Event->Attribute->categoryDefinitions as $k => $cat) {
@@ -3956,6 +3957,7 @@ class EventsController extends AppController {
 			}
 			$this->set('distributions', $distributions);
 			$this->set('sgs', $sgs);
+			$this->set('type', $type);
 			$this->set('event', array('Event' => $attribute[0]['Event']));
 			$this->set('resultArray', $resultArray);
 			$this->set('typeList', array_keys($this->Event->Attribute->typeDefinitions));
