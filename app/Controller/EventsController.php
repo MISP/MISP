@@ -3899,7 +3899,7 @@ class EventsController extends AppController {
 			$this->render('ajax/enrichmentChoice');
 		} else {
 			$this->loadModel('Module');
-			$enabledModules = $this->Module->getEnabledModules();
+			$enabledModules = $this->Module->getEnabledModules(false, $type);
 			if (!is_array($enabledModules) || empty($enabledModules)) throw new MethodNotAllowedException('No valid ' . $type . ' options found for this attribute.');
 			$options = array();
 			foreach ($enabledModules['modules'] as $temp) {
