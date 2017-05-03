@@ -2957,6 +2957,11 @@ $(".cortex-json").click(function() {
 	$('#screenshot_box').show();
 	$('#screenshot_box').css({'padding': '5px'});
 	left = ($(window).width() / 2) - ($('#screenshot_box').width() / 2);
+	if (($('#screenshot_box').height() + 250) > $(window).height()) {
+		$('#screenshot_box').height($(window).height() - 250);
+		$('#screenshot_box').css("overflow-y", "scroll");
+		$('#screenshot_box').css("overflow-x", "hidden");
+	}
 	$('#screenshot_box').css({'left': left + 'px'});
 	$("#gray_out").fadeIn();
 });
