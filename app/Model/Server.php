@@ -1319,6 +1319,38 @@ class Server extends AppModel {
 							'test' => 'testForPortNumber',
 							'type' => 'numeric'
 					),
+					'Cortex_services_url' => array(
+							'level' => 1,
+							'description' => 'The url used to access Cortex. By default, it is accessible at http://cortex-url/api',
+							'value' => 'http://127.0.0.1/api',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string'
+					),
+					'Cortex_services_port' => array(
+							'level' => 1,
+							'description' => 'The port used to access Cortex. By default, this is port 9000',
+							'value' => '9000',
+							'errorMessage' => '',
+							'test' => 'testForPortNumber',
+							'type' => 'numeric'
+					),
+					'Cortex_services_enable' => array(
+							'level' => 0,
+							'description' => 'Enable/disable the import services',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean'
+					),
+					'Cortex_timeout' => array(
+							'level' => 1,
+							'description' => 'Set a timeout for the import services',
+							'value' => 120,
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'numeric'
+					),
 					'CustomAuth_custom_password_reset' => array(
 							'level' => 2,
 							'description' => 'Provide your custom authentication users with an external URL to the authentication system to reset their passwords.',
@@ -1952,7 +1984,7 @@ class Server extends AppModel {
 	public function getCurrentServerSettings() {
 		$this->Module = ClassRegistry::init('Module');
 		$serverSettings = $this->serverSettings;
-		$moduleTypes = array('Enrichment', 'Import', 'Export');
+		$moduleTypes = array('Enrichment', 'Import', 'Export', 'Cortex');
 		foreach ($moduleTypes as $moduleType) {
 			if (Configure::read('Plugin.' . $moduleType . '_services_enable')) {
 				$results = $this->Module->getModuleSettings($moduleType);
@@ -2887,7 +2919,7 @@ class Server extends AppModel {
 
 	public function moduleDiagnostics(&$diagnostic_errors, $type = 'Enrichment') {
 		$this->Module = ClassRegistry::init('Module');
-		$types = array('Enrichment', 'Import', 'Export');
+		$types = array('Enrichment', 'Import', 'Export', 'Cortex');
 		$diagnostic_errors++;
 		if (Configure::read('Plugin.' . $type . '_services_enable')) {
 			$exception = false;
