@@ -764,6 +764,11 @@ class EventsController extends AppController {
 			$modules = $this->Module->getEnabledModules();
 			$this->set('modules', $modules);
 		}
+		if (Configure::read('Plugin.Cortex_services_enable')) {
+			$this->loadModel('Module');
+			$cortex_modules = $this->Module->getEnabledModules(false, 'Cortex');
+			$this->set('cortex_modules', $cortex_modules);
+		}
 		$this->set('deleted', (isset($this->params['named']['deleted']) && $this->params['named']['deleted']) ? true : false);
 		$this->set('typeGroups', array_keys($this->Event->Attribute->typeGroupings));
 		$this->set('attributeFilter', isset($this->params['named']['attributeFilter']) ? $this->params['named']['attributeFilter'] : 'all');
@@ -882,6 +887,11 @@ class EventsController extends AppController {
 			$this->loadModel('Module');
 			$modules = $this->Module->getEnabledModules();
 			$this->set('modules', $modules);
+		}
+		if (Configure::read('Plugin.Cortex_services_enable')) {
+			$this->loadModel('Module');
+			$cortex_modules = $this->Module->getEnabledModules(false, 'Cortex');
+			$this->set('cortex_modules', $cortex_modules);
 		}
 		$this->set('contributors', $contributors);
 		$this->set('typeGroups', array_keys($this->Event->Attribute->typeGroupings));
@@ -3870,14 +3880,14 @@ class EventsController extends AppController {
 	}
 
 	// expects an attribute ID and the module to be used
-	public function queryEnrichment($attribute_id, $module = false) {
-		if (!Configure::read('Plugin.Enrichment_services_enable')) throw new MethodNotAllowedException('Enrichment services are not enabled.');
+	public function queryEnrichment($attribute_id, $module = false, $type = 'Enrichment') {
+		if (!Configure::read('Plugin.' . $type . '_services_enable')) throw new MethodNotAllowedException($type . ' services are not enabled.');
 		$attribute = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $attribute_id)));
 		if (empty($attribute)) throw new MethodNotAllowedException('Attribute not found or you are not authorised to see it.');
 		if ($this->request->is('ajax')) {
 			$this->loadModel('Module');
-			$enabledModules = $this->Module->getEnabledModules();
-			if (!is_array($enabledModules) || empty($enabledModules)) throw new MethodNotAllowedException('No valid enrichment options found for this attribute.');
+			$enabledModules = $this->Module->getEnabledModules(false, $type);
+			if (!is_array($enabledModules) || empty($enabledModules)) throw new MethodNotAllowedException('No valid ' . $type . ' options found for this attribute.');
 			$modules = array();
 			foreach ($enabledModules['modules'] as $module) {
 				if (in_array($attribute[0]['Attribute']['type'], $module['mispattributes']['input'])) {
@@ -3889,13 +3899,13 @@ class EventsController extends AppController {
 		} else {
 			$this->loadModel('Module');
 			$enabledModules = $this->Module->getEnabledModules();
-			if (!is_array($enabledModules) || empty($enabledModules)) throw new MethodNotAllowedException('No valid enrichment options found for this attribute.');
+			if (!is_array($enabledModules) || empty($enabledModules)) throw new MethodNotAllowedException('No valid ' . $type . ' options found for this attribute.');
 			$options = array();
 			foreach ($enabledModules['modules'] as $temp) {
 				if ($temp['name'] == $module) {
 					if (isset($temp['meta']['config'])) {
 						foreach ($temp['meta']['config'] as $conf) {
-							$options[$conf] = Configure::read('Plugin.Enrichment_' . $module . '_' . $conf);
+							$options[$conf] = Configure::read('Plugin.' . $type . '_' . $module . '_' . $conf);
 						}
 					}
 				}
@@ -3907,7 +3917,7 @@ class EventsController extends AppController {
 			if (!empty($options)) $data['config'] = $options;
 			$data = json_encode($data);
 			$result = $this->Module->queryModuleServer('/query', $data);
-			if (!$result) throw new MethodNotAllowedException('Enrichment service not reachable.');
+			if (!$result) throw new MethodNotAllowedException($type . ' service not reachable.');
 			if (isset($result['error'])) $this->Session->setFlash($result['error']);
 			if (!is_array($result)) throw new Exception($result);
 			$resultArray = $this->Event->handleModuleResult($result, $attribute[0]['Attribute']['event_id']);
