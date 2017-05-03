@@ -2268,7 +2268,7 @@ function pgpChoiceSelect(uri) {
 	$("#gray_out").fadeOut();
 	$.ajax({
 		type: "get",
-		url: "https://pgp.circl.lu/" + uri,
+		url: "https://pgp.mit.edu/" + uri,
 		success: function (data) {
 			var result = data.split("<pre>")[1].split("</pre>")[0];
 			$("#UserGpgkey").val(result);
