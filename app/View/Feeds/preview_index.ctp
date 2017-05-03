@@ -43,7 +43,7 @@
 			<td class="short" ondblclick="document.location.href ='<?php echo $eventViewURL . h($uuid);?>'"><?php echo h($event['Orgc']['name']); ?></td>
 			<td style = "max-width: 200px;width:10px;">
 				<?php foreach ($event['Tag'] as $tag): ?>
-					<span class=tag style="margin-bottom:3px;background-color:<?php echo h($tag['colour']);?>;color:<?php echo $this->TextColour->getTextColour($tag['colour']);?>;" title="<?php echo h($tag['name']); ?>"><?php echo h($tag['name']); ?></span>
+					<span class=tag style="margin-bottom:3px;background-color:<?php echo isset($tag['colour']) ? h($tag['colour']) : 'red';?>;color:<?php echo $this->TextColour->getTextColour(isset($tag['colour']) ? h($tag['colour']) : 'red');?>;" title="<?php echo h($tag['name']); ?>"><?php echo h($tag['name']); ?></span>
 				<?php endforeach; ?>
 			</td>
 			<td class="short" ondblclick="document.location.href ='<?php echo $eventViewURL . h($uuid);?>'">
