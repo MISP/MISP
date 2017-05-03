@@ -149,17 +149,19 @@ class TagsController extends AppController {
 					}
 				}
 			}
-			$startDate = !empty($tag['sightings']) ? min(array_keys($tag['sightings'])) : date('Y-m-d');
-			$startDate = date('Y-m-d', strtotime("-3 days", strtotime($startDate)));
-			$to = date('Y-m-d', time());
-			for ($date = $startDate; strtotime($date) <= strtotime($to); $date = date('Y-m-d',strtotime("+1 day", strtotime($date)))) {
-				if (!isset($csv[$k])) {
-					$csv[$k] = 'Date,Close\n';
-				}
-				if (isset($tag['sightings'][$date])) {
-					$csv[$k] .= $date . ',' . $tag['sightings'][$date] . '\n';
-				} else {
-					$csv[$k] .= $date . ',0\n';
+			if (!empty($tag['sightings'])) {
+				$startDate = !empty($tag['sightings']) ? min(array_keys($tag['sightings'])) : date('Y-m-d');
+				$startDate = date('Y-m-d', strtotime("-3 days", strtotime($startDate)));
+				$to = date('Y-m-d', time());
+				for ($date = $startDate; strtotime($date) <= strtotime($to); $date = date('Y-m-d',strtotime("+1 day", strtotime($date)))) {
+					if (!isset($csv[$k])) {
+						$csv[$k] = 'Date,Close\n';
+					}
+					if (isset($tag['sightings'][$date])) {
+						$csv[$k] .= $date . ',' . $tag['sightings'][$date] . '\n';
+					} else {
+						$csv[$k] .= $date . ',0\n';
+					}
 				}
 			}
 			unset($paginated[$k]['event_ids']);
