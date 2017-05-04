@@ -678,7 +678,7 @@ App::uses('RandomTool', 'Tools');
 		$canEncryptSMIME = false;
 		if (isset($user['User']['certif_public']) && !empty($user['User']['certif_public']) && Configure::read('SMIME.enabled')) $canEncryptSMIME = true;
 
-		// If bodyonlencrypted is enabled and the user has no encryption key, use the alternate body (if it exists)
+		// If bodyonlyencrypted is enabled and the user has no encryption key, use the alternate body (if it exists)
 		if (Configure::read('GnuPG.bodyonlyencrypted') && !$canEncryptSMIME && !$canEncryptGPG && $bodyNoEnc) {
 			$body = $bodyNoEnc;
 		}

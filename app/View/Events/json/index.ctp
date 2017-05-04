@@ -13,7 +13,7 @@ foreach ($events as $key => $event) {
 
     // cleanup the array from things we do not want to expose
     unset($events[$key]['user_id']);
-    // hide the org field is we are not in showorg mode
+    // hide the org field if we are not in showorg mode
     if (!Configure::read('MISP.showorg')) {
         unset($events[$key]['Org']);
         unset($events[$key]['Orgc']);
