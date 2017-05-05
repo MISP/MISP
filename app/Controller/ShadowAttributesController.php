@@ -374,7 +374,9 @@ class ShadowAttributesController extends AppController {
 					if ($successes) {
 						// list the ones that succeeded
 						$emailResult = "";
-						if (!$this->ShadowAttribute->sendProposalAlertEmail($eventId) == false) $emailResult = " but sending out the alert e-mails has failed for at least one recipient.";
+						if (!$this->ShadowAttribute->sendProposalAlertEmail($eventId) === false) {
+							$emailResult = " but nobody from the owner organisation could be notified by e-mail.";
+						}
 						$this->Session->setFlash(__('The lines' . $successes . ' have been saved' . $emailResult, true));
 					}
 				}
