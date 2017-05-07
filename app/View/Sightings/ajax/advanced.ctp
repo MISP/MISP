@@ -16,7 +16,6 @@
 		<div id="sightingsData" class="sightingTab"></div>
 		<span style="float:right;margin-bottom:10px;" class="btn btn-inverse" id="cancel">Cancel</span>
 	</div>
-	</div>
 </div>
 
 <script type="text/javascript">
