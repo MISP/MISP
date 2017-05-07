@@ -76,14 +76,14 @@
 
 		echo $this->Form->input('pull', array(
 		));
-    ?>
-        <div class = "input clear"></div>
+	?>
+		<div class = "input clear"></div>
 	<?php
 		echo $this->Form->input('unpublish_event', array(
 			'type' => 'checkbox',
 		));
 	?>
-        <div class = "input clear"></div>
+		<div class = "input clear"></div>
 	<?php
 		echo $this->Form->input('publish_without_email', array(
 			'type' => 'checkbox',
@@ -140,17 +140,17 @@
 		?>
 		</div>
 	</div>
-	    <b>Push rules:</b><br />
-	    <span id="push_tags_OR" style="display:none;">Events with the following tags allowed: <span id="push_tags_OR_text" style="color:green;"></span><br /></span>
-	    <span id="push_tags_NOT" style="display:none;">Events with the following tags blocked: <span id="push_tags_NOT_text" style="color:red;"></span><br /></span>
-	    <span id="push_orgs_OR" style="display:none;">Events with the following organisations allowed: <span id="push_orgs_OR_text" style="color:green;"></span><br /></span>
-	    <span id="push_orgs_NOT" style="display:none;">Events with the following organisations blocked: <span id="push_orgs_NOT_text" style="color:red;"></span><br /></span>
+		<b>Push rules:</b><br />
+		<span id="push_tags_OR" style="display:none;">Events with the following tags allowed: <span id="push_tags_OR_text" style="color:green;"></span><br /></span>
+		<span id="push_tags_NOT" style="display:none;">Events with the following tags blocked: <span id="push_tags_NOT_text" style="color:red;"></span><br /></span>
+		<span id="push_orgs_OR" style="display:none;">Events with the following organisations allowed: <span id="push_orgs_OR_text" style="color:green;"></span><br /></span>
+		<span id="push_orgs_NOT" style="display:none;">Events with the following organisations blocked: <span id="push_orgs_NOT_text" style="color:red;"></span><br /></span>
 		<span id="push_modify" class="btn btn-inverse" style="line-height:10px; padding: 4px 4px;">Modify</span><br /><br />
-	    <b>Pull rules:</b><br />
-	    <span id="pull_tags_OR" style="display:none;">Events with the following tags allowed: <span id="pull_tags_OR_text" style="color:green;"></span><br /></span>
-	    <span id="pull_tags_NOT" style="display:none;">Events with the following tags blocked: <span id="pull_tags_NOT_text" style="color:red;"></span><br /></span>
-	    <span id="pull_orgs_OR" style="display:none;">Events with the following organisations allowed: <span id="pull_orgs_OR_text" style="color:green;"></span><br /></span>
-	    <span id="pull_orgs_NOT" style="display:none;">Events with the following organisations blocked: <span id="pull_orgs_NOT_text" style="color:red;"></span><br /></span>
+		<b>Pull rules:</b><br />
+		<span id="pull_tags_OR" style="display:none;">Events with the following tags allowed: <span id="pull_tags_OR_text" style="color:green;"></span><br /></span>
+		<span id="pull_tags_NOT" style="display:none;">Events with the following tags blocked: <span id="pull_tags_NOT_text" style="color:red;"></span><br /></span>
+		<span id="pull_orgs_OR" style="display:none;">Events with the following organisations allowed: <span id="pull_orgs_OR_text" style="color:green;"></span><br /></span>
+		<span id="pull_orgs_NOT" style="display:none;">Events with the following organisations blocked: <span id="pull_orgs_NOT_text" style="color:red;"></span><br /></span>
 		<span id="pull_modify" class="btn btn-inverse" style="line-height:10px; padding: 4px 4px;">Modify</span><br /><br />
 	<?php
 		echo $this->Form->input('push_rules', array('style' => 'display:none;', 'label' => false, 'div' => false));
@@ -182,9 +182,9 @@ var formInfoValues = {
 		'ServerName' : "A name that will make it clear to your users what this instance is. For example: Organisation A's instance",
 		'ServerAuthkey' : "You can find the authentication key on your profile on the external server.",
 		'ServerPush' : "Allow the upload of events and their attributes.",
-        'ServerPull' : "Allow the download of events and their attributes from the server.",
-        'ServerUnpublishEvent' : 'Unpublish new event (working with Push event).',
-        'ServerPublishWithoutEmail' : 'Publish new event without email (working with Pull event).',
+		'ServerPull' : "Allow the download of events and their attributes from the server.",
+		'ServerUnpublishEvent' : 'Unpublish new event (working with Push event).',
+		'ServerPublishWithoutEmail' : 'Publish new event without email (working with Pull event).',
 		'ServerSubmittedCert' : "You can also upload a certificate file if the instance you are trying to connect to has its own signing authority.",
 		'ServerSubmittedClientCert' : "You can also upload a client certificate file if the instance you are trying to connect requires this.",
 		'ServerSelfSigned' : "Click this, if you would like to allow a connection despite the other instance using a self-signed certificate (not recommended)."
@@ -207,17 +207,17 @@ $(document).ready(function() {
 	});
 
 	$("#ServerUrl, #ServerOrganization, #ServerName, #ServerAuthkey, #ServerPush, #ServerPull, #ServerUnpublishEvent, #ServerPublishWithoutEmail, #ServerSubmittedCert, #ServerSubmittedClientCert, #ServerSelfSigned").on('mouseleave', function(e) {
-	    $('#'+e.currentTarget.id).popover('destroy');
+		$('#'+e.currentTarget.id).popover('destroy');
 	});
 
 	$("#ServerUrl, #ServerOrganization, #ServerName, #ServerAuthkey, #ServerPush, #ServerPull, #ServerUnpublishEvent, #ServerPublishWithoutEmail, #ServerSubmittedCert, #ServerSubmittedClientCert, #ServerSelfSigned").on('mouseover', function(e) {
-	    var $e = $(e.target);
-	        $('#'+e.currentTarget.id).popover('destroy');
-	        $('#'+e.currentTarget.id).popover({
-	            trigger: 'focus',
-	            placement: 'right',
-	            content: formInfoValues[e.currentTarget.id],
-	        }).popover('show');
+		var $e = $(e.target);
+			$('#'+e.currentTarget.id).popover('destroy');
+			$('#'+e.currentTarget.id).popover({
+				trigger: 'focus',
+				placement: 'right',
+				content: formInfoValues[e.currentTarget.id],
+			}).popover('show');
 	});
 	rules = convertServerFilterRules(rules);
 	serverRulePopulateTagPicklist();

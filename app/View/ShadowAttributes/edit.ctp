@@ -86,14 +86,14 @@
 var category_type_mapping = new Array();
 <?php
 foreach ($categoryDefinitions as $category => $def) {
-  echo "category_type_mapping['" . addslashes($category) . "'] = {";
-  $first = true;
-  foreach ($def['types'] as $type) {
-    if ($first) $first = false;
-    else echo ', ';
-    echo "'" . addslashes($type) . "' : '" . addslashes($type) . "'";
-  }
-  echo "}; \n";
+	echo "category_type_mapping['" . addslashes($category) . "'] = {";
+	$first = true;
+	foreach ($def['types'] as $type) {
+		if ($first) $first = false;
+		else echo ', ';
+		echo "'" . addslashes($type) . "' : '" . addslashes($type) . "'";
+	}
+	echo "}; \n";
 }
 ?>
 

@@ -661,7 +661,7 @@ class Feed extends AppModel {
 		$prunedCopy = array();
 		foreach ($data as $key => $value) {
 			foreach ($prunedCopy as $copy) {
- 				if ($copy['type'] == $value['type'] && $copy['category'] == $value['category'] && $copy['value'] == $value['value']) {
+				if ($copy['type'] == $value['type'] && $copy['category'] == $value['category'] && $copy['value'] == $value['value']) {
 					continue 2;
 				}
 			}

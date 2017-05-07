@@ -4,7 +4,7 @@ App::uses('BaseAuthenticate', 'Controller/Component/Auth');
 App::uses('RandomTool', 'Tools');
 
 if (session_status() == PHP_SESSION_NONE) {
-    session_start();
+	session_start();
 }
 session_regenerate_id();
 /*

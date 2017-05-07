@@ -1,12 +1,12 @@
 <div class="confirmation">
 	<?php
 	echo $this->Form->create($model, array('style' => 'margin:0px;', 'id' => 'PromptForm', 'url' => $url));
-  echo $this->Form->input($varName, array(
-    'type' => 'text',
-    'value' => 'test',
-    'style' => 'display:none;',
-    'label' => false,
-  ));
+	echo $this->Form->input($varName, array(
+		'type' => 'text',
+		'value' => 'test',
+		'style' => 'display:none;',
+		'label' => false,
+	));
 	?>
 	<legend><?php echo h(Inflector::humanize($action)); ?></legend>
 	<div style="padding-left:5px;padding-right:5px;padding-bottom:5px;">

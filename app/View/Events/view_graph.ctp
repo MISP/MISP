@@ -1,8 +1,8 @@
 <?php
 $mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Orgc']['id'] == $me['org_id']) || ($isAclModifyOrg && $event['Orgc']['id'] == $me['org_id']));
 $mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
-?>
-<?php echo $this->Html->script('d3');?>
+
+echo $this->Html->script('d3');?>
 <style>
 
 	.node circle {
@@ -85,8 +85,8 @@ $mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
 <script>
 var currentMousePos = { x: -1, y: -1 };
 $(document).mousemove(function(event) {
-    currentMousePos.x = event.pageX;
-    currentMousePos.y = event.pageY;
+	currentMousePos.x = event.pageX;
+	currentMousePos.y = event.pageY;
 });
 
 var margin = {top: -5, right: -5, bottom: -5, left: -5},
@@ -96,13 +96,13 @@ height = $(window).height() - 200 - margin.top - margin.bottom;
 var root;
 
 var force = d3.layout.force()
-    .linkDistance(150)
-    .linkStrength(0.9)
-    .friction(0.5)
-    .theta(0.9)
-    .charge(-500)
-    .gravity(0.21)
-    .size([width, height])
+	.linkDistance(150)
+	.linkStrength(0.9)
+	.friction(0.5)
+	.theta(0.9)
+	.charge(-500)
+	.gravity(0.21)
+	.size([width, height])
 	.on("tick", tick);
 
 var vis = d3.select("#chart");
@@ -130,8 +130,8 @@ var link = plotting_area.selectAll(".link");
 var node = plotting_area.selectAll(".node");
 
 d3.json("/events/updateGraph/<?php echo $id; ?>.json", function(error, json) {
-  root = json;
-  update();
+	root = json;
+	update();
 });
 
 var graphElementScale = 1;
@@ -179,7 +179,7 @@ function update() {
 		if (d.type == 'event') return "24px";
 		else return "12px";
 	})
-    .attr("height", function(d) {
+	.attr("height", function(d) {
 		if (d.type == 'event') return "24px";
 		else return "14px";
 	});
@@ -224,9 +224,9 @@ function update() {
 	});
 
 	node.on("dblclick", function(d) {
-        contextMenu(d, 'node');
-        d3.event.preventDefault();
-      });
+		contextMenu(d, 'node');
+		d3.event.preventDefault();
+	});
 }
 
 function contextMenu(d, newContext) {
@@ -299,26 +299,26 @@ function expand(d) {
 }
 
 function tick() {
-  link.attr("x1", function(d) { return d.source.x; })
-      .attr("y1", function(d) { return d.source.y; })
-      .attr("x2", function(d) { return d.target.x; })
-      .attr("y2", function(d) { return d.target.y; });
+	link.attr("x1", function(d) { return d.source.x; })
+		.attr("y1", function(d) { return d.source.y; })
+		.attr("x2", function(d) { return d.target.x; })
+		.attr("y2", function(d) { return d.target.y; });
 
-  node.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
+	node.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
 }
 
 // Returns a list of all nodes under the root.
 function flatten(root) {
-  var nodes = [], i = 0;
+	var nodes = [], i = 0;
 
-  function recurse(node) {
-    if (node.children) node.children.forEach(recurse);
-    if (!node.id) node.id = ++i;
-    nodes.push(node);
-  }
+	function recurse(node) {
+		if (node.children) node.children.forEach(recurse);
+		if (!node.id) node.id = ++i;
+		nodes.push(node);
+	}
 
-  recurse(root);
-  return nodes;
+	recurse(root);
+	return nodes;
 }
 
 
