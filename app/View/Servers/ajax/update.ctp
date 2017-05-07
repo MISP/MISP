@@ -17,8 +17,8 @@
 				</td>
 			</tr>
 		</table>
-		<?php
-			echo $this->Form->end();
-		?>
 	</div>
+	<?php
+		echo $this->Form->end();
+	?>
 </div>
