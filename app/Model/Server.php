@@ -734,6 +734,30 @@ class Server extends AppModel {
 							'type' => 'boolean',
 							'null' => true
 					),
+					'redis_host' => array(
+						'level' => 0,
+						'description' => 'The host running the redis server to be used for generic MISP tasks such as caching. This is not to be confused by the redis server used by the background processing.',
+						'value' => '127.0.0.1',
+						'errorMessage' => '',
+						'test' => 'testForEmpty',
+						'type' => 'string'
+					),
+					'redis_port' => array(
+						'level' => 0,
+						'description' => 'The port used by the redis server to be used for generic MISP tasks such as caching. This is not to be confused by the redis server used by the background processing.',
+						'value' => 6379,
+						'errorMessage' => '',
+						'test' => 'testForNumeric',
+						'type' => 'numeric'
+					),
+					'redis_database' => array(
+						'level' => 0,
+						'description' => 'The database on the redis server to be used for generic MISP tasks. If you run more than one MISP instance, please make sure to use a different database on each instance.',
+						'value' => 13,
+						'errorMessage' => '',
+						'test' => 'testForNumeric',
+						'type' => 'numeric'
+					)
 			),
 			'GnuPG' => array(
 					'branch' => 1,

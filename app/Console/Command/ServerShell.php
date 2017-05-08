@@ -87,7 +87,34 @@ class ServerShell extends AppShell
 					'message' => $message,
 					'progress' => 0,
 					'status' => 3
-			));			
+			));
+		} else {
+			$message = 'Job done.';
+			$this->Job->save(array(
+					'id' => $jobId,
+					'message' => $message,
+					'progress' => 100,
+					'status' => 4
+			));
+		}
+	}
+
+	public function cacheFeeds() {
+		$userId = $this->args[0];
+		$jobId = $this->args[1];
+		$scope = $this->args[2];
+		$this->Job->read(null, $jobId);
+		$user = $this->User->getAuthUser($userId);
+		$result = $this->Feed->cacheFeedInitiator($user, $jobId, $scope);
+		$this->Job->id = $jobId;
+		if ($result !== true) {
+			$message = 'Job Failed. Reason: ';
+			$this->Job->save(array(
+					'id' => $jobId,
+					'message' => $message . $result,
+					'progress' => 0,
+					'status' => 3
+			));
 		} else {
 			$message = 'Job done.';
 			$this->Job->save(array(
