@@ -4,7 +4,7 @@
 	);
 ?>
 <div class="feed index">
-	<h2>Feed overlap analysis</h2>
+	<h2>Feed overlap analysis matrix</h2>
 	<div>
 		<table class="table table-striped table-hover table-condensed" style="width:100px;">
 			<tr>

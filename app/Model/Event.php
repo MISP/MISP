@@ -1496,7 +1496,8 @@ class Event extends AppModel {
 					// This is to differentiate between proposals that were made to an attribute for modification and between proposals for new attributes
 
 					if (isset($event['ShadowAttribute'])) {
-						if (isset($options['includeFeedCorrelations']) && $options['includeFeedCorrelations']) {
+						if ($isSiteAdmin && isset($options['includeFeedCorrelations']) && $options['includeFeedCorrelations']) {
+							$this->Feed = ClassRegistry::init('Feed');
 							$event['ShadowAttribute'] = $this->Feed->attachFeedCorrelations($event['ShadowAttribute']);
 						}
 						foreach ($event['ShadowAttribute'] as $k => $sa) {
