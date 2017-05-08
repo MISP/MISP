@@ -841,14 +841,16 @@ class Feed extends AppModel {
 			}
 			if ($data) {
 				$event = json_decode($data, true);
-				foreach ($event['Event']['Attribute'] as $attribute) {
-					if (!in_array($attribute['type'], $this->Attribute->nonCorrelatingTypes)) {
-						if (in_array($attribute['type'], $this->Attribute->getCompositeTypes())) {
-							$value = explode('|', $attribute['value']);
-							$redis->sAdd('misp:feed_cache:' . $feed['Feed']['id'], md5($value[0]));
-							$redis->sAdd('misp:feed_cache:' . $feed['Feed']['id'], md5($value[1]));
-						} else {
-							$redis->sAdd('misp:feed_cache:' . $feed['Feed']['id'], md5($attribute['value']));
+				if (!empty($event['Event']['Attribute'])) {
+					foreach ($event['Event']['Attribute'] as $attribute) {
+						if (!in_array($attribute['type'], $this->Attribute->nonCorrelatingTypes)) {
+							if (in_array($attribute['type'], $this->Attribute->getCompositeTypes())) {
+								$value = explode('|', $attribute['value']);
+								$redis->sAdd('misp:feed_cache:' . $feed['Feed']['id'], md5($value[0]));
+								$redis->sAdd('misp:feed_cache:' . $feed['Feed']['id'], md5($value[1]));
+							} else {
+								$redis->sAdd('misp:feed_cache:' . $feed['Feed']['id'], md5($attribute['value']));
+							}
 						}
 					}
 				}
