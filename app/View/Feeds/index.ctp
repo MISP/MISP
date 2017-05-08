@@ -1,5 +1,11 @@
 <div class="feed index">
 	<h2><?php echo __('Feeds');?></h2>
+	<h4>Generate feed lookup caches</h4>
+	<div class="toggleButtons">
+		<a href="<?php echo $baseurl; ?>/feeds/cacheFeeds/all" class="toggle-left qet btn btn-inverse">All</a>
+		<a href="<?php echo $baseurl; ?>/feeds/cacheFeeds/freetext" class="toggle qet btn btn-inverse">Freetext/CSV</a>
+		<a href="<?php echo $baseurl; ?>/feeds/cacheFeeds/misp" class="toggle-right qet btn btn-inverse">MISP</a>
+	</div><br />
 	<div class="pagination">
         <ul>
         <?php
@@ -20,6 +26,7 @@
     		<span role="button" tabindex="0" aria-label="Default feeds filter" title="Default feeds" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'default' ? 'tabMenuActive' : ''; ?>" onclick="window.location='/feeds/index/scope:default'">Default feeds</span>
     		<span role="button" tabindex="0" aria-label="Custom feeds filter" title="Custom feeds" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'custom' ? 'tabMenuActive' : ''; ?> " onclick="window.location='/feeds/index/scope:custom'">Custom Feeds</span>
     		<span role="button" tabindex="0" aria-label="All feeds" title="All feeds" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'all' ? 'tabMenuActive' : ''; ?> " onclick="window.location='/feeds/index/scope:all'">All Feeds</span>
+				<span role="button" tabindex="0" aria-label="Enabled feeds" title="Enabled feeds" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'enabled' ? 'tabMenuActive' : ''; ?> " onclick="window.location='/feeds/index/scope:enabled'">Enabled Feeds</span>
     </div>
 	<table class="table table-striped table-hover table-condensed">
 	<tr>
@@ -36,6 +43,7 @@
 			<th><?php echo $this->Paginator->sort('distribution');?></th>
 			<th><?php echo $this->Paginator->sort('tag');?></th>
 			<th><?php echo $this->Paginator->sort('enabled');?></th>
+			<th class="actions"><?php echo __('Caching');?></th>
 			<th class="actions"><?php echo __('Actions');?></th>
 	</tr><?php
 foreach ($feeds as $item):
@@ -127,6 +135,30 @@ foreach ($feeds as $item):
 		<?php endif;?>
 		</td>
 		<td class="short"><span class="<?php echo ($item['Feed']['enabled'] ? 'icon-ok' : 'icon-remove'); ?>"></span><span class="short <?php if (!$item['Feed']['enabled'] || empty($ruleDescription)) echo "hidden"; ?>" data-toggle="popover" title="Filter rules" data-content="<?php echo $ruleDescription; ?>"> (Rules)</span>
+		<td class="short action-links <?php echo $item['Feed']['cache_timestamp'] ? 'bold' : 'bold red';?>">
+			<?php
+				if ($item['Feed']['cache_timestamp']):
+					$units = array('m', 'h', 'd');
+					$intervals = array(60, 60, 24);
+					$unit = 's';
+					$last = time() - $item['Feed']['cache_timestamp'];
+					foreach ($units as $k => $v) {
+						if ($last > $intervals[$k]) {
+							$unit = $v;
+							$last = floor($last / $intervals[$k]);
+						}
+					}
+					echo 'Age: ' . $last . $unit;
+				else:
+					echo 'Not cached';
+				endif;
+				if ($item['Feed']['enabled']):
+			?>
+					<a href="<?php echo $baseurl;?>/feeds/cacheFeeds/<?php echo h($item['Feed']['id']); ?>" title="Cache feed"><span class="icon-download-alt"></span></a>
+			<?php
+				endif;
+			?>
+		</td>
 		<td class="short action-links">
 			<?php
 				if (!isset($item['Feed']['event_error'])) {
