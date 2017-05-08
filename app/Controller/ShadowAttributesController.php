@@ -198,7 +198,7 @@ class ShadowAttributesController extends AppController {
 	// If we accept a proposed attachment, then the attachment itself needs to be moved from files/eventId/shadow/shadowId to files/eventId/attributeId
 	private function _moveFile($shadowId, $newId, $eventId) {
 		$pathOld = APP . "files" . DS . $eventId . DS . "shadow" . DS . $shadowId;
-		$pathNew = APP . "files" . DS . $eventId . DS . $newId;
+		$pathNew = APP . "files" . DS . "attachments" . DS . $eventId . DS . $newId;
 		if (rename($pathOld, $pathNew)) {
 			return true;
 		} else {
