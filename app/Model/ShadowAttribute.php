@@ -420,13 +420,18 @@ class ShadowAttribute extends AppModel {
 	}
 
 
+	/**
+	 * Sends an email to members of the organization that owns the event
+	 * @param int $id  The event id
+	 * @return boolean False if no email at all was sent, true if at least an email was sent
+	 */
 	public function sendProposalAlertEmail($id) {
 		$this->Event->recursive = -1;
 		$event = $this->Event->read(null, $id);
 
 		// If the event has an e-mail lock, return
 		if ($event['Event']['proposal_email_lock'] == 1) {
-			return;
+			return false;
 		} else {
 			$this->setProposalLock($id);
 		}
@@ -445,9 +450,9 @@ class ShadowAttribute extends AppModel {
 		$body .= "A user of another organisation has proposed a change to an event created by you or your organisation. \n\n";
 		$body .= 'To view the event in question, follow this link: ' . Configure::read('MISP.baseurl') . '/events/view/' . $id . "\n";
 		$subject =  "[" . Configure::read('MISP.org') . " MISP] Proposal to event #" . $id;
-		$result = true;
+		$result = false;
 		foreach ($orgMembers as $user) {
-			$result = $this->User->sendEmail($user, $body, $body, $subject) && $result;
+			$result = $this->User->sendEmail($user, $body, $body, $subject) or $result;
 		}
 		return $result;
 	}
