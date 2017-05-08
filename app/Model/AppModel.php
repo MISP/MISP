@@ -996,4 +996,16 @@ class AppModel extends Model {
 	public function checkFilename($filename) {
 		return preg_match('@^([a-z0-9_.]+[a-z0-9_.\- ]*[a-z0-9_.\-]|[a-z0-9_.])+$@i', $filename);
 	}
+
+	public function setupRedis() {
+		$redis = new Redis();
+		$host = Configure::read('MISP.redis_host') ? Configure::read('MISP.redis_host') : '127.0.0.1';
+		$port = Configure::read('MISP.redis_port') ? Configure::read('MISP.redis_port') : 6379;
+		$database = Configure::read('MISP.redis_database') ? Configure::read('MISP.redis_database') : 13;
+		if (!$redis->connect($host, $port)) {
+			return false;
+		}
+		$redis->select($database);
+		return $redis;
+	}
 }

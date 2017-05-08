@@ -152,6 +152,13 @@
 				endif;
 			?>
 			<th>Related Events</th>
+			<?php
+				if ($isSiteAdmin):
+			?>
+					<th>Feed hits</th>
+			<?php
+				endif;
+			?>
 			<th title="<?php echo $attrDescriptions['signature']['desc'];?>"><?php echo $this->Paginator->sort('to_ids', 'IDS');?></th>
 			<th title="<?php echo $attrDescriptions['distribution']['desc'];?>"><?php echo $this->Paginator->sort('distribution');?></th>
 			<?php if (Configure::read('Plugin.Sightings_enable') !== false): ?>
@@ -403,6 +410,34 @@
 									?>
 								</ul>
 							</td>
+							<?php
+								if ($isSiteAdmin):
+							?>
+									<td class="shortish <?php echo $extra; ?>">
+										<ul class="inline" style="margin:0px;">
+											<?php
+												if (!empty($object['Feed'])):
+													foreach ($object['Feed'] as $feed):
+														$popover = '';
+														foreach ($feed as $k => $v):
+															if ($k == 'id') continue;
+															$popover .= '<span class=\'bold black\'>' . Inflector::humanize(h($k)) . '</span>: <span class="blue">' . h($v) . '</span><br />';
+														endforeach;
+													?>
+														<li style="padding-right: 0px; padding-left:0px;"  data-toggle="popover" data-content="<?php echo h($popover);?>" data-trigger="hover"><span>
+															<?php
+																echo $this->Html->link($feed['id'], array('controller' => 'feeds', 'action' => 'previewIndex', $feed['id']));
+															endforeach;
+															?>
+														</li>
+											<?php
+												endif;
+											?>
+										</ul>
+									</td>
+							<?php
+								endif;
+							?>
 							<td class="short <?php echo $extra; ?>">
 								<div id = "<?php echo $currentType . '_' . $object['id'] . '_to_ids_placeholder'; ?>" class = "inline-field-placeholder"></div>
 								<div id = "<?php echo $currentType . '_' . $object['id'] . '_to_ids_solid'; ?>" class="inline-field-solid" ondblclick="activateField('<?php echo $currentType; ?>', '<?php echo $object['id']; ?>', 'to_ids', <?php echo $event['Event']['id'];?>);">

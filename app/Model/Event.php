@@ -1460,6 +1460,10 @@ class Event extends AppModel {
 					$this->Warninglist = ClassRegistry::init('Warninglist');
 					$warninglists = $this->Warninglist->fetchForEventView();
 				}
+				if ($isSiteAdmin && isset($options['includeFeedCorrelations']) && $options['includeFeedCorrelations']) {
+					$this->Feed = ClassRegistry::init('Feed');
+					$event['Attribute'] = $this->Feed->attachFeedCorrelations($event['Attribute']);
+				}
 				foreach ($event['Attribute'] as $key => $attribute) {
 					if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttributes($warninglists, $attribute, $this->Warninglist)) {
 						unset($event['Attribute'][$key]);
@@ -1492,6 +1496,9 @@ class Event extends AppModel {
 					// This is to differentiate between proposals that were made to an attribute for modification and between proposals for new attributes
 
 					if (isset($event['ShadowAttribute'])) {
+						if (isset($options['includeFeedCorrelations']) && $options['includeFeedCorrelations']) {
+							$event['ShadowAttribute'] = $this->Feed->attachFeedCorrelations($event['ShadowAttribute']);
+						}
 						foreach ($event['ShadowAttribute'] as $k => $sa) {
 							if (!empty($sa['old_id'])) {
 								if ($event['ShadowAttribute'][$k]['old_id'] == $attribute['id']) {
