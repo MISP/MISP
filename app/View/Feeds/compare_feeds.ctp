@@ -48,6 +48,7 @@
 										if ($percentage <= 5) $class .= ' green';
 										else if ($percentage <= 50) $class .= ' orange';
 										else $class .= ' red';
+										break;
 									endif;
 								endforeach;
 								$title = '';

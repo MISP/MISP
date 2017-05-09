@@ -146,6 +146,8 @@ foreach ($feeds as $item):
 						if ($last > $intervals[$k]) {
 							$unit = $v;
 							$last = floor($last / $intervals[$k]);
+						} else {
+							break;
 						}
 					}
 					echo 'Age: ' . $last . $unit;
