@@ -23,7 +23,7 @@
 			<?php 
 				endforeach;
 			?>
-    </div>
+	</div>
 	<table class="table table-striped table-hover table-condensed" style="width:50%;">
 	<tr>
 			<th>Logo</th>

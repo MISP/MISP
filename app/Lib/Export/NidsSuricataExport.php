@@ -210,7 +210,7 @@ class NidsSuricataExport extends NidsExport {
 				1							// rev
 			);
 		}
-    }
+	}
 
 	public function userAgentRule($ruleFormat, $attribute, &$sid) {
 		$overruled = $this->checkWhitelist($attribute['value']);

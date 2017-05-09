@@ -16,10 +16,9 @@
 	</div>
 	</fieldset>
 	<?php
-  	echo $this->Form->button('Add', array('class' => 'btn btn-primary'));
-  	echo $this->Form->end();
+		echo $this->Form->button('Add', array('class' => 'btn btn-primary'));
+		echo $this->Form->end();
 	?>
 </div>
 <?php
 	echo $this->element('side_menu', array('menuList' => 'feeds', 'menuItem' => 'import'));
-?>

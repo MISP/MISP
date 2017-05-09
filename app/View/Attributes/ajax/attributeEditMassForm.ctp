@@ -93,44 +93,44 @@ $(document).ready(function() {
 	$('#AttributeAttributeIds').attr('value', getSelected());
 
 	$("#Attribute, #AttributeDistribution").on('mouseover', function(e) {
-	    var $e = $(e.target);
-	    if ($e.is('option')) {
-	        $('#'+e.currentTarget.id).popover('destroy');
-	        $('#'+e.currentTarget.id).popover({
-	            trigger: 'focus',
-	            placement: 'right',
-	            container: 'body',
-	            content: formInfoValues[$e.val()],
-	        }).popover('show');
-	    }
+		var $e = $(e.target);
+		if ($e.is('option')) {
+			$('#'+e.currentTarget.id).popover('destroy');
+			$('#'+e.currentTarget.id).popover({
+				trigger: 'focus',
+				placement: 'right',
+				container: 'body',
+				content: formInfoValues[$e.val()],
+			}).popover('show');
+		}
 	});
 
 	$("input, label").on('mouseleave', function(e) {
-	    $('#'+e.currentTarget.id).popover('destroy');
+		$('#'+e.currentTarget.id).popover('destroy');
 	});
 
 	$("input, label").on('mouseover', function(e) {
 		var $e = $(e.target);
 		$('#'+e.currentTarget.id).popover('destroy');
-        $('#'+e.currentTarget.id).popover({
-            trigger: 'focus',
-            placement: 'right',
-            container: 'body',
-        }).popover('show');
+		$('#'+e.currentTarget.id).popover({
+			trigger: 'focus',
+			placement: 'right',
+			container: 'body',
+		}).popover('show');
 	});
 
 	// workaround for browsers like IE and Chrome that do now have an onmouseover on the 'options' of a select.
 	// disadvangate is that user needs to click on the item to see the tooltip.
 	// no solutions exist, except to generate the select completely using html.
 	$("#Attribute, #AttributeDistribution").on('change', function(e) {
-	    var $e = $(e.target);
-        $('#'+e.currentTarget.id).popover('destroy');
-        $('#'+e.currentTarget.id).popover({
-            trigger: 'focus',
-            placement: 'right',
-            container: 'body',
-            content: formInfoValues[$e.val()],
-        }).popover('show');
+		var $e = $(e.target);
+		$('#'+e.currentTarget.id).popover('destroy');
+		$('#'+e.currentTarget.id).popover({
+			trigger: 'focus',
+			placement: 'right',
+			container: 'body',
+			content: formInfoValues[$e.val()],
+		}).popover('show');
 	});
 	$('#cancel_attribute_add').click(function() {
 		$('#gray_out').fadeOut();

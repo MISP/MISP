@@ -19,7 +19,7 @@ class Sighting extends AppModel {
 		'date_sighting' => 'numeric',
 		'type' => array(
 			'rule' => array('inList', array(0, 1, 2)),
-      'message' => 'Invalid type. Valid options are: 0 (Sighting), 1 (False-positive), 2 (Expiration).'
+			'message' => 'Invalid type. Valid options are: 0 (Sighting), 1 (False-positive), 2 (Expiration).'
 		)
 	);
 

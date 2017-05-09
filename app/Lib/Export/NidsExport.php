@@ -529,7 +529,7 @@ class NidsExport {
 		    return $customPort;
 		}
 	}
-    
+
 	public static function getCustomIP($customIP) {
 		if(filter_var($customIP, FILTER_VALIDATE_IP)) {
 		    return $customIP;
@@ -538,9 +538,9 @@ class NidsExport {
 		    return '$EXTERNAL_NET';
 		}
 	}
-    
+
 	public static function getIpPort($attribute) {
-    	$ipport = array();
+		$ipport = array();
 		if (strpos($attribute['type'],'port') !== false) {
 			$ipport = explode('|', $attribute['value']);
 		} else {
