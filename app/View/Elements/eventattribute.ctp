@@ -417,7 +417,13 @@
 											?>
 												<li style="padding-right: 0px; padding-left:0px;"  data-toggle="popover" data-content="<?php echo h($popover);?>" data-trigger="hover"><span>
 													<?php
-														echo $this->Html->link($feed['id'], array('controller' => 'feeds', 'action' => 'previewIndex', $feed['id']), array('style' => 'margin-right:3px;'));
+														if ($isSiteAdmin):
+															echo $this->Html->link($feed['id'], array('controller' => 'feeds', 'action' => 'previewIndex', $feed['id']), array('style' => 'margin-right:3px;'));
+														else:
+													?>
+														<span style="margin-right:3px;"><?php echo h($feed['id']);?></span>
+													<?php
+														endif;
 													endforeach;
 													?>
 												</li>
