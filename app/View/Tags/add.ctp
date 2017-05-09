@@ -34,7 +34,7 @@ echo $this->Form->end();
 	echo $this->element('side_menu', array('menuList' => 'tags', 'menuItem' => 'add'));
 ?>
 <script>
-    $(function(){
-        $('#TagColour').colorpicker();
-    });
+	$(function(){
+		$('#TagColour').colorpicker();
+	});
 </script>

@@ -23,21 +23,21 @@ class ApacheAuthenticate extends BaseAuthenticate {
 	 * @param CakeResponse $response Unused response object.
 	 * @return mixed False on login failure. An array of User data on success.
 	 */
-    private function isUserMemberOf($group, $ldapUserData) {
-    // return true of false depeding on if user is a member of group.
-        $returnCode = false;
-        unset($ldapUserData[0]['memberof']["count"]);
-        foreach ($ldapUserData[1]['memberof'] as $result) {
-            $r = explode(",", $result, 2);
-            $ldapgroup = explode("=", $r[0]);
-            if ($ldapgroup[0] == $group) {
-                $returnCode = true;
-            }
-        }
-        return $returnCode;
-    }
-    
-    public function authenticate(CakeRequest $request, CakeResponse $response) {
+	private function isUserMemberOf($group, $ldapUserData) {
+	// return true of false depeding on if user is a member of group.
+		$returnCode = false;
+		unset($ldapUserData[0]['memberof']["count"]);
+		foreach ($ldapUserData[1]['memberof'] as $result) {
+			$r = explode(",", $result, 2);
+			$ldapgroup = explode("=", $r[0]);
+			if ($ldapgroup[0] == $group) {
+				$returnCode = true;
+			}
+		}
+		return $returnCode;
+	}
+
+	public function authenticate(CakeRequest $request, CakeResponse $response) {
 
 		// Get information user for MISP auth
 		$envvar = $this->settings['fields']['envvar'];
@@ -47,7 +47,7 @@ class ApacheAuthenticate extends BaseAuthenticate {
 		$ldapdn = Configure::read('ApacheSecureAuth.ldapDN');
 		$ldaprdn = Configure::read('ApacheSecureAuth.ldapReaderUser');     // DN ou RDN LDAP
 		$ldappass = Configure::read('ApacheSecureAuth.ldapReaderPassword');
-        $ldapSearchFilter = Configure::read('ApacheSecureAuth.ldapSearchFilter');
+		$ldapSearchFilter = Configure::read('ApacheSecureAuth.ldapSearchFilter');
 		// LDAP connection
 		$ldapconn = ldap_connect(Configure::read('ApacheSecureAuth.ldapServer'))
 				or die('LDAP server connection failed');
@@ -62,14 +62,14 @@ class ApacheAuthenticate extends BaseAuthenticate {
 			if (!$ldapbind) {
 				die("LDAP bind failed");
 			}
-            // example for searchFiler: '(objectclass=InetOrgPerson)(!(nsaccountlock=True))(memberOf=cn=misp,cn=groups,cn=accounts,dc=example,dc=com)'
-            // example for searchAttribut: '(uuid=ApacheUser)'
-            if (!empty($ldapSearchFilter)) {
-                $filter = '(&' . $ldapSearchFilter . '(' . Configure::read('ApacheSecureAuth.ldapSearchAttribut') . '=' . $_SERVER[$envvar] . '))';
-            } else {
-                $filter = '(' . Configure::read('ApacheSecureAuth.ldapSearchAttribut') . '=' . $_SERVER[$envvar] . ')';
-            }
-            // example: mail
+			// example for searchFiler: '(objectclass=InetOrgPerson)(!(nsaccountlock=True))(memberOf=cn=misp,cn=groups,cn=accounts,dc=example,dc=com)'
+			// example for searchAttribut: '(uuid=ApacheUser)'
+			if (!empty($ldapSearchFilter)) {
+				$filter = '(&' . $ldapSearchFilter . '(' . Configure::read('ApacheSecureAuth.ldapSearchAttribut') . '=' . $_SERVER[$envvar] . '))';
+			} else {
+				$filter = '(' . Configure::read('ApacheSecureAuth.ldapSearchAttribut') . '=' . $_SERVER[$envvar] . ')';
+			}
+			// example: mail
 			$getLdapUserInfo = Configure::read('ApacheSecureAuth.ldapFilter');
 
 			$result = ldap_search($ldapconn, $ldapdn, $filter, $getLdapUserInfo)
@@ -110,17 +110,17 @@ class ApacheAuthenticate extends BaseAuthenticate {
 			$org_id = $firstOrg['Organisation']['id'];
 		}
 
-         // Set roleid depending on group membership
-        $roleIds = Configure::read('ApacheSecureAuth.ldapDefaultRoleId');
-        if (is_array($roleIds)) {
-            foreach ($roleIds as $key => $id) {
-                if ($this->isUserMemberOf($key, $ldapUserData)) {
-                    $roleId = $roleIds[$key];
-                }
-            }
-        } else {
-            $roleId = $roleIds;
-        }
+		 // Set roleid depending on group membership
+		$roleIds = Configure::read('ApacheSecureAuth.ldapDefaultRoleId');
+		if (is_array($roleIds)) {
+			foreach ($roleIds as $key => $id) {
+				if ($this->isUserMemberOf($key, $ldapUserData)) {
+					$roleId = $roleIds[$key];
+				}
+			}
+		} else {
+			$roleId = $roleIds;
+		}
 
 		// create user
 		$userData = array('User' => array(

@@ -6,11 +6,11 @@
 	<p>A toplist of the top sources for the sightings of your organisation.</p>
 	<table class="table table-striped table-hover table-condensed" style="display:block; overflow-y:auto;width:700px;">
 	<tr>
-      <th>Source</th>
-			<th>#Entries</th>
-			<th>#Sighting</th>
-      <th>#False-positive</th>
-      <th>Expiration</th>
+		<th>Source</th>
+		<th>#Entries</th>
+		<th>#Sighting</th>
+		<th>#False-positive</th>
+		<th>Expiration</th>
 	</tr>
 	<?php
 		$count = 0;

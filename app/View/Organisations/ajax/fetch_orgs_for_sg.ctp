@@ -29,12 +29,12 @@
 </div>
 <script>
 $("#btnLeft").click(function () {
-    var selectedItem = $("#rightValues option:selected");
-    $("#leftValues").append(selectedItem);
+	var selectedItem = $("#rightValues option:selected");
+	$("#leftValues").append(selectedItem);
 });
 
 $("#btnRight").click(function () {
-    var selectedItem = $("#leftValues option:selected");
-    $("#rightValues").append(selectedItem);
+	var selectedItem = $("#leftValues option:selected");
+	$("#rightValues").append(selectedItem);
 });
 </script>

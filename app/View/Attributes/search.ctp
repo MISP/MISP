@@ -168,32 +168,32 @@ formInfoValues[''] = '';
 $(document).ready(function() {
 
 	$("#AttributeType, #AttributeCategory").on('mouseleave', function(e) {
-	    $('#'+e.currentTarget.id).popover('destroy');
+		$('#'+e.currentTarget.id).popover('destroy');
 	});
 
 	$("#AttributeType, #AttributeCategory").on('mouseover', function(e) {
-	    var $e = $(e.target);
-	    if ($e.is('option')) {
-	        $('#'+e.currentTarget.id).popover('destroy');
-	        $('#'+e.currentTarget.id).popover({
-	            trigger: 'manual',
-	            placement: 'right',
-	            content: formInfoValues[$e.val()],
-	        }).popover('show');
-	    }
+		var $e = $(e.target);
+		if ($e.is('option')) {
+			$('#'+e.currentTarget.id).popover('destroy');
+			$('#'+e.currentTarget.id).popover({
+				trigger: 'manual',
+				placement: 'right',
+				content: formInfoValues[$e.val()],
+			}).popover('show');
+		}
 	});
 
 	// workaround for browsers like IE and Chrome that do now have an onmouseover on the 'options' of a select.
 	// disadvantage is that user needs to click on the item to see the tooltip.
 	// no solutions exist, except to generate the select completely using html.
 	$("#AttributeType, #AttributeCategory").on('change', function(e) {
-	    var $e = $(e.target);
-        $('#'+e.currentTarget.id).popover('destroy');
-        $('#'+e.currentTarget.id).popover({
-            trigger: 'manual',
-            placement: 'right',
-            content: formInfoValues[$e.val()],
-        }).popover('show');
+		var $e = $(e.target);
+		$('#'+e.currentTarget.id).popover('destroy');
+		$('#'+e.currentTarget.id).popover({
+			trigger: 'manual',
+			placement: 'right',
+			content: formInfoValues[$e.val()],
+		}).popover('show');
 	});
 
 });

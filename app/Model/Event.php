@@ -767,10 +767,10 @@ class Event extends AppModel {
 		if (!isset($push['canPush']) || !$push['canPush']) {
 			return 'Trying to push to an outdated instance.';
 		}
-    $unpublish_event = $server['Server']['unpublish_event'];
-    if ($unpublish_event) {
-      $event['Event']['published'] = 0;
-    }
+		$unpublish_event = $server['Server']['unpublish_event'];
+		if ($unpublish_event) {
+			$event['Event']['published'] = 0;
+		}
 		$updated = null;
 		$newLocation = $newTextBody = '';
 		$result = $this->restfulEventToServer($event, $server, null, $newLocation, $newTextBody, $HttpSocket);
