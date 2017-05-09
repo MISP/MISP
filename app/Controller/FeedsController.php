@@ -159,6 +159,9 @@ class FeedsController extends AppController {
 			if (empty($this->request->data['Feed']['target_event'])) {
 				$this->request->data['Feed']['target_event'] = 0;
 			}
+			if (empty($this->request->data['Feed']['lookup_visible'])) {
+				$this->request->data['Feed']['lookup_visible'] = 0;
+			}
 			if (empty($this->request->data['Feed']['input_source'])) {
 				$this->request->data['Feed']['input_source'] = 'network';
 			}
@@ -227,7 +230,7 @@ class FeedsController extends AppController {
 				$this->request->data['Feed']['settings']['delimiter'] = ',';
 			}
 			$this->request->data['Feed']['settings'] = json_encode($this->request->data['Feed']['settings']);
-			$fields = array('id', 'name', 'provider', 'enabled', 'rules', 'url', 'distribution', 'sharing_group_id', 'tag_id', 'fixed_event', 'event_id', 'publish', 'delta_merge', 'source_format', 'override_ids', 'settings', 'input_source', 'delete_local_file');
+			$fields = array('id', 'name', 'provider', 'enabled', 'rules', 'url', 'distribution', 'sharing_group_id', 'tag_id', 'fixed_event', 'event_id', 'publish', 'delta_merge', 'source_format', 'override_ids', 'settings', 'input_source', 'delete_local_file', 'lookup_visible');
 			$feed = array();
 			foreach ($fields as $field) {
 				if (isset($this->request->data['Feed'][$field])) {

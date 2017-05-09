@@ -173,6 +173,9 @@ class Feed extends AppModel {
 		$this->Warninglist = ClassRegistry::init('Warninglist');
 		$complexTypeTool->setTLDs($this->Warninglist->fetchTLDLists());
 		$settings = array();
+		if (!empty($feed['Feed']['settings']) && !is_array($feed['Feed']['settings'])) {
+			$feed['Feed']['settings'] = json_decode($feed['Feed']['settings'], true);
+		}
 		if (isset($feed['Feed']['settings'][$type])) {
 			$settings = $feed['Feed']['settings'][$type];
 		}
@@ -238,13 +241,17 @@ class Feed extends AppModel {
 		return $data;
 	}
 
-	public function attachFeedCorrelations($objects) {
+	public function attachFeedCorrelations($objects, $user) {
 		$redis = $this->setupRedis();
 		if ($redis !== false) {
-			$feeds = $this->find('all', array(
+			$params = array(
 				'recursive' => -1,
 				'fields' => array('id', 'name', 'url', 'provider', 'source_format')
-			));
+			);
+			if (!$user['Role']['perm_site_admin']) {
+				$params['conditions'] = array('Feed.lookup_visible' => 1);
+			}
+			$feeds = $this->find('all', $params);
 			foreach ($objects as $k => $object) {
 				foreach ($feeds as $k2 => $feed) {
 					if ($redis->sismember('misp:feed_cache:' . $feed['Feed']['id'], md5($object['value']))) {
@@ -735,7 +742,7 @@ class Feed extends AppModel {
 		$params = array(
 			'conditions' => array('enabled' => 1),
 			'recursive' => -1,
-			'fields' => array('source_format', 'input_source', 'url', 'id')
+			'fields' => array('source_format', 'input_source', 'url', 'id', 'settings')
 		);
 		if ($scope !== 'all') {
 			if (is_numeric($scope)) {

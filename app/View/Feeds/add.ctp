@@ -5,6 +5,10 @@
 		<p>Add a new MISP feed source.</p>
 	<?php
 		echo $this->Form->input('enabled', array());
+	?>
+		<div class="input clear"></div>
+	<?php
+		echo $this->Form->input('lookup_visible', array());
 		echo $this->Form->input('name', array(
 				'div' => 'input clear',
 				'placeholder' => 'Feed name',

@@ -1460,9 +1460,9 @@ class Event extends AppModel {
 					$this->Warninglist = ClassRegistry::init('Warninglist');
 					$warninglists = $this->Warninglist->fetchForEventView();
 				}
-				if ($isSiteAdmin && isset($options['includeFeedCorrelations']) && $options['includeFeedCorrelations']) {
+				if (isset($options['includeFeedCorrelations']) && $options['includeFeedCorrelations']) {
 					$this->Feed = ClassRegistry::init('Feed');
-					$event['Attribute'] = $this->Feed->attachFeedCorrelations($event['Attribute']);
+					$event['Attribute'] = $this->Feed->attachFeedCorrelations($event['Attribute'], $user);
 				}
 				foreach ($event['Attribute'] as $key => $attribute) {
 					if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttributes($warninglists, $attribute, $this->Warninglist)) {
@@ -1498,7 +1498,7 @@ class Event extends AppModel {
 					if (isset($event['ShadowAttribute'])) {
 						if ($isSiteAdmin && isset($options['includeFeedCorrelations']) && $options['includeFeedCorrelations']) {
 							$this->Feed = ClassRegistry::init('Feed');
-							$event['ShadowAttribute'] = $this->Feed->attachFeedCorrelations($event['ShadowAttribute']);
+							$event['ShadowAttribute'] = $this->Feed->attachFeedCorrelations($event['ShadowAttribute'], $user);
 						}
 						foreach ($event['ShadowAttribute'] as $k => $sa) {
 							if (!empty($sa['old_id'])) {

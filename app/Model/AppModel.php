@@ -42,7 +42,7 @@ class AppModel extends Model {
 				51 => false, 52 => false, 55 => true, 56 => true, 57 => true,
 				58 => false, 59 => false, 60 => false, 61 => false, 62 => false,
 				63 => false, 64 => false, 65 => false, 66 => false, 67 => true,
-				68 => false, 69 => false, 71 => false
+				68 => false, 69 => false, 71 => false, 72 => false
 			)
 		)
 	);
@@ -680,6 +680,9 @@ class AppModel extends Model {
 			case '2.4.71':
 				$sqlArray[] = "UPDATE attributes SET comment = '' WHERE comment is NULL;";
 				$sqlArray[] = "ALTER TABLE attributes CHANGE comment comment text COLLATE utf8_bin NOT NULL;";
+				break;
+			case '2.4.72':
+				$sqlArray[] = 'ALTER TABLE feeds ADD lookup_visible tinyint(1) DEFAULT 0;';
 				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
