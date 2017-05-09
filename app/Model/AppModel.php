@@ -998,7 +998,11 @@ class AppModel extends Model {
 	}
 
 	public function setupRedis() {
-		$redis = new Redis();
+		if (class_exists('Redis')) {
+			$redis = new Redis();
+		} else {
+			return false;
+		}
 		$host = Configure::read('MISP.redis_host') ? Configure::read('MISP.redis_host') : '127.0.0.1';
 		$port = Configure::read('MISP.redis_port') ? Configure::read('MISP.redis_port') : 6379;
 		$database = Configure::read('MISP.redis_database') ? Configure::read('MISP.redis_database') : 13;
