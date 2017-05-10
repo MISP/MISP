@@ -767,9 +767,11 @@ class Event extends AppModel {
 		if (!isset($push['canPush']) || !$push['canPush']) {
 			return 'Trying to push to an outdated instance.';
 		}
-		$unpublish_event = $server['Server']['unpublish_event'];
-		if ($unpublish_event) {
-			$event['Event']['published'] = 0;
+		if (isset($server['Server']['unpublish_event'])) {
+			$unpublish_event = $server['Server']['unpublish_event'];
+			if ($unpublish_event) {
+				$event['Event']['published'] = 0;
+			}
 		}
 		$updated = null;
 		$newLocation = $newTextBody = '';
@@ -2643,7 +2645,7 @@ class Event extends AppModel {
 			$pubSubTool = new PubSubTool();
 			$hostOrg = $this->Org->find('first', array('conditions' => array('name' => Configure::read('MISP.org')), 'fields' => array('id')));
 			if (!empty($hostOrg)) {
-				$user = array('org_id' => $hostOrg['Org']['id'], 'Role' => array('perm_sync' => 0, 'perm_site_admin' => 0), 'Organisation' => $hostOrg['Org']);
+				$user = array('org_id' => $hostOrg['Org']['id'], 'Role' => array('perm_sync' => 0, 'perm_audit' => 0, 'perm_site_admin' => 0), 'Organisation' => $hostOrg['Org']);
 				$fullEvent = $this->fetchEvent($user, array('eventid' => $id));
 				if (!empty($fullEvent)) $pubSubTool->publishEvent($fullEvent[0]);
 			}
