@@ -252,6 +252,7 @@ CREATE TABLE IF NOT EXISTS `feeds` (
   `settings` text,
   `input_source` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT "network",
   `delete_local_file` tinyint(1) DEFAULT 0,
+  `lookup_visible` tinyint(1) DEFAULT 0,
   PRIMARY KEY (`id`),
   INDEX `input_source` (`input_source`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
@@ -538,6 +539,8 @@ CREATE TABLE IF NOT EXISTS `servers` (
   `cert_file` varchar(255) COLLATE utf8_bin DEFAULT NULL,
   `client_cert_file` varchar(255) COLLATE utf8_bin DEFAULT NULL,
   `internal` tinyint(1) NOT NULL DEFAULT 0,
+  `unpublish_event` tinyint(1) NOT NULL DEFAULT 0,
+  `publish_without_email` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   INDEX `org_id` (`org_id`),
   INDEX `remote_org_id` (`remote_org_id`)
