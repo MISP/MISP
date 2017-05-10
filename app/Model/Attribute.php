@@ -2228,9 +2228,9 @@ class Attribute extends AppModel {
 	public function handleMaliciousBase64($event_id, $original_filename, $base64, $hash_types, $proposal = false) {
 		if (!is_numeric($event_id)) throw new Exception('Something went wrong. Received a non-numeric event ID while trying to create a zip archive of an uploaded malware sample.');
 		if ($proposal) {
-			$dir = new Folder(APP . "files" . DS . "shadow" . DS . $event_id, true);
+			$dir = new Folder(APP . "tmp" . DS . "files" . DS . "shadow" . DS . $event_id, true);
 		} else {
-			$dir = new Folder(APP . "files" . DS . "attachments" . DS . $event_id, true);
+			$dir = new Folder(APP . "tmp" . DS . "files" . DS . "attachments" . DS . $event_id, true);
 		}
 		$tmpFile = new File($dir->path . DS . $this->generateRandomFileName(), true, 0600);
 		$tmpFile->write(base64_decode($base64));
