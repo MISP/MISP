@@ -734,7 +734,6 @@ class Server extends AppModel {
 							'type' => 'boolean',
 							'null' => true
 					),
-<<<<<<< HEAD
 					'enable_attribute_tag_search' => array(
 							'level' => 2,
 							'description' => 'Enable this setting for including attribute level tags in search queries.',
@@ -753,7 +752,6 @@ class Server extends AppModel {
 							'type' => 'boolean',
 							'null' => true
 					),
-=======
 					'redis_host' => array(
 						'level' => 0,
 						'description' => 'The host running the redis server to be used for generic MISP tasks such as caching. This is not to be confused by the redis server used by the background processing.',
@@ -778,7 +776,6 @@ class Server extends AppModel {
 						'test' => 'testForNumeric',
 						'type' => 'numeric'
 					)
->>>>>>> 332410defa3f543db5b973c3d64fa62d0a0f65b1
 			),
 			'GnuPG' => array(
 					'branch' => 1,
