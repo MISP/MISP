@@ -1850,7 +1850,8 @@ function freetextImportResultsSubmit(id, count) {
 				distribution:$('#Attribute' + i + 'Distribution').val(),
 				sharing_group_id:$('#Attribute' + i + 'SharingGroupId').val(),
 				data:$('#Attribute' + i + 'Data').val(),
-				data_is_handled:$('#Attribute' + i + 'DataIsHandled').val()
+				data_is_handled:$('#Attribute' + i + 'DataIsHandled').val(),
+				tags:$('#Attribute' + i + 'Tags').val()
 			}
 			attributeArray[attributeArray.length] = temp;
 		}
