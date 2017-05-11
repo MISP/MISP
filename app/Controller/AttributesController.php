@@ -1711,23 +1711,6 @@ class AttributesController extends AppController {
 		}
 
 		// If we sent any tags along, load the associated tag names for each attribute
-<<<<<<< HEAD
-		if ($tags) {
-			$args = $this->Attribute->dissectArgs($tags);
-			$this->loadModel('Tag');
-			$tagArray = $this->Tag->fetchEventTagIds($args[0], $args[1]);
-			$temp = array();
-			foreach ($tagArray[0] as $accepted) {
-				$temp['OR'][] = array('Event.id' => $accepted);
-			}
-			$conditions['AND'][] = $temp;
-			$temp = array();
-			foreach ($tagArray[1] as $rejected) {
-				$temp['AND'][] = array('Event.id !=' => $rejected);
-			}
-			$conditions['AND'][] = $temp;
-		}
-		//tms
 		if ($attr_tags) {
 			$args = $this->Attribute->dissectArgs($tags);
 			$this->loadModel('Tag');
@@ -1743,10 +1726,7 @@ class AttributesController extends AppController {
 			}
 			$conditions['AND'][] = $temp;
 		}
-		//tme
-=======
 		if ($tags) $conditions = $this->Attribute->setTagConditions($tags, $conditions);
->>>>>>> c60cc785f40cbc1c27e645ad3970a6857f4e82d2
 		if ($from) $conditions['AND'][] = array('Event.date >=' => $from);
 		if ($to) $conditions['AND'][] = array('Event.date <=' => $to);
 		if ($publish_timestamp) $conditions = $this->Attribute->setPublishTimestampConditions($publish_timestamp, $conditions);
