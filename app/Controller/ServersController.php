@@ -1302,4 +1302,8 @@ class ServersController extends AppController {
 			$this->render('ajax/update');
 		}
 	}
+
+	public function getInstanceUUID() {
+		return $this->RestResponse->viewData(array('uuid' => Configure::read('MISP.uuid')), $this->response->type());
+	}
 }
