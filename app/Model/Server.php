@@ -1595,7 +1595,7 @@ class Server extends AppModel {
 		$shadowAttribute->recursive = -1;
 		if (!empty($events)) {
 			$proposals = $eventModel->downloadProposalsFromServer($events, $server);
-			if ($proposals !== null) {
+			if (!empty($proposals)) {
 				$uuidEvents = array_flip($events);
 				foreach ($proposals as $k => &$proposal) {
 					$proposal = $proposal['ShadowAttribute'];
