@@ -1,4 +1,4 @@
- <?php
+<?php
 App::uses('AppController', 'Controller');
 
 class UsersController extends AppController {
@@ -93,9 +93,9 @@ class UsersController extends AppController {
 			$this->User->set('password', '');
 			$this->request->data = $this->User->data;
 		}
-    $this->loadModel('Server');
-    $this->set('complexity', !empty(Configure::read('Security.password_policy_complexity')) ? Configure::read('Security.password_policy_complexity') : $this->Server->serverSettings['Security']['password_policy_complexity']['value']);
-    $this->set('length', !empty(Configure::read('Security.password_policy_length')) ? Configure::read('Security.password_policy_length') : $this->Server->serverSettings['Security']['password_policy_length']['value']);
+		$this->loadModel('Server');
+		$this->set('complexity', !empty(Configure::read('Security.password_policy_complexity')) ? Configure::read('Security.password_policy_complexity') : $this->Server->serverSettings['Security']['password_policy_complexity']['value']);
+		$this->set('length', !empty(Configure::read('Security.password_policy_length')) ? Configure::read('Security.password_policy_length') : $this->Server->serverSettings['Security']['password_policy_length']['value']);
 		$roles = $this->User->Role->find('list');
 		$this->set(compact('roles'));
 		$this->set('id', $id);
@@ -118,9 +118,9 @@ class UsersController extends AppController {
 				$this->Session->setFlash(__('The password could not be updated. Please, try again.'));
 			}
 		} else {
-      $this->loadModel('Server');
-      $this->set('complexity', !empty(Configure::read('Security.password_policy_complexity')) ? Configure::read('Security.password_policy_complexity') : $this->Server->serverSettings['Security']['password_policy_complexity']['value']);
-      $this->set('length', !empty(Configure::read('Security.password_policy_length')) ? Configure::read('Security.password_policy_length') : $this->Server->serverSettings['Security']['password_policy_length']['value']);
+			$this->loadModel('Server');
+			$this->set('complexity', !empty(Configure::read('Security.password_policy_complexity')) ? Configure::read('Security.password_policy_complexity') : $this->Server->serverSettings['Security']['password_policy_complexity']['value']);
+			$this->set('length', !empty(Configure::read('Security.password_policy_length')) ? Configure::read('Security.password_policy_length') : $this->Server->serverSettings['Security']['password_policy_length']['value']);
 			$this->User->recursive = 0;
 			$this->User->read(null, $id);
 			$this->User->set('password', '');
@@ -445,9 +445,9 @@ class UsersController extends AppController {
 			));
 			$this->set('orgs', $orgs);
 			// generate auth key for a new user
-      $this->loadModel('Server');
-      $this->set('complexity', !empty(Configure::read('Security.password_policy_complexity')) ? Configure::read('Security.password_policy_complexity') : $this->Server->serverSettings['Security']['password_policy_complexity']['value']);
-      $this->set('length', !empty(Configure::read('Security.password_policy_length')) ? Configure::read('Security.password_policy_length') : $this->Server->serverSettings['Security']['password_policy_length']['value']);
+			$this->loadModel('Server');
+			$this->set('complexity', !empty(Configure::read('Security.password_policy_complexity')) ? Configure::read('Security.password_policy_complexity') : $this->Server->serverSettings['Security']['password_policy_complexity']['value']);
+			$this->set('length', !empty(Configure::read('Security.password_policy_length')) ? Configure::read('Security.password_policy_length') : $this->Server->serverSettings['Security']['password_policy_length']['value']);
 			$conditions = array();
 			if (!$this->_isSiteAdmin()) $conditions['Server.org_id LIKE'] = $this->Auth->user('org_id');
 			$temp = $this->Server->find('all', array('conditions' => $conditions, 'recursive' => -1, 'fields' => array('id', 'name', 'url')));
@@ -626,8 +626,8 @@ class UsersController extends AppController {
 			$orgs = array();
 		}
 		$this->loadModel('Server');
-    $this->set('complexity', !empty(Configure::read('Security.password_policy_complexity')) ? Configure::read('Security.password_policy_complexity') : $this->Server->serverSettings['Security']['password_policy_complexity']['value']);
-    $this->set('length', !empty(Configure::read('Security.password_policy_length')) ? Configure::read('Security.password_policy_length') : $this->Server->serverSettings['Security']['password_policy_length']['value']);
+		$this->set('complexity', !empty(Configure::read('Security.password_policy_complexity')) ? Configure::read('Security.password_policy_complexity') : $this->Server->serverSettings['Security']['password_policy_complexity']['value']);
+		$this->set('length', !empty(Configure::read('Security.password_policy_length')) ? Configure::read('Security.password_policy_length') : $this->Server->serverSettings['Security']['password_policy_length']['value']);
 		$conditions = array();
 		if (!$this->_isSiteAdmin()) $conditions['Server.org_id LIKE'] = $this->Auth->user('org_id');
 		$temp = $this->Server->find('all', array('conditions' => $conditions, 'recursive' => -1, 'fields' => array('id', 'name', 'url')));
@@ -1199,7 +1199,7 @@ class UsersController extends AppController {
 
 		$stats['attribute_count'] = $this->User->Event->Attribute->find('count', array('conditions' => array('Attribute.deleted' => 0)));
 		$stats['attribute_count_month'] = $this->User->Event->Attribute->find('count', array('conditions' => array('Attribute.timestamp >' => $this_month, 'Attribute.deleted' => 0)));
-    $stats['attributes_per_event'] = round($stats['attribute_count'] / $stats['event_count']);
+		$stats['attributes_per_event'] = round($stats['attribute_count'] / $stats['event_count']);
 
 		$this->loadModel('Correlation');
 		$this->Correlation->recursive = -1;

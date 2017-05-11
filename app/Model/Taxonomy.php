@@ -48,6 +48,17 @@ class Taxonomy extends AppModel {
 			}
 			$file = new File(APP . 'files' . DS . 'taxonomies' . DS . $dir . DS . 'machinetag.json');
 			$vocab = json_decode($file->read(), true);
+			if (isset($vocab['type'])) {
+				if (is_array($vocab['type'])) {
+					if (!in_array('event', $vocab['type'])) {
+						continue;
+					}
+				} else {
+					if ($vocab['type'] !== 'event') {
+						continue;
+					}
+				}
+			}
 			$file->close();
 			if (!isset($vocab['version'])) $vocab['version'] = 1;
 			$current = $this->find('first', array(

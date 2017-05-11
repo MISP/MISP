@@ -40,6 +40,7 @@
 				<th>IDS<input type="checkbox" id="checkAll" style="margin:0px;margin-left:3px;"/></th>
 				<th>Distribution</th>
 				<th>Comment</th>
+				<th>Tags</th>
 				<th>Actions</th>
 		</tr>
 		<?php
@@ -172,6 +173,9 @@
 			<td class="short">
 				<input type="text" class="freetextCommentField" id="<?php echo 'Attribute' . $k . 'Comment'; ?>" style="padding:0px;height:20px;margin-bottom:0px;" placeholder="<?php echo h($importComment); ?>" <?php if (isset($item['comment']) && $item['comment'] !== false) echo 'value="' . $item['comment'] . '"'?>/>
 			</td>
+			<td class="short">
+				<input type="text" class="freetextTagField" id="<?php echo 'Attribute' . $k . 'Tags'; ?>" style="padding:0px;height:20px;margin-bottom:0px;"<?php if (isset($item['tags']) && $item['tags'] !== false) echo 'value="' . htmlspecialchars(implode(",",$item['tags'])) . '"'?>/>
+			</td>
 			<td class="action short">
 				<span class="icon-remove pointer" title="Remove resolved attribute" role="button" tabindex="0" aria-label="Remove resolved attribute" onClick="freetextRemoveRow('<?php echo $k; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
 			</td>
@@ -190,7 +194,7 @@
 	?>
 	</table>
 	<span>
-		<button class="btn btn-primary" style="float:left;" onClick="freetextImportResultsSubmit('<?php echo h($event['Event']['id']); ?>', '<?php echo count($resultArray); ?>');">Submit</button>
+		<button class="btn btn-primary" style="float:left;" onClick="freetextImportResultsSubmit('<?php echo h($event['Event']['id']); ?>', '<?php echo count($resultArray); ?>', '<?php echo h($type); ?>');">Submit</button>
 		<span style="float:right">
 			<?php
 				if (!empty($optionsRearranged)):

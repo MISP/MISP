@@ -402,6 +402,8 @@ In order to share data with a remote server via pushes and pulls, you need to re
 	<li><b>Authkey:</b> The authentication key that you have received from the hosting organisation of the remote instance.</li>
 	<li><b>Push:</b> This check-box controls whether your server is allowed to push to the remote instance.</li>
 	<li><b>Pull:</b> This check-box controls whether your server can request to pull all data from the remote instance.</li>
+	<li><b>Unpublish event (Push only):</b> This check-box controls to unpublish new event (working with Push events).</li>
+	<li><b>Publish without email (Pull only):</b> This check-box controls whether your server is allowed to publish event without email (working with Pull events).</li>
 	<li><b>Self Signed:</b> Ticking this checkbox will allow syncing with instances using self-signed certificates.</li>
 	<li><b>Certificate File:</b> If the instance that you want to connect to has their entire own certificate chain, you can use this to import a .pem file with it and override CakePHP's standard root CA file.</li>
 </ul>

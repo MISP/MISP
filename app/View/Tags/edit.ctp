@@ -26,15 +26,15 @@
 	?>
 	</fieldset>
 <?php
-echo $this->Form->button('Edit', array('class' => 'btn btn-primary'));
-echo $this->Form->end();
+	echo $this->Form->button('Edit', array('class' => 'btn btn-primary'));
+	echo $this->Form->end();
 ?>
 </div>
 <?php
 	echo $this->element('side_menu', array('menuList' => 'tags', 'menuItem' => 'edit'));
 ?>
 <script>
-    $(function(){
-        $('#TagColour').colorpicker();
-    });
+	$(function(){
+		$('#TagColour').colorpicker();
+	});
 </script>

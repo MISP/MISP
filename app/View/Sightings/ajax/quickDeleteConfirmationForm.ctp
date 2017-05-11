@@ -4,7 +4,7 @@
 	?>
 	<legend>Remove Sighting</legend>
 	<div style="padding-left:5px;padding-right:5px;padding-bottom:5px;">
-    <p>Remove sighting (<?php echo h($id); ?>)?</p>
+	<p>Remove sighting (<?php echo h($id); ?>)?</p>
 		<table>
 			<tr>
 				<td style="vertical-align:top">

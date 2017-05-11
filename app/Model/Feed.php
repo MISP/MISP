@@ -173,6 +173,9 @@ class Feed extends AppModel {
 		$this->Warninglist = ClassRegistry::init('Warninglist');
 		$complexTypeTool->setTLDs($this->Warninglist->fetchTLDLists());
 		$settings = array();
+		if (!empty($feed['Feed']['settings']) && !is_array($feed['Feed']['settings'])) {
+			$feed['Feed']['settings'] = json_decode($feed['Feed']['settings'], true);
+		}
 		if (isset($feed['Feed']['settings'][$type])) {
 			$settings = $feed['Feed']['settings'][$type];
 		}
@@ -194,16 +197,30 @@ class Feed extends AppModel {
 			}
 			$resultArray = array_slice($resultArray, $start, $limit);
 		}
-
 		return $resultArray;
 	}
 
-	public function getFreetextFeedCorrelations($data) {
+	public function getFreetextFeedCorrelations($data, $feedId) {
 		$values = array();
 		foreach ($data as $key => $value) {
 			$values[] = $value['value'];
 		}
 		$this->Attribute = ClassRegistry::init('Attribute');
+		$redis = $this->setupRedis();
+		if ($redis !== false) {
+			$feeds = $this->find('all', array(
+				'recursive' => -1,
+				'conditions' => array('Feed.id !=' => $feedId),
+				'fields' => array('id', 'name', 'url', 'provider', 'source_format')
+			));
+			foreach ($feeds as $k => $v) {
+				if (!$redis->exists('misp:feed_cache:' . $v['Feed']['id'])) {
+					unset($feeds[$k]);
+				}
+			}
+		} else {
+			return array();
+		}
 		// Adding a 3rd parameter to a list find seems to allow grouping several results into a key. If we ran a normal list with value => event_id we'd only get exactly one entry for each value
 		// The cost of this method is orders of magnitude lower than getting all id - event_id - value triplets and then doing a double loop comparison
 		$correlations = $this->Attribute->find('list', array('conditions' => array('Attribute.value1' => $values, 'Attribute.deleted' => 0), 'fields' => array('Attribute.event_id', 'Attribute.event_id', 'Attribute.value1')));
@@ -213,8 +230,37 @@ class Feed extends AppModel {
 			if (isset($correlations[$value['value']])) {
 				$data[$key]['correlations'] = array_values($correlations[$value['value']]);
 			}
+			if ($redis) {
+				foreach ($feeds as $k => $v) {
+					if ($redis->sismember('misp:feed_cache:' . $v['Feed']['id'], md5($value['value']))) {
+						$data[$key]['feed_correlations'][] = array($v);
+					}
+				}
+			}
 		}
 		return $data;
+	}
+
+	public function attachFeedCorrelations($objects, $user) {
+		$redis = $this->setupRedis();
+		if ($redis !== false) {
+			$params = array(
+				'recursive' => -1,
+				'fields' => array('id', 'name', 'url', 'provider', 'source_format')
+			);
+			if (!$user['Role']['perm_site_admin']) {
+				$params['conditions'] = array('Feed.lookup_visible' => 1);
+			}
+			$feeds = $this->find('all', $params);
+			foreach ($objects as $k => $object) {
+				foreach ($feeds as $k2 => $feed) {
+					if ($redis->sismember('misp:feed_cache:' . $feed['Feed']['id'], md5($object['value']))) {
+						$objects[$k]['Feed'][] = $feed['Feed'];
+					}
+				}
+			}
+		}
+		return $objects;
 	}
 
 	public function downloadFromFeed($actions, $feed, $HttpSocket, $user, $jobId = false) {
@@ -661,7 +707,7 @@ class Feed extends AppModel {
 		$prunedCopy = array();
 		foreach ($data as $key => $value) {
 			foreach ($prunedCopy as $copy) {
- 				if ($copy['type'] == $value['type'] && $copy['category'] == $value['category'] && $copy['value'] == $value['value']) {
+				if ($copy['type'] == $value['type'] && $copy['category'] == $value['category'] && $copy['value'] == $value['value']) {
 					continue 2;
 				}
 			}
@@ -690,5 +736,173 @@ class Feed extends AppModel {
 			$this->Event->EventTag->attachTagToEvent($event['Event']['id'], $feed['Feed']['tag_id']);
 		}
 		return true;
+	}
+
+	public function cacheFeedInitiator($user, $jobId = false, $scope = 'freetext') {
+		$params = array(
+			'conditions' => array('enabled' => 1),
+			'recursive' => -1,
+			'fields' => array('source_format', 'input_source', 'url', 'id', 'settings')
+		);
+		if ($scope !== 'all') {
+			if (is_numeric($scope)) {
+				$params['conditions']['id'] = $scope;
+			} else if ($scope == 'freetext' || $scope == 'csv') {
+				$params['conditions']['source_format'] = array('csv', 'freetext');
+			} else if ($scope == 'misp') {
+				$params['conditions']['source_format'] = 'misp';
+			}
+		}
+		$feeds = $this->find('all', $params);
+		if ($jobId) {
+			$job = ClassRegistry::init('Job');
+			$job->id = $jobId;
+			if (!$job->exists()) {
+				$jobId = false;
+			}
+		}
+		$redis = $this->setupRedis();
+		if ($redis === false) {
+			return 'Redis not reachable.';
+		}
+		foreach ($feeds as $k => $feed) {
+			$redis->del('misp:feed_cache:' . $feed['Feed']['id']);
+			$this->__cacheFeed($feed, $redis, $jobId);
+			if ($jobId) {
+				$job->saveField('progress', 100 * $k / count($feeds));
+				$job->saveField('message', 'Feed ' . $feed['Feed']['id'] . ' cached.');
+			}
+		}
+		return true;
+	}
+
+	public function attachFeedCacheTimestamps($data) {
+		$redis = $this->setupRedis();
+		if ($redis === false) {
+			return $data;
+		}
+		foreach ($data as $k => $v) {
+			$data[$k]['Feed']['cache_timestamp'] = $redis->get('misp:feed_cache_timestamp:' . $data[$k]['Feed']['id']);
+		}
+		return $data;
+	}
+
+	private function __cacheFeed($feed, $redis, $jobId = false) {
+		if ($feed['Feed']['input_source'] == 'local') {
+			$HttpSocket = false;
+		} else {
+			$HttpSocket = $this->__setupHttpSocket($feed);
+		}
+		if ($feed['Feed']['source_format'] == 'misp') {
+			return $this->__cacheMISPFeed($feed, $redis, $HttpSocket, $jobId);
+		} else {
+			return $this->__cacheFreetextFeed($feed, $redis, $HttpSocket, $jobId);
+		}
+	}
+
+	private function __cacheFreetextFeed($feed, $redis, $HttpSocket, $jobId = false) {
+		if ($jobId) {
+			$job = ClassRegistry::init('Job');
+			$job->id = $jobId;
+			if (!$job->exists()) {
+				$jobId = false;
+			}
+		}
+		$values = $this->getFreetextFeed($feed, $HttpSocket, $feed['Feed']['source_format'], 'all');
+		foreach ($values as $k => $value) {
+			$redis->sAdd('misp:feed_cache:' . $feed['Feed']['id'], md5($value['value']));
+			if ($jobId && ($k % 1000 == 0)) {
+					$job->saveField('message', 'Feed ' . $feed['Feed']['id'] . ': ' . $k . ' values cached.');
+			}
+		}
+		$redis->set('misp:feed_cache_timestamp:' . $feed['Feed']['id'], time());
+		return true;
+	}
+
+	private function __cacheMISPFeed($feed, $redis, $HttpSocket, $jobId = false) {
+		if ($jobId) {
+			$job = ClassRegistry::init('Job');
+			$job->id = $jobId;
+			if (!$job->exists()) {
+				$jobId = false;
+			}
+		}
+		$this->Attribute = ClassRegistry::init('Attribute');
+		$manifest = $this->getManifest($feed, $HttpSocket);
+		$k = 0;
+		foreach ($manifest as $uuid => $event) {
+			$data = false;
+			$path = $feed['Feed']['url'] . '/' . $uuid . '.json';
+			if (isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] == 'local') {
+				if (file_exists($path)) {
+					$data = file_get_contents($path);
+				}
+			} else {
+				$HttpSocket = $this->__setupHttpSocket($feed);
+				$request = $this->__createFeedRequest();
+				$response = $HttpSocket->get($path, '', $request);
+				if ($response->code != 200) {
+					return false;
+				}
+				$data = $response->body;
+			}
+			if ($data) {
+				$event = json_decode($data, true);
+				if (!empty($event['Event']['Attribute'])) {
+					foreach ($event['Event']['Attribute'] as $attribute) {
+						if (!in_array($attribute['type'], $this->Attribute->nonCorrelatingTypes)) {
+							if (in_array($attribute['type'], $this->Attribute->getCompositeTypes())) {
+								$value = explode('|', $attribute['value']);
+								$redis->sAdd('misp:feed_cache:' . $feed['Feed']['id'], md5($value[0]));
+								$redis->sAdd('misp:feed_cache:' . $feed['Feed']['id'], md5($value[1]));
+							} else {
+								$redis->sAdd('misp:feed_cache:' . $feed['Feed']['id'], md5($attribute['value']));
+							}
+						}
+					}
+				}
+			}
+			$k++;
+			if ($jobId && ($k % 10 == 0)) {
+					$job->saveField('message', 'Feed ' . $feed['Feed']['id'] . ': ' . $k . ' events cached.');
+			}
+		}
+		$redis->set('misp:feed_cache_timestamp:' . $feed['Feed']['id'], time());
+		return true;
+	}
+
+	public function compareFeeds($id = false) {
+		$redis = $this->setupRedis();
+		if ($redis === false) {
+			return array();
+		}
+		$fields = array('id', 'input_source', 'source_format', 'url', 'provider', 'name', 'default');
+		$feeds = $this->find('all', array(
+			'recursive' => -1,
+			'fields' => $fields
+		));
+		// we'll use this later for the intersect
+		$fields[] = 'values';
+		$fields = array_flip($fields);
+		// Get all of the feed cache cardinalities for all feeds - if a feed is not cached remove it from the list
+		foreach ($feeds as $k => $feed) {
+			if (!$redis->exists('misp:feed_cache:' . $feed['Feed']['id'])) {
+				unset($feeds[$k]);
+				continue;
+			}
+			$feeds[$k]['Feed']['values'] = $redis->sCard('misp:feed_cache:' . $feed['Feed']['id']);
+		}
+		$feeds = array_values($feeds);
+		foreach ($feeds as $k => $feed) {
+			foreach ($feeds as $k2 => $feed2) {
+				if ($k == $k2) continue;
+				$intersect = $redis->sInter('misp:feed_cache:' . $feed['Feed']['id'], 'misp:feed_cache:' . $feed2['Feed']['id']);
+				$feeds[$k]['Feed']['ComparedFeed'][] = array_merge(array_intersect_key($feed2['Feed'], $fields), array(
+					'overlap_count' => count($intersect),
+					'overlap_percentage' => round(100 * count($intersect) / $feeds[$k]['Feed']['values']),
+				));
+			}
+		}
+		return $feeds;
 	}
 }

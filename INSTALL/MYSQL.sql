@@ -164,6 +164,22 @@ CREATE TABLE IF NOT EXISTS `event_blacklists` (
 -- -------------------------------------------------------
 
 --
+-- Table structure for `event_blacklists`
+--
+
+CREATE TABLE IF NOT EXISTS `event_blacklists` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `event_uuid` varchar(40) COLLATE utf8_bin NOT NULL,
+  `created` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  `event_info` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `event_orgc` VARCHAR( 255 ) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+-- -------------------------------------------------------
+
+--
 -- Table structure for `event_delegations`
 --
 
@@ -236,6 +252,7 @@ CREATE TABLE IF NOT EXISTS `feeds` (
   `settings` text,
   `input_source` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT "network",
   `delete_local_file` tinyint(1) DEFAULT 0,
+  `lookup_visible` tinyint(1) DEFAULT 0,
   PRIMARY KEY (`id`),
   INDEX `input_source` (`input_source`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
@@ -380,6 +397,21 @@ CREATE TABLE IF NOT EXISTS `news` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+-- -------------------------------------------------------
+
+--
+-- Table structure for `org_blacklists`
+--
+
+CREATE TABLE IF NOT EXISTS `org_blacklists` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `org_uuid` varchar(40) COLLATE utf8_bin NOT NULL,
+  `created` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  `org_name` varchar(255) COLLATE utf8_bin NOT NULL,
+  `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
 -- --------------------------------------------------------
 
 --
@@ -499,6 +531,8 @@ CREATE TABLE IF NOT EXISTS `servers` (
   `lastpushedid` int(11) DEFAULT NULL,
   `organization` varchar(10) COLLATE utf8_bin DEFAULT NULL,
   `remote_org_id` int(11) NOT NULL,
+  `publish_without_email` tinyint(1) NOT NULL DEFAULT 0,
+  `unpublish_event` tinyint(1) NOT NULL DEFAULT 0,
   `self_signed` tinyint(1) NOT NULL,
   `pull_rules` text COLLATE utf8_bin NOT NULL,
   `push_rules` text COLLATE utf8_bin NOT NULL,

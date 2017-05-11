@@ -1709,6 +1709,11 @@ table.table.table-striped tr.deleted_row td {
 	margin-top:0px;
 }
 
+.simplepre {
+	border:0px !important;
+	background-color:#f4f4f4;
+}
+
 @-webkit-keyframes rotation {
    from {-webkit-transform: rotate(0deg);}
    to {-webkit-transform: rotate(359deg);}

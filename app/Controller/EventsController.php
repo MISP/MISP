@@ -354,7 +354,6 @@ class EventsController extends AppController {
 						} else {
 							$this->paginate['conditions']['AND'][] = array('Event.publish_timestamp >=' => $v);
 						}
-
 						break;
 					case 'org' :
 						if ($v == "") continue 2;
@@ -784,6 +783,11 @@ class EventsController extends AppController {
 			$modules = $this->Module->getEnabledModules();
 			$this->set('modules', $modules);
 		}
+		if (Configure::read('Plugin.Cortex_services_enable')) {
+			$this->loadModel('Module');
+			$cortex_modules = $this->Module->getEnabledModules(false, 'Cortex');
+			$this->set('cortex_modules', $cortex_modules);
+		}
 		$this->set('deleted', (isset($this->params['named']['deleted']) && $this->params['named']['deleted']) ? true : false);
 		$this->set('typeGroups', array_keys($this->Event->Attribute->typeGroupings));
 		$this->set('attributeFilter', isset($this->params['named']['attributeFilter']) ? $this->params['named']['attributeFilter'] : 'all');
@@ -798,6 +802,8 @@ class EventsController extends AppController {
 	private function __viewUI($event, $continue, $fromEvent) {
 		$emptyEvent = (!isset($event['Attribute']) || empty($event['Attribute']));
 		$this->set('emptyEvent', $emptyEvent);
+		$attributeCount = isset($event['Attribute']) ? count($event['Attribute']) : 0;
+		$this->set('attribute_count', $attributeCount);
 		// set the data for the contributors / history field
 		$org_ids = $this->Event->ShadowAttribute->getEventContributors($event['Event']['id']);
 		$contributors = $this->Event->Org->find('list', array('fields' => array('Org.name'), 'conditions' => array('Org.id' => $org_ids)));
@@ -901,6 +907,11 @@ class EventsController extends AppController {
 			$modules = $this->Module->getEnabledModules();
 			$this->set('modules', $modules);
 		}
+		if (Configure::read('Plugin.Cortex_services_enable')) {
+			$this->loadModel('Module');
+			$cortex_modules = $this->Module->getEnabledModules(false, 'Cortex');
+			$this->set('cortex_modules', $cortex_modules);
+		}
 		$this->set('contributors', $contributors);
 		$this->set('typeGroups', array_keys($this->Event->Attribute->typeGroupings));
 		$this->loadModel('Sighting');
@@ -934,6 +945,7 @@ class EventsController extends AppController {
 		if (isset($this->params['named']['public']) && $this->params['named']['public']) {
 			$conditions['distribution'] = array(3, 5);
 		}
+		$conditions['includeFeedCorrelations'] = true;
 		$results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
 		if (empty($results)) throw new NotFoundException('Invalid event');
 		//if the current user is an org admin AND event belongs to his/her org, fetch also the event creator info
@@ -1357,6 +1369,7 @@ class EventsController extends AppController {
 				}
 				// Workaround for different structure in XML/array than what CakePHP expects
 				if (isset($this->request->data['response'])) $this->request->data = $this->request->data['response'];
+				if (!isset($this->request->data['Event'])) $this->request->data = array('Event' => $this->request->data);
 				$result = $this->Event->_edit($this->request->data, $this->Auth->user(), $id);
 				if ($result === true) {
 					// REST users want to see the newly created event
@@ -1915,7 +1928,7 @@ class EventsController extends AppController {
 			} else {
 				$data = $this->request->data;
 			}
-			$paramArray = array('id', 'continue', 'tags', 'from', 'to', 'last', 'type', 'enforceWarninglist');
+			$paramArray = array('id', 'continue', 'tags', 'from', 'to', 'last', 'type', 'enforceWarninglist', 'eventid');
 			if (!isset($data['request'])) {
 				$data = array('request' => $data);
 			}
@@ -1925,13 +1938,15 @@ class EventsController extends AppController {
 			}
 		}
 
-		$simpleFalse = array('id', 'continue', 'tags', 'from', 'to', 'last', 'type', 'enforceWarninglist', 'includeAllTags');
+		$simpleFalse = array('id', 'continue', 'tags', 'from', 'to', 'last', 'type', 'enforceWarninglist', 'includeAllTags', 'eventid');
 		foreach ($simpleFalse as $sF) {
 			if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false')) {
 				${$sF} = false;
 			}
 		}
-
+		if (!empty($eventid)) {
+			$id = $eventid;
+		}
 		if ($from) $from = $this->Event->dateFieldCheck($from);
 		if ($to) $to = $this->Event->dateFieldCheck($to);
 		if ($tags) $tags = str_replace(';', ':', $tags);
@@ -2989,6 +3004,12 @@ class EventsController extends AppController {
 			$complexTypeTool = new ComplexTypeTool();
 			$this->loadModel('Warninglist');
 			$complexTypeTool->setTLDs($this->Warninglist->fetchTLDLists());
+			if (!isset($this->request->data['Attribute'])) {
+				$this->request->data = array('Attribute' => $this->request->data);
+			}
+			if (!isset($this->request->data['Attribute']['value'])) {
+				$this->request->data['Attribute'] = array('value' => $this->request->data);
+			}
 			$resultArray = $complexTypeTool->checkComplexRouter($this->request->data['Attribute']['value'], 'freetext');
 			foreach ($resultArray as $key => $r) {
 				$temp = array();
@@ -3003,6 +3024,9 @@ class EventsController extends AppController {
 				for ($i = 0; $i < $k; $i++) {
 					if (isset($resultArray[$i]) && $v == $resultArray[$i]) unset($resultArray[$k]);
 				}
+			}
+			if ($this->_isRest()) {
+				return $this->__pushFreetext($resultArray, $id, isset($this->request->data['Attribute']['distribution']) ? $this->request->data['Attribute']['distribution'] : false);
 			}
 			foreach ($resultArray as $key => $result) {
 				$options = array(
@@ -3024,6 +3048,7 @@ class EventsController extends AppController {
 			if (empty($sgs)) {
 				unset($distributions[4]);
 			}
+
 			$this->set('distributions', $distributions);
 			$this->set('sgs', $sgs);
 			$this->set('event', $event);
@@ -3035,6 +3060,34 @@ class EventsController extends AppController {
 			$this->set('title', 'Freetext Import Results');
 			$this->render('resolved_attributes');
 		}
+	}
+
+	public function __pushFreetext($resultArray, $eventId, $distribution = false, $sg = false) {
+		foreach ($resultArray as $k => $result) {
+			$result['type'] = $result['default_type'];
+			unset($result['default_type']);
+			unset($result['types']);
+			$result['category'] = $this->Event->Attribute->defaultCategories[$result['type']];
+			if ($distribution === false) {
+				if (Configure::read('MISP.default_attribute_distribution') != null) {
+					if (Configure::read('MISP.default_attribute_distribution') == 'event') {
+						$distribution = 5;
+					} else {
+						$distribution = Configure::read('MISP.default_attribute_distribution');
+					}
+				} else {
+					$distribution = 0;
+				}
+			}
+			$result['distribution'] = $distribution;
+			$result['event_id'] = $eventId;
+			$resultArray[$k] = $result;
+			$this->Event->Attribute->create();
+			if (!$this->Event->Attribute->save($result)) {
+				unset($resultArray[$k]);
+			}
+		}
+		return $this->RestResponse->viewData($resultArray, $this->response->type());
 	}
 
 	public function saveFreeText($id) {
@@ -3103,7 +3156,19 @@ class EventsController extends AppController {
 							$attribute['email'] = $this->Auth->user('email');
 							$attribute['event_uuid'] = $event['Event']['uuid'];
 						}
-						if ($this->Event->$objectType->save($attribute)) {
+						$AttributSave = $this->Event->$objectType->save($attribute);
+						if ($AttributSave) {
+							// If Tags, attache each tags to attribut
+							if (isset($attribute['tags'])) {
+								foreach (explode(",",$attribute['tags']) as $tagName){
+									$this->loadModel('Tag');
+									$TagId = $this->Tag->captureTag(array('name' => $tagName),array('Role' => $this->userRole));
+									$this->loadModel('AttributeTag');
+									if (!$this->AttributeTag->attachTagToAttribute($AttributSave['Attribute']['id'],$id,$TagId)) {
+										throw new MethodNotAllowedException();
+									}
+								}
+							}
 							$saved++;
 						} else {
 							$failed++;
@@ -3849,14 +3914,14 @@ class EventsController extends AppController {
 	}
 
 	// expects an attribute ID and the module to be used
-	public function queryEnrichment($attribute_id, $module = false) {
-		if (!Configure::read('Plugin.Enrichment_services_enable')) throw new MethodNotAllowedException('Enrichment services are not enabled.');
+	public function queryEnrichment($attribute_id, $module = false, $type = 'Enrichment') {
+		if (!Configure::read('Plugin.' . $type . '_services_enable')) throw new MethodNotAllowedException($type . ' services are not enabled.');
 		$attribute = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $attribute_id)));
 		if (empty($attribute)) throw new MethodNotAllowedException('Attribute not found or you are not authorised to see it.');
 		if ($this->request->is('ajax')) {
 			$this->loadModel('Module');
-			$enabledModules = $this->Module->getEnabledModules();
-			if (!is_array($enabledModules) || empty($enabledModules)) throw new MethodNotAllowedException('No valid enrichment options found for this attribute.');
+			$enabledModules = $this->Module->getEnabledModules(false, $type);
+			if (!is_array($enabledModules) || empty($enabledModules)) throw new MethodNotAllowedException('No valid ' . $type . ' options found for this attribute.');
 			$modules = array();
 			foreach ($enabledModules['modules'] as $module) {
 				if (in_array($attribute[0]['Attribute']['type'], $module['mispattributes']['input'])) {
@@ -3864,17 +3929,18 @@ class EventsController extends AppController {
 				}
 			}
 			foreach (array('attribute_id', 'modules') as $viewVar) $this->set($viewVar, $$viewVar);
+			$this->set('type', $type);
 			$this->render('ajax/enrichmentChoice');
 		} else {
 			$this->loadModel('Module');
-			$enabledModules = $this->Module->getEnabledModules();
-			if (!is_array($enabledModules) || empty($enabledModules)) throw new MethodNotAllowedException('No valid enrichment options found for this attribute.');
+			$enabledModules = $this->Module->getEnabledModules(false, $type);
+			if (!is_array($enabledModules) || empty($enabledModules)) throw new MethodNotAllowedException('No valid ' . $type . ' options found for this attribute.');
 			$options = array();
 			foreach ($enabledModules['modules'] as $temp) {
 				if ($temp['name'] == $module) {
 					if (isset($temp['meta']['config'])) {
 						foreach ($temp['meta']['config'] as $conf) {
-							$options[$conf] = Configure::read('Plugin.Enrichment_' . $module . '_' . $conf);
+							$options[$conf] = Configure::read('Plugin.' . $type . '_' . $module . '_' . $conf);
 						}
 					}
 				}
@@ -3885,8 +3951,8 @@ class EventsController extends AppController {
 			}
 			if (!empty($options)) $data['config'] = $options;
 			$data = json_encode($data);
-			$result = $this->Module->queryModuleServer('/query', $data);
-			if (!$result) throw new MethodNotAllowedException('Enrichment service not reachable.');
+			$result = $this->Module->queryModuleServer('/query', $data, false, $type);
+			if (!$result) throw new MethodNotAllowedException($type . ' service not reachable.');
 			if (isset($result['error'])) $this->Session->setFlash($result['error']);
 			if (!is_array($result)) throw new Exception($result);
 			$resultArray = $this->Event->handleModuleResult($result, $attribute[0]['Attribute']['event_id']);
@@ -3894,7 +3960,7 @@ class EventsController extends AppController {
 				$importComment = $result['comment'];
 			}
 			else {
-				$importComment = $attribute[0]['Attribute']['value'] . ': Enriched via the ' . $module . ' module';
+				$importComment = $attribute[0]['Attribute']['value'] . ': Enriched via the ' . $module . ($type != 'Enrichment' ? ' ' . $type : '')  . ' module';
 			}
 			$typeCategoryMapping = array();
 			foreach ($this->Event->Attribute->categoryDefinitions as $k => $cat) {
@@ -3925,6 +3991,7 @@ class EventsController extends AppController {
 			}
 			$this->set('distributions', $distributions);
 			$this->set('sgs', $sgs);
+			$this->set('type', $type);
 			$this->set('event', array('Event' => $attribute[0]['Event']));
 			$this->set('resultArray', $resultArray);
 			$this->set('typeList', array_keys($this->Event->Attribute->typeDefinitions));
@@ -3954,7 +4021,13 @@ class EventsController extends AppController {
 			}
 			foreach ($module['mispattributes']['userConfig'] as $configName => $config) {
 				if (!$fail) {
-					$validation = call_user_func_array(array($this->Module, $this->Module->configTypes[$config['type']]['validation']), array($this->request->data['Event']['config'][$configName]));
+					if (isset($config['validation'])) {
+						if ($config['validation'] === '0' && $config['type'] == 'String'){
+							$validation = true;
+						}
+					} else {
+						$validation = call_user_func_array(array($this->Module, $this->Module->configTypes[$config['type']]['validation']), array($this->request->data['Event']['config'][$configName]));
+					}
 					if ($validation !== true) {
 						$fail = ucfirst($configName) . ': ' . $validation;
 					} else {
@@ -3997,6 +4070,9 @@ class EventsController extends AppController {
 				}
 				if (!$fail) {
 					$modulePayload['data'] = base64_encode($modulePayload['data']);
+					if (!empty($filename)) {
+						$modulePayload['filename'] = $filename;
+					}
 					$result = $this->Module->queryModuleServer('/query', json_encode($modulePayload, true), false, $moduleFamily = 'Import');
 					if (!$result) throw new Exception('Import service not reachable.');
 					if (isset($result['error'])) $this->Session->setFlash($result['error']);

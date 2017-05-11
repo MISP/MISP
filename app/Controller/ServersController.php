@@ -344,7 +344,7 @@ class ServersController extends AppController {
 			}
 			if (!$fail) {
 				// say what fields are to be updated
-				$fieldList = array('id', 'url', 'push', 'pull', 'name' ,'self_signed', 'cert_file', 'client_cert_file', 'push_rules', 'pull_rules', 'internal');
+				$fieldList = array('id', 'url', 'push', 'pull', 'unpublish_event', 'publish_without_email', 'remote_org_id', 'name' ,'self_signed', 'cert_file', 'client_cert_file', 'push_rules', 'pull_rules', 'internal');
 				$this->request->data['Server']['id'] = $id;
 				if (isset($this->request->data['Server']['authkey']) && "" != $this->request->data['Server']['authkey']) $fieldList[] = 'authkey';
 				if(isset($this->request->data['Server']['organisation_type']) && isset($json)) {
@@ -658,7 +658,7 @@ class ServersController extends AppController {
 	public function serverSettingsReloadSetting($setting, $id) {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
 		$pathToSetting = explode('.', $setting);
-		if (strpos($setting, 'Plugin.Enrichment') !== false || strpos($setting, 'Plugin.Import') !== false || strpos($setting, 'Plugin.Export') !== false) {
+		if (strpos($setting, 'Plugin.Enrichment') !== false || strpos($setting, 'Plugin.Import') !== false || strpos($setting, 'Plugin.Export') !== false || strpos($setting, 'Plugin.Cortex') !== false) {
 			$settingObject = $this->Server->getCurrentServerSettings();
 		}
 		else $settingObject = $this->Server->serverSettings;
@@ -811,7 +811,7 @@ class ServersController extends AppController {
 				// if Proxy is set up in the settings, try to connect to a test URL
 				$proxyStatus = $this->Server->proxyDiagnostics($diagnostic_errors);
 
-				$moduleTypes = array('Enrichment', 'Import', 'Export');
+				$moduleTypes = array('Enrichment', 'Import', 'Export', 'Cortex');
 				foreach ($moduleTypes as $type) {
 					$moduleStatus[$type] = $this->Server->moduleDiagnostics($diagnostic_errors, $type);
 				}
@@ -925,7 +925,7 @@ class ServersController extends AppController {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
 		if (!isset($setting) || !isset($id)) throw new MethodNotAllowedException();
 		$this->set('id', $id);
-		if (strpos($setting, 'Plugin.Enrichment') !== false || strpos($setting, 'Plugin.Import') !== false || strpos($setting, 'Plugin.Export') !== false) {
+		if (strpos($setting, 'Plugin.Enrichment') !== false || strpos($setting, 'Plugin.Import') !== false || strpos($setting, 'Plugin.Export') !== false || strpos($setting, 'Plugin.Cortex') !== false) {
 			$serverSettings = $this->Server->getCurrentServerSettings();
 		}
 		else $serverSettings = $this->Server->serverSettings;

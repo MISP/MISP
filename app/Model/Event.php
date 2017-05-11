@@ -672,7 +672,8 @@ class Event extends AppModel {
 				'fields' => $settings[$context]['correlationModel'] . '.*',
 				'conditions' => $conditionsCorrelation,
 				'recursive' => 0,
-				'order' => array($settings[$context]['correlationModel'] . '.event_id DESC')));
+				'order' => false
+		));
 		$relatedAttributes = array();
 		foreach ($correlations as $correlation) {
 			$current = array(
@@ -765,6 +766,12 @@ class Event extends AppModel {
 		}
 		if (!isset($push['canPush']) || !$push['canPush']) {
 			return 'Trying to push to an outdated instance.';
+		}
+		if (isset($server['Server']['unpublish_event'])) {
+			$unpublish_event = $server['Server']['unpublish_event'];
+			if ($unpublish_event) {
+				$event['Event']['published'] = 0;
+			}
 		}
 		$updated = null;
 		$newLocation = $newTextBody = '';
@@ -1328,10 +1335,10 @@ class Event extends AppModel {
 				'fields' => array('SharingGroup.*'),
 					'Organisation' => array('fields' => $fieldsOrg),
 					'SharingGroupOrg' => array(
-						'Organisation' => array('fields' => $fieldsOrg),
+						'Organisation' => array('fields' => $fieldsOrg, 'order' => false),
 					),
 					'SharingGroupServer' => array(
-						'Server' => array('fields' => $fieldsServer),
+						'Server' => array('fields' => $fieldsServer, 'order' => false),
 				),
 			),
 		);
@@ -1352,15 +1359,18 @@ class Event extends AppModel {
 					'fields' => $fieldsAtt,
 					'conditions' => $conditionsAttributes,
 					'SharingGroup' => $fieldsSharingGroup[(($user['Role']['perm_site_admin'] || $user['Role']['perm_sync']) ? 1 : 0)],
+					'order' => false
 				),
 				'ShadowAttribute' => array(
 					'fields' => $fieldsShadowAtt,
 					'conditions' => array('deleted' => 0),
-					'Org' => array('fields' => $fieldsOrg)
+					'Org' => array('fields' => $fieldsOrg),
+					'order' => false
 				),
 				'SharingGroup' => $fieldsSharingGroup[(($user['Role']['perm_site_admin'] || $user['Role']['perm_sync']) ? 1 : 0)],
 				'EventTag' => array(
-					'Tag' => array('conditions' => $tagConditions)
+					'Tag' => array('conditions' => $tagConditions, 'order' => false),
+					'order' => false
 				)
 			)
 		);
@@ -1452,6 +1462,10 @@ class Event extends AppModel {
 					$this->Warninglist = ClassRegistry::init('Warninglist');
 					$warninglists = $this->Warninglist->fetchForEventView();
 				}
+				if (isset($options['includeFeedCorrelations']) && $options['includeFeedCorrelations']) {
+					$this->Feed = ClassRegistry::init('Feed');
+					$event['Attribute'] = $this->Feed->attachFeedCorrelations($event['Attribute'], $user);
+				}
 				foreach ($event['Attribute'] as $key => $attribute) {
 					if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttributes($warninglists, $attribute, $this->Warninglist)) {
 						unset($event['Attribute'][$key]);
@@ -1484,6 +1498,10 @@ class Event extends AppModel {
 					// This is to differentiate between proposals that were made to an attribute for modification and between proposals for new attributes
 
 					if (isset($event['ShadowAttribute'])) {
+						if ($isSiteAdmin && isset($options['includeFeedCorrelations']) && $options['includeFeedCorrelations']) {
+							$this->Feed = ClassRegistry::init('Feed');
+							$event['ShadowAttribute'] = $this->Feed->attachFeedCorrelations($event['ShadowAttribute'], $user);
+						}
 						foreach ($event['ShadowAttribute'] as $k => $sa) {
 							if (!empty($sa['old_id'])) {
 								if ($event['ShadowAttribute'][$k]['old_id'] == $attribute['id']) {
@@ -2096,7 +2114,7 @@ class Event extends AppModel {
 		if ($saveResult) {
 			if ($passAlong) {
 				$this->Server = ClassRegistry::init('Server');
-				$server = $this->Server->find('first', array('conditions' => array('Server.id' => $passAlong), 'recursive' => -1, 'fields' => array('Server.name', 'Server.id')));
+				$server = $this->Server->find('first', array('conditions' => array('Server.id' => $passAlong), 'recursive' => -1, 'fields' => array('Server.name', 'Server.id', 'Server.unpublish_event')));
 				$this->Log->create();
 				$this->Log->save(array(
 						'org' => $user['Organisation']['name'],
@@ -2179,7 +2197,7 @@ class Event extends AppModel {
 			if ($fromXml) $created_id = $this->id;
 			if (!empty($data['Event']['published']) && 1 == $data['Event']['published']) {
 				// do the necessary actions to publish the event (email, upload,...)
-				if ('true' != Configure::read('MISP.disablerestalert')) {
+				if (('true' != Configure::read('MISP.disablerestalert'))) {
 					$this->sendAlertEmailRouter($this->getID(), $user);
 				}
 				$this->publish($this->getID(), $passAlong);
@@ -2627,7 +2645,7 @@ class Event extends AppModel {
 			$pubSubTool = new PubSubTool();
 			$hostOrg = $this->Org->find('first', array('conditions' => array('name' => Configure::read('MISP.org')), 'fields' => array('id')));
 			if (!empty($hostOrg)) {
-				$user = array('org_id' => $hostOrg['Org']['id'], 'Role' => array('perm_sync' => 0, 'perm_site_admin' => 0), 'Organisation' => $hostOrg['Org']);
+				$user = array('org_id' => $hostOrg['Org']['id'], 'Role' => array('perm_sync' => 0, 'perm_audit' => 0, 'perm_site_admin' => 0), 'Organisation' => $hostOrg['Org']);
 				$fullEvent = $this->fetchEvent($user, array('eventid' => $id));
 				if (!empty($fullEvent)) $pubSubTool->publishEvent($fullEvent[0]);
 			}
@@ -3023,12 +3041,17 @@ class Event extends AppModel {
 		$eventArray = array();
 		$correlatedAttributes = isset($event['RelatedAttribute']) ? array_keys($event['RelatedAttribute']) : array();
 		$correlatedShadowAttributes = isset($event['RelatedShadowAttribute']) ? array_keys($event['RelatedShadowAttribute']) : array();
+		$totalElements = count($event['Attribute']);
 		foreach ($event['Attribute'] as $attribute) {
+			$totalElements += isset($attribute['ShadowAttribute']) ? count($attribute['ShadowAttribute']) : 0;
 			if ($filterType && !in_array($filterType, array('proposal', 'correlation', 'warning'))) if (!in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType])) continue;
 			if (isset($attribute['distribution']) && $attribute['distribution'] != 4) unset($attribute['SharingGroup']);
 			$attribute['objectType'] = 0;
-			if (!empty($attribute['ShadowAttribute'])) $attribute['hasChildren'] = 1;
-			else $attribute['hasChildren'] = 0;
+			if (!empty($attribute['ShadowAttribute'])) {
+				$attribute['hasChildren'] = 1;
+			} else {
+				$attribute['hasChildren'] = 0;
+			}
 			if ($filterType === 'proposal' && $attribute['hasChildren'] == 0) continue;
 			if ($filterType === 'correlation' && !in_array($attribute['id'], $correlatedAttributes)) continue;
 			if ($attribute['type'] == 'attachment' && preg_match('/.*\.(jpg|png|jpeg|gif)$/i', $attribute['value'])) {
@@ -3038,6 +3061,7 @@ class Event extends AppModel {
 		}
 		unset($event['Attribute']);
 		if (isset($event['ShadowAttribute'])) {
+			$totalElements += count($event['ShadowAttribute']);
 			foreach ($event['ShadowAttribute'] as $shadowAttribute) {
 				if ($filterType === 'correlation' && !in_array($shadowAttribute['id'], $correlatedShadowAttributes)) continue;
 				if ($filterType && !in_array($filterType, array('proposal', 'correlation', 'warning'))) if (!in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType])) continue;
@@ -3053,7 +3077,6 @@ class Event extends AppModel {
 		$customPagination = new CustomPaginationTool();
 		if ($all) $passedArgs['page'] = 0;
 		$eventArrayWithProposals = array();
-
 		foreach ($eventArray as $k => &$object) {
 			if ($object['category'] === 'Financial fraud') {
 				if (!$fTool->validateRouter($object['type'], $object['value'])) {
@@ -3088,6 +3111,7 @@ class Event extends AppModel {
 			$event['objects'] = array_values($event['objects']);
 		}
 		$params = $customPagination->applyRulesOnArray($event['objects'], $passedArgs, 'events', 'category');
+		$params['total_elements'] = $totalElements;
 		return $params;
 	}
 
@@ -3136,6 +3160,9 @@ class Event extends AppModel {
 				if (isset($r['categories']) && !is_array($r['categories'])) {
 					$r['categories'] = array($r['categories']);
 				}
+				if (isset($r['tags']) && !is_array($r['tags'])) {
+					$r['tags'] = array($r['tags']);
+				}
 				foreach ($r['values'] as &$value) {
 					if (!is_array($r['values']) || !isset($r['values'][0])) {
 						$r['values'] = array($r['values']);
@@ -3174,7 +3201,8 @@ class Event extends AppModel {
 							'default_type' => $r['types'][0],
 							'comment' => isset($r['comment']) ? $r['comment'] : false,
 							'to_ids' => isset($r['to_ids']) ? $r['to_ids'] : false,
-							'value' => $value
+							'value' => $value,
+							'tags' => isset($r['tags']) ? $r['tags'] : false
 					);
 					if (isset($r['categories'])) {
 						$temp['categories'] = $r['categories'];

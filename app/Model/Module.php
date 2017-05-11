@@ -8,14 +8,16 @@ class Module extends AppModel {
 	private $__validTypes = array(
 		'Enrichment' => array('hover', 'expansion'),
 		'Import' => array('import'),
-		'Export' => array('export')
+		'Export' => array('export'),
+		'Cortex' => array('cortex')
 	);
 
 	private $__typeToFamily = array(
 		'Import' => 'Import',
 		'Export' => 'Export',
 		'hover' => 'Enrichment',
-		'expansion' => 'Enrichment'
+		'expansion' => 'Enrichment',
+		'Cortex' => 'Cortex'
 	);
 
 	public $configTypes = array(
@@ -96,7 +98,7 @@ class Module extends AppModel {
 			else if (isset($temp['meta']['module-type']) && in_array('export', $temp['meta']['module-type']))  $modules['Export'] = $temp['name'];
 			else {
 				foreach ($temp['mispattributes']['input'] as $input) {
-					if (!isset($temp['meta']['module-type']) || in_array('expansion', $temp['meta']['module-type'])) $modules['types'][$input][] = $temp['name'];
+					if (!isset($temp['meta']['module-type']) || (in_array('expansion', $temp['meta']['module-type']) || in_array('cortex', $temp['meta']['module-type']))) $modules['types'][$input][] = $temp['name'];
 					if (isset($temp['meta']['module-type']) && in_array('hover', $temp['meta']['module-type']))  $modules['hover_type'][$input][] = $temp['name'];
 				}
 			}
@@ -141,8 +143,13 @@ class Module extends AppModel {
 		} else {
 			$httpSocket = new HttpSocket(array('timeout' => Configure::read('Plugin.' . $moduleFamily . '_timeout') ? Configure::read('Plugin.' . $moduleFamily . '_timeout') : 10));
 		}
+		$request = array(
+				'header' => array(
+						'Content-Type' => 'application/json',
+				)
+		);
 		try {
-			if ($post) $response = $httpSocket->post($url . $uri, $post);
+			if ($post) $response = $httpSocket->post($url . $uri, $post, $request);
 			else $response = $httpSocket->get($url . $uri);
 			return json_decode($response->body, true);
 		} catch (Exception $e) {

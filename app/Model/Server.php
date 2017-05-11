@@ -734,6 +734,7 @@ class Server extends AppModel {
 							'type' => 'boolean',
 							'null' => true
 					),
+<<<<<<< HEAD
 					'enable_attribute_tag_search' => array(
 							'level' => 2,
 							'description' => 'Enable this setting for including attribute level tags in search queries.',
@@ -752,6 +753,32 @@ class Server extends AppModel {
 							'type' => 'boolean',
 							'null' => true
 					),
+=======
+					'redis_host' => array(
+						'level' => 0,
+						'description' => 'The host running the redis server to be used for generic MISP tasks such as caching. This is not to be confused by the redis server used by the background processing.',
+						'value' => '127.0.0.1',
+						'errorMessage' => '',
+						'test' => 'testForEmpty',
+						'type' => 'string'
+					),
+					'redis_port' => array(
+						'level' => 0,
+						'description' => 'The port used by the redis server to be used for generic MISP tasks such as caching. This is not to be confused by the redis server used by the background processing.',
+						'value' => 6379,
+						'errorMessage' => '',
+						'test' => 'testForNumeric',
+						'type' => 'numeric'
+					),
+					'redis_database' => array(
+						'level' => 0,
+						'description' => 'The database on the redis server to be used for generic MISP tasks. If you run more than one MISP instance, please make sure to use a different database on each instance.',
+						'value' => 13,
+						'errorMessage' => '',
+						'test' => 'testForNumeric',
+						'type' => 'numeric'
+					)
+>>>>>>> 332410defa3f543db5b973c3d64fa62d0a0f65b1
 			),
 			'GnuPG' => array(
 					'branch' => 1,
@@ -1337,6 +1364,38 @@ class Server extends AppModel {
 							'test' => 'testForPortNumber',
 							'type' => 'numeric'
 					),
+					'Cortex_services_url' => array(
+							'level' => 1,
+							'description' => 'The url used to access Cortex. By default, it is accessible at http://cortex-url/api',
+							'value' => 'http://127.0.0.1/api',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string'
+					),
+					'Cortex_services_port' => array(
+							'level' => 1,
+							'description' => 'The port used to access Cortex. By default, this is port 9000',
+							'value' => '9000',
+							'errorMessage' => '',
+							'test' => 'testForPortNumber',
+							'type' => 'numeric'
+					),
+					'Cortex_services_enable' => array(
+							'level' => 0,
+							'description' => 'Enable/disable the import services',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean'
+					),
+					'Cortex_timeout' => array(
+							'level' => 1,
+							'description' => 'Set a timeout for the import services',
+							'value' => 120,
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'numeric'
+					),
 					'CustomAuth_custom_password_reset' => array(
 							'level' => 2,
 							'description' => 'Provide your custom authentication users with an external URL to the authentication system to reset their passwords.',
@@ -1557,7 +1616,7 @@ class Server extends AppModel {
 		$shadowAttribute->recursive = -1;
 		if (!empty($events)) {
 			$proposals = $eventModel->downloadProposalsFromServer($events, $server);
-			if ($proposals !== null) {
+			if (!empty($proposals)) {
 				$uuidEvents = array_flip($events);
 				foreach ($proposals as $k => &$proposal) {
 					$proposal = $proposal['ShadowAttribute'];
@@ -1973,7 +2032,7 @@ class Server extends AppModel {
 	public function getCurrentServerSettings() {
 		$this->Module = ClassRegistry::init('Module');
 		$serverSettings = $this->serverSettings;
-		$moduleTypes = array('Enrichment', 'Import', 'Export');
+		$moduleTypes = array('Enrichment', 'Import', 'Export', 'Cortex');
 		foreach ($moduleTypes as $moduleType) {
 			if (Configure::read('Plugin.' . $moduleType . '_services_enable')) {
 				$results = $this->Module->getModuleSettings($moduleType);
@@ -2908,7 +2967,7 @@ class Server extends AppModel {
 
 	public function moduleDiagnostics(&$diagnostic_errors, $type = 'Enrichment') {
 		$this->Module = ClassRegistry::init('Module');
-		$types = array('Enrichment', 'Import', 'Export');
+		$types = array('Enrichment', 'Import', 'Export', 'Cortex');
 		$diagnostic_errors++;
 		if (Configure::read('Plugin.' . $type . '_services_enable')) {
 			$exception = false;

@@ -5,6 +5,10 @@
 		<p>Add a new MISP feed source.</p>
 	<?php
 		echo $this->Form->input('enabled', array());
+	?>
+		<div class="input clear"></div>
+	<?php
+		echo $this->Form->input('lookup_visible', array());
 		echo $this->Form->input('name', array(
 				'div' => 'input clear',
 				'placeholder' => 'Feed name',
@@ -156,11 +160,11 @@
 		echo $this->Form->input('pull_rules', array('style' => 'display:none;', 'label' => false, 'div' => false));
 	?>
 	</fieldset>
-    <b>Filter rules:</b><br />
-    <span id="pull_tags_OR" style="display:none;">Events with the following tags allowed: <span id="pull_tags_OR_text" style="color:green;"></span><br /></span>
-    <span id="pull_tags_NOT" style="display:none;">Events with the following tags blocked: <span id="pull_tags_NOT_text" style="color:red;"></span><br /></span>
-    <span id="pull_orgs_OR" style="display:none;">Events with the following organisations allowed: <span id="pull_orgs_OR_text" style="color:green;"></span><br /></span>
-    <span id="pull_orgs_NOT" style="display:none;">Events with the following organisations blocked: <span id="pull_orgs_NOT_text" style="color:red;"></span><br /></span>
+	<b>Filter rules:</b><br />
+	<span id="pull_tags_OR" style="display:none;">Events with the following tags allowed: <span id="pull_tags_OR_text" style="color:green;"></span><br /></span>
+	<span id="pull_tags_NOT" style="display:none;">Events with the following tags blocked: <span id="pull_tags_NOT_text" style="color:red;"></span><br /></span>
+	<span id="pull_orgs_OR" style="display:none;">Events with the following organisations allowed: <span id="pull_orgs_OR_text" style="color:green;"></span><br /></span>
+	<span id="pull_orgs_NOT" style="display:none;">Events with the following organisations blocked: <span id="pull_orgs_NOT_text" style="color:red;"></span><br /></span>
 	<span id="pull_modify"  class="btn btn-inverse" style="line-height:10px; padding: 4px 4px;">Modify</span><br /><br />
 	<?php
 	echo $this->Form->button('Add', array('class' => 'btn btn-primary'));

@@ -1,24 +1,24 @@
 <div id="top">
 	<div class="pagination">
-        <?php
-        if (!empty($posts)):
-        ?>
+		<?php
+		if (!empty($posts)):
+		?>
 			<ul>
-        <?php
-	        $this->Paginator->options(array(
-	            'update' => '#top',
-	            'evalScripts' => true,
-	            'before' => '$(".loading").show()',
-	            'complete' => '$(".loading").hide()',
-	        ));
+		<?php
+			$this->Paginator->options(array(
+				'update' => '#top',
+				'evalScripts' => true,
+				'before' => '$(".loading").show()',
+				'complete' => '$(".loading").hide()',
+			));
 
-	            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-	            echo $this->Paginator->numbers(array('modulus' => 10, 'separator' => '', 'tag' => 'li', 'currentClass' => 'red', 'currentTag' => 'span'));
-	            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-	        ?>
-	        </ul>
-	    </div>
-	    <div id = "posts">
+				echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
+				echo $this->Paginator->numbers(array('modulus' => 10, 'separator' => '', 'tag' => 'li', 'currentClass' => 'red', 'currentTag' => 'span'));
+				echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
+			?>
+			</ul>
+		</div>
+		<div id = "posts">
 			<?php
 				foreach ($posts as $post) {
 			?>
@@ -116,22 +116,22 @@
 			?>
 			</div>
 			<p>
-	    <?php
-	    echo $this->Paginator->counter(array(
-	    'format' => __('Page {:page} of {:pages}, showing {:current} records out of {:count} total, starting on record {:start}, ending on {:end}')
-	    ));
-	    ?>
-	    </p>
-	    <div class="pagination">
-	        <ul>
-	        <?php
-	            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-	            echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'red', 'currentTag' => 'span'));
-	            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-	        ?>
-	        </ul>
-	    </div>
-    <?php endif; ?>
+		<?php
+		echo $this->Paginator->counter(array(
+		'format' => __('Page {:page} of {:pages}, showing {:current} records out of {:count} total, starting on record {:start}, ending on {:end}')
+		));
+		?>
+		</p>
+		<div class="pagination">
+			<ul>
+			<?php
+				echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
+				echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'red', 'currentTag' => 'span'));
+				echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
+			?>
+			</ul>
+		</div>
+	<?php endif; ?>
 	<div class="comment">
 	<?php
 		if (isset($currentEvent)) $url = '/posts/add/event/' . $currentEvent;
@@ -183,4 +183,4 @@
 		});
 	<?php endif; ?>
 </script>
-<?php echo $this->Js->writeBuffer();?>
+<?php echo $this->Js->writeBuffer();

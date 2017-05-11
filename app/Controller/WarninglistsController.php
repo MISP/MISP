@@ -86,14 +86,18 @@ class WarninglistsController extends AppController {
 					'change' => 'Executed an update of the warning lists, but there was nothing to update.',
 			));
 		}
-		if ($successes == 0 && $fails == 0) $this->Session->setFlash('All warninglists are up to date already.');
-		else if ($successes == 0) $this->Session->setFlash('Could not update any of the warning lists');
+		if ($successes == 0 && $fails == 0) $message = 'All warninglists are up to date already.';
+		else if ($successes == 0) $message = 'Could not update any of the warning lists';
 		else {
 			$message = 'Successfully updated ' . $successes . ' warninglists.';
 			if ($fails != 0) $message . ' However, could not update ' . $fails . ' warning list.';
-			$this->Session->setFlash($message);
 		}
-		$this->redirect(array('controller' => 'warninglists', 'action' => 'index'));
+		if ($this->_isRest()) {
+			return $this->RestResponse->saveSuccessResponse('Warninglist', 'update', false, $this->response->type(), $message);
+		} else {
+			$this->Session->setFlash($message);
+			$this->redirect(array('controller' => 'warninglists', 'action' => 'index'));
+		}
 	}
 
 	public function toggleEnable() {
