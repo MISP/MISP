@@ -3137,7 +3137,19 @@ class EventsController extends AppController {
 							$attribute['email'] = $this->Auth->user('email');
 							$attribute['event_uuid'] = $event['Event']['uuid'];
 						}
-						if ($this->Event->$objectType->save($attribute)) {
+						$AttributSave = $this->Event->$objectType->save($attribute);
+						if ($AttributSave) {
+							// If Tags, attache each tags to attribut
+							if (isset($attribute['tags'])) {
+								foreach (explode(",",$attribute['tags']) as $tagName){
+									$this->loadModel('Tag');
+									$TagId = $this->Tag->captureTag(array('name' => $tagName),array('Role' => $this->userRole));
+									$this->loadModel('AttributeTag');
+									if (!$this->AttributeTag->attachTagToAttribute($AttributSave['Attribute']['id'],$id,$TagId)) {
+										throw new MethodNotAllowedException();
+									}
+								}
+							}
 							$saved++;
 						} else {
 							$failed++;
@@ -3990,7 +4002,13 @@ class EventsController extends AppController {
 			}
 			foreach ($module['mispattributes']['userConfig'] as $configName => $config) {
 				if (!$fail) {
-					$validation = call_user_func_array(array($this->Module, $this->Module->configTypes[$config['type']]['validation']), array($this->request->data['Event']['config'][$configName]));
+					if (isset($config['validation'])) {
+						if ($config['validation'] === '0' && $config['type'] == 'String'){
+							$validation = true;
+						}
+					} else {
+						$validation = call_user_func_array(array($this->Module, $this->Module->configTypes[$config['type']]['validation']), array($this->request->data['Event']['config'][$configName]));
+					}
 					if ($validation !== true) {
 						$fail = ucfirst($configName) . ': ' . $validation;
 					} else {

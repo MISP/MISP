@@ -3160,6 +3160,9 @@ class Event extends AppModel {
 				if (isset($r['categories']) && !is_array($r['categories'])) {
 					$r['categories'] = array($r['categories']);
 				}
+				if (isset($r['tags']) && !is_array($r['tags'])) {
+					$r['tags'] = array($r['tags']);
+				}
 				foreach ($r['values'] as &$value) {
 					if (!is_array($r['values']) || !isset($r['values'][0])) {
 						$r['values'] = array($r['values']);
@@ -3198,7 +3201,8 @@ class Event extends AppModel {
 							'default_type' => $r['types'][0],
 							'comment' => isset($r['comment']) ? $r['comment'] : false,
 							'to_ids' => isset($r['to_ids']) ? $r['to_ids'] : false,
-							'value' => $value
+							'value' => $value,
+							'tags' => isset($r['tags']) ? $r['tags'] : false
 					);
 					if (isset($r['categories'])) {
 						$temp['categories'] = $r['categories'];
