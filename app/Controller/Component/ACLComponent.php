@@ -368,6 +368,7 @@ class ACLComponent extends Component {
 					'attributehistogram' => array('*'),
 					'change_pw' => array('*'),
 					'checkAndCorrectPgps' => array(),
+					'checkAttachments' => array(),
 					'dashboard' => array('*'),
 					'delete' => array('perm_admin'),
 					'downloadTerms' => array('*'),

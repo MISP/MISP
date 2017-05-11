@@ -2767,6 +2767,29 @@ function checkOrphanedAttributes() {
 	});
 }
 
+function checkAttachments() {
+	$.ajax({
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+		success:function (data, textStatus) {
+			var color = 'red';
+			var text = ' (KO)';
+			if (data !== undefined && data.trim() == '0') {
+				color = 'green';
+				text = ' (OK)';
+			}
+			$("#orphanedFileCount").html('<span class="' + color + '">' + data + text + '</span>');
+		},
+		complete:function() {
+			$(".loading").hide();
+		},
+		type:"get",
+		cache: false,
+		url: "/users/checkAttachments/",
+	});
+}
+
 function loadTagTreemap() {
 	$.ajax({
 		async:true,
