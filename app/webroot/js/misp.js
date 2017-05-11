@@ -2774,7 +2774,7 @@ function checkAttachments() {
 		},
 		success:function (data, textStatus) {
 			var color = 'red';
-			var text = ' (KO)';
+			var text = ' (Bad links detected)';
 			if (data !== undefined && data.trim() == '0') {
 				color = 'green';
 				text = ' (OK)';
