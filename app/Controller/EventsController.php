@@ -3140,13 +3140,13 @@ class EventsController extends AppController {
 						$AttributSave = $this->Event->$objectType->save($attribute);
 						if ($AttributSave) {
 							// If Tags, attache each tags to attribut
-							if (isset($attribute['tags'])) {
+							if (!empty($attribute['tags'])) {
 								foreach (explode(",",$attribute['tags']) as $tagName){
 									$this->loadModel('Tag');
 									$TagId = $this->Tag->captureTag(array('name' => $tagName),array('Role' => $this->userRole));
 									$this->loadModel('AttributeTag');
 									if (!$this->AttributeTag->attachTagToAttribute($AttributSave['Attribute']['id'],$id,$TagId)) {
-										throw new MethodNotAllowedException();
+										throw new MethodNotAllowedException('Could not add tags.');
 									}
 								}
 							}
