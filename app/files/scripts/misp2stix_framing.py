@@ -17,6 +17,7 @@ from stix.common.related import *
 from stix.common.confidence import Confidence
 from stix.common.vocabs import IncidentStatus
 from cybox.utils import Namespace
+from mixbox import idgen
 
 NS_DICT = {
         "http://cybox.mitre.org/common-2" : 'cyboxCommon',
@@ -90,7 +91,7 @@ def main(args):
     namespace = [sys.argv[1], sys.argv[2].replace(" ", "_")]
     namespace[1] = re.sub('[\W]+', '', namespace[1])
     NS_DICT[namespace[0]]=namespace[1]
-    stix.utils.idgen.set_id_namespace({namespace[0]: namespace[1]})
+    idgen.set_id_namespace({namespace[0]: namespace[1]})
     stix_package = STIXPackage()
     stix_header = STIXHeader()
     stix_header.title="Export from " + sys.argv[2] + " MISP"
