@@ -110,6 +110,19 @@ class Tag extends AppModel {
 		return $ids;
 	}
 
+	public function fetchAttributeTagIds($accept=array(), $reject=array()) {
+		$acceptIds = array();
+		$rejectIds = array();
+		if (!empty($accept)) {
+			$acceptIds = $this->findAttributeIdsByAttributeTagNames($accept);
+			if (empty($acceptIds)) $acceptIds[] = -1;
+		}
+		if (!empty($reject)) {
+			$rejectIds = $this->findAttributeIdsByAttributeTagNames($reject);
+		}
+		return array($acceptIds, $rejectIds);
+	}
+
 	public function findAttributeIdsByAttributeTagNames($array) {
 		$ids = array();
 		foreach ($array as $a) {

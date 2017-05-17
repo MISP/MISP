@@ -2366,6 +2366,22 @@ class Attribute extends AppModel {
 		return $conditions;
 	}
 
+	public function setAttributeTagConditions($tags, $conditions) {
+		$args = $this->dissectArgs($tags);
+		$tagArray = $this->AttributeTag->Tag->fetchAttributeTagIds($args[0], $args[1]);
+		$temp = array();
+		foreach ($tagArray[0] as $accepted) {
+			$temp['OR'][] = array('Attribute.id' => $accepted);
+		}
+		$conditions['AND'][] = $temp;
+		$temp = array();
+		foreach ($tagArray[1] as $rejected) {
+			$temp['AND'][] = array('Attribute.id !=' => $rejected);
+		}
+		$conditions['AND'][] = $temp;
+		return $conditions;
+	}
+
 	public function setPublishTimestampConditions($publish_timestamp, $conditions) {
 		if (is_array($publish_timestamp)) {
 			$conditions['AND'][] = array('Event.publish_timestamp >=' => $publish_timestamp[0]);
