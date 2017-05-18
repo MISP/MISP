@@ -209,7 +209,7 @@ class IOCImportComponent extends Component {
 	private function __setSuccesses($branch) {
 		foreach ($branch['leaves'] as $key => $value) {
 			$branch['leaves'][$key]['success'] = (in_array($value['uuid'], $this->saved_uuids) ? true : false);
-			if (!$value['success']) $this->fails[] = $value;
+			if (!array_key_exists('success', $value) || !$value['success']) $this->fails[] = $value;
 		}
 		foreach ($branch['branches'] as $key => $value) {
 			$branch['branches'][$key] = $this->__setSuccesses($value);
