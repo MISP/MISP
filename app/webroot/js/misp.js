@@ -1645,7 +1645,7 @@ function getSubGroupFromSetting(setting) {
 	return 'general';
 }
 
-function serverSettingsActivateField(setting, id) {
+function serverSettingsActivateField(setting, id, baseurl) {
 	resetForms();
 	$('.inline-field-placeholder').hide();
 	var fieldName = "#setting_" + getSubGroupFromSetting(setting) + "_" + id;
@@ -1660,19 +1660,19 @@ function serverSettingsActivateField(setting, id) {
 			$(fieldName + "_placeholder").html(data);
 			$(fieldName + "_solid").hide();
 			$(fieldName + "_placeholder").show();
-			serverSettingsPostActivationScripts(fieldName, setting, id);
+			serverSettingsPostActivationScripts(fieldName, setting, id, baseurl);
 		},
-		url:"/servers/serverSettingsEdit/" + setting + "/" + id,
+		url:baseurl + "/servers/serverSettingsEdit/" + setting + "/" + id,
 	});
 }
 
-function serverSettingsPostActivationScripts(name, setting, id) {
+function serverSettingsPostActivationScripts(name, setting, id, baseurl) {
 	$(name + '_field').focus();
 	inputFieldButtonActive(name + '_field');
 
 	$(name + '_form').submit(function(e){
 		e.preventDefault();
-		serverSettingSubmitForm(name, setting, id);
+		serverSettingSubmitForm(name, setting, id, baseurl);
 		return false;
 	});
 
@@ -1686,11 +1686,11 @@ function serverSettingsPostActivationScripts(name, setting, id) {
 
 	$(name + '_form').bind("keydown", function(e) {
 		if (e.ctrlKey && (e.keyCode == 13 || e.keyCode == 10)) {
-			serverSettingSubmitForm(name, setting, id);
+			serverSettingSubmitForm(name, setting, id, baeurl);
 		}
 	});
 	$(name + '_field').closest('.inline-input-container').children('.inline-input-accept').bind('click', function() {
-		serverSettingSubmitForm(name, setting, id);
+		serverSettingSubmitForm(name, setting, id, baseurl);
 	});
 	$(name + '_field').closest('.inline-input-container').children('.inline-input-decline').bind('click', function() {
 		resetForms();
@@ -1700,7 +1700,7 @@ function serverSettingsPostActivationScripts(name, setting, id) {
 	$(name + '_solid').hide();
 }
 
-function serverSettingSubmitForm(name, setting, id) {
+function serverSettingSubmitForm(name, setting, id, baseurl) {
 	subGroup = getSubGroupFromSetting(setting);
 	var formData = $(name + '_field').closest("form").serialize();
 	$.ajax({
@@ -1712,7 +1712,7 @@ function serverSettingSubmitForm(name, setting, id) {
 		success:function (data, textStatus) {
 			$.ajax({
 				type:"get",
-				url:"/servers/serverSettingsReloadSetting/" + setting + "/" + id,
+				url:baseurl + "/servers/serverSettingsReloadSetting/" + setting + "/" + id,
 				success:function (data2, textStatus2) {
 					$('#' + subGroup + "_" + id + '_row').replaceWith(data2);
 					$(".loading").hide();
@@ -1728,7 +1728,7 @@ function serverSettingSubmitForm(name, setting, id) {
 			$('.inline-field-placeholder').hide();
 		},
 		type:"post",
-		url:"/servers/serverSettingsEdit/" + setting + "/" + id + "/" + 1
+		url:baseurl + "/servers/serverSettingsEdit/" + setting + "/" + id + "/" + 1
 	});
 	$(name + '_field').unbind("keyup");
 	$(name + '_form').unbind("focusout");
