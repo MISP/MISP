@@ -1969,6 +1969,9 @@ class EventsController extends AppController {
 				${$sF} = false;
 			}
 		}
+		if (!in_array($type, array('md5', 'sha1', 'sha256'))) {
+			throw new MethodNotAllowedException('Invalid hash type.');
+		}
 		if ($from) $from = $this->Event->dateFieldCheck($from);
 		if ($to) $to = $this->Event->dateFieldCheck($to);
 		if ($tags) $tags = str_replace(';', ':', $tags);
