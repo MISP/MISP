@@ -1983,10 +1983,28 @@ class EventsController extends AppController {
 
 	public function hids($type, $key = 'download', $tags = false, $from = false, $to = false, $last = false, $enforceWarninglist = false) {
 		$simpleFalse = array('tags', 'from', 'to', 'last', 'enforceWarninglist');
+		if ($this->request->is('post')) {
+			if (empty($this->request->data)) {
+				throw new BadRequestException('Either specify the search terms in the url, or POST a json or xml with the filter parameters.');
+			} else {
+				$data = $this->request->data;
+			}
+			if (!isset($data['request'])) {
+				$data = array('request' => $data);
+			}
+			foreach ($simpleFalse as $sF) {
+				if (isset($data['request'][$sF])) {
+					${$sF} = $data['request'][$sF];
+				}
+			}
+		}
 		foreach ($simpleFalse as $sF) {
 			if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false')) {
 				${$sF} = false;
 			}
+		}
+		if (!in_array($type, array('md5', 'sha1', 'sha256'))) {
+			throw new MethodNotAllowedException('Invalid hash type.');
 		}
 		if ($from) $from = $this->Event->dateFieldCheck($from);
 		if ($to) $to = $this->Event->dateFieldCheck($to);
@@ -2009,7 +2027,7 @@ class EventsController extends AppController {
 		}
 		$this->loadModel('Attribute');
 		$rules = $this->Attribute->hids($this->Auth->user(), $type, $tags, $from, $to, $last, false, $enforceWarninglist);
-		$this->set('rules', $rules);
+		return new CakeResponse(array('body'=> implode(PHP_EOL, $rules), 'status' => 200, 'type' => 'txt'));
 	}
 
 	// csv function
@@ -2193,10 +2211,10 @@ class EventsController extends AppController {
 			$this->Event->read(null, $id);
 			$saveEvent['Event'] = $this->Event->data['Event'];
 			$saveEvent['Event']['published'] = false;
-			$dist = '3';
+			$dist = '5';
 			if (Configure::read('MISP.default_attribute_distribution') != null) {
 				if (Configure::read('MISP.default_attribute_distribution') === 'event') {
-					$dist = $this->Event->data['Event']['distribution'];
+					$dist = '5';
 				} else {
 					$dist = '';
 					$dist .= Configure::read('MISP.default_attribute_distribution');
@@ -3159,13 +3177,13 @@ class EventsController extends AppController {
 						$AttributSave = $this->Event->$objectType->save($attribute);
 						if ($AttributSave) {
 							// If Tags, attache each tags to attribut
-							if (isset($attribute['tags'])) {
+							if (!empty($attribute['tags'])) {
 								foreach (explode(",",$attribute['tags']) as $tagName){
 									$this->loadModel('Tag');
 									$TagId = $this->Tag->captureTag(array('name' => $tagName),array('Role' => $this->userRole));
 									$this->loadModel('AttributeTag');
 									if (!$this->AttributeTag->attachTagToAttribute($AttributSave['Attribute']['id'],$id,$TagId)) {
-										throw new MethodNotAllowedException();
+										throw new MethodNotAllowedException('Could not add tags.');
 									}
 								}
 							}

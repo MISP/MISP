@@ -268,6 +268,14 @@ class Server extends AppModel {
 							'type' => 'numeric',
 							'optionsSource' => 'LocalOrgs',
 					),
+					'uuid' => array(
+							'level' => 0,
+							'description' => 'The MISP instance UUID. This UUID is used to identify this instance.',
+							'value' => '0',
+							'errorMessage' => 'No valid UUID set',
+							'test' => 'testUuid',
+							'type' => 'string'
+					),
 					'logo' => array(
 							'level' => 3,
 							'description' => 'This setting is deprecated and can be safely removed.',
@@ -1143,6 +1151,14 @@ class Server extends AppModel {
 						'test' => 'testForEmpty',
 						'type' => 'string',
 						'afterHook' => 'zmqAfterHook',
+					),
+					'ZeroMQ_attribute_notifications_enable' => array(
+						'level' => 2,
+						'description' => 'Enables or disables the publishing of any attribute creations/edits/soft deletions.',
+						'value' => false,
+						'errorMessage' => '',
+						'test' => 'testBool',
+						'type' => 'boolean'
 					),
 					'Sightings_enable' => array(
 						'level' => 1,
@@ -2145,6 +2161,13 @@ class Server extends AppModel {
 
 	public function testForNumeric($value) {
 		if (!is_numeric($value)) return 'This setting has to be a number.';
+		return true;
+	}
+
+	public function testUuid($value) {
+		if (empty($value) || !preg_match('/^\{?[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}\}?$/', $value)) {
+			return 'Invalid UUID.';
+		}
 		return true;
 	}
 
