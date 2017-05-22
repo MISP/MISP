@@ -1964,6 +1964,21 @@ class EventsController extends AppController {
 
 	public function hids($type, $key = 'download', $tags = false, $from = false, $to = false, $last = false, $enforceWarninglist = false) {
 		$simpleFalse = array('tags', 'from', 'to', 'last', 'enforceWarninglist');
+		if ($this->request->is('post')) {
+			if (empty($this->request->data)) {
+				throw new BadRequestException('Either specify the search terms in the url, or POST a json or xml with the filter parameters.');
+			} else {
+				$data = $this->request->data;
+			}
+			if (!isset($data['request'])) {
+				$data = array('request' => $data);
+			}
+			foreach ($simpleFalse as $sF) {
+				if (isset($data['request'][$sF])) {
+					${$sF} = $data['request'][$sF];
+				}
+			}
+		}
 		foreach ($simpleFalse as $sF) {
 			if (!is_array(${$sF}) && (${$sF} === 'null' || ${$sF} == '0' || ${$sF} === false || strtolower(${$sF}) === 'false')) {
 				${$sF} = false;
@@ -1993,7 +2008,7 @@ class EventsController extends AppController {
 		}
 		$this->loadModel('Attribute');
 		$rules = $this->Attribute->hids($this->Auth->user(), $type, $tags, $from, $to, $last, false, $enforceWarninglist);
-		$this->set('rules', $rules);
+		return new CakeResponse(array('body'=> implode(PHP_EOL, $rules), 'status' => 200, 'type' => 'txt'));
 	}
 
 	// csv function

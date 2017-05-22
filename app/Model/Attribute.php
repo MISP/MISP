@@ -1543,7 +1543,7 @@ class Attribute extends AppModel {
 		if ($type == 'md5') $typeArray[] = 'malware-sample';
 		$rules = array();
 		$eventIds = $this->Event->fetchEventIds($user, $from, $to, $last);
-		if ($tags !== '') {
+		if (!empty($tags)) {
 			$tag = ClassRegistry::init('Tag');
 			$args = $this->dissectArgs($tags);
 			$tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
