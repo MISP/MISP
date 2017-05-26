@@ -580,7 +580,7 @@ class TagsController extends AppController {
 		));
 		$type = 'Event';
 		if (!empty($object)) {
-			if (!$this->_isSiteAdmin() && $object['Event']['orgc_id'] != $this->Auth->user('org_id')) {
+			if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger'] && $object['Event']['orgc_id'] != $this->Auth->user('org_id')) {
 					throw new MethodNotAllowedException('Invalid Target.');
 			}
 		} else {
@@ -594,7 +594,7 @@ class TagsController extends AppController {
 				'contain' => array('Event.orgc_id')
 			));
 			if (!empty($object)) {
-				if (!$this->_isSiteAdmin() && $object['Event']['orgc_id'] != $this->Auth->user('org_id')) {
+				if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger'] && $object['Event']['orgc_id'] != $this->Auth->user('org_id')) {
 						throw new MethodNotAllowedException('Invalid Target.');
 				}
 			} else {
