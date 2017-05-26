@@ -17,7 +17,11 @@ from stix.common.related import *
 from stix.common.confidence import Confidence
 from stix.common.vocabs import IncidentStatus
 from cybox.utils import Namespace
-from mixbox import idgen
+# if you rely on old idgen from previous stix libraries, mixbox is not installed
+try:
+    from mixbox import idgen
+except:
+    pass
 from stix import __version__ as STIXVER
 
 NS_DICT = {
@@ -92,7 +96,7 @@ def main(args):
 
     baseURL = sys.argv[1]
     orgname = sys.argv[2]
-    
+
     namespace = [baseURL, orgname.replace(" ", "_")]
     namespace[1] = re.sub('[\W]+', '', namespace[1])
     NS_DICT[namespace[0]]=namespace[1]
@@ -110,7 +114,7 @@ def main(args):
             # and if we're running a REALLY weird version of stix
             # May as well catch it
             idgen.set_id_namespace(Namespace(baseURL, orgname, "MISP"))
-            
+
 
     stix_package = STIXPackage()
     stix_header = STIXHeader()
