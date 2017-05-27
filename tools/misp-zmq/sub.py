@@ -39,18 +39,23 @@ socket = context.socket(zmq.SUB)
 socket.connect ("tcp://%s:%s" % (host, port))
 socket.setsockopt(zmq.SUBSCRIBE, b'')
 
+poller = zmq.Poller()
+poller.register(socket, zmq.POLLIN)
+
 if args.stats:
     stats = dict()
 
 while True:
-    message = socket.recv()
-    topic, s, m = message.decode('utf-8').partition(" ")
-    if args.only:
-        if topic not in filters:
-                continue
-    print (m)
-    if args.stats:
-        stats[topic] = stats.get(topic, 0) + 1
-        pp.pprint(stats)
-    time.sleep(args.sleep)
+    socks = dict(poller.poll(timeout=None))
+    if socket in socks and socks[socket] == zmq.POLLIN:
+            message = socket.recv()
+            topic, s, m = message.decode('utf-8').partition(" ")
+            if args.only:
+                if topic not in filters:
+                        continue
+            print (m)
+            if args.stats:
+                stats[topic] = stats.get(topic, 0) + 1
+                pp.pprint(stats)
+            time.sleep(args.sleep)
 
