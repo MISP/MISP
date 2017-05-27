@@ -70,13 +70,12 @@ def main(args):
         if command is not None:
             print(command)
             handleCommand(command)
-        topics = ["misp_json", "misp_json_attribute"]
+        topics = ["misp_json", "misp_json_attribute", "misp_json_sighting"]
         test = 0
         for topic in topics:
             data = r.lpop(namespace + ":data:" + topic)
             if data is None:
                 continue
-            print(data)
             bla = '1'
             pubMessage(topic, data)
             test = test+1

@@ -80,7 +80,16 @@ class PubSubTool {
 		$redis->connect($settings['redis_host'], $settings['redis_port']);
 		$redis->select($settings['redis_database']);
 		$redis->rPush($settings['redis_namespace'] . ':data:misp_json_attribute', json_encode($attribute, JSON_PRETTY_PRINT));
-		return;
+		return true;
+	}
+
+	public function sighting_save($sighting) {
+		$settings = $this->__setupPubServer();
+		$redis = new Redis();
+		$redis->connect($settings['redis_host'], $settings['redis_port']);
+		$redis->select($settings['redis_database']);
+		$redis->rPush($settings['redis_namespace'] . ':data:misp_json_sighting', json_encode($sighting, JSON_PRETTY_PRINT));
+		return true;
 	}
 
 	public function killService($settings = false) {
