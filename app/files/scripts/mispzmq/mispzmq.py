@@ -68,18 +68,14 @@ def main(args):
         time.sleep(1)
         command = r.lpop(namespace + ":command")
         if command is not None:
-            print(command)
             handleCommand(command)
-        topics = ["misp_json", "misp_json_attribute"]
-        test = 0
+        topics = ["misp_json", "misp_json_attribute", "misp_json_sighting"]
         for topic in topics:
             data = r.lpop(namespace + ":data:" + topic)
+            print(data)
             if data is None:
                 continue
-            print(data)
-            bla = '1'
             pubMessage(topic, data)
-            test = test+1
 
 if __name__ == "__main__":
     main(sys.argv)
