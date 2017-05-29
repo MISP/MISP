@@ -265,7 +265,7 @@ class User extends AppModel {
 				unset($user['User']['password']);
 				unset($user['User']['confirm_password']);
 			}
-			$pubSubTool->modified($user, 'organisation');
+			$pubSubTool->modified($user, 'user');
 		}
 		return true;
 	}
