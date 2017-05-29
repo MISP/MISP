@@ -1346,7 +1346,9 @@ function indexEvaluateFiltering() {
 function quickFilter(passedArgs, url) {
 	passedArgs["searchall"] = $('#quickFilterField').val().trim();
 	for (var key in passedArgs) {
-		url += "/" + key + ":" + passedArgs[key];
+		if (key !== 'page') {
+			url += "/" + key + ":" + passedArgs[key];
+		}
 	}
 	window.location.href=url;
 }
