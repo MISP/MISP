@@ -92,6 +92,15 @@ class PubSubTool {
 		return true;
 	}
 
+	public function modified($data, $type) {
+		$settings = $this->__setupPubServer();
+		$redis = new Redis();
+		$redis->connect($settings['redis_host'], $settings['redis_port']);
+		$redis->select($settings['redis_database']);
+		$redis->rPush($settings['redis_namespace'] . ':data:misp_json_' . $type, json_encode($data, JSON_PRETTY_PRINT));
+		return true;
+	}
+
 	public function killService($settings = false) {
 		$redis = new Redis();
 		if ($this->checkIfRunning()) {
