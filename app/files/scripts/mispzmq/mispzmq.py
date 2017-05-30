@@ -62,9 +62,20 @@ def pubMessage(topic, data):
         publishCount = publishCount + 1
 
 def main(args):
+    start_time = int(time.time())
     setup()
     createPidFile()
+    status_array = [
+        'And when you\'re dead I will be still alive.',
+        'And believe me I am still alive.',
+        'I\'m doing science and I\'m still alive.',
+        'I feel FANTASTIC and I\'m still alive.',
+        'While you\'re dying I\'ll be still alive.'
+
+    ]
+    i = 0
     while True:
+        i = i + 1
         time.sleep(1)
         command = r.lpop(namespace + ":command")
         if command is not None:
@@ -72,10 +83,15 @@ def main(args):
         topics = ["misp_json", "misp_json_attribute", "misp_json_sighting", "misp_json_organisation", "misp_json_user"]
         for topic in topics:
             data = r.lpop(namespace + ":data:" + topic)
-            print(data)
-            if data is None:
-                continue
-            pubMessage(topic, data)
+            if data is not None:
+                pubMessage(topic, data)
+        if (i % 10 == 0):
+            status_entry = (i/10) % 5
+            status_message = {
+                'status': status_array[status_entry],
+                'uptime': int(time.time()) - start_time
+            }
+            pubMessage('misp_json_self', json.dumps(status_message))
 
 if __name__ == "__main__":
     main(sys.argv)

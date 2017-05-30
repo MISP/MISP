@@ -4189,4 +4189,30 @@ class EventsController extends AppController {
 		}
 		return new CakeResponse(array('body'=> h($event[0]['Event']['published']), 'status'=>200));
 	}
+
+	public function pushEventToZMQ($id) {
+		if ($this->request->is('Post')) {
+			if (Configure::read('Plugin.ZeroMQ_enable')) {
+				App::uses('PubSubTool', 'Tools');
+				$pubSubTool = new PubSubTool();
+				$event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
+				if (!empty($event)) {
+					$pubSubTool->publishEvent($event[0]);
+					$message = 'Event published to ZMQ';
+				} else {
+					$message = 'Invalid event.';
+				}
+			} else {
+				$message = 'ZMQ event publishing not enabled.';
+			}
+		} else {
+			$message = 'This functionality is only available via POST requests';
+		}
+		if ($this->_isRest()) {
+			return $this->RestResponse->viewData($events, $this->response->type());
+		} else {
+			$this->Session->setFlash($message);
+			$this->redirect($this->referer());
+		}
+	}
 }
