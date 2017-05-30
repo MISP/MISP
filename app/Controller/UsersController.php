@@ -1135,7 +1135,7 @@ class UsersController extends AppController {
 		}
 		if ($this->request->is('post')) {
 			if (isset($this->request->data['User']['firstTime'])) $firstTime = $this->request->data['User']['firstTime'];
-			return new CakeResponse($this->User->initiatePasswordReset($user, $id, $firstTime));
+			return new CakeResponse($this->User->initiatePasswordReset($user, $firstTime));
 		} else {
 			$error = false;
 			$encryption = false;
