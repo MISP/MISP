@@ -10,6 +10,9 @@ class PubSubTool {
 				'redis_namespace' => 'mispq',
 				'port' => '50000',
 		);
+
+		$topics = array('misp_json', 'misp_json_attribute');
+
 		foreach ($settings as $key => $setting) {
 			$temp = Configure::read('Plugin.ZeroMQ_' . $key);
 			if ($temp) $settings[$key] = $temp;
@@ -67,7 +70,34 @@ class PubSubTool {
 		$redis = new Redis();
 		$redis->connect($settings['redis_host'], $settings['redis_port']);
 		$redis->select($settings['redis_database']);
-		$redis->rPush($settings['redis_namespace'] . ':misp_json', $json);
+		$redis->rPush($settings['redis_namespace'] . ':data:misp_json', $json);
+		return true;
+	}
+
+	public function attribute_save($attribute) {
+		$settings = $this->__setupPubServer();
+		$redis = new Redis();
+		$redis->connect($settings['redis_host'], $settings['redis_port']);
+		$redis->select($settings['redis_database']);
+		$redis->rPush($settings['redis_namespace'] . ':data:misp_json_attribute', json_encode($attribute, JSON_PRETTY_PRINT));
+		return true;
+	}
+
+	public function sighting_save($sighting) {
+		$settings = $this->__setupPubServer();
+		$redis = new Redis();
+		$redis->connect($settings['redis_host'], $settings['redis_port']);
+		$redis->select($settings['redis_database']);
+		$redis->rPush($settings['redis_namespace'] . ':data:misp_json_sighting', json_encode($sighting, JSON_PRETTY_PRINT));
+		return true;
+	}
+
+	public function modified($data, $type) {
+		$settings = $this->__setupPubServer();
+		$redis = new Redis();
+		$redis->connect($settings['redis_host'], $settings['redis_port']);
+		$redis->select($settings['redis_database']);
+		$redis->rPush($settings['redis_namespace'] . ':data:misp_json_' . $type, json_encode($data, JSON_PRETTY_PRINT));
 		return true;
 	}
 
@@ -100,8 +130,10 @@ class PubSubTool {
 	}
 
 	public function restartServer() {
-		if (!$this->killService()) {
-			return 'Could not kill the previous instance of the ZeroMQ script.';
+		if (!$this->checkIfRunning()) {
+			if (!$this->killService()) {
+				return 'Could not kill the previous instance of the ZeroMQ script.';
+			}
 		}
 		$this->__setupPubServer();
 		if (!is_numeric($this->checkIfRunning())) return 'Failed starting the ZeroMQ script.';

@@ -137,9 +137,9 @@ foreach ($feeds as $item):
 		</td>
 		<td class="short"><span class="<?php echo ($item['Feed']['enabled'] ? 'icon-ok' : 'icon-remove'); ?>"></span><span class="short <?php if (!$item['Feed']['enabled'] || empty($ruleDescription)) echo "hidden"; ?>" data-toggle="popover" title="Filter rules" data-content="<?php echo $ruleDescription; ?>"> (Rules)</span>
 			<td class="short"><span class="<?php echo ($item['Feed']['lookup_visible'] ? 'icon-ok' : 'icon-remove'); ?>"></span>
-		<td class="short action-links <?php echo $item['Feed']['cache_timestamp'] ? 'bold' : 'bold red';?>">
+		<td class="short action-links <?php echo !empty($item['Feed']['cache_timestamp']) ? 'bold' : 'bold red';?>">
 			<?php
-				if ($item['Feed']['cache_timestamp']):
+				if (!empty($item['Feed']['cache_timestamp'])):
 					$units = array('m', 'h', 'd');
 					$intervals = array(60, 60, 24);
 					$unit = 's';

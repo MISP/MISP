@@ -48,17 +48,18 @@ def createPidFile():
     pid = str(os.getpid())
     file(pidfile, 'w').write(pid)
 
-def pubMessage(data):
+def pubMessage(topic, data):
     context = zmq.Context()
     socket = context.socket(zmq.PUB)
     socket.bind("tcp://*:%s" % settings["port"])
     print "Sending " + data
     time.sleep(1)
-    socket.send("%s %s" % ('misp_json', data))
+    socket.send("%s %s" % (topic, data))
     socket.close()
     context.term()
-    global publishCount
-    publishCount = publishCount + 1
+    if topic is 'misp_json':
+        global publishCount
+        publishCount = publishCount + 1
 
 def main(args):
     setup()
@@ -68,11 +69,13 @@ def main(args):
         command = r.lpop(namespace + ":command")
         if command is not None:
             handleCommand(command)
-        topic = "misp_json"
-        data = r.lpop(namespace + ":misp_json")
-        if data is None:
-            continue
-        pubMessage(data)
+        topics = ["misp_json", "misp_json_attribute", "misp_json_sighting", "misp_json_organisation", "misp_json_user"]
+        for topic in topics:
+            data = r.lpop(namespace + ":data:" + topic)
+            print(data)
+            if data is None:
+                continue
+            pubMessage(topic, data)
 
 if __name__ == "__main__":
     main(sys.argv)

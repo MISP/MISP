@@ -551,6 +551,11 @@ class Attribute extends AppModel {
 		} else {
 			$this->__afterSaveCorrelation($this->data['Attribute']);
 		}
+		if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_attribute_notifications_enable')) {
+			App::uses('PubSubTool', 'Tools');
+			$pubSubTool = new PubSubTool();
+			$pubSubTool->attribute_save($this->data);
+		}
 		$result = true;
 		// if the 'data' field is set on the $this->data then save the data to the correct file
 		if (isset($this->data['Attribute']['type']) && $this->typeIsAttachment($this->data['Attribute']['type']) && !empty($this->data['Attribute']['data'])) {
@@ -1538,7 +1543,7 @@ class Attribute extends AppModel {
 		if ($type == 'md5') $typeArray[] = 'malware-sample';
 		$rules = array();
 		$eventIds = $this->Event->fetchEventIds($user, $from, $to, $last);
-		if ($tags !== '') {
+		if (!empty($tags)) {
 			$tag = ClassRegistry::init('Tag');
 			$args = $this->dissectArgs($tags);
 			$tagArray = $tag->fetchEventTagIds($args[0], $args[1]);

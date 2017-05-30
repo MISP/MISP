@@ -34,6 +34,7 @@ class TagsController extends AppController {
 		$taxonomyNamespaces = array();
 		if (!empty($taxonomies)) foreach ($taxonomies as $taxonomy) $taxonomyNamespaces[$taxonomy['namespace']] = $taxonomy;
 		$taxonomyTags = array();
+		$passedArgsArray = array();
 		$this->Event->recursive = -1;
 		if ($favouritesOnly) {
 			$tag_id_list = $this->Tag->FavouriteTag->find('list', array(
@@ -42,6 +43,10 @@ class TagsController extends AppController {
 			));
 			if (empty($tag_id_list)) $tag_id_list = array(-1);
 			$this->paginate['conditions']['AND']['Tag.id'] = $tag_id_list;
+		}
+		if (isset($this->params['named']['searchall'])) {
+			$this->paginate['conditions']['AND']['LOWER(Tag.name) LIKE'] = '%' . $this->params['named']['searchall'] . '%';
+			$passedArgsArray['all'] = $this->params['named']['searchall'];
 		}
 		if ($this->_isRest()) {
 			unset($this->paginate['limit']);
@@ -173,6 +178,8 @@ class TagsController extends AppController {
 			$this->set('Tag', $paginated);
 			$this->set('_serialize', array('Tag'));
 		} else {
+			$this->set('passedArgs', json_encode($this->passedArgs));
+			$this->set('passedArgsArray', $passedArgsArray);
 			$this->set('csv', $csv);
 			$this->set('list', $paginated);
 			$this->set('favouritesOnly', $favouritesOnly);
@@ -580,7 +587,7 @@ class TagsController extends AppController {
 		));
 		$type = 'Event';
 		if (!empty($object)) {
-			if (!$this->_isSiteAdmin() && $object['Event']['orgc_id'] != $this->Auth->user('org_id')) {
+			if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger'] && $object['Event']['orgc_id'] != $this->Auth->user('org_id')) {
 					throw new MethodNotAllowedException('Invalid Target.');
 			}
 		} else {
@@ -594,7 +601,7 @@ class TagsController extends AppController {
 				'contain' => array('Event.orgc_id')
 			));
 			if (!empty($object)) {
-				if (!$this->_isSiteAdmin() && $object['Event']['orgc_id'] != $this->Auth->user('org_id')) {
+				if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger'] && $object['Event']['orgc_id'] != $this->Auth->user('org_id')) {
 						throw new MethodNotAllowedException('Invalid Target.');
 				}
 			} else {
