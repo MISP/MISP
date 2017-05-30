@@ -936,7 +936,7 @@ class Feed extends AppModel {
 					if ($tag_id) $feed['Feed']['tag_id'] = $tag_id;
 				}
 				$this->create();
-				if (!$this->save($feed, true, array('name', 'provider', 'url', 'rules', 'source_format', 'fixed_event', 'delta_merge', 'override_ids', 'publish', 'settings', 'tag_id', 'default'))) {
+				if (!$this->save($feed, true, array('name', 'provider', 'url', 'rules', 'source_format', 'fixed_event', 'delta_merge', 'override_ids', 'publish', 'settings', 'tag_id', 'default', 'lookup_visible'))) {
 					$results['fails']++;
 				} else {
 					$results['successes']++;
