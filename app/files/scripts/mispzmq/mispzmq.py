@@ -69,7 +69,7 @@ def main(args):
         command = r.lpop(namespace + ":command")
         if command is not None:
             handleCommand(command)
-        topics = ["misp_json", "misp_json_attribute", "misp_json_sighting"]
+        topics = ["misp_json", "misp_json_attribute", "misp_json_sighting", "misp_json_organisation", "misp_json_user"]
         for topic in topics:
             data = r.lpop(namespace + ":data:" + topic)
             print(data)
