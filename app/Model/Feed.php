@@ -905,4 +905,51 @@ class Feed extends AppModel {
 		}
 		return $feeds;
 	}
+
+	public function importFeeds($feeds, $user, $default = false) {
+		$feeds = json_decode($feeds, true);
+		if (!isset($feeds[0])) {
+			$feeds = array($feeds);
+		}
+		$results = array('successes' => 0, 'fails' => 0);
+		if (empty($feeds)) return $results;
+		$existingFeeds = $this->find('all', array());
+		foreach ($feeds as $feed) {
+			if ($default) {
+				$feed['Feed']['default'] = 1;
+			} else {
+				$feed['Feed']['default'] = 0;
+			}
+			if (isset($feed['Feed']['id'])) {
+				unset($feed['Feed']['id']);
+			}
+			$found = false;
+			foreach ($existingFeeds as $existingFeed) {
+				if ($existingFeed['Feed']['url'] == $feed['Feed']['url']) {
+					$found = true;
+				}
+			}
+			if (!$found) {
+				$feed['Feed']['tag_id'] = 0;
+				if (isset($feed['Tag'])) {
+					$tag_id = $this->Tag->captureTag($feed['Tag'], $user);
+					if ($tag_id) $feed['Feed']['tag_id'] = $tag_id;
+				}
+				$this->create();
+				if (!$this->save($feed, true, array('name', 'provider', 'url', 'rules', 'source_format', 'fixed_event', 'delta_merge', 'override_ids', 'publish', 'settings', 'tag_id', 'default'))) {
+					$results['fails']++;
+				} else {
+					$results['successes']++;
+				}
+			}
+		}
+		return $results;
+	}
+
+	public function load_default_feeds() {
+		$user = array('Role' => array('perm_tag_editor' => 1, 'perm_site_admin' => 1));
+		$json = file_get_contents(APP . 'files/feed-metadata/defaults.json');
+		$this->importFeeds($json, $user, true);
+		return true;
+	}
 }

@@ -25,6 +25,7 @@ class FeedsController extends AppController {
 	}
 
 	public function index() {
+		$this->Feed->load_default_feeds();
 		$scope = isset($this->passedArgs['scope']) ? $this->passedArgs['scope'] : 'all';
 		if ($scope !== 'all') {
 			if ($scope == 'enabled') {
@@ -82,36 +83,14 @@ class FeedsController extends AppController {
 
 	public function importFeeds() {
 		if ($this->request->is('post')) {
-			$feeds = json_decode($this->request->data['Feed']['json'], true);
-			if (!isset($feeds[0])) {
-				$feeds = array($feeds);
+			$results = $this->Feed->importFeeds($this->request->data['Feed']['json'], $this->Auth->user());
+			if ($results['successes'] > 0) {
+				$message = $results['successes'] . ' new feeds added.';
+			} else {
+				$message = 'No new feeds to add.';
 			}
-			if (empty($feeds)) throw new NotFoundException('No valid ');
-			$existingFeeds = $this->Feed->find('all', array());
-			$fail = $success = 0;
-			foreach ($feeds as $feed) {
-				if (isset($feed['Feed']['id'])) {
-					unset($feed['Feed']['id']);
-				}
-				$found = false;
-				foreach ($existingFeeds as $existingFeed) {
-					if ($existingFeed['Feed']['url'] == $feed['Feed']['url']) {
-						$found = true;
-					}
-				}
-				if (!$found) {
-					$this->Feed->create();
-					if (!$this->Feed->save($feed, true, array('name', 'provider', 'url', 'rules', 'source_format', 'fixed_event', 'delta_merge', 'override_ids', 'publish', 'settings'))) {
-						$fail++;
-						$this->Session->setFlash('Could not save feeds. Reason: ' . json_encode($this->Feed->validationErros));
-					} else {
-						$success++;
-					}
-				}
-			}
-			$message = $success . ' new feeds added.';
-			if ($fail) {
-				$message .= ' ' . $fail . ' feeds could not be added (possibly because they already exist)';
+			if ($results['fails']) {
+				$message .= ' ' . $results['fails'] . ' feeds could not be added (possibly because they already exist)';
 			}
 			if ($this->_isRest()) {
 				return $this->RestResponse->saveSuccessResponse('Feed', 'importFeeds', false, $this->response->type(), $message);
