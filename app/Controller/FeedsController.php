@@ -387,13 +387,28 @@ class FeedsController extends AppController {
 		$this->params->params['paging'] = array($this->modelClass => $params);
 		$resultArray = $this->Feed->getFreetextFeedCorrelations($resultArray, $feed['Feed']['id']);
 		// remove all duplicates
+		$correlatingEvents = array();
 		foreach ($resultArray as $k => $v) {
 			for ($i = 0; $i < $k; $i++) {
 				if (isset($resultArray[$i]) && $v == $resultArray[$i]) unset($resultArray[$k]);
+				else {
+					if (!empty($resultArray[$k]['correlations'])) {
+						foreach ($resultArray[$k]['correlations'] as $correlatingEvent) {
+							if (!in_array($correlatingEvent, $correlatingEvents)) {
+								$correlatingEvents[] = $correlatingEvent;
+							}
+						}
+					}
+				}
 			}
 		}
 		$resultArray = array_values($resultArray);
 		$this->loadModel('Attribute');
+		$correlatingEventInfos = $this->Attribute->Event->find('list', array(
+			'fields' => array('Event.id', 'Event.info'),
+			'conditions' => array('Event.id' => $correlatingEvents)
+		));
+		$this->set('correlatingEventInfos', $correlatingEventInfos);
 		$this->set('distributionLevels', $this->Attribute->distributionLevels);
 		$this->set('feed', $feed);
 		$this->set('attributes', $resultArray);
