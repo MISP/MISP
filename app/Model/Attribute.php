@@ -902,6 +902,8 @@ class Attribute extends AppModel {
 			case 'comment':
 			case 'text':
 			case 'other':
+			case 'email-attachment':
+			case 'email-body':
 				$returnValue = true;
 				break;
 			case 'hex':
@@ -918,8 +920,6 @@ class Attribute extends AppModel {
 			case 'target-location':
 			case 'target-external':
 			case 'email-subject':
-			case 'email-attachment':
-			case 'email-body':
 			case 'malware-type':
 			// TODO: review url/uri validation
 			case 'url':
