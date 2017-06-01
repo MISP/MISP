@@ -28,7 +28,13 @@
 	<div class="tabMenuFixedContainer" style="display:inline-block;">
 		<span class="tabMenuFixed tabMenuFixed<?php echo $tab; ?> tabMenuSides">
 			<span role="button" tabindex="0" aria-label="Modify filters" id="create-button" title="Modify filters" class="icon-search useCursorPointer" title="Filter events" role="button" tabindex="0" aria-label="Filter events" onClick="getPopup('<?php echo h($urlparams);?>', 'events', 'filterEventIndex');"></span>
-			<span id="multi-delete-button" title="Delete selected Events" role="button" tabindex="0" aria-label="Delete selected Events" class="hidden icon-trash mass-select useCursorPointer" onClick="multiSelectDeleteEvents();"></span>
+			<?php
+				if ($isSiteAdmin):
+			?>
+					<span id="multi-delete-button" title="Delete selected Events" role="button" tabindex="0" aria-label="Delete selected Events" class="hidden icon-trash mass-select useCursorPointer" onClick="multiSelectDeleteEvents();"></span>
+			<?php
+				endif;
+			?>
 		</span>
 		<?php
 			if ($filtered):
