@@ -29,14 +29,14 @@ def setup():
 
 def handleCommand(command):
     if command == "kill":
-        print "Kill command received, shutting down.\n"
+        print("Kill command received, shutting down.\n")
         removePidFile()
         sys.exit()
     if command == "reload":
-        print "Reload command received, reloading settings from file.\n"
+        print("Reload command received, reloading settings from file.\n")
         setup()
     if command == "status":
-        print "Status command received, responding with latest stats.\n"
+        print("Status command received, responding with latest stats.\n")
         r.delete(namespace + ":status")
         r.lpush(namespace + ":status", json.dumps({"timestamp": timestamp, "timestampSettings": timestampSettings, "publishCount": publishCount}))
     return
@@ -46,15 +46,15 @@ def removePidFile():
 
 def createPidFile():
     pid = str(os.getpid())
-    file(pidfile, 'w').write(pid)
+    open(pidfile, 'w').write(pid)
 
 def pubMessage(topic, data):
     context = zmq.Context()
     socket = context.socket(zmq.PUB)
     socket.bind("tcp://*:%s" % settings["port"])
-    print "Sending " + data
+    print("Sending " + data)
     time.sleep(1)
-    socket.send("%s %s" % (topic, data))
+    socket.send_string("%s %s" % (topic, data))
     socket.close()
     context.term()
     if topic is 'misp_json':
@@ -87,7 +87,7 @@ def main(args):
         if (message_received == False):
             time.sleep(1)
         if ((int(time.time()) - start_time) % 10 == 0):
-            status_entry = ((int(time.time()) - start_time)/10) % 5
+            status_entry = int(((int(time.time()) - start_time)/10) % 5)
             status_message = {
                 'status': status_array[status_entry],
                 'uptime': int(time.time()) - start_time
