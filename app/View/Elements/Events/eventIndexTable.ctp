@@ -1,6 +1,6 @@
 <table class="table table-striped table-hover table-condensed">
 	<tr>
-		<?php if ($me['Role']['perm_modify'] && !empty($events)): ?>
+		<?php if ($isSiteAdmin && !empty($events)): ?>
 			<th><input class="select_all select" type="checkbox" title="Select all" role="button" tabindex="0" aria-label="Select all eventson current page" onClick="toggleAllCheckboxes();" /></th>
 		<?php endif;?>
 		<th class="filter">
