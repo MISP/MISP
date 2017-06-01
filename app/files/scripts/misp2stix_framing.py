@@ -20,8 +20,9 @@ from cybox.utils import Namespace
 # if you rely on old idgen from previous stix libraries, mixbox is not installed
 try:
     from mixbox import idgen
-except:
-    pass
+except ImportError:
+    from stix.utils import idgen
+
 from stix import __version__ as STIXVER
 
 NS_DICT = {
@@ -102,7 +103,7 @@ def main(args):
     NS_DICT[namespace[0]]=namespace[1]
 
     try:
-        stix.utils.idgen.set_id_namespace({baseURL: orgname})
+        idgen.set_id_namespace({baseURL: orgname})
     except ValueError:
         # Some weird stix error that sometimes occurs if the stars
         # align and Mixbox is being mean to us
