@@ -2180,12 +2180,17 @@ class EventsController extends AppController {
 			$result = $zipFile->write($zipData);
 			if (!$result) $this->Session->setFlash(__('Problem with writing the zip file. Please report to administrator.'));
 
-			// extract zip
-			$execRetval = '';
-			$execOutput = array();
-			exec("unzip " . $zipFile->path . ' -d ' . $rootDir, $execOutput, $execRetval);
-			if ($execRetval != 0) {	// not EXIT_SUCCESS
-				throw new Exception('An error has occured while attempting to unzip the GFI sandbox .zip file. We apologise for the inconvenience.');
+			// extract
+			$zip = new ZipArchive();
+			$res = $zip->open($zipFile->path);
+			if ($res === TRUE) {
+				$res2 = $zip->extractTo($rootDir);
+				if ($res2 === FALSE) {
+					throw new Exception('An error has occured while attempting to unzip the GFI sandbox .zip file.');
+				}
+				$zip->close();
+			} else {
+				throw new Exception('An error ("'.$res.'") has occured while attempting to open the GFI sandbox .zip file.');
 			}
 
 			// open the xml
