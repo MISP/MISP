@@ -48,15 +48,8 @@ def createPidFile():
     pid = str(os.getpid())
     open(pidfile, 'w').write(pid)
 
-def pubMessage(topic, data):
-    context = zmq.Context()
-    socket = context.socket(zmq.PUB)
-    socket.bind("tcp://*:%s" % settings["port"])
-    print("Sending " + data)
-    time.sleep(1)
+def pubMessage(topic, data, socket):
     socket.send_string("%s %s" % (topic, data))
-    socket.close()
-    context.term()
     if topic is 'misp_json':
         global publishCount
         publishCount = publishCount + 1
@@ -73,6 +66,10 @@ def main(args):
         'While you\'re dying I\'ll be still alive.'
 
     ]
+    context = zmq.Context()
+    socket = context.socket(zmq.PUB)
+    socket.bind("tcp://*:%s" % settings["port"])
+    time.sleep(1)
     while True:
         command = r.lpop(namespace + ":command")
         if command is not None:
@@ -82,7 +79,7 @@ def main(args):
         for topic in topics:
             data = r.lpop(namespace + ":data:" + topic)
             if data is not None:
-                pubMessage(topic, data)
+                pubMessage(topic, data, socket)
                 message_received = True
         if (message_received == False):
             time.sleep(1)
@@ -92,7 +89,7 @@ def main(args):
                 'status': status_array[status_entry],
                 'uptime': int(time.time()) - start_time
             }
-            pubMessage('misp_json_self', json.dumps(status_message))
+            pubMessage('misp_json_self', json.dumps(status_message), socket)
 
 if __name__ == "__main__":
     main(sys.argv)
