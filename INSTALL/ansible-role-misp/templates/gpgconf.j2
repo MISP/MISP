@@ -1,0 +1,11 @@
+#%echo generating a basic OpenGPG key
+Key-Type: {{ gpg_key_type }}
+Key-Length: {{ gpg_key_length }}
+Subkey-Type: {{ gpg_subkey_type }}
+Subkey-Length: {{ gpg_subkey_length }}
+Name-Real: {{ gpg_name_real }}
+Name-Email: {{ gpg_name_email }}
+Expire-Date: {{ gpg_expiry_date }}
+#%commit
+#%echo done
+

@@ -1,0 +1,13 @@
+---
+  - include: deps.yml
+  - include: misp.yml
+  - include: mysql.yml
+  - include: cert.yml
+  - include: apache.yml
+  - include: modsec.yml
+    when: config_modsecurity
+  - include: gpg.yml
+  - include: perms.yml
+  - include: worker.yml
+  - include: harden.yml
+    when: enable_harden

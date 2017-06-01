@@ -1,0 +1,29 @@
+---
+  # login_user login_password bug workaround. See: https://github.com/ansible/ansible/issues/14879
+  - name: Create MISP database
+    become: true
+    mysql_db:
+      name={{ mysql_db }}
+      state=present
+      login_user={{ mysql_root_user }}
+      login_password={{ mysql_root_pass }}
+
+  - name: Create MISP database user and assign privileges
+    become: true
+    mysql_user:
+      name={{ mysql_user }} 
+      password={{ mysql_pass }}
+      priv=misp.*:ALL
+      state=present
+      login_user={{ mysql_root_user }}
+      login_password={{ mysql_root_pass }}
+
+  - name: Import MISP database schema
+    become: true
+    mysql_db:
+      name={{ mysql_db }}
+      state=import
+      target=/var/www/MISP/INSTALL/MYSQL.sql
+      login_user={{ mysql_root_user }}
+      login_password={{ mysql_root_pass }}
+

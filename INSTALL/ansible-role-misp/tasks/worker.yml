@@ -1,0 +1,22 @@
+---
+  - name: Set worker script to be executable
+    become: true
+    file:
+      path={{ misp_worker_path }}/start.sh
+      mode=0750
+      owner={{ apache_web_owner }}
+      group={{ apache_web_group }}
+
+  - name: Set worker script to run at start up
+    become: true
+    lineinfile:
+      dest=/etc/rc.local
+      line="sudo -u {{ apache_web_owner }} bash {{ misp_worker_path }}/start.sh"
+      insertbefore="^exit 0"
+      state=present
+      backup=yes
+
+  - name: Start MISP workers
+    become: true
+    command: sudo -u {{ apache_web_owner}} bash {{ misp_worker_path }}/start.sh
+    when: enable_misp_worker 

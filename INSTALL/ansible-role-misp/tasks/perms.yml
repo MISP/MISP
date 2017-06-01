@@ -1,0 +1,10 @@
+---
+  - name: Fix permissions
+    become: true
+    file:
+      path=/var/www/MISP
+      state=directory
+      recurse=yes
+      owner=www-data
+      group=www-data
+      mode=0750
