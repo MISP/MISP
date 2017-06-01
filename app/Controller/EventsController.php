@@ -1443,49 +1443,89 @@ class EventsController extends AppController {
 		$this->set('event', $this->Event->data);
 	}
 
+	public function massDelete() {
+
+	}
+
 	public function delete($id = null) {
-		if (!$this->request->is('post') && !$this->_isRest()) {
-			throw new MethodNotAllowedException();
-		}
-
-		$this->Event->id = $id;
-		if (!$this->Event->exists()) {
-			throw new NotFoundException(__('Invalid event'));
-		}
-
-		$event = $this->Event->find('first', array(
-			'conditions' => array('Event.id' => $id),
-			'fields' => array('Event.orgc_id', 'Event.id'),
-			'recursive' => -1
-		));
-		if (!$this->_isSiteAdmin()) {
-			if ($event['Event']['orgc_id'] != $this->_checkOrg() || !$this->userRole['perm_modify']) {
-				throw new MethodNotAllowedException();
+		if ($this->request->is('post') || $this->request->is('put') || $this->request->is('delete')) {
+			if (isset($this->request->data['id'])) {
+				$this->request->data['Event'] = $this->request->data;
 			}
-		}
-		if ($this->Event->quickDelete($event)) {
-			if ($this->_isRest() || $this->response->type() === 'application/json') {
-				$this->set('message', 'Event deleted.');
-				$this->set('_serialize', array('message'));
+			if (!isset($id) && isset($this->request->data['Event']['id'])) {
+				$idList = $this->request->data['Event']['id'];
+				if (!is_array($idList)) {
+					if (is_numeric($idList)) {
+						$idList = array($idList);
+					} else {
+						$idList = json_decode($idList, true);
+					}
+				}
+				if (!is_array($idList) || empty($idList)) {
+					throw new NotFoundException(__('Invalid input.'));
+				}
 			} else {
-				// delete the event from remote servers
-				$this->Session->setFlash(__('Event deleted'));
-
-				// if coming from index, redirect to referer (to have the filter working)
-				// else redirect to index
-				if (strpos($this->referer(), '/view') !== false) {
-					$this->redirect(array('action' => 'index'));
+				$idList = array($id);
+			}
+			$fails = array();
+			$successes = array();
+			foreach ($idList as $eid) {
+				if (!is_numeric($eid)) continue;
+				$event = $this->Event->find('first', array(
+					'conditions' => array('Event.id' => $eid),
+					'fields' => array('Event.orgc_id', 'Event.id'),
+					'recursive' => -1
+				));
+				if (empty($event)) {
+					$fails[] = $eid;
 				} else {
-					$this->redirect($this->referer(array('action' => 'index')));
+					if (!$this->_isSiteAdmin()) {
+						if ($event['Event']['orgc_id'] != $this->_checkOrg() || !$this->userRole['perm_modify']) {
+							$fails[] = $eid;
+							continue;
+						}
+					}
+					if ($this->Event->quickDelete($event)) {
+						$successes[] = $eid;
+					} else {
+						$fails[] = $eid;
+					}
 				}
 			}
-		} else {
-			if ($this->_isRest() || $this->response->type() === 'application/json') {
-				throw new Exception('Event was not deleted');
+			$message = '';
+			if (count($idList) == 1) {
+				if (!empty($successes)) {
+					$message = 'Event deleted.';
+				} else {
+					$message = 'Event was not deleted.';
+				}
 			} else {
-				$this->Session->setFlash(__('Event was not deleted'));
+				if (!empty($successes)) {
+					$message .= count($successes) . ' event(s) deleted.';
+				}
+				if (!empty($fails)) {
+					$message .= count($fails) . ' event(s) could not be deleted due to insufficient privileges or the event not being found.';
+				}
+			}
+			if ($this->_isRest()) {
+				if (!empty($successes)) {
+					return $this->RestResponse->saveSuccessResponse('Events', 'delete', $id, $this->response->type(), $message);
+				} else {
+					return $this->RestResponse->saveFailResponse('Events', 'delete', false, $message, $this->response->type());
+				}
+			} else {
+				$this->Session->setFlash($message);
 				$this->redirect(array('action' => 'index'));
 			}
+		} else {
+			if (is_numeric($id)) {
+				$eventList = array($id);
+			} else {
+				$eventList = json_decode($id, true);
+			}
+			$this->request->data['Event']['id'] = json_encode($eventList);
+			$this->set('idArray', $eventList);
+			$this->render('ajax/eventDeleteConfirmationForm');
 		}
 	}
 

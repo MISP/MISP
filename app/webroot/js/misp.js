@@ -71,6 +71,28 @@ function cancelPrompt(isolated) {
 	$("#confirmation_box").empty();
 }
 
+function submitEventDeletion() {
+	var formData = $('#PromptForm').serialize();
+	$.ajax({
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+		data: formData,
+		success:function (data, textStatus) {
+			updateIndex(context_id, context);
+			handleGenericAjaxResponse(data);
+		},
+		complete:function() {
+			$(".loading").hide();
+			$("#confirmation_box").fadeOut();
+			$("#gray_out").fadeOut();
+		},
+		type:"post",
+		cache: false,
+		url:"/" + type + "/" + action + "/" + id,
+	});
+}
+
 function submitDeletion(context_id, action, type, id) {
 	var context = 'event';
 	if (type == 'template_elements') context = 'template';
@@ -568,6 +590,14 @@ function toggleAllAttributeCheckboxes() {
 	}
 }
 
+function toggleAllCheckboxes() {
+	if ($(".select_all").is(":checked")) {
+		$(".select").prop("checked", true);
+	} else {
+		$(".select").prop("checked", false);
+	}
+}
+
 function toggleAllTaxonomyCheckboxes() {
 	if ($(".select_all").is(":checked")) {
 		$(".select_taxonomy").prop("checked", true);
@@ -581,6 +611,11 @@ function attributeListAnyAttributeCheckBoxesChecked() {
 	else $('.mass-select').addClass('hidden');
 }
 
+function eventListCheckboxesChecked() {
+	if ($('.select:checked').length > 0) $('.mass-select').removeClass('hidden');
+	else $('.mass-select').addClass('hidden');
+}
+
 function attributeListAnyProposalCheckBoxesChecked() {
 	if ($('.select_proposal:checked').length > 0) $('.mass-proposal-select').removeClass('hidden');
 	else $('.mass-proposal-select').addClass('hidden');
@@ -589,6 +624,22 @@ function attributeListAnyProposalCheckBoxesChecked() {
 function taxonomyListAnyCheckBoxesChecked() {
 	if ($('.select_taxonomy:checked').length > 0) $('.mass-select').show();
 	else $('.mass-select').hide();
+}
+
+function multiSelectDeleteEvents() {
+	var selected = [];
+	$(".select").each(function() {
+		if ($(this).is(":checked")) {
+			var temp = $(this).data("id");
+			if (temp != null) {
+				selected.push(temp);
+			}
+		}
+	});
+	$.get("/events/delete/" + JSON.stringify(selected), function(data) {
+		$("#confirmation_box").html(data);
+		openPopup("#confirmation_box");
+	});
 }
 
 function multiSelectAction(event, context) {
@@ -654,6 +705,11 @@ function addSelectedTaxonomies(taxonomy) {
 
 function submitMassTaxonomyTag() {
 	$('#PromptForm').submit();
+}
+
+function submitMassEventDelete() {
+	$('#PromptForm').trigger('submit');
+	event.preventDefault();
 }
 
 function getSelected() {
