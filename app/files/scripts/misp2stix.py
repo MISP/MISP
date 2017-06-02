@@ -285,7 +285,14 @@ def main(args):
     if len(sys.argv) > 4:
         namespace[1] = sys.argv[4].replace(" ", "_")
         namespace[1] = re.sub('[\W]+', '', namespace[1])
-    idgen.set_id_namespace({namespace[0]: namespace[1]})
+    try:
+        idgen.set_id_namespace({namespace[0]: namespace[1]})
+    except ValueError:
+        try:
+            idgen.set_id_namespace(Namespace(namespace[0], namespace[1]))
+        except TypeError:
+            idgen.set_id_namespace(Namespace(namespace[0], namespace[1], "MISP"))
+
     event = loadEvent(args, pathname)
     stix_package = generateEventPackage(event)
     saveFile(args, pathname, stix_package)
