@@ -67,7 +67,6 @@
 					<?php endif;?>
 					<?php if (Configure::read('Plugin.ZeroMQ_enable') && $isSiteAdmin): ?>
 						<li><?php echo $this->Form->postLink('Publish event to ZMQ', array('action' => 'pushEventToZMQ', $event['Event']['id']));?></li>
-						<li class="publishButtons not-published<?php echo h($publishButtons); ?>"><a href="#" onClick="publishPopup('<?php echo h($event['Event']['id']); ?>', 'alert')">Publish Event</a></li>
 					<?php endif; ?>
 					<li id='licontact'><a href="<?php echo $baseurl;?>/events/contact/<?php echo h($event['Event']['id']);?>">Contact Reporter</a></li>
 					<li><a onClick="getPopup('<?php echo h($event['Event']['id']); ?>', 'events', 'exportChoice');" style="cursor:pointer;">Download as...</a></li>
