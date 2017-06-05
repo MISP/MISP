@@ -146,6 +146,7 @@ class Feed extends AppModel {
 
 	public function getFreetextFeed($feed, $HttpSocket, $type = 'freetext', $page = 1, $limit = 60, &$params = array()) {
 		$result = array();
+		$data = '';
 		if (isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] == 'local') {
 			if (file_exists($feed['Feed']['url'])) {
 				$data = file_get_contents($feed['Feed']['url']);
