@@ -185,6 +185,11 @@ setsebool -P httpd_can_network_connect on
 systemctl enable httpd.service
 systemctl start  httpd.service
 
+# Note: if you use the minimal ISO you will need to install and enable firewall manually:
+yum install firewalld
+systemctl enable firewalld.service
+systemctl start firewalld.service
+
 # Open a hole in the iptables firewall
 firewall-cmd --zone=public --add-port=80/tcp --permanent
 firewall-cmd --reload
