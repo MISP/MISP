@@ -2375,13 +2375,15 @@ class EventsController extends AppController {
 				if ((string)$key == 'filename') $realFileName = (string)$val;
 			}
 		}
-		$rootDir = APP . "files" . DS . $id . DS;
+		$rootDir = APP . "files" . DS . "GFI" . DS . $id . DS;
 		$malware = $rootDir . DS . 'sample';
-		$this->Event->Attribute->uploadAttachment($malware,	$realFileName,	true, $id, null, '', $this->Event->data['Event']['uuid'] . '-sample', $dist, true);
+		//some GFI files do not contain a sample file:
+		if(file_exists($malware)) {
+			$this->Event->Attribute->uploadAttachment($malware, $realFileName, true, $id, null, '', $this->Event->data['Event']['uuid'] . '-sample', $dist, true);
+		}
 
 		// Network activity -- .pcap
 		$realFileName = 'analysis.pcap';
-		$rootDir = APP . "files" . DS . $id . DS;
 		$malware = $rootDir . DS . 'Analysis' . DS . 'analysis.pcap';
 		$this->Event->Attribute->uploadAttachment($malware,	$realFileName,	false, $id, 'Network activity', '', $this->Event->data['Event']['uuid'] . '-analysis.pcap', $dist, true);
 

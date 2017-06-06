@@ -1292,15 +1292,19 @@ class Attribute extends AppModel {
 		if ($malware) {
 			$execRetval = '';
 			$execOutput = array();
-			exec('zip -j -P infected ' . escapeshellarg($zipfile->path) . ' ' . escapeshellarg($fileInZip->path), $execOutput, $execRetval);
+			exec('zip -j -P infected ' . escapeshellarg($zipfile->path) . ' ' . escapeshellarg($tmpfile->path), $execOutput, $execRetval);
 			if ($execRetval != 0) { // not EXIT_SUCCESS
-				throw new Exception('An error has occured while attempting to zip the malware file.');
+				throw new Exception('An error has occurred while attempting to zip the malware file.');
 			}
 			$fileInZip->delete(); // delete the original non-zipped-file
-			rename($zipfile->path, $file->path); // rename the .zip to .nothing
+			if(!file_exists($file->path)) {
+				rename($zipfile->path, $file->path); // rename the .zip to .nothing
+			}
 		} else {
-			$fileAttach = new File($fileP);
-			rename($fileAttach->path, $file->path);
+			if(!file_exists($file->path)) {
+				$fileAttach = new File($fileP);
+				rename($fileAttach->path, $file->path);
+			}
 		}
 	}
 
