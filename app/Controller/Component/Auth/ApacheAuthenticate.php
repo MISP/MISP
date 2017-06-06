@@ -25,19 +25,15 @@ class ApacheAuthenticate extends BaseAuthenticate {
 	 */
 	private function isUserMemberOf($group, $ldapUserData) {
 	// return true of false depeding on if user is a member of group.
-		CakeLog::write("debug", print_r($ldapUserData, true) );
 		$returnCode = false;
 		unset($ldapUserData[0]['memberof']["count"]);
 		foreach ($ldapUserData[0]['memberof'] as $result) {
 			$r = explode(",", $result, 2);
 			$ldapgroup = explode("=", $r[0]);
-			CakeLog::write("debug", $ldapgroup[1]. " == ".$group);
 			if ($ldapgroup[1] == $group) {
-				CakeLog::write("debug", "!!!TRUE!!!!");
 				$returnCode = true;
 			}
 		}
-		CakeLog::write("debug", "isUserMemberOf: ".$returnCode);
 		return $returnCode;
 	}
 
@@ -95,21 +91,11 @@ class ApacheAuthenticate extends BaseAuthenticate {
 		// Find user with real username (mail)
 		$user = $this->_findUser($mispUsername);
 
-		CakeLog::write("debug","_findUser: ".print_r($user,true));
-
-        	if (Configure::read('ApacheSecureAuth.updateUser')) {
-            		CakeLog::write("debug", "UpdateUser!");
-        	} else {
-            		CakeLog::write("debug", "DO NOT UpdateUser!");
-        	}
-
 		if ($user) {
 	           if (!Configure::read('ApacheSecureAuth.updateUser')) {
-			        return $user;
+		        return $user;
                    }
 		}
-
-		CakeLog::write("debug",print_r($ldapUserData,true));
 
 		// insert user in database if not existent
 		$userModel = ClassRegistry::init($this->settings['userModel']);
@@ -128,7 +114,6 @@ class ApacheAuthenticate extends BaseAuthenticate {
 
 		 // Set roleid depending on group membership
 		$roleIds = Configure::read('ApacheSecureAuth.ldapDefaultRoleId');
-		CakeLog::write("debug","RoleIDs: ". print_r($roleIds, true));
 		if (is_array($roleIds)) {
 			foreach ($roleIds as $key => $id) {
 				if ($this->isUserMemberOf($key, $ldapUserData)) {
