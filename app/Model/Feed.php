@@ -162,8 +162,18 @@ class Feed extends AppModel {
 				}
 			}
 			if ($doFetch) {
-				$response = $HttpSocket->get($feed['Feed']['url'], '', array());
+				$fetchIssue = false;
+				try {
+					$response = $HttpSocket->get($feed['Feed']['url'], '', array());
+				} catch (Exception $e) {
+					return false;
+				}
 				if ($response->code == 200) {
+					$redis = $this->setupRedis();
+					if ($redis === false) {
+							return false;
+					}
+					$redis->del('misp:feed_cache:' . $feed['Feed']['id']);
 					$data = $response->body;
 					file_put_contents($feedCache, $data);
 				}
@@ -767,7 +777,6 @@ class Feed extends AppModel {
 			return 'Redis not reachable.';
 		}
 		foreach ($feeds as $k => $feed) {
-			$redis->del('misp:feed_cache:' . $feed['Feed']['id']);
 			$this->__cacheFeed($feed, $redis, $jobId);
 			if ($jobId) {
 				$job->saveField('progress', 100 * $k / count($feeds));
@@ -810,14 +819,17 @@ class Feed extends AppModel {
 			}
 		}
 		$values = $this->getFreetextFeed($feed, $HttpSocket, $feed['Feed']['source_format'], 'all');
-		foreach ($values as $k => $value) {
-			$redis->sAdd('misp:feed_cache:' . $feed['Feed']['id'], md5($value['value']));
-			if ($jobId && ($k % 1000 == 0)) {
-					$job->saveField('message', 'Feed ' . $feed['Feed']['id'] . ': ' . $k . ' values cached.');
+		if (!empty($values)) {
+			foreach ($values as $k => $value) {
+				$redis->sAdd('misp:feed_cache:' . $feed['Feed']['id'], md5($value['value']));
+				if ($jobId && ($k % 1000 == 0)) {
+						$job->saveField('message', 'Feed ' . $feed['Feed']['id'] . ': ' . $k . ' values cached.');
+				}
 			}
+			$redis->set('misp:feed_cache_timestamp:' . $feed['Feed']['id'], time());
+			return true;
 		}
-		$redis->set('misp:feed_cache_timestamp:' . $feed['Feed']['id'], time());
-		return true;
+		return false;
 	}
 
 	private function __cacheMISPFeed($feed, $redis, $HttpSocket, $jobId = false) {
@@ -830,6 +842,11 @@ class Feed extends AppModel {
 		}
 		$this->Attribute = ClassRegistry::init('Attribute');
 		$manifest = $this->getManifest($feed, $HttpSocket);
+		if (!empty($manifest)) {
+			$redis->del('misp:feed_cache:' . $feed['Feed']['id']);
+		} else {
+			return false;
+		}
 		$k = 0;
 		foreach ($manifest as $uuid => $event) {
 			$data = false;
@@ -841,8 +858,13 @@ class Feed extends AppModel {
 			} else {
 				$HttpSocket = $this->__setupHttpSocket($feed);
 				$request = $this->__createFeedRequest();
-				$response = $HttpSocket->get($path, '', $request);
-				if ($response->code != 200) {
+				$fetchIssue = false;
+				try {
+					$response = $HttpSocket->get($path, '', $request);
+				} catch (Exception $e) {
+					$fetchIssue = true;
+				}
+				if ($fetchIssue || $response->code != 200) {
 					return false;
 				}
 				$data = $response->body;
