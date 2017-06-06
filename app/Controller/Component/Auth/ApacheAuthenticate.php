@@ -128,6 +128,7 @@ class ApacheAuthenticate extends BaseAuthenticate {
 
 		 // Set roleid depending on group membership
 		$roleIds = Configure::read('ApacheSecureAuth.ldapDefaultRoleId');
+		CakeLog::write("debug","RoleIDs: ". print_r($roleIds, true));
 		if (is_array($roleIds)) {
 			foreach ($roleIds as $key => $id) {
 				if ($this->isUserMemberOf($key, $ldapUserData)) {
@@ -154,10 +155,18 @@ class ApacheAuthenticate extends BaseAuthenticate {
 			// save user
 			$userModel->save($userData, false);
 		} else {
-			// Update existing user
-			$user['email'] = $mispUsername;
-			$user['org_id'] = $org_id;
-			$user['role_id'] = $roleId;
+			if (!isset($roleId)) {
+			   // User has no role anymore, disable user
+			   $user['disabled'] = 1;
+			   return false;
+			} else {
+			   // Update existing user
+			   $user['email'] = $mispUsername;
+			   $user['org_id'] = $org_id;
+			   $user['role_id'] = $roleId;
+			   # Reenable user in case it has been disabled
+			   $user['disabled'] = 0;
+			}
 
 			$userModel->save($user, false);
 		}
