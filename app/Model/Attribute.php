@@ -1252,14 +1252,14 @@ class Attribute extends AppModel {
 		// Check if there were problems with the file upload
 		// only keep the last part of the filename, this should prevent directory attacks
 		$filename = basename($fileP);
-		$tmpfile = new File($fileP);
+		$currentFile = new File($fileP);
 
 		// save the file-info in the database
 		$this->create();
 		$this->data['Attribute']['event_id'] = $eventId;
 		$this->data['Attribute']['distribution'] = $dist;
 		if ($malware) {
-			$md5 = !$tmpfile->size() ? md5_file($fileP) : $tmpfile->md5();
+			$md5 = !$currentFile->size() ? md5_file($fileP) : $currentFile->md5();
 			$this->data['Attribute']['category'] = $category ? $category : "Payload delivery";
 			$this->data['Attribute']['type'] = "malware-sample";
 			$this->data['Attribute']['value'] = $fullFileName ? $fullFileName . '|' . $md5 : $filename . '|' . $md5; // TODO gives problems with bigger files
@@ -1275,32 +1275,33 @@ class Attribute extends AppModel {
 
 		if (!$this->save($this->data)) {
 			// TODO: error handling
+			return false;//just en exit for the moment to prevent the rename(...) [function.rename]: Not a directory warnings
 		}
 
 		// no errors in file upload, entry already in db, now move the file where needed and zip it if required.
 		// no sanitization is required on the filename, path or type as we save
 		// create directory structure
 		$rootDir = APP . "files" . DS . $eventId;
-		$dir = new Folder($rootDir, true);
 		// move the file to the correct location
-		$destpath = $rootDir . DS . $this->getID(); // id of the new attribute in the database
-		$file = new File($destpath);
-		$zipfile = new File($destpath . '.zip');
-		$fileInZip = new File($rootDir . DS . $extraPath . $filename);
+		$destPath = $rootDir . DS;
+		$destFile = $destPath . $this->getID(); // id of the new attribute in the database
+		if (!is_dir($destPath)) mkdir($rootDir);
+
+		$file = new File($destFile);
+		$zipfile = new File($destFile . '.zip');
 
 		// zip and password protect the malware files
 		if ($malware) {
 			$execRetval = '';
 			$execOutput = array();
-			exec('zip -j -P infected ' . escapeshellarg($zipfile->path) . ' ' . escapeshellarg($fileInZip->path), $execOutput, $execRetval);
+			exec('zip -j -P infected ' . escapeshellarg($zipfile->path) . ' ' . escapeshellarg($currentFile->path), $execOutput, $execRetval);
 			if ($execRetval != 0) { // not EXIT_SUCCESS
-				throw new Exception('An error has occured while attempting to zip the malware file.');
+				throw new Exception('An error has occurred while attempting to zip the malware file.');
 			}
-			$fileInZip->delete(); // delete the original non-zipped-file
+			$currentFile->delete(); // delete the original non-zipped-file
 			rename($zipfile->path, $file->path); // rename the .zip to .nothing
 		} else {
-			$fileAttach = new File($fileP);
-			rename($fileAttach->path, $file->path);
+			rename($currentFile->path, $file->path);
 		}
 	}
 
