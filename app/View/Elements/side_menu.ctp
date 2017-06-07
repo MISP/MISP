@@ -315,6 +315,7 @@
 					<li id='liadd'><a href="<?php echo $baseurl;?>/feeds/add">Add Feed</a></li>
 					<li id='liadd'><a href="<?php echo $baseurl;?>/feeds/importFeeds">Import Feeds from JSON</a></li>
 					<li id='licompare'><a href="<?php echo $baseurl;?>/feeds/compareFeeds">Feed overlap analysis matrix</a></li>
+					<li id='liexport'><a href="<?php echo $baseurl;?>/feeds/index.json" download="feed_index.json">Export Feed settings</a></li>
 					<?php if ($menuItem === 'edit'): ?>
 						<li class="active"><a href="#">Edit Feed</a></li>
 					<?php elseif ($menuItem === 'previewIndex'): ?>
