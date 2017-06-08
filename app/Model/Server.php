@@ -2227,13 +2227,16 @@ class Server extends AppModel {
 
 
 	public function getHost() {
-		if (function_exists('apache_request_headers')){
+		$headers = [];
+		if (function_exists('apache_request_headers')) {
 				 $headers = apache_request_headers();
-		} else {
+		}
+
+		if (!array_key_exists('HTTP_HOST', $headers)) {
 				 $headers = $_SERVER;
 		}
 
-		if ( array_key_exists( 'X-Forwarded-Host', $headers ) ) {
+		if (array_key_exists( 'X-Forwarded-Host', $headers)) {
 				 $host = $headers['X-Forwarded-Host'];
 		} else {
 				 $host = $_SERVER['HTTP_HOST'];
@@ -2242,13 +2245,16 @@ class Server extends AppModel {
 	}
 
 	public function getProto() {
-		if (function_exists('apache_request_headers')){
+		$headers = [];
+		if (function_exists('apache_request_headers')) {
 				 $headers = apache_request_headers();
-		} else {
+		}
+
+		if (!array_key_exists('SERVER_PORT', $headers)) {
 				 $headers = $_SERVER;
 		}
 
-		if (array_key_exists('X-Forwarded-Proto',$headers)){
+		if (array_key_exists('X-Forwarded-Proto', $headers)) {
 				 $proto = $headers['X-Forwarded-Proto'];
 		} else {
 				 $proto = ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $_SERVER['SERVER_PORT'] == 443) === true ? 'HTTPS' : 'HTTP';
