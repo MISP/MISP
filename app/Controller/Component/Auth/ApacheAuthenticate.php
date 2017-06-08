@@ -27,10 +27,10 @@ class ApacheAuthenticate extends BaseAuthenticate {
 	// return true of false depeding on if user is a member of group.
 		$returnCode = false;
 		unset($ldapUserData[0]['memberof']["count"]);
-		foreach ($ldapUserData[1]['memberof'] as $result) {
+		foreach ($ldapUserData[0]['memberof'] as $result) {
 			$r = explode(",", $result, 2);
 			$ldapgroup = explode("=", $r[0]);
-			if ($ldapgroup[0] == $group) {
+			if ($ldapgroup[1] == $group) {
 				$returnCode = true;
 			}
 		}
@@ -92,7 +92,9 @@ class ApacheAuthenticate extends BaseAuthenticate {
 		$user = $this->_findUser($mispUsername);
 
 		if ($user) {
-			return $user;
+	           if (!Configure::read('ApacheSecureAuth.updateUser')) {
+		        return $user;
+                   }
 		}
 
 		// insert user in database if not existent
@@ -122,20 +124,37 @@ class ApacheAuthenticate extends BaseAuthenticate {
 			$roleId = $roleIds;
 		}
 
-		// create user
-		$userData = array('User' => array(
-			'email' => $mispUsername,
-			'org_id' => $org_id,
-			'password' => '',
-			'confirm_password' => '',
-			'authkey' => $userModel->generateAuthKey(),
-			'nids_sid' => 4000000,
-			'newsread' => date('Y-m-d'),
-			'role_id' => $roleId,
-			'change_pw' => 0
-		));
-		// save user
-		$userModel->save($userData, false);
+		if (!$user) {
+			// create user
+			$userData = array('User' => array(
+				'email' => $mispUsername,
+				'org_id' => $org_id,
+				'password' => '',
+				'confirm_password' => '',
+				'authkey' => $userModel->generateAuthKey(),
+				'nids_sid' => 4000000,
+				'newsread' => date('Y-m-d'),
+				'role_id' => $roleId,
+				'change_pw' => 0
+			));
+			// save user
+			$userModel->save($userData, false);
+		} else {
+			if (!isset($roleId)) {
+			   // User has no role anymore, disable user
+			   $user['disabled'] = 1;
+			   return false;
+			} else {
+			   // Update existing user
+			   $user['email'] = $mispUsername;
+			   $user['org_id'] = $org_id;
+			   $user['role_id'] = $roleId;
+			   # Reenable user in case it has been disabled
+			   $user['disabled'] = 0;
+			}
+
+			$userModel->save($user, false);
+		}
 
 		return $this->_findUser(
 			$mispUsername
