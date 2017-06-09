@@ -63,42 +63,33 @@ class PubSubTool {
 	}
 
 	public function publishEvent($event) {
-		$settings = $this->__setupPubServer();
 		App::uses('JSONConverterTool', 'Tools');
 		$jsonTool = new JSONConverterTool();
 		$json = $jsonTool->convert($event);
+		return $this->__pushToRedis(':data:misp_json', $json);
+	}
+
+	private function __pushToRedis($ns, $data) {
+		$settings = $this->__setupPubServer();
 		$redis = new Redis();
-		$redis->connect($settings['redis_host'], $settings['redis_port']);
+		if (!$redis->connect($settings['redis_host'], $settings['redis_port'])) {
+			return false;
+		}
 		$redis->select($settings['redis_database']);
-		$redis->rPush($settings['redis_namespace'] . ':data:misp_json', $json);
+		$redis->rPush($settings['redis_namespace'] . 'ns', $data);
 		return true;
 	}
 
 	public function attribute_save($attribute) {
-		$settings = $this->__setupPubServer();
-		$redis = new Redis();
-		$redis->connect($settings['redis_host'], $settings['redis_port']);
-		$redis->select($settings['redis_database']);
-		$redis->rPush($settings['redis_namespace'] . ':data:misp_json_attribute', json_encode($attribute, JSON_PRETTY_PRINT));
-		return true;
+		return $this->__pushToRedis(':data:misp_json_attribute', json_encode($attribute, JSON_PRETTY_PRINT));
 	}
 
 	public function sighting_save($sighting) {
-		$settings = $this->__setupPubServer();
-		$redis = new Redis();
-		$redis->connect($settings['redis_host'], $settings['redis_port']);
-		$redis->select($settings['redis_database']);
-		$redis->rPush($settings['redis_namespace'] . ':data:misp_json_sighting', json_encode($sighting, JSON_PRETTY_PRINT));
-		return true;
+		return $this->__pushToRedis(':data:misp_json_sighting', json_encode($sighting, JSON_PRETTY_PRINT));
 	}
 
 	public function modified($data, $type) {
-		$settings = $this->__setupPubServer();
-		$redis = new Redis();
-		$redis->connect($settings['redis_host'], $settings['redis_port']);
-		$redis->select($settings['redis_database']);
-		$redis->rPush($settings['redis_namespace'] . ':data:misp_json_' . $type, json_encode($data, JSON_PRETTY_PRINT));
-		return true;
+		return $this->__pushToRedis(':data:misp_json_' . $type, json_encode($data, JSON_PRETTY_PRINT));
 	}
 
 	public function killService($settings = false) {
