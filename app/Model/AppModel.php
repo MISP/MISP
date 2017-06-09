@@ -106,6 +106,12 @@ class AppModel extends Model {
 				}
 				$this->updateDatabase($command);
 				break;
+			case '2.4.74':
+				$newFeeds = array(
+					array('provider' => 'inThreat', 'name' => 'inThreat OSINT Feed', 'url' => 'https://feeds.inthreat.com/osint/misp', 'enabled' => 0)
+				);
+				$this->__addNewFeeds($newFeeds);
+				break;				
 			default:
 				$this->updateDatabase($command);
 				break;

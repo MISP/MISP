@@ -10,7 +10,8 @@ SELECT SETVAL('admin_settings_id_seq', (SELECT MAX(id) FROM admin_settings));
 
 INSERT INTO feeds (id, provider, name, url, distribution, "default", enabled) VALUES
 (1, 'CIRCL', 'CIRCL OSINT Feed', 'https://www.circl.lu/doc/misp/feed-osint', 3, 1, 0),
-(2, 'Botvrij.eu', 'The Botvrij.eu Data', 'http://www.botvrij.eu/data/feed-osint', 3, 1, 0);
+(2, 'Botvrij.eu', 'The Botvrij.eu Data', 'http://www.botvrij.eu/data/feed-osint', 3, 1, 0),
+(3, 'inThreat', 'inThreat OSINT Feed', 'https://feeds.inthreat.com/osint/misp', 3, 1, 0);
 SELECT SETVAL('feeds_id_seq', (SELECT MAX(id) FROM feeds));
 
 INSERT INTO regexp (id, regexp, replacement, type) VALUES
