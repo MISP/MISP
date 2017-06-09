@@ -222,7 +222,7 @@ class Feed extends AppModel {
 			$feeds = $this->find('all', array(
 				'recursive' => -1,
 				'conditions' => array('Feed.id !=' => $feedId),
-				'fields' => array('id', 'name', 'url', 'provider', 'source_format')
+				'fields' => array('id', 'name', 'url', 'provider', 'source_format', 'disable_proxy')
 			));
 			foreach ($feeds as $k => $v) {
 				if (!$redis->exists('misp:feed_cache:' . $v['Feed']['id'])) {
@@ -753,7 +753,7 @@ class Feed extends AppModel {
 		$params = array(
 			'conditions' => array('enabled' => 1),
 			'recursive' => -1,
-			'fields' => array('source_format', 'input_source', 'url', 'id', 'settings')
+			'fields' => array('source_format', 'input_source', 'url', 'id', 'settings', 'disable_proxy')
 		);
 		if ($scope !== 'all') {
 			if (is_numeric($scope)) {
