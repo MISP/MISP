@@ -1,5 +1,6 @@
 <?php
 App::uses('AppModel', 'Model');
+//Configure::load('config');
 
 class Tag extends AppModel {
 
@@ -81,12 +82,31 @@ class Tag extends AppModel {
 	public function fetchEventTagIds($accept=array(), $reject=array()) {
 		$acceptIds = array();
 		$rejectIds = array();
+
+		$acceptIdsBuf = array();
+		$rejectIdsBuf = array();
 		if (!empty($accept)) {
 			$acceptIds = $this->findEventIdsByTagNames($accept);
+			if (Configure::read('MISP.enable_attribute_tag_search')){
+				$acceptIdsBuf = $this->findEventIdsByAttributeTagNames($accept);
+				foreach ($acceptIdsBuf as $value) {
+					if (!in_array($value, $acceptIds, true)){
+						array_push($acceptIds, $value);
+					}
+				}
+			}
 			if (empty($acceptIds)) $acceptIds[] = -1;
 		}
 		if (!empty($reject)) {
 			$rejectIds = $this->findEventIdsByTagNames($reject);
+			if (Configure::read('MISP.enable_attribute_tag_search')){
+				$rejectIdsBuf = $this->findEventIdsByAttributeTagNames($reject);
+				foreach ($rejectIdsBuf as $value) {
+					if (!in_array($value, $rejectIds, true)){
+						array_push($rejectIds, $value);
+					}
+				}
+			}
 		}
 		return array($acceptIds, $rejectIds);
 	}
@@ -109,6 +129,25 @@ class Tag extends AppModel {
 		}
 		return $ids;
 	}
+	// tm added
+	public function findEventIdsByAttributeTagNames($array) {
+		$ids = array();
+		foreach ($array as $a) {
+			$conditions['OR'][] = array('LOWER(name) like' => strtolower($a));
+		}
+		$params = array(
+				'recursive' => 1,
+				'contain' => 'AttributeTag',
+				'conditions' => $conditions
+		);
+		$result = $this->find('all', $params);
+		foreach ($result as $tag) {
+			foreach ($tag['AttributeTag'] as $attributeTag) {
+				$ids[] = $attributeTag['event_id'];
+			}
+		}
+		return $ids;
+	}	
 
 	public function findAttributeIdsByAttributeTagNames($array) {
 		$ids = array();

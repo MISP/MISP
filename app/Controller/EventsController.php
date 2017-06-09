@@ -224,6 +224,25 @@ class EventsController extends AppController {
 			}
 		}
 
+		//tm added
+		// Checks for matching attribute level tags
+		if (Configure::read('MISP.enable_attribute_tag_search')){
+			$subconditions = array();
+			foreach ($values as $v) {
+				$subconditions[] = array('lower(name) LIKE' => $v);
+			}
+			$tags = $this->Event->EventTag->Tag->find('all', array(
+					'conditions' => $subconditions,
+					'fields' => array('name', 'id'),
+					'contain' => array('AttributeTag'),
+			));
+			foreach ($tags as $tag) {
+				foreach ($tag['AttributeTag'] as $attributeTag) {
+					if (!in_array($attributeTag['event_id'], $result)) $result[] = $attributeTag['event_id'];
+				}
+			}
+		}
+		
 		// Finally, let's search on the event metadata!
 		$subconditions = array();
 		foreach ($values as $v) {

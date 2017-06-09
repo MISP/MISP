@@ -31,7 +31,7 @@
 			}
 		}
 	}
-?>
+?> 
 	<div class="pagination">
 		<ul>
 		<?php
@@ -373,36 +373,83 @@
 								endif;
 							?>
 							<td class="shortish <?php echo $extra; ?>">
-								<ul class="inline" style="margin:0px;">
-									<?php
-										if ($object['objectType'] == 0) {
-											$relatedObject = 'Attribute';
-											$otherColour = $object['hasChildren'] == 0 ? 'blue' : 'white';
-										} else {
-											$relatedObject = 'ShadowAttribute';
-											$otherColour = 'white';
-										}
-										$relatedObject = $object['objectType'] == 0 ? 'Attribute' : 'ShadowAttribute';
+							    <div id="longAttrList<?php echo $object['id']; ?>" style="display:none">
+								    <ul class="inline" style="margin:0px;">
+                                        <?php
+                                            if ($object['objectType'] == 0) {
+                                                $relatedObject = 'Attribute';
+                                                $otherColour = $object['hasChildren'] == 0 ? 'blue' : 'white';
+                                            } else {
+                                                $relatedObject = 'ShadowAttribute';
+                                                $otherColour = 'white';
+                                            }
+                                            $relatedObject = $object['objectType'] == 0 ? 'Attribute' : 'ShadowAttribute';
+                                            $i = 1;
+                                            if (isset($event['Related' . $relatedObject][$object['id']]) && (null != $event['Related' . $relatedObject][$object['id']])) {
+                                                foreach ($event['Related' . $relatedObject][$object['id']] as $relatedAttribute) {
+                                                    $relatedData = array('Event info' => $relatedAttribute['info'], 'Correlating Value' => $relatedAttribute['value'], 'date' => isset($relatedAttribute['date']) ? $relatedAttribute['date'] : 'N/A');
+                                                    $popover = '';
+                                                    foreach ($relatedData as $k => $v) {
+                                                        $popover .= '<span class=\'bold black\'>' . h($k) . '</span>: <span class="blue">' . h($v) . '</span><br />';
+                                                    }
+                                                    echo '<li style="padding-right: 0px; padding-left:0px;"  data-toggle="popover" data-content="' . h($popover) . '" data-trigger="hover"><span>';
+                                                    if ($relatedAttribute['org_id'] == $me['org_id']) {
+                                                        echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['Event']['id']), array ('class' => 'red'));
+                                                    } else {
+                                                        echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['Event']['id']), array ('class' => $otherColour));
+                                                    }
+                                                    echo "</span></li>";
+                                                    echo ' ';
+                                                    $i++;
+                                                }
+                                                if ($i > 10):
+                                                    $buf = '<a id="toggleButton" onclick="toggleText(\'more\', \'' . $object['id'] . '\');" href="javascript:void(0);">less</a>';
+                                                    echo $buf;
 
-										if (isset($event['Related' . $relatedObject][$object['id']]) && (null != $event['Related' . $relatedObject][$object['id']])) {
-											foreach ($event['Related' . $relatedObject][$object['id']] as $relatedAttribute) {
-												$relatedData = array('Event info' => $relatedAttribute['info'], 'Correlating Value' => $relatedAttribute['value'], 'date' => isset($relatedAttribute['date']) ? $relatedAttribute['date'] : 'N/A');
-												$popover = '';
-												foreach ($relatedData as $k => $v) {
-													$popover .= '<span class=\'bold black\'>' . h($k) . '</span>: <span class="blue">' . h($v) . '</span><br />';
-												}
-												echo '<li style="padding-right: 0px; padding-left:0px;"  data-toggle="popover" data-content="' . h($popover) . '" data-trigger="hover"><span>';
-												if ($relatedAttribute['org_id'] == $me['org_id']) {
-													echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['Event']['id']), array ('class' => 'red'));
-												} else {
-													echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['Event']['id']), array ('class' => $otherColour));
-												}
-												echo "</span></li>";
-												echo ' ';
-											}
-										}
-									?>
-								</ul>
+                                                endif;
+                                            }
+                                        ?>
+                                    </ul>
+								</div>
+                                <div id="shortAttrList<?php echo $object['id']; ?>">
+                                    <ul class="inline" style="margin:0px;">
+                                        <?php
+                                            if ($object['objectType'] == 0) {
+                                                $relatedObject = 'Attribute';
+                                                $otherColour = $object['hasChildren'] == 0 ? 'blue' : 'white';
+                                            } else {
+                                                $relatedObject = 'ShadowAttribute';
+                                                $otherColour = 'white';
+                                            }
+                                            $relatedObject = $object['objectType'] == 0 ? 'Attribute' : 'ShadowAttribute';
+                                            $i = 1;
+                                            if (isset($event['Related' . $relatedObject][$object['id']]) && (null != $event['Related' . $relatedObject][$object['id']])) {
+                                                foreach ($event['Related' . $relatedObject][$object['id']] as $relatedAttribute) {
+                                                    $relatedData = array('Event info' => $relatedAttribute['info'], 'Correlating Value' => $relatedAttribute['value'], 'date' => isset($relatedAttribute['date']) ? $relatedAttribute['date'] : 'N/A');
+                                                    $popover = '';
+                                                    foreach ($relatedData as $k => $v) {
+                                                        $popover .= '<span class=\'bold black\'>' . h($k) . '</span>: <span class="blue">' . h($v) . '</span><br />';
+                                                    }
+                                                    echo '<li style="padding-right: 0px; padding-left:0px;"  data-toggle="popover" data-content="' . h($popover) . '" data-trigger="hover"><span>';
+                                                    if ($relatedAttribute['org_id'] == $me['org_id']) {
+                                                        echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['Event']['id']), array ('class' => 'red'));
+                                                    } else {
+                                                        echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['Event']['id']), array ('class' => $otherColour));
+                                                    }
+                                                    echo "</span></li>";
+                                                    echo ' ';
+                                                    $i++;
+                                                    $countEvents = sizeof($event['Related' . $relatedObject][$object['id']]) - 9;
+                                                    if ($i == 10 && $countEvents > 0):
+                                                    $buf = '<a id="toggleButton" onclick="toggleText(\'less\', \'' . $object['id'] . '\');" href="javascript:void(0);">(+' . $countEvents . ')</a>';
+                                                    echo $buf;
+                                                    break;
+                                                    endif;
+                                                }
+                                            }
+                                        ?>
+                                    </ul>
+								</div>
 							</td>
 							<td class="shortish <?php echo $extra; ?>">
 								<ul class="inline" style="margin:0px;">
@@ -621,6 +668,22 @@ attributes or the appropriate distribution level. If you think there is a mistak
 		</li>
 		</ul>
 	</div>
+
+<script type="text/javascript">
+
+function toggleText(st, nr)
+{
+
+    if (st == "more") {
+        document.getElementById("shortAttrList" + nr).style.display = 'block';
+        document.getElementById("longAttrList" + nr).style.display = 'none';
+    } else if (st == "less") {
+        document.getElementById("shortAttrList" + nr).style.display = 'none';
+        document.getElementById("longAttrList" + nr).style.display = 'block';
+     }
+     }
+</script>
+
 <script type="text/javascript">
 	var currentUri = "<?php echo isset($currentUri) ? h($currentUri) : '/events/viewEventAttributes/' . h($event['Event']['id']); ?>";
 	var ajaxResults = [];
