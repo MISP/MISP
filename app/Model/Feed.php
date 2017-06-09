@@ -263,10 +263,21 @@ class Feed extends AppModel {
 				$params['conditions'] = array('Feed.lookup_visible' => 1);
 			}
 			$feeds = $this->find('all', $params);
+			$counter = 0;
+			$hashTable = array();
+			$feedList = array();
+			foreach ($feeds as $feed) {
+				$feedList[] = $feed['Feed']['id'];
+			}
+			$redis->sunionstore('misp:feed_cache:combined', implode(' ', $feedList));
 			foreach ($objects as $k => $object) {
-				foreach ($feeds as $k2 => $feed) {
-					if ($redis->sismember('misp:feed_cache:' . $feed['Feed']['id'], md5($object['value']))) {
-						$objects[$k]['Feed'][] = $feed['Feed'];
+				$hashTable[$object['value']] = md5($object['value']);
+				if ($redis->sismember('misp:feed_cache:combined', $hashTable[$object['value']])) {
+					foreach ($feeds as $k2 => $feed) {
+						$counter++;
+						if ($redis->sismember('misp:feed_cache:' . $feed['Feed']['id'], $hashTable[$object['value']])) {
+							$objects[$k]['Feed'][] = $feed['Feed'];
+						}
 					}
 				}
 			}

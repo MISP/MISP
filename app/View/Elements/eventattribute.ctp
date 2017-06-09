@@ -391,7 +391,7 @@
 												foreach ($relatedData as $k => $v) {
 													$popover .= '<span class=\'bold black\'>' . h($k) . '</span>: <span class="blue">' . h($v) . '</span><br />';
 												}
-												echo '<li style="padding-right: 0px; padding-left:0px;"  data-toggle="popover" data-content="' . h($popover) . '" data-trigger="hover"><span>';
+												echo '<li style="padding-right: 0px; padding-left:0px;" data-toggle="popover" data-content="' . h($popover) . '" data-trigger="hover"><span>';
 												if ($relatedAttribute['org_id'] == $me['org_id']) {
 													echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['Event']['id']), array ('class' => 'red'));
 												} else {

@@ -402,8 +402,6 @@ class EventsController extends AppController {
 									$filterString .= '!' . $piece;
 									continue;
 								}
-
-
 								$block = $this->Event->EventTag->find('all', array(
 										'conditions' => array('EventTag.tag_id' => $tagName['Tag']['id']),
 										'fields' => 'event_id',
@@ -788,7 +786,6 @@ class EventsController extends AppController {
 		// set the data for the contributors / history field
 		$org_ids = $this->Event->ShadowAttribute->getEventContributors($event['Event']['id']);
 		$contributors = $this->Event->Org->find('list', array('fields' => array('Org.name'), 'conditions' => array('Org.id' => $org_ids)));
-
 		if ($this->userRole['perm_publish'] && $event['Event']['orgc_id'] == $this->Auth->user('org_id')) {
 			$proposalStatus = false;
 			if (isset($event['ShadowAttribute']) && !empty($event['ShadowAttribute'])) $proposalStatus = true;
@@ -814,7 +811,6 @@ class EventsController extends AppController {
 		$this->__setDeletable($pivot, $event['Event']['id'], true);
 		$this->set('allPivots', $this->Session->read('pivot_thread'));
 		$this->set('pivot', $pivot);
-
 		// set data for the view, the event is already set in view()
 		$dataForView = array(
 				'Attribute' => array('attrDescriptions' => 'fieldDescriptions', 'distributionDescriptions' => 'distributionDescriptions', 'distributionLevels' => 'distributionLevels', 'shortDist' => 'shortDist'),
@@ -909,7 +905,6 @@ class EventsController extends AppController {
 		} else if (!is_numeric($id)) {
 			throw new NotFoundException(__('Invalid event id.'));
 		}
-
 		$this->Event->id = $id;
 		if (!$this->Event->exists()) {
 			throw new NotFoundException(__('Invalid event.'));
@@ -1942,7 +1937,7 @@ class EventsController extends AppController {
 		return $results;
 	}
 
-	public function nids($format = 'suricata', $key = 'download', $id = false, $continue = false, $tags = false, $from = false, $to = false, $last = false, $type = false, $enforceWarninglist = false, $includeAllTags = false) {
+	public function nids($format = 'suricata', $key = 'download', $id = false, $continue = false, $tags = false, $from = false, $to = false, $last = false, $type = false, $enforceWarninglist = false, $includeAllTags = false, $eventid = false) {
 		if ($this->request->is('post')) {
 			if (empty($this->request->data)) {
 				throw new BadRequestException('Either specify the search terms in the url, or POST a json or xml with the filter parameters. Valid filters: id (event ID), tags (list of tags), from (from date in YYYY-MM-DD format), to (to date in YYYY-MM-DD format), last (events with a published timestamp newer than - valid options are in time + unit format such as 6d or 2w, etc)');
@@ -2579,7 +2574,7 @@ class EventsController extends AppController {
 			if (!isset($data['request'])) {
 				$data['request'] = $data;
 			}
-			$paramArray = array('value', 'type', 'category', 'org', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments', 'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly');
+			$paramArray = array('value', 'type', 'category', 'org', 'tag', 'tags', 'searchall', 'from', 'to', 'last', 'eventid', 'withAttachments', 'metadata', 'uuid', 'published', 'publish_timestamp', 'timestamp', 'enforceWarninglist', 'sgReferenceOnly');
 			foreach ($paramArray as $p) {
 				if (isset($data['request'][$p])) {
 					${$p} = $data['request'][$p];
@@ -2596,6 +2591,9 @@ class EventsController extends AppController {
 		}
 		if ($from) $from = $this->Event->dateFieldCheck($from);
 		if ($to) $to = $this->Event->dateFieldCheck($to);
+		if (!empty($tag) && !$tags) {
+			$tags = $tag;
+		}
 		if ($tags) $tags = str_replace(';', ':', $tags);
 		if ($last) $last = $this->Event->resolveTimeDelta($last);
 		if ($searchall === 'true') $searchall = "1";
@@ -2623,15 +2621,18 @@ class EventsController extends AppController {
 			$params = array(
 					'conditions' => $conditions,
 					'fields' => array('DISTINCT(Attribute.event_id)'),
-					'contain' => array()
+					'contain' => array(),
+					'recursive' => -1,
+					'list' => true
 			);
 			$attributes = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $params);
 			$eventIds = array();
 			// Add event ID if specifically specified to allow for the export of an empty event
 			if (isset($eventid) && $eventid) $eventIds[] = $eventid;
 			foreach ($attributes as $attribute) {
-				if (!in_array($attribute['Attribute']['event_id'], $eventIds)) $eventIds[] = $attribute['Attribute']['event_id'];
+				if (!in_array($attribute, $eventIds)) $eventIds[] = $attribute;
 			}
+			unset($attributes);
 		}
 		$this->loadModel('Whitelist');
 		$responseType = 'xml';
@@ -2652,7 +2653,7 @@ class EventsController extends AppController {
 		$final = $converter->generateTop($this->Auth->user());
 		$eventCount = count($eventIds);
 		$i = 0;
-		foreach ($eventIds as $currentEventId) {
+		foreach ($eventIds as $k => $currentEventId) {
 			$i++;
 			$result = $this->Event->fetchEvent($this->Auth->user(), array(
 				'eventid' => $currentEventId,
@@ -2678,12 +2679,8 @@ class EventsController extends AppController {
 			$final_filename="misp.event." . $eventid . "." . $result[0]['Event']['uuid'] . '.' . $extension;
 		} else {
 			$final_filename="misp.search.events.results." . $extension;
-		}
-		$this->response->type($responseType);
-		$this->autoRender = false;
-		$this->response->body($final);
-		$this->response->download($final_filename);
-		return $this->response;
+		};
+		return $this->RestResponse->viewData($final, $this->response->type(), false, true);
 	}
 
 	public function downloadOpenIOCEvent($key, $eventid, $enforceWarninglist = false) {
@@ -2876,14 +2873,21 @@ class EventsController extends AppController {
 					),
 		));
 		$events = $this->paginate();
+		$orgIds = array();
 		foreach ($events as $k => $event) {
 			$orgs = array();
 			foreach ($event['ShadowAttribute'] as $sa) {
 				if (!in_array($sa['org_id'], $orgs)) $orgs[] = $sa['org_id'];
+				if (!in_array($sa['org_id'], $orgIds)) $orgIds[] = $sa['org_id'];
 			}
 			$events[$k]['orgArray'] = $orgs;
 			$events[$k]['Event']['proposal_count'] = count($event['ShadowAttribute']);
 		}
+		$orgs = $this->Event->Orgc->find('list', array(
+			'conditions' => array('Orgc.id' => $orgIds),
+			'fields' => array('Orgc.id', 'Orgc.name')
+		));
+		$this->set('orgs', $orgs);
 		$this->set('events', $events);
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
 		$this->set('analysisLevels', $this->Event->analysisLevels);
@@ -3023,7 +3027,14 @@ class EventsController extends AppController {
 		}
 	}
 
-	public function freeTextImport($id) {
+	/*
+	 * adhereToWarninglists is used when querying this function via the API
+	 * possible options:
+	 *  - false: (default) ignore warninglists
+	 *  - 'soft': Unset the IDS flag of all attributes hitting on a warninglist item
+	 *  - true / 'hard': Block attributes from being added that have a hit in the warninglists
+	 */
+	public function freeTextImport($id, $adhereToWarninglists = false) {
 		if (!$this->userRole['perm_add']) {
 			throw new MethodNotAllowedException('Event not found or you don\'t have permissions to create attributes');
 		}
@@ -3065,7 +3076,13 @@ class EventsController extends AppController {
 				}
 			}
 			if ($this->_isRest()) {
-				return $this->__pushFreetext($resultArray, $id, isset($this->request->data['Attribute']['distribution']) ? $this->request->data['Attribute']['distribution'] : false);
+				return $this->__pushFreetext(
+					$resultArray,
+					$id,
+					isset($this->request->data['Attribute']['distribution']) ? $this->request->data['Attribute']['distribution'] : false,
+					isset($this->request->data['Attribute']['sharing_group_id']) ? $this->request->data['Attribute']['sharing_group_id'] : false,
+					$adhereToWarninglists
+				);
 			}
 			foreach ($resultArray as $key => $result) {
 				$options = array(
@@ -3101,7 +3118,11 @@ class EventsController extends AppController {
 		}
 	}
 
-	public function __pushFreetext($resultArray, $eventId, $distribution = false, $sg = false) {
+	public function __pushFreetext($resultArray, $eventId, $distribution = false, $sg = false, $adhereToWarninglists = false) {
+		if ($adhereToWarninglists) {
+			$this->Warninglist = ClassRegistry::init('Warninglist');
+			$warninglists = $this->Warninglist->fetchForEventView();
+		}
 		foreach ($resultArray as $k => $result) {
 			$result['type'] = $result['default_type'];
 			unset($result['default_type']);
@@ -3121,11 +3142,22 @@ class EventsController extends AppController {
 			$result['distribution'] = $distribution;
 			$result['event_id'] = $eventId;
 			$resultArray[$k] = $result;
+			if ($adhereToWarninglists) {
+				if (!$this->Warninglist->filterWarninglistAttributes($warninglists, $result)) {
+					if ($adhereToWarninglists == 'soft') {
+						$result['to_ids'] = 0;
+					} else {
+						unset($resultArray[$k]);
+						continue;
+					}
+				}
+			}
 			$this->Event->Attribute->create();
 			if (!$this->Event->Attribute->save($result)) {
 				unset($resultArray[$k]);
 			}
 		}
+		$resultArray = array_values($resultArray);
 		return $this->RestResponse->viewData($resultArray, $this->response->type());
 	}
 

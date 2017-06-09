@@ -2199,6 +2199,17 @@ class Attribute extends AppModel {
 		if (!$user['Role']['perm_sync'] || !isset($options['deleted']) || !$options['deleted']) $params['conditions']['AND']['Attribute.deleted'] = 0;
 		if (isset($options['group'])) $params['group'] = array_merge(array('Attribute.id'), $options['group']);
 		if (Configure::read('MISP.unpublishedprivate')) $params['conditions']['AND'][] = array('OR' => array('Event.published' => 1, 'Event.orgc_id' => $user['org_id']));
+		if (!empty($options['list'])) {
+			$results = $this->find('list', array(
+				'conditions' => $params['conditions'],
+				'recursive' => -1,
+				'contain' => array('Event'),
+				'fields' => array('Attribute.event_id'),
+				'group' => array('Attribute.event_id'),
+				'sort' => false
+			));
+			return $results;
+		}
 		$results = $this->find('all', $params);
 		if ($options['enforceWarninglist']) {
 			$this->Warninglist = ClassRegistry::init('Warninglist');
@@ -2207,7 +2218,7 @@ class Attribute extends AppModel {
 		$results = array_values($results);
 		$proposals_block_attributes = Configure::read('MISP.proposals_block_attributes');
 		foreach ($results as $key => $attribute) {
-			if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttributes($warninglists, $attribute['Attribute'], $this->Warninglist)) {
+			if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttributes($warninglists, $attribute['Attribute'])) {
 				unset($results[$key]);
 				continue;
 			}
