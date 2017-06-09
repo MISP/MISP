@@ -1330,14 +1330,34 @@ class Attribute extends AppModel {
 
 	// using Snifff's solution from http://stackoverflow.com/questions/7951061/matching-ipv6-address-to-a-cidr-subnet
 	private function __ipv6InCidr($ip, $cidr) {
-		$ip = inet_pton($ip);
+		$ip = $this->__expandIPv6Notation($ip);
 		$binaryip = $this->__inet_to_bits($ip);
-		list($net, $maskbits) = explode('/', $cidr);
-		$net = inet_pton($net);
+		list($net,$maskbits) = explode('/', $cidr);
+		$net = $this->__expandIPv6Notation($net);
+		if (substr($net, -1) == ':') {
+			$net .= '0';
+		}
 		$binarynet = $this->__inet_to_bits($net);
 		$ip_net_bits = substr($binaryip, 0, $maskbits);
 		$net_bits = substr($binarynet, 0, $maskbits);
 		return ($ip_net_bits === $net_bits);
+	}
+
+	private function __expandIPv6Notation($ip) {
+    if (strpos($ip, '::') !== false)
+        $ip = str_replace('::', str_repeat(':0', 8 - substr_count($ip, ':')).':', $ip);
+    if (strpos($ip, ':') === 0) $ip = '0'.$ip;
+    return $ip;
+	}
+
+	private function __inet_to_bits($inet) {
+		$unpacked = unpack('A16', $inet);
+		$unpacked = str_split($unpacked[1]);
+		$binaryip = '';
+		foreach ($unpacked as $char) {
+			$binaryip .= str_pad(decbin(ord($char)), 8, '0', STR_PAD_LEFT);
+		}
+		return $binaryip;
 	}
 
 	private function __cidrCorrelation($a) {
@@ -1385,13 +1405,17 @@ class Attribute extends AppModel {
 			));
 			foreach ($cidrList as $cidr) {
 				$cidr_ip = explode('/', $cidr)[0];
-				if (filter_var($cidr_ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) && $ip_version == 4) {
-					if ($this->__ipv4InCidr($ip, $cidr)) {
-						$ipValues[] = $cidr;
+				if (filter_var($cidr_ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+					if ($ip_version == 4) {
+						if ($this->__ipv4InCidr($ip, $cidr)) {
+							$ipValues[] = $cidr;
+						}
 					}
 				} else {
-					if ($this->__ipv6InCidr($ip, $cidr)) {
-						$ipValues[] = $cidr;
+					if ($ip_version == 6) {
+						if ($this->__ipv6InCidr($ip, $cidr)) {
+							$ipValues[] = $cidr;
+						}
 					}
 				}
 			}
