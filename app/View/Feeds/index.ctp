@@ -44,6 +44,7 @@
 			<th><?php echo $this->Paginator->sort('tag');?></th>
 			<th><?php echo $this->Paginator->sort('enabled');?></th>
 			<th><?php echo $this->Paginator->sort('lookup_visible');?></th>
+            <th><?php echo $this->Paginator->sort('disable_proxy');?></th>
 			<th class="actions"><?php echo __('Caching');?></th>
 			<th class="actions"><?php echo __('Actions');?></th>
 	</tr><?php
@@ -136,7 +137,8 @@ foreach ($feeds as $item):
 		<?php endif;?>
 		</td>
 		<td class="short"><span class="<?php echo ($item['Feed']['enabled'] ? 'icon-ok' : 'icon-remove'); ?>"></span><span class="short <?php if (!$item['Feed']['enabled'] || empty($ruleDescription)) echo "hidden"; ?>" data-toggle="popover" title="Filter rules" data-content="<?php echo $ruleDescription; ?>"> (Rules)</span>
-			<td class="short"><span class="<?php echo ($item['Feed']['lookup_visible'] ? 'icon-ok' : 'icon-remove'); ?>"></span>
+        <td class="short"><span class="<?php echo ($item['Feed']['lookup_visible'] ? 'icon-ok' : 'icon-remove'); ?>"></span>
+        <td class="short"><span class="<?php echo ($item['Feed']['disable_proxy'] ? 'icon-ok' : 'icon-remove'); ?>"></span>
 		<td class="short action-links <?php echo !empty($item['Feed']['cache_timestamp']) ? 'bold' : 'bold red';?>">
 			<?php
 				if (!empty($item['Feed']['cache_timestamp'])):

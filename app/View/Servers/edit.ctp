@@ -95,6 +95,13 @@
 			'type' => 'checkbox',
 		));
 	?>
+
+		<div class = "input clear"></div>
+	<?php
+		echo $this->Form->input('disable_proxy', array(
+			'type' => 'checkbox',
+		));
+	?>
 	<div class="clear">
 		<p>
 			<span class="bold">Server certificate file (*.pem): </span>

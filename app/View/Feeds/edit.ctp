@@ -9,6 +9,10 @@
 		<div class="input clear"></div>
 	<?php
 			echo $this->Form->input('lookup_visible', array());
+	?>
+		<div class="input clear"></div>
+	<?php
+			echo $this->Form->input('disable_proxy', array());
 			echo $this->Form->input('name', array(
 					'div' => 'input clear',
 					'placeholder' => 'Feed name',
