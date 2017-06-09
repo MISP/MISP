@@ -242,7 +242,7 @@
 		?>
 	</div>
 	<div>
-		<span class="btn btn-inverse" role="button" tabindex="0" aria-label="Start or restart ZMQ service" title="Start or restart ZeroMQ service" style="padding-top:1px;padding-bottom:1px;" onClick = "zeroMQServerAction('start')">Start / Restart</span>
+		<span class="btn btn-inverse" role="button" tabindex="0" aria-label="Start ZMQ service" title="Start ZeroMQ service" style="padding-top:1px;padding-bottom:1px;" onClick = "zeroMQServerAction('start')">Start</span>
 		<span class="btn btn-inverse" role="button" tabindex="0" aria-label="Stop ZeroMQ service" title="Stop ZeroMQ service" style="padding-top:1px;padding-bottom:1px;" onClick = "zeroMQServerAction('stop')">Stop</span>
 		<span class="btn btn-inverse" role="button" tabindex="0" aria-label="Check ZeroMQ service status" title="Check ZeroMQ service status" style="padding-top:1px;padding-bottom:1px;" onClick = "zeroMQServerAction('status')">Status</span>
 	</div>
@@ -322,7 +322,7 @@
 		Verify PGP keys
 	</h3>
 	<p>Run a full validation of all PGP keys within this instance's userbase. The script will try to identify possible issues with each key and report back on the results.</p>
-	<span class="btn btn-inverse" onClick="location.href='<?php echo $baseurl;?>/users/verifyGPG';">Verify GPG keys</span> (Check whether every user's GPG key is usable)</li>
+	<span class="btn btn-inverse" onClick="location.href='<?php echo $baseurl;?>/users/verifyGPG';">Verify PGP keys</span> (Check whether every user's PGP key is usable)</li>
 	<h3>
 		Database cleanup scripts
 	</h3>

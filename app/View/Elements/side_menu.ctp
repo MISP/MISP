@@ -65,6 +65,9 @@
 							<li class="divider"></li>
 						<?php endif;?>
 					<?php endif;?>
+					<?php if (Configure::read('Plugin.ZeroMQ_enable') && $isSiteAdmin): ?>
+						<li><?php echo $this->Form->postLink('Publish event to ZMQ', array('action' => 'pushEventToZMQ', $event['Event']['id']));?></li>
+					<?php endif; ?>
 					<li id='licontact'><a href="<?php echo $baseurl;?>/events/contact/<?php echo h($event['Event']['id']);?>">Contact Reporter</a></li>
 					<li><a onClick="getPopup('<?php echo h($event['Event']['id']); ?>', 'events', 'exportChoice');" style="cursor:pointer;">Download as...</a></li>
 					<li class="divider"></li>
@@ -312,6 +315,7 @@
 					<li id='liadd'><a href="<?php echo $baseurl;?>/feeds/add">Add Feed</a></li>
 					<li id='liadd'><a href="<?php echo $baseurl;?>/feeds/importFeeds">Import Feeds from JSON</a></li>
 					<li id='licompare'><a href="<?php echo $baseurl;?>/feeds/compareFeeds">Feed overlap analysis matrix</a></li>
+					<li id='liexport'><a href="<?php echo $baseurl;?>/feeds/index.json" download="feed_index.json">Export Feed settings</a></li>
 					<?php if ($menuItem === 'edit'): ?>
 						<li class="active"><a href="#">Edit Feed</a></li>
 					<?php elseif ($menuItem === 'previewIndex'): ?>

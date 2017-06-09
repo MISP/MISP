@@ -256,6 +256,20 @@ class User extends AppModel {
 		return true;
 	}
 
+	public function afterSave($created, $options = array()) {
+		if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_user_notifications_enable')) {
+			App::uses('PubSubTool', 'Tools');
+			$pubSubTool = new PubSubTool();
+			$user = $this->data;
+			if (isset($user['User']['password'])) {
+				unset($user['User']['password']);
+				unset($user['User']['confirm_password']);
+			}
+			$pubSubTool->modified($user, 'user');
+		}
+		return true;
+	}
+
 	// Checks if the GPG key is a valid key, but also import it in the keychain.
 	// TODO: this will NOT fail on keys that can only be used for signing but not encryption!
 	// the method in verifyUsers will fail in that case.

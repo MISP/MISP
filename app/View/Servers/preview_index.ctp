@@ -83,16 +83,7 @@
 		<?php if (!empty($events)) foreach ($events as $event): ?>
 		<tr <?php if ($event['Event']['distribution'] == 0) echo 'class = "privateRed"'?>>
 			<td class="short" ondblclick="document.location.href ='<?php echo $eventViewURL . h($event['Event']['id']);?>'">
-				<?php
-				if ($event['Event']['published'] == 1) {
-				?>
-					<a href="/events/view/<?php echo $event['Event']['id'] ?>" class = "icon-ok" title = "View"></a>
-				<?php
-				} else {
-				?>
-					<a href="/events/view/<?php echo $event['Event']['id'] ?>" class = "icon-remove" title = "View"></a>
-				<?php
-				}?>&nbsp;
+				<span class="icon-<?php echo ($event['Event']['published'] == 1) ? 'ok' : 'remove'; ?>" title="Published" aria-label="Event <?php echo ($event['Event']['published'] == 1) ? '' : 'not '?>published"></span>
 			</td>
 			<td class="short" ondblclick="document.location.href ='<?php echo $eventViewURL . h($event['Event']['id']);?>'">
 				<?php

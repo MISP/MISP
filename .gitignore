@@ -21,6 +21,7 @@
 /app/tmp/cache/views/myapp*
 /app/files/*
 /app/tmp/cache/feeds/*.cache
+!/app/files/feed-metadata
 !/app/files/empty
 !/app/files/scripts/
 !/app/files/warninglists
@@ -72,3 +73,4 @@
 .smime
 *.swp
 *.iml
+.ropeproject/

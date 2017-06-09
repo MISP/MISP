@@ -3280,6 +3280,7 @@ class Event extends AppModel {
 						$sightingsData[$sighting['attribute_id']][$type]['orgs'][$orgName]['date'] = $sighting['date_sighting'];
 					}
 				}
+				if ($sighting['type'] !== '0') continue;
 				$date = date("Y-m-d", $sighting['date_sighting']);
 				if (!isset($sparklineData[$sighting['attribute_id']][$date])) {
 					$sparklineData[$sighting['attribute_id']][$date] = 1;

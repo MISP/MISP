@@ -98,6 +98,15 @@ class Organisation extends AppModel{
 		return true;
 	}
 
+	public function afterSave($created, $options = array()) {
+		if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_organisation_notifications_enable')) {
+			App::uses('PubSubTool', 'Tools');
+			$pubSubTool = new PubSubTool();
+			$pubSubTool->modified($this->data, 'organisation');
+		}
+		return true;
+	}
+
 	public function captureOrg($org, $user, $force = false) {
 		if (is_array($org)) {
 			if (isset($org['uuid']) && !empty($org['uuid'])) {
