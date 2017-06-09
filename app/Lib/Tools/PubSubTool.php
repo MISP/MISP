@@ -76,7 +76,7 @@ class PubSubTool {
 			return false;
 		}
 		$redis->select($settings['redis_database']);
-		$redis->rPush($settings['redis_namespace'] . 'ns', $data);
+		$redis->rPush($settings['redis_namespace'] . $ns, $data);
 		return true;
 	}
 
