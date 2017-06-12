@@ -31,8 +31,8 @@ class Organisation extends AppModel{
 				'rule' => 'isUnique',
 				'message' => 'An organisation with this UUID already exists.'
 			),
-			'uuid' => array(
-				'rule' => array('uuid'),
+			'simpleuuid' => array(
+				'rule' => array('custom', '/^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/'),
 				'message' => 'Please provide a valid UUID',
 				'allowEmpty' => true
 			),
@@ -125,7 +125,6 @@ class Organisation extends AppModel{
 				'recursive' => -1,
 				'conditions' => $conditions,
 		));
-
 		if (empty($existingOrg)) {
 			$date = date('Y-m-d H:i:s');
 			$organisation = array(

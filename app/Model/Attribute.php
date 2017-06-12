@@ -429,12 +429,8 @@ class Attribute extends AppModel {
 		),
 		'uuid' => array(
 			'uuid' => array(
-				'rule' => array('uuid'),
-				//'message' => 'Your custom message here',
-				//'allowEmpty' => false,
-				//'required' => false,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
+				'rule' => array('custom', '/^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/'),
+				'message' => 'Please provide a valid UUID'
 			),
 			'unique' => array(
 				'rule' => 'isUnique',

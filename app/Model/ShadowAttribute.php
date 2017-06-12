@@ -118,7 +118,8 @@ class ShadowAttribute extends AppModel {
 		),
 		'uuid' => array(
 			'uuid' => array(
-				'rule' => array('uuid'),
+				'rule' => array('custom', '/^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/'),
+				'message' => 'Please provide a valid UUID'
 			),
 		),
 		'proposal_to_delete' => array(
