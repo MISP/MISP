@@ -128,7 +128,11 @@ class Feed extends AppModel {
 			}
 		} else {
 			$uri = $feed['Feed']['url'] . '/manifest.json';
-			$response = $HttpSocket->get($uri, '', $request);
+			try {
+				$response = $HttpSocket->get($uri, '', $request);
+			} catch (Exception $e) {
+				return false;
+			}
 			if ($response->code != 200) {
 				return false;
 			}
@@ -245,6 +249,7 @@ class Feed extends AppModel {
 				foreach ($feeds as $k => $v) {
 					if ($redis->sismember('misp:feed_cache:' . $v['Feed']['id'], md5($value['value']))) {
 						$data[$key]['feed_correlations'][] = array($v);
+					} else {
 					}
 				}
 			}
@@ -266,10 +271,6 @@ class Feed extends AppModel {
 			$counter = 0;
 			$hashTable = array();
 			$feedList = array();
-			foreach ($feeds as $feed) {
-				$feedList[] = $feed['Feed']['id'];
-			}
-			$redis->sunionstore('misp:feed_cache:combined', implode(' ', $feedList));
 			foreach ($objects as $k => $object) {
 				$hashTable[$object['value']] = md5($object['value']);
 				if ($redis->sismember('misp:feed_cache:combined', $hashTable[$object['value']])) {
@@ -833,6 +834,7 @@ class Feed extends AppModel {
 		if (!empty($values)) {
 			foreach ($values as $k => $value) {
 				$redis->sAdd('misp:feed_cache:' . $feed['Feed']['id'], md5($value['value']));
+				$redis->sAdd('misp:feed_cache:combined', md5($value['value']));
 				if ($jobId && ($k % 1000 == 0)) {
 						$job->saveField('message', 'Feed ' . $feed['Feed']['id'] . ': ' . $k . ' values cached.');
 				}
@@ -889,8 +891,11 @@ class Feed extends AppModel {
 								$value = explode('|', $attribute['value']);
 								$redis->sAdd('misp:feed_cache:' . $feed['Feed']['id'], md5($value[0]));
 								$redis->sAdd('misp:feed_cache:' . $feed['Feed']['id'], md5($value[1]));
+								$redis->sAdd('misp:feed_cache:combined', md5($value[0]));
+								$redis->sAdd('misp:feed_cache:combined', md5($value[1]));
 							} else {
 								$redis->sAdd('misp:feed_cache:' . $feed['Feed']['id'], md5($attribute['value']));
+								$redis->sAdd('misp:feed_cache:combined', md5($value['value']));
 							}
 						}
 					}
