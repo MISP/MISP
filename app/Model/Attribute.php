@@ -75,6 +75,11 @@ class Attribute extends AppModel {
 			'cortex'
 	);
 
+	public $primaryOnlyCorrelatingTypes = array(
+		'ip-src|port',
+		'ip-dst|port'
+	);
+
 	public $searchResponseTypes = array(
 		'xml' => array(
 			'type' => 'xml',
@@ -1449,13 +1454,16 @@ class Attribute extends AppModel {
 			}
 			$this->Correlation = ClassRegistry::init('Correlation');
 			$correlatingValues = array($a['value1']);
-			if (!empty($a['value2'])) $correlatingValues[] = $a['value2'];
+			if (!empty($a['value2']) && !isset($this->primaryOnlyCorrelatingTypes[$a['type']])) $correlatingValues[] = $a['value2'];
 			foreach ($correlatingValues as $k => $cV) {
 				$conditions = array(
 					'AND' => array(
 						'OR' => array(
 								'Attribute.value1' => $cV,
-								'Attribute.value2' => $cV
+								'AND' => array(
+										'Attribute.value2' => $cV,
+										'NOT' => array('Attribute.type' => $this->primaryOnlyCorrelatingTypes)
+								)
 						),
 						'Attribute.type !=' => $this->nonCorrelatingTypes,
 						'Attribute.disable_correlation' => 0,
@@ -1477,6 +1485,7 @@ class Attribute extends AppModel {
 					if ($correlatingAttribute['Attribute']['id'] == $a['id']) unset($correlatingAttributes[$k][$key]);
 					else if ($correlatingAttribute['Attribute']['event_id'] == $a['event_id']) unset($correlatingAttributes[$k][$key]);
 					else if ($full && $correlatingAttribute['Attribute']['id'] <= $a['id']) unset($correlatingAttributes[$k][$key]);
+					else if (isset($this->primaryOnlyCorrelatingTypes[$a['type']]) && $correlatingAttribute['value1'] !== $a['value1']) unset($correlatingAttribute[$k][$key]);
 				}
 			}
 			$correlations = array();
