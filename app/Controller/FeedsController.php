@@ -388,16 +388,12 @@ class FeedsController extends AppController {
 		$resultArray = $this->Feed->getFreetextFeedCorrelations($resultArray, $feed['Feed']['id']);
 		// remove all duplicates
 		$correlatingEvents = array();
+		//debug($resultArray);
 		foreach ($resultArray as $k => $v) {
-			for ($i = 0; $i < $k; $i++) {
-				if (isset($resultArray[$i]) && $v == $resultArray[$i]) unset($resultArray[$k]);
-				else {
-					if (!empty($resultArray[$k]['correlations'])) {
-						foreach ($resultArray[$k]['correlations'] as $correlatingEvent) {
-							if (!in_array($correlatingEvent, $correlatingEvents)) {
-								$correlatingEvents[] = $correlatingEvent;
-							}
-						}
+			if (!empty($resultArray[$k]['correlations'])) {
+				foreach ($resultArray[$k]['correlations'] as $correlatingEvent) {
+					if (!in_array($correlatingEvent, $correlatingEvents)) {
+						$correlatingEvents[] = $correlatingEvent;
 					}
 				}
 			}
