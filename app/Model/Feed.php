@@ -895,7 +895,7 @@ class Feed extends AppModel {
 								$redis->sAdd('misp:feed_cache:combined', md5($value[1]));
 							} else {
 								$redis->sAdd('misp:feed_cache:' . $feed['Feed']['id'], md5($attribute['value']));
-								$redis->sAdd('misp:feed_cache:combined', md5($value['value']));
+								$redis->sAdd('misp:feed_cache:combined', md5($attribute['value']));
 							}
 						}
 					}
