@@ -3060,6 +3060,9 @@ class EventsController extends AppController {
 			if (!isset($this->request->data['Attribute']['value'])) {
 				$this->request->data['Attribute'] = array('value' => $this->request->data);
 			}
+			if (isset($this->request->data['Attribute']['adhereToWarninglists'])) {
+				$adhereToWarninglists = $this->request->data['Attribute']['adhereToWarninglists'];
+			}
 			$resultArray = $complexTypeTool->checkComplexRouter($this->request->data['Attribute']['value'], 'freetext');
 			foreach ($resultArray as $key => $r) {
 				$temp = array();
