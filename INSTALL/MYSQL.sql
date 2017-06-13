@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS `admin_settings` (
 CREATE TABLE IF NOT EXISTS `attributes` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `event_id` int(11) NOT NULL,
+  `object_id` int(11) NOT NULL DEFAULT 0,
+  `object_relation` varchar(255) COLLATE utf8_bin,
   `category` varchar(255) COLLATE utf8_bin NOT NULL,
   `type` varchar(100) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `value1` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
@@ -34,6 +36,8 @@ CREATE TABLE IF NOT EXISTS `attributes` (
   `disable_correlation` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   INDEX `event_id` (`event_id`),
+  INDEX `object_id` (`object_id`),
+  INDEX `object_relation` (`object_relation`),
   INDEX `value1` (`value1`(255)),
   INDEX `value2` (`value2`(255)),
   INDEX `type` (`type`),
@@ -366,6 +370,122 @@ CREATE TABLE IF NOT EXISTS `news` (
   `user_id` int(11) NOT NULL,
   `date_created` int(11) unsigned NOT NULL,
   PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `objects`
+--
+
+CREATE TABLE IF NOT EXISTS objects (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+  `meta-category` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+  `description` text CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+  `version` int(11) NOT NULL,
+  `event_id` int(11) NOT NULL,
+  `uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
+  `timestamp` int(11) NOT NULL DEFAULT 0,
+  `distribution` tinyint(4) NOT NULL DEFAULT 0,
+  `sharing_group_id` int(11),
+  `comment` text COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (id),
+  INDEX `name` (`name`(255)),
+  INDEX `meta-category` (`meta-category`(255)),
+  INDEX `event_id` (`event_id`),
+  INDEX `uuid` (`uuid`),
+  INDEX `timestamp` (`timestamp`),
+  INDEX `distribution` (`distribution`),
+  INDEX `sharing_group_id` (`sharing_group_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `object_attribute_references`
+--
+
+CREATE TABLE IF NOT EXISTS object_attribute_references (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
+  `timestamp` int(11) NOT NULL DEFAULT 0,
+  `referenced_attribute_uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
+  `type` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+  `comment` text COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (id),
+  INDEX `name` (`name`),
+  INDEX `uuid` (`uuid`),
+  INDEX `timestamp` (`timestamp`),
+  INDEX `referenced_attribute_uuid` (`referenced_attribute_uuid`),
+  INDEX `type` (`type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `object_object_references`
+--
+
+CREATE TABLE IF NOT EXISTS object_object_references (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
+  `timestamp` int(11) NOT NULL DEFAULT 0,
+  `referenced_object_uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
+  `type` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+  `comment` text COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (id),
+  INDEX `name` (`name`),
+  INDEX `uuid` (`uuid`),
+  INDEX `timestamp` (`timestamp`),
+  INDEX `referenced_object_uuid` (`referenced_object_uuid`),
+  INDEX `type` (`type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `object_templates`
+--
+
+CREATE TABLE IF NOT EXISTS object_templates (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `org_id` int(11) NOT NULL,
+  `uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
+  `name` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+  `meta-category` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+  `description` text COLLATE utf8_bin,
+  `version` int(11) NOT NULL,
+  `requirements` text COLLATE utf8_bin,
+  PRIMARY KEY (id),
+  INDEX `user_id` (`user_id`),
+  INDEX `org_id` (`org_id`),
+  INDEX `uuid` (`uuid`),
+  INDEX `name` (`name`),
+  INDEX `meta-category` (`meta-category`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `object_template_elements`
+--
+
+CREATE TABLE IF NOT EXISTS object_template_elements (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
+  `version` int(11) NOT NULL,
+  `in-object-name` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+  `type` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+  `frequency` int(11) NOT NULL,
+  `categories` text COLLATE utf8_bin,
+  `sane_default` text COLLATE utf8_bin,
+  `values_list` text COLLATE utf8_bin,
+  PRIMARY KEY (id),
+  INDEX `uuid` (`uuid`),
+  INDEX `in-object-name` (`in-object-name`),
+  INDEX `type` (`type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
