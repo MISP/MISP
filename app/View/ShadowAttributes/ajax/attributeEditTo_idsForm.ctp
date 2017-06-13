@@ -2,8 +2,8 @@
 	echo $this->Form->create('ShadowAttribute', array('class' => 'inline-form inline-field-form', 'id' => 'Attribute' . '_' . $object['id'] . '_to_ids_form', 'url' => '/shadow_attributes/editField/' . $object['id']));
 ?>
 	<div class='inline-input inline-input-container'>
-	<div class="inline-input-accept inline-input-button inline-input-passive"><span class = "icon-ok"></span></div>
-	<div class="inline-input-decline inline-input-button inline-input-passive"><span class = "icon-remove"></span></div>
+	<div class="inline-input-accept inline-input-button inline-input-passive"><span class = "icon-ok" title="Accept" role="button" tabindex="0" aria-label="Accept"></span></div>
+	<div class="inline-input-decline inline-input-button inline-input-passive"><span class = "icon-remove" title="Discard" role="button" tabindex="0" aria-label="Discard"></span></div>
 <?php
 	$current = 0;
 	if ($object['to_ids']) $current = 1;

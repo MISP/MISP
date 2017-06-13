@@ -188,9 +188,9 @@ class CertificateAuthenticate extends BaseAuthenticate
 						}
 						unset($org);
 					} else {
-                        // No match -- User doesn't exist !!!
-                        self::$user = false;
-                    }
+						// No match -- User doesn't exist !!!
+						self::$user = false;
+					}
 					unset($U, $User, $q, $k);
 				}
 				unset($cn);

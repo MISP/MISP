@@ -112,7 +112,11 @@ class ComplexTypeTool {
 		foreach ($lines as $linePos => $line) {
 			$line = trim($line);
 			if (empty($line) || $line[0] === "#") continue;
-			$elements = explode($delimiter, $line);
+			if ($delimiter === '\t') {
+				$elements = preg_split('/\t/', $line);
+			} else {
+				$elements = explode($delimiter, $line);
+			}
 			foreach ($elements as $elementPos => $element) {
 				if ((!empty($values) && in_array(($elementPos + 1), $values)) || empty($values)) {
 					$element = trim($element, " \t\n\r\0\x0B\"\'");

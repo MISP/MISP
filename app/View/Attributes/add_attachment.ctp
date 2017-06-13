@@ -71,7 +71,6 @@
 echo $this->Form->button('Upload', array('class' => 'btn btn-primary'));
 echo $this->Form->end();
 ?>
-	<div id="confirmation_box" class="confirmation_box"></div>
 </div>
 <?php
 	$event['Event']['id'] = $this->request->data['Attribute']['event_id'];
@@ -85,7 +84,7 @@ echo $this->Form->end();
 	foreach ($formInfoTypes as $formInfoType => $humanisedName) {
 		echo 'var ' . $formInfoType . 'FormInfoValues = {' . PHP_EOL;
 		foreach ($info[$formInfoType] as $key => $formInfoData) {
-			echo '"' . $key . '": "<span class=\"blue bold\">' . h($formInfoData['key']) . '</span>: ' . h($formInfoData['desc']) . '<br />",' . PHP_EOL; 
+			echo '"' . $key . '": "<span class=\"blue bold\">' . h($formInfoData['key']) . '</span>: ' . h($formInfoData['desc']) . '<br />",' . PHP_EOL;
 		}
 		echo '}' . PHP_EOL;
 	}

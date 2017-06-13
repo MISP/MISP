@@ -19,8 +19,10 @@
 /app/tmp/cache/models/myapp*
 /app/tmp/cache/persistent/myapp*
 /app/tmp/cache/views/myapp*
+/app/tmp/cache/misp_feed*
 /app/files/*
 /app/tmp/cache/feeds/*.cache
+!/app/files/feed-metadata
 !/app/files/empty
 !/app/files/scripts/
 !/app/files/warninglists
@@ -72,3 +74,4 @@
 .smime
 *.swp
 *.iml
+.ropeproject/

@@ -41,7 +41,8 @@ class AppModel extends Model {
 				42 => false, 44 => false, 45 => false, 49 => true, 50 => false,
 				51 => false, 52 => false, 55 => true, 56 => true, 57 => true,
 				58 => false, 59 => false, 60 => false, 61 => false, 62 => false,
-				63 => false, 64 => false, 65 => false, 66 => false, 67 => true
+				63 => false, 64 => false, 65 => false, 66 => false, 67 => true,
+				68 => false, 69 => false, 71 => false, 72 => false, 73 => false
 			)
 		)
 	);
@@ -89,6 +90,21 @@ class AppModel extends Model {
 				$this->Sighting = Classregistry::init('Sighting');
 				$this->Sighting->addUuids();
 				$this->Sighting->deleteAll(array('NOT' => array('Sighting.type' => array(0, 1, 2))));
+				break;
+			case '2.4.71':
+				$this->OrgBlacklist = Classregistry::init('OrgBlacklist');
+				$values = array(
+					array('org_uuid' => '58d38339-7b24-4386-b4b4-4c0f950d210f', 'org_name' => 'Setec Astrononomy', 'comment' => 'default example'),
+					array('org_uuid' => '58d38326-eda8-443a-9fa8-4e12950d210f', 'org_name' => 'Acme Finance', 'comment' => 'default example')
+				);
+				foreach ($values as $value) {
+					$found = $this->OrgBlacklist->find('first', array('conditions' => array('org_uuid' => $value['org_uuid']), 'recursive' => -1));
+					if (empty($found)) {
+						$this->OrgBlacklist->create();
+						$this->OrgBlacklist->save($value);
+					}
+				}
+				$this->updateDatabase($command);
 				break;
 			default:
 				$this->updateDatabase($command);
@@ -627,79 +643,124 @@ class AppModel extends Model {
 				$sqlArray[] = "ALTER TABLE `roles` ADD `perm_sighting` tinyint(1) NOT NULL DEFAULT 0;";
 				$sqlArray[] = 'UPDATE `roles` SET `perm_sighting` = 1 WHERE `perm_add` = 1;';
 				break;
+			case '2.4.68':
+				$sqlArray[] = 'ALTER TABLE events CHANGE attribute_count attribute_count int(11) unsigned DEFAULT 0;';
+				$sqlArray[] = 'CREATE TABLE IF NOT EXISTS `event_blacklists` (
+				  `id` int(11) NOT NULL AUTO_INCREMENT,
+				  `event_uuid` varchar(40) COLLATE utf8_bin NOT NULL,
+				  `created` datetime NOT NULL,
+				  `event_info` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+				  `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+				  `event_orgc` VARCHAR( 255 ) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+				  PRIMARY KEY (`id`)
+				) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;';
+				$indexArray[] = array('event_blacklists', 'event_uuid');
+				$indexArray[] = array('event_blacklists', 'event_orgc');
+				$sqlArray[] = 'CREATE TABLE IF NOT EXISTS `org_blacklists` (
+				  `id` int(11) NOT NULL AUTO_INCREMENT,
+				  `org_uuid` varchar(40) COLLATE utf8_bin NOT NULL,
+				  `created` datetime NOT NULL,
+				  `org_name` varchar(255) COLLATE utf8_bin NOT NULL,
+				  `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+				  PRIMARY KEY (`id`),
+				  INDEX `org_uuid` (`org_uuid`),
+				  INDEX `org_name` (`org_name`)
+				) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;';
+				$indexArray[] = array('org_blacklists', 'org_uuid');
+				$indexArray[] = array('org_blacklists', 'org_name');
+				$sqlArray[] = "ALTER TABLE shadow_attributes CHANGE proposal_to_delete proposal_to_delete BOOLEAN DEFAULT 0";
+				$sqlArray[] = "ALTER TABLE taxonomy_predicates CHANGE colour colour varchar(7) CHARACTER SET utf8 COLLATE utf8_bin;";
+				$sqlArray[] = "ALTER TABLE taxonomy_entries CHANGE colour colour varchar(7) CHARACTER SET utf8 COLLATE utf8_bin;";
+				break;
+			case '2.4.69':
+				$sqlArray[] = "ALTER TABLE taxonomy_entries CHANGE colour colour varchar(7) CHARACTER SET utf8 COLLATE utf8_bin;";
+				$sqlArray[] = "ALTER TABLE users ADD COLUMN date_created bigint(20);";
+				$sqlArray[] = "ALTER TABLE users ADD COLUMN date_modified bigint(20);";
+				break;
+			case '2.4.71':
+				$sqlArray[] = "UPDATE attributes SET comment = '' WHERE comment is NULL;";
+				$sqlArray[] = "ALTER TABLE attributes CHANGE comment comment text COLLATE utf8_bin NOT NULL;";
+				break;
+			case '2.4.72':
+				$sqlArray[] = 'ALTER TABLE feeds ADD lookup_visible tinyint(1) DEFAULT 0;';
+				break;
+			case '2.4.73':
+				$sqlArray[] = 'ALTER TABLE `servers` ADD `unpublish_event` tinyint(1) NOT NULL DEFAULT 0;';
+				$sqlArray[] = 'ALTER TABLE `servers` ADD `publish_without_email` tinyint(1) NOT NULL DEFAULT 0;';
+				break;
 			case '2.4.x':
 				$sqlArray[] = "CREATE TABLE IF NOT EXISTS objects (
-				  `id` int(11) NOT NULL AUTO_INCREMENT,
-				  `name` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
-				  `meta-category` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
-				  `description` text CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+					`id` int(11) NOT NULL AUTO_INCREMENT,
+					`name` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+					`meta-category` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+					`description` text CHARACTER SET utf8 COLLATE utf8_unicode_ci,
 					`template_uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
 					`template_version` int(11) NOT NULL,
-				  `event_id` int(11) NOT NULL,
-				  `uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
-				  `timestamp` int(11) NOT NULL DEFAULT 0,
-				  `distribution` tinyint(4) NOT NULL DEFAULT 0,
-				  `sharing_group_id` int(11),
-				  `comment` text COLLATE utf8_bin NOT NULL,
-				  PRIMARY KEY (id),
-				  INDEX `name` (`name`(255)),
+					`event_id` int(11) NOT NULL,
+					`uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
+					`timestamp` int(11) NOT NULL DEFAULT 0,
+					`distribution` tinyint(4) NOT NULL DEFAULT 0,
+					`sharing_group_id` int(11),
+					`comment` text COLLATE utf8_bin NOT NULL,
+					PRIMARY KEY (id),
+					INDEX `name` (`name`(255)),
 					INDEX `template_uuid` (`template_uuid`),
 					INDEX `template_version` (`template_version`(255)),
-				  INDEX `meta-category` (`meta-category`(255)),
-				  INDEX `event_id` (`event_id`),
-				  INDEX `uuid` (`uuid`),
-				  INDEX `timestamp` (`timestamp`),
-				  INDEX `distribution` (`distribution`),
-				  INDEX `sharing_group_id` (`sharing_group_id`)
+					INDEX `meta-category` (`meta-category`(255)),
+					INDEX `event_id` (`event_id`),
+					INDEX `uuid` (`uuid`),
+					INDEX `timestamp` (`timestamp`),
+					INDEX `distribution` (`distribution`),
+					INDEX `sharing_group_id` (`sharing_group_id`)
 				) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
 
 				$sqlArray[] = "CREATE TABLE IF NOT EXISTS object_references (
-				  `id` int(11) NOT NULL AUTO_INCREMENT,
-				  `uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
-				  `timestamp` int(11) NOT NULL DEFAULT 0,
-				  `referenced_attribute_uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
-				  `type` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
-				  `comment` text COLLATE utf8_bin NOT NULL,
-				  PRIMARY KEY (id),
-				  INDEX `name` (`name`),
-				  INDEX `uuid` (`uuid`),
-				  INDEX `timestamp` (`timestamp`),
-				  INDEX `referenced_attribute_uuid` (`referenced_attribute_uuid`),
-				  INDEX `type` (`type`)
+					`id` int(11) NOT NULL AUTO_INCREMENT,
+					`uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
+					`timestamp` int(11) NOT NULL DEFAULT 0,
+					`referenced_attribute_uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
+					`type` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+					`comment` text COLLATE utf8_bin NOT NULL,
+					PRIMARY KEY (id),
+					INDEX `name` (`name`),
+					INDEX `uuid` (`uuid`),
+					INDEX `timestamp` (`timestamp`),
+					INDEX `referenced_attribute_uuid` (`referenced_attribute_uuid`),
+					INDEX `type` (`type`)
 				) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
 
 				$sqlArray[] = "CREATE TABLE IF NOT EXISTS object_templates (
-				  `id` int(11) NOT NULL AUTO_INCREMENT,
-				  `user_id` int(11) NOT NULL,
-				  `org_id` int(11) NOT NULL,
-				  `uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
-				  `name` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
-				  `meta-category` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
-				  `description` text COLLATE utf8_bin,
-				  `version` int(11) NOT NULL,
-				  `requirements` text COLLATE utf8_bin,
-				  PRIMARY KEY (id),
-				  INDEX `user_id` (`user_id`),
-				  INDEX `org_id` (`org_id`),
-				  INDEX `uuid` (`uuid`),
-				  INDEX `name` (`name`),
-				  INDEX `meta-category` (`meta-category`)
+					`id` int(11) NOT NULL AUTO_INCREMENT,
+					`user_id` int(11) NOT NULL,
+					`org_id` int(11) NOT NULL,
+					`uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
+					`name` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+					`meta-category` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+					`description` text COLLATE utf8_bin,
+					`version` int(11) NOT NULL,
+					`requirements` text COLLATE utf8_bin,
+					PRIMARY KEY (id),
+					INDEX `user_id` (`user_id`),
+					INDEX `org_id` (`org_id`),
+					INDEX `uuid` (`uuid`),
+					INDEX `name` (`name`),
+					INDEX `meta-category` (`meta-category`)
 				) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
 
 				$sqlArray[] = "CREATE TABLE IF NOT EXISTS object_template_elements (
-				  `id` int(11) NOT NULL AUTO_INCREMENT,
-				  `uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
-				  `version` int(11) NOT NULL,
-				  `in-object-name` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
-				  `type` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
-				  `frequency` int(11) NOT NULL,
-				  `categories` text COLLATE utf8_bin,
-				  `sane_default` text COLLATE utf8_bin,
-				  `values_list` text COLLATE utf8_bin,
-				  PRIMARY KEY (id),
-				  INDEX `uuid` (`uuid`),
-				  INDEX `in-object-name` (`in-object-name`),
-				  INDEX `type` (`type`)
+					`id` int(11) NOT NULL AUTO_INCREMENT,
+					`uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
+					`version` int(11) NOT NULL,
+					`in-object-name` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+					`type` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+					`frequency` int(11) NOT NULL,
+					`categories` text COLLATE utf8_bin,
+					`sane_default` text COLLATE utf8_bin,
+					`values_list` text COLLATE utf8_bin,
+					PRIMARY KEY (id),
+					INDEX `uuid` (`uuid`),
+					INDEX `in-object-name` (`in-object-name`),
+					INDEX `type` (`type`)
 				) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
 
 				$sqlArray[] = 'ALTER TABLE attributes CHANGE object_id object_id int(11) NOT NULL DEFAULT 0;';
@@ -1021,5 +1082,21 @@ class AppModel extends Model {
 
 	public function checkFilename($filename) {
 		return preg_match('@^([a-z0-9_.]+[a-z0-9_.\- ]*[a-z0-9_.\-]|[a-z0-9_.])+$@i', $filename);
+	}
+
+	public function setupRedis() {
+		if (class_exists('Redis')) {
+			$redis = new Redis();
+		} else {
+			return false;
+		}
+		$host = Configure::read('MISP.redis_host') ? Configure::read('MISP.redis_host') : '127.0.0.1';
+		$port = Configure::read('MISP.redis_port') ? Configure::read('MISP.redis_port') : 6379;
+		$database = Configure::read('MISP.redis_database') ? Configure::read('MISP.redis_database') : 13;
+		if (!$redis->connect($host, $port)) {
+			return false;
+		}
+		$redis->select($database);
+		return $redis;
 	}
 }

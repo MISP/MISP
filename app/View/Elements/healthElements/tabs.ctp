@@ -45,6 +45,6 @@
 		<a href="<?php echo $baseurl;?>/servers/serverSettings/files" id="download-button" title="Manage files" class="discrete">Manage files</a>
 	</span>
 	<span class="tabMenuFixed tabMenuFixedCenter tabMenuSides" style="margin-left:10px;">
-		<a href="<?php echo $baseurl;?>/servers/serverSettings/download" id="download-button" title="Download report" class="useCursorPointer discrete icon-download-alt"></a>
+		<a href="<?php echo $baseurl;?>/servers/serverSettings/download" id="download-button" title="Download report" role="button" tabindex="0" aria-label="Download report" class="useCursorPointer discrete icon-download-alt"></a>
 	</span>
 </div>

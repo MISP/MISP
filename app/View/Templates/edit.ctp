@@ -14,7 +14,7 @@
 					<tr>
 						<td><table><tr id = "tags"></tr></table></td>
 						<td id = "addTagButtonTD">
-							<span onClick="activateTagField()" id="addTagButton" class="btn btn-inverse noPrint" style="line-height:10px; padding: 4px 4px;">+</span>
+							<span role="button" tabindex="0" aria-label="Add tag" title="Add tag" onClick="activateTagField()" id="addTagButton" class="btn btn-inverse noPrint" style="line-height:10px; padding: 4px 4px;">+</span>
 						</td>
 						<td id = "addTagFieldTD">
 							<?php

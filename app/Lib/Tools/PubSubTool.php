@@ -10,6 +10,9 @@ class PubSubTool {
 				'redis_namespace' => 'mispq',
 				'port' => '50000',
 		);
+
+		$topics = array('misp_json', 'misp_json_attribute');
+
 		foreach ($settings as $key => $setting) {
 			$temp = Configure::read('Plugin.ZeroMQ_' . $key);
 			if ($temp) $settings[$key] = $temp;
@@ -60,15 +63,33 @@ class PubSubTool {
 	}
 
 	public function publishEvent($event) {
-		$settings = $this->__setupPubServer();
 		App::uses('JSONConverterTool', 'Tools');
 		$jsonTool = new JSONConverterTool();
-		$json = $jsonTool->event2JSON($event);
+		$json = $jsonTool->convert($event);
+		return $this->__pushToRedis(':data:misp_json', $json);
+	}
+
+	private function __pushToRedis($ns, $data) {
+		$settings = $this->__setupPubServer();
 		$redis = new Redis();
-		$redis->connect($settings['redis_host'], $settings['redis_port']);
+		if (!$redis->connect($settings['redis_host'], $settings['redis_port'])) {
+			return false;
+		}
 		$redis->select($settings['redis_database']);
-		$redis->rPush($settings['redis_namespace'] . ':misp_json', $json);
+		$redis->rPush($settings['redis_namespace'] . $ns, $data);
 		return true;
+	}
+
+	public function attribute_save($attribute) {
+		return $this->__pushToRedis(':data:misp_json_attribute', json_encode($attribute, JSON_PRETTY_PRINT));
+	}
+
+	public function sighting_save($sighting) {
+		return $this->__pushToRedis(':data:misp_json_sighting', json_encode($sighting, JSON_PRETTY_PRINT));
+	}
+
+	public function modified($data, $type) {
+		return $this->__pushToRedis(':data:misp_json_' . $type, json_encode($data, JSON_PRETTY_PRINT));
 	}
 
 	public function killService($settings = false) {
@@ -100,8 +121,10 @@ class PubSubTool {
 	}
 
 	public function restartServer() {
-		if (!$this->killService()) {
-			return 'Could not kill the previous instance of the ZeroMQ script.';
+		if (!$this->checkIfRunning()) {
+			if (!$this->killService()) {
+				return 'Could not kill the previous instance of the ZeroMQ script.';
+			}
 		}
 		$this->__setupPubServer();
 		if (!is_numeric($this->checkIfRunning())) return 'Failed starting the ZeroMQ script.';

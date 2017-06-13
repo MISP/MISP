@@ -4,7 +4,7 @@ App::uses('BaseAuthenticate', 'Controller/Component/Auth');
 App::uses('RandomTool', 'Tools');
 
 if (session_status() == PHP_SESSION_NONE) {
-    session_start();
+	session_start();
 }
 session_regenerate_id();
 /*
@@ -133,7 +133,7 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
 			'confirm_password' => $password,
 			'authkey' => $authKey,
 			'nids_sid' => ((int)$nidsMax[0][0]['nidsMax'])+1,
-			'newsread' => date('Y-m-d'),
+			'newsread' => time(),
 			'role_id' => $roleId,
 			'change_pw' => 0
 		));

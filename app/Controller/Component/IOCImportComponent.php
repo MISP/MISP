@@ -209,7 +209,7 @@ class IOCImportComponent extends Component {
 	private function __setSuccesses($branch) {
 		foreach ($branch['leaves'] as $key => $value) {
 			$branch['leaves'][$key]['success'] = (in_array($value['uuid'], $this->saved_uuids) ? true : false);
-			if (!$value['success']) $this->fails[] = $value;
+			if (!array_key_exists('success', $value) || !$value['success']) $this->fails[] = $value;
 		}
 		foreach ($branch['branches'] as $key => $value) {
 			$branch['branches'][$key] = $this->__setSuccesses($value);
@@ -235,7 +235,7 @@ class IOCImportComponent extends Component {
 	// dissect the indicator and convert it into an attribute
 	private function __analyseIndicator($attribute) {
 		$attribute['distribution'] = $this->distribution;
-		$temp = $this->__checkType($attribute['search']);
+		$temp = $this->__checkType($attribute['search'], $attribute['type']);
 		if ($attribute['condition'] !== 'containsnot') {
 			if (!$temp) return false;
 			$attribute['category'] = $temp[0];
@@ -302,10 +302,10 @@ class IOCImportComponent extends Component {
 		return (bool)count(array_filter(array_keys($array), 'is_string'));
 	}
 
-	private function __checkType($type) {
+	private function __checkType($search, $type) {
 		// Here we have to figure out how to best map the indicator to an attribute. This is an initial mapping, needs lots of tweaks still
 		// Keep in mind: names starting with "temp" will only be used for composite types, then changed to Other -> other.
-		switch ($type) {
+		switch ($search) {
 			case 'FileItem/FileName':
 			case 'DriverItem/DriverName':
 			case 'FileItem/FullPath':
@@ -326,8 +326,14 @@ class IOCImportComponent extends Component {
 				break;
 			case 'RouteEntryItem/Gateway':
 			case 'RouteEntryItem/Destination':
-				return array('Network activity', 'ip-dst', true);
-				break;
+				if ( $type === 'IP') {
+					return array('Network activity', 'ip-dst', true);
+					break;
+				}
+				if ( $type === 'string' or $type === 'String' ) {
+					return array('Network activity', 'domain', true);
+					break;
+				}
 			case 'Network/DNS':
 				return array('Network activity', 'domain', true);
 				break;

@@ -93,8 +93,13 @@ class NidsSuricataExport extends NidsExport {
 	
 		$scheme = parse_url($attribute['value'], PHP_URL_SCHEME);
 		$data = parse_url($attribute['value']);
-		if (!array_key_exists('port', $data)) {
-		    $data['port'] = null;
+		if (is_array($data)) {
+			if (!array_key_exists('port', $data)) {
+				$data['port'] = null;
+			}
+			if (!array_key_exists('host', $data)) {
+				$data['host'] = '';
+			}
 		}
 	
 		switch ($scheme) {
@@ -205,7 +210,7 @@ class NidsSuricataExport extends NidsExport {
 				1							// rev
 			);
 		}
-    }
+	}
 
 	public function userAgentRule($ruleFormat, $attribute, &$sid) {
 		$overruled = $this->checkWhitelist($attribute['value']);

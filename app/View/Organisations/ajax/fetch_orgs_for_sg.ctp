@@ -23,18 +23,18 @@
 				</td>
 			</tr>
 		</table>
-			<span class="btn btn-primary" style="margin-left:auto;margin-right:auto;width:40px;" onClick="submitPicklistValues('org', '<?php echo h($local);?>');">Add</span>
-			<span class="btn btn-inverse" style="float:right;margin-left:auto;margin-right:auto;width:40px;" onClick="cancelPicklistValues();">Cancel</span>
+			<span role="button" tabindex="0" aria-label="Submit organisations" title="Submit organisations" class="btn btn-primary" style="margin-left:auto;margin-right:auto;width:40px;" onClick="submitPicklistValues('org', '<?php echo h($local);?>');">Add</span>
+			<span role="button" tabindex="0" aria-label="Cancel" title="Cancel" class="btn btn-inverse" style="float:right;margin-left:auto;margin-right:auto;width:40px;" onClick="cancelPicklistValues();">Cancel</span>
 	</div>
 </div>
 <script>
 $("#btnLeft").click(function () {
-    var selectedItem = $("#rightValues option:selected");
-    $("#leftValues").append(selectedItem);
+	var selectedItem = $("#rightValues option:selected");
+	$("#leftValues").append(selectedItem);
 });
 
 $("#btnRight").click(function () {
-    var selectedItem = $("#leftValues option:selected");
-    $("#rightValues").append(selectedItem);
+	var selectedItem = $("#leftValues option:selected");
+	$("#rightValues").append(selectedItem);
 });
 </script>

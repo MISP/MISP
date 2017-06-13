@@ -2,7 +2,7 @@
 	<legend><?php echo __('Choose element type'); ?></legend>
 	<div class="popover_choice_main" id ="popover_choice_main">
 		<?php foreach ($templates as $k => $template): ?>
-			<div class="templateChoiceButton" style="width:100%;" title="<?php echo h($template['Template']['description']); ?>" onClick="document.location.href ='<?php echo $baseurl;?>/templates/populateEventFromTemplate/<?php echo $template['Template']['id'];?>/<?php echo $id; ?>'">
+			<div role="button" tabindex="0" aria-label="<?php echo h($template['Template']['description']); ?>" class="templateChoiceButton" style="width:100%;" title="<?php echo h($template['Template']['description']); ?>" onClick="document.location.href ='<?php echo $baseurl;?>/templates/populateEventFromTemplate/<?php echo $template['Template']['id'];?>/<?php echo $id; ?>'">
 				<div style="float:left;">
 				<?php
 					$imgRelativePath = 'orgs' . DS . h($template['Template']['org']) . '.png';
@@ -15,7 +15,7 @@
 			</div>
 		<?php endforeach; ?>
 	</div>
-	<div class="templateChoiceButton templateChoiceButtonLast" onClick="cancelPopoverForm();">Cancel</div>
+	<div role="button" tabindex="0" aria-label="Cancel" title="Cancel" class="templateChoiceButton templateChoiceButtonLast" onClick="cancelPopoverForm();">Cancel</div>
 </div>
 <script type="text/javascript">
 $(document).ready(function() {

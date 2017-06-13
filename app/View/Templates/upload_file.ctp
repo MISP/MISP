@@ -18,7 +18,7 @@ if ($batch == 'yes') {
 		echo $this->Form->end();
 	?>
 </div>
-<span id="fileUploadButton_<?php echo $element_id; ?>" class="btn btn-primary" onClick="templateFileUploadTriggerBrowse('<?php echo $element_id; ?>');"><?php echo $buttonText; ?></span>
+<span id="fileUploadButton_<?php echo $element_id; ?>"  role="button" tabindex="0" aria-label="<?php echo $buttonText; ?>" title="<?php echo $buttonText; ?>" class="btn btn-primary" onClick="templateFileUploadTriggerBrowse('<?php echo $element_id; ?>');"><?php echo $buttonText; ?></span>
 <script type="text/javascript">
 $(document).ready(function() {
 	<?php if (isset($filenames)): ?>

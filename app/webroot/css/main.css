@@ -729,18 +729,6 @@ a.proposal_link_red:hover {
 	padding-top:100px;
 }
 
-.attribute_creation {
-	width: 700px;
-	height: 420px;
-	top:150px;
-	left:calc(50% - 350px);
-	position: fixed;
-	background-color:#f4f4f4;
-	border-radius: 11px 11px 10px 10px;
-	box-shadow: 4px 4px 4px #333;
-	z-index:5;
-}
-
 .confirmation_box {
 	display:none;
 	width: 300px;
@@ -789,7 +777,7 @@ a.proposal_link_red:hover {
 .ajax_popover_form {
 	display:none;
 	width: 700px;
-	top:150px;
+	top:15%;
 	left:calc(50% - 350px);
 	position: fixed;
 	background-color:#f4f4f4;
@@ -1704,9 +1692,26 @@ table.table.table-striped tr.deleted_row td {
   stroke: none;
 }
 
-.sightings_advanced
-{
+.sightings_advanced {
 	width:1000px;
+}
+
+.vertical-scroll {
+	overflow-y: scroll;
+	overflow-x: hidden;
+}
+
+.popover {
+	max-width:100%;
+}
+
+.checkbox input[type=checkbox] {
+	margin-top:0px;
+}
+
+.simplepre {
+	border:0px !important;
+	background-color:#f4f4f4;
 }
 
 @-webkit-keyframes rotation {
