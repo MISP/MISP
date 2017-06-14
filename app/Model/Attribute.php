@@ -806,7 +806,7 @@ class Attribute extends AppModel {
 				}
 				break;
 			case 'port':
-				if (!is_numeric($value) || $value > 1 || $value < 65536) {
+				if (!is_numeric($value) || $value < 1 || $value > 65536) {
 					$returnValue = 'Port numbers have to be positive integers under 65536.';
 				} else {
 					$returnValue = true;
