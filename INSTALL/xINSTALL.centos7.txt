@@ -72,8 +72,7 @@ git checkout tags/$(git describe --tags `git rev-list --tags --max-count=1`)
 git config core.filemode false
 
 # install Mitre's STIX and its dependencies by running the following commands:
-pip install importlib
-yum install python-lxml python-dateutil python-six
+yum install python-importlib python-lxml python-dateutil python-six
 cd /var/www/MISP/app/files/scripts
 git clone https://github.com/CybOXProject/python-cybox.git
 git clone https://github.com/STIXProject/python-stix.git
@@ -86,6 +85,14 @@ umask 0022
 python setup.py install
 cd /var/www/MISP/app/files/scripts/python-stix
 git checkout v1.1.1.4
+git config core.filemode false
+python setup.py install
+
+# install mixbox to accomodate the new STIX dependencies:
+cd /var/www/MISP/app/files/scripts/
+git clone https://github.com/CybOXProject/mixbox.git
+cd /var/www/MISP/app/files/scripts/mixbox
+git checkout v1.0.2
 git config core.filemode false
 python setup.py install
 umask $UMASK
