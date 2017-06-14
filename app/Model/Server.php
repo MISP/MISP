@@ -2914,7 +2914,7 @@ class Server extends AppModel {
 		return $readableFiles;
 	}
 
-	public function stixDiagnostics(&$diagnostic_errors, &$stixVersion, &$cyboxVersion) {
+	public function stixDiagnostics(&$diagnostic_errors, &$stixVersion, &$cyboxVersion, &$mixboxVersion) {
 		$result = array();
 		$expected = array('stix' => '1.1.1.4', 'cybox' => '2.1.0.12', 'mixbox' => '1.0.2');
 		// check if the STIX and Cybox libraries are working using the test script stixtest.py
