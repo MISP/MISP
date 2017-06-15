@@ -19,6 +19,14 @@ class PostsController extends AppController {
 	public $paginate = array(
 			'limit' => 60,
 	);
+    
+    function pushMessageToZMQ($message = null) {
+        if (Configure::read("Plugin.ZeroMQ_enable")) {
+            App::uses('PubSubTool', 'Tools');
+            $pubSubTool = new PubSubTool();
+            $pubSubTool->publishConversation($message);
+        }
+    }
 
 	// Find the thread_id and post_id in advance. If a user clicks post comment on the event view, send the event's related thread's ID
 	// Usage:
@@ -93,6 +101,7 @@ class PostsController extends AppController {
 				$event_id = $previousPost['Thread']['event_id'];
 				$post_id = $target_id;
 				$target_thread_id = $previousPost['Thread']['id'];
+                
 			break;
 			default:
 				$target_thread_id = null;
@@ -126,6 +135,8 @@ class PostsController extends AppController {
 						'post_count' => 1,
 						'org_id' => $this->Auth->user('org_id')
 				);
+                $this->pushMessageToZMQ(Array("Thread" => $newThread));
+
 				$this->Thread->save($newThread);
 				$target_thread_id = $this->Thread->getId();
 			} else {
@@ -144,6 +155,9 @@ class PostsController extends AppController {
 					'post_id' => $post_id,
 					'thread_id' => $target_thread_id,
 			);
+
+            $this->pushMessageToZMQ(Array("Post" => $newPost));
+
 			if ($this->Post->save($newPost)) {
 				$this->Thread->recursive = 0;
 				$this->Thread->contain('Post');
