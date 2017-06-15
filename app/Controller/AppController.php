@@ -79,6 +79,13 @@ class AppController extends Controller {
 			'RestResponse'
 	);
 
+	private function __isApiFunction($controller, $action) {
+		if (isset($this->automationArray[$controller]) && in_array($action, $this->automationArray[$controller])) {
+			return true;
+		}
+		return false;
+	}
+
 	public function beforeFilter() {
 		// check for a supported datasource configuration
 		$dataSourceConfig = ConnectionManager::getDataSource('default')->config;
@@ -162,7 +169,9 @@ class AppController extends Controller {
 						if (preg_match('/^[a-zA-Z0-9]{40}$/', trim($auth_key))) {
 							$found_misp_auth_key = true;
 							$temp = $this->checkAuthUser(trim($auth_key));
-							if ($temp) $user['User'] = $this->checkAuthUser(trim($auth_key));
+							if ($temp) {
+								$user['User'] = $this->checkAuthUser(trim($auth_key));
+							}
 						}
 					}
 					if ($found_misp_auth_key) {
@@ -394,7 +403,8 @@ class AppController extends Controller {
 	}
 
 	protected function _isRest() {
-		return (isset($this->RequestHandler) && ($this->RequestHandler->isXml() || $this->_isJson()));
+		$api = $this->__isApiFunction($this->request->params['controller'], $this->request->params['action']);
+		return (isset($this->RequestHandler) && ($api || $this->RequestHandler->isXml() || $this->_isJson()));
 	}
 
 	protected function _isAutomation() {

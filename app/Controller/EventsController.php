@@ -2054,7 +2054,7 @@ class EventsController extends AppController {
 		$paramArray = array('eventid', 'ignore', 'tags', 'category', 'type', 'includeContext', 'from', 'to', 'last', 'headerless', 'enforceWarninglist');
 		if ($this->request->is('post')) {
 			if (empty($this->request->data)) {
-				throw new BadRequestException('Either specify the search terms in the url, or POST a json or xml with the filter parameters.');
+				return $this->RestResponse->throwException(400, 'Either specify the search terms in the url, or POST a json or xml with the filter parameters.', 'csv', true);
 			} else {
 				$data = $this->request->data;
 			}
@@ -2143,18 +2143,20 @@ class EventsController extends AppController {
 		}
 		$this->response->type('csv');	// set the content type
 		if (!$exportType) {
-			$this->header('Content-Disposition: download; filename="misp.all_attributes.csv"');
+			$filename = "misp.all_attributes.csv";
 		} else if ($exportType === 'search') {
-			$this->header('Content-Disposition: download; filename="misp.search_result.csv"');
+			$filename = "misp.search_result.csv";
 		} else {
-			$this->header('Content-Disposition: download; filename="misp.event_' . $exportType . '.csv"');
+			$filename = "misp.event_' . $exportType . '.csv";
 		}
 		$this->layout = 'text/default';
 		$headers = array('uuid', 'event_id', 'category', 'type', 'value', 'comment', 'to_ids', 'date');
 		if ($includeContext) $headers = array_merge($headers, array_keys($this->Event->csv_event_context_fields_to_fetch));
-		$this->set('headers', $headers);
-		$this->set('final', $final);
-		$this->set('headerless', $headerless);
+		$headers = implode(',', $headers);
+		$final = array_merge(array($headers), $final);
+		$final = implode (PHP_EOL, $final);
+		$final .= PHP_EOL;
+		return $this->RestResponse->viewData($final, 'csv', false, true, $filename);
 	}
 
 	public function _addGfiZip($id) {
