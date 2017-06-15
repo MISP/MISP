@@ -69,6 +69,11 @@ class PubSubTool {
 		return $this->__pushToRedis(':data:misp_json', $json);
 	}
 
+    public function publishConversation($message) {
+        return $this->__pushToRedis(':data:misp_json_conversation', json_encode($message, JSON_PRETTY_PRINT));
+    }
+
+
 	private function __pushToRedis($ns, $data) {
 		$settings = $this->__setupPubServer();
 		$redis = new Redis();
