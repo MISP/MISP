@@ -2,6 +2,7 @@
 class PubSubTool {
 
 	private $__redis = false;
+	private $__settings = false;
 
 	private function __getSetSettings() {
 		$settings = array(
@@ -30,8 +31,9 @@ class PubSubTool {
 			$redis->connect($settings['redis_host'], $settings['redis_port']);
 			$redis->select($settings['redis_database']);
 			$this->__redis = $redis;
+			$this->__settings = $settings;
 		} else {
-			$settings = $this->__getSetSettings();
+			$settings = $this->__settings;
 		}
 		return $settings;
 	}
@@ -87,11 +89,6 @@ class PubSubTool {
 	}
 
 	private function __pushToRedis($ns, $data) {
-		$settings = $this->__setupPubServer();
-		$redis = new Redis();
-		if (!$redis->connect($settings['redis_host'], $settings['redis_port'])) {
-			return false;
-		}
 		$settings = $this->__getSetSettings();
 		$this->__redis->select($settings['redis_database']);
 		$this->__redis->rPush($settings['redis_namespace'] . $ns, $data);
