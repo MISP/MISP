@@ -148,7 +148,7 @@ class Sighting extends AppModel {
 			if ($result === false) {
 				return json_encode($this->validationErrors);
 			}
-			$sightingsAdded += $this->save($sighting) ? 1 : 0;
+			$sightingsAdded += $result ? 1 : 0;
 		}
 		if ($sightingsAdded == 0) {
 			return 'There was nothing to add.';
