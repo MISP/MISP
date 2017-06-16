@@ -2869,7 +2869,7 @@ class Event extends AppModel {
 		$randomFileName = $this->generateRandomFileName();
 		$tmpDir = APP . "files" . DS . "scripts" . DS . "tmp";
 		$stixFile = new File($tmpDir . DS . $randomFileName . ".stix");
-		$stix_framing = shell_exec('python ' . APP . "files" . DS . "scripts" . DS . 'misp2stix_framing.py ' . escapeshellarg(Configure::read('MISP.baseurl')) . ' ' . escapeshellarg(Configure::read('MISP.org')) . ' ' . escapeshellarg($returnType));
+		$stix_framing = shell_exec('python ' . APP . "files" . DS . "scripts" . DS . 'misp2stix_framing.py ' . escapeshellarg(Configure::read('MISP.baseurl')) . ' ' . escapeshellarg(Configure::read('MISP.org')) . ' ' . escapeshellarg($returnType) . ' 2>' . APP . 'tmp/logs/exec-errors.log');
 		if (empty($stix_framing)) {
 			$stixFile->delete();
 			return array('success' => 0, 'message' => 'There was an issue generating the STIX export.');
