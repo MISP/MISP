@@ -1404,13 +1404,7 @@ class Attribute extends AppModel {
 		} else {
 			$ip = $a['value1'];
 			$ip_version = filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
-			$redis = $this->setupRedis();
-			if ($redis === false) {
-				return false;
-			}
-			if ($this->setupRedis()) {
-				$cidrList = $this->getSetCIDRList();
-			}
+			$cidrList = $this->getSetCIDRList();
 			foreach ($cidrList as $cidr) {
 				$cidr_ip = explode('/', $cidr)[0];
 				if (filter_var($cidr_ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
