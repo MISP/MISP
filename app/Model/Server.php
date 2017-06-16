@@ -2393,8 +2393,7 @@ class Server extends AppModel {
 	}
 
 	public function zmqAfterHook($setting, $value) {
-		App::uses('PubSubTool', 'Tools');
-		$pubSubTool = new PubSubTool();
+		$pubSubTool = $this->getPubSubTool();
 		// If we are trying to change the enable setting to false, we don't need to test anything, just kill the server and return true.
 		if ($setting == 'Plugin.ZeroMQ_enable') {
 			if ($value == false || $value == 0) {
@@ -2977,8 +2976,7 @@ class Server extends AppModel {
 
 	public function zmqDiagnostics(&$diagnostic_errors) {
 		if (!Configure::read('Plugin.ZeroMQ_enable')) return 1;
-		App::uses('PubSubTool', 'Tools');
-		$pubSubTool = new PubSubTool();
+		$pubSubTool = $this->getPubSubTool();
 		if (!$pubSubTool->checkIfPythonLibInstalled()) {
 			$diagnostic_errors++;
 			return 2;

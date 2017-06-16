@@ -52,8 +52,7 @@ class Sighting extends AppModel {
 
 	public function afterSave($created, $options = array()) {
 		if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_sighting_notifications_enable')) {
-			App::uses('PubSubTool', 'Tools');
-			$pubSubTool = new PubSubTool();
+			$pubSubTool = $this->getPubSubTool();
 			$pubSubTool->sighting_save($this->data);
 		}
 		return true;

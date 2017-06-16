@@ -1,6 +1,8 @@
 <?php
 class PubSubTool {
 
+	private $__redis = false;
+
 	private function __getSetSettings() {
 		$settings = array(
 				'redis_host' => 'localhost',
@@ -11,8 +13,6 @@ class PubSubTool {
 				'port' => '50000',
 		);
 
-		$topics = array('misp_json', 'misp_json_attribute');
-
 		foreach ($settings as $key => $setting) {
 			$temp = Configure::read('Plugin.ZeroMQ_' . $key);
 			if ($temp) $settings[$key] = $temp;
@@ -20,6 +20,19 @@ class PubSubTool {
 		$settingsFile = new File(APP . 'files' . DS . 'scripts' . DS . 'mispzmq' . DS . 'settings.json', true, 0644);
 		$settingsFile->write(json_encode($settings, true));
 		$settingsFile->close();
+		return $settings;
+	}
+
+	public function initTool() {
+		if (!$this->__redis) {
+			$settings = $this->__setupPubServer();
+			$redis = new Redis();
+			$redis->connect($settings['redis_host'], $settings['redis_port']);
+			$redis->select($settings['redis_database']);
+			$this->__redis = $redis;
+		} else {
+			$settings = $this->__getSetSettings();
+		}
 		return $settings;
 	}
 
@@ -69,14 +82,13 @@ class PubSubTool {
 		return $this->__pushToRedis(':data:misp_json', $json);
 	}
 
-	private function __pushToRedis($ns, $data) {
-		$settings = $this->__setupPubServer();
-		$redis = new Redis();
-		if (!$redis->connect($settings['redis_host'], $settings['redis_port'])) {
-			return false;
+	private function __pushToRedis($ns, $data, $redis = false) {
+		if (!$this->__redis) {
+			$settings = $this->initTool();
 		}
-		$redis->select($settings['redis_database']);
-		$redis->rPush($settings['redis_namespace'] . $ns, $data);
+		$settings = $this->__getSetSettings();
+		$this->__redis->select($settings['redis_database']);
+		$this->__redis->rPush($settings['redis_namespace'] . $ns, $data);
 		return true;
 	}
 

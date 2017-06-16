@@ -26,6 +26,8 @@ class AppModel extends Model {
 
 	public $name;
 
+	public $loadedPubSubTool = false;
+
 	public function __construct($id = false, $table = null, $ds = null) {
 		parent::__construct($id, $table, $ds);
 
@@ -1018,5 +1020,20 @@ class AppModel extends Model {
 		}
 		$redis->select($database);
 		return $redis;
+	}
+
+	public function getPubSubTool() {
+		if (!$this->loadedPubSubTool) {
+			$this->loadPubSubTool();
+		}
+		return $this->loadedPubSubTool;
+	}
+
+	public function loadPubSubTool() {
+		App::uses('PubSubTool', 'Tools');
+		$pubSubTool = new PubSubTool();
+		$pubSubTool->initTool();
+		$this->loadedPubSubTool = $pubSubTool;
+		return true;
 	}
 }

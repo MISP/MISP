@@ -258,8 +258,7 @@ class User extends AppModel {
 
 	public function afterSave($created, $options = array()) {
 		if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_user_notifications_enable')) {
-			App::uses('PubSubTool', 'Tools');
-			$pubSubTool = new PubSubTool();
+			$pubSubTool = $this->getPubSubTool();
 			$user = $this->data;
 			if (isset($user['User']['password'])) {
 				unset($user['User']['password']);

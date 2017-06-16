@@ -2201,7 +2201,6 @@ class Event extends AppModel {
 					}
 				}
 			}
-
 			if ($fromXml) $created_id = $this->id;
 			if (!empty($data['Event']['published']) && 1 == $data['Event']['published']) {
 				// do the necessary actions to publish the event (email, upload,...)
@@ -2649,8 +2648,7 @@ class Event extends AppModel {
 			$this->save($event, array('fieldList' => $fieldList));
 		}
 		if (Configure::read('Plugin.ZeroMQ_enable')) {
-			App::uses('PubSubTool', 'Tools');
-			$pubSubTool = new PubSubTool();
+			$pubSubTool = $this->getPubSubTool();
 			$hostOrg = $this->Org->find('first', array('conditions' => array('name' => Configure::read('MISP.org')), 'fields' => array('id')));
 			if (!empty($hostOrg)) {
 				$user = array('org_id' => $hostOrg['Org']['id'], 'Role' => array('perm_sync' => 0, 'perm_audit' => 0, 'perm_site_admin' => 0), 'Organisation' => $hostOrg['Org']);

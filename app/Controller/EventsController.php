@@ -4270,8 +4270,7 @@ class EventsController extends AppController {
 	public function pushEventToZMQ($id) {
 		if ($this->request->is('Post')) {
 			if (Configure::read('Plugin.ZeroMQ_enable')) {
-				App::uses('PubSubTool', 'Tools');
-				$pubSubTool = new PubSubTool();
+				$pubSubTool = $this->Event->getPubSubTool();
 				$event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
 				if (!empty($event)) {
 					$pubSubTool->publishEvent($event[0]);

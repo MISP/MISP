@@ -554,8 +554,7 @@ class Attribute extends AppModel {
 			$this->__afterSaveCorrelation($this->data['Attribute']);
 		}
 		if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_attribute_notifications_enable')) {
-			App::uses('PubSubTool', 'Tools');
-			$pubSubTool = new PubSubTool();
+			$pubSubTool = $this->getPubSubTool();
 			$pubSubTool->attribute_save($this->data);
 		}
 		$result = true;
