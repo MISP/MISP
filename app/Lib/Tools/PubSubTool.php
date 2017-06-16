@@ -82,9 +82,15 @@ class PubSubTool {
 		return $this->__pushToRedis(':data:misp_json', $json);
 	}
 
-	private function __pushToRedis($ns, $data, $redis = false) {
-		if (!$this->__redis) {
-			$settings = $this->initTool();
+	public function publishConversation($message) {
+			return $this->__pushToRedis(':data:misp_json_conversation', json_encode($message, JSON_PRETTY_PRINT));
+	}
+
+	private function __pushToRedis($ns, $data) {
+		$settings = $this->__setupPubServer();
+		$redis = new Redis();
+		if (!$redis->connect($settings['redis_host'], $settings['redis_port'])) {
+			return false;
 		}
 		$settings = $this->__getSetSettings();
 		$this->__redis->select($settings['redis_database']);
