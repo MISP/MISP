@@ -19,14 +19,13 @@ class PostsController extends AppController {
 	public $paginate = array(
 			'limit' => 60,
 	);
-    
-    function pushMessageToZMQ($message = null) {
-        if (Configure::read("Plugin.ZeroMQ_enable")) {
-            App::uses('PubSubTool', 'Tools');
-            $pubSubTool = new PubSubTool();
-            $pubSubTool->publishConversation($message);
-        }
-    }
+
+	function pushMessageToZMQ($message = null) {
+		if (Configure::read("Plugin.ZeroMQ_enable")) {
+			$pubSubTool = $this->Event->getPubSubTool();
+			$pubSubTool->publishConversation($message);
+		}
+	}
 
 	// Find the thread_id and post_id in advance. If a user clicks post comment on the event view, send the event's related thread's ID
 	// Usage:
@@ -101,7 +100,7 @@ class PostsController extends AppController {
 				$event_id = $previousPost['Thread']['event_id'];
 				$post_id = $target_id;
 				$target_thread_id = $previousPost['Thread']['id'];
-                
+
 			break;
 			default:
 				$target_thread_id = null;
@@ -135,9 +134,11 @@ class PostsController extends AppController {
 						'post_count' => 1,
 						'org_id' => $this->Auth->user('org_id')
 				);
-                $this->pushMessageToZMQ(Array("Thread" => $newThread));
-
-				$this->Thread->save($newThread);
+				if ($this->Thread->save($newThread)) {
+					$newThread['org_name'] = $this->Auth->user('Organisation')['name'];
+					$newThread['user_email'] = $this->Auth->user('email');
+					$this->pushMessageToZMQ(Array("Thread" => $newThread));
+				}
 				$target_thread_id = $this->Thread->getId();
 			} else {
 				// In this case, we have a post that was posted in an already existing thread. Update the thread!
@@ -156,9 +157,11 @@ class PostsController extends AppController {
 					'thread_id' => $target_thread_id,
 			);
 
-            $this->pushMessageToZMQ(Array("Post" => $newPost));
-
 			if ($this->Post->save($newPost)) {
+				$newPost['user_email'] = $this->Auth->user('email');
+				$newPost['org_id'] = $this->Auth->user('org_id');
+				$newPost['org_name'] = $this->Auth->user('Organisation')['name'];
+				$this->pushMessageToZMQ(Array("Post" => $newPost));
 				$this->Thread->recursive = 0;
 				$this->Thread->contain('Post');
 				$thread = $this->Thread->read(null, $target_thread_id);
