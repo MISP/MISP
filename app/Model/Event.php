@@ -2905,7 +2905,7 @@ class Event extends AppModel {
 			$tempFile->write(json_encode($event[0]));
 			unset($event);
 			$scriptFile = APP . "files" . DS . "scripts" . DS . "misp2stix.py";
-			$result = shell_exec('python ' . $scriptFile . ' ' . $randomFileName . ' ' . escapeshellarg($returnType) . ' ' . escapeshellarg(Configure::read('MISP.baseurl')) . ' ' . escapeshellarg(Configure::read('MISP.org')));
+			$result = shell_exec('python ' . $scriptFile . ' ' . $randomFileName . ' ' . escapeshellarg($returnType) . ' ' . escapeshellarg(Configure::read('MISP.baseurl')) . ' ' . escapeshellarg(Configure::read('MISP.org')) . ' 2>' . APP . 'tmp/logs/exec-errors.log');
 			// The result of the script will be a returned JSON object with 2 variables: success (boolean) and message
 			// If success = 1 then the temporary output file was successfully written, otherwise an error message is passed along
 			$decoded = json_decode($result, true);
