@@ -11,6 +11,7 @@
 	} else {
 		$page = 0;
 	}
+	$fieldCount = 9;
 	if (Configure::read('Plugin.Sightings_enable') !== false) {
 		if (!empty($event['Sighting'])) {
 			foreach ($sightingsData['data'] as $aid => $data) {
@@ -146,6 +147,7 @@
 			<th><?php echo $this->Paginator->sort('comment');?></th>
 			<?php
 				if ($mayChangeCorrelation && !$event['Event']['disable_correlation']):
+					$fieldCount += 1;
 			?>
 					<th>Correlate</th>
 			<?php
@@ -155,10 +157,15 @@
 			<th>Feed hits</th>
 			<th title="<?php echo $attrDescriptions['signature']['desc'];?>"><?php echo $this->Paginator->sort('to_ids', 'IDS');?></th>
 			<th title="<?php echo $attrDescriptions['distribution']['desc'];?>"><?php echo $this->Paginator->sort('distribution');?></th>
-			<?php if (Configure::read('Plugin.Sightings_enable') !== false): ?>
-				<th>Sightings</th>
-				<th>Activity</th>
-			<?php endif; ?>
+			<?php
+				if (Configure::read('Plugin.Sightings_enable') !== false):
+					$fieldCount += 2;
+			?>
+					<th>Sightings</th>
+					<th>Activity</th>
+			<?php
+				endif;
+			?>
 			<th class="actions">Actions</th>
 		</tr>
 		<?php
@@ -210,7 +217,7 @@
 						</td>
 					<?php endif;
 						if (isset($object['proposal_to_delete']) && $object['proposal_to_delete']):
-							for ($i = 0; $i < 9; $i++):
+							for ($i = 0; $i < $fieldCount; $i++):
 					?>
 								<td class="<?php echo $extra; ?>" style="font-weight:bold;"><?php echo ($i == 0 ? 'DELETE' : '&nbsp;'); ?></td>
 					<?php
