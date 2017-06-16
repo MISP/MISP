@@ -557,6 +557,9 @@ class Attribute extends AppModel {
 			$pubSubTool = $this->getPubSubTool();
 			$pubSubTool->attribute_save($this->data);
 		}
+		if (Configure::read('MISP.enable_advanced_correlations') && in_array($this->data['Attribute']['type'], array('ip-src', 'ip-dst', 'domain-ip')) && strpos($this->data['Attribute']['value'], '/')) {
+			$this->setCIDRList();
+		}
 		$result = true;
 		// if the 'data' field is set on the $this->data then save the data to the correct file
 		if (isset($this->data['Attribute']['type']) && $this->typeIsAttachment($this->data['Attribute']['type']) && !empty($this->data['Attribute']['data'])) {
@@ -580,6 +583,12 @@ class Attribute extends AppModel {
 		}
 		// update correlation..
 		$this->__beforeDeleteCorrelation($this->data['Attribute']['id']);
+	}
+
+	public function afterDelete() {
+		if (Configure::read('MISP.enable_advanced_correlations') && in_array($this->data['Attribute']['type'], array('ip-src', 'ip-dst', 'domain-ip')) && strpos($this->data['Attribute']['value'], '/')) {
+			$this->setCIDRList();
+		}
 	}
 
 	public function beforeValidate($options = array()) {
@@ -1395,14 +1404,13 @@ class Attribute extends AppModel {
 		} else {
 			$ip = $a['value1'];
 			$ip_version = filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
-			$cidrList = $this->find('list', array(
-				'conditions' => array(
-					'type' => array('ip-src', 'ip-dst'),
-					'value1 LIKE' => '%/%'
-				),
-				'fields' => array('value1'),
-				'order' => false
-			));
+			$redis = $this->setupRedis();
+			if ($redis === false) {
+				return false;
+			}
+			if ($this->setupRedis()) {
+				$cidrList = $this->getSetCIDRList();
+			}
 			foreach ($cidrList as $cidr) {
 				$cidr_ip = explode('/', $cidr)[0];
 				if (filter_var($cidr_ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
@@ -2497,5 +2505,46 @@ class Attribute extends AppModel {
 		}
 		array_push ($conditions['AND'], $subcondition);
 		return $conditions;
+	}
+
+	private function __getCIDRList() {
+		return $this->find('list', array(
+			'conditions' => array(
+				'type' => array('ip-src', 'ip-dst'),
+				'value1 LIKE' => '%/%'
+			),
+			'fields' => array('value1'),
+			'order' => false
+		));
+	}
+
+	public function setCIDRList() {
+		$redis = $this->setupRedis();
+		$cidrList = array();
+		if ($redis) {
+			$redis->del('misp:cidr_cache_list');
+			$cidrList = $this->__getCIDRList();
+			$pipeline = $redis->multi(Redis::PIPELINE);
+			foreach ($cidrList as $cidr) {
+				$pipeline->sadd('misp:cidr_cache_list', $cidr);
+			}
+			$pipeline->exec();
+			$redis->smembers('misp:cidr_cache_list');
+		}
+		return $cidrList;
+	}
+
+	public function getSetCIDRList() {
+		$redis = $this->setupRedis();
+		if ($redis) {
+			if (!$redis->exists('misp:cidr_cache_list') || $redis->sCard('misp:cidr_cache_list') == 0) {
+				$cidrList = $this->setCIDRList($redis);
+			} else {
+				$cidrList = $redis->smembers('misp:cidr_cache_list');
+			}
+		} else {
+			$cidrList = $this->__getCIDRList();
+		}
+		return $cidrList;
 	}
 }
