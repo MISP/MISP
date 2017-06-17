@@ -862,5 +862,37 @@
       "org_id": "0",
       "hide_tag": false
     }
+  },
+  {
+    "Feed": {
+      "id": "38",
+      "name": "ci-badguys.txt",
+      "provider": "cinsscore.com",
+      "url": "http://cinsscore.com/list/ci-badguys.txt",
+      "rules": "",
+      "enabled": true,
+      "distribution": "3",
+      "sharing_group_id": "0",
+      "tag_id": "0",
+      "default": false,
+      "source_format": "freetext",
+      "fixed_event": true,
+      "delta_merge": true,
+      "event_id": "0",
+      "publish": false,
+      "override_ids": true,
+      "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": true
+    },
+    "Tag": {
+      "id": "615",
+      "name": "osint:source-type=\"block-or-filter-list\"",
+      "colour": "#004f89",
+      "exportable": true,
+      "org_id": "0",
+      "hide_tag": false
+    }
   }
 ]
