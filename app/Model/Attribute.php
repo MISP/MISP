@@ -1454,27 +1454,24 @@ class Attribute extends AppModel {
 			if (!empty($a['value2']) && !isset($this->primaryOnlyCorrelatingTypes[$a['type']])) $correlatingValues[] = $a['value2'];
 			foreach ($correlatingValues as $k => $cV) {
 				$conditions = array(
-					'AND' => array(
-						'OR' => array(
-								'Attribute.value1' => $cV,
-								'AND' => array(
-										'Attribute.value2' => $cV,
-										'NOT' => array('Attribute.type' => $this->primaryOnlyCorrelatingTypes)
-								)
-						),
-						'Attribute.type !=' => $this->nonCorrelatingTypes,
-						'Attribute.disable_correlation' => 0,
-						'Event.disable_correlation' => 0
+					'OR' => array(
+							'Attribute.value1' => $cV,
+							'AND' => array(
+									'Attribute.value2' => $cV,
+									'NOT' => array('Attribute.type' => $this->primaryOnlyCorrelatingTypes)
+							)
 					),
+					'Attribute.disable_correlation' => 0,
+					'Event.disable_correlation' => 0,
 					'Attribute.deleted' => 0
 				);
 				if (!empty($extraConditions)) {
-					$conditions['AND']['OR'][] = $extraConditions;
+					$conditions['OR'][] = $extraConditions;
 				}
 				$correlatingAttributes[$k] = $this->find('all', array(
 						'conditions' => $conditions,
 						'recursive => -1',
-						'fields' => array('Attribute.event_id', 'Attribute.id', 'Attribute.distribution', 'Attribute.sharing_group_id', 'Attribute.deleted'),
+						'fields' => array('Attribute.event_id', 'Attribute.id', 'Attribute.distribution', 'Attribute.sharing_group_id', 'Attribute.deleted', 'Attribute.type'),
 						'contain' => array('Event' => array('fields' => array('Event.id', 'Event.date', 'Event.info', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id'))),
 						'order' => array(),
 				));
@@ -1482,6 +1479,7 @@ class Attribute extends AppModel {
 					if ($correlatingAttribute['Attribute']['id'] == $a['id']) unset($correlatingAttributes[$k][$key]);
 					else if ($correlatingAttribute['Attribute']['event_id'] == $a['event_id']) unset($correlatingAttributes[$k][$key]);
 					else if ($full && $correlatingAttribute['Attribute']['id'] <= $a['id']) unset($correlatingAttributes[$k][$key]);
+					else if (in_array($correlatingAttribute['Attribute']['type'], $this->nonCorrelatingTypes)) unset($correlatingAttributes[$k][$key]);
 					else if (isset($this->primaryOnlyCorrelatingTypes[$a['type']]) && $correlatingAttribute['value1'] !== $a['value1']) unset($correlatingAttribute[$k][$key]);
 				}
 			}
