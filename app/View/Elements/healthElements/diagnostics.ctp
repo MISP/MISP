@@ -333,4 +333,13 @@
 	</h3>
 	<p>Click the following button to go to the legacy administrative tools page. There should in general be no need to do this unless you are upgrading a very old MISP instance (<2.4), all updates are done automatically with more current versions.</p>
 	<span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick="location.href = '<?php echo $baseurl; ?>/pages/display/administration';">Legacy Administrative Tools</span>
+    <h3>
+		Verify bad link on attachments
+	</h3>
+	<p>Verify each attachment referenced in database is accessible on filesystem.</p>
+	<div style="background-color:#f7f7f9;width:400px;">
+        Non existing attachments referenced in Database....<span id="orphanedFileCount"><span style="color:orange;">Run the test below</span></span>
+    </div><br>
+	<span class="btn btn-inverse" role="button" tabindex="0" aria-label="Check bad link on attachments" title="Check bad link on attachments" style="padding-top:1px;padding-bottom:1px;" onClick="checkAttachments();">Check bad link on attachments</span>
+
 </div>

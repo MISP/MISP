@@ -2825,6 +2825,29 @@ function checkOrphanedAttributes() {
 	});
 }
 
+function checkAttachments() {
+	$.ajax({
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+		success:function (data, textStatus) {
+			var color = 'red';
+			var text = ' (Bad links detected)';
+			if (data !== undefined && data.trim() == '0') {
+				color = 'green';
+				text = ' (OK)';
+			}
+			$("#orphanedFileCount").html('<span class="' + color + '">' + data + text + '</span>');
+		},
+		complete:function() {
+			$(".loading").hide();
+		},
+		type:"get",
+		cache: false,
+		url: "/attributes/checkAttachments/",
+	});
+}
+
 function loadTagTreemap() {
 	$.ajax({
 		async:true,
