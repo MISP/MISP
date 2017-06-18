@@ -47,6 +47,7 @@ class EmailConfig {
 	public $default = array(
 		'transport'            => 'Mail',
 		'charset'              => 'utf-8',
+		'headers'              => array('Precedence' => 'bulk'),
 		//'additionalParameters' => '-f you@localhost'
 	);
 

@@ -86,14 +86,18 @@ class WarninglistsController extends AppController {
 					'change' => 'Executed an update of the warning lists, but there was nothing to update.',
 			));
 		}
-		if ($successes == 0 && $fails == 0) $this->Session->setFlash('All warninglists are up to date already.');
-		else if ($successes == 0) $this->Session->setFlash('Could not update any of the warning lists');
+		if ($successes == 0 && $fails == 0) $message = 'All warninglists are up to date already.';
+		else if ($successes == 0) $message = 'Could not update any of the warning lists';
 		else {
 			$message = 'Successfully updated ' . $successes . ' warninglists.';
 			if ($fails != 0) $message . ' However, could not update ' . $fails . ' warning list.';
-			$this->Session->setFlash($message);
 		}
-		$this->redirect(array('controller' => 'warninglists', 'action' => 'index'));
+		if ($this->_isRest()) {
+			return $this->RestResponse->saveSuccessResponse('Warninglist', 'update', false, $this->response->type(), $message);
+		} else {
+			$this->Session->setFlash($message);
+			$this->redirect(array('controller' => 'warninglists', 'action' => 'index'));
+		}
 	}
 
 	public function toggleEnable() {
@@ -109,6 +113,7 @@ class WarninglistsController extends AppController {
 			$message = 'enabled';
 		}
 		if ($this->Warninglist->save($currentState)) {
+			$this->Warninglist->regenerateWarninglistCaches($id);
 			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Warninglist ' . $message)), 'status' => 200));
 		} else {
 			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Warninglist could not be enabled.')), 'status' => 200));
@@ -121,6 +126,7 @@ class WarninglistsController extends AppController {
 		// DBMS interoperability: convert boolean false to integer 0 so cakephp doesn't try to insert an empty string into the database
 		if ($enable === false) $enable = 0;
 		$this->Warninglist->saveField('enabled', $enable);
+		$this->Warninglist->regenerateWarninglistCaches($id);
 		$this->Session->setFlash('Warninglist enabled');
 		$this->redirect(array('controller' => 'warninglists', 'action' => 'view', $id));
 	}

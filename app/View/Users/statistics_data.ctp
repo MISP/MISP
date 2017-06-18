@@ -21,6 +21,8 @@
 			if ($stats['event_count_month']) echo ' <span style="color:green">(+' . h($stats['attribute_count_month']) . ')</span>&nbsp;';
 			else echo ' <span style="color:red">(0)</span>&nbsp;';?>
 		</dd>
+		<dt>Attributes / event</dt>
+		<dd><?php echo h($stats['attributes_per_event']); ?>&nbsp;</dd>
 		<dt><?php echo 'Correlations found'; ?></dt>
 		<dd><?php echo h($stats['correlation_count']); ?>&nbsp;</dd>
 		<dt><?php echo 'Proposals active'; ?></dt>
@@ -60,13 +62,13 @@
 <table>
 <tr>
 <td style="vertical-align:top;">
-<div style="margin-right:5px;margin-top:40px;"><button id="goLeft" class="btn" onClick="goLeft()"><span class="icon-arrow-left"></span></button></div>
+<div style="margin-right:5px;margin-top:40px;"><button id="goLeft" class="btn" onClick="goLeft();" title="Go left"><span class="icon-arrow-left"></span></button></div>
 </td>
 <td>
 <div id="cal-heatmap"></div>
 </td>
 <td style="vertical-align:top;">
-<div style="margin-left:5px;margin-top:40px;"><button id="goRight" class="btn" onClick="goRight()"><span class="icon-arrow-right"></span></button></div>
+<div style="margin-left:5px;margin-top:40px;"><button id="goRight" class="btn" onClick="goRight();" title="Go right"><span class="icon-arrow-right"></span></button></div>
 </td>
 </tr>
 </table>

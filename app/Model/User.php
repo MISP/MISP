@@ -3,7 +3,7 @@ App::uses('AppModel', 'Model');
 App::uses('AuthComponent', 'Controller/Component');
 App::uses('RandomTool', 'Tools');
 
- class User extends AppModel {
+class User extends AppModel {
 
 	public $displayField = 'email';
 
@@ -249,8 +249,22 @@ App::uses('RandomTool', 'Tools');
 	}
 
 	public function beforeSave($options = array()) {
+		$this->data[$this->alias]['date_modified'] = time();
 		if (isset($this->data[$this->alias]['password'])) {
 			$this->data[$this->alias]['password'] = AuthComponent::password($this->data[$this->alias]['password']);
+		}
+		return true;
+	}
+
+	public function afterSave($created, $options = array()) {
+		if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_user_notifications_enable')) {
+			$pubSubTool = $this->getPubSubTool();
+			$user = $this->data;
+			if (isset($user['User']['password'])) {
+				unset($user['User']['password']);
+				unset($user['User']['confirm_password']);
+			}
+			$pubSubTool->modified($user, 'user');
 		}
 		return true;
 	}
@@ -349,7 +363,7 @@ App::uses('RandomTool', 'Tools');
 
 	public function passwordLength($check) {
 		$length = Configure::read('Security.password_policy_length');
-		if (empty($length) || $length < 0) $length = 6;
+		if (empty($length) || $length < 0) $length = 12;
 		$value = array_values($check);
 		$value = $value[0];
 		if (strlen($value) < $length) return false;
@@ -367,7 +381,7 @@ App::uses('RandomTool', 'Tools');
 	 */
 	public function complexPassword($check) {
 		$regex = Configure::read('Security.password_policy_complexity');
-		if (empty($regex) || @preg_match($regex, 'test') === false) $regex = '/((?=.*\d)|(?=.*\W+))(?![\n])(?=.*[A-Z])(?=.*[a-z]).*$/';
+		if (empty($regex) || @preg_match($regex, 'test') === false) $regex = '/^((?=.*\d)|(?=.*\W+))(?![\n])(?=.*[A-Z])(?=.*[a-z]).*$|.{16,}/';
 		$value = array_values($check);
 		$value = $value[0];
 		return preg_match($regex, $value);
@@ -434,47 +448,47 @@ App::uses('RandomTool', 'Tools');
 				)));
 	}
 
-  public function verifySingleGPG($user, $gpg = false) {
-    if (!$gpg) {
-      require_once 'Crypt/GPG.php';
-      $gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
-    }
-    $result = array();
-    try {
-      $currentTimestamp = time();
-      $temp = $gpg->importKey($user['User']['gpgkey']);
-      $key = $gpg->getKeys($temp['fingerprint']);
-      $subKeys = $key[0]->getSubKeys();
-      $sortedKeys = array('valid' => 0, 'expired' => 0, 'noEncrypt' => 0);
-      foreach ($subKeys as $subKey) {
-        $expiration = $subKey->getExpirationDate();
-        if ($expiration != 0 && $currentTimestamp > $expiration) {
-          $sortedKeys['expired']++;
-          continue;
-        }
-        if (!$subKey->canEncrypt()) {
-          $sortedKeys['noEncrypt']++;
-          continue;
-        }
-        $sortedKeys['valid']++;
-      }
-      if (!$sortedKeys['valid']) {
-        $result[2] = 'The user\'s PGP key does not include a valid subkey that could be used for encryption.';
-        if ($sortedKeys['expired']) $result[2] .= ' Found ' . $sortedKeys['expired'] . ' subkey(s) that have expired.';
-        if ($sortedKeys['noEncrypt']) $result[2] .= ' Found ' . $sortedKeys['noEncrypt'] . ' subkey(s) that are sign only.';
-        $result[0] = true;
-      }
-    } catch (Exception $e) {
-      $result[2] = $e->getMessage();
-      $result[0] = true;
-    }
-    $result[1] = $user['User']['email'];
-    $result[4] = $temp['fingerprint'];
-    return $result;
-  }
+	public function verifySingleGPG($user, $gpg = false) {
+		if (!$gpg) {
+			require_once 'Crypt/GPG.php';
+			$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
+		}
+		$result = array();
+		try {
+			$currentTimestamp = time();
+			$temp = $gpg->importKey($user['User']['gpgkey']);
+			$key = $gpg->getKeys($temp['fingerprint']);
+			$subKeys = $key[0]->getSubKeys();
+			$sortedKeys = array('valid' => 0, 'expired' => 0, 'noEncrypt' => 0);
+			foreach ($subKeys as $subKey) {
+				$expiration = $subKey->getExpirationDate();
+				if ($expiration != 0 && $currentTimestamp > $expiration) {
+					$sortedKeys['expired']++;
+					continue;
+				}
+				if (!$subKey->canEncrypt()) {
+					$sortedKeys['noEncrypt']++;
+					continue;
+				}
+				$sortedKeys['valid']++;
+			}
+			if (!$sortedKeys['valid']) {
+				$result[2] = 'The user\'s PGP key does not include a valid subkey that could be used for encryption.';
+				if ($sortedKeys['expired']) $result[2] .= ' Found ' . $sortedKeys['expired'] . ' subkey(s) that have expired.';
+				if ($sortedKeys['noEncrypt']) $result[2] .= ' Found ' . $sortedKeys['noEncrypt'] . ' subkey(s) that are sign only.';
+				$result[0] = true;
+			}
+		} catch (Exception $e) {
+			$result[2] = $e->getMessage();
+			$result[0] = true;
+		}
+		$result[1] = $user['User']['email'];
+		$result[4] = $temp['fingerprint'];
+		return $result;
+	}
 
 	public function verifyGPG($id = false) {
-    require_once 'Crypt/GPG.php';
+		require_once 'Crypt/GPG.php';
 		$this->Behaviors->detach('Trim');
 		$results = array();
 		$conditions = array('not' => array('gpgkey' => ''));
@@ -486,7 +500,7 @@ App::uses('RandomTool', 'Tools');
 		if (empty($users)) return $results;
 		$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
 		foreach ($users as $k => $user) {
-      $results[$user['User']['id']] = $this->verifySingleGPG($user, $gpg);
+			$results[$user['User']['id']] = $this->verifySingleGPG($user, $gpg);
 
 		}
 		return $results;
@@ -636,7 +650,6 @@ App::uses('RandomTool', 'Tools');
 			$conditions['AND']['OR'][] = array('role_id' => $roleIDs);
 		}
 		$conditions['AND'][] = $userConditions;
-
 		$users = $this->find('all', array(
 			'conditions' => $conditions,
 			'recursive' => -1,
@@ -678,7 +691,7 @@ App::uses('RandomTool', 'Tools');
 		$canEncryptSMIME = false;
 		if (isset($user['User']['certif_public']) && !empty($user['User']['certif_public']) && Configure::read('SMIME.enabled')) $canEncryptSMIME = true;
 
-		// If bodyonlencrypted is enabled and the user has no encryption key, use the alternate body (if it exists)
+		// If bodyonlyencrypted is enabled and the user has no encryption key, use the alternate body (if it exists)
 		if (Configure::read('GnuPG.bodyonlyencrypted') && !$canEncryptSMIME && !$canEncryptGPG && $bodyNoEnc) {
 			$body = $bodyNoEnc;
 		}
@@ -912,9 +925,9 @@ App::uses('RandomTool', 'Tools');
 				'conditions' => $conditions
 		);
 		$orgs = $this->find($findType, $params);
-    if (empty($orgs)) {
-      return 0;
-    }
+		if (empty($orgs)) {
+			return 0;
+		}
 		if ($org_id !== false) {
 			return $orgs[0]['num_members'];
 		} else {
@@ -991,26 +1004,26 @@ App::uses('RandomTool', 'Tools');
 		}
 	}
 
-  public function getOrgAdminsForOrg($org_id, $excludeUserId = false) {
-    $adminRoles = $this->Role->find('list', array(
-      'recursive' => -1,
-      'conditions' => array('perm_admin' => 1),
-      'fields' => array('Role.id', 'Role.id')
-    ));
-    $conditions = array(
-      'User.org_id' => $org_id,
-      'User.disabled' => 0,
-      'User.role_id' => $adminRoles
-    );
-    if ($excludeUserId) {
-      $conditions['User.id !='] = $excludeUserId;
-    }
-    return $this->find('list', array(
-      'recursive' => -1,
-      'conditions' => $conditions,
-      'fields' => array(
-        'User.id', 'User.email'
-      )
-    ));
-  }
+	public function getOrgAdminsForOrg($org_id, $excludeUserId = false) {
+		$adminRoles = $this->Role->find('list', array(
+			'recursive' => -1,
+			'conditions' => array('perm_admin' => 1),
+			'fields' => array('Role.id', 'Role.id')
+		));
+		$conditions = array(
+			'User.org_id' => $org_id,
+			'User.disabled' => 0,
+			'User.role_id' => $adminRoles
+		);
+		if ($excludeUserId) {
+			$conditions['User.id !='] = $excludeUserId;
+		}
+		return $this->find('list', array(
+			'recursive' => -1,
+			'conditions' => $conditions,
+			'fields' => array(
+				'User.id', 'User.email'
+			)
+		));
+	}
 }

@@ -24,7 +24,7 @@ class SharingGroup extends AppModel {
 		),
 		'uuid' => array(
 			'uuid' => array(
-				'rule' => array('uuid'),
+				'rule' => array('custom', '/^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/'),
 				'message' => 'Please provide a valid UUID'
 			),
 		)
@@ -280,7 +280,7 @@ class SharingGroup extends AppModel {
 
 	public function checkIfServerInSG($sg, $server) {
 		$conditional = false;
-		if (isset($sg['SharingGroupServer']) && !empty($sg['SharingGroupServer']) && !$sg['SharingGroup']['roaming']) {
+		if (isset($sg['SharingGroupServer']) && !empty($sg['SharingGroupServer']) && (empty($sg['SharingGroup']['roaming']) && empty($sg['roaming']))) {
 			foreach ($sg['SharingGroupServer'] as $s) {
 				if ($s['server_id'] == $server['Server']['id']) {
 					if ($s['all_orgs']) {

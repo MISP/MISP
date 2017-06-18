@@ -38,28 +38,28 @@
 	</dl>
 	<br />
 	<div class="pagination">
-        <ul>
-        <?php
-        if (!empty($filter)) $url = array($id, 'filter:' . $filter);
-        else $url = array($id);
-        $this->Paginator->options(array(
+		<ul>
+		<?php
+		if (!empty($filter)) $url = array($id, 'filter:' . $filter);
+		else $url = array($id);
+		$this->Paginator->options(array(
 			'url' => $url,
-            'update' => '.span12',
-            'evalScripts' => true,
-            'before' => '$(".progress").show()',
-            'complete' => '$(".progress").hide()',
-        ));
+			'update' => '.span12',
+			'evalScripts' => true,
+			'before' => '$(".progress").show()',
+			'complete' => '$(".progress").hide()',
+		));
 
-            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-            echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-        ?>
-        </ul>
-    </div>
-     <div id="attributeList" class="attributeListContainer">
+			echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
+			echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
+			echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
+		?>
+		</ul>
+	</div>
+	 <div id="attributeList" class="attributeListContainer">
 		<div class="tabMenuFixedContainer">
 			<div class="tabMenu tabMenuEditBlock noPrint mass-select" style="float:left;top:-1px;">
-				<span id="multi-edit-button" title="Create / update selected tags" class="icon-plus useCursorPointer" onClick="addSelectedTaxonomies(<?php echo $taxonomy['id']; ?>);"></span>
+				<span id="multi-edit-button" title="Create / update selected tags" role="button" tabindex="0" aria-label="Create and/or update selected tags" class="icon-plus useCursorPointer" onClick="addSelectedTaxonomies(<?php echo $taxonomy['id']; ?>);"></span>
 			</div>
 			<div style="float:right !important;overflow:hidden;border:0px;padding:0px;padding-right:200px;">
 					<input type="text" id="quickFilterField" class="tabMenuFilterField taxFilter" value="<?php echo h($filter);?>" /><span id="quickFilterButton" class="useCursorPointer taxFilterButton" onClick='quickFilterTaxonomy("<?php echo h($taxonomy['id']);?>");'>Filter</span>
@@ -111,11 +111,17 @@
 				<td class="short">
 				<?php
 					if ($item['existing_tag']):
-						$url = $baseurl . '/events/index/searchtag:' .  h($item['existing_tag']['Tag']['id']);
-						if ($isAclTagger) $url = $baseurl . '/tags/edit/' .  h($item['existing_tag']['Tag']['id']);
+						if ($item['existing_tag']['Tag']['hide_tag']):
+				?>
+							<span class="red bold">Hidden</span>
+				<?php
+						else:
+							$url = $baseurl . '/events/index/searchtag:' .  h($item['existing_tag']['Tag']['id']);
+							if ($isAclTagger) $url = $baseurl . '/tags/edit/' .  h($item['existing_tag']['Tag']['id']);
 				?>
 						<a href="<?php echo $url;?>" class="<?php echo $isAclTagger ? 'tagFirstHalf' : 'tag' ?>" style="background-color:<?php echo h($item['existing_tag']['Tag']['colour']);?>;color:<?php echo $this->TextColour->getTextColour($item['existing_tag']['Tag']['colour']);?>"><?php echo h($item['existing_tag']['Tag']['name']); ?></a>
 				<?php
+						endif;
 					endif;
 				?>
 				</td>
@@ -125,9 +131,21 @@
 						echo $this->Form->create('Tag', array('id' => 'quick_' . h($k), 'url' => '/taxonomies/addTag/', 'style' => 'margin:0px;'));
 						echo $this->Form->input('name', array('type' => 'hidden', 'value' => $item['tag']));
 						echo $this->Form->input('taxonomy_id', array('type' => 'hidden', 'value' => $taxonomy['id']));
+						echo $this->Form->end();
+						if ($item['existing_tag'] && !$item['existing_tag']['Tag']['hide_tag']):
+							echo $this->Form->create('Tag', array('id' => 'quick_disable_' . h($k), 'url' => '/taxonomies/disableTag/', 'style' => 'margin:0px;'));
+							echo $this->Form->input('name', array('type' => 'hidden', 'value' => $item['tag']));
+							echo $this->Form->input('taxonomy_id', array('type' => 'hidden', 'value' => $taxonomy['id']));
+							echo $this->Form->end();
 					?>
-						<span class="<?php echo $item['existing_tag'] ? 'icon-refresh' : 'icon-plus'; ?> useCursorPointer" onClick="submitQuickTag('<?php echo 'quick_' . h($k); ?>');"></span>
+							<span class="icon-refresh useCursorPointer" title="Refresh" role="button" tabindex="0" aria-label="Refresh" onClick="submitQuickTag('<?php echo 'quick_' . h($k); ?>');"></span>
+							<span class="icon-minus useCursorPointer" title="Disable" role="button" tabindex="0" aria-label="Disable" onClick="submitQuickTag('<?php echo 'quick_disable_' . h($k); ?>');"></span>
 					<?php
+						else:
+					?>
+							<span class="icon-plus useCursorPointer" title="Enable" role="button" tabindex="0" aria-label="Refresh or enable" onClick="submitQuickTag('<?php echo 'quick_' . h($k); ?>');"></span>
+					<?php
+						endif;
 						echo $this->Form->end();
 					} else {
 						echo 'N/A';
@@ -138,20 +156,20 @@
 			<?php endforeach; ?>
 		</table>
 		<p>
-	    <?php
-	    echo $this->Paginator->counter(array(
-	    'format' => __('Page {:page} of {:pages}, showing {:current} records out of {:count} total, starting on record {:start}, ending on {:end}')
-	    ));
-	    ?>
-	    </p>
-	    <div class="pagination">
-	        <ul>
-	        <?php
-	            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-	            echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-	            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-	        ?>
-	        </ul>
+		<?php
+		echo $this->Paginator->counter(array(
+		'format' => __('Page {:page} of {:pages}, showing {:current} records out of {:count} total, starting on record {:start}, ending on {:end}')
+		));
+		?>
+		</p>
+		<div class="pagination">
+			<ul>
+			<?php
+				echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
+				echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
+				echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
+			?>
+			</ul>
 		</div>
 	</div>
 </div>

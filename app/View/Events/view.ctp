@@ -162,6 +162,8 @@
 				<dd class="background-red bold not-published <?php echo ($event['Event']['published'] == 0) ? '' : 'hidden'; ?>">No</dd>
 				<dt class="bold published <?php echo ($event['Event']['published'] == 0) ? 'hidden' : ''; ?>">Published</dt>
 				<dd class="green bold published <?php echo ($event['Event']['published'] == 0) ? 'hidden' : ''; ?>">Yes</dd>
+				<dt>#Attributes</dt>
+				<dd><?php echo h($attribute_count);?></dd>
 				<?php
 					if (Configure::read('Plugin.Sightings_enable') !== false):
 				?>
@@ -170,7 +172,7 @@
 								<span id="eventSightingCount" class="bold sightingsCounter" data-toggle="popover" data-trigger="hover" data-content="<?php echo $sightingPopover; ?>"><?php echo count($event['Sighting']); ?></span>
 								(<span id="eventOwnSightingCount" class="green bold sightingsCounter" data-toggle="popover" data-trigger="hover" data-content="<?php echo $sightingPopover; ?>"><?php echo isset($ownSightings) ? count($ownSightings) : 0; ?></span>)
 								<?php if (!Configure::read('Plugin.Sightings_policy')) echo '- restricted to own organisation only.'; ?>
-								<span class="icon-wrench useCursorPointer sightings_advanced_add" data-object-id="<?php echo h($event['Event']['id']); ?>" data-object-context="event">&nbsp;</span>
+								<span class="icon-wrench useCursorPointer sightings_advanced_add" title="Advanced Sightings" role="button" tabindex="0" aria-label="Advanced sightings" data-object-id="<?php echo h($event['Event']['id']); ?>" data-object-context="event">&nbsp;</span>
 						</dd>
 						<dt>Activity</dt>
 						<dd>
@@ -202,14 +204,14 @@
 						<dt <?php echo $event['Event']['disable_correlation'] ? 'class="background-red bold"' : '';?>>Correlation</dt>
 						<dd <?php echo $event['Event']['disable_correlation'] ? 'class="background-red bold"' : '';?>>
 								<?php
-									if ($mayModify):
+									if ($mayModify || $isSiteAdmin):
 								 		if ($event['Event']['disable_correlation']):
 								?>
-											Disabled (<a onClick="getPopup('<?php echo h($event['Event']['id']); ?>', 'events', 'toggleCorrelation', '', '#confirmation_box');" style="color:white;cursor:pointer;" style="font-weight:normal;">enable</a>)
+											Disabled (<a onClick="getPopup('<?php echo h($event['Event']['id']); ?>', 'events', 'toggleCorrelation', '', '#confirmation_box');" style="color:white;cursor:pointer;font-weight:normal;">enable</a>)
 								<?php
 										else:
 								?>
-											Enabled (<a onClick="getPopup('<?php echo h($event['Event']['id']); ?>', 'events', 'toggleCorrelation', '', '#confirmation_box');" style="cursor:pointer;" style="font-weight:normal;">disable</a>)
+											Enabled (<a onClick="getPopup('<?php echo h($event['Event']['id']); ?>', 'events', 'toggleCorrelation', '', '#confirmation_box');" style="cursor:pointer;font-weight:normal;">disable</a>)
 								<?php
 										endif;
 									else:
@@ -233,7 +235,7 @@
 					<?php foreach ($event['RelatedEvent'] as $relatedEvent): ?>
 					<li>
 					<?php
-					$relatedData = array('Orgc' => $relatedEvent['Orgc']['name'], 'Date' => $relatedEvent['Event']['date'], 'Info' => $relatedEvent['Event']['info']);
+					$relatedData = array('Orgc' => $relatedEvent['Event']['Orgc']['name'], 'Date' => $relatedEvent['Event']['date'], 'Info' => $relatedEvent['Event']['info']);
 					$popover = '';
 					foreach ($relatedData as $k => $v) {
 						$popover .= '<span class=\'bold\'>' . h($k) . '</span>: <span class="blue">' . h($v) . '</span><br />';
@@ -270,16 +272,16 @@
 	<br />
 	<div class="toggleButtons">
 		<button class="btn btn-inverse toggle-left btn.active qet galaxy-toggle-button" id="pivots_toggle" data-toggle-type="pivots">
-			<span class="icon-minus icon-white" style="vertical-align:top;"></span>Pivots
+			<span class="icon-minus icon-white" title="Toggle pivot graph" role="button" tabindex="0" aria-label="Toggle pivot graph" style="vertical-align:top;"></span>Pivots
 		</button>
 		<button class="btn btn-inverse toggle qet galaxy-toggle-button" id="galaxies_toggle" data-toggle-type="galaxies">
-			<span class="icon-minus icon-white" style="vertical-align:top;"></span>Galaxy
+			<span class="icon-minus icon-white" title="Toggle galaxies" role="button" tabindex="0" aria-label="Toggle galaxies" style="vertical-align:top;"></span>Galaxy
 		</button>
 		<button class="btn btn-inverse toggle qet galaxy-toggle-button" id="attributes_toggle" data-toggle-type="attributes">
-			<span class="icon-minus icon-white" style="vertical-align:top;"></span>Attributes
+			<span class="icon-minus icon-white" title="Toggle attributes" role="button" tabindex="0" aria-label="Toggle attributes" style="vertical-align:top;"></span>Attributes
 		</button>
 		<button class="btn btn-inverse toggle-right qet galaxy-toggle-button" id="discussions_toggle" data-toggle-type="discussions">
-			<span class="icon-minus icon-white" style="vertical-align:top;"></span>Discussion
+			<span class="icon-minus icon-white" title="Toggle discussions" role="button" tabindex="0" aria-label="Toggle discussions" style="vertical-align:top;"></span>Discussion
 		</button>
 	</div>
 	<br />

@@ -66,6 +66,13 @@ cd /var/www/MISP/app/files/scripts/python-stix
 git checkout v1.1.1.4
 python setup.py install
 
+# install mixbox to accomodate the new STIX dependencies:
+cd /var/www/MISP/app/files/scripts/
+git clone https://github.com/CybOXProject/mixbox.git
+cd /var/www/MISP/app/files/scripts/mixbox
+git checkout v1.0.2
+python setup.py install
+
 4/ CakePHP
 -----------
 # CakePHP is now included as a submodule of MISP, execute the following commands to let git fetch it:
@@ -142,7 +149,7 @@ service apache2 reload
 ---------------
 # MISP saves the stdout and stderr of its workers in /var/www/MISP/app/tmp/logs
 # To rotate these logs install the supplied logrotate script:
-  
+
 cp INSTALL/misp.logrotate /etc/logrotate.d/misp
 
 9/ MISP configuration

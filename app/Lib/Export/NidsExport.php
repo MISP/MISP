@@ -61,6 +61,12 @@ class NidsExport {
 				case 'ip-src':
 					$this->ipSrcRule($ruleFormat, $item['Attribute'], $sid);
 					break;
+				case 'ip-dst|port':
+					$this->ipDstRule($ruleFormat, $item['Attribute'], $sid);
+					break;
+				case 'ip-src|port':
+					$this->ipSrcRule($ruleFormat, $item['Attribute'], $sid);
+					break;
 				case 'email-src':
 					$this->emailSrcRule($ruleFormat, $item['Attribute'], $sid);
 					break;
@@ -112,15 +118,15 @@ class NidsExport {
 
 	public function ipDstRule($ruleFormat, $attribute, &$sid) {
 		$overruled = $this->checkWhitelist($attribute['value']);
-		$attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
+		$ipport = NidsExport::getIpPort($attribute);
 		$this->rules[] = sprintf($ruleFormat,
 				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
 				'ip',							// proto
 				'$HOME_NET',					// src_ip
 				'any',							// src_port
 				'->',							// direction
-				$attribute['value'],			// dst_ip
-				'any',							// dst_port
+				$ipport[0],			// dst_ip
+				$ipport[1],							// dst_port
 				'Outgoing To IP: ' . $attribute['value'],		// msg
 				'',								// rule_content
 				'',								// tag
@@ -131,12 +137,12 @@ class NidsExport {
 
 	public function ipSrcRule($ruleFormat, $attribute, &$sid) {
 		$overruled = $this->checkWhitelist($attribute['value']);
-		$attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
+		$ipport = NidsExport::getIpPort($attribute);
 		$this->rules[] = sprintf($ruleFormat,
 				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
 				'ip',							// proto
-				$attribute['value'],			// src_ip
-				'any',							// src_port
+				$ipport[0],			// src_ip
+				$ipport[1],							// src_port
 				'->',							// direction
 				'$HOME_NET',					// dst_ip
 				'any',							// dst_port
@@ -397,8 +403,7 @@ class NidsExport {
 		if (null == $tmpRule) return false;	// don't output the rule on error with the regex
 		$tmpRule = preg_replace('/classtype:[a-zA-Z_-]+;/', 'classtype:' . $this->classtype . ';', $tmpRule, -1, $replaceCount['classtype']);
 		if (null == $tmpRule) return false;	// don't output the rule on error with the regex
-		$tmpMessage = sprintf($ruleFormatMsg, 'snort-rule');
-		$tmpRule = preg_replace('/msg\s*:\s*".*?"\s*;/', $tmpMessage . ';', $tmpRule, -1, $replaceCount['msg']);
+		$tmpRule = preg_replace('/msg\s*:\s*"(.*?)"\s*;/', sprintf($ruleFormatMsg, 'snort-rule | $1') . ';', $tmpRule, -1, $replaceCount['msg']);
 		if (null == $tmpRule) return false;	// don't output the rule on error with the regex
 		$tmpRule = preg_replace('/reference\s*:\s*.+?;/', $ruleFormatReference . ';', $tmpRule, -1, $replaceCount['reference']);
 		if (null == $tmpRule) return false;	// don't output the rule on error with the regex
@@ -505,31 +510,42 @@ class NidsExport {
 		return false;
 	}
 
-    public static function getProtocolPort($protocol, $customPort) {
-        if($customPort == null) {
-            switch ($protocol) {
-                case "http":
-                    return '$HTTP_PORTS';
-                case "https":
-                    return '443';
-                case "ssh":
-                    return '22';
-                case "ftp":
-                    return '[20,21]';
-                default:
-                    return 'any';
-            }
-        } else {
-            return $customPort;
-        }
-    }
+	public static function getProtocolPort($protocol, $customPort) {
+		if($customPort == null) {
+		    switch ($protocol) {
+			case "http":
+			    return '$HTTP_PORTS';
+			case "https":
+			    return '443';
+			case "ssh":
+			    return '22';
+			case "ftp":
+			    return '[20,21]';
+			default:
+			    return 'any';
+		    }
+		} else {
+		    return $customPort;
+		}
+	}
 
-    public static function getCustomIP($customIP) {
-        if(filter_var($customIP, FILTER_VALIDATE_IP)) {
-            return $customIP;
-        }
-        else {
-            return '$EXTERNAL_NET';
-        }
-    }
+	public static function getCustomIP($customIP) {
+		if(filter_var($customIP, FILTER_VALIDATE_IP)) {
+		    return $customIP;
+		}
+		else {
+		    return '$EXTERNAL_NET';
+		}
+	}
+
+	public static function getIpPort($attribute) {
+		$ipport = array();
+		if (strpos($attribute['type'],'port') !== false) {
+			$ipport = explode('|', $attribute['value']);
+		} else {
+		    $ipport[0] = $attribute['value'];
+		    $ipport[1] = 'any';
+		}		
+		return $ipport;
+	}
 }

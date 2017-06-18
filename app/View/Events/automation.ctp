@@ -76,7 +76,7 @@ Use semicolons instead (the search will automatically search for colons instead)
 <pre><?php echo $baseurl;?>/events/nids/suricata/download
 <?php echo $baseurl;?>/events/nids/snort/download</pre>
 <p>The full API syntax is as follows:</p>
-<pre><?php echo $baseurl;?>/events/nids/[format]/download/[eventid]/[frame]/[tags]/[from]/[to]/[last]/[type]/[enforceWarninglist]</pre>
+<pre><?php echo $baseurl;?>/events/nids/[format]/download/[eventid]/[frame]/[tags]/[from]/[to]/[last]/[type]/[enforceWarninglist]/[includeAllTags]</pre>
 <p>
 <b>format</b>: The export format, can be "suricata" or "snort"<br />
 <b>eventid</b>: Restrict the download to a single event<br />
@@ -90,6 +90,7 @@ Use semicolons instead (the search will automatically search for colons instead)
 <b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 6d or 12h or 30m). This filter will use the published timestamp of the event.<br />
 <b>type</b>: Restrict the export to only use the given types.<br />
 <b>enforceWarninglist</b>: All attributes that have a hit on a warninglist will be excluded.<br />
+<b>includeAllTags</b>: All tags will be included even if not exportable.<br />
 <p>The keywords false or null should be used for optional empty parameters in the URL.</p>
 <p>An example for a suricata export for all events excluding those tagged tag1, without all of the commented information at the start of the file would look like this:</p>
 <pre><?php echo $baseurl;?>/events/nids/suricata/download/null/true/!tag1</pre>
@@ -287,24 +288,27 @@ Use semicolons instead (the search will automatically search for colons instead)
 ?>
 </pre>
 
-<h3>RESTful searches with XML result export</h3>
+<h3>Searches with JSON/XML/OpenIOC results</h3>
 <p>It is possible to search the database for attributes based on a list of criteria. </p>
-<p>To return an event with all of its attributes, relations, shadowAttributes, use the following syntax:</p>
+<p>To return an event or a list of events in a desired format, use the following syntax:</p>
 <pre>
 <?php
-	echo $baseurl.'/events/restSearch/download/[value]/[type]/[category]/[org]/[tag]/[quickfilter]/[from]/[to]/[last]/[event_id]/[withAttachments]/[metadata]/[uuid]/[publish_timestamp]/[timestamp]/[published]/[enforceWarninglist]';
+	echo $baseurl.'/events/restSearch/[format]/[value]/[type]/[category]/[org]/[tag]/[quickfilter]/[from]/[to]/[last]/[event_id]/[withAttachments]/[metadata]/[uuid]/[publish_timestamp]/[timestamp]/[published]/[enforceWarninglist]';
 ?>
 </pre>
+<b>format</b>: Set the return format of the search (Currently supported: json, xml, openioc - more formats coming soon).<br />
 <b>value</b>: Search for the given value in the attributes' value field.<br />
 <b>type</b>: The attribute type, any valid MISP attribute type is accepted.<br />
 <b>category</b>: The attribute category, any valid MISP attribute category is accepted.<br />
 <b>org</b>: Search by the creator organisation by supplying the organisation idenfitier. <br />
 <b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'.
+To filter on several values for the same parameter, simply use arrays, such as in the following example: <br />
+<code>{"value":["tag1", "tag2", "!tag3"]}</code><br />
 You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search.
 Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use:<br />
 <pre>
 <?php
-	echo $baseurl.'/events/restSearch/download/null/null/null/null/tag1&amp;&amp;tag2&amp;&amp;!tag3';
+	echo $baseurl.'/events/restSearch/json/null/null/null/null/tag1&amp;&amp;tag2&amp;&amp;!tag3';
 ?>
 </pre>
 <b>quickfilter</b>: Enabling this (by passing "1" as the argument) will make the search ignore all of the other arguments, except for the auth key and value. MISP will return an xml / json (depending on the header sent) of all events that have a sub-string match on value in the event info, event orgc, or any of the attribute value1 / value2 fields, or in the attribute comment. <br />
@@ -320,11 +324,11 @@ Use semicolons instead (the search will automatically search for colons instead)
 <b>published</b>: Set whether published or unpublished events should be returned. Do not set the parameter if you want both.<br />
 <b>enforceWarninglist</b>: Remove any attributes from the result that would cause a hit on a warninglist entry.<br />
 <p>The keywords false or null should be used for optional empty parameters in the URL.</p>
-<p>For example, to find any event with the term "red october" mentioned, use the following syntax (the example is shown as a POST request instead of a GET, which is highly recommended):</p>
+<p>For example, to find any event with the term "red october" mentioned, use the following syntax (the example is shown as a POST request instead of a GET, which is highly recommended. GET requests are problematic and deprecated.):</p>
 <p>POST to:</p>
 <pre>
 <?php
-	echo $baseurl.'/events/restSearch/download';
+	echo $baseurl.'/events/restSearch/json';
 ?>
 </pre>
 <p>POST message payload (XML):</p>
@@ -349,10 +353,10 @@ Use semicolons instead (the search will automatically search for colons instead)
 <b>published</b>: Set whether published or unpublished events should be returned. Do not set the parameter if you want both.<br />
 <b>timestamp</b>: Restrict the results by the timestamp (of the attribute). Any attributes with a timestamp newer than the given timestamp will be returned.<br />
 <b>enforceWarninglist</b>: Remove any attributes from the result that would cause a hit on a warninglist entry.<br /><br />
-<p>The keywords false or null should be used for optional empty parameters in the URL.</p>
+<p>The keywords false or null should be used for optional empty parameters in the URL. Keep in mind, this is only needed if you use the deprecated URL parameters.</p>
 <pre>
 <?php
-	echo $baseurl.'/attributes/restSearch/download/[value]/[type]/[category]/[org]/[tag]/[from]/[to]/[last]/[eventid]/[withAttachments]';
+	echo $baseurl.'/attributes/restSearch/json/[value]/[type]/[category]/[org]/[tag]/[from]/[to]/[last]/[eventid]/[withAttachments]';
 ?>
 </pre>
 <p>value, type, category and org are optional. It is possible to search for several terms in each category by joining them with the '&amp;&amp;' operator. It is also possible to negate a term with the '!' operator. Please be aware the colons (:) cannot be used in the tag search. Use semicolons instead (the search will automatically search for colons instead).
@@ -361,14 +365,14 @@ For example, in order to search for all attributes created by your organisation 
 <p>You can also use search for IP addresses using CIDR. Make sure that you use '|' (pipe) instead of '/' (slashes). Please be aware the colons (:) cannot be used in the tag search. Use semicolons instead (the search will automatically search for colons instead). See below for an example: </p>
 <pre>
 <?php
-	echo $baseurl.'/attributes/restSearch/download/192.168.1.1|16/ip-src/null/' . $me['Organisation']['name'];
+	echo $baseurl.'/attributes/restSearch/openioc/192.168.1.1|16/ip-src/null/' . $me['Organisation']['name'];
 ?>
 </pre>
 <h3>Export attributes of event with specified type as XML</h3>
 <p>If you want to export all attributes of a pre-defined type that belong to an event, use the following syntax:</p>
 <pre>
 <?php
-	echo $baseurl.'/attributes/returnAttributes/download/[id]/[type]/[sigOnly]';
+	echo $baseurl.'/attributes/returnAttributes/json/[id]/[type]/[sigOnly]';
 ?>
 </pre>
 <p>sigOnly is an optional flag that will block all attributes from being exported that don't have the IDS flag turned on.

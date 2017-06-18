@@ -18,10 +18,12 @@
 			?>
 				<div id="SGContainer" style="display:none;">
 			<?php
-				echo $this->Form->input('sharing_group_id', array(
-						'options' => array($sgs),
-						'label' => 'Sharing Group',
-				));
+				if (!empty($sgs)) {
+					echo $this->Form->input('sharing_group_id', array(
+							'options' => array($sgs),
+							'label' => 'Sharing Group',
+					));
+				}
 			?>
 				</div>
 			<?php
@@ -53,11 +55,11 @@
 			<table>
 				<tr>
 				<td style="vertical-align:top">
-					<span id="submitButton" class="btn btn-primary" onClick="submitPopoverForm('<?php echo $id;?>', 'massEdit')">Submit</span>
+					<span id="submitButton" class="btn btn-primary" title="Submit" role="button" tabindex="0" aria-label="Submit" onClick="submitPopoverForm('<?php echo $id;?>', 'massEdit')">Submit</span>
 				</td>
 				<td style="width:540px;">&nbsp;</td>
 				<td style="vertical-align:top;">
-					<span class="btn btn-inverse" id="cancel_attribute_add">Cancel</span>
+					<span class="btn btn-inverse" title="Cancel" role="button" tabindex="0" aria-label="Cancel" id="cancel_attribute_add">Cancel</span>
 				</td>
 				</tr>
 			</table>
@@ -91,44 +93,44 @@ $(document).ready(function() {
 	$('#AttributeAttributeIds').attr('value', getSelected());
 
 	$("#Attribute, #AttributeDistribution").on('mouseover', function(e) {
-	    var $e = $(e.target);
-	    if ($e.is('option')) {
-	        $('#'+e.currentTarget.id).popover('destroy');
-	        $('#'+e.currentTarget.id).popover({
-	            trigger: 'focus',
-	            placement: 'right',
-	            container: 'body',
-	            content: formInfoValues[$e.val()],
-	        }).popover('show');
-	    }
+		var $e = $(e.target);
+		if ($e.is('option')) {
+			$('#'+e.currentTarget.id).popover('destroy');
+			$('#'+e.currentTarget.id).popover({
+				trigger: 'focus',
+				placement: 'right',
+				container: 'body',
+				content: formInfoValues[$e.val()],
+			}).popover('show');
+		}
 	});
 
 	$("input, label").on('mouseleave', function(e) {
-	    $('#'+e.currentTarget.id).popover('destroy');
+		$('#'+e.currentTarget.id).popover('destroy');
 	});
 
 	$("input, label").on('mouseover', function(e) {
 		var $e = $(e.target);
 		$('#'+e.currentTarget.id).popover('destroy');
-        $('#'+e.currentTarget.id).popover({
-            trigger: 'focus',
-            placement: 'right',
-            container: 'body',
-        }).popover('show');
+		$('#'+e.currentTarget.id).popover({
+			trigger: 'focus',
+			placement: 'right',
+			container: 'body',
+		}).popover('show');
 	});
 
 	// workaround for browsers like IE and Chrome that do now have an onmouseover on the 'options' of a select.
 	// disadvangate is that user needs to click on the item to see the tooltip.
 	// no solutions exist, except to generate the select completely using html.
 	$("#Attribute, #AttributeDistribution").on('change', function(e) {
-	    var $e = $(e.target);
-        $('#'+e.currentTarget.id).popover('destroy');
-        $('#'+e.currentTarget.id).popover({
-            trigger: 'focus',
-            placement: 'right',
-            container: 'body',
-            content: formInfoValues[$e.val()],
-        }).popover('show');
+		var $e = $(e.target);
+		$('#'+e.currentTarget.id).popover('destroy');
+		$('#'+e.currentTarget.id).popover({
+			trigger: 'focus',
+			placement: 'right',
+			container: 'body',
+			content: formInfoValues[$e.val()],
+		}).popover('show');
 	});
 	$('#cancel_attribute_add').click(function() {
 		$('#gray_out').fadeOut();

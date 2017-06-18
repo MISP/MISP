@@ -29,14 +29,16 @@ class Organisation extends AppModel{
 		'uuid' => array(
 			'unique' => array(
 				'rule' => 'isUnique',
-				'message' => 'An organisation with this UUID already exists.',
-				'allowEmpty' => true
+				'message' => 'An organisation with this UUID already exists.'
 			),
-			'uuid' => array(
-				'rule' => array('uuid'),
+			'simpleuuid' => array(
+				'rule' => array('custom', '/^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/'),
 				'message' => 'Please provide a valid UUID',
 				'allowEmpty' => true
 			),
+			'valueNotEmpty' => array(
+				'rule' => array('valueNotEmpty'),
+			)
 		)
 	);
 
@@ -80,7 +82,7 @@ class Organisation extends AppModel{
 
 	public function beforeValidate($options = array()) {
 		parent::beforeValidate();
-		if (empty($this->data['Organisation']['uuid']) && (isset($this->data['Organisation']['local']) && $this->data['Organisation']['local'])) {
+		if (empty($this->data['Organisation']['uuid'])) {
 			$this->data['Organisation']['uuid'] = CakeText::uuid();
 		}
 		$date = date('Y-m-d H:i:s');
@@ -93,6 +95,14 @@ class Organisation extends AppModel{
 	public function beforeDelete($cascade = false) {
 		if ($this->User->find('count', array('conditions' => array('User.org_id' => $this->id))) != 0) return false;
 		if ($this->Event->find('count', array('conditions' => array('OR' => array('Event.org_id' => $this->id, 'Event.orgc_id' => $this->id)))) != 0) return false;
+		return true;
+	}
+
+	public function afterSave($created, $options = array()) {
+		if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_organisation_notifications_enable')) {
+			$pubSubTool = $this->getPubSubTool();
+			$pubSubTool->modified($this->data, 'organisation');
+		}
 		return true;
 	}
 
@@ -114,7 +124,6 @@ class Organisation extends AppModel{
 				'recursive' => -1,
 				'conditions' => $conditions,
 		));
-
 		if (empty($existingOrg)) {
 			$date = date('Y-m-d H:i:s');
 			$organisation = array(

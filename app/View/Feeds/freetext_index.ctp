@@ -51,7 +51,7 @@
 				if (isset($attribute['correlations'])):
 					foreach ($attribute['correlations'] as $correlation):
 			?>
-						<a href="<?php echo $baseurl; ?>/events/view/<?php echo h($correlation); ?>"><?php echo h($correlation); ?></a>
+						<a href="<?php echo $baseurl; ?>/events/view/<?php echo h($correlation); ?>" data-toggle="popover" data-content="<?php echo h($correlatingEventInfos[$correlation]);?>" data-trigger="hover"><?php echo h($correlation); ?></a>
 			<?php
 					endforeach;
 				endif;
@@ -83,9 +83,9 @@
 						'before' => '$(".progress").show()',
 						'complete' => '$(".progress").hide()',
 				));
-					echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-					echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-					echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
+				echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
+				echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
+				echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
 			?>
 			</ul>
 	</div>
@@ -98,7 +98,7 @@
 
 var data = [];
 $(document).ready(function() {
-
+	popoverStartup();
 });
 
 $('#FetchSelected').click(freetextFeedFetchSelected);
@@ -107,19 +107,17 @@ function freetextFeedFetchSelected() {
 	var payload = [];
 	var checkedIds = [];
 	$('.select_attribute').each(function () {
-        if (this.checked) {
-            var row_id = $(this).data('rowid');
-            payload.push({
+		if (this.checked) {
+			var row_id = $(this).data('rowid');
+			payload.push({
 				'category': $('#' + row_id + '_category').html(),
 				'type': $('#' + row_id + '_type').html(),
 				'value': $('#' + row_id + '_value').html(),
 				'to_ids': $('#' + row_id + '_to_ids').data('value'),
-        	});
-        }
+			});
+		}
 	});
 	$('#FeedData').val(JSON.stringify(payload));
 	$("#FeedFetchSelectedFromFreetextIndexForm").submit();
 }
-
-
 </script>

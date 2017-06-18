@@ -24,6 +24,12 @@
 ## Time to set some variables
 ##
 
+if (( $EUID > 0 ))
+  then 
+  echo "Please run this as a privileged user"
+  echo "(usually 'sudo !!' will cover you)"
+  exit
+fi
 
 FILE=./misp-wipe.conf
 SQL=./misp-wipe.sql
@@ -38,14 +44,8 @@ else
         ## MySQL stuff
         echo 'Please enter your MySQL root account username'
         read MySQLRUser
-        echo 'Please enter your MySQL root account password'
-        read MySQLRPass
-        echo 'What would you like to call the backup archive?'
-        echo 'Eg. MISPBackup'
-        read OutputFileName
-        echo 'Where would you like to save the file?'
-        echo 'Eg. /tmp'
-        read OutputDirName
+        echo 'Please enter your MySQL root account password (will not be echoed)'
+        read -s MySQLRPass
 fi
 
 
@@ -53,15 +53,16 @@ fi
 
 # MISP path
 MISPPath=${MISPPath:-$(locate MISP/app/webroot/index.php|sed 's/\/app\/webroot\/index\.php//')}
-# Output
-OutputFileName=${OutputFileName:-MISP-Backup}
-OutputDirName=${OutputDirName:-/tmp}
 # database.php
 MySQLUUser=$(grep -o -P "(?<='login' => ').*(?=')" $MISPPath/app/Config/database.php)
 MySQLUPass=$(grep -o -P "(?<='password' => ').*(?=')" $MISPPath/app/Config/database.php)
 MISPDB=$(grep -o -P "(?<='database' => ').*(?=')" $MISPPath/app/Config/database.php)
 DB_Port=$(grep -o -P "(?<='port' => ).*(?=,)" $MISPPath/app/Config/database.php)
 MISPDBHost=$(grep -o -P "(?<='host' => ').*(?=')" $MISPPath/app/Config/database.php)
+
+echo "Clearing data model cache files"
+rm -f $MISPPath/app/tmp/cache/models/myapp_*
+rm -f $MISPPath/app/tmp/cache/persistent/myapp_*
 
 echo "Wiping MySQL tables"
 MySQLRUser=${MySQLRUser:-$MySQLUUser}

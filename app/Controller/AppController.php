@@ -46,10 +46,10 @@ class AppController extends Controller {
 
 	public $helpers = array('Utility');
 
-	private $__jsVersion = '2.4.67';
-	public $pyMispVersion = '2.4.65';
+	private $__queryVersion = '12';
+	public $pyMispVersion = '2.4.71';
 	public $phpmin = '5.6.5';
-	public $phprec = '7.0.0';
+	public $phprec = '7.0.16';
 
 	// Used for _isAutomation(), a check that returns true if the controller & action combo matches an action that is a non-xml and non-json automation method
 	// This is used to allow authentication via headers for methods not covered by _isRest() - as that only checks for JSON and XML formats
@@ -79,6 +79,13 @@ class AppController extends Controller {
 			'RestResponse'
 	);
 
+	private function __isApiFunction($controller, $action) {
+		if (isset($this->automationArray[$controller]) && in_array($action, $this->automationArray[$controller])) {
+			return true;
+		}
+		return false;
+	}
+
 	public function beforeFilter() {
 		// check for a supported datasource configuration
 		$dataSourceConfig = ConnectionManager::getDataSource('default')->config;
@@ -92,7 +99,7 @@ class AppController extends Controller {
 			throw new Exception('datasource not supported: ' . $dataSource);
 		}
 
-		$this->set('jsVersion', $this->__jsVersion);
+		$this->set('queryVersion', $this->__queryVersion);
 		$this->loadModel('User');
 		$auth_user_fields = $this->User->describeAuthFields();
 
@@ -100,6 +107,11 @@ class AppController extends Controller {
 		if (!Configure::read('Security.salt')) {
 			$this->loadModel('Server');
 			$this->Server->serverSettingsSaveValue('Security.salt', $this->User->generateRandomPassword(32));
+		}
+		// Check if the instance has a UUID, if not assign one.
+		if (!Configure::read('MISP.uuid')) {
+			$this->loadModel('Server');
+			$this->Server->serverSettingsSaveValue('MISP.uuid', CakeText::uuid());
 		}
 		// check if Apache provides kerberos authentication data
 		$envvar = Configure::read('ApacheSecureAuth.apacheEnv');
@@ -157,7 +169,9 @@ class AppController extends Controller {
 						if (preg_match('/^[a-zA-Z0-9]{40}$/', trim($auth_key))) {
 							$found_misp_auth_key = true;
 							$temp = $this->checkAuthUser(trim($auth_key));
-							if ($temp) $user['User'] = $this->checkAuthUser(trim($auth_key));
+							if ($temp) {
+								$user['User'] = $this->checkAuthUser(trim($auth_key));
+							}
 						}
 					}
 					if ($found_misp_auth_key) {
@@ -389,7 +403,8 @@ class AppController extends Controller {
 	}
 
 	protected function _isRest() {
-		return (isset($this->RequestHandler) && ($this->RequestHandler->isXml() || $this->_isJson()));
+		$api = $this->__isApiFunction($this->request->params['controller'], $this->request->params['action']);
+		return (isset($this->RequestHandler) && ($api || $this->RequestHandler->isXml() || $this->_isJson()));
 	}
 
 	protected function _isAutomation() {

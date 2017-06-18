@@ -288,12 +288,15 @@ class ShadowAttributesController extends AppController {
 		}
 	}
 
-	public function add($eventId = null) {
+	public function add($eventId) {
 		if ($this->request->is('ajax'))	{
 			$this->set('ajax', true);
 			$this->layout = 'ajax';
 		} else {
 			$this->set('ajax', false);
+		}
+		if (empty($eventId)) {
+			if (empty($event)) throw new NotFoundException('Invalid Event');
 		}
 		$event = $this->ShadowAttribute->Event->fetchEvent($this->Auth->user(), array('eventid' => $eventId));
 		if (empty($event)) throw new NotFoundException('Invalid Event');
@@ -308,14 +311,17 @@ class ShadowAttributesController extends AppController {
 					$this->request->data['ShadowAttribute'] = $this->request->data[$iN];
 				}
 			}
-			if ($this->request->is('ajax')) $this->autoRender = false;
-			// Give error if someone tried to submit a attribute with attachment or malware-sample type.
-			// TODO change behavior attachment options - this is bad ... it should rather by a messagebox or should be filtered out on the view level
-			if (isset($this->request->data['ShadowAttribute']['type']) && $this->ShadowAttribute->typeIsAttachment($this->request->data['ShadowAttribute']['type'])) {
-				$this->Session->setFlash(__('Attribute has not been added: attachments are added by "Add attachment" button', true), 'default', array(), 'error');
-				$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['ShadowAttribute']['event_id']));
+			if (!isset($this->request->data['ShadowAttribute'])) {
+				$this->request->data = array('ShadowAttribute' => $this->request->data);
 			}
-			if (isset($eventId)) $this->request->data['ShadowAttribute']['event_id'] = $eventId;
+			if ($this->request->is('ajax')) $this->autoRender = false;
+			// Give error if someone tried to submit an attribute with type 'attachment' or 'malware-sample'.
+			// TODO change behavior attachment options - this is bad ... it should rather by a messagebox or should be filtered out on the view level
+			if (isset($this->request->data['ShadowAttribute']['type']) && $this->ShadowAttribute->typeIsAttachment($this->request->data['ShadowAttribute']['type']) && !$this->_isRest()) {
+				$this->Session->setFlash(__('Attribute has not been added: attachments are added by "Add attachment" button', true), 'default', array(), 'error');
+				$this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
+			}
+			$this->request->data['ShadowAttribute']['event_id'] = $eventId;
 			//
 			// multiple attributes in batch import
 			//
@@ -368,7 +374,9 @@ class ShadowAttributesController extends AppController {
 					if ($successes) {
 						// list the ones that succeeded
 						$emailResult = "";
-						if (!$this->ShadowAttribute->sendProposalAlertEmail($eventId) == false) $emailResult = " but sending out the alert e-mails has failed for at least one recipient.";
+						if (!$this->ShadowAttribute->sendProposalAlertEmail($eventId) === false) {
+							$emailResult = " but nobody from the owner organisation could be notified by e-mail.";
+						}
 						$this->Session->setFlash(__('The lines' . $successes . ' have been saved' . $emailResult, true));
 					}
 				}
@@ -839,7 +847,7 @@ class ShadowAttributesController extends AppController {
 		if ($this->_isRest()) {
 			$temp = $this->ShadowAttribute->find('all', array(
 					'conditions' => $conditions,
-					'fields' => array('ShadowAttribute.id', 'ShadowAttribute.old_id', 'ShadowAttribute.event_id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.uuid', 'ShadowAttribute.to_ids', 'ShadowAttribute.value', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.timestamp'),
+					'fields' => array('ShadowAttribute.id', 'ShadowAttribute.old_id', 'ShadowAttribute.event_id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.uuid', 'ShadowAttribute.to_ids', 'ShadowAttribute.value', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.timestamp', 'ShadowAttribute.proposal_to_delete'),
 					'contain' => array(
 							'Event' => array(
 									'fields' => array('id', 'org_id', 'info', 'orgc_id'),
