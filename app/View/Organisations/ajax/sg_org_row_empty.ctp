@@ -9,7 +9,7 @@
 ?>
 	<td id="orgExtend<?php echo $id;?>"><input title="Mark organisation as sharing group extender" id="orgExtendInput<?php echo $id;?>" type="checkbox" onClick="sharingGroupExtendOrg(<?php echo $id;?>)" <?php echo h($checked);?>></input></td>
 <?php else: ?>
-	<td id="orgExtend<?php echo h($id);?>" ><span id="orgExtendSpan<?php echo h($id);?>" class="icon-ok"></span></td>
+	<td id="orgExtend<?php echo $id;?>" ><span id="orgExtendSpan<?php echo $id;?>" class="icon-ok"></span></td>
 <?php endif; ?>
-	<td id="orgAction<?php echo h($id);?>" class="actions short"></td>
+	<td id="orgAction<?php echo $id;?>" class="actions short"></td>
 </tr>
