@@ -120,7 +120,7 @@ def main(args):
     stix_package = STIXPackage()
     stix_header = STIXHeader()
 
-    stix_header.title="Export from {} MISP".format(orgname)
+    stix_header.title="Export from " + orgname + " MISP"
     stix_header.package_intents="Threat Report"
     stix_package.stix_header = stix_header
 
