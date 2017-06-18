@@ -17,7 +17,12 @@ from stix.common.related import *
 from stix.common.confidence import Confidence
 from stix.common.vocabs import IncidentStatus
 from cybox.utils import Namespace
-from mixbox import idgen
+# if you rely on old idgen from previous stix libraries, mixbox is not installed
+try:
+    from stix.utils import idgen
+except ImportError:
+    from mixbox import idgen
+
 from stix import __version__ as STIXVER
 
 NS_DICT = {
@@ -92,13 +97,13 @@ def main(args):
 
     baseURL = sys.argv[1]
     orgname = sys.argv[2]
-    
+
     namespace = [baseURL, orgname.replace(" ", "_")]
     namespace[1] = re.sub('[\W]+', '', namespace[1])
     NS_DICT[namespace[0]]=namespace[1]
 
     try:
-        stix.utils.idgen.set_id_namespace({baseURL: orgname})
+        idgen.set_id_namespace({baseURL: orgname})
     except ValueError:
         # Some weird stix error that sometimes occurs if the stars
         # align and Mixbox is being mean to us
@@ -110,7 +115,7 @@ def main(args):
             # and if we're running a REALLY weird version of stix
             # May as well catch it
             idgen.set_id_namespace(Namespace(baseURL, orgname, "MISP"))
-            
+
 
     stix_package = STIXPackage()
     stix_header = STIXHeader()
@@ -124,8 +129,8 @@ def main(args):
         stix_string += ', "related_packages": ['
     else:
         stix_string = stix_package.to_xml(auto_namespace=False, ns_dict=NS_DICT, schemaloc_dict=SCHEMALOC_DICT)
+        stix_string = stix_string.decode()
         stix_string = stix_string.replace("</stix:STIX_Package>\n", "");
-
     print(stix_string)
 
 if __name__ == "__main__":

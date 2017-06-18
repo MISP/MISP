@@ -65,7 +65,7 @@ class RestResponseComponent extends Component {
 		return $this->__sendResponse($response, 200, $format);
 	}
 
-	private function __sendResponse($response, $code, $format = false, $raw = false) {
+	private function __sendResponse($response, $code, $format = false, $raw = false, $download = false) {
 		if (strtolower($format) === 'application/xml') {
 			if (!$raw) $response = Xml::build($response);
 			$type = 'xml';
@@ -75,7 +75,9 @@ class RestResponseComponent extends Component {
 			if (!$raw) $response = json_encode($response, JSON_PRETTY_PRINT);
 			$type = 'json';
 		}
-		return new CakeResponse(array('body'=> $response,'status' => $code, 'type' => $type));
+		$cakeResponse = new CakeResponse(array('body'=> $response,'status' => $code, 'type' => $type));
+		if ($download) $cakeResponse->download($download);
+		return $cakeResponse;
 	}
 
 	private function __generateURL($action, $controller, $id) {
@@ -91,11 +93,15 @@ class RestResponseComponent extends Component {
 		return array('action' => $action, 'admin' => $admin);
 	}
 
-	public function viewData($data, $format = false, $errors = false, $raw = false) {
+	public function viewData($data, $format = false, $errors = false, $raw = false, $download = false) {
 		if (!empty($errors)) {
 			$data['errors'] = $errors;
 		}
-		return $this->__sendResponse($data, 200, $format, $raw);
+		return $this->__sendResponse($data, 200, $format, $raw, $download);
+	}
+
+	public function throwException($code, $message, $format, $raw) {
+		return $this->__sendResponse($message, $code, $format, $raw);
 	}
 
 	public function describe($controller, $action, $id = false, $format = false) {

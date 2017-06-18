@@ -31,8 +31,8 @@ class Organisation extends AppModel{
 				'rule' => 'isUnique',
 				'message' => 'An organisation with this UUID already exists.'
 			),
-			'uuid' => array(
-				'rule' => array('uuid'),
+			'simpleuuid' => array(
+				'rule' => array('custom', '/^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/'),
 				'message' => 'Please provide a valid UUID',
 				'allowEmpty' => true
 			),
@@ -98,6 +98,14 @@ class Organisation extends AppModel{
 		return true;
 	}
 
+	public function afterSave($created, $options = array()) {
+		if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_organisation_notifications_enable')) {
+			$pubSubTool = $this->getPubSubTool();
+			$pubSubTool->modified($this->data, 'organisation');
+		}
+		return true;
+	}
+
 	public function captureOrg($org, $user, $force = false) {
 		if (is_array($org)) {
 			if (isset($org['uuid']) && !empty($org['uuid'])) {
@@ -116,7 +124,6 @@ class Organisation extends AppModel{
 				'recursive' => -1,
 				'conditions' => $conditions,
 		));
-
 		if (empty($existingOrg)) {
 			$date = date('Y-m-d H:i:s');
 			$organisation = array(

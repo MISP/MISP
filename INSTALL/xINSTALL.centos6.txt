@@ -85,6 +85,14 @@ cd /var/www/MISP/app/files/scripts/python-stix
 git checkout v1.1.1.4
 git config core.filemode false
 python setup.py install
+
+# install mixbox to accomodate the new STIX dependencies:
+cd /var/www/MISP/app/files/scripts/
+git clone https://github.com/CybOXProject/mixbox.git
+cd /var/www/MISP/app/files/scripts/mixbox
+git checkout v1.0.2
+git config core.filemode false
+python setup.py install
 umask $UMASK
 
 4/ CakePHP

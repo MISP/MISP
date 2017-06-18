@@ -113,6 +113,7 @@ class WarninglistsController extends AppController {
 			$message = 'enabled';
 		}
 		if ($this->Warninglist->save($currentState)) {
+			$this->Warninglist->regenerateWarninglistCaches($id);
 			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Warninglist ' . $message)), 'status' => 200));
 		} else {
 			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Warninglist could not be enabled.')), 'status' => 200));
@@ -125,6 +126,7 @@ class WarninglistsController extends AppController {
 		// DBMS interoperability: convert boolean false to integer 0 so cakephp doesn't try to insert an empty string into the database
 		if ($enable === false) $enable = 0;
 		$this->Warninglist->saveField('enabled', $enable);
+		$this->Warninglist->regenerateWarninglistCaches($id);
 		$this->Session->setFlash('Warninglist enabled');
 		$this->redirect(array('controller' => 'warninglists', 'action' => 'view', $id));
 	}

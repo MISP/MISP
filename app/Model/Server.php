@@ -1134,6 +1134,38 @@ class Server extends AppModel {
 						'type' => 'string',
 						'afterHook' => 'zmqAfterHook',
 					),
+					'ZeroMQ_attribute_notifications_enable' => array(
+						'level' => 2,
+						'description' => 'Enables or disables the publishing of any attribute creations/edits/soft deletions.',
+						'value' => false,
+						'errorMessage' => '',
+						'test' => 'testBool',
+						'type' => 'boolean'
+					),
+					'ZeroMQ_sighting_notifications_enable' => array(
+						'level' => 2,
+						'description' => 'Enables or disables the publishing of new sightings to the ZMQ pubsub feed.',
+						'value' => false,
+						'errorMessage' => '',
+						'test' => 'testBool',
+						'type' => 'boolean'
+					),
+					'ZeroMQ_user_notifications_enable' => array(
+						'level' => 2,
+						'description' => 'Enables or disables the publishing of new/modified users to the ZMQ pubsub feed.',
+						'value' => false,
+						'errorMessage' => '',
+						'test' => 'testBool',
+						'type' => 'boolean'
+					),
+					'ZeroMQ_organisation_notifications_enable' => array(
+						'level' => 2,
+						'description' => 'Enables or disables the publishing of new/modified organisations to the ZMQ pubsub feed.',
+						'value' => false,
+						'errorMessage' => '',
+						'test' => 'testBool',
+						'type' => 'boolean'
+					),
 					'Sightings_enable' => array(
 						'level' => 1,
 						'description' => 'Enables or disables the sighting functionality. When enabled, users can use the UI or the appropriate APIs to submit sightings data about indicators.',
@@ -2361,8 +2393,7 @@ class Server extends AppModel {
 	}
 
 	public function zmqAfterHook($setting, $value) {
-		App::uses('PubSubTool', 'Tools');
-		$pubSubTool = new PubSubTool();
+		$pubSubTool = $this->getPubSubTool();
 		// If we are trying to change the enable setting to false, we don't need to test anything, just kill the server and return true.
 		if ($setting == 'Plugin.ZeroMQ_enable') {
 			if ($value == false || $value == 0) {
@@ -2882,9 +2913,9 @@ class Server extends AppModel {
 		return $readableFiles;
 	}
 
-	public function stixDiagnostics(&$diagnostic_errors, &$stixVersion, &$cyboxVersion) {
+	public function stixDiagnostics(&$diagnostic_errors, &$stixVersion, &$cyboxVersion, &$mixboxVersion) {
 		$result = array();
-		$expected = array('stix' => '1.1.1.4', 'cybox' => '2.1.0.12');
+		$expected = array('stix' => '1.1.1.4', 'cybox' => '2.1.0.12', 'mixbox' => '1.0.2');
 		// check if the STIX and Cybox libraries are working using the test script stixtest.py
 		$scriptResult = shell_exec('python ' . APP . 'files' . DS . 'scripts' . DS . 'stixtest.py');
 		$scriptResult = json_decode($scriptResult, true);
@@ -2892,10 +2923,10 @@ class Server extends AppModel {
 			$scriptResult['operational'] = $scriptResult['success'];
 			if ($scriptResult['operational'] == 0) {
 				$diagnostic_errors++;
-				return array('operational' => 0, 'stix' => array('expected' => $expected['stix']), 'cybox' => array('expected' => $expected['cybox']));
+				return array('operational' => 0, 'stix' => array('expected' => $expected['stix']), 'cybox' => array('expected' => $expected['cybox']), 'mixbox' => array('expected' => $expected['mixbox']));
 			}
 		} else {
-			return array('operational' => 0, 'stix' => array('expected' => $expected['stix']), 'cybox' => array('expected' => $expected['cybox']));
+			return array('operational' => 0, 'stix' => array('expected' => $expected['stix']), 'cybox' => array('expected' => $expected['cybox']), 'mixbox' => array('expected' => $expected['mixbox']));
 		}
 		$result['operational'] = $scriptResult['operational'];
 		foreach ($expected as $package => $version) {
@@ -2945,8 +2976,7 @@ class Server extends AppModel {
 
 	public function zmqDiagnostics(&$diagnostic_errors) {
 		if (!Configure::read('Plugin.ZeroMQ_enable')) return 1;
-		App::uses('PubSubTool', 'Tools');
-		$pubSubTool = new PubSubTool();
+		$pubSubTool = $this->getPubSubTool();
 		if (!$pubSubTool->checkIfPythonLibInstalled()) {
 			$diagnostic_errors++;
 			return 2;

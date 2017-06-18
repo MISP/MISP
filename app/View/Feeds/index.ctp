@@ -137,9 +137,9 @@ foreach ($feeds as $item):
 		</td>
 		<td class="short"><span class="<?php echo ($item['Feed']['enabled'] ? 'icon-ok' : 'icon-remove'); ?>"></span><span class="short <?php if (!$item['Feed']['enabled'] || empty($ruleDescription)) echo "hidden"; ?>" data-toggle="popover" title="Filter rules" data-content="<?php echo $ruleDescription; ?>"> (Rules)</span>
 			<td class="short"><span class="<?php echo ($item['Feed']['lookup_visible'] ? 'icon-ok' : 'icon-remove'); ?>"></span>
-		<td class="short action-links <?php echo $item['Feed']['cache_timestamp'] ? 'bold' : 'bold red';?>">
+		<td class="short action-links <?php echo !empty($item['Feed']['cache_timestamp']) ? 'bold' : 'bold red';?>">
 			<?php
-				if ($item['Feed']['cache_timestamp']):
+				if (!empty($item['Feed']['cache_timestamp'])):
 					$units = array('m', 'h', 'd');
 					$intervals = array(60, 60, 24);
 					$unit = 's';
@@ -165,14 +165,14 @@ foreach ($feeds as $item):
 		</td>
 		<td class="short action-links">
 			<?php
+				echo $this->Html->link('', array('action' => 'previewIndex', $item['Feed']['id']), array('class' => 'icon-search', 'title' => 'Explore the events remotely'));
 				if (!isset($item['Feed']['event_error'])) {
-					echo $this->Html->link('', array('action' => 'previewIndex', $item['Feed']['id']), array('class' => 'icon-search', 'title' => 'Explore the events remotely'));
 					if ($item['Feed']['enabled']) echo $this->Html->link('', array('action' => 'fetchFromFeed', $item['Feed']['id']), array('class' => 'icon-download', 'title' => 'Fetch all events'));
 				}
 			?>
 			<a href="<?php echo $baseurl;?>/feeds/edit/<?php echo h($item['Feed']['id']); ?>"><span class="icon-edit" title="edit">&nbsp;</span></a>
 			<?php echo $this->Form->postLink('', array('action' => 'delete', h($item['Feed']['id'])), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to permanently remove the feed (%s)?', h($item['Feed']['name']))); ?>
-			<a href="<?php echo $baseurl;?>/feeds/view/<?php echo h($item['Feed']['id']); ?>.json" title="Download feed metadata as JSON" download><span class="icon-download"></span></a>
+			<a href="<?php echo $baseurl;?>/feeds/view/<?php echo h($item['Feed']['id']); ?>.json" title="Download feed metadata as JSON" download><span class="fa fa-cloud-download black"></span></a>
 		</td>
 	</tr><?php
 endforeach; ?>

@@ -26,6 +26,10 @@ class AppModel extends Model {
 
 	public $name;
 
+	public $loadedPubSubTool = false;
+
+	private $__redisConnection = false;
+
 	public function __construct($id = false, $table = null, $ds = null) {
 		parent::__construct($id, $table, $ds);
 
@@ -1006,6 +1010,9 @@ class AppModel extends Model {
 
 	public function setupRedis() {
 		if (class_exists('Redis')) {
+			if ($this->__redisConnection) {
+				return $this->__redisConnection;
+			}
 			$redis = new Redis();
 		} else {
 			return false;
@@ -1017,6 +1024,22 @@ class AppModel extends Model {
 			return false;
 		}
 		$redis->select($database);
+		$this->__redisConnection = $redis;
 		return $redis;
+	}
+
+	public function getPubSubTool() {
+		if (!$this->loadedPubSubTool) {
+			$this->loadPubSubTool();
+		}
+		return $this->loadedPubSubTool;
+	}
+
+	public function loadPubSubTool() {
+		App::uses('PubSubTool', 'Tools');
+		$pubSubTool = new PubSubTool();
+		$pubSubTool->initTool();
+		$this->loadedPubSubTool = $pubSubTool;
+		return true;
 	}
 }

@@ -51,7 +51,7 @@
 				if (isset($attribute['correlations'])):
 					foreach ($attribute['correlations'] as $correlation):
 			?>
-						<a href="<?php echo $baseurl; ?>/events/view/<?php echo h($correlation); ?>"><?php echo h($correlation); ?></a>
+						<a href="<?php echo $baseurl; ?>/events/view/<?php echo h($correlation); ?>" data-toggle="popover" data-content="<?php echo h($correlatingEventInfos[$correlation]);?>" data-trigger="hover"><?php echo h($correlation); ?></a>
 			<?php
 					endforeach;
 				endif;
@@ -98,7 +98,7 @@
 
 var data = [];
 $(document).ready(function() {
-
+	popoverStartup();
 });
 
 $('#FetchSelected').click(freetextFeedFetchSelected);

@@ -19,8 +19,10 @@
 /app/tmp/cache/models/myapp*
 /app/tmp/cache/persistent/myapp*
 /app/tmp/cache/views/myapp*
+/app/tmp/cache/misp_feed*
 /app/files/*
 /app/tmp/cache/feeds/*.cache
+!/app/files/feed-metadata
 !/app/files/empty
 !/app/files/scripts/
 !/app/files/warninglists
@@ -29,6 +31,7 @@
 !/app/files/misp-galaxy/*
 /app/files/scripts/python-stix/
 /app/files/scripts/python-cybox/
+/app/files/scripts/mixbox/
 /app/files/scripts/*.pyc
 /app/files/scripts/*.py~
 /app/files/scripts/mispzmq/*
@@ -72,3 +75,4 @@
 .smime
 *.swp
 *.iml
+.ropeproject/

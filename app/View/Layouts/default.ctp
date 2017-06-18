@@ -17,6 +17,7 @@
 		echo $this->Html->css('bootstrap-timepicker');
 		echo $this->Html->css('bootstrap-colorpicker');
 		echo $this->Html->css('famfamfam-flags');
+		echo $this->Html->css('font-awesome');
 		if ($me) {
 			echo $this->Html->css('main.css?' . $queryVersion);
 		} else {

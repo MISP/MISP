@@ -14,7 +14,7 @@ if (!$isSiteAdmin) exit();
 		<li><?php echo $this->Form->postLink('Reset the attribute counts', $baseurl . '/events/generateCount');?> (Events need to have no validation issues)</li>
 		<li><?php echo $this->Form->postLink('Recorrelate attributes', $baseurl . '/attributes/generateCorrelation');?></li>
 		<li><?php echo $this->Form->postLink('Recorrelate proposals', $baseurl . '/shadow_attributes/generateCorrelation');?></li>
-		<li><a href="<?php echo $baseurl;?>/users/verifyGPG">Verify GPG keys</a> (Check whether every user's GPG key is usable)</li>
+		<li><a href="<?php echo $baseurl;?>/users/verifyGPG">Verify PGP keys</a> (Check whether every user's PGP key is usable)</li>
 		<li><a href="<?php echo $baseurl;?>/users/verifyCertificate">Verify Certificates</a> (Check whether every user's certificate is usable</li>
 		<li><?php echo $this->Form->postLink('Extend Organization length', $baseurl . '/servers/updateDatabase/extendServerOrganizationLength');?> (Hotfix 2.3.57: Increase the max length of the organization field when adding a new server connection.)</li>
 		<li><?php echo $this->Form->postLink('Convert log fields to text', $baseurl . '/servers/updateDatabase/convertLogFieldsToText');?> (Hotfix 2.3.78: Some of the log fields that were varchar(255) ended up truncating the data. This function will change them to "text")</li>

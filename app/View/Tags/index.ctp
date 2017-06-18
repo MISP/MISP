@@ -31,6 +31,32 @@
 		echo $this->Form->end();
 	?>
 	</div>
+	<?php
+		$tab = "Center";
+		$filtered = false;
+		if (count($passedArgsArray) > 0) {
+			$tab = "Left";
+			$filtered = true;
+		}
+	?>
+
+
+	<div class="tabMenuFixedContainer" style="display:inline-block;">
+		<?php if ($filtered):
+			foreach ($passedArgsArray as $k => $v):?>
+				<span class="tabMenuFixed tabMenuFixedElement">
+					<?php echo h(ucfirst($k)) . " : " . h($v); ?>
+				</span>
+			<?php endforeach; ?>
+			<span class="tabMenuFixed tabMenuFixedRight tabMenuSides">
+				<?php echo $this->Html->link('', array('controller' => 'tags', 'action' => 'index'), array('class' => 'icon-remove', 'title' => 'Remove filters'));?>
+			</span>
+		<?php endif;?>
+		<span style="border-right:0px !important;">
+			<span id="quickFilterButton" role="button" tabindex="0" aria-label="Filter user tags" class="tabMenuFilterFieldButton useCursorPointer" onClick="quickFilter(<?php echo h($passedArgs); ?>, '<?php echo $baseurl . '/tags/index'; ?>');">Filter</span>
+			<input class="tabMenuFilterField" type="text" id="quickFilterField"></input>
+		</span>
+	</div>
 	<table class="table table-striped table-hover table-condensed">
 	<tr>
 			<th><?php echo $this->Paginator->sort('id');?></th>

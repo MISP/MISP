@@ -76,6 +76,13 @@ cd /var/www/MISP/app/files/scripts/python-stix
 sudo -u www-data git checkout v1.1.1.4
 sudo python setup.py install
 
+# install mixbox to accomodate the new STIX dependencies:
+cd /var/www/MISP/app/files/scripts/
+git clone https://github.com/CybOXProject/mixbox.git
+cd /var/www/MISP/app/files/scripts/mixbox
+git checkout v1.0.2
+python setup.py install
+
 4/ CakePHP
 -----------
 # CakePHP is included as a submodule of MISP, execute the following commands to let git fetch it:
@@ -182,14 +189,12 @@ sudo a2ensite misp-ssl
 # Restart apache
 sudo systemctl restart apache2
 
-sudo cp INSTALL/misp.logrotate /etc/logrotate.d/misp
-
 8/ Log rotation
 ---------------
 # MISP saves the stdout and stderr of its workers in /var/www/MISP/app/tmp/logs
 # To rotate these logs install the supplied logrotate script:
 
-sudo cp INSTALL/misp.logrotate /etc/logrotate.d/misp
+sudo cp /var/www/MISP/INSTALL/misp.logrotate /etc/logrotate.d/misp
 
 9/ MISP configuration
 ---------------------
@@ -201,7 +206,21 @@ sudo -u www-data cp -a /var/www/MISP/app/Config/config.default.php /var/www/MISP
 
 # Configure the fields in the newly created files:
 sudo -u www-data vim /var/www/MISP/app/Config/database.php
-# login, port, password, database
+# DATABASE_CONFIG has to be filled
+# With the default values provided in section 6, this would look like:
+# class DATABASE_CONFIG {
+#	public $default = array(
+#		'datasource' => 'Database/Mysql',
+#		'persistent' => false,
+#		'host' => 'localhost',
+#		'login' => 'misp', // grant usage on *.* to misp@localhost
+#		'port' => 3306,
+#		'password' => 'XXXXdbpasswordhereXXXXX', // identified by 'XXXXdbpasswordhereXXXXX';
+#		'database' => 'misp', // create database misp;
+#		'prefix' => '',
+#		'encoding' => 'utf8',
+#	);
+#}
 
 # Important! Change the salt key in /var/www/MISP/app/Config/config.php
 # The salt key must be a string at least 32 bytes long.

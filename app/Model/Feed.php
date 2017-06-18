@@ -128,7 +128,11 @@ class Feed extends AppModel {
 			}
 		} else {
 			$uri = $feed['Feed']['url'] . '/manifest.json';
-			$response = $HttpSocket->get($uri, '', $request);
+			try {
+				$response = $HttpSocket->get($uri, '', $request);
+			} catch (Exception $e) {
+				return false;
+			}
 			if ($response->code != 200) {
 				return false;
 			}
@@ -146,6 +150,7 @@ class Feed extends AppModel {
 
 	public function getFreetextFeed($feed, $HttpSocket, $type = 'freetext', $page = 1, $limit = 60, &$params = array()) {
 		$result = array();
+		$data = '';
 		if (isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] == 'local') {
 			if (file_exists($feed['Feed']['url'])) {
 				$data = file_get_contents($feed['Feed']['url']);
@@ -161,8 +166,18 @@ class Feed extends AppModel {
 				}
 			}
 			if ($doFetch) {
-				$response = $HttpSocket->get($feed['Feed']['url'], '', array());
+				$fetchIssue = false;
+				try {
+					$response = $HttpSocket->get($feed['Feed']['url'], '', array());
+				} catch (Exception $e) {
+					return false;
+				}
 				if ($response->code == 200) {
+					$redis = $this->setupRedis();
+					if ($redis === false) {
+							return false;
+					}
+					$redis->del('misp:feed_cache:' . $feed['Feed']['id']);
 					$data = $response->body;
 					file_put_contents($feedCache, $data);
 				}
@@ -234,6 +249,7 @@ class Feed extends AppModel {
 				foreach ($feeds as $k => $v) {
 					if ($redis->sismember('misp:feed_cache:' . $v['Feed']['id'], md5($value['value']))) {
 						$data[$key]['feed_correlations'][] = array($v);
+					} else {
 					}
 				}
 			}
@@ -252,10 +268,17 @@ class Feed extends AppModel {
 				$params['conditions'] = array('Feed.lookup_visible' => 1);
 			}
 			$feeds = $this->find('all', $params);
+			$counter = 0;
+			$hashTable = array();
+			$feedList = array();
 			foreach ($objects as $k => $object) {
-				foreach ($feeds as $k2 => $feed) {
-					if ($redis->sismember('misp:feed_cache:' . $feed['Feed']['id'], md5($object['value']))) {
-						$objects[$k]['Feed'][] = $feed['Feed'];
+				$hashTable[$object['value']] = md5($object['value']);
+				if ($redis->sismember('misp:feed_cache:combined', $hashTable[$object['value']])) {
+					foreach ($feeds as $k2 => $feed) {
+						$counter++;
+						if ($redis->sismember('misp:feed_cache:' . $feed['Feed']['id'], $hashTable[$object['value']])) {
+							$objects[$k]['Feed'][] = $feed['Feed'];
+						}
 					}
 				}
 			}
@@ -766,7 +789,6 @@ class Feed extends AppModel {
 			return 'Redis not reachable.';
 		}
 		foreach ($feeds as $k => $feed) {
-			$redis->del('misp:feed_cache:' . $feed['Feed']['id']);
 			$this->__cacheFeed($feed, $redis, $jobId);
 			if ($jobId) {
 				$job->saveField('progress', 100 * $k / count($feeds));
@@ -809,14 +831,18 @@ class Feed extends AppModel {
 			}
 		}
 		$values = $this->getFreetextFeed($feed, $HttpSocket, $feed['Feed']['source_format'], 'all');
-		foreach ($values as $k => $value) {
-			$redis->sAdd('misp:feed_cache:' . $feed['Feed']['id'], md5($value['value']));
-			if ($jobId && ($k % 1000 == 0)) {
-					$job->saveField('message', 'Feed ' . $feed['Feed']['id'] . ': ' . $k . ' values cached.');
+		if (!empty($values)) {
+			foreach ($values as $k => $value) {
+				$redis->sAdd('misp:feed_cache:' . $feed['Feed']['id'], md5($value['value']));
+				$redis->sAdd('misp:feed_cache:combined', md5($value['value']));
+				if ($jobId && ($k % 1000 == 0)) {
+						$job->saveField('message', 'Feed ' . $feed['Feed']['id'] . ': ' . $k . ' values cached.');
+				}
 			}
+			$redis->set('misp:feed_cache_timestamp:' . $feed['Feed']['id'], time());
+			return true;
 		}
-		$redis->set('misp:feed_cache_timestamp:' . $feed['Feed']['id'], time());
-		return true;
+		return false;
 	}
 
 	private function __cacheMISPFeed($feed, $redis, $HttpSocket, $jobId = false) {
@@ -829,6 +855,11 @@ class Feed extends AppModel {
 		}
 		$this->Attribute = ClassRegistry::init('Attribute');
 		$manifest = $this->getManifest($feed, $HttpSocket);
+		if (!empty($manifest)) {
+			$redis->del('misp:feed_cache:' . $feed['Feed']['id']);
+		} else {
+			return false;
+		}
 		$k = 0;
 		foreach ($manifest as $uuid => $event) {
 			$data = false;
@@ -840,8 +871,13 @@ class Feed extends AppModel {
 			} else {
 				$HttpSocket = $this->__setupHttpSocket($feed);
 				$request = $this->__createFeedRequest();
-				$response = $HttpSocket->get($path, '', $request);
-				if ($response->code != 200) {
+				$fetchIssue = false;
+				try {
+					$response = $HttpSocket->get($path, '', $request);
+				} catch (Exception $e) {
+					$fetchIssue = true;
+				}
+				if ($fetchIssue || $response->code != 200) {
 					return false;
 				}
 				$data = $response->body;
@@ -855,8 +891,11 @@ class Feed extends AppModel {
 								$value = explode('|', $attribute['value']);
 								$redis->sAdd('misp:feed_cache:' . $feed['Feed']['id'], md5($value[0]));
 								$redis->sAdd('misp:feed_cache:' . $feed['Feed']['id'], md5($value[1]));
+								$redis->sAdd('misp:feed_cache:combined', md5($value[0]));
+								$redis->sAdd('misp:feed_cache:combined', md5($value[1]));
 							} else {
 								$redis->sAdd('misp:feed_cache:' . $feed['Feed']['id'], md5($attribute['value']));
+								$redis->sAdd('misp:feed_cache:combined', md5($attribute['value']));
 							}
 						}
 					}
@@ -904,5 +943,52 @@ class Feed extends AppModel {
 			}
 		}
 		return $feeds;
+	}
+
+	public function importFeeds($feeds, $user, $default = false) {
+		$feeds = json_decode($feeds, true);
+		if (!isset($feeds[0])) {
+			$feeds = array($feeds);
+		}
+		$results = array('successes' => 0, 'fails' => 0);
+		if (empty($feeds)) return $results;
+		$existingFeeds = $this->find('all', array());
+		foreach ($feeds as $feed) {
+			if ($default) {
+				$feed['Feed']['default'] = 1;
+			} else {
+				$feed['Feed']['default'] = 0;
+			}
+			if (isset($feed['Feed']['id'])) {
+				unset($feed['Feed']['id']);
+			}
+			$found = false;
+			foreach ($existingFeeds as $existingFeed) {
+				if ($existingFeed['Feed']['url'] == $feed['Feed']['url']) {
+					$found = true;
+				}
+			}
+			if (!$found) {
+				$feed['Feed']['tag_id'] = 0;
+				if (isset($feed['Tag'])) {
+					$tag_id = $this->Tag->captureTag($feed['Tag'], $user);
+					if ($tag_id) $feed['Feed']['tag_id'] = $tag_id;
+				}
+				$this->create();
+				if (!$this->save($feed, true, array('name', 'provider', 'url', 'rules', 'source_format', 'fixed_event', 'delta_merge', 'override_ids', 'publish', 'settings', 'tag_id', 'default', 'lookup_visible'))) {
+					$results['fails']++;
+				} else {
+					$results['successes']++;
+				}
+			}
+		}
+		return $results;
+	}
+
+	public function load_default_feeds() {
+		$user = array('Role' => array('perm_tag_editor' => 1, 'perm_site_admin' => 1));
+		$json = file_get_contents(APP . 'files/feed-metadata/defaults.json');
+		$this->importFeeds($json, $user, true);
+		return true;
 	}
 }

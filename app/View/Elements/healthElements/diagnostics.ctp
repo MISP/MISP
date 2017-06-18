@@ -183,7 +183,7 @@
 	STIX and Cybox libraries
 	</h3>
 	<p>Mitre's STIX and Cybox python libraries have to be installed in order for MISP's STIX export to work. Make sure that you install them (as described in the MISP installation instructions) if you receive an error below.<br />
-	If you run into any issues here, make sure that both STIX and CyBox are installed as described in the INSTALL.txt file. The required versions are:<br /><b>STIX</b>: <?php echo $stix['stix']['expected'];?><br /><b>CyBox</b>: <?php echo $stix['cybox']['expected'];?><br />
+	If you run into any issues here, make sure that both STIX and CyBox are installed as described in the INSTALL.txt file. The required versions are:<br /><b>STIX</b>: <?php echo $stix['stix']['expected'];?><br /><b>CyBox</b>: <?php echo $stix['cybox']['expected'];?><br /><b>mixbox</b>: <?php echo $stix['mixbox']['expected'];?><br />
 	Other versions might work but are not tested / recommended.</p>
 	<div style="background-color:#f7f7f9;width:400px;">
 		<?php
@@ -204,7 +204,7 @@
 				}
 				echo 'STIX and Cybox libraries....<span style="color:' . $colour . ';">' . $stixOperational[$stix['operational']] . '</span><br />';
 				if ($stix['operational'] == 1) {
-					foreach (array('stix', 'cybox') as $package) {
+					foreach (array('stix', 'cybox', 'mixbox') as $package) {
 						$colour = 'green';
 						if ($stix[$package]['status'] == 0) $colour = 'red';
 						echo strtoupper($package) . ' library version....<span style="color:' . $colour . ';">' . ${$package . 'Version'}[$stix[$package]['status']] . '</span><br />';
@@ -242,7 +242,7 @@
 		?>
 	</div>
 	<div>
-		<span class="btn btn-inverse" role="button" tabindex="0" aria-label="Start or restart ZMQ service" title="Start or restart ZeroMQ service" style="padding-top:1px;padding-bottom:1px;" onClick = "zeroMQServerAction('start')">Start / Restart</span>
+		<span class="btn btn-inverse" role="button" tabindex="0" aria-label="Start ZMQ service" title="Start ZeroMQ service" style="padding-top:1px;padding-bottom:1px;" onClick = "zeroMQServerAction('start')">Start</span>
 		<span class="btn btn-inverse" role="button" tabindex="0" aria-label="Stop ZeroMQ service" title="Stop ZeroMQ service" style="padding-top:1px;padding-bottom:1px;" onClick = "zeroMQServerAction('stop')">Stop</span>
 		<span class="btn btn-inverse" role="button" tabindex="0" aria-label="Check ZeroMQ service status" title="Check ZeroMQ service status" style="padding-top:1px;padding-bottom:1px;" onClick = "zeroMQServerAction('status')">Status</span>
 	</div>
@@ -322,7 +322,7 @@
 		Verify PGP keys
 	</h3>
 	<p>Run a full validation of all PGP keys within this instance's userbase. The script will try to identify possible issues with each key and report back on the results.</p>
-	<span class="btn btn-inverse" onClick="location.href='<?php echo $baseurl;?>/users/verifyGPG';">Verify GPG keys</span> (Check whether every user's GPG key is usable)</li>
+	<span class="btn btn-inverse" onClick="location.href='<?php echo $baseurl;?>/users/verifyGPG';">Verify PGP keys</span> (Check whether every user's PGP key is usable)</li>
 	<h3>
 		Database cleanup scripts
 	</h3>

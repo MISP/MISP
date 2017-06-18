@@ -75,6 +75,11 @@ class Attribute extends AppModel {
 			'cortex'
 	);
 
+	public $primaryOnlyCorrelatingTypes = array(
+		'ip-src|port',
+		'ip-dst|port'
+	);
+
 	public $searchResponseTypes = array(
 		'xml' => array(
 			'type' => 'xml',
@@ -111,6 +116,7 @@ class Attribute extends AppModel {
 			'email-dst' => array('desc' => "A recipient email address", 'formdesc' => "A recipient email address that is not related to your constituency.", 'default_category' => 'Network activity', 'to_ids' => 1),
 			'email-subject' => array('desc' => "The subject of the email", 'default_category' => 'Payload delivery', 'to_ids' => 0),
 			'email-attachment' => array('desc' => "File name of the email attachment.", 'default_category' => 'Payload delivery', 'to_ids' => 1),
+			'email-body' => array('desc' => 'Email body', 'default_category' => 'Payload delivery', 'to_ids' => 0),
 			'float' => array('desc' => "A floating point value.", 'default_category' => 'Other', 'to_ids' => 0),
 			'url' => array('desc' => 'url', 'default_category' => 'External analysis', 'to_ids' => 1),
 			'http-method' => array('desc' => "HTTP method used by the malware (e.g. POST, GET, ...).", 'default_category' => 'Network activity', 'to_ids' => 0),
@@ -261,7 +267,7 @@ class Attribute extends AppModel {
 			'Payload delivery' => array(
 					'desc' => 'Information about how the malware is delivered',
 					'formdesc' => 'Information about the way the malware payload is initially delivered, for example information about the email or web-site, vulnerability used, originating IP etc. Malware sample itself should be attached here.',
-					'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'impfuzzy','authentihash', 'pehash', 'tlsh', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash','filename|impfuzzy', 'filename|pehash', 'ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'hostname', 'domain', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'url', 'user-agent', 'AS', 'pattern-in-file', 'pattern-in-traffic', 'yara', 'sigma', 'attachment', 'malware-sample', 'link', 'malware-type', 'comment', 'text', 'hex', 'vulnerability', 'x509-fingerprint-sha1', 'other', 'ip-dst|port', 'ip-src|port', 'hostname|port', 'email-dst-display-name', 'email-src-display-name', 'email-header', 'email-reply-to', 'email-x-mailer', 'email-mime-boundary', 'email-thread-index', 'email-message-id', 'mobile-application-id')
+					'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'impfuzzy','authentihash', 'pehash', 'tlsh', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash','filename|impfuzzy', 'filename|pehash', 'ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'hostname', 'domain', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'email-body', 'url', 'user-agent', 'AS', 'pattern-in-file', 'pattern-in-traffic', 'yara', 'sigma', 'attachment', 'malware-sample', 'link', 'malware-type', 'comment', 'text', 'hex', 'vulnerability', 'x509-fingerprint-sha1', 'other', 'ip-dst|port', 'ip-src|port', 'hostname|port', 'email-dst-display-name', 'email-src-display-name', 'email-header', 'email-reply-to', 'email-x-mailer', 'email-mime-boundary', 'email-thread-index', 'email-message-id', 'mobile-application-id')
 					),
 			'Artifacts dropped' => array(
 					'desc' => 'Any artifact (files, registry keys etc.) dropped by the malware or other modifications to the system',
@@ -423,12 +429,8 @@ class Attribute extends AppModel {
 		),
 		'uuid' => array(
 			'uuid' => array(
-				'rule' => array('uuid'),
-				//'message' => 'Your custom message here',
-				//'allowEmpty' => false,
-				//'required' => false,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
+				'rule' => array('custom', '/^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/'),
+				'message' => 'Please provide a valid UUID'
 			),
 			'unique' => array(
 				'rule' => 'isUnique',
@@ -551,6 +553,13 @@ class Attribute extends AppModel {
 		} else {
 			$this->__afterSaveCorrelation($this->data['Attribute']);
 		}
+		if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_attribute_notifications_enable')) {
+			$pubSubTool = $this->getPubSubTool();
+			$pubSubTool->attribute_save($this->data);
+		}
+		if (Configure::read('MISP.enable_advanced_correlations') && in_array($this->data['Attribute']['type'], array('ip-src', 'ip-dst', 'domain-ip')) && strpos($this->data['Attribute']['value'], '/')) {
+			$this->setCIDRList();
+		}
 		$result = true;
 		// if the 'data' field is set on the $this->data then save the data to the correct file
 		if (isset($this->data['Attribute']['type']) && $this->typeIsAttachment($this->data['Attribute']['type']) && !empty($this->data['Attribute']['data'])) {
@@ -574,6 +583,12 @@ class Attribute extends AppModel {
 		}
 		// update correlation..
 		$this->__beforeDeleteCorrelation($this->data['Attribute']['id']);
+	}
+
+	public function afterDelete() {
+		if (Configure::read('MISP.enable_advanced_correlations') && in_array($this->data['Attribute']['type'], array('ip-src', 'ip-dst', 'domain-ip')) && strpos($this->data['Attribute']['value'], '/')) {
+			$this->setCIDRList();
+		}
 	}
 
 	public function beforeValidate($options = array()) {
@@ -799,8 +814,8 @@ class Attribute extends AppModel {
 				}
 				break;
 			case 'port':
-				if (!is_numeric($value) || $value > 1 || $value < 65536) {
-					$returnValue = 'Port numbers have to be positive integers under 65536.';
+				if (!is_numeric($value) || $value < 1 || $value > 65535) {
+					$returnValue = 'Port numbers have to be positive integers between 1 and 65535.';
 				} else {
 					$returnValue = true;
 				}
@@ -896,6 +911,8 @@ class Attribute extends AppModel {
 			case 'comment':
 			case 'text':
 			case 'other':
+			case 'email-attachment':
+			case 'email-body':
 				$returnValue = true;
 				break;
 			case 'hex':
@@ -912,7 +929,6 @@ class Attribute extends AppModel {
 			case 'target-location':
 			case 'target-external':
 			case 'email-subject':
-			case 'email-attachment':
 			case 'malware-type':
 			// TODO: review url/uri validation
 			case 'url':
@@ -1323,14 +1339,34 @@ class Attribute extends AppModel {
 
 	// using Snifff's solution from http://stackoverflow.com/questions/7951061/matching-ipv6-address-to-a-cidr-subnet
 	private function __ipv6InCidr($ip, $cidr) {
-		$ip = inet_pton($ip);
+		$ip = $this->__expandIPv6Notation($ip);
 		$binaryip = $this->__inet_to_bits($ip);
-		list($net, $maskbits) = explode('/', $cidr);
-		$net = inet_pton($net);
+		list($net,$maskbits) = explode('/', $cidr);
+		$net = $this->__expandIPv6Notation($net);
+		if (substr($net, -1) == ':') {
+			$net .= '0';
+		}
 		$binarynet = $this->__inet_to_bits($net);
 		$ip_net_bits = substr($binaryip, 0, $maskbits);
 		$net_bits = substr($binarynet, 0, $maskbits);
 		return ($ip_net_bits === $net_bits);
+	}
+
+	private function __expandIPv6Notation($ip) {
+    if (strpos($ip, '::') !== false)
+        $ip = str_replace('::', str_repeat(':0', 8 - substr_count($ip, ':')).':', $ip);
+    if (strpos($ip, ':') === 0) $ip = '0'.$ip;
+    return $ip;
+	}
+
+	private function __inet_to_bits($inet) {
+		$unpacked = unpack('A16', $inet);
+		$unpacked = str_split($unpacked[1]);
+		$binaryip = '';
+		foreach ($unpacked as $char) {
+			$binaryip .= str_pad(decbin(ord($char)), 8, '0', STR_PAD_LEFT);
+		}
+		return $binaryip;
 	}
 
 	private function __cidrCorrelation($a) {
@@ -1368,23 +1404,20 @@ class Attribute extends AppModel {
 		} else {
 			$ip = $a['value1'];
 			$ip_version = filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) ? 4 : 6;
-			$cidrList = $this->find('list', array(
-				'conditions' => array(
-					'type' => array('ip-src', 'ip-dst'),
-					'value1 LIKE' => '%/%'
-				),
-				'fields' => array('value1'),
-				'order' => false
-			));
+			$cidrList = $this->getSetCIDRList();
 			foreach ($cidrList as $cidr) {
 				$cidr_ip = explode('/', $cidr)[0];
-				if (filter_var($cidr_ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) && $ip_version == 4) {
-					if ($this->__ipv4InCidr($ip, $cidr)) {
-						$ipValues[] = $cidr;
+				if (filter_var($cidr_ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+					if ($ip_version == 4) {
+						if ($this->__ipv4InCidr($ip, $cidr)) {
+							$ipValues[] = $cidr;
+						}
 					}
 				} else {
-					if ($this->__ipv6InCidr($ip, $cidr)) {
-						$ipValues[] = $cidr;
+					if ($ip_version == 6) {
+						if ($this->__ipv6InCidr($ip, $cidr)) {
+							$ipValues[] = $cidr;
+						}
 					}
 				}
 			}
@@ -1418,27 +1451,27 @@ class Attribute extends AppModel {
 			}
 			$this->Correlation = ClassRegistry::init('Correlation');
 			$correlatingValues = array($a['value1']);
-			if (!empty($a['value2'])) $correlatingValues[] = $a['value2'];
+			if (!empty($a['value2']) && !isset($this->primaryOnlyCorrelatingTypes[$a['type']])) $correlatingValues[] = $a['value2'];
 			foreach ($correlatingValues as $k => $cV) {
 				$conditions = array(
-					'AND' => array(
-						'OR' => array(
-								'Attribute.value1' => $cV,
-								'Attribute.value2' => $cV
-						),
-						'Attribute.type !=' => $this->nonCorrelatingTypes,
-						'Attribute.disable_correlation' => 0,
-						'Event.disable_correlation' => 0
+					'OR' => array(
+							'Attribute.value1' => $cV,
+							'AND' => array(
+									'Attribute.value2' => $cV,
+									'NOT' => array('Attribute.type' => $this->primaryOnlyCorrelatingTypes)
+							)
 					),
+					'Attribute.disable_correlation' => 0,
+					'Event.disable_correlation' => 0,
 					'Attribute.deleted' => 0
 				);
 				if (!empty($extraConditions)) {
-					$conditions['AND']['OR'][] = $extraConditions;
+					$conditions['OR'][] = $extraConditions;
 				}
 				$correlatingAttributes[$k] = $this->find('all', array(
 						'conditions' => $conditions,
 						'recursive => -1',
-						'fields' => array('Attribute.event_id', 'Attribute.id', 'Attribute.distribution', 'Attribute.sharing_group_id', 'Attribute.deleted'),
+						'fields' => array('Attribute.event_id', 'Attribute.id', 'Attribute.distribution', 'Attribute.sharing_group_id', 'Attribute.deleted', 'Attribute.type'),
 						'contain' => array('Event' => array('fields' => array('Event.id', 'Event.date', 'Event.info', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id'))),
 						'order' => array(),
 				));
@@ -1446,6 +1479,8 @@ class Attribute extends AppModel {
 					if ($correlatingAttribute['Attribute']['id'] == $a['id']) unset($correlatingAttributes[$k][$key]);
 					else if ($correlatingAttribute['Attribute']['event_id'] == $a['event_id']) unset($correlatingAttributes[$k][$key]);
 					else if ($full && $correlatingAttribute['Attribute']['id'] <= $a['id']) unset($correlatingAttributes[$k][$key]);
+					else if (in_array($correlatingAttribute['Attribute']['type'], $this->nonCorrelatingTypes)) unset($correlatingAttributes[$k][$key]);
+					else if (isset($this->primaryOnlyCorrelatingTypes[$a['type']]) && $correlatingAttribute['value1'] !== $a['value1']) unset($correlatingAttribute[$k][$key]);
 				}
 			}
 			$correlations = array();
@@ -1538,7 +1573,7 @@ class Attribute extends AppModel {
 		if ($type == 'md5') $typeArray[] = 'malware-sample';
 		$rules = array();
 		$eventIds = $this->Event->fetchEventIds($user, $from, $to, $last);
-		if ($tags !== '') {
+		if (!empty($tags)) {
 			$tag = ClassRegistry::init('Tag');
 			$args = $this->dissectArgs($tags);
 			$tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
@@ -2192,6 +2227,17 @@ class Attribute extends AppModel {
 		if (!$user['Role']['perm_sync'] || !isset($options['deleted']) || !$options['deleted']) $params['conditions']['AND']['Attribute.deleted'] = 0;
 		if (isset($options['group'])) $params['group'] = array_merge(array('Attribute.id'), $options['group']);
 		if (Configure::read('MISP.unpublishedprivate')) $params['conditions']['AND'][] = array('OR' => array('Event.published' => 1, 'Event.orgc_id' => $user['org_id']));
+		if (!empty($options['list'])) {
+			$results = $this->find('list', array(
+				'conditions' => $params['conditions'],
+				'recursive' => -1,
+				'contain' => array('Event'),
+				'fields' => array('Attribute.event_id'),
+				'group' => array('Attribute.event_id'),
+				'sort' => false
+			));
+			return $results;
+		}
 		$results = $this->find('all', $params);
 		if ($options['enforceWarninglist']) {
 			$this->Warninglist = ClassRegistry::init('Warninglist');
@@ -2200,7 +2246,7 @@ class Attribute extends AppModel {
 		$results = array_values($results);
 		$proposals_block_attributes = Configure::read('MISP.proposals_block_attributes');
 		foreach ($results as $key => $attribute) {
-			if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttributes($warninglists, $attribute['Attribute'], $this->Warninglist)) {
+			if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttributes($warninglists, $attribute['Attribute'])) {
 				unset($results[$key]);
 				continue;
 			}
@@ -2451,5 +2497,46 @@ class Attribute extends AppModel {
 		}
 		array_push ($conditions['AND'], $subcondition);
 		return $conditions;
+	}
+
+	private function __getCIDRList() {
+		return $this->find('list', array(
+			'conditions' => array(
+				'type' => array('ip-src', 'ip-dst'),
+				'value1 LIKE' => '%/%'
+			),
+			'fields' => array('value1'),
+			'order' => false
+		));
+	}
+
+	public function setCIDRList() {
+		$redis = $this->setupRedis();
+		$cidrList = array();
+		if ($redis) {
+			$redis->del('misp:cidr_cache_list');
+			$cidrList = $this->__getCIDRList();
+			$pipeline = $redis->multi(Redis::PIPELINE);
+			foreach ($cidrList as $cidr) {
+				$pipeline->sadd('misp:cidr_cache_list', $cidr);
+			}
+			$pipeline->exec();
+			$redis->smembers('misp:cidr_cache_list');
+		}
+		return $cidrList;
+	}
+
+	public function getSetCIDRList() {
+		$redis = $this->setupRedis();
+		if ($redis) {
+			if (!$redis->exists('misp:cidr_cache_list') || $redis->sCard('misp:cidr_cache_list') == 0) {
+				$cidrList = $this->setCIDRList($redis);
+			} else {
+				$cidrList = $redis->smembers('misp:cidr_cache_list');
+			}
+		} else {
+			$cidrList = $this->__getCIDRList();
+		}
+		return $cidrList;
 	}
 }

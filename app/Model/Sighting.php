@@ -50,6 +50,14 @@ class Sighting extends AppModel {
 		return true;
 	}
 
+	public function afterSave($created, $options = array()) {
+		if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_sighting_notifications_enable')) {
+			$pubSubTool = $this->getPubSubTool();
+			$pubSubTool->sighting_save($this->data);
+		}
+		return true;
+	}
+
 	public function attachToEvent($event, $user, $attribute_id = false, $extraConditions = false) {
 		$ownEvent = false;
 		if ($user['Role']['perm_site_admin'] || $event['Event']['org_id'] == $user['org_id']) $ownEvent = true;
@@ -140,7 +148,7 @@ class Sighting extends AppModel {
 			if ($result === false) {
 				return json_encode($this->validationErrors);
 			}
-			$sightingsAdded += $this->save($sighting) ? 1 : 0;
+			$sightingsAdded += $result ? 1 : 0;
 		}
 		if ($sightingsAdded == 0) {
 			return 'There was nothing to add.';
@@ -203,14 +211,14 @@ class Sighting extends AppModel {
 		$conditions = array(
 			'Sighting.date_sighting >' => strtotime("-" . $range . " days"),
 			ucfirst($context) . 'Tag.tag_id' => $tagList
-			
+
 		);
 		$contain = array(
 			ucfirst($context) => array(
 				ucfirst($context) . 'Tag' => array(
 					'Tag'
 				)
-			)	
+			)
 		);
 		if ($type !== false) {
 			$conditions['Sighting.type'] = $type;
