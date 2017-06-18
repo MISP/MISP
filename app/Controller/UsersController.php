@@ -1451,21 +1451,4 @@ class UsersController extends AppController {
 		$this->set('notifications', $notifications);
 		$this->set('events', $events);
 	}
-
-    public function checkAttachments() {
-        $this->loadModel('Attribute');
-        $attributes = $this->Attribute->find('all', array(
-            'conditions' => array('Attribute.type' => array('attachment', 'malware-sample')),
-            'recursive' => -1)
-        );
-        $counter = 0;
-        foreach ($attributes as $attribute) {
-            $path = APP . "files" . DS . $attribute['Attribute']['event_id'] . DS;
-            $file = $attribute['Attribute']['id'];
-            if (!file_exists($path . $file)) {
-                $counter++;
-            }
-        }
-        return new CakeResponse(array('body'=>$counter, 'status'=>200));
-    }
 }

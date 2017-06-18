@@ -2786,7 +2786,7 @@ function checkAttachments() {
 		},
 		type:"get",
 		cache: false,
-		url: "/users/checkAttachments/",
+		url: "/attributes/checkAttachments/",
 	});
 }
 
