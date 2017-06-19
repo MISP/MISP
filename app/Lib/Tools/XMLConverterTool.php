@@ -150,13 +150,6 @@ class XMLConverterTool {
 				$event['Event']['RelatedEvent'][$key]['Event'][0] = $temp;
 				unset($event['Event']['RelatedEvent'][$key]['Event'][0]['user_id']);
 				$this->__sanitizeField($event['Event']['RelatedEvent'][$key]['Event'][0]['info']);
-				if (!Configure::read('MISP.showorg') && !$isSiteAdmin) {
-					unset($event['Event']['RelatedEvent'][$key]['Org'], $event['Event']['RelatedEvent'][$key]['Orgc']);
-				} else {
-					$event['Event']['RelatedEvent'][$key]['Event'][0]['Org'][0] = $event['Event']['RelatedEvent'][$key]['Org'];
-					$event['Event']['RelatedEvent'][$key]['Event'][0]['Orgc'][0] = $event['Event']['RelatedEvent'][$key]['Orgc'];
-					unset($event['Event']['RelatedEvent'][$key]['Org'], $event['Event']['RelatedEvent'][$key]['Orgc']);
-				}
 				unset($temp);
 			}
 		}
