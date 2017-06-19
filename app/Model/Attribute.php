@@ -2233,7 +2233,6 @@ class Attribute extends AppModel {
 				'recursive' => -1,
 				'contain' => array('Event'),
 				'fields' => array('Attribute.event_id'),
-				'group' => array('Attribute.event_id'),
 				'sort' => false
 			));
 			return $results;
