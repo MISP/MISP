@@ -60,7 +60,7 @@
 				?>
 			</span>
 		</span><br />
-		<pre class="hidden red" id="gitResult"></pre>
+		<pre class="hidden green bold" id="gitResult"></pre>
 		<button title="Pull the latest MISP version from github" class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick = "updateMISP();">Update MISP</button>
 	</div>
 	<h3>Writeable Directories and files</h3>
