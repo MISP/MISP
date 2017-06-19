@@ -521,7 +521,7 @@ class EventsController extends AppController {
 			}
 		}
 		if (Configure::read('MISP.tagging') && !$this->_isRest()) {
-			$this->paginate['contain'] = array_merge($this->paginate['contain'], array('User.email', 'EventTag' => array('Tag')));
+			$this->paginate['contain'] = array_merge($this->paginate['contain'], array('User.email', 'EventTag'));
 		} else {
 			$this->paginate['contain'] = array_merge($this->paginate['contain'], array('User.email'));
 		}
@@ -585,6 +585,7 @@ class EventsController extends AppController {
 			if (count($events) == 1 && isset($this->passedArgs['searchall'])) {
 				$this->redirect(array('controller' => 'events', 'action' => 'view', $events[0]['Event']['id']));
 			}
+			$events = $this->Event->attachTagsToEvents($events);
 			if (Configure::read('MISP.showCorrelationsOnIndex')) $events = $this->Event->attachCorrelationCountToEvents($this->Auth->user(), $events);
 			if (Configure::read('MISP.showSightingsCountOnIndex') && Configure::read('MISP.Plugin.Sightings_enable') !== false) $events = $this->Event->attachSightingsCountToEvents($this->Auth->user(), $events);
 			if (Configure::read('MISP.showProposalsCountOnIndex')) $events = $this->Event->attachProposalsCountToEvents($this->Auth->user(), $events);

@@ -412,6 +412,31 @@ class Event extends AppModel {
 		return $this->field('id', array('id' => $eventid, 'org_id' => $org)) === $eventid;
 	}
 
+	public function attachtagsToEvents($events) {
+		$tagsToFetch = array();
+		foreach ($events as $k => $event) {
+			if (!empty($event['EventTag'])) {
+				foreach ($event['EventTag'] as $et) {
+					$tagsToFetch[$et['tag_id']] = $et['tag_id'];
+				}
+			}
+		}
+		$tags = $this->EventTag->Tag->find('all', array(
+			'conditions' => array('Tag.id' => $tagsToFetch),
+			'recursive' => -1,
+			'order' => false
+		));
+		$tags = Set::combine($tags, '{n}.Tag.id', '{n}');
+		foreach ($events as $k => $event) {
+			if (!empty($event['EventTag'])) {
+				foreach ($event['EventTag'] as $k2 => $et) {
+					$events[$k]['EventTag'][$k2]['Tag'] = $tags[$et['tag_id']]['Tag'];
+				}
+			}
+		}
+		return $events;
+	}
+
 	// gets the logged in user + an array of events, attaches the correlation count to each
 	public function attachCorrelationCountToEvents($user, $events) {
 		$sgids = $this->SharingGroup->fetchAllAuthorised($user);
