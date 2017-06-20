@@ -1,10 +1,10 @@
 INSTALLATION INSTRUCTIONS
-------------------------- for Debian 8 "jessie" server
+------------------------- for Debian 9 "stretch" server
 
 1/ Minimal Debian install
 -------------------------
 
-# Install a minimal Debian 8 "jessie" server system with the software:
+# Install a minimal Debian 9 "stretch" server system with the software:
 - OpenSSH server
 
 # Make sure your system is up2date:
@@ -44,6 +44,7 @@ sudo a2ensite default-ssl
 # Install PHP and dependencies
 sudo apt-get install -y libapache2-mod-php7.0 php7.0 php7.0-cli php7.0-dev php7.0-json php7.0-xml php7.0-mysql php7.0-readline php7.0-redis php7.0-mbstring
 sudo pear install Crypt_GPG
+sudo a2enmod php7.0
 
 # Apply all changes
 sudo systemctl restart apache2
