@@ -99,7 +99,7 @@ sudo -u www-data php composer.phar config vendor-dir Vendor
 sudo -u www-data php composer.phar install
 
 # Enable CakeResque with php-redis
-sudo php5enmod redis
+sudo phpenmod redis
 
 # To use the scheduler worker for scheduled tasks, do the following:
 sudo -u www-data cp -fa /var/www/MISP/INSTALL/setup/config.php /var/www/MISP/app/Plugin/CakeResque/Config/config.php
