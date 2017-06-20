@@ -1,5 +1,5 @@
 <div class="templates form">
-<?php 
+<?php
 	echo $this->Form->create('Template');
 ?>
 	<fieldset>
@@ -14,7 +14,7 @@
 					<tr>
 						<td><table><tr id = "tags"></tr></table></td>
 						<td id = "addTagButtonTD">
-							<span onClick="activateTagField()" id="addTagButton" class="btn btn-inverse noPrint" style="line-height:10px; padding: 4px 4px;">+</span>
+							<span role="button" tabindex="0" aria-label="Add tag" title="Add tag" onClick="activateTagField()" id="addTagButton" class="btn btn-inverse noPrint" style="line-height:10px; padding: 4px 4px;">+</span>
 						</td>
 						<td id = "addTagFieldTD">
 							<?php
@@ -31,10 +31,10 @@
 						</td>
 					</tr>
 				</table>
-			</div><br />		
-	<?php 
+			</div><br />
+	<?php
 		echo $this->Form->input('description', array(
-			'label' => 'Event Description',
+			'label' => 'Template Description',
 			'div' => 'clear',
 			'type' => 'textarea',
 			'class' => 'form-control span6',
@@ -42,26 +42,27 @@
 		));
 		echo $this->Form->input('share', array(
 			'label' => 'Share this template with others',
+			'type' => 'checkbox'
 		));
 	?>
 	</fieldset>
 <?php echo $this->Form->button(__('Edit'), array('class' => 'btn btn-primary'));
 	echo $this->Form->end();?>
 </div>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'templates', 'menuItem' => 'edit', 'id' => $id, 'mayModify' => $mayModify));
 ?>
 <script type="text/javascript">
 var selectedTags = [
-	<?php 
+	<?php
 		foreach ($currentTags as $k => $t) {
 			if ($k != 0) echo ', ';
-			echo '"' . $t['Tag']['name'] . '"';
+			echo '"' . $t['Tag']['id'] . '"';
 		}
 	?>
 ];
 var allTags = [
-	<?php 
+	<?php
 		foreach ($tagInfo as $tag) {
 			echo "{'id' : '" . h($tag['Tags']['id']) . "', 'name' : '" . h($tag['Tags']['name']) . "', 'colour' : '" . h($tag['Tags']['colour']) . "'},";
 		}

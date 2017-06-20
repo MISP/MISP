@@ -1,9 +1,9 @@
 <div class="events">
 	<?php echo $this->Form->create('User');?>
 		<fieldset>
-			<legend>Filter Event Index</legend>
+			<legend>Filter User Index</legend>
 			<div class="overlay_spacing">
-			<?php 
+			<?php
 				echo $this->Form->input('rule', array(
 						'options' => $rules,
 						//'empty' => '(Select a filter)',
@@ -21,8 +21,8 @@
 						'style'	=> 'display:none;width:62px;margin-right:3px',
 						'div' => false
 				));
-				
-				foreach($differentFilters as $b) {
+
+				foreach ($differentFilters as $b) {
 					echo $this->Form->input('search' . $b, array(
 						'options' => array('' => 'Any', '0' => 'No', '1' => 'Yes'),
 						'class' => 'input',
@@ -31,8 +31,8 @@
 						'div' => false
 					));
 				}
-				
-				foreach($simpleFilters as $t) {
+
+				foreach ($simpleFilters as $t) {
 					if ($t == 'role') {
 						echo $this->Form->input('search' . $t, array(
 								'options' => array($roles),
@@ -71,16 +71,16 @@
 					<th style="width:567px;border:1px solid #cccccc;border-right:0px;text-align: left;">Value</th>
 					<th style="width:10px;border:1px solid #cccccc;border-left:0px;text-align: left;"></th>
 				</tr>
-				<?php 
+				<?php
 					$fields = array_merge($differentFilters, $simpleFilters);
 					foreach ($fields as $k => $field):
 				?>
 					<tr id="row_<?php echo $field; ?>" class="hidden filterTableRow">
 						<td id="key_<?php echo $field;?>" style="border:1px solid #cccccc;font-weight:bold;"><?php echo ucfirst($field); ?></td>
 						<td id="value_<?php echo $field;?>" style="border:1px solid #cccccc;border-right:0px;"></td>
-						<td id="delete_<?php echo $field;?>" style="border:1px solid #cccccc;border-left:0px;"><span class="icon-trash" onClick="indexFilterClearRow('<?php echo $field;?>');"></span></td>
+						<td id="delete_<?php echo $field;?>" style="border:1px solid #cccccc;border-left:0px;"><span class="icon-trash" title="Remove filter" role="button" tabindex="0" aria-label="Remove filter" onClick="indexFilterClearRow('<?php echo $field;?>');"></span></td>
 					</tr>
-				<?php 
+				<?php
 					endforeach;
 				?>
 			</table>
@@ -92,7 +92,7 @@
 		</div>
 		<?php echo $this->Form->create('User', array('id' => 'test', 'url' => $baseurl . '/admin/users/index'));?>
 		<fieldset>
-		<?php 
+		<?php
 			echo $this->Form->input('generatedURL', array(
 				'label' => false,
 				'class' => 'input',
@@ -103,8 +103,8 @@
 		</fieldset>
 		<div id = "generatedURL" style="word-wrap: break-word;"><br />Save this URL if you would like to use the same filter settings again<br /><div style="background-color:#f5f5f5;border: 1px solid #e3e3e3; border-radius:4px;padding:3px;background-color:white;"><span id="generatedURLContent"></span></div></div>
 		<br />
-		<span class="btn btn-primary" onClick="indexApplyFilters();">Apply</span>
-		<span class="btn btn-inverse" onClick="cancelPopoverForm();" style="float:right;">Cancel</span>
+		<span role="button" tabindex="0" aria-label="Apply filters" title="Apply filters" class="btn btn-primary" onClick="indexApplyFilters();">Apply</span>
+		<span role="button" tabindex="0" aria-label="Cancel" class="btn btn-inverse" onClick="cancelPopoverForm();" style="float:right;">Cancel</span>
 		</div>
 </div>
 <script type="text/javascript">
@@ -133,7 +133,7 @@ var orgs = <?php echo json_encode($orgs, true); ?>
 var allFields = simpleFilters.concat(differentFilters);
 
 var baseurl = "<?php echo $baseurl; ?>";
-		
+
 $(document).ready(function() {
 	indexRuleChange();
 	indexSetTableVisibility();

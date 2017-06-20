@@ -1,6 +1,6 @@
 <?php
-$mayModify = (($isAclModify && $this->request->data['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $this->request->data['Event']['orgc'] == $me['Organisation']['name']));
-$mayPublish = ($isAclPublish && $this->request->data['Event']['orgc'] == $me['Organisation']['name']);
+$mayModify = (($isAclModify && $this->request->data['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $this->request->data['Event']['orgc_id'] == $me['org_id']));
+$mayPublish = ($isAclPublish && $this->request->data['Event']['orgc_id'] == $me['org_id']);
 ?>
 <div class="events form">
 <?php echo $this->Form->create('Event');?>
@@ -31,9 +31,8 @@ $mayPublish = ($isAclPublish && $this->request->data['Event']['orgc'] == $me['Or
 	?>
 		</div>
 	</fieldset>
-	<div id="confirmation_box" class="confirmation_box"></div>
 </div>
-<?php 
+<?php
 	$event = $this->data;
 	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'contact', 'event' => $event));
 ?>

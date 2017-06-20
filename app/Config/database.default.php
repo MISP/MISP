@@ -28,7 +28,7 @@
  * You can specify multiple configurations for production, development and testing.
  *
  * datasource => The name of a supported datasource; valid options are as follows:
- *		Database/Mysql 		- MySQL 4 & 5,
+ *		Database/Mysql		- MySQL 4 & 5,
  *		Database/Sqlite		- SQLite (PHP5 only),
  *		Database/Postgres	- PostgreSQL 7 and higher,
  *		Database/Sqlserver	- Microsoft SQL Server 2005 and higher
@@ -61,13 +61,15 @@ class DATABASE_CONFIG {
 
 	public $default = array(
 		'datasource' => 'Database/Mysql',
+		//'datasource' => 'Database/Postgres',
 		'persistent' => false,
 		'host' => 'localhost',
 		'login' => 'db login',
-		'port' => 3306,
+		'port' => 3306, // MySQL & MariaDB
+		//'port' => 5432, // PostgreSQL
 		'password' => 'db password',
 		'database' => 'misp',
 		'prefix' => '',
-		//'encoding' => 'utf8',
+		'encoding' => 'utf8',
 	);
 }

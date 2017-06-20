@@ -2,10 +2,6 @@
 
 App::uses('AppModel', 'Model');
 
-/**
- * Thread Model
- *
-*/
 class Thread extends AppModel {
 	public $actsAs = array(
 			'Containable',
@@ -17,14 +13,14 @@ class Thread extends AppModel {
 	);
 	public $hasMany = 'Post';
 	public $belongsTo = array(
-		'Event', 
+		'Event',
 		'Organisation' => array(
 			'className' => 'Organisation',
 			'foreignKey' => 'org_id'
 		),
 		'SharingGroup'
 	);
-	
+
 	public function updateAfterPostChange($thread, $add = false) {
 		$count = count($thread['Post']);
 		// If we have 0 posts left, delete the thread!
@@ -34,7 +30,7 @@ class Thread extends AppModel {
 		} else {
 			$thread['Thread']['post_count'] = $count;
 			if ($add) {
-				$thread['Thread']['date_modified'] = date('Y/m/d h:i:s');
+				$thread['Thread']['date_modified'] = date('Y/m/d H:i:s');
 			}
 			$this->save($thread);
 			return true;

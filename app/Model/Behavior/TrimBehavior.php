@@ -39,9 +39,9 @@ class TrimBehavior extends ModelBehavior {
  * @param unknown_type $array
  */
 	public function trimStringFields(Model $Model) {
-		foreach ($Model->data[$Model->name] as &$field) {
+		foreach ($Model->data[$Model->name] as $key => $field) {
 			if (is_string($field)) {
-				$field = trim($field);
+				$Model->data[$Model->name][$key] = trim($field);
 			}
 		}
 		return true;

@@ -1,5 +1,5 @@
 <div class="confirmation">
-<?php 
+<?php
 	echo $this->Form->create('TemplateElement', array('style' => 'margin:0px;', 'id' => 'PromptForm'));
 ?>
 <legend>Template Element Deletion</legend>
@@ -8,17 +8,17 @@
 	<table>
 		<tr>
 			<td style="vertical-align:top">
-				<span id="PromptYesButton" class="btn btn-primary" onClick="submitDeletion(<?php echo $template_id; ?>, 'delete', 'template_elements', <?php echo $id;?>)">Yes</span>
+				<button id="PromptYesButton" class="btn btn-primary" onClick="submitDeletion(<?php echo $template_id; ?>, 'delete', 'template_elements', <?php echo $id;?>)">Yes</button>
 			</td>
 			<td style="width:540px;">
 			</td>
 			<td style="vertical-align:top;">
-				<span class="btn btn-inverse" id="PromptNoButton" onClick="cancelPrompt();">No</span>
+				<button class="btn btn-inverse" id="PromptNoButton" onClick="cancelPrompt();">No</button>
 			</td>
 		</tr>
 	</table>
 </div>
-<?php 
+<?php
 	echo $this->Form->end();
 ?>
 </div>

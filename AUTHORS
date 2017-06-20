@@ -8,10 +8,12 @@ Contributors
 ------------
 
 Aaron Kaplan
-Alexander J
+Airbus Group CERT (AiG CERT)
+Alexander Jaeger
 Alexandre Dulaunoy
 Alexandru Ciobanu
 Andras Iklody
+Andreas Ziegler
 Andrzej Dereszowski
 Bâkır Emre
 Chris Clark
@@ -31,8 +33,9 @@ remg427
 Copyright (C) 2012 Christophe Vandeplas
 Copyright (C) 2012 Belgian Defence
 Copyright (C) 2012 NATO / NCIRC
-Copyright (C) 2013-2015 Andras Iklody
-Copyright (C) 2015 CIRCL - Computer Incident Response Center Luxembourg
+Copyright (C) 2013-2016 Andras Iklody
+Copyright (C) 2015-2016 CIRCL - Computer Incident Response Center Luxembourg
+Copyright (C) 2016 Andreas Ziegler
 
 MISP is licensed under the GNU AFFERO GENERAL PUBLIC LICENSE version 3.
 
@@ -48,7 +51,7 @@ Christophe was then allowed to spend some time on CyDefSIG during his work-hours
 At some point NATO heard about this project. On January 2012 a first presentation was done to introduce them in more depth to the project. They looked at other products that the marked offered, but it seemed they deemed the openness of CyDefSIG to be of a great advantage. Andrzej Dereszowski was the first part-time developer from NATO side.
 
 One thing led to another and some months later NATO hired a full-time developer to improve the code and add more features. A collaborative development started from that date.
-As with many personal projects the license was not explicitely written yet, it was collaboratively decided that the project would be released publicly as Affero GPL. This to share the code with as many people as possible and to protect it from any harm.
+As with many personal projects the license was not explicitly written yet, it was collaboratively decided that the project would be released publicly as Affero GPL. This to share the code with as many people as possible and to protect it from any harm.
 
 The project was then renamed to MISP: Malware Information Sharing Project, a name invented by Alex Vandurme from NATO.
 

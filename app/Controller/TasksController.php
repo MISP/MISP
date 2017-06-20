@@ -2,25 +2,16 @@
 
 App::uses('AppController', 'Controller');
 
-/**
- * Tasks Controller
- *
- * @property Task $Task
-*/
 class TasksController extends AppController {
 	public $components = array('Security' ,'RequestHandler', 'Session');
-	
+
 	public $paginate = array(
 			'limit' => 20,
 			'order' => array(
 					'Task.id' => 'desc'
 			)
 	);
-	
-	public function beforeFilter() {
-		parent::beforeFilter();
-	}
-	
+
 	public function index() {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
 		if (!Configure::read('MISP.background_jobs')) throw new NotFoundException('Background jobs are not enabled on this instance.');
@@ -30,18 +21,26 @@ class TasksController extends AppController {
 		$this->set('list', $tasks);
 		$this->set('time', time());
 	}
-	
+
 	// checks if all the mandatory tasks exist, and if not, creates them
-	// default tasks are: 
+	// default tasks are:
 	// 'cache_exports'
 	private function __checkTasks() {
-		foreach ($this->Task->tasks as $default_task) {
-			if (!$this->Task->findByType($default_task['type'], array('id', 'type'))) {
-				$this->Task->save($default_task);
+		$existingTasks = $this->Task->find('list', array('fields' => array('type')));
+		foreach ($this->Task->tasks as $taskName => $taskData) {
+			if (!in_array($taskName, $existingTasks)) {
+				$this->Task->create();
+				$this->Task->save($taskData);
+			} else {
+				$existingTask = $this->Task->find('first', array('recursive' => -1, 'conditions' => array('Task.type' => $taskName)));
+				if ($taskData['description'] != $existingTask['Task']['description']) {
+					$existingTask['Task']['description'] = $taskData['description'];
+					$this->Task->save($existingTask);
+				}
 			}
 		}
 	}
-	
+
 	public function setTask() {
 		if (!$this->_isSiteAdmin()) {
 			throw new MethodNotAllowedException('You are not authorised to do that.');
@@ -73,25 +72,27 @@ class TasksController extends AppController {
 			$this->redirect(array('action' => 'index'));
 		}
 	}
-	
+
 	private function _getTodaysTimestamp() {
 		return strtotime(date("d/m/Y") . ' 00:00:00');
 	}
-	
+
 	private function _jobScheduler($type, $timestamp, $id) {
 		if ($type === 'cache_exports') $this->_cacheScheduler($timestamp, $id);
 		if ($type === 'pull_all') $this->_pullScheduler($timestamp, $id);
 		if ($type === 'push_all') $this->_pushScheduler($timestamp, $id);
 	}
-	
+
 	private function _cacheScheduler($timestamp, $id) {
-		CakeResque::enqueueAt(
+		$process_id = CakeResque::enqueueAt(
 				$timestamp,
 				'cache',
 				'EventShell',
 				array('enqueueCaching', $timestamp),
 				true
 		);
+		$this->Task->id = $id;
+		$this->Task->saveField('process_id', $process_id);
 	}
 
 	private function _pushScheduler($timestamp, $id) {
@@ -103,9 +104,9 @@ class TasksController extends AppController {
 				true
 		);
 		$this->Task->id = $id;
-		$this->Task->saveField('job_id', $process_id);
+		$this->Task->saveField('process_id', $process_id);
 	}
-	
+
 	private function _pullScheduler($timestamp, $id) {
 		$process_id = CakeResque::enqueueAt(
 				$timestamp,
@@ -115,7 +116,7 @@ class TasksController extends AppController {
 				true
 		);
 		$this->Task->id = $id;
-		$this->Task->saveField('job_id', $process_id);
+		$this->Task->saveField('process_id', $process_id);
 	}
 
 }

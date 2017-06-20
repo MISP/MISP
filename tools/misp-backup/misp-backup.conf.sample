@@ -1,0 +1,10 @@
+# Path to your MISP installation
+MISPPath=/var/www/MISP
+
+# First part of output file name
+# Name of output file for default would be e.g. MISP-Backup-20170601_215628.tar.gz
+OutputFileName="MISP-Backup"
+
+# Folder where you want to put the backup. This folder must exist!
+# Path of output file for default would be e.g. /opt/backup/MISP-Backup-20170601_215628.tar.gz
+OutputDirName="/opt/backup"

@@ -7,12 +7,12 @@ App::uses('Regexp', 'Model');
  *
  */
 class RegexpBehavior extends ModelBehavior {
-	
+
 	private $__allRegexp = array();
-	
+
 	public function setup(Model $model, $config = null) {
 		$regexp = new Regexp();
-		$this->__allRegexp = $regexp->find('all');
+		$this->__allRegexp = $regexp->find('all', array('order' => 'id ASC'));
 	}
 
 /**

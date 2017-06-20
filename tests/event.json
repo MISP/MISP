@@ -1,0 +1,1496 @@
+{
+  "Event": {
+    "id": "750",
+    "orgc_id": "2",
+    "org_id": "2",
+    "date": "2014-12-10",
+    "threat_level_id": "1",
+    "info": "OSINT - F-Secure W32/Regin, Stage #1",
+    "published": true,
+    "uuid": "54884656-2da8-4625-bf07-43ef950d210b",
+    "attribute_count": "39",
+    "analysis": "2",
+    "timestamp": "1418217625",
+    "distribution": "3",
+    "proposal_email_lock": false,
+    "locked": false,
+    "publish_timestamp": "1418217647",
+    "sharing_group_id": "0",
+    "Galaxy": [],
+    "Org": {
+      "id": "2",
+      "name": "CIRCL",
+      "uuid": "55f6ea5e-2c60-40e5-964f-47a8950d210f"
+    },
+    "Orgc": {
+      "id": "2",
+      "name": "CIRCL",
+      "uuid": "55f6ea5e-2c60-40e5-964f-47a8950d210f"
+    },
+    "Attribute": [
+      {
+        "id": "96642",
+        "type": "filename",
+        "category": "Artifacts dropped",
+        "to_ids": false,
+        "uuid": "54884832-f2a8-46ff-be58-1ac6950d210b",
+        "event_id": "750",
+        "distribution": "3",
+        "timestamp": "1418217522",
+        "comment": "",
+        "sharing_group_id": "0",
+        "value": "abiosdsk.sys",
+        "SharingGroup": [],
+        "ShadowAttribute": [],
+        "RelatedAttribute": [
+          {
+            "id": "2006",
+            "org_id": "2",
+            "info": "OSINT - Regin: Top-tier espionage tool enables stealthy surveillance by Symantec"
+          }
+        ]
+      },
+      {
+        "id": "96643",
+        "type": "filename",
+        "category": "Artifacts dropped",
+        "to_ids": false,
+        "uuid": "54884832-2608-4fe6-959e-1ac6950d210b",
+        "event_id": "750",
+        "distribution": "3",
+        "timestamp": "1418217522",
+        "comment": "",
+        "sharing_group_id": "0",
+        "value": "ser8uart.sys",
+        "SharingGroup": [],
+        "ShadowAttribute": [],
+        "RelatedAttribute": [
+          {
+            "id": "2006",
+            "org_id": "2",
+            "info": "OSINT - Regin: Top-tier espionage tool enables stealthy surveillance by Symantec"
+          }
+        ]
+      },
+      {
+        "id": "96644",
+        "type": "filename",
+        "category": "Artifacts dropped",
+        "to_ids": false,
+        "uuid": "54884832-93a4-4fb0-aeba-1ac6950d210b",
+        "event_id": "750",
+        "distribution": "3",
+        "timestamp": "1418217522",
+        "comment": "",
+        "sharing_group_id": "0",
+        "value": "usbclass.sys",
+        "SharingGroup": [],
+        "ShadowAttribute": [],
+        "RelatedAttribute": [
+          {
+            "id": "2006",
+            "org_id": "2",
+            "info": "OSINT - Regin: Top-tier espionage tool enables stealthy surveillance by Symantec"
+          },
+          {
+            "id": "697",
+            "org_id": "2",
+            "info": "OSINT - Regin: Top-tier espionage tool enables stealthy surveillance"
+          }
+        ]
+      },
+      {
+        "id": "96645",
+        "type": "filename",
+        "category": "Artifacts dropped",
+        "to_ids": false,
+        "uuid": "54884832-983c-4e4c-a692-1ac6950d210b",
+        "event_id": "750",
+        "distribution": "3",
+        "timestamp": "1418217522",
+        "comment": "",
+        "sharing_group_id": "0",
+        "value": "pcidump.sys",
+        "SharingGroup": [],
+        "ShadowAttribute": []
+      },
+      {
+        "id": "96646",
+        "type": "filename",
+        "category": "Artifacts dropped",
+        "to_ids": false,
+        "uuid": "54884832-5134-460e-bea2-1ac6950d210b",
+        "event_id": "750",
+        "distribution": "3",
+        "timestamp": "1418217522",
+        "comment": "",
+        "sharing_group_id": "0",
+        "value": "atdisk.sys",
+        "SharingGroup": [],
+        "ShadowAttribute": []
+      },
+      {
+        "id": "96647",
+        "type": "filename",
+        "category": "Artifacts dropped",
+        "to_ids": false,
+        "uuid": "54884832-6fb4-4c63-937c-1ac6950d210b",
+        "event_id": "750",
+        "distribution": "3",
+        "timestamp": "1418217522",
+        "comment": "",
+        "sharing_group_id": "0",
+        "value": "rdpmdd.sys",
+        "SharingGroup": [],
+        "ShadowAttribute": []
+      },
+      {
+        "id": "96648",
+        "type": "regkey",
+        "category": "Artifacts dropped",
+        "to_ids": true,
+        "uuid": "5488486c-a044-4c31-830c-15ba950d210b",
+        "event_id": "750",
+        "distribution": "3",
+        "timestamp": "1418217580",
+        "comment": "",
+        "sharing_group_id": "0",
+        "value": "HKLM\\System\\CurrentControlSet\\Control\\",
+        "SharingGroup": [],
+        "ShadowAttribute": []
+      },
+      {
+        "id": "96649",
+        "type": "regkey",
+        "category": "Artifacts dropped",
+        "to_ids": true,
+        "uuid": "5488486c-47ec-4952-8e60-15ba950d210b",
+        "event_id": "750",
+        "distribution": "3",
+        "timestamp": "1418217580",
+        "comment": "",
+        "sharing_group_id": "0",
+        "value": "Class\\{9B9A8ADB-8864-4BC4-8AD5-B17DFDBB9F58}",
+        "SharingGroup": [],
+        "ShadowAttribute": []
+      },
+      {
+        "id": "96650",
+        "type": "regkey",
+        "category": "Artifacts dropped",
+        "to_ids": true,
+        "uuid": "5488486c-1418-4624-b87c-15ba950d210b",
+        "event_id": "750",
+        "distribution": "3",
+        "timestamp": "1418217580",
+        "comment": "",
+        "sharing_group_id": "0",
+        "value": "Class\\{4F20E605-9452-4787-B793-D0204917CA58}",
+        "SharingGroup": [],
+        "ShadowAttribute": []
+      },
+      {
+        "id": "96614",
+        "type": "link",
+        "category": "External analysis",
+        "to_ids": false,
+        "uuid": "5488466a-f0d0-4b58-89a5-15bc950d210b",
+        "event_id": "750",
+        "distribution": "3",
+        "timestamp": "1418217066",
+        "comment": "",
+        "sharing_group_id": "0",
+        "value": "https://www.f-secure.com/documents/996508/1030745/w32_regin_stage_1.pdf",
+        "SharingGroup": [],
+        "ShadowAttribute": []
+      },
+      {
+        "id": "96651",
+        "type": "text",
+        "category": "External analysis",
+        "to_ids": false,
+        "uuid": "5488488d-a4ec-4b40-bd7d-15c7950d210b",
+        "event_id": "750",
+        "distribution": "3",
+        "timestamp": "1418217613",
+        "comment": "",
+        "sharing_group_id": "0",
+        "value": "In this document we analyze a set of 32-bit samples\r\nwhich represents stage #1 of the complex threat that is\r\nknown as Regin. Based on our analysis of the malware’s\r\nfunctionalities, this part of the Regin threat can be\r\nconsidered just a support module — its sole purpose\r\nis to facilitate and enable the operations of stage #2\r\nby loading it and making it more difficult to detect by\r\nsecurity products.\r\nRegin’s stage #1 targets the Windows platform and\r\nsupport various versions of the operating system,\r\nbeginning with Windows NT 4.0. Based on our analysis,\r\nthe samples may be classified into two categories: “pure”\r\nsamples that do not feature any extra, non-malicious\r\ncode; and “augmented” ones which feature malware\r\ncode as part of another device driver. The existence of\r\n“augmented” samples indicates the intention of the\r\nattacker to remain undiscovered for as long as possible.\r\nWhen activated, samples of Regin stage #1 will\r\nretrieve encrypted content from specific locations of\r\nan already compromised system, map it into kernel\r\nmemory and transfer control to it. In terms of technical\r\nsophistication, stage #1’s import resolution process is\r\nof particular interest, as the malware uses the unusual\r\n“trampoline” technique to mask the payload’s access to\r\nAPI functions.\r\nIt is clear that this support component, that represents\r\nthe initial stage of a very complex threat, has been\r\ninstrumental in securing long-term persistence in the\r\nattacks that made use of this threat.",
+        "SharingGroup": [],
+        "ShadowAttribute": []
+      },
+      {
+        "id": "96652",
+        "type": "text",
+        "category": "Other",
+        "to_ids": false,
+        "uuid": "54884899-35b8-48a3-9da2-15c6950d210b",
+        "event_id": "750",
+        "distribution": "3",
+        "timestamp": "1418217625",
+        "comment": "",
+        "sharing_group_id": "0",
+        "value": "Regin",
+        "SharingGroup": [],
+        "ShadowAttribute": [],
+        "RelatedAttribute": [
+          {
+            "id": "2825",
+            "org_id": "2",
+            "info": "OSINT: THE REGIN PLATFORM NATION-STATE OWNAGE OF GSM NETWORKS"
+          },
+          {
+            "id": "2824",
+            "org_id": "2",
+            "info": "OSINT: An analysis of Regin’s Hopscotch and Legspin"
+          },
+          {
+            "id": "2006",
+            "org_id": "2",
+            "info": "OSINT - Regin: Top-tier espionage tool enables stealthy surveillance by Symantec"
+          },
+          {
+            "id": "833",
+            "org_id": "2",
+            "info": "OSINT - An analysis of Regin's Hopscotch and Legspin"
+          },
+          {
+            "id": "759",
+            "org_id": "26",
+            "info": "OSINT F-Secure W64/Regin, Stage #1"
+          },
+          {
+            "id": "730",
+            "org_id": "26",
+            "info": "Regin Scanner"
+          },
+          {
+            "id": "726",
+            "org_id": "2",
+            "info": "Regin fake certificates thumbprints"
+          },
+          {
+            "id": "715",
+            "org_id": "26",
+            "info": "OSINT Regin samples shared by VirusShare"
+          },
+          {
+            "id": "714",
+            "org_id": "3",
+            "info": "Script to detect Regin VFS"
+          },
+          {
+            "id": "710",
+            "org_id": "26",
+            "info": "Secret Malware in European Union Attack Linked to U.S. and British Intelligence article by the Intercept"
+          },
+          {
+            "id": "709",
+            "org_id": "2",
+            "info": "OSINT - Regin: Nation-state ownage of GSM networks"
+          },
+          {
+            "id": "700",
+            "org_id": "2",
+            "info": "Regin Yara rules"
+          },
+          {
+            "id": "699",
+            "org_id": "2",
+            "info": "OSINT - The Regin Espionage Toolkit"
+          },
+          {
+            "id": "697",
+            "org_id": "2",
+            "info": "OSINT - Regin: Top-tier espionage tool enables stealthy surveillance"
+          }
+        ]
+      },
+      {
+        "id": "96615",
+        "type": "md5",
+        "category": "Payload installation",
+        "to_ids": true,
+        "uuid": "548847d8-9db0-4df6-8206-15bb950d210b",
+        "event_id": "750",
+        "distribution": "3",
+        "timestamp": "1418217432",
+        "comment": "Regin samples collected.",
+        "sharing_group_id": "0",
+        "value": "26297dc3cd0b688de3b846983c5385e5",
+        "SharingGroup": [],
+        "ShadowAttribute": [],
+        "RelatedAttribute": [
+          {
+            "id": "2825",
+            "org_id": "2",
+            "info": "OSINT: THE REGIN PLATFORM NATION-STATE OWNAGE OF GSM NETWORKS"
+          },
+          {
+            "id": "710",
+            "org_id": "26",
+            "info": "Secret Malware in European Union Attack Linked to U.S. and British Intelligence article by the Intercept"
+          },
+          {
+            "id": "709",
+            "org_id": "2",
+            "info": "OSINT - Regin: Nation-state ownage of GSM networks"
+          }
+        ]
+      },
+      {
+        "id": "96616",
+        "type": "md5",
+        "category": "Payload installation",
+        "to_ids": true,
+        "uuid": "548847d8-05f8-49e7-af79-15bb950d210b",
+        "event_id": "750",
+        "distribution": "3",
+        "timestamp": "1418217432",
+        "comment": "Regin samples collected.",
+        "sharing_group_id": "0",
+        "value": "47d0e8f9d7a6429920329207a32ecc2e",
+        "SharingGroup": [],
+        "ShadowAttribute": [],
+        "RelatedAttribute": [
+          {
+            "id": "2825",
+            "org_id": "2",
+            "info": "OSINT: THE REGIN PLATFORM NATION-STATE OWNAGE OF GSM NETWORKS"
+          },
+          {
+            "id": "715",
+            "org_id": "26",
+            "info": "OSINT Regin samples shared by VirusShare"
+          },
+          {
+            "id": "710",
+            "org_id": "26",
+            "info": "Secret Malware in European Union Attack Linked to U.S. and British Intelligence article by the Intercept"
+          },
+          {
+            "id": "709",
+            "org_id": "2",
+            "info": "OSINT - Regin: Nation-state ownage of GSM networks"
+          }
+        ]
+      },
+      {
+        "id": "96617",
+        "type": "md5",
+        "category": "Payload installation",
+        "to_ids": true,
+        "uuid": "548847d8-a33c-41f3-9f7a-15bb950d210b",
+        "event_id": "750",
+        "distribution": "3",
+        "timestamp": "1418217432",
+        "comment": "Regin samples collected.",
+        "sharing_group_id": "0",
+        "value": "01c2f321b6bfdb9473c079b0797567ba",
+        "SharingGroup": [],
+        "ShadowAttribute": [],
+        "RelatedAttribute": [
+          {
+            "id": "2825",
+            "org_id": "2",
+            "info": "OSINT: THE REGIN PLATFORM NATION-STATE OWNAGE OF GSM NETWORKS"
+          },
+          {
+            "id": "710",
+            "org_id": "26",
+            "info": "Secret Malware in European Union Attack Linked to U.S. and British Intelligence article by the Intercept"
+          },
+          {
+            "id": "709",
+            "org_id": "2",
+            "info": "OSINT - Regin: Nation-state ownage of GSM networks"
+          }
+        ]
+      },
+      {
+        "id": "96618",
+        "type": "md5",
+        "category": "Payload installation",
+        "to_ids": true,
+        "uuid": "548847d8-c950-48eb-b960-15bb950d210b",
+        "event_id": "750",
+        "distribution": "3",
+        "timestamp": "1418217432",
+        "comment": "Regin samples collected.",
+        "sharing_group_id": "0",
+        "value": "4b6b86c7fec1c574706cecedf44abded",
+        "SharingGroup": [],
+        "ShadowAttribute": [],
+        "RelatedAttribute": [
+          {
+            "id": "2825",
+            "org_id": "2",
+            "info": "OSINT: THE REGIN PLATFORM NATION-STATE OWNAGE OF GSM NETWORKS"
+          },
+          {
+            "id": "2006",
+            "org_id": "2",
+            "info": "OSINT - Regin: Top-tier espionage tool enables stealthy surveillance by Symantec"
+          },
+          {
+            "id": "730",
+            "org_id": "26",
+            "info": "Regin Scanner"
+          },
+          {
+            "id": "714",
+            "org_id": "3",
+            "info": "Script to detect Regin VFS"
+          },
+          {
+            "id": "710",
+            "org_id": "26",
+            "info": "Secret Malware in European Union Attack Linked to U.S. and British Intelligence article by the Intercept"
+          },
+          {
+            "id": "709",
+            "org_id": "2",
+            "info": "OSINT - Regin: Nation-state ownage of GSM networks"
+          },
+          {
+            "id": "697",
+            "org_id": "2",
+            "info": "OSINT - Regin: Top-tier espionage tool enables stealthy surveillance"
+          }
+        ]
+      },
+      {
+        "id": "96619",
+        "type": "md5",
+        "category": "Payload installation",
+        "to_ids": true,
+        "uuid": "548847d8-01e0-4231-a739-15bb950d210b",
+        "event_id": "750",
+        "distribution": "3",
+        "timestamp": "1418217432",
+        "comment": "Regin samples collected.",
+        "sharing_group_id": "0",
+        "value": "744c07e886497f7b68f6f7fe57b7ab54",
+        "SharingGroup": [],
+        "ShadowAttribute": [],
+        "RelatedAttribute": [
+          {
+            "id": "2825",
+            "org_id": "2",
+            "info": "OSINT: THE REGIN PLATFORM NATION-STATE OWNAGE OF GSM NETWORKS"
+          },
+          {
+            "id": "715",
+            "org_id": "26",
+            "info": "OSINT Regin samples shared by VirusShare"
+          },
+          {
+            "id": "710",
+            "org_id": "26",
+            "info": "Secret Malware in European Union Attack Linked to U.S. and British Intelligence article by the Intercept"
+          },
+          {
+            "id": "709",
+            "org_id": "2",
+            "info": "OSINT - Regin: Nation-state ownage of GSM networks"
+          }
+        ]
+      },
+      {
+        "id": "96620",
+        "type": "md5",
+        "category": "Payload installation",
+        "to_ids": true,
+        "uuid": "548847d8-3fbc-4a06-ba82-15bb950d210b",
+        "event_id": "750",
+        "distribution": "3",
+        "timestamp": "1418217432",
+        "comment": "Regin samples collected.",
+        "sharing_group_id": "0",
+        "value": "2c8b9d2885543d7ade3cae98225e263b",
+        "SharingGroup": [],
+        "ShadowAttribute": [],
+        "RelatedAttribute": [
+          {
+            "id": "2825",
+            "org_id": "2",
+            "info": "OSINT: THE REGIN PLATFORM NATION-STATE OWNAGE OF GSM NETWORKS"
+          },
+          {
+            "id": "2006",
+            "org_id": "2",
+            "info": "OSINT - Regin: Top-tier espionage tool enables stealthy surveillance by Symantec"
+          },
+          {
+            "id": "730",
+            "org_id": "26",
+            "info": "Regin Scanner"
+          },
+          {
+            "id": "714",
+            "org_id": "3",
+            "info": "Script to detect Regin VFS"
+          },
+          {
+            "id": "710",
+            "org_id": "26",
+            "info": "Secret Malware in European Union Attack Linked to U.S. and British Intelligence article by the Intercept"
+          },
+          {
+            "id": "709",
+            "org_id": "2",
+            "info": "OSINT - Regin: Nation-state ownage of GSM networks"
+          },
+          {
+            "id": "697",
+            "org_id": "2",
+            "info": "OSINT - Regin: Top-tier espionage tool enables stealthy surveillance"
+          }
+        ]
+      },
+      {
+        "id": "96621",
+        "type": "md5",
+        "category": "Payload installation",
+        "to_ids": true,
+        "uuid": "548847d9-8b18-4654-9766-15bb950d210b",
+        "event_id": "750",
+        "distribution": "3",
+        "timestamp": "1418217433",
+        "comment": "Regin samples collected.",
+        "sharing_group_id": "0",
+        "value": "f3ffc2aaaa1e2ab55ec26ff098653347",
+        "SharingGroup": [],
+        "ShadowAttribute": []
+      },
+      {
+        "id": "96622",
+        "type": "md5",
+        "category": "Payload installation",
+        "to_ids": true,
+        "uuid": "548847d9-3b28-449e-b527-15bb950d210b",
+        "event_id": "750",
+        "distribution": "3",
+        "timestamp": "1418217433",
+        "comment": "Regin samples collected.",
+        "sharing_group_id": "0",
+        "value": "e94393561901895cb0783edc34740fd4",
+        "SharingGroup": [],
+        "ShadowAttribute": []
+      },
+      {
+        "id": "96623",
+        "type": "md5",
+        "category": "Payload installation",
+        "to_ids": true,
+        "uuid": "548847d9-e6fc-4b93-a773-15bb950d210b",
+        "event_id": "750",
+        "distribution": "3",
+        "timestamp": "1418217433",
+        "comment": "Regin samples collected.",
+        "sharing_group_id": "0",
+        "value": "bfbe8c3ee78750c3a520480700e440f8",
+        "SharingGroup": [],
+        "ShadowAttribute": [],
+        "RelatedAttribute": [
+          {
+            "id": "2825",
+            "org_id": "2",
+            "info": "OSINT: THE REGIN PLATFORM NATION-STATE OWNAGE OF GSM NETWORKS"
+          },
+          {
+            "id": "2006",
+            "org_id": "2",
+            "info": "OSINT - Regin: Top-tier espionage tool enables stealthy surveillance by Symantec"
+          },
+          {
+            "id": "730",
+            "org_id": "26",
+            "info": "Regin Scanner"
+          },
+          {
+            "id": "714",
+            "org_id": "3",
+            "info": "Script to detect Regin VFS"
+          },
+          {
+            "id": "710",
+            "org_id": "26",
+            "info": "Secret Malware in European Union Attack Linked to U.S. and British Intelligence article by the Intercept"
+          },
+          {
+            "id": "709",
+            "org_id": "2",
+            "info": "OSINT - Regin: Nation-state ownage of GSM networks"
+          },
+          {
+            "id": "697",
+            "org_id": "2",
+            "info": "OSINT - Regin: Top-tier espionage tool enables stealthy surveillance"
+          }
+        ]
+      },
+      {
+        "id": "96624",
+        "type": "md5",
+        "category": "Payload installation",
+        "to_ids": true,
+        "uuid": "548847d9-fd54-4e49-909b-15bb950d210b",
+        "event_id": "750",
+        "distribution": "3",
+        "timestamp": "1418217433",
+        "comment": "Regin samples collected.",
+        "sharing_group_id": "0",
+        "value": "89003e9a1ae635c97ebad07aebc67f00",
+        "SharingGroup": [],
+        "ShadowAttribute": []
+      },
+      {
+        "id": "96625",
+        "type": "md5",
+        "category": "Payload installation",
+        "to_ids": true,
+        "uuid": "548847d9-b63c-4c95-a2bd-15bb950d210b",
+        "event_id": "750",
+        "distribution": "3",
+        "timestamp": "1418217433",
+        "comment": "Regin samples collected.",
+        "sharing_group_id": "0",
+        "value": "1800def71006ca6790767e202fae9b9a",
+        "SharingGroup": [],
+        "ShadowAttribute": []
+      },
+      {
+        "id": "96626",
+        "type": "md5",
+        "category": "Payload installation",
+        "to_ids": true,
+        "uuid": "548847d9-1404-4331-ae3c-15bb950d210b",
+        "event_id": "750",
+        "distribution": "3",
+        "timestamp": "1418217433",
+        "comment": "Regin samples collected.",
+        "sharing_group_id": "0",
+        "value": "90fecc6a89b2e22d82d58878d93477d4",
+        "SharingGroup": [],
+        "ShadowAttribute": []
+      },
+      {
+        "id": "96627",
+        "type": "md5",
+        "category": "Payload installation",
+        "to_ids": true,
+        "uuid": "548847d9-4020-41da-b5f3-15bb950d210b",
+        "event_id": "750",
+        "distribution": "3",
+        "timestamp": "1418217433",
+        "comment": "Regin samples collected.",
+        "sharing_group_id": "0",
+        "value": "db405ad775ac887a337b02ea8b07fddc",
+        "SharingGroup": [],
+        "ShadowAttribute": [],
+        "RelatedAttribute": [
+          {
+            "id": "2825",
+            "org_id": "2",
+            "info": "OSINT: THE REGIN PLATFORM NATION-STATE OWNAGE OF GSM NETWORKS"
+          },
+          {
+            "id": "710",
+            "org_id": "26",
+            "info": "Secret Malware in European Union Attack Linked to U.S. and British Intelligence article by the Intercept"
+          },
+          {
+            "id": "709",
+            "org_id": "2",
+            "info": "OSINT - Regin: Nation-state ownage of GSM networks"
+          }
+        ]
+      },
+      {
+        "id": "96628",
+        "type": "md5",
+        "category": "Payload installation",
+        "to_ids": true,
+        "uuid": "548847d9-a564-4178-b8e6-15bb950d210b",
+        "event_id": "750",
+        "distribution": "3",
+        "timestamp": "1418217433",
+        "comment": "Regin samples collected.",
+        "sharing_group_id": "0",
+        "value": "6662c390b2bbbd291ec7987388fc75d7",
+        "SharingGroup": [],
+        "ShadowAttribute": [],
+        "RelatedAttribute": [
+          {
+            "id": "2825",
+            "org_id": "2",
+            "info": "OSINT: THE REGIN PLATFORM NATION-STATE OWNAGE OF GSM NETWORKS"
+          },
+          {
+            "id": "2006",
+            "org_id": "2",
+            "info": "OSINT - Regin: Top-tier espionage tool enables stealthy surveillance by Symantec"
+          },
+          {
+            "id": "730",
+            "org_id": "26",
+            "info": "Regin Scanner"
+          },
+          {
+            "id": "714",
+            "org_id": "3",
+            "info": "Script to detect Regin VFS"
+          },
+          {
+            "id": "710",
+            "org_id": "26",
+            "info": "Secret Malware in European Union Attack Linked to U.S. and British Intelligence article by the Intercept"
+          },
+          {
+            "id": "709",
+            "org_id": "2",
+            "info": "OSINT - Regin: Nation-state ownage of GSM networks"
+          },
+          {
+            "id": "697",
+            "org_id": "2",
+            "info": "OSINT - Regin: Top-tier espionage tool enables stealthy surveillance"
+          }
+        ]
+      },
+      {
+        "id": "96629",
+        "type": "md5",
+        "category": "Payload installation",
+        "to_ids": true,
+        "uuid": "548847d9-39dc-4247-b23d-15bb950d210b",
+        "event_id": "750",
+        "distribution": "3",
+        "timestamp": "1418217433",
+        "comment": "Regin samples collected.",
+        "sharing_group_id": "0",
+        "value": "06665b96e293b23acc80451abb413e50",
+        "SharingGroup": [],
+        "ShadowAttribute": [],
+        "RelatedAttribute": [
+          {
+            "id": "2825",
+            "org_id": "2",
+            "info": "OSINT: THE REGIN PLATFORM NATION-STATE OWNAGE OF GSM NETWORKS"
+          },
+          {
+            "id": "2006",
+            "org_id": "2",
+            "info": "OSINT - Regin: Top-tier espionage tool enables stealthy surveillance by Symantec"
+          },
+          {
+            "id": "730",
+            "org_id": "26",
+            "info": "Regin Scanner"
+          },
+          {
+            "id": "714",
+            "org_id": "3",
+            "info": "Script to detect Regin VFS"
+          },
+          {
+            "id": "710",
+            "org_id": "26",
+            "info": "Secret Malware in European Union Attack Linked to U.S. and British Intelligence article by the Intercept"
+          },
+          {
+            "id": "709",
+            "org_id": "2",
+            "info": "OSINT - Regin: Nation-state ownage of GSM networks"
+          },
+          {
+            "id": "697",
+            "org_id": "2",
+            "info": "OSINT - Regin: Top-tier espionage tool enables stealthy surveillance"
+          }
+        ]
+      },
+      {
+        "id": "96630",
+        "type": "md5",
+        "category": "Payload installation",
+        "to_ids": true,
+        "uuid": "548847d9-6340-44a0-8f33-15bb950d210b",
+        "event_id": "750",
+        "distribution": "3",
+        "timestamp": "1418217433",
+        "comment": "Regin samples collected.",
+        "sharing_group_id": "0",
+        "value": "ffb0b9b5b610191051a7bdf0806e1e47",
+        "SharingGroup": [],
+        "ShadowAttribute": [],
+        "RelatedAttribute": [
+          {
+            "id": "2825",
+            "org_id": "2",
+            "info": "OSINT: THE REGIN PLATFORM NATION-STATE OWNAGE OF GSM NETWORKS"
+          },
+          {
+            "id": "2006",
+            "org_id": "2",
+            "info": "OSINT - Regin: Top-tier espionage tool enables stealthy surveillance by Symantec"
+          },
+          {
+            "id": "730",
+            "org_id": "26",
+            "info": "Regin Scanner"
+          },
+          {
+            "id": "714",
+            "org_id": "3",
+            "info": "Script to detect Regin VFS"
+          },
+          {
+            "id": "710",
+            "org_id": "26",
+            "info": "Secret Malware in European Union Attack Linked to U.S. and British Intelligence article by the Intercept"
+          },
+          {
+            "id": "709",
+            "org_id": "2",
+            "info": "OSINT - Regin: Nation-state ownage of GSM networks"
+          },
+          {
+            "id": "697",
+            "org_id": "2",
+            "info": "OSINT - Regin: Top-tier espionage tool enables stealthy surveillance"
+          }
+        ]
+      },
+      {
+        "id": "96631",
+        "type": "md5",
+        "category": "Payload installation",
+        "to_ids": true,
+        "uuid": "548847d9-afe0-4531-a4b0-15bb950d210b",
+        "event_id": "750",
+        "distribution": "3",
+        "timestamp": "1418217433",
+        "comment": "Regin samples collected.",
+        "sharing_group_id": "0",
+        "value": "187044596bc1328efa0ed636d8aa4a5c",
+        "SharingGroup": [],
+        "ShadowAttribute": [],
+        "RelatedAttribute": [
+          {
+            "id": "2825",
+            "org_id": "2",
+            "info": "OSINT: THE REGIN PLATFORM NATION-STATE OWNAGE OF GSM NETWORKS"
+          },
+          {
+            "id": "2006",
+            "org_id": "2",
+            "info": "OSINT - Regin: Top-tier espionage tool enables stealthy surveillance by Symantec"
+          },
+          {
+            "id": "730",
+            "org_id": "26",
+            "info": "Regin Scanner"
+          },
+          {
+            "id": "714",
+            "org_id": "3",
+            "info": "Script to detect Regin VFS"
+          },
+          {
+            "id": "710",
+            "org_id": "26",
+            "info": "Secret Malware in European Union Attack Linked to U.S. and British Intelligence article by the Intercept"
+          },
+          {
+            "id": "709",
+            "org_id": "2",
+            "info": "OSINT - Regin: Nation-state ownage of GSM networks"
+          },
+          {
+            "id": "697",
+            "org_id": "2",
+            "info": "OSINT - Regin: Top-tier espionage tool enables stealthy surveillance"
+          }
+        ]
+      },
+      {
+        "id": "96632",
+        "type": "md5",
+        "category": "Payload installation",
+        "to_ids": true,
+        "uuid": "548847da-ac78-474c-86fe-15bb950d210b",
+        "event_id": "750",
+        "distribution": "3",
+        "timestamp": "1418217434",
+        "comment": "Regin samples collected.",
+        "sharing_group_id": "0",
+        "value": "b29ca4f22ae7b7b25f79c1d4a421139d",
+        "SharingGroup": [],
+        "ShadowAttribute": [],
+        "RelatedAttribute": [
+          {
+            "id": "2825",
+            "org_id": "2",
+            "info": "OSINT: THE REGIN PLATFORM NATION-STATE OWNAGE OF GSM NETWORKS"
+          },
+          {
+            "id": "2006",
+            "org_id": "2",
+            "info": "OSINT - Regin: Top-tier espionage tool enables stealthy surveillance by Symantec"
+          },
+          {
+            "id": "730",
+            "org_id": "26",
+            "info": "Regin Scanner"
+          },
+          {
+            "id": "715",
+            "org_id": "26",
+            "info": "OSINT Regin samples shared by VirusShare"
+          },
+          {
+            "id": "714",
+            "org_id": "3",
+            "info": "Script to detect Regin VFS"
+          },
+          {
+            "id": "710",
+            "org_id": "26",
+            "info": "Secret Malware in European Union Attack Linked to U.S. and British Intelligence article by the Intercept"
+          },
+          {
+            "id": "709",
+            "org_id": "2",
+            "info": "OSINT - Regin: Nation-state ownage of GSM networks"
+          },
+          {
+            "id": "697",
+            "org_id": "2",
+            "info": "OSINT - Regin: Top-tier espionage tool enables stealthy surveillance"
+          }
+        ]
+      },
+      {
+        "id": "96633",
+        "type": "md5",
+        "category": "Payload installation",
+        "to_ids": true,
+        "uuid": "548847da-49c0-404d-ae42-15bb950d210b",
+        "event_id": "750",
+        "distribution": "3",
+        "timestamp": "1418217434",
+        "comment": "Regin samples collected.",
+        "sharing_group_id": "0",
+        "value": "d240f06e98c8d3e647cbf4d442d79475",
+        "SharingGroup": [],
+        "ShadowAttribute": [],
+        "RelatedAttribute": [
+          {
+            "id": "2825",
+            "org_id": "2",
+            "info": "OSINT: THE REGIN PLATFORM NATION-STATE OWNAGE OF GSM NETWORKS"
+          },
+          {
+            "id": "2006",
+            "org_id": "2",
+            "info": "OSINT - Regin: Top-tier espionage tool enables stealthy surveillance by Symantec"
+          },
+          {
+            "id": "730",
+            "org_id": "26",
+            "info": "Regin Scanner"
+          },
+          {
+            "id": "714",
+            "org_id": "3",
+            "info": "Script to detect Regin VFS"
+          },
+          {
+            "id": "710",
+            "org_id": "26",
+            "info": "Secret Malware in European Union Attack Linked to U.S. and British Intelligence article by the Intercept"
+          },
+          {
+            "id": "709",
+            "org_id": "2",
+            "info": "OSINT - Regin: Nation-state ownage of GSM networks"
+          },
+          {
+            "id": "697",
+            "org_id": "2",
+            "info": "OSINT - Regin: Top-tier espionage tool enables stealthy surveillance"
+          }
+        ]
+      },
+      {
+        "id": "96634",
+        "type": "md5",
+        "category": "Payload installation",
+        "to_ids": true,
+        "uuid": "548847da-2134-43d7-ba22-15bb950d210b",
+        "event_id": "750",
+        "distribution": "3",
+        "timestamp": "1418217434",
+        "comment": "Regin samples collected.",
+        "sharing_group_id": "0",
+        "value": "8fcf4e53ece6111758a1dd3139dc7cad",
+        "SharingGroup": [],
+        "ShadowAttribute": []
+      },
+      {
+        "id": "96635",
+        "type": "md5",
+        "category": "Payload installation",
+        "to_ids": true,
+        "uuid": "548847da-71ec-4b2b-bae5-15bb950d210b",
+        "event_id": "750",
+        "distribution": "3",
+        "timestamp": "1418217434",
+        "comment": "Regin samples collected.",
+        "sharing_group_id": "0",
+        "value": "148c1bb9d405d717252c77593aff4bd8",
+        "SharingGroup": [],
+        "ShadowAttribute": [],
+        "RelatedAttribute": [
+          {
+            "id": "710",
+            "org_id": "26",
+            "info": "Secret Malware in European Union Attack Linked to U.S. and British Intelligence article by the Intercept"
+          }
+        ]
+      },
+      {
+        "id": "96636",
+        "type": "md5",
+        "category": "Payload installation",
+        "to_ids": true,
+        "uuid": "548847da-3e40-4ab2-a5eb-15bb950d210b",
+        "event_id": "750",
+        "distribution": "3",
+        "timestamp": "1418217434",
+        "comment": "Regin samples collected.",
+        "sharing_group_id": "0",
+        "value": "1c024e599ac055312a4ab75b3950040a",
+        "SharingGroup": [],
+        "ShadowAttribute": [],
+        "RelatedAttribute": [
+          {
+            "id": "2825",
+            "org_id": "2",
+            "info": "OSINT: THE REGIN PLATFORM NATION-STATE OWNAGE OF GSM NETWORKS"
+          },
+          {
+            "id": "2006",
+            "org_id": "2",
+            "info": "OSINT - Regin: Top-tier espionage tool enables stealthy surveillance by Symantec"
+          },
+          {
+            "id": "730",
+            "org_id": "26",
+            "info": "Regin Scanner"
+          },
+          {
+            "id": "714",
+            "org_id": "3",
+            "info": "Script to detect Regin VFS"
+          },
+          {
+            "id": "710",
+            "org_id": "26",
+            "info": "Secret Malware in European Union Attack Linked to U.S. and British Intelligence article by the Intercept"
+          },
+          {
+            "id": "709",
+            "org_id": "2",
+            "info": "OSINT - Regin: Nation-state ownage of GSM networks"
+          },
+          {
+            "id": "697",
+            "org_id": "2",
+            "info": "OSINT - Regin: Top-tier espionage tool enables stealthy surveillance"
+          }
+        ]
+      },
+      {
+        "id": "96637",
+        "type": "md5",
+        "category": "Payload installation",
+        "to_ids": true,
+        "uuid": "548847da-c2d0-4d24-821e-15bb950d210b",
+        "event_id": "750",
+        "distribution": "3",
+        "timestamp": "1418217434",
+        "comment": "Regin samples collected.",
+        "sharing_group_id": "0",
+        "value": "b269894f434657db2b15949641a67532",
+        "SharingGroup": [],
+        "ShadowAttribute": [],
+        "RelatedAttribute": [
+          {
+            "id": "2825",
+            "org_id": "2",
+            "info": "OSINT: THE REGIN PLATFORM NATION-STATE OWNAGE OF GSM NETWORKS"
+          },
+          {
+            "id": "2006",
+            "org_id": "2",
+            "info": "OSINT - Regin: Top-tier espionage tool enables stealthy surveillance by Symantec"
+          },
+          {
+            "id": "730",
+            "org_id": "26",
+            "info": "Regin Scanner"
+          },
+          {
+            "id": "715",
+            "org_id": "26",
+            "info": "OSINT Regin samples shared by VirusShare"
+          },
+          {
+            "id": "714",
+            "org_id": "3",
+            "info": "Script to detect Regin VFS"
+          },
+          {
+            "id": "710",
+            "org_id": "26",
+            "info": "Secret Malware in European Union Attack Linked to U.S. and British Intelligence article by the Intercept"
+          },
+          {
+            "id": "709",
+            "org_id": "2",
+            "info": "OSINT - Regin: Nation-state ownage of GSM networks"
+          },
+          {
+            "id": "697",
+            "org_id": "2",
+            "info": "OSINT - Regin: Top-tier espionage tool enables stealthy surveillance"
+          }
+        ]
+      },
+      {
+        "id": "96638",
+        "type": "md5",
+        "category": "Payload installation",
+        "to_ids": true,
+        "uuid": "548847da-9798-4b6d-b422-15bb950d210b",
+        "event_id": "750",
+        "distribution": "3",
+        "timestamp": "1418217434",
+        "comment": "Regin samples collected.",
+        "sharing_group_id": "0",
+        "value": "ba7bb65634ce1e30c1e5415be3d1db1d",
+        "SharingGroup": [],
+        "ShadowAttribute": [],
+        "RelatedAttribute": [
+          {
+            "id": "2825",
+            "org_id": "2",
+            "info": "OSINT: THE REGIN PLATFORM NATION-STATE OWNAGE OF GSM NETWORKS"
+          },
+          {
+            "id": "2006",
+            "org_id": "2",
+            "info": "OSINT - Regin: Top-tier espionage tool enables stealthy surveillance by Symantec"
+          },
+          {
+            "id": "730",
+            "org_id": "26",
+            "info": "Regin Scanner"
+          },
+          {
+            "id": "714",
+            "org_id": "3",
+            "info": "Script to detect Regin VFS"
+          },
+          {
+            "id": "710",
+            "org_id": "26",
+            "info": "Secret Malware in European Union Attack Linked to U.S. and British Intelligence article by the Intercept"
+          },
+          {
+            "id": "709",
+            "org_id": "2",
+            "info": "OSINT - Regin: Nation-state ownage of GSM networks"
+          },
+          {
+            "id": "697",
+            "org_id": "2",
+            "info": "OSINT - Regin: Top-tier espionage tool enables stealthy surveillance"
+          }
+        ]
+      },
+      {
+        "id": "96639",
+        "type": "md5",
+        "category": "Payload installation",
+        "to_ids": true,
+        "uuid": "548847da-ffe4-4a90-9f2a-15bb950d210b",
+        "event_id": "750",
+        "distribution": "3",
+        "timestamp": "1418217434",
+        "comment": "Regin samples collected.",
+        "sharing_group_id": "0",
+        "value": "22bfc970f707fd775d49e875b63c2f0c",
+        "SharingGroup": [],
+        "ShadowAttribute": [],
+        "RelatedAttribute": [
+          {
+            "id": "710",
+            "org_id": "26",
+            "info": "Secret Malware in European Union Attack Linked to U.S. and British Intelligence article by the Intercept"
+          }
+        ]
+      },
+      {
+        "id": "96640",
+        "type": "md5",
+        "category": "Payload installation",
+        "to_ids": true,
+        "uuid": "548847da-1660-4562-a1f8-15bb950d210b",
+        "event_id": "750",
+        "distribution": "3",
+        "timestamp": "1418217434",
+        "comment": "Regin samples collected.",
+        "sharing_group_id": "0",
+        "value": "b505d65721bb2453d5039a389113b566",
+        "SharingGroup": [],
+        "ShadowAttribute": [],
+        "RelatedAttribute": [
+          {
+            "id": "2825",
+            "org_id": "2",
+            "info": "OSINT: THE REGIN PLATFORM NATION-STATE OWNAGE OF GSM NETWORKS"
+          },
+          {
+            "id": "2006",
+            "org_id": "2",
+            "info": "OSINT - Regin: Top-tier espionage tool enables stealthy surveillance by Symantec"
+          },
+          {
+            "id": "730",
+            "org_id": "26",
+            "info": "Regin Scanner"
+          },
+          {
+            "id": "714",
+            "org_id": "3",
+            "info": "Script to detect Regin VFS"
+          },
+          {
+            "id": "710",
+            "org_id": "26",
+            "info": "Secret Malware in European Union Attack Linked to U.S. and British Intelligence article by the Intercept"
+          },
+          {
+            "id": "709",
+            "org_id": "2",
+            "info": "OSINT - Regin: Nation-state ownage of GSM networks"
+          },
+          {
+            "id": "697",
+            "org_id": "2",
+            "info": "OSINT - Regin: Top-tier espionage tool enables stealthy surveillance"
+          }
+        ]
+      },
+      {
+        "id": "96641",
+        "type": "md5",
+        "category": "Payload installation",
+        "to_ids": true,
+        "uuid": "548847db-060c-4275-a0c7-15bb950d210b",
+        "event_id": "750",
+        "distribution": "3",
+        "timestamp": "1418217435",
+        "comment": "Regin samples collected.",
+        "sharing_group_id": "0",
+        "value": "049436bb90f71cf38549817d9b90e2da",
+        "SharingGroup": [],
+        "ShadowAttribute": [],
+        "RelatedAttribute": [
+          {
+            "id": "710",
+            "org_id": "26",
+            "info": "Secret Malware in European Union Attack Linked to U.S. and British Intelligence article by the Intercept"
+          }
+        ]
+      }
+    ],
+    "ShadowAttribute": [],
+    "RelatedEvent": [
+      {
+        "Org": {
+          "id": "2",
+          "name": "CIRCL",
+          "uuid": "55f6ea5e-2c60-40e5-964f-47a8950d210f"
+        },
+        "Orgc": {
+          "id": "2",
+          "name": "CIRCL",
+          "uuid": "55f6ea5e-2c60-40e5-964f-47a8950d210f"
+        },
+        "Event": [
+          {
+            "id": "2006",
+            "date": "2015-08-27",
+            "threat_level_id": "1",
+            "info": "OSINT - Regin: Top-tier espionage tool enables stealthy surveillance by Symantec",
+            "published": true,
+            "uuid": "55df7369-7d68-428b-aa03-4f5d950d210b",
+            "analysis": "2",
+            "timestamp": "1440752388",
+            "distribution": "3",
+            "org_id": "2",
+            "orgc_id": "2"
+          }
+        ]
+      },
+      {
+        "Org": {
+          "id": "2",
+          "name": "CIRCL",
+          "uuid": "55f6ea5e-2c60-40e5-964f-47a8950d210f"
+        },
+        "Orgc": {
+          "id": "2",
+          "name": "CIRCL",
+          "uuid": "55f6ea5e-2c60-40e5-964f-47a8950d210f"
+        },
+        "Event": [
+          {
+            "id": "833",
+            "date": "2015-01-22",
+            "threat_level_id": "1",
+            "info": "OSINT - An analysis of Regin's Hopscotch and Legspin",
+            "published": true,
+            "uuid": "54c0ce92-9d00-42b7-8cfc-f03f950d210b",
+            "analysis": "2",
+            "timestamp": "1422266910",
+            "distribution": "3",
+            "org_id": "2",
+            "orgc_id": "2"
+          }
+        ]
+      },
+      {
+        "Org": {
+          "id": "2",
+          "name": "CIRCL",
+          "uuid": "55f6ea5e-2c60-40e5-964f-47a8950d210f"
+        },
+        "Orgc": {
+          "id": "2",
+          "name": "CIRCL",
+          "uuid": "55f6ea5e-2c60-40e5-964f-47a8950d210f"
+        },
+        "Event": [
+          {
+            "id": "697",
+            "date": "2014-11-24",
+            "threat_level_id": "1",
+            "info": "OSINT - Regin: Top-tier espionage tool enables stealthy surveillance",
+            "published": true,
+            "uuid": "5472cdc5-3e3c-47c9-a3b1-47be950d210b",
+            "analysis": "2",
+            "timestamp": "1416818985",
+            "distribution": "3",
+            "org_id": "2",
+            "orgc_id": "2"
+          }
+        ]
+      },
+      {
+        "Org": {
+          "id": "2",
+          "name": "CIRCL",
+          "uuid": "55f6ea5e-2c60-40e5-964f-47a8950d210f"
+        },
+        "Orgc": {
+          "id": "2",
+          "name": "CIRCL",
+          "uuid": "55f6ea5e-2c60-40e5-964f-47a8950d210f"
+        },
+        "Event": [
+          {
+            "id": "699",
+            "date": "2014-11-24",
+            "threat_level_id": "1",
+            "info": "OSINT - The Regin Espionage Toolkit",
+            "published": true,
+            "uuid": "5472fbd1-1a38-484a-b3f4-4502950d210b",
+            "analysis": "2",
+            "timestamp": "1416821880",
+            "distribution": "3",
+            "org_id": "2",
+            "orgc_id": "2"
+          }
+        ]
+      },
+      {
+        "Org": {
+          "id": "2",
+          "name": "CIRCL",
+          "uuid": "55f6ea5e-2c60-40e5-964f-47a8950d210f"
+        },
+        "Orgc": {
+          "id": "2",
+          "name": "CIRCL",
+          "uuid": "55f6ea5e-2c60-40e5-964f-47a8950d210f"
+        },
+        "Event": [
+          {
+            "id": "700",
+            "date": "2014-11-24",
+            "threat_level_id": "1",
+            "info": "Regin Yara rules",
+            "published": true,
+            "uuid": "5473051e-2db8-4467-b6d5-4b1d950d210b",
+            "analysis": "1",
+            "timestamp": "1417157341",
+            "distribution": "3",
+            "org_id": "2",
+            "orgc_id": "2"
+          }
+        ]
+      },
+      {
+        "Org": {
+          "id": "2",
+          "name": "CIRCL",
+          "uuid": "55f6ea5e-2c60-40e5-964f-47a8950d210f"
+        },
+        "Orgc": {
+          "id": "2",
+          "name": "CIRCL",
+          "uuid": "55f6ea5e-2c60-40e5-964f-47a8950d210f"
+        },
+        "Event": [
+          {
+            "id": "709",
+            "date": "2014-11-24",
+            "threat_level_id": "1",
+            "info": "OSINT - Regin: Nation-state ownage of GSM networks",
+            "published": true,
+            "uuid": "5473429a-bc10-498d-a195-46e2950d2109",
+            "analysis": "2",
+            "timestamp": "1416843113",
+            "distribution": "3",
+            "org_id": "2",
+            "orgc_id": "2"
+          }
+        ]
+      }
+    ],
+    "Tag": [
+      {
+        "id": "1",
+        "name": "Type:OSINT",
+        "colour": "#1eed40",
+        "exportable": true
+      }
+    ]
+  }
+}

@@ -15,21 +15,24 @@ class PostsController extends AppController {
 	);
 
 	public $helpers = array('Js' => array('Jquery'));
-	
+
 	public $paginate = array(
 			'limit' => 60,
 	);
 
-	public function beforeFilter() {
-		parent::beforeFilter();
+	function pushMessageToZMQ($message = null) {
+		if (Configure::read("Plugin.ZeroMQ_enable")) {
+			$pubSubTool = $this->Event->getPubSubTool();
+			$pubSubTool->publishConversation($message);
+		}
 	}
-	
-	// Find the thread_id and post_id in advance. If a user clicks post comment on the event view, send the event's related thread's ID 
+
+	// Find the thread_id and post_id in advance. If a user clicks post comment on the event view, send the event's related thread's ID
 	// Usage:
 	// /posts/add : Creates new thread with the added post as the first post. Title set by user
 	// /posts/add/event/id : Checks if the event already has a thread, if no it creates one. The post is added to the event's thread
 	// /posts/add/thread/id : Adds a post to the thread specified
-	// /posts/add/post/id : Adds a post as a reply to another post. The system finds the appropriate thread, adds the post to the thread and links to the post that is being replied to. 
+	// /posts/add/post/id : Adds a post as a reply to another post. The system finds the appropriate thread, adds the post to the thread and links to the post that is being replied to.
 	public function add($target_type = null, $target_id = null, $quick = false) {
 		$this->loadModel('Thread');
 		$this->Thread->recursive = -1;
@@ -37,8 +40,8 @@ class PostsController extends AppController {
 		$event_id = 0;
 		$post_id = 0;
 		if ($this->request->is('ajax')) $this->layout = 'ajax';
-		// we have a target type and a target id. The target id defines what type of object we want to attach this event to (is it a reply to another post, 
-		// did someone add a post to a thread, does a thread for the event exist already, etc. 
+		// we have a target type and a target id. The target id defines what type of object we want to attach this event to (is it a reply to another post,
+		// did someone add a post to a thread, does a thread for the event exist already, etc.
 		switch ($target_type) {
 			case 'event' :
 				$this->loadModel('Event');
@@ -97,12 +100,14 @@ class PostsController extends AppController {
 				$event_id = $previousPost['Thread']['event_id'];
 				$post_id = $target_id;
 				$target_thread_id = $previousPost['Thread']['id'];
+
 			break;
 			default:
 				$target_thread_id = null;
 			break;
 		}
 		if ($this->request->is('post')) {
+			if (empty($this->request->data['Post']['message'])) throw new MethodNotAllowedException('Cannot post an empty message.');
 			// Set the default values that we'll alter before actually saving data. These are the default values unless specifically modified.
 			// By default, all discussions will be visibile to everyone on the platform
 
@@ -110,11 +115,11 @@ class PostsController extends AppController {
 			if (empty($thread_id) && empty($target_type)) {
 				$title = $this->request->data['Post']['title'];
 			}
-			
+
 			if ($target_thread_id == null) {
 				// We have a post that was posted in a new thread. This could also mean that someone created the first post related to an event!
 				$this->Thread->create();
-				// Take the title from above if we are adding a post to an event. 
+				// Take the title from above if we are adding a post to an event.
 				if ($target_type === 'event') {
 					$title = $eventDiscussionTitle;
 				}
@@ -129,7 +134,11 @@ class PostsController extends AppController {
 						'post_count' => 1,
 						'org_id' => $this->Auth->user('org_id')
 				);
-				$this->Thread->save($newThread);
+				if ($this->Thread->save($newThread)) {
+					$newThread['org_name'] = $this->Auth->user('Organisation')['name'];
+					$newThread['user_email'] = $this->Auth->user('email');
+					$this->pushMessageToZMQ(Array("Thread" => $newThread));
+				}
 				$target_thread_id = $this->Thread->getId();
 			} else {
 				// In this case, we have a post that was posted in an already existing thread. Update the thread!
@@ -137,7 +146,7 @@ class PostsController extends AppController {
 				$this->Thread->data['Thread']['date_modified'] = date('Y/m/d H:i:s');
 				$this->Thread->save();
 			}
-			// Time to create our post! 
+			// Time to create our post!
 			$this->Post->create();
 			$newPost = array(
 					'date_created' => date('Y/m/d H:i:s'),
@@ -145,9 +154,14 @@ class PostsController extends AppController {
 					'user_id' => $this->Auth->user('id'),
 					'contents' => $this->request->data['Post']['message'],
 					'post_id' => $post_id,
-					'thread_id' => $target_thread_id, 
+					'thread_id' => $target_thread_id,
 			);
+
 			if ($this->Post->save($newPost)) {
+				$newPost['user_email'] = $this->Auth->user('email');
+				$newPost['org_id'] = $this->Auth->user('org_id');
+				$newPost['org_name'] = $this->Auth->user('Organisation')['name'];
+				$this->pushMessageToZMQ(Array("Post" => $newPost));
 				$this->Thread->recursive = 0;
 				$this->Thread->contain('Post');
 				$thread = $this->Thread->read(null, $target_thread_id);
@@ -176,7 +190,7 @@ class PostsController extends AppController {
 			}
 		}
 	}
-	
+
 	public function edit($post_id, $context = 'thread') {
 		$post = $this->Post->find('first', array('conditions' => array('Post.id' => $post_id), 'recursive' => -1, 'contain' => array('Thread')));
 		if (empty($post)) throw new NotFoundException(__('Invalid post'));
@@ -213,7 +227,7 @@ class PostsController extends AppController {
 		$this->set('id', $post_id);
 		$this->set('thread_id', $post['Post']['thread_id']);
 	}
-	
+
 	public function delete($post_id, $context = 'thread') {
 			if (!$this->request->is('post')) {
 				throw new MethodNotAllowedException();
@@ -266,4 +280,3 @@ class PostsController extends AppController {
 	}
 }
 ?>
-		

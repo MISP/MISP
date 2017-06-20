@@ -1,19 +1,19 @@
 <div class="template_element_add_attribute">
-<?php 
+<?php
 	echo $this->Form->create('TemplateElementAttribute', array('id', 'url' => '/templateElements/add/attribute/' . $id));
 ?>
 	<legend><?php echo __('Add Attribute Element To Template'); ?></legend>
 	<fieldset>
 		<div id="formWarning" class="message ajaxMessage"></div>
 		<div class="add_attribute_fields">
-			<?php 
+			<?php
 				echo $this->Form->input('name', array(
 						'type' => 'text',
 						'error' => array('escape' => false),
 						'div' => 'input clear',
 						'class' => 'input-xxlarge'
 				));
-				
+
 				echo $this->Form->input('description', array(
 						'type' => 'textarea',
 						'error' => array('escape' => false),
@@ -30,30 +30,30 @@
 				));
 			?>
 			<div id='typeToggle'>
-				<?php 
+				<?php
 					echo $this->Form->input('type', array(
 						'options' => array(),
 						'label' => 'Type',
 						'empty' => 'Select Type'
 					));
-	
+
 				?>
 			</div>
 			<div class="input clear"></div>
 			<div id='complexToggle' style="display:none;" title="Some categories can use complex types. A complex type can define attributes that can be described by various different types, the system will parse the user's entry and determine the most suitable type for the found attributes. The list of valid types for the chosen complex type is shown below.">
-				<?php 
+				<?php
 					echo $this->Form->input('complex', array(
 							'checked' => false,
 							'label' => 'Use complex types',
 					));
-	
+
 				?>
 			</div>
 			<div class="input clear"></div>
 			<div id="typeJSON" style="display:none"></div>
 			<div class="input clear" style="width:100%;display:none" id="outerTypes">
 				Types allowed based on the above setting:
-				<div class="templateTypeContainerInner" id="innerTypes">&nbsp;</div>	
+				<div class="templateTypeContainerInner" id="innerTypes">&nbsp;</div>
 			</div>
 			<div class="input clear"></div>
 			<div title="When checked, attributes created using this element will automatically be marked for IDSes.">
@@ -88,18 +88,18 @@
 		<table>
 			<tr>
 			<td style="vertical-align:top">
-				<span id="submitButton" class="btn btn-primary" onClick="submitPopoverForm('<?php echo $id;?>', 'addAttributeElement')">Submit</span>
+				<span id="submitButton" role="button" tabindex="0" aria-label="Add attribute element" title="Add attribute element" class="btn btn-primary" onClick="submitPopoverForm('<?php echo $id;?>', 'addAttributeElement')">Submit</span>
 			</td>
 			<td style="width:540px;">
 				<p style="color:red;font-weight:bold;display:none;text-align:center" id="warning-message">Warning: You are about to share data that is of a classified nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>
 			</td>
 			<td style="vertical-align:top;">
-				<span class="btn btn-inverse" id="cancel_attribute_add" onClick="cancelPopoverForm();">Cancel</span>
+				<span role="button" tabindex="0" aria-label="Cancel" title="Cancel" class="btn btn-inverse" id="cancel_attribute_add" onClick="cancelPopoverForm();">Cancel</span>
 			</td>
 			</tr>
 		</table>
 	</div>
-	<?php 
+	<?php
 		echo $this->Form->end();
 	?>
 </div>
@@ -109,18 +109,18 @@
 	var complexTypes = <?php echo json_encode($validTypeGroups); ?>;
 	var currentTypes = new Array();
 	var fieldsArray = new Array('TemplateElementAttributeName', 'TemplateElementAttributeDescription', 'TemplateElementAttributeCategory', 'TemplateElementAttributeToIds', 'TemplateElementAttributeMandatory', 'TemplateElementAttributeBatch', 'TemplateElementAttributeType', 'TemplateElementAttributeComplex');
-	
+
 	$(document).ready(function() {
-		<?php 
+		<?php
 			foreach ($categoryDefinitions as $k => $cat) {
 				echo 'categoryTypes[\'' . $k . '\'] = [';
 					foreach ($cat['types'] as $k => $type) {
 						if ($k != 0) echo ', ';
-						echo '"' . $type . '"'; 
+						echo '"' . $type . '"';
 					}
 				echo '];';
 			}
-			
+
 			foreach ($typeGroupCategoryMapping as $k => $mapping) {
 				echo 'typeGroupCategoryMapping["' . $k . '"] = [';
 				foreach ($mapping as $l => $map) {
@@ -131,7 +131,7 @@
 			}
 		?>
 	});
-	
+
 	$("#TemplateElementAttributeCategory").change(function() {
 		var category = $(this).val();
 		templateElementAttributeCategoryChange(category);

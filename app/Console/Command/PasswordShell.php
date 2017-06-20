@@ -10,19 +10,20 @@ class PasswordShell extends AppShell {
 	public $uses = array('User');
 
 	public function main() {
-		// get the users that need their password hashed
-		$results = $this->User->find('first', array('conditions' => array('email' => $this->args[0])));
-		$results['User']['password'] = $this->args[1];
-		$results['User']['confirm_password'] = $this->args[1];
-		$results['User']['change_pw'] = 1;
-
-		if (!$this->User->save($results)) {
-			echo 'Could not update account for User.id = ', $results['User']['id'], PHP_EOL;
-			debug($this->User->validationErrors);
-			$this->out(print_r($this->User->invalidFields(), true));
+		if (!isset($this->args[0]) || empty($this->args[0]) || !isset($this->args[1]) || empty($this->args[1])) echo 'MISP password reset command line tool.' . PHP_EOL . 'To assign a new password for a user:' . PHP_EOL . APP . 'Console/cake Password [email] [password]' . PHP_EOL;
+		else {
+			// get the users that need their password hashed
+			$results = $this->User->find('first', array('conditions' => array('email' => $this->args[0]), 'recursive' => -1));
+			$results['User']['password'] = $this->args[1];
+			$results['User']['confirm_password'] = $this->args[1];
+			$results['User']['change_pw'] = 1;
+			if (!$this->User->save($results)) {
+				echo 'Could not update account for User.id = ', $results['User']['id'], PHP_EOL;
+				debug($this->User->validationErrors);
+				$this->out(print_r($this->User->invalidFields(), true));
+			}
+			echo 'Updated ', PHP_EOL;
 		}
-
-		echo 'Updated ', PHP_EOL;
 		exit;
 	}
 }

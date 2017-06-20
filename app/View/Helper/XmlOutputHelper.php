@@ -14,7 +14,7 @@ App::uses('AppHelper', 'View/Helper');
 					}
 				} else {
 					if ($v === false) $v = 0;
-					if ($v === "" || $v === null) echo '<' . $k . '/>'; 
+					if ($v === "" || $v === null) echo '<' . $k . '/>';
 					else {
 						echo '<' . $k . '>' . $v . '</' . $k . '>';
 					}

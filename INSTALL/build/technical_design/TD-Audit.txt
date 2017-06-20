@@ -6,15 +6,15 @@ to write to a log database table.
 https://github.com/eskil-saatvedt/CakePHP-Assets/blob/master/models/behaviors/LogableBehavior.php
 
 	Adds the logable Model Behavior.
-	
+
 http://bakery.cakephp.org/articles/rikdc/2010/06/07/syslog-component
 
-	Ads the syslog capability.
+	Adds the syslog capability.
 
 http://bakery.cakephp.org/articles/alkemann/2008/10/21/logablebehavior
 http://www.bitsntricks.com/cakephp-logable-behaviour/
 
-	Short explaination itś use.
+	Short explanation about its use.
 
 http://stackoverflow.com/questions/9791633/check-if-cakephp-update-changes-a-variable-in-update
 
@@ -25,4 +25,4 @@ so the change checks are done manual coded in the UsersController.
 
 https://github.com/joebeeson/referee#readme
 
-	Can be handy lateron for log to db or syslog?
+	Can be handy later on for log to db or syslog?

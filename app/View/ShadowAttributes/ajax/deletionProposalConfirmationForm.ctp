@@ -1,5 +1,5 @@
 <div class="confirmation">
-<?php 
+<?php
 	echo $this->Form->create('ShadowAttribute', array('style' => 'margin:0px;', 'id' => 'PromptForm'));
 ?>
 <legend>Attribute Deletion</legend>
@@ -8,17 +8,17 @@
 	<table>
 		<tr>
 			<td style="vertical-align:top">
-				<span id="PromptYesButton" class="btn btn-primary" onClick="submitDeletion(<?php echo $event_id; ?>, 'delete', 'shadow_attributes', <?php echo $id;?>)">Yes</span>
+				<span role="button" tabindex="0" aria-label="Propose to delete attribute" title="Propose to delete attribute" id="PromptYesButton" class="btn btn-primary" onClick="submitDeletion(<?php echo $event_id; ?>, 'delete', 'shadow_attributes', <?php echo $id;?>)">Yes</span>
 			</td>
 			<td style="width:540px;">
 			</td>
 			<td style="vertical-align:top;">
-				<span class="btn btn-inverse" id="PromptNoButton" onClick="cancelPrompt();">No</span>
+				<span role="button" tabindex="0" aria-label="Cancel" title="Cancel" class="btn btn-inverse" id="PromptNoButton" onClick="cancelPrompt();">No</span>
 			</td>
 		</tr>
 	</table>
 </div>
-<?php 
+<?php
 	echo $this->Form->end();
 ?>
 </div>

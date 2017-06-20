@@ -7,7 +7,7 @@
 		<p><?php echo h(implode(', ', $validFilters)); ?></p>
 		<p>Example:</p>
 		<p><code>/searchdistribution:2/searchorg:Org1|!Org2/searchpublished:1</code></p>
-		<?php 
+		<?php
 				echo $this->Form->input('filter', array(
 						'label' => false,
 						'class' => 'input-large',
@@ -18,8 +18,8 @@
 		?>
 		</div>
 		<div class="overlay_spacing">
-		<span class="btn btn-primary" onClick="remoteIndexApplyFilters(actionUrl);">Apply</span>
-		<span class="btn btn-inverse" onClick="cancelPopoverForm();" style="float:right;">Cancel</span>
+		<span role="button" tabindex="0" aria-label="Apply filters to the remote instance's index" title="Apply filters to the remote instance's index" class="btn btn-primary" onClick="remoteIndexApplyFilters(actionUrl);">Apply</span>
+		<span role="button" tabindex="0" aria-label="Cancel" title="Cancel" class="btn btn-inverse" onClick="cancelPopoverForm();" style="float:right;">Cancel</span>
 		</div>
 	</fieldset>
 	<?php echo $this->Form->end();?>
@@ -27,7 +27,7 @@
 
 <script type="text/javascript">
 var filterContext = "event";
-var actionUrl = "<?php echo '/servers/previewIndex/' . h($id); ?>"	
+var actionUrl = "<?php echo '/servers/previewIndex/' . h($id); ?>"
 $(document).ready(function() {
 	$('.datepicker').datepicker().on('changeDate', function(ev) {
 		$('.dropdown-menu').hide();

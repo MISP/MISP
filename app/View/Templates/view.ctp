@@ -20,7 +20,7 @@
 		<dd>
 			<table>
 				<tr id = "tags">
-					<?php 
+					<?php
 						if (!empty($template['TemplateTag'])) {
 							foreach ($template['TemplateTag'] as $tag) {
 								echo $this->element('ajaxTemplateTag', array('tag' => $tag, 'editable' => 'no'));
@@ -37,16 +37,16 @@
 		</dd>
 		<dt><?php echo __('Shareable'); ?></dt>
 		<dd>
-			<?php 
+			<?php
 				if ($template['Template']['share']) echo 'Yes';
-				else echo 'No'; 
+				else echo 'No';
 			?>
 		</dd>
 	</dl>
 	<div id="templateElements">
 	</div>
 </div>
-<?php 
+<?php
 	echo $this->element('side_menu', array('menuList' => 'templates', 'menuItem' => 'view', 'mayModify' => $mayModify));
 ?>
 <script type="text/javascript">

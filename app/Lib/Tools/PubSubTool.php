@@ -1,6 +1,9 @@
 <?php
 class PubSubTool {
-	
+
+	private $__redis = false;
+	private $__settings = false;
+
 	private function __getSetSettings() {
 		$settings = array(
 				'redis_host' => 'localhost',
@@ -10,16 +13,31 @@ class PubSubTool {
 				'redis_namespace' => 'mispq',
 				'port' => '50000',
 		);
-		foreach ($settings as $key => &$setting) {
+
+		foreach ($settings as $key => $setting) {
 			$temp = Configure::read('Plugin.ZeroMQ_' . $key);
-			if ($temp) $setting = $temp;
+			if ($temp) $settings[$key] = $temp;
 		}
 		$settingsFile = new File(APP . 'files' . DS . 'scripts' . DS . 'mispzmq' . DS . 'settings.json', true, 0644);
 		$settingsFile->write(json_encode($settings, true));
 		$settingsFile->close();
 		return $settings;
 	}
-	
+
+	public function initTool() {
+		if (!$this->__redis) {
+			$settings = $this->__setupPubServer();
+			$redis = new Redis();
+			$redis->connect($settings['redis_host'], $settings['redis_port']);
+			$redis->select($settings['redis_database']);
+			$this->__redis = $redis;
+			$this->__settings = $settings;
+		} else {
+			$settings = $this->__settings;
+		}
+		return $settings;
+	}
+
 	// read the pid file, if it exists, check if the process is actually running
 	// if either the pid file doesn't exists or the process is not running return false
 	// otherwise return the pid
@@ -32,7 +50,7 @@ class PubSubTool {
 		if (empty($result)) return false;
 		return $pid;
 	}
-	
+
 	public function statusCheck() {
 		$redis = new Redis();
 		$settings = $this->__getSetSettings();
@@ -43,13 +61,13 @@ class PubSubTool {
 		$response = trim($redis->lPop($settings['redis_namespace'] . ':status'));
 		return json_decode($response, true);
 	}
-	
+
 	public function checkIfPythonLibInstalled() {
 		$result = trim(shell_exec('python ' . APP . 'files' . DS . 'scripts' . DS . 'mispzmq' . DS . 'mispzmqtest.py'));
 		if ($result === "OK") return true;
 		return false;
 	}
-	
+
 	private function __setupPubServer() {
 		App::uses('File', 'Utility');
 		$settings = $this->__getSetSettings();
@@ -58,19 +76,37 @@ class PubSubTool {
 		}
 		return $settings;
 	}
-	
+
 	public function publishEvent($event) {
-		$settings = $this->__setupPubServer();
 		App::uses('JSONConverterTool', 'Tools');
 		$jsonTool = new JSONConverterTool();
-		$json = $jsonTool->event2JSON($event);
-		$redis = new Redis();
-		$redis->connect($settings['redis_host'], $settings['redis_port']);
-		$redis->select($settings['redis_database']);
-		$redis->rPush($settings['redis_namespace'] . ':misp_json', $json);
+		$json = $jsonTool->convert($event);
+		return $this->__pushToRedis(':data:misp_json', $json);
+	}
+
+	public function publishConversation($message) {
+			return $this->__pushToRedis(':data:misp_json_conversation', json_encode($message, JSON_PRETTY_PRINT));
+	}
+
+	private function __pushToRedis($ns, $data) {
+		$settings = $this->__getSetSettings();
+		$this->__redis->select($settings['redis_database']);
+		$this->__redis->rPush($settings['redis_namespace'] . $ns, $data);
 		return true;
 	}
-	
+
+	public function attribute_save($attribute) {
+		return $this->__pushToRedis(':data:misp_json_attribute', json_encode($attribute, JSON_PRETTY_PRINT));
+	}
+
+	public function sighting_save($sighting) {
+		return $this->__pushToRedis(':data:misp_json_sighting', json_encode($sighting, JSON_PRETTY_PRINT));
+	}
+
+	public function modified($data, $type) {
+		return $this->__pushToRedis(':data:misp_json_' . $type, json_encode($data, JSON_PRETTY_PRINT));
+	}
+
 	public function killService($settings = false) {
 		$redis = new Redis();
 		if ($this->checkIfRunning()) {
@@ -78,14 +114,12 @@ class PubSubTool {
 			$redis->connect($settings['redis_host'], $settings['redis_port']);
 			$redis->select($settings['redis_database']);
 			$redis->rPush($settings['redis_namespace'] . ':command', 'kill');
-			$continue = true;
-			$counter = 0;
 			sleep(1);
 			if ($this->checkIfRunning()) return false;
 		}
 		return true;
 	}
-	
+
 	// reload the server if it is running, if not, start it
 	public function reloadServer() {
 		if (!$this->checkIfRunning()) {
@@ -100,10 +134,12 @@ class PubSubTool {
 		if (!$this->checkIfRunning()) return 'Setting saved, but something is wrong with the ZeroMQ server. Please check the diagnostics page for more information.';
 		return true;
 	}
-	
+
 	public function restartServer() {
-		if (!$this->killService()) {
-			return 'Could not kill the previous instance of the ZeroMQ script.';
+		if (!$this->checkIfRunning()) {
+			if (!$this->killService()) {
+				return 'Could not kill the previous instance of the ZeroMQ script.';
+			}
 		}
 		$this->__setupPubServer();
 		if (!is_numeric($this->checkIfRunning())) return 'Failed starting the ZeroMQ script.';
