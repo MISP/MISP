@@ -1673,19 +1673,6 @@ class Server extends AppModel {
 						}
 					}
 				}
-			} else {
-				$this->Log = ClassRegistry::init('Log');
-				$this->Log->create();
-				$this->Log->save(array(
-					'org' => $user['Organisation']['name'],
-					'model' => 'Server',
-					'model_id' => $id,
-					'email' => $user['email'],
-					'action' => 'error',
-					'user_id' => $user['id'],
-					'title' => 'Pulling of proposals has failed.',
-					'change' => ''
-				));
 			}
 		}
 		if ($jobId) {
