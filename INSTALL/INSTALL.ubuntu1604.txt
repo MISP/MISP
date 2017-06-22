@@ -134,7 +134,11 @@ sudo -u www-data sh -c "mysql -u misp -p misp < /var/www/MISP/INSTALL/MYSQL.sql"
 -----------------------
 # Now configure your Apache webserver with the DocumentRoot /var/www/MISP/app/webroot/
 
-sudo cp /var/www/MISP/INSTALL/apache.misp.ssl /etc/apache2/sites-available/misp-ssl.conf
+# If the apache version is 2.2:
+sudo cp /var/www/MISP/INSTALL/apache.22.misp.ssl /etc/apache2/sites-available/misp-ssl.conf
+
+# If the apache version is 2.4:
+sudo cp /var/www/MISP/INSTALL/apache.24.misp.ssl /etc/apache2/sites-available/misp-ssl.conf
 
 # Be aware that the configuration files for apache 2.4 and up have changed.
 # The configuration file has to have the .conf extension in the sites-available directory
