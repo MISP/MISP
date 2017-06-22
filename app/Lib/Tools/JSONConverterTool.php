@@ -19,6 +19,15 @@ class JSONConverterTool {
 			if ($object == 'SharingGroup' && isset($event['Event']['SharingGroup']) && empty($event['Event']['SharingGroup'])) {
 				unset($event['Event']['SharingGroup']);
 			}
+			if ($object == 'Galaxy') {
+				foreach ($event['Event']['Galaxy'] as $k => $galaxy) {
+					foreach ($galaxy['GalaxyCluster'] as $k2 => $cluster){
+						if (empty($cluster['meta'])) {
+							$event['Event']['Galaxy'][$k]['GalaxyCluster'][$k2]['meta'] = new stdclass();
+						}
+					}
+				}
+			}
 		}
 
 		if (isset($event['EventTag'])) {
