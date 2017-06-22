@@ -145,11 +145,11 @@ class GalaxyCluster extends AppModel{
 				}
 			}
 
-            // if $elements is still empty, it will json_encode as [], when
-            // the schema requires it to be {}
-            if (count($elements) === 0) {
-                $elements = json_decode("{}");
-            }
+            		// if $elements is still empty, it will json_encode as [], when
+            		// the schema requires it to be {}
+            		if (count($elements) === 0) {
+                		$elements = json_decode("{}");
+            		}
 
 			unset($cluster['GalaxyElement']);
 			$this->Tag = ClassRegistry::init('Tag');
