@@ -101,6 +101,13 @@ class XMLConverterTool {
 						$ra = array('Attribute' => array(0 => $ra));
 					}
 				}
+				if (!empty($event['Event']['Attribute'][$key]['Feed'])) {
+					foreach ($event['Event']['Attribute'][$key]['Feed'] as $fKey => $feed) {
+						$this->__sanitizeField($event['Event']['Attribute'][$key]['Feed'][$fKey]['name']);
+						$this->__sanitizeField($event['Event']['Attribute'][$key]['Feed'][$fKey]['url']);
+						$this->__sanitizeField($event['Event']['Attribute'][$key]['Feed'][$fKey]['provider']);
+					}
+				}
 				if (isset($event['Event']['Attribute'][$key]['ShadowAttribute'])) {
 					foreach ($event['Event']['Attribute'][$key]['ShadowAttribute'] as $skey => $svalue) {
 						$this->__sanitizeField($event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['value']);
