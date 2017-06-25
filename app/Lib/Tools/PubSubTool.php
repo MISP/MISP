@@ -46,8 +46,7 @@ class PubSubTool {
 		$pid = $pidFile->read(true, 'r');
 		if ($pid === false || $pid === '') return false;
 		if (!is_numeric($pid)) throw new Exception('Internal error (invalid PID file for the MISP zmq script)');
-		$result = trim(shell_exec('ps aux | awk \'{print $2}\' | grep "^' . $pid . '$"'));
-		if (empty($result)) return false;
+		if (!posix_getpgid($pid)) return false;
 		return $pid;
 	}
 
