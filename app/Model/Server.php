@@ -3045,18 +3045,13 @@ class Server extends AppModel {
 				'prio' => array('ok' => true),
 				'scheduler' => array('ok' => true)
 		);
-		$procAccessible = file_exists('/proc');
 		foreach ($workers as $pid => $worker) {
 			$entry = ($worker['type'] == 'regular') ? $worker['queue'] : $worker['type'];
 			$correct_user = ($currentUser === $worker['user']);
 			if (!is_numeric($pid)) throw new MethodNotAllowedException('Non numeric PID found.');
-			if ($procAccessible) {
-				$alive = $correct_user ? (file_exists('/proc/' . addslashes($pid))) : false;
-			} else {
-				$alive = 'N/A';
-			}
+			$alive = ($correct_user && (bool)posix_getpgid($pid));
 			$ok = true;
-			if (!$alive || !$correct_user) {
+			if (!$alive) {
 				$ok = false;
 				$workerIssueCount++;
 				$worker_array[$entry]['ok'] = false;
@@ -3070,7 +3065,6 @@ class Server extends AppModel {
 				$worker_array[$k]['ok'] = false;
 			}
 		}
-		$worker_array['proc_accessible'] = $procAccessible;
 		return $worker_array;
 	}
 
@@ -3093,7 +3087,7 @@ class Server extends AppModel {
 		$this->Log = ClassRegistry::init('Log');
 		if (isset($workers[$pid])) {
 			$worker = $workers[$pid];
-			if (substr_count(trim(shell_exec('ps -p ' . $pid)), PHP_EOL) > 0 ? true : false) {
+			if (posix_getpgid($pid)) {
 				shell_exec('kill ' . $pid . ' > /dev/null 2>&1 &');
 				$this->Log->create();
 				$this->Log->save(array(
@@ -3134,7 +3128,7 @@ class Server extends AppModel {
 		} else $currentUser = trim(shell_exec('whoami'));
 		foreach ($workers as $pid => $worker) {
 			if (!is_numeric($pid)) throw new MethodNotAllowedException('Non numeric PID found!');
-			$pidTest = substr_count(trim(shell_exec('ps -p ' . $pid)), PHP_EOL) > 0 ? true : false;
+			$pidTest = (bool)posix_getpgid($pid);
 			if ($worker['user'] == $currentUser && !$pidTest) {
 				$this->ResqueStatus->removeWorker($pid);
 				$this->Log->create();
