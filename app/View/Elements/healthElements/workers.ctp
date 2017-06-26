@@ -1,11 +1,22 @@
 <div style="border:1px solid #dddddd; margin-top:1px; width:100%; padding:10px">
 	<?php
+		if (!$worker_array['proc_accessible']):
+	?>
+		<div style="background-color:red !important;color:white;"><b>Warning</b>: MISP cannot access your /proc directory to check the status of the worker processes, which means that dead workers will not be detected by the diagnostic tool. If you would like to regain this functionality, make sure that the open_basedir directive is not set, or that /proc is included in it.</div>
+	<?php
+		endif;
 		foreach ($worker_array as $type => $data):
+		if ($type == 'proc_accessible') continue;
 		$queueStatusMessage = "Issues prevent jobs from being processed. Please resolve them below.";
 		$queueStatus = false;
 		if ($data['ok']) {
-			$queueStatus = true;
-			$queueStatusMessage = "OK";
+			if (!$worker_array['proc_accessible']) {
+				$queueStatus = 'N/A';
+				$queueStatusMessage = "Worker started with the correct user, but the current status is unknown.";
+			} else {
+				$queueStatus = true;
+				$queueStatusMessage = "OK";
+			}
 		} else if (!empty($data['workers'])) {
 			foreach ($data['workers'] as $worker) {
 				if ($worker['alive']) {
