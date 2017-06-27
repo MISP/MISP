@@ -143,7 +143,8 @@
 			}
 		}
 	?>
-	<p><span class="bold">PHP Version (><?php echo $phprec; ?> recommended): </span><span class="<?php echo $phpversions['web']['phpcolour']; ?>"><?php echo h($phpversions['web']['phpversion']) . ' (' . $phpversions['web']['phptext'] . ')';?></span><br />
+	<p><span class="bold">PHP ini path</span>:..... <span class="green"><?php echo h($php_ini); ?></span><br />
+	<span class="bold">PHP Version (><?php echo $phprec; ?> recommended): </span><span class="<?php echo $phpversions['web']['phpcolour']; ?>"><?php echo h($phpversions['web']['phpversion']) . ' (' . $phpversions['web']['phptext'] . ')';?></span><br />
 	<span class="bold">PHP CLI Version (><?php echo $phprec; ?> recommended): </span><span class="<?php echo $phpversions['cli']['phpcolour']; ?>"><?php echo h($phpversions['cli']['phpversion']) . ' (' . $phpversions['cli']['phptext'] . ')';?></span></p>
 	<p>The following settings might have a negative impact on certain functionalities of MISP with their current and recommended minimum settings. You can adjust these in your php.ini. Keep in mind that the recommendations are not requirements, just recommendations. Depending on usage you might want to go beyond the recommended values.</p>
 	<?php
