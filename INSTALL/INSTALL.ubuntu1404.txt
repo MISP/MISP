@@ -155,6 +155,22 @@ cp -a config.default.php config.php
 # Configure the fields in the newly created files:
 # database.php : login, port, password, database
 
+# DATABASE_CONFIG has to be filled
+# With the default values provided in section 6, this would look like:
+# class DATABASE_CONFIG {
+#   public $default = array(
+#       'datasource' => 'Database/Mysql',
+#       'persistent' => false,
+#       'host' => 'localhost',
+#       'login' => 'misp', // grant usage on *.* to misp@localhost
+#       'port' => 3306,
+#       'password' => 'XXXXdbpasswordhereXXXXX', // identified by 'XXXXdbpasswordhereXXXXX';
+#       'database' => 'misp', // create database misp;
+#       'prefix' => '',
+#       'encoding' => 'utf8',
+#   );
+#}
+
 # Important! Change the salt key in /var/www/MISP/app/Config/config.php
 # The salt key must be an at least 32 byte long string.
 # The admin user account will be generated on the first login, make sure that the salt is changed before you create that user
