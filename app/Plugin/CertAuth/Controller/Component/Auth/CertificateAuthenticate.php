@@ -74,10 +74,22 @@ class CertificateAuthenticate extends BaseAuthenticate
 			unset($CA, $ca);
 		}
 
-		if (self::$ca && isset($_SERVER['SSL_CLIENT_S_DN'])) {
-			self::$client = self::parse($_SERVER['SSL_CLIENT_S_DN'], Configure::read('CertAuth.map'));
-			if(isset($_SERVER['SSL_CLIENT_M_SERIAL'])) {
-				self::$client['serial'] = $_SERVER['SSL_CLIENT_M_SERIAL'];
+		if (self::$ca) {
+			$map = Configure::read('CertAuth.map');
+			if(isset($_SERVER['SSL_CLIENT_S_DN'])) {
+				self::$client = self::parse($_SERVER['SSL_CLIENT_S_DN'], $map);
+			} else {
+				self::$client = array();
+			}
+			foreach($map as $n=>$d) {
+				if(isset($_SERVER[$n])) {
+					self::$client[$d] = $_SERVER[$n];
+				}
+				unset($map[$n], $n, $d);
+			}
+			unset($map);
+			if(!self::$client) {
+				self::$client = false;
 			}
 		}
 	}
