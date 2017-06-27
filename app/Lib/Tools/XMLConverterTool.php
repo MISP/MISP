@@ -4,6 +4,14 @@ class XMLConverterTool {
 	private $__toEscape = array("&", "<", ">", "\"", "'");
 	private $__escapeWith = array('&amp;', '&lt;', '&gt;', '&quot;', '&apos;');
 
+	public function generateTop() {
+		return '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL . '<response>' . PHP_EOL;
+	}
+
+	public function generateBottom() {
+		return '</response>' . PHP_EOL;
+	}
+
 	public function recursiveEcho($array) {
 		$text = "";
 		if (is_array($array)) foreach ($array as $k => $v) {
@@ -27,7 +35,7 @@ class XMLConverterTool {
 		return $text;
 	}
 
-	public function event2xmlArray($event, $isSiteAdmin=false) {
+	public function convertArray($event, $isSiteAdmin=false) {
 		$event['Event']['Org'][0] = $event['Org'];
 		$event['Event']['Orgc'][0] = $event['Orgc'];
 		if (isset($event['SharingGroup']['SharingGroupOrg'])) {
@@ -56,6 +64,7 @@ class XMLConverterTool {
 
 		if (isset($event['EventTag'])) {
 			foreach ($event['EventTag'] as $k => $tag) {
+				unset($tag['Tag']['org_id']);
 				$event['Event']['Tag'][$k] = $tag['Tag'];
 			}
 		}
@@ -92,6 +101,13 @@ class XMLConverterTool {
 						$ra = array('Attribute' => array(0 => $ra));
 					}
 				}
+				if (!empty($event['Event']['Attribute'][$key]['Feed'])) {
+					foreach ($event['Event']['Attribute'][$key]['Feed'] as $fKey => $feed) {
+						$this->__sanitizeField($event['Event']['Attribute'][$key]['Feed'][$fKey]['name']);
+						$this->__sanitizeField($event['Event']['Attribute'][$key]['Feed'][$fKey]['url']);
+						$this->__sanitizeField($event['Event']['Attribute'][$key]['Feed'][$fKey]['provider']);
+					}
+				}
 				if (isset($event['Event']['Attribute'][$key]['ShadowAttribute'])) {
 					foreach ($event['Event']['Attribute'][$key]['ShadowAttribute'] as $skey => $svalue) {
 						$this->__sanitizeField($event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['value']);
@@ -114,6 +130,13 @@ class XMLConverterTool {
 					$event['Event']['Attribute'][$key]['SharingGroup'][0] = $event['Event']['Attribute'][$key]['SharingGroup'];
 					unset($event['Event']['Attribute'][$key]['SharingGroup']);
 				}
+				if (isset($event['Event']['Attribute'][$key]['AttributeTag'])) {
+					foreach ($event['Event']['Attribute'][$key]['AttributeTag'] as $atk => $tag) {
+						unset($tag['Tag']['org_id']);
+						$event['Event']['Attribute'][$key]['Tag'][$atk] = $tag['Tag'];
+					}
+					unset($event['Event']['Attribute'][$key]['AttributeTag']);
+				}
 			}
 		}
 		unset($event['Event']['RelatedAttribute']);
@@ -134,13 +157,6 @@ class XMLConverterTool {
 				$event['Event']['RelatedEvent'][$key]['Event'][0] = $temp;
 				unset($event['Event']['RelatedEvent'][$key]['Event'][0]['user_id']);
 				$this->__sanitizeField($event['Event']['RelatedEvent'][$key]['Event'][0]['info']);
-				if (!Configure::read('MISP.showorg') && !$isSiteAdmin) {
-					unset($event['Event']['RelatedEvent'][$key]['Org'], $event['Event']['RelatedEvent'][$key]['Orgc']);
-				} else {
-					$event['Event']['RelatedEvent'][$key]['Event'][0]['Org'][0] = $event['Event']['RelatedEvent'][$key]['Org'];
-					$event['Event']['RelatedEvent'][$key]['Event'][0]['Orgc'][0] = $event['Event']['RelatedEvent'][$key]['Orgc'];
-					unset($event['Event']['RelatedEvent'][$key]['Org'], $event['Event']['RelatedEvent'][$key]['Orgc']);
-				}
 				unset($temp);
 			}
 		}
@@ -149,8 +165,8 @@ class XMLConverterTool {
 		return $result;
 	}
 
-	public function event2XML($event, $isSiteAdmin=false) {
-		$xmlArray = $this->event2xmlArray($event, $isSiteAdmin);
+	public function convert($event, $isSiteAdmin=false) {
+		$xmlArray = $this->convertArray($event, $isSiteAdmin);
 		$result = array('Event' => array(0 => $xmlArray['Event']));
 		if (isset($xmlArray['errors']) && !empty($xmlArray['errors'])) $result['errors'] = array($xmlArray['errors']);
 		return $this->recursiveEcho($result);
@@ -163,7 +179,7 @@ class XMLConverterTool {
 
 	public function eventCollection2Format($events, $isSiteAdmin=false) {
 		$result = "";
-		foreach ($events as $event) $result .= $this->event2XML($event) . PHP_EOL;
+		foreach ($events as $event) $result .= $this->convert($event) . PHP_EOL;
 		return $result;
 	}
 

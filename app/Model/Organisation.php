@@ -1,8 +1,12 @@
 <?php
 App::uses('AppModel', 'Model');
+App::uses('ConnectionManager', 'Model');
 class Organisation extends AppModel{
+
 	public $useTable = 'organisations';
-    public $recursive = -1;
+
+	public $recursive = -1;
+
 	public $actsAs = array(
 		'Containable',
 		'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
@@ -11,6 +15,7 @@ class Organisation extends AppModel{
 				'change' => 'full'
 		),
 	);
+
 	public $validate = array(
 		'name' => array(
 			'unique' => array(
@@ -22,18 +27,21 @@ class Organisation extends AppModel{
 			),
 		),
 		'uuid' => array(
-            'unique' => array(
-                'rule' => 'isUnique',
-                'message' => 'An organisation with this UUID already exists.',
-            	'allowEmpty' => true
-            ),
-			'uuid' => array(
-				'rule' => array('uuid'),
+			'unique' => array(
+				'rule' => 'isUnique',
+				'message' => 'An organisation with this UUID already exists.'
+			),
+			'simpleuuid' => array(
+				'rule' => array('custom', '/^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/'),
 				'message' => 'Please provide a valid UUID',
 				'allowEmpty' => true
 			),
+			'valueNotEmpty' => array(
+				'rule' => array('valueNotEmpty'),
+			)
 		)
 	);
+
 	public $hasMany = array(
 		'User' => array(
 			'className' => 'User',
@@ -72,24 +80,13 @@ class Organisation extends AppModel{
 			'User' => array('table' => 'users', 'fields' => array('org_id'))
 	);
 
-	/*
-	public $hasAndBelongsToMany = array(
-		'SharingGroup' => array(
-			'className' => 'SharingGroup',
-			'joinTable' => 'organisations_sharing_groups',
-			'foreignKey' => 'org_id',
-			'associationForeignKey' => 'sharing_group_id',
-		)
-	);
-	*/
-
 	public function beforeValidate($options = array()) {
 		parent::beforeValidate();
-		if (empty($this->data['Organisation']['uuid']) && (isset($this->data['Organisation']['local']) && $this->data['Organisation']['local'])) {
-			$this->data['Organisation']['uuid'] = $this->generateUuid();
+		if (empty($this->data['Organisation']['uuid'])) {
+			$this->data['Organisation']['uuid'] = CakeText::uuid();
 		}
 		$date = date('Y-m-d H:i:s');
-		if (!isset($this->data['Organisation']['date_created']) || empty($this->data['Organisation']['date_created'])) $this->data['Organisation']['date_created'] = $date;
+		if (!isset($this->data['Organisation']['id'])) $this->data['Organisation']['date_created'] = $date;
 		$this->data['Organisation']['date_modified'] = $date;
 		if (!isset($this->data['Organisation']['nationality']) || empty($this->data['Organisation']['nationality'])) $this->data['Organisation']['nationality'] = 'Not specified';
 		return true;
@@ -101,12 +98,19 @@ class Organisation extends AppModel{
 		return true;
 	}
 
+	public function afterSave($created, $options = array()) {
+		if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_organisation_notifications_enable')) {
+			$pubSubTool = $this->getPubSubTool();
+			$pubSubTool->modified($this->data, 'organisation');
+		}
+		return true;
+	}
+
 	public function captureOrg($org, $user, $force = false) {
 		if (is_array($org)) {
 			if (isset($org['uuid']) && !empty($org['uuid'])) {
 				$conditions = array('uuid' => $org['uuid']);
 				$uuid = $org['uuid'];
-				$conditions2 = array('name' => $org['name']);
 			} else {
 				$conditions = array('name' => $org['name']);
 			}
@@ -120,15 +124,8 @@ class Organisation extends AppModel{
 				'recursive' => -1,
 				'conditions' => $conditions,
 		));
-		if (empty($existingOrg) && isset($conditions2)) {
-			$existingOrg = $this->find('first', array(
-					'recursive' => -1,
-					'conditions' => $conditions2,
-			));
-		}
 		if (empty($existingOrg)) {
 			$date = date('Y-m-d H:i:s');
-			$this->create();
 			$organisation = array(
 					'name' => $name,
 					'local' => 0,
@@ -136,18 +133,40 @@ class Organisation extends AppModel{
 					'date_modified' => $date,
 					'date_created' => $date
 			);
-			if (isset($uuid)) $organisation['uuid'] = $uuid;
+			// If we have the UUID set, then we have only made sure that the org doesn't exist by UUID
+			// We want to create a new organisation for pushed data, even if the same org name exists
+			// Alter the name if the name is already taken by a random string
+			if (isset($uuid)) {
+				$existingOrgByName = $this->find('first', array(
+						'recursive' => -1,
+						'conditions' => array('name' => $name),
+				));
+				if ($existingOrgByName) $organisation['name'] = $organisation['name'] . '_' . rand(0, 9999);
+				$organisation['uuid'] = $uuid;
+			}
+			$this->create();
 			$this->save($organisation);
 			return $this->id;
 		} else {
-			if (isset($org['uuid']) && empty($existingOrg['Organisation']['uuid'])) $existingOrg['Organisation']['uuid'] = $org['uuid'];
+			$changed = false;
+			if (isset($org['uuid']) && empty($existingOrg['Organisation']['uuid'])) {
+				$existingOrg['Organisation']['uuid'] = $org['uuid'];
+				$changed = true;
+			}
 			if ($force) {
 				$fields = array('type', 'date_created', 'date_modified', 'nationality', 'sector', 'contacts', 'landingpage');
 				foreach ($fields as $field) {
-					if (isset($org[$field])) $existingOrg['Organisation'][$field] = $org[$field];
+					if (isset($org[$field])) {
+						if ($existingOrg['Organisation'][$field] != $org[$field]) {
+							$existingOrg['Organisation'][$field] = $org[$field];
+							if ($field != 'date_modified') {
+								$changed = true;
+							}
+						}
+					}
 				}
 			}
-			$this->save($existingOrg);
+			if ($changed) $this->save($existingOrg);
 		}
 		return $existingOrg[$this->alias]['id'];
 	}
@@ -160,7 +179,7 @@ class Organisation extends AppModel{
 		if (empty($existingOrg)) {
 			$this->create();
 			$organisation = array(
-					'uuid' => $this->generateUuid(),
+					'uuid' =>CakeText::uuid(),
 					'name' => $name,
 					'local' => $local,
 					'created_by' => $user_id
@@ -183,13 +202,20 @@ class Organisation extends AppModel{
 		if (empty($currentOrg) || empty($targetOrg)) throw new MethodNotAllowedException('Something went wrong with the organisation merge. Organisation not found.');
 		$dir = new Folder();
 		$this->Log = ClassRegistry::init('Log');
+		$dataSourceConfig = ConnectionManager::getDataSource('default')->config;
+		$dataSource = $dataSourceConfig['datasource'];
 		$dirPath = APP . 'tmp' . DS . 'logs' . DS . 'merges';
 		if (!$dir->create($dirPath)) throw new MethodNotAllowedException('Merge halted because the log directory (default: /var/www/MISP/app/tmp/logs/merges) could not be created. This is most likely a permission issue, make sure that MISP can write to the logs directory and try again.');
 		$logFile = new File($dirPath . DS . 'merge_' . $currentOrg['Organisation']['id'] . '_' . $targetOrg['Organisation']['id'] . '_' . time() . '.log');
 		if (!$logFile->create()) throw new MethodNotAllowedException('Merge halted because the log file (default location: /var/www/MISP/app/tmp/logs/merges/[old_org_id]_[new_org_id]_timestamp.log) could not be created. This is most likely a permission issue, make sure that MISP can write to the logs directory and try again.');
 		$backupFile = new File($dirPath . DS . 'merge_' . $currentOrg['Organisation']['id'] . '_' . $targetOrg['Organisation']['id'] . '_' . time() . '.sql');
 		if (!$backupFile->create()) throw new MethodNotAllowedException('Merge halted because the backup script file (default location: /var/www/MISP/app/tmp/logs/merges/[old_org_id]_[new_org_id]_timestamp.sql) could not be created. This is most likely a permission issue, make sure that MISP can write to the logs directory and try again.');
-		$backupFile->append('INSERT INTO `organisations` (`' . implode('`, `', array_keys($currentOrg['Organisation'])) . '`) VALUES (\'' . implode('\', \'', array_values($currentOrg['Organisation'])) . '\');' . PHP_EOL);
+		if ($dataSource == 'Database/Mysql') {
+			$sql = 'INSERT INTO organisations (`' . implode('`, `', array_keys($currentOrg['Organisation'])) . '`) VALUES (\'' . implode('\', \'', array_values($currentOrg['Organisation'])) . '\');';
+		} else if ($dataSource == 'Database/Postgres') {
+			$sql = 'INSERT INTO organisations ("' . implode('", "', array_keys($currentOrg['Organisation'])) . '") VALUES (\'' . implode('\', \'', array_values($currentOrg['Organisation'])) . '\');';
+		}
+		$backupFile->append($sql . PHP_EOL);
 		$this->Log->create();
 		$this->Log->save(array(
 				'org' => $user['Organisation']['name'],
@@ -205,14 +231,29 @@ class Organisation extends AppModel{
 		$success = true;
 		foreach ($this->organisationAssociations as $model => $data) {
 			foreach ($data['fields'] as $field) {
-				$temp = $this->query('SELECT `id` FROM `' . $data['table'] . '` WHERE `' . $field . '` = "' . $currentOrg['Organisation']['id'] . '"');
+				if ($dataSource == 'Database/Mysql') {
+					$sql = 'SELECT `id` FROM `' . $data['table'] . '` WHERE `' . $field . '` = "' . $currentOrg['Organisation']['id'] . '"';
+				} else if ($dataSource == 'Database/Postgres') {
+					$sql = 'SELECT "id" FROM "' . $data['table'] . '" WHERE "' . $field . '" = "' . $currentOrg['Organisation']['id'] . '"';
+				}
+				$temp = $this->query($sql);
 				if (!empty($temp)) {
 					$dataMoved['values_changed'][$model][$field] = Set::extract('/' . $data['table'] . '/id', $temp);
 					if (!empty($dataMoved['values_changed'][$model][$field])) {
 						$this->Log->create();
 						try {
-							$result = $this->query('UPDATE `' . $data['table'] . '` SET `' . $field . '` = ' . $targetOrg['Organisation']['id'] . ' WHERE `' . $field . '` = ' . $currentOrg['Organisation']['id'] . ';');
-							$backupFile->append('UPDATE `' . $data['table'] . '` SET `' . $field . '` = ' . $currentOrg['Organisation']['id'] . ' WHERE `id` IN (' . implode(',', $dataMoved['values_changed'][$model][$field]) . ');' . PHP_EOL);
+							if ($dataSource == 'Database/Mysql') {
+								$sql = 'UPDATE `' . $data['table'] . '` SET `' . $field . '` = ' . $targetOrg['Organisation']['id'] . ' WHERE `' . $field . '` = ' . $currentOrg['Organisation']['id'] . ';';
+							} else if ($dataSource == 'Database/Postgres') {
+								$sql = 'UPDATE "' . $data['table'] . '" SET "' . $field . '" = ' . $targetOrg['Organisation']['id'] . ' WHERE "' . $field . '" = ' . $currentOrg['Organisation']['id'] . ';';
+							}
+							$result = $this->query($sql);
+							if ($dataSource == 'Database/Mysql') {
+								$sql = 'UPDATE `' . $data['table'] . '` SET `' . $field . '` = ' . $currentOrg['Organisation']['id'] . ' WHERE `id` IN (' . implode(',', $dataMoved['values_changed'][$model][$field]) . ');';
+							} else if ($dataSource == 'Database/Postgres') {
+								$sql = 'UPDATE "' . $data['table'] . '" SET "' . $field . '" = ' . $currentOrg['Organisation']['id'] . ' WHERE "id" IN (' . implode(',', $dataMoved['values_changed'][$model][$field]) . ');';
+							}
+							$backupFile->append($sql . PHP_EOL);
 							$this->Log->save(array(
 									'org' => $user['Organisation']['name'],
 									'model' => 'Organisation',

@@ -2,11 +2,6 @@
 
 App::uses('AppController', 'Controller');
 
-/**
- * Logs Controller
- *
- * @property Log $Log
- */
 class LogsController extends AppController {
 
 	public $components = array(
@@ -33,20 +28,14 @@ class LogsController extends AppController {
 		}
 	}
 
-/**
- * admin_index method
- *
- * @return void
- */
 	public function admin_index() {
 		if (!$this->userRole['perm_audit']) $this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
 		$this->set('isSearch', 0);
 		$this->recursive = 0;
 		$validFilters = $this->Log->logMeta;
 		if (!$this->_isSiteAdmin()) {
-			$orgRestriction = null;
-			$orgRestriction = $this->Auth->user('org');
-			$conditions['Log.org LIKE'] = '%' . $orgRestriction . '%';
+			$orgRestriction = $this->Auth->user('Organisation')['name'];
+			$conditions['Log.org'] = $orgRestriction;
 			$this->paginate = array(
 					'limit' => 60,
 					'conditions' => $conditions,
@@ -115,17 +104,36 @@ class LogsController extends AppController {
 			$conditions['OR'][] = array('AND' => array ('Log.model LIKE' => 'Attribute', 'Log.title LIKE' => '%Event (' . $id . ')%'));
 		}
 		$conditions['OR'][] = array('AND' => array ('Log.model LIKE' => 'ShadowAttribute', 'Log.title LIKE' => '%Event (' . $id . ')%'));
-		$fieldList = array('title', 'created', 'model', 'model_id', 'action', 'change', 'org');
+		$fieldList = array('title', 'created', 'model', 'model_id', 'action', 'change', 'org', 'email');
 		$this->paginate = array(
 				'limit' => 60,
 				'conditions' => $conditions,
 				'order' => array('Log.id' => 'DESC'),
 				'fields' => $fieldList
 		);
-		$this->set('event', $this->Event->data);
-		$this->set('list', $this->paginate());
-		$this->set('eventId', $id);
-		$this->set('mayModify', $mayModify);
+		$list = $this->paginate();
+		if (!$this->_isSiteAdmin()) {
+			$this->loadModel('User');
+			$emails = $this->User->find('list', array(
+					'conditions' => array('User.org_id' => $this->Auth->user('org_id')),
+					'fields' => array('User.id', 'User.email')
+			));
+			foreach ($list as $k => $item) {
+				if (!in_array($item['Log']['email'], $emails)) $list[$k]['Log']['email'] = '';
+			}
+		}
+		if ($this->_isRest()) {
+			foreach ($list as $k => $item) {
+				$list[$k] = $item['Log'];
+			}
+			$list = array('Log' => $list);
+			return $this->RestResponse->viewData($list, $this->response->type());
+		} else {
+			$this->set('event', $this->Event->data);
+			$this->set('list', $list);
+			$this->set('eventId', $id);
+			$this->set('mayModify', $mayModify);
+		}
 	}
 
 	public $helpers = array('Js' => array('Jquery'), 'Highlight');
@@ -136,7 +144,7 @@ class LogsController extends AppController {
 		if ($this->_isSiteAdmin()) {
 			$orgRestriction = false;
 		} else {
-			$orgRestriction = $this->Auth->user('org');
+			$orgRestriction = $this->Auth->user('Organisation')['name'];
 		}
 		$this->set('orgRestriction', $orgRestriction);
 		$validFilters = $this->Log->logMeta;
@@ -154,7 +162,7 @@ class LogsController extends AppController {
 				if (!$orgRestriction) {
 					$filters['org'] = $this->request->data['Log']['org'];
 				} else {
-					$filters['org'] = $this->Auth->user('org');
+					$filters['org'] = $this->Auth->user('Organisation')['name'];
 				}
 				$filters['action'] = $this->request->data['Log']['action'];
 				$filters['model'] = $this->request->data['Log']['model'];
@@ -286,5 +294,18 @@ class LogsController extends AppController {
 		$data = $this->Log->returnDates($org);
 		$this->set('data', $data);
 		$this->set('_serialize', 'data');
+	}
+
+	public function pruneUpdateLogs() {
+		if (!$this->request->is('post')) {
+			//throw new MethodNotAllowedException('This functionality is only accessible via POST requests');
+		}
+		$this->Log->pruneUpdateLogsRouter($this->Auth->user());
+		if (Configure::read('MISP.background_jobs')) {
+			$this->Session->setFlash('The pruning job is queued.');
+		} else {
+			$this->Session->setFlash('The pruning is complete.');
+		}
+		$this->redirect($this->referer());
 	}
 }

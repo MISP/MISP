@@ -1,7 +1,6 @@
 <div id = "topBar" class="navbar-wrapper header <?php echo $debugMode;?>" style="height:42px;width:100%">
-	<div class="glass"></div>
 	<div class="navbar navbar-inverse">
-		<div class="navbar-inner" style="border-radius: 10px;">
+		<div class="navbar-inner">
 		  <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
 	    <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
 	      <span class="icon-bar"></span>
@@ -53,6 +52,17 @@
 
 					<li class="dropdown">
 						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
+							Galaxies
+							<b class="caret"></b>
+						</a>
+						<ul class="dropdown-menu">
+							<li><a href="<?php echo $baseurl;?>/galaxies/index">List Galaxies</a></li>
+						</ul>
+					</li>
+
+
+					<li class="dropdown">
+						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
 							Input Filters
 							<b class="caret"></b>
 						</a>
@@ -78,7 +88,6 @@
 							<li><a href="<?php echo $baseurl;?>/news">News</a></li>
 							<li><a href="<?php echo $baseurl;?>/users/view/me">My Profile</a></li>
 							<li><a href="<?php echo $baseurl;?>/users/dashboard">Dashboard</a></li>
-							<li><a href="<?php echo $baseurl;?>/users/memberslist">Members List</a></li>
 							<li><a href="<?php echo $baseurl;?>/organisations/index">Organisations</a></li>
 							<li><a href="<?php echo $baseurl;?>/roles/index">Role Permissions</a></li>
 							<li class="divider"></li>
@@ -90,6 +99,9 @@
 							<li><a href="<?php echo $baseurl;?>/pages/display/doc/quickstart">User Guide</a></li>
 							<li><a href="<?php echo $baseurl;?>/users/terms">Terms &amp; Conditions</a></li>
 							<li><a href="<?php echo $baseurl;?>/users/statistics">Statistics</a></li>
+							<li class="divider"></li>
+							<li><a href="<?php echo $baseurl;?>/threads/index">List Discussions</a></li>
+							<li><a href="<?php echo $baseurl;?>/posts/add">Start Discussion</a></li>
 						</ul>
 					</li>
 
@@ -130,7 +142,6 @@
 							<?php endif; ?>
 							<?php if ($isSiteAdmin): ?>
 								<li class="divider"></li>
-								<li><a href="<?php echo $baseurl;?>/pages/display/administration">Administrative tools</a></li>
 								<li><a href="<?php echo $baseurl;?>/servers/serverSettings">Server settings</a></li>
 								<?php if (Configure::read('MISP.background_jobs')): ?>
 									<li class="divider"></li>
@@ -138,12 +149,12 @@
 									<li class="divider"></li>
 									<li><a href="<?php echo $baseurl;?>/tasks">Scheduled Tasks</a></li>
 								<?php endif; ?>
-								<?php if (Configure::read('MISP.enableEventBlacklisting') && $isSiteAdmin): ?>
+								<?php if (Configure::read('MISP.enableEventBlacklisting') !== false && $isSiteAdmin): ?>
 									<li class="divider"></li>
 									<li><a href="<?php echo $baseurl;?>/eventBlacklists/add">Blacklist Event</a></li>
 									<li><a href="<?php echo $baseurl;?>/eventBlacklists">Manage Event Blacklists</a></li>
 								<?php endif; ?>
-								<?php if (Configure::read('MISP.enableEventBlacklisting') && $isSiteAdmin): ?>
+								<?php if (Configure::read('MISP.enableEventBlacklisting') !== false && $isSiteAdmin): ?>
 									<li class="divider"></li>
 									<li><a href="<?php echo $baseurl;?>/orgBlacklists/add">Blacklist Organisation</a></li>
 									<li><a href="<?php echo $baseurl;?>/orgBlacklists">Manage Org Blacklists</a></li>
@@ -165,28 +176,12 @@
 						</ul>
 					</li>
 					<?php endif;?>
-					<li class="dropdown">
-						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
-							Discussions
-							<b class="caret"></b>
-						</a>
-						<ul class="dropdown-menu">
-							<li><a href="<?php echo $baseurl;?>/threads/index">List Discussions</a></li>
-							<li><a href="<?php echo $baseurl;?>/posts/add">Start Discussion</a></li>
-						</ul>
-					</li>
 				</ul>
 			</div>
 			<div class="nav-collapse collapse pull-right">
 				<ul class="nav">
 					<li>
-						<a href="<?php echo $baseurl;?>/" id="fullLogo" style="font-weight:bold;">
-							<span class="logoBlueStatic">M</span><span class="logoGray">alware</span>
-							<span class="logoBlueStatic">I</span><span class="logoGray">nformation </span>
-							<span class="logoBlueStatic">S</span><span class="logoGray">haring</span>
-							<span class="logoBlueStatic">P</span><span class="logoGray">latform</span>
-						</a>
-						<a href="<?php echo $baseurl;?>/" id="smallLogo" style="display:none;font-weight:bold;">
+						<a href="<?php echo $baseurl;?>/" id="smallLogo" style="font-weight:bold;">
 							<span class="logoBlueStatic">MISP</span>
 						</a>
 					</li>
@@ -195,7 +190,7 @@
 					</li>
 					<li>
 						<a href="<?php echo $baseurl;?>/users/dashboard" style="padding-left:0px;padding-right:0px;">
-							<span class="notification-<?php echo ($notifications['total'] > 0) ? 'active' : 'passive';?>"><span style="float:left;margin-top:3px;margin-right:3px;margin-left:3px;" class="icon-envelope icon-white"></span></span>
+							<span class="notification-<?php echo ($notifications['total'] > 0) ? 'active' : 'passive';?>"><span style="float:left;margin-top:3px;margin-right:3px;margin-left:3px;" class="icon-envelope icon-white" title="Dashboard" role="button" tabindex="0" aria-label="Dashboard"></span></span>
 						</a>
 					</li>
 					<?php if (!$externalAuthUser || !Configure::read('Plugin.CustomAuth_disable_logout')): ?>
@@ -209,30 +204,3 @@
 		</div>
 	</div>
 </div>
-<script type="text/javascript">
-window.onload = resizeLogo;
-window.onresize = resizeLogo;
-
-function resizeLogo() {
-	var testElem = document.getElementById('fullLogo');
-	var topBar = document.getElementById('topBar');
-
-	if (testElem != null) {
-		if ($(window).width() < 1400) {
-			document.getElementById('fullLogo').style.display='none';
-			document.getElementById('smallLogo').style.display='block';
-		}
-		if ($(window).width() > 1399) {
-			document.getElementById('fullLogo').style.display='block';
-			document.getElementById('smallLogo').style.display='none';
-		}
-	}
-
-	if ($(window).width() < 1185) {
-		topBar.style.width = '1185px';
-	}
-	if ($(window).width() > 1184) {
-		topBar.style.width = '100%';
-	}
-}
-</script>

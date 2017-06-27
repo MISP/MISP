@@ -1,31 +1,42 @@
 <?php
 class JSONConverterTool {
-	public function event2JSON($event, $isSiteAdmin=false) {
-		$event['Event']['Org'] = $event['Org'];
-		$event['Event']['Orgc'] = $event['Orgc'];
-		if (isset($event['SharingGroup']['SharingGroupOrg'])) {
-			foreach ($event['SharingGroup']['SharingGroupOrg'] as $key => $sgo) {
-				$event['SharingGroup']['SharingGroupOrg'][$key]['Organisation'] = $event['SharingGroup']['SharingGroupOrg'][$key]['Organisation'];
+
+	public function generateTop() {
+		return '{"response":[';
+	}
+
+	public function generateBottom() {
+		return ']}' . PHP_EOL;
+	}
+
+	public function convert($event, $isSiteAdmin=false) {
+		$toRearrange = array('Org', 'Orgc', 'SharingGroup', 'Attribute', 'ShadowAttribute', 'RelatedAttribute', 'RelatedEvent', 'Galaxy');
+		foreach ($toRearrange as $object) {
+			if (isset($event[$object])) {
+				$event['Event'][$object] = $event[$object];
+				unset($event[$object]);
+			}
+			if ($object == 'SharingGroup' && isset($event['Event']['SharingGroup']) && empty($event['Event']['SharingGroup'])) {
+				unset($event['Event']['SharingGroup']);
+			}
+			if ($object == 'Galaxy') {
+				foreach ($event['Event']['Galaxy'] as $k => $galaxy) {
+					foreach ($galaxy['GalaxyCluster'] as $k2 => $cluster){
+						if (empty($cluster['meta'])) {
+							$event['Event']['Galaxy'][$k]['GalaxyCluster'][$k2]['meta'] = new stdclass();
+						}
+					}
+				}
 			}
 		}
-		if (isset($event['SharingGroup']['SharingGroupServer'])) {
-			foreach ($event['SharingGroup']['SharingGroupServer'] as $key => $sgs) {
-				$event['SharingGroup']['SharingGroupServer'][$key]['Server'] = $event['SharingGroup']['SharingGroupServer'][$key]['Server'];
-			}
-		}
-		if (isset($event['SharingGroup'])) $event['Event']['SharingGroup'] = $event['SharingGroup'];
-		$event['Event']['Attribute'] = $event['Attribute'];
-		$event['Event']['ShadowAttribute'] = $event['ShadowAttribute'];
-		$event['Event']['RelatedEvent'] = $event['RelatedEvent'];
 
 		if (isset($event['EventTag'])) {
 			foreach ($event['EventTag'] as $k => $tag) {
+				unset($tag['Tag']['org_id']);
 				$event['Event']['Tag'][$k] = $tag['Tag'];
 			}
 		}
 
-		if (isset($event['RelatedAttribute'])) $event['Event']['RelatedAttribute'] = $event['RelatedAttribute'];
-		else $event['Event']['RelatedAttribute'] = array();
 		//
 		// cleanup the array from things we do not want to expose
 		//
@@ -40,6 +51,9 @@ class JSONConverterTool {
 		if (isset($event['Event']['Attribute'])) {
 			// remove value1 and value2 from the output and remove invalid utf8 characters for the xml parser
 			foreach ($event['Event']['Attribute'] as $key => $value) {
+				if (isset($value['SharingGroup']) && empty($value['SharingGroup'])) {
+					unset($event['Event']['Attribute'][$key]['SharingGroup']);
+				}
 				unset($event['Event']['Attribute'][$key]['value1']);
 				unset($event['Event']['Attribute'][$key]['value2']);
 				unset($event['Event']['Attribute'][$key]['category_order']);
@@ -48,6 +62,13 @@ class JSONConverterTool {
 					foreach ($event['Event']['Attribute'][$key]['RelatedAttribute'] as &$ra) {
 						$ra = array('Attribute' => $ra);
 					}
+				}
+				if (isset($event['Event']['Attribute'][$key]['AttributeTag'])) {
+					foreach ($event['Event']['Attribute'][$key]['AttributeTag'] as $atk => $tag) {
+						unset($tag['Tag']['org_id']);
+						$event['Event']['Attribute'][$key]['Tag'][$atk] = $tag['Tag'];
+					}
+					unset($event['Event']['Attribute'][$key]['AttributeTag']);
 				}
 			}
 		}
@@ -74,20 +95,20 @@ class JSONConverterTool {
 				if (!is_array($temp)) {
 					$resultArray[] = '[' . $k .']' . $temp;
 				} else {
-					foreach ($temp as &$t) $resultArray[] = '[' . $k . ']' . $t;
+					foreach ($temp as $t) $resultArray[] = '[' . $k . ']' . $t;
 				}
 			}
 		} else $resultArray = ': ' . $array . PHP_EOL;
 		if ($root) {
 			$text = '';
-			foreach ($resultArray as &$r) $text .= $r;
+			foreach ($resultArray as $r) $text .= $r;
 			return $text;
 		} else return $resultArray;
 	}
 
 	public function eventCollection2Format($events, $isSiteAdmin=false) {
 		$results = array();
-		foreach ($events as &$event) $results[] = $this->event2JSON($event, $isSiteAdmin);
+		foreach ($events as $event) $results[] = $this->convert($event, $isSiteAdmin);
 		return implode(',' . PHP_EOL, $results);
 	}
 

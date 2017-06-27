@@ -14,7 +14,7 @@
 					if (id != -1 && progress < 100 && modified != "N/A") {
 						queryTask(k, i);
 					}
-				}, 1000);
+				}, 3000);
 		}
 		function editMessage(id, text) {
 			document.getElementById("message" + id).innerHTML = text;
@@ -26,6 +26,7 @@
 			<th style="text-align:center;">Last Update</th>
 			<th style="text-align:center;">Description</th>
 			<th style="text-align:center;">Outdated</th>
+			<th style="text-align:center;">Filesize</th>
 			<th style="text-align:center;">Progress</th>
 			<th style="text-align:center;">Actions</th>
 		</tr>
@@ -33,7 +34,22 @@
 			<tr>
 				<td class="short"><?php echo $type['type']; ?></td>
 				<td id="update<?php echo $i; ?>" class="short" style="color:red;"><?php echo $type['lastModified']; ?></td>
-				<td><?php echo $type['description']; ?></td>
+				<td>
+					<?php
+						echo $type['description'];
+						if ($type['canHaveAttachments']):
+							if (Configure::read('MISP.cached_attachments')):
+					?>
+						<span class="green"> (Attachments are enabled on this instance)</span>
+					<?php
+							else:
+					?>
+						<span class="red"> (Attachments are disabled on this instance)</span>
+					<?php
+							endif;
+						endif;
+					?>
+				</td>
 				<td id="outdated<?php echo $i; ?>">
 					<?php
 						if ($type['recommendation']) {
@@ -41,6 +57,17 @@
 						} else {
 							echo 'No';
 						}
+					?>
+				</td>
+				<td class="short" style="text-align:right;">
+					<?php 
+						if (isset($type['filesize'])):
+							echo h($type['filesize']);
+						else:
+					?>
+							<span class="red">N/A</span>
+					<?php 
+						endif;
 					?>
 				</td>
 				<td style="width:150px;">

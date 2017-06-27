@@ -2,11 +2,6 @@
 
 App::uses('AppController', 'Controller');
 
-/**
- * Tasks Controller
- *
- * @property Task $Task
-*/
 class TasksController extends AppController {
 	public $components = array('Security' ,'RequestHandler', 'Session');
 
@@ -16,10 +11,6 @@ class TasksController extends AppController {
 					'Task.id' => 'desc'
 			)
 	);
-
-	public function beforeFilter() {
-		parent::beforeFilter();
-	}
 
 	public function index() {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
@@ -40,6 +31,12 @@ class TasksController extends AppController {
 			if (!in_array($taskName, $existingTasks)) {
 				$this->Task->create();
 				$this->Task->save($taskData);
+			} else {
+				$existingTask = $this->Task->find('first', array('recursive' => -1, 'conditions' => array('Task.type' => $taskName)));
+				if ($taskData['description'] != $existingTask['Task']['description']) {
+					$existingTask['Task']['description'] = $taskData['description'];
+					$this->Task->save($existingTask);
+				}
 			}
 		}
 	}
@@ -87,13 +84,15 @@ class TasksController extends AppController {
 	}
 
 	private function _cacheScheduler($timestamp, $id) {
-		CakeResque::enqueueAt(
+		$process_id = CakeResque::enqueueAt(
 				$timestamp,
 				'cache',
 				'EventShell',
 				array('enqueueCaching', $timestamp),
 				true
 		);
+		$this->Task->id = $id;
+		$this->Task->saveField('process_id', $process_id);
 	}
 
 	private function _pushScheduler($timestamp, $id) {
@@ -105,7 +104,7 @@ class TasksController extends AppController {
 				true
 		);
 		$this->Task->id = $id;
-		$this->Task->saveField('job_id', $process_id);
+		$this->Task->saveField('process_id', $process_id);
 	}
 
 	private function _pullScheduler($timestamp, $id) {
@@ -117,7 +116,7 @@ class TasksController extends AppController {
 				true
 		);
 		$this->Task->id = $id;
-		$this->Task->saveField('job_id', $process_id);
+		$this->Task->saveField('process_id', $process_id);
 	}
 
 }

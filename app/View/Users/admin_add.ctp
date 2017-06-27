@@ -34,7 +34,11 @@
 		<div id="PasswordDiv">
 			<div class="clear"></div>
 			<?php
-				echo $this->Form->input('password');
+				$passwordPopover = '<span class=\"blue bold\">Length</span>: ' . h($length) . '<br />';
+				$passwordPopover .= '<span class=\"blue bold\">Complexity</span>: ' . h($complexity);
+				echo $this->Form->input('password', array(
+					'label' => 'Password <span id = "PasswordPopover" class="icon-info-sign" ></span>'
+				));
 				echo $this->Form->input('confirm_password', array('type' => 'password', 'div' => array('class' => 'input password required')));
 			?>
 		</div>
@@ -48,7 +52,12 @@
 					'empty' => 'Choose organisation',
 			));
 		}
-		echo $this->Form->input('role_id', array('label' => 'Role'));
+		$roleOptions = array('label' => 'Role');
+		// We need to make sure that the default role is actually available to the admin (for an org admin it might not be)
+		if (!empty($default_role_id) && isset($roles[intval($default_role_id)])) {
+			$roleOptions['default'] = $default_role_id;
+		}
+		echo $this->Form->input('role_id', $roleOptions);
 		echo $this->Form->input('authkey', array('value' => $authkey, 'readonly' => 'readonly', 'div' => 'input clear'));
 		echo $this->Form->input('nids_sid');
 	?>
@@ -58,21 +67,22 @@
 	?>
 		</div>
 	<?php
-		echo $this->Form->input('gpgkey', array('label' => 'GPG key', 'div' => 'clear', 'class' => 'input-xxlarge'));
+		echo $this->Form->input('gpgkey', array('label' => 'GPG key', 'div' => 'clear', 'class' => 'input-xxlarge', 'placeholder' => 'Paste the user\'s PGP key here or try to retrieve it from the MIT key server by clicking on "Fetch GPG key" below.'));
 	?>
-		<div class="clear"><span onClick="lookupPGPKey('UserEmail');" class="btn btn-inverse" style="margin-bottom:10px;">Fetch GPG key</span></div>
+		<div class="clear"><span  role="button" tabindex="0" aria-label="Fetch the user's PGP key" onClick="lookupPGPKey('UserEmail');" class="btn btn-inverse" style="margin-bottom:10px;">Fetch GPG key</span></div>
 	<?php
-		if (Configure::read('SMIME.enabled')) echo $this->Form->input('certif_public', array('label' => 'Public certificate (Encryption -- PEM format)', 'div' => 'clear', 'class' => 'input-xxlarge'));
-		echo $this->Form->input('autoalert', array('label' => 'Receive alerts when events are published'));
-		echo $this->Form->input('contactalert', array('label' => 'Receive alerts from "contact reporter" requests'));
+		if (Configure::read('SMIME.enabled')) echo $this->Form->input('certif_public', array('label' => 'SMIME key', 'div' => 'clear', 'class' => 'input-xxlarge', 'placeholder' => 'Paste the user\'s SMIME public key in PEM format here.'));
+		echo $this->Form->input('autoalert', array('label' => 'Receive alerts when events are published', 'type' => 'checkbox', 'checked' => true));
+		echo $this->Form->input('contactalert', array('label' => 'Receive alerts from "contact reporter" requests', 'type' => 'checkbox', 'checked' => true));
 	?>
 		<div class="clear"></div>
 	<?php
 		echo $this->Form->input('disabled', array('label' => 'Disable this user account'));
-
+		echo $this->Form->input('notify', array('label' => 'Send credentials automatically', 'type' => 'checkbox', 'checked' => true));
 	?>
 	</fieldset>
-<?php echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary'));
+<?php
+	echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary'));
 	echo $this->Form->end();?>
 </div>
 <?php
@@ -92,6 +102,12 @@ $(document).ready(function() {
 	});
 	$('#UserExternalAuthRequired').change(function() {
 		checkUserExternalAuth();
+	});
+	$('#PasswordPopover').popover("destroy").popover({
+		placement: 'right',
+		html: 'true',
+		trigger: 'hover',
+		content: '<?php echo $passwordPopover; ?>'
 	});
 });
 </script>

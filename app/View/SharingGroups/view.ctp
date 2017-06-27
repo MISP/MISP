@@ -22,6 +22,14 @@
 		?>
 		<dt>Created by</dt>
 		<dd><a href="/organisations/view/<?php echo $sg['Organisation']['id']; ?>"><?php echo h($sg['Organisation']['name']); ?></a></dd>
+		<?php
+			if ($sg['SharingGroup']['sync_user_id']):
+		?>
+			<dt>Synced by</dt>
+			<dd><a href="/organisations/view/<?php echo $sg['Organisation']['id']; ?>"><?php echo h($sg['Organisation']['name']); ?></a></dd>
+		<?php
+			endif;
+		?>
 	</dl><br />
 	<div class="row" style="width:100%;">
 	<?php
@@ -50,7 +58,7 @@
 		</div>
 	<?php
 		endif;
-		if (isset($sg['SharingGroupServer'])):
+		if (!$sg['SharingGroup']['roaming']):
 	?>
 		<div class="span6">
 		<b>Instances</b>

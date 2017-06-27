@@ -61,13 +61,15 @@ class DATABASE_CONFIG {
 
 	public $default = array(
 		'datasource' => 'Database/Mysql',
+		//'datasource' => 'Database/Postgres',
 		'persistent' => false,
 		'host' => 'localhost',
 		'login' => 'db login',
-		'port' => 3306,
+		'port' => 3306, // MySQL & MariaDB
+		//'port' => 5432, // PostgreSQL
 		'password' => 'db password',
 		'database' => 'misp',
 		'prefix' => '',
-		//'encoding' => 'utf8',
+		'encoding' => 'utf8',
 	);
 }

@@ -12,7 +12,7 @@ class RegexpBehavior extends ModelBehavior {
 
 	public function setup(Model $model, $config = null) {
 		$regexp = new Regexp();
-		$this->__allRegexp = $regexp->find('all');
+		$this->__allRegexp = $regexp->find('all', array('order' => 'id ASC'));
 	}
 
 /**

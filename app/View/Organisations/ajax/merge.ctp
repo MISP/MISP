@@ -1,6 +1,6 @@
 <div class="events">
 <?php echo $this->Form->create('Organisation', array(
-		'onsubmit' => 'return confirm("This will remove the selected organisation and hand over all objects belonging to it to the target organisation. This process is irreversible. Are you sure you");',
+		'onsubmit' => 'return confirm("This will remove the selected organisation and hand over all objects belonging to it to the target organisation. This process is irreversible. Are you sure you want to proceed?");',
 ));?>
 	<div class="legend">Merge Organisation</div>
 			<p class="red-background white">Warning: Merging an organisation into another will be transfer all users and data belonging to the organisation to another.</p>
@@ -58,7 +58,7 @@
 		</div>
 		<br />
 		<?php echo $this->Form->submit('Merge', array('div' => false, 'class' => 'btn btn-primary')); ?>
-		<span class="btn btn-inverse" onClick="cancelPopoverForm();" style="float:right;">Cancel</span>
+		<span role="button" tabindex="0" aria-label="Cancel" title="Cancel" class="btn btn-inverse" onClick="cancelPopoverForm();" style="float:right;">Cancel</span>
 		<?php echo $this->Form->end(); ?>
 	</div>
 </div>

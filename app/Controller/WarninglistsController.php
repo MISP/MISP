@@ -4,10 +4,6 @@ App::uses('AppController', 'Controller');
 class WarninglistsController extends AppController {
 	public $components = array('Session', 'RequestHandler');
 
-	public function beforeFilter() {
-		parent::beforeFilter();
-	}
-
 	public $paginate = array(
 			'limit' => 60,
 			'maxLimit' => 9999,	// LATER we will bump here on a problem once we have more than 9999 events <- no we won't, this is the max a user van view/page.
@@ -44,7 +40,7 @@ class WarninglistsController extends AppController {
 		$successes = 0;
 		if (!empty($result)) {
 			if (isset($result['success'])) {
-				foreach ($result['success'] as $id => &$success) {
+				foreach ($result['success'] as $id => $success) {
 					if (isset($success['old'])) $change = $success['name'] . ': updated from v' . $success['old'] . ' to v' . $success['new'];
 					else $change = $success['name'] . ' v' . $success['new'] . ' installed';
 					$this->Log->create();
@@ -62,7 +58,7 @@ class WarninglistsController extends AppController {
 				}
 			}
 			if (isset($result['fails'])) {
-				foreach ($result['fails'] as $id => &$fail) {
+				foreach ($result['fails'] as $id => $fail) {
 					$this->Log->create();
 					$this->Log->save(array(
 							'org' => $this->Auth->user('Organisation')['name'],
@@ -90,14 +86,18 @@ class WarninglistsController extends AppController {
 					'change' => 'Executed an update of the warning lists, but there was nothing to update.',
 			));
 		}
-		if ($successes == 0 && $fails == 0) $this->Session->setFlash('All warninglists are up to date already.');
-		else if ($successes == 0) $this->Session->setFlash('Could not update any of the warning lists');
+		if ($successes == 0 && $fails == 0) $message = 'All warninglists are up to date already.';
+		else if ($successes == 0) $message = 'Could not update any of the warning lists';
 		else {
 			$message = 'Successfully updated ' . $successes . ' warninglists.';
 			if ($fails != 0) $message . ' However, could not update ' . $fails . ' warning list.';
-			$this->Session->setFlash($message);
 		}
-		$this->redirect(array('controller' => 'warninglists', 'action' => 'index'));
+		if ($this->_isRest()) {
+			return $this->RestResponse->saveSuccessResponse('Warninglist', 'update', false, $this->response->type(), $message);
+		} else {
+			$this->Session->setFlash($message);
+			$this->redirect(array('controller' => 'warninglists', 'action' => 'index'));
+		}
 	}
 
 	public function toggleEnable() {
@@ -106,13 +106,14 @@ class WarninglistsController extends AppController {
 		$currentState = $this->Warninglist->find('first', array('conditions' => array('id' => $id), 'recursive' => -1));
 		if (empty($currentState)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Warninglist not found.')), 'status' => 200));
 		if ($currentState['Warninglist']['enabled']) {
-			$currentState['Warninglist']['enabled'] = false;
+			$currentState['Warninglist']['enabled'] = 0;
 			$message = 'disabled';
 		} else {
-			$currentState['Warninglist']['enabled'] = true;
+			$currentState['Warninglist']['enabled'] = 1;
 			$message = 'enabled';
 		}
 		if ($this->Warninglist->save($currentState)) {
+			$this->Warninglist->regenerateWarninglistCaches($id);
 			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Warninglist ' . $message)), 'status' => 200));
 		} else {
 			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Warninglist could not be enabled.')), 'status' => 200));
@@ -121,9 +122,11 @@ class WarninglistsController extends AppController {
 
 	public function enableWarninglist($id, $enable = false) {
 		$this->Warninglist->id = $id;
-		debug($id);
 		if (!$this->Warninglist->exists()) throw new NotFoundException('Invalid Warninglist.');
+		// DBMS interoperability: convert boolean false to integer 0 so cakephp doesn't try to insert an empty string into the database
+		if ($enable === false) $enable = 0;
 		$this->Warninglist->saveField('enabled', $enable);
+		$this->Warninglist->regenerateWarninglistCaches($id);
 		$this->Session->setFlash('Warninglist enabled');
 		$this->redirect(array('controller' => 'warninglists', 'action' => 'view', $id));
 	}

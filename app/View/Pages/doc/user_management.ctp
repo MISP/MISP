@@ -45,11 +45,11 @@ To alter any details regarding your profile, use the "My Profile" menu button to
 	<li><b>Requesting a new authentication key:</b> It is possible to make the system generate a new authentication key for you (for example if your previous one gets compromised. This can be accessed by clicking on the My Profile button and then clicking the reset key next to the currently active authentication code. The old key will become invalid when the new one is generated.<br /><br />
 	<p><img src="<?php echo $baseurl;?>/img/doc/reset.png" alt = "" title="Clicking on reset will generate a new key for you and invalidate the old one, blocking it from being used."></p></li></ul>
 <hr />
- <a id="uptodate"></a><h3>Staying up to date:</h3>
+<a id="uptodate"></a><h3>Staying up to date:</h3>
 MISP also provides its users with some information about itself and its users through the links provided in the Global Actions menu.<br><br>
 <ul>
 	<li><b>News:</b> To read about the news regarding the system itself, click on News on the left menu. This will bring up a list of news items concerning updates and changes to MISP itself.<br /><br /></li>
-	<li><b>Member statistics:</b> By using the Members List menu button on the left, you can get a quick overview over how many users each organisation has registered on your server, and a histogram, depicting the distribution of attribute types created by each organisation.<br /><br /></li>
+	<li><b>Member statistics:</b> By using the Attribute Histogram menu button on the left, you can see a quick histogram depicting the distribution of attribute types created by each organisation.<br /><br /></li>
 	<li><b>User Guide:</b> The user guide is also accessible via the Global Actions menu. You can find out more about how to use the system by reading this.<br /><br /></li>
 	<li><b>Terms &amp; Conditions:</b> It is possible to review the terms &amp; conditions that were shown during the first run of the system by clicking on the terms &amp; conditions link in the Global Actions menu.<br /><br /></li>
 	<li><b>Statistics:</b> View statistics about the users and the data contained within this instance.
@@ -63,7 +63,7 @@ MISP also provides its users with some information about itself and its users th
 		</ul>
 	</li>
 </ul>
- <a id="filters"></a><h3>Inspecting the input filters:</h3>
+<a id="filters"></a><h3>Inspecting the input filters:</h3>
 All the events and attributes that get entered into MISP will be run through a series of input filters. These are defined by the site administrators or users with special privileges to edit the filters, but every user can take a look at the currently active lists.<br><br>
 <ul>
 	<li><b>Import Regexp:</b> All Attribute value and Event info fields will be parsed for a set of regular expressions and replaced based on the replacement values contained in this section. This has many uses, such as unifying similar data for better correlation, removing personal data from file-paths or simply for clarity. It is also possible to blacklist data by not defining a replacement for a regular expression. <br /><br /></li>

@@ -19,12 +19,8 @@ class EventTag extends AppModel {
 	);
 
 	public $belongsTo = array(
-		'Event' => array(
-			'className' => 'Event',
-		),
-		'Tag' => array(
-			'className' => 'Tag',
-		),
+		'Event',
+		'Tag'
 	);
 
 	// take an array of tag names to be included and an array with tagnames to be excluded and find all event IDs that fit the criteria
@@ -66,5 +62,31 @@ class EventTag extends AppModel {
 			if (!$this->save(array('event_id' => $event_id, 'tag_id' => $tag_id))) return false;
 		}
 		return true;
+	}
+
+	public function getSortedTagList($context = false) {
+		$conditions = array();
+		$tag_counts = $this->find('all', array(
+				'recursive' => -1,
+				'fields' => array('tag_id', 'count(*)'),
+				'group' => array('tag_id'),
+				'conditions' => $conditions,
+				'contain' => array('Tag.name')
+		));
+		$temp = array();
+		$tags = array();
+		foreach ($tag_counts as $tag_count) {
+			$temp[$tag_count['Tag']['name']] = array(
+					'tag_id' => $tag_count['Tag']['id'],
+					'eventCount' => $tag_count[0]['count(*)'],
+					'name' => $tag_count['Tag']['name'],
+			);
+			$tags[$tag_count['Tag']['name']] = $tag_count[0]['count(*)'];
+		}
+		arsort($tags);
+		foreach ($tags as $k => $v) {
+			$tags[$k] = $temp[$k];
+		}
+		return $tags;
 	}
 }

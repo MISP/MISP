@@ -17,7 +17,7 @@
 					<dd class="eventTagContainer">
 					<?php if (!empty($event['Tag'])) foreach ($event['Tag'] as $tag): ?>
 						<span style="padding-right:0px;">
-							<a href="#" class="tagFirstHalf" style="background-color:<?php echo h($tag['colour']); ?>"><?php echo h($tag['name']); ?></a>
+							<span class="tagFirstHalf" style="background-color:<?php echo isset($tag['colour']) ? h($tag['colour']) : 'red';?>;color:<?php echo $this->TextColour->getTextColour(isset($tag['colour']) ? h($tag['colour']) : 'red'); ?>"><?php echo h($tag['name']); ?></span>
 						</span>
 					<?php endforeach; ?>&nbsp;
 					</dd>
@@ -92,7 +92,7 @@
 	        <ul>
 	        <?php
 		        $this->Paginator->options(array(
-		        	'url' => array($feed['Feed']['id'], $event['Event']['uuid']),
+					'url' => array($feed['Feed']['id'], $event['Event']['uuid']),
 		            'evalScripts' => true,
 		            'before' => '$(".progress").show()',
 		            'complete' => '$(".progress").hide()',
@@ -115,7 +115,7 @@
 	        </ul>
 	    </div>
 	    <div id="attributeList" class="attributeListContainer">
-	    	<table class="table table-striped table-condensed">
+			<table class="table table-striped table-condensed">
 				<tr>
 					<th><?php echo $this->Paginator->sort('date');?></th>
 					<th><?php echo $this->Paginator->sort('category');?></th>

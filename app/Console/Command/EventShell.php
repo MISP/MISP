@@ -35,6 +35,7 @@ class EventShell extends AppShell
 	}
 
 	public function cachexml() {
+		$timeStart = time();
 		$userId = $this->args[0];
 		$id = $this->args[1];
 		$user = $this->User->getAuthUser($userId);
@@ -53,16 +54,78 @@ class EventShell extends AppShell
 		$file->write('<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL . '<response>');
 		if (!empty($eventIds)) {
 			foreach ($eventIds as $k => $eventId) {
-				$temp = $this->Event->fetchEvent($user, array('eventid' => $eventId['Event']['id']));
-				$file->append($converter->event2XML($temp[0], $user['Role']['perm_site_admin']) . PHP_EOL);
+				$temp = $this->Event->fetchEvent($user, array('eventid' => $eventId['Event']['id'], 'includeAttachments' => Configure::read('MISP.cached_attachments')));
+				$file->append($converter->convert($temp[0], $user['Role']['perm_site_admin']) . PHP_EOL);
 				$this->Job->saveField('progress', ($k+1) / $eventCount *100);
 			}
 		}
-		$this->Job->saveField('progress', 100);
-		$this->Job->saveField('message', 'Job done.');
 		$file->append('<xml_version>' . $this->Event->mispVersion . '</xml_version>');
 		$file->append('</response>' . PHP_EOL);
 		$file->close();
+		$timeDelta = (time()-$timeStart);
+		$this->Job->saveField('progress', 100);
+		$this->Job->saveField('message', 'Job done. (in '.$timeDelta.'s)');
+		$this->Job->saveField('date_modified', date("y-m-d H:i:s"));
+	}
+
+	public function cachejson() {
+		$timeStart = time();
+		$userId = $this->args[0];
+		$id = $this->args[1];
+		$user = $this->User->getAuthUser($userId);
+		$this->Job->id = $id;
+		// TEMP: change to passing an options array with the user!!
+		$eventIds = $this->Event->fetchEventIds($user);
+		$eventCount = count($eventIds);
+		$dir = new Folder(APP . 'tmp/cached_exports/json', true, 0750);
+		if ($user['Role']['perm_site_admin']) {
+			$file = new File($dir->pwd() . DS . 'misp.json' . '.ADMIN.json');
+		} else {
+			$file = new File($dir->pwd() . DS . 'misp.json' . '.' . $user['Organisation']['name'] . '.json');
+		}
+		App::uses('JSONConverterTool', 'Tools');
+		$converter = new JSONConverterTool();
+		$file->write('{"response":[');
+		foreach ($eventIds as $k => $eventId) {
+			$result = $this->Event->fetchEvent($user, array('eventid' => $eventId['Event']['id'], 'includeAttachments' => Configure::read('MISP.cached_attachments')));
+			$file->append($converter->convert($result[0]));
+			if ($k < count($eventIds) -1 ) $file->append(',');
+			$this->Job->saveField('progress', ($k+1) / $eventCount *100);
+		}
+		$file->append(']}');
+		$file->close();
+		$timeDelta = (time()-$timeStart);
+		$this->Job->saveField('progress', 100);
+		$this->Job->saveField('message', 'Job done. (in '.$timeDelta.'s)');
+		$this->Job->saveField('date_modified', date("y-m-d H:i:s"));
+	}
+
+	public function cachestix() {
+		$timeStart = time();
+		$userId = $this->args[0];
+		$id = $this->args[1];
+		$user = $this->User->getAuthUser($userId);
+		$this->Job->id = $id;
+		$dir = new Folder(APP . 'tmp/cached_exports/stix', true, 0750);
+		if ($user['Role']['perm_site_admin']) {
+			$stixFilePath = $dir->pwd() . DS . 'misp.stix' . '.ADMIN.xml';
+		} else {
+			$stixFilePath = $dir->pwd() . DS . 'misp.stix' . '.' . $user['Organisation']['name'] . '.xml';
+		}
+		$result = $this->Event->stix(false, false, Configure::read('MISP.cached_attachments'), $user, 'xml', false, false, false, $id, true);
+		$timeDelta = (time()-$timeStart);
+		$this->Job->saveField('date_modified', date("y-m-d H:i:s"));
+		if ($result['success']) {
+			rename($result['data'], $stixFilePath);
+			unlink($result['data']);
+			$this->Job->saveField('progress', 100);
+			$this->Job->saveField('message', 'Job done. (in '.$timeDelta.'s)');
+		} else {
+			$log = ClassRegistry::init('Log');
+			$log->create();
+			$log->createLogEntry($user, 'export', 'STIX export failed', $result['message']);
+			throw new InternalErrorException();
+		}
 	}
 
 	private function __recursiveEcho($array) {
@@ -89,13 +152,14 @@ class EventShell extends AppShell
 	}
 
 	public function cachehids() {
+		$timeStart = time();
 		$userId = $this->args[0];
 		$user = $this->User->getAuthUser($userId);
 		$id = $this->args[1];
 		$this->Job->id = $id;
 		$extra = $this->args[2];
 		$this->Job->saveField('progress', 1);
-		$rules = $this->Attribute->hids($user, $extra);
+		$rules = $this->Attribute->hids($user, $extra, '', false, false, false, $id);
 		$this->Job->saveField('progress', 80);
 		$dir = new Folder(APP . DS . '/tmp/cached_exports/' . $extra, true, 0750);
 		if ($user['Role']['perm_site_admin']) {
@@ -104,15 +168,22 @@ class EventShell extends AppShell
 			$file = new File($dir->pwd() . DS . 'misp.' . $extra . '.' . $user['Organisation']['name'] . '.txt');
 		}
 		$file->write('');
-		foreach ($rules as $rule) {
-			$file->append($rule . PHP_EOL);
+		if (!empty($rules)) {
+			foreach ($rules as $rule) {
+				$file->append($rule . PHP_EOL);
+			}
+		} else {
+			$file->append("No exportable " . $type . "s found. " . PHP_EOL);
 		}
 		$file->close();
+		$timeDelta = (time()-$timeStart);
 		$this->Job->saveField('progress', '100');
-		$this->Job->saveField('message', 'Job done.');
+		$this->Job->saveField('message', 'Job done. (in '.$timeDelta.'s)');
+		$this->Job->saveField('date_modified', date("y-m-d H:i:s"));
 	}
 
 	public function cacherpz() {
+		$timeStart = time();
 		$userId = $this->args[0];
 		$user = $this->User->getAuthUser($userId);
 		$id = $this->args[1];
@@ -146,11 +217,14 @@ class EventShell extends AppShell
 		}
 		$file->write($rpzExport->export($values, $rpzSettings));
 		$file->close();
+		$timeDelta = (time()-$timeStart);
 		$this->Job->saveField('progress', '100');
-		$this->Job->saveField('message', 'Job done.');
+		$this->Job->saveField('message', 'Job done. (in '.$timeDelta.'s)');
+		$this->Job->saveField('date_modified', date("y-m-d H:i:s"));
 	}
 
 	public function cachecsv() {
+		$timeStart = time();
 		$userId = $this->args[0];
 		$user = $this->User->getAuthUser($userId);
 		$id = $this->args[1];
@@ -182,11 +256,14 @@ class EventShell extends AppShell
 			}
 		}
 		$file->close();
+		$timeDelta = (time()-$timeStart);
 		$this->Job->saveField('progress', '100');
-		$this->Job->saveField('message', 'Job done.');
+		$this->Job->saveField('message', 'Job done. (in '.$timeDelta.'s)');
+		$this->Job->saveField('date_modified', date("y-m-d H:i:s"));
 	}
 
 	public function cachetext() {
+		$timeStart = time();
 		$userId = $this->args[0];
 		$user = $this->User->getAuthUser($userId);
 		$id = $this->args[1];
@@ -208,11 +285,14 @@ class EventShell extends AppShell
 			$file->close();
 			$this->Job->saveField('progress', $k / $typeCount * 100);
 		}
+		$timeDelta = (time()-$timeStart);
 		$this->Job->saveField('progress', 100);
-		$this->Job->saveField('message', 'Job done.');
+		$this->Job->saveField('message', 'Job done. (in '.$timeDelta.'s)');
+		$this->Job->saveField('date_modified', date("y-m-d H:i:s"));
 	}
 
 	public function cachenids() {
+		$timeStart = time();
 		$userId = $this->args[0];
 		$user = $this->User->getAuthUser($userId);
 		$id = $this->args[1];
@@ -241,8 +321,45 @@ class EventShell extends AppShell
 			}
 		}
 		$file->close();
+		$timeDelta = time()-$timeStart;
 		$this->Job->saveField('progress', '100');
-		$this->Job->saveField('message', 'Job done.');
+		$this->Job->saveField('message', 'Job done. (in '.$timeDelta.'s)');
+		$this->Job->saveField('date_modified', date("y-m-d H:i:s"));
+	}
+
+	public function cachebro()
+	{
+		$timeStart = time();
+		$broHeader = "#fields\tindicator\tindicator_type\tmeta.source\tmeta.desc\tmeta.url\tmeta.do_notice\tmeta.if_in\n";
+		$userId = $this->args[0];
+		$user = $this->User->getAuthUser($userId);
+		$id = $this->args[1];
+		$this->Job->id = $id;
+		$this->Job->saveField('progress', 1);
+		App::uses('BroExport', 'Export');
+		$export = new BroExport();
+		$types = array_keys($export->mispTypes);
+		$typeCount = count($types);
+		$dir = new Folder(APP . DS . '/tmp/cached_exports/bro', true, 0750);
+		if ($user['Role']['perm_site_admin']) {
+			$file = new File($dir->pwd() . DS . 'misp.bro.ADMIN.intel');
+		} else {
+			$file = new File($dir->pwd() . DS . 'misp.bro.' . $user['Organisation']['name'] . '.intel');
+		}
+
+		$file->write('');
+		foreach ($types as $k => $type) {
+			$final = $this->Attribute->bro($user, $type);
+			foreach ($final as $attribute) {
+				$file->append($attribute . PHP_EOL);
+			}
+			$this->Job->saveField('progress', $k / $typeCount * 100);
+		}
+		$file->close();
+		$timeDelta = (time()-$timeStart);
+		$this->Job->saveField('progress', 100);
+		$this->Job->saveField('message', 'Job done. (in '.$timeDelta.'s)');
+		$this->Job->saveField('date_modified', date("y-m-d H:i:s"));
 	}
 
 	public function alertemail() {
@@ -250,10 +367,12 @@ class EventShell extends AppShell
 		$processId = $this->args[1];
 		$job = $this->Job->read(null, $processId);
 		$eventId = $this->args[2];
+		$oldpublish = $this->args[3];
 		$user = $this->User->getAuthUser($userId);
-		$result = $this->Event->sendAlertEmail($eventId, $user, $processId);
+		$result = $this->Event->sendAlertEmail($eventId, $user, $oldpublish, $processId);
 		$job['Job']['progress'] = 100;
 		$job['Job']['message'] = 'Emails sent.';
+		//$job['Job']['date_modified'] = date("y-m-d H:i:s");
 		$this->Job->save($job);
 	}
 
@@ -268,6 +387,7 @@ class EventShell extends AppShell
 		$user = $this->User->getAuthUser($userId);
 		$result = $this->Event->sendContactEmail($id, $message, $all, array('User' => $user), $isSiteAdmin);
 		$this->Job->saveField('progress', '100');
+		$this->Job->saveField('date_modified', date("y-m-d H:i:s"));
 		if ($result != true) $this->Job->saveField('message', 'Job done.');
 	}
 
@@ -282,6 +402,7 @@ class EventShell extends AppShell
 		$result = $this->Post->sendPostsEmail($userId, $postId, $eventId, $title, $message);
 		$job['Job']['progress'] = 100;
 		$job['Job']['message'] = 'Emails sent.';
+		$job['Job']['date_modified'] = date("y-m-d H:i:s");
 		$this->Job->save($job);
 	}
 
@@ -327,7 +448,8 @@ class EventShell extends AppShell
 		$i = 0;
 		foreach ($users as $user) {
 			foreach ($this->Event->export_types as $k => $type) {
-				$this->Job->cache($k, $user['User'], 'Events visible to: ' . ($user['Role']['perm_site_admin'] ? 'ADMIN' : $user['Organisation']['name']));
+				if ($k == 'stix') continue;
+				$this->Job->cache($k, $user['User']);
 				$i++;
 			}
 		}
@@ -345,6 +467,7 @@ class EventShell extends AppShell
 		$this->Event->Behaviors->unload('SysLogLogable.SysLogLogable');
 		$result = $this->Event->publish($id, $passAlong);
 		$job['Job']['progress'] = 100;
+		$job['Job']['date_modified'] = date("y-m-d H:i:s");
 		if ($result) {
 			$job['Job']['message'] = 'Event published.';
 		} else {
@@ -353,7 +476,7 @@ class EventShell extends AppShell
 		$this->Job->save($job);
 		$log = ClassRegistry::init('Log');
 		$log->create();
-		$log->createLogEntry($user, 'publish', 'Event (' . $id . '): published.', 'publised () => (1)');
+		$log->createLogEntry($user, 'publish', 'Event', $id, 'Event (' . $id . '): published.', 'publised () => (1)');
 	}
 
 }

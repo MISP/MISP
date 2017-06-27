@@ -18,9 +18,5 @@ class News extends AppModel {
 		)
 	);
 
-	public $belongsTo = array(
-		'User' => array(
-			'className' => 'User',
-		)
-	);
+	public $belongsTo = 'User';
 }

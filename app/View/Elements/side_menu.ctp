@@ -3,6 +3,9 @@
 		<?php
 			switch ($menuList) {
 				case 'event':
+		?>
+					<div id="hiddenSideMenuData" class="hidden" data-event-id="<?php echo isset($event['Event']['id']) ? $event['Event']['id'] : 0; ?>"></div>
+		<?php
 					if ($menuItem === 'addAttribute' ||
 						$menuItem === 'addAttachment' ||
 						$menuItem === 'addIOC' ||
@@ -32,12 +35,11 @@
 					<li><?php echo $this->Form->postLink('Delete Event', array('action' => 'delete', h($event['Event']['id'])), null, __('Are you sure you want to delete # %s?', h($event['Event']['id']))); ?></li>
 					<li id='liaddAttribute'><a href="<?php echo $baseurl;?>/attributes/add/<?php echo h($event['Event']['id']);?>">Add Attribute</a></li>
 					<li id='liaddAttachment'><a href="<?php echo $baseurl;?>/attributes/add_attachment/<?php echo h($event['Event']['id']);?>">Add Attachment</a></li>
-					<li id='liaddFreetext'><a href="#" onClick="getPopup(<?php echo $event['Event']['id']; ?>, 'events', 'freeTextImport');">Populate via Freetext Import</a></li>
-					<li id='liaddIOC'><a href="<?php echo $baseurl;?>/events/addIOC/<?php echo h($event['Event']['id']);?>">Populate from OpenIOC</a></li>
-					<li id='liaddThreatConnect'><a href="<?php echo $baseurl;?>/attributes/add_threatconnect/<?php echo h($event['Event']['id']); ?>">Populate from ThreatConnect</a></li>
+					<li id='import'><a onClick="getPopup('<?php echo h($event['Event']['id']); ?>', 'events', 'importChoice');" style="cursor:pointer;">Populate from...</a></li>
 					<?php if ($menuItem === 'populateFromtemplate'): ?>
 							<li class="active"><a href="<?php echo $baseurl;?>/templates/populateEventFromTemplate/<?php echo $template_id . '/' . h($event['Event']['id']); ?>">Populate From Template</a></li>
 						<?php endif; ?>
+					<li id='merge'><a href="<?php echo $baseurl;?>/events/merge/<?php echo h($event['Event']['id']);?>">Merge attributes from...</a></li>
 					<?php endif; ?>
 					<?php if (($isSiteAdmin && (!isset($mayModify) || !$mayModify)) || (!isset($mayModify) || !$mayModify)): ?>
 					<li id='liproposeAttribute'><a href="<?php echo $baseurl;?>/shadow_attributes/add/<?php echo h($event['Event']['id']);?>">Propose Attribute</a></li>
@@ -45,15 +47,13 @@
 					<?php endif; ?>
 					<li class="divider"></li>
 					<?php
-						$publishButtons = ' style="display:none;"';
-						$exportButtons = ' style="display:none;"';
-						if (isset($event['Event']['published']) && 0 == $event['Event']['published'] && ($isAdmin || (isset($mayPublish) && $mayPublish))) $publishButtons = "";
-						if (isset($event['Event']['published']) && $event['Event']['published']) $exportButtons = "";
+						$publishButtons = ' hidden';
+						if (isset($event['Event']['published']) && 0 == $event['Event']['published'] && ($isSiteAdmin || (isset($mayPublish) && $mayPublish))) $publishButtons = "";
 					?>
-					<li<?php echo $publishButtons; ?> class="publishButtons"><a href="#" onClick="publishPopup('<?php echo h($event['Event']['id']); ?>', 'alert')">Publish Event</a></li>
-					<li<?php echo $publishButtons; ?> class="publishButtons"><a href="#" onClick="publishPopup('<?php echo h($event['Event']['id']); ?>', 'publish')">Publish (no email)</a></li>
+					<li class="publishButtons not-published<?php echo h($publishButtons); ?>"><a href="#" onClick="publishPopup('<?php echo h($event['Event']['id']); ?>', 'alert')">Publish Event</a></li>
+					<li class="publishButtons not-published<?php echo h($publishButtons); ?>"><a href="#" onClick="publishPopup('<?php echo h($event['Event']['id']); ?>', 'publish')">Publish (no email)</a></li>
 					<?php if (Configure::read('MISP.delegation')):?>
-						<?php if (isset($event['Event']['distribution']) && (!isset($delegationRequest) || !$delegationRequest) && $event['Event']['distribution'] == 0 && ($isSiteAdmin || (isset($mayPublish) && $mayPublish))): ?>
+						<?php if ((Configure::read('MISP.unpublishedprivate') || (isset($event['Event']['distribution']) && $event['Event']['distribution'] == 0)) && (!isset($delegationRequest) || !$delegationRequest) && ($isSiteAdmin || (isset($isAclDelegate) && $isAclDelegate))): ?>
 								<li id='lidelegateEvent'><a href="#" onClick="delegatePopup('<?php echo h($event['Event']['id']); ?>');">Delegate Publishing</a></li>
 						<?php endif;?>
 						<?php if (isset($delegationRequest) && $delegationRequest && ($isSiteAdmin || ($isAclPublish && ($me['org_id'] == $delegationRequest['EventDelegation']['org_id'] || $me['org_id'] == $delegationRequest['EventDelegation']['requester_org_id'])))): ?>
@@ -65,6 +65,9 @@
 							<li class="divider"></li>
 						<?php endif;?>
 					<?php endif;?>
+					<?php if (Configure::read('Plugin.ZeroMQ_enable') && $isSiteAdmin): ?>
+						<li><?php echo $this->Form->postLink('Publish event to ZMQ', array('action' => 'pushEventToZMQ', $event['Event']['id']));?></li>
+					<?php endif; ?>
 					<li id='licontact'><a href="<?php echo $baseurl;?>/events/contact/<?php echo h($event['Event']['id']);?>">Contact Reporter</a></li>
 					<li><a onClick="getPopup('<?php echo h($event['Event']['id']); ?>', 'events', 'exportChoice');" style="cursor:pointer;">Download as...</a></li>
 					<li class="divider"></li>
@@ -133,14 +136,13 @@
 
 				case 'globalActions':
 					if (((Configure::read('MISP.disableUserSelfManagement') && $isAdmin) || !Configure::read('MISP.disableUserSelfManagement')) && ($menuItem === 'edit' || $menuItem === 'view')): ?>
-					<li id='liedit'><?php echo $this->Html->link(__('Edit User', true), array('action' => 'edit', $user['User']['id'])); ?></li>
+					<li id='liedit'><?php echo $this->Html->link(__('Edit My Profile', true), array('action' => 'edit')); ?></li>
 					<li class="divider"></li>
 					<?php elseif (Configure::read('Plugin.CustomAuth_custom_password_reset')): ?>
 					<li id='lipwreset'><a href="<?php echo h(Configure::read('Plugin.CustomAuth_custom_password_reset'));?>">Reset Password</a></li>
 					<?php endif; ?>
 					<li id='liview'><a href="<?php echo $baseurl;?>/users/view/me">My Profile</a></li>
 					<li id='lidashboard'><a href="<?php echo $baseurl;?>/users/dashboard">Dashboard</a></li>
-					<li id='limembers'><a href="<?php echo $baseurl;?>/users/memberslist">Members List</a></li>
 					<li id='liindexOrg'><a href="<?php echo $baseurl;?>/organisations/index">List Organisations</a></li>
 					<?php if ($menuItem === 'viewOrg'): ?>
 						<li class="active"><a href="<?php echo $baseurl;?>/organisations/view/<?php echo h($id);?>">View Organisation</a></li>
@@ -184,7 +186,7 @@
 				case 'admin':
 					if ($menuItem === 'editUser' || $menuItem === 'viewUser'): ?>
 					<li id='liviewUser'><?php echo $this->Html->link('View User', array('controller' => 'users', 'action' => 'view', 'admin' => true, h($id))); ?> </li>
-					<li><a href="#/" onClick="initiatePasswordReset('<?php echo h($id); ?>');">Send Credentials</a></li>
+					<li><a href="#/" onClick="initiatePasswordReset('<?php echo h($id); ?>');">Reset Password</a></li>
 					<li id='lieditUser'><?php echo $this->Html->link('Edit User', array('controller' => 'users', 'action' => 'edit', 'admin' => true, h($id))); ?> </li>
 					<li><?php echo $this->Form->postLink('Delete User', array('admin' => true, 'action' => 'delete', h($id)), null, __('Are you sure you want to delete # %s? It is highly recommended to never delete users but to disable them instead.', h($id)));?></li>
 					<li class="divider"></li>
@@ -218,7 +220,6 @@
 					<li id='liindexRole'><?php echo $this->Html->link('List Roles', array('controller' => 'roles', 'action' => 'index', 'admin' => true)); ?> </li>
 					<?php if ($isSiteAdmin): ?>
 						<li class="divider"></li>
-						<li id='liadminTools'><a href="<?php echo $baseurl;?>/pages/display/administration">Administrative Tools</a></li>
 						<li id='liserverSettings'><a href="<?php echo $baseurl;?>/servers/serverSettings">Server Settings</a></li>
 						<li class="divider"></li>
 						<?php if (Configure::read('MISP.background_jobs')): ?>
@@ -226,11 +227,11 @@
 							<li class="divider"></li>
 							<li id='litasks'><a href="<?php echo $baseurl;?>/tasks">Scheduled Tasks</a></li>
 						<?php endif;
-						if (Configure::read('MISP.enableEventBlacklisting')): ?>
+						if (Configure::read('MISP.enableEventBlacklisting') !== false): ?>
 							<li <?php if ($menuItem === 'eventBlacklistsAdd') echo 'class="active"';?>><a href="<?php echo $baseurl;?>/eventBlacklists/add">Blacklists Event</a></li>
 							<li <?php if ($menuItem === 'eventBlacklists') echo 'class="active"';?>><a href="<?php echo $baseurl;?>/eventBlacklists">Manage Event Blacklists</a></li>
 						<?php endif;
-						if (Configure::read('MISP.enableOrgBlacklisting')): ?>
+						if (!Configure::check('MISP.enableOrgBlacklisting') || Configure::read('MISP.enableOrgBlacklisting') !== false): ?>
 							<li <?php if ($menuItem === 'orgBlacklistsAdd') echo 'class="active"';?>><a href="<?php echo $baseurl;?>/orgBlacklists/add">Blacklists Organisation</a></li>
 							<li <?php if ($menuItem === 'orgBlacklists') echo 'class="active"';?>><a href="<?php echo $baseurl;?>/orgBlacklists">Manage Org Blacklists</a></li>
 						<?php endif;
@@ -282,12 +283,13 @@
 				case 'taxonomies': ?>
 					<li id='liindex'><a href="<?php echo $baseurl;?>/taxonomies/index">List Taxonomies</a></li>
 					<?php if ($menuItem === 'view'): ?>
-					<li id='liview'><a href="">View Taxonomy</a></li>
+						<li id='liview'><a href="">View Taxonomy</a></li>
+						<li id='lidelete'><a class="useCursorPointer" onClick="deleteObject('taxonomies', 'delete', '<?php echo h($id); ?>', '<?php echo h($id); ?>');">Delete Taxonomy</a></li>
 					<?php
 					endif;
 					if ($isSiteAdmin):
 					?>
-					<li id='liupdate'><?php echo $this->Form->postLink('Update Taxonomies', array('controller' => 'taxonomies', 'action' => 'update'));?></li>
+						<li id='liupdate'><?php echo $this->Form->postLink('Update Taxonomies', array('controller' => 'taxonomies', 'action' => 'update'));?></li>
 					<?php
 					endif;
 				break;
@@ -311,6 +313,9 @@
 				case 'feeds': ?>
 					<li id='liindex'><a href="<?php echo $baseurl;?>/feeds/index">List Feeds</a></li>
 					<li id='liadd'><a href="<?php echo $baseurl;?>/feeds/add">Add Feed</a></li>
+					<li id='liadd'><a href="<?php echo $baseurl;?>/feeds/importFeeds">Import Feeds from JSON</a></li>
+					<li id='licompare'><a href="<?php echo $baseurl;?>/feeds/compareFeeds">Feed overlap analysis matrix</a></li>
+					<li id='liexport'><a href="<?php echo $baseurl;?>/feeds/index.json" download="feed_index.json">Export Feed settings</a></li>
 					<?php if ($menuItem === 'edit'): ?>
 						<li class="active"><a href="#">Edit Feed</a></li>
 					<?php elseif ($menuItem === 'previewIndex'): ?>
@@ -323,11 +328,33 @@
 				case 'news': ?>
 					<li id='liindex'><a href="<?php echo $baseurl;?>/news/index">View News</a></li>
 				<?php
-					if ($isSiteAdmin): ?>
+					if ($isSiteAdmin):
+				?>
 						<li id='liadd'><a href="<?php echo $baseurl;?>/news/add">Add News Item</a></li>
 						<?php if ($menuItem === 'edit'): ?>
 							<li class="active"><a href="#">Edit News Item</a></li>
 						<?php endif;
+					endif;
+				break;
+
+				case 'galaxies':
+				?>
+					<li id='liindex'><a href="<?php echo $baseurl;?>/galaxies/index">List Galaxies</a></li>
+				<?php
+					if ($isSiteAdmin):
+				?>
+						<li><?php echo $this->Form->postLink('Update Galaxies', array('controller' => 'galaxies', 'action' => 'update'), null, __('Are you sure you want to reimport all galaxies from the submodule?')); ?></li>
+				<?php
+					endif;
+					if ($menuItem === 'view'):
+				?>
+						<li class="active"><a href="#">View Galaxy</a></li>
+				<?php
+					endif;
+					if ($menuItem === 'view_cluster'):
+				?>
+						<li class="active"><a href="#">View Cluster</a></li>
+				<?php
 					endif;
 				break;
 			}

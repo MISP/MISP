@@ -1,10 +1,9 @@
 <?php
 App::uses('AppModel', 'Model');
-class SharingGroupServer extends AppModel {
-	public $actsAs = array('Containable');
-	public $validate = array(
 
-	);
+class SharingGroupServer extends AppModel {
+
+	public $actsAs = array('Containable');
 
 	public $belongsTo = array(
 		'SharingGroup' => array(
@@ -23,10 +22,10 @@ class SharingGroupServer extends AppModel {
 	}
 
 
-	public function updateServersForSG($id, $new_servers, $old_servers, $limitServers, $user) {
+	public function updateServersForSG($id, $new_servers, $old_servers, $roaming, $user) {
 		$log = ClassRegistry::init('Log');
 		// Check first if we need to handle the servers at all, or if we should just delete all servers from the SG (depending on the checkbox in the "MISP instances" tab).
-		if ($limitServers) {
+		if (!$roaming) {
 			foreach ($new_servers as $server) {
 				$SgS = array(
 						'sharing_group_id' => $id,
@@ -106,7 +105,7 @@ class SharingGroupServer extends AppModel {
 		));
 		if (empty($sgs)) return array();
 		$sgids = array();
-		foreach ($sgs as &$temp) {
+		foreach ($sgs as $temp) {
 			$sgids[] = $temp[$this->alias]['id'];
 		}
 		return $sgids;

@@ -28,7 +28,7 @@
 					<dd class="eventTagContainer">
 					<?php if (!empty($event['Tag'])) foreach ($event['Tag'] as $tag): ?>
 						<span style="padding-right:0px;">
-							<a href="/servers/previewIndex/<?php echo h($server['Server']['id']); ?>/searchtag:<?php echo h($tag['name']); ?>" class="tagFirstHalf" style="background-color:#00ffcf;color:<?php echo h($tag['colour']); ?>"><?php echo h($tag['name']); ?></a>
+							<span role="button" tabindex="0" aria-label="Filter the remote instance by tag: <?php echo h($tag['name']); ?>" title="Filter the remote instance on the tag: <?php echo h($tag['name']); ?>" onclick="document.location.href='/servers/previewIndex/<?php echo h($server['Server']['id']); ?>/searchtag:<?php echo h($tag['name']); ?>';" class="tagFirstHalf" style="background-color:<?php echo h($tag['colour']);?>;color:<?php echo $this->TextColour->getTextColour($tag['colour']);?>"><?php echo h($tag['name']); ?></span>
 						</span>
 					<?php endforeach; ?>&nbsp;
 					</dd>
@@ -116,7 +116,7 @@
 	        <ul>
 	        <?php
 		        $this->Paginator->options(array(
-		        	'url' => array($server['Server']['id'], $event['Event']['id']),
+					'url' => array($server['Server']['id'], $event['Event']['id']),
 		            'evalScripts' => true,
 		            'before' => '$(".progress").show()',
 		            'complete' => '$(".progress").hide()',
@@ -139,12 +139,15 @@
 	        </ul>
 	    </div>
 	    <div id="attributeList" class="attributeListContainer">
-	    	<table class="table table-striped table-condensed">
+			<table class="table table-striped table-condensed">
 				<tr>
 					<th><?php echo $this->Paginator->sort('date');?></th>
 					<th><?php echo $this->Paginator->sort('category');?></th>
 					<th><?php echo $this->Paginator->sort('type');?></th>
 					<th><?php echo $this->Paginator->sort('value');?></th>
+				<?php if (Configure::read('MISP.attribute_tagging')): ?>
+					<th>Tags</th>
+				<?php endif; ?>
 					<th><?php echo $this->Paginator->sort('comment');?></th>
 					<th>Related Events</th>
 					<th title="<?php echo $attrDescriptions['signature']['desc'];?>"><?php echo $this->Paginator->sort('to_ids', 'IDS');?></th>
@@ -177,6 +180,15 @@
 						<td class="shortish <?php echo $extra; ?>"><?php echo h($object['category']); ?></td>
 						<td class="shortish <?php echo $extra; ?>"><?php echo h($object['type']); ?></td>
 						<td class="shortish <?php echo $extra; ?>"><?php echo h($object['value']); ?></td>
+					<?php if (Configure::read('MISP.attribute_tagging')): ?>
+						<td class="shortish <?php echo $extra; ?>">
+							<?php if (!empty($object['Tag'])) foreach ($object['Tag'] as $tag): ?>
+								<span class="tag" style="background-color:<?php echo h($tag['colour']); ?>;color:<?php echo $this->TextColour->getTextColour($tag['colour']);?>">
+								<?php echo h($tag['name']); ?>
+								</span>
+							<?php endforeach; ?>&nbsp;
+						</td>
+					<?php endif; ?>
 						<td class="shortish <?php echo $extra; ?>"><?php echo h($object['comment']); ?></td>
 						<td class="shortish <?php echo $extra; ?>">
 							<ul class="inline" style="margin:0px;">
@@ -213,7 +225,7 @@
 	        <ul>
 	        <?php
 		        $this->Paginator->options(array(
-		        	'url' => array($server['Server']['id'], $event['Event']['id']),
+					'url' => array($server['Server']['id'], $event['Event']['id']),
 		            'evalScripts' => true,
 		            'before' => '$(".progress").show()',
 		            'complete' => '$(".progress").hide()',

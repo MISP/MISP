@@ -101,6 +101,13 @@
 						'style' => 'display:none;width:424px;',
 						'div' => false
 				));
+				echo $this->Form->input('searchhasproposal', array(
+						'options' => array('0' => 'No', '1' => 'Yes', '2' => 'Any'),
+						'class' => 'input',
+						'label' => false,
+						'style' => 'display:none;width:503px;',
+						'div' => false
+				));
 				echo $this->Form->input('searchattribute', array(
 						'label' => false,
 						'class' => 'input-large',
@@ -121,14 +128,14 @@
 						<th style="width:10px;border:1px solid #cccccc;border-left:0px;text-align: left;"></th>
 					</tr>
 					<?php
-						$fields = array('published', 'org', 'tag', 'date', 'eventinfo', 'eventid', 'threatlevel', 'analysis', 'distribution', 'attribute');
+						$fields = array('published', 'org', 'tag', 'date', 'eventinfo', 'eventid', 'threatlevel', 'analysis', 'distribution', 'attribute', 'hasproposal');
 						if ($isSiteAdmin) $fields[] = 'email';
 						foreach ($fields as $k => $field):
 					?>
 						<tr id="row_<?php echo $field; ?>" class="hidden filterTableRow">
 							<td id="key_<?php echo $field;?>" style="border:1px solid #cccccc;font-weight:bold;"><?php echo ucfirst($field); ?></td>
 							<td id="value_<?php echo $field;?>" style="border:1px solid #cccccc;border-right:0px;"></td>
-							<td id="delete_<?php echo $field;?>" style="border:1px solid #cccccc;border-left:0px;"><span class="icon-trash" onClick="indexFilterClearRow('<?php echo $field;?>')"></span></td>
+							<td id="delete_<?php echo $field;?>" style="border:1px solid #cccccc;border-left:0px;"><span class="icon-trash" title="Delete filter" role="button" tabindex="0" aria-label="Delete filter" onClick="indexFilterClearRow('<?php echo $field;?>')"></span></td>
 						</tr>
 					<?php
 						endforeach;
@@ -153,8 +160,8 @@
 			</fieldset>
 			<div id = "generatedURL" style="word-wrap: break-word;"><br />Save this URL if you would like to use the same filter settings again<br /><div style="background-color:#f5f5f5;border: 1px solid #e3e3e3; border-radius:4px;padding:3px;background-color:white;"><span id="generatedURLContent"></span></div></div>
 			<br />
-			<span class="btn btn-primary" onClick="indexApplyFilters();">Apply</span>
-			<span class="btn btn-inverse" onClick="cancelPopoverForm();" style="float:right;">Cancel</span>
+			<span role="button" tabindex="0" aria-label="Apply" title="Apply" class="btn btn-primary" onClick="indexApplyFilters();">Apply</span>
+			<span role="button" tabindex="0" aria-label="Cancel" title="Cancel" class="btn btn-inverse" onClick="cancelPopoverForm();" style="float:right;">Cancel</span>
 		</div>
 </div>
 <script type="text/javascript">
@@ -163,6 +170,7 @@ var formInfoValues = {};
 var typeArray = {
 		'tag' : <?php echo $tagJSON; ?>,
 		'published' : ["No", "Yes", "Any"],
+		'hasproposal' : ["No", "Yes", "Any"],
 		'distribution' : [
 						{"id" : "0", "value" : "Your organisation only"},
 						{"id" : "1", "value" : "This community only"},
@@ -174,12 +182,12 @@ var typeArray = {
 						{"id" : "2", "value" : "Medium"},
 						{"id" : "3", "value" : "Low"},
 						{"id" : "4", "value" : "Undefined"}
-		         		],
+						],
 		'analysis' : [
-		      			{"id" : "0", "value" : "Initial"},
-		      			{"id" : "1", "value" : "Ongoing"},
-		      			{"id" : "2", "value" : "Completed"}
-		      		]
+						{"id" : "0", "value" : "Initial"},
+						{"id" : "1", "value" : "Ongoing"},
+						{"id" : "2", "value" : "Completed"}
+					]
 };
 
 var filterContext = "event";
@@ -189,15 +197,17 @@ var isSiteAdmin = <?php echo $isSiteAdmin == true ? 1 : 0; ?>;
 
 var publishedOptions = ["No", "Yes", "Any"];
 
+var hasproposalOptions = ["No", "Yes", "Any"];
+
 var filtering = <?php echo $filtering; ?>;
 
 var operators = ["OR", "NOT"];
 
-var allFields = ["published", "tag", "date", "eventinfo", "eventid", "threatlevel", "distribution", "analysis", "attribute"];
+var allFields = ["published", "tag", "date", "eventinfo", "eventid", "threatlevel", "distribution", "analysis", "attribute", "hasproposal"];
 
 var simpleFilters = ["tag", "eventinfo", "eventid", "threatlevel", "distribution", "analysis", "attribute"];
 
-var differentFilters = ["published", "date"];
+var differentFilters = ["published", "date", "hasproposal"];
 
 var typedFields = ["tag", "threatlevel", "distribution", "analysis"];
 
@@ -217,8 +227,6 @@ $(document).ready(function() {
 	$('.datepicker').datepicker().on('changeDate', function(ev) {
 		$('.dropdown-menu').hide();
 	});
-	indexRuleChange();
-	indexSetTableVisibility();
 	indexEvaluateFiltering();
 });
 

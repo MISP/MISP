@@ -100,6 +100,33 @@ class FinancialTool {
 		return true;
 	}
 
+/**
+	*
+	* alternative to bcmod from: http://au2.php.net/manual/en/function.bcmod.php#38474
+	*
+	* my_bcmod - get modulus (substitute for bcmod)
+	* string my_bcmod ( string left_operand, int modulus )
+	* left_operand can be really big, but be carefull with modulus :(
+	* by Andrius Baranauskas and Laurynas Butkus :) Vilnius, Lithuania
+**/
+private function my_bcmod( $x, $y )
+{
+	// how many numbers to take at once? carefull not to exceed (int)
+	$take = 5;
+	$mod = '';
+
+	do
+	{
+		$a = (int)$mod.substr( $x, 0, $take );
+		$x = substr( $x, $take );
+		$mod = $a % $y;
+	}
+	while ( strlen($x) );
+
+	return (int)$mod;
+}
+
+
 	// validating using method described on wikipedia @ https://en.wikipedia.org/wiki/International_Bank_Account_Number#Algorithms
 	public function validateIBAN($iban) {
 		if (strlen($iban) < 15 || strlen($iban) > 32) return false;
@@ -109,7 +136,11 @@ class FinancialTool {
 			if (is_numeric($temp[$i])) $temp2 .= $temp[$i];
 			else $temp2 .= ord(strtolower($temp[$i])) - 87;
 		}
-		$temp = bcmod($temp2, 97);
+		if (function_exists('bcmod')) {
+			$temp = bcmod($temp2, 97);
+		} else {
+			$temp = $this->my_bcmod($temp2, 97);
+		}
 		return intval($temp)===1 ? true : false;
 	}
 
@@ -131,7 +162,7 @@ class FinancialTool {
 			unset($numberArray[count($numberArray) - 1]);
 			$numberArray = array_reverse($numberArray);
 			$sum = 0;
-			foreach ($numberArray as $k => &$number) {
+			foreach ($numberArray as $k => $number) {
 				$number = intval($number);
 				if ($k%2 == 0) $number *= 2;
 				if ($number > 9) $number -=9;
