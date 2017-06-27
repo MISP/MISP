@@ -67,7 +67,7 @@ sudo -u www-data git checkout tags/$(git describe --tags `git rev-list --tags --
 sudo -u www-data git config core.filemode false
 
 # install Mitre's STIX and its dependencies by running the following commands:
-sudo apt-get install python-dev python-pip libxml2-dev libxslt1-dev zlib1g-dev
+sudo apt-get install python-dev python-pip libxml2-dev libxslt1-dev zlib1g-dev python-setuptools
 cd /var/www/MISP/app/files/scripts
 sudo -u www-data git clone https://github.com/CybOXProject/python-cybox.git
 sudo -u www-data git clone https://github.com/STIXProject/python-stix.git
@@ -84,7 +84,6 @@ git clone https://github.com/CybOXProject/mixbox.git
 cd /var/www/MISP/app/files/scripts/mixbox
 git checkout v1.0.2
 python setup.py install
-
 
 4/ CakePHP
 -----------
@@ -137,15 +136,19 @@ sudo -u www-data sh -c "mysql -u misp -p misp < /var/www/MISP/INSTALL/MYSQL.sql"
 -----------------------
 # Now configure your Apache webserver with the DocumentRoot /var/www/MISP/app/webroot/
 
-sudo cp /var/www/MISP/INSTALL/apache.misp.ssl /etc/apache2/sites-available/misp-ssl.conf
+# If the apache version is 2.2:
+sudo cp /var/www/MISP/INSTALL/apache.22.misp.ssl /etc/apache2/sites-available/misp-ssl.conf
 
-# Be aware that the configuration files for Apache 2.4 and up have changed.
+# If the apache version is 2.4:
+sudo cp /var/www/MISP/INSTALL/apache.24.misp.ssl /etc/apache2/sites-available/misp-ssl.conf
+
+# Be aware that the configuration files for apache 2.4 and up have changed.
 # The configuration file has to have the .conf extension in the sites-available directory
 # For more information, visit http://httpd.apache.org/docs/2.4/upgrading.html
 
 # If a valid SSL certificate is not already created for the server, create a self-signed certificate:
-openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
--subj "/C=<Country>/ST=<State>/L=<Locality>/O=<Organization>/OU=<Organizational Unit Name>/CN=<your.FQDN.here>/emailAddress=admin@<your.FQDN.here>" \
+sudo openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
+-subj "/C=<Country>/ST=<State>/L=<Locality>/O=<Organization>/OU=<Organizational Unit Name>/CN=<QDN.here>/emailAddress=admin@<your.FQDN.here>" \
 -keyout /etc/ssl/private/misp.local.key -out /etc/ssl/private/misp.local.crt
 
 # Otherwise, copy the SSLCertificateFile, SSLCertificateKeyFile, and SSLCertificateChainFile to /etc/ssl/private/. (Modify path and config to fit your environment)
@@ -192,16 +195,14 @@ sudo a2ensite misp-ssl
 # Restart apache
 sudo systemctl restart apache2
 
-sudo cp INSTALL/misp.logrotate /etc/logrotate.d/misp
-
-9/ Log rotation
+8/ Log rotation
 ---------------
 # MISP saves the stdout and stderr of its workers in /var/www/MISP/app/tmp/logs
 # To rotate these logs install the supplied logrotate script:
 
-sudo cp INSTALL/misp.logrotate /etc/logrotate.d/misp
+sudo cp /var/www/MISP/INSTALL/misp.logrotate /etc/logrotate.d/misp
 
-10/ MISP configuration
+9/ MISP configuration
 ---------------------
 # There are 4 sample configuration files in /var/www/MISP/app/Config that need to be copied
 sudo -u www-data cp -a /var/www/MISP/app/Config/bootstrap.default.php /var/www/MISP/app/Config/bootstrap.php
@@ -211,7 +212,21 @@ sudo -u www-data cp -a /var/www/MISP/app/Config/config.default.php /var/www/MISP
 
 # Configure the fields in the newly created files:
 sudo -u www-data vim /var/www/MISP/app/Config/database.php
-# login, port, password, database
+# DATABASE_CONFIG has to be filled
+# With the default values provided in section 6, this would look like:
+# class DATABASE_CONFIG {
+#   public $default = array(
+#       'datasource' => 'Database/Mysql',
+#       'persistent' => false,
+#       'host' => 'localhost',
+#       'login' => 'misp', // grant usage on *.* to misp@localhost
+#       'port' => 3306,
+#       'password' => 'XXXXdbpasswordhereXXXXX', // identified by 'XXXXdbpasswordhereXXXXX';
+#       'database' => 'misp', // create database misp;
+#       'prefix' => '',
+#       'encoding' => 'utf8',
+#   );
+#}
 
 # Important! Change the salt key in /var/www/MISP/app/Config/config.php
 # The salt key must be a string at least 32 bytes long.
