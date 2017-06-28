@@ -760,6 +760,8 @@ class ServersController extends AppController {
 			}
 			// Only run this check on the diagnostics tab
 			if ($tab == 'diagnostics' || $tab == 'download') {
+				$php_ini = php_ini_loaded_file();
+				$this->set('php_ini', $php_ini);
 				// check if the current version of MISP is outdated or not
 				$version = $this->__checkVersion();
 				$this->set('version', $version);
