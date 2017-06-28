@@ -2683,7 +2683,7 @@ class EventsController extends AppController {
 		} else {
 			$final_filename="misp.search.events.results." . $extension;
 		};
-		return $this->RestResponse->viewData($final, $this->response->type(), false, true);
+		return $this->RestResponse->viewData($final, $this->response->type(), false, true, $final_filename);
 	}
 
 	public function downloadOpenIOCEvent($key, $eventid, $enforceWarninglist = false) {
