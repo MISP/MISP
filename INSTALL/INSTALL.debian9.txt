@@ -245,9 +245,8 @@ sudo chown -R www-data:www-data /var/www/MISP/app/Config
 sudo chmod -R 750 /var/www/MISP/app/Config
 
 # Generate a GPG encryption key.
-sudo -u www-data mkdir /var/www/MISP/.gnupg
-sudo chmod 700 /var/www/MISP/.gnupg
-sudo -u www-data gpg --homedir /var/www/MISP/.gnupg --gen-key
+sudo gpg --homedir /var/www/MISP/.gnupg --gen-key
+sudo chown -R www-data:www-data /var/www/MISP/.gnupg
 # The email address should match the one set in the config.php / set in the configuration menu in the administration menu configuration file
 
 # And export the public key to the webroot
