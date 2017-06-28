@@ -2148,7 +2148,7 @@ class EventsController extends AppController {
 		} else if ($exportType === 'search') {
 			$filename = "misp.search_result.csv";
 		} else {
-			$filename = "misp.event_' . $exportType . '.csv";
+			$filename = "misp.event_" . $exportType . ".csv";
 		}
 		$this->layout = 'text/default';
 		$headers = array('uuid', 'event_id', 'category', 'type', 'value', 'comment', 'to_ids', 'date');
