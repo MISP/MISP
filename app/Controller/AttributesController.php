@@ -404,7 +404,7 @@ class AttributesController extends AppController {
 				$this->Event->saveField('published', 0);
 			}
 			$this->Session->setFlash($message);
-			$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Attribute']['event_id']));
+			$this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
 		} else {
 			// set the event_id in the form
 			$this->request->data['Attribute']['event_id'] = $eventId;
