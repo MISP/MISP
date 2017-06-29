@@ -959,8 +959,10 @@ class EventsController extends AppController {
 			$pivot['children'][] = $newPivot;
 			return $pivot;
 		}
-		foreach ($pivot['children'] as $k => $v) {
-			$pivot['children'][$k] = $this->__insertPivot($v, $oldId, $newPivot, $depth);
+		if (!empty($pivot['children'])) {
+			foreach ($pivot['children'] as $k => $v) {
+				$pivot['children'][$k] = $this->__insertPivot($v, $oldId, $newPivot, $depth);
+			}
 		}
 		return $pivot;
 	}
@@ -1030,9 +1032,11 @@ class EventsController extends AppController {
 			$pivot['deletable'] = false;
 			return true;
 		}
-		foreach ($pivot['children'] as $k => $v) {
-			$containsCurrent = $this->__setDeletable($pivot['children'][$k], $id);
-			if ($containsCurrent && !$root) $pivot['deletable'] = false;
+		if (!empty($pivot['children'])) {
+			foreach ($pivot['children'] as $k => $v) {
+				$containsCurrent = $this->__setDeletable($pivot['children'][$k], $id);
+				if ($containsCurrent && !$root) $pivot['deletable'] = false;
+			}
 		}
 		return !$pivot['deletable'];
 	}
