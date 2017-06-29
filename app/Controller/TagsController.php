@@ -374,7 +374,7 @@ class TagsController extends AppController {
 			throw new MethodNotAllowedException('Invalid event.');
 		}
 		$this->loadModel('GalaxyCluster');
-		$cluster_names = $this->GalaxyCluster->find('list', array('fields' => array('GalaxyCluster.tag_name'), 'group' => array('GalaxyCluster.tag_name')));
+		$cluster_names = $this->GalaxyCluster->find('list', array('fields' => array('GalaxyCluster.tag_name'), 'group' => array('GalaxyCluster.id', 'GalaxyCluster.tag_name')));
 		$this->helpers[] = 'TextColour';
 		$tags = $this->EventTag->find('all', array(
 				'conditions' => array(
