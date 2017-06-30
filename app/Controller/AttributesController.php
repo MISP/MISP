@@ -520,7 +520,7 @@ class AttributesController extends AppController {
 				$attribute['event_id'] = $this->request->data['Attribute']['event_id'];
 				$attribute['value'] = $entry['Value'];
 				$attribute['to_ids'] = ($entry['Confidence'] > 51) ? 1 : 0; // To IDS if high confidence
-				$attribute['comment'] = 'ThreatConnect: ' . $entry['Description'];
+				$attribute['comment'] = $entry['Description'];
 				$attribute['distribution'] = '3'; // 'All communities'
 				if (Configure::read('MISP.default_attribute_distribution') != null) {
 					if (Configure::read('MISP.default_attribute_distribution') === 'event') {
@@ -576,6 +576,7 @@ class AttributesController extends AppController {
 			//	else 'comment'
 			$references = array();
 			foreach ($entries as $entry) {
+				if (empty($entry['Source'])) continue;
 				$references[$entry['Source']] = true;
 			}
 			$references = array_keys($references);
@@ -597,7 +598,17 @@ class AttributesController extends AppController {
 			//
 			// finally save all the attributes at once, and continue if there are validation errors
 			//
-			$this->Attribute->saveMany($attributes, array('validate' => true));
+
+			$results = array('successes' => 0, 'fails' => 0);
+			foreach ($attributes as $attribute) {
+				$this->Attribute->create();
+				$result = $this->Attribute->save($attribute);
+				if (!$result) {
+					$results['fails']++;
+				} else {
+					$results['successes']++;
+				}
+			}
 			// data imported (with or without errors)
 			// remove the published flag from the event
 			$this->loadModel('Event');
@@ -605,7 +616,14 @@ class AttributesController extends AppController {
 			$this->Event->saveField('published', 0);
 
 			// everything is done, now redirect to event view
-			$this->Session->setFlash(__('The ThreatConnect data has been imported'));
+			$message = 'The ThreatConnect data has been imported.';
+			if ($results['successes'] != 0) {
+				$message .= ' ' . $results['successes'] . ' entries imported.';
+			}
+			if ($results['fails'] != 0) {
+				$message .= ' ' . $results['fails'] . ' entries could not be imported.';
+			}
+			$this->Session->setFlash(__($message));
 			$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Attribute']['event_id']));
 
 		} else {
