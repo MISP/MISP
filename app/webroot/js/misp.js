@@ -776,7 +776,7 @@ function loadAttributeTags(id) {
 		dataType:"html",
 		cache: false,
 		success:function (data, textStatus) {
-			$("#Attribute_"+id+"_tr .attributeTagContainer").html(data);
+			$("#ShadowAttribute_"+id+"_tr .attributeTagContainer").html(data);
 		},
 		url:"/tags/showAttributeTag/" + id
 	});
