@@ -91,6 +91,8 @@
 							<li><a href="<?php echo $baseurl;?>/organisations/index">Organisations</a></li>
 							<li><a href="<?php echo $baseurl;?>/roles/index">Role Permissions</a></li>
 							<li class="divider"></li>
+							<li><a href="<?php echo $baseurl;?>/objectTemplates/index">List Object Templates</a></li>
+							<li class="divider"></li>
 							<li><a href="<?php echo $baseurl;?>/sharing_groups/index">List Sharing Groups</a></li>
 							<?php if ($isAclSharingGroup): ?>
 							<li><a href="<?php echo $baseurl;?>/sharing_groups/add">Add Sharing Group</a></li>

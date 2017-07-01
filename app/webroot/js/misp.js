@@ -1933,6 +1933,27 @@ function freetextImportResultsSubmit(id, count) {
 	});
 }
 
+function objectTemplateViewContent(context, id) {
+	var url = "/objectTemplateElements/viewElements/" + id + "/" + context;
+	$.ajax({
+			url: url,
+			type:'GET',
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+			error: function(){
+				$('#ajaxContent').html('An error has occured, please reload the page.');
+			},
+			success: function(response){
+				$('#ajaxContent').html(response);
+			},
+		complete: function() {
+			$(".loading").hide();
+		},
+	});
+
+}
+
 function organisationViewContent(context, id) {
 	organisationViewButtonHighlight(context);
 	var action = "/organisations/landingpage/";

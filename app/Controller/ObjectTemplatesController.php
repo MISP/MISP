@@ -2,16 +2,21 @@
 
 App::uses('AppController', 'Controller');
 
-class ObjectsController extends AppController {
+class ObjectTemplatesController extends AppController {
 	public $components = array('Security' ,'RequestHandler', 'Session');
 
 	public $paginate = array(
-			'limit' => 20,
+			'limit' => 60,
 			'order' => array(
 					'Object.id' => 'desc'
 			),
+			'contain' => array(
+				'Organisation' => array('fields' => array('Organisation.id', 'Organisation.name', 'Organisation.uuid'))
+			),
+			'recursive' => -1
 	);
 
+/*
   public function add($eventId) {
 
   }
@@ -23,13 +28,71 @@ class ObjectsController extends AppController {
   public function delete($id) {
 
   }
+*/
+
+	public function objectChoice() {
+		$templates_raw = $this->ObjectTemplate->find('all', array(
+			'recursive' => -1,
+			'fields' => array('id', 'meta-category', 'name', 'description', 'org_id'),
+			'contain' => array('Organisation.name')
+		));
+		$templates = array();
+		foreach ($templates_raw as $k => $template) {
+			unset($template['ObjectTemplate']['meta-category']);
+			$template['ObjectTemplate']['org_name'] = $template['Organisation']['name'];
+			$templates[$templates_raw[$k]['ObjectTemplate']['meta-category']][] = $template['ObjectTemplate'];
+		}
+		debug($templates);
+		$this->set('templates', $templates);
+	}
 
   public function view($id) {
-
+		$params = array(
+			'recursive' => -1,
+			'contain' => array(
+				'Organisation' => array('fields' => array('Organisation.id', 'Organisation.name', 'Organisation.uuid'))
+			),
+			'conditions' => array('ObjectTemplate.id' => $id)
+		);
+		if ($this->_isSiteAdmin()) {
+				$params['contain']['User']= array('fields' => array('User.id', 'User.email'));
+		}
+		$objectTemplate = $this->ObjectTemplate->find('first', $params);
+		if (empty($objectTemplate)) {
+			throw new NotFoundException('Invalid object template');
+		}
+		if ($this->_isRest()) {
+			return $this->RestResponse->viewData($objectTemplate, $this->response->type());
+		} else {
+			$this->set('id', $id);
+			$this->set('template', $objectTemplate);
+		}
   }
 
+	public function viewElements($id, $context = 'all') {
+		$elements = $this->ObjectTemplate->ObjectTemplateElement->find('all', array(
+			'conditions' => array('ObjectTemplateElement.object_template_id' => $id)
+		));
+		$this->set('list', $elements);
+		$this->layout = 'ajax';
+		$this->render('ajax/view_elements');
+	}
+
+	public function index() {
+		if ($this->_isRest()) {
+			$rules = $this->paginate;
+			unset($rules['limit']);
+			unset($rules['order']);
+			$objectTemplates = $this->ObjectTemplate->find('all', $rules);
+			return $this->RestResponse->viewData($objectTemplates, $this->response->type());
+		} else {
+			$objectTemplates = $this->paginate();
+			$this->set('list', $objectTemplates);
+		}
+	}
+
 	public function update() {
-		$result = $this->ObjectTemplate->update();
+		$result = $this->ObjectTemplate->update($this->Auth->user());
 		$this->Log = ClassRegistry::init('Log');
 		$fails = 0;
 		$successes = 0;

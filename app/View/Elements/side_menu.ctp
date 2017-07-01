@@ -357,6 +357,16 @@
 				<?php
 					endif;
 				break;
+				case 'objectTemplates':
+				?>
+					<li id='liindex'><a href="<?php echo $baseurl;?>/objectTemplates/index">List Object Templates</a></li>
+				<?php
+					if ($menuItem === 'view'):
+				?>
+						<li class="active"><a href="#">View Object Template</a></li>
+				<?php
+					endif;
+				break;
 			}
 		?>
 	</ul>

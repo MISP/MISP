@@ -50,7 +50,8 @@ class Role extends AppModel {
 		'perm_template' => array('id' => 'RolePermTemplate', 'text' => 'Template Editor', 'readonlyenabled' => false),
 		'perm_sharing_group' => array('id' => 'RolePermSharingGroup', 'text' => 'Sharing Group Editor', 'readonlyenabled' => false),
 		'perm_delegate' => array('id' => 'RolePermDelegate', 'text' => 'Delegations Access', 'readonlyenabled' => false),
-		'perm_sighting' => array('id' => 'RolePermSighting', 'text' => 'Sighting Creator', 'readonlyenabled' => true)
+		'perm_sighting' => array('id' => 'RolePermSighting', 'text' => 'Sighting Creator', 'readonlyenabled' => true),
+		'perm_object_template' => array('id' => 'RolePermObjectTemplate', 'text' => 'Object Template Editor', 'readonlyenabled' => false),
 	);
 
 	public $premissionLevelName = array('Read Only', 'Manage Own Events', 'Manage Organisation Events', 'Manage and Publish Organisation Events');

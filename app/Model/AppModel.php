@@ -42,7 +42,8 @@ class AppModel extends Model {
 				51 => false, 52 => false, 55 => true, 56 => true, 57 => true,
 				58 => false, 59 => false, 60 => false, 61 => false, 62 => false,
 				63 => false, 64 => false, 65 => false, 66 => false, 67 => true,
-				68 => false, 69 => false, 71 => false, 72 => false, 73 => false
+				68 => false, 69 => false, 71 => false, 72 => false, 73 => false,
+				76 => false
 			)
 		)
 	);
@@ -688,7 +689,7 @@ class AppModel extends Model {
 				$sqlArray[] = 'ALTER TABLE `servers` ADD `unpublish_event` tinyint(1) NOT NULL DEFAULT 0;';
 				$sqlArray[] = 'ALTER TABLE `servers` ADD `publish_without_email` tinyint(1) NOT NULL DEFAULT 0;';
 				break;
-			case '2.4.x':
+			case '2.4.76':
 				$sqlArray[] = "CREATE TABLE IF NOT EXISTS objects (
 					`id` int(11) NOT NULL AUTO_INCREMENT,
 					`name` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
@@ -703,10 +704,10 @@ class AppModel extends Model {
 					`sharing_group_id` int(11),
 					`comment` text COLLATE utf8_bin NOT NULL,
 					PRIMARY KEY (id),
-					INDEX `name` (`name`(255)),
+					INDEX `name` (`name`),
 					INDEX `template_uuid` (`template_uuid`),
-					INDEX `template_version` (`template_version`(255)),
-					INDEX `meta-category` (`meta-category`(255)),
+					INDEX `template_version` (`template_version`),
+					INDEX `meta-category` (`meta-category`),
 					INDEX `event_id` (`event_id`),
 					INDEX `uuid` (`uuid`),
 					INDEX `timestamp` (`timestamp`),
@@ -739,6 +740,7 @@ class AppModel extends Model {
 					`description` text COLLATE utf8_bin,
 					`version` int(11) NOT NULL,
 					`requirements` text COLLATE utf8_bin,
+					`fixed` tinyint(1) NOT NULL DEFAULT 0,
 					PRIMARY KEY (id),
 					INDEX `user_id` (`user_id`),
 					INDEX `org_id` (`org_id`),
@@ -749,8 +751,7 @@ class AppModel extends Model {
 
 				$sqlArray[] = "CREATE TABLE IF NOT EXISTS object_template_elements (
 					`id` int(11) NOT NULL AUTO_INCREMENT,
-					`uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
-					`version` int(11) NOT NULL,
+					`object_template_id` int(11) NOT NULL,
 					`in-object-name` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
 					`type` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
 					`frequency` int(11) NOT NULL,
@@ -758,13 +759,19 @@ class AppModel extends Model {
 					`sane_default` text COLLATE utf8_bin,
 					`values_list` text COLLATE utf8_bin,
 					PRIMARY KEY (id),
-					INDEX `uuid` (`uuid`),
 					INDEX `in-object-name` (`in-object-name`),
 					INDEX `type` (`type`)
 				) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
 
-				$sqlArray[] = 'ALTER TABLE attributes CHANGE object_id object_id int(11) NOT NULL DEFAULT 0;';
-				$sqlArray[] = 'ALTER TABLE attributes CHANGE object_relation object_relation varchar(255) COLLATE utf8_bin;';
+				$sqlArray[] = 'ALTER TABLE `logs` CHANGE `model` `model` VARCHAR(80) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL;';
+				$sqlArray[] = 'ALTER TABLE `logs` CHANGE `action` `action` VARCHAR(80) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL;';
+
+				$sqlArray[] = 'ALTER TABLE attributes ADD object_id int(11) NOT NULL DEFAULT 0;';
+				$sqlArray[] = 'ALTER TABLE attributes ADD object_relation varchar(255) COLLATE utf8_bin;';
+
+				$sqlArray[] = "ALTER TABLE `roles` ADD `perm_object_template` tinyint(1) NOT NULL DEFAULT 0;";
+				$sqlArray[] = 'UPDATE `roles` SET `perm_object_template` = 1 WHERE `perm_site_admin` = 1;';
+
 				$indexArray[] = array('attributes', 'object_id');
 				$indexArray[] = array('attributes', 'object_relation');
 				break;

@@ -18,8 +18,14 @@ class Object extends AppModel {
 			'foreignKey' => 'event_id'
 		),
 		'SharingGroup' => array(
-				'className' => 'SharingGroup',
-				'foreignKey' => 'sharing_group_id'
+			'className' => 'SharingGroup',
+			'foreignKey' => 'sharing_group_id'
+		),
+		'ObjectTemplate' => array(
+			'className' => 'ObjectTemplate',
+			'foreignKey' => false,
+			'dependent' => false,
+			'conditions' => array('Object.template_uuid' => 'ObjectTemplate.uuid')
 		)
 	);
 	public $hasMany = array(
@@ -54,14 +60,14 @@ class Object extends AppModel {
 					'AND' => array(
 						'Event.distribution >' => 0,
 						'Event.distribution <' => 4,
-						Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
+						Configure::read('MISP.unpublishedprivate') ? array('Event.published' => 1) : array(),
 					),
 				),
 				array(
 					'AND' => array(
 						'Event.sharing_group_id' => $sgids,
 						'Event.distribution' => 4,
-						Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
+						Configure::read('MISP.unpublishedprivate') ? array('Event.published' => 1) : array(),
 					)
 				)
 			)
@@ -204,5 +210,23 @@ class Object extends AppModel {
 			}
 		}
 		return $results;
+	}
+
+	public function prepareTemplate($template) {
+		$temp = array();
+		usort($template['ObjectTemplateElement'], function($a, $b) {
+			return $a['frequency'] < $b['frequency'];
+		});
+		foreach ($template['ObjectTemplateElement'] as $k => $v) {
+			$template['ObjectTemplateElement'][$k]['default_category'] = $this->Event->Attribute->typeDefinitions[$template['ObjectTemplateElement'][$k]['type']]['default_category'];
+			$template['ObjectTemplateElement'][$k]['to_ids'] = $this->Event->Attribute->typeDefinitions[$template['ObjectTemplateElement'][$k]['type']]['to_ids'];
+			$template['ObjectTemplateElement'][$k]['categories'] = array();
+			foreach ($this->Event->Attribute->categoryDefinitions as $catk => $catv) {
+				if (in_array($template['ObjectTemplateElement'][$k]['type'], $catv['types'])) {
+					$template['ObjectTemplateElement'][$k]['categories'][$catk] = $catk;
+				}
+			}
+		}
+		return $template;
 	}
 }

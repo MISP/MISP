@@ -65,6 +65,9 @@ class SysLogLogableBehavior extends LogableBehavior {
 			foreach ( $Model->data[$Model->alias] as $key => $value ) {
 				if (isset($Model->data[$Model->alias][$Model->primaryKey]) && !empty($this->old) && isset($this->old[$Model->alias][$key])) {
 					$old = $this->old[$Model->alias][$key];
+					if (is_array($old)) {
+						$old = json_encode($old, true);
+					}
 				} else {
 					$old = '';
 				}
