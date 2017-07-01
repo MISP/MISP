@@ -928,22 +928,24 @@ class ShadowAttributesController extends AppController {
 		}
 		if (!$this->request->is('Post')) throw new MethodNotAllowedException('This feature is only available using POST requests');
 		$result = array();
-		foreach ($this->request->data as $eventUuid) {
-			$temp = $this->ShadowAttribute->find('all', array(
-					'conditions' => array('event_uuid' => $eventUuid),
-					'recursive' => -1,
-					'contain' => array(
-							'Org' => array('fields' => array('uuid', 'name')),
-							'EventOrg' => array('fields' => array('uuid', 'name')),
-					),
-			));
-			if (empty($temp)) continue;
-			foreach ($temp as $key => $t) {
-				if ($this->ShadowAttribute->typeIsAttachment($t['ShadowAttribute']['type'])) {
-					$temp[$key]['ShadowAttribute']['data'] = $this->ShadowAttribute->base64EncodeAttachment($t['ShadowAttribute']);
+		if (!empty($this->request->data)) {
+			foreach ($this->request->data as $eventUuid) {
+				$temp = $this->ShadowAttribute->find('all', array(
+						'conditions' => array('event_uuid' => $eventUuid),
+						'recursive' => -1,
+						'contain' => array(
+								'Org' => array('fields' => array('uuid', 'name')),
+								'EventOrg' => array('fields' => array('uuid', 'name')),
+						),
+				));
+				if (empty($temp)) continue;
+				foreach ($temp as $key => $t) {
+					if ($this->ShadowAttribute->typeIsAttachment($t['ShadowAttribute']['type'])) {
+						$temp[$key]['ShadowAttribute']['data'] = $this->ShadowAttribute->base64EncodeAttachment($t['ShadowAttribute']);
+					}
 				}
+				$result = array_merge($result, $temp);
 			}
-			$result = array_merge($result, $temp);
 		}
 		if (empty($result)) {
 			$this->response->statusCode(404);

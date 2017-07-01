@@ -412,6 +412,31 @@ class Event extends AppModel {
 		return $this->field('id', array('id' => $eventid, 'org_id' => $org)) === $eventid;
 	}
 
+	public function attachtagsToEvents($events) {
+		$tagsToFetch = array();
+		foreach ($events as $k => $event) {
+			if (!empty($event['EventTag'])) {
+				foreach ($event['EventTag'] as $et) {
+					$tagsToFetch[$et['tag_id']] = $et['tag_id'];
+				}
+			}
+		}
+		$tags = $this->EventTag->Tag->find('all', array(
+			'conditions' => array('Tag.id' => $tagsToFetch),
+			'recursive' => -1,
+			'order' => false
+		));
+		$tags = Set::combine($tags, '{n}.Tag.id', '{n}');
+		foreach ($events as $k => $event) {
+			if (!empty($event['EventTag'])) {
+				foreach ($event['EventTag'] as $k2 => $et) {
+					$events[$k]['EventTag'][$k2]['Tag'] = $tags[$et['tag_id']]['Tag'];
+				}
+			}
+		}
+		return $events;
+	}
+
 	// gets the logged in user + an array of events, attaches the correlation count to each
 	public function attachCorrelationCountToEvents($user, $events) {
 		$sgids = $this->SharingGroup->fetchAllAuthorised($user);
@@ -2201,7 +2226,6 @@ class Event extends AppModel {
 					}
 				}
 			}
-
 			if ($fromXml) $created_id = $this->id;
 			if (!empty($data['Event']['published']) && 1 == $data['Event']['published']) {
 				// do the necessary actions to publish the event (email, upload,...)
@@ -2649,8 +2673,7 @@ class Event extends AppModel {
 			$this->save($event, array('fieldList' => $fieldList));
 		}
 		if (Configure::read('Plugin.ZeroMQ_enable')) {
-			App::uses('PubSubTool', 'Tools');
-			$pubSubTool = new PubSubTool();
+			$pubSubTool = $this->getPubSubTool();
 			$hostOrg = $this->Org->find('first', array('conditions' => array('name' => Configure::read('MISP.org')), 'fields' => array('id')));
 			if (!empty($hostOrg)) {
 				$user = array('org_id' => $hostOrg['Org']['id'], 'Role' => array('perm_sync' => 0, 'perm_audit' => 0, 'perm_site_admin' => 0), 'Organisation' => $hostOrg['Org']);
@@ -2871,7 +2894,7 @@ class Event extends AppModel {
 		$randomFileName = $this->generateRandomFileName();
 		$tmpDir = APP . "files" . DS . "scripts" . DS . "tmp";
 		$stixFile = new File($tmpDir . DS . $randomFileName . ".stix");
-		$stix_framing = shell_exec('python ' . APP . "files" . DS . "scripts" . DS . 'misp2stix_framing.py ' . escapeshellarg(Configure::read('MISP.baseurl')) . ' ' . escapeshellarg(Configure::read('MISP.org')) . ' ' . escapeshellarg($returnType));
+		$stix_framing = shell_exec('python ' . APP . "files" . DS . "scripts" . DS . 'misp2stix_framing.py ' . escapeshellarg(Configure::read('MISP.baseurl')) . ' ' . escapeshellarg(Configure::read('MISP.org')) . ' ' . escapeshellarg($returnType) . ' 2>' . APP . 'tmp/logs/exec-errors.log');
 		if (empty($stix_framing)) {
 			$stixFile->delete();
 			return array('success' => 0, 'message' => 'There was an issue generating the STIX export.');
@@ -2907,7 +2930,7 @@ class Event extends AppModel {
 			$tempFile->write(json_encode($event[0]));
 			unset($event);
 			$scriptFile = APP . "files" . DS . "scripts" . DS . "misp2stix.py";
-			$result = shell_exec('python ' . $scriptFile . ' ' . $randomFileName . ' ' . escapeshellarg($returnType) . ' ' . escapeshellarg(Configure::read('MISP.baseurl')) . ' ' . escapeshellarg(Configure::read('MISP.org')));
+			$result = shell_exec('python ' . $scriptFile . ' ' . $randomFileName . ' ' . escapeshellarg($returnType) . ' ' . escapeshellarg(Configure::read('MISP.baseurl')) . ' ' . escapeshellarg(Configure::read('MISP.org')) . ' 2>' . APP . 'tmp/logs/exec-errors.log');
 			// The result of the script will be a returned JSON object with 2 variables: success (boolean) and message
 			// If success = 1 then the temporary output file was successfully written, otherwise an error message is passed along
 			$decoded = json_decode($result, true);

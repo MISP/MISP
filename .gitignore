@@ -31,6 +31,7 @@
 !/app/files/misp-galaxy/*
 /app/files/scripts/python-stix/
 /app/files/scripts/python-cybox/
+/app/files/scripts/mixbox/
 /app/files/scripts/*.pyc
 /app/files/scripts/*.py~
 /app/files/scripts/mispzmq/*

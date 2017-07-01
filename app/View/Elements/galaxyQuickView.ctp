@@ -39,7 +39,7 @@
 							if (isset($cluster['authors'])) {
 								$cluster_fields[] = array('key' => 'authors', 'value' => $cluster['authors']);
 							}
-							if (isset($cluster['meta'])) {
+							if (!empty($cluster['meta'])) {
 								foreach ($cluster['meta'] as $metaKey => $metaField) {
 									if ($metaKey != 'synonyms') {
 										$cluster_fields[] = array('key' => $metaKey, 'value' => $metaField);

@@ -521,7 +521,7 @@ class EventsController extends AppController {
 			}
 		}
 		if (Configure::read('MISP.tagging') && !$this->_isRest()) {
-			$this->paginate['contain'] = array_merge($this->paginate['contain'], array('User.email', 'EventTag' => array('Tag')));
+			$this->paginate['contain'] = array_merge($this->paginate['contain'], array('User.email', 'EventTag'));
 		} else {
 			$this->paginate['contain'] = array_merge($this->paginate['contain'], array('User.email'));
 		}
@@ -585,6 +585,7 @@ class EventsController extends AppController {
 			if (count($events) == 1 && isset($this->passedArgs['searchall'])) {
 				$this->redirect(array('controller' => 'events', 'action' => 'view', $events[0]['Event']['id']));
 			}
+			$events = $this->Event->attachTagsToEvents($events);
 			if (Configure::read('MISP.showCorrelationsOnIndex')) $events = $this->Event->attachCorrelationCountToEvents($this->Auth->user(), $events);
 			if (Configure::read('MISP.showSightingsCountOnIndex') && Configure::read('MISP.Plugin.Sightings_enable') !== false) $events = $this->Event->attachSightingsCountToEvents($this->Auth->user(), $events);
 			if (Configure::read('MISP.showProposalsCountOnIndex')) $events = $this->Event->attachProposalsCountToEvents($this->Auth->user(), $events);
@@ -958,8 +959,10 @@ class EventsController extends AppController {
 			$pivot['children'][] = $newPivot;
 			return $pivot;
 		}
-		foreach ($pivot['children'] as $k => $v) {
-			$pivot['children'][$k] = $this->__insertPivot($v, $oldId, $newPivot, $depth);
+		if (!empty($pivot['children'])) {
+			foreach ($pivot['children'] as $k => $v) {
+				$pivot['children'][$k] = $this->__insertPivot($v, $oldId, $newPivot, $depth);
+			}
 		}
 		return $pivot;
 	}
@@ -1029,9 +1032,11 @@ class EventsController extends AppController {
 			$pivot['deletable'] = false;
 			return true;
 		}
-		foreach ($pivot['children'] as $k => $v) {
-			$containsCurrent = $this->__setDeletable($pivot['children'][$k], $id);
-			if ($containsCurrent && !$root) $pivot['deletable'] = false;
+		if (!empty($pivot['children'])) {
+			foreach ($pivot['children'] as $k => $v) {
+				$containsCurrent = $this->__setDeletable($pivot['children'][$k], $id);
+				if ($containsCurrent && !$root) $pivot['deletable'] = false;
+			}
 		}
 		return !$pivot['deletable'];
 	}
@@ -2054,7 +2059,7 @@ class EventsController extends AppController {
 		$paramArray = array('eventid', 'ignore', 'tags', 'category', 'type', 'includeContext', 'from', 'to', 'last', 'headerless', 'enforceWarninglist');
 		if ($this->request->is('post')) {
 			if (empty($this->request->data)) {
-				throw new BadRequestException('Either specify the search terms in the url, or POST a json or xml with the filter parameters.');
+				return $this->RestResponse->throwException(400, 'Either specify the search terms in the url, or POST a json or xml with the filter parameters.', 'csv', true);
 			} else {
 				$data = $this->request->data;
 			}
@@ -2080,11 +2085,11 @@ class EventsController extends AppController {
 			// check if the key is valid -> search for users based on key
 			$user = $this->checkAuthUser($key);
 			if (!$user) {
-				throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
+				return $this->RestResponse->throwException(401, 'This authentication key is not authorized to be used for exports. Contact your administrator.', 'csv', true);
 			}
 		} else {
 			if (!$this->Auth->user('id')) {
-				throw new UnauthorizedException('You have to be logged in to do that.');
+				return $this->RestResponse->throwException(401, 'You have to be logged in to do that.', 'csv', true);
 			}
 			$user = $this->Auth->user();
 		}
@@ -2143,18 +2148,20 @@ class EventsController extends AppController {
 		}
 		$this->response->type('csv');	// set the content type
 		if (!$exportType) {
-			$this->header('Content-Disposition: download; filename="misp.all_attributes.csv"');
+			$filename = "misp.all_attributes.csv";
 		} else if ($exportType === 'search') {
-			$this->header('Content-Disposition: download; filename="misp.search_result.csv"');
+			$filename = "misp.search_result.csv";
 		} else {
-			$this->header('Content-Disposition: download; filename="misp.event_' . $exportType . '.csv"');
+			$filename = "misp.event_" . $exportType . ".csv";
 		}
 		$this->layout = 'text/default';
 		$headers = array('uuid', 'event_id', 'category', 'type', 'value', 'comment', 'to_ids', 'date');
 		if ($includeContext) $headers = array_merge($headers, array_keys($this->Event->csv_event_context_fields_to_fetch));
-		$this->set('headers', $headers);
-		$this->set('final', $final);
-		$this->set('headerless', $headerless);
+		$headers = implode(',', $headers);
+		$final = array_merge(array($headers), $final);
+		$final = implode (PHP_EOL, $final);
+		$final .= PHP_EOL;
+		return $this->RestResponse->viewData($final, 'csv', false, true, $filename);
 	}
 
 	public function _addGfiZip($id) {
@@ -2680,7 +2687,7 @@ class EventsController extends AppController {
 		} else {
 			$final_filename="misp.search.events.results." . $extension;
 		};
-		return $this->RestResponse->viewData($final, $this->response->type(), false, true);
+		return $this->RestResponse->viewData($final, $this->response->type(), false, true, $final_filename);
 	}
 
 	public function downloadOpenIOCEvent($key, $eventid, $enforceWarninglist = false) {
@@ -3059,6 +3066,9 @@ class EventsController extends AppController {
 			}
 			if (!isset($this->request->data['Attribute']['value'])) {
 				$this->request->data['Attribute'] = array('value' => $this->request->data);
+			}
+			if (isset($this->request->data['Attribute']['adhereToWarninglists'])) {
+				$adhereToWarninglists = $this->request->data['Attribute']['adhereToWarninglists'];
 			}
 			$resultArray = $complexTypeTool->checkComplexRouter($this->request->data['Attribute']['value'], 'freetext');
 			foreach ($resultArray as $key => $r) {
@@ -4265,8 +4275,7 @@ class EventsController extends AppController {
 	public function pushEventToZMQ($id) {
 		if ($this->request->is('Post')) {
 			if (Configure::read('Plugin.ZeroMQ_enable')) {
-				App::uses('PubSubTool', 'Tools');
-				$pubSubTool = new PubSubTool();
+				$pubSubTool = $this->Event->getPubSubTool();
 				$event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
 				if (!empty($event)) {
 					$pubSubTool->publishEvent($event[0]);

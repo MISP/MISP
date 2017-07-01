@@ -74,8 +74,23 @@ class CertificateAuthenticate extends BaseAuthenticate
 			unset($CA, $ca);
 		}
 
-		if (self::$ca && isset($_SERVER['SSL_CLIENT_S_DN'])) {
-			self::$client = self::parse($_SERVER['SSL_CLIENT_S_DN'], Configure::read('CertAuth.map'));
+		if (self::$ca) {
+			$map = Configure::read('CertAuth.map');
+			if(isset($_SERVER['SSL_CLIENT_S_DN'])) {
+				self::$client = self::parse($_SERVER['SSL_CLIENT_S_DN'], $map);
+			} else {
+				self::$client = array();
+			}
+			foreach($map as $n=>$d) {
+				if(isset($_SERVER[$n])) {
+					self::$client[$d] = $_SERVER[$n];
+				}
+				unset($map[$n], $n, $d);
+			}
+			unset($map);
+			if(!self::$client) {
+				self::$client = false;
+			}
 		}
 	}
 
@@ -142,6 +157,14 @@ class CertificateAuthenticate extends BaseAuthenticate
 
 							if (!isset(self::$user['org_id']) && isset(self::$user['org'])) {
 								self::$user['org_id']=$User->Organisation->createOrgFromName(self::$user['org'], $User->id, true);
+								// reset user defaults in case it's a different org_id
+								if(self::$user['org_id'] && $U[$cn]['org_id']!=self::$user['org_id']) {
+									$d = Configure::read('CertAuth.userDefaults');
+									if ($d && is_array($d)) {
+										self::$user = $d + self::$user;
+									}
+									unset($d);
+								}
 								unset(self::$user['org']);
 							}
 
@@ -152,14 +175,14 @@ class CertificateAuthenticate extends BaseAuthenticate
 								}
 								unset($k, $v);
 							}
-							if ($write && !$User->save($U[$cn], true)) {
+							if ($write && !$User->save($U[$cn], true, $write)) {
 								CakeLog::write('alert', 'Could not update model at database with RestAPI data.');
 							}
 							unset($write);
 						}
 						self::$user = $User->getAuthUser($U[$cn]['id']);
 						if (isset(self::$user['gpgkey'])) unset(self::$user['gpgkey']);
-					} else if ($sync) {
+					} else if ($sync && self::$user) {
 						$User->create();
 						$org=null;
 						if (!isset(self::$user['org_id']) && isset(self::$user['org'])) {
@@ -176,6 +199,7 @@ class CertificateAuthenticate extends BaseAuthenticate
 						if ($User->save(self::$user, true)) {
 							$id = $User->id;
 							if ($org) {
+								self::$user['id'] = $id;
 								self::$user['org_id']=$User->Organisation->createOrgFromName($org, $User->id, true);
 								$User->save(self::$user, true, array('org_id'));
 							}
@@ -264,8 +288,9 @@ class CertificateAuthenticate extends BaseAuthenticate
 		if (!$a) return null;
 
 		$A = json_decode($a, true);
-		if (!isset($A['data'][0])) return false;
-		if (isset($options['map'])) {
+		if (!isset($A['data'][0])) {
+			self::$user = false;
+		} else if (isset($options['map'])) {
 			foreach ($options['map'] as $k=>$v) {
 				if (isset($A['data'][0][$k])) {
 					self::$user[$v] = $A['data'][0][$k];

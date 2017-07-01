@@ -20,9 +20,9 @@ from stix.common.vocabs import IncidentStatus
 from cybox.utils import Namespace
 
 try:
-    from mixbox import idgen
-except ImportError:
     from stix.utils import idgen
+except ImportError:
+    from mixbox import idgen
 
 namespace = ['https://github.com/MISP/MISP', 'MISP']
 

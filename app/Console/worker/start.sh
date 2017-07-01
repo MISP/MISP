@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Check if run as root
 if [ "$EUID" -eq 0 ]; then

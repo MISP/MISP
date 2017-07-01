@@ -862,5 +862,267 @@
       "org_id": "0",
       "hide_tag": false
     }
+  },
+  {
+    "Feed": {
+      "id": "38",
+      "name": "ci-badguys.txt",
+      "provider": "cinsscore.com",
+      "url": "http://cinsscore.com/list/ci-badguys.txt",
+      "rules": "",
+      "enabled": true,
+      "distribution": "3",
+      "sharing_group_id": "0",
+      "tag_id": "0",
+      "default": false,
+      "source_format": "freetext",
+      "fixed_event": true,
+      "delta_merge": true,
+      "event_id": "0",
+      "publish": false,
+      "override_ids": true,
+      "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": true
+    },
+    "Tag": {
+      "id": "615",
+      "name": "osint:source-type=\"block-or-filter-list\"",
+      "colour": "#004f89",
+      "exportable": true,
+      "org_id": "0",
+      "hide_tag": false
+    }
+  },
+  {
+    "Feed": {
+      "id": "39",
+      "name": "alienvault reputation generic",
+      "provider": ".alienvault.com",
+      "url": "http://reputation.alienvault.com/reputation.generic",
+      "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
+      "enabled": true,
+      "distribution": "3",
+      "sharing_group_id": "0",
+      "tag_id": "0",
+      "default": false,
+      "source_format": "csv",
+      "fixed_event": true,
+      "delta_merge": false,
+      "event_id": "0",
+      "publish": false,
+      "override_ids": false,
+      "settings": "{\"csv\":{\"value\":\"1\",\"delimiter\":\" \"},\"common\":{\"excluderegex\":\"\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": true
+    },
+    "Tag": {
+      "id": "615",
+      "name": "osint:source-type=\"block-or-filter-list\"",
+      "colour": "#004f89",
+      "exportable": true,
+      "org_id": "0",
+      "hide_tag": false
+    }
+  },
+  {
+    "Feed": {
+      "id": "40",
+      "name": "blocklist.de/lists/all.txt",
+      "provider": "blocklist.de",
+      "url": "https://lists.blocklist.de/lists/all.txt",
+      "rules": "",
+      "enabled": true,
+      "distribution": "3",
+      "sharing_group_id": "0",
+      "tag_id": "615",
+      "default": false,
+      "source_format": "freetext",
+      "fixed_event": true,
+      "delta_merge": false,
+      "event_id": "0",
+      "publish": false,
+      "override_ids": false,
+      "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": true,
+      "cache_timestamp": "1498046540"
+    },
+    "Tag": {
+      "id": "615",
+      "name": "osint:source-type=\"block-or-filter-list\"",
+      "colour": "#004f89",
+      "exportable": true,
+      "org_id": "0",
+      "hide_tag": false
+    }
+  },
+  {
+    "Feed": {
+      "id": "41",
+      "name": "VNC RFB",
+      "provider": "dataplane.org",
+      "url": "https://dataplane.org/vncrfb.txt",
+      "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
+      "enabled": true,
+      "distribution": "3",
+      "sharing_group_id": "0",
+      "tag_id": "615",
+      "default": false,
+      "source_format": "csv",
+      "fixed_event": true,
+      "delta_merge": false,
+      "event_id": "0",
+      "publish": false,
+      "override_ids": false,
+      "settings": "{\"csv\":{\"value\":\"3\",\"delimiter\":\"|\"},\"common\":{\"excluderegex\":\"\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": false,
+      "cache_timestamp": "1498061187"
+    },
+    "Tag": {
+      "id": "615",
+      "name": "osint:source-type=\"block-or-filter-list\"",
+      "colour": "#004f89",
+      "exportable": true,
+      "org_id": "0",
+      "hide_tag": false
+    }
+  },
+  {
+    "Feed": {
+      "id": "42",
+      "name": "sshpwauth.txt",
+      "provider": "dataplane.org",
+      "url": "https://dataplane.org/sshpwauth.txt",
+      "rules": "",
+      "enabled": true,
+      "distribution": "3",
+      "sharing_group_id": "0",
+      "tag_id": "615",
+      "default": false,
+      "source_format": "csv",
+      "fixed_event": true,
+      "delta_merge": false,
+      "event_id": "0",
+      "publish": false,
+      "override_ids": false,
+      "settings": "{\"csv\":{\"value\":\"3\",\"delimiter\":\"|\"},\"common\":{\"excluderegex\":\"\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": true,
+      "cache_timestamp": "1498061355"
+    },
+    "Tag": {
+      "id": "615",
+      "name": "osint:source-type=\"block-or-filter-list\"",
+      "colour": "#004f89",
+      "exportable": true,
+      "org_id": "0",
+      "hide_tag": false
+    }
+  },
+  {
+    "Feed": {
+      "id": "43",
+      "name": "sipregistration",
+      "provider": "dataplane.org",
+      "url": "https://dataplane.org/sipregistration.txt",
+      "rules": "",
+      "enabled": true,
+      "distribution": "3",
+      "sharing_group_id": "0",
+      "tag_id": "615",
+      "default": false,
+      "source_format": "csv",
+      "fixed_event": true,
+      "delta_merge": false,
+      "event_id": "0",
+      "publish": false,
+      "override_ids": false,
+      "settings": "{\"csv\":{\"value\":\"3\",\"delimiter\":\"|\"},\"common\":{\"excluderegex\":\"\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": true,
+      "cache_timestamp": "1498061706"
+    },
+    "Tag": {
+      "id": "615",
+      "name": "osint:source-type=\"block-or-filter-list\"",
+      "colour": "#004f89",
+      "exportable": true,
+      "org_id": "0",
+      "hide_tag": false
+    }
+  },
+  {
+    "Feed": {
+      "id": "44",
+      "name": "sipquery",
+      "provider": "dataplane.org",
+      "url": "https://dataplane.org/sipquery.txt",
+      "rules": "",
+      "enabled": true,
+      "distribution": "3",
+      "sharing_group_id": "0",
+      "tag_id": "615",
+      "default": false,
+      "source_format": "csv",
+      "fixed_event": true,
+      "delta_merge": false,
+      "event_id": "0",
+      "publish": false,
+      "override_ids": false,
+      "settings": "{\"csv\":{\"value\":\"3\",\"delimiter\":\"|\"},\"common\":{\"excluderegex\":\"\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": true,
+      "cache_timestamp": "1498061776"
+    },
+    "Tag": {
+      "id": "615",
+      "name": "osint:source-type=\"block-or-filter-list\"",
+      "colour": "#004f89",
+      "exportable": true,
+      "org_id": "0",
+      "hide_tag": false
+    }
+  },
+  {
+    "Feed": {
+      "id": "45",
+      "name": "sipinvitation",
+      "provider": "dataplane.org",
+      "url": "https://dataplane.org/sipinvitation.txt",
+      "rules": "",
+      "enabled": true,
+      "distribution": "3",
+      "sharing_group_id": "0",
+      "tag_id": "615",
+      "default": false,
+      "source_format": "csv",
+      "fixed_event": true,
+      "delta_merge": false,
+      "event_id": "0",
+      "publish": false,
+      "override_ids": false,
+      "settings": "{\"csv\":{\"value\":\"3\",\"delimiter\":\"|\"},\"common\":{\"excluderegex\":\"\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": true,
+      "cache_timestamp": "1498061932"
+    },
+    "Tag": {
+      "id": "615",
+      "name": "osint:source-type=\"block-or-filter-list\"",
+      "colour": "#004f89",
+      "exportable": true,
+      "org_id": "0",
+      "hide_tag": false
+    }
   }
 ]

@@ -17,7 +17,7 @@
 	<table>
 		<tr>
 			<td style="vertical-align:top">
-        <span class="btn btn-primary" title="Accept" role="button" tabindex="0" aria-label="Accept" id="PromptYesButton" onClick="submitMassEventDelete();">Yee</span>
+        <span class="btn btn-primary" title="Accept" role="button" tabindex="0" aria-label="Accept" id="PromptYesButton" onClick="submitMassEventDelete();">Yes</span>
 			</td>
 			<td style="width:540px;">
 			</td>

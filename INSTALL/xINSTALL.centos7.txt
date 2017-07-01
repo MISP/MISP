@@ -72,8 +72,7 @@ git checkout tags/$(git describe --tags `git rev-list --tags --max-count=1`)
 git config core.filemode false
 
 # install Mitre's STIX and its dependencies by running the following commands:
-pip install importlib
-yum install python-lxml python-dateutil python-six
+yum install python-importlib python-lxml python-dateutil python-six
 cd /var/www/MISP/app/files/scripts
 git clone https://github.com/CybOXProject/python-cybox.git
 git clone https://github.com/STIXProject/python-stix.git
@@ -86,6 +85,14 @@ umask 0022
 python setup.py install
 cd /var/www/MISP/app/files/scripts/python-stix
 git checkout v1.1.1.4
+git config core.filemode false
+python setup.py install
+
+# install mixbox to accomodate the new STIX dependencies:
+cd /var/www/MISP/app/files/scripts/
+git clone https://github.com/CybOXProject/mixbox.git
+cd /var/www/MISP/app/files/scripts/mixbox
+git checkout v1.0.2
 git config core.filemode false
 python setup.py install
 umask $UMASK
@@ -224,6 +231,21 @@ cp -a config.default.php config.php
 # config.php   : baseurl (example: 'baseurl' => 'http://misp',) - don't use "localhost" it causes issues when browsing externally
 # core.php   : Uncomment and set the timezone: `// date_default_timezone_set('UTC');`
 # database.php : login, port, password, database
+# DATABASE_CONFIG has to be filled
+# With the default values provided in section 6, this would look like:
+# class DATABASE_CONFIG {
+#   public $default = array(
+#       'datasource' => 'Database/Mysql',
+#       'persistent' => false,
+#       'host' => 'localhost',
+#       'login' => 'misp', // grant usage on *.* to misp@localhost
+#       'port' => 3306,
+#       'password' => 'XXXXdbpasswordhereXXXXX', // identified by 'XXXXdbpasswordhereXXXXX';
+#       'database' => 'misp', // create database misp;
+#       'prefix' => '',
+#       'encoding' => 'utf8',
+#   );
+#}
 
 # Important! Change the salt key in /var/www/MISP/app/Config/config.php
 # The admin user account will be generated on the first login, make sure that the salt is changed before you create that user

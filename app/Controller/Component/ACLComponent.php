@@ -35,6 +35,7 @@ class ACLComponent extends Component {
 					'attributeReplace' => array('perm_add'),
 					'attributeStatistics' => array('*'),
 					'bro' => array('*'),
+					'checkAttachments' => array(),
 					'checkComposites' => array('perm_admin'),
 					'checkOrphanedAttributes' => array(),
 					'delete' => array('perm_add'),

@@ -26,6 +26,10 @@ class AppModel extends Model {
 
 	public $name;
 
+	public $loadedPubSubTool = false;
+
+	private $__redisConnection = false;
+
 	public function __construct($id = false, $table = null, $ds = null) {
 		parent::__construct($id, $table, $ds);
 
@@ -43,7 +47,7 @@ class AppModel extends Model {
 				58 => false, 59 => false, 60 => false, 61 => false, 62 => false,
 				63 => false, 64 => false, 65 => false, 66 => false, 67 => true,
 				68 => false, 69 => false, 71 => false, 72 => false, 73 => false,
-				76 => false
+				75 => false, 76 => false
 			)
 		)
 	);
@@ -689,6 +693,12 @@ class AppModel extends Model {
 				$sqlArray[] = 'ALTER TABLE `servers` ADD `unpublish_event` tinyint(1) NOT NULL DEFAULT 0;';
 				$sqlArray[] = 'ALTER TABLE `servers` ADD `publish_without_email` tinyint(1) NOT NULL DEFAULT 0;';
 				break;
+			case '2.4.75':
+				$this->__dropIndex('attributes', 'value1');
+				$this->__dropIndex('attributes', 'value2');
+				$this->__addIndex('attributes', 'value1', 255);
+				$this->__addIndex('attributes', 'value2', 255);
+				break;
 			case '2.4.76':
 				$sqlArray[] = "CREATE TABLE IF NOT EXISTS objects (
 					`id` int(11) NOT NULL AUTO_INCREMENT,
@@ -1093,6 +1103,9 @@ class AppModel extends Model {
 
 	public function setupRedis() {
 		if (class_exists('Redis')) {
+			if ($this->__redisConnection) {
+				return $this->__redisConnection;
+			}
 			$redis = new Redis();
 		} else {
 			return false;
@@ -1104,6 +1117,22 @@ class AppModel extends Model {
 			return false;
 		}
 		$redis->select($database);
+		$this->__redisConnection = $redis;
 		return $redis;
+	}
+
+	public function getPubSubTool() {
+		if (!$this->loadedPubSubTool) {
+			$this->loadPubSubTool();
+		}
+		return $this->loadedPubSubTool;
+	}
+
+	public function loadPubSubTool() {
+		App::uses('PubSubTool', 'Tools');
+		$pubSubTool = new PubSubTool();
+		$pubSubTool->initTool();
+		$this->loadedPubSubTool = $pubSubTool;
+		return true;
 	}
 }

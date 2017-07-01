@@ -776,7 +776,7 @@ function loadAttributeTags(id) {
 		dataType:"html",
 		cache: false,
 		success:function (data, textStatus) {
-			$("#Attribute_"+id+"_tr .attributeTagContainer").html(data);
+			$("#ShadowAttribute_"+id+"_tr .attributeTagContainer").html(data);
 		},
 		url:"/tags/showAttributeTag/" + id
 	});
@@ -2843,6 +2843,29 @@ function checkOrphanedAttributes() {
 		type:"get",
 		cache: false,
 		url: "/attributes/checkOrphanedAttributes/",
+	});
+}
+
+function checkAttachments() {
+	$.ajax({
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+		success:function (data, textStatus) {
+			var color = 'red';
+			var text = ' (Bad links detected)';
+			if (data !== undefined && data.trim() == '0') {
+				color = 'green';
+				text = ' (OK)';
+			}
+			$("#orphanedFileCount").html('<span class="' + color + '">' + data + text + '</span>');
+		},
+		complete:function() {
+			$(".loading").hide();
+		},
+		type:"get",
+		cache: false,
+		url: "/attributes/checkAttachments/",
 	});
 }
 

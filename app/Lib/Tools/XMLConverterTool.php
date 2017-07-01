@@ -101,6 +101,13 @@ class XMLConverterTool {
 						$ra = array('Attribute' => array(0 => $ra));
 					}
 				}
+				if (!empty($event['Event']['Attribute'][$key]['Feed'])) {
+					foreach ($event['Event']['Attribute'][$key]['Feed'] as $fKey => $feed) {
+						$this->__sanitizeField($event['Event']['Attribute'][$key]['Feed'][$fKey]['name']);
+						$this->__sanitizeField($event['Event']['Attribute'][$key]['Feed'][$fKey]['url']);
+						$this->__sanitizeField($event['Event']['Attribute'][$key]['Feed'][$fKey]['provider']);
+					}
+				}
 				if (isset($event['Event']['Attribute'][$key]['ShadowAttribute'])) {
 					foreach ($event['Event']['Attribute'][$key]['ShadowAttribute'] as $skey => $svalue) {
 						$this->__sanitizeField($event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['value']);
@@ -150,13 +157,6 @@ class XMLConverterTool {
 				$event['Event']['RelatedEvent'][$key]['Event'][0] = $temp;
 				unset($event['Event']['RelatedEvent'][$key]['Event'][0]['user_id']);
 				$this->__sanitizeField($event['Event']['RelatedEvent'][$key]['Event'][0]['info']);
-				if (!Configure::read('MISP.showorg') && !$isSiteAdmin) {
-					unset($event['Event']['RelatedEvent'][$key]['Org'], $event['Event']['RelatedEvent'][$key]['Orgc']);
-				} else {
-					$event['Event']['RelatedEvent'][$key]['Event'][0]['Org'][0] = $event['Event']['RelatedEvent'][$key]['Org'];
-					$event['Event']['RelatedEvent'][$key]['Event'][0]['Orgc'][0] = $event['Event']['RelatedEvent'][$key]['Orgc'];
-					unset($event['Event']['RelatedEvent'][$key]['Org'], $event['Event']['RelatedEvent'][$key]['Orgc']);
-				}
 				unset($temp);
 			}
 		}

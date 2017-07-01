@@ -52,8 +52,7 @@ class Sighting extends AppModel {
 
 	public function afterSave($created, $options = array()) {
 		if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_sighting_notifications_enable')) {
-			App::uses('PubSubTool', 'Tools');
-			$pubSubTool = new PubSubTool();
+			$pubSubTool = $this->getPubSubTool();
 			$pubSubTool->sighting_save($this->data);
 		}
 		return true;
@@ -149,7 +148,7 @@ class Sighting extends AppModel {
 			if ($result === false) {
 				return json_encode($this->validationErrors);
 			}
-			$sightingsAdded += $this->save($sighting) ? 1 : 0;
+			$sightingsAdded += $result ? 1 : 0;
 		}
 		if ($sightingsAdded == 0) {
 			return 'There was nothing to add.';

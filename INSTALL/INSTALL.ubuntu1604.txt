@@ -76,6 +76,13 @@ cd /var/www/MISP/app/files/scripts/python-stix
 sudo -u www-data git checkout v1.1.1.4
 sudo python setup.py install
 
+# install mixbox to accomodate the new STIX dependencies:
+cd /var/www/MISP/app/files/scripts/
+git clone https://github.com/CybOXProject/mixbox.git
+cd /var/www/MISP/app/files/scripts/mixbox
+git checkout v1.0.2
+python setup.py install
+
 4/ CakePHP
 -----------
 # CakePHP is included as a submodule of MISP, execute the following commands to let git fetch it:
@@ -127,7 +134,11 @@ sudo -u www-data sh -c "mysql -u misp -p misp < /var/www/MISP/INSTALL/MYSQL.sql"
 -----------------------
 # Now configure your Apache webserver with the DocumentRoot /var/www/MISP/app/webroot/
 
-sudo cp /var/www/MISP/INSTALL/apache.misp.ssl /etc/apache2/sites-available/misp-ssl.conf
+# If the apache version is 2.2:
+sudo cp /var/www/MISP/INSTALL/apache.22.misp.ssl /etc/apache2/sites-available/misp-ssl.conf
+
+# If the apache version is 2.4:
+sudo cp /var/www/MISP/INSTALL/apache.24.misp.ssl /etc/apache2/sites-available/misp-ssl.conf
 
 # Be aware that the configuration files for apache 2.4 and up have changed.
 # The configuration file has to have the .conf extension in the sites-available directory
@@ -202,17 +213,17 @@ sudo -u www-data vim /var/www/MISP/app/Config/database.php
 # DATABASE_CONFIG has to be filled
 # With the default values provided in section 6, this would look like:
 # class DATABASE_CONFIG {
-#	public $default = array(
-#		'datasource' => 'Database/Mysql',
-#		'persistent' => false,
-#		'host' => 'localhost',
-#		'login' => 'misp', // grant usage on *.* to misp@localhost
-#		'port' => 3306,
-#		'password' => 'XXXXdbpasswordhereXXXXX', // identified by 'XXXXdbpasswordhereXXXXX';
-#		'database' => 'misp', // create database misp;
-#		'prefix' => '',
-#		'encoding' => 'utf8',
-#	);
+#   public $default = array(
+#       'datasource' => 'Database/Mysql',
+#       'persistent' => false,
+#       'host' => 'localhost',
+#       'login' => 'misp', // grant usage on *.* to misp@localhost
+#       'port' => 3306,
+#       'password' => 'XXXXdbpasswordhereXXXXX', // identified by 'XXXXdbpasswordhereXXXXX';
+#       'database' => 'misp', // create database misp;
+#       'prefix' => '',
+#       'encoding' => 'utf8',
+#   );
 #}
 
 # Important! Change the salt key in /var/www/MISP/app/Config/config.php

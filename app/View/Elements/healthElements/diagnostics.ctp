@@ -60,7 +60,7 @@
 				?>
 			</span>
 		</span><br />
-		<pre class="hidden red" id="gitResult"></pre>
+		<pre class="hidden green bold" id="gitResult"></pre>
 		<button title="Pull the latest MISP version from github" class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick = "updateMISP();">Update MISP</button>
 	</div>
 	<h3>Writeable Directories and files</h3>
@@ -143,7 +143,8 @@
 			}
 		}
 	?>
-	<p><span class="bold">PHP Version (><?php echo $phprec; ?> recommended): </span><span class="<?php echo $phpversions['web']['phpcolour']; ?>"><?php echo h($phpversions['web']['phpversion']) . ' (' . $phpversions['web']['phptext'] . ')';?></span><br />
+	<p><span class="bold">PHP ini path</span>:..... <span class="green"><?php echo h($php_ini); ?></span><br />
+	<span class="bold">PHP Version (><?php echo $phprec; ?> recommended): </span><span class="<?php echo $phpversions['web']['phpcolour']; ?>"><?php echo h($phpversions['web']['phpversion']) . ' (' . $phpversions['web']['phptext'] . ')';?></span><br />
 	<span class="bold">PHP CLI Version (><?php echo $phprec; ?> recommended): </span><span class="<?php echo $phpversions['cli']['phpcolour']; ?>"><?php echo h($phpversions['cli']['phpversion']) . ' (' . $phpversions['cli']['phptext'] . ')';?></span></p>
 	<p>The following settings might have a negative impact on certain functionalities of MISP with their current and recommended minimum settings. You can adjust these in your php.ini. Keep in mind that the recommendations are not requirements, just recommendations. Depending on usage you might want to go beyond the recommended values.</p>
 	<?php
@@ -333,4 +334,13 @@
 	</h3>
 	<p>Click the following button to go to the legacy administrative tools page. There should in general be no need to do this unless you are upgrading a very old MISP instance (<2.4), all updates are done automatically with more current versions.</p>
 	<span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick="location.href = '<?php echo $baseurl; ?>/pages/display/administration';">Legacy Administrative Tools</span>
+    <h3>
+		Verify bad link on attachments
+	</h3>
+	<p>Verify each attachment referenced in database is accessible on filesystem.</p>
+	<div style="background-color:#f7f7f9;width:400px;">
+        Non existing attachments referenced in Database....<span id="orphanedFileCount"><span style="color:orange;">Run the test below</span></span>
+    </div><br>
+	<span class="btn btn-inverse" role="button" tabindex="0" aria-label="Check bad link on attachments" title="Check bad link on attachments" style="padding-top:1px;padding-bottom:1px;" onClick="checkAttachments();">Check bad link on attachments</span>
+
 </div>

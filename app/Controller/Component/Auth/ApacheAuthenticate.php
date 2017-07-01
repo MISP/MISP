@@ -133,7 +133,7 @@ class ApacheAuthenticate extends BaseAuthenticate {
 				'confirm_password' => '',
 				'authkey' => $userModel->generateAuthKey(),
 				'nids_sid' => 4000000,
-				'newsread' => date('Y-m-d'),
+				'newsread' => 0,
 				'role_id' => $roleId,
 				'change_pw' => 0
 			));

@@ -19,9 +19,9 @@ from stix.common.vocabs import IncidentStatus
 from cybox.utils import Namespace
 # if you rely on old idgen from previous stix libraries, mixbox is not installed
 try:
-    from mixbox import idgen
-except ImportError:
     from stix.utils import idgen
+except ImportError:
+    from mixbox import idgen
 
 from stix import __version__ as STIXVER
 
@@ -120,7 +120,7 @@ def main(args):
     stix_package = STIXPackage()
     stix_header = STIXHeader()
 
-    stix_header.title="Export from {} MISP".format(orgname)
+    stix_header.title="Export from " + orgname + " MISP"
     stix_header.package_intents="Threat Report"
     stix_package.stix_header = stix_header
 
@@ -129,8 +129,8 @@ def main(args):
         stix_string += ', "related_packages": ['
     else:
         stix_string = stix_package.to_xml(auto_namespace=False, ns_dict=NS_DICT, schemaloc_dict=SCHEMALOC_DICT)
+        stix_string = stix_string.decode()
         stix_string = stix_string.replace("</stix:STIX_Package>\n", "");
-
     print(stix_string)
 
 if __name__ == "__main__":
