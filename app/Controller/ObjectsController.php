@@ -84,6 +84,9 @@ class ObjectsController extends AppController {
 					} else {
 						return $this->RestResponse->saveFailResponse('Attributes', 'add', false, $result, $this->response->type());
 					}
+				} else {
+					 $this->Session->setFlash('Object saved.');
+					 $this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
 				}
 			}
 		}

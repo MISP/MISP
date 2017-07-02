@@ -6,7 +6,9 @@
 		?>
 					<div id="hiddenSideMenuData" class="hidden" data-event-id="<?php echo isset($event['Event']['id']) ? $event['Event']['id'] : 0; ?>"></div>
 		<?php
-					if ($menuItem === 'addAttribute' ||
+					if (
+						$menuItem === 'addAttribute' ||
+						$menuItem === 'addObject' ||
 						$menuItem === 'addAttachment' ||
 						$menuItem === 'addIOC' ||
 						$menuItem === 'addThreatConnect' ||
@@ -34,6 +36,7 @@
 					<li id='lieditEvent'><a href="<?php echo $baseurl;?>/events/edit/<?php echo h($event['Event']['id']);?>">Edit Event</a></li>
 					<li><?php echo $this->Form->postLink('Delete Event', array('action' => 'delete', h($event['Event']['id'])), null, __('Are you sure you want to delete # %s?', h($event['Event']['id']))); ?></li>
 					<li id='liaddAttribute'><a href="<?php echo $baseurl;?>/attributes/add/<?php echo h($event['Event']['id']);?>">Add Attribute</a></li>
+					<li><a onClick="getPopup('<?php echo h($event['Event']['id']); ?>', 'objectTemplates', 'objectChoice');" style="cursor:pointer;">Add Object</a></li>
 					<li id='liaddAttachment'><a href="<?php echo $baseurl;?>/attributes/add_attachment/<?php echo h($event['Event']['id']);?>">Add Attachment</a></li>
 					<li id='import'><a onClick="getPopup('<?php echo h($event['Event']['id']); ?>', 'events', 'importChoice');" style="cursor:pointer;">Populate from...</a></li>
 					<?php if ($menuItem === 'populateFromtemplate'): ?>

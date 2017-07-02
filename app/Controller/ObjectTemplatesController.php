@@ -30,20 +30,25 @@ class ObjectTemplatesController extends AppController {
   }
 */
 
-	public function objectChoice() {
+	public function objectChoice($event_id) {
 		$templates_raw = $this->ObjectTemplate->find('all', array(
 			'recursive' => -1,
 			'fields' => array('id', 'meta-category', 'name', 'description', 'org_id'),
 			'contain' => array('Organisation.name')
 		));
-		$templates = array();
+		$templates = array('all' => array());
 		foreach ($templates_raw as $k => $template) {
 			unset($template['ObjectTemplate']['meta-category']);
 			$template['ObjectTemplate']['org_name'] = $template['Organisation']['name'];
 			$templates[$templates_raw[$k]['ObjectTemplate']['meta-category']][] = $template['ObjectTemplate'];
+			$templates['all'][] = $template['ObjectTemplate'];
 		}
-		debug($templates);
+		$template_categories = array_keys($templates);
+		$this->layout = false;
+		$this->set('template_categories', $template_categories);
+		$this->set('eventId', $event_id);
 		$this->set('templates', $templates);
+		$this->render('ajax/object_choice');
 	}
 
   public function view($id) {

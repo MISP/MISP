@@ -45,7 +45,7 @@
             'options' => $distributionData['levels'],
             'default' => $distributionData['initial'],
             'label' => false,
-            'style' => 'margin-bottom:0px;',
+            'style' => 'margin-bottom:5px;',
             'div' => false
           ));
         echo $this->Form->input('Object.sharing_group_id', array(
@@ -53,7 +53,20 @@
           'options' => $distributionData['sgs'],
           'label' => false,
           'div' => false,
-          'style' => 'display:none;margin-bottom:0px;'
+          'style' => 'display:none;margin-bottom:5px;'
+        ));
+      ?>
+    </dd>
+    <dt>Comment</dt>
+    <dd>
+      <?php
+        echo $this->Form->input('Object.comment', array(
+          'type' => 'textarea',
+          'style' => 'height:20px;width:400px;',
+          'required' => false,
+          'allowEmpty' => true,
+          'label' => false,
+          'div' => false
         ));
       ?>
     </dd>
