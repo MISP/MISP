@@ -3069,6 +3069,44 @@ $(".cortex-json").click(function() {
 	$("#gray_out").fadeIn();
 });
 
+// Show $(id) if the enable parameter evaluates to true. Hide it otherwise
+function checkAndEnable(id, enable) {
+	if (enable) {
+		$(id).show();
+	} else {
+		$(id).hide();
+	}
+}
+
+// Show and enable checkbox $(id) if the enable parameter evaluates to true. Hide and disable it otherwise.
+function checkAndEnableCheckbox(id, enable) {
+	if (enable) {
+		$(id).removeAttr("disabled");
+		$(id).prop('checked', true);
+	} else {
+		$(id).prop('checked', false);
+		$(id).attr("disabled", true);
+	}
+}
+
+	function enableDisableObjectRows(rows) {
+		rows.forEach(function(i) {
+			if ($("#Attribute" + i + "ValueSelect").length != 0) {
+				checkAndEnableCheckbox("#Attribute" + i + "Save", true);
+			} else if ($("#Attribute" + i + "Attachment").length != 0) {
+				checkAndEnableCheckbox("#Attribute" + i + "Save", $("#Attribute" + i + "Attachment").val() != "");
+			} else {
+				checkAndEnableCheckbox("#Attribute" + i + "Save", $("#Attribute" + i + "Value").val() != "");
+			}
+			$("#Attribute" + i + "Value").bind('input propertychange', function() {
+				checkAndEnableCheckbox("#Attribute" + i + "Save", $(this).val() != "");
+			});
+			$("#Attribute" + i + "Attachment").on('change', function() {
+				checkAndEnableCheckbox("#Attribute" + i + "Save", $("#Attribute" + i + "Attachment").val() != "");
+			});
+		});
+	}
+
 (function(){
     "use strict";
     $(".datepicker").datepicker({

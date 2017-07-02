@@ -1,20 +1,16 @@
 <div class="<?php if (!isset($ajax) || !$ajax) echo 'form';?>">
-<div>
-  <?php
-  	echo $this->Form->create('Object', array('id', 'url' => '/objects/add/' . $event['Event']['id'] . '/' . $template['ObjectTemplate']['id']));
-    echo $this->Form->input('data', array(
-      'style' => 'display:none;',
-      'label' => false
-    ));
-    echo $this->Form->end();
-  ?>
-</div>
+<?php
+	echo $this->Form->create('Object', array('id', 'url' => '/objects/add/' . $event['Event']['id'] . '/' . $template['ObjectTemplate']['id'], 'enctype' => 'multipart/form-data'));
+?>
 <h3><?php echo 'Add ' . Inflector::humanize(h($template['ObjectTemplate']['name'])) . ' Object'; ?></h3>
-<div class="row-fluid">
+<div class="row-fluid" style="margin-bottom:10px;">
   <dl class="span8">
     <dt>Object Template</dt>
     <dd>
-      <?php echo Inflector::humanize(h($template['ObjectTemplate']['name'])); ?>&nbsp;
+      <?php
+        echo Inflector::humanize(h($template['ObjectTemplate']['name']));
+      ?>
+      &nbsp;
     </dd>
     <dt>Description</dt>
     <dd>
@@ -41,67 +37,188 @@
     <dd>
       <?php echo Inflector::humanize(h($template['ObjectTemplate']['meta-category'])); ?>&nbsp;
     </dd>
+    <dt>Distribution</dt>
+    <dd>
+      <?php
+          echo $this->Form->input('Object.distribution', array(
+            'class' => 'Object_distribution_select',
+            'options' => $distributionData['levels'],
+            'default' => $distributionData['initial'],
+            'label' => false,
+            'style' => 'margin-bottom:0px;',
+            'div' => false
+          ));
+        echo $this->Form->input('Object.sharing_group_id', array(
+          'class' => 'Object_sharing_group_id_select',
+          'options' => $distributionData['sgs'],
+          'label' => false,
+          'div' => false,
+          'style' => 'display:none;margin-bottom:0px;'
+        ));
+      ?>
+    </dd>
   </dl>
-  <table class="table table-striped table-condensed">
-    <tr>
-      <th>Name</th>
-      <th>Type</th>
-      <th>Category</th>
-      <th>Value</th>
-      <th>Description</th>
-      <th>To IDS</th>
-      <th>Distribution</th>
-    </tr>
-  <?php
-    foreach ($template['ObjectTemplateElement'] as $k => $element):
-  ?>
-    <tr>
-      <td class="shortish bold">
-        <?php echo Inflector::humanize(h($element['in-object-name'])); ?>
-      </td>
-      <td class="short">
-        <?php echo h($element['type']); ?>
-      </td>
-      <td class="short">
-        <select>
-          <?php
-            foreach ($element['categories'] as $category):
-          ?>
-            <option id="category_select_<?php echo h($k); ?>" value="<?php echo h($category); ?>" <?php echo $category == $element['default_category'] ? 'selected' : ''; ?>>
-              <?php echo h($category);?>
-            </option>
-          <?php
-            endforeach;
-          ?>
-        </select>
-      </td>
-      <td>
-        <?php
-          if (empty($element['values_list'])):
-        ?>
-            <textarea id="value_select_<?php echo h($k); ?>" class="input" style="height:20px;width:400px;" <?php echo 'list="value_select_list_' . $k . '"'; ?>></textarea>
-        <?php
-            if (!empty($elements['sane_default'])):
-        ?>
-              <datalist id="exampleList">
-                  <option value="A">
-                  <option value="B">
-              </datalist>
-        <?php
-            endif;
-          else:
-        ?>
-
-        <?php
-          endif;
-        ?>
-      </td>
-    </tr>
-  <?php
-    endforeach;
-  ?>
-</table>
 </div>
+<table class="table table-striped table-condensed">
+  <tr>
+    <th>Save</th>
+    <th>Name :: type</th>
+    <th>Category</th>
+    <th>Value</th>
+    <th>IDS</th>
+    <th>Distribution</th>
+    <th>Comment</th>
+  </tr>
+<?php
+  $row_list = array();
+  foreach ($template['ObjectTemplateElement'] as $k => $element):
+    $row_list[] = $k;
+?>
+  <tr>
+    <td>
+      <?php
+        echo $this->Form->input('Attribute.' . $k . '.save', array(
+          'type' => 'checkbox',
+          'checked' => in_array($k, $enabledRows),
+          'label' => false,
+          'div' => false
+        ));
+      ?>
+    </td>
+    <td class="shortish" title="<?php echo h($element['description']); ?>">
+      <?php
+        echo $this->Form->input('Attribute.' . $k . '.object_relation', array(
+          'type' => 'hidden',
+          'value' => $element['in-object-name'],
+          'label' => false,
+          'div' => false
+        ));
+        echo $this->Form->input('Attribute.' . $k . '.type', array(
+          'type' => 'hidden',
+          'value' => $element['type'],
+          'label' => false,
+          'div' => false
+        ));
+        echo '<span class="bold">' . Inflector::humanize(h($element['in-object-name'])) . '</span>';
+        if (!empty($template['ObjectTemplate']['requirements']['required']) && in_array($element['in-object-name'], $template['ObjectTemplate']['requirements']['required'])) {
+          echo '<span class="bold red">' . '(*)' . '</span>';
+        }
+        echo ' :: ' . h($element['type']) . '';
+      ?>
+    </td>
+    <td class="short">
+      <?php
+        echo $this->Form->input('Attribute.' . $k . '.category', array(
+          'options' => array_combine($element['categories'], $element['categories']),
+          'default' => $element['default_category'],
+          'style' => 'margin-bottom:0px;',
+          'label' => false,
+          'div' => false
+        ));
+      ?>
+    </td>
+    <td>
+      <?php
+        if ($element['type'] == 'malware-sample' || $element['type'] == 'attachment'):
+          echo $this->Form->file('Attribute.' . $k . '.Attachment', array(
+            'class' => 'Attribute_attachment'
+          ));
+        else:
+          if (empty($element['values_list']) && empty($element['sane_default'])):
+            echo $this->Form->input('Attribute.' . $k . '.value', array(
+              'type' => 'textarea',
+              'required' => false,
+              'allowEmpty' => true,
+              'style' => 'height:20px;width:400px;',
+              'label' => false,
+              'div' => false
+            ));
+          else:
+            if (empty($element['values_list'])) {
+              $list = $element['sane_default'];
+              $list[] = 'Enter value manually';
+            } else {
+              $list = $element['values_list'];
+            }
+            $list = array_combine($list, $list);
+      ?>
+            <div class="value_select_with_manual_entry">
+      <?php
+              echo $this->Form->input('Attribute.' . $k . '.value_select', array(
+                'class' => 'Attribute_value_select',
+                'style' => 'width:414px;margin-bottom:0px;',
+                'options' => array_combine($list, $list),
+                'label' => false,
+                'div' => false
+              ));
+      ?>
+        <br />
+      <?php
+              echo $this->Form->input('Attribute.' . $k . '.value', array(
+                'class' => 'Attribute_value',
+                'type' => 'textarea',
+                'required' => false,
+                'allowEmpty' => true,
+                'style' => 'height:20px;width:400px;display:none;',
+                'label' => false,
+                'div' => false
+              ));
+      ?>
+            </div>
+      <?php
+          endif;
+        endif;
+      ?>
+    </td>
+    <td>
+      <?php
+        echo $this->Form->input('Attribute.' . $k . '.to_ids', array(
+          'type' => 'checkbox',
+          'checked' => $element['to_ids'],
+          'label' => false,
+          'div' => false
+        ));
+      ?>
+    </td>
+    <td class="short">
+      <?php
+          echo $this->Form->input('Attribute.' . $k . '.distribution', array(
+            'class' => 'Attribute_distribution_select',
+            'options' => $distributionData['levels'],
+            'default' => $distributionData['initial'],
+            'style' => 'margin-bottom:0px;',
+            'label' => false,
+            'div' => false
+          ));
+      ?>
+      <br />
+      <?php
+        echo $this->Form->input('Attribute.' . $k . '.sharing_group_id', array(
+          'class' => 'Attribute_sharing_group_id_select',
+          'options' => $distributionData['sgs'],
+          'label' => false,
+          'div' => false,
+          'style' => 'display:none;margin-bottom:0px;',
+        ));
+      ?>
+    </td>
+    <td>
+      <?php
+        echo $this->Form->input('Attribute.' . $k . '.comment', array(
+          'type' => 'textarea',
+          'style' => 'height:20px;width:400px;',
+          'required' => false,
+          'allowEmpty' => true,
+          'label' => false,
+          'div' => false
+        ));
+      ?>
+    </td>
+  </tr>
+<?php
+  endforeach;
+?>
+</table>
 	<?php if ($ajax): ?>
 		<div class="overlay_spacing">
 			<table>
@@ -134,65 +251,20 @@
 	}
 ?>
 <script type="text/javascript">
-var fieldsArray = new Array('AttributeCategory', 'AttributeType', 'AttributeValue', 'AttributeDistribution', 'AttributeComment', 'AttributeToIds', 'AttributeBatchImport', 'AttributeSharingGroupId');
-<?php
-	$formInfoTypes = array('distribution' => 'Distribution', 'category' => 'Category', 'type' => 'Type');
-	echo 'var formInfoFields = ' . json_encode($formInfoTypes) . PHP_EOL;
-	foreach ($formInfoTypes as $formInfoType => $humanisedName) {
-		echo 'var ' . $formInfoType . 'FormInfoValues = {' . PHP_EOL;
-		foreach ($info[$formInfoType] as $key => $formInfoData) {
-			echo '"' . $key . '": "<span class=\"blue bold\">' . h($formInfoData['key']) . '</span>: ' . h($formInfoData['desc']) . '<br />",' . PHP_EOL;
-		}
-		echo '}' . PHP_EOL;
-	}
-?>
+  var rows = <?php echo json_encode($row_list, true); ?>;
+  $(document).ready(function() {
+    enableDisableObjectRows(rows);
 
-//
-//Generate Category / Type filtering array
-//
-var category_type_mapping = new Array();
-<?php
-	foreach ($categoryDefinitions as $category => $def) {
-		echo "category_type_mapping['" . addslashes($category) . "'] = {";
-		$first = true;
-		foreach ($def['types'] as $type) {
-			if ($first) $first = false;
-			else echo ', ';
-			echo "'" . addslashes($type) . "' : '" . addslashes($type) . "'";
-		}
-		echo "}; \n";
-	}
-?>
+    $(".Attribute_distribution_select").change(function() {
+      checkAndEnable($(this).parent().find('.Attribute_sharing_group_id_select'), $(this).val() == 4);
+    });
 
-$(document).ready(function() {
-	initPopoverContent('Attribute');
-	$('#AttributeDistribution').change(function() {
-		if ($('#AttributeDistribution').val() == 4) $('#SGContainer').show();
-		else $('#SGContainer').hide();
-	});
+    $(".Object_distribution_select").change(function() {
+      checkAndEnable($(this).parent().find('.Object_sharing_group_id_select'), $(this).val() == 4);
+    });
 
-	$("#AttributeCategory").on('change', function(e) {
-		formCategoryChanged('Attribute');
-		if ($(this).val() === 'Attribution' || $(this).val() === 'Targeting data') {
-			$("#warning-message").show();
-		} else {
-			$("#warning-message").hide();
-		}
-		if ($(this).val() === 'Internal reference') {
-			$("#AttributeDistribution").val('0');
-			$('#SGContainer').hide();
-		}
-	});
-
-	$("#AttributeCategory, #AttributeType, #AttributeDistribution").change(function() {
-		initPopoverContent('Attribute');
-	});
-	<?php if ($ajax): ?>
-		$('#cancel_attribute_add').click(function() {
-			cancelPopoverForm();
-		});
-
-	<?php endif; ?>
-});
+    $(".Attribute_value_select").change(function() {
+      checkAndEnable($(this).parent().find('.Attribute_value'), $(this).val() == 'Enter value manually');
+    });
+  });
 </script>
-<?php echo $this->Js->writeBuffer(); // Write cached scripts

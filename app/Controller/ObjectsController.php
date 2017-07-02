@@ -48,28 +48,50 @@ class ObjectsController extends AppController {
 			)
 		));
 		$eventId = $event['Event']['id'];
-
+		$error = false;
 		// If we have received a POST request
 		if ($this->request->is('post')) {
 			if (isset($this->request->data['request'])) {
 				$this->request->data = $this->request->data['request'];
 			}
-			if (!isset($this->request->data['Object'])) {
-				$this->request->data = array('Object' => $this->request->data);
+			if (!isset($this->request->data['Attribute'])) {
+				$this->request->data = array('Attribute' => $this->request->data);
 			}
-			$templateCheckResult = $this->Object->ObjectTemplate->checkTemplateConformity($templateId, $this->request->data);
-			if (!$templateCheckResult) {
-				throw new MethodNotAllowedException('Object does not meet the template requirements');
+			$object = $this->Object->attributeCleanup($this->request->data);
+			// we pre-validate the attributes before we create an object at this point
+			// This allows us to stop the process and return an error (API) or return
+			//  to the add form
+			foreach ($object['Attribute'] as $k => $attribute) {
+				$object['Attribute'][$k]['event_id'] = $eventId;
+				$this->Object->Event->Attribute->set($attribute);
+				if (!$this->Object->Event->Attribute->validates()) {
+					$error = 'Could not save object as at least one attribute has failed validation (' . $attribute['object_relation'] . '). ' . json_encode($this->Object->Event->Attribute->validationErrors);
+				}
 			}
-			$this->Object->saveObject($this->request->data, $eventId, $errorBehaviour = 'halt');
+			if (empty($error)) {
+				$error = $this->Object->ObjectTemplate->checkTemplateConformity($template, $object);
+				if ($error === true) {
+						$this->Object->saveObject($object, $eventId, $template, $this->Auth->user(), $errorBehaviour = 'halt');
+				}
+			}
 		}
 
 		// In the case of a GET request or if the object could not be validated, show the form / the requirement
 		if ($this->_isRest()) {
-			return $this->RestResponse->viewData($orgs, $this->response->type());
+			if ($error) {
+
+			} else {
+				return $this->RestResponse->viewData($orgs, $this->response->type());
+			}
 		} else {
+			if (!empty($error)) {
+				$this->Session->setFlash($error);
+			}
 			$template = $this->Object->prepareTemplate($template);
-			//debug($template);
+			$enabledRows = array_keys($template['ObjectTemplateElement']);
+			$this->set('enabledRows', $enabledRows);
+			$distributionData = $this->Object->Event->Attribute->fetchDistributionData($this->Auth->user());
+			$this->set('distributionData', $distributionData);
 			$this->set('event', $event);
 			$this->set('ajax', false);
 			$this->set('template', $template);

@@ -75,10 +75,10 @@ foreach ($feeds as $item):
 			<?php
 				echo h($item['Feed']['name']);
 				if ($item['Feed']['default']):
-				?>
+			?>
 					<img src="<?php echo $baseurl;?>/img/orgs/MISP.png" width="24" height="24" style="padding-bottom:3px;" />
-				<?php
-					endif;
+			<?php
+				endif;
 			?>
 		</td>
 		<td><?php echo $feed_types[$item['Feed']['source_format']]['name']; ?>&nbsp;</td>

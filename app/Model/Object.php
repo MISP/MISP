@@ -42,11 +42,25 @@ class Object extends AppModel {
 	public $validate = array(
 	);
 
-	public function saveObject($object, $eventId, $errorBehaviour = 'drop') {
-		$this->Object->create();
-		$this->request->data['Object']['event_id'] = $eventId;
-		$this->Object->save($this->request->data);
-		return $this->Object->Attribute->saveAttributes($attributes, $eventId, $objectId = 0, $errorBehaviour);
+	public function saveObject($object, $eventId, $template, $user, $errorBehaviour = 'drop') {
+		$this->create();
+		//id	name	meta-category	description	template_uuid	template_version	event_id	uuid	timestamp	distribution	sharing_group_id	comment
+		$templateFields = array(
+			'name' => 'name',
+			'meta-category' => 'meta-category',
+			'description' => 'description',
+			'template_version' => 'version',
+			'template_uuid' => 'uuid'
+		);
+		foreach ($templateFields as $k => $v) {
+				$object['Object'][$k] = $template['ObjectTemplate'][$v];
+		}
+		$object['Object']['event_id'] = $eventId;
+		debug($template);
+		debug($object);
+		throw new Exception();
+		$this->save($object);
+		return $this->Attribute->saveAttributes($attributes, $eventId, $objectId = 0, $errorBehaviour);
 	}
 
 	public function buildEventConditions($user, $sgids = false) {
@@ -212,6 +226,9 @@ class Object extends AppModel {
 		return $results;
 	}
 
+	/*
+	 * Prepare the template form view's data, setting defaults, sorting elements
+	 */
 	public function prepareTemplate($template) {
 		$temp = array();
 		usort($template['ObjectTemplateElement'], function($a, $b) {
@@ -220,13 +237,38 @@ class Object extends AppModel {
 		foreach ($template['ObjectTemplateElement'] as $k => $v) {
 			$template['ObjectTemplateElement'][$k]['default_category'] = $this->Event->Attribute->typeDefinitions[$template['ObjectTemplateElement'][$k]['type']]['default_category'];
 			$template['ObjectTemplateElement'][$k]['to_ids'] = $this->Event->Attribute->typeDefinitions[$template['ObjectTemplateElement'][$k]['type']]['to_ids'];
-			$template['ObjectTemplateElement'][$k]['categories'] = array();
-			foreach ($this->Event->Attribute->categoryDefinitions as $catk => $catv) {
-				if (in_array($template['ObjectTemplateElement'][$k]['type'], $catv['types'])) {
-					$template['ObjectTemplateElement'][$k]['categories'][$catk] = $catk;
+			if (empty($template['ObjectTemplateElement'][$k]['categories'])) {
+				$template['ObjectTemplateElement'][$k]['categories'] = array();
+				foreach ($this->Event->Attribute->categoryDefinitions as $catk => $catv) {
+					if (in_array($template['ObjectTemplateElement'][$k]['type'], $catv['types'])) {
+						$template['ObjectTemplateElement'][$k]['categories'][] = $catk;
+					}
 				}
 			}
 		}
 		return $template;
+	}
+
+	/*
+	 * Clean the attribute list up from artifacts introduced by the object form
+	 */
+	public function attributeCleanup($attributes) {
+		foreach ($attributes['Attribute'] as $k => $attribute) {
+			if (isset($attribute['save']) && $attribute['save'] == 0) {
+				unset($attributes['Attribute'][$k]);
+				continue;
+			}
+			if (isset($attribute['value_select'])) {
+				if ($attribute['value_select'] !== 'Enter value manually') {
+					$attributes['Attribute'][$k]['value'] = $attribute['value_select'];
+				}
+				unset($attribute['value_select']);
+			}
+			unset($attribute['save']);
+			if ($attribute['distribution'] != 4) {
+				$attribute['sharing_group_id'] = 0;
+			}
+		}
+		return $attributes;
 	}
 }

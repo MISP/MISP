@@ -176,4 +176,32 @@ class ObjectTemplate extends AppModel {
 		}
 		return $result;
 	}
+
+	public function checkTemplateConformity($template, $attributes) {
+		if (!empty($template['ObjectTemplate']['requirements'])) {
+			if (!empty($template['ObjectTemplate']['requirements']['required'])) {
+				foreach ($template['ObjectTemplate']['requirements']['required'] as $requiredField) {
+					$found = false;
+					foreach ($attributes['Attribute'] as $attribute) {
+						if ($attribute['object_relation'] == $requiredField) {
+							$found = true;
+						}
+					}
+					if (!$found) return 'Could not save the object as a required attribute is not set (' . $requiredField . ')';
+				}
+			}
+			if (!empty($template['ObjectTemplate']['requirements']['requiredOneOf'])) {
+				$found = false;
+				foreach ($template['ObjectTemplate']['requirements']['requiredOneOf'] as $requiredField) {
+					foreach ($attributes['Attribute'] as $attribute) {
+						if ($attribute['object_relation'] == $requiredField) {
+							$found = true;
+						}
+					}
+				}
+				if (!$found) return 'Could not save the object as it requires at least one of the following attributes to be set: ' . implode(', ', $template['ObjectTemplate']['requirements']['requiredOneOf']);
+			}
+		}
+		return true;
+	}
 }

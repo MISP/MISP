@@ -644,6 +644,10 @@ class Attribute extends AppModel {
 
 		public function valueIsUnique ($fields) {
 		if (isset($this->data['Attribute']['deleted']) && $this->data['Attribute']['deleted']) return true;
+		// We escape this rule for objects as we can have the same category/type/value combination in different objects
+		if (!empty($this->data['Attribute']['object_relation'])) {
+			return true;
+		}
 		$value = $fields['value'];
 		$eventId = $this->data['Attribute']['event_id'];
 		$type = $this->data['Attribute']['type'];
@@ -2537,5 +2541,23 @@ class Attribute extends AppModel {
 			$cidrList = $this->__getCIDRList();
 		}
 		return $cidrList;
+	}
+
+	public function fetchDistributionData($user) {
+		$initialDistribution = 5;
+		if (Configure::read('MISP.default_attribute_distribution') != null) {
+			if (Configure::read('MISP.default_attribute_distribution') === 'event') {
+				$initialDistribution = 5;
+			} else {
+				$initialDistribution = Configure::read('MISP.default_attribute_distribution');
+			}
+		}
+		$sgs = $this->SharingGroup->fetchAllAuthorised($user, 'name', 1);
+		$this->set('sharingGroups', $sgs);
+		$distributionLevels = $this->distributionLevels;
+		if (empty($sgs)) {
+			unset($distributionLevels[4]);
+		}
+		return array('sgs' => $sgs, 'levels' => $distributionLevels, 'initial' => $initialDistribution);
 	}
 }
