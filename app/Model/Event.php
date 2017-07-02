@@ -311,6 +311,19 @@ class Event extends AppModel {
 			'finderQuery' => '',
 			'counterQuery' => ''
 		),
+		'Object' => array(
+			'className' => 'Object',
+			'foreignKey' => 'event_id',
+			'dependent' => true,
+			'conditions' => '',
+			'fields' => '',
+			'order' => false,
+			'limit' => '',
+			'offset' => '',
+			'exclusive' => '',
+			'finderQuery' => '',
+			'counterQuery' => ''
+		),
 		'EventTag' => array(
 			'className' => 'EventTag',
 			'dependent' => true,
@@ -1247,6 +1260,13 @@ class Event extends AppModel {
 		$isSiteAdmin = $user['Role']['perm_site_admin'];
 		if (isset($options['disableSiteAdmin']) && $options['disableSiteAdmin']) $isSiteAdmin = false;
 		$conditionsAttributes = array();
+		$conditionsObjects = array();
+
+		if (isset($options['flattenObjects']) && $options['flattenObjects']) {
+			$flattenObjects = true;
+		} else {
+			$flattenObjects = false;
+		}
 
 		// restricting to non-private or same org if the user is not a site-admin.
 		if (!$isSiteAdmin) {
@@ -1290,14 +1310,28 @@ class Event extends AppModel {
 				)),
 				'(SELECT events.org_id FROM events WHERE events.id = Attribute.event_id)' => $user['org_id']
 			);
+
+			$conditionsObjects['AND'][0]['OR'] = array(
+				array('AND' => array(
+					'Object.distribution >' => 0,
+					'Object.distribution !=' => 4,
+				)),
+				array('AND' => array(
+					'Object.distribution' => 4,
+					'Object.sharing_group_id' => $sgids,
+				)),
+				'(SELECT events.org_id FROM events WHERE events.id = Object.event_id)' => $user['org_id']
+			);
 		}
 		if ($options['distribution']) {
 			$conditions['AND'][] = array('Event.distribution' => $options['distribution']);
 			$conditionsAttributes['AND'][] = array('Attribute.distribution' => $options['distribution']);
+			$conditionsObjects['AND'][] = array('Object.distribution' => $options['distribution']);
 		}
 		if ($options['sharing_group_id']) {
 			$conditions['AND'][] = array('Event.sharing_group_id' => $options['sharing_group_id']);
 			$conditionsAttributes['AND'][] = array('Attribute.sharing_group_id' => $options['sharing_group_id']);
+			$conditionsObject['AND'][] = array('Object.sharing_group_id' => $options['sharing_group_id']);
 		}
 		if ($options['from']) $conditions['AND'][] = array('Event.date >=' => $options['from']);
 		if ($options['to']) $conditions['AND'][] = array('Event.date <=' => $options['to']);
@@ -1311,8 +1345,17 @@ class Event extends AppModel {
 						'Attribute.deleted' => 0
 					)
 				);
+				$conditionsObjects['AND'][] = array(
+					'OR' => array(
+						'(SELECT events.org_id FROM events WHERE events.id = Object.event_id)' => $user['org_id'],
+						'Object.deleted' => 0
+					)
+				);
 			}
-		} else $conditionsAttributes['AND']['Attribute.deleted'] = 0;
+		} else {
+			$conditionsAttributes['AND']['Attribute.deleted'] = 0;
+			$conditionsObject['AND']['Object.deleted'] = 0;
+		}
 
 		if ($options['idList'] && !$options['tags']) {
 			$conditions['AND'][] = array('Event.id' => $options['idList']);
@@ -1346,7 +1389,8 @@ class Event extends AppModel {
 
 		// do not expose all the data ...
 		$fields = array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.date', 'Event.threat_level_id', 'Event.info', 'Event.published', 'Event.uuid', 'Event.attribute_count', 'Event.analysis', 'Event.timestamp', 'Event.distribution', 'Event.proposal_email_lock', 'Event.user_id', 'Event.locked', 'Event.publish_timestamp', 'Event.sharing_group_id', 'Event.disable_correlation');
-		$fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.timestamp', 'Attribute.comment', 'Attribute.sharing_group_id', 'Attribute.deleted', 'Attribute.disable_correlation');
+		$fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.timestamp', 'Attribute.comment', 'Attribute.sharing_group_id', 'Attribute.deleted', 'Attribute.disable_correlation', 'Attribute.object_id', 'Attribute.object_relation');
+		$fieldsObj = array('*');
 		$fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.proposal_to_delete', 'ShadowAttribute.timestamp');
 		$fieldsOrg = array('id', 'name', 'uuid');
 		$fieldsServer = array('id', 'url', 'name');
@@ -1373,7 +1417,6 @@ class Event extends AppModel {
 		foreach ($sharingGroupDataTemp as $k => $v) {
 			$sharingGroupData[$v['SharingGroup']['id']] = $v;
 		}
-
 		$params = array(
 			'conditions' => $conditions,
 			'recursive' => 0,
@@ -1393,6 +1436,11 @@ class Event extends AppModel {
 						'order' => false
 					),
 				),
+				'Object' => array(
+					'fields' => $fieldsObj,
+					'conditions' => $conditionsObjects,
+					'order' => false
+				),
 				'ShadowAttribute' => array(
 					'fields' => $fieldsShadowAtt,
 					'conditions' => array('deleted' => 0),
@@ -1405,6 +1453,9 @@ class Event extends AppModel {
 				)
 			)
 		);
+		if ($flattenObjects) {
+			unset($params['contain']['Object']);
+		}
 		if ($options['metadata']) {
 			unset($params['contain']['Attribute']);
 			unset($params['contain']['ShadowAttribute']);
@@ -1546,6 +1597,16 @@ class Event extends AppModel {
 							}
 						}
 
+					}
+					if ($event['Attribute'][$key]['object_id'] != 0) {
+						if (!empty($event['Object'])) {
+							foreach ($event['Object'] as $objectKey => $objectValue) {
+								if ($event['Attribute'][$key]['object_id'] == $objectValue['id']) {
+									$event['Object'][$objectKey]['Attribute'][] = $event['Attribute'][$key];
+								}
+							}
+						}
+						unset($event['Attribute'][$key]);
 					}
 				}
 				$event['Attribute'] = array_values($event['Attribute']);

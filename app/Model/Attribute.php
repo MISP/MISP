@@ -2364,6 +2364,20 @@ class Attribute extends AppModel {
 		else return 'Could not save changes.';
 	}
 
+	public function saveAttributes($attributes) {
+		foreach ($attributes as $k => $attribute) {
+			if (!empty($attribute['encrypt']) && $attribute['encrypt']) {
+				$result = $this->handleMaliciousBase64($attribute['event_id'], $attribute['value'], $attribute['data'], array('md5'));
+				$attribute['data'] = $result['data'];
+				$attribute['value'] = $attribute['value'] . '|' . $result['md5'];
+			}
+			unset($attribute['Attachment']);
+			$this->create();
+			$this->save($attribute);
+		}
+		return true;
+	}
+
 	public function saveAndEncryptAttribute($attribute, $user) {
 		$hashes = array('md5' => 'malware-sample', 'sha1' => 'filename|sha1', 'sha256' => 'filename|sha256');
 		if ($attribute['encrypt']) {

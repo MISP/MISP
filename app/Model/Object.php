@@ -28,6 +28,7 @@ class Object extends AppModel {
 			'conditions' => array('Object.template_uuid' => 'ObjectTemplate.uuid')
 		)
 	);
+	
 	public $hasMany = array(
 		'Attribute' => array(
 			'className' => 'Attribute',
@@ -42,9 +43,28 @@ class Object extends AppModel {
 	public $validate = array(
 	);
 
+	public function beforeValidate($options = array()) {
+		parent::beforeValidate();
+
+		if (empty($this->data['Object']['comment'])) {
+			$this->data['Object']['comment'] = "";
+		}
+		// generate UUID if it doesn't exist
+		if (empty($this->data['Object']['uuid'])) {
+			$this->data['Object']['uuid'] = CakeText::uuid();
+		}
+		// generate timestamp if it doesn't exist
+		if (empty($this->data['Object']['timestamp'])) {
+			$date = new DateTime();
+			$this->data['Object']['timestamp'] = $date->getTimestamp();
+		}
+		if (!isset($this->data['Object']['distribution']) || $this->data['Object']['distribution'] != 4) $this->data['Object']['sharing_group_id'] = 0;
+		if (!isset($this->data['Object']['distribution'])) $this->data['Object']['distribution'] = 5;
+		return true;
+	}
+
 	public function saveObject($object, $eventId, $template, $user, $errorBehaviour = 'drop') {
 		$this->create();
-		//id	name	meta-category	description	template_uuid	template_version	event_id	uuid	timestamp	distribution	sharing_group_id	comment
 		$templateFields = array(
 			'name' => 'name',
 			'meta-category' => 'meta-category',
@@ -56,11 +76,17 @@ class Object extends AppModel {
 				$object['Object'][$k] = $template['ObjectTemplate'][$v];
 		}
 		$object['Object']['event_id'] = $eventId;
-		debug($template);
-		debug($object);
-		throw new Exception();
-		$this->save($object);
-		return $this->Attribute->saveAttributes($attributes, $eventId, $objectId = 0, $errorBehaviour);
+		$result = false;
+		if ($this->save($object)) {
+			$id = $this->id;
+			foreach ($object['Attribute'] as $k => $attribute) {
+				$object['Attribute'][$k]['object_id'] = $id;
+			}
+			$result = $this->Attribute->saveAttributes($object['Attribute']);
+		} else {
+			$result = $this->validationErrors;
+		}
+		return $id;
 	}
 
 	public function buildEventConditions($user, $sgids = false) {
@@ -262,11 +288,31 @@ class Object extends AppModel {
 				if ($attribute['value_select'] !== 'Enter value manually') {
 					$attributes['Attribute'][$k]['value'] = $attribute['value_select'];
 				}
-				unset($attribute['value_select']);
+				unset($attributes['Attribute'][$k]['value_select']);
 			}
-			unset($attribute['save']);
+			if (isset($attribute['Attachment'])) {
+				// Check if there were problems with the file upload
+				// only keep the last part of the filename, this should prevent directory attacks
+				$filename = basename($attribute['Attachment']['name']);
+				$tmpfile = new File($attribute['Attachment']['tmp_name']);
+				if ((isset($attribute['Attachment']['error']) && $attribute['Attachment']['error'] == 0) ||
+					(!empty($attribute['Attachment']['tmp_name']) && $attribute['Attachment']['tmp_name'] != 'none')
+				) {
+					if (!is_uploaded_file($tmpfile->path))
+						throw new InternalErrorException('PHP says file was not uploaded. Are you attacking me?');
+				} else {
+					return 'Issues with the file attachment for the ' . $attribute['object_relation'] . ' attribute. The error code returned is ' . $attribute['Attachment']['error'];
+				}
+				$attributes['Attribute'][$k]['value'] = $attribute['Attachment']['name'];
+				unset($attributes['Attribute'][$k]['Attachment']);
+				$attributes['Attribute'][$k]['encrypt'] = $attribute['type'] == 'malware-sample' ? 1 : 0;
+				$attributes['Attribute'][$k]['data'] = base64_encode($tmpfile->read());
+				$tmpfile->delete();
+				$tmpfile->close();
+			}
+			unset($attributes['Attribute'][$k]['save']);
 			if ($attribute['distribution'] != 4) {
-				$attribute['sharing_group_id'] = 0;
+				$attributes['Attribute'][$k]['sharing_group_id'] = 0;
 			}
 		}
 		return $attributes;

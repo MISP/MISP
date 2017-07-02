@@ -71,7 +71,19 @@ class ObjectsController extends AppController {
 			if (empty($error)) {
 				$error = $this->Object->ObjectTemplate->checkTemplateConformity($template, $object);
 				if ($error === true) {
-						$this->Object->saveObject($object, $eventId, $template, $this->Auth->user(), $errorBehaviour = 'halt');
+						$result = $this->Object->saveObject($object, $eventId, $template, $this->Auth->user(), $errorBehaviour = 'halt');
+				}
+				if ($this->_isRest()) {
+					if (is_numeric($result)) {
+						$object = $this->Object->find('first', array(
+							'recursive' => -1,
+							'conditions' => array('Object.id' => $result),
+							'contain' => array('Attribute')
+						));
+						return $this->RestResponse->viewData($object, $this->response->type());
+					} else {
+						return $this->RestResponse->saveFailResponse('Attributes', 'add', false, $result, $this->response->type());
+					}
 				}
 			}
 		}
