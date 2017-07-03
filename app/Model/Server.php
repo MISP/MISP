@@ -765,6 +765,14 @@ class Server extends AppModel {
 						'errorMessage' => '',
 						'test' => 'testForNumeric',
 						'type' => 'numeric'
+					),
+					'redis_password' => array(
+						'level' => 0,
+						'description' => 'The password on the redis server (if any) to be used for generic MISP tasks.',
+						'value' => '',
+						'errorMessage' => '',
+						'test' => 'testForEmpty',
+						'type' => 'string'
 					)
 			),
 			'GnuPG' => array(
