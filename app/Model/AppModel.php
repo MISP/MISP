@@ -1027,9 +1027,11 @@ class AppModel extends Model {
 		$host = Configure::read('MISP.redis_host') ? Configure::read('MISP.redis_host') : '127.0.0.1';
 		$port = Configure::read('MISP.redis_port') ? Configure::read('MISP.redis_port') : 6379;
 		$database = Configure::read('MISP.redis_database') ? Configure::read('MISP.redis_database') : 13;
+		$pass = Configure::read('MISP.redis_password');
 		if (!$redis->connect($host, $port)) {
 			return false;
 		}
+		if (!empty($pass)) $redis->auth($pass);
 		$redis->select($database);
 		$this->__redisConnection = $redis;
 		return $redis;
