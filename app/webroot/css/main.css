@@ -1702,7 +1702,7 @@ table.table.table-striped tr.deleted_row td {
 }
 
 .popover {
-	max-width:100%;
+	max-width:33%;
 }
 
 .checkbox input[type=checkbox] {
