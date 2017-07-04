@@ -29,6 +29,8 @@ class PubSubTool {
 			$settings = $this->__setupPubServer();
 			$redis = new Redis();
 			$redis->connect($settings['redis_host'], $settings['redis_port']);
+			$redis_pwd = $settings['redis_password'];
+			if (!empty($redis_pwd)) $redis->auth($redis_pwd);
 			$redis->select($settings['redis_database']);
 			$this->__redis = $redis;
 			$this->__settings = $settings;
@@ -55,6 +57,8 @@ class PubSubTool {
 		$redis = new Redis();
 		$settings = $this->__getSetSettings();
 		$redis->connect($settings['redis_host'], $settings['redis_port']);
+		$redis_pwd = $settings['redis_password'];
+		if (!empty($redis_pwd)) $redis->auth($redis_pwd);
 		$redis->select($settings['redis_database']);
 		$redis->rPush($settings['redis_namespace'] . ':command', 'status');
 		sleep(1);
@@ -112,6 +116,8 @@ class PubSubTool {
 		if ($this->checkIfRunning()) {
 			if ($settings == false) $settings = $this->__getSetSettings();
 			$redis->connect($settings['redis_host'], $settings['redis_port']);
+			$redis_pwd = $settings['redis_password'];
+			if (!empty($redis_pwd)) $redis->auth($redis_pwd);
 			$redis->select($settings['redis_database']);
 			$redis->rPush($settings['redis_namespace'] . ':command', 'kill');
 			sleep(1);
@@ -128,6 +134,8 @@ class PubSubTool {
 			$settings = $this->__getSetSettings();
 			$redis = new Redis();
 			$redis->connect($settings['redis_host'], $settings['redis_port']);
+			$redis_pwd = $settings['redis_password'];
+			if (!empty($redis_pwd)) $redis->auth($redis_pwd);
 			$redis->select($settings['redis_database']);
 			$redis->rPush($settings['redis_namespace'] . ':command', 'reload');
 		}
