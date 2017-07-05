@@ -40,7 +40,7 @@
     <dt>Distribution</dt>
     <dd>
       <?php
-          echo $this->Form->input('Object.distribution', array(
+          echo $this->Form->input('MispObject.distribution', array(
             'class' => 'Object_distribution_select',
             'options' => $distributionData['levels'],
             'default' => $distributionData['initial'],
@@ -48,7 +48,7 @@
             'style' => 'margin-bottom:5px;',
             'div' => false
           ));
-        echo $this->Form->input('Object.sharing_group_id', array(
+        echo $this->Form->input('MispObject.sharing_group_id', array(
           'class' => 'Object_sharing_group_id_select',
           'options' => $distributionData['sgs'],
           'label' => false,
@@ -60,7 +60,7 @@
     <dt>Comment</dt>
     <dd>
       <?php
-        echo $this->Form->input('Object.comment', array(
+        echo $this->Form->input('MispObject.comment', array(
           'type' => 'textarea',
           'style' => 'height:20px;width:400px;',
           'required' => false,
