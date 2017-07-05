@@ -105,9 +105,11 @@ class ACLComponent extends Component {
 					'freeTextImport' => array('perm_add'),
 					'hids' => array('*'),
 					'index' => array('*'),
+					'massDelete' => array('perm_site_admin'),
 					'nids' => array('*'),
 					'proposalEventIndex' => array('*'),
 					'publish' => array('perm_publish'),
+					'pushEventToZMQ' => array('perm_site_admin'),
 					'pushProposals' => array('perm_sync'),
 					'queryEnrichment' => array('perm_add'),
 					'removePivot' => array('*'),
@@ -189,6 +191,25 @@ class ACLComponent extends Component {
 					'delete' => array(),
 					'index' => array('*'),
 			),
+			'objects' => array(
+				'add' => array('perm_add'),
+				'delete' => array('perm_add'),
+				'edit' => array('perm_add'),
+				'view' => array('*'),
+			),
+			'objectTemplates' => array(
+				'add' => array('perm_object_template'),
+				'edit' => array('perm_object_template'),
+				'delete' => array('perm_object_template'),
+				'objectChoice' => array('*'),
+				'view' => array('*'),
+				'viewElements' => array('*'),
+				'index' => array('*'),
+				'update' => array('perm_site_admin')
+			),
+			'objectTemplateElements' => array(
+				'viewElements' => array('*')
+			),
 			'orgBlacklists' => array(
 					'add' => array(),
 					'delete' => array(),
@@ -215,6 +236,7 @@ class ACLComponent extends Component {
 					'add' => array('*'),
 					'delete' => array('*'),
 					'edit' => array('*'),
+					'pushMessageToZMQ' => array('perm_site_admin')
 			),
 			'regexp' => array(
 					'admin_add' => array('perm_regexp_access'),
@@ -243,6 +265,7 @@ class ACLComponent extends Component {
 					'fetchServersForSG' => array('*'),
 					'filterEventIndex' => array(),
 					'getGit' => array(),
+					'getInstanceUUID' => array('perm_sync'),
 					'getPyMISPVersion' => array('*'),
 					'getVersion' => array('*'),
 					'index' => array('OR' => array('perm_sync', 'perm_admin')),
