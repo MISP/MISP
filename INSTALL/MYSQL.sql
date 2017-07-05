@@ -474,19 +474,19 @@ CREATE TABLE IF NOT EXISTS object_attribute_references (
 -- Table structure for table `object_object_references`
 --
 
-CREATE TABLE IF NOT EXISTS object_object_references (
+CREATE TABLE IF NOT EXISTS object_references (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
   `timestamp` int(11) NOT NULL DEFAULT 0,
-  `referenced_object_uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
-  `type` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+  `referenced_uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
+  `referenced_type` int(11) NOT NULL DEFAULT 0,
+  `relationship_type` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
   `comment` text COLLATE utf8_bin NOT NULL,
   PRIMARY KEY (id),
-  INDEX `name` (`name`),
   INDEX `uuid` (`uuid`),
   INDEX `timestamp` (`timestamp`),
-  INDEX `referenced_object_uuid` (`referenced_object_uuid`),
-  INDEX `type` (`type`)
+  INDEX `referenced_uuid` (`referenced_uuid`),
+  INDEX `relationship_type` (`relationship_type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
