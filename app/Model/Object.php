@@ -28,7 +28,7 @@ class Object extends AppModel {
 			'conditions' => array('Object.template_uuid' => 'ObjectTemplate.uuid')
 		)
 	);
-	
+
 	public $hasMany = array(
 		'Attribute' => array(
 			'className' => 'Attribute',
@@ -258,7 +258,7 @@ class Object extends AppModel {
 	public function prepareTemplate($template) {
 		$temp = array();
 		usort($template['ObjectTemplateElement'], function($a, $b) {
-			return $a['frequency'] < $b['frequency'];
+			return $a['ui-priority'] < $b['ui-priority'];
 		});
 		foreach ($template['ObjectTemplateElement'] as $k => $v) {
 			$template['ObjectTemplateElement'][$k]['default_category'] = $this->Event->Attribute->typeDefinitions[$template['ObjectTemplateElement'][$k]['type']]['default_category'];

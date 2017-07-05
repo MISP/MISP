@@ -121,7 +121,7 @@ class ObjectTemplate extends AppModel {
 			}
 		}
 		unset($existingTemplateElementsTemp);
-		$fieldsToCompare = array('in-object-name', 'type', 'frequency', 'categories', 'sane_default', 'values_list');
+		$fieldsToCompare = array('in-object-name', 'type', 'ui-priority', 'categories', 'sane_default', 'values_list');
 		foreach ($template['attributes'] as $k => $attribute) {
 			$attribute['in-object-name'] = $k;
 			$attribute = $this->__convertJSONToElement($attribute);
@@ -161,7 +161,7 @@ class ObjectTemplate extends AppModel {
 				'misp-usage-frequency' => 'frequency',
 				'misp-attribute' => 'type',
 				'description' => 'description',
-				'frequency' => 'frequency',
+				'ui-priority' => 'ui-priority',
 				'type' => 'type',
 				'disable_correlation' => 'disable_correlation',
 				'in-object-name' => 'in-object-name',

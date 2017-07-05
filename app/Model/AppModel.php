@@ -764,7 +764,7 @@ class AppModel extends Model {
 					`object_template_id` int(11) NOT NULL,
 					`in-object-name` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
 					`type` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
-					`frequency` int(11) NOT NULL,
+					`ui-priority` int(11) NOT NULL,
 					`categories` text COLLATE utf8_bin,
 					`sane_default` text COLLATE utf8_bin,
 					`values_list` text COLLATE utf8_bin,

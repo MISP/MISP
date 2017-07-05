@@ -18,7 +18,7 @@
 	<tr>
 		<th><?php echo $this->Paginator->sort('in_object_name');?></th>
 		<th><?php echo $this->Paginator->sort('type');?></th>
-    <th><?php echo $this->Paginator->sort('frequency');?></th>
+    <th><?php echo $this->Paginator->sort('ui-priority');?></th>
     <th><?php echo $this->Paginator->sort('description');?></th>
     <th>Categories</th>
 		<th>Sane defaults</th>
@@ -32,7 +32,7 @@
 		<tr>
 			<td class="short bold"><?php echo h($item['ObjectTemplateElement']['in-object-name']); ?>&nbsp;</td>
       <td class="short"><?php echo h($item['ObjectTemplateElement']['type']); ?>&nbsp;</td>
-      <td class="short"><?php echo h($item['ObjectTemplateElement']['frequency']); ?>&nbsp;</td>
+      <td class="short"><?php echo h($item['ObjectTemplateElement']['ui-priority']); ?>&nbsp;</td>
       <td class="short"><?php echo h($item['ObjectTemplateElement']['description']); ?>&nbsp;</td>
       <?php
         foreach ($listItems as $listItem):
