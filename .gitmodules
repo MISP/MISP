@@ -21,3 +21,6 @@
 [submodule "app/files/misp-galaxy"]
 	path = app/files/misp-galaxy
 	url = https://github.com/MISP/misp-galaxy
+[submodule "app/files/misp-objects"]
+	path = app/files/misp-objects
+	url = https://github.com/MISP/misp-objects

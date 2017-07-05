@@ -29,6 +29,8 @@
 !/app/files/warninglists/*
 !/app/files/misp-galaxy
 !/app/files/misp-galaxy/*
+!/app/files/misp-objects
+!/app/files/misp-objects/*
 /app/files/scripts/python-stix/
 /app/files/scripts/python-cybox/
 /app/files/scripts/mixbox/
