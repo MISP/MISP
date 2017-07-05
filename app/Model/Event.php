@@ -312,7 +312,7 @@ class Event extends AppModel {
 			'counterQuery' => ''
 		),
 		'Object' => array(
-			'className' => 'Object',
+			'className' => 'MispObject',
 			'foreignKey' => 'event_id',
 			'dependent' => true,
 			'conditions' => '',

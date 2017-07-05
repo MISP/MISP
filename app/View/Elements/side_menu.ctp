@@ -364,6 +364,11 @@
 				?>
 					<li id='liindex'><a href="<?php echo $baseurl;?>/objectTemplates/index">List Object Templates</a></li>
 				<?php
+					if ($isSiteAdmin):
+				?>
+					<li><?php echo $this->Form->postLink('Update Objects', '/objectTemplates/update'); ?></li>
+				<?php
+					endif;
 					if ($menuItem === 'view'):
 				?>
 						<li class="active"><a href="#">View Object Template</a></li>

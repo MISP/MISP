@@ -1,6 +1,6 @@
 <div class="<?php if (!isset($ajax) || !$ajax) echo 'form';?>">
 <?php
-	echo $this->Form->create('Object', array('id', 'url' => '/objects/add/' . $event['Event']['id'] . '/' . $template['ObjectTemplate']['id'], 'enctype' => 'multipart/form-data'));
+	echo $this->Form->create('MispObject', array('id', 'url' => '/objects/add/' . $event['Event']['id'] . '/' . $template['ObjectTemplate']['id'], 'enctype' => 'multipart/form-data'));
 ?>
 <h3><?php echo 'Add ' . Inflector::humanize(h($template['ObjectTemplate']['name'])) . ' Object'; ?></h3>
 <div class="row-fluid" style="margin-bottom:10px;">

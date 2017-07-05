@@ -2,14 +2,16 @@
 
 App::uses('AppModel', 'Model');
 
-class Object extends AppModel {
+class MispObject extends AppModel {
+
+	public $useTable = 'objects';
+
 	public $actsAs = array(
 			'Containable',
-			'SysLogLogable.SysLogLogable' => array(
-					'roleModel' => 'Object',
-					'roleKey' => 'object_id',
-					'change' => 'full'
-			),
+			'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
+				'userModel' => 'User',
+				'userKey' => 'user_id',
+				'change' => 'full'),
 	);
 
 	public $belongsTo = array(
@@ -25,7 +27,7 @@ class Object extends AppModel {
 			'className' => 'ObjectTemplate',
 			'foreignKey' => false,
 			'dependent' => false,
-			'conditions' => array('Object.template_uuid' => 'ObjectTemplate.uuid')
+			'conditions' => array('MispObject.template_uuid' => 'ObjectTemplate.uuid')
 		)
 	);
 
@@ -45,21 +47,25 @@ class Object extends AppModel {
 
 	public function beforeValidate($options = array()) {
 		parent::beforeValidate();
+		if (isset($this->data['Object'])) {
+			$this->data['MispObject'] = $this->data['Object'];
+			unset($this->data['Object']);
+		}
 
-		if (empty($this->data['Object']['comment'])) {
-			$this->data['Object']['comment'] = "";
+		if (empty($this->data['MispObject']['comment'])) {
+			$this->data['MispObject']['comment'] = "";
 		}
 		// generate UUID if it doesn't exist
-		if (empty($this->data['Object']['uuid'])) {
-			$this->data['Object']['uuid'] = CakeText::uuid();
+		if (empty($this->data['MispObject']['uuid'])) {
+			$this->data['MispObject']['uuid'] = CakeText::uuid();
 		}
 		// generate timestamp if it doesn't exist
-		if (empty($this->data['Object']['timestamp'])) {
+		if (empty($this->data['MispObject']['timestamp'])) {
 			$date = new DateTime();
-			$this->data['Object']['timestamp'] = $date->getTimestamp();
+			$this->data['MispObject']['timestamp'] = $date->getTimestamp();
 		}
-		if (!isset($this->data['Object']['distribution']) || $this->data['Object']['distribution'] != 4) $this->data['Object']['sharing_group_id'] = 0;
-		if (!isset($this->data['Object']['distribution'])) $this->data['Object']['distribution'] = 5;
+		if (!isset($this->data['MispObject']['distribution']) || $this->data['MispObject']['distribution'] != 4) $this->data['MispObject']['sharing_group_id'] = 0;
+		if (!isset($this->data['MispObject']['distribution'])) $this->data['MispObject']['distribution'] = 5;
 		return true;
 	}
 
@@ -73,9 +79,9 @@ class Object extends AppModel {
 			'template_uuid' => 'uuid'
 		);
 		foreach ($templateFields as $k => $v) {
-				$object['Object'][$k] = $template['ObjectTemplate'][$v];
+				$object['MispObject'][$k] = $template['ObjectTemplate'][$v];
 		}
-		$object['Object']['event_id'] = $eventId;
+		$object['MispObject']['event_id'] = $eventId;
 		$result = false;
 		if ($this->save($object)) {
 			$id = $this->id;

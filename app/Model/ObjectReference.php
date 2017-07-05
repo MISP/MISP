@@ -6,10 +6,9 @@ class Object extends AppModel {
 	public $actsAs = array(
 			'Containable',
 			'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
-					'roleModel' => 'Object',
-					'roleKey' => 'object_id',
-					'change' => 'full'
-			),
+				'userModel' => 'User',
+				'userKey' => 'user_id',
+				'change' => 'full'),
 	);
 
 	public $belongsTo = array(
