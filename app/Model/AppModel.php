@@ -768,6 +768,8 @@ class AppModel extends Model {
 					`categories` text COLLATE utf8_bin,
 					`sane_default` text COLLATE utf8_bin,
 					`values_list` text COLLATE utf8_bin,
+					`disable_correlations` tinyint(1) NOT NULL DEFAULT 0,
+					`multiple` tinyint(1) NOT NULL DEFAULT 0,
 					PRIMARY KEY (id),
 					INDEX `in-object-name` (`in-object-name`),
 					INDEX `type` (`type`)
