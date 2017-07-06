@@ -49,7 +49,6 @@ class ObjectsController extends AppController {
 				'ObjectTemplateElement'
 			)
 		));
-		$eventId = $event['Event']['id'];
 		$error = false;
 		// If we have received a POST request
 		if ($this->request->is('post')) {
@@ -111,12 +110,115 @@ class ObjectsController extends AppController {
 			$this->set('distributionData', $distributionData);
 			$this->set('event', $event);
 			$this->set('ajax', false);
+			$this->set('action', 'add');
 			$this->set('template', $template);
 		}
   }
 
   public function edit($id) {
+		if (!$this->userRole['perm_modify']) {
+			throw new MethodNotAllowedException('You don\'t have permissions to create objects.');
+		}
+		$object = $this->MispObject->find('first', array(
+			'conditions' => array('Object.id' => $id),
+			'recursive' => -1,
+			'contain' => array(
+				'Attribute' => array(
+					'conditions' => array(
+						'Attribute.deleted' => 0
+					)
+				)
+			)
+		));
+		if (empty($object)) {
+			throw new NotFoundException('Invalid object.');
+		}
+		$eventFindParams = array(
+			'recursive' => -1,
+			'fields' => array('Event.id', 'Event.uuid', 'Event.orgc_id'),
+			'conditions' => array('Event.id' => $object['Object']['event_id'])
+		);
 
+		$event = $this->MispObject->Event->find('first', $eventFindParams);
+		if (empty($event) || (!$this->_isSiteAdmin() &&	$event['Event']['orgc_id'] != $this->Auth->user('org_id'))) {
+			throw new NotFoundException('Invalid object.');
+		}
+		$template = $this->MispObject->ObjectTemplate->find('first', array(
+			'conditions' => array(
+				'ObjectTemplate.uuid' => $object['Object']['template_uuid'],
+				'ObjectTemplate.version' => $object['Object']['template_version'],
+			),
+			'recursive' => -1,
+			'contain' => array(
+				'ObjectTemplateElement'
+			)
+		));
+		$template = $this->MispObject->prepareTemplate($template);
+		$enabledRows = false;
+
+		if ($this->request->is('post') || $this->request->is('put')) {
+			if (isset($this->request->data['request'])) {
+				$this->request->data = $this->request->data['request'];
+			}
+			if (!isset($this->request->data['Attribute'])) {
+				$this->request->data = array('Attribute' => $this->request->data);
+			}
+			$objectToSave = $this->MispObject->attributeCleanup($this->request->data);
+			$objectToSave = $this->MispObject->deltaMerge($object, $objectToSave);
+			// we pre-validate the attributes before we create an object at this point
+			// This allows us to stop the process and return an error (API) or return
+			//  to the add form
+			if (empty($error)) {
+				if ($this->_isRest()) {
+					if (is_numeric($result)) {
+						$objectToSave = $this->MispObject->find('first', array(
+							'recursive' => -1,
+							'conditions' => array('Object.id' => $result),
+							'contain' => array('Attribute')
+						));
+						return $this->RestResponse->viewData($objectToSave, $this->response->type());
+					} else {
+						return $this->RestResponse->saveFailResponse('Attributes', 'add', false, $result, $this->response->type());
+					}
+				} else {
+					 $this->Session->setFlash('Object saved.');
+					 $this->redirect(array('controller' => 'events', 'action' => 'view', $object['Object']['id']));
+				}
+			}
+		} else {
+			$enabledRows = array();
+			$this->request->data['Object'] = $object['Object'];
+			foreach ($template['ObjectTemplateElement'] as $k => $element) {
+				foreach ($object['Attribute'] as $k2 => $attribute) {
+					if ($attribute['object_relation'] == $element['in-object-name']) {
+						$enabledRows[] = $k;
+						$this->request->data['Attribute'][$k] = $attribute;
+						if (!empty($element['values_list'])) {
+							$this->request->data['Attribute'][$k]['value_select'] = $attribute['value'];
+						} else {
+							if (!empty($element['sane_default'])) {
+								if (in_array($attribute['value'], $element['sane_default'])) {
+									$this->request->data['Attribute'][$k]['value_select'] = $attribute['value'];
+								} else {
+									$this->request->data['Attribute'][$k]['value_select'] = 'Enter value manually';
+								}
+							}
+						}
+					}
+				}
+			}
+
+		}
+		
+		$this->set('enabledRows', $enabledRows);
+		$distributionData = $this->MispObject->Event->Attribute->fetchDistributionData($this->Auth->user());
+		$this->set('distributionData', $distributionData);
+		$this->set('event', $event);
+		$this->set('ajax', false);
+		$this->set('template', $template);
+		$this->set('action', 'edit');
+		$this->set('object', $object);
+		$this->render('add');
   }
 
   public function delete($id) {

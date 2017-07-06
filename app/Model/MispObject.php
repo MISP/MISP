@@ -4,6 +4,9 @@ App::uses('AppModel', 'Model');
 
 class MispObject extends AppModel {
 
+	public $name = 'Object';
+	public $alias = 'Object';
+
 	public $useTable = 'objects';
 
 	public $actsAs = array(
@@ -47,25 +50,20 @@ class MispObject extends AppModel {
 
 	public function beforeValidate($options = array()) {
 		parent::beforeValidate();
-		if (isset($this->data['Object'])) {
-			$this->data['MispObject'] = $this->data['Object'];
-			unset($this->data['Object']);
-		}
-
-		if (empty($this->data['MispObject']['comment'])) {
-			$this->data['MispObject']['comment'] = "";
+		if (empty($this->data['Object']['comment'])) {
+			$this->data['Object']['comment'] = "";
 		}
 		// generate UUID if it doesn't exist
-		if (empty($this->data['MispObject']['uuid'])) {
-			$this->data['MispObject']['uuid'] = CakeText::uuid();
+		if (empty($this->data['Object']['uuid'])) {
+			$this->data['Object']['uuid'] = CakeText::uuid();
 		}
 		// generate timestamp if it doesn't exist
-		if (empty($this->data['MispObject']['timestamp'])) {
+		if (empty($this->data['Object']['timestamp'])) {
 			$date = new DateTime();
-			$this->data['MispObject']['timestamp'] = $date->getTimestamp();
+			$this->data['Object']['timestamp'] = $date->getTimestamp();
 		}
-		if (!isset($this->data['MispObject']['distribution']) || $this->data['MispObject']['distribution'] != 4) $this->data['MispObject']['sharing_group_id'] = 0;
-		if (!isset($this->data['MispObject']['distribution'])) $this->data['MispObject']['distribution'] = 5;
+		if (!isset($this->data['Object']['distribution']) || $this->data['Object']['distribution'] != 4) $this->data['Object']['sharing_group_id'] = 0;
+		if (!isset($this->data['Object']['distribution'])) $this->data['Object']['distribution'] = 5;
 		return true;
 	}
 
@@ -79,9 +77,9 @@ class MispObject extends AppModel {
 			'template_uuid' => 'uuid'
 		);
 		foreach ($templateFields as $k => $v) {
-				$object['MispObject'][$k] = $template['ObjectTemplate'][$v];
+				$object['Object'][$k] = $template['ObjectTemplate'][$v];
 		}
-		$object['MispObject']['event_id'] = $eventId;
+		$object['Object']['event_id'] = $eventId;
 		$result = false;
 		if ($this->save($object)) {
 			$id = $this->id;
@@ -322,5 +320,49 @@ class MispObject extends AppModel {
 			}
 		}
 		return $attributes;
+	}
+
+	public function deltaMerge($object, $objectToSave) {
+		$object['Object']['comment'] = $objectToSave['Object']['comment'];
+		$object['Object']['distribution'] = $objectToSave['Object']['distribution'];
+		$object['Object']['sharing_group_id'] = $objectToSave['Object']['sharing_group_id'];
+		$date = new DateTime();
+		$object['Object']['timestamp'] = $date->getTimestamp();
+		$this->save($object);
+		foreach ($objectToSave['Attribute'] as $newKey => $newAttribute) {
+			foreach ($object['Attribute'] as $origKey => $originalAttribute) {
+				if (!empty($newAttribute['uuid'])) {
+					if ($newAttribute['uuid'] == $originalAttribute['uuid']) {
+						$newAttribute['id'] = $originalAttribute['id'];
+						$newAttribute['event_id'] = $object['Object']['event_id'];
+						$newAttribute['object_id'] = $object['Object']['id'];
+						$newAttribute['timestamp'] = $date->getTimestamp();
+						$this->Event->Attribute->save($newAttribute, array(
+							'category',
+							'value',
+							'to_ids',
+							'distribution',
+							'sharing_group_id',
+							'comment',
+							'timestamp',
+							'object_id',
+							'event_id'
+						));
+						unset($object['Attribute'][$origKey]);
+						continue 2;
+					}
+				}
+			}
+			$this->Event->Attribute->create();
+			$newAttribute['event_id'] = $object['Object']['event_id'];
+			$newAttribute['object_id'] = $object['Object']['id'];
+			$this->Event->Attribute->save($newAttribute);
+			$attributeArrays['add'][] = $newAttribute;
+			unset($objectToSave['Attribute'][$newKey]);
+		}
+		foreach ($object['Attribute'] as $origKey => $originalAttribute) {
+			$originalAttribute['deleted'] = 1;
+			$this->Event->Attribute->save($originalAttribute);
+		}
 	}
 }

@@ -1,8 +1,9 @@
 <div class="<?php if (!isset($ajax) || !$ajax) echo 'form';?>">
 <?php
-	echo $this->Form->create('MispObject', array('id', 'url' => '/objects/add/' . $event['Event']['id'] . '/' . $template['ObjectTemplate']['id'], 'enctype' => 'multipart/form-data'));
+	$url = ($action == 'add') ? '/objects/add/' . $event['Event']['id'] . '/' . $template['ObjectTemplate']['id'] : '/objects/edit/' . $object['Object']['id'];
+	echo $this->Form->create('Object', array('id', 'url' => $url, 'enctype' => 'multipart/form-data'));
 ?>
-<h3><?php echo 'Add ' . Inflector::humanize(h($template['ObjectTemplate']['name'])) . ' Object'; ?></h3>
+<h3><?php echo ucfirst($action) . ' ' . Inflector::humanize(h($template['ObjectTemplate']['name'])) . ' Object'; ?></h3>
 <div class="row-fluid" style="margin-bottom:10px;">
   <dl class="span8">
     <dt>Object Template</dt>
@@ -40,7 +41,7 @@
     <dt>Distribution</dt>
     <dd>
       <?php
-          echo $this->Form->input('MispObject.distribution', array(
+          echo $this->Form->input('Object.distribution', array(
             'class' => 'Object_distribution_select',
             'options' => $distributionData['levels'],
             'default' => $distributionData['initial'],
@@ -48,7 +49,7 @@
             'style' => 'margin-bottom:5px;',
             'div' => false
           ));
-        echo $this->Form->input('MispObject.sharing_group_id', array(
+        echo $this->Form->input('Object.sharing_group_id', array(
           'class' => 'Object_sharing_group_id_select',
           'options' => $distributionData['sgs'],
           'label' => false,
@@ -60,7 +61,7 @@
     <dt>Comment</dt>
     <dd>
       <?php
-        echo $this->Form->input('MispObject.comment', array(
+        echo $this->Form->input('Object.comment', array(
           'type' => 'textarea',
           'style' => 'height:20px;width:400px;',
           'required' => false,
@@ -100,18 +101,29 @@
     </td>
     <td class="shortish" title="<?php echo h($element['description']); ?>">
       <?php
-        echo $this->Form->input('Attribute.' . $k . '.object_relation', array(
+				$formSettings = array(
           'type' => 'hidden',
           'value' => $element['in-object-name'],
           'label' => false,
           'div' => false
-        ));
-        echo $this->Form->input('Attribute.' . $k . '.type', array(
+        );
+				if ($action == 'edit') unset($formSettings['value']);
+        echo $this->Form->input('Attribute.' . $k . '.object_relation', $formSettings);
+				if ($action == 'edit') {
+					echo $this->Form->input('Attribute.' . $k . '.uuid', array(
+						'type' => 'hidden',
+						'label' => false,
+						'div' => false
+					));
+				}
+				$formSettings = array(
           'type' => 'hidden',
           'value' => $element['type'],
           'label' => false,
           'div' => false
-        ));
+        );
+				if ($action == 'edit') unset($formSettings['value']);
+        echo $this->Form->input('Attribute.' . $k . '.type', $formSettings);
         echo '<span class="bold">' . Inflector::humanize(h($element['in-object-name'])) . '</span>';
         if (!empty($template['ObjectTemplate']['requirements']['required']) && in_array($element['in-object-name'], $template['ObjectTemplate']['requirements']['required'])) {
           echo '<span class="bold red">' . '(*)' . '</span>';
@@ -121,13 +133,15 @@
     </td>
     <td class="short">
       <?php
-        echo $this->Form->input('Attribute.' . $k . '.category', array(
+				$formSettings = array(
           'options' => array_combine($element['categories'], $element['categories']),
           'default' => $element['default_category'],
           'style' => 'margin-bottom:0px;',
           'label' => false,
           'div' => false
-        ));
+        );
+				if ($action == 'edit') unset($formSettings['value']);
+        echo $this->Form->input('Attribute.' . $k . '.category', $formSettings);
       ?>
     </td>
     <td>
@@ -267,7 +281,9 @@
   var rows = <?php echo json_encode($row_list, true); ?>;
   $(document).ready(function() {
     enableDisableObjectRows(rows);
-
+		$(".Attribute_value_select").each(function() {
+      checkAndEnable($(this).parent().find('.Attribute_value'), $(this).val() == 'Enter value manually');
+    });
     $(".Attribute_distribution_select").change(function() {
       checkAndEnable($(this).parent().find('.Attribute_sharing_group_id_select'), $(this).val() == 4);
     });
@@ -275,7 +291,6 @@
     $(".Object_distribution_select").change(function() {
       checkAndEnable($(this).parent().find('.Object_sharing_group_id_select'), $(this).val() == 4);
     });
-
     $(".Attribute_value_select").change(function() {
       checkAndEnable($(this).parent().find('.Attribute_value'), $(this).val() == 'Enter value manually');
     });
