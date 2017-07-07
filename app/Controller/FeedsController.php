@@ -279,7 +279,7 @@ class FeedsController extends AppController {
 					true
 			);
 			$this->Job->saveField('process_id', $process_id);
-			$message = 'Pull queued for background execution.';
+			$message = array('result' => 'Pull queued for background execution.');
 		} else {
 			$result = $this->Feed->downloadFromFeedInitiator($feedId, $this->Auth->user());
 			if (!$result) {
@@ -290,10 +290,10 @@ class FeedsController extends AppController {
 					$this->redirect(array('action' => 'index'));
 				}
 			}
-			$message = 'Fetching the feed has successfuly completed.';
+			$message = array('result' => 'Fetching the feed has successfuly completed.');
 			if ($this->Feed->data['Feed']['source_format'] == 'misp') {
-				if (isset($result['add'])) $message .= ' Downloaded ' . count($result['add']) . ' new event(s).';
-				if (isset($result['edit'])) $message .= ' Updated ' . count($result['edit']) . ' event(s).';
+				if (isset($result['add'])) $message['result'] .= ' Downloaded ' . count($result['add']) . ' new event(s).';
+				if (isset($result['edit'])) $message['result'] .= ' Updated ' . count($result['edit']) . ' event(s).';
 			}
 		}
 		if ($this->_isRest()) {
