@@ -37,6 +37,13 @@ class UsersController extends AppController {
 		if (!$this->_isSiteAdmin() && $this->Auth->user('id') != $id) {
 			throw new NotFoundException(__('Invalid user or not authorised.'));
 		}
+		if (!is_numeric($id) && !empty($id)) {
+			$userId = $this->User->find('first', array(
+					'conditions' => array('email' => $id),
+					'fields' => array('id')
+			));
+			$id = $userid['User']['id'];
+		}
 		$this->User->id = $id;
 		$this->User->recursive = 0;
 		if (!$this->User->exists()) {

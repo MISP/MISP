@@ -645,25 +645,39 @@ class Attribute extends AppModel {
 		public function valueIsUnique ($fields) {
 		if (isset($this->data['Attribute']['deleted']) && $this->data['Attribute']['deleted']) return true;
 		$value = $fields['value'];
+		if (strpos($value, '|')) {
+			$value = explode('|', $value);
+			$value = array(
+				'Attribute.value1' => $value[0],
+				'Attribute.value2' => $value[1]
+			);
+		} else {
+			$value = array(
+				'Attribute.value1' => $value,
+			);
+		}
 		$eventId = $this->data['Attribute']['event_id'];
 		$type = $this->data['Attribute']['type'];
 		$category = $this->data['Attribute']['category'];
 
 		// check if the attribute already exists in the same event
-		$conditions = array('Attribute.event_id' => $eventId,
-				'Attribute.type' => $type,
-				'Attribute.category' => $category,
-				'Attribute.value' => $value,
-				'Attribute.deleted' => 0
+		$conditions = array(
+			'Attribute.event_id' => $eventId,
+			'Attribute.type' => $type,
+			'Attribute.category' => $category,
+			'Attribute.deleted' => 0
 		);
+		$conditions = array_merge ($conditions, $value);
 		if (isset($this->data['Attribute']['id'])) {
 			$conditions['Attribute.id !='] = $this->data['Attribute']['id'];
 		}
 
-		$params = array('recursive' => -1,
-				'conditions' => $conditions,
+		$params = array(
+			'recursive' => -1,
+			'fields' => array('id'),
+			'conditions' => $conditions,
 		);
-		if (0 != $this->find('count', $params)) {
+		if (!empty($this->find('first', $params))) {
 			// value isn't unique
 			return false;
 		}

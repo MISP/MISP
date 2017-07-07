@@ -765,6 +765,14 @@ class Server extends AppModel {
 						'errorMessage' => '',
 						'test' => 'testForNumeric',
 						'type' => 'numeric'
+					),
+					'redis_password' => array(
+						'level' => 0,
+						'description' => 'The password on the redis server (if any) to be used for generic MISP tasks.',
+						'value' => '',
+						'errorMessage' => '',
+						'test' => null,
+						'type' => 'string'
 					)
 			),
 			'GnuPG' => array(
@@ -2134,10 +2142,12 @@ class Server extends AppModel {
 
 	private function __evaluateLeaf($leafValue, $leafKey, $setting) {
 		if (isset($setting)) {
-			$result = $this->{$leafValue['test']}($setting);
-			if ($result !== true) {
-				$leafValue['error'] = 1;
-				if ($result !== false) $leafValue['errorMessage'] = $result;
+			if (!empty($leafValue['test'])) {
+				$result = $this->{$leafValue['test']}($setting);
+				if ($result !== true) {
+					$leafValue['error'] = 1;
+					if ($result !== false) $leafValue['errorMessage'] = $result;
+				}
 			}
 			if ($setting !== '') $leafValue['value'] = $setting;
 		} else {
