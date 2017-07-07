@@ -279,25 +279,25 @@ class FeedsController extends AppController {
 					true
 			);
 			$this->Job->saveField('process_id', $process_id);
-			$message = array('result' => 'Pull queued for background execution.');
+			$message = 'Pull queued for background execution.';
 		} else {
 			$result = $this->Feed->downloadFromFeedInitiator($feedId, $this->Auth->user());
 			if (!$result) {
 				if ($this->_isRest()) {
-					return $this->RestResponse->viewData('Fetching the feed has failed.', $this->response->type());
+					return $this->RestResponse->viewData(array('result' => 'Fetching the feed has failed.'), $this->response->type());
 				} else {
 					$this->Session->setFlash('Fetching the feed has failed.');
 					$this->redirect(array('action' => 'index'));
 				}
 			}
-			$message = array('result' => 'Fetching the feed has successfuly completed.');
+			$message = 'Fetching the feed has successfuly completed.';
 			if ($this->Feed->data['Feed']['source_format'] == 'misp') {
 				if (isset($result['add'])) $message['result'] .= ' Downloaded ' . count($result['add']) . ' new event(s).';
 				if (isset($result['edit'])) $message['result'] .= ' Updated ' . count($result['edit']) . ' event(s).';
 			}
 		}
 		if ($this->_isRest()) {
-			return $this->RestResponse->viewData($message, $this->response->type());
+			return $this->RestResponse->viewData(array('result' => $message), $this->response->type());
 		} else {
 			$this->Session->setFlash($message);
 			$this->redirect(array('action' => 'index'));

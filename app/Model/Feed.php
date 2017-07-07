@@ -704,33 +704,39 @@ class Feed extends AppModel {
 			}
 		}
 		if ($feed['Feed']['fixed_event']) {
-			$event = $this->Event->find('first', array(
+			$temp = $this->Event->Attribute->find('all', array(
 				'conditions' => array(
-					'Event.id' => $event['Event']['id']),
-					'recursive' => -1,
-					'contain' => array(
-						'Attribute' => array(
-							'conditions' => array(
-								'Attribute.deleted' => 0)
-							)
-						)
-					)
-				);
+					'Attribute.deleted' => 0,
+					'Attribute.event_id' => $event['Event']['id']
+				),
+				'recursive' => -1,
+				'fields' => array('id', 'value1', 'value2')
+			));
+			$event['Attribute'] = array();
+			foreach ($temp as $k => $t) {
+				$start = microtime(true);
+				if (!empty($t['Attribute']['value2'])) {
+					$t['Attribute']['value'] = $t['Attribute']['value1'] . '|' . $t['Attribute']['value2'];
+				} else {
+					$t['Attribute']['value'] = $t['Attribute']['value1'];
+				}
+				$event['Attribute'][$t['Attribute']['id']] = $t['Attribute']['value'];
+			}
+			unset($temp);
 			$to_delete = array();
 			foreach ($data as $k => $dataPoint) {
-				foreach ($event['Attribute'] as $attribute_key => $attribute) {
-					if ($dataPoint['value'] == $attribute['value'] && $dataPoint['type'] == $attribute['type'] && $attribute['category'] == $dataPoint['category']) {
-						unset($data[$k]);
-						unset($event['Attribute'][$attribute_key]);
-					}
+				$finder = array_search($dataPoint['value'], $event['Attribute']);
+				if ($finder !== false) {
+					unset($data[$k]);
+					unset($event['Attribute'][$finder]);
 				}
 			}
 			if ($feed['Feed']['delta_merge']) {
-				foreach ($event['Attribute'] as $attribute) {
-					$to_delete[] = $attribute['id'];
+				foreach ($event['Attribute'] as $k => $attribute) {
+					$to_delete[] = $k;
 				}
 				if (!empty($to_delete)) {
-					$this->Event->Attribute->deleteAll(array('Attribute.id' => $to_delete));
+					$this->Event->Attribute->deleteAll(array('Attribute.id' => $to_delete, 'Attribute.deleted' => 0));
 				}
 			}
 		}
