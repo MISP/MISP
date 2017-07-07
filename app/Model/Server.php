@@ -348,6 +348,15 @@ class Server extends AppModel {
 							'test' => 'testBool',
 							'type' => 'boolean',
 					),
+					'attachments_dir' => array(
+							'level' => 2,
+							'description' => 'Directory where attachments are stored. MISP will NOT migrate the existing data if you change this setting. The only safe way to change this setting is in config.php, when MISP is not running, and after having moved/copied the existing data to the new location. This directory must already exist and be writable and readable by the MISP application.',
+							'value' => APP . 'files',
+							'errorMessage' => '',
+							'null' => false,
+							'test' => 'testForWritableDir',
+							'type' => 'string',
+					),
 					'cached_attachments' => array(
 							'level' => 1,
 							'description' => 'Allow the XML caches to include the encoded attachments.',
@@ -2201,6 +2210,12 @@ class Server extends AppModel {
 		if ($value === '') return true;
 		if (preg_match('@^\/?(([a-z0-9_.]+[a-z0-9_.\-.\:]*[a-z0-9_.\-.\:]|[a-z0-9_.])+\/?)+$@i', $value)) return true;
 		return 'Invalid characters in the path.';
+	}
+
+	public function testForWritableDir($value) {
+		if (!is_dir($value)) return 'Not a valid directory.';
+		if (!is_writeable($value)) return 'Not a writable directory.';
+		return true;
 	}
 
 	public function testDebug($value) {

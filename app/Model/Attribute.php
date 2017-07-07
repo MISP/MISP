@@ -573,7 +573,12 @@ class Attribute extends AppModel {
 		$this->read(); // first read the attribute from the db
 		if ($this->typeIsAttachment($this->data['Attribute']['type'])) {
 			// only delete the file if it exists
-			$filepath = APP . "files" . DS . $this->data['Attribute']['event_id'] . DS . $this->data['Attribute']['id'];
+			$attachments_dir = Configure::read('MISP.attachments_dir');
+			if (empty($attachments_dir)) {
+				$my_server = ClassRegistry::init('Server');
+				$attachments_dir = $my_server->serverSettings['MISP']['attachments_dir']['value'];
+			}
+			$filepath = $attachments_dir . DS . $this->data['Attribute']['event_id'] . DS . $this->data['Attribute']['id'];
 			$file = new File($filepath);
 			if ($file->exists()) {
 				if (!$file->delete()) {
@@ -1248,7 +1253,12 @@ class Attribute extends AppModel {
 	}
 
 	public function base64EncodeAttachment($attribute) {
-		$filepath = APP . "files" . DS . $attribute['event_id'] . DS . $attribute['id'];
+		$attachments_dir = Configure::read('MISP.attachments_dir');
+		if (empty($attachments_dir)) {
+			$my_server = ClassRegistry::init('Server');
+			$attachments_dir = $my_server->serverSettings['MISP']['attachments_dir']['value'];
+		}
+		$filepath = $attachments_dir . DS . $attribute['event_id'] . DS . $attribute['id'];
 		$file = new File($filepath);
 		if (!$file->readable()) {
 			return '';
@@ -1258,7 +1268,12 @@ class Attribute extends AppModel {
 	}
 
 	public function saveBase64EncodedAttachment($attribute) {
-		$rootDir = APP . DS . "files" . DS . $attribute['event_id'];
+		$attachments_dir = Configure::read('MISP.attachments_dir');
+		if (empty($attachments_dir)) {
+			$my_server = ClassRegistry::init('Server');
+			$attachments_dir = $my_server->serverSettings['MISP']['attachments_dir']['value'];
+		}
+		$rootDir = $attachments_dir . DS . $attribute['event_id'];
 		$dir = new Folder($rootDir, true);						// create directory structure
 		$destpath = $rootDir . DS . $attribute['id'];
 		$file = new File($destpath, true);						// create the file
@@ -1303,7 +1318,12 @@ class Attribute extends AppModel {
 		// no errors in file upload, entry already in db, now move the file where needed and zip it if required.
 		// no sanitization is required on the filename, path or type as we save
 		// create directory structure
-		$rootDir = APP . "files" . DS . $eventId;
+		$attachments_dir = Configure::read('MISP.attachments_dir');
+		if (empty($attachments_dir)) {
+			$my_server = ClassRegistry::init('Server');
+			$attachments_dir = $my_server->serverSettings['MISP']['attachments_dir']['value'];
+		}
+		$rootDir = $attachments_dir . DS . $eventId;
 		$dir = new Folder($rootDir, true);
 		// move the file to the correct location
 		$destpath = $rootDir . DS . $this->getID(); // id of the new attribute in the database
@@ -2286,10 +2306,15 @@ class Attribute extends AppModel {
 	// The contents of the archive will be the actual sample, named <md5> and the original filename in a text file named <md5>.filename.txt
 	public function handleMaliciousBase64($event_id, $original_filename, $base64, $hash_types, $proposal = false) {
 		if (!is_numeric($event_id)) throw new Exception('Something went wrong. Received a non-numeric event ID while trying to create a zip archive of an uploaded malware sample.');
+		$attachments_dir = Configure::read('MISP.attachments_dir');
+		if (empty($attachments_dir)) {
+			$my_server = ClassRegistry::init('Server');
+			$attachments_dir = $my_server->serverSettings['MISP']['attachments_dir']['value'];
+		}
 		if ($proposal) {
-			$dir = new Folder(APP . "files" . DS . $event_id . DS . 'shadow', true);
+			$dir = new Folder($attachments_dir . DS . $event_id . DS . 'shadow', true);
 		} else {
-			$dir = new Folder(APP . "files" . DS . $event_id, true);
+			$dir = new Folder($attachments_dir . DS . $event_id, true);
 		}
 		$tmpFile = new File($dir->path . DS . $this->generateRandomFileName(), true, 0600);
 		$tmpFile->write(base64_decode($base64));
