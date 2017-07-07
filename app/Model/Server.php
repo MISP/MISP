@@ -3040,7 +3040,18 @@ class Server extends AppModel {
 	}
 
 	public function workerDiagnostics(&$workerIssueCount) {
-		$this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
+		try {
+			$this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
+		} catch (Exception $e) {
+			// redis connection failed
+			return array(
+					'cache' => array('ok' => false),
+					'default' => array('ok' => false),
+					'email' => array('ok' => false),
+					'prio' => array('ok' => false),
+					'scheduler' => array('ok' => false)
+			);
+		}
 		$workers = $this->ResqueStatus->getWorkers();
 		if (function_exists('posix_getpwuid')) {
 			$currentUser = posix_getpwuid(posix_geteuid());
