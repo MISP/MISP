@@ -337,7 +337,7 @@ class Event extends AppModel {
 		$attachments_dir = Configure::read('MISP.attachments_dir');
 		if (empty($attachments_dir)) {
 			$my_server = ClassRegistry::init('Server');
-			$attachments_dir = $my_server->serverSettings['MISP']['attachments_dir']['value'];
+			$attachments_dir = $my_server->getDefaultAttachments_dir();
 		}
 		$filepath = $attachments_dir . DS . $this->id;
 		App::uses('Folder', 'Utility');

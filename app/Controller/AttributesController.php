@@ -295,7 +295,7 @@ class AttributesController extends AppController {
 		$attachments_dir = Configure::read('MISP.attachments_dir');
 		if (empty($attachments_dir)) {
 			$this->loadModel('Server');
-			$attachments_dir = $this->Server->serverSettings['MISP']['attachments_dir']['value'];
+			$attachments_dir = $this->Server->getDefaultAttachments_dir();
 		}
 		$path = $attachments_dir . DS . $attribute['event_id'] . DS;
 		$file = $attribute['id'];
@@ -2820,7 +2820,7 @@ class AttributesController extends AppController {
 			$attachments_dir = Configure::read('MISP.attachments_dir');
 			if (empty($attachments_dir)) {
 				$this->loadModel('Server');
-				$attachments_dir = $this->Server->serverSettings['MISP']['attachments_dir']['value'];
+				$attachments_dir = $this->Server->getDefaultAttachments_dir();
 			}
 			foreach ($attributes as $attribute) {
 					$path = $attachments_dir . DS . $attribute['Attribute']['event_id'] . DS;

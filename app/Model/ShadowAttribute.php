@@ -232,7 +232,7 @@ class ShadowAttribute extends AppModel {
 				$attachments_dir = Configure::read('MISP.attachments_dir');
 				if (empty($attachments_dir)) {
 					$my_server = ClassRegistry::init('Server');
-					$attachments_dir = $my_server->serverSettings['MISP']['attachments_dir']['value'];
+					$attachments_dir = $my_server->getDefaultAttachments_dir();
 				}
 				$filepath = $attachments_dir . DS . 'shadow' . DS . $sa['ShadowAttribute']['event_id'] . DS . $sa['ShadowAttribute']['id'];
 				$file = new File($filepath);
@@ -264,7 +264,7 @@ class ShadowAttribute extends AppModel {
 			$attachments_dir = Configure::read('MISP.attachments_dir');
 			if (empty($attachments_dir)) {
 				$my_server = ClassRegistry::init('Server');
-				$attachments_dir = $my_server->serverSettings['MISP']['attachments_dir']['value'];
+				$attachments_dir = $my_server->getDefaultAttachments_dir();
 			}
 			$filepath = $attachments_dir . DS . 'shadow' . DS . $this->data['ShadowAttribute']['event_id'] . DS . $this->data['ShadowAttribute']['id'];
 			$file = new File($filepath);
@@ -362,7 +362,7 @@ class ShadowAttribute extends AppModel {
 		$attachments_dir = Configure::read('MISP.attachments_dir');
 		if (empty($attachments_dir)) {
 			$my_server = ClassRegistry::init('Server');
-			$attachments_dir = $my_server->serverSettings['MISP']['attachments_dir']['value'];
+			$attachments_dir = $my_server->getDefaultAttachments_dir();
 		}
 		$filepath = $attachments_dir . DS . 'shadow' . DS . $attribute['event_id'] . DS. $attribute['id'];
 		$file = new File($filepath);
@@ -377,7 +377,7 @@ class ShadowAttribute extends AppModel {
 		$attachments_dir = Configure::read('MISP.attachments_dir');
 		if (empty($attachments_dir)) {
 			$my_server = ClassRegistry::init('Server');
-			$attachments_dir = $my_server->serverSettings['MISP']['attachments_dir']['value'];
+			$attachments_dir = $my_server->getDefaultAttachments_dir();
 		}
 		$rootDir = $attachments_dir . DS . 'shadow' . DS . $attribute['event_id'];
 		$dir = new Folder($rootDir, true);						// create directory structure

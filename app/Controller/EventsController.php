@@ -2175,7 +2175,7 @@ class EventsController extends AppController {
 			$attachments_dir = Configure::read('MISP.attachments_dir');
 			if (empty($attachments_dir)) {
 				$this->loadModel('Server');
-				$attachments_dir = $this->Server->serverSettings['MISP']['attachments_dir']['value'];
+				$attachments_dir = $this->Server->getDefaultAttachments_dir();
 			}
 			$rootDir = $attachments_dir . DS . "GFI" . DS . $id . DS;
 			App::uses('Folder', 'Utility');
@@ -2220,7 +2220,7 @@ class EventsController extends AppController {
 			$attachments_dir = Configure::read('MISP.attachments_dir');
 			if (empty($attachments_dir)) {
 				$this->loadModel('Server');
-				$attachments_dir = $this->Server->serverSettings['MISP']['attachments_dir']['value'];
+				$attachments_dir = $this->Server->getDefaultAttachments_dir();
 			}
 			$rootDir = $attachments_dir . DS . $id . DS;
 			App::uses('Folder', 'Utility');
@@ -2390,7 +2390,7 @@ class EventsController extends AppController {
 		$attachments_dir = Configure::read('MISP.attachments_dir');
 		if (empty($attachments_dir)) {
 			$this->loadModel('Server');
-			$attachments_dir = $this->Server->serverSettings['MISP']['attachments_dir']['value'];
+			$attachments_dir = $this->Server->getDefaultAttachments_dir();
 		}
 		$rootDir = $attachments_dir . DS . $id . DS;
 		$malware = $rootDir . DS . 'sample';
