@@ -78,9 +78,9 @@ sudo python setup.py install
 
 # install mixbox to accomodate the new STIX dependencies:
 cd /var/www/MISP/app/files/scripts/
-git clone https://github.com/CybOXProject/mixbox.git
+sudo -u www-data git clone https://github.com/CybOXProject/mixbox.git
 cd /var/www/MISP/app/files/scripts/mixbox
-git checkout v1.0.2
+sudo -u www-data git checkout v1.0.2
 python setup.py install
 
 4/ CakePHP
