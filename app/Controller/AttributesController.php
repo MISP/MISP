@@ -292,7 +292,7 @@ class AttributesController extends AppController {
 	}
 
 	private function __downloadAttachment($attribute) {
-		$path = "files" . DS . $attribute['event_id'] . DS;
+		$path = "files" . DS . "attachments" . DS . $attribute['event_id'] . DS;
 		$file = $attribute['id'];
 		if ('attachment' == $attribute['type']) {
 			$filename = $attribute['value'];
