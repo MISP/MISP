@@ -53,7 +53,7 @@ cd /var/www/MISP/app/files/scripts/
 rm -rf mixbox
 sudo -u www-data git clone https://github.com/CybOXProject/mixbox.git
 cd /var/www/MISP/app/files/scripts/mixbox
-git checkout v1.0.2
+sudo -u www-data git checkout v1.0.2
 python setup.py install
 
 
