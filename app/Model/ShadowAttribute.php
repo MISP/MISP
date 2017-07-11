@@ -229,7 +229,12 @@ class ShadowAttribute extends AppModel {
 			$sa = $this->find('first', array('conditions' => array('ShadowAttribute.id' => $this->data['ShadowAttribute']['id']), 'recursive' => -1, 'fields' => array('ShadowAttribute.id', 'ShadowAttribute.event_id', 'ShadowAttribute.type')));
 			if ($this->typeIsAttachment($sa['ShadowAttribute']['type'])) {
 				// only delete the file if it exists
-				$filepath = APP . "files" . DS . 'shadow' . DS . $sa['ShadowAttribute']['event_id'] . DS . $sa['ShadowAttribute']['id'];
+				$attachments_dir = Configure::read('MISP.attachments_dir');
+				if (empty($attachments_dir)) {
+					$my_server = ClassRegistry::init('Server');
+					$attachments_dir = $my_server->getDefaultAttachments_dir();
+				}
+				$filepath = $attachments_dir . DS . 'shadow' . DS . $sa['ShadowAttribute']['event_id'] . DS . $sa['ShadowAttribute']['id'];
 				$file = new File($filepath);
 				if ($file->exists()) {
 					if (!$file->delete()) {
@@ -256,7 +261,12 @@ class ShadowAttribute extends AppModel {
 		$this->read(); // first read the attribute from the db
 		if ($this->typeIsAttachment($this->data['ShadowAttribute']['type'])) {
 			// only delete the file if it exists
-			$filepath = APP . "files" . DS . 'shadow' . DS . $this->data['ShadowAttribute']['event_id'] . DS . $this->data['ShadowAttribute']['id'];
+			$attachments_dir = Configure::read('MISP.attachments_dir');
+			if (empty($attachments_dir)) {
+				$my_server = ClassRegistry::init('Server');
+				$attachments_dir = $my_server->getDefaultAttachments_dir();
+			}
+			$filepath = $attachments_dir . DS . 'shadow' . DS . $this->data['ShadowAttribute']['event_id'] . DS . $this->data['ShadowAttribute']['id'];
 			$file = new File($filepath);
 			if ($file->exists()) {
 				if (!$file->delete()) {
@@ -349,7 +359,12 @@ class ShadowAttribute extends AppModel {
 	}
 
 	public function base64EncodeAttachment($attribute) {
-		$filepath = APP . "files" . DS . 'shadow' . DS . $attribute['event_id'] . DS. $attribute['id'];
+		$attachments_dir = Configure::read('MISP.attachments_dir');
+		if (empty($attachments_dir)) {
+			$my_server = ClassRegistry::init('Server');
+			$attachments_dir = $my_server->getDefaultAttachments_dir();
+		}
+		$filepath = $attachments_dir . DS . 'shadow' . DS . $attribute['event_id'] . DS. $attribute['id'];
 		$file = new File($filepath);
 		if (!$file->exists()) {
 			return '';
@@ -359,7 +374,12 @@ class ShadowAttribute extends AppModel {
 	}
 
 	public function saveBase64EncodedAttachment($attribute) {
-		$rootDir = APP . DS . "files" . DS . 'shadow' . DS . $attribute['event_id'];
+		$attachments_dir = Configure::read('MISP.attachments_dir');
+		if (empty($attachments_dir)) {
+			$my_server = ClassRegistry::init('Server');
+			$attachments_dir = $my_server->getDefaultAttachments_dir();
+		}
+		$rootDir = $attachments_dir . DS . 'shadow' . DS . $attribute['event_id'];
 		$dir = new Folder($rootDir, true);						// create directory structure
 		$destpath = $rootDir . DS . $attribute['id'];
 		$file = new File($destpath, true);						// create the file
