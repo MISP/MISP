@@ -2172,7 +2172,12 @@ class EventsController extends AppController {
 			$zipData = $fileAccessTool->readFromFile($this->data['Event']['submittedgfi']['tmp_name'], $this->data['Event']['submittedgfi']['size']);
 
 			// write
-			$rootDir = APP . "files" . DS . "GFI" . DS . $id . DS;
+			$attachments_dir = Configure::read('MISP.attachments_dir');
+			if (empty($attachments_dir)) {
+				$this->loadModel('Server');
+				$attachments_dir = $this->Server->getDefaultAttachments_dir();
+			}
+			$rootDir = $attachments_dir . DS . "GFI" . DS . $id . DS;
 			App::uses('Folder', 'Utility');
 			$dir = new Folder($rootDir, true);
 			if (!$this->Event->checkFilename($this->data['Event']['submittedgfi']['name'])) {
@@ -2212,7 +2217,12 @@ class EventsController extends AppController {
 			$iocData = $fileAccessTool->readFromFile($this->data['Event']['submittedioc']['tmp_name'], $this->data['Event']['submittedioc']['size']);
 
 			// write
-			$rootDir = APP . "files" . DS . $id . DS;
+			$attachments_dir = Configure::read('MISP.attachments_dir');
+			if (empty($attachments_dir)) {
+				$this->loadModel('Server');
+				$attachments_dir = $this->Server->getDefaultAttachments_dir();
+			}
+			$rootDir = $attachments_dir . DS . $id . DS;
 			App::uses('Folder', 'Utility');
 			$dir = new Folder($rootDir . 'ioc', true);
 			$destPath = $rootDir . 'ioc';
@@ -2377,13 +2387,18 @@ class EventsController extends AppController {
 				if ((string)$key == 'filename') $realFileName = (string)$val;
 			}
 		}
-		$rootDir = APP . "files" . DS . $id . DS;
+		$attachments_dir = Configure::read('MISP.attachments_dir');
+		if (empty($attachments_dir)) {
+			$this->loadModel('Server');
+			$attachments_dir = $this->Server->getDefaultAttachments_dir();
+		}
+		$rootDir = $attachments_dir . DS . $id . DS;
 		$malware = $rootDir . DS . 'sample';
 		$this->Event->Attribute->uploadAttachment($malware,	$realFileName,	true, $id, null, '', $this->Event->data['Event']['uuid'] . '-sample', $dist, true);
 
 		// Network activity -- .pcap
 		$realFileName = 'analysis.pcap';
-		$rootDir = APP . "files" . DS . $id . DS;
+		$rootDir = $attachments_dir . DS . $id . DS;
 		$malware = $rootDir . DS . 'Analysis' . DS . 'analysis.pcap';
 		$this->Event->Attribute->uploadAttachment($malware,	$realFileName,	false, $id, 'Network activity', '', $this->Event->data['Event']['uuid'] . '-analysis.pcap', $dist, true);
 

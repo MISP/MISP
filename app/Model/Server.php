@@ -348,6 +348,15 @@ class Server extends AppModel {
 							'test' => 'testBool',
 							'type' => 'boolean',
 					),
+					'attachments_dir' => array(
+							'level' => 2,
+							'description' => 'Directory where attachments are stored. MISP will NOT migrate the existing data if you change this setting. The only safe way to change this setting is in config.php, when MISP is not running, and after having moved/copied the existing data to the new location. This directory must already exist and be writable and readable by the MISP application.',
+							'value' =>  'app/files', # GUI display purpose only. Default value defined in func getDefaultAttachments_dir()
+							'errorMessage' => '',
+							'null' => false,
+							'test' => 'testForWritableDir',
+							'type' => 'string',
+					),
 					'cached_attachments' => array(
 							'level' => 1,
 							'description' => 'Allow the XML caches to include the encoded attachments.',
@@ -2203,6 +2212,12 @@ class Server extends AppModel {
 		return 'Invalid characters in the path.';
 	}
 
+	public function testForWritableDir($value) {
+		if (!is_dir($value)) return 'Not a valid directory.';
+		if (!is_writeable($value)) return 'Not a writable directory.';
+		return true;
+	}
+
 	public function testDebug($value) {
 		if ($this->testForEmpty($value) !== true) return $this->testForEmpty($value);
 		if ($this->testForNumeric($value) !== true) return 'This setting has to be a number between 0 and 2, with 0 disabling debug mode.';
@@ -3522,5 +3537,9 @@ class Server extends AppModel {
 		exec($command2, $output);
 		$final .= implode("\n", $output);
 		return $final;
+	}
+
+	public function getDefaultAttachments_dir() {
+		return APP . 'files';
 	}
 }
