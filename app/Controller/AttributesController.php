@@ -871,6 +871,8 @@ class AttributesController extends AppController {
 					$attribute['Attribute']['Tag'][$k] = $tag['Tag'];
 				}
 			}
+			unset($attribute['Attribute']['value1']);
+			unset($attribute['Attribute']['value2']);
 			$this->set('Attribute', $attribute['Attribute']);
 			$this->set('_serialize', array('Attribute'));
 		} else {
