@@ -101,6 +101,7 @@ class EventDelegationsController extends AppController {
 					'change' => 'Starting the transfer of event ' . $delegation['Event']['id'] . ' to organisation ' . $this->Auth->user('Organisation')['name'],
 			));
 			$result = $this->EventDelegation->transferEvent($delegation, $this->Auth->user());
+			$this->EventDelegation->delete($delegation['EventDelegation']['id']);
 			if ($result) {
 				$this->Log->create();
 				$this->Log->save(array(
