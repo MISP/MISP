@@ -251,7 +251,8 @@ class User extends AppModel {
 	public function beforeSave($options = array()) {
 		$this->data[$this->alias]['date_modified'] = time();
 		if (isset($this->data[$this->alias]['password'])) {
-			$this->data[$this->alias]['password'] = AuthComponent::password($this->data[$this->alias]['password']);
+			$passwordHasher = new BlowfishPasswordHasher();
+			$this->data[$this->alias]['password'] = $passwordHasher->hash($this->data[$this->alias]['password']);
 		}
 		return true;
 	}
@@ -1025,5 +1026,22 @@ class User extends AppModel {
 				'User.id', 'User.email'
 			)
 		));
+	}
+
+	public function verifyPassword($user_id, $password) {
+		$currentUser = $this->find('first', array(
+				'conditions' => array('User.id' => $user_id),
+				'recursive' => -1,
+				'fields' => array('User.password')
+		));
+		if (empty($currentUser)) return false;
+		if (strlen($currentUser['User']['password']) == 40) {
+			App::uses('SimplePasswordHasher', 'Controller/Component/Auth');
+			$passwordHasher = new SimplePasswordHasher();
+		} else {
+			$passwordHasher = new BlowfishPasswordHasher();
+		}
+		$hashed = $passwordHasher->check($password, $currentUser['User']['password']);
+		return $hashed;
 	}
 }
