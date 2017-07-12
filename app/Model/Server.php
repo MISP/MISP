@@ -781,7 +781,8 @@ class Server extends AppModel {
 						'value' => '',
 						'errorMessage' => '',
 						'test' => null,
-						'type' => 'string'
+						'type' => 'string',
+						'redacted' => true
 					)
 			),
 			'GnuPG' => array(
@@ -825,6 +826,7 @@ class Server extends AppModel {
 							'errorMessage' => '',
 							'test' => 'testForEmpty',
 							'type' => 'string',
+							'redacted' => true
 					),
 					'homedir' => array(
 							'level' => 0,
@@ -876,6 +878,7 @@ class Server extends AppModel {
 							'errorMessage' => '',
 							'test' => 'testForEmpty',
 							'type' => 'string',
+							'redacted' => true
 					),
 			),
 			'Proxy' => array(

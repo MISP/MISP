@@ -5,6 +5,9 @@
 	<div class="inline-input-accept inline-input-button inline-input-passive"><span class = "icon-ok" title="Accept" role="button" tabindex="0" aria-label="Accept"></span></div>
 	<div class="inline-input-decline inline-input-button inline-input-passive"><span class = "icon-remove" title="Cancel" role="button" tabindex="0" aria-label="Cancel"></span></div>
 <?php
+if (!empty($setting['redacted'])) {
+	$setting['value'] = '*****';
+}
 	if (isset($setting['options'])) {
 		echo $this->Form->input('value', array(
 			'label' => false,
