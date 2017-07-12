@@ -2365,7 +2365,12 @@ class EventsController extends AppController {
 		// import XML class
 		App::uses('Xml', 'Utility');
 		// now parse it
-		$parsedXml = Xml::build($data, array('return' => 'simplexml'));
+		try {
+			$parsedXml = Xml::build($data, array('return' => 'simplexml'));
+		} catch (Exception $e) {
+			$this->Session->setFlash('Invalid GFI archive.');
+			$this->redirect(array('controller' => 'events', 'action' => 'view', $id));
+		}
 
 		// xpath..
 		if (Configure::read('MISP.default_attribute_distribution') != null) {
