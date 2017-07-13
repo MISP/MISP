@@ -111,8 +111,8 @@ class User extends AppModel {
 			),
 		),
 		'change_pw' => array(
-			'numeric' => array(
-				'rule' => array('numeric'),
+			'boolean' => array(
+				'rule' => array('boolean'),
 				//'message' => 'Your custom message here',
 				'allowEmpty' => true,
 				'required' => false,
@@ -157,8 +157,8 @@ class User extends AppModel {
 			),
 		),
 		'newsread' => array(
-			'numeric' => array(
-				'rule' => array('numeric')
+			'boolean' => array(
+				'rule' => array('boolean')
 			),
 		),
 	);
