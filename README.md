@@ -80,6 +80,9 @@ For installation guide see [INSTALL](https://github.com/MISP/MISP/tree/2.4/INSTA
 Contributing
 ------------
 
+If you are interested to contribute to the MISP project, review our [contributing page](CONTRIBUTING.md). There are many ways to contribute
+and participate to the project.
+
 Please see our [Code of conduct](code_of_conduct.md).
 
 Feel free to fork the code, play with it, make some patches and send us the pull requests via the [issues](https://github.com/MISP/MISP/issues).
@@ -92,15 +95,6 @@ There is one main branch:
 
 and features are developed in separated branches and then regularly merged into the 2.4 stable branch.
 
-Feature Request
----------------
-
-[![Feature Requests](http://feathub.com/MISP/MISP?format=svg)](http://feathub.com/MISP/MISP)
-
-Roadmap
--------
-
-To see the [[Roadmap](https://github.com/MISP/MISP/wiki/Planned-features-and-functionalities)](https://github.com/MISP/MISP/wiki/Planned-features-and-functionalities) for MISP have a look in the Wiki page
 
 License
 -------
