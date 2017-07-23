@@ -97,7 +97,7 @@ install:
     - sudo chmod 700 `pwd`/.gnupg
     # Get authkey
     - sudo usermod -a -G www-data $USER
-    - sudo -E su $USER -c 'app/Console/cake userInit -q | sudo tee ./key.txt'
+    - sudo -E su $USER -c 'app/bin/cake userInit -q | sudo tee ./key.txt'
     - sudo chmod 777 ./key.txt
     - sudo chmod -R 777 ./tests
     - sudo chown -R www-data:www-data `pwd`
