@@ -1136,7 +1136,8 @@ class EventsController extends AppController {
 							if (is_numeric($add)) {
 								$this->response->header('Location', Configure::read('MISP.baseurl') . '/events/' . $add);
 								$this->response->send();
-								throw new NotFoundException('Event already exists, if you would like to edit it,							}
+								throw new NotFoundException('Event already exists, if you would like to edit it, use the url in the location header.');
+							}
 							$this->set('name', 'Add event failed.');
 							$this->set('message', 'The event could not be saved.');
 							$this->set('errors', $validationErrors);

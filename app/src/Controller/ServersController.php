@@ -200,7 +200,8 @@ class ServersController extends AppController {
 						if($this->_isRest()) {
 							return $this->RestResponse->saveFailResponse('Servers', 'add', false, array('Organisation' => 'Remote Organisation\'s uuid already used'), $this->response->type());
 						} else {
-							$this->Session->setFlash(__('That organisation could not be created as the uuid is in						}
+							$this->Session->setFlash(__('That organisation could not be created as the uuid is in use already.'));
+						}
 					}
 
 					if (!$fail) {
@@ -360,7 +361,8 @@ class ServersController extends AppController {
 							if($this->_isRest()) {
 								return $this->RestResponse->saveFailResponse('Servers', 'edit', false, array('Organisation' => 'Remote Organisation\'s uuid already used'), $this->response->type());
 							} else {
-								$this->Session->setFlash(__('That organisation could not be created as the uuid is in							}
+								$this->Session->setFlash(__('That organisation could not be created as the uuid is in use already.'));
+							}
 						}
 
 						if (!$fail) {

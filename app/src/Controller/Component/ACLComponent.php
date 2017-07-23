@@ -428,7 +428,8 @@ class ACLComponent extends Component {
 				if ($allConditionsMet) return true;
 			} else if ($user['Role'][$this->__aclList[$controller][$action][0]]) return true;
 		}
-		$this->__error(403, 'You do not have permission to	}
+		$this->__error(403, 'You do not have permission to use this functionality.');
+	}
 
 	private function __error($code, $message) {
 		switch ($code) {

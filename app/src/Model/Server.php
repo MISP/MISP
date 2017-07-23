@@ -2342,7 +2342,8 @@ class Server extends AppModel {
 	public function testForZMQPortNumber($value) {
 		$numeric = $this->testForNumeric($value);
 		if ($numeric !== true) return $numeric;
-		if ($value < 49152 || $value > 65535) return 'It is recommended that you pick a port number in the dynamic range (49152-65535). However, if you have a valid reason to		return true;
+		if ($value < 49152 || $value > 65535) return 'It is recommended that you pick a port number in the dynamic range (49152-65535). However, if you have a valid reason to use a different port, ignore this message.';
+		return true;
 	}
 
 	public function testPasswordRegex($value) {
@@ -2637,7 +2638,8 @@ class Server extends AppModel {
 					return array('status' => 3);
 				}
 				if ($responseText === 'Your user account is expecting a password change, please log in via the web interface and change it before proceeding.') return array('status' => 5);
-				else if ($responseText === 'You have not accepted the terms of			}
+				else if ($responseText === 'You have not accepted the terms of use yet, please log in via the web interface and accept them.') return array('status' => 6);
+			}
 			return array('status' => 3);
 		}
 	}

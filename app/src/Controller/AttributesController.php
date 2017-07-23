@@ -2340,7 +2340,8 @@ class AttributesController extends AppController {
 		} else if ($this->response->type() === 'application/xml') {
 			$data = $this->request->data;
 		} else {
-			throw new BadRequestException('This action is for the API only. Please refer to the automation page for information on how to		}
+			throw new BadRequestException('This action is for the API only. Please refer to the automation page for information on how to use it.');
+		}
 		if (!$hash && isset($data['request']['hash'])) $hash = $data['request']['hash'];
 		if (!$allSamples && isset($data['request']['allSamples'])) $allSamples = $data['request']['allSamples'];
 		if (!$eventID && isset($data['request']['eventID'])) $eventID = $data['request']['eventID'];
