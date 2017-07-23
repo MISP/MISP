@@ -1,5 +1,7 @@
 <?php
-	$extensions = array('redis');
+	namespace files\scripts;
+
+$extensions = array('redis');
 	$results = array();
 	$results['phpversion'] = phpversion();
 	foreach ($extensions as $extension) {
