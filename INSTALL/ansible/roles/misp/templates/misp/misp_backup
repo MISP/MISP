@@ -12,7 +12,7 @@ BACKUP_MYSQL_DIR="$BACKUP_DIR/mysql"
 BACKUP_FILES_DIR="$BACKUP_DIR/misp"
 
 MISP_FILES="/opt/misp-server/misp/app/files"
-MISP_CONF="/opt/misp-server/misp/app/Config"
+MISP_CONF="/opt/misp-server/misp/app/config"
 
 mkdir "$BACKUP_DIR"
 mkdir "$BACKUP_MYSQL_DIR"

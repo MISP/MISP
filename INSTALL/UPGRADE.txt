@@ -37,8 +37,8 @@ mysql -u [misp_mysql_user] -p [misp_database] < upgrade_2.4.sql
 
 # If everything went fine, switch the system to live:
 # Administration -> Server Settings -> MISP Settings -> MISP.live -> True
-# NOTE: if nothing happens, please check the permissions of the config files in /var/www/MISP/app/Config/
+# NOTE: if nothing happens, please check the permissions of the config files in /var/www/MISP/app/config/
 #       and make sure the webserver has the write permissions on them:
-#         chown -R www-data:www-data /var/www/MISP/app/Config/
+#         chown -R www-data:www-data /var/www/MISP/app/config/
 
 # Let us know if you run into any issues during or after the upgrade

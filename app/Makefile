@@ -24,6 +24,6 @@ check-cpd-ci:
 		--names *.php --log-pmd build/pmd.xml ./
 
 check-js:
-	#jshint webroot/js --config app/Config/jshint.json
+	#jshint webroot/js --config app/config/jshint.json
 
 check-all-ci: check-style-ci check-cpd-ci check-js

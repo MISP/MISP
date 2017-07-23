@@ -54,11 +54,11 @@ fi
 # MISP path
 MISPPath=${MISPPath:-$(locate MISP/app/webroot/index.php|sed 's/\/app\/webroot\/index\.php//')}
 # database.php
-MySQLUUser=$(grep -o -P "(?<='login' => ').*(?=')" $MISPPath/app/Config/database.php)
-MySQLUPass=$(grep -o -P "(?<='password' => ').*(?=')" $MISPPath/app/Config/database.php)
-MISPDB=$(grep -o -P "(?<='database' => ').*(?=')" $MISPPath/app/Config/database.php)
-DB_Port=$(grep -o -P "(?<='port' => ).*(?=,)" $MISPPath/app/Config/database.php)
-MISPDBHost=$(grep -o -P "(?<='host' => ').*(?=')" $MISPPath/app/Config/database.php)
+MySQLUUser=$(grep -o -P "(?<='login' => ').*(?=')" $MISPPath/app/config/database.php)
+MySQLUPass=$(grep -o -P "(?<='password' => ').*(?=')" $MISPPath/app/config/database.php)
+MISPDB=$(grep -o -P "(?<='database' => ').*(?=')" $MISPPath/app/config/database.php)
+DB_Port=$(grep -o -P "(?<='port' => ).*(?=,)" $MISPPath/app/config/database.php)
+MISPDBHost=$(grep -o -P "(?<='host' => ').*(?=')" $MISPPath/app/config/database.php)
 
 echo "Clearing data model cache files"
 rm -f $MISPPath/app/tmp/cache/models/myapp_*

@@ -984,9 +984,9 @@ class ServersController extends AppController {
 						'action' => 'serverSettingsEdit',
 						'user_id' => $this->Auth->user('id'),
 						'title' => 'Server setting issue',
-						'change' => 'There was an issue witch changing ' . $setting . ' to ' . $this->request->data['Server']['value']  . '. The error message returned is: app/Config.config.php is not writeable to the apache user. No changes were made.',
+						'change' => 'There was an issue witch changing ' . $setting . ' to ' . $this->request->data['Server']['value']  . '. The error message returned is: app/config.config.php is not writeable to the apache user. No changes were made.',
 				));
-				return new Response(array('body'=> json_encode(array('saved' => false, 'errors' => 'app/Config.config.php is not writeable to the apache user.')),'status'=>200));
+				return new Response(array('body'=> json_encode(array('saved' => false, 'errors' => 'app/config.config.php is not writeable to the apache user.')),'status'=>200));
 			}
 
 			if (isset($found['beforeHook'])) {

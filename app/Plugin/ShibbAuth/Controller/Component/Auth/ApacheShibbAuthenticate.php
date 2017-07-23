@@ -25,7 +25,7 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
 	/**
 	 * Authentication class
 	 *
-	 * Configuration in app/Config/Config.php is:
+	 * Configuration in app/config/Config.php is:
 	 *
 	 * 'ApacheShibbAuth' =>                      // Configuration for shibboleth authentication
 	 *     array(

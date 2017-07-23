@@ -59,20 +59,20 @@ MISPPath=${MISPPath:-$(locate MISP/app/webroot/index.php|sed 's/\/app\/webroot\/
 OutputFileName=${OutputFileName:-MISP-Backup}
 OutputDirName=${OutputDirName:-/tmp}
 # database.php
-MySQLUUser=$(grep -o -P "(?<='login' => ').*(?=')" $MISPPath/app/Config/database.php)
-MySQLUPass=$(grep -o -P "(?<='password' => ').*(?=')" $MISPPath/app/Config/database.php)
-MISPDB=$(grep -o -P "(?<='database' => ').*(?=')" $MISPPath/app/Config/database.php)
-DB_Port=$(grep -o -P "(?<='port' => ).*(?=,)" $MISPPath/app/Config/database.php)
-MISPDBHost=$(grep -o -P "(?<='host' => ').*(?=')" $MISPPath/app/Config/database.php)
+MySQLUUser=$(grep -o -P "(?<='login' => ').*(?=')" $MISPPath/app/config/database.php)
+MySQLUPass=$(grep -o -P "(?<='password' => ').*(?=')" $MISPPath/app/config/database.php)
+MISPDB=$(grep -o -P "(?<='database' => ').*(?=')" $MISPPath/app/config/database.php)
+DB_Port=$(grep -o -P "(?<='port' => ).*(?=,)" $MISPPath/app/config/database.php)
+MISPDBHost=$(grep -o -P "(?<='host' => ').*(?=')" $MISPPath/app/config/database.php)
 # config.php
-Salt=$(grep -o -P "(?<='salt' => ').*(?=')" $MISPPath/app/Config/config.php)
-BaseURL=$(grep -o -P "(?<='baseurl' => ').*(?=')" $MISPPath/app/Config/config.php)
-OrgName=$(grep -o -P "(?<='org' => ').*(?=')" $MISPPath/app/Config/config.php)
-LogEmail=$(grep -o -P "(?<='email' => ').*(?=')" $MISPPath/app/Config/config.php|head -1)
-AdminEmail=$(grep -o -P "(?<='contact' => ').*(?=')" $MISPPath/app/Config/config.php)
-GnuPGEmail=$(sed -n -e '/GnuPG/,$p' $MISPPath/app/Config/config.php|grep -o -P "(?<='email' => ').*(?=')")
-GnuPGHomeDir=$(grep -o -P "(?<='homedir' => ').*(?=')" $MISPPath/app/Config/config.php)
-GnuPGPass=$(grep -o -P "(?<='password' => ').*(?=')" $MISPPath/app/Config/config.php)
+Salt=$(grep -o -P "(?<='salt' => ').*(?=')" $MISPPath/app/config/config.php)
+BaseURL=$(grep -o -P "(?<='baseurl' => ').*(?=')" $MISPPath/app/config/config.php)
+OrgName=$(grep -o -P "(?<='org' => ').*(?=')" $MISPPath/app/config/config.php)
+LogEmail=$(grep -o -P "(?<='email' => ').*(?=')" $MISPPath/app/config/config.php|head -1)
+AdminEmail=$(grep -o -P "(?<='contact' => ').*(?=')" $MISPPath/app/config/config.php)
+GnuPGEmail=$(sed -n -e '/GnuPG/,$p' $MISPPath/app/config/config.php|grep -o -P "(?<='email' => ').*(?=')")
+GnuPGHomeDir=$(grep -o -P "(?<='homedir' => ').*(?=')" $MISPPath/app/config/config.php)
+GnuPGPass=$(grep -o -P "(?<='password' => ').*(?=')" $MISPPath/app/config/config.php)
 # Create backup files
 TmpDir="$(mktemp --tmpdir=$OutputDirName -d)"
 cp $GnuPGHomeDir/* $TmpDir/

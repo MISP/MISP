@@ -204,14 +204,14 @@ sudo cp /var/www/MISP/INSTALL/misp.logrotate /etc/logrotate.d/misp
 
 9/ MISP configuration
 ---------------------
-# There are 4 sample configuration files in /var/www/MISP/app/Config that need to be copied
-sudo -u www-data cp -a /var/www/MISP/app/Config/bootstrap.default.php /var/www/MISP/app/Config/bootstrap.php
-sudo -u www-data cp -a /var/www/MISP/app/Config/database.default.php /var/www/MISP/app/Config/database.php
-sudo -u www-data cp -a /var/www/MISP/app/Config/core.default.php /var/www/MISP/app/Config/core.php
-sudo -u www-data cp -a /var/www/MISP/app/Config/config.default.php /var/www/MISP/app/Config/config.php
+# There are 4 sample configuration files in /var/www/MISP/app/config that need to be copied
+sudo -u www-data cp -a /var/www/MISP/app/config/bootstrap.default.php /var/www/MISP/app/config/bootstrap.php
+sudo -u www-data cp -a /var/www/MISP/app/config/database.default.php /var/www/MISP/app/config/database.php
+sudo -u www-data cp -a /var/www/MISP/app/config/core.default.php /var/www/MISP/app/config/core.php
+sudo -u www-data cp -a /var/www/MISP/app/config/config.default.php /var/www/MISP/app/config/config.php
 
 # Configure the fields in the newly created files:
-sudo -u www-data vim /var/www/MISP/app/Config/database.php
+sudo -u www-data vim /var/www/MISP/app/config/database.php
 # DATABASE_CONFIG has to be filled
 # With the default values provided in section 6, this would look like:
 # class DATABASE_CONFIG {
@@ -228,21 +228,21 @@ sudo -u www-data vim /var/www/MISP/app/Config/database.php
 #   );
 #}
 
-# Important! Change the salt key in /var/www/MISP/app/Config/config.php
+# Important! Change the salt key in /var/www/MISP/app/config/config.php
 # The salt key must be a string at least 32 bytes long.
 # The admin user account will be generated on the first login, make sure that the salt is changed before you create that user
 # If you forget to do this step, and you are still dealing with a fresh installation, just alter the salt,
 # delete the user from mysql and log in again using the default admin credentials (admin@admin.test / admin)
 
 # Change base url in config.php
-sudo -u www-data vim /var/www/MISP/app/Config/config.php
+sudo -u www-data vim /var/www/MISP/app/config/config.php
 # example: 'baseurl' => 'https://<your.FQDN.here>',
 # alternatively, you can leave this field empty if you would like to use relative pathing in MISP
 # 'baseurl' => '',
 
 # and make sure the file permissions are still OK
-sudo chown -R www-data:www-data /var/www/MISP/app/Config
-sudo chmod -R 750 /var/www/MISP/app/Config
+sudo chown -R www-data:www-data /var/www/MISP/app/config
+sudo chmod -R 750 /var/www/MISP/app/config
 
 # Generate a GPG encryption key.
 sudo -u www-data mkdir /var/www/MISP/.gnupg
