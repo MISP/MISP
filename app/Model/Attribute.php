@@ -198,6 +198,8 @@ class Attribute extends AppModel {
 			'x509-fingerprint-sha1' => array('desc' => 'X509 fingerprint in SHA-1 format', 'default_category' => 'Network activity', 'to_ids' => 1),
 			'x509-fingerprint-sha256' => array('desc' => 'X509 fingerprint in SHA-256 format', 'default_category' => 'Network activity', 'to_ids' => 1),
 			'x509-issuer' => array('desc' => 'The issuer field identifies the entity that has signed and issued the certificate.', 'default_category' => 'Network activity', 'to_ids' => 1),
+			'x509-subject' => array('desc' => 'The subject field identifies the entity associated with the public key stored in the subject public key field.', 'default_category' => 'Network activity', 'to_ids' => 1),
+			'x509-validity' => array('desc' => 'The certificate validity period is the time interval during which the CA warrants that it will maintain information about the status of the certificate.', 'default_category' => 'Network activity', 'to_ids' => 1),
 			'dns-soa-email' => array('desc' => 'RFC1035 mandates that DNS zones should have a SOA (Statement Of Authority) record that contains an email address where a PoC for the domain could be contacted. This can sometimes be used for attribution/linkage between different domains even if protected by whois privacy', 'default_category' => 'Attribution', 'to_ids' => 0),
 			'size-in-bytes' => array('desc' => 'Size expressed in bytes', 'default_category' => 'Other', 'to_ids' => 0),
 			'counter' => array('desc' => 'An integer counter, generally to be used in objects', 'default_category' => 'Other', 'to_ids' => 0),
@@ -271,16 +273,16 @@ class Attribute extends AppModel {
 			'Payload delivery' => array(
 					'desc' => 'Information about how the malware is delivered',
 					'formdesc' => 'Information about the way the malware payload is initially delivered, for example information about the email or web-site, vulnerability used, originating IP etc. Malware sample itself should be attached here.',
-					'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'impfuzzy','authentihash', 'pehash', 'tlsh', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash','filename|impfuzzy', 'filename|pehash', 'ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'hostname', 'domain', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'email-body', 'url', 'user-agent', 'AS', 'pattern-in-file', 'pattern-in-traffic', 'yara', 'sigma', 'attachment', 'malware-sample', 'link', 'malware-type', 'comment', 'text', 'hex', 'vulnerability', 'x509-fingerprint-MD5', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256', 'x509-issuer', 'other', 'ip-dst|port', 'ip-src|port', 'hostname|port', 'email-dst-display-name', 'email-src-display-name', 'email-header', 'email-reply-to', 'email-x-mailer', 'email-mime-boundary', 'email-thread-index', 'email-message-id', 'mobile-application-id')
+					'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'impfuzzy','authentihash', 'pehash', 'tlsh', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash','filename|impfuzzy', 'filename|pehash', 'ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'hostname', 'domain', 'email-src', 'email-dst', 'email-subject', 'email-attachment', 'email-body', 'url', 'user-agent', 'AS', 'pattern-in-file', 'pattern-in-traffic', 'yara', 'sigma', 'attachment', 'malware-sample', 'link', 'malware-type', 'comment', 'text', 'hex', 'vulnerability', 'x509-fingerprint-MD5', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256', 'x509-issuer', 'x509-subject', 'x509-validity', 'other', 'ip-dst|port', 'ip-src|port', 'hostname|port', 'email-dst-display-name', 'email-src-display-name', 'email-header', 'email-reply-to', 'email-x-mailer', 'email-mime-boundary', 'email-thread-index', 'email-message-id', 'mobile-application-id')
 					),
 			'Artifacts dropped' => array(
 					'desc' => 'Any artifact (files, registry keys etc.) dropped by the malware or other modifications to the system',
-					'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'impfuzzy','authentihash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy','filename|pehash', 'regkey', 'regkey|value', 'pattern-in-file', 'pattern-in-memory','pdb', 'yara', 'sigma', 'attachment', 'malware-sample', 'named pipe', 'mutex', 'windows-scheduled-task', 'windows-service-name', 'windows-service-displayname', 'comment', 'text', 'hex', 'x509-fingerprint-MD5', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256', 'x509-issuer', 'other', 'cookie')
+					'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'impfuzzy','authentihash', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy','filename|pehash', 'regkey', 'regkey|value', 'pattern-in-file', 'pattern-in-memory','pdb', 'yara', 'sigma', 'attachment', 'malware-sample', 'named pipe', 'mutex', 'windows-scheduled-task', 'windows-service-name', 'windows-service-displayname', 'comment', 'text', 'hex', 'x509-fingerprint-MD5', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256', 'x509-issuer', 'x509-subject', 'x509-validity', 'other', 'cookie')
 					),
 			'Payload installation' => array(
 					'desc' => 'Info on where the malware gets installed in the system',
 					'formdesc' => 'Location where the payload was placed in the system and the way it was installed. For example, a filename|md5 type attribute can be added here like this: c:\\windows\\system32\\malicious.exe|41d8cd98f00b204e9800998ecf8427e.',
-					'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash','impfuzzy','authentihash', 'pehash', 'tlsh', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy','filename|pehash', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'yara', 'sigma', 'vulnerability', 'attachment', 'malware-sample', 'malware-type', 'comment', 'text', 'hex', 'x509-fingerprint-MD5', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256', 'x509-issuer', 'mobile-application-id', 'other')
+					'types' => array('md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash','impfuzzy','authentihash', 'pehash', 'tlsh', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|impfuzzy','filename|pehash', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'yara', 'sigma', 'vulnerability', 'attachment', 'malware-sample', 'malware-type', 'comment', 'text', 'hex', 'x509-fingerprint-MD5', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256', 'x509-issuer', 'x509-subject', 'x509-validity', 'mobile-application-id', 'other')
 					),
 			'Persistence mechanism' => array(
 					'desc' => 'Mechanisms used by the malware to start at boot',
@@ -289,7 +291,7 @@ class Attribute extends AppModel {
 					),
 			'Network activity' => array(
 					'desc' => 'Information about network traffic generated by the malware',
-					'types' => array('ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'hostname', 'domain', 'domain|ip', 'email-dst', 'url', 'uri', 'user-agent', 'http-method', 'AS', 'snort', 'pattern-in-file', 'pattern-in-traffic', 'attachment', 'comment', 'text', 'x509-fingerprint-MD5', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256', 'x509-issuer', 'other', 'hex', 'cookie')
+					'types' => array('ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'hostname', 'domain', 'domain|ip', 'email-dst', 'url', 'uri', 'user-agent', 'http-method', 'AS', 'snort', 'pattern-in-file', 'pattern-in-traffic', 'attachment', 'comment', 'text', 'x509-fingerprint-MD5', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256', 'x509-issuer', 'x509-subject', 'x509-validity', 'other', 'hex', 'cookie')
 					),
 			'Payload type' => array(
 					'desc' => 'Information about the final payload(s)',
@@ -298,12 +300,12 @@ class Attribute extends AppModel {
 					),
 			'Attribution' => array(
 					'desc' => 'Identification of the group, organisation, or country behind the attack',
-					'types' => array('threat-actor', 'campaign-name', 'campaign-id', 'whois-registrant-phone', 'whois-registrant-email', 'whois-registrant-name', 'whois-registrar', 'whois-creation-date','comment', 'text', 'x509-fingerprint-MD5', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256', 'x509-issuer', 'other')
+					'types' => array('threat-actor', 'campaign-name', 'campaign-id', 'whois-registrant-phone', 'whois-registrant-email', 'whois-registrant-name', 'whois-registrar', 'whois-creation-date','comment', 'text', 'x509-fingerprint-MD5', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256', 'x509-issuer', 'x509-subject', 'x509-validity', 'other')
 					),
 			'External analysis' => array(
 					'desc' => 'Any other result from additional analysis of the malware like tools output',
 					'formdesc' => 'Any other result from additional analysis of the malware like tools output Examples: pdf-parser output, automated sandbox analysis, reverse engineering report.',
-					'types' => array('md5', 'sha1', 'sha256','filename', 'filename|md5', 'filename|sha1', 'filename|sha256', 'ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'hostname', 'domain', 'domain|ip', 'url', 'user-agent', 'regkey', 'regkey|value', 'AS', 'snort', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'vulnerability', 'attachment', 'malware-sample', 'link', 'comment', 'text', 'x509-fingerprint-MD5', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256', 'x509-issuer', 'github-repository', 'other', 'cortex')
+					'types' => array('md5', 'sha1', 'sha256','filename', 'filename|md5', 'filename|sha1', 'filename|sha256', 'ip-src', 'ip-dst', 'ip-dst|port', 'ip-src|port', 'hostname', 'domain', 'domain|ip', 'url', 'user-agent', 'regkey', 'regkey|value', 'AS', 'snort', 'pattern-in-file', 'pattern-in-traffic', 'pattern-in-memory', 'vulnerability', 'attachment', 'malware-sample', 'link', 'comment', 'text', 'x509-fingerprint-MD5', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256', 'x509-issuer', 'x509-subject', 'x509-validity', 'github-repository', 'other', 'cortex')
 					),
 			'Financial fraud' => array(
 					'desc' => 'Financial Fraud indicators',
@@ -367,8 +369,8 @@ class Attribute extends AppModel {
 	// whilst filenames and hashes are file related attribute types
 	// This helps generate quick filtering for the event view, but we may reuse this and enhance it in the future for other uses (such as the API?)
 	public $typeGroupings = array(
-		'file' => array('attachment', 'pattern-in-file', 'md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'impfuzzy','authentihash', 'pehash', 'tlsh', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|pehash', 'malware-sample', 'x509-fingerprint-MD5', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256', 'x509-issuer'),
-		'network' => array('ip-src', 'ip-dst', 'ip-src|port', 'ip-dst|port', 'hostname', 'hostname|port', 'domain', 'domain|ip', 'email-dst', 'url', 'uri', 'user-agent', 'http-method', 'AS', 'snort', 'pattern-in-traffic', 'x509-fingerprint-MD5', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256', 'x509-issuer'),
+		'file' => array('attachment', 'pattern-in-file', 'md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'impfuzzy','authentihash', 'pehash', 'tlsh', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|pehash', 'malware-sample', 'x509-fingerprint-MD5', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256', 'x509-issuer', 'x509-subject', 'x509-validity'),
+		'network' => array('ip-src', 'ip-dst', 'ip-src|port', 'ip-dst|port', 'hostname', 'hostname|port', 'domain', 'domain|ip', 'email-dst', 'url', 'uri', 'user-agent', 'http-method', 'AS', 'snort', 'pattern-in-traffic', 'x509-fingerprint-MD5', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256', 'x509-issuer', 'x509-subject', 'x509-validity'),
 		'financial' => array('btc', 'iban', 'bic', 'bank-account-nr', 'aba-rtn', 'bin', 'cc-number', 'prtn')
 	);
 
@@ -763,6 +765,8 @@ class Attribute extends AppModel {
 				}
 				break;
 			case 'x509-issuer':
+			case 'x509-subject':
+			case 'x509-validity':
 			case 'tlsh':
 				if (preg_match("#^[0-9a-f]{35,}$#", $value)) {
 					$returnValue = true;
@@ -1161,6 +1165,8 @@ class Attribute extends AppModel {
 				$value = strtolower($value);
 				break;
 			case 'x509-issuer':
+			case 'x509-subject':
+			case 'x509-validity':
 			case 'ip-src':
 			case 'ip-dst':
 				if (filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
