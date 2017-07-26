@@ -32,6 +32,32 @@
 			}
 		}
 	}
+	// create logical event
+	// cakeLog::write('debug',print_r($event['objects'], true));
+	$havelogical = false;
+	$listOfLogical = array();
+	foreach ($event['objects'] as $k => $object) {
+		if ($object['category'] === 'Logical') {
+			$listOfLogical[] = $object;
+			$havelogical = true;
+		}
+	}
+	// create minimal logical (all or)
+	if ($havelogical == false) {
+		// cakeLog::write('debug','no logical attrs');
+		foreach ($event['objects'] as $k => $object) {
+			$listOfLogical[] = array(
+				'category' => 'Logical',
+				'type' => 'logical-operator-or',
+				'id_start' => "_",
+				'id_stop' => $object['id'],
+				'value' => "_:".$object['id'],
+				'disable_correlation' => true,
+			);
+		}
+	}
+	// cakeLog::write('debug', print_r($listOfLogical, true));
+
 ?>
 	<div class="pagination">
 		<ul>
@@ -129,9 +155,12 @@
 			<div id="filter_deleted" title="Include deleted attributes" role="button" tabindex="0" aria-label="Include deleted attributes" class="attribute_filter_text<?php if ($deleted) echo '_active'; ?>" onClick="toggleDeletedAttributes('<?php echo Router::url( $this->here, true );?>');">Include deleted attributes</div>
 		<?php endif; ?>
 		<div id="show_context" title="Show attribute context fields" role="button" tabindex="0" aria-label="Show attribute context fields" class="attribute_filter_text" onClick="toggleContextFields();">Show context fields</div>
+		<div id="show_as_logical" title="Show the logic between attributes" role="button" tabindex="0" aria-label="Show the logic between attributes" class="attribute_filter_text" onClick="toggleLogicalFields();">Show logical</div>
 	</div>
 
 	<table class="table table-striped table-condensed">
+	<!-- Add thead and tbody for draggeble element -->
+		<thead>
 		<tr>
 			<?php
 				if ($mayModify && !empty($event['objects'])):
@@ -173,8 +202,24 @@
 			?>
 			<th class="actions">Actions</th>
 		</tr>
+		</thead>
+		<tbody id="sortable">
 		<?php
 			foreach ($event['objects'] as $k => $object):
+
+				// Récupérer les informations sur les logical
+				// cakeLog::write('debug', print_r($object, true));
+				// $listOfLogical
+				// if ( in_array( $object['id'], $listOfLogical['value'] )) {
+				foreach ($listOfLogical as $logical) {
+					if ( array_search($object['id'] , $logical)) {
+						$logicalObject = $logical;
+						break;
+					}
+				}
+				// }
+
+
 				$extra = '';
 				$extra2 = '';
 				$extra3 = '';
@@ -239,6 +284,26 @@
 									?>
 								</div>
 							</td>
+
+
+							<!-- logocal object -->
+
+
+
+							<?php if ($logicalObject['type'] === 'logical-operator-or'): ?>
+								<td class=" short ">OR</td>
+							<?php elseif ($logicalObject['type'] === 'logical-operator-and'): ?>
+								<td class=" short ">AND</td>
+							<?php endif; ?>
+
+
+							
+							<!-- /logocal object -->
+
+
+
+
+
 							<td class="short <?php echo $extra; ?>">
 						<?php
 							if ($object['objectType'] != 0) {
@@ -588,6 +653,7 @@
 		<?php
 			endforeach;
 		?>
+		</tbody>
 	</table>
 </div>
 	<?php if ($emptyEvent): ?>
