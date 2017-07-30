@@ -219,7 +219,7 @@
 - name: Copy MISP configuration files
   template: 
     src: "misp/config/{{item}}"
-    dest: "/opt/misp-server/misp/app/Config/{{item}}"
+    dest: "/opt/misp-server/misp/app/config/{{item}}"
     force: yes
     owner: misp
     group: misp-server

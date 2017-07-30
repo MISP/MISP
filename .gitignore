@@ -51,10 +51,10 @@
 !/app/webroot/img/orgs/MISP.png
 !/app/webroot/img/orgs/NATO.png
 !/app/webroot/img/orgs/NCIRC.png
-/app/Config/bootstrap.php
-/app/Config/database.php
-/app/Config/core.php
-/app/Config/config.php
+/app/config/bootstrap.php
+/app/config/database.php
+/app/config/core.php
+/app/config/config.php
 /app/Lib/cakephp
 /app/webroot/gpg.asc
 /app/tmp/logs

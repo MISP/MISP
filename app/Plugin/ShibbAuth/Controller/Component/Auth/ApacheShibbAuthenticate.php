@@ -1,7 +1,5 @@
 <?php
 
-App::uses('BaseAuthenticate', 'Controller/Component/Auth');
-App::uses('RandomTool', 'Tools');
 
 if (session_status() == PHP_SESSION_NONE) {
 	session_start();
@@ -27,7 +25,7 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
 	/**
 	 * Authentication class
 	 *
-	 * Configuration in app/Config/Config.php is:
+	 * Configuration in app/config/Config.php is:
 	 *
 	 * 'ApacheShibbAuth' =>                      // Configuration for shibboleth authentication
 	 *     array(
@@ -42,12 +40,12 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
 	 *       ),
 	 *      'DefaultOrg' => 'MY_ORG',
 	 * ),
-	 * @param CakeRequest $request The request that contains login information.
-	 * @param CakeResponse $response Unused response object.
+	 * @param Request $request The request that contains login information.
+	 * @param Response $response Unused response object.
 	 * @return mixed False on login failure. An array of User data on success.
 	 */
 
-	public function authenticate(CakeRequest $request, CakeResponse $response)
+	public function authenticate(Request $request, Response $response)
 	{
 		return self::getUser($request);
 	}
@@ -55,7 +53,7 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
 	/**
 	 * @return array|bool
 	 */
-	public function getUser(CakeRequest $request)
+	public function getUser(Request $request)
 	{
 
 		//If the url contains sso=disable we return false so the main misp authentication form is used to log in
@@ -75,12 +73,12 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
 
 		// Get user values
 		if (!isset($_SERVER[$mailTag]) || filter_var($_SERVER[$mailTag], FILTER_VALIDATE_EMAIL) === FALSE) {
-			CakeLog::write('error', 'Mail tag is not given by the SSO SP. Not processing login.');
+			Log::write('error', 'Mail tag is not given by the SSO SP. Not processing login.');
 			return false;
 		}
 
 		$mispUsername = $_SERVER[$mailTag];
-		CakeLog::write('info', "Trying login of user: ${mispUsername}.");
+		Log::write('info', "Trying login of user: ${mispUsername}.");
 
 		//Change username column for email (username in shibboleth attributes corresponds to the email in MISPs DB)
 		$this->settings['fields'] = array('username' => 'email');
@@ -98,7 +96,7 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
 		//Get user role from its list of groups
 		list($roleChanged, $roleId) = $this->getUserRoleFromGroup($groupTag, $groupRoleMatching, $roleId);
 		if($roleId < 0) {
-			CakeLog::write('error', 'No role was assigned, no egorup matched the configuration.');
+			Log::write('error', 'No role was assigned, no egorup matched the configuration.');
 			return false; //Deny if the user is not in any egroup
 		}
 
@@ -106,14 +104,14 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
 		$userModel = ClassRegistry::init($this->settings['userModel']);
 
 		if ($user) { // User already exists
-			CakeLog::write('info', "User ${mispUsername} found in database.");
+			Log::write('info', "User ${mispUsername} found in database.");
 			$user = $this->updateUserRole($roleChanged, $user, $roleId, $userModel);
 			$user = $this->updateUserOrg($org, $user, $userModel);
-			CakeLog::write('info', "User ${mispUsername} logged in.");
+			Log::write('info', "User ${mispUsername} logged in.");
 			return $user;
 		}
 
-		CakeLog::write('info', "User ${mispUsername} not found in database.");
+		Log::write('info', "User ${mispUsername} not found in database.");
 		//Insert user in database if not existent
 
 		// Generate random password
@@ -140,8 +138,8 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
 
 		// save user
 		$userModel->save($userData, false);
-		CakeLog::write('info', "User ${mispUsername} saved in database.");
-		CakeLog::write('info', "User ${mispUsername} logged in.");
+		Log::write('info', "User ${mispUsername} saved in database.");
+		Log::write('info', "User ${mispUsername} logged in.");
 		return $this->_findUser(
 			$mispUsername
 		);
@@ -157,7 +155,7 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
 	public function updateUserRole($roleChanged, $user, $roleId, $userModel)
 	{
 		if ($roleChanged && $user['role_id'] != $roleId) {
-			CakeLog::write('warning', "User role changed from ${user['role_id']} to ${roleId}.");
+			Log::write('warning', "User role changed from ${user['role_id']} to ${roleId}.");
 			$user['role_id'] = $roleId; // Different role either increase or decrease permissions
 			$userUpdatedData = array('User' => $user);
 			$userModel->set(array(
@@ -187,13 +185,13 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
 			foreach ($groupList as $group) {
 				//TODO: Can be optimized inverting the search group and using only array_key_exists
 				if (array_key_exists($group, $groupRoleMatching)) { //In case there is an group not defined in the config.php file
-					CakeLog::write('info', "User group ${group} found.");
+					Log::write('info', "User group ${group} found.");
 					$roleVal = $groupRoleMatching[$group];
 					if ($roleVal <= $roleId || $roleId == -1) {
 						$roleId = $roleVal;
 						$roleChanged = true;
 					}
-					CakeLog::write('info', "User role ${roleId} assigned.");
+					Log::write('info', "User role ${roleId} assigned.");
 				}
 			}
 			return array($roleChanged, $roleId);
@@ -219,10 +217,10 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
 			$orgUserId = 1; //By default created by the admin
 			if ($user) $orgUserId = $user['id'];
 			$orgId = $organisations->createOrgFromName($org, $orgUserId, 0); //Created with local set to 0 by default
-			CakeLog::write('info', "User organisation ${org} created with id ${orgId}.");
+			Log::write('info', "User organisation ${org} created with id ${orgId}.");
 		} else {
 			$orgId = $orgAux['Organisation']['id'];
-			CakeLog::write('info', "User organisation ${org} found with id ${orgId}.");
+			Log::write('info', "User organisation ${org} found with id ${orgId}.");
 		}
 		return $orgId;
 	}
@@ -230,7 +228,7 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
 	private function updateUserOrg($org, $user, $userModel)
 	{
 		if ($user['org_id'] != $org) {
-			CakeLog::write('warning', "User organisation ${org} changed.");
+			Log::write('warning', "User organisation ${org} changed.");
 			$user['org_id'] = $org; // Different role either increase or decrease permissions
 			$userUpdatedData = array('User' => $user);
 			$userModel->set(array(

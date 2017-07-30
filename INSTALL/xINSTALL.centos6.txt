@@ -194,8 +194,8 @@ cp INSTALL/misp.logrotate /etc/logrotate.d/misp
 
 9/ MISP configuration
 ---------------------
-# There are 4 sample configuration files in /var/www/MISP/app/Config that need to be copied
-cd /var/www/MISP/app/Config
+# There are 4 sample configuration files in /var/www/MISP/app/config that need to be copied
+cd /var/www/MISP/app/config
 cp -a bootstrap.default.php bootstrap.php
 cp -a database.default.php database.php
 cp -a core.default.php core.php
@@ -205,13 +205,13 @@ cp -a config.default.php config.php
 # config.php   : baseurl
 # database.php : login, port, password, database
 
-# Important! Change the salt key in /var/www/MISP/app/Config/config.php
+# Important! Change the salt key in /var/www/MISP/app/config/config.php
 # The admin user account will be generated on the first login, make sure that the salt is changed before you create that user
 # If you forget to do this step, and you are still dealing with a fresh installation, just alter the salt,
 # delete the user from mysql and log in again using the default admin credentials (admin@admin.test / admin)
 
 # If you want to be able to change configuration parameters from the webinterface:
-chown apache:apache /var/www/MISP/app/Config/config.php
+chown apache:apache /var/www/MISP/app/config/config.php
 
 # Generate a GPG encryption key.
 # If the following command gives an error message, try it as root from the console

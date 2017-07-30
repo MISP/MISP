@@ -16,8 +16,6 @@
  * @package       CertAuth.Certificate
  * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
-App::uses('AuthComponent', 'Controller/Component');
-App::uses('BaseAuthenticate', 'Controller/Component/Auth');
 
 class CertificateAuthenticate extends BaseAuthenticate
 {
@@ -125,7 +123,7 @@ class CertificateAuthenticate extends BaseAuthenticate
 	}
 
 	// to enable stateless authentication
-	public function getUser(CakeRequest $request)
+	public function getUser(Request $request)
 	{
 		if (is_null(self::$user)) {
 			if (self::$client) {
@@ -176,7 +174,7 @@ class CertificateAuthenticate extends BaseAuthenticate
 								unset($k, $v);
 							}
 							if ($write && !$User->save($U[$cn], true, $write)) {
-								CakeLog::write('alert', 'Could not update model at database with RestAPI data.');
+								Log::write('alert', 'Could not update model at database with RestAPI data.');
 							}
 							unset($write);
 						}
@@ -208,7 +206,7 @@ class CertificateAuthenticate extends BaseAuthenticate
 							unset($id);
 							if (isset(self::$user['gpgkey'])) unset(self::$user['gpgkey']);
 						} else {
-							CakeLog::write('alert', 'Could not insert model at database from RestAPI data.');
+							Log::write('alert', 'Could not insert model at database from RestAPI data.');
 						}
 						unset($org);
 					} else {
@@ -225,7 +223,7 @@ class CertificateAuthenticate extends BaseAuthenticate
 	}
 
 	// to enable stateless authentication
-	public function authenticate(CakeRequest $request, CakeResponse $response)
+	public function authenticate(Request $request, Response $response)
 	{
 		return self::getUser($request);
 	}

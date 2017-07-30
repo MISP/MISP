@@ -171,7 +171,7 @@
  * To define a custom session handler, save it at /app/Model/Datasource/Session/<name>.php.
  * Make sure the class implements `CakeSessionHandlerInterface` and set Session.handler to <name>
  *
- * To use database sessions, run the app/Config/Schema/sessions.php schema using
+ * To use database sessions, run the app/config/Schema/sessions.php schema using
  * the cake shell command: cake schema create Sessions
  *
  */
@@ -239,7 +239,7 @@
  * Pick the caching engine to use.  If APC is enabled use it.
  * If running via cli - apc is disabled by default. ensure it's available and enabled in this case
  *
- * Note: 'default' and other application caches should be configured in app/Config/bootstrap.php.
+ * Note: 'default' and other application caches should be configured in app/config/bootstrap.php.
  *       Please check the comments in boostrap.php for more info on the cache engines available
  *       and their setttings.
  */

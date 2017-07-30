@@ -14,9 +14,6 @@
 * @modified	Mark Scherer
 */
 
-App::uses('Helper', 'View');
-App::uses('Inflector', 'Utility');
-App::uses('UrlCacheManager', 'UrlCache.Routing');
 
 class UrlCacheAppHelper extends Helper {
 

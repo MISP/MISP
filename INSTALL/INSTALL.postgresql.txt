@@ -51,7 +51,7 @@ psql -U misp -d misp -f /var/www/MISP/INSTALL/POSTGRESQL-data-initial.sql -h loc
 
 # in step 8 of the Debian install, you configure Postgres instead of MySQL
 # the necessary lines are already there, you just have to activate them instead of the MySQL-lines
-# file: /var/www/MISP/app/Config/database.php
+# file: /var/www/MISP/app/config/database.php
 # necessary changes:
 # 'datasource' => 'Database/Postgres',
 # 'port' => 5432,

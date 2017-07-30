@@ -81,13 +81,13 @@ install:
     - sudo service apache2 restart
     # MISP configuration
     - sudo chmod -R 777 `pwd`/travis
-    - sudo cp travis/bootstrap.php app/Config/bootstrap.php
-    - sudo cp travis/database.php app/Config/database.php
-    - sudo cp travis/core.php app/Config/core.php
-    - sudo cp travis/config.php app/Config/config.php
+    - sudo cp travis/bootstrap.php app/config/bootstrap.php
+    - sudo cp travis/database.php app/config/database.php
+    - sudo cp travis/core.php app/config/core.php
+    - sudo cp travis/config.php app/config/config.php
     # Ensure the perms
-    - sudo chown -R www-data:www-data `pwd`/app/Config
-    - sudo chmod -R 750 `pwd`/app/Config
+    - sudo chown -R www-data:www-data `pwd`/app/config
+    - sudo chmod -R 750 `pwd`/app/config
     # GPG setup
     - sudo mkdir `pwd`/.gnupg
     # /!\ VERY INSECURE BUT FASTER ON THE BUILD ENV OF TRAVIS
@@ -97,7 +97,7 @@ install:
     - sudo chmod 700 `pwd`/.gnupg
     # Get authkey
     - sudo usermod -a -G www-data $USER
-    - sudo -E su $USER -c 'app/Console/cake userInit -q | sudo tee ./key.txt'
+    - sudo -E su $USER -c 'app/bin/cake userInit -q | sudo tee ./key.txt'
     - sudo chmod 777 ./key.txt
     - sudo chmod -R 777 ./tests
     - sudo chown -R www-data:www-data `pwd`
