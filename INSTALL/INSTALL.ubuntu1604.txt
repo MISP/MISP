@@ -81,7 +81,7 @@ cd /var/www/MISP/app/files/scripts/
 sudo -u www-data git clone https://github.com/CybOXProject/mixbox.git
 cd /var/www/MISP/app/files/scripts/mixbox
 sudo -u www-data git checkout v1.0.2
-python setup.py install
+sudo python setup.py install
 
 4/ CakePHP
 -----------
