@@ -22,9 +22,13 @@
 
 App::uses('Model', 'Model');
 App::uses('LogableBehavior', 'Assets.models/behaviors');
+App::uses('BlowfishPasswordHasher', 'Controller/Component/Auth');
 class AppModel extends Model {
-
 	public $name;
+
+	public $loadedPubSubTool = false;
+
+	private $__redisConnection = false;
 
 	public function __construct($id = false, $table = null, $ds = null) {
 		parent::__construct($id, $table, $ds);
@@ -41,7 +45,9 @@ class AppModel extends Model {
 				42 => false, 44 => false, 45 => false, 49 => true, 50 => false,
 				51 => false, 52 => false, 55 => true, 56 => true, 57 => true,
 				58 => false, 59 => false, 60 => false, 61 => false, 62 => false,
-				63 => false, 64 => false, 65 => false
+				63 => false, 64 => false, 65 => false, 66 => false, 67 => true,
+				68 => false, 69 => false, 71 => false, 72 => false, 73 => false,
+				75 => false, 77 => false
 			)
 		)
 	);
@@ -77,6 +83,33 @@ class AppModel extends Model {
 				break;
 			case '2.4.55':
 				$this->updateDatabase('addSightings');
+				break;
+			case '2.4.66':
+				$this->updateDatabase('2.4.66');
+				$this->cleanCacheFiles();
+				$this->Sighting = Classregistry::init('Sighting');
+				$this->Sighting->addUuids();
+				break;
+			case '2.4.67':
+				$this->updateDatabase('2.4.67');
+				$this->Sighting = Classregistry::init('Sighting');
+				$this->Sighting->addUuids();
+				$this->Sighting->deleteAll(array('NOT' => array('Sighting.type' => array(0, 1, 2))));
+				break;
+			case '2.4.71':
+				$this->OrgBlacklist = Classregistry::init('OrgBlacklist');
+				$values = array(
+					array('org_uuid' => '58d38339-7b24-4386-b4b4-4c0f950d210f', 'org_name' => 'Setec Astrononomy', 'comment' => 'default example'),
+					array('org_uuid' => '58d38326-eda8-443a-9fa8-4e12950d210f', 'org_name' => 'Acme Finance', 'comment' => 'default example')
+				);
+				foreach ($values as $value) {
+					$found = $this->OrgBlacklist->find('first', array('conditions' => array('org_uuid' => $value['org_uuid']), 'recursive' => -1));
+					if (empty($found)) {
+						$this->OrgBlacklist->create();
+						$this->OrgBlacklist->save($value);
+					}
+				}
+				$this->updateDatabase($command);
 				break;
 			default:
 				$this->updateDatabase($command);
@@ -557,8 +590,6 @@ class AppModel extends Model {
 					$sqlArray[] = 'CREATE INDEX idx_attribute_tags_event_id ON attribute_tags (event_id);';
 					$sqlArray[] = 'CREATE INDEX idx_attribute_tags_tag_id ON attribute_tags (tag_id);';
 				}
-				$this->__dropIndex('attribute_tags', 'attribute_id');
-				$this->__dropIndex('attribute_tags', 'tag_id');
 				break;
 			case '2.4.61':
 				$sqlArray[] = 'ALTER TABLE feeds ADD input_source varchar(255) COLLATE utf8_bin NOT NULL DEFAULT "network";';
@@ -600,6 +631,76 @@ class AppModel extends Model {
 				$sqlArray[] = 'ALTER TABLE feeds CHANGE `distribution` `distribution` tinyint(4) NOT NULL DEFAULT 0;';
 				$sqlArray[] = 'ALTER TABLE feeds CHANGE `sharing_group_id` `sharing_group_id` int(11) NOT NULL DEFAULT 0;';
 				$sqlArray[] = 'ALTER TABLE attributes CHANGE `comment` `comment` text COLLATE utf8_bin;';
+				break;
+			case '2.4.66':
+				$sqlArray[] = 'ALTER TABLE shadow_attributes CHANGE old_id old_id int(11) DEFAULT 0;';
+				$sqlArray[] = 'ALTER TABLE sightings ADD COLUMN uuid varchar(255) COLLATE utf8_bin DEFAULT "";';
+				$sqlArray[] = 'ALTER TABLE sightings ADD COLUMN source varchar(255) COLLATE utf8_bin DEFAULT "";';
+				$sqlArray[] = 'ALTER TABLE sightings ADD COLUMN type int(11) DEFAULT 0;';
+				$indexArray[] = array('sightings', 'uuid');
+				$indexArray[] = array('sightings', 'source');
+				$indexArray[] = array('sightings', 'type');
+				$indexArray[] = array('attributes', 'category');
+				$indexArray[] = array('shadow_attributes', 'category');
+				$indexArray[] = array('shadow_attributes', 'type');
+				break;
+			case '2.4.67':
+				$sqlArray[] = "ALTER TABLE `roles` ADD `perm_sighting` tinyint(1) NOT NULL DEFAULT 0;";
+				$sqlArray[] = 'UPDATE `roles` SET `perm_sighting` = 1 WHERE `perm_add` = 1;';
+				break;
+			case '2.4.68':
+				$sqlArray[] = 'ALTER TABLE events CHANGE attribute_count attribute_count int(11) unsigned DEFAULT 0;';
+				$sqlArray[] = 'CREATE TABLE IF NOT EXISTS `event_blacklists` (
+				  `id` int(11) NOT NULL AUTO_INCREMENT,
+				  `event_uuid` varchar(40) COLLATE utf8_bin NOT NULL,
+				  `created` datetime NOT NULL,
+				  `event_info` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+				  `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+				  `event_orgc` VARCHAR( 255 ) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+				  PRIMARY KEY (`id`)
+				) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;';
+				$indexArray[] = array('event_blacklists', 'event_uuid');
+				$indexArray[] = array('event_blacklists', 'event_orgc');
+				$sqlArray[] = 'CREATE TABLE IF NOT EXISTS `org_blacklists` (
+				  `id` int(11) NOT NULL AUTO_INCREMENT,
+				  `org_uuid` varchar(40) COLLATE utf8_bin NOT NULL,
+				  `created` datetime NOT NULL,
+				  `org_name` varchar(255) COLLATE utf8_bin NOT NULL,
+				  `comment` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+				  PRIMARY KEY (`id`),
+				  INDEX `org_uuid` (`org_uuid`),
+				  INDEX `org_name` (`org_name`)
+				) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;';
+				$indexArray[] = array('org_blacklists', 'org_uuid');
+				$indexArray[] = array('org_blacklists', 'org_name');
+				$sqlArray[] = "ALTER TABLE shadow_attributes CHANGE proposal_to_delete proposal_to_delete BOOLEAN DEFAULT 0";
+				$sqlArray[] = "ALTER TABLE taxonomy_predicates CHANGE colour colour varchar(7) CHARACTER SET utf8 COLLATE utf8_bin;";
+				$sqlArray[] = "ALTER TABLE taxonomy_entries CHANGE colour colour varchar(7) CHARACTER SET utf8 COLLATE utf8_bin;";
+				break;
+			case '2.4.69':
+				$sqlArray[] = "ALTER TABLE taxonomy_entries CHANGE colour colour varchar(7) CHARACTER SET utf8 COLLATE utf8_bin;";
+				$sqlArray[] = "ALTER TABLE users ADD COLUMN date_created bigint(20);";
+				$sqlArray[] = "ALTER TABLE users ADD COLUMN date_modified bigint(20);";
+				break;
+			case '2.4.71':
+				$sqlArray[] = "UPDATE attributes SET comment = '' WHERE comment is NULL;";
+				$sqlArray[] = "ALTER TABLE attributes CHANGE comment comment text COLLATE utf8_bin NOT NULL;";
+				break;
+			case '2.4.72':
+				$sqlArray[] = 'ALTER TABLE feeds ADD lookup_visible tinyint(1) DEFAULT 0;';
+				break;
+			case '2.4.73':
+				$sqlArray[] = 'ALTER TABLE `servers` ADD `unpublish_event` tinyint(1) NOT NULL DEFAULT 0;';
+				$sqlArray[] = 'ALTER TABLE `servers` ADD `publish_without_email` tinyint(1) NOT NULL DEFAULT 0;';
+				break;
+			case '2.4.75':
+				$this->__dropIndex('attributes', 'value1');
+				$this->__dropIndex('attributes', 'value2');
+				$this->__addIndex('attributes', 'value1', 255);
+				$this->__addIndex('attributes', 'value2', 255);
+				break;
+			case '2.4.77':
+				$sqlArray[] = 'ALTER TABLE `users` CHANGE `password` `password` VARCHAR(255) COLLATE utf8_bin NOT NULL;';
 				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -649,11 +750,14 @@ class AppModel extends Model {
 				));
 			}
 		}
-		foreach ($indexArray as $iA) {
-			if (isset($iA[2])) {
-				$this->__addIndex($iA[0], $iA[1], $iA[2]);
-			} else {
-				$this->__addIndex($iA[0], $iA[1]);
+		if (!empty($indexArray)) {
+			if ($clean) $this->cleanCacheFiles();
+			foreach ($indexArray as $iA) {
+				if (isset($iA[2])) {
+					$this->__addIndex($iA[0], $iA[1], $iA[2]);
+				} else {
+					$this->__addIndex($iA[0], $iA[1]);
+				}
 			}
 		}
 		if ($clean) $this->cleanCacheFiles();
@@ -912,5 +1016,48 @@ class AppModel extends Model {
 
 	public function checkFilename($filename) {
 		return preg_match('@^([a-z0-9_.]+[a-z0-9_.\- ]*[a-z0-9_.\-]|[a-z0-9_.])+$@i', $filename);
+	}
+
+	public function setupRedis() {
+		if (class_exists('Redis')) {
+			if ($this->__redisConnection) {
+				return $this->__redisConnection;
+			}
+			$redis = new Redis();
+		} else {
+			return false;
+		}
+		$host = Configure::read('MISP.redis_host') ? Configure::read('MISP.redis_host') : '127.0.0.1';
+		$port = Configure::read('MISP.redis_port') ? Configure::read('MISP.redis_port') : 6379;
+		$database = Configure::read('MISP.redis_database') ? Configure::read('MISP.redis_database') : 13;
+		$pass = Configure::read('MISP.redis_password');
+		if (!$redis->connect($host, $port)) {
+			return false;
+		}
+		if (!empty($pass)) $redis->auth($pass);
+		$redis->select($database);
+		$this->__redisConnection = $redis;
+		return $redis;
+	}
+
+	public function getPubSubTool() {
+		if (!$this->loadedPubSubTool) {
+			$this->loadPubSubTool();
+		}
+		return $this->loadedPubSubTool;
+	}
+
+	public function loadPubSubTool() {
+		App::uses('PubSubTool', 'Tools');
+		$pubSubTool = new PubSubTool();
+		$pubSubTool->initTool();
+		$this->loadedPubSubTool = $pubSubTool;
+		return true;
+	}
+
+	public function checkVersionRequirements($versionString, $minVersion) {
+		$version = explode('.', $versionString);
+		$minVersion = explode('.', $minVersion);
+		return ($version[0] >= $minVersion[0] && $version[1] >= $minVersion[1] && $version[2] >= $minVersion[2]);
 	}
 }

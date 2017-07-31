@@ -2,6 +2,14 @@
 	<h2><?php echo h($title);?></h2>
 	<p>Below you can see the attributes that are to be created. Make sure that the categories and the types are correct, often several options will be offered based on an inconclusive automatic resolution. </p>
 	<?php
+		$instanceDefault = 5;
+		if (!empty(Configure::read('MISP.default_attribute_distribution'))) {
+			if (Configure::read('MISP.default_attribute_distribution') == 'event') {
+				$instanceDefault = 5;
+			} else {
+				$instanceDefault = Configure::read('MISP.default_attribute_distribution');
+			}
+		}
 		echo $this->Form->create('Attribute', array('url' => '/events/saveFreeText/' . $event['Event']['id'], 'class' => 'mainForm'));
 		if ($isSiteAdmin) {
 			echo $this->Form->input('force', array(
@@ -30,7 +38,9 @@
 				<th>Category</th>
 				<th>Type</th>
 				<th>IDS<input type="checkbox" id="checkAll" style="margin:0px;margin-left:3px;"/></th>
+				<th>Distribution</th>
 				<th>Comment</th>
+				<th>Tags</th>
 				<th>Actions</th>
 		</tr>
 		<?php
@@ -60,7 +70,7 @@
 					echo $this->Form->input('Attribute' . $k . 'Value', array(
 							'label' => false,
 							'value' => $item['value'],
-							'style' => 'padding:0px;height:20px;margin-bottom:0px;width:90%;',
+							'style' => 'padding:0px;height:20px;margin-bottom:0px;width:90%;min-width:200px;',
 							'div' => false
 					));
 				?>
@@ -140,11 +150,34 @@
 			<td class="short" style="width:40px;text-align:center;">
 				<input type="checkbox" id="<?php echo 'Attribute' . $k . 'To_ids'; ?>" <?php if ($item['to_ids']) echo 'checked'; ?> class="idsCheckbox" />
 			</td>
+			<td class="short" style="width:40px;text-align:center;">
+				<select id = "<?php echo 'Attribute' . $k . 'Distribution'; ?>" class='distributionToggle' style='padding:0px;height:20px;margin-bottom:0px;'>
+					<?php
+						foreach ($distributions as $distKey => $distValue) {
+							$default = isset($item['distribution']) ? $item['distribution'] : $instanceDefault;
+							echo '<option value="' . $distKey . '" ';
+							echo ($distKey == $default ? 'selected="selected"' : '') . '>' . $distValue . '</option>';
+						}
+					?>
+				</select>
+				<div style="display:none;">
+					<select id = "<?php echo 'Attribute' . $k . 'SharingGroupId'; ?>" class='sgToggle' style='padding:0px;height:20px;margin-top:3px;margin-bottom:0px;'>
+						<?php
+							foreach ($sgs as $sgKey => $sgValue) {
+								echo '<option value="' . $sgKey . '">' . $sgValue . '</option>';
+							}
+						?>
+					</select>
+				</div>
+			</td>
 			<td class="short">
 				<input type="text" class="freetextCommentField" id="<?php echo 'Attribute' . $k . 'Comment'; ?>" style="padding:0px;height:20px;margin-bottom:0px;" placeholder="<?php echo h($importComment); ?>" <?php if (isset($item['comment']) && $item['comment'] !== false) echo 'value="' . $item['comment'] . '"'?>/>
 			</td>
+			<td class="short">
+				<input type="text" class="freetextTagField" id="<?php echo 'Attribute' . $k . 'Tags'; ?>" style="padding:0px;height:20px;margin-bottom:0px;"<?php if (isset($item['tags']) && $item['tags'] !== false) echo 'value="' . htmlspecialchars(implode(",",$item['tags'])) . '"'?>/>
+			</td>
 			<td class="action short">
-				<span class="icon-remove pointer" onClick="freetextRemoveRow('<?php echo $k; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
+				<span class="icon-remove pointer" title="Remove resolved attribute" role="button" tabindex="0" aria-label="Remove resolved attribute" onClick="freetextRemoveRow('<?php echo $k; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
 			</td>
 		</tr>
 	<?php
@@ -161,7 +194,7 @@
 	?>
 	</table>
 	<span>
-		<button class="btn btn-primary" style="float:left;" onClick="freetextImportResultsSubmit('<?php echo h($event['Event']['id']); ?>', '<?php echo count($resultArray); ?>');">Submit</button>
+		<button class="btn btn-primary" style="float:left;" onClick="freetextImportResultsSubmit('<?php echo h($event['Event']['id']); ?>', '<?php echo count($resultArray); ?>', '<?php echo h($type); ?>');">Submit</button>
 		<span style="float:right">
 			<?php
 				if (!empty($optionsRearranged)):
@@ -186,16 +219,16 @@
 						endforeach;
 					?>
 				</select>
-				<span class="btn btn-inverse" onClick="changeFreetextImportExecute();">Change all</span><br />
+				<span role="button" tabindex="0" aria-label="Apply changes to all applicable resolved attributes" title="Apply changes to all applicable resolved attributes" class="btn btn-inverse" onClick="changeFreetextImportExecute();">Change all</span><br />
 			<?php endif; ?>
 			<input type="text" id="changeComments" style="margin-left:50px;margin-top:10px;width:446px;" placeholder="Update all comment fields">
-			<span class="btn btn-inverse" onClick="changeFreetextImportCommentExecute();">Change all</span>
+			<span role="button" tabindex="0" aria-label="Change all" title="Change all" class="btn btn-inverse" onClick="changeFreetextImportCommentExecute();">Change all</span>
 		</span>
 	</span>
 </div>
 	<script>
 		var options = <?php echo json_encode($optionsRearranged);?>;
-		$(document).ready(function(){
+		$(document).ready(function() {
 			popoverStartup();
 		<?php
 			if (!empty($optionsRearranged)):
@@ -209,6 +242,13 @@
 		?>
 			$('#checkAll').change(function() {
 				$('.idsCheckbox').prop('checked', $('#checkAll').is(':checked'));
+			});
+			$('.distributionToggle').change(function() {
+				if ($(this).val() == 4) {
+					$(this).next().show();
+				} else {
+					$(this).next().hide();
+				}
 			});
 		});
 	</script>

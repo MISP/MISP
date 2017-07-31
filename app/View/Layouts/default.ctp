@@ -4,7 +4,7 @@
 	<meta http-equiv="X-UA-Compatible" content="IE=edge" />
 	<?php echo $this->Html->charset(); ?>
 	<title>
-		<?php echo $title_for_layout, ' - MISP'; ?>
+		<?php echo $title_for_layout, ' - MISP '. h(Configure::read('MISP.welcome_text_top')); ?>
 	</title>
 	<?php
 		if (!isset($debugMode)) {
@@ -17,7 +17,12 @@
 		echo $this->Html->css('bootstrap-timepicker');
 		echo $this->Html->css('bootstrap-colorpicker');
 		echo $this->Html->css('famfamfam-flags');
-		echo $this->Html->css('main');
+		echo $this->Html->css('font-awesome');
+		if ($me) {
+			echo $this->Html->css('main.css?' . $queryVersion);
+		} else {
+			echo $this->Html->css('main');
+		}
 		if (Configure::read('MISP.custom_css')) {
 			$css = preg_replace('/\.css$/i', '', Configure::read('MISP.custom_css'));
 			echo $this->Html->css($css);
@@ -34,8 +39,8 @@
 </head>
 <body>
 	<div id="popover_form" class="ajax_popover_form"></div>
-	<div id="confirmation_box" class="confirmation_box"></div>
 	<div id="screenshot_box" class="screenshot_box"></div>
+	<div id="confirmation_box" class="confirmation_box"></div>
 	<div id="gray_out" class="gray_out"></div>
 		<div id="container">
 			<?php echo $this->element('global_menu');
@@ -79,8 +84,9 @@
 	echo $this->Html->script('bootstrap-timepicker');
 	echo $this->Html->script('bootstrap-datepicker');
 	echo $this->Html->script('bootstrap-colorpicker');
-	echo $this->Html->script('main');
-	echo $this->Html->script('misp' . $jsVersion);
+	if ($me) {
+		echo $this->Html->script('misp.js?' . $queryVersion);
+	}
 	?>
 	<div id = "ajax_success_container" class="ajax_container">
 		<div id="ajax_success" class="ajax_result ajax_success"></div>

@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS attributes (
   timestamp bigint NOT NULL DEFAULT 0,
   distribution smallint NOT NULL DEFAULT 0,
   sharing_group_id bigint NOT NULL,
-  comment text NOT NULL,
+  comment text DEFAULT "",
   deleted smallint NOT NULL DEFAULT 0,
   PRIMARY KEY (id),
   UNIQUE (uuid)
@@ -143,6 +143,22 @@ CREATE INDEX idx_events_info ON events (info);
 CREATE INDEX idx_events_sharing_group_id ON events (sharing_group_id);
 CREATE INDEX idx_events_org_id ON events (org_id);
 CREATE INDEX idx_events_orgc_id ON events (orgc_id);
+
+-- -------------------------------------------------------
+
+--
+-- Table structure for event_blacklists
+--
+
+CREATE TABLE event_blacklists (
+  id bigserial NOT NULL,
+  event_uuid varchar(40) NOT NULL,
+  created timestamp NOT NULL,
+  event_info text NOT NULL,
+  comment text NOT NULL,
+  event_orgc varchar(255) NOT NULL,
+  PRIMARY KEY (id)
+);
 
 -- -------------------------------------------------------
 
@@ -271,6 +287,21 @@ CREATE TABLE IF NOT EXISTS news (
   PRIMARY KEY (id)
 );
 
+-- -------------------------------------------------------
+
+--
+-- Table structure for org_blacklists
+--
+
+CREATE TABLE org_blacklists (
+ id bigserial NOT NULL,
+ org_uuid varchar(40) NOT NULL,
+ created timestamp NOT NULL,
+ org_name varchar(255) NOT NULL,
+ comment text NOT NULL,
+ PRIMARY KEY (id)
+);
+
 -- --------------------------------------------------------
 
 --
@@ -378,6 +409,8 @@ CREATE TABLE IF NOT EXISTS servers (
   lastpushedid bigint DEFAULT NULL,
   organization varchar(10) DEFAULT NULL,
   remote_org_id bigint NOT NULL,
+  publish_without_email smallint NOT NULL DEFAULT 0,
+  unpublish_event smallint NOT NULL DEFAULT 0,
   self_signed smallint NOT NULL,
   pull_rules text NOT NULL,
   push_rules text NOT NULL,
@@ -518,11 +551,11 @@ CREATE INDEX idx_sharing_groups_organisation_uuid ON sharing_groups (organisatio
 --
 
 CREATE TABLE IF NOT EXISTS sightings (
-  id int(11) NOT NULL AUTO_INCREMENT,
-  attribute_id int(11) NOT NULL,
-  event_id int(11) NOT NULL,
-  org_id int(11) NOT NULL,
-  date_sighting bigint(20) NOT NULL,
+  id bigserial NOT NULL,
+  attribute_id bigint NOT NULL,
+  event_id bigint NOT NULL,
+  org_id bigint NOT NULL,
+  date_sighting bigint NOT NULL,
   PRIMARY KEY (id)
 );
 

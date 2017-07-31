@@ -68,6 +68,7 @@ class Warninglist extends AppModel{
 				}
 			}
 		}
+		$this->regenerateWarninglistCaches();
 		return $updated;
 	}
 
@@ -114,15 +115,114 @@ class Warninglist extends AppModel{
 		}
 	}
 
-	public function fetchForEventView() {
+	// regenerate the warninglist caches, but if an ID is passed along, only regen the entries for the given ID.
+	// This allows us to enable/disable a single warninglist without regenerating all caches
+	public function regenerateWarninglistCaches($id = false) {
+		$redis = $this->setupRedis();
+		if ($redis === false) {
+			return false;
+		}
 		$warninglists = $this->find('all', array('contain' => array('WarninglistType'), 'conditions' => array('enabled' => 1)));
-		if (empty($warninglists)) return array();
-		foreach ($warninglists as $k => &$t) {
-			$t['values'] = $this->WarninglistEntry->find('list', array(
+		$this->cacheWarninglists($warninglists);
+		foreach ($warninglists as $warninglist) {
+			if ($id && $warninglist['Warninglist']['id'] != $id) {
+				continue;
+			}
+			$entries = $this->WarninglistEntry->find('list', array(
 					'recursive' => -1,
-					'conditions' => array('warninglist_id' => $t['Warninglist']['id']),
+					'conditions' => array('warninglist_id' => $warninglist['Warninglist']['id']),
 					'fields' => array('value')
 			));
+			$this->cacheWarninglistEntries($entries, $warninglist['Warninglist']['id']);
+		}
+		return true;
+	}
+
+	public function cacheWarninglists($warninglists) {
+		$redis = $this->setupRedis();
+		if ($redis !== false) {
+			$redis->del('misp:warninglist_cache');
+			foreach ($warninglists as $warninglist) {
+				$redis->sAdd('misp:warninglist_cache', json_encode($warninglist));
+			}
+			return true;
+		}
+		return false;
+	}
+
+	public function cacheWarninglistEntries($warninglistEntries, $id) {
+		$redis = $this->setupRedis();
+		if ($redis !== false) {
+			$redis->del('misp:warninglist_entries_cache:');
+			foreach ($warninglistEntries as $entry) {
+				$redis->sAdd('misp:warninglist_entries_cache:' . $id, $entry);
+			}
+			return true;
+		}
+		return false;
+	}
+
+	public function getWarninglists($conditions) {
+		$redis = $this->setupRedis();
+		if ($redis !== false) {
+			if (!$redis->exists('misp:warninglist_cache') || $redis->sCard('misp:warninglist_cache') == 0) {
+				if (!empty($conditions)) {
+					$warninglists = $this->find('all', array('contain' => array('WarninglistType'), 'conditions' => $conditions));
+				} else {
+					$warninglists = $this->find('all', array('contain' => array('WarninglistType'), 'conditions' => array('enabled' => 1)));
+				}
+				if (empty($conditions)) {
+					$this->cacheWarninglists($warninglists);
+				}
+				return $warninglists;
+			} else {
+				$warninglists = $redis->sMembers('misp:warninglist_cache');
+				foreach ($warninglists as $k => $v) {
+					$warninglists[$k] = json_decode($v, true);
+				}
+				if (!empty($conditions)) {
+					foreach ($warninglists as $k => $v) {
+						foreach ($conditions as $k2 => $v2) {
+							if ($v['Warninglist'][$k2] != $v2) {
+								unset($warninglists[$k]);
+								continue 2;
+							}
+						}
+					}
+				}
+				return $warninglists;
+			}
+		}
+	}
+
+	public function getWarninglistEntries($id) {
+		$redis = $this->setupRedis();
+		if ($redis !== false) {
+			if (!$redis->exists('misp:warninglist_entries_cache:' . $id) || $redis->sCard('misp:warninglist_entries_cache:' . $id) == 0) {
+				$entries = $this->WarninglistEntry->find('list', array(
+						'recursive' => -1,
+						'conditions' => array('warninglist_id' => $id),
+						'fields' => array('value')
+				));
+				$this->cacheWarninglistEntries($entries, $id);
+			} else {
+				$entries = $redis->sMembers('misp:warninglist_entries_cache:' . $id);
+			}
+		} else {
+			$entries = $this->WarninglistEntry->find('list', array(
+					'recursive' => -1,
+					'conditions' => array('warninglist_id' => $id),
+					'fields' => array('value')
+			));
+		}
+		return $entries;
+	}
+
+	public function fetchForEventView() {
+		$warninglists = $this->getWarninglists(array('enabled' => 1));
+		if (empty($warninglists)) return array();
+		foreach ($warninglists as $k => &$t) {
+			$t['values'] = $this->getWarninglistEntries($t['Warninglist']['id']);
 			$t['values'] = array_values($t['values']);
 			foreach ($t['WarninglistType'] as &$wt) {
 				$t['types'][] = $wt['type'];
@@ -169,7 +269,7 @@ class Warninglist extends AppModel{
 			} else if ($listType === 'hostname') {
 				$result = $this->__evalHostname($listValues, $value[$component]);
 			}
-			if ($result) return ($component + 1);
+			if (!empty($result)) return ($component + 1);
 		}
 		return false;
 	}
@@ -285,7 +385,7 @@ class Warninglist extends AppModel{
 	}
 
 	public function fetchTLDLists() {
-		$tldLists = $this->find('list', array('conditions' => array('Warninglist.name' => $this->__tlds, 'Warninglist.enabled' => 1), 'recursive' => -1, 'fields' => array('Warninglist.id', 'Warninglist.name')));
+		$tldLists = $this->find('list', array('conditions' => array('Warninglist.name' => $this->__tlds), 'recursive' => -1, 'fields' => array('Warninglist.id', 'Warninglist.name')));
 		$tlds = array();
 		if (!empty($tldLists)) {
 			$tldLists = array_keys($tldLists);
@@ -299,18 +399,11 @@ class Warninglist extends AppModel{
 		return $tlds;
 	}
 
-	public function filterWarninglistAttributes($warninglists, $attribute, $warninglistModel) {
+	public function filterWarninglistAttributes($warninglists, $attribute) {
 		foreach ($warninglists as $warninglist) {
-			if (in_array($attribute['type'], $warninglist['types']) || in_array('ALL', $warninglist['types'])) {
-				if ($warninglist['Warninglist']['type'] == 'cidr') {
-					return !$warninglistModel->__evalCIDRList($warninglist['values'], $attribute['value']);
-				} else {
-					foreach ($warninglist['values'] as $entry) {
-						if (strpos($attribute['value'], $entry) !== false) {
-							return false;
-						}
-					}
-				}
+			$result = $this->__checkValue($warninglist['values'], $attribute['value'], $attribute['type'], $warninglist['Warninglist']['type']);
+			if ($result === false) {
+				return false;
 			}
 		}
 		return true;

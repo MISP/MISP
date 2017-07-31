@@ -8,9 +8,16 @@ function deleteObject(type, action, id, event) {
 	if (alternateDestinations.indexOf(type) > -1) destination = type;
 	url = "/" + destination + "/" + action + "/" + id;
 	$.get(url, function(data) {
-		$("#confirmation_box").fadeIn();
-		$("#gray_out").fadeIn();
+		openPopup("#confirmation_box");
 		$("#confirmation_box").html(data);
+	});
+}
+
+function quickDeleteSighting(id, rawId, context) {
+	url = "/sightings/quickDelete/" + id + "/" + rawId + "/" + context;
+	$.get(url, function(data) {
+		$("#confirmation_box").html(data);
+		openPopup("#confirmation_box");
 	});
 }
 
@@ -20,23 +27,20 @@ function publishPopup(id, type) {
 	var destination = 'attributes';
 	$.get( "/events/" + action + "/" + id, function(data) {
 		$("#confirmation_box").html(data);
-		$("#confirmation_box").fadeIn();
-		$("#gray_out").fadeIn();
+		openPopup("#confirmation_box");
 	});
 }
 
 function delegatePopup(id) {
-	$.get( "/event_delegations/delegateEvent/" + id, function(data) {
-		$("#popover_form").html(data);
-		$("#popover_form").fadeIn();
-		$("#gray_out").fadeIn();
-	});
+	simplePopup("/event_delegations/delegateEvent/" + id);
 }
 
 function genericPopup(url, popupTarget) {
 	$.get(url, function(data) {
 		$(popupTarget).html(data);
 		$(popupTarget).fadeIn();
+		left = ($(window).width() / 2) - ($(popupTarget).width() / 2);
+		$(popupTarget).css({'left': left + 'px'});
 		$("#gray_out").fadeIn();
 	});
 }
@@ -56,18 +60,37 @@ function submitPublish(id, type) {
 }
 
 function editTemplateElement(type, id) {
-	$.get( "/template_elements/edit/" + type + "/" + id, function(data) {
-		$("#popover_form").fadeIn();
-		$("#gray_out").fadeIn();
-		$("#popover_form").html(data);
-
-	});
+	simplePopup("/template_elements/edit/" + type + "/" + id);
 }
 
-function cancelPrompt() {
-	$("#confirmation_box").fadeIn();
-	$("#gray_out").fadeOut();
+function cancelPrompt(isolated) {
+	if (isolated == undefined) {
+		$("#gray_out").fadeOut();
+	}
+	$("#confirmation_box").fadeOut();
 	$("#confirmation_box").empty();
+}
+
+function submitEventDeletion() {
+	var formData = $('#PromptForm').serialize();
+	$.ajax({
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+		data: formData,
+		success:function (data, textStatus) {
+			updateIndex(context_id, context);
+			handleGenericAjaxResponse(data);
+		},
+		complete:function() {
+			$(".loading").hide();
+			$("#confirmation_box").fadeOut();
+			$("#gray_out").fadeOut();
+		},
+		type:"post",
+		cache: false,
+		url:"/" + type + "/" + action + "/" + id,
+	});
 }
 
 function submitDeletion(context_id, action, type, id) {
@@ -91,6 +114,34 @@ function submitDeletion(context_id, action, type, id) {
 		type:"post",
 		cache: false,
 		url:"/" + type + "/" + action + "/" + id,
+	});
+}
+
+function removeSighting(id, rawid, context) {
+	if (context != 'attribute') {
+		context = 'event';
+	}
+	var formData = $('#PromptForm').serialize();
+	$.ajax({
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+		data: formData,
+		success:function (data, textStatus) {
+			handleGenericAjaxResponse(data);
+		},
+		complete:function() {
+			$(".loading").hide();
+			$("#confirmation_box").fadeOut();
+			var org = "/" + $('#org_id').text();
+			updateIndex(id, 'event');
+			$.get( "/sightings/listSightings/" + rawid + "/" + context + org, function(data) {
+				$("#sightingsData").html(data);
+			});
+		},
+		type:"post",
+		cache: false,
+		url:"/sightings/quickDelete/" + id + "/" + rawid + "/" + context,
 	});
 }
 
@@ -146,9 +197,8 @@ function toggleSetting(e, setting, id) {
 
 function initiatePasswordReset(id) {
 	$.get( "/users/initiatePasswordReset/" + id, function(data) {
-		$("#confirmation_box").fadeIn();
-		$("#gray_out").fadeIn();
 		$("#confirmation_box").html(data);
+		openPopup("#confirmation_box");
 	});
 }
 
@@ -214,6 +264,27 @@ function acceptObject(type, id, event) {
 		type:"post",
 		cache: false,
 		url:"/shadow_attributes/accept/" + id,
+	});
+}
+
+function toggleCorrelation(id) {
+	$.ajax({
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+		data: $('#PromptForm').serialize(),
+		success:function (data, textStatus) {
+			handleGenericAjaxResponse(data);
+			$("#correlation_toggle_" + id).prop('checked', !$("#correlation_toggle_" + id).is(':checked'));
+		},
+		complete:function() {
+			$(".loading").hide();
+			$("#confirmation_box").fadeOut();
+			$("#gray_out").fadeOut();
+		},
+		type:"post",
+		cache: false,
+		url:'/attributes/toggleCorrelation/' + id,
 	});
 }
 
@@ -340,7 +411,8 @@ function postActivationScripts(name, type, id, field, event) {
 	$(name + '_solid').hide();
 }
 
-function addSighting(attribute_id, event_id, $page) {
+function addSighting(type, attribute_id, event_id, page) {
+	$('#Sighting_' + attribute_id + '_type').val(type);
 	$.ajax({
 		data: $('#Sighting_' + attribute_id).closest("form").serialize(),
 		cache: false,
@@ -518,6 +590,14 @@ function toggleAllAttributeCheckboxes() {
 	}
 }
 
+function toggleAllCheckboxes() {
+	if ($(".select_all").is(":checked")) {
+		$(".select").prop("checked", true);
+	} else {
+		$(".select").prop("checked", false);
+	}
+}
+
 function toggleAllTaxonomyCheckboxes() {
 	if ($(".select_all").is(":checked")) {
 		$(".select_taxonomy").prop("checked", true);
@@ -527,18 +607,39 @@ function toggleAllTaxonomyCheckboxes() {
 }
 
 function attributeListAnyAttributeCheckBoxesChecked() {
-	if ($('.select_attribute:checked').length > 0) $('.mass-select').show();
-	else $('.mass-select').hide();
+	if ($('.select_attribute:checked').length > 0) $('.mass-select').removeClass('hidden');
+	else $('.mass-select').addClass('hidden');
+}
+
+function eventListCheckboxesChecked() {
+	if ($('.select:checked').length > 0) $('.mass-select').removeClass('hidden');
+	else $('.mass-select').addClass('hidden');
 }
 
 function attributeListAnyProposalCheckBoxesChecked() {
-	if ($('.select_proposal:checked').length > 0) $('.mass-proposal-select').show();
-	else $('.mass-proposal-select').hide();
+	if ($('.select_proposal:checked').length > 0) $('.mass-proposal-select').removeClass('hidden');
+	else $('.mass-proposal-select').addClass('hidden');
 }
 
 function taxonomyListAnyCheckBoxesChecked() {
 	if ($('.select_taxonomy:checked').length > 0) $('.mass-select').show();
 	else $('.mass-select').hide();
+}
+
+function multiSelectDeleteEvents() {
+	var selected = [];
+	$(".select").each(function() {
+		if ($(this).is(":checked")) {
+			var temp = $(this).data("id");
+			if (temp != null) {
+				selected.push(temp);
+			}
+		}
+	});
+	$.get("/events/delete/" + JSON.stringify(selected), function(data) {
+		$("#confirmation_box").html(data);
+		openPopup("#confirmation_box");
+	});
 }
 
 function multiSelectAction(event, context) {
@@ -592,24 +693,23 @@ function multiSelectAction(event, context) {
 }
 
 function editSelectedAttributes(event) {
-	$.get("/attributes/editSelected/"+event, function(data) {
-		$("#popover_form").fadeIn();
-		$("#gray_out").fadeIn();
-		$("#popover_form").html(data);
-	});
+	simplePopup("/attributes/editSelected/" + event);
 }
 
 function addSelectedTaxonomies(taxonomy) {
 	$.get("/taxonomies/taxonomyMassConfirmation/"+taxonomy, function(data) {
-		$("#confirmation_box").fadeIn();
-		$("#gray_out").fadeIn();
 		$("#confirmation_box").html(data);
+		openPopup("#confirmation_box");
 	});
 }
 
 function submitMassTaxonomyTag() {
 	$('#PromptForm').submit();
+}
 
+function submitMassEventDelete() {
+	$('#PromptForm').trigger('submit');
+	event.preventDefault();
 }
 
 function getSelected() {
@@ -676,7 +776,7 @@ function loadAttributeTags(id) {
 		dataType:"html",
 		cache: false,
 		success:function (data, textStatus) {
-			$("#Attribute_"+id+"_tr .attributeTagContainer").html(data);
+			$("#ShadowAttribute_"+id+"_tr .attributeTagContainer").html(data);
 		},
 		url:"/tags/showAttributeTag/" + id
 	});
@@ -685,8 +785,7 @@ function loadAttributeTags(id) {
 function removeObjectTagPopup(context, object, tag) {
 	$.get( "/" + context + "s/removeTag/" + object + '/' + tag, function(data) {
 		$("#confirmation_box").html(data);
-		$("#confirmation_box").fadeIn();
-		$("#gray_out").fadeIn();
+		openPopup("#confirmation_box");
 	});
 }
 
@@ -720,17 +819,14 @@ function removeObjectTag(context, object, tag) {
 function clickCreateButton(event, type) {
 	var destination = 'attributes';
 	if (type == 'Proposal') destination = 'shadow_attributes';
-	$.get( "/" + destination + "/add/" + event, function(data) {
-		$("#popover_form").fadeIn();
-		$("#gray_out").fadeIn();
-		$("#popover_form").html(data);
-	});
+	simplePopup("/" + destination + "/add/" + event);
 }
 
 function submitPopoverForm(context_id, referer, update_context_id) {
 	var url = null;
 	var context = 'event';
 	var contextNamingConvention = 'Attribute';
+	var closePopover = true;
 	switch (referer) {
 		case 'add':
 			url = "/attributes/add/" + context_id;
@@ -777,20 +873,37 @@ function submitPopoverForm(context_id, referer, update_context_id) {
 		case 'replaceAttributes':
 			url = "/attributes/attributeReplace/" + context_id;
 			break;
+		case 'addSighting':
+			url = "/sightings/add/" + context_id;
+			closePopover = false;
+			break;
 	}
-
 	if (url !== null) {
 		$.ajax({
 			beforeSend: function (XMLHttpRequest) {
 				$(".loading").show();
-				$("#gray_out").fadeOut();
-				$("#popover_form").fadeOut();
+				if (closePopover) {
+					$("#gray_out").fadeOut();
+					$("#popover_form").fadeOut();
+				}
 			},
 			data: $("#submitButton").closest("form").serialize(),
 			success:function (data, textStatus) {
-				var result = handleAjaxPopoverResponse(data, context_id, url, referer, context, contextNamingConvention);
+				if (closePopover) {
+					var result = handleAjaxPopoverResponse(data, context_id, url, referer, context, contextNamingConvention);
+				}
+				if (referer == 'addSighting') {
+					updateIndex(update_context_id, 'event');
+					$.get( "/sightings/listSightings/" + id + "/attribute", function(data) {
+						$("#sightingsData").html(data);
+					});
+					$('.sightingsToggle').removeClass('btn-primary');
+					$('.sightingsToggle').addClass('btn-inverse');
+					$('#sightingsListAllToggle').removeClass('btn-inverse');
+					$('#sightingsListAllToggle').addClass('btn-primary');
+				}
 				if (context == 'event' && (referer == 'add' || referer == 'massEdit' || referer == 'replaceAttributes')) eventUnpublish();
-				$(".loading").show();
+				$(".loading").hide();
 			},
 			type:"post",
 			url:url
@@ -815,12 +928,11 @@ function handleAjaxPopoverResponse(response, context_id, url, referer, context, 
 			async:true,
 			dataType:"html",
 			success:function (data, textStatus) {
-				$("#gray_out").fadeIn();
-				$("#popover_form").fadeIn();
 				$("#popover_form").html(data);
+				openPopup("#popover_form");
 				var error_context = context.charAt(0).toUpperCase() + context.slice(1);
 				handleValidationErrors(responseArray.errors, context, contextNamingConvention);
-				if (!isEmpty(responseArray)) {
+				if (!$.isEmptyObject(responseArray)) {
 					$("#formWarning").show();
 					$("#formWarning").html('The object(s) could not be saved. Please, try again.');
 				}
@@ -832,26 +944,18 @@ function handleAjaxPopoverResponse(response, context_id, url, referer, context, 
 	}
 }
 
-function isEmpty(obj) {
-	var name;
-	for (name in obj) {
-		return false;
-	}
-	return true;
-}
-
 //before we update the form (in case the action failed), we want to retrieve the data from every field, so that we can set the fields in the new form that we fetch
 function saveValuesForPersistance() {
 	var formPersistanceArray = new Array();
 	for (i = 0; i < fieldsArray.length; i++) {
-		formPersistanceArray[fieldsArray[i]] = document.getElementById(fieldsArray[i]).value;
+		formPersistanceArray[fieldsArray[i]] = $('#' + fieldsArray[i]).val();
 	}
 	return formPersistanceArray;
 }
 
 function recoverValuesFromPersistance(formPersistanceArray) {
 	for (i = 0; i < fieldsArray.length; i++) {
-		document.getElementById(fieldsArray[i]).value = formPersistanceArray[fieldsArray[i]];
+		$('#' + fieldsArray[i]).val(formPersistanceArray[fieldsArray[i]]);
 	}
 }
 
@@ -904,7 +1008,10 @@ function showMessage(success, message, context) {
 }
 
 function cancelPopoverForm() {
-	$("#popover_form").empty();
+	$("#gray_out").fadeOut();
+	$("#popover_form").fadeOut();
+	$("#screenshot_box").fadeOut();
+	$("#confirmation_box").fadeOut();
 	$('#gray_out').fadeOut();
 	$('#popover_form').fadeOut();
 }
@@ -983,31 +1090,11 @@ function saveElementSorting(order) {
 }
 
 function templateAddElementClicked(id) {
-	$("#gray_out").fadeIn();
-	$.ajax({
-		beforeSend: function (XMLHttpRequest) {
-			$(".loading").show();
-		},
-		dataType:"html",
-		cache: false,
-		success:function (data, textStatus) {
-			$(".loading").hide();
-			$("#popover_form").html(data);
-			$("#popover_form").fadeIn();
-		},
-		url:"/template_elements/templateElementAddChoices/" + id,
-	});
+	simplePopup("/template_elements/templateElementAddChoices/" + id);
 }
 
 function templateAddElement(type, id) {
-	$.ajax({
-		dataType:"html",
-		cache: false,
-		success:function (data, textStatus) {
-			$("#popover_form").html(data);
-		},
-		url:"/template_elements/add/" + type + "/" + id,
-	});
+	simplePopup("/template_elements/add/" + type + "/" + id);
 }
 
 function templateUpdateAvailableTypes() {
@@ -1094,6 +1181,25 @@ function templateElementFileCategoryChange(category) {
 	}
 }
 
+function openPopup(id) {
+	var window_height = $(window).height();
+	var popup_height = $(id).height();
+	if (window_height < popup_height) {
+		$(id).css("top", 0);
+		$(id).css("height", window_height);
+		$(id).addClass('vertical-scroll');
+	} else {
+		if (window_height > (300 + popup_height)) {
+			var top_offset = ((window_height - popup_height) / 2) - 150;
+		} else {
+			var top_offset = (window_height - popup_height) / 2;
+		}
+		$(id).css("top", top_offset + 'px');
+	}
+	$("#gray_out").fadeIn();
+	$(id).fadeIn();
+}
+
 function getPopup(id, context, target, admin, popupType) {
 	$("#gray_out").fadeIn();
 	var url = "";
@@ -1107,14 +1213,14 @@ function getPopup(id, context, target, admin, popupType) {
 			$(".loading").show();
 		},
 		dataType:"html",
+		async: true,
 		cache: false,
 		success:function (data, textStatus) {
 			$(".loading").hide();
 			$(popupType).html(data);
-			$(popupType).fadeIn();
+			openPopup(popupType);
 		},
-		url: url,
-		//url:"/templates/templateChoices/" + id,
+		url: url
 	});
 }
 
@@ -1125,11 +1231,12 @@ function simplePopup(url) {
 			$(".loading").show();
 		},
 		dataType:"html",
+		async: true,
 		cache: false,
 		success:function (data, textStatus) {
 			$(".loading").hide();
 			$("#popover_form").html(data);
-			$("#popover_form").fadeIn();
+			openPopup("#popover_form");
 		},
 		url: url,
 	});
@@ -1261,10 +1368,10 @@ function indexEvaluateFiltering() {
 		}
 		if (filtering.date.from != null || filtering.date.from != null) {
 			var text = "";
-			if (filtering.date.from != "") text = "From: " + filtering.date.from;
+			if (filtering.date.from != "") text = "From: " + $('<span>').text(filtering.date.from).html();
 			if (filtering.date.until != "") {
 				if (text != "") text += " ";
-				text += "Until: " + filtering.date.until;
+				text += "Until: " + $('<span>').text(filtering.date.until).html();
 			}
 		}
 		$('#value_date').html(text);
@@ -1278,9 +1385,9 @@ function indexEvaluateFiltering() {
 				var text = "";
 				if (filtering[differentFilters[i]] == 1) text = "Yes";
 				else if (filtering[differentFilters[i]] == 0) text = "No";
-				$('#value_' + differentFilters[i]).html(text);
+				$('#value_' + differentFilters[i]).text(text);
 			} else {
-				$('#value_' + differentFilters[i]).html("");
+				$('#value_' + differentFilters[i]).text("");
 			}
 		}
 		for (var i = 0; i < simpleFilters.length; i++) {
@@ -1289,13 +1396,15 @@ function indexEvaluateFiltering() {
 	}
 	indexSetTableVisibility();
 	indexSetRowVisibility();
-	$('#generatedURLContent').html(indexCreateFilters());
+	$('#generatedURLContent').text(indexCreateFilters());
 }
 
 function quickFilter(passedArgs, url) {
 	passedArgs["searchall"] = $('#quickFilterField').val().trim();
 	for (var key in passedArgs) {
-		url += "/" + key + ":" + passedArgs[key];
+		if (key !== 'page') {
+			url += "/" + key + ":" + passedArgs[key];
+		}
 	}
 	window.location.href=url;
 }
@@ -1411,11 +1520,11 @@ function indexEvaluateSimpleFiltering(field) {
 		for (var i = 0; i < filtering[field].OR.length; i++) {
 			if (i > 0) text += '<span class="green bold"> OR </span>';
 			if (typedFields.indexOf(field) == -1) {
-				text += filtering[field].OR[i];
+				text += $('<span>').text(filtering[field].OR[i]).html();
 			} else {
 				for (var j = 0; j < typeArray[field].length; j++) {
 					if (typeArray[field][j].id == filtering[field].OR[i]) {
-						text += typeArray[field][j].value;
+						text += $('<span>').text(typeArray[field][j].value).html();
 					}
 				}
 			}
@@ -1428,11 +1537,11 @@ function indexEvaluateSimpleFiltering(field) {
 				else text += '<span class="red bold">NOT </span>';
 			} else text += '<span class="red bold"> AND NOT </span>';
 			if (typedFields.indexOf(field) == -1) {
-				text += filtering[field].NOT[i];
+				text += $('<span>').text(filtering[field].NOT[i]).html();
 			} else {
 				for (var j = 0; j < typeArray[field].length; j++) {
 					if (typeArray[field][j].id == filtering[field].NOT[i]) {
-						text += typeArray[field][j].value;
+						text += $('<span>').text(typeArray[field][j].value).html();
 					}
 				}
 			}
@@ -1781,23 +1890,7 @@ function importChoiceSelect(url, elementId, ajax) {
 	if (ajax == 'false') {
 		document.location.href = url;
 	} else {
-		$.ajax({
-		    url: url,
-		    type:'GET',
-			beforeSend: function (XMLHttpRequest) {
-				$(".loading").show();
-			},
-		    error: function(){
-		    	$("#popover_form").html('An error has occured, please reload the page.');
-		    },
-		    success: function(response){
-		    	$("#popover_form").html(response);
-		    	$("#popover_form").fadeIn();
-		    },
-			complete: function() {
-				$(".loading").hide();
-			},
-		});
+		simplePopup(url);
 	}
 }
 
@@ -1812,8 +1905,11 @@ function freetextImportResultsSubmit(id, count) {
 				type:$('#Attribute' + i + 'Type').val(),
 				to_ids:$('#Attribute' + i + 'To_ids')[0].checked,
 				comment:$('#Attribute' + i + 'Comment').val(),
+				distribution:$('#Attribute' + i + 'Distribution').val(),
+				sharing_group_id:$('#Attribute' + i + 'SharingGroupId').val(),
 				data:$('#Attribute' + i + 'Data').val(),
-				data_is_handled:$('#Attribute' + i + 'DataIsHandled').val()
+				data_is_handled:$('#Attribute' + i + 'DataIsHandled').val(),
+				tags:$('#Attribute' + i + 'Tags').val()
 			}
 			attributeArray[attributeArray.length] = temp;
 		}
@@ -1925,7 +2021,6 @@ function simpleTabPageLast() {
 	if ($('#SharingGroupRoaming').is(":checked")) {
 		summaryservers = "any interconnected instances linked by an eligible organisation.";
 	} else {
-		console.log(servercounter);
 		if (servercounter == 0) {
 			summaryservers = "data marked with this sharing group will not be pushed.";
 		}
@@ -2007,24 +2102,7 @@ function sharingGroupAdd(context, type) {
 		url = '/servers/fetchServersForSG/' + jsonids
 	}
 	$("#gray_out").fadeIn();
-
-	$.ajax({
-	    url: url,
-	    type:'GET',
-		beforeSend: function (XMLHttpRequest) {
-			$(".loading").show();
-		},
-	    error: function(){
-	    	$("#popover_form").html('An error has occured, please reload the page.');
-	    },
-	    success: function(response){
-	    	$("#popover_form").html(response);
-	    	$("#popover_form").fadeIn();
-	    },
-		complete: function() {
-			$(".loading").hide();
-		},
-	});
+	simplePopup(url);
 }
 
 function sharingGroupRemoveOrganisation(id) {
@@ -2197,10 +2275,27 @@ function testConnection(id) {
 					else status_message = "Remote outdated, notify admin!"
 					colours.status = 'class="' + issue_colour + '"';
 				}
+				if (result.post != false) {
+					var post_colour = "red";
+					if (result.post == 1) {
+						post_colour = "green";
+						post_result = "Received sent package";
+					} else if (result.post == 8) {
+						post_result = "Could not POST message";
+					} else if (result.post == 9) {
+						post_result = "Invalid body";
+					} else if (result.post == 10) {
+						post_result = "Invalid headers";
+					} else {
+						post_colour = "orange";
+						post_result = "Remote too old for this test";
+					}
+				}
 				resultDiv = '<div>Local version: <span ' + colours.local + '>' + result.local_version + '</span><br />';
 				resultDiv += '<div>Remote version: <span ' + colours.remote + '>' + result.version + '</span><br />';
 				resultDiv += '<div>Status: <span ' + colours.status + '>' + status_message + '</span><br />';
 				resultDiv += '<div>Compatiblity: <span class="' + compatibility_colour + '">' + compatibility + '</span><br />';
+				resultDiv += '<div>POST test: <span class="' + post_colour + '">' + post_result + '</span><br />';
 				$("#connection_test_" + id).html(resultDiv);
 				//$("#connection_test_" + id).html('<span class="green bold" title="Connection established, correct response received.">OK</span>');
 				break;
@@ -2245,18 +2340,7 @@ function pgpChoiceSelect(uri) {
 }
 
 function lookupPGPKey(emailFieldName) {
-	$.ajax({
-		type: "get",
-		url: "/users/fetchPGPKey/" + $('#' + emailFieldName).val(),
-		success: function (data) {
-			$("#popover_form").fadeIn();
-			$("#gray_out").fadeIn();
-			$("#popover_form").html(data);
-		},
-		error: function (data, textStatus, errorThrown) {
-			showMessage('fail', textStatus + ": " + errorThrown);
-		}
-	});
+	simplePopup("/users/fetchPGPKey/" + $('#' + emailFieldName).val());
 }
 
 function zeroMQServerAction(action) {
@@ -2272,8 +2356,7 @@ function zeroMQServerAction(action) {
 				window.location.reload();
 			} else {
 				$("#confirmation_box").html(data);
-				$("#confirmation_box").fadeIn();
-				$("#gray_out").fadeIn();
+				openPopup("#confirmation_box");
 			}
 		},
 		error: function (data, textStatus, errorThrown) {
@@ -2575,8 +2658,7 @@ $(".queryPopover").click(function() {
 	id = $(this).data('id');
 	$.get(url + '/' + id, function(data) {
 		$('#popover_form').html(data);
-		$('#popover_form').fadeIn();
-		$("#gray_out").fadeIn();
+		openPopup('#popover_form');
 	});
 });
 
@@ -2743,6 +2825,29 @@ function checkOrphanedAttributes() {
 	});
 }
 
+function checkAttachments() {
+	$.ajax({
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+		success:function (data, textStatus) {
+			var color = 'red';
+			var text = ' (Bad links detected)';
+			if (data !== undefined && data.trim() == '0') {
+				color = 'green';
+				text = ' (OK)';
+			}
+			$("#orphanedFileCount").html('<span class="' + color + '">' + data + text + '</span>');
+		},
+		complete:function() {
+			$(".loading").hide();
+		},
+		type:"get",
+		cache: false,
+		url: "/attributes/checkAttachments/",
+	});
+}
+
 function loadTagTreemap() {
 	$.ajax({
 		async:true,
@@ -2758,6 +2863,28 @@ function loadTagTreemap() {
 		type:"get",
 		cache: false,
 		url: "/users/tagStatisticsGraph",
+	});
+}
+
+function loadSightingsData(timestamp) {
+	url = "/sightings/toplist";
+	if (timestamp != undefined) {
+		url = url + '/' + timestamp;
+	}
+	$.ajax({
+		async:true,
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+		success:function (data, textStatus) {
+			$(".sightingsdiv").html(data);
+		},
+		complete:function() {
+			$(".loading").hide();
+		},
+		type:"get",
+		cache: false,
+		url: url,
 	});
 }
 
@@ -2831,7 +2958,7 @@ function checkAndSetPublishedInfo() {
 
 $(document).keyup(function(e){
     if (e.keyCode === 27) {
-    	$("#gray_out").fadeOut();
+    $("#gray_out").fadeOut();
 		$("#popover_form").fadeOut();
 		$("#screenshot_box").fadeOut();
 		$("#confirmation_box").fadeOut();
@@ -2844,3 +2971,86 @@ function closeScreenshot() {
 	$("#screenshot_box").fadeOut();
 	$("#gray_out").fadeOut();
 }
+
+function loadSightingGraph(id, scope) {
+	$.get( "/sightings/viewSightings/" + id + "/" + scope, function(data) {
+		$("#sightingsData").html(data);
+	});
+}
+
+function checkRolePerms() {
+	if ($("#RolePermission").val() == '0' || $("#RolePermission").val() == '1') {
+		$('.readonlydisabled').prop('checked', false);
+		$('.readonlydisabled').hide();
+	} else {
+		$('.readonlydisabled').show();
+		$('.permFlags').show();
+	}
+	if ($("#RolePermSiteAdmin").prop('checked')) {
+		$('.checkbox').prop('checked', true);
+	}
+}
+
+// clicking on an element with this class will select all of its contents in a
+// single click
+$('.quickSelect').click(function() {
+	var range = document.createRange();
+	var selection = window.getSelection();
+	range.selectNodeContents(this);
+	selection.removeAllRanges();
+	selection.addRange(range);
+});
+
+function updateMISP() {
+	$.get( "/servers/update", function(data) {
+		$("#confirmation_box").html(data);
+		openPopup("#confirmation_box");
+	});
+}
+
+function submitMISPUpdate() {
+	var formData = $('#PromptForm').serialize();
+	$.ajax({
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+		data: formData,
+		success:function (data, textStatus) {
+			$('#gitResult').text(data);
+			$('#gitResult').removeClass('hidden');
+		},
+		complete:function() {
+			$(".loading").hide();
+			$("#confirmation_box").fadeOut();
+			$("#gray_out").fadeOut();
+		},
+		type:"post",
+		cache: false,
+		url:"/servers/update",
+	});
+}
+
+$(".cortex-json").click(function() {
+	var cortex_data = $(this).data('cortex-json');
+	cortex_data = JSON.stringify(cortex_data, null, 2);
+	var popupHtml = '<pre class="simplepre">' + cortex_data + '</pre>';
+	popupHtml += '<div class="close-icon useCursorPointer" onClick="closeScreenshot();"></div>';
+	$('#screenshot_box').html(popupHtml);
+	$('#screenshot_box').show();
+	$('#screenshot_box').css({'padding': '5px'});
+	left = ($(window).width() / 2) - ($('#screenshot_box').width() / 2);
+	if (($('#screenshot_box').height() + 250) > $(window).height()) {
+		$('#screenshot_box').height($(window).height() - 250);
+		$('#screenshot_box').css("overflow-y", "scroll");
+		$('#screenshot_box').css("overflow-x", "hidden");
+	}
+	$('#screenshot_box').css({'left': left + 'px'});
+	$("#gray_out").fadeIn();
+});
+
+(function(){
+    "use strict";
+    $(".datepicker").datepicker({
+        format: 'yyyy-mm-dd',
+    });
+}());

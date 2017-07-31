@@ -66,19 +66,22 @@ A sample event encoded in MISP:
 Website / Support
 ------------------
 
-Checkout the [website](http://www.misp-project.org) for more information about MISP like [features](http://www.misp-project.org/#features), [roadmap](http://www.misp-project.org/#roadmap), <small>(commercial)</small> [support](http://www.misp-project.org/#support), ... : http://misp-project.org
+Checkout the [website](https://www.misp-project.org) for more information about MISP software, standards, tools and communities. 
 
-Information, news and updates are also regularly posted on the [MISP project twitter account](https://twitter.com/MISPProject).
+Information, news and updates are also regularly posted on the [MISP project twitter account](https://twitter.com/MISPProject) or the [news page](https://www.misp-project.org/news/).
 
 Documentation
 -------------
 
 [MISP user-guide](https://github.com/MISP/misp-book) is available [online](https://www.circl.lu/doc/misp/) or as [PDF](https://www.circl.lu/doc/misp/book.pdf) or as [EPUB](https://www.circl.lu/doc/misp/book.epub) or as [MOBI/Kindle](https://www.circl.lu/doc/misp/book.mobi).
 
-For installation guide see [INSTALL](https://github.com/MISP/MISP/tree/2.4/INSTALL)
+For installation guide see [INSTALL](https://github.com/MISP/MISP/tree/2.4/INSTALL) or the [download section](https://www.misp-project.org/download/).
 
 Contributing
 ------------
+
+If you are interested to contribute to the MISP project, review our [contributing page](CONTRIBUTING.md). There are many ways to contribute
+and participate to the project.
 
 Please see our [Code of conduct](code_of_conduct.md).
 
@@ -92,15 +95,6 @@ There is one main branch:
 
 and features are developed in separated branches and then regularly merged into the 2.4 stable branch.
 
-Feature Request
----------------
-
-[![Feature Requests](http://feathub.com/MISP/MISP?format=svg)](http://feathub.com/MISP/MISP)
-
-Roadmap
--------
-
-To see the [[Roadmap](https://github.com/MISP/MISP/wiki/Planned-features-and-functionalities)](https://github.com/MISP/MISP/wiki/Planned-features-and-functionalities) for MISP have a look in the Wiki page
 
 License
 -------

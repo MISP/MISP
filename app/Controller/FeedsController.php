@@ -25,11 +25,18 @@ class FeedsController extends AppController {
 	}
 
 	public function index() {
+		$this->Feed->load_default_feeds();
 		$scope = isset($this->passedArgs['scope']) ? $this->passedArgs['scope'] : 'all';
 		if ($scope !== 'all') {
-			$this->paginate['conditions'][] = array(
-				'Feed.default' => $scope == 'custom' ? 0 : 1
-			);
+			if ($scope == 'enabled') {
+				$this->paginate['conditions'][] = array(
+					'Feed.enabled' => 1
+				);
+			} else {
+				$this->paginate['conditions'][] = array(
+					'Feed.default' => $scope == 'custom' ? 0 : 1
+				);
+			}
 		}
 		$data = $this->paginate();
 		$this->loadModel('Event');
@@ -40,6 +47,9 @@ class FeedsController extends AppController {
 					$data[$key]['Feed']['event_error'] = true;
 				}
 			}
+		}
+		if ($this->_isSiteAdmin()) {
+			$data = $this->Feed->attachFeedCacheTimestamps($data);
 		}
 		if ($this->_isRest()) {
 			foreach ($data as $k => $v) {
@@ -73,36 +83,14 @@ class FeedsController extends AppController {
 
 	public function importFeeds() {
 		if ($this->request->is('post')) {
-			$feeds = json_decode($this->request->data['Feed']['json'], true);
-			if (!isset($feeds[0])) {
-				$feeds = array($feeds);
+			$results = $this->Feed->importFeeds($this->request->data['Feed']['json'], $this->Auth->user());
+			if ($results['successes'] > 0) {
+				$message = $results['successes'] . ' new feeds added.';
+			} else {
+				$message = 'No new feeds to add.';
 			}
-			if (empty($feeds)) throw new NotFoundException('No valid ');
-			$existingFeeds = $this->Feed->find('all', array());
-			$fail = $success = 0;
-			foreach ($feeds as $feed) {
-				if (isset($feed['Feed']['id'])) {
-					unset($feed['Feed']['id']);
-				}
-				$found = false;
-				foreach ($existingFeeds as $existingFeed) {
-					if ($existingFeed['Feed']['url'] == $feed['Feed']['url']) {
-						$found = true;
-					}
-				}
-				if (!$found) {
-					$this->Feed->create();
-					if (!$this->Feed->save($feed, true, array('name', 'provider', 'url', 'rules', 'source_format', 'fixed_event', 'delta_merge', 'override_ids', 'publish', 'settings'))) {
-						$fail++;
-						$this->Session->setFlash('Could not save feeds. Reason: ' . json_encode($this->Feed->validationErros));
-					} else {
-						$success++;
-					}
-				}
-			}
-			$message = $success . ' new feeds added.';
-			if ($fail) {
-				$message .= ' ' . $fail . ' feeds could not be added (possibly because they already exist)';
+			if ($results['fails']) {
+				$message .= ' ' . $results['fails'] . ' feeds could not be added (possibly because they already exist)';
 			}
 			if ($this->_isRest()) {
 				return $this->RestResponse->saveSuccessResponse('Feed', 'importFeeds', false, $this->response->type(), $message);
@@ -149,6 +137,9 @@ class FeedsController extends AppController {
 			}
 			if (empty($this->request->data['Feed']['target_event'])) {
 				$this->request->data['Feed']['target_event'] = 0;
+			}
+			if (empty($this->request->data['Feed']['lookup_visible'])) {
+				$this->request->data['Feed']['lookup_visible'] = 0;
 			}
 			if (empty($this->request->data['Feed']['input_source'])) {
 				$this->request->data['Feed']['input_source'] = 'network';
@@ -218,7 +209,7 @@ class FeedsController extends AppController {
 				$this->request->data['Feed']['settings']['delimiter'] = ',';
 			}
 			$this->request->data['Feed']['settings'] = json_encode($this->request->data['Feed']['settings']);
-			$fields = array('id', 'name', 'provider', 'enabled', 'rules', 'url', 'distribution', 'sharing_group_id', 'tag_id', 'fixed_event', 'event_id', 'publish', 'delta_merge', 'source_format', 'override_ids', 'settings', 'input_source', 'delete_local_file');
+			$fields = array('id', 'name', 'provider', 'enabled', 'rules', 'url', 'distribution', 'sharing_group_id', 'tag_id', 'fixed_event', 'event_id', 'publish', 'delta_merge', 'source_format', 'override_ids', 'settings', 'input_source', 'delete_local_file', 'lookup_visible');
 			$feed = array();
 			foreach ($fields as $field) {
 				if (isset($this->request->data['Feed'][$field])) {
@@ -292,17 +283,25 @@ class FeedsController extends AppController {
 		} else {
 			$result = $this->Feed->downloadFromFeedInitiator($feedId, $this->Auth->user());
 			if (!$result) {
-				$this->Session->setFlash('Fetching the feed has failed.');
-				$this->redirect(array('action' => 'index'));
+				if ($this->_isRest()) {
+					return $this->RestResponse->viewData(array('result' => 'Fetching the feed has failed.'), $this->response->type());
+				} else {
+					$this->Session->setFlash('Fetching the feed has failed.');
+					$this->redirect(array('action' => 'index'));
+				}
 			}
 			$message = 'Fetching the feed has successfuly completed.';
 			if ($this->Feed->data['Feed']['source_format'] == 'misp') {
-				if (isset($result['add'])) $message .= ' Downloaded ' . count($result['add']) . ' new event(s).';
-				if (isset($result['edit'])) $message .= ' Updated ' . count($result['edit']) . ' event(s).';
+				if (isset($result['add'])) $message['result'] .= ' Downloaded ' . count($result['add']) . ' new event(s).';
+				if (isset($result['edit'])) $message['result'] .= ' Updated ' . count($result['edit']) . ' event(s).';
 			}
 		}
-		$this->Session->setFlash($message);
-		$this->redirect(array('action' => 'index'));
+		if ($this->_isRest()) {
+			return $this->RestResponse->viewData(array('result' => $message), $this->response->type());
+		} else {
+			$this->Session->setFlash($message);
+			$this->redirect(array('action' => 'index'));
+		}
 	}
 
 	public function getEvent($feedId, $eventUuid, $all = false) {
@@ -394,15 +393,26 @@ class FeedsController extends AppController {
 			$resultArray = array();
 		}
 		$this->params->params['paging'] = array($this->modelClass => $params);
-		$resultArray = $this->Feed->getFreetextFeedCorrelations($resultArray);
+		$resultArray = $this->Feed->getFreetextFeedCorrelations($resultArray, $feed['Feed']['id']);
 		// remove all duplicates
+		$correlatingEvents = array();
+		//debug($resultArray);
 		foreach ($resultArray as $k => $v) {
-			for ($i = 0; $i < $k; $i++) {
-				if (isset($resultArray[$i]) && $v == $resultArray[$i]) unset($resultArray[$k]);
+			if (!empty($resultArray[$k]['correlations'])) {
+				foreach ($resultArray[$k]['correlations'] as $correlatingEvent) {
+					if (!in_array($correlatingEvent, $correlatingEvents)) {
+						$correlatingEvents[] = $correlatingEvent;
+					}
+				}
 			}
 		}
 		$resultArray = array_values($resultArray);
 		$this->loadModel('Attribute');
+		$correlatingEventInfos = $this->Attribute->Event->find('list', array(
+			'fields' => array('Event.id', 'Event.info'),
+			'conditions' => array('Event.id' => $correlatingEvents)
+		));
+		$this->set('correlatingEventInfos', $correlatingEventInfos);
 		$this->set('distributionLevels', $this->Attribute->distributionLevels);
 		$this->set('feed', $feed);
 		$this->set('attributes', $resultArray);
@@ -421,7 +431,8 @@ class FeedsController extends AppController {
 		if ($resultArray == false) {
 			$resultArray = array();
 		}
-		$resultArray = $this->Feed->getFreetextFeedCorrelations($resultArray);
+		$resultArray = $this->Feed->getFreetextFeedCorrelations($resultArray, $feed['Feed']['id']);
+		$resultArray = $this->Feed->getFreetextFeed2FeedCorrelations($resultArray);
 		// remove all duplicates
 		foreach ($resultArray as $k => $v) {
 			for ($i = 0; $i < $k; $i++) {
@@ -534,5 +545,53 @@ class FeedsController extends AppController {
 			$this->Session->setFlash('Could not pull the selected data. Reason: ' . $result);
 		}
 		$this->redirect(array('controller' => 'feeds', 'action' => 'index'));
+	}
+
+	public function cacheFeeds($scope = 'freetext') {
+		if (Configure::read('MISP.background_jobs')) {
+			$this->loadModel('Job');
+			$this->Job->create();
+			$data = array(
+					'worker' => 'default',
+					'job_type' => 'cache_feeds',
+					'job_input' => $scope,
+					'status' => 0,
+					'retries' => 0,
+					'org' => $this->Auth->user('Organisation')['name'],
+					'message' => 'Starting feed caching.',
+			);
+			$this->Job->save($data);
+			$jobId = $this->Job->id;
+			$process_id = CakeResque::enqueue(
+					'default',
+					'ServerShell',
+					array('cacheFeeds', $this->Auth->user('id'), $jobId, $scope),
+					true
+			);
+			$this->Job->saveField('process_id', $process_id);
+			$message = 'Feed caching job initiated.';
+		} else {
+			$result = $this->Feed->cacheFeedInitiator($this->Auth->user(), false, $scope);
+			if (!$result) {
+				$this->Session->setFlash('Caching the feeds has failed.');
+				$this->redirect(array('action' => 'index'));
+			}
+			$message = 'Caching the feeds has successfuly completed.';
+		}
+		if ($this->_isRest()) {
+			return $this->RestResponse->saveSuccessResponse('Feed', 'cacheFeeds', false, $this->response->type(), $message);
+		} else {
+			$this->Session->setFlash($message);
+			$this->redirect(array('controller' => 'feeds', 'action' => 'index'));
+		}
+	}
+
+	public function compareFeeds($id = false) {
+		$feeds = $this->Feed->compareFeeds($id);
+		if ($this->_isRest()) {
+			return $this->RestResponse->viewData($feeds, $this->response->type());
+		} else {
+			$this->set('feeds', $feeds);
+		}
 	}
 }

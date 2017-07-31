@@ -46,10 +46,10 @@ class AppController extends Controller {
 
 	public $helpers = array('Utility');
 
-	private $__jsVersion = '2.4.62';
-	public $pyMispVersion = '2.4.65';
-	public $phpmin = '5.5.9';
-	public $phprec = '7.0.0';
+	private $__queryVersion = '14';
+	public $pyMispVersion = '2.4.77';
+	public $phpmin = '5.6.5';
+	public $phprec = '7.0.16';
 
 	// Used for _isAutomation(), a check that returns true if the controller & action combo matches an action that is a non-xml and non-json automation method
 	// This is used to allow authentication via headers for methods not covered by _isRest() - as that only checks for JSON and XML formats
@@ -73,11 +73,26 @@ class AppController extends Controller {
 				'authError' => 'Unauthorised access.',
 				'loginRedirect' => array('controller' => 'users', 'action' => 'routeafterlogin'),
 				'logoutRedirect' => array('controller' => 'users', 'action' => 'login', 'admin' => false),
+				'authenticate' => array(
+					'Form' => array(
+						'passwordHasher' => 'Blowfish',
+						'fields' => array(
+							'username' => 'email'
+						)
+					)
+				)
 			),
 			'Security',
 			'ACL',
 			'RestResponse'
 	);
+
+	private function __isApiFunction($controller, $action) {
+		if (isset($this->automationArray[$controller]) && in_array($action, $this->automationArray[$controller])) {
+			return true;
+		}
+		return false;
+	}
 
 	public function beforeFilter() {
 		// check for a supported datasource configuration
@@ -92,7 +107,7 @@ class AppController extends Controller {
 			throw new Exception('datasource not supported: ' . $dataSource);
 		}
 
-		$this->set('jsVersion', $this->__jsVersion);
+		$this->set('queryVersion', $this->__queryVersion);
 		$this->loadModel('User');
 		$auth_user_fields = $this->User->describeAuthFields();
 
@@ -100,6 +115,11 @@ class AppController extends Controller {
 		if (!Configure::read('Security.salt')) {
 			$this->loadModel('Server');
 			$this->Server->serverSettingsSaveValue('Security.salt', $this->User->generateRandomPassword(32));
+		}
+		// Check if the instance has a UUID, if not assign one.
+		if (!Configure::read('MISP.uuid')) {
+			$this->loadModel('Server');
+			$this->Server->serverSettingsSaveValue('MISP.uuid', CakeText::uuid());
 		}
 		// check if Apache provides kerberos authentication data
 		$envvar = Configure::read('ApacheSecureAuth.apacheEnv');
@@ -113,12 +133,7 @@ class AppController extends Controller {
 				)
 			);
 		} else {
-			$this->Auth->authenticate = array(
-				'Form' => array(
-					'fields' => array('username' => 'email'),
-					'userFields' => $auth_user_fields
-				)
-			);
+			$this->Auth->authenticate['Form']['userFields'] = $auth_user_fields;
 		}
 		$versionArray = $this->{$this->modelClass}->checkMISPVersion();
 		$this->mispVersion = implode('.', array_values($versionArray));
@@ -139,7 +154,6 @@ class AppController extends Controller {
 		if (isset($_SERVER['HTTP_USER_AGENT'])) {
 			if (preg_match('/(?i)msie [2-8]/',$_SERVER['HTTP_USER_AGENT']) && !strpos($_SERVER['HTTP_USER_AGENT'], 'Opera')) throw new MethodNotAllowedException('You are using an unsecure and outdated version of IE, please download Google Chrome, Mozilla Firefox or update to a newer version of IE. If you are running IE9 or newer and still receive this error message, please make sure that you are not running your browser in compatibility mode. If you still have issues accessing the site, get in touch with your administration team at ' . Configure::read('MISP.contact'));
 		}
-
 		$userLoggedIn = false;
 		if (Configure::read('Plugin.CustomAuth_enable')) $userLoggedIn = $this->__customAuthentication($_SERVER);
 		if (!$userLoggedIn) {
@@ -157,7 +171,9 @@ class AppController extends Controller {
 						if (preg_match('/^[a-zA-Z0-9]{40}$/', trim($auth_key))) {
 							$found_misp_auth_key = true;
 							$temp = $this->checkAuthUser(trim($auth_key));
-							if ($temp) $user['User'] = $this->checkAuthUser(trim($auth_key));
+							if ($temp) {
+								$user['User'] = $this->checkAuthUser(trim($auth_key));
+							}
 						}
 					}
 					if ($found_misp_auth_key) {
@@ -329,6 +345,7 @@ class AppController extends Controller {
 			$this->set('isAclTagEditor', $role['perm_tag_editor']);
 			$this->set('isAclTemplate', $role['perm_template']);
 			$this->set('isAclSharingGroup', $role['perm_sharing_group']);
+			$this->set('isAclSighting', isset($role['perm_sighting']) ? $role['perm_sighting'] : false);
 			$this->userRole = $role;
 		} else {
 			$this->set('me', false);
@@ -388,7 +405,8 @@ class AppController extends Controller {
 	}
 
 	protected function _isRest() {
-		return (isset($this->RequestHandler) && ($this->RequestHandler->isXml() || $this->_isJson()));
+		$api = $this->__isApiFunction($this->request->params['controller'], $this->request->params['action']);
+		return (isset($this->RequestHandler) && ($api || $this->RequestHandler->isXml() || $this->_isJson()));
 	}
 
 	protected function _isAutomation() {
@@ -517,7 +535,7 @@ class AppController extends Controller {
 		$counter = 0;
 
 		// load this so we can remove the blacklist item that will be created, this is the one case when we do not want it.
-		if (Configure::read('MISP.enableEventBlacklisting')) $this->EventBlacklist = ClassRegistry::init('EventBlacklist');
+		if (Configure::read('MISP.enableEventBlacklisting') !== false) $this->EventBlacklist = ClassRegistry::init('EventBlacklist');
 
 		foreach ($duplicates as $duplicate) {
 			$events = $this->Event->find('all', array(
@@ -531,7 +549,7 @@ class AppController extends Controller {
 					$counter++;
 					// remove the blacklist entry that we just created with the event deletion, if the feature is enabled
 					// We do not want to block the UUID, since we just deleted a copy
-					if (Configure::read('MISP.enableEventBlacklisting')) {
+					if (Configure::read('MISP.enableEventBlacklisting') !== false) {
 						$this->EventBlacklist->deleteAll(array('EventBlacklist.event_uuid' => $uuid));
 					}
 				}

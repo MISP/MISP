@@ -5,7 +5,7 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
 ?>
 <div class="users view">
 <h2><?php  echo __('User');?></h2>
-	<dl style="width:700px;">
+	<dl style="width:800px;">
 		<dt><?php echo __('Id'); ?></dt>
 		<dd>
 			<?php echo h($user['User']['id']); ?>
@@ -23,7 +23,7 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
 		</dd>
 		<dt><?php echo __('Email'); ?></dt>
 		<dd>
-			<?php echo h($user['User']['email']); ?>
+			<?php echo h($user['User']['email']); ?>&nbsp;<a class="icon-envelope" href="<?php echo $baseurl; ?>/admin/users/quickEmail/<?php echo h($user['User']['id']); ?>"></a>
 			&nbsp;
 		</dd>
 		<dt><?php echo __('Autoalert'); ?></dt>
@@ -39,7 +39,7 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
 		</dd>
 		<dt><?php echo __('Authkey'); ?></dt>
 		<dd>
-			<?php echo h($user['User']['authkey']); ?>
+			<span class="quickSelect"><?php echo h($user['User']['authkey']); ?></span>
 			(<?php echo $this->Html->link('reset', array('controller' => 'users', 'action' => 'resetauthkey', $user['User']['id']));?>)
 			&nbsp;
 		</dd>
@@ -48,13 +48,47 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
 			<?php echo h($user2['User']['email']); ?>
 			&nbsp;
 		</dd>
-		<dt><?php echo __('PGP key'); ?></dt>
-		<dd class="red">
-			<?php echo (h($user['User']['gpgkey'])) ? $this->Utility->space2nbsp(nl2br(h($user['User']['gpgkey']))) : "N/A"; ?>
+		<dt>Org admin</dt>
+		<dd>
+			<?php
+
+				foreach ($user['User']['orgAdmins'] as $orgAdminId => $orgAdminEmail):
+			?>
+					<a href="<?php echo $baseurl; ?>/admin/users/view/<?php echo h($orgAdminId); ?>"><?php echo h($orgAdminEmail); ?></a>
+					<a class="icon-envelope" href="<?php echo $baseurl; ?>/admin/users/quickEmail/<?php echo h($orgAdminId); ?>"></a>
+			<?php
+				if ($orgAdminEmail !== end($user['User']['orgAdmins'])) {
+					echo '<br />';
+				}
+				endforeach;
+			?>
+			&nbsp;
 		</dd>
+		<dt><?php echo __('PGP key'); ?></dt>
+		<dd class="quickSelect <?php echo $user['User']['gpgkey'] ? 'green' : 'bold red'; ?>">
+			<?php echo $user['User']['gpgkey'] ? nl2br(h($user['User']['gpgkey'])) : "N/A"; ?>
+		</dd>
+		<?php
+			if (!empty($user['User']['gpgkey'])):
+		?>
+			<dt>PGP fingerprint</dt>
+			<dd class="quickSelect bold <?php echo $user['User']['fingerprint'] ? 'green': 'red'; ?>">
+				<?php
+					echo $user['User']['fingerprint'] ? chunk_split(h($user['User']['fingerprint']), 4, ' ') : 'N/A';
+				?>
+			</dd>
+			<dt>PGP status</dt>
+			<dd class="bold <?php echo (empty($user['User']['pgp_status']) || $user['User']['pgp_status'] != 'OK') ? 'red': 'green'; ?>">
+				<?php
+					echo !empty($user['User']['pgp_status']) ? h($user['User']['pgp_status']) : 'N/A';
+				?>
+			</dd>
+		<?php
+			endif;
+		?>
 		<?php if (Configure::read('SMIME.enabled')): ?>
 			<dt><?php echo __('SMIME Public certificate'); ?></dt>
-			<dd class="red">
+			<dd class="quickSelect red">
 				<?php echo (h($user['User']['certif_public'])) ? $this->Utility->space2nbsp(nl2br(h($user['User']['certif_public']))) : "N/A"; ?>
 			</dd>
 		<?php endif; ?>
@@ -103,7 +137,7 @@ if (h($user['User']['change_pw']) == 1) {
 <script type="text/javascript">
 	$(document).ready(function () {
 		$.ajax({
-		    url: '<?php echo $baseurl . "/events/index/searchemail:" . h($user['User']['email']); ?>',
+		    url: '<?php echo $baseurl . "/events/index/searchemail:" . urlencode(h($user['User']['email'])); ?>',
 		    type:'GET',
 			beforeSend: function (XMLHttpRequest) {
 				$(".loading").show();

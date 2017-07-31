@@ -45,7 +45,7 @@
 			<table>
 				<tr>
 				<td style="vertical-align:top">
-					<span id="submitButton" class="btn btn-primary" onClick="submitPopoverForm('<?php echo $event_id;?>', 'propose')">Propose</span>
+					<span role="button" tabindex="0" aria-label="Propose" title="Propose" id="submitButton" class="btn btn-primary" onClick="submitPopoverForm('<?php echo $event_id;?>', 'propose')">Propose</span>
 				</td>
 				<td style="width:540px;">
 					<p style="color:red;font-weight:bold;display:none;<?php if (isset($ajax) && $ajax) echo "text-align:center;"?>" id="warning-message">Warning: You are about to share data that is of a sensitive nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>
@@ -75,7 +75,7 @@
 	foreach ($formInfoTypes as $formInfoType => $humanisedName) {
 		echo 'var ' . $formInfoType . 'FormInfoValues = {' . PHP_EOL;
 		foreach ($info[$formInfoType] as $key => $formInfoData) {
-			echo '"' . $key . '": "<span class=\"blue bold\">' . h($formInfoData['key']) . '</span>: ' . h($formInfoData['desc']) . '<br />",' . PHP_EOL; 
+			echo '"' . $key . '": "<span class=\"blue bold\">' . h($formInfoData['key']) . '</span>: ' . h($formInfoData['desc']) . '<br />",' . PHP_EOL;
 		}
 		echo '}' . PHP_EOL;
 	}
@@ -86,14 +86,14 @@
 var category_type_mapping = new Array();
 <?php
 foreach ($categoryDefinitions as $category => $def) {
-  echo "category_type_mapping['" . addslashes($category) . "'] = {";
-  $first = true;
-  foreach ($def['types'] as $type) {
-    if ($first) $first = false;
-    else echo ', ';
-    echo "'" . addslashes($type) . "' : '" . addslashes($type) . "'";
-  }
-  echo "}; \n";
+	echo "category_type_mapping['" . addslashes($category) . "'] = {";
+	$first = true;
+	foreach ($def['types'] as $type) {
+		if ($first) $first = false;
+		else echo ', ';
+		echo "'" . addslashes($type) . "' : '" . addslashes($type) . "'";
+	}
+	echo "}; \n";
 }
 ?>
 
@@ -107,7 +107,7 @@ $(document).ready(function() {
 			$("#warning-message").hide();
 		}
 	});
-	
+
 	$("#ShadowAttributeCategory, #ShadowAttributeType").change(function() {
 		initPopoverContent('ShadowAttribute');
 	});

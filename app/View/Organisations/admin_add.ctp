@@ -22,7 +22,7 @@
 			echo $this->Form->input('uuid', array('div' => 'clear', 'placeholder' => 'Paste UUID or click generate', 'style' => 'width:405px;'));
 		?>
 		</div>
-		<span class="btn btn-inverse" style="margin-top:25px;" onClick="generateOrgUUID();">Generate UUID</span>
+		<span class="btn btn-inverse" role="button" tabindex="0" aria-label="Generate UUID" title="Generate a new UUID for the organisation" style="margin-top:25px;" onClick="generateOrgUUID();">Generate UUID</span>
 		<?php
 			echo $this->Form->input('description', array('label' => 'A brief description of the organisation', 'div' => 'clear', 'class' => 'input-xxlarge', 'type' => 'textarea', 'placeholder' => 'A description of the organisation that is purely informational.'));
 		?>

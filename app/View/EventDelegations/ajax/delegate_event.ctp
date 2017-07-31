@@ -34,7 +34,7 @@
 			));
 			echo $this->Form->submit('Yes', array('div' => false, 'class' => 'btn btn-primary'));
 		?>
-		<span class="btn btn-inverse" id="PromptNoButton" onClick="cancelPopoverForm();" style="float:right;">No</span>
+		<span role="button" tabindex="0" aria-label="Cancel" title="Cancel" class="btn btn-inverse" id="PromptNoButton" onClick="cancelPopoverForm();" style="float:right;">No</span>
 		<?php
 			echo $this->Form->end();
 		?>

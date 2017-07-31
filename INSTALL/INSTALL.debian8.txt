@@ -42,7 +42,7 @@ sudo a2dissite 000-default
 sudo a2ensite default-ssl
 
 # Install PHP and dependencies
-sudo apt-get install libapache2-mod-php5 php5 php5-cli php-crypt-gpg php5-dev php5-json php5-mysql php5-readline php5-redis
+sudo apt-get install libapache2-mod-php5 php5 php5-cli php-crypt-gpg php5-dev php5-json php5-xml php5-mysql php5-readline php5-redis
 
 # Apply all changes
 sudo systemctl restart apache2
@@ -76,6 +76,13 @@ cd /var/www/MISP/app/files/scripts/python-stix
 sudo -u www-data git checkout v1.1.1.4
 sudo python setup.py install
 
+# install mixbox to accomodate the new STIX dependencies:
+cd /var/www/MISP/app/files/scripts/
+git clone https://github.com/CybOXProject/mixbox.git
+cd /var/www/MISP/app/files/scripts/mixbox
+git checkout v1.0.2
+python setup.py install
+
 
 4/ CakePHP
 -----------
@@ -86,7 +93,6 @@ sudo -u www-data git submodule update
 
 # Once done, install CakeResque along with its dependencies if you intend to use the built in background jobs:
 cd /var/www/MISP/app
-sudo -u www-data wget https://getcomposer.org/download/1.2.1/composer.phar -O composer.phar
 sudo -u www-data php composer.phar require kamisama/cake-resque:4.1.2
 sudo -u www-data php composer.phar config vendor-dir Vendor
 sudo -u www-data php composer.phar install
@@ -184,14 +190,16 @@ sudo a2ensite misp-ssl
 # Restart apache
 sudo systemctl restart apache2
 
-8/ Log rotation
+sudo cp INSTALL/misp.logrotate /etc/logrotate.d/misp
+
+9/ Log rotation
 ---------------
 # MISP saves the stdout and stderr of its workers in /var/www/MISP/app/tmp/logs
 # To rotate these logs install the supplied logrotate script:
 
 sudo cp INSTALL/misp.logrotate /etc/logrotate.d/misp
 
-9/ MISP configuration
+10/ MISP configuration
 ---------------------
 # There are 4 sample configuration files in /var/www/MISP/app/Config that need to be copied
 sudo -u www-data cp -a /var/www/MISP/app/Config/bootstrap.default.php /var/www/MISP/app/Config/bootstrap.php
@@ -201,7 +209,21 @@ sudo -u www-data cp -a /var/www/MISP/app/Config/config.default.php /var/www/MISP
 
 # Configure the fields in the newly created files:
 sudo -u www-data vim /var/www/MISP/app/Config/database.php
-# login, port, password, database
+# DATABASE_CONFIG has to be filled
+# With the default values provided in section 6, this would look like:
+# class DATABASE_CONFIG {
+#   public $default = array(
+#       'datasource' => 'Database/Mysql',
+#       'persistent' => false,
+#       'host' => 'localhost',
+#       'login' => 'misp', // grant usage on *.* to misp@localhost
+#       'port' => 3306,
+#       'password' => 'XXXXdbpasswordhereXXXXX', // identified by 'XXXXdbpasswordhereXXXXX';
+#       'database' => 'misp', // create database misp;
+#       'prefix' => '',
+#       'encoding' => 'utf8',
+#   );
+#}
 
 # Important! Change the salt key in /var/www/MISP/app/Config/config.php
 # The salt key must be a string at least 32 bytes long.
@@ -304,4 +326,3 @@ sudo ldconfig
 
 ## install pyzmq
 sudo pip install pyzmq
-

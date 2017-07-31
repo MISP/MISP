@@ -11,11 +11,11 @@ class TagsController extends AppController {
 					'Tag.name' => 'asc'
 			),
 			'contain' => array(
-				'AttributeTag' => array(
-					'fields' => array('attribute_id')
-				),
 				'EventTag' => array(
-					'fields' => array('event_id')
+					'fields' => array('EventTag.event_id')
+				),
+				'AttributeTag' => array(
+					'fields' => array('AttributeTag.event_id', 'AttributeTag.attribute_id')
 				),
 				'FavouriteTag',
 				'Organisation' => array(
@@ -34,6 +34,7 @@ class TagsController extends AppController {
 		$taxonomyNamespaces = array();
 		if (!empty($taxonomies)) foreach ($taxonomies as $taxonomy) $taxonomyNamespaces[$taxonomy['namespace']] = $taxonomy;
 		$taxonomyTags = array();
+		$passedArgsArray = array();
 		$this->Event->recursive = -1;
 		if ($favouritesOnly) {
 			$tag_id_list = $this->Tag->FavouriteTag->find('list', array(
@@ -43,15 +44,23 @@ class TagsController extends AppController {
 			if (empty($tag_id_list)) $tag_id_list = array(-1);
 			$this->paginate['conditions']['AND']['Tag.id'] = $tag_id_list;
 		}
+		if (isset($this->params['named']['searchall'])) {
+			$this->paginate['conditions']['AND']['LOWER(Tag.name) LIKE'] = '%' . $this->params['named']['searchall'] . '%';
+			$passedArgsArray['all'] = $this->params['named']['searchall'];
+		}
 		if ($this->_isRest()) {
 			unset($this->paginate['limit']);
 			$paginated = $this->Tag->find('all', $this->paginate);
 		} else {
 			$paginated = $this->paginate();
 		}
+		$tagList = array();
+		$csv = array();
 		foreach ($paginated as $k => $tag) {
-			if (empty($tag['EventTag'])) $paginated[$k]['Tag']['count'] = 0;
-			else {
+			$tagList[] = $tag['Tag']['id'];
+			if (empty($tag['EventTag'])) {
+				$paginated[$k]['Tag']['count'] = 0;
+			} else {
 				$eventIDs = array();
 				foreach ($tag['EventTag'] as $eventTag) {
 					$eventIDs[] = $eventTag['event_id'];
@@ -72,7 +81,16 @@ class TagsController extends AppController {
 				));
 				$paginated[$k]['Tag']['count'] = count($events);
 			}
+			$paginated[$k]['event_ids'] = array();
+			$paginated[$k]['attribute_ids'] = array();
+			foreach($paginated[$k]['EventTag'] as $et) {
+				$paginated[$k]['event_ids'][] = $et['event_id'];
+			}
 			unset($paginated[$k]['EventTag']);
+			foreach($paginated[$k]['AttributeTag'] as $at) {
+				$paginated[$k]['attribute_ids'][] = $at['attribute_id'];
+			}
+
 			if (empty($tag['AttributeTag'])) {
 				$paginated[$k]['Tag']['attribute_count'] = 0;
 			} else {
@@ -118,6 +136,41 @@ class TagsController extends AppController {
 				}
 			}
 		}
+		$this->loadModel('Sighting');
+		$sightings['event'] = $this->Sighting->getSightingsForObjectIds($this->Auth->user(), $tagList);
+		$sightings['attribute'] = $this->Sighting->getSightingsForObjectIds($this->Auth->user(), $tagList, 'attribute');
+		foreach ($paginated as $k => $tag) {
+			$objects = array('event', 'attribute');
+			foreach ($objects as $object) {
+				foreach ($tag[$object . '_ids'] as $objectid) {
+					if (isset($sightings[$object][$objectid])) {
+						foreach ($sightings[$object][$objectid] as $date => $sightingCount) {
+							if (!isset($tag['sightings'][$date])) {
+								$tag['sightings'][$date] = $sightingCount;
+							} else {
+								$tag['sightings'][$date] += $sightingCount;
+							}
+						}
+					}
+				}
+			}
+			if (!empty($tag['sightings'])) {
+				$startDate = !empty($tag['sightings']) ? min(array_keys($tag['sightings'])) : date('Y-m-d');
+				$startDate = date('Y-m-d', strtotime("-3 days", strtotime($startDate)));
+				$to = date('Y-m-d', time());
+				for ($date = $startDate; strtotime($date) <= strtotime($to); $date = date('Y-m-d',strtotime("+1 day", strtotime($date)))) {
+					if (!isset($csv[$k])) {
+						$csv[$k] = 'Date,Close\n';
+					}
+					if (isset($tag['sightings'][$date])) {
+						$csv[$k] .= $date . ',' . $tag['sightings'][$date] . '\n';
+					} else {
+						$csv[$k] .= $date . ',0\n';
+					}
+				}
+			}
+			unset($paginated[$k]['event_ids']);
+		}
 		if ($this->_isRest()) {
 			foreach ($paginated as $key => $tag) {
 				$paginated[$key] = $tag['Tag'];
@@ -125,6 +178,9 @@ class TagsController extends AppController {
 			$this->set('Tag', $paginated);
 			$this->set('_serialize', array('Tag'));
 		} else {
+			$this->set('passedArgs', json_encode($this->passedArgs));
+			$this->set('passedArgsArray', $passedArgsArray);
+			$this->set('csv', $csv);
 			$this->set('list', $paginated);
 			$this->set('favouritesOnly', $favouritesOnly);
 		}
@@ -318,7 +374,7 @@ class TagsController extends AppController {
 			throw new MethodNotAllowedException('Invalid event.');
 		}
 		$this->loadModel('GalaxyCluster');
-		$cluster_names = $this->GalaxyCluster->find('list', array('fields' => array('GalaxyCluster.tag_name'), 'group' => array('GalaxyCluster.tag_name')));
+		$cluster_names = $this->GalaxyCluster->find('list', array('fields' => array('GalaxyCluster.tag_name'), 'group' => array('GalaxyCluster.id', 'GalaxyCluster.tag_name')));
 		$this->helpers[] = 'TextColour';
 		$tags = $this->EventTag->find('all', array(
 				'conditions' => array(
@@ -419,9 +475,7 @@ class TagsController extends AppController {
 			}
 		} else if ($taxonomy_id === 'all') {
 			$conditions = array('Tag.org_id' => array(0, $this->Auth->user('org_id')));
-			if (Configure::read('MISP.incoming_tags_disabled_by_default')) {
-				$conditions['Tag.hide_tag'] = 0;
-			}
+			$conditions['Tag.hide_tag'] = 0;
 			$options = $this->Tag->find('list', array('fields' => array('Tag.name'), 'conditions' => $conditions));
 			$expanded = $options;
 		} else {
@@ -451,6 +505,14 @@ class TagsController extends AppController {
 				unset($options[$banned_tag]);
 				unset($expanded[$banned_tag]);
 			}
+		}
+		$hidden_tags = $this->Tag->find('list', array(
+				'conditions' => array('Tag.hide_tag' => 1),
+				'fields' => array('Tag.id')
+		));
+		foreach ($hidden_tags as $hidden_tag) {
+			unset($options[$hidden_tag]);
+			unset($expanded[$hidden_tag]);
 		}
 		if ($attributeTag !== false) {
 			$this->set('attributeTag', true);
@@ -525,7 +587,7 @@ class TagsController extends AppController {
 		));
 		$type = 'Event';
 		if (!empty($object)) {
-			if (!$this->_isSiteAdmin() && $object['Event']['orgc_id'] != $this->Auth->user('org_id')) {
+			if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger'] && $object['Event']['orgc_id'] != $this->Auth->user('org_id')) {
 					throw new MethodNotAllowedException('Invalid Target.');
 			}
 		} else {
@@ -539,7 +601,7 @@ class TagsController extends AppController {
 				'contain' => array('Event.orgc_id')
 			));
 			if (!empty($object)) {
-				if (!$this->_isSiteAdmin() && $object['Event']['orgc_id'] != $this->Auth->user('org_id')) {
+				if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger'] && $object['Event']['orgc_id'] != $this->Auth->user('org_id')) {
 						throw new MethodNotAllowedException('Invalid Target.');
 				}
 			} else {
@@ -549,9 +611,26 @@ class TagsController extends AppController {
 		return $object;
 	}
 
-	public function attachTagToObject($object_uuid, $tag) {
-		if (!Validation::uuid($object_uuid)) {
+	public function attachTagToObject($uuid = false, $tag = false) {
+		if (!$this->request->is('post')) {
+			throw new MethodNotAllowedException('This method is only accessible via POST requests.');
+		}
+		if (empty($uuid)) {
+			if (!empty($this->request->data['uuid'])) {
+				$uuid = $this->request->data['uuid'];
+			} else {
+				throw new MethodNotAllowedException('Invalid object uuid');
+			}
+		}
+		if (!Validation::uuid($uuid)) {
 			throw new InvalidArgumentException('Invalid UUID');
+		}
+		if (empty($tag)) {
+			if (!empty($this->request->data['tag'])) {
+				$tag = $this->request->data['tag'];
+			} else {
+				throw new MethodNotAllowedException('Invalid tag');
+			}
 		}
 		if (is_numeric($tag)) {
 			$conditions = array('Tag.id' => $tag);
@@ -559,18 +638,18 @@ class TagsController extends AppController {
 			$conditions = array('LOWER(Tag.name) LIKE' => strtolower(trim($tag)));
 		}
 		$objectType = '';
-		$object = $this->__findObjectByUuid($object_uuid, $objectType);
+		$object = $this->__findObjectByUuid($uuid, $objectType);
 		$existingTag = $this->Tag->find('first', array('conditions' => $conditions, 'recursive' => -1));
 		if (empty($existingTag)) {
 			if (!is_numeric($tag)) {
 				if (!$this->userRole['perm_tag_editor']) {
-					throw new InvalidArgumentException('Tag not found and insufficient privileges to create it.');
+					throw new MethodNotAllowedException('Tag not found and insufficient privileges to create it.');
 				}
 				$this->Tag->create();
 				$this->Tag->save(array('Tag' => array('name' => $tag, 'colour' => $this->Tag->random_color())));
 				$existingTag = $this->Tag->find('first', array('recursive' => -1, 'conditions' => array('Tag.id' => $this->Tag->id)));
 			} else {
-				throw new InvalidArgumentException('Invalid Tag.');
+				throw new NotFoundException('Invalid Tag.');
 			}
 		}
 		if (!$this->_isSiteAdmin()) {
@@ -602,9 +681,26 @@ class TagsController extends AppController {
 		}
 	}
 
-	public function removeTagFromObject($object_uuid, $tag) {
-		if (!Validation::uuid($object_uuid)) {
+	public function removeTagFromObject($uuid = false, $tag = false) {
+		if (!$this->request->is('post')) {
+			throw new MethodNotAllowedException('This method is only accessible via POST requests.');
+		}
+		if (empty($uuid)) {
+			if (!empty($this->request->data['uuid'])) {
+				$uuid = $this->request->data['uuid'];
+			} else {
+				throw new MethodNotAllowedException('Invalid object uuid');
+			}
+		}
+		if (!Validation::uuid($uuid)) {
 			throw new InvalidArgumentException('Invalid UUID');
+		}
+		if (empty($tag)) {
+			if (!empty($this->request->data['tag'])) {
+				$tag = $this->request->data['tag'];
+			} else {
+				throw new MethodNotAllowedException('Invalid tag');
+			}
 		}
 		if (is_numeric($tag)) {
 			$conditions = array('Tag.id' => $tag);
@@ -616,7 +712,7 @@ class TagsController extends AppController {
 			throw new MethodNotAllowedException('Invalid Tag.');
 		}
 		$objectType = '';
-		$object = $this->__findObjectByUuid($object_uuid, $objectType);
+		$object = $this->__findObjectByUuid($uuid, $objectType);
 		if (empty($object)) {
 			throw new MethodNotAllowedException('Invalid Target.');
 		}

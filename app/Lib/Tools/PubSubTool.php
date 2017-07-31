@@ -1,6 +1,9 @@
 <?php
 class PubSubTool {
 
+	private $__redis = false;
+	private $__settings = false;
+
 	private function __getSetSettings() {
 		$settings = array(
 				'redis_host' => 'localhost',
@@ -10,6 +13,7 @@ class PubSubTool {
 				'redis_namespace' => 'mispq',
 				'port' => '50000',
 		);
+
 		foreach ($settings as $key => $setting) {
 			$temp = Configure::read('Plugin.ZeroMQ_' . $key);
 			if ($temp) $settings[$key] = $temp;
@@ -17,6 +21,22 @@ class PubSubTool {
 		$settingsFile = new File(APP . 'files' . DS . 'scripts' . DS . 'mispzmq' . DS . 'settings.json', true, 0644);
 		$settingsFile->write(json_encode($settings, true));
 		$settingsFile->close();
+		return $settings;
+	}
+
+	public function initTool() {
+		if (!$this->__redis) {
+			$settings = $this->__setupPubServer();
+			$redis = new Redis();
+			$redis->connect($settings['redis_host'], $settings['redis_port']);
+			$redis_pwd = $settings['redis_password'];
+			if (!empty($redis_pwd)) $redis->auth($redis_pwd);
+			$redis->select($settings['redis_database']);
+			$this->__redis = $redis;
+			$this->__settings = $settings;
+		} else {
+			$settings = $this->__settings;
+		}
 		return $settings;
 	}
 
@@ -28,7 +48,7 @@ class PubSubTool {
 		$pid = $pidFile->read(true, 'r');
 		if ($pid === false || $pid === '') return false;
 		if (!is_numeric($pid)) throw new Exception('Internal error (invalid PID file for the MISP zmq script)');
-		$result = trim(shell_exec('ps aux | awk \'{print $2}\' | grep ' . $pid));
+		$result = trim(shell_exec('ps aux | awk \'{print $2}\' | grep "^' . $pid . '$"'));
 		if (empty($result)) return false;
 		return $pid;
 	}
@@ -37,6 +57,8 @@ class PubSubTool {
 		$redis = new Redis();
 		$settings = $this->__getSetSettings();
 		$redis->connect($settings['redis_host'], $settings['redis_port']);
+		$redis_pwd = $settings['redis_password'];
+		if (!empty($redis_pwd)) $redis->auth($redis_pwd);
 		$redis->select($settings['redis_database']);
 		$redis->rPush($settings['redis_namespace'] . ':command', 'status');
 		sleep(1);
@@ -60,15 +82,33 @@ class PubSubTool {
 	}
 
 	public function publishEvent($event) {
-		$settings = $this->__setupPubServer();
 		App::uses('JSONConverterTool', 'Tools');
 		$jsonTool = new JSONConverterTool();
-		$json = $jsonTool->event2JSON($event);
-		$redis = new Redis();
-		$redis->connect($settings['redis_host'], $settings['redis_port']);
-		$redis->select($settings['redis_database']);
-		$redis->rPush($settings['redis_namespace'] . ':misp_json', $json);
+		$json = $jsonTool->convert($event);
+		return $this->__pushToRedis(':data:misp_json', $json);
+	}
+
+	public function publishConversation($message) {
+			return $this->__pushToRedis(':data:misp_json_conversation', json_encode($message, JSON_PRETTY_PRINT));
+	}
+
+	private function __pushToRedis($ns, $data) {
+		$settings = $this->__getSetSettings();
+		$this->__redis->select($settings['redis_database']);
+		$this->__redis->rPush($settings['redis_namespace'] . $ns, $data);
 		return true;
+	}
+
+	public function attribute_save($attribute) {
+		return $this->__pushToRedis(':data:misp_json_attribute', json_encode($attribute, JSON_PRETTY_PRINT));
+	}
+
+	public function sighting_save($sighting) {
+		return $this->__pushToRedis(':data:misp_json_sighting', json_encode($sighting, JSON_PRETTY_PRINT));
+	}
+
+	public function modified($data, $type) {
+		return $this->__pushToRedis(':data:misp_json_' . $type, json_encode($data, JSON_PRETTY_PRINT));
 	}
 
 	public function killService($settings = false) {
@@ -76,6 +116,8 @@ class PubSubTool {
 		if ($this->checkIfRunning()) {
 			if ($settings == false) $settings = $this->__getSetSettings();
 			$redis->connect($settings['redis_host'], $settings['redis_port']);
+			$redis_pwd = $settings['redis_password'];
+			if (!empty($redis_pwd)) $redis->auth($redis_pwd);
 			$redis->select($settings['redis_database']);
 			$redis->rPush($settings['redis_namespace'] . ':command', 'kill');
 			sleep(1);
@@ -92,6 +134,8 @@ class PubSubTool {
 			$settings = $this->__getSetSettings();
 			$redis = new Redis();
 			$redis->connect($settings['redis_host'], $settings['redis_port']);
+			$redis_pwd = $settings['redis_password'];
+			if (!empty($redis_pwd)) $redis->auth($redis_pwd);
 			$redis->select($settings['redis_database']);
 			$redis->rPush($settings['redis_namespace'] . ':command', 'reload');
 		}
@@ -100,8 +144,10 @@ class PubSubTool {
 	}
 
 	public function restartServer() {
-		if (!$this->killService()) {
-			return 'Could not kill the previous instance of the ZeroMQ script.';
+		if (!$this->checkIfRunning()) {
+			if (!$this->killService()) {
+				return 'Could not kill the previous instance of the ZeroMQ script.';
+			}
 		}
 		$this->__setupPubServer();
 		if (!is_numeric($this->checkIfRunning())) return 'Failed starting the ZeroMQ script.';

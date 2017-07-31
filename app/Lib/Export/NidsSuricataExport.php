@@ -88,27 +88,128 @@ class NidsSuricataExport extends NidsExport {
 	}
 
 	public function urlRule($ruleFormat, $attribute, &$sid) {
-		// TODO in hindsight, an url should not be excluded given a host or domain name.
-		//$hostpart = parse_url($attribute['value'], PHP_URL_HOST);
-		//$overruled = $this->checkNames($hostpart);
-		// warning: only suricata compatible
+		$createRule = true;
 		$overruled = $this->checkWhitelist($attribute['value']);
-		$attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
-		$content = 'flow:to_server,established; content:"' . $attribute['value'] . '"; fast_pattern; nocase; http_uri;';
-		$this->rules[] = sprintf($ruleFormat,
-				($overruled) ? '#OVERRULED BY WHITELIST# ' : '',
-				'http',							// proto
-				'$HOME_NET',					// src_ip
-				'any',							// src_port
-				'->',							// direction
-				'$EXTERNAL_NET',				// dst_ip
-				'any',							// dst_port
-				'Outgoing HTTP URL: ' . $attribute['value'],		// msg
-				$content,						// rule_content
-				'tag:session,600,seconds;',		// tag
-				$sid,							// sid
-				1								// rev
-		);
+	
+		$scheme = parse_url($attribute['value'], PHP_URL_SCHEME);
+		$data = parse_url($attribute['value']);
+		if (is_array($data)) {
+			if (!array_key_exists('port', $data)) {
+				$data['port'] = null;
+			}
+			if (!array_key_exists('host', $data)) {
+				$data['host'] = '';
+			}
+		}
+	
+		switch ($scheme) {
+		    case "http":
+				$data['host'] = NidsExport::replaceIllegalChars($data['host']);
+		
+				$suricata_protocol = 'http';
+				$suricata_src_ip = '$HOME_NET';
+				$suricata_src_port = 'any';
+				$suricata_dst_ip = NidsExport::getCustomIP($data['host']);
+				$suricata_dst_port = NidsExport::getProtocolPort($scheme, $data['port']);
+				$tag = 'tag:session,600,seconds;';
+		
+				if (!array_key_exists('path', $data)) {
+				    $data['path'] = NidsExport::replaceIllegalChars($data['host']);
+				    $content = 'flow:to_server,established; content:"' . $data['host'] . '"; nocase; http_header;';
+				} else {
+				    $content = 'flow:to_server,established; content:"' . $data['host'] . '"; fast_pattern; nocase; http_header; content:"' . $data['path'] . '"; nocase; http_uri;';
+				}
+		
+				break;
+	
+		    case "https":
+				$data['host'] = NidsExport::replaceIllegalChars($data['host']);
+				$tag = 'tag:session,600,seconds;';
+		
+				# IP: classic IP rule for HTTPS
+				if (filter_var($data['host'], FILTER_VALIDATE_IP)) {
+				    $suricata_protocol = 'tcp';
+				    $suricata_src_ip = '$HOME_NET';
+				    $suricata_src_port = 'any';
+				    $suricata_dst_ip = $data['host'];
+				    $suricata_dst_port = NidsExport::getProtocolPort($scheme, $data['port']);
+				    $content = 'flow:to_server; app-layer-protocol:tls;';
+				}
+				# Domain: rule on https certificate subject
+				else {
+				    $suricata_protocol = 'tls';
+				    $suricata_src_ip = '$EXTERNAL_NET';
+				    $suricata_src_port = NidsExport::getProtocolPort($scheme, $data['port']);
+				    $suricata_dst_ip = '$HOME_NET';
+				    $suricata_dst_port = 'any';
+				    $content = 'tls_cert_subject; content:"' . $data['host'] . '"; nocase; pcre:"/' . $data['host'] . '$/";';
+				}
+				break;
+	
+		    case "ssh":
+				# IP: classic IP rule for SSH
+				if (filter_var($data['host'], FILTER_VALIDATE_IP)) {
+				    $suricata_protocol = 'tcp';
+				    $suricata_src_ip = '$HOME_NET';
+				    $suricata_src_port = 'any';
+				    $suricata_dst_ip = $data['host'];
+				    $suricata_dst_port = '$SSH_PORTS';
+				    $content = 'flow:to_server; app-layer-protocol:ssh;';
+				    $tag = '';
+				}
+				# Cannot create a satisfaisant rule (user could create a domain attribute if needed)
+				else {
+				    $createRule = false;
+				}
+				break;
+
+		    case "ftp":
+				# IP: classic IP rule for FTP
+				if (filter_var($data['host'], FILTER_VALIDATE_IP)) {
+				    $suricata_protocol = 'tcp';
+				    $suricata_src_ip = '$HOME_NET';
+				    $suricata_src_port = 'any';
+				    $suricata_dst_ip = $data['host'];
+				    $suricata_dst_port = NidsExport::getProtocolPort($scheme, $data['port']);
+				    $content = 'flow:to_server; app-layer-protocol:ftp;';
+				    $tag = '';
+				}
+				# Cannot create a satisfaisant rule (user could create a domain attribute if needed)
+				else {
+				    $createRule = false;
+				}
+				break;
+	
+		    # Unknown/No protocol: keep old behaviour
+		    default:
+				$suricata_protocol = 'http';
+				$suricata_src_ip = '$HOME_NET';
+				$suricata_src_port = 'any';
+				$suricata_dst_ip = '$EXTERNAL_NET';
+				$suricata_dst_port = 'any';
+		
+				$url = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
+				$content = 'flow:to_server,established; content:"' . $url . '"; fast_pattern; nocase; http_uri;';
+				$tag = 'tag:session,600,seconds;';
+		
+				break;
+		}
+	
+		if ($createRule) {
+			$attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
+			$this->rules[] = sprintf($ruleFormat, ($overruled) ? '#OVERRULED BY WHITELIST# ' : '', $suricata_protocol, // proto
+				$suricata_src_ip,			// src_ip
+				$suricata_src_port,			// src_port
+				'->',						// direction
+				$suricata_dst_ip,			// dst_ip
+				$suricata_dst_port,			// dst_port
+				'Outgoing URL: ' . $attribute['value'],		// msg
+				$content,					// rule_content
+				$tag,						// tag
+				$sid,						// sid
+				1							// rev
+			);
+		}
 	}
 
 	public function userAgentRule($ruleFormat, $attribute, &$sid) {

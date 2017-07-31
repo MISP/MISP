@@ -12,6 +12,10 @@ class RestResponseComponent extends Component {
 				'admin_edit' => array(
 					'description' => "POST a User object in JSON format to this API to edit a user.",
 					'optional' => array('email', 'org_id', 'role_id', 'password', 'external_auth_required', 'external_auth_key', 'enable_password', 'nids_sid', 'server_id', 'gpgkey', 'certif_public', 'autoalert', 'contactalert', 'disabled', 'change_pw', 'termsaccepted', 'newsread')
+				),
+				'admin_quickEmail' => array(
+					'description' => "POST a body and a subject in a JSON to send an e-mail through MISP to the user ID given in the URL",
+					'mandatory' => array('subject', 'body')
 				)
 			),
 			'Organisation' => array(
@@ -24,6 +28,17 @@ class RestResponseComponent extends Component {
 					'description' => "POST an Organisation object in JSON format to this API to create a new organsiation.",
 					'mandatory' => array('name'),
 					'optional' => array('anonymise', 'description', 'type', 'nationality', 'sector', 'uuid', 'contacts', 'local')
+				)
+			),
+			'Server' => array(
+				'add' => array(
+					'description' => "POST an Server object in JSON format to this API to add a server.",
+					'mandatory' => array('url', 'name', 'organisation_type', 'authkey', 'json'),
+					'optional' => array('push', 'pull', 'push_rules', 'pul_rules', 'submitted_cert', 'submitted_client_cert')
+				),
+				'edit' => array(
+					'description' => "POST an Server object in JSON format to this API to edit a server.",
+					'optional' => array('url', 'name', 'organisation_type', 'authkey', 'json', 'push', 'pull', 'push_rules', 'pul_rules', 'submitted_cert', 'submitted_client_cert')
 				)
 			)
 	);
@@ -50,15 +65,19 @@ class RestResponseComponent extends Component {
 		return $this->__sendResponse($response, 200, $format);
 	}
 
-	private function __sendResponse($response, $code, $format = false) {
+	private function __sendResponse($response, $code, $format = false, $raw = false, $download = false) {
 		if (strtolower($format) === 'application/xml') {
-			$response = Xml::build($response);
+			if (!$raw) $response = Xml::build($response);
+			$type = 'xml';
+		} else if(strtolower($format) == 'openioc') {
 			$type = 'xml';
 		} else {
-			$response = json_encode($response, JSON_PRETTY_PRINT);
+			if (!$raw) $response = json_encode($response, JSON_PRETTY_PRINT);
 			$type = 'json';
 		}
-		return new CakeResponse(array('body'=> $response,'status' => $code, 'type' => $type));
+		$cakeResponse = new CakeResponse(array('body'=> $response,'status' => $code, 'type' => $type));
+		if ($download) $cakeResponse->download($download);
+		return $cakeResponse;
 	}
 
 	private function __generateURL($action, $controller, $id) {
@@ -74,8 +93,15 @@ class RestResponseComponent extends Component {
 		return array('action' => $action, 'admin' => $admin);
 	}
 
-	public function viewData($data, $format = false) {
-		return $this->__sendResponse($data, 200, $format);
+	public function viewData($data, $format = false, $errors = false, $raw = false, $download = false) {
+		if (!empty($errors)) {
+			$data['errors'] = $errors;
+		}
+		return $this->__sendResponse($data, 200, $format, $raw, $download);
+	}
+
+	public function throwException($code, $message, $format, $raw) {
+		return $this->__sendResponse($message, $code, $format, $raw);
 	}
 
 	public function describe($controller, $action, $id = false, $format = false) {

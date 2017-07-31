@@ -26,13 +26,13 @@
 		<table>
 			<tr>
 			<td style="vertical-align:top">
-				<span id="submitButton" class="btn btn-primary" onClick="submitPopoverForm('<?php echo $id;?>', 'addTextElement')">Submit</span>
+				<button id="submitButton" title="Add text description element" class="btn btn-primary" onClick="submitPopoverForm('<?php echo $id;?>', 'addTextElement')">Submit</button>
 			</td>
 			<td style="width:540px;">
 				<p style="color:red;font-weight:bold;display:none;text-align:center" id="warning-message">Warning: You are about to share data that is of a classified nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>
 			</td>
 			<td style="vertical-align:top;">
-				<span class="btn btn-inverse" id="cancel_attribute_add" onClick="cancelPopoverForm();">Cancel</span>
+				<button class="btn btn-inverse" id="cancel_attribute_add" onClick="cancelPopoverForm();">Cancel</button>
 			</td>
 			</tr>
 		</table>

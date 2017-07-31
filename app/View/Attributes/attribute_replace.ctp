@@ -35,13 +35,13 @@ echo $this->Form->create('Attribute', array('id', 'url' => '/attributes/attribut
 			<table>
 				<tr>
 				<td style="vertical-align:top">
-					<span id="submitButton" class="btn btn-primary" onClick="submitPopoverForm('<?php echo $event_id;?>', 'replaceAttributes')">Submit</span>
+					<span id="submitButton" class="btn btn-primary" title="Replace attributes" role="button" tabindex="0" aria-label="Replaceattributes" onClick="submitPopoverForm('<?php echo $event_id;?>', 'replaceAttributes')">Submit</span>
 				</td>
 				<td style="width:540px;">
 					<p style="color:red;font-weight:bold;display:none;text-align:center" id="warning-message">Warning: You are about to share data that is of a classified nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>
 				</td>
 				<td style="vertical-align:top;">
-					<span class="btn btn-inverse" id="cancel_attribute_add">Cancel</span>
+					<span class="btn btn-inverse" id="cancel_attribute_add" title="Cancel" role="button" tabindex="0" aria-label="Cancel">Cancel</span>
 				</td>
 				</tr>
 			</table>
@@ -97,30 +97,30 @@ foreach ($categoryDefinitions as $category => $def) {
 
 $(document).ready(function() {
 	$("#AttributeType, #AttributeCategory").on('mouseover', function(e) {
-	    var $e = $(e.target);
-	    if ($e.is('option')) {
-	        $('#'+e.currentTarget.id).popover('destroy');
-	        $('#'+e.currentTarget.id).popover({
-	            trigger: 'focus',
-	            placement: 'right',
-	            container: 'body',
-	            content: formInfoValues[$e.val()],
-	        }).popover('show');
-	    }
+		var $e = $(e.target);
+		if ($e.is('option')) {
+			$('#'+e.currentTarget.id).popover('destroy');
+			$('#'+e.currentTarget.id).popover({
+				trigger: 'focus',
+				placement: 'right',
+				container: 'body',
+				content: formInfoValues[$e.val()],
+			}).popover('show');
+		}
 	});
 
 	$("input, label").on('mouseleave', function(e) {
-	    $('#'+e.currentTarget.id).popover('destroy');
+		$('#'+e.currentTarget.id).popover('destroy');
 	});
 
 	$("input, label").on('mouseover', function(e) {
 		var $e = $(e.target);
 		$('#'+e.currentTarget.id).popover('destroy');
-        $('#'+e.currentTarget.id).popover({
-            trigger: 'focus',
-            placement: 'right',
-            container: 'body',
-        }).popover('show');
+		$('#'+e.currentTarget.id).popover({
+			trigger: 'focus',
+			placement: 'right',
+			container: 'body',
+		}).popover('show');
 	});
 
 	// workaround for browsers like IE and Chrome that do now have an onmouseover on the 'options' of a select.
@@ -135,14 +135,14 @@ $(document).ready(function() {
 				$("#warning-message").hide();
 			}
 		}
-	    var $e = $(e.target);
-        $('#'+e.currentTarget.id).popover('destroy');
-        $('#'+e.currentTarget.id).popover({
-            trigger: 'focus',
-            placement: 'right',
-            container: 'body',
-            content: formInfoValues[$e.val()],
-        }).popover('show');
+		var $e = $(e.target);
+		$('#'+e.currentTarget.id).popover('destroy');
+		$('#'+e.currentTarget.id).popover({
+			trigger: 'focus',
+			placement: 'right',
+			container: 'body',
+			content: formInfoValues[$e.val()],
+		}).popover('show');
 	});
 
 	$('#cancel_attribute_add').click(function() {

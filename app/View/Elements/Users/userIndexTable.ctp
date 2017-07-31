@@ -14,6 +14,7 @@
 		<th><?php echo $this->Paginator->sort('nids_sid');?></th>
 		<th><?php echo $this->Paginator->sort('termsaccepted');?></th>
 		<th><?php echo $this->Paginator->sort('current_login', 'Last login');?></th>
+		<th><?php echo $this->Paginator->sort('date_created', 'Created');?></th>
 		<?php
 			if (Configure::read('Plugin.CustomAuth_enable') && !Configure::read('Plugin.CustomAuth_required')):
 		?>
@@ -39,7 +40,7 @@
 				<td ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
 					<?php echo h($user['User']['email']); ?>&nbsp;
 				</td>
-				<td ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';" class="<?php echo $user['Role']['perm_auth'] ? 'bold' : 'grey'; ?>">
+				<td ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';" class="quickSelect <?php echo $user['Role']['perm_auth'] ? 'bold' : 'grey'; ?>">
 					<?php echo h($user['User']['authkey']); ?>&nbsp;
 				</td>
 				<td class="short" ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';">
@@ -65,6 +66,9 @@
 				<td class="short" ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';" title="<?php echo !$user['User']['current_login'] ? 'N/A' : h(date("Y-m-d H:i:s",$user['User']['current_login']));?>">
 					<?php echo !$user['User']['current_login'] ? 'N/A' : h(date("Y-m-d",$user['User']['current_login'])); ?>&nbsp;
 				</td>
+				<td class="short" ondblclick="document.location ='<?php echo $this->Html->url(array('admin' => true, 'action' => 'view', $user['User']['id']), true);?>';" title="<?php echo !$user['User']['current_login'] ? 'N/A' : h(date("Y-m-d H:i:s",$user['User']['current_login']));?>">
+					<?php echo !$user['User']['date_created'] ? 'N/A' : h(date("Y-m-d",$user['User']['date_created'])); ?>&nbsp;
+				</td>
 				<?php
 					if (Configure::read('Plugin.CustomAuth_enable') && !Configure::read('Plugin.CustomAuth_required')):
 				?>
@@ -81,7 +85,7 @@
 					<?php
 						if (($isAclAdmin && (($user['User']['org_id'] == $me['org_id'])) || ('1' == $me['id'])) || ($isSiteAdmin)):
 					?>
-							<span class="icon-refresh useCursorPointer" onClick="initiatePasswordReset('<?php echo $user['User']['id']; ?>');" title="Inform user"></span>
+							<span role="button" tabindex="0" aria-label="Initiate password refresh" title="Initiate password refresh" class="icon-refresh useCursorPointer" onClick="initiatePasswordReset('<?php echo $user['User']['id']; ?>');" title="Create new credentials and inform user" role="button" tabindex="0" aria-label="Create new credentials and inform user"></span>
 					<?php
 							echo $this->Html->link('', array('admin' => true, 'action' => 'edit', $user['User']['id']), array('class' => 'icon-edit', 'title' => 'Edit'));
 							echo $this->Form->postLink('', array('admin' => true, 'action' => 'delete', $user['User']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete # %s? It is highly recommended to never delete users but to disable them instead.', $user['User']['id']));

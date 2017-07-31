@@ -1,5 +1,10 @@
 <table class="table table-striped table-hover table-condensed">
 	<tr>
+			<th>
+				<?php if ($isSiteAdmin && !empty($events)): ?>
+					<input class="select_all select" type="checkbox" title="Select all" role="button" tabindex="0" aria-label="Select all eventson current page" onClick="toggleAllCheckboxes();" />&nbsp;
+				<?php endif;?>
+			</th>
 		<th class="filter">
 			<?php echo $this->Paginator->sort('published');?>
 		</th>
@@ -59,6 +64,17 @@
 	</tr>
 	<?php foreach ($events as $event): ?>
 	<tr <?php if ($event['Event']['distribution'] == 0) echo 'class = "privateRed"'?>>
+		<?php if ($me['Role']['perm_modify']): ?>
+			<td style="width:10px;" data-id="<?php echo h($event['Event']['id']); ?>">
+				<?php
+					if ($isSiteAdmin || ($event['Event']['orgc_id'] == $me['org_id'])):
+				?>
+						<input class="select" type="checkbox" data-id="<?php echo $event['Event']['id'];?>" />
+				<?php
+					endif;
+				?>
+			</td>
+		<?php endif;?>
 		<td class="short" ondblclick="document.location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
 			<?php
 			if ($event['Event']['published'] == 1) {
@@ -221,6 +237,7 @@
 			?>
 					<a href='<?php echo $baseurl."/events/edit/".$event['Event']['id'];?>' class = "icon-edit" title = "Edit"></a>
 			<?php
+
 					echo $this->Form->postLink('', array('action' => 'delete', $event['Event']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete # %s?', $event['Event']['id']));
 				endif;
 			?>
@@ -229,3 +246,10 @@
 	</tr>
 	<?php endforeach; ?>
 </table>
+<script type="text/javascript">
+	$(document).ready(function() {
+		$('.select').on('change', function() {
+			eventListCheckboxesChecked();
+		});
+	});
+</script>

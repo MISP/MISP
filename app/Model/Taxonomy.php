@@ -48,6 +48,17 @@ class Taxonomy extends AppModel {
 			}
 			$file = new File(APP . 'files' . DS . 'taxonomies' . DS . $dir . DS . 'machinetag.json');
 			$vocab = json_decode($file->read(), true);
+			if (isset($vocab['type'])) {
+				if (is_array($vocab['type'])) {
+					if (!in_array('event', $vocab['type'])) {
+						continue;
+					}
+				} else {
+					if ($vocab['type'] !== 'event') {
+						continue;
+					}
+				}
+			}
 			$file->close();
 			if (!isset($vocab['version'])) $vocab['version'] = 1;
 			$current = $this->find('first', array(
@@ -233,7 +244,6 @@ class Taxonomy extends AppModel {
 		$this->Tag = ClassRegistry::init('Tag');
 		App::uses('ColourPaletteTool', 'Tools');
 		$paletteTool = new ColourPaletteTool();
-		App::uses('ColourPaletteTool', 'Tools');
 		$taxonomy = $this->__getTaxonomy($id, array('full' => true));
 		$tags = $this->Tag->getTagsForNamespace($taxonomy['Taxonomy']['namespace']);
 		$colours = $paletteTool->generatePaletteFromString($taxonomy['Taxonomy']['namespace'], count($taxonomy['entries']));
@@ -246,7 +256,7 @@ class Taxonomy extends AppModel {
 				foreach ($tagList as $tagName) {
 					if ($tagName === $entry['tag']) {
 						if (isset($tags[strtoupper($entry['tag'])])) {
-							$this->Tag->quickEdit($tags[strtoupper($entry['tag'])], $tagName, $colour);
+							$this->Tag->quickEdit($tags[strtoupper($entry['tag'])], $tagName, $colour, 0);
 						} else {
 							$this->Tag->quickAdd($tagName, $colour);
 						}
@@ -254,12 +264,38 @@ class Taxonomy extends AppModel {
 				}
 			} else {
 				if (isset($tags[strtoupper($entry['tag'])])) {
-					$this->Tag->quickEdit($tags[strtoupper($entry['tag'])], $entry['tag'], $colour);
+					$this->Tag->quickEdit($tags[strtoupper($entry['tag'])], $entry['tag'], $colour, 0);
 				} else {
 					$this->Tag->quickAdd($entry['tag'], $colour);
 				}
 			}
 		}
+		return true;
+	}
+
+	public function disableTags($id, $tagList = false) {
+		if ($tagList && !is_array($tagList)) $tagList = array($tagList);
+		$this->Tag = ClassRegistry::init('Tag');
+		$tags = array();
+		if ($tagList) {
+			$tags = $tagList;
+		} else {
+			$taxonomy = $this->__getTaxonomy($id, array('full' => true));
+			foreach ($taxonomy['entries'] as $entry) {
+				$tags[] = $entry['tag'];
+			}
+		}
+		if (empty($tags)) {
+			return true;
+		}
+		$tags = $this->Tag->find('all', array(
+			'conditions' => array('Tag.name' => $tags, 'Tag.hide_tag' => 0),
+			'recursive' => -1
+		));
+		if (empty($tags)) {
+			return true;
+		}
+		$this->Tag->disableTags($tags);
 		return true;
 	}
 
