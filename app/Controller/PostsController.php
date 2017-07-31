@@ -22,7 +22,7 @@ class PostsController extends AppController {
 
 	function pushMessageToZMQ($message = null) {
 		if (Configure::read("Plugin.ZeroMQ_enable")) {
-			$pubSubTool = $this->Event->getPubSubTool();
+			$pubSubTool = $this->Post->getPubSubTool();
 			$pubSubTool->publishConversation($message);
 		}
 	}
