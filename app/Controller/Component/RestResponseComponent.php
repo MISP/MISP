@@ -30,6 +30,48 @@ class RestResponseComponent extends Component {
 					'optional' => array('anonymise', 'description', 'type', 'nationality', 'sector', 'uuid', 'contacts', 'local')
 				)
 			),
+			'Role' => array(
+				'admin_add' => array(
+					'description' => "POST a Role object in JSON format to this API to create a new role. 'permission' sets the data access permission (0 => read only, 1 => add/edit own, 2 => add/edit org, 3 => publish)",
+					'mandatory' => array('name'),
+					'optional' => array(
+            'perm_delegate',
+            'perm_sync',
+            'perm_admin',
+            'perm_audit',
+            'perm_auth',
+            'perm_site_admin',
+            'perm_regexp_access',
+            'perm_tagger',
+            'perm_template',
+            'perm_sharing_group',
+            'perm_tag_editor',
+            'default_role',
+            'perm_sighting',
+            'permission'
+					)
+				),
+				'admin_edit' => array(
+					'description' => "POST a Role object in JSON format to this API to edit a role. 'permission' sets the data access permission (0 => read only, 1 => add/edit own, 2 => add/edit org, 3 => publish)",
+					'mandatory' => array('name'),
+					'optional' => array(
+            'perm_delegate',
+            'perm_sync',
+            'perm_admin',
+            'perm_audit',
+            'perm_auth',
+            'perm_site_admin',
+            'perm_regexp_access',
+            'perm_tagger',
+            'perm_template',
+            'perm_sharing_group',
+            'perm_tag_editor',
+            'default_role',
+            'perm_sighting',
+            'permission'
+					)
+				)
+			),
 			'Server' => array(
 				'add' => array(
 					'description' => "POST an Server object in JSON format to this API to add a server.",

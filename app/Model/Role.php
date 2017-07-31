@@ -4,8 +4,17 @@ App::uses('AppModel', 'Model');
 class Role extends AppModel {
 
 	public $validate = array(
+		'valueNotEmpty' => array(
+			'rule' => array('valueNotEmpty'),
+		),
+		'name' => array(
+			'unique' => array(
+				'rule' => 'isUnique',
+				'message' => 'A role with this name already exists.'
+			),
 			'valueNotEmpty' => array(
 				'rule' => array('valueNotEmpty'),
+			),
 		),
 	);
 
@@ -57,6 +66,9 @@ class Role extends AppModel {
 
 	public function beforeSave($options = array()) {
 	  //Conversion from the named data access permission levels
+		if (empty($this->data['Role']['permission'])) {
+			$this->data['Role']['permission'] = 0;
+		}
 		switch ($this->data['Role']['permission']) {
 			case '0':
 				$this->data['Role']['perm_add'] = 0;
@@ -85,6 +97,20 @@ class Role extends AppModel {
 			default:
 				break;
 		}
+		if (empty($this->data['Role']['id'])) {
+			foreach (array_keys($this->permFlags) as $permFlag) {
+				if (!isset($this->data['Role'][$permFlag])) {
+					$this->data['Role'][$permFlag] = 0;
+				}
+			}
+		}
 		return true;
 	}
+
+	public function afterFind($results, $primary = false) {
+    foreach ($results as $key => $val) {
+      unset($results[$key]['Role']['perm_full']);
+    }
+    return $results;
+}
 }
