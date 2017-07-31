@@ -2640,7 +2640,7 @@ class EventsController extends AppController {
 			if ($publish_timestamp) $conditions = $this->Event->Attribute->setPublishTimestampConditions($publish_timestamp, $conditions);
 			if ($timestamp) $conditions = $this->Event->Attribute->setTimestampConditions($timestamp, $conditions);
 			if ($last) $conditions['AND'][] = array('Event.publish_timestamp >=' => $last);
-			if ($published !== false) $conditions['AND'][] = array('Event.published' => $published);
+			if ($published !== null) $conditions['AND'][] = array('Event.published' => $published);
 			$params = array(
 					'conditions' => $conditions,
 					'fields' => array('DISTINCT(Attribute.event_id)'),
