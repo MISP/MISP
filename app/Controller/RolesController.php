@@ -128,7 +128,7 @@ class RolesController extends AppController {
 	}
 
 	public function admin_delete($id = null) {
-		if (!$this->request->is('post')) {
+		if (!$this->request->is('post') && !$this->request->is('put') && !$this->request->is('delete')) {
 			throw new MethodNotAllowedException();
 		}
 		$this->Role->id = $id;
