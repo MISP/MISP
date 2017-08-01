@@ -47,6 +47,13 @@ class Role extends AppModel {
 		'permission' => "CASE WHEN (Role.perm_add + Role.perm_modify + Role.perm_publish = 3) THEN '3' WHEN (Role.perm_add + Role.perm_modify_org = 2) THEN '2' WHEN (Role.perm_add = 1) THEN '1' ELSE '0' END",
 	);
 
+	public $permissionConstants = array(
+		'read_only' => 0,
+		'manage_own' => 1,
+		'manage_org' => 2,
+		'publish' => 3
+	);
+
 	public $permFlags = array(
 		'perm_admin' => array('id' => 'RolePermAdmin', 'text' => 'Admin', 'readonlyenabled' => false),
 		'perm_site_admin' => array('id' => 'RolePermSiteAdmin', 'text' => 'Site Admin', 'readonlyenabled' => false),
@@ -68,6 +75,14 @@ class Role extends AppModel {
 	  //Conversion from the named data access permission levels
 		if (empty($this->data['Role']['permission'])) {
 			$this->data['Role']['permission'] = 0;
+		} else if (!is_numeric($this->data['Role']['permission'])) {
+			// If a constant was passed via the API, convert it to the numeric value
+			// For invalid entries, choose permission level 0
+			if (isset($this->permissionConstants[$this->data['Role']['permission']])) {
+				$this->data['Role']['permission'] = $this->permissionConstants[$this->data['Role']['permission']];
+			} else {
+				$this->data['Role']['permission'] = 0;
+			}
 		}
 		switch ($this->data['Role']['permission']) {
 			case '0':
@@ -109,7 +124,11 @@ class Role extends AppModel {
 
 	public function afterFind($results, $primary = false) {
     foreach ($results as $key => $val) {
-      unset($results[$key]['Role']['perm_full']);
+			if (isset($results[$key]['Role'])) {
+	      unset($results[$key]['Role']['perm_full']);
+				$results[$key]['Role']['permission_description'] =
+				array_flip($this->permissionConstants)[$results[$key]['Role']['permission']];
+			}
     }
     return $results;
 }

@@ -31,9 +31,13 @@ class RolesController extends AppController {
 		if (!$this->Role->exists()) {
 			throw new NotFoundException(__('Invalid role'));
 		}
-		$this->set('premissionLevelName', $this->Role->premissionLevelName);
-		$this->set('role', $this->Role->read(null, $id));
-		$this->set('id', $id);
+		if ($this->_isRest()) {
+			return $this->RestResponse->viewData($this->Role->read(null, $id), $this->response->type());
+		} else {
+			$this->set('premissionLevelName', $this->Role->premissionLevelName);
+			$this->set('role', $this->Role->read(null, $id));
+			$this->set('id', $id);
+		}
 	}
 
 	public function admin_add() {
