@@ -126,8 +126,10 @@ class Role extends AppModel {
     foreach ($results as $key => $val) {
 			if (isset($results[$key]['Role'])) {
 	      unset($results[$key]['Role']['perm_full']);
-				$results[$key]['Role']['permission_description'] =
-				array_flip($this->permissionConstants)[$results[$key]['Role']['permission']];
+				if (isset($results[$key]['Role']['permission'])) {
+					$results[$key]['Role']['permission_description'] =
+					array_flip($this->permissionConstants)[$results[$key]['Role']['permission']];
+				}
 			}
     }
     return $results;
