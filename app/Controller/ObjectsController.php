@@ -209,7 +209,6 @@ class ObjectsController extends AppController {
 			}
 
 		}
-		
 		$this->set('enabledRows', $enabledRows);
 		$distributionData = $this->MispObject->Event->Attribute->fetchDistributionData($this->Auth->user());
 		$this->set('distributionData', $distributionData);

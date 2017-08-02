@@ -272,7 +272,6 @@ td.highlight1 {
 td.highlight2 {
 	background-color: #747170 !important;
 	color: #ffffff !important;
-
 }
 
 td.highlight3 {
@@ -1712,6 +1711,143 @@ table.table.table-striped tr.deleted_row td {
 .simplepre {
 	border:0px !important;
 	background-color:#f4f4f4;
+}
+
+tr.tableInsetOrangeFirst td:first-child {
+	box-shadow:
+		inset 0px 2px 0px 0px #f57900,
+		inset 3px 0px 0px 0px #f57900;
+	border-top:0px !important;
+}
+
+tr.tableInsetOrangeFirst td {
+	box-shadow:
+		inset 0px 2px 0px 0px #f57900;
+	border-top:0px !important;
+}
+
+tr.tableInsetOrangeFirst td:last-child {
+	box-shadow:
+    inset 0px 2px 0px 0px #f57900,
+    inset -2px 0px 0px 0px #f57900;
+	border-top:0px !important;
+}
+
+tr.tableInsetOrangeMiddle td:first-child {
+	box-shadow:
+		inset 3px 0px 0px 0px #f57900;
+	border-top:0px !important;
+}
+
+tr.tableInsetOrangeMiddle td:last-child {
+	box-shadow:
+    inset -3px 0px 0px 0px #f57900;
+	border-top:0px !important;
+}
+
+tr.tableInsetOrangeLast td:first-child {
+	box-shadow:
+		inset 0px -3px 0px 0px #f57900,
+		inset 3px 0px 0px 0px #f57900;
+	border-top:0px !important;
+}
+
+tr.tableInsetOrangeLast td {
+	box-shadow:
+		inset 0px -3px 0px 0px #f57900;
+	border-top:0px !important;
+}
+
+tr.tableInsetOrangeLast td:last-child {
+	box-shadow:
+    inset 0px -3px 0px 0px #f57900,
+    inset -3px 0px 0px 0px #f57900;
+	border-top:0px !important;
+}
+
+tr.tableInsetOrange td:first-child {
+	box-shadow:
+		inset 0px 2px 0px 0px #f57900,
+		inset 0px -3px 0px 0px #f57900,
+		inset 2px 0px 0px 0px #f57900;
+	border-top:0px !important;
+}
+
+tr.tableInsetOrange td {
+	box-shadow:
+		inset 0px 2px 0px 0px #f57900,
+		inset 0px -3px 0px 0px #f57900;
+	border-top:0px !important;
+}
+
+tr.tableInsetOrange td:last-child {
+	box-shadow:
+    inset 0px 2px 0px 0px #f57900,
+    inset 0px -3px 0px 0px #f57900,
+    inset -2px 0px 0px 0px #f57900;
+	border-top:0px !important;
+}
+
+.tableHighlightBorder {
+	border-radius: 3px !important;
+	border-width: 3px;
+	border-style: solid;
+}
+
+.tableHighlightBorderTop {
+	border-radius: 3px !important;
+	border-width: 3px;
+	border-style: solid;
+	border-bottom: 0px;
+}
+
+.tableHighlightBorderCenter {
+	border-radius: 3px !important;
+	border-width: 3px;
+	border-style: solid;
+	border-bottom: 0px;
+	border-top: 0px;
+}
+
+.tableHighlightBorderBottom {
+	border-radius: 3px !important;
+	border-width: 3px;
+	border-style:solid;
+	border-top: 0px;
+}
+
+tr.tableHighlightBorderBottom td {
+	border-top:0px !important;
+}
+
+.borderRed {
+	border-color:#cc0000;
+}
+
+.borderOrange {
+	border-color:#f57900;
+}
+
+.borderBlue {
+	border-color:#3465a4;
+}
+
+tr.darkOrangeRow td, .darkOrangeElement {
+	background-color: #ce5c00 !important;
+	color: #ffffff;
+	border-top:0px !important;
+}
+
+tr.blueRow td, .blueElement {
+	background-color: #3465a4 !important;
+	color: #ffffff;
+	border-top:0px !important;
+}
+
+tr.redRow td, .redElement {
+	background-color: #cc0000 !important;
+	color: #ffffff;
+	border-top:0px !important;
 }
 
 @-webkit-keyframes rotation {

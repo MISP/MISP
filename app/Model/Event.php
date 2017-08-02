@@ -53,6 +53,8 @@ class Event extends AppModel {
 		0 => 'Your organisation only', 1 => 'This community only', 2 => 'Connected communities', 3 => 'All communities', 4 => 'Sharing group'
 	);
 
+	private $__fTool = false;
+
 	public $shortDist = array(0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All', 4 => ' sharing Group');
 
 	public $export_types = array(
@@ -3114,8 +3116,128 @@ class Event extends AppModel {
 		return time() - ($delta * $multiplier);
 	}
 
+	private function __prepareAttributeForView(
+		$attribute,
+		$correlatedAttributes,
+		$correlatedShadowAttributes,
+		$filterType = false,
+		$eventWarnings,
+		$warningLists
+	) {
+		$attribute['objectType'] = 'attribute';
+		$include = true;
+		if ($filterType && !in_array($filterType, array('proposal', 'correlation', 'warning'))) {
+			if (!in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType])) {
+				$include = false;
+			}
+		}
+		if ($filterType === 'proposal' && empty($attribute['ShadowAttribute'])) {
+			$include = false;
+		}
+		if ($filterType === 'correlation' && !in_array($attribute['id'], $correlatedAttributes)) {
+			$include = false;
+		}
+		if (!empty($attribute['ShadowAttribute'])) {
+			$temp = array();
+			foreach ($attribute['ShadowAttribute'] as $k => $proposal) {
+				$result = $this->__prepareProposalForView(
+					$proposal,
+					$correlatedShadowAttributes,
+					false,
+					$eventWarnings,
+					$warningLists
+				);
+				$temp[] = $result['data'];
+			}
+			$attribute['ShadowAttribute'] = $temp;
+		}
+		$attribute = $this->__prepareGenericForView($attribute, $eventWarnings, $warningLists);
+		return array('include' => $include, 'data' => $attribute);
+	}
+
+	private function __prepareProposalForView(
+		$proposal,
+		$correlatedShadowAttributes,
+		$filterType = false,
+		$eventWarnings,
+		$warningLists
+	) {
+		if ($proposal['proposal_to_delete']) {
+			$proposal['objectType'] = 'proposal_delete';
+		} else {
+			$proposal['objectType'] = 'proposal';
+		}
+
+		$include = true;
+		if ($filterType === 'correlation' && !in_array($proposal['id'], $correlatedShadowAttributes)) {
+			$include = false;
+		}
+		if ($filterType && !in_array($filterType, array('proposal', 'correlation', 'warning'))) {
+			if (!in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType])) {
+				$include = false;
+			}
+		}
+		$proposal = $this->__prepareGenericForView($proposal, $eventWarnings, $warningLists);
+		return array('include' => $include, 'data' => $proposal);
+	}
+
+	private function __prepareObjectForView(
+		$object,
+		$correlatedAttributes,
+		$correlatedShadowAttributes,
+		$filterType = false,
+		$eventWarnings,
+		$warningLists
+	) {
+		$object['category'] = $object['meta-category'];
+		$proposal['objectType'] = 'object';
+		// filters depend on child objects
+		$include = empty($filterType) || $filterType == 'object';
+		if (!empty($object['Attribute'])) {
+			$temp = array();
+			foreach ($object['Attribute'] as $k => $proposal) {
+				$result = $this->__prepareAttributeForView(
+					$proposal,
+					$correlatedAttributes,
+					$correlatedShadowAttributes,
+					$filterType,
+					$eventWarnings,
+					$warningLists
+				);
+				$include = $include || $object['include'];
+				$temp[] = $result['data'];
+			}
+			$object['Attribute'] = $temp;
+		}
+		return array('include' => $include, 'data' => $object);
+	}
+
+	private function __prepareGenericForView(
+		$object,
+		$eventWarnings,
+		$warningLists
+	) {
+		if (!$this->__fTool) {
+				$this->__fTool = new FinancialTool();
+		}
+		if ($object['type'] == 'attachment' && preg_match('/.*\.(jpg|png|jpeg|gif)$/i', $object['value'])) {
+			$object['image'] = $this->Attribute->base64EncodeAttachment($object);
+		}
+		if (isset($object['distribution']) && $object['distribution'] != 4) unset($object['SharingGroup']);
+		if ($object['objectType'] !== 'object') {
+			if ($object['category'] === 'Financial fraud') {
+				if (!$this->__fTool->validateRouter($object['type'], $object['value'])) {
+					$object['validationIssue'] = true;
+				}
+			}
+		}
+		$this->Warninglist->checkForWarning($object, $eventWarnings, $warningLists);
+		return $object;
+	}
+
 	public function rearrangeEventForView(&$event, $passedArgs = array(), $all = false) {
-		$fTool = new FinancialTool();
+		$this->Warninglist = ClassRegistry::init('Warninglist');
+		$warningLists = $this->Warninglist->fetchForEventView();
 		foreach ($event['Event'] as $k => $v) {
 			if (is_array($v)) {
 				$event[$k] = $v;
@@ -3131,79 +3253,55 @@ class Event extends AppModel {
 			}
 		}
 		$eventArray = array();
+		$eventWarnings = array();
 		$correlatedAttributes = isset($event['RelatedAttribute']) ? array_keys($event['RelatedAttribute']) : array();
 		$correlatedShadowAttributes = isset($event['RelatedShadowAttribute']) ? array_keys($event['RelatedShadowAttribute']) : array();
-		$totalElements = count($event['Attribute']);
 		foreach ($event['Attribute'] as $attribute) {
-			$totalElements += isset($attribute['ShadowAttribute']) ? count($attribute['ShadowAttribute']) : 0;
-			if ($filterType && !in_array($filterType, array('proposal', 'correlation', 'warning'))) if (!in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType])) continue;
-			if (isset($attribute['distribution']) && $attribute['distribution'] != 4) unset($attribute['SharingGroup']);
-			$attribute['objectType'] = 0;
-			if (!empty($attribute['ShadowAttribute'])) {
-				$attribute['hasChildren'] = 1;
-			} else {
-				$attribute['hasChildren'] = 0;
-			}
-			if ($filterType === 'proposal' && $attribute['hasChildren'] == 0) continue;
-			if ($filterType === 'correlation' && !in_array($attribute['id'], $correlatedAttributes)) continue;
-			if ($attribute['type'] == 'attachment' && preg_match('/.*\.(jpg|png|jpeg|gif)$/i', $attribute['value'])) {
-				$attribute['image'] = $this->Attribute->base64EncodeAttachment($attribute);
-			}
-			$eventArray[] = $attribute;
+			$result = $this->__prepareAttributeForView(
+				$attribute,
+				$correlatedAttributes,
+				$correlatedShadowAttributes,
+				$filterType,
+				$eventWarnings,
+				$warningLists
+			);
+			$event['objects'][] = $result['data'];
 		}
 		unset($event['Attribute']);
-		if (isset($event['ShadowAttribute'])) {
-			$totalElements += count($event['ShadowAttribute']);
-			foreach ($event['ShadowAttribute'] as $shadowAttribute) {
-				if ($filterType === 'correlation' && !in_array($shadowAttribute['id'], $correlatedShadowAttributes)) continue;
-				if ($filterType && !in_array($filterType, array('proposal', 'correlation', 'warning'))) if (!in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType])) continue;
-				$shadowAttribute['objectType'] = 2;
-				if ($shadowAttribute['type'] == 'attachment' && preg_match('/.*\.(jpg|png|jpeg|gif)$/i', $shadowAttribute['value'])) {
-					$shadowAttribute['image'] = $this->ShadowAttribute->base64EncodeAttachment($attribute);
-				}
-				$eventArray[] = $shadowAttribute;
+		if (!empty($event['ShadowAttribute'])) {
+			foreach ($event['ShadowAttribute'] as $proposal) {
+				$result = $this->__prepareProposalForView(
+					$proposal,
+					$correlatedShadowAttributes,
+					$filterType,
+					$eventWarnings,
+					$warningLists
+				);
+				$event['objects'][] = $result['data'];
 			}
+			unset($event['ShadowAttribute']);
+		}
+		if (!empty($event['Object'])) {
+			foreach ($event['Object'] as $object) {
+				$object['objectType'] = 'object';
+				$result = $this->__prepareObjectForView(
+					$object,
+					$correlatedAttributes,
+					$correlatedShadowAttributes,
+					false,
+					$eventWarnings,
+					$warningLists
+				);
+				$event['objects'][] = $result['data'];
+			}
+			unset($event['Object']);
 		}
 		unset($event['ShadowAttribute']);
 		App::uses('CustomPaginationTool', 'Tools');
 		$customPagination = new CustomPaginationTool();
 		if ($all) $passedArgs['page'] = 0;
-		$eventArrayWithProposals = array();
-		foreach ($eventArray as $k => &$object) {
-			if ($object['category'] === 'Financial fraud') {
-				if (!$fTool->validateRouter($object['type'], $object['value'])) {
-					$object['validationIssue'] = true;
-				}
-			}
-			if ($object['objectType'] == 0) {
-				if (isset($object['ShadowAttribute'])) {
-					$shadowAttributeTemp = $object['ShadowAttribute'];
-					unset($object['ShadowAttribute']);
-					$eventArrayWithProposals[] = $object;
-					foreach ($shadowAttributeTemp as $kk => $shadowAttribute) {
-						$shadowAttribute['objectType'] = 1;
-						if ($kk == 0) $shadowAttribute['firstChild'] = true;
-						if (($kk + 1) == count($shadowAttributeTemp)) $shadowAttribute['lastChild'] = true;
-						$eventArrayWithProposals[] = $shadowAttribute;
-					}
-				} else {
-					$eventArrayWithProposals[] = $object;
-				}
-			} else {
-				$eventArrayWithProposals[] = $object;
-			}
-			unset($eventArray[$k]);
-		}
-		$event['objects'] = $eventArrayWithProposals;
-		$this->Warninglist = ClassRegistry::init('Warninglist');
-		$warningLists = $this->Warninglist->fetchForEventView();
-		if (!empty($warningLists)) $event = $this->Warninglist->setWarnings($event, $warningLists);
-		if ($filterType && $filterType == 'warning') {
-			foreach ($event['objects'] as $k => &$object) if (empty($object['warnings'])) unset($event['objects'][$k]);
-			$event['objects'] = array_values($event['objects']);
-		}
 		$params = $customPagination->applyRulesOnArray($event['objects'], $passedArgs, 'events', 'category');
-		$params['total_elements'] = $totalElements;
+		$params['total_elements'] = count($event['objects']);
 		return $params;
 	}
 

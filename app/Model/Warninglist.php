@@ -232,6 +232,23 @@ class Warninglist extends AppModel{
 		return $warninglists;
 	}
 
+	public function checkForWarning($object, &$eventWarnings, $warningLists) {
+		if ($object['to_ids']) {
+			foreach ($warningLists as $list) {
+				if (in_array('ALL', $list['types']) || in_array($object['type'], $list['types'])) {
+					$result = $this->__checkValue($list['values'], $object['value'], $object['type'], $list['Warninglist']['type']);
+					if (!empty($result)) {
+						$object['warnings'][$result][] = $list['Warninglist']['name'];
+						if (!in_array($list['Warninglist']['name'], $eventWarnings)) {
+							$eventWarnings[$list['Warninglist']['id']] = $list['Warninglist']['name'];
+						}
+					}
+				}
+			}
+		}
+		return $object;
+	}
+
 	public function setWarnings(&$event, &$warninglists) {
 		if (empty($event['objects'])) return $event;
 		$eventWarnings = array();
