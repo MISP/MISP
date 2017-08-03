@@ -507,6 +507,7 @@ CREATE TABLE IF NOT EXISTS object_template_elements (
   `categories` text COLLATE utf8_bin,
   `sane_default` text COLLATE utf8_bin,
   `values_list` text COLLATE utf8_bin,
+  `description` text COLLATE utf8_bin,
   `disable_correlations` tinyint(1) NOT NULL DEFAULT 0,
   `multiple` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (id),
