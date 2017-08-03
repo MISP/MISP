@@ -4306,7 +4306,7 @@ class EventsController extends AppController {
 			$message = 'This functionality is only available via POST requests';
 		}
 		if ($this->_isRest()) {
-			return $this->RestResponse->viewData($events, $this->response->type());
+			return $this->RestResponse->viewData($event, $this->response->type());
 		} else {
 			$this->Session->setFlash($message);
 			$this->redirect($this->referer());
