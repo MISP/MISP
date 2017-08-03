@@ -48,8 +48,16 @@ sudo -u www-data git checkout v1.1.1.4
 python setup.py install
 
 
+# 4. Update mixbox to accomodate the new STIX dependencies:
+cd /var/www/MISP/app/files/scripts/
+rm -rf mixbox
+sudo -u www-data git clone https://github.com/CybOXProject/mixbox.git
+cd /var/www/MISP/app/files/scripts/mixbox
+sudo -u www-data git checkout v1.0.2
+python setup.py install
 
-# 4. Update CakeResque and its dependencies
+
+# 5. Update CakeResque and its dependencies
 
 cd /var/www/MISP/app
 
@@ -66,21 +74,21 @@ php composer.phar update
 cp -fa /var/www/MISP/INSTALL/setup/config.php /var/www/MISP/app/Plugin/CakeResque/Config/config.php
 
 
-# 5. Make sure all file permissions are set correctly
+# 6. Make sure all file permissions are set correctly
 
 find /var/www/MISP -type d -exec chmod g=rx {} \;
 chmod -R g+r,o= /var/www/MISP
 chown -R www-data:www-data /var/www/MISP
 
 
-# 6. Restart the CakeResque workers
+# 7. Restart the CakeResque workers
 
 su - www-data -s /bin/bash -c 'bash /var/www/MISP/app/Console/worker/start.sh'
 
 # You can also do this using the MISP application by navigating to the workers tab in the server settings and clicking on the "Restart all workers" button.
 
 
-# 7. Add any new dependencies that might have been added since you've last updated (shown below)
+# 8. Add any new dependencies that might have been added since you've last updated (shown below)
 
-# 7.a requirements for the pubsub optional feature
+# 8.a requirements for the pubsub optional feature
 pip install pyzmq

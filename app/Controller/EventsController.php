@@ -1443,10 +1443,6 @@ class EventsController extends AppController {
 		$this->set('event', $this->Event->data);
 	}
 
-	public function massDelete() {
-
-	}
-
 	public function delete($id = null) {
 		if ($this->request->is('post') || $this->request->is('put') || $this->request->is('delete')) {
 			if (isset($this->request->data['id'])) {
@@ -2172,7 +2168,12 @@ class EventsController extends AppController {
 			$zipData = $fileAccessTool->readFromFile($this->data['Event']['submittedgfi']['tmp_name'], $this->data['Event']['submittedgfi']['size']);
 
 			// write
-			$rootDir = APP . "files" . DS . "GFI" . DS . $id . DS;
+			$attachments_dir = Configure::read('MISP.attachments_dir');
+			if (empty($attachments_dir)) {
+				$this->loadModel('Server');
+				$attachments_dir = $this->Server->getDefaultAttachments_dir();
+			}
+			$rootDir = $attachments_dir . DS . "GFI" . DS . $id . DS;
 			App::uses('Folder', 'Utility');
 			$dir = new Folder($rootDir, true);
 			if (!$this->Event->checkFilename($this->data['Event']['submittedgfi']['name'])) {
@@ -2212,7 +2213,12 @@ class EventsController extends AppController {
 			$iocData = $fileAccessTool->readFromFile($this->data['Event']['submittedioc']['tmp_name'], $this->data['Event']['submittedioc']['size']);
 
 			// write
-			$rootDir = APP . "files" . DS . $id . DS;
+			$attachments_dir = Configure::read('MISP.attachments_dir');
+			if (empty($attachments_dir)) {
+				$this->loadModel('Server');
+				$attachments_dir = $this->Server->getDefaultAttachments_dir();
+			}
+			$rootDir = $attachments_dir . DS . $id . DS;
 			App::uses('Folder', 'Utility');
 			$dir = new Folder($rootDir . 'ioc', true);
 			$destPath = $rootDir . 'ioc';
@@ -2355,7 +2361,12 @@ class EventsController extends AppController {
 		// import XML class
 		App::uses('Xml', 'Utility');
 		// now parse it
-		$parsedXml = Xml::build($data, array('return' => 'simplexml'));
+		try {
+			$parsedXml = Xml::build($data, array('return' => 'simplexml'));
+		} catch (Exception $e) {
+			$this->Session->setFlash('Invalid GFI archive.');
+			$this->redirect(array('controller' => 'events', 'action' => 'view', $id));
+		}
 
 		// xpath..
 		if (Configure::read('MISP.default_attribute_distribution') != null) {
@@ -2377,13 +2388,18 @@ class EventsController extends AppController {
 				if ((string)$key == 'filename') $realFileName = (string)$val;
 			}
 		}
-		$rootDir = APP . "files" . DS . $id . DS;
+		$attachments_dir = Configure::read('MISP.attachments_dir');
+		if (empty($attachments_dir)) {
+			$this->loadModel('Server');
+			$attachments_dir = $this->Server->getDefaultAttachments_dir();
+		}
+		$rootDir = $attachments_dir . DS . $id . DS;
 		$malware = $rootDir . DS . 'sample';
 		$this->Event->Attribute->uploadAttachment($malware,	$realFileName,	true, $id, null, '', $this->Event->data['Event']['uuid'] . '-sample', $dist, true);
 
 		// Network activity -- .pcap
 		$realFileName = 'analysis.pcap';
-		$rootDir = APP . "files" . DS . $id . DS;
+		$rootDir = $attachments_dir . DS . $id . DS;
 		$malware = $rootDir . DS . 'Analysis' . DS . 'analysis.pcap';
 		$this->Event->Attribute->uploadAttachment($malware,	$realFileName,	false, $id, 'Network activity', '', $this->Event->data['Event']['uuid'] . '-analysis.pcap', $dist, true);
 
@@ -2624,7 +2640,7 @@ class EventsController extends AppController {
 			if ($publish_timestamp) $conditions = $this->Event->Attribute->setPublishTimestampConditions($publish_timestamp, $conditions);
 			if ($timestamp) $conditions = $this->Event->Attribute->setTimestampConditions($timestamp, $conditions);
 			if ($last) $conditions['AND'][] = array('Event.publish_timestamp >=' => $last);
-			if ($published) $conditions['AND'][] = array('Event.published' => $published);
+			if ($published !== null) $conditions['AND'][] = array('Event.published' => $published);
 			$params = array(
 					'conditions' => $conditions,
 					'fields' => array('DISTINCT(Attribute.event_id)'),

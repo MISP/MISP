@@ -1022,7 +1022,7 @@ CREATE TABLE IF NOT EXISTS `threat_levels` (
 
 CREATE TABLE IF NOT EXISTS `users` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `password` varchar(40) COLLATE utf8_bin NOT NULL,
+  `password` varchar(255) COLLATE utf8_bin NOT NULL,
   `org_id` int(11) NOT NULL,
   `server_id` int(11) NOT NULL DEFAULT 0,
   `email` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,

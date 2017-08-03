@@ -22,8 +22,8 @@
 
 App::uses('Model', 'Model');
 App::uses('LogableBehavior', 'Assets.models/behaviors');
+App::uses('BlowfishPasswordHasher', 'Controller/Component/Auth');
 class AppModel extends Model {
-
 	public $name;
 
 	public $loadedPubSubTool = false;
@@ -47,7 +47,7 @@ class AppModel extends Model {
 				58 => false, 59 => false, 60 => false, 61 => false, 62 => false,
 				63 => false, 64 => false, 65 => false, 66 => false, 67 => true,
 				68 => false, 69 => false, 71 => false, 72 => false, 73 => false,
-				75 => false, 76 => false
+				75 => false, 77 => false, 78 => false
 			)
 		)
 	);
@@ -699,7 +699,10 @@ class AppModel extends Model {
 				$this->__addIndex('attributes', 'value1', 255);
 				$this->__addIndex('attributes', 'value2', 255);
 				break;
-			case '2.4.76':
+			case '2.4.77':
+				$sqlArray[] = 'ALTER TABLE `users` CHANGE `password` `password` VARCHAR(255) COLLATE utf8_bin NOT NULL;';
+				break;
+			case '2.4.78':
 				$sqlArray[] = "CREATE TABLE IF NOT EXISTS objects (
 					`id` int(11) NOT NULL AUTO_INCREMENT,
 					`name` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
@@ -786,7 +789,7 @@ class AppModel extends Model {
 
 				$indexArray[] = array('attributes', 'object_id');
 				$indexArray[] = array('attributes', 'object_relation');
-				break;
+			break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
 				$sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -1115,9 +1118,11 @@ class AppModel extends Model {
 		$host = Configure::read('MISP.redis_host') ? Configure::read('MISP.redis_host') : '127.0.0.1';
 		$port = Configure::read('MISP.redis_port') ? Configure::read('MISP.redis_port') : 6379;
 		$database = Configure::read('MISP.redis_database') ? Configure::read('MISP.redis_database') : 13;
+		$pass = Configure::read('MISP.redis_password');
 		if (!$redis->connect($host, $port)) {
 			return false;
 		}
+		if (!empty($pass)) $redis->auth($pass);
 		$redis->select($database);
 		$this->__redisConnection = $redis;
 		return $redis;
@@ -1136,5 +1141,11 @@ class AppModel extends Model {
 		$pubSubTool->initTool();
 		$this->loadedPubSubTool = $pubSubTool;
 		return true;
+	}
+
+	public function checkVersionRequirements($versionString, $minVersion) {
+		$version = explode('.', $versionString);
+		$minVersion = explode('.', $minVersion);
+		return ($version[0] >= $minVersion[0] && $version[1] >= $minVersion[1] && $version[2] >= $minVersion[2]);
 	}
 }

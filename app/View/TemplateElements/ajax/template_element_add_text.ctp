@@ -26,7 +26,7 @@
 		<table>
 			<tr>
 			<td style="vertical-align:top">
-				<button id="submitButton" title="Add text description element" class="btn btn-primary" onClick="submitPopoverForm('<?php echo $id;?>', 'addTextElement')">Submit</button>
+				<button id="submitButton" title="Add text description element" class="btn btn-primary" onClick="return submitPopoverForm('<?php echo $id;?>', 'addTextElement')">Submit</button>
 			</td>
 			<td style="width:540px;">
 				<p style="color:red;font-weight:bold;display:none;text-align:center" id="warning-message">Warning: You are about to share data that is of a classified nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>

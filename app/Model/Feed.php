@@ -704,22 +704,39 @@ class Feed extends AppModel {
 			}
 		}
 		if ($feed['Feed']['fixed_event']) {
-			$event = $this->Event->find('first', array('conditions' => array('Event.id' => $event['Event']['id']), 'recursive' => -1, 'contain' => array('Attribute' => array('conditions' => array('Attribute.deleted' => 0)))));
+			$temp = $this->Event->Attribute->find('all', array(
+				'conditions' => array(
+					'Attribute.deleted' => 0,
+					'Attribute.event_id' => $event['Event']['id']
+				),
+				'recursive' => -1,
+				'fields' => array('id', 'value1', 'value2')
+			));
+			$event['Attribute'] = array();
+			foreach ($temp as $k => $t) {
+				$start = microtime(true);
+				if (!empty($t['Attribute']['value2'])) {
+					$t['Attribute']['value'] = $t['Attribute']['value1'] . '|' . $t['Attribute']['value2'];
+				} else {
+					$t['Attribute']['value'] = $t['Attribute']['value1'];
+				}
+				$event['Attribute'][$t['Attribute']['id']] = $t['Attribute']['value'];
+			}
+			unset($temp);
 			$to_delete = array();
 			foreach ($data as $k => $dataPoint) {
-				foreach ($event['Attribute'] as $attribute_key => $attribute) {
-					if ($dataPoint['value'] == $attribute['value'] && $dataPoint['type'] == $attribute['type'] && $attribute['category'] == $dataPoint['category']) {
-						unset($data[$k]);
-						unset($event['Attribute'][$attribute_key]);
-					}
+				$finder = array_search($dataPoint['value'], $event['Attribute']);
+				if ($finder !== false) {
+					unset($data[$k]);
+					unset($event['Attribute'][$finder]);
 				}
 			}
 			if ($feed['Feed']['delta_merge']) {
-				foreach ($event['Attribute'] as $attribute) {
-					$to_delete[] = $attribute['id'];
+				foreach ($event['Attribute'] as $k => $attribute) {
+					$to_delete[] = $k;
 				}
 				if (!empty($to_delete)) {
-					$this->Event->Attribute->deleteAll(array('Attribute.id' => $to_delete));
+					$this->Event->Attribute->deleteAll(array('Attribute.id' => $to_delete, 'Attribute.deleted' => 0));
 				}
 			}
 		}
@@ -727,28 +744,27 @@ class Feed extends AppModel {
 		if (empty($data)) {
 			return true;
 		}
-		$prunedCopy = array();
+		$uniqueValues = array();
 		foreach ($data as $key => $value) {
-			foreach ($prunedCopy as $copy) {
-				if ($copy['type'] == $value['type'] && $copy['category'] == $value['category'] && $copy['value'] == $value['value']) {
-					continue 2;
-				}
+			if (in_array($value['value'], $uniqueValues)) {
+				unset($data[$key]);
+				continue;
 			}
 			$data[$key]['event_id'] = $event['Event']['id'];
 			$data[$key]['distribution'] = $feed['Feed']['distribution'];
 			$data[$key]['sharing_group_id'] = $feed['Feed']['sharing_group_id'];
 			$data[$key]['to_ids'] = $feed['Feed']['override_ids'] ? 0 : $data[$key]['to_ids'];
-			$prunedCopy[] = $data[$key];
+			$uniqueValues[] = $data[$key]['value'];
 		}
-		$data = $prunedCopy;
+		$data = array_values($data);
 		if ($jobId) {
 			$job = ClassRegistry::init('Job');
 			$job->id = $jobId;
 		}
-		$data = array_chunk($data, 100);
 		foreach ($data as $k => $chunk) {
-			$this->Event->Attribute->saveMany($chunk);
-			if ($jobId) {
+			$this->Event->Attribute->create();
+			$this->Event->Attribute->save($chunk);
+			if ($jobId && $k % 100 == 0) {
 				$job->saveField('progress', 50 + round((50 * ((($k + 1) * 100) / count($data)))));
 			}
 		}

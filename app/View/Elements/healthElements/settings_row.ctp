@@ -9,6 +9,11 @@
 	if (isset($setting['options'])) $setting['value'] = $setting['options'][$setting['value']];
 ?>
 <tr id ="<?php echo h($k); ?>_row">
+	<?php
+		if (!empty($setting['redacted'])) {
+			$setting['value'] = '*****';
+		}
+	?>
 	<td class="short" style="<?php echo $bgColour; ?>"><?php echo h($priorities[$setting['level']]);?></td>
 	<td class="short" style="<?php echo $bgColour; ?>"><?php echo h($setting['setting']);?></td>
 	<?php if ((isset($setting['editable']) && !$setting['editable']) || $setting['level'] == 3): ?>

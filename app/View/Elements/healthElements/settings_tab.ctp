@@ -29,6 +29,9 @@
 					if ($setting['setting'] == 'Security.salt' && !isset($setting['error'])) {
 						continue;
 					}
+					if (!empty($setting['redacted'])) {
+						$setting['value'] = '*****';
+					}
 			?>
 			<tr id ="<?php echo h($subGroup) . '_' . $k; ?>_row" class="subGroup_<?php echo h($subGroup);?> hidden">
 				<td class="short" style="<?php echo $bgColour; ?>"><?php echo h($priorities[$setting['level']]);?></td>

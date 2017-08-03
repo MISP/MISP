@@ -96,7 +96,16 @@ foreach ($attributes as $attribute):
 				$sigDisplay = $this->Highlight->highlighter($sigDisplay, $replacePairs);
 			}
 			if ('attachment' == $attribute['Attribute']['type'] || 'malware-sample' == $attribute['Attribute']['type']) {
-				?><a href="<?php echo $baseurl;?>/attributes/download/<?php echo $attribute['Attribute']['id'];?>"><?php echo $sigDisplay; ?></a><?php
+				if ($attribute['Attribute']['type'] == 'attachment' && isset($attribute['Attribute']['image'])):
+					$extension = explode('.', $attribute['Attribute']['value']);
+					$extension = end($extension);
+					$uri = 'data:image/' . strtolower(h($extension)) . ';base64,' . h($attribute['Attribute']['image']);
+					echo '<img class="screenshot screenshot-collapsed useCursorPointer" src="' . $uri . '" title="' . h($attribute['Attribute']['value']) . '" />';
+				else:
+			?>
+					<a href="<?php echo $baseurl;?>/attributes/download/<?php echo $attribute['Attribute']['id'];?>"><?php echo $sigDisplay; ?></a>
+			<?php
+				endif;
 			} else if ('link' == $attribute['Attribute']['type']) {
 				?><a href="<?php echo h($attribute['Attribute']['value']);?>"><?php echo $sigDisplay; ?></a><?php
 			} else {
@@ -187,7 +196,9 @@ $(document).ready(function () {
 		'placement': 'top',
 		'container' : 'body',
 		delay: { show: 500, hide: 100 }
-		});
-
+	});
+	$('.screenshot').click(function() {
+		screenshotPopup($(this).attr('src'), $(this).attr('title'));
+	});
 });
 </script>

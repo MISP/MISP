@@ -88,7 +88,7 @@
 		<table>
 			<tr>
 			<td style="vertical-align:top">
-				<span id="submitButton" role="button" tabindex="0" aria-label="Add attribute element" title="Add attribute element" class="btn btn-primary" onClick="submitPopoverForm('<?php echo $id;?>', 'addAttributeElement')">Submit</span>
+				<span id="submitButton" role="button" tabindex="0" aria-label="Add attribute element" title="Add attribute element" class="btn btn-primary" onClick="return submitPopoverForm('<?php echo $id;?>', 'addAttributeElement')">Submit</span>
 			</td>
 			<td style="width:540px;">
 				<p style="color:red;font-weight:bold;display:none;text-align:center" id="warning-message">Warning: You are about to share data that is of a classified nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>

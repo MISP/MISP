@@ -866,6 +866,11 @@ class ServersController extends AppController {
 						'finalSettings' => $dumpResults,
 						'extensions' => $extensions
 				);
+				foreach ($dump['finalSettings'] as $k => $v) {
+					if (!empty($v['redacted'])) {
+						$dump['finalSettings'][$k]['value'] = '*****';
+					}
+				}
 				$this->response->body(json_encode($dump, JSON_PRETTY_PRINT));
 				$this->response->type('json');
 				$this->response->download('MISP.report.json');
@@ -972,6 +977,9 @@ class ServersController extends AppController {
 			$this->render('ajax/server_settings_edit');
 		}
 		if ($this->request->is('post')) {
+			if (trim($this->request->data['Server']['value']) === '*****') {
+				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'No change.')),'status'=>200));
+			}
 			$this->autoRender = false;
 			$this->loadModel('Log');
 			if (!is_writeable(APP . 'Config/config.php')) {
@@ -1013,7 +1021,11 @@ class ServersController extends AppController {
 			if ($found['type'] == 'numeric') {
 				$this->request->data['Server']['value'] = intval($this->request->data['Server']['value']);
 			}
-			$testResult = $this->Server->{$found['test']}($this->request->data['Server']['value']);
+			if  (!empty($leafValue['test'])) {
+				$testResult = $this->Server->{$found['test']}($this->request->data['Server']['value']);
+			} else  {
+				$testResult = true;  # No test defined for this setting: cannot fail
+			}
 			if (!$forceSave && $testResult !== true) {
 				if ($testResult === false) $errorMessage = $found['errorMessage'];
 				else $errorMessage = $testResult;

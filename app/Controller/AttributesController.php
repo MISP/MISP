@@ -67,7 +67,13 @@ class AttributesController extends AppController {
 			$this->Attribute->contain(array('AttributeTag' => array('Tag')));
 		}
 		$this->set('isSearch', 0);
-		$this->set('attributes', $this->paginate());
+		$attributes = $this->paginate();
+		foreach ($attributes as $k => $attribute) {
+			if ($attribute['Attribute']['type'] == 'attachment' && preg_match('/.*\.(jpg|png|jpeg|gif)$/i', $attribute['Attribute']['value'])) {
+				$attributes[$k]['Attribute']['image'] = $this->Attribute->base64EncodeAttachment($attribute['Attribute']);
+			}
+		}
+		$this->set('attributes', $attributes);
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
 		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
 		$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
@@ -292,7 +298,12 @@ class AttributesController extends AppController {
 	}
 
 	private function __downloadAttachment($attribute) {
-		$path = "files" . DS . $attribute['event_id'] . DS;
+		$attachments_dir = Configure::read('MISP.attachments_dir');
+		if (empty($attachments_dir)) {
+			$this->loadModel('Server');
+			$attachments_dir = $this->Server->getDefaultAttachments_dir();
+		}
+		$path = $attachments_dir . DS . $attribute['event_id'] . DS;
 		$file = $attribute['id'];
 		if ('attachment' == $attribute['type']) {
 			$filename = $attribute['value'];
@@ -871,6 +882,8 @@ class AttributesController extends AppController {
 					$attribute['Attribute']['Tag'][$k] = $tag['Tag'];
 				}
 			}
+			unset($attribute['Attribute']['value1']);
+			unset($attribute['Attribute']['value2']);
 			$this->set('Attribute', $attribute['Attribute']);
 			$this->set('_serialize', array('Attribute'));
 		} else {
@@ -1563,6 +1576,12 @@ class AttributesController extends AppController {
 					$idList = array();
 					$attributeIdList = array();
 					$attributes = $this->paginate();
+					foreach ($attributes as $k => $attribute) {
+						if ($attribute['Attribute']['type'] == 'attachment' && preg_match('/.*\.(jpg|png|jpeg|gif)$/i', $attribute['Attribute']['value'])) {
+							$attributes[$k]['Attribute']['image'] = $this->Attribute->base64EncodeAttachment($attribute['Attribute']);
+						}
+					}
+					$this->set('attributes', $attributes);
 
 					// if we searched for IOCs only, apply the whitelist to the search result!
 					if ($ioc) {
@@ -2812,8 +2831,13 @@ class AttributesController extends AppController {
 					'recursive' => -1)
 			);
 			$counter = 0;
+			$attachments_dir = Configure::read('MISP.attachments_dir');
+			if (empty($attachments_dir)) {
+				$this->loadModel('Server');
+				$attachments_dir = $this->Server->getDefaultAttachments_dir();
+			}
 			foreach ($attributes as $attribute) {
-					$path = APP . "files" . DS . $attribute['Attribute']['event_id'] . DS;
+					$path = $attachments_dir . DS . $attribute['Attribute']['event_id'] . DS;
 					$file = $attribute['Attribute']['id'];
 					if (!file_exists($path . $file)) {
 							$counter++;

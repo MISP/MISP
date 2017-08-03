@@ -909,6 +909,7 @@ function submitPopoverForm(context_id, referer, update_context_id) {
 			url:url
 		});
 	}
+	return false;
 };
 
 function handleAjaxPopoverResponse(response, context_id, url, referer, context, contextNamingConvention) {
