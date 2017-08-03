@@ -4306,7 +4306,7 @@ class EventsController extends AppController {
 			$message = 'This functionality is only available via POST requests';
 		}
 		if ($this->_isRest()) {
-			return $this->RestResponse->viewData($event, $this->response->type());
+			return $this->RestResponse->saveSuccessResponse('Events', 'pushEventToZMQ', $id, $this->response->type(), $message);
 		} else {
 			$this->Session->setFlash($message);
 			$this->redirect($this->referer());
