@@ -182,12 +182,7 @@
 				3 => 'object'
 			);
 			foreach ($event['objects'] as $k => $object) {
-				$element_type = 0;
-				if ($object['objectType'] == 1 && !empty($object['proposal_to_delete'])) {
-					$element_type = 1;
-				} else if ($object['objectType'] == 3) {
-					$element_type = 2;
-				}
+				$insertBlank = false;
 				echo $this->element('/Events/View/row_' . $object['objectType'], array(
 					'object' => $object,
 					'k' => $k,
@@ -196,6 +191,14 @@
 					'page' => $page,
 					'fieldCount' => $fieldCount
 				));
+				if (
+					($object['objectType'] == 'attribute' && !empty($object['ShadowAttribute'])) ||
+					$object['objectType'] == 'object'
+				):
+		?>
+					<tr class="blank_table_row"><td colspan="<?php echo $fieldCount; ?>"></td></tr>
+		<?php
+				endif;
 			}
 		?>
 	</table>
