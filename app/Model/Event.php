@@ -3261,6 +3261,7 @@ class Event extends AppModel {
 		$eventWarnings = array();
 		$correlatedAttributes = isset($event['RelatedAttribute']) ? array_keys($event['RelatedAttribute']) : array();
 		$correlatedShadowAttributes = isset($event['RelatedShadowAttribute']) ? array_keys($event['RelatedShadowAttribute']) : array();
+		$event['objects'] = array();
 		foreach ($event['Attribute'] as $attribute) {
 			$result = $this->__prepareAttributeForView(
 				$attribute,
@@ -3284,7 +3285,6 @@ class Event extends AppModel {
 				);
 				$event['objects'][] = $result['data'];
 			}
-			unset($event['ShadowAttribute']);
 		}
 		if (!empty($event['Object'])) {
 			foreach ($event['Object'] as $object) {
@@ -3299,8 +3299,8 @@ class Event extends AppModel {
 				);
 				$event['objects'][] = $result['data'];
 			}
-			unset($event['Object']);
 		}
+		unset($event['Object']);
 		unset($event['ShadowAttribute']);
 		App::uses('CustomPaginationTool', 'Tools');
 		$customPagination = new CustomPaginationTool();
