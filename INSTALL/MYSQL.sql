@@ -498,22 +498,23 @@ CREATE TABLE IF NOT EXISTS object_templates (
 -- Table structure for table `object_template_elements`
 --
 
-CREATE TABLE IF NOT EXISTS object_template_elements (
+CREATE TABLE IF NOT EXISTS object_templates (
   `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `org_id` int(11) NOT NULL,
   `uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
+  `name` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+  `meta-category` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+  `description` text COLLATE utf8_bin,
   `version` int(11) NOT NULL,
-  `in-object-name` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
-  `type` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
-  `ui-priority` int(11) NOT NULL,
-  `categories` text COLLATE utf8_bin,
-  `sane_default` text COLLATE utf8_bin,
-  `values_list` text COLLATE utf8_bin,
-  `disable_correlation` tinyint(1) NOT NULL DEFAULT 0,
-  `multiple` tinyint(1) NOT NULL DEFAULT 0,
+  `requirements` text COLLATE utf8_bin,
+  `fixed` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (id),
+  INDEX `user_id` (`user_id`),
+  INDEX `org_id` (`org_id`),
   INDEX `uuid` (`uuid`),
-  INDEX `in-object-name` (`in-object-name`),
-  INDEX `type` (`type`)
+  INDEX `name` (`name`),
+  INDEX `meta-category` (`meta-category`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- --------------------------------------------------------
