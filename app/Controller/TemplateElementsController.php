@@ -41,10 +41,8 @@ class TemplateElementsController extends AppController {
 	}
 
 	public function templateElementAddChoices($id) {
-
 		if (!$this->_isSiteAdmin() && !$this->TemplateElement->Template->checkAuthorisation($id, $this->Auth->user(), true)) throw new MethodNotAllowedException('You are not authorised to do that.');
-
-		if (!$this->request->is('ajax')) Throw new MethodNotAllowedException('This action is for ajax requests only.');
+		if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This action is for ajax requests only.');
 		$this->set('id', $id);
 		$this->layout = 'ajax';
 		$this->render('ajax/template_element_add_choices');
@@ -52,11 +50,8 @@ class TemplateElementsController extends AppController {
 
 	public function add($type, $id) {
 		$ModelType = 'TemplateElement' . ucfirst($type);
-
 		if (!$this->_isSiteAdmin() && !$this->TemplateElement->Template->checkAuthorisation($id, $this->Auth->user(), true)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You are not authorised to do that.')), 'status' => 200));
-
-		if (!$this->request->is('ajax')) Throw new MethodNotAllowedException('This action is for ajax requests only.');
-
+		if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This action is for ajax requests only.');
 		if ($this->request->is('get')) {
 			$this->set('id', $id);
 			if ($type == 'attribute') {
