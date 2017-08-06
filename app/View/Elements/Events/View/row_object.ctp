@@ -2,11 +2,25 @@
   $tr_class = '';
   $linkClass = 'white';
   $currentType = 'denyForm';
-  $tr_class = 'tableHighlightBorderTop borderBlue blueRow';
+  $tr_class = 'tableHighlightBorderTop borderBlue';
+  if ($object['deleted']) $tr_class .= ' lightBlueRow';
+  else $tr_class .= ' blueRow';
 ?>
 <tr id = "Object_<?php echo $object['id']; ?>_tr" class="<?php echo $tr_class; ?>">
-  <td style="width:10px;" data-position="<?php echo h($object['objectType']) . '_' . h($object['id']); ?>">
-    <input id = "select_object_<?php echo $object['id']; ?>" class="select_object row_checkbox" type="checkbox" data-id="<?php echo $object['id'];?>" />
+  <?php
+    if ($mayModify):
+  ?>
+    <td style="width:10px;" data-position="<?php echo h($object['objectType']) . '_' . h($object['id']); ?>">
+      <input id = "select_object_<?php echo $object['id']; ?>" class="select_object row_checkbox" type="checkbox" data-id="<?php echo $object['id'];?>" />
+    </td>
+  <?php
+    endif;
+  ?>
+  <td class="short context hidden">
+    <?php echo h($object['id']); ?>
+  </td>
+  <td class="short context hidden">
+    <?php echo h($object['uuid']); ?>
   </td>
   <td class="short" colspan="2">
     <?php echo date('Y-m-d', $object['timestamp']); ?>
@@ -44,6 +58,18 @@
   <td>&nbsp;</td>
   <td>&nbsp;</td>
   <td class="short action-links">
+    <?php
+      if ($mayModify && empty($object['deleted'])):
+    ?>
+        <a href="<?php echo $baseurl;?>/objects/edit/<?php echo $object['id']; ?>" title="Edit" class="icon-edit icon-white useCursorPointer"></a>
+        <span class="icon-trash icon-white useCursorPointer" title="Delete object" role="button" tabindex="0" aria-label="Delete attribute" onClick="deleteObject('objects', 'delete', '<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
+    <?php
+      elseif ($mayModify):
+    ?>
+        <span class="icon-trash icon-white useCursorPointer" title="Delete object" role="button" tabindex="0" aria-label="Delete attribute" onClick="deleteObject('objects', 'delete', '<?php echo h($object['id']) . '/true'; ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
+    <?php
+      endif;
+    ?>
   </td>
 </tr>
 <?php

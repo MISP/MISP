@@ -117,7 +117,7 @@ class ObjectsController extends AppController {
 
   public function edit($id) {
 		if (!$this->userRole['perm_modify']) {
-			throw new MethodNotAllowedException('You don\'t have permissions to create objects.');
+			throw new MethodNotAllowedException('You don\'t have permissions to edit objects.');
 		}
 		$object = $this->MispObject->find('first', array(
 			'conditions' => array('Object.id' => $id),
@@ -182,7 +182,7 @@ class ObjectsController extends AppController {
 					}
 				} else {
 					 $this->Session->setFlash('Object saved.');
-					 $this->redirect(array('controller' => 'events', 'action' => 'view', $object['Object']['id']));
+					 $this->redirect(array('controller' => 'events', 'action' => 'view', $object['Object']['event_id']));
 				}
 			}
 		} else {
@@ -220,30 +220,164 @@ class ObjectsController extends AppController {
 		$this->render('add');
   }
 
-  public function delete($id) {
+  public function delete($id, $hard = false) {
 		if (!$this->userRole['perm_modify']) {
 			throw new MethodNotAllowedException('You don\'t have permissions to delete objects.');
 		}
-		if (Validation::uuid($eventId)) {
+		if (Validation::uuid($id)) {
 			$lookupField = 'uuid';
-		} else if (!is_numeric($eventId)) {
+		} else if (!is_numeric($id)) {
 			$lookupField = 'id';
-			throw new NotFoundException('Invalid event.');
+			throw new NotFoundException('Invalid object.');
 		}
-		$event = $this->MispObject->Event->find('first', array(
+		$object = $this->MispObject->find('first', array(
 			'recursive' => -1,
-			'fields' => array('Event.id', 'Event.uuid', 'Event.orgc_id'),
-			'conditions' => array('Event.id' => $eventId)
+			'fields' => array('Object.id', 'Object.event_id', 'Event.id', 'Event.uuid', 'Event.orgc_id'),
+			'conditions' => array('Object.id' => $id),
+			'contain' => array(
+				'Event'
+			)
 		));
-		if (empty($event)) {
+		if (empty($object)) {
 			throw new NotFoundException('Invalid event.');
 		}
-		$eventId = $event['Event']['id'];
-		if (!$this->_isSiteAdmin() && ($event['Event']['orgc_id'] != $this->Auth->user('org_id') || !$this->userRole['perm_modify'])) {
+		$eventId = $object['Event']['id'];
+		if (!$this->_isSiteAdmin() && ($object['Event']['orgc_id'] != $this->Auth->user('org_id') || !$this->userRole['perm_modify'])) {
 			throw new UnauthorizedException('You do not have permission to do that.');
 		}
-		$this->MispObject->delete($id);
+		if ($this->request->is('post')) {
+			if ($this->__delete($id, $hard)) {
+				$message = 'Object deleted.';
+				if ($this->request->is('ajax')) {
+					return new CakeResponse(
+						array(
+							'body'=> json_encode(
+								array(
+									'saved' => true,
+									'success' => $message
+								)
+							),
+							'status'=>200
+						)
+					);
+				} else if ($this->_isRest()) {
+					return $this->RestResponse->saveSuccessResponse(
+						'Objects',
+						'delete',
+						$id,
+						$this->response->type()
+					);
+				} else {
+					$this->Session->setFlash($message);
+					$this->redirect(array('controller' => 'events', 'action' => 'view', $object['Event']['id']));
+				}
+			} else {
+				$message = 'Object could not be deleted.';
+				if ($this->request->is('ajax')) {
+					return new CakeResponse(
+						array(
+						'body'=> json_encode(
+							array(
+								'saved' => false,
+								'errors' => $message
+							)
+						),
+						'status'=>200)
+					);
+				} else if ($this->_isRest()) {
+					return $this->RestResponse->saveFailResponse(
+						'Objects',
+						'delete',
+						false,
+						$this->MispObject->validationErrors,
+						$this->response->type()
+					);
+				} else {
+					$this->Session->setFlash($message);
+					$this->redirect(array('controller' => 'events', 'action' => 'view', $object['Event']['id']));
+				}
+			}
+		} else {
+			if ($this->request->is('ajax') && $this->request->is('get')) {
+				$this->set('hard', $hard);
+				$this->set('id', $id);
+				$this->set('event_id', $object['Event']['id']);
+				$this->render('ajax/delete');
+			}
+		}
   }
+
+	private function __delete($id, $hard) {
+		$this->MispObject->id = $id;
+		if (!$this->MispObject->exists()) {
+			return false;
+		}
+		$object = $this->MispObject->find('first', array(
+			'conditions' => array('Object.id' => $id),
+			'fields' => array('Object.*'),
+			'contain' => array(
+				'Event' => array(
+					'fields' => array('Event.*')
+				),
+				'Attribute' => array(
+					'fields' => array('Attribute.*')
+				)
+			),
+		));
+		if (empty($object)) throw new MethodNotAllowedException('Object not found or not authorised.');
+
+		// check for permissions
+		if (!$this->_isSiteAdmin()) {
+			if ($object['Event']['locked']) {
+				if ($this->Auth->user('org_id') != $object['Event']['org_id'] || !$this->userRole['perm_sync']) {
+					throw new MethodNotAllowedException('Object not found or not authorised.');
+				}
+			} else {
+				if ($this->Auth->user('org_id') != $object['Event']['orgc_id']) {
+					throw new MethodNotAllowedException('Object not found or not authorised.');
+				}
+			}
+		}
+		$date = new DateTime();
+		if ($hard) {
+			// For a hard delete, simply run the delete, it will cascade
+			$this->MispObject->delete($id);
+			return true;
+		} else {
+			// For soft deletes, sanitise the object first if the setting is enabled
+			if (Configure::read('Security.sanitise_attribute_on_delete')) {
+				$object['Object']['name'] = 'N/A';
+				$object['Object']['category'] = 'N/A';
+				$object['Object']['description'] = 'N/A';
+				$object['Object']['template_uuid'] = 'N/A';
+				$object['Object']['template_version'] = 0;
+				$object['Object']['comment'] = '';
+			}
+			$object['Object']['deleted'] = 1;
+			$object['Object']['timestamp'] = $date->getTimestamp();
+			$this->MispObject->save($object);
+			foreach ($object['Attribute'] as $attribute) {
+				if (Configure::read('Security.sanitise_attribute_on_delete')) {
+						$attribute['category'] = 'Other';
+						$attribute['type'] = 'comment';
+						$attribute['value'] = 'deleted';
+						$attribute['comment'] = '';
+						$attribute['to_ids'] = 0;
+				}
+				$attribute['deleted'] = 1;
+				$attribute['timestamp'] = $date->getTimestamp();
+				$this->MispObject->Attribute->save(array('Attribute' => $attribute));
+				$this->MispObject->Event->ShadowAttribute->deleteAll(
+					array('ShadowAttribute.old_id' => $attribute['id']),
+					false
+				);
+			}
+			$object['Event']['timestamp'] = $date->getTimestamp();
+			$object['Event']['published'] = 0;
+			$this->MispObject->Event->save($object, array('fieldList' => array('published', 'timestamp', 'info')));
+			return true;
+		}
+	}
 
   public function view($id) {
 		if ($this->_isRest()) {

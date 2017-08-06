@@ -4,7 +4,7 @@ String.prototype.ucfirst = function() {
 
 function deleteObject(type, action, id, event) {
 	var destination = 'attributes';
-	var alternateDestinations = ['shadow_attributes', 'template_elements', 'taxonomies'];
+	var alternateDestinations = ['shadow_attributes', 'template_elements', 'taxonomies', 'objects'];
 	if (alternateDestinations.indexOf(type) > -1) destination = type;
 	url = "/" + destination + "/" + action + "/" + id;
 	$.get(url, function(data) {

@@ -2,9 +2,6 @@
   $tr_class = '';
   $linkClass = 'white';
   $otherColour = 'blue';
-  if (isset($object['deleted']) && $object['deleted']) {
-    $tr_class .= ' background-light-red';
-  }
   if (!empty($child)) {
     if ($child === 'last' && empty($object['ShadowAttribute'])) {
       $tr_class .= ' tableHighlightBorderBottom borderBlue';
@@ -19,6 +16,9 @@
     if (!empty($object['ShadowAttribute'])) {
       $tr_class .= ' tableHighlightBorderTop borderOrange';
     }
+  }
+  if (!empty($object['deleted'])) {
+    $tr_class .= ' deleted-attribute';
   }
 ?>
 <tr id = "Attribute_<?php echo h($object['id']); ?>_tr" class="<?php echo $tr_class; ?>">
@@ -64,7 +64,7 @@
       <div id = "Attribute_<?php echo $object['id']; ?>_value_solid" class="inline-field-solid" <?php echo $editable; ?>>
         <span <?php if (Configure::read('Plugin.Enrichment_hover_enable') && isset($modules) && isset($modules['hover_type'][$object['type']])) echo 'class="eventViewAttributeHover" data-object-type="Attribute" data-object-id="' . h($object['id']) . '"'?>>
           <?php
-            echo $this->element('/Events/View/value_field', array('object' => $object));
+            echo $this->element('/Events/View/value_field', array('object' => $object, 'linkClass' => $linkClass));
           ?>
         </span>
         <?php

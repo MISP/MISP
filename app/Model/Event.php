@@ -1338,7 +1338,7 @@ class Event extends AppModel {
 		if ($options['sharing_group_id']) {
 			$conditions['AND'][] = array('Event.sharing_group_id' => $options['sharing_group_id']);
 			$conditionsAttributes['AND'][] = array('Attribute.sharing_group_id' => $options['sharing_group_id']);
-			$conditionsObject['AND'][] = array('Object.sharing_group_id' => $options['sharing_group_id']);
+			$conditionsObjects['AND'][] = array('Object.sharing_group_id' => $options['sharing_group_id']);
 		}
 		if ($options['from']) $conditions['AND'][] = array('Event.date >=' => $options['from']);
 		if ($options['to']) $conditions['AND'][] = array('Event.date <=' => $options['to']);
@@ -1361,7 +1361,7 @@ class Event extends AppModel {
 			}
 		} else {
 			$conditionsAttributes['AND']['Attribute.deleted'] = 0;
-			$conditionsObject['AND']['Object.deleted'] = 0;
+			$conditionsObjects['AND']['Object.deleted'] = 0;
 		}
 
 		if ($options['idList'] && !$options['tags']) {
@@ -3126,7 +3126,7 @@ class Event extends AppModel {
 		$correlatedAttributes,
 		$correlatedShadowAttributes,
 		$filterType = false,
-		$eventWarnings,
+		&$eventWarnings,
 		$warningLists
 	) {
 		$attribute['objectType'] = 'attribute';
@@ -3148,15 +3148,18 @@ class Event extends AppModel {
 				$result = $this->__prepareProposalForView(
 					$proposal,
 					$correlatedShadowAttributes,
-					false,
+					$filterType,
 					$eventWarnings,
 					$warningLists
 				);
-				$temp[] = $result['data'];
+				if ($result['include']) $temp[] = $result['data'];
 			}
 			$attribute['ShadowAttribute'] = $temp;
 		}
 		$attribute = $this->__prepareGenericForView($attribute, $eventWarnings, $warningLists);
+		if ($filterType === 'warning') {
+			if (empty($attribute['warnings'])) $include = false;
+		}
 		return array('include' => $include, 'data' => $attribute);
 	}
 
@@ -3164,7 +3167,7 @@ class Event extends AppModel {
 		$proposal,
 		$correlatedShadowAttributes,
 		$filterType = false,
-		$eventWarnings,
+		&$eventWarnings,
 		$warningLists
 	) {
 		if ($proposal['proposal_to_delete']) {
@@ -3178,11 +3181,14 @@ class Event extends AppModel {
 			$include = false;
 		}
 		if ($filterType && !in_array($filterType, array('proposal', 'correlation', 'warning'))) {
-			if (!in_array($attribute['type'], $this->Attribute->typeGroupings[$filterType])) {
+			if (!in_array($proposal['type'], $this->Attribute->typeGroupings[$filterType])) {
 				$include = false;
 			}
 		}
 		$proposal = $this->__prepareGenericForView($proposal, $eventWarnings, $warningLists);
+		if ($filterType === 'warning') {
+			if (empty($proposal['warnings'])) $include = false;
+		}
 		return array('include' => $include, 'data' => $proposal);
 	}
 
@@ -3191,13 +3197,16 @@ class Event extends AppModel {
 		$correlatedAttributes,
 		$correlatedShadowAttributes,
 		$filterType = false,
-		$eventWarnings,
+		&$eventWarnings,
 		$warningLists
 	) {
 		$object['category'] = $object['meta-category'];
 		$proposal['objectType'] = 'object';
 		// filters depend on child objects
-		$include = empty($filterType) || $filterType == 'object';
+		$include = empty($filterType) || $filterType == 'object' || $object['meta-category'] === $filterType;
+		if ($filterType === 'correlation' || $filterType === 'proposal') {
+			$include = $this->__checkObjectByFilter($object, $filterType, $correlatedAttributes, $correlatedShadowAttributes);
+		}
 		if (!empty($object['Attribute'])) {
 			$temp = array();
 			foreach ($object['Attribute'] as $k => $proposal) {
@@ -3205,21 +3214,72 @@ class Event extends AppModel {
 					$proposal,
 					$correlatedAttributes,
 					$correlatedShadowAttributes,
-					$filterType,
+					false,
 					$eventWarnings,
 					$warningLists
 				);
-				$include = $include || $object['include'];
-				$temp[] = $result['data'];
+				if ($result['include']) $temp[] = $result['data'];
 			}
 			$object['Attribute'] = $temp;
+		}
+		if ($filterType === 'warning') {
+			$include = $this->__checkObjectByFilter($object, $filterType, $correlatedAttributes, $correlatedShadowAttributes);
 		}
 		return array('include' => $include, 'data' => $object);
 	}
 
+	private function __checkObjectByFilter($object, $filterType, $correlatedAttributes, $correlatedShadowAttributes) {
+		$include = false;
+		switch($filterType) {
+			case 'warning':
+				if (!empty($object['Attribute'])) {
+					foreach ($object['Attribute'] as $k => $attribute) {
+						if (!empty($attribute['warnings'])) {
+							$include = true;
+						}
+						if (!empty($attribute['ShadowAttribute'])) {
+							foreach ($attribute['ShadowAttribute'] as $shadowAttribute) {
+								if (!empty($shadowAttribute['warnings'])) {
+									$include = true;
+								}
+							}
+						}
+					}
+				}
+				break;
+			case 'correlation':
+				if (!empty($object['Attribute'])) {
+					foreach ($object['Attribute'] as $k => $attribute) {
+						if (in_array($attribute['id'], $correlatedAttributes)) {
+							$include = true;
+						} else {
+							if (!empty($attribute['ShadowAttribute'])) {
+								foreach ($attribute['ShadowAttribute'] as $k => $shadowAttribute) {
+									if (in_array($shadowAttribute['id'], $correlatedShadowAttributes)) {
+										$include = true;
+									}
+								}
+							}
+						}
+					}
+				}
+				break;
+			case 'proposal':
+				if (!empty($object['Attribute'])) {
+					foreach ($object['Attribute'] as $k => $attribute) {
+						if (!empty($attribute['ShadowAttribute'])) {
+							$include = true;
+						}
+					}
+				}
+				break;
+		}
+		return $include;
+	}
+
 	private function __prepareGenericForView(
 		$object,
-		$eventWarnings,
+		&$eventWarnings,
 		$warningLists
 	) {
 		if (!$this->__fTool) {
@@ -3236,7 +3296,7 @@ class Event extends AppModel {
 				}
 			}
 		}
-		$this->Warninglist->checkForWarning($object, $eventWarnings, $warningLists);
+		$object = $this->Warninglist->checkForWarning($object, $eventWarnings, $warningLists);
 		return $object;
 	}
 
@@ -3271,7 +3331,7 @@ class Event extends AppModel {
 				$eventWarnings,
 				$warningLists
 			);
-			$event['objects'][] = $result['data'];
+			if ($result['include']) $event['objects'][] = $result['data'];
 		}
 		unset($event['Attribute']);
 		if (!empty($event['ShadowAttribute'])) {
@@ -3293,11 +3353,11 @@ class Event extends AppModel {
 					$object,
 					$correlatedAttributes,
 					$correlatedShadowAttributes,
-					false,
+					$filterType,
 					$eventWarnings,
 					$warningLists
 				);
-				$event['objects'][] = $result['data'];
+				if ($result['include']) $event['objects'][] = $result['data'];
 			}
 		}
 		unset($event['Object']);
@@ -3307,6 +3367,7 @@ class Event extends AppModel {
 		if ($all) $passedArgs['page'] = 0;
 		$params = $customPagination->applyRulesOnArray($event['objects'], $passedArgs, 'events', 'category');
 		$params['total_elements'] = count($event['objects']);
+		$event['Event']['warnings'] = $eventWarnings;
 		return $params;
 	}
 

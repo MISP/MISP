@@ -85,65 +85,9 @@
       ?>
       <div id = "<?php echo $currentType; ?>_<?php echo $object['id']; ?>_value_solid" class="inline-field-solid" <?php echo $editable; ?>>
         <span <?php if (Configure::read('Plugin.Enrichment_hover_enable') && isset($modules) && isset($modules['hover_type'][$object['type']])) echo 'class="eventViewAttributeHover" data-object-type="' . h($currentType) . '" data-object-id="' . h($object['id']) . '"'?>>
-          <?php
-            $sigDisplay = $object['value'];
-            if ('attachment' == $object['type'] || 'malware-sample' == $object['type'] ) {
-              if ($object['type'] == 'attachment' && isset($object['image'])) {
-                $extension = explode('.', $object['value']);
-                $extension = end($extension);
-                $uri = 'data:image/' . strtolower(h($extension)) . ';base64,' . h($object['image']);
-                echo '<img class="screenshot screenshot-collapsed useCursorPointer" src="' . $uri . '" title="' . h($object['value']) . '" />';
-              } else {
-                $t = ($object['objectType'] == 0 ? 'attributes' : 'shadow_attributes');
-                $filenameHash = explode('|', nl2br(h($object['value'])));
-                if (strrpos($filenameHash[0], '\\')) {
-                  $filepath = substr($filenameHash[0], 0, strrpos($filenameHash[0], '\\'));
-                  $filename = substr($filenameHash[0], strrpos($filenameHash[0], '\\'));
-                  echo h($filepath);
-                  echo '<a href="' . $baseurl . '/' . h($t) . '/download/' . h($object['id']) . '" class="' . $linkClass . '">' . h($filename) . '</a>';
-                } else {
-                  echo '<a href="' . $baseurl . '/' . h($t) . '/download/' . h($object['id']) . '" class="' . $linkClass . '">' . h($filenameHash[0]) . '</a>';
-                }
-                if (isset($filenameHash[1])) echo '<br />' . $filenameHash[1];
-              }
-            } else if (strpos($object['type'], '|') !== false) {
-              $filenameHash = explode('|', $object['value']);
-              echo h($filenameHash[0]);
-              if (isset($filenameHash[1])) {
-                $separator = '<br />';
-                if (in_array($object['type'], array('ip-dst|port', 'ip-src|port'))) {
-                  $separator = ':';
-                }
-                echo $separator . h($filenameHash[1]);
-              }
-            } else if ('vulnerability' == $object['type']) {
-              if (! is_null(Configure::read('MISP.cveurl'))) {
-                $cveUrl = Configure::read('MISP.cveurl');
-              } else {
-                $cveUrl = "http://www.google.com/search?q=";
-              }
-              echo $this->Html->link($sigDisplay, $cveUrl . $sigDisplay, array('target' => '_blank', 'class' => $linkClass));
-            } else if ('link' == $object['type']) {
-              echo $this->Html->link($sigDisplay, $sigDisplay, array('class' => $linkClass));
-            } else if ('cortex' == $object['type']) {
-              echo '<div class="cortex-json" data-cortex-json="' . h($object['value']) . '">Cortex object</div>';
-            } else if ('text' == $object['type']) {
-              if ($object['category'] == 'External analysis' && preg_match('/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/i', $object['value'])) {
-                echo '<a href="' . $baseurl . '/events/view/' . h($object['value']) . '" class="' . $linkClass . '">' . h($object['value']) . '</a>';
-              } else {
-                $sigDisplay = str_replace("\r", '', h($sigDisplay));
-                $sigDisplay = str_replace(" ", '&nbsp;', $sigDisplay);
-                echo nl2br($sigDisplay);
-              }
-            } else if ('hex' == $object['type']) {
-              $sigDisplay = str_replace("\r", '', $sigDisplay);
-              echo '<span class="hex-value" title="Hexadecimal representation">' . nl2br(h($sigDisplay)) . '</span>&nbsp;<span role="button" tabindex="0" aria-label="Switch to binary representation" class="icon-repeat hex-value-convert useCursorPointer" title="Switch to binary representation"></span>';
-            } else {
-              $sigDisplay = str_replace("\r", '', $sigDisplay);
-              echo nl2br(h($sigDisplay));
-            }
-            if (isset($object['validationIssue'])) echo ' <span class="icon-warning-sign" title="Warning, this doesn\'t seem to be a legitimage ' . strtoupper(h($object['type'])) . ' value">&nbsp;</span>';
-          ?>
+      <?php
+          echo $this->element('/Events/View/value_field', array('object' => $object, 'linkClass' => $linkClass));
+      ?>
         </span>
         <?php
           if (isset($object['warnings'])) {
@@ -155,7 +99,7 @@
                 foreach ($object['warnings'][$component] as $warning) $temp .= '<span class=\'bold\'>' . h($valueParts[$valuePart]) . '</span>: <span class=\'red\'>' . h($warning) . '</span><br />';
               }
             }
-            echo ' <span class="icon-warning-sign" data-placement="right" data-toggle="popover" data-content="' . h($temp) . '" data-trigger="hover">&nbsp;</span>';
+            echo ' <span class="icon-warning-sign icon-white" data-placement="right" data-toggle="popover" data-content="' . h($temp) . '" data-trigger="hover">&nbsp;</span>';
           }
         ?>
       </div>
@@ -185,28 +129,16 @@
     <td class="shortish">
       <ul class="inline" style="margin:0px;">
         <?php
-          if ($object['objectType'] == 0) {
-            $relatedObject = 'Attribute';
-            $otherColour = !empty($object['ShadowAttribute']) ? 'blue' : 'white';
-          } else {
-            $relatedObject = 'ShadowAttribute';
-            $otherColour = 'white';
-          }
-          $relatedObject = $object['objectType'] == 0 ? 'Attribute' : 'ShadowAttribute';
-
-          if (!empty($event['Related' . $relatedObject][$object['id']])) {
-            foreach ($event['Related' . $relatedObject][$object['id']] as $relatedAttribute) {
+          if (!empty($event['RelatedShadowAttribute'][$object['id']])) {
+            foreach ($event['RelatedShadowAttribute'][$object['id']] as $relatedAttribute) {
               $relatedData = array('Event info' => $relatedAttribute['info'], 'Correlating Value' => $relatedAttribute['value'], 'date' => isset($relatedAttribute['date']) ? $relatedAttribute['date'] : 'N/A');
               $popover = '';
               foreach ($relatedData as $k => $v) {
                 $popover .= '<span class=\'bold black\'>' . h($k) . '</span>: <span class="blue">' . h($v) . '</span><br />';
               }
               echo '<li style="padding-right: 0px; padding-left:0px;" data-toggle="popover" data-content="' . h($popover) . '" data-trigger="hover"><span>';
-              if ($relatedAttribute['org_id'] == $me['org_id']) {
-                echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['Event']['id']), array('class' => 'red'));
-              } else {
-                echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['Event']['id']), array('class' => $otherColour));
-              }
+              $correlationClass = 'white' . ($relatedAttribute['org_id'] == $me['org_id'] ? ' bold' : '');
+              echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['Event']['id']), array('class' => $correlationClass));
               echo "</span></li>";
               echo ' ';
             }
@@ -255,45 +187,8 @@
   <?php
     if (Configure::read('Plugin.Sightings_enable') !== false):
   ?>
-  <td class="shortish">
-    <span id="sightingForm_<?php echo h($object['id']);?>">
-    <?php
-      if ($object['objectType'] == 0):
-        echo $this->Form->create('Sighting', array('id' => 'Sighting_' . $object['id'], 'url' => '/sightings/add/' . $object['id'], 'style' => 'display:none;'));
-        echo $this->Form->input('type', array('label' => false, 'id' => 'Sighting_' . $object['id'] . '_type'));
-        echo $this->Form->end();
-    ?>
-    </span>
-    <?php
-      $temp = array();
-      if (isset($sightingsData['csv'][$object['id']])) {
-        $temp = $sightingsData['csv'][$object['id']];
-      }
-    ?>
-    <span class="icon-thumbs-up useCursorPointer" title="Add sighting" role="button" tabindex="0" aria-label="Add sighting" onClick="addSighting('0', '<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']);?>', '<?php echo h($page); ?>');">&nbsp;</span>
-    <span class="icon-thumbs-down useCursorPointer" title="Mark as false-positive" role="button" tabindex="0" aria-label="Mark as false-positive" onClick="addSighting('1', '<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']);?>', '<?php echo h($page); ?>');">&nbsp;</span>
-    <span class="icon-wrench useCursorPointer sightings_advanced_add" title="Advanced sightings"  role="button" tabindex="0" aria-label="Advanced sightings" data-object-id="<?php echo h($object['id']); ?>" data-object-context="attribute">&nbsp;</span>
-    <span id="sightingCount_<?php echo h($object['id']); ?>" class="bold sightingsCounter_<?php echo h($object['id']); ?>" data-placement="top" data-toggle="popover" data-trigger="hover" data-content="<?php echo isset($sightingsData['data'][$object['id']]['html']) ? $sightingsData['data'][$object['id']]['html'] : ''; ?>">
-      <?php
-        $s = (!empty($sightingsData['data'][$object['id']]['sighting']['count']) ? $sightingsData['data'][$object['id']]['sighting']['count'] : 0);
-        $f = (!empty($sightingsData['data'][$object['id']]['false-positive']['count']) ? $sightingsData['data'][$object['id']]['false-positive']['count'] : 0);
-        $e = (!empty($sightingsData['data'][$object['id']]['expiration']['count']) ? $sightingsData['data'][$object['id']]['expiration']['count'] : 0);
-      ?>
-    </span>
-    <span id="ownSightingCount_<?php echo h($object['id']); ?>" class="bold sightingsCounter_<?php echo h($object['id']); ?>" data-placement="top" data-toggle="popover" data-trigger="hover" data-content="<?php echo isset($sightingsData['data'][$object['id']]['html']) ? $sightingsData['data'][$object['id']]['html'] : ''; ?>">
-      <?php echo '(<span class="green">' . h($s) . '</span>/<span class="red">' . h($f) . '</span>/<span class="orange">' . h($e) . '</span>)'; ?>
-    </span>
-    <?php
-      endif;
-    ?>
-  </td>
-  <td class="short">
-    <?php
-      if ($object['objectType'] == 0 && !empty($temp)) {
-        echo $this->element('sparkline', array('id' => $object['id'], 'csv' => $temp));
-      }
-    ?>
-  </td>
+  <td class="shortish">&nbsp;</td>
+  <td class="short">&nbsp;</td>
   <?php
     endif;
   ?>
@@ -303,12 +198,12 @@
           echo $this->Form->create('Shadow_Attribute', array('id' => 'ShadowAttribute_' . $object['id'] . '_accept', 'url' => '/shadow_attributes/accept/' . $object['id'], 'style' => 'display:none;'));
           echo $this->Form->end();
         ?>
-          <span class="icon-ok useCursorPointer" title="Accept Proposal" role="button" tabindex="0" aria-label="Accept proposal" onClick="acceptObject('shadow_attributes', '<?php echo $object['id']; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
+          <span class="icon-ok icon-white useCursorPointer" title="Accept Proposal" role="button" tabindex="0" aria-label="Accept proposal" onClick="acceptObject('shadow_attributes', '<?php echo $object['id']; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
         <?php
         }
         if (($event['Orgc']['id'] == $me['org_id'] && $mayModify) || $isSiteAdmin || ($object['org_id'] == $me['org_id'])) {
         ?>
-          <span class="icon-trash useCursorPointer" title="Discard proposal" role="button" tabindex="0" aria-label="Discard proposal" onClick="deleteObject('shadow_attributes', 'discard' ,'<?php echo $object['id']; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
+          <span class="icon-trash icon-white useCursorPointer" title="Discard proposal" role="button" tabindex="0" aria-label="Discard proposal" onClick="deleteObject('shadow_attributes', 'discard' ,'<?php echo $object['id']; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
         <?php
         }
     ?>

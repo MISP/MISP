@@ -2,7 +2,7 @@
 
 App::uses('AppModel', 'Model');
 
-class Object extends AppModel {
+class ObjectReference extends AppModel {
 	public $actsAs = array(
 			'Containable',
 			'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable

@@ -42,6 +42,7 @@ class MispObject extends AppModel {
 		'ObjectReference' => array(
 			'className' => 'ObjectReference',
 			'dependent' => true,
+			'foreignKey' => 'object_id'
 		),
 	);
 

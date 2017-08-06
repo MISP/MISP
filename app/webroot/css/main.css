@@ -1511,6 +1511,10 @@ a.proposal_link_red:hover {
 	color: white !important;
 }
 
+tr.deleted-attribute td {
+	background-color: #d3d7cf !important;
+}
+
 .background-deleted {
 	background: repeating-linear-gradient(
 		45deg,
@@ -1842,6 +1846,11 @@ tr.darkOrangeRow td, .darkOrangeElement {
 tr.blueRow td, .blueElement {
 	background-color: #3465a4 !important;
 	color: #ffffff;
+	border-top:0px !important;
+}
+
+tr.lightBlueRow td, .lightBlueElement {
+	background-color: #729fcf !important;
 	border-top:0px !important;
 }
 
