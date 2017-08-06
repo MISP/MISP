@@ -10,7 +10,10 @@ class AttributesController extends AppController {
 	public $paginate = array(
 			'limit' => 60,
 			'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events
-			'conditions' => array('AND' => array('Event.id >' => 0, 'Attribute.deleted' => 0))
+			'conditions' => array('AND' => array('NOT' => array('Event.id' => 0), 'Attribute.deleted' => 0)),
+			// Don't sort by default. It's crazy expensive and not really needed in most cases.
+			// Users can still sort on demand
+			'order' => 'Attribute.event_id DESC'
 	);
 
 	public $helpers = array('Js' => array('Jquery'));
@@ -58,9 +61,7 @@ class AttributesController extends AppController {
 		$this->Attribute->recursive = 2;
 		$this->paginate['contain'] = array(
 			'Event' => array(
-				'fields' =>  array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info', 'Event.user_id'),
-				'Org' => array('fields' => array('id', 'name')),
-				'Orgc' => array('fields' => array('id', 'name'))
+				'fields' =>  array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info', 'Event.user_id')
 			)
 		);
 		if (!$this->_isRest()) {
@@ -68,11 +69,19 @@ class AttributesController extends AppController {
 		}
 		$this->set('isSearch', 0);
 		$attributes = $this->paginate();
+		$org_ids = array();
 		foreach ($attributes as $k => $attribute) {
 			if ($attribute['Attribute']['type'] == 'attachment' && preg_match('/.*\.(jpg|png|jpeg|gif)$/i', $attribute['Attribute']['value'])) {
 				$attributes[$k]['Attribute']['image'] = $this->Attribute->base64EncodeAttachment($attribute['Attribute']);
 			}
+			$org_ids[$attribute['Event']['org_id']] = false;
+			$org_ids[$attribute['Event']['orgc_id']] = false;
 		}
+		$orgs = $this->Attribute->Event->Orgc->find('list', array(
+				'conditions' => array('Orgc.id' => array_keys($org_ids)),
+				'fields' => array('Orgc.id', 'Orgc.name')
+		));
+		$this->set('orgs', $orgs);
 		$this->set('attributes', $attributes);
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
 		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
@@ -1544,43 +1553,34 @@ class AttributesController extends AppController {
 							'Event' => array(
 								'fields' => array(
 									'orgc_id', 'id', 'org_id', 'user_id', 'info'
-								),
-								'Org' => array(
-									'fields' => array('id', 'name')
-								),
-								'Orgc' => array(
-									'fields' => array('id', 'name')
-								),
+								)
 							),
 						)
 					);
 					$this->Attribute->contain(array('AttributeTag' => array('Tag')));
 					if (!$this->_isSiteAdmin()) {
 						// merge in private conditions
+						$conditions = $this->Attribute->buildConditions($this->Auth->user());
 						$this->paginate = Set::merge($this->paginate, array(
-							'conditions' =>
-								array("OR" =>
-									array(
-										array('Event.org_id =' => $this->Auth->user('org_id')),
-										array("AND" =>
-											array('Event.org_id !=' => $this->Auth->user('org_id')),
-											array('Event.distribution !=' => 0),
-											array('Attribute.distribution !=' => 0),
-											Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
-										)
-									)
-								)
-							)
-						);
+							'conditions' => $conditions
+						));
 					}
 					$idList = array();
 					$attributeIdList = array();
 					$attributes = $this->paginate();
+					$org_ids = array();
 					foreach ($attributes as $k => $attribute) {
 						if ($attribute['Attribute']['type'] == 'attachment' && preg_match('/.*\.(jpg|png|jpeg|gif)$/i', $attribute['Attribute']['value'])) {
 							$attributes[$k]['Attribute']['image'] = $this->Attribute->base64EncodeAttachment($attribute['Attribute']);
 						}
+						$org_ids[$attribute['Event']['org_id']] = false;
+						$org_ids[$attribute['Event']['orgc_id']] = false;
 					}
+					$orgs = $this->Attribute->Event->Orgc->find('list', array(
+							'conditions' => array('Orgc.id' => array_keys($org_ids)),
+							'fields' => array('Orgc.id', 'Orgc.name')
+					));
+					$this->set('orgs', $orgs);
 					$this->set('attributes', $attributes);
 
 					// if we searched for IOCs only, apply the whitelist to the search result!

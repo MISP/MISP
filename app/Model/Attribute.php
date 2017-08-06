@@ -2173,26 +2173,35 @@ class Attribute extends AppModel {
 	public function buildConditions($user) {
 		$conditions = array();
 		if (!$user['Role']['perm_site_admin']) {
-			$eventIds = $this->Event->fetchEventIds($user, false, false, false, true);
-			$sgsids = $this->SharingGroup->fetchAllAuthorised($user);
+			$sgids = $this->SharingGroup->fetchAllAuthorised($user);
 			$conditions = array(
 				'AND' => array(
-					'OR' => array(
-						array(
-							'AND' => array(
-								'Event.org_id' => $user['org_id'],
-							)
-						),
-						array(
-							'AND' => array(
-								'Event.id' => $eventIds,
-								'OR' => array(
-									'Attribute.distribution' => array('1', '2', '3', '5'),
-									'AND '=> array(
-										'Attribute.distribution' => 4,
-										'Attribute.sharing_group_id' => $sgsids,
-									)
+					array(
+						'OR' => array(
+							'Event.org_id' => $user['org_id'],
+							array(
+								'AND' => array(
+									'Event.distribution >' => 0,
+									'Event.distribution <' => 4,
+									Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
+								),
+							),
+							array(
+								'AND' => array(
+									'Event.sharing_group_id' => $sgids,
+									'Event.distribution' => 4,
+									Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
 								)
+							)
+						)
+					),
+					array(
+						'OR' => array(
+							'Event.org_id' => $user['org_id'],
+							'Attribute.distribution' => array('1', '2', '3', '5'),
+							'AND '=> array(
+								'Attribute.distribution' => 4,
+								'Attribute.sharing_group_id' => $sgids,
 							)
 						)
 					)
