@@ -73,6 +73,20 @@
     </dd>
   </dl>
 </div>
+<?php
+	if ($template['warnings']):
+	?>
+		<span class="red bold">Warning, issues found with the template:</span>
+		<div class="red">
+	<?php
+			foreach ($template['warnings'] as $warning) {
+				echo h($warning) . '<br />';
+			}
+	?>
+		</div>
+	<?php
+	endif;
+?>
 <table class="table table-striped table-condensed">
   <tr>
     <th>Save</th>

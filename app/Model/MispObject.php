@@ -266,15 +266,20 @@ class MispObject extends AppModel {
 			return $a['ui-priority'] < $b['ui-priority'];
 		});
 		foreach ($template['ObjectTemplateElement'] as $k => $v) {
-			$template['ObjectTemplateElement'][$k]['default_category'] = $this->Event->Attribute->typeDefinitions[$template['ObjectTemplateElement'][$k]['type']]['default_category'];
-			$template['ObjectTemplateElement'][$k]['to_ids'] = $this->Event->Attribute->typeDefinitions[$template['ObjectTemplateElement'][$k]['type']]['to_ids'];
-			if (empty($template['ObjectTemplateElement'][$k]['categories'])) {
-				$template['ObjectTemplateElement'][$k]['categories'] = array();
-				foreach ($this->Event->Attribute->categoryDefinitions as $catk => $catv) {
-					if (in_array($template['ObjectTemplateElement'][$k]['type'], $catv['types'])) {
-						$template['ObjectTemplateElement'][$k]['categories'][] = $catk;
+			if (isset($this->Event->Attribute->typeDefinitions[$template['ObjectTemplateElement'][$k]['type']])) {
+				$template['ObjectTemplateElement'][$k]['default_category'] = $this->Event->Attribute->typeDefinitions[$template['ObjectTemplateElement'][$k]['type']]['default_category'];
+				$template['ObjectTemplateElement'][$k]['to_ids'] = $this->Event->Attribute->typeDefinitions[$template['ObjectTemplateElement'][$k]['type']]['to_ids'];
+				if (empty($template['ObjectTemplateElement'][$k]['categories'])) {
+					$template['ObjectTemplateElement'][$k]['categories'] = array();
+					foreach ($this->Event->Attribute->categoryDefinitions as $catk => $catv) {
+						if (in_array($template['ObjectTemplateElement'][$k]['type'], $catv['types'])) {
+							$template['ObjectTemplateElement'][$k]['categories'][] = $catk;
+						}
 					}
 				}
+			} else {
+				$template['warnings'][] = 'Missing attribute type "' . $template['ObjectTemplateElement'][$k]['type'] . '" found. Omitted template element ("' . $template['ObjectTemplateElement'][$k]['in-object-name'] . '") that would not pass validation due to this.';
+				unset($template['ObjectTemplateElement'][$k]);
 			}
 		}
 		return $template;
