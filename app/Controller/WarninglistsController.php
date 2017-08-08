@@ -102,9 +102,9 @@ class WarninglistsController extends AppController {
 
 	public function toggleEnable() {
 		$id = $this->request->data['Warninglist']['data'];
-		if (!is_numeric($id)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Warninglist not found.')), 'status' => 200));
+		if (!is_numeric($id)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Warninglist not found.')), 'status' => 200, 'type' => 'json'));
 		$currentState = $this->Warninglist->find('first', array('conditions' => array('id' => $id), 'recursive' => -1));
-		if (empty($currentState)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Warninglist not found.')), 'status' => 200));
+		if (empty($currentState)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Warninglist not found.')), 'status' => 200, 'type' => 'json'));
 		if ($currentState['Warninglist']['enabled']) {
 			$currentState['Warninglist']['enabled'] = 0;
 			$message = 'disabled';
@@ -114,9 +114,9 @@ class WarninglistsController extends AppController {
 		}
 		if ($this->Warninglist->save($currentState)) {
 			$this->Warninglist->regenerateWarninglistCaches($id);
-			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Warninglist ' . $message)), 'status' => 200));
+			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Warninglist ' . $message)), 'status' => 200, 'type' => 'json'));
 		} else {
-			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Warninglist could not be enabled.')), 'status' => 200));
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Warninglist could not be enabled.')), 'status' => 200, 'type' => 'json'));
 		}
 	}
 

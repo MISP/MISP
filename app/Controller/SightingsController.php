@@ -59,9 +59,9 @@ class SightingsController extends AppController {
 			if ($this->request->is('ajax')) {
 				if ($error) {
 					$error_message = 'Could not add the Sighting. Reason: ' . $error;
-					return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $error_message)), 'status' => 200));
+					return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $error_message)), 'status' => 200, 'type' => 'json'));
 				} else {
-					return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $result . ' ' . $this->Sighting->type[$type] . (($result == 1) ? '' : 's') . '  added.')), 'status' => 200));
+					return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $result . ' ' . $this->Sighting->type[$type] . (($result == 1) ? '' : 's') . '  added.')), 'status' => 200, 'type' => 'json'));
 				}
 			} else {
 				if ($error) {
@@ -121,20 +121,20 @@ class SightingsController extends AppController {
 			$this->render('ajax/quickDeleteConfirmationForm');
 		} else {
 			if (!isset($id)) {
-				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'errors' => 'Invalid request.')), 'status' => 200));
+				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'errors' => 'Invalid request.')), 'status' => 200, 'type' => 'json'));
 			} else {
 				$sighting = $this->Sighting->find('first', array('conditions' => array('Sighting.id' => $id), 'recursive' => -1));
 				if (empty($sighting)) {
-					return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'errors' => 'Invalid sighting.')), 'status' => 200));
+					return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'errors' => 'Invalid sighting.')), 'status' => 200, 'type' => 'json'));
 				}
 				if (!$this->_isSiteAdmin() && $sighting['Sighting']['org_id'] != $this->Auth->user('org_id')) {
-					return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'errors' => 'Invalid sighting.')), 'status' => 200));
+					return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'errors' => 'Invalid sighting.')), 'status' => 200, 'type' => 'json'));
 				}
 				$result = $this->Sighting->delete($id);
 				if ($result) {
-					return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Sighting deleted.')), 'status' => 200));
+					return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Sighting deleted.')), 'status' => 200, 'type' => 'json'));
 				} else {
-					return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'errors' => 'Sighting could not be deleted')), 'status' => 200));
+					return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'errors' => 'Sighting could not be deleted')), 'status' => 200, 'type' => 'json'));
 				}
 			}
 		}

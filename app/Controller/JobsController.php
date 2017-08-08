@@ -77,7 +77,7 @@ class JobsController extends AppController {
 		} else {
 			$progress = $progress['Job']['progress'];
 		}
-		return new CakeResponse(array('body' => json_encode($progress)));
+		return new CakeResponse(array('body' => json_encode($progress), 'type' => 'json'));
 	}
 
 	public function getProgress($type) {
@@ -97,7 +97,7 @@ class JobsController extends AppController {
 		} else {
 			$progress = $progress['Job']['progress'];
 		}
-		return new CakeResponse(array('body' => json_encode($progress)));
+		return new CakeResponse(array('body' => json_encode($progress), 'type' => 'json'));
 	}
 
 	public function cache($type) {
@@ -110,6 +110,6 @@ class JobsController extends AppController {
 			$target = 'Events visible to: '.$this->Auth->user('Organisation')['name'];
 		}
 		$id = $this->Job->cache($type, $this->Auth->user());
-		return new CakeResponse(array('body' => json_encode($id)));
+		return new CakeResponse(array('body' => json_encode($id), 'type' => 'json'));
 	}
 }

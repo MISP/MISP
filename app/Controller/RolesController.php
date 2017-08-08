@@ -179,7 +179,7 @@ class RolesController extends AppController {
 			if ($this->_isRest()) {
 				return $this->RestResponse->saveFailResponse('Roles', 'admin_set_default', $role_id, $message, $this->response->type());
 			} else {
-				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $message)),'status'=>200));
+				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $message)), 'status'=>200, 'type' => 'json'));
 			}
 		}
 		$this->loadModel('AdminSetting');
@@ -189,13 +189,13 @@ class RolesController extends AppController {
 			if ($this->_isRest()) {
 				return $this->RestResponse->saveSuccessResponse('Roles', 'admin_set_default', $role_id, $this->response->type(), $message);
 			} else {
-				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $message)),'status'=>200));
+				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $message)), 'status'=>200, 'type' => 'json'));
 			}
 		} else {
 			if ($this->_isRest()) {
 				return $this->RestResponse->saveFailResponse('Roles', 'admin_set_default', $role_id, $result, $this->response->type());
 			} else {
-				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $result)),'status'=>200));
+				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $result)), 'status'=>200, 'type' => 'json'));
 			}
 		}
 	}

@@ -978,7 +978,7 @@ class ServersController extends AppController {
 		}
 		if ($this->request->is('post')) {
 			if (trim($this->request->data['Server']['value']) === '*****') {
-				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'No change.')),'status'=>200));
+				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'No change.')), 'status'=>200, 'type' => 'json'));
 			}
 			$this->autoRender = false;
 			$this->loadModel('Log');
@@ -994,7 +994,7 @@ class ServersController extends AppController {
 						'title' => 'Server setting issue',
 						'change' => 'There was an issue witch changing ' . $setting . ' to ' . $this->request->data['Server']['value']  . '. The error message returned is: app/Config.config.php is not writeable to the apache user. No changes were made.',
 				));
-				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'app/Config.config.php is not writeable to the apache user.')),'status'=>200));
+				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'app/Config.config.php is not writeable to the apache user.')), 'status'=>200, 'type' => 'json'));
 			}
 
 			if (isset($found['beforeHook'])) {
@@ -1011,7 +1011,7 @@ class ServersController extends AppController {
 							'title' => 'Server setting issue',
 							'change' => 'There was an issue witch changing ' . $setting . ' to ' . $this->request->data['Server']['value']  . '. The error message returned is: ' . $beforeResult . 'No changes were made.',
 					));
-					return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $beforeResult)),'status'=>200));
+					return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $beforeResult)), 'status'=>200, 'type' => 'json'));
 				}
 			}
 			$this->request->data['Server']['value'] = trim($this->request->data['Server']['value']);
@@ -1029,7 +1029,7 @@ class ServersController extends AppController {
 			if (!$forceSave && $testResult !== true) {
 				if ($testResult === false) $errorMessage = $found['errorMessage'];
 				else $errorMessage = $testResult;
-				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $errorMessage)),'status'=>200));
+				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $errorMessage)), 'status'=>200, 'type' => 'json'));
 			} else {
 				$oldValue = Configure::read($setting);
 				$this->Server->serverSettingsSaveValue($setting, $this->request->data['Server']['value']);
@@ -1059,10 +1059,10 @@ class ServersController extends AppController {
 								'title' => 'Server setting issue',
 								'change' => 'There was an issue after setting a new setting. The error message returned is: ' . $afterResult,
 						));
-						return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $afterResult)),'status'=>200));
+						return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $afterResult)), 'status'=>200, 'type' => 'json'));
 					}
 				}
-				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Field updated.')),'status'=>200));
+				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Field updated.')), 'status'=>200, 'type' => 'json'));
 			}
 		}
 	}
@@ -1179,7 +1179,7 @@ class ServersController extends AppController {
 			$result['headers']['Content-type'] = isset($headers['Content-type']) ? $headers['Content-type'] : 0;
 			$result['headers']['Accept'] = isset($headers['Accept']) ? $headers['Accept'] : 0;
 			$result['headers']['Authorization'] = isset($headers['Authorization']) ? 'OK' : 0;
-			return new CakeResponse(array('body'=> json_encode($result)));
+			return new CakeResponse(array('body'=> json_encode($result), 'type' => 'json'));
 		} else {
 			throw new MethodNotAllowedException('Invalid request, expecting a POST request.');
 		}
@@ -1221,36 +1221,50 @@ class ServersController extends AppController {
 					if (!isset($version['perm_sync'])) {
 						if (!$this->Server->checkLegacyServerSyncPrivilege($id)) {
 							$result['status'] = 7;
-							return new CakeResponse(array('body'=> json_encode($result)));
+							return new CakeResponse(array('body'=> json_encode($result), 'type' => 'json'));
 						}
 					} else {
 						if (!$version['perm_sync']) {
 							$result['status'] = 7;
-							return new CakeResponse(array('body'=> json_encode($result)));
+							return new CakeResponse(array('body'=> json_encode($result), 'type' => 'json'));
 						}
 					}
-					return new CakeResponse(array('body'=> json_encode(array('status' => 1, 'local_version' => implode('.', $local_version), 'version' => implode('.', $version), 'mismatch' => $mismatch, 'newer' => $newer, 'post' => isset($post) ? $post : 'too old'))));
+					return new CakeResponse(
+						array(
+						'body'=> json_encode(
+							array(
+								'status' => 1,
+								'local_version' => implode('.', $local_version),
+								'version' => implode('.', $version),
+								'mismatch' => $mismatch,
+								'newer' => $newer,
+								'post' => isset($post) ? $post : 'too old'
+								)
+							),
+							'type' => 'json'
+						)
+					);
 				} else {
 					$result['status'] = 3;
 				}
 			}
-			return new CakeResponse(array('body'=> json_encode($result)));
+			return new CakeResponse(array('body'=> json_encode($result), 'type' => 'json'));
 	}
 
 	public function startZeroMQServer() {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
 		$pubSubTool = $this->Server->getPubSubTool();
 		$result = $pubSubTool->restartServer();
-		if ($result === true) return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'ZeroMQ server successfully started.')),'status'=>200));
-		else return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $result)),'status'=>200));
+		if ($result === true) return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'ZeroMQ server successfully started.')), 'status'=>200, 'type' => 'json'));
+		else return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $result)), 'status'=>200, 'type' => 'json'));
 	}
 
 	public function stopZeroMQServer() {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
 		$pubSubTool = $this->Server->getPubSubTool();
 		$result = $pubSubTool->killService();
-		if ($result === true) return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'ZeroMQ server successfully killed.')),'status'=>200));
-		else return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Could not kill the previous instance of the ZeroMQ script.')),'status'=>200));
+		if ($result === true) return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'ZeroMQ server successfully killed.')), 'status'=>200, 'type' => 'json'));
+		else return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Could not kill the previous instance of the ZeroMQ script.')), 'status'=>200, 'type' => 'json'));
 	}
 
 	public function statusZeroMQServer() {
@@ -1307,7 +1321,7 @@ class ServersController extends AppController {
 		if ($this->request->is('post')) {
 			$status = $this->Server->getCurrentGitStatus();
 			$update = $this->Server->update($status);
-			return new CakeResponse(array('body'=> $update));
+			return new CakeResponse(array('body'=> $update, 'type' => 'txt'));
 		} else {
 			$branch = $this->Server->getCurrentBranch();
 			$this->set('branch', $branch);

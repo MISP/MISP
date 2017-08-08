@@ -60,7 +60,7 @@ class UsersController extends AppController {
 
 	public function request_API(){
 		if (Configure::read('MISP.disable_emailing')) {
-			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'API access request failed. E-mailing is currently disabled on this instance.')),'status'=>200));
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'API access request failed. E-mailing is currently disabled on this instance.')), 'status'=>200, 'type' => 'json'));
 		}
 		$responsibleAdmin = $this->User->findAdminsResponsibleForUser($this->Auth->user());
 		if (isset($responsibleAdmin['email']) && !empty($responsibleAdmin['email'])) {
@@ -70,10 +70,10 @@ class UsersController extends AppController {
 			$user = $this->User->find('first', array('conditions' => array('User.id' => $responsibleAdmin['id'])));
 			$result = $this->User->sendEmail($user, $body, false, $subject);
 			if ($result) {
-				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'API access requested.')),'status'=>200));
+				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'API access requested.')), 'status'=>200, 'type' => 'json'));
 			}
 		}
-		return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Something went wrong, please try again later.')),'status'=>200));
+		return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Something went wrong, please try again later.')), 'status'=>200, 'type' => 'json'));
 	}
 
 	public function edit() {
