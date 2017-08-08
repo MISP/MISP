@@ -2803,6 +2803,31 @@ function toggleContextFields() {
 	setContextFields();
 }
 
+
+
+function setLogicalFields() {
+	// make logical field alone
+	if (showLogical) {
+		$('.context').hide();
+		$('#show_context').removeClass("attribute_filter_text_active");
+		$('#show_context').addClass("attribute_filter_text");
+		
+		$('#show_as_logical').addClass("attribute_filter_text");
+		$('#show_as_logical').removeClass("attribute_filter_text_active");
+		
+	}
+}
+
+function toggleLogicalFields() {
+	if (!showLogical) {
+		showLogical = true;
+		showContext = false;
+} else {
+		showLogical = false;
+	}
+	setLogicalFields();
+}
+
 function checkOrphanedAttributes() {
 	$.ajax({
 		beforeSend: function (XMLHttpRequest) {

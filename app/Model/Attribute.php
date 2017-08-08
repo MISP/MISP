@@ -244,7 +244,9 @@ class Attribute extends AppModel {
 			'place-port-of-onward-foreign-destination' => array('desc' => 'A Port where the passenger is transiting to', 'default_category' => 'Person', 'to_ids' => 0),
 			'passenger-name-record-locator-number' => array('desc' => 'The Passenger Name Record Locator is a key under which the reservation for a trip is stored in the system. The PNR contains, among other data, the name, flight segments and address of the passenger. It is defined by a combination of five or six letters and numbers.', 'default_category' => 'Person', 'to_ids' => 0),
 			'mobile-application-id' => array('desc' => 'The application id of a mobile application', 'default_category' => 'Payload delivery', 'to_ids' => 1),
-			'cortex' => array('desc' => 'Cortex analysis result', 'default_category' => 'External analysis', 'to_ids' => 0)
+			'cortex' => array('desc' => 'Cortex analysis result', 'default_category' => 'External analysis', 'to_ids' => 0),
+			'logical-operator-and' => array('desc' => 'Create logical and between two attributs', 'default_category' => 'Logical', 'to_ids' => 0),
+			'logical-operator-or' => array('desc' => 'Create logical or between two attributs', 'default_category' => 'Logical', 'to_ids' => 0),
 			// Not convinced about this.
 			//'url-regex' => array('desc' => '', 'default_category' => 'Person', 'to_ids' => 0),
 	);
@@ -323,7 +325,12 @@ class Attribute extends AppModel {
 			'Other' => array(
 					'desc' => 'Attributes that are not part of any other category or are meant to be used as a component in MISP objects in the future',
 					'types' => array('comment', 'text', 'other', 'size-in-bytes', 'counter', 'datetime', 'cpe', 'port', 'float', 'hex')
-					)
+					),
+			'Logical' => array(
+					'desc' => 'Create logic between two attributes',
+					'formdesc' => 'One Category to rule them all, One Category to find them, One categorie to bring them all and in this sharing systeme bind them.',
+					'types' => array('logical-operator-and', 'logical-operator-or')
+			)
 	);
 
 	public $defaultCategories = array(
@@ -356,7 +363,9 @@ class Attribute extends AppModel {
 			'hex' => 'Other',
 			'attachment' => 'External analysis',
 			'malware-sample' => 'Payload delivery',
-			'cortex' => 'External analysis'
+			'cortex' => 'External analysis',
+			'logical-operator-and' => 'Logical',
+			'logical-operator-or' => 'Logical',
 	);
 
 	// typeGroupings are a mapping to high level groups for attributes
@@ -1161,6 +1170,16 @@ class Attribute extends AppModel {
 				break;
 			case 'hex':
 				$value = strtoupper($value);
+				break;
+			case 'logical-operator-and':
+				if (count(explode(':',$value)) >= 1) {
+					$returnValue = true;
+				}
+				break;
+			case 'logical-operator-or':
+				if (count(explode(':',$value)) >= 1) {
+					$returnValue = true;
+				}
 				break;
 		}
 		return $value;
@@ -2445,17 +2464,25 @@ class Attribute extends AppModel {
 		return $this->IOCExport->buildAll($this->Auth->user(), $event);
 	}
 
-	public function setTagConditions($tags, $conditions) {
+	public function setTagConditions($tags, $conditions, $controller='Events') {
 		$args = $this->dissectArgs($tags);
-		$tagArray = $this->AttributeTag->Tag->fetchEventTagIds($args[0], $args[1]);
+		$tagArray = $this->AttributeTag->Tag->fetchEventTagIds($args[0], $args[1], $controller);
 		$temp = array();
 		foreach ($tagArray[0] as $accepted) {
-			$temp['OR'][] = array('Event.id' => $accepted);
+			if ($controller === 'attributes') {
+				$temp['OR'][] = array('Attribute.id' => $accepted);
+			}else{
+				$temp['OR'][] = array('Event.id' => $accepted);
+			}
 		}
 		$conditions['AND'][] = $temp;
 		$temp = array();
 		foreach ($tagArray[1] as $rejected) {
-			$temp['AND'][] = array('Event.id !=' => $rejected);
+			if ($controller === 'attributes') {
+				$temp['AND'][] = array('Attribute.id !=' => $rejected);
+			}else{
+				$temp['AND'][] = array('Event.id !=' => $rejected);
+			}
 		}
 		$conditions['AND'][] = $temp;
 		return $conditions;

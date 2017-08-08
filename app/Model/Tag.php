@@ -78,15 +78,24 @@ class Tag extends AppModel {
 	}
 
 	// find all of the event Ids that belong to the accepted tags and the rejected tags
-	public function fetchEventTagIds($accept=array(), $reject=array()) {
+	public function fetchEventTagIds($accept=array(), $reject=array(), $controller='events') {
 		$acceptIds = array();
 		$rejectIds = array();
 		if (!empty($accept)) {
-			$acceptIds = $this->findEventIdsByTagNames($accept);
-			if (empty($acceptIds)) $acceptIds[] = -1;
+			if ($controller === 'attributes') {
+				$acceptIds = $this->findAttributeIdsByAttributeTagNames($accept);
+				if (empty($acceptIds)) $acceptIds[] = -1;
+			}else{
+				$acceptIds = $this->findEventIdsByTagNames($accept);
+				if (empty($acceptIds)) $acceptIds[] = -1;
+			}
 		}
 		if (!empty($reject)) {
-			$rejectIds = $this->findEventIdsByTagNames($reject);
+			if ($controller === 'attributes') {
+				$rejectIds = $this->findAttributeIdsByAttributeTagNames($reject);
+			}else{
+				$rejectIds = $this->findEventIdsByTagNames($reject);
+			}
 		}
 		return array($acceptIds, $rejectIds);
 	}

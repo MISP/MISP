@@ -303,6 +303,7 @@
 </div>
 <script type="text/javascript">
 var showContext = false;
+var showLogical = false;
 $(document).ready(function () {
 	popoverStartup();
 

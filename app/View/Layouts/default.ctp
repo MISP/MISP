@@ -34,6 +34,7 @@
 		echo $this->fetch('script');
 
 		echo $this->Html->script('jquery'); // Include jQuery library
+		echo $this->Html->script('jquery-ui');
 	?>
 
 </head>
