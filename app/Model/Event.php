@@ -1852,13 +1852,14 @@ class Event extends AppModel {
 					$line = $attribute['category'] . '/' . $attribute['type'] . $strRepeat . ': ' . $attribute['value'] . $ids .  "\n";
 				}
 				// Defanging URLs (Not "links") emails domains/ips in notification emails
-				if ('url' == $attribute['type']) {
+				if ('url' == $attribute['type'] || 'uri' == $attribute['type']) {
 					$line = str_ireplace("http","hxxp", $line);
+					$line = str_ireplace(".","[.]", $line);
 				}
-				else if ('email-src' == $attribute['type'] or 'email-dst' == $attribute['type']) {
+				else if (in_array($attribute['type'], array('email-src', 'email-dst', 'whois-registrant-email', 'dns-soa-email', 'email-reply-to'))) {
 					$line = str_replace("@","[at]", $line);
 				}
-				else if ('hostname' == $attribute['type'] or 'domain' == $attribute['type'] or 'ip-src' == $attribute['type'] or 'ip-dst' == $attribute['type']) {
+				else if (in_array($attribute['type'], array('hostname', 'domain', 'ip-src', 'ip-dst', 'domain|ip'))) {
 					$line = str_replace(".","[.]", $line);
 				}
 				if (!empty($attribute['AttributeTag'])) {
