@@ -847,13 +847,13 @@ class AttributesController extends AppController {
 			}
 			if ($attribute['Attribute'][$changedKey] == $changedField) {
 				$this->autoRender = false;
-				return new CakeResponse(array('body'=> json_encode('nochange'), 'status'=>200, 'type' => 'json'));
+				return new CakeResponse(array('body'=> json_encode(array('errors'=> array('value' => 'nochange'))), 'status'=>200, 'type' => 'json'));
 			}
 			$attribute['Attribute'][$changedKey] = $changedField;
 			$changed = true;
 		}
 		if (!$changed) {
-			return new CakeResponse(array('body'=> json_encode('nochange'), 'status'=>200, 'type' => 'json'));
+			return new CakeResponse(array('body'=> json_encode(array('errors'=> array('value' => 'nochange'))), 'status'=>200, 'type' => 'json'));
 		}
 		$date = new DateTime();
 		$attribute['Attribute']['timestamp'] = $date->getTimestamp();
