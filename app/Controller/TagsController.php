@@ -234,7 +234,7 @@ class TagsController extends AppController {
 	}
 
 	public function edit($id) {
-		if (!$this->_isSiteAdmin() && !$this->userRole['perm_tag_editor']) {
+		if (!$this->_isSiteAdmin()) {
 			throw new NotFoundException('You don\'t have permission to do that.');
 		}
 		$this->Tag->id = $id;
@@ -275,7 +275,7 @@ class TagsController extends AppController {
 	}
 
 	public function delete($id) {
-		if (!$this->_isSiteAdmin() && !$this->userRole['perm_tag_editor']) {
+		if (!$this->_isSiteAdmin()) {
 			throw new NotFoundException('You don\'t have permission to do that.');
 		}
 		if (!$this->request->is('post')) {

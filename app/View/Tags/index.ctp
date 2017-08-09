@@ -102,7 +102,7 @@ foreach ($list as $k => $item): ?>
 		<td class="short" id ="checkbox_row_<?php echo h($item['Tag']['id']);?>">
 			<input id="checkBox_<?php echo h($item['Tag']['id']); ?>" type="checkbox" onClick="toggleSetting(event, 'favourite_tag', '<?php echo h($item['Tag']['id']); ?>')" <?php echo $item['Tag']['favourite'] ? 'checked' : ''; ?>/>
 		</td>
-		<?php if ($isAclTagEditor): ?>
+		<?php if ($isSiteAdmin): ?>
 		<td class="short action-links">
 			<?php echo $this->Html->link('', array('action' => 'edit', $item['Tag']['id']), array('class' => 'icon-edit', 'title' => 'Edit'));?>
 			<?php echo $this->Form->postLink('', array('action' => 'delete', $item['Tag']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete "%s"?', $item['Tag']['name']));?>
