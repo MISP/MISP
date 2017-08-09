@@ -28,8 +28,9 @@
       $tr_class .= ' tableHighlightBorder borderOrange';
     }
   }
+  $identifier = (empty($k)) ? '' : ' id="row_' . h($k) . '" tabindex="0"';
 ?>
-<tr id = "proposal<?php echo '_' . $object['id'] . '_tr'; ?>" class="<?php echo $tr_class; ?>">
+<tr id = "proposal<?php echo '_' . $object['id'] . '_tr'; ?>" class="<?php echo $tr_class; ?>" <?php echo $identifier; ?>>
   <?php if ($mayModify): ?>
     <td style="width:10px;" data-position="<?php echo h($object['objectType']) . '_' . h($object['id']); ?>">
       <input id = "select_proposal_<?php echo $object['id']; ?>" class="select_proposal row_checkbox" type="checkbox" data-id="<?php echo $object['id'];?>" />

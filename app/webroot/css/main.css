@@ -1610,6 +1610,20 @@ a.discrete {
 	border-radius:5px;
 }
 
+.redHighlightedBlock {
+	border:1px solid red;
+	background-color:white;
+	padding:5px;
+	border-radius:5px;
+	height:228px;
+	overflow-y:scroll;
+	line-height:12px;
+}
+
+.indent {
+	text-indent: 2em;
+}
+
 .tooltip-inner {
 	white-space:pre-wrap !important;
 }

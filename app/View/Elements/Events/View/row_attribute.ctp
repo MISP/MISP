@@ -1,6 +1,6 @@
 <?php
   $tr_class = '';
-  $linkClass = 'white';
+  $linkClass = 'blue';
   $otherColour = 'blue';
   if (!empty($child)) {
     if ($child === 'last' && empty($object['ShadowAttribute'])) {
@@ -20,8 +20,11 @@
   if (!empty($object['deleted'])) {
     $tr_class .= ' deleted-attribute';
   }
+  if (!empty($k)) {
+    $tr_class .= ' row_' . h($k);
+  }
 ?>
-<tr id = "Attribute_<?php echo h($object['id']); ?>_tr" class="<?php echo $tr_class; ?>">
+<tr id = "Attribute_<?php echo h($object['id']); ?>_tr" class="<?php echo $tr_class; ?>" tabindex="0">
   <?php
     if ($mayModify):
   ?>

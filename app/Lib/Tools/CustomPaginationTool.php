@@ -1,7 +1,7 @@
 <?php
 class CustomPaginationTool {
 
-	function createPaginationRules($items, $options, $model, $sort = 'id') {
+	function createPaginationRules($items, $options, $model, $sort = 'id', $focusKey = 'uuid') {
 		$params = array(
 			'model' => $model,
 			'current' => 1,
@@ -16,7 +16,7 @@ class CustomPaginationTool {
 			'options' => array(
 			),
 		);
-		$validOptions = array('sort', 'direction', 'page');
+		$validOptions = array('sort', 'direction', 'page', 'focus');
 		if ($model == 'events') $validOptions[] = 'attributeFilter';
 		foreach ($validOptions as $v) {
 			if (isset($options[$v])) {
@@ -40,23 +40,38 @@ class CustomPaginationTool {
 
 	function truncateByPagination(&$items, $params) {
 		if (empty($items)) return;
-		$items = array_slice($items, $params['current'] - 1, $params['current'] + $params['limit']);
+		$items = array_slice($items, $params['current'] - 1, $params['limit']);
 	}
 
-	function applyRulesOnArray(&$items, $options, $model, $sort = 'id') {
-		$params = $this->createPaginationRules($items, $options, $model, $sort);
+	function applyRulesOnArray(&$items, $options, $model, $sort = 'id', $focusKey = 'uuid') {
+		$params = $this->createPaginationRules($items, $options, $model, $sort, $focusKey);
 		if (isset($params['sort'])) {
 			$sortArray = array();
 			foreach ($items as $k => $item) {
-				$sortArray[$k] = $item[$params['sort']];
+				$sortArray[$k] = empty($item[$params['sort']]) ? '' : $item[$params['sort']];
 			}
-			asort($sortArray);
+			if (empty($params['options']['direction']) || $params['options']['direction'] == 'asc') {
+				asort($sortArray);
+			} else {
+				arsort($sortArray);
+			}
+
 			foreach ($sortArray as $k => $sortedElement) {
 				$sortArray[$k] = $items[$k];
 			}
 			$items = array();
 			$items = $sortArray;
-			//$items = Set::sort($items, '{n}.' . $params['sort'], $params['direction']);
+		}
+		$items = array_values($items);
+		if (!empty($params['options']['focus'])) {
+			foreach ($items as $k => $item) {
+				if ($item[$focusKey] == $params['options']['focus']) {
+					$params['page'] = 1 + intval(floor($k / $params['limit']));
+					$params['current'] = 1 + ($params['page'] - 1) * 60;
+					continue;
+				}
+			}
+			unset($params['options']['focus']);
 		}
 		array_unshift($items, 'dummy');
 		unset($items[0]);

@@ -5,8 +5,11 @@
   $tr_class = 'tableHighlightBorderTop borderBlue';
   if ($object['deleted']) $tr_class .= ' lightBlueRow';
   else $tr_class .= ' blueRow';
+  if (!empty($k)) {
+    $tr_class .= ' row_' . h($k);
+  }
 ?>
-<tr id = "Object_<?php echo $object['id']; ?>_tr" class="<?php echo $tr_class; ?>">
+<tr id = "Object_<?php echo $object['id']; ?>_tr" class="<?php echo $tr_class; ?>" tabindex="0">
   <?php
     if ($mayModify):
   ?>
@@ -27,12 +30,32 @@
   </td>
   <td colspan="<?php echo $fieldCount -5;?>">
     <span class="bold">Name: </span><?php echo h($object['name']);?>
-    <span class="fa fa-expand" title="Expand or Collapse" role="button" tabindex="0" aria-label="Expand or Collapse" data-toggle="collapse" data-target="#Object_<?php echo $object['id']; ?>_collapsible"></span>
+    <span class="fa fa-expand useCursorPointer" title="Expand or Collapse" role="button" tabindex="0" aria-label="Expand or Collapse" data-toggle="collapse" data-target="#Object_<?php echo h($object['id']); ?>_collapsible"></span>
     <br />
     <div id="Object_<?php echo $object['id']; ?>_collapsible" class="collapse">
       <span class="bold">Meta-category: </span><?php echo h($object['meta-category']);?><br />
       <span class="bold">Description: </span><?php echo h($object['description']);?><br />
       <span class="bold">Tempate: </span><?php echo h($object['name']) . ' v' . h($object['template_version']) . ' (' . h($object['template_uuid']) . ')'; ?>
+    </div>
+    <span class="bold">References: </span>
+    <?php
+      echo count($object['ObjectReference']);
+      if (!empty($object['ObjectReference'])):
+    ?>
+        <span class="fa fa-expand useCursorPointer" title="Expand or Collapse" role="button" tabindex="0" aria-label="Expand or Collapse" data-toggle="collapse" data-target="#Object_<?php echo h($object['id']); ?>_references_collapsible"></span>
+    <?php
+      endif;
+    ?>
+    <span class="fa fa-plus-square useCursorPointer" title="Add reference" role="button" tabindex="0" aria-label="Add reference" onClick="genericPopup('<?php echo '/objectReferences/add/' . h($object['id']);?>', '#popover_form');"></span>
+    <div id="Object_<?php echo $object['id']; ?>_references_collapsible" class="collapse">
+    <?php
+      foreach ($object['ObjectReference'] as $reference):
+        $uuid = empty($reference['Object']) ? $reference['Attribute']['uuid'] : $reference['Object']['uuid'];
+    ?>
+        &nbsp;&nbsp;<a class="bold white useCursorPointer" onClick="pivotObjectReferences('<?php echo h($currentUri); ?>', '<?php echo $uuid; ?>')"><?php echo array('Attribute', 'Object')[$reference['referenced_type']] . ': ' . h($reference['relationship_type']);?></a><br />
+    <?php
+      endforeach;
+    ?>
     </div>
   </td>
   <td class="shortish">

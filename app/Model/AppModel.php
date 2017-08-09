@@ -734,6 +734,7 @@ class AppModel extends Model {
 					`uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
 					`timestamp` int(11) NOT NULL DEFAULT 0,
 					`object_id` int(11) NOT NULL,
+					`event_id` int(11) NOT NULL,
 					`referenced_id` int(11) NOT NULL,
 					`referenced_type` int(11) NOT NULL DEFAULT 0,
 					`relationship_type` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,

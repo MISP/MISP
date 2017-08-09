@@ -28,8 +28,9 @@
       $tr_class .= ' tableHighlightBorder borderOrange';
     }
   }
+  $identifier = (empty($k)) ? '' : ' id="row_' . h($k) . '" tabindex="0"';
 ?>
-<tr id = "<?php echo $currentType . '_' . $object['id'] . '_tr'; ?>" class="<?php echo $tr_class; ?>">
+<tr id = "<?php echo $currentType . '_' . $object['id'] . '_tr'; ?>" class="<?php echo $tr_class; ?>" <?php echo $identifier; ?>>
   <?php
     if ($mayModify):
   ?>

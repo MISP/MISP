@@ -877,6 +877,9 @@ function submitPopoverForm(context_id, referer, update_context_id) {
 			url = "/sightings/add/" + context_id;
 			closePopover = false;
 			break;
+		case 'addObjectReference':
+			url = "/objectReferences/add/" + context_id;
+			break;
 	}
 	if (url !== null) {
 		$.ajax({
@@ -902,7 +905,7 @@ function submitPopoverForm(context_id, referer, update_context_id) {
 					$('#sightingsListAllToggle').removeClass('btn-inverse');
 					$('#sightingsListAllToggle').addClass('btn-primary');
 				}
-				if (context == 'event' && (referer == 'add' || referer == 'massEdit' || referer == 'replaceAttributes')) eventUnpublish();
+				if (context == 'event' && (referer == 'add' || referer == 'massEdit' || referer == 'replaceAttributes' || referer == 'addObjectReference')) eventUnpublish();
 				$(".loading").hide();
 			},
 			type:"post",
@@ -2560,6 +2563,25 @@ function filterAttributes(filter, id) {
 	});
 }
 
+function pivotObjectReferences(url, uuid) {
+	url += '/focus:' + uuid;
+	console.log(url);
+	$.ajax({
+		type:"get",
+		url:url,
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+		success:function (data) {
+			$("#attributes_div").html(data);
+			$(".loading").hide();
+		},
+		error:function() {
+			showMessage('fail', 'Something went wrong - could not fetch attributes.');
+		}
+	});
+}
+
 function toggleDeletedAttributes(url) {
 	url = url.replace(/view\//i, 'viewEventAttributes/');
 	if (url.indexOf('deleted:') > -1) {
@@ -3090,23 +3112,75 @@ function checkAndEnableCheckbox(id, enable) {
 	}
 }
 
-	function enableDisableObjectRows(rows) {
-		rows.forEach(function(i) {
-			if ($("#Attribute" + i + "ValueSelect").length != 0) {
-				checkAndEnableCheckbox("#Attribute" + i + "Save", true);
-			} else if ($("#Attribute" + i + "Attachment").length != 0) {
-				checkAndEnableCheckbox("#Attribute" + i + "Save", $("#Attribute" + i + "Attachment").val() != "");
-			} else {
-				checkAndEnableCheckbox("#Attribute" + i + "Save", $("#Attribute" + i + "Value").val() != "");
-			}
-			$("#Attribute" + i + "Value").bind('input propertychange', function() {
-				checkAndEnableCheckbox("#Attribute" + i + "Save", $(this).val() != "");
-			});
-			$("#Attribute" + i + "Attachment").on('change', function() {
-				checkAndEnableCheckbox("#Attribute" + i + "Save", $("#Attribute" + i + "Attachment").val() != "");
-			});
+function enableDisableObjectRows(rows) {
+	rows.forEach(function(i) {
+		if ($("#Attribute" + i + "ValueSelect").length != 0) {
+			checkAndEnableCheckbox("#Attribute" + i + "Save", true);
+		} else if ($("#Attribute" + i + "Attachment").length != 0) {
+			checkAndEnableCheckbox("#Attribute" + i + "Save", $("#Attribute" + i + "Attachment").val() != "");
+		} else {
+			checkAndEnableCheckbox("#Attribute" + i + "Save", $("#Attribute" + i + "Value").val() != "");
+		}
+		$("#Attribute" + i + "Value").bind('input propertychange', function() {
+			checkAndEnableCheckbox("#Attribute" + i + "Save", $(this).val() != "");
 		});
+		$("#Attribute" + i + "Attachment").on('change', function() {
+			checkAndEnableCheckbox("#Attribute" + i + "Save", $("#Attribute" + i + "Attachment").val() != "");
+		});
+	});
+}
+
+function objectReferenceInput() {
+	var types = ["Attribute", "Object"];
+	for (var type in types) {
+		for (var k in targetEvent[types[type]]) {
+			if (targetEvent[types[type]][k]['uuid'] == $('#ObjectReferenceUuid').val()) {
+				$('#targetSelect').val($('#ObjectReferenceUuid').val());
+				changeObjectReferenceSelectOption();
+			}
+		}
 	}
+}
+
+function changeObjectReferenceSelectOption() {
+	var object = $('#targetSelect option:selected');
+	var uuid = $(object).val();
+	$('#ObjectReferenceUuid').val(uuid);
+	var type = $(object).data('type');
+	if (type == "Attribute") {
+		$('#targetData').html("");
+		for (var k in targetEvent[type][uuid]) {
+			if ($.inArray(k, ['uuid', 'category', 'type', 'value', 'to_ids']) !== -1) {
+				$('#targetData').append('<div><span id="' + uuid + '_' + k + '_key" class="bold"></span>: <span id="' + uuid + '_' + k + '_data"></span></div>');
+				$('#' + uuid + '_' + k + '_key').text(k);
+				$('#' + uuid + '_' + k + '_data').text(targetEvent[type][uuid][k]);
+			}
+		}
+	} else {
+		$('#targetData').html("");
+		for (var k in targetEvent[type][uuid]) {
+			if (k == 'Attribute') {
+				$('#targetData').append('<br /><div><span id="header" class="bold">Attributes:</span>');
+				for (attribute in targetEvent[type][uuid]['Attribute']) {
+					for (k2 in targetEvent[type][uuid]['Attribute'][attribute]) {
+						if ($.inArray(k2, ['category', 'type', 'value', 'to_ids']) !== -1) {
+							$('#targetData').append('<div class="indent"><span id="' + targetEvent[type][uuid]['Attribute'][attribute]['uuid'] + '_' + k2 + '_key" class="bold"></span>: <span id="' + targetEvent[type][uuid]['Attribute'][attribute]['uuid'] + '_' + k2 + '_data"></span></div>');
+							$('#' + targetEvent[type][uuid]['Attribute'][attribute]['uuid'] + '_' + k2 + '_key').text(k2);
+							$('#' + targetEvent[type][uuid]['Attribute'][attribute]['uuid'] + '_' + k2 + '_data').text(targetEvent[type][uuid]['Attribute'][attribute][k2]);
+						}
+					}
+					$('#targetData').append('<br />');
+				}
+			} else {
+				if ($.inArray(k, ['name', 'uuid', 'meta-category']) !== -1) {
+					$('#targetData').append('<div><span id="' + uuid + '_' + k + '_key" class="bold"></span>: <span id="' + uuid + '_' + k + '_data"></span></div>');
+					$('#' + uuid + '_' + k + '_key').text(k);
+					$('#' + uuid + '_' + k + '_data').text(targetEvent[type][uuid][k]);
+				}
+			}
+		}
+	}
+}
 
 (function(){
     "use strict";

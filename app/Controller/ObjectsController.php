@@ -165,6 +165,7 @@ class ObjectsController extends AppController {
 			}
 			$objectToSave = $this->MispObject->attributeCleanup($this->request->data);
 			$objectToSave = $this->MispObject->deltaMerge($object, $objectToSave);
+
 			// we pre-validate the attributes before we create an object at this point
 			// This allows us to stop the process and return an error (API) or return
 			//  to the add form

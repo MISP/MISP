@@ -1268,6 +1268,7 @@ class Event extends AppModel {
 		if (isset($options['disableSiteAdmin']) && $options['disableSiteAdmin']) $isSiteAdmin = false;
 		$conditionsAttributes = array();
 		$conditionsObjects = array();
+		$conditionsObjectReferences = array();
 
 		if (isset($options['flattenObjects']) && $options['flattenObjects']) {
 			$flattenObjects = true;
@@ -1344,26 +1345,24 @@ class Event extends AppModel {
 		if ($options['to']) $conditions['AND'][] = array('Event.date <=' => $options['to']);
 		if ($options['last']) $conditions['AND'][] = array('Event.publish_timestamp >=' => $options['last']);
 		if ($options['event_uuid']) $conditions['AND'][] = array('Event.uuid' => $options['event_uuid']);
+
+		$softDeletables = array('Attribute', 'Object', 'ObjectReference');
 		if (isset($options['deleted']) && $options['deleted']) {
 			if (!$user['Role']['perm_sync']) {
-				$conditionsAttributes['AND'][] = array(
-					'OR' => array(
-						'(SELECT events.org_id FROM events WHERE events.id = Attribute.event_id)' => $user['org_id'],
-						'Attribute.deleted' => 0
-					)
-				);
-				$conditionsObjects['AND'][] = array(
-					'OR' => array(
-						'(SELECT events.org_id FROM events WHERE events.id = Object.event_id)' => $user['org_id'],
-						'Object.deleted' => 0
-					)
-				);
+				foreach ($softDeletables as $softDeletable) {
+					${'conditions' . $softDeletable . 's'}['AND'][] = array(
+						'OR' => array(
+							'(SELECT events.org_id FROM events WHERE events.id = ' . $softDeletable . '.event_id)' => $user['org_id'],
+							$softDeletable . '.deleted' => 0
+						)
+					);
+				}
 			}
 		} else {
-			$conditionsAttributes['AND']['Attribute.deleted'] = 0;
-			$conditionsObjects['AND']['Object.deleted'] = 0;
+			foreach ($softDeletables as $softDeletable) {
+				${'conditions' . $softDeletable . 's'}['AND'][$softDeletable . '.deleted'] = 0;
+			}
 		}
-
 		if ($options['idList'] && !$options['tags']) {
 			$conditions['AND'][] = array('Event.id' => $options['idList']);
 		}
@@ -1446,7 +1445,11 @@ class Event extends AppModel {
 				'Object' => array(
 					'fields' => $fieldsObj,
 					'conditions' => $conditionsObjects,
-					'order' => false
+					'order' => false,
+					'ObjectReference' => array(
+						'conditions' => $conditionsObjectReferences,
+						'order' => false
+					)
 				),
 				'ShadowAttribute' => array(
 					'fields' => $fieldsShadowAtt,
@@ -1472,6 +1475,7 @@ class Event extends AppModel {
 		}
 		$results = $this->find('all', $params);
 		if (empty($results)) return array();
+
 		// Do some refactoring with the event
 		$sgsids = $this->SharingGroup->fetchAllAuthorised($user);
 		if (Configure::read('Plugin.Sightings_enable') !== false) {
@@ -1479,6 +1483,29 @@ class Event extends AppModel {
 		}
 		$userEmails = array();
 		foreach ($results as $eventKey => &$event) {
+			if (!empty($event['Object'])) {
+				foreach ($event['Object'] as $k => $object) {
+					if (!empty($object['ObjectReference'])) {
+						foreach ($object['ObjectReference'] as $k2 => $reference) {
+							$type = array('Attribute', 'Object')[$reference['referenced_type']];
+							$temp = $this->{$type}->find('first', array(
+								'recursive' => -1,
+								'fields' => array('distribution', 'sharing_group_id', 'uuid'),
+								'conditions' => array('id' => $reference['referenced_id'])
+							));
+							if (!empty($temp)) {
+								if (!$isSiteAdmin && $user['User']['org_id'] != $event['Event']['orgc_id']) {
+									if ($temp[$type]['distribution'] == 0 || ($temp[$type]['distribution'] == 4 && !in_array($temp[$type]['sharing_group_id'], $sgsids))) {
+										unset($object['ObjectReference'][$k2]);
+										continue;
+									}
+								}
+								$event['Object'][$k]['ObjectReference'][$k2][$type] = $temp[$type];
+							}
+						}
+					}
+				}
+			}
 			if (!$options['sgReferenceOnly'] && $event['Event']['sharing_group_id']) {
 				$event['SharingGroup'] = $sharingGroupData[$event['Event']['sharing_group_id']]['SharingGroup'];
 			}

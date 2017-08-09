@@ -37,7 +37,9 @@
 	<div class="pagination">
 		<ul>
 		<?php
-			$url = array_merge(array('controller' => 'events', 'action' => 'viewEventAttributes', $event['Event']['id']), $this->request->named);
+			$params = $this->request->named;
+			unset($params['focus']);
+			$url = array_merge(array('controller' => 'events', 'action' => 'viewEventAttributes', $event['Event']['id']), $params);
 			$this->Paginator->options(array(
 				'url' => $url,
 				'update' => '#attributes_div',
@@ -181,6 +183,7 @@
 				2 => 'proposal_delete',
 				3 => 'object'
 			);
+			$focusedRow = false;
 			foreach ($event['objects'] as $k => $object) {
 				$insertBlank = false;
 				echo $this->element('/Events/View/row_' . $object['objectType'], array(
@@ -191,6 +194,9 @@
 					'page' => $page,
 					'fieldCount' => $fieldCount
 				));
+				if (!empty($focus) && ($object['objectType'] == 'object' || $object['objectType'] == 'attribute') && $object['uuid'] == $focus) {
+					$focusedRow = $k;
+				}
 				if (
 					($object['objectType'] == 'attribute' && !empty($object['ShadowAttribute'])) ||
 					$object['objectType'] == 'object'
@@ -221,7 +227,6 @@ attributes or the appropriate distribution level. If you think there is a mistak
 	<div class="pagination">
 		<ul>
 		<?php
-			$url = array_merge(array('controller' => 'events', 'action' => 'viewEventAttributes', $event['Event']['id']), $this->request->named);
 			$this->Paginator->options(array(
 				'url' => $url,
 				'update' => '#attributes_div',
@@ -253,6 +258,17 @@ attributes or the appropriate distribution level. If you think there is a mistak
 	var lastSelected = false;
 	var deleted = <?php echo (isset($deleted) && $deleted) ? 'true' : 'false';?>;
 	$(document).ready(function() {
+		<?php
+			if ($focusedRow !== false):
+		?>
+			//window.location.hash = '.row_' + '<?php echo h($focusedRow); ?>';
+			console.log('.row_' + '<?php echo h($focusedRow); ?>');
+			//$.scrollTo('#row_' + '<?php echo h($k); ?>', 800, {easing:'elasout'});
+			//$('html,body').animate({scrollTop: $('#row_' + '<?php echo h($k); ?>').offset().top}, 'slow');
+				$('.row_' + '<?php echo h($focusedRow); ?>').focus();
+		<?php
+			endif;
+		?>
 		setContextFields();
 		popoverStartup();
 		$('.select_attribute').removeAttr('checked');

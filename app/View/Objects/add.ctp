@@ -74,7 +74,7 @@
   </dl>
 </div>
 <?php
-	if ($template['warnings']):
+	if (!empty($template['warnings'])):
 	?>
 		<span class="red bold">Warning, issues found with the template:</span>
 		<div class="red">
@@ -121,7 +121,6 @@
           'label' => false,
           'div' => false
         );
-				if ($action == 'edit') unset($formSettings['value']);
         echo $this->Form->input('Attribute.' . $k . '.object_relation', $formSettings);
 				if ($action == 'edit') {
 					echo $this->Form->input('Attribute.' . $k . '.uuid', array(
@@ -136,7 +135,6 @@
           'label' => false,
           'div' => false
         );
-				if ($action == 'edit') unset($formSettings['value']);
         echo $this->Form->input('Attribute.' . $k . '.type', $formSettings);
         echo '<span class="bold">' . Inflector::humanize(h($element['in-object-name'])) . '</span>';
         if (!empty($template['ObjectTemplate']['requirements']['required']) && in_array($element['in-object-name'], $template['ObjectTemplate']['requirements']['required'])) {
@@ -154,7 +152,6 @@
           'label' => false,
           'div' => false
         );
-				if ($action == 'edit') unset($formSettings['value']);
         echo $this->Form->input('Attribute.' . $k . '.category', $formSettings);
       ?>
     </td>

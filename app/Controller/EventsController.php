@@ -716,6 +716,9 @@ class EventsController extends AppController {
 	}
 
 	public function viewEventAttributes($id, $all = false) {
+		if (isset($this->params['named']['focus'])) {
+			$this->set('focus', $this->params['named']['focus']);
+		}
 		$conditions = array('eventid' => $id);
 		if (isset($this->params['named']['deleted']) && $this->params['named']['deleted']) {
 			$conditions['deleted'] = 1;
@@ -774,6 +777,16 @@ class EventsController extends AppController {
 		$this->disableCache();
 		$this->layout = 'ajax';
 		$this->loadModel('Sighting');
+		$uriArray = explode('/', $this->params->here);
+		foreach ($uriArray as $k => $v) {
+			if (strpos($v, ':')) {
+				$temp = explode(':', $v);
+				if ($temp[0] == 'focus') {
+					unset($uriArray[$k]);
+				}
+			}
+			$this->params->here = implode('/', $uriArray);
+		}
 		$this->set('sightingTypes', $this->Sighting->type);
 		$this->set('currentUri', $this->params->here);
 		$this->render('/Elements/eventattribute');
@@ -894,6 +907,7 @@ class EventsController extends AppController {
 		$this->set('typeGroups', array_keys($this->Event->Attribute->typeGroupings));
 		$this->loadModel('Sighting');
 		$this->set('sightingTypes', $this->Sighting->type);
+		$this->set('currentUri', '/events/viewEventAttributes/' . $event['Event']['id']);
 	}
 
 	public function view($id = null, $continue=false, $fromEvent=null) {
