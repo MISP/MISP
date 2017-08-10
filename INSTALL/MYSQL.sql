@@ -468,7 +468,7 @@ CREATE TABLE IF NOT EXISTS object_references (
   PRIMARY KEY (id),
   INDEX `uuid` (`uuid`),
   INDEX `timestamp` (`timestamp`),
-  INDEX `referenced_uuid` (`referenced_uuid`),
+  INDEX `referenced_id` (`referenced_id`),
   INDEX `relationship_type` (`relationship_type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
