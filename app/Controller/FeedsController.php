@@ -336,9 +336,9 @@ class FeedsController extends AppController {
 			$this->Feed->data['Feed']['settings'] = json_decode($this->Feed->data['Feed']['settings'], true);
 		}
 		if ($this->Feed->data['Feed']['source_format'] == 'misp') {
-			$this->__previewIndex($this->Feed->data);
+			return $this->__previewIndex($this->Feed->data);
 		} else if (in_array($this->Feed->data['Feed']['source_format'], array('freetext', 'csv'))) {
-			$this->__previewFreetext($this->Feed->data);
+			return $this->__previewFreetext($this->Feed->data);
 		}
 	}
 
@@ -351,15 +351,22 @@ class FeedsController extends AppController {
 		$syncTool = new SyncTool();
 		$HttpSocket = $syncTool->setupHttpSocketFeed($feed);
 		$events = $this->Feed->getManifest($feed, $HttpSocket);
+		if ($this->_isRest()) {
+				return $this->RestResponse->viewData($events, $this->response->type());
+		}
 		if (isset($events['code'])) throw new NotFoundException('Feed could not be fetched. The HTTP error code returned was: ' .$events['code']);
 		$pageCount = count($events);
 		App::uses('CustomPaginationTool', 'Tools');
 		$customPagination = new CustomPaginationTool();
+		if ($this->_isRest()) {
+			if (!isset($this->passedArgs['page'])) {
+				$this->passedArgs['page'] = 0;
+			}
+		}
 		$params = $customPagination->createPaginationRules($events, $this->passedArgs, $this->alias);
 		$this->params->params['paging'] = array($this->modelClass => $params);
 		if (is_array($events)) $customPagination->truncateByPagination($events, $params);
 		else ($events = array());
-
 		$this->set('events', $events);
 		$this->loadModel('Event');
 		$threat_levels = $this->Event->ThreatLevel->find('all');
@@ -415,6 +422,9 @@ class FeedsController extends AppController {
 		$this->set('correlatingEventInfos', $correlatingEventInfos);
 		$this->set('distributionLevels', $this->Attribute->distributionLevels);
 		$this->set('feed', $feed);
+		if ($this->_isRest()) {
+			return $this->RestResponse->viewData($resultArray, $this->response->type());
+		}
 		$this->set('attributes', $resultArray);
 		$this->render('freetext_index');
 	}
@@ -453,6 +463,9 @@ class FeedsController extends AppController {
 		if (!$this->Feed->exists()) throw new NotFoundException('Invalid feed.');
 		$this->Feed->read();
 		$event = $this->Feed->downloadEventFromFeed($this->Feed->data, $eventUuid, $this->Auth->user());
+		if ($this->_isRest()) {
+				return $this->RestResponse->viewData($event, $this->response->type());
+		}
 		if (is_array($event)) {
 			$this->loadModel('Event');
 			$params = $this->Event->rearrangeEventForView($event, $this->passedArgs, $all);
