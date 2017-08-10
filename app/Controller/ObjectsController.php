@@ -262,7 +262,8 @@ class ObjectsController extends AppController {
 									'success' => $message
 								)
 							),
-							'status'=>200
+							'status'=>200,
+							'type' => 'json'
 						)
 					);
 				} else if ($this->_isRest()) {
@@ -281,13 +282,15 @@ class ObjectsController extends AppController {
 				if ($this->request->is('ajax')) {
 					return new CakeResponse(
 						array(
-						'body'=> json_encode(
-							array(
-								'saved' => false,
-								'errors' => $message
-							)
-						),
-						'status'=>200)
+							'body'=> json_encode(
+								array(
+									'saved' => false,
+									'errors' => $message
+								)
+							),
+							'status'=>200,
+							'type' => 'json'
+						)
 					);
 				} else if ($this->_isRest()) {
 					return $this->RestResponse->saveFailResponse(

@@ -93,14 +93,14 @@ class ObjectReferencesController extends AppController {
 						'conditions' => array('ObjectReference' => $this->ObjectReference->id)
 					));
 					return $this->RestResponse->viewData($object, $this->response->type());
-				} else {
-					return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Object reference added.')),'status'=>200));
+				} else if ($this->request->is('ajax')) {
+					return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Object reference added.')),'status'=>200, 'type' => 'json'));
 				}
 			} else {
 				if ($this->_isRest()) {
 					return $this->RestResponse->saveFailResponse('ObjectReferences', 'add', false, $this->ObjectReference->validationErrors, $this->response->type());
 				} else if ($this->request->is('ajax')) {
-					return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Object reference could not be added.')),'status'=>200));
+					return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Object reference could not be added.')),'status'=>200, 'type' => 'json'));
 				}
 			}
 		} else {
