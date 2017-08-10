@@ -8,12 +8,12 @@
 	<table>
 		<tr>
 			<td style="vertical-align:top">
-				<button id="PromptYesButton" class="btn btn-primary" onClick="submitDeletion(<?php echo $template_id; ?>, 'delete', 'template_elements', <?php echo $id;?>)">Yes</button>
+				<span id="PromptYesButton" class="btn btn-primary" onClick="submitDeletion(<?php echo $template_id; ?>, 'delete', 'template_elements', <?php echo $id;?>)">Yes</span>
 			</td>
 			<td style="width:540px;">
 			</td>
 			<td style="vertical-align:top;">
-				<button class="btn btn-inverse" id="PromptNoButton" onClick="cancelPrompt();">No</button>
+				<span class="btn btn-inverse" id="PromptNoButton" onClick="cancelPrompt();">No</span>
 			</td>
 		</tr>
 	</table>

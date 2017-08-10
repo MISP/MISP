@@ -41,10 +41,8 @@ class TemplateElementsController extends AppController {
 	}
 
 	public function templateElementAddChoices($id) {
-
 		if (!$this->_isSiteAdmin() && !$this->TemplateElement->Template->checkAuthorisation($id, $this->Auth->user(), true)) throw new MethodNotAllowedException('You are not authorised to do that.');
-
-		if (!$this->request->is('ajax')) Throw new MethodNotAllowedException('This action is for ajax requests only.');
+		if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This action is for ajax requests only.');
 		$this->set('id', $id);
 		$this->layout = 'ajax';
 		$this->render('ajax/template_element_add_choices');
@@ -52,11 +50,8 @@ class TemplateElementsController extends AppController {
 
 	public function add($type, $id) {
 		$ModelType = 'TemplateElement' . ucfirst($type);
-
-		if (!$this->_isSiteAdmin() && !$this->TemplateElement->Template->checkAuthorisation($id, $this->Auth->user(), true)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You are not authorised to do that.')), 'status' => 200));
-
-		if (!$this->request->is('ajax')) Throw new MethodNotAllowedException('This action is for ajax requests only.');
-
+		if (!$this->_isSiteAdmin() && !$this->TemplateElement->Template->checkAuthorisation($id, $this->Auth->user(), true)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You are not authorised to do that.')), 'status' => 200, 'type' => 'json'));
+		if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This action is for ajax requests only.');
 		if ($this->request->is('get')) {
 			$this->set('id', $id);
 			if ($type == 'attribute') {
@@ -128,7 +123,7 @@ class TemplateElementsController extends AppController {
 			} else {
 				$errorMessage = $this->TemplateElement->validationErrors;
 			}
-			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $errorMessage)), 'status' => 200));
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $errorMessage)), 'status' => 200, 'type' => 'json'));
 		}
 	}
 
@@ -139,7 +134,7 @@ class TemplateElementsController extends AppController {
 			'contain' => array('Template', $ModelType)
 		));
 		$this->set('template_id', $templateElement['Template']['id']);
-		if (!$this->_isSiteAdmin() && !$this->TemplateElement->Template->checkAuthorisation($id, $this->Auth->user(), true)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You are not authorised to do that.')), 'status' => 200));
+		if (!$this->_isSiteAdmin() && !$this->TemplateElement->Template->checkAuthorisation($id, $this->Auth->user(), true)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You are not authorised to do that.')), 'status' => 200, 'type' => 'json'));
 
 		if (!$this->request->is('ajax')) Throw new MethodNotAllowedException('This action is for ajax requests only.');
 		if ($this->request->is('get')) {
@@ -199,12 +194,12 @@ class TemplateElementsController extends AppController {
 			$this->request->data[$ModelType]['id'] = $templateElement[$ModelType][0]['id'];
 			$this->request->data[$ModelType]['template_element_id'] = $templateElement[$ModelType][0]['template_element_id'];
 			if ($this->TemplateElement->$ModelType->save($this->request->data)) {
-				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Element successfully edited.')), 'status' => 200));
+				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Element successfully edited.')), 'status' => 200, 'type' => 'json'));
 			} else {
 				$this->TemplateElement->delete($this->TemplateElement->id);
 				$errorMessage = $this->TemplateElement->$ModelType->validationErrors;
 			}
-			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'The element could not be edited.')), 'status' => 200));
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'The element could not be edited.')), 'status' => 200, 'type' => 'json'));
 		}
 	}
 
@@ -220,12 +215,12 @@ class TemplateElementsController extends AppController {
 				if ($this->TemplateElement->$type->delete($this->TemplateElement->data[$type][0]['id'])) {
 					$this->TemplateElement->delete($this->TemplateElement->data['TemplateElement']['id']);
 					$this->TemplateElement->Template->trimElementPositions($this->TemplateElement->data['TemplateElement']['template_id']);
-					return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Element deleted.')), 'status' => 200));
+					return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Element deleted.')), 'status' => 200, 'type' => 'json'));
 				} else {
-					return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'errors' => 'Couldn\'t delete the Element')), 'status' => 200));
+					return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'errors' => 'Couldn\'t delete the Element')), 'status' => 200, 'type' => 'json'));
 				}
 			} else {
-				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'errors' => 'You don\'t have permission to do that.')), 'status' => 200));
+				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'errors' => 'You don\'t have permission to do that.')), 'status' => 200, 'type' => 'json'));
 			}
 		} else {
 			$this->set('id', $id);

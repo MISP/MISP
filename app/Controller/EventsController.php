@@ -2943,7 +2943,7 @@ class EventsController extends AppController {
 
 	public function addTag($id = false, $tag_id = false) {
 		if (!$this->request->is('post')) {
-			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200));
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200, 'type' => 'json'));
 		}
 		$rearrangeRules = array(
 				'request' => false,
@@ -2962,7 +2962,7 @@ class EventsController extends AppController {
 		}
 		if (!is_numeric($tag_id)) {
 			$tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => $conditions));
-			if (empty($tag)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200));
+			if (empty($tag)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200, 'type' => 'json'));
 			$tag_id = $tag['Tag']['id'];
 		}
 		$this->Event->recursive = -1;
@@ -2970,12 +2970,12 @@ class EventsController extends AppController {
 
 		if (!$this->_isSiteAdmin() && !$this->userRole['perm_sync']) {
 			if (!$this->userRole['perm_tagger'] || ($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id'])) {
-				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200));
+				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200, 'type' => 'json'));
 			}
 		}
 		$this->Event->EventTag->Tag->id = $tag_id;
 		if (!$this->Event->EventTag->Tag->exists()) {
-			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200));
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid Tag.')), 'status'=>200, 'type' => 'json'));
 		}
 		$tag = $this->Event->EventTag->Tag->find('first', array(
 			'conditions' => array('Tag.id' => $tag_id),
@@ -2990,7 +2990,7 @@ class EventsController extends AppController {
 			'recursive' => -1,
 		));
 		$this->autoRender = false;
-		if (!empty($found)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Tag is already attached to this event.')), 'status'=>200));
+		if (!empty($found)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Tag is already attached to this event.')), 'status'=>200, 'type' => 'json'));
 		$this->Event->EventTag->create();
 		if ($this->Event->EventTag->save(array('event_id' => $id, 'tag_id' => $tag_id))) {
 			$event['Event']['published'] = 0;
@@ -2999,9 +2999,9 @@ class EventsController extends AppController {
 			$this->Event->save($event);
 			$log = ClassRegistry::init('Log');
 			$log->createLogEntry($this->Auth->user(), 'tag', 'Event', $id, 'Attached tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" to event (' . $id . ')', 'Event (' . $id . ') tagged as Tag (' . $tag_id . ')');
-			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Tag added.', 'check_publish' => true)), 'status'=>200));
+			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Tag added.', 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
 		} else {
-			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Tag could not be added.')),'status'=>200));
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Tag could not be added.')), 'status'=>200, 'type' => 'json'));
 		}
 	}
 
@@ -3023,10 +3023,10 @@ class EventsController extends AppController {
 			$this->request->data = $RearrangeTool->rearrangeArray($this->request->data, $rearrangeRules);
 			if ($id === false) $id = $this->request->data['event'];
 			if ($tag_id === false) $tag_id = $this->request->data['tag'];
-			if (empty($tag_id)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid ' . ($galaxy ? 'Galaxy' : 'Tag') . '.')),'status'=>200));
+			if (empty($tag_id)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid ' . ($galaxy ? 'Galaxy' : 'Tag') . '.')), 'status'=>200, 'type' => 'json'));
 			if (!is_numeric($tag_id)) {
 				$tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => array('LOWER(Tag.name) LIKE' => strtolower(trim($tag_id)))));
-				if (empty($tag)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid ' . ($galaxy ? 'Galaxy' : 'Tag') . '.')), 'status'=>200));
+				if (empty($tag)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid ' . ($galaxy ? 'Galaxy' : 'Tag') . '.')), 'status'=>200, 'type' => 'json'));
 				$tag_id = $tag['Tag']['id'];
 			}
 			if (!is_numeric($id)) $id = $this->request->data['Event']['id'];
@@ -3034,7 +3034,7 @@ class EventsController extends AppController {
 			$event = $this->Event->read(array(), $id);
 			// org should allow to tag too, so that an event that gets pushed can be tagged locally by the owning org
 			if ((($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id']) || (!$this->userRole['perm_tagger'])) && !$this->_isSiteAdmin()) {
-				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')),'status'=>200));
+				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200, 'type' => 'json'));
 			}
 			$eventTag = $this->Event->EventTag->find('first', array(
 				'conditions' => array(
@@ -3044,7 +3044,7 @@ class EventsController extends AppController {
 				'recursive' => -1,
 			));
 			$this->autoRender = false;
-			if (empty($eventTag)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid event - ' . ($galaxy ? 'galaxy' : 'tag') . ' combination.')),'status'=>200));
+			if (empty($eventTag)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid event - ' . ($galaxy ? 'galaxy' : 'tag') . ' combination.')), 'status'=>200, 'type' => 'json'));
 			$tag = $this->Event->EventTag->Tag->find('first', array(
 				'conditions' => array('Tag.id' => $tag_id),
 				'recursive' => -1,
@@ -3057,9 +3057,9 @@ class EventsController extends AppController {
 				$this->Event->save($event);
 				$log = ClassRegistry::init('Log');
 				$log->createLogEntry($this->Auth->user(), 'tag', 'Event', $id, 'Removed tag (' . $tag_id . ') "' . $tag['Tag']['name'] . '" from event (' . $id . ')', 'Event (' . $id . ') untagged of Tag (' . $tag_id . ')');
-				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => ($galaxy ? 'Galaxy' : 'Tag') . ' removed.', 'check_publish' => true)), 'status'=>200));
+				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => ($galaxy ? 'Galaxy' : 'Tag') . ' removed.', 'check_publish' => true)), 'status'=>200, 'type' => 'json'));
 			} else {
-				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => ($galaxy ? 'Galaxy' : 'Tag') . ' could not be removed.')),'status'=>200));
+				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => ($galaxy ? 'Galaxy' : 'Tag') . ' could not be removed.')), 'status'=>200, 'type' => 'json'));
 			}
 		}
 	}
@@ -3833,7 +3833,8 @@ class EventsController extends AppController {
 				$item = utf8_encode($item);
 			}
 		});
-		return new CakeResponse(array('body' => json_encode($json), 'status' => 200));
+		$this->response->type('json');
+		return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
 	}
 
 	private function __buildGraphJson($id, $json = array()) {
@@ -4299,7 +4300,7 @@ class EventsController extends AppController {
 		if (empty($event)) {
 			throw new NotFoundException('Invalid event');
 		}
-		return new CakeResponse(array('body'=> h($event[0]['Event']['published']), 'status'=>200));
+		return new CakeResponse(array('body'=> h($event[0]['Event']['published']), 'status'=>200, 'type' => 'txt'));
 	}
 
 	public function pushEventToZMQ($id) {
@@ -4320,7 +4321,7 @@ class EventsController extends AppController {
 			$message = 'This functionality is only available via POST requests';
 		}
 		if ($this->_isRest()) {
-			return $this->RestResponse->viewData($events, $this->response->type());
+			return $this->RestResponse->saveSuccessResponse('Events', 'pushEventToZMQ', $id, $this->response->type(), $message);
 		} else {
 			$this->Session->setFlash($message);
 			$this->redirect($this->referer());

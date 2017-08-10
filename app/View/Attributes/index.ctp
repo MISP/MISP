@@ -77,10 +77,26 @@ foreach ($attributes as $attribute):
 		<?php if (Configure::read('MISP.showorg') || $isAdmin): ?>
 		<td class="short" ondblclick="document.location.href ='<?php echo $baseurl;?>/events/view/<?php echo $attribute['Event']['id'];?>'">
 			<?php
-				$imgRelativePath = 'orgs' . DS . h($attribute['Event']['Orgc']['name']) . '.png';
+				$imgRelativePath = 'orgs' . DS . h($orgs[$attribute['Event']['orgc_id']]) . '.png';
 				$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
-				if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($attribute['Event']['Orgc']['name']) . '.png', array('alt' => h($attribute['Event']['Orgc']['name']), 'title' => h($attribute['Event']['Orgc']['name']), 'style' => 'width:24px; height:24px'));
-				else echo $this->Html->tag('span', h($attribute['Event']['Orgc']['name']), array('class' => 'welcome', 'style' => 'float:left;'));
+				if (file_exists($imgAbsolutePath)) {
+					echo $this->Html->image(
+						'orgs/' . h($orgs[$attribute['Event']['orgc_id']]) . '.png',
+						array('alt' => h($orgs[$attribute['Event']['orgc_id']]),
+							'title' => h($orgs[$attribute['Event']['orgc_id']]),
+							'style' => 'width:24px; height:24px'
+						)
+					);
+				} else {
+					echo $this->Html->tag(
+						'span',
+						h($orgs[$attribute['Event']['orgc_id']]),
+						array(
+							'class' => 'welcome',
+							'style' => 'float:left;'
+						)
+					);
+				}
 			?>
 			&nbsp;
 		</td>

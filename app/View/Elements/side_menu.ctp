@@ -4,7 +4,7 @@
 			switch ($menuList) {
 				case 'event':
 		?>
-					<div id="hiddenSideMenuData" class="hidden" data-event-id="<?php echo isset($event['Event']['id']) ? $event['Event']['id'] : 0; ?>"></div>
+					<div id="hiddenSideMenuData" class="hidden" data-event-id="<?php echo isset($event['Event']['id']) ? h($event['Event']['id']) : 0; ?>"></div>
 		<?php
 					if (
 						$menuItem === 'addAttribute' ||
