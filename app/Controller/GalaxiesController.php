@@ -16,8 +16,15 @@ class GalaxiesController extends AppController {
 	);
 
 	public function index() {
-		$galaxies = $this->paginate();
-		$this->set('list', $galaxies);
+		if ($this->_isRest()) {
+			$galaxies = $this->Galaxy->find('all',array('recursive' => -1));
+			$this->set('galaxies', $galaxies);
+			$this->set('_serialize', array('galaxies'));
+			//return $this->RestResponse->viewData($galaxies, $this->response->type());
+		}else{
+			$galaxies = $this->paginate();
+			$this->set('list', $galaxies);
+		}
 	}
 
 	public function update() {
