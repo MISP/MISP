@@ -1,8 +1,8 @@
 <?php
 /*
- * Reset a password
+ * Enable/disable misp
  *
- * arg0 = baseurl
+ * arg0 = [0|1]
  */
 class LiveShell extends AppShell {
 
@@ -13,7 +13,7 @@ class LiveShell extends AppShell {
 		if ($live != 0 && $live != 1) {
 			echo 'Invalid parameters. Usage: /var/www/MISP/app/Console/cake Live [0|1]';
 		} else {
-			$this->Server->serverSettingsSaveValue('MISP.live', $live);
+			$this->Server->serverSettingsSaveValue('MISP.live', $live==1);
 		}
 		$status = $live ? 'MISP is now live. Users can now log in.' : 'MISP is now disabled. Only site admins can log in.';
 		echo $status;
