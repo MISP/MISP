@@ -109,7 +109,21 @@ class RestResponseComponent extends Component {
 
 	private function __sendResponse($response, $code, $format = false, $raw = false, $download = false) {
 		if (strtolower($format) === 'application/xml') {
-			if (!$raw) $response = Xml::build($response);
+			if (!$raw) {
+				if (isset($response[0])) {
+					if (count(array_keys($response[0])) == 1) {
+						$key = array_keys($response[0])[0];
+						$rearrange = array();
+						foreach ($response as $k => $v) {
+							$rearrange[$key][] = $v[$key];
+						}
+						$response = $rearrange;
+					}
+				}
+				$response = array('response' => $response);
+				$response = Xml::build($response);
+				$response = $response->asXML();
+			}
 			$type = 'xml';
 		} else if(strtolower($format) == 'openioc') {
 			$type = 'xml';
