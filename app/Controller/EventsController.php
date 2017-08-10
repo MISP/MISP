@@ -907,7 +907,13 @@ class EventsController extends AppController {
 		$this->set('typeGroups', array_keys($this->Event->Attribute->typeGroupings));
 		$this->loadModel('Sighting');
 		$this->set('sightingTypes', $this->Sighting->type);
-		$this->set('currentUri', '/events/viewEventAttributes/' . $event['Event']['id']);
+		$attributeUri = '/events/viewEventAttributes/' . $event['Event']['id'];
+		foreach ($this->params->named as $k => $v) {
+			if (!is_numeric($k)) {
+				$attributeUri .= '/' . $v;
+			}
+		}
+		$this->set('currentUri', $attributeUri);
 	}
 
 	public function view($id = null, $continue=false, $fromEvent=null) {

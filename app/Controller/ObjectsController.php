@@ -71,8 +71,10 @@ class ObjectsController extends AppController {
 			}
 			if (empty($error)) {
 				$error = $this->MispObject->ObjectTemplate->checkTemplateConformity($template, $object);
-				if ($error === true) {
+				if ($error === false) {
 						$result = $this->MispObject->saveObject($object, $eventId, $template, $this->Auth->user(), $errorBehaviour = 'halt');
+				} else {
+					$result = false;
 				}
 				if ($this->_isRest()) {
 					if (is_numeric($result)) {
@@ -86,8 +88,10 @@ class ObjectsController extends AppController {
 						return $this->RestResponse->saveFailResponse('Attributes', 'add', false, $result, $this->response->type());
 					}
 				} else {
-					 $this->Session->setFlash('Object saved.');
-					 $this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
+					if (is_numeric($result)) {
+						$this->Session->setFlash('Object saved.');
+						$this->redirect(array('controller' => 'events', 'action' => 'view', $eventId));
+					}
 				}
 			}
 		}

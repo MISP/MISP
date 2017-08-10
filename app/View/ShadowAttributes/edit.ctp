@@ -9,11 +9,15 @@
 			'div' => 'input',
 			'label' => 'Category ' . $this->element('formInfo', array('type' => 'category')),
 		));
+		$typeInputData = array(
+			'empty' => '(first choose category)',
+			'label' => 'Type ' . $this->element('formInfo', array('type' => 'type')),
+		);
+		if ($objectAttribute) {
+			$typeInputData[] = 'disabled';
+		}
 		if (!$attachment) {
-			echo $this->Form->input('type', array(
-				'empty' => '(first choose category)',
-				'label' => 'Type ' . $this->element('formInfo', array('type' => 'type')),
-			));
+			echo $this->Form->input('type', $typeInputData);
 		}
 	?>
 	<div class="input clear"></div>

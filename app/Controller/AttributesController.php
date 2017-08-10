@@ -729,7 +729,12 @@ class AttributesController extends AppController {
 
 			// enabling / disabling the distribution field in the edit view based on whether user's org == orgc in the event
 			$this->Event->read();
-			if ($this->Attribute->save($this->request->data)) {
+			if ($this->Attribute->data['Attribute']['object_id']) {
+				$result = $this->Attribute->save($this->request->data, array('Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.comment', 'Attribute.distribution', 'Attribute.sharing_group_id'));
+			} else {
+				$result = $this->Attribute->save($this->request->data);
+			}
+			if ($result) {
 				$this->Session->setFlash(__('The attribute has been saved'));
 				// remove the published flag from the event
 				$this->Event->set('timestamp', $date->getTimestamp());
@@ -760,7 +765,11 @@ class AttributesController extends AppController {
 			$this->request->data = $this->Attribute->read(null, $id);
 		}
 		$this->set('attribute', $this->request->data);
-
+		if ($this->request->data['Attribute']['object_id']) {
+			$this->set('objectAttribute', true);
+		} else {
+			$this->set('objectAttribute', false);
+		}
 		// enabling / disabling the distribution field in the edit view based on whether user's org == orgc in the event
 		$this->loadModel('Event');
 		$this->Event->id = $eventId;
@@ -777,9 +786,6 @@ class AttributesController extends AppController {
 		$types = $this->_arrayToValuesIndexArray($types);
 		$this->set('types', $types);
 		// combobox for categories
-		$categories = array_keys($this->Attribute->categoryDefinitions);
-		$categories = $this->_arrayToValuesIndexArray($categories);
-		$this->set('categories', $categories);
 		$this->set('currentDist', $this->Event->data['Event']['distribution']);
 
 		$this->loadModel('SharingGroup');
@@ -802,7 +808,23 @@ class AttributesController extends AppController {
 		$this->set('info', $info);
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
 		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
-		$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
+		$categoryDefinitions = $this->Attribute->categoryDefinitions;
+		$categories = array_keys($this->Attribute->categoryDefinitions);
+		$categories = $this->_arrayToValuesIndexArray($categories);
+		if ($this->request->data['Attribute']['object_id']) {
+			foreach ($categoryDefinitions as $k => $v) {
+				if (!in_array($this->request->data['Attribute']['type'], $v['types'])) {
+					unset($categoryDefinitions[$k]);
+				}
+			}
+			foreach ($categories as $k => $v) {
+				if (!isset($categoryDefinitions[$k])) {
+					unset($categories[$k]);
+				}
+			}
+		}
+		$this->set('categories', $categories);
+		$this->set('categoryDefinitions', $categoryDefinitions);
 	}
 
 	// ajax edit - post a single edited field and this method will attempt to save it and return a json with the validation errors if they occur.
