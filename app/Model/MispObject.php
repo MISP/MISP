@@ -321,9 +321,6 @@ class MispObject extends AppModel {
 				$tmpfile->close();
 			}
 			unset($attributes['Attribute'][$k]['save']);
-			if ($attribute['distribution'] != 4) {
-				$attributes['Attribute'][$k]['sharing_group_id'] = 0;
-			}
 		}
 		return $attributes;
 	}
