@@ -756,7 +756,7 @@ class UsersController extends AppController {
 				'fields' => array('User.password'),
 				'recursive' => -1
 			));
-			if (strlen($userPass['User']['password']) == 40) {
+			if (!empty($userPass) && strlen($userPass['User']['password']) == 40) {
 				$this->AdminSetting = ClassRegistry::init('AdminSetting');
 				$db_version = $this->AdminSetting->find('all', array('conditions' => array('setting' => 'db_version')));
 				$versionRequirementMet = $this->User->checkVersionRequirements($db_version[0]['AdminSetting']['value'], '2.4.77');
