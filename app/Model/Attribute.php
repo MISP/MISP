@@ -537,8 +537,6 @@ class Attribute extends AppModel {
 			}
 		}
 
-		if ($this->data['Attribute']['distribution'] != 4) $this->data['Attribute']['sharing_group_id'] = 0;
-
 		// update correlation... (only needed here if there's an update)
 		if ($this->id || !empty($this->data['Attribute']['id'])) {
 			$this->__beforeSaveCorrelation($this->data['Attribute']);
@@ -634,9 +632,24 @@ class Attribute extends AppModel {
 			$this->data['Attribute']['value'] = $result;
 		}
 
-		// TODO: add explanatory comment
-		if (!isset($this->data['Attribute']['distribution']) || $this->data['Attribute']['distribution'] != 4) $this->data['Attribute']['sharing_group_id'] = 0;
-		if (!isset($this->data['Attribute']['distribution'])) $this->data['Attribute']['distribution'] = 5;
+		// Set defaults for when some of the mandatory fields don't have defaults
+		// These fields all have sane defaults either based on another field, or due to server settings
+		if (empty($this->data['Attribute']['distribution'])) {
+			$this->data['Attribute']['distribution'] = Configure::read('MISP.default_attribute_distribution');
+			if ($this->data['Attribute']['distribution'] == 'event') {
+				$this->data['Attribute']['distribution'] = 5;
+			}
+		}
+
+		if (!empty($this->data['Attribute']['type']) && empty($this->data['Attribute']['category'])) {
+			$this->data['Attribute']['category'] = $this->typeDefinitions[$this->data['Attribute']['type']]['default_category'];
+		}
+
+		if (!isset($this->data['Attribute']['to_ids'])) {
+			$this->data['Attribute']['to_ids'] = $this->typeDefinitions[$this->data['Attribute']['type']]['to_ids'];
+		}
+
+		if ($this->data['Attribute']['distribution'] != 4) $this->data['Attribute']['sharing_group_id'] = 0;
 
 		// return true, otherwise the object cannot be saved
 		return true;
