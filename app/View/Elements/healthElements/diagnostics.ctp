@@ -342,5 +342,21 @@
         Non existing attachments referenced in Database....<span id="orphanedFileCount"><span style="color:orange;">Run the test below</span></span>
     </div><br>
 	<span class="btn btn-inverse" role="button" tabindex="0" aria-label="Check bad link on attachments" title="Check bad link on attachments" style="padding-top:1px;padding-bottom:1px;" onClick="checkAttachments();">Check bad link on attachments</span>
-
+	<hr>
+	<h3>
+		Make all tag with disable taxonomy to hidden
+	</h3>
+	<p>You can restrict the use of taxonomy to your instance from the list of taxonomies.</p>
+	<p>To be sure that other tag imported are not selectable too, you must change MISP.incoming_tags_disabled_by_default to true.</p>
+	<p>but for old tags, you need to make all tag as disable. For those who are not in an enable taxonomy</p>
+	<div style="background-color:#f7f7f9;width:400px;">
+        <span id="hideThemAllResult"><span style="color:orange;">Run the test below</span></span>
+    </div><br>
+	<span class="btn btn-inverse" 
+		role="button" tabindex="0" 
+		aria-label="Hide them all" 
+		title="Check bad link on attachments" 
+		style="padding-top:1px;padding-bottom:1px;" 
+		onClick="hideThemAll();">Hide them all</span>
+	<div class = 'input clear'></div>
 </div>

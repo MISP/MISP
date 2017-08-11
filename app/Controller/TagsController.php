@@ -735,4 +735,23 @@ class TagsController extends AppController {
 			return $this->RestResponse->saveFailResponse('Tags', 'removeTagFromObject', false, 'Failed to remove tag from object.', $this->response->type());
 		}
 	}
+
+	public function hideThemAll(){
+		$this->loadModel('Taxonomy');
+		$taxonomyEnabled = $this->Taxonomy->listTaxonomies(array('full' => false, 'enabled' => true));
+
+		$allTags = $this->Tag->find('all');
+		$modifiedTags = array();
+		foreach($allTags as $k => $v){
+			if($v['Tag']['hide_tag'] == false){
+
+				if (!in_array(explode(':', $v['Tag']['name'])[0], array_keys($taxonomyEnabled))){
+					$v['Tag']['hide_tag'] = true;
+					$this->Tag->save($v['Tag']);
+					$modifiedTags[] = $v['Tag']['name'];
+				}
+			}
+		}
+		return new CakeResponse(array('body'=>json_encode($modifiedTags), 'status'=>200));
+	}
 }

@@ -2849,6 +2849,32 @@ function checkAttachments() {
 	});
 }
 
+function hideThemAll(){
+	$.getJSON("/tags/hideThemAll/", function(data){
+		var color = 'grey';
+		var text = ' tag(s) and not in an enable taxonomy will become hidden ';
+		if (data !== undefined && data.length == '0') {
+			color = 'green';
+			text = ' No tag (not in an enable taxonomy) have the field "hidden" to false';
+			$("#hideThemAllResult").html('<span class="' + color + '">' + text + '</span>');
+		}else{
+			$("#hideThemAllResult").html('<span class="' + color + '">' + data.length + text + '</span>');
+		
+			$('<ul>', {
+				id:"hideThemAllResultList",
+				class:"list-group"})
+				.appendTo("#hideThemAllResult");
+			$.each( data, function( key, val ) {
+				$('<li class="list-group-item">').text(val).appendTo("#hideThemAllResultList");
+			});
+		}
+	})
+	.done(function(){$(".loading").show()})
+	.complete(function(){$(".loading").hide()})
+	.fail(function(data){console.log(data)});
+}
+
+
 function loadTagTreemap() {
 	$.ajax({
 		async:true,
