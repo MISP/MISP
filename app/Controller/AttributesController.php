@@ -883,6 +883,7 @@ class AttributesController extends AppController {
 		if ($this->_isRest()) {
 			$conditions = array('conditions' => array('Attribute.id' => $id), 'withAttachments' => true);
 			$conditions['includeAllTags'] = false;
+			$conditions['includeAttributeUuid'] = true;
 			$attribute = $this->Attribute->fetchAttributes($this->Auth->user(), $conditions);
 			if (empty($attribute)) throw new MethodNotAllowedException('Invalid attribute');
 			$attribute = $attribute[0];
