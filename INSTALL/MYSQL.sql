@@ -319,7 +319,7 @@ CREATE TABLE IF NOT EXISTS galaxy_elements (
   PRIMARY KEY (`id`),
   INDEX `key` (`key`),
   INDEX `value` (`value`(255)),
-  INDEX `galaxy_clusters_id` (`galaxy_clusters_id`)
+  INDEX `galaxy_cluster_id` (`galaxy_cluster_id`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- -------------------------------------------------------
