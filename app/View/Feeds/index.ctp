@@ -22,6 +22,9 @@
 		?>
 		</ul>
 	</div>
+	<div class="control-group">
+		<a href="feeds/fetchFromAllFeeds" class="btn btn-primary">Fetch all feeds</a>
+	</div>
 	<div class="tabMenuFixedContainer" style="display:inline-block;">
   		<span role="button" tabindex="0" aria-label="Default feeds filter" title="Default feeds" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'default' ? 'tabMenuActive' : ''; ?>" onclick="window.location='/feeds/index/scope:default'">Default feeds</span>
   		<span role="button" tabindex="0" aria-label="Custom feeds filter" title="Custom feeds" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'custom' ? 'tabMenuActive' : ''; ?> " onclick="window.location='/feeds/index/scope:custom'">Custom Feeds</span>
