@@ -56,7 +56,6 @@ class TaxonomiesController extends AppController {
 		if ($params['sort'] == 'id') $params['sort'] = 'tag';
 		$this->params->params['paging'] = array($this->modelClass => $params);
 		$params = $customPagination->applyRulesOnArray($taxonomy['entries'], $params, 'taxonomies');
-		$customPagination->truncateByPagination($taxonomy['entries'], $params);
 		$this->set('entries', $taxonomy['entries']);
 		$this->set('urlparams', $urlparams);
 		$this->set('passedArgs', json_encode($passedArgs));
