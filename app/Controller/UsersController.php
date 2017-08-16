@@ -764,6 +764,7 @@ class UsersController extends AppController {
 					$passwordToSave = $this->request->data['User']['password'];
 				}
 				unset($this->Auth->authenticate['Form']['passwordHasher']);
+				$this->Auth->constructAuthenticate();
 			}
 		}
 		if ($this->Auth->login()) {
