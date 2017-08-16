@@ -47,7 +47,7 @@ class AppModel extends Model {
 				58 => false, 59 => false, 60 => false, 61 => false, 62 => false,
 				63 => false, 64 => false, 65 => false, 66 => false, 67 => true,
 				68 => false, 69 => false, 71 => false, 72 => false, 73 => false,
-				75 => false, 77 => false
+				75 => false, 77 => false, 78 => false
 			)
 		)
 	);
@@ -701,6 +701,12 @@ class AppModel extends Model {
 				break;
 			case '2.4.77':
 				$sqlArray[] = 'ALTER TABLE `users` CHANGE `password` `password` VARCHAR(255) COLLATE utf8_bin NOT NULL;';
+				break;
+			case '2.4.78':
+				$sqlArray[] = "ALTER TABLE galaxy_clusters ADD COLUMN version int(11) DEFAULT 0;";
+				$this->__addIndex('galaxy_clusters', 'version');
+				$this->__addIndex('galaxy_clusters', 'galaxy_id');
+				$this->__addIndex('galaxy_elements', 'galaxy_cluster_id');
 				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';

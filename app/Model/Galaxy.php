@@ -21,7 +21,7 @@ class Galaxy extends AppModel{
 		parent::beforeValidate();
 		return true;
 	}
-	
+
 	public function beforeDelete($cascade = true) {
 		$this->GalaxyCluster->deleteAll(array('GalaxyCluster.galaxy_id' => $this->id));
 	}
@@ -35,13 +35,32 @@ class Galaxy extends AppModel{
 			$galaxies[] = json_decode($file->read(), true);
 			$file->close();
 		}
+		$galaxyTypes = array();
 		foreach ($galaxies as $galaxy) {
-			$this->deleteAll(array('Galaxy.type' => $galaxy['type']));
+			$galaxyTypes[$galaxy['type']] = $galaxy['type'];
 		}
-		$this->saveMany($galaxies);
+		$temp = $this->find('all', array(
+			'fields' => array('uuid', 'version', 'id'),
+			'recursive' => -1
+		));
+		$existingGalaxies = array();
+		foreach ($temp as $k => $v) {
+			$existingGalaxies[$v['Galaxy']['uuid']] = $v['Galaxy'];
+		}
+		foreach ($galaxies as $k => $galaxy) {
+			if (isset($existingGalaxies[$galaxy['uuid']])) {
+				if ($existingGalaxies[$galaxy['uuid']]['version'] < $galaxy['version']) {
+					$galaxy['id'] = $existingGalaxies[$galaxy['uuid']]['id'];
+					$this->save($galaxy);
+				}
+			} else {
+				$this->create();
+				$this->save($galaxy);
+			}
+		}
 		return $this->find('list', array('recursive' => -1, 'fields' => array('type', 'id')));
 	}
-	
+
 	public function update() {
 		$galaxies = $this->__load_galaxies();
 		$dir = new Folder(APP . 'files' . DS . 'misp-galaxy' . DS . 'clusters');
@@ -49,10 +68,8 @@ class Galaxy extends AppModel{
 		$cluster_packages = array();
 		foreach ($files as $file) {
 			$file = new File($dir->pwd() . DS . $file);
-			$cluster_packages[] = json_decode($file->read(), true);
+			$cluster_package = json_decode($file->read(), true);
 			$file->close();
-		}
-		foreach ($cluster_packages as $cluster_package) {
 			if (!isset($galaxies[$cluster_package['type']])) {
 				continue;
 			}
@@ -64,7 +81,33 @@ class Galaxy extends AppModel{
 				'type' => $cluster_package['type'],
 				'tag_name' => 'misp-galaxy:' . $cluster_package['type'] . '="'
 			);
+			$elements = array();
+			$temp = $this->GalaxyCluster->find('all', array(
+				'conditions' => array(
+					'GalaxyCluster.galaxy_id' => $galaxies[$cluster_package['type']]
+				),
+				'recursive' => -1,
+				'fields' => array('version', 'id', 'value')
+			));
+			$existingClusters = array();
+			foreach ($temp as $k => $v) {
+				$existingClusters[$v['GalaxyCluster']['value']] = $v;
+			}
 			foreach ($cluster_package['values'] as $cluster) {
+				if (isset($cluster['version'])) {
+					$template['version'] = $cluster['version'];
+				} else if (!empty($cluster_package['version'])) {
+					$template['version'] = $cluster_package['version'];
+				} else {
+					$template['version'] = 0;
+				}
+				if (!empty($existingClusters[$cluster['value']])){
+					if ($existingClusters[$cluster['value']]['GalaxyCluster']['version'] < $template['version']) {
+						$this->GalaxyCluster->delete($existingClusters[$cluster['value']]['GalaxyCluster']['id']);
+					} else {
+						continue;
+					}
+				}
 				$this->GalaxyCluster->create();
 				$cluster_to_save = $template;
 				if (isset($cluster['description'])) {
@@ -74,9 +117,8 @@ class Galaxy extends AppModel{
 				$cluster_to_save['value'] = $cluster['value'];
 				$cluster_to_save['tag_name'] = $cluster_to_save['tag_name'] . $cluster['value'] . '"';
 				unset($cluster['value']);
-				$this->GalaxyCluster->save($cluster_to_save);
+				$result = $this->GalaxyCluster->save($cluster_to_save);
 				$galaxyClusterId = $this->GalaxyCluster->id;
-				$elements = array();
 				if (isset($cluster['meta'])) {
 					foreach ($cluster['meta'] as $key => $value) {
 						if (is_array($value)) {
@@ -84,7 +126,7 @@ class Galaxy extends AppModel{
 								$elements[] = array(
 									'galaxy_cluster_id' => $galaxyClusterId,
 									'key' => $key,
-									'value' => $v		
+									'value' => $v
 								);
 							}
 						} else {
@@ -96,9 +138,9 @@ class Galaxy extends AppModel{
 						}
 					}
 				}
-				$this->GalaxyCluster->GalaxyElement->saveMany($elements);
 			}
+			$this->GalaxyCluster->GalaxyElement->saveMany($elements);
 		}
 		return true;
-	}	
+	}
 }
