@@ -699,7 +699,7 @@ class EventsController extends AppController {
 					'fields' => array('Orgc.name'),
 					'contain' => array('Orgc'),
 					'conditions' => $conditions,
-					'group' => array('LOWER(Orgc.name)','Event.id')
+					'group' => array('LOWER(Orgc.name)','Event.id', 'Orgc.name')
 			));
 			$this->set('showorg', true);
 			$this->set('orgs', $this->_arrayToValuesIndexArray($orgs));
