@@ -84,6 +84,7 @@ class UsersController extends AppController {
 			throw new NotFoundException('Something went wrong. Your user account could not be accessed.');
 		}
 		if ($this->request->is('post') || $this->request->is('put')) {
+			$abortPost = false;
 			if (!$this->_isRest()) {
 				if (!empty($this->request->data['User']['current_password'])) {
 					$hashed = $this->User->verifyPassword($this->Auth->user('id'), $this->request->data['User']['current_password']);
