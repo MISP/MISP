@@ -1239,6 +1239,11 @@ function simplePopup(url) {
 			$("#popover_form").html(data);
 			openPopup("#popover_form");
 		},
+		error:function() {
+			$(".loading").hide();
+			$("#gray_out").fadeOut();
+			showMessage('fail', 'Could not fetch the given PGP key.');
+		},
 		url: url,
 	});
 }
