@@ -86,16 +86,18 @@ class UsersController extends AppController {
 		if ($this->request->is('post') || $this->request->is('put')) {
 			$abortPost = false;
 			if (!$this->_isRest()) {
-				if (!empty($this->request->data['User']['current_password'])) {
-					$hashed = $this->User->verifyPassword($this->Auth->user('id'), $this->request->data['User']['current_password']);
-					if (!$hashed) {
+				if (Configure::read('Security.require_password_confirmation')) {
+					if (!empty($this->request->data['User']['current_password'])) {
+						$hashed = $this->User->verifyPassword($this->Auth->user('id'), $this->request->data['User']['current_password']);
+						if (!$hashed) {
+							$abortPost = true;
+							$this->Session->setFlash('Invalid password. Please enter your current password to continue.');
+						}
+						unset($this->request->data['User']['current_password']);
+					} else {
 						$abortPost = true;
-						$this->Session->setFlash('Invalid password. Please enter your current password to continue.');
+						$this->Session->setFlash('Please enter your current password to continue.');
 					}
-					unset($this->request->data['User']['current_password']);
-				} else {
-					$abortPost = true;
-					$this->Session->setFlash('Please enter your current password to continue.');
 				}
 			}
 			if (!$abortPost) {
@@ -132,16 +134,18 @@ class UsersController extends AppController {
 		));
 		if ($this->request->is('post') || $this->request->is('put')) {
 			$abortPost = false;
-			if (!empty($this->request->data['User']['current_password'])) {
-				$hashed = $this->User->verifyPassword($this->Auth->user('id'), $this->request->data['User']['current_password']);
-				if (!$hashed) {
+			if (Configure::read('Security.require_password_confirmation')) {
+				if (!empty($this->request->data['User']['current_password'])) {
+					$hashed = $this->User->verifyPassword($this->Auth->user('id'), $this->request->data['User']['current_password']);
+					if (!$hashed) {
+						$abortPost = true;
+						$this->Session->setFlash('Invalid password. Please enter your current password to continue.');
+					}
+					unset($this->request->data['User']['current_password']);
+				} else {
 					$abortPost = true;
-					$this->Session->setFlash('Invalid password. Please enter your current password to continue.');
+					$this->Session->setFlash('Please enter your current password to continue.');
 				}
-				unset($this->request->data['User']['current_password']);
-			} else {
-				$abortPost = true;
-				$this->Session->setFlash('Please enter your current password to continue.');
 			}
 			if (!$abortPost) {
 				// What fields should be saved (allowed to be saved)
@@ -538,7 +542,6 @@ class UsersController extends AppController {
 		}
 		$roles = $this->User->Role->find('list', $params);
 		$syncRoles = $this->User->Role->find('list', array('conditions' => array('perm_sync' => 1), 'recursive' => -1));
-
 		$this->set('currentId', $id);
 		if ($this->request->is('post') || $this->request->is('put')) {
 			if (!isset($this->request->data['User'])) {
@@ -546,16 +549,19 @@ class UsersController extends AppController {
 			}
 			$abortPost = false;
 			if (!$this->_isRest()) {
-				if (!empty($this->request->data['User']['current_password'])) {
-					$hashed = $this->User->verifyPassword($this->Auth->user('id'), $this->request->data['User']['current_password']);
-					if (!$hashed) {
+				if (Configure::read('Security.require_password_confirmation')) {
+
+					if (!empty($this->request->data['User']['current_password'])) {
+						$hashed = $this->User->verifyPassword($this->Auth->user('id'), $this->request->data['User']['current_password']);
+						if (!$hashed) {
+							$abortPost = true;
+							$this->Session->setFlash('Invalid password. Please enter your current password to continue.');
+						}
+						unset($this->request->data['User']['current_password']);
+					} else {
 						$abortPost = true;
-						$this->Session->setFlash('Invalid password. Please enter your current password to continue.');
+						$this->Session->setFlash('Please enter your current password to continue.');
 					}
-					unset($this->request->data['User']['current_password']);
-				} else {
-					$abortPost = true;
-					$this->Session->setFlash('Please enter your current password to continue.');
 				}
 			}
 			if (!$abortPost) {

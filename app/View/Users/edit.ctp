@@ -32,7 +32,9 @@
 	<div style="border-bottom: 1px solid #e5e5e5;width:100%;">&nbsp;</div>
 	<div class="clear" style="margin-top:10px;">
 <?php
+	if (Configure::read('Security.require_password_confirmation')) {
 		echo $this->Form->input('current_password', array('type' => 'password', 'div' => false, 'class' => 'input password required', 'label' => 'Confirm with your current password'));
+	}
 ?>
 	</div>
 <?php
