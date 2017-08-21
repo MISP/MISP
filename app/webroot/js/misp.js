@@ -3142,6 +3142,16 @@ function objectReferenceInput() {
 	}
 }
 
+function objectReferenceCheckForCustomRelationship() {
+	var relationship_type_field = $('#ObjectReferenceRelationshipTypeSelect option:selected');
+	var relationship_type = $(relationship_type_field).val();
+	if (relationship_type == 'custom') {
+		$('#ObjectReferenceRelationshipType').parent().removeClass('hidden');
+	} else {
+		$('#ObjectReferenceRelationshipType').parent().addClass('hidden');
+	}
+}
+
 function changeObjectReferenceSelectOption() {
 	var object = $('#targetSelect option:selected');
 	var uuid = $(object).val();

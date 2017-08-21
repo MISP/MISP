@@ -13,7 +13,7 @@ class ObjectReferencesController extends AppController {
 			),
 	);
 
-  public function add($objectId, $targetId = false, $targetType = false) {
+  public function add($objectId) {
 		if (Validation::uuid($objectId)) {
 			$temp = $this->ObjectReference->MispObject->find('first', array(
 				'recursive' => -1,
@@ -72,17 +72,20 @@ class ObjectReferencesController extends AppController {
 				$referenced_id = $target_attribute['Attribute']['id'];
 				$referenced_type = 0;
 			}
+			$relationship_type = empty($this->request->data['ObjectReference']['relationship_type']) ? '' : $this->request->data['ObjectReference']['relationship_type'];
+			if (!empty($this->request->data['ObjectReference']['relationship_type_select']) && $this->request->data['ObjectReference']['relationship_type_select'] !== 'custom') {
+				$relationship_type = $this->request->data['ObjectReference']['relationship_type_select'];
+			}
 			$data = array(
 				'referenced_type' => $referenced_type,
 				'referenced_id' => $referenced_id,
 				'uuid' => $this->request->data['ObjectReference']['uuid'],
-				'relationship_type' => !empty($this->request->data['ObjectReference']['relationship_type']) ? $this->request->data['ObjectReference']['relationship_type'] : '',
+				'relationship_type' => $relationship_type,
 				'comment' => !empty($this->request->data['ObjectReference']['comment']) ? $this->request->data['ObjectReference']['comment'] : '',
 				'event_id' => $object['Event']['id'],
 				'object_id' => $objectId
 			);
 			$data['referenced_type'] = $referenced_type;
-			$data['relationship_type'] = $this->request->data['ObjectReference']['relationship_type'];
 			$data['uuid'] = $this->request->data['ObjectReference']['uuid'];
 			$this->ObjectReference->create();
 			$result = $this->ObjectReference->save(array('ObjectReference' => $data));
@@ -137,6 +140,18 @@ class ObjectReferencesController extends AppController {
 						$event[$d] = $temp;
 					}
 				}
+				$this->loadModel('ObjectRelationship');
+				$relationshipsTemp = $this->ObjectRelationship->find('all', array(
+					'recursive' => -1
+				));
+				$relationships = array();
+				$relationshipMetadata = array();
+				foreach ($relationshipsTemp as $k => $v) {
+					$relationshipMetadata[$v['ObjectRelationship']['name']] = $v;
+					$relationships[$v['ObjectRelationship']['name']] = $v['ObjectRelationship']['name'];
+				}
+				$relationships['custom'] = 'custom';
+				$this->set('relationships', $relationships);
 				$this->set('event', $event);
 				$this->set('objectId', $objectId);
 				$this->layout = 'ajax';

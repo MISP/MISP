@@ -6,11 +6,23 @@
 					<div class="row-fluid">
 						<div class="span6">
 							<?php
-								echo $this->Form->input('relationship_type', array(
+								echo $this->Form->input('relationship_type_select', array(
 									'label' => 'Relationship type',
-									'style' => 'width:320px;'
+									'options' => $relationships,
+									'style' => 'width:334px;',
+									'div' => false
 								));
-							?>
+						?>
+							<div id="" class="hidden">
+								<label for="ObjectReferenceRelationshipTypeSelect">Relationship type</label>
+								<?php
+									echo $this->Form->input('relationship_type', array(
+										'label' => false,
+										'style' => 'width:320px;',
+										'div' => false
+									));
+								?>
+							</div>
 						</div>
 						<div class="span6">
 							<?php
@@ -87,6 +99,9 @@
 		});
 		$(".selectOption").click(function() {
 			changeObjectReferenceSelectOption();
+		});
+		$("#ObjectReferenceRelationshipTypeSelect").change(function() {
+			objectReferenceCheckForCustomRelationship();
 		});
 	});
 </script>

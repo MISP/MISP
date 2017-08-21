@@ -98,6 +98,8 @@ class ObjectTemplatesController extends AppController {
 
 	public function update() {
 		$result = $this->ObjectTemplate->update($this->Auth->user());
+		$this->loadModel('ObjectRelationship');
+		$result2 = $this->ObjectRelationship->update();
 		$this->Log = ClassRegistry::init('Log');
 		$fails = 0;
 		$successes = 0;
@@ -157,6 +159,5 @@ class ObjectTemplatesController extends AppController {
 			$this->Session->setFlash($message);
 		}
 		$this->redirect(array('controller' => 'ObjectTemplates', 'action' => 'index'));
-
 	}
 }

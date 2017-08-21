@@ -747,6 +747,17 @@ class AppModel extends Model {
 					INDEX `relationship_type` (`relationship_type`)
 				) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
 
+				$sqlArray[] = "CREATE TABLE IF NOT EXISTS object_relationships (
+					`id` int(11) NOT NULL AUTO_INCREMENT,
+					`version` int(11) NOT NULL,
+					`name` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+					`description` text COLLATE utf8_bin NOT NULL,
+					`format` text COLLATE utf8_bin NOT NULL,
+					PRIMARY KEY (id),
+					INDEX `name` (`name`)
+				) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+
+
 				$sqlArray[] = "CREATE TABLE IF NOT EXISTS object_templates (
 					`id` int(11) NOT NULL AUTO_INCREMENT,
 					`user_id` int(11) NOT NULL,

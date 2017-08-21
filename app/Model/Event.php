@@ -3675,4 +3675,35 @@ class Event extends AppModel {
 		if (!empty($subcondition)) array_push ($conditions['AND'], $subcondition);
 		return $conditions;
 	}
+
+	public function prepareEventForView() {
+		// workaround to get the event dates in to the attribute relations
+		$relatedDates = array();
+		if (!empty($event['RelatedEvent'])) {
+			foreach ($event['RelatedEvent'] as $relation) {
+				$relatedDates[$relation['Event']['id']] = $relation['Event']['date'];
+			}
+			if (!empty($event['RelatedAttribute'])) {
+				foreach ($event['RelatedAttribute'] as $key => $relatedAttribute) {
+					foreach ($relatedAttribute as $key2 => $relation) {
+						$event['RelatedAttribute'][$key][$key2]['date'] = $relatedDates[$relation['id']];
+					}
+				}
+			}
+		}
+		$dataForView = array(
+			'Attribute' => array('attrDescriptions', 'typeDefinitions', 'categoryDefinitions', 'distributionDescriptions', 'distributionLevels', 'shortDist'),
+			'Event' => array('fieldDescriptions')
+		);
+		foreach ($dataForView as $m => $variables) {
+			if ($m === 'Event') {
+				$currentModel = $this->Event;
+			} else if ($m === 'Attribute') {
+				$currentModel = $this->Event->Attribute;
+			}
+			foreach ($variables as $alias => $variable) {
+				$this->set($alias, $currentModel->{$variable});
+			}
+		}
+	}
 }

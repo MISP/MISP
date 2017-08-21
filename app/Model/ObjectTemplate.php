@@ -29,7 +29,7 @@ class ObjectTemplate extends AppModel {
 		'ObjectTemplateElement' => array(
 			'className' => 'ObjectTemplateElement',
 			'dependent' => true,
-		),
+		)
 	);
 	public $validate = array(
 	);
@@ -135,11 +135,10 @@ class ObjectTemplate extends AppModel {
 				}
 				if ($update_required) {
 					$attribute = $existingTemplateElements[$k];
-					unset($existingTemplateElements);
 					$attribute['object_template_id'] = $id;
 					$this->ObjectTemplateElement->save(array('ObjectTemplateElement' => $attribute));
 				}
-				unset($existingTemplateElements[$k]);
+				if (isset($existingTemplateElements[$k])) unset($existingTemplateElements[$k]);
 			} else {
 				$this->ObjectTemplateElement->create();
 				$attribute['object_template_id'] = $id;

@@ -475,6 +475,22 @@ CREATE TABLE IF NOT EXISTS object_references (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `object_relationships`
+--
+
+CREATE TABLE IF NOT EXISTS object_relationships (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `version` int(11) NOT NULL,
+  `name` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+  `description` text COLLATE utf8_bin NOT NULL,
+  `format` text COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (id),
+  INDEX `name` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `object_templates`
 --
 
