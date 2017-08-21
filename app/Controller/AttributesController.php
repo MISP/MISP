@@ -876,6 +876,17 @@ class AttributesController extends AppController {
 	}
 
 	public function view($id) {
+		if (Validation::uuid($id)) {
+			$temp = $this->Attribute->find('first', array(
+				'recursive' => -1,
+				'conditions' => array('Attribute.uuid' => $id),
+				'fields' => array('Attribute.id', 'Attribute.uuid')
+			));
+			if (empty($temp)) throw new NotFoundException('Invalid attribute');
+			$id = $temp['Attribute']['id'];
+		} else if (!is_numeric($id)) {
+			throw new NotFoundException(__('Invalid attribute id.'));
+		}
 		$this->Attribute->id = $id;
 		if (!$this->Attribute->exists()) {
 			throw new NotFoundException('Invalid attribute');
