@@ -2254,7 +2254,7 @@ class Attribute extends AppModel {
 			'recursive' => -1,
 			'contain' => array(
 				'Event' => array(
-					'fields' => array('id', 'info', 'org_id', 'orgc_id'),
+					'fields' => array('id', 'info', 'org_id', 'orgc_id', 'uuid'),
 				),
 			),
 		);
@@ -2310,6 +2310,9 @@ class Attribute extends AppModel {
 			if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttributes($warninglists, $attribute['Attribute'])) {
 				unset($results[$key]);
 				continue;
+			}
+			if (!empty($options['includeAttributeUuid'])) {
+				$results[$key]['Attribute']['event_uuid'] = $results[$key]['Event']['uuid'];
 			}
 			if ($proposals_block_attributes) {
 				if (!empty($attribute['ShadowAttribute'])) {

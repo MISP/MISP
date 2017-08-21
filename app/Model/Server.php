@@ -951,6 +951,15 @@ class Server extends AppModel {
 							'test' => 'testPasswordRegex',
 							'type' => 'string',
 					),
+					'require_password_confirmation' => array(
+						'level' => 1,
+						'description' => 'Enabling this setting will require users to submit their current password on any edits to their profile (including a triggered password change). For administrators, the confirmation will be required when changing the profile of any user. Could potentially mitigate an attacker trying to change a compromised user\'s password in order to establish persistance, however, enabling this feature will be highly annoying to users.',
+						'value' => false,
+						'errorMessage' => '',
+						'test' => 'testBool',
+						'type' => 'boolean',
+						'null' => true
+					),
 					'sanitise_attribute_on_delete' => array(
 						'level' => 1,
 						'description' => 'Enabling this setting will sanitise the contents of an attribute on a soft delete',

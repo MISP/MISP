@@ -1,10 +1,10 @@
 <table class="table table-striped table-hover table-condensed">
 	<tr>
+		<?php if ($isSiteAdmin && !empty($events)): ?>
 			<th>
-				<?php if ($isSiteAdmin && !empty($events)): ?>
-					<input class="select_all select" type="checkbox" title="Select all" role="button" tabindex="0" aria-label="Select all eventson current page" onClick="toggleAllCheckboxes();" />&nbsp;
-				<?php endif;?>
+				<input class="select_all select" type="checkbox" title="Select all" role="button" tabindex="0" aria-label="Select all eventson current page" onClick="toggleAllCheckboxes();" />&nbsp;
 			</th>
+		<?php endif;?>
 		<th class="filter">
 			<?php echo $this->Paginator->sort('published');?>
 		</th>
