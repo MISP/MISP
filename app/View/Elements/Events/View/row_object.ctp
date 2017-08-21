@@ -52,7 +52,7 @@
       foreach ($object['ObjectReference'] as $reference):
         $uuid = empty($reference['Object']) ? $reference['Attribute']['uuid'] : $reference['Object']['uuid'];
     ?>
-        &nbsp;&nbsp;<a class="bold white useCursorPointer" onClick="pivotObjectReferences('<?php echo h($currentUri); ?>', '<?php echo $uuid; ?>')"><?php echo array('Attribute', 'Object')[$reference['referenced_type']] . ': ' . h($reference['relationship_type']);?></a><br />
+        &nbsp;&nbsp;<a class="bold white useCursorPointer" onClick="pivotObjectReferences('<?php echo h($currentUri); ?>', '<?php echo $uuid; ?>')"><?php echo h($reference['relationship_type']) . ' ' . array('Attribute', 'Object')[$reference['referenced_type']];?></a><br />
     <?php
       endforeach;
     ?>
