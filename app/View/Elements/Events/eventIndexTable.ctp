@@ -65,15 +65,15 @@
 	<?php foreach ($events as $event): ?>
 	<tr <?php if ($event['Event']['distribution'] == 0) echo 'class = "privateRed"'?>>
 		<?php if ($me['Role']['perm_modify']): ?>
-			<td style="width:10px;" data-id="<?php echo h($event['Event']['id']); ?>">
-				<?php
-					if ($isSiteAdmin || ($event['Event']['orgc_id'] == $me['org_id'])):
-				?>
+			<?php
+				if ($isSiteAdmin || ($event['Event']['orgc_id'] == $me['org_id'])):
+			?>
+					<td style="width:10px;" data-id="<?php echo h($event['Event']['id']); ?>">
 						<input class="select" type="checkbox" data-id="<?php echo $event['Event']['id'];?>" />
-				<?php
-					endif;
-				?>
-			</td>
+					</td>
+			<?php
+				endif;
+			?>
 		<?php endif;?>
 		<td class="short" ondblclick="document.location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
 			<?php
