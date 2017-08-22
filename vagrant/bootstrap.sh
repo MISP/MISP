@@ -15,17 +15,17 @@ MISP_LIVE='1'
 FQDN='localhost'
 
 # OpenSSL configuration
-OPENSSL_C='Luxembourg'
-OPENSSL_ST='Luxembourg'
-OPENSSL_L='Luxembourg'
-OPENSSL_O='SMILE'
-OPENSSL_OU='CIRCL'
-OPENSSL_CN='circl.lu'
-OPENSSL_EMAILADDRESS='info@circl.lu'
+OPENSSL_C='LU'
+OPENSSL_ST='State'
+OPENSSL_L='Location'
+OPENSSL_O='Organization'
+OPENSSL_OU='Organizational Unit'
+OPENSSL_CN='Common Name'
+OPENSSL_EMAILADDRESS='info@example.com'
 
 # GPG configuration
-GPG_REAL_NAME='Cedric'
-GPG_EMAIL_ADDRESS='info@circl.lu'
+GPG_REAL_NAME='Real name'
+GPG_EMAIL_ADDRESS='info@example.com'
 GPG_KEY_LENGTH='2048'
 GPG_PASSPHRASE=''
 
