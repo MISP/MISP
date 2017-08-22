@@ -21,11 +21,11 @@ OPENSSL_L='Location'
 OPENSSL_O='Organization'
 OPENSSL_OU='Organizational Unit'
 OPENSSL_CN='Common Name'
-OPENSSL_EMAILADDRESS='info@example.com'
+OPENSSL_EMAILADDRESS='info@localhost'
 
 # GPG configuration
 GPG_REAL_NAME='Real name'
-GPG_EMAIL_ADDRESS='info@example.com'
+GPG_EMAIL_ADDRESS='info@localhost'
 GPG_KEY_LENGTH='2048'
 GPG_PASSPHRASE=''
 
