@@ -25,7 +25,7 @@ MISP will be automatically deployed in an Ubuntu Zesty Server.
 .. code-block:: bash
 
     $ git clone https://github.com/MISP/MISP.git
-    $ cd MISP/
+    $ cd MISP/vagrant/
     $ vagrant up
 
 Once the VM will be configured by Vagrant, go to the address
