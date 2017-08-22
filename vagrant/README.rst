@@ -17,8 +17,8 @@ Installation of VirtualBox and Vagrant
     $ sudo apt-get install virtualbox vagrant
 
 
-Deployment of the front office
-------------------------------
+Deployment of MISP
+------------------
 
 MISP will be automatically deployed in an Ubuntu Zesty Server.
 
