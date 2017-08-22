@@ -104,7 +104,7 @@ systemctl restart apache2 > /dev/null 2>&1
 
 echo -e "\n--- Retrieving MISP ---\n"
 mkdir $PATH_TO_MISP
-chown www-data:gi $PATH_TO_MISP
+chown www-data:www-data $PATH_TO_MISP
 cd $PATH_TO_MISP
 #git clone https://github.com/MISP/MISP.git $PATH_TO_MISP
 #git checkout tags/$(git describe --tags `git rev-list --tags --max-count=1`)
