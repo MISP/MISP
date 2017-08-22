@@ -93,7 +93,7 @@ class ObjectReferencesController extends AppController {
 				if ($this->_isRest()) {
 					$object = $this->ObjectReference->find("first", array(
 						'recursive' => -1,
-						'conditions' => array('ObjectReference' => $this->ObjectReference->id)
+						'conditions' => array('ObjectReference.id' => $this->ObjectReference->id)
 					));
 					return $this->RestResponse->viewData($object, $this->response->type());
 				} else if ($this->request->is('ajax')) {
