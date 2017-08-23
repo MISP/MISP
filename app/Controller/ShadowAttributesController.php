@@ -662,7 +662,7 @@ class ShadowAttributesController extends AppController {
 						'static' => array('old_id' => 'Attribute.id', 'uuid' => 'Attribute.uuid', 'event_id' => 'Attribute.event_id', 'event_uuid' => 'Event.uuid', 'event_org_id' => 'Event.orgc_id'),
 						'optional' => array('category', 'type', 'value', 'to_ids', 'comment')
 				);
-				if ($existingAttribute['object_id']) {
+				if ($existingAttribute['Attribute']['object_id']) {
 					unset($fields['optional']['type']);
 					$fields['static']['type'] = 'Attribute.type';
 				}
@@ -744,7 +744,7 @@ class ShadowAttributesController extends AppController {
 		foreach ($this->ShadowAttribute->Event->Attribute->typeDefinitions as $key => $value) {
 			$info['type'][$key] = array('key' => $key, 'desc' => isset($value['formdesc'])? $value['formdesc'] : $value['desc']);
 		}
-
+		$categoryDefinitions = $this->ShadowAttribute->Event->Attribute->categoryDefinitions;
 		if ($existingAttribute['Attribute']['object_id']) {
 			foreach ($categoryDefinitions as $k => $v) {
 				if (!in_array($existingAttribute['Attribute']['type'], $v['types'])) {

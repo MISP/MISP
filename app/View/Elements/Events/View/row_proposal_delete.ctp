@@ -12,10 +12,10 @@
     } else {
       $tr_class .= ' tableInsetOrange';
     }
-    if ($objectContainer === true) {
-      $tr_class .= ' tableHighlightBorderCenter borderBlue';
-    } else {
+    if ($child === 'last') {
       $tr_class .= ' tableHighlightBorderBottom borderBlue';
+    } else {
+      $tr_class .= ' tableHighlightBorderCenter borderBlue';
     }
   } else {
     if (!empty($child)) {

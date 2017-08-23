@@ -2240,6 +2240,28 @@ class Attribute extends AppModel {
 		return $this->find('list', $params);
 	}
 
+	public function fetchAttributesSimple($user, $options = array()) {
+		$params = array(
+			'conditions' => $this->buildConditions($user),
+			'fields' => array(),
+			'recursive' => -1
+		);
+		if (isset($options['conditions'])) {
+			$params['conditions']['AND'][] = $options['conditions'];
+		}
+		if (isset($options['fields'])) {
+			$params['fields'] = $options['fields'];
+		}
+		$results = $this->find('all', array(
+			'conditions' => $params['conditions'],
+			'recursive' => -1,
+			'fields' => $params['fields'],
+			'sort' => false
+		));
+		return $results;
+
+	}
+
 	// Method that fetches all attributes for the various exports
 	// very flexible, it's basically a replacement for find, with the addition that it restricts access based on user
 	// options:
@@ -2256,7 +2278,7 @@ class Attribute extends AppModel {
 				'Event' => array(
 					'fields' => array('id', 'info', 'org_id', 'orgc_id', 'uuid'),
 				),
-			),
+			)
 		);
 		$params['contain']['AttributeTag'] = array('Tag' => array('conditions' => array()));
 		if (empty($options['includeAllTags'])) $params['contain']['AttributeTag']['Tag']['conditions']['exportable'] = 1;

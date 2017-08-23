@@ -1482,6 +1482,11 @@ class Event extends AppModel {
 			$this->Sighting = ClassRegistry::init('Sighting');
 		}
 		$userEmails = array();
+		$fields = array(
+			'common' => array('distribution', 'sharing_group_id', 'uuid'),
+			'Attribute' => array('value', 'type', 'category', 'to_ids'),
+			'Object' => array('name', 'meta-category')
+		);
 		foreach ($results as $eventKey => &$event) {
 			if (!empty($event['Object'])) {
 				foreach ($event['Object'] as $k => $object) {
@@ -1490,7 +1495,7 @@ class Event extends AppModel {
 							$type = array('Attribute', 'Object')[$reference['referenced_type']];
 							$temp = $this->{$type}->find('first', array(
 								'recursive' => -1,
-								'fields' => array('distribution', 'sharing_group_id', 'uuid'),
+								'fields' => array_merge($fields['common'], $fields[array('Attribute', 'Object')[$reference['referenced_type']]]),
 								'conditions' => array('id' => $reference['referenced_id'])
 							));
 							if (!empty($temp)) {

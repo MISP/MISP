@@ -15,7 +15,7 @@ class ObjectReferencesController extends AppController {
 
   public function add($objectId) {
 		if (Validation::uuid($objectId)) {
-			$temp = $this->ObjectReference->MispObject->find('first', array(
+			$temp = $this->ObjectReference->Object->find('first', array(
 				'recursive' => -1,
 				'fields' => array('Object.id'),
 				'conditions' => array('Object.uuid' => $id)
@@ -25,7 +25,7 @@ class ObjectReferencesController extends AppController {
 		} else if (!is_numeric($objectId)) {
 			throw new NotFoundException(__('Invalid object'));
 		}
-		$object = $this->ObjectReference->MispObject->find('first', array(
+		$object = $this->ObjectReference->Object->find('first', array(
 			'conditions' => array('Object.id' => $objectId),
 			'recursive' => -1,
 			'contain' => array(
@@ -47,7 +47,7 @@ class ObjectReferencesController extends AppController {
 				$this->request->data['ObjectReference'] = $this->request->data;
 			}
 			$referenced_type = 1;
-			$target_object = $this->ObjectReference->MispObject->find('first', array(
+			$target_object = $this->ObjectReference->Object->find('first', array(
 				'conditions' => array('Object.uuid' => $this->request->data['ObjectReference']['uuid']),
 				'recursive' => -1,
 				'fields' => array('Object.id', 'Object.uuid', 'Object.event_id')
@@ -58,7 +58,7 @@ class ObjectReferencesController extends AppController {
 					throw new NotFoundException('Invalid target. Target has to be within the same event.');
 				}
 			} else {
-				$target_attribute = $this->ObjectReference->MispObject->Attribute->find('first', array(
+				$target_attribute = $this->ObjectReference->Object->Attribute->find('first', array(
 					'conditions' => array('Attribute.uuid' => $this->request->data['ObjectReference']['uuid']),
 					'recursive' => -1,
 					'fields' => array('Attribute.id', 'Attribute.uuid', 'Attribute.event_id')
@@ -110,7 +110,7 @@ class ObjectReferencesController extends AppController {
 			if ($this->_isRest()) {
 				return $this->RestResponse->describe('ObjectReferences', 'add', false, $this->response->type());
 			} else {
-				$event = $this->ObjectReference->MispObject->Event->find('first', array(
+				$event = $this->ObjectReference->Object->Event->find('first', array(
 					'conditions' => array('Event.id' => $object['Event']['id']),
 					'recursive' => -1,
 					'fields' => array('Event.id'),
@@ -162,7 +162,49 @@ class ObjectReferencesController extends AppController {
   }
 
   public function delete($id, $hard = false) {
-
+		if (Validation::uuid($id)) {
+			$temp = $this->ObjectReference->find('first', array(
+				'recursive' => -1,
+				'fields' => array('ObjectReference.id'),
+				'conditions' => array('ObjectReference.uuid' => $id)
+			));
+			if (empty($temp)) throw new NotFoundException('Invalid object reference');
+			$id = $temp['ObjectReference']['id'];
+		} else if (!is_numeric($id)) {
+			throw new NotFoundException(__('Invalid object reference'));
+		}
+		$objectReference = $this->ObjectReference->find('first', array(
+			'conditions' => array('ObjectReference.id' => $id),
+			'recursive' => -1,
+			'contain' => array('Object' => array('Event'))
+		));
+		if (empty($objectReference)) {
+			throw new MethodNotAllowedException('Invalid object reference.');
+		}
+		if (!$this->_isSiteAdmin() && $this->Auth->user('org_id') != $objectReference['Object']['Event']['orgc_id']) {
+			throw new MethodNotAllowedException('Invalid object reference.');
+		}
+		if ($this->request->is('post') || $this->request->is('put') || $this->request->is('delete')) {
+			$result = $this->ObjectReference->smartDelete($objectReference['ObjectReference']['id'], $hard);
+			if ($result === true) {
+				if ($this->_isRest()) {
+					return $this->RestResponse->saveSuccessResponse('ObjectReferences', 'delete', $id, $this->response->type());
+				} else {
+					return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Object reference deleted.')), 'status'=>200, 'type' => 'json'));
+				}
+			} else {
+				if ($this->_isRest()) {
+					return $this->RestResponse->saveFailResponse('ObjectReferences', 'delete', $id, $result, $this->response->type());
+				} else {
+					return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Object reference was not deleted.')), 'status'=>200, 'type' => 'json'));
+				}
+			}
+		} else {
+			$this->set('hard', $hard);
+			$this->set('id', $id);
+			$this->set('event_id', $objectReference['Object']['Event']['id']);
+			$this->render('ajax/delete');
+		}
   }
 
   public function view($id) {

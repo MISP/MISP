@@ -1,5 +1,5 @@
 /* bootstrap changes */
-body{
+body {
 	font-size: 12px;
 }
 
@@ -7,11 +7,11 @@ input, button, select, textarea{
 
 }
 
-input[type="file"]{
+input[type="file"] {
 	margin-bottom: 10px;
 }
 
-button .full-width{
+button .full-width {
   width:100%;
 }
 
@@ -1880,6 +1880,10 @@ tr.redRow td, .redElement {
 
 tr.blank_table_row td {
 	background-color: #ffffff !important;
+}
+
+.strikethrough {
+	text-decoration: line-through;
 }
 
 @-webkit-keyframes rotation {

@@ -12,7 +12,7 @@ class ObjectReference extends AppModel {
 	);
 
 	public $belongsTo = array(
-		'MispObject' => array(
+		'Object' => array(
 			'className' => 'MispObject',
 			'foreignKey' => 'object_id'
 		),
@@ -38,7 +38,6 @@ class ObjectReference extends AppModel {
 	public $validate = array(
 	);
 
-
 	public function beforeValidate($options = array()) {
 		parent::beforeValidate();
 		if (empty($this->data['ObjectReference']['uuid'])) {
@@ -49,4 +48,19 @@ class ObjectReference extends AppModel {
 		return true;
 	}
 
+	public function smartDelete($id, $hard = false) {
+		if ($hard) {
+			return $this->delete($id);
+		} else {
+			$reference = $this->find('first', array(
+				'conditions' => array('ObjectReference.id' => $id),
+				'recursive' => -1
+			));
+			if (empty($reference)) return array('Invalid object reference.');
+			$reference['ObjectReference']['deleted'] = 1;
+			$result = $this->save($reference);
+			if ($result) return true;
+			return $this->validationErrors;
+		}
+	}
 }
