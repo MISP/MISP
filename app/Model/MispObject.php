@@ -289,6 +289,7 @@ class MispObject extends AppModel {
 	 * Clean the attribute list up from artifacts introduced by the object form
 	 */
 	public function attributeCleanup($attributes) {
+		if (empty($attributes['Attribute'])) return 'No attribute data found';
 		foreach ($attributes['Attribute'] as $k => $attribute) {
 			if (isset($attribute['save']) && $attribute['save'] == 0) {
 				unset($attributes['Attribute'][$k]);

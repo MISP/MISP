@@ -58,6 +58,13 @@ class ObjectsController extends AppController {
 			if (!isset($this->request->data['Attribute'])) {
 				$this->request->data = array('Attribute' => $this->request->data);
 			}
+			if (!isset($this->request->data['Object'])) {
+				$attributeTemp = $this->request->data['Attribute'];
+				unset($this->request->data['Attribute']);
+				$this->request->data = array('Object' => $this->request->data);
+				$this->request->data['Attribute'] = $attributeTemp;
+				unset($attributeTemp);
+			}	
 			$object = $this->MispObject->attributeCleanup($this->request->data);
 			// we pre-validate the attributes before we create an object at this point
 			// This allows us to stop the process and return an error (API) or return
@@ -85,7 +92,7 @@ class ObjectsController extends AppController {
 						));
 						return $this->RestResponse->viewData($object, $this->response->type());
 					} else {
-						return $this->RestResponse->saveFailResponse('Attributes', 'add', false, $result, $this->response->type());
+						return $this->RestResponse->saveFailResponse('Objects', 'add', false, $error, $this->response->type());
 					}
 				} else {
 					if (is_numeric($result)) {
