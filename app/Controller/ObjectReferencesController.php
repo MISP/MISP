@@ -18,7 +18,7 @@ class ObjectReferencesController extends AppController {
 			$temp = $this->ObjectReference->Object->find('first', array(
 				'recursive' => -1,
 				'fields' => array('Object.id'),
-				'conditions' => array('Object.uuid' => $id)
+				'conditions' => array('Object.uuid' => $objectId)
 			));
 			if (empty($temp)) throw new NotFoundException('Invalid Object');
 			$objectId = $temp['Object']['id'];
