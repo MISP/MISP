@@ -3395,6 +3395,25 @@ class Event extends AppModel {
 		}
 		unset($event['Object']);
 		unset($event['ShadowAttribute']);
+		$referencedObjectFields = array('meta-category', 'name', 'uuid', 'id');
+		foreach ($event['objects'] as $object) {
+			if (!in_array($object['objectType'], array('attribute', 'object'))) continue;
+			if (!empty($object['ObjectReference'])) {
+				foreach ($object['ObjectReference'] as $reference) {
+					foreach ($event['objects'] as $k => $v) {
+						$referencedType = isset($reference['Attribute']) ? 'attribute' : 'object';
+						if ($v['objectType'] == $referencedType && $reference['referenced_id'] == $v['id']) {
+							$temp = array();
+							foreach ($referencedObjectFields as $field) {
+								$temp[$field] = $object[$field];
+							}
+							$temp['relationship_type'] = $reference['relationship_type'];
+							$event['objects'][$k]['referenced_by'][$object['objectType']][] = $temp;
+						}
+					}
+				}
+			}
+		}
 		App::uses('CustomPaginationTool', 'Tools');
 		$customPagination = new CustomPaginationTool();
 		if ($all) $passedArgs['page'] = 0;

@@ -863,14 +863,6 @@ class EventsController extends AppController {
 				unset($event['EventTag'][$k]);
 			}
 		}
-		if (!empty($event['Object'])) {
-			$objectReferences = array('Attribute' => array(), 'Object' => array());
-			foreach ($event['Object'] as $objectKey => $object) {
-				if (!empty($object['ObjectReference'])) {
-					foreach ($object['ObjectReference'] as $refKey => $reference);
-				}
-			}
-		}
 		$params = $this->Event->rearrangeEventForView($event);
 		$this->params->params['paging'] = array($this->modelClass => $params);
 		$this->set('event', $event);
