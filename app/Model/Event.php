@@ -1555,7 +1555,7 @@ class Event extends AppModel {
 				}
 				$event['Attribute'] = array_values($event['Attribute']);
 			}
-			if (isset($event['ShadowAttribute'])) {
+			if (!empty($event['ShadowAttribute'])) {
 				if ($isSiteAdmin && isset($options['includeFeedCorrelations']) && $options['includeFeedCorrelations']) {
 					$this->Feed = ClassRegistry::init('Feed');
 					$event['ShadowAttribute'] = $this->Feed->attachFeedCorrelations($event['ShadowAttribute'], $user);
