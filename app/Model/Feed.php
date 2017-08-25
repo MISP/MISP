@@ -321,9 +321,9 @@ class Feed extends AppModel {
 		}
 		if (isset($actions['edit']) && !empty($actions['edit'])) {
 			foreach ($actions['edit'] as $editTarget) {
+				if ($result === 'blocked') continue;
 				$result = $this->__updateEventFromFeed($HttpSocket, $feed, $editTarget['uuid'], $editTarget['id'], $user, $filterRules);
 				$this->__cleanupFile($feed, '/' . $uuid . '.json');
-				if ($result === 'blocked') continue;
 				if ($result === true) {
 					$results['edit']['success'] = $uuid;
 				} else {
@@ -625,7 +625,7 @@ class Feed extends AppModel {
 				return true;
 			}
 			$result = $this->downloadFromFeed($actions, $this->data, $HttpSocket, $user, $jobId);
-			$this->__cleanupFile($feed, '/manifest.json');
+			$this->__cleanupFile($this->data, '/manifest.json');
 			if ($jobId) {
 				$job->id = $jobId;
 				$job->saveField('message', 'Job complete.');
