@@ -43,7 +43,7 @@ class Feed extends AppModel {
 			'name' => 'Freetext Parsed Feed'
 		),
 		'csv' => array(
-				'name' => 'Simple CSV Parsed Feed'
+			'name' => 'Simple CSV Parsed Feed'
 		)
 	);
 
@@ -171,6 +171,10 @@ class Feed extends AppModel {
 					$response = $HttpSocket->get($feed['Feed']['url'], '', array());
 				} catch (Exception $e) {
 					return false;
+				}
+				if ($response->code == 302) {
+					$HttpSocket = $this->__setupHttpSocket(false);
+					$response = $HttpSocket->get($response['header']['Location'], '', array());
 				}
 				if ($response->code == 200) {
 					$redis = $this->setupRedis();
