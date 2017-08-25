@@ -900,7 +900,11 @@ class EventsController extends AppController {
 		// find the id of the event, change $id to it and proceed to read the event as if the ID was entered.
 		if (Validation::uuid($id)) {
 			$this->Event->recursive = -1;
-			$temp = $this->Event->findByUuid($id);
+			$temp = $this->Event->find('first', array(
+				'recursive' => -1,
+				'conditons' => array('Event.uuid' => $id),
+				'fields' => array('Event.id', 'Event.uuid')
+			));
 			if ($temp == null) throw new NotFoundException('Invalid event');
 			$id = $temp['Event']['id'];
 		} else if (!is_numeric($id)) {
