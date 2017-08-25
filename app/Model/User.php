@@ -157,7 +157,7 @@ class User extends AppModel {
 			),
 		),
 		'newsread' => array(
-			'boolean' => array(
+			'numeric' => array(
 				'rule' => array('numeric')
 			),
 		),
