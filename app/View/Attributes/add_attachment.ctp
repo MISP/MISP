@@ -61,9 +61,16 @@
 					'type' => 'checkbox',
 					'checked' => false,
 					'data-content' => isset($attrDescriptions['signature']['formdesc']) ? $attrDescriptions['signature']['formdesc'] : $attrDescriptions['signature']['desc'],
-					'label' => 'IDS (encrypt and hash)',
-					// 'after' => $this->Html->div('forminfo', 'Tick this box to neutralize the sample. Every malware sample will be zipped with the password "infected"', ''),
-					//'after' => '<br>Tick this box to neutralize the sample. Every malware sample will be zipped with the password "infected"',
+					'label' => 'IDS (encrypt and hash)'
+			));
+		?>
+			<div class="input clear"></div>
+		<?php
+			echo $this->Form->input('advanced', array(
+					'type' => 'checkbox',
+					'checked' => false,
+					'data-content' => isset($attrDescriptions['signature']['formdesc']) ? $attrDescriptions['signature']['formdesc'] : $attrDescriptions['signature']['desc'],
+					'label' => 'Advanced extraction (if installed)',
 			));
 		?>
 	</fieldset>

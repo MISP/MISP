@@ -345,7 +345,6 @@ class AttributesController extends AppController {
 			$success = 0;
 
 			foreach ($this->request->data['Attribute']['values'] as $k => $value) {
-
 				// Check if there were problems with the file upload
 				// only keep the last part of the filename, this should prevent directory attacks
 				$filename = basename($value['name']);
@@ -361,36 +360,34 @@ class AttributesController extends AppController {
 				}
 
 				if ($this->request->data['Attribute']['malware']) {
-					$result = $this->Event->Attribute->handleMaliciousBase64($this->request->data['Attribute']['event_id'], $filename, base64_encode($tmpfile->read()), array_keys($hashes));
-					if (!$result['success']) {
-						$this->Session->setFlash(__('There was a problem to upload the file.', true), 'default', array(), 'error');
-						$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Attribute']['event_id']));
-					}
-					foreach ($hashes as $hash => $typeName) {
-						if (!$result[$hash]) continue;
-						$attribute = array(
-							'Attribute' => array(
-								'value' => $filename . '|' . $result[$hash],
-								'category' => $this->request->data['Attribute']['category'],
-								'type' => $typeName,
-								'event_id' => $this->request->data['Attribute']['event_id'],
-								'comment' => $this->request->data['Attribute']['comment'],
-								'to_ids' => 1,
-								'distribution' => $this->request->data['Attribute']['distribution'],
-								'sharing_group_id' => isset($this->request->data['Attribute']['sharing_group_id']) ? $this->request->data['Attribute']['sharing_group_id'] : 0,
-							)
-						);
-						if ($hash == 'md5') $attribute['Attribute']['data'] = $result['data'];
-						$this->Attribute->create();
-						$r = $this->Attribute->save($attribute);
-						if ($r == false) {
-							if ($hash == 'md5') {
-								$fails[] = $filename;
-							} else {
-								$partialFails[] = '[' . $typeName . ']' . $filename;
+					if ($this->request->data['Attribute']['advanced']) {
+						$execRetval = '';
+						$execOutput = array();
+						$result = shell_exec('python ' . APP . 'files/scripts/generate_file_objects.py -p ' . $tmpfile->path);
+						if (!empty($result)) {
+							$result = json_decode($result, true);
+							if (isset($result['objects'])) {
+								$result['Object'] = $result['objects'];
+								unset($result['objects']);
 							}
-						} else {
-							if ($hash == 'md5') $success++;
+						}
+					} else {
+						$result = $this->Attribute->simpleAddMalwareSample(
+							$eventId,
+							$this->request->data['Attribute']['category'],
+							$this->request->data['Attribute']['distribution'],
+							$this->request->data['Attribute']['distribution'] == 4 ? $this->request->data['Attribute']['sharing_group_id'] : 0,
+							$this->request->data['Attribute']['comment'],
+							$filename,
+							$tmpfile
+						);
+					}
+					if (!empty($result)) {
+						foreach ($result['Object'] as $object) {
+							foreach ($object['Attribute'] as $k => $attribute) {
+								if ($attribute['value'] == $tmpfile->name) $object['Attribute'][$k]['value'] = $value['name'];
+							}
+							$result = $this->Attribute->Object->captureObject($eventId, array('Object' => $object), $this->Auth->user());
 						}
 					}
 				} else {
@@ -413,9 +410,9 @@ class AttributesController extends AppController {
 					else $success++;
 				}
 			}
-
+throw new Exception();
 			$message = 'The attachment(s) have been uploaded.';
-			if (!empty($partialFails)) $message .= ' Some of the hashes however could not be generated.';
+			if (!empty($partialFails)) $message .= ' Some of the attributes however could not be created.';
 			if (!empty($fails)) $message = 'Some of the attachments failed to upload. The failed files were: ' . implode(', ', $fails) . ' - This can be caused by the attachments already existing in the event.';
 			if (empty($success)) {
 				if (empty($fails)) $message = 'The attachment(s) could not be saved. please contact your administrator.';

@@ -63,4 +63,46 @@ class ObjectReference extends AppModel {
 			return $this->validationErrors;
 		}
 	}
+
+	public function smartSave($objectReference, $eventId) {
+		$sides = array('source', 'referenced');
+		foreach ($sides as $side) {
+			$data[$side] = $this->Object->find('first', array(
+				'conditions' => array(
+					'Object.uuid' => $objectReference[$side . '_uuid'],
+					'Object.event_id' => $eventId
+				),
+				'recursive' => -1,
+				'fields' => array('Object.id')
+			));
+			if (empty($data[$side]) && $side == 'referenced') {
+				$data[$side] = $this->Attribute->find('first', array(
+					'conditions' => array(
+						'Attribute.uuid' => $objectReference[$side . '_uuid'],
+						'Attribute.event_id' => $eventId
+					),
+					'recursive' => -1,
+					'fields' => array('Attribute.id')
+				));
+				$referenced_id = $data[$side]['Attribute']['id'];
+				$referenced_type = 0;
+			} else if (!empty($data[$side]) && $side == 'referenced') {
+				$referenced_id = $data[$side]['Object']['id'];
+				$referenced_type = 1;
+			} else if (!empty($data[$side]) && $side = 'source') {
+				$object_id = $data[$side]['Object']['id'];
+			} else {
+				return 'Invalid ' . $side . ' uuid';
+			}
+		}
+		$this->create();
+		$objectReference['referenced_type'] = $referenced_type;
+		$objectReference['referenced_id'] = $referenced_id;
+		$objectReference['object_id'] = $object_id;
+		$result = $this->save(array('ObjectReference' => $ojectReference));
+		if (!$result) {
+			return $this->validationErrors;
+		}
+		return true;
+	}
 }

@@ -51,20 +51,23 @@ class MispObject extends AppModel {
 
 	public function beforeValidate($options = array()) {
 		parent::beforeValidate();
-		if (empty($this->data['Object']['comment'])) {
-			$this->data['Object']['comment'] = "";
+		if (empty($this->data[$this->alias]['comment'])) {
+			$this->data[$this->alias]['comment'] = "";
 		}
 		// generate UUID if it doesn't exist
-		if (empty($this->data['Object']['uuid'])) {
-			$this->data['Object']['uuid'] = CakeText::uuid();
+		if (empty($this->data[$this->alias]['uuid'])) {
+			$this->data[$this->alias]['uuid'] = CakeText::uuid();
 		}
 		// generate timestamp if it doesn't exist
-		if (empty($this->data['Object']['timestamp'])) {
+		if (empty($this->data[$this->alias]['timestamp'])) {
 			$date = new DateTime();
-			$this->data['Object']['timestamp'] = $date->getTimestamp();
+			$this->data[$this->alias]['timestamp'] = $date->getTimestamp();
 		}
-		if (!isset($this->data['Object']['distribution']) || $this->data['Object']['distribution'] != 4) $this->data['Object']['sharing_group_id'] = 0;
-		if (!isset($this->data['Object']['distribution'])) $this->data['Object']['distribution'] = 5;
+		if (empty($this->data[$this->alias]['template_version'])) {
+			$this->data[$this->alias]['template_version'] = 1;
+		}
+ 		if (!isset($this->data[$this->alias]['distribution']) || $this->data['Object']['distribution'] != 4) $this->data['Object']['sharing_group_id'] = 0;
+		if (!isset($this->data[$this->alias]['distribution'])) $this->data['Object']['distribution'] = 5;
 		return true;
 	}
 
@@ -368,5 +371,31 @@ class MispObject extends AppModel {
 			$originalAttribute['deleted'] = 1;
 			$this->Event->Attribute->save($originalAttribute);
 		}
+	}
+
+	public function captureObject($eventId, $object, $user) {
+		$this->create();
+		$object['Object']['event_id'] = $eventId;
+		if ($this->save($object)) {
+			$objectId = $this->id;
+			$partialFails = array();
+			foreach ($object['Object']['Attribute'] as $attribute) {
+				if (isset($attribute['encrypt'])) {
+					$result = $this->Attribute->handleMaliciousBase64($eventId, $attribute['value'], $attribute['data'], array('md5'));
+					$attribute['data'] = $result['data'];
+					$attribute['value'] = $attribute['value'] . '|' . $result['md5'];
+				}
+				$attribute['event_id'] = $eventId;
+				$attribute['object_id'] = $objectId;
+				$this->Attribute->create();
+				$result = $this->Attribute->save(array('Attribute' => $attribute));
+				if (!$result) {
+					$partialFails[] = $attribute['type'];
+				}
+			}
+			if (!empty($partialFails)) return $partialFails;
+			return true;
+		}
+		return 'fail';
 	}
 }

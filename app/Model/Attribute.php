@@ -487,6 +487,10 @@ class Attribute extends AppModel {
 		'SharingGroup' => array(
 				'className' => 'SharingGroup',
 				'foreignKey' => 'sharing_group_id'
+		),
+		'Object' => array(
+			'className' => 'MispObject',
+			'foreignKey' => 'object_id'
 		)
 	);
 
@@ -2466,7 +2470,7 @@ class Attribute extends AppModel {
 		return true;
 	}
 
-	public function saveAndEncryptAttribute($attribute, $user) {
+	public function saveAndEncryptAttribute($attribute, $user = false) {
 		$hashes = array('md5' => 'malware-sample', 'sha1' => 'filename|sha1', 'sha256' => 'filename|sha256');
 		if ($attribute['encrypt']) {
 			$result = $this->handleMaliciousBase64($attribute['event_id'], $attribute['value'], $attribute['data'], array_keys($hashes));
@@ -2662,4 +2666,77 @@ class Attribute extends AppModel {
 		}
 		return array('sgs' => $sgs, 'levels' => $distributionLevels, 'initial' => $initialDistribution);
 	}
+
+	public function simpleAddMalwareSample($event_id, $category, $distribution, $sharing_group_id, $comment, $filename, $tmpfile) {
+		$attributes = array(
+			'malware-sample' => array('type' => 'malware-sample', 'data' => 1, 'category' => '', 'to_ids' => 1, 'disable_correlation' => 0),
+			'filename' => array('type' => 'filename', 'category' => '', 'to_ids' => 0, 'disable_correlation' => 0),
+			'md5' => array('type' => 'md5', 'category' => '', 'to_ids' => 1, 'disable_correlation' => 0),
+			'sha1' => array('type' => 'sha1', 'category' => '', 'to_ids' => 1, 'disable_correlation' => 0),
+			'sha256' => array('type' => 'sha256', 'category' => '', 'to_ids' => 1, 'disable_correlation' => 0),
+			'size-in-bytes' => array('type' => 'size-in-bytes', 'category' => '', 'to_ids' => 0, 'disable_correlation' => 1)
+		);
+		$hashes = array('md5', 'sha1', 'sha256');
+		$this->Object = ClassRegistry::init('Object');
+		$this->ObjectTemplate = ClassRegistry::init('ObjectTemplate');
+		$object_template = $this->ObjectTemplate->find('first', array(
+			'conditions' => array(
+				'ObjectTemplate.uuid' => '688c46fb-5edb-40a3-8273-1af7923e2215'
+			),
+			'recursive' => -1
+		));
+		if (empty($object_template)) {
+			$object_template = array(
+				'ObjectTemplate' => array(
+					'meta-category' => 'file',
+					'name' => 'file',
+					'template_uuid' => '688c46fb-5edb-40a3-8273-1af7923e2215',
+					'version' => 1,
+					'description' => 'File object describing a file with meta-information'
+				)
+			);
+		}
+		$object = array(
+			'distribution' => $distribution,
+			'sharing_group_id' => $sharing_group_id,
+			'meta-category' => $object_template['ObjectTemplate']['meta-category'],
+			'name' => $object_template['ObjectTemplate']['name'],
+			'template_version' => $object_template['ObjectTemplate']['version'],
+			'description' => $object_template['ObjectTemplate']['description'],
+			'template_uuid' => $object_template['ObjectTemplate']['uuid'],
+			'event_id' => $event_id,
+			'comment' => $comment
+		);
+		foreach ($attributes as $k => $v) {
+			$result = $this->Event->Attribute->handleMaliciousBase64($event_id, $filename, base64_encode($tmpfile->read()), $hashes);
+			$attribute = array(
+				'distribution' => 5,
+				'category' => $category,
+				'type' => $v['type'],
+				'to_ids' => $v['to_ids'],
+				'disable_correlation' => $v['disable_correlation'],
+				'object_id' => $this->Object->id,
+				'event_id' => $event_id
+			);
+			if (isset($v['data'])) {
+				$attribute['data'] = $result['data'];
+			}
+			if ($k == 'malware-sample') {
+				$attribute['value'] = $filename . '|' . $result['md5'];
+			} else if ($k == 'size-in-bytes') {
+				$attribute['value'] = 0;
+			} else if ($k == 'filename') {
+				$attribute['value'] = $filename;
+			} else {
+				$attribute['value'] = $result[$v['type']];
+			}
+			$object['Attribute'][] = $attribute;
+		}
+		return array('Object' => $object);
+	}
+
+	public function advancedAddMalwareSample() {
+
+	}
+
 }

@@ -53,6 +53,14 @@
       </div>
     </td>
     <td class="short">
+      <?php
+        if (isset($object['object_relation'])):
+      ?>
+          <div class="bold"><?php echo h($object['object_relation']); ?>:</div>
+      <?php
+        endif;
+      ?>
+      <div></div>
       <div id = "Attribute_<?php echo $object['id']; ?>_type_placeholder" class = "inline-field-placeholder"></div>
       <div id = "Attribute_<?php echo $object['id']; ?>_type_solid" class="inline-field-solid" ondblclick="activateField('Attribute', '<?php echo $object['id']; ?>', 'type', <?php echo $event['Event']['id'];?>);">
         <?php echo h($object['type']); ?>
