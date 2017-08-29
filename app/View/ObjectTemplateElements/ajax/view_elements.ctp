@@ -16,9 +16,10 @@
 </div>
 <table class="table table-striped table-hover table-condensed">
 	<tr>
-		<th><?php echo $this->Paginator->sort('in_object_name');?></th>
+		<th><?php echo $this->Paginator->sort('object_relation');?></th>
 		<th><?php echo $this->Paginator->sort('type');?></th>
-    <th><?php echo $this->Paginator->sort('ui-priority');?></th>
+		<th><?php echo $this->Paginator->sort('multiple');?></th>
+    <th><?php echo $this->Paginator->sort('ui-priority', 'UI-priority');?></th>
     <th><?php echo $this->Paginator->sort('description');?></th>
     <th>Categories</th>
 		<th>Sane defaults</th>
@@ -30,10 +31,11 @@
 	foreach ($list as $k => $item):
 ?>
 		<tr>
-			<td class="short bold"><?php echo h($item['ObjectTemplateElement']['in-object-name']); ?>&nbsp;</td>
+			<td class="short bold"><?php echo h($item['ObjectTemplateElement']['object_relation']); ?>&nbsp;</td>
       <td class="short"><?php echo h($item['ObjectTemplateElement']['type']); ?>&nbsp;</td>
+			<td class="short"><span class="icon-<?php echo $item['ObjectTemplateElement']['multiple'] ? 'ok' : 'remove'; ?>"></span></td>
       <td class="short"><?php echo h($item['ObjectTemplateElement']['ui-priority']); ?>&nbsp;</td>
-      <td class="short"><?php echo h($item['ObjectTemplateElement']['description']); ?>&nbsp;</td>
+      <td><?php echo h($item['ObjectTemplateElement']['description']); ?>&nbsp;</td>
       <?php
         foreach ($listItems as $listItem):
       ?>

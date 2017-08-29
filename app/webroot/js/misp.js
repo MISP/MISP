@@ -3198,6 +3198,18 @@ function changeObjectReferenceSelectOption() {
 	}
 }
 
+$('.add_object_attribute_row').click(function() {
+	var template_id = $(this).data('template-id');
+	var object_relation = $(this).data('object-relation');
+	var k = $('#last-row').data('last-row');
+	var k = k+1;
+	$('#last-row').data('last-row', k);
+	url = "/objects/get_row/" + template_id + "/" + object_relation + "/" + k;
+	$.get(url, function(data) {
+		$('#row_' + object_relation + '_expand').before($(data).fadeIn()).html();
+	});
+});
+
 (function(){
     "use strict";
     $(".datepicker").datepicker({

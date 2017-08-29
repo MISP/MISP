@@ -116,13 +116,13 @@ class ObjectTemplate extends AppModel {
 		$existingTemplateElements = array();
 		if (!empty($existingTemplateElementsTemp)) {
 			foreach ($existingTemplateElementsTemp as $k => $v) {
-				$existingTemplateElements[$v['ObjectTemplateElement']['in-object-name']] = $v['ObjectTemplateElement'];
+				$existingTemplateElements[$v['ObjectTemplateElement']['object_relation']] = $v['ObjectTemplateElement'];
 			}
 		}
 		unset($existingTemplateElementsTemp);
-		$fieldsToCompare = array('in-object-name', 'type', 'ui-priority', 'categories', 'sane_default', 'values_list');
+		$fieldsToCompare = array('object_relation', 'type', 'ui-priority', 'categories', 'sane_default', 'values_list', 'multiple');
 		foreach ($template['attributes'] as $k => $attribute) {
-			$attribute['in-object-name'] = $k;
+			$attribute['object_relation'] = $k;
 			$attribute = $this->__convertJSONToElement($attribute);
 			if (isset($existingTemplateElements[$k])) {
 				$update_required = false;
@@ -134,15 +134,15 @@ class ObjectTemplate extends AppModel {
 					}
 				}
 				if ($update_required) {
-					$attribute = $existingTemplateElements[$k];
+					$attribute['id'] = $existingTemplateElements[$k]['id'];
 					$attribute['object_template_id'] = $id;
-					$this->ObjectTemplateElement->save(array('ObjectTemplateElement' => $attribute));
+					$result = $this->ObjectTemplateElement->save(array('ObjectTemplateElement' => $attribute));
 				}
 				if (isset($existingTemplateElements[$k])) unset($existingTemplateElements[$k]);
 			} else {
 				$this->ObjectTemplateElement->create();
 				$attribute['object_template_id'] = $id;
-				$this->ObjectTemplateElement->save(array('ObjectTemplateElement' => $attribute));
+				$result = $this->ObjectTemplateElement->save(array('ObjectTemplateElement' => $attribute));
 			}
 		}
 		if (!empty($existingTemplateElements)) {
@@ -162,10 +162,11 @@ class ObjectTemplate extends AppModel {
 				'ui-priority' => 'ui-priority',
 				'type' => 'type',
 				'disable_correlation' => 'disable_correlation',
-				'in-object-name' => 'in-object-name',
+				'object_relation' => 'object_relation',
 				'categories' => 'categories',
 				'sane_default' => 'sane_default',
-				'values_list' => 'values_list'
+				'values_list' => 'values_list',
+				'multiple' => 'multiple'
 		);
 		foreach ($translation_table as $from => $to) {
 			if (isset($attribute[$from])) {
@@ -177,6 +178,7 @@ class ObjectTemplate extends AppModel {
 
 	public function checkTemplateConformity($template, $attributes) {
 		if (!empty($template['ObjectTemplate']['requirements'])) {
+			// check for all required attributes
 			if (!empty($template['ObjectTemplate']['requirements']['required'])) {
 				foreach ($template['ObjectTemplate']['requirements']['required'] as $requiredField) {
 					$found = false;
@@ -188,6 +190,7 @@ class ObjectTemplate extends AppModel {
 					if (!$found) return 'Could not save the object as a required attribute is not set (' . $requiredField . ')';
 				}
 			}
+			// check for all required one of attributes
 			if (!empty($template['ObjectTemplate']['requirements']['requiredOneOf'])) {
 				$found = false;
 				foreach ($template['ObjectTemplate']['requirements']['requiredOneOf'] as $requiredField) {
@@ -198,6 +201,21 @@ class ObjectTemplate extends AppModel {
 					}
 				}
 				if (!$found) return 'Could not save the object as it requires at least one of the following attributes to be set: ' . implode(', ', $template['ObjectTemplate']['requirements']['requiredOneOf']);
+			}
+		}
+		// check the multiple flag is adhered to
+		foreach ($template['ObjectTemplateElement'] as $template_attribute) {
+			if ($template_attribute['multiple'] !== true) {
+				$found_relations = array();
+				foreach ($attributes['Attribute'] as $attribute) {
+					if ($attribute['object_relation'] == $template_attribute['object_relation']) {
+						if (!isset($found_relations[$attribute['object_relation']])) {
+							$found_relations[$attribute['object_relation']] = true;
+						} else {
+							return 'Could not save the object as a unique relationship within the object was assigned to more than one attribute. This is only allowed if the multiple flag is set in the object template.';
+						}
+					}
+				}
 			}
 		}
 		return true;

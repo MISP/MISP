@@ -1,6 +1,6 @@
 <div class="<?php if (!isset($ajax) || !$ajax) echo 'form';?>">
 <?php
-	$url = ($action == 'add') ? '/objects/add/' . $event['Event']['id'] . '/' . $template['ObjectTemplate']['id'] : '/objects/edit/' . $object['Object']['id'];
+	$url = ($action == 'add') ? '/objects/revise_object/add/' . $event['Event']['id'] . '/' . $template['ObjectTemplate']['id'] : '/objects/revise_object/edit/' . $event['Event']['id'] . '/' . $template['ObjectTemplate']['id'] . '/' . $object['Object']['id'];
 	echo $this->Form->create('Object', array('id', 'url' => $url, 'enctype' => 'multipart/form-data'));
 ?>
 <h3><?php echo ucfirst($action) . ' ' . Inflector::humanize(h($template['ObjectTemplate']['name'])) . ' Object'; ?></h3>
@@ -67,7 +67,8 @@
           'required' => false,
           'allowEmpty' => true,
           'label' => false,
-          'div' => false
+          'div' => false,
+					'value' => empty($template['Object']['comment']) ? '' : $template['Object']['comment']
         ));
       ?>
     </dd>
@@ -101,162 +102,42 @@
   $row_list = array();
   foreach ($template['ObjectTemplateElement'] as $k => $element):
     $row_list[] = $k;
-?>
-  <tr>
-    <td>
-      <?php
-        echo $this->Form->input('Attribute.' . $k . '.save', array(
-          'type' => 'checkbox',
-          'checked' => in_array($k, $enabledRows),
-          'label' => false,
-          'div' => false
-        ));
-      ?>
-    </td>
-    <td class="shortish" title="<?php echo h($element['description']); ?>">
-      <?php
-				$formSettings = array(
-          'type' => 'hidden',
-          'value' => $element['in-object-name'],
-          'label' => false,
-          'div' => false
-        );
-        echo $this->Form->input('Attribute.' . $k . '.object_relation', $formSettings);
-				if ($action == 'edit') {
-					echo $this->Form->input('Attribute.' . $k . '.uuid', array(
-						'type' => 'hidden',
-						'label' => false,
-						'div' => false
-					));
+		echo $this->element(
+	    'Objects/object_add_attributes',
+	    array(
+	      'element' => $element,
+	      'k' => $k,
+				'action' => $action,
+				'enabledRows' => $enabledRows
+	    )
+	  );
+		if ($element['multiple']):
+			$lastOfType = true;
+			$lookAheadArray = array_slice($template['ObjectTemplateElement'], $k, count($template['ObjectTemplateElement']), true);
+			if (count($lookAheadArray) > 1) {
+				foreach ($lookAheadArray as $k2 => $temp) {
+					if ($k2 == $k) continue;
+					if ($temp['object_relation'] == $element['object_relation']) {
+						$lastOfType = false;
+					}
 				}
-				$formSettings = array(
-          'type' => 'hidden',
-          'value' => $element['type'],
-          'label' => false,
-          'div' => false
-        );
-        echo $this->Form->input('Attribute.' . $k . '.type', $formSettings);
-        echo '<span class="bold">' . Inflector::humanize(h($element['in-object-name'])) . '</span>';
-        if (!empty($template['ObjectTemplate']['requirements']['required']) && in_array($element['in-object-name'], $template['ObjectTemplate']['requirements']['required'])) {
-          echo '<span class="bold red">' . '(*)' . '</span>';
-        }
-        echo ' :: ' . h($element['type']) . '';
-      ?>
-    </td>
-    <td class="short">
-      <?php
-				$formSettings = array(
-          'options' => array_combine($element['categories'], $element['categories']),
-          'default' => $element['default_category'],
-          'style' => 'margin-bottom:0px;',
-          'label' => false,
-          'div' => false
-        );
-        echo $this->Form->input('Attribute.' . $k . '.category', $formSettings);
-      ?>
-    </td>
-    <td>
-      <?php
-        if ($element['type'] == 'malware-sample' || $element['type'] == 'attachment'):
-          echo $this->Form->file('Attribute.' . $k . '.Attachment', array(
-            'class' => 'Attribute_attachment'
-          ));
-        else:
-          if (empty($element['values_list']) && empty($element['sane_default'])):
-            echo $this->Form->input('Attribute.' . $k . '.value', array(
-              'type' => 'textarea',
-              'required' => false,
-              'allowEmpty' => true,
-              'style' => 'height:20px;width:400px;',
-              'label' => false,
-              'div' => false
-            ));
-          else:
-            if (empty($element['values_list'])) {
-              $list = $element['sane_default'];
-              $list[] = 'Enter value manually';
-            } else {
-              $list = $element['values_list'];
-            }
-            $list = array_combine($list, $list);
-      ?>
-            <div class="value_select_with_manual_entry">
-      <?php
-              echo $this->Form->input('Attribute.' . $k . '.value_select', array(
-                'class' => 'Attribute_value_select',
-                'style' => 'width:414px;margin-bottom:0px;',
-                'options' => array_combine($list, $list),
-                'label' => false,
-                'div' => false
-              ));
-      ?>
-        <br />
-      <?php
-              echo $this->Form->input('Attribute.' . $k . '.value', array(
-                'class' => 'Attribute_value',
-                'type' => 'textarea',
-                'required' => false,
-                'allowEmpty' => true,
-                'style' => 'height:20px;width:400px;display:none;',
-                'label' => false,
-                'div' => false
-              ));
-      ?>
-            </div>
-      <?php
-          endif;
-        endif;
-      ?>
-    </td>
-    <td>
-      <?php
-        echo $this->Form->input('Attribute.' . $k . '.to_ids', array(
-          'type' => 'checkbox',
-          'checked' => $element['to_ids'],
-          'label' => false,
-          'div' => false
-        ));
-      ?>
-    </td>
-    <td class="short">
-      <?php
-          echo $this->Form->input('Attribute.' . $k . '.distribution', array(
-            'class' => 'Attribute_distribution_select',
-            'options' => $distributionData['levels'],
-            'default' => $distributionData['initial'],
-            'style' => 'margin-bottom:0px;',
-            'label' => false,
-            'div' => false
-          ));
-      ?>
-      <br />
-      <?php
-        echo $this->Form->input('Attribute.' . $k . '.sharing_group_id', array(
-          'class' => 'Attribute_sharing_group_id_select',
-          'options' => $distributionData['sgs'],
-          'label' => false,
-          'div' => false,
-          'style' => 'display:none;margin-bottom:0px;',
-        ));
-      ?>
-    </td>
-    <td>
-      <?php
-        echo $this->Form->input('Attribute.' . $k . '.comment', array(
-          'type' => 'textarea',
-          'style' => 'height:20px;width:400px;',
-          'required' => false,
-          'allowEmpty' => true,
-          'label' => false,
-          'div' => false
-        ));
-      ?>
-    </td>
-  </tr>
+			}
+			if ($lastOfType):
+	?>
+			<tr id="row_<?php echo h($element['object_relation']); ?>_expand">
+				<td class="down-expand-button add_object_attribute_row" colspan="7" data-template-id="<?php echo h($template['ObjectTemplate']['id']);?>" data-target-row="<?php echo h($k); ?>" data-object-relation="<?php echo h($element['object_relation']); ?>">
+					<span class="fa fa-angle-double-down" ></span>
+				</td>
+			</tr>
+	<?php
+			endif;
+		endif;
+	?>
 <?php
   endforeach;
 ?>
 </table>
+<div id="last-row" class="hidden" data-last-row="<?php echo h($k); ?>"></div>
 	<?php if ($ajax): ?>
 		<div class="overlay_spacing">
 			<table>
@@ -305,5 +186,10 @@
     $(".Attribute_value_select").change(function() {
       checkAndEnable($(this).parent().find('.Attribute_value'), $(this).val() == 'Enter value manually');
     });
+		$('.add_attribute_row').click(function() {
+			var selector = $(this).data('target');
+			var count = $(this).parent().children(selector).length;
+			$(this).parent().children(selector).first().clone().appendTo($(this).parent()).insertBefore($('.add_unlocked_field'));
+		});
   });
 </script>

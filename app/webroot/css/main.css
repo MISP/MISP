@@ -1882,6 +1882,19 @@ tr.blank_table_row td {
 	background-color: #ffffff !important;
 }
 
+.down-expand-button {
+	text-align:center !important;
+	border:0px;
+	padding:0px !important;
+	width:100%;
+	cursor: pointer;
+	cursor: hand;
+}
+
+table tr:hover .down-expand-button {
+	background: rgb(221, 221, 221) !important;
+}
+
 .strikethrough {
 	text-decoration: line-through;
 }

@@ -638,7 +638,7 @@ class Attribute extends AppModel {
 
 		// Set defaults for when some of the mandatory fields don't have defaults
 		// These fields all have sane defaults either based on another field, or due to server settings
-		if (empty($this->data['Attribute']['distribution'])) {
+		if (!isset($this->data['Attribute']['distribution'])) {
 			$this->data['Attribute']['distribution'] = Configure::read('MISP.default_attribute_distribution');
 			if ($this->data['Attribute']['distribution'] == 'event') {
 				$this->data['Attribute']['distribution'] = 5;

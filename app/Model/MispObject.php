@@ -263,26 +263,58 @@ class MispObject extends AppModel {
 	/*
 	 * Prepare the template form view's data, setting defaults, sorting elements
 	 */
-	public function prepareTemplate($template) {
+	public function prepareTemplate($template, $request = array()) {
 		$temp = array();
 		usort($template['ObjectTemplateElement'], function($a, $b) {
 			return $a['ui-priority'] < $b['ui-priority'];
 		});
-		foreach ($template['ObjectTemplateElement'] as $k => $v) {
-			if (isset($this->Event->Attribute->typeDefinitions[$template['ObjectTemplateElement'][$k]['type']])) {
-				$template['ObjectTemplateElement'][$k]['default_category'] = $this->Event->Attribute->typeDefinitions[$template['ObjectTemplateElement'][$k]['type']]['default_category'];
-				$template['ObjectTemplateElement'][$k]['to_ids'] = $this->Event->Attribute->typeDefinitions[$template['ObjectTemplateElement'][$k]['type']]['to_ids'];
-				if (empty($template['ObjectTemplateElement'][$k]['categories'])) {
-					$template['ObjectTemplateElement'][$k]['categories'] = array();
-					foreach ($this->Event->Attribute->categoryDefinitions as $catk => $catv) {
-						if (in_array($template['ObjectTemplateElement'][$k]['type'], $catv['types'])) {
-							$template['ObjectTemplateElement'][$k]['categories'][] = $catk;
+		$request_rearranged = array();
+		$template_object_elements = $template['ObjectTemplateElement'];
+		unset($template['ObjectTemplateElement']);
+		if (!empty($request['Attribute'])) {
+			foreach ($request['Attribute'] as $attribute) {
+				$request_rearranged[$attribute['object_relation']][] = $attribute;
+			}
+		}
+		foreach ($template_object_elements as $k => $v) {
+			if (empty($request_rearranged[$v['object_relation']])) {
+				if (isset($this->Event->Attribute->typeDefinitions[$v['type']])) {
+					$v['default_category'] = $this->Event->Attribute->typeDefinitions[$v['type']]['default_category'];
+					$v['to_ids'] = $this->Event->Attribute->typeDefinitions[$v['type']]['to_ids'];
+					if (empty($v['categories'])) {
+						$v['categories'] = array();
+						foreach ($this->Event->Attribute->categoryDefinitions as $catk => $catv) {
+							if (in_array($v['type'], $catv['types'])) {
+								$v['categories'][] = $catk;
+							}
 						}
 					}
+					$template['ObjectTemplateElement'][] = $v;
+				} else {
+					$template['warnings'][] = 'Missing attribute type "' . $v['type'] . '" found. Omitted template element ("' . $template['ObjectTemplateElement'][$k]['object_relation'] . '") that would not pass validation due to this.';
 				}
 			} else {
-				$template['warnings'][] = 'Missing attribute type "' . $template['ObjectTemplateElement'][$k]['type'] . '" found. Omitted template element ("' . $template['ObjectTemplateElement'][$k]['in-object-name'] . '") that would not pass validation due to this.';
-				unset($template['ObjectTemplateElement'][$k]);
+				foreach($request_rearranged[$v['object_relation']] as $request_item) {
+					if (isset($this->Event->Attribute->typeDefinitions[$v['type']])) {
+						$v['default_category'] = $request_item['category'];
+						$v['value'] = $request_item['value'];
+						$v['to_ids'] = $request_item['to_ids'];
+						$v['comment'] = $request_item['comment'];
+						$v['uuid'] = $request_item['uuid'];
+						if (isset($request_item['data'])) $v['data'] = $request_item['data'];
+						if (empty($v['categories'])) {
+							$v['categories'] = array();
+							foreach ($this->Event->Attribute->categoryDefinitions as $catk => $catv) {
+								if (in_array($v['type'], $catv['types'])) {
+									$v['categories'][] = $catk;
+								}
+							}
+						}
+						$template['ObjectTemplateElement'][] = $v;
+					} else {
+						$template['warnings'][] = 'Missing attribute type "' . $v['type'] . '" found. Omitted template element ("' . $template['ObjectTemplateElement'][$k]['object_relation'] . '") that would not pass validation due to this.';
+					}
+				}
 			}
 		}
 		return $template;
@@ -332,29 +364,41 @@ class MispObject extends AppModel {
 	public function deltaMerge($object, $objectToSave) {
 		$object['Object']['comment'] = $objectToSave['Object']['comment'];
 		$object['Object']['distribution'] = $objectToSave['Object']['distribution'];
-		$object['Object']['sharing_group_id'] = $objectToSave['Object']['sharing_group_id'];
+		if ($object['Object']['distribution'] == 4) {
+			$object['Object']['sharing_group_id'] = $objectToSave['Object']['sharing_group_id'];
+		}
 		$date = new DateTime();
 		$object['Object']['timestamp'] = $date->getTimestamp();
 		$this->save($object);
+		$checkFields = array('category', 'value', 'to_ids', 'distribution', 'sharing_group_id', 'comment');
 		foreach ($objectToSave['Attribute'] as $newKey => $newAttribute) {
 			foreach ($object['Attribute'] as $origKey => $originalAttribute) {
 				if (!empty($newAttribute['uuid'])) {
 					if ($newAttribute['uuid'] == $originalAttribute['uuid']) {
-						$newAttribute['id'] = $originalAttribute['id'];
-						$newAttribute['event_id'] = $object['Object']['event_id'];
-						$newAttribute['object_id'] = $object['Object']['id'];
-						$newAttribute['timestamp'] = $date->getTimestamp();
-						$this->Event->Attribute->save($newAttribute, array(
-							'category',
-							'value',
-							'to_ids',
-							'distribution',
-							'sharing_group_id',
-							'comment',
-							'timestamp',
-							'object_id',
-							'event_id'
-						));
+						$different = false;
+						foreach ($checkFields as $f) {
+							if ($f == 'sharing_group_id' && empty($newAttribute[$f])) {
+								$newAttribute[$f] = 0;
+							}
+							if ($newAttribute[$f] != $originalAttribute[$f]) $different = true;
+						}
+						if ($different) {
+							$newAttribute['id'] = $originalAttribute['id'];
+							$newAttribute['event_id'] = $object['Object']['event_id'];
+							$newAttribute['object_id'] = $object['Object']['id'];
+							$newAttribute['timestamp'] = $date->getTimestamp();
+							$result = $this->Event->Attribute->save(array('Attribute' => $newAttribute), array(
+								'category',
+								'value',
+								'to_ids',
+								'distribution',
+								'sharing_group_id',
+								'comment',
+								'timestamp',
+								'object_id',
+								'event_id'
+							));
+						}
 						unset($object['Attribute'][$origKey]);
 						continue 2;
 					}

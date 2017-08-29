@@ -14,6 +14,51 @@ class ObjectsController extends AppController {
 			),
 	);
 
+	public function beforeFilter() {
+		parent::beforeFilter();
+		$this->Security->unlockedActions = array('revise_object', 'get_row');
+	}
+
+	public function revise_object($action, $event_id, $template_id, $object_id = false) {
+		if (!$this->request->is('post') && !$this->request->is('put')) {
+			throw new MethodNotAllowedException('This action can only be reached via POST requests');
+		}
+		$this->request->data = $this->MispObject->attributeCleanup($this->request->data);
+		$eventFindParams = array(
+			'recursive' => -1,
+			'fields' => array('Event.id', 'Event.uuid', 'Event.orgc_id'),
+			'conditions' => array('Event.id' => $event_id)
+		);
+		$template = $this->MispObject->ObjectTemplate->find('first', array(
+			'conditions' => array('ObjectTemplate.id' => $template_id),
+			'recursive' => -1,
+			'contain' => array(
+				'ObjectTemplateElement'
+			)
+		));
+		$event = $this->MispObject->Event->find('first', $eventFindParams);
+		if (empty($event) || (!$this->_isSiteAdmin() &&	$event['Event']['orgc_id'] != $this->Auth->user('org_id'))) {
+			throw new NotFoundException('Invalid event.');
+		}
+		if ($this->request->data['Object']['distribution'] == 4) {
+			$sg = $this->MispObject->SharingGroup->find('first', array(
+				'conditions' => array('SharingGroup.id' => $this->request->data['Object']['sharing_group_id']),
+				'recursive' => -1,
+				'fields' => array('SharingGroup.id', 'SharingGroup.name'),
+				'order' => false
+			));
+			if (empty($sg)) throw new NotFoundException('Invalid sharing group.');
+			$this->set('sg', $sg);
+		}
+		$this->set('distributionLevels', $this->MispObject->Attribute->distributionLevels);
+		$this->set('action', $action);
+		$this->set('template', $template);
+		$this->set('object_id', $object_id);
+		$this->set('event', $event);
+		$this->set('data', $this->request->data);
+	}
+
+
 	/**
    * Create an object using a template
 	 * POSTing will take the input and validate it against the template
@@ -55,6 +100,9 @@ class ObjectsController extends AppController {
 			if (isset($this->request->data['request'])) {
 				$this->request->data = $this->request->data['request'];
 			}
+			if (isset($this->request->data['Object']['data'])) {
+				$this->request->data = json_decode($this->request->data['Object']['data'], true);
+			}
 			if (!isset($this->request->data['Attribute'])) {
 				$this->request->data = array('Attribute' => $this->request->data);
 			}
@@ -64,7 +112,7 @@ class ObjectsController extends AppController {
 				$this->request->data = array('Object' => $this->request->data);
 				$this->request->data['Attribute'] = $attributeTemp;
 				unset($attributeTemp);
-			}	
+			}
 			$object = $this->MispObject->attributeCleanup($this->request->data);
 			// we pre-validate the attributes before we create an object at this point
 			// This allows us to stop the process and return an error (API) or return
@@ -114,7 +162,7 @@ class ObjectsController extends AppController {
 			if (!empty($error)) {
 				$this->Session->setFlash($error);
 			}
-			$template = $this->MispObject->prepareTemplate($template);
+			$template = $this->MispObject->prepareTemplate($template, $this->request->data);
 			$enabledRows = array_keys($template['ObjectTemplateElement']);
 			$this->set('enabledRows', $enabledRows);
 			$distributionData = $this->MispObject->Event->Attribute->fetchDistributionData($this->Auth->user());
@@ -125,6 +173,28 @@ class ObjectsController extends AppController {
 			$this->set('template', $template);
 		}
   }
+
+	public function get_row($template_id, $object_relation, $k) {
+		$template = $this->MispObject->ObjectTemplate->find('first', array(
+			'conditions' => array('ObjectTemplate.id' => $template_id),
+			'recursive' => -1,
+			'contain' => array(
+				'ObjectTemplateElement'
+			)
+		));
+		$template = $this->MispObject->prepareTemplate($template);
+		$element = array();
+		foreach ($template['ObjectTemplateElement'] as $templateElement) {
+			if ($templateElement['object_relation'] == $object_relation) {
+				$element = $templateElement;
+			}
+		}
+		$distributionData = $this->MispObject->Event->Attribute->fetchDistributionData($this->Auth->user());
+		$this->layout = false;
+		$this->set('distributionData', $distributionData);
+		$this->set('k', $k);
+		$this->set('element', $element);
+	}
 
   public function edit($id) {
 		if (!$this->userRole['perm_modify']) {
@@ -164,19 +234,22 @@ class ObjectsController extends AppController {
 				'ObjectTemplateElement'
 			)
 		));
-		$template = $this->MispObject->prepareTemplate($template);
+		$template = $this->MispObject->prepareTemplate($template, $object);
 		$enabledRows = false;
 
 		if ($this->request->is('post') || $this->request->is('put')) {
 			if (isset($this->request->data['request'])) {
 				$this->request->data = $this->request->data['request'];
 			}
+			if (isset($this->request->data['Object']['data'])) {
+				$this->request->data = json_decode($this->request->data['Object']['data'], true);
+			}
 			if (!isset($this->request->data['Attribute'])) {
 				$this->request->data = array('Attribute' => $this->request->data);
 			}
 			$objectToSave = $this->MispObject->attributeCleanup($this->request->data);
 			$objectToSave = $this->MispObject->deltaMerge($object, $objectToSave);
-
+			
 			// we pre-validate the attributes before we create an object at this point
 			// This allows us to stop the process and return an error (API) or return
 			//  to the add form
@@ -202,7 +275,7 @@ class ObjectsController extends AppController {
 			$this->request->data['Object'] = $object['Object'];
 			foreach ($template['ObjectTemplateElement'] as $k => $element) {
 				foreach ($object['Attribute'] as $k2 => $attribute) {
-					if ($attribute['object_relation'] == $element['in-object-name']) {
+					if ($attribute['object_relation'] == $element['object_relation']) {
 						$enabledRows[] = $k;
 						$this->request->data['Attribute'][$k] = $attribute;
 						if (!empty($element['values_list'])) {
@@ -231,6 +304,10 @@ class ObjectsController extends AppController {
 		$this->set('object', $object);
 		$this->render('add');
   }
+
+	public function addValueField() {
+
+	}
 
   public function delete($id, $hard = false) {
 		if (!$this->userRole['perm_modify']) {

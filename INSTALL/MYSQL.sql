@@ -508,6 +508,7 @@ CREATE TABLE IF NOT EXISTS object_templates (
   `description` text COLLATE utf8_bin,
   `version` int(11) NOT NULL,
   `requirements` text COLLATE utf8_bin,
+  `fixed` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (id),
   INDEX `user_id` (`user_id`),
   INDEX `org_id` (`org_id`),
@@ -525,8 +526,8 @@ CREATE TABLE IF NOT EXISTS object_templates (
 CREATE TABLE IF NOT EXISTS object_template_elements (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `object_template_id` int(11) NOT NULL,
-  `in-object-name` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
-  `type` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+  `object_relation` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin,
+  `type` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin,
   `ui-priority` int(11) NOT NULL,
   `categories` text COLLATE utf8_bin,
   `sane_default` text COLLATE utf8_bin,
@@ -535,7 +536,7 @@ CREATE TABLE IF NOT EXISTS object_template_elements (
   `disable_correlations` tinyint(1) NOT NULL DEFAULT 0,
   `multiple` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (id),
-  INDEX `in-object-name` (`in-object-name`),
+  INDEX `object_relation` (`object_relation`),
   INDEX `type` (`type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
