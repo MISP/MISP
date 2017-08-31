@@ -55,6 +55,8 @@ class Event extends AppModel {
 
 	public $shortDist = array(0 => 'Organisation', 1 => 'Community', 2 => 'Connected', 3 => 'All', 4 => ' sharing Group');
 
+	private $__assetCache = array();
+
 	public $export_types = array(
 			'json' => array(
 					'extension' => '.json',
@@ -449,13 +451,21 @@ class Event extends AppModel {
 		$this->Correlation = ClassRegistry::init('Correlation');
 		$eventIds = Set::extract('/Event/id', $events);
 		$conditionsCorrelation = $this->__buildEventConditionsCorrelation($user, $eventIds, $sgids);
-		$correlations = $this->Correlation->find('all',array(
-				'fields' => array('Correlation.1_event_id', 'count(distinct(Correlation.event_id)) as count'),
-				'conditions' => $conditionsCorrelation,
-				'recursive' => -1,
-				'group' => array('Correlation.1_event_id'),
-		));
-		$correlations = Hash::combine($correlations, '{n}.Correlation.1_event_id', '{n}.0.count');
+		if (!empty($conditionsCorrelation)) {
+			$db = $this->getDataSource();
+			$corr_count = count($conditionsCorrelation['Correlation.1_event_id']);
+			$placeholders = array();
+			$lookupArray = array();
+			foreach ($conditionsCorrelation['Correlation.1_event_id'] as $k => $temp) {
+				$placeholders[] = '?';
+			}
+			$placeholders = implode(',', $placeholders);
+			$correlations = $db->fetchAll(
+				'SELECT `1_event_id`, count(distinct(`event_id`)) as count from correlations FORCE INDEX(1_event_id, event_id) WHERE 1_event_id IN (' . $placeholders . ') group by 1_event_id',
+				$conditionsCorrelation['Correlation.1_event_id']
+			);
+			$correlations = Hash::combine($correlations, '{n}.correlations.1_event_id', '{n}.0.count');
+		}
 		foreach ($events as &$event) $event['Event']['correlation_count'] = (isset($correlations[$event['Event']['id']])) ? $correlations[$event['Event']['id']] : 0;
 		return $events;
 	}
@@ -1176,6 +1186,38 @@ class Event extends AppModel {
 		}
 	}
 
+	public function fetchSipleEventIds($user, $params = array()) {
+		$conditions = array();
+		if (!$user['Role']['perm_site_admin']) {
+			$sgids = $this->cacheSgids($user, true);
+			$conditions['AND']['OR'] = array(
+				'Event.org_id' => $user['org_id'],
+				array(
+					'AND' => array(
+						'Event.distribution >' => 0,
+						'Event.distribution <' => 4,
+						Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
+					),
+				),
+				array(
+					'AND' => array(
+						'Event.sharing_group_id' => $sgids,
+						'Event.distribution' => 4,
+						Configure::read('MISP.unpublishedprivate') ? array('Event.published =' => 1) : array(),
+					)
+				)
+			);
+		}
+		$conditions['AND'][] = $params['conditions'];
+		$fields = array('Event.id', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id');
+		$results = array_values($this->find('list', array(
+			'conditions' => $conditions,
+			'recursive' => -1,
+			'fields' => array('Event.id')
+		)));
+		return $results;
+	}
+
 	public function fetchEventIds($user, $from = false, $to = false, $last = false, $list = false, $timestamp = false, $publish_timestamp = false, $eventIdList = false) {
 		$conditions = array();
 		// restricting to non-private or same org if the user is not a site-admin.
@@ -1234,7 +1276,7 @@ class Event extends AppModel {
 	// to: date string (YYYY-MM-DD)
 	// includeAllTags: true will include the tags
 	// includeAttachments: true will attach the attachments to the attributes in the data field
-	public function fetchEvent($user, $options = array()) {
+	public function fetchEvent($user, $options = array(), $useCache = false) {
 		if (isset($options['Event.id'])) $options['eventid'] = $options['Event.id'];
 		$possibleOptions = array('eventid', 'idList', 'tags', 'from', 'to', 'last', 'to_ids', 'includeAllTags', 'includeAttachments', 'event_uuid', 'distribution', 'sharing_group_id', 'disableSiteAdmin', 'metadata', 'includeGalaxy', 'enforceWarninglist', 'sgReferenceOnly');
 		if (!isset($options['excludeGalaxy']) || !$options['excludeGalaxy']) {
@@ -1252,11 +1294,9 @@ class Event extends AppModel {
 		$isSiteAdmin = $user['Role']['perm_site_admin'];
 		if (isset($options['disableSiteAdmin']) && $options['disableSiteAdmin']) $isSiteAdmin = false;
 		$conditionsAttributes = array();
-
+		$sgids = $this->cacheSgids($user, $useCache);
 		// restricting to non-private or same org if the user is not a site-admin.
 		if (!$isSiteAdmin) {
-			$sgids = $this->SharingGroup->fetchAllAuthorised($user);
-			if (empty($sgids)) $sgids = array(-1);
 			$conditions['AND']['OR'] = array(
 				'Event.org_id' => $user['org_id'],
 				array(
@@ -1276,14 +1316,9 @@ class Event extends AppModel {
 			);
 			// if delegations are enabled, check if there is an event that the current user might see because of the request itself
 			if (Configure::read('MISP.delegation')) {
-				$this->EventDelegation = ClassRegistry::init('EventDelegation');
-				$delegatedEventIDs = $this->EventDelegation->find('list', array(
-					'conditions' => array('EventDelegation.org_id' => $user['org_id']),
-					'fields' => array('event_id')
-				));
+				$delegatedEventIDs = $this->__cachedelegatedEventIDs($user, $useCache);
 				$conditions['AND']['OR']['Event.id'] = $delegatedEventIDs;
 			}
-
 			$conditionsAttributes['AND'][0]['OR'] = array(
 				array('AND' => array(
 					'Attribute.distribution >' => 0,
@@ -1324,19 +1359,10 @@ class Event extends AppModel {
 		}
 		// If we sent any tags along, load the associated tag names for each attribute
 		if ($options['tags']) {
-			$tag = ClassRegistry::init('Tag');
-			$args = $this->Attribute->dissectArgs($options['tags']);
-			$tagArray = $tag->fetchEventTagIds($args[0], $args[1]);
-			$temp = array();
-			foreach ($tagArray[0] as $accepted) {
-				$temp['OR'][] = array('Event.id' => $accepted);
+			$temp = $this->__generateCachedTagFilters($tagRules);
+			foreach ($temp as $rules) {
+				$conditions['AND'][] = $rules;
 			}
-			$conditions['AND'][] = $temp;
-			$temp = array();
-			foreach ($tagArray[1] as $rejected) {
-				$temp['AND'][] = array('Event.id !=' => $rejected);
-			}
-			$conditions['AND'][] = $temp;
 		}
 
 		if ($options['to_ids']) {
@@ -1355,30 +1381,9 @@ class Event extends AppModel {
 		$fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.proposal_to_delete', 'ShadowAttribute.timestamp');
 		$fieldsOrg = array('id', 'name', 'uuid');
 		$fieldsServer = array('id', 'url', 'name');
-		$fieldsSharingGroup = array(
-			array('fields' => array('SharingGroup.id','SharingGroup.name', 'SharingGroup.releasability', 'SharingGroup.description')),
-			array(
-				'fields' => array('SharingGroup.*'),
-					'Organisation' => array('fields' => $fieldsOrg),
-					'SharingGroupOrg' => array(
-						'Organisation' => array('fields' => $fieldsOrg, 'order' => false),
-					),
-					'SharingGroupServer' => array(
-						'Server' => array('fields' => $fieldsServer, 'order' => false),
-				),
-			),
-		);
 		if (!$options['includeAllTags']) $tagConditions = array('exportable' => 1);
 		else $tagConditions = array();
-
-		$sharingGroupDataTemp = $this->SharingGroup->find('all', array(
-			'fields' => $fieldsSharingGroup[(($user['Role']['perm_site_admin'] || $user['Role']['perm_sync']) ? 1 : 0)]['fields'],
-		));
-		$sharingGroupData = array();
-		foreach ($sharingGroupDataTemp as $k => $v) {
-			$sharingGroupData[$v['SharingGroup']['id']] = $v;
-		}
-
+		$sharingGroupData = $this->__cacheSharingGroupData($user, $useCache);
 		$params = array(
 			'conditions' => $conditions,
 			'recursive' => 0,
@@ -1420,7 +1425,6 @@ class Event extends AppModel {
 		$results = $this->find('all', $params);
 		if (empty($results)) return array();
 		// Do some refactoring with the event
-		$sgsids = $this->SharingGroup->fetchAllAuthorised($user);
 		if (Configure::read('Plugin.Sightings_enable') !== false) {
 			$this->Sighting = ClassRegistry::init('Sighting');
 		}
@@ -1456,6 +1460,7 @@ class Event extends AppModel {
 					if (!isset($options['excludeGalaxy']) || !$options['excludeGalaxy']) {
 						if (substr($eventTag['Tag']['name'], 0, strlen('misp-galaxy:')) === 'misp-galaxy:') {
 							$cluster = $this->GalaxyCluster->getCluster($eventTag['Tag']['name']);
+							$cluster = false;
 							if ($cluster) {
 								$found = false;
 								foreach ($event['Galaxy'] as $k => $galaxy) {
@@ -1480,10 +1485,10 @@ class Event extends AppModel {
 				$event['EventTag'] = array_values($event['EventTag']);
 			}
 			// Let's find all the related events and attach it to the event itself
-			$results[$eventKey]['RelatedEvent'] = $this->getRelatedEvents($user, $event['Event']['id'], $sgsids);
+			$results[$eventKey]['RelatedEvent'] = $this->getRelatedEvents($user, $event['Event']['id'], $sgids);
 			// Let's also find all the relations for the attributes - this won't be in the xml export though
-			$results[$eventKey]['RelatedAttribute'] = $this->getRelatedAttributes($user, $event['Event']['id'], $sgsids);
-			$results[$eventKey]['RelatedShadowAttribute'] = $this->getRelatedAttributes($user, $event['Event']['id'], $sgsids, true);
+			$results[$eventKey]['RelatedAttribute'] = $this->getRelatedAttributes($user, $event['Event']['id'], $sgids);
+			$results[$eventKey]['RelatedShadowAttribute'] = $this->getRelatedAttributes($user, $event['Event']['id'], $sgids, true);
 			if (isset($event['ShadowAttribute']) && !empty($event['ShadowAttribute']) && isset($options['includeAttachments']) && $options['includeAttachments']) {
 				foreach ($event['ShadowAttribute'] as $k => $sa) {
 					if ($this->ShadowAttribute->typeIsAttachment($sa['type'])) {
@@ -1498,8 +1503,8 @@ class Event extends AppModel {
 					$warninglists = $this->Warninglist->fetchForEventView();
 				}
 				if (isset($options['includeFeedCorrelations']) && $options['includeFeedCorrelations']) {
-					$this->Feed = ClassRegistry::init('Feed');
-					$event['Attribute'] = $this->Feed->attachFeedCorrelations($event['Attribute'], $user);
+				$this->Feed = ClassRegistry::init('Feed');
+				$event['Attribute'] = $this->Feed->attachFeedCorrelations($event['Attribute'], $user);
 				}
 				foreach ($event['Attribute'] as $key => $attribute) {
 					if (!$options['sgReferenceOnly'] && $event['Attribute'][$key]['sharing_group_id']) {
@@ -3427,5 +3432,94 @@ class Event extends AppModel {
 		}
 		if (!empty($subcondition)) array_push ($conditions['AND'], $subcondition);
 		return $conditions;
+	}
+
+	public function cacheSgids($user, $useCache = false) {
+		if ($useCache && isset($this->__assetCache['sgids'])) {
+			return $this->__assetCache['sgids'];
+		} else {
+			$sgids = $this->SharingGroup->fetchAllAuthorised($user);
+			if (empty($sgids)) $sgids = array(-1);
+			if ($useCache) $this->__assetCache['sgids'] = $sgids;
+			return $sgids;
+		}
+	}
+
+	private function __cacheSharingGroupData($user, $useCache) {
+		if ($useCache && isset($this->__assetCache['sharingGroupData'])) {
+			return $this->__assetCache['sharingGroupData'];
+		} else {
+			$fieldsOrg = array('id', 'name', 'uuid');
+			$fieldsServer = array('id', 'url', 'name');
+			$fieldsSharingGroup = array(
+				array('fields' => array('SharingGroup.id','SharingGroup.name', 'SharingGroup.releasability', 'SharingGroup.description')),
+				array(
+					'fields' => array('SharingGroup.*'),
+						'Organisation' => array('fields' => $fieldsOrg),
+						'SharingGroupOrg' => array(
+							'Organisation' => array('fields' => $fieldsOrg, 'order' => false),
+						),
+						'SharingGroupServer' => array(
+							'Server' => array('fields' => $fieldsServer, 'order' => false),
+					),
+				)
+			);
+			$containsSharingGroup = array(
+				array(),
+				array('Organisation', 'SharingGroupOrg' => array('Organisation'), 'SharingGroupServer' => array('Server'))
+			);
+			$sharingGroupDataTemp = $this->SharingGroup->find('all', array(
+				'fields' => $fieldsSharingGroup[(($user['Role']['perm_site_admin'] || $user['Role']['perm_sync']) ? 1 : 0)]['fields'],
+				'contain' => $containsSharingGroup[(($user['Role']['perm_site_admin'] || $user['Role']['perm_sync']) ? 1 : 0)],
+				'recursive' => -1
+			));
+			$sharingGroupData = array();
+			foreach ($sharingGroupDataTemp as $k => $v) {
+				$sharingGroupData[$v['SharingGroup']['id']] = $v;
+			}
+			if ($useCache) $this->__assetCache['sharingGroupData'] = $sharingGroupData;
+			return $sharingGroupData;
+		}
+	}
+
+	private function __cachedelegatedEventIDs($user, $useCache = false) {
+		if ($useCache && isset($this->__assetCache['delegatedEventIDs'])) {
+			return $this->__assetCache['delegatedEventIDs'];
+		} else {
+			$this->EventDelegation = ClassRegistry::init('EventDelegation');
+			$delegatedEventIDs = $this->EventDelegation->find('list', array(
+				'conditions' => array('EventDelegation.org_id' => $user['org_id']),
+				'fields' => array('event_id')
+			));
+			if ($useCache) $this->__assetCache['delegationEventIDs'] = $delegatedEventIDs;
+			return $delegatedEventIDs;
+		}
+	}
+
+	private function __generateCachedTagFilters($tagRules) {
+		if ($useCache && isset($this->__assetCache['tagFilters'])) {
+			return $this->__assetCache['tagFilters'];
+		} else {
+			$filters = array();
+			$tag = ClassRegistry::init('Tag');
+			$args = $this->Attribute->dissectArgs($tagRules);
+			$tagArray = $this->EventTag->Tag->fetchEventTagIds($args[0], $args[1]);
+			$temp = array();
+			foreach ($tagArray[0] as $accepted) {
+				$temp['OR'][] = array('Event.id' => $accepted);
+			}
+			$filters[] = $temp;
+			$temp = array();
+			foreach ($tagArray[1] as $rejected) {
+				$temp['AND'][] = array('Event.id !=' => $rejected);
+			}
+			$filters[] = $temp;
+			if ($useCache) $this->__assetCache['tagFilters'] = $filters;
+			return $filters;
+		}
+	}
+
+	private function __destroyCaches() {
+		$this->__assetCache = array();
 	}
 }

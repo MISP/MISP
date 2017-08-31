@@ -2273,11 +2273,20 @@ class Attribute extends AppModel {
 		if (isset($options['group'])) $params['group'] = array_merge(array('Attribute.id'), $options['group']);
 		if (Configure::read('MISP.unpublishedprivate')) $params['conditions']['AND'][] = array('OR' => array('Event.published' => 1, 'Event.orgc_id' => $user['org_id']));
 		if (!empty($options['list'])) {
+			if (!empty($options['event_ids'])) {
+				$fields = array('Attribute.event_id', 'Attribute.event_id');
+				$group = array('Attribute.event_id');
+			} else {
+				$fields = array('Attribute.event_id');
+				$group = false;
+			}
+			$start = microtime(true);
 			$results = $this->find('list', array(
 				'conditions' => $params['conditions'],
 				'recursive' => -1,
 				'contain' => array('Event'),
-				'fields' => array('Attribute.event_id'),
+				'fields' => $fields,
+				'group' => $group,
 				'sort' => false
 			));
 			return $results;
