@@ -901,7 +901,7 @@ class EventsController extends AppController {
 			$this->Event->recursive = -1;
 			$temp = $this->Event->find('first', array(
 				'recursive' => -1,
-				'conditons' => array('Event.uuid' => $id),
+				'conditions' => array('Event.uuid' => $id),
 				'fields' => array('Event.id', 'Event.uuid')
 			));
 			if ($temp == null) throw new NotFoundException('Invalid event');
