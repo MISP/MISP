@@ -451,21 +451,13 @@ class Event extends AppModel {
 		$this->Correlation = ClassRegistry::init('Correlation');
 		$eventIds = Set::extract('/Event/id', $events);
 		$conditionsCorrelation = $this->__buildEventConditionsCorrelation($user, $eventIds, $sgids);
-		if (!empty($conditionsCorrelation)) {
-			$db = $this->getDataSource();
-			$corr_count = count($conditionsCorrelation['Correlation.1_event_id']);
-			$placeholders = array();
-			$lookupArray = array();
-			foreach ($conditionsCorrelation['Correlation.1_event_id'] as $k => $temp) {
-				$placeholders[] = '?';
-			}
-			$placeholders = implode(',', $placeholders);
-			$correlations = $db->fetchAll(
-				'SELECT `1_event_id`, count(distinct(`event_id`)) as count from correlations FORCE INDEX(1_event_id, event_id) WHERE 1_event_id IN (' . $placeholders . ') group by 1_event_id',
-				$conditionsCorrelation['Correlation.1_event_id']
-			);
-			$correlations = Hash::combine($correlations, '{n}.correlations.1_event_id', '{n}.0.count');
-		}
+		$correlations = $this->Correlation->find('all',array(
+			'fields' => array('Correlation.1_event_id', 'count(distinct(Correlation.event_id)) as count'),
+			'conditions' => $conditionsCorrelation,
+			'recursive' => -1,
+			'group' => array('Correlation.1_event_id'),
+		));
+		$correlations = Hash::combine($correlations, '{n}.Correlation.1_event_id', '{n}.0.count');
 		foreach ($events as &$event) $event['Event']['correlation_count'] = (isset($correlations[$event['Event']['id']])) ? $correlations[$event['Event']['id']] : 0;
 		return $events;
 	}
