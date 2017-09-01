@@ -84,20 +84,35 @@ class JobsController extends AppController {
 		$org_id = $this->Auth->user('org_id');
 		if ($this->_isSiteAdmin()) $org_id = 0;
 
-		$progress = $this->Job->find('first', array(
-			'conditions' => array(
-				'job_type' => $type,
-				'org_id' => $org_id
-			),
-			'fields' => array('id', 'progress'),
-			'order' => array('Job.id' => 'desc'),
-		));
+		if (is_numeric($type)) {
+			$progress = $this->Job->find('first', array(
+				'conditions' => array(
+					'Job.id' => $type,
+					'org_id' => $org_id
+				),
+				'fields' => array('id', 'progress'),
+				'order' => array('Job.id' => 'desc'),
+			));
+		} else {
+			$progress = $this->Job->find('first', array(
+				'conditions' => array(
+					'job_type' => $type,
+					'org_id' => $org_id
+				),
+				'fields' => array('id', 'progress'),
+				'order' => array('Job.id' => 'desc'),
+			));
+		}
 		if (!$progress) {
 			$progress = 0;
 		} else {
 			$progress = $progress['Job']['progress'];
 		}
-		return new CakeResponse(array('body' => json_encode($progress), 'type' => 'json'));
+		if ($this->_isRest()) {
+			return $this->RestResponse->viewData(array('progress' => $progress . '%'), $this->response->type());
+		} else {
+			return new CakeResponse(array('body' => json_encode($progress), 'type' => 'json'));
+		}
 	}
 
 	public function cache($type) {
@@ -110,6 +125,10 @@ class JobsController extends AppController {
 			$target = 'Events visible to: '.$this->Auth->user('Organisation')['name'];
 		}
 		$id = $this->Job->cache($type, $this->Auth->user());
-		return new CakeResponse(array('body' => json_encode($id), 'type' => 'json'));
+		if ($this->_isRest()) {
+			return $this->RestResponse->viewData(array('job_id' => $id), $this->response->type());
+		} else {
+			return new CakeResponse(array('body' => json_encode($id), 'type' => 'json'));
+		}
 	}
 }
