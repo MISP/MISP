@@ -65,7 +65,8 @@ class ObjectReference extends AppModel {
 	}
 
 	public function smartSave($objectReference, $eventId) {
-		$sides = array('source', 'referenced');
+		$sides = array('source', 'destination');
+		$data = array();
 		foreach ($sides as $side) {
 			$data[$side] = $this->Object->find('first', array(
 				'conditions' => array(
@@ -75,7 +76,7 @@ class ObjectReference extends AppModel {
 				'recursive' => -1,
 				'fields' => array('Object.id')
 			));
-			if (empty($data[$side]) && $side == 'referenced') {
+			if (empty($data[$side]) && $side == 'destination') {
 				$data[$side] = $this->Attribute->find('first', array(
 					'conditions' => array(
 						'Attribute.uuid' => $objectReference[$side . '_uuid'],
@@ -84,11 +85,11 @@ class ObjectReference extends AppModel {
 					'recursive' => -1,
 					'fields' => array('Attribute.id')
 				));
-				$referenced_id = $data[$side]['Attribute']['id'];
-				$referenced_type = 0;
-			} else if (!empty($data[$side]) && $side == 'referenced') {
-				$referenced_id = $data[$side]['Object']['id'];
-				$referenced_type = 1;
+				$destination_id = $data[$side]['Attribute']['id'];
+				$destination_type = 0;
+			} else if (!empty($data[$side]) && $side == 'destination') {
+				$destination_id = $data[$side]['Object']['id'];
+				$destination_type = 1;
 			} else if (!empty($data[$side]) && $side = 'source') {
 				$object_id = $data[$side]['Object']['id'];
 			} else {
@@ -96,8 +97,8 @@ class ObjectReference extends AppModel {
 			}
 		}
 		$this->create();
-		$objectReference['referenced_type'] = $referenced_type;
-		$objectReference['referenced_id'] = $referenced_id;
+		$objectReference['destination_type'] = $destination_type;
+		$objectReference['destination_id'] = $destination_id;
 		$objectReference['object_id'] = $object_id;
 		$result = $this->save(array('ObjectReference' => $ojectReference));
 		if (!$result) {

@@ -2669,12 +2669,12 @@ class Attribute extends AppModel {
 
 	public function simpleAddMalwareSample($event_id, $category, $distribution, $sharing_group_id, $comment, $filename, $tmpfile) {
 		$attributes = array(
-			'malware-sample' => array('type' => 'malware-sample', 'data' => 1, 'category' => '', 'to_ids' => 1, 'disable_correlation' => 0),
-			'filename' => array('type' => 'filename', 'category' => '', 'to_ids' => 0, 'disable_correlation' => 0),
-			'md5' => array('type' => 'md5', 'category' => '', 'to_ids' => 1, 'disable_correlation' => 0),
-			'sha1' => array('type' => 'sha1', 'category' => '', 'to_ids' => 1, 'disable_correlation' => 0),
-			'sha256' => array('type' => 'sha256', 'category' => '', 'to_ids' => 1, 'disable_correlation' => 0),
-			'size-in-bytes' => array('type' => 'size-in-bytes', 'category' => '', 'to_ids' => 0, 'disable_correlation' => 1)
+			'malware-sample' => array('type' => 'malware-sample', 'data' => 1, 'category' => '', 'to_ids' => 1, 'disable_correlation' => 0, 'object_relation' => 'malware-sample'),
+			'filename' => array('type' => 'filename', 'category' => '', 'to_ids' => 0, 'disable_correlation' => 0, 'object_relation' => 'filename'),
+			'md5' => array('type' => 'md5', 'category' => '', 'to_ids' => 1, 'disable_correlation' => 0, 'object_relation' => 'md5'),
+			'sha1' => array('type' => 'sha1', 'category' => '', 'to_ids' => 1, 'disable_correlation' => 0, 'object_relation' => 'sha1'),
+			'sha256' => array('type' => 'sha256', 'category' => '', 'to_ids' => 1, 'disable_correlation' => 0, 'object_relation' => 'sha256'),
+			'size-in-bytes' => array('type' => 'size-in-bytes', 'category' => 'Other', 'to_ids' => 0, 'disable_correlation' => 1, 'object_relation' => 'filesize')
 		);
 		$hashes = array('md5', 'sha1', 'sha256');
 		$this->Object = ClassRegistry::init('Object');
@@ -2707,16 +2707,17 @@ class Attribute extends AppModel {
 			'event_id' => $event_id,
 			'comment' => $comment
 		);
+		$result = $this->Event->Attribute->handleMaliciousBase64($event_id, $filename, base64_encode($tmpfile->read()), $hashes);
 		foreach ($attributes as $k => $v) {
-			$result = $this->Event->Attribute->handleMaliciousBase64($event_id, $filename, base64_encode($tmpfile->read()), $hashes);
 			$attribute = array(
 				'distribution' => 5,
-				'category' => $category,
+				'category' => empty($v['category']) ? $category : $v['category'],
 				'type' => $v['type'],
 				'to_ids' => $v['to_ids'],
 				'disable_correlation' => $v['disable_correlation'],
 				'object_id' => $this->Object->id,
-				'event_id' => $event_id
+				'event_id' => $event_id,
+				'object_relation' => $v['object_relation']
 			);
 			if (isset($v['data'])) {
 				$attribute['data'] = $result['data'];
@@ -2724,7 +2725,7 @@ class Attribute extends AppModel {
 			if ($k == 'malware-sample') {
 				$attribute['value'] = $filename . '|' . $result['md5'];
 			} else if ($k == 'size-in-bytes') {
-				$attribute['value'] = 0;
+				$attribute['value'] = $tmpfile->size();
 			} else if ($k == 'filename') {
 				$attribute['value'] = $filename;
 			} else {
@@ -2732,11 +2733,25 @@ class Attribute extends AppModel {
 			}
 			$object['Attribute'][] = $attribute;
 		}
-		return array('Object' => $object);
+		return array('Object' => array($object));
 	}
 
-	public function advancedAddMalwareSample() {
-
+	public function advancedAddMalwareSample($tmpfile) {
+		$execRetval = '';
+		$execOutput = array();
+		$result = shell_exec('python ' . APP . 'files/scripts/generate_file_objects.py -p ' . $tmpfile->path);
+		if (!empty($result)) {
+			$result = json_decode($result, true);
+			if (isset($result['objects'])) {
+				$result['Object'] = $result['objects'];
+				unset($result['objects']);
+			}
+			if (isset($result['references'])) {
+				$result['ObjectReference'] = $result['references'];
+				unset($result['references']);
+			}
+		}
+		return $result;
 	}
 
 }

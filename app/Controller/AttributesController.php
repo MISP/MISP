@@ -361,16 +361,7 @@ class AttributesController extends AppController {
 
 				if ($this->request->data['Attribute']['malware']) {
 					if ($this->request->data['Attribute']['advanced']) {
-						$execRetval = '';
-						$execOutput = array();
-						$result = shell_exec('python ' . APP . 'files/scripts/generate_file_objects.py -p ' . $tmpfile->path);
-						if (!empty($result)) {
-							$result = json_decode($result, true);
-							if (isset($result['objects'])) {
-								$result['Object'] = $result['objects'];
-								unset($result['objects']);
-							}
-						}
+						$result = $this->Attribute->advancedAddMalwareSample($tmpfile);
 					} else {
 						$result = $this->Attribute->simpleAddMalwareSample(
 							$eventId,
@@ -387,7 +378,11 @@ class AttributesController extends AppController {
 							foreach ($object['Attribute'] as $k => $attribute) {
 								if ($attribute['value'] == $tmpfile->name) $object['Attribute'][$k]['value'] = $value['name'];
 							}
-							$result = $this->Attribute->Object->captureObject($eventId, array('Object' => $object), $this->Auth->user());
+							$this->loadModel('MispObject');
+							$result = $this->MispObject->captureObject($eventId, array('Object' => $object), $this->Auth->user());
+						}
+						foreach ($result['ObjectReference'] as $reference) {
+							$result = $this->MispObject->ObjectReference->smartSave($reference, $eventId);
 						}
 					}
 				} else {
@@ -410,7 +405,6 @@ class AttributesController extends AppController {
 					else $success++;
 				}
 			}
-throw new Exception();
 			$message = 'The attachment(s) have been uploaded.';
 			if (!empty($partialFails)) $message .= ' Some of the attributes however could not be created.';
 			if (!empty($fails)) $message = 'Some of the attachments failed to upload. The failed files were: ' . implode(', ', $fails) . ' - This can be caused by the attachments already existing in the event.';
