@@ -11,7 +11,7 @@
       ));
     ?>
   </td>
-  <td class="shortish" title="<?php echo h($element['description']); ?>">
+  <td class="short" title="<?php echo h($element['description']); ?>">
     <?php
       $formSettings = array(
         'type' => 'hidden',
@@ -42,6 +42,9 @@
       echo ' :: ' . h($element['type']) . '';
     ?>
   </td>
+  <td>
+    <?php echo h($element['description']); ?>
+  </td>
   <td class="short">
     <?php
       $formSettings = array(
@@ -54,7 +57,7 @@
       echo $this->Form->input('Attribute.' . $k . '.category', $formSettings);
     ?>
   </td>
-  <td>
+  <td class="short">
     <?php
       echo $this->element(
         'Objects/object_value_field',
@@ -98,7 +101,7 @@
       ));
     ?>
   </td>
-  <td>
+  <td class="short">
     <?php
       echo $this->Form->input('Attribute.' . $k . '.comment', array(
         'type' => 'textarea',

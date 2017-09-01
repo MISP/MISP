@@ -92,6 +92,7 @@
   <tr>
     <th>Save</th>
     <th>Name :: type</th>
+		<th>Description</th>
     <th>Category</th>
     <th>Value</th>
     <th>IDS</th>
