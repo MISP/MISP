@@ -113,9 +113,10 @@ class ObjectReference extends AppModel {
 		}
 		if (isset($reference['uuid'])) {
 			$existingReference = $this->find('first', array(
-				'conditions' => array('ObjectReference.uuid' => $reference['uuid'])
+				'conditions' => array('ObjectReference.uuid' => $reference['uuid']),
+				'recursive' => -1
 			));
-			if (empty($reference)) {
+			if (empty($existingReference)) {
 				return true;
 			}
 			// ObjectReference not newer than existing one

@@ -3731,4 +3731,16 @@ class Event extends AppModel {
 	private function __destroyCaches() {
 		$this->__assetCache = array();
 	}
+
+	public function unpublishEvent($id) {
+		$event = $this->find('first', array(
+			'recursive' => -1,
+			'conditions' => array('Event.id' => $id)
+		));
+		if (empty($event)) return false;
+		$event['Event']['published'] = 0;
+		$date = new DateTime();
+		$event['Event']['timestamp'] = $date->getTimestamp();
+		return $this->save($event);
+	}
 }

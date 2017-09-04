@@ -66,6 +66,9 @@ class MispObject extends AppModel {
 		if (empty($this->data[$this->alias]['template_version'])) {
 			$this->data[$this->alias]['template_version'] = 1;
 		}
+		if (isset($this->data[$this->alias]['deleted']) && empty($this->data[$this->alias]['deleted'])) {
+			$this->data[$this->alias]['deleted'] = 0;
+		}
  		if (!isset($this->data[$this->alias]['distribution']) || $this->data['Object']['distribution'] != 4) $this->data['Object']['sharing_group_id'] = 0;
 		if (!isset($this->data[$this->alias]['distribution'])) $this->data['Object']['distribution'] = 5;
 		return true;
@@ -415,6 +418,7 @@ class MispObject extends AppModel {
 			$originalAttribute['deleted'] = 1;
 			$this->Event->Attribute->save($originalAttribute);
 		}
+		return $this->id;
 	}
 
 	public function captureObject($object, $eventId, $user, $log = false) {
@@ -427,6 +431,7 @@ class MispObject extends AppModel {
 		}
 		$object['Object']['event_id'] = $eventId;
 		if ($this->save($object)) {
+			$this->Event->unpublishEvent($eventId);
 			$objectId = $this->id;
 			$partialFails = array();
 			foreach ($object['Object']['Attribute'] as $attribute) {
@@ -516,6 +521,8 @@ class MispObject extends AppModel {
 				'change' => 'Validation errors: ' . json_encode($this->validationErrors) . ' Full Object: ' . json_encode($attribute),
 			));
 			return $this->validationErrors;
+		} else {
+			$this->Event->unpublishEvent($eventId);
 		}
 		if (!empty($object['Attribute'])) {
 			foreach ($object['Attribute'] as $attribute) {

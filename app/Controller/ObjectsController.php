@@ -249,25 +249,26 @@ class ObjectsController extends AppController {
 			}
 			$objectToSave = $this->MispObject->attributeCleanup($this->request->data);
 			$objectToSave = $this->MispObject->deltaMerge($object, $objectToSave);
-			
 			// we pre-validate the attributes before we create an object at this point
 			// This allows us to stop the process and return an error (API) or return
 			//  to the add form
 			if (empty($error)) {
 				if ($this->_isRest()) {
-					if (is_numeric($result)) {
+					if (is_numeric($objectToSave)) {
 						$objectToSave = $this->MispObject->find('first', array(
 							'recursive' => -1,
 							'conditions' => array('Object.id' => $result),
 							'contain' => array('Attribute')
 						));
+						$this->MispObject->Event->unpublishEvent($object['Object']['event_id']);
 						return $this->RestResponse->viewData($objectToSave, $this->response->type());
 					} else {
-						return $this->RestResponse->saveFailResponse('Attributes', 'add', false, $result, $this->response->type());
+						return $this->RestResponse->saveFailResponse('Objects', 'add', false, $result, $this->response->type());
 					}
 				} else {
-					 $this->Session->setFlash('Object saved.');
-					 $this->redirect(array('controller' => 'events', 'action' => 'view', $object['Object']['event_id']));
+					$this->MispObject->Event->unpublishEvent($object['Object']['event_id']);
+					$this->Session->setFlash('Object saved.');
+					$this->redirect(array('controller' => 'events', 'action' => 'view', $object['Object']['event_id']));
 				}
 			}
 		} else {
