@@ -1496,7 +1496,7 @@ class Event extends AppModel {
 								'conditions' => array('id' => $reference['referenced_id'])
 							));
 							if (!empty($temp)) {
-								if (!$isSiteAdmin && $user['User']['org_id'] != $event['Event']['orgc_id']) {
+								if (!$isSiteAdmin && $user['org_id'] != $event['Event']['orgc_id']) {
 									if ($temp[$type]['distribution'] == 0 || ($temp[$type]['distribution'] == 4 && !in_array($temp[$type]['sharing_group_id'], $sgsids))) {
 										unset($object['ObjectReference'][$k2]);
 										continue;
@@ -2553,47 +2553,41 @@ class Event extends AppModel {
 	// Uploads this specific event to all remote servers
 	public function uploadEventToServersRouter($id, $passAlong = null) {
 		// make sure we have all the data of the Event
+		$orgContain = array(
+			'fields' => array('id', 'uuid', 'name')
+		);
+		$sharingGroupContain = array(
+			'Organisation' => $orgContain,
+			'SharingGroupOrg' => array(
+				'fields' => array('id', 'org_id', 'extend'),
+				'Organisation' => $orgContain
+			),
+			'SharingGroupServer' => array(
+				'fields' => array('id', 'server_id', 'all_orgs'),
+				'Server' => array(
+					'fields' => array('id', 'url', 'name')
+				)
+			)
+		);
+		$attributeContain = array(
+			'SharingGroup' => $sharingGroupContain,
+			'AttributeTag' => array('Tag')
+		);
 		$event = $this->find('first', array(
 				'conditions' => array('Event.id' => $id),
 				'recursive' => -1,
 				'contain' => array(
-						'Attribute' => array(
-								'SharingGroup' => array(
-										'SharingGroupOrg' => array(
-											'fields' => array('id', 'org_id', 'extend'),
-											'Organisation' => array(
-												'fields' => array('id', 'uuid', 'name')
-											)
-										),
-										'SharingGroupServer' => array(
-											'fields' => array('id', 'server_id', 'all_orgs'),
-											'Server' => array(
-												'fields' => array('id', 'url', 'name')
-											)
-										),
-									),
-									'AttributeTag' => array('Tag')
+						'Attribute' => $attributeContain,
+						'Object' => array(
+							'fields' => array(),
+							'SharingGroup' => $sharingGroupContain,
+							'ObjectReference' => array(),
+							'Attribute' => $attributeContain
 						),
 						'EventTag' => array('Tag'),
-						'Org' => array('fields' => array('id', 'uuid', 'name', 'local')),
-						'Orgc' => array('fields' => array('id', 'uuid', 'name', 'local')),
-						'SharingGroup' => array(
-							'Organisation' => array(
-								'fields' => array('id', 'uuid', 'name', 'local'),
-							),
-							'SharingGroupOrg' => array(
-								'fields' => array('id', 'org_id', 'extend'),
-								'Organisation' => array(
-									'fields' => array('id', 'uuid', 'name')
-								)
-							),
-							'SharingGroupServer' => array(
-								'fields' => array('id', 'server_id', 'all_orgs'),
-								'Server' => array(
-									'fields' => array('id', 'url', 'name')
-								)
-							),
-						),
+						'Org' => $orgContain,
+						'Orgc' => $orgContain,
+						'SharingGroup' => $sharingGroupContain
 				),
 		));
 		if (empty($event)) return true;
