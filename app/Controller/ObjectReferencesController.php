@@ -54,7 +54,7 @@ class ObjectReferencesController extends AppController {
 			));
 			if (!empty($target_object)) {
 				$referenced_id = $target_object['Object']['id'];
-				$target_uuid = $target_attribute['Object']['uuid'];
+				$destination_uuid = $target_object['Object']['uuid'];
 				if ($target_object['Object']['event_id'] != $object['Event']['id']) {
 					throw new NotFoundException('Invalid target. Target has to be within the same event.');
 				}
@@ -93,6 +93,7 @@ class ObjectReferencesController extends AppController {
 			$this->ObjectReference->create();
 			$result = $this->ObjectReference->save(array('ObjectReference' => $data));
 			if ($result) {
+				$this->ObjectReference->updateTimestamps($this->id, $data);
 				if ($this->_isRest()) {
 					$object = $this->ObjectReference->find("first", array(
 						'recursive' => -1,

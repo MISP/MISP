@@ -530,4 +530,14 @@ class MispObject extends AppModel {
 			}
 		}
 	}
+
+	public function updateTimestamp($id) {
+		$date = new DateTime();
+		$object = $this->find('first', array(
+			'recursive' => -1,
+			'conditions' => array('Object.id' => $id)
+		));
+		$object['Object']['timestamp'] = $date->getTimestamp();
+		return $this->save($object);
+	}
 }
