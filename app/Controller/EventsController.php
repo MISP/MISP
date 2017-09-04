@@ -63,7 +63,7 @@ class EventsController extends AppController {
 
 		// if not admin or own org, check private as well..
 		if (!$this->_isSiteAdmin() && in_array($this->action, $this->paginationFunctions)) {
-			$sgids = $this->Event->cacheSgids($user, true);
+			$sgids = $this->Event->cacheSgids($this->Auth->user(), true);
 			$conditions = array(
 				'AND' => array(
 					array(
