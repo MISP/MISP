@@ -1178,7 +1178,7 @@ class Event extends AppModel {
 		}
 	}
 
-	public function fetchSipleEventIds($user, $params = array()) {
+	public function fetchSimpleEventIds($user, $params = array()) {
 		$conditions = array();
 		if (!$user['Role']['perm_site_admin']) {
 			$sgids = $this->cacheSgids($user, true);
@@ -1452,7 +1452,6 @@ class Event extends AppModel {
 					if (!isset($options['excludeGalaxy']) || !$options['excludeGalaxy']) {
 						if (substr($eventTag['Tag']['name'], 0, strlen('misp-galaxy:')) === 'misp-galaxy:') {
 							$cluster = $this->GalaxyCluster->getCluster($eventTag['Tag']['name']);
-							$cluster = false;
 							if ($cluster) {
 								$found = false;
 								foreach ($event['Galaxy'] as $k => $galaxy) {
