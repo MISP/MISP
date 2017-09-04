@@ -63,8 +63,7 @@ class EventsController extends AppController {
 
 		// if not admin or own org, check private as well..
 		if (!$this->_isSiteAdmin() && in_array($this->action, $this->paginationFunctions)) {
-			$sgids = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user());
-			if (empty($sgids)) $sgids = array(-1);
+			$sgids = $this->Event->cacheSgids($this->Auth->user(), true);
 			$conditions = array(
 				'AND' => array(
 					array(
@@ -920,7 +919,11 @@ class EventsController extends AppController {
 		// find the id of the event, change $id to it and proceed to read the event as if the ID was entered.
 		if (Validation::uuid($id)) {
 			$this->Event->recursive = -1;
-			$temp = $this->Event->findByUuid($id);
+			$temp = $this->Event->find('first', array(
+				'recursive' => -1,
+				'conditions' => array('Event.uuid' => $id),
+				'fields' => array('Event.id', 'Event.uuid')
+			));
 			if ($temp == null) throw new NotFoundException('Invalid event');
 			$id = $temp['Event']['id'];
 		} else if (!is_numeric($id)) {
@@ -2600,7 +2603,7 @@ class EventsController extends AppController {
 			$key = strtolower($key);
 			if (!$this->Auth->user()) throw new UnauthorizedException('You are not authorized. Please send the Authorization header with your auth key along with an Accept header for application/xml.');
 		}
-		if (!is_array($value)) $value = str_replace('|', '/', $value);
+		if (!is_array($value) && $value !== false) $value = str_replace('|', '/', $value);
 		// request handler for POSTed queries. If the request is a post, the parameters (apart from the key) will be ignored and replaced by the terms defined in the posted json or xml object.
 		// The correct format for both is a "request" root element, as shown by the examples below:
 		// For Json: {"request":{"value": "7.7.7.7&&1.1.1.1","type":"ip-src"}}
@@ -2648,8 +2651,13 @@ class EventsController extends AppController {
 			$eventIds = $this->__quickFilter($value);
 		} else {
 			$parameters = array('value', 'type', 'category', 'org', 'eventid', 'uuid');
+			$attributeLevelFilters = array('value', 'type', 'category', 'uuid');
+			$preFilterLevel = 'event';
 			foreach ($parameters as $k => $param) {
-				if (isset(${$parameters[$k]})) {
+				if (${$parameters[$k]} !== false) {
+					if (in_array($param, $attributeLevelFilters)) {
+						$preFilterLevel = 'attribute';
+					}
 					$conditions = $this->Event->setSimpleConditions($parameters[$k], ${$parameters[$k]}, $conditions);
 				}
 			}
@@ -2660,22 +2668,28 @@ class EventsController extends AppController {
 			if ($publish_timestamp) $conditions = $this->Event->Attribute->setPublishTimestampConditions($publish_timestamp, $conditions);
 			if ($timestamp) $conditions = $this->Event->Attribute->setTimestampConditions($timestamp, $conditions);
 			if ($last) $conditions['AND'][] = array('Event.publish_timestamp >=' => $last);
-			if ($published !== null) $conditions['AND'][] = array('Event.published' => $published);
-			$params = array(
-					'conditions' => $conditions,
-					'fields' => array('DISTINCT(Attribute.event_id)'),
-					'contain' => array(),
-					'recursive' => -1,
-					'list' => true
-			);
-			$attributes = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $params);
-			$eventIds = array();
-			// Add event ID if specifically specified to allow for the export of an empty event
-			if (isset($eventid) && $eventid) $eventIds[] = $eventid;
-			foreach ($attributes as $attribute) {
-				if (!in_array($attribute, $eventIds)) $eventIds[] = $attribute;
+			if ($published !== null && $published !== false) $conditions['AND'][] = array('Event.published' => $published);
+			if ($preFilterLevel == 'event') {
+				$params = array(
+					'conditions' => $conditions
+				);
+				$eventIds = $this->Event->fetchSipleEventIds($this->Auth->user(), $params);
+			} else {
+				$params = array(
+						'conditions' => $conditions,
+						'fields' => array('DISTINCT(Attribute.event_id)'),
+						'contain' => array(),
+						'recursive' => -1,
+						'list' => true,
+						'event_ids' => true
+				);
+				$attributes = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $params);
+				$eventIds = array();
+				// Add event ID if specifically specified to allow for the export of an empty event
+				if (isset($eventid) && $eventid) $eventIds[] = $eventid;
+				$eventIds = array_merge($eventIds, array_values($attributes));
+				unset($attributes);
 			}
-			unset($attributes);
 		}
 		$this->loadModel('Whitelist');
 		$responseType = 'xml';
@@ -2698,13 +2712,17 @@ class EventsController extends AppController {
 		$i = 0;
 		foreach ($eventIds as $k => $currentEventId) {
 			$i++;
-			$result = $this->Event->fetchEvent($this->Auth->user(), array(
-				'eventid' => $currentEventId,
-				'includeAttachments' => $withAttachments,
-				'metadata' => $metadata,
-				'enforceWarninglist' => $enforceWarninglist,
-				'sgReferenceOnly' => $sgReferenceOnly
-			));
+			$result = $this->Event->fetchEvent(
+				$this->Auth->user(),
+				array(
+					'eventid' => $currentEventId,
+					'includeAttachments' => $withAttachments,
+					'metadata' => $metadata,
+					'enforceWarninglist' => $enforceWarninglist,
+					'sgReferenceOnly' => $sgReferenceOnly
+				),
+				true
+			);
 			if (!empty($result)) {
 				$result = $this->Whitelist->removeWhitelistedFromArray($result, false);
 				$final .= $converter->convert($result[0]);

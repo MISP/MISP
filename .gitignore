@@ -78,3 +78,5 @@
 *.swp
 *.iml
 .ropeproject/
+vagrant/.vagrant/
+vagrant/*.log

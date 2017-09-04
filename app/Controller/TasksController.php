@@ -81,6 +81,8 @@ class TasksController extends AppController {
 		if ($type === 'cache_exports') $this->_cacheScheduler($timestamp, $id);
 		if ($type === 'pull_all') $this->_pullScheduler($timestamp, $id);
 		if ($type === 'push_all') $this->_pushScheduler($timestamp, $id);
+		if ($type === 'cache_feeds') $this->_feedScheduler($timestamp, $id, 1);
+		if ($type === 'pull_feeds') $this->_feedScheduler($timestamp, $id, 0);
 	}
 
 	private function _cacheScheduler($timestamp, $id) {
@@ -108,6 +110,42 @@ class TasksController extends AppController {
 	}
 
 	private function _pullScheduler($timestamp, $id) {
+		$process_id = CakeResque::enqueueAt(
+				$timestamp,
+				'default',
+				'ServerShell',
+				array('enqueuePull', $timestamp, $this->Auth->user('id'),  $id),
+				true
+		);
+		$this->Task->id = $id;
+		$this->Task->saveField('process_id', $process_id);
+	}
+
+	private function _feedScheduler($timestamp, $id, $type) {
+		$process_id = CakeResque::enqueueAt(
+				$timestamp,
+				'default',
+				'ServerShell',
+				array('enqueueFeed', $timestamp, $this->Auth->user('id'),  $id, $type),
+				true
+		);
+		$this->Task->id = $id;
+		$this->Task->saveField('process_id', $process_id);
+	}
+
+	private function _feedPullScheduler($timestamp, $id) {
+		$process_id = CakeResque::enqueueAt(
+				$timestamp,
+				'default',
+				'ServerShell',
+				array('enqueuePull', $timestamp, $this->Auth->user('id'),  $id),
+				true
+		);
+		$this->Task->id = $id;
+		$this->Task->saveField('process_id', $process_id);
+	}
+
+	private function _feedCacheScheduler($timestamp, $id) {
 		$process_id = CakeResque::enqueueAt(
 				$timestamp,
 				'default',
