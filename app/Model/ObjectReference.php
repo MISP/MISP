@@ -106,4 +106,85 @@ class ObjectReference extends AppModel {
 		}
 		return true;
 	}
+
+	public function captureReference($reference, $eventId, $user, $log = false) {
+		if ($log == false) {
+			$log = ClassRegistry::init('Log');
+		}
+		if (isset($reference['uuid'])) {
+			$existingReference = $this->find('first', array(
+				'conditions' => array('ObjectReference.uuid' => $reference['uuid'])
+			));
+			if (empty($reference)) {
+				return true;
+			}
+			// ObjectReference not newer than existing one
+			if (isset($reference['timestamp']) && $reference['timestamp'] <= $existingReference['ObjectReference']['timestamp']) {
+				return true;
+			}
+			$fieldsToUpdate = array('timestamp', 'relationship_type', 'comment', 'deleted');
+			foreach ($fieldsToUpdate as $field) {
+				if (isset($reference[$field])) $existingReference['ObjectReference'][$field] = $reference[$field];
+			}
+			$result = $this->save($existingReference);
+			if ($result) {
+				return true;
+			} else {
+				return $this->validationErrors;
+			}
+		} else {
+			if (isset($reference['source_uuid'])) {
+				$conditions = array('Object.uuid' => $reference['source_uuid']);
+			} else if (isset($reference['object_id'])) {
+				$conditions = array('Object.id' => $reference['object_id']);
+			} else {
+				return true;
+			}
+			$sourceObject = $this->Object->find('first', array(
+				'recursive' => -1,
+				'conditions' => $conditions
+			));
+			if (isset($reference['destination_uuid'])) {
+				$conditions[0] = array('Attribute.uuid' => $reference['destination_uuid']);
+				$conditions[1] = array('Object.uuid' => $reference['destination_uuid']);
+			} else if (isset($reference['object_id'])) {
+				if ($reference['object_type'] == 1) {
+					$conditions[0] = array('Attribute.id' => $reference['object_id']);
+					$conditions[1] = array('Object.id' => $reference['object_id']);
+				} else {
+					$conditions = false;
+				}
+			} else {
+				return true;
+			}
+			if ($conditions) {
+				$destinationObject = $this->Object->find('first', array(
+					'recursive' => -1,
+					'conditions' => $conditions[1]
+				));
+			}
+			if (!isset($destinationObject)) {
+				$destinationObject = $this->Attribute->find('first', array(
+					'recursive' => -1,
+					'conditions' => $conditions[0]
+				));
+				if (empty($destinationObject)) return true;
+				$object_type = 0;
+			} else {
+				$object_type = 1;
+			}
+			$objectTypes = array('Attribute', 'Object');
+			if ($sourceObject['Object']['event_id'] != $eventId) return true;
+			if ($destinationObject[$objectTypes[$object_type]]['event_id'] != $eventId) return true;
+			$this->create();
+			unset($reference['id']);
+			$reference['referenced_type'] = $object_type;
+			$reference['object_id'] = $sourceObject['Object']['id'];
+			$reference['referenced_id'] = $destinationObject[$objectTypes[$object_type]]['id'];
+			$reference['destination_uuid'] = $destinationObject[$objectTypes[$object_type]]['uuid'];
+			$reference['source_uuid'] = $sourceObject['Object']['uuid'];
+			$this->save(array('ObjectReference' => $reference));
+			return true;
+		}
+	}
 }

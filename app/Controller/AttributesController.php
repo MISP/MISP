@@ -375,14 +375,18 @@ class AttributesController extends AppController {
 					}
 					if (!empty($result)) {
 						foreach ($result['Object'] as $object) {
-							foreach ($object['Attribute'] as $k => $attribute) {
-								if ($attribute['value'] == $tmpfile->name) $object['Attribute'][$k]['value'] = $value['name'];
+							if (!empty($object['Attribute'])) {
+								foreach ($object['Attribute'] as $k => $attribute) {
+									if ($attribute['value'] == $tmpfile->name) $object['Attribute'][$k]['value'] = $value['name'];
+								}
 							}
 							$this->loadModel('MispObject');
 							$result = $this->MispObject->captureObject($eventId, array('Object' => $object), $this->Auth->user());
 						}
-						foreach ($result['ObjectReference'] as $reference) {
-							$result = $this->MispObject->ObjectReference->smartSave($reference, $eventId);
+						if (!empty($result['ObjectReference'])) {
+							foreach ($result['ObjectReference'] as $reference) {
+								$result = $this->MispObject->ObjectReference->smartSave($reference, $eventId);
+							}
 						}
 					}
 				} else {
@@ -731,6 +735,16 @@ class AttributesController extends AppController {
 				$this->Event->set('timestamp', $date->getTimestamp());
 				$this->Event->set('published', 0);
 				$this->Event->save($this->Event->data, array('fieldList' => array('published', 'timestamp', 'info')));
+				if (!empty($this->Attribute->data['Attribute']['object_id'])) {
+					$object = $this->Attribute->Object->find('first', array(
+						'recursive' => -1,
+						'conditions' => array('Object.id' => $this->Attribute->data['Attribute']['object_id'])
+					));
+					if (!empty($object)) {
+						$object['Object']['timestamp'] = $date->getTimestamp();
+						$this->Attribute->Object->save($object);
+					}
+				}
 				if ($this->_isRest() || $this->response->type() === 'application/json') {
 					$saved_attribute = $this->Attribute->find('first', array(
 							'conditions' => array('id' => $this->Attribute->id),

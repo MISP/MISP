@@ -417,29 +417,110 @@ class MispObject extends AppModel {
 		}
 	}
 
-	public function captureObject($eventId, $object, $user) {
+	public function captureObject($object, $eventId, $user, $log = false) {
 		$this->create();
+		if (!isset($object['Object'])) {
+			$object = array('Object' => $object);
+		}
+		if (empty($log)) {
+			$log = ClassRegistry::init('Log');
+		}
 		$object['Object']['event_id'] = $eventId;
 		if ($this->save($object)) {
 			$objectId = $this->id;
 			$partialFails = array();
 			foreach ($object['Object']['Attribute'] as $attribute) {
-				if (isset($attribute['encrypt'])) {
-					$result = $this->Attribute->handleMaliciousBase64($eventId, $attribute['value'], $attribute['data'], array('md5'));
-					$attribute['data'] = $result['data'];
-					$attribute['value'] = $attribute['value'] . '|' . $result['md5'];
-				}
-				$attribute['event_id'] = $eventId;
-				$attribute['object_id'] = $objectId;
-				$this->Attribute->create();
-				$result = $this->Attribute->save(array('Attribute' => $attribute));
-				if (!$result) {
-					$partialFails[] = $attribute['type'];
-				}
+				$this->Attribute->captureAttribute($attribute, $eventId, $user, $objectId, $log);
 			}
-			if (!empty($partialFails)) return $partialFails;
 			return true;
+		} else {
+			$log->create();
+			$log->save(array(
+					'org' => $user['Organisation']['name'],
+					'model' => 'Object',
+					'model_id' => 0,
+					'email' => $user['email'],
+					'action' => 'add',
+					'user_id' => $user['id'],
+					'title' => 'Object dropped due to validation for Event ' . $eventId . ' failed: ' . $object['Object']['name'],
+					'change' => 'Validation errors: ' . json_encode($this->validationErrors) . ' Full Object: ' . json_encode($attribute),
+			));
 		}
 		return 'fail';
+	}
+
+	public function editObject($object, $eventId, $user, $log) {
+		$object['event_id'] = $eventId;
+		if (isset($object['uuid'])) {
+			$existingObject = $this->find('first', array(
+				'recursive' => -1,
+				'conditions' => array('Object.uuid' => $object['uuid'])
+			));
+			if ($existingObject['Object']['event_id'] != $eventId) {
+				$this->Log->create();
+				$this->Log->save(array(
+						'org' => $user['Organisation']['name'],
+						'model' => 'Object',
+						'model_id' => 0,
+						'email' => $user['email'],
+						'action' => 'edit',
+						'user_id' => $user['id'],
+						'title' => 'Duplicate UUID found in object',
+						'change' => 'An object was blocked from being saved due to a duplicate UUID. The uuid in question is: ' . $object['uuid'] . '. This can also be due to the same object (or an object with the same UUID) existing in a different event)',
+				));
+				return true;
+			}
+			if (empty($existingObject)) {
+				return $this->captureObject($object, $eventId, $user, $log);
+			} else {
+				if (isset($object['timestamp'])) {
+					if ($existingObject['Object']['timestamp'] >= $object['timestamp']) {
+						return true;
+					}
+				} else {
+					$object['timestamp'] = $dateObj->getTimestamp();
+				}
+			}
+		} else {
+			return $this->captureObject($object, $eventId, $user, $log);
+		}
+		// At this point we have an existingObject that we can edit
+		$recoverFields = array(
+			'name',
+			'meta-category',
+			'description',
+			'template_uuid',
+			'template_version',
+			'distribution',
+			'sharing_group_id',
+			'comment',
+			'deleted'
+		);
+		foreach ($recoverFields as $rF) if (!isset($object[$rF])) $object[$rF] = $existingObject['Object'][$rF];
+		$object['id'] = $existingObject['Object']['id'];
+		$object['uuid'] = $existingObject['Object']['uuid'];
+		$object['event_id'] = $eventId;
+		if ($object['distribution'] == 4) {
+			$object['sharing_group_id'] = $this->SharingGroup->captureSG($object['SharingGroup'], $user);
+		}
+		if (!$this->save($object)) {
+			$this->Log->create();
+			$this->Log->save(array(
+				'org' => $user['Organisation']['name'],
+				'model' => 'Object',
+				'model_id' => 0,
+				'email' => $user['email'],
+				'action' => 'edit',
+				'user_id' => $user['id'],
+				'title' => 'Attribute dropped due to validation for Event ' . $eventId . ' failed: ' . $object['Object']['name'],
+				'change' => 'Validation errors: ' . json_encode($this->validationErrors) . ' Full Object: ' . json_encode($attribute),
+			));
+			return $this->validationErrors;
+		}
+		if (!empty($object['Attribute'])) {
+			foreach ($object['Attribute'] as $attribute) {
+				$result = $this->Attribute->editAttribute($attribute, $eventId, $user, $this->id, $log);
+			}
+		}
 	}
 }

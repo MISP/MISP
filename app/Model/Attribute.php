@@ -2754,4 +2754,177 @@ class Attribute extends AppModel {
 		return $result;
 	}
 
+	// gets an attribute, saves it
+	// handles encryption, attaching to event/object, logging of issues, tag capturing
+	public function captureAttribute($attribute, $eventId, $user, $objectId = false, $log = false) {
+		if ($log == false) {
+			$log = ClassRegistry::init('Log');
+		}
+		$attribute['event_id'] = $eventId;
+		$attribute['object_id'] = $objectId ? $objectId : 0;
+		unset($attribute['id']);
+		if (isset($attribute['encrypt'])) {
+			$result = $this->handleMaliciousBase64($eventId, $attribute['value'], $attribute['data'], array('md5'));
+			$attribute['data'] = $result['data'];
+			$attribute['value'] = $attribute['value'] . '|' . $result['md5'];
+		}
+		$fieldList = array(
+			'event_id',
+			'category',
+			'type',
+			'value',
+			'value1',
+			'value2',
+			'to_ids',
+			'uuid',
+			'timestamp',
+			'distribution',
+			'comment',
+			'sharing_group_id',
+			'deleted',
+			'disable_correlation',
+			'object_id',
+			'object_relation'
+		);
+		$this->create();
+		if (!$this->save($attribute, array('fieldList' => $fieldList))) {
+			$validationErrors['Attribute'][$k] = $this->validationErrors;
+			$attribute_short = (isset($attribute['category']) ? $attribute['category'] : 'N/A') . '/' . (isset($attribute['type']) ? $attribute['type'] : 'N/A') . ' ' . (isset($attribute['value']) ? $attribute['value'] : 'N/A');
+			$log->create();
+			$log->save(array(
+					'org' => $user['Organisation']['name'],
+					'model' => 'Attribute',
+					'model_id' => 0,
+					'email' => $user['email'],
+					'action' => 'add',
+					'user_id' => $user['id'],
+					'title' => 'Attribute dropped due to validation for Event ' . $eventId . ' failed: ' . $attribute_short,
+					'change' => 'Validation errors: ' . json_encode($this->validationErrors) . ' Full Attribute: ' . json_encode($attribute),
+			));
+			} else {
+				if (isset($attribute['AttributeTag'])) {
+					foreach ($attribute['AttributeTag'] as $at) {
+						unset($at['id']);
+						$this->AttributeTag->create();
+						$at['attribute_id'] = $this->id;
+						$at['event_id'] = $eventId;
+						$this->AttributeTag->save($at);
+					}
+				}
+			}
+		return $attribute;
+	}
+
+	public function editAttribute($attribute, $eventId, $user, $objectId, $log = false) {
+		$attribute['event_id'] = $eventId;
+		$attribute['object_id'] = $objectId;
+		if (isset($attribute['encrypt'])) {
+			$result = $this->handleMaliciousBase64($eventId, $attribute['value'], $attribute['data'], array('md5'));
+			$attribute['data'] = $result['data'];
+			$attribute['value'] = $attribute['value'] . '|' . $result['md5'];
+		}
+		if (isset($attribute['uuid'])) {
+			$existingAttribute = $this->find('first', array(
+				'conditions' => array('Attribute.uuid' => $attribute['uuid']),
+				'recursive' => -1
+			));
+			if (count($existingAttribute)) {
+				if ($existingAttribute['Attribute']['event_id'] != $eventId || $existingAttribute['Attribute']['object_id'] != $objectId) {
+					$result = $this->Log->save(array(
+							'org' => $user['Organisation']['name'],
+							'model' => 'Attribute',
+							'model_id' => 0,
+							'email' => $user['email'],
+							'action' => 'edit',
+							'user_id' => $user['id'],
+							'title' => 'Duplicate UUID found in attribute',
+							'change' => 'An attribute was blocked from being saved due to a duplicate UUID. The uuid in question is: ' . $attribute['uuid'] . '. This can also be due to the same attribute (or an attribute with the same UUID) existing in a different event / object)',
+					));
+					return true;
+				}
+				// If a field is not set in the request, just reuse the old value
+				$recoverFields = array('value', 'to_ids', 'distribution', 'category', 'type', 'comment', 'sharing_group_id', 'object_id', 'object_relation');
+				foreach ($recoverFields as $rF) if (!isset($attribute[$rF])) $attribute[$rF] = $existingAttribute['Attribute'][$rF];
+				$attribute['id'] = $existingAttribute['Attribute']['id'];
+				// Check if the attribute's timestamp is bigger than the one that already exists.
+				// If yes, it means that it's newer, so insert it. If no, it means that it's the same attribute or older - don't insert it, insert the old attribute.
+				// Alternatively, we could unset this attribute from the request, but that could lead with issues if we decide that we want to start deleting attributes that don't exist in a pushed event.
+				if (isset($attribute['timestamp'])) {
+					if ($attribute['timestamp'] <= $existingAttribute['Attribute']['timestamp']) {
+						return true;
+					}
+				} else {
+					$attribute['timestamp'] = $date;
+				}
+			} else {
+				$this->create();
+			}
+		} else {
+			$this->create();
+		}
+	$attribute['event_id'] = $eventId;
+		if ($attribute['distribution'] == 4) {
+			$attribute['sharing_group_id'] = $this->SharingGroup->captureSG($attribute['SharingGroup'], $user);
+		}
+		$fieldList = array(
+			'event_id',
+			'category',
+			'type',
+			'value',
+			'value1',
+			'value2',
+			'to_ids',
+			'uuid',
+			'revision',
+			'distribution',
+			'timestamp',
+			'comment',
+			'sharing_group_id',
+			'deleted',
+			'disable_correlation'
+		);
+		if (!$this->save($attribute, array('fieldList' => $fieldList))) {
+			$attribute_short = (isset($attribute['category']) ? $attribute['category'] : 'N/A') . '/' . (isset($attribute['type']) ? $attribute['type'] : 'N/A') . ' ' . (isset($attribute['value']) ? $attribute['value'] : 'N/A');
+			$this->Log->create();
+			$this->Log->save(array(
+				'org' => $user['Organisation']['name'],
+				'model' => 'Attribute',
+				'model_id' => 0,
+				'email' => $user['email'],
+				'action' => 'edit',
+				'user_id' => $user['id'],
+				'title' => 'Attribute dropped due to validation for Event ' . $eventId . ' failed: ' . $attribute_short,
+				'change' => 'Validation errors: ' . json_encode($this->validationErrors) . ' Full Attribute: ' . json_encode($attribute),
+			));
+			return $this->validationErrors;
+		} else {
+			if (isset($attribute['Tag']) && $user['Role']['perm_tagger']) {
+				foreach ($attribute['Tag'] as $tag) {
+					$tag_id = $this->AttributeTag->Tag->captureTag($tag, $user);
+					if ($tag_id) {
+						// fix the IDs here
+						$this->AttributeTag->attachTagToAttribute($this->id, $this->id, $tag_id);
+					} else {
+						// If we couldn't attach the tag it is most likely because we couldn't create it - which could have many reasons
+						// However, if a tag couldn't be added, it could also be that the user is a tagger but not a tag editor
+						// In which case if no matching tag is found, no tag ID is returned. Logging these is pointless as it is the correct behaviour.
+						if ($user['Role']['perm_tag_editor']) {
+							$this->Log->create();
+							$this->Log->save(array(
+								'org' => $user['Organisation']['name'],
+								'model' => 'Attrubute',
+								'model_id' => $this->id,
+								'email' => $user['email'],
+								'action' => 'edit',
+								'user_id' => $user['id'],
+								'title' => 'Failed create or attach Tag ' . $tag['name'] . ' to the attribute.',
+								'change' => ''
+							));
+						}
+					}
+				}
+			}
+		}
+		return true;
+	}
 }
