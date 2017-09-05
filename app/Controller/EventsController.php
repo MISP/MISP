@@ -792,7 +792,7 @@ class EventsController extends AppController {
 	}
 
 	private function __viewUI($event, $continue, $fromEvent) {
-		$emptyEvent = (!isset($event['Attribute']) || empty($event['Attribute']));
+		$emptyEvent = (empty($event['Object']) && empty($event['Attribute']));
 		$this->set('emptyEvent', $emptyEvent);
 		$attributeCount = isset($event['Attribute']) ? count($event['Attribute']) : 0;
 		$this->set('attribute_count', $attributeCount);
