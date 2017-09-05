@@ -32,7 +32,16 @@ class Task extends AppModel {
 					'description' => 'Initiates a full push for all eligible instances.',
 					'next_execution_time' => 1391601600,
 					'message' => 'Not scheduled yet.'
-			)
+			),
+            'fetch_all' => array(
+                    'type' => 'fetch_all',
+                    'timer' => 0,
+                    'scheduled_time' => '12:00',
+                    'process_id' => '',
+                    'description' => 'Initiates a fetch for all enabled feeds.',
+                    'next_execution_time' => 1391601600,
+                    'message' => 'Not scheduled yet.'
+            )
 	);
 
 	// takes a time in the 24h format (13:49) and an integer representing the number of hours

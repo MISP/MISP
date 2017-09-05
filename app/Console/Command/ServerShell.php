@@ -99,6 +99,64 @@ class ServerShell extends AppShell
 		}
 	}
 
+	public function enqueueFetch() {
+	    // do the same setup, requeue as Pull
+        // do Feed->find(... conditions: enabled)
+        // foreach () job->create(...)
+        // THAT gives us a job with the right ID
+        // look at the JOBS page for job params
+        // then $result = downloadFromFeedInitiator(...)
+        // then depending on $result, save job as DONE or FAILED
+        $timestamp = $this->args[0];
+        $userId = $this->args[1];
+        $taskId = $this->args[2];
+        // non code line
+        $this->Task->id = $taskId;
+        $task = $this->Task->read(null, $taskId);
+        if ($timestamp != $task['Task']['next_execution_time']) {
+            return;
+        }
+        if ($task['Task']['timer'] > 0)	$this->Task->reQueue($task, 'default', 'ServerShell', 'enqueueFetch', $userId, $taskId);
+        $user = $this->User->getAuthUser($userId);
+        $feeds = $this->Feed->find('all', array('recursive' => -1, 'conditions' => array('enabled' => true)));
+        $failCount = 0;
+        foreach ($feeds as $k => $feed) {
+            $this->Job->create();
+            $jobId = $this->Job->id;
+            $data = array(
+                'worker' => 'default',
+                'job_type' => 'fetch',
+                'job_input' => 'Feed: ' . $feed['Feed']['id'],
+                'retries' => 0,
+                'org' => $user['Organisation']['name'],
+                'org_id' => $user['org_id'],
+                'process_id' => 'Part of scheduled fetch',
+                'message' => 'Fetching.',
+            );
+            $this->Job->save($data);
+            $result = $this->Feed->downloadFromFeedInitiator($feed['Feed']['id'], $user, $jobId);
+            if (!$result) {
+                $failCount++;
+                $message = 'Job Failed.';
+                $this->Job->save(array(
+                    'message' => $message,
+                    'progress' => 0,
+                    'status' => 3
+                ));
+            } else {
+                $message = 'Job done.';
+                $this->Job->save(array(
+                    'message' => $message,
+                    'progress' => 100,
+                    'status' => 4
+                ));
+            }
+        }
+
+        $this->Task->id = $task['Task']['id'];
+        $this->Task->saveField('message', count($feeds) . ' job(s) completed at ' . date('d/m/Y - H:i:s') . '. Failed jobs: ' . $failCount . '/' . count($feeds));
+    }
+
 	public function cacheFeeds() {
 		$userId = $this->args[0];
 		$jobId = $this->args[1];
