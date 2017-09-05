@@ -121,8 +121,12 @@ class TagsController extends AppController {
 			}
 			unset($paginated[$k]['AttributeTag']);
 			if (!empty($tag['FavouriteTag'])) {
-				foreach ($tag['FavouriteTag'] as $ft) if ($ft['user_id'] == $this->Auth->user('id')) $paginated[$k]['Tag']['favourite'] = true;
-				if (!isset($tag['Tag']['favourite'])) $paginated[$k]['Tag']['favourite'] = false;
+				foreach ($tag['FavouriteTag'] as $ft) {
+					if ($ft['user_id'] == $this->Auth->user('id')) {
+						$paginated[$k]['Tag']['favourite'] = true;
+					}
+				}
+				if (!isset($paginated[$k]['Tag']['favourite'])) $paginated[$k]['Tag']['favourite'] = false;
 			} else $paginated[$k]['Tag']['favourite'] = false;
 			unset($paginated[$k]['FavouriteTag']);
 			if (!empty($taxonomyNamespaces)) {
