@@ -42,6 +42,25 @@ class Task extends AppModel {
                     'next_execution_time' => 1391601600,
                     'message' => 'Not scheduled yet.'
             )
+			),
+			'cache_feeds' => array(
+					'type' => 'cache_feeds',
+					'timer' => 0,
+					'scheduled_time' => '12:00',
+					'process_id' => '',
+					'description' => 'Initiates the caching of all feeds.',
+					'next_execution_time' => 1391601600,
+					'message' => 'Not scheduled yet.'
+			),
+			'pull_feeds' => array(
+					'type' => 'pull_feeds',
+					'timer' => 0,
+					'scheduled_time' => '12:00',
+					'process_id' => '',
+					'description' => 'Initiates the pull of all feeds.',
+					'next_execution_time' => 1391601600,
+					'message' => 'Not scheduled yet.'
+			),
 	);
 
 	// takes a time in the 24h format (13:49) and an integer representing the number of hours

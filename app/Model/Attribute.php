@@ -155,6 +155,7 @@ class Attribute extends AppModel {
 			'bin' => array('desc' => 'Bank Identification Number', 'default_category' => 'Financial fraud', 'to_ids' => 1),
 			'cc-number' => array('desc' => 'Credit-Card Number', 'default_category' => 'Financial fraud', 'to_ids' => 1),
 			'prtn' => array('desc' => 'Premium-Rate Telephone Number', 'default_category' => 'Financial fraud', 'to_ids' => 1),
+			'phone-number' => array('desc' => 'Telephone Number', 'default_category' => 'Person', 'to_ids' => 0),
 			'threat-actor' => array('desc' => 'A string identifying the threat actor', 'default_category' => 'Attribution', 'to_ids' => 0),
 			'campaign-name' => array('desc' => 'Associated campaign name', 'default_category' => 'Attribution', 'to_ids' => 0),
 			'campaign-id' => array('desc' => 'Associated campaign ID', 'default_category' => 'Attribution', 'to_ids' => 0),
@@ -305,7 +306,7 @@ class Attribute extends AppModel {
 			'Financial fraud' => array(
 					'desc' => 'Financial Fraud indicators',
 					'formdesc' => 'Financial Fraud indicators, for example: IBAN Numbers, BIC codes, Credit card numbers, etc.',
-					'types' => array('btc', 'iban', 'bic', 'bank-account-nr', 'aba-rtn', 'bin', 'cc-number', 'prtn', 'comment', 'text', 'other', 'hex'),
+					'types' => array('btc', 'iban', 'bic', 'bank-account-nr', 'aba-rtn', 'bin', 'cc-number', 'prtn', 'phone-number', 'comment', 'text', 'other', 'hex'),
 					),
 			'Support Tool' => array(
 					'desc' => 'Tools supporting analysis or detection of the event',
@@ -318,11 +319,11 @@ class Attribute extends AppModel {
 			),
 			'Person' => array(
 					'desc' => 'A human being - natural person',
-					'types' => array('first-name', 'middle-name', 'last-name', 'date-of-birth', 'place-of-birth', 'gender', 'passport-number', 'passport-country', 'passport-expiration', 'redress-number', 'nationality', 'visa-number', 'issue-date-of-the-visa', 'primary-residence', 'country-of-residence', 'special-service-request', 'frequent-flyer-number', 'travel-details', 'payment-details', 'place-port-of-original-embarkation', 'place-port-of-clearance', 'place-port-of-onward-foreign-destination', 'passenger-name-record-locator-number', 'comment', 'text', 'other')
+					'types' => array('first-name', 'middle-name', 'last-name', 'date-of-birth', 'place-of-birth', 'gender', 'passport-number', 'passport-country', 'passport-expiration', 'redress-number', 'nationality', 'visa-number', 'issue-date-of-the-visa', 'primary-residence', 'country-of-residence', 'special-service-request', 'frequent-flyer-number', 'travel-details', 'payment-details', 'place-port-of-original-embarkation', 'place-port-of-clearance', 'place-port-of-onward-foreign-destination', 'passenger-name-record-locator-number', 'comment', 'text', 'other', 'phone-number')
 			),
 			'Other' => array(
 					'desc' => 'Attributes that are not part of any other category or are meant to be used as a component in MISP objects in the future',
-					'types' => array('comment', 'text', 'other', 'size-in-bytes', 'counter', 'datetime', 'cpe', 'port', 'float', 'hex')
+					'types' => array('comment', 'text', 'other', 'size-in-bytes', 'counter', 'datetime', 'cpe', 'port', 'float', 'hex', 'phone-number')
 					)
 	);
 
@@ -366,7 +367,7 @@ class Attribute extends AppModel {
 	public $typeGroupings = array(
 		'file' => array('attachment', 'pattern-in-file', 'md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512', 'sha512/224', 'sha512/256', 'ssdeep', 'imphash', 'impfuzzy','authentihash', 'pehash', 'tlsh', 'filename', 'filename|md5', 'filename|sha1', 'filename|sha224', 'filename|sha256', 'filename|sha384', 'filename|sha512', 'filename|sha512/224', 'filename|sha512/256', 'filename|authentihash', 'filename|ssdeep', 'filename|tlsh', 'filename|imphash', 'filename|pehash', 'malware-sample', 'x509-fingerprint-sha1'),
 		'network' => array('ip-src', 'ip-dst', 'ip-src|port', 'ip-dst|port', 'hostname', 'hostname|port', 'domain', 'domain|ip', 'email-dst', 'url', 'uri', 'user-agent', 'http-method', 'AS', 'snort', 'pattern-in-traffic', 'x509-fingerprint-sha1'),
-		'financial' => array('btc', 'iban', 'bic', 'bank-account-nr', 'aba-rtn', 'bin', 'cc-number', 'prtn')
+		'financial' => array('btc', 'iban', 'bic', 'bank-account-nr', 'aba-rtn', 'bin', 'cc-number', 'prtn', 'phone-number')
 	);
 
 	public $order = array("Attribute.event_id" => "DESC");
@@ -1040,6 +1041,7 @@ class Attribute extends AppModel {
 			case 'bank-account-nr':
 			case 'aba-rtn':
 			case 'prtn':
+			case 'phone-number':
 			case 'whois-registrant-phone':
 				if (is_numeric($value)) {
 					$returnValue = true;
@@ -1119,6 +1121,7 @@ class Attribute extends AppModel {
 				break;
 			case 'prtn':
 			case 'whois-registrant-phone':
+			case 'phone-number':
 				if (substr($value, 0, 1) == '+') $value = '00' . substr($value, 1);
 				$value = preg_replace('/[^0-9]+/', '', $value);
 				break;
@@ -2237,7 +2240,7 @@ class Attribute extends AppModel {
 			'recursive' => -1,
 			'contain' => array(
 				'Event' => array(
-					'fields' => array('id', 'info', 'org_id', 'orgc_id'),
+					'fields' => array('id', 'info', 'org_id', 'orgc_id', 'uuid'),
 				),
 			),
 		);
@@ -2273,11 +2276,20 @@ class Attribute extends AppModel {
 		if (isset($options['group'])) $params['group'] = array_merge(array('Attribute.id'), $options['group']);
 		if (Configure::read('MISP.unpublishedprivate')) $params['conditions']['AND'][] = array('OR' => array('Event.published' => 1, 'Event.orgc_id' => $user['org_id']));
 		if (!empty($options['list'])) {
+			if (!empty($options['event_ids'])) {
+				$fields = array('Attribute.event_id', 'Attribute.event_id');
+				$group = array('Attribute.event_id');
+			} else {
+				$fields = array('Attribute.event_id');
+				$group = false;
+			}
+			$start = microtime(true);
 			$results = $this->find('list', array(
 				'conditions' => $params['conditions'],
 				'recursive' => -1,
 				'contain' => array('Event'),
-				'fields' => array('Attribute.event_id'),
+				'fields' => $fields,
+				'group' => $group,
 				'sort' => false
 			));
 			return $results;
@@ -2293,6 +2305,9 @@ class Attribute extends AppModel {
 			if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttributes($warninglists, $attribute['Attribute'])) {
 				unset($results[$key]);
 				continue;
+			}
+			if (!empty($options['includeAttributeUuid'])) {
+				$results[$key]['Attribute']['event_uuid'] = $results[$key]['Event']['uuid'];
 			}
 			if ($proposals_block_attributes) {
 				if (!empty($attribute['ShadowAttribute'])) {

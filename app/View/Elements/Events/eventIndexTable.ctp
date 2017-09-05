@@ -1,10 +1,12 @@
 <table class="table table-striped table-hover table-condensed">
 	<tr>
+		<?php if ($isSiteAdmin): ?>
 			<th>
-				<?php if ($isSiteAdmin && !empty($events)): ?>
-					<input class="select_all select" type="checkbox" title="Select all" role="button" tabindex="0" aria-label="Select all eventson current page" onClick="toggleAllCheckboxes();" />&nbsp;
-				<?php endif;?>
+				<input class="select_all select" type="checkbox" title="Select all" role="button" tabindex="0" aria-label="Select all eventson current page" onClick="toggleAllCheckboxes();" />&nbsp;
 			</th>
+		<?php else: ?>
+			<th style="padding-left:0px;padding-right:0px;">&nbsp;</th>
+		<?php endif;?>
 		<th class="filter">
 			<?php echo $this->Paginator->sort('published');?>
 		</th>
@@ -64,17 +66,19 @@
 	</tr>
 	<?php foreach ($events as $event): ?>
 	<tr <?php if ($event['Event']['distribution'] == 0) echo 'class = "privateRed"'?>>
-		<?php if ($me['Role']['perm_modify']): ?>
-			<td style="width:10px;" data-id="<?php echo h($event['Event']['id']); ?>">
-				<?php
-					if ($isSiteAdmin || ($event['Event']['orgc_id'] == $me['org_id'])):
-				?>
+			<?php
+				if ($isSiteAdmin || ($event['Event']['orgc_id'] == $me['org_id'])):
+			?>
+					<td data-id="<?php echo h($event['Event']['id']); ?>">
 						<input class="select" type="checkbox" data-id="<?php echo $event['Event']['id'];?>" />
-				<?php
-					endif;
-				?>
-			</td>
-		<?php endif;?>
+					</td>
+			<?php
+				else:
+			?>
+					<td style="padding-left:0px;padding-right:0px;"></td>
+			<?php
+				endif;
+			?>
 		<td class="short" ondblclick="document.location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
 			<?php
 			if ($event['Event']['published'] == 1) {

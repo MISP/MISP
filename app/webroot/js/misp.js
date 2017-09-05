@@ -170,7 +170,7 @@ function toggleSetting(e, setting, id) {
 		},
 		data: formData,
 		success:function (data, textStatus) {
-			var result = JSON.parse(data);
+			var result = data;
 			if (result.success) {
 				var setting = false;
 				if (result.success.indexOf(searchString) > -1) setting = true;
@@ -418,7 +418,7 @@ function addSighting(type, attribute_id, event_id, page) {
 		cache: false,
 		success:function (data, textStatus) {
 			handleGenericAjaxResponse(data);
-			var result = JSON.parse(data);
+			var result = data;
 			if (result.saved == true) {
 				$('.sightingsCounter').each(function( counter ) {
 					$(this).html(parseInt($(this).html()) + 1);
@@ -542,7 +542,7 @@ function quickSubmitAttributeTagForm(attribute_id, tag_id) {
 }
 
 function handleAjaxEditResponse(data, name, type, id, field, event) {
-	responseArray = JSON.parse(data);
+	responseArray = data;
 	if (type == 'Attribute') {
 		if (responseArray.saved) {
 			showMessage('success', responseArray.success);
@@ -913,7 +913,7 @@ function submitPopoverForm(context_id, referer, update_context_id) {
 };
 
 function handleAjaxPopoverResponse(response, context_id, url, referer, context, contextNamingConvention) {
-	responseArray = JSON.parse(response);
+	responseArray = response;
 	var message = null;
 	if (responseArray.saved) {
 		updateIndex(context_id, context);
@@ -1238,6 +1238,11 @@ function simplePopup(url) {
 			$(".loading").hide();
 			$("#popover_form").html(data);
 			openPopup("#popover_form");
+		},
+		error:function() {
+			$(".loading").hide();
+			$("#gray_out").fadeOut();
+			showMessage('fail', 'Could not fetch the given PGP key.');
 		},
 		url: url,
 	});
@@ -2246,7 +2251,7 @@ function testConnection(id) {
 	    	$("#connection_test_" + id).html('Internal error.');
 	    },
 	    success: function(response){
-	    	var result = JSON.parse(response);
+	    	var result = response;
 	    	switch (result.status) {
 			case 1:
 				status_message = "OK";

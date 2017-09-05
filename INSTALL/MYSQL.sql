@@ -295,9 +295,12 @@ CREATE TABLE IF NOT EXISTS galaxy_clusters (
   `galaxy_id` int(11) NOT NULL,
   `source` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT '',
   `authors` text COLLATE utf8_bin NOT NULL,
+  `version` int(11) DEFAULT 0,
   PRIMARY KEY (id),
   INDEX `value` (`value`(255)),
   INDEX `uuid` (`uuid`),
+  INDEX `galaxy_id` (`galaxy_id`),
+  INDEX `version` (`version`),
   INDEX `tag_name` (`tag_name`),
   INDEX `type` (`type`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
@@ -315,7 +318,8 @@ CREATE TABLE IF NOT EXISTS galaxy_elements (
   `value` text COLLATE utf8_bin NOT NULL,
   PRIMARY KEY (`id`),
   INDEX `key` (`key`),
-  INDEX `value` (`value`(255))
+  INDEX `value` (`value`(255)),
+  INDEX `galaxy_cluster_id` (`galaxy_cluster_id`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- -------------------------------------------------------

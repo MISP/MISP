@@ -41,7 +41,7 @@
 				<?php echo $this->Html->link('', array('controller' => 'events', 'action' => 'index'), array('class' => 'icon-remove', 'title' => 'Remove filters'));?>
 			</span>
 			<?php endif;?>
-			<span role="button" tabindex="0" aria-label="Quickfilter" title="Quickfilter" id="quickFilterButton" class="tabMenuFilterFieldButton useCursorPointer" onClick='quickFilter(<?php echo h($passedArgs);?>, "/events/index");'>Filter</span>
+			<span role="button" tabindex="0" aria-label="Quickfilter" title="Quickfilter" id="quickFilterButton" class="tabMenuFilterFieldButton useCursorPointer" onClick="quickFilter(<?php echo h($passedArgs); ?>, '<?php echo $baseurl . '/events/index'; ?>');">Filter</span>
 			<input class="tabMenuFilterField" type="text" id="quickFilterField"></input>
 			<?php
 				$tempArgs = json_decode($passedArgs, true);

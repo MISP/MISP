@@ -40,7 +40,7 @@ class CustomPaginationTool {
 
 	function truncateByPagination(&$items, $params) {
 		if (empty($items)) return;
-		$items = array_slice($items, $params['current'] - 1, $params['current'] + $params['limit']);
+		$items = array_slice($items, $params['current'] - 1, $params['limit']);
 	}
 
 	function applyRulesOnArray(&$items, $options, $model, $sort = 'id') {

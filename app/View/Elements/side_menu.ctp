@@ -137,6 +137,7 @@
 				case 'globalActions':
 					if (((Configure::read('MISP.disableUserSelfManagement') && $isAdmin) || !Configure::read('MISP.disableUserSelfManagement')) && ($menuItem === 'edit' || $menuItem === 'view')): ?>
 					<li id='liedit'><?php echo $this->Html->link(__('Edit My Profile', true), array('action' => 'edit')); ?></li>
+					<li id='liedit'><?php echo $this->Html->link(__('Change Password', true), array('action' => 'change_pw')); ?></li>
 					<li class="divider"></li>
 					<?php elseif (Configure::read('Plugin.CustomAuth_custom_password_reset')): ?>
 					<li id='lipwreset'><a href="<?php echo h(Configure::read('Plugin.CustomAuth_custom_password_reset'));?>">Reset Password</a></li>
