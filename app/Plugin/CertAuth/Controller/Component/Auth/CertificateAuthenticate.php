@@ -170,7 +170,8 @@ class CertificateAuthenticate extends BaseAuthenticate
 					self::$user = $this->User->getAuthUser($existingUser['User']['id']);
 					if (isset(self::$user['gpgkey'])) unset(self::$user['gpgkey']);
 				} else if ($sync && !empty(self::$user)) {
-					$org=null;
+					$org = isset(self::$client['org']) ? self::$client['org'] : null;
+					if ($org == null) return false;
 					if (!isset(self::$user['org_id']) && isset(self::$user['org'])) {
 						self::$user['org_id'] = $this->User->Organisation->createOrgFromName($org, 0, true);
 						unset(self::$user['org']);
@@ -192,7 +193,6 @@ class CertificateAuthenticate extends BaseAuthenticate
 				}
 			}
 		}
-
 		return self::$user;
 	}
 
