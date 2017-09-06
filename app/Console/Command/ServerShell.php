@@ -197,14 +197,13 @@ class ServerShell extends AppShell
 		if ($timestamp != $task['Task']['next_execution_time']) {
 			return;
 		}
-		if ($task['Task']['timer'] > 0)	$this->Task->reQueue($task, 'default', 'ServerShell', 'enqueueCachePull', $userId, $taskId, $action);
+		if ($task['Task']['timer'] > 0)	$this->Task->reQueue($task, 'default', 'ServerShell', 'enqueueFeed', $userId, $taskId, $action);
 		$user = $this->User->getAuthUser($userId);
-		$count = count($feeds);
 		$failCount = 0;
 		if ($action == 0) {
 			$feeds = $this->Feed->find('all', array(
 				'recursive' => -1,
-				'conditions' => array('enabled' => 1)
+				'conditions' => array('enabled' => true)
 			));
 			foreach ($feeds as $k => $feed) {
 				$this->Job->create();
@@ -220,10 +219,8 @@ class ServerShell extends AppShell
 				);
 				$this->Job->save($data);
 				$jobId = $this->Job->id;
-				App::uses('SyncTool', 'Tools');
 				$result = $this->Feed->downloadFromFeedInitiator($feed['Feed']['id'], $user, $jobId);
 				$this->Job->save(array(
-						'id' => $jobId,
 						'message' => 'Job done.',
 						'progress' => 100,
 						'status' => 4
@@ -240,7 +237,6 @@ class ServerShell extends AppShell
 			$data = array(
 					'worker' => 'default',
 					'job_type' => 'feed_cache',
-					'job_input' => 'Feed: ' . $feed['Feed']['id'],
 					'retries' => 0,
 					'org' => $user['Organisation']['name'],
 					'org_id' => $user['org_id'],
@@ -251,7 +247,6 @@ class ServerShell extends AppShell
 			$jobId = $this->Job->id;
 			$result = $this->Feed->cacheFeedInitiator($user, $jobId, 'all');
 			$this->Job->save(array(
-					'id' => $jobId,
 					'message' => 'Job done.',
 					'progress' => 100,
 					'status' => 4
