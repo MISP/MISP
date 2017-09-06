@@ -127,97 +127,69 @@ class CertificateAuthenticate extends BaseAuthenticate
 	// to enable stateless authentication
 	public function getUser(CakeRequest $request)
 	{
-		if (is_null(self::$user)) {
+		if (empty(self::$user)) {
 			if (self::$client) {
 				self::$user = self::$client;
-
+				// If $sync is true, allow the creation of the user from the certificate
 				$sync = Configure::read('CertAuth.syncUser');
-
 				if ($sync) {
 					self::getRestUser();
 				}
 
 				// find and fill user with model
-				$cn = Configure::read('CertAuth.userModel');
-				if ($cn) {
-					$k = Configure::read('CertAuth.userModelKey');
-					if ($k) {
-						$q = array($k=>self::$user[$k]);
-					} else {
-						$q = self::$user;
-					}
-					$User = ClassRegistry::init($cn);
-					$U = $User->find('first', array(
-						'conditions' => $q,
-						'recursive' => false
-					));
-					if ($U) {
-						if ($sync) {
-							$write = array();
-
-							if (!isset(self::$user['org_id']) && isset(self::$user['org'])) {
-								self::$user['org_id']=$User->Organisation->createOrgFromName(self::$user['org'], $User->id, true);
-								// reset user defaults in case it's a different org_id
-								if(self::$user['org_id'] && $U[$cn]['org_id']!=self::$user['org_id']) {
-									$d = Configure::read('CertAuth.userDefaults');
-									if ($d && is_array($d)) {
-										self::$user = $d + self::$user;
-									}
-									unset($d);
-								}
-								unset(self::$user['org']);
-							}
-
-							foreach (self::$user as $k=>$v) {
-								if (array_key_exists($k, $U[$cn]) && trim($U[$cn][$k])!=trim($v)) {
-									$write[] = $k;
-									$U[$cn][$k] = trim($v);
-								}
-								unset($k, $v);
-							}
-							if ($write && !$User->save($U[$cn], true, $write)) {
-								CakeLog::write('alert', 'Could not update model at database with RestAPI data.');
-							}
-							unset($write);
-						}
-						self::$user = $User->getAuthUser($U[$cn]['id']);
-						if (isset(self::$user['gpgkey'])) unset(self::$user['gpgkey']);
-					} else if ($sync && self::$user) {
-						$User->create();
-						$org=null;
+				$userModelKey = empty(Configure::read('CertAuth.userModelKey')) ? 'email' : Configure::read('CertAuth.userModelKey');
+				$userDefaults = Configure::read('CertAuth.userDefaults');
+				$this->User = ClassRegistry::init('User');
+				$existingUser = $this->User->find('first', array(
+					'conditions' => array($userModelKey => self::$user[$userModelKey]),
+					'recursive' => false
+				));
+				if ($existingUser) {
+					if ($sync) {
 						if (!isset(self::$user['org_id']) && isset(self::$user['org'])) {
-							$org = self::$user['org'];
+							self::$user['org_id'] = $this->User->Organisation->createOrgFromName(self::$user['org'], $existingUser['User']['id'], true);
+							// reset user defaults in case it's a different org_id
+							if (self::$user['org_id'] && $existingUser['User']['org_id'] != self::$user['org_id']) {
+								if ($userDefaults && is_array($userDefaults)) {
+									self::$user = array_merge($userDefaults + self::$user);
+								}
+							}
 							unset(self::$user['org']);
 						}
-
-						$d = Configure::read('CertAuth.userDefaults');
-						if ($d && is_array($d)) {
-							self::$user += $d;
-						}
-						unset($d);
-
-						if ($User->save(self::$user, true)) {
-							$id = $User->id;
-							if ($org) {
-								self::$user['id'] = $id;
-								self::$user['org_id']=$User->Organisation->createOrgFromName($org, $User->id, true);
-								$User->save(self::$user, true, array('org_id'));
+						$write = array();
+						foreach (self::$user as $k => $v) {
+							if (isset($existingUser['User'][$k]) && trim($existingUser['User'][$k]) != trim($v)) {
+								$write[] = $k;
+								$existingUser['User'][$k] = trim($v);
 							}
-
-							self::$user = $User->getAuthUser($id);
-							unset($id);
-							if (isset(self::$user['gpgkey'])) unset(self::$user['gpgkey']);
-						} else {
-							CakeLog::write('alert', 'Could not insert model at database from RestAPI data.');
 						}
-						unset($org);
-					} else {
-						// No match -- User doesn't exist !!!
-						self::$user = false;
+						if (!empty($write) && !$this->User->save($existingUser['User'], true, $write)) {
+							CakeLog::write('alert', 'Could not update model at database with RestAPI data.');
+						}
 					}
-					unset($U, $User, $q, $k);
+					self::$user = $this->User->getAuthUser($existingUser['User']['id']);
+					if (isset(self::$user['gpgkey'])) unset(self::$user['gpgkey']);
+				} else if ($sync && !empty(self::$user)) {
+					$org=null;
+					if (!isset(self::$user['org_id']) && isset(self::$user['org'])) {
+						self::$user['org_id'] = $this->User->Organisation->createOrgFromName($org, 0, true);
+						unset(self::$user['org']);
+					}
+					if ($userDefaults && is_array($userDefaults)) {
+						self::$user = array_merge(self::$user, $userDefaults);
+					}
+					$this->User->create();
+					if ($this->User->save(self::$user)) {
+						$id = $this->User->id;
+						self::$user = $this->User->getAuthUser($id);
+						if (isset(self::$user['gpgkey'])) unset(self::$user['gpgkey']);
+					} else {
+						CakeLog::write('alert', 'Could not insert model at database from RestAPI data. Reason: ' . json_encode($this->User->validationErrors));
+					}
+				} else {
+					// No match -- User doesn't exist !!!
+					self::$user = false;
 				}
-				unset($cn);
 			}
 		}
 
