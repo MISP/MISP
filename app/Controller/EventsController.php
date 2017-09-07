@@ -2638,7 +2638,6 @@ class EventsController extends AppController {
 					if (in_array($param, $attributeLevelFilters)) {
 						$preFilterLevel = 'attribute';
 					}
-					$conditions = $this->Event->setSimpleConditions($parameters[$k], ${$parameters[$k]}, $conditions);
 					if ($param == 'eventid') {
 						$restrictScopeToEvents = true;
 					}
