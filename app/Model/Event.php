@@ -3358,7 +3358,7 @@ class Event extends AppModel {
 		return array('data' => array(), 'csv' => array());
 	}
 
-	public function setSimpleConditions($parameterKey, $parameterValue, $conditions) {
+	public function setSimpleConditions($parameterKey, $parameterValue, $conditions, $restrictScopeToEvents = false) {
 		if (is_array($parameterValue)) {
 			$elements = $parameterValue;
 		} else {
@@ -3386,7 +3386,11 @@ class Event extends AppModel {
 							$subcondition['AND'][] = array('Event.orgc_id !=' => $o['Org']['id']);
 						}
 					} else if ($parameterKey === 'eventid') {
-						$subcondition['AND'][] = array('Attribute.event_id !=' => substr($v, 1));
+						if ($restrictScopeToEvents) {
+							$subcondition['AND'][] = array('Event.id !=' => substr($v, 1));
+						} else {
+							$subcondition['AND'][] = array('Attribute.event_id !=' => substr($v, 1));
+						}
 					} else if ($parameterKey === 'uuid') {
 						$subcondition['AND'][] = array('Event.uuid !=' => substr($v, 1));
 						$subcondition['AND'][] = array('Attribute.uuid !=' => substr($v, 1));
@@ -3411,7 +3415,11 @@ class Event extends AppModel {
 							$subcondition['OR'][] = array('Event.orgc_id' => $o['Org']['id']);
 						}
 					} else if ($parameterKey === 'eventid') {
-						$subcondition['OR'][] = array('Attribute.event_id' => $v);
+						if ($restrictScopeToEvents) {
+							$subcondition['OR'][] = array('Event.id' => $v);
+						} else {
+							$subcondition['OR'][] = array('Attribute.event_id' => $v);
+						}
 					} else if ($parameterKey === 'uuid') {
 						$subcondition['OR'][] = array('Attribute.uuid' => $v);
 						$subcondition['OR'][] = array('Event.uuid' => $v);
