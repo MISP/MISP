@@ -16,21 +16,8 @@ class ObjectTemplatesController extends AppController {
 			'recursive' => -1
 	);
 
-/*
-  public function add($eventId) {
-
-  }
-
-  public function edit($id) {
-
-  }
-
-  public function delete($id) {
-
-  }
-*/
-
 	public function objectChoice($event_id) {
+		$this->ObjectTemplate->populateIfEmpty($this->Auth->user());
 		$templates_raw = $this->ObjectTemplate->find('all', array(
 			'recursive' => -1,
 			'fields' => array('id', 'meta-category', 'name', 'description', 'org_id'),

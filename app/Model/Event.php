@@ -978,7 +978,7 @@ class Event extends AppModel {
 
 	private function __updateEventForSync($event, $server) {
 		// rearrange things to be compatible with the Xml::fromArray()
-		$objectsToRearrange = array('Attribute', 'Orgc', 'SharingGroup', 'EventTag', 'Org', 'ShadowAttribute');
+		$objectsToRearrange = array('Attribute', 'Object', 'Orgc', 'SharingGroup', 'EventTag', 'Org', 'ShadowAttribute');
 		foreach ($objectsToRearrange as $o) {
 			if (isset($event[$o])) {
 				$event['Event'][$o] = $event[$o];
@@ -1006,57 +1006,20 @@ class Event extends AppModel {
 				}
 			}
 		}
-		// remove value1 and value2 from the output
-		if (isset($event['Event']['Attribute'])) {
-			foreach ($event['Event']['Attribute'] as $key => &$attribute) {
-			// do not keep attributes that are private, nor cluster
-				if (!$server['Server']['internal'] && $attribute['distribution'] < 2) {
-					unset($event['Event']['Attribute'][$key]);
-					continue; // stop processing this
-				}
-				// Downgrade the attribute from connected communities to community only
-				if (!$server['Server']['internal'] && $attribute['distribution'] == 2) {
-					$attribute['distribution'] = 1;
-				}
 
-				// If the attribute has a sharing group attached, make sure it can be transfered
-				if ($attribute['distribution'] == 4) {
-					if (!$server['Server']['internal'] && $this->checkDistributionForPush(array('Attribute' => $attribute), $server, 'Attribute') === false) {
-						unset($event['Event']['Attribute'][$key]);
-						continue;
-					}
-					// Add the local server to the list of instances in the SG
-					if (isset($attribute['SharingGroup']['SharingGroupServer'])) {
-						foreach ($attribute['SharingGroup']['SharingGroupServer'] as &$s) {
-							if ($s['server_id'] == 0) {
-								$s['Server'] = array('id' => 0, 'url' => Configure::read('MISP.baseurl'));
-							}
-						}
-					}
-				}
-				foreach ($attribute['AttributeTag'] as $kt => $tag) {
-					if (!$tag['Tag']['exportable']) {
-						unset($attribute['AttributeTag'][$kt]);
-					} else {
-						unset($tag['Tag']['org_id']);
-						$attribute['Tag'][] = $tag['Tag'];
-					}
-				}
-				unset($attribute['AttributeTag']);
+		// prepare attribute for sync
+		if (!empty($event['Event']['Attribute'])) {
+			foreach ($event['Event']['Attribute'] as $key => $attribute) {
+				$event['Event']['Attribute'][$key] = $this->__updateAttributeForSync($attribute, $server);
+				if (empty($event['Event']['Attribute'][$key])) unset($event['Event']['Attribute'][$key]);
+			}
+		}
 
-				// remove value1 and value2 from the output
-				unset($attribute['value1']);
-				unset($attribute['value2']);
-				// also add the encoded attachment
-				if ($this->Attribute->typeIsAttachment($attribute['type'])) {
-					$encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
-					$attribute['data'] = $encodedFile;
-				}
-				// Passing the attribute ID together with the attribute could cause the deletion of attributes after a publish/push
-				// Basically, if the attribute count differed between two instances, and the instance with the lower attribute
-				// count pushed, the old attributes with the same ID got overwritten. Unsetting the ID before pushing it
-				// solves the issue and a new attribute is always created.
-				unset($attribute['id']);
+		// prepare Object for sync
+		if (!empty($event['Event']['Object'])) {
+			foreach ($event['Event']['Object'] as $key => $object) {
+				$event['Event']['Object'][$key] = $this->__updateObjectForSync($object, $server);
+				if (empty($event['Event']['Object'][$key])) unset($event['Event']['Object'][$key]);
 			}
 		}
 
@@ -1064,8 +1027,90 @@ class Event extends AppModel {
 		if (!$server['Server']['internal'] && $event['Event']['distribution'] == 2) {
 			$event['Event']['distribution'] = 1;
 		}
-		$event['Event']['Attribute'] = array_values($event['Event']['Attribute']);
+		if (!empty($event['Event']['Attribute'])) $event['Event']['Attribute'] = array_values($event['Event']['Attribute']);
+		if (!empty($event['Event']['Object'])) $event['Event']['Object'] = array_values($event['Event']['Object']);
 		return $event;
+	}
+
+	private function __updateObjectForSync($object, $server) {
+		if (!$server['Server']['internal'] && $object['distribution'] < 2) {
+			return false;
+		}
+		// Downgrade the object from connected communities to community only
+		if (!$server['Server']['internal'] && $object['distribution'] == 2) {
+			$object['distribution'] = 1;
+		}
+		// If the object has a sharing group attached, make sure it can be transfered
+		if ($object['distribution'] == 4) {
+			if (!$server['Server']['internal'] && $this->checkDistributionForPush(array('Object' => $object), $server, 'Object') === false) {
+				return false;
+			}
+			// Add the local server to the list of instances in the SG
+			if (isset($object['SharingGroup']['SharingGroupServer'])) {
+				foreach ($object['SharingGroup']['SharingGroupServer'] as &$s) {
+					if ($s['server_id'] == 0) {
+						$s['Server'] = array('id' => 0, 'url' => Configure::read('MISP.baseurl'));
+					}
+				}
+			}
+		}
+		if (!empty($object['Attribute'])) {
+			foreach ($object['Attribute'] as $key => $attribute) {
+				$object['Attribute'][$key] = $this->__updateAttributeForSync($attribute, $server);
+				if (empty($object['Attribute'][$key])) unset($object['Attribute'][$key]);
+			}
+		}
+		return $object;
+	}
+
+	private function __updateAttributeForSync($attribute, $server) {
+		// do not keep attributes that are private, nor cluster
+			if (!$server['Server']['internal'] && $attribute['distribution'] < 2) {
+				return false;
+			}
+			// Downgrade the attribute from connected communities to community only
+			if (!$server['Server']['internal'] && $attribute['distribution'] == 2) {
+				$attribute['distribution'] = 1;
+			}
+
+			// If the attribute has a sharing group attached, make sure it can be transfered
+			if ($attribute['distribution'] == 4) {
+				if (!$server['Server']['internal'] && $this->checkDistributionForPush(array('Attribute' => $attribute), $server, 'Attribute') === false) {
+					return false;
+				}
+				// Add the local server to the list of instances in the SG
+				if (isset($attribute['SharingGroup']['SharingGroupServer'])) {
+					foreach ($attribute['SharingGroup']['SharingGroupServer'] as &$s) {
+						if ($s['server_id'] == 0) {
+							$s['Server'] = array('id' => 0, 'url' => Configure::read('MISP.baseurl'));
+						}
+					}
+				}
+			}
+			foreach ($attribute['AttributeTag'] as $kt => $tag) {
+				if (!$tag['Tag']['exportable']) {
+					unset($attribute['AttributeTag'][$kt]);
+				} else {
+					unset($tag['Tag']['org_id']);
+					$attribute['Tag'][] = $tag['Tag'];
+				}
+			}
+			unset($attribute['AttributeTag']);
+
+			// remove value1 and value2 from the output
+			unset($attribute['value1']);
+			unset($attribute['value2']);
+			// also add the encoded attachment
+			if ($this->Attribute->typeIsAttachment($attribute['type'])) {
+				$encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
+				$attribute['data'] = $encodedFile;
+			}
+			// Passing the attribute ID together with the attribute could cause the deletion of attributes after a publish/push
+			// Basically, if the attribute count differed between two instances, and the instance with the lower attribute
+			// count pushed, the old attributes with the same ID got overwritten. Unsetting the ID before pushing it
+			// solves the issue and a new attribute is always created.
+			unset($attribute['id']);
+			return $attribute;
 	}
 
 	public function downloadEventFromServer($eventId, $server, $HttpSocket=null) {
@@ -2552,45 +2597,27 @@ class Event extends AppModel {
 
 	// Uploads this specific event to all remote servers
 	public function uploadEventToServersRouter($id, $passAlong = null) {
-		// make sure we have all the data of the Event
-		$orgContain = array(
-			'fields' => array('id', 'uuid', 'name')
-		);
-		$sharingGroupContain = array(
-			'Organisation' => $orgContain,
-			'SharingGroupOrg' => array(
-				'fields' => array('id', 'org_id', 'extend'),
-				'Organisation' => $orgContain
-			),
-			'SharingGroupServer' => array(
-				'fields' => array('id', 'server_id', 'all_orgs'),
-				'Server' => array(
-					'fields' => array('id', 'url', 'name')
-				)
-			)
-		);
-		$attributeContain = array(
-			'SharingGroup' => $sharingGroupContain,
-			'AttributeTag' => array('Tag')
-		);
-		$event = $this->find('first', array(
-				'conditions' => array('Event.id' => $id),
-				'recursive' => -1,
-				'contain' => array(
-						'Attribute' => $attributeContain,
-						'Object' => array(
-							'fields' => array(),
-							'SharingGroup' => $sharingGroupContain,
-							'ObjectReference' => array(),
-							'Attribute' => $attributeContain
-						),
-						'EventTag' => array('Tag'),
-						'Org' => $orgContain,
-						'Orgc' => $orgContain,
-						'SharingGroup' => $sharingGroupContain
-				),
+		$eventOrgcId = $this->find('first', array(
+			'conditions' => array('Event.id' => $id),
+			'recursive' => -1,
+			'fields' => array('Event.orgc_id')
 		));
+		// we create a fake site admin user object to fetch the event with everything included
+		// This replaces the old method of manually just fetching everything, staying consistent
+		// with the fetchEvent() output
+		$elevatedUser = array(
+			'Role' => array(
+				'perm_site_admin' => 1,
+				'perm_sync' => 1
+			),
+			'org_id' => $eventOrgcId['Event']['orgc_id']
+		);
+		$elevatedUser['Role']['perm_site_admin'] = 1;
+		$elevatedUser['Role']['perm_sync'] = 1;
+		$elevatedUser['Role']['perm_audit'] = 0;
+		$event = $this->fetchEvent($elevatedUser, array('eventid' => $id, 'includeAttachments' => true, 'includeAllTags' => true));
 		if (empty($event)) return true;
+		$event = $event[0];
 		$event['Event']['locked'] = 1;
 		// get a list of the servers
 		$this->Server = ClassRegistry::init('Server');
@@ -3545,7 +3572,7 @@ class Event extends AppModel {
 		return array('data' => array(), 'csv' => array());
 	}
 
-	public function setSimpleConditions($parameterKey, $parameterValue, $conditions) {
+	public function setSimpleConditions($parameterKey, $parameterValue, $conditions, $restrictScopeToEvents = false) {
 		if (is_array($parameterValue)) {
 			$elements = $parameterValue;
 		} else {
@@ -3573,7 +3600,11 @@ class Event extends AppModel {
 							$subcondition['AND'][] = array('Event.orgc_id !=' => $o['Org']['id']);
 						}
 					} else if ($parameterKey === 'eventid') {
-						$subcondition['AND'][] = array('Attribute.event_id !=' => substr($v, 1));
+						if ($restrictScopeToEvents) {
+							$subcondition['AND'][] = array('Event.id !=' => substr($v, 1));
+						} else {
+							$subcondition['AND'][] = array('Attribute.event_id !=' => substr($v, 1));
+						}
 					} else if ($parameterKey === 'uuid') {
 						$subcondition['AND'][] = array('Event.uuid !=' => substr($v, 1));
 						$subcondition['AND'][] = array('Attribute.uuid !=' => substr($v, 1));
@@ -3598,7 +3629,11 @@ class Event extends AppModel {
 							$subcondition['OR'][] = array('Event.orgc_id' => $o['Org']['id']);
 						}
 					} else if ($parameterKey === 'eventid') {
-						$subcondition['OR'][] = array('Attribute.event_id' => $v);
+						if ($restrictScopeToEvents) {
+							$subcondition['OR'][] = array('Event.id' => $v);
+						} else {
+							$subcondition['OR'][] = array('Attribute.event_id' => $v);
+						}
 					} else if ($parameterKey === 'uuid') {
 						$subcondition['OR'][] = array('Attribute.uuid' => $v);
 						$subcondition['OR'][] = array('Event.uuid' => $v);

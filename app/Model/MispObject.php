@@ -303,7 +303,7 @@ class MispObject extends AppModel {
 						$v['value'] = $request_item['value'];
 						$v['to_ids'] = $request_item['to_ids'];
 						$v['comment'] = $request_item['comment'];
-						$v['uuid'] = $request_item['uuid'];
+						if (!empty($request_item['uuid'])) $v['uuid'] = $request_item['uuid'];
 						if (isset($request_item['data'])) $v['data'] = $request_item['data'];
 						if (empty($v['categories'])) {
 							$v['categories'] = array();

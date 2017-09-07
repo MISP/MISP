@@ -725,7 +725,7 @@ class EventsController extends AppController {
 		$results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
 		if (empty($results)) throw new NotFoundException('Invalid event');
 		$event = $results[0];
-		$emptyEvent = (!isset($event['Attribute']) || empty($event['Attribute']));
+		$emptyEvent = (empty($event['Object']) && empty($event['Attribute']));
 		$this->set('emptyEvent', $emptyEvent);
 		$params = $this->Event->rearrangeEventForView($event, $this->passedArgs, $all);
 		$this->params->params['paging'] = array($this->modelClass => $params);
@@ -2650,7 +2650,7 @@ class EventsController extends AppController {
 		if (isset($searchall) && ($searchall == 1 || $searchall === true || $searchall == 'true')) {
 			$eventIds = $this->__quickFilter($value);
 		} else {
-			$parameters = array('value', 'type', 'category', 'org', 'eventid', 'uuid');
+			$parameters = array('value', 'type', 'category', 'org', 'uuid', 'eventid');
 			$attributeLevelFilters = array('value', 'type', 'category', 'uuid');
 			$preFilterLevel = 'event';
 			foreach ($parameters as $k => $param) {
@@ -2658,7 +2658,10 @@ class EventsController extends AppController {
 					if (in_array($param, $attributeLevelFilters)) {
 						$preFilterLevel = 'attribute';
 					}
-					$conditions = $this->Event->setSimpleConditions($parameters[$k], ${$parameters[$k]}, $conditions);
+					if ($param == 'eventid') {
+						$restrictScopeToEvents = true;
+					}
+					$conditions = $this->Event->setSimpleConditions($parameters[$k], ${$parameters[$k]}, $conditions, !empty($restrictScopeToEvents));
 				}
 			}
 			// If we sent any tags along, load the associated tag names for each attribute
@@ -2673,7 +2676,7 @@ class EventsController extends AppController {
 				$params = array(
 					'conditions' => $conditions
 				);
-				$eventIds = $this->Event->fetchSipleEventIds($this->Auth->user(), $params);
+				$eventIds = $this->Event->fetchSimpleEventIds($this->Auth->user(), $params);
 			} else {
 				$params = array(
 						'conditions' => $conditions,

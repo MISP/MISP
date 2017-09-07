@@ -726,12 +726,14 @@ class AttributesController extends AppController {
 			$this->Event->read();
 			if ($this->Attribute->data['Attribute']['object_id']) {
 				$result = $this->Attribute->save($this->request->data, array('Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.comment', 'Attribute.distribution', 'Attribute.sharing_group_id'));
+				$this->Attribute->Object->updateTimestamp($id);
 			} else {
 				$result = $this->Attribute->save($this->request->data);
 			}
 			if ($result) {
 				$this->Session->setFlash(__('The attribute has been saved'));
 				// remove the published flag from the event
+				$this->Event->unpublishEvent($eventId);
 				$this->Event->set('timestamp', $date->getTimestamp());
 				$this->Event->set('published', 0);
 				$this->Event->save($this->Event->data, array('fieldList' => array('published', 'timestamp', 'info')));
