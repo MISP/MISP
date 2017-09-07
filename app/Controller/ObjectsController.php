@@ -234,6 +234,10 @@ class ObjectsController extends AppController {
 				'ObjectTemplateElement'
 			)
 		));
+		if (empty($template)) {
+			$this->Session->setFlash('Object cannot be edited, no valid template found.');
+			$this->redirect(array('controller' => 'events', 'action' => 'view', $object['Object']['event_id']));
+		}
 		$template = $this->MispObject->prepareTemplate($template, $object);
 		$enabledRows = false;
 

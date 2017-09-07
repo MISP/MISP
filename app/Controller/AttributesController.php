@@ -375,6 +375,8 @@ class AttributesController extends AppController {
 					}
 					if (!empty($result)) {
 						foreach ($result['Object'] as $object) {
+							$object['distribution'] = $this->request->data['Attribute']['distribution'];
+							$object['sharing_group_id'] = isset($this->request->data['Attribute']['distribution']) ? $this->request->data['Attribute']['distribution'] : 0;
 							if (!empty($object['Attribute'])) {
 								foreach ($object['Attribute'] as $k => $attribute) {
 									if ($attribute['value'] == $tmpfile->name) $object['Attribute'][$k]['value'] = $value['name'];
