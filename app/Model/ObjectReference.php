@@ -158,8 +158,8 @@ class ObjectReference extends AppModel {
 				}
 			}
 		}
-		if (isset($reference['source_uuid'])) {
-			$conditions = array('Object.uuid' => $reference['source_uuid']);
+		if (isset($reference['object_uuid'])) {
+			$conditions = array('Object.uuid' => $reference['object_uuid']);
 		} else if (isset($reference['object_id'])) {
 			$conditions = array('Object.id' => $reference['object_id']);
 		} else {
@@ -169,9 +169,9 @@ class ObjectReference extends AppModel {
 			'recursive' => -1,
 			'conditions' => $conditions
 		));
-		if (isset($reference['destination_uuid'])) {
-			$conditions[0] = array('Attribute.uuid' => $reference['destination_uuid']);
-			$conditions[1] = array('Object.uuid' => $reference['destination_uuid']);
+		if (isset($reference['referenced_uuid'])) {
+			$conditions[0] = array('Attribute.uuid' => $reference['referenced_uuid']);
+			$conditions[1] = array('Object.uuid' => $reference['referenced_uuid']);
 		} else if (isset($reference['object_id'])) {
 			if ($reference['referenced_type'] == 1) {
 				$conditions[0] = array('Attribute.id' => $reference['referenced_id']);
@@ -206,8 +206,8 @@ class ObjectReference extends AppModel {
 		$reference['referenced_type'] = $referenced_type;
 		$reference['object_id'] = $sourceObject['Object']['id'];
 		$reference['referenced_id'] = $destinationObject[$objectTypes[$referenced_type]]['id'];
-		$reference['destination_uuid'] = $destinationObject[$objectTypes[$referenced_type]]['uuid'];
-		$reference['source_uuid'] = $sourceObject['Object']['uuid'];
+		$reference['referenced_uuid'] = $destinationObject[$objectTypes[$referenced_type]]['uuid'];
+		$reference['object_uuid'] = $sourceObject['Object']['uuid'];
 		$reference['event_id'] = $eventId;
 		$this->save(array('ObjectReference' => $reference));
 		return true;

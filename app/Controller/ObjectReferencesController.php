@@ -54,7 +54,7 @@ class ObjectReferencesController extends AppController {
 			));
 			if (!empty($target_object)) {
 				$referenced_id = $target_object['Object']['id'];
-				$destination_uuid = $target_object['Object']['uuid'];
+				$referenced_uuid = $target_object['Object']['uuid'];
 				if ($target_object['Object']['event_id'] != $object['Event']['id']) {
 					throw new NotFoundException('Invalid target. Target has to be within the same event.');
 				}
@@ -71,7 +71,7 @@ class ObjectReferencesController extends AppController {
 					throw new NotFoundException('Invalid target. Target has to be within the same event.');
 				}
 				$referenced_id = $target_attribute['Attribute']['id'];
-				$destination_uuid = $target_attribute['Attribute']['uuid'];
+				$referenced_uuid = $target_attribute['Attribute']['uuid'];
 				$referenced_type = 0;
 			}
 			$relationship_type = empty($this->request->data['ObjectReference']['relationship_type']) ? '' : $this->request->data['ObjectReference']['relationship_type'];
@@ -81,11 +81,11 @@ class ObjectReferencesController extends AppController {
 			$data = array(
 				'referenced_type' => $referenced_type,
 				'referenced_id' => $referenced_id,
-				'destination_uuid' => $destination_uuid,
+				'referenced_uuid' => $referenced_uuid,
 				'relationship_type' => $relationship_type,
 				'comment' => !empty($this->request->data['ObjectReference']['comment']) ? $this->request->data['ObjectReference']['comment'] : '',
 				'event_id' => $object['Event']['id'],
-				'source_uuid' => $object['Object']['uuid'],
+				'object_uuid' => $object['Object']['uuid'],
 				'object_id' => $objectId,
 				'referenced_type' => $referenced_type,
 				'uuid' => CakeText::uuid()
