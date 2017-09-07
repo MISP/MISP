@@ -44,7 +44,7 @@ class ObjectReference extends AppModel {
 			$this->data['ObjectReference']['uuid'] = CakeText::uuid();
 		}
 		$date = date('Y-m-d H:i:s');
-		$this->data['Organisation']['timestamp'] = $date;
+		$this->data['ObjectReference']['timestamp'] = $date;
 		return true;
 	}
 
