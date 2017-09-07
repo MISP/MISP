@@ -538,6 +538,7 @@ class MispObject extends AppModel {
 			'conditions' => array('Object.id' => $id)
 		));
 		$object['Object']['timestamp'] = $date->getTimestamp();
-		return $this->save($object);
+		$result = $this->save($object);
+		return $result;
 	}
 }

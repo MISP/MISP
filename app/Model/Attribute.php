@@ -2800,7 +2800,6 @@ class Attribute extends AppModel {
 		);
 		$this->create();
 		if (!$this->save($attribute, array('fieldList' => $fieldList))) {
-			$validationErrors['Attribute'][$k] = $this->validationErrors;
 			$attribute_short = (isset($attribute['category']) ? $attribute['category'] : 'N/A') . '/' . (isset($attribute['type']) ? $attribute['type'] : 'N/A') . ' ' . (isset($attribute['value']) ? $attribute['value'] : 'N/A');
 			$log->create();
 			$log->save(array(

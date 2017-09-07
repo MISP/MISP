@@ -381,11 +381,11 @@ class AttributesController extends AppController {
 								}
 							}
 							$this->loadModel('MispObject');
-							$result = $this->MispObject->captureObject($eventId, array('Object' => $object), $this->Auth->user());
+							$this->MispObject->captureObject(array('Object' => $object), $eventId, $this->Auth->user());
 						}
 						if (!empty($result['ObjectReference'])) {
 							foreach ($result['ObjectReference'] as $reference) {
-								$result = $this->MispObject->ObjectReference->smartSave($reference, $eventId);
+								$this->MispObject->ObjectReference->smartSave($reference, $eventId);
 							}
 						}
 					}

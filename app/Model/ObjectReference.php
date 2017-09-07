@@ -88,7 +88,7 @@ class ObjectReference extends AppModel {
 	}
 
 	public function smartSave($objectReference, $eventId) {
-		$sides = array('source', 'destination');
+		$sides = array('object', 'referenced');
 		$data = array();
 		foreach ($sides as $side) {
 			$data[$side] = $this->Object->find('first', array(
@@ -99,7 +99,7 @@ class ObjectReference extends AppModel {
 				'recursive' => -1,
 				'fields' => array('Object.id')
 			));
-			if (empty($data[$side]) && $side == 'destination') {
+			if (empty($data[$side]) && $side == 'referenced') {
 				$data[$side] = $this->Attribute->find('first', array(
 					'conditions' => array(
 						'Attribute.uuid' => $objectReference[$side . '_uuid'],
@@ -108,22 +108,23 @@ class ObjectReference extends AppModel {
 					'recursive' => -1,
 					'fields' => array('Attribute.id')
 				));
-				$destination_id = $data[$side]['Attribute']['id'];
-				$destination_type = 0;
-			} else if (!empty($data[$side]) && $side == 'destination') {
-				$destination_id = $data[$side]['Object']['id'];
-				$destination_type = 1;
-			} else if (!empty($data[$side]) && $side = 'source') {
+				$referenced_id = $data[$side]['Attribute']['id'];
+				$referenced_type = 0;
+			} else if (!empty($data[$side]) && $side == 'referenced') {
+				$referenced_id = $data[$side]['Object']['id'];
+				$referenced_type = 1;
+			} else if (!empty($data[$side]) && $side = 'object') {
 				$object_id = $data[$side]['Object']['id'];
 			} else {
 				return 'Invalid ' . $side . ' uuid';
 			}
 		}
 		$this->create();
-		$objectReference['destination_type'] = $destination_type;
-		$objectReference['destination_id'] = $destination_id;
+		$objectReference['referenced_type'] = $referenced_type;
+		$objectReference['referenced_id'] = $referenced_id;
 		$objectReference['object_id'] = $object_id;
-		$result = $this->save(array('ObjectReference' => $ojectReference));
+		$objectReference['event_id'] = $eventId;
+		$result = $this->save(array('ObjectReference' => $objectReference));
 		if (!$result) {
 			return $this->validationErrors;
 		} else {
@@ -183,30 +184,30 @@ class ObjectReference extends AppModel {
 			return true;
 		}
 		if ($conditions) {
-			$destinationObject = $this->Object->find('first', array(
+			$referencedObject = $this->Object->find('first', array(
 				'recursive' => -1,
 				'conditions' => $conditions[1]
 			));
 		}
-		if (!isset($destinationObject)) {
-			$destinationObject = $this->Attribute->find('first', array(
+		if (!isset($referencedObject)) {
+			$referencedObject = $this->Attribute->find('first', array(
 				'recursive' => -1,
 				'conditions' => $conditions[0]
 			));
-			if (empty($destinationObject)) return true;
+			if (empty($referencedObject)) return true;
 			$referenced_type = 0;
 		} else {
 			$referenced_type = 1;
 		}
 		$objectTypes = array('Attribute', 'Object');
 		if ($sourceObject['Object']['event_id'] != $eventId) return true;
-		if ($destinationObject[$objectTypes[$referenced_type]]['event_id'] != $eventId) return true;
+		if ($referencedObject[$objectTypes[$referenced_type]]['event_id'] != $eventId) return true;
 		$this->create();
 		unset($reference['id']);
 		$reference['referenced_type'] = $referenced_type;
 		$reference['object_id'] = $sourceObject['Object']['id'];
-		$reference['referenced_id'] = $destinationObject[$objectTypes[$referenced_type]]['id'];
-		$reference['referenced_uuid'] = $destinationObject[$objectTypes[$referenced_type]]['uuid'];
+		$reference['referenced_id'] = $referencedObject[$objectTypes[$referenced_type]]['id'];
+		$reference['referenced_uuid'] = $referencedObject[$objectTypes[$referenced_type]]['uuid'];
 		$reference['object_uuid'] = $sourceObject['Object']['uuid'];
 		$reference['event_id'] = $eventId;
 		$this->save(array('ObjectReference' => $reference));
