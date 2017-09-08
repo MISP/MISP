@@ -133,17 +133,19 @@ class CertificateAuthenticate extends BaseAuthenticate
 				// If $sync is true, allow the creation of the user from the certificate
 				$sync = Configure::read('CertAuth.syncUser');
 				if ($sync) {
-					self::getRestUser();
+					if (!self::getRestUser()) return false;
 				}
 
 				// find and fill user with model
 				$userModelKey = empty(Configure::read('CertAuth.userModelKey')) ? 'email' : Configure::read('CertAuth.userModelKey');
 				$userDefaults = Configure::read('CertAuth.userDefaults');
 				$this->User = ClassRegistry::init('User');
-				$existingUser = $this->User->find('first', array(
-					'conditions' => array($userModelKey => self::$user[$userModelKey]),
-					'recursive' => false
-				));
+				if (!empty(self::$user[$userModelKey])) {
+					$existingUser = $this->User->find('first', array(
+						'conditions' => array($userModelKey => self::$user[$userModelKey]),
+						'recursive' => false
+					));
+				}
 				if ($existingUser) {
 					if ($sync) {
 						if (!isset(self::$user['org_id']) && isset(self::$user['org'])) {
