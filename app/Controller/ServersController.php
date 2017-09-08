@@ -762,6 +762,13 @@ class ServersController extends AppController {
 			if ($tab == 'diagnostics' || $tab == 'download') {
 				$php_ini = php_ini_loaded_file();
 				$this->set('php_ini', $php_ini);
+				$advanced_attachments = shell_exec('python ' . APP . 'files/scripts/generate_file_objects.py -c');
+				try {
+					$advanced_attachments = json_decode($advanced_attachments, true);
+				} catch (Exception $e) {
+					$advanced_attachments = false;
+				}
+				$this->set('advanced_attachments', $advanced_attachments);
 				// check if the current version of MISP is outdated or not
 				$version = $this->__checkVersion();
 				$this->set('version', $version);
