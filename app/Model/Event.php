@@ -1752,7 +1752,7 @@ class Event extends AppModel {
 		} else {
 			$subject = '';
 		}
-		$subjMarkingString = !empty(Configure::read('MISP.email_subject_TLP_string')) ? Configure::read('MISP.email_subject_TLP_string') : "TLP Amber";
+		$subjMarkingString = !empty(Configure::read('MISP.email_subject_TLP_string')) ? Configure::read('MISP.email_subject_TLP_string') : "tlp:amber";
 		$subjTag = !empty(Configure::read('MISP.email_subject_tag')) ? Configure::read('MISP.email_subject_tag') : "tlp";
 		$tagLen = strlen($subjTag);
 		foreach ($event[0]['EventTag'] as $k => $tag) {
