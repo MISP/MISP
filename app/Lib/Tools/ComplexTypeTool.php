@@ -10,7 +10,8 @@ class ComplexTypeTool {
 		'/\[dot\]/' => '.',
 		'/\(dot\)/' => '.',
 		'/\\\\\./' => '.',
-		'/\.+/' => '.'
+		'/\.+/' => '.',
+		'/\[hxxp:\/\/\]/' => 'http://'
 	);
 
 	private $__tlds = array();
@@ -287,7 +288,10 @@ class ComplexTypeTool {
 	}
 
 	private function __resolveFilename($input) {
-		if ((preg_match('/^.:/', $input) || strpos($input, '.') !=0)) return true;
+		if ((preg_match('/^.:/', $input) || strpos($input, '.') !=0)) {
+			$parts = explode('.', $input);
+			if (!is_numeric($parts[count($parts)-1]) && ctype_alnum($parts[count($parts)-1])) return true;
+		}
 		return false;
 	}
 

@@ -70,7 +70,7 @@
 					echo $this->Form->input('Attribute' . $k . 'Value', array(
 							'label' => false,
 							'value' => $item['value'],
-							'style' => 'padding:0px;height:20px;margin-bottom:0px;width:90%;min-width:200px;',
+							'style' => 'padding:0px;height:20px;margin-bottom:0px;width:90%;min-width:400px;',
 							'div' => false
 					));
 				?>
