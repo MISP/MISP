@@ -42,8 +42,8 @@ class Task extends AppModel {
 					'next_execution_time' => 1391601600,
 					'message' => 'Not scheduled yet.'
 			),
-			'pull_feeds' => array(
-					'type' => 'pull_feeds',
+			'fetch_feeds' => array(
+					'type' => 'fetch_feeds',
 					'timer' => 0,
 					'scheduled_time' => '12:00',
 					'process_id' => '',
