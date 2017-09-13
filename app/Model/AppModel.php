@@ -47,7 +47,7 @@ class AppModel extends Model {
 				58 => false, 59 => false, 60 => false, 61 => false, 62 => false,
 				63 => false, 64 => false, 65 => false, 66 => false, 67 => true,
 				68 => false, 69 => false, 71 => false, 72 => false, 73 => false,
-				75 => false, 77 => false, 78 => false, 79 => false
+				75 => false, 77 => false, 78 => false, 79 => false, 80 => false
 			)
 		)
 	);
@@ -708,7 +708,7 @@ class AppModel extends Model {
 				$this->__addIndex('galaxy_clusters', 'galaxy_id');
 				$this->__addIndex('galaxy_elements', 'galaxy_cluster_id');
 				break;
-			case '2.4.79':
+			case '2.4.80':
 				$sqlArray[] = "CREATE TABLE IF NOT EXISTS objects (
 					`id` int(11) NOT NULL AUTO_INCREMENT,
 					`name` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,

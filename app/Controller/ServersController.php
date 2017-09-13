@@ -123,11 +123,13 @@ class ServersController extends AppController {
 		$this->loadModel('Event');
 		$dataForView = array(
 				'Attribute' => array('attrDescriptions' => 'fieldDescriptions', 'distributionDescriptions' => 'distributionDescriptions', 'distributionLevels' => 'distributionLevels'),
-				'Event' => array('eventDescriptions' => 'fieldDescriptions', 'analysisLevels' => 'analysisLevels')
+				'Event' => array('eventDescriptions' => 'fieldDescriptions', 'analysisLevels' => 'analysisLevels'),
+				'Object' => array()
 		);
 		foreach ($dataForView as $m => $variables) {
 			if ($m === 'Event') $currentModel = $this->Event;
 			else if ($m === 'Attribute') $currentModel = $this->Event->Attribute;
+			else if ($m === 'Object') $currentModel = $this->Event->Object;
 			foreach ($variables as $alias => $variable) {
 				$this->set($alias, $currentModel->{$variable});
 			}
