@@ -122,11 +122,17 @@ class TasksController extends AppController {
 	}
 
 	private function _feedScheduler($timestamp, $id, $type) {
+	    if ($type == 1){
+	        $action = 'enqueueFeedCache';
+        }
+        else {
+	        $action = 'enqueueFeedFetch';
+        }
 		$process_id = CakeResque::enqueueAt(
 				$timestamp,
 				'default',
 				'ServerShell',
-				array('enqueueFeed', $timestamp, $this->Auth->user('id'),  $id, $type),
+				array($action, $timestamp, $this->Auth->user('id'),  $id),
 				true
 		);
 		$this->Task->id = $id;
