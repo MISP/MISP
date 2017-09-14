@@ -128,6 +128,7 @@ class ObjectsController extends AppController {
 				$error = $this->MispObject->ObjectTemplate->checkTemplateConformity($template, $object);
 				if ($error === true) {
 					$result = $this->MispObject->saveObject($object, $eventId, $template, $this->Auth->user(), $errorBehaviour = 'halt');
+					if ($result) $this->MispObject->Event->unpublishEvent($eventId);
 				} else {
 					$result = false;
 				}
