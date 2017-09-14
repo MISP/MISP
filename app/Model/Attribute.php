@@ -1661,7 +1661,8 @@ class Attribute extends AppModel {
 			$options = array(
 					'conditions' => $conditions,
 					'group' => array('Attribute.type', 'Attribute.value1'),
-					'enforceWarninglist' => $enforceWarninglist
+					'enforceWarninglist' => $enforceWarninglist,
+					'flatten' => true
 			);
 			$items = $this->fetchAttributes($user, $options);
 			if (empty($items)) continue;
@@ -1722,7 +1723,8 @@ class Attribute extends AppModel {
 					'contain' => array('Event'=> array('fields' => array('Event.id', 'Event.threat_level_id'))),
 					'group' => array('Attribute.type', 'Attribute.value1'), // fields to GROUP BY
 					'enforceWarninglist' => $enforceWarninglist,
-					'includeAllTags' => $includeAllTags
+					'includeAllTags' => $includeAllTags,
+					'flatten' => true
 			);
 			$items = $this->fetchAttributes($user, $params);
 			if (empty($items)) continue;
@@ -2311,12 +2313,13 @@ class Attribute extends AppModel {
 		}
 		if (isset($options['fields'])) $params['fields'] = $options['fields'];
 		if (isset($options['conditions'])) $params['conditions']['AND'][] = $options['conditions'];
+		if (empty($options['flatten'])) $params['conditions']['AND'][] = array('NOT' => array('Attribute.object_id' => 0));
 		if (isset($options['order'])) $params['order'] = $options['order'];
 		if (!isset($options['withAttachments'])) $options['withAttachments'] = false;
 		else ($params['order'] = array());
 		if (!isset($options['enforceWarninglist'])) $options['enforceWarninglist'] = false;
 		if (!$user['Role']['perm_sync'] || !isset($options['deleted']) || !$options['deleted']) $params['conditions']['AND']['Attribute.deleted'] = 0;
-		if (isset($options['group'])) $params['group'] = array_merge(array('Attribute.id'), $options['group']);
+		if (isset($options['group'])) $params['group'] = empty($options['group']) ? $options['group'] : false;
 		if (Configure::read('MISP.unpublishedprivate')) $params['conditions']['AND'][] = array('OR' => array('Event.published' => 1, 'Event.orgc_id' => $user['org_id']));
 		if (!empty($options['list'])) {
 			if (!empty($options['event_ids'])) {
@@ -2326,7 +2329,6 @@ class Attribute extends AppModel {
 				$fields = array('Attribute.event_id');
 				$group = false;
 			}
-			$start = microtime(true);
 			$results = $this->find('list', array(
 				'conditions' => $params['conditions'],
 				'recursive' => -1,
