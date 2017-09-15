@@ -117,11 +117,15 @@ class ObjectsController extends AppController {
 			// we pre-validate the attributes before we create an object at this point
 			// This allows us to stop the process and return an error (API) or return
 			//  to the add form
-			foreach ($object['Attribute'] as $k => $attribute) {
-				$object['Attribute'][$k]['event_id'] = $eventId;
-				$this->MispObject->Event->Attribute->set($attribute);
-				if (!$this->MispObject->Event->Attribute->validates()) {
-					$error = 'Could not save object as at least one attribute has failed validation (' . $attribute['object_relation'] . '). ' . json_encode($this->MispObject->Event->Attribute->validationErrors);
+			if (empty($object['Attribute'])) {
+				$error = 'Could not save the object as no attributes were set.';
+			} else {
+				foreach ($object['Attribute'] as $k => $attribute) {
+					$object['Attribute'][$k]['event_id'] = $eventId;
+					$this->MispObject->Event->Attribute->set($attribute);
+					if (!$this->MispObject->Event->Attribute->validates()) {
+						$error = 'Could not save object as at least one attribute has failed validation (' . $attribute['object_relation'] . '). ' . json_encode($this->MispObject->Event->Attribute->validationErrors);
+					}
 				}
 			}
 			if (empty($error)) {
