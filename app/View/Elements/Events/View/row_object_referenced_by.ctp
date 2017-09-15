@@ -1,8 +1,8 @@
 <span class="bold">Referenced by: </span>
 <?php
-  $refCount = count($object['referenced_by']);
+  $refCount = count($object['referenced_by']['object']);
   echo $refCount;
-  if (!empty($object['referenced_by'])):
+  if (!empty($object['referenced_by']['object'])):
 ?>
     <span class="fa fa-expand useCursorPointer" title="Expand or Collapse" role="button" tabindex="0" aria-label="Expand or Collapse" data-toggle="collapse" data-target="#Object_<?php echo h($object['id']); ?>_referenced_by_collapsible"></span>
 <?php
