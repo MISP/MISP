@@ -2885,13 +2885,9 @@ class Event extends AppModel {
 		$eventIDs = $this->Attribute->dissectArgs($id);
 		$tagIDs = $this->Attribute->dissectArgs($tags);
 		$idList = $this->getAccessibleEventIds($eventIDs[0], $eventIDs[1], $tagIDs[0], $tagIDs[1]);
-		if (empty($idList)) {
-			return array('success' => 0, 'message' => 'No matching events found to export.');
-		}
-		$event_ids = $this->fetchEventIds($user, $from, $to, $last, true);
-		$event_ids = array_intersect($event_ids, $idList);
-		if (empty($event_ids)) {
-			return array('success' => 0, 'message' => 'No matching events found to export.');
+		if (!empty($idList)) {
+			$event_ids = $this->fetchEventIds($user, $from, $to, $last, true);
+			$event_ids = array_intersect($event_ids, $idList);
 		}
 		$randomFileName = $this->generateRandomFileName();
 		$tmpDir = APP . "files" . DS . "scripts" . DS . "tmp";
@@ -2970,12 +2966,9 @@ class Event extends AppModel {
 		} else {
 			$stixFile->append("]}\n");
 		}
-		if ($i == 0) {
+		if($tempFile) {
 			$tempFile->delete();
-			$stixFile->delete();
-			return array('success' => 0, 'message' => 'No matching events found to export.');
 		}
-		$tempFile->delete();
 		if (!$returnFile) {
 			$data = $stixFile->read();
 			$stixFile->delete();
