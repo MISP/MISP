@@ -1937,6 +1937,63 @@ class Event extends AppModel {
 		return true;
 	}
 
+	private function __buildAlertEmailObject($user, &$body, &$bodyTempOther, $objects, $owner, $oldpublish) {
+		foreach ($objects as $object) {
+			if (!$owner && $object['distribution'] == 0) continue;
+			if ($object['distribution'] == 4 && !$this->Event->SharingGroup->checkIfAuthorised($user, $object['sharing_group_id'])) continue;
+			if (isset($oldpublish) && isset($object['timestamp']) && $object['timestamp'] > $oldpublish) {
+				$body .= '* ';
+			} else {
+				$body .= '  ';
+			}
+			$body .= $object['name'] . '/' . $object['meta-category'] . "\n";
+			if (!empty($object['Attribute'])) {
+				$body = $this->__buildAlertEmailAttribute($user, $body, $bodyTempOther, $object['Attribute'], $owner, $oldpublish, '    ');
+			}
+		}
+	}
+
+	private function __buildAlertEmailAttribute($user, &$body, &$bodyTempOther, $attributes, $owner, $oldpublish, $indent = '  ') {
+		$appendlen = 20;
+		foreach ($attributes as $attribute) {
+			if (!$owner && $attribute['distribution'] == 0) continue;
+			if ($attribute['distribution'] == 4 && !$this->Event->SharingGroup->checkIfAuthorised($user, $attribute['sharing_group_id'])) continue;
+			$ids = '';
+			if ($attribute['to_ids']) $ids = ' (IDS)';
+			$strRepeatCount = $appendlen - 2 - strlen($attribute['type']);
+			$strRepeat = ($strRepeatCount > 0) ? str_repeat(' ', $strRepeatCount) : '';
+			if (isset($oldpublish) && isset($attribute['timestamp']) && $attribute['timestamp'] > $oldpublish) {
+				$line = '* ' . $indent . $attribute['category'] . '/' . $attribute['type'] . $strRepeat . ': ' . $attribute['value'] . $ids . " *\n";
+			} else {
+				$line = $indent . $attribute['category'] . '/' . $attribute['type'] . $strRepeat . ': ' . $attribute['value'] . $ids .  "\n";
+			}
+			// Defanging URLs (Not "links") emails domains/ips in notification emails
+			if ('url' == $attribute['type'] || 'uri' == $attribute['type']) {
+				$line = str_ireplace("http","hxxp", $line);
+				$line = str_ireplace(".","[.]", $line);
+			}
+			else if (in_array($attribute['type'], array('email-src', 'email-dst', 'whois-registrant-email', 'dns-soa-email', 'email-reply-to'))) {
+				$line = str_replace("@","[at]", $line);
+			}
+			else if (in_array($attribute['type'], array('hostname', 'domain', 'ip-src', 'ip-dst', 'domain|ip'))) {
+				$line = str_replace(".","[.]", $line);
+			}
+			if (!empty($attribute['AttributeTag'])) {
+				$line .= '  - Tags: ';
+				foreach ($attribute['AttributeTag'] as $k => $aT) {
+					if ($k > 0) {
+						$line .= ', ';
+					}
+					$line .= $aT['Tag']['name'];
+				}
+				$line .= "\n";
+			}
+			if ('other' == $attribute['type']) // append the 'other' attribute types to the bottom.
+				$bodyTempOther .= $line;
+			else $body .= $line;
+		}
+	}
+
 	private function __buildAlertEmailBody($event, $user, $oldpublish, $sgModel) {
 		$owner = false;
 		if ($user['org_id'] == $event['Event']['orgc_id'] || $user['org_id'] == $event['Event']['org_id'] || $user['Role']['perm_site_admin']) $owner = true;
@@ -1973,46 +2030,14 @@ class Event extends AppModel {
 			}
 			$body .= '==============================================' . "\n";
 		}
-		$body .= 'Attributes (* indicates a new or modified attribute):' . "\n";
 		$bodyTempOther = "";
-		if (isset($event['Attribute'])) {
-			foreach ($event['Attribute'] as &$attribute) {
-				if (!$owner && $attribute['distribution'] == 0) continue;
-				if ($attribute['distribution'] == 4 && !$sgModel->checkIfAuthorised($user, $attribute['sharing_group_id'])) continue;
-				$ids = '';
-				if ($attribute['to_ids']) $ids = ' (IDS)';
-				$strRepeatCount = $appendlen - 2 - strlen($attribute['type']);
-				$strRepeat = ($strRepeatCount > 0) ? str_repeat(' ', $strRepeatCount) : '';
-				if (isset($oldpublish) && isset($attribute['timestamp']) && $attribute['timestamp'] > $oldpublish) {
-					$line = '* ' . $attribute['category'] . '/' . $attribute['type'] . $strRepeat . ': ' . $attribute['value'] . $ids . " *\n";
-				} else {
-					$line = $attribute['category'] . '/' . $attribute['type'] . $strRepeat . ': ' . $attribute['value'] . $ids .  "\n";
-				}
-				// Defanging URLs (Not "links") emails domains/ips in notification emails
-				if ('url' == $attribute['type'] || 'uri' == $attribute['type']) {
-					$line = str_ireplace("http","hxxp", $line);
-					$line = str_ireplace(".","[.]", $line);
-				}
-				else if (in_array($attribute['type'], array('email-src', 'email-dst', 'whois-registrant-email', 'dns-soa-email', 'email-reply-to'))) {
-					$line = str_replace("@","[at]", $line);
-				}
-				else if (in_array($attribute['type'], array('hostname', 'domain', 'ip-src', 'ip-dst', 'domain|ip'))) {
-					$line = str_replace(".","[.]", $line);
-				}
-				if (!empty($attribute['AttributeTag'])) {
-					$line .= '  - Tags: ';
-					foreach ($attribute['AttributeTag'] as $k => $aT) {
-						if ($k > 0) {
-							$line .= ', ';
-						}
-						$line .= $aT['Tag']['name'];
-					}
-					$line .= "\n";
-				}
-				if ('other' == $attribute['type']) // append the 'other' attribute types to the bottom.
-					$bodyTempOther .= $line;
-				else $body .= $line;
-			}
+		if (!empty($event['Attribute'])) {
+			$body .= 'Attributes (* indicates a new or modified attribute):' . "\n";
+			$this->__buildAlertEmailAttribute($user, $body, $bodyTempOther, $event['Attribute'], $owner, $oldpublish);
+		}
+		if (!empty($event['Object'])) {
+			$body .= 'Objects (* indicates a new or modified object):' . "\n";
+			$this->__buildAlertEmailObject($user, $body, $bodyTempOther, $event['Object'], $owner, $oldpublish);
 		}
 		if (!empty($bodyTempOther)) {
 			$body .= "\n";

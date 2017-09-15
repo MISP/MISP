@@ -2313,7 +2313,7 @@ class Attribute extends AppModel {
 		}
 		if (isset($options['fields'])) $params['fields'] = $options['fields'];
 		if (isset($options['conditions'])) $params['conditions']['AND'][] = $options['conditions'];
-		if (empty($options['flatten'])) $params['conditions']['AND'][] = array('NOT' => array('Attribute.object_id' => 0));
+		if (empty($options['flatten'])) $params['conditions']['AND'][] = array('Attribute.object_id' => 0);
 		if (isset($options['order'])) $params['order'] = $options['order'];
 		if (!isset($options['withAttachments'])) $options['withAttachments'] = false;
 		else ($params['order'] = array());
