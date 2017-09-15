@@ -294,7 +294,7 @@ class MispObject extends AppModel {
 					}
 					$template['ObjectTemplateElement'][] = $v;
 				} else {
-					$template['warnings'][] = 'Missing attribute type "' . $v['type'] . '" found. Omitted template element ("' . $template['ObjectTemplateElement'][$k]['object_relation'] . '") that would not pass validation due to this.';
+					$template['warnings'][] = 'Missing attribute type "' . $v['type'] . '" found. Omitted template element ("' . $template_object_elements[$k]['object_relation'] . '") that would not pass validation due to this.';
 				}
 			} else {
 				foreach($request_rearranged[$v['object_relation']] as $request_item) {
@@ -315,7 +315,7 @@ class MispObject extends AppModel {
 						}
 						$template['ObjectTemplateElement'][] = $v;
 					} else {
-						$template['warnings'][] = 'Missing attribute type "' . $v['type'] . '" found. Omitted template element ("' . $template['ObjectTemplateElement'][$k]['object_relation'] . '") that would not pass validation due to this.';
+						$template['warnings'][] = 'Missing attribute type "' . $v['type'] . '" found. Omitted template element ("' . $template_object_elements[$k]['object_relation'] . '") that would not pass validation due to this.';
 					}
 				}
 			}
