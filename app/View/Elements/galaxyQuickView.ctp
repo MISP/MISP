@@ -97,7 +97,7 @@
 <?php
 	if ($isSiteAdmin || ($mayModify && $isAclTagger)):
 ?>
-		<span class="useCursorPointer btn btn-inverse" id="addGalaxy" data-event-id="<?php echo h($event['Event']['id']); ?>" style="margin-top:20px;padding: 1px 5px !important;font-size: 12px !important;">Add new cluster</span>
+		<span class="useCursorPointer btn btn-inverse" id="addGalaxy" data-event-id="<?php echo h($event['Event']['id']); ?>" role="button" tabindex="0" aria-label="Add new cluster" style="margin-top:20px;padding: 1px 5px !important;font-size: 12px !important;">Add new cluster</span>
 <?php
 	endif;
 ?>
