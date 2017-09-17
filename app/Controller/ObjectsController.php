@@ -477,6 +477,17 @@ class ObjectsController extends AppController {
 			$object['Event']['timestamp'] = $date->getTimestamp();
 			$object['Event']['published'] = 0;
 			$this->MispObject->Event->save($object, array('fieldList' => array('published', 'timestamp', 'info')));
+			$object_refs = $this->MispObject->ObjectReference->find('all', array(
+				'conditions' => array(
+					'ObjectReference.referenced_type' => 1,
+					'ObjectReference.referenced_id' => $id,
+				),
+				'recursive' => -1
+			));
+			foreach ($object_refs as $ref) {
+				$ref['ObjectReference']['deleted'] = 1;
+				$this->MispObject->ObjectReference->save($ref);
+			}
 			return true;
 		}
 	}

@@ -74,6 +74,18 @@ class MispObject extends AppModel {
 		return true;
 	}
 
+	public function afterDelete() {
+		if (!empty($this->data[$this->alias]['id'])) {
+			$this->ObjectReference->deleteAll(
+				array(
+					'ObjectReference.referenced_type' => 1,
+					'ObjectReference.referenced_id' => $this->data[$this->alias]['id'],
+				),
+				false
+			);
+		}
+	}
+
 	public function saveObject($object, $eventId, $template, $user, $errorBehaviour = 'drop') {
 		$this->create();
 		$templateFields = array(

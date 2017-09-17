@@ -598,6 +598,15 @@ class Attribute extends AppModel {
 		if (Configure::read('MISP.enable_advanced_correlations') && in_array($this->data['Attribute']['type'], array('ip-src', 'ip-dst', 'domain-ip')) && strpos($this->data['Attribute']['value'], '/')) {
 			$this->setCIDRList();
 		}
+		if (!empty($this->data['Attribute']['id'])) {
+			$this->Object->ObjectReference->deleteAll(
+				array(
+					'ObjectReference.referenced_type' => 0,
+					'ObjectReference.referenced_id' => $this->data['Attribute']['id'],
+				),
+				false
+			);
+		}
 	}
 
 	public function beforeValidate($options = array()) {

@@ -1072,6 +1072,17 @@ class AttributesController extends AppController {
 			$result['Attribute']['deleted'] = 1;
 			$result['Attribute']['timestamp'] = $date->getTimestamp();
 			$save = $this->Attribute->save($result);
+			$object_refs = $this->Attribute->Object->ObjectReference->find('all', array(
+				'conditions' => array(
+					'ObjectReference.referenced_type' => 0,
+					'ObjectReference.referenced_id' => $id,
+				),
+				'recursive' => -1
+			));
+			foreach ($object_refs as $ref) {
+				$ref['ObjectReference']['deleted'] = 1;
+				$this->Attribute->Object->ObjectReference->save($ref);
+			}
 		}
 		// attachment will be deleted with the beforeDelete() function in the Model
 		if ($save) {
