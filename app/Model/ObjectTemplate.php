@@ -22,10 +22,6 @@ class ObjectTemplate extends AppModel {
 		)
 	);
 	public $hasMany = array(
-		'Attribute' => array(
-			'className' => 'Attribute',
-			'dependent' => true,
-		),
 		'ObjectTemplateElement' => array(
 			'className' => 'ObjectTemplateElement',
 			'dependent' => true,
@@ -65,14 +61,18 @@ class ObjectTemplate extends AppModel {
 			$file->close();
 			if (!isset($template['version'])) $template['version'] = 1;
 			$current = $this->find('first', array(
+				'fields' => array('MAX(version) AS version', 'uuid'),
 				'conditions' => array('uuid' => $template['uuid']),
-				'recursive' => -1
+				'recursive' => -1,
+				'group' => array('uuid')
 			));
+			if (!empty($current)) $current['ObjectTemplate']['version'] = $current[0]['version'];
 			if (empty($current) || $template['version'] > $current['ObjectTemplate']['version']) {
 				$result = $this->__updateObjectTemplate($template, $current, $user);
 				if ($result === true) {
-					$updated['success'][$result] = array('name' => $template['name'], 'new' => $template['version']);
-					if (!empty($current)) $updated['success'][$result]['old'] = $current['ObjectTemplate']['version'];
+					$temp = array('name' => $template['name'], 'new' => $template['version']);
+					if (!empty($current)) $temp['old'] = $current['ObjectTemplate']['version'];
+					$updated['success'][] = $temp;
 				} else {
 					$updated['fails'][] = array('name' => $template['name'], 'fail' => json_encode($result));
 				}
@@ -90,65 +90,23 @@ class ObjectTemplate extends AppModel {
 				$template['requirements'][$field] = $template[$field];
 			}
 		}
-		if (empty($current)) {
-			$template['user_id'] = $user['id'];
-			$template['org_id'] = $user['org_id'];
-			$template['fixed'] = 1;
-			$this->create();
-			$result = $this->save($template);
-		} else {
-			$fieldsToUpdate = array('version', 'description', 'meta-category', 'name', 'requirements', 'fixed');
-			foreach ($fieldsToUpdate as $field) {
-				if (isset($template[$field]) && $current['ObjectTemplate'][$field] != $template[$field]) {
-					$current['ObjectTemplate'][$field] = $template[$field];
-				}
-			}
-			$result = $this->save($current);
-		}
+		$template['user_id'] = $user['id'];
+		$template['org_id'] = $user['org_id'];
+		$template['fixed'] = 1;
+		$this->create();
+		$result = $this->save($template);
 		if (!$result) {
 			return $this->validationErrors;
 		}
 		$id = $this->id;
-		$existingTemplateElementsTemp = $this->ObjectTemplateElement->find('all', array(
-			'recursive' => -1,
-			'conditions' => array('object_template_id' => $id)
-		));
-		$existingTemplateElements = array();
-		if (!empty($existingTemplateElementsTemp)) {
-			foreach ($existingTemplateElementsTemp as $k => $v) {
-				$existingTemplateElements[$v['ObjectTemplateElement']['object_relation']] = $v['ObjectTemplateElement'];
-			}
-		}
-		unset($existingTemplateElementsTemp);
+		$this->setActive($id);
 		$fieldsToCompare = array('object_relation', 'type', 'ui-priority', 'categories', 'sane_default', 'values_list', 'multiple');
 		foreach ($template['attributes'] as $k => $attribute) {
 			$attribute['object_relation'] = $k;
 			$attribute = $this->__convertJSONToElement($attribute);
-			if (isset($existingTemplateElements[$k])) {
-				$update_required = false;
-				foreach ($fieldsToCompare as $field) {
-					if (isset($attribute[$field])) {
-						if ($existingTemplateElements[$k][$field] != $attribute[$field]) {
-							$update_required = true;
-						}
-					}
-				}
-				if ($update_required) {
-					$attribute['id'] = $existingTemplateElements[$k]['id'];
-					$attribute['object_template_id'] = $id;
-					$result = $this->ObjectTemplateElement->save(array('ObjectTemplateElement' => $attribute));
-				}
-				if (isset($existingTemplateElements[$k])) unset($existingTemplateElements[$k]);
-			} else {
-				$this->ObjectTemplateElement->create();
-				$attribute['object_template_id'] = $id;
-				$result = $this->ObjectTemplateElement->save(array('ObjectTemplateElement' => $attribute));
-			}
-		}
-		if (!empty($existingTemplateElements)) {
-			foreach ($existingTemplateElements as $k2 => $v2) {
-				$this->ObjectTemplateElement->delete($v2['id']);
-			}
+			$this->ObjectTemplateElement->create();
+			$attribute['object_template_id'] = $id;
+			$result = $this->ObjectTemplateElement->save(array('ObjectTemplateElement' => $attribute));
 		}
 		return true;
 	}
@@ -231,5 +189,34 @@ class ObjectTemplate extends AppModel {
 			$this->update($user);
 		}
 		return true;
+	}
+
+	public function setActive($id) {
+		$template = $this->find('first', array(
+			'recursive' => -1,
+			'conditions' => array('ObjectTemplate.id' => $id)
+		));
+		if (empty($template)) return false;
+		if ($template['ObjectTemplate']['active']) {
+			$template['ObjectTemplate']['active'] = 0;
+			$this->save($template);
+			return 0;
+		}
+		$similar_templates = $this->find('all', array(
+			'recursive' => -1,
+			'conditions' => array(
+				'ObjectTemplate.uuid' => $template['ObjectTemplate']['uuid'],
+				'NOT' => array(
+					'ObjectTemplate.id' => $template['ObjectTemplate']['id']
+				)
+			)
+		));
+		$template['ObjectTemplate']['active'] = 1;
+		$this->save($template);
+		foreach ($similar_templates as $st) {
+			$st['ObjectTemplate']['active'] = 0;
+			$this->save($st);
+		}
+		return 1;
 	}
 }

@@ -19,9 +19,15 @@ class ObjectTemplateElement extends AppModel {
 
 	public function afterFind($results, $primary = false) {
 		foreach ($results as $k => $result) {
-			$results[$k]['ObjectTemplateElement']['categories'] = json_decode($results[$k]['ObjectTemplateElement']['categories'], true);
-			$results[$k]['ObjectTemplateElement']['values_list'] = json_decode($results[$k]['ObjectTemplateElement']['values_list'], true);
-			$results[$k]['ObjectTemplateElement']['sane_default'] = json_decode($results[$k]['ObjectTemplateElement']['sane_default'], true);
+			if (isset($results[$k]['ObjectTemplateElement']['categories'])) {
+				$results[$k]['ObjectTemplateElement']['categories'] = json_decode($results[$k]['ObjectTemplateElement']['categories'], true);
+			}
+			if (isset($results[$k]['ObjectTemplateElement']['values_list'])) {
+				$results[$k]['ObjectTemplateElement']['values_list'] = json_decode($results[$k]['ObjectTemplateElement']['values_list'], true);
+			}
+			if (isset($results[$k]['ObjectTemplateElement']['sane_default'])) {
+				$results[$k]['ObjectTemplateElement']['sane_default'] = json_decode($results[$k]['ObjectTemplateElement']['sane_default'], true);
+			}
 		}
 		return $results;
 	}

@@ -162,6 +162,12 @@ function toggleSetting(e, setting, id) {
 		replacementForm = '/favourite_tags/getToggleField/';
 		searchString = 'Adding';
 		break;
+	case 'activate_object_template':
+		formID = '#ObjectTemplateIndexForm';
+		dataDiv = '#ObjectTemplateData';
+		replacementForm = '/ObjectTemplates/getToggleField/';
+		searchString = 'activated';
+		break;
 	}
 	$(dataDiv).val(id);
 	var formData = $(formID).serialize();
@@ -3208,6 +3214,11 @@ $('.add_object_attribute_row').click(function() {
 	$.get(url, function(data) {
 		$('#row_' + object_relation + '_expand').before($(data).fadeIn()).html();
 	});
+});
+
+$('.quickToggleCheckbox').toggle(function() {
+	var url = $(this).data('checkbox-url');
+
 });
 
 (function(){

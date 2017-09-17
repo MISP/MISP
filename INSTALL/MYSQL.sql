@@ -513,6 +513,7 @@ CREATE TABLE IF NOT EXISTS object_templates (
   `version` int(11) NOT NULL,
   `requirements` text COLLATE utf8_bin,
   `fixed` tinyint(1) NOT NULL DEFAULT 0,
+  `active` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (id),
   INDEX `user_id` (`user_id`),
   INDEX `org_id` (`org_id`),

@@ -20,8 +20,10 @@ class ObjectTemplatesController extends AppController {
 		$this->ObjectTemplate->populateIfEmpty($this->Auth->user());
 		$templates_raw = $this->ObjectTemplate->find('all', array(
 			'recursive' => -1,
+			'conditions' => array('ObjectTemplate.active' => 1),
 			'fields' => array('id', 'meta-category', 'name', 'description', 'org_id'),
-			'contain' => array('Organisation.name')
+			'contain' => array('Organisation.name'),
+			'sort' => array('ObjectTemplate.name asc')
 		));
 		$templates = array('all' => array());
 		foreach ($templates_raw as $k => $template) {
@@ -29,6 +31,9 @@ class ObjectTemplatesController extends AppController {
 			$template['ObjectTemplate']['org_name'] = $template['Organisation']['name'];
 			$templates[$templates_raw[$k]['ObjectTemplate']['meta-category']][] = $template['ObjectTemplate'];
 			$templates['all'][] = $template['ObjectTemplate'];
+		}
+		foreach ($templates as $category => $template_list) {
+			$templates[$category] = Hash::sort($templates[$category], '{n}.name');
 		}
 		$template_categories = array_keys($templates);
 		$this->layout = false;
@@ -61,6 +66,29 @@ class ObjectTemplatesController extends AppController {
 		}
   }
 
+	public function delete($id) {
+		if (!$this->request->is('post') && !$this->request->is('put') && !$this->request->is('delete')) {
+			throw new MethodNotAllowedException();
+		}
+		$this->ObjectTemplate->id = $id;
+		if (!$this->ObjectTemplate->exists()) {
+			throw new NotFoundException('Invalid ObjectTemplate');
+		}
+		if ($this->ObjectTemplate->delete()) {
+			if ($this->_isRest()) {
+				return $this->RestResponse->saveSuccessResponse('ObjectTemplates', 'admin_delete', $id, $this->response->type());
+			} else {
+				$this->Session->setFlash(__('ObjectTemplate deleted'));
+			}
+		}
+		if ($this->_isRest()) {
+			return $this->RestResponse->saveFailResponse('ObjectTemplates', 'admin_delete', $id, $this->ObjectTemplate->validationErrors, $this->response->type());
+		} else {
+			$this->Session->setFlash('ObjectTemplate could not be deleted');
+		}
+		$this->redirect($this->referer());
+	}
+
 	public function viewElements($id, $context = 'all') {
 		$elements = $this->ObjectTemplate->ObjectTemplateElement->find('all', array(
 			'conditions' => array('ObjectTemplateElement.object_template_id' => $id)
@@ -70,7 +98,13 @@ class ObjectTemplatesController extends AppController {
 		$this->render('ajax/view_elements');
 	}
 
-	public function index() {
+	public function index($all = false) {
+		if (!$all || !$this->_isSiteAdmin()) {
+			$this->paginate['conditions'][] = array('ObjectTemplate.active' => 1);
+			$this->set('all', false);
+		} else {
+			$this->set('all', true);
+		}
 		if ($this->_isRest()) {
 			$rules = $this->paginate;
 			unset($rules['limit']);
@@ -78,6 +112,7 @@ class ObjectTemplatesController extends AppController {
 			$objectTemplates = $this->ObjectTemplate->find('all', $rules);
 			return $this->RestResponse->viewData($objectTemplates, $this->response->type());
 		} else {
+			$this->paginate['order'] = array('ObjectTemplate.name' => 'ASC');
 			$objectTemplates = $this->paginate();
 			$this->set('list', $objectTemplates);
 		}
@@ -146,5 +181,22 @@ class ObjectTemplatesController extends AppController {
 			$this->Session->setFlash($message);
 		}
 		$this->redirect(array('controller' => 'ObjectTemplates', 'action' => 'index'));
+	}
+
+	public function activate() {
+		$id = $this->request->data['ObjectTemplate']['data'];
+		if (!is_numeric($id)) return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Template not found.')), 'status' => 200, 'type' => 'json'));
+		$result = $this->ObjectTemplate->setActive($id);
+		if ($result === false) {
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Template\'s state could not be toggeled.')), 'status' => 200, 'type' => 'json'));
+		}
+		$message = (($result == 1) ? 'activated' : 'disabled');
+		return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Template ' . $message . '.')), 'status' => 200, 'type' => 'json'));
+	}
+
+	public function getToggleField() {
+		if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This action is available via AJAX only.');
+		$this->layout = 'ajax';
+		$this->render('ajax/getToggleField');
 	}
 }

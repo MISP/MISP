@@ -9,7 +9,7 @@
     <dt>Object Template</dt>
     <dd>
       <?php
-        echo Inflector::humanize(h($template['ObjectTemplate']['name']));
+        echo Inflector::humanize(h($template['ObjectTemplate']['name'])) . ' v' . h($template['ObjectTemplate']['version']);
       ?>
       &nbsp;
     </dd>

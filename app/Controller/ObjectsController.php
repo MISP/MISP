@@ -87,14 +87,29 @@ class ObjectsController extends AppController {
 			throw new NotFoundException('Invalid event.');
 		}
 		$eventId = $event['Event']['id'];
-		$template = $this->MispObject->ObjectTemplate->find('first', array(
+		$templates = $this->MispObject->ObjectTemplate->find('all', array(
 			'conditions' => array('ObjectTemplate.id' => $templateId),
 			'recursive' => -1,
 			'contain' => array(
 				'ObjectTemplateElement'
 			)
 		));
+		$template_version = false;
+		$template = false;
+		foreach ($templates as $temp) {
+			if (!empty($template_version)) {
+				if (intval($template['ObjectTemplate']['version']) > intval($template_version)) {
+					$template = $temp;
+				}
+			} else {
+				$template = $temp;
+			}
+		}
 		$error = false;
+		if (empty($template)) {
+			$error = 'No valid template found to edit the object.';
+		}
+
 		// If we have received a POST request
 		if ($this->request->is('post')) {
 			if (isset($this->request->data['request'])) {
