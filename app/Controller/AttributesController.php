@@ -362,6 +362,8 @@ class AttributesController extends AppController {
 				if ($this->request->data['Attribute']['malware']) {
 					if ($this->request->data['Attribute']['advanced']) {
 						$result = $this->Attribute->advancedAddMalwareSample($tmpfile);
+						if ($result) $success++;
+						else $fails[] = $filename;
 					} else {
 						$result = $this->Attribute->simpleAddMalwareSample(
 							$eventId,
@@ -372,6 +374,8 @@ class AttributesController extends AppController {
 							$filename,
 							$tmpfile
 						);
+						if ($result) $success++;
+						else $fails[] = $filename;
 					}
 					if (!empty($result)) {
 						foreach ($result['Object'] as $object) {

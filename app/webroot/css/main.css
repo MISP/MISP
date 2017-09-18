@@ -1616,6 +1616,7 @@ a.discrete {
 	padding:5px;
 	border-radius:5px;
 	height:228px;
+	width:320px;
 	overflow-y:scroll;
 	line-height:12px;
 }
@@ -1893,6 +1894,14 @@ tr.blank_table_row td {
 
 table tr:hover .down-expand-button {
 	background: rgb(221, 221, 221) !important;
+}
+
+.wrap-text {
+	word-wrap: break-word;
+}
+
+.nowrap {
+	word-wrap:nowrap;
 }
 
 .strikethrough {

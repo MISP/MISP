@@ -37,32 +37,32 @@
 					<div class="input clear"></div>
 					<div class="row-fluid">
 						<div class="span6">
-						<?php
-							echo $this->Form->input('uuid', array(
-								'label' => 'Target UUID',
-								'div' => false,
-								'style' => 'width:320px;'
-							));
-						?>
-						<br />
-						<select id="targetSelect" multiple="multiple" style="width:100%;height:200px;">
 							<?php
-								if (!empty($event['Object'])):
-									foreach ($event['Object'] as $object):
+								echo $this->Form->input('uuid', array(
+									'label' => 'Target UUID',
+									'div' => false,
+									'style' => 'width:320px;'
+								));
 							?>
-										<option class="selectOption" value="<?php echo h($object['uuid']);?>" data-type="Object">Object: <?php echo h($object['meta-category']) . '/' . h($object['name']); ?></option>
-							<?php
-									endforeach;
-								endif;
-								if (!empty($event['Attribute'])):
-									foreach ($event['Attribute'] as $attribute):
-							?>
-										<option class="selectOption" value="<?php echo h($attribute['uuid']);?>" data-type="Attribute">Attribute: <?php echo h($attribute['category']) . '/' . h($attribute['type']); ?></option>
-							<?php
-									endforeach;
-								endif;
-							?>
-						</select>
+							<br />
+							<select id="targetSelect" size="10" style="width:100%;height:200px;">
+								<?php
+									if (!empty($event['Object'])):
+										foreach ($event['Object'] as $object):
+								?>
+											<option class="selectOption" value="<?php echo h($object['uuid']);?>" data-type="Object">Object: <?php echo h($object['meta-category']) . '/' . h($object['name']); ?></option>
+								<?php
+										endforeach;
+									endif;
+									if (!empty($event['Attribute'])):
+										foreach ($event['Attribute'] as $attribute):
+								?>
+											<option class="selectOption" value="<?php echo h($attribute['uuid']);?>" data-type="Attribute">Attribute: <?php echo h($attribute['category']) . '/' . h($attribute['type']); ?></option>
+								<?php
+										endforeach;
+									endif;
+								?>
+							</select>
 						</div>
 						<div class="span6">
 							<label for="selectedData">Target Details</label>
