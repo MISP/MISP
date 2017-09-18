@@ -583,6 +583,7 @@ class User extends AppModel {
 
 	// get the current user and rearrange it to be in the same format as in the auth component
 	public function getAuthUser($id) {
+		if (empty($id)) throw new Exception('Invalid user ID.');
 		$conditions = array('User.id' => $id);
 		$user = $this->find('first', array('conditions' => $conditions, 'recursive' => -1,'contain' => array('Organisation', 'Role', 'Server')));
 		if (empty($user)) return $user;

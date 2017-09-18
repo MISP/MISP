@@ -185,84 +185,81 @@ class ServerShell extends AppShell
 		$this->Task->saveField('message', count($servers) . ' job(s) completed at ' . date('d/m/Y - H:i:s') . '. Failed jobs: ' . $failCount . '/' . $count);
 	}
 
-	public function enqueueFeed() {
+	public function enqueueFeedFetch() {
 		$timestamp = $this->args[0];
 		$userId = $this->args[1];
 		$taskId = $this->args[2];
-		// action options:
-		// 0 = pull
-		// 1 = cache
-		$action = $this->args[3];
 		$task = $this->Task->read(null, $taskId);
 		if ($timestamp != $task['Task']['next_execution_time']) {
 			return;
 		}
-		if ($task['Task']['timer'] > 0)	$this->Task->reQueue($task, 'default', 'ServerShell', 'enqueueCachePull', $userId, $taskId, $action);
+		if ($task['Task']['timer'] > 0)	$this->Task->reQueue($task, 'default', 'ServerShell', 'enqueueFeedFetch', $userId, $taskId);
 		$user = $this->User->getAuthUser($userId);
-		$count = count($feeds);
 		$failCount = 0;
-		if ($action == 0) {
-			$feeds = $this->Feed->find('all', array(
-				'recursive' => -1,
-				'conditions' => array('enabled' => 1)
-			));
-			foreach ($feeds as $k => $feed) {
-				$this->Job->create();
-				$data = array(
-						'worker' => 'default',
-						'job_type' => 'feed_pull',
-						'job_input' => 'Feed: ' . $feed['Feed']['id'],
-						'retries' => 0,
-						'org' => $user['Organisation']['name'],
-						'org_id' => $user['org_id'],
-						'process_id' => 'Part of scheduled feed pull',
-						'message' => 'Pulling.',
-				);
-				$this->Job->save($data);
-				$jobId = $this->Job->id;
-				App::uses('SyncTool', 'Tools');
-				$result = $this->Feed->downloadFromFeedInitiator($feed['Feed']['id'], $user, $jobId);
-				$this->Job->save(array(
-						'id' => $jobId,
-						'message' => 'Job done.',
-						'progress' => 100,
-						'status' => 4
-				));
-				if ($result !== true) {
-					$this->Job->saveField('message', 'Could not pull feed.');
-					$failCount++;
-				}
-			}
-			$this->Task->id = $task['Task']['id'];
-			$this->Task->saveField('message', count($feeds) . ' job(s) completed at ' . date('d/m/Y - H:i:s') . '. Failed jobs: ' . $failCount . '/' . count($feeds));
-		} else {
-			$this->Job->create();
-			$data = array(
-					'worker' => 'default',
-					'job_type' => 'feed_cache',
-					'job_input' => 'Feed: ' . $feed['Feed']['id'],
-					'retries' => 0,
-					'org' => $user['Organisation']['name'],
-					'org_id' => $user['org_id'],
-					'process_id' => 'Part of scheduled feed caching',
-					'message' => 'Caching.',
-			);
-			$this->Job->save($data);
-			$jobId = $this->Job->id;
-			$result = $this->Feed->cacheFeedInitiator($user, $jobId, 'all');
-			$this->Job->save(array(
-					'id' => $jobId,
-					'message' => 'Job done.',
-					'progress' => 100,
-					'status' => 4
-			));
-			$this->Task->id = $task['Task']['id'];
-			$this->Task->saveField('message', 'Job completed at ' . date('d/m/Y - H:i:s'));
-		}
+        $feeds = $this->Feed->find('all', array(
+            'recursive' => -1,
+            'conditions' => array('enabled' => true)
+        ));
+        foreach ($feeds as $k => $feed) {
+            $this->Job->create();
+            $data = array(
+                    'worker' => 'default',
+                    'job_type' => 'feed_fetch',
+                    'job_input' => 'Feed: ' . $feed['Feed']['id'],
+                    'retries' => 0,
+                    'org' => $user['Organisation']['name'],
+                    'org_id' => $user['org_id'],
+                    'process_id' => 'Part of scheduled feed fetch',
+                    'message' => 'Pulling.',
+            );
+            $this->Job->save($data);
+            $jobId = $this->Job->id;
+            $result = $this->Feed->downloadFromFeedInitiator($feed['Feed']['id'], $user, $jobId);
+            $this->Job->save(array(
+                    'message' => 'Job done.',
+                    'progress' => 100,
+                    'status' => 4
+            ));
+            if ($result !== true) {
+                $this->Job->saveField('message', 'Could not fetch feed.');
+                $failCount++;
+            }
+        }
+        $this->Task->id = $task['Task']['id'];
+        $this->Task->saveField('message', count($feeds) . ' job(s) completed at ' . date('d/m/Y - H:i:s') . '. Failed jobs: ' . $failCount . '/' . count($feeds));
 	}
 
-
-
+	public function enqueueFeedCache() {
+        $timestamp = $this->args[0];
+        $userId = $this->args[1];
+        $taskId = $this->args[2];
+        $task = $this->Task->read(null, $taskId);
+        if ($timestamp != $task['Task']['next_execution_time']) {
+            return;
+        }
+        if ($task['Task']['timer'] > 0)	$this->Task->reQueue($task, 'default', 'ServerShell', 'enqueueFeedCache', $userId, $taskId);
+        $user = $this->User->getAuthUser($userId);
+        $this->Job->create();
+        $data = array(
+            'worker' => 'default',
+            'job_type' => 'feed_cache',
+            'retries' => 0,
+            'org' => $user['Organisation']['name'],
+            'org_id' => $user['org_id'],
+            'process_id' => 'Part of scheduled feed caching',
+            'message' => 'Caching.',
+        );
+        $this->Job->save($data);
+        $jobId = $this->Job->id;
+        $result = $this->Feed->cacheFeedInitiator($user, $jobId, 'all');
+        $this->Job->save(array(
+            'message' => 'Job done.',
+            'progress' => 100,
+            'status' => 4
+        ));
+        $this->Task->id = $task['Task']['id'];
+        $this->Task->saveField('message', 'Job completed at ' . date('d/m/Y - H:i:s'));
+    }
 
 	public function enqueuePush() {
 		$timestamp = $this->args[0];
