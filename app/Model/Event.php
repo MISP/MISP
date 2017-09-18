@@ -708,11 +708,14 @@ class Event extends AppModel {
 		} else {
 			$conditionsCorrelation = array($settings[$context]['correlationModel'] . '.1_event_id' => $id);
 		}
+		$max_correlations = Configure::read('MISP.max_correlations_per_event');
+		if (empty($max_correlations)) $max_correlations = 5000;
 		$correlations = $this->{$settings[$context]['correlationModel']}->find('all',array(
 				'fields' => $settings[$context]['correlationModel'] . '.*',
 				'conditions' => $conditionsCorrelation,
 				'recursive' => -1,
-				'order' => false
+				'order' => false,
+				'limit' => $max_correlations
 		));
 		$relatedAttributes = array();
 		foreach ($correlations as $k => $correlation) {

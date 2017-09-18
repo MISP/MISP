@@ -137,6 +137,15 @@ class Server extends AppModel {
 							'type' => 'boolean',
 							'null' => true
 					),
+					'max_correlations_per_event' => array(
+							'level' => 1,
+							'description' => 'Sets the maximum number of correlations that can be fetched with a single event. For extreme edge cases this can prevent memory issues. The default value is 5k.',
+							'value' => 5000,
+							'errorMessage' => '',
+							'test' => 'testForNumeric',
+							'type' => 'numeric',
+							'null' => true
+					),
 					'maintenance_message' => array(
 							'level' => 2,
 							'description' => 'The message that users will see if the instance is not live.',
