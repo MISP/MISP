@@ -2788,8 +2788,6 @@ class Attribute extends AppModel {
 		unset($attribute['id']);
 		if (isset($attribute['encrypt'])) {
 			$result = $this->handleMaliciousBase64($eventId, $attribute['value'], $attribute['data'], array('md5'));
-			$attribute['data'] = $result['data'];
-			$attribute['value'] = $attribute['value'] . '|' . $result['md5'];
 		}
 		$fieldList = array(
 			'event_id',
