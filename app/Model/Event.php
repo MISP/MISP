@@ -610,17 +610,14 @@ class Event extends AppModel {
 		//        ii. Atttibute has a distribution between 1-3 (community only, connected communities, all orgs)
 		//        iii. Attribute has a sharing group that the user is accessible to view
 		$conditionsCorrelation = $this->__buildEventConditionsCorrelation($user, $eventId, $sgids);
-		$correlations = $this->Correlation->find('all',array(
-				'fields' => 'Correlation.event_id',
+		$correlations = $this->Correlation->find('list', array(
+				'fields' => array('Correlation.event_id', 'Correlation.event_id'),
 				'conditions' => $conditionsCorrelation,
 				'recursive' => 0,
+				'group' => 'Correlation.event_id',
 				'order' => array('Correlation.event_id DESC')));
 
-		$relatedEventIds = array();
-		foreach ($correlations as $correlation) {
-			$relatedEventIds[] = $correlation['Correlation']['event_id'];
-		}
-		$relatedEventIds = array_unique($relatedEventIds);
+		$relatedEventIds = array_values($correlations);
 		// now look up the event data for these attributes
 		$conditions = array("Event.id" => $relatedEventIds);
 		$fields = array('id', 'date', 'threat_level_id', 'info', 'published', 'uuid', 'analysis', 'timestamp', 'distribution', 'org_id', 'orgc_id');
@@ -714,11 +711,11 @@ class Event extends AppModel {
 		$correlations = $this->{$settings[$context]['correlationModel']}->find('all',array(
 				'fields' => $settings[$context]['correlationModel'] . '.*',
 				'conditions' => $conditionsCorrelation,
-				'recursive' => 0,
+				'recursive' => -1,
 				'order' => false
 		));
 		$relatedAttributes = array();
-		foreach ($correlations as $correlation) {
+		foreach ($correlations as $k => $correlation) {
 			$current = array(
 					'id' => $correlation[$settings[$context]['correlationModel']]['event_id'],
 					'org_id' => $correlation[$settings[$context]['correlationModel']]['org_id'],
@@ -728,6 +725,7 @@ class Event extends AppModel {
 			if (empty($relatedAttributes[$correlation[$settings[$context]['correlationModel']][$settings[$context]['parentIdField']]]) || !in_array($current, $relatedAttributes[$correlation[$settings[$context]['correlationModel']][$settings[$context]['parentIdField']]])) {
 				$relatedAttributes[$correlation[$settings[$context]['correlationModel']][$settings[$context]['parentIdField']]][] = $current;
 			}
+			unset($correlations[$k]);
 		}
 		return $relatedAttributes;
 	}
