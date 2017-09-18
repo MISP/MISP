@@ -181,6 +181,26 @@
 			endforeach;
 		?>
 	<h3>
+		Advanced attachment handler
+	</h3>
+		The advanced attachment tools are used by the add attachment functionality to extract additional data about the uploaded sample.
+		<div style="background-color:#f7f7f9;width:400px;">
+			<?php
+				if (empty($advanced_attachments)):
+			?>
+					<b>PyMISP</b>:..... <span class="red bold">Not installed or version outdated.</span><br />
+			<?php
+				endif;
+				if (!empty($advanced_attachments)):
+					foreach ($advanced_attachments as $k => $v):
+			?>
+						<b><?php echo h($k); ?></b>:..... <?php echo $v === false ? '<span class="green bold">OK</span>' : '<span class="red bold">' . h($v) . '</span>'; ?><br />
+			<?php
+					endforeach;
+				endif;
+			?>
+		</div>
+	<h3>
 	STIX and Cybox libraries
 	</h3>
 	<p>Mitre's STIX and Cybox python libraries have to be installed in order for MISP's STIX export to work. Make sure that you install them (as described in the MISP installation instructions) if you receive an error below.<br />

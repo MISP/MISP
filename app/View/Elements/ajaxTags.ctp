@@ -1,4 +1,4 @@
-<div style="width:100%;display:inline-block;">
+<div style="display:inline-block;">
 	<?php
 		$full = $isAclTagger && $tagAccess;
 		foreach ($tags as $tag):

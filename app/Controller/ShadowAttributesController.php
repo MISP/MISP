@@ -662,6 +662,10 @@ class ShadowAttributesController extends AppController {
 						'static' => array('old_id' => 'Attribute.id', 'uuid' => 'Attribute.uuid', 'event_id' => 'Attribute.event_id', 'event_uuid' => 'Event.uuid', 'event_org_id' => 'Event.orgc_id'),
 						'optional' => array('category', 'type', 'value', 'to_ids', 'comment')
 				);
+				if ($existingAttribute['Attribute']['object_id']) {
+					unset($fields['optional']['type']);
+					$fields['static']['type'] = 'Attribute.type';
+				}
 			}
 			foreach ($fields['static'] as $k => $v) {
 				$v = explode('.', $v);
@@ -724,18 +728,36 @@ class ShadowAttributesController extends AppController {
 				unset($types[$key]);
 			}
 		}
+		if ($existingAttribute['Attribute']['object_id']) {
+			$this->set('objectAttribute', true);
+		} else {
+			$this->set('objectAttribute', false);
+		}
 		$types = $this->_arrayToValuesIndexArray($types);
 		$this->set('types', $types);
 		// combobox for categories
 		$categories = $this->_arrayToValuesIndexArray(array_keys($this->ShadowAttribute->Event->Attribute->categoryDefinitions));
 		$categories = $this->_arrayToValuesIndexArray($categories);
-		$this->set('categories', $categories);
 		foreach ($this->ShadowAttribute->Event->Attribute->categoryDefinitions as $key => $value) {
 			$info['category'][$key] = array('key' => $key, 'desc' => isset($value['formdesc'])? $value['formdesc'] : $value['desc']);
 		}
 		foreach ($this->ShadowAttribute->Event->Attribute->typeDefinitions as $key => $value) {
 			$info['type'][$key] = array('key' => $key, 'desc' => isset($value['formdesc'])? $value['formdesc'] : $value['desc']);
 		}
+		$categoryDefinitions = $this->ShadowAttribute->Event->Attribute->categoryDefinitions;
+		if ($existingAttribute['Attribute']['object_id']) {
+			foreach ($categoryDefinitions as $k => $v) {
+				if (!in_array($existingAttribute['Attribute']['type'], $v['types'])) {
+					unset($categoryDefinitions[$k]);
+				}
+			}
+			foreach ($categories as $k => $v) {
+				if (!isset($categoryDefinitions[$k])) {
+					unset($categories[$k]);
+				}
+			}
+		}
+		$this->set('categories', $categories);
 		$this->set('info', $info);
 		$this->set('attrDescriptions', $this->ShadowAttribute->fieldDescriptions);
 		$this->set('typeDefinitions', $this->ShadowAttribute->typeDefinitions);

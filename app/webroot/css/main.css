@@ -1,5 +1,5 @@
 /* bootstrap changes */
-body{
+body {
 	font-size: 12px;
 }
 
@@ -7,11 +7,11 @@ input, button, select, textarea{
 
 }
 
-input[type="file"]{
+input[type="file"] {
 	margin-bottom: 10px;
 }
 
-button .full-width{
+button .full-width {
   width:100%;
 }
 
@@ -272,7 +272,6 @@ td.highlight1 {
 td.highlight2 {
 	background-color: #747170 !important;
 	color: #ffffff !important;
-
 }
 
 td.highlight3 {
@@ -1512,6 +1511,10 @@ a.proposal_link_red:hover {
 	color: white !important;
 }
 
+tr.deleted-attribute td {
+	background-color: #d3d7cf !important;
+}
+
 .background-deleted {
 	background: repeating-linear-gradient(
 		45deg,
@@ -1605,6 +1608,21 @@ a.discrete {
 	background-color:white;
 	padding:5px;
 	border-radius:5px;
+}
+
+.redHighlightedBlock {
+	border:1px solid red;
+	background-color:white;
+	padding:5px;
+	border-radius:5px;
+	height:228px;
+	width:320px;
+	overflow-y:scroll;
+	line-height:12px;
+}
+
+.indent {
+	text-indent: 2em;
 }
 
 .tooltip-inner {
@@ -1712,6 +1730,182 @@ table.table.table-striped tr.deleted_row td {
 .simplepre {
 	border:0px !important;
 	background-color:#f4f4f4;
+}
+
+tr.tableInsetOrangeFirst td:first-child {
+	box-shadow:
+		inset 0px 2px 0px 0px #f57900,
+		inset 3px 0px 0px 0px #f57900;
+	border-top:0px !important;
+}
+
+tr.tableInsetOrangeFirst td {
+	box-shadow:
+		inset 0px 2px 0px 0px #f57900;
+	border-top:0px !important;
+}
+
+tr.tableInsetOrangeFirst td:last-child {
+	box-shadow:
+    inset 0px 2px 0px 0px #f57900,
+    inset -2px 0px 0px 0px #f57900;
+	border-top:0px !important;
+}
+
+tr.tableInsetOrangeMiddle td:first-child {
+	box-shadow:
+		inset 3px 0px 0px 0px #f57900;
+	border-top:0px !important;
+}
+
+tr.tableInsetOrangeMiddle td:last-child {
+	box-shadow:
+    inset -3px 0px 0px 0px #f57900;
+	border-top:0px !important;
+}
+
+tr.tableInsetOrangeLast td:first-child {
+	box-shadow:
+		inset 0px -3px 0px 0px #f57900,
+		inset 3px 0px 0px 0px #f57900;
+	border-top:0px !important;
+}
+
+tr.tableInsetOrangeLast td {
+	box-shadow:
+		inset 0px -3px 0px 0px #f57900;
+	border-top:0px !important;
+}
+
+tr.tableInsetOrangeLast td:last-child {
+	box-shadow:
+    inset 0px -3px 0px 0px #f57900,
+    inset -3px 0px 0px 0px #f57900;
+	border-top:0px !important;
+}
+
+tr.tableInsetOrange td:first-child {
+	box-shadow:
+		inset 0px 2px 0px 0px #f57900,
+		inset 0px -3px 0px 0px #f57900,
+		inset 2px 0px 0px 0px #f57900;
+	border-top:0px !important;
+}
+
+tr.tableInsetOrange td {
+	box-shadow:
+		inset 0px 2px 0px 0px #f57900,
+		inset 0px -3px 0px 0px #f57900;
+	border-top:0px !important;
+}
+
+tr.tableInsetOrange td:last-child {
+	box-shadow:
+    inset 0px 2px 0px 0px #f57900,
+    inset 0px -3px 0px 0px #f57900,
+    inset -2px 0px 0px 0px #f57900;
+	border-top:0px !important;
+}
+
+.tableHighlightBorder {
+	border-radius: 3px !important;
+	border-width: 3px;
+	border-style: solid;
+}
+
+.tableHighlightBorderTop {
+	border-radius: 3px !important;
+	border-width: 3px;
+	border-style: solid;
+	border-bottom: 0px;
+}
+
+.tableHighlightBorderCenter {
+	border-radius: 3px !important;
+	border-width: 3px;
+	border-style: solid;
+	border-bottom: 0px;
+	border-top: 0px;
+}
+
+.tableHighlightBorderBottom {
+	border-radius: 3px !important;
+	border-width: 3px;
+	border-style:solid;
+	border-top: 0px;
+}
+
+tr.tableHighlightBorderBottom td {
+	border-top:0px !important;
+		margin-bottom:10px;
+}
+
+.borderRed {
+	border-color:#cc0000;
+}
+
+.borderOrange {
+	border-color:#f57900;
+}
+
+.borderBlue {
+	border-color:#3465a4;
+}
+
+tr.darkOrangeRow td, .darkOrangeElement {
+	background-color: #ce5c00 !important;
+	color: #ffffff;
+	border-top:0px !important;
+}
+
+tr.blueRow td, .blueElement {
+	background-color: #3465a4 !important;
+	color: #ffffff;
+	border-top:0px !important;
+}
+
+tr.lightBlueRow td, .lightBlueElement {
+	background-color: #729fcf !important;
+	border-top:0px !important;
+}
+
+tr.redRow td, .redElement {
+	background-color: #cc0000 !important;
+	color: #ffffff;
+	border-top:0px !important;
+}
+
+.blank_table_row {
+	height: 10px;
+}
+
+tr.blank_table_row td {
+	background-color: #ffffff !important;
+}
+
+.down-expand-button {
+	text-align:center !important;
+	border:0px;
+	padding:0px !important;
+	width:100%;
+	cursor: pointer;
+	cursor: hand;
+}
+
+table tr:hover .down-expand-button {
+	background: rgb(221, 221, 221) !important;
+}
+
+.wrap-text {
+	word-wrap: break-word;
+}
+
+.nowrap {
+	word-wrap:nowrap;
+}
+
+.strikethrough {
+	text-decoration: line-through;
 }
 
 @-webkit-keyframes rotation {

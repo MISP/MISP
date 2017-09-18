@@ -4,8 +4,9 @@ String.prototype.ucfirst = function() {
 
 function deleteObject(type, action, id, event) {
 	var destination = 'attributes';
-	var alternateDestinations = ['shadow_attributes', 'template_elements', 'taxonomies'];
+	var alternateDestinations = ['shadow_attributes', 'template_elements', 'taxonomies', 'objects', 'object_references'];
 	if (alternateDestinations.indexOf(type) > -1) destination = type;
+	else destination = type;
 	url = "/" + destination + "/" + action + "/" + id;
 	$.get(url, function(data) {
 		openPopup("#confirmation_box");
@@ -160,6 +161,12 @@ function toggleSetting(e, setting, id) {
 		dataDiv = '#FavouriteTagData';
 		replacementForm = '/favourite_tags/getToggleField/';
 		searchString = 'Adding';
+		break;
+	case 'activate_object_template':
+		formID = '#ObjectTemplateIndexForm';
+		dataDiv = '#ObjectTemplateData';
+		replacementForm = '/ObjectTemplates/getToggleField/';
+		searchString = 'activated';
 		break;
 	}
 	$(dataDiv).val(id);
@@ -776,7 +783,7 @@ function loadAttributeTags(id) {
 		dataType:"html",
 		cache: false,
 		success:function (data, textStatus) {
-			$("#ShadowAttribute_"+id+"_tr .attributeTagContainer").html(data);
+			$("#Attribute_"+id+"_tr .attributeTagContainer").html(data);
 		},
 		url:"/tags/showAttributeTag/" + id
 	});
@@ -877,6 +884,9 @@ function submitPopoverForm(context_id, referer, update_context_id) {
 			url = "/sightings/add/" + context_id;
 			closePopover = false;
 			break;
+		case 'addObjectReference':
+			url = "/objectReferences/add/" + context_id;
+			break;
 	}
 	if (url !== null) {
 		$.ajax({
@@ -902,7 +912,7 @@ function submitPopoverForm(context_id, referer, update_context_id) {
 					$('#sightingsListAllToggle').removeClass('btn-inverse');
 					$('#sightingsListAllToggle').addClass('btn-primary');
 				}
-				if (context == 'event' && (referer == 'add' || referer == 'massEdit' || referer == 'replaceAttributes')) eventUnpublish();
+				if (context == 'event' && (referer == 'add' || referer == 'massEdit' || referer == 'replaceAttributes' || referer == 'addObjectReference')) eventUnpublish();
 				$(".loading").hide();
 			},
 			type:"post",
@@ -1939,6 +1949,27 @@ function freetextImportResultsSubmit(id, count) {
 	});
 }
 
+function objectTemplateViewContent(context, id) {
+	var url = "/objectTemplateElements/viewElements/" + id + "/" + context;
+	$.ajax({
+			url: url,
+			type:'GET',
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+			error: function(){
+				$('#ajaxContent').html('An error has occured, please reload the page.');
+			},
+			success: function(response){
+				$('#ajaxContent').html(response);
+			},
+		complete: function() {
+			$(".loading").hide();
+		},
+	});
+
+}
+
 function organisationViewContent(context, id) {
 	organisationViewButtonHighlight(context);
 	var action = "/organisations/landingpage/";
@@ -2544,6 +2575,25 @@ function filterAttributes(filter, id) {
 	});
 }
 
+function pivotObjectReferences(url, uuid) {
+	url += '/focus:' + uuid;
+	console.log(url);
+	$.ajax({
+		type:"get",
+		url:url,
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+		success:function (data) {
+			$("#attributes_div").html(data);
+			$(".loading").hide();
+		},
+		error:function() {
+			showMessage('fail', 'Something went wrong - could not fetch attributes.');
+		}
+	});
+}
+
 function toggleDeletedAttributes(url) {
 	url = url.replace(/view\//i, 'viewEventAttributes/');
 	if (url.indexOf('deleted:') > -1) {
@@ -3052,6 +3102,123 @@ $(".cortex-json").click(function() {
 	}
 	$('#screenshot_box').css({'left': left + 'px'});
 	$("#gray_out").fadeIn();
+});
+
+// Show $(id) if the enable parameter evaluates to true. Hide it otherwise
+function checkAndEnable(id, enable) {
+	if (enable) {
+		$(id).show();
+	} else {
+		$(id).hide();
+	}
+}
+
+// Show and enable checkbox $(id) if the enable parameter evaluates to true. Hide and disable it otherwise.
+function checkAndEnableCheckbox(id, enable) {
+	if (enable) {
+		$(id).removeAttr("disabled");
+		$(id).prop('checked', true);
+	} else {
+		$(id).prop('checked', false);
+		$(id).attr("disabled", true);
+	}
+}
+
+function enableDisableObjectRows(rows) {
+	rows.forEach(function(i) {
+		if ($("#Attribute" + i + "ValueSelect").length != 0) {
+			checkAndEnableCheckbox("#Attribute" + i + "Save", true);
+		} else if ($("#Attribute" + i + "Attachment").length != 0) {
+			checkAndEnableCheckbox("#Attribute" + i + "Save", $("#Attribute" + i + "Attachment").val() != "");
+		} else {
+			checkAndEnableCheckbox("#Attribute" + i + "Save", $("#Attribute" + i + "Value").val() != "");
+		}
+		$("#Attribute" + i + "Value").bind('input propertychange', function() {
+			checkAndEnableCheckbox("#Attribute" + i + "Save", $(this).val() != "");
+		});
+		$("#Attribute" + i + "Attachment").on('change', function() {
+			checkAndEnableCheckbox("#Attribute" + i + "Save", $("#Attribute" + i + "Attachment").val() != "");
+		});
+	});
+}
+
+function objectReferenceInput() {
+	var types = ["Attribute", "Object"];
+	for (var type in types) {
+		for (var k in targetEvent[types[type]]) {
+			if (targetEvent[types[type]][k]['uuid'] == $('#ObjectReferenceUuid').val()) {
+				$('#targetSelect').val($('#ObjectReferenceUuid').val());
+				changeObjectReferenceSelectOption();
+			}
+		}
+	}
+}
+
+function objectReferenceCheckForCustomRelationship() {
+	var relationship_type_field = $('#ObjectReferenceRelationshipTypeSelect option:selected');
+	var relationship_type = $(relationship_type_field).val();
+	if (relationship_type == 'custom') {
+		$('#ObjectReferenceRelationshipType').parent().removeClass('hidden');
+	} else {
+		$('#ObjectReferenceRelationshipType').parent().addClass('hidden');
+	}
+}
+
+function changeObjectReferenceSelectOption() {
+	var object = $('#targetSelect option:selected');
+	var uuid = $(object).val();
+	$('#ObjectReferenceUuid').val(uuid);
+	var type = $(object).data('type');
+	if (type == "Attribute") {
+		$('#targetData').html("");
+		for (var k in targetEvent[type][uuid]) {
+			if ($.inArray(k, ['uuid', 'category', 'type', 'value', 'to_ids']) !== -1) {
+				$('#targetData').append('<div><span id="' + uuid + '_' + k + '_key" class="bold"></span>: <span id="' + uuid + '_' + k + '_data"></span></div>');
+				$('#' + uuid + '_' + k + '_key').text(k);
+				$('#' + uuid + '_' + k + '_data').text(targetEvent[type][uuid][k]);
+			}
+		}
+	} else {
+		$('#targetData').html("");
+		for (var k in targetEvent[type][uuid]) {
+			if (k == 'Attribute') {
+				$('#targetData').append('<br /><div><span id="header" class="bold">Attributes:</span>');
+				for (attribute in targetEvent[type][uuid]['Attribute']) {
+					for (k2 in targetEvent[type][uuid]['Attribute'][attribute]) {
+						if ($.inArray(k2, ['category', 'type', 'value', 'to_ids']) !== -1) {
+							$('#targetData').append('<div class="indent"><span id="' + targetEvent[type][uuid]['Attribute'][attribute]['uuid'] + '_' + k2 + '_key" class="bold"></span>: <span id="' + targetEvent[type][uuid]['Attribute'][attribute]['uuid'] + '_' + k2 + '_data"></span></div>');
+							$('#' + targetEvent[type][uuid]['Attribute'][attribute]['uuid'] + '_' + k2 + '_key').text(k2);
+							$('#' + targetEvent[type][uuid]['Attribute'][attribute]['uuid'] + '_' + k2 + '_data').text(targetEvent[type][uuid]['Attribute'][attribute][k2]);
+						}
+					}
+					$('#targetData').append('<br />');
+				}
+			} else {
+				if ($.inArray(k, ['name', 'uuid', 'meta-category']) !== -1) {
+					$('#targetData').append('<div><span id="' + uuid + '_' + k + '_key" class="bold"></span>: <span id="' + uuid + '_' + k + '_data"></span></div>');
+					$('#' + uuid + '_' + k + '_key').text(k);
+					$('#' + uuid + '_' + k + '_data').text(targetEvent[type][uuid][k]);
+				}
+			}
+		}
+	}
+}
+
+$('.add_object_attribute_row').click(function() {
+	var template_id = $(this).data('template-id');
+	var object_relation = $(this).data('object-relation');
+	var k = $('#last-row').data('last-row');
+	var k = k+1;
+	$('#last-row').data('last-row', k);
+	url = "/objects/get_row/" + template_id + "/" + object_relation + "/" + k;
+	$.get(url, function(data) {
+		$('#row_' + object_relation + '_expand').before($(data).fadeIn()).html();
+	});
+});
+
+$('.quickToggleCheckbox').toggle(function() {
+	var url = $(this).data('checkbox-url');
+
 });
 
 (function(){

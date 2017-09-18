@@ -715,6 +715,9 @@ class EventsController extends AppController {
 	}
 
 	public function viewEventAttributes($id, $all = false) {
+		if (isset($this->params['named']['focus'])) {
+			$this->set('focus', $this->params['named']['focus']);
+		}
 		$conditions = array('eventid' => $id);
 		if (isset($this->params['named']['deleted']) && $this->params['named']['deleted']) {
 			$conditions['deleted'] = 1;
@@ -722,7 +725,7 @@ class EventsController extends AppController {
 		$results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
 		if (empty($results)) throw new NotFoundException('Invalid event');
 		$event = $results[0];
-		$emptyEvent = (!isset($event['Attribute']) || empty($event['Attribute']));
+		$emptyEvent = (empty($event['Object']) && empty($event['Attribute']));
 		$this->set('emptyEvent', $emptyEvent);
 		$params = $this->Event->rearrangeEventForView($event, $this->passedArgs, $all);
 		$this->params->params['paging'] = array($this->modelClass => $params);
@@ -773,13 +776,23 @@ class EventsController extends AppController {
 		$this->disableCache();
 		$this->layout = 'ajax';
 		$this->loadModel('Sighting');
+		$uriArray = explode('/', $this->params->here);
+		foreach ($uriArray as $k => $v) {
+			if (strpos($v, ':')) {
+				$temp = explode(':', $v);
+				if ($temp[0] == 'focus') {
+					unset($uriArray[$k]);
+				}
+			}
+			$this->params->here = implode('/', $uriArray);
+		}
 		$this->set('sightingTypes', $this->Sighting->type);
 		$this->set('currentUri', $this->params->here);
 		$this->render('/Elements/eventattribute');
 	}
 
 	private function __viewUI($event, $continue, $fromEvent) {
-		$emptyEvent = (!isset($event['Attribute']) || empty($event['Attribute']));
+		$emptyEvent = (empty($event['Object']) && empty($event['Attribute']));
 		$this->set('emptyEvent', $emptyEvent);
 		$attributeCount = isset($event['Attribute']) ? count($event['Attribute']) : 0;
 		$this->set('attribute_count', $attributeCount);
@@ -893,6 +906,13 @@ class EventsController extends AppController {
 		$this->set('typeGroups', array_keys($this->Event->Attribute->typeGroupings));
 		$this->loadModel('Sighting');
 		$this->set('sightingTypes', $this->Sighting->type);
+		$attributeUri = '/events/viewEventAttributes/' . $event['Event']['id'];
+		foreach ($this->params->named as $k => $v) {
+			if (!is_numeric($k)) {
+				$attributeUri .= '/' . $v;
+			}
+		}
+		$this->set('currentUri', $attributeUri);
 	}
 
 	public function view($id = null, $continue=false, $fromEvent=null) {

@@ -47,7 +47,7 @@ class AppModel extends Model {
 				58 => false, 59 => false, 60 => false, 61 => false, 62 => false,
 				63 => false, 64 => false, 65 => false, 66 => false, 67 => true,
 				68 => false, 69 => false, 71 => false, 72 => false, 73 => false,
-				75 => false, 77 => false, 78 => false
+				75 => false, 77 => false, 78 => false, 79 => false, 80 => false
 			)
 		)
 	);
@@ -707,6 +707,115 @@ class AppModel extends Model {
 				$this->__addIndex('galaxy_clusters', 'version');
 				$this->__addIndex('galaxy_clusters', 'galaxy_id');
 				$this->__addIndex('galaxy_elements', 'galaxy_cluster_id');
+				break;
+			case '2.4.80':
+				$sqlArray[] = "CREATE TABLE IF NOT EXISTS objects (
+					`id` int(11) NOT NULL AUTO_INCREMENT,
+					`name` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+					`meta-category` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+					`description` text CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+					`template_uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
+					`template_version` int(11) NOT NULL,
+					`event_id` int(11) NOT NULL,
+					`uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
+					`timestamp` int(11) NOT NULL DEFAULT 0,
+					`distribution` tinyint(4) NOT NULL DEFAULT 0,
+					`sharing_group_id` int(11),
+					`comment` text COLLATE utf8_bin NOT NULL,
+					`deleted` TINYINT(1) NOT NULL DEFAULT 0,
+					PRIMARY KEY (id),
+					INDEX `name` (`name`),
+					INDEX `template_uuid` (`template_uuid`),
+					INDEX `template_version` (`template_version`),
+					INDEX `meta-category` (`meta-category`),
+					INDEX `event_id` (`event_id`),
+					INDEX `uuid` (`uuid`),
+					INDEX `timestamp` (`timestamp`),
+					INDEX `distribution` (`distribution`),
+					INDEX `sharing_group_id` (`sharing_group_id`)
+				) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+
+				$sqlArray[] = "CREATE TABLE IF NOT EXISTS object_references (
+					`id` int(11) NOT NULL AUTO_INCREMENT,
+					`uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
+					`timestamp` int(11) NOT NULL DEFAULT 0,
+					`object_id` int(11) NOT NULL,
+					`event_id` int(11) NOT NULL,
+					`object_uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
+					`referenced_uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
+					`referenced_id` int(11) NOT NULL,
+					`referenced_type` int(11) NOT NULL DEFAULT 0,
+					`relationship_type` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+					`comment` text COLLATE utf8_bin NOT NULL,
+					`deleted` TINYINT(1) NOT NULL DEFAULT 0,
+					PRIMARY KEY (id),
+					INDEX `object_uuid` (`object_uuid`),
+				  INDEX `referenced_uuid` (`referenced_uuid`),
+				  INDEX `timestamp` (`timestamp`),
+				  INDEX `object_id` (`object_id`),
+				  INDEX `referenced_id` (`referenced_id`),
+				  INDEX `relationship_type` (`relationship_type`)
+				) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+
+				$sqlArray[] = "CREATE TABLE IF NOT EXISTS object_relationships (
+					`id` int(11) NOT NULL AUTO_INCREMENT,
+					`version` int(11) NOT NULL,
+					`name` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+					`description` text COLLATE utf8_bin NOT NULL,
+					`format` text COLLATE utf8_bin NOT NULL,
+					PRIMARY KEY (id),
+					INDEX `name` (`name`)
+				) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+
+
+				$sqlArray[] = "CREATE TABLE IF NOT EXISTS object_templates (
+					`id` int(11) NOT NULL AUTO_INCREMENT,
+					`user_id` int(11) NOT NULL,
+					`org_id` int(11) NOT NULL,
+					`uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
+					`name` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+					`meta-category` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+					`description` text COLLATE utf8_bin,
+					`version` int(11) NOT NULL,
+					`requirements` text COLLATE utf8_bin,
+					`fixed` tinyint(1) NOT NULL DEFAULT 0,
+					`active` tinyint(1) NOT NULL DEFAULT 0,
+					PRIMARY KEY (id),
+					INDEX `user_id` (`user_id`),
+					INDEX `org_id` (`org_id`),
+					INDEX `uuid` (`uuid`),
+					INDEX `name` (`name`),
+					INDEX `meta-category` (`meta-category`)
+				) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+
+				$sqlArray[] = "CREATE TABLE IF NOT EXISTS object_template_elements (
+					`id` int(11) NOT NULL AUTO_INCREMENT,
+					`object_template_id` int(11) NOT NULL,
+					`object_relation` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+					`type` varchar(255) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
+					`ui-priority` int(11) NOT NULL,
+					`categories` text COLLATE utf8_bin,
+					`sane_default` text COLLATE utf8_bin,
+					`values_list` text COLLATE utf8_bin,
+					`description` text COLLATE utf8_bin,
+					`disable_correlations` tinyint(1) NOT NULL DEFAULT 0,
+					`multiple` tinyint(1) NOT NULL DEFAULT 0,
+					PRIMARY KEY (id),
+					INDEX `object_relation` (`object_relation`),
+					INDEX `type` (`type`)
+				) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+
+				$sqlArray[] = 'ALTER TABLE `logs` CHANGE `model` `model` VARCHAR(80) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL;';
+				$sqlArray[] = 'ALTER TABLE `logs` CHANGE `action` `action` VARCHAR(80) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL;';
+
+				$sqlArray[] = 'ALTER TABLE attributes ADD object_id int(11) NOT NULL DEFAULT 0;';
+				$sqlArray[] = 'ALTER TABLE attributes ADD object_relation varchar(255) COLLATE utf8_bin;';
+
+				$sqlArray[] = "ALTER TABLE `roles` ADD `perm_object_template` tinyint(1) NOT NULL DEFAULT 0;";
+				$sqlArray[] = 'UPDATE `roles` SET `perm_object_template` = 1 WHERE `perm_site_admin` = 1;';
+
+				$indexArray[] = array('attributes', 'object_id');
+				$indexArray[] = array('attributes', 'object_relation');
 				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';

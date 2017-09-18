@@ -8,10 +8,14 @@
 				'empty' => '(choose one)',
 				'label' => 'Category ' . $this->element('formInfo', array('type' => 'category'))
 			));
-			echo $this->Form->input('type', array(
+			$typeInputData = array(
 				'empty' => '(first choose category)',
-				'label' => 'Type ' . $this->element('formInfo', array('type' => 'type'))
-			));
+				'label' => 'Type ' . $this->element('formInfo', array('type' => 'type')),
+			);
+			if ($objectAttribute) {
+				$typeInputData[] = 'disabled';
+			}
+			echo $this->Form->input('type', $typeInputData);
 		?>
 			<div class="input clear"></div>
 		<?php
@@ -50,9 +54,11 @@
 			echo $this->Form->input('to_ids', array(
 					'label' => 'for Intrusion Detection System',
 			));
-			echo $this->Form->input('batch_import', array(
-					'type' => 'checkbox',
-			));
+			if (!$objectAttribute) {
+				echo $this->Form->input('batch_import', array(
+						'type' => 'checkbox',
+				));
+			}
 		?>
 	</fieldset>
 		<p style="color:red;font-weight:bold;display:none;<?php if (isset($ajax) && $ajax) echo "text-align:center;";?> " id="warning-message">Warning: You are about to share data that is of a sensitive nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>
@@ -103,18 +109,24 @@ $(document).ready(function() {
 		else $('#SGContainer').hide();
 	});
 
-	$("#AttributeCategory").on('change', function(e) {
-		formCategoryChanged('Attribute');
-		if ($(this).val() === 'Attribution' || $(this).val() === 'Targeting data') {
-			$("#warning-message").show();
-		} else {
-			$("#warning-message").hide();
-		}
-		if ($(this).val() === 'Internal reference') {
-			$("#AttributeDistribution").val('0');
-			$('#SGContainer').hide();
-		}
-	});
+	<?php
+		if (!$objectAttribute):
+	?>
+		$("#AttributeCategory").on('change', function(e) {
+			formCategoryChanged('Attribute');
+			if ($(this).val() === 'Attribution' || $(this).val() === 'Targeting data') {
+				$("#warning-message").show();
+			} else {
+				$("#warning-message").hide();
+			}
+			if ($(this).val() === 'Internal reference') {
+				$("#AttributeDistribution").val('0');
+				$('#SGContainer').hide();
+			}
+		});
+	<?php
+		endif;
+	?>
 
 	$("#AttributeCategory, #AttributeType, #AttributeDistribution").change(function() {
 		initPopoverContent('Attribute');

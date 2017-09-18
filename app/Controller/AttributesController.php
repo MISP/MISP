@@ -345,7 +345,6 @@ class AttributesController extends AppController {
 			$success = 0;
 
 			foreach ($this->request->data['Attribute']['values'] as $k => $value) {
-
 				// Check if there were problems with the file upload
 				// only keep the last part of the filename, this should prevent directory attacks
 				$filename = basename($value['name']);
@@ -361,36 +360,39 @@ class AttributesController extends AppController {
 				}
 
 				if ($this->request->data['Attribute']['malware']) {
-					$result = $this->Event->Attribute->handleMaliciousBase64($this->request->data['Attribute']['event_id'], $filename, base64_encode($tmpfile->read()), array_keys($hashes));
-					if (!$result['success']) {
-						$this->Session->setFlash(__('There was a problem to upload the file.', true), 'default', array(), 'error');
-						$this->redirect(array('controller' => 'events', 'action' => 'view', $this->request->data['Attribute']['event_id']));
-					}
-					foreach ($hashes as $hash => $typeName) {
-						if (!$result[$hash]) continue;
-						$attribute = array(
-							'Attribute' => array(
-								'value' => $filename . '|' . $result[$hash],
-								'category' => $this->request->data['Attribute']['category'],
-								'type' => $typeName,
-								'event_id' => $this->request->data['Attribute']['event_id'],
-								'comment' => $this->request->data['Attribute']['comment'],
-								'to_ids' => 1,
-								'distribution' => $this->request->data['Attribute']['distribution'],
-								'sharing_group_id' => isset($this->request->data['Attribute']['sharing_group_id']) ? $this->request->data['Attribute']['sharing_group_id'] : 0,
-							)
+					if ($this->request->data['Attribute']['advanced']) {
+						$result = $this->Attribute->advancedAddMalwareSample($tmpfile);
+						if ($result) $success++;
+						else $fails[] = $filename;
+					} else {
+						$result = $this->Attribute->simpleAddMalwareSample(
+							$eventId,
+							$this->request->data['Attribute']['category'],
+							$this->request->data['Attribute']['distribution'],
+							$this->request->data['Attribute']['distribution'] == 4 ? $this->request->data['Attribute']['sharing_group_id'] : 0,
+							$this->request->data['Attribute']['comment'],
+							$filename,
+							$tmpfile
 						);
-						if ($hash == 'md5') $attribute['Attribute']['data'] = $result['data'];
-						$this->Attribute->create();
-						$r = $this->Attribute->save($attribute);
-						if ($r == false) {
-							if ($hash == 'md5') {
-								$fails[] = $filename;
-							} else {
-								$partialFails[] = '[' . $typeName . ']' . $filename;
+						if ($result) $success++;
+						else $fails[] = $filename;
+					}
+					if (!empty($result)) {
+						foreach ($result['Object'] as $object) {
+							$object['distribution'] = $this->request->data['Attribute']['distribution'];
+							$object['sharing_group_id'] = isset($this->request->data['Attribute']['distribution']) ? $this->request->data['Attribute']['distribution'] : 0;
+							if (!empty($object['Attribute'])) {
+								foreach ($object['Attribute'] as $k => $attribute) {
+									if ($attribute['value'] == $tmpfile->name) $object['Attribute'][$k]['value'] = $value['name'];
+								}
 							}
-						} else {
-							if ($hash == 'md5') $success++;
+							$this->loadModel('MispObject');
+							$this->MispObject->captureObject(array('Object' => $object), $eventId, $this->Auth->user());
+						}
+						if (!empty($result['ObjectReference'])) {
+							foreach ($result['ObjectReference'] as $reference) {
+								$this->MispObject->ObjectReference->smartSave($reference, $eventId);
+							}
 						}
 					}
 				} else {
@@ -413,9 +415,8 @@ class AttributesController extends AppController {
 					else $success++;
 				}
 			}
-
 			$message = 'The attachment(s) have been uploaded.';
-			if (!empty($partialFails)) $message .= ' Some of the hashes however could not be generated.';
+			if (!empty($partialFails)) $message .= ' Some of the attributes however could not be created.';
 			if (!empty($fails)) $message = 'Some of the attachments failed to upload. The failed files were: ' . implode(', ', $fails) . ' - This can be caused by the attachments already existing in the event.';
 			if (empty($success)) {
 				if (empty($fails)) $message = 'The attachment(s) could not be saved. please contact your administrator.';
@@ -729,12 +730,29 @@ class AttributesController extends AppController {
 
 			// enabling / disabling the distribution field in the edit view based on whether user's org == orgc in the event
 			$this->Event->read();
-			if ($this->Attribute->save($this->request->data)) {
+			if ($this->Attribute->data['Attribute']['object_id']) {
+				$result = $this->Attribute->save($this->request->data, array('Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.comment', 'Attribute.distribution', 'Attribute.sharing_group_id'));
+				$this->Attribute->Object->updateTimestamp($id);
+			} else {
+				$result = $this->Attribute->save($this->request->data);
+			}
+			if ($result) {
 				$this->Session->setFlash(__('The attribute has been saved'));
 				// remove the published flag from the event
+				$this->Event->unpublishEvent($eventId);
 				$this->Event->set('timestamp', $date->getTimestamp());
 				$this->Event->set('published', 0);
 				$this->Event->save($this->Event->data, array('fieldList' => array('published', 'timestamp', 'info')));
+				if (!empty($this->Attribute->data['Attribute']['object_id'])) {
+					$object = $this->Attribute->Object->find('first', array(
+						'recursive' => -1,
+						'conditions' => array('Object.id' => $this->Attribute->data['Attribute']['object_id'])
+					));
+					if (!empty($object)) {
+						$object['Object']['timestamp'] = $date->getTimestamp();
+						$this->Attribute->Object->save($object);
+					}
+				}
 				if ($this->_isRest() || $this->response->type() === 'application/json') {
 					$saved_attribute = $this->Attribute->find('first', array(
 							'conditions' => array('id' => $this->Attribute->id),
@@ -760,7 +778,11 @@ class AttributesController extends AppController {
 			$this->request->data = $this->Attribute->read(null, $id);
 		}
 		$this->set('attribute', $this->request->data);
-
+		if ($this->request->data['Attribute']['object_id']) {
+			$this->set('objectAttribute', true);
+		} else {
+			$this->set('objectAttribute', false);
+		}
 		// enabling / disabling the distribution field in the edit view based on whether user's org == orgc in the event
 		$this->loadModel('Event');
 		$this->Event->id = $eventId;
@@ -777,9 +799,6 @@ class AttributesController extends AppController {
 		$types = $this->_arrayToValuesIndexArray($types);
 		$this->set('types', $types);
 		// combobox for categories
-		$categories = array_keys($this->Attribute->categoryDefinitions);
-		$categories = $this->_arrayToValuesIndexArray($categories);
-		$this->set('categories', $categories);
 		$this->set('currentDist', $this->Event->data['Event']['distribution']);
 
 		$this->loadModel('SharingGroup');
@@ -802,7 +821,23 @@ class AttributesController extends AppController {
 		$this->set('info', $info);
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
 		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
-		$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
+		$categoryDefinitions = $this->Attribute->categoryDefinitions;
+		$categories = array_keys($this->Attribute->categoryDefinitions);
+		$categories = $this->_arrayToValuesIndexArray($categories);
+		if ($this->request->data['Attribute']['object_id']) {
+			foreach ($categoryDefinitions as $k => $v) {
+				if (!in_array($this->request->data['Attribute']['type'], $v['types'])) {
+					unset($categoryDefinitions[$k]);
+				}
+			}
+			foreach ($categories as $k => $v) {
+				if (!isset($categoryDefinitions[$k])) {
+					unset($categories[$k]);
+				}
+			}
+		}
+		$this->set('categories', $categories);
+		$this->set('categoryDefinitions', $categoryDefinitions);
 	}
 
 	// ajax edit - post a single edited field and this method will attempt to save it and return a json with the validation errors if they occur.
@@ -1041,6 +1076,17 @@ class AttributesController extends AppController {
 			$result['Attribute']['deleted'] = 1;
 			$result['Attribute']['timestamp'] = $date->getTimestamp();
 			$save = $this->Attribute->save($result);
+			$object_refs = $this->Attribute->Object->ObjectReference->find('all', array(
+				'conditions' => array(
+					'ObjectReference.referenced_type' => 0,
+					'ObjectReference.referenced_id' => $id,
+				),
+				'recursive' => -1
+			));
+			foreach ($object_refs as $ref) {
+				$ref['ObjectReference']['deleted'] = 1;
+				$this->Attribute->Object->ObjectReference->save($ref);
+			}
 		}
 		// attachment will be deleted with the beforeDelete() function in the Model
 		if ($save) {

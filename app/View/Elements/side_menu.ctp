@@ -6,7 +6,9 @@
 		?>
 					<div id="hiddenSideMenuData" class="hidden" data-event-id="<?php echo isset($event['Event']['id']) ? h($event['Event']['id']) : 0; ?>"></div>
 		<?php
-					if ($menuItem === 'addAttribute' ||
+					if (
+						$menuItem === 'addAttribute' ||
+						$menuItem === 'addObject' ||
 						$menuItem === 'addAttachment' ||
 						$menuItem === 'addIOC' ||
 						$menuItem === 'addThreatConnect' ||
@@ -34,6 +36,7 @@
 					<li id='lieditEvent'><a href="<?php echo $baseurl;?>/events/edit/<?php echo h($event['Event']['id']);?>">Edit Event</a></li>
 					<li><?php echo $this->Form->postLink('Delete Event', array('action' => 'delete', h($event['Event']['id'])), null, __('Are you sure you want to delete # %s?', h($event['Event']['id']))); ?></li>
 					<li id='liaddAttribute'><a href="<?php echo $baseurl;?>/attributes/add/<?php echo h($event['Event']['id']);?>">Add Attribute</a></li>
+					<li><a onClick="getPopup('<?php echo h($event['Event']['id']); ?>', 'objectTemplates', 'objectChoice');" style="cursor:pointer;">Add Object</a></li>
 					<li id='liaddAttachment'><a href="<?php echo $baseurl;?>/attributes/add_attachment/<?php echo h($event['Event']['id']);?>">Add Attachment</a></li>
 					<li id='import'><a onClick="getPopup('<?php echo h($event['Event']['id']); ?>', 'events', 'importChoice');" style="cursor:pointer;">Populate from...</a></li>
 					<?php if ($menuItem === 'populateFromtemplate'): ?>
@@ -355,6 +358,21 @@
 					if ($menuItem === 'view_cluster'):
 				?>
 						<li class="active"><a href="#">View Cluster</a></li>
+				<?php
+					endif;
+				break;
+				case 'objectTemplates':
+				?>
+					<li id='liindex'><a href="<?php echo $baseurl;?>/objectTemplates/index">List Object Templates</a></li>
+				<?php
+					if ($isSiteAdmin):
+				?>
+					<li><?php echo $this->Form->postLink('Update Objects', '/objectTemplates/update'); ?></li>
+				<?php
+					endif;
+					if ($menuItem === 'view'):
+				?>
+						<li class="active"><a href="#">View Object Template</a></li>
 				<?php
 					endif;
 				break;
