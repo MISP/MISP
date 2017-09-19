@@ -439,7 +439,7 @@ CREATE TABLE IF NOT EXISTS objects (
   `distribution` tinyint(4) NOT NULL DEFAULT 0,
   `sharing_group_id` int(11),
   `comment` text COLLATE utf8_bin NOT NULL,
-  `deleted` TINYINT NOT NULL DEFAULT 0,
+  `deleted` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (id),
   INDEX `name` (`name`),
   INDEX `template_uuid` (`template_uuid`),
