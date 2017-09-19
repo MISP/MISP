@@ -126,12 +126,7 @@ class XMLConverterTool {
 				$event['Event']['Tag'][$k] = $tag['Tag'];
 			}
 		}
-		foreach ($event['Event']['RelatedAttribute'] as &$attribute_w_relation) {
-			foreach ($attribute_w_relation as &$relation) {
-				$this->__sanitizeField($relation['info']);
-				$this->__sanitizeField($relation['value']);
-			}
-		}
+		unset($event['Event']['RelatedAttribute']);
 		//
 		// cleanup the array from things we do not want to expose
 		//
@@ -167,6 +162,12 @@ class XMLConverterTool {
 				$event['Event']['RelatedEvent'][$key]['Event'][0] = $temp;
 				unset($event['Event']['RelatedEvent'][$key]['Event'][0]['user_id']);
 				$this->__sanitizeField($event['Event']['RelatedEvent'][$key]['Event'][0]['info']);
+				if (isset($event['Event']['RelatedEvent'][$key]['Event'][0]['Org'])) {
+					$event['Event']['RelatedEvent'][$key]['Event'][0]['Org'] = array(0 => $event['Event']['RelatedEvent'][$key]['Event'][0]['Org']);
+				}
+				if (isset($event['Event']['RelatedEvent'][$key]['Event'][0]['Orgc'])) {
+					$event['Event']['RelatedEvent'][$key]['Event'][0]['Orgc'] = array(0 => $event['Event']['RelatedEvent'][$key]['Event'][0]['Orgc']);
+				}
 				unset($temp);
 			}
 		}
