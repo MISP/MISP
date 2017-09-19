@@ -1761,7 +1761,8 @@ class Event extends AppModel {
 				'conditions' => $conditions, //array of conditions
 				'fields' => array('Attribute.event_id', 'Attribute.distribution', 'Attribute.category', 'Attribute.type', 'Attribute.value', 'Attribute.comment', 'Attribute.uuid', 'Attribute.to_ids', 'Attribute.timestamp', 'Attribute.id'),
 				'order' => array('Attribute.uuid ASC'),
-				'enforceWarninglist' => $enforceWarninglist
+				'enforceWarninglist' => $enforceWarninglist,
+				'flatten' => true
 		);
 
 		if ($includeContext) {
@@ -1782,6 +1783,7 @@ class Event extends AppModel {
 				),
 			);
 		}
+		$params['contain']['Object'] = array('fields' => array('id', 'uuid', 'name', 'meta-category'));
 		$attributes = $this->Attribute->fetchAttributes($user, $params);
 		if (empty($attributes)) return array();
 		foreach ($attributes as &$attribute) {
@@ -1790,6 +1792,15 @@ class Event extends AppModel {
 			$attribute['Attribute']['comment'] = str_replace(array('"'), '""', $attribute['Attribute']['comment']);
 			$attribute['Attribute']['comment'] = '"' . $attribute['Attribute']['comment'] . '"';
 			$attribute['Attribute']['timestamp'] = date('Ymd', $attribute['Attribute']['timestamp']);
+			if (empty($attribute['Object'])) {
+					$attribute['Object']['uuid'] = '""';
+					$attribute['Object']['name'] = '';
+					$attribute['Object']['meta-category'] = '';
+			}
+			$attribute['Object']['name'] = str_replace(array('"'), '""', $attribute['Object']['name']);
+			$attribute['Object']['name'] = '"' . $attribute['Object']['name'] . '"';
+			$attribute['Object']['meta-category'] = str_replace(array('"'), '""', $attribute['Object']['meta-category']);
+			$attribute['Object']['meta-category'] = '"' . $attribute['Object']['meta-category'] . '"';
 			if ($includeContext) {
 				$attribute['Event']['info'] = str_replace(array('"'), '""', $attribute['Event']['info']);
 				$attribute['Event']['info'] = '"' . $attribute['Event']['info'] . '"';
