@@ -34,10 +34,7 @@ class ObjectReferencesController extends AppController {
 				)
 			)
 		));
-		if (!$this->userRole['perm_add']) {
-			throw new MethodNotAllowedException('You don\'t have the required permissions to add object reference.');
-		}
-		if (empty($object) || (!$this->_isSiteAdmin() && $object['Event']['orgc_id'] != $this->Auth->user('orgc_id'))) {
+		if (empty($object) || (!$this->_isSiteAdmin() && $object['Event']['orgc_id'] != $this->Auth->user('org_id'))) {
 			throw new MethodNotAllowedException('Invalid object.');
 		}
 		$this->set('objectId', $objectId);
