@@ -51,6 +51,9 @@ class ObjectTemplatesController extends AppController {
 			),
 			'conditions' => array('ObjectTemplate.id' => $id)
 		);
+		if ($this->_isRest()) {
+			$params['contain'][] = 'ObjectTemplateElement';
+		}
 		if ($this->_isSiteAdmin()) {
 				$params['contain']['User']= array('fields' => array('User.id', 'User.email'));
 		}
