@@ -1820,7 +1820,8 @@ class AttributesController extends AppController {
 				'conditions' => $conditions,
 				'fields' => array('Attribute.*', 'Event.org_id', 'Event.distribution'),
 				'withAttachments' => $withAttachments,
-				'enforceWarninglist' => $enforceWarninglist
+				'enforceWarninglist' => $enforceWarninglist,
+				'includeAllTags' => true
 		);
 		if ($deleted) {
 				$params['deleted'] = 1;
@@ -1839,6 +1840,12 @@ class AttributesController extends AppController {
 			if (!empty($results)) {
 				$results = array('response' => array('Attribute' => $results));
 				foreach ($results['response']['Attribute'] as $k => $v) {
+					if (isset($results['response']['Attribute'][$k]['AttributeTag'])) {
+						foreach ($results['response']['Attribute'][$k]['AttributeTag'] as $tk => $tag) {
+							$results['response']['Attribute'][$k]['Attribute']['Tag'][$tk] = $tag;
+							
+						}
+					}
 					$results['response']['Attribute'][$k] = $results['response']['Attribute'][$k]['Attribute'];
 					unset(
 							$results['response']['Attribute'][$k]['value1'],
