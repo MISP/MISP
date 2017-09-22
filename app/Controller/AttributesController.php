@@ -1842,8 +1842,7 @@ class AttributesController extends AppController {
 				foreach ($results['response']['Attribute'] as $k => $v) {
 					if (isset($results['response']['Attribute'][$k]['AttributeTag'])) {
 						foreach ($results['response']['Attribute'][$k]['AttributeTag'] as $tk => $tag) {
-							$results['response']['Attribute'][$k]['Attribute']['Tag'][$tk] = $tag;
-							
+							$results['response']['Attribute'][$k]['Attribute']['Tag'][$tk] = $tag['Tag'];
 						}
 					}
 					$results['response']['Attribute'][$k] = $results['response']['Attribute'][$k]['Attribute'];
