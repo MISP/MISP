@@ -3662,7 +3662,7 @@ class EventsController extends AppController {
 
 	// API for pushing samples to MISP
 	// Either send it to an existing event, or let MISP create a new one automatically
-	public function upload_sample($event_id = null) {
+	public function upload_sample($event_id = null, $advanced = false) {
 		$this->loadModel('Log');
 		$hashes = array('md5' => 'malware-sample', 'sha1' => 'filename|sha1', 'sha256' => 'filename|sha256');
 		$categoryDefinitions = $this->Event->Attribute->categoryDefinitions;
@@ -3697,13 +3697,15 @@ class EventsController extends AppController {
 		foreach ($parameter_options as $k => $v) {
 			if (isset($data[$k])) {
 				if (isset($v['valid_options']) && !in_array($data[$k], $v['valid_options'])) {
-					$data[$k] = $v['default'];
+					$data['settings'][$k] = $v['default'];
+				} else {
+					$data['settings'][$k] = $data[$k];
 				}
+				unset($data[$k]);
 			} else {
-				$data[$k] = $v['default'];
+				$data['settings'][$k] = $v['default'];
 			}
 		}
-
 		if (isset($data['files'])) {
 			foreach ($data['files'] as $k => $file) {
 				if (!isset($file['filename']) || !isset($file['data'])) {
@@ -3717,16 +3719,17 @@ class EventsController extends AppController {
 		if (empty($data['files'])) {
 			throw new BadRequestException('No samples received, or samples not in the correct format. Please refer to the API documentation on the automation page.');
 		}
-		if (isset($event_id)) $data['event_id'] = $event_id;
-		if (isset($data['event_id'])) {
-			$this->Event->id = $data['event_id'];
+		if (isset($event_id)) $data['settings']['event_id'] = $event_id;
+		if (isset($data['settings']['event_id'])) {
+			$this->Event->id = $data['settings']['event_id'];
 			if (!$this->Event->exists()) throw new NotFoundException('Event not found');
 		}
+		if (isset($data['advanced'])) $advanced = $data['advanced'];
 
 		// check if the user has permission to create attributes for an event, if the event ID has been passed
 		// If not, create an event
-		if (isset($data['event_id']) && !empty($data['event_id']) && is_numeric($data['event_id'])) {
-			$conditions = array('Event.id' => $data['event_id']);
+		if (isset($data['settings']['event_id']) && !empty($data['settings']['event_id']) && is_numeric($data['settings']['event_id'])) {
+			$conditions = array('Event.id' => $data['settings']['event_id']);
 			if (!$this->_isSiteAdmin()) {
 				$conditions[] = array('Event.orgc_id' => $this->Auth->user('org_id'));
 				if (!$this->userRole['perm_modify_org']) {
@@ -3739,19 +3742,19 @@ class EventsController extends AppController {
 				'fields' => array('id'),
 			));
 			if (empty($event)) throw new NotFoundException('Event not found.');
-			$this->Event->id = $data['event_id'];
+			$this->Event->id = $data['settings']['event_id'];
 			$date = new DateTime();
 			$this->Event->saveField('timestamp', $date->getTimestamp());
 			$this->Event->saveField('published', 0);
 		} else {
 			$this->Event->create();
-			if ($data['distribution'] == 5) throw new BadRequestException('Distribution level 5 is not supported when uploading a sample without passing an event ID. Distribution level 5 is meant to take on the distribution level of an existing event.');
+			if ($data['settings']['distribution'] == 5) throw new BadRequestException('Distribution level 5 is not supported when uploading a sample without passing an event ID. Distribution level 5 is meant to take on the distribution level of an existing event.');
 			$result = $this->Event->save(
 				array(
-					'info' => $data['info'],
-					'analysis' => $data['analysis'],
-					'threat_level_id' => $data['threat_level_id'],
-					'distribution' => $data['distribution'],
+					'info' => $data['settings']['info'],
+					'analysis' => $data['settings']['analysis'],
+					'threat_level_id' => $data['settings']['threat_level_id'],
+					'distribution' => $data['settings']['distribution'],
 					'date' => date('Y-m-d'),
 					'orgc_id' => $this->Auth->user('org_id'),
 					'org_id' => $this->Auth->user('org_id'),
@@ -3767,64 +3770,72 @@ class EventsController extends AppController {
 						'action' => 'upload_sample',
 						'user_id' => $this->Auth->user('id'),
 						'title' => 'Error: Failed to create event using the upload sample functionality',
-						'change' => 'There was an issue creating an event (' . $data['info'] . '). The validation errors were: ' . json_encode($this->Event->validationErrors),
+						'change' => 'There was an issue creating an event (' . $data['settings']['info'] . '). The validation errors were: ' . json_encode($this->Event->validationErrors),
 				));
 				throw new BadRequestException('The creation of a new event with the supplied information has failed.');
 			}
-			$data['event_id'] = $this->Event->id;
+			$data['settings']['event_id'] = $this->Event->id;
+			$event_id = $this->Event->id;
 		}
 
-		if (!isset($data['to_ids']) || !in_array($data['to_ids'], array('0', '1', 0, 1))) $data['to_ids'] = 1;
+		if (!isset($data['settings']['to_ids']) || !in_array($data['settings']['to_ids'], array('0', '1', 0, 1))) $data['settings']['to_ids'] = 1;
 		$successCount = 0;
 		$errors = array();
+		App::uses('FileAccessTool', 'Tools');
+		$fileAccessTool = new FileAccessTool();
 		foreach ($data['files'] as $file) {
-			$temp = $this->Event->Attribute->handleMaliciousBase64($data['event_id'], $file['filename'], $file['data'], array_keys($hashes));
-			if ($temp['success']) {
-				foreach ($hashes as $hash => $typeName) {
-					if ($temp[$hash] == false) continue;
-					$file[$hash] = $temp[$hash];
-					$file['data'] = $temp['data'];
-					$this->Event->Attribute->create();
-					$attribute = array(
-							'value' => $file['filename'] . '|' . $file[$hash],
-							'distribution' => $data['distribution'],
-							'category' => $data['category'],
-							'type' => $typeName,
-							'event_id' => $data['event_id'],
-							'to_ids' => $data['to_ids'],
-							'comment' => $data['comment']
-					);
-					if ($hash == 'md5') $attribute['data'] = $file['data'];
-					$result = $this->Event->Attribute->save($attribute);
-					if (!$result) {
-						$this->Log->save(array(
-								'org' => $this->Auth->user('Organisation')['name'],
-								'model' => 'Event',
-								'model_id' => $data['event_id'],
-								'email' => $this->Auth->user('email'),
-								'action' => 'upload_sample',
-								'user_id' => $this->Auth->user('id'),
-								'title' => 'Error: Failed to create attribute using the upload sample functionality',
-								'change' => 'There was an issue creating an attribute (' . $typeName . ': ' . $file['filename'] . '|' . $file[$hash] . '). ' . 'The validation errors were: ' . json_encode($this->Event->Attribute->validationErrors),
-						));
-						if ($typeName == 'malware-sample') {
-							$errors[] = array('filename' => $file['filename'], 'hash' => $file[$hash], 'error' => $this->Event->Attribute->validationErrors);
+			$tmpdir = Configure::read('MISP.tmpdir') ? Configure::read('MISP.tmpdir') : '/var/www/MISP/app/tmp';
+			$tmpfile = $fileAccessTool->createTempFile($tmpdir, $prefix = 'MISP_upload');
+			$fileAccessTool->writeToFile($tmpfile, base64_decode($file['data']));
+			$tmpfile = new File($tmpfile);
+			if ($advanced) {
+				$result = $this->Event->Attribute->advancedAddMalwareSample(
+					$event_id,
+					$data['settings'],
+					$file['filename'],
+					$tmpfile
+				);
+				if ($result) $successCount++;
+				else $errors[] = $file['filename'];
+			} else {
+				$result = $this->Event->Attribute->simpleAddMalwareSample(
+					$event_id,
+					$data['settings'],
+					$file['filename'],
+					$tmpfile
+				);
+				if ($result) $successCount++;
+				else $errors[] = $file['filename'];
+			}
+			if (!empty($result)) {
+				foreach ($result['Object'] as $object) {
+					$object['distribution'] = $data['settings']['distribution'];
+					$object['sharing_group_id'] = isset($data['settings']['distribution']) ? $data['settings']['distribution'] : 0;
+					if (!empty($object['Attribute'])) {
+						foreach ($object['Attribute'] as $k => $attribute) {
+							if ($attribute['value'] == $tmpfile->name) {
+								$object['Attribute'][$k]['value'] = $file['filename'];
+							}
 						}
-					} else if ($typeName == 'malware-sample') {
-						$successCount++;
+					}
+					$this->loadModel('MispObject');
+					$this->MispObject->captureObject(array('Object' => $object), $event_id, $this->Auth->user());
+				}
+				if (!empty($result['ObjectReference'])) {
+					foreach ($result['ObjectReference'] as $reference) {
+						$this->MispObject->ObjectReference->smartSave($reference, $event_id);
 					}
 				}
-			} else {
-				$errors[] = array('filename' => $file['filename'], 'hash' => $file['hash'], 'error' => 'Failed to encrypt and compress the file.');
 			}
+			$fileAccessTool->deleteFile($tmpfile->path);
 		}
 		if (!empty($errors)) {
 			$this->set('errors', $errors);
 			if ($successCount > 0) {
 				$this->set('name', 'Partial success');
 				$this->set('message', 'Successfuly saved ' . $successCount . ' sample(s), but some samples could not be saved.');
-				$this->set('url', '/events/view/' . $data['event_id']);
-				$this->set('id', $data['event_id']);
+				$this->set('url', '/events/view/' . $data['settings']['event_id']);
+				$this->set('id', $data['settings']['event_id']);
 				$this->set('_serialize', array('name', 'message', 'url', 'id', 'errors'));
 			} else {
 				$this->set('name', 'Failed');
@@ -3834,11 +3845,11 @@ class EventsController extends AppController {
 		} else {
 			$this->set('name', 'Success');
 			$this->set('message', 'Success, saved all attributes.');
-			$this->set('url', '/events/view/' . $data['event_id']);
-			$this->set('id', $data['event_id']);
+			$this->set('url', '/events/view/' . $data['settings']['event_id']);
+			$this->set('id', $data['settings']['event_id']);
 			$this->set('_serialize', array('name', 'message', 'url', 'id'));
 		}
-		$this->view($data['event_id']);
+		$this->view($data['settings']['event_id']);
 		$this->render('view');
 	}
 

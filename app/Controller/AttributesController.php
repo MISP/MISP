@@ -361,16 +361,18 @@ class AttributesController extends AppController {
 
 				if ($this->request->data['Attribute']['malware']) {
 					if ($this->request->data['Attribute']['advanced']) {
-						$result = $this->Attribute->advancedAddMalwareSample($tmpfile);
+						$result = $this->Attribute->advancedAddMalwareSample(
+							$eventId,
+							$this->request->data['Attribute'],
+							$filename,
+							$tmpfile
+						);
 						if ($result) $success++;
 						else $fails[] = $filename;
 					} else {
 						$result = $this->Attribute->simpleAddMalwareSample(
 							$eventId,
-							$this->request->data['Attribute']['category'],
-							$this->request->data['Attribute']['distribution'],
-							$this->request->data['Attribute']['distribution'] == 4 ? $this->request->data['Attribute']['sharing_group_id'] : 0,
-							$this->request->data['Attribute']['comment'],
+							$this->request->data['Attribute'],
 							$filename,
 							$tmpfile
 						);
@@ -379,13 +381,6 @@ class AttributesController extends AppController {
 					}
 					if (!empty($result)) {
 						foreach ($result['Object'] as $object) {
-							$object['distribution'] = $this->request->data['Attribute']['distribution'];
-							$object['sharing_group_id'] = isset($this->request->data['Attribute']['distribution']) ? $this->request->data['Attribute']['distribution'] : 0;
-							if (!empty($object['Attribute'])) {
-								foreach ($object['Attribute'] as $k => $attribute) {
-									if ($attribute['value'] == $tmpfile->name) $object['Attribute'][$k]['value'] = $value['name'];
-								}
-							}
 							$this->loadModel('MispObject');
 							$this->MispObject->captureObject(array('Object' => $object), $eventId, $this->Auth->user());
 						}
@@ -1843,7 +1838,7 @@ class AttributesController extends AppController {
 					if (isset($results['response']['Attribute'][$k]['AttributeTag'])) {
 						foreach ($results['response']['Attribute'][$k]['AttributeTag'] as $tk => $tag) {
 							$results['response']['Attribute'][$k]['Attribute']['Tag'][$tk] = $tag;
-							
+
 						}
 					}
 					$results['response']['Attribute'][$k] = $results['response']['Attribute'][$k]['Attribute'];

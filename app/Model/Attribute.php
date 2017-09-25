@@ -2690,7 +2690,7 @@ class Attribute extends AppModel {
 		return array('sgs' => $sgs, 'levels' => $distributionLevels, 'initial' => $initialDistribution);
 	}
 
-	public function simpleAddMalwareSample($event_id, $category, $distribution, $sharing_group_id, $comment, $filename, $tmpfile) {
+	public function simpleAddMalwareSample($event_id, $attribute_settings, $filename, $tmpfile) {
 		$attributes = array(
 			'malware-sample' => array('type' => 'malware-sample', 'data' => 1, 'category' => '', 'to_ids' => 1, 'disable_correlation' => 0, 'object_relation' => 'malware-sample'),
 			'filename' => array('type' => 'filename', 'category' => '', 'to_ids' => 0, 'disable_correlation' => 0, 'object_relation' => 'filename'),
@@ -2702,12 +2702,21 @@ class Attribute extends AppModel {
 		$hashes = array('md5', 'sha1', 'sha256');
 		$this->Object = ClassRegistry::init('Object');
 		$this->ObjectTemplate = ClassRegistry::init('ObjectTemplate');
-		$object_template = $this->ObjectTemplate->find('first', array(
-			'conditions' => array(
-				'ObjectTemplate.uuid' => '688c46fb-5edb-40a3-8273-1af7923e2215'
-			),
-			'recursive' => -1
+		$current = $this->ObjectTemplate->find('first', array(
+			'fields' => array('MAX(version) AS version', 'uuid'),
+			'conditions' => array('uuid' => '688c46fb-5edb-40a3-8273-1af7923e2215'),
+			'recursive' => -1,
+			'group' => array('uuid')
 		));
+		if (!empty($current)) {
+			$object_template = $this->ObjectTemplate->find('first', array(
+				'conditions' => array(
+					'ObjectTemplate.uuid' => '688c46fb-5edb-40a3-8273-1af7923e2215',
+					'ObjectTemplate.version' => $current[0]['version']
+				),
+				'recursive' => -1
+			));
+		}
 		if (empty($object_template)) {
 			$object_template = array(
 				'ObjectTemplate' => array(
@@ -2720,21 +2729,21 @@ class Attribute extends AppModel {
 			);
 		}
 		$object = array(
-			'distribution' => $distribution,
-			'sharing_group_id' => $sharing_group_id,
+			'distribution' => $attribute_settings['distribution'],
+			'sharing_group_id' => isset($attribute_settings['sharing_group_id']) ? $attribute_settings['sharing_group_id'] : 0,
 			'meta-category' => $object_template['ObjectTemplate']['meta-category'],
 			'name' => $object_template['ObjectTemplate']['name'],
 			'template_version' => $object_template['ObjectTemplate']['version'],
 			'description' => $object_template['ObjectTemplate']['description'],
 			'template_uuid' => $object_template['ObjectTemplate']['uuid'],
 			'event_id' => $event_id,
-			'comment' => $comment
+			'comment' => !empty($attribute_settings['comment']) ? $attribute_settings['comment'] : ''
 		);
 		$result = $this->Event->Attribute->handleMaliciousBase64($event_id, $filename, base64_encode($tmpfile->read()), $hashes);
 		foreach ($attributes as $k => $v) {
 			$attribute = array(
 				'distribution' => 5,
-				'category' => empty($v['category']) ? $category : $v['category'],
+				'category' => empty($v['category']) ? $attribute_settings['category'] : $v['category'],
 				'type' => $v['type'],
 				'to_ids' => $v['to_ids'],
 				'disable_correlation' => $v['disable_correlation'],
@@ -2759,7 +2768,7 @@ class Attribute extends AppModel {
 		return array('Object' => array($object));
 	}
 
-	public function advancedAddMalwareSample($tmpfile) {
+	public function advancedAddMalwareSample($event_id, $attribute_settings, $filename, $tmpfile) {
 		$execRetval = '';
 		$execOutput = array();
 		$result = shell_exec('python ' . APP . 'files/scripts/generate_file_objects.py -p ' . $tmpfile->path);
@@ -2773,6 +2782,26 @@ class Attribute extends AppModel {
 				$result['ObjectReference'] = $result['references'];
 				unset($result['references']);
 			}
+			foreach ($result['Object'] as $k => $object) {
+				$result['Object'][$k]['distribution'] = $attribute_settings['distribution'];
+				$result['Object'][$k]['sharing_group_id'] = isset($attribute_settings['distribution']) ? $attribute_settings['distribution'] : 0;
+				if (!empty($result['Object'][$k]['Attribute'])) {
+					foreach ($result['Object'][$k]['Attribute'] as $k2 => $attribute) {
+						if ($attribute['value'] == $tmpfile->name) {
+							$result['Object'][$k]['Attribute'][$k2]['value'] = $filename;
+						}
+						if (!empty($attribute['encrypt'])) {
+							if (!empty($attribute['encrypt']) && $attribute['encrypt']) {
+								$encrypted = $this->handleMaliciousBase64($event_id, $filename, $attribute['data'], array('md5'));
+								$result['Object'][$k]['Attribute'][$k2]['data'] = $encrypted['data'];
+								$result['Object'][$k]['Attribute'][$k2]['value'] = $filename . '|' . $encrypted['md5'];
+							}
+						}
+					}
+				}
+			}
+		} else {
+			$result = $this->simpleAddMalwareSample($event_id, $attribute_settings, $filename, $tmpfile);
 		}
 		return $result;
 	}
