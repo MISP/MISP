@@ -31,6 +31,26 @@ class GalaxyClustersController extends AppController {
 	public function index($id) {
 		$this->paginate['conditions'] = array('GalaxyCluster.galaxy_id' => $id);
 		$clusters = $this->paginate();
+		if ( isset($this->params['named']['searchall']) && strlen($this->params['named']['searchall']) > 0) {
+			$synonym_hits = $this->GalaxyCluster->GalaxyElement->find(
+				'list', array(
+					'recursive' => -1, 
+					'conditions' => array( 
+						'LOWER(GalaxyElement.value) LIKE' => '%' . strtolower($this->params['named']['searchall']) . '%', 
+						'GalaxyElement.key' => 'synonyms' ), 
+						'fields' => array(
+							'GalaxyElement.galaxy_cluster_id') 
+						));
+			$this->paginate['conditions'] = 
+				array("AND" => array(
+					'OR' => array(
+						"LOWER(GalaxyCluster.value) LIKE" => '%'. strtolower($this->params['named']['searchall']) .'%',
+						"GalaxyCluster.id" => array_values($synonym_hits)
+					),
+					"GalaxyCluster.galaxy_id" => $id
+					));
+			$this->set('passedArgsArray', array('all'=>$this->params['named']['searchall']));
+		}
 		$tagIds = array();
 		$sightings = array();
 		if (!empty($clusters)) {
