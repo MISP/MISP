@@ -2722,7 +2722,7 @@ class Attribute extends AppModel {
 				'ObjectTemplate' => array(
 					'meta-category' => 'file',
 					'name' => 'file',
-					'template_uuid' => '688c46fb-5edb-40a3-8273-1af7923e2215',
+					'uuid' => '688c46fb-5edb-40a3-8273-1af7923e2215',
 					'version' => 1,
 					'description' => 'File object describing a file with meta-information'
 				)
