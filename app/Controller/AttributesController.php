@@ -1816,7 +1816,8 @@ class AttributesController extends AppController {
 				'fields' => array('Attribute.*', 'Event.org_id', 'Event.distribution'),
 				'withAttachments' => $withAttachments,
 				'enforceWarninglist' => $enforceWarninglist,
-				'includeAllTags' => true
+				'includeAllTags' => true,
+				'flatten' => 1
 		);
 		if ($deleted) {
 				$params['deleted'] = 1;

@@ -2684,7 +2684,8 @@ class EventsController extends AppController {
 						'contain' => array(),
 						'recursive' => -1,
 						'list' => true,
-						'event_ids' => true
+						'event_ids' => true,
+						'flatten' => 1
 				);
 				$attributes = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $params);
 				$eventIds = array();
