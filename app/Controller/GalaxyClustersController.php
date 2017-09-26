@@ -44,6 +44,7 @@ class GalaxyClustersController extends AppController {
 				array("AND" => array(
 					'OR' => array(
 						"LOWER(GalaxyCluster.value) LIKE" => '%'. strtolower($this->params['named']['searchall']) .'%',
+						"LOWER(GalaxyCluster.description) LIKE" => '%'. strtolower($this->params['named']['searchall']) .'%',
 						"GalaxyCluster.id" => array_values($synonym_hits)
 					),
 					"GalaxyCluster.galaxy_id" => $id
