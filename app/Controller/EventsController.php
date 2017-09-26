@@ -3877,7 +3877,7 @@ class EventsController extends AppController {
 	}
 
 	private function __buildGraphJson($id, $json = array()) {
-		$event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
+		$event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id, 'flatten' => 1));
 		if (empty($event)) return $json;
 		$json = $this->__cleanLinks($json);
 		$old_event = $this->__graphJsonContains('event', $event[0]['Event'], $json);

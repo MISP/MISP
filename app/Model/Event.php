@@ -1331,7 +1331,7 @@ class Event extends AppModel {
 	// includeAttachments: true will attach the attachments to the attributes in the data field
 	public function fetchEvent($user, $options = array(), $useCache = false) {
 		if (isset($options['Event.id'])) $options['eventid'] = $options['Event.id'];
-		$possibleOptions = array('eventid', 'idList', 'tags', 'from', 'to', 'last', 'to_ids', 'includeAllTags', 'includeAttachments', 'event_uuid', 'distribution', 'sharing_group_id', 'disableSiteAdmin', 'metadata', 'includeGalaxy', 'enforceWarninglist', 'sgReferenceOnly');
+		$possibleOptions = array('eventid', 'idList', 'tags', 'from', 'to', 'last', 'to_ids', 'includeAllTags', 'includeAttachments', 'event_uuid', 'distribution', 'sharing_group_id', 'disableSiteAdmin', 'metadata', 'includeGalaxy', 'enforceWarninglist', 'sgReferenceOnly', 'flatten');
 		if (!isset($options['excludeGalaxy']) || !$options['excludeGalaxy']) {
 			$this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
 		}
@@ -1350,10 +1350,10 @@ class Event extends AppModel {
 		$conditionsObjects = array();
 		$conditionsObjectReferences = array();
 
-		if (isset($options['flattenObjects']) && $options['flattenObjects']) {
-			$flattenObjects = true;
+		if (isset($options['flatten']) && $options['flatten']) {
+			$flatten = true;
 		} else {
-			$flattenObjects = false;
+			$flatten = false;
 		}
 		$sgids = $this->cacheSgids($user, $useCache);
 		// restricting to non-private or same org if the user is not a site-admin.
@@ -1507,7 +1507,7 @@ class Event extends AppModel {
 				)
 			)
 		);
-		if ($flattenObjects) {
+		if ($flatten) {
 			unset($params['contain']['Object']);
 		}
 		if ($options['metadata']) {
@@ -1680,7 +1680,7 @@ class Event extends AppModel {
 						}
 
 					}
-					if ($event['Attribute'][$key]['object_id'] != 0) {
+					if (!$flatten && $event['Attribute'][$key]['object_id'] != 0) {
 						if (!empty($event['Object'])) {
 							foreach ($event['Object'] as $objectKey => $objectValue) {
 								if ($event['Attribute'][$key]['object_id'] == $objectValue['id']) {
