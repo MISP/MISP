@@ -33,7 +33,7 @@ MISP - Malware Information Sharing Platform and Threat Sharing
 
 MISP, Malware Information Sharing Platform and Threat Sharing, is an open source software solution for collecting, storing, distributing and sharing cyber security indicators and threat about cyber security incidents analysis and malware analysis. MISP is designed by and for incident analysts, security and ICT professionals or malware reverser to support their day-to-day operations to share structured informations efficiently.
 
-The objective of MISP is to foster the sharing of structured information within the security community and abroad. MISP provides functionalities to support the exchange of information but also the consumption of the information by Network Detection Intrusion System (NIDS), LIDS but also log analysis tools, SIEMs.
+The objective of MISP is to foster the sharing of structured information within the security community and abroad. MISP provides functionalities to support the exchange of information but also the consumption of the information by Network Intrusion Detection System (NIDS), LIDS but also log analysis tools, SIEMs.
 
 MISP, Malware Information Sharing Platform and Threat Sharing, core functionalities are:
 

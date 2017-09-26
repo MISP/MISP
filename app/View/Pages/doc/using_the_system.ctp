@@ -52,8 +52,7 @@ and attachments and finally publishing it.<br /><br />
 				This includes all organisations on this MISP server, all organisations on MISP servers synchronising
 				with this server and the hosting organisations of servers that connect to those afore mentioned servers
 				(so basically any server that is 2 hops away from this one). Any other organisations connected to linked
-				servers that are 2 hops away from this own will be restricted from seeing the event. For more information
-				on community-related distribution levels, click here.<br/>
+				servers that are 2 hops away from this own will be restricted from seeing the event.<br/>
 				Upon push: downgrade to This Community only and push. Upon pull: pull and downgrade to This Community only.
 				</li>
 			<li><i>All communities:</i> This will share the event with all MISP communities, allowing the event to be

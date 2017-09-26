@@ -1101,6 +1101,14 @@ class Server extends AppModel {
 							'test' => 'testForEmpty',
 							'type' => 'string',
 					),
+					'RPZ_ns_alt' => array(
+						'level' => 2,
+						'description' => 'Alternate nameserver',
+						'value' => '',
+						'errorMessage' => '',
+						'test' => 'testForEmpty',
+						'type' => 'string',
+				),
 					'RPZ_email' => array(
 						'level' => 2,
 						'description' => 'The e-mail address specified in the SOA portion of the zone file.',

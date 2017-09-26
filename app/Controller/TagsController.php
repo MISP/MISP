@@ -45,8 +45,18 @@ class TagsController extends AppController {
 			$this->paginate['conditions']['AND']['Tag.id'] = $tag_id_list;
 		}
 		if (isset($this->params['named']['searchall'])) {
-			$this->paginate['conditions']['AND']['LOWER(Tag.name) LIKE'] = '%' . $this->params['named']['searchall'] . '%';
 			$passedArgsArray['all'] = $this->params['named']['searchall'];
+		} else if ($this->request->is('post')) {
+			$validNames = array('filter', 'searchall', 'name', 'search');
+			foreach ($validNames as $vn) {
+				if (!empty($this->request->data[$vn])) {
+					$passedArgsArray['all'] = $this->request->data[$vn];
+					continue;
+				}
+			}
+		}
+		if (!empty($passedArgsArray['all'])) {
+						$this->paginate['conditions']['AND']['LOWER(Tag.name) LIKE'] = '%' . strtolower($passedArgsArray['all']) . '%';
 		}
 		if ($this->_isRest()) {
 			unset($this->paginate['limit']);

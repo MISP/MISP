@@ -20,9 +20,12 @@
     }
   } else if (strpos($object['type'], '|') !== false) {
     $separator = in_array($object['type'], array('ip-dst|port', 'ip-src|port')) ? ':' : '<br />';
-    $separator_pos = strpos('|', $object['value']);
-    $final_value = h($object['value']);
-    echo substr_replace(h($object['value']), $separator, $separator_pos, strlen($separator));
+    $value_pieces = explode('|', $object['value']);
+    foreach ($value_pieces as $k => $v) {
+      $value_pieces[$k] = h($v);
+    }
+    $object['value'] = implode($separator, $value_pieces);
+    echo ($object['value']);
   } else if ('vulnerability' == $object['type']) {
     $cveUrl = (is_null(Configure::read('MISP.cveurl'))) ? "http://www.google.com/search?q=" : Configure::read('MISP.cveurl');
     echo $this->Html->link($sigDisplay, $cveUrl . $sigDisplay, array('target' => '_blank', 'class' => $linkClass));

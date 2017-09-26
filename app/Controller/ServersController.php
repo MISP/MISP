@@ -938,7 +938,7 @@ class ServersController extends AppController {
 		}
 	}
 
-	public function serverSettingsEdit($setting, $id, $forceSave = false) {
+	public function serverSettingsEdit($setting, $id = false, $forceSave = false) {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
 		if (!isset($setting) || !isset($id)) throw new MethodNotAllowedException();
 		$this->set('id', $id);
@@ -981,13 +981,28 @@ class ServersController extends AppController {
 			} else {
 				$subGroup = 'general';
 			}
-			$this->set('subGroup', $subGroup);
-			$this->set('setting', $found);
-			$this->render('ajax/server_settings_edit');
+			if ($this->_isRest()) {
+				return $this->RestResponse->viewData(array($setting => $found['value']));
+			} else {
+				$this->set('subGroup', $subGroup);
+				$this->set('setting', $found);
+				$this->render('ajax/server_settings_edit');
+			}
+
 		}
 		if ($this->request->is('post')) {
+			if (!isset($this->request->data['Server'])) $this->request->data = array('Server' => $this->request->data);
+			if (!isset($this->request->data['Server']['value'])) {
+				if ($this->_isRest()) {
+					return $this->RestResponse->saveFailResponse('Servers', 'serverSettingsEdit', false, 'Invalid input. Expected: {"value": "new_setting"}', $this->response->type());
+				}
+			}
 			if (trim($this->request->data['Server']['value']) === '*****') {
-				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'No change.')), 'status'=>200, 'type' => 'json'));
+				if ($this->_isRest()) {
+					return $this->RestResponse->saveFailResponse('Servers', 'serverSettingsEdit', false, 'No change.', $this->response->type());
+				} else {
+					return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'No change.')), 'status'=>200, 'type' => 'json'));
+				}
 			}
 			$this->autoRender = false;
 			$this->loadModel('Log');
@@ -1003,7 +1018,11 @@ class ServersController extends AppController {
 						'title' => 'Server setting issue',
 						'change' => 'There was an issue witch changing ' . $setting . ' to ' . $this->request->data['Server']['value']  . '. The error message returned is: app/Config.config.php is not writeable to the apache user. No changes were made.',
 				));
-				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'app/Config.config.php is not writeable to the apache user.')), 'status'=>200, 'type' => 'json'));
+				if ($this->_isRest()) {
+					return $this->RestResponse->saveFailResponse('Servers', 'serverSettingsEdit', false, 'app/Config.config.php is not writeable to the apache user.', $this->response->type());
+				} else {
+					return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'app/Config.config.php is not writeable to the apache user.')), 'status'=>200, 'type' => 'json'));
+				}
 			}
 
 			if (isset($found['beforeHook'])) {
@@ -1020,7 +1039,11 @@ class ServersController extends AppController {
 							'title' => 'Server setting issue',
 							'change' => 'There was an issue witch changing ' . $setting . ' to ' . $this->request->data['Server']['value']  . '. The error message returned is: ' . $beforeResult . 'No changes were made.',
 					));
-					return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $beforeResult)), 'status'=>200, 'type' => 'json'));
+					if ($this->_isRest) {
+						return $this->RestResponse->saveFailResponse('Servers', 'serverSettingsEdit', false, $beforeResult, $this->response->type());
+					} else {
+						return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $beforeResult)), 'status'=>200, 'type' => 'json'));
+					}
 				}
 			}
 			$this->request->data['Server']['value'] = trim($this->request->data['Server']['value']);
@@ -1038,7 +1061,11 @@ class ServersController extends AppController {
 			if (!$forceSave && $testResult !== true) {
 				if ($testResult === false) $errorMessage = $found['errorMessage'];
 				else $errorMessage = $testResult;
-				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $errorMessage)), 'status'=>200, 'type' => 'json'));
+				if ($this->_isRest) {
+					return $this->RestResponse->saveFailResponse('Servers', 'serverSettingsEdit', false, $errorMessage, $this->response->type());
+				} else {
+					return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $errorMessage)), 'status'=>200, 'type' => 'json'));
+				}
 			} else {
 				$oldValue = Configure::read($setting);
 				$this->Server->serverSettingsSaveValue($setting, $this->request->data['Server']['value']);
@@ -1068,10 +1095,18 @@ class ServersController extends AppController {
 								'title' => 'Server setting issue',
 								'change' => 'There was an issue after setting a new setting. The error message returned is: ' . $afterResult,
 						));
-						return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $afterResult)), 'status'=>200, 'type' => 'json'));
+						if ($this->_isRest) {
+							return $this->RestResponse->saveFailResponse('Servers', 'serverSettingsEdit', false, $afterResult, $this->response->type());
+						} else {
+							return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $afterResult)), 'status'=>200, 'type' => 'json'));
+						}
 					}
 				}
-				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Field updated.')), 'status'=>200, 'type' => 'json'));
+				if ($this->_isRest) {
+					return $this->RestResponse->saveSuccessResponse('Servers', 'serverSettingsEdit', false, $this->response->type(), 'Field updated');
+				} else {
+					return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Field updated.')), 'status'=>200, 'type' => 'json'));
+				}
 			}
 		}
 	}

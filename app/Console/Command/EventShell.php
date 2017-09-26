@@ -209,7 +209,7 @@ class EventShell extends AppShell
 		App::uses('RPZExport', 'Export');
 		$rpzExport = new RPZExport();
 		$rpzSettings = array();
-		$lookupData = array('policy', 'walled_garden', 'ns', 'email', 'serial', 'refresh', 'retry', 'expiry', 'minimum_ttl', 'ttl');
+		$lookupData = array('policy', 'walled_garden', 'ns', 'email', 'serial', 'refresh', 'retry', 'expiry', 'minimum_ttl', 'ttl', 'ns_alt');
 		foreach ($lookupData as $v) {
 			$tempSetting = Configure::read('Plugin.RPZ_' . $v);
 			if (isset($tempSetting)) $rpzSettings[$v] = Configure::read('Plugin.RPZ_' . $v);
