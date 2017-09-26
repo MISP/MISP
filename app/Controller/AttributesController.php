@@ -721,10 +721,13 @@ class AttributesController extends AppController {
 				}
 			}
 			$this->loadModel('Event');
-			$this->Event->id = $eventId;
-
-			// enabling / disabling the distribution field in the edit view based on whether user's org == orgc in the event
-			$this->Event->read();
+			$event = $this->Attribute->Event->find('first', array(
+				'recursive' => -1,
+				'conditions' => array('Event.id' => $eventId)
+			));
+			if (empty($event)) {
+				throw new NotFoundException('Invalid Event.');
+			}
 			if ($this->Attribute->data['Attribute']['object_id']) {
 				$result = $this->Attribute->save($this->request->data, array('Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.comment', 'Attribute.distribution', 'Attribute.sharing_group_id'));
 				$this->Attribute->Object->updateTimestamp($id);
@@ -735,9 +738,9 @@ class AttributesController extends AppController {
 				$this->Session->setFlash(__('The attribute has been saved'));
 				// remove the published flag from the event
 				$this->Event->unpublishEvent($eventId);
-				$this->Event->set('timestamp', $date->getTimestamp());
-				$this->Event->set('published', 0);
-				$this->Event->save($this->Event->data, array('fieldList' => array('published', 'timestamp', 'info')));
+				$event['Event']['timestamp'] = $date->getTimestamp();
+				$event['Event']['published'] = 0;
+				$this->Event->save($event);
 				if (!empty($this->Attribute->data['Attribute']['object_id'])) {
 					$object = $this->Attribute->Object->find('first', array(
 						'recursive' => -1,
