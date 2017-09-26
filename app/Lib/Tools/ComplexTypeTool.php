@@ -296,7 +296,7 @@ class ComplexTypeTool {
 	}
 
 	private function __generateTLDList() {
-		$this->__tlds = array('biz', 'cat', 'com', 'edu', 'gov', 'int', 'mil', 'net', 'org', 'pro', 'tel', 'aero', 'arpa', 'asia', 'coop', 'info', 'jobs', 'mobi', 'name', 'museum', 'travel');
+		$this->__tlds = array('biz', 'cat', 'com', 'edu', 'gov', 'int', 'mil', 'net', 'org', 'pro', 'tel', 'aero', 'arpa', 'asia', 'coop', 'info', 'jobs', 'mobi', 'name', 'museum', 'travel', 'onion');
 		$char1 = $char2 = 'a';
 		for ($i = 0; $i < 26; $i++) {
 			for ($j = 0; $j < 26; $j++) {

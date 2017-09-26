@@ -413,6 +413,7 @@ class Warninglist extends AppModel{
 				}
 			}
 		}
+		if (!in_array('onion', $tlds)) $tlds[] = 'onion';
 		return $tlds;
 	}
 
