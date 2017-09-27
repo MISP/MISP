@@ -3146,8 +3146,8 @@ function objectReferenceInput() {
 	var types = ["Attribute", "Object"];
 	for (var type in types) {
 		for (var k in targetEvent[types[type]]) {
-			if (targetEvent[types[type]][k]['uuid'] == $('#ObjectReferenceUuid').val()) {
-				$('#targetSelect').val($('#ObjectReferenceUuid').val());
+			if (targetEvent[types[type]][k]['uuid'] == $('#ObjectReferenceReferencedUuid').val()) {
+				$('#targetSelect').val($('#ObjectReferenceReferencedUuid').val());
 				changeObjectReferenceSelectOption();
 			}
 		}
@@ -3167,7 +3167,7 @@ function objectReferenceCheckForCustomRelationship() {
 function changeObjectReferenceSelectOption() {
 	var object = $('#targetSelect option:selected');
 	var uuid = $(object).val();
-	$('#ObjectReferenceUuid').val(uuid);
+	$('#ObjectReferenceReferencedUuid').val(uuid);
 	var type = $(object).data('type');
 	if (type == "Attribute") {
 		$('#targetData').html("");

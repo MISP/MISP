@@ -38,7 +38,7 @@
 					<div class="row-fluid">
 						<div class="span6">
 							<?php
-								echo $this->Form->input('uuid', array(
+								echo $this->Form->input('referenced_uuid', array(
 									'label' => 'Target UUID',
 									'div' => false,
 									'style' => 'width:320px;'

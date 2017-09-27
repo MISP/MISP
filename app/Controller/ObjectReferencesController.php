@@ -53,7 +53,7 @@ class ObjectReferencesController extends AppController {
 			}
 			$referenced_type = 1;
 			$target_object = $this->ObjectReference->Object->find('first', array(
-				'conditions' => array('Object.uuid' => $this->request->data['ObjectReference']['object_uuid']),
+				'conditions' => array('Object.uuid' => $this->request->data['ObjectReference']['referenced_uuid']),
 				'recursive' => -1,
 				'fields' => array('Object.id', 'Object.uuid', 'Object.event_id')
 			));
@@ -64,8 +64,9 @@ class ObjectReferencesController extends AppController {
 					throw new NotFoundException('Invalid target. Target has to be within the same event.');
 				}
 			} else {
+				debug($this->request->data);
 				$target_attribute = $this->ObjectReference->Object->Attribute->find('first', array(
-					'conditions' => array('Attribute.uuid' => $this->request->data['ObjectReference']['uuid']),
+					'conditions' => array('Attribute.uuid' => $this->request->data['ObjectReference']['referenced_uuid']),
 					'recursive' => -1,
 					'fields' => array('Attribute.id', 'Attribute.uuid', 'Attribute.event_id')
 				));
