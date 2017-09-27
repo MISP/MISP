@@ -13,7 +13,15 @@ class ObjectReferencesController extends AppController {
 			),
 	);
 
-  public function add($objectId) {
+  public function add($objectId = false) {
+		if (empty($objectId)) {
+			if ($this->request->is('post') && !empty($this->request->data['object_uuid'])) {
+				$objectId = $this->request->data['object_uuid'];
+			}
+		}
+		if (empty($objectId)) {
+			throw new MethodNotAllowedException('No object defined.');
+		}
 		if (Validation::uuid($objectId)) {
 			$temp = $this->ObjectReference->Object->find('first', array(
 				'recursive' => -1,
