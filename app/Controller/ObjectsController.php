@@ -118,15 +118,12 @@ class ObjectsController extends AppController {
 			if (isset($this->request->data['Object']['data'])) {
 				$this->request->data = json_decode($this->request->data['Object']['data'], true);
 			}
-			if (!isset($this->request->data['Attribute'])) {
-				$this->request->data = array('Attribute' => $this->request->data);
-			}
 			if (!isset($this->request->data['Object'])) {
-				$attributeTemp = $this->request->data['Attribute'];
-				unset($this->request->data['Attribute']);
 				$this->request->data = array('Object' => $this->request->data);
-				$this->request->data['Attribute'] = $attributeTemp;
-				unset($attributeTemp);
+			}
+			if (!isset($this->request->data['Attribute']) && isset($this->request->data['Object']['Attribute'])) {
+				$this->request->data['Attribute'] = $this->request->data['Object']['Attribute'];
+				unset($this->request->data['Object']['Attribute']);
 			}
 			$object = $this->MispObject->attributeCleanup($this->request->data);
 			// we pre-validate the attributes before we create an object at this point

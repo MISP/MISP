@@ -2482,6 +2482,10 @@ class Attribute extends AppModel {
 	public function saveAttributes($attributes) {
 		foreach ($attributes as $k => $attribute) {
 			if (!empty($attribute['encrypt']) && $attribute['encrypt']) {
+				if (strpos($attribute['value'], '|') !== false) {
+					$temp = explode('|', $attribute['value']);
+					$attribute['value'] = $temp[0];
+				}
 				$result = $this->handleMaliciousBase64($attribute['event_id'], $attribute['value'], $attribute['data'], array('md5'));
 				$attribute['data'] = $result['data'];
 				$attribute['value'] = $attribute['value'] . '|' . $result['md5'];
