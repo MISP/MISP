@@ -40,7 +40,7 @@ class ACLComponent extends Component {
 					'checkOrphanedAttributes' => array(),
 					'delete' => array('perm_add'),
 					'deleteSelected' => array('perm_add'),
-					'describeTypes' => array('perm_add'),
+					'describeTypes' => array('*'),
 					'download' => array('*'),
 					'downloadAttachment' => array('*'),
 					'downloadSample' => array('*'),
