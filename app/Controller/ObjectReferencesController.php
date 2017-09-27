@@ -53,7 +53,7 @@ class ObjectReferencesController extends AppController {
 			}
 			$referenced_type = 1;
 			$target_object = $this->ObjectReference->Object->find('first', array(
-				'conditions' => array('Object.uuid' => $this->request->data['ObjectReference']['uuid']),
+				'conditions' => array('Object.uuid' => $this->request->data['ObjectReference']['object_uuid']),
 				'recursive' => -1,
 				'fields' => array('Object.id', 'Object.uuid', 'Object.event_id')
 			));
