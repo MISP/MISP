@@ -2654,7 +2654,7 @@ class EventsController extends AppController {
 			$attributeLevelFilters = array('value', 'type', 'category', 'uuid');
 			$preFilterLevel = 'event';
 			foreach ($parameters as $k => $param) {
-				if (${$parameters[$k]} !== false) {
+				if (${$parameters[$k]} !== null && ${$parameters[$k]} !== false) {
 					if (in_array($param, $attributeLevelFilters)) {
 						$preFilterLevel = 'attribute';
 					}
@@ -2689,9 +2689,16 @@ class EventsController extends AppController {
 				);
 				$attributes = $this->Event->Attribute->fetchAttributes($this->Auth->user(), $params);
 				$eventIds = array();
-				// Add event ID if specifically specified to allow for the export of an empty event
-				if (isset($eventid) && $eventid) $eventIds[] = $eventid;
-				$eventIds = array_merge($eventIds, array_values($attributes));
+				if (!empty($attributes)) {
+					$eventIds = array_values($attributes);
+				}
+				if (is_array($eventid)) {
+					foreach ($eventid as $temp_id) {
+						if (!in_array($temp_id, $eventIds)) $eventIds[] = $temp_id;
+					}
+				} else {
+					if (!in_array($eventid, $eventIds)) $eventIds[] = $eventid;
+				}
 				unset($attributes);
 			}
 		}
