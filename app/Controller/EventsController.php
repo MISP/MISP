@@ -2741,6 +2741,7 @@ class EventsController extends AppController {
 			$extension = '.ioc';
 		}
 		if (isset($eventid) && $eventid) {
+			if (is_array($eventid)) $eventid = 'list';
 			$final_filename="misp.event." . $eventid . "." . $result[0]['Event']['uuid'] . '.' . $extension;
 		} else {
 			$final_filename="misp.search.events.results." . $extension;
