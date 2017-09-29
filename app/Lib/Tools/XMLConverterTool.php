@@ -28,6 +28,7 @@ class XMLConverterTool {
 				if ($v === false) $v = 0;
 				if ($v === "" || $v === null) $text .= '<' . $k . '/>';
 				else {
+					$this->__sanitizeField($v);
 					$text .= '<' . $k . '>' . $v . '</' . $k . '>';
 				}
 			}
@@ -45,8 +46,6 @@ class XMLConverterTool {
 
 	private function __rearrangeAttributes($attributes) {
 		foreach ($attributes as $key => $value) {
-			$this->__sanitizeField($attributes[$key]['value']);
-			$this->__sanitizeField($attributes[$key]['comment']);
 			unset($attributes[$key]['value1'], $attributes[$key]['value2'], $attributes[$key]['category_order']);
 			if (isset($event['Event']['RelatedAttribute']) && isset($event['Event']['RelatedAttribute'][$value['id']])) {
 				$attributes[$key]['RelatedAttribute'] = $event['Event']['RelatedAttribute'][$value['id']];
@@ -54,17 +53,8 @@ class XMLConverterTool {
 					$ra = array('Attribute' => array(0 => $ra));
 				}
 			}
-			if (!empty($attributes[$key]['Feed'])) {
-				foreach ($attributes[$key]['Feed'] as $fKey => $feed) {
-					$this->__sanitizeField($attributes[$key]['Feed'][$fKey]['name']);
-					$this->__sanitizeField($attributes[$key]['Feed'][$fKey]['url']);
-					$this->__sanitizeField($attributes[$key]['Feed'][$fKey]['provider']);
-				}
-			}
 			if (isset($attributes[$key]['ShadowAttribute'])) {
 				foreach ($attributes[$key]['ShadowAttribute'] as $skey => $svalue) {
-					$this->__sanitizeField($attributes[$key]['ShadowAttribute'][$skey]['value']);
-					$this->__sanitizeField($attributes[$key]['ShadowAttribute'][$skey]['comment']);
 					$attributes[$key]['ShadowAttribute'][$skey]['Org'] = array(0 => $attributes[$key]['ShadowAttribute'][$skey]['Org']);
 					if (isset($attributes[$key]['ShadowAttribute'][$skey]['EventOrg'])) $attributes[$key]['ShadowAttribute'][$skey]['EventOrg'] = array(0 => $attributes[$key]['ShadowAttribute'][$skey]['EventOrg']);
 				}
@@ -148,8 +138,6 @@ class XMLConverterTool {
 		if (isset($event['Event']['ShadowAttribute'])) {
 			// remove invalid utf8 characters for the xml parser
 			foreach ($event['Event']['ShadowAttribute'] as $key => $value) {
-				$this->__sanitizeField($event['Event']['ShadowAttribute'][$key]['value']);
-				$this->__sanitizeField($event['Event']['ShadowAttribute'][$key]['comment']);
 				$event['Event']['ShadowAttribute'][$key]['Org'] = array(0 => $event['Event']['ShadowAttribute'][$key]['Org']);
 				if (isset($event['Event']['ShadowAttribute'][$key]['EventOrg'])) $event['Event']['ShadowAttribute'][$key]['EventOrg'] = array(0 => $event['Event']['ShadowAttribute'][$key]['EventOrg']);
 			}
@@ -161,7 +149,6 @@ class XMLConverterTool {
 				unset($event['Event']['RelatedEvent'][$key]['Event']);
 				$event['Event']['RelatedEvent'][$key]['Event'][0] = $temp;
 				unset($event['Event']['RelatedEvent'][$key]['Event'][0]['user_id']);
-				$this->__sanitizeField($event['Event']['RelatedEvent'][$key]['Event'][0]['info']);
 				if (isset($event['Event']['RelatedEvent'][$key]['Event'][0]['Org'])) {
 					$event['Event']['RelatedEvent'][$key]['Event'][0]['Org'] = array(0 => $event['Event']['RelatedEvent'][$key]['Event'][0]['Org']);
 				}
