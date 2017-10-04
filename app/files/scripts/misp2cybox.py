@@ -1,6 +1,7 @@
 from cybox.core import Object, Observable, ObservableComposition
 from cybox.objects.file_object import File
 from cybox.objects.address_object import Address
+from cybox.objects.port_object import Port
 from cybox.objects.hostname_object import Hostname
 from cybox.objects.uri_object import URI
 from cybox.objects.pipe_object import Pipe
@@ -23,7 +24,7 @@ hash_type_attributes = {"single":["md5", "sha1", "sha224", "sha256", "sha384", "
 
 simple_type_to_method = {}
 simple_type_to_method.update(dict.fromkeys(hash_type_attributes["single"] + hash_type_attributes["composite"] + ["attachment"], "resolveFileObservable"))
-simple_type_to_method.update(dict.fromkeys(["ip-src", "ip-dst"], "generateIPObservable"))
+simple_type_to_method.update(dict.fromkeys(["ip-src", "ip-dst", "ip-src|port", "ip-dst|port"], "generateIPObservable"))
 simple_type_to_method.update(dict.fromkeys(["domain|ip"], "generateDomainIPObservable"))
 simple_type_to_method.update(dict.fromkeys(["regkey", "regkey|value"], "generateRegkeyObservable"))
 simple_type_to_method.update(dict.fromkeys(["hostname", "domain", "url", "AS", "mutex", "named pipe", "link"], "generateSimpleObservable"))
@@ -64,9 +65,6 @@ misp_reghive = {
 def generateObservable(indicator, attribute):
     if (attribute["type"] in ("snort", "yara")):
         generateTM(indicator, attribute)
-    elif (attribute["type"] == "domain|ip"):
-        observable = generateDomainIPObservable(indicator, attribute)
-        indicator.add_observable(observable)
     else:
         observable = None;
         if (attribute["type"] in simple_type_to_method.keys()):
@@ -75,6 +73,8 @@ def generateObservable(indicator, attribute):
                 property = action(indicator, attribute)
                 if property is False:
                     return False
+                if isinstance(property, Observable):
+                    return indicator.add_observable(property)
                 property.condition = "Equals"
                 object = Object(property)
                 object.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":" + property.__class__.__name__ + "-" + attribute["uuid"]
@@ -129,6 +129,8 @@ def generateFileObservable(filenameValue, hashValue, fuzzy):
 def resolveIPType(attribute_value, attribute_type):
     address_object = Address()
     cidr = False
+    if ("|" in attribute_value):
+        attribute_value = attribute_value.split('|')[0]
     if ("/" in attribute_value):
         ip = attribute_value.split('/')[0]
         cidr = True
@@ -141,15 +143,21 @@ def resolveIPType(attribute_value, attribute_type):
         ipv4 = False
     if (cidr == True):
         address_object.category = "cidr"
+        condition = "Contains"
     elif (ipv4 == True):
         address_object.category = "ipv4-addr"
+        condition = "Equals"
     else:
         address_object.category = "ipv6-addr"
-    if (attribute_type == "ip-src") or (attribute_type == "domain|ip"):
+        condition = "Equals"
+    if attribute_type.startswith("ip-src"):
         address_object.is_source = True
-    else:
+        address_object.is_destination = False
+    if attribute_type.startswith("ip-dst"):
         address_object.is_source = False
+        address_object.is_destination = True
     address_object.address_value = attribute_value
+    address_object.condition = condition
     return address_object
 
 def generateDomainIPObservable(indicator, attribute):
@@ -158,10 +166,11 @@ def generateDomainIPObservable(indicator, attribute):
     ip = attribute["value"].split('|')[1]
     address_object = resolveIPType(ip, attribute["type"])
     address_object.parent.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":AddressObject-" + attribute["uuid"]
-    address_observable=Observable(address_object)
+    address_observable = Observable(address_object)
     address_observable.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":Address-" + attribute["uuid"]
     domain_object = DomainName()
     domain_object.value = domain
+    domain_object.value.condition = "Equals"
     domain_object.parent.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":DomainNameObject-" + attribute["uuid"]
     domain_observable = Observable(domain_object)
     domain_observable.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":DomainName-" + attribute["uuid"]
@@ -174,7 +183,24 @@ def generateDomainIPObservable(indicator, attribute):
 def generateIPObservable(indicator, attribute):
     indicator.add_indicator_type("IP Watchlist")
     address_object = resolveIPType(attribute["value"], attribute["type"])
-    return address_object
+    address_object.parent.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":AddressObject-" + attribute["uuid"]
+    if ("|" in attribute["value"]):
+        port = attribute["value"].split('|')[1]
+        address_observable = Observable(address_object)
+        address_observable.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":Address-" + attribute["uuid"]
+        port_object = Port()
+        port_object.port_value = attribute["value"].split('|')[1]
+        port_object.port_value.condition = "Equals"
+        port_object.parent.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":PortObject-" + attribute["uuid"]
+        port_observable = Observable(port_object)
+        port_observable.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":Port-" + attribute["uuid"]
+        compositeObject = ObservableComposition(observables = [address_observable, port_observable])
+        compositeObject.operator = "AND"
+        observable = Observable(id_ = cybox.utils.idgen.__generator.namespace.prefix + ":ObservableComposition-" + attribute["uuid"])
+        observable.observable_composition = compositeObject
+        return observable
+    else:
+        return address_object
 
 def generateRegkeyObservable(indicator, attribute):
     indicator.add_indicator_type("Host Characteristics")
