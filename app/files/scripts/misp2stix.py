@@ -99,6 +99,7 @@ def generateSTIXObjects(event):
     setOrg(incident, event["Org"]["name"])
     setTag(incident, event["Tag"])
     resolveAttributes(incident, ttps, event["Attribute"])
+    resolveObjects(incident, ttps, event["Object"])
     return [incident, ttps]
 
 
@@ -110,6 +111,26 @@ def setDates(incident, date, published):
     incident_time.incident_discovery = convertToStixDate(date)
     incident_time.incident_reported = timestamp
     incident.time = incident_time
+
+# decide what to do with the objects, as not all of them will become indicators
+def resolveObjects(incident, ttps, objects):
+    for obj in objects:
+        tmp_incident = Incident()
+        resolveAttributes(tmp_incident, ttps, obj["Attribute"])
+        indicator = Indicator(timestamp=getDateFromTimestamp(int(obj["timestamp"])))
+        indicator.id_= namespace[1] + ":MispObject-" + obj["uuid"]
+        if obj["comment"] != "":
+            indicator.description = obj["comment"]
+        setTLP(indicator, obj["distribution"])
+        indicator.title = obj["name"] + " (MISP Object #" + obj["id"] + ")"
+        indicator.description = indicator.title
+        indicator.add_indicator_type("Malware Artifacts")
+        indicator.add_valid_time_position(ValidTime())
+        indicator.observable_composition_operator = "AND"
+        for rindicator in tmp_incident.related_indicators:
+            indicator.add_observable(rindicator.item.observable)
+        relatedIndicator = RelatedIndicator(indicator, relationship=obj["meta-category"])
+        incident.related_indicators.append(relatedIndicator)
 
 # decide what to do with the attribute, as not all of them will become indicators
 def resolveAttributes(incident, ttps, attributes):
