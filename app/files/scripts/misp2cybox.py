@@ -280,6 +280,7 @@ def resolveHTTPObservable(indicator, attribute):
     else:
         line = HTTPRequestLine()
         line.http_method = attribute["value"]
+        line.http_method.condition = "Equals"
         client_request.http_request_line = line
     request_response.http_client_request = client_request
     new_object = HTTPSession()
