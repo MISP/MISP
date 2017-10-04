@@ -33,6 +33,12 @@
 			}
 		}
 	}
+	$filtered = false;
+	if(isset($passedArgsArray)){
+		if (count($passedArgsArray) > 0) {
+			$filtered = true;
+		}
+	}
 ?>
 	<div class="pagination">
 		<ul>
@@ -109,6 +115,15 @@
 		<?php if (Configure::read('Plugin.Sightings_enable')): ?>
 			<span id="multi-sighting-button" title="Sightings display for selected attributes" role="button" tabindex="0" aria-label="Sightings display for selected attributes" class="hidden icon-wrench mass-select useCursorPointer sightings_advanced_add" data-object-id="selected" data-object-context="attribute"></span>
 		<?php endif; ?>
+		<?php if ($filtered):?>
+			<div class='attribute_filter_text attribute_filter_text_active'>
+			<?php foreach ($passedArgsArray as $k => $v):?>
+				<span><?php echo h(ucfirst($k)) . " : " . h($v); ?></span>
+			<?php endforeach; ?>
+			<span tabindex="0" aria-label="Show all attributes" title="Remove filters" role="button" onClick="filterAttributes('all', '<?php echo h($event['Event']['id']); ?>');" class='icon-remove'>
+			</span>
+			</div>
+		<?php endif;?>
 	</div>
 	<div class="tabMenu tabMenuToolsBlock noPrint">
 		<?php if ($mayModify): ?>
@@ -132,6 +147,11 @@
 			<div id="filter_deleted" title="Include deleted attributes" role="button" tabindex="0" aria-label="Include deleted attributes" class="attribute_filter_text<?php if ($deleted) echo '_active'; ?>" onClick="toggleDeletedAttributes('<?php echo Router::url( $this->here, true );?>');">Include deleted attributes</div>
 		<?php endif; ?>
 		<div id="show_context" title="Show attribute context fields" role="button" tabindex="0" aria-label="Show attribute context fields" class="attribute_filter_text" onClick="toggleContextFields();">Show context fields</div>
+		<div title="input filter" tabindex="0" aria-label="input filter" class="attribute_filter_text">
+			<span id="attributesFilterButton" role="button" tabindex="0" aria-label="Filter on attributes value" 
+				onClick="filterAttributes('value', '<?php echo h($event['Event']['id']); ?>');"></span>
+			<input type="text" id="attributesFilterField" style="height:20px;padding:0px;margin:0px;" class="form-control"></input>
+		</div>
 	</div>
 
 	<table class="table table-striped table-condensed">

@@ -714,6 +714,51 @@ class EventsController extends AppController {
 		$this->layout = 'ajax';
 	}
 
+	/*
+	 * Search for a value in an attribut in specific field. 
+	 * $arr : (array) an attribut
+	 * $fiels : (array) list of key in attribut which search in
+	 * $searchValue : Value to search
+	 * return : true if match
+	 */
+	 private function __valueInFieldAttribut($arr, $fields, $searchValue) {
+		foreach($arr as $k => $v){ // look in attributes line
+			if(is_string($v)) { 
+				foreach($fields as $filterV){
+					if(strpos(".", $filterV) === false) { // check sub array after
+						// check for key in attribut
+						if(isset($arr[$filterV])){
+							$temp_value = strtolower($arr[$filterV]);
+							$temp_search = strtolower($searchValue);
+							if(strpos($temp_value, $temp_search) !==false) {
+								return true;
+							}
+						}
+					}
+				}
+			}else{
+				// check for tag in attribut maybe for other thing later
+				if($k === 'AttributeTag'){
+					foreach($v as $tag) {
+						foreach($fields as $filterV){
+							if(strpos(strtolower($filterV), "tag.") !== false) { // check sub array
+								$tagKey = explode('tag.', strtolower($filterV))[1];
+								if(isset($tag['Tag'][$tagKey])){
+									$temp_value = strtolower($tag['Tag'][$tagKey]);
+									$temp_search = strtolower($searchValue);
+									if(strpos($temp_value, $temp_search) !==false) {
+										return true;
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		return false;
+	}
+	
 	public function viewEventAttributes($id, $all = false) {
 		if (isset($this->params['named']['focus'])) {
 			$this->set('focus', $this->params['named']['focus']);
@@ -725,6 +770,58 @@ class EventsController extends AppController {
 		$results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
 		if (empty($results)) throw new NotFoundException('Invalid event');
 		$event = $results[0];
+		$filterValue = false;
+		if(
+			Configure::read('MISP.Attributes_Values_Filter_In_Event') && 
+			strlen(Configure::read('MISP.Attributes_Values_Filter_In_Event')) > 0){
+			$filterValue = true;
+		}
+		$attributeFilterOnInput = false;
+		if(
+			isset($this->params['named']['attributeFilter']) && 
+			$this->params['named']['attributeFilter'] === 'value'){
+				$attributeFilterOnInput = true;
+		}
+		$searchFor = false;
+		if (
+			isset($this->params['named']['searchFor']) && 
+			strlen($this->params['named']['searchFor']) > 0){
+				$searchFor = true;
+		}
+		if($filterValue && $attributeFilterOnInput && $searchFor){
+			$filterValue = array_map('trim', explode(",", Configure::read('MISP.Attributes_Values_Filter_In_Event')));
+
+			// search in all attributes
+			$simpleAttributes = $event['Attribute'];
+			foreach($simpleAttributes as $attrK => $attrV){
+				$attrMatched = $this->__valueInFieldAttribut($attrV,$filterValue,$this->params['named']['searchFor']);
+				if(!$attrMatched) unset($simpleAttributes[$attrK]);
+			}
+			$event['Attribute']  = array_values($simpleAttributes);
+			
+			// search for all attributes in object
+			$attributesObjects = $event['Object'];
+			foreach($attributesObjects as $objK => $objV){
+				$simpleAttributes = $objV['Attribute'];
+				foreach($simpleAttributes as $attrK => $attrV){
+					$attrMatched = $this->__valueInFieldAttribut($attrV,$filterValue,$this->params['named']['searchFor']);
+					if(!$attrMatched) unset($simpleAttributes[$attrK]);
+				}
+				if (count($simpleAttributes) > 0){
+					$attributesObjects[$objK]['Attribute'] = array_values($simpleAttributes);
+				}else{
+					// remove object if empty
+					unset($attributesObjects[$objK]);
+				}
+			}
+			$event['Object'] = array_values($attributesObjects);
+			unset($simpleAttributes);
+			unset($attributesObjects);
+			$this->set('passedArgsArray', array('all' => $this->params['named']['searchFor']));
+		}
+		// else{
+		// 	throw new NotFoundException('Go to administration setting to check if your fieds to filter on is not empty.');
+		// }
 		$emptyEvent = (empty($event['Object']) && empty($event['Attribute']));
 		$this->set('emptyEvent', $emptyEvent);
 		$params = $this->Event->rearrangeEventForView($event, $this->passedArgs, $all);
