@@ -40,6 +40,30 @@ class ObjectsController extends AppController {
 		if (empty($event) || (!$this->_isSiteAdmin() &&	$event['Event']['orgc_id'] != $this->Auth->user('org_id'))) {
 			throw new NotFoundException('Invalid event.');
 		}
+		$sharing_groups = array();
+		if ($this->request->data['Object']['distribution'] == 4) {
+			$sharing_groups[$this->request->data['Object']['sharing_group_id']] = false;
+		}
+		foreach ($this->request->data['Attribute'] as $attribute) {
+			if ($attribute['distribution'] == 4) {
+				$sharing_groups[$attribute['sharing_group_id']] = false;
+			}
+		}
+		if (!empty($sharing_groups)) {
+			$sgs = $this->MispObject->SharingGroup->find('all', array(
+				'conditions' => array('SharingGroup.id' => array_keys($sharing_groups)),
+				'recursive' => -1,
+				'fields' => array('SharingGroup.id', 'SharingGroup.name'),
+				'order' => false
+			));
+			foreach ($sgs as $sg) {
+				$sharing_groups[$sg['SharingGroup']['id']] = $sg;
+			}
+			foreach ($sharing_groups as $k => $sg) {
+				if (empty($sg)) throw new NotFoundException('Invalid sharing group.');
+			}
+			$this->set('sg', $sharing_groups);
+		}
 		if ($this->request->data['Object']['distribution'] == 4) {
 			$sg = $this->MispObject->SharingGroup->find('first', array(
 				'conditions' => array('SharingGroup.id' => $this->request->data['Object']['sharing_group_id']),

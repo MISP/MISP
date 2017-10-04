@@ -20,17 +20,24 @@
         if ($data['Object']['distribution'] != 4) {
           echo $distributionLevels[$data['Object']['distribution']];
         } else {
-          echo h($sg['SharingGroup']['name']);
+          echo h($sg[$data['Object']['sharing_group_id']]['SharingGroup']['name']);
         }
       ?><br />
       <span class="bold">Comment</span>: <?php echo h($data['Object']['comment']); ?><br />
       <span class="bold">Attributes</span>:<br />
       <?php
-        $attributeFields = array('category', 'type', 'value', 'to_ids' , 'comment', 'uuid', 'distribution', 'sharing_group_id');
+        $attributeFields = array('category', 'type', 'value', 'to_ids' , 'comment', 'uuid', 'distribution');
         if (!empty($data['Attribute'])):
           foreach ($data['Attribute'] as $attribute):
             echo '<span class="bold" style="margin-left:2em;">' . h($attribute['object_relation']) . ':</span><br />';
             foreach ($attributeFields as $field):
+              if ($field == 'distribution') {
+                if ($attribute['distribution'] != 4) {
+                  $attribute[$field] = $distributionLevels[$attribute['distribution']];
+                } else {
+                  $attribute[$field] = $sg[$attribute['sharing_group_id']]['SharingGroup']['name'];
+                }
+              }
               if ($field == 'to_ids') $attribute[$field] = $attribute[$field] ? 'Yes' : 'No';
                 if (isset($attribute[$field])):
       ?>
