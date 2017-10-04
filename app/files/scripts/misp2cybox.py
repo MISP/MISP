@@ -25,6 +25,7 @@ hash_type_attributes = {"single":["md5", "sha1", "sha224", "sha256", "sha384", "
 simple_type_to_method = {}
 simple_type_to_method.update(dict.fromkeys(hash_type_attributes["single"] + hash_type_attributes["composite"] + ["attachment"], "resolveFileObservable"))
 simple_type_to_method.update(dict.fromkeys(["ip-src", "ip-dst", "ip-src|port", "ip-dst|port"], "generateIPObservable"))
+simple_type_to_method.update(dict.fromkeys(["port"], "generatePortObservable"))
 simple_type_to_method.update(dict.fromkeys(["domain|ip"], "generateDomainIPObservable"))
 simple_type_to_method.update(dict.fromkeys(["regkey", "regkey|value"], "generateRegkeyObservable"))
 simple_type_to_method.update(dict.fromkeys(["hostname", "domain", "url", "AS", "mutex", "named pipe", "link"], "generateSimpleObservable"))
@@ -201,6 +202,13 @@ def generateIPObservable(indicator, attribute):
         return observable
     else:
         return address_object
+
+def generatePortObservable(indicator, attribute):
+    port_object = Port()
+    port_object.port_value = attribute["value"]
+    port_object.port_value.condition = "Equals"
+    port_object.parent.id_ = cybox.utils.idgen.__generator.namespace.prefix + ":PortObject-" + attribute["uuid"]
+    return port_object
 
 def generateRegkeyObservable(indicator, attribute):
     indicator.add_indicator_type("Host Characteristics")
