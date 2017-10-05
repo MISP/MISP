@@ -132,7 +132,8 @@ class CertificateAuthenticate extends BaseAuthenticate
 				self::$user = self::$client;
 				// If $sync is true, allow the creation of the user from the certificate
 				$sync = Configure::read('CertAuth.syncUser');
-				if ($sync) {
+				$url = Configure::read('CertAuth.restApi.url');
+				if ($sync && $url) {
 					if (!self::getRestUser()) return false;
 				}
 
