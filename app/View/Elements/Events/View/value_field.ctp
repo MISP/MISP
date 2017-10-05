@@ -34,7 +34,7 @@
   } else if ('cortex' == $object['type']) {
     echo '<div class="cortex-json" data-cortex-json="' . h($object['value']) . '">Cortex object</div>';
   } else if ('text' == $object['type']) {
-    if ($object['category'] == 'External analysis' && preg_match('/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/i', $object['value'])) {
+    if (($object['category'] == 'Internal reference' || $object['category'] == 'External analysis') && preg_match('/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/i', $object['value'])) {
       echo '<a href="' . $baseurl . '/events/view/' . h($object['value']) . '" class="' . $linkClass . '">' . h($object['value']) . '</a>';
     } else {
       $sigDisplay = str_replace("\r", '', h($sigDisplay));
