@@ -792,6 +792,14 @@ class Server extends AppModel {
 						'test' => null,
 						'type' => 'string',
 						'redacted' => true
+					),
+					'event_view_filter_fields' => array(
+						'level' => 2,
+						'description' => 'Specify which fields to filter on when you search on the event view. Default values are : "id, uuid, value, comment, type, category, Tag.name"',
+						'value' => 'id, uuid, value, comment, type, category, Tag.name',
+						'errorMessage' => '',
+						'test' => null,
+						'type' => 'string',
 					)
 			),
 			'GnuPG' => array(
