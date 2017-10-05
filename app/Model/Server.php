@@ -793,9 +793,9 @@ class Server extends AppModel {
 						'type' => 'string',
 						'redacted' => true
 					),
-					'Attributes_Values_Filter_In_Event' => array(
-						'level' => 1,
-						'description' => 'Specify wich field to filter on when you serch in an event. "value" will search in "Attribute.value and Object.Attribute.value". Default value are : "id, uuid, value, comment, type, category, Tag.name"',
+					'event_view_filter_fields' => array(
+						'level' => 2,
+						'description' => 'Specify which fields to filter on when you search on the event view. Default values are : "id, uuid, value, comment, type, category, Tag.name"',
 						'value' => 'id, uuid, value, comment, type, category, Tag.name',
 						'errorMessage' => '',
 						'test' => null,

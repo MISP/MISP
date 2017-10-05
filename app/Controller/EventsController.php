@@ -715,20 +715,20 @@ class EventsController extends AppController {
 	}
 
 	/*
-	 * Search for a value in an attribut in specific field. 
-	 * $arr : (array) an attribut
-	 * $fiels : (array) list of key in attribut which search in
+	 * Search for a value on an attribute level for a specific field.
+	 * $attribute : (array) an attribute
+	 * $fields : (array) list of keys in attribute to search in
 	 * $searchValue : Value to search
-	 * return : true if match
+	 * returns true on match
 	 */
-	 private function __valueInFieldAttribut($arr, $fields, $searchValue) {
-		foreach($arr as $k => $v){ // look in attributes line
-			if(is_string($v)) { 
-				foreach($fields as $filterV){
-					if(strpos(".", $filterV) === false) { // check sub array after
+	 private function __valueInFieldAttribute($attribute, $fields, $searchValue) {
+		foreach ($attribute as $k => $v){ // look in attributes line
+			if (is_string($v)) {
+				foreach ($fields as $field){
+					if (strpos(".", $field) === false) { // check sub array after
 						// check for key in attribut
-						if(isset($arr[$filterV])){
-							$temp_value = strtolower($arr[$filterV]);
+						if (isset($attribute[$field])) {
+							$temp_value = strtolower($attribute[$field]);
 							$temp_search = strtolower($searchValue);
 							if(strpos($temp_value, $temp_search) !==false) {
 								return true;
@@ -736,17 +736,17 @@ class EventsController extends AppController {
 						}
 					}
 				}
-			}else{
+			} else {
 				// check for tag in attribut maybe for other thing later
 				if($k === 'AttributeTag'){
-					foreach($v as $tag) {
-						foreach($fields as $filterV){
-							if(strpos(strtolower($filterV), "tag.") !== false) { // check sub array
-								$tagKey = explode('tag.', strtolower($filterV))[1];
-								if(isset($tag['Tag'][$tagKey])){
+					foreach ($v as $tag) {
+						foreach ($fields as $field) {
+							if (strpos(strtolower($field), "tag.") !== false) { // check sub array
+								$tagKey = explode('tag.', strtolower($field))[1];
+								if (isset($tag['Tag'][$tagKey])) {
 									$temp_value = strtolower($tag['Tag'][$tagKey]);
 									$temp_search = strtolower($searchValue);
-									if(strpos($temp_value, $temp_search) !==false) {
+									if (strpos($temp_value, $temp_search) !==false) {
 										return true;
 									}
 								}
@@ -758,7 +758,7 @@ class EventsController extends AppController {
 		}
 		return false;
 	}
-	
+
 	public function viewEventAttributes($id, $all = false) {
 		if (isset($this->params['named']['focus'])) {
 			$this->set('focus', $this->params['named']['focus']);
@@ -770,58 +770,50 @@ class EventsController extends AppController {
 		$results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
 		if (empty($results)) throw new NotFoundException('Invalid event');
 		$event = $results[0];
-		$filterValue = false;
-		if(
-			Configure::read('MISP.Attributes_Values_Filter_In_Event') && 
-			strlen(Configure::read('MISP.Attributes_Values_Filter_In_Event')) > 0){
-			$filterValue = true;
-		}
-		$attributeFilterOnInput = false;
-		if(
-			isset($this->params['named']['attributeFilter']) && 
-			$this->params['named']['attributeFilter'] === 'value'){
-				$attributeFilterOnInput = true;
-		}
-		$searchFor = false;
-		if (
-			isset($this->params['named']['searchFor']) && 
-			strlen($this->params['named']['searchFor']) > 0){
-				$searchFor = true;
-		}
-		if($filterValue && $attributeFilterOnInput && $searchFor){
-			$filterValue = array_map('trim', explode(",", Configure::read('MISP.Attributes_Values_Filter_In_Event')));
+
+		if (!empty($this->params['named']['searchFor'])) {
+			$filterColumns = empty(Configure::read('MISP.event_view_filter_fields')) ? 'id, uuid, value, comment, type, category, Tag.name' : Configure::read('MISP.event_view_filter_fields');
+			$filterValue = array_map('trim', explode(",", $filterColumns));
+			$validFilters = array('id', 'uuid', 'value', 'comment', 'type', 'category', 'Tag.name');
+			foreach ($filterValue as $k => $v) {
+				if (!in_array($v, $validFilters)) {
+					unset($filterValue[$k]);
+				}
+			}
 
 			// search in all attributes
-			$simpleAttributes = $event['Attribute'];
-			foreach($simpleAttributes as $attrK => $attrV){
-				$attrMatched = $this->__valueInFieldAttribut($attrV,$filterValue,$this->params['named']['searchFor']);
-				if(!$attrMatched) unset($simpleAttributes[$attrK]);
+			foreach ($event['Attribute'] as $k => $attribute) {
+				if (!$this->__valueInFieldAttribute($attribute, $filterValue, $this->params['named']['searchFor'])) {
+					unset($event['Attribute'][$k]);
+				}
 			}
-			$event['Attribute']  = array_values($simpleAttributes);
-			
+			$event['Attribute'] = array_values($event['Attribute']);
+
+			// search in all attributes
+			foreach ($event['ShadowAttribute'] as $k => $proposals) {
+				if (!$this->__valueInFieldAttribute($proposals, $filterValue, $this->params['named']['searchFor'])) {
+					unset($event['ShadowAttribute'][$k]);
+				}
+			}
+			$event['ShadowAttribute'] = array_values($event['ShadowAttribute']);
+
 			// search for all attributes in object
-			$attributesObjects = $event['Object'];
-			foreach($attributesObjects as $objK => $objV){
-				$simpleAttributes = $objV['Attribute'];
-				foreach($simpleAttributes as $attrK => $attrV){
-					$attrMatched = $this->__valueInFieldAttribut($attrV,$filterValue,$this->params['named']['searchFor']);
-					if(!$attrMatched) unset($simpleAttributes[$attrK]);
+			foreach ($event['Object'] as $k => $object) {
+				foreach ($object['Attribute'] as $k2 => $attribute){
+					if (!$this->__valueInFieldAttribute($attribute, $filterValue, $this->params['named']['searchFor'])) {
+						unset($event['Object'][$k]['Attribute'][$k2]);
+					}
 				}
-				if (count($simpleAttributes) > 0){
-					$attributesObjects[$objK]['Attribute'] = array_values($simpleAttributes);
-				}else{
+				if (count($event['Object'][$k]['Attribute']) == 0){
 					// remove object if empty
-					unset($attributesObjects[$objK]);
+					unset($event['Object'][$k]);
+				} else {
+					$event['Object'][$k]['Attribute'] = array_values($event['Object'][$k]['Attribute']);
 				}
 			}
-			$event['Object'] = array_values($attributesObjects);
-			unset($simpleAttributes);
-			unset($attributesObjects);
+			$event['Object'] = array_values($event['Object']);
 			$this->set('passedArgsArray', array('all' => $this->params['named']['searchFor']));
 		}
-		// else{
-		// 	throw new NotFoundException('Go to administration setting to check if your fieds to filter on is not empty.');
-		// }
 		$emptyEvent = (empty($event['Object']) && empty($event['Attribute']));
 		$this->set('emptyEvent', $emptyEvent);
 		$params = $this->Event->rearrangeEventForView($event, $this->passedArgs, $all);

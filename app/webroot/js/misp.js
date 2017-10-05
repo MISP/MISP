@@ -3222,7 +3222,6 @@ $('.add_object_attribute_row').click(function() {
 
 $('.quickToggleCheckbox').toggle(function() {
 	var url = $(this).data('checkbox-url');
-
 });
 
 (function(){
