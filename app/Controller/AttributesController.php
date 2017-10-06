@@ -776,7 +776,7 @@ class AttributesController extends AppController {
 			$this->request->data = $this->Attribute->read(null, $id);
 		}
 		$this->set('attribute', $this->request->data);
-		if ($this->request->data['Attribute']['object_id']) {
+		if (!empty($this->request->data['Attribute']['object_id'])) {
 			$this->set('objectAttribute', true);
 		} else {
 			$this->set('objectAttribute', false);
@@ -822,7 +822,7 @@ class AttributesController extends AppController {
 		$categoryDefinitions = $this->Attribute->categoryDefinitions;
 		$categories = array_keys($this->Attribute->categoryDefinitions);
 		$categories = $this->_arrayToValuesIndexArray($categories);
-		if ($this->request->data['Attribute']['object_id']) {
+		if (!empty($this->request->data['Attribute']['object_id'])) {
 			foreach ($categoryDefinitions as $k => $v) {
 				if (!in_array($this->request->data['Attribute']['type'], $v['types'])) {
 					unset($categoryDefinitions[$k]);

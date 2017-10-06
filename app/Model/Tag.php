@@ -222,4 +222,29 @@ class Tag extends AppModel {
 		foreach ($tags_temp as $temp) $tags[strtoupper($temp['Tag']['name'])] = $temp;
 		return $tags;
 	}
+
+	public function fetchSimpleEventsForTag($id, $user, $useTagName = false) {
+		if ($useTagName) {
+			$tag = $this->find('first', array(
+				'recursive' => -1,
+				'fields' => array('Tag.id'),
+				'conditions' => array('Tag.name' => $id)
+			));
+			if (empty($tag)) return array();
+			$id = $tag['Tag']['id'];
+		}
+		$event_ids = $this->EventTag->find('list', array(
+			'recursive' => -1,
+			'conditions' => array('EventTag.tag_id' => $id),
+			'fields'  => array('EventTag.event_id', 'EventTag.event_id'),
+			'order' => array('EventTag.event_id')
+		));
+		$params = array('conditions' => array('Event.id' => array_values($event_ids)));
+		$events = $this->EventTag->Event->fetchSimpleEvents($user, $params, true);
+		foreach ($events as $k => $event) {
+			$event['Event']['Orgc'] = $event['Orgc'];
+			$events[$k] = $event['Event'];
+		}
+		return $events;
+	}
 }

@@ -314,4 +314,43 @@ class Taxonomy extends AppModel {
 		}
 		return $taxonomies;
 	}
+
+	public function getTaxonomyForTag($tagName) {
+		if (preg_match('/^[^:="]+:[^:="]+="[^:="]+"$/i', $tagName)) {
+			$temp = explode(':', $tagName);
+			$pieces = array_merge(array($temp[0]), explode('=', $temp[1]));
+			$pieces[2] = trim($pieces[2], '"');
+			$taxonomy = $this->find('first', array(
+				'recursive' => -1,
+				'contain' => array(
+					'TaxonomyPredicate' => array(
+						'conditions' => array(
+							'LOWER(TaxonomyPredicate.value)' => strtolower($pieces[1])
+						),
+						'TaxonomyEntry' => array(
+							'conditions' => array(
+								'LOWER(TaxonomyEntry.value)' => strtolower($pieces[2])
+							)
+						)
+					)
+				)
+			));
+			return $taxonomy;
+		} else if (preg_match('/^[^:="]+:[^:="]+$/i', $tagName)) {
+			$pieces = explode(':', $tagName);
+			$taxonomy = $this->find('first', array(
+				'recursive' => -1,
+				'contain' => array(
+					'TaxonomyPredicate' => array(
+						'conditions' => array(
+							'LOWER(TaxonomyPredicate.value)' => strtolower($pieces[1])
+						)
+					)
+				)
+			));
+			return $taxonomy;
+		} else {
+			return false;
+		}
+	}
 }

@@ -35,6 +35,7 @@ echo $this->Html->script('d3'); ?>
 	.menu li {
 		padding: 0px;
 		margin: 0px;
+		width: 250px;
 	}
 	.menu li {
 		color: white;
@@ -51,33 +52,43 @@ echo $this->Html->script('d3'); ?>
 		position: relative;
 		top: 0;
 	}
+	.menu > li > a {
+		color:white;
+	}
+	.graphMenuTitle {
+		background-color:#0088cc;
+		font-weight:bold;
+		color:white;
+	}
+	.graphMenuActions {
+		background-color:#0088cc;
+		color:white;
+	}
+	.graphMenuAction {
+		cursor: hand;
+	}
+
+	.menu-container {
+		position:absolute;
+		width:300px;
+	}
 </style>
 <div class="view">
 <div id="chart" style="width:100%;height:100%"></div>
-<ul id="context-menu" class="menu">
-	<li id="expand">Expand</li>
-	<li id="context-delete">Delete</li>
-</ul>
-<ul id="event-info-pane" class="menu" style="width:200px;">
-	<li id="event-info-pane-title" style="background-color:#0088cc;color:white;"></li>
-	<li id="event-info-pane-org"></li>
-	<li id="event-info-pane-date"></li>
-	<li id="event-info-pane-analysis"></li>
-	<li id="event-info-pane-distribution"></li>
-	<li id="event-info-pane-info"></li>
-	<li id="event-info-pane-url-container"><a href="/" id="event-info-pane-url" style="color:white;text-decoration:underline;"></a></li>
-</ul>
-<ul id="attribute-info-pane" class="menu" style="width:200px;">
-	<li id="attribute-info-pane-title" style="background-color:#0088cc;color:white;"></li>
-	<li id="attribute-info-pane-value"></li>
-	<li id="attribute-info-pane-category"></li>
-	<li id="attribute-info-pane-type"></li>
-	<li id="attribute-info-pane-comment"></li>
-</ul>
-<ul id="tag-info-pane" class="menu" style="width:200px;">
-	<li id="tag-info-pane-title" style="background-color:#0088cc;color:white;"></li>
-	<li id="tag-info-pane-name"></li>
-</ul>
+	<div id="hover-menu-container" class="menu-container">
+		<span class="bold hidden" id="hover-header">Hover target</span><br />
+		<ul id="hover-menu" class="menu">
+		</ul>
+	</div>
+	<div id="selected-menu-container" class="menu-container">
+		<span class="bold hidden" id="selected-header">Selected</span><br />
+		<ul id = "selected-menu" class="menu">
+		</ul>
+	</div>
+	<ul id="context-menu" class="menu">
+		<li id="expand">Expand</li>
+		<li id="context-delete">Delete</li>
+	</ul>
 </div>
 <?php
 	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'viewEventGraph', 'mayModify' => $mayModify, 'mayPublish' => $mayPublish));
@@ -91,12 +102,37 @@ $(document).mousemove(function(event) {
 
 var margin = {top: -5, right: -5, bottom: -5, left: -5},
 width = $(window).width() - margin.left - margin.right,
-height = $(window).height() - 200 - margin.top - margin.bottom;
+height = $(window).height() - 160 - margin.top - margin.bottom;
+var menu_x_buffer_ = width - 150;
+var menu_y_buffer = height - 100;
+$('.menu-container').css('left', '200px');
+$('#hover-menu-container').css('top', '100px');
+$('#selected-menu-container').css('top', '400px');
 
 var root;
 
+var highlighted;
+
+var icon_sizes = {
+	"event": 24,
+	"object": 12,
+	"attribute": 12,
+	"galaxy": 24,
+	"tag": 12
+}
+
+var selection_radius_sizes = {
+	"event": 18,
+	"object": 12,
+	"attribute": 12,
+	"galaxy": 18,
+	"tag": 12
+}
+
 var force = d3.layout.force()
-	.linkDistance(150)
+	.linkDistance(function (d) {
+  	return d.linkDistance;
+  })
 	.linkStrength(0.9)
 	.friction(0.5)
 	.theta(0.9)
@@ -162,26 +198,32 @@ function update() {
 
 	var nodeEnter = node.enter().append("g").attr("class", "node").call(drag1);
 
+	nodeEnter.insert("circle", ".circle")
+		.classed("highlighted_circle", true)
+		.attr("cx", function(d) { return d.x_axis; })
+		.attr("cy", function(d) { return d.y_axis; })
+		.attr("r", function(d) { return selection_radius_sizes[d.type] })
+		.attr("stroke", "red")
+		.attr("stroke-opacity", "0")
+		.attr("fill-opacity", "0")
+		.attr("fill", "red");
+
 	nodeEnter.append("svg:image")
 	.attr("class", "circle")
 	.attr("xlink:href", function(d) {
 		return d.image
 	})
 	.attr("x", function(d) {
-		if (d.type == 'event') return "-12px";
-		else return "-6px";
+		return (0 - (icon_sizes[d.type]/2)) + "px";
 	})
 	.attr("y", function(d) {
-		if (d.type == 'event') return "-12px";
-		else return "-7px";
+		return (0 - (icon_sizes[d.type]/2)) + "px";
 	})
 	.attr("width", function(d) {
-		if (d.type == 'event') return "24px";
-		else return "12px";
+		return ((icon_sizes[d.type])) + "px";
 	})
 	.attr("height", function(d) {
-		if (d.type == 'event') return "24px";
-		else return "14px";
+		return ((icon_sizes[d.type])) + "px";
 	});
 
 	nodeEnter.append("text")
@@ -196,7 +238,7 @@ function update() {
 			}
 		})
 		.text(function(d) {
-			return d.name;
+			return d.type + ': ' + d.name;
 		});
 
 	node.selectAll("text")
@@ -215,12 +257,23 @@ function update() {
 			else
 				return 1;
 		});
-		showPane('#' + d.type + '-info-pane', d, 'left');
+		showPane(d, 'hover');
 	});
 
 	node.on('mouseout', function() {
 		  link.style('stroke-width', 1);
 		  link.style('stroke', "#9ecae1");
+	});
+
+	node.on("click", function(d) {
+		highlighted = d;
+		showPane(d, 'selected')
+		d3.selectAll('.highlighted_circle')
+		.style("stroke-opacity", 0);
+		d3.select(this)
+		.select('.highlighted_circle')
+		.style("stroke", "red")
+		.style("stroke-opacity", 0.5);
 	});
 
 	node.on("dblclick", function(d) {
@@ -231,54 +284,56 @@ function update() {
 
 function contextMenu(d, newContext) {
 	d3.event.preventDefault();
-	// hide all other panes
-	if (d.type == 'event') {
-		showPane('#context-menu', d, 'right')
-		d3.select('#expand')
-			.on('click', function() {
-				expand(d);
-			});
-	}
+	if (d.type == 'event') showPane(d, 'context');
 }
 
-function showPane(context, d, side) {
-	d3.select('#attribute-info-pane').style('display', 'none');
-	d3.select('#context-menu').style('display', 'none');
-	d3.select('#event-info-pane').style('display', 'none');
-	d3.select('#tag-info-pane').style('display', 'none');
-	var offset = (graphElementScale * 24) + 6;
-	var offsety = -10;
-	if (side == 'left') {
-		offset = - (graphElementScale * 24) - 206;
-		offsety = -60;
-	}
-	d3.select(context)
-	.style('position', 'absolute')
-	.style('left', currentMousePos.x + offset + "px")
-	.style('top', currentMousePos.y + offsety + "px")
-	.style('display', 'inline-block')
-	.on('mouseleave', function() {
-		d3.select(context).style('display', 'none');
-	});
+function showPane(d, type) {
+	$('#' + type + '-header').show();
+	d3.select("#" + type + "-menu").style('display', 'inline-block');
+	$("#" + type + "-menu").empty();
 	if (d.type== 'attribute') {
-		$('#attribute-info-pane-title').text('Attribute: ' + d.id);
-		$('#attribute-info-pane-value').text('Value: ' + d.name);
-		$('#attribute-info-pane-category').text('Category: ' + d.att_category);
-		$('#attribute-info-pane-type').text('Type: ' + d.att_type);
-		$('#attribute-info-pane-comment').text('Comment: ' + d.comment);
+		$("#" + type + "-menu").append('<li class="graphMenuTitle">Attribute: ' + d.id + '</li>');
+		$("#" + type + "-menu").append('<li>Value: ' + d.name + '</li>');
+		$("#" + type + "-menu").append('<li>Category: ' + d.att_category + '</li>');
+		$("#" + type + "-menu").append('<li>Type: ' + d.att_type + '</li>');
+		$("#" + type + "-menu").append('<li>Comment: ' + d.att_comment + '</li>');
 	}
 	if (d.type== 'event') {
 		var tempid = parseInt(d.id);
-		$('#event-info-pane-title').text('Event: ' + d.id);
-		$('#event-info-pane-info').text('Info: ' + d.info);
-		$('#event-info-pane-date').text('Date: ' + d.date);
-		$('#event-info-pane-analysis').text('Analysis: ' + d.analysis);
-		$('#event-info-pane-org').text('Organisation: ' + d.org);
-		$('#event-info-pane-url').attr('href', '/events/' + tempid);
-		$('#event-info-pane-url').text('Go to event');
+		$("#" + type + "-menu").append('<li class="graphMenuTitle">Event: '+ d.id + '</li>');
+		$("#" + type + "-menu").append('<li>Info: ' + d.info + '</li>');
+		$("#" + type + "-menu").append('<li>Date: ' + d.date + '</li>');
+		$("#" + type + "-menu").append('<li>Analysis: ' + d.analysis + '</li>');
+		$("#" + type + "-menu").append('<li>Organisation: ' + d.org + '</li>');
+		$("#" + type + "-menu").append('<li>Value: ' + d.name + '</li>');
+		$("#" + type + "-menu").append('<li class="graphMenuActions">Actions</li>');
+		$("#" + type + "-menu").append('<li><a href="/events/' + parseInt(d.id) + '"> Go to event </a></li>');
+		if (!d.expanded) {
+			$("#" + type + "-menu").append('<li id="expand_' + type + '_' + d.id +'" class="graphMenuAction">Expand</li>');
+			d3.select('#expand_' + type + '_' + d.id)
+				.on('click', function() {
+					expand(d);
+				});
+		}
 	}
 	if (d.type == 'tag') {
-		$('#tag-info-pane-title').text('Tag: ' + d.name);
+		$("#" + type + "-menu").append('<li class="graphMenuTitle">Tag: '+ d.id + '</li>');
+		$("#" + type + "-menu").append('<li>Name: ' + d.name + '</li>');
+		$("#" + type + "-menu").append('<li>Colour: ' + d.colour + '</li>');
+	}
+	if (d.type == 'galaxy') {
+		$("#" + type + "-menu").append('<li class="graphMenuTitle">' + d.galaxy + ': '+ d.id + '</li>');
+		$("#" + type + "-menu").append('<li>Name: ' + d.name + '</li>');
+		$("#" + type + "-menu").append('<li>Synonyms: ' + d.synonyms + '</li>');
+		$("#" + type + "-menu").append('<li>Authors: ' + d.authors + '</li>');
+		$("#" + type + "-menu").append('<li>Description: ' + d.description + '</li>');
+		$("#" + type + "-menu").append('<li>Source: ' + d.source + '</li>');
+	}
+	if (d.type == 'object') {
+		$("#" + type + "-menu").append('<li class="graphMenuTitle">' + d.name + ' object: '+ d.id + '</li>');
+		$("#" + type + "-menu").append('<li>Meta-category: ' + d.metacategory + '</li>');
+		$("#" + type + "-menu").append('<li>Description: ' + d.description + '</li>');
+		$("#" + type + "-menu").append('<li>Comment: ' + d.comment + '</li>');
 	}
 }
 
@@ -286,7 +341,7 @@ function expand(d) {
 	d3.event.stopPropagation();
 	d3.event.preventDefault();
 	if (d.type == 'event') {
-		d3.xhr("/events/updateGraph/" + d.id + ".json")
+		d3.xhr("/events/updateGraph/" + d.id + "/" + d.type + ".json")
 	    .header("Content-Type", "application/json")
 	    .post(
 	        JSON.stringify(root),

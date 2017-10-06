@@ -640,6 +640,7 @@ class Feed extends AppModel {
 				$job->saveField('message', 'Fetching data.');
 			}
 			$temp = $this->getFreetextFeed($this->data, $HttpSocket, $this->data['Feed']['source_format'], 'all');
+			$data = array();
 			foreach ($temp as $key => $value) {
 				$data[] = array(
 					'category' => $value['category'],

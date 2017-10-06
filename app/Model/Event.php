@@ -1239,7 +1239,7 @@ class Event extends AppModel {
 		}
 	}
 
-	public function fetchSimpleEventIds($user, $params = array()) {
+	private function __createEventConditions($user) {
 		$conditions = array();
 		if (!$user['Role']['perm_site_admin']) {
 			$sgids = $this->cacheSgids($user, true);
@@ -1261,13 +1261,31 @@ class Event extends AppModel {
 				)
 			);
 		}
+		return $conditions;
+	}
+
+	public function fetchSimpleEventIds($user, $params = array()) {
+		$conditions = $this->__createEventConditions($user);
 		$conditions['AND'][] = $params['conditions'];
-		$fields = array('Event.id', 'Event.org_id', 'Event.distribution', 'Event.sharing_group_id');
 		$results = array_values($this->find('list', array(
 			'conditions' => $conditions,
 			'recursive' => -1,
 			'fields' => array('Event.id')
 		)));
+		return $results;
+	}
+
+	public function fetchSimpleEvents($user, $params, $includeOrgc = false) {
+		$conditions = $this->__createEventConditions($user);
+		$conditions['AND'][] = $params['conditions'];
+		$params = array(
+			'conditions' => $conditions,
+			'recursive' => -1
+		);
+		if ($includeOrgc) {
+			$params['contain'] = array('Orgc.name');
+		}
+		$results = array_values($this->find('all', $params));
 		return $results;
 	}
 

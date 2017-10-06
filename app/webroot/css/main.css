@@ -1908,6 +1908,10 @@ table tr:hover .down-expand-button {
 	text-decoration: line-through;
 }
 
+.highlighted_node {
+	border:50px solid black;
+}
+
 @-webkit-keyframes rotation {
    from {-webkit-transform: rotate(0deg);}
    to {-webkit-transform: rotate(359deg);}
