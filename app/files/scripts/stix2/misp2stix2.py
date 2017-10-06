@@ -15,6 +15,7 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import sys, json, os, time, datetime, re
 from stix2 import *
 from mixbox import idgen
 from cybox.utils import Namespace
@@ -38,16 +39,15 @@ def loadEvent(args, pathname):
         sys.exit(1)
         
 def saveFile(args, pathname, package):
-    
+#    print(package)
 #    try:
     tab_args = args[1].split('.')
     filename = "{}/tmp/misp.stix.{}{}.{}".format(pathname, tab_args[-4], tab_args[-3], tab_args[-1])
-    print(package)
     d = os.path.dirname(filename)
     if not os.path.exists(d):
         os.makedirs(d)
     with open(filename, 'w') as f:
-        f.write('{"package": ' + str(package) + '}')
+        f.write(str(package))
 #    except:
 #        print(json.dumps({'success' : 0, 'message' : 'The STIX file could not be written'}))
 #        sys.exit(1)
@@ -62,32 +62,45 @@ def setIdentity(event):
                         name=org["name"], identity_class="organization")
     return identity
 
-def readAttributes(event, object_refs, identity):
+def readAttributes(event, identity, object_refs, external_refs):
     attributes = []
     for attribute in event["Attribute"]:
-        if attribute["type"] in non_indicator_attributes:
-            handleNonIndicatorAttribute(object_refs, attributes, attribute, identity)
+        attr_type = attribute['type']
+        if attr_type in non_indicator_attributes:
+            if attr_type == "link":
+                handleLink(attribute, external_refs)
+            else:
+                handleNonIndicatorAttribute(object_refs, attributes, attribute, identity)
         else:
             if attribute['to_ids'] == 'false':
                 handleIndicatorAttribute(object_refs, attributes, attribute, identity)
             else:
                 addObservedData(object_refs, attributes, attribute, identity)
-    if event['Galaxy']:
-        galaxies = event['Galaxy']
-        for galaxy in galaxies:
-            galaxyType = galaxy['type']
-            if 'ware' in galaxyType:
-                addMalware(object_refs, attributes, galaxy, identity)
-            elif 'intrusion' in galaxyType:
-                addIntrusionSet(object_refs, attributes, galaxy, identity)
-            elif 'exploit' in galaxyType:
-                addCampaign(object_refs, attributes, galaxy, identity)
-            elif 'threat-actor' in galaxyType:
-                addThreatActor(object_refs, attributes, galaxy, identity)
-            elif 'rat' in galaxyType or 'tool' in galaxyType:
-                addTool(object_refs, attributes, galaxy, identity)
+#    if event['Galaxy']:
+#        galaxies = event['Galaxy']
+#        for galaxy in galaxies:
+#            galaxyType = galaxy['type']
+#            if 'ware' in galaxyType:
+#                addMalware(object_refs, attributes, galaxy, identity)
+#            elif 'intrusion' in galaxyType:
+#                addIntrusionSet(object_refs, attributes, galaxy, identity)
+#            elif 'exploit' in galaxyType:
+#                addCampaign(object_refs, attributes, galaxy, identity)
+#            elif 'threat-actor' in galaxyType:
+#                addThreatActor(object_refs, attributes, galaxy, identity)
+#            elif 'rat' in galaxyType or 'tool' in galaxyType:
+#                addTool(object_refs, attributes, galaxy, identity)
         
     return attributes
+
+def handleLink(attribute, external_refs):
+    url = attribute['value']
+    source = 'url'
+    if 'comment' in attribute:
+        source += ' - {}'.format(attribute['comment'])
+    link = {'source_name': source, 'url': url}
+    external_refs.append(link)
+    
 
 def addAttackPattern(object_refs, attributes, galaxy, identity):
     attack_id = "attack-pattern--{}".format(galaxy['uuid'])
@@ -276,11 +289,16 @@ def definePattern(attribute):
         pattern += 'file:hashes.{} = \'{}\''.format(attr_type, attribute['value'])
     return [pattern]
 
-def eventReport(event, object_refs, identity):
+def eventReport(event, identity, object_refs, external_refs):
     timestamp = getDateFromTimestamp(int(event["publish_timestamp"]))
     name = event["info"]
+    tags = event['Tag']
+    labels = []
+    for tag in tags:
+        labels.append(tag['name'])
     report = Report(type="report", id="report--{}".format(event["uuid"]), created_by_ref=identity["id"],
-                    name=name, published=timestamp, labels=["indicators"], object_refs=object_refs)
+                    name=name, published=timestamp, labels=labels, object_refs=object_refs,
+                    external_references=external_refs)
     return report
 
 def generateEventPackage(event, SDOs):
@@ -303,15 +321,19 @@ def main(args):
         except TypeError:
             idgen.set_id_namespace(Namespace(namespace[0], namespace[1], "MISP"))
     event = loadEvent(args, pathname)
-    event = event['response'][0]['Event']
+    if 'response' in event:
+        event = event['response'][0]['Event']
+    else:
+        event = event['Event']
 #    print(event['Galaxy'])
 #    sys.exit(0)
     SDOs = []
     object_refs = []
+    external_refs = []
     identity = setIdentity(event)
     SDOs.append(identity)
-    attributes = readAttributes(event, object_refs, identity)
-    report = eventReport(event, object_refs, identity)
+    attributes = readAttributes(event, identity, object_refs, external_refs)
+    report = eventReport(event, identity, object_refs, external_refs)
     SDOs.append(report)
     for attribute in attributes:
         SDOs.append(attribute)
