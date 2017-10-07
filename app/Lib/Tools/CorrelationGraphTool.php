@@ -6,12 +6,14 @@
     private $__related_attributes = array();
     private $__eventModel = false;
     private $__taxonomyModel = false;
+    private $__galaxyClusterModel = false;
     private $__user = false;
     private $__json = array();
 
-    public function construct($eventModel, $taxonomyModel, $user, $json) {
+    public function construct($eventModel, $taxonomyModel, $galaxyClusterModel, $user, $json) {
       $this->__eventModel = $eventModel;
       $this->__taxonomyModel = $taxonomyModel;
+      $this->__galaxyClusterModel = $galaxyClusterModel;
       $this->__user = $user;
       $this->__json = $json;
       $this->__lookupTables = array(
@@ -21,17 +23,17 @@
       return true;
     }
 
-    public function buildGraphJson($id, $type = 'event') {
-  		$event = $this->__eventModel->fetchEvent($this->__user, array('eventid' => $id, 'flatten' => 0, 'includeTagRelations' => 1, 'includeGalaxy' => 1));
-  		if (empty($event)) return $this->__json;
-  		$this->cleanLinks();
+    private function __expandEvent($id) {
+      $event = $this->__eventModel->fetchEvent($this->__user, array('eventid' => $id, 'flatten' => 0, 'includeTagRelations' => 1, 'includeGalaxy' => 1));
+      if (empty($event)) return $this->__json;
+      $this->cleanLinks();
       $event[0]['Event']['Orgc'] = $event[0]['Orgc'];
       $current_event_id = $this->__createNode('event', $event[0]['Event'], true);
-  		if (!empty($event[0]['RelatedEvent'])) {
+      if (!empty($event[0]['RelatedEvent'])) {
         foreach ($event[0]['RelatedEvent'] as $re) {
-  			  $this->__related_events[$re['Event']['id']] = $re['Event'];
+          $this->__related_events[$re['Event']['id']] = $re['Event'];
         }
-  		}
+      }
       if (!empty($event[0]['RelatedAttribute'])) $this->__related_attributes = $event[0]['RelatedAttribute'];
       if (!empty($event[0]['EventTag'])) {
         $tags = array();
@@ -52,8 +54,33 @@
       if (!empty($event[0]['Attribute'])) {
         $this->__handleAttributes($event[0]['Attribute'], $current_event_id);
       }
+    }
+
+    public function buildGraphJson($id, $type = 'event', $action = 'create') {
+      if ($action == 'delete') {
+
+        return $this->__json;
+      }
+  		switch ($type) {
+        case 'event':
+          $this->__expandEvent($id);
+          break;
+        case 'galaxy':
+          $this->__expandGalaxy($id);
+          break;
+        case 'tag':
+          $this->__expandTag($id);
+          break;
+      }
   		return $this->__json;
   	}
+
+    private function __deleteObject($id) {
+      unset($this->__json['nodes'][$id]);
+      foreach ($this->__json['links'] as $k => $link) {
+        debug($link);
+      }
+    }
 
     private function __handleObjects($objects, $anchor_id, $full = false) {
       foreach ($objects as $k => $object) {
@@ -99,37 +126,55 @@
         if (strpos($tag['name'], 'misp-galaxy:') === 0) {
           continue;
         }
-        $type = 'tag';
         $taxonomy = $this->__taxonomyModel->getTaxonomyForTag($tag['name']);
         if (!empty($taxonomy)) {
           $tag['taxonomy'] = $taxonomy['Taxonomy']['namespace'];
+          $tag['taxonomy_description'] = $taxonomy['Taxonomy']['description'];
           if (isset($taxonomy['TaxonomyEntry'])) {
             $tag['description'] = empty($taxonomy['TaxonomyEntry']['expanded']) ? '' : $taxonomy['TaxonomyEntry']['expanded'];
           } else {
             $tag['description'] = empty($taxonomy['TaxonomyPredicate']['expanded']) ? '' : $taxonomy['TaxonomyPredicate']['expanded'];
           }
-          $type = 'taxonomy';
         }
         $current_tag_id = $this->__createNode('tag', $tag);
         $this->__addLink($anchor_id, $current_tag_id, 100);
-        $events = $this->__eventModel->EventTag->Tag->fetchSimpleEventsForTag($tag['id'], $this->__user);
-        foreach ($events as $event) {
-          $current_event_id = $this->__createNode('event', $event);
-          $this->__addLink($current_tag_id, $current_event_id, 100);
-        }
       }
+    }
+
+    private function __expandTag($id) {
+      $current_tag_id = $this->graphJsonContains('tag', array('id' => $id));
+      if (empty($current_tag_id)) return false;
+      $this->cleanLinks();
+      $events = $this->__eventModel->EventTag->Tag->fetchSimpleEventsForTag($id, $this->__user);
+      foreach ($events as $event) {
+        $current_event_id = $this->__createNode('event', $event);
+        $this->__addLink($current_tag_id, $current_event_id, 100);
+      }
+      $this->_json['nodes'][$current_tag_id]['expanded'] = 1;
     }
 
     private function __handleGalaxies($galaxies, $anchor_id) {
       foreach ($galaxies as $galaxy) {
         $current_galaxy_id = $this->__createNode('galaxy', $galaxy);
         $this->__addLink($anchor_id, $current_galaxy_id);
-        $events = $this->__eventModel->EventTag->Tag->fetchSimpleEventsForTag($galaxy['GalaxyCluster'][0]['tag_name'], $this->__user, true);
-        foreach ($events as $event) {
-          $current_event_id = $this->__createNode('event', $event);
-          $this->__addLink($current_event_id, $current_galaxy_id);
+      }
+    }
+
+    private function __expandGalaxy($id) {
+      foreach ($this->__json['nodes'] as $k => $node) {
+        if ($node['type'] == 'galaxy' && $node['id'] == $id) {
+          $current_galaxy_id = $k;
+          $tag_name = $node['tag_name'];
         }
       }
+      if (empty($current_galaxy_id)) return false;
+      $this->cleanLinks();
+      $events = $this->__eventModel->EventTag->Tag->fetchSimpleEventsForTag($this->__json['nodes'][$current_galaxy_id]['tag_name'], $this->__user, true);
+      foreach ($events as $event) {
+        $current_event_id = $this->__createNode('event', $event);
+        $this->__addLink($current_event_id, $current_galaxy_id);
+      }
+      $this->_json['nodes'][$current_galaxy_id]['expanded'] = 1;
     }
 
     private function __addLink($from_id, $to_id, $linkDistance = 150) {
@@ -164,13 +209,16 @@
         switch ($type) {
           case 'galaxy':
             $node = array(
+              'unique_id' => 'galaxy-' . $data['GalaxyCluster'][0]['id'],
               'name' => $data['GalaxyCluster'][0]['value'],
               'galaxy' => $data['name'],
               'type' => 'galaxy',
-              'id' => $data['id'],
+              'expanded' => $expand,
+              'id' => $data['GalaxyCluster'][0]['id'],
               'source' => $data['GalaxyCluster'][0]['source'],
+              'tag_name' => $data['GalaxyCluster'][0]['tag_name'],
               'description' => $data['GalaxyCluster'][0]['description'],
-              'image' => 'test',
+              'imgClass' => empty($data['icon']) ? 'globe' : $data['icon'],
               'authors' => !empty($data['GalaxyCluster'][0]['authors']) ? implode(',', $data['GalaxyCluster'][0]['authors']) : '',
               'synonyms' => !empty($data['GalaxyCluster'][0]['meta']['synonyms']) ? implode(',', $data['GalaxyCluster'][0]['meta']['synonyms']) : ''
             );
@@ -182,6 +230,7 @@
               $image = Configure::read('MISP.baseurl') . '/img/orgs/MISP.png';
             }
             $node = array(
+              'unique_id' => 'event-' . $data['id'],
               'name' => '(' . $data['id'] . ') ' . (strlen($data['info']) > 32 ? substr($data['info'], 0, 31) . '...' : $data['info']),
               'type' => 'event',
               'id' => $data['id'],
@@ -197,15 +246,21 @@
             break;
           case 'tag':
             $node = array(
+              'unique_id' => 'tag-' . $data['id'],
               'name' => $data['name'],
               'type' => 'tag',
+              'expanded' => $expand,
               'id' => $data['id'],
               'colour' => $data['colour'],
-              'image' => '/img/tag.png'
+              'imgClass' => empty($data['taxonomy']) ? 'tag' : 'tags',
             );
+            if (!empty($data['taxonomy'])) $node['taxonomy'] = $data['taxonomy'];
+            if (!empty($data['taxonomy'])) $node['description'] = $data['description'];
+            if (!empty($data['taxonomy'])) $node['taxonomy_description'] = $data['taxonomy_description'];
             break;
           case 'attribute':
             $node = array(
+              'unique_id' => 'attribute-' . $data['id'],
               'name' => $data['value'],
               'type' => 'attribute',
               'id' => $data['id'],
@@ -219,12 +274,15 @@
             break;
           case 'object':
             $node = array(
+              'unique_id' => 'object-' . $data['id'],
               'name' => $data['name'],
               'type' => 'object',
               'id' => $data['id'],
               'uuid' => $data['uuid'],
               'metacategory' => $data['meta-category'],
-              'image' => '/img/indicator.png'
+              'description' => $data['description'],
+              'comment' => $data['comment'],
+              'imgClass' => 'th-list',
             );
             break;
         }
@@ -275,10 +333,16 @@
   			if ($type == 'event' && $node['type'] == 'event' && $node['id'] == $element['id']) {
   				return $k;
   			}
-  			if ($type == 'attribute' &&	$node['type'] == 'attribute' &&	$node['name'] == $element['value']) {
+  			if ($type == 'attribute' &&	$node['type'] == 'attribute' &&	$node['id'] == $element['id']) {
   				return $k;
   			}
-        if ($type == 'tag' && $node['type'] == 'tag' && $node['name'] == $element['name']) {
+        if ($type == 'tag' && $node['type'] == 'tag' && $node['id'] == $element['id']) {
+          return $k;
+        }
+        if ($type == 'galaxy' && $node['type'] == 'galaxy' && $node['id'] == $element['GalaxyCluster'][0]['id']) {
+          return $k;
+        }
+        if ($type == 'object' && $node['type'] == 'object' && $node['id'] == $element['id']) {
           return $k;
         }
   		}

@@ -1,7 +1,7 @@
 <?php
 $mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Orgc']['id'] == $me['org_id']) || ($isAclModifyOrg && $event['Orgc']['id'] == $me['org_id']));
 $mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
-
+echo $this->Html->css('font-awesome');
 echo $this->Html->script('d3'); ?>
 <style>
 
@@ -46,14 +46,19 @@ echo $this->Html->script('d3'); ?>
 	}
 	.menu li {
 		display: block;
+		word-wrap: break-word;
 	}
 	.menu li:hover ul {
 		display:inline-block;
 		position: relative;
 		top: 0;
 	}
-	.menu > li > a {
+	.menu > li > span > a {
 		color:white;
+		font-weight:bold;
+	}
+	.menu > li > span {
+		font-weight:bold;
 	}
 	.graphMenuTitle {
 		background-color:#0088cc;
@@ -71,6 +76,14 @@ echo $this->Html->script('d3'); ?>
 	.menu-container {
 		position:absolute;
 		width:300px;
+	}
+
+	.font-white {
+		color:white;
+	}
+	.corrected-icon {
+		top:-5px;
+		margin-left:100px;
 	}
 </style>
 <div class="view">
@@ -112,13 +125,14 @@ $('#selected-menu-container').css('top', '400px');
 var root;
 
 var highlighted;
+var hovered;
 
 var icon_sizes = {
 	"event": 24,
 	"object": 12,
 	"attribute": 12,
-	"galaxy": 24,
-	"tag": 12
+	"galaxy": 32,
+	"tag": 24
 }
 
 var selection_radius_sizes = {
@@ -126,7 +140,7 @@ var selection_radius_sizes = {
 	"object": 12,
 	"attribute": 12,
 	"galaxy": 18,
-	"tag": 12
+	"tag": 18
 }
 
 var force = d3.layout.force()
@@ -198,6 +212,8 @@ function update() {
 
 	var nodeEnter = node.enter().append("g").attr("class", "node").call(drag1);
 
+	nodeEnter.attr('id', function(d) { return 'id-' + d.unique_id; })
+
 	nodeEnter.insert("circle", ".circle")
 		.classed("highlighted_circle", true)
 		.attr("cx", function(d) { return d.x_axis; })
@@ -208,7 +224,8 @@ function update() {
 		.attr("fill-opacity", "0")
 		.attr("fill", "red");
 
-	nodeEnter.append("svg:image")
+	nodeEnter.filter(function(d) {return d.image !== undefined})
+	.append("svg:image")
 	.attr("class", "circle")
 	.attr("xlink:href", function(d) {
 		return d.image
@@ -226,8 +243,42 @@ function update() {
 		return ((icon_sizes[d.type])) + "px";
 	});
 
+	nodeEnter.filter(function(d) {return d.imgClass !== undefined})
+	.append("g")
+	.append('svg:foreignObject')
+	.attr("width", 12)
+	.attr("height", 12)
+	.attr("x", function(d) {
+			if (d.type == 'galaxy' || d.type == 'tag') {
+				return '-10px';
+			} else {
+				return '-6px';
+			}
+		}
+	)
+	.attr("y", function(d) {
+			if (d.type == 'galaxy' || d.type == 'tag') {
+				return '-12px';
+			} else {
+				return '-8px';
+			}
+		}
+	)
+	.append("xhtml:body")
+	.html(function (d) {
+		var result = 'fa-' + d.imgClass;
+		if (d.type == 'galaxy' || d.type == 'tag') result = 'fa-2x ' + result;
+		return '<i class="fa ' + result + '"></i>';
+	});
+
 	nodeEnter.append("text")
-		.attr("dy", ".35em")
+		.attr("dy", function(d) {
+				if (d.type == "event" || d.type == "galaxy") {
+					return "10px";
+				} else {
+					return "0px";
+				}
+		})
 		.attr("fill", function(d) {
 			if (d.type == "event") {
 				if (d.expanded == 1) {
@@ -266,20 +317,17 @@ function update() {
 	});
 
 	node.on("click", function(d) {
-		highlighted = d;
-		showPane(d, 'selected')
-		d3.selectAll('.highlighted_circle')
-		.style("stroke-opacity", 0);
-		d3.select(this)
-		.select('.highlighted_circle')
-		.style("stroke", "red")
-		.style("stroke-opacity", 0.5);
+		showPane(d, 'selected');
 	});
+}
 
-	node.on("dblclick", function(d) {
-		contextMenu(d, 'node');
-		d3.event.preventDefault();
-	});
+function highlightNode(d) {
+	d3.selectAll('.highlighted_circle')
+	.style("stroke-opacity", 0);
+	d3.select('#id-' + d.unique_id)
+	.select('.highlighted_circle')
+	.style("stroke", "red")
+	.style("stroke-opacity", 0.5);
 }
 
 function contextMenu(d, newContext) {
@@ -287,60 +335,96 @@ function contextMenu(d, newContext) {
 	if (d.type == 'event') showPane(d, 'context');
 }
 
+function bindExpand(d, type) {
+	if (!d.expanded) {
+		var expandName = 'Expand (ctrl+x)';
+		if (type == 'selected') {
+			expandName = 'Expand (x)';
+		}
+		$("#" + type + "-menu").append('<li id="expand_' + type + '_' + d.id +'" class="graphMenuAction"><span>' + expandName + '</span></li>');
+		d3.select('#expand_' + type + '_' + d.id)
+			.on('click', function() {
+				expand(d);
+		});
+	}
+}
+
+function bindDelete(d, type) {
+	var deleteName = 'Delete (ctrl+d)';
+	if (type == 'selected') {
+		deleteName = 'Delete (d)';
+	}
+	$("#" + type + "-menu").append('<li id="remove_' + type + '_' + d.id +'" class="graphMenuAction"><span>' + deleteName + '</span></li>');
+	d3.select('#remove_' + type + '_' + d.id)
+		.on('click', function() {
+			remove(d);
+	});
+}
+
 function showPane(d, type) {
+	if (type == 'hover') {
+		hovered = d;
+	} else {
+		highlighted = d;
+		highlightNode(d);
+	}
 	$('#' + type + '-header').show();
 	d3.select("#" + type + "-menu").style('display', 'inline-block');
 	$("#" + type + "-menu").empty();
 	if (d.type== 'attribute') {
 		$("#" + type + "-menu").append('<li class="graphMenuTitle">Attribute: ' + d.id + '</li>');
-		$("#" + type + "-menu").append('<li>Value: ' + d.name + '</li>');
-		$("#" + type + "-menu").append('<li>Category: ' + d.att_category + '</li>');
-		$("#" + type + "-menu").append('<li>Type: ' + d.att_type + '</li>');
-		$("#" + type + "-menu").append('<li>Comment: ' + d.att_comment + '</li>');
+		$("#" + type + "-menu").append('<li><span>Value</span>: ' + d.name + '</li>');
+		$("#" + type + "-menu").append('<li><span>Category</span> ' + d.att_category + '</li>');
+		$("#" + type + "-menu").append('<li><span>Type</span>: ' + d.att_type + '</li>');
+		$("#" + type + "-menu").append('<li><span>Comment</span>: ' + d.comment + '</li>');
 	}
 	if (d.type== 'event') {
 		var tempid = parseInt(d.id);
 		$("#" + type + "-menu").append('<li class="graphMenuTitle">Event: '+ d.id + '</li>');
-		$("#" + type + "-menu").append('<li>Info: ' + d.info + '</li>');
-		$("#" + type + "-menu").append('<li>Date: ' + d.date + '</li>');
-		$("#" + type + "-menu").append('<li>Analysis: ' + d.analysis + '</li>');
-		$("#" + type + "-menu").append('<li>Organisation: ' + d.org + '</li>');
-		$("#" + type + "-menu").append('<li>Value: ' + d.name + '</li>');
+		$("#" + type + "-menu").append('<li><span>Info</span>: ' + d.info + '</li>');
+		$("#" + type + "-menu").append('<li><span>Date</span>: ' + d.date + '</li>');
+		$("#" + type + "-menu").append('<li><span>Analysis</span>: ' + d.analysis + '</li>');
+		$("#" + type + "-menu").append('<li><span>Organisation</span>: ' + d.org + '</li>');
+		$("#" + type + "-menu").append('<li><span>Value</span>: ' + d.name + '</li>');
 		$("#" + type + "-menu").append('<li class="graphMenuActions">Actions</li>');
-		$("#" + type + "-menu").append('<li><a href="/events/' + parseInt(d.id) + '"> Go to event </a></li>');
-		if (!d.expanded) {
-			$("#" + type + "-menu").append('<li id="expand_' + type + '_' + d.id +'" class="graphMenuAction">Expand</li>');
-			d3.select('#expand_' + type + '_' + d.id)
-				.on('click', function() {
-					expand(d);
-				});
-		}
+		$("#" + type + "-menu").append('<li><span><a href="/events/' + parseInt(d.id) + '">Go to event</a></span></li>');
+		bindExpand(d, type);
 	}
 	if (d.type == 'tag') {
 		$("#" + type + "-menu").append('<li class="graphMenuTitle">Tag: '+ d.id + '</li>');
-		$("#" + type + "-menu").append('<li>Name: ' + d.name + '</li>');
-		$("#" + type + "-menu").append('<li>Colour: ' + d.colour + '</li>');
+		$("#" + type + "-menu").append('<li><span>Name</span>: ' + d.name + '</li>');
+		if (d.taxonomy !== undefined) {
+			$("#" + type + "-menu").append('<li><span>Taxonomy</span>: ' + d.taxonomy + '</li>');
+			$("#" + type + "-menu").append('<li><span>Taxonomy description</span>: ' + d.taxonomy_description + '</li>');
+			if (d.description !== "") {
+				$("#" + type + "-menu").append('<li><span>Description</span>: ' + d.description + '</li>');
+			}
+		}
+		$("#" + type + "-menu").append('<li>Colour</span>: ' + d.colour + '</li>');
+		$("#" + type + "-menu").append('<li class="graphMenuActions">Actions</li>');
+		bindExpand(d, type);
 	}
 	if (d.type == 'galaxy') {
 		$("#" + type + "-menu").append('<li class="graphMenuTitle">' + d.galaxy + ': '+ d.id + '</li>');
-		$("#" + type + "-menu").append('<li>Name: ' + d.name + '</li>');
-		$("#" + type + "-menu").append('<li>Synonyms: ' + d.synonyms + '</li>');
-		$("#" + type + "-menu").append('<li>Authors: ' + d.authors + '</li>');
-		$("#" + type + "-menu").append('<li>Description: ' + d.description + '</li>');
-		$("#" + type + "-menu").append('<li>Source: ' + d.source + '</li>');
+		$("#" + type + "-menu").append('<li><span>Name</span>: ' + d.name + '</li>');
+		$("#" + type + "-menu").append('<li><span>Synonyms</span>: ' + d.synonyms + '</li>');
+		$("#" + type + "-menu").append('<li><span>Authors</span>: ' + d.authors + '</li>');
+		$("#" + type + "-menu").append('<li><span>Description</span>: ' + d.description + '</li>');
+		$("#" + type + "-menu").append('<li><span>Source</span>: ' + d.source + '</li>');
+		$("#" + type + "-menu").append('<li class="graphMenuActions">Actions</span></li>');
+		bindExpand(d, type);
 	}
 	if (d.type == 'object') {
 		$("#" + type + "-menu").append('<li class="graphMenuTitle">' + d.name + ' object: '+ d.id + '</li>');
-		$("#" + type + "-menu").append('<li>Meta-category: ' + d.metacategory + '</li>');
-		$("#" + type + "-menu").append('<li>Description: ' + d.description + '</li>');
-		$("#" + type + "-menu").append('<li>Comment: ' + d.comment + '</li>');
+		$("#" + type + "-menu").append('<li><span>Meta-category</span>: ' + d.metacategory + '</li>');
+		$("#" + type + "-menu").append('<li><span>Description</span>: ' + d.description + '</li>');
+		$("#" + type + "-menu").append('<li><span>Comment</span>: ' + d.comment + '</li>');
 	}
+	bindDelete(d, type);
 }
 
 function expand(d) {
-	d3.event.stopPropagation();
-	d3.event.preventDefault();
-	if (d.type == 'event') {
+	if (d.type == 'event' || d.type == 'galaxy' || d.type == 'tag') {
 		d3.xhr("/events/updateGraph/" + d.id + "/" + d.type + ".json")
 	    .header("Content-Type", "application/json")
 	    .post(
@@ -394,4 +478,66 @@ function dragend(d, i) {
 	tick();
 	force.resume();
 }
+
+function searchArray(arr, val) {
+	for (var i=0; i < arr.length; i++)
+		if (arr[i] === val)
+				return i;
+	return false;
+}
+
+$(document).on('keydown', function(e) {
+	if (e.which == 69) {
+		if (highlighted == undefined) {
+			showPane(root['nodes'][0], 'selected');
+		} else {
+			var current = searchArray(root['nodes'], highlighted);
+			if (current == root['nodes'].length-1) {
+				showPane(root['nodes'][0], 'selected');
+			} else {
+				showPane(root['nodes'][current+1], 'selected');
+			}
+		}
+	}
+	if (e.which == 81) {
+		if (highlighted == undefined) {
+			showPane(root['nodes'][root['nodes'].length-1], 'selected');
+		} else {
+			var current = searchArray(root['nodes'], highlighted);
+			if (current == 0) {
+				showPane(root['nodes'][root['nodes'].length-1], 'selected');
+			} else {
+				showPane(root['nodes'][current-1], 'selected');
+			}
+		}
+	}
+});
+$(document).on('keydown', function(e) {
+	if (e.which == 68) {
+		e.preventDefault();
+		if (e.ctrlKey) {
+			if (hovered != undefined) {
+				remove(hovered);
+			}
+		} else {
+			if (highlighted != undefined) {
+				remove(highlighted);
+			}
+		}
+	}
+});
+$(document).on('keydown', function(e) {
+	if (e.which == 88) {
+		e.preventDefault();
+		if (e.ctrlKey) {
+			if (hovered != undefined) {
+				expand(hovered);
+			}
+		} else {
+			if (highlighted != undefined) {
+				expand(highlighted);
+			}
+		}
+	}
+});
 </script>

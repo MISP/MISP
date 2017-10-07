@@ -125,9 +125,13 @@ class GalaxyCluster extends AppModel{
 	 *   - maybe in the future remove the galaxy itself once we have logos with each galaxy
 	*/
 	public function getCluster($name) {
+		$conditions = array('GalaxyCluster.tag_name' => $name);
+		if (is_numeric($name)) {
+			$conditions = array('GalaxyCluster.id' => $name);
+		}
 		$objects = array('Galaxy', 'GalaxyElement');
 		$cluster = $this->find('first', array(
-			'conditions' => array('GalaxyCluster.tag_name' => $name),
+			'conditions' => $conditions,
 			'contain' => array('Galaxy', 'GalaxyElement')
 		));
 		if (!empty($cluster)) {

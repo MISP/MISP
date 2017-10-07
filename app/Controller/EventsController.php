@@ -3865,10 +3865,11 @@ class EventsController extends AppController {
 		$validTools = array('event', 'galaxy', 'tag');
 		if (!in_array($type, $validTools)) throw new NotAllowedException('Invalid type.');
 		$this->loadModel('Taxonomy');
+		$this->loadModel('GalaxyCluster');
 		App::uses('CorrelationGraphTool', 'Tools');
 		$grapher = new CorrelationGraphTool();
 		$data = $this->request->is('post') ? $this->request->data : array();
-		$grapher->construct($this->Event, $this->Taxonomy, $this->Auth->user(), $data);
+		$grapher->construct($this->Event, $this->Taxonomy, $this->GalaxyCluster, $this->Auth->user(), $data);
 		$json = $grapher->buildGraphJson($id, $type);
 
 		array_walk_recursive($json, function(&$item, $key){
