@@ -50,11 +50,11 @@ class TaxonomiesController extends AppController {
 		App::uses('CustomPaginationTool', 'Tools');
 		$filter = isset($this->passedArgs['filter']) ? $this->passedArgs['filter'] : false;
 		$taxonomy = $this->Taxonomy->getTaxonomy($id, array('full' => true, 'filter' => $filter));
+		if (empty($taxonomy)) throw new NotFoundException('Taxonomy not found.');
 		foreach ($taxonomy['entries'] as $key => $value) {
 			$taxonomy['entries'][$key]['events'] = count($value['existing_tag']['EventTag']);
 		}
 		$this->set('filter', $filter);
-		if (empty($taxonomy)) throw new NotFoundException('Taxonomy not found.');
 		$customPagination = new CustomPaginationTool();
 		$params = $customPagination->createPaginationRules($taxonomy['entries'], $this->passedArgs, 'TaxonomyEntry');
 		if ($params['sort'] == 'id') $params['sort'] = 'tag';

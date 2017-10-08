@@ -2558,6 +2558,10 @@ function syncUserSelected() {
 
 function filterAttributes(filter, id) {
 	url = "/events/viewEventAttributes/" + id + "/attributeFilter:" + filter;
+	if(filter === 'value'){
+		filter = $('#attributesFilterField').val().trim();
+		url += "/searchFor:" + filter;
+	}
 	if (deleted) url += '/deleted:true';
 	$.ajax({
 		type:"get",
@@ -3218,7 +3222,6 @@ $('.add_object_attribute_row').click(function() {
 
 $('.quickToggleCheckbox').toggle(function() {
 	var url = $(this).data('checkbox-url');
-
 });
 
 (function(){

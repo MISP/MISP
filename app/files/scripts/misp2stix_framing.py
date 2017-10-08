@@ -31,6 +31,7 @@ NS_DICT = {
         "http://cybox.mitre.org/default_vocabularies-2" : 'cyboxVocabs',
         "http://cybox.mitre.org/objects#ASObject-1" : 'ASObj',
         "http://cybox.mitre.org/objects#AddressObject-2" : 'AddressObj',
+        "http://cybox.mitre.org/objects#PortObject-2" : 'PortObj',
         "http://cybox.mitre.org/objects#DomainNameObject-1" : 'DomainNameObj',
         "http://cybox.mitre.org/objects#EmailMessageObject-2" : 'EmailMessageObj',
         "http://cybox.mitre.org/objects#FileObject-2" : 'FileObj',

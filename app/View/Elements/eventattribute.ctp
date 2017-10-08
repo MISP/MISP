@@ -33,6 +33,12 @@
 			}
 		}
 	}
+	$filtered = false;
+	if(isset($passedArgsArray)){
+		if (count($passedArgsArray) > 0) {
+			$filtered = true;
+		}
+	}
 ?>
 	<div class="pagination">
 		<ul>
@@ -132,6 +138,13 @@
 			<div id="filter_deleted" title="Include deleted attributes" role="button" tabindex="0" aria-label="Include deleted attributes" class="attribute_filter_text<?php if ($deleted) echo '_active'; ?>" onClick="toggleDeletedAttributes('<?php echo Router::url( $this->here, true );?>');">Include deleted attributes</div>
 		<?php endif; ?>
 		<div id="show_context" title="Show attribute context fields" role="button" tabindex="0" aria-label="Show attribute context fields" class="attribute_filter_text" onClick="toggleContextFields();">Show context fields</div>
+		<div title="input filter" tabindex="0" aria-label="input filter" class="attribute_filter_text" style="padding-top:0px;">
+			<input type="text" id="attributesFilterField" style="height:20px;padding:0px;margin:0px;" class="form-control" data-eventid="<?php echo h($event['Event']['id']); ?>"></input>
+				<span id="attributesFilterButton" role="button" class="icon-search" tabindex="0" aria-label="Filter on attributes value" onClick="filterAttributes('value', '<?php echo h($event['Event']['id']); ?>');"></span>
+				<?php if ($filtered):?>
+					<span tabindex="0" aria-label="Show all attributes" title="Remove filters" role="button" onClick="filterAttributes('all', '<?php echo h($event['Event']['id']); ?>');" class='icon-remove'></span>
+				<?php endif;?>
+		</div>
 	</div>
 
 	<table class="table table-striped table-condensed">
@@ -318,6 +331,12 @@ attributes or the appropriate distribution level. If you think there is a mistak
 			url = "<?php echo $baseurl; ?>" + "/sightings/advanced/" + object_id + "/" + object_context;
 			genericPopup(url, '#screenshot_box');
 		});
+	});
+	$('#attributesFilterField').bind("keydown", function(e) {
+		var eventid = $('#attributesFilterField').data("eventid");
+		if ((e.keyCode == 13 || e.keyCode == 10)) {
+			filterAttributes('value', eventid);
+		}
 	});
 	$('.hex-value-convert').click(function() {
 		var val = $(this).parent().children(':first-child').text();
