@@ -58,7 +58,6 @@
 
     public function buildGraphJson($id, $type = 'event', $action = 'create') {
       if ($action == 'delete') {
-
         return $this->__json;
       }
   		switch ($type) {
@@ -76,10 +75,8 @@
   	}
 
     private function __deleteObject($id) {
-      unset($this->__json['nodes'][$id]);
-      foreach ($this->__json['links'] as $k => $link) {
-        debug($link);
-      }
+      $this->cleanLinks();
+      return $this->__json;
     }
 
     private function __handleObjects($objects, $anchor_id, $full = false) {
@@ -121,6 +118,14 @@
       }
     }
 
+    private function __addTag($id) {
+      $tag = $this->__eventModel->EventTag->Tag->find('first', array(
+        'conditions' => array('Tag.id' => $id),
+        'recursive' => -1
+      ));
+      return $this->__createNode('tag', $tag['Tag']);
+    }
+
     private function __handleTags($tags, $anchor_id) {
       foreach ($tags as $tag) {
         if (strpos($tag['name'], 'misp-galaxy:') === 0) {
@@ -143,7 +148,9 @@
 
     private function __expandTag($id) {
       $current_tag_id = $this->graphJsonContains('tag', array('id' => $id));
-      if (empty($current_tag_id)) return false;
+      if (empty($current_tag_id)) {
+        $current_tag_id = $this->__addTag($id);
+      }
       $this->cleanLinks();
       $events = $this->__eventModel->EventTag->Tag->fetchSimpleEventsForTag($id, $this->__user);
       foreach ($events as $event) {
@@ -161,13 +168,17 @@
     }
 
     private function __expandGalaxy($id) {
-      foreach ($this->__json['nodes'] as $k => $node) {
-        if ($node['type'] == 'galaxy' && $node['id'] == $id) {
-          $current_galaxy_id = $k;
-          $tag_name = $node['tag_name'];
+      if (!empty($this->__json['nodes'])) {
+        foreach ($this->__json['nodes'] as $k => $node) {
+          if ($node['type'] == 'galaxy' && $node['id'] == $id) {
+            $current_galaxy_id = $k;
+            $tag_name = $node['tag_name'];
+          }
         }
       }
-      if (empty($current_galaxy_id)) return false;
+      if (empty($current_galaxy_id)) {
+        $current_galaxy_id = $this->__addGalaxy($id);
+      }
       $this->cleanLinks();
       $events = $this->__eventModel->EventTag->Tag->fetchSimpleEventsForTag($this->__json['nodes'][$current_galaxy_id]['tag_name'], $this->__user, true);
       foreach ($events as $event) {
@@ -175,6 +186,15 @@
         $this->__addLink($current_event_id, $current_galaxy_id);
       }
       $this->_json['nodes'][$current_galaxy_id]['expanded'] = 1;
+    }
+
+    private function __addGalaxy($id) {
+      $temp = $this->__galaxyClusterModel->getCluster($id);
+      // move stuff around to resemble the galaxies attached to events
+      $galaxy = $temp['GalaxyCluster']['Galaxy'];
+      unset($temp['GalaxyCluster']['Galaxy']);
+      $galaxy['GalaxyCluster'][0] = $temp['GalaxyCluster'];
+      return $this->__createNode('galaxy', $galaxy);
     }
 
     private function __addLink($from_id, $to_id, $linkDistance = 150) {
@@ -304,8 +324,8 @@
   				foreach ($this->__json['nodes'] as $k => $node) {
   					if ($link['source'] == $node) $temp['source'] = $k;
   					if ($link['target'] == $node) $temp['target'] = $k;
-            $temp['linkDistance'] = $link['linkDistance'];
   				}
+          $temp['linkDistance'] = $link['linkDistance'];
   				$links[] = $temp;
   			}
   			$this->__json['links'] = $links;
@@ -333,7 +353,7 @@
   			if ($type == 'event' && $node['type'] == 'event' && $node['id'] == $element['id']) {
   				return $k;
   			}
-  			if ($type == 'attribute' &&	$node['type'] == 'attribute' &&	$node['id'] == $element['id']) {
+  			if ($type == 'attribute' &&	$node['type'] == 'attribute' &&	$node['name'] == $element['value']) {
   				return $k;
   			}
         if ($type == 'tag' && $node['type'] == 'tag' && $node['id'] == $element['id']) {

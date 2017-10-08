@@ -749,4 +749,20 @@ class TagsController extends AppController {
 			return $this->RestResponse->saveFailResponse('Tags', 'removeTagFromObject', false, 'Failed to remove tag from object.', $this->response->type());
 		}
 	}
+
+	public function viewGraph($id) {
+		$tag = $this->Tag->find('first', array(
+			'conditions' => array('Tag.id' => $id),
+			'recursive' => -1
+		));
+		if (empty($tag)) throw new MethodNotAllowedException('Invalid Tag.');
+		$this->loadModel('Taxonomy');
+		$taxonomy = $this->Taxonomy->getTaxonomyForTag($tag['Tag']['name']);
+		if (!empty($taxonomy)) {
+			$this->set('taxonomy', $taxonomy);
+		}
+		$this->set('scope', 'tag');
+		$this->set('id', $id);
+		$this->render('/Events/view_graph');
+	}
 }

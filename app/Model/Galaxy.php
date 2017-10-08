@@ -49,7 +49,6 @@ class Galaxy extends AppModel{
 		}
 		foreach ($galaxies as $k => $galaxy) {
 			if (isset($existingGalaxies[$galaxy['uuid']])) {
-									//debug($galaxy);
 				if (
 					$existingGalaxies[$galaxy['uuid']]['version'] < $galaxy['version'] ||
 					(!empty($galaxy['icon']) && ($existingGalaxies[$galaxy['uuid']]['icon'] != $galaxy['icon']))
@@ -62,7 +61,6 @@ class Galaxy extends AppModel{
 				$this->save($galaxy);
 			}
 		}
-		//throw new Exception();
 		return $this->find('list', array('recursive' => -1, 'fields' => array('type', 'id')));
 	}
 

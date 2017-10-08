@@ -104,6 +104,7 @@ foreach ($list as $k => $item): ?>
 		</td>
 		<?php if ($isSiteAdmin): ?>
 		<td class="short action-links">
+			<?php echo $this->Html->link('', array('controller' => 'tags', 'action' => 'viewGraph', $item['Tag']['id']), array('class' => 'fa fa-line-chart', 'title' => 'View graph'));?>
 			<?php echo $this->Html->link('', array('action' => 'edit', $item['Tag']['id']), array('class' => 'icon-edit', 'title' => 'Edit'));?>
 			<?php echo $this->Form->postLink('', array('action' => 'delete', $item['Tag']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete "%s"?', $item['Tag']['name']));?>
 		</td>

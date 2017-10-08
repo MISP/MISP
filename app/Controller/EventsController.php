@@ -3955,12 +3955,23 @@ class EventsController extends AppController {
 		$event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
 		if (empty($event)) throw new MethodNotAllowedException('Invalid Event.');
 		$this->set('event', $event[0]);
+		$this->set('scope', 'event');
 		$this->set('id', $id);
 	}
 
+/*
+	public function deleteNode($id) {
+		if (!$this->request->is('post')) throw new MethodNotAllowedException('Only POST requests are allowed.');
+		App::uses('CorrelationGraphTool', 'Tools');
+		$grapher = new CorrelationGraphTool();
+		$grapher->construct($this->Event, $this->Taxonomy, $this->GalaxyCluster, $this->Auth->user(), $this->request->data);
+		$json = $grapher->deleteNode($id);
+	}
+*/
+
 	public function updateGraph($id, $type = 'event') {
 		$validTools = array('event', 'galaxy', 'tag');
-		if (!in_array($type, $validTools)) throw new NotAllowedException('Invalid type.');
+		if (!in_array($type, $validTools)) throw new MethodNotAllowedException('Invalid type.');
 		$this->loadModel('Taxonomy');
 		$this->loadModel('GalaxyCluster');
 		App::uses('CorrelationGraphTool', 'Tools');

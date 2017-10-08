@@ -1912,6 +1912,10 @@ table tr:hover .down-expand-button {
 	border:50px solid black;
 }
 
+.action-links > .fa {
+	color:black;
+}
+
 @-webkit-keyframes rotation {
    from {-webkit-transform: rotate(0deg);}
    to {-webkit-transform: rotate(359deg);}

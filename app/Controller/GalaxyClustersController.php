@@ -113,6 +113,8 @@ class GalaxyClustersController extends AppController {
 				$cluster['GalaxyCluster']['tag_id'] = $tag['Tag']['id'];
 			}
 		}
+		$this->set('id', $id);
+		$this->set('galaxy_id' , $cluster['Galaxy']['id']);
 		$this->set('cluster', $cluster);
 	}
 

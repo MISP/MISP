@@ -29,7 +29,7 @@
 					<li class="divider"></li>
 					<?php endif;?>
 					<li id='liviewEvent'><a href="<?php echo $baseurl;?>/events/view/<?php echo h($event['Event']['id']);?>">View Event</a></li>
-					<li id='liviewEventGraph'><a href="<?php echo $baseurl;?>/events/viewGraph/<?php echo h($event['Event']['id']);?>">View Correlation Graph</a></li>
+					<li id='liviewGraph'><a href="<?php echo $baseurl;?>/events/viewGraph/<?php echo h($event['Event']['id']);?>">View Correlation Graph</a></li>
 					<li id='lieventLog'><a href="<?php echo $baseurl;?>/logs/event_index/<?php echo h($event['Event']['id']);?>">View Event History</a></li>
 					<li class="divider"></li>
 					<?php if ($isSiteAdmin || (isset($mayModify) && $mayModify)): ?>
@@ -273,14 +273,26 @@
 				case 'tags': ?>
 					<li id='liindexfav'><?php echo $this->Html->link('List Favourite Tags', array('action' => 'index', true));?></li>
 					<li id='liindex'><?php echo $this->Html->link('List Tags', array('action' => 'index'));?></li>
-					<?php if ($isAclTagEditor): ?>
-					<li id='liadd'><?php echo $this->Html->link('Add Tag', array('action' => 'add'));?></li>
-					<?php
+				<?php
+					if ($isAclTagEditor):
+				?>
+						<li id='liadd'><?php echo $this->Html->link('Add Tag', array('action' => 'add'));?></li>
+				<?php
 					endif;
 					if ($menuItem === 'edit'):
-					?>
-					<li class="active"><?php echo $this->Html->link('Edit Tag', array('action' => 'edit'));?></li>
-					<?php
+				?>
+						<li class="active"><?php echo $this->Html->link('Edit Tag', array('action' => 'edit'));?></li>
+				<?php
+					endif;
+					if ($menuItem === 'viewGraph'):
+						if (!empty($taxonomy)):
+				?>
+							<li><a href="<?php echo $baseurl; ?>/taxonomies/view/<?php echo h($taxonomy['Taxonomy']['id']); ?>">View Taxonomy</a></li>
+				<?php
+						endif;
+				?>
+					<li id='liviewGraph'><a href="<?php echo $baseurl;?>/tags/viewGraph/<?php echo h($id); ?>">View Correlation Graph</a></li>
+				<?php
 					endif;
 				break;
 
@@ -350,14 +362,16 @@
 						<li><?php echo $this->Form->postLink('Update Galaxies', array('controller' => 'galaxies', 'action' => 'update'), null, __('Are you sure you want to reimport all galaxies from the submodule?')); ?></li>
 				<?php
 					endif;
+					if ($menuItem === 'viewGraph' || $menuItem === 'view_cluster'): ?>
+						<li><a href="<?php echo $baseurl;?>/galaxies/view/<?php echo h($galaxy_id); ?>">View Galaxy</a></li>
+						<li id='liview_cluster'><a href="<?php echo $baseurl;?>/galaxy_clusters/view/<?php echo h($id); ?>">View Cluster</a></li>
+						<li id='liviewGraph'><a href="<?php echo $baseurl;?>/galaxies/viewGraph/<?php echo h($id); ?>">View Correlation Graph</a></li>
+				<?php
+					endif;
+
 					if ($menuItem === 'view'):
 				?>
 						<li class="active"><a href="#">View Galaxy</a></li>
-				<?php
-					endif;
-					if ($menuItem === 'view_cluster'):
-				?>
-						<li class="active"><a href="#">View Cluster</a></li>
 				<?php
 					endif;
 				break;

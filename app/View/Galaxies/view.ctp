@@ -4,7 +4,10 @@
 <div class="galaxy view">
 	<div class="row-fluid">
 		<div class="span8">
-			<h2><?php echo h($galaxy['Galaxy']['name']); ?> galaxy</h2>
+			<h2>
+				<span class="fa fa-<?php echo h($galaxy['Galaxy']['icon']); ?>"></span>&nbsp;
+				<?php echo h($galaxy['Galaxy']['name']); ?> galaxy
+			</h2>
 			<dl>
 				<dt>Galaxy ID</dt>
 				<dd><?php echo h($galaxy['Galaxy']['id']); ?></dd>

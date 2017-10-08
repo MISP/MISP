@@ -140,4 +140,18 @@ class GalaxiesController extends AppController {
 			$this->redirect($this->referer());
 		}
 	}
+
+	public function viewGraph($id) {
+		$cluster = $this->Galaxy->GalaxyCluster->find('first', array(
+			'conditions' => array('GalaxyCluster.id' => $id),
+			'contain' => array('Galaxy'),
+			'recursive' => -1
+		));
+		if (empty($cluster)) throw new MethodNotAllowedException('Invalid Galaxy.');
+		$this->set('cluster', $cluster);
+		$this->set('scope', 'galaxy');
+		$this->set('id', $id);
+		$this->set('galaxy_id' , $cluster['Galaxy']['id']);
+		$this->render('/Events/view_graph');
+	}
 }
