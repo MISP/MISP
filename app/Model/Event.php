@@ -2973,6 +2973,27 @@ class Event extends AppModel {
 		}
 	}
 
+	public function stix2($id, $user) {
+		$event = $this->fetchEvent($user, array('eventid' => $id));
+		App::uses('JSONConverterTool', 'Tools');
+		$converter = new JSONConverterTool();
+		$event = $converter->convert($event[0]);
+		$randomFileName = $this->generateRandomFileName();
+		$tmpDir = APP . "files" . DS . "scripts" . DS . "tmp";
+		$tempFile = new File($tmpDir . DS . $randomFileName, true, 0644);
+		$tempFile->write($event);
+		$scriptFile = APP . "files" . DS . "scripts" . DS . "stix2" . DS . "misp2stix2.py";
+		$result = shell_exec('python3 ' . $scriptFile . ' ' . $tempFile->path . ' json ' . ' ' . escapeshellarg(Configure::read('MISP.baseurl')) . ' ' . escapeshellarg(Configure::read('MISP.org')) . ' 2>' . APP . 'tmp/logs/exec-errors.log');
+		$tempFile->delete();
+		if (trim($result) == 1) {
+			$resultFile = new File($tmpDir . DS . $randomFileName . '.out', true, 0644);
+			$result = $resultFile->read();
+			$resultFile->delete();
+			return $result;
+		} else {
+			return false;
+		}
+	}
 
 	public function stix($id, $tags, $attachments, $user, $returnType = 'xml', $from = false, $to = false, $last = false, $jobId = false, $returnFile = false) {
 		$eventIDs = $this->Attribute->dissectArgs($id);

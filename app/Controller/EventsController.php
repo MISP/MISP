@@ -41,6 +41,7 @@ class EventsController extends AppController {
 		$this->Auth->allow('text');
 		$this->Auth->allow('restSearch');
 		$this->Auth->allow('stix');
+		$this->Auth->allow('stix2');
 
 		// TODO Audit, activate logable in a Controller
 		if (count($this->uses) && $this->{$this->modelClass}->Behaviors->attached('SysLogLogable')) {
@@ -3435,6 +3436,23 @@ class EventsController extends AppController {
 		}
 	}
 
+	public function stix2($key, $id) {
+		if ($key != 'download') {
+			// check if the key is valid -> search for users based on key
+			$user = $this->checkAuthUser($key);
+			if (!$user) {
+				throw new UnauthorizedException('This authentication key is not authorized to be used for exports. Contact your administrator.');
+			}
+		} else {
+			if (!$this->Auth->user('id')) {
+				throw new UnauthorizedException('You have to be logged in to do that.');
+			}
+		}
+		$result = $this->Event->stix2($id, $this->Auth->user());
+		$this->header('Content-Disposition: download; filename="misp.stix2.event' . $id . '.json"');
+		return $this->RestResponse->viewData($result, 'application/json', false, true, "misp.stix2.event" . $id . ".json");
+	}
+
 	public function stix($key, $id = false, $withAttachments = false, $tags = false, $from = false, $to = false, $last = false) {
 		if ($key != 'download') {
 			// check if the key is valid -> search for users based on key
@@ -3651,6 +3669,12 @@ class EventsController extends AppController {
 					'checkbox' => true,
 					'checkbox_text' => 'Encode Attachments',
 					'checkbox_set' => '/events/stix/download/' . $id . '/true.json'
+			),
+			'stix_json' => array(
+					'url' => '/events/stix2/download/' . $id . '.json',
+					'text' => 'STIX2 (Early experimental preview, requires the STIX 2 library)',
+					'requiresPublished' => false,
+					'checkbox' => false
 			),
 			'rpz' => array(
 					'url' => '/attributes/rpz/download/false/' . $id,

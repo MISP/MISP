@@ -41,11 +41,12 @@ def loadEvent(args, pathname):
 def saveFile(args, pathname, package):
 #    print(package)
 #    try:
-    tab_args = args[1].split('.')
-    filename = "{}/tmp/misp.stix.{}{}.{}".format(pathname, tab_args[-4], tab_args[-3], tab_args[-1])
-    d = os.path.dirname(filename)
-    if not os.path.exists(d):
-        os.makedirs(d)
+    filename = args[1] + '.out'
+#    tab_args = args[1].split('.')
+#    filename = "{}/tmp/misp.stix.{}{}.{}".format(pathname, tab_args[-4], tab_args[-3], tab_args[-1])
+#    d = os.path.dirname(filename)
+#    if not os.path.exists(d):
+#        os.makedirs(d)
     with open(filename, 'w') as f:
         f.write(str(package))
 #    except:
@@ -339,6 +340,7 @@ def main(args):
         SDOs.append(attribute)
     stix_package = generateEventPackage(event, SDOs)
     saveFile(args, pathname, stix_package)
+    print(1)
 #    print(stix_package)
 
 if __name__ == "__main__":
