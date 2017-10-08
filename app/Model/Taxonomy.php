@@ -322,6 +322,7 @@ class Taxonomy extends AppModel {
 			$pieces[2] = trim($pieces[2], '"');
 			$taxonomy = $this->find('first', array(
 				'recursive' => -1,
+				'conditions' => array('LOWER(Taxonomy.namespace)' => strtolower($pieces[0])),
 				'contain' => array(
 					'TaxonomyPredicate' => array(
 						'conditions' => array(
@@ -340,6 +341,7 @@ class Taxonomy extends AppModel {
 			$pieces = explode(':', $tagName);
 			$taxonomy = $this->find('first', array(
 				'recursive' => -1,
+				'conditions' => array('LOWER(Taxonomy.namespace)' => strtolower($pieces[0])),
 				'contain' => array(
 					'TaxonomyPredicate' => array(
 						'conditions' => array(

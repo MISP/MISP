@@ -19,6 +19,7 @@
 	<table class="table table-striped table-hover table-condensed">
 	<tr>
 			<th><?php echo $this->Paginator->sort('id');?></th>
+			<th><?php echo $this->Paginator->sort('icon');?></th>
 			<th><?php echo $this->Paginator->sort('name');?></th>
 			<th><?php echo $this->Paginator->sort('version');?></th>
 			<th><?php echo $this->Paginator->sort('description');?></th>
@@ -27,6 +28,7 @@
 foreach ($list as $item):?>
 	<tr>
 		<td class="short"><?php echo h($item['Galaxy']['id']);?>&nbsp;</td>
+		<td class="short"><span class="fa fa-<?php echo h($item['Galaxy']['icon']); ?>"></span></td>
 		<td><?php echo h($item['Galaxy']['name']);?>&nbsp;</td>
 		<td class="short"><?php echo h($item['Galaxy']['version']);?>&nbsp;</td>
 		<td><?php echo h($item['Galaxy']['description']);?>&nbsp;</td>

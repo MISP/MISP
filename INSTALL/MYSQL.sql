@@ -276,6 +276,7 @@ CREATE TABLE IF NOT EXISTS galaxies (
   `type` varchar(255) COLLATE utf8_bin NOT NULL,
   `description` text COLLATE utf8_bin NOT NULL,
   `version` varchar(255) COLLATE utf8_bin NOT NULL,
+  `icon` VARCHAR(255) COLLATE utf8_bin NOT NULL DEFAULT '',
   PRIMARY KEY (id),
   INDEX `name` (`name`),
   INDEX `uuid` (`uuid`),

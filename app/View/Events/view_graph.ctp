@@ -57,7 +57,7 @@ echo $this->Html->script('d3'); ?>
 		color:white;
 		font-weight:bold;
 	}
-	.menu > li > span {
+	.menu > li > span:first-child {
 		font-weight:bold;
 	}
 	.graphMenuTitle {
@@ -119,8 +119,10 @@ height = $(window).height() - 160 - margin.top - margin.bottom;
 var menu_x_buffer_ = width - 150;
 var menu_y_buffer = height - 100;
 $('.menu-container').css('left', '200px');
-$('#hover-menu-container').css('top', '100px');
+$('#hover-menu-container').css('top', '50px');
+$('#hover-menu-container').css('z-index', 1);
 $('#selected-menu-container').css('top', '400px');
+$('#selected-menu-container').css('z-index', 2);
 
 var root;
 
@@ -361,6 +363,40 @@ function bindDelete(d, type) {
 	});
 }
 
+function createInfoPane(d, data, type) {
+	var i = 0;
+	var view_urls = {
+		'event': '/events/view/' + parseInt(d.id),
+		'tag': '/tags/view/' + parseInt(d.id),
+		'galaxy': '/galaxy_clusters/view/' + parseInt(d.id)
+	};
+	data["fields"].forEach(function(e) {
+		var title = e;
+		if (i == 0) title = d.type;
+		title = title.split("_").join(" ");
+		title = title.charAt(0).toUpperCase() + title.slice(1);
+		var span1 = $('<span />').text(title + ': ');
+		var span2 = $('<span />').text(d[e]);
+		var li = $('<li />');
+		li.append(span1);
+		li.append(span2);
+		if (i == 0) li.addClass('graphMenuTitle');
+		i++;
+		$("#" + type + "-menu").append(li);
+	});
+	$("#" + type + "-menu").append('<li class="graphMenuActions">Actions</li>');
+	if ($.inArray("navigate", data["actions"]) !== -1) {
+		console.log($.inArray("navigate", data["actions"]));
+		$("#" + type + "-menu").append('<li><span><a href="' + view_urls[d.type] + '">Go to ' + d.type + '</a></span></li>');
+	}
+	if ($.inArray("expand", data["actions"]) !== -1) {
+		bindExpand(d, type);
+	}
+	if ($.inArray("delete", data["actions"]) !== -1) {
+		bindDelete(d, type);
+	}
+}
+
 function showPane(d, type) {
 	if (type == 'hover') {
 		hovered = d;
@@ -372,55 +408,44 @@ function showPane(d, type) {
 	d3.select("#" + type + "-menu").style('display', 'inline-block');
 	$("#" + type + "-menu").empty();
 	if (d.type== 'attribute') {
-		$("#" + type + "-menu").append('<li class="graphMenuTitle">Attribute: ' + d.id + '</li>');
-		$("#" + type + "-menu").append('<li><span>Value</span>: ' + d.name + '</li>');
-		$("#" + type + "-menu").append('<li><span>Category</span> ' + d.att_category + '</li>');
-		$("#" + type + "-menu").append('<li><span>Type</span>: ' + d.att_type + '</li>');
-		$("#" + type + "-menu").append('<li><span>Comment</span>: ' + d.comment + '</li>');
+		var data = {
+			"fields": ["id", "name", "category", "type", "comment"],
+			"actions": ["delete"]
+		}
 	}
 	if (d.type== 'event') {
 		var tempid = parseInt(d.id);
-		$("#" + type + "-menu").append('<li class="graphMenuTitle">Event: '+ d.id + '</li>');
-		$("#" + type + "-menu").append('<li><span>Info</span>: ' + d.info + '</li>');
-		$("#" + type + "-menu").append('<li><span>Date</span>: ' + d.date + '</li>');
-		$("#" + type + "-menu").append('<li><span>Analysis</span>: ' + d.analysis + '</li>');
-		$("#" + type + "-menu").append('<li><span>Organisation</span>: ' + d.org + '</li>');
-		$("#" + type + "-menu").append('<li><span>Value</span>: ' + d.name + '</li>');
-		$("#" + type + "-menu").append('<li class="graphMenuActions">Actions</li>');
-		$("#" + type + "-menu").append('<li><span><a href="/events/' + parseInt(d.id) + '">Go to event</a></span></li>');
-		bindExpand(d, type);
+		var data = {
+			"fields": ["id", "info", "date", "analysis", "org"],
+			"actions": ["expand", "delete", "navigate"]
+		}
 	}
 	if (d.type == 'tag') {
-		$("#" + type + "-menu").append('<li class="graphMenuTitle">Tag: '+ d.id + '</li>');
-		$("#" + type + "-menu").append('<li><span>Name</span>: ' + d.name + '</li>');
+		var data = {
+			"fields": ["id", "name"],
+			"actions": ["expand", "delete"]
+		}
 		if (d.taxonomy !== undefined) {
-			$("#" + type + "-menu").append('<li><span>Taxonomy</span>: ' + d.taxonomy + '</li>');
-			$("#" + type + "-menu").append('<li><span>Taxonomy description</span>: ' + d.taxonomy_description + '</li>');
+			data["fields"].push("taxonomy");
+			data["fields"].push("taxonomy_description");
 			if (d.description !== "") {
-				$("#" + type + "-menu").append('<li><span>Description</span>: ' + d.description + '</li>');
+				data["fields"].push("Description");
 			}
 		}
-		$("#" + type + "-menu").append('<li>Colour</span>: ' + d.colour + '</li>');
-		$("#" + type + "-menu").append('<li class="graphMenuActions">Actions</li>');
-		bindExpand(d, type);
 	}
 	if (d.type == 'galaxy') {
-		$("#" + type + "-menu").append('<li class="graphMenuTitle">' + d.galaxy + ': '+ d.id + '</li>');
-		$("#" + type + "-menu").append('<li><span>Name</span>: ' + d.name + '</li>');
-		$("#" + type + "-menu").append('<li><span>Synonyms</span>: ' + d.synonyms + '</li>');
-		$("#" + type + "-menu").append('<li><span>Authors</span>: ' + d.authors + '</li>');
-		$("#" + type + "-menu").append('<li><span>Description</span>: ' + d.description + '</li>');
-		$("#" + type + "-menu").append('<li><span>Source</span>: ' + d.source + '</li>');
-		$("#" + type + "-menu").append('<li class="graphMenuActions">Actions</span></li>');
-		bindExpand(d, type);
+		var data = {
+			"fields": ["id", "name", "galaxy", "synonyms", "authors", "description", "source"],
+			"actions": ["expand", "delete", "navigate"]
+		}
 	}
 	if (d.type == 'object') {
-		$("#" + type + "-menu").append('<li class="graphMenuTitle">' + d.name + ' object: '+ d.id + '</li>');
-		$("#" + type + "-menu").append('<li><span>Meta-category</span>: ' + d.metacategory + '</li>');
-		$("#" + type + "-menu").append('<li><span>Description</span>: ' + d.description + '</li>');
-		$("#" + type + "-menu").append('<li><span>Comment</span>: ' + d.comment + '</li>');
+		var data = {
+			"fields": ["id", "name", "metacategory", "description", "comment"],
+			"actions": ["delete"]
+		}
 	}
-	bindDelete(d, type);
+	createInfoPane(d, data, type);
 }
 
 function expand(d) {

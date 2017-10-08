@@ -40,7 +40,7 @@ class Galaxy extends AppModel{
 			$galaxyTypes[$galaxy['type']] = $galaxy['type'];
 		}
 		$temp = $this->find('all', array(
-			'fields' => array('uuid', 'version', 'id'),
+			'fields' => array('uuid', 'version', 'id', 'icon'),
 			'recursive' => -1
 		));
 		$existingGalaxies = array();
@@ -49,7 +49,11 @@ class Galaxy extends AppModel{
 		}
 		foreach ($galaxies as $k => $galaxy) {
 			if (isset($existingGalaxies[$galaxy['uuid']])) {
-				if ($existingGalaxies[$galaxy['uuid']]['version'] < $galaxy['version']) {
+									//debug($galaxy);
+				if (
+					$existingGalaxies[$galaxy['uuid']]['version'] < $galaxy['version'] ||
+					(!empty($galaxy['icon']) && ($existingGalaxies[$galaxy['uuid']]['icon'] != $galaxy['icon']))
+				) {
 					$galaxy['id'] = $existingGalaxies[$galaxy['uuid']]['id'];
 					$this->save($galaxy);
 				}
@@ -58,6 +62,7 @@ class Galaxy extends AppModel{
 				$this->save($galaxy);
 			}
 		}
+		//throw new Exception();
 		return $this->find('list', array('recursive' => -1, 'fields' => array('type', 'id')));
 	}
 

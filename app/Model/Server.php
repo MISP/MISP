@@ -2009,7 +2009,7 @@ class Server extends AppModel {
 		if ($sa_id == null) {
 			if ($event_id == null) {
 				// event_id is null when we are doing a push
-				$ids = $this->getEventIdsFromServer($server, true, $HttpSocket);
+				$ids = $this->getEventIdsFromServer($server, true, $HttpSocket, false, true);
 				// error return strings or ints or throw exceptions
 				if (!is_array($ids)) return false;
 				$conditions = array('uuid' => $ids);
