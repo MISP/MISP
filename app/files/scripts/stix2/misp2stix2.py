@@ -70,10 +70,12 @@ def readAttributes(event, identity, object_refs, external_refs):
         if attr_type in non_indicator_attributes:
             if attr_type == "link":
                 handleLink(attribute, external_refs)
+            elif attr_type in ('text', 'comment', 'other'):
+                addCustomObject(object_refs, attributes, attribute, identity)
             else:
                 handleNonIndicatorAttribute(object_refs, attributes, attribute, identity)
         else:
-            if attribute['to_ids'] == 'false':
+            if attribute['to_ids']:
                 handleIndicatorAttribute(object_refs, attributes, attribute, identity)
             else:
                 addObservedData(object_refs, attributes, attribute, identity)
@@ -90,8 +92,7 @@ def readAttributes(event, identity, object_refs, external_refs):
 #            elif 'threat-actor' in galaxyType:
 #                addThreatActor(object_refs, attributes, galaxy, identity)
 #            elif 'rat' in galaxyType or 'tool' in galaxyType:
-#                addTool(object_refs, attributes, galaxy, identity)
-        
+#                addTool(object_refs, attributes, galaxy, identity)     
     return attributes
 
 def handleLink(attribute, external_refs):
@@ -114,8 +115,9 @@ def addCampaign(object_refs, attributes, galaxy, identity):
     campaign_id = "campaign--{}".format(cluster['uuid'])
     name = cluster['value']
     description = cluster['description']
+    labels = 'misp:to_ids=\"{}\"'.format(attribute['to_ids'])
     campaign_args = {'id': campaign_id, 'type': 'campaign', 'name': name, 'description': description,
-                     'created_by_ref': identity}
+                     'created_by_ref': identity, 'labels': labels}
     meta = cluster['meta']
     addAliases(meta, campaign_args)
     campaign = Campaign(**campaign_args)
@@ -128,13 +130,29 @@ def addCourseOfAction(object_refs, attributes, galaxy, identity):
     attributes.append(courseOfAction)
     object_refs.append(courseOfAction_id)
     
+def addCustomObject(object_refs, attributes, attribute, identity):
+    customObject_id = "x-misp-object--{}".format(attribute['uuid'])
+    timestamp = getDateFromTimestamp(int(attribute['timestamp']))
+    customObject_type = 'x-misp-object'.format(attribute['type'])
+    to_ids = attribute['to_ids']
+    value = attribute['value']
+    labels = 'misp:to_ids=\"{}\"'.format(attribute['to_ids'])
+    customObject_args = {'type': customObject_type, 'id': customObject_id, 'timestamp': timestamp,
+                         'to_ids': to_ids, 'value': value, 'created_by_ref': identity, 'labels': labels}
+    if attribute['comment']:
+        customObject_args['comment'] = attribute['comment']
+    # At the moment, we skip it 
+#    attributes.append(customObject_args)
+#    object_refs.append(customObject_id)
+    
 def addIntrusionSet(object_refs, attributes, galaxy, identity):
     cluster = galaxy['GalaxyCluster'][0]
     intrusionSet_id = "intrusion-set--{}".format(cluster['uuid'])
     name = cluster['value']
     description = cluster['description']
+    labels = 'misp:to_ids=\"{}\"'.format(attribute['to_ids'])
     intrusion_args = {'id': intrusionSet_id, 'type': 'intrusion-set', 'name': name, 'description': description,
-                      'created_by_ref': identity}
+                      'created_by_ref': identity, 'labels': labels}
     meta = cluster['meta']
     addAliases(meta, intrusion_args)
     intrusionSet = IntrusionSet(**intrusion_args)
@@ -154,9 +172,10 @@ def addObservedData(object_refs, attributes, attribute, identity):
     object0 = defineObservableType(attribute['type'], attribute['value'])
     # OBSERVABLE TYPES ARE CRAP
     objects = {'0': object0}
+    labels = 'misp:to_ids=\"{}\"'.format(attribute['to_ids'])
     observedData_args = {'id': observedData_id, 'type': 'observed-data', 'number_observed': 1,
                          'first_observed': timestamp, 'last_observed': timestamp, 'objects': objects,
-                         'created_by_ref': identity}
+                         'created_by_ref': identity, 'labels': labels}
     observedData = ObservedData(**observedData_args)
     attributes.append(observedData)
     object_refs.append(observedData_id)
@@ -187,8 +206,9 @@ def addVulnerability(object_refs, attributes, attribute, identity):
     name = attribute['value']
     ext_refs = [{'source_name': 'cve',
                  'external_id': name}]
+    labels = 'misp:to_ids=\"{}\"'.format(attribute['to_ids'])
     vuln_args = {'type': 'vulnerability', 'id': vuln_id, 'external_references': ext_refs, 'name': name,
-                 'created_by_ref': identity}
+                 'created_by_ref': identity, 'labels': labels}
     vulnerability = Vulnerability(**vuln_args)
     attributes.append(vulnerability)
     object_refs.append(vuln_id)
@@ -212,7 +232,7 @@ def defineObservableType(dtype, val):
 #        datatype = 'domain-name'
 #    el
     if 'email' in dtype and 'name' not in dtype and ('src' in dtype or 'dst' in dtype or 'target' in dtype):
-        object0['type'] = 'email-address'
+        object0['type'] = 'email-addr'
         object0['value'] = val
     elif 'email' in dtype and ('body' in dtype or 'subject' in dtype or 'header' in dtype or 'reply' in dtype):
         object0['type'] = 'email-message'
@@ -266,8 +286,9 @@ def handleIndicatorAttribute(object_refs, attributes, attribute, identity):
     category = attribute['category']
     killchain = [{'kill_chain_name': 'misp-category',
                  'phase_name': category}]
+    labels = 'misp:to_ids=\"{}\"'.format(attribute['to_ids'])
     args_indicator = {'valid_from': getDateFromTimestamp(int(attribute['timestamp'])), 'type': 'indicator',
-                      'labels': ['malicious activity'], 'pattern': definePattern(attribute), 'id': indic_id,
+                      'labels': labels, 'pattern': [definePattern(attribute)], 'id': indic_id,
                       'created_by_ref': identity}
     args_indicator['kill_chain_phases'] = killchain
     indicator = Indicator(**args_indicator)
@@ -285,10 +306,15 @@ def buildRelationships():
     
 def definePattern(attribute):
     attr_type = attribute['type']
-    pattern =""
+    pattern = ''
     if 'md5' in attr_type or 'sha' in attr_type:
-        pattern += 'file:hashes.{} = \'{}\''.format(attr_type, attribute['value'])
-    return [pattern]
+        pattern += 'file:hashes.\'{}\' = \'{}\''.format(attr_type, attribute['value'])
+    elif 'email' in attr_type and 'name' not in attr_type:
+        if 'src' in attr_type:
+            pattern += 'email-message:from_refs.value = \'{}\''.format(attribute['value'])
+        if 'dst' in attr_type or 'target' in attr_type:
+            pattern += 'email-message:to_refs.value = \'{}\''.format(attribute['value'])
+    return pattern
 
 def eventReport(event, identity, object_refs, external_refs):
     timestamp = getDateFromTimestamp(int(event["publish_timestamp"]))
@@ -297,14 +323,21 @@ def eventReport(event, identity, object_refs, external_refs):
     labels = []
     for tag in tags:
         labels.append(tag['name'])
-    report = Report(type="report", id="report--{}".format(event["uuid"]), created_by_ref=identity["id"],
-                    name=name, published=timestamp, labels=labels, object_refs=object_refs,
-                    external_references=external_refs)
+    args_report = {'type': "report", 'id': "report--{}".format(event["uuid"]), 'created_by_ref': identity["id"],
+                    'name': name, 'published': timestamp}
+    if labels:
+        args_report['labels'] = labels
+    if object_refs:
+        args_report['object_refs'] = object_refs
+    if external_refs:
+        args_report['external_references'] = external_refs
+    report = Report(**args_report)
     return report
 
 def generateEventPackage(event, SDOs):
     bundle_id = event['uuid']
-    bundle = Bundle(type="bundle", spec_version="2.0", id="bundle--{}".format(bundle_id), objects=SDOs)
+    bundle_args = {'type': "bundle", 'spec_version': "2.0", 'id': "bundle--{}".format(bundle_id), 'objects': SDOs}
+    bundle = Bundle(**bundle_args)
     return bundle
 
 def main(args):
