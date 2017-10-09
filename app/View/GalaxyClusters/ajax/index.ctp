@@ -50,7 +50,7 @@
 			</td>
 			<td><?php echo h($item['GalaxyCluster']['description']); ?>&nbsp;</td>
 			<td class="short action-links">
-				<?php echo $this->Html->link('', array('controller' => 'galaxies', 'action' => 'viewGraph', $item['GalaxyCluster']['id']), array('class' => 'fa fa-line-chart', 'title' => 'View graph'));?>
+				<?php echo $this->Html->link('', array('controller' => 'galaxies', 'action' => 'viewGraph', $item['GalaxyCluster']['id']), array('class' => 'fa fa-share-alt', 'title' => 'View graph'));?>
 				<?php echo $this->Html->link('', array('action' => 'view', $item['GalaxyCluster']['id']), array('class' => 'icon-list-alt', 'title' => 'View'));?>
 			</td>
 		</tr>

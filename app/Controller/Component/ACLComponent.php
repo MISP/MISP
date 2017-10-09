@@ -93,6 +93,7 @@ class ACLComponent extends Component {
 					'csv' => array('*'),
 					'delegation_index' => array('*'),
 					'delete' => array('perm_add'),
+					'deleteNode' => array('*'),
 					'dot' => array(),
 					'downloadExport' => array('*'),
 					'downloadOpenIOCEvent' => array('*'),
@@ -118,6 +119,7 @@ class ACLComponent extends Component {
 					'restSearch' => array('*'),
 					'saveFreeText' => array('perm_add'),
 					'stix' => array('*'),
+					'stix2' => array('*'),
 					'strposarray' => array(),
 					'toggleCorrelation' => array('perm_add'),
 					'updateGraph' => array('*'),
@@ -159,7 +161,8 @@ class ACLComponent extends Component {
 				'selectGalaxy' => array('perm_tagger'),
 				'selectCluster' => array('perm_tagger'),
 				'update' => array(),
-				'view' => array('*')
+				'view' => array('*'),
+				'viewGraph' => array('*')
 			),
 			'galaxyClusters' => array(
 				'attachToEvent' => array('perm_tagger'),
@@ -347,7 +350,8 @@ class ACLComponent extends Component {
 					'showAttributeTag' => array('*'),
 					'tagStatistics' => array('*'),
 					'view' => array('*'),
-					'viewTag' => array('*'),
+					'viewGraph' => array('*'),
+					'viewTag' => array('*')
 			),
 			'tasks' => array(
 					'index' => array(),

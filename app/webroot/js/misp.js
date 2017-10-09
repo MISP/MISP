@@ -72,28 +72,6 @@ function cancelPrompt(isolated) {
 	$("#confirmation_box").empty();
 }
 
-function submitEventDeletion() {
-	var formData = $('#PromptForm').serialize();
-	$.ajax({
-		beforeSend: function (XMLHttpRequest) {
-			$(".loading").show();
-		},
-		data: formData,
-		success:function (data, textStatus) {
-			updateIndex(context_id, context);
-			handleGenericAjaxResponse(data);
-		},
-		complete:function() {
-			$(".loading").hide();
-			$("#confirmation_box").fadeOut();
-			$("#gray_out").fadeOut();
-		},
-		type:"post",
-		cache: false,
-		url:"/" + type + "/" + action + "/" + id,
-	});
-}
-
 function submitDeletion(context_id, action, type, id) {
 	var context = 'event';
 	if (type == 'template_elements') context = 'template';
@@ -118,7 +96,10 @@ function submitDeletion(context_id, action, type, id) {
 	});
 }
 
-function removeSighting(id, rawid, context) {
+function removeSighting(caller) {
+	var id = $(caller).data('id');
+	var rawid = $(caller).data('rawid');
+	var context = $(caller).data('context');
 	if (context != 'attribute') {
 		context = 'event';
 	}
@@ -130,15 +111,15 @@ function removeSighting(id, rawid, context) {
 		data: formData,
 		success:function (data, textStatus) {
 			handleGenericAjaxResponse(data);
-		},
-		complete:function() {
-			$(".loading").hide();
-			$("#confirmation_box").fadeOut();
 			var org = "/" + $('#org_id').text();
 			updateIndex(id, 'event');
 			$.get( "/sightings/listSightings/" + rawid + "/" + context + org, function(data) {
 				$("#sightingsData").html(data);
 			});
+		},
+		complete:function() {
+			$(".loading").hide();
+			$("#confirmation_box").fadeOut();
 		},
 		type:"post",
 		cache: false,

@@ -289,7 +289,7 @@
 	<div id="pivots_div">
 		<?php if (sizeOf($allPivots) > 1) echo $this->element('pivot'); ?>
 	</div>
-	<div id="galaxies_div" class="info_container" style="width:33%">
+	<div id="galaxies_div" class="info_container">
 		<h4 class="blue">Galaxies</h4>
 		<?php echo $this->element('galaxyQuickView', array('mayModify' => $mayModify, 'isAclTagger' => $isAclTagger)); ?>
 	</div>

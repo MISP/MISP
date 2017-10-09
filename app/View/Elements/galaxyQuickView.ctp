@@ -24,66 +24,63 @@
 					}
 				?>
 				<div style="margin-left:15px;" class="hidden blue">
-					<table style="width:100%">
-						<?php
-							$cluster_fields = array();
-							if (isset($cluster['description'])) {
-								$cluster_fields[] = array('key' => 'description', 'value' => $cluster['description']);
-							}
-							if (isset($cluster['meta']['synonyms'])) {
-								$cluster_fields[] = array('key' => 'synonyms', 'value' => $cluster['meta']['synonyms']);
-							}
-							if (isset($cluster['source'])) {
-								$cluster_fields[] = array('key' => 'source', 'value' => $cluster['source']);
-							}
-							if (isset($cluster['authors'])) {
-								$cluster_fields[] = array('key' => 'authors', 'value' => $cluster['authors']);
-							}
-							if (!empty($cluster['meta'])) {
-								foreach ($cluster['meta'] as $metaKey => $metaField) {
-									if ($metaKey != 'synonyms') {
-										$cluster_fields[] = array('key' => $metaKey, 'value' => $metaField);
-									}
+					<?php
+						$cluster_fields = array();
+						if (isset($cluster['description'])) {
+							$cluster_fields[] = array('key' => 'description', 'value' => $cluster['description']);
+						}
+						if (isset($cluster['meta']['synonyms'])) {
+							$cluster_fields[] = array('key' => 'synonyms', 'value' => $cluster['meta']['synonyms']);
+						}
+						if (isset($cluster['source'])) {
+							$cluster_fields[] = array('key' => 'source', 'value' => $cluster['source']);
+						}
+						if (isset($cluster['authors'])) {
+							$cluster_fields[] = array('key' => 'authors', 'value' => $cluster['authors']);
+						}
+						if (!empty($cluster['meta'])) {
+							foreach ($cluster['meta'] as $metaKey => $metaField) {
+								if ($metaKey != 'synonyms') {
+									$cluster_fields[] = array('key' => $metaKey, 'value' => $metaField);
 								}
 							}
-							foreach ($cluster_fields as $cluster_field):
-						?>
-								<tr class="cluster_<?php echo h($cluster_field['key']); ?>">
-									<td style="width:25%;vertical-align: text-top; padding-bottom:10px;"><?php echo h(ucfirst($cluster_field['key'])); ?></td>
-									<td style="width:75%; padding-bottom:10px;">
-										<?php
-											if (is_array($cluster_field['value'])) {
-												if ($cluster_field['key'] == 'refs') {
-													$value = array();
-													foreach ($cluster_field['value'] as $k => $v) {
-														$value[$k] = '<a href="' . h($v) . '">' . h($v) . '</a>';
-													}
-													echo nl2br(implode("\n", $value));
-												} else if($cluster_field['key'] == 'country') {
-													$value = array();
-													foreach ($cluster_field['value'] as $k => $v) {
-														$value[] = '<div class="famfamfam-flag-' . strtolower(h($v)) . '" ></div>&nbsp;' . h($v);
-													}
-													echo nl2br(implode("\n", $value));
-												} else {
-													echo nl2br(h(implode("\n", $cluster_field['value'])));
+						}
+						foreach ($cluster_fields as $cluster_field):
+					?>
+							<div class="row-fluid cluster_<?php echo h($cluster_field['key']); ?>">
+								<div class="span3 info_container_key">
+									<?php echo h(ucfirst($cluster_field['key'])); ?>
+								</div>
+								<div class="span9 info_container_value">
+									<?php
+										if (is_array($cluster_field['value'])) {
+											if ($cluster_field['key'] == 'refs') {
+												$value = array();
+												foreach ($cluster_field['value'] as $k => $v) {
+													$value[$k] = '<a href="' . h($v) . '">' . h($v) . '</a>';
 												}
+												echo nl2br(implode("\n", $value));
+											} else if($cluster_field['key'] == 'country') {
+												$value = array();
+												foreach ($cluster_field['value'] as $k => $v) {
+													$value[] = '<div class="famfamfam-flag-' . strtolower(h($v)) . '" ></div>&nbsp;' . h($v);
+												}
+												echo nl2br(implode("\n", $value));
 											} else {
-												 if ($cluster_field['key'] == 'source' && filter_var($cluster_field['value'], FILTER_VALIDATE_URL)) {
-													 echo '<a href="' . h($cluster_field['value']) . '">' . h($cluster_field['value']) . '</a>';;
-												 } else {
-													echo h($cluster_field['value']);
-												 }
+												echo nl2br(h(implode("\n", $cluster_field['value'])));
 											}
-										?>
-									</td>
-								</tr>
-						<?php
-							endforeach;
-						?>
-					</table>
+										} else {
+											 if ($cluster_field['key'] == 'source' && filter_var($cluster_field['value'], FILTER_VALIDATE_URL)) {
+												 echo '<a href="' . h($cluster_field['value']) . '">' . h($cluster_field['value']) . '</a>';;
+											 } else {
+												echo h($cluster_field['value']);
+											 }
+										}
+									?>
+								</div>
+							</div>
 					<?php
-
+						endforeach;
 					?>
 				</div>
 			</div>
