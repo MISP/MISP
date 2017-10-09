@@ -8,7 +8,7 @@
 		<table>
 			<tr>
 				<td style="vertical-align:top">
-					<span id="PromptYesButton" role="button" tabindex="0" aria-label="Remove sighting" title="Remove sighting" class="btn btn-primary" onClick="removeSighting('<?php echo h($id); ?>', '<?php echo h($rawId); ?>', '<?php echo h($context); ?>');">Yes</span>
+					<span id="PromptYesButton" role="button" tabindex="0" aria-label="Remove sighting" title="Remove sighting" class="btn btn-primary" data-id="<?php echo h($id); ?>" data-rawid="<?php echo h($rawId); ?>" data-context="<?php echo h($context); ?>" onClick="removeSighting(this);">Yes</span>
 				</td>
 				<td style="width:540px;">
 				</td>
