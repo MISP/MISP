@@ -122,7 +122,7 @@
 						<a href="<?php echo $url;?>" class="<?php echo $isAclTagger ? 'tagFirstHalf' : 'tag' ?>" style="background-color:<?php echo h($item['existing_tag']['Tag']['colour']);?>;color:<?php echo $this->TextColour->getTextColour($item['existing_tag']['Tag']['colour']);?>"><?php echo h($item['existing_tag']['Tag']['name']); ?></a>
 				<?php
 						endif;
-						echo '&nbsp;' . $this->Html->link('', array('controller' => 'tags', 'action' => 'viewGraph', $item['existing_tag']['Tag']['id']), array('class' => 'fa fa-line-chart black', 'title' => 'View graph'));
+						echo '&nbsp;' . $this->Html->link('', array('controller' => 'tags', 'action' => 'viewGraph', $item['existing_tag']['Tag']['id']), array('class' => 'fa fa-share-alt black', 'title' => 'View graph'));
 					endif;
 				?>
 				</td>

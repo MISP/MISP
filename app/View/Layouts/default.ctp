@@ -9,6 +9,8 @@
 	<?php
 		if (!isset($debugMode)) {
 			$debugMode == 'debugOff';
+		} else {
+			$debugMode == 'debugOn';
 		}
 		echo $this->Html->meta('icon');
 		echo $this->Html->css('roboto');
@@ -47,7 +49,7 @@
 			    $padding_top = 10;
 			    if ($debugMode == 'debugOff') $padding_top = 50;
 			?>
-		<div class="container-fluid <?php echo $debugMode; ?>" style="padding-top:<?php echo $padding_top; ?>px;width:98%;">
+		<div id="main-view-container" class="container-fluid <?php echo $debugMode; ?>-layout">
 			<?php
 				$has_flash = false;
 			    $flash = array();

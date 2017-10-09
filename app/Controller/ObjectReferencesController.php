@@ -64,7 +64,6 @@ class ObjectReferencesController extends AppController {
 					throw new NotFoundException('Invalid target. Target has to be within the same event.');
 				}
 			} else {
-				debug($this->request->data);
 				$target_attribute = $this->ObjectReference->Object->Attribute->find('first', array(
 					'conditions' => array('Attribute.uuid' => $this->request->data['ObjectReference']['referenced_uuid']),
 					'recursive' => -1,
@@ -210,6 +209,7 @@ class ObjectReferencesController extends AppController {
 				}
 			}
 		} else {
+			if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This action is only accessible via POST request.');
 			$this->set('hard', $hard);
 			$this->set('id', $id);
 			$this->set('event_id', $objectReference['Object']['Event']['id']);

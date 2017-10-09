@@ -1,9 +1,9 @@
-<div style="border:1px solid #dddddd; margin-top:1px; width:95%; padding:10px">
+<div class="settingsTableContainerOutline">
 <?php
 	foreach ($finalSettings as $subGroup => &$settings):
 ?>
 	<div>
-		<table class="table table-hover table-condensed" style="border:1px solid #dddddd; margin-top:1px; margin-bottom:0px; width:100%; padding:10px">
+		<table class="table table-hover table-condensed settingsTableContainer">
 			<?php if ($subGroup != 'general'): ?>
 				<tr>
 					<th class="useCursorPointer" role="button" tabindex="0" aria-label="Toggle subgroup <?php echo h($subGroup); ?>" title="Toggle subgroup" style="border-right: 1px solid #dddddd;color: #0088cc;" onClick="toggleSettingSubGroup('<?php echo h($subGroup);?>')"><?php echo h($subGroup);?></th>
