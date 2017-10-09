@@ -3615,6 +3615,7 @@ class Event extends AppModel {
 			}
 			$range = (!empty(Configure::read('MISP.Sightings_range')) && is_numeric(Configure::read('MISP.Sightings_range'))) ? Configure::read('MISP.Sightings_range') : 365;
 			foreach ($sparklineData as $aid => $data) {
+				if (!isset($startDates[$aid])) continue;
 				$startDate = $startDates[$aid];
 				if (strtotime($startDate) < strtotime('-' . $range . ' days', time())) {
 					$startDate = date('Y-m-d');
