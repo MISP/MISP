@@ -209,6 +209,7 @@ class ObjectReferencesController extends AppController {
 				}
 			}
 		} else {
+			if (!$this->request->is('ajax')) throw new MethodNotAllowedException('This action is only accessible via POST request.');
 			$this->set('hard', $hard);
 			$this->set('id', $id);
 			$this->set('event_id', $objectReference['Object']['Event']['id']);
