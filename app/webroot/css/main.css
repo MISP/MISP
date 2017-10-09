@@ -3,8 +3,10 @@ body {
 	font-size: 12px;
 }
 
-input, button, select, textarea{
-
+#topBar {
+	 height:42px;
+	 width:100%;
+	 min-width:1300px;
 }
 
 input[type="file"] {
@@ -429,6 +431,7 @@ dd {
 	width:100%;
 	bottom:0px;
 	height:42px;
+	min-width:1300px;
 }
 
 .debugOff {
@@ -437,6 +440,22 @@ dd {
 
 .debugOn {
 	position:relative;
+}
+
+.debugOff-layout {
+	position:fixed;
+	padding-top:50px;
+	width:98%;
+}
+
+.debugOn-layout {
+	position:relative;
+	padding-top:10px;
+	width:98%;
+}
+
+#attributes_div {
+	min-width: 1400px;
 }
 
 @media screen and (max-height:600px) {
@@ -959,6 +978,27 @@ a.proposal_link_red:hover {
 	height:20px;
 	width:calc(100% - 10px);
 	bottom:0px;
+	min-width:1100px;
+}
+
+#server-settings-container {
+	min-width:1100px;
+}
+
+.settingsTableContainer {
+	border:1px solid #dddddd;
+	margin-top:1px;
+	margin-bottom:0px;
+	width:100%;
+	padding:10px;
+}
+
+.settingsTableContainerOutline {
+	border:1px solid #dddddd;
+	margin-top:1px;
+	width:95%;
+	padding:10px;
+	min-width:1100px;
 }
 
 .tabMenuFixedContainer > span:nth-child(1) {
@@ -1595,8 +1635,22 @@ a.discrete {
 	padding-left:10px;
 	padding-right:10px;
 	padding-bottom:10px;
-	width: 100%;
+	width: 400px;
 	height: 100%;
+}
+
+.info_container_key {
+	vertical-align:text-top;
+	width:100px;
+	padding-bottom:10px;
+}
+
+.info_container_value {
+	vertical-align:text-top;
+	display:inline-block;
+	width:300px;
+	padding-bottom:10px;
+	word-wrap:break-word;
 }
 
 .bottomGap {

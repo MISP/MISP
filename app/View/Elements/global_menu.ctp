@@ -1,4 +1,4 @@
-<div id = "topBar" class="navbar-wrapper header <?php echo $debugMode;?>" style="height:42px;width:100%">
+<div id="topBar" class="navbar-wrapper header <?php echo $debugMode;?>">
 	<div class="navbar navbar-inverse">
 		<div class="navbar-inner">
 		  <!-- .btn-navbar is used as the toggle for collapsed navbar content -->

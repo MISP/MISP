@@ -1,4 +1,4 @@
-<table class="table table-hover table-condensed" style="border:1px solid #dddddd; margin-top:1px; width:100%; padding:10px">
+<table id="server-settings-container" class="table table-hover table-condensed" style="border:1px solid #dddddd; margin-top:1px; width:100%; padding:10px">
 <tr>
 		<th>Test</th>
 		<th>Value</th>
