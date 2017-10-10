@@ -55,6 +55,8 @@ def readAttributes(event, identity, object_refs, external_refs):
     attributes = []
     for attribute in event["Attribute"]:
         attr_type = attribute['type']
+        if '|' in attr_type or attr_type == 'malware-sample':
+            continue
         if attr_type in non_indicator_attributes:
             if attr_type == "link":
                 handleLink(attribute, external_refs)
@@ -294,14 +296,28 @@ def buildRelationships():
 
 def definePattern(attribute):
     attr_type = attribute['type']
+    attr_val = attribute['value']
     pattern = ''
     if 'md5' in attr_type or 'sha' in attr_type:
-        pattern += 'file:hashes.\'{}\' = \'{}\''.format(attr_type, attribute['value'])
+        pattern += 'file:hashes.\'{}\' = \'{}\''.format(attr_type, attr_val)
     elif 'email' in attr_type and 'name' not in attr_type:
         if 'src' in attr_type:
-            pattern += 'email-message:from_refs.value = \'{}\''.format(attribute['value'])
+            pattern += 'email-message:from_refs.value = \'{}\''.format(attr_val)
         if 'dst' in attr_type or 'target' in attr_type:
-            pattern += 'email-message:to_refs.value = \'{}\''.format(attribute['value'])
+            pattern += 'email-message:to_refs.value = \'{}\''.format(attr_val)
+    elif 'filename' in attr_type:
+        pattern += 'file:name = \'{}\''.format(attr_val)
+    elif attr_type == 'url':
+        pattern += 'url:value = \'{}\''.format(attr_val)
+    elif 'ip-' in attr_type:
+        if '.' in attr_val:
+            pattern += 'ipv4-addr:value = \'{}\''.format(attr_val)
+        else:
+            pattern += 'ipv6-addr:value = \'{}\''.format(attr_val)
+    elif 'hostname' in attr_type or 'domain' in attr_type:
+        pattern += 'domain-name:value = \'{}\''.format(attr_val)
+    else: # Validator will probably be angry with that but waiting for me to use dictionaries, we will use this
+        pattern += 'mutex:value = \'{}\''.format(attr_val)
     return pattern
 
 def eventReport(event, identity, object_refs, external_refs):
