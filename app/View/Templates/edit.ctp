@@ -61,13 +61,6 @@ var selectedTags = [
 		}
 	?>
 ];
-var allTags = [
-	<?php
-		foreach ($tagInfo as $tag) {
-			echo "{'id' : '" . h($tag['Tags']['id']) . "', 'name' : '" . h($tag['Tags']['name']) . "', 'colour' : '" . h($tag['Tags']['colour']) . "'},";
-		}
-	?>
-];
 $(document).ready( function () {
 	for (var i = 0, len = selectedTags.length; i < len; i++) {
 		appendTemplateTag(selectedTags[i], 'yes');
