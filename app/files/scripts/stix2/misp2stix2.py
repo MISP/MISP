@@ -17,8 +17,6 @@
 
 import sys, json, os, time, datetime, re
 from stix2 import *
-from mixbox import idgen
-from cybox.utils import Namespace
 
 namespace = ['https://github.com/MISP/MISP', 'MISP']
 
@@ -37,7 +35,7 @@ def loadEvent(args, pathname):
     except:
         print(json.dumps({'success' : 0, 'message' : 'The temporary MISP export file could not be read'}))
         sys.exit(1)
-        
+
 def saveFile(args, pathname, package):
 #    print(package)
 #    try:
@@ -347,13 +345,6 @@ def main(args):
     if len(sys.argv) > 4:
         namespace[1] = sys.argv[4].replace(" ", "_")
         namespace[1] = re.sub('[\W]+', '', namespace[1])
-    try:
-        idgen.set_id_namespace({namespace[0]: namespace[1]})
-    except ValueError:
-        try:
-            idgen.set_id_namespace(Namespace(namespace[0], namespace[1]))
-        except TypeError:
-            idgen.set_id_namespace(Namespace(namespace[0], namespace[1], "MISP"))
     event = loadEvent(args, pathname)
     if 'response' in event:
         event = event['response'][0]['Event']
