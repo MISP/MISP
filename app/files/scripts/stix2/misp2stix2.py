@@ -319,7 +319,7 @@ def eventReport(event, identity, object_refs, external_refs):
     if labels:
         args_report['labels'] = labels
     else:
-        args_report['labels'] = ['STIX report doesn\'t require labels! But python-stix2 requires one ;-)']
+        args_report['labels'] = ['threat-report']
 
     if object_refs:
         args_report['object_refs'] = object_refs
