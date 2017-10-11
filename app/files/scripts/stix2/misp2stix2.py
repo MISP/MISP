@@ -20,10 +20,10 @@ from stix2 import *
 
 namespace = ['https://github.com/MISP/MISP', 'MISP']
 
-not_implemented_attributes = ['yara', 'pattern-in-traffic', 'pattern-in-memory']	
+not_implemented_attributes = ['yara', 'pattern-in-traffic', 'pattern-in-memory']
 
-non_indicator_attributes = ['text', 'comment', 'other', 'link', 'target-user', 'target-email', 
-                            'target-machine', 'target-org', 'target-location', 'target-external', 
+non_indicator_attributes = ['text', 'comment', 'other', 'link', 'target-user', 'target-email',
+                            'target-machine', 'target-org', 'target-location', 'target-external',
                             'vulnerability', 'attachment']
 
 def loadEvent(args, pathname):
@@ -37,20 +37,10 @@ def loadEvent(args, pathname):
         sys.exit(1)
 
 def saveFile(args, pathname, package):
-#    print(package)
-#    try:
     filename = args[1] + '.out'
-#    tab_args = args[1].split('.')
-#    filename = "{}/tmp/misp.stix.{}{}.{}".format(pathname, tab_args[-4], tab_args[-3], tab_args[-1])
-#    d = os.path.dirname(filename)
-#    if not os.path.exists(d):
-#        os.makedirs(d)
     with open(filename, 'w') as f:
         f.write(str(package))
-#    except:
-#        print(json.dumps({'success' : 0, 'message' : 'The STIX file could not be written'}))
-#        sys.exit(1)
-        
+
 # converts timestamp to the format used by STIX
 def getDateFromTimestamp(timestamp):
     return datetime.datetime.utcfromtimestamp(timestamp).isoformat() + "+00:00"
@@ -65,6 +55,8 @@ def readAttributes(event, identity, object_refs, external_refs):
     attributes = []
     for attribute in event["Attribute"]:
         attr_type = attribute['type']
+        if '|' in attr_type or attr_type == 'malware-sample':
+            continue
         if attr_type in non_indicator_attributes:
             if attr_type == "link":
                 handleLink(attribute, external_refs)
@@ -100,7 +92,7 @@ def handleLink(attribute, external_refs):
         source += ' - {}'.format(attribute['comment'])
     link = {'source_name': source, 'url': url}
     external_refs.append(link)
-    
+
 
 def addAttackPattern(object_refs, attributes, galaxy, identity):
     attack_id = "attack-pattern--{}".format(galaxy['uuid'])
@@ -127,7 +119,7 @@ def addCourseOfAction(object_refs, attributes, galaxy, identity):
     courseOfAction = CourseOfAction()
     attributes.append(courseOfAction)
     object_refs.append(courseOfAction_id)
-    
+
 def addCustomObject(object_refs, attributes, attribute, identity):
     customObject_id = "x-misp-object--{}".format(attribute['uuid'])
     timestamp = getDateFromTimestamp(int(attribute['timestamp']))
@@ -142,7 +134,7 @@ def addCustomObject(object_refs, attributes, attribute, identity):
     # At the moment, we skip it 
 #    attributes.append(customObject_args)
 #    object_refs.append(customObject_id)
-    
+
 def addIntrusionSet(object_refs, attributes, galaxy, identity):
     cluster = galaxy['GalaxyCluster'][0]
     intrusionSet_id = "intrusion-set--{}".format(cluster['uuid'])
@@ -210,14 +202,14 @@ def addVulnerability(object_refs, attributes, attribute, identity):
     vulnerability = Vulnerability(**vuln_args)
     attributes.append(vulnerability)
     object_refs.append(vuln_id)
-    
+
 def addAliases(meta, argument):
     if meta['synonyms']:
         aliases = []
         for a in meta['synonyms']:
             aliases.append(a)
         argument['aliases'] = aliases
-        
+
 def defineObservableType(dtype, val):
     object0 = {}
 #    if dtype == '':
@@ -270,7 +262,7 @@ def defineObservableType(dtype, val):
         object0['type'] = 'file' # CRAP BEFORE FINDING HOW TO HANDLE ALL THE CASES \o/
         object0['name'] = val
     return object0
-    
+
 def handleNonIndicatorAttribute(object_refs, attributes, attribute, identity):
     attr_type = attribute['type']
     if attr_type == "vulnerability":
@@ -298,33 +290,53 @@ def handleIndicatorAttribute(object_refs, attributes, attribute, identity):
 #    indicator.pattern = "{}".format(definePattern(attribute))
     attributes.append(indicator)
     object_refs.append(indic_id)
-    
+
 def buildRelationships():
     return
-    
+
 def definePattern(attribute):
     attr_type = attribute['type']
+    attr_val = attribute['value']
     pattern = ''
     if 'md5' in attr_type or 'sha' in attr_type:
-        pattern += 'file:hashes.\'{}\' = \'{}\''.format(attr_type, attribute['value'])
+        pattern += 'file:hashes.\'{}\' = \'{}\''.format(attr_type, attr_val)
     elif 'email' in attr_type and 'name' not in attr_type:
         if 'src' in attr_type:
-            pattern += 'email-message:from_refs.value = \'{}\''.format(attribute['value'])
+            pattern += 'email-message:from_refs.value = \'{}\''.format(attr_val)
         if 'dst' in attr_type or 'target' in attr_type:
-            pattern += 'email-message:to_refs.value = \'{}\''.format(attribute['value'])
+            pattern += 'email-message:to_refs.value = \'{}\''.format(attr_val)
+    elif 'filename' in attr_type:
+        pattern += 'file:name = \'{}\''.format(attr_val)
+    elif attr_type == 'url':
+        pattern += 'url:value = \'{}\''.format(attr_val)
+    elif 'ip-' in attr_type:
+        if '.' in attr_val:
+            pattern += 'ipv4-addr:value = \'{}\''.format(attr_val)
+        else:
+            pattern += 'ipv6-addr:value = \'{}\''.format(attr_val)
+    elif 'hostname' in attr_type or 'domain' in attr_type:
+        pattern += 'domain-name:value = \'{}\''.format(attr_val)
+    else: # Validator will probably be angry with that but waiting for me to use dictionaries, we will use this
+        pattern += 'mutex:value = \'{}\''.format(attr_val)
     return pattern
 
 def eventReport(event, identity, object_refs, external_refs):
     timestamp = getDateFromTimestamp(int(event["publish_timestamp"]))
     name = event["info"]
-    tags = event['Tag']
     labels = []
-    for tag in tags:
-        labels.append(tag['name'])
+    if 'Tag' in event:
+        tags = event['Tag']
+        for tag in tags:
+            labels.append(tag['name'])
+
     args_report = {'type': "report", 'id': "report--{}".format(event["uuid"]), 'created_by_ref': identity["id"],
                     'name': name, 'published': timestamp}
+
     if labels:
         args_report['labels'] = labels
+    else:
+        args_report['labels'] = ['threat-report']
+
     if object_refs:
         args_report['object_refs'] = object_refs
     if external_refs:
@@ -350,8 +362,6 @@ def main(args):
         event = event['response'][0]['Event']
     else:
         event = event['Event']
-#    print(event['Galaxy'])
-#    sys.exit(0)
     SDOs = []
     object_refs = []
     external_refs = []
@@ -365,7 +375,6 @@ def main(args):
     stix_package = generateEventPackage(event, SDOs)
     saveFile(args, pathname, stix_package)
     print(1)
-#    print(stix_package)
 
 if __name__ == "__main__":
     main(sys.argv)
