@@ -261,7 +261,7 @@ class Feed extends AppModel {
 		return $data;
 	}
 
-	public function attachFeedCorrelations($objects, $user) {
+	public function attachFeedCorrelations($objects, $user, &$event, $overrideLimit = false) {
 		$redis = $this->setupRedis();
 		if ($redis !== false) {
 			$params = array(
@@ -275,18 +275,48 @@ class Feed extends AppModel {
 			$counter = 0;
 			$hashTable = array();
 			$feedList = array();
+			$pipe = $redis->multi(Redis::PIPELINE);
+			$objectsWithFeedHits = array();
+			$hashTable = array();
+			$hitIds = array();
 			foreach ($objects as $k => $object) {
-				$hashTable[$object['value']] = md5($object['value']);
-				if ($redis->sismember('misp:feed_cache:combined', $hashTable[$object['value']])) {
-					foreach ($feeds as $k2 => $feed) {
-						$counter++;
-						if ($redis->sismember('misp:feed_cache:' . $feed['Feed']['id'], $hashTable[$object['value']])) {
-							$objects[$k]['Feed'][] = $feed['Feed'];
+				$hashTable[$k] = md5($object['value']);
+				$redis->sismember('misp:feed_cache:combined', $hashTable[$k]);
+			}
+			$results = $pipe->exec();
+
+			if (!$overrideLimit && count($objects) > 10000) {
+				foreach ($results as $k => $result) {
+					if ($result) {
+						if (isset($event['FeedCount'])) $event['FeedCount']++;
+						else $event['FeedCount'] = 1;
+						$objects[$k]['FeedHit'] = true;
+					}
+				}
+			} else {
+				foreach ($results as $k => $result) {
+					if ($result) {
+							$hitIds[] = $k;
+					}
+				}
+				foreach ($feeds as $k3 => $feed) {
+					$pipe = $redis->multi(Redis::PIPELINE);
+					foreach ($hitIds as $k2 => $k) {
+						$redis->sismember('misp:feed_cache:' . $feed['Feed']['id'], $hashTable[$k]);
+					}
+					$feedHits = $pipe->exec();
+					foreach ($feedHits as $k4 => $hit) {
+						if ($hit) {
+							if (!isset($event['Feed'][$feeds[$k3]['Feed']['id']])) {
+								$event['Feed'][$feeds[$k3]['Feed']['id']] = $feed['Feed'];
+							}
+							$objects[$hitIds[$k4]]['Feed'][] = $feed['Feed'];
 						}
 					}
 				}
 			}
 		}
+		if (!empty($event['Feed'])) $event['Feed'] = array_values($event['Feed']);
 		return $objects;
 	}
 
@@ -719,7 +749,6 @@ class Feed extends AppModel {
 			));
 			$event['Attribute'] = array();
 			foreach ($temp as $k => $t) {
-				$start = microtime(true);
 				if (!empty($t['Attribute']['value2'])) {
 					$t['Attribute']['value'] = $t['Attribute']['value1'] . '|' . $t['Attribute']['value2'];
 				} else {

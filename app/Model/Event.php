@@ -1644,8 +1644,10 @@ class Event extends AppModel {
 					$warninglists = $this->Warninglist->fetchForEventView();
 				}
 				if (isset($options['includeFeedCorrelations']) && $options['includeFeedCorrelations']) {
-				$this->Feed = ClassRegistry::init('Feed');
-				$event['Attribute'] = $this->Feed->attachFeedCorrelations($event['Attribute'], $user);
+					$this->Feed = ClassRegistry::init('Feed');
+					if (!empty($options['overrideLimit'])) $overrideLimit = true;
+					else $overrideLimit = false;
+					$event['Attribute'] = $this->Feed->attachFeedCorrelations($event['Attribute'], $user, $event['Event'], $overrideLimit);
 				}
 				foreach ($event['Attribute'] as $key => $attribute) {
 					if (!$options['sgReferenceOnly'] && $event['Attribute'][$key]['sharing_group_id']) {
@@ -1714,7 +1716,9 @@ class Event extends AppModel {
 			if (!empty($event['ShadowAttribute'])) {
 				if ($isSiteAdmin && isset($options['includeFeedCorrelations']) && $options['includeFeedCorrelations']) {
 					$this->Feed = ClassRegistry::init('Feed');
-					$event['ShadowAttribute'] = $this->Feed->attachFeedCorrelations($event['ShadowAttribute'], $user);
+					if (!empty($options['overrideLimit'])) $overrideLimit = true;
+					else $overrideLimit = false;
+					$event['ShadowAttribute'] = $this->Feed->attachFeedCorrelations($event['ShadowAttribute'], $user, $event['Event'], $overrideLimit);
 				}
 			}
 			if (Configure::read('Plugin.Sightings_enable') !== false) {
