@@ -352,11 +352,11 @@
 	<div style="background-color:#f7f7f9;width:400px;">
         <span id="hideThemAllResult"><span style="color:orange;">Run the test below</span></span>
     </div><br>
-	<span class="btn btn-inverse" 
-		role="button" tabindex="0" 
-		aria-label="Hide them all" 
-		title="Check bad link on attachments" 
-		style="padding-top:1px;padding-bottom:1px;" 
+	<span class="btn btn-inverse"
+		role="button" tabindex="0"
+		aria-label="Hide them all"
+		title="Check bad link on attachments"
+		style="padding-top:1px;padding-bottom:1px;"
 		onClick="hideThemAll();">Hide them all</span>
 	<div class = 'input clear'></div>
 </div>
