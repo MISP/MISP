@@ -23,7 +23,7 @@ this_module = sys.modules[__name__]
 hash_type_attributes = {"single":["md5", "sha1", "sha224", "sha256", "sha384", "sha512", "sha512/224", "sha512/256", "ssdeep", "imphash", "authentihash", "pehash", "tlsh", "x509-fingerprint-sha1"], "composite": ["filename|md5", "filename|sha1", "filename|sha224", "filename|sha256", "filename|sha384", "filename|sha512", "filename|sha512/224", "filename|sha512/256", "filename|authentihash", "filename|ssdeep", "filename|tlsh", "filename|imphash", "filename|pehash", "malware-sample"]}
 
 simple_type_to_method = {}
-simple_type_to_method.update(dict.fromkeys(hash_type_attributes["single"] + hash_type_attributes["composite"] + ["attachment"], "resolveFileObservable"))
+simple_type_to_method.update(dict.fromkeys(hash_type_attributes["single"] + hash_type_attributes["composite"] + ["filename"] + ["attachment"], "resolveFileObservable"))
 simple_type_to_method.update(dict.fromkeys(["ip-src", "ip-dst", "ip-src|port", "ip-dst|port"], "generateIPObservable"))
 simple_type_to_method.update(dict.fromkeys(["port"], "generatePortObservable"))
 simple_type_to_method.update(dict.fromkeys(["domain|ip"], "generateDomainIPObservable"))
