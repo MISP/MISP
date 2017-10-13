@@ -161,6 +161,10 @@
                 ?>
               </li>
         <?php
+          elseif (!empty($object['FeedHit'])):
+        ?>
+          <span class="icon-ok"></span>
+        <?php
           endif;
         ?>
       </ul>

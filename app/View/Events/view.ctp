@@ -229,31 +229,64 @@
 			</dl>
 		</div>
 		<div class="related span4">
-			<?php if (!empty($event['RelatedEvent'])):?>
-				<h3>Related Events</h3>
-				<ul class="inline">
-					<?php foreach ($event['RelatedEvent'] as $relatedEvent): ?>
-					<li>
-					<?php
-					$relatedData = array('Orgc' => $relatedEvent['Event']['Orgc']['name'], 'Date' => $relatedEvent['Event']['date'], 'Info' => $relatedEvent['Event']['info']);
-					$popover = '';
-					foreach ($relatedData as $k => $v) {
-						$popover .= '<span class=\'bold\'>' . h($k) . '</span>: <span class="blue">' . h($v) . '</span><br />';
-					}
-					?>
-					<div data-toggle="popover" data-content="<?php echo h($popover); ?>" data-trigger="hover">
-					<?php
-					$linkText = $relatedEvent['Event']['date'] . ' (' . $relatedEvent['Event']['id'] . ')';
-					if ($relatedEvent['Event']['orgc_id'] == $me['org_id']) {
-						echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id'], true, $event['Event']['id']), array('style' => 'color:red;'));
-					} else {
-						echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id'], true, $event['Event']['id']));
-					}
-					?>
-					</div></li>
-					<?php endforeach; ?>
-				</ul>
-			<?php endif; ?>
+			<?php
+				if (!empty($event['RelatedEvent'])):
+			?>
+					<h3>Related Events</h3>
+					<span class="inline">
+						<?php
+							foreach ($event['RelatedEvent'] as $relatedEvent):
+								$relatedData = array('Orgc' => $relatedEvent['Event']['Orgc']['name'], 'Date' => $relatedEvent['Event']['date'], 'Info' => $relatedEvent['Event']['info']);
+								$popover = '';
+								foreach ($relatedData as $k => $v) {
+									$popover .= '<span class=\'bold\'>' . h($k) . '</span>: <span class="blue">' . h($v) . '</span><br />';
+								}
+						?>
+								<span data-toggle="popover" data-content="<?php echo h($popover); ?>" data-trigger="hover" style="white-space: nowrap;">
+						<?php
+								$linkText = $relatedEvent['Event']['date'] . ' (' . $relatedEvent['Event']['id'] . ')';
+								if ($relatedEvent['Event']['orgc_id'] == $me['org_id']) {
+									echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id'], true, $event['Event']['id']), array('style' => 'color:red;'));
+								} else {
+									echo $this->Html->link($linkText, array('controller' => 'events', 'action' => 'view', $relatedEvent['Event']['id'], true, $event['Event']['id']));
+								}
+						?>
+								</span>&nbsp;
+						<?php
+							endforeach;
+						?>
+					</span>
+			<?php
+				endif;
+				if (!empty($event['Feed']) || !empty($event['Event']['FeedCount'])):
+			?>
+					<h3>Related Feeds</h3>
+			<?php
+					if (!empty($event['Feed'])):
+						foreach ($event['Feed'] as $relatedFeed):
+							$relatedData = array('Name' => $relatedFeed['name'], 'URL' => $relatedFeed['url'], 'Provider' => $relatedFeed['provider'], 'Source Format' => $relatedFeed['source_format']);
+							$popover = '';
+							foreach ($relatedData as $k => $v) {
+								$popover .= '<span class=\'bold\'>' . h($k) . '</span>: <span class="blue">' . h($v) . '</span><br />';
+							}
+				?>
+							<span data-toggle="popover" data-content="<?php echo h($popover); ?>" data-trigger="hover" style="white-space: nowrap;">
+								<a href="<?php echo $baseurl . 'feeds/view/' . h($relatedFeed['id']); ?>"><?php echo h($relatedFeed['name']) . ' (' . $relatedFeed['id'] . ')'; ?></a>
+							</span>
+				<?php
+						endforeach;
+					elseif (!empty($event['Event']['FeedCount'])):
+				?>
+						<span>
+							This event has <span class="bold"><?php echo h($event['Event']['FeedCount']); ?></span>
+							correlations with data contained within the various feeds, however, due to the large number of
+							attributes the actual feed correlations are not shown. Click (<a href="<?php echo h($this->here); ?>/overrideLimit:1">here</a>)
+							to refresh the page with the feed data loaded.
+					 </span>
+				<?php
+					endif;
+				endif;
+			?>
 			<?php if (!empty($event['Event']['warnings'])): ?>
 				<div class="warning_container" style="width:80%;">
 					<h4 class="red">Warning: Potential false positives</h4>

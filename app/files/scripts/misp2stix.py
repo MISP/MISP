@@ -28,7 +28,8 @@ namespace = ['https://github.com/MISP/MISP', 'MISP']
 
 # mappings
 status_mapping = {'0' : 'New', '1' : 'Open', '2' : 'Closed'}
-TLP_mapping = {'0' : 'AMBER', '1' : 'GREEN', '2' : 'GREEN', '3' : 'GREEN'}
+TLP_mapping = {'0' : 'AMBER', '1' : 'GREEN', '2' : 'GREEN', '3' : 'GREEN', '4' : 'AMBER'}
+TLP_order = {'RED' : 4, 'AMBER' : 3, 'GREEN' : 2, 'WHITE' : 1}
 confidence_mapping = {False : 'None', True : 'High'}
 
 not_implemented_attributes = ['yara', 'pattern-in-traffic', 'pattern-in-memory']	
@@ -90,16 +91,17 @@ def generateSTIXObjects(event):
     setDates(incident, event["Event"]["date"], int(event["Event"]["publish_timestamp"]))
     addJournalEntry(incident, "Event Threat Level: " + event["ThreatLevel"]["name"])
     ttps = []
+    eventTags = event.get("Tag", [])
     external_id = ExternalID(value=event["Event"]["id"], source="MISP Event")
     incident.add_external_id(external_id)
     incident_status_name = status_mapping.get(event["Event"]["analysis"], None)
     if incident_status_name is not None:
         incident.status = IncidentStatus(incident_status_name)
-    setTLP(incident, event["Event"]["distribution"])
+    setTLP(incident, event["Event"]["distribution"], eventTags)
     setOrg(incident, event["Org"]["name"])
-    setTag(incident, event["Tag"])
-    resolveAttributes(incident, ttps, event["Attribute"])
-    resolveObjects(incident, ttps, event["Object"])
+    setTag(incident, eventTags)
+    resolveAttributes(incident, ttps, event["Attribute"], eventTags)
+    resolveObjects(incident, ttps, event["Object"], eventTags)
     return [incident, ttps]
 
 
@@ -113,15 +115,18 @@ def setDates(incident, date, published):
     incident.time = incident_time
 
 # decide what to do with the objects, as not all of them will become indicators
-def resolveObjects(incident, ttps, objects):
+def resolveObjects(incident, ttps, objects, eventTags):
     for obj in objects:
         tmp_incident = Incident()
-        resolveAttributes(tmp_incident, ttps, obj["Attribute"])
+        resolveAttributes(tmp_incident, ttps, obj["Attribute"], eventTags)
         indicator = Indicator(timestamp=getDateFromTimestamp(int(obj["timestamp"])))
         indicator.id_= namespace[1] + ":MispObject-" + obj["uuid"]
         if obj["comment"] != "":
             indicator.description = obj["comment"]
-        setTLP(indicator, obj["distribution"])
+        tlpTags = eventTags
+        for attr in obj["Attribute"]:
+            tlpTags = mergeTags(tlpTags, attr["AttributeTag"])
+        setTLP(indicator, obj["distribution"], tlpTags, True)
         indicator.title = obj["name"] + " (MISP Object #" + obj["id"] + ")"
         indicator.description = indicator.title
         indicator.add_indicator_type("Malware Artifacts")
@@ -133,16 +138,16 @@ def resolveObjects(incident, ttps, objects):
         incident.related_indicators.append(relatedIndicator)
 
 # decide what to do with the attribute, as not all of them will become indicators
-def resolveAttributes(incident, ttps, attributes):
+def resolveAttributes(incident, ttps, attributes, eventTags):
     for attribute in attributes:
         if (attribute["type"] in not_implemented_attributes):
             addJournalEntry(incident, "!Not implemented attribute category/type combination caught! attribute[" + attribute["category"] + "][" + attribute["type"] + "]: " + attribute["value"])
         elif (attribute["type"] in non_indicator_attributes):
             #types that will definitely not become indicators
-            handleNonIndicatorAttribute(incident, ttps, attribute)
+            handleNonIndicatorAttribute(incident, ttps, attribute, eventTags)
         else:
             #types that may become indicators
-            handleIndicatorAttribute(incident, ttps, attribute)
+            handleIndicatorAttribute(incident, ttps, attribute, eventTags)
     for rindicator in incident.related_indicators:
         for ttp in ttps:
             ittp=TTP(idref=ttp.id_, timestamp=ttp.timestamp)
@@ -150,8 +155,8 @@ def resolveAttributes(incident, ttps, attributes):
     return [incident, ttps]
 
 # Create the indicator and pass the attribute further for observable creation - this can be called from resolveattributes directly or from handleNonindicatorAttribute, for some special cases
-def handleIndicatorAttribute(incident, ttps, attribute):
-    indicator = generateIndicator(attribute)
+def handleIndicatorAttribute(incident, ttps, attribute, eventTags):
+    indicator = generateIndicator(attribute, eventTags)
     indicator.add_indicator_type("Malware Artifacts")
     indicator.add_valid_time_position(ValidTime())
     if attribute["type"] == "email-attachment":
@@ -166,10 +171,10 @@ def handleIndicatorAttribute(incident, ttps, attribute):
     incident.related_indicators.append(relatedIndicator)
 
 # Handle the attributes that do not fit into an indicator
-def handleNonIndicatorAttribute(incident, ttps, attribute):
+def handleNonIndicatorAttribute(incident, ttps, attribute, eventTags):
     if attribute["type"] in ("comment", "text", "other"):
         if attribute["category"] == "Payload type":
-            generateTTP(incident, attribute, ttps)
+            generateTTP(incident, attribute, ttps, eventTags)
         elif attribute["category"] == "Attribution":
             ta = generateThreatActor(attribute)
             rta = RelatedThreatActor(ta, relationship="Attribution")
@@ -185,10 +190,10 @@ def handleNonIndicatorAttribute(incident, ttps, attribute):
             aa.description = attribute["value"]
         incident.affected_assets.append(aa)
     elif attribute["type"] == "vulnerability":
-        generateTTP(incident, attribute, ttps)
+        generateTTP(incident, attribute, ttps, eventTags)
     elif attribute["type"] == "link":
         if attribute["category"] == "Payload delivery":
-            handleIndicatorAttribute(incident, ttps, attribute)
+            handleIndicatorAttribute(incident, ttps, attribute, eventTags)
         else:
             addReference(incident, attribute["value"])
     elif attribute["type"].startswith('target-'):
@@ -200,10 +205,10 @@ def handleNonIndicatorAttribute(incident, ttps, attribute):
     return [incident, ttps]
 
 # TTPs are only used to describe malware names currently (attribute with category Payload Type and type text/comment/other)
-def generateTTP(incident, attribute, ttps):
+def generateTTP(incident, attribute, ttps, eventTags):
     ttp = TTP(timestamp=getDateFromTimestamp(int(attribute["timestamp"])))
     ttp.id_= namespace[1] + ":ttp-" + attribute["uuid"]
-    setTLP(ttp, attribute["distribution"])
+    setTLP(ttp, attribute["distribution"], mergeTags(eventTags, attribute["AttributeTag"]))
     ttp.title = attribute["category"] + ": " + attribute["value"] + " (MISP Attribute #" + attribute["id"] + ")"
     if attribute["type"] == "vulnerability":
         vulnerability = Vulnerability()
@@ -240,12 +245,12 @@ def generateThreatActor(attribute):
     return ta
 
 # generate the indicator and add the relevant information
-def generateIndicator(attribute):
+def generateIndicator(attribute, eventTags):
     indicator = Indicator(timestamp=getDateFromTimestamp(int(attribute["timestamp"])))
     indicator.id_= namespace[1] + ":indicator-" + attribute["uuid"]
     if attribute["comment"] != "":
         indicator.description = attribute["comment"]
-    setTLP(indicator, attribute["distribution"])
+    setTLP(indicator, attribute["distribution"], mergeTags(eventTags, attribute["AttributeTag"]))
     indicator.title = attribute["category"] + ": " + attribute["value"] + " (MISP Attribute #" + attribute["id"] + ")"
     indicator.description = indicator.title
     confidence_description = "Derived from MISP's IDS flag. If an attribute is marked for IDS exports, the confidence will be high, otherwise none"
@@ -278,12 +283,20 @@ def addReference(target, reference):
     if hasattr(target.information_source, "references"):
         target.information_source.add_reference(reference)
 
-# takes an object and applies a TLP marking based on the distribution passed along to it
-def setTLP(target, distribution):
+# takes an object and applies a TLP marking based on TLP tag or MISP distribution level
+def setTLP(target, distribution, tags, sort=False):
     marking_specification = MarkingSpecification()
     marking_specification.controlled_structure = "../../../descendant-or-self::node()"
     tlp = TLPMarkingStructure()
     colour = TLP_mapping.get(distribution, None)
+    for tag in tags:
+        if tag["name"].startswith("tlp:") and tag["name"].count(':') == 1:
+            new_colour = tag["name"][4:].upper()
+            if colour and sort:
+                if TLP_order[colour] < TLP_order[new_colour]:
+                    colour = new_colour
+            else:
+                colour = new_colour
     if colour is None:
         return target
     tlp.color = colour
@@ -297,6 +310,14 @@ def addJournalEntry(incident, entry_line):
     hi = HistoryItem()
     hi.journal_entry = entry_line
     incident.history.append(hi)
+
+# merge event tags with attribute tags
+def mergeTags(eventTags, attributeTags):
+    result = list(eventTags)
+    for tag in attributeTags:
+        if tag.get("Tag"):
+            result.append(tag["Tag"])
+    return result
 
 # main
 def main(args):

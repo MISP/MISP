@@ -764,6 +764,9 @@ class EventsController extends AppController {
 		if (isset($this->params['named']['focus'])) {
 			$this->set('focus', $this->params['named']['focus']);
 		}
+		if (!empty($this->params['named']['overrideLimit'])) {
+			$conditions['overrideLimit'] = 1;
+		}
 		$conditions = array('eventid' => $id);
 		if (isset($this->params['named']['deleted']) && $this->params['named']['deleted']) {
 			$conditions['deleted'] = 1;
@@ -1034,6 +1037,9 @@ class EventsController extends AppController {
 		}
 		if (isset($this->params['named']['public']) && $this->params['named']['public']) {
 			$conditions['distribution'] = array(3, 5);
+		}
+		if (!empty($this->params['named']['overrideLimit']) && !$this->_isRest()) {
+			$conditions['overrideLimit'] = 1;
 		}
 		$conditions['includeFeedCorrelations'] = true;
 		$results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
