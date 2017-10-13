@@ -133,7 +133,8 @@ def resolveObjects(incident, ttps, objects, eventTags):
         indicator.add_valid_time_position(ValidTime())
         indicator.observable_composition_operator = "AND"
         for rindicator in tmp_incident.related_indicators:
-            indicator.add_observable(rindicator.item.observable)
+            if rindicator.item.observable:
+                indicator.add_observable(rindicator.item.observable)
         relatedIndicator = RelatedIndicator(indicator, relationship=obj["meta-category"])
         incident.related_indicators.append(relatedIndicator)
 
