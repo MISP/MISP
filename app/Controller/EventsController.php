@@ -2793,7 +2793,7 @@ class EventsController extends AppController {
 						if (!in_array($temp_id, $eventIds)) $eventIds[] = $temp_id;
 					}
 				} else {
-					if (!in_array($eventid, $eventIds)) $eventIds[] = $eventid;
+					if ($eventid && !in_array($eventid, $eventIds)) $eventIds[] = $eventid;
 				}
 				unset($attributes);
 			}
