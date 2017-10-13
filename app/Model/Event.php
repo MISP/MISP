@@ -419,13 +419,11 @@ class Event extends AppModel {
 		if (!$created) {
 			$this->Correlation = ClassRegistry::init('Correlation');
 			$db = $this->getDataSource();
-			$values = array('id' => $db->value($this->data['Event']['id']));
-			$fields = array('info', 'date');
-			foreach ($fields as $field) {
-				if (isset($this->data['Event'][$field])) {
-					$values[$field] = $db->value($this->data['Event'][$field]);
-					$this->Correlation->updateAll(array('Correlation.' . $field => $values[$field]), array('Correlation.event_id' => $values['id']));
-				}
+			if (isset($this->data['Event']['date'])) {
+				$this->Correlation->updateAll(array('Correlation.date' => $db->value($this->data['Event']['date'])), array('Correlation.event_id' => $db->value($this->data['Event']['id'])));
+			}
+			if (isset($this->data['Event']['info'])) {
+				$this->Correlation->updateAll(array('Correlation.info' => $db->value($this->data['Event']['info'])), array('Correlation.event_id' => $db->value($this->data['Event']['id'])));
 			}
 		}
 	}
