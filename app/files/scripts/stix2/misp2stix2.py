@@ -50,9 +50,9 @@ mispTypesMapping = {'md5': {'observable': {'0': {'type': 'file', 'hashes': ''}},
                                'pattern': 'domain-name:value = \'{0}\''},
                     'domain|ip': {'observable': {'0': {'type': 'domain-name', 'value': '', 'resolves_to_refs': '1'}, '1': {'type': '', 'value': ''}},
                                   'pattern': 'domain-name:value = \'{0}\' AND domain-name:resolves_to_refs[*].value = \'{1}\''},
-                    'email-src': {'observable': {'0': {'type': 'email-addr', 'value': ''}}, 
+                    'email-src': {'observable': {'0': {'type': 'email-addr', 'value': ''}},
                                   'pattern': 'email-addr:value = \'{0}\''},
-                    'email-dst': {'observable': {'0': {'type': 'email-addr', 'value': ''}}, 
+                    'email-dst': {'observable': {'0': {'type': 'email-addr', 'value': ''}},
                                   'pattern': 'email-addr:value = \'{0}\''},
                     'email-subject': {'observable': {'0': {'type': 'email-message', 'subject': '', 'is_multipart': 'false'}},
                                       'pattern': 'email-message:subject = \'{0}\''},
@@ -127,6 +127,28 @@ mispTypesMapping = {'md5': {'observable': {'0': {'type': 'file', 'hashes': ''}},
                                       'pattern': 'domain-name:value = \'{0}\' AND network-traffic:dst_port = \'{1}\''},
                     }
 
+relationshipsSpecifications = {'attack-pattern': {'vulnerability': 'targets', 'identity': 'targets',
+                                                  'malware': 'uses', 'tool': 'uses'},
+                               'campaign': {'intrusion-set': 'attributed-to', 'threat-actor': 'attributed-to',
+                                            'identity': 'targets', 'vulnerability': 'targets',
+                                            'attack-pattern': 'uses', 'malware': 'uses',
+                                            'tool': 'uses'},
+                               'course-of-action':{'attack-pattern': 'mitigates', 'malware': 'mitigates',
+                                                   'tool': 'mitigates', 'vulnerability': 'mitigates'},
+                               'indicator': {'attack-pattern': 'indicates', 'cacmpaign': 'indicates',
+                                             'intrusion-set': 'indicates', 'malware': 'indicates',
+                                             'threat-actor': 'indicates', 'tool': 'indicates'},
+                               'intrusion-set': {'threat-actor': 'attributed-to', 'identity': 'targets',
+                                                 'vulnerability': 'targets', 'attack-pattern': 'uses',
+                                                 'malware': 'uses', 'tool': 'uses'},
+                               'malware': {'identity': 'targets', 'vulnerability': 'targets',
+                                           'tool': 'uses', 'malware': 'variant-of'},
+                               'threat-actor': {'identity': 'attributed-to', 'vulnerability': 'targets',
+                                                'attack-pattern': 'uses', 'malware': 'uses',
+                                                'tool': 'uses'},
+                               'tool': {'identity': 'targets', 'vulnerability': 'targets'}
+                               }
+
 def loadEvent(args, pathname):
     try:
         filename = args[1]
@@ -170,20 +192,22 @@ def readAttributes(event, identity, object_refs, external_refs):
                 handleIndicatorAttribute(object_refs, attributes, attribute, identity)
             else:
                 addObservedData(object_refs, attributes, attribute, identity)
-#    if event['Galaxy']:
-#        galaxies = event['Galaxy']
-#        for galaxy in galaxies:
-#            galaxyType = galaxy['type']
-#            if 'ware' in galaxyType:
-#                addMalware(object_refs, attributes, galaxy, identity)
-#            elif 'intrusion' in galaxyType:
-#                addIntrusionSet(object_refs, attributes, galaxy, identity)
+    if event['Galaxy']:
+        galaxies = event['Galaxy']
+        for galaxy in galaxies:
+            galaxyType = galaxy['type']
+            if 'attack-pattern' in galaxyType:
+                addAttackPattern(object_refs, attributes, galaxy, identity)
+            elif 'intrusion' in galaxyType:
+                addIntrusionSet(object_refs, attributes, galaxy, identity)
+            elif 'ware' in galaxyType:
+                addMalware(object_refs, attributes, galaxy, identity)
 #            elif 'exploit' in galaxyType:
 #                addCampaign(object_refs, attributes, galaxy, identity)
-#            elif 'threat-actor' in galaxyType:
-#                addThreatActor(object_refs, attributes, galaxy, identity)
-#            elif 'rat' in galaxyType or 'tool' in galaxyType:
-#                addTool(object_refs, attributes, galaxy, identity)     
+            elif 'threat-actor' in galaxyType:
+                addThreatActor(object_refs, attributes, galaxy, identity)
+            elif 'rat' in galaxyType or 'tool' in galaxyType:
+                addTool(object_refs, attributes, galaxy, identity)
     return attributes
 
 def handleLink(attribute, external_refs):
@@ -196,8 +220,18 @@ def handleLink(attribute, external_refs):
 
 
 def addAttackPattern(object_refs, attributes, galaxy, identity):
-    attack_id = "attack-pattern--{}".format(galaxy['uuid'])
-    attackPattern = AttackPattern()
+    killchain = [{'kill_chain_name': 'misp-category',
+                  'phase_name': galaxy['type']}
+                 ]
+    cluster = galaxy['GalaxyCluster'][0]
+    attack_id = "attack-pattern--{}".format(cluster['uuid'])
+    name = cluster['value']
+    description = cluster['description']
+    attack_args = {'id': attack_id, 'type': 'attack-pattern', 'created_by_ref': identity, 'name': name,
+                  'description': description, 'kill_chain_phases': killchain}
+    if cluster['tag_name']:
+        attack_args['labels'] = cluster['tag_name']
+    attackPattern = AttackPattern(**attack_args)
     attributes.append(attackPattern)
     object_refs.append(attack_id)
 
@@ -232,7 +266,7 @@ def addCustomObject(object_refs, attributes, attribute, identity):
                          'to_ids': to_ids, 'value': value, 'created_by_ref': identity, 'labels': labels}
     if attribute['comment']:
         customObject_args['comment'] = attribute['comment']
-    # At the moment, we skip it 
+    # At the moment, we skip it
 #    attributes.append(customObject_args)
 #    object_refs.append(customObject_id)
 
@@ -241,21 +275,39 @@ def addIntrusionSet(object_refs, attributes, galaxy, identity):
     intrusionSet_id = "intrusion-set--{}".format(cluster['uuid'])
     name = cluster['value']
     description = cluster['description']
-    labels = 'misp:to_ids=\"{}\"'.format(galaxy['to_ids'])
     intrusion_args = {'id': intrusionSet_id, 'type': 'intrusion-set', 'name': name, 'description': description,
-                      'created_by_ref': identity, 'labels': labels}
+                      'created_by_ref': identity}
     meta = cluster['meta']
-    addAliases(meta, intrusion_args)
+    if "synonyms" in meta:
+        addAliases(meta, intrusion_args)
+    if cluster['tag_name']:
+        intrusion_args['labels'] = cluster['tag_name']
     intrusionSet = IntrusionSet(**intrusion_args)
     attributes.append(intrusionSet)
     object_refs.append(intrusionSet_id)
 
 def addMalware(object_refs, attributes, galaxy, identity):
-    malware_id = "malware--{}".format(galaxy['uuid'])
-    malware_args = {}
+    killchain = [{'kill_chain_name': 'misp-category',
+                  'phase_name': galaxy['type']}
+                 ]
+    cluster = galaxy['GalaxyCluster'][0]
+    malware_id = "malware--{}".format(cluster['uuid'])
+    name = cluster['value']
+    description = cluster['description']
+    malware_args = {'id': malware_id, 'type': 'malware', 'name': name, 'description': description,
+                    'created_by_ref': identity, 'kill_chain_phases': killchain}
+    if cluster['tag_name']:
+        malware_args['labels'] = cluster['tag_name']
     malware = Malware(**malware_args)
     attributes.append(malware)
     object_refs.append(malware_id)
+
+#def addNote(object_refs, attributes, attribute, identity):         ## SEEMS LIKE IT WILL APPEAR IN THE ##
+#    note_id = "note--{}".format(attribute['uuid'])                 ##          UPCOMMING CHANGES       ##
+#    note_args = {}
+#    note = Note(**note_args)
+#    attributes.append(note)
+#    object_refs.append(note)
 
 def addObservedData(object_refs, attributes, attribute, identity):
     observedData_id = "observed-data--{}".format(attribute['uuid'])
@@ -276,18 +328,29 @@ def addThreatActor(object_refs, attributes, galaxy, identity):
     threatActor_id = "threat-actor--{}".format(cluster['uuid'])
     name = cluster['value']
     description = cluster['description']
-    labels = ['crime-syndicate'] # Arbitrary value as a first test
     threatActor_args = {'id': threatActor_id, 'type': 'threat-actor', 'name': name, 'description': description,
-                        'labels': labels, 'created_by_ref': identity}
+                        'created_by_ref': identity}
     meta = cluster['meta']
-    addAliases(meta, threatActor_args)
+    if 'synonyms' in meta:
+        addAliases(meta, threatActor_args)
+    if cluster['tag_name']:
+        threatActor_args['labels'] = cluster['tag_name']
     threatActor = ThreatActor(**threatActor_args)
     attributes.append(threatActor)
     object_refs.append(threatActor_id)
 
 def addTool(object_refs, attributes, galaxy, identity):
-    tool_id = "tool--{}".format(galaxy['uuid'])
-    tool_args = {}
+    killchain = [{'kill_chain_name': 'misp-category',
+                  'phase_name': galaxy['type']}
+                 ]
+    cluster = galaxy['GalaxyCluster'][0]
+    tool_id = "tool--{}".format(cluster['uuid'])
+    name = cluster['value']
+    description = cluster['description']
+    tool_args = {'id': tool_id, 'type': 'tool', 'name': name, 'description': description,
+                 'created_by_ref': identity, 'kill_chain_phases': killchain}
+    if cluster['tag_name']:
+        tool_args['labels'] = cluster['tag_name']
     tool = Tool(**tool_args)
     attributes.append(tool)
     object_refs.append(tool_id)
@@ -305,11 +368,10 @@ def addVulnerability(object_refs, attributes, attribute, identity):
     object_refs.append(vuln_id)
 
 def addAliases(meta, argument):
-    if meta['synonyms']:
-        aliases = []
-        for a in meta['synonyms']:
-            aliases.append(a)
-        argument['aliases'] = aliases
+    aliases = []
+    for a in meta['synonyms']:
+        aliases.append(a)
+    argument['aliases'] = aliases
 
 def handleNonIndicatorAttribute(object_refs, attributes, attribute, identity):
     attr_type = attribute['type']
@@ -336,7 +398,7 @@ def handleIndicatorAttribute(object_refs, attributes, attribute, identity):
     attributes.append(indicator)
     object_refs.append(indic_id)
 
-def buildRelationships():
+def buildRelationships(attributes, object_refs):
     return
 
 def defineObservableObject(attr_type, attr_val):
@@ -364,7 +426,7 @@ def defineObservableObject(attr_type, attr_val):
             object0['values']['name'] = attr_val2
         else:
             object0['name'] = attr_val1
-            object0['hashes'] = {attr_type2: attr_val2}      
+            object0['hashes'] = {attr_type2: attr_val2}
     elif attr_type == 'malware-sample':
         attr_val1, attr_val2 = attr_val.split('|')
         object0['name'] = attr_val1
@@ -458,6 +520,7 @@ def main(args):
     identity = setIdentity(event)
     SDOs.append(identity)
     attributes = readAttributes(event, identity, object_refs, external_refs)
+    buildRelationships(attributes, object_refs)
     report = eventReport(event, identity, object_refs, external_refs)
     SDOs.append(report)
     for attribute in attributes:
