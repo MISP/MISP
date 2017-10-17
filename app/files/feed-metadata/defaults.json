@@ -802,9 +802,9 @@
   {
     "Feed": {
       "id": "36",
-      "name": "ramnit C&Cs",
+      "name": "IPs from High-Confidence DGA-Based C&Cs Actively Resolving",
       "provider": "osint.bambenekconsulting.com",
-      "url": "http://osint.bambenekconsulting.com/feeds/ramnit-iplist.txt",
+      "url": "http://osint.bambenekconsulting.com/feeds/c2-ipmasterlist-high.txt",
       "rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]}}",
       "enabled": true,
       "distribution": "3",
@@ -834,9 +834,9 @@
   {
     "Feed": {
       "id": "37",
-      "name": "virut C&Cs",
+      "name": "Domains from High-Confidence DGA-based C&C Domains Actively Resolving",
       "provider": "osint.bambenekconsulting.com",
-      "url": "http://osint.bambenekconsulting.com/feeds/virut-iplist.txt",
+      "url": "http://osint.bambenekconsulting.com/feeds/c2-dommasterlist-high.txt",
       "rules": "",
       "enabled": true,
       "distribution": "3",
@@ -1115,6 +1115,38 @@
       "delete_local_file": false,
       "lookup_visible": true,
       "cache_timestamp": "1498061932"
+    },
+    "Tag": {
+      "id": "615",
+      "name": "osint:source-type=\"block-or-filter-list\"",
+      "colour": "#004f89",
+      "exportable": true,
+      "org_id": "0",
+      "hide_tag": false
+    }
+  },
+  {
+    "Feed": {
+      "id": "46",
+      "name": "All current domains belonging to known malicious DGAs",
+      "provider": "osint.bambenekconsulting.com",
+      "url": "http://osint.bambenekconsulting.com/feeds/dga-feed-high.csv",
+      "rules": "",
+      "enabled": true,
+      "distribution": "3",
+      "sharing_group_id": "0",
+      "tag_id": "615",
+      "default": false,
+      "source_format": "csv",
+      "fixed_event": false,
+      "delta_merge": true,
+      "event_id": "0",
+      "publish": false,
+      "override_ids": false,
+      "settings": "{\"csv\":{\"value\":\"1\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": true
     },
     "Tag": {
       "id": "615",
