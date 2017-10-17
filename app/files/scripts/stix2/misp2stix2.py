@@ -198,13 +198,15 @@ def readAttributes(event, identity, object_refs, external_refs):
             galaxyType = galaxy['type']
             if 'attack-pattern' in galaxyType:
                 addAttackPattern(object_refs, attributes, galaxy, identity)
+            elif 'course' in galaxyType:
+                addCourseOfAction(object_refs, attributes, galaxy, identity)
             elif 'intrusion' in galaxyType:
                 addIntrusionSet(object_refs, attributes, galaxy, identity)
             elif 'ware' in galaxyType:
                 addMalware(object_refs, attributes, galaxy, identity)
 #            elif 'exploit' in galaxyType:
 #                addCampaign(object_refs, attributes, galaxy, identity)
-            elif 'threat-actor' in galaxyType:
+            elif galaxyType in ['threat-actor', 'microsoft-activity-group']:
                 addThreatActor(object_refs, attributes, galaxy, identity)
             elif 'rat' in galaxyType or 'tool' in galaxyType:
                 addTool(object_refs, attributes, galaxy, identity)
@@ -240,9 +242,10 @@ def addCampaign(object_refs, attributes, galaxy, identity):
     campaign_id = "campaign--{}".format(cluster['uuid'])
     name = cluster['value']
     description = cluster['description']
-    labels = 'misp:to_ids=\"{}\"'.format(galaxy['to_ids'])
     campaign_args = {'id': campaign_id, 'type': 'campaign', 'name': name, 'description': description,
-                     'created_by_ref': identity, 'labels': labels}
+                     'created_by_ref': identity}
+    if cluster['tag_name']:
+        campaign_args['labels'] = cluster['tag_name']
     meta = cluster['meta']
     addAliases(meta, campaign_args)
     campaign = Campaign(**campaign_args)
@@ -250,8 +253,15 @@ def addCampaign(object_refs, attributes, galaxy, identity):
     object_refs.append(campaign_id)
 
 def addCourseOfAction(object_refs, attributes, galaxy, identity):
-    courseOfAction_id = "course-of-action--{}".format(galaxy['uuid'])
-    courseOfAction = CourseOfAction()
+    cluster = galaxy['GalaxyCluster'][0]
+    courseOfAction_id = "course-of-action--{}".format(cluster['uuid'])
+    name = cluster['value']
+    description = cluster['description']
+    courseOfAction_args = {'id': courseOfAction_id, 'type': 'course-of-action', 'name': name,
+                           'description': description, 'created_by_ref': identity}
+    if cluster['tag_name']:
+        courseOfAction_args['labels'] = cluster['tag_name']
+    courseOfAction = CourseOfAction(**courseOfAction_args)
     attributes.append(courseOfAction)
     object_refs.append(courseOfAction_id)
 
