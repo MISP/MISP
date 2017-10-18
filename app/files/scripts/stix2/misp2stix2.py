@@ -204,11 +204,9 @@ def readAttributes(event, identity, object_refs, external_refs):
                 addIntrusionSet(object_refs, attributes, galaxy, identity)
             elif 'ware' in galaxyType:
                 addMalware(object_refs, attributes, galaxy, identity)
-#            elif 'exploit' in galaxyType:
-#                addCampaign(object_refs, attributes, galaxy, identity)
             elif galaxyType in ['threat-actor', 'microsoft-activity-group']:
                 addThreatActor(object_refs, attributes, galaxy, identity)
-            elif 'rat' in galaxyType or 'tool' in galaxyType:
+            elif galaxyType in ['rat', 'exploit-kit'] or 'tool' in galaxyType:
                 addTool(object_refs, attributes, galaxy, identity)
     return attributes
 
