@@ -32,9 +32,9 @@ TLP_mapping = {'0' : 'AMBER', '1' : 'GREEN', '2' : 'GREEN', '3' : 'GREEN', '4' :
 TLP_order = {'RED' : 4, 'AMBER' : 3, 'GREEN' : 2, 'WHITE' : 1}
 confidence_mapping = {False : 'None', True : 'High'}
 
-not_implemented_attributes = ['yara', 'pattern-in-traffic', 'pattern-in-memory']	
+not_implemented_attributes = ['yara', 'pattern-in-traffic', 'pattern-in-memory']
 
-non_indicator_attributes = ['text', 'comment', 'other', 'link', 'target-user', 'target-email', 'target-machine', 'target-org', 'target-location', 'target-external', 'email-target', 'vulnerability', 'attachment']
+non_indicator_attributes = ['text', 'comment', 'other', 'link', 'target-user', 'target-email', 'target-machine', 'target-org', 'target-location', 'target-external', 'vulnerability', 'attachment']
 
 # Load the array from MISP. MISP will call this script with a parameter containing the temporary file it creates for the export (using a generated 12 char alphanumeric name)
 def loadEvent(args, pathname):
