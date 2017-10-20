@@ -124,6 +124,11 @@ $(document).ready(function() {
 				$('#SGContainer').hide();
 			}
 		});
+
+		var start = $("#AttributeType").val();
+	    formCategoryChanged('Attribute');
+	    $("#AttributeType").val(start);
+
 	<?php
 		endif;
 	?>
