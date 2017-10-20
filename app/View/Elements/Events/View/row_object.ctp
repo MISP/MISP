@@ -28,7 +28,7 @@
   <td class="short" colspan="2">
     <?php echo date('Y-m-d', $object['timestamp']); ?>
   </td>
-  <td colspan="<?php echo $fieldCount -5;?>">
+  <td colspan="4">
     <span class="bold">Name: </span><?php echo h($object['name']);?>
     <span class="fa fa-expand useCursorPointer" title="Expand or Collapse" role="button" tabindex="0" aria-label="Expand or Collapse" data-toggle="collapse" data-target="#Object_<?php echo h($object['id']); ?>_collapsible"></span>
     <br />
@@ -49,6 +49,11 @@
         ));
       }
     ?>
+  </td>
+  <td class="shortish">
+    <?php echo h($object['comment']); ?>
+  </td>
+  <td colspan="4">&nbsp;  
   </td>
   <td class="shortish">
     <?php
