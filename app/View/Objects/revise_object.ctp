@@ -13,41 +13,73 @@
     echo $this->Form->input('data', $formSettings);
   ?>
     <div style="margin-bottom:20px;">
-      <span class="bold">Name</span>: <?php echo h($template['ObjectTemplate']['name']); ?><br />
-      <span class="bold">Meta-category</span>: <?php echo h($template['ObjectTemplate']['meta-category']); ?><br />
-      <span class="bold">Distribution</span>:
-      <?php
-        if ($data['Object']['distribution'] != 4) {
-          echo $distributionLevels[$data['Object']['distribution']];
-        } else {
-          echo h($sg[$data['Object']['sharing_group_id']]['SharingGroup']['name']);
-        }
-      ?><br />
-      <span class="bold">Comment</span>: <?php echo h($data['Object']['comment']); ?><br />
-      <span class="bold">Attributes</span>:<br />
-      <?php
-        $attributeFields = array('category', 'type', 'value', 'to_ids' , 'comment', 'uuid', 'distribution');
-        if (!empty($data['Attribute'])):
-          foreach ($data['Attribute'] as $attribute):
-            echo '<span class="bold" style="margin-left:2em;">' . h($attribute['object_relation']) . ':</span><br />';
-            foreach ($attributeFields as $field):
-              if ($field == 'distribution') {
-                if ($attribute['distribution'] != 4) {
-                  $attribute[$field] = $distributionLevels[$attribute['distribution']];
-                } else {
-                  $attribute[$field] = $sg[$attribute['sharing_group_id']]['SharingGroup']['name'];
-                }
+      <table class="table table-condensed table-striped">
+        <tbody>
+          <tr>
+            <td class="bold">Name</td>
+            <td><?php echo h($template['ObjectTemplate']['name']); ?></td>
+          </tr>
+          <tr>
+            <td class="bold">Meta-category</td>
+            <td><?php echo h($template['ObjectTemplate']['meta-category']); ?></td>
+          </tr>
+          <tr>
+            <td class="bold">Distribution</td>
+            <td><?php
+              if ($data['Object']['distribution'] != 4) {
+                echo $distributionLevels[$data['Object']['distribution']];
+              } else {
+                echo h($sg[$data['Object']['sharing_group_id']]['SharingGroup']['name']);
               }
-              if ($field == 'to_ids') $attribute[$field] = $attribute[$field] ? 'Yes' : 'No';
-                if (isset($attribute[$field])):
-      ?>
-                <span class="bold" style="margin-left:4em;"><?php echo Inflector::humanize($field);?></span>: <?php echo h($attribute[$field]); ?><br />
-      <?php
-              endif;
-            endforeach;
-          endforeach;
-        endif;
-      ?>
+            ?></td>
+          </tr>
+          <tr>
+            <td class="bold">Comment</td>
+            <td><?php echo h($data['Object']['comment']); ?></td>
+          </tr>
+          <tr>
+            <table class="table table-condensed table-striped">
+              <thead>
+                <th>Attribute</th>
+                <th>Category</th>
+                <th>Type</th>
+                <th>Value</th>
+                <th>To IDS</th>
+                <th>Comment</th>
+                <th>UUID</th>
+                <th>Distribution</th>
+              </thead>
+              <tbody>
+                <?php
+                  $attributeFields = array('category', 'type', 'value', 'to_ids' , 'comment', 'uuid', 'distribution');
+                  if (!empty($data['Attribute'])):
+                    foreach ($data['Attribute'] as $attribute):
+                      echo '<tr>';
+                      echo '<td>' . h($attribute['object_relation']) . '</td>';
+                      foreach ($attributeFields as $field):
+                        if ($field == 'distribution') {
+                          if ($attribute['distribution'] != 4) {
+                            $attribute[$field] = $distributionLevels[$attribute['distribution']];
+                          } else {
+                            $attribute[$field] = $sg[$attribute['sharing_group_id']]['SharingGroup']['name'];
+                          }
+                        }
+                        if ($field == 'to_ids') $attribute[$field] = $attribute[$field] ? 'Yes' : 'No';
+                          if (isset($attribute[$field])):
+                           echo '<td>'.h($attribute[$field]). '</td>';
+                          else:
+                           echo '<td></td>';
+                          endif;
+                      endforeach;
+                      echo '</tr>';
+                    endforeach;
+                  endif;
+                ?>
+              </tbody>
+            </table>
+          </tr>
+        </tbody>
+      </table>
     </div>
   <?php
     echo $this->Form->button('Submit', array('class' => 'btn btn-primary'));
