@@ -98,10 +98,11 @@ def generateSTIXObjects(event):
     if incident_status_name is not None:
         incident.status = IncidentStatus(incident_status_name)
     setTLP(incident, event["Event"]["distribution"], eventTags)
-    setOrg(incident, event["Org"]["name"])
+    setSrc(incident, event["Org"]["name"])
+    setRep(incident, event["Orgc"]["name"])
     setTag(incident, eventTags)
-    resolveAttributes(incident, ttps, event["Attribute"], eventTags)
-    resolveObjects(incident, ttps, event["Object"], eventTags)
+    resolveAttributes(incident, ttps, event["Attribute"], eventTags, event["Orgc"]["name"])
+    resolveObjects(incident, ttps, event["Object"], eventTags, event["Orgc"]["name"])
     return [incident, ttps]
 
 
@@ -115,12 +116,13 @@ def setDates(incident, date, published):
     incident.time = incident_time
 
 # decide what to do with the objects, as not all of them will become indicators
-def resolveObjects(incident, ttps, objects, eventTags):
+def resolveObjects(incident, ttps, objects, eventTags, org):
     for obj in objects:
         tmp_incident = Incident()
         resolveAttributes(tmp_incident, ttps, obj["Attribute"], eventTags)
         indicator = Indicator(timestamp=getDateFromTimestamp(int(obj["timestamp"])))
         indicator.id_= namespace[1] + ":MispObject-" + obj["uuid"]
+        setProd(indicator, org)
         if obj["comment"] != "":
             indicator.description = obj["comment"]
         tlpTags = eventTags
@@ -139,16 +141,16 @@ def resolveObjects(incident, ttps, objects, eventTags):
         incident.related_indicators.append(relatedIndicator)
 
 # decide what to do with the attribute, as not all of them will become indicators
-def resolveAttributes(incident, ttps, attributes, eventTags):
+def resolveAttributes(incident, ttps, attributes, eventTags, org):
     for attribute in attributes:
         if (attribute["type"] in not_implemented_attributes):
             addJournalEntry(incident, "!Not implemented attribute category/type combination caught! attribute[" + attribute["category"] + "][" + attribute["type"] + "]: " + attribute["value"])
         elif (attribute["type"] in non_indicator_attributes):
             #types that will definitely not become indicators
-            handleNonIndicatorAttribute(incident, ttps, attribute, eventTags)
+            handleNonIndicatorAttribute(incident, ttps, attribute, eventTags, org)
         else:
             #types that may become indicators
-            handleIndicatorAttribute(incident, ttps, attribute, eventTags)
+            handleIndicatorAttribute(incident, ttps, attribute, eventTags, org)
     for rindicator in incident.related_indicators:
         for ttp in ttps:
             ittp=TTP(idref=ttp.id_, timestamp=ttp.timestamp)
@@ -156,8 +158,8 @@ def resolveAttributes(incident, ttps, attributes, eventTags):
     return [incident, ttps]
 
 # Create the indicator and pass the attribute further for observable creation - this can be called from resolveattributes directly or from handleNonindicatorAttribute, for some special cases
-def handleIndicatorAttribute(incident, ttps, attribute, eventTags):
-    indicator = generateIndicator(attribute, eventTags)
+def handleIndicatorAttribute(incident, ttps, attribute, eventTags, org):
+    indicator = generateIndicator(attribute, eventTags, org)
     indicator.add_indicator_type("Malware Artifacts")
     indicator.add_valid_time_position(ValidTime())
     if attribute["type"] == "email-attachment":
@@ -172,7 +174,7 @@ def handleIndicatorAttribute(incident, ttps, attribute, eventTags):
     incident.related_indicators.append(relatedIndicator)
 
 # Handle the attributes that do not fit into an indicator
-def handleNonIndicatorAttribute(incident, ttps, attribute, eventTags):
+def handleNonIndicatorAttribute(incident, ttps, attribute, eventTags, org):
     if attribute["type"] in ("comment", "text", "other"):
         if attribute["category"] == "Payload type":
             generateTTP(incident, attribute, ttps, eventTags)
@@ -194,7 +196,7 @@ def handleNonIndicatorAttribute(incident, ttps, attribute, eventTags):
         generateTTP(incident, attribute, ttps, eventTags)
     elif attribute["type"] == "link":
         if attribute["category"] == "Payload delivery":
-            handleIndicatorAttribute(incident, ttps, attribute, eventTags)
+            handleIndicatorAttribute(incident, ttps, attribute, eventTags, org)
         else:
             addReference(incident, attribute["value"])
     elif attribute["type"].startswith('target-'):
@@ -246,9 +248,10 @@ def generateThreatActor(attribute):
     return ta
 
 # generate the indicator and add the relevant information
-def generateIndicator(attribute, eventTags):
+def generateIndicator(attribute, eventTags, org):
     indicator = Indicator(timestamp=getDateFromTimestamp(int(attribute["timestamp"])))
     indicator.id_= namespace[1] + ":indicator-" + attribute["uuid"]
+    setProd(indicator, org)
     if attribute["comment"] != "":
         indicator.description = attribute["comment"]
     setTLP(indicator, attribute["distribution"], mergeTags(eventTags, attribute["AttributeTag"]))
@@ -270,10 +273,22 @@ def convertToStixDate(date):
     return getDateFromTimestamp(time.mktime(datetime.datetime.strptime(date, "%Y-%m-%d").timetuple()))
 
 # takes an object and adds the passed organisation as the information_source.identity to it.
-def setOrg(target, org):
+def setSrc(target, org):
     ident = Identity(name=org)
     information_source = InformationSource(identity = ident)
     target.information_source = information_source
+
+# takes an object and adds the passed organisation as the reporter.identity to it.
+def setRep(target, org):
+    ident = Identity(name=org)
+    information_source = InformationSource(identity = ident)
+    target.reporter = information_source
+
+# takes an object and adds the passed organisation as the producer.identity to it.
+def setProd(target, org):
+    ident = Identity(name=org)
+    information_source = InformationSource(identity = ident)
+    target.producer = information_source
 
 # takes an object and adds the passed tags as journal entries to it.
 def setTag(target, tags):
