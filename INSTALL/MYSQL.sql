@@ -388,6 +388,7 @@ CREATE TABLE IF NOT EXISTS `logs` (
   `email` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT "",
   `org` varchar(255) COLLATE utf8_bin NOT NULL DEFAULT "",
   `description` text CHARACTER SET utf8 COLLATE utf8_bin,
+  `ip` varchar(45) COLLATE utf8_bin NOT NULL DEFAULT "",
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
