@@ -2741,7 +2741,6 @@ function initPopoverContent(context) {
 			});
 		}
 	}
-	formCategoryChanged('Attribute');
 }
 
 function getFormInfoContent(property, field) {
