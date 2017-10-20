@@ -703,14 +703,21 @@ class ShadowAttributesController extends AppController {
 					$this->redirect(array('controller' => 'events', 'action' => 'view', $existingAttribute['Attribute']['event_id']));
 				}
 			} else {
+				$message = '';
 				if ($this->_isRest()) {
-					$message = '';
 					foreach ($this->ShadowAttribute->validationErrors as $k => $v) {
 						$message .= '[' . $k . ']: ' . $v[0] . PHP_EOL;
 					}
 					throw new NotFoundException('Could not save the proposal. Errors: ' . $message);
 				} else {
-					$this->Session->setFlash(__('The ShadowAttribute could not be saved. Please, try again.'));
+					foreach ($this->ShadowAttribute->validationErrors as $k => $v) {
+						$message .= $v[0] . ' ';
+					}
+					if (!empty($message)) {
+						$this->Session->setFlash(__($message));
+					} else {
+						$this->Session->setFlash(__('The ShadowAttribute could not be saved. Please, try again. '));
+					}
 				}
 			}
 		} else {
