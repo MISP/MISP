@@ -16,7 +16,7 @@ def check():
     try:
         import pymisp  # noqa
     except ImportError:
-        missing_dependencies['pymisp'] = 'Please install pydeep: pip install pymisp'
+        missing_dependencies['pymisp'] = 'Please install pymisp: pip install pymisp'
     try:
         import pydeep  # noqa
     except ImportError:
