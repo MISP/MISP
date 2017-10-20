@@ -407,8 +407,12 @@ class EventsController extends AppController {
 										'fields' => 'event_id',
 										'recursive' => -1,
 								));
-								foreach ($block as $b) {
-									$this->paginate['conditions']['AND'][] = array('Event.id !=' => $b['EventTag']['event_id']);
+								if (!empty($block)) {
+									$sqlSubQuery = 'Event.id NOT IN (';
+									foreach ($block as $b) {
+										$sqlSubQuery .= $b['EventTag']['event_id'] . ',';
+									}
+									$this->paginate['conditions']['AND'][] = substr($sqlSubQuery, 0, -1) . ')';
 								}
 								if ($filterString != "") $filterString .= "|";
 								$filterString .= '!' . (isset($tagName['Tag']['name']) ? $tagName['Tag']['name'] : $piece);
@@ -438,10 +442,12 @@ class EventsController extends AppController {
 										'recursive' => -1,
 								));
 								if (!empty($allow)) {
+									$sqlSubQuery = 'Event.id IN (';
 									foreach ($allow as $a) {
 										$setOR = true;
-										$this->paginate['conditions']['AND']['OR'][] = array('Event.id' => $a['EventTag']['event_id']);
+										$sqlSubQuery .= $a['EventTag']['event_id'] . ',';
 									}
+									$this->paginate['conditions']['AND']['OR'][] = substr($sqlSubQuery, 0, -1) . ')';
 								}
 								if ($filterString != "") $filterString .= "|";
 								$filterString .= isset($tagName['Tag']['name']) ? $tagName['Tag']['name'] : $piece;
