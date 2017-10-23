@@ -263,7 +263,7 @@ class FeedsController extends AppController {
 			$this->Job->create();
 			$data = array(
 					'worker' => 'default',
-					'job_type' => 'fetch_feed',
+					'job_type' => 'fetch_feeds',
 					'job_input' => 'Feed: ' . $feedId,
 					'status' => 0,
 					'retries' => 0,
