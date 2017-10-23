@@ -633,7 +633,8 @@ class ShadowAttributesController extends AppController {
 	public function edit($id = null) {
 		$existingAttribute = $this->ShadowAttribute->Event->Attribute->fetchAttributes($this->Auth->user(), array(
 				'contain' => array('Event' => array('fields' => array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.distribution', 'Event.uuid'))),
-				'conditions' => array('Attribute.id' => $id)
+				'conditions' => array('Attribute.id' => $id),
+				'flatten' => 1
 		));
 		if (empty($existingAttribute)) throw new MethodNotAllowedException('Invalid Attribute.');
 		$existingAttribute = $existingAttribute[0];
