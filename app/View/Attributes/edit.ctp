@@ -132,7 +132,9 @@ $(document).ready(function() {
 	?>
 
 	$("#AttributeCategory, #AttributeType, #AttributeDistribution").change(function() {
+		var start = $("#AttributeType").val();
 		initPopoverContent('Attribute');
+		$("#AttributeType").val(start);
 	});
 });
 </script>
