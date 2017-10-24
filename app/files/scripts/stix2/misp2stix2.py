@@ -16,7 +16,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import sys, json, os, datetime, re
-import pymisp 
+import pymisp
 from stix2 import *
 
 namespace = ['https://github.com/MISP/MISP', 'MISP']
@@ -178,7 +178,7 @@ def setIdentity(event):
 def readAttributes(event, identity, object_refs, external_refs):
     attributes = []
     for attribute in event.attributes:
-        attr_type = attribute['type']
+        attr_type = attribute.type
         if attr_type not in mispTypesMapping:
             continue
         if attr_type in non_indicator_attributes:
@@ -189,12 +189,12 @@ def readAttributes(event, identity, object_refs, external_refs):
             else:
                 handleNonIndicatorAttribute(object_refs, attributes, attribute, identity)
         else:
-            if attribute['to_ids']:
+            if attribute.to_ids:
                 handleIndicatorAttribute(object_refs, attributes, attribute, identity)
             else:
                 addObservedData(object_refs, attributes, attribute, identity)
-    if event['Galaxy']:
-        galaxies = event['Galaxy']
+    if event.Galaxy:
+        galaxies = event.Galaxy
         for galaxy in galaxies:
             galaxyType = galaxy['type']
             if 'attack-pattern' in galaxyType:
@@ -212,10 +212,10 @@ def readAttributes(event, identity, object_refs, external_refs):
     return attributes
 
 def handleLink(attribute, external_refs):
-    url = attribute['value']
+    url = attribute.value
     source = 'url'
     if 'comment' in attribute:
-        source += ' - {}'.format(attribute['comment'])
+        source += ' - {}'.format(attribute.comment)
     link = {'source_name': source, 'url': url}
     external_refs.append(link)
 
@@ -265,27 +265,26 @@ def addCourseOfAction(object_refs, attributes, galaxy, identity):
     object_refs.append(courseOfAction_id)
 
 def addCustomObject(object_refs, attributes, attribute, identity):
-    customObject_id = "x-misp-object--{}".format(attribute['uuid'])
-    timestamp = attribute['timestamp']
-    customObject_type = 'x-misp-object'.format(attribute['type'])
-    to_ids = attribute['to_ids']
-    value = attribute['value']
-    labels = 'misp:to_ids=\"{}\"'.format(attribute['to_ids'])
+    customObject_id = "x-misp-object--{}".format(attribute.uuid)
+    timestamp = attribute.timestamp
+    customObject_type = 'x-misp-object'.format(attribute.type)
+    value = attribute.value
+    labels = 'misp:to_ids=\"{}\"'.format(attribute.to_ids)
     customObject_args = {'type': customObject_type, 'id': customObject_id, 'timestamp': timestamp,
                          'to_ids': to_ids, 'value': value, 'created_by_ref': identity, 'labels': labels}
-    if attribute['comment']:
-        customObject_args['comment'] = attribute['comment']
+    if attribute.comment:
+        customObject_args['comment'] = attribute.comment
     # At the moment, we skip it
 #    attributes.append(customObject_args)
 #    object_refs.append(customObject_id)
 
 def addIdentity(object_refs, attributes, attribute, identity):
-    identity_id = "identity--{}".format(attribute['uuid'])
-    name = attribute['value']
-    identityClass = defineIdentityClass(attribute['type'])
+    identity_id = "identity--{}".format(attribute.uuid)
+    name = attribute.value
+    identityClass = defineIdentityClass(attribute.type)
     identity_args = {'id': identity, 'type': 'identity', 'name': name, 'created_by_ref': identity, 'identity_class': identityClass}
     if 'comment' in attribute:
-        identity_args['descritpion'] = attribute['comment']
+        identity_args['descritpion'] = attribute.comment
     identityObject = Identity(**identity_args)
     attributes.append(identityObject)
     object_refs.append(identityObject)
@@ -330,12 +329,12 @@ def addMalware(object_refs, attributes, galaxy, identity):
 #    object_refs.append(note)
 
 def addObservedData(object_refs, attributes, attribute, identity):
-    observedData_id = "observed-data--{}".format(attribute['uuid'])
-    timestamp = attribute['timestamp']
-    attr_type = attribute['type']
-    attr_val = attribute['value']
+    observedData_id = "observed-data--{}".format(attribute.uuid)
+    timestamp = attribute.timestamp
+    attr_type = attribute.type
+    attr_val = attribute.value
     objects = defineObservableObject(attr_type, attr_val)
-    labels = 'misp:to_ids=\"{}\"'.format(attribute['to_ids'])
+    labels = 'misp:to_ids=\"{}\"'.format(attribute.to_ids)
     observedData_args = {'id': observedData_id, 'type': 'observed-data', 'number_observed': 1,
                          'first_observed': timestamp, 'last_observed': timestamp, 'objects': objects,
                          'created_by_ref': identity, 'labels': labels}
@@ -376,11 +375,11 @@ def addTool(object_refs, attributes, galaxy, identity):
     object_refs.append(tool_id)
 
 def addVulnerability(object_refs, attributes, attribute, identity):
-    vuln_id = "vulnerability--{}".format(attribute['uuid'])
-    name = attribute['value']
+    vuln_id = "vulnerability--{}".format(attribute.uuid)
+    name = attribute.value
     ext_refs = [{'source_name': 'cve',
                  'external_id': name}]
-    labels = 'misp:to_ids=\"{}\"'.format(attribute['to_ids'])
+    labels = 'misp:to_ids=\"{}\"'.format(attribute.to_ids)
     vuln_args = {'type': 'vulnerability', 'id': vuln_id, 'external_references': ext_refs, 'name': name,
                  'created_by_ref': identity, 'labels': labels}
     vulnerability = Vulnerability(**vuln_args)
@@ -394,25 +393,25 @@ def addAliases(meta, argument):
     argument['aliases'] = aliases
 
 def handleNonIndicatorAttribute(object_refs, attributes, attribute, identity):
-    attr_type = attribute['type']
+    attr_type = attribute.type
     if attr_type == "vulnerability":
         addVulnerability(object_refs, attributes, attribute, identity)
     else:
         addObservedData(object_refs, attributes, attribute, identity)
 
 def handleIndicatorAttribute(object_refs, attributes, attribute, identity):
-    indic_id = "indicator--{}".format(attribute['uuid'])
-    category = attribute['category']
+    indic_id = "indicator--{}".format(attribute.uuid)
+    category = attribute.category
     killchain = [{'kill_chain_name': 'misp-category',
                  'phase_name': category}]
-    labels = 'misp:to_ids=\"{}\"'.format(attribute['to_ids'])
-    attr_type = attribute['type']
-    attr_val = attribute['value']
+    labels = 'misp:to_ids=\"{}\"'.format(attribute.to_ids)
+    attr_type = attribute.type
+    attr_val = attribute.value
     args_indicator = {'valid_from': attribute['timestamp'], 'type': 'indicator',
                       'labels': labels, 'pattern': [definePattern(attr_type, attr_val)], 'id': indic_id,
                       'created_by_ref': identity, 'kill_chain_phases': killchain}
-    if attribute['comment']:
-        args_indicator['description'] = attribute['comment']
+    if attribute.comment:
+        args_indicator['description'] = attribute.comment
     indicator = Indicator(**args_indicator)
     attributes.append(indicator)
     object_refs.append(indic_id)
@@ -498,15 +497,15 @@ def defineIdentityClass(attr_type):
     return identityClass
 
 def eventReport(event, identity, object_refs, external_refs):
-    timestamp = event["publish_timestamp"]
-    name = event["info"]
+    timestamp = event.publish_timestamp
+    name = event.info
     labels = []
     if 'Tag' in event:
-        tags = event['Tag']
+        tags = event.Tag
         for tag in tags:
             labels.append(tag['name'])
 
-    args_report = {'type': "report", 'id': "report--{}".format(event["uuid"]), 'created_by_ref': identity["id"],
+    args_report = {'type': "report", 'id': "report--{}".format(event.uuid), 'created_by_ref': identity["id"],
                     'name': name, 'published': timestamp}
 
     if labels:
@@ -522,7 +521,7 @@ def eventReport(event, identity, object_refs, external_refs):
     return report
 
 def generateEventPackage(event, SDOs):
-    bundle_id = event['uuid']
+    bundle_id = event.uuid
     bundle_args = {'type': "bundle", 'spec_version': "2.0", 'id': "bundle--{}".format(bundle_id), 'objects': SDOs}
     bundle = Bundle(**bundle_args)
     return bundle
