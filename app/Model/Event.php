@@ -1980,7 +1980,7 @@ class Event extends AppModel {
 			}
 			$body .= $object['name'] . '/' . $object['meta-category'] . "\n";
 			if (!empty($object['Attribute'])) {
-				$body = $this->__buildAlertEmailAttribute($user, $body, $bodyTempOther, $object['Attribute'], $owner, $oldpublish, '    ');
+				$body .= $this->__buildAlertEmailAttribute($user, $body, $bodyTempOther, $object['Attribute'], $owner, $oldpublish, '    ');
 			}
 		}
 	}
