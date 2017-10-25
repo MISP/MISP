@@ -177,10 +177,11 @@ def setIdentity(event):
 
 def readAttributes(event, identity, object_refs, external_refs):
     attributes = []
+    descFilename = os.path.join(pymisp.__path__[0], 'data/describeTypes.json')
+    descFile = open(descFilename, 'r')
+    types = json.loads(descFile.read())['result']
     for attribute in event.attributes:
         attr_type = attribute.type
-        if attr_type not in mispTypesMapping:
-            continue
         if attr_type in non_indicator_attributes:
             if attr_type == "link":
                 handleLink(attribute, external_refs)
@@ -189,10 +190,16 @@ def readAttributes(event, identity, object_refs, external_refs):
             else:
                 handleNonIndicatorAttribute(object_refs, attributes, attribute, identity)
         else:
-            if attribute.to_ids:
-                handleIndicatorAttribute(object_refs, attributes, attribute, identity)
+            mapping = types['category_type_mappings']
+            if attr_type in mapping['Person']:
+                addIdentity(object_refs, attributes, attribute, identity, 'individual')
+            elif attr_type in mispTypesMapping:
+                if attribute.to_ids:
+                    handleIndicatorAttribute(object_refs, attributes, attribute, identity)
+                else:
+                    addObservedData(object_refs, attributes, attribute, identity)
             else:
-                addObservedData(object_refs, attributes, attribute, identity)
+                continue
     if event.Galaxy:
         galaxies = event.Galaxy
         for galaxy in galaxies:
@@ -271,20 +278,19 @@ def addCustomObject(object_refs, attributes, attribute, identity):
     value = attribute.value
     labels = 'misp:to_ids=\"{}\"'.format(attribute.to_ids)
     customObject_args = {'type': customObject_type, 'id': customObject_id, 'timestamp': timestamp,
-                         'to_ids': to_ids, 'value': value, 'created_by_ref': identity, 'labels': labels}
+                         'to_ids': labels, 'value': value, 'created_by_ref': identity, 'labels': labels}
     if attribute.comment:
         customObject_args['comment'] = attribute.comment
     # At the moment, we skip it
 #    attributes.append(customObject_args)
 #    object_refs.append(customObject_id)
 
-def addIdentity(object_refs, attributes, attribute, identity):
+def addIdentity(object_refs, attributes, attribute, identity, identityClass):
     identity_id = "identity--{}".format(attribute.uuid)
     name = attribute.value
-    identityClass = defineIdentityClass(attribute.type)
-    identity_args = {'id': identity, 'type': 'identity', 'name': name, 'created_by_ref': identity, 'identity_class': identityClass}
-    if 'comment' in attribute:
-        identity_args['descritpion'] = attribute.comment
+    identity_args = {'id': identity_id, 'type': 'identity', 'name': name, 'created_by_ref': identity, 'identity_class': identityClass}
+    if attribute.comment:
+        identity_args['description'] = attribute.comment
     identityObject = Identity(**identity_args)
     attributes.append(identityObject)
     object_refs.append(identityObject)
@@ -490,12 +496,6 @@ def defineAddressType(attr_val):
         addr_type = 'ipv4-addr'
     return addr_type
 
-def defineIdentityClass(attr_type):
-    identityClass = 'unknown'
-    if attr_type in ('**name'):
-        identityClass = 'individual'
-    return identityClass
-
 def eventReport(event, identity, object_refs, external_refs):
     timestamp = event.publish_timestamp
     name = event.info
@@ -512,7 +512,6 @@ def eventReport(event, identity, object_refs, external_refs):
         args_report['labels'] = labels
     else:
         args_report['labels'] = ['threat-report']
-
     if object_refs:
         args_report['object_refs'] = object_refs
     if external_refs:
