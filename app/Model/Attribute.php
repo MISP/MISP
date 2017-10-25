@@ -2938,6 +2938,7 @@ class Attribute extends AppModel {
 		);
 		if (!$this->save($attribute, array('fieldList' => $fieldList))) {
 			$attribute_short = (isset($attribute['category']) ? $attribute['category'] : 'N/A') . '/' . (isset($attribute['type']) ? $attribute['type'] : 'N/A') . ' ' . (isset($attribute['value']) ? $attribute['value'] : 'N/A');
+			$this->Log = ClassRegistry::init('Log');
 			$this->Log->create();
 			$this->Log->save(array(
 				'org' => $user['Organisation']['name'],
