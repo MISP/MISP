@@ -2192,7 +2192,8 @@ class AttributesController extends AppController {
 						'Event' => array(
 								'fields' => array('distribution', 'id', 'org_id'),
 						)
-				)
+				),
+				'flatten' => 1
 		);
 		$attribute = $this->Attribute->fetchAttributes($this->Auth->user(), $params);
 		if (empty($attribute)) throw new NotFoundException(__('Invalid attribute'));
@@ -2228,6 +2229,7 @@ class AttributesController extends AppController {
 		$params = array(
 			'conditions' => array('Attribute.id' => $id),
 			'fields' => $fields,
+			'flatten' => 1,
 			'contain' => array(
 				'Event' => array(
 					'fields' => array('distribution', 'id', 'user_id', 'orgc_id'),
