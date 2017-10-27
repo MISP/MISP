@@ -208,7 +208,7 @@ class Sighting extends AppModel {
 		if (!in_array($type, array(0, 1, 2))) {
 			return 'Invalid type, please change it before you POST 1000000 sightings.';
 		}
-		$attributes = $this->Attribute->fetchAttributes($user, array('conditions' => $conditions));
+		$attributes = $this->Attribute->fetchAttributes($user, array('conditions' => $conditions, 'flatten' => 1));
 		if (empty($attributes)) return 'No valid attributes found that match the criteria.';
 		$sightingsAdded = 0;
 		foreach ($attributes as $attribute) {
