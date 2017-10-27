@@ -74,6 +74,33 @@ class MispObject extends AppModel {
 		return true;
 	}
 
+	public function afterSave($created, $options = array()) {
+		if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_attribute_notifications_enable')) {
+			$pubSubTool = $this->getPubSubTool();
+			$object = $this->find('first', array(
+				'conditions' => array('Object.id' => $this->id),
+				'recursive' => -1
+			));
+			$action = $created ? 'add' : 'edit';
+			if (!empty($this->data['Object']['deleted'])) $action = 'soft-delete';
+			$pubSubTool->object_save($object, $action);
+		}
+		return true;
+	}
+
+	public function beforeDelete($cascade = true) {
+		if (!empty($this->data['Object']['id'])) {
+			if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_object_notifications_enable')) {
+				$pubSubTool = $this->getPubSubTool();
+				$object = $this->find('first', array(
+					'recursive' => -1,
+					'conditions' => array('Object.id' => $this->data['Object']['id'])
+				));
+				$pubSubTool->object_save($object, 'delete');
+			}
+		}
+	}
+
 	public function afterDelete() {
 		if (!empty($this->data[$this->alias]['id'])) {
 			$this->ObjectReference->deleteAll(

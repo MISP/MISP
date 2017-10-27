@@ -936,7 +936,7 @@ class UsersController extends AppController {
 	}
 
 	public function histogram($selected = null) {
-		if (!$this->request->is('ajax') && !$this->_isRest()) throw new MethodNotAllowedException('This function can only be accessed via AJAX or the API.');
+		//if (!$this->request->is('ajax') && !$this->_isRest()) throw new MethodNotAllowedException('This function can only be accessed via AJAX or the API.');
 		if ($selected == '[]') $selected = null;
 		$selectedTypes = array();
 		if ($selected) $selectedTypes = json_decode($selected);
@@ -953,6 +953,23 @@ class UsersController extends AppController {
 		// What org posted what type of attribute
 		$this->loadModel('Attribute');
 		$conditions = array();
+		foreach ($temp as $t) {
+			debug($t);
+			$list = $this->Attribute->find('list', array(
+				'recursive' => -1,
+				'contain' => array('Event'),
+				'fields' => array('Attribute.type', 'COUNT(Attribute.id) AS num_types'),
+				'conditions' => array(
+					'Event.orgc_id' => $t['Event']['orgc_id']
+				),
+				'group' => array('Attribute.type')
+			));
+			debug($list);
+		}
+		throw new Exception();
+		/*
+
+		*/
 		if ($selected) $conditions[] = array('Attribute.type' => $selectedTypes, 'Attribute.deleted' => 0);
 		$fields = array('Event.orgc_id', 'Attribute.type', 'COUNT(Attribute.type) AS num_types');
 		$params = array('recursive' => 0,

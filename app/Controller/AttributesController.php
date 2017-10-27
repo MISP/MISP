@@ -738,9 +738,6 @@ class AttributesController extends AppController {
 				$this->Session->setFlash(__('The attribute has been saved'));
 				// remove the published flag from the event
 				$this->Event->unpublishEvent($eventId);
-				$event['Event']['timestamp'] = $date->getTimestamp();
-				$event['Event']['published'] = 0;
-				$this->Event->save($event);
 				if (!empty($this->Attribute->data['Attribute']['object_id'])) {
 					$object = $this->Attribute->Object->find('first', array(
 						'recursive' => -1,
@@ -1093,9 +1090,7 @@ class AttributesController extends AppController {
 			$this->ShadowAttribute->deleteAll(array('ShadowAttribute.old_id' => $id), false);
 
 			// remove the published flag from the event
-			$result['Event']['timestamp'] = $date->getTimestamp();
-			$result['Event']['published'] = 0;
-			$this->Attribute->Event->save($result, array('fieldList' => array('published', 'timestamp', 'info')));
+			$this->Attribute->Event->unpublishEvent($result['Event']['id']);
 			return true;
 		} else {
 			return false;

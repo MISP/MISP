@@ -51,14 +51,95 @@ class Sighting extends AppModel {
 	}
 
 	public function afterSave($created, $options = array()) {
+		parent::afterSave($created, $options = array());
 		if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_sighting_notifications_enable')) {
 			$pubSubTool = $this->getPubSubTool();
-			$pubSubTool->sighting_save($this->data);
+			$user = array(
+				'org_id' => -1,
+				'Role' => array(
+					'perm_site_admin' => 1
+				)
+			);
+			$sighting = $this->getSighting($this->id, $user);
+			$pubSubTool->sighting_save($sighting, 'add');
 		}
 		return true;
 	}
 
-	public function attachToEvent($event, $user, $attribute_id = false, $extraConditions = false) {
+	public function beforeDelete($cascade = true) {
+		parent::beforeDelete();
+		if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_sighting_notifications_enable')) {
+			$pubSubTool = $this->getPubSubTool();
+			$user = array(
+				'org_id' => -1,
+				'Role' => array(
+					'perm_site_admin' => 1
+				)
+			);
+			$sighting = $this->getSighting($this->id, $user);
+			$pubSubTool->sighting_save($sighting, 'delete');
+		}
+	}
+
+	public function getSighting($id, $user) {
+		$sighting = $this->find('first', array(
+			'recursive' => -1,
+			'contain' => array(
+				'Attribute' => array(
+					'fields' => array('Attribute.value', 'Attribute.id')
+				),
+				'Event' => array(
+					'fields' => array('Event.id', 'Event.uuid', 'Event.orgc_id', 'Event.org_id')
+				)
+			),
+			'conditions' => array('Sighting.id' => $id)
+		));
+		if (empty($sighting)) return array();
+		if ($user['Role']['perm_site_admin'] || $event['Event']['org_id'] == $user['org_id']) $ownEvent = true;
+		if (!$ownEvent) {
+			// if sighting policy == 0 then return false if the sighting doesn't belong to the user
+			if (!Configure::read('Plugin.Sightings_policy') || Configure::read('Plugin.Sightings_policy') == 0) {
+				if ($sighting['Sighting']['org_id'] != $user['org_id']) return array();
+			}
+			// if sighting policy == 1, the user can only see the sighting if they've sighted something in the event once
+			if (Configure::read('Plugin.Sightings_policy') == 1) {
+				$temp = $this->find('first',
+					array(
+						'recursive' => -1,
+						'conditions' => array(
+							'Sighting.event_id' => $sighting['Sighting']['event_id'],
+							'Sighting.org_id' => $user['org_id']
+						)
+					)
+				);
+				if (empty($temp)) return array();
+			}
+		}
+		$anonymise = Configure::read('Plugin.Sightings_anonymise');
+		if ($anonymise) {
+			if ($sighting['Sighting']['org_id'] != $user['org_id']) {
+				unset($sighting['Sighting']['org_id']);
+				unset($sighting['Organisation']);
+			}
+		}
+		// rearrange it to match the event format of fetchevent
+		if (isset($sighting['Organisation'])) {
+			$sighting['Sighting']['Organisation'] = $sighting['Organisation'];
+			unset($sighting['Organisation']);
+		}
+		$sighting['Sighting']['value'] = $sighting['Attribute']['value'];
+		return array('Sighting' => $sighting['Sighting']);
+	}
+
+	public function attachToEvent($event, $user = array(), $attribute_id = false, $extraConditions = false) {
+		if (empty($user)) {
+			$user = array(
+				'org_id' => -1,
+				'Role' => array(
+					'perm_site_admin' => 0
+				)
+			);
+		}
 		$ownEvent = false;
 		if ($user['Role']['perm_site_admin'] || $event['Event']['org_id'] == $user['org_id']) $ownEvent = true;
 		$conditions = array('Sighting.event_id' => $event['Event']['id']);
@@ -93,7 +174,7 @@ class Sighting extends AppModel {
 		$anonymise = Configure::read('Plugin.Sightings_anonymise');
 
 		foreach ($sightings as $k => $sighting) {
-			if ($anonymise && !$user['Role']['perm_site_admin']) {
+			if ($anonymise) {
 				if ($sighting['Sighting']['org_id'] != $user['org_id']) {
 					unset($sightings[$k]['Sighting']['org_id']);
 					unset($sightings[$k]['Organisation']);
