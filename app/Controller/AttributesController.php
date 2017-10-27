@@ -194,9 +194,7 @@ class AttributesController extends AppController {
 				}
 			}
 			if (!empty($successes)) {
-				$this->Event->set('timestamp', $date->getTimestamp());
-				$this->Event->set('published', 0);
-				$this->Event->save($this->Event->data, array('fieldList' => array('published', 'timestamp', 'info')));
+				$this->Event->unpublishEvent($eventId);
 			}
 			if ($this->_isRest()) {
 				if (!empty($successes)) {
@@ -738,9 +736,6 @@ class AttributesController extends AppController {
 				$this->Session->setFlash(__('The attribute has been saved'));
 				// remove the published flag from the event
 				$this->Event->unpublishEvent($eventId);
-				$event['Event']['timestamp'] = $date->getTimestamp();
-				$event['Event']['published'] = 0;
-				$this->Event->save($event);
 				if (!empty($this->Attribute->data['Attribute']['object_id'])) {
 					$object = $this->Attribute->Object->find('first', array(
 						'recursive' => -1,
@@ -1093,9 +1088,7 @@ class AttributesController extends AppController {
 			$this->ShadowAttribute->deleteAll(array('ShadowAttribute.old_id' => $id), false);
 
 			// remove the published flag from the event
-			$result['Event']['timestamp'] = $date->getTimestamp();
-			$result['Event']['published'] = 0;
-			$this->Attribute->Event->save($result, array('fieldList' => array('published', 'timestamp', 'info')));
+			$this->Attribute->Event->unpublishEvent($result['Event']['id']);
 			return true;
 		} else {
 			return false;
@@ -2199,7 +2192,8 @@ class AttributesController extends AppController {
 						'Event' => array(
 								'fields' => array('distribution', 'id', 'org_id'),
 						)
-				)
+				),
+				'flatten' => 1
 		);
 		$attribute = $this->Attribute->fetchAttributes($this->Auth->user(), $params);
 		if (empty($attribute)) throw new NotFoundException(__('Invalid attribute'));
@@ -2235,6 +2229,7 @@ class AttributesController extends AppController {
 		$params = array(
 			'conditions' => array('Attribute.id' => $id),
 			'fields' => $fields,
+			'flatten' => 1,
 			'contain' => array(
 				'Event' => array(
 					'fields' => array('distribution', 'id', 'user_id', 'orgc_id'),

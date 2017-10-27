@@ -102,25 +102,18 @@ class ShadowAttributesController extends AppController {
 			$this->Event->recursive = -1;
 			// Unpublish the event, accepting a proposal is modifying the event after all. Also, reset the lock.
 			$event = $this->Event->read(null, $activeAttribute['Attribute']['event_id']);
-			$fieldList = array('proposal_email_lock', 'id', 'info', 'published', 'timestamp');
-			$event['Event']['timestamp'] = $date->getTimestamp();
-			$event['Event']['proposal_email_lock'] = 0;
-			$event['Event']['published'] = 0;
-			if ($this->Event->save($event, array('fieldList' => $fieldList))) {
-				$this->Log = ClassRegistry::init('Log');
-				$this->Log->create();
-				$this->Log->save(array(
-					'org_id' => $this->Auth->user('org_id'),
-					'model' => 'ShadowAttribute',
-					'model_id' => $id,
-					'email' => $this->Auth->user('email'),
-					'action' => 'accept',
-					'title' => 'Proposal (' . $shadow['id'] . ') of ' . $shadow['org_id'] . ' to Attribute (' . $shadow['old_id'] . ') of Event (' . $shadow['event_id'] . ') accepted - ' . $shadow['category'] . '/' . $shadow['type'] . ' ' . $shadow['value'],
-				));
-				return array('saved' => true, 'success' => 'Proposed change accepted.');
-			} else {
-				return array('false' => true, 'errors' => 'Could not accept proposal.');
-			}
+			$this->Event->unpublishEvent($activeAttribute['Attribute']['event_id'], true);
+			$this->Log = ClassRegistry::init('Log');
+			$this->Log->create();
+			$this->Log->save(array(
+				'org_id' => $this->Auth->user('org_id'),
+				'model' => 'ShadowAttribute',
+				'model_id' => $id,
+				'email' => $this->Auth->user('email'),
+				'action' => 'accept',
+				'title' => 'Proposal (' . $shadow['id'] . ') of ' . $shadow['org_id'] . ' to Attribute (' . $shadow['old_id'] . ') of Event (' . $shadow['event_id'] . ') accepted - ' . $shadow['category'] . '/' . $shadow['type'] . ' ' . $shadow['value'],
+			));
+			return array('saved' => true, 'success' => 'Proposed change accepted.');
 		} else {
 			// If the old_id is set to 0, then we're dealing with a brand new proposed attribute
 			// The idea is to load the event that the new attribute will be attached to, create an attribute to it and set the distribution equal to that of the event
@@ -147,29 +140,24 @@ class ShadowAttributesController extends AppController {
 			$this->Attribute->save($attribute);
 			$this->ShadowAttribute->setDeleted($toDeleteId);
 
-			$fieldList = array('proposal_email_lock', 'id', 'info', 'published');
 			if ($this->Auth->user('org_id') == $event['Event']['orgc_id']) {
+				$this->Event->unpublishEvent($activeAttribute['Attribute']['event_id'], true);
 				$event['Event']['proposal_email_lock'] = 0;
-			}
-			$event['Event']['published'] = 0;
-			$date = new DateTime();
-			$event['Event']['timestamp'] = $date->getTimestamp();
-			if ($this->Event->save($event, array('fieldList' => $fieldList))) {
-				$this->Log = ClassRegistry::init('Log');
-				$this->Log->create();
-				$this->Log->save(array(
-					'org_id' => $this->Auth->user('org_id'),
-					'model' => 'ShadowAttribute',
-					'model_id' => $id,
-					'email' => $this->Auth->user('email'),
-					'action' => 'accept',
-					'title' => 'Proposal (' . $shadowForLog['id'] . ') of ' . $shadowForLog['org_id'] . ' to Event(' . $shadowForLog['event_id'] . ') accepted',
-					'change' => null,
-				));
-				return array('saved' => true, 'success' => 'Proposal accepted.');
 			} else {
-				return array('false' => true, 'errors' => 'Could not accept proposal.');
+				$this->Event->unpublishEvent($activeAttribute['Attribute']['event_id']);
 			}
+			$this->Log = ClassRegistry::init('Log');
+			$this->Log->create();
+			$this->Log->save(array(
+				'org_id' => $this->Auth->user('org_id'),
+				'model' => 'ShadowAttribute',
+				'model_id' => $id,
+				'email' => $this->Auth->user('email'),
+				'action' => 'accept',
+				'title' => 'Proposal (' . $shadowForLog['id'] . ') of ' . $shadowForLog['org_id'] . ' to Event(' . $shadowForLog['event_id'] . ') accepted',
+				'change' => null,
+			));
+			return array('saved' => true, 'success' => 'Proposal accepted.');
 		}
 	}
 

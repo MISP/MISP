@@ -88,6 +88,21 @@ class PubSubTool {
 		return $this->__pushToRedis(':data:misp_json', $json);
 	}
 
+	public function event_save($event, $action) {
+		if (!empty($action)) $event['action'] = $action;
+		return $this->__pushToRedis(':data:misp_json_event', json_encode($event, JSON_PRETTY_PRINT));
+	}
+
+	public function object_save($object, $action) {
+		if (!empty($action)) $object['action'] = $action;
+		return $this->__pushToRedis(':data:misp_json_object', json_encode($object, JSON_PRETTY_PRINT));
+	}
+
+	public function object_reference_save($object_reference, $action) {
+		if (!empty($action)) $object_reference['action'] = $action;
+		return $this->__pushToRedis(':data:misp_json_object_reference', json_encode($object_reference, JSON_PRETTY_PRINT));
+	}
+
 	public function publishConversation($message) {
 			return $this->__pushToRedis(':data:misp_json_conversation', json_encode($message, JSON_PRETTY_PRINT));
 	}
@@ -99,15 +114,18 @@ class PubSubTool {
 		return true;
 	}
 
-	public function attribute_save($attribute) {
+	public function attribute_save($attribute, $action = false) {
+		if (!empty($action)) $attribute['action'] = $action;
 		return $this->__pushToRedis(':data:misp_json_attribute', json_encode($attribute, JSON_PRETTY_PRINT));
 	}
 
-	public function sighting_save($sighting) {
+	public function sighting_save($sighting, $action = false) {
+		if (!empty($action)) $sighting['action'] = $action;
 		return $this->__pushToRedis(':data:misp_json_sighting', json_encode($sighting, JSON_PRETTY_PRINT));
 	}
 
-	public function modified($data, $type) {
+	public function modified($data, $type, $action = false) {
+		if (!empty($action)) $data['action'] = $action;
 		return $this->__pushToRedis(':data:misp_json_' . $type, json_encode($data, JSON_PRETTY_PRINT));
 	}
 

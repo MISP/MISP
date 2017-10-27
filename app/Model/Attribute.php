@@ -559,7 +559,20 @@ class Attribute extends AppModel {
 		}
 		if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_attribute_notifications_enable')) {
 			$pubSubTool = $this->getPubSubTool();
-			$pubSubTool->attribute_save($this->data);
+			$attribute = $this->fetchAttribute($this->id);
+			if (!empty($attribute)) {
+				$user = array(
+					'org_id' => -1,
+					'Role' => array(
+						'perm_site_admin' => 1
+					)
+				);
+				$attribute['Attribute']['Sighting'] = $this->Sighting->attachToEvent($attribute, $user, $this->id);
+				if (empty($attribute['Object']['id'])) unset($attribute['Object']);
+				$action = $created ? 'add' : 'edit';
+				if (!empty($this->data['Attribute']['deleted'])) $action = 'soft-delete';
+				$pubSubTool->attribute_save($attribute, $action);
+			}
 		}
 		if (Configure::read('MISP.enable_advanced_correlations') && in_array($this->data['Attribute']['type'], array('ip-src', 'ip-dst', 'domain-ip')) && strpos($this->data['Attribute']['value'], '/')) {
 			$this->setCIDRList();
@@ -592,6 +605,12 @@ class Attribute extends AppModel {
 		}
 		// update correlation..
 		$this->__beforeDeleteCorrelation($this->data['Attribute']['id']);
+		if (!empty($this->data['Attribute']['id'])) {
+			if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_attribute_notifications_enable')) {
+				$pubSubTool = $this->getPubSubTool();
+				$pubSubTool->attribute_save($this->data, 'delete');
+			}
+		}
 	}
 
 	public function afterDelete() {
@@ -2256,6 +2275,39 @@ class Attribute extends AppModel {
 			$params['conditions']['AND'][] = $options['conditions'];
 		}
 		return $this->find('list', $params);
+	}
+
+	/*
+	 * Unlike the other fetchers, this one foregoes any ACL checks.
+	 * the objective is simple: Fetch the given attribute with all related objects needed for the ZMQ output,
+	 * standardising on this function for fetching the attribute to be passed to Attribute->save()
+	 */
+	public function fetchAttribute($id) {
+		$attribute = $this->find('first', array(
+			'recursive' => -1,
+			'conditions' => array('Attribute.id' => $id),
+			'contain' => array(
+				'Event' => array(
+					'Orgc' => array(
+						'fields' => array('Orgc.id', 'Orgc.uuid', 'Orgc.name')
+					),
+					'fields' => array('Event.id', 'Event.date', 'Event.info', 'Event.uuid', 'Event.published', 'Event.analysis', 'Event.threat_level_id', 'Event.org_id', 'Event.orgc_id', 'Event.distribution', 'Event.sharing_group_id')
+				),
+				'AttributeTag' => array(
+					'Tag' => array('fields' => array('Tag.id', 'Tag.name', 'Tag.colour', 'Tag.exportable'))
+				),
+				'Object'
+			)
+		));
+		if (!empty($attribute)) {
+			if (!empty($attribute['AttributeTag'])) {
+				foreach ($attribute['AttributeTag'] as $at) {
+					if ($at['Tag']['exportable']) $attribute['Attribute']['Tag'][] = $at['Tag'];
+				}
+			}
+			unset($attribute['AttributeTag']);
+		}
+		return $attribute;
 	}
 
 	public function fetchAttributesSimple($user, $options = array()) {

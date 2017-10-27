@@ -29,6 +29,7 @@ line.link {
   padding: 0px;
   margin: 0px;
   width: 250px;
+  max-height: 300px;
 }
 .menu li {
   color: white;

@@ -345,6 +345,12 @@ class Event extends AppModel {
 			$this->EventBlacklist->create();
 			$orgc = $this->Orgc->find('first', array('conditions' => array('Orgc.id' => $this->data['Event']['orgc_id']), 'recursive' => -1, 'fields' => array('Orgc.name')));
 			$this->EventBlacklist->save(array('event_uuid' => $this->data['Event']['uuid'], 'event_info' => $this->data['Event']['info'], 'event_orgc' => $orgc['Orgc']['name']));
+			if (!empty($this->data['Event']['id'])) {
+				if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_attribute_notifications_enable')) {
+					$pubSubTool = $this->getPubSubTool();
+					$pubSubTool->event_save(array('Event' => $this->data['Event']), 'delete');
+				}
+			}
 		}
 
 		// delete all of the event->tag combinations that involve the deleted event
@@ -425,6 +431,11 @@ class Event extends AppModel {
 			if (isset($this->data['Event']['info'])) {
 				$this->Correlation->updateAll(array('Correlation.info' => $db->value($this->data['Event']['info'])), array('Correlation.event_id' => $db->value($this->data['Event']['id'])));
 			}
+		}
+		if (empty($this->data['Event']['unpublishAction']) && empty($this->data['Event']['skip_zmq']) && Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_event_notifications_enable')) {
+			$pubSubTool = $this->getPubSubTool();
+			$event = $this->quickFetchEvent($this->data['Event']['id']);
+			if (!empty($event)) $pubSubTool->event_save($event, $created ? 'add' : 'edit');
 		}
 	}
 
@@ -1334,6 +1345,27 @@ class Event extends AppModel {
 			$results = $this->find('all', $params);
 		}
 		return $results;
+	}
+
+	/*
+	 * Unlike the other fetchers, this one foregoes any ACL checks.
+	 * the objective is simple: Fetch the given event with all related objects needed for the ZMQ output,
+	 * standardising on this function for fetching the event to be passed to the pubsub handler
+	 */
+	public function quickFetchEvent($id) {
+		$event = $this->find('first', array(
+			'recursive' => -1,
+			'conditions' => array('Event.id' => $id),
+			'contain' => array(
+				'Orgc' => array(
+					'fields' => array('Orgc.id', 'Orgc.uuid', 'Orgc.name')
+				),
+				'EventTag' => array(
+					'Tag' => array('fields' => array('Tag.id', 'Tag.name', 'Tag.colour', 'Tag.exportable'))
+				)
+			)
+		));
+		return $event;
 	}
 
 	//Once the data about the user is gathered from the appropriate sources, fetchEvent is called from the controller or background process.
@@ -2767,6 +2799,7 @@ class Event extends AppModel {
 			$fieldList = array('published', 'id', 'info', 'publish_timestamp');
 			$event['Event']['published'] = 1;
 			$event['Event']['publish_timestamp'] = time();
+			$event['Event']['skip_zmq'] = 1;
 			$this->save($event, array('fieldList' => $fieldList));
 		}
 		if (Configure::read('Plugin.ZeroMQ_enable')) {
@@ -2775,7 +2808,7 @@ class Event extends AppModel {
 			if (!empty($hostOrg)) {
 				$user = array('org_id' => $hostOrg['Org']['id'], 'Role' => array('perm_sync' => 0, 'perm_audit' => 0, 'perm_site_admin' => 0), 'Organisation' => $hostOrg['Org']);
 				$fullEvent = $this->fetchEvent($user, array('eventid' => $id));
-				if (!empty($fullEvent)) $pubSubTool->publishEvent($fullEvent[0]);
+				if (!empty($fullEvent)) $pubSubTool->publishEvent($fullEvent[0], 'publish');
 			}
 		}
 		$uploaded = $this->uploadEventToServersRouter($id, $passAlong);
@@ -3839,7 +3872,7 @@ class Event extends AppModel {
 		$this->__assetCache = array();
 	}
 
-	public function unpublishEvent($id) {
+	public function unpublishEvent($id, $proposalLock = false) {
 		$event = $this->find('first', array(
 			'recursive' => -1,
 			'conditions' => array('Event.id' => $id)
@@ -3848,6 +3881,8 @@ class Event extends AppModel {
 		$event['Event']['published'] = 0;
 		$date = new DateTime();
 		$event['Event']['timestamp'] = $date->getTimestamp();
+		if ($proposalLock) $event['Event']['proposal_email_lock'] = 0;
+		$event['Event']['unpublishAction'] = true;
 		return $this->save($event);
 	}
 }
