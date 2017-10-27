@@ -1079,8 +1079,6 @@ class AppModel extends Model {
 						foreach ($hotfixes as $hotfix => $requiresLogout) $updates[$major . '.' . $minor . '.' . $hotfix] = $requiresLogout;
 					}
 				}
-			} else {
-				// we'll fill this out when 3.0 comes around
 			}
 		}
 		return $updates;
