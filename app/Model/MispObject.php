@@ -76,14 +76,16 @@ class MispObject extends AppModel {
 
 	public function afterSave($created, $options = array()) {
 		if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_attribute_notifications_enable')) {
-			$pubSubTool = $this->getPubSubTool();
-			$object = $this->find('first', array(
-				'conditions' => array('Object.id' => $this->id),
-				'recursive' => -1
-			));
-			$action = $created ? 'add' : 'edit';
-			if (!empty($this->data['Object']['deleted'])) $action = 'soft-delete';
-			$pubSubTool->object_save($object, $action);
+			if (empty($this->data['Object']['skip_zmq'])) {
+				$pubSubTool = $this->getPubSubTool();
+				$object = $this->find('first', array(
+					'conditions' => array('Object.id' => $this->id),
+					'recursive' => -1
+				));
+				$action = $created ? 'add' : 'edit';
+				if (!empty($this->data['Object']['deleted'])) $action = 'soft-delete';
+				$pubSubTool->object_save($object, $action);
+			}
 		}
 		return true;
 	}
@@ -577,6 +579,7 @@ class MispObject extends AppModel {
 			'conditions' => array('Object.id' => $id)
 		));
 		$object['Object']['timestamp'] = $date->getTimestamp();
+		$object['Object']['skip_zmq'] = 1;
 		$result = $this->save($object);
 		return $result;
 	}
