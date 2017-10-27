@@ -2277,6 +2277,7 @@ class EventsController extends AppController {
 					}
 					$line2 = rtrim($line2, ",");
 					$line = $line1 . ',' . $line2;
+					$line = rtrim($line, ",");
 					if ($includeContext) {
 						foreach ($this->Event->csv_event_context_fields_to_fetch as $header => $field) {
 							if ($field['object']) $line .= ',' . $attribute['Event'][$field['object']][$field['var']];
