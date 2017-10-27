@@ -488,6 +488,7 @@ class ShadowAttribute extends AppModel {
 			$event['Event']['proposal_email_lock'] = 0;
 		}
 		$fieldList = array('proposal_email_lock', 'id', 'info');
+		$event['Event']['skip_zmq'] = 1;
 		$this->Event->save($event, array('fieldList' => $fieldList));
 	}
 

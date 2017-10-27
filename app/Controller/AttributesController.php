@@ -194,9 +194,7 @@ class AttributesController extends AppController {
 				}
 			}
 			if (!empty($successes)) {
-				$this->Event->set('timestamp', $date->getTimestamp());
-				$this->Event->set('published', 0);
-				$this->Event->save($this->Event->data, array('fieldList' => array('published', 'timestamp', 'info')));
+				$this->Event->unpublishEvent($eventId);
 			}
 			if ($this->_isRest()) {
 				if (!empty($successes)) {

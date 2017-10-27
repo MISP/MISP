@@ -432,7 +432,7 @@ class Event extends AppModel {
 				$this->Correlation->updateAll(array('Correlation.info' => $db->value($this->data['Event']['info'])), array('Correlation.event_id' => $db->value($this->data['Event']['id'])));
 			}
 		}
-		if (empty($this->data['Event']['unpublishAction']) && Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_event_notifications_enable')) {
+		if (empty($this->data['Event']['unpublishAction']) && empty($this->data['Event']['skip_zmq']) && Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_event_notifications_enable')) {
 			$pubSubTool = $this->getPubSubTool();
 			$event = $this->quickFetchEvent($this->data['Event']['id']);
 			if (!empty($event)) $pubSubTool->event_save($event, $created ? 'add' : 'edit');
@@ -2799,6 +2799,7 @@ class Event extends AppModel {
 			$fieldList = array('published', 'id', 'info', 'publish_timestamp');
 			$event['Event']['published'] = 1;
 			$event['Event']['publish_timestamp'] = time();
+			$event['Event']['skip_zmq'] = 1;
 			$this->save($event, array('fieldList' => $fieldList));
 		}
 		if (Configure::read('Plugin.ZeroMQ_enable')) {
@@ -3871,7 +3872,7 @@ class Event extends AppModel {
 		$this->__assetCache = array();
 	}
 
-	public function unpublishEvent($id) {
+	public function unpublishEvent($id, $proposalLock = false) {
 		$event = $this->find('first', array(
 			'recursive' => -1,
 			'conditions' => array('Event.id' => $id)
@@ -3880,6 +3881,7 @@ class Event extends AppModel {
 		$event['Event']['published'] = 0;
 		$date = new DateTime();
 		$event['Event']['timestamp'] = $date->getTimestamp();
+		if ($proposalLock) $event['Event']['proposal_email_lock'] = 0;
 		$event['Event']['unpublishAction'] = true;
 		return $this->save($event);
 	}

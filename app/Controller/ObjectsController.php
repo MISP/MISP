@@ -510,9 +510,7 @@ class ObjectsController extends AppController {
 					false
 				);
 			}
-			$object['Event']['timestamp'] = $date->getTimestamp();
-			$object['Event']['published'] = 0;
-			$this->MispObject->Event->save($object, array('fieldList' => array('published', 'timestamp', 'info')));
+			$this->MispObject->Event->unpublishEvent($object['Event']['id']);
 			$object_refs = $this->MispObject->ObjectReference->find('all', array(
 				'conditions' => array(
 					'ObjectReference.referenced_type' => 1,
