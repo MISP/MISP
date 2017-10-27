@@ -2251,12 +2251,32 @@ class EventsController extends AppController {
 				}
 			}
 		}
+		$requested_attributes = ['uuid', 'event_id', 'category', 'type',
+								'value', 'comment', 'to_ids', 'timestamp'];
+		$requested_obj_attributes = ['uuid', 'name', 'meta-category'];
+		if($this->params['url']['attributes']) {
+		    $requested_attributes = explode(',', $this->params['url']['attributes']);
+			 $requested_obj_attributes = array();
+		}
+		if($this->params['url']['obj_attributes']) {
+		    $requested_obj_attributes = explode(',', $this->params['url']['obj_attributes']);
+		}
 		if (isset($events)) {
 			foreach ($events as $eventid) {
 				$attributes = $this->Event->csv($user, $eventid, $ignore, $list, false, $category, $type, $includeContext, $enforceWarninglist);
 				$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
 				foreach ($attributes as $attribute) {
-					$line = $attribute['Attribute']['uuid'] . ',' . $attribute['Attribute']['event_id'] . ',' . $attribute['Attribute']['category'] . ',' . $attribute['Attribute']['type'] . ',' . $attribute['Attribute']['value'] . ',' . $attribute['Attribute']['comment'] . ',' . intval($attribute['Attribute']['to_ids']) . ',' . $attribute['Attribute']['timestamp'] . ',' . $attribute['Object']['uuid'] . ',' . $attribute['Object']['name'] . ',' . $attribute['Object']['meta-category'];
+					$line1 = '';
+					$line2 = '';
+					foreach ($requested_attributes as $requested_attribute) {
+						$line1 .= $attribute['Attribute'][$requested_attribute] . ',';
+					}
+					$line1 = rtrim($line1, ",");
+					foreach ($requested_obj_attributes as $requested_obj_attribute) {
+						$line2 .= $attribute['Object'][$requested_obj_attribute] . ',';
+					}
+					$line2 = rtrim($line2, ",");
+					$line = $line1 . ',' . $line2;
 					if ($includeContext) {
 						foreach ($this->Event->csv_event_context_fields_to_fetch as $header => $field) {
 							if ($field['object']) $line .= ',' . $attribute['Event'][$field['object']][$field['var']];
@@ -2276,11 +2296,14 @@ class EventsController extends AppController {
 			$filename = "misp.event_" . $exportType . ".csv";
 		}
 		$this->layout = 'text/default';
-		$headers = array('uuid', 'event_id', 'category', 'type', 'value', 'comment', 'to_ids', 'date', 'object_uuid', 'object_name', 'object_meta_category');
+		if (!empty($requested_obj_attributes)) {
+			array_walk($requested_obj_attributes, function(&$value, $key) { $value = 'object-'.$value; } );
+		}
+		$headers = array_merge($requested_attributes, $requested_obj_attributes);
 		if ($includeContext) $headers = array_merge($headers, array_keys($this->Event->csv_event_context_fields_to_fetch));
 		$headers = implode(',', $headers);
 		$final = array_merge(array($headers), $final);
-		$final = implode (PHP_EOL, $final);
+		$final = implode(PHP_EOL, $final);
 		$final .= PHP_EOL;
 		return $this->RestResponse->viewData($final, 'csv', false, true, $filename);
 	}
