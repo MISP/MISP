@@ -82,7 +82,7 @@ class TasksController extends AppController {
 		if ($type === 'pull_all') $this->_pullScheduler($timestamp, $id);
 		if ($type === 'push_all') $this->_pushScheduler($timestamp, $id);
 		if ($type === 'cache_feeds') $this->_feedScheduler($timestamp, $id, 1);
-		if ($type === 'pull_feeds') $this->_feedScheduler($timestamp, $id, 0);
+		if ($type === 'fetch_feeds') $this->_feedScheduler($timestamp, $id, 0);
 	}
 
 	private function _cacheScheduler($timestamp, $id) {
