@@ -1862,10 +1862,9 @@ class Event extends AppModel {
 				if (!empty($attribute['Event']['EventTag'])) {
 					$tags = array();
 					foreach ($attribute['Event']['EventTag'] as $eventTag) {
-						if (!empty($attribute['Event']['Tag']['name'])) {
-							$tags[] = $attribute['Event']['Tag']['name'];
+						if (!empty($eventTag['Tag']['name'])) {
+							$tags[] = $eventTag['Tag']['name'];
 						}
-						$attribute['Event']['Tag']['name'] .= str_replace(array('"'), '""', $eventTag['Tag']['name']);
 					}
 					$attribute['Event']['Tag']['name'] = implode(',', $tags);
 				}
