@@ -1770,6 +1770,11 @@ class Event extends AppModel {
 		return $results;
 	}
 
+	private function __escapeCSVField(&$field) {
+		$field = str_replace(array('"'), '""', $field);
+		$field = '"' . $field . '"';
+	}
+
 	public function csv($user, $eventid=false, $ignore=false, $attributeIDList = array(), $tags = false, $category = false, $type = false, $includeContext = false, $from = false, $to = false, $last = false, $enforceWarninglist = false) {
 		$this->recursive = -1;
 		$conditions = array();
@@ -1839,31 +1844,32 @@ class Event extends AppModel {
 		$attributes = $this->Attribute->fetchAttributes($user, $params);
 		if (empty($attributes)) return array();
 		foreach ($attributes as &$attribute) {
-			$attribute['Attribute']['value'] = str_replace(array('"'), '""', $attribute['Attribute']['value']);
-			$attribute['Attribute']['value'] = '"' . $attribute['Attribute']['value'] . '"';
-			$attribute['Attribute']['comment'] = str_replace(array('"'), '""', $attribute['Attribute']['comment']);
-			$attribute['Attribute']['comment'] = '"' . $attribute['Attribute']['comment'] . '"';
+			$this->__escapeCSVField($attribute['Attribute']['value']);
+			$this->__escapeCSVField($attribute['Attribute']['comment']);
 			$attribute['Attribute']['timestamp'] = date('Ymd', $attribute['Attribute']['timestamp']);
 			if (empty($attribute['Object'])) {
 					$attribute['Object']['uuid'] = '""';
 					$attribute['Object']['name'] = '';
 					$attribute['Object']['meta-category'] = '';
 			}
-			$attribute['Object']['name'] = str_replace(array('"'), '""', $attribute['Object']['name']);
-			$attribute['Object']['name'] = '"' . $attribute['Object']['name'] . '"';
-			$attribute['Object']['meta-category'] = str_replace(array('"'), '""', $attribute['Object']['meta-category']);
-			$attribute['Object']['meta-category'] = '"' . $attribute['Object']['meta-category'] . '"';
+			$this->__escapeCSVField($attribute['Object']['name']);
+			$this->__escapeCSVField($attribute['Object']['meta-category']);
 			if ($includeContext) {
-				$attribute['Event']['info'] = str_replace(array('"'), '""', $attribute['Event']['info']);
-				$attribute['Event']['info'] = '"' . $attribute['Event']['info'] . '"';
+				$this->__escapeCSVField($attribute['Event']['info']);
+				$this->__escapeCSVField($attribute['Org']['name']);
+				$this->__escapeCSVField($attribute['Orgc']['name']);
 				$attribute['Event']['Tag']['name'] = '';
 				if (!empty($attribute['Event']['EventTag'])) {
+					$tags = array();
 					foreach ($attribute['Event']['EventTag'] as $eventTag) {
-						if (!empty($attribute['Event']['Tag']['name'])) $attribute['Event']['Tag']['name'] .= ',';
+						if (!empty($attribute['Event']['Tag']['name'])) {
+							$tags[] = $attribute['Event']['Tag']['name'];
+						}
 						$attribute['Event']['Tag']['name'] .= str_replace(array('"'), '""', $eventTag['Tag']['name']);
 					}
+					$attribute['Event']['Tag']['name'] = implode(',', $tags);
 				}
-				if (!empty($attribute['Event']['Tag']['name'])) $attribute['Event']['Tag']['name'] = '"' . $attribute['Event']['Tag']['name'] . '"';
+				$this->__escapeCSVField($attribute['Event']['Tag']['name']);
 			}
 		}
 		return $attributes;
