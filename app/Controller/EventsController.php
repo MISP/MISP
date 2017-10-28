@@ -2302,6 +2302,7 @@ class EventsController extends AppController {
 		$headers = array_merge($requested_attributes, $requested_obj_attributes);
 		if ($includeContext) $headers = array_merge($headers, array_keys($this->Event->csv_event_context_fields_to_fetch));
 		foreach ($headers as $k => $v) {
+			$headers[$k] = str_replace('-', '_', $v);
 			if ($v == 'timestamp') $headers[$k] = 'date';
 		}
 		$headers = implode(',', $headers);
