@@ -918,6 +918,7 @@ class Event extends AppModel {
 		}
 		$serverModel = ClassRegistry::init('Server');
 		$server = $serverModel->eventFilterPushableServers($event, array($server));
+
 		if (empty($server)) return 403;
 		$server = $server[0];
 		if ($this->checkDistributionForPush($event, $server, $context = 'Event')) {
@@ -3829,7 +3830,9 @@ class Event extends AppModel {
 			));
 			$sharingGroupData = array();
 			foreach ($sharingGroupDataTemp as $k => $v) {
-				$sharingGroupData[$v['SharingGroup']['id']] = $v;
+				$v['SharingGroup']['SharingGroupOrg'] = $v['SharingGroupOrg'];
+				$v['SharingGroup']['SharingGroupServer'] = $v['SharingGroupServer'];
+				$sharingGroupData[$v['SharingGroup']['id']] = array('SharingGroup' => $v['SharingGroup']);
 			}
 			if ($useCache) $this->__assetCache['sharingGroupData'] = $sharingGroupData;
 			return $sharingGroupData;
