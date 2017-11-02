@@ -3833,8 +3833,10 @@ class EventsController extends AppController {
 				$categories[] = $k;
 			}
 		}
+		$default_distribution = !empty(Configure::read('MISP.default_attribute_distribution')) ? Configure::read('MISP.default_attribute_distribution') : 5;
+		if ($default_distribution == 'event') $default_distribution = 5;
 		$parameter_options = array(
-				'distribution' => array('valid_options' => array(0, 1, 2, 3, 5), 'default' => 0),
+				'distribution' => array('valid_options' => array(0, 1, 2, 3, 5), 'default' => $default_distribution),
 				'threat_level_id' => array('valid_options' => array(1, 2, 3, 4), 'default' => 4),
 				'analysis' => array('valid_options' => array(0, 1, 2), 'default' => 0),
 				'info' => array('default' =>  'Malware samples uploaded on ' . date('Y-m-d')),
@@ -3854,7 +3856,6 @@ class EventsController extends AppController {
 		}
 
 		if (isset($data['request'])) $data = $data['request'];
-
 		foreach ($parameter_options as $k => $v) {
 			if (isset($data[$k])) {
 				if (isset($v['valid_options']) && !in_array($data[$k], $v['valid_options'])) {
@@ -3970,13 +3971,15 @@ class EventsController extends AppController {
 			}
 			if (!empty($result)) {
 				foreach ($result['Object'] as $object) {
-					$object['distribution'] = $data['settings']['distribution'];
-					$object['sharing_group_id'] = isset($data['settings']['distribution']) ? $data['settings']['distribution'] : 0;
+					if (isset($data['settings']['distribution'])) $object['distribution'] = $data['settings']['distribution'];
+					$object['sharing_group_id'] = isset($data['settings']['sharing_group_id']) ? $data['settings']['sharing_group_id'] : 0;
 					if (!empty($object['Attribute'])) {
 						foreach ($object['Attribute'] as $k => $attribute) {
 							if ($attribute['value'] == $tmpfile->name) {
 								$object['Attribute'][$k]['value'] = $file['filename'];
 							}
+							if (isset($data['settings']['distribution'])) $object['Attribute'][$k]['distribution'] = $data['settings']['distribution'];
+							$object['Attribute'][$k]['sharing_group_id'] = isset($data['settings']['sharing_group_id']) ? $data['settings']['sharing_group_id'] : 0;
 						}
 					}
 					$this->loadModel('MispObject');
