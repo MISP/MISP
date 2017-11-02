@@ -2753,7 +2753,7 @@ class Attribute extends AppModel {
 			'md5' => array('type' => 'md5', 'category' => '', 'to_ids' => 1, 'disable_correlation' => 0, 'object_relation' => 'md5'),
 			'sha1' => array('type' => 'sha1', 'category' => '', 'to_ids' => 1, 'disable_correlation' => 0, 'object_relation' => 'sha1'),
 			'sha256' => array('type' => 'sha256', 'category' => '', 'to_ids' => 1, 'disable_correlation' => 0, 'object_relation' => 'sha256'),
-			'size-in-bytes' => array('type' => 'size-in-bytes', 'category' => 'Other', 'to_ids' => 0, 'disable_correlation' => 1, 'object_relation' => 'filesize')
+			'size-in-bytes' => array('type' => 'size-in-bytes', 'category' => 'Other', 'to_ids' => 0, 'disable_correlation' => 1, 'object_relation' => 'size-in-bytes')
 		);
 		$hashes = array('md5', 'sha1', 'sha256');
 		$this->Object = ClassRegistry::init('Object');
