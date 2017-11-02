@@ -42,7 +42,7 @@ sudo a2dissite 000-default
 sudo a2ensite default-ssl
 
 # Install PHP and dependencies
-sudo apt-get install -y libapache2-mod-php7.0 php7.0 php7.0-cli php7.0-dev php7.0-json php7.0-xml php7.0-mysql php7.0-readline php7.0-redis php7.0-mbstring
+sudo apt-get install -y libapache2-mod-php7.0 php7.0 php7.0-cli php7.0-dev php7.0-json php7.0-xml php7.0-mysql php7.0-readline php-redis php7.0-mbstring php-pear
 sudo pear install Crypt_GPG
 sudo a2enmod php7.0
 
@@ -192,6 +192,12 @@ sudo openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
 sudo a2dissite default-ssl
 sudo a2ensite misp-ssl
 
+# Recommended: Change some PHP settings in /etc/php/7.0/apache2/php.ini
+# max_execution_time = 300
+# memory_limit = 512M
+# upload_max_filesize = 50M
+# post_max_size = 50M
+
 # Restart apache
 sudo systemctl restart apache2
 
@@ -233,6 +239,7 @@ sudo -u www-data vim /var/www/MISP/app/Config/database.php
 # The admin user account will be generated on the first login, make sure that the salt is changed before you create that user
 # If you forget to do this step, and you are still dealing with a fresh installation, just alter the salt,
 # delete the user from mysql and log in again using the default admin credentials (admin@admin.test / admin)
+# e.g. https://pythontips.com/2013/07/28/generating-a-random-string/
 
 # Change base url in config.php
 sudo -u www-data vim /var/www/MISP/app/Config/config.php
@@ -267,6 +274,10 @@ sudo -u www-data bash /var/www/MISP/app/Console/worker/start.sh
 # start the workers by navigating to the workers tab and clicking restart all workers
 
 # Don't forget to change the email, password and authentication key after installation.
+
+# Start the workers
+
+/var/www/MISP/app/Console/worker/start.sh
 
 # Once done, have a look at the diagnostics
 
@@ -329,3 +340,5 @@ sudo ldconfig
 
 ## install pyzmq
 sudo pip install pyzmq
+
+
