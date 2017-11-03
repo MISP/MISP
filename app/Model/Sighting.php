@@ -81,6 +81,20 @@ class Sighting extends AppModel {
 		}
 	}
 
+	public function captureSighting($sighting, $attribute_id, $event_id, $user) {
+		$org_id = 0;
+		if (!empty($sighting['Organisation'])) {
+			$org_id = $this->Organisation->captureOrg($sighting['Organisation'], $user);
+		}
+		if (isset($sighting['id'])) {
+			unset($sighting['id']);
+		}
+		$sighting['org_id'] = $org_id;
+		$sighting['event_id'] = $event_id;
+		$sighting['attribute_id'] = $attribute_id;
+		return $this->save($sighting);
+	}
+
 	public function getSighting($id, $user) {
 		$sighting = $this->find('first', array(
 			'recursive' => -1,
@@ -174,7 +188,10 @@ class Sighting extends AppModel {
 		$anonymise = Configure::read('Plugin.Sightings_anonymise');
 
 		foreach ($sightings as $k => $sighting) {
-			if ($anonymise) {
+			if (
+				$sighting['Sighting']['org_id'] == 0 && !empty($sighting['Organisation']) ||
+				$anonymise
+			) {
 				if ($sighting['Sighting']['org_id'] != $user['org_id']) {
 					unset($sightings[$k]['Sighting']['org_id']);
 					unset($sightings[$k]['Organisation']);

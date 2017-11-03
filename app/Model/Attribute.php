@@ -2916,6 +2916,11 @@ class Attribute extends AppModel {
 						$this->AttributeTag->save($at);
 					}
 				}
+				if (!empty($attribute['Sighting'])) {
+					foreach ($attribute['Sighting'] as $k => $sighting) {
+						$this->Sighting->captureSighting($sighting, $this->id, $eventId, $user);
+					}
+				}
 			}
 		return $attribute;
 	}
