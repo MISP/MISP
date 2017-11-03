@@ -4204,7 +4204,8 @@ class EventsController extends AppController {
 		if ($this->request->is('post')) {
 			$fail = false;
 			$modulePayload = array(
-					'module' => $module['name']
+					'module' => $module['name'],
+					'event_id' => $eventId
 			);
 			if (isset($module['meta']['config'])) {
 				foreach ($module['meta']['config'] as $conf) {
