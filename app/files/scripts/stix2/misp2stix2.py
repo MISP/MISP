@@ -28,147 +28,25 @@ non_indicator_attributes = ['text', 'comment', 'other', 'link', 'target-user', '
                             'target-machine', 'target-org', 'target-location', 'target-external',
                             'vulnerability', 'attachment']
 
-mispTypesMapping = {'md5': {'observable': {'0': {'type': 'file', 'hashes': ''}},
-                            'pattern': 'file:hashes.\'md5\' = \'{0}\''},
-                    'sha1': {'observable': {'0': {'type': 'file', 'hashes': ''}},
-                             'pattern': 'file:hashes.\'sha1\' = \'{0}\''},
-                    'sha256': {'observable': {'0': {'type': 'file', 'hashes': ''}},
-                               'pattern': 'file:hashes.\'sha256\' = \'{0}\''},
-                    'filename': {'observable': {'0': {'type': 'file', 'name': ''}},
-                                 'pattern': 'file:name = \'{0}\''},
-                    'filename|md5': {'observable': {'0': {'type': 'file', 'name': '', 'hashes': ''}},
-                                     'pattern': 'file:name = \'{0}\' AND file:hashes.\'md5\' = \'{1}\''},
-                    'filename|sha1': {'observable': {'0': {'type': 'file', 'name': '', 'hashes': ''}},
-                                      'pattern': 'file:name = \'{0}\' AND file:hashes.\'sha1\' = \'{1}\''},
-                    'filename|sha256': {'observable': {'0': {'type': 'file', 'name': '', 'hashes': ''}},
-                                        'pattern': 'file:name = \'{0}\' AND file:hashes.\'sha256\' = \'{1}\''},
-                    'ip-src': {'observable': {'0': {'type': '', 'value': ''}},
-                               'pattern': '{0}:value = \'{1}\''},
-                    'ip-dst': {'observable': {'0': {'type': '', 'value': ''}},
-                               'pattern': '{0}:value = \'{1}\''},
-                    'hostname': {'observable': {'0': {'type': 'domain-name', 'value': ''}},
-                                 'pattern': 'domain-name:value = \'{0}\''},
-                    'domain': {'observable': {'0': {'type': 'domain-name', 'value': ''}},
-                               'pattern': 'domain-name:value = \'{0}\''},
-                    'domain|ip': {'observable': {'0': {'type': 'domain-name', 'value': '', 'resolves_to_refs': '1'}, '1': {'type': '', 'value': ''}},
-                                  'pattern': 'domain-name:value = \'{0}\' AND domain-name:resolves_to_refs[*].value = \'{1}\''},
-                    'email-src': {'observable': {'0': {'type': 'email-addr', 'value': ''}},
-                                  'pattern': 'email-addr:value = \'{0}\''},
-                    'email-dst': {'observable': {'0': {'type': 'email-addr', 'value': ''}},
-                                  'pattern': 'email-addr:value = \'{0}\''},
-                    'email-subject': {'observable': {'0': {'type': 'email-message', 'subject': '', 'is_multipart': 'false'}},
-                                      'pattern': 'email-message:subject = \'{0}\''},
-#                    'email-attachment': {'observable': '', 'pattern': ''},
-                    'email-body': {'observable': {'0': {'type': 'email-message', 'body': '', 'is_multipart': 'false'}},
-                                   'pattern': 'email-message:body = \'{0}\''},
-                    'url': {'observable': {'0': {'type': 'url', 'value': ''}},
-                            'pattern': 'url:value = \'{0}\''},
-                    'regkey': {'observable': {'0': {'type': 'windows-registry-key', 'key': ''}},
-                               'pattern': 'windows-registry-key:key = \'{0}\''},
-                    'regkey|value': {'observable': {'0': {'type': 'windows-registry-key', 'key': '', 'values': {'name': ''}}},
-                                     'pattern': 'windows-registry-key:key = \'{0}\' AND windows-registry-key:values = \'{1}\''},
-                    'malware-sample': {'observable': {'0': {'type': 'file', 'name': '', 'hashes': ''}},
-                                       'pattern': 'file:name = \'{0}\' AND file:hashes.\'md5\' = \'{1}\''},
-                    'mutex': {'observable': {'0': {'type': 'mutex', 'name': ''}},
-                              'pattern': 'mutex:name = \'{0}\''},
-                    'uri': {'observable': {'0': {'type': 'url', 'value': ''}},
-                            'pattern': 'url:value = \'{0}\''},
-                    'authentihash': {'observable': {'0': {'type': 'file', 'hashes': ''}},
-                                     'pattern': 'file:hashes.\'authentihash\' = \'{0}\''},
-                    'ssdeep': {'observable': {'0': {'type': 'file', 'hashes': ''}},
-                               'pattern': 'file:hashes.\'ssdeep\' = \'{0}\''},
-                    'imphash': {'observable': {'0': {'type': 'file', 'hashes': ''}},
-                                'pattern': 'file:hashes.\'imphash\' = \'{0}\''},
-                    'pehash': {'observable': {'0': {'type': 'file', 'hashes': ''}},
-                               'pattern': 'file:hashes.\'pehash\' = \'{0}\''},
-                    'impfuzzy': {'observable': {'0': {'type': 'file', 'hashes': ''}},
-                                 'pattern': 'file:hashes.\'impfuzzy\' = \'{0}\''},
-                    'sha224': {'observable': {'0': {'type': 'file', 'hashes': ''}},
-                               'pattern': 'file:hashes.\'sha224\' = \'{0}\''},
-                    'sha384': {'observable': {'0': {'type': 'file', 'hashes': ''}},
-                               'pattern': 'file:hashes.\'sha384\' = \'{0}\''},
-                    'sha512': {'observable': {'0': {'type': 'file', 'hashes': ''}},
-                               'pattern': 'file:hashes.\'sha512\' = \'{0}\''},
-                    'sha512/224': {'observable': {'0': {'type': 'file', 'hashes': ''}},
-                                   'pattern': 'file:hashes.\'sha512/224\' = \'{0}\''},
-                    'sha512/256': {'observable': {'0': {'type': 'file', 'hashes': ''}},
-                                   'pattern': 'file:hashes.\'sha512/256\' = \'{0}\''},
-                    'tlsh': {'observable': {'0': {'type': 'file', 'hashes': ''}},
-                             'pattern': 'file:hashes.\'tlsh\' = \'{0}\''},
-                    'filename|authentihash': {'observable': {'0': {'type': 'file', 'name': '', 'hashes': ''}},
-                                              'pattern': 'file:name = \'{0}\' AND file:hashes.\'authentihash\' = \'{1}\''},
-                    'filename|ssdeep': {'observable': {'0': {'type': 'file', 'name': '', 'hashes': ''}},
-                                        'pattern': 'file:name = \'{0}\' AND file:hashes.\'ssdeep\' = \'{1}\''},
-                    'filename|imphash': {'observable': {'0': {'type': 'file', 'name': '', 'hashes': ''}},
-                                         'pattern': 'file:name = \'{0}\' AND file:hashes.\'imphash\' = \'{1}\''},
-                    'filename|impfuzzy': {'observable': {'0': {'type': 'file', 'name': '', 'hashes': ''}},
-                                          'pattern': 'file:name = \'{0}\' AND file:hashes.\'impfuzzy\' = \'{1}\''},
-                    'filename|pehash': {'observable': {'0': {'type': 'file', 'name': '', 'hashes': ''}},
-                                        'pattern': 'file:name = \'{0}\' AND file:hashes.\'pehash\' = \'{1}\''},
-                    'filename|sha224': {'observable': {'0': {'type': 'file', 'name': '', 'hashes': ''}},
-                                        'pattern': 'file:name = \'{0}\' AND file:hashes.\'sha224\' = \'{1}\''},
-                    'filename|sha384': {'observable': {'0': {'type': 'file', 'name': '', 'hashes': ''}},
-                                        'pattern': 'file:name = \'{0}\' AND file:hashes.\'sha384\' = \'{1}\''},
-                    'filename|sha512': {'observable': {'0': {'type': 'file', 'name': '', 'hashes': ''}},
-                                        'pattern': 'file:name = \'{0}\' AND file:hashes.\'sha512\' = \'{1}\''},
-                    'filename|sha512/224': {'observable': {'0': {'type': 'file', 'name': '', 'hashes': ''}},
-                                            'pattern': 'file:name = \'{0}\' AND file:hashes.\'sha512/224\' = \'{1}\''},
-                    'filename|sha512/256': {'observable': {'0': {'type': 'file', 'name': '', 'hashes': ''}},
-                                            'pattern': 'file:name = \'{0}\' AND file:hashes.\'sha512/256\' = \'{1}\''},
-                    'filename|tlsh': {'observable': {'0': {'type': 'file', 'name': '', 'hashes': ''}},
-                                      'pattern': 'file:name = \'{0}\' AND file:hashes.\'tlsh\' = \'{1}\''},
-                    'x509-fingerprint-sha1': {'observable': {'0': {'type': 'x509-certificate', 'hashes': {'sha1': ''}}},
-                                              'pattern': 'x509-certificate:hashes = \'{0}\''},
-                    'port': {'observable': {'0': {'type': 'network-traffic', 'dst_port': ''}},
-                             'pattern': 'network-traffic:dst_port = \'{0}\''},
-                    'ip-dst|port': {'observable': {'0': {'type': '', 'value': ''}, '1': {'type': 'network-traffic', 'dst_ref': '0', 'dst_port': ''}},
-                                    'pattern': 'network-traffic:dst_port = \'{1}\' AND network-traffic:dst_ref.type = \'{2}\' AND network-traffic:dst_ref.value = \'{0}\''},
-                    'ip-src|port': {'observable': {'0': {'type': '', 'value': ''}, '1': {'type': 'network-traffic', 'src_ref': '0', 'dst_port': ''}},
-                                    'pattern': 'network-traffic:dst_port = \'{1}\' AND network-traffic:src_ref.type = \'{2}\' AND network-traffic:src_ref.value = \'{0}\''},
-                    'hostname|port': {'observable': {'0': {'type': 'domain-name', 'value': ''}, '1': {'type': 'traffic-network', 'dst_ref': '0', 'dst_port': ''}},
-                                      'pattern': 'domain-name:value = \'{0}\' AND network-traffic:dst_port = \'{1}\''},
-                    }
+noChangesTypes = ['', '']
 
-relationshipsSpecifications = {'attack-pattern': {'vulnerability': 'targets', 'identity': 'targets',
-                                                  'malware': 'uses', 'tool': 'uses'},
-                               'campaign': {'intrusion-set': 'attributed-to', 'threat-actor': 'attributed-to',
-                                            'identity': 'targets', 'vulnerability': 'targets',
-                                            'attack-pattern': 'uses', 'malware': 'uses',
-                                            'tool': 'uses'},
-                               'course-of-action':{'attack-pattern': 'mitigates', 'malware': 'mitigates',
-                                                   'tool': 'mitigates', 'vulnerability': 'mitigates'},
-                               'indicator': {'attack-pattern': 'indicates', 'cacmpaign': 'indicates',
-                                             'intrusion-set': 'indicates', 'malware': 'indicates',
-                                             'threat-actor': 'indicates', 'tool': 'indicates'},
-                               'intrusion-set': {'threat-actor': 'attributed-to', 'identity': 'targets',
-                                                 'vulnerability': 'targets', 'attack-pattern': 'uses',
-                                                 'malware': 'uses', 'tool': 'uses'},
-                               'malware': {'identity': 'targets', 'vulnerability': 'targets',
-                                           'tool': 'uses', 'malware': 'variant-of'},
-                               'threat-actor': {'identity': 'attributed-to', 'vulnerability': 'targets',
-                                                'attack-pattern': 'uses', 'malware': 'uses',
-                                                'tool': 'uses'},
-                               'tool': {'identity': 'targets', 'vulnerability': 'targets'}
-                               }
+def loadDictionaries():
+    pathname = os.path.dirname(sys.argv[0])
+    filename = os.path.join(pathname, 'misp2stix2_dictionaries.json')
+    tempFile = open(filename, 'r')
+    print(filename)
+    sys.exit(0)
+    return json.loads(tempFile.read())
 
-def loadEvent(args, pathname):
-    try:
-        filename = args[1]
-        tempFile = open(filename, 'r')
-        events = json.loads(tempFile.read())
-        return events
-    except:
-        print(json.dumps({'success' : 0, 'message' : 'The temporary MISP export file could not be read'}))
-        sys.exit(1)
+dictionaries = loadDictionaries()
+mispYpesMapping = dictionaries['mispTypesMapping']
+objectsMapping = dictionaries['objectsMapping']
+objectTypes = dictionaries['objectTypes']
 
 def saveFile(args, pathname, package):
     filename = args[1] + '.out'
     with open(filename, 'w') as f:
         f.write(str(package))
-
-# converts timestamp to the format used by STIX
-def getDateFromTimestamp(timestamp):
-    return datetime.datetime.utcfromtimestamp(timestamp).isoformat() + "+00:00"
 
 def setIdentity(event, SDOs):
     org = event.Orgc
@@ -221,11 +99,18 @@ def readAttributes(event, identity, object_refs, external_refs):
                 addTool(object_refs, attributes, galaxy, identity)
     if event.Object:
         for obj in event.Object:
-            obj_id = obj.uuid
-            obj_timestamp = obj.timestamp
-            obj_attributes = obj.Attribute
+            to_ids = False
             for obj_attr in obj_attributes:
-                print(obj_attr.type, obj_attr.value)
+                if obj_attr.to_ids:
+                    to_ids = True
+                    break
+            if obj.type == 'vulnerability':
+                addVulnerabilityFromObjects(object_refs, attributes, obj, identity, to_ids)
+            else:
+                if to_ids:
+                    addIndicatorFromObjects(object_refs, attributes, obj, identity, to_ids)
+                else:
+                    addObservedDataFromObject(object_refs, attributes, obj, identity, to_ids)
     return attributes
 
 def handleLink(attribute, external_refs):
@@ -287,8 +172,6 @@ def addCustomObject(object_refs, attributes, attribute, identity):
     customObject_type = 'x-misp-object'.format(attribute.type)
     value = attribute.value
     labels = 'misp:to_ids=\"{}\"'.format(attribute.to_ids)
-    # customObject_args = {'type': customObject_type, 'id': customObject_id, 'timestamp': timestamp,
-    #                      'to_ids': labels, 'value': value, 'created_by_ref': identity, 'labels': labels}
     customObject_args = {'id': customObject_id, 'x_misp_timestamp': timestamp, 'x_misp_to_ids': labels,
                          'x_misp_value': value, 'created_by_ref': identity}
     if attribute.comment:
@@ -304,8 +187,6 @@ def addCustomObject(object_refs, attributes, attribute, identity):
         def __init__(self, **kwargs):
             return
     custom = Custom(**customObject_args)
-    # print(custom)
-    # custom = CustomObject(**customObject_args)
     attributes.append(custom)
     object_refs.append(customObject_id)
 
@@ -361,13 +242,10 @@ def addMalware(object_refs, attributes, galaxy, identity):
 def addObservedData(object_refs, attributes, attribute, identity):
     observedData_id = "observed-data--{}".format(attribute.uuid)
     timestamp = attribute.timestamp
-    attr_type = attribute.type
-    attr_val = attribute.value
-    objects = defineObservableObject(attr_type, attr_val)
     labels = 'misp:to_ids=\"{}\"'.format(attribute.to_ids)
-    observedData_args = {'id': observedData_id, 'type': 'observed-data', 'number_observed': 1,
-                         'first_observed': timestamp, 'last_observed': timestamp, 'objects': objects,
-                         'created_by_ref': identity, 'labels': labels}
+    observedData_args = {'id': observedData_id, 'type': 'observed-data', 'number_observed': 1, 'labels': labels,
+                         'first_observed': timestamp, 'last_observed': timestamp, 'created_by_ref': identity,
+                         'objects': defineObservableObject(attribute.type, attribute.value)}
     observedData = ObservedData(**observedData_args)
     attributes.append(observedData)
     object_refs.append(observedData_id)
@@ -416,6 +294,44 @@ def addVulnerability(object_refs, attributes, attribute, identity):
     attributes.append(vulnerability)
     object_refs.append(vuln_id)
 
+def addIndicatorFromObjects(object_refs, attributes, obj, identity, to_ids):
+    indicator_id = 'indicator--{}'.format(obj.uuid)
+    category = obj.category
+    killchain = [{'kill_chain_name': 'misp-category',
+                  'phase_name': category}]
+    labels = 'misp:to_ids=\"{}\"'.format(to_ids)
+    indicator_args = {'valid_from': obj.timestamp, 'type': 'indicator', 'labels': labels,
+                      'pattern': [definePatternForObjects(obj.name, obj.Attribute)], 'id': indicator_id,
+                      'created_by_ref': identity, 'kill_chain_phases': killchain, 'description': obj.description}
+    indicator = Indicator(**indicator_args)
+    attributes.append(indicator)
+    object_refs.append(indicator_id)
+
+def addObservedDataFromObject(object_refs, attributes, obj, identity, to_ids):
+    observedData_id = 'observed-data--{}'.format(obj.uuid)
+    timestamp = obj.timestamp
+    labels = 'misp:to_ids=\"{}\"'.format(to_ids)
+    observedData_args = {'id': observedData_id, 'type': 'observed-data', 'number_observed': 1, 'labels': labels,
+                         'first_observed': timestamp, 'last_observed': timestamp, 'created_by_ref': identity,
+                         'objects': defineObservableObjectForObjects(obj.name, obj.Attribute)}
+    observedData = ObservedData(**observedData_args)
+    attributes.append(observedData)
+    object_refs.append(observedData_id)
+
+def addVulnerabilityFromObjects(object_refs, attributes, obj, identity, to_ids):
+    vuln_id = 'vulnerability--{}'.format(obj.id)
+    name = 'Undefined name'
+    for obj_attr in obj.Attribute:
+        if obj_attr.type == 'vulnerability':
+            name = obj_attr.value
+            break
+    labels = 'misp:to_ids=\"{}\"'.format(to_ids)
+    vuln_args = {'id': vuln_id, 'type': 'vulnerability', 'name': name, 'created_by_ref': identity,
+                 'labels': labels}
+    vulnerability = Vulnerability(**vuln_args)
+    attributes.append(vulnerability)
+    object_refs.append(vuln_id)
+
 def addAliases(meta, argument):
     aliases = []
     for a in meta['synonyms']:
@@ -437,12 +353,12 @@ def handleIndicatorAttribute(object_refs, attributes, attribute, identity):
     labels = 'misp:to_ids=\"{}\"'.format(attribute.to_ids)
     attr_type = attribute.type
     attr_val = attribute.value
-    args_indicator = {'valid_from': attribute['timestamp'], 'type': 'indicator',
+    indicator_args = {'valid_from': attribute.timestamp, 'type': 'indicator',
                       'labels': labels, 'pattern': [definePattern(attr_type, attr_val)], 'id': indic_id,
                       'created_by_ref': identity, 'kill_chain_phases': killchain}
     if attribute.comment:
-        args_indicator['description'] = attribute.comment
-    indicator = Indicator(**args_indicator)
+        indicator_args['description'] = attribute.comment
+    indicator = Indicator(**indicator_args)
     attributes.append(indicator)
     object_refs.append(indic_id)
 
@@ -493,6 +409,9 @@ def defineObservableObject(attr_type, attr_val):
                 object0[obj_attr] = {attr_type: attr_val}
     return observed_object
 
+def defineObservableObjectForObjects(obj_name, obj_attr):
+    return
+
 def definePattern(attr_type, attr_val):
     if '|' in attr_type:
         attr_type1, attr_type2 = attr_type.split('|')
@@ -512,6 +431,61 @@ def definePattern(attr_type, attr_val):
         else:
             pattern = mispTypesMapping[attr_type]['pattern'].format(attr_val)
     return pattern
+
+def definePatternForObjects(obj_name, obj_attr):
+    attrs = {}
+    pattern = ''
+    if obj_name == 'email':
+        for attr in obj_attr:
+            attr_type = attr.type
+            attr_val = attr.value
+            if attr_type in ('email-reply-to', 'email-dst', 'email-src'):
+                emailType = 'addr'
+                attrType = 'value'
+            elif attr_type in ('email-src-display-name', 'email-dst-display-name'):
+                emailType = 'addr'
+                attrType = 'display_name'
+            else:
+                if attr_type not in objectTypes:
+                    continue
+                emailType = 'message'
+                attrType = objectTypes[attr_type]
+            pattern += objectsMapping[obj_name]['pattern'].format(emailType, attrType, attr_val)
+    elif obj_name == 'ip|port' or obj_name == 'domain-ip':
+        for attr in obj_attr:
+            attr_type = attr.type
+            attr_val = attr.value
+            if attr_type == 'ip-dst':
+                addr_type = defineAddressType(attr_val)
+                attrType = objectTypes[attr_type][obj_name].format(addr_type)
+            elif attr_type in ('text', 'datetime'):
+                obj_relation = attr.object_relation
+                if obj_name not in objectTypes[attr_type]:
+                    continue
+                attrType = objectTypes[attr_type][obj_name][obj_relation]
+            else:
+                obj_relation = attr.object_relation
+                attrType = objectTypes[attr_type][obj_relation]
+            pattern += objectsMapping[obj_name]['pattern'].format(attrType, attr_val)
+    else:
+        for attr in obj_attr:
+            attr_type = attr.type
+            attr_val = attr.value
+            if attr_type in ('md5', 'sha*', '*hash*', 'ssdeep'):
+                attrType = objectTypes['hashes'].format(attr_type)
+            elif attr_type in ('text', 'datetime'):
+                obj_relation = attr.object_relation
+                if obj_name not in objectTypes[attr_type] or obj_relation not in objectTypes[attr_type][obj_name]:
+                    continue
+                attrType = objectTypes[attr_type][obj_name][obj_relation]
+            elif attr_type in noChangesTypes:
+                attrType = attr_type
+            else:
+                if attr_type not in objectTypes:
+                    continue
+                attrType = objectTypes[attr_type]
+            pattern += objectsMapping[obj_name]['pattern'].format(attrType, attr_val)
+    return pattern[:-5]
 
 def defineAddressType(attr_val):
     if ':' in attr_val:
@@ -550,9 +524,6 @@ def generateEventPackage(event, SDOs):
     return bundle
 
 def main(args):
-    # for i in dir(stix2):
-    #     print(i)
-    # sys.exit(0)
     pathname = os.path.dirname(sys.argv[0])
     if len(sys.argv) > 3:
         namespace[0] = sys.argv[3]
