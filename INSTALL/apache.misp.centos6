@@ -19,4 +19,6 @@
 	ErrorLog /var/log/httpd/misp.local_error.log
 	CustomLog /var/log/httpd/misp.local_access.log combined
 	ServerSignature Off
+        Header set X-Content-Type-Options nosniff
+        Header set X-Frame-Options DENY
 </VirtualHost>

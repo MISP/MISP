@@ -156,7 +156,6 @@ class RolesController extends AppController {
 	}
 
 	public function index() {
-		if (!$this->_isSiteAdmin()) $this->redirect(array('controller' => 'roles', 'action' => 'index', 'admin' => false));
 		$this->recursive = 0;
 		if ($this->_isRest()) {
 			$roles = $this->Role->find('all', array(

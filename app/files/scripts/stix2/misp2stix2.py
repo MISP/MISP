@@ -17,6 +17,7 @@
 
 import sys, json, os, datetime, re
 import pymisp
+# import stix2
 from stix2 import *
 
 namespace = ['https://github.com/MISP/MISP', 'MISP']
@@ -169,11 +170,13 @@ def saveFile(args, pathname, package):
 def getDateFromTimestamp(timestamp):
     return datetime.datetime.utcfromtimestamp(timestamp).isoformat() + "+00:00"
 
-def setIdentity(event):
+def setIdentity(event, SDOs):
     org = event.Orgc
-    identity = Identity(type="identity", id="identity--{}".format(org["uuid"]),
+    identity_id = 'identity--{}'.format(org['uuid'])
+    identity = Identity(type="identity", id=identity_id,
                         name=org["name"], identity_class="organization")
-    return identity
+    SDOs.append(identity)
+    return identity_id
 
 def readAttributes(event, identity, object_refs, external_refs):
     attributes = []
@@ -199,7 +202,7 @@ def readAttributes(event, identity, object_refs, external_refs):
                 else:
                     addObservedData(object_refs, attributes, attribute, identity)
             else:
-                continue
+                addCustomObject(object_refs, attributes, attribute, identity)
     if event.Galaxy:
         galaxies = event.Galaxy
         for galaxy in galaxies:
@@ -216,6 +219,13 @@ def readAttributes(event, identity, object_refs, external_refs):
                 addThreatActor(object_refs, attributes, galaxy, identity)
             elif galaxyType in ['rat', 'exploit-kit'] or 'tool' in galaxyType:
                 addTool(object_refs, attributes, galaxy, identity)
+    if event.Object:
+        for obj in event.Object:
+            obj_id = obj.uuid
+            obj_timestamp = obj.timestamp
+            obj_attributes = obj.Attribute
+            for obj_attr in obj_attributes:
+                print(obj_attr.type, obj_attr.value)
     return attributes
 
 def handleLink(attribute, external_refs):
@@ -277,13 +287,27 @@ def addCustomObject(object_refs, attributes, attribute, identity):
     customObject_type = 'x-misp-object'.format(attribute.type)
     value = attribute.value
     labels = 'misp:to_ids=\"{}\"'.format(attribute.to_ids)
-    customObject_args = {'type': customObject_type, 'id': customObject_id, 'timestamp': timestamp,
-                         'to_ids': labels, 'value': value, 'created_by_ref': identity, 'labels': labels}
+    # customObject_args = {'type': customObject_type, 'id': customObject_id, 'timestamp': timestamp,
+    #                      'to_ids': labels, 'value': value, 'created_by_ref': identity, 'labels': labels}
+    customObject_args = {'id': customObject_id, 'x_misp_timestamp': timestamp, 'x_misp_to_ids': labels,
+                         'x_misp_value': value, 'created_by_ref': identity}
     if attribute.comment:
-        customObject_args['comment'] = attribute.comment
-    # At the moment, we skip it
-#    attributes.append(customObject_args)
-#    object_refs.append(customObject_id)
+        customObject_args['x_misp_comment'] = attribute.comment
+    @CustomObject(customObject_type, [('id', properties.StringProperty(required=True)),
+                                      ('x_misp_timestamp', properties.StringProperty(required=True)),
+                                      ('x_misp_to_ids', properties.StringProperty(required=True)),
+                                      ('x_misp_value', properties.StringProperty(required=True)),
+                                      ('created_by_ref', properties.StringProperty(required=True)),
+                                      ('x_misp_comment', properties.StringProperty()),
+                                     ])
+    class Custom(object):
+        def __init__(self, **kwargs):
+            return
+    custom = Custom(**customObject_args)
+    # print(custom)
+    # custom = CustomObject(**customObject_args)
+    attributes.append(custom)
+    object_refs.append(customObject_id)
 
 def addIdentity(object_refs, attributes, attribute, identity, identityClass):
     identity_id = "identity--{}".format(attribute.uuid)
@@ -293,7 +317,7 @@ def addIdentity(object_refs, attributes, attribute, identity, identityClass):
         identity_args['description'] = attribute.comment
     identityObject = Identity(**identity_args)
     attributes.append(identityObject)
-    object_refs.append(identityObject)
+    object_refs.append(identity_id)
 
 def addIntrusionSet(object_refs, attributes, galaxy, identity):
     cluster = galaxy['GalaxyCluster'][0]
@@ -505,7 +529,7 @@ def eventReport(event, identity, object_refs, external_refs):
         for tag in tags:
             labels.append(tag['name'])
 
-    args_report = {'type': "report", 'id': "report--{}".format(event.uuid), 'created_by_ref': identity["id"],
+    args_report = {'type': "report", 'id': "report--{}".format(event.uuid), 'created_by_ref': identity,
                     'name': name, 'published': timestamp}
 
     if labels:
@@ -526,6 +550,9 @@ def generateEventPackage(event, SDOs):
     return bundle
 
 def main(args):
+    # for i in dir(stix2):
+    #     print(i)
+    # sys.exit(0)
     pathname = os.path.dirname(sys.argv[0])
     if len(sys.argv) > 3:
         namespace[0] = sys.argv[3]
@@ -537,8 +564,7 @@ def main(args):
     SDOs = []
     object_refs = []
     external_refs = []
-    identity = setIdentity(misp)
-    SDOs.append(identity)
+    identity = setIdentity(misp, SDOs)
     attributes = readAttributes(misp, identity, object_refs, external_refs)
     buildRelationships(attributes, object_refs)
     report = eventReport(misp, identity, object_refs, external_refs)

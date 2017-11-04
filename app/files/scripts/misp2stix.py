@@ -119,7 +119,7 @@ def setDates(incident, date, published):
 def resolveObjects(incident, ttps, objects, eventTags, org):
     for obj in objects:
         tmp_incident = Incident()
-        resolveAttributes(tmp_incident, ttps, obj["Attribute"], eventTags)
+        resolveAttributes(tmp_incident, ttps, obj["Attribute"], eventTags, org)
         indicator = Indicator(timestamp=getDateFromTimestamp(int(obj["timestamp"])))
         indicator.id_= namespace[1] + ":MispObject-" + obj["uuid"]
         setProd(indicator, org)

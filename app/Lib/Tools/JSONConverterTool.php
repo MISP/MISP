@@ -50,6 +50,16 @@ class JSONConverterTool {
 
 		if (isset($event['Event']['Attribute'])) {
 			$event['Event']['Attribute'] = $this->__cleanAttributes($event['Event']['Attribute']);
+			if (!empty($event['Sighting'])) {
+				foreach ($event['Event']['Attribute'] as $ak => $attribute) {
+					foreach ($event['Sighting'] as $as => $sighting) {
+						if ($attribute['id'] == $sighting['attribute_id']) {
+							$event['Event']['Attribute'][$ak]['Sighting'][] = $sighting;
+						}
+					}
+				}
+				unset($event['Sighting']);
+			}
 		}
 		if (isset($event['Event']['Object'])) {
 			$event['Event']['Object'] = $this->__cleanObjects($event['Event']['Object']);

@@ -48,6 +48,20 @@ class ObjectReference extends AppModel {
 		return true;
 	}
 
+	public function afterSave($created, $options = array()) {
+		if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_object_reference_notifications_enable')) {
+			$pubSubTool = $this->getPubSubTool();
+			$object_reference = $this->find('first', array(
+				'conditions' => array('ObjectReference.id' => $this->id),
+				'recursive' => -1
+			));
+			$action = $created ? 'add' : 'edit';
+			if (!empty($this->data['ObjectReference']['deleted'])) $action = 'soft-delete';
+			$pubSubTool->object_reference_save($object_reference, $action);
+		}
+		return true;
+	}
+
 	public function updateTimestamps($id, $objectReference = false) {
 		if (!$objectReference) {
 			$objectReference = $this->find('first', array(

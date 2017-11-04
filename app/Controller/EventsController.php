@@ -2251,12 +2251,32 @@ class EventsController extends AppController {
 				}
 			}
 		}
+		$requested_attributes = array('uuid', 'event_id', 'category', 'type',
+								'value', 'comment', 'to_ids', 'timestamp');
+		$requested_obj_attributes = array('uuid', 'name', 'meta-category');
+		if (isset($this->params['url']['attributes'])) {
+				$requested_attributes = explode(',', $this->params['url']['attributes']);
+		}
+		if (isset($this->params['url']['obj_attributes'])) {
+		    $requested_obj_attributes = explode(',', $this->params['url']['obj_attributes']);
+		}
 		if (isset($events)) {
 			foreach ($events as $eventid) {
 				$attributes = $this->Event->csv($user, $eventid, $ignore, $list, false, $category, $type, $includeContext, $enforceWarninglist);
 				$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
 				foreach ($attributes as $attribute) {
-					$line = $attribute['Attribute']['uuid'] . ',' . $attribute['Attribute']['event_id'] . ',' . $attribute['Attribute']['category'] . ',' . $attribute['Attribute']['type'] . ',' . $attribute['Attribute']['value'] . ',' . $attribute['Attribute']['comment'] . ',' . intval($attribute['Attribute']['to_ids']) . ',' . $attribute['Attribute']['timestamp'] . ',' . $attribute['Object']['uuid'] . ',' . $attribute['Object']['name'] . ',' . $attribute['Object']['meta-category'];
+					$line1 = '';
+					$line2 = '';
+					foreach ($requested_attributes as $requested_attribute) {
+						$line1 .= $attribute['Attribute'][$requested_attribute] . ',';
+					}
+					$line1 = rtrim($line1, ",");
+					foreach ($requested_obj_attributes as $requested_obj_attribute) {
+						$line2 .= $attribute['Object'][$requested_obj_attribute] . ',';
+					}
+					$line2 = rtrim($line2, ",");
+					$line = $line1 . ',' . $line2;
+					$line = rtrim($line, ",");
 					if ($includeContext) {
 						foreach ($this->Event->csv_event_context_fields_to_fetch as $header => $field) {
 							if ($field['object']) $line .= ',' . $attribute['Event'][$field['object']][$field['var']];
@@ -2276,11 +2296,18 @@ class EventsController extends AppController {
 			$filename = "misp.event_" . $exportType . ".csv";
 		}
 		$this->layout = 'text/default';
-		$headers = array('uuid', 'event_id', 'category', 'type', 'value', 'comment', 'to_ids', 'date', 'object_uuid', 'object_name', 'object_meta_category');
+		if (!empty($requested_obj_attributes)) {
+			array_walk($requested_obj_attributes, function(&$value, $key) { $value = 'object-'.$value; } );
+		}
+		$headers = array_merge($requested_attributes, $requested_obj_attributes);
 		if ($includeContext) $headers = array_merge($headers, array_keys($this->Event->csv_event_context_fields_to_fetch));
+		foreach ($headers as $k => $v) {
+			$headers[$k] = str_replace('-', '_', $v);
+			if ($v == 'timestamp') $headers[$k] = 'date';
+		}
 		$headers = implode(',', $headers);
 		$final = array_merge(array($headers), $final);
-		$final = implode (PHP_EOL, $final);
+		$final = implode(PHP_EOL, $final);
 		$final .= PHP_EOL;
 		return $this->RestResponse->viewData($final, 'csv', false, true, $filename);
 	}
@@ -3806,8 +3833,10 @@ class EventsController extends AppController {
 				$categories[] = $k;
 			}
 		}
+		$default_distribution = !empty(Configure::read('MISP.default_attribute_distribution')) ? Configure::read('MISP.default_attribute_distribution') : 5;
+		if ($default_distribution == 'event') $default_distribution = 5;
 		$parameter_options = array(
-				'distribution' => array('valid_options' => array(0, 1, 2, 3, 5), 'default' => 0),
+				'distribution' => array('valid_options' => array(0, 1, 2, 3, 5), 'default' => $default_distribution),
 				'threat_level_id' => array('valid_options' => array(1, 2, 3, 4), 'default' => 4),
 				'analysis' => array('valid_options' => array(0, 1, 2), 'default' => 0),
 				'info' => array('default' =>  'Malware samples uploaded on ' . date('Y-m-d')),
@@ -3827,7 +3856,6 @@ class EventsController extends AppController {
 		}
 
 		if (isset($data['request'])) $data = $data['request'];
-
 		foreach ($parameter_options as $k => $v) {
 			if (isset($data[$k])) {
 				if (isset($v['valid_options']) && !in_array($data[$k], $v['valid_options'])) {
@@ -3943,13 +3971,15 @@ class EventsController extends AppController {
 			}
 			if (!empty($result)) {
 				foreach ($result['Object'] as $object) {
-					$object['distribution'] = $data['settings']['distribution'];
-					$object['sharing_group_id'] = isset($data['settings']['distribution']) ? $data['settings']['distribution'] : 0;
+					if (isset($data['settings']['distribution'])) $object['distribution'] = $data['settings']['distribution'];
+					$object['sharing_group_id'] = isset($data['settings']['sharing_group_id']) ? $data['settings']['sharing_group_id'] : 0;
 					if (!empty($object['Attribute'])) {
 						foreach ($object['Attribute'] as $k => $attribute) {
 							if ($attribute['value'] == $tmpfile->name) {
 								$object['Attribute'][$k]['value'] = $file['filename'];
 							}
+							if (isset($data['settings']['distribution'])) $object['Attribute'][$k]['distribution'] = $data['settings']['distribution'];
+							$object['Attribute'][$k]['sharing_group_id'] = isset($data['settings']['sharing_group_id']) ? $data['settings']['sharing_group_id'] : 0;
 						}
 					}
 					$this->loadModel('MispObject');
@@ -4174,7 +4204,8 @@ class EventsController extends AppController {
 		if ($this->request->is('post')) {
 			$fail = false;
 			$modulePayload = array(
-					'module' => $module['name']
+					'module' => $module['name'],
+					'event_id' => $eventId
 			);
 			if (isset($module['meta']['config'])) {
 				foreach ($module['meta']['config'] as $conf) {

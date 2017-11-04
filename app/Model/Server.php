@@ -1188,6 +1188,30 @@ class Server extends AppModel {
 						'type' => 'string',
 						'afterHook' => 'zmqAfterHook',
 					),
+					'ZeroMQ_event_notifications_enable' => array(
+						'level' => 2,
+						'description' => 'Enables or disables the publishing of any event creations/edits/deletions.',
+						'value' => false,
+						'errorMessage' => '',
+						'test' => 'testBool',
+						'type' => 'boolean'
+					),
+					'ZeroMQ_object_notifications_enable' => array(
+						'level' => 2,
+						'description' => 'Enables or disables the publishing of any object creations/edits/deletions.',
+						'value' => false,
+						'errorMessage' => '',
+						'test' => 'testBool',
+						'type' => 'boolean'
+					),
+					'ZeroMQ_object_reference_notifications_enable' => array(
+						'level' => 2,
+						'description' => 'Enables or disables the publishing of any object reference creations/deletions.',
+						'value' => false,
+						'errorMessage' => '',
+						'test' => 'testBool',
+						'type' => 'boolean'
+					),
 					'ZeroMQ_attribute_notifications_enable' => array(
 						'level' => 2,
 						'description' => 'Enables or disables the publishing of any attribute creations/edits/soft deletions.',
