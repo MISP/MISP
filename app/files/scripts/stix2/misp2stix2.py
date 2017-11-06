@@ -34,12 +34,10 @@ def loadDictionaries():
     pathname = os.path.dirname(sys.argv[0])
     filename = os.path.join(pathname, 'misp2stix2_dictionaries.json')
     tempFile = open(filename, 'r')
-    print(filename)
-    sys.exit(0)
     return json.loads(tempFile.read())
 
 dictionaries = loadDictionaries()
-mispYpesMapping = dictionaries['mispTypesMapping']
+mispTypesMapping = dictionaries['mispTypesMapping']
 objectsMapping = dictionaries['objectsMapping']
 objectTypes = dictionaries['objectTypes']
 
@@ -100,17 +98,19 @@ def readAttributes(event, identity, object_refs, external_refs):
     if event.Object:
         for obj in event.Object:
             to_ids = False
-            for obj_attr in obj_attributes:
+            for obj_attr in obj.Attribute:
                 if obj_attr.to_ids:
                     to_ids = True
                     break
-            if obj.type == 'vulnerability':
+            obj_name = obj.name
+            if obj_name == 'vulnerability':
                 addVulnerabilityFromObjects(object_refs, attributes, obj, identity, to_ids)
             else:
-                if to_ids:
-                    addIndicatorFromObjects(object_refs, attributes, obj, identity, to_ids)
-                else:
-                    addObservedDataFromObject(object_refs, attributes, obj, identity, to_ids)
+                if obj_name in objectsMapping:
+                    if to_ids:
+                        addIndicatorFromObjects(object_refs, attributes, obj, identity, to_ids)
+                    else:
+                        addObservedDataFromObject(object_refs, attributes, obj, identity, to_ids)
     return attributes
 
 def handleLink(attribute, external_refs):
@@ -125,7 +125,7 @@ def handleLink(attribute, external_refs):
 def addAttackPattern(object_refs, attributes, galaxy, identity):
     killchain = [{'kill_chain_name': 'misp-category',
                   'phase_name': galaxy['type']}
-                 ]
+                ]
     cluster = galaxy['GalaxyCluster'][0]
     attack_id = "attack-pattern--{}".format(cluster['uuid'])
     name = cluster['value']
@@ -296,12 +296,13 @@ def addVulnerability(object_refs, attributes, attribute, identity):
 
 def addIndicatorFromObjects(object_refs, attributes, obj, identity, to_ids):
     indicator_id = 'indicator--{}'.format(obj.uuid)
-    category = obj.category
+    category = obj['meta-category']
     killchain = [{'kill_chain_name': 'misp-category',
                   'phase_name': category}]
     labels = 'misp:to_ids=\"{}\"'.format(to_ids)
+    pattern = definePatternForObjects(obj.name, obj.Attribute)
     indicator_args = {'valid_from': obj.timestamp, 'type': 'indicator', 'labels': labels,
-                      'pattern': [definePatternForObjects(obj.name, obj.Attribute)], 'id': indicator_id,
+                      'pattern': [pattern], 'id': indicator_id,
                       'created_by_ref': identity, 'kill_chain_phases': killchain, 'description': obj.description}
     indicator = Indicator(**indicator_args)
     attributes.append(indicator)
@@ -354,7 +355,7 @@ def handleIndicatorAttribute(object_refs, attributes, attribute, identity):
     attr_type = attribute.type
     attr_val = attribute.value
     indicator_args = {'valid_from': attribute.timestamp, 'type': 'indicator',
-                      'labels': labels, 'pattern': [definePattern(attr_type, attr_val)], 'id': indic_id,
+                      'labels': labels, 'pattern': definePattern(attr_type, attr_val), 'id': indic_id,
                       'created_by_ref': identity, 'kill_chain_phases': killchain}
     if attribute.comment:
         indicator_args['description'] = attribute.comment
@@ -410,7 +411,12 @@ def defineObservableObject(attr_type, attr_val):
     return observed_object
 
 def defineObservableObjectForObjects(obj_name, obj_attr):
-    return
+    observedObject = {}
+    if obj_name == 'email':
+        with2types = False
+        is_multipart = False
+
+    return observedObject
 
 def definePattern(attr_type, attr_val):
     if '|' in attr_type:
@@ -430,26 +436,26 @@ def definePattern(attr_type, attr_val):
             pattern = mispTypesMapping[attr_type]['pattern'].format(addr_type, attr_val)
         else:
             pattern = mispTypesMapping[attr_type]['pattern'].format(attr_val)
-    return pattern
+    return [pattern]
 
 def definePatternForObjects(obj_name, obj_attr):
-    attrs = {}
     pattern = ''
     if obj_name == 'email':
         for attr in obj_attr:
             attr_type = attr.type
             attr_val = attr.value
-            if attr_type in ('email-reply-to', 'email-dst', 'email-src'):
-                emailType = 'addr'
-                attrType = 'value'
-            elif attr_type in ('email-src-display-name', 'email-dst-display-name'):
+            if 'display-name' in attr_type:
                 emailType = 'addr'
                 attrType = 'display_name'
             else:
-                if attr_type not in objectTypes:
-                    continue
                 emailType = 'message'
-                attrType = objectTypes[attr_type]
+                if attr_type == 'email-dst':
+                    obj_relation = attr.object_relation
+                    attrType = objectTypes[attr_type][obj_relation]
+                elif attr_type == 'datetime':
+                    attrType = objectTypes[attr_type][obj_name]
+                else:
+                    attrType = objectTypes[attr_type]
             pattern += objectsMapping[obj_name]['pattern'].format(emailType, attrType, attr_val)
     elif obj_name == 'ip|port' or obj_name == 'domain-ip':
         for attr in obj_attr:
@@ -471,7 +477,7 @@ def definePatternForObjects(obj_name, obj_attr):
         for attr in obj_attr:
             attr_type = attr.type
             attr_val = attr.value
-            if attr_type in ('md5', 'sha*', '*hash*', 'ssdeep'):
+            if 'md5' in attr_type or 'sha' in attr_type or 'hash' in attr_type or 'ssdeep' in attr_type:
                 attrType = objectTypes['hashes'].format(attr_type)
             elif attr_type in ('text', 'datetime'):
                 obj_relation = attr.object_relation

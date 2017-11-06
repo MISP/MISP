@@ -116,14 +116,14 @@
                      "ip|port": {"observable": "",
                                  "pattern": "network-traffic:{0} = \"{1}\" AND "},
                      "registry-key": {"observable": "",
-                                      "pattern": ""},
+                                      "pattern": "windows-registry-key:{0} = \"{1}\" AND "},
                      "url": {"observable": "",
                              "pattern": "url:{0} = \"{1}\" AND "},
                      "x509": {"observable": "",
                               "pattern": "x509-certificate:{0} = \"{1}\" AND "}
   },
   "relationshipsSpecifications": {"attack-pattern": {"vulnerability": "targets", "identity": "targets",
-                                                  "malware": "uses", "tool": "uses"},
+                                                     "malware": "uses", "tool": "uses"},
                                   "campaign": {"intrusion-set": "attributed-to", "threat-actor": "attributed-to",
                                                "identity": "targets", "vulnerability": "targets",
                                                "attack-pattern": "uses", "malware": "uses",
@@ -148,11 +148,16 @@
                                     "serial-number": "serial_number", "version": "version"},
                            "file": {"mimetype": "mime_type"}},
                   "datetime": {"x509": {"validity-not-before": "validity_not_before", "validity-not-after": "validity_not_after"},
-                               "ip|port": {"first-seen": "start", "last-seen": "end"}},
+                               "ip|port": {"first-seen": "start", "last-seen": "end"},
+                               "email": "date"},
                   "port": {"src-port": "src_port", "dst-port": "dst_port"},
-                  "domain": {"domain": "domain"},
+                  "domain": {"domain": "domain"}, "email-x-mailer": "additional_header_fields.X-Mailer",
                   "email-subject": "subject", "email-attachment": "body_multipart[*].body_raw_ref.name",
+                  "email-dst": {"to": "to_refs", "cc": "cc_refs"}, "email-src": "from_refs",
+                  "email-reply-to": "additional_header_fields.Reply-To",
                   "hashes": "hashes.\"{0}\"", "size-in-bytes": "size", "filename": "name",
                   "ip-dst": {"ip|port": "dst_ref.type = \"{0}\" AND network-traffic:dst_ref.value",
-                             "domain-ip": "resolves_to_refs[*].value"}
+                             "domain-ip": "resolves_to_refs[*].value"},
+                  "reg-datatype": "datatype", "reg-data": "data", "reg-name": "name", "reg-key": "key"
+  }
 }
