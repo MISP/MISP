@@ -935,6 +935,7 @@ class Feed extends AppModel {
 			if ($data) {
 				$event = json_decode($data, true);
 				if (!empty($event['Event']['Attribute'])) {
+					$pipe = $redis->multi(Redis::PIPELINE);
 					foreach ($event['Event']['Attribute'] as $attribute) {
 						if (!in_array($attribute['type'], $this->Attribute->nonCorrelatingTypes)) {
 							if (in_array($attribute['type'], $this->Attribute->getCompositeTypes())) {
@@ -943,12 +944,16 @@ class Feed extends AppModel {
 								$redis->sAdd('misp:feed_cache:' . $feed['Feed']['id'], md5($value[1]));
 								$redis->sAdd('misp:feed_cache:combined', md5($value[0]));
 								$redis->sAdd('misp:feed_cache:combined', md5($value[1]));
+								$redis->sAdd('misp:feed_cache:event_uuid_lookup:' . md5($value[0]), $feed['Feed']['id'] . '/' . $event['Event']['uuid']);
+								$redis->sAdd('misp:feed_cache:event_uuid_lookup:' . md5($value[1]), $feed['Feed']['id'] . '/' . $event['Event']['uuid']);
 							} else {
 								$redis->sAdd('misp:feed_cache:' . $feed['Feed']['id'], md5($attribute['value']));
 								$redis->sAdd('misp:feed_cache:combined', md5($attribute['value']));
+								$redis->sAdd('misp:feed_cache:event_uuid_lookup:' . md5($attribute['value']), $feed['Feed']['id'] . '/' . $event['Event']['uuid']);
 							}
 						}
 					}
+					$pipe->exec();
 				}
 			}
 			$k++;

@@ -7,7 +7,7 @@ Configure::load('config'); // This is needed to load GnuPG.bodyonlyencrypted
 class Event extends AppModel {
 
 	public $actsAs = array(
-		'SysLogLogable.SysLogLogable' => array(	// TODO Audit, logable
+		'SysLogLogable.SysLogLogable' => array(
 			'userModel' => 'User',
 			'userKey' => 'user_id',
 			'change' => 'full'),
@@ -386,7 +386,6 @@ class Event extends AppModel {
 	public function beforeValidate($options = array()) {
 		parent::beforeValidate();
 		// analysis - setting correct vars
-		// TODO refactor analysis into an Enum (in the database)
 		if (isset($this->data['Event']['analysis'])) {
 			switch ($this->data['Event']['analysis']) {
 				case 'Initial':
@@ -842,7 +841,7 @@ class Event extends AppModel {
 				}
 			}
 			$uploadFailed = false;
-			try { // TODO Xml::build() does not throw the XmlException
+			try {
 				$json = json_decode($newTextBody, true);
 			} catch (Exception $e) {
 				$uploadFailed = true;
@@ -1503,7 +1502,6 @@ class Event extends AppModel {
 		// removing this for now, we export the to_ids == 0 attributes too, since there is a to_ids field indicating it in the .xml
 		// $conditionsAttributes['AND'] = array('Attribute.to_ids =' => 1);
 		// Same idea for the published. Just adjust the tools to check for this
-		// TODO: It is important to make sure that this is documented
 		// $conditions['AND'][] = array('Event.published =' => 1);
 
 		// do not expose all the data ...
@@ -3449,15 +3447,16 @@ class Event extends AppModel {
 			if (!in_array($object['objectType'], array('attribute', 'object'))) continue;
 			if (!empty($object['ObjectReference'])) {
 				foreach ($object['ObjectReference'] as $reference) {
-					foreach ($event['objects'] as $k => $v) {
-						$referencedType = isset($reference['Attribute']) ? 'attribute' : 'object';
-						if ($v['objectType'] == $referencedType && $reference['referenced_id'] == $v['id']) {
-							$temp = array();
-							foreach ($referencedObjectFields as $field) {
-								$temp[$field] = $object[$field];
+					if (isset($reference['referenced_uuid'])) {
+						foreach ($event['objects'] as $k => $v) {
+							if ($v['uuid'] == $reference['referenced_uuid']) {
+								$temp = array();
+								foreach ($referencedObjectFields as $field) {
+									if (isset($object[$field])) $temp[$field] = $object[$field];
+								}
+								$temp['relationship_type'] = $reference['relationship_type'];
+								$event['objects'][$k]['referenced_by'][$object['objectType']][] = $temp;
 							}
-							$temp['relationship_type'] = $reference['relationship_type'];
-							$event['objects'][$k]['referenced_by'][$object['objectType']][] = $temp;
 						}
 					}
 				}
