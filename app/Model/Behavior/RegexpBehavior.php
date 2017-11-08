@@ -10,7 +10,7 @@ class RegexpBehavior extends ModelBehavior {
 
 	private $__allRegexp = array();
 
-	public $excluded_types = array('sigma');
+	public $excluded_types = array('sigma', 'float');
 
 	public function setup(Model $model, $config = null) {
 		$regexp = new Regexp();

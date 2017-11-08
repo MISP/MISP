@@ -659,7 +659,7 @@ class Attribute extends AppModel {
 		}
 		// TODO: add explanatory comment
 		$result = $this->runRegexp($this->data['Attribute']['type'], $this->data['Attribute']['value']);
-		if (!$result) {
+		if ($result === false) {
 			$this->invalidate('value', 'This value is blocked by a regular expression in the import filters.');
 		} else {
 			$this->data['Attribute']['value'] = $result;
@@ -683,8 +683,9 @@ class Attribute extends AppModel {
 		}
 
 		if ($this->data['Attribute']['distribution'] != 4) $this->data['Attribute']['sharing_group_id'] = 0;
-
 		// return true, otherwise the object cannot be saved
+
+		if ($this->data['Attribute']['type'] == 'float' && $this->data['Attribute']['value'] == 0) $this->data['Attribute']['value'] = '0.0';
 		return true;
 	}
 
