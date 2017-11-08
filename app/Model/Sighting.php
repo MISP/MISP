@@ -100,10 +100,13 @@ class Sighting extends AppModel {
 			'recursive' => -1,
 			'contain' => array(
 				'Attribute' => array(
-					'fields' => array('Attribute.value', 'Attribute.id')
+					'fields' => array('Attribute.value', 'Attribute.id', 'Attribute.uuid', 'Attribute.type', 'Attribute.category', 'Attribute.to_ids')
 				),
 				'Event' => array(
-					'fields' => array('Event.id', 'Event.uuid', 'Event.orgc_id', 'Event.org_id')
+					'fields' => array('Event.id', 'Event.uuid', 'Event.orgc_id', 'Event.org_id', 'Event.info'),
+					'Orgc' => array(
+						'fields' => array('Orgc.name')
+					)
 				)
 			),
 			'conditions' => array('Sighting.id' => $id)
@@ -141,8 +144,13 @@ class Sighting extends AppModel {
 			$sighting['Sighting']['Organisation'] = $sighting['Organisation'];
 			unset($sighting['Organisation']);
 		}
-		$sighting['Sighting']['value'] = $sighting['Attribute']['value'];
-		return array('Sighting' => $sighting['Sighting']);
+		$result = array(
+			'Sighting' => $sighting['Sighting']
+		);
+		$result['Sighting']['Event'] = $sighting['Event'];
+		$result['Sighting']['Attribute'] = $sighting['Attribute'];
+		if (!empty($sighting['Organisation'])) $result['Sighting']['Organisation'] = $sighting['Organisation'];
+		return $result;
 	}
 
 	public function attachToEvent($event, $user = array(), $attribute_id = false, $extraConditions = false) {
