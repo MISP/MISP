@@ -940,62 +940,57 @@ class UsersController extends AppController {
 		if ($selected == '[]') $selected = null;
 		$selectedTypes = array();
 		if ($selected) $selectedTypes = json_decode($selected);
+		$org_ids = $this->User->Event->find('list', array(
+			'fields' => array('Event.orgc_id', 'Event.orgc_id'),
+			'group' => array('Event.orgc_id')
+		));
+		$orgs = $this->User->Organisation->find('list', array(
+			'fields' => array('Organisation.id', 'Organisation.name'),
+			'conditions' => array('Organisation.id' => $org_ids)
+		));
 		$temp = $this->User->Event->find('all', array(
 			'recursive' => -1,
 			'fields' => array('distinct(orgc_id)'),
 			'contain' => array('Orgc' => array('fields' => array('Orgc.name'))),
 		));
-		$orgs = array();
+		$orgs = array(0 => 'All organisations');
 		foreach ($temp as $t) {
 			if (!isset($t['Event'])) $t['Event'] = $t[0]; // Postgres workaround, array element has index 0 instead of Event
 			$orgs[$t['Event']['orgc_id']] = $t['Orgc']['name'];
 		}
-		// What org posted what type of attribute
-		$this->loadModel('Attribute');
-		$conditions = array();
-		foreach ($temp as $t) {
-			debug($t);
-			$list = $this->Attribute->find('list', array(
-				'recursive' => -1,
-				'contain' => array('Event'),
-				'fields' => array('Attribute.type', 'COUNT(Attribute.id) AS num_types'),
-				'conditions' => array(
-					'Event.orgc_id' => $t['Event']['orgc_id']
-				),
-				'group' => array('Attribute.type')
-			));
-			debug($list);
-		}
-		throw new Exception();
-		/*
-
-		*/
-		if ($selected) $conditions[] = array('Attribute.type' => $selectedTypes, 'Attribute.deleted' => 0);
-		$fields = array('Event.orgc_id', 'Attribute.type', 'COUNT(Attribute.type) AS num_types');
-		$params = array('recursive' => 0,
-				'fields' => $fields,
-				'group' => array('Attribute.type', 'Event.orgc_id'),
-				'order' => array('Event.orgc_id', 'num_types DESC'),
-				'conditions' => $conditions,
-		);
-		$temp = $this->Attribute->find('all', $params);
 		$data = array();
-		foreach ($orgs as $k => $org) {
-			$data[$org]['total'] = 0;
-			$data[$org]['data'] = array();
-			foreach ($temp as $t) {
-				if ($t['Event']['orgc_id'] == $k) {
-					$data[$org]['data'][$t['Attribute']['type']] = $t[0]['num_types'];
-				}
-			}
-		}
 		$max = 1;
-		foreach ($data as $key => $d) {
-			foreach ($d['data'] as $t) {
-				$d['total'] += $t;
+		foreach ($orgs as $org_id => $org_name) {
+			$conditions = array('Attribute.deleted' => 0);
+			if ($selected) $conditions['Attribute.type'] = $selectedTypes;
+			if ($org_id != 0) $conditions['Event.orgc_id'] = $org_id;
+			$params = array(
+				'recursive' => -1,
+				'fields' => array('Attribute.type', 'COUNT(*) as num_types'),
+				'group' => array('Attribute.type'),
+				'joins' => array(
+					array(
+						'table' => 'events',
+						'alias' => 'Event',
+						'type' => 'LEFT',
+						'conditions' => array(
+							'Attribute.event_id = Event.id'
+						)
+					)
+				),
+				//'order' => array('num_types DESC'),
+				'conditions' => $conditions
+			);
+			$temp = $this->User->Event->Attribute->find('all', $params);
+			$temp = Hash::combine($temp, '{n}.Attribute.type', '{n}.0.num_types');
+			$total = 0;
+			foreach ($temp as $k => $v) {
+				if (intval($v) > $max) $max = intval($v);
+				$total += intval($v);
 			}
-			$data[$key]['total'] = $d['total'];
-			if ($d['total'] > $max) $max = $d['total'];
+			$data[$org_id]['data'] = $temp;
+			$data[$org_id]['org_name'] = $org_name;
+			$data[$org_id]['total'] = $total;
 		}
 		uasort($data, function($a, $b) {
 			return $b['total'] - $a['total'];
@@ -1005,7 +1000,7 @@ class UsersController extends AppController {
 		$this->set('selectedTypes', $selectedTypes);
 
 		// Nice graphical histogram
-		$sigTypes = array_keys($this->Attribute->typeDefinitions);
+		$sigTypes = array_keys($this->User->Event->Attribute->typeDefinitions);
 		App::uses('ColourPaletteTool', 'Tools');
 		$paletteTool = new ColourPaletteTool();
 		$colours = $paletteTool->createColourPalette(count($sigTypes));
