@@ -8,3 +8,6 @@
     )
   );
 ?>
+<script type="text/javascript">
+  enableDisableObjectRows([<?php echo h($k); ?>]);
+</script>
