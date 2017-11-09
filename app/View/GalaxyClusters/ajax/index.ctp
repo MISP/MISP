@@ -39,9 +39,9 @@
 			</td>
 			<td class="short">
 				<?php
-					if ($item['GalaxyCluster']['tags']):
+					if (!empty($item['GalaxyCluster']['event_count'])):
 				?>
-					<a href="<?php echo $baseurl; ?>/events/index/searchtag:<?php echo h($item['GalaxyCluster']['tags']['tag_id']);?>" class="bold"><?php echo h($item['GalaxyCluster']['tags']['count']);?></a>
+					<a href="<?php echo $baseurl; ?>/events/index/searchtag:<?php echo h($item['GalaxyCluster']['tag_id']);?>" class="bold"><?php echo h($item['GalaxyCluster']['event_count']);?></a>
 				<?php
 					else:
 						echo '0';

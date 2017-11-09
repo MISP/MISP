@@ -1273,9 +1273,7 @@ class AttributesController extends AppController {
 				$tags = $this->Session->read('paginate_conditions_tags');
 				$this->set('keywordSearch', $keyword);
 				$this->set('keywordSearch2', $keyword2);
-				if (isset($attributeTags)) {
-					$this->set('attributeTags', $attributeTags);
-				}
+				$this->set('attributeTags', $attributeTags);
 				$this->set('orgSearch', $org);
 				$this->set('typeSearch', $type);
 				$this->set('tags', $tags);
