@@ -71,11 +71,23 @@ class TagsController extends AppController {
 			if (empty($tag['EventTag'])) {
 				$paginated[$k]['Tag']['count'] = 0;
 			} else {
-				$eventIDs = array();
-				foreach ($tag['EventTag'] as $eventTag) {
-					$eventIDs[] = $eventTag['event_id'];
-				}
-				$conditions = array('Event.id' => $eventIDs);
+				$db = $this->Event->EventTag->getDataSource();
+				$subQuery = $db->buildStatement(
+					array(
+						'fields' => array('EventTag.event_id'),
+						'table' => 'event_tags',
+						'alias' => 'EventTag',
+						'limit' => null,
+						'offset' => null,
+						'joins' => array(),
+						'conditions' => array(
+							'EventTag.tag_id' => $tag['Tag']['id']
+						),
+					),
+					$this->Event->EventTag
+				);
+				$subQuery = 'Event.id IN (' . $subQuery . ') ';
+				$conditions = array($db->expression($subQuery)->value);
 				if (!$this->_isSiteAdmin()) $conditions = array_merge(
 					$conditions,
 					array('OR' => array(
@@ -85,11 +97,11 @@ class TagsController extends AppController {
 						)),
 						array('Event.orgc_id' => $this->Auth->user('org_id'))
 					)));
-				$events = $this->Event->find('all', array(
+				$events = $this->Event->find('count', array(
 					'fields' => array('Event.id', 'Event.distribution', 'Event.orgc_id'),
 					'conditions' => $conditions
 				));
-				$paginated[$k]['Tag']['count'] = count($events);
+				$paginated[$k]['Tag']['count'] = $events;
 			}
 			$paginated[$k]['event_ids'] = array();
 			$paginated[$k]['attribute_ids'] = array();
@@ -108,7 +120,24 @@ class TagsController extends AppController {
 				foreach ($tag['AttributeTag'] as $attributeTag) {
 					$attributeIDs[] = $attributeTag['attribute_id'];
 				}
-				$conditions = array('Attribute.id' => $attributeIDs);
+
+				$db = $this->Event->Attribute->AttributeTag->getDataSource();
+				$subQuery = $db->buildStatement(
+					array(
+						'fields' => array('AttributeTag.attribute_id'),
+						'table' => 'attribute_tags',
+						'alias' => 'AttributeTag',
+						'limit' => null,
+						'offset' => null,
+						'joins' => array(),
+						'conditions' => array(
+							'AttributeTag.tag_id' => $tag['Tag']['id']
+						),
+					),
+					$this->Event->Attribute->AttributeTag
+				);
+				$subQuery = 'Attribute.id IN (' . $subQuery . ') ';
+				$conditions = array($db->expression($subQuery)->value);
 				if (!$this->_isSiteAdmin()) {
 					$conditions = array_merge(
 						$conditions,
@@ -122,12 +151,12 @@ class TagsController extends AppController {
 							array('Event.orgc_id' => $this->Auth->user('org_id'))
 						)));
 				}
-				$attributes = $this->Attribute->find('all', array(
+				$attributes = $this->Attribute->find('count', array(
 					'fields'     => array('Attribute.id', 'Attribute.deleted', 'Attribute.distribution', 'Event.id', 'Event.distribution', 'Event.orgc_id'),
 					'contain'    => array('Event' => array('fields' => array('id', 'distribution', 'orgc_id'))),
 					'conditions' => $conditions
 				));
-				$paginated[$k]['Tag']['attribute_count'] = count($attributes);
+				$paginated[$k]['Tag']['attribute_count'] = $attributes;
 			}
 			unset($paginated[$k]['AttributeTag']);
 			if (!empty($tag['FavouriteTag'])) {

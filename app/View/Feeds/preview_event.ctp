@@ -75,7 +75,7 @@
 			<?php foreach ($event['RelatedEvent'] as $relatedEvent): ?>
 			<li>
 			<div title="<?php echo h($relatedEvent['Event'][0]['info']); ?>">
-			<a href = "<?php echo '/servers/previewEvent/' . $server['Server']['id'] . '/' . $relatedEvent['Event'][0]['id']; ?>"><?php echo h($relatedEvent['Event'][0]['date']) . ' (' . h($relatedEvent['Event'][0]['id']) . ')'; ?></a>
+			<a href = "<?php echo '/feeds/previewEvent/' . $feed['Feed']['id'] . '/' . $relatedEvent['Event'][0]['uuid']; ?>"><?php echo h($relatedEvent['Event'][0]['date']) . ' (' . h($relatedEvent['Event'][0]['uuid']) . ')'; ?></a>
 			</div></li>
 			<?php endforeach; ?>
 		</ul>
@@ -84,88 +84,7 @@
 	</div>
 	<br />
 	<div id="attributes_div">
-		<?php
-			$all = false;
-			if (isset($this->params->params['paging']['Event']['page']) && $this->params->params['paging']['Event']['page'] == 0) $all = true;
-		?>
-		<div class="pagination">
-	        <ul>
-	        <?php
-		        $this->Paginator->options(array(
-					'url' => array($feed['Feed']['id'], $event['Event']['uuid']),
-		            'evalScripts' => true,
-		            'before' => '$(".progress").show()',
-		            'complete' => '$(".progress").hide()',
-		        ));
-	            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-	            echo $this->Paginator->numbers(array('modulus' => 60, 'separator' => '', 'tag' => 'li', 'currentClass' => 'red', 'currentTag' => 'span'));
-	            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-	        ?>
-			<li class="all <?php if ($all) echo 'disabled'; ?>">
-				<?php
-					if ($all):
-				?>
-					<span class="red">view all</span>
-				<?php
-					else:
-						echo $this->Paginator->link(__('view all'), 'all');
-					endif;
-				?>
-			</li>
-	        </ul>
-	    </div>
-	    <div id="attributeList" class="attributeListContainer">
-			<table class="table table-striped table-condensed">
-				<tr>
-					<th><?php echo $this->Paginator->sort('date');?></th>
-					<th><?php echo $this->Paginator->sort('category');?></th>
-					<th><?php echo $this->Paginator->sort('type');?></th>
-					<th><?php echo $this->Paginator->sort('value');?></th>
-					<th><?php echo $this->Paginator->sort('comment');?></th>
-					<th title="<?php echo $attrDescriptions['signature']['desc'];?>"><?php echo $this->Paginator->sort('to_ids', 'IDS');?></th>
-				</tr>
-			    <?php
-					foreach ($event['objects'] as $k => $object):
-				?>
-					<tr id = "<?php echo 'Attribute_' . $object['uuid'] . '_tr'; ?>">
-						<td class="short"><?php echo (isset($object['timestamp'])) ? date('Y-m-d', $object['timestamp']) : '&nbsp'; ?></td>
-						<td class="shortish"><?php echo h($object['category']); ?></td>
-						<td class="shortish"><?php echo h($object['type']); ?></td>
-						<td class="shortish"><?php echo h($object['value']); ?></td>
-						<td class="shortish"><?php echo h($object['comment']); ?></td>
-						<td class="shortish"><?php echo ($object['to_ids']) ? 'Yes' : 'No'; ?></td>
-					</tr>
-				<?php
-					endforeach;
-				?>
-			</table>
-	    </div>
-		<div class="pagination">
-	        <ul>
-	        <?php
-		        $this->Paginator->options(array(
-					'url' => array($feed['Feed']['id'], $event['Event']['uuid']),
-		            'evalScripts' => true,
-		            'before' => '$(".progress").show()',
-		            'complete' => '$(".progress").hide()',
-		        ));
-	            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-	            echo $this->Paginator->numbers(array('modulus' => 60, 'separator' => '', 'tag' => 'li', 'currentClass' => 'red', 'currentTag' => 'span'));
-	            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-	        ?>
-			<li class="all <?php if ($all) echo 'disabled'; ?>">
-				<?php
-					if ($all):
-				?>
-					<span class="red">view all</span>
-				<?php
-					else:
-						echo $this->Paginator->link(__('view all'), 'all');
-					endif;
-				?>
-			</li>
-	        </ul>
-	    </div>
+		<?php echo $this->element('Feeds/eventattribute'); ?>
 	</div>
 </div>
 <?php

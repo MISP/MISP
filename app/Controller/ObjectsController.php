@@ -133,7 +133,6 @@ class ObjectsController extends AppController {
 		if (empty($template)) {
 			$error = 'No valid template found to edit the object.';
 		}
-
 		// If we have received a POST request
 		if ($this->request->is('post')) {
 			if (isset($this->request->data['request'])) {
@@ -195,7 +194,7 @@ class ObjectsController extends AppController {
 		// In the case of a GET request or if the object could not be validated, show the form / the requirement
 		if ($this->_isRest()) {
 			if ($error) {
-
+				return $this->RestResponse->saveFailResponse('objects', 'add', $eventId . '/' . $templateId, $error, $this->response->type());
 			} else {
 				return $this->RestResponse->viewData($orgs, $this->response->type());
 			}
