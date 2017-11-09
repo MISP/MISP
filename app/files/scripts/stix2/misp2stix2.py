@@ -174,7 +174,7 @@ def addCourseOfAction(object_refs, attributes, galaxy, identity):
 def addCustomObject(object_refs, attributes, attribute, identity):
     customObject_id = "x-misp-object--{}".format(attribute.uuid)
     timestamp = attribute.timestamp
-    customObject_type = 'x-misp-object'.format(attribute.type)
+    customObject_type = 'x-misp-object-{}'.format(attribute.type)
     value = attribute.value
     labels = 'misp:to_ids=\"{}\"'.format(attribute.to_ids)
     customObject_args = {'id': customObject_id, 'x_misp_timestamp': timestamp, 'x_misp_to_ids': labels,
