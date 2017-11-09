@@ -19,6 +19,7 @@ import sys, json, os, datetime, re
 import pymisp
 # import stix2
 from stix2 import *
+from misp2stix2_dictionaries import *
 
 namespace = ['https://github.com/MISP/MISP', 'MISP']
 
@@ -30,21 +31,25 @@ non_indicator_attributes = ['text', 'comment', 'other', 'link', 'target-user', '
 
 noChangesTypes = ['', '']
 
-def loadDictionaries():
-    pathname = os.path.dirname(sys.argv[0])
-    filename = os.path.join(pathname, 'misp2stix2_dictionaries.json')
-    tempFile = open(filename, 'r')
-    return json.loads(tempFile.read())
-
-dictionaries = loadDictionaries()
-mispTypesMapping = dictionaries['mispTypesMapping']
-objectsMapping = dictionaries['objectsMapping']
-objectTypes = dictionaries['objectTypes']
+# def loadDictionaries():
+#     pathname = os.path.dirname(sys.argv[0])
+#     filename = os.path.join(pathname, 'misp2stix2_dictionaries.json')
+#     tempFile = open(filename, 'r')
+#     return json.loads(tempFile.read())
+#
+# dictionaries = loadDictionaries()
+# mispTypesMapping = dictionaries['mispTypesMapping']
+# objectsMapping = dictionaries['objectsMapping']
+# objectTypes = dictionaries['objectTypes']
 
 def saveFile(args, pathname, package):
     filename = args[1] + '.out'
     with open(filename, 'w') as f:
         f.write(str(package))
+
+# converts timestamp to the format used by STIX
+def getDateFromTimestamp(timestamp):
+    return datetime.datetime.utcfromtimestamp(timestamp).isoformat() + "+00:00"
 
 def setIdentity(event, SDOs):
     org = event.Orgc
@@ -301,7 +306,8 @@ def addIndicatorFromObjects(object_refs, attributes, obj, identity, to_ids):
                   'phase_name': category}]
     labels = 'misp:to_ids=\"{}\"'.format(to_ids)
     pattern = definePatternForObjects(obj.name, obj.Attribute)
-    indicator_args = {'valid_from': obj.timestamp, 'type': 'indicator', 'labels': labels,
+    timestamp = getDateFromTimestamp(int(obj.timestamp))
+    indicator_args = {'valid_from': timestamp, 'type': 'indicator', 'labels': labels,
                       'pattern': [pattern], 'id': indicator_id,
                       'created_by_ref': identity, 'kill_chain_phases': killchain, 'description': obj.description}
     indicator = Indicator(**indicator_args)
@@ -354,6 +360,7 @@ def handleIndicatorAttribute(object_refs, attributes, attribute, identity):
     labels = 'misp:to_ids=\"{}\"'.format(attribute.to_ids)
     attr_type = attribute.type
     attr_val = attribute.value
+    print(attribute.timestamp)
     indicator_args = {'valid_from': attribute.timestamp, 'type': 'indicator',
                       'labels': labels, 'pattern': definePattern(attr_type, attr_val), 'id': indic_id,
                       'created_by_ref': identity, 'kill_chain_phases': killchain}
