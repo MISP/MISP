@@ -312,6 +312,44 @@ class Sighting extends AppModel {
 		return $id;
 	}
 
+	public function getSightingsForTag($user, $tag_id, $sgids = array(), $type = false) {
+		$range = (!empty(Configure::read('MISP.Sightings_range')) && is_numeric(Configure::read('MISP.Sightings_range'))) ? Configure::read('MISP.Sightings_range') : 365;
+		$conditions = array(
+			'Sighting.date_sighting >' => strtotime("-" . $range . " days"),
+			'EventTag.tag_id' => $tag_id
+		);
+		if ($type !== false) {
+			$conditions['Sighting.type'] = $type;
+		}
+		$this->bindModel(
+			array(
+				'hasOne' => array(
+					'EventTag' => array(
+						'className' => 'EventTag',
+						'foreignKey' => false,
+						'conditions' => 'EventTag.event_id = Sighting.event_id'
+					)
+				)
+			)
+		);
+		$sightings = $this->find('all', array(
+			'recursive' => -1,
+			'contain' => array('EventTag'),
+			'conditions' => $conditions,
+			'fields' => array('Sighting.id', 'Sighting.event_id', 'Sighting.date_sighting', 'EventTag.tag_id')
+		));
+		$sightingsRearranged = array();
+		foreach ($sightings as $sighting) {
+			$date = date("Y-m-d", $sighting['Sighting']['date_sighting']);
+			if (isset($sightingsRearranged[$date])) {
+				$sightingsRearranged[$date]++;
+			} else {
+				$sightingsRearranged[$date] = 1;
+			}
+		}
+		return $sightingsRearranged;
+	}
+
 	public function getSightingsForObjectIds($user, $tagList, $context = 'event', $type = '0') {
 		$range = (!empty(Configure::read('MISP.Sightings_range')) && is_numeric(Configure::read('MISP.Sightings_range'))) ? Configure::read('MISP.Sightings_range') : 365;
 		$conditions = array(
