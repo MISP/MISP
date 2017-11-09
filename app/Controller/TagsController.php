@@ -87,7 +87,7 @@ class TagsController extends AppController {
 			if (empty($tag['AttributeTag'])) {
 				$paginated[$k]['Tag']['attribute_count'] = 0;
 			} else {
-				$paginated[$k]['Tag']['attribute_count'] = $this->Tag->AttributeTag->countForTag($tag['Tag']['id'], $this->Auth->user());
+				$paginated[$k]['Tag']['attribute_count'] = $this->Tag->AttributeTag->countForTag($tag['Tag']['id'], $this->Auth->user(), $sgs);
 			}
 			unset($paginated[$k]['AttributeTag']);
 			if (!empty($tag['FavouriteTag'])) {

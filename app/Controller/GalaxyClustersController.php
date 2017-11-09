@@ -33,50 +33,10 @@ class GalaxyClustersController extends AppController {
 	public function index($id) {
 		$this->paginate['conditions'] = array('GalaxyCluster.galaxy_id' => $id);
 		$clusters = $this->paginate();
-		if (!$this->_isSiteAdmin()) {
-			$eventConditions = array(
-				'OR' => array(
-					'Event.orgc_id' => $this->Auth->user('id'),
-					'Event.distribution' => array(1, 2, 3),
-					array(
-						'AND' => array(
-							'Event.distribution' => 4,
-							'Event.sharing_group_id' => array()
-						)
-					)
-				)
-			);
-			$attributeConditions = array(
-				'OR' => array(
-					'Event.orgc_id' => $this->Auth->user('id'),
-					'AND' => array(
-						'OR' => array(
-							'Event.distribution' => array(1, 2, 3),
-							array(
-								'AND' => array(
-									'Event.distribution' => 4,
-									'Event.sharing_group_id' => array()
-								)
-							)
-						),
-						'OR' => array(
-							'Attribute.distribution' => array(1, 2, 3, 5),
-							array(
-								'AND' => array(
-									'Attribute.distribution' => 4,
-									'Attribute.sharing_group_id' => array()
-								)
-							)
-						)
-					)
-				),
-			);
-		}
-
-
+		$sgs = $this->GalaxyCluster->Tag->EventTag->Event->SharingGroup->fetchAllAuthorised($this->Auth->user());
 		foreach ($clusters as $k => $cluster) {
 			if (!empty($cluster['Tag']['id'])) {
-				$clusters[$k]['GalaxyCluster']['event_count'] = $this->GalaxyCluster->Tag->EventTag->countForTag($cluster['Tag']['id'], $this->Auth->user());
+				$clusters[$k]['GalaxyCluster']['event_count'] = $this->GalaxyCluster->Tag->EventTag->countForTag($cluster['Tag']['id'], $this->Auth->user(), $sgs);
 			}
 		}
 		$tagIds = array();
