@@ -1415,7 +1415,7 @@ class Server extends AppModel {
 					),
 					'Export_services_enable' => array(
 							'level' => 0,
-							'description' => 'Enable/disable the import services',
+							'description' => 'Enable/disable the export services',
 							'value' => false,
 							'errorMessage' => '',
 							'test' => 'testBool',
@@ -1423,7 +1423,7 @@ class Server extends AppModel {
 					),
 					'Export_timeout' => array(
 							'level' => 1,
-							'description' => 'Set a timeout for the import services',
+							'description' => 'Set a timeout for the export services',
 							'value' => 10,
 							'errorMessage' => '',
 							'test' => 'testForEmpty',
