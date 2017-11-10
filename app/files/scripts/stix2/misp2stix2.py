@@ -17,7 +17,6 @@
 
 import sys, json, os, datetime, re
 import pymisp
-# import stix2
 from stix2 import *
 from misp2stix2_dictionaries import *
 
@@ -104,8 +103,7 @@ def readAttributes(event, identity, object_refs, external_refs):
                     if to_ids:
                         addIndicatorFromObjects(object_refs, attributes, obj, identity, to_ids)
                     else:
-                        if obj_name in ('domain-ip', 'email', 'file', 'ip|port'):
-                            addObservedDataFromObject(object_refs, attributes, obj, identity, to_ids)
+                        addObservedDataFromObject(object_refs, attributes, obj, identity, to_ids)
     return attributes
 
 def handleLink(attribute, external_refs):
@@ -436,6 +434,8 @@ def defineObservableObjectForObjects(obj_name, obj_attr):
                 obj['1'][objectTypes[attr_type][obj_name][obj_relation]] = attr.value
             else:
                 obj['1'][objectTypes[attr_type][attr.object_relation]] = attr.value
+    elif obj_name == 'registry-key':
+        obj = objectsMapping[obj_name]['observable']
     else:
         obj = objectsMapping[obj_name]['observable']
         for attr in obj_attr:
@@ -447,6 +447,9 @@ def defineObservableObjectForObjects(obj_name, obj_attr):
                 if obj_name not in objectTypes[attr_type] or obj_relation not in objectTypes[attr_type][obj_name]:
                     continue
                 obj['0'][objectTypes[attr_type][obj_name][obj_relation]] = attr.value
+            else:
+                if attr_type in objectTypes:
+                    obj['0'][objectTypes[attr_type]] = attr.value
     return obj
 
 def definePattern(attr_type, attr_val):
