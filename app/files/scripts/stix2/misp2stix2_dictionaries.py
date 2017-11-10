@@ -147,7 +147,7 @@ objectTypes = {'text': {'x509': {'subject': 'subject', 'issuer': 'issuer', 'pubk
               'datetime': {'x509': {'validity-not-before': 'validity_not_before', 'validity-not-after': 'validity_not_after'},
                            'ip|port': {'first-seen': 'start', 'last-seen': 'end'},
                            'email': 'date'},
-              'port': {'src-port': 'src_port', 'dst-port': 'dst_port'},
+              'port': {'src-port': 'src_port', 'dst-port': 'dst_port'}, 'url': 'value',
               'domain': {'domain': 'domain'}, 'email-x-mailer': 'additional_header_fields.X-Mailer',
               'email-subject': 'subject', 'email-attachment': 'body_multipart[*].body_raw_ref.name',
               'email-dst': {'to': 'to_refs', 'cc': 'cc_refs'}, 'email-src': 'from_refs',

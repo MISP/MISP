@@ -31,17 +31,6 @@ non_indicator_attributes = ['text', 'comment', 'other', 'link', 'target-user', '
 
 noChangesTypes = ['', '']
 
-# def loadDictionaries():
-#     pathname = os.path.dirname(sys.argv[0])
-#     filename = os.path.join(pathname, 'misp2stix2_dictionaries.json')
-#     tempFile = open(filename, 'r')
-#     return json.loads(tempFile.read())
-#
-# dictionaries = loadDictionaries()
-# mispTypesMapping = dictionaries['mispTypesMapping']
-# objectsMapping = dictionaries['objectsMapping']
-# objectTypes = dictionaries['objectTypes']
-
 def saveFile(args, pathname, package):
     filename = args[1] + '.out'
     with open(filename, 'w') as f:
