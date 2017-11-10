@@ -115,7 +115,8 @@ def readAttributes(event, identity, object_refs, external_refs):
                     if to_ids:
                         addIndicatorFromObjects(object_refs, attributes, obj, identity, to_ids)
                     else:
-                        addObservedDataFromObject(object_refs, attributes, obj, identity, to_ids)
+                        if obj_name in ('domain-ip', 'email', 'file', 'ip|port'):
+                            addObservedDataFromObject(object_refs, attributes, obj, identity, to_ids)
     return attributes
 
 def handleLink(attribute, external_refs):
@@ -316,7 +317,7 @@ def addIndicatorFromObjects(object_refs, attributes, obj, identity, to_ids):
 
 def addObservedDataFromObject(object_refs, attributes, obj, identity, to_ids):
     observedData_id = 'observed-data--{}'.format(obj.uuid)
-    timestamp = obj.timestamp
+    timestamp = getDateFromTimestamp(int(obj.timestamp))
     labels = 'misp:to_ids=\"{}\"'.format(to_ids)
     observedData_args = {'id': observedData_id, 'type': 'observed-data', 'number_observed': 1, 'labels': labels,
                          'first_observed': timestamp, 'last_observed': timestamp, 'created_by_ref': identity,
@@ -360,7 +361,6 @@ def handleIndicatorAttribute(object_refs, attributes, attribute, identity):
     labels = 'misp:to_ids=\"{}\"'.format(attribute.to_ids)
     attr_type = attribute.type
     attr_val = attribute.value
-    print(attribute.timestamp)
     indicator_args = {'valid_from': attribute.timestamp, 'type': 'indicator',
                       'labels': labels, 'pattern': definePattern(attr_type, attr_val), 'id': indic_id,
                       'created_by_ref': identity, 'kill_chain_phases': killchain}
@@ -418,12 +418,47 @@ def defineObservableObject(attr_type, attr_val):
     return observed_object
 
 def defineObservableObjectForObjects(obj_name, obj_attr):
-    observedObject = {}
     if obj_name == 'email':
+        obj = {'0': {'type': 'email-message', 'is_multipart': 'false'}}
         with2types = False
         is_multipart = False
-
-    return observedObject
+    elif obj_name == 'domain-ip':
+        obj = mispTypesMapping['domain|ip']['observable']
+        for attr in obj_attr:
+            attr_type = attr.type
+            if attr_type == 'domain':
+                obj['0']['value'] = attr.value
+            elif attr_type == 'ip-dst':
+                attr_val = attr.value
+                obj['1']['type'] = defineAddressType(attr_val)
+                obj['1']['value'] = attr_val
+    elif obj_name == 'ip|port':
+        obj = mispTypesMapping['ip-dst|port']['observable']
+        for attr in obj_attr:
+            attr_type = attr.type
+            if attr_type == 'ip-dst':
+                attr_val = attr.value
+                obj['0']['type'] = defineAddressType(attr_val)
+                obj['0']['value'] = attr_val
+            elif attr_type in ('text', 'datetime'):
+                obj_relation = attr.object_relation
+                if obj_name not in objectTypes[attr_type]:
+                    continue
+                obj['1'][objectTypes[attr_type][obj_name][obj_relation]] = attr.value
+            else:
+                obj['1'][objectTypes[attr_type][attr.object_relation]] = attr.value
+    else:
+        obj = objectsMapping[obj_name]['observable']
+        for attr in obj_attr:
+            attr_type = attr.type
+            if 'md5' in attr_type or 'sha' in attr_type or 'hash' in attr_type or 'ssdeep' in attr_type:
+                obj['0']['hashes'][attr_type] = attr.value
+            elif attr_type in ('text', 'datetime'):
+                obj_relation = attr.object_relation
+                if obj_name not in objectTypes[attr_type] or obj_relation not in objectTypes[attr_type][obj_name]:
+                    continue
+                obj['0'][objectTypes[attr_type][obj_name][obj_relation]] = attr.value
+    return obj
 
 def definePattern(attr_type, attr_val):
     if '|' in attr_type:

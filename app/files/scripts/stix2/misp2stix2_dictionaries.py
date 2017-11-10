@@ -106,17 +106,15 @@ mispTypesMapping = {
                        'pattern': 'email-addr:value = \'{0}\''}
 }
 
-objectsMapping = {'domain-ip': {'observable': '',
-                            'pattern': 'domain-name:{0} = \'{1}\' AND '},
+objectsMapping = {'domain-ip': {'pattern': 'domain-name:{0} = \'{1}\' AND '},
                  'email': {'observable': '',
                            'pattern': 'email-{0}:{1} = \'{2}\' AND '},
-                 'file': {'observable': '',
+                 'file': {'observable': {'0': {'type': 'file'}},
                           'pattern': 'file:{0} = \'{1}\' AND '},
-                 'ip|port': {'observable': '',
-                             'pattern': 'network-traffic:{0} = \'{1}\' AND '},
+                 'ip|port': {'pattern': 'network-traffic:{0} = \'{1}\' AND '},
                  'registry-key': {'observable': '',
                                   'pattern': 'windows-registry-key:{0} = \'{1}\' AND '},
-                 'url': {'observable': '',
+                 'url': {'observable': {'0': {'type': 'url'}},
                          'pattern': 'url:{0} = \'{1}\' AND '},
                  'x509': {'observable': '',
                           'pattern': 'x509-certificate:{0} = \'{1}\' AND '}
