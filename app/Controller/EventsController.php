@@ -1847,15 +1847,8 @@ class EventsController extends AppController {
 			$now = time();
 
 			// as a site admin we'll use the ADMIN identifier, not to overwrite the cached files of our own org with a file that includes too much data.
-			if ($this->_isSiteAdmin()) {
-				$useOrg = 'ADMIN';
-				$useOrg_id = 0;
-				$conditions = null;
-			} else {
-				$useOrg = $this->Auth->user('Organisation')['name'];
-				$useOrg_id = $this->Auth->user('org_id');
-				$conditions['OR'][] = array('id' => $this->Event->fetchEventIds($this->Auth->user(), false, false, false, true));
-			}
+			$org_name = $this->_isSiteAdmin() ? 'ADMIN' : $this->Auth->user('Organisation')['name'];
+			$conditions = $this->Event->buildEventConditions($this->Auth->user());
 			$this->Event->recursive = -1;
 			$newestEvent = $this->Event->find('first', array(
 				'conditions' => $conditions,
@@ -1878,16 +1871,16 @@ class EventsController extends AppController {
 						'fields' => array('id', 'progress'),
 						'conditions' => array(
 								'job_type' => 'cache_' . $k,
-								'org_id' => $useOrg_id
+								'org_id' => $this->_isSiteAdmin() ? 0 : $this->Auth->user('org_id')
 							),
 						'order' => array('Job.id' => 'desc')
 				));
 				$dir = new Folder(APP . 'tmp/cached_exports/' . $k);
 				if ($k === 'text') {
 					// Since all of the text export files are generated together, we might as well just check for a single one md5.
-					$file = new File($dir->pwd() . DS . 'misp.text_md5.' . $useOrg . $type['extension']);
+					$file = new File($dir->pwd() . DS . 'misp.text_md5.' . $org_name . $type['extension']);
 				} else {
-					$file = new File($dir->pwd() . DS . 'misp.' . $k . '.' . $useOrg . $type['extension']);
+					$file = new File($dir->pwd() . DS . 'misp.' . $k . '.' . $org_name . $type['extension']);
 				}
 				if (!$file->readable()) {
 					if (empty($tempNewestEvent)) {
