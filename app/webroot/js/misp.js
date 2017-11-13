@@ -2058,7 +2058,7 @@ function sharingGroupPopulateOrganisations() {
 	organisations.forEach(function(org) {
 		html = '<tr id="orgRow' + id + '" class="orgRow">';
 		html += '<td class="short">' + org.type + '&nbsp;</td>';
-		html += '<td>' + org.name + '&nbsp;</td>';
+		html += '<td>' + $('<div>').text(org.name).html() + '&nbsp;</td>';
 		html += '<td>' + org.uuid + '&nbsp;</td>';
 		html += '<td class="short" style="text-align:center;">';
 		if (org.removable == 1) {
