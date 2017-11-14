@@ -57,5 +57,5 @@ while True:
             if args.stats:
                 stats[topic] = stats.get(topic, 0) + 1
                 pp.pprint(stats)
-            time.sleep(args.sleep)
+            time.sleep(int(args.sleep))
 
