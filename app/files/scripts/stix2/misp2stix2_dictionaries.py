@@ -107,7 +107,7 @@ mispTypesMapping = {
 }
 
 objectsMapping = {'domain-ip': {'pattern': 'domain-name:{0} = \'{1}\' AND '},
-                 'email': {'observable': '',
+                 'email': {'observable': {'0': {'type': 'email-message'}},
                            'pattern': 'email-{0}:{1} = \'{2}\' AND '},
                  'file': {'observable': {'0': {'type': 'file'}},
                           'pattern': 'file:{0} = \'{1}\' AND '},
@@ -150,7 +150,7 @@ objectTypes = {'text': {'x509': {'subject': 'subject', 'issuer': 'issuer', 'pubk
               'port': {'src-port': 'src_port', 'dst-port': 'dst_port'}, 'url': 'value',
               'domain': {'domain': 'domain'}, 'email-x-mailer': 'additional_header_fields.X-Mailer',
               'email-subject': 'subject', 'email-attachment': 'body_multipart[*].body_raw_ref.name',
-              'email-dst': {'to': 'to_refs', 'cc': 'cc_refs'}, 'email-src': 'from_refs',
+              'email-dst': {'to': 'to_refs', 'cc': 'cc_refs'}, 'email-src': 'from_ref',
               'email-reply-to': 'additional_header_fields.Reply-To',
               'hashes': 'hashes.\'{0}\'', 'size-in-bytes': 'size', 'filename': 'name',
               'ip-dst': {'ip|port': 'dst_ref.type = \'{0}\' AND network-traffic:dst_ref.value',

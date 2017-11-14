@@ -406,9 +406,73 @@ def defineObservableObject(attr_type, attr_val):
 
 def defineObservableObjectForObjects(obj_name, obj_attr):
     if obj_name == 'email':
-        obj = {'0': {'type': 'email-message', 'is_multipart': 'false'}}
-        with2types = False
+        obj = objectsMapping['email']['observable']
+        email_attr = getEmailObjectInfo(obj_attr)
+        print(email_attr)
         is_multipart = False
+        part_number = 1
+        if 'email-src' in email_attr:
+            email_src = email_attr['email-src']
+            part = str(part_number)
+            obj[part] = {'type': 'email-addr', 'value': email_src}
+            if 'email-src-display-name' in email_attr:
+                src_dspl_name = email_attr['email-src-display-name']
+                obj[part]['display_name'] = src_dspl_name
+            obj['0'][objectTypes['email-src']] = '{}'.format(part)
+            part_number += 1
+        if 'email-dst' in email_attr:
+            if 'to' in email_attr['email-dst']:
+                to_type = objectTypes['email-dst']['to']
+                email_to = email_attr['email-dst']['to']
+                obj['0'][to_type] = []
+                for to in email_to:
+                    part = str(part_number)
+                    obj[part] = {'type': 'email-addr', 'value': to}
+                    obj['0'][to_type].append(part)
+                    part_number += 1
+            if 'cc' in email_attr['email-dst']:
+                cc_type = objectTypes['email-dst']['cc']
+                email_cc = email_attr['email-dst']['cc']
+                obj['0'][cc_type] = []
+                for cc in email_cc:
+                    part = str(part_number)
+                    obj[part] = {'type': 'email-addr', 'value': cc}
+                    obj['0'][cc_type].append(part)
+                    part_number += 1
+        #if 'email-dst-display-name' in email_attr:
+        #    dspl_name = email_attr['email-dst-display-name']
+        #    to_type = objectTypes['email-dst']['to']
+        #    if to_type not in obj['0']:
+        #        obj['0'][to_type] = []
+        #    for name in dspl_name:
+        #        part = str(part_number)
+        #        obj[part] = {'type': 'email-addr', 'display_name': name}
+        #        obj['0'][to_type].append(part)
+        #        part_number += 1
+        if 'email-attachment' in email_attr:
+            email_attachmnt = email_attr['email-attachment']
+            is_multipart = True
+            obj['0']['body_multipart'] = []
+            for attachmnt in email_attachmnt:
+                part = str(part_number)
+                content = 'attachment; filename=\'{}\''.format(attachmnt)
+                body_multipart = {'content_disposition': content, 'body_raw_ref': part}
+                obj['0']['body_multipart'].append(body_multipart)
+                obj[part] = {'type': 'file', 'name': attachmnt}
+                part_number += 1
+        obj['0']['is_multipart'] = is_multipart
+        if 'email-x-mailer' in email_attr:
+            x_mailer = email_attr['email-x-mailer']
+            obj['0']['additional_header_fields'] = {'x-mailer': x-mailer}
+        if 'email-reply-to' in email_attr:
+            reply_to = email_attr['email-reply-to']
+            try:
+                obj['0']['additional_header_fields']['reply-to'] = reply_to
+            except KeyError:
+                obj['0']['additional_header_fields'] = {'reply-to': reply_to}
+        if 'email-subject' in email_attr:
+            subject = email_attr['email-subject']
+            obj['0'][objectTypes['email-subject']] = subject
     elif obj_name == 'domain-ip':
         obj = mispTypesMapping['domain|ip']['observable']
         for attr in obj_attr:
@@ -533,6 +597,27 @@ def defineAddressType(attr_val):
     else:
         addr_type = 'ipv4-addr'
     return addr_type
+
+def getEmailObjectInfo(obj_attr):
+    email_attr = {}
+    for attr in obj_attr:
+        attr_type = attr.type
+        if attr_type == 'email-dst':
+            try:
+                email_attr[attr_type][attr.object_relation].append(attr.value)
+            except KeyError as key:
+                if 'email-dst' not in email_attr:
+                    email_attr[attr_type] = {attr.object_relation: [attr.value]}
+                else:
+                    email_attr[attr_type].update({attr.object_relation: [attr.value]})
+        elif attr_type in ('email-dst-display-name', 'email-attachment'):
+            try:
+                email_attr[attr_type].append(attr.value)
+            except:
+                email_attr[attr_type] = [attr.value]
+        else:
+            email_attr[attr_type] = attr.value
+    return email_attr
 
 def eventReport(event, identity, object_refs, external_refs):
     timestamp = event.publish_timestamp
