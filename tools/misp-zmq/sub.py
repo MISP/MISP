@@ -22,7 +22,7 @@ parser.add_argument("-s","--stats", default=False, action='store_true', help='pr
 parser.add_argument("-p","--port", default="50000", help='set TCP port of the MISP ZMQ (default: 50000)')
 parser.add_argument("-r","--host", default="127.0.0.1", help='set host of the MISP ZMQ (default: 127.0.0.1)')
 parser.add_argument("-o","--only", action="append", default=None, help="set filter (misp_json, misp_json_event, misp_json_attribute or misp_json_sighting) to limit the output a specific type (default: no filter)")
-parser.add_argument("-t","--sleep", default=2, help='sleep time (default: 2)')
+parser.add_argument("-t","--sleep", default=2, help='sleep time (default: 2)', type=int)
 args = parser.parse_args()
 
 if args.only is not None:
@@ -57,5 +57,5 @@ while True:
             if args.stats:
                 stats[topic] = stats.get(topic, 0) + 1
                 pp.pprint(stats)
-            time.sleep(int(args.sleep))
+            time.sleep(args.sleep)
 
