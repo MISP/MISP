@@ -2427,8 +2427,7 @@ class AttributesController extends AppController {
 			if ($allSamples) {
 				if (empty($validTypes)) {
 					$error = 'Invalid hash format (valid options are ' . implode(', ', array_keys($this->Attribute->hashTypes)) . ')';
-				}
-				else {
+				} else {
 					foreach ($validTypes as $t) {
 						if ($t == 'md5') $types = array_merge($types, array('malware-sample', 'filename|md5', 'md5'));
 						else $types = array_merge($types, array('filename|' . $t, $t));
@@ -2475,7 +2474,8 @@ class AttributesController extends AppController {
 								array('Attribute.type' => 'malware-sample')
 							)
 						),
-						'contain' => array('Event')
+						'contain' => array('Event'),
+						'flatten' => 1
 					)
 			);
 			if (empty($attributes)) $error = 'No hits with the given parameters.';
