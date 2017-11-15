@@ -406,51 +406,180 @@ def defineObservableObject(attr_type, attr_val):
 
 def defineObservableObjectForObjects(obj_name, obj_attr):
     if obj_name == 'email':
-        obj = {'0': {'type': 'email-message', 'is_multipart': 'false'}}
-        with2types = False
-        is_multipart = False
+        return defineObservableObjectEmail(obj_name, obj_attr)
     elif obj_name == 'domain-ip':
-        obj = mispTypesMapping['domain|ip']['observable']
-        for attr in obj_attr:
-            attr_type = attr.type
-            if attr_type == 'domain':
-                obj['0']['value'] = attr.value
-            elif attr_type == 'ip-dst':
-                attr_val = attr.value
-                obj['1']['type'] = defineAddressType(attr_val)
-                obj['1']['value'] = attr_val
+        return definObservableObjectDomainIp(obj_name, obj_attr)
     elif obj_name == 'ip|port':
-        obj = mispTypesMapping['ip-dst|port']['observable']
-        for attr in obj_attr:
-            attr_type = attr.type
-            if attr_type == 'ip-dst':
-                attr_val = attr.value
-                obj['0']['type'] = defineAddressType(attr_val)
-                obj['0']['value'] = attr_val
-            elif attr_type in ('text', 'datetime'):
-                obj_relation = attr.object_relation
-                if obj_name not in objectTypes[attr_type]:
-                    continue
-                obj['1'][objectTypes[attr_type][obj_name][obj_relation]] = attr.value
-            else:
-                obj['1'][objectTypes[attr_type][attr.object_relation]] = attr.value
+        return defineObservableObjectIpPort(obj_name, obj_attr)
     elif obj_name == 'registry-key':
-        obj = objectsMapping[obj_name]['observable']
+        return defineObservableObjectRegKey(obj_name, obj_attr)
     else:
-        obj = objectsMapping[obj_name]['observable']
-        for attr in obj_attr:
-            attr_type = attr.type
-            if 'md5' in attr_type or 'sha' in attr_type or 'hash' in attr_type or 'ssdeep' in attr_type:
-                obj['0']['hashes'][attr_type] = attr.value
-            elif attr_type in ('text', 'datetime'):
-                obj_relation = attr.object_relation
-                if obj_name not in objectTypes[attr_type] or obj_relation not in objectTypes[attr_type][obj_name]:
-                    continue
-                obj['0'][objectTypes[attr_type][obj_name][obj_relation]] = attr.value
-            else:
-                if attr_type in objectTypes:
-                    obj['0'][objectTypes[attr_type]] = attr.value
+        return defineObservableObjectBasicCase(obj_name, obj_attr)
+
+def defineObservableObjectEmail(obj_name, obj_attr):
+    obj = objectsMapping['email']['observable']
+    email_attr = getEmailObjectInfo(obj_attr)
+    is_multipart = False
+    part_number = 1
+    if 'email-src' in email_attr:
+        email_src = email_attr['email-src']
+        part = str(part_number)
+        obj[part] = {'type': 'email-addr', 'value': email_src}
+        if 'email-src-display-name' in email_attr:
+            src_dspl_name = email_attr['email-src-display-name']
+            obj[part]['display_name'] = src_dspl_name
+        obj['0'][objectTypes['email-src']] = '{}'.format(part)
+        part_number += 1
+    if 'email-dst' in email_attr:
+        if 'to' in email_attr['email-dst']:
+            to_type = objectTypes['email-dst']['to']
+            email_to = email_attr['email-dst']['to']
+            obj['0'][to_type] = []
+            for to in email_to:
+                part = str(part_number)
+                obj[part] = {'type': 'email-addr', 'value': to}
+                obj['0'][to_type].append(part)
+                part_number += 1
+        if 'cc' in email_attr['email-dst']:
+            cc_type = objectTypes['email-dst']['cc']
+            email_cc = email_attr['email-dst']['cc']
+            obj['0'][cc_type] = []
+            for cc in email_cc:
+                part = str(part_number)
+                obj[part] = {'type': 'email-addr', 'value': cc}
+                obj['0'][cc_type].append(part)
+                part_number += 1
+    # if 'email-dst-display-name' in email_attr:
+    #     dspl_name = email_attr['email-dst-display-name']
+    #     to_type = objectTypes['email-dst']['to']
+    #     if to_type not in obj['0']:
+    #         obj['0'][to_type] = []
+    #     for name in dspl_name:
+    #         part = str(part_number)
+    #         obj[part] = {'type': 'email-addr', 'display_name': name}
+    #         obj['0'][to_type].append(part)
+    #         part_number += 1
+    if 'email-attachment' in email_attr:
+        email_attachmnt = email_attr['email-attachment']
+        is_multipart = True
+        obj['0']['body_multipart'] = []
+        for attachmnt in email_attachmnt:
+            part = str(part_number)
+            content = 'attachment; filename=\'{}\''.format(attachmnt)
+            body_multipart = {'content_disposition': content, 'body_raw_ref': part}
+            obj['0']['body_multipart'].append(body_multipart)
+            obj[part] = {'type': 'file', 'name': attachmnt}
+            part_number += 1
+    obj['0']['is_multipart'] = is_multipart
+    if 'email-x-mailer' in email_attr:
+        x_mailer = email_attr['email-x-mailer']
+        obj['0']['additional_header_fields'] = {'x-mailer': x-mailer}
+    if 'email-reply-to' in email_attr:
+        reply_to = email_attr['email-reply-to']
+        try:
+            obj['0']['additional_header_fields']['reply-to'] = reply_to
+        except KeyError:
+            obj['0']['additional_header_fields'] = {'reply-to': reply_to}
+    if 'email-subject' in email_attr:
+        subject = email_attr['email-subject']
+        obj['0'][objectTypes['email-subject']] = subject
     return obj
+
+def defineObservableObjectDomainIp(obj_name, obj_attr):
+    obj = mispTypesMapping['domain|ip']['observable']
+    for attr in obj_attr:
+        attr_type = attr.type
+        if attr_type == 'domain':
+            obj['0']['value'] = attr.value
+        elif attr_type == 'ip-dst':
+            attr_val = attr.value
+            obj['1']['type'] = defineAddressType(attr_val)
+            obj['1']['value'] = attr_val
+    return obj
+
+def defineObservableObjectIpPort(obj_name, obj_attr):
+    obj = mispTypesMapping['ip-dst|port']['observable']
+    for attr in obj_attr:
+        attr_type = attr.type
+        if attr_type == 'ip-dst':
+            attr_val = attr.value
+            obj['0']['type'] = defineAddressType(attr_val)
+            obj['0']['value'] = attr_val
+        elif attr_type in ('text', 'datetime'):
+            obj_relation = attr.object_relation
+            if obj_name not in objectTypes[attr_type]:
+                continue
+            obj['1'][objectTypes[attr_type][obj_name][obj_relation]] = attr.value
+        else:
+            obj['1'][objectTypes[attr_type][attr.object_relation]] = attr.value
+    return obj
+
+def defineObservableObjectRegKey(obj_name, obj_attr):
+    obj = objectsMapping[obj_name]['observable']
+    reg_attr = getRegistryKeyInfo(obj_attr)
+    if 'reg-key' in reg_attr:
+        key_type = objectTypes['reg-key']
+        key = reg_attr['reg-key']
+        obj['0'][key_type] = key
+    if 'datetime' in reg_attr:
+        date_type = objectTypes['datetime'][obj_name]
+        date = reg_attr['datetime']
+        obj['0'][date_type] = date
+    val = False
+    values = {}
+    for o in ('reg-datatype', 'reg-data', 'reg-name'):
+        if o in reg_attr:
+            o_type = objectTypes[o]
+            o_val = reg_attr[o]
+            values[o_type] = o_val
+            val = True
+    if val:
+        obj['0']['values'] = [values]
+    return obj
+
+def defineObservableObjectBasicCase(obj_name, obj_attr):
+    obj = objectsMapping[obj_name]['observable']
+    for attr in obj_attr:
+        attr_type = attr.type
+        if 'md5' in attr_type or 'sha' in attr_type or 'hash' in attr_type or 'ssdeep' in attr_type:
+            obj['0']['hashes'][attr_type] = attr.value
+        elif attr_type in ('text', 'datetime'):
+            obj_relation = attr.object_relation
+            if obj_name not in objectTypes[attr_type] or obj_relation not in objectTypes[attr_type][obj_name]:
+                continue
+            obj['0'][objectTypes[attr_type][obj_name][obj_relation]] = attr.value
+        else:
+            if attr_type in objectTypes:
+                obj['0'][objectTypes[attr_type]] = attr.value
+    return obj
+
+def getEmailObjectInfo(obj_attr):
+    email_attr = {}
+    for attr in obj_attr:
+        attr_type = attr.type
+        if attr_type == 'email-dst':
+            try:
+                email_attr[attr_type][attr.object_relation].append(attr.value)
+            except KeyError as key:
+                if 'email-dst' not in email_attr:
+                    email_attr[attr_type] = {attr.object_relation: [attr.value]}
+                else:
+                    email_attr[attr_type].update({attr.object_relation: [attr.value]})
+        elif attr_type in ('email-dst-display-name', 'email-attachment'):
+            try:
+                email_attr[attr_type].append(attr.value)
+            except:
+                email_attr[attr_type] = [attr.value]
+        else:
+            email_attr[attr_type] = attr.value
+    return email_attr
+
+def getRegistryKeyInfo(obj_attr):
+    reg_attr = {}
+    for attr in obj_attr:
+        attr_type = attr.type
+        reg_attr[attr_type] = attr.value
+    return reg_attr
 
 def definePattern(attr_type, attr_val):
     if '|' in attr_type:
