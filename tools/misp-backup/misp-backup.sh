@@ -1,5 +1,5 @@
 #@IgnoreInspection BashAddShebang
-#/!bin/sh
+#!/bin/sh
 ## $Id: misp-backup.sh 07.04.2016 $
 ##
 ## script to backup MISP on debian/ubuntu 14.04.1
