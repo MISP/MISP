@@ -507,6 +507,14 @@ class Server extends AppModel {
 							'test' => 'testForCustomImage',
 							'type' => 'string',
 					),
+					'title_text' => array(
+						'level' => 2,
+						'description' => 'Used in the page title, after the name of the page',
+						'value' => 'MISP',
+						'errorMessage' => '',
+						'test' => 'testForEmpty',
+						'type' => 'string',
+					),
 					'take_ownership_xml_import' => array(
 							'level' => 2,
 							'description' => 'Allows users to take ownership of an event uploaded via the "Add MISP XML" button. This allows spoofing the creator of a manually imported event, also breaking possibly breaking the original intended releasability. Synchronising with an instance that has a different creator for the same event can lead to unwanted consequences.',
