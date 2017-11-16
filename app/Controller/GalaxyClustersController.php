@@ -136,8 +136,23 @@ class GalaxyClustersController extends AppController {
 		}
 		$existingEventTag = $this->Event->EventTag->find('first', array('conditions' => array('EventTag.tag_id' => $tag_id, 'EventTag.event_id' => $event_id), 'recursive' => -1));
 		if (empty($existingEventTag)) {
+			$cluster = $this->GalaxyCluster->find('first', array(
+				'recursive' => -1,
+				'conditions' => array('GalaxyCluster.tag_name' => $existingEventTag['Tag']['name'])
+			));
 			$this->Event->EventTag->create();
 			$this->Event->EventTag->save(array('EventTag.tag_id' => $tag_id, 'EventTag.event_id' => $event_id));
+			$this->Log = ClassRegistry::init('Log');
+			$this->Log->create();
+			$this->Log->save(array(
+				'org' => $this->Auth->user('Organisation')['name'],
+				'model' => 'Event',
+				'model_id' => $event_id,
+				'email' => $this->Auth->user('email'),
+				'action' => 'galaxy',
+				'title' => 'Attached ' . $cluster['GalaxyCluster']['value'] . ' (' . $cluster['GalaxyCluster']['id'] . ') to event (' . $event_id . ')',
+				'change' => ''
+			));
 			$event['Event']['published'] = 0;
 			$date = new DateTime();
 			$event['Event']['timestamp'] = $date->getTimestamp();
@@ -162,16 +177,39 @@ class GalaxyClustersController extends AppController {
 				throw new MethodNotAllowedException('Invalid Event.');
 			}
 		}
-		$existingEventTag = $this->Event->EventTag->find('first', array('conditions' => array('EventTag.tag_id' => $tag_id, 'EventTag.event_id' => $event_id), 'recursive' => -1));
+		$existingEventTag = $this->Event->EventTag->find('first', array(
+			'conditions' => array('EventTag.tag_id' => $tag_id, 'EventTag.event_id' => $event_id),
+			'recursive' => -1,
+			'contain' => array('Tag')
+		));
 		if (empty($existingEventTag)) {
 			$this->Session->setFlash('Galaxy not attached.');
 		} else {
-			$this->Event->EventTag->delete($existingEventTag['EventTag']['id']);
-			$event['Event']['published'] = 0;
-			$date = new DateTime();
-			$event['Event']['timestamp'] = $date->getTimestamp();
-			$this->Event->save($event);
-			$this->Session->setFlash('Galaxy successfully detached.');
+			$cluster = $this->GalaxyCluster->find('first', array(
+				'recursive' => -1,
+				'conditions' => array('GalaxyCluster.tag_name' => $existingEventTag['Tag']['name'])
+			));
+			$result = $this->Event->EventTag->delete($existingEventTag['EventTag']['id']);
+			if ($result) {
+				$event['Event']['published'] = 0;
+				$date = new DateTime();
+				$event['Event']['timestamp'] = $date->getTimestamp();
+				$this->Event->save($event);
+				$this->Session->setFlash('Galaxy successfully detached.');
+				$this->Log = ClassRegistry::init('Log');
+				$this->Log->create();
+				$this->Log->save(array(
+					'org' => $this->Auth->user('Organisation')['name'],
+					'model' => 'Event',
+					'model_id' => $event_id,
+					'email' => $this->Auth->user('email'),
+					'action' => 'galaxy',
+					'title' => 'Detached ' . $cluster['GalaxyCluster']['value'] . ' (' . $cluster['GalaxyCluster']['id'] . ') from event (' . $event_id . ')',
+					'change' => ''
+				));
+			} else {
+				$this->Session->setFlash('Could not detach galaxy from event.');
+			}
 		}
 		$this->redirect($this->referer());
 	}
