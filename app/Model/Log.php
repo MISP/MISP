@@ -44,7 +44,8 @@ class Log extends AppModel {
 							'undelete',
 							'file_upload',
 							'export',
-							'pruneUpdateLogs'
+							'pruneUpdateLogs',
+							'galaxy'
 						)),
 			'message' => 'Options : ...'
 		)
