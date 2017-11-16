@@ -269,7 +269,8 @@ class User extends AppModel {
 			}
 			if (isset($user['User']['id']))
 				$user = $this->find('first', array(
-					'recursive' => array('User.id' => $user['User']['id']),
+					'recursive' => -1,
+					'condiitons' => array('User.id' => $user['User']['id']),
 					'fields' => array('id', 'email', 'last_login', 'date_modified', 'org_id', 'termsaccepted', 'autoalert', 'newsread', 'disabled'),
 					'contain' => array(
 						'Organisation' => array(
