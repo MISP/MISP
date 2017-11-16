@@ -1172,8 +1172,9 @@ class Attribute extends AppModel {
 			case 'prtn':
 			case 'whois-registrant-phone':
 			case 'phone-number':
-				if (substr($value, 0, 1) == '+') $value = '00' . substr($value, 1);
-				$value = preg_replace('/[^0-9]+/', '', $value);
+				if (substr($value, 0, 2) == '00') $value = '+' . substr($value, 2);
+				$value = preg_replace('/\(0\)/', '', $value);
+				$value = preg_replace('/[^\+0-9]+/', '', $value);
 				break;
 			case 'url':
 				$value = preg_replace('/^hxxp/i', 'http', $value);
