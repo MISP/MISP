@@ -267,9 +267,9 @@ class User extends AppModel {
 			if (!isset($user['User'])) {
 				$user['User'] = $user;
 			}
-			$action = isset($user['User']['id']) ? 'edit' : 'add';
-			if (isset($user['action'])) $action = $user['action'];
-			if (isset($user['User']['id']))
+			$action = $created ? 'edit' : 'add';
+			if (isset($user['User']['action'])) $action = $user['User']['action'];
+			if (isset($user['User']['id'])) {
 				$user = $this->find('first', array(
 					'recursive' => -1,
 					'condiitons' => array('User.id' => $user['User']['id']),
@@ -280,6 +280,7 @@ class User extends AppModel {
 						)
 					)
 				));
+			}
 			if (isset($user['User']['password'])) {
 				unset($user['User']['password']);
 				unset($user['User']['confirm_password']);

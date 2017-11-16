@@ -778,11 +778,17 @@ class UsersController extends AppController {
 			$this->__extralog("login");	// TODO Audit, __extralog, check: customLog i.s.o. __extralog, no auth user?: $this->User->customLog('login', $this->Auth->user('id'), array('title' => '','user_id' => $this->Auth->user('id'),'email' => $this->Auth->user('email'),'org' => 'IN2'));
 			$this->User->Behaviors->disable('SysLogLogable.SysLogLogable');
 			$this->User->id = $this->Auth->user('id');
-			$user = $this->Auth->user();
-			$user['action'] = 'login';
-			$user['last_login'] = $this->Auth->user('current_login');
-			$user['current_login'] = time();
-			$this->User->save($user);
+			$user = $this->User->find('first', array(
+				'conditions' => array(
+					'User.id' => $this->Auth->user('id')
+				),
+				'recursive' => -1
+			));
+			unset($user['User']['password']);
+			$user['User']['action'] = 'login';
+			$user['User']['last_login'] = $this->Auth->user('current_login');
+			$user['User']['current_login'] = time();
+			$this->User->save($user['User'], true, array('id', 'last_login', 'current_login'));
 			if (empty($this->Auth->authenticate['Form']['passwordHasher']) && !empty($passwordToSave)) $this->User->saveField('password', $passwordToSave);
 			$this->User->Behaviors->enable('SysLogLogable.SysLogLogable');
 			// TODO removed the auto redirect for now, due to security concerns - will look more into this
@@ -900,6 +906,15 @@ class UsersController extends AppController {
 			$this->__extralog("logout");	// TODO Audit, __extralog, check: customLog i.s.o. __extralog, $this->User->customLog('logout', $this->Auth->user('id'), array());
 		}
 		$this->Session->setFlash(__('Good-Bye'));
+		$user = $this->User->find('first', array(
+			'conditions' => array(
+				'User.id' => $this->Auth->user('id')
+			),
+			'recursive' => -1
+		));
+		unset($user['User']['password']);
+		$user['User']['action'] = 'logout';
+		$this->User->save($user['User'], true, array('id'));
 		$this->redirect($this->Auth->logout());
 	}
 
