@@ -3083,9 +3083,6 @@ class Event extends AppModel {
 			$tempFile = new File($tmpDir . DS . $randomFileName, true, 0644);
 			$event = $this->fetchEvent($user, array('eventid' => $event_id));
 			if (empty($event)) continue;
-			App::uses('JSONConverterTool', 'Tools');
-			$converter = new JSONConverterTool();
-			$event = $converter->convert($event[0]);
 			if ($attachments == "yes" || $attachments == "true" || $attachments == 1) {
 				foreach ($event[0]['Attribute'] as &$attribute) {
 					if ($this->Attribute->typeIsAttachment($attribute['type'])) {
@@ -3098,7 +3095,10 @@ class Event extends AppModel {
 			foreach ($event[0]['EventTag'] as $tag) {
 				$event[0]['Tag'][] = $tag['Tag'];
 			}
-			$tempFile->write(json_encode($event[0]));
+			App::uses('JSONConverterTool', 'Tools');
+			$converter = new JSONConverterTool();
+			$event = $converter->convert($event[0]);
+			$tempFile->write($event);
 			unset($event);
 			$scriptFile = APP . "files" . DS . "scripts" . DS . "misp2stix.py";
 			$result = shell_exec('python ' . $scriptFile . ' ' . $randomFileName . ' ' . escapeshellarg($returnType) . ' ' . escapeshellarg(Configure::read('MISP.baseurl')) . ' ' . escapeshellarg(Configure::read('MISP.org')) . ' 2>' . APP . 'tmp/logs/exec-errors.log');
