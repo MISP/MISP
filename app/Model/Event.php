@@ -3083,6 +3083,9 @@ class Event extends AppModel {
 			$tempFile = new File($tmpDir . DS . $randomFileName, true, 0644);
 			$event = $this->fetchEvent($user, array('eventid' => $event_id));
 			if (empty($event)) continue;
+			App::uses('JSONConverterTool', 'Tools');
+			$converter = new JSONConverterTool();
+			$event = $converter->convert($event[0]);
 			if ($attachments == "yes" || $attachments == "true" || $attachments == 1) {
 				foreach ($event[0]['Attribute'] as &$attribute) {
 					if ($this->Attribute->typeIsAttachment($attribute['type'])) {
