@@ -39,7 +39,7 @@ non_indicator_attributes = ['text', 'comment', 'other', 'link', 'target-user', '
 # Load the array from MISP. MISP will call this script with a parameter containing the temporary file it creates for the export (using a generated 12 char alphanumeric name)
 def loadEvent(args, pathname):
     try:
-        filename = pathname + args[1]
+        filename = pathname + "/tmp/" + args[1]
         tempFile = open(filename, 'r')
         events = json.loads(tempFile.read())
         return events
