@@ -264,12 +264,10 @@ class User extends AppModel {
 		if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_user_notifications_enable')) {
 			$pubSubTool = $this->getPubSubTool();
 			$user = $this->data;
+			if (isset($user['User']['id'])) $user = $this->getAuthUser($user['User']['id']);
 			if (isset($user['User']['password'])) {
-				if (isset($user['User']['id'])) $user = $this->getAuthUser($user['User']['id']);
-				else {
-					unset($user['User']['password']);
-					unset($user['User']['confirm_password']);
-				}
+				unset($user['User']['password']);
+				unset($user['User']['confirm_password']);
 			}
 			$pubSubTool->modified($user, 'user');
 		}
