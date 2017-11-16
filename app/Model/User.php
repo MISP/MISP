@@ -265,8 +265,11 @@ class User extends AppModel {
 			$pubSubTool = $this->getPubSubTool();
 			$user = $this->data;
 			if (isset($user['User']['password'])) {
-				unset($user['User']['password']);
-				unset($user['User']['confirm_password']);
+				if (isset($user['User']['id'])) $user = $this->getAuthUser($user['User']['id']);
+				else {
+					unset($user['User']['password']);
+					unset($user['User']['confirm_password']);
+				}
 			}
 			$pubSubTool->modified($user, 'user');
 		}
