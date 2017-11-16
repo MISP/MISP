@@ -267,7 +267,16 @@ class User extends AppModel {
 			if (!isset($user['User'])) {
 				$user['User'] = $user;
 			}
-			if (isset($user['User']['id'])) $user = $this->getAuthUser($user['User']['id']);
+			if (isset($user['User']['id']))
+				$user = $this->find('first', array(
+					'recursive' => array('User.id' => $user['User']['id']),
+					'fields' => array('id', 'email', 'last_login', 'date_modified', 'org_id', 'termsaccepted', 'autoalert', 'newsread', 'disabled'),
+					'contain' => array(
+						'Organisation' => array(
+							'fields' => array('Organisation.id', 'Organisation.name', 'Organisation.description', 'Organisation.uuid', 'Organisation.nationality', 'Organisation.sector', 'Organisation.type', 'Organisation.local')
+						)
+					)
+				));
 			if (isset($user['User']['password'])) {
 				unset($user['User']['password']);
 				unset($user['User']['confirm_password']);
