@@ -39,7 +39,7 @@ non_indicator_attributes = ['text', 'comment', 'other', 'link', 'target-user', '
 # Load the array from MISP. MISP will call this script with a parameter containing the temporary file it creates for the export (using a generated 12 char alphanumeric name)
 def loadEvent(args, pathname):
     try:
-        filename = pathname + "/tmp/" + args[1]
+        filename = pathname + args[1]
         tempFile = open(filename, 'r')
         events = json.loads(tempFile.read())
         return events
@@ -89,7 +89,7 @@ def generateEventPackage(event):
 def generateSTIXObjects(event):
     incident = Incident(id_ = namespace[1] + ":incident-" + event["Event"]["uuid"], title=event["Event"]["info"])
     setDates(incident, event["Event"]["date"], int(event["Event"]["publish_timestamp"]))
-    addJournalEntry(incident, "Event Threat Level: " + event["ThreatLevel"]["name"])
+    addJournalEntry(incident, "Event Threat Level: " + event["Event"]["threat_level_id"])
     ttps = []
     eventTags = event.get("Tag", [])
     external_id = ExternalID(value=event["Event"]["id"], source="MISP Event")
@@ -98,11 +98,12 @@ def generateSTIXObjects(event):
     if incident_status_name is not None:
         incident.status = IncidentStatus(incident_status_name)
     setTLP(incident, event["Event"]["distribution"], eventTags)
-    setSrc(incident, event["Org"]["name"])
-    setRep(incident, event["Orgc"]["name"])
+    setSrc(incident, event["Event"]["Org"]["name"])
+    orgc_name = event["Event"]["Orgc"]["name"]
+    setRep(incident, orgc_name)
     setTag(incident, eventTags)
-    resolveAttributes(incident, ttps, event["Attribute"], eventTags, event["Orgc"]["name"])
-    resolveObjects(incident, ttps, event["Object"], eventTags, event["Orgc"]["name"])
+    resolveAttributes(incident, ttps, event["Event"]["Attribute"], eventTags, orgc_name)
+    resolveObjects(incident, ttps, event["Event"]["Object"], eventTags, orgc_name)
     return [incident, ttps]
 
 
@@ -211,7 +212,7 @@ def handleNonIndicatorAttribute(incident, ttps, attribute, eventTags, org):
 def generateTTP(incident, attribute, ttps, eventTags):
     ttp = TTP(timestamp=getDateFromTimestamp(int(attribute["timestamp"])))
     ttp.id_= namespace[1] + ":ttp-" + attribute["uuid"]
-    setTLP(ttp, attribute["distribution"], mergeTags(eventTags, attribute["AttributeTag"]))
+    # setTLP(ttp, attribute["distribution"], mergeTags(eventTags, attribute["AttributeTag"]))
     ttp.title = attribute["category"] + ": " + attribute["value"] + " (MISP Attribute #" + attribute["id"] + ")"
     if attribute["type"] == "vulnerability":
         vulnerability = Vulnerability()
@@ -254,7 +255,7 @@ def generateIndicator(attribute, eventTags, org):
     setProd(indicator, org)
     if attribute["comment"] != "":
         indicator.description = attribute["comment"]
-    setTLP(indicator, attribute["distribution"], mergeTags(eventTags, attribute["AttributeTag"]))
+    # setTLP(indicator, attribute["distribution"], mergeTags(eventTags, attribute["AttributeTag"]))
     indicator.title = attribute["category"] + ": " + attribute["value"] + " (MISP Attribute #" + attribute["id"] + ")"
     indicator.description = indicator.title
     confidence_description = "Derived from MISP's IDS flag. If an attribute is marked for IDS exports, the confidence will be high, otherwise none"
@@ -325,7 +326,10 @@ def setTLP(target, distribution, tags, sort=False):
 def addJournalEntry(incident, entry_line):
     hi = HistoryItem()
     hi.journal_entry = entry_line
-    incident.history.append(hi)
+    try:
+        incident.history.append(hi)
+    except AttributeError:
+        incident.history = History(hi)
 
 # merge event tags with attribute tags
 def mergeTags(eventTags, attributeTags):
@@ -352,6 +356,8 @@ def main(args):
             idgen.set_id_namespace(Namespace(namespace[0], namespace[1], "MISP"))
 
     event = loadEvent(args, pathname)
+    if 'response' in event:
+        event = event['response'][0]
     stix_package = generateEventPackage(event)
     saveFile(args, pathname, stix_package)
     print(json.dumps({'success' : 1, 'message' : ''}))
