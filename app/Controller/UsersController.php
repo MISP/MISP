@@ -778,8 +778,11 @@ class UsersController extends AppController {
 			$this->__extralog("login");	// TODO Audit, __extralog, check: customLog i.s.o. __extralog, no auth user?: $this->User->customLog('login', $this->Auth->user('id'), array('title' => '','user_id' => $this->Auth->user('id'),'email' => $this->Auth->user('email'),'org' => 'IN2'));
 			$this->User->Behaviors->disable('SysLogLogable.SysLogLogable');
 			$this->User->id = $this->Auth->user('id');
-			$this->User->saveField('last_login', $this->Auth->user('current_login'));
-			$this->User->saveField('current_login', time());
+			$user = $this->Auth->user();
+			$user['action'] = 'login';
+			$user['last_login'] = $this->Auth->user('current_login');
+			$user['current_login'] = time();
+			$this->User->save($user);
 			if (empty($this->Auth->authenticate['Form']['passwordHasher']) && !empty($passwordToSave)) $this->User->saveField('password', $passwordToSave);
 			$this->User->Behaviors->enable('SysLogLogable.SysLogLogable');
 			// TODO removed the auto redirect for now, due to security concerns - will look more into this

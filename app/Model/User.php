@@ -267,6 +267,8 @@ class User extends AppModel {
 			if (!isset($user['User'])) {
 				$user['User'] = $user;
 			}
+			$action = isset($user['User']['id']) ? 'edit' : 'add';
+			if (isset($user['action'])) $action = $user['action'];
 			if (isset($user['User']['id']))
 				$user = $this->find('first', array(
 					'recursive' => -1,
@@ -282,7 +284,7 @@ class User extends AppModel {
 				unset($user['User']['password']);
 				unset($user['User']['confirm_password']);
 			}
-			$pubSubTool->modified($user, 'user');
+			$pubSubTool->modified($user, 'user', $action);
 		}
 		return true;
 	}
