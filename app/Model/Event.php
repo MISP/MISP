@@ -2233,39 +2233,49 @@ class Event extends AppModel {
 		return $result;
 	}
 
+	private function __captureSGForElement($element, $user) {
+		if (isset($element['SharingGroup'])) {
+			$sg = $this->SharingGroup->captureSG($element['SharingGroup'], $user);
+			unset($element['SharingGroup']);
+		} else {
+			$sg = $this->SharingGroup->checkIfAuthorised($user, $element['sharing_group_id']) ? $element['sharing_group_id'] : false;
+		}
+		if ($sg===false) {
+			$sg = 0;
+			$data['Event']['distribution'] = 0;
+		}
+		$element['sharing_group_id'] = $sg;
+		return $element;
+	}
+
 	// When we receive an event via REST, we might end up with organisations, sharing groups, tags that we do not know
 	// or which we need to update. All of that is controlled in this method.
 	private function __captureObjects($data, $user) {
 		// First we need to check whether the event or any attributes are tied to a sharing group and whether the user is even allowed to create the sharing group / is part of it
-		// For this we first collect all the sharing groups
-		$sgs = array();
-		if ($data['Event']['distribution'] == 4) $sgs[$data['Event']['SharingGroup']['uuid']] = $data['Event']['SharingGroup'];
-		if (isset($data['Event']['Attribute']) && !empty($data['Event']['Attribute'])) {
-			if (!isset($data['Event']['Attribute'][0])) $data['Event']['Attribute'] = array(0 => $data['Event']['Attribute']);
-			foreach ($data['Event']['Attribute'] as &$attribute) {
-				if (isset($attribute['SharingGroup']) && !empty($attribute['SharingGroup']) && isset($attribute['SharingGroup'][0])) $attribute['SharingGroup'] = $attribute['SharingGroup'][0];
-				if (isset($attribute['distribution']) && $attribute['distribution'] == 4 && !isset($sgs[$attribute['SharingGroup']['uuid']])) $sgs[$attribute['SharingGroup']['uuid']] = $attribute['SharingGroup'];
-			}
-		}
-
-		if ($data['Event']['distribution'] == 4) {
-			$sg = $this->SharingGroup->captureSG($data['Event']['SharingGroup'], $user);
-			if ($sg===false) {
-				$sg = 0;
-				$data['Event']['distribution'] = 0;
-			}
-			$data['Event']['sharing_group_id'] = $sg;
-			unset($data['Event']['SharingGroup']);
+		if (isset($data['Event']['distribution']) && $data['Event']['distribution'] == 4) {
+			$data['Event'] = $this->__captureSGForElement($data['Event'], $user);
 		}
 		if (!empty($data['Event']['Attribute'])) {
 			foreach ($data['Event']['Attribute'] as $k => $a) {
 				unset($data['Event']['Attribute']['id']);
 				if (isset($a['distribution']) && $a['distribution'] == 4) {
-					$data['Event']['Attribute'][$k]['sharing_group_id'] = $this->SharingGroup->captureSG($data['Event']['Attribute'][$k]['SharingGroup'], $user);
-					unset($data['Event']['Attribute'][$k]['SharingGroup']);
+					$data['Event']['Attribute'][$k] = $this->__captureSGForElement($data['Event']['Attribute'][$k], $user);
 				}
 			}
 		}
+		if (!empty($data['Event']['Object'])) {
+			foreach($data['Event']['Object'] as $k => $o) {
+				if (isset($o['distribution']) && $o['distribution'] == 4) {
+					$data['Event']['Object'][$k] = $this->__captureSGForElement($data['Event']['Object'][$k], $user);
+				}
+				foreach ($o['Attribute'] as $k2 => $a) {
+					if (isset($a['distribution']) && $a['distribution'] == 4) {
+						$data['Event']['Object'][$k2]['Attribute'][$k] = $this->__captureSGForElement($data['Event']['Object'][$k2]['Attribute'][$k], $user);
+					}
+				}
+			}
+		}
+
 		// first we want to see how the creator organisation is encoded
 		// The options here are either by passing an organisation object along or simply passing a string along
 		if (isset($data['Event']['Orgc'])) {
