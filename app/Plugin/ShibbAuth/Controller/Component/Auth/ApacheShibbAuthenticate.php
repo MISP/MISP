@@ -67,6 +67,7 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
 		// Get Default parameters
 		$roleId = -1;
 		$org = Configure::read('ApacheShibbAuth.DefaultOrg');
+		$useDefaultOrg = Configure::read('ApacheShibbAuth.UseDefaultOrg');
 		// Get tags from SSO config
 		$mailTag = Configure::read('ApacheShibbAuth.MailTag');
 		$OrgTag = Configure::read('ApacheShibbAuth.OrgTag');
@@ -88,12 +89,13 @@ class ApacheShibbAuthenticate extends BaseAuthenticate {
 		// Find user with real username (mail)
 		$user = $this->_findUser($mispUsername);
 
-		//Obtain default org. If not, org keeps the default value
-		if (isset($_SERVER[$OrgTag])) {
+		//Obtain default org. If default is not enforced and it is given, org keeps the default value
+		if (!$useDefaultOrg && isset($_SERVER[$OrgTag])) {
 			$org = $_SERVER[$OrgTag];
-			//Check if the organization exits and create it if not
-			$org = $this->checkOrganization($org, $user);
 		}
+
+		//Check if the organization exits and create it if not
+		$org = $this->checkOrganization($org, $user);
 
 		//Get user role from its list of groups
 		list($roleChanged, $roleId) = $this->getUserRoleFromGroup($groupTag, $groupRoleMatching, $roleId);
