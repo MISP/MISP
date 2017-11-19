@@ -1392,11 +1392,11 @@ class Event extends AppModel {
 	// tags: string with the usual tag syntax
 	// from: date string (YYYY-MM-DD)
 	// to: date string (YYYY-MM-DD)
-	// includeAllTags: true will include the tags
+	// includeAllTags: true will include the tags that are marked as non-exportable
 	// includeAttachments: true will attach the attachments to the attributes in the data field
 	public function fetchEvent($user, $options = array(), $useCache = false) {
 		if (isset($options['Event.id'])) $options['eventid'] = $options['Event.id'];
-		$possibleOptions = array('eventid', 'idList', 'tags', 'from', 'to', 'last', 'to_ids', 'includeAllTags', 'includeAttachments', 'event_uuid', 'distribution', 'sharing_group_id', 'disableSiteAdmin', 'metadata', 'includeGalaxy', 'enforceWarninglist', 'sgReferenceOnly', 'flatten');
+		$possibleOptions = array('eventid', 'idList', 'tags', 'from', 'to', 'last', 'to_ids', 'includeAllTags', 'includeAttachments', 'event_uuid', 'distribution', 'sharing_group_id', 'disableSiteAdmin', 'metadata', 'includeGalaxy', 'enforceWarninglist', 'sgReferenceOnly', 'flatten', 'blockedAttributeTags');
 		if (!isset($options['excludeGalaxy']) || !$options['excludeGalaxy']) {
 			$this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
 		}
@@ -1506,7 +1506,7 @@ class Event extends AppModel {
 		}
 		// If we sent any tags along, load the associated tag names for each attribute
 		if ($options['tags']) {
-			$temp = $this->__generateCachedTagFilters($tagRules);
+			$temp = $this->__generateCachedTagFilters($options['tags']);
 			foreach ($temp as $rules) {
 				$conditions['AND'][] = $rules;
 			}
@@ -1694,6 +1694,21 @@ class Event extends AppModel {
 					if (!empty($options['overrideLimit'])) $overrideLimit = true;
 					else $overrideLimit = false;
 					$event['Attribute'] = $this->Feed->attachFeedCorrelations($event['Attribute'], $user, $event['Event'], $overrideLimit);
+				}
+				if (!empty($options['blockedAttributeTags']) && !empty($event['Attribute'])) {
+					foreach ($options['blockedAttributeTags'] as $key => $blockedTag) {
+						$options['blockedAttributeTags'][$key] = $this->EventTag->Tag->lookupTagIdFromName($blockedTag);
+					}
+					foreach ($event['Attribute'] as $key => $attribute) {
+						if (!empty($attribute['AttributeTag'])) {
+							foreach ($attribute['AttributeTag'] as $at) {
+								if (in_array($at['tag_id'], $options['blockedAttributeTags'])) {
+									unset($event['Attribute'][$key]);
+								}
+							}
+						}
+					}
+					$event['Attribute'] = array_values($event['Attribute']);
 				}
 				foreach ($event['Attribute'] as $key => $attribute) {
 					if (!$options['sgReferenceOnly'] && $event['Attribute'][$key]['sharing_group_id']) {
