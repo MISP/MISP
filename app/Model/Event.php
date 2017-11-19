@@ -1695,21 +1695,7 @@ class Event extends AppModel {
 					else $overrideLimit = false;
 					$event['Attribute'] = $this->Feed->attachFeedCorrelations($event['Attribute'], $user, $event['Event'], $overrideLimit);
 				}
-				if (!empty($options['blockedAttributeTags']) && !empty($event['Attribute'])) {
-					foreach ($options['blockedAttributeTags'] as $key => $blockedTag) {
-						$options['blockedAttributeTags'][$key] = $this->EventTag->Tag->lookupTagIdFromName($blockedTag);
-					}
-					foreach ($event['Attribute'] as $key => $attribute) {
-						if (!empty($attribute['AttributeTag'])) {
-							foreach ($attribute['AttributeTag'] as $at) {
-								if (in_array($at['tag_id'], $options['blockedAttributeTags'])) {
-									unset($event['Attribute'][$key]);
-								}
-							}
-						}
-					}
-					$event['Attribute'] = array_values($event['Attribute']);
-				}
+				$event = $this->__filterBlockedAttributedByTags($event, $options, $user);
 				foreach ($event['Attribute'] as $key => $attribute) {
 					if (!$options['sgReferenceOnly'] && $event['Attribute'][$key]['sharing_group_id']) {
 						$event['Attribute'][$key]['SharingGroup'] = $sharingGroupData[$event['Attribute'][$key]['sharing_group_id']]['SharingGroup'];
@@ -1759,7 +1745,6 @@ class Event extends AppModel {
 								continue;
 							}
 						}
-
 					}
 					if (!$flatten && $event['Attribute'][$key]['object_id'] != 0) {
 						if (!empty($event['Object'])) {
@@ -1799,6 +1784,45 @@ class Event extends AppModel {
 			}
 		}
 		return $results;
+	}
+
+	// Filter the attributes within an event based on the tag filter block rules
+	private function __filterBlockedAttributedByTags($event, $options, $user) {
+		if (!empty($options['blockedAttributeTags'])) {
+			foreach ($options['blockedAttributeTags'] as $key => $blockedTag) {
+				$options['blockedAttributeTags'][$key] = $this->EventTag->Tag->lookupTagIdFromName($blockedTag);
+			}
+		}
+		if (!empty($user['Server']['push_rules'])) {
+			$push_rules = json_decode($user['Server']['push_rules'], true);
+			if (!empty($push_rules['tags']['NOT'])) {
+				if (empty($options['blockedAttributeTags'])) {
+					$options['blockedAttributeTags'] = array();
+				}
+				$options['blockedAttributeTags'] = array_merge($options['blockedAttributeTags'], $push_rules['tags']['NOT']);
+			}
+		}
+		if (!empty($options['blockedAttributeTags'])) {
+			if (!empty($event['Attribute'])) {
+				$event['Attribute'] = $this->__filterBlockedAttributesFromContainer($event['Attribute'], $options['blockedAttributeTags']);
+			}
+		}
+		return $event;
+	}
+
+	// accepts an attribute array and a list of blocked tags. Returns the attribute array with the blocked attributes cleaned out.
+	private function __filterBlockedAttributesFromContainer($container, $blockedTags) {
+		foreach ($container as $key => $attribute) {
+			if (!empty($attribute['AttributeTag'])) {
+				foreach ($attribute['AttributeTag'] as $at) {
+					if (in_array($at['tag_id'], $blockedTags)) {
+						unset($container[$key]);
+					}
+				}
+			}
+		}
+		$container = array_values($container);
+		return $container;
 	}
 
 	private function __escapeCSVField(&$field) {
