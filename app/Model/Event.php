@@ -2735,7 +2735,7 @@ class Event extends AppModel {
 		$elevatedUser['Role']['perm_site_admin'] = 1;
 		$elevatedUser['Role']['perm_sync'] = 1;
 		$elevatedUser['Role']['perm_audit'] = 0;
-		$event = $this->fetchEvent($elevatedUser, array('eventid' => $id, 'includeAttachments' => true, 'includeAllTags' => true));
+		$event = $this->fetchEvent($elevatedUser, array('eventid' => $id, 'includeAttachments' => true, 'includeAllTags' => true, 'deleted' => true));
 		if (empty($event)) return true;
 		$event = $event[0];
 		$event['Event']['locked'] = 1;
