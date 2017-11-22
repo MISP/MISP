@@ -791,9 +791,9 @@ class UsersController extends AppController {
 			$this->User->save($user['User'], true, array('id', 'last_login', 'current_login'));
 			if (empty($this->Auth->authenticate['Form']['passwordHasher']) && !empty($passwordToSave)) $this->User->saveField('password', $passwordToSave);
 			$this->User->Behaviors->enable('SysLogLogable.SysLogLogable');
-			// TODO removed the auto redirect for now, due to security concerns - will look more into this
-			// $this->redirect($this->Auth->redirectUrl());
-			$this->redirect(array('controller' => 'events', 'action' => 'index'));
+			// no state changes are ever done via GET requests, so it is safe to return to the original page:
+			$this->redirect($this->Auth->redirectUrl());
+			// $this->redirect(array('controller' => 'events', 'action' => 'index'));
 		} else {
 			$dataSourceConfig = ConnectionManager::getDataSource('default')->config;
 			$dataSource = $dataSourceConfig['datasource'];

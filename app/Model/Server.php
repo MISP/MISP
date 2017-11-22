@@ -2204,6 +2204,9 @@ class Server extends AppModel {
 	}
 
 	public function serverSettingReadSingle($settingObject, $settingName, $leafKey) {
+		// invalidate config.php from php opcode cache
+		opcache_reset();
+
 		$setting = Configure::read($settingName);
 		$result = $this->__evaluateLeaf($settingObject, $leafKey, $setting);
 		$result['setting'] = $settingName;
