@@ -2966,7 +2966,8 @@ class Attribute extends AppModel {
 						return true;
 					}
 				} else {
-					$attribute['timestamp'] = $date;
+					$date = new DateTime();
+					$attribute['timestamp'] = $date->getTimestamp();;
 				}
 			} else {
 				$this->create();
