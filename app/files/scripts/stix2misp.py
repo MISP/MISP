@@ -55,6 +55,10 @@ def buildMispDict(stixEvent):
         attribute['timestamp'] = indicator.get('timestamp').split('+')[0]
         observable = indicator.get('observable')
         properties = observable['object']['properties']
+        if 'header' in properties:
+            emailType = properties['header'].keys()
+            print(emailType)
+            sys.exit(0)
         try:
             cat = properties.get('category')
             attribute['type'] = eventTypes[cat]
@@ -63,7 +67,7 @@ def buildMispDict(stixEvent):
             cat = properties.get('xsi:type')
             value = eventTypes[cat]['value']
             cat = eventTypes[cat]['category']
-            attribute['type'] = properties
+            attribute['type'] = cat
         attribute['value'] = properties[value]['value']
         attribute['category'] = indic.get('relationship')
         mispDict['attributes'].append(attribute)
