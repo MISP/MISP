@@ -33,7 +33,7 @@ noChangesTypes = ['', '']
 def saveFile(args, pathname, package):
     filename = args[1] + '.out'
     with open(filename, 'w') as f:
-        f.write(str(package))
+        f.write(json.dumps(package, cls=base.STIXJSONEncoder))
 
 # converts timestamp to the format used by STIX
 def getDateFromTimestamp(timestamp):
@@ -705,7 +705,7 @@ def generateEventPackage(event, SDOs):
     return bundle
 
 def main(args):
-    pathname = os.path.dirname(sys.argv[0]) + '/tmp/'
+    pathname = os.path.dirname(sys.argv[0])
     if len(sys.argv) > 3:
         namespace[0] = sys.argv[3]
     if len(sys.argv) > 4:
