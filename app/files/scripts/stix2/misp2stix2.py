@@ -72,7 +72,13 @@ def readAttributes(event, identity, object_refs, external_refs):
                     addObservedData(object_refs, attributes, attribute, identity)
             else:
                 addCustomObject(object_refs, attributes, attribute, identity)
-    if event.Galaxy:
+    galaxy = False
+    try:
+        if event.Galaxy:
+            galaxy = True
+    except:
+        pass
+    if galaxy:
         galaxies = event.Galaxy
         for galaxy in galaxies:
             galaxyType = galaxy['type']
@@ -88,7 +94,13 @@ def readAttributes(event, identity, object_refs, external_refs):
                 addThreatActor(object_refs, attributes, galaxy, identity)
             elif galaxyType in ['rat', 'exploit-kit'] or 'tool' in galaxyType:
                 addTool(object_refs, attributes, galaxy, identity)
-    if event.Object:
+    objct = False
+    try:
+        if event.Object:
+            objct = True
+    except:
+        pass
+    if objct:
         for obj in event.Object:
             to_ids = False
             for obj_attr in obj.Attribute:
@@ -693,7 +705,7 @@ def generateEventPackage(event, SDOs):
     return bundle
 
 def main(args):
-    pathname = os.path.dirname(sys.argv[0])
+    pathname = os.path.dirname(sys.argv[0]) + '/tmp/'
     if len(sys.argv) > 3:
         namespace[0] = sys.argv[3]
     if len(sys.argv) > 4:
