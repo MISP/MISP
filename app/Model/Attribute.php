@@ -2975,7 +2975,7 @@ class Attribute extends AppModel {
 			$this->create();
 		}
 	$attribute['event_id'] = $eventId;
-		if ($attribute['distribution'] == 4) {
+		if (isset($attribute['distribution']) && $attribute['distribution'] == 4) {
 			$attribute['sharing_group_id'] = $this->SharingGroup->captureSG($attribute['SharingGroup'], $user);
 		}
 		$fieldList = array(
