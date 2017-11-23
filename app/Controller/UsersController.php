@@ -55,7 +55,13 @@ class UsersController extends AppController {
 			$user['User']['pgp_status'] = isset($pgpDetails[2]) ? $pgpDetails[2] : 'OK';
 			$user['User']['fingerprint'] = !empty($pgpDetails[4]) ? $pgpDetails[4] : 'N/A';
 		}
-		$this->set('user', $user);
+		if ($this->_isRest()) {
+			unset($user['User']['server_id']);
+			$user['User']['password'] = '*****';
+			return $this->RestResponse->viewData(array('User' => $user['User']), $this->response->type());
+		} else {
+			$this->set('user', $user);
+		}
 	}
 
 	public function request_API(){
