@@ -129,6 +129,11 @@ class PubSubTool {
 		return $this->__pushToRedis(':data:misp_json_' . $type, json_encode($data, JSON_PRETTY_PRINT));
 	}
 
+	public function publish($data, $type, $action = false) {
+		if (!empty($action)) $data['action'] = $action;
+		return $this->__pushToRedis(':data:misp_json_' . $type, json_encode($data, JSON_PRETTY_PRINT));
+	}
+
 	public function killService($settings = false) {
 		$redis = new Redis();
 		if ($this->checkIfRunning()) {

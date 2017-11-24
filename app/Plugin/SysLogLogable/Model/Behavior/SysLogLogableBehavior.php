@@ -249,20 +249,10 @@ class SysLogLogableBehavior extends LogableBehavior {
 		}
 		}
 		$this->Log->create($logData);
-		$this->Log->save(null, array(
-				'validate' => false));
-
-		// write to syslogd as well
-		$syslog = new SysLog();
-		if (isset($logData['Log']['change'])) {
-			$syslog->write('notice', $logData['Log']['description'].' -- '.$logData['Log']['change']);
-		} else {
-			$syslog->write('notice', $logData['Log']['description']);
-		}
+		$this->Log->save(null, array('validate' => false));
 	}
 
 	function setup(Model $Model, $config = array()) {
-
 		if (!is_array($config)) {
 			$config = array();
 		}
