@@ -86,6 +86,13 @@ class Organisation extends AppModel{
 			$this->data['Organisation']['uuid'] = CakeText::uuid();
 		}
 		$date = date('Y-m-d H:i:s');
+		if (!empty($this->data['Organisation']['restricted_to_domain'])) {
+			$this->data['Organisation']['restricted_to_domain'] = str_replace("\r", '', $this->data['Organisation']['restricted_to_domain']);
+			$this->data['Organisation']['restricted_to_domain'] = explode("\n", $this->data['Organisation']['restricted_to_domain']);
+			$this->data['Organisation']['restricted_to_domain'] = json_encode($this->data['Organisation']['restricted_to_domain']);
+		} else {
+			$this->data['Organisation']['restricted_to_domain'] = '';
+		}
 		if (!isset($this->data['Organisation']['id'])) $this->data['Organisation']['date_created'] = $date;
 		$this->data['Organisation']['date_modified'] = $date;
 		if (!isset($this->data['Organisation']['nationality']) || empty($this->data['Organisation']['nationality'])) $this->data['Organisation']['nationality'] = 'Not specified';
@@ -104,6 +111,15 @@ class Organisation extends AppModel{
 			$pubSubTool->modified($this->data, 'organisation');
 		}
 		return true;
+	}
+
+	public function afterFind($results, $primary = false) {
+		foreach ($results as $k => $organisation) {
+			if (!empty($organisation['Organisation']['restricted_to_domain'])) {
+				$results[$k]['Organisation']['restricted_to_domain'] = json_decode($organisation['Organisation']['restricted_to_domain'], true);
+			}
+		}
+		return $results;
 	}
 
 	public function captureOrg($org, $user, $force = false) {
