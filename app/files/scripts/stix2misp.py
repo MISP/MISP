@@ -18,9 +18,14 @@
 import sys, json, os, time
 import pymisp
 
-eventTypes = {'ipv4-addr': {'src': 'ip-src', 'dst': 'ip-dst', 'value': 'address_value'},
-              'ipv6-addr': {'src': 'ip-src', 'dst': 'ip-dst', 'value': 'address_value'},
-              'URIObjectType': {'category': 'url', 'value': 'value'}}
+eventTypes = {"ipv4-addr": {"src": "ip-src", "dst": "ip-dst", "value": "address_value"},
+              "ipv6-addr": {"src": "ip-src", "dst": "ip-dst", "value": "address_value"},
+              "URIObjectType": {"type": "url", "value": "value"},
+              "FileObjectType": {"type": "filename", "value": "file_name"},
+              "to": {"type": "email-dst", "value": "address_value"},
+              "from": {"type": "email-src", "value": "value"},
+              "subject": {"type": "email-subject", "value": "value"},
+              "user_agent": "user-agent"}
 
 def loadEvent(args, pathname):
     try:
@@ -34,51 +39,90 @@ def loadEvent(args, pathname):
         sys.exit(1)
 
 def getTimestampfromDate(date):
-    dt = date.split('+')[0]
-    return int(time.mktime(time.strptime(dt, '%Y-%m-%dT%H:%M:%S')))
+    dt = date.split("+")[0]
+    return int(time.mktime(time.strptime(dt, "%Y-%m-%dT%H:%M:%S")))
 
 def buildMispDict(stixEvent):
     mispDict = {}
-    stixTimestamp = stixEvent['timestamp']
-    date = stixTimestamp.split('T')[0]
-    mispDict['date'] = date
+    stixTimestamp = stixEvent.get("timestamp")
+    date = stixTimestamp.split("T")[0]
+    mispDict["date"] = date
     timestamp = getTimestampfromDate(stixTimestamp)
-    mispDict['timestamp'] = timestamp
-    event = stixEvent['incidents'][0]
-    orgSource = event['information_source']['identity']['name']
-    orgReporter = event['reporter']['identity']['name']
-    indicators = event['related_indicators']['indicators']
-    mispDict['attributes'] = []
+    mispDict["timestamp"] = timestamp
+    mispDict["info"] = stixEvent["stix_header"].get("title")
+    event = stixEvent["incidents"][0]
+    orgSource = event["information_source"]["identity"]["name"]
+    orgReporter = event["reporter"]["identity"]["name"]
+    indicators = event["related_indicators"]["indicators"]
+    mispDict["Attribute"] = []
     for indic in indicators:
         attribute = {}
-        indicator = indic.get('indicator')
-        attribute['timestamp'] = indicator.get('timestamp').split('+')[0]
-        observable = indicator.get('observable')
-        properties = observable['object']['properties']
-        if 'header' in properties:
-            emailType = properties['header'].keys()
-            print(emailType)
-            sys.exit(0)
+        indicator = indic.get("indicator")
+        timestamp = indicator.get("timestamp").split("+")[0]
+        attribute["timestamp"] = getTimestampfromDate(timestamp)
+        observable = indicator.get("observable")
+        properties = observable["object"]["properties"]
         try:
-            cat = properties.get('category')
-            attribute['type'] = eventTypes[cat]
-            value = eventTypes[cat]['value']
+            cat = properties.get("category")
+            if "ip" in cat:
+                if properties.get("is_source"):
+                    attr_type = "src"
+                else:
+                    attr_type = "dst"
+            typeVal = eventTypes[cat][attr_type]
+            value = eventTypes[cat]["value"]
+            valueVal = properties[value]["value"]
         except:
-            cat = properties.get('xsi:type')
-            value = eventTypes[cat]['value']
-            cat = eventTypes[cat]['category']
-            attribute['type'] = cat
-        attribute['value'] = properties[value]['value']
-        attribute['category'] = indic.get('relationship')
-        mispDict['attributes'].append(attribute)
+            cat = properties.get("xsi:type")
+            if cat == 'EmailMessageObjectType':
+                header = properties["header"]
+                emailType = list(header)[0]
+                typeVal = eventTypes[emailType]["type"]
+                value = eventTypes[emailType]["value"]
+                headerVal = header[emailType]
+                if emailType == "to":
+                    headerVal = headerVal[0]
+                elif emailType == "from":
+                    headerVal = headerVal["address_value"]
+                valueVal = headerVal.get(value)
+            elif cat == "FileObjectType" and "hashes" in properties:
+                hashes = properties["hashes"][0]
+                typeVal = hashes["type"].get("value").lower()
+                valueVal = hashes["simple_hash_value"].get("value")
+            elif cat == "HTTPSessionObjectType":
+                http = properties["http_request_response"][0]
+                httpAttr = http["http_client_request"]["http_request_header"]["parsed_header"]
+                attrVal = list(httpAttr)[0]
+                valueVal = httpAttr.get(attrVal)
+                typeVal = eventTypes[attrVal]
+            else:
+                value = eventTypes[cat]["value"]
+                typeVal = eventTypes[cat]["type"]
+                valueVal = properties[value]["value"]
+        attribute["type"] = typeVal
+        attribute["value"] = valueVal
+        attribute["category"] = indic.get("relationship")
+        #print(attribute)
+        mispDict["Attribute"].append(attribute)
     return mispDict
+
+def saveFile(args, pathname, misp):
+    filename = "{}/tmp/{}.in".format(pathname, args[1])
+    eventDict = misp.to_dict(with_timestamp=True)
+    print(eventDict)
+    with open(filename, 'w') as f:
+        f.write(str(eventDict))
 
 def main(args):
     pathname = os.path.dirname(args[0])
     stixEvent = loadEvent(args, pathname)
-    stixEvent = stixEvent['package']
+    stixEvent = stixEvent["package"]
     mispDict = buildMispDict(stixEvent)
-    print(mispDict)
+    #print(mispDict)
+    misp = pymisp.MISPEvent(None, False)
+    misp.from_dict(**mispDict)
+    saveFile(args, pathname, misp)
+    print(1)
 
 if __name__ == "__main__":
     main(sys.argv)
