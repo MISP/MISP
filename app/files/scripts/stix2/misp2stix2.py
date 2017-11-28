@@ -15,7 +15,7 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import sys, json, os, datetime, re
+import sys, json, os, datetime, re, base64
 import pymisp
 from stix2 import *
 from misp2stix2_dictionaries import *
@@ -30,7 +30,7 @@ non_indicator_attributes = ['text', 'comment', 'other', 'link', 'target-user', '
 
 noChangesTypes = ['', '']
 
-def saveFile(args, pathname, package):
+def saveFile(args, package):
     filename = args[1] + '.out'
     with open(filename, 'w') as f:
         f.write(json.dumps(package, cls=base.STIXJSONEncoder))
@@ -406,6 +406,9 @@ def defineObservableObject(attr_type, attr_val):
         if 'x509' in attr_type:
             object0['hashes']['sha1'] = attr_val
             return observed_object
+        elif attr_type == 'attachment':
+            payload = attr_val.encode()
+            object0['payload_bin'] = base64.b64encode(payload)
         elif 'ip-' in attr_type:
             addr_type = defineAddressType(attr_val)
             object0['type'] = addr_type
@@ -594,6 +597,8 @@ def getRegistryKeyInfo(obj_attr):
     return reg_attr
 
 def definePattern(attr_type, attr_val):
+    tmp = attr_val.replace('\'', '’')
+    attr_val = tmp
     if '|' in attr_type:
         attr_type1, attr_type2 = attr_type.split('|')
         attr_val1, attr_val2 = attr_val.split('|')
@@ -699,6 +704,7 @@ def eventReport(event, identity, object_refs, external_refs):
     return report
 
 def generateEventPackage(event, SDOs):
+    #return SDOs
     bundle_id = event.uuid
     bundle_args = {'type': "bundle", 'spec_version': "2.0", 'id': "bundle--{}".format(bundle_id), 'objects': SDOs}
     bundle = Bundle(**bundle_args)
@@ -724,7 +730,7 @@ def main(args):
     for attribute in attributes:
         SDOs.append(attribute)
     stix_package = generateEventPackage(misp, SDOs)
-    saveFile(args, pathname, stix_package)
+    saveFile(args, stix_package)
     print(1)
 
 if __name__ == "__main__":
