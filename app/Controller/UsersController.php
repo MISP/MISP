@@ -85,7 +85,26 @@ class UsersController extends AppController {
 		}
 		if ($this->request->is('post') || $this->request->is('put')) {
 			$abortPost = false;
-			if (!$this->_isRest()) {
+			if (!$this->_isSiteAdmin() && !empty($this->request->data['User']['email'])) {
+				$organisation = $this->User->Organisation->find('first', array(
+					'conditions' => array('Organisation.id' => $userToEdit['User']['org_id']),
+					'recursive' => -1
+				));
+				if (!empty($organisation['Organisation']['restricted_to_domain'])) {
+					$abortPost = true;
+					foreach ($organisation['Organisation']['restricted_to_domain'] as $restriction) {
+						if (
+							strlen($this->request->data['User']['email']) > strlen($restriction) &&
+							substr($this->request->data['User']['email'], (-1 * strlen($restriction))) === $restriction &&
+							in_array($this->request->data['User']['email'][strlen($this->request->data['User']['email']) - strlen($restriction) -1], array('@', '.'))
+						) {
+							$abortPost = false;
+						}
+					}
+					if ($abortPost) $this->Session->setFlash(__('Invalid e-mail domain. Your user is restricted to creating users for the following domain(s): ') . implode(', ', $organisation['Organisation']['restricted_to_domain']));
+				}
+			}
+			if (!$abortPost && !$this->_isRest()) {
 				if (Configure::read('Security.require_password_confirmation')) {
 					if (!empty($this->request->data['User']['current_password'])) {
 						$hashed = $this->User->verifyPassword($this->Auth->user('id'), $this->request->data['User']['current_password']);
