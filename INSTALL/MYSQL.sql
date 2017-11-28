@@ -566,12 +566,12 @@ CREATE TABLE `organisations` (
   `uuid` varchar(40) COLLATE utf8_bin DEFAULT NULL,
   `contacts` text CHARACTER SET utf8 COLLATE utf8_unicode_ci,
   `local` tinyint(1) NOT NULL DEFAULT 0,
+  `restricted_to_domain` text COLLATE utf8_bin,
   `landingpage` text CHARACTER SET utf8 COLLATE utf8_unicode_ci,
   PRIMARY KEY (`id`),
   INDEX `uuid` (`uuid`),
   INDEX `name` (`name`(255))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
-
 
 CREATE TABLE IF NOT EXISTS `org_blacklists` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
