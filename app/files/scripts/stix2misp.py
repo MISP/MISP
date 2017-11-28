@@ -111,7 +111,7 @@ def saveFile(args, pathname, misp):
     eventDict = misp.to_dict(with_timestamp=True)
     print(eventDict)
     with open(filename, 'w') as f:
-        f.write(str(eventDict))
+        f.write(json.dumps(eventDict))
 
 def main(args):
     pathname = os.path.dirname(args[0])
