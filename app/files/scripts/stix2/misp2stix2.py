@@ -28,8 +28,6 @@ non_indicator_attributes = ['text', 'comment', 'other', 'link', 'target-user', '
                             'target-machine', 'target-org', 'target-location', 'target-external',
                             'vulnerability', 'attachment']
 
-noChangesTypes = ['', '']
-
 def saveFile(args, package):
     filename = args[1] + '.out'
     with open(filename, 'w') as f:
@@ -57,7 +55,7 @@ def readAttributes(event, identity, object_refs, external_refs):
         if attr_type in non_indicator_attributes:
             if attr_type == "link":
                 handleLink(attribute, external_refs)
-            elif attr_type in ('text', 'comment', 'other'):
+            elif attr_type in ('text', 'comment', 'other') or attr_type not in mispTypesMapping:
                 addCustomObject(object_refs, attributes, attribute, identity)
             else:
                 handleNonIndicatorAttribute(object_refs, attributes, attribute, identity)
@@ -378,18 +376,23 @@ def defineObservableObject(attr_type, attr_val):
     if '|' in attr_type:
         _, attr_type2 = attr_type.split('|')
         attr_val1, attr_val2 = attr_val.split('|')
-        object1 = observed_object['1']
         if '|ip' in attr_type:
+            object1 = observed_object['1']
             addr_type = defineAddressType(attr_val2)
             object0['value'] = attr_val1
             object1['type'] = addr_type
             object1['value'] = attr_val2
         elif 'ip-' in attr_type:
+            object1 = observed_object['1']
             addr_type = defineAddressType(attr_val2)
+            prot_type = addr_type.split('-')[0]
+            object1['protocols'].append(prot_type)
             object0['type'] = addr_type
             object0['value'] = attr_val1
             object1['dst_port'] = attr_val2
+            object1['protocols'].append(defineProtocols[attr_val2] if attr_val2 in defineProtocols else 'tcp')
         elif 'hostname' in attr_type:
+            object1 = observed_object['1']
             object0['value'] = attr_val1
             object1['dst_port'] = attr_val2
         elif 'regkey' in attr_type:
@@ -412,8 +415,10 @@ def defineObservableObject(attr_type, attr_val):
         elif 'ip-' in attr_type:
             addr_type = defineAddressType(attr_val)
             object0['type'] = addr_type
+        elif attr_type == 'port':
+            object0['protocols'].append(defineProtocols[attr_val] if attr_val in defineProtocols else 'tcp')
         for obj_attr in object0:
-            if obj_attr in ('name', 'value', 'body', 'subject', 'dst_port', 'key'):
+            if obj_attr in ('name', 'value', 'body', 'subject', 'dst_port', 'key', 'display_name'):
                 object0[obj_attr] = attr_val
             if 'hashes' in obj_attr:
                 object0[obj_attr] = {attr_type: attr_val}
@@ -518,13 +523,18 @@ def defineObservableObjectIpPort(obj_name, obj_attr):
         attr_type = attr.type
         if attr_type == 'ip-dst':
             attr_val = attr.value
-            obj['0']['type'] = defineAddressType(attr_val)
+            addr_type = defineAddressType(attr_val)
+            obj['0']['type'] = addr_type
             obj['0']['value'] = attr_val
+            prot_type = addr_type.split('-')[0]
+            obj['1']['protocols'].append(prot_type)
         elif attr_type in ('text', 'datetime'):
             obj_relation = attr.object_relation
             if obj_name not in objectTypes[attr_type]:
                 continue
             obj['1'][objectTypes[attr_type][obj_name][obj_relation]] = attr.value
+        elif 'port' in attr_type:
+            obj['1']['protocols'].append(defineProtocols[attr_val] if attr_val in defineProtocols else 'tcp')
         else:
             obj['1'][objectTypes[attr_type][attr.object_relation]] = attr.value
     return obj
@@ -597,8 +607,13 @@ def getRegistryKeyInfo(obj_attr):
     return reg_attr
 
 def definePattern(attr_type, attr_val):
-    tmp = attr_val.replace('\'', '’')
-    attr_val = tmp
+    if "'" in attr_val:
+        sQuoteTmp = attr_val.replace('\'', '##APOSTROPHE##')
+        attr_val = sQuoteTmp
+    if '"' in attr_val:
+        dQuoteTmp = attr_val.replace('"', '##QUOTE##')
+    #tmp = attr_val.replace('\'', '’')
+        attr_val = dQuoteTmp
     if '|' in attr_type:
         attr_type1, attr_type2 = attr_type.split('|')
         attr_val1, attr_val2 = attr_val.split('|')
@@ -690,14 +705,12 @@ def eventReport(event, identity, object_refs, external_refs):
             labels.append(tag['name'])
 
     args_report = {'type': "report", 'id': "report--{}".format(event.uuid), 'created_by_ref': identity,
-                    'name': name, 'published': timestamp}
+            'name': name, 'published': timestamp, 'object_refs': object_refs}
 
     if labels:
         args_report['labels'] = labels
     else:
         args_report['labels'] = ['threat-report']
-    if object_refs:
-        args_report['object_refs'] = object_refs
     if external_refs:
         args_report['external_references'] = external_refs
     report = Report(**args_report)
@@ -711,7 +724,7 @@ def generateEventPackage(event, SDOs):
     return bundle
 
 def main(args):
-    pathname = os.path.dirname(sys.argv[0])
+    pathname = os.path.dirname(args[0])
     if len(sys.argv) > 3:
         namespace[0] = sys.argv[3]
     if len(sys.argv) > 4:
