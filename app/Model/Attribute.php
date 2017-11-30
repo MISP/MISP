@@ -64,7 +64,6 @@ class Attribute extends AppModel {
 
 	// skip Correlation for the following types
 	public $nonCorrelatingTypes = array(
-			'vulnerability',
 			'comment',
 			'http-method',
 			'aba-rtn',
