@@ -176,7 +176,7 @@ class SharingGroup extends AppModel {
 		} else if ($scope == 'uuid') {
 			$sgs = $this->find('list', array(
 					'recursive' => -1,
-					'fields' => array('id', 'uuid'),
+					'fields' => array('SharingGroup.id', 'SharingGroup.uuid'),
 					'conditions' => $conditions,
 			));
 			return $sgs;

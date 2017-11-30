@@ -1,6 +1,7 @@
 <div class="index">
 	<h2><?php echo h($title);?></h2>
-	<p>Below you can see the attributes that are to be created. Make sure that the categories and the types are correct, often several options will be offered based on an inconclusive automatic resolution. </p>
+	<?php $scope = !empty($proposals) ? 'proposals' : 'attributes'; ?>
+	<p>Below you can see the <?php echo $scope; ?> that are to be created. Make sure that the categories and the types are correct, often several options will be offered based on an inconclusive automatic resolution. </p>
 	<?php
 		$instanceDefault = 5;
 		if (!empty(Configure::read('MISP.default_attribute_distribution'))) {
@@ -194,7 +195,7 @@
 	?>
 	</table>
 	<span>
-		<button class="btn btn-primary" style="float:left;" onClick="freetextImportResultsSubmit('<?php echo h($event['Event']['id']); ?>', '<?php echo count($resultArray); ?>', '<?php echo h($type); ?>');">Submit</button>
+		<button class="btn btn-primary" style="float:left;" onClick="freetextImportResultsSubmit('<?php echo h($event['Event']['id']); ?>', '<?php echo count($resultArray); ?>', '<?php echo h($type); ?>');">Submit <?php echo $scope; ?></button>
 		<span style="float:right">
 			<?php
 				if (!empty($optionsRearranged)):

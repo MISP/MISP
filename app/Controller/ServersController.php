@@ -676,6 +676,13 @@ class ServersController extends AppController {
 		$this->set('priorities', $priorities);
 		$this->set('k', $id);
 		$this->layout = false;
+
+		$subGroup = 'general';
+		if ($pathToSetting[0] === 'Plugin') {
+			$subGroup = explode('_', $pathToSetting[1])[0];
+		}
+		$this->set('subGroup', $subGroup);
+
 		$this->render('/Elements/healthElements/settings_row');
 	}
 
@@ -939,6 +946,9 @@ class ServersController extends AppController {
 	}
 
 	public function serverSettingsEdit($setting, $id = false, $forceSave = false) {
+		// invalidate config.php from php opcode cache
+		opcache_reset();
+
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
 		if (!isset($setting) || !isset($id)) throw new MethodNotAllowedException();
 		$this->set('id', $id);

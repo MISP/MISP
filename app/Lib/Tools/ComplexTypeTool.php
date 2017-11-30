@@ -11,7 +11,8 @@ class ComplexTypeTool {
 		'/\(dot\)/' => '.',
 		'/\\\\\./' => '.',
 		'/\.+/' => '.',
-		'/\[hxxp:\/\/\]/' => 'http://'
+		'/\[hxxp:\/\/\]/' => 'http://',
+		'/\\\/' => ''
 	);
 
 	private $__tlds = array();
@@ -89,6 +90,10 @@ class ComplexTypeTool {
 		return array_values($array);
 	}
 
+	private function __parse_row($row, $delimiter) {
+		$columns = str_getcsv($row, $delimiter);
+		return $columns;
+	}
 
 	/*
 	 * parse a CSV file with the given settings
@@ -100,7 +105,13 @@ class ComplexTypeTool {
 	 */
 	public function checkCSV($input, $settings = array()) {
 		$delimiter = !empty($settings['delimiter']) ? $settings['delimiter'] : ",";
-		$lines = explode("\n", $input);
+		$rows = str_getcsv($input, "\n");
+		$data = array();
+		foreach ($rows as $k => $row) {
+			if (empty($row[0]) || $row[0] === '#') continue;
+			$data[$k] = str_getcsv($row, $delimiter);
+		}
+		unset($rows);
 		unset($input);
 		$values = !empty($settings['value']) ? $settings['value'] : array();
 		if (!is_array($values)) {
@@ -110,15 +121,8 @@ class ComplexTypeTool {
 			$values[$key] = intval($value);
 		}
 		$iocArray = array();
-		foreach ($lines as $linePos => $line) {
-			$line = trim($line);
-			if (empty($line) || $line[0] === "#") continue;
-			if ($delimiter === '\t') {
-				$elements = preg_split('/\t/', $line);
-			} else {
-				$elements = explode($delimiter, $line);
-			}
-			foreach ($elements as $elementPos => $element) {
+		foreach ($data as $rowPos => $row) {
+			foreach ($row as $elementPos => $element) {
 				if ((!empty($values) && in_array(($elementPos + 1), $values)) || empty($values)) {
 					$element = trim($element, " \t\n\r\0\x0B\"\'");
 					if (isset($settings['excluderegex']) && !empty($settings['excluderegex'])) {
@@ -209,7 +213,7 @@ class ComplexTypeTool {
 		}
 		$inputRefanged = rtrim($inputRefanged, ".");
 		if (strpos($input, '@') !== false) {
-			if (filter_var($input, FILTER_VALIDATE_EMAIL)) return array('types' => array('email-src', 'email-dst', 'whois-registrant-email'), 'to_ids' => true, 'default_type' => 'email-src', 'value' => $input);
+			if (filter_var($input, FILTER_VALIDATE_EMAIL)) return array('types' => array('email-src', 'email-dst', 'target-email', 'whois-registrant-email'), 'to_ids' => true, 'default_type' => 'email-src', 'value' => $input);
 		}
 		// note down and remove the port if it's a url / domain name / hostname / ip
 		// input2 from here on is the variable containing the original input with the port removed. It is only used by url / domain name / hostname / ip

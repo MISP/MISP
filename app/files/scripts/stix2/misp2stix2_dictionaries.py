@@ -90,20 +90,24 @@ mispTypesMapping = {
                       'pattern': 'file:name = \'{0}\' AND file:hashes.\'tlsh\' = \'{1}\''},
     'x509-fingerprint-sha1': {'observable': {'0': {'type': 'x509-certificate', 'hashes': {'sha1': ''}}},
                               'pattern': 'x509-certificate:hashes = \'{0}\''},
-    'port': {'observable': {'0': {'type': 'network-traffic', 'dst_port': ''}},
+    'port': {'observable': {'0': {'type': 'network-traffic', 'dst_port': '', 'protpocols': []}},
              'pattern': 'network-traffic:dst_port = \'{0}\''},
-    'ip-dst|port': {'observable': {'0': {'type': '', 'value': ''}, '1': {'type': 'network-traffic', 'dst_ref': '0', 'dst_port': ''}},
+    'ip-dst|port': {'observable': {'0': {'type': '', 'value': ''}, '1': {'type': 'network-traffic', 'dst_ref': '0', 'dst_port': '', 'protocols': []}},
                     'pattern': 'network-traffic:dst_port = \'{1}\' AND network-traffic:dst_ref.type = \'{2}\' AND network-traffic:dst_ref.value = \'{0}\''},
-    'ip-src|port': {'observable': {'0': {'type': '', 'value': ''}, '1': {'type': 'network-traffic', 'src_ref': '0', 'dst_port': ''}},
+    'ip-src|port': {'observable': {'0': {'type': '', 'value': ''}, '1': {'type': 'network-traffic', 'src_ref': '0', 'dst_port': '', 'protocols': []}},
                     'pattern': 'network-traffic:src_port = \'{1}\' AND network-traffic:src_ref.type = \'{2}\' AND network-traffic:src_ref.value = \'{0}\''},
-    'hostname|port': {'observable': {'0': {'type': 'domain-name', 'value': ''}, '1': {'type': 'traffic-network', 'dst_ref': '0', 'dst_port': ''}},
+    'hostname|port': {'observable': {'0': {'type': 'domain-name', 'value': ''}, '1': {'type': 'network-traffic', 'dst_ref': '0', 'dst_port': '', 'protocols': []}},
                       'pattern': 'domain-name:value = \'{0}\' AND network-traffic:dst_port = \'{1}\''},
     'email-dst-display-name': {'observable': {'0': {'type': 'email-addr', 'display_name': ''}},
                                'pattern': 'email-addr:display_name = \'{0}\''},
     'email-src-display-name': {'observable': {'0': {'type': 'email-addr', 'display_name': ''}},
                                'pattern': 'email-addr:display_name = \'{0}\''},
     'email-reply-to': {'observable': {'0': {'type': 'email-addr', 'value': ''}},
-                       'pattern': 'email-addr:value = \'{0}\''}
+                       'pattern': 'email-addr:value = \'{0}\''},
+    'attachment': {'observable': {'0': {'type': 'artifact', 'payload_bin': ''}},
+                   'pattern': 'artifact:payload_bin = \'{0}\''},
+    'mac-address': {'observable': {'0': {'type': 'mac-addr', 'value': ''}},
+                    'pattern': 'mac-addr:value = \'{0}\''}
 }
 
 objectsMapping = {'domain-ip': {'pattern': 'domain-name:{0} = \'{1}\' AND '},
@@ -158,3 +162,5 @@ objectTypes = {'text': {'x509': {'subject': 'subject', 'issuer': 'issuer', 'pubk
                          'domain-ip': 'resolves_to_refs[*].value'},
               'reg-datatype': 'datatype', 'reg-data': 'data', 'reg-name': 'name', 'reg-key': 'key'
 }
+
+defineProtocols = {'80': 'http', '443': 'https'} 

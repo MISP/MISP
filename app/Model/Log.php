@@ -3,7 +3,16 @@
 App::uses('AppModel', 'Model');
 
 class Log extends AppModel {
-
+	public $warningActions = array(
+		'warning',
+		'change_pw',
+		'login_fail',
+		'version_warning',
+		'auth_fail'
+	);
+	public $errorActions = array(
+		'error'
+	);
 	public $validate = array(
 			'action' => array(
 			'rule' => array('inList', array(
@@ -94,6 +103,7 @@ class Log extends AppModel {
 				$this->data['Log'][$tf] = substr($this->data['Log'][$tf], 0, 65532) . '...';
 			}
 		}
+		$this->logData($this->data);
 		return true;
 	}
 
@@ -222,5 +232,32 @@ class Log extends AppModel {
 			$result = $this->pruneUpdateLogs(false, $user);
 			return $result;
 		}
+	}
+
+	function logData($data) {
+		if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_user_notifications_enable')) {
+			$pubSubTool = $this->getPubSubTool();
+			$pubSubTool->publish($data, 'audit', 'log');
+		}
+		if (Configure::read('Security.syslog')) {
+			// write to syslogd as well
+			$syslog = new SysLog();
+			$action = 'info';
+			if (isset($data['Log']['action'])) {
+				if (in_array($data['Log']['action'], $this->errorActions)) {
+					$action = 'err';
+				}
+				if (in_array($data['Log']['action'], $this->warningActions)) {
+					$action = 'warning';
+				}
+			}
+
+			$entry = $data['Log']['action'];
+			if (!empty($data['Log']['description'])) {
+				$entry .= sprintf(' -- %s', $data['Log']['description']);
+			}
+			$syslog->write($action, $entry);
+		}
+		return true;
 	}
 }

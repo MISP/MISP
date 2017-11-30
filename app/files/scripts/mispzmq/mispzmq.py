@@ -74,9 +74,9 @@ def main(args):
         command = r.lpop(namespace + ":command")
         if command is not None:
             handleCommand(command)
-        topics = ["misp_json", "misp_json_event", "misp_json_attribute", "misp_json_sighting", 
+        topics = ["misp_json", "misp_json_event", "misp_json_attribute", "misp_json_sighting",
                   "misp_json_organisation", "misp_json_user", "misp_json_conversation",
-                  "misp_json_object", "misp_json_object_reference"]
+                  "misp_json_object", "misp_json_object_reference", "misp_json_audit"]
         message_received = False
         for topic in topics:
             data = r.lpop(namespace + ":data:" + topic)
@@ -84,7 +84,7 @@ def main(args):
                 pubMessage(topic, data, socket)
                 message_received = True
         if (message_received == False):
-            time.sleep(1)
+            time.sleep(0.2)
         if ((int(time.time()) - start_time) % 10 == 0):
             status_entry = int(((int(time.time()) - start_time)/10) % 5)
             status_message = {

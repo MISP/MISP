@@ -2252,11 +2252,17 @@ class EventsController extends AppController {
 								'value', 'comment', 'to_ids', 'timestamp');
 		$requested_obj_attributes = array('uuid', 'name', 'meta-category');
 		if (isset($this->params['url']['attributes'])) {
-				$requested_attributes = explode(',', $this->params['url']['attributes']);
+			if (!isset($this->params['url']['obj_attributes'])) $requested_obj_attributes = array();
+			$requested_attributes = explode(',', $this->params['url']['attributes']);
 		}
 		if (isset($this->params['url']['obj_attributes'])) {
-		    $requested_obj_attributes = explode(',', $this->params['url']['obj_attributes']);
+			$requested_obj_attributes = explode(',', $this->params['url']['obj_attributes']);
 		}
+		if (isset($data['request']['attributes'])) {
+			if (!isset($data['request']['obj_attributes'])) $requested_obj_attributes = array();
+			$requested_attributes = $data['request']['attributes'];
+		}
+		if (isset($data['request']['obj_attributes'])) $requested_obj_attributes = $data['request']['obj_attributes'];
 		if (isset($events)) {
 			foreach ($events as $eventid) {
 				$attributes = $this->Event->csv($user, $eventid, $ignore, $list, false, $category, $type, $includeContext, $enforceWarninglist);
@@ -3317,6 +3323,7 @@ class EventsController extends AppController {
 				unset($distributions[4]);
 			}
 
+			$this->set('proposals', $event['Event']['orgc_id'] != $this->Auth->user('org_id') && !$this->_isSiteAdmin());
 			$this->set('distributions', $distributions);
 			$this->set('sgs', $sgs);
 			$this->set('event', $event);
@@ -3459,22 +3466,30 @@ class EventsController extends AppController {
 					}
 				}
 			}
+			$emailResult = '';
+			$messageScope = $objectType == 'ShadowAttribute' ? 'proposals' : 'attributes';
 			if ($saved > 0) {
-				$event = $this->Event->find('first', array(
-						'conditions' => array('Event.id' => $id),
-						'recursive' => -1
-				));
-				if ($event['Event']['published'] == 1) {
-					$event['Event']['published'] = 0;
+				if ($objectType != 'ShadowAttribute') {
+					$event = $this->Event->find('first', array(
+							'conditions' => array('Event.id' => $id),
+							'recursive' => -1
+					));
+					if ($event['Event']['published'] == 1) {
+						$event['Event']['published'] = 0;
+					}
+					$date = new DateTime();
+					$event['Event']['timestamp'] = $date->getTimestamp();
+					$this->Event->save($event);
+				} else {
+					if (!$this->Event->ShadowAttribute->sendProposalAlertEmail($id)) {
+						$emailResult = " but sending out the alert e-mails has failed for at least one recipient";
+					}
 				}
-				$date = new DateTime();
-				$event['Event']['timestamp'] = $date->getTimestamp();
-				$this->Event->save($event);
 			}
 			if ($failed > 0) {
-				$this->Session->setFlash($saved . ' attributes created. ' . $failed . ' attributes could not be saved. This may be due to attributes with similar values already existing.');
+				$this->Session->setFlash($saved . ' ' . $messageScope . ' created' . $emailResult . '. ' . $failed . ' ' . $messageScope . ' could not be saved. This may be due to attributes with similar values already existing.');
 			} else {
-				$this->Session->setFlash($saved . ' attributes created.');
+				$this->Session->setFlash($saved . ' ' . $messageScope . ' created' . $emailResult . '.');
 			}
 			$this->redirect(array('controller' => 'events', 'action' => 'view', $id));
 		} else {

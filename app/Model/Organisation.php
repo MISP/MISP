@@ -84,6 +84,8 @@ class Organisation extends AppModel{
 		parent::beforeValidate();
 		if (empty($this->data['Organisation']['uuid'])) {
 			$this->data['Organisation']['uuid'] = CakeText::uuid();
+		} else {
+			$this->data['Organisation']['uuid'] = trim($this->data['Organisation']['uuid']);
 		}
 		$date = date('Y-m-d H:i:s');
 		if (!empty($this->data['Organisation']['restricted_to_domain'])) {

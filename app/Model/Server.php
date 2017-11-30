@@ -952,6 +952,15 @@ class Server extends AppModel {
 							'type' => 'string',
 							'editable' => false,
 					),
+					'syslog' => array(
+						'level' => 0,
+						'description' => 'Enable this setting to pass all audit log entries directly to syslog. Keep in mind, this is verbose and will include user, organisation, event data.',
+						'value' => false,
+						'errorMessage' => '',
+						'test' => 'testBool',
+						'type' => 'boolean',
+						'null' => true
+					),
 					'password_policy_length' => array(
 							'level' => 2,
 							'description' => 'Password length requirement. If it is not set or it is set to 0, then the default value is assumed (12).',
@@ -1239,6 +1248,14 @@ class Server extends AppModel {
 					'ZeroMQ_organisation_notifications_enable' => array(
 						'level' => 2,
 						'description' => 'Enables or disables the publishing of new/modified organisations to the ZMQ pubsub feed.',
+						'value' => false,
+						'errorMessage' => '',
+						'test' => 'testBool',
+						'type' => 'boolean'
+					),
+					'ZeroMQ_audit_notifications_enable' => array(
+						'level' => 2,
+						'description' => 'Enables or disables the publishing of log entries to the ZMQ pubsub feed. Keep in mind, this can get pretty verbose depending on your logging settings.',
 						'value' => false,
 						'errorMessage' => '',
 						'test' => 'testBool',
@@ -2204,6 +2221,9 @@ class Server extends AppModel {
 	}
 
 	public function serverSettingReadSingle($settingObject, $settingName, $leafKey) {
+		// invalidate config.php from php opcode cache
+		opcache_reset();
+
 		$setting = Configure::read($settingName);
 		$result = $this->__evaluateLeaf($settingObject, $leafKey, $setting);
 		$result['setting'] = $settingName;
@@ -2800,7 +2820,7 @@ class Server extends AppModel {
 		try {
 			$response = $HttpSocket->get($uri, '', $request);
 		} catch (Exception $e) {
-			if ($response->code != '200') {
+			if (!isset($response) || $response->code != '200') {
 				$this->Log = ClassRegistry::init('Log');
 				$this->Log->create();
 				$this->Log->save(array(
@@ -2810,11 +2830,11 @@ class Server extends AppModel {
 						'email' => $user['email'],
 						'action' => 'error',
 						'user_id' => $user['id'],
-						'title' => 'Error: Connection to the server has failed.',
+						'title' => 'Error: Connection to the server has failed.' . isset($response->code) ? ' Returned response code: ' . $response->code : '',
 				));
 			}
 		}
-		if ($response->code != '200') {
+		if (!isset($response) || $response->code != '200') {
 			return 1;
 		}
 		$remoteVersion = json_decode($response->body, true);

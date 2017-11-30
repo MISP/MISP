@@ -55,7 +55,13 @@ class UsersController extends AppController {
 			$user['User']['pgp_status'] = isset($pgpDetails[2]) ? $pgpDetails[2] : 'OK';
 			$user['User']['fingerprint'] = !empty($pgpDetails[4]) ? $pgpDetails[4] : 'N/A';
 		}
-		$this->set('user', $user);
+		if ($this->_isRest()) {
+			unset($user['User']['server_id']);
+			$user['User']['password'] = '*****';
+			return $this->RestResponse->viewData(array('User' => $user['User']), $this->response->type());
+		} else {
+			$this->set('user', $user);
+		}
 	}
 
 	public function request_API(){
@@ -709,7 +715,7 @@ class UsersController extends AppController {
 					$c = 0;
 					foreach ($fields as $field) {
 						if (isset($fieldsOldValues[$c]) && $fieldsOldValues[$c] != $fieldsNewValues[$c]) {
-							if ($field != 'confirm_password') {
+							if ($field != 'confirm_password' && $field != 'enable_password') {
 								$fieldsResultStr = $fieldsResultStr . ', ' . $field . ' (' . $fieldsOldValues[$c] . ') => (' . $fieldsNewValues[$c] . ')';
 							}
 						}
@@ -862,9 +868,9 @@ class UsersController extends AppController {
 			$this->User->save($user['User'], true, array('id', 'last_login', 'current_login'));
 			if (empty($this->Auth->authenticate['Form']['passwordHasher']) && !empty($passwordToSave)) $this->User->saveField('password', $passwordToSave);
 			$this->User->Behaviors->enable('SysLogLogable.SysLogLogable');
-			// TODO removed the auto redirect for now, due to security concerns - will look more into this
-			// $this->redirect($this->Auth->redirectUrl());
-			$this->redirect(array('controller' => 'events', 'action' => 'index'));
+			// no state changes are ever done via GET requests, so it is safe to return to the original page:
+			$this->redirect($this->Auth->redirectUrl());
+			// $this->redirect(array('controller' => 'events', 'action' => 'index'));
 		} else {
 			$dataSourceConfig = ConnectionManager::getDataSource('default')->config;
 			$dataSource = $dataSourceConfig['datasource'];
