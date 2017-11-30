@@ -2252,11 +2252,17 @@ class EventsController extends AppController {
 								'value', 'comment', 'to_ids', 'timestamp');
 		$requested_obj_attributes = array('uuid', 'name', 'meta-category');
 		if (isset($this->params['url']['attributes'])) {
-				$requested_attributes = explode(',', $this->params['url']['attributes']);
+			if (!isset($this->params['url']['obj_attributes'])) $requested_obj_attributes = array();
+			$requested_attributes = explode(',', $this->params['url']['attributes']);
 		}
 		if (isset($this->params['url']['obj_attributes'])) {
-		    $requested_obj_attributes = explode(',', $this->params['url']['obj_attributes']);
+			$requested_obj_attributes = explode(',', $this->params['url']['obj_attributes']);
 		}
+		if (isset($data['request']['attributes'])) {
+			if (!isset($data['request']['obj_attributes'])) $requested_obj_attributes = array();
+			$requested_attributes = $data['request']['attributes'];
+		}
+		if (isset($data['request']['obj_attributes'])) $requested_obj_attributes = $data['request']['obj_attributes'];
 		if (isset($events)) {
 			foreach ($events as $eventid) {
 				$attributes = $this->Event->csv($user, $eventid, $ignore, $list, false, $category, $type, $includeContext, $enforceWarninglist);
