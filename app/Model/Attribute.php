@@ -205,6 +205,7 @@ class Attribute extends AppModel {
 			'ip-src|port' => array('desc' => 'IP source and port number seperated by a |', 'default_category' => 'Network activity', 'to_ids' => 1),
 			'hostname|port' => array('desc' => 'Hostname and port number seperated by a |', 'default_category' => 'Network activity', 'to_ids' => 1),
 			'mac-address' => array('desc' => 'Mac address', 'default_category' => 'Network activity', 'to_ids' => 0),
+			'mac-eui-64' => array('desc' => 'Mac EUI-64 address', 'default_category' => 'Network activity', 'to_ids' => 0),
 			// verify IDS flag defaults for these
 			'email-dst-display-name' => array('desc' => 'Email destination display name', 'default_category' => 'Payload delivery', 'to_ids' => 0),
 			'email-src-display-name' => array('desc' => 'Email source display name', 'default_category' => 'Payload delivery', 'to_ids' => 0),
