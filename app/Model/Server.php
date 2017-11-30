@@ -2820,7 +2820,7 @@ class Server extends AppModel {
 		try {
 			$response = $HttpSocket->get($uri, '', $request);
 		} catch (Exception $e) {
-			if ($response->code != '200') {
+			if (!isset($response) || $response->code != '200') {
 				$this->Log = ClassRegistry::init('Log');
 				$this->Log->create();
 				$this->Log->save(array(
@@ -2830,11 +2830,11 @@ class Server extends AppModel {
 						'email' => $user['email'],
 						'action' => 'error',
 						'user_id' => $user['id'],
-						'title' => 'Error: Connection to the server has failed.',
+						'title' => 'Error: Connection to the server has failed.' . isset($response->code) ? ' Returned response code: ' . $response->code : '',
 				));
 			}
 		}
-		if ($response->code != '200') {
+		if (!isset($response) || $response->code != '200') {
 			return 1;
 		}
 		$remoteVersion = json_decode($response->body, true);
