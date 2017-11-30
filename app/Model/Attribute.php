@@ -297,7 +297,7 @@ class Attribute extends AppModel {
 					),
 			'Attribution' => array(
 					'desc' => 'Identification of the group, organisation, or country behind the attack',
-					'types' => array('threat-actor', 'campaign-name', 'campaign-id', 'whois-registrant-phone', 'whois-registrant-email', 'whois-registrant-name', 'whois-registrar', 'whois-creation-date','comment', 'text', 'x509-fingerprint-sha1', 'other')
+					'types' => array('threat-actor', 'campaign-name', 'campaign-id', 'whois-registrant-phone', 'whois-registrant-email', 'whois-registrant-name', 'whois-registrar', 'whois-creation-date','comment', 'text', 'x509-fingerprint-sha1', 'other', 'dns-soa-email')
 					),
 			'External analysis' => array(
 					'desc' => 'Any other result from additional analysis of the malware like tools output',
@@ -360,7 +360,8 @@ class Attribute extends AppModel {
 			'hex' => 'Other',
 			'attachment' => 'External analysis',
 			'malware-sample' => 'Payload delivery',
-			'cortex' => 'External analysis'
+			'cortex' => 'External analysis',
+			'dns-soa-email' => 'Attribution'
 	);
 
 	// typeGroupings are a mapping to high level groups for attributes
