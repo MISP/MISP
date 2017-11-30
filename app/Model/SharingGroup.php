@@ -127,21 +127,21 @@ class SharingGroup extends AppModel {
 			$sgs = $this->find('all', array(
 				'contain' => array('SharingGroupServer' => array('Server'), 'SharingGroupOrg' => array('Organisation'), 'Organisation'),
 				'conditions' => $conditions,
-				'order' => 'name ASC'
+				'order' => 'SharingGroup.name ASC'
 			));
 			return $sgs;
 		} else if ($scope == 'name') {
 			$sgs = $this->find('list', array(
 				'recursive' => -1,
-				'fields' => array('id', 'name'),
-				'order' => 'name ASC',
+				'fields' => array('SharingGroup.id', 'SharingGroup.name'),
+				'order' => 'SharingGroup.name ASC',
 				'conditions' => $conditions,
 			));
 			return $sgs;
 		} else if ($scope == 'uuid') {
 			$sgs = $this->find('list', array(
 					'recursive' => -1,
-					'fields' => array('id', 'uuid'),
+					'fields' => array('SharingGroup.id', 'SharingGroup.uuid'),
 					'conditions' => $conditions,
 			));
 			return $sgs;
