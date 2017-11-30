@@ -3885,34 +3885,11 @@ class Event extends AppModel {
 		if ($useCache && isset($this->__assetCache['sharingGroupData'])) {
 			return $this->__assetCache['sharingGroupData'];
 		} else {
-			$fieldsOrg = array('id', 'name', 'uuid');
-			$fieldsServer = array('id', 'url', 'name');
-			$fieldsSharingGroup = array(
-				array('fields' => array('SharingGroup.id','SharingGroup.name', 'SharingGroup.releasability', 'SharingGroup.description')),
-				array(
-					'fields' => array('SharingGroup.*'),
-						'Organisation' => array('fields' => $fieldsOrg),
-						'SharingGroupOrg' => array(
-							'Organisation' => array('fields' => $fieldsOrg, 'order' => false),
-						),
-						'SharingGroupServer' => array(
-							'Server' => array('fields' => $fieldsServer, 'order' => false),
-					),
-				)
-			);
-			$containsSharingGroup = array(
-				array(),
-				array('Organisation', 'SharingGroupOrg' => array('Organisation'), 'SharingGroupServer' => array('Server'))
-			);
-			$sharingGroupDataTemp = $this->SharingGroup->find('all', array(
-				'fields' => $fieldsSharingGroup[(($user['Role']['perm_site_admin'] || $user['Role']['perm_sync']) ? 1 : 0)]['fields'],
-				'contain' => $containsSharingGroup[(($user['Role']['perm_site_admin'] || $user['Role']['perm_sync']) ? 1 : 0)],
-				'recursive' => -1
-			));
+			$sharingGroupDataTemp = $this->SharingGroup->fetchAllAuthorised($user, 'simplified');
 			$sharingGroupData = array();
 			foreach ($sharingGroupDataTemp as $k => $v) {
-				$v['SharingGroup']['SharingGroupOrg'] = $v['SharingGroupOrg'];
-				$v['SharingGroup']['SharingGroupServer'] = $v['SharingGroupServer'];
+				if (isset($v['SharingGroupOrg'])) $v['SharingGroup']['SharingGroupOrg'] = $v['SharingGroupOrg'];
+				if (isset($v['SharingGroupServer'])) $v['SharingGroup']['SharingGroupServer'] = $v['SharingGroupServer'];
 				$sharingGroupData[$v['SharingGroup']['id']] = array('SharingGroup' => $v['SharingGroup']);
 			}
 			if ($useCache) $this->__assetCache['sharingGroupData'] = $sharingGroupData;
