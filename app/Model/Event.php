@@ -425,10 +425,10 @@ class Event extends AppModel {
 			$this->Correlation = ClassRegistry::init('Correlation');
 			$db = $this->getDataSource();
 			if (isset($this->data['Event']['date'])) {
-				$this->Correlation->updateAll(array('Correlation.date' => $db->value($this->data['Event']['date'])), array('Correlation.event_id' => $db->value($this->data['Event']['id'])));
+				$this->Correlation->updateAll(array('Correlation.date' => $db->value($this->data['Event']['date'])), array('Correlation.event_id' => intval($this->data['Event']['id'])));
 			}
 			if (isset($this->data['Event']['info'])) {
-				$this->Correlation->updateAll(array('Correlation.info' => $db->value($this->data['Event']['info'])), array('Correlation.event_id' => $db->value($this->data['Event']['id'])));
+				$this->Correlation->updateAll(array('Correlation.info' => $db->value($this->data['Event']['info'])), array('Correlation.event_id' => intval($this->data['Event']['id'])));
 			}
 		}
 		if (empty($this->data['Event']['unpublishAction']) && empty($this->data['Event']['skip_zmq']) && Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_event_notifications_enable')) {
