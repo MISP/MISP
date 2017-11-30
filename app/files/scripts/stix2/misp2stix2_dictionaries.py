@@ -105,7 +105,9 @@ mispTypesMapping = {
     'email-reply-to': {'observable': {'0': {'type': 'email-addr', 'value': ''}},
                        'pattern': 'email-addr:value = \'{0}\''},
     'attachment': {'observable': {'0': {'type': 'artifact', 'payload_bin': ''}},
-                   'pattern': 'artifact:payload_bin = \'{0}\''}
+                   'pattern': 'artifact:payload_bin = \'{0}\''},
+    'mac-address': {'observable': {'0': {'type': 'mac-addr', 'value': ''}},
+                    'pattern': 'mac-addr:value = \'{0}\''}
 }
 
 objectsMapping = {'domain-ip': {'pattern': 'domain-name:{0} = \'{1}\' AND '},
