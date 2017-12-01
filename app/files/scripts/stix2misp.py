@@ -37,6 +37,7 @@ def loadEvent(args, pathname):
             isJson = True
         else:
             event = STIXPackage.from_xml(tempFile)
+            event = json.loads(event.related_packages.related_package[0].to_json())
             isJson = False
         return event, isJson
     except:
@@ -57,7 +58,11 @@ def buildMispDict(stixEvent):
     mispDict["info"] = stixEvent["stix_header"].get("title")
     event = stixEvent["incidents"][0]
     orgSource = event["information_source"]["identity"]["name"]
+    mispDict["Org"] = {}
+    mispDict["Org"]["name"] = orgSource
     orgReporter = event["reporter"]["identity"]["name"]
+    mispDict["Orgc"] = {}
+    mispDict["Orgc"]["name"] = orgReporter
     indicators = event["related_indicators"]["indicators"]
     mispDict["Attribute"] = []
     for indic in indicators:
@@ -119,11 +124,10 @@ def saveFile(namefile, pathname, misp):
 def main(args):
     pathname = os.path.dirname(args[0])
     stixEvent, isJson = loadEvent(args, pathname)
+    stixEvent = stixEvent["package"]
     if isJson:
-        stixEvent = stixEvent["package"]
         namefile = args[1]
     else:
-        stixEvent = json.loads(stixEvent.related_packages.related_package[0].to_json())['package']
         namefile = '{}.json'.format(args[1][:-4])
     mispDict = buildMispDict(stixEvent)
     misp = pymisp.MISPEvent(None, False)
