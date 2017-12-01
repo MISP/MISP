@@ -110,17 +110,17 @@ mispTypesMapping = {
                     'pattern': 'mac-addr:value = \'{0}\''}
 }
 
-objectsMapping = {'domain-ip': {'pattern': 'domain-name:{0} = \'{1}\' AND '},
+objectsMapping = {'domain|ip': {'pattern': 'domain-name:{0} = \'{1}\' AND '},
                  'email': {'observable': {'0': {'type': 'email-message'}},
                            'pattern': 'email-{0}:{1} = \'{2}\' AND '},
-                 'file': {'observable': {'0': {'type': 'file'}},
+                 'file': {'observable': {'0': {'type': 'file', 'hashes': {}}},
                           'pattern': 'file:{0} = \'{1}\' AND '},
                  'ip|port': {'pattern': 'network-traffic:{0} = \'{1}\' AND '},
                  'registry-key': {'observable': {'0': {'type': 'windows-registry-key'}},
                                   'pattern': 'windows-registry-key:{0} = \'{1}\' AND '},
                  'url': {'observable': {'0': {'type': 'url'}},
                          'pattern': 'url:{0} = \'{1}\' AND '},
-                 'x509': {'observable': {'0': {'type': 'x509-certificate'}},
+                 'x509': {'observable': {'0': {'type': 'x509-certificate', 'hashes': {}}},
                           'pattern': 'x509-certificate:{0} = \'{1}\' AND '}
 }
 relationshipsSpecifications = {'attack-pattern': {'vulnerability': 'targets', 'identity': 'targets',
@@ -159,7 +159,7 @@ objectTypes = {'text': {'x509': {'subject': 'subject', 'issuer': 'issuer', 'pubk
               'email-reply-to': 'additional_header_fields.Reply-To',
               'hashes': 'hashes.\'{0}\'', 'size-in-bytes': 'size', 'filename': 'name',
               'ip-dst': {'ip|port': 'dst_ref.type = \'{0}\' AND network-traffic:dst_ref.value',
-                         'domain-ip': 'resolves_to_refs[*].value'},
+                         'domain|ip': 'resolves_to_refs[*].value'},
               'reg-datatype': 'datatype', 'reg-data': 'data', 'reg-name': 'name', 'reg-key': 'key'
 }
 

@@ -427,8 +427,8 @@ def defineObservableObject(attr_type, attr_val):
 def defineObservableObjectForObjects(obj_name, obj_attr):
     if obj_name == 'email':
         return defineObservableObjectEmail(obj_name, obj_attr)
-    elif obj_name == 'domain-ip':
-        return definObservableObjectDomainIp(obj_name, obj_attr)
+    elif obj_name == 'domain|ip':
+        return defineObservableObjectDomainIp(obj_name, obj_attr)
     elif obj_name == 'ip|port':
         return defineObservableObjectIpPort(obj_name, obj_attr)
     elif obj_name == 'registry-key':
@@ -652,7 +652,7 @@ def definePatternForObjects(obj_name, obj_attr):
                 else:
                     attrType = objectTypes[attr_type]
             pattern += objectsMapping[obj_name]['pattern'].format(emailType, attrType, attr_val)
-    elif obj_name == 'ip|port' or obj_name == 'domain-ip':
+    elif obj_name == 'ip|port' or obj_name == 'domain|ip':
         for attr in obj_attr:
             attr_type = attr.type
             attr_val = attr.value
@@ -679,8 +679,6 @@ def definePatternForObjects(obj_name, obj_attr):
                 if obj_name not in objectTypes[attr_type] or obj_relation not in objectTypes[attr_type][obj_name]:
                     continue
                 attrType = objectTypes[attr_type][obj_name][obj_relation]
-            elif attr_type in noChangesTypes:
-                attrType = attr_type
             else:
                 if attr_type not in objectTypes:
                     continue
