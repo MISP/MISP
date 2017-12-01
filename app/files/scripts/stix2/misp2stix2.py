@@ -302,7 +302,7 @@ def addIndicatorFromObjects(object_refs, attributes, obj, identity, to_ids):
     category = obj['meta-category']
     killchain = [{'kill_chain_name': 'misp-category',
                   'phase_name': category}]
-    labels = 'misp:to_ids=\"{}\"'.format(to_ids)
+    labels = ['misp:to_ids=\"{}\"'.format(to_ids), 'from_object']
     pattern = definePatternForObjects(obj.name, obj.Attribute)
     timestamp = getDateFromTimestamp(int(obj.timestamp))
     indicator_args = {'valid_from': timestamp, 'type': 'indicator', 'labels': labels,
@@ -315,7 +315,7 @@ def addIndicatorFromObjects(object_refs, attributes, obj, identity, to_ids):
 def addObservedDataFromObject(object_refs, attributes, obj, identity, to_ids):
     observedData_id = 'observed-data--{}'.format(obj.uuid)
     timestamp = getDateFromTimestamp(int(obj.timestamp))
-    labels = 'misp:to_ids=\"{}\"'.format(to_ids)
+    labels = ['misp:to_ids=\"{}\"'.format(to_ids), 'from_object']
     observedData_args = {'id': observedData_id, 'type': 'observed-data', 'number_observed': 1, 'labels': labels,
                          'first_observed': timestamp, 'last_observed': timestamp, 'created_by_ref': identity,
                          'objects': defineObservableObjectForObjects(obj.name, obj.Attribute)}
@@ -330,7 +330,7 @@ def addVulnerabilityFromObjects(object_refs, attributes, obj, identity, to_ids):
         if obj_attr.type == 'vulnerability':
             name = obj_attr.value
             break
-    labels = 'misp:to_ids=\"{}\"'.format(to_ids)
+    labels = ['misp:to_ids=\"{}\"'.format(to_ids), 'from_object']
     vuln_args = {'id': vuln_id, 'type': 'vulnerability', 'name': name, 'created_by_ref': identity,
                  'labels': labels}
     vulnerability = Vulnerability(**vuln_args)
