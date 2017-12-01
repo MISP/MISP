@@ -55,8 +55,8 @@ def buildMispDict(stixEvent):
     mispDict["date"] = date
     timestamp = getTimestampfromDate(stixTimestamp)
     mispDict["timestamp"] = timestamp
-    mispDict["info"] = stixEvent["stix_header"].get("title")
     event = stixEvent["incidents"][0]
+    mispDict["info"] = event.get("title")
     orgSource = event["information_source"]["identity"]["name"]
     mispDict["Org"] = {}
     mispDict["Org"]["name"] = orgSource
