@@ -91,7 +91,7 @@ def generateSTIXObjects(event):
     setDates(incident, event["Event"]["date"], int(event["Event"]["publish_timestamp"]))
     addJournalEntry(incident, "Event Threat Level: " + event["Event"]["threat_level_id"])
     ttps = []
-    eventTags = event.get("Tag", [])
+    eventTags = event["Event"].get("Tag", [])
     external_id = ExternalID(value=event["Event"]["id"], source="MISP Event")
     incident.add_external_id(external_id)
     incident_status_name = status_mapping.get(event["Event"]["analysis"], None)
@@ -128,7 +128,7 @@ def resolveObjects(incident, ttps, objects, eventTags, org):
             indicator.description = obj["comment"]
         tlpTags = eventTags
         for attr in obj["Attribute"]:
-            tlpTags = mergeTags(tlpTags, attr["AttributeTag"])
+            tlpTags = mergeTags(tlpTags, attr)
         setTLP(indicator, obj["distribution"], tlpTags, True)
         indicator.title = obj["name"] + " (MISP Object #" + obj["id"] + ")"
         indicator.description = indicator.title
@@ -212,7 +212,7 @@ def handleNonIndicatorAttribute(incident, ttps, attribute, eventTags, org):
 def generateTTP(incident, attribute, ttps, eventTags):
     ttp = TTP(timestamp=getDateFromTimestamp(int(attribute["timestamp"])))
     ttp.id_= namespace[1] + ":ttp-" + attribute["uuid"]
-    # setTLP(ttp, attribute["distribution"], mergeTags(eventTags, attribute["AttributeTag"]))
+    setTLP(ttp, attribute["distribution"], mergeTags(eventTags, attribute))
     ttp.title = attribute["category"] + ": " + attribute["value"] + " (MISP Attribute #" + attribute["id"] + ")"
     if attribute["type"] == "vulnerability":
         vulnerability = Vulnerability()
@@ -255,7 +255,7 @@ def generateIndicator(attribute, eventTags, org):
     setProd(indicator, org)
     if attribute["comment"] != "":
         indicator.description = attribute["comment"]
-    # setTLP(indicator, attribute["distribution"], mergeTags(eventTags, attribute["AttributeTag"]))
+    setTLP(indicator, attribute["distribution"], mergeTags(eventTags, attribute))
     indicator.title = attribute["category"] + ": " + attribute["value"] + " (MISP Attribute #" + attribute["id"] + ")"
     indicator.description = indicator.title
     confidence_description = "Derived from MISP's IDS flag. If an attribute is marked for IDS exports, the confidence will be high, otherwise none"
@@ -331,12 +331,11 @@ def addJournalEntry(incident, entry_line):
     except AttributeError:
         incident.history = History(hi)
 
-# merge event tags with attribute tags
-def mergeTags(eventTags, attributeTags):
+# merge event tags with attribute tags, when present
+def mergeTags(eventTags, attr):
     result = list(eventTags)
-    for tag in attributeTags:
-        if tag.get("Tag"):
-            result.append(tag["Tag"])
+    if "Tag" in attr:
+        result += attr["Tag"]
     return result
 
 # main
