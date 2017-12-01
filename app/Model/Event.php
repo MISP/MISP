@@ -2532,16 +2532,18 @@ class Event extends AppModel {
 					$block = false;
 					for ($i = 0; $i < $k; $i++) {
 						if (
-							$data['Event']['Attribute'][$k]['value'] == $data['Event']['Attribute'][$k]['value'] &&
-							$data['Event']['Attribute'][$k]['type'] == $data['Event']['Attribute'][$k]['type'] &&
-							$data['Event']['Attribute'][$k]['category'] == $data['Event']['Attribute'][$k]['category']
+							$data['Event']['Attribute'][$i]['value'] == $attribute['value'] &&
+							$data['Event']['Attribute'][$i]['type'] == $attribute['type'] &&
+							$data['Event']['Attribute'][$i]['category'] == $attribute['category']
 						) {
 							$block = true;
-							unset($data['Event']['Attribute'][$k]);
+							unset($data['Event']['Attribute'][$i]);
 							break;
 						}
 					}
-					if (!$block) $data['Event']['Attribute'][$k] = $this->Attribute->captureAttribute($attribute, $this->id, $user, 0, $this->Log);
+					if (!$block) {
+						$data['Event']['Attribute'][$k] = $this->Attribute->captureAttribute($attribute, $this->id, $user, 0, $this->Log);
+					}
 				}
 				$data['Event']['Attribute'] = array_values($data['Event']['Attribute']);
 			}
