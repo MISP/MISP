@@ -28,6 +28,7 @@ namespace = ['https://github.com/MISP/MISP', 'MISP']
 
 # mappings
 status_mapping = {'0' : 'New', '1' : 'Open', '2' : 'Closed'}
+threat_level_mapping = {'1' : 'High', '2' : 'Medium', '3' : 'Low', '4' : 'Undefined'}
 TLP_mapping = {'0' : 'AMBER', '1' : 'GREEN', '2' : 'GREEN', '3' : 'GREEN', '4' : 'AMBER'}
 TLP_order = {'RED' : 4, 'AMBER' : 3, 'GREEN' : 2, 'WHITE' : 1}
 confidence_mapping = {False : 'None', True : 'High'}
@@ -89,7 +90,9 @@ def generateEventPackage(event):
 def generateSTIXObjects(event):
     incident = Incident(id_ = namespace[1] + ":incident-" + event["Event"]["uuid"], title=event["Event"]["info"])
     setDates(incident, event["Event"]["date"], int(event["Event"]["publish_timestamp"]))
-    addJournalEntry(incident, "Event Threat Level: " + event["Event"]["threat_level_id"])
+    threat_level_name = threat_level_mapping.get(event["Event"]["threat_level_id"], None)
+    if threat_level_name:
+        addJournalEntry(incident, "Event Threat Level: " + threat_level_name)
     ttps = []
     eventTags = event["Event"].get("Tag", [])
     external_id = ExternalID(value=event["Event"]["id"], source="MISP Event")
