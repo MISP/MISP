@@ -1695,7 +1695,7 @@ class Event extends AppModel {
 					else $overrideLimit = false;
 					$event['Attribute'] = $this->Feed->attachFeedCorrelations($event['Attribute'], $user, $event['Event'], $overrideLimit);
 				}
-				$event = $this->__filterBlockedAttributedByTags($event, $options, $user);
+				$event = $this->__filterBlockedAttributesByTags($event, $options, $user);
 				foreach ($event['Attribute'] as $key => $attribute) {
 					if (!$options['sgReferenceOnly'] && $event['Attribute'][$key]['sharing_group_id']) {
 						$event['Attribute'][$key]['SharingGroup'] = $sharingGroupData[$event['Attribute'][$key]['sharing_group_id']]['SharingGroup'];
@@ -1787,10 +1787,14 @@ class Event extends AppModel {
 	}
 
 	// Filter the attributes within an event based on the tag filter block rules
-	private function __filterBlockedAttributedByTags($event, $options, $user) {
+	private function __filterBlockedAttributesByTags($event, $options, $user) {
 		if (!empty($options['blockedAttributeTags'])) {
 			foreach ($options['blockedAttributeTags'] as $key => $blockedTag) {
-				$options['blockedAttributeTags'][$key] = $this->EventTag->Tag->lookupTagIdFromName($blockedTag);
+				if (!is_numeric($blockedTag)) {
+					$options['blockedAttributeTags'][$key] = $this->EventTag->Tag->lookupTagIdFromName($blockedTag);
+				} else {
+					$options['blockedAttributeTags'][$key] = $blockedTag;
+				}
 			}
 		}
 		if (!empty($user['Server']['push_rules'])) {
@@ -2787,7 +2791,7 @@ class Event extends AppModel {
 		$elevatedUser['Role']['perm_site_admin'] = 1;
 		$elevatedUser['Role']['perm_sync'] = 1;
 		$elevatedUser['Role']['perm_audit'] = 0;
-		$event = $this->fetchEvent($elevatedUser, array('eventid' => $id, 'includeAttachments' => true, 'includeAllTags' => true, 'deleted' => true));
+		$event = $this->fetchEvent($elevatedUser, array('eventid' => $id, 'metadata' => 1));
 		if (empty($event)) return true;
 		$event = $event[0];
 		$event['Event']['locked'] = 1;
@@ -2811,6 +2815,16 @@ class Event extends AppModel {
 			$HttpSocket = $syncTool->setupHttpSocket($server);
 			// Skip servers where the event has come from.
 			if (($passAlong != $server)) {
+				$params = array();
+				if (!empty($server['Server']['push_rules'])) {
+					$push_rules = json_decode($server['Server']['push_rules'], true);
+					if (!empty($push_rules['tags']['NOT'])) {
+						$params['blockedAttributeTags'] = $push_rules['tags']['NOT'];
+					}
+				}
+				$params = array_merge($params, array('eventid' => $id, 'includeAttachments' => true, 'includeAllTags' => true, 'deleted' => true));
+				$event = $this->fetchEvent($elevatedUser, $params);
+				$event = $event[0];
 				$thisUploaded = $this->uploadEventToServer($event, $server, $HttpSocket);
 				if (!$thisUploaded) {
 					$uploaded = !$uploaded ? $uploaded : $thisUploaded;
