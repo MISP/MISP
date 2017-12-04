@@ -2605,17 +2605,25 @@ class Attribute extends AppModel {
 		return $this->IOCExport->buildAll($this->Auth->user(), $event);
 	}
 
-	public function setTagConditions($tags, $conditions) {
+	public function setTagConditions($tags, $conditions, $controller='Events') {
 		$args = $this->dissectArgs($tags);
-		$tagArray = $this->AttributeTag->Tag->fetchEventTagIds($args[0], $args[1]);
+		$tagArray = $this->AttributeTag->Tag->fetchEventTagIds($args[0], $args[1], $controller);
 		$temp = array();
 		foreach ($tagArray[0] as $accepted) {
-			$temp['OR'][] = array('Event.id' => $accepted);
+			if ($controller === 'attributeTags') {
+				$temp['OR'][] = array('Attribute.id' => $accepted);
+			}else{
+				$temp['OR'][] = array('Event.id' => $accepted);
+			}
 		}
 		$conditions['AND'][] = $temp;
 		$temp = array();
 		foreach ($tagArray[1] as $rejected) {
-			$temp['AND'][] = array('Event.id !=' => $rejected);
+			if ($controller === 'attributeTags') {
+				$temp['AND'][] = array('Attribute.id !=' => $rejected);
+			}else{
+				$temp['AND'][] = array('Event.id !=' => $rejected);
+			}
 		}
 		$conditions['AND'][] = $temp;
 		return $conditions;
