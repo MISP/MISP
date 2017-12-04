@@ -288,8 +288,9 @@ def addTool(object_refs, attributes, galaxy, identity):
 def addVulnerability(object_refs, attributes, attribute, identity):
     vuln_id = "vulnerability--{}".format(attribute.uuid)
     name = attribute.value
-    ext_refs = [{'source_name': 'cve',
-                 'external_id': name}]
+    vuln_data = mispTypesMapping['vulnerability'].copy()
+    vuln_data['external_id'] = name
+    ext_refs = [vuln_data]
     labels = 'misp:to_ids=\"{}\"'.format(attribute.to_ids)
     vuln_args = {'type': 'vulnerability', 'id': vuln_id, 'external_references': ext_refs, 'name': name,
                  'created_by_ref': identity, 'labels': labels}

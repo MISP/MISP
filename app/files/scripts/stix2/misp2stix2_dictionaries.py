@@ -1,4 +1,5 @@
 mispTypesMapping = {
+    'vulnerability': {'source_name': 'cve', 'external_id': ''},
     'md5': {'observable': {'0': {'type': 'file', 'hashes': ''}},
             'pattern': 'file:hashes.\'md5\' = \'{0}\''},
     'sha1': {'observable': {'0': {'type': 'file', 'hashes': ''}},
