@@ -288,8 +288,9 @@ def addTool(object_refs, attributes, galaxy, identity):
 def addVulnerability(object_refs, attributes, attribute, identity):
     vuln_id = "vulnerability--{}".format(attribute.uuid)
     name = attribute.value
-    ext_refs = [{'source_name': 'cve',
-                 'external_id': name}]
+    vuln_data = mispTypesMapping['vulnerability'].copy()
+    vuln_data['external_id'] = name
+    ext_refs = [vuln_data]
     labels = 'misp:to_ids=\"{}\"'.format(attribute.to_ids)
     vuln_args = {'type': 'vulnerability', 'id': vuln_id, 'external_references': ext_refs, 'name': name,
                  'created_by_ref': identity, 'labels': labels}
@@ -302,7 +303,7 @@ def addIndicatorFromObjects(object_refs, attributes, obj, identity, to_ids):
     category = obj['meta-category']
     killchain = [{'kill_chain_name': 'misp-category',
                   'phase_name': category}]
-    labels = 'misp:to_ids=\"{}\"'.format(to_ids)
+    labels = ['misp:to_ids=\"{}\"'.format(to_ids), 'from_object']
     pattern = definePatternForObjects(obj.name, obj.Attribute)
     timestamp = getDateFromTimestamp(int(obj.timestamp))
     indicator_args = {'valid_from': timestamp, 'type': 'indicator', 'labels': labels,
@@ -315,7 +316,7 @@ def addIndicatorFromObjects(object_refs, attributes, obj, identity, to_ids):
 def addObservedDataFromObject(object_refs, attributes, obj, identity, to_ids):
     observedData_id = 'observed-data--{}'.format(obj.uuid)
     timestamp = getDateFromTimestamp(int(obj.timestamp))
-    labels = 'misp:to_ids=\"{}\"'.format(to_ids)
+    labels = ['misp:to_ids=\"{}\"'.format(to_ids), 'from_object']
     observedData_args = {'id': observedData_id, 'type': 'observed-data', 'number_observed': 1, 'labels': labels,
                          'first_observed': timestamp, 'last_observed': timestamp, 'created_by_ref': identity,
                          'objects': defineObservableObjectForObjects(obj.name, obj.Attribute)}
@@ -330,7 +331,7 @@ def addVulnerabilityFromObjects(object_refs, attributes, obj, identity, to_ids):
         if obj_attr.type == 'vulnerability':
             name = obj_attr.value
             break
-    labels = 'misp:to_ids=\"{}\"'.format(to_ids)
+    labels = ['misp:to_ids=\"{}\"'.format(to_ids), 'from_object']
     vuln_args = {'id': vuln_id, 'type': 'vulnerability', 'name': name, 'created_by_ref': identity,
                  'labels': labels}
     vulnerability = Vulnerability(**vuln_args)
@@ -427,8 +428,8 @@ def defineObservableObject(attr_type, attr_val):
 def defineObservableObjectForObjects(obj_name, obj_attr):
     if obj_name == 'email':
         return defineObservableObjectEmail(obj_name, obj_attr)
-    elif obj_name == 'domain-ip':
-        return definObservableObjectDomainIp(obj_name, obj_attr)
+    elif obj_name == 'domain|ip':
+        return defineObservableObjectDomainIp(obj_name, obj_attr)
     elif obj_name == 'ip|port':
         return defineObservableObjectIpPort(obj_name, obj_attr)
     elif obj_name == 'registry-key':
@@ -437,7 +438,7 @@ def defineObservableObjectForObjects(obj_name, obj_attr):
         return defineObservableObjectBasicCase(obj_name, obj_attr)
 
 def defineObservableObjectEmail(obj_name, obj_attr):
-    obj = objectsMapping['email']['observable']
+    obj = objectsMapping['email']['observable'].copy()
     email_attr = getEmailObjectInfo(obj_attr)
     is_multipart = False
     part_number = 1
@@ -506,7 +507,7 @@ def defineObservableObjectEmail(obj_name, obj_attr):
     return obj
 
 def defineObservableObjectDomainIp(obj_name, obj_attr):
-    obj = mispTypesMapping['domain|ip']['observable']
+    obj = mispTypesMapping['domain|ip']['observable'].copy()
     for attr in obj_attr:
         attr_type = attr.type
         if attr_type == 'domain':
@@ -518,7 +519,7 @@ def defineObservableObjectDomainIp(obj_name, obj_attr):
     return obj
 
 def defineObservableObjectIpPort(obj_name, obj_attr):
-    obj = mispTypesMapping['ip-dst|port']['observable']
+    obj = mispTypesMapping['ip-dst|port']['observable'].copy()
     for attr in obj_attr:
         attr_type = attr.type
         if attr_type == 'ip-dst':
@@ -540,7 +541,7 @@ def defineObservableObjectIpPort(obj_name, obj_attr):
     return obj
 
 def defineObservableObjectRegKey(obj_name, obj_attr):
-    obj = objectsMapping[obj_name]['observable']
+    obj = objectsMapping[obj_name]['observable'].copy()
     reg_attr = getRegistryKeyInfo(obj_attr)
     if 'reg-key' in reg_attr:
         key_type = objectTypes['reg-key']
@@ -563,7 +564,7 @@ def defineObservableObjectRegKey(obj_name, obj_attr):
     return obj
 
 def defineObservableObjectBasicCase(obj_name, obj_attr):
-    obj = objectsMapping[obj_name]['observable']
+    obj = objectsMapping[obj_name]['observable'].copy()
     for attr in obj_attr:
         attr_type = attr.type
         if 'md5' in attr_type or 'sha' in attr_type or 'hash' in attr_type or 'ssdeep' in attr_type:
@@ -652,7 +653,7 @@ def definePatternForObjects(obj_name, obj_attr):
                 else:
                     attrType = objectTypes[attr_type]
             pattern += objectsMapping[obj_name]['pattern'].format(emailType, attrType, attr_val)
-    elif obj_name == 'ip|port' or obj_name == 'domain-ip':
+    elif obj_name == 'ip|port' or obj_name == 'domain|ip':
         for attr in obj_attr:
             attr_type = attr.type
             attr_val = attr.value
@@ -679,8 +680,6 @@ def definePatternForObjects(obj_name, obj_attr):
                 if obj_name not in objectTypes[attr_type] or obj_relation not in objectTypes[attr_type][obj_name]:
                     continue
                 attrType = objectTypes[attr_type][obj_name][obj_relation]
-            elif attr_type in noChangesTypes:
-                attrType = attr_type
             else:
                 if attr_type not in objectTypes:
                     continue

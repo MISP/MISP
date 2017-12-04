@@ -17,6 +17,7 @@
 
 import sys, json, os, time
 import pymisp
+from stix.core import STIXPackage
 
 eventTypes = {"ipv4-addr": {"src": "ip-src", "dst": "ip-dst", "value": "address_value"},
               "ipv6-addr": {"src": "ip-src", "dst": "ip-dst", "value": "address_value"},
@@ -33,7 +34,12 @@ def loadEvent(args, pathname):
         tempFile = open(filename, 'r')
         if filename.endswith('.json'):
             event = json.loads(tempFile.read())
-        return event
+            isJson = True
+        else:
+            event = STIXPackage.from_xml(tempFile)
+            event = json.loads(event.related_packages.related_package[0].to_json())
+            isJson = False
+        return event, isJson
     except:
         print(json.dumps({'success': 0, 'message': 'The temporary STIX export file could not be read'}))
         sys.exit(1)
@@ -49,10 +55,14 @@ def buildMispDict(stixEvent):
     mispDict["date"] = date
     timestamp = getTimestampfromDate(stixTimestamp)
     mispDict["timestamp"] = timestamp
-    mispDict["info"] = stixEvent["stix_header"].get("title")
     event = stixEvent["incidents"][0]
+    mispDict["info"] = event.get("title")
     orgSource = event["information_source"]["identity"]["name"]
+    mispDict["Org"] = {}
+    mispDict["Org"]["name"] = orgSource
     orgReporter = event["reporter"]["identity"]["name"]
+    mispDict["Orgc"] = {}
+    mispDict["Orgc"]["name"] = orgReporter
     indicators = event["related_indicators"]["indicators"]
     mispDict["Attribute"] = []
     for indic in indicators:
@@ -102,26 +112,27 @@ def buildMispDict(stixEvent):
         attribute["type"] = typeVal
         attribute["value"] = valueVal
         attribute["category"] = indic.get("relationship")
-        #print(attribute)
         mispDict["Attribute"].append(attribute)
     return mispDict
 
-def saveFile(args, pathname, misp):
-    filename = "{}/tmp/{}.in".format(pathname, args[1])
+def saveFile(namefile, pathname, misp):
+    filepath = "{}/tmp/{}.in".format(pathname, namefile)
     eventDict = misp.to_dict(with_timestamp=True)
-    print(eventDict)
-    with open(filename, 'w') as f:
+    with open(filepath, 'w') as f:
         f.write(json.dumps(eventDict))
 
 def main(args):
     pathname = os.path.dirname(args[0])
-    stixEvent = loadEvent(args, pathname)
+    stixEvent, isJson = loadEvent(args, pathname)
     stixEvent = stixEvent["package"]
+    if isJson:
+        namefile = args[1]
+    else:
+        namefile = '{}.json'.format(args[1][:-4])
     mispDict = buildMispDict(stixEvent)
-    #print(mispDict)
     misp = pymisp.MISPEvent(None, False)
     misp.from_dict(**mispDict)
-    saveFile(args, pathname, misp)
+    saveFile(namefile, pathname, misp)
     print(1)
 
 if __name__ == "__main__":
