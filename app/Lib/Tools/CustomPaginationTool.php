@@ -43,8 +43,7 @@ class CustomPaginationTool {
 		$items = array_slice($items, $params['current'] - 1, $params['limit']);
 	}
 
-	function applyRulesOnArray(&$items, $options, $model, $sort = 'id', $focusKey = 'uuid') {
-		$params = $this->createPaginationRules($items, $options, $model, $sort, $focusKey);
+	function sortArray($items, $params, $escapeReindex = false) {
 		if (isset($params['sort'])) {
 			$sortArray = array();
 			foreach ($items as $k => $item) {
@@ -62,7 +61,13 @@ class CustomPaginationTool {
 			$items = array();
 			$items = $sortArray;
 		}
-		$items = array_values($items);
+		if (!$escapeReindex) $items = array_values($items);
+		return $items;
+	}
+
+	function applyRulesOnArray(&$items, $options, $model, $sort = 'id', $focusKey = 'uuid') {
+		$params = $this->createPaginationRules($items, $options, $model, $sort, $focusKey);
+		$items = $this->sortArray($items, $params);
 		if (!empty($params['options']['focus'])) {
 			foreach ($items as $k => $item) {
 				if ($item[$focusKey] == $params['options']['focus']) {

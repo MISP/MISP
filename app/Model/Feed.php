@@ -279,12 +279,17 @@ class Feed extends AppModel {
 			$objectsWithFeedHits = array();
 			$hashTable = array();
 			$hitIds = array();
+			$this->Event = ClassRegistry::init('Event');
 			foreach ($objects as $k => $object) {
-				$hashTable[$k] = md5($object['value']);
+				if (in_array($object['type'], $this->Event->Attribute->getCompositeTypes())) {
+					$value = explode('|', $object['value']);
+					$hashTable[$k] = md5($value[0]);
+				} else {
+					$hashTable[$k] = md5($object['value']);
+				}
 				$redis->sismember('misp:feed_cache:combined', $hashTable[$k]);
 			}
 			$results = $pipe->exec();
-
 			if (!$overrideLimit && count($objects) > 10000) {
 				foreach ($results as $k => $result) {
 					if ($result) {
@@ -311,6 +316,41 @@ class Feed extends AppModel {
 								$event['Feed'][$feeds[$k3]['Feed']['id']] = $feed['Feed'];
 							}
 							$objects[$hitIds[$k4]]['Feed'][] = $feed['Feed'];
+						}
+					}
+					if ($feed['Feed']['source_format'] == 'misp') {
+						$pipe = $redis->multi(Redis::PIPELINE);
+						$eventUuidHitPosition = array();
+						$i = 0;
+						foreach ($objects as $k => $object) {
+							if (isset($object['Feed'])) {
+								foreach ($object['Feed'] as $currentFeed) {
+									if ($feed['Feed']['id'] == $currentFeed['id']) {
+										$eventUuidHitPosition[$i] = $k;
+										$i++;
+										if (in_array($object['type'], $this->Event->Attribute->getCompositeTypes())) {
+											$value = explode('|', $object['value']);
+											$redis->smembers('misp:feed_cache:event_uuid_lookup:' . md5($value[0]));
+										} else {
+											$redis->smembers('misp:feed_cache:event_uuid_lookup:' . md5($object['value']));
+										}
+									}
+								}
+							}
+						}
+						$mispFeedHits = $pipe->exec();
+						foreach ($mispFeedHits as $feedhitPos => $f) {
+							foreach ($f as $url) {
+								$urlParts = explode('/', $url);
+								if (empty($event['Feed'][$urlParts[0]]['event_uuids']) || !in_array($urlParts[1], $event['Feed'][$urlParts[0]]['event_uuids'])) {
+									$event['Feed'][$urlParts[0]]['event_uuids'][] = $urlParts[1];
+								}
+								foreach ($objects[$eventUuidHitPosition[$feedhitPos]]['Feed'] as $tempKey => $tempFeed) {
+									if ($tempFeed['id'] == $urlParts[0]) {
+										$objects[$eventUuidHitPosition[$feedhitPos]]['Feed'][$tempKey]['event_uuids'][] = $urlParts[1];
+									}
+								}
+							}
 						}
 					}
 				}

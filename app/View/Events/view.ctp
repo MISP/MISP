@@ -271,7 +271,10 @@
 							}
 				?>
 							<span data-toggle="popover" data-content="<?php echo h($popover); ?>" data-trigger="hover" style="white-space: nowrap;">
-								<a href="<?php echo $baseurl . 'feeds/view/' . h($relatedFeed['id']); ?>"><?php echo h($relatedFeed['name']) . ' (' . $relatedFeed['id'] . ')'; ?></a>
+								<form action="<?php echo $baseurl; ?>/feeds/previewIndex/<?php h($relatedFeed['id']); ?>" method="post">
+									<input type="hidden" name="data[Feed][eventid]" value="<?php echo h(json_encode($relatedFeed['event_uuids'], true)); ?>">
+									<input type="submit" class="linkButton useCursorPointer" value="<?php echo h($relatedFeed['name']) . ' (' . $relatedFeed['id'] . ')'; ?>" />
+								</form>
 							</span>
 				<?php
 						endforeach;

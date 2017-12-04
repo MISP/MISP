@@ -700,15 +700,14 @@ class EventsController extends AppController {
 		$rules = array('published', 'eventid', 'tag', 'date', 'eventinfo', 'threatlevel', 'distribution', 'analysis', 'attribute', 'hasproposal');
 		if ($this->_isSiteAdmin()) $rules[] = 'email';
 		if (Configure::read('MISP.showorg')) {
-			$orgs = $this->Event->find('list', array(
-					'recursive' => -1,
-					'fields' => array('Orgc.name'),
-					'contain' => array('Orgc'),
-					'conditions' => $conditions,
-					'group' => array('LOWER(Orgc.name)','Event.id', 'Orgc.name')
+			$orgs = $this->Event->Orgc->find('list', array(
+				'conditions' => array(),
+				'recursive' => -1,
+				'fields' => array('Orgc.id', 'Orgc.name'),
+				'sort' => array('lower(Orgc.name) asc')
 			));
 			$this->set('showorg', true);
-			$this->set('orgs', $this->_arrayToValuesIndexArray($orgs));
+			$this->set('orgs', $orgs);
 			$rules[] = 'org';
 		} else {
 			$this->set('showorg', false);
@@ -2173,8 +2172,8 @@ class EventsController extends AppController {
 	// Usage: csv($key, $eventid)   - key can be a valid auth key or the string 'download'. Download requires the user to be logged in interactively and will generate a .csv file
 	// $eventid can be one of 3 options: left empty it will get all the visible to_ids attributes,
 	// $ignore is a flag that allows the export tool to ignore the ids flag. 0 = only IDS signatures, 1 = everything.
-	public function csv($key, $eventid = false, $ignore = false, $tags = false, $category = false, $type = false, $includeContext = false, $from = false, $to = false, $last = false, $headerless = false, $enforceWarninglist = false) {
-		$paramArray = array('eventid', 'ignore', 'tags', 'category', 'type', 'includeContext', 'from', 'to', 'last', 'headerless', 'enforceWarninglist');
+	public function csv($key, $eventid = false, $ignore = false, $tags = false, $category = false, $type = false, $includeContext = false, $from = false, $to = false, $last = false, $headerless = false, $enforceWarninglist = false, $value = false) {
+		$paramArray = array('eventid', 'ignore', 'tags', 'category', 'type', 'includeContext', 'from', 'to', 'last', 'headerless', 'enforceWarninglist', 'value');
 		if ($this->request->is('post')) {
 			if (empty($this->request->data)) {
 				return $this->RestResponse->throwException(400, 'Either specify the search terms in the url, or POST a json or xml with the filter parameters.', 'csv', true);
@@ -2265,7 +2264,7 @@ class EventsController extends AppController {
 		if (isset($data['request']['obj_attributes'])) $requested_obj_attributes = $data['request']['obj_attributes'];
 		if (isset($events)) {
 			foreach ($events as $eventid) {
-				$attributes = $this->Event->csv($user, $eventid, $ignore, $list, false, $category, $type, $includeContext, $enforceWarninglist);
+				$attributes = $this->Event->csv($user, $eventid, $ignore, $list, false, $category, $type, $includeContext, false, false, false, $enforceWarninglist, $value);
 				$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
 				foreach ($attributes as $attribute) {
 					$line1 = '';

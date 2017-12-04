@@ -1834,7 +1834,7 @@ class Event extends AppModel {
 		$field = '"' . $field . '"';
 	}
 
-	public function csv($user, $eventid=false, $ignore=false, $attributeIDList = array(), $tags = false, $category = false, $type = false, $includeContext = false, $from = false, $to = false, $last = false, $enforceWarninglist = false) {
+	public function csv($user, $eventid=false, $ignore=false, $attributeIDList = array(), $tags = false, $category = false, $type = false, $includeContext = false, $from = false, $to = false, $last = false, $enforceWarninglist = false, $value = false) {
 		$this->recursive = -1;
 		$conditions = array();
 		// If we are not in the search result csv download function then we need to check what can be downloaded. CSV downloads are already filtered by the search function.
@@ -1868,6 +1868,16 @@ class Event extends AppModel {
 			if (!$ignore) $conditions['AND']['Attribute.to_ids'] = 1;
 			if ($type) $conditions['AND']['Attribute.type'] = $type;
 			if ($category) $conditions['AND']['Attribute.category'] = $category;
+			if ($value) {
+				$temp = array(
+					'OR' => array(
+						'Attribute.value1' => $value,
+						'Attribute.value2' => $value
+					)
+				);
+
+				$conditions['AND'][] = $temp;
+			}
 		}
 
 		if ($eventid === 'search') {

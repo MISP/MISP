@@ -21,6 +21,7 @@ class FeedsController extends AppController {
 
 	public function beforeFilter() {
 		parent::beforeFilter();
+		$this->Security->unlockedActions = array('previewIndex');
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException('You don\'t have the required privileges to do that.');
 	}
 
@@ -335,22 +336,45 @@ class FeedsController extends AppController {
 		if (!empty($this->Feed->data['Feed']['settings'])) {
 			$this->Feed->data['Feed']['settings'] = json_decode($this->Feed->data['Feed']['settings'], true);
 		}
+		$params = array();
+		if ($this->request->is('post')) {
+			$params = $this->request->data['Feed'];
+		}
 		if ($this->Feed->data['Feed']['source_format'] == 'misp') {
-			return $this->__previewIndex($this->Feed->data);
+			return $this->__previewIndex($this->Feed->data, $params);
 		} else if (in_array($this->Feed->data['Feed']['source_format'], array('freetext', 'csv'))) {
 			return $this->__previewFreetext($this->Feed->data);
 		}
 	}
 
-	private function __previewIndex($feed) {
+	private function __previewIndex($feed, $filterParams = array()) {
 		if (isset($this->passedArgs['pages'])) $currentPage = $this->passedArgs['pages'];
 		else $currentPage = 1;
 		$urlparams = '';
+		App::uses('CustomPaginationTool', 'Tools');
+		$customPagination = new CustomPaginationTool();
 		$passedArgs = array();
 		App::uses('SyncTool', 'Tools');
 		$syncTool = new SyncTool();
 		$HttpSocket = $syncTool->setupHttpSocketFeed($feed);
 		$events = $this->Feed->getManifest($feed, $HttpSocket);
+		foreach ($filterParams as $k => $filter) {
+			if (!empty($filter)) {
+				$filterParams[$k] = json_decode($filter);
+			}
+		}
+		if (!empty($filterParams['eventid'])) {
+			foreach ($events as $k => $event) {
+				if (!in_array($k, $filterParams['eventid'])) {
+					unset($events[$k]);
+					continue;
+				}
+			}
+		}
+		$params = $customPagination->createPaginationRules($events, $this->passedArgs, $this->alias);
+		$this->params->params['paging'] = array($this->modelClass => $params);
+		$events = $customPagination->sortArray($events, $params, true);
+		if (is_array($events)) $customPagination->truncateByPagination($events, $params);
 		if ($this->_isRest()) {
 				return $this->RestResponse->viewData($events, $this->response->type());
 		}
@@ -363,10 +387,6 @@ class FeedsController extends AppController {
 				$this->passedArgs['page'] = 0;
 			}
 		}
-		$params = $customPagination->createPaginationRules($events, $this->passedArgs, $this->alias);
-		$this->params->params['paging'] = array($this->modelClass => $params);
-		if (is_array($events)) $customPagination->truncateByPagination($events, $params);
-		else ($events = array());
 		$this->set('events', $events);
 		$this->loadModel('Event');
 		$threat_levels = $this->Event->ThreatLevel->find('all');
