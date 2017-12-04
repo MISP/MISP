@@ -437,7 +437,7 @@ def defineObservableObjectForObjects(obj_name, obj_attr):
         return defineObservableObjectBasicCase(obj_name, obj_attr)
 
 def defineObservableObjectEmail(obj_name, obj_attr):
-    obj = objectsMapping['email']['observable']
+    obj = objectsMapping['email']['observable'].copy()
     email_attr = getEmailObjectInfo(obj_attr)
     is_multipart = False
     part_number = 1
@@ -506,7 +506,7 @@ def defineObservableObjectEmail(obj_name, obj_attr):
     return obj
 
 def defineObservableObjectDomainIp(obj_name, obj_attr):
-    obj = mispTypesMapping['domain|ip']['observable']
+    obj = mispTypesMapping['domain|ip']['observable'].copy()
     for attr in obj_attr:
         attr_type = attr.type
         if attr_type == 'domain':
@@ -518,7 +518,7 @@ def defineObservableObjectDomainIp(obj_name, obj_attr):
     return obj
 
 def defineObservableObjectIpPort(obj_name, obj_attr):
-    obj = mispTypesMapping['ip-dst|port']['observable']
+    obj = mispTypesMapping['ip-dst|port']['observable'].copy()
     for attr in obj_attr:
         attr_type = attr.type
         if attr_type == 'ip-dst':
@@ -540,7 +540,7 @@ def defineObservableObjectIpPort(obj_name, obj_attr):
     return obj
 
 def defineObservableObjectRegKey(obj_name, obj_attr):
-    obj = objectsMapping[obj_name]['observable']
+    obj = objectsMapping[obj_name]['observable'].copy()
     reg_attr = getRegistryKeyInfo(obj_attr)
     if 'reg-key' in reg_attr:
         key_type = objectTypes['reg-key']
@@ -563,7 +563,7 @@ def defineObservableObjectRegKey(obj_name, obj_attr):
     return obj
 
 def defineObservableObjectBasicCase(obj_name, obj_attr):
-    obj = objectsMapping[obj_name]['observable']
+    obj = objectsMapping[obj_name]['observable'].copy()
     for attr in obj_attr:
         attr_type = attr.type
         if 'md5' in attr_type or 'sha' in attr_type or 'hash' in attr_type or 'ssdeep' in attr_type:
