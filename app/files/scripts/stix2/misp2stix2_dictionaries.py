@@ -107,7 +107,9 @@ mispTypesMapping = {
     'attachment': {'observable': {'0': {'type': 'artifact', 'payload_bin': ''}},
                    'pattern': 'artifact:payload_bin = \'{0}\''},
     'mac-address': {'observable': {'0': {'type': 'mac-addr', 'value': ''}},
-                    'pattern': 'mac-addr:value = \'{0}\''}
+                    'pattern': 'mac-addr:value = \'{0}\''},
+    'mac-eui-64': {'observable': {'0': {'type': 'mac-addr', 'value': ''}},
+                   'pattern': 'mac-addr:value = \'{0}\''}
 }
 
 objectsMapping = {'domain|ip': {'pattern': 'domain-name:{0} = \'{1}\' AND '},
