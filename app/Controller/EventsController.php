@@ -2797,6 +2797,15 @@ class EventsController extends AppController {
 			}
 			// If we sent any tags along, load the associated tag names for each attribute
 			if ($tags) $conditions = $this->Event->Attribute->setTagConditions($tags, $conditions);
+			$blockedAttributeTags = array();
+			if ($tags) {
+				foreach ($tags as $tag) {
+					if ($tag[0] == '!') {
+						$blockedAttributeTags[] = ltrim($tag, '!');
+					}
+				}
+				$preFilterLevel = 'attribute';
+			}
 			if ($from) $conditions['AND'][] = array('Event.date >=' => $from);
 			if ($to) $conditions['AND'][] = array('Event.date <=' => $to);
 			if ($publish_timestamp) $conditions = $this->Event->Attribute->setPublishTimestampConditions($publish_timestamp, $conditions);
@@ -2857,6 +2866,7 @@ class EventsController extends AppController {
 			$result = $this->Event->fetchEvent(
 				$this->Auth->user(),
 				array(
+					'blockedAttributeTags' => $blockedAttributeTags,
 					'eventid' => $currentEventId,
 					'includeAttachments' => $withAttachments,
 					'metadata' => $metadata,

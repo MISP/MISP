@@ -339,6 +339,7 @@ function activateField(type, id, field, event) {
 		objectType = 'shadow_attributes';
 	}
 	var name = '#' + type + '_' + id + '_' + field;
+	var container_name = '#Attribute_' + id + '_' + field;
 	$.ajax({
 		beforeSend: function (XMLHttpRequest) {
 			$(".loading").show();
@@ -347,7 +348,7 @@ function activateField(type, id, field, event) {
 		cache: false,
 		success:function (data, textStatus) {
 			$(".loading").hide();
-			$(name + '_placeholder').html(data);
+			$(container_name + '_placeholder').html(data);
 			postActivationScripts(name, type, id, field, event);
 		},
 		url:"/" + objectType + "/fetchEditForm/" + id + "/" + field,

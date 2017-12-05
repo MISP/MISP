@@ -19,12 +19,15 @@
 		<div class="clear"></div>
 		<div style="float:left;width:425px;">
 		<?php
-			echo $this->Form->input('uuid', array('div' => 'clear', 'placeholder' => 'Paste UUID or click generate', 'style' => 'width:405px;'));
+			echo $this->Form->input('uuid', array('div' => 'clear', 'label' => 'UUID', 'placeholder' => 'Paste UUID or click generate', 'style' => 'width:405px;'));
 		?>
 		</div>
 		<span class="btn btn-inverse" role="button" tabindex="0" aria-label="Generate UUID" title="Generate a new UUID for the organisation" style="margin-top:25px;" onClick="generateOrgUUID();">Generate UUID</span>
 		<?php
 			echo $this->Form->input('description', array('label' => 'A brief description of the organisation', 'div' => 'clear', 'class' => 'input-xxlarge', 'type' => 'textarea', 'placeholder' => 'A description of the organisation that is purely informational.'));
+		?>
+		<?php
+			echo $this->Form->input('restricted_to_domain', array('label' => 'Bind user accounts to domains (line separated)', 'div' => 'clear', 'class' => 'input-xxlarge', 'type' => 'textarea', 'placeholder' => 'Enter a (list of) domain name(s) to enforce when creating users.'));
 		?>
 		<hr />
 		<p style="font-weight:bold;">The following fields are all optional.</p>

@@ -2605,17 +2605,41 @@ class Attribute extends AppModel {
 		return $this->IOCExport->buildAll($this->Auth->user(), $event);
 	}
 
+	private function __createTagSubQuery($tag_id, $blocked = false, $scope = 'Event') {
+		$conditionKey = $blocked ? array('NOT' => array('EventTag.tag_id' => $tag_id)) : array('EventTag.tag_id' => $tag_id);
+		$db = $this->getDataSource();
+		$subQuery = $db->buildStatement(
+			array(
+				'fields' => array($scope . 'Tag.event_id'),
+				'table' => strtolower($scope) . '_tags',
+				'alias' => $scope . 'Tag',
+				'limit' => null,
+				'offset' => null,
+				'joins' => array(),
+				'conditions' => array(
+					$scope . 'Tag.tag_id' => $tag_id
+				),
+				'group' => array($scope . 'Tag.event_id')
+			),
+			$this
+		);
+		$subQuery = 'Event.id IN (' . $subQuery . ') ';
+		$conditions = array(
+			$db->expression($subQuery)->value
+		);
+		return $conditions;
+	}
+
 	public function setTagConditions($tags, $conditions) {
 		$args = $this->dissectArgs($tags);
-		$tagArray = $this->AttributeTag->Tag->fetchEventTagIds($args[0], $args[1]);
+		$tagArray = $this->AttributeTag->Tag->fetchTagIdsFromFilter($args[0], $args[1]);
 		$temp = array();
-		foreach ($tagArray[0] as $accepted) {
-			$temp['OR'][] = array('Event.id' => $accepted);
+		if (!empty($tagArray[0])) {
+			$temp['OR'][] = $this->__createTagSubQuery($tagArray[0]);
+			$temp['OR'][] = $this->__createTagSubQuery($tagArray[0], false, 'Attribute');
 		}
-		$conditions['AND'][] = $temp;
-		$temp = array();
-		foreach ($tagArray[1] as $rejected) {
-			$temp['AND'][] = array('Event.id !=' => $rejected);
+		if (!empty($tagArray[1])) {
+			$temp['AND']['NOT'] = $this->__createTagSubQuery($tagArray[1], true);
 		}
 		$conditions['AND'][] = $temp;
 		return $conditions;

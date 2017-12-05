@@ -77,8 +77,36 @@ class Tag extends AppModel {
 		return true;
 	}
 
+	public function lookupTagIdFromName($tagName) {
+		$tagId = $this->find('first', array(
+			'conditions' => array('Tag.name' => $tagName),
+			'recursive' => -1,
+			'fields' => array('Tag.id')
+		));
+		if (empty($tagId)) return -1;
+		else return $tagId['Tag']['id'];
+	}
+
+	// find all of the tag ids that belong to the accepted tag names and the rejected tag names
+	public function fetchTagIdsFromFilter($accept = array(), $reject = array()) {
+		$results = array(0 => array(), 1 => array());
+		if (!empty($accept)) {
+			foreach ($accept as $tag) {
+				$temp = $this->lookupTagIdFromName($tag);
+				if (!in_array($temp, $results[0])) $results[0][] = $temp;
+			}
+		}
+		if (!empty($reject)) {
+			foreach ($reject as $tag) {
+				$temp = $this->lookupTagIdFromName($tag);
+				if (!in_array($temp, $results[1])) $results[1][] = $temp;
+			}
+		}
+		return $results;
+	}
+
 	// find all of the event Ids that belong to the accepted tags and the rejected tags
-	public function fetchEventTagIds($accept=array(), $reject=array()) {
+	public function fetchEventTagIds($accept = array(), $reject = array()) {
 		$acceptIds = array();
 		$rejectIds = array();
 		if (!empty($accept)) {

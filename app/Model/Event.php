@@ -1392,11 +1392,11 @@ class Event extends AppModel {
 	// tags: string with the usual tag syntax
 	// from: date string (YYYY-MM-DD)
 	// to: date string (YYYY-MM-DD)
-	// includeAllTags: true will include the tags
+	// includeAllTags: true will include the tags that are marked as non-exportable
 	// includeAttachments: true will attach the attachments to the attributes in the data field
 	public function fetchEvent($user, $options = array(), $useCache = false) {
 		if (isset($options['Event.id'])) $options['eventid'] = $options['Event.id'];
-		$possibleOptions = array('eventid', 'idList', 'tags', 'from', 'to', 'last', 'to_ids', 'includeAllTags', 'includeAttachments', 'event_uuid', 'distribution', 'sharing_group_id', 'disableSiteAdmin', 'metadata', 'includeGalaxy', 'enforceWarninglist', 'sgReferenceOnly', 'flatten');
+		$possibleOptions = array('eventid', 'idList', 'tags', 'from', 'to', 'last', 'to_ids', 'includeAllTags', 'includeAttachments', 'event_uuid', 'distribution', 'sharing_group_id', 'disableSiteAdmin', 'metadata', 'includeGalaxy', 'enforceWarninglist', 'sgReferenceOnly', 'flatten', 'blockedAttributeTags');
 		if (!isset($options['excludeGalaxy']) || !$options['excludeGalaxy']) {
 			$this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
 		}
@@ -1506,7 +1506,7 @@ class Event extends AppModel {
 		}
 		// If we sent any tags along, load the associated tag names for each attribute
 		if ($options['tags']) {
-			$temp = $this->__generateCachedTagFilters($tagRules);
+			$temp = $this->__generateCachedTagFilters($options['tags']);
 			foreach ($temp as $rules) {
 				$conditions['AND'][] = $rules;
 			}
@@ -1695,6 +1695,7 @@ class Event extends AppModel {
 					else $overrideLimit = false;
 					$event['Attribute'] = $this->Feed->attachFeedCorrelations($event['Attribute'], $user, $event['Event'], $overrideLimit);
 				}
+				$event = $this->__filterBlockedAttributesByTags($event, $options, $user);
 				foreach ($event['Attribute'] as $key => $attribute) {
 					if (!$options['sgReferenceOnly'] && $event['Attribute'][$key]['sharing_group_id']) {
 						$event['Attribute'][$key]['SharingGroup'] = $sharingGroupData[$event['Attribute'][$key]['sharing_group_id']]['SharingGroup'];
@@ -1744,7 +1745,6 @@ class Event extends AppModel {
 								continue;
 							}
 						}
-
 					}
 					if (!$flatten && $event['Attribute'][$key]['object_id'] != 0) {
 						if (!empty($event['Object'])) {
@@ -1784,6 +1784,49 @@ class Event extends AppModel {
 			}
 		}
 		return $results;
+	}
+
+	// Filter the attributes within an event based on the tag filter block rules
+	private function __filterBlockedAttributesByTags($event, $options, $user) {
+		if (!empty($options['blockedAttributeTags'])) {
+			foreach ($options['blockedAttributeTags'] as $key => $blockedTag) {
+				if (!is_numeric($blockedTag)) {
+					$options['blockedAttributeTags'][$key] = $this->EventTag->Tag->lookupTagIdFromName($blockedTag);
+				} else {
+					$options['blockedAttributeTags'][$key] = $blockedTag;
+				}
+			}
+		}
+		if (!empty($user['Server']['push_rules'])) {
+			$push_rules = json_decode($user['Server']['push_rules'], true);
+			if (!empty($push_rules['tags']['NOT'])) {
+				if (empty($options['blockedAttributeTags'])) {
+					$options['blockedAttributeTags'] = array();
+				}
+				$options['blockedAttributeTags'] = array_merge($options['blockedAttributeTags'], $push_rules['tags']['NOT']);
+			}
+		}
+		if (!empty($options['blockedAttributeTags'])) {
+			if (!empty($event['Attribute'])) {
+				$event['Attribute'] = $this->__filterBlockedAttributesFromContainer($event['Attribute'], $options['blockedAttributeTags']);
+			}
+		}
+		return $event;
+	}
+
+	// accepts an attribute array and a list of blocked tags. Returns the attribute array with the blocked attributes cleaned out.
+	private function __filterBlockedAttributesFromContainer($container, $blockedTags) {
+		foreach ($container as $key => $attribute) {
+			if (!empty($attribute['AttributeTag'])) {
+				foreach ($attribute['AttributeTag'] as $at) {
+					if (in_array($at['tag_id'], $blockedTags)) {
+						unset($container[$key]);
+					}
+				}
+			}
+		}
+		$container = array_values($container);
+		return $container;
 	}
 
 	private function __escapeCSVField(&$field) {
@@ -2496,8 +2539,23 @@ class Event extends AppModel {
 			}
 			if (isset($data['Event']['Attribute']) && !empty($data['Event']['Attribute'])) {
 				foreach ($data['Event']['Attribute'] as $k => $attribute) {
-					$data['Event']['Attribute'][$k] = $this->Attribute->captureAttribute($attribute, $this->id, $user, 0, $this->Log);
+					$block = false;
+					for ($i = 0; $i < $k; $i++) {
+						if (
+							$data['Event']['Attribute'][$i]['value'] == $attribute['value'] &&
+							$data['Event']['Attribute'][$i]['type'] == $attribute['type'] &&
+							$data['Event']['Attribute'][$i]['category'] == $attribute['category']
+						) {
+							$block = true;
+							unset($data['Event']['Attribute'][$i]);
+							break;
+						}
+					}
+					if (!$block) {
+						$data['Event']['Attribute'][$k] = $this->Attribute->captureAttribute($attribute, $this->id, $user, 0, $this->Log);
+					}
 				}
+				$data['Event']['Attribute'] = array_values($data['Event']['Attribute']);
 			}
 			if (!empty($data['Event']['Object'])) {
 				foreach ($data['Event']['Object'] as $object) {
@@ -2745,7 +2803,7 @@ class Event extends AppModel {
 		$elevatedUser['Role']['perm_site_admin'] = 1;
 		$elevatedUser['Role']['perm_sync'] = 1;
 		$elevatedUser['Role']['perm_audit'] = 0;
-		$event = $this->fetchEvent($elevatedUser, array('eventid' => $id, 'includeAttachments' => true, 'includeAllTags' => true, 'deleted' => true));
+		$event = $this->fetchEvent($elevatedUser, array('eventid' => $id, 'metadata' => 1));
 		if (empty($event)) return true;
 		$event = $event[0];
 		$event['Event']['locked'] = 1;
@@ -2769,6 +2827,16 @@ class Event extends AppModel {
 			$HttpSocket = $syncTool->setupHttpSocket($server);
 			// Skip servers where the event has come from.
 			if (($passAlong != $server)) {
+				$params = array();
+				if (!empty($server['Server']['push_rules'])) {
+					$push_rules = json_decode($server['Server']['push_rules'], true);
+					if (!empty($push_rules['tags']['NOT'])) {
+						$params['blockedAttributeTags'] = $push_rules['tags']['NOT'];
+					}
+				}
+				$params = array_merge($params, array('eventid' => $id, 'includeAttachments' => true, 'includeAllTags' => true, 'deleted' => true));
+				$event = $this->fetchEvent($elevatedUser, $params);
+				$event = $event[0];
 				$thisUploaded = $this->uploadEventToServer($event, $server, $HttpSocket);
 				if (!$thisUploaded) {
 					$uploaded = !$uploaded ? $uploaded : $thisUploaded;
@@ -3843,20 +3911,11 @@ class Event extends AppModel {
 		if ($useCache && isset($this->__assetCache['sharingGroupData'])) {
 			return $this->__assetCache['sharingGroupData'];
 		} else {
-			$sharingGroupDataTemp = $this->SharingGroup->fetchAllAuthorised($user, 'full');
+			$sharingGroupDataTemp = $this->SharingGroup->fetchAllAuthorised($user, 'simplified');
 			$sharingGroupData = array();
 			foreach ($sharingGroupDataTemp as $k => $v) {
-				if ($user['Role']['perm_site_admin']) {
-					$v['SharingGroup']['SharingGroupOrg'] = $v['SharingGroupOrg'];
-					$v['SharingGroup']['SharingGroupServer'] = $v['SharingGroupServer'];
-				} else {
-					$v['SharingGroup'] = array(
-						'id' => $v['SharingGroup']['id'],
-						'name' => $v['SharingGroup']['name'],
-						'releasability' => $v['SharingGroup']['releasability'],
-						'description' => $v['SharingGroup']['description']
-					);
-				}
+				if (isset($v['SharingGroupOrg'])) $v['SharingGroup']['SharingGroupOrg'] = $v['SharingGroupOrg'];
+				if (isset($v['SharingGroupServer'])) $v['SharingGroup']['SharingGroupServer'] = $v['SharingGroupServer'];
 				$sharingGroupData[$v['SharingGroup']['id']] = array('SharingGroup' => $v['SharingGroup']);
 			}
 			if ($useCache) $this->__assetCache['sharingGroupData'] = $sharingGroupData;

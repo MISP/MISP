@@ -34,6 +34,23 @@
 			<?php echo h($org['Organisation']['description']); ?>
 			&nbsp;
 		</dd>
+		<?php
+			if (!empty($org['Organisation']['restricted_to_domain'])):
+		?>
+				<dt><?php echo 'E-mail domain restrictions'; ?></dt>
+				<dd>
+					<?php
+						$domains = $org['Organisation']['restricted_to_domain'];
+						foreach ($domains as $k => $domain):
+							$domains[$k] = h($domain);
+						endforeach;
+						$domains = implode("<br />", $domains);
+					?>
+					<?php echo $domains; ?>
+				</dd>
+		<?php
+			endif;
+		?>
 		<dt><?php echo 'Uuid'; ?></dt>
 		<dd>
 			<?php echo h($org['Organisation']['uuid']); ?>
