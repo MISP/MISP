@@ -1480,8 +1480,8 @@ class Server extends AppModel {
 					),
 					'Cortex_services_url' => array(
 							'level' => 1,
-							'description' => 'The url used to access Cortex. By default, it is accessible at http://cortex-url/api',
-							'value' => 'http://127.0.0.1/api',
+							'description' => 'The url used to access Cortex. By default, it is accessible at http://cortex-url',
+							'value' => 'http://127.0.0.1',
 							'errorMessage' => '',
 							'test' => 'testForEmpty',
 							'type' => 'string'
