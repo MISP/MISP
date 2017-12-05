@@ -1922,7 +1922,6 @@ class EventsController extends AppController {
 					$this->Event->export_types[$k]['progress'] = 0;
 				}
 			}
-			$this->set('useOrg', $useOrg);
 			$this->set('export_types', $this->Event->export_types);
 			// generate the list of Attribute types
 			$this->loadModel('Attribute');
