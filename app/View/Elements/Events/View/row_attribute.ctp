@@ -145,13 +145,30 @@
               $popover = '';
               foreach ($feed as $k => $v):
                 if ($k == 'id') continue;
-                $popover .= '<span class=\'bold black\'>' . Inflector::humanize(h($k)) . '</span>: <span class="blue">' . h($v) . '</span><br />';
+                if (is_array($v)) {
+                  foreach ($v as $k2 => $v2) {
+                    $v[$k2] = h($v2);
+                  }
+                  $v = implode('<br />', $v);
+                } else {
+                  $v = h($v);
+                }
+                $popover .= '<span class=\'bold black\'>' . Inflector::humanize(h($k)) . '</span>: <span class="blue">' . $v . '</span><br />';
               endforeach;
             ?>
-              <li style="padding-right: 0px; padding-left:0px;"  data-toggle="popover" data-content="<?php echo h($popover);?>" data-trigger="hover"><span>
+              <li style="padding-right: 0px; padding-left:0px;"><span>
                 <?php
                   if ($isSiteAdmin):
-                    echo $this->Html->link($feed['id'], array('controller' => 'feeds', 'action' => 'previewIndex', $feed['id']), array('style' => 'margin-right:3px;'));
+                    if ($feed['source_format'] == 'misp'):
+                  ?>
+                      <form action="<?php echo $baseurl; ?>/feeds/previewIndex/1" method="post" style="width=0px;">
+                        <input type="hidden" name="data[Feed][eventid]" value="<?php echo h(json_encode($feed['event_uuids'], true)); ?>">
+                        <input type="submit" class="linkButton useCursorPointer" value="<?php echo h($feed['id']); ?>" data-toggle="popover" data-content="<?php echo h($popover);?>" data-trigger="hover" />
+                      </form>
+                  <?php
+                    else:
+                      echo $this->Html->link($feed['id'], array('controller' => 'feeds', 'action' => 'previewIndex', $feed['id']), array('style' => 'margin-right:3px;'));
+                    endif;
                   else:
                 ?>
                   <span style="margin-right:3px;"><?php echo h($feed['id']);?></span>

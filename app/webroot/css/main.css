@@ -1970,6 +1970,18 @@ table tr:hover .down-expand-button {
 	color:black;
 }
 
+.linkButton {
+  background: none;
+  border: none;
+	padding: 0px;
+  color: red;
+  cursor: pointer;
+	margin: 0;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 12px;
+  line-height: 20px;
+}
+
 @-webkit-keyframes rotation {
    from {-webkit-transform: rotate(0deg);}
    to {-webkit-transform: rotate(359deg);}
