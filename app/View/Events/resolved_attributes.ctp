@@ -1,5 +1,5 @@
 <div class="index">
-	<h2><?php echo h($title);?></h2>
+	<h2><?php echo h($title); ?></h2>
 	<?php $scope = !empty($proposals) ? 'proposals' : 'attributes'; ?>
 	<p>Below you can see the <?php echo $scope; ?> that are to be created. Make sure that the categories and the types are correct, often several options will be offered based on an inconclusive automatic resolution. </p>
 	<?php
@@ -141,9 +141,11 @@
 				<div id = "<?php echo 'Attribute' . $k . 'TypeStatic'; ?>" <?php echo $divVisibility; ?> ><?php echo h($item['default_type']); ?></div>
 				<select id = "<?php echo 'Attribute' . $k . 'Type'; ?>" class='typeToggle' style='padding:0px;height:20px;margin-bottom:0px;<?php echo $selectVisibility; ?>'>
 					<?php
-						foreach ($item['types'] as $type) {
-							echo '<option value="' . $type . '" ';
-							echo ($type == $item['default_type'] ? 'selected="selected"' : '') . '>' . $type . '</option>';
+						if (!empty($item['types'])) {
+							foreach ($item['types'] as $type) {
+								echo '<option value="' . $type . '" ';
+								echo ($type == $item['default_type'] ? 'selected="selected"' : '') . '>' . $type . '</option>';
+							}
 						}
 					?>
 				</select>
@@ -195,7 +197,7 @@
 	?>
 	</table>
 	<span>
-		<button class="btn btn-primary" style="float:left;" onClick="freetextImportResultsSubmit('<?php echo h($event['Event']['id']); ?>', '<?php echo count($resultArray); ?>', '<?php echo h($type); ?>');">Submit <?php echo $scope; ?></button>
+		<button class="btn btn-primary" style="float:left;" onClick="freetextImportResultsSubmit('<?php echo h($event['Event']['id']); ?>', '<?php echo count($resultArray); ?>');">Submit <?php echo $scope; ?></button>
 		<span style="float:right">
 			<?php
 				if (!empty($optionsRearranged)):
