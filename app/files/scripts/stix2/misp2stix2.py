@@ -127,44 +127,44 @@ def handleLink(attribute, external_refs):
 
 def addAttackPattern(object_refs, attributes, galaxy, identity):
     killchain = [{'kill_chain_name': 'misp-category',
-                  'phase_name': galaxy['type']}
+                  'phase_name': galaxy.get('type')}
                 ]
+    name = galaxy.get('name')
     cluster = galaxy['GalaxyCluster'][0]
-    attack_id = "attack-pattern--{}".format(cluster['uuid'])
-    name = cluster['value']
-    description = cluster['description']
+    attack_id = "attack-pattern--{}".format(cluster.get('uuid'))
+    description = cluster.get('description')
     attack_args = {'id': attack_id, 'type': 'attack-pattern', 'created_by_ref': identity, 'name': name,
                   'description': description, 'kill_chain_phases': killchain}
     if cluster['tag_name']:
-        attack_args['labels'] = cluster['tag_name']
+        attack_args['labels'] = cluster.get('tag_name')
     attackPattern = AttackPattern(**attack_args)
     attributes.append(attackPattern)
     object_refs.append(attack_id)
 
 def addCampaign(object_refs, attributes, galaxy, identity):
+    name = galaxy.get('name')
     cluster = galaxy['GalaxyCluster'][0]
-    campaign_id = "campaign--{}".format(cluster['uuid'])
-    name = cluster['value']
-    description = cluster['description']
+    campaign_id = "campaign--{}".format(cluster.get('uuid'))
+    description = cluster.get('description')
     campaign_args = {'id': campaign_id, 'type': 'campaign', 'name': name, 'description': description,
                      'created_by_ref': identity}
     if cluster['tag_name']:
-        campaign_args['labels'] = cluster['tag_name']
-    meta = cluster['meta']
+        campaign_args['labels'] = cluster.get('tag_name')
+    meta = cluster.get('meta')
     addAliases(meta, campaign_args)
     campaign = Campaign(**campaign_args)
     attributes.append(campaign)
     object_refs.append(campaign_id)
 
 def addCourseOfAction(object_refs, attributes, galaxy, identity):
+    name = galaxy.get('name')
     cluster = galaxy['GalaxyCluster'][0]
-    courseOfAction_id = "course-of-action--{}".format(cluster['uuid'])
-    name = cluster['value']
-    description = cluster['description']
+    courseOfAction_id = "course-of-action--{}".format(cluster.get('uuid'))
+    description = cluster.get('description')
     courseOfAction_args = {'id': courseOfAction_id, 'type': 'course-of-action', 'name': name,
                            'description': description, 'created_by_ref': identity}
     if cluster['tag_name']:
-        courseOfAction_args['labels'] = cluster['tag_name']
+        courseOfAction_args['labels'] = cluster.get('tag_name')
     courseOfAction = CourseOfAction(**courseOfAction_args)
     attributes.append(courseOfAction)
     object_refs.append(courseOfAction_id)
@@ -204,33 +204,33 @@ def addIdentity(object_refs, attributes, attribute, identity, identityClass):
     object_refs.append(identity_id)
 
 def addIntrusionSet(object_refs, attributes, galaxy, identity):
+    name = galaxy.get('name')
     cluster = galaxy['GalaxyCluster'][0]
-    intrusionSet_id = "intrusion-set--{}".format(cluster['uuid'])
-    name = cluster['value']
-    description = cluster['description']
+    intrusionSet_id = "intrusion-set--{}".format(cluster.get('uuid'))
+    description = cluster.get('description')
     intrusion_args = {'id': intrusionSet_id, 'type': 'intrusion-set', 'name': name, 'description': description,
                       'created_by_ref': identity}
-    meta = cluster['meta']
+    meta = cluster.get('meta')
     if "synonyms" in meta:
         addAliases(meta, intrusion_args)
     if cluster['tag_name']:
-        intrusion_args['labels'] = cluster['tag_name']
+        intrusion_args['labels'] = cluster.get('tag_name')
     intrusionSet = IntrusionSet(**intrusion_args)
     attributes.append(intrusionSet)
     object_refs.append(intrusionSet_id)
 
 def addMalware(object_refs, attributes, galaxy, identity):
     killchain = [{'kill_chain_name': 'misp-category',
-                  'phase_name': galaxy['type']}
+                  'phase_name': galaxy.get('type')}
                  ]
+    name = galaxy.get('name')
     cluster = galaxy['GalaxyCluster'][0]
-    malware_id = "malware--{}".format(cluster['uuid'])
-    name = cluster['value']
-    description = cluster['description']
+    malware_id = "malware--{}".format(cluster.get('uuid'))
+    description = cluster.get('description')
     malware_args = {'id': malware_id, 'type': 'malware', 'name': name, 'description': description,
                     'created_by_ref': identity, 'kill_chain_phases': killchain}
     if cluster['tag_name']:
-        malware_args['labels'] = cluster['tag_name']
+        malware_args['labels'] = cluster.get('tag_name')
     malware = Malware(**malware_args)
     attributes.append(malware)
     object_refs.append(malware_id)
@@ -254,33 +254,33 @@ def addObservedData(object_refs, attributes, attribute, identity):
     object_refs.append(observedData_id)
 
 def addThreatActor(object_refs, attributes, galaxy, identity):
+    name = galaxy.get('name')
     cluster = galaxy['GalaxyCluster'][0]
-    threatActor_id = "threat-actor--{}".format(cluster['uuid'])
-    name = cluster['value']
-    description = cluster['description']
+    threatActor_id = "threat-actor--{}".format(cluster.get('uuid'))
+    description = cluster.get('description')
     threatActor_args = {'id': threatActor_id, 'type': 'threat-actor', 'name': name, 'description': description,
                         'created_by_ref': identity}
-    meta = cluster['meta']
+    meta = cluster.get('meta')
     if 'synonyms' in meta:
         addAliases(meta, threatActor_args)
     if cluster['tag_name']:
-        threatActor_args['labels'] = cluster['tag_name']
+        threatActor_args['labels'] = cluster.get('tag_name')
     threatActor = ThreatActor(**threatActor_args)
     attributes.append(threatActor)
     object_refs.append(threatActor_id)
 
 def addTool(object_refs, attributes, galaxy, identity):
     killchain = [{'kill_chain_name': 'misp-category',
-                  'phase_name': galaxy['type']}
+                  'phase_name': galaxy.get('type')}
                  ]
+    name = galaxy.get('name')
     cluster = galaxy['GalaxyCluster'][0]
-    tool_id = "tool--{}".format(cluster['uuid'])
-    name = cluster['value']
-    description = cluster['description']
+    tool_id = "tool--{}".format(cluster.get('uuid'))
+    description = cluster.get('description')
     tool_args = {'id': tool_id, 'type': 'tool', 'name': name, 'description': description,
                  'created_by_ref': identity, 'kill_chain_phases': killchain}
     if cluster['tag_name']:
-        tool_args['labels'] = cluster['tag_name']
+        tool_args['labels'] = cluster.get('tag_name')
     tool = Tool(**tool_args)
     attributes.append(tool)
     object_refs.append(tool_id)
@@ -300,7 +300,7 @@ def addVulnerability(object_refs, attributes, attribute, identity):
 
 def addIndicatorFromObjects(object_refs, attributes, obj, identity, to_ids):
     indicator_id = 'indicator--{}'.format(obj.uuid)
-    category = obj['meta-category']
+    category = obj.get('meta-category')
     killchain = [{'kill_chain_name': 'misp-category',
                   'phase_name': category}]
     labels = ['misp:to_ids=\"{}\"'.format(to_ids), 'from_object']
@@ -704,8 +704,7 @@ def eventReport(event, identity, object_refs, external_refs):
             labels.append(tag['name'])
 
     args_report = {'type': "report", 'id': "report--{}".format(event.uuid), 'created_by_ref': identity,
-            'name': name, 'published': timestamp, 'object_refs': object_refs}
-
+                   'name': name, 'published': timestamp, 'object_refs': object_refs}
     if labels:
         args_report['labels'] = labels
     else:
