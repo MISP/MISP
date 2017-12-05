@@ -2248,7 +2248,7 @@ class EventsController extends AppController {
 			}
 		}
 		$requested_attributes = array('uuid', 'event_id', 'category', 'type',
-								'value', 'comment', 'to_ids', 'timestamp', 'attribute_tag');
+								'value', 'comment', 'to_ids', 'timestamp');
 		$requested_obj_attributes = array('uuid', 'name', 'meta-category');
 		if (isset($this->params['url']['attributes'])) {
 			if (!isset($this->params['url']['obj_attributes'])) $requested_obj_attributes = array();
