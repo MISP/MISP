@@ -427,6 +427,7 @@ class Feed extends AppModel {
 					'Accept' => 'application/json',
 					'Content-Type' => 'application/json',
 					'MISP-version' => $version,
+					'MISP-uuid' => Configure::read('MISP.uuid')
 			)
 		);
 		if ($commit) {

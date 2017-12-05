@@ -2248,7 +2248,7 @@ class EventsController extends AppController {
 			}
 		}
 		$requested_attributes = array('uuid', 'event_id', 'category', 'type',
-								'value', 'comment', 'to_ids', 'timestamp');
+								'value', 'comment', 'to_ids', 'timestamp', 'attribute_tag');
 		$requested_obj_attributes = array('uuid', 'name', 'meta-category');
 		if (isset($this->params['url']['attributes'])) {
 			if (!isset($this->params['url']['obj_attributes'])) $requested_obj_attributes = array();
@@ -2263,7 +2263,8 @@ class EventsController extends AppController {
 		}
 		if (isset($data['request']['obj_attributes'])) $requested_obj_attributes = $data['request']['obj_attributes'];
 		if (isset($events)) {
-			foreach ($events as $eventid) {
+			$events = array_chunk($events, 100);
+			foreach ($events as $k => $eventid) {
 				$attributes = $this->Event->csv($user, $eventid, $ignore, $list, false, $category, $type, $includeContext, false, false, false, $enforceWarninglist, $value);
 				$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
 				foreach ($attributes as $attribute) {

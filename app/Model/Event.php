@@ -1928,6 +1928,17 @@ class Event extends AppModel {
 				$this->__escapeCSVField($attribute['Org']['name']);
 				$this->__escapeCSVField($attribute['Orgc']['name']);
 				$attribute['Event']['Tag']['name'] = '';
+				$attribute['attribute_tag'] = '';
+				if (!empty($attribute['AttributeTag'])) {
+					$tags = array();
+					foreach ($attribute['AttributeTag'] as $attributeTag) {
+						if (!empty($attributeTag['Tag']['name'])) {
+							$tags[] = $attributeTag['Tag']['name'];
+						}
+					}
+					$attribute['attribute_tag'] = implode(',', $tags);
+				}
+				$this->__escapeCSVField($attribute['attribute_tag']);
 				if (!empty($attribute['Event']['EventTag'])) {
 					$tags = array();
 					foreach ($attribute['Event']['EventTag'] as $eventTag) {
