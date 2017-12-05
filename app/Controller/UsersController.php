@@ -91,7 +91,26 @@ class UsersController extends AppController {
 		}
 		if ($this->request->is('post') || $this->request->is('put')) {
 			$abortPost = false;
-			if (!$this->_isRest()) {
+			if (!$this->_isSiteAdmin() && !empty($this->request->data['User']['email'])) {
+				$organisation = $this->User->Organisation->find('first', array(
+					'conditions' => array('Organisation.id' => $userToEdit['User']['org_id']),
+					'recursive' => -1
+				));
+				if (!empty($organisation['Organisation']['restricted_to_domain'])) {
+					$abortPost = true;
+					foreach ($organisation['Organisation']['restricted_to_domain'] as $restriction) {
+						if (
+							strlen($this->request->data['User']['email']) > strlen($restriction) &&
+							substr($this->request->data['User']['email'], (-1 * strlen($restriction))) === $restriction &&
+							in_array($this->request->data['User']['email'][strlen($this->request->data['User']['email']) - strlen($restriction) -1], array('@', '.'))
+						) {
+							$abortPost = false;
+						}
+					}
+					if ($abortPost) $this->Session->setFlash(__('Invalid e-mail domain. Your user is restricted to creating users for the following domain(s): ') . implode(', ', $organisation['Organisation']['restricted_to_domain']));
+				}
+			}
+			if (!$abortPost && !$this->_isRest()) {
 				if (Configure::read('Security.require_password_confirmation')) {
 					if (!empty($this->request->data['User']['current_password'])) {
 						$hashed = $this->User->verifyPassword($this->Auth->user('id'), $this->request->data['User']['current_password']);
@@ -450,38 +469,71 @@ class UsersController extends AppController {
 					throw new Exception('You are not authorised to assign that role to a user.');
 				}
 			}
-			$fieldList = array('password', 'email', 'external_auth_required', 'external_auth_key', 'enable_password', 'confirm_password', 'org_id', 'role_id', 'authkey', 'nids_sid', 'server_id', 'gpgkey', 'certif_public', 'autoalert', 'contactalert', 'disabled', 'invited_by', 'change_pw', 'termsaccepted', 'newsread', 'date_created', 'date_modified');
-			if ($this->User->save($this->request->data, true, $fieldList)) {
-				$notification_message = '';
-				if (!empty($this->request->data['User']['notify'])) {
-					$user = $this->User->find('first', array('conditions' => array('User.id' => $this->User->id), 'recursive' => -1));
-					$password = isset($this->request->data['User']['password']) ? $this->request->data['User']['password'] : false;
-					$result = $this->User->initiatePasswordReset($user, true, true, $password);
-					if ($result) {
-						$notification_message .= ' User notified of new credentials.';
+			$organisation = $this->User->Organisation->find('first', array(
+				'conditions' => array('Organisation.id' => $this->request->data['User']['org_id']),
+				'recursive' => -1
+			));
+			$fail = false;
+			if (!$this->_isSiteAdmin()) {
+				if (!empty($organisation['Organisation']['restricted_to_domain'])) {
+					$fail = true;
+					foreach ($organisation['Organisation']['restricted_to_domain'] as $restriction) {
+						if (
+							strlen($this->request->data['User']['email']) > strlen($restriction) &&
+							substr($this->request->data['User']['email'], (-1 * strlen($restriction))) === $restriction &&
+							in_array($this->request->data['User']['email'][strlen($this->request->data['User']['email']) - strlen($restriction) -1], array('@', '.'))
+						) {
+							$fail = false;
+						}
 					}
-				}
-				if ($this->_isRest()) {
-					$user = $this->User->find('first', array(
-							'conditions' => array('User.id' => $this->User->id),
-							'recursive' => -1
-					));
-					$user['User']['password'] = '******';
-					return $this->RestResponse->viewData($user, $this->response->type());
-				} else {
-					$this->Session->setFlash(__('The user has been saved.' . $notification_message));
-					$this->redirect(array('action' => 'index'));
-				}
-			} else {
-				if ($this->_isRest()) {
-					return $this->RestResponse->saveFailResponse('Users', 'admin_add', false, $this->User->validationErrors, $this->response->type());
-				} else {
-					// reset auth key for a new user
-					$this->set('authkey', $this->newkey);
-					$this->Session->setFlash(__('The user could not be saved. Please, try again.'));
+					if ($abortPost) $this->Session->setFlash(__('Invalid e-mail domain. Your user is restricted to creating users for the following domain(s): ') . implode(', ', $organisation['Organisation']['restricted_to_domain']));
 				}
 			}
-		} else {
+			if (!$fail) {
+				if (empty($organisation)) {
+					if ($this->_isRest()) {
+						return $this->RestResponse->saveFailResponse('Users', 'admin_add', false, array('Invalid organisation'), $this->response->type());
+					} else {
+						// reset auth key for a new user
+						$this->set('authkey', $this->newkey);
+						$this->Session->setFlash(__('The user could not be saved. Invalid organisation.'));
+					}
+				} else {
+					$fieldList = array('password', 'email', 'external_auth_required', 'external_auth_key', 'enable_password', 'confirm_password', 'org_id', 'role_id', 'authkey', 'nids_sid', 'server_id', 'gpgkey', 'certif_public', 'autoalert', 'contactalert', 'disabled', 'invited_by', 'change_pw', 'termsaccepted', 'newsread', 'date_created', 'date_modified');
+					if ($this->User->save($this->request->data, true, $fieldList)) {
+						$notification_message = '';
+						if (!empty($this->request->data['User']['notify'])) {
+							$user = $this->User->find('first', array('conditions' => array('User.id' => $this->User->id), 'recursive' => -1));
+							$password = isset($this->request->data['User']['password']) ? $this->request->data['User']['password'] : false;
+							$result = $this->User->initiatePasswordReset($user, true, true, $password);
+							if ($result) {
+								$notification_message .= ' User notified of new credentials.';
+							}
+						}
+						if ($this->_isRest()) {
+							$user = $this->User->find('first', array(
+									'conditions' => array('User.id' => $this->User->id),
+									'recursive' => -1
+							));
+							$user['User']['password'] = '******';
+							return $this->RestResponse->viewData($user, $this->response->type());
+						} else {
+							$this->Session->setFlash(__('The user has been saved.' . $notification_message));
+							$this->redirect(array('action' => 'index'));
+						}
+					} else {
+						if ($this->_isRest()) {
+							return $this->RestResponse->saveFailResponse('Users', 'admin_add', false, $this->User->validationErrors, $this->response->type());
+						} else {
+							// reset auth key for a new user
+							$this->set('authkey', $this->newkey);
+							$this->Session->setFlash(__('The user could not be saved. Please, try again.'));
+						}
+					}
+				}
+			}
+		}
+		if (!$this->_isRest()) {
 			$this->newkey = $this->User->generateAuthKey();
 			$this->set('authkey', $this->newkey);
 		}
@@ -556,7 +608,6 @@ class UsersController extends AppController {
 			$abortPost = false;
 			if (!$this->_isRest()) {
 				if (Configure::read('Security.require_password_confirmation')) {
-
 					if (!empty($this->request->data['User']['current_password'])) {
 						$hashed = $this->User->verifyPassword($this->Auth->user('id'), $this->request->data['User']['current_password']);
 						if (!$hashed) {
@@ -568,6 +619,26 @@ class UsersController extends AppController {
 						$abortPost = true;
 						$this->Session->setFlash('Please enter your current password to continue.');
 					}
+				}
+			}
+			$fail = false;
+			if ($this->_isSiteAdmin() && !$abortPost && !empty($this->request->data['User']['email'])) {
+				$organisation = $this->User->Organisation->find('first', array(
+					'conditions' => array('Organisation.id' => $userToEdit['User']['org_id']),
+					'recursive' => -1
+				));
+				if (!empty($organisation['Organisation']['restricted_to_domain'])) {
+					$abortPost = true;
+					foreach ($organisation['Organisation']['restricted_to_domain'] as $restriction) {
+						if (
+							strlen($this->request->data['User']['email']) > strlen($restriction) &&
+							substr($this->request->data['User']['email'], (-1 * strlen($restriction))) === $restriction &&
+							in_array($this->request->data['User']['email'][strlen($this->request->data['User']['email']) - strlen($restriction) -1], array('@', '.'))
+						) {
+							$abortPost = false;
+						}
+					}
+					if ($abortPost) $this->Session->setFlash(__('Invalid e-mail domain. Your user is restricted to creating users for the following domain(s): ') . implode(', ', $organisation['Organisation']['restricted_to_domain']));
 				}
 			}
 			if (!$abortPost) {

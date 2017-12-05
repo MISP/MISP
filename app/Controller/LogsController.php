@@ -156,8 +156,7 @@ class LogsController extends AppController {
 
 			// reset the paginate_conditions
 			$this->Session->write('paginate_conditions_log', array());
-			if ($this->request->is('post')) { // FIXME remove this crap check
-
+			if ($this->request->is('post')) {
 				$filters['email'] = $this->request->data['Log']['email'];
 				if (!$orgRestriction) {
 					$filters['org'] = $this->request->data['Log']['org'];
@@ -248,13 +247,6 @@ class LogsController extends AppController {
 
 			// combobox for models
 			$models = array('Attribute', 'Event', 'EventBlacklist', 'EventTag', 'Organisation', 'Post', 'Regexp', 'Role', 'Server', 'ShadowAttribute', 'SharingGroup', 'Tag', 'Task', 'Taxonomy', 'Template', 'Thread', 'User', 'Whitelist');
-			$existing_models = $this->Log->find('list', array(
-					'recursive' => -1,
-					'conditions' => array('Log.model !=' => ''),
-					'fields' => array('Log.model', 'Log.model'),
-					'group' => array('Log.model'),
-			));
-			$models = array_intersect($models, $existing_models);
 			$models = array('' => 'ALL') + $this->_arrayToValuesIndexArray($models);
 			$this->set('models', $models);
 			$this->set('actionDefinitions', $this->{$this->defaultModel}->actionDefinitions);

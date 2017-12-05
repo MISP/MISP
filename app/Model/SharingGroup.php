@@ -130,6 +130,41 @@ class SharingGroup extends AppModel {
 				'order' => 'SharingGroup.name ASC'
 			));
 			return $sgs;
+		} else if ($scope == 'simplified') {
+			$fieldsOrg = array('id', 'name', 'uuid');
+			$fieldsServer = array('id', 'url', 'name');
+			$fields = array();
+			$permissionTree = ($user['Role']['perm_sync'] || $user['Role']['perm_site_admin']) ? 1 : 0;
+			$fieldsSharingGroup = array(
+				array(
+					'fields' => array(
+						'SharingGroup.id',
+						'SharingGroup.name',
+						'SharingGroup.releasability',
+						'SharingGroup.description'
+					),
+					'contain' => array()
+				),
+				array(
+					'fields' => array('SharingGroup.*'),
+					'contain' => array(
+						'Organisation' => array('fields' => $fieldsOrg),
+						'SharingGroupOrg' => array(
+							'Organisation' => array('fields' => $fieldsOrg),
+						),
+						'SharingGroupServer' => array(
+							'Server' => array('fields' => $fieldsServer),
+						)
+					)
+				)
+			);
+			$sgs = $this->find('all', array(
+				'contain' => $fieldsSharingGroup[$permissionTree]['contain'],
+				'conditions' => $conditions,
+				'fields' => $fieldsSharingGroup[$permissionTree]['fields'],
+				'order' => 'SharingGroup.name ASC'
+			));
+			return $sgs;
 		} else if ($scope == 'name') {
 			$sgs = $this->find('list', array(
 				'recursive' => -1,

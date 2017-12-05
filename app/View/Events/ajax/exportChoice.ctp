@@ -1,5 +1,5 @@
 <div class="popover_choice">
-	<legend><?php echo __('Choose the format that you wish to export the event in'); ?></legend>
+	<legend><?php echo __('Choose the format that you wish to download the event in'); ?></legend>
 	<div class="popover_choice_main" id ="popover_choice_main">
 		<table style="width:100%;">
 		<?php foreach ($exports as $k => $export): ?>

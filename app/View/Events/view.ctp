@@ -270,12 +270,22 @@
 								$popover .= '<span class=\'bold\'>' . h($k) . '</span>: <span class="blue">' . h($v) . '</span><br />';
 							}
 				?>
-							<span data-toggle="popover" data-content="<?php echo h($popover); ?>" data-trigger="hover" style="white-space: nowrap;">
-								<form action="<?php echo $baseurl; ?>/feeds/previewIndex/<?php h($relatedFeed['id']); ?>" method="post">
-									<input type="hidden" name="data[Feed][eventid]" value="<?php echo h(json_encode($relatedFeed['event_uuids'], true)); ?>">
-									<input type="submit" class="linkButton useCursorPointer" value="<?php echo h($relatedFeed['name']) . ' (' . $relatedFeed['id'] . ')'; ?>" />
-								</form>
-							</span>
+								<span data-toggle="popover" data-content="<?php echo h($popover); ?>" data-trigger="hover" style="white-space: nowrap;">
+									<?php
+										if ($relatedFeed ['source_format'] == 'misp'):
+									?>
+											<form action="<?php echo $baseurl; ?>/feeds/previewIndex/<?php echo h($relatedFeed['id']); ?>" method="post" style="margin:0px;">
+												<input type="hidden" name="data[Feed][eventid]" value="<?php echo h(json_encode($relatedFeed['event_uuids'], true)); ?>">
+												<input type="submit" class="linkButton useCursorPointer" value="<?php echo h($relatedFeed['name']) . ' (' . $relatedFeed['id'] . ')'; ?>" />
+											</form>
+									<?php
+										else:
+									?>
+											<a href="<?php echo $baseurl; ?>/feeds/previewIndex/<?php echo h($relatedFeed['id']); ?>"><?php echo h($relatedFeed['name']) . ' (' . $relatedFeed['id'] . ')'; ?><a>
+									<?php
+										endif;
+									?>
+								</span>
 				<?php
 						endforeach;
 					elseif (!empty($event['Event']['FeedCount'])):
