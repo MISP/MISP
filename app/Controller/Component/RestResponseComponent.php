@@ -127,6 +127,8 @@ class RestResponseComponent extends Component {
 			$type = 'xml';
 		} else if(strtolower($format) == 'openioc') {
 			$type = 'xml';
+		} else if(strtolower($format) == 'csv') {
+			$type = 'csv';
 		} else {
 			if (!$raw) $response = json_encode($response, JSON_PRETTY_PRINT);
 			$type = 'json';
