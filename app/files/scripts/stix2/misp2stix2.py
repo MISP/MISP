@@ -9,7 +9,7 @@
 #
 #    This program is distributed in the hope that it will be useful,
 #    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #    GNU Affero General Public License for more details.
 #
 #    You should have received a copy of the GNU Affero General Public License
@@ -245,10 +245,13 @@ def addMalware(object_refs, attributes, galaxy, identity):
 def addObservedData(object_refs, attributes, attribute, identity):
     observedData_id = "observed-data--{}".format(attribute.uuid)
     timestamp = attribute.timestamp
-    labels = 'misp:to_ids=\"{}\"'.format(attribute.to_ids)
+    attr_type = attribute.type
+    labels = ['misp:to_ids=\"{}\"'.format(attribute.to_ids)]
+    if attr_type == 'malware-sample':
+        labels.append(attr_type)
     observedData_args = {'id': observedData_id, 'type': 'observed-data', 'number_observed': 1, 'labels': labels,
                          'first_observed': timestamp, 'last_observed': timestamp, 'created_by_ref': identity,
-                         'objects': defineObservableObject(attribute.type, attribute.value)}
+                         'objects': defineObservableObject(attr_type, attribute.value)}
     observedData = ObservedData(**observedData_args)
     attributes.append(observedData)
     object_refs.append(observedData_id)
@@ -356,11 +359,12 @@ def handleIndicatorAttribute(object_refs, attributes, attribute, identity):
     category = attribute.category
     killchain = [{'kill_chain_name': 'misp-category',
                  'phase_name': category}]
-    labels = 'misp:to_ids=\"{}\"'.format(attribute.to_ids)
     attr_type = attribute.type
-    attr_val = attribute.value
+    labels = ['misp:to_ids=\"{}\"'.format(attribute.to_ids)]
+    if attr_type == 'malware-sample':
+        labels.append(attr_type)
     indicator_args = {'valid_from': attribute.timestamp, 'type': 'indicator',
-                      'labels': labels, 'pattern': definePattern(attr_type, attr_val), 'id': indic_id,
+                      'labels': labels, 'pattern': definePattern(attr_type, attribute.value), 'id': indic_id,
                       'created_by_ref': identity, 'kill_chain_phases': killchain}
     if attribute.comment:
         indicator_args['description'] = attribute.comment
