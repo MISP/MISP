@@ -4292,7 +4292,7 @@ class EventsController extends AppController {
 					if (isset($result['error'])) $this->Session->setFlash($result['error']);
 					if (!is_array($result)) throw new Exception($result);
 					$resultArray = $this->Event->handleModuleResult($result, $eventId);
-					if (isset($result['comment']) && $result['comment'] != "") {
+					if (isset($result['comment'])) {
 						$importComment = $result['comment'];
 					}
 					else {
