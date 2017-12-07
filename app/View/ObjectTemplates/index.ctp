@@ -104,6 +104,7 @@ foreach ($list as $template):
 			<a href='/objectTemplates/view/<?php echo $template['ObjectTemplate']['id']; ?>' class = "icon-list-alt" title = "View"></a>
 			<?php
 				if ($isSiteAdmin):
+					echo $this->Form->postLink('', array('action' => 'update', $template['ObjectTemplate']['name'], 1), array('class' => 'icon-refresh', 'title' => 'Force update'), __('Are you sure you want to force an update for template # %s?', $template['ObjectTemplate']['id']));
 					echo $this->Form->postLink('', array('action' => 'delete', $template['ObjectTemplate']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete template # %s?', $template['ObjectTemplate']['id']));
 				endif;
 			?>

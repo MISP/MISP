@@ -121,8 +121,14 @@ class ObjectTemplatesController extends AppController {
 		}
 	}
 
-	public function update() {
-		$result = $this->ObjectTemplate->update($this->Auth->user());
+	public function update($type = false, $force = false) {
+		if (!empty($this->params['named']['type'])) {
+			$type = $this->params['named']['type'];
+		}
+		if (!empty($this->params['named']['force'])) {
+			$force = $this->params['named']['force'];
+		}
+		$result = $this->ObjectTemplate->update($this->Auth->user(), $type, $force);
 		$this->loadModel('ObjectRelationship');
 		$result2 = $this->ObjectRelationship->update();
 		$this->Log = ClassRegistry::init('Log');
