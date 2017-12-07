@@ -100,7 +100,7 @@ class ObjectTemplate extends AppModel {
 		}
 		$id = $this->id;
 		$this->setActive($id);
-		$fieldsToCompare = array('object_relation', 'type', 'ui-priority', 'categories', 'sane_default', 'values_list', 'multiple');
+		$fieldsToCompare = array('object_relation', 'type', 'ui-priority', 'categories', 'sane_default', 'values_list', 'multiple', 'disable_correlation');
 		foreach ($template['attributes'] as $k => $attribute) {
 			$attribute['object_relation'] = $k;
 			$attribute = $this->__convertJSONToElement($attribute);
