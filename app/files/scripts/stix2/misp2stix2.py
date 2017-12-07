@@ -35,7 +35,7 @@ def saveFile(args, package):
 
 # converts timestamp to the format used by STIX
 def getDateFromTimestamp(timestamp):
-    return datetime.datetime.utcfromtimestamp(timestamp).isoformat() + "+00:00"
+    return datetime.datetime(1970, 1, 1) + datetime.timedelta(seconds=int(timestamp))
 
 def setIdentity(event, SDOs):
     org = event.Orgc
@@ -349,7 +349,8 @@ def addCustomObjectFromObjects(object_refs, attributes, obj, identity, to_ids):
     customObject_type = 'x-misp-object-{}'.format(obj.name)
     values = {}
     for obj_attr in obj.Attribute:
-        values[obj_attr.get('object_relation')] = obj_attr.get('value')
+        typeId = '{}_{}'.format(obj_attr.get('type'), obj_attr.get('object_relation'))
+        values[typeId] = obj_attr.get('value')
     labels = ['misp:to_ids=\"{}\"'.format(to_ids), 'from_object']
     customObject_args = {'id': customObject_id, 'x_misp_timestamp': timestamp, 'labels': labels,
                          'x_misp_values': values, 'created_by_ref': identity}
@@ -448,6 +449,8 @@ def defineObservableObject(attr_type, attr_val):
         elif 'ip-' in attr_type:
             addr_type = defineAddressType(attr_val)
             object0['type'] = addr_type
+            prot_type = addr_type.split('-')[0]
+            observed_object['1']['protocols'].append(prot_type)
         elif attr_type == 'port':
             object0['protocols'].append(defineProtocols[attr_val] if attr_val in defineProtocols else 'tcp')
         for obj_attr in object0:
