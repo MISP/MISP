@@ -35,7 +35,7 @@ def saveFile(args, package):
 
 # converts timestamp to the format used by STIX
 def getDateFromTimestamp(timestamp):
-    return datetime.datetime.utcfromtimestamp(timestamp).isoformat() + "+00:00"
+    return datetime.datetime(1970, 1, 1) + datetime.timedelta(seconds=int(timestamp))
 
 def setIdentity(event, SDOs):
     org = event.Orgc
@@ -113,7 +113,9 @@ def readAttributes(event, identity, object_refs, external_refs):
                     if to_ids:
                         addIndicatorFromObjects(object_refs, attributes, obj, identity, to_ids)
                     else:
-                        addObservedDataFromObject(object_refs, attributes, obj, identity, to_ids)
+                        addObservedDataFromObjects(object_refs, attributes, obj, identity, to_ids)
+                else:
+                    addCustomObjectFromObjects(object_refs, attributes, obj, identity, to_ids)
     return attributes
 
 def handleLink(attribute, external_refs):
@@ -174,14 +176,14 @@ def addCustomObject(object_refs, attributes, attribute, identity):
     timestamp = attribute.timestamp
     customObject_type = 'x-misp-object-{}'.format(attribute.type)
     value = attribute.value
-    labels = 'misp:to_ids=\"{}\"'.format(attribute.to_ids)
-    customObject_args = {'id': customObject_id, 'x_misp_timestamp': timestamp, 'x_misp_to_ids': labels,
+    labels = ['misp:to_ids=\"{}\"'.format(attribute.to_ids)]
+    customObject_args = {'id': customObject_id, 'x_misp_timestamp': timestamp, 'labels': labels,
                          'x_misp_value': value, 'created_by_ref': identity}
     if attribute.comment:
         customObject_args['x_misp_comment'] = attribute.comment
     @CustomObject(customObject_type, [('id', properties.StringProperty(required=True)),
                                       ('x_misp_timestamp', properties.StringProperty(required=True)),
-                                      ('x_misp_to_ids', properties.StringProperty(required=True)),
+                                      ('labels', properties.ListProperty(labels, required=True)),
                                       ('x_misp_value', properties.StringProperty(required=True)),
                                       ('created_by_ref', properties.StringProperty(required=True)),
                                       ('x_misp_comment', properties.StringProperty()),
@@ -316,7 +318,7 @@ def addIndicatorFromObjects(object_refs, attributes, obj, identity, to_ids):
     attributes.append(indicator)
     object_refs.append(indicator_id)
 
-def addObservedDataFromObject(object_refs, attributes, obj, identity, to_ids):
+def addObservedDataFromObjects(object_refs, attributes, obj, identity, to_ids):
     observedData_id = 'observed-data--{}'.format(obj.uuid)
     timestamp = getDateFromTimestamp(int(obj.timestamp))
     labels = ['misp:to_ids=\"{}\"'.format(to_ids), 'from_object']
@@ -328,7 +330,7 @@ def addObservedDataFromObject(object_refs, attributes, obj, identity, to_ids):
     object_refs.append(observedData_id)
 
 def addVulnerabilityFromObjects(object_refs, attributes, obj, identity, to_ids):
-    vuln_id = 'vulnerability--{}'.format(obj.id)
+    vuln_id = 'vulnerability--{}'.format(obj.uuid)
     name = 'Undefined name'
     for obj_attr in obj.Attribute:
         if obj_attr.type == 'vulnerability':
@@ -340,6 +342,33 @@ def addVulnerabilityFromObjects(object_refs, attributes, obj, identity, to_ids):
     vulnerability = Vulnerability(**vuln_args)
     attributes.append(vulnerability)
     object_refs.append(vuln_id)
+
+def addCustomObjectFromObjects(object_refs, attributes, obj, identity, to_ids):
+    customObject_id = "x-misp-object--{}".format(obj.uuid)
+    timestamp = getDateFromTimestamp(int(obj.timestamp))
+    customObject_type = 'x-misp-object-{}'.format(obj.name)
+    values = {}
+    for obj_attr in obj.Attribute:
+        typeId = '{}_{}'.format(obj_attr.get('type'), obj_attr.get('object_relation'))
+        values[typeId] = obj_attr.get('value')
+    labels = ['misp:to_ids=\"{}\"'.format(to_ids), 'from_object']
+    customObject_args = {'id': customObject_id, 'x_misp_timestamp': timestamp, 'labels': labels,
+                         'x_misp_values': values, 'created_by_ref': identity}
+    if obj.comment:
+        customObject_args['x_misp_comment'] = attribute.comment
+    @CustomObject(customObject_type, [('id', properties.StringProperty(required=True)),
+                                      ('x_misp_timestamp', properties.StringProperty(required=True)),
+                                      ('labels', properties.ListProperty(labels, required=True)),
+                                      ('x_misp_values', properties.DictionaryProperty(required=True)),
+                                      ('created_by_ref', properties.StringProperty(required=True)),
+                                      ('x_misp_comment', properties.StringProperty()),
+                                     ])
+    class Custom(object):
+        def __init__(self, **kwargs):
+            return
+    custom = Custom(**customObject_args)
+    attributes.append(custom)
+    object_refs.append(customObject_id)
 
 def addAliases(meta, argument):
     aliases = []
@@ -420,6 +449,8 @@ def defineObservableObject(attr_type, attr_val):
         elif 'ip-' in attr_type:
             addr_type = defineAddressType(attr_val)
             object0['type'] = addr_type
+            prot_type = addr_type.split('-')[0]
+            observed_object['1']['protocols'].append(prot_type)
         elif attr_type == 'port':
             object0['protocols'].append(defineProtocols[attr_val] if attr_val in defineProtocols else 'tcp')
         for obj_attr in object0:
