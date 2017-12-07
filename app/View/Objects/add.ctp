@@ -96,6 +96,7 @@
     <th>Category</th>
     <th>Value</th>
     <th>IDS</th>
+		<th>Disable Correlation</th>
     <th>Distribution</th>
     <th>Comment</th>
   </tr>
@@ -126,7 +127,7 @@
 			if ($lastOfType):
 	?>
 			<tr id="row_<?php echo h($element['object_relation']); ?>_expand">
-				<td class="down-expand-button add_object_attribute_row" colspan="7" data-template-id="<?php echo h($template['ObjectTemplate']['id']);?>" data-target-row="<?php echo h($k); ?>" data-object-relation="<?php echo h($element['object_relation']); ?>">
+				<td class="down-expand-button add_object_attribute_row" colspan="9" data-template-id="<?php echo h($template['ObjectTemplate']['id']);?>" data-target-row="<?php echo h($k); ?>" data-object-relation="<?php echo h($element['object_relation']); ?>">
 					<span class="fa fa-angle-double-down" ></span>
 				</td>
 			</tr>

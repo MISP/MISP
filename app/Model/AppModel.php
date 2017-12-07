@@ -48,7 +48,7 @@ class AppModel extends Model {
 				63 => false, 64 => false, 65 => false, 66 => false, 67 => true,
 				68 => false, 69 => false, 71 => false, 72 => false, 73 => false,
 				75 => false, 77 => false, 78 => false, 79 => false, 80 => false,
-				81 => false, 82 => false
+				81 => false, 82 => false, 83 => false
 			)
 		)
 	);
@@ -799,7 +799,7 @@ class AppModel extends Model {
 					`sane_default` text COLLATE utf8_bin,
 					`values_list` text COLLATE utf8_bin,
 					`description` text COLLATE utf8_bin,
-					`disable_correlations` tinyint(1) NOT NULL DEFAULT 0,
+					`disable_correlation` tinyint(1) NOT NULL DEFAULT 0,
 					`multiple` tinyint(1) NOT NULL DEFAULT 0,
 					PRIMARY KEY (id),
 					INDEX `object_relation` (`object_relation`),
@@ -824,6 +824,9 @@ class AppModel extends Model {
 				break;
 			case '2.4.82':
 				$sqlArray[] = "ALTER TABLE organisations ADD restricted_to_domain text COLLATE utf8_bin;";
+				break;
+			case '2.4.83':
+				$sqlArray[] = "ALTER TABLE object_template_elements CHANGE `disable_correlations` `disable_correlation` text COLLATE utf8_bin;";
 				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';

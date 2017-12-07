@@ -44,7 +44,7 @@ class ObjectTemplate extends AppModel {
 		return true;
 	}
 
-	public function update($user) {
+	public function update($user, $type = false, $force = false) {
 		$objectsDir = APP . 'files/misp-objects/objects';
 		$directories = glob($objectsDir . '/*', GLOB_ONLYDIR);
 		foreach ($directories as $k => $dir) {
@@ -53,6 +53,9 @@ class ObjectTemplate extends AppModel {
 		}
 		$updated = array();
 		foreach ($directories as $dir) {
+			if ($type && '/' . $type != $dir) {
+				continue;
+			}
 			if (!file_exists($objectsDir . DS . $dir . DS . 'definition.json')) {
 				continue;
 			}
@@ -67,7 +70,7 @@ class ObjectTemplate extends AppModel {
 				'group' => array('uuid')
 			));
 			if (!empty($current)) $current['ObjectTemplate']['version'] = $current[0]['version'];
-			if (empty($current) || $template['version'] > $current['ObjectTemplate']['version']) {
+			if ($force || empty($current) || $template['version'] > $current['ObjectTemplate']['version']) {
 				$result = $this->__updateObjectTemplate($template, $current, $user);
 				if ($result === true) {
 					$temp = array('name' => $template['name'], 'new' => $template['version']);
@@ -100,7 +103,7 @@ class ObjectTemplate extends AppModel {
 		}
 		$id = $this->id;
 		$this->setActive($id);
-		$fieldsToCompare = array('object_relation', 'type', 'ui-priority', 'categories', 'sane_default', 'values_list', 'multiple');
+		$fieldsToCompare = array('object_relation', 'type', 'ui-priority', 'categories', 'sane_default', 'values_list', 'multiple', 'disable_correlation');
 		foreach ($template['attributes'] as $k => $attribute) {
 			$attribute['object_relation'] = $k;
 			$attribute = $this->__convertJSONToElement($attribute);

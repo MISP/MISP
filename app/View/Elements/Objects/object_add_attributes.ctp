@@ -78,6 +78,16 @@
       ));
     ?>
   </td>
+  <td>
+    <?php
+      echo $this->Form->input('Attribute.' . $k . '.disable_correlation', array(
+        'type' => 'checkbox',
+        'checked' => $element['disable_correlation'],
+        'label' => false,
+        'div' => false
+      ));
+    ?>
+  </td>
   <td class="short">
     <?php
         echo $this->Form->input('Attribute.' . $k . '.distribution', array(
