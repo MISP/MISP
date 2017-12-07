@@ -128,17 +128,19 @@ def handleLink(attribute, external_refs):
 
 
 def addAttackPattern(object_refs, attributes, galaxy, identity):
+    galaxy_type = galaxy.get('type')
     killchain = [{'kill_chain_name': 'misp-category',
-                  'phase_name': galaxy.get('type')}
+                  'phase_name': galaxy_type}
                 ]
     name = galaxy.get('name')
     cluster = galaxy['GalaxyCluster'][0]
     attack_id = "attack-pattern--{}".format(cluster.get('uuid'))
     description = cluster.get('description')
+    labels = ['misp:type=\"{}\"'.format(galaxy_type)]
     attack_args = {'id': attack_id, 'type': 'attack-pattern', 'created_by_ref': identity, 'name': name,
-                  'description': description, 'kill_chain_phases': killchain}
+                   'description': description, 'kill_chain_phases': killchain, 'labels': labels}
     if cluster['tag_name']:
-        attack_args['labels'] = cluster.get('tag_name')
+        attack_args['labels'].append(cluster.get('tag_name'))
     attackPattern = AttackPattern(**attack_args)
     attributes.append(attackPattern)
     object_refs.append(attack_id)
@@ -148,10 +150,11 @@ def addCampaign(object_refs, attributes, galaxy, identity):
     cluster = galaxy['GalaxyCluster'][0]
     campaign_id = "campaign--{}".format(cluster.get('uuid'))
     description = cluster.get('description')
+    labels = ['misp:type=\"{}\"'.format(galaxy.get('type'))]
     campaign_args = {'id': campaign_id, 'type': 'campaign', 'name': name, 'description': description,
-                     'created_by_ref': identity}
+                     'created_by_ref': identity, 'labels': labels}
     if cluster['tag_name']:
-        campaign_args['labels'] = cluster.get('tag_name')
+        campaign_args['labels'].append(cluster.get('tag_name'))
     meta = cluster.get('meta')
     addAliases(meta, campaign_args)
     campaign = Campaign(**campaign_args)
@@ -163,10 +166,11 @@ def addCourseOfAction(object_refs, attributes, galaxy, identity):
     cluster = galaxy['GalaxyCluster'][0]
     courseOfAction_id = "course-of-action--{}".format(cluster.get('uuid'))
     description = cluster.get('description')
+    labels = ['misp:type=\"{}\"'.format(galaxy.get('type'))]
     courseOfAction_args = {'id': courseOfAction_id, 'type': 'course-of-action', 'name': name,
-                           'description': description, 'created_by_ref': identity}
+                           'description': description, 'created_by_ref': identity, 'labels': labels}
     if cluster['tag_name']:
-        courseOfAction_args['labels'] = cluster.get('tag_name')
+        courseOfAction_args['labels'].append(cluster.get('tag_name'))
     courseOfAction = CourseOfAction(**courseOfAction_args)
     attributes.append(courseOfAction)
     object_refs.append(courseOfAction_id)
@@ -174,9 +178,11 @@ def addCourseOfAction(object_refs, attributes, galaxy, identity):
 def addCustomObject(object_refs, attributes, attribute, identity):
     customObject_id = "x-misp-object--{}".format(attribute.uuid)
     timestamp = attribute.timestamp
-    customObject_type = 'x-misp-object-{}'.format(attribute.type)
+    attr_type = attribute.type
+    customObject_type = 'x-misp-object-{}'.format(attr_type)
     value = attribute.value
-    labels = ['misp:to_ids=\"{}\"'.format(attribute.to_ids)]
+    labels = ['misp:type=\"{}\"'.format(attr_type), 
+              'misp:to_ids=\"{}\"'.format(attribute.to_ids)]
     customObject_args = {'id': customObject_id, 'x_misp_timestamp': timestamp, 'labels': labels,
                          'x_misp_value': value, 'created_by_ref': identity}
     if attribute.comment:
@@ -198,7 +204,9 @@ def addCustomObject(object_refs, attributes, attribute, identity):
 def addIdentity(object_refs, attributes, attribute, identity, identityClass):
     identity_id = "identity--{}".format(attribute.uuid)
     name = attribute.value
-    identity_args = {'id': identity_id, 'type': 'identity', 'name': name, 'created_by_ref': identity, 'identity_class': identityClass}
+    labels = ['misp:type=\"{}\"'.format(attribute.type)]
+    identity_args = {'id': identity_id, 'type': 'identity', 'name': name, 'created_by_ref': identity,
+                     'identity_class': identityClass, 'labels': labels}
     if attribute.comment:
         identity_args['description'] = attribute.comment
     identityObject = Identity(**identity_args)
@@ -210,29 +218,32 @@ def addIntrusionSet(object_refs, attributes, galaxy, identity):
     cluster = galaxy['GalaxyCluster'][0]
     intrusionSet_id = "intrusion-set--{}".format(cluster.get('uuid'))
     description = cluster.get('description')
+    labels = ['misp:type=\"{}\"'.format(galaxy.get('type'))]
     intrusion_args = {'id': intrusionSet_id, 'type': 'intrusion-set', 'name': name, 'description': description,
-                      'created_by_ref': identity}
+                      'created_by_ref': identity, 'labels': labels}
     meta = cluster.get('meta')
     if "synonyms" in meta:
         addAliases(meta, intrusion_args)
     if cluster['tag_name']:
-        intrusion_args['labels'] = cluster.get('tag_name')
+        intrusion_args['labels'].append(cluster.get('tag_name'))
     intrusionSet = IntrusionSet(**intrusion_args)
     attributes.append(intrusionSet)
     object_refs.append(intrusionSet_id)
 
 def addMalware(object_refs, attributes, galaxy, identity):
+    galaxy_type = galaxy.get('type')
     killchain = [{'kill_chain_name': 'misp-category',
-                  'phase_name': galaxy.get('type')}
+                  'phase_name': galaxy_type}
                  ]
     name = galaxy.get('name')
     cluster = galaxy['GalaxyCluster'][0]
     malware_id = "malware--{}".format(cluster.get('uuid'))
     description = cluster.get('description')
+    labels = ['misp:type=\"{}\"'.format(galaxy_type)]
     malware_args = {'id': malware_id, 'type': 'malware', 'name': name, 'description': description,
-                    'created_by_ref': identity, 'kill_chain_phases': killchain}
+                    'created_by_ref': identity, 'kill_chain_phases': killchain, 'labels': labels}
     if cluster['tag_name']:
-        malware_args['labels'] = cluster.get('tag_name')
+        malware_args['labels'].append(cluster.get('tag_name'))
     malware = Malware(**malware_args)
     attributes.append(malware)
     object_refs.append(malware_id)
@@ -248,9 +259,8 @@ def addObservedData(object_refs, attributes, attribute, identity):
     observedData_id = "observed-data--{}".format(attribute.uuid)
     timestamp = attribute.timestamp
     attr_type = attribute.type
-    labels = ['misp:to_ids=\"{}\"'.format(attribute.to_ids)]
-    if attr_type == 'malware-sample':
-        labels.append(attr_type)
+    labels = ['misp:type=\"{}\"'.format(attr_type),
+              'misp:to_ids=\"{}\"'.format(attribute.to_ids)]
     observedData_args = {'id': observedData_id, 'type': 'observed-data', 'number_observed': 1, 'labels': labels,
                          'first_observed': timestamp, 'last_observed': timestamp, 'created_by_ref': identity,
                          'objects': defineObservableObject(attr_type, attribute.value)}
@@ -263,29 +273,32 @@ def addThreatActor(object_refs, attributes, galaxy, identity):
     cluster = galaxy['GalaxyCluster'][0]
     threatActor_id = "threat-actor--{}".format(cluster.get('uuid'))
     description = cluster.get('description')
+    labels = ['misp:type=\"{}\"'.format(galaxy.get('type'))]
     threatActor_args = {'id': threatActor_id, 'type': 'threat-actor', 'name': name, 'description': description,
-                        'created_by_ref': identity}
+                        'created_by_ref': identity, 'labels': labels}
     meta = cluster.get('meta')
     if 'synonyms' in meta:
         addAliases(meta, threatActor_args)
     if cluster['tag_name']:
-        threatActor_args['labels'] = cluster.get('tag_name')
+        threatActor_args['labels'].append(cluster.get('tag_name'))
     threatActor = ThreatActor(**threatActor_args)
     attributes.append(threatActor)
     object_refs.append(threatActor_id)
 
 def addTool(object_refs, attributes, galaxy, identity):
+    galaxy_type = galaxy.get('type')
     killchain = [{'kill_chain_name': 'misp-category',
-                  'phase_name': galaxy.get('type')}
+                  'phase_name': galaxy_type}
                  ]
     name = galaxy.get('name')
     cluster = galaxy['GalaxyCluster'][0]
     tool_id = "tool--{}".format(cluster.get('uuid'))
     description = cluster.get('description')
+    labels = ['misp:type=\"{}\"'.format(galaxy_type)]
     tool_args = {'id': tool_id, 'type': 'tool', 'name': name, 'description': description,
-                 'created_by_ref': identity, 'kill_chain_phases': killchain}
+                 'created_by_ref': identity, 'kill_chain_phases': killchain, 'labels': labels}
     if cluster['tag_name']:
-        tool_args['labels'] = cluster.get('tag_name')
+        tool_args['labels'].append(cluster.get('tag_name'))
     tool = Tool(**tool_args)
     attributes.append(tool)
     object_refs.append(tool_id)
@@ -296,7 +309,8 @@ def addVulnerability(object_refs, attributes, attribute, identity):
     vuln_data = mispTypesMapping['vulnerability'].copy()
     vuln_data['external_id'] = name
     ext_refs = [vuln_data]
-    labels = 'misp:to_ids=\"{}\"'.format(attribute.to_ids)
+    labels = ['misp:type=\"{}\"'.format(attribute.type),
+              'misp:to_ids=\"{}\"'.format(attribute.to_ids)]
     vuln_args = {'type': 'vulnerability', 'id': vuln_id, 'external_references': ext_refs, 'name': name,
                  'created_by_ref': identity, 'labels': labels}
     vulnerability = Vulnerability(**vuln_args)
@@ -308,12 +322,15 @@ def addIndicatorFromObjects(object_refs, attributes, obj, identity, to_ids):
     category = obj.get('meta-category')
     killchain = [{'kill_chain_name': 'misp-category',
                   'phase_name': category}]
-    labels = ['misp:to_ids=\"{}\"'.format(to_ids), 'from_object']
-    pattern = definePatternForObjects(obj.name, obj.Attribute)
+    obj_name = obj.name
+    labels = ['misp:type=\"{}\"'.format(obj_name),
+              'misp:to_ids=\"{}\"'.format(to_ids),
+              'from_object']
+    pattern = definePatternForObjects(obj_name, obj.Attribute)
     timestamp = getDateFromTimestamp(int(obj.timestamp))
     indicator_args = {'valid_from': timestamp, 'type': 'indicator', 'labels': labels,
-                      'pattern': [pattern], 'id': indicator_id,
-                      'created_by_ref': identity, 'kill_chain_phases': killchain, 'description': obj.description}
+                      'pattern': [pattern], 'id': indicator_id, 'created_by_ref': identity,
+                      'kill_chain_phases': killchain, 'description': obj.description}
     indicator = Indicator(**indicator_args)
     attributes.append(indicator)
     object_refs.append(indicator_id)
@@ -321,10 +338,13 @@ def addIndicatorFromObjects(object_refs, attributes, obj, identity, to_ids):
 def addObservedDataFromObjects(object_refs, attributes, obj, identity, to_ids):
     observedData_id = 'observed-data--{}'.format(obj.uuid)
     timestamp = getDateFromTimestamp(int(obj.timestamp))
-    labels = ['misp:to_ids=\"{}\"'.format(to_ids), 'from_object']
+    obj_name = obj.name
+    labels = ['misp:type=\"{}\"'.format(obj_name),
+              'misp:to_ids=\"{}\"'.format(to_ids),
+              'from_object']
     observedData_args = {'id': observedData_id, 'type': 'observed-data', 'number_observed': 1, 'labels': labels,
                          'first_observed': timestamp, 'last_observed': timestamp, 'created_by_ref': identity,
-                         'objects': defineObservableObjectForObjects(obj.name, obj.Attribute)}
+                         'objects': defineObservableObjectForObjects(obj_name, obj.Attribute)}
     observedData = ObservedData(**observedData_args)
     attributes.append(observedData)
     object_refs.append(observedData_id)
@@ -336,7 +356,9 @@ def addVulnerabilityFromObjects(object_refs, attributes, obj, identity, to_ids):
         if obj_attr.type == 'vulnerability':
             name = obj_attr.value
             break
-    labels = ['misp:to_ids=\"{}\"'.format(to_ids), 'from_object']
+    labels = ['misp:type=\"{}\"'.format(name),
+              'misp:to_ids=\"{}\"'.format(to_ids),
+              'from_object']
     vuln_args = {'id': vuln_id, 'type': 'vulnerability', 'name': name, 'created_by_ref': identity,
                  'labels': labels}
     vulnerability = Vulnerability(**vuln_args)
@@ -346,16 +368,19 @@ def addVulnerabilityFromObjects(object_refs, attributes, obj, identity, to_ids):
 def addCustomObjectFromObjects(object_refs, attributes, obj, identity, to_ids):
     customObject_id = "x-misp-object--{}".format(obj.uuid)
     timestamp = getDateFromTimestamp(int(obj.timestamp))
-    customObject_type = 'x-misp-object-{}'.format(obj.name)
+    obj_name = obj.name
+    customObject_type = 'x-misp-object-{}'.format(obj_name)
     values = {}
     for obj_attr in obj.Attribute:
         typeId = '{}_{}'.format(obj_attr.get('type'), obj_attr.get('object_relation'))
         values[typeId] = obj_attr.get('value')
-    labels = ['misp:to_ids=\"{}\"'.format(to_ids), 'from_object']
+    labels = ['misp:type=\"{}\"'.format(obj_name),
+              'misp:to_ids=\"{}\"'.format(to_ids),
+              'from_object']
     customObject_args = {'id': customObject_id, 'x_misp_timestamp': timestamp, 'labels': labels,
                          'x_misp_values': values, 'created_by_ref': identity}
     if obj.comment:
-        customObject_args['x_misp_comment'] = attribute.comment
+        customObject_args['x_misp_comment'] = obj.comment
     @CustomObject(customObject_type, [('id', properties.StringProperty(required=True)),
                                       ('x_misp_timestamp', properties.StringProperty(required=True)),
                                       ('labels', properties.ListProperty(labels, required=True)),
@@ -389,9 +414,8 @@ def handleIndicatorAttribute(object_refs, attributes, attribute, identity):
     killchain = [{'kill_chain_name': 'misp-category',
                  'phase_name': category}]
     attr_type = attribute.type
-    labels = ['misp:to_ids=\"{}\"'.format(attribute.to_ids)]
-    if attr_type == 'malware-sample':
-        labels.append(attr_type)
+    labels = ['misp:type=\"{}\"'.format(attr_type),
+              'misp:to_ids=\"{}\"'.format(attribute.to_ids)]
     indicator_args = {'valid_from': attribute.timestamp, 'type': 'indicator',
                       'labels': labels, 'pattern': definePattern(attr_type, attribute.value), 'id': indic_id,
                       'created_by_ref': identity, 'kill_chain_phases': killchain}
