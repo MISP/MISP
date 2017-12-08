@@ -48,7 +48,7 @@ class AppModel extends Model {
 				63 => false, 64 => false, 65 => false, 66 => false, 67 => true,
 				68 => false, 69 => false, 71 => false, 72 => false, 73 => false,
 				75 => false, 77 => false, 78 => false, 79 => false, 80 => false,
-				81 => false, 82 => false, 83 => false
+				81 => false, 82 => false, 83 => false, 84 => false
 			)
 		)
 	);
@@ -827,6 +827,10 @@ class AppModel extends Model {
 				break;
 			case '2.4.83':
 				$sqlArray[] = "ALTER TABLE object_template_elements CHANGE `disable_correlations` `disable_correlation` text COLLATE utf8_bin;";
+				break;
+			case '2.4.84':
+				$sqlArray[] = "ALTER TABLE `tags` ADD `user_id` int(11) NOT NULL DEFAULT 0;";
+				$sqlArray[] = 'ALTER TABLE `tags` ADD INDEX `user_id` (`user_id`);';
 				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';

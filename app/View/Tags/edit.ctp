@@ -9,8 +9,14 @@
 		));
 		echo $this->Form->input('org_id', array(
 				'options' => $orgs,
-				'label' => 'Restrict tagging to'
+				'label' => 'Restrict tagging to org'
 		));
+		if ($isSiteAdmin) {
+			echo $this->Form->input('user_id', array(
+					'options' => $users,
+					'label' => 'Restrict tagging to user'
+			));
+		}
 	?>
 		<div class="clear"></div>
 	<?php

@@ -196,6 +196,20 @@ class TagsController extends AppController {
 			}
 		}
 		$this->set('orgs', $orgs);
+		$users = array(0 => 'Unrestricted');
+		if ($this->_isSiteAdmin()) {
+			$temp = $this->Organisation->User->find('all', array(
+				'conditions' => array('disabled' => 0),
+				'fields' => array('id', 'email'),
+				'recursive' => -1
+			));
+			if (!empty($temp)) {
+				foreach ($temp as $user) {
+					$users[$user['User']['id']] = $user['User']['email'];
+				}
+			}
+			$this->set('users', $users);
+		}
 	}
 
 	public function quickAdd() {
@@ -247,6 +261,20 @@ class TagsController extends AppController {
 			}
 		}
 		$this->set('orgs', $orgs);
+		$users = array(0 => 'Unrestricted');
+		if ($this->_isSiteAdmin()) {
+			$temp = $this->Organisation->User->find('all', array(
+				'conditions' => array('disabled' => 0),
+				'fields' => array('id', 'email'),
+				'recursive' => -1
+			));
+			if (!empty($temp)) {
+				foreach ($temp as $user) {
+					$users[$user['User']['id']] = $user['User']['email'];
+				}
+			}
+			$this->set('users', $users);
+		}
 		$this->request->data = $this->Tag->read(null, $id);
 	}
 
@@ -451,6 +479,7 @@ class TagsController extends AppController {
 			}
 		} else if ($taxonomy_id === 'all') {
 			$conditions = array('Tag.org_id' => array(0, $this->Auth->user('org_id')));
+			$conditions = array('Tag.user_id' => array(0, $this->Auth->user('id')));
 			$conditions['Tag.hide_tag'] = 0;
 			$options = $this->Tag->find('list', array('fields' => array('Tag.name'), 'conditions' => $conditions));
 			$expanded = $options;
@@ -472,6 +501,10 @@ class TagsController extends AppController {
 									'Tag.org_id' => array(
 											0,
 											$this->Auth->user('org_id')
+									),
+									'Tag.user_id' => array(
+											0,
+											$this->Auth->user('id')
 									)
 							)
 					),
@@ -563,7 +596,11 @@ class TagsController extends AppController {
 		));
 		$type = 'Event';
 		if (!empty($object)) {
-			if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger'] && $object['Event']['orgc_id'] != $this->Auth->user('org_id')) {
+			if (
+				!$this->_isSiteAdmin() &&
+				!$this->userRole['perm_tagger'] &&
+				$object['Event']['orgc_id'] != $this->Auth->user('org_id')
+			) {
 					throw new MethodNotAllowedException('Invalid Target.');
 			}
 		} else {
@@ -630,6 +667,9 @@ class TagsController extends AppController {
 		}
 		if (!$this->_isSiteAdmin()) {
 			if (!in_array($existingTag['Tag']['org_id'], array(0, $this->Auth->user('org_id')))) {
+				throw new MethodNotAllowedException('Invalid Tag.');
+			}
+			if (!in_array($existingTag['Tag']['user_id'], array(0, $this->Auth->user('id')))) {
 				throw new MethodNotAllowedException('Invalid Tag.');
 			}
 		}

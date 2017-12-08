@@ -3136,6 +3136,7 @@ class EventsController extends AppController {
 		$conditions = array('LOWER(Tag.name) LIKE' => strtolower(trim($tag_id)));
 		if (!$this->_isSiteAdmin()) {
 			$conditions['Tag.org_id'] = array('0', $this->Auth->user('org_id'));
+			$conditions['Tag.user_id'] = array('0', $this->Auth->user('id'));
 		}
 		if (!is_numeric($tag_id)) {
 			$tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => $conditions));
