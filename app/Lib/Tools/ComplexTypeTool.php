@@ -240,7 +240,6 @@ class ComplexTypeTool {
 				if (filter_var($temp[0], FILTER_VALIDATE_IP) && is_numeric($temp[1])) return array('types' => array('ip-dst', 'ip-src', 'ip-src/ip-dst'), 'to_ids' => true, 'default_type' => 'ip-dst', 'comment' => $comment, 'value' => $inputRefangedNoPort);
 			}
 		}
-
 		// check for domain name, hostname, filename
 		if (strpos($inputRefanged, '.') !== false) {
 			$temp = explode('.', $inputRefanged);
@@ -248,7 +247,7 @@ class ComplexTypeTool {
 			//if (filter_var($input, FILTER_VALIDATE_URL)) {
 			$domainDetection = true;
 			if (preg_match('/^([-\pL\pN]+\.)+[a-z]+(:[0-9]{2,5})?$/iu', $inputRefanged)) {
-				if (empty($this->__tlds)) {
+				if (empty($this->__tlds) || count($this->__tlds) == 1) {
 					$this->__generateTLDList();
 				}
 				$tldExploded = explode(':', $temp[count($temp)-1]);
