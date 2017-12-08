@@ -30,6 +30,9 @@ class TagsController extends AppController {
 		$this->loadModel('Attribute');
 		$this->loadModel('Event');
 		$this->loadModel('Taxonomy');
+		if ($this->_isSiteAdmin()) {
+			$this->paginate['contain']['User'] = array('fields' => array('id', 'email'));
+		}
 		$taxonomies = $this->Taxonomy->listTaxonomies(array('full' => false, 'enabled' => true));
 		$taxonomyNamespaces = array();
 		if (!empty($taxonomies)) foreach ($taxonomies as $taxonomy) $taxonomyNamespaces[$taxonomy['namespace']] = $taxonomy;

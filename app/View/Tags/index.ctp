@@ -63,7 +63,10 @@
 			<th><?php echo $this->Paginator->sort('exportable');?></th>
 			<th><?php echo $this->Paginator->sort('hide_tag', 'Hidden');?></th>
 			<th><?php echo $this->Paginator->sort('name');?></th>
-			<th>Restricted to</th>
+			<th>Restricted to org</th>
+			<?php if ($isSiteAdmin): ?>
+				<th>Restricted to user</th>
+			<?php endif; ?>
 			<th>Taxonomy</th>
 			<th>Tagged events</th>
 			<th>Tagged attributes</th>
@@ -86,6 +89,19 @@ foreach ($list as $k => $item): ?>
 				&nbsp;
 			<?php endif; ?>
 		</td>
+		<?php
+			if ($isSiteAdmin):
+		?>
+				<td class="short">
+					<?php if ($item['Tag']['user_id']): ?>
+						<a href="<?php echo $baseurl . "/admin/users/view/" . h($item['Tag']['user_id']); ?>"><?php echo h($item['User']['email']);?></a>
+					<?php else: ?>
+						&nbsp;
+					<?php endif; ?>
+				</td>
+		<?php
+			endif;
+		?>
 		<td class="short">
 		<?php
 			if (isset($item['Tag']['Taxonomy'])):
