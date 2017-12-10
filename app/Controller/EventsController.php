@@ -3136,6 +3136,7 @@ class EventsController extends AppController {
 		$conditions = array('LOWER(Tag.name) LIKE' => strtolower(trim($tag_id)));
 		if (!$this->_isSiteAdmin()) {
 			$conditions['Tag.org_id'] = array('0', $this->Auth->user('org_id'));
+			$conditions['Tag.user_id'] = array('0', $this->Auth->user('id'));
 		}
 		if (!is_numeric($tag_id)) {
 			$tag = $this->Event->EventTag->Tag->find('first', array('recursive' => -1, 'conditions' => $conditions));
@@ -3407,12 +3408,6 @@ class EventsController extends AppController {
 						if (!isset($attribute['data_is_handled']) || !$attribute['data_is_handled']) {
 							App::uses('FileAccessTool', 'Tools');
 							$tmpdir = Configure::read('MISP.tmpdir') ? Configure::read('MISP.tmpdir') : '/tmp';
-							$tempFile = explode('|', $attribute['data']);
-							if (!$this->Event->checkFilename($tempFile[0])) {
-								throw new Exception('Invalid filename.');
-							}
-							$attribute['data'] = (new FileAccessTool())->readFromFile($tmpdir . '/' . $tempFile[0], $tempFile[1]);
-							unlink($tmpdir . '/' . $tempFile[0]);
 							$result = $this->Event->Attribute->handleMaliciousBase64($id, $attribute['value'], $attribute['data'], array('md5', 'sha1', 'sha256'), $objectType == 'ShadowAttribute' ? true : false);
 							if (!$result['success']) {
 								$failed++;

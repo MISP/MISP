@@ -24,6 +24,7 @@
     <th>Categories</th>
 		<th>Sane defaults</th>
 		<th>List of valid Values</th>
+		<th>Disable correlation</th>
 		<th class="actions"><?php echo __('Actions');?></th>
 	</tr>
 <?php
@@ -51,6 +52,7 @@
       <?php
         endforeach;
       ?>
+			<td class="short"><span class="icon-<?php echo empty($item['ObjectTemplateElement']['disable_correlation']) ? 'remove': 'ok'; ?>">&nbsp;</td>
 			<td class="short action-links">
 				&nbsp;
 			</td>

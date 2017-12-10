@@ -2848,6 +2848,7 @@ class Event extends AppModel {
 				$params = array_merge($params, array('eventid' => $id, 'includeAttachments' => true, 'includeAllTags' => true, 'deleted' => true));
 				$event = $this->fetchEvent($elevatedUser, $params);
 				$event = $event[0];
+				$event['Event']['locked'] = 1;
 				$thisUploaded = $this->uploadEventToServer($event, $server, $HttpSocket);
 				if (!$thisUploaded) {
 					$uploaded = !$uploaded ? $uploaded : $thisUploaded;

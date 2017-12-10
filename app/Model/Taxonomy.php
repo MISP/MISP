@@ -162,6 +162,7 @@ class Taxonomy extends AppModel {
 		if ($user) {
 			if (!$user['Role']['perm_site_admin']) {
 				$conditions = array('Tag.org_id' => array(0, $user['org_id']));
+				$conditions = array('Tag.user_id' => array(0, $user['id']));
 			}
 		}
 		if (Configure::read('MISP.incoming_tags_disabled_by_default')) {

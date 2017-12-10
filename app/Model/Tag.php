@@ -55,6 +55,10 @@ class Tag extends AppModel {
 		'Organisation' => array(
 			'className' => 'Organisation',
 			'foreignKey' => 'org_id',
+		),
+		'User' => array(
+			'className' => 'User',
+			'foreignKey' => 'user_id',
 		)
 	);
 
@@ -62,6 +66,9 @@ class Tag extends AppModel {
 		parent::beforeValidate();
 		if (!isset($this->data['Tag']['org_id'])) {
 			$this->data['Tag']['org_id'] = 0;
+		}
+		if (!isset($this->data['Tag']['user_id'])) {
+			$this->data['Tag']['user_id'] = 0;
 		}
 		if (!isset($this->data['Tag']['hide_tag'])) {
 			$this->data['Tag']['hide_tag'] = Configure::read('MISP.incoming_tags_disabled_by_default') ? 1 : 0;
@@ -171,13 +178,20 @@ class Tag extends AppModel {
 						'colour' => $tag['colour'],
 						'exportable' => isset($tag['exportable']) ? $tag['exportable'] : 0,
 						'org_id' => 0,
+						'user_id' => 0,
 						'hide_tag' => Configure::read('MISP.incoming_tags_disabled_by_default') ? 1 : 0
 				);
 				$this->save($tag);
 				return $this->id;
 			} else return false;
 		} else {
-			if (!$user['Role']['perm_site_admin'] && $existingTag['Tag']['org_id'] != 0 && $existingTag['Tag']['org_id'] != $user['org_id']) {
+			if (
+				!$user['Role']['perm_site_admin'] &&
+				$existingTag['Tag']['org_id'] != 0 &&
+				$existingTag['Tag']['org_id'] != $user['org_id'] &&
+				$existingTag['Tag']['user_id'] != 0 &&
+				$existingTag['Tag']['user_id'] != $user['id']
+			) {
 				return false;
 			}
 		}
