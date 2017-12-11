@@ -96,8 +96,15 @@ def fillObjects(attr, attrLabels, Object):
     attrType = attr.get('type')
     if attrType == 'observed-data':
         observable = attr.get('objects')
-        value = resolveObservable(observable, objType)
-
+        obj['name'] = objType
+    elif attrType == 'indicator':
+        obj['name'] = objType
+        pattern = attr.get('pattern').split(' AND ')
+        pattern[0] = pattern[0][2:]
+        pattern[-1] = pattern[-1][:-2]
+        obj['Attribute'] = resolvePatternFromObjects(pattern, objType)
+    else:
+        obj['name'] = attrType
     obj['to_ids'] = bool(attrLabels[1].split('=')[1])
     Object.append(obj)
 
@@ -109,7 +116,7 @@ def fillAttributes(attr, attrLabels, Attribute):
         attribute['type'] = mispType
         date = attr.get('first_observed')
         attribute['timestamp'] = getTimestampfromDate(date)
-        observable = attr.get('object')
+        observable = attr.get('objects')
         attribute['value'] = resolveObservable(observable, mispType)
     elif attrType == 'indicator':
         attribute['type'] = mispType
@@ -129,14 +136,13 @@ def fillCustom(attr, attrLabels, Attribute):
     attribute['timestamp'] = int(time.mktime(time.strptime(attr.get('x_misp_timestamp'), "%Y-%m-%d %H:%M:%S")))
     attribute['to_ids'] = bool(attrLabels[1].split('=')[1])
     attribute['value'] = attr.get('x_misp_value')
-    #print(attr)
     Attribute.append(attribute)
 
 def fillCustomFromObject(attr, attrLabels, Object):
     obj = {}
     obj['type'] = attr.get('type').split('x-misp-object-')[1]
     obj['timestamp'] = int(time.mktime(time.strptime(attr.get('x_misp_timestamp'), "%Y-%m-%d %H:%M:%S")))
-    obj['labels'] = bool(attr.get('labels')[0].split('=')[1])
+    obj['labels'] = bool(attrLabels[0].split('=')[1])
     Attribute = []
     values = attr.get('x_misp_values')
     for obj_attr in values:
@@ -195,8 +201,8 @@ def resolveObservable(observable, mispType):
         except:
             value2 = obj0['hashes'].get('md5')
         return '{}|{}'.format(value1, value2)
-    elif 'hashe' in obj0:
-        return obj0['hashes'].get(mispType)
+    elif 'hashes' in obj0:
+        return obj0['hashes'].get(mispType.upper())
     else:
         return obj0.get('value')
 
@@ -215,6 +221,53 @@ def resolvePattern(pattern, mispType):
         value = value[1:-1]
     return value
 
+objectPatternMapping = {
+        'domain|ip': {'domain': 'domain', 'resolves_to_refs[*].value': 'ip-dst'},
+        'email': {'to_refs': 'email-dst', 'cc_refs': 'email-dst', 'subject': 'email-subject',
+                  'additional_header_fields.X-Mailer': 'email-x-mailer', 'from_ref': 'email-src',
+                  'body_multipart[*].body_raw_ref.name': 'email-attachment',
+                  'additional_header_fields.Reply-To': 'email-reply-to'},
+        'file': {'size': 'size-in-bytes', 'name': 'filename'},
+        'ip|port': {'src_port': 'src-port', 'dst_port': 'dst-port',
+                    'network-traffic:dst_ref.value': 'ip-dst'},
+        'registry-key': {'datatype': 'reg-datatype', 'data': 'reg-data', 'name': 'reg-name',
+                         'key': 'reg-key'},
+        'url': {'value': 'url'},
+        'x509': {}
+        }
+objTextRelation = {'subject': 'subject', 'issuer': 'issuer', 'serial_number': 'serial-number',
+                   'subject_public_key_exponent': 'pubkey-info-exponent', 'version': 'version',
+                   'subject_public_key_modulus': 'pubkey-info-modulus', 'mime_type': 'mimetype',
+                   'subject_public_key_algorithm': 'pubkey-info-algorithm'}
+objDateRelation = {'validity_not_before': 'validity-not-before', 'start': 'first-seen',
+                   'validity_not_after': 'validity-not-after', 'end': 'last-seen',
+                   'date': 'send-date', 'modified': 'last-modified'}
+
+def resolvePatternFromObjects(pattern, mispType):
+    Attribute = []
+    mapping = objectPatternMapping.get(mispType)
+    for p in pattern:
+        attribute = {}
+        stixType, value = p.split(' = ')
+        stixType = stixType.split(':')[1]
+        if stixType in mapping:
+            attrType = mapping.get(stixType)
+        elif 'hashes' in stixType:
+            attrType = stixType.split('.')[1:-1]
+        else:
+            if stixType in objTextRelation:
+                attribute['object-relation'] = objTextRelation.get(stixType)
+                attrType = 'text'
+            elif stixType in objDateRelation:
+                attribute['object-relation'] = objDateRelation.get(stixType)
+                attrType = 'datetime'
+            else:
+                continue
+        attribute['type'] = attrType
+        attribute['value'] = value[1:-1]
+        Attribute.append(attribute)
+    return Attribute
+
 def saveFile(args, misp):
     filename = '{}.in'.format(args[1])
     eventDict = misp.to_dict(with_timestamp=True)
@@ -229,7 +282,7 @@ def main(args):
     misp = pymisp.MISPEvent(None, False)
     misp.from_dict(**mispDict)
     saveFile(args, misp)
-    print(1)
+    print(1, args[1])
 
 if __name__ == "__main__":
     main(sys.argv)
