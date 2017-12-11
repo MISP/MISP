@@ -204,7 +204,8 @@ def addCustomObject(object_refs, attributes, attribute, identity):
 def addIdentity(object_refs, attributes, attribute, identity, identityClass):
     identity_id = "identity--{}".format(attribute.uuid)
     name = attribute.value
-    labels = ['misp:type=\"{}\"'.format(attribute.type)]
+    labels = ['misp:type=\"{}\"'.format(attribute.type),
+              'misp:to_ids=\"{}\"'.format(attribute.to_ids)]
     identity_args = {'id': identity_id, 'type': 'identity', 'name': name, 'created_by_ref': identity,
                      'identity_class': identityClass, 'labels': labels}
     if attribute.comment:
@@ -323,10 +324,11 @@ def addIndicatorFromObjects(object_refs, attributes, obj, identity, to_ids):
     killchain = [{'kill_chain_name': 'misp-category',
                   'phase_name': category}]
     obj_name = obj.name
+    objAttributes = obj.Attribute
     labels = ['misp:type=\"{}\"'.format(obj_name),
               'misp:to_ids=\"{}\"'.format(to_ids),
               'from_object']
-    pattern = definePatternForObjects(obj_name, obj.Attribute)
+    pattern = definePatternForObjects(obj_name, objAttributes)
     timestamp = getDateFromTimestamp(int(obj.timestamp))
     indicator_args = {'valid_from': timestamp, 'type': 'indicator', 'labels': labels,
                       'pattern': [pattern], 'id': indicator_id, 'created_by_ref': identity,
