@@ -95,7 +95,7 @@ mispTypesMapping = {
              'pattern': 'network-traffic:dst_port = \'{0}\''},
     'ip-dst|port': {'observable': {'0': {'type': '', 'value': ''}, '1': {'type': 'network-traffic', 'dst_ref': '0', 'dst_port': '', 'protocols': []}},
                     'pattern': 'network-traffic:dst_port = \'{1}\' AND network-traffic:dst_ref.type = \'{2}\' AND network-traffic:dst_ref.value = \'{0}\''},
-    'ip-src|port': {'observable': {'0': {'type': '', 'value': ''}, '1': {'type': 'network-traffic', 'src_ref': '0', 'dst_port': '', 'protocols': []}},
+    'ip-src|port': {'observable': {'0': {'type': '', 'value': ''}, '1': {'type': 'network-traffic', 'src_ref': '0', 'src_port': '', 'protocols': []}},
                     'pattern': 'network-traffic:src_port = \'{1}\' AND network-traffic:src_ref.type = \'{2}\' AND network-traffic:src_ref.value = \'{0}\''},
     'hostname|port': {'observable': {'0': {'type': 'domain-name', 'value': ''}, '1': {'type': 'network-traffic', 'dst_ref': '0', 'dst_port': '', 'protocols': []}},
                       'pattern': 'domain-name:value = \'{0}\' AND network-traffic:dst_port = \'{1}\''},
