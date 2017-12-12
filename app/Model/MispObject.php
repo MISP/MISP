@@ -503,8 +503,8 @@ class MispObject extends AppModel {
 				'conditions' => array('Object.uuid' => $object['uuid'])
 			));
 			if ($existingObject['Object']['event_id'] != $eventId) {
-				$this->Log->create();
-				$this->Log->save(array(
+				$log->create();
+				$log->save(array(
 						'org' => $user['Organisation']['name'],
 						'model' => 'Object',
 						'model_id' => 0,
@@ -550,8 +550,8 @@ class MispObject extends AppModel {
 			$object['sharing_group_id'] = $this->SharingGroup->captureSG($object['SharingGroup'], $user);
 		}
 		if (!$this->save($object)) {
-			$this->Log->create();
-			$this->Log->save(array(
+			$log->create();
+			$log->save(array(
 				'org' => $user['Organisation']['name'],
 				'model' => 'Object',
 				'model_id' => 0,
