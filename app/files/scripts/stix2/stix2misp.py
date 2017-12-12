@@ -126,7 +126,10 @@ def fillAttributes(attr, attrLabels, Attribute):
         attribute['value'] = resolvePattern(pattern, mispType)
     else:
         attribute['value'] = attr.get('name')
-        attribute['type'] = attrType
+        if attrType == 'identity':
+            attribute['type'] = mispType
+        else:
+            attribute['type'] = attrType
     attribute['to_ids'] = bool(attrLabels[1].split('=')[1])
     Attribute.append(attribute)
 
@@ -167,7 +170,7 @@ mispSimpleMapping = {
 
 mispComplexMapping = {
         'single': {'regkey|value': {'values': 'name'},
-                   'x509-fingerprint-sha1': {'hashes': 'sha1'}},
+                   'x509-fingerprint-sha1': {'hashes': 'SHA-1'}},
         'double': {'domain|ip': {'0': 'value', '1': 'value'},
                    'ip-src|port': {'0': 'value', '1': 'src_port'},
                    'ip-dst|port': {'0': 'value', '1': 'dst_port'},
@@ -179,9 +182,9 @@ def resolveObservable(observable, mispType):
     if mispType in mispSimpleMapping:
         return obj0.get(mispSimpleMapping[mispType])
     elif mispType in mispComplexMapping['single']:
-        singleDict = mispCompleMapping['single'].get(mispType)
-        key2 = list(singleDict.keys())[0]
-        key1 = singleDict[key2]
+        singleDict = mispComplexMapping['single'].get(mispType)
+        key1 = list(singleDict.keys())[0]
+        key2 = singleDict[key1]
         value2 = obj0[key1].get(key2)
         try:
             value1 = obj0.get('key')
@@ -202,6 +205,8 @@ def resolveObservable(observable, mispType):
             value2 = obj0['hashes'].get('md5')
         return '{}|{}'.format(value1, value2)
     elif 'hashes' in obj0:
+        if 'sha' in mispType:
+            return obj0['hashes'].get('SHA-{}'.format(mispType.split('sha')[1]))
         return obj0['hashes'].get(mispType.upper())
     else:
         return obj0.get('value')
