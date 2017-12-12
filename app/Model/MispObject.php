@@ -502,23 +502,23 @@ class MispObject extends AppModel {
 				'recursive' => -1,
 				'conditions' => array('Object.uuid' => $object['uuid'])
 			));
-			if ($existingObject['Object']['event_id'] != $eventId) {
-				$log->create();
-				$log->save(array(
-						'org' => $user['Organisation']['name'],
-						'model' => 'Object',
-						'model_id' => 0,
-						'email' => $user['email'],
-						'action' => 'edit',
-						'user_id' => $user['id'],
-						'title' => 'Duplicate UUID found in object',
-						'change' => 'An object was blocked from being saved due to a duplicate UUID. The uuid in question is: ' . $object['uuid'] . '. This can also be due to the same object (or an object with the same UUID) existing in a different event)',
-				));
-				return true;
-			}
 			if (empty($existingObject)) {
 				return $this->captureObject($object, $eventId, $user, $log);
 			} else {
+				if ($existingObject['Object']['event_id'] != $eventId) {
+					$log->create();
+					$log->save(array(
+							'org' => $user['Organisation']['name'],
+							'model' => 'Object',
+							'model_id' => 0,
+							'email' => $user['email'],
+							'action' => 'edit',
+							'user_id' => $user['id'],
+							'title' => 'Duplicate UUID found in object',
+							'change' => 'An object was blocked from being saved due to a duplicate UUID. The uuid in question is: ' . $object['uuid'] . '. This can also be due to the same object (or an object with the same UUID) existing in a different event)',
+					));
+					return true;
+				}
 				if (isset($object['timestamp'])) {
 					if ($existingObject['Object']['timestamp'] >= $object['timestamp']) {
 						return true;
