@@ -555,7 +555,7 @@ def defineObservableObjectEmail(obj_name, obj_attr):
     obj['0']['is_multipart'] = is_multipart
     if 'email-x-mailer' in email_attr:
         x_mailer = email_attr['email-x-mailer']
-        obj['0']['additional_header_fields'] = {'x-mailer': x-mailer}
+        obj['0']['additional_header_fields'] = {'x-mailer': x_mailer}
     if 'email-reply-to' in email_attr:
         reply_to = email_attr['email-reply-to']
         try:
