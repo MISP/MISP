@@ -97,6 +97,7 @@ def fillObjects(attr, attrLabels, Object):
     if attrType == 'observed-data':
         observable = attr.get('objects')
         obj['name'] = objType
+        obj['Attribute'] = resolveObservableFromObjects(observable, objType)
     elif attrType == 'indicator':
         obj['name'] = objType
         pattern = attr.get('pattern').split(' AND ')
@@ -211,6 +212,56 @@ def resolveObservable(observable, mispType):
     else:
         return obj0.get('value')
 
+def resolveObservableFromObjects(observable, mispType):
+    mapping = objectMapping[mispType]
+    if mispType == 'email':
+        return resolveEmailObject(observable, mapping)
+
+def resolveEmailObject(observable, mapping):
+    Attribute = []
+    obj0 = observable.get('0')
+    if obj0.pop('type') != 'email-message':
+        print(json.dumps({'success': 0, 'message': 'The ld not be read'}))
+        sys.exit(1)
+    if 'subject' in obj0:
+        subject = obj0.pop('subject')
+        Attribute.append(buildAttribute(mapping, subject, 'subject'))
+    is_multipart = obj0.pop('is_multipart')
+    if is_multipart:
+        obj0.pop('is_multipart')
+        body = obj0.pop('body_multipart')
+        for item in body:
+            part = item.get('body_raw_ref')
+            obj = observable[part].get('name')
+            Attribute.append(buildAttribute(mapping, obj, 'body_raw_ref'))
+    if 'additional_header_fields' in obj0:
+        header = obj0.pop('additional_header_fields')
+        for h in header:
+            obj = header.get(h)
+            Attribute.append(buildAttribute(mapping, obj, h))
+    if 'from_ref' in obj0:
+        part = obj0.pop('from_ref')
+        obj = observable[part].get('value')
+        Attribute.append(buildAttribute(mapping, obj, 'from_ref'))
+    for o in obj0:
+        field = obj0.get(o)
+        for f in field:
+            obj = observable[f].get('value')
+            Attribute.append(buildAttribute(mapping, obj, o))
+    print(Attribute)
+    return Attribute
+
+def getTypeAndRelation(mapping, obj):
+    objType = mapping[obj].get('type')
+    objRelation = mapping[obj].get('relation')
+    return objType, objRelation
+
+def buildAttribute(mapping, obj, objString):
+    attribute = {}
+    attribute['type'], attribute['object-relation'] = getTypeAndRelation(mapping, objString)
+    attribute['value'] = obj
+    return attribute
+
 def resolvePattern(pattern, mispType):
     if ' AND ' in pattern:
         patternParts = pattern.split(' AND ')
@@ -226,18 +277,29 @@ def resolvePattern(pattern, mispType):
         value = value[1:-1]
     return value
 
-objectPatternMapping = {
-        'domain|ip': {'domain': 'domain', 'resolves_to_refs[*].value': 'ip-dst'},
-        'email': {'to_refs': 'email-dst', 'cc_refs': 'email-dst', 'subject': 'email-subject',
-                  'additional_header_fields.X-Mailer': 'email-x-mailer', 'from_ref': 'email-src',
-                  'body_multipart[*].body_raw_ref.name': 'email-attachment',
-                  'additional_header_fields.Reply-To': 'email-reply-to'},
-        'file': {'size': 'size-in-bytes', 'name': 'filename'},
-        'ip|port': {'src_port': 'src-port', 'dst_port': 'dst-port',
-                    'network-traffic:dst_ref.value': 'ip-dst'},
-        'registry-key': {'datatype': 'reg-datatype', 'data': 'reg-data', 'name': 'reg-name',
-                         'key': 'reg-key'},
-        'url': {'value': 'url'},
+objectMapping = {
+        'domain|ip': {'domain': {'type': 'domain', 'relation': 'domain'},
+                      'resolves_to_refs[*].value': {'type': 'ip-dst', 'relation': 'ip'}},
+        'email': {'to_refs': {'type': 'email-dst', 'relation': 'to'},
+                  'cc_refs': {'type': 'email-dst', 'relation': 'cc'},
+                  'subject': {'type': 'email-subject', 'relation': 'subject'},
+                  'additional_header_fields.X-Mailer': {'type': 'email-x-mailer', 'relation': 'x-mailer'},
+                  'x-mailer': {'type': 'email-x-mailer', 'relation': 'x-mailer'},
+                  'from_ref': {'type': 'email-src', 'relation': 'from'},
+                  'body_multipart[*].body_raw_ref.name': {'type': 'email-attachment', 'relation': 'attachment'},
+                  'body_raw_ref': {'type': 'email-attachment', 'relation': 'attachment'},
+                  'additional_header_fields.Reply-To': {'type': 'email-reply-to', 'relation': 'reply-to'},
+                  'reply-to': {'type': 'email-reply-to', 'relation': 'reply-to'}},
+        'file': {'size': {'type': 'size-in-bytes', 'relation': 'size-in-bytes'},
+                 'name': {'type': 'filename', 'relation': 'filename'}},
+        'ip|port': {'src_port': {'type': 'port', 'relation': 'src-port'},
+                    'dst_port': {'type': 'port', 'relation': 'dst-port'},
+                    'network-traffic:dst_ref.value': {'type': 'ip-dst', 'relation': 'ip'}},
+        'registry-key': {'datatype': {'type': 'reg-datatype', 'relation': 'data-type'},
+                         'data': {'type': 'reg-data', 'relation': 'data'},
+                         'name': {'type': 'reg-name', 'relation': 'name'},
+                         'key': {'type': 'reg-key', 'relation': 'key'}},
+        'url': {'value': {'type': 'url', 'relation': 'url'}},
         'x509': {}
         }
 objTextRelation = {'subject': 'subject', 'issuer': 'issuer', 'serial_number': 'serial-number',
@@ -250,13 +312,14 @@ objDateRelation = {'validity_not_before': 'validity-not-before', 'start': 'first
 
 def resolvePatternFromObjects(pattern, mispType):
     Attribute = []
-    mapping = objectPatternMapping.get(mispType)
+    mapping = objectMapping.get(mispType)
     for p in pattern:
         attribute = {}
         stixType, value = p.split(' = ')
         stixType = stixType.split(':')[1]
         if stixType in mapping:
-            attrType = mapping.get(stixType)
+            attrType = mapping[stixType].get('type')
+            attribute['object-relation'] = mapping[stixType].get('relation')
         elif 'hashes' in stixType:
             attrType = stixType.split('.')[1:-1]
         else:
