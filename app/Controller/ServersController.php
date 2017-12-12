@@ -947,7 +947,7 @@ class ServersController extends AppController {
 
 	public function serverSettingsEdit($setting, $id = false, $forceSave = false) {
 		// invalidate config.php from php opcode cache
-		opcache_reset();
+		if (function_exists('opcache_reset')) opcache_reset();
 
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
 		if (!isset($setting) || !isset($id)) throw new MethodNotAllowedException();
