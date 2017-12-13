@@ -1156,5 +1156,29 @@
       "org_id": "0",
       "hide_tag": false
     }
+  },
+  {
+    "Feed": {
+      "id": "54",
+      "name": "VXvault - URL List",
+      "provider": "VXvault",
+      "url": "http://vxvault.net/URL_List.php",
+      "rules": "",
+      "enabled": true,
+      "distribution": "3",
+      "sharing_group_id": "0",
+      "tag_id": "0",
+      "default": false,
+      "source_format": "freetext",
+      "fixed_event": false,
+      "delta_merge": false,
+      "event_id": "0",
+      "publish": false,
+      "override_ids": false,
+      "settings": "{\"csv\":{\"value\":\"\",\"delimiter\":\",\"},\"common\":{\"excluderegex\":\"\"}}",
+      "input_source": "network",
+      "delete_local_file": false,
+      "lookup_visible": true
+    }
   }
 ]
