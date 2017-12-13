@@ -76,7 +76,7 @@ def buildMispDict(event):
     #print('Galaxy:', Galaxy)
     mispDict['Attribute'] = Attribute
     mispDict['Galaxy'] = Galaxy
-    #mispDict['Object'] = Object
+    mispDict['Object'] = Object
     return mispDict
 
 def fillGalaxy(attr, attrLabels, Galaxy):
@@ -144,7 +144,7 @@ def fillCustom(attr, attrLabels, Attribute):
 
 def fillCustomFromObject(attr, attrLabels, Object):
     obj = {}
-    obj['type'] = attr.get('type').split('x-misp-object-')[1]
+    obj['name'] = attr.get('type').split('x-misp-object-')[1]
     obj['timestamp'] = int(time.mktime(time.strptime(attr.get('x_misp_timestamp'), "%Y-%m-%d %H:%M:%S")))
     obj['labels'] = bool(attrLabels[0].split('=')[1])
     Attribute = []
@@ -228,7 +228,6 @@ def resolveEmailObject(observable, mapping):
         Attribute.append(buildAttribute(mapping, subject, 'subject'))
     is_multipart = obj0.pop('is_multipart')
     if is_multipart:
-        obj0.pop('is_multipart')
         body = obj0.pop('body_multipart')
         for item in body:
             part = item.get('body_raw_ref')
@@ -248,7 +247,6 @@ def resolveEmailObject(observable, mapping):
         for f in field:
             obj = observable[f].get('value')
             Attribute.append(buildAttribute(mapping, obj, o))
-    print(Attribute)
     return Attribute
 
 def getTypeAndRelation(mapping, obj):
@@ -258,7 +256,7 @@ def getTypeAndRelation(mapping, obj):
 
 def buildAttribute(mapping, obj, objString):
     attribute = {}
-    attribute['type'], attribute['object-relation'] = getTypeAndRelation(mapping, objString)
+    attribute['type'], attribute['object_relation'] = getTypeAndRelation(mapping, objString)
     attribute['value'] = obj
     return attribute
 
@@ -319,28 +317,30 @@ def resolvePatternFromObjects(pattern, mispType):
         stixType = stixType.split(':')[1]
         if stixType in mapping:
             attrType = mapping[stixType].get('type')
-            attribute['object-relation'] = mapping[stixType].get('relation')
+            relation = mapping[stixType].get('relation')
         elif 'hashes' in stixType:
-            attrType = stixType.split('.')[1:-1]
+            attrType = stixType.split('.')[1][1:-1]
+            relation = attrType
         else:
             if stixType in objTextRelation:
-                attribute['object-relation'] = objTextRelation.get(stixType)
+                relation = objTextRelation.get(stixType)
                 attrType = 'text'
             elif stixType in objDateRelation:
-                attribute['object-relation'] = objDateRelation.get(stixType)
+                relation = objDateRelation.get(stixType)
                 attrType = 'datetime'
             else:
                 continue
         attribute['type'] = attrType
+        attribute['object_relation'] = relation
         attribute['value'] = value[1:-1]
         Attribute.append(attribute)
     return Attribute
 
 def saveFile(args, misp):
     filename = '{}.in'.format(args[1])
-    eventDict = misp.to_dict(with_timestamp=True)
+    eventDict = misp.to_json()
     with open(filename, 'w') as f:
-        f.write(json.dumps(eventDict))
+        f.write(eventDict)
 
 def main(args):
     pathname = os.path.dirname(sys.argv[0])
@@ -350,7 +350,7 @@ def main(args):
     misp = pymisp.MISPEvent(None, False)
     misp.from_dict(**mispDict)
     saveFile(args, misp)
-    print(1, args[1])
+    print(1)
 
 if __name__ == "__main__":
     main(sys.argv)
