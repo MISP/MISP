@@ -412,7 +412,7 @@ class UsersController extends AppController {
 				if (isset($this->request->data['User']['id'])) {
 					unset($this->request->data['User']['id']);
 				}
-				$required_fields = array('role_id', 'email', 'org_id');
+				$required_fields = array('role_id', 'email');
 				foreach ($required_fields as $field) {
 					if (empty($this->request->data['User'][$field])) {
 						return $this->RestResponse->saveFailResponse('Users', 'admin_add', false, array($field => 'Mandatory field not set.'), $this->response->type());
@@ -433,7 +433,8 @@ class UsersController extends AppController {
 						'newsread' => 0,
 						'change_pw' => 1,
 						'authkey' => $this->User->generateAuthKey(),
-						'termsaccepted' => 0
+						'termsaccepted' => 0,
+						'org_id' => $this->Auth->user('org_id')
 				);
 				foreach ($defaults as $key => $value) {
 					if (!isset($this->request->data['User'][$key])) $this->request->data['User'][$key] = $value;
