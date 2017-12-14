@@ -126,51 +126,41 @@ def handleLink(attribute, external_refs):
     link = {'source_name': source, 'url': url}
     external_refs.append(link)
 
-
-def addAttackPattern(object_refs, attributes, galaxy, identity):
+def generateDictFromGalaxy(galaxy, identity, boolKillchain, boolAliases, SDOtype):
     galaxy_type = galaxy.get('type')
-    killchain = [{'kill_chain_name': 'misp-category',
-                  'phase_name': galaxy_type}
-                ]
     name = galaxy.get('name')
     cluster = galaxy['GalaxyCluster'][0]
-    attack_id = "attack-pattern--{}".format(cluster.get('uuid'))
-    description = cluster.get('description')
+    SDOid = "{}--{}".format(SDOtype, cluster.get('uuid'))
+    description = "{} | {}".format(galaxy.get('description'), cluster.get('description'))
     labels = ['misp:type=\"{}\"'.format(galaxy_type)]
-    attack_args = {'id': attack_id, 'type': 'attack-pattern', 'created_by_ref': identity, 'name': name,
-                   'description': description, 'kill_chain_phases': killchain, 'labels': labels}
+    SDOargs = {'id': SDOid, 'type': SDOtype, 'created_by_ref': identity, 'name': name,
+               'description': description}
+    if boolKillchain:
+        killchain = [{'kill_chain_name': 'misp-category',
+                      'phase_name': galaxy_type}]
+        SDOargs['kill_chain_phases'] = killchain
     if cluster['tag_name']:
-        attack_args['labels'].append(cluster.get('tag_name'))
+        labels.append(cluster.get('tag_name'))
+    meta = cluster.get('meta')
+    if 'synonyms' in meta and boolAliases:
+        addAliases(meta, SDOargs)
+    SDOargs['labels'] = labels
+    return SDOargs
+
+def addAttackPattern(object_refs, attributes, galaxy, identity):
+    attack_args = generateDictFromGalaxy(galaxy, identity, True, False, 'attack-pattern')
     attackPattern = AttackPattern(**attack_args)
     attributes.append(attackPattern)
     object_refs.append(attack_id)
 
 def addCampaign(object_refs, attributes, galaxy, identity):
-    name = galaxy.get('name')
-    cluster = galaxy['GalaxyCluster'][0]
-    campaign_id = "campaign--{}".format(cluster.get('uuid'))
-    description = cluster.get('description')
-    labels = ['misp:type=\"{}\"'.format(galaxy.get('type'))]
-    campaign_args = {'id': campaign_id, 'type': 'campaign', 'name': name, 'description': description,
-                     'created_by_ref': identity, 'labels': labels}
-    if cluster['tag_name']:
-        campaign_args['labels'].append(cluster.get('tag_name'))
-    meta = cluster.get('meta')
-    addAliases(meta, campaign_args)
+    campaign_args = generateDictFromGalaxy(galaxy, identity, False, True, 'campaign')
     campaign = Campaign(**campaign_args)
     attributes.append(campaign)
     object_refs.append(campaign_id)
 
 def addCourseOfAction(object_refs, attributes, galaxy, identity):
-    name = galaxy.get('name')
-    cluster = galaxy['GalaxyCluster'][0]
-    courseOfAction_id = "course-of-action--{}".format(cluster.get('uuid'))
-    description = cluster.get('description')
-    labels = ['misp:type=\"{}\"'.format(galaxy.get('type'))]
-    courseOfAction_args = {'id': courseOfAction_id, 'type': 'course-of-action', 'name': name,
-                           'description': description, 'created_by_ref': identity, 'labels': labels}
-    if cluster['tag_name']:
-        courseOfAction_args['labels'].append(cluster.get('tag_name'))
+    courseOfAction_args = generateDictFromGalaxy(galaxy, identity, False, False, 'course-of-action')
     courseOfAction = CourseOfAction(**courseOfAction_args)
     attributes.append(courseOfAction)
     object_refs.append(courseOfAction_id)
@@ -215,36 +205,13 @@ def addIdentity(object_refs, attributes, attribute, identity, identityClass):
     object_refs.append(identity_id)
 
 def addIntrusionSet(object_refs, attributes, galaxy, identity):
-    name = galaxy.get('name')
-    cluster = galaxy['GalaxyCluster'][0]
-    intrusionSet_id = "intrusion-set--{}".format(cluster.get('uuid'))
-    description = cluster.get('description')
-    labels = ['misp:type=\"{}\"'.format(galaxy.get('type'))]
-    intrusion_args = {'id': intrusionSet_id, 'type': 'intrusion-set', 'name': name, 'description': description,
-                      'created_by_ref': identity, 'labels': labels}
-    meta = cluster.get('meta')
-    if "synonyms" in meta:
-        addAliases(meta, intrusion_args)
-    if cluster['tag_name']:
-        intrusion_args['labels'].append(cluster.get('tag_name'))
+    intrusion_args = generateDictFromGalaxy(galaxy, identity, False, True, 'intrusion-set')
     intrusionSet = IntrusionSet(**intrusion_args)
     attributes.append(intrusionSet)
     object_refs.append(intrusionSet_id)
 
 def addMalware(object_refs, attributes, galaxy, identity):
-    galaxy_type = galaxy.get('type')
-    killchain = [{'kill_chain_name': 'misp-category',
-                  'phase_name': galaxy_type}
-                 ]
-    name = galaxy.get('name')
-    cluster = galaxy['GalaxyCluster'][0]
-    malware_id = "malware--{}".format(cluster.get('uuid'))
-    description = cluster.get('description')
-    labels = ['misp:type=\"{}\"'.format(galaxy_type)]
-    malware_args = {'id': malware_id, 'type': 'malware', 'name': name, 'description': description,
-                    'created_by_ref': identity, 'kill_chain_phases': killchain, 'labels': labels}
-    if cluster['tag_name']:
-        malware_args['labels'].append(cluster.get('tag_name'))
+    malware_args = generateDictFromGalaxy(galaxy, identity, True, False, 'malware')
     malware = Malware(**malware_args)
     attributes.append(malware)
     object_refs.append(malware_id)
@@ -270,36 +237,13 @@ def addObservedData(object_refs, attributes, attribute, identity):
     object_refs.append(observedData_id)
 
 def addThreatActor(object_refs, attributes, galaxy, identity):
-    name = galaxy.get('name')
-    cluster = galaxy['GalaxyCluster'][0]
-    threatActor_id = "threat-actor--{}".format(cluster.get('uuid'))
-    description = cluster.get('description')
-    labels = ['misp:type=\"{}\"'.format(galaxy.get('type'))]
-    threatActor_args = {'id': threatActor_id, 'type': 'threat-actor', 'name': name, 'description': description,
-                        'created_by_ref': identity, 'labels': labels}
-    meta = cluster.get('meta')
-    if 'synonyms' in meta:
-        addAliases(meta, threatActor_args)
-    if cluster['tag_name']:
-        threatActor_args['labels'].append(cluster.get('tag_name'))
+    threatActor_args = generateDictFromGalaxy(galaxy, identity, False, True, 'threat-actor')
     threatActor = ThreatActor(**threatActor_args)
     attributes.append(threatActor)
     object_refs.append(threatActor_id)
 
 def addTool(object_refs, attributes, galaxy, identity):
-    galaxy_type = galaxy.get('type')
-    killchain = [{'kill_chain_name': 'misp-category',
-                  'phase_name': galaxy_type}
-                 ]
-    name = galaxy.get('name')
-    cluster = galaxy['GalaxyCluster'][0]
-    tool_id = "tool--{}".format(cluster.get('uuid'))
-    description = cluster.get('description')
-    labels = ['misp:type=\"{}\"'.format(galaxy_type)]
-    tool_args = {'id': tool_id, 'type': 'tool', 'name': name, 'description': description,
-                 'created_by_ref': identity, 'kill_chain_phases': killchain, 'labels': labels}
-    if cluster['tag_name']:
-        tool_args['labels'].append(cluster.get('tag_name'))
+    tool_args = generateDictFromGalaxy(galaxy, identity, True, False, 'tool')
     tool = Tool(**tool_args)
     attributes.append(tool)
     object_refs.append(tool_id)
