@@ -145,22 +145,22 @@ def generateDictFromGalaxy(galaxy, identity, boolKillchain, boolAliases, SDOtype
     if 'synonyms' in meta and boolAliases:
         addAliases(meta, SDOargs)
     SDOargs['labels'] = labels
-    return SDOargs
+    return SDOargs, SDOid
 
 def addAttackPattern(object_refs, attributes, galaxy, identity):
-    attack_args = generateDictFromGalaxy(galaxy, identity, True, False, 'attack-pattern')
+    attack_args, attack_id = generateDictFromGalaxy(galaxy, identity, True, False, 'attack-pattern')
     attackPattern = AttackPattern(**attack_args)
     attributes.append(attackPattern)
     object_refs.append(attack_id)
 
 def addCampaign(object_refs, attributes, galaxy, identity):
-    campaign_args = generateDictFromGalaxy(galaxy, identity, False, True, 'campaign')
+    campaign_args, campaign_id = generateDictFromGalaxy(galaxy, identity, False, True, 'campaign')
     campaign = Campaign(**campaign_args)
     attributes.append(campaign)
     object_refs.append(campaign_id)
 
 def addCourseOfAction(object_refs, attributes, galaxy, identity):
-    courseOfAction_args = generateDictFromGalaxy(galaxy, identity, False, False, 'course-of-action')
+    courseOfAction_args, courseOfAction_id = generateDictFromGalaxy(galaxy, identity, False, False, 'course-of-action')
     courseOfAction = CourseOfAction(**courseOfAction_args)
     attributes.append(courseOfAction)
     object_refs.append(courseOfAction_id)
@@ -205,13 +205,13 @@ def addIdentity(object_refs, attributes, attribute, identity, identityClass):
     object_refs.append(identity_id)
 
 def addIntrusionSet(object_refs, attributes, galaxy, identity):
-    intrusion_args = generateDictFromGalaxy(galaxy, identity, False, True, 'intrusion-set')
+    intrusion_args, intrusion_id = generateDictFromGalaxy(galaxy, identity, False, True, 'intrusion-set')
     intrusionSet = IntrusionSet(**intrusion_args)
     attributes.append(intrusionSet)
-    object_refs.append(intrusionSet_id)
+    object_refs.append(intrusion_id)
 
 def addMalware(object_refs, attributes, galaxy, identity):
-    malware_args = generateDictFromGalaxy(galaxy, identity, True, False, 'malware')
+    malware_args, malware_id = generateDictFromGalaxy(galaxy, identity, True, False, 'malware')
     malware = Malware(**malware_args)
     attributes.append(malware)
     object_refs.append(malware_id)
@@ -237,13 +237,13 @@ def addObservedData(object_refs, attributes, attribute, identity):
     object_refs.append(observedData_id)
 
 def addThreatActor(object_refs, attributes, galaxy, identity):
-    threatActor_args = generateDictFromGalaxy(galaxy, identity, False, True, 'threat-actor')
+    threatActor_args, threatActor_id = generateDictFromGalaxy(galaxy, identity, False, True, 'threat-actor')
     threatActor = ThreatActor(**threatActor_args)
     attributes.append(threatActor)
     object_refs.append(threatActor_id)
 
 def addTool(object_refs, attributes, galaxy, identity):
-    tool_args = generateDictFromGalaxy(galaxy, identity, True, False, 'tool')
+    tool_args, tool_id = generateDictFromGalaxy(galaxy, identity, True, False, 'tool')
     tool = Tool(**tool_args)
     attributes.append(tool)
     object_refs.append(tool_id)
