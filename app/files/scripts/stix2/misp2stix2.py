@@ -167,14 +167,14 @@ def addCourseOfAction(object_refs, attributes, galaxy, identity):
 
 def addCustomObject(object_refs, attributes, attribute, identity):
     customObject_id = "x-misp-object--{}".format(attribute.uuid)
-    timestamp = attribute.timestamp
     attr_type = attribute.type
     customObject_type = 'x-misp-object-{}'.format(attr_type)
-    value = attribute.value
-    labels = ['misp:type=\"{}\"'.format(attr_type), 
+    labels = ['misp:type=\"{}\"'.format(attr_type),
+              'misp:category=\"{}\"'.format(attribute.category),
               'misp:to_ids=\"{}\"'.format(attribute.to_ids)]
-    customObject_args = {'id': customObject_id, 'x_misp_timestamp': timestamp, 'labels': labels,
-                         'x_misp_value': value, 'created_by_ref': identity}
+    customObject_args = {'id': customObject_id, 'x_misp_timestamp': attribute.timestamp, 'labels': labels,
+                         'x_misp_value': attribute.value, 'created_by_ref': identity,
+                         'x_misp_category': attribute.category}
     if attribute.comment:
         customObject_args['x_misp_comment'] = attribute.comment
     @CustomObject(customObject_type, [('id', properties.StringProperty(required=True)),
@@ -183,6 +183,7 @@ def addCustomObject(object_refs, attributes, attribute, identity):
                                       ('x_misp_value', properties.StringProperty(required=True)),
                                       ('created_by_ref', properties.StringProperty(required=True)),
                                       ('x_misp_comment', properties.StringProperty()),
+                                      ('x_misp_category', properties.StringProperty())
                                      ])
     class Custom(object):
         def __init__(self, **kwargs):
@@ -195,6 +196,7 @@ def addIdentity(object_refs, attributes, attribute, identity, identityClass):
     identity_id = "identity--{}".format(attribute.uuid)
     name = attribute.value
     labels = ['misp:type=\"{}\"'.format(attribute.type),
+              'misp:category=\"{}\"'.format(attribute.category),
               'misp:to_ids=\"{}\"'.format(attribute.to_ids)]
     identity_args = {'id': identity_id, 'type': 'identity', 'name': name, 'created_by_ref': identity,
                      'identity_class': identityClass, 'labels': labels}
@@ -228,6 +230,7 @@ def addObservedData(object_refs, attributes, attribute, identity):
     timestamp = attribute.timestamp
     attr_type = attribute.type
     labels = ['misp:type=\"{}\"'.format(attr_type),
+              'misp:category=\"{}\"'.format(attribute.category),
               'misp:to_ids=\"{}\"'.format(attribute.to_ids)]
     observedData_args = {'id': observedData_id, 'type': 'observed-data', 'number_observed': 1, 'labels': labels,
                          'first_observed': timestamp, 'last_observed': timestamp, 'created_by_ref': identity,
@@ -255,6 +258,7 @@ def addVulnerability(object_refs, attributes, attribute, identity):
     vuln_data['external_id'] = name
     ext_refs = [vuln_data]
     labels = ['misp:type=\"{}\"'.format(attribute.type),
+              'misp:category=\"{}\"'.format(attribute.category),
               'misp:to_ids=\"{}\"'.format(attribute.to_ids)]
     vuln_args = {'type': 'vulnerability', 'id': vuln_id, 'external_references': ext_refs, 'name': name,
                  'created_by_ref': identity, 'labels': labels}
@@ -270,6 +274,7 @@ def addIndicatorFromObjects(object_refs, attributes, obj, identity, to_ids):
     obj_name = obj.name
     objAttributes = obj.attributes
     labels = ['misp:type=\"{}\"'.format(obj_name),
+              'misp:category=\"{}\"'.format(category),
               'misp:to_ids=\"{}\"'.format(to_ids),
               'from_object']
     pattern = definePatternForObjects(obj_name, objAttributes)
@@ -286,6 +291,7 @@ def addObservedDataFromObjects(object_refs, attributes, obj, identity, to_ids):
     timestamp = getDateFromTimestamp(int(obj.timestamp))
     obj_name = obj.name
     labels = ['misp:type=\"{}\"'.format(obj_name),
+              'misp:category=\"{}\"'.format(obj.get('meta-category')),
               'misp:to_ids=\"{}\"'.format(to_ids),
               'from_object']
     observedData_args = {'id': observedData_id, 'type': 'observed-data', 'number_observed': 1, 'labels': labels,
@@ -303,6 +309,7 @@ def addVulnerabilityFromObjects(object_refs, attributes, obj, identity, to_ids):
             name = obj_attr.value
             break
     labels = ['misp:type=\"{}\"'.format(name),
+              'misp:category=\"{}\"'.format(obj.get('meta-category')),
               'misp:to_ids=\"{}\"'.format(to_ids),
               'from_object']
     vuln_args = {'id': vuln_id, 'type': 'vulnerability', 'name': name, 'created_by_ref': identity,
@@ -316,15 +323,17 @@ def addCustomObjectFromObjects(object_refs, attributes, obj, identity, to_ids):
     timestamp = getDateFromTimestamp(int(obj.timestamp))
     obj_name = obj.name
     customObject_type = 'x-misp-object-{}'.format(obj_name)
+    category = obj.get('meta-category')
     values = {}
     for obj_attr in obj.attributes:
         typeId = '{}_{}'.format(obj_attr.get('type'), obj_attr.get('object_relation'))
         values[typeId] = obj_attr.get('value')
     labels = ['misp:type=\"{}\"'.format(obj_name),
+              'misp:category=\"{}\"'.format(category),
               'misp:to_ids=\"{}\"'.format(to_ids),
               'from_object']
     customObject_args = {'id': customObject_id, 'x_misp_timestamp': timestamp, 'labels': labels,
-                         'x_misp_values': values, 'created_by_ref': identity}
+                         'x_misp_values': values, 'created_by_ref': identity, 'x_misp_category': category}
     if obj.comment:
         customObject_args['x_misp_comment'] = obj.comment
     @CustomObject(customObject_type, [('id', properties.StringProperty(required=True)),
@@ -333,6 +342,7 @@ def addCustomObjectFromObjects(object_refs, attributes, obj, identity, to_ids):
                                       ('x_misp_values', properties.DictionaryProperty(required=True)),
                                       ('created_by_ref', properties.StringProperty(required=True)),
                                       ('x_misp_comment', properties.StringProperty()),
+                                      ('x_misp_category', properties.StringProperty())
                                      ])
     class Custom(object):
         def __init__(self, **kwargs):
@@ -361,6 +371,7 @@ def handleIndicatorAttribute(object_refs, attributes, attribute, identity):
                  'phase_name': category}]
     attr_type = attribute.type
     labels = ['misp:type=\"{}\"'.format(attr_type),
+              'misp:category=\"{}\"'.format(attribute.category),
               'misp:to_ids=\"{}\"'.format(attribute.to_ids)]
     indicator_args = {'valid_from': attribute.timestamp, 'type': 'indicator',
                       'labels': labels, 'pattern': definePattern(attr_type, attribute.value), 'id': indic_id,
