@@ -372,7 +372,7 @@ def resolvePatternFromObjects(pattern, mispType):
     return Attribute
 
 def saveFile(args, misp):
-    filename = '{}.in'.format(args[1])
+    filename = '{}.stix2'.format(args[1])
     eventDict = misp.to_json()
     with open(filename, 'w') as f:
         f.write(eventDict)
