@@ -86,20 +86,25 @@ def fillGalaxy(attr, attrLabels, Galaxy):
     value = tag.split(':')[1].split('=')[1]
     galaxy['type'] = mispType
     galaxy['name'] = attr.get('name')
+    galaxyDescription, clusterDescription = attr.get('description').split(' | ')
+    galaxy['description'] = galaxyDescription
     galaxy['GalaxyCluster'] = [{'type': mispType, 'value': value, 'tag_name': tag,
-                               'description': attr.get('description')}]
+                               'description': clusterDescription}]
     Galaxy.append(galaxy)
 
 def fillObjects(attr, attrLabels, Object):
     obj = {}
     objType = getMispType(attrLabels)
+    objCat = getMispCategory(attrLabels)
     attrType = attr.get('type')
     if attrType == 'observed-data':
         observable = attr.get('objects')
         obj['name'] = objType
+        obj['meta-category'] = objCat
         obj['Attribute'] = resolveObservableFromObjects(observable, objType)
     elif attrType == 'indicator':
         obj['name'] = objType
+        obj['meta-category'] = objCat
         pattern = attr.get('pattern').split(' AND ')
         pattern[0] = pattern[0][2:]
         pattern[-1] = pattern[-1][:-2]
@@ -112,15 +117,18 @@ def fillObjects(attr, attrLabels, Object):
 def fillAttributes(attr, attrLabels, Attribute):
     attribute = {}
     mispType = getMispType(attrLabels)
+    mispCat = getMispCategory(attrLabels)
     attrType = attr.get('type')
     if attrType == 'observed-data':
         attribute['type'] = mispType
+        attribute['category'] = mispCat
         date = attr.get('first_observed')
         attribute['timestamp'] = getTimestampfromDate(date)
         observable = attr.get('objects')
         attribute['value'] = resolveObservable(observable, mispType)
     elif attrType == 'indicator':
         attribute['type'] = mispType
+        attribute['category'] = mispCat
         date = attr.get('valid_from')
         attribute['timestamp'] = getTimestampfromDate(date)
         pattern = attr.get('pattern')
@@ -131,7 +139,10 @@ def fillAttributes(attr, attrLabels, Attribute):
             attribute['type'] = mispType
         else:
             attribute['type'] = attrType
+        attribute['category'] = mispCat
     attribute['to_ids'] = bool(attrLabels[1].split('=')[1])
+    if 'description' in attr:
+        attribute['comment'] = attr.get('description')
     Attribute.append(attribute)
 
 def fillCustom(attr, attrLabels, Attribute):
@@ -140,13 +151,15 @@ def fillCustom(attr, attrLabels, Attribute):
     attribute['timestamp'] = int(time.mktime(time.strptime(attr.get('x_misp_timestamp'), "%Y-%m-%d %H:%M:%S")))
     attribute['to_ids'] = bool(attrLabels[1].split('=')[1])
     attribute['value'] = attr.get('x_misp_value')
+    attribute['category'] = getMispCategory(attrLabels)
     Attribute.append(attribute)
 
 def fillCustomFromObject(attr, attrLabels, Object):
     obj = {}
     obj['name'] = attr.get('type').split('x-misp-object-')[1]
     obj['timestamp'] = int(time.mktime(time.strptime(attr.get('x_misp_timestamp'), "%Y-%m-%d %H:%M:%S")))
-    obj['labels'] = bool(attrLabels[0].split('=')[1])
+    obj['meta-category'] = attr.get('category')
+    #obj['labels'] = bool(attrLabels[0].split('=')[1])
     Attribute = []
     values = attr.get('x_misp_values')
     for obj_attr in values:
@@ -164,6 +177,9 @@ def getTimestampfromDate(date):
 
 def getMispType(labels):
     return labels[0].split('=')[1][1:-1]
+
+def getMispCategory(labels):
+    return labels[1].split('=')[1][1:-1]
 
 mispSimpleMapping = {
         'email-subject': 'subject', 'email-body': 'body', 'regkey': 'key', 'mutex': 'name', 'port': 'dst_port',
@@ -216,12 +232,14 @@ def resolveObservableFromObjects(observable, mispType):
     mapping = objectMapping[mispType]
     if mispType == 'email':
         return resolveEmailObject(observable, mapping)
+    else:
+        return resolveBasicObject(observable, mapping)
 
 def resolveEmailObject(observable, mapping):
     Attribute = []
     obj0 = observable.get('0')
     if obj0.pop('type') != 'email-message':
-        print(json.dumps({'success': 0, 'message': 'The ld not be read'}))
+        print(json.dumps({'success': 0, 'message': 'Object type error. \'email\' needed.'}))
         sys.exit(1)
     if 'subject' in obj0:
         subject = obj0.pop('subject')
@@ -247,6 +265,23 @@ def resolveEmailObject(observable, mapping):
         for f in field:
             obj = observable[f].get('value')
             Attribute.append(buildAttribute(mapping, obj, o))
+    return Attribute
+
+def resolveBasicObject(observable, mapping):
+    Attribute = []
+    obj0 = observable.get('0')
+    if obj0.pop('type') not in ('file'):
+        print(json.dumps({'success': 0, 'message': 'Object type error.'}))
+        sys.exit(1)
+    if 'hashes' in obj0:
+        hashes = obj0.pop('hashes')
+        for h in hashes:
+            obj = hashes.get(h)
+            hsh = h.lower().replace('-', '')
+            Attribute.append({'type': hsh, 'object_relation': hsh, 'value': obj})
+    for o in obj0:
+        obj = obj0.get(o)
+        Attribute.append(buildAttribute(mapping, obj, o))
     return Attribute
 
 def getTypeAndRelation(mapping, obj):
@@ -343,6 +378,7 @@ def saveFile(args, misp):
         f.write(eventDict)
 
 def main(args):
+    print(args[1])
     pathname = os.path.dirname(sys.argv[0])
     stix2Event = loadEvent(args, pathname)
     stix2Event = stix2Event.get('objects')
