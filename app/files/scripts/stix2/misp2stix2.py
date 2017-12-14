@@ -101,7 +101,7 @@ def readAttributes(event, identity, object_refs, external_refs):
     if objct:
         for obj in event.Object:
             to_ids = False
-            for obj_attr in obj.Attribute:
+            for obj_attr in obj.attributes:
                 if obj_attr.to_ids:
                     to_ids = True
                     break
@@ -268,7 +268,7 @@ def addIndicatorFromObjects(object_refs, attributes, obj, identity, to_ids):
     killchain = [{'kill_chain_name': 'misp-category',
                   'phase_name': category}]
     obj_name = obj.name
-    objAttributes = obj.Attribute
+    objAttributes = obj.attributes
     labels = ['misp:type=\"{}\"'.format(obj_name),
               'misp:to_ids=\"{}\"'.format(to_ids),
               'from_object']
@@ -290,7 +290,7 @@ def addObservedDataFromObjects(object_refs, attributes, obj, identity, to_ids):
               'from_object']
     observedData_args = {'id': observedData_id, 'type': 'observed-data', 'number_observed': 1, 'labels': labels,
                          'first_observed': timestamp, 'last_observed': timestamp, 'created_by_ref': identity,
-                         'objects': defineObservableObjectForObjects(obj_name, obj.Attribute)}
+                         'objects': defineObservableObjectForObjects(obj_name, obj.attributes)}
     observedData = ObservedData(**observedData_args)
     attributes.append(observedData)
     object_refs.append(observedData_id)
@@ -298,7 +298,7 @@ def addObservedDataFromObjects(object_refs, attributes, obj, identity, to_ids):
 def addVulnerabilityFromObjects(object_refs, attributes, obj, identity, to_ids):
     vuln_id = 'vulnerability--{}'.format(obj.uuid)
     name = 'Undefined name'
-    for obj_attr in obj.Attribute:
+    for obj_attr in obj.attributes:
         if obj_attr.type == 'vulnerability':
             name = obj_attr.value
             break
@@ -317,7 +317,7 @@ def addCustomObjectFromObjects(object_refs, attributes, obj, identity, to_ids):
     obj_name = obj.name
     customObject_type = 'x-misp-object-{}'.format(obj_name)
     values = {}
-    for obj_attr in obj.Attribute:
+    for obj_attr in obj.attributes:
         typeId = '{}_{}'.format(obj_attr.get('type'), obj_attr.get('object_relation'))
         values[typeId] = obj_attr.get('value')
     labels = ['misp:type=\"{}\"'.format(obj_name),
