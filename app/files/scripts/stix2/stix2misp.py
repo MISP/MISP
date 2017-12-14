@@ -378,7 +378,6 @@ def saveFile(args, misp):
         f.write(eventDict)
 
 def main(args):
-    print(args[1])
     pathname = os.path.dirname(sys.argv[0])
     stix2Event = loadEvent(args, pathname)
     stix2Event = stix2Event.get('objects')
