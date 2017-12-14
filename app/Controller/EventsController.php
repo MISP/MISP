@@ -2798,7 +2798,10 @@ class EventsController extends AppController {
 			// If we sent any tags along, load the associated tag names for each attribute
 			if ($tags) $conditions = $this->Event->Attribute->setTagConditions($tags, $conditions);
 			$blockedAttributeTags = array();
-			if ($tags) {
+			if (!empty($tags)) {
+				if (!is_array($tags)) {
+					$tags = explode('&&', $tags);
+				}
 				foreach ($tags as $tag) {
 					if ($tag[0] == '!') {
 						$blockedAttributeTags[] = ltrim($tag, '!');

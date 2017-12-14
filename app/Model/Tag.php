@@ -86,7 +86,7 @@ class Tag extends AppModel {
 
 	public function lookupTagIdFromName($tagName) {
 		$tagId = $this->find('first', array(
-			'conditions' => array('Tag.name' => $tagName),
+			'conditions' => array('LOWER(Tag.name)' => strtolower($tagName)),
 			'recursive' => -1,
 			'fields' => array('Tag.id')
 		));
