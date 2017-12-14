@@ -53,10 +53,6 @@
 		<th><?php echo $this->Paginator->sort('user_id', 'Email');?></th>
 		<?php endif; ?>
 		<th class="filter"><?php echo $this->Paginator->sort('date');?></th>
-		<th class="filter" title="<?php echo $eventDescriptions['threat_level_id']['desc'];?>"><?php echo $this->Paginator->sort('threat_level_id');?></th>
-		<th title="<?php echo $eventDescriptions['analysis']['desc'];?>">
-			<?php echo $this->Paginator->sort('analysis');?>
-		</th>
 		<th class="filter"><?php echo $this->Paginator->sort('info');?></th>
 		<th title="<?php echo $eventDescriptions['distribution']['desc'];?>">
 			<?php echo $this->Paginator->sort('distribution');?>
@@ -92,7 +88,7 @@
 			}?>&nbsp;
 		</td>
 		<?php if (Configure::read('MISP.showorg') || $isAdmin): ?>
-			<td class="short" ondblclick="document.location.href ='<?php echo $baseurl."/organisations/view/".$event['Orgc']['id'];?>'">
+			<td class="short" ondblclick="document.location.href ='<?php echo $baseurl . "/events/index/searchorg:" . $event['Orgc']['id'];?>'">
 				<?php
 					$imgRelativePath = 'orgs' . DS . h($event['Orgc']['name']) . '.png';
 					$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
@@ -103,7 +99,7 @@
 			</td>
 		<?php endif;?>
 		<?php if ($isSiteAdmin || (Configure::read('MISP.showorgalternate') && Configure::read('MISP.showorg'))): ?>
-			<td class="short" ondblclick="document.location.href ='<?php echo $baseurl."/organisations/view/".$event['Org']['id'];?>'">
+			<td class="short" ondblclick="document.location.href ='<?php echo $baseurl . "/events/index/searchorg:" . $event['Org']['id'];?>'">
 				<?php
 					$imgRelativePath = 'orgs' . DS . h($event['Org']['name']) . '.png';
 					$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
@@ -210,15 +206,6 @@
 		<?php endif; ?>
 		<td class="short" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
 			<?php echo $event['Event']['date']; ?>&nbsp;
-		</td>
-		<td class="short" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
-			<?php
-			if ($event['ThreatLevel']['name']) echo h($event['ThreatLevel']['name']);
-			else echo h($event['Event']['threat_level_id']);
-			?>&nbsp;
-		</td>
-		<td class="short" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
-			<?php echo $analysisLevels[$event['Event']['analysis']]; ?>&nbsp;
 		</td>
 		<td ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
 			<?php echo nl2br(h($event['Event']['info'])); ?>&nbsp;
