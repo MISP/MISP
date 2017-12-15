@@ -537,6 +537,7 @@ def defineObservableObjectDomainIp(obj_name, obj_attr):
 
 def defineObservableObjectIpPort(obj_name, obj_attr):
     obj = deepcopy(mispTypesMapping['ip-dst|port']['observable'])
+    obj['1'].pop('dst_port')
     for attr in obj_attr:
         attr_type = attr.type
         if attr_type == 'ip-dst':
@@ -552,9 +553,9 @@ def defineObservableObjectIpPort(obj_name, obj_attr):
                 continue
             obj['1'][objectTypes[attr_type][obj_name][obj_relation]] = attr.value
         elif 'port' in attr_type:
+            attr_val = attr.value
             obj['1']['protocols'].append(defineProtocols[attr_val] if attr_val in defineProtocols else 'tcp')
-        else:
-            obj['1'][objectTypes[attr_type][attr.object_relation]] = attr.value
+            obj['1'][objectTypes[attr_type][attr.object_relation]] = attr_val
     return obj
 
 def defineObservableObjectRegKey(obj_name, obj_attr):
