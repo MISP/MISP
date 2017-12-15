@@ -19,6 +19,7 @@ import sys, json, os, datetime, re, base64
 import pymisp
 from stix2 import *
 from misp2stix2_dictionaries import *
+from copy import deepcopy
 
 namespace = ['https://github.com/MISP/MISP', 'MISP']
 
@@ -254,7 +255,7 @@ def addTool(object_refs, attributes, galaxy, identity):
 def addVulnerability(object_refs, attributes, attribute, identity):
     vuln_id = "vulnerability--{}".format(attribute.uuid)
     name = attribute.value
-    vuln_data = mispTypesMapping['vulnerability'].copy()
+    vuln_data = deepcopy(mispTypesMapping['vulnerability'])
     vuln_data['external_id'] = name
     ext_refs = [vuln_data]
     labels = ['misp:type=\"{}\"'.format(attribute.type),
@@ -386,7 +387,7 @@ def buildRelationships(attributes, object_refs):
     return
 
 def defineObservableObject(attr_type, attr_val):
-    observed_object = mispTypesMapping[attr_type]['observable'].copy()
+    observed_object = deepcopy(mispTypesMapping[attr_type]['observable'])
     object0 = observed_object['0']
     if '|' in attr_type:
         _, attr_type2 = attr_type.split('|')
@@ -454,7 +455,7 @@ def defineObservableObjectForObjects(obj_name, obj_attr):
         return defineObservableObjectBasicCase(obj_name, obj_attr)
 
 def defineObservableObjectEmail(obj_name, obj_attr):
-    obj = objectsMapping['email']['observable'].copy()
+    obj = deepcopy(objectsMapping['email']['observable'])
     email_attr = getEmailObjectInfo(obj_attr)
     is_multipart = False
     part_number = 1
@@ -523,7 +524,7 @@ def defineObservableObjectEmail(obj_name, obj_attr):
     return obj
 
 def defineObservableObjectDomainIp(obj_name, obj_attr):
-    obj = mispTypesMapping['domain|ip']['observable'].copy()
+    obj = deepcopy(mispTypesMapping['domain|ip']['observable'])
     for attr in obj_attr:
         attr_type = attr.type
         if attr_type == 'domain':
@@ -535,7 +536,7 @@ def defineObservableObjectDomainIp(obj_name, obj_attr):
     return obj
 
 def defineObservableObjectIpPort(obj_name, obj_attr):
-    obj = mispTypesMapping['ip-dst|port']['observable'].copy()
+    obj = deepcopy(mispTypesMapping['ip-dst|port']['observable'])
     for attr in obj_attr:
         attr_type = attr.type
         if attr_type == 'ip-dst':
@@ -544,7 +545,8 @@ def defineObservableObjectIpPort(obj_name, obj_attr):
             obj['0']['type'] = addr_type
             obj['0']['value'] = attr_val
             prot_type = addr_type.split('-')[0]
-            obj['1']['protocols'].append(prot_type)
+            if prot_type not in obj['1'].get('protocols'):
+                obj['1']['protocols'].append(prot_type)
         elif attr_type in ('text', 'datetime'):
             obj_relation = attr.object_relation
             if obj_name not in objectTypes[attr_type]:
@@ -557,7 +559,7 @@ def defineObservableObjectIpPort(obj_name, obj_attr):
     return obj
 
 def defineObservableObjectRegKey(obj_name, obj_attr):
-    obj = objectsMapping[obj_name]['observable'].copy()
+    obj = deepcopy(objectsMapping[obj_name]['observable'])
     reg_attr = getRegistryKeyInfo(obj_attr)
     if 'reg-key' in reg_attr:
         key_type = objectTypes['reg-key']
@@ -580,7 +582,7 @@ def defineObservableObjectRegKey(obj_name, obj_attr):
     return obj
 
 def defineObservableObjectBasicCase(obj_name, obj_attr):
-    obj = objectsMapping[obj_name]['observable'].copy()
+    obj = deepcopy(objectsMapping[obj_name]['observable'])
     for attr in obj_attr:
         attr_type = attr.type
         if 'md5' in attr_type or 'sha' in attr_type or 'hash' in attr_type or 'ssdeep' in attr_type:
