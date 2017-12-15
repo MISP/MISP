@@ -71,9 +71,6 @@ def buildMispDict(event):
                 fillObjects(attr, attrLabels, Object)
             else:
                 fillAttributes(attr, attrLabels, Attribute)
-    #print('Attribute:', Attribute)
-    #print('Object:', Object)
-    #print('Galaxy:', Galaxy)
     mispDict['Attribute'] = Attribute
     mispDict['Galaxy'] = Galaxy
     mispDict['Object'] = Object
@@ -232,12 +229,18 @@ def resolveObservableFromObjects(observable, mispType):
     mapping = objectMapping[mispType]
     if mispType == 'email':
         return resolveEmailObject(observable, mapping)
+    elif mispType == 'domain|ip':
+        return resolveDomainIpObject(observable, mapping)
+    elif mispType == 'ip|port':
+        return resolveIpPortObject (observable, mapping)
+    elif mispType == 'registry-key':
+        return resolveRegKeyObject(observable, mapping)
     else:
         return resolveBasicObject(observable, mapping)
 
 def resolveEmailObject(observable, mapping):
-    Attribute = []
     obj0 = observable.get('0')
+    Attribute = []
     if obj0.pop('type') != 'email-message':
         print(json.dumps({'success': 0, 'message': 'Object type error. \'email\' needed.'}))
         sys.exit(1)
@@ -267,10 +270,56 @@ def resolveEmailObject(observable, mapping):
             Attribute.append(buildAttribute(mapping, obj, o))
     return Attribute
 
-def resolveBasicObject(observable, mapping):
+def resolveDomainIpObject(observable, mapping):
     Attribute = []
     obj0 = observable.get('0')
-    if obj0.pop('type') not in ('file'):
+    obj = obj0.get('value')
+    Attribute.append(buildAttribute(mapping, obj, 'domain'))
+    refs = obj.get('resolves_to_refs')
+    for ref in refs:
+        obj = observable[ref].get('value')
+        Attribute.append(buildAttribute(mapping, obj, 'resolves_to_refs[*].value'))
+    return Attribute
+
+def resolveIpPortObject(observable, mapping):
+    Attribute = []
+    obj0 = observable.get('0')
+    objIp = obj0.get('value')
+    Attribute.append(buildAttribute(mapping, objIp, 'dst_ref.value'))
+    obj1 = observable.get('1')
+    for o in obj1:
+        if o in mapping:
+            obj = obj1.get(o)
+            Attribute.append(buildAttribute(mapping, obj, o))
+        elif o in objDateRelation:
+            objValue = obj1.get(o)
+            objRelation = objDateRelation.get(o)
+            attribute = {'type': 'datetime', 'object_relation': objRelation, 'value': objValue}
+            Attribute.append(attribute)
+    return Attribute
+
+def resolveRegKeyObject(observable, mapping):
+    Attribute = []
+    obj0 = observable.get('0')
+    if 'values' in obj0:
+        values = obj0.pop('values')
+        for val in values[0]:
+            v = values[0].get(val)
+            Attribute.append(buildAttribute(mapping, v, val))
+    obj0.pop('type')
+    if 'key' in obj0:
+        key = obj0.pop('key')
+        Attribute.append(buildAttribute(mapping, key, 'key'))
+    if 'modified' in obj0:
+        date = obj.pop('modified')
+        relation = objDateRelation.get('modified')
+        attribute = {'type': 'datetime', 'object_relation': relation, 'value': date}
+        Attribute.append(attribute)
+    return Attribute
+
+def resolveBasicObject(observable, mapping):
+    obj0 = observable.get('0')
+    if obj0.pop('type') not in ('x509-certificate', 'file', 'url'):
         print(json.dumps({'success': 0, 'message': 'Object type error.'}))
         sys.exit(1)
     if 'hashes' in obj0:
@@ -281,7 +330,21 @@ def resolveBasicObject(observable, mapping):
             Attribute.append({'type': hsh, 'object_relation': hsh, 'value': obj})
     for o in obj0:
         obj = obj0.get(o)
-        Attribute.append(buildAttribute(mapping, obj, o))
+        if o in mapping:
+            Attribute.append(buildAttribute(mapping, obj, o))
+            continue
+        elif o in objTextRelation:
+            attribute = {}
+            attrType = 'text'
+            attrRelation = objTextRelation.get(o)
+        elif o in objDateRelation:
+            attribute = {}
+            attrType = 'datetime'
+            attrRelation = objDateRelation.get(o)
+        attribute['type'] = attrType
+        attribute['object_relation'] = attrRelation
+        attribute['value'] = obj
+        Attribute.append(attribute)
     return Attribute
 
 def getTypeAndRelation(mapping, obj):
@@ -327,8 +390,8 @@ objectMapping = {
                  'name': {'type': 'filename', 'relation': 'filename'}},
         'ip|port': {'src_port': {'type': 'port', 'relation': 'src-port'},
                     'dst_port': {'type': 'port', 'relation': 'dst-port'},
-                    'network-traffic:dst_ref.value': {'type': 'ip-dst', 'relation': 'ip'}},
-        'registry-key': {'datatype': {'type': 'reg-datatype', 'relation': 'data-type'},
+                    'dst_ref.value': {'type': 'ip-dst', 'relation': 'ip'}},
+        'registry-key': {'data_type': {'type': 'reg-datatype', 'relation': 'data-type'},
                          'data': {'type': 'reg-data', 'relation': 'data'},
                          'name': {'type': 'reg-name', 'relation': 'name'},
                          'key': {'type': 'reg-key', 'relation': 'key'}},
