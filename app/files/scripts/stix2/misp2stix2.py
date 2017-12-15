@@ -545,8 +545,7 @@ def defineObservableObjectIpPort(obj_name, obj_attr):
             obj['0']['type'] = addr_type
             obj['0']['value'] = attr_val
             prot_type = addr_type.split('-')[0]
-            if prot_type not in obj['1'].get('protocols'):
-                obj['1']['protocols'].append(prot_type)
+            obj['1']['protocols'].append(prot_type)
         elif attr_type in ('text', 'datetime'):
             obj_relation = attr.object_relation
             if obj_name not in objectTypes[attr_type]:
