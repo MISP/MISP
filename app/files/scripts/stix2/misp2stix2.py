@@ -278,7 +278,9 @@ def addIndicatorFromObjects(object_refs, attributes, obj, identity, to_ids):
               'misp:category=\"{}\"'.format(category),
               'misp:to_ids=\"{}\"'.format(to_ids),
               'from_object']
-    pattern = definePatternForObjects(obj_name, objAttributes)
+    pattern, malware_sample = definePatternForObjects(obj_name, objAttributes)
+    if malware_sample:
+        labels.append('malware-sample')
     timestamp = getDateFromTimestamp(int(obj.timestamp))
     indicator_args = {'valid_from': timestamp, 'type': 'indicator', 'labels': labels,
                       'pattern': [pattern], 'id': indicator_id, 'created_by_ref': identity,
@@ -295,9 +297,12 @@ def addObservedDataFromObjects(object_refs, attributes, obj, identity, to_ids):
               'misp:category=\"{}\"'.format(obj.get('meta-category')),
               'misp:to_ids=\"{}\"'.format(to_ids),
               'from_object']
+    observable, malware_sample = defineObservableObjectForObjects(obj_name, obj.attributes)
+    if malware_sample:
+        labels.append('malware-sample')
     observedData_args = {'id': observedData_id, 'type': 'observed-data', 'number_observed': 1, 'labels': labels,
                          'first_observed': timestamp, 'last_observed': timestamp, 'created_by_ref': identity,
-                         'objects': defineObservableObjectForObjects(obj_name, obj.attributes)}
+                         'objects': observable}
     observedData = ObservedData(**observedData_args)
     attributes.append(observedData)
     object_refs.append(observedData_id)
@@ -444,15 +449,35 @@ def defineObservableObject(attr_type, attr_val):
 
 def defineObservableObjectForObjects(obj_name, obj_attr):
     if obj_name == 'email':
-        return defineObservableObjectEmail(obj_name, obj_attr)
+        return defineObservableObjectEmail(obj_name, obj_attr), False
     elif obj_name == 'domain|ip':
-        return defineObservableObjectDomainIp(obj_name, obj_attr)
+        return defineObservableObjectDomainIp(obj_name, obj_attr), False
     elif obj_name == 'ip|port':
-        return defineObservableObjectIpPort(obj_name, obj_attr)
+        return defineObservableObjectIpPort(obj_name, obj_attr), False
     elif obj_name == 'registry-key':
-        return defineObservableObjectRegKey(obj_name, obj_attr)
+        return defineObservableObjectRegKey(obj_name, obj_attr), False
     else:
-        return defineObservableObjectBasicCase(obj_name, obj_attr)
+        malware_sample = False
+        obj = deepcopy(objectsMapping[obj_name]['observable'])
+        for attr in obj_attr:
+            attr_type = attr.type
+            if 'md5' in attr_type or 'sha' in attr_type or 'hash' in attr_type or 'ssdeep' in attr_type:
+                obj['0']['hashes'][attr_type] = attr.value
+            elif attr_type in ('text', 'datetime'):
+                obj_relation = attr.object_relation
+                if obj_name not in objectTypes[attr_type] or obj_relation not in objectTypes[attr_type][obj_name]:
+                    continue
+                obj['0'][objectTypes[attr_type][obj_name][obj_relation]] = attr.value
+            else:
+                if attr_type == 'malware-sample':
+                    malware_sample = True
+                    if len(obj_attr) == 1:
+                        name, h = attr.value.split('|')
+                        obj['0']['name'] = name
+                        obj['0']['hashes'][attr_type] = h
+                if attr_type in objectTypes:
+                    obj['0'][objectTypes[attr_type]] = attr.value
+        return obj, malware_sample
 
 def defineObservableObjectEmail(obj_name, obj_attr):
     obj = deepcopy(objectsMapping['email']['observable'])
@@ -581,22 +606,6 @@ def defineObservableObjectRegKey(obj_name, obj_attr):
         obj['0']['values'] = [values]
     return obj
 
-def defineObservableObjectBasicCase(obj_name, obj_attr):
-    obj = deepcopy(objectsMapping[obj_name]['observable'])
-    for attr in obj_attr:
-        attr_type = attr.type
-        if 'md5' in attr_type or 'sha' in attr_type or 'hash' in attr_type or 'ssdeep' in attr_type:
-            obj['0']['hashes'][attr_type] = attr.value
-        elif attr_type in ('text', 'datetime'):
-            obj_relation = attr.object_relation
-            if obj_name not in objectTypes[attr_type] or obj_relation not in objectTypes[attr_type][obj_name]:
-                continue
-            obj['0'][objectTypes[attr_type][obj_name][obj_relation]] = attr.value
-        else:
-            if attr_type in objectTypes:
-                obj['0'][objectTypes[attr_type]] = attr.value
-    return obj
-
 def getEmailObjectInfo(obj_attr):
     email_attr = {}
     for attr in obj_attr:
@@ -654,6 +663,7 @@ def definePattern(attr_type, attr_val):
 
 def definePatternForObjects(obj_name, obj_attr):
     pattern = ''
+    malware_sample = False
     if obj_name == 'email':
         for attr in obj_attr:
             attr_type = attr.type
@@ -699,11 +709,13 @@ def definePatternForObjects(obj_name, obj_attr):
                     continue
                 attrType = objectTypes[attr_type][obj_name][obj_relation]
             else:
+                if attr_type == 'malware-sample':
+                    malware_sample = True
                 if attr_type not in objectTypes:
                     continue
                 attrType = objectTypes[attr_type]
             pattern += objectsMapping[obj_name]['pattern'].format(attrType, attr_val)
-    return pattern[:-5]
+    return pattern[:-5], malware_sample
 
 def defineAddressType(attr_val):
     if ':' in attr_val:
@@ -716,11 +728,10 @@ def eventReport(event, identity, object_refs, external_refs):
     timestamp = event.publish_timestamp
     name = event.info
     labels = []
-    if 'Tag' in event:
+    if event.get('Tag'):
         tags = event.Tag
         for tag in tags:
             labels.append(tag['name'])
-
     args_report = {'type': "report", 'id': "report--{}".format(event.uuid), 'created_by_ref': identity,
                    'name': name, 'published': timestamp, 'object_refs': object_refs}
     if labels:
