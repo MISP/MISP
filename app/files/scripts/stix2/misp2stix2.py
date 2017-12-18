@@ -748,6 +748,8 @@ def main(args):
         namespace[1] = re.sub('[\W]+', '', namespace[1])
     misp = pymisp.MISPEvent(None, False)
     misp.load_file(os.path.join(pathname, args[1]))
+    if 'Attribute' not in dir(misp):
+        misp.Attribute= []
     SDOs = []
     object_refs = []
     external_refs = []
