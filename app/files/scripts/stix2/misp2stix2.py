@@ -716,7 +716,7 @@ def eventReport(event, identity, object_refs, external_refs):
     timestamp = event.publish_timestamp
     name = event.info
     labels = []
-    if 'Tag' in event:
+    if event.get('Tag'):
         tags = event.Tag
         for tag in tags:
             labels.append(tag['name'])
