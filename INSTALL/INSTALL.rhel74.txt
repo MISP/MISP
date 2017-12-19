@@ -1,0 +1,6 @@
+INSTALLATION INSTRUCTIONS
+------------------------- for RHEL 7.4
+
+1/ Minimal RHEL 7.4 install
+---------------------------
+
