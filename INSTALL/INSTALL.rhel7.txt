@@ -2,15 +2,6 @@ INSTALLATION INSTRUCTIONS for RHEL 7.4
 -------------------------
 Contributor: Jez Kerwin - web*at*jezlabs(.)com
 
-
-Table of Contents
------------------
-0/ Overview and Assumptions
-1/ Base OS and additional repositories
-2/ Dependencies Installation
-3/ MISP Install
-4/ Post MISP Install
-
 +----------------------------------------+
 |   0/ Overview and Assumptions          |
 +----------------------------------------+
@@ -61,7 +52,7 @@ yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.r
 Once the system is installed and updated, the following steps can be performed as root
 
 2.01/ Install some base system dependencies
-yum install gcc git httpd zip python-devel libxslt-devel zlib-devel python-pip
+yum install gcc git httpd zip python-devel libxslt-devel zlib-devel python-pip ssdeep-devel
 
 2.02/ Install MariaDB 10.2 from SCL
 yum install rh-mariadb102
@@ -252,4 +243,176 @@ cp INSTALL/misp.logrotate /etc/logrotate.d/misp
 
 8.01/ Allow logrotate to work under SELinux and modify the log files
 semanage fcontext -a -t httpd_log_t "/var/www/MISP/app/tmp/logs(/.*)?"
+chcon -R -t httpd_log_t /var/www/MISP/app/tmp/logs
+
+8.02/ Allow logrotate to read /var/www
+checkmodule -M -m -o /tmp/misplogrotate.mod INSTALL/misplogrotate.te
+semodule_package -o /tmp/misplogrotate.pp -m /tmp/misplogrotate.mod
+semodule -i /tmp/misplogrotate.pp
+
++--------------------------------+
+|   9/ MISP Configuration        |
++--------------------------------+
+
+9.01/ There are 4 sample configuration files in /var/www/MISP/app/Config that need to be copied
+cd /var/www/MISP/app/Config
+cp -a bootstrap.default.php bootstrap.php
+cp -a database.default.php database.php
+cp -a core.default.php core.php
+cp -a config.default.php config.php
+
+9.02/ Configure the fields in the newly created files
+# Configure the fields in the newly created files:
+# config.php   : baseurl (example: 'baseurl' => 'http://misp',) - don't use "localhost" it causes issues when browsing externally
+# core.php   : Uncomment and set the timezone: `// date_default_timezone_set('UTC');`
+# database.php : login, port, password, database
+# DATABASE_CONFIG has to be filled
+# With the default values provided in section 6, this would look like:
+# class DATABASE_CONFIG {
+#   public $default = array(
+#       'datasource' => 'Database/Mysql',
+#       'persistent' => false,
+#       'host' => 'localhost',
+#       'login' => 'misp', // grant usage on *.* to misp@localhost
+#       'port' => 3306,
+#       'password' => 'XXXXdbpasswordhereXXXXX', // identified by 'XXXXdbpasswordhereXXXXX';
+#       'database' => 'misp', // create database misp;
+#       'prefix' => '',
+#       'encoding' => 'utf8',
+#   );
+#}
+
+# Important! Change the salt key in /var/www/MISP/app/Config/config.php
+# The admin user account will be generated on the first login, make sure that the salt is changed before you create that user
+# If you forget to do this step, and you are still dealing with a fresh installation, just alter the salt,
+# delete the user from mysql and log in again using the default admin credentials (admin@admin.test / admin)
+
+9.03/ If you want to be able to change configuration parameters from the webinterface:
+chown apache:apache /var/www/MISP/app/Config/config.php
+chcon -t httpd_sys_rw_content_t /var/www/MISP/app/Config/config.php
+
+9.04/ Generate an encryption key
+gpg --gen-key
+mv ~/.gnupg /var/www/MISP/
+chown -R apache:apache /var/www/MISP/.gnupg
+chcon -R -t httpd_sys_rw_content_t /var/www/MISP/.gnupg
+## NOTE: There is a bug that if a passphrase is added MISP will produce an error on the diagnostic page.
+
+# The email address should match the one set in the config.php configuration file
+# Make sure that you use the same settings in the MISP Server Settings tool
+
+9.05/ export the public key to the webroot
+sudo -u apache gpg --homedir /var/www/MISP/.gnupg --export --armor YOUR-EMAIL > /var/www/MISP/app/webroot/gpg.asc
+
+9.06/ Start the workers to enable background jobs
+chmod +x /var/www/MISP/app/Console/worker/start.sh
+su -s /bin/bash apache -c 'scl enable rh-php71 rh-redis32 rh-mariadb102 /var/www/MISP/app/Console/worker/start.sh'
+
+9.07a/ To make the background workers start on boot
+vi /etc/rc.local
+9.07b/ Add the following line at the end
+su -s /bin/bash apache -c 'scl enable rh-php71 rh-redis32 rh-mariadb102 /var/www/MISP/app/Console/worker/start.sh'
+9.07c/ and make sure it will execute
+chmod +x /etc/rc.local
+
+# Now log in using the webinterface: http://misp/users/login
+# The default user/pass = admin@admin.test/admin
+
+# Using the server settings tool in the admin interface (Administration -> Server Settings), set MISP up to your preference
+# It is especially vital that no critical issues remain!
+
+Don't forget to change the email, password and authentication key after installation.
+
+# Once done, have a look at the diagnostics
+
+# If any of the directories that MISP uses to store files is not writeable to the apache user, change the permissions
+# you can do this by running the following commands:
+
+chmod -R 750 /var/www/MISP/<directory path with an indicated issue>
+chown -R apache:apache /var/www/MISP/<directory path with an indicated issue>
+
+# Make sure that the STIX libraries and GnuPG work as intended, if not, refer to INSTALL.txt's paragraphs dealing with these two items
+
+# If anything goes wrong, make sure that you check MISP's logs for errors:
+# /var/www/MISP/app/tmp/logs/error.log
+# /var/www/MISP/app/tmp/logs/resque-worker-error.log
+# /var/www/MISP/app/tmp/logs/resque-scheduler-error.log
+# /var/www/MISP/app/tmp/logs/resque-2015-01-01.log //where the actual date is the current date
+
++---------------------------+
+|   10/ Post Install        |
++---------------------------+
+
+10.01/ Allow apache to write to /var/www/MISP/app/tmp/logs
+# Result from diagnostic is that the directory is not writable.
+chcon -R -t httpd_sys_rw_content_t /var/www/MISP/app/tmp/logs/
+# NOTE: This may mean that logrotate cannot access the logs directory, will require further investigation
+
+10.02/ Change php.ini settings to suggested limits from diagnostic page.
+# Edit /etc/opt/rh/rh-php71/php.ini and set the following settings
+max_execution_time = 300
+memory_limit = 512M
+upload_max_filesize = 50M
+post_max_size = 50M
+
+10.03/ Restart rh-php71 for settings to take effect
+systemctl restart rh-php71-php-fpm
+
+10.04/ Install pymisp and pydeep for Advanced Attachment handler
+pip install pymisp
+pip install git+https://github.com/kbandla/pydeep.git
+
++---------------------------+
+|   11/ LIEF Installation   |
++---------------------------+
+# lief is required for the Advanced Attachment Handler and requires manual compilation
+
+11.01/ Install cmake3 devtoolset-7 from SCL
+yum install devtoolset-7 cmake3
+
+11.02/ Enable devtoolset-7
+scl enable devtoolset-7 bash
+
+11.03/ Set env variable, create directories and download source code
+mkdir -p /tmp/LIEF
+mkdir -p /tmp/LIEF_INSTALL
+export LIEF_TMP=/tmp/LIEF
+export LIEF_INSTALL=/tmp/LIEF_INSTALL
+export LIEF_BRANCH=master
+cd $LIEF_TMP
+git clone --depth 3 --branch $LIEF_BRANCH --single-branch https://github.com/lief-project/LIEF.git LIEF
+
+11.04/ Compile lief and install
+cd $LIEF_TMP/LIEF
+mkdir -p build
+cd build
+scl enable devtoolset-7 'bash -c "cmake3 \
+-DLIEF_PYTHON_API=on \
+-DLIEF_DOC=off \
+-DCMAKE_INSTALL_PREFIX=$LIEF_INSTALL \
+-DCMAKE_BUILD_TYPE=Release \
+-DPYTHON_VERSION=2.7 \
+.."'
+make -j3
+cd api/python
+python setup.py install || :
+cd $LIEF_TMP/LIEF/build
+make install
+make package
+
+11.05/ Test lief installation, if no error, package installed
+python
+>> import lief
+
++---------------------------+
+|   12/ Known Issues        |
++---------------------------+
+
+12.01/ PHP CLI cannot determine version
+# PHP CLI Version cannot be determined. Possibly due to PHP being installed through SCL
+
+12.02/ Workers cannot be started or restarted from the web page
+# Possible also due to package being installed via SCL, attempting to start workers through the web page will result in
+# error. Worker's can be restarted via the CLI using the following command.
+su -s /bin/bash apache -c 'scl enable rh-php71 rh-redis32 rh-mariadb102 /var/www/MISP/app/Console/worker/start.sh'
 
