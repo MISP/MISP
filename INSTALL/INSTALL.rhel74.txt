@@ -21,11 +21,33 @@ The following assumptions with regard to this installation have been made.
 
 0.1/ A valid support agreement allowing the system to register to the Red Hat Customer Portal and receive updates
 0.2/ The ability to enable additional RPM repositories, specifically the EPEL and Software Collections (SCL) repos
-0.3/ This document is to get a MISP instance up and running over HTTP. I haven't done a full test of all features
+0.3/ This system will have direct or proxy access to the Internet for updates. Or connected to a Red Hat Satellite Server
+0.4/ This document is to get a MISP instance up and running over HTTP. I haven't done a full test of all features
 
 +----------------------------------------------+
 |   1/ OS Install and additional repositories  |
 +----------------------------------------------+
+
+1.1/ Complete a minimal RHEL installation, configure IP address to connect automatically.
+1.2/ Configure system hostname
+hostnamectl set-hostname misp # You're choice, in a production environment, it's best to use a FQDN
+
+1.3/ Register the system for updates with Red Hat Subscription Manager
+subscription-manager register # register your system to an account
+subscription-manager attach   # attach your system to a current subscription
+
+1.4/ Enable the optional, extras and Software Collections (SCL) repos
+subscription-mmanager repos --enable rhel-7-server-optional-rpms
+subscription-mmanager repos --enable rhel-7-server-extras-rpms
+subscription-mmanager repos --enable rhel-server-rhscl-7-rpms
+
+1.5/ Update the system and reboot
+yum udpate
+
+## NOTE: As time of writing performing a yum update results in the rhel-7-server-rt-beta-rpms being forbidden
+## The repo can be disabled using the following command
+subscription-manager repos --disable rhel-7-server-rt-beta-rpms
+
 
 
 
