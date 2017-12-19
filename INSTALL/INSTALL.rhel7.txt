@@ -396,6 +396,7 @@ scl enable devtoolset-7 'bash -c "cmake3 \
 make -j3
 cd api/python
 python setup.py install || :
+# you can ignore the error about finding suitable distribution
 cd $LIEF_TMP/LIEF/build
 make install
 make package
