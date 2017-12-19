@@ -2373,29 +2373,41 @@ class Event extends AppModel {
 		}
 
 		if (!empty($data['Event']['Attribute'])) {
-			foreach ($data['Event']['Attribute'] as $k => $a) {
-				if (isset($data['Event']['Attribute'][$k]['AttributeTag'])) {
-					if (isset($data['Event']['Attribute'][$k]['AttributeTag']['id'])) $data['Event']['Attribute'][$k]['AttributeTag'] = array($data['Event']['Attribute'][$k]['AttributeTag']);
-					$attributeTags = array();
-					foreach ($data['Event']['Attribute'][$k]['AttributeTag'] as $tk => $tag) {
-						$attributeTags[] = array('tag_id' => $this->Attribute->AttributeTag->Tag->captureTag($data['Event']['Attribute'][$k]['AttributeTag'][$tk]['Tag'], $user));
-						unset($data['Event']['Attribute'][$k]['AttributeTag'][$tk]);
-					}
-					$data['Event']['Attribute'][$k]['AttributeTag'] = $attributeTags;
-				} else {
-					$data['Event']['Attribute'][$k]['AttributeTag'] = array();
-				}
-				if (isset($data['Event']['Attribute'][$k]['Tag'])) {
-					if (isset($data['Event']['Attribute'][$k]['Tag']['name'])) $data['Event']['Attribute'][$k]['Tag'] = array($data['Event']['Attribute'][$k]['Tag']);
-					foreach ($data['Event']['Attribute'][$k]['Tag'] as $tag) {
-						$tag_id = $this->Attribute->AttributeTag->Tag->captureTag($tag, $user);
-						if ($tag_id) $data['Event']['Attribute'][$k]['AttributeTag'][] = array('tag_id' => $tag_id);
-					}
-					unset($data['Event']['Attribute'][$k]['Tag']);
+			$data['Event']['Attribute'] = $this->__captureAttributeTags($data['Event']['Attribute'], $user);
+		}
+		if (!empty($data['Event']['Object'])) {
+			foreach ($data['Event']['Object'] as $k => $object) {
+				if (!empty($data['Event']['Object'][$k]['Attribute'])) {
+					$data['Event']['Object'][$k]['Attribute'] = $this->__captureAttributeTags($data['Event']['Object'][$k]['Attribute'], $user);
 				}
 			}
 		}
 		return $data;
+	}
+
+	private function __captureAttributeTags($attributes, $user) {
+		foreach ($attributes as $k => $a) {
+			if (isset($attributes[$k]['AttributeTag'])) {
+				if (isset($attributes[$k]['AttributeTag']['id'])) $attributes[$k]['AttributeTag'] = array($attributes[$k]['AttributeTag']);
+				$attributeTags = array();
+				foreach ($attributes[$k]['AttributeTag'] as $tk => $tag) {
+					$attributeTags[] = array('tag_id' => $this->Attribute->AttributeTag->Tag->captureTag($attributes[$k]['AttributeTag'][$tk]['Tag'], $user));
+					unset($attributes[$k]['AttributeTag'][$tk]);
+				}
+				$attributes[$k]['AttributeTag'] = $attributeTags;
+			} else {
+				$attributes[$k]['AttributeTag'] = array();
+			}
+			if (isset($attributes[$k]['Tag'])) {
+				if (isset($attributes[$k]['Tag']['name'])) $attributes[$k]['Tag'] = array($attributes[$k]['Tag']);
+				foreach ($attributes[$k]['Tag'] as $tag) {
+					$tag_id = $this->Attribute->AttributeTag->Tag->captureTag($tag, $user);
+					if ($tag_id) $attributes[$k]['AttributeTag'][] = array('tag_id' => $tag_id);
+				}
+				unset($attributes[$k]['Tag']);
+			}
+		}
+		return $attributes;
 	}
 
 	// Low level function to add an Event based on an Event $data array
