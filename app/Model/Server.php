@@ -2613,6 +2613,7 @@ class Server extends AppModel {
 		}
 		$settingsString = var_export($settingsArray, true);
 		$settingsString = '<?php' . "\n" . '$config = ' . $settingsString . ';';
+		opcache_reset();
 		file_put_contents(APP . 'Config' . DS . 'config.php', $settingsString);
 	}
 
