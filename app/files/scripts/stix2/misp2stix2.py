@@ -101,8 +101,16 @@ def readAttributes(event, identity, object_refs, external_refs):
         pass
     if objct:
         for obj in event.Object:
+            obj_attributes = obj.attributes
+            if len(obj_attributes) == 1 or (len(obj_attributes) == 2 and 'display-name' in obj_attributes[0].get('type') and 'display-name' in obj_attributes[1].get('type')):
+                obj_attr = obj_attributes[0]
+                attr_type = obj_attr.get('type')
+                to_ids = obj_attr.get('to_ids')
+                if 'display-name' in attr_type:
+                    addCustomObjectFromObjects(object_refs, attributes, obj, identity, to_ids)
+                    continue
             to_ids = False
-            for obj_attr in obj.attributes:
+            for obj_attr in obj_attributes:
                 if obj_attr.to_ids:
                     to_ids = True
                     break
@@ -219,8 +227,8 @@ def addMalware(object_refs, attributes, galaxy, identity):
     attributes.append(malware)
     object_refs.append(malware_id)
 
-#def addNote(object_refs, attributes, attribute, identity):         ## SEEMS LIKE IT WILL APPEAR IN THE ##
-#    note_id = "note--{}".format(attribute['uuid'])                 ##          UPCOMMING CHANGES       ##
+#def addNote(object_refs, attributes, attribute, identity):
+#    note_id = "note--{}".format(attribute['uuid'])
 #    note_args = {}
 #    note = Note(**note_args)
 #    attributes.append(note)
@@ -738,6 +746,7 @@ def eventReport(event, identity, object_refs, external_refs):
         args_report['labels'] = labels
     else:
         args_report['labels'] = ['threat-report']
+    args_report['labels'].append('misp:tool="misp2stix"')
     if external_refs:
         args_report['external_references'] = external_refs
     report = Report(**args_report)
