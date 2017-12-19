@@ -19,7 +19,7 @@ The following assumptions with regard to this installation have been made.
 
 0.1 - A valid support agreement allowing the system to register to the Red Hat Customer Portal and receive updates
 0.2 - The ability to enable additional RPM repositories, specifically the EPEL and Software Collections (SCL) repos
-0.3 - Your milage may vary. There is no warranty given that the steps in this document will work for your system.
+0.3 - Your mileage may vary. There is no warranty given that the steps in this document will work for your system.
 
 +----------------------------------------+
 |   1/ OS Install and Enable Repository  |
