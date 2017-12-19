@@ -3349,7 +3349,12 @@ class EventsController extends AppController {
 			$result['type'] = $result['default_type'];
 			unset($result['default_type']);
 			unset($result['types']);
-			$result['category'] = $this->Event->Attribute->defaultCategories[$result['type']];
+			if (isset($result['default_category'])) {
+				$result['category'] = $result['default_category'];
+				unset($result['default_category']);
+			} else {
+				$result['category'] = $this->Event->Attribute->defaultCategories[$result['type']];
+			}
 			if ($distribution === false) {
 				if (Configure::read('MISP.default_attribute_distribution') != null) {
 					if (Configure::read('MISP.default_attribute_distribution') == 'event') {
@@ -3409,8 +3414,6 @@ class EventsController extends AppController {
 						$types = array('ip-src|port', 'ip-dst|port');
 					} else if ($attribute['type'] == 'malware-sample') {
 						if (!isset($attribute['data_is_handled']) || !$attribute['data_is_handled']) {
-							App::uses('FileAccessTool', 'Tools');
-							$tmpdir = Configure::read('MISP.tmpdir') ? Configure::read('MISP.tmpdir') : '/tmp';
 							$result = $this->Event->Attribute->handleMaliciousBase64($id, $attribute['value'], $attribute['data'], array('md5', 'sha1', 'sha256'), $objectType == 'ShadowAttribute' ? true : false);
 							if (!$result['success']) {
 								$failed++;
@@ -4261,7 +4264,10 @@ class EventsController extends AppController {
 						else $this->request->data['Event']['source'] = '1';
 					}
 					if ($this->request->data['Event']['source'] == '1') {
-						if (!isset($this->request->data['Event']['fileupload']) || empty($this->request->data['Event']['fileupload'])) {
+						if (isset($this->request->data['Event']['data'])) {
+							$modulePayload['data'] = base64_decode($this->request->data['Event']['data']);
+						}
+						else if (!isset($this->request->data['Event']['fileupload']) || empty($this->request->data['Event']['fileupload'])) {
 							$fail = 'Invalid file upload.';
 						} else {
 							$fileupload = $this->request->data['Event']['fileupload'];
@@ -4290,6 +4296,15 @@ class EventsController extends AppController {
 					if (isset($result['error'])) $this->Session->setFlash($result['error']);
 					if (!is_array($result)) throw new Exception($result);
 					$resultArray = $this->Event->handleModuleResult($result, $eventId);
+					if ($this->_isRest()) {
+						return $this->__pushFreetext(
+							$resultArray,
+							$eventId,
+							false,
+							false,
+							false
+						);
+					}
 					if (isset($result['comment'])) {
 						$importComment = $result['comment'];
 					}
