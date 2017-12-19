@@ -3730,7 +3730,7 @@ class EventsController extends AppController {
 			),
 			'stix_json' => array(
 					'url' => '/events/stix2/download/' . $id . '.json',
-					'text' => 'STIX2 (Early experimental preview, requires the STIX 2 library)',
+					'text' => 'STIX2 (requires the STIX 2 library)',
 					'requiresPublished' => false,
 					'checkbox' => false
 			),
