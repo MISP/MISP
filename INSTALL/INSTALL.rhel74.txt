@@ -1,6 +1,10 @@
 INSTALLATION INSTRUCTIONS
 ------------------------- for RHEL 7.4
 
-1/ Minimal RHEL 7.4 install
----------------------------
+Table of Contents
 
+0/ Assumptions
+1/ OS Install and Enable Repository
+2/ Dependencies Install
+3/ MISP Install
+4/ Post MISP Install
