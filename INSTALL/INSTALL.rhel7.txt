@@ -103,37 +103,153 @@ yum install haveged
 systemctl start haveged
 systemctl enable haveged
 
-+-----------------------------+
-|   3/ MISP Install           |
-+-----------------------------+
++---------------------+
+|   3/ MISP Download  |
++---------------------+
 
 3.01/ Download MISP code using git in /var/www/ directory
 cd /var/www
 git clone https://github.com/MISP/MISP.git
+git checkout tags/$(git describe --tags `git rev-list --tags --max-count=1`)
+# if the last shortcut doesn't work, specify the latest version manually
+# example: git checkout tags/v2.4.XY
+# the message regarding a "detached HEAD state" is expected behaviour
+# (you only have to create a new branch, if you want to change stuff and do a pull request for example)
 
+3.02/ Make git ignore filesystem permission differences
+git config core.filemode false
 
+3.03/ Install Mitre's STIX and its dependencies by running the following commands:
+pip install importlib
+yum install python-six
+cd /var/www/MISP/app/files/scripts
+git clone https://github.com/CybOXProject/python-cybox.git
+git clone https://github.com/STIXProject/python-stix.git
+cd /var/www/MISP/app/files/scripts/python-cybox
+git checkout v2.1.0.12
+git config core.filemode false
+# If your umask has been changed from the default, it is a good idea to reset it to 0022 before installing python modules
+UMASK=$(umask)
+umask 0022
+python setup.py install
+cd /var/www/MISP/app/files/scripts/python-stix
+git checkout v1.1.1.4
+git config core.filemode false
+python setup.py install
 
+3.04/ Install mixbox to accomodate the new STIX dependencies:
+cd /var/www/MISP/app/files/scripts/
+git clone https://github.com/CybOXProject/mixbox.git
+cd /var/www/MISP/app/files/scripts/mixbox
+git checkout v1.0.2
+git config core.filemode false
+python setup.py install
+umask $UMASK
 
++---------------------+
+|   4/ CakePHP        |
++---------------------+
 
+4.01/ CakePHP is now included as a submodule of MISP, execute the following commands to let git fetch it ignore this
+message: No submodule mapping found in .gitmodules for path 'app/Plugin/CakeResque'
+git submodule init
+git submodule update
 
+4.02/ Install CakeResque along with its dependencies if you intend to use the built in background jobs
+cd /var/www/MISP/app
+php composer.phar require kamisama/cake-resque:4.1.2
+php composer.phar config vendor-dir Vendor
+php composer.phar install
 
+4.03/ Install and configure php redis connector through pecl
+pecl install redis
+echo "extension=redis.so" > /etc/opt/rh/rh-php56/php-fpm.d/redis.ini
+ln -s ../php-fpm.d/redis.ini /etc/opt/rh/rh-php56/php.d/99-redis.ini
+systemctl restart rh-php56-php-fpm.service
 
+4.04/ Set a timezone in php.ini
+echo 'date.timezone = "Australia/Sydney"' > /etc/opt/rh/rh-php71/php-fpm.d/timezone.ini
+ln -s ../php-fpm.d/timezone.ini /etc/opt/rh/rh-php71/php.d/99-timezone.ini
 
+4.05/ To use the scheduler worker for scheduled tasks, do the following:
+cp -fa /var/www/MISP/INSTALL/setup/config.php /var/www/MISP/app/Plugin/CakeResque/Config/config.php
 
++----------------------------+
+|   5/ Set file permissions  |
++----------------------------+
 
+5.01/ Make sure the permissions are set correctly using the following commands as root:
+chown -R root:apache /var/www/MISP
+find /var/www/MISP -type d -exec chmod g=rx {} \;
+chmod -R g+r,o= /var/www/MISP
+chown apache:apache /var/www/MISP/app/files
+chown apache:apache /var/www/MISP/app/files/terms
+chown apache:apache /var/www/MISP/app/files/scripts/tmp
+chown apache:apache /var/www/MISP/app/Plugin/CakeResque/tmp
+chown -R apache:apache /var/www/MISP/app/tmp
+chown -R apache:apache /var/www/MISP/app/webroot/img/orgs
+chown -R apache:apache /var/www/MISP/app/webroot/img/custom
 
++--------------------------------+
+|   6/ Create database and user  |
++--------------------------------+
 
+6.01/ Set database to listen on localhost only
+echo [mysqld] > /etc/opt/rh/rh-mariadb102/my.cnf.d/bind-address.cnf
+echo bind-address=127.0.0.1 >> /etc/opt/rh/rh-mariadb102/my.cnf.d/bind-address.cnf
+systemctl restart rh-mariadb102-mariadb
 
+6.02/ Start MariaDB shell and create database
+mysql -u root -p
 
+MariaDB [(none)]> create database misp;
+MariaDB [(none)]> grant usage on *.* to misp@localhost identified by 'XXXXXXXXX';
+MariaDB [(none)]> grant all privileges on misp.* to misp@localhost ;
+MariaDB [(none)]> exit
 
+6.03/ Import the empty MySQL database from MYSQL.sql
+cd /var/www/MISP
+mysql -u misp -p misp < INSTALL/MYSQL.sql
 
++--------------------------------+
+|   7/ Apache Configuration      |
++--------------------------------+
 
+7.01/ Copy a sample vhost config to Apache configuration directory
+cp /var/www/MISP/INSTALL/apache.misp.centos7 /etc/httpd/conf.d/misp.conf
 
-2/ Dependencies Install
-3/ MISP Install
-4/ Post MISP Install
+7.02/ Since SELinux is enabled, we need to allow httpd to write to certain directories
+chcon -t httpd_sys_rw_content_t /var/www/MISP/app/files
+chcon -t httpd_sys_rw_content_t /var/www/MISP/app/files/terms
+chcon -t httpd_sys_rw_content_t /var/www/MISP/app/files/scripts/tmp
+chcon -t httpd_sys_rw_content_t /var/www/MISP/app/Plugin/CakeResque/tmp
+chcon -R -t httpd_sys_rw_content_t /var/www/MISP/app/tmp
+chcon -R -t httpd_sys_rw_content_t /var/www/MISP/app/webroot/img/orgs
+chcon -R -t httpd_sys_rw_content_t /var/www/MISP/app/webroot/img/custom
 
+7.02/ Allow httpd to connect to the redis server and php-fpm over tcp/ip
+setsebool -P httpd_can_network_connect on
 
+7.03/ Enable and start the httpd service
+systemctl enable httpd.service
+systemctl start httpd.service
 
+7.04/ Open a hole in the firewalld service
+firewall-cmd --zone=public --add-port=80/tcp --permanent
+firewall-cmd --reload
 
+# We seriously recommend using only HTTPS / SSL !
+# Add SSL support by running: yum install mod_ssl
+# Check out the apache.misp.ssl file for an example
+
++--------------------------------+
+|   8/ Log Rotation              |
++--------------------------------+
+# MISP saves the stdout and stderr of it's workers in /var/www/MISP/app/tmp/logs
+# To rotate these logs install the supplied logrotate script:
+
+cp INSTALL/misp.logrotate /etc/logrotate.d/misp
+
+8.01/ Allow logrotate to work under SELinux and modify the log files
+semanage fcontext -a -t httpd_log_t "/var/www/MISP/app/tmp/logs(/.*)?"
 

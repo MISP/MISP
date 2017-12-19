@@ -79,7 +79,6 @@ git clone https://github.com/STIXProject/python-stix.git
 cd /var/www/MISP/app/files/scripts/python-cybox
 git checkout v2.1.0.12
 git config core.filemode false
-# If you umask is has been changed from the default, it is a good idea to reset it to 0022 before installing python modules
 UMASK=$(umask)
 umask 0022
 python setup.py install
@@ -122,7 +121,7 @@ systemctl restart rh-php56-php-fpm.service
 Note: if using rh-php56 redis needs to be installed through its terminal: /usr/bin/scl enable rh-php56  "pecl install redis-2.2.8"
 
 # If you have not yet set a timezone in php.ini
-echo 'date.timezone = "Europe/Amsterdam"' > /etc/opt/rh/rh-php56/php-fpm.d/timezone.ini
+echo 'echdate.timezone = "Europe/Amsterdam"' > /etc/opt/rh/rh-php56/php-fpm.d/timezone.ini
 ln -s ../php-fpm.d/timezone.ini /etc/opt/rh/rh-php56/php.d/99-timezone.ini
 
 # To use the scheduler worker for scheduled tasks, do the following:
