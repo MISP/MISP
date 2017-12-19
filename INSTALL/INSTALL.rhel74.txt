@@ -1,14 +1,16 @@
-INSTALLATION INSTRUCTIONS
-------------------------- for RHEL 7.4
+INSTALLATION INSTRUCTIONS for RHEL 7.4
+-------------------------
+Contributor: Jez Kerwin - web*at*jezlabs(.)com
 
-//TODO - Maybe move this block to the end.
-+----------------------------------------+
-| Contributor:    Jez Kerwin             |
-| Contact:        web*at*jezlabs(.)com   |
-| Date:           December 2017          |
-+----------------------------------------+
 
 Table of Contents
+-----------------
+0/ Overview and Assumptions
+1/ Base OS and additional repositories
+2/ Dependencies Installation
+3/ MISP Install
+4/ Post MISP Install
+
 +----------------------------------------+
 |   0/ Overview and Assumptions          |
 +----------------------------------------+
@@ -17,16 +19,21 @@ was tested on version 7.4.
 
 The following assumptions with regard to this installation have been made.
 
-0.1 - A valid support agreement allowing the system to register to the Red Hat Customer Portal and receive updates
-0.2 - The ability to enable additional RPM repositories, specifically the EPEL and Software Collections (SCL) repos
-0.3 - Your mileage may vary. There is no warranty given that the steps in this document will work for your system.
+0.1/ A valid support agreement allowing the system to register to the Red Hat Customer Portal and receive updates
+0.2/ The ability to enable additional RPM repositories, specifically the EPEL and Software Collections (SCL) repos
+0.3/ This document is to get a MISP instance up and running over HTTP. I haven't done a full test of all features
 
-+----------------------------------------+
-|   1/ OS Install and Enable Repository  |
-+----------------------------------------+
++----------------------------------------------+
+|   1/ OS Install and additional repositories  |
++----------------------------------------------+
 
 
 
 2/ Dependencies Install
 3/ MISP Install
 4/ Post MISP Install
+
+
+
+
+
