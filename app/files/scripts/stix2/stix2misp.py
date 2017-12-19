@@ -98,14 +98,14 @@ def fillObjects(attr, attrLabels, Object):
         observable = attr.get('objects')
         obj['name'] = objType
         obj['meta-category'] = objCat
-        obj['Attribute'] = resolveObservableFromObjects(observable, objType)
+        obj['Attribute'] = resolveObservableFromObjects(observable, objType, attrLabels)
     elif attrType == 'indicator':
         obj['name'] = objType
         obj['meta-category'] = objCat
         pattern = attr.get('pattern').split(' AND ')
         pattern[0] = pattern[0][2:]
         pattern[-1] = pattern[-1][:-2]
-        obj['Attribute'] = resolvePatternFromObjects(pattern, objType)
+        obj['Attribute'] = resolvePatternFromObjects(pattern, objType, attrLabels)
     else:
         obj['name'] = attrType
     obj['to_ids'] = bool(attrLabels[1].split('=')[1])
@@ -225,7 +225,7 @@ def resolveObservable(observable, mispType):
     else:
         return obj0.get('value')
 
-def resolveObservableFromObjects(observable, mispType):
+def resolveObservableFromObjects(observable, mispType, attrLabels):
     mapping = objectMapping[mispType]
     if mispType == 'email':
         return resolveEmailObject(observable, mapping)
@@ -236,7 +236,7 @@ def resolveObservableFromObjects(observable, mispType):
     elif mispType == 'registry-key':
         return resolveRegKeyObject(observable, mapping)
     else:
-        return resolveBasicObject(observable, mapping)
+        return resolveBasicObject(observable, mapping, attrLabels)
 
 def resolveEmailObject(observable, mapping):
     obj0 = observable.get('0')
@@ -317,11 +317,18 @@ def resolveRegKeyObject(observable, mapping):
         Attribute.append(attribute)
     return Attribute
 
-def resolveBasicObject(observable, mapping):
+def resolveBasicObject(observable, mapping, attrLabels):
     obj0 = observable.get('0')
     if obj0.pop('type') not in ('x509-certificate', 'file', 'url'):
         print(json.dumps({'success': 0, 'message': 'Object type error.'}))
         sys.exit(1)
+    Attribute = []
+    if 'malware-sample' in attrLabels:
+        for o in observable:
+            if o.get('type') == 'file':
+                value = '{}|{}'.format(o.get('name'), o['hashes'].get('MD5'))
+                Attribute.append({'type': 'malware-sample', 'object_relation': 'malware-sample', 'value': value})
+                break
     if 'hashes' in obj0:
         hashes = obj0.pop('hashes')
         for h in hashes:
@@ -406,9 +413,23 @@ objDateRelation = {'validity_not_before': 'validity-not-before', 'start': 'first
                    'validity_not_after': 'validity-not-after', 'end': 'last-seen',
                    'date': 'send-date', 'modified': 'last-modified'}
 
-def resolvePatternFromObjects(pattern, mispType):
+def resolvePatternFromObjects(pattern, mispType, attrLabels):
     Attribute = []
     mapping = objectMapping.get(mispType)
+    if 'malware-sample' in attrLabels:
+        name = False
+        h = False
+        for p in pattern:
+            if 'file:name' in p:
+                filename = p.split(' = ')[1][1:-1]
+                name = True
+            if 'hashes.\'md5\'' in p:
+                md5 = p.split(' = ')[1][1:-1]
+                h = True
+            if name == True and h == True:
+                break
+        Attribute.append({'type': 'malware-sample', 'object_relation': 'malware-sample',
+                          'value': '{}|{}'.format(filename, md5)})
     for p in pattern:
         attribute = {}
         stixType, value = p.split(' = ')
