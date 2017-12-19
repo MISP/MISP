@@ -416,3 +416,5 @@ python
 # error. Worker's can be restarted via the CLI using the following command.
 su -s /bin/bash apache -c 'scl enable rh-php71 rh-redis32 rh-mariadb102 /var/www/MISP/app/Console/worker/start.sh'
 
+## NOTE: No other functions were tested after the conclusion of this install. There may be issue that aren't addressed
+## via this guide and will need additional investigation.
