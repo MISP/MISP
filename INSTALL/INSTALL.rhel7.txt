@@ -29,6 +29,7 @@ The following assumptions with regard to this installation have been made.
 +----------------------------------------------+
 
 1.1/ Complete a minimal RHEL installation, configure IP address to connect automatically.
+
 1.2/ Configure system hostname
 hostnamectl set-hostname misp # You're choice, in a production environment, it's best to use a FQDN
 
@@ -41,12 +42,89 @@ subscription-mmanager repos --enable rhel-7-server-optional-rpms
 subscription-mmanager repos --enable rhel-7-server-extras-rpms
 subscription-mmanager repos --enable rhel-server-rhscl-7-rpms
 
+1.5a/ OPTIONAL: Install the deltarpm package to help reduce download size when installing updates
+yum install deltarpm
+
 1.5/ Update the system and reboot
 yum udpate
 
 ## NOTE: As time of writing performing a yum update results in the rhel-7-server-rt-beta-rpms being forbidden
 ## The repo can be disabled using the following command
 subscription-manager repos --disable rhel-7-server-rt-beta-rpms
+
+1.6/ Install the EPEL repo
+yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+
++-----------------------------+
+|   2/ Install Dependencies   |
++-----------------------------+
+Once the system is installed and updated, the following steps can be performed as root
+
+2.01/ Install some base system dependencies
+yum install gcc git httpd zip python-devel libxslt-devel zlib-devel python-pip
+
+2.02/ Install MariaDB 10.2 from SCL
+yum install rh-mariadb102
+
+2.03/ Start the MariaDB service and enable it to start on boot
+systemctl start rh-mariadb102-mariadb.service
+systemctl enable rh-mariadb102-mariadb.service
+
+## MISP 2.4 requires PHP 5.5 as a minimum, we need a higher version than base RHEL provides.
+## This guide installs PHP 7.1 from SCL
+
+2.04/ Install PHP 7.1 from SCL
+yum install rh-php71 rh-php71-php-fpm rh-php71-php-devel rh-php71-php-mysqlnd rh-php71-php-mbstring rh-php71-php-xml rh-php71-php-bcmath rh-php71-php-opcache
+
+## If we want to use httpd from RHEL base we can use the rh-php71-php-fpm service instead
+2.05/ Start the PHP FPM service and enable to start on boot
+systemctl start rh-php71-php-fpm.service
+systemctl enable rh-php71-php-fpm.service
+
+2.06/ Install redis 3.2 from SCL
+yum install rh-redis32
+
+2.07/ Start redis service and enable to start on boot
+systemctl start rh-redis32-redis.service
+systemctl enable rh-redis32-redis.service
+
+2.08/ Start a SCL shell with rh-mariadb102 rh-php71 and rh-redis32 enabled
+scl enable rh-mariadb102 rh-php71 rh-redis32 bash
+
+2.08/ Secure the MariaDB installation, run the following command and follow the prompts
+mysqld_secure_installation
+
+2.10/ Update the PHP extension repository and install required package
+pear channel-update pear.php.net
+pear install Crypt_GPG
+
+2.11/ Install haveged and enable to start on boot to provide entropy for GPG
+yum install haveged
+systemctl start haveged
+systemctl enable haveged
+
++-----------------------------+
+|   3/ MISP Install           |
++-----------------------------+
+
+3.01/ Download MISP code using git in /var/www/ directory
+cd /var/www
+git clone https://github.com/MISP/MISP.git
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
