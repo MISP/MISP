@@ -1796,7 +1796,7 @@ class AttributesController extends AppController {
 		}
 
 		// If we sent any tags along, load the associated tag names for each attribute
-		if ($tags) $conditions = $this->Attribute->setTagConditions($tags, $conditions);
+		if ($tags) $conditions = $this->Attribute->setTagConditions($tags, $conditions, 'attribute');
 		if ($from) $conditions['AND'][] = array('Event.date >=' => $from);
 		if ($to) $conditions['AND'][] = array('Event.date <=' => $to);
 		if ($publish_timestamp) $conditions = $this->Attribute->setPublishTimestampConditions($publish_timestamp, $conditions);

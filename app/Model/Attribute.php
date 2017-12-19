@@ -2615,12 +2615,12 @@ class Attribute extends AppModel {
 		return $this->IOCExport->buildAll($this->Auth->user(), $event);
 	}
 
-	private function __createTagSubQuery($tag_id, $blocked = false, $scope = 'Event') {
+	private function __createTagSubQuery($tag_id, $blocked = false, $scope = 'Event', $limitAttributeHitsTo = 'event') {
 		$conditionKey = $blocked ? array('NOT' => array('EventTag.tag_id' => $tag_id)) : array('EventTag.tag_id' => $tag_id);
 		$db = $this->getDataSource();
 		$subQuery = $db->buildStatement(
 			array(
-				'fields' => array($scope . 'Tag.event_id'),
+				'fields' => array($scope . 'Tag.' . $limitAttributeHitsTo . '_id'),
 				'table' => strtolower($scope) . '_tags',
 				'alias' => $scope . 'Tag',
 				'limit' => null,
@@ -2629,24 +2629,24 @@ class Attribute extends AppModel {
 				'conditions' => array(
 					$scope . 'Tag.tag_id' => $tag_id
 				),
-				'group' => array($scope . 'Tag.event_id')
+				'group' => array($scope . 'Tag.' . $limitAttributeHitsTo . '_id')
 			),
 			$this
 		);
-		$subQuery = 'Event.id IN (' . $subQuery . ') ';
+		$subQuery = ucfirst($limitAttributeHitsTo) . '.id IN (' . $subQuery . ') ';
 		$conditions = array(
 			$db->expression($subQuery)->value
 		);
 		return $conditions;
 	}
 
-	public function setTagConditions($tags, $conditions) {
+	public function setTagConditions($tags, $conditions, $limitAttributeHitsTo = 'event') {
 		$args = $this->dissectArgs($tags);
 		$tagArray = $this->AttributeTag->Tag->fetchTagIdsFromFilter($args[0], $args[1]);
 		$temp = array();
 		if (!empty($tagArray[0])) {
 			$temp['OR'][] = $this->__createTagSubQuery($tagArray[0]);
-			$temp['OR'][] = $this->__createTagSubQuery($tagArray[0], false, 'Attribute');
+			$temp['OR'][] = $this->__createTagSubQuery($tagArray[0], false, 'Attribute', $limitAttributeHitsTo);
 		}
 		if (!empty($tagArray[1])) {
 			$temp['AND']['NOT'] = $this->__createTagSubQuery($tagArray[1], true);
