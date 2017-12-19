@@ -9,7 +9,7 @@
 #
 #    This program is distributed in the hope that it will be useful,
 #    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #    GNU Affero General Public License for more details.
 #
 #    You should have received a copy of the GNU Affero General Public License
@@ -461,11 +461,19 @@ def saveFile(args, misp):
     with open(filename, 'w') as f:
         f.write(eventDict)
 
+def checkIfFromMISP(stix2Event):
+    for e in stix2Event:
+        if e.get('type') == 'report' and 'misp:tool="misp2stix"' in e.get('labels'):
+            return True
+    return False
+
 def main(args):
     pathname = os.path.dirname(sys.argv[0])
     stix2Event = loadEvent(args, pathname)
     stix2Event = stix2Event.get('objects')
-    mispDict = buildMispDict(stix2Event)
+    from_misp = checkIfFromMISP(stix2Event)
+    if from_misp:
+        mispDict = buildMispDict(stix2Event)
     misp = pymisp.MISPEvent(None, False)
     misp.from_dict(**mispDict)
     saveFile(args, misp)
