@@ -1,4 +1,4 @@
-INSTALLATION INSTRUCTIONS for RHEL 7.4
+INSTALLATION INSTRUCTIONS for RHEL 7.x
 -------------------------
 Contributor: Jez Kerwin - web*at*jezlabs(.)com
 
