@@ -1,10 +1,32 @@
 INSTALLATION INSTRUCTIONS
 ------------------------- for RHEL 7.4
 
-Table of Contents
+//TODO - Maybe move this block to the end.
++----------------------------------------+
+| Contributor:    Jez Kerwin             |
+| Contact:        web*at*jezlabs(.)com   |
+| Date:           December 2017          |
++----------------------------------------+
 
-0/ Assumptions
-1/ OS Install and Enable Repository
+Table of Contents
++----------------------------------------+
+|   0/ Overview and Assumptions          |
++----------------------------------------+
+This document details the steps to install MISP on Red Hat Enterprise Linux 7.x (RHEL 7.x). At time of this writing it
+was tested on version 7.4.
+
+The following assumptions with regard to this installation have been made.
+
+0.1 - A valid support agreement allowing the system to register to the Red Hat Customer Portal and receive updates
+0.2 - The ability to enable additional RPM repositories, specifically the EPEL and Software Collections (SCL) repos
+0.3 - Your milage may vary. There is no warranty given that the steps in this document will work for your system.
+
++----------------------------------------+
+|   1/ OS Install and Enable Repository  |
++----------------------------------------+
+
+
+
 2/ Dependencies Install
 3/ MISP Install
 4/ Post MISP Install
