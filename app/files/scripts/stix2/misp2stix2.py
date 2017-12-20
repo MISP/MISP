@@ -46,6 +46,12 @@ def setIdentity(event, SDOs):
     SDOs.append(identity)
     return identity_id
 
+def selectSDO(object_refs, attributes, attribute, identity):
+    if attribute.to_ids:
+        handleIndicatorAttribute(object_refs, attributes, attribute, identity)
+    else:
+        addObservedData(object_refs, attributes, attribute, identity)
+
 def readAttributes(event, identity, object_refs, external_refs):
     attributes = []
     descFilename = os.path.join(pymisp.__path__[0], 'data/describeTypes.json')
@@ -63,12 +69,12 @@ def readAttributes(event, identity, object_refs, external_refs):
         else:
             mapping = types['category_type_mappings']
             if attr_type in mapping['Person']:
-                addIdentity(object_refs, attributes, attribute, identity, 'individual')
-            elif attr_type in mispTypesMapping:
-                if attribute.to_ids:
-                    handleIndicatorAttribute(object_refs, attributes, attribute, identity)
+                if attribute.category == 'Person':
+                    addIdentity(object_refs, attributes, attribute, identity, 'individual')
                 else:
-                    addObservedData(object_refs, attributes, attribute, identity)
+                    addCustomObject(object_refs, attributes, attribute, identity)
+            elif attr_type in mispTypesMapping:
+                selectSDO(object_refs, attributes, attribute, identity)
             else:
                 addCustomObject(object_refs, attributes, attribute, identity)
     galaxy = False
