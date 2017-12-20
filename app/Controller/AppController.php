@@ -145,6 +145,7 @@ class AppController extends Controller {
 		if (substr($baseurl, -1) == '/') {
 			// if the baseurl has a trailing slash, remove it. It can lead to issues with the CSRF protection
 			$baseurl = rtrim($baseurl, '/');
+			$this->loadModel('Server');
 			$this->Server->serverSettingsSaveValue('MISP.baseurl', $baseurl);
 		}
 		$this->set('baseurl', h($baseurl));
