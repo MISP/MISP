@@ -154,7 +154,8 @@ $config = array(
 			//                         'misp_readonly' => 6,
 			//                         ),
 			//
-			'ldapDefaultOrg'     => '1',      // uses 1st local org in MISP if undefined
+			'ldapDefaultOrg'     => '1',      // uses 1st local org in MISP if undefined,
+			'ldapAllowReferrals' => true,   // allow or disallow chasing LDAP referrals
 		),
 	*/
 );
