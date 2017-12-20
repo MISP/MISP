@@ -1628,15 +1628,6 @@ class Event extends AppModel {
 				}
 				$event['Event']['event_creator_email'] = $userEmails[$event['Event']['user_id']];
 			}
-			if (isset($event['SharingGroup'])) {
-				if (isset($event['SharingGroup']['SharingGroupServer'])) {
-					foreach ($event['SharingGroup']['SharingGroupServer'] as &$sgs) {
-						if ($sgs['server_id'] == 0) {
-							$sgs['Server'] = array('id' => '0', 'url' => Configure::read('MISP.baseurl'), 'name' => Configure::read('MISP.baseurl'));
-						}
-					}
-				}
-			}
 			$event['Galaxy'] = array();
 			// unset empty event tags that got added because the tag wasn't exportable
 			if (!empty($event['EventTag'])) {
@@ -1785,13 +1776,6 @@ class Event extends AppModel {
 		foreach ($data as $k => $v) {
 			if ($v['distribution'] == 4) {
 				$data[$k]['SharingGroup'] = $sharingGroupData[$v['sharing_group_id']]['SharingGroup'];
-				if (!empty($data[$k]['SharingGroup']['SharingGroupServer'])) {
-					foreach ($data[$k]['SharingGroup']['SharingGroupServer'] as &$sgs) {
-						if ($sgs['server_id'] == 0) {
-							$sgs['Server'] = array('id' => '0', 'url' => Configure::read('MISP.baseurl'), 'name' => Configure::read('MISP.baseurl'));
-						}
-					}
-				}
 			}
 		}
 		return $data;
@@ -3950,7 +3934,14 @@ class Event extends AppModel {
 			$sharingGroupData = array();
 			foreach ($sharingGroupDataTemp as $k => $v) {
 				if (isset($v['SharingGroupOrg'])) $v['SharingGroup']['SharingGroupOrg'] = $v['SharingGroupOrg'];
-				if (isset($v['SharingGroupServer'])) $v['SharingGroup']['SharingGroupServer'] = $v['SharingGroupServer'];
+				if (isset($v['SharingGroupServer'])) {
+					$v['SharingGroup']['SharingGroupServer'] = $v['SharingGroupServer'];
+					foreach ($v['SharingGroup']['SharingGroupServer'] as &$sgs) {
+						if ($sgs['server_id'] == 0) {
+							$sgs['Server'] = array('id' => '0', 'url' => Configure::read('MISP.baseurl'), 'name' => Configure::read('MISP.baseurl'));
+						}
+					}
+				}
 				$sharingGroupData[$v['SharingGroup']['id']] = array('SharingGroup' => $v['SharingGroup']);
 			}
 			if ($useCache) $this->__assetCache['sharingGroupData'] = $sharingGroupData;
