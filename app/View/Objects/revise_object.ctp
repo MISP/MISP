@@ -29,7 +29,7 @@
               if ($data['Object']['distribution'] != 4) {
                 echo $distributionLevels[$data['Object']['distribution']];
               } else {
-                echo h($sg[$data['Object']['sharing_group_id']]['SharingGroup']['name']);
+                echo h($sharing_groups[$data['Object']['sharing_group_id']]['SharingGroup']['name']);
               }
             ?></td>
           </tr>
@@ -61,7 +61,7 @@
                           if ($attribute['distribution'] != 4) {
                             $attribute[$field] = $distributionLevels[$attribute['distribution']];
                           } else {
-                            $attribute[$field] = $sg[$attribute['sharing_group_id']]['SharingGroup']['name'];
+                            $attribute[$field] = $sharing_groups[$attribute['sharing_group_id']]['SharingGroup']['name'];
                           }
                         }
                         if ($field == 'to_ids') $attribute[$field] = $attribute[$field] ? 'Yes' : 'No';

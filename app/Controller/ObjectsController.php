@@ -62,7 +62,7 @@ class ObjectsController extends AppController {
 			foreach ($sharing_groups as $k => $sg) {
 				if (empty($sg)) throw new NotFoundException('Invalid sharing group.');
 			}
-			$this->set('sg', $sharing_groups);
+			$this->set('sharing_groups', $sharing_groups);
 		}
 		if ($this->request->data['Object']['distribution'] == 4) {
 			$sg = $this->MispObject->SharingGroup->find('first', array(

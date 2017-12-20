@@ -1696,17 +1696,8 @@ class Event extends AppModel {
 					$event['Attribute'] = $this->Feed->attachFeedCorrelations($event['Attribute'], $user, $event['Event'], $overrideLimit);
 				}
 				$event = $this->__filterBlockedAttributesByTags($event, $options, $user);
+				$event['Attribute'] = $this->__attachSharingGroups(!$options['sgReferenceOnly'], $event['Attribute'], $sharingGroupData);
 				foreach ($event['Attribute'] as $key => $attribute) {
-					if (!$options['sgReferenceOnly'] && $event['Attribute'][$key]['sharing_group_id']) {
-						$event['Attribute'][$key]['SharingGroup'] = $sharingGroupData[$event['Attribute'][$key]['sharing_group_id']]['SharingGroup'];
-						if (isset($attribute['SharingGroup']['SharingGroupServer'])) {
-							foreach ($attribute['SharingGroup']['SharingGroupServer'] as &$sgs) {
-								if ($sgs['server_id'] == 0) {
-									$sgs['Server'] = array('id' => '0', 'url' => Configure::read('MISP.baseurl'), 'name' => Configure::read('MISP.baseurl'));
-								}
-							}
-						}
-					}
 					if ($options['enforceWarninglist'] && !$this->Warninglist->filterWarninglistAttributes($warninglists, $attribute, $this->Warninglist)) {
 						unset($event['Attribute'][$key]);
 						continue;
@@ -1748,7 +1739,11 @@ class Event extends AppModel {
 					}
 					if (!$flatten && $event['Attribute'][$key]['object_id'] != 0) {
 						if (!empty($event['Object'])) {
+							$event['Object'] = $this->__attachSharingGroups(!$options['sgReferenceOnly'], $event['Object'], $sharingGroupData);
 							foreach ($event['Object'] as $objectKey => $objectValue) {
+								if (!empty($event['Object'][$objectKey]['Attribute'])) {
+									$event['Object'][$objectKey]['Attribute'] = $this->__attachSharingGroups(!$options['sgReferenceOnly'], $event['Object'][$objectKey]['Attribute'], $sharingGroupData);
+								}
 								if ($event['Attribute'][$key]['object_id'] == $objectValue['id']) {
 									$event['Object'][$objectKey]['Attribute'][] = $event['Attribute'][$key];
 								}
@@ -1784,6 +1779,25 @@ class Event extends AppModel {
 			}
 		}
 		return $results;
+	}
+
+	private function __attachSharingGroups($doAttach, $data, $sharingGroupData) {
+		foreach ($data as $k => $v) {
+			if ($v['distribution'] == 4) {
+				$data[$k]['SharingGroup'] = $sharingGroupData[$v['sharing_group_id']]['SharingGroup'];
+				if (!empty($data[$k]['SharingGroup']['SharingGroupServer'])) {
+					foreach ($data[$k]['SharingGroup']['SharingGroupServer'] as &$sgs) {
+						if ($sgs['server_id'] == 0) {
+							$sgs['Server'] = array('id' => '0', 'url' => Configure::read('MISP.baseurl'), 'name' => Configure::read('MISP.baseurl'));
+						}
+					}
+					if ($sgs['server_id'] == 0) {
+						$sgs['Server'] = array('id' => '0', 'url' => Configure::read('MISP.baseurl'), 'name' => Configure::read('MISP.baseurl'));
+					}
+				}
+			}
+		}
+		return $data;
 	}
 
 	// Filter the attributes within an event based on the tag filter block rules
