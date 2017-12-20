@@ -641,6 +641,9 @@ class Attribute extends AppModel {
 		if (!isset($this->data['Attribute']['type'])) {
 			return false;
 		}
+		if (is_array($this->data['Attribute']['value'])) {
+			return false;
+		}
 		// remove leading and trailing blanks
 		$this->data['Attribute']['value'] = trim($this->data['Attribute']['value']);
 
@@ -3049,7 +3052,11 @@ class Attribute extends AppModel {
 			'deleted',
 			'disable_correlation'
 		);
-		if (!$this->save($attribute, array('fieldList' => $fieldList))) {
+		if ($objectId) {
+			$fieldList[] = 'object_id';
+			$fieldList[] = 'object_relation';
+		}
+		if (!$this->save(array('Attribute' => $attribute), array('fieldList' => $fieldList))) {
 			$attribute_short = (isset($attribute['category']) ? $attribute['category'] : 'N/A') . '/' . (isset($attribute['type']) ? $attribute['type'] : 'N/A') . ' ' . (isset($attribute['value']) ? $attribute['value'] : 'N/A');
 			$this->Log = ClassRegistry::init('Log');
 			$this->Log->create();

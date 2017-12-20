@@ -524,7 +524,8 @@ class MispObject extends AppModel {
 						return true;
 					}
 				} else {
-					$object['timestamp'] = $dateObj->getTimestamp();
+					$date = new DateTime();
+					$object['timestamp'] = $date->getTimestamp();
 				}
 			}
 		} else {
@@ -558,7 +559,7 @@ class MispObject extends AppModel {
 				'email' => $user['email'],
 				'action' => 'edit',
 				'user_id' => $user['id'],
-				'title' => 'Attribute dropped due to validation for Event ' . $eventId . ' failed: ' . $object['Object']['name'],
+				'title' => 'Attribute dropped due to validation for Event ' . $eventId . ' failed: ' . $object['name'],
 				'change' => 'Validation errors: ' . json_encode($this->validationErrors) . ' Full Object: ' . json_encode($attribute),
 			));
 			return $this->validationErrors;
@@ -567,9 +568,10 @@ class MispObject extends AppModel {
 		}
 		if (!empty($object['Attribute'])) {
 			foreach ($object['Attribute'] as $attribute) {
-				$result = $this->Attribute->editAttribute($attribute, $eventId, $user, $this->id, $log);
+				$result = $this->Attribute->editAttribute($attribute, $eventId, $user, $object['id'], $log);
 			}
 		}
+		return true;
 	}
 
 	public function updateTimestamp($id) {
