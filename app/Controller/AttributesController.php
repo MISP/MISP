@@ -144,6 +144,8 @@ class AttributesController extends AppController {
 				$attributes = array(0 => $attributes);
 			}
 			$uuids = array();
+			$this->Warninglist = ClassRegistry::init('Warninglist');
+			$warnings = array();
 			foreach ($attributes as $k => $attribute) {
 				if (isset($attribute['id'])) {
 					unset($attribute['id']);
@@ -163,6 +165,12 @@ class AttributesController extends AppController {
 				}
 				if (!isset($attribute['to_ids'])) {
 					$attributes[$k]['to_ids'] = $this->Attribute->typeDefinitions[$attribute['type']]['to_ids'];
+				}
+				if (!empty($attributes[$k]['enforceWarninglist']) || !empty($this->params['named']['enforceWarninglist'])) {
+					if (empty($warninglists)) $warninglists = $this->Warninglist->fetchForEventView();
+					if (!$this->Warninglist->filterWarninglistAttributes($warninglists, $attributes[$k])) {
+						$attributes[$k]['blocked'] = true;
+					}
 				}
 			}
 			$fails = array();
@@ -185,12 +193,16 @@ class AttributesController extends AppController {
 				}
 			}
 			foreach ($attributes as $k => $attribute) {
-				$this->Attribute->create();
-				$result = $this->Attribute->save($attribute);
-				if (!$result) {
-					$fails["attribute_$k"] = $this->Attribute->validationErrors;
+				if (empty($attribute['blocked'])) {
+					$this->Attribute->create();
+					$result = $this->Attribute->save($attribute);
+					if (!$result) {
+						$fails["attribute_$k"] = $this->Attribute->validationErrors;
+					} else {
+						$successes[$k] = $this->Attribute->id;
+					}
 				} else {
-					$successes[$k] = $this->Attribute->id;
+					$fails["attribute_$k"] = 'Attirbute blocked due to warninglist';
 				}
 			}
 			if (!empty($successes)) {
