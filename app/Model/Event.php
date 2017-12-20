@@ -1791,9 +1791,6 @@ class Event extends AppModel {
 							$sgs['Server'] = array('id' => '0', 'url' => Configure::read('MISP.baseurl'), 'name' => Configure::read('MISP.baseurl'));
 						}
 					}
-					if ($sgs['server_id'] == 0) {
-						$sgs['Server'] = array('id' => '0', 'url' => Configure::read('MISP.baseurl'), 'name' => Configure::read('MISP.baseurl'));
-					}
 				}
 			}
 		}
