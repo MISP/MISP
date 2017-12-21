@@ -128,7 +128,7 @@ class Attribute extends AppModel {
 			'pattern-in-traffic' => array('desc' => 'Pattern in network traffic that identifies the malware', 'default_category' => 'Network activity', 'to_ids' => 1),
 			'pattern-in-memory' => array('desc' => 'Pattern in memory dump that identifies the malware', 'default_category' => 'Payload installation', 'to_ids' => 1),
             'yara' => array('desc' => 'Yara signature', 'default_category' => 'Payload installation', 'to_ids' => 1),
-            'stix2-pattern' => array('desc' = 'STIX 2 pattern', 'default_category' => 'Payload installation', 'to_ids' => 1),
+            'stix2-pattern' => array('desc' => 'STIX 2 pattern', 'default_category' => 'Payload installation', 'to_ids' => 1),
 			'sigma' => array('desc' => 'Sigma - Generic Signature Format for SIEM Systems', 'default_category' => 'Payload installation', 'to_ids' => 1),
 			'cookie' => array('desc' => 'HTTP cookie as often stored on the user web client. This can include authentication cookie or session cookie.', 'default_category' => 'Network activity', 'to_ids' => 0),
 			'vulnerability' => array('desc' => 'A reference to the vulnerability used in the exploit', 'default_category' => 'External analysis', 'to_ids' => 0),
