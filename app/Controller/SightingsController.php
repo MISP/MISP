@@ -95,7 +95,7 @@ class SightingsController extends AppController {
 		$id = $this->Sighting->explodeIdList($id);
 		if ($context == 'attribute') {
 			$this->loadModel('Attribute');
-			$attributes = $this->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id)));
+			$attributes = $this->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id), 'flatten' => 1));
 			if (empty($attributes)) {
 				throw new MethodNotAllowedException('Invalid attribute.');
 			}
@@ -226,7 +226,7 @@ class SightingsController extends AppController {
 		$id = $this->Sighting->explodeIdList($id);
 		if ($context === 'attribute') {
 			$attribute_id = $id;
-			$object = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id, 'Attribute.deleted' => 0)));
+			$object = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id, 'Attribute.deleted' => 0), 'flatten' => 1));
 			if (empty($object)) {
 				throw new MethodNotAllowedException('Invalid object.');
 			}
