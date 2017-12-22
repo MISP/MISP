@@ -154,17 +154,7 @@ class WarninglistsController extends AppController {
 	public function delete($id) {
 		if ($this->request->is('post')) {
 			$id = intval($id);
-			$result = $this->Warninglist->WarninglistEntry->deleteAll(
-				array('WarninglistEntry.warninglist_id' => $id)
-			);
-			if ($result) {
-				$result = $this->Warninglist->WarninglistType->deleteAll(
-					array('WarninglistType.warninglist_id' => $id)
-				);
-			}
-			if ($result) {
-				$result = $this->Warninglist->delete($id, false);
-			}
+			$result = $this->Warninglist->quickDelete($id);
 			if ($result) {
 				$this->Session->setFlash('Warninglist successfuly deleted.');
 				$this->redirect(array('controller' => 'warninglists', 'action' => 'index'));
