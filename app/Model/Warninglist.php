@@ -402,9 +402,11 @@ class Warninglist extends AppModel{
 		if (!isset($hostname)) {
 			return false;
 		}
+		$hostname = rtrim($hostname, '.');
 		$value = explode('.', $hostname);
 		$pieces = count($value);
 		foreach ($listValues as $listValue) {
+			$listValue = rtrim($listValue, '.');
 			$listValue = explode('.', $listValue);
 			if (count($listValue) > $pieces) {
 				continue;
