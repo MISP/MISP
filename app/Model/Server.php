@@ -3599,7 +3599,7 @@ class Server extends AppModel {
 	}
 
 	public function getLatestGitRemote() {
-		return exec('git ls-remote https://github.com/MISP/MISP | head -1 | sed "s/HEAD//"');
+		return exec('timeout 3 git ls-remote https://github.com/MISP/MISP | head -1 | sed "s/HEAD//"');
 	}
 
 	public function getCurrentGitStatus() {
