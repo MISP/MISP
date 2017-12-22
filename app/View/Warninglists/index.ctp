@@ -53,6 +53,7 @@ foreach ($warninglists as $k => $item): ?>
 		<?php endif;?>
 		<td class="short action-links">
 			<a href='<?php echo $baseurl."/warninglists/view/". h($item['Warninglist']['id']);?>' class = "icon-list-alt" title = "View"></a>
+			<span class="icon-trash useCursorPointer" title="Delete Warninglist" role="button" tabindex="0" aria-label="Delete warninglist" onClick="deleteObject('warninglists', 'delete', '<?php echo h($item['Warninglist']['id']); ?>', '<?php echo h($item['Warninglist']['id']); ?>');"></span>
 		</td>
 	</tr><?php
 endforeach; ?>

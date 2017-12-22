@@ -89,13 +89,17 @@ class Warninglist extends AppModel{
 			$values = array();
 			foreach ($list['list'] as $value) {
 				if (!empty($value)) {
-					$values[] = array($value, $this->id);
+					$values[] = array('value' => $value, 'warninglist_id' => $this->id);
 				}
 			}
 			unset($list['list']);
-			$result = $db->insertMulti('warninglist_entries', array('value', 'warninglist_id'), $values);
+			$count = count($values);
+			$values = array_chunk($values, 1000);
+			foreach ($values as $chunk) {
+				$result = $db->insertMulti('warninglist_entries', array('value', 'warninglist_id'), $chunk);
+			}
 			if ($result) {
-				$this->saveField('warninglist_entry_count', count($values));
+				$this->saveField('warninglist_entry_count', $count);
 			} else {
 				return 'Could not insert values.';
 			}

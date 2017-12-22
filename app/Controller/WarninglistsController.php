@@ -150,4 +150,36 @@ class WarninglistsController extends AppController {
 			$this->set('warninglist', $warninglist);
 		}
 	}
+
+	public function delete($id) {
+		if ($this->request->is('post')) {
+			$id = intval($id);
+			$result = $this->Warninglist->WarninglistEntry->deleteAll(
+				array('WarninglistEntry.warninglist_id' => $id)
+			);
+			if ($result) {
+				$result = $this->Warninglist->WarninglistType->deleteAll(
+					array('WarninglistType.warninglist_id' => $id)
+				);
+			}
+			if ($result) {
+				$result = $this->Warninglist->delete($id, false);
+			}
+			if ($result) {
+				$this->Session->setFlash('Warninglist successfuly deleted.');
+				$this->redirect(array('controller' => 'warninglists', 'action' => 'index'));
+			} else {
+				$this->Session->setFlash('Warninglists could not be deleted.');
+				$this->redirect(array('controller' => 'warninglists', 'action' => 'index'));
+			}
+		} else {
+			if ($this->request->is('ajax')) {
+				$this->set('id', $id);
+				$this->render('ajax/delete_confirmation');
+			} else {
+				throw new MethodNotAllowedException('This function can only be reached via AJAX.');
+			}
+		}
+	}
+
 }
