@@ -428,6 +428,7 @@ class ACLComponent extends Component {
 					'view' => array('*'),
 			),
 			'warninglists' => array(
+					'delete' => array(),
 					'enableWarninglist' => array(),
 					'getToggleField' => array(),
 					'index' => array('*'),
