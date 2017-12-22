@@ -3206,6 +3206,19 @@ $('.quickToggleCheckbox').toggle(function() {
 	var url = $(this).data('checkbox-url');
 });
 
+$(document).ready(function() {
+	$(".correlation-expand-button").on("click", function() {
+		$(this).parent().children(".correlation-expanded-area").show();
+		$(this).parent().children(".correlation-collapse-button").show();
+		$(this).hide();
+	});
+	$(".correlation-collapse-button").on("click", function() {
+		$(this).parent().children(".correlation-expanded-area").hide();
+		$(this).parent().children(".correlation-expand-button").show();
+		$(this).hide();
+	});
+});
+
 (function(){
     "use strict";
     $(".datepicker").datepicker({

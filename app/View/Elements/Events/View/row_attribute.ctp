@@ -118,23 +118,41 @@
       <ul class="inline" style="margin:0px;">
         <?php
           $relatedObject = 'Attribute';
-          if (!empty($event['Related' . $relatedObject][$object['id']])) {
-            foreach ($event['Related' . $relatedObject][$object['id']] as $relatedAttribute) {
-              $relatedData = array('Event info' => $relatedAttribute['info'], 'Correlating Value' => $relatedAttribute['value'], 'date' => isset($relatedAttribute['date']) ? $relatedAttribute['date'] : 'N/A');
-              $popover = '';
-              foreach ($relatedData as $k => $v) {
-                $popover .= '<span class=\'bold black\'>' . h($k) . '</span>: <span class="blue">' . h($v) . '</span><br />';
-              }
-              echo '<li style="padding-right: 0px; padding-left:0px;" data-toggle="popover" data-content="' . h($popover) . '" data-trigger="hover"><span>';
-              if ($relatedAttribute['org_id'] == $me['org_id']) {
-                echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['Event']['id']), array('class' => 'red'));
-              } else {
-                echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['Event']['id']), array('class' => $otherColour));
-              }
-              echo "</span></li>";
-              echo ' ';
-            }
-          }
+          if (!empty($event['Related' . $relatedObject][$object['id']])):
+            $i = 0;
+            $count = count($event['Related' . $relatedObject][$object['id']]);
+            foreach ($event['Related' . $relatedObject][$object['id']] as $relatedAttribute):
+              if ($i == 4):
+            ?>
+                <li class="no-side-padding correlation-expand-button useCursorPointer linkButton blue">
+                  Show <?php echo (count($event['Related' . $relatedObject][$object['id']]) - 4);?> more...
+                </li>
+                <?php
+                  endif;
+                  $relatedData = array('Event info' => $relatedAttribute['info'], 'Correlating Value' => $relatedAttribute['value'], 'date' => isset($relatedAttribute['date']) ? $relatedAttribute['date'] : 'N/A');
+                  $popover = '';
+                  foreach ($relatedData as $k => $v):
+                    $popover .= '<span class=\'bold black\'>' . h($k) . '</span>: <span class="blue">' . h($v) . '</span><br />';
+                  endforeach;
+                ?>
+                <li class="no-side-padding <?php if ($i > 3) echo 'correlation-expanded-area'; ?>" <?php if ($i > 3) echo 'style="display:none;"'; ?> data-toggle="popover" data-content="<?php echo h($popover); ?>" data-trigger="hover">
+                <?php
+                  if ($relatedAttribute['org_id'] == $me['org_id']):
+                    echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['Event']['id']), array('class' => 'red'));
+                  else:
+                    echo $this->Html->link($relatedAttribute['id'], array('controller' => 'events', 'action' => 'view', $relatedAttribute['id'], true, $event['Event']['id']), array('class' => $otherColour));
+                  endif;
+                ?>
+                </li>
+            <?php
+              $i++;
+            endforeach;
+            if ($i > 4):
+          ?>
+              <li class="no-side-padding correlation-collapse-button useCursorPointer linkButton blue" style="display:none;">Collapse...</li>
+          <?php
+            endif;
+          endif;
         ?>
       </ul>
     </td>

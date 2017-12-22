@@ -1982,6 +1982,11 @@ table tr:hover .down-expand-button {
   line-height: 20px;
 }
 
+.no-side-padding {
+	padding-right: 0px !important;
+	padding-left:0px !important;
+}
+
 @-webkit-keyframes rotation {
    from {-webkit-transform: rotate(0deg);}
    to {-webkit-transform: rotate(359deg);}
