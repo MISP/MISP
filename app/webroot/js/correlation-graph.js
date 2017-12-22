@@ -13,9 +13,9 @@ $(document).ready( function() {
   var menu_y_buffer = height - 100;
   $('.menu-container').css('left', '200px');
   $('#hover-menu-container').css('top', '50px');
-  $('#hover-menu-container').css('z-index', 1);
+  $('#hover-menu-container').css('z-index', 0);
   $('#selected-menu-container').css('top', '400px');
-  $('#selected-menu-container').css('z-index', 2);
+  $('#selected-menu-container').css('z-index', 1);
 
   var root;
 
