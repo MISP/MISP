@@ -29,12 +29,7 @@ def loadEvent(args, pathname):
         print(json.dumps({'success': 0, 'message': 'The temporary STIX export file could not be read'}))
         sys.exit(1)
 
-def buildMispDict(event):
-    mispDict = {}
-    identity = event.pop(0)
-    mispDict['Org'] = {}
-    mispDict['Org']['name'] = identity.get('name')
-    report = event.pop(0)
+def fillReportInfo(mispDict, report):
     mispDict['info'] = report.get('name')
     mispDict['publish_timestamp'] = getTimestampfromDate(report.get('published'))
     labels = report.get('labels')
@@ -44,6 +39,14 @@ def buildMispDict(event):
         label['name'] = l
         Tag.append(label)
     mispDict['Tag'] = Tag
+
+def buildMispDict(event):
+    mispDict = {}
+    identity = event.pop(0)
+    mispDict['Org'] = {}
+    mispDict['Org']['name'] = identity.get('name')
+    report = event.pop(0)
+    fillReportInfo(mispDict, report)
     Attribute = []
     Galaxy = []
     Object = []
@@ -102,7 +105,7 @@ def fillObjects(attr, attrLabels, Object):
     elif attrType == 'indicator':
         obj['name'] = objType
         obj['meta-category'] = objCat
-        pattern = attr.get('pattern').split(' AND ')
+        pattern = attr.get('pattern').replace('\\\\', '\\').split(' AND ')
         pattern[0] = pattern[0][2:]
         pattern[-1] = pattern[-1][:-2]
         obj['Attribute'] = resolvePatternFromObjects(pattern, objType, attrLabels)
@@ -128,7 +131,7 @@ def fillAttributes(attr, attrLabels, Attribute):
         attribute['category'] = mispCat
         date = attr.get('valid_from')
         attribute['timestamp'] = getTimestampfromDate(date)
-        pattern = attr.get('pattern')
+        pattern = attr.get('pattern').replace('\\\\', '\\')
         attribute['value'] = resolvePattern(pattern, mispType)
     else:
         attribute['value'] = attr.get('name')
@@ -170,7 +173,10 @@ def fillCustomFromObject(attr, attrLabels, Object):
     Object.append(obj)
 
 def getTimestampfromDate(date):
-    return int(time.mktime(time.strptime(date, "%Y-%m-%dT%H:%M:%SZ")))
+    if '.' in date:
+        return int(time.mktime(time.strptime(date.split('.')[0], "%Y-%m-%dT%H:%M:%S")))
+    else:
+        return int(time.mktime(time.strptime(date, "%Y-%m-%dT%H:%M:%SZ")))
 
 def getMispType(labels):
     return labels[0].split('=')[1][1:-1]
@@ -398,10 +404,10 @@ objectMapping = {
         'ip|port': {'src_port': {'type': 'port', 'relation': 'src-port'},
                     'dst_port': {'type': 'port', 'relation': 'dst-port'},
                     'dst_ref.value': {'type': 'ip-dst', 'relation': 'ip'}},
-        'registry-key': {'data_type': {'type': 'reg-datatype', 'relation': 'data-type'},
-                         'data': {'type': 'reg-data', 'relation': 'data'},
-                         'name': {'type': 'reg-name', 'relation': 'name'},
-                         'key': {'type': 'reg-key', 'relation': 'key'}},
+        'registry-key': {'data_type': {'type': 'text', 'relation': 'data-type'},
+                         'data': {'type': 'text', 'relation': 'data'},
+                         'name': {'type': 'text', 'relation': 'name'},
+                         'key': {'type': 'regkey', 'relation': 'key'}},
         'url': {'value': {'type': 'url', 'relation': 'url'}},
         'x509': {}
         }
@@ -455,6 +461,43 @@ def resolvePatternFromObjects(pattern, mispType, attrLabels):
         Attribute.append(attribute)
     return Attribute
 
+def parseExternalStix(event):
+    mispDict = {}
+    report = event.pop(0)
+    fillReportInfo(mispDict, report)
+    Attribute = []
+    Galaxy = []
+    Object = []
+    for e in event:
+        attrType = e.get('type')
+        if attrType in ('relationship', 'report'):
+            continue
+        if attrType == 'indicator':
+            pattern = e.get('pattern')
+            attribute = {'type': 'stix2-pattern', 'object_relation': 'stix2-pattern', 'value': pattern}
+            obj = {'name': 'stix2-pattern', 'meta-category': 'stix2-pattern', 'Attribute': [attribute]}
+            Object.append(obj)
+            #if ' LIKE ' in pattern:
+            #    continue
+            #pattern = pattern.split(' AND ')
+            #fieldType = pattern_parser(pattern)
+    mispDict['Attribute'] = Attribute
+    mispDict['Galaxy'] = Galaxy
+    mispDict['Object'] = Object
+    return mispDict
+
+def pattern_parser(pattern):
+    pattern_dict = {}
+    for p in pattern.split(' AND '):
+        pType, pValue = p.split(' = ')
+        pattern_dict[pType] = pValue[1:-1]
+    if len(pattern_dict) == 1:
+        fieldType = 'attribute'
+    return fieldType 
+
+def observable_parser(observable):
+    return
+
 def saveFile(args, misp):
     filename = '{}.stix2'.format(args[1])
     eventDict = misp.to_json()
@@ -474,6 +517,8 @@ def main(args):
     from_misp = checkIfFromMISP(stix2Event)
     if from_misp:
         mispDict = buildMispDict(stix2Event)
+    else:
+        mispDict = parseExternalStix(stix2Event)
     misp = pymisp.MISPEvent(None, False)
     misp.from_dict(**mispDict)
     saveFile(args, misp)
