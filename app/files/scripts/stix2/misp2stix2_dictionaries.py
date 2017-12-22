@@ -148,7 +148,8 @@ relationshipsSpecifications = {'attack-pattern': {'vulnerability': 'targets', 'i
 objectTypes = {'text': {'x509': {'subject': 'subject', 'issuer': 'issuer', 'pubkey-info-algorithm': 'subject_public_key_algorithm',
                                 'pubkey-info-exponent': 'subject_public_key_exponent', 'pubkey-info-modulus': 'subject_public_key_modulus',
                                 'serial-number': 'serial_number', 'version': 'version'},
-                       'file': {'mimetype': 'mime_type'}},
+                       'file': {'mimetype': 'mime_type'},
+                       'registry-key': {'data-type': 'data_type', 'data': 'data', 'name': 'name'}},
               'datetime': {'x509': {'validity-not-before': 'validity_not_before', 'validity-not-after': 'validity_not_after'},
                            'ip|port': {'first-seen': 'start', 'last-seen': 'end'},
                            'email': 'date',
@@ -161,7 +162,7 @@ objectTypes = {'text': {'x509': {'subject': 'subject', 'issuer': 'issuer', 'pubk
               'hashes': 'hashes.\'{0}\'', 'size-in-bytes': 'size', 'filename': 'name',
               'ip-dst': {'ip|port': 'dst_ref.type = \'{0}\' AND network-traffic:dst_ref.value',
                          'domain|ip': 'resolves_to_refs[*].value'},
-              'reg-datatype': 'data_type', 'reg-data': 'data', 'reg-name': 'name', 'reg-key': 'key'
+              'regkey': 'key'
 }
 
 defineProtocols = {'80': 'http', '443': 'https'} 
