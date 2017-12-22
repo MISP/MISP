@@ -461,6 +461,43 @@ def resolvePatternFromObjects(pattern, mispType, attrLabels):
         Attribute.append(attribute)
     return Attribute
 
+def parseExternalStix(event):
+    mispDict = {}
+    report = event.pop(0)
+    fillReportInfo(mispDict, report)
+    Attribute = []
+    Galaxy = []
+    Object = []
+    for e in event:
+        attrType = e.get('type')
+        if attrType in ('relationship', 'report'):
+            continue
+        if attrType == 'indicator':
+            pattern = e.get('pattern')
+            attribute = {'type': 'stix2-pattern', 'object_relation': 'stix2-pattern', 'value': pattern}
+            obj = {'name': 'stix2-pattern', 'meta-category': 'stix2-pattern', 'Attribute': [attribute]}
+            Object.append(obj)
+            #if ' LIKE ' in pattern:
+            #    continue
+            #pattern = pattern.split(' AND ')
+            #fieldType = pattern_parser(pattern)
+    mispDict['Attribute'] = Attribute
+    mispDict['Galaxy'] = Galaxy
+    mispDict['Object'] = Object
+    return mispDict
+
+def pattern_parser(pattern):
+    pattern_dict = {}
+    for p in pattern.split(' AND '):
+        pType, pValue = p.split(' = ')
+        pattern_dict[pType] = pValue[1:-1]
+    if len(pattern_dict) == 1:
+        fieldType = 'attribute'
+    return fieldType 
+
+def observable_parser(observable):
+    return
+
 def saveFile(args, misp):
     filename = '{}.stix2'.format(args[1])
     eventDict = misp.to_json()
@@ -480,6 +517,8 @@ def main(args):
     from_misp = checkIfFromMISP(stix2Event)
     if from_misp:
         mispDict = buildMispDict(stix2Event)
+    else:
+        mispDict = parseExternalStix(stix2Event)
     misp = pymisp.MISPEvent(None, False)
     misp.from_dict(**mispDict)
     saveFile(args, misp)
