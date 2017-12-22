@@ -95,13 +95,13 @@ class GalaxiesController extends AppController {
 			$cluster['GalaxyCluster']['synonyms_string'] = implode(', ', $cluster['GalaxyCluster']['synonyms_string']);
 			unset($cluster['GalaxyElement']);
 			$clusters[$cluster['GalaxyCluster']['value']] = $cluster['GalaxyCluster'];
-			ksort($clusters);
 			if (isset($lookup_table[$cluster['GalaxyCluster']['value']])) {
 				$lookup_table[$cluster['GalaxyCluster']['value']][] = $cluster['GalaxyCluster']['id'];
 			} else {
 				$lookup_table[$cluster['GalaxyCluster']['value']] = array($cluster['GalaxyCluster']['id']);
 			}
 		}
+		ksort($clusters);
 		$this->set('clusters', $clusters);
 		$this->set('event_id', $event_id);
 		$this->set('lookup_table', $lookup_table);
