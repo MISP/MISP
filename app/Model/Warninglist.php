@@ -72,12 +72,27 @@ class Warninglist extends AppModel{
 		return $updated;
 	}
 
+	public function quickDelete($id) {
+		$result = $this->WarninglistEntry->deleteAll(
+			array('WarninglistEntry.warninglist_id' => $id)
+		);
+		if ($result) {
+			$result = $this->WarninglistType->deleteAll(
+				array('WarninglistType.warninglist_id' => $id)
+			);
+		}
+		if ($result) {
+			$result = $this->delete($id, false);
+		}
+		return $result;
+	}
+
 	private function __updateList($list, $current) {
 		$list['enabled'] = 0;
 		$warninglist = array();
 		if (!empty($current)) {
 			if ($current['Warninglist']['enabled']) $list['enabled'] = 1;
-			$this->deleteAll(array('Warninglist.id' => $current['Warninglist']['id']));
+			$this->quickDelete($current['Warninglist']['id']);
 		}
 		$fieldsToSave = array('name', 'version', 'description', 'type', 'enabled');
 		foreach ($fieldsToSave as $fieldToSave) {
@@ -94,7 +109,7 @@ class Warninglist extends AppModel{
 			}
 			unset($list['list']);
 			$count = count($values);
-			$values = array_chunk($values, 1000);
+			$values = array_chunk($values, 100);
 			foreach ($values as $chunk) {
 				$result = $db->insertMulti('warninglist_entries', array('value', 'warninglist_id'), $chunk);
 			}
@@ -387,9 +402,11 @@ class Warninglist extends AppModel{
 		if (!isset($hostname)) {
 			return false;
 		}
+		$hostname = rtrim($hostname, '.');
 		$value = explode('.', $hostname);
 		$pieces = count($value);
 		foreach ($listValues as $listValue) {
+			$listValue = rtrim($listValue, '.');
 			$listValue = explode('.', $listValue);
 			if (count($listValue) > $pieces) {
 				continue;
