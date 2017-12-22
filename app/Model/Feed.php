@@ -115,6 +115,41 @@ class Feed extends AppModel {
 		return $result;
 	}
 
+	public function getCache($feed, $HttpSocket) {
+		$result = array();
+		$request = $this->__createFeedRequest();
+		if (isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] == 'local') {
+			if (file_exists($feed['Feed']['url'] . '/hashes.csv')) {
+				$data = file_get_contents($feed['Feed']['url'] . '/hashes.csv');
+				if (empty($data)) return false;
+			} else {
+				return false;
+			}
+		} else {
+			$uri = $feed['Feed']['url'] . '/hashes.csv';
+			try {
+				$response = $HttpSocket->get($uri, '', $request);
+			} catch (Exception $e) {
+				return false;
+			}
+			if ($response->code != 200) {
+				return false;
+			}
+			$data = $response->body;
+			unset($response);
+		}
+		try {
+			$data = trim($data);
+			$data = explode("\n", $data);
+			foreach ($data as $k => $v) {
+				$data[$k] = explode(',', $v);
+			}
+		} catch (Exception $e) {
+			return false;
+		}
+		return $data;
+	}
+
 
 	public function getManifest($feed, $HttpSocket) {
 		$result = array();
@@ -181,7 +216,7 @@ class Feed extends AppModel {
 					if ($redis === false) {
 							return false;
 					}
-					$redis->del('misp:feed_cache:' . $feed['Feed']['id']);
+						$redis->del('misp:feed_cache:' . $feed['Feed']['id']);
 					$data = $response->body;
 					file_put_contents($feedCache, $data);
 				}
@@ -858,14 +893,22 @@ class Feed extends AppModel {
 			'recursive' => -1,
 			'fields' => array('source_format', 'input_source', 'url', 'id', 'settings')
 		);
+		$redis = $this->setupRedis();
+		if ($redis === false) {
+			return 'Redis not reachable.';
+		}
 		if ($scope !== 'all') {
 			if (is_numeric($scope)) {
 				$params['conditions']['id'] = $scope;
 			} else if ($scope == 'freetext' || $scope == 'csv') {
 				$params['conditions']['source_format'] = array('csv', 'freetext');
 			} else if ($scope == 'misp') {
+				$redis->del('misp:feed_cache:event_uuid_lookup:');
 				$params['conditions']['source_format'] = 'misp';
 			}
+		} else {
+			$redis->del('misp:feed_cache:combined');
+			$redis->del('misp:feed_cache:event_uuid_lookup:');
 		}
 		$feeds = $this->find('all', $params);
 		if ($jobId) {
@@ -874,10 +917,6 @@ class Feed extends AppModel {
 			if (!$job->exists()) {
 				$jobId = false;
 			}
-		}
-		$redis = $this->setupRedis();
-		if ($redis === false) {
-			return 'Redis not reachable.';
 		}
 		foreach ($feeds as $k => $feed) {
 			$this->__cacheFeed($feed, $redis, $jobId);
@@ -936,14 +975,7 @@ class Feed extends AppModel {
 		return false;
 	}
 
-	private function __cacheMISPFeed($feed, $redis, $HttpSocket, $jobId = false) {
-		if ($jobId) {
-			$job = ClassRegistry::init('Job');
-			$job->id = $jobId;
-			if (!$job->exists()) {
-				$jobId = false;
-			}
-		}
+	private function __cacheMISPFeedTraditional($feed, $redis, $HttpSocket, $jobId = false) {
 		$this->Attribute = ClassRegistry::init('Attribute');
 		$manifest = $this->getManifest($feed, $HttpSocket);
 		if (!empty($manifest)) {
@@ -952,6 +984,10 @@ class Feed extends AppModel {
 			return false;
 		}
 		$k = 0;
+		if ($jobId) {
+			$job = ClassRegistry::init('Job');
+			$job->id = $jobId;
+		}
 		foreach ($manifest as $uuid => $event) {
 			$data = false;
 			$path = $feed['Feed']['url'] . '/' . $uuid . '.json';
@@ -1002,6 +1038,39 @@ class Feed extends AppModel {
 					$job->saveField('message', 'Feed ' . $feed['Feed']['id'] . ': ' . $k . ' events cached.');
 			}
 		}
+		return true;
+	}
+
+	private function __cacheMISPFeedCache($feed, $redis, $HttpSocket, $jobId = false) {
+		$cache = $this->getCache($feed, $HttpSocket);
+		if (empty($cache)) return false;
+		$pipe = $redis->multi(Redis::PIPELINE);
+		$events = array();
+		foreach ($cache as $k => $v) {
+			$redis->sAdd('misp:feed_cache:' . $feed['Feed']['id'], $v[0]);
+			$redis->sAdd('misp:feed_cache:combined', $v[0]);
+			$redis->sAdd('misp:feed_cache:event_uuid_lookup:' . $v[0], $feed['Feed']['id'] . '/' . $v[1]);
+		}
+		$pipe->exec();
+		if ($jobId) {
+				$job = ClassRegistry::init('Job');
+				$job->id = $jobId;
+				$job->saveField('message', 'Feed ' . $feed['Feed']['id'] . ': cached via quick cache.');
+		}
+		return true;
+	}
+
+	private function __cacheMISPFeed($feed, $redis, $HttpSocket, $jobId = false) {
+		if ($jobId) {
+			$job = ClassRegistry::init('Job');
+			$job->id = $jobId;
+			if (!$job->exists()) {
+				$jobId = false;
+			}
+		}
+		if (!$this->__cacheMISPFeedCache($feed, $redis, $HttpSocket, $jobId)) {
+			$this->__cacheMISPFeedTraditional($feed, $redis, $HttpSocket, $jobId);
+		};
 		$redis->set('misp:feed_cache_timestamp:' . $feed['Feed']['id'], time());
 		return true;
 	}
