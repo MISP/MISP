@@ -20,6 +20,7 @@ import pymisp
 from stix2 import *
 from misp2stix2_dictionaries import *
 from copy import deepcopy
+from collections import defaultdict
 
 namespace = ['https://github.com/MISP/MISP', 'MISP']
 
@@ -600,21 +601,23 @@ def defineObservableObjectIpPort(obj_name, obj_attr):
 def defineObservableObjectRegKey(obj_name, obj_attr):
     obj = deepcopy(objectsMapping[obj_name]['observable'])
     reg_attr = getRegistryKeyInfo(obj_attr)
-    if 'reg-key' in reg_attr:
-        key_type = objectTypes['reg-key']
-        key = reg_attr['reg-key']
+    if 'regkey' in reg_attr:
+        key_type = objectTypes['regkey']
+        key = reg_attr.pop('regkey')[0].get('value')
         obj['0'][key_type] = key
     if 'datetime' in reg_attr:
         date_type = objectTypes['datetime'][obj_name]
-        date = reg_attr['datetime']
+        date = reg_attr.pop('datetime')[0].get('value')
         obj['0'][date_type] = date
     val = False
     values = {}
-    for o in ('reg-datatype', 'reg-data', 'reg-name'):
-        if o in reg_attr:
-            o_type = objectTypes[o]
-            o_val = reg_attr[o]
-            values[o_type] = o_val
+    if 'text' in reg_attr:
+        attr_type = 'text'
+        for a in reg_attr.get(attr_type):
+            obj_relation = a.get('relation')
+            if obj_name not in objectTypes[attr_type] or obj_relation not in objectTypes[attr_type][obj_name]:
+                continue
+            values[objectTypes[attr_type][obj_name][obj_relation]] = a.get('value')
             val = True
     if val:
         obj['0']['values'] = [values]
@@ -642,10 +645,10 @@ def getEmailObjectInfo(obj_attr):
     return email_attr
 
 def getRegistryKeyInfo(obj_attr):
-    reg_attr = {}
+    reg_attr = defaultdict(list)
     for attr in obj_attr:
-        attr_type = attr.type
-        reg_attr[attr_type] = attr.value
+        attr_dict = {'relation': attr.object_relation, 'value': attr.value}
+        reg_attr[attr.type].append(attr_dict)
     return reg_attr
 
 def definePattern(attr_type, attr_val):
