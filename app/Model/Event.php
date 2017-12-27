@@ -3933,6 +3933,7 @@ class Event extends AppModel {
 			$sharingGroupDataTemp = $this->SharingGroup->fetchAllAuthorised($user, 'simplified');
 			$sharingGroupData = array();
 			foreach ($sharingGroupDataTemp as $k => $v) {
+				if (isset($v['Organisation'])) $v['SharingGroup']['Organisation'] = $v['Organisation'];
 				if (isset($v['SharingGroupOrg'])) $v['SharingGroup']['SharingGroupOrg'] = $v['SharingGroupOrg'];
 				if (isset($v['SharingGroupServer'])) {
 					$v['SharingGroup']['SharingGroupServer'] = $v['SharingGroupServer'];
