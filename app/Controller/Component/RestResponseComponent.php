@@ -82,6 +82,18 @@ class RestResponseComponent extends Component {
 					'description' => "POST an Server object in JSON format to this API to edit a server.",
 					'optional' => array('url', 'name', 'organisation_type', 'authkey', 'json', 'push', 'pull', 'push_rules', 'pul_rules', 'submitted_cert', 'submitted_client_cert')
 				)
+			),
+			'SharingGroup' => array(
+				'add' => array(
+					'description' => "POST a Sharing Group object in JSON format to this API to add a Sharing Group. The API will also try to capture attached organisations and servers if applicable to the current user.",
+					'mandatory' => array('name', 'releasability'),
+					'optional' => array('description', 'uuid', 'organisation_uuid (sync/site admin only)', 'active', 'created', 'modified', 'roaming', 'Server' => array('url', 'name', 'all_orgs'), 'Organisation' => array('uuid', 'name', 'extend'))
+				),
+				'edit' => array(
+					'description' => "POST a Sharing Group object in JSON format to this API to edit a Sharing Group. The API will also try to capture attached organisations and servers if applicable to the current user.",
+					'mandatory' => array(),
+					'optional' => array('name', 'releasability', 'description', 'uuid', 'organisation_uuid (sync/site admin only)', 'active', 'created', 'modified', 'roaming', 'SharingGroupServer' => array('url', 'name', 'all_orgs'), 'SharingGroupOrg' => array('uuid', 'name', 'extend'))
+				)
 			)
 	);
 
@@ -139,7 +151,8 @@ class RestResponseComponent extends Component {
 	}
 
 	private function __generateURL($action, $controller, $id) {
-		return ($action['admin'] ? '/admin' : '') . '/' . strtolower($controller) . '/' . $action['action'] . ($id ? '/' . $id : '');
+		$controller = Inflector::underscore(Inflector::pluralize($controller));
+		return ($action['admin'] ? '/admin' : '') . '/' . $controller . '/' . $action['action'] . ($id ? '/' . $id : '');
 	}
 
 	private function __dissectAdminRouting($action) {
