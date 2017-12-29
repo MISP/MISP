@@ -109,7 +109,11 @@ class ComplexTypeTool {
 		$data = array();
 		foreach ($rows as $k => $row) {
 			if (empty($row[0]) || $row[0] === '#') continue;
-			$data[$k] = str_getcsv($row, $delimiter);
+			if ($delimiter == '\t') {
+				$data[$k] = explode("\t", $row);	
+			} else {
+				$data[$k] = str_getcsv($row, $delimiter);
+			}
 		}
 		unset($rows);
 		unset($input);
