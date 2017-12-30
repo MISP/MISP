@@ -14,25 +14,40 @@ INSTALLATION INSTRUCTIONS
 - Disable Syslogd network socket
 - Disable Sendmail service
 
-# Fetch latest ports tree
+# Install pkg and point to latest
 
-portsnap fetch extract
+Install pkg by typing:
+
+# pkg
+
+Edit the default pkg location in /etc/pkg/FreeBSD.conf
+Change: quarterly to: latest
+
+ perl -pi -w -e 's/quarterly/latest/g;' /etc/pkg/FreeBSD.conf
 
 # Install sudo
 
 pkg install sudo
 
+Edit: pw useradd misp -s bash -G wheel,www
+Make sure users in group wheel can sudo.
+
 # Update system
 
-freebsd-update fetch install
+sudo freebsd-update fetch install
 
 # Install bash
 
-pkg install bash
+sudo pkg install bash
 
 # Install postfix
 
-pkg install postfix
+sudo pkg install postfix
+
+# Optional but useful, add a local misp user
+pw useradd misp -s /usr/local/bin/bash -G wheel,www
+mkdir /home/misp ; chown misp:misp /home/misp
+passwd misp
 
 # Install misc dependencies
 
@@ -43,17 +58,21 @@ pkg install curl git python3 redis vim
 pkg install apache24 \
     logrotate \
     gnupg \
+    mariadb102-server mariadb102-client \
+    php72 \
+    php72-mysqli \
+    php72-xml \
+    php72-openssl \
+    php72-pcntl \
+    php72-mbstring \
+    php72-pdo_mysql \
+    php72-phar \
+    php72-json \
+    php72-filter \
+    php72-dom \
+    php72-opcache \
+    php72-session \
     mod_php72 \
-php72 \
-mariadb102-server mariadb102-client \
-php72-mysqli \
-php72-xml \
-pecl-redis \
-pecl-crypto \
-php72-openssl \
-php72-pcntl \
-php72-mbstring \
-php72-pdo_mysql
 
 sudo cp -p /usr/local/etc/php.ini-development /usr/local/etc/php.ini
 
@@ -69,7 +88,6 @@ vi /usr/local/etc/apache24/Includes/php.conf
 <IfModule dir_module>
     DirectoryIndex index.php index.html
     SetHandler application/x-httpd-php
-    </FilesMatch>
     <FilesMatch "\.phps$">
         SetHandler application/x-httpd-php-source
     </FilesMatch>
@@ -92,8 +110,8 @@ sudo -u www git checkout tags/$(git describe --tags `git rev-list --tags --max-c
 sudo -u www git config core.filemode false
 
 # install Mitre's STIX and its dependencies by running the following commands:
-sudo apt-get install python-dev python-pip libxml2-dev libxslt1-dev zlib1g-dev python-setuptools
-sudo portinstall py-pip py3-pip libxml2 libxslt
+sudo apt-get install python-dev zlib1g-dev python-setuptools
+sudo pkg install py27-pip py36-pip libxml2 libxslt
 cd /usr/local/www/MISP/app/files/scripts
 sudo -u www git clone https://github.com/CybOXProject/python-cybox.git
 sudo -u www git clone https://github.com/STIXProject/python-stix.git
@@ -123,9 +141,6 @@ cd /usr/local/www/MISP/app
 sudo -u www php composer.phar require kamisama/cake-resque:4.1.2
 sudo -u www php composer.phar config vendor-dir Vendor
 sudo -u www php composer.phar install
-
-# Enable CakeResque with php-redis
-sudo phpenmod redis
 
 # To use the scheduler worker for scheduled tasks, do the following:
 sudo -u www cp -fa /usr/local/www/MISP/INSTALL/setup/config.php /usr/local/www/MISP/app/Plugin/CakeResque/Config/config.php
@@ -177,14 +192,14 @@ sudo cp /usr/local/www/MISP/INSTALL/apache.24.misp.ssl /usr/local/etc/apache24/s
 # For more information, visit http://httpd.apache.org/docs/2.4/upgrading.html
 
 sudo mkdir /etc/ssl/private/
-# If a valid SSL certificate is not already created for the server, create a self-signed certificate:
+# If a valid SSL certificate is not already created for the server, create a self-signed certificate: (Make sure to fill the <…>)
 sudo openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
 -subj "/C=<Country>/ST=<State>/L=<Locality>/O=<Organization>/OU=<Organizational Unit Name>/CN=<QDN.here>/emailAddress=admin@<your.FQDN.here>" \
 -keyout /etc/ssl/private/misp.local.key -out /etc/ssl/private/misp.local.crt
 
 # Otherwise, copy the SSLCertificateFile, SSLCertificateKeyFile, and SSLCertificateChainFile to /etc/ssl/private/. (Modify path and config to fit your environment)
 
-mkdir /var/log/apache24/
+sudo mkdir /var/log/apache2/
 
 ============================================= Begin sample working SSL config for MISP
 <VirtualHost <IP, FQDN, or *>:80>
@@ -222,8 +237,12 @@ mkdir /var/log/apache24/
 ============================================= End sample working SSL config for MISP
 
 # activate new vhost
-sudo a2dissite default-ssl
-sudo a2ensite misp-ssl
+cd /usr/local/etc/apache24/sites-enabled/
+ln -s ../sites-available/misp.conf
+echo "Include etc/apache24/sites-enabled/*.conf" >> /usr/local/etc/apache24/httpd.conf
+
+/!\ Enable mod_rewrite in httpd.conf /!\
+LoadModule rewrite_module libexec/apache24/mod_rewrite.so
 
 # Restart apache
 sudo service apache24 restart
@@ -332,9 +351,6 @@ Recommended actions
 Optional features
 -------------------
 # MISP has a new pub/sub feature, using ZeroMQ. To enable it, simply run the following command
-sudo portinstall py-pyzmq
+sudo pkg install py27-pyzmq
 # ZeroMQ depends on the Python client for Redis
-sudo portinstall redis
-
-
-Apache: enable mod_rewrite
+sudo pkg install redis
