@@ -298,8 +298,14 @@ Recommended actions
 
 
 Optional features
--------------------
+-----------------
 # MISP has a new pub/sub feature, using ZeroMQ. To enable it, simply run the following command
 sudo pip install pyzmq
 # ZeroMQ depends on the Python client for Redis
 sudo pip install redis
+
+Optional features: misp-modules
+-------------------------------
+# If you want to add the misp modules functionality, follow the setup procedure described in misp-modules:
+# https://github.com/MISP/misp-modules#how-to-install-and-start-misp-modules
+# Then the enrichment, export and import modules can be enabled in MISP via the settings.
