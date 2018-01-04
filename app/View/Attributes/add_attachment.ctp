@@ -21,7 +21,7 @@
 				}
 				echo $this->Form->input('distribution', array(
 						'options' => $distributionLevels,
-						'label' => 'Distribution ' . $this->element('formInfo', array('type' => 'distribution')),
+						'label' => __('Distribution ') . $this->element('formInfo', array('type' => 'distribution')),
 						'selected' => $initialDistribution,
 				));
 			?>
@@ -38,7 +38,7 @@
 			<?php
 				echo $this->Form->input('comment', array(
 						'type' => 'text',
-						'label' => 'Contextual Comment',
+						'label' => __('Contextual Comment'),
 						'error' => array('escape' => false),
 						'div' => 'input clear',
 						'class' => 'input-xxlarge'
