@@ -1,7 +1,9 @@
 <div class="attributes index">
-	<h2>Attributes</h2>
+	<h2><?php echo __('Attributes'); ?></h2>
 		<?php
 			if ($isSearch == 1) {
+				// The following block should serve as an example and food
+				// for thought on how to optimize i18n & l10n
 				echo "<h4>Results for all attributes";
 				if ($keywordSearch != null) echo " with the value containing \"<b>" . h($keywordSearch) . "</b>\"";
 				if ($attributeTags != null) echo " being tagged with \"<b>" . h($attributeTags) . "</b>\"";
@@ -165,11 +167,11 @@ foreach ($attributes as $attribute):
 			echo $this->Form->postLink('',array('action' => 'delete', $attribute['Attribute']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete this attribute?'));
 		elseif ($isAclModify):
 	?>
-			<a href="<?php echo $baseurl;?>/shadow_attributes/edit/<?php echo $attribute['Attribute']['id'];?>" class="icon-share" title="Propose an edit"></a>
+			<a href="<?php echo $baseurl;?>/shadow_attributes/edit/<?php echo $attribute['Attribute']['id'];?>" class="icon-share" title="<?php echo __('Propose an edit'); ?>"></a>
 	<?php
 		endif;
 	?>
-			<a href="<?php echo $baseurl;?>/events/view/<?php echo $attribute['Attribute']['event_id'];?>" class="icon-list-alt" title="View"></a>
+			<a href="<?php echo $baseurl;?>/events/view/<?php echo $attribute['Attribute']['event_id'];?>" class="icon-list-alt" title="<?php echo __('View'); ?>"></a>
 		</td>
 	</tr>
 	<?php

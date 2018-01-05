@@ -1,0 +1,518 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"send",
+				"sendbutton"
+			],
+			[
+				"in",
+				"input\tTag"
+			],
+			[
+				"MI",
+				"MISPv"
+			],
+			[
+				"mu",
+				"munin-node"
+			],
+			[
+				"shell",
+				"shells_zsh"
+			],
+			[
+				"sec",
+				"security"
+			]
+		]
+	},
+	"buffers":
+	[
+	],
+	"build_system": "",
+	"build_system_choices":
+	[
+		[
+			[
+				[
+					"Packages/LaTeXTools/LaTeX.sublime-build",
+					""
+				],
+				[
+					"Packages/LaTeXTools/LaTeX.sublime-build",
+					"Traditional"
+				],
+				[
+					"Packages/LaTeXTools/LaTeX.sublime-build",
+					"PdfLaTeX"
+				],
+				[
+					"Packages/LaTeXTools/LaTeX.sublime-build",
+					"XeLaTeX"
+				],
+				[
+					"Packages/LaTeXTools/LaTeX.sublime-build",
+					"LuaLaTeX"
+				],
+				[
+					"Packages/LaTeXTools/LaTeX.sublime-build",
+					"Basic Builder"
+				],
+				[
+					"Packages/LaTeXTools/LaTeX.sublime-build",
+					"Basic Builder - PdfLaTeX"
+				],
+				[
+					"Packages/LaTeXTools/LaTeX.sublime-build",
+					"Basic Builder - XeLaTeX"
+				],
+				[
+					"Packages/LaTeXTools/LaTeX.sublime-build",
+					"Basic Builder - LuaLaTeX"
+				],
+				[
+					"Packages/LaTeXTools/LaTeX.sublime-build",
+					"Script Builder"
+				]
+			],
+			[
+				"Packages/LaTeXTools/LaTeX.sublime-build",
+				""
+			]
+		],
+		[
+			[
+				[
+					"Packages/Processing/Build Systems/Processing.sublime-build",
+					""
+				],
+				[
+					"Packages/Processing/Build Systems/Processing.sublime-build",
+					"Re-run sketch"
+				],
+				[
+					"Packages/Processing/Build Systems/Processing.sublime-build",
+					"Run sketch (Processing 3 only)"
+				],
+				[
+					"Packages/Processing/Build Systems/Processing.sublime-build",
+					"Run sketch fullscreen"
+				],
+				[
+					"Packages/Processing/Build Systems/Processing.sublime-build",
+					"Export sketch as application"
+				],
+				[
+					"Packages/Processing/Build Systems/Processing.sublime-build",
+					"Kill running sketches"
+				]
+			],
+			[
+				"Packages/Processing/Build Systems/Processing.sublime-build",
+				""
+			]
+		],
+		[
+			[
+				[
+					"Packages/Python/Python.sublime-build",
+					""
+				],
+				[
+					"Packages/Python/Python.sublime-build",
+					"Syntax Check"
+				]
+			],
+			[
+				"Packages/Python/Python.sublime-build",
+				""
+			]
+		]
+	],
+	"build_varint": "",
+	"command_palette":
+	{
+		"height": 357.0,
+		"last_filter": ":w",
+		"selected_items":
+		[
+			[
+				":w",
+				":w - Save"
+			],
+			[
+				":instal",
+				"Package Control: Install Package"
+			],
+			[
+				":wq",
+				"github: review pull request"
+			],
+			[
+				":insta",
+				"Package Control: Install Package"
+			],
+			[
+				":print",
+				"Print to HTML: print as HTML via browser"
+			],
+			[
+				"print",
+				"Print to HTML: print as HTML via browser"
+			],
+			[
+				":inst",
+				"Package Control: Install Package"
+			],
+			[
+				":uninst",
+				"Package Control: Uninstall Package"
+			],
+			[
+				"unin",
+				"Package Control: Uninstall Package"
+			],
+			[
+				"uninst",
+				"Package Control: Uninstall Package"
+			],
+			[
+				"markdownlivepreview",
+				"MarkdownLivePreview: Edit Current File"
+			],
+			[
+				":install",
+				"Package Control: Install Package"
+			],
+			[
+				"readm",
+				"ReadmePlease"
+			],
+			[
+				"readme",
+				"ReadmePlease"
+			],
+			[
+				"box",
+				"Boxy Theme: Activation"
+			],
+			[
+				"browser",
+				"Browse Mode: Left Sidebar"
+			],
+			[
+				"brow",
+				"Browse Mode: Left Sidebar"
+			],
+			[
+				":",
+				":w - Save"
+			],
+			[
+				":linter",
+				"SublimeLinter: Toggle Linter"
+			],
+			[
+				"insta",
+				"Package Control: Install Package"
+			],
+			[
+				":lint",
+				"Anaconda: Disable linting on this file"
+			],
+			[
+				"lint",
+				"Anaconda: Previous lint error"
+			],
+			[
+				":install ",
+				"Package Control: Install Package"
+			],
+			[
+				":$",
+				":$ - EOF"
+			],
+			[
+				"Package Control: pre",
+				"Package Control: Upgrade Package"
+			]
+		],
+		"width": 430.0
+	},
+	"console":
+	{
+		"height": 0.0,
+		"history":
+		[
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"expanded_folders":
+	[
+		"/Users/steve/code/MISP/app/View"
+	],
+	"file_history":
+	[
+		"/Users/steve/code/MISP/app/View/Attributes/add.ctp",
+		"/Users/steve/code/MISP/app/View/Attributes/add_attachment.ctp",
+		"/Users/steve/code/MISP/INSTALL/INSTALL.ubuntu1604.txt",
+		"/Users/steve/code/py-kana/number.py",
+		"/Users/steve/code/japanese-numbers-python/japanese_numbers/token.py",
+		"/Users/steve/Downloads/d/Distribution",
+		"/Users/steve/code/ToDo/ToDo.tex",
+		"/Users/steve/code/MISP/INSTALL/INSTALL.FreeBSD.txt",
+		"/Users/steve/code/website/presentation/20170817-ubcom/circl-introduction.tex",
+		"/Users/steve/code/website/presentation/20170817-ubcom/circl-incidentreport.tex",
+		"/Users/steve/code/website/presentation/20170817-ubcom/content-response.tex",
+		"/Users/steve/code/website/presentation/20170817-ubcom/content-introduction.tex",
+		"/Users/steve/code/ctf-circl/website/index.txt",
+		"/Users/steve/code/ctf-circl/website/E/solution/README.md",
+		"/Users/steve/code/ctf-circl/website/B/solution/README.md",
+		"/Users/steve/code/ctf-circl/website/A/solution/README.md",
+		"/Users/steve/code/ctf-circl/website/A/index.txt",
+		"/Users/steve/code/ctf-circl/website/C/index.txt",
+		"/Volumes/storage/GoogleDrive/infrastructure-office/users.md",
+		"/Volumes/storage/Downloads/FRITZ.Box Fon WLAN 7570 vDSL 75.04.91i_14.09.12_2212.txt",
+		"/Volumes/storage/GoogleDrive/infrastructure-office/networks/vlan.md",
+		"/Users/steve/code/ctf-circl/website/H/index.txt",
+		"/Users/steve/code/ctf-circl/website/D/index.txt",
+		"/Users/steve/code/ctf-circl/website/B/index.txt",
+		"/Users/steve/code/ctf-circl/website/G/index.txt",
+		"/Users/steve/Downloads/message.txt",
+		"/Users/steve/Downloads/patch.txt",
+		"/var/folders/m_/0mdm8pqx6jvg3q0jyn1b7bn00000gn/T/rsub-acjlyc/README.md",
+		"/var/folders/m_/0mdm8pqx6jvg3q0jyn1b7bn00000gn/T/rsub-tsqcqu/README.md",
+		"/var/folders/m_/0mdm8pqx6jvg3q0jyn1b7bn00000gn/T/rsub-ifsq3n/README.md",
+		"/var/folders/m_/0mdm8pqx6jvg3q0jyn1b7bn00000gn/T/rsub-6fb8rc/README.md",
+		"/Users/steve/all.json",
+		"/Volumes/storage/GoogleDrive/netDiag/2960x.dfl.txt",
+		"/Volumes/storage/GoogleDrive/netDiag/2960.tmp.txt",
+		"/Volumes/storage/GoogleDrive/netDiag/2960x.off.txt",
+		"/Volumes/storage/GoogleDrive/netDiag/IPv6_sir_circl.txt",
+		"/Volumes/storage/GoogleDrive/netDiag/2960.bttmbg.txt",
+		"/Volumes/circl/ISO/MSDN/MSDNLicenses-NOT_TO_SHARE.txt",
+		"/Volumes/storage/GoogleDrive/infrastructure-office/docs/DairyHouseProgress.tex",
+		"/Users/steve/.ssh/config",
+		"/Volumes/USB DISK/26.02.2010_pt.lu_adsl_isdn_FRITZ.Box Fon WLAN 7570 vDSL 75.04.77.export",
+		"/Volumes/USB DISK/fritzboxconfig.import",
+		"/Volumes/USB DISK/pre-fritzboxconfig.import",
+		"/Volumes/storage/GoogleDrive/Desktop/work/sysadmin/tools/build.sh",
+		"/Volumes/storage/GoogleDrive/Downloads/VOfiber-FRITZ.Box Fon WLAN 7390 84.06.83i_20.06.17_0702.export",
+		"/Users/steve/aida-32_3-94-2_fr_11155/DB - MySQL.sql",
+		"/Volumes/NO NAME/truecrypt1/bin/checkNet.py",
+		"/Volumes/storage/GoogleDrive/Downloads/support FRITZ.Box 7490 113.06.83i_22.06.17_1624.txt",
+		"/Users/steve/code/pgzero-mv/pgzero/ptext.py",
+		"/Volumes/storage/GoogleDrive/Downloads/cos8-running-config.txt",
+		"/Volumes/storage/GoogleDrive/Downloads/cos6-running-config.txt",
+		"/Volumes/NO NAME/truecrypt1/bin/symLink.sh",
+		"/Users/steve/work/scgen/configs/port-standards.json",
+		"/Users/steve/netDiag/2960x.dfl.txt",
+		"/Users/steve/netDiag/2960.tmp.txt",
+		"/Users/steve/netDiag/2960.bttmbg.txt",
+		"/Volumes/NO NAME/truecrypt1/dotfiles/.ssh/known_hosts",
+		"/Volumes/NO NAME/truecrypt1/dotfiles/.ssh/known_hosts.old",
+		"/Volumes/storage/GoogleDrive/Desktop/code/wiki.localhost.lu/Sysadmin/OpenBSD/Desktop.md",
+		"/Volumes/storage/GoogleDrive/Desktop/code/MISP/MISP/app/Console/worker/start.sh",
+		"/Volumes/storage/GoogleDrive/Desktop/code/MISP/misp-modules/README.rst",
+		"/var/folders/m_/0mdm8pqx6jvg3q0jyn1b7bn00000gn/T/rsub-xcdmg0/DMAconfig.py",
+		"/var/folders/m_/0mdm8pqx6jvg3q0jyn1b7bn00000gn/T/rsub-750wdk/DMAconfig.py.sample",
+		"/var/folders/m_/0mdm8pqx6jvg3q0jyn1b7bn00000gn/T/rsub-5gwcur/COMMIT_EDITMSG",
+		"/var/folders/m_/0mdm8pqx6jvg3q0jyn1b7bn00000gn/T/rsub-3915in/index.py",
+		"/var/folders/m_/0mdm8pqx6jvg3q0jyn1b7bn00000gn/T/rsub-wriueh/index.py",
+		"/var/folders/m_/0mdm8pqx6jvg3q0jyn1b7bn00000gn/T/rsub-q2xa7u/MERGE_MSG",
+		"/Volumes/storage/GoogleDrive/Desktop/code/dma-frontend/README.md",
+		"/var/folders/m_/0mdm8pqx6jvg3q0jyn1b7bn00000gn/T/rsub-pbfjc3/index.py",
+		"/var/folders/m_/0mdm8pqx6jvg3q0jyn1b7bn00000gn/T/rsub-s5zpso/README.md",
+		"/Volumes/storage/GoogleDrive/Desktop/code/aztech-CFL/gen-code.py",
+		"/Users/steve/Library/Application Support/Sublime Text 3/Packages/rsub/README.md",
+		"/Volumes/NO NAME/truecrypt1/config/ssh_config",
+		"/var/folders/m_/0mdm8pqx6jvg3q0jyn1b7bn00000gn/T/rsub-ujmf9c/.my.cnf",
+		"/Volumes/storage/GoogleDrive/Desktop/code/dma-frontend/requirements.txt",
+		"/Users/steve/Library/Application Support/Sublime Text 3/Packages/requirementstxt/README.md",
+		"/Volumes/storage/GoogleDrive/Desktop/code/Twitter4Py3/Sample.py",
+		"/Users/steve/Library/Application Support/Sublime Text 3/Packages/Default/Preferences.sublime-settings",
+		"/Users/steve/Library/Application Support/Sublime Text 3/Packages/User/Preferences.sublime-settings",
+		"/Volumes/storage/GoogleDrive/Desktop/code/wiki.localhost.lu/wiki.localhost.lu.sublime-project",
+		"/Users/steve/Desktop/code/dma-frontend/web/index.py",
+		"/Volumes/storage/GoogleDrive/Desktop/code/dma-frontend/web/dma-frontend.sublime-project",
+		"/var/folders/m_/0mdm8pqx6jvg3q0jyn1b7bn00000gn/T/rsub-w4loyi/COMMIT_EDITMSG",
+		"/var/folders/m_/0mdm8pqx6jvg3q0jyn1b7bn00000gn/T/rsub-3540l3/COMMIT_EDITMSG",
+		"/Users/steve/interfaces.txt",
+		"/Volumes/storage/GoogleDrive/Desktop/code/ISL/pygame/pgzero-examples/023_Noise.py",
+		"/Volumes/storage/GoogleDrive/Desktop/code/pgzeroBB/pgzero/screen.py",
+		"/Volumes/NO NAME/truecrypt1/bin/MISP_export.sh",
+		"/Users/steve/Library/Application Support/Sublime Text 3/Packages/User/Package Control.sublime-settings",
+		"/Users/steve/code/sio/index.html",
+		"/Users/steve/.zshrc",
+		"/Users/steve/dotfiles/Package Control.sublime-settings",
+		"/Users/steve/.bashrc",
+		"/Volumes/storage/GoogleDrive/Desktop/code/wiki.localhost.lu/Sysadmin/OSX/Tips.md",
+		"/Volumes/storage/GoogleDrive/Desktop/code/wiki.localhost.lu/Notes/reinstall.md",
+		"/Volumes/storage/GoogleDrive/Desktop/code/wiki.localhost.lu/Sysadmin/VM/VirtualBox/Tips.md",
+		"/Volumes/storage/GoogleDrive/Desktop/code/pgzero-examples/README.md",
+		"/Volumes/storage/GoogleDrive/Desktop/code/persotorial-Flask-SQLAlchemy/README.md",
+		"/Volumes/storage/GoogleDrive/Desktop/work/sysadmin/tools/install/prep.sh",
+		"/Volumes/NO NAME/truecrypt1/dotfiles/.ssh/config",
+		"/Volumes/storage/GoogleDrive/Desktop/work/sysadmin/configs/common/var/db/ports/devel_pcre/options",
+		"/Volumes/storage/GoogleDrive/Desktop/code/pgzeroBB/README.rst",
+		"/Volumes/storage/GoogleDrive/Desktop/code/pgzeroBB/README.txt",
+		"/Volumes/storage/GoogleDrive/Desktop/code/geoip/t.py",
+		"/Volumes/storage/GoogleDrive/Desktop/code/LaTeXample/network-topology.tex",
+		"/Volumes/storage/GoogleDrive/Desktop/work/sysadmin/configs/common/profile",
+		"/Volumes/storage/GoogleDrive/Desktop/work/sysadmin/configs/common/rc.conf",
+		"/Users/steve/.vimrc",
+		"/Volumes/storage/GoogleDrive/Desktop/work/sysadmin/configs/common/src.conf",
+		"/Volumes/storage/GoogleDrive/Desktop/work/sysadmin/configs/common/make.conf",
+		"/Volumes/NO NAME/truecrypt1/bin/symLink2.sh",
+		"/Volumes/storage/Dropbox/CodeClubLux/README.txt",
+		"/usr/local/lib/python3.5/site-packages/pgzero/ptext.py",
+		"/Users/steve/Documents/SierraVbox"
+	],
+	"find":
+	{
+		"height": 48.0
+	},
+	"find_in_files":
+	{
+		"height": 132.0,
+		"where_history":
+		[
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+		],
+		"reverse": false,
+		"show_context": true,
+		"use_buffer2": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"sheets":
+			[
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 48.0
+	},
+	"input":
+	{
+		"height": 34.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.GitSavvy":
+	{
+		"height": 142.0
+	},
+	"output.exec":
+	{
+		"height": 45.0
+	},
+	"output.find_results":
+	{
+		"height": 0.0
+	},
+	"output.latextools":
+	{
+		"height": 534.0
+	},
+	"pinned_build_system": "Packages/Python 3/Python3.sublime-build",
+	"project": "MISP_i18n.sublime-project",
+	"replace":
+	{
+		"height": 56.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+			[
+				"",
+				"~/interfaces.txt"
+			]
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 500.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 380.0
+	},
+	"select_symbol":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"selected_group": 0,
+	"settings":
+	{
+	},
+	"show_minimap": true,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 216.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}

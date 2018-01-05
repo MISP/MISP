@@ -5,7 +5,7 @@ echo $this->Form->create('Attribute', array('id', 'url' => '/attributes/attribut
 	<fieldset>
 		<legend><?php echo __('Attribute Replace Tool'); ?></legend>
 		<div class="add_attribute_fields">
-		<p>Choose a category and a type, then paste a list of IOCs that match the selection into the field below. This will delete all of the attributes not found in the new inserted list, whilst creating the attributes that are in the new list but don't exist as attributes. Found matches will be left untouched.</p>
+		<p><?php echo __("Choose a category and a type, then paste a list of IOCs that match the selection into the field below. This will delete all of the attributes not found in the new inserted list, whilst creating the attributes that are in the new list but don't exist as attributes. Found matches will be left untouched."); ?></p>
 			<?php
 			echo $this->Form->hidden('event_id');
 			echo $this->Form->input('category', array(
@@ -30,7 +30,7 @@ echo $this->Form->create('Attribute', array('id', 'url' => '/attributes/attribut
 			<div class="input clear"></div>
 		</div>
 	</fieldset>
-	<p style="color:red;font-weight:bold;display:none;" id="warning-message">Warning: You are about to share data that is of a classified nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>
+	<p style="color:red;font-weight:bold;display:none;" id="warning-message"><?php echo __('Warning: You are about to share data that is of a classified nature (Attribution / targeting data). Make sure that you are authorised to share this.'); ?></p>
 		<div class="overlay_spacing">
 			<table>
 				<tr>
@@ -38,10 +38,10 @@ echo $this->Form->create('Attribute', array('id', 'url' => '/attributes/attribut
 					<span id="submitButton" class="btn btn-primary" title="Replace attributes" role="button" tabindex="0" aria-label="Replaceattributes" onClick="submitPopoverForm('<?php echo $event_id;?>', 'replaceAttributes')">Submit</span>
 				</td>
 				<td style="width:540px;">
-					<p style="color:red;font-weight:bold;display:none;text-align:center" id="warning-message">Warning: You are about to share data that is of a classified nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>
+					<p style="color:red;font-weight:bold;display:none;text-align:center" id="warning-message"><?php echo __('Warning: You are about to share data that is of a classified nature (Attribution / targeting data). Make sure that you are authorised to share this.'); ?></p>
 				</td>
 				<td style="vertical-align:top;">
-					<span class="btn btn-inverse" id="cancel_attribute_add" title="Cancel" role="button" tabindex="0" aria-label="Cancel">Cancel</span>
+					<span class="btn btn-inverse" id="cancel_attribute_add" title="<?php echo __('Cancel'); ?>" role="button" tabindex="0" aria-label="<?php echo __('Cancel'); ?>"><?php echo __('Cancel'); ?></span>
 				</td>
 				</tr>
 			</table>

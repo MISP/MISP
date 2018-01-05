@@ -1,15 +1,15 @@
 <div class="event index">
-	<h2>Alternate Search Results</h2>
-	<p> This is a list of events that match the given search criteria sorted according to the percentage of matched attributes that are marked as IDS signatures (blue = IDS matches, red = non IDS matches).</p>
+	<h2><?php echo __('Alternate Search Results'); ?></h2>
+	<p><?php echo __('This is a list of events that match the given search criteria sorted according to the percentage of matched attributes that are marked as IDS signatures (blue = IDS matches, red = non IDS matches).'); ?></p>
 	<table class="table table-striped table-hover table-condensed">
 		<tr>
-			<th>Event id</th>
-			<th>Org</th>
-			<th>Event info</th>
-			<th>Event date</th>
-			<th>Event graph</th>
-			<th>Matches</th>
-			<th>Attribute Count</th>
+			<th><?php echo __('Event id'); ?></th>
+			<th><?php echo __('Org'); ?></th>
+			<th><?php echo __('Event info'); ?></th>
+			<th><?php echo __('Event date'); ?></th>
+			<th><?php echo __('Event graph'); ?></th>
+			<th><?php echo __('Matches'); ?></th>
+			<th><?php echo __('Attribute Count'); ?></th>
 
 		</tr>
 
