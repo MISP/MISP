@@ -5,7 +5,7 @@
 		<?php
 			echo $this->Form->hidden('event_id');
 			echo $this->Form->input('category', array(
-				'empty' => '(choose one)',
+				'empty' => __('(choose one)'),
 				'label' => __('Category ') . $this->element('formInfo', array('type' => 'category'))
 			));
 			$typeInputData = array(
@@ -13,7 +13,7 @@
 				'label' => __('Type ') . $this->element('formInfo', array('type' => 'type')),
 			);
 			if ($objectAttribute) {
-				$typeInputData[] = 'disabled';
+				$typeInputData[] = __('disabled');
 			}
 			echo $this->Form->input('type', $typeInputData);
 		?>

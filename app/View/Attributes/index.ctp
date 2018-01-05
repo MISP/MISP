@@ -3,15 +3,15 @@
 		<?php
 			if ($isSearch == 1) {
 				// The following block should serve as an example and food
-				// for thought on how to optimize i18n & l10n
-				echo "<h4>Results for all attributes";
-				if ($keywordSearch != null) echo " with the value containing \"<b>" . h($keywordSearch) . "</b>\"";
-				if ($attributeTags != null) echo " being tagged with \"<b>" . h($attributeTags) . "</b>\"";
-				if ($keywordSearch2 != null) echo " from the events \"<b>" . h($keywordSearch2) . "</b>\"";
+				// for thought on how to optimize i18n & l10n (especially for languages that are not SOV)
+				echo "<h4>" . __("Results for all attributes");
+				if ($keywordSearch != null) echo __(" with the value containing "). "\"<b>" . h($keywordSearch) . "</b>\"";
+				if ($attributeTags != null) echo __(" being tagged with ") ."\"<b>" . h($attributeTags) . "</b>\"";
+				if ($keywordSearch2 != null) echo __(" from the events ") . "\"<b>" . h($keywordSearch2) . "</b>\"";
 				if ($tags != null) echo " from events tagged \"<b>" . h($tags) . "</b>\"";
-				if ($categorySearch != "ALL") echo " of category \"<b>" . h($categorySearch) . "</b>\"";
-				if ($typeSearch != "ALL") echo " of type \"<b>" . h($typeSearch) . "</b>\"";
-				if (isset($orgSearch) && $orgSearch != '' && $orgSearch != null) echo " created by the organisation \"<b>" . h($orgSearch) . "</b>\"";
+				if ($categorySearch != "ALL") echo __(" of category ") . "\"<b>" . h($categorySearch) . "</b>\"";
+				if ($typeSearch != "ALL") echo __(" of type ") . "\"<b>" . h($typeSearch) . "</b>\"";
+				if (isset($orgSearch) && $orgSearch != '' && $orgSearch != null) echo __(" created by the organisation ") . "\"<b>" . h($orgSearch) . "</b>\"";
 				echo ":</h4>";
 			}
 		?>

@@ -9,21 +9,21 @@ echo $this->Form->create('Attribute', array('id', 'url' => '/attributes/attribut
 			<?php
 			echo $this->Form->hidden('event_id');
 			echo $this->Form->input('category', array(
-					'empty' => '(choose one)'
+					'empty' => __('(choose one)')
 			));
 			echo $this->Form->input('type', array(
-					'empty' => '(first choose category)'
+					'empty' => __('(first choose category)')
 			));
 			echo $this->Form->input('to_ids', array(
 					'type' => 'checkbox',
-					'label' => 'Mark all new attributes as to IDS',
+					'label' => __('Mark all new attributes as to IDS'),
 			));
 			echo $this->Form->input('value', array(
 					'type' => 'textarea',
 					'error' => array('escape' => false),
 					'div' => 'input clear',
 					'class' => 'input-xxlarge',
-					'label' => 'Values'
+					'label' => __('Values')
 			));
 			$this->Js->get('#AttributeCategory')->event('change', 'formCategoryChanged("#AttributeCategory")');
 			?>
@@ -35,7 +35,7 @@ echo $this->Form->create('Attribute', array('id', 'url' => '/attributes/attribut
 			<table>
 				<tr>
 				<td style="vertical-align:top">
-					<span id="submitButton" class="btn btn-primary" title="Replace attributes" role="button" tabindex="0" aria-label="Replaceattributes" onClick="submitPopoverForm('<?php echo $event_id;?>', 'replaceAttributes')">Submit</span>
+					<span id="submitButton" class="btn btn-primary" title="<?php echo __('Replace attributes'); ?>" role="button" tabindex="0" aria-label="<?php echo __('Replaceattributes'); ?>" onClick="submitPopoverForm('<?php echo $event_id;?>', 'replaceAttributes')"><?php echo __('Submit'); ?></span>
 				</td>
 				<td style="width:540px;">
 					<p style="color:red;font-weight:bold;display:none;text-align:center" id="warning-message"><?php echo __('Warning: You are about to share data that is of a classified nature (Attribution / targeting data). Make sure that you are authorised to share this.'); ?></p>
