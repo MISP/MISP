@@ -7,7 +7,7 @@
 			<?php
 				foreach ($r['error'] as $field => $error) {
 					// re-think i18n & l10n for the below line
-					echo '<b>[' . h($field) . ']</b>: Value found: ' . h($error['value']) . ' - Error: ' . h($error['error']) . '<br />';
+					echo '<b>[' . h($field) . ']</b>: ' . __('Value found: ') . h($error['value']) . ' - ' . __('Error') . ': ' . h($error['error']) . '<br />';
 				}
 			?>
 			<b><?php echo __('[Attribute details]'); ?></b>: <?php echo h($r['details']); ?><br/>
