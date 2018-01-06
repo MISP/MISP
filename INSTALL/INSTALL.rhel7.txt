@@ -29,15 +29,15 @@ subscription-manager register # register your system to an account
 subscription-manager attach   # attach your system to a current subscription
 
 1.4/ Enable the optional, extras and Software Collections (SCL) repos
-subscription-mmanager repos --enable rhel-7-server-optional-rpms
-subscription-mmanager repos --enable rhel-7-server-extras-rpms
-subscription-mmanager repos --enable rhel-server-rhscl-7-rpms
+subscription-manager repos --enable rhel-7-server-optional-rpms
+subscription-manager repos --enable rhel-7-server-extras-rpms
+subscription-manager repos --enable rhel-server-rhscl-7-rpms
 
 1.5a/ OPTIONAL: Install the deltarpm package to help reduce download size when installing updates
 yum install deltarpm
 
 1.5/ Update the system and reboot
-yum udpate
+yum update
 
 ## NOTE: As time of writing performing a yum update results in the rhel-7-server-rt-beta-rpms being forbidden
 ## The repo can be disabled using the following command
