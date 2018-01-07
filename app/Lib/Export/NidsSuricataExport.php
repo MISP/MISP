@@ -23,7 +23,7 @@ class NidsSuricataExport extends NidsExport {
 				'->',							// direction
 				'any',							// dst_ip
 				'any',							// dst_port
-				'Hostname: ' . $attribute['value'],		// msg
+				'Hostname ' . $attribute['value'],		// msg
 				$content,						// rule_content
 				'',								// tag
 				$sid,							// sid
@@ -41,7 +41,7 @@ class NidsSuricataExport extends NidsExport {
 				'->',							// direction
 				'$EXTERNAL_NET',				// dst_ip
 				'any',							// dst_port
-				'Outgoing HTTP Hostname: ' . $attribute['value'],		// msg
+				'Outgoing HTTP Hostname ' . $attribute['value'],		// msg
 				$content,						// rule_content
 				'tag:session,600,seconds;',		// tag
 				$sid,							// sid
@@ -61,7 +61,7 @@ class NidsSuricataExport extends NidsExport {
 				'->',							// direction
 				'any',							// dst_ip
 				'any',							// dst_port
-				'Domain: ' . $attribute['value'],		// msg
+				'Domain ' . $attribute['value'],		// msg
 				$content,						// rule_content
 				'',								// tag
 				$sid,							// sid
@@ -79,7 +79,7 @@ class NidsSuricataExport extends NidsExport {
 				'->',							// direction
 				'$EXTERNAL_NET',				// dst_ip
 				'any',							// dst_port
-				'Outgoing HTTP Domain: ' . $attribute['value'],		// msg
+				'Outgoing HTTP Domain ' . $attribute['value'],		// msg
 				$content,						// rule_content
 				'tag:session,600,seconds;',		// tag
 				$sid,							// sid
@@ -205,7 +205,7 @@ class NidsSuricataExport extends NidsExport {
 				'->',						// direction
 				$suricata_dst_ip,			// dst_ip
 				$suricata_dst_port,			// dst_port
-				'Outgoing URL: ' . $attribute['value'],		// msg
+				'Outgoing URL ' . $attribute['value'],		// msg
 				$content,					// rule_content
 				$tag,						// tag
 				$sid,						// sid
@@ -227,7 +227,7 @@ class NidsSuricataExport extends NidsExport {
 				'->',							// direction
 				'$EXTERNAL_NET',				// dst_ip
 				'any',							// dst_port
-				'Outgoing User-Agent: ' . $attribute['value'],		// msg
+				'Outgoing User-Agent ' . $attribute['value'],		// msg
 				$content,						// rule_content
 				'tag:session,600,seconds;',		// tag
 				$sid,							// sid
