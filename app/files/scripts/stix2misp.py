@@ -32,7 +32,7 @@ def loadEvent(args, pathname):
     try:
         filename = '{}/tmp/{}'.format(pathname, args[1])
         tempFile = open(filename, 'r')
-        if filename.endswith('.json'):
+        if filename.endswith(('.json', '.json.out')):
             event = json.loads(tempFile.read())
             isJson = True
         else:
@@ -70,8 +70,11 @@ def buildMispDict(stixEvent):
         indicator = indic.get("indicator")
         timestamp = indicator.get("timestamp").split("+")[0]
         attribute["timestamp"] = getTimestampfromDate(timestamp)
-        observable = indicator.get("observable")
-        properties = observable["object"]["properties"]
+        try:
+            observable = indicator.get("observable")
+            properties = observable["object"].get("properties")
+        except:
+            continue
         try:
             cat = properties.get("category")
             if "ip" in cat:
@@ -116,10 +119,10 @@ def buildMispDict(stixEvent):
     return mispDict
 
 def saveFile(namefile, pathname, misp):
-    filepath = "{}/tmp/{}.in".format(pathname, namefile)
-    eventDict = misp.to_dict(with_timestamp=True)
+    filepath = "{}/tmp/{}.stix".format(pathname, namefile)
+    eventDict = misp.to_json()
     with open(filepath, 'w') as f:
-        f.write(json.dumps(eventDict))
+        f.write(eventDict)
 
 def main(args):
     pathname = os.path.dirname(args[0])

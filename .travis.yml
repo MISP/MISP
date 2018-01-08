@@ -125,7 +125,7 @@ script:
     - pip3 install --user codecov
     - pip3 install --user requests-mock
     - pip3 install --user .
-    - nosetests --with-coverage --cover-package=pymisp tests/test_offline.py
+    - nosetests --with-coverage --cover-package=pymisp tests/test_*.py
     - python3 tests/test.py
     - popd
     - cp PyMISP/tests/keys.py PyMISP/examples/events/
