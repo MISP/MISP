@@ -105,6 +105,8 @@ sudo phpenmod redis
 # To use the scheduler worker for scheduled tasks, do the following:
 sudo -u www-data cp -fa /var/www/MISP/INSTALL/setup/config.php /var/www/MISP/app/Plugin/CakeResque/Config/config.php
 
+# If you have multiple MISP instances on the same system, don't forget to have a different Redis per MISP instance for the CakeResque workers
+# The default Redis port can be updated in Plugin/CakeResque/Config/config.php
 
 5/ Set the permissions
 ----------------------
@@ -298,8 +300,14 @@ Recommended actions
 
 
 Optional features
--------------------
+-----------------
 # MISP has a new pub/sub feature, using ZeroMQ. To enable it, simply run the following command
 sudo pip install pyzmq
 # ZeroMQ depends on the Python client for Redis
 sudo pip install redis
+
+Optional features: misp-modules
+-------------------------------
+# If you want to add the misp modules functionality, follow the setup procedure described in misp-modules:
+# https://github.com/MISP/misp-modules#how-to-install-and-start-misp-modules
+# Then the enrichment, export and import modules can be enabled in MISP via the settings.

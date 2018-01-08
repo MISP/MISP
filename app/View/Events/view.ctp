@@ -281,7 +281,7 @@
 									<?php
 										else:
 									?>
-											<a href="<?php echo $baseurl; ?>/feeds/previewIndex/<?php echo h($relatedFeed['id']); ?>"><?php echo h($relatedFeed['name']) . ' (' . $relatedFeed['id'] . ')'; ?><a>
+											<a href="<?php echo $baseurl; ?>/feeds/previewIndex/<?php echo h($relatedFeed['id']); ?>"><?php echo h($relatedFeed['name']) . ' (' . $relatedFeed['id'] . ')'; ?></a>
 									<?php
 										endif;
 									?>

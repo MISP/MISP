@@ -216,6 +216,14 @@ class SightingsController extends AppController {
 		$this->set('rawId', $rawId);
 		$this->set('context', $context);
 		$this->set('types', array('Sighting', 'False-positive', 'Expiration'));
+		if (Configure::read('Plugin.Sightings_anonymise') && !$this->_isSiteAdmin()) {
+			foreach ($sightings as $k => $v) {
+				if ($v['Sighting']['org_id'] != $this->Auth->user('org_id')) {
+					$sightings[$k]['Organisation']['name'] = '';
+					$sightings[$k]['Sighting']['org_id'] = 0;
+				}
+			}
+		}
 		$this->set('sightings', $sightings);
 		$this->layout = false;
 		$this->render('ajax/list_sightings');
