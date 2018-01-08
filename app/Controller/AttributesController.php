@@ -234,7 +234,8 @@ class AttributesController extends AppController {
 					if (count($attributes) > 1) {
 						$failKeys = array_keys($fails);
 						foreach ($failKeys as $k => $v) {
-							$failKeys[$k] = intval($v) + 1;
+							$v = explode('_', $v);
+							$failKeys[$k] = intval($v[1]) + 1;
 						}
 						$message = 'Attributes saved, however, attributes ' . implode(', ', $failKeys) . ' could not be saved.';
 					} else {
