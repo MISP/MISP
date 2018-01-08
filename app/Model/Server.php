@@ -2836,6 +2836,11 @@ class Server extends AppModel {
 			if (!isset($response) || $response->code != '200') {
 				$this->Log = ClassRegistry::init('Log');
 				$this->Log->create();
+				if (isset($response->code)) {
+					$title = 'Error: Connection to the server has failed.' . isset($response->code) ? ' Returned response code: ' . $response->code : '';
+				} else {
+					$title = 'Error: Connection to the server has failed. The returned exception\'s error message was: ' . $e->getMessage();
+				}
 				$this->Log->save(array(
 						'org' => $user['Organisation']['name'],
 						'model' => 'Server',
@@ -2843,7 +2848,7 @@ class Server extends AppModel {
 						'email' => $user['email'],
 						'action' => 'error',
 						'user_id' => $user['id'],
-						'title' => 'Error: Connection to the server has failed.' . isset($response->code) ? ' Returned response code: ' . $response->code : '',
+						'title' => $title,
 				));
 			}
 		}

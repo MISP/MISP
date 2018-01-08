@@ -183,6 +183,16 @@ class Feed extends AppModel {
 		return $events;
 	}
 
+	private function __getRecursive($url, $query, $request, $iterations = 0) {
+		if ($iterations == 5) return false;
+		$HttpSocket = $this->__setupHttpSocket(false);
+		$response = $HttpSocket->get($url, $query, $request);
+		if ($response->code == 302 || $response->code == 301) {
+			$response = $this->__getRecursive($response['header']['Location'], $query, $request, $iterations + 1);
+		}
+		return $response;
+	}
+
 	public function getFreetextFeed($feed, $HttpSocket, $type = 'freetext', $page = 1, $limit = 60, &$params = array()) {
 		$result = array();
 		$data = '';
@@ -203,13 +213,10 @@ class Feed extends AppModel {
 			if ($doFetch) {
 				$fetchIssue = false;
 				try {
-					$response = $HttpSocket->get($feed['Feed']['url'], '', array());
+					$response = $this->__getRecursive($feed['Feed']['url'], '', array());
+					//$response = $HttpSocket->get($feed['Feed']['url'], '', array());
 				} catch (Exception $e) {
 					return false;
-				}
-				if ($response->code == 302) {
-					$HttpSocket = $this->__setupHttpSocket(false);
-					$response = $HttpSocket->get($response['header']['Location'], '', array());
 				}
 				if ($response->code == 200) {
 					$redis = $this->setupRedis();
