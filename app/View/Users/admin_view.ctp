@@ -143,7 +143,7 @@ if (h($user['User']['change_pw']) == 1) {
 				$(".loading").show();
 			},
 		    error: function(){
-		    	$('#userEvents').html('An error has occured, please reload the page.');
+		    	$('#userEvents').html('An error has occurred, please reload the page.');
 		    },
 		    success: function(response){
 		    	$('#userEvents').html(response);
