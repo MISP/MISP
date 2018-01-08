@@ -477,23 +477,29 @@ def parseExternalStix(event):
             attribute = {'type': 'stix2-pattern', 'object_relation': 'stix2-pattern', 'value': pattern}
             obj = {'name': 'stix2-pattern', 'meta-category': 'stix2-pattern', 'Attribute': [attribute]}
             Object.append(obj)
-            #if ' LIKE ' in pattern:
-            #    continue
-            #pattern = pattern.split(' AND ')
-            #fieldType = pattern_parser(pattern)
+            pattern = re.split(' AND | OR ', pattern[2:-2])
+            #pattern_parser(pattern)
     mispDict['Attribute'] = Attribute
     mispDict['Galaxy'] = Galaxy
     mispDict['Object'] = Object
     return mispDict
 
 def pattern_parser(pattern):
-    pattern_dict = {}
-    for p in pattern.split(' AND '):
+    #pattern_dict = {}
+    for p in pattern:
+        if ' LIKE ' in p:
+            continue
+        if p.startswith('('):
+            print(p)
+            p = p[1:]
+            print(p)
+        if p.endswith(')') and '(' not in p:
+            p = p[:-1]
         pType, pValue = p.split(' = ')
-        pattern_dict[pType] = pValue[1:-1]
+    #    pattern_dict[pType] = pValue[1:-1]
     if len(pattern_dict) == 1:
         fieldType = 'attribute'
-    return fieldType 
+    #return fieldType
 
 def observable_parser(observable):
     return
@@ -514,8 +520,7 @@ def main(args):
     pathname = os.path.dirname(sys.argv[0])
     stix2Event = loadEvent(args, pathname)
     stix2Event = stix2Event.get('objects')
-    from_misp = checkIfFromMISP(stix2Event)
-    if from_misp:
+    if checkIfFromMISP(stix2Event):
         mispDict = buildMispDict(stix2Event)
     else:
         mispDict = parseExternalStix(stix2Event)
