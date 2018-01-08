@@ -38,7 +38,6 @@
 	<div class="input clear"></div>
 	<?php
 		echo $this->Form->input('to_ids', array(
-				'checked' => true,
 				'label' => 'IDS Signature?',
 		));
 	?>
