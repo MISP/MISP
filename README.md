@@ -10,7 +10,7 @@ MISP - Malware Information Sharing Platform and Threat Sharing
 </tr>
 <tr>
   <td>Travis</td>
-  <td><a href="https://travis-ci.org/MISP/MISP.svg?branch=2.4"><img src="https://img.shields.io/travis/MISP/MISP/2.4.svg" /></td>
+  <td><a href="https://travis-ci.org/MISP/MISP"><img src="https://img.shields.io/travis/MISP/MISP/2.4.svg" /></a></td>
 </tr>
 <tr>
   <td>Gitter</td>
