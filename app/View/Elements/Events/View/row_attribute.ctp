@@ -55,7 +55,7 @@
     </td>
     <td class="short">
       <?php
-        if (isset($object['object_relation'])):
+        if (!empty($object['object_relation'])):
       ?>
           <div class="bold"><?php echo h($object['object_relation']); ?>:</div>
       <?php
