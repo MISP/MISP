@@ -2,7 +2,7 @@
 	<tr>
 		<?php if ($isSiteAdmin): ?>
 			<th>
-				<input class="select_all select" type="checkbox" title="Select all" role="button" tabindex="0" aria-label="Select all eventson current page" onClick="toggleAllCheckboxes();" />&nbsp;
+				<input class="select_all select" type="checkbox" title="<?php echo __('Select all');?>" role="button" tabindex="0" aria-label="<?php echo __('Select all events on current page');?>" onClick="toggleAllCheckboxes();" />&nbsp;
 			</th>
 		<?php else: ?>
 			<th style="padding-left:0px;padding-right:0px;">&nbsp;</th>
@@ -32,22 +32,22 @@
 			$day = 86400;
 		?>
 		<th><?php echo $this->Paginator->sort('id');?></th>
-		<th>Clusters</th>
+		<th><?php echo __('Clusters');?></th>
 		<?php if (Configure::read('MISP.tagging')): ?>
-			<th class="filter">Tags</th>
+			<th class="filter"><?php echo __('Tags');?></th>
 		<?php endif; ?>
-		<th title="Attribute Count"><?php echo $this->Paginator->sort('attribute_count', '#Attr.');?></th>
+		<th title="<?php echo __('Attribute Count');?>"><?php echo $this->Paginator->sort('attribute_count', '#Attr.');?></th>
 		<?php if (Configure::read('MISP.showCorrelationsOnIndex')):?>
-			<th title="Correlation Count">#Corr.</th>
+			<th title="<?php echo __('Correlation Count');?>"><?php echo __('#Corr.');?></th>
 		<?php endif; ?>
 		<?php if (Configure::read('MISP.showSightingsCountOnIndex') && Configure::read('Plugin.Sightings_enable') !== false):?>
-			<th title="Sigthing Count">#Sightings</th>
+			<th title="<?php echo __('Sigthing Count');?>"><?php echo __('#Sightings');?></th>
 		<?php endif; ?>
 		<?php if (Configure::read('MISP.showProposalsOnIndex')):?>
-			<th title="Proposal Count">#Prop</th>
+			<th title="<?php echo __('Proposal Count');?>"><?php echo __('#Prop');?></th>
 		<?php endif; ?>
 		<?php if (Configure::read('MISP.showDiscussionsCountOnIndex')):?>
-			<th title="Post Count">#Posts</th>
+			<th title="<?php echo __('Post Count');?>"><?php echo __('#Posts');?></th>
 		<?php endif; ?>
 		<?php if ($isSiteAdmin): ?>
 		<th><?php echo $this->Paginator->sort('user_id', 'Email');?></th>
@@ -79,11 +79,11 @@
 			<?php
 			if ($event['Event']['published'] == 1) {
 			?>
-				<a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] ?>" class = "icon-ok" title = "View"></a>
+				<a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] ?>" class = "icon-ok" title = "<?php echo __('View');?>"></a>
 			<?php
 			} else {
 			?>
-				<a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] ?>" class = "icon-remove" title = "View"></a>
+				<a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] ?>" class = "icon-remove" title = "<?php echo __('View');?>"></a>
 			<?php
 			}?>&nbsp;
 		</td>
@@ -221,18 +221,18 @@
 		<td class="short action-links">
 			<?php
 				if (0 == $event['Event']['published'] && ($isSiteAdmin || ($isAclPublish && $event['Event']['orgc_id'] == $me['org_id'])))
-					echo $this->Form->postLink('', array('action' => 'alert', $event['Event']['id']), array('class' => 'icon-download-alt', 'title' => 'Publish Event'), 'Are you sure this event is complete and everyone should be informed?');
-				else if (0 == $event['Event']['published']) echo 'Not published';
+					echo $this->Form->postLink('', array('action' => 'alert', $event['Event']['id']), array('class' => 'icon-download-alt', 'title' => __('Publish Event'), __('Are you sure this event is complete and everyone should be informed?')));
+				else if (0 == $event['Event']['published']) echo __('Not published');
 
 				if ($isSiteAdmin || ($isAclModify && $event['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $event['Event']['orgc_id'] == $me['org_id'])):
 			?>
-					<a href='<?php echo $baseurl."/events/edit/".$event['Event']['id'];?>' class = "icon-edit" title = "Edit"></a>
+					<a href='<?php echo $baseurl."/events/edit/".$event['Event']['id'];?>' class = "icon-edit" title = "<?php echo __('Edit');?>"></a>
 			<?php
 
-					echo $this->Form->postLink('', array('action' => 'delete', $event['Event']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete # %s?', $event['Event']['id']));
+					echo $this->Form->postLink('', array('action' => 'delete', $event['Event']['id']), array('class' => 'icon-trash', 'title' => __('Delete')), __('Are you sure you want to delete # %s?', $event['Event']['id']));
 				endif;
 			?>
-			<a href='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>' class = "icon-list-alt" title = "View"></a>
+			<a href='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>' class = "icon-list-alt" title = "<?php echo __('View');?>"></a>
 		</td>
 	</tr>
 	<?php endforeach; ?>
