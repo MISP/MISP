@@ -125,7 +125,7 @@
               if ($i == 4):
             ?>
                 <li class="no-side-padding correlation-expand-button useCursorPointer linkButton blue">
-                  Show <?php echo (count($event['Related' . $relatedObject][$object['id']]) - 4);?> more...
+                  Show <?php echo __('Show ') . (count($event['Related' . $relatedObject][$object['id']]) - 4); echo __('more...');?>
                 </li>
                 <?php
                   endif;
@@ -243,25 +243,25 @@
         if ($object['deleted']):
           if ($isSiteAdmin || $mayModify):
       ?>
-          <span class="icon-repeat useCursorPointer" title="Restore attribute" role="button" tabindex="0" aria-label="Restore attribute" onClick="deleteObject('attributes', 'restore', '<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
-          <span class="icon-trash useCursorPointer" title="Delete attribute" role="button" tabindex="0" aria-label="Permanently delete attribute" onClick="deleteObject('attributes', 'delete', '<?php echo h($object['id']) . '/true'; ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
+          <span class="icon-repeat useCursorPointer" title="<?php echo __('Restore attribute');?>" role="button" tabindex="0" aria-label="<?php echo __('Restore attribute');?>" onClick="deleteObject('attributes', 'restore', '<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
+          <span class="icon-trash useCursorPointer" title="<?php echo __('Delete attribute');?>" role="button" tabindex="0" aria-label="i<?php echo __('Permanently delete attribute');?>" onClick="deleteObject('attributes', 'delete', '<?php echo h($object['id']) . '/true'; ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
       <?php
           endif;
         else:
           if ($isSiteAdmin || !$mayModify):
             if (isset($modules) && isset($modules['types'][$object['type']])):
       ?>
-        <span class="icon-asterisk useCursorPointer" title="Query enrichment" role="button" tabindex="0" aria-label="Query enrichment" onClick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?php echo h($object['id']);?>/ShadowAttribute');" title="Propose enrichment">&nbsp;</span>
+        <span class="icon-asterisk useCursorPointer" title="<?php echo __('Query enrichment');?>" role="button" tabindex="0" aria-label="<?php echo __('Query enrichment');?>" onClick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?php echo h($object['id']);?>/ShadowAttribute');" title="<?php echo __('Propose enrichment');?>">&nbsp;</span>
       <?php
             endif;
             if (isset($cortex_modules) && isset($cortex_modules['types'][$object['type']])):
       ?>
-        <span class="icon-eye-open useCursorPointer" title="Query Cortex" role="button" tabindex="0" aria-label="Query Cortex" onClick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?php echo h($object['id']);?>/ShadowAttribute/Cortex');" title="Propose enrichment through Cortex"></span>
+        <span class="icon-eye-open useCursorPointer" title="<?php echo __('Query Cortex');?>" role="button" tabindex="0" aria-label="<?php echo __('Query Cortex');?>" onClick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?php echo h($object['id']);?>/ShadowAttribute/Cortex');" title="<?php echo __('Propose enrichment through Cortex');?>"></span>
       <?php
             endif;
       ?>
-            <a href="<?php echo $baseurl;?>/shadow_attributes/edit/<?php echo $object['id']; ?>" title="Propose Edit" class="icon-share useCursorPointer"></a>
-            <span class="icon-trash useCursorPointer" title="Propose Deletion" role="button" tabindex="0" aria-label="Propose deletion" onClick="deleteObject('shadow_attributes', 'delete', '<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
+            <a href="<?php echo $baseurl;?>/shadow_attributes/edit/<?php echo $object['id']; ?>" title="<?php echo __('Propose Edit');?>" class="icon-share useCursorPointer"></a>
+            <span class="icon-trash useCursorPointer" title="<?php echo __('Propose Deletion');?>" role="button" tabindex="0" aria-label="Propose deletion" onClick="deleteObject('shadow_attributes', 'delete', '<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
       <?php
             if ($isSiteAdmin):
       ?>
@@ -271,17 +271,17 @@
           if ($isSiteAdmin || $mayModify):
             if (isset($modules) && isset($modules['types'][$object['type']])):
       ?>
-        <span class="icon-asterisk useCursorPointer" onClick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?php echo h($object['id']);?>/Attribute');" title="Add enrichment" role="button" tabindex="0" aria-label="Add enrichment">&nbsp;</span>
+        <span class="icon-asterisk useCursorPointer" onClick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?php echo h($object['id']);?>/Attribute');" title="<?php echo __('Add enrichment');?>" role="button" tabindex="0" aria-label="<?php echo __('Add enrichment');?>">&nbsp;</span>
       <?php
             endif;
             if (isset($cortex_modules) && isset($cortex_modules['types'][$object['type']])):
       ?>
-        <span class="icon-eye-open useCursorPointer" onClick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?php echo h($object['id']);?>/Attribute/Cortex');" title="Add enrichment" role="button" tabindex="0" aria-label="Add enrichment via Cortex">C</span>
+        <span class="icon-eye-open useCursorPointer" onClick="simplePopup('<?php echo $baseurl;?>/events/queryEnrichment/<?php echo h($object['id']);?>/Attribute/Cortex');" title="<?php echo __('Add enrichment');?>" role="button" tabindex="0" aria-label="<?php echo __('Add enrichment via Cortex');?>"></span>
       <?php
             endif;
       ?>
-            <a href="<?php echo $baseurl;?>/attributes/edit/<?php echo $object['id']; ?>" title="Edit" class="icon-edit useCursorPointer"></a>
-            <span class="icon-trash useCursorPointer" title="Delete attribute" role="button" tabindex="0" aria-label="Delete attribute" onClick="deleteObject('attributes', 'delete', '<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
+            <a href="<?php echo $baseurl;?>/attributes/edit/<?php echo $object['id']; ?>" title="<?php echo __('Edit');?>" class="icon-edit useCursorPointer"></a>
+            <span class="icon-trash useCursorPointer" title="<?php echo __('Delete attribute');?>" role="button" tabindex="0" aria-label="<?php echo __('Delete attribute');?>" onClick="deleteObject('attributes', 'delete', '<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
       <?php
           endif;
         endif;
