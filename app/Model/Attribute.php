@@ -531,6 +531,15 @@ class Attribute extends AppModel {
 		)
 	);
 
+	public function afterFind($results, $primary = false) {
+		foreach ($results as $k => $v) {
+			if ($v['Attribute']['object_relation'] === null) {
+				$results[$k]['Attribute']['object_relation'] = '';
+			}
+		}
+		return $results;
+	}
+
 	public function beforeSave($options = array()) {
 		// explode value of composite type in value1 and value2
 		// or copy value to value1 if not composite type
