@@ -533,7 +533,7 @@ class Attribute extends AppModel {
 
 	public function afterFind($results, $primary = false) {
 		foreach ($results as $k => $v) {
-			if ($v['Attribute']['object_relation'] === null) {
+			if (isset($v['Attribute']['object_relation']) && $v['Attribute']['object_relation'] === null) {
 				$results[$k]['Attribute']['object_relation'] = '';
 			}
 		}
