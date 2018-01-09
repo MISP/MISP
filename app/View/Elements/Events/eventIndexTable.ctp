@@ -170,27 +170,27 @@
 			<?php echo $event['Event']['attribute_count']; ?>&nbsp;
 		</td>
 		<?php if (Configure::read('MISP.showCorrelationsOnIndex')):?>
-			<td class = "bold" style="width:30px;" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'" title="<?php echo (!empty($event['Event']['correlation_count']) ? h($event['Event']['correlation_count']) : '0') . ' correlation(s)';?>">
+			<td class = "bold" style="width:30px;" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'" title="<?php echo (!empty($event['Event']['correlation_count']) ? h($event['Event']['correlation_count']) : '0') . __(' correlation(s)');?>">
 				<?php echo !empty($event['Event']['correlation_count']) ? h($event['Event']['correlation_count']) : ''; ?>&nbsp;
 			</td>
 		<?php endif; ?>
 		<?php if (Configure::read('MISP.showSightingsCountOnIndex') && Configure::read('Plugin.Sightings_enable') !== false):?>
-			<td class = "bold" style="width:30px;" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'" title="<?php echo (!empty($event['Event']['sightings_count']) ? h($event['Event']['sightings_count']) : '0') . ' sighting(s)';?>">
+			<td class = "bold" style="width:30px;" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'" title="<?php echo (!empty($event['Event']['sightings_count']) ? h($event['Event']['sightings_count']) : '0') . __(' sighting(s)');?>">
 				<?php echo !empty($event['Event']['sightings_count']) ? h($event['Event']['sightings_count']) : ''; ?>&nbsp;
 			</td>
 		<?php endif; ?>
 		<?php if (Configure::read('MISP.showProposalsOnIndex')): ?>
-			<td class = "bold" style="width:30px;" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'" title="<?php echo (!empty($event['Event']['proposals_count']) ? h($event['Event']['proposals_count']) : '0') . ' proposal(s)';?>">
+			<td class = "bold" style="width:30px;" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'" title="<?php echo (!empty($event['Event']['proposals_count']) ? h($event['Event']['proposals_count']) : '0') . __(' proposal(s)');?>">
 				<?php echo !empty($event['Event']['proposals_count']) ? h($event['Event']['proposals_count']) : ''; ?>&nbsp;
 			</td>
 		<?php endif;?>
 		<?php if (Configure::read('MISP.showDiscussionsCountOnIndex')): ?>
-			<td class = "bold" style="width:30px;" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'" title="<?php echo (!empty($event['Event']['proposals_count']) ? h($event['Event']['proposals_count']) : '0') . ' proposal(s)';?>">
+			<td class = "bold" style="width:30px;" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'" title="<?php echo (!empty($event['Event']['proposals_count']) ? h($event['Event']['proposals_count']) : '0') . __(' proposal(s)');?>">
 				<?php
 					if (!empty($event['Event']['post_count'])) {
 						$post_count = h($event['Event']['post_count']);
 						if (($date - $event['Event']['last_post']) < $day) {
-							$post_count .=  ' (<span class="red bold">NEW</span>)';
+							$post_count .=  ' (<span class="red bold">' . __('NEW') . '</span>)';
 						}
 					} else {
 						$post_count = '';
@@ -210,7 +210,7 @@
 		<td ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
 			<?php echo nl2br(h($event['Event']['info'])); ?>&nbsp;
 		</td>
-		<td class="short <?php if ($event['Event']['distribution'] == 0) echo 'privateRedText';?>" ondblclick="location.href ='<?php echo $baseurl; ?>/events/view/<?php echo $event['Event']['id'];?>'" title = "<?php echo $event['Event']['distribution'] != 3 ? $distributionLevels[$event['Event']['distribution']] : 'All';?>">
+		<td class="short <?php if ($event['Event']['distribution'] == 0) echo 'privateRedText';?>" ondblclick="location.href ='<?php echo $baseurl; ?>/events/view/<?php echo $event['Event']['id'];?>'" title = "<?php echo $event['Event']['distribution'] != 3 ? $distributionLevels[$event['Event']['distribution']] : __('All');?>">
 			<?php if ($event['Event']['distribution'] == 4):?>
 				<a href="<?php echo $baseurl;?>/sharingGroups/view/<?php echo h($event['SharingGroup']['id']); ?>"><?php echo h($event['SharingGroup']['name']);?></a>
 			<?php else:
