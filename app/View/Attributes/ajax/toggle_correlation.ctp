@@ -3,7 +3,7 @@
 	echo $this->Form->create('Attribute', array('style' => 'margin:0px;', 'id' => 'PromptForm', 'url' => '/attributes/toggleCorrelation/' . $attribute['Attribute']['id']));
 	$extraTitle = "";
 	?>
-	<legend><?php echo __('Toggle Correlation '); ?> <?php echo $attribute['Attribute']['disable_correlation'] ? 'on' : 'off'?></legend>
+	<legend><?php echo __('Toggle Correlation %s ', $attribute['Attribute']['disable_correlation'] ? __('on') : __('off'));?></legend>
 	<div style="padding-left:5px;padding-right:5px;padding-bottom:5px;">
 		<p>
 	<?php
