@@ -149,7 +149,7 @@
             endforeach;
             if ($i > 4):
           ?>
-              <li class="no-side-padding correlation-collapse-button useCursorPointer linkButton blue" style="display:none;">Collapse...</li>
+              <li class="no-side-padding correlation-collapse-button useCursorPointer linkButton blue" style="display:none;"><?php echo __('Collapse…');?></li>
           <?php
             endif;
           endif;
