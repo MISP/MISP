@@ -2,8 +2,8 @@
 	echo $this->Form->create('Server', array('class' => 'inline-form inline-field-form', 'url' => '/servers/serverSettingsEdit/' . $setting['setting'] . '/' . $id . '/' . '1', 'id' => 'setting_' . $subGroup . '_' . $id . '_form'));
 ?>
 	<div class='inline-input inline-input-container'>
-	<div class="inline-input-accept inline-input-button inline-input-passive"><span class = "icon-ok" title="Accept" role="button" tabindex="0" aria-label="Accept"></span></div>
-	<div class="inline-input-decline inline-input-button inline-input-passive"><span class = "icon-remove" title="Cancel" role="button" tabindex="0" aria-label="Cancel"></span></div>
+	<div class="inline-input-accept inline-input-button inline-input-passive"><span class = "icon-ok" title="Accept" role="button" tabindex="0" aria-label="<?php echo __('Accept');?>"></span></div>
+	<div class="inline-input-decline inline-input-button inline-input-passive"><span class = "icon-remove" title="<?php echo __('Cancel');?>" role="button" tabindex="0" aria-label="<?php echo __('Cancel');?>"></span></div>
 <?php
 if (!empty($setting['redacted'])) {
 	$setting['value'] = '*****';
