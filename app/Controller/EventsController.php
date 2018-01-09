@@ -776,6 +776,7 @@ class EventsController extends AppController {
 		if (isset($this->params['named']['deleted']) && $this->params['named']['deleted']) {
 			$conditions['deleted'] = 1;
 		}
+		$conditions['includeFeedCorrelations'] = true;
 		$results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
 		if (empty($results)) throw new NotFoundException('Invalid event');
 		$event = $results[0];

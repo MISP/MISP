@@ -7,10 +7,10 @@
 				<span class="template_mandatory">(*)</span>
 			<?php endif;?>
 		</div><br />
-		<div class="left">Description:</div>
+		<div class="left"><?php echo __('Description');?>:</div>
 		<div class="right"><?php echo h($element['description']); ?></div><br />
 
-		<div class="left">Type<?php if ($element['complex']) echo 's'; ?>:</div>
+		<div class="left"><?php echo __('Type');?><?php if ($element['complex']) echo 's'; ?>:</div>
 		<div class="right">
 		<?php
 			$types = '';
@@ -35,9 +35,9 @@
 			if (isset($errors[$element_id])) $error = $errors[$element_id];
 			if ($element['batch']) {
 				if ($element['complex']) {
-					$placeholder = 'Describe the ' . h($element['name']) . ' using one or several (separated by a line-break) of the following types: ' . $types;
+					$placeholder = __('Describe the %s using one or several (separated by a line-break) of the following types: %s' , h($element['name'], $types));
 				} else {
-					$placeholder = 'Describe the ' . h($element['name']) . ' using one or several ' . h($element['type']) . 's (separated by a line-break)';
+					$placeholder = __('Describe the %s using one or several %s\s (separated by a line-break) ' , h($element['name']) , h($element['type']));
 				}
 				echo $this->Form->input('value_' . $element_id, array(
 					'type' => 'textarea',
@@ -49,9 +49,9 @@
 				));
 			} else {
 				if ($element['complex']) {
-					$placeholder = 'Describe the ' . h($element['name']) . ' using one of the following types: ' . $types;
+					$placeholder = __('Describe the %s using one of the following types: %s' , h($element['name'], $types));
 				} else {
-					$placeholder = 'Describe the ' . h($element['name']) . ' using a ' . h($element['type']);
+					$placeholder = __('Describe the %s using a %s' , h($element['name']) , h($element['type']));
 				}
 				echo $this->Form->input('value_' . $element_id, array(
 					'type' => 'text',
@@ -65,7 +65,7 @@
 		?>
 		</div>
 		<div class="error-message populateTemplateErrorField" <?php if (!isset($errors[$element_id])) echo 'style="display:none;"';?>>
-			<?php echo 'Error: ' . $errors[$element_id]; ?>
+			<?php echo __('Error: %s', $errors[$element_id]); ?>
 		</div>
 	</div>
 </div>

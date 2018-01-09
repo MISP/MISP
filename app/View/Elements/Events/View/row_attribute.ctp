@@ -149,7 +149,7 @@
             endforeach;
             if ($i > 4):
           ?>
-              <li class="no-side-padding correlation-collapse-button useCursorPointer linkButton blue" style="display:none;">Collapse...</li>
+              <li class="no-side-padding correlation-collapse-button useCursorPointer linkButton blue" style="display:none;"><?php echo __('Collapse…');?></li>
           <?php
             endif;
           endif;
@@ -180,13 +180,17 @@
                   if ($isSiteAdmin):
                     if ($feed['source_format'] == 'misp'):
                   ?>
-                      <form action="<?php echo $baseurl; ?>/feeds/previewIndex/1" method="post" style="width=0px;">
+                      <form action="<?php echo $baseurl; ?>/feeds/previewIndex/1" method="post" style="margin:0px;line-height:auto;">
                         <input type="hidden" name="data[Feed][eventid]" value="<?php echo h(json_encode($feed['event_uuids'], true)); ?>">
-                        <input type="submit" class="linkButton useCursorPointer" value="<?php echo h($feed['id']); ?>" data-toggle="popover" data-content="<?php echo h($popover);?>" data-trigger="hover" />
+                        <input type="submit" class="linkButton useCursorPointer" value="<?php echo h($feed['id']); ?>" data-toggle="popover" data-content="<?php echo h($popover);?>" data-trigger="hover" style="margin-right:3px;line-height:normal;vertical-align: text-top;" />
                       </form>
                   <?php
                     else:
-                      echo $this->Html->link($feed['id'], array('controller' => 'feeds', 'action' => 'previewIndex', $feed['id']), array('style' => 'margin-right:3px;'));
+                  ?>
+                    <form>
+                      <a href="<?php echo $baseurl; ?>/feeds/previewIndex/<?php echo h($feed['id']); ?>" style="margin-right:3px;"><?php echo h($feed['id']); ?></a>
+                    </form>
+                  <?php
                     endif;
                   else:
                 ?>

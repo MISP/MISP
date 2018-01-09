@@ -11,13 +11,16 @@
 
 $imgId = h($id);
 if (!isset($imgSize)) $imgSize = 48;
-if (!isset($imgStyle)) $imgStyle = array('style' => 'float:right');
+if (!isset($imgStyle)) {
+	$imgStyle = 'float:right;';
+} else if (is_array($imgStyle)) {
+	$imgStyle = $imgStyle['style'];
+}
 else $imgStyle = '';
 $imgRelativePath = 'orgs/' . $imgId . '.png';
 $imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
-$imgExtraOptions = $imgStyle;
 if (file_exists($imgAbsolutePath)) {
-	echo $this->Html->image($imgRelativePath, Set::merge(array('alt' => $imgId, 'style' => 'width:' . $imgSize . 'px; height:' . $imgSize . 'px', 'title' => $imgId), $imgExtraOptions));
+	echo $this->Html->image($imgRelativePath, array('alt' => $imgId, 'style' => 'width:' . $imgSize . '; max-height:' . $imgSize . ';' . $imgStyle, 'title' => $imgId));
 } else {
 	echo $this->Html->tag('span', $imgId, Set::merge(array('class' => 'img'), $imgExtraOptions));
 }
