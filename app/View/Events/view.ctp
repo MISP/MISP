@@ -110,7 +110,7 @@
 				<?php
 					if (isset($event['User']['email']) && ($isSiteAdmin || ($isAdmin && $me['org_id'] == $event['Event']['org_id']))):
 				?>
-						<dt>Email</dt>
+						<dt><?php echo __('Email');?></dt>
 						<dd>
 							<?php echo h($event['User']['email']); ?>
 							&nbsp;
@@ -118,7 +118,7 @@
 				<?php
 					endif;
 					if (Configure::read('MISP.tagging')): ?>
-						<dt>Tags</dt>
+						<dt><?php echo __('Tags');?></dt>
 						<dd class="eventTagContainer">
 							<?php echo $this->element('ajaxTags', array('event' => $event, 'tags' => $event['EventTag'], 'tagAccess' => ($isSiteAdmin || $mayModify || $me['org_id'] == $event['Event']['org_id']) )); ?>
 						</dd>
@@ -188,11 +188,12 @@
 					endif;
 					if (!empty($delegationRequest)):
 						if ($isSiteAdmin || $me['org_id'] == $delegationRequest['EventDelegation']['org_id']) {
-							$target = $isSiteAdmin ? $delegationRequest['Org']['name'] : 'you';
-							$subject = $delegationRequest['RequesterOrg']['name'] . ' has';
+							// /!\ This is not ideal for i18n not every language has a plural
+							$target = $isSiteAdmin ? $delegationRequest['Org']['name'] : __('you');
+							$subject = $delegationRequest['RequesterOrg']['name'] . __(' has');
 						} else {
 							$target = $delegationRequest['Org']['name'];
-							$subject = 'You have';
+							$subject = __('You have');
 						}
 				?>
 					<dt class="background-red bold"><?php echo __('Delegation request');?></dt>
@@ -207,11 +208,11 @@
 									if ($mayModify || $isSiteAdmin):
 								 		if ($event['Event']['disable_correlation']):
 								?>
-											Disabled (<a onClick="getPopup('<?php echo h($event['Event']['id']); ?>', 'events', 'toggleCorrelation', '', '#confirmation_box');" style="color:white;cursor:pointer;font-weight:normal;">enable</a>)
+											<?php echo __('Disabled');?> (<a onClick="getPopup('<?php echo h($event['Event']['id']); ?>', 'events', 'toggleCorrelation', '', '#confirmation_box');" style="color:white;cursor:pointer;font-weight:normal;"><?php echo __('enable');?></a>)
 								<?php
 										else:
 								?>
-											Enabled (<a onClick="getPopup('<?php echo h($event['Event']['id']); ?>', 'events', 'toggleCorrelation', '', '#confirmation_box');" style="cursor:pointer;font-weight:normal;">disable</a>)
+											<?php echo __('Enabled');?> (<a onClick="getPopup('<?php echo h($event['Event']['id']); ?>', 'events', 'toggleCorrelation', '', '#confirmation_box');" style="cursor:pointer;font-weight:normal;"><?php echo __('disable');?></a>)
 								<?php
 										endif;
 									else:
@@ -246,7 +247,7 @@
 								}
 								if ($count == 11 && $total > 10):
 									?>
-										<div class="no-side-padding correlation-expand-button useCursorPointer linkButton blue">Show (<?php echo $total - $count; ?>) more</div>
+										<div class="no-side-padding correlation-expand-button useCursorPointer linkButton blue"><?php echo __('Show (%s more)', $total - $count);?></div>
 									<?php
 								endif;
 						?>
@@ -264,7 +265,7 @@
 							endforeach;
 							if ($total > 10):
 						?>
-							<div class="no-side-padding correlation-collapse-button useCursorPointer linkButton blue" style="display:none;">Collapse...</div>
+							<div class="no-side-padding correlation-collapse-button useCursorPointer linkButton blue" style="display:none;"><?php echo __('Collapse…');?></div>
 						<?php
 							endif;
 						?>
@@ -329,7 +330,7 @@
 	<br />
 	<div class="toggleButtons">
 		<button class="btn btn-inverse toggle-left btn.active qet galaxy-toggle-button" id="pivots_toggle" data-toggle-type="pivots">
-			<span class="icon-minus icon-white" title="<?php echo __('Toggle pivot graph');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle pivot graph');?>" style="vertical-align:top;"></span>Pivots
+			<span class="icon-minus icon-white" title="<?php echo __('Toggle pivot graph');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle pivot graph');?>" style="vertical-align:top;"></span><?php echo __('Pivots');?>
 		</button>
 		<button class="btn btn-inverse toggle qet galaxy-toggle-button" id="galaxies_toggle" data-toggle-type="galaxies">
 			<span class="icon-minus icon-white" title="<?php echo __('Toggle galaxies');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle galaxies');?>" style="vertical-align:top;"></span><?php echo __('Galaxy');?>

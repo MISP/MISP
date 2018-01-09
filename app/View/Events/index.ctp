@@ -1,5 +1,5 @@
 <div class="events <?php if (!$ajax) echo 'index'; ?>">
-	<h2>Events</h2>
+	<h2><?php echo __('Events');?></h2>
 	<div class="pagination">
 		<ul>
 		<?php
@@ -41,7 +41,7 @@
 				<?php echo $this->Html->link('', array('controller' => 'events', 'action' => 'index'), array('class' => 'icon-remove', 'title' => __('Remove filters')));?>
 			</span>
 			<?php endif;?>
-			<span role="button" tabindex="0" aria-label="Quickfilter" title="<?php echo __('Quickfilter');?>" id="quickFilterButton" class="tabMenuFilterFieldButton useCursorPointer" onClick="quickFilter(<?php echo h($passedArgs); ?>, '<?php echo $baseurl . '/events/index'; ?>');"><?php echo __('Filter');?></span>
+			<span role="button" tabindex="0" aria-label="<?php echo __('Quickfilter');?>" title="<?php echo __('Quickfilter');?>" id="quickFilterButton" class="tabMenuFilterFieldButton useCursorPointer" onClick="quickFilter(<?php echo h($passedArgs); ?>, '<?php echo $baseurl . '/events/index'; ?>');"><?php echo __('Filter');?></span>
 			<input class="tabMenuFilterField" type="text" id="quickFilterField"></input>
 			<?php
 				$tempArgs = json_decode($passedArgs, true);
@@ -55,7 +55,7 @@
 				$tempArgs = json_encode($tempArgs);
 			?>
 			<span class="tabMenuFixed tabMenuFixedLeft tabMenuSides useCursorPointer <?php echo $tabBackground; ?>" style="margin-left:50px;">
-				<span role="button" tabindex="0" aria-label="My events only" title="My events only" id="myOrgButton" title="Modify filters" onClick="executeFilter(<?php echo h($tempArgs);?>, '<?php echo $baseurl;?>/events/index');"><?php echo __('My Events');?></span>
+				<span role="button" tabindex="0" aria-label="<?php echo __('My events only');?>" title="<?php echo __('My events only');?>" id="myOrgButton" title="<?php echo __('Modify filters');?>" onClick="executeFilter(<?php echo h($tempArgs);?>, '<?php echo $baseurl;?>/events/index');"><?php echo __('My Events');?></span>
 			</span>
 			<?php
 				$tempArgs = json_decode($passedArgs, true);

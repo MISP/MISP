@@ -11,18 +11,18 @@
 <div class="view">
 <div id="chart" style="width:100%;height:100%"></div>
 	<div id="hover-menu-container" class="menu-container">
-		<span class="bold hidden" id="hover-header">Hover target</span><br />
+		<span class="bold hidden" id="hover-header"><?php echo __('Hover target');?></span><br />
 		<ul id="hover-menu" class="menu">
 		</ul>
 	</div>
 	<div id="selected-menu-container" class="menu-container">
-		<span class="bold hidden" id="selected-header">Selected</span><br />
+		<span class="bold hidden" id="selected-header"><?php echo __('Selected');?></span><br />
 		<ul id = "selected-menu" class="menu">
 		</ul>
 	</div>
 	<ul id="context-menu" class="menu">
-		<li id="expand">Expand</li>
-		<li id="context-delete">Delete</li>
+		<li id="expand"><?php echo __('Expand');?></li>
+		<li id="context-delete"><?php echo __('Delete');?></li>
 	</ul>
 </div>
 <div id="graph_init" class="hidden" data-id="<?php echo h($id);?>" data-scope="<?php echo h($scope);?>">
