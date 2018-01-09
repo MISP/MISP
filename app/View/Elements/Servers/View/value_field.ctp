@@ -29,7 +29,7 @@
   } else if ('link' == $object['type']) {
     echo $this->Html->link($sigDisplay, $sigDisplay, array('class' => $linkClass));
   } else if ('cortex' == $object['type']) {
-    echo '<div class="cortex-json" data-cortex-json="' . h($object['value']) . '">Cortex object</div>';
+    echo '<div class="cortex-json" data-cortex-json="' . h($object['value']) . '">' . __('Cortex object') . '</div>';
   } else if ('text' == $object['type']) {
     if ($object['category'] == 'External analysis' && preg_match('/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/i', $object['value'])) {
       echo '<a href="' . $baseurl . '/events/view/' . h($object['value']) . '" class="' . $linkClass . '">' . h($object['value']) . '</a>';
@@ -40,10 +40,10 @@
     }
   } else if ('hex' == $object['type']) {
     $sigDisplay = str_replace("\r", '', $sigDisplay);
-    echo '<span class="hex-value" title="Hexadecimal representation">' . nl2br(h($sigDisplay)) . '</span>&nbsp;<span role="button" tabindex="0" aria-label="Switch to binary representation" class="icon-repeat hex-value-convert useCursorPointer" title="Switch to binary representation"></span>';
+    echo '<span class="hex-value" title="' . __('Hexadecimal representation') . '">' . nl2br(h($sigDisplay)) . '</span>&nbsp;<span role="button" tabindex="0" aria-label="' . __('Switch to binary representation') . '" class="icon-repeat hex-value-convert useCursorPointer" title="' . __('Switch to binary representation') . '"></span>';
   } else {
     $sigDisplay = str_replace("\r", '', $sigDisplay);
     echo nl2br(h($sigDisplay));
   }
-  if (isset($object['validationIssue'])) echo ' <span class="icon-warning-sign" title="Warning, this doesn\'t seem to be a legitimage ' . strtoupper(h($object['type'])) . ' value">&nbsp;</span>';
+  if (isset($object['validationIssue'])) echo ' <span class="icon-warning-sign" title="' . '__('Warning, this doesn\'t seem to be a legitimate ') . strtoupper(h($object['type'])) . __(' value') . '">&nbsp;</span>';
 ?>

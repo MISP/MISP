@@ -25,10 +25,10 @@
 				<?php
 					if ($all):
 				?>
-					<span class="red">view all</span>
+					<span class="red"><?php echo __('view all');?></span>
 				<?php
 					else:
-						echo $this->Paginator->link(__('view all'), 'all');
+						echo $this->Paginator->link(__('view all'), __('all'));
 					endif;
 				?>
 			</li>
@@ -38,15 +38,15 @@
 <div id="attributeList" class="attributeListContainer">
 	<table class="table table-striped table-condensed">
 		<tr>
-			<th><?php echo $this->Paginator->sort('timestamp', 'Date');?></th>
+			<th><?php echo $this->Paginator->sort('timestamp', __('Date'));?></th>
 			<th><?php echo $this->Paginator->sort('category');?></th>
 			<th><?php echo $this->Paginator->sort('type');?></th>
 			<th><?php echo $this->Paginator->sort('value');?></th>
-			<th>Tags</th>
+			<th><?php echo __('Tags');?></th>
 			<th><?php echo $this->Paginator->sort('comment');?></th>
-			<th>Related Events</th>
-			<th>Feed hits</th>
-			<th title="<?php echo $attrDescriptions['signature']['desc'];?>"><?php echo $this->Paginator->sort('to_ids', 'IDS');?></th>
+			<th><?php echo __('Related Events');?></th>
+			<th><?php echo __('Feed hits');?></th>
+			<th title="<?php echo $attrDescriptions['signature']['desc'];?>"><?php echo $this->Paginator->sort('to_ids', __('IDS'));?></th>
 		</tr>
 		<?php
 			$elements = array(
@@ -91,10 +91,10 @@
 			<?php
 				if ($all):
 			?>
-				<span class="red">view all</span>
+				<span class="red"><?php echo __('view all');?></span>
 			<?php
 				else:
-					echo $this->Paginator->link(__('view all'), 'all');
+					echo $this->Paginator->link(__('view all'), __('all'));
 				endif;
 			?>
 		</li>
@@ -127,9 +127,9 @@
 			});
 			bin = bin.join(' ');
 			$(this).parent().children(':first-child').text(bin);
-			$(this).parent().children(':first-child').attr('data-original-title', 'Binary representation');
-			$(this).parent().children(':nth-child(2)').attr('data-original-title', 'Switch to hexadecimal representation');
-			$(this).parent().children(':nth-child(2)').attr('aria-label', 'Switch to hexadecimal representation');
+			$(this).parent().children(':first-child').attr('data-original-title', __('Binary representation'));
+			$(this).parent().children(':nth-child(2)').attr('data-original-title', __('Switch to hexadecimal representation'));
+			$(this).parent().children(':nth-child(2)').attr('aria-label', __('Switch to hexadecimal representation'));
 		} else {
 			val = val.split(' ');
 			hex = '';
@@ -137,9 +137,9 @@
 				hex += parseInt(entry , 2).toString(16).toUpperCase();
 			});
 			$(this).parent().children(':first-child').text(hex);
-			$(this).parent().children(':first-child').attr('data-original-title', 'Hexadecimal representation');
-			$(this).parent().children(':nth-child(2)').attr('data-original-title', 'Switch to binary representation');
-			$(this).parent().children(':nth-child(2)').attr('aria-label', 'Switch to binary representation');
+			$(this).parent().children(':first-child').attr('data-original-title', __('Hexadecimal representation'));
+			$(this).parent().children(':nth-child(2)').attr('data-original-title', __('Switch to binary representation'));
+			$(this).parent().children(':nth-child(2)').attr('aria-label', __('Switch to binary representation'));
 		}
 	});
 </script>
