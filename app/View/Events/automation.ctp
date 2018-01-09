@@ -1,89 +1,89 @@
 <div class="event index">
-<h2>Automation</h2>
-<p>Automation functionality is designed to automatically generate signatures for intrusion detection systems. To enable signature generation for a given attribute, Signature field of this attribute must be set to Yes.
-Note that not all attribute types are applicable for signature generation, currently we only support NIDS signature generation for IP, domains, host names, user agents etc., and hash list generation for MD5/SHA1 values of file artifacts. Support for more attribute types is planned.
-To to make this functionality available for automated tools an authentication key is used. This makes it easier for your tools to access the data without further form-based-authentiation.<br/>
-<strong>Make sure you keep that key secret as it gives access to the entire database !</strong></p>
-<p>Your current key is: <code><?php echo $me['authkey'];?></code>.
-You can <?php echo $this->Html->link('reset', array('controller' => 'users', 'action' => 'resetauthkey', 'me'));?> this key.
+<h2><?php echo __('Automation');?></h2>
+<p><?php echo __('Automation functionality is designed to automatically generate signatures for intrusion detection systems. To enable signature generation for a given attribute, Signature field of this attribute must be set to Yes.
+Note that not all attribute types are applicable for signature generation, currently we only support NIDS signature generation for IP, domains, host names, user agents etc., and hash list generation for MD5/SHA1 values of file artefacts. Support for more attribute types is planned.
+To to make this functionality available for automated tools an authentication key is used. This makes it easier for your tools to access the data without further form-based-authentication.');?><br/>
+<strong><?php echo __('Make sure you keep that key secret as it gives access to the entire database !');?></strong></p>
+<p><?php echo __('Your current key is: <code>%s</code>.
+You can %s this key.', $me['authkey'], $this->Html->link(__('reset'), array('controller' => 'users', 'action' => 'resetauthkey', 'me')));?>
 </p>
-<p style="color:red;">Since version 2.2 the usage of the authentication key in the url is deprecated. Instead, pass the auth key in an Authorization header in the request. The legacy option of having the auth key in the url is temporarily still supported but not recommended.</p>
-<p>Please use the use the following header:<br />
-<code>Authorization: <?php echo $me['authkey']; ?></code></p>
-<h3>XML Export</h3>
-<p>An automatic export of all events and attributes <small>(except file attachments)</small> is available under a custom XML format.</p>
-<p>You can configure your tools to automatically download the following file:</p>
+<p style="color:red;"<?php echo __('>Since version 2.2 the usage of the authentication key in the url is deprecated. Instead, pass the auth key in an Authorization header in the request. The legacy option of having the auth key in the url is temporarily still supported but not recommended.');?></p>
+<p><?php echo __('Please use the use the following header');?>:<br />
+<code><?php echo __('Authorization');?>: <?php echo $me['authkey']; ?></code></p>
+<h3><?php echo __('XML Export');?></h3>
+<p><?php echo __('An automatic export of all events and attributes <small>(except file attachments)</small> is available under a custom XML format.');?></p>
+<p><?php echo __('You can configure your tools to automatically download the following file');?>:</p>
 <pre><?php echo $baseurl;?>/events/xml/download</pre>
-<p>If you only want to fetch a specific event append the eventid number:</p>
+<p><?php echo __('If you only want to fetch a specific event append the eventid number');?>:</p>
 <pre><?php echo $baseurl;?>/events/xml/download/1</pre>
-<p>You can post an XML or JSON object containing additional parameters in the following formats:</p>
-<p>JSON:</p>
+<p><?php echo __('You can post an XML or JSON object containing additional parameters in the following formats');?>:</p>
+<p><?php echo __('JSON');?>:</p>
 <pre><?php echo $baseurl;?>/events/xml/download.json</pre>
 <code>{"request": {"eventid":["!51","!62"],"withAttachment":false,"tags":["APT1","!OSINT"],"from":false,"to":"2015-02-15"}}</code><br /><br />
-<p>XML:</p>
+<p><?php echo __('XML');?>:</p>
 <pre><?php echo $baseurl;?>/events/xml/download</pre>
 <code>&lt;request&gt;&lt;eventid&gt;!51&lt;/eventid&gt;&lt;eventid&gt;!62&lt;/eventid&gt;&lt;withAttachment&gt;false&lt;/withAttachment&gt;&lt;tags&gt;APT1&lt;/tags&gt;&lt;tags&gt;!OSINT&lt;/tags&gt;&lt;from&gt;false&lt;/from&gt;&lt;to&gt;2015-02-15&lt;/to&gt;&lt;/request&gt;</code><br /><br />
-<p>The xml download also accepts two additional the following optional parameters in the url: </p>
+<p><?php echo __('The xml download also accepts two additional the following optional parameters in the url');?>: </p>
 <pre><?php echo $baseurl;?>/events/xml/download/[eventid]/[withattachments]/[tags]/[from]/[to]/[last]</pre>
 <p>
-<b>eventid</b>: Restrict the download to a single event<br />
-<b>withattachments</b>: A boolean field that determines whether attachments should be encoded and a second parameter that controls the eligible tags. <br />
-<b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'.
+<b>eventid</b>: <?php echo __('Restrict the download to a single event');?><br />
+<b>withattachments</b>: <?php echo __('A boolean field that determines whether attachments should be encoded and a second parameter that controls the eligible tags.');?><br />
+<b>tags</b>: <?php echo __('To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'.
 You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search.
-Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use:<br />
+Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use');?>:<br />
 </p>
 <pre><?php echo $baseurl;?>/events/xml/download/false/true/tag1&amp;&amp;tag2&amp;&amp;!tag3</pre>
 <p>
-<b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-15). This filter will use the date of the event.<br />
-<b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-15). This filter will use the date of the event.<br />
-<b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m). This filter will use the published timestamp of the event.<br />
+<b>from</b>: <?php echo __('Events with the date set to a date after the one specified in the from field (format: 2015-02-15). This filter will use the date of the event.');?><br />
+<b>to</b>: <?php echo __('Events with the date set to a date before the one specified in the to field (format: 2015-02-15). This filter will use the date of the event.');?><br />
+<b>last</b>: <?php echo __('Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m). This filter will use the published timestamp of the event.');?><br />
 </p>
-<p>The keywords false or null should be used for optional empty parameters in the URL.</p>
-<p>Also check out the <a href="<?php echo $baseurl;?>/pages/display/doc/using_the_system#rest">User Guide</a> to read about the REST API.</p>
+<p><?php echo __('The keywords false or null should be used for optional empty parameters in the URL.');?></p>
+<p><?php echo __('Also check out the <a href="<?php echo $baseurl;?>/pages/display/doc/using_the_system#rest">User Guide</a> to read about the REST API.');?></p>
 <p></p>
-<h3>CSV Export</h3>
-<p>An automatic export of attributes is available as CSV. Only attributes that are flagged "to_ids" will get exported.</p>
-<p>You can configure your tools to automatically download the following file:</p>
+<h3><?php echo __('CSV Export');?></h3>
+<p><?php echo __('An automatic export of attributes is available as CSV. Only attributes that are flagged "to_ids" will get exported.');?></p>
+<p><?php echo __('You can configure your tools to automatically download the following file');?>:</p>
 <pre><?php echo $baseurl;?>/events/csv/download/</pre>
-<p>You can specify additional flags for CSV exports as follows::</p>
+<p><?php echo __('You can specify additional flags for CSV exports as follows');?>:</p>
 <pre><?php echo $baseurl;?>/events/csv/download/[eventid]/[ignore]/[tags]/[category]/[type]/[includeContext]/[from]/[to]/[last]/[headerless]/[enforceWarninglist]</pre>
 <p>
-<b>eventid</b>: Restrict the download to a single event<br />
-<b>ignore</b>: Setting this flag to true will include attributes that are not marked "to_ids".<br />
-<b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'.
+<b>eventid</b>: <?php echo __('Restrict the download to a single event');?><br />
+<b>ignore</b>: <?php echo __('Setting this flag to true will include attributes that are not marked "to_ids".');?><br />
+<b>tags</b>: <?php echo __('To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'.
 You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search.
-Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use:<br />
+Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use');?>:<br />
 </p>
-<p>For example, to only download a csv generated of the "domain" type and the "Network activity" category attributes all events except for the one and further restricting it to events that are tagged "tag1" or "tag2" but not "tag3", only allowing attributes that are IDS flagged use the following syntax:</p>
+<p><?php echo __('For example, to only download a csv generated of the "domain" type and the "Network activity" category attributes all events except for the one and further restricting it to events that are tagged "tag1" or "tag2" but not "tag3", only allowing attributes that are IDS flagged use the following syntax');?>:</p>
 <pre><?php echo $baseurl;?>/events/csv/download/false/false/tag1&amp;&amp;tag2&amp;&amp;!tag3/Network%20activity/domain</pre>
 <p>
-<b>category</b>: The attribute category, any valid MISP attribute category is accepted.<br />
-<b>type</b>: The attribute type, any valid MISP attribute type is accepted.<br />
-<b>includeContext</b>: Include the event data with each attribute.<br />
-<b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-15). This filter will use the date of the event.<br />
-<b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-15). This filter will use the date of the event.<br />
-<b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m).This filter will use the published timestamp of the event.<br />
-<b>headerless</b>: The CSV created when this setting is set to true will not contain the header row.
-<b>enforceWarninglist</b>: All attributes that have a hit on a warninglist will be excluded.
+<b>category</b>: <?php echo __('The attribute category, any valid MISP attribute category is accepted.');?><br />
+<b>type</b>: <?php echo __('The attribute type, any valid MISP attribute type is accepted.');?><br />
+<b>includeContext</b>: <?php echo __('Include the event data with each attribute.');?><br />
+<b>from</b>: <?php echo __('Events with the date set to a date after the one specified in the from field (format: 2015-02-15). This filter will use the date of the event.');?><br />
+<b>to</b>: <?php echo __('Events with the date set to a date before the one specified in the to field (format: 2015-02-15). This filter will use the date of the event.');?><br />
+<b>last</b>: <?php echo __('Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m).This filter will use the published timestamp of the event.');?><br />
+<b>headerless</b>: <?php echo __('The CSV created when this setting is set to true will not contain the header row.
+<b>enforceWarninglist</b>: All attributes that have a hit on a warninglist will be excluded.');?>
 </p>
-<p>The keywords false or null should be used for optional empty parameters in the URL.</p>
-<p>To export the attributes of all events that are of the type "domain", use the following syntax:</p>
+<p><?php echo __('The keywords false or null should be used for optional empty parameters in the URL.');?></p>
+<p><?php echo __('To export the attributes of all events that are of the type "domain", use the following syntax');?>:</p>
 <pre><?php echo $baseurl;?>/events/csv/download/false/false/false/false/domain</pre>
 
-<h3>NIDS rules export</h3>
-<p>Automatic export of all network related attributes is available under the Snort rule format. Only <em>published</em> events and attributes marked as <em>IDS Signature</em> are exported.</p>
-<p>You can configure your tools to automatically download the following file:</p>
+<h3><?php echo __('NIDS rules export');?></h3>
+<p><?php echo __('Automatic export of all network related attributes is available under the Snort rule format. Only <em>published</em> events and attributes marked as <em>IDS Signature</em> are exported.');?></p>
+<p><?php echo __('You can configure your tools to automatically download the following file');?>:</p>
 <pre><?php echo $baseurl;?>/events/nids/suricata/download
 <?php echo $baseurl;?>/events/nids/snort/download</pre>
-<p>The full API syntax is as follows:</p>
+<p><?php echo __('The full API syntax is as follows');?>:</p>
 <pre><?php echo $baseurl;?>/events/nids/[format]/download/[eventid]/[frame]/[tags]/[from]/[to]/[last]/[type]/[enforceWarninglist]/[includeAllTags]</pre>
 <p>
-<b>format</b>: The export format, can be "suricata" or "snort"<br />
-<b>eventid</b>: Restrict the download to a single event<br />
-<b>frame</b>: Some commented out explanation framing the data. The reason to disable this would be if you would like to concatenate a list of exports from various select events in order to avoid unnecasary duplication of the comments.<br />
-<b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'.
+<b>format</b>: <?php echo __('The export format, can be "suricata" or "snort"');?><br />
+<b>eventid</b>: <?php echo __('Restrict the download to a single event');?><br />
+<b>frame</b>: <?php echo __('Some commented out explanation framing the data. The reason to disable this would be if you would like to concatenate a list of exports from various select events in order to avoid unnecasary duplication of the comments.');?><br />
+<b>tags</b>: <?php echo __('To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'.
 You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search.
-Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use:<br />
+Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use');?>:<br />
 <pre><?php echo $baseurl;?>/events/nids/snort/download/false/false/tag1&amp;&amp;tag2&amp;&amp;!tag3</pre>
 <b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-15). This filter will use the date of the event.<br />
 <b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-15). This filter will use the date of the event.<br />
