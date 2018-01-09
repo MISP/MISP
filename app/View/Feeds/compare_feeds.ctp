@@ -4,7 +4,7 @@
 	);
 ?>
 <div class="feed index">
-	<h2>Feed overlap analysis matrix</h2>
+	<h2><?php echo __('Feed overlap analysis matrix');?></h2>
 	<div>
 		<table class="table table-striped table-hover table-condensed" style="width:100px;">
 			<tr>
@@ -52,8 +52,8 @@
 									endif;
 								endforeach;
 								$title = '';
-								if ($percentage == 0) $popover = 'None or less than 1% of the data of ' . $item['Feed']['name'] . ' is contained in ' . $item2['Feed']['name'] . ' (' . $v['overlap_count'] . ' matching values)';
-								else if ($percentage > 0) $popover = $percentage . '% of the data of ' . $item['Feed']['name'] . ' is contained in ' . $item2['Feed']['name'] . ' (' . $v['overlap_count'] . ' matching values)';
+								if ($percentage == 0) $popover = __('None or less than 1% of the data of %s is contained in %s (%s matching values)', $item['Feed']['name'], $item2['Feed']['name'], $v['overlap_count']);
+								else if ($percentage > 0) $popover = __('%s\% of the data of %s is contained in %s (%s matching values)',$percentage, $item['Feed']['name'], $item2['Feed']['name'], $v['overlap_count'], ;
 						?>
 							<td class="<?php echo h($class); ?>">
 								<div data-toggle="popover" data-content="<?php echo h($popover);?>" data-trigger="hover">
