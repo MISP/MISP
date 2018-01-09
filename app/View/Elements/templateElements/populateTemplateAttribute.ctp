@@ -1,6 +1,6 @@
 <div id="element_<?php echo $k; ?>">
 	<div class="populate_template_div_body">
-		<div class="left-inverse">Field:</div>
+		<div class="left-inverse"><?php echo __('Field');?>:</div>
 		<div class="right-inverse">
 			<?php echo h($element['name']); ?>
 			<?php if ($element['mandatory']): ?>
