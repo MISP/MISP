@@ -85,15 +85,17 @@ def buildMispDict(stixEvent):
         try:
             properties = observable["object"]
             attribute = {'timestamp': getTimestampfromDate(timestamp)}
-            attribute['type'], attribute['value'], relation = fillAttribute(properties, category)
+            attrType, attribute['value'], relation = fillAttribute(properties, category)
+            attribute['type'] = attrType
             if category in categories:
                 attribute['category'] = category
                 mispDict["Attribute"].append(attribute)
             else:
-                attribute['object_relation'] = relation
+                name = indicator.get('description').split(' ')[0]
+                defineRelation(attribute, attrType, name, relation)
                 obj = {'timestamp': getTimestampfromDate(timestamp), 'meta-category': category,
                        'Attribute': [attribute]}
-                obj['name'] = indicator.get('description').split(' ')[0]
+                obj['name'] = name
                 mispDict["Object"].append(obj)
         except:
             observables = observable['observable_composition'].get('observables')
@@ -123,16 +125,29 @@ def buildMispDict(stixEvent):
                 mispDict['Attribute'].append(attribute)
             else:
                 attributes = []
+                name = indicator.get('description').split(' ')[0]
                 for obs in observables:
                     properties = obs['object']
                     attribute = {'timestamp': getTimestampfromDate(timestamp)}
-                    attribute['type'], attribute['value'], attribute['object_relation'] = fillAttribute(properties, category)
+                    attrType, attribute['value'], relation = fillAttribute(properties, category)
+                    if '|' in attrType:
+                        attribute['type'] = "malware-sample"
+                        attribute['object_relation'] = "malware-sample"
+                    else:
+                        attribute['type'] = attrType
+                        defineRelation(attribute, attrType, name, relation)
                     attributes.append(attribute)
                 obj = {'timestamp': getTimestampfromDate(timestamp), 'meta-category': category,
                        'Attribute': attributes}
-                obj['name'] = indicator.get('description').split(' ')[0]
+                obj['name'] = name
                 mispDict["Object"].append(obj)
     return mispDict
+
+def defineRelation(attribute, attrType, name, relation):
+    if attrType in ('md5', 'sha1', 'sha256') and name == 'x509':
+        attribute['object_relation'] = "x509-fingerprint-{}".format(attrType)
+    else:
+        attribute['object_relation'] = relation
 
 def fillAttribute(prop, category):
     properties = prop['properties']
@@ -221,7 +236,6 @@ def main(args):
         namefile = args[1]
     else:
         namefile = '{}.json'.format(args[1][:-4])
-    print(namefile)
     mispDict = buildMispDict(stixEvent)
     misp = pymisp.MISPEvent(None, False)
     misp.from_dict(**mispDict)
