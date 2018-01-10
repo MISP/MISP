@@ -7,7 +7,7 @@ To to make this functionality available for automated tools an authentication ke
 <p><?php echo __('Your current key is: <code>%s</code>.
 You can %s this key.', $me['authkey'], $this->Html->link(__('reset'), array('controller' => 'users', 'action' => 'resetauthkey', 'me')));?>
 </p>
-<p style="color:red;"<?php echo __('>Since version 2.2 the usage of the authentication key in the url is deprecated. Instead, pass the auth key in an Authorization header in the request. The legacy option of having the auth key in the url is temporarily still supported but not recommended.');?></p>
+<p style="color:red;"><?php echo __('>Since version 2.2 the usage of the authentication key in the URL is deprecated. Instead, pass the auth key in an Authorization header in the request. The legacy option of having the auth key in the URL is temporarily still supported but not recommended.');?></p>
 <p><?php echo __('Please use the use the following header');?>:<br />
 <code><?php echo __('Authorization');?>: <?php echo $me['authkey']; ?></code></p>
 <h3><?php echo __('XML Export');?></h3>
@@ -17,19 +17,19 @@ You can %s this key.', $me['authkey'], $this->Html->link(__('reset'), array('con
 <p><?php echo __('If you only want to fetch a specific event append the eventid number');?>:</p>
 <pre><?php echo $baseurl;?>/events/xml/download/1</pre>
 <p><?php echo __('You can post an XML or JSON object containing additional parameters in the following formats');?>:</p>
-<p><?php echo __('JSON');?>:</p>
+<p>JSON:</p>
 <pre><?php echo $baseurl;?>/events/xml/download.json</pre>
 <code>{"request": {"eventid":["!51","!62"],"withAttachment":false,"tags":["APT1","!OSINT"],"from":false,"to":"2015-02-15"}}</code><br /><br />
-<p><?php echo __('XML');?>:</p>
+<p>XML:</p>
 <pre><?php echo $baseurl;?>/events/xml/download</pre>
 <code>&lt;request&gt;&lt;eventid&gt;!51&lt;/eventid&gt;&lt;eventid&gt;!62&lt;/eventid&gt;&lt;withAttachment&gt;false&lt;/withAttachment&gt;&lt;tags&gt;APT1&lt;/tags&gt;&lt;tags&gt;!OSINT&lt;/tags&gt;&lt;from&gt;false&lt;/from&gt;&lt;to&gt;2015-02-15&lt;/to&gt;&lt;/request&gt;</code><br /><br />
-<p><?php echo __('The xml download also accepts two additional the following optional parameters in the url');?>: </p>
+<p><?php echo __('The xml download also accepts two additional the following optional parameters in the URL');?>: </p>
 <pre><?php echo $baseurl;?>/events/xml/download/[eventid]/[withattachments]/[tags]/[from]/[to]/[last]</pre>
 <p>
 <b>eventid</b>: <?php echo __('Restrict the download to a single event');?><br />
 <b>withattachments</b>: <?php echo __('A boolean field that determines whether attachments should be encoded and a second parameter that controls the eligible tags.');?><br />
 <b>tags</b>: <?php echo __('To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'.
-You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search.
+You can also chain several tag commands together with the \'&amp;&amp;\' operator. Please be aware the colons (:) cannot be used in the tag search.
 Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use');?>:<br />
 </p>
 <pre><?php echo $baseurl;?>/events/xml/download/false/true/tag1&amp;&amp;tag2&amp;&amp;!tag3</pre>
@@ -39,7 +39,8 @@ Use semicolons instead (the search will automatically search for colons instead)
 <b>last</b>: <?php echo __('Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m). This filter will use the published timestamp of the event.');?><br />
 </p>
 <p><?php echo __('The keywords false or null should be used for optional empty parameters in the URL.');?></p>
-<p><?php echo __('Also check out the <a href="<?php echo $baseurl;?>/pages/display/doc/using_the_system#rest">User Guide</a> to read about the REST API.');?></p>
+<?php $userGuideUrl = '<a href="' . $baseurl . '/pages/display/doc/using_the_system#rest">'. __(User Guide) . '</a>'; ?>
+<p><?php echo __('Also check out the %s to read about the REST API.', $userGuideUrl);?></p>
 <p></p>
 <h3><?php echo __('CSV Export');?></h3>
 <p><?php echo __('An automatic export of attributes is available as CSV. Only attributes that are flagged "to_ids" will get exported.');?></p>
@@ -51,7 +52,7 @@ Use semicolons instead (the search will automatically search for colons instead)
 <b>eventid</b>: <?php echo __('Restrict the download to a single event');?><br />
 <b>ignore</b>: <?php echo __('Setting this flag to true will include attributes that are not marked "to_ids".');?><br />
 <b>tags</b>: <?php echo __('To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'.
-You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search.
+You can also chain several tag commands together with the \'&amp;&amp;\' operator. Please be aware the colons (:) cannot be used in the tag search.
 Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use');?>:<br />
 </p>
 <p><?php echo __('For example, to only download a csv generated of the "domain" type and the "Network activity" category attributes all events except for the one and further restricting it to events that are tagged "tag1" or "tag2" but not "tag3", only allowing attributes that are IDS flagged use the following syntax');?>:</p>
@@ -80,84 +81,84 @@ Use semicolons instead (the search will automatically search for colons instead)
 <p>
 <b>format</b>: <?php echo __('The export format, can be "suricata" or "snort"');?><br />
 <b>eventid</b>: <?php echo __('Restrict the download to a single event');?><br />
-<b>frame</b>: <?php echo __('Some commented out explanation framing the data. The reason to disable this would be if you would like to concatenate a list of exports from various select events in order to avoid unnecasary duplication of the comments.');?><br />
+<b>frame</b>: <?php echo __('Some commented out explanation framing the data. The reason to disable this would be if you would like to concatenate a list of exports from various select events in order to avoid unnecessary duplication of the comments.');?><br />
 <b>tags</b>: <?php echo __('To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'.
-You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search.
+You can also chain several tag commands together with the \'&amp;&amp;\' operator. Please be aware the colons (:) cannot be used in the tag search.
 Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use');?>:<br />
 <pre><?php echo $baseurl;?>/events/nids/snort/download/false/false/tag1&amp;&amp;tag2&amp;&amp;!tag3</pre>
-<b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-15). This filter will use the date of the event.<br />
-<b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-15). This filter will use the date of the event.<br />
-<b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 6d or 12h or 30m). This filter will use the published timestamp of the event.<br />
-<b>type</b>: Restrict the export to only use the given types.<br />
-<b>enforceWarninglist</b>: All attributes that have a hit on a warninglist will be excluded.<br />
-<b>includeAllTags</b>: All tags will be included even if not exportable.<br />
-<p>The keywords false or null should be used for optional empty parameters in the URL.</p>
-<p>An example for a suricata export for all events excluding those tagged tag1, without all of the commented information at the start of the file would look like this:</p>
+<b>from</b>: <?php echo __('Events with the date set to a date after the one specified in the from field (format: 2015-02-15). This filter will use the date of the event.');?><br />
+<b>to</b>: <?php echo __('Events with the date set to a date before the one specified in the to field (format: 2015-02-15). This filter will use the date of the event.');?><br />
+<b>last</b>: <?php echo __('Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 6d or 12h or 30m). This filter will use the published timestamp of the event.');?><br />
+<b>type</b>: <?php echo __('Restrict the export to only use the given types.');?><br />
+<b>enforceWarninglist</b>: <?php echo __('All attributes that have a hit on a warninglist will be excluded.');?><br />
+<b>includeAllTags</b>: <?php echo __('All tags will be included even if not exportable.');?><br />
+<p><?php echo __('The keywords false or null should be used for optional empty parameters in the URL.');?></p>
+<p><?php echo __('An example for a suricata export for all events excluding those tagged tag1, without all of the commented information at the start of the file would look like this:');?></p>
 <pre><?php echo $baseurl;?>/events/nids/suricata/download/null/true/!tag1</pre>
-<p>Administration is able to maintain a white-list containing host, domain name and IP numbers to exclude from the NIDS export.</p>
+<p><?php echo __('Administration is able to maintain a white-list containing host, domain name and IP numbers to exclude from the NIDS export.');?></p>
 
-<h3>Hash database export</h3>
-<p>Automatic export of MD5/SHA1 checksums contained in file-related attributes. This list can be used to feed forensic software when searching for suspicious files. Only <em>published</em> events and attributes marked as <em>IDS Signature</em> are exported.</p>
-<p>You can configure your tools to automatically download the following files:</p>
+<h3><?php echo __('Hash database export');?></h3>
+<p><?php echo __('Automatic export of MD5/SHA1 checksums contained in file-related attributes. This list can be used to feed forensic software when searching for suspicious files. Only <em>published</em> events and attributes marked as <em>IDS Signature</em> are exported.');?></p>
+<p><?php echo __('You can configure your tools to automatically download the following files');?>:</p>
 <h4>md5</h4>
 <pre><?php echo $baseurl;?>/events/hids/md5/download</pre>
 <h4>sha1</h4>
 <pre><?php echo $baseurl;?>/events/hids/sha1/download</pre>
-<p>The API's full format is as follows: </p>
+<p><?php echo __('The API\'s full format is as follows');?>: </p>
 <pre><?php echo $baseurl;?>/events/hids/[format]/download/[tags]/[from]/[to]/[last]/[enforceWarninglist]</pre>
-<b>format</b>: The export format, can be "md5" or "sha1"<br />
-<b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'.
-You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search.
-Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use:<br />
+<b>format</b>: <?php echo __('The export format, can be "md5" or "sha1"');?><br />
+<b>tags</b>: <?php echo __('To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a \'!\'.
+You can also chain several tag commands together with the \'&amp;&amp;\' operator. Please be aware the colons (:) cannot be used in the tag search.
+Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use');?>:<br />
 <pre><?php echo $baseurl;?>/events/hids/md5/download/tag1&amp;&amp;tag2&amp;&amp;!tag3</pre>
 <p>
-<b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-15). This filter will use the date of the event. <br />
-<b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-15). This filter will use the date of the event.<br />
-<b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m). This filter will use the published timestamp of the event.<br />
-<b>enforceWarninglist</b>: All attributes that have a hit on a warninglist will be excluded.<br />
+<b>from</b>: <?php echo __('Events with the date set to a date after the one specified in the from field (format: 2015-02-15). This filter will use the date of the event.');?> <br />
+<b>to</b>: <?php echo __('Events with the date set to a date before the one specified in the to field (format: 2015-02-15). This filter will use the date of the event.');?><br />
+<b>last</b>: <?php echo __('Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m). This filter will use the published timestamp of the event.');?><br />
+<b>enforceWarninglist</b>: <?php echo __('All attributes that have a hit on a warninglist will be excluded.');?><br />
 </p>
-<p>The keywords false or null should be used for optional empty parameters in the URL.</p>
-<p>For example, to only show sha1 values from events tagged tag1, use:</p>
+<p><?php echo __('The keywords false or null should be used for optional empty parameters in the URL.');?></p>
+<p><?php echo __('For example, to only show sha1 values from events tagged tag1, use');?>:</p>
 <pre><?php echo $baseurl;?>/events/hids/sha1/download/tag1</pre>
 
-<h3>STIX export</h3>
-<p>You can export MISP events in Mitre's STIX format (to read more about STIX, click <a href="https://stix.mitre.org/">here</a>). The STIX XML export is currently very slow and can lead to timeouts with larger events or collections of events. The JSON return format does not suffer from this issue. Usage:</p>
+<h3><?php echo __('STIX export');?></h3>
+<p><?php echo __('You can export MISP events in Mitre\'s STIX format (to read more about STIX, click <a href="https://stix.mitre.org/">here</a>). The STIX XML export is currently very slow and can lead to timeouts with larger events or collections of events. The JSON return format does not suffer from this issue. Usage');?>:</p>
 <pre><?php echo $baseurl;?>/events/stix/download</pre>
-<p>Search parameters can be passed to the function via url parameters or by POSTing an xml or json object (depending on the return type). The following parameters can be passed to the STIX export tool: <code>id</code>, <code>withAttachments</code>, <code>tags</code>. Both <code>id</code> and <code>tags</code> can use the <code>&amp;&amp;</code> (and) and <code>!</code> (not) operators to build queries. Using the url parameters, the syntax is as follows:</p>
+<p><?php echo __('Search parameters can be passed to the function via URL parameters or by POSTing an XML or JSON object (depending on the return type). The following parameters can be passed to the STIX export tool: <code>id</code>, <code>withAttachments</code>, <code>tags</code>. Both <code>id</code> and <code>tags</code> can use the <code>&amp;&amp;</code> (and) and <code>!</code> (not) operators to build queries. Using the URL parameters, the syntax is as follows');?>:</p>
 <pre><?php echo $baseurl;?>/events/stix/download/[id]/[withAttachments]/[tags]/[from]/[to]/[last]</pre>
 <p>
-<b>id</b>: The event's ID<br />
-<b>withAttachments</b>: Encode attachments where applicable<br />
-<b>tags</b>: To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'.
-You can also chain several tag commands together with the '&amp;&amp;' operator. Please be aware the colons (:) cannot be used in the tag search.
-Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use:<br />
+<b>id</b>: <?php echo __('The event\'s ID');?><br />
+<b>withAttachments</b>: <?php echo __('Encode attachments where applicable');?><br />
+<b>tags</b>: <?php echo __('To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a \'!\'.
+You can also chain several tag commands together with the \'&amp;&amp;\' operator. Please be aware the colons (:) cannot be used in the tag search.
+Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use');?>:<br />
 </p>
 <pre><?php echo $baseurl;?>/events/stix/download/false/true/tag1&amp;&amp;tag2&amp;&amp;!tag3</pre>
 <p>
-<b>from</b>: Events with the date set to a date after the one specified in the from field (format: 2015-02-15). This filter will use the date of the event.<br />
-<b>to</b>: Events with the date set to a date before the one specified in the to field (format: 2015-02-15). This filter will use the date of the event.<br />
-<b>last</b>: Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m). This filter will use the published timestamp of the event.<br />
+<b>from</b>: <?php echo __('Events with the date set to a date after the one specified in the from field (format: 2015-02-15). This filter will use the date of the event.');?><br />
+<b>to</b>: <?php echo __('Events with the date set to a date before the one specified in the to field (format: 2015-02-15). This filter will use the date of the event.');?><br />
+<b>last</b>: <?php echo __('Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m). This filter will use the published timestamp of the event.');?><br />
 </p>
-<p>You can post an XML or JSON object containing additional parameters in the following formats:</p>
+<p><?php echo __('You can post an XML or JSON object containing additional parameters in the following formats');?>:</p>
 <p>JSON:</p>
 <pre><?php echo $baseurl;?>/events/stix/download.json</pre>
 <code>{"request": {"id":["!51","!62"],"withAttachment":false,"tags":["APT1","!OSINT"],"from":false,"to":"2015-02-15"}}</code><br /><br />
 <p>XML:</p>
 <pre><?php echo $baseurl;?>/events/stix/download</pre>
 <code>&lt;request&gt;&lt;id&gt;!51&lt;/id&gt;&lt;id&gt;!62&lt;/id&gt;&lt;withAttachment&gt;false&lt;/withAttachment&gt;&lt;tags&gt;APT1&lt;/tags&gt;&lt;tags&gt;!OSINT&lt;/tags&gt;&lt;from&gt;false&lt;/from&gt;&lt;to&gt;2015-02-15&lt;/to&gt;&lt;/request&gt;</code><br /><br />
-<h4>Various ways to narrow down the search results of the STIX export</h4>
-<p>For example, to retrieve all events tagged "APT1" but excluding events tagged "OSINT" and excluding events #51 and #62 without any attachments:
+<h4><?php echo __('Various ways to narrow down the search results of the STIX export');?></h4>
+<p><?php echo __('For example, to retrieve all events tagged "APT1" but excluding events tagged "OSINT" and excluding events #51 and #62 without any attachments');?>:
 <pre><?php echo $baseurl;?>/events/stix/download/!51&amp;&amp;!62/false/APT1&amp;&amp;!OSINT/2015-02-15</pre>
-<p>To export the same events using a POST request use:</p>
+<p><?php echo __('To export the same events using a POST request use');?>:</p>
 <pre><?php echo $baseurl;?>/events/stix/download.json</pre>
-<p>Together with this JSON object in the POST message:</p>
+<p><?php echo __('Together with this JSON object in the POST message');?>:</p>
 <code>{"request": {"id":["!51","!62"],"tags":["APT1","!OSINT"],"from":"2015-02-15"}}</code><br /><br />
-<p>XML is automatically assumed when using the stix export:</p>
+<p><?php echo __('XML is automagically assumed when using the stix export');?>:</p>
 <pre><?php echo $baseurl;?>/events/stix/download</pre>
-<p>The same search could be accomplished using the following POSTed XML object (note that ampersands need to be escaped, or alternatively separate id and tag elements can be used): </p>
+<p><?php echo __('The same search could be accomplished using the following POSTed XML object (note that ampersands need to be escaped, or alternatively separate id and tag elements can be used)');?>: </p>
 <code>&lt;request&gt;&lt;id&gt;!51&lt;/id&gt;&lt;id&gt;!62&lt;/id&gt;&lt;tags&gt;APT1&lt;/tags&gt;&lt;tags&gt;!OSINT&lt;/tags&gt;&lt;from&gt;2015-02-15&lt;/from&gt;&lt;/request&gt;</code>
 
-<h3>RPZ export</h3>
+<h3><?php echo __('RPZ export');?></h3>
 <p>You can export RPZ zone files for DNS level firewalling by using the RPZ export functionality of MISP. The file generated will include all of the IDS flagged domain, hostname and IP-src/IP-dst attribute values that you have access to.</p>
 <p>It is possible to further restrict the exported values using the following filters:</p>
 <p>
