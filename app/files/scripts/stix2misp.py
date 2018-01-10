@@ -19,15 +19,17 @@ import sys, json, os, time
 import pymisp
 from stix.core import STIXPackage
 
-eventTypes = {"ipv4-addr": {"src": "ip-src", "dst": "ip-dst", "value": "address_value"},
-              "ipv6-addr": {"src": "ip-src", "dst": "ip-dst", "value": "address_value"},
-              "URIObjectType": {"type": "url", "value": "value"},
-              "FileObjectType": {"type": "filename", "value": "file_name"},
-              "DomainNameObjectType": {"type": "domain", "value": "value"},
-              "HostnameObjectType": {"type": "hostname", "value": "hostname_value"},
-              "to": {"type": "email-dst", "value": "address_value"},
-              "from": {"type": "email-src", "value": "value"},
-              "subject": {"type": "email-subject", "value": "value"},
+eventTypes = {"ipv4-addr": {"src": "ip-src", "dst": "ip-dst", "value": "address_value", "relation": "ip"},
+              "ipv6-addr": {"src": "ip-src", "dst": "ip-dst", "value": "address_value", "relation": "ip"},
+              "URIObjectType": {"type": "url", "value": "value", "relation": "url"},
+              "FileObjectType": {"type": "filename", "value": "file_name", "relation": "filename"},
+              "DomainNameObjectType": {"type": "domain", "value": "value", "relation": "domain"},
+              "HostnameObjectType": {"type": "hostname", "value": "hostname_value", "relation": "host"},
+              "PortObjectType": {"type": "port", "value": "port_value", "relation": "port"},
+              "to": {"type": "email-dst", "value": "address_value", "relation": "to"},
+              "from": {"type": "email-src", "value": "value", "relation": "from"},
+              "subject": {"type": "email-subject", "value": "value", "relation": "subject"},
+              "email-attachment": {"value": "file_name", "relation": "attachment"},
               "user_agent": "user-agent"}
 
 descFilename = os.path.join(pymisp.__path__[0], 'data/describeTypes.json')
@@ -73,21 +75,22 @@ def buildMispDict(stixEvent):
     mispDict["Attribute"] = []
     mispDict["Object"] = []
     for indic in indicators:
-        attribute = {}
-        indicator = indic.get("indicator")
-        timestamp = indicator.get("timestamp").split("+")[0]
-        attribute["timestamp"] = getTimestampfromDate(timestamp)
-        category = indic.get("relationship")
-        observable = indicator.get("observable")
         try:
-            properties = observable["object"].get("properties")
+            indicator = indic.get("indicator")
+            timestamp = indicator.get("timestamp").split("+")[0]
+            category = indic.get("relationship")
+            observable = indicator["observable"]
+        except:
+            continue
+        try:
+            properties = observable["object"]
             attribute = {'timestamp': getTimestampfromDate(timestamp)}
-            attribute['type'], attribute['value'] = fillAttribute(properties, category)
+            attribute['type'], attribute['value'], relation = fillAttribute(properties, category)
             if category in categories:
                 attribute['category'] = category
                 mispDict["Attribute"].append(attribute)
             else:
-                #attribute['object_relation'] = fillRelation()
+                attribute['object_relation'] = relation
                 obj = {'timestamp': getTimestampfromDate(timestamp), 'meta-category': category,
                        'Attribute': [attribute]}
                 obj['name'] = indicator.get('description').split(' ')[0]
@@ -97,8 +100,8 @@ def buildMispDict(stixEvent):
             if category in categories:
                 domain = False
                 for obs in observables:
-                    properties = obs['object'].get('properties')
-                    tmpType, tmpValue = fillAttribute(properties, category)
+                    properties = obs['object']
+                    tmpType, tmpValue, _ = fillAttribute(properties, category)
                     if tmpType == 'domain':
                         domainType = tmpType
                         domainVal = tmpValue
@@ -121,9 +124,9 @@ def buildMispDict(stixEvent):
             else:
                 attributes = []
                 for obs in observables:
-                    properties = obs['object'].get('properties')
+                    properties = obs['object']
                     attribute = {'timestamp': getTimestampfromDate(timestamp)}
-                    attribute['type'], attribute['value'] = fillAttribute(properties, category)
+                    attribute['type'], attribute['value'], attribute['object_relation'] = fillAttribute(properties, category)
                     attributes.append(attribute)
                 obj = {'timestamp': getTimestampfromDate(timestamp), 'meta-category': category,
                        'Attribute': attributes}
@@ -131,7 +134,8 @@ def buildMispDict(stixEvent):
                 mispDict["Object"].append(obj)
     return mispDict
 
-def fillAttribute(properties, category):
+def fillAttribute(prop, category):
+    properties = prop['properties']
     try:
         cat = properties["category"]
     except:
@@ -144,17 +148,27 @@ def fillAttribute(properties, category):
         typeVal = eventTypes[cat][attr_type]
         value = eventTypes[cat]["value"]
         valueVal = properties[value]["value"]
+        relation = 'ip'
     elif cat == 'EmailMessageObjectType':
-        header = properties["header"]
-        emailType = list(header)[0]
-        typeVal = eventTypes[emailType]["type"]
-        value = eventTypes[emailType]["value"]
-        headerVal = header[emailType]
-        if emailType == "to":
-            headerVal = headerVal[0]
-        elif emailType == "from":
-            headerVal = headerVal["address_value"]
-        valueVal = headerVal.get(value)
+        try:
+            header = properties["header"]
+            emailType = list(header)[0]
+            typeVal = eventTypes[emailType]["type"]
+            value = eventTypes[emailType]["value"]
+            headerVal = header[emailType]
+            if emailType == "to":
+                headerVal = headerVal[0]
+            elif emailType == "from":
+                headerVal = headerVal["address_value"]
+            valueVal = headerVal.get(value)
+            relation = eventTypes[emailType]['relation']
+        except:
+            attachmentProp = prop['related_objects'][0]['properties']
+            if attachmentProp.get('xsi:type') == 'FileObjectType':
+                typeVal = 'email-attachment'
+                propCat = eventTypes[typeVal]['value']
+            valueVal = attachmentProp[propCat].get('value')
+            relation = eventTypes[typeVal]['relation']
     elif cat == "FileObjectType" and "hashes" in properties:
         hashes = properties['hashes'][0]
         if 'file_name' in properties:
@@ -163,29 +177,34 @@ def fillAttribute(properties, category):
             value1 = properties['file_name'].get('value')
             value2 = hashes["simple_hash_value"].get("value")
             valueVal = '{}|{}'.format(value1, value2)
+            relation = None
         else:
             if category == 'Network activity':
                 typeVal = 'x509-fingerprint-sha1'
             else:
                 typeVal = hashes["type"].get("value").lower()
             valueVal = hashes["simple_hash_value"].get("value")
+            relation = typeVal
     elif cat == "HTTPSessionObjectType":
         http = properties["http_request_response"][0]
         httpAttr = http["http_client_request"]["http_request_header"]["parsed_header"]
         attrVal = list(httpAttr)[0]
         valueVal = httpAttr.get(attrVal)
         typeVal = eventTypes[attrVal]
+        relation = 'user-agent'
     elif cat == "WindowsRegistryKeyObjectType":
         valueVal = ""
         if properties['hive'].get('value') == "HKEY_LOCAL_MACHINE":
             valueVal += "HKLM\\"
         valueVal += properties['key'].get('value')
         typeVal = "regkey"
+        relation = "key"
     else:
         value = eventTypes[cat]["value"]
         typeVal = eventTypes[cat]["type"]
         valueVal = properties[value]["value"]
-    return typeVal, valueVal
+        relation = eventTypes[cat]["relation"]
+    return typeVal, valueVal, relation
 
 
 def saveFile(namefile, pathname, misp):
@@ -202,6 +221,7 @@ def main(args):
         namefile = args[1]
     else:
         namefile = '{}.json'.format(args[1][:-4])
+    print(namefile)
     mispDict = buildMispDict(stixEvent)
     misp = pymisp.MISPEvent(None, False)
     misp.from_dict(**mispDict)
