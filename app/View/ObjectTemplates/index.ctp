@@ -1,5 +1,5 @@
 <div class="objectTemplates index">
-	<h2>Object Template index</h2>
+	<h2><?php echo __('Object Template index');?></h2>
 	<div class="pagination">
 		<ul>
 			<?php
@@ -29,8 +29,8 @@
 		<?php
 			if ($isSiteAdmin):
 		?>
-				<span role="button" tabindex="0" aria-label="Enabled" title="Enabled" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php if (!$all) echo 'tabMenuActive';?>" onClick="window.location='/objectTemplates/index'">Enabled</span>
-				<span role="button" tabindex="0" aria-label="All" title="All" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php if ($all) echo 'tabMenuActive';?>" onClick="window.location='/objectTemplates/index/all'">All</span>
+				<span role="button" tabindex="0" aria-label="<?php echo __('Enabled');?>" title="<?php echo __('Enabled');?>" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php if (!$all) echo 'tabMenuActive';?>" onClick="window.location='/objectTemplates/index'"><?php echo __('Enabled');?></span>
+				<span role="button" tabindex="0" aria-label="<?php echo __('All');?>" title="<?php echo __('All');?>" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php if ($all) echo 'tabMenuActive';?>" onClick="window.location='/objectTemplates/index/all'"><?php echo __('All');?></span>
 		<?php
 			endif;
 		?>
@@ -47,12 +47,12 @@
 			<th><?php echo $this->Paginator->sort('id');?></th>
 			<th><?php echo $this->Paginator->sort('name');?></th>
 			<th><?php echo $this->Paginator->sort('uuid');?></th>
-			<th><?php echo $this->Paginator->sort('org_id', 'Organisation');?></th>
+			<th><?php echo $this->Paginator->sort('org_id', __('Organisation'));?></th>
 			<th><?php echo $this->Paginator->sort('version');?></th>
 			<th><?php echo $this->Paginator->sort('meta-category');?></th>
 			<th><?php echo $this->Paginator->sort('description');?></th>
-			<th>Requirements</th>
-			<th class="actions">Actions</th>
+			<th><?php echo __('Requirements');?></th>
+			<th class="actions"><?php echo __('Actions');?></th>
 	</tr>
 	<?php
 foreach ($list as $template):
@@ -101,7 +101,7 @@ foreach ($list as $template):
 			?>
 		</td>
 		<td class="short action-links">
-			<a href='/objectTemplates/view/<?php echo $template['ObjectTemplate']['id']; ?>' class = "icon-list-alt" title = "View"></a>
+			<a href='/objectTemplates/view/<?php echo $template['ObjectTemplate']['id']; ?>' class = "icon-list-alt" title = "<?php echo __('View');?>"></a>
 			<?php
 				if ($isSiteAdmin):
 					echo $this->Form->postLink('', array('action' => 'update', $template['ObjectTemplate']['name'], 1), array('class' => 'icon-refresh', 'title' => 'Force update'), __('Are you sure you want to force an update for template # %s?', $template['ObjectTemplate']['id']));
