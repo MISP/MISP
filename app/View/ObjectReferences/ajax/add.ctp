@@ -7,14 +7,14 @@
 						<div class="span6">
 							<?php
 								echo $this->Form->input('relationship_type_select', array(
-									'label' => 'Relationship type',
+									'label' => __('Relationship type'),
 									'options' => $relationships,
 									'style' => 'width:334px;',
 									'div' => false
 								));
 						?>
 							<div id="" class="hidden">
-								<label for="ObjectReferenceRelationshipTypeSelect">Relationship type</label>
+								<label for="ObjectReferenceRelationshipTypeSelect"><?php echo __('Relationship type');?></label>
 								<?php
 									echo $this->Form->input('relationship_type', array(
 										'label' => false,
@@ -27,7 +27,7 @@
 						<div class="span6">
 							<?php
 								echo $this->Form->input('comment', array(
-									'label' => 'Comment',
+									'label' => __('Comment'),
 									'rows' => 1,
 									'style' => 'width:320px;height:20px !important;'
 								));
@@ -39,7 +39,7 @@
 						<div class="span6">
 							<?php
 								echo $this->Form->input('referenced_uuid', array(
-									'label' => 'Target UUID',
+									'label' => __('Target UUID'),
 									'div' => false,
 									'style' => 'width:320px;'
 								));
@@ -50,14 +50,14 @@
 									if (!empty($event['Object'])):
 										foreach ($event['Object'] as $object):
 								?>
-											<option class="selectOption" value="<?php echo h($object['uuid']);?>" data-type="Object">Object: <?php echo h($object['meta-category']) . '/' . h($object['name']); ?></option>
+											<option class="selectOption" value="<?php echo h($object['uuid']);?>" data-type="Object"><?php echo __('Object');?>: <?php echo h($object['meta-category']) . '/' . h($object['name']); ?></option>
 								<?php
 										endforeach;
 									endif;
 									if (!empty($event['Attribute'])):
 										foreach ($event['Attribute'] as $attribute):
 								?>
-											<option class="selectOption" value="<?php echo h($attribute['uuid']);?>" data-type="Attribute">Attribute: <?php echo h($attribute['category']) . '/' . h($attribute['type']); ?></option>
+											<option class="selectOption" value="<?php echo h($attribute['uuid']);?>" data-type="Attribute"><?php echo __('Attribute');?>: <?php echo h($attribute['category']) . '/' . h($attribute['type']); ?></option>
 								<?php
 										endforeach;
 									endif;
@@ -65,7 +65,7 @@
 							</select>
 						</div>
 						<div class="span6">
-							<label for="selectedData">Target Details</label>
+							<label for="selectedData"><?php echo __('Target Details');?></label>
 							<div class="redHighlightedBlock" id="targetData">
 								&nbsp;
 							</div>
@@ -75,11 +75,11 @@
 						<table style="margin-bottom:5px;">
 							<tr>
 								<td>
-									<span id="submitButton" class="btn btn-primary" title="Submit" role="button" tabindex="0" aria-label="Submit" onClick="submitPopoverForm('<?php echo h($objectId); ?>', 'addObjectReference')">Submit</span>
+									<span id="submitButton" class="btn btn-primary" title="<?php echo __('Submit');?>" role="button" tabindex="0" aria-label="<?php echo __('Submit');?>" onClick="submitPopoverForm('<?php echo h($objectId); ?>', 'addObjectReference')"><?php echo __('Submit');?></span>
 								</td>
 								<td style="width:100%;">&nbsp;</td>
 								<td>
-									<span class="btn btn-inverse" title="Cancel" role="button" tabindex="0" aria-label="Cancel" onClick="cancelPopoverForm();">Cancel</span>
+									<span class="btn btn-inverse" title="<?php echo __('Cancel');?>" role="button" tabindex="0" aria-label="<?php echo __('Cancel');?>" onClick="cancelPopoverForm();"><?php echo __('Cancel');?></span>
 								</td>
 							</tr>
 						</table>
