@@ -73,133 +73,133 @@ and attachments and finally publishing it.');?><br /><br />
 			<li><i><?php echo __('Ongoing');?>:</i> <?php echo __('The analysis is in progress');?></li>
 			<li><i><?php echo __('Completed');?>:</i> <?php echo __('The analysis is complete');?></li>
 		</ul></li>
-		<li><b><?php echo __('Event Description');?>:</b> <?php echo __('The info field, where the malware/incident can get a brief description starting with the internal reference. This field should be as brief and concise as possible, the more detailed description happens through attributes in the next stage of the event\'s creation. Keep in mind that the system will automatically replace detected text strings that match a regular expression entry set up by your server\'s administrator(s).');?> </li>
-		<li><b><?php echo __('GFI Sandbox');?>:</b> <?php echo __('It is possible to upload the exported .zip file from GFI sandbox with the help of this tool. These will be dissected by the MISP and a list of attributes and attachments will automatically be generated from the .zip file. Whilst this does most of the work needed to be done in the second step of the event\'s creation, it is important to manually look over all the data that is being entered.');?> </li>
+		<li><b><?php echo __('Event Description');?>:</b> <?php echo __('The info field, where the malware/incident can get a brief description starting with the internal reference. This field should be as brief and concise as possible, the more detailed description happens through attributes in the next stage of the event\'s creation. Keep in mind that the system will automatically replace detected text strings that match a regular expression entry set up by your server\'s administrator(s).');?></li>
+		<li><b><?php echo __('GFI Sandbox');?>:</b> <?php echo __('It is possible to upload the exported .zip file from GFI sandbox with the help of this tool. These will be dissected by the MISP and a list of attributes and attachments will automatically be generated from the .zip file. Whilst this does most of the work needed to be done in the second step of the event\'s creation, it is important to manually look over all the data that is being entered.');?></li>
 	</ul>
 <hr />
 <a id="create_attribute"></a><h3><?php echo __('Add attributes to the event');?>:</h3>
 <?php echo __('The second step of creating an event is to populate it with attributes and attachments. This can be done by adding them manually or importing the attributes from an external format (OpenIOC, ThreatConnect). To import from an external format or to upload an attachment use the options in the menu on the left.');?><br />
 <br />
-<img src="<?php echo $baseurl;?>/img/doc/attribute_tools.png" alt="Attribute tools" title = "Use these tools to populate the event."/><br /><br />
+<img src="<?php echo $baseurl;?>/img/doc/attribute_tools.png" alt="<?php echo __('Attribute tools');?>" title = "<?php echo __('Use these tools to populate the event.');?>"/><br /><br />
 <p><?php echo __('Using the above shown buttons, you can populate an event using various tools that will be explained in the following section. Let\'s start with the Add Attribute button.');?></p>
 <h4><?php echo __('Add Attribute');?></h4>
 <p><?php echo __('Keep in mind that the system searches for regular expressions in the value field of all attributes when entered, replacing detected strings within it as set up by the server\'s administrator (for example to enforce standardised capitalisation in paths for event correlation or to bring exact paths to a standardised format). The following fields need to be filled out');?>:</p>
 <p><img src="<?php echo $baseurl;?>/img/doc/add_attribute.png" alt = "<?php echo __('Add attribute');?>" title = "<?php echo __('This form allows you to add attributes.');?>"/></p>
 <ul>
-	<li><b><?php echo __('Category');?>:</b> This drop-down menu explains the category of the attribute, meaning what aspect of the malware this attribute is describing. This could mean the persistence mechanisms of the malware or network activity, etc. For a list of valid categories, <?php echo $this->Html->link(__('click here', true), array('controller' => 'pages', 'action' => 'display', 'doc', 'categories_and_types')); ?></li>
-		<li><b><?php echo __('Type');?>:</b> Whilst categories determine what aspect of an event they are describing, the Type explains by what means that aspect is being described. As an example, the source IP address of an attack, a source e-mail address or a file sent through an attachment can all describe the payload delivery of a malware. These would be the types of attributes with the category of payload deliver. For an explanation of what each of the types looks like together with the valid combinations of categories and types, <?php echo $this->Html->link(__('click here', true), array('controller' => 'pages', 'action' => 'display', 'doc', 'categories_and_types')); ?>.</li>
-		<li><b>Distribution:</b> This drop-down list allows you to control who will be able to see this attribute.
-		The distribution is inherited by attributes: the most restrictive setting wins.
-		For more info <a href="#distribution">click here</a>.</li>
-		<li><b>Contextual Comment:</b> Add a comment to the attribute. This will not be used for correlation.</li>
-		<li><b>Value:</b> The actual value of the attribute, enter data about the value based on what is valid for the chosen attribute type. For example, for an attribute of type ip-src (source IP address), 11.11.11.11 would be a valid value. For more information on types and values, <?php echo $this->Html->link(__('click here', true), array('controller' => 'pages', 'action' => 'display', 'doc', 'categories_and_types')); ?>.</li>
-		<li><b>Contextual Comment:</b> You can add some comments to the attribute that will not be used for correlation but instead serves as purely an informational field.</li>
-		<li><b>For Intrusion Detection System:</b> This option allows the attribute to be used as an IDS signature when exporting the NIDS data, unless it is being overruled by the white-list. For more information about the whitelist, head over to the <?php echo $this->Html->link(__('administration', true), array('controller' => 'pages', 'action' => 'display', 'doc', 'administration', '#' => 'whitelist')); ?> section.</li>
-		<li><b>Batch import:</b> If there are several attributes of the same type to enter (such as a list of IP addresses, it is possible to enter them all into the same value-field, separated by a line break between each line. This will allow the system to create separate lines for the each attribute. </li>
+	<li><b><?php echo __('Category');?>:</b> <?php echo __('This drop-down menu explains the category of the attribute, meaning what aspect of the malware this attribute is describing. This could mean the persistence mechanisms of the malware or network activity, etc. For a list of valid categories, %s', $this->Html->link(__('click here', true), array('controller' => 'pages', 'action' => 'display', 'doc', 'categories_and_types')));?></li>
+		<li><b><?php echo __('Type');?>:</b> <?php echo __('Whilst categories determine what aspect of an event they are describing, the Type explains by what means that aspect is being described. As an example, the source IP address of an attack, a source e-mail address or a file sent through an attachment can all describe the payload delivery of a malware. These would be the types of attributes with the category of payload deliver. For an explanation of what each of the types looks like together with the valid combinations of categories and types, %s.', $this->Html->link(__('click here', true), array('controller' => 'pages', 'action' => 'display', 'doc', 'categories_and_types')));?></li>
+		<li><b><?php echo __('Distribution');?>:</b> <?php echo __('This drop-down list allows you to control who will be able to see this attribute.
+				The distribution is inherited by attributes: the most restrictive setting wins.
+				For more info <a href="#distribution">click here</a>.');?></li>
+		<li><b><?php echo __('Contextual Comment');?>:</b> <?php echo __('Add a comment to the attribute. This will not be used for correlation.');?></li>
+		<li><b><?php echo __('Value');?>:</b> <?php echo __('The actual value of the attribute, enter data about the value based on what is valid for the chosen attribute type. For example, for an attribute of type ip-src (source IP address), 11.11.11.11 would be a valid value. For more information on types and values, %s.', $this->Html->link(__('click here', true), array('controller' => 'pages', 'action' => 'display', 'doc', 'categories_and_types')));?></li>
+		<li><b><?php echo __('Contextual Comment');?>:</b> <?php echo __('You can add some comments to the attribute that will not be used for correlation but instead serves as purely an informational field.');?></li>
+		<li><b><?php echo __('For Intrusion Detection System');?>:</b> <?php echo __('This option allows the attribute to be used as an IDS signature when exporting the NIDS data, unless it is being overruled by the white-list. For more information about the whitelist, head over to the %s section.', $this->Html->link(__('administration', true), array('controller' => 'pages', 'action' => 'display', 'doc', 'administration', '#' => 'whitelist'))); ?></li>
+		<li><b><?php echo __('Batch import');?>:</b> <?php echo __('If there are several attributes of the same type to enter (such as a list of IP addresses, it is possible to enter them all into the same value-field, separated by a line break between each line. This will allow the system to create separate lines for the each attribute.');?> </li>
 </ul>
-<h3>Populate from Template</h3>
-<p>Templates allow users to rapidly populate events of a specific type by filling out a series of pre-defined fields. Users with template creation privileges can create new templates for their organisations or for all organisations on their instance. If you are interested in template creation, please refer to the templating section.<br />
-For users trying to populate an event, after clicking on the populate from template button, you'll be presented with a list of all currently accessible templates. Pick the one that best describes the event that you are creating. </p>
-<img src="<?php echo $baseurl;?>/img/doc/template_choice.png" alt="Template Choice" title = "Choose the most appropriate template for your event."/><br /><br />
-<p>Once you have chosen a template, you'll be presented with the actual form contained within. Make sure you fill out as many fields as possible with the mandatory fields - marked by a star in a bracket such as this: (*) - are filled out.<br />
-Templates are devided into sections, with each section having a title and a description in addition to a series of fields. Each field can be an attribute or a file attachment field. An attribute field has the following components:</p>
-<img src="<?php echo $baseurl;?>/img/doc/template_field.png" alt="Template Field" title = "MISP will generate attributes based on the field's settings and the data that you provide."/><br /><br />
+<h3><?php echo __('Populate from Template');?></h3>
+<p><?php echo __('Templates allow users to rapidly populate events of a specific type by filling out a series of pre-defined fields. Users with template creation privileges can create new templates for their organisations or for all organisations on their instance. If you are interested in template creation, please refer to the templating section.<br />
+For users trying to populate an event, after clicking on the populate from template button, you\'ll be presented with a list of all currently accessible templates. Pick the one that best describes the event that you are creating.');?> </p>
+<img src="<?php echo $baseurl;?>/img/doc/template_choice.png" alt="<?php echo __('Template Choice');?>" title = "<?php echo __('Choose the most appropriate template for your event.');?>"/><br /><br />
+<p><?php echo __('Once you have chosen a template, you\'ll be presented with the actual form contained within. Make sure you fill out as many fields as possible with the mandatory fields - marked by a star in a bracket such as this: (*) - are filled out.<br />
+Templates are devided into sections, with each section having a title and a description in addition to a series of fields. Each field can be an attribute or a file attachment field. An attribute field has the following components');?>:</p>
+<img src="<?php echo $baseurl;?>/img/doc/template_field.png" alt="<?php echo __('Template Field');?>" title = "<?php echo __('MISP will generate attributes based on the field\'s settings and the data that you provide.');?>"/><br /><br />
 <ul>
-<li><b>Field</b>: The name of the field along with an indication if the field is mandatory.</li>
-<li><b>Description</b>: A short description of the field.</li>
-<li><b>Types</b>: The value(s) that are valid for the field. In the case of several types being shown here, you can enter value(s) matching any one of the types, or in the case of a batch import field, any mixture of the given types.</li>
-<li><b>Text field</b>: This field can either be a single line textfield or a multi-line text area. For the former, enter a single value of the above indicated type, whilst for the latter you cna paste a list of values separated by line-breaks.</li>
+<li><b><?php echo __('Field');?></b>: <?php echo __('The name of the field along with an indication if the field is mandatory.');?></li>
+<li><b><?php echo __('Description');?></b>: <?php echo __('A short description of the field.');?></li>
+<li><b><?php echo __('Types');?></b>: <?php echo __('The value(s) that are valid for the field. In the case of several types being shown here, you can enter value(s) matching any one of the types, or in the case of a batch import field, any mixture of the given types.');?></li>
+<li><b><?php echo __('Text field');?></b>: <?php echo __('This field can either be a single line textfield or a multi-line text area. For the former, enter a single value of the above indicated type, whilst for the latter you cna paste a list of values separated by line-breaks.');?></li>
 </ul>
-<h3>Freetext Import Tool</h3>
-<img src="<?php echo $baseurl;?>/img/doc/freetext1.png" alt="Freetext" title = "Just paste a line-break separated list of indicators into the freetext import tool."/><br /><br />
-<p>If you have a list of indicators that you would like to quickly generate attributes out of then the Free-text import tool is just what you need. Simply paste a list of indicators (separated by line-breaks into this tool).</p>
-<img src="<?php echo $baseurl;?>/img/doc/freetext2.png" alt="Freetext" title = "MISP will often find several valid category/type combinations for the values. Do last minute adjustments on the result page."/><br /><br />
-<p>Since there are several category / type combinations that can be valid for a lot of values, MISP will suggest the most common settings. You can alter the category / type / IDS fields manually if you disagree with the results. The options will be restricted to valid category/type combinations for the value that you have entered.</p>
-<h3>Attribute Replace Tool</h3>
-<p>If you would like to create and maintain an event with a set of indicators that receives removals and additions over time, then the attribute replace tool might make this task easier for you.</p>
-<img src="<?php echo $baseurl;?>/img/doc/attribute_replace_tool.png" alt="Attribute Replace Tool" title = "Select a category/type combination and paste the updated list of indicators into the textarea."/><br /><br />
-<p>Simply select the desired category / type combination, choose whether the attributes should be marked for IDS exports and paste the new list of indicators into the textarea. Attributes of the same category/type that are present in the event but not the new list will be removed, values in the pasted list that do not yet exist as attributes will be created as attributes and values that already have matching attributes will be left untouched.</p>
-<h3>Add attachments to the event:</h3>
-You can also upload attachments, such as the malware itself, report files from external analysis or simply artifacts dropped by the malware. Clicking on the add attachment button brings up a form that allows you to quickly attach a file to the event. The following fields need to be filled out:<br /><br />
-<p><img src="<?php echo $baseurl;?>/img/doc/add_attachment.png" alt = "Add attachment" title = "Point the uploader to the file you want to upload. Make sure to mark it as malware if the uploaded file is harmful, that way it will be neutralised."/></p><br />
+<h3><?php echo __('Freetext Import Tool');?></h3>
+<img src="<?php echo $baseurl;?>/img/doc/freetext1.png" alt="<?php echo __('Freetext');?>" title = "<?php echo __('Just paste a line-break separated list of indicators into the freetext import tool.');?>"/><br /><br />
+<p><?php echo __('If you have a list of indicators that you would like to quickly generate attributes out of then the Free-text import tool is just what you need. Simply paste a list of indicators (separated by line-breaks into this tool).');?></p>
+<img src="<?php echo $baseurl;?>/img/doc/freetext2.png" alt="<?php echo __('Freetext');?>" title = "<?php echo __('MISP will often find several valid category/type combinations for the values. Do last minute adjustments on the result page.');?>"/><br /><br />
+<p><?php echo __('Since there are several category / type combinations that can be valid for a lot of values, MISP will suggest the most common settings. You can alter the category / type / IDS fields manually if you disagree with the results. The options will be restricted to valid category/type combinations for the value that you have entered.');?></p>
+<h3><?php echo __('Attribute Replace Tool');?></h3>
+<p><?php echo __('If you would like to create and maintain an event with a set of indicators that receives removals and additions over time, then the attribute replace tool might make this task easier for you.');?></p>
+<img src="<?php echo $baseurl;?>/img/doc/attribute_replace_tool.png" alt="<?php echo __('Attribute Replace Tool');?>" title = "<?php echo __('Select a category/type combination and paste the updated list of indicators into the textarea.');?>"/><br /><br />
+<p><?php echo __('Simply select the desired category / type combination, choose whether the attributes should be marked for IDS exports and paste the new list of indicators into the textarea. Attributes of the same category/type that are present in the event but not the new list will be removed, values in the pasted list that do not yet exist as attributes will be created as attributes and values that already have matching attributes will be left untouched.');?></p>
+<h3><?php echo __('Add attachments to the event');?>:</h3>
+<?php echo __('You can also upload attachments, such as the malware itself, report files from external analysis or simply artifacts dropped by the malware. Clicking on the add attachment button brings up a form that allows you to quickly attach a file to the event. The following fields need to be filled out');?>:<br /><br />
+<p><img src="<?php echo $baseurl;?>/img/doc/add_attachment.png" alt = "<?php echo __('Add attachment');?>" title = "<?php echo __('Point the uploader to the file you want to upload. Make sure to mark it as malware if the uploaded file is harmful, that way it will be neutralised.');?>"/></p><br />
 <ul>
-	<li><b>Category:</b> The category is the same as with the attributes, it answers the question of what the uploaded file is meant to describe.</li>
-	<li><b>Distribution:</b> This drop-down list allows you to control who will be able to see this attachment.
-		The distribution is inherited by attributes: the most restrictive setting wins.
-		For more info <a href="#distribution">click here</a>.</li>
-	<li><b>Upload field:</b> By hitting browse, you can browse your file system and point the uploader to the file that you want to attach to the attribute. This will then be uploaded when the upload button is pushed.</li>
-	<li><b>Malware:</b> This check-box marks the file as malware and as such it will be zipped and passworded, to protect the users of the system from accidentally downloading and executing the file. Make sure to tick this if you suspect that the filed is infected, before uploading it.</li>
-	<li><b>Contextual Comment:</b> You can add some comments to the attribute that will not be used for correlation but instead serves as purely an informational field.</li>
+	<li><b><?php echo __('Category');?>:</b> <?php echo __('The category is the same as with the attributes, it answers the question of what the uploaded file is meant to describe.');?></li>
+	<li><b><?php echo __('Distribution');?>:</b> <?php echo __('This drop-down list allows you to control who will be able to see this attachment.
+			The distribution is inherited by attributes: the most restrictive setting wins.
+			For more info <a href="#distribution">click here</a>.');?></li>
+	<li><b><?php echo __('Upload field');?>:</b> <?php echo __('By hitting browse, you can browse your file system and point the uploader to the file that you want to attach to the attribute. This will then be uploaded when the upload button is pushed.');?></li>
+	<li><b><?php echo __('Malware');?>:</b> <?php echo __('This check-box marks the file as malware and as such it will be zipped and passworded, to protect the users of the system from accidentally downloading and executing the file. Make sure to tick this if you suspect that the filed is infected, before uploading it.');?></li>
+	<li><b><?php echo __('Contextual Comment');?>:</b> <?php echo __('You can add some comments to the attribute that will not be used for correlation but instead serves as purely an informational field.');?></li>
 </ul>
 <hr />
-<h3>Propose a change to an event that belongs to another organisation</h3>
-If you would like to propose a modification to an attribute, or to propose some additional attributes to the creating organisation, you can do this with the buttons that replace the add attribute field on the left and the edit icon on the right end of each listed attribute in the event view. The creating organisation of the event will be able to see any proposals and discard or accept the changes.
-<p><img src="<?php echo $baseurl;?>/img/doc/proposal.png" alt = "Propose attribute" title = "An attribute with a proposal attached will turn blue and the proposal itself will be grey. If there is a grey proposal without a blue attribute infront of it, it means that someone has proposed a new attribute"/></p><br />
-If the organisation that has created the event is on another connected server, they will be able to accept the proposal once they initiate a pull and receive your proposal. After this they can republish the event, sending the altered attribute back to your instance.
+<h3><?php echo __('Propose a change to an event that belongs to another organisation');?></h3>
+<?php echo __('If you would like to propose a modification to an attribute, or to propose some additional attributes to the creating organisation, you can do this with the buttons that replace the add attribute field on the left and the edit icon on the right end of each listed attribute in the event view. The creating organisation of the event will be able to see any proposals and discard or accept the changes.');?>
+<p><img src="<?php echo $baseurl;?>/img/doc/proposal.png" alt = "<?php echo __('Propose attribute');?>" title = "<?php echo __('An attribute with a proposal attached will turn blue and the proposal itself will be grey. If there is a grey proposal without a blue attribute infront of it, it means that someone has proposed a new attribute');?>"/></p><br />
+<?php echo __('If the organisation that has created the event is on another connected server, they will be able to accept the proposal once they initiate a pull and receive your proposal. After this they can republish the event, sending the altered attribute back to your instance.');?>
 <hr />
-<h3>Populate from OpenIOC</h3>
-It is also possible to attempt to import the data contained in a .ioc file, The import tool will attempt to gather as many IndicatorItems within nested logical operators as possible without breaking their validity. After the procedure is done, you'll be presented with a list of successfully created attributes and a list of failed IndicatorItems as well as a graph of the .ioc file.
-<p><img src="<?php echo $baseurl;?>/img/doc/ioc1.png" alt = "OpenIOC1" title = "The import tool will list the successful and failed entries after the process is done."/></p><br />
-<p><img src="<?php echo $baseurl;?>/img/doc/ioc2.png" alt = "OpenIOC2" title = "You'll also be able to see a graph of the imported .ioc file and how successful the import was."/></p><br />
+<h3><?php echo __('Populate from OpenIOC');?></h3>
+<?php echo __('It is also possible to attempt to import the data contained in a .ioc file, The import tool will attempt to gather as many IndicatorItems within nested logical operators as possible without breaking their validity. After the procedure is done, you\'ll be presented with a list of successfully created attributes and a list of failed IndicatorItems as well as a graph of the .ioc file.');?>
+<p><img src="<?php echo $baseurl;?>/img/doc/ioc1.png" alt = "<?php echo __('OpenIOC1');?>" title = "<?php echo __('The import tool will list the successful and failed entries after the process is done.');?>"/></p><br />
+<p><img src="<?php echo $baseurl;?>/img/doc/ioc2.png" alt = "<?php echo __('OpenIOC2');?>" title = "<?php echo __('You\'ll also be able to see a graph of the imported .ioc file and how successful the import was.');?>"/></p><br />
 <hr />
-<h3>Populate from ThreatConnect</h3>
-You can also import the data from a ThreatConnect export csv file. The following columns are used by the import tool (and are thus mandatory fields to select during the export): <br /><ul><li>Type</li><li>Value</li><li>Confidence</li><li>Description</li><li>Source</li></ul>The result will be a list of attributes that get added to the currently selected event, each of which will be marked with a comment that indicates that its origin being from a ThreatConnect import.
+<h3><?php echo __('Populate from ThreatConnect');?></h3>
+<?php echo __('You can also import the data from a ThreatConnect export csv file. The following columns are used by the import tool (and are thus mandatory fields to select during the export)');?>: <br /><ul><li><?php echo __('Type');?></li><li><?php echo __('Value');?></li><li><?php echo __('Confidence');?></li><li><?php echo __('Description');?></li><li><?php echo __('Source');?></li></ul><?php echo __('The result will be a list of attributes that get added to the currently selected event, each of which will be marked with a comment that indicates that its origin being from a ThreatConnect import.');?>
 <hr />
-<h3>Publish an event:</h3>
+<h3><?php echo __('Publish an event');?>:</h3>
 <p><img src="<?php echo $baseurl;?>/img/doc/publish.png" alt = "Publish" style="float:right;" title = "Only use publish (no email) for minor changes such as the correction of typos."/></p><br />
-Once all the attributes and attachments that you want to include with the event are uploaded / set, it is time to finalise its creation by publishing the event (click on publish event in the event view). This will alert the eligible users of it (based on the private-controls of the event and its attributes/attachments and whether they have auto-alert turned on), push the event to instances that your instance connects to and propagate it further based on the distribution rules. It also readies the network related attributes for NIDS signature creation (through the NIDS signature export feature, for more information, go to the export section.).<br /><br />
-There is an alternate way of publishing an event without alerting any other users, by using the "publish (no email)" button. This should only be used for minor edits (such as correcting a typo). <br />
+<?php echo __('Once all the attributes and attachments that you want to include with the event are uploaded / set, it is time to finalise its creation by publishing the event (click on publish event in the event view). This will alert the eligible users of it (based on the private-controls of the event and its attributes/attachments and whether they have auto-alert turned on), push the event to instances that your instance connects to and propagate it further based on the distribution rules. It also readies the network related attributes for NIDS signature creation (through the NIDS signature export feature, for more information, go to the export section.).');?><br /><br />
+<?php echo __('There is an alternate way of publishing an event without alerting any other users, by using the "publish (no email)" button. This should only be used for minor edits (such as correcting a typo).');?> <br />
 <br />
-If your instance has background jobs enabled then the event might not get published immediately.
+<?php echo __('If your instance has background jobs enabled then the event might not get published immediately.');?>
 <hr />
-<a id="browsing_events"></a><h2>Browsing past events:</h2>
-The MISP interface allows the user to have an overview over or to search for events and attributes of events that are already stored in the system in various ways.<br /><br />
-<h3>To list all events:</h3>
-On the left menu bar, the option "List events" will generate a list of the last 60 events. While the attributes themselves aren't shown in this view, the following pieces of information can be seen:<br /><br />
-<img src="<?php echo $baseurl;?>/img/doc/list_events2.png" alt = "List events" title = "This is the list of events in the system. Use the buttons to the right to alter or view any of the events."/><br /><br />
+<a id="browsing_events"></a><h2><?php echo __('Browsing past events');?>:</h2>
+<?php echo __('The MISP interface allows the user to have an overview over or to search for events and attributes of events that are already stored in the system in various ways.');?><br /><br />
+<h3><?php echo __('To list all events');?>:</h3>
+<?php echo __('On the left menu bar, the option "List events" will generate a list of the last 60 events. While the attributes themselves aren\'t shown in this view, the following pieces of information can be seen');?>:<br /><br />
+<img src="<?php echo $baseurl;?>/img/doc/list_events2.png" alt = "<?php echo __('List events');?>" title = "<?php echo __('This is the list of events in the system. Use the buttons to the right to alter or view any of the events.');?>"/><br /><br />
 <ul>
-	<li><b>Published:</b> Already published events are marked by a checkmark. Unpublished events are marked by a cross.</li>
-	<li><b>Org:</b> The organisation that created the event.</li>
-	<li><b>Owner Org:</b> The organisation that owns the event on this instance. This field is only visible to administrators.</li>
-	<li><b>ID:</b> The event's ID number, assigned by the system when the event was first entered (or in the case of an event that was synchronized, when it was first copied over - more on synchronisation in chapter xy)</li>
-	<li><b>Tags:</b> Tags that are assigned to this event.</li>
-	<li><b>#Attr.:</b> The number of attributes that the event has.</li>
-	<li><b>Email:</b> The e-mail address of the event's reporter. This is not visible to regular users. Organisation administrators can see the e-mail addresses of their own organisation's users.</li>
-	<li><b>Date:</b> The date of the attack.</li>
-	<li><b>Threat Level:</b> The risk level of the attack, the following levels are possible:</li>
+	<li><b><?php echo __('Published');?>:</b> <?php echo __('Already published events are marked by a checkmark. Unpublished events are marked by a cross.');?></li>
+	<li><b><?php echo __('Org');?>:</b> <?php echo __('The organisation that created the event.');?></li>
+	<li><b><?php echo __('Owner Org');?>:</b> <?php echo __('The organisation that owns the event on this instance. This field is only visible to administrators.');?></li>
+	<li><b><?php echo __('ID');?>:</b> <?php echo __('The event\'s ID number, assigned by the system when the event was first entered (or in the case of an event that was synchronized, when it was first copied over - more on synchronisation in chapter xy)');?></li>
+	<li><b><?php echo __('Tags');?>:</b> <?php echo __('Tags that are assigned to this event.');?></li>
+	<li><b><?php echo __('#Attr.');?>:</b> <?php echo __('The number of attributes that the event has.');?></li>
+	<li><b><?php echo __('Email');?>:</b> <?php echo __('The e-mail address of the event\'s reporter. This is not visible to regular users. Organisation administrators can see the e-mail addresses of their own organisation\'s users.');?></li>
+	<li><b><?php echo __('Date');?>:</b> <?php echo __('The date of the attack.');?></li>
+	<li><b><?php echo __('Threat Level');?>:</b> <?php echo __('The risk level of the attack, the following levels are possible');?>:</li>
 	<li style="list-style: none;">
 		<ul>
-			<li><b>Low:</b> General Malware</li>
-			<li><b>Medium:</b> Advanced Persistent Threats (APTs)</li>
-			<li><b>High:</b> Sophisticated APTs and 0day exploits</li>
-			<li><b>Undefined:</b> This field can be left undefined and edited at a later date.</li>
+			<li><b><?php echo __('Low');?>:</b> <?php echo __('General Malware');?></li>
+			<li><b><?php echo __('Medium');?>:</b> <?php echo __('Advanced Persistent Threats (APTs)');?></li>
+			<li><b><?php echo __('High');?>:</b> <?php echo __('Sophisticated APTs and 0day exploits<');?>/li>
+			<li><b><?php echo __('Undefined');?>:</b> <?php echo __('This field can be left undefined and edited at a later date.');?></li>
 		</ul>
 	</li>
-	<li><b>Analysis:</b> Indicates the current stage of the analysis for the event, with the following possible options:</li>
+	<li><b><?php echo __('Analysis');?>:</b> <?php echo __('Indicates the current stage of the analysis for the event, with the following possible options');?>:</li>
 	<li style="list-style: none;">
 		<ul>
-			<li><b>Initial:</b> The analysis is just beginning</li>
-			<li><b>Ongoing:</b> The analysis is in progress</li>
-			<li><b>Completed:</b> The analysis is complete</li>
+			<li><b><?php echo __('Initial');?>:</b> <?php echo __('The analysis is just beginning');?></li>
+			<li><b><?php echo __('Ongoing');?>:</b> <?php echo __('The analysis is in progress');?></li>
+			<li><b><?php echo __('Completed');?>:</b> <?php echo __('The analysis is complete');?></li>
 		</ul>
 	</li>
-	<li><b>Info:</b> A short description of the event, starting with an internal reference number.</li>
-	<li><b>Distribution:</b> This field indicates what the sharing privileges of the event. The options are described <a href="#distribution">here</a>.</li>
-	<li><b>Actions:</b> The controls that the user has to view or modify the event. The possible actions that are available (depending on user privileges - <?php echo $this->Html->link(__('click here', true), array('controller' => 'pages', 'action' => 'display', 'doc', 'administration', '#' => 'roles')); ?> to find out more about privileges):</li>
+	<li><b><?php echo __('Info');?>:</b> <?php echo __('A short description of the event, starting with an internal reference number.');?></li>
+	<li><b><?php echo __('Distribution');?>:</b> <?php echo __('This field indicates what the sharing privileges of the event. The options are described <a href="#distribution">here</a>.');?></li>
+	<li><b><?php echo __('Actions');?>:</b> <?php echo __('The controls that the user has to view or modify the event. The possible actions that are available (depending on user privileges - %s to find out more about privileges)', $this->Html->link(__('click here', true), array('controller' => 'pages', 'action' => 'display', 'doc', 'administration', '#' => 'roles'))); ?> :</li>
 	<li style="list-style: none;">
 		<ul>
-			<li><b>Publish:</b> Publishing an event will have several effects: The system will e-mail all eligible users that have auto-alert turned on (and having the needed privileges for the event, depending on its private classification) with a description of your newly published event, it will be flagged as published and it will be pushed to all eligible servers (to read more about synchronisation between servers, have a look at the <?php echo $this->Html->link(__('section on connecting servers', true), array('controller' => 'pages', 'action' => 'display', 'doc', 'using_the_system', '#' => 'connect')); ?>).</li>
-			<li><b>Edit:</b> Clicking on the edit button will bring up the same screen as the one used for creating new events, with the exception that all fields come filled out with the data of the event that is being edited. The distribution of an event can only be edited if you are a user of the creating organisation of the event. For more information on this view, refer to the section on <a href="#create">creating an event</a>.</li>
-			<li><b>Delete:</b> The system will prompt you before erasing the unwanted event.</li>
-			<li><b>View:</b> Will bring up the event view, which besides the basic information contained in the event list, will also include the following:<br /><br />
+			<li><b><?php echo __('Publish');?>:</b> <?php echo __('Publishing an event will have several effects: The system will e-mail all eligible users that have auto-alert turned on (and having the needed privileges for the event, depending on its private classification) with a description of your newly published event, it will be flagged as published and it will be pushed to all eligible servers (to read more about synchronisation between servers, have a look at the %s).', $this->Html->link(__('section on connecting servers', true), array('controller' => 'pages', 'action' => 'display', 'doc', 'using_the_system', '#' => 'connect'))); ?></li>
+			<li><b><?php echo __('Edit');?>:</b> <?php echo __('Clicking on the edit button will bring up the same screen as the one used for creating new events, with the exception that all fields come filled out with the data of the event that is being edited. The distribution of an event can only be edited if you are a user of the creating organisation of the event. For more information on this view, refer to the section on <a href="#create">creating an event</a>.');?></li>
+			<li><b><?php echo __('Delete');?>:</b> <?php echo __('The system will prompt you before erasing the unwanted event.');?></li>
+			<li><b><?php echo __('View');?>:</b> <?php echo __('Will bring up the event view, which besides the basic information contained in the event list, will also include the following');?>:<br /><br />
 		</ul>
 	</li>
 </ul>
-<h3>Filters</h3>
-<p>It is also possible to filter the events shown by clicking on the small magnifying glass icons next to the field names and entering a filter term.</p>
-<h3>Event view</h3>
-<img src="<?php echo $baseurl;?>/img/doc/event_detail.png" alt = "Event" title = "This view includes the basic information about an event, a link to related events, all attributes and attachments with tools to modify or delete them and extra functions for publishing the event or getting in touch with the event's reporter."/><br /><br />
-<b>General Event Information</b>
+<h3><?php echo __('Filters');?></h3>
+<p><?php echo __('It is also possible to filter the events shown by clicking on the small magnifying glass icons next to the field names and entering a filter term.');?></p>
+<h3><?php echo __('Event view');?></h3>
+<img src="<?php echo $baseurl;?>/img/doc/event_detail.png" alt = "<?php echo __('Event');?>" title = "<?php echo __('This view includes the basic information about an event, a link to related events, all attributes and attachments with tools to modify or delete them and extra functions for publishing the event or getting in touch with the event\'s reporter.');?>"/><br /><br />
+<b><?php echo __('General Event Information');?></b>
 <ul>
 	<li><b>ID:</b> The ID of the event.</li>
 	<li><b>Uuid:</b> In order to avoid collisions between events and attributes (during for example a sync) a Uuid is assigned that uniquely identifies each of them.</li>
