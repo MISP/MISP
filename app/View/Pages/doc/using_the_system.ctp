@@ -1,93 +1,93 @@
 <div class="actions <?php echo $debugMode;?>">
 	<ol class="nav nav-list">
-			<li><?php echo $this->Html->link('Quick Start', array('controller' => 'pages', 'action' => 'display', 'doc', 'quickstart')); ?></li>
-			<li><?php echo $this->Html->link('General Layout', array('controller' => 'pages', 'action' => 'display', 'doc', 'general')); ?></li>
-			<li><?php echo $this->Html->link('General Concepts', array('controller' => 'pages', 'action' => 'display', 'doc', 'concepts')); ?></li>
-			<li><?php echo $this->Html->link('User Management and Global actions', array('controller' => 'pages', 'action' => 'display', 'doc', 'user_management')); ?></li>
-			<li class="active"><?php echo $this->Html->link('Using the system', array('controller' => 'pages', 'action' => 'display', 'doc', 'using_the_system')); ?>
+			<li><?php echo $this->Html->link(__('Quick Start'), array('controller' => 'pages', 'action' => 'display', 'doc', 'quickstart')); ?></li>
+			<li><?php echo $this->Html->link(__('General Layout'), array('controller' => 'pages', 'action' => 'display', 'doc', 'general')); ?></li>
+			<li><?php echo $this->Html->link(__('General Concepts'), array('controller' => 'pages', 'action' => 'display', 'doc', 'concepts')); ?></li>
+			<li><?php echo $this->Html->link(__('User Management and Global actions'), array('controller' => 'pages', 'action' => 'display', 'doc', 'user_management')); ?></li>
+			<li class="active"><?php echo $this->Html->link(__('Using the system'), array('controller' => 'pages', 'action' => 'display', 'doc', 'using_the_system')); ?>
 			<ul class="nav nav-list">
-				<li><a href="#create">Creating an event</a></li>
-				<li><a href="#browsing_events">Browsing past events</a></li>
-				<li><a href="#update_events">Updating and modifying events</a></li>
-				<li><a href="#contact">Contacting the publisher</a></li>
-				<li><a href="#tagging">Tagging</a></li>
-				<li><a href="#templating">Templating</a></li>
-				<li><a href="#automation">Automation</a></li>
-				<li><a href="#export">Exporting data</a></li>
-				<li><a href="#connect">Connecting to other servers</a></li>
-				<li><a href="#rest">Rest API</a></li>
+				<li><a href="#create"><?php echo __('Creating an event');?></a></li>
+				<li><a href="#browsing_events"><?php echo __('Browsing past events');?></a></li>
+				<li><a href="#update_events"><?php echo __('Updating and modifying events');?></a></li>
+				<li><a href="#contact"><?php echo __('Contacting the publisher');?></a></li>
+				<li><a href="#tagging"><?php echo __('Tagging');?></a></li>
+				<li><a href="#templating"><?php echo __('Templating');?></a></li>
+				<li><a href="#automation"><?php echo __('Automation');?></a></li>
+				<li><a href="#export"><?php echo __('Exporting data');?></a></li>
+				<li><a href="#connect"><?php echo __('Connecting to other servers');?></a></li>
+				<li><a href="#rest"><?php echo __('Rest API');?></a></li>
 			</ul>
 		</li>
-		<li><?php echo $this->Html->link('Administration', array('controller' => 'pages', 'action' => 'display', 'doc', 'administration')); ?></li>
-		<li><?php echo $this->Html->link('Categories and Types', array('controller' => 'pages', 'action' => 'display', 'doc', 'categories_and_types')); ?></li>
+		<li><?php echo $this->Html->link(__('Administration'), array('controller' => 'pages', 'action' => 'display', 'doc', 'administration')); ?></li>
+		<li><?php echo $this->Html->link(__('Categories and Types'), array('controller' => 'pages', 'action' => 'display', 'doc', 'categories_and_types')); ?></li>
 	</ol>
 </div>
 <div class="index">
-<h2>Using the system:</h2>
-<a id="create"></a><h3>Creating an event:</h3>
-The process of entering an event can be split into 3 phases, the creation of the event itself, populating it with attributes
-and attachments and finally publishing it.<br /><br />
-	During this first step, you will be create a basic event without any actual attributes, but storing general information such as a description, time and risk level of the incident. To start creating the event, click on the New Event button on the left and fill out the form you are presented with. The following fields need to be filled out:<br /><br />
-	<p><img src="<?php echo $baseurl;?>/img/doc/add_event.png" alt = "" style="float:right;" title = "Fill this form out to create a skeleton event, before proceeding to populate it with attributes and attachments."/></p>
+<h2><?php echo __('Using the system');?>:</h2>
+<a id="create"></a><h3><?php echo __('Creating an event');?>:</h3>
+<?php echo __('The process of entering an event can be split into 3 phases, the creation of the event itself, populating it with attributes
+and attachments and finally publishing it.');?><br /><br />
+	<?php echo __('During this first step, you will be create a basic event without any actual attributes, but storing general information such as a description, time and risk level of the incident. To start creating the event, click on the New Event button on the left and fill out the form you are presented with. The following fields need to be filled out');?>:<br /><br />
+	<p><img src="<?php echo $baseurl;?>/img/doc/add_event.png" alt = "" style="float:right;" title = "<?php echo __('Fill this form out to create a skeleton event, before proceeding to populate it with attributes and attachments.');?>"/></p>
 	<ul>
-		<li><b>Date:</b> The date when the incident has happened. Just click this field and a date-picker will pop up where you can select the desired date.</li>
-		<li><b>Distribution:</b>
-			<a id="distribution"></a>This setting controls, who will be able to see this event once it becomes published and eventually when it becomes pulled.
-			Apart from being able to set which users on this server are allowed to see the event, this also controls whether
-			the event will be synchronised to other servers or not. The distribution is inherited by attributes: the most restrictive setting wins.
-			The following options are available:</li>
+		<li><b><?php echo __('Date');?>:</b> <?php echo __('The date when the incident has happened. Just click this field and a date-picker will pop up where you can select the desired date.');?></li>
+		<li><b><?php echo __('Distribution');?>:</b>
+			<a id="distribution"></a><?php echo __('This setting controls, who will be able to see this event once it becomes published and eventually when it becomes pulled.
+						Apart from being able to set which users on this server are allowed to see the event, this also controls whether
+						the event will be synchronised to other servers or not. The distribution is inherited by attributes: the most restrictive setting wins.
+						The following options are available');?>:</li>
 		<li style="list-style: none;">
 			<ul>
-			<li><i>Your organization only:</i> This setting will only allow members of your organisation to see this. It can be pulled to another instance by one of your organisation members where only your organisation will be able to see it.
-				Events with this setting will not be synchronised.<br />
-				Upon push: do not push. Upon pull : pull.
+			<li><i><?php echo __('Your organization only');?>:</i> <?php echo __('This setting will only allow members of your organisation to see this. It can be pulled to another instance by one of your organisation members where only your organisation will be able to see it.
+							Events with this setting will not be synchronised');?>.<br />
+				<?php echo __('Upon push: do not push. Upon pull : pull.');?>
 				</li>
-			<li><i>This Community-only:</i> Users that are part of your MISP community will be able to see the event.
-				This includes your own organisation, organisations on this MISP server and organisations running MISP
-				servers that synchronise with this server. Any other organisations connected to such linked servers will
-				be restricted from seeing the event.<br />
-				Upon push: do not push. Upon pull: pull and downgrade to Your organization only.
+			<li><i><?php echo __('This Community-only');?>:</i> <?php echo __('Users that are part of your MISP community will be able to see the event.
+							This includes your own organisation, organisations on this MISP server and organisations running MISP
+							servers that synchronise with this server. Any other organisations connected to such linked servers will
+							be restricted from seeing the event');?>.<br />
+				<?php echo __('Upon push: do not push. Upon pull: pull and downgrade to Your organization only.');?>
 				</li>
-			<li><i>Connected communities:</i> Users that are part of your MISP community will be able to see the event.
-				This includes all organisations on this MISP server, all organisations on MISP servers synchronising
-				with this server and the hosting organisations of servers that connect to those afore mentioned servers
-				(so basically any server that is 2 hops away from this one). Any other organisations connected to linked
-				servers that are 2 hops away from this own will be restricted from seeing the event.<br/>
-				Upon push: downgrade to This Community only and push. Upon pull: pull and downgrade to This Community only.
+			<li><i><?php echo __('Connected communities');?>:</i> <?php echo __('Users that are part of your MISP community will be able to see the event.
+							This includes all organisations on this MISP server, all organisations on MISP servers synchronising
+							with this server and the hosting organisations of servers that connect to those afore mentioned servers
+							(so basically any server that is 2 hops away from this one). Any other organisations connected to linked
+							servers that are 2 hops away from this own will be restricted from seeing the event.');?><br/>
+				<?php echo __('Upon push: downgrade to This Community only and push. Upon pull: pull and downgrade to This Community only.');?>
 				</li>
-			<li><i>All communities:</i> This will share the event with all MISP communities, allowing the event to be
-				freely propagated from one server to the next.<br/>
-				Upon push: push. Upon pull: pull.
+			<li><i><?php echo __('All communities');?>:</i> <?php echo __('This will share the event with all MISP communities, allowing the event to be
+							freely propagated from one server to the next.');?><br/>
+				<?php echo __('Upon push: push. Upon pull: pull.');?>
 				</li>
 			</ul>
 		</li>
-		<li><b>Threat Level:</b> This field indicates the risk level of the event. Incidents can be categorised into three different threat categories (low, medium, high). This field can alternatively be left as undefined. The 3 options are:</li>
+		<li><b><?php echo __('Threat Level');?>:</b> <?php echo __('This field indicates the risk level of the event. Incidents can be categorised into three different threat categories (low, medium, high). This field can alternatively be left as undefined. The 3 options are');?>:</li>
 		<li style="list-style: none;"><ul>
-			<li><i>Low:</i> General mass malware.</li>
-			<li><i>Medium:</i> Advanced Persistent Threats (APT)</li>
-			<li><i>High:</i> Sophisticated APTs and 0day attacks.</li>
+			<li><i><?php echo __('Low');?>:</i> <?php echo __('General mass malware.');?></li>
+			<li><i><?php echo __('Medium');?>:</i> <?php echo __('Advanced Persistent Threats (APT)');?></li>
+			<li><i><?php echo __('High');?>:</i> <?php echo __('Sophisticated APTs and 0day attacks.');?></li>
 		</ul></li>
-		<li><b>Analysis:</b> Indicates the current stage of the analysis for the event, with the following possible options:</li>
+		<li><b><?php echo __('Analysis');?>:</b> <?php echo __('Indicates the current stage of the analysis for the event, with the following possible options');?>:</li>
 		<li style="list-style: none;"><ul>
-			<li><i>Initial:</i> The analysis is just beginning</li>
-			<li><i>Ongoing:</i> The analysis is in progress</li>
-			<li><i>Completed:</i> The analysis is complete</li>
+			<li><i><?php echo __('Initial');?>:</i> <?php echo __('The analysis is just beginning');?></li>
+			<li><i><?php echo __('Ongoing');?>:</i> <?php echo __('The analysis is in progress');?></li>
+			<li><i><?php echo __('Completed');?>:</i> <?php echo __('The analysis is complete');?></li>
 		</ul></li>
-		<li><b>Event Description:</b> The info field, where the malware/incident can get a brief description starting with the internal reference. This field should be as brief and concise as possible, the more detailed description happens through attributes in the next stage of the event's creation. Keep in mind that the system will automatically replace detected text strings that match a regular expression entry set up by your server's administrator(s). </li>
-		<li><b>GFI Sandbox:</b> It is possible to upload the exported .zip file from GFI sandbox with the help of this tool. These will be dissected by the MISP and a list of attributes and attachments will automatically be generated from the .zip file. Whilst this does most of the work needed to be done in the second step of the event's creation, it is important to manually look over all the data that is being entered. </li>
+		<li><b><?php echo __('Event Description');?>:</b> <?php echo __('The info field, where the malware/incident can get a brief description starting with the internal reference. This field should be as brief and concise as possible, the more detailed description happens through attributes in the next stage of the event\'s creation. Keep in mind that the system will automatically replace detected text strings that match a regular expression entry set up by your server\'s administrator(s).');?> </li>
+		<li><b><?php echo __('GFI Sandbox');?>:</b> <?php echo __('It is possible to upload the exported .zip file from GFI sandbox with the help of this tool. These will be dissected by the MISP and a list of attributes and attachments will automatically be generated from the .zip file. Whilst this does most of the work needed to be done in the second step of the event\'s creation, it is important to manually look over all the data that is being entered.');?> </li>
 	</ul>
 <hr />
-<a id="create_attribute"></a><h3>Add attributes to the event:</h3>
-The second step of creating an event is to populate it with attributes and attachments. This can be done by adding them manually or importing the attributes from an external format (OpenIOC, ThreatConnect). To import from an external format or to upload an attachment use the options in the menu on the left.<br />
+<a id="create_attribute"></a><h3><?php echo __('Add attributes to the event');?>:</h3>
+<?php echo __('The second step of creating an event is to populate it with attributes and attachments. This can be done by adding them manually or importing the attributes from an external format (OpenIOC, ThreatConnect). To import from an external format or to upload an attachment use the options in the menu on the left.');?><br />
 <br />
 <img src="<?php echo $baseurl;?>/img/doc/attribute_tools.png" alt="Attribute tools" title = "Use these tools to populate the event."/><br /><br />
-<p>Using the above shown buttons, you can populate an event using various tools that will be explained in the following section. Let's start with the Add Attribute button.</p>
-<h4>Add Attribute</h4>
-<p>Keep in mind that the system searches for regular expressions in the value field of all attributes when entered, replacing detected strings within it as set up by the server's administrator (for example to enforce standardised capitalisation in paths for event correlation or to bring exact paths to a standardised format). The following fields need to be filled out:</p>
-<p><img src="<?php echo $baseurl;?>/img/doc/add_attribute.png" alt = "Add attribute" title = "This form allows you to add attributes."/></p>
+<p><?php echo __('Using the above shown buttons, you can populate an event using various tools that will be explained in the following section. Let\'s start with the Add Attribute button.');?></p>
+<h4><?php echo __('Add Attribute');?></h4>
+<p><?php echo __('Keep in mind that the system searches for regular expressions in the value field of all attributes when entered, replacing detected strings within it as set up by the server\'s administrator (for example to enforce standardised capitalisation in paths for event correlation or to bring exact paths to a standardised format). The following fields need to be filled out');?>:</p>
+<p><img src="<?php echo $baseurl;?>/img/doc/add_attribute.png" alt = "<?php echo __('Add attribute');?>" title = "<?php echo __('This form allows you to add attributes.');?>"/></p>
 <ul>
-	<li><b>Category:</b> This drop-down menu explains the category of the attribute, meaning what aspect of the malware this attribute is describing. This could mean the persistence mechanisms of the malware or network activity, etc. For a list of valid categories, <?php echo $this->Html->link(__('click here', true), array('controller' => 'pages', 'action' => 'display', 'doc', 'categories_and_types')); ?></li>
-		<li><b>Type:</b> Whilst categories determine what aspect of an event they are describing, the Type explains by what means that aspect is being described. As an example, the source IP address of an attack, a source e-mail address or a file sent through an attachment can all describe the payload delivery of a malware. These would be the types of attributes with the category of payload deliver. For an explanation of what each of the types looks like together with the valid combinations of categories and types, <?php echo $this->Html->link(__('click here', true), array('controller' => 'pages', 'action' => 'display', 'doc', 'categories_and_types')); ?>.</li>
+	<li><b><?php echo __('Category');?>:</b> This drop-down menu explains the category of the attribute, meaning what aspect of the malware this attribute is describing. This could mean the persistence mechanisms of the malware or network activity, etc. For a list of valid categories, <?php echo $this->Html->link(__('click here', true), array('controller' => 'pages', 'action' => 'display', 'doc', 'categories_and_types')); ?></li>
+		<li><b><?php echo __('Type');?>:</b> Whilst categories determine what aspect of an event they are describing, the Type explains by what means that aspect is being described. As an example, the source IP address of an attack, a source e-mail address or a file sent through an attachment can all describe the payload delivery of a malware. These would be the types of attributes with the category of payload deliver. For an explanation of what each of the types looks like together with the valid combinations of categories and types, <?php echo $this->Html->link(__('click here', true), array('controller' => 'pages', 'action' => 'display', 'doc', 'categories_and_types')); ?>.</li>
 		<li><b>Distribution:</b> This drop-down list allows you to control who will be able to see this attribute.
 		The distribution is inherited by attributes: the most restrictive setting wins.
 		For more info <a href="#distribution">click here</a>.</li>
