@@ -40,11 +40,11 @@ def loadEvent(args, pathname):
     try:
         filename = '{}/tmp/{}'.format(pathname, args[1])
         tempFile = open(filename, 'r')
-        if filename.endswith(('.json', '.json.out')):
+        try:
             event = json.loads(tempFile.read())
             isJson = True
-        else:
-            event = STIXPackage.from_xml(tempFile)
+        except:
+            event = STIXPackage.from_xml(filename)
             event = json.loads(event.related_packages.related_package[0].to_json())
             isJson = False
         return event, isJson
