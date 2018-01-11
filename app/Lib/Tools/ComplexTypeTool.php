@@ -273,6 +273,7 @@ class ComplexTypeTool {
 				if (count($temp) > 1 && (filter_var($inputRefangedNoPort, FILTER_VALIDATE_URL) || filter_var('http://' . $inputRefangedNoPort, FILTER_VALIDATE_URL))) {
 					// TODO: add comment explaining why there is a check for a specific domain
 					if (preg_match('/^https:\/\/(www.)?virustotal.com\//i', $inputRefangedNoPort)) return array('types' => array('link'), 'to_ids' => false, 'default_type' => 'link', 'comment' => $comment, 'value' => $inputRefangedNoPort);
+					if (preg_match('/^https:\/\/www\.hybrid-analysis\.com\//i', $inputRefangedNoPort)) return array('types' => array('link'), 'categories' => array('External analysis'), 'to_ids' => false, 'default_type' => 'link', 'comment' => $comment, 'value' => $inputRefangedNoPort);
 					if (strpos($inputRefangedNoPort, '/')) return array('types' => array('url'), 'to_ids' => true, 'default_type' => 'url', 'comment' => $comment, 'value' => $inputRefangedNoPort);
 				}
 				if ($this->__resolveFilename($input)) return array('types' => array('filename'), 'to_ids' => true, 'default_type' => 'filename', 'value' => $inputRefanged);
