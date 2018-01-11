@@ -1,6 +1,6 @@
 <div class="form">
-  <h3>Object pre-save review</h3>
-  <p>Make sure that the below Object reflects your expectation before submiting it.</p>
+  <h3><?php echo __('Object pre-save review');?></h3>
+  <p><?php echo __('Make sure that the below Object reflects your expectation before submiting it.');?></p>
   <?php
     $url = ($action == 'add') ? '/objects/add/' . $event['Event']['id'] . '/' . $template['ObjectTemplate']['id'] : '/objects/edit/' . $object_id;
     echo $this->Form->create('Object', array('id', 'url' => $url));
@@ -16,15 +16,15 @@
       <table class="table table-condensed table-striped">
         <tbody>
           <tr>
-            <td class="bold">Name</td>
+            <td class="bold"><?php echo __('Name');?></td>
             <td><?php echo h($template['ObjectTemplate']['name']); ?></td>
           </tr>
           <tr>
-            <td class="bold">Meta-category</td>
+            <td class="bold"><?php echo __('Meta-category');?></td>
             <td><?php echo h($template['ObjectTemplate']['meta-category']); ?></td>
           </tr>
           <tr>
-            <td class="bold">Distribution</td>
+            <td class="bold"><?php echo __('Distribution');?></td>
             <td><?php
               if ($data['Object']['distribution'] != 4) {
                 echo $distributionLevels[$data['Object']['distribution']];
@@ -34,20 +34,20 @@
             ?></td>
           </tr>
           <tr>
-            <td class="bold">Comment</td>
+            <td class="bold"><?php echo __('Comment');?></td>
             <td><?php echo h($data['Object']['comment']); ?></td>
           </tr>
           <tr>
             <table class="table table-condensed table-striped">
               <thead>
-                <th>Attribute</th>
-                <th>Category</th>
-                <th>Type</th>
-                <th>Value</th>
-                <th>To IDS</th>
-                <th>Comment</th>
-                <th>UUID</th>
-                <th>Distribution</th>
+                <th><?php echo __('Attribute');?></th>
+                <th><?php echo __('Category');?></th>
+                <th><?php echo __('Type');?></th>
+                <th><?php echo __('Value');?></th>
+                <th><?php echo __('To IDS');?></th>
+                <th><?php echo __('Comment');?></th>
+                <th><?php echo __('UUID');?></th>
+                <th><?php echo __('Distribution');?></th>
               </thead>
               <tbody>
                 <?php
@@ -64,7 +64,7 @@
                             $attribute[$field] = $sharing_groups[$attribute['sharing_group_id']]['SharingGroup']['name'];
                           }
                         }
-                        if ($field == 'to_ids') $attribute[$field] = $attribute[$field] ? 'Yes' : 'No';
+                        if ($field == 'to_ids') $attribute[$field] = $attribute[$field] ? __('Yes') : __('No');
                           if (isset($attribute[$field])):
                            echo '<td>'.h($attribute[$field]). '</td>';
                           else:
@@ -84,7 +84,7 @@
   <?php
     echo $this->Form->button('Submit', array('class' => 'btn btn-primary'));
   ?>
-    <a href="<?php echo $baseurl . '/events/view/' . h($event['Event']['id']); ?>" style="margin-left:10px;" class="btn btn-inverse">Cancel</a>
+    <a href="<?php echo $baseurl . '/events/view/' . h($event['Event']['id']); ?>" style="margin-left:10px;" class="btn btn-inverse"><?php echo __('Cancel');?></a>
   <?php
     echo $this->Form->end();
   ?>
