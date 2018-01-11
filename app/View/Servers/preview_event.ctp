@@ -24,16 +24,16 @@
 				<dt><?php echo Configure::read('MISP.showorgalternate') ? 'Member Organisation' : 'Owner Org'?></dt>
 				<dd><?php echo h($event['Org']['name']); ?></dd>
 				<?php if (Configure::read('MISP.tagging')): ?>
-					<dt>Tags</dt>
+					<dt><?php echo __('Tags');?></dt>
 					<dd class="eventTagContainer">
 					<?php if (!empty($event['Tag'])) foreach ($event['Tag'] as $tag): ?>
 						<span style="padding-right:0px;">
-							<span role="button" tabindex="0" aria-label="Filter the remote instance by tag: <?php echo h($tag['name']); ?>" title="Filter the remote instance on the tag: <?php echo h($tag['name']); ?>" onclick="document.location.href='/servers/previewIndex/<?php echo h($server['Server']['id']); ?>/searchtag:<?php echo h($tag['name']); ?>';" class="tagFirstHalf" style="background-color:<?php echo h($tag['colour']);?>;color:<?php echo $this->TextColour->getTextColour($tag['colour']);?>"><?php echo h($tag['name']); ?></span>
+							<span role="button" tabindex="0" aria-label="<?php echo __('Filter the remote instance by tag: %s', h($tag['name']));?>" title="<?php echo __('Filter the remote instance on the tag: %s', h($tag['name'])); ?>" onclick="document.location.href='/servers/previewIndex/<?php echo h($server['Server']['id']); ?>/searchtag:<?php echo h($tag['name']); ?>';" class="tagFirstHalf" style="background-color:<?php echo h($tag['colour']);?>;color:<?php echo $this->TextColour->getTextColour($tag['colour']);?>"><?php echo h($tag['name']); ?></span>
 						</span>
 					<?php endforeach; ?>&nbsp;
 					</dd>
 				<?php endif; ?>
-				<dt>Date</dt>
+				<dt><?php echo __('Date');?></dt>
 				<dd>
 					<?php echo h($event['Event']['date']); ?>
 					&nbsp;

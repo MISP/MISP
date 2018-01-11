@@ -27,7 +27,7 @@
 			<th><?php echo $this->Paginator->sort('unpublish_event (push event)');?></th>
 			<th><?php echo $this->Paginator->sort('publish_without_email (pull event)');?></th>
 			<th><?php echo $this->Paginator->sort('url');?></th>
-			<th>Remote Organisation</th>
+			<th><?php echo __('Remote Organisation');?></th>
 			<th><?php echo $this->Paginator->sort('cert_file');?></th>
 			<th><?php echo $this->Paginator->sort('client_cert_file');?></th>
 			<th><?php echo $this->Paginator->sort('self_signed');?></th>
