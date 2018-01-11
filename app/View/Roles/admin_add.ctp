@@ -1,7 +1,7 @@
 <div class="roles form">
 <?php echo $this->Form->create('Role'); ?>
 	<fieldset>
-		<legend>Add Role</legend>
+		<legend><?php echo __('Add Role');?></legend>
 	<?php
 		echo $this->Form->input('name');?>
 		<?php echo $this->Form->input('permission', array('type' => 'select', 'options' => $options), array('value' => '3'));?>
@@ -27,7 +27,7 @@
 		?>
 	</fieldset>
 <?php
-echo $this->Form->button('Add', array('class' => 'btn btn-primary'));
+echo $this->Form->button(__('Add'), array('class' => 'btn btn-primary'));
 echo $this->Form->end();
 ?>
 </div>
