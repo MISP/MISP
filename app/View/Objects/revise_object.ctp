@@ -82,7 +82,7 @@
       </table>
     </div>
   <?php
-    echo $this->Form->button('Submit', array('class' => 'btn btn-primary'));
+    echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary'));
   ?>
     <a href="<?php echo $baseurl . '/events/view/' . h($event['Event']['id']); ?>" style="margin-left:10px;" class="btn btn-inverse"><?php echo __('Cancel');?></a>
   <?php
