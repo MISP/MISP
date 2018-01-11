@@ -28,7 +28,7 @@ You can %s this key.', $me['authkey'], $this->Html->link(__('reset'), array('con
 <p>
 <b>eventid</b>: <?php echo __('Restrict the download to a single event');?><br />
 <b>withattachments</b>: <?php echo __('A boolean field that determines whether attachments should be encoded and a second parameter that controls the eligible tags.');?><br />
-<b>tags</b>: <?php echo __('To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'.
+<b>tags</b>: <?php echo __('To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a \'!\'.
 You can also chain several tag commands together with the \'&amp;&amp;\' operator. Please be aware the colons (:) cannot be used in the tag search.
 Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use');?>:<br />
 </p>
@@ -39,7 +39,7 @@ Use semicolons instead (the search will automatically search for colons instead)
 <b>last</b>: <?php echo __('Events published within the last x amount of time, where x can be defined in days, hours, minutes (for example 5d or 12h or 30m). This filter will use the published timestamp of the event.');?><br />
 </p>
 <p><?php echo __('The keywords false or null should be used for optional empty parameters in the URL.');?></p>
-<?php $userGuideUrl = '<a href="' . $baseurl . '/pages/display/doc/using_the_system#rest">'. __(User Guide) . '</a>'; ?>
+<?php $userGuideUrl = '<a href="' . $baseurl . '/pages/display/doc/using_the_system#rest">'. __('User Guide') . '</a>'; ?>
 <p><?php echo __('Also check out the %s to read about the REST API.', $userGuideUrl);?></p>
 <p></p>
 <h3><?php echo __('CSV Export');?></h3>
@@ -51,7 +51,7 @@ Use semicolons instead (the search will automatically search for colons instead)
 <p>
 <b>eventid</b>: <?php echo __('Restrict the download to a single event');?><br />
 <b>ignore</b>: <?php echo __('Setting this flag to true will include attributes that are not marked "to_ids".');?><br />
-<b>tags</b>: <?php echo __('To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'.
+<b>tags</b>: <?php echo __('To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a \'!\'.
 You can also chain several tag commands together with the \'&amp;&amp;\' operator. Please be aware the colons (:) cannot be used in the tag search.
 Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use');?>:<br />
 </p>
@@ -82,7 +82,7 @@ Use semicolons instead (the search will automatically search for colons instead)
 <b>format</b>: <?php echo __('The export format, can be "suricata" or "snort"');?><br />
 <b>eventid</b>: <?php echo __('Restrict the download to a single event');?><br />
 <b>frame</b>: <?php echo __('Some commented out explanation framing the data. The reason to disable this would be if you would like to concatenate a list of exports from various select events in order to avoid unnecessary duplication of the comments.');?><br />
-<b>tags</b>: <?php echo __('To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a '!'.
+<b>tags</b>: <?php echo __('To include a tag in the results just write its names into this parameter. To exclude a tag prepend it with a \'!\'.
 You can also chain several tag commands together with the \'&amp;&amp;\' operator. Please be aware the colons (:) cannot be used in the tag search.
 Use semicolons instead (the search will automatically search for colons instead). For example, to include tag1 and tag2 but exclude tag3 you would use');?>:<br />
 <pre><?php echo $baseurl;?>/events/nids/snort/download/false/false/tag1&amp;&amp;tag2&amp;&amp;!tag3</pre>
@@ -377,7 +377,7 @@ For example, in order to search for all attributes created by your organisation 
 	echo $baseurl.'/attributes/returnAttributes/json/[id]/[type]/[sigOnly]';
 ?>
 </pre>
-<p><?php echo __('sigOnly is an optional flag that will block all attributes from being exported that don't have the IDS flag turned on.
+<p><?php echo __('sigOnly is an optional flag that will block all attributes from being exported that don\'t have the IDS flag turned on.
 It is possible to search for several types with the \'&amp;&amp;\' operator and to exclude values with the \'!\' operator.
 For example, to get all IDS signature attributes of type md5 and sha256, but not filename|md5 and filename|sha256 from event 25, use the following');?>: </p>
 <pre>
