@@ -137,12 +137,7 @@ class NidsSuricataExport extends NidsExport {
 				}
 				# Domain: rule on https certificate subject
 				else {
-				    $suricata_protocol = 'tls';
-				    $suricata_src_ip = '$EXTERNAL_NET';
-				    $suricata_src_port = NidsExport::getProtocolPort($scheme, $data['port']);
-				    $suricata_dst_ip = '$HOME_NET';
-				    $suricata_dst_port = 'any';
-						$content = 'flow:to_server; app-layer-protocol:tls;';
+					$createRule = false;
 				}
 				break;
 
