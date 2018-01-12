@@ -1,9 +1,9 @@
 <div class="event index">
-	<h2>Export</h2>
-	<p>Export functionality is designed to automatically generate signatures for intrusion detection systems. To enable signature generation for a given attribute, Signature field of this attribute must be set to Yes.
-	Note that not all attribute types are applicable for signature generation, currently we only support NIDS signature generation for IP, domains, host names, user agents etc., and hash list generation for MD5/SHA1 values of file artifacts. Support for more attribute types is planned.
+	<h2><?php echo __('Export');?></h2>
+	<p><?php echo __('Export functionality is designed to automatically generate signatures for intrusion detection systems. To enable signature generation for a given attribute, Signature field of this attribute must be set to Yes.
+		Note that not all attribute types are applicable for signature generation, currently we only support NIDS signature generation for IP, domains, host names, user agents etc., and hash list generation for MD5/SHA1 values of file artifacts. Support for more attribute types is planned.');?>
 	<br/>
-	<p>Simply click on any of the following buttons to download the appropriate data.</p>
+	<p><?php echo __('Simply click on any of the following buttons to download the appropriate data.');?></p>
 	<?php $i = 0;?>
 	<script type="text/javascript">
 		var jobsArray = new Array();
@@ -22,13 +22,13 @@
 	</script>
 	<table class="table table-striped table-hover table-condensed">
 		<tr>
-			<th style="text-align:center;">Type</th>
-			<th style="text-align:center;">Last Update</th>
-			<th style="text-align:center;">Description</th>
-			<th style="text-align:center;">Outdated</th>
-			<th style="text-align:center;">Filesize</th>
-			<th style="text-align:center;">Progress</th>
-			<th style="text-align:center;">Actions</th>
+			<th style="text-align:center;"><?php echo __('Type');?></th>
+			<th style="text-align:center;"><?php echo __('Last Update');?></th>
+			<th style="text-align:center;"><?php echo __('Description');?></th>
+			<th style="text-align:center;"><?php echo __('Outdated');?></th>
+			<th style="text-align:center;"><?php echo __('Filesize');?></th>
+			<th style="text-align:center;"><?php echo __('Progress');?></th>
+			<th style="text-align:center;"><?php echo __('Actions');?></th>
 		</tr>
 		<?php foreach ($export_types as $k => $type): ?>
 			<tr>
@@ -40,11 +40,11 @@
 						if ($type['canHaveAttachments']):
 							if (Configure::read('MISP.cached_attachments')):
 					?>
-						<span class="green"> (Attachments are enabled on this instance)</span>
+						<span class="green"> (<?php echo __('Attachments are enabled on this instance');?>)</span>
 					<?php
 							else:
 					?>
-						<span class="red"> (Attachments are disabled on this instance)</span>
+						<span class="red"> (<?php echo __('Attachments are disabled on this instance');?>)</span>
 					<?php
 							endif;
 						endif;
@@ -53,20 +53,20 @@
 				<td id="outdated<?php echo $i; ?>">
 					<?php
 						if ($type['recommendation']) {
-							echo '<span style="color:red;">Yes</span>';
+							echo '<span style="color:red;">' . __('Yes') . '</span>';
 						} else {
-							echo 'No';
+							echo __('No');
 						}
 					?>
 				</td>
 				<td class="short" style="text-align:right;">
-					<?php 
+					<?php
 						if (isset($type['filesize'])):
 							echo h($type['filesize']);
 						else:
 					?>
-							<span class="red">N/A</span>
-					<?php 
+							<span class="red"><?php echo __('N/A');?></span>
+					<?php
 						endif;
 					?>
 				</td>
@@ -78,17 +78,17 @@
 						?>
 					  </div>
 					</div>
-					<div id="message<?php echo $i; ?>" style="text-align:center;display:block;">Loading...</div>
+					<div id="message<?php echo $i; ?>" style="text-align:center;display:block;"><?php echo __('Loading…');?></div>
 					<?php $temp = $i . "','" . $k . "','" . $type['job_id'] . "','" .  $type['progress'] . "','" . $type['lastModified']; ?>
 					<script type="text/javascript">
 						if ("<?php echo $type['progress']; ?>"  == 0) {
 							if ("<?php echo $type['lastModified']; ?>" != "N/A") {
 								editMessage(<?php echo $i; ?>, "Queued.");
 							} else {
-								editMessage(<?php echo $i; ?>, '<span style="color:red;">N/A</span>');
+								editMessage(<?php echo $i; ?>, '<span style="color:red;">'. __('N/A') .'</span>');
 							}
 						}
-						if ("<?php echo $type['progress']; ?>" == 100) editMessage(<?php echo $i; ?>, "Completed.");
+						if ("<?php echo $type['progress']; ?>" == 100) editMessage(<?php echo $i; ?>, __("Completed."));
 						queueInterval('<?php echo $temp;?>');
 					</script>
 				</td>
@@ -97,11 +97,11 @@
 						if ($k !== 'text') {
 							echo $this->Html->link('Download', array('action' => 'downloadExport', $k), array('class' => 'btn btn-inverse toggle-left btn.active qet'));
 						?>
-							<button class = "btn btn-inverse toggle-right btn.active qet" id=button<?php echo $i;?> onClick = "generate('<?php echo $temp; ?>')" <?php if (!$type['recommendation']) echo 'disabled';?>>Generate</button>
+							<button class = "btn btn-inverse toggle-right btn.active qet" id=button<?php echo $i;?> onClick = "generate('<?php echo $temp; ?>')" <?php if (!$type['recommendation']) echo 'disabled';?>><?php echo __('Generate');?></button>
 						<?php
 						} else {
 						?>
-							<button class = "btn btn-inverse btn.active qet" id=button<?php echo $i;?> onClick = "generate('<?php echo $temp; ?>')" <?php if (!$type['recommendation']) echo 'disabled';?>>Generate</button>
+							<button class = "btn btn-inverse btn.active qet" id=button<?php echo $i;?> onClick = "generate('<?php echo $temp; ?>')" <?php if (!$type['recommendation']) echo 'disabled';?>><?php echo __('Generate');?></button>
 						<?php
 						}
 						?>
@@ -155,7 +155,7 @@
 				updateOutdated(i);
 			}
 			if (data == -1) {
-				alert("Warning, the background worker is not responding!");
+				alert("<?php echo __('Warning, the background worker is not responding!');?>");
 			}
 		});
 	}
@@ -169,11 +169,11 @@
 	}
 
 	function updateTime(id) {
-		document.getElementById("update" + id).innerHTML = "0 seconds ago";
+		document.getElementById("update" + id).innerHTML = "<?php echo __('0 seconds ago');?>";
 	}
 
 	function updateOutdated(id) {
-		document.getElementById("outdated" + id).innerHTML = "No";
+		document.getElementById("outdated" + id).innerHTML = "<?php echo __('No');?>";
 	}
 
 	function disableButton(id) {

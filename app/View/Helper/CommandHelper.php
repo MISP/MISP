@@ -25,6 +25,7 @@ App::uses('AppHelper', 'View/Helper');
 			$this->__buildReplacements();
 			foreach ($this->__replacement as $trigger => $replacement) {
 				$result = $this->__handleLinks($string, $trigger);
+				// Does this return a UI Element?
 				if (!$result) return 'Malformed syntax.';
 			}
 			return $string;

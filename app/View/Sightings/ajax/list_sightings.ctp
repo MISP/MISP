@@ -2,13 +2,13 @@
 	<div id="org_id" class="hidden"><?php echo h($org_id); ?></div>
 	<table class="table table-striped table-hover table-condensed" style="display:block; overflow-y:auto;max-height:500px;">
 	<tr>
-		<th>Date</th>
-		<th>Organisation</th>
-		<th>Type</th>
-		<th>Source</th>
-		<th>Event ID</th>
-		<th>Attribute ID</th>
-		<th class="actions">Actions</th>
+		<th><?php echo __('Date');?></th>
+		<th><?php echo __('Organisation');?></th>
+		<th><?php echo __('Type');?></th>
+		<th><?php echo __('Source');?></th>
+		<th><?php echo __('Event ID');?></th>
+		<th><?php echo __('Attribute ID');?></th>
+		<th class="actions"><?php echo __('Actions');?></th>
 	</tr>
 <?php
 	foreach ($sightings as $item):
@@ -38,7 +38,7 @@
 		  <?php
 			if ($isSiteAdmin || ($item['Sighting']['org_id'] == $me['org_id'] && $isAclAdd)):
 		  ?>
-			<span class="icon-trash useCursorPointer" title="Delete sighting" role="button" tabindex="0" aria-label="Delete sighting" onClick="quickDeleteSighting('<?php echo h($item['Sighting']['id']); ?>', '<?php echo h($rawId); ?>', '<?php echo h($context); ?>');"></span>
+			<span class="icon-trash useCursorPointer" title="Delete sighting" role="button" tabindex="0" aria-label="<?php echo __('Delete sighting');?>" onClick="quickDeleteSighting('<?php echo h($item['Sighting']['id']); ?>', '<?php echo h($rawId); ?>', '<?php echo h($context); ?>');"></span>
 		  <?php
 			endif;
 				?>

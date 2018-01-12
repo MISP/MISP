@@ -1,10 +1,10 @@
 <div class="attributes index">
-	<h2>Parsed attributes from feed <?php echo h($feed['Feed']['name']);?></h2>
+	<h2><?php echo __('Parsed attributes from feed ');?><?php echo h($feed['Feed']['name']);?></h2>
 	<?php
 		echo $this->Form->create('Feed', array('url' => array('controller' => 'feeds', 'action' => 'fetchSelectedFromFreetextIndex', $feed['Feed']['id'])));
 		echo $this->Form->input('data', array('style' => 'display:none;', 'label' => false, 'div' => false));
 	?>
-		<span id="FetchSelected" class="btn btn-inverse">Fetch selected</span>
+		<span id="FetchSelected" class="btn btn-inverse"><?php echo __('Fetch selected');?></span>
 	<?php
 		echo $this->Form->end();
 	?>
@@ -28,12 +28,12 @@
 	<table class="table table-striped table-hover table-condensed">
 	<tr>
 		<th><input class="select_all" type="checkbox" onClick="toggleAllAttributeCheckboxes();" /></th>
-		<th>Category</th>
-		<th>Type</th>
-		<th>Value</th>
-		<th>IDS</th>
-		<th>Correlations</th>
-		<th>Distribution</th>
+		<th><?php echo __('Category');?></th>
+		<th><?php echo __('Type');?></th>
+		<th><?php echo __('Value');?></th>
+		<th><?php echo __('IDS');?></th>
+		<th><?php echo __('Correlations');?></th>
+		<th><?php echo __('Distribution');?></th>
 	</tr>
 	<?php
 		foreach ($attributes as $key => $attribute):

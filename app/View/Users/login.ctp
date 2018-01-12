@@ -5,7 +5,7 @@
 <table style="width:1200px;margin-left:auto;margin-right:auto;">
 	<tr>
 	<td style="text-align:right;width:250px;padding-right:50px">
-		<?php if (Configure::read('MISP.welcome_logo')) echo $this->Html->image('custom/' . h(Configure::read('MISP.welcome_logo')), array('alt' => 'Logo', 'onerror' => "this.style.display='none';")); ?>
+		<?php if (Configure::read('MISP.welcome_logo')) echo $this->Html->image('custom/' . h(Configure::read('MISP.welcome_logo')), array('alt' => __('Logo'), 'onerror' => "this.style.display='none';")); ?>
 	</td>
 	<td style="width:450px">
 		<span style="font-size:18px;">
@@ -34,14 +34,14 @@
 			endif;
 			echo $this->Form->create('User');
 		?>
-		<legend style="width:450px;">Login</legend>
+		<legend style="width:450px;"><?php echo __('Login');?></legend>
 		<?php
 			echo $this->Form->input('email', array('autocomplete' => 'off'));
 			echo $this->Form->input('password', array('autocomplete' => 'off'));
 		?>
 			<div class="clear"></div>
 		<?php
-			echo $this->Form->button('Login', array('class' => 'btn btn-primary'));
+			echo $this->Form->button(__('Login'), array('class' => 'btn btn-primary'));
 			echo $this->Form->end();
 		?>
 	</td>

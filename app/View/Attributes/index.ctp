@@ -1,15 +1,17 @@
 <div class="attributes index">
-	<h2>Attributes</h2>
+	<h2><?php echo __('Attributes'); ?></h2>
 		<?php
 			if ($isSearch == 1) {
-				echo "<h4>Results for all attributes";
-				if ($keywordSearch != null) echo " with the value containing \"<b>" . h($keywordSearch) . "</b>\"";
-				if ($attributeTags != null) echo " being tagged with \"<b>" . h($attributeTags) . "</b>\"";
-				if ($keywordSearch2 != null) echo " from the events \"<b>" . h($keywordSearch2) . "</b>\"";
+				// The following block should serve as an example and food
+				// for thought on how to optimize i18n & l10n (especially for languages that are not SOV)
+				echo "<h4>" . __("Results for all attributes");
+				if ($keywordSearch != null) echo __(" with the value containing "). "\"<b>" . h($keywordSearch) . "</b>\"";
+				if ($attributeTags != null) echo __(" being tagged with ") ."\"<b>" . h($attributeTags) . "</b>\"";
+				if ($keywordSearch2 != null) echo __(" from the events ") . "\"<b>" . h($keywordSearch2) . "</b>\"";
 				if ($tags != null) echo " from events tagged \"<b>" . h($tags) . "</b>\"";
-				if ($categorySearch != "ALL") echo " of category \"<b>" . h($categorySearch) . "</b>\"";
-				if ($typeSearch != "ALL") echo " of type \"<b>" . h($typeSearch) . "</b>\"";
-				if (isset($orgSearch) && $orgSearch != '' && $orgSearch != null) echo " created by the organisation \"<b>" . h($orgSearch) . "</b>\"";
+				if ($categorySearch != "ALL") echo __(" of category ") . "\"<b>" . h($categorySearch) . "</b>\"";
+				if ($typeSearch != "ALL") echo __(" of type ") . "\"<b>" . h($typeSearch) . "</b>\"";
+				if (isset($orgSearch) && $orgSearch != '' && $orgSearch != null) echo __(" created by the organisation ") . "\"<b>" . h($orgSearch) . "</b>\"";
 				echo ":</h4>";
 			}
 		?>
@@ -165,11 +167,11 @@ foreach ($attributes as $attribute):
 			echo $this->Form->postLink('',array('action' => 'delete', $attribute['Attribute']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete this attribute?'));
 		elseif ($isAclModify):
 	?>
-			<a href="<?php echo $baseurl;?>/shadow_attributes/edit/<?php echo $attribute['Attribute']['id'];?>" class="icon-share" title="Propose an edit"></a>
+			<a href="<?php echo $baseurl;?>/shadow_attributes/edit/<?php echo $attribute['Attribute']['id'];?>" class="icon-share" title="<?php echo __('Propose an edit'); ?>"></a>
 	<?php
 		endif;
 	?>
-			<a href="<?php echo $baseurl;?>/events/view/<?php echo $attribute['Attribute']['event_id'];?>" class="icon-list-alt" title="View"></a>
+			<a href="<?php echo $baseurl;?>/events/view/<?php echo $attribute['Attribute']['event_id'];?>" class="icon-list-alt" title="<?php echo __('View'); ?>"></a>
 		</td>
 	</tr>
 	<?php

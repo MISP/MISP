@@ -5,7 +5,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc_id'] == $me['org_id']);
 <div class="events form">
 <?php echo $this->Form->create('Event');?>
 	<fieldset>
-		<legend>Edit Event</legend>
+		<legend><?php echo __('Edit Event');?></legend>
 <?php
 	echo $this->Form->input('id');
 	echo $this->Form->input('date', array(
@@ -23,7 +23,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc_id'] == $me['org_id']);
 		if (!empty($sharingGroups)) {
 			echo $this->Form->input('sharing_group_id', array(
 				'options' => array($sharingGroups),
-				'label' => 'Sharing Group',
+				'label' => __('Sharing Group'),
 				'default' => $event['Event']['sharing_group_id'],
 			));
 		}
@@ -32,25 +32,25 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc_id'] == $me['org_id']);
 <?php
 	echo $this->Form->input('threat_level_id', array(
 			'div' => 'input clear',
-			'label' => 'Threat Level ' . $this->element('formInfo', array('type' => 'threat_level'))
+			'label' => __('Threat Level ') . $this->element('formInfo', array('type' => 'threat_level'))
 	));
 	echo $this->Form->input('analysis', array(
-			'label' => 'Analysis ' . $this->element('formInfo', array('type' => 'analysis')),
+			'label' => __('Analysis ') . $this->element('formInfo', array('type' => 'analysis')),
 			'options' => array($analysisLevels)
 	));
 	echo $this->Form->input('info', array(
 			'div' => 'clear',
-			'label' => 'Event Info',
+			'label' => __('Event Info'),
 			'div' => 'clear',
 			'type' => 'text',
 			'class' => 'form-control span6',
-			'placeholder' => 'Quick Event Description or Tracking Info'
+			'placeholder' => __('Quick Event Description or Tracking Info')
 	));
 
 ?>
 	</fieldset>
 <?php
-echo $this->Form->button('Submit', array('class' => 'btn btn-primary'));
+echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary'));
 echo $this->Form->end();
 ?>
 </div>

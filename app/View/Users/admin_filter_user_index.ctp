@@ -1,7 +1,7 @@
 <div class="events">
 	<?php echo $this->Form->create('User');?>
 		<fieldset>
-			<legend>Filter User Index</legend>
+			<legend><?php echo __('Filter User Index');?></legend>
 			<div class="overlay_spacing">
 			<?php
 				echo $this->Form->input('rule', array(
@@ -59,7 +59,7 @@
 					}
 				}
 			?>
-			<span id="addRuleButton" class="btn btn-inverse" style="margin-bottom:10px;display:none;">Add</span>
+			<span id="addRuleButton" class="btn btn-inverse" style="margin-bottom:10px;display:none;"><?php echo __('Add');?></span>
 			</div>
 		</fieldset>
 		<div class="overlay_spacing">
@@ -67,8 +67,8 @@
 		<div id="rule_table">
 			<table style="background-color:white;">
 				<tr style="width:680px;background-color:#0088cc;color:white;">
-					<th style="width:100px;border:1px solid #cccccc;text-align: left;">Target</th>
-					<th style="width:567px;border:1px solid #cccccc;border-right:0px;text-align: left;">Value</th>
+					<th style="width:100px;border:1px solid #cccccc;text-align: left;"><?php echo __('Target');?></th>
+					<th style="width:567px;border:1px solid #cccccc;border-right:0px;text-align: left;"><?php echo __('Value');?></th>
 					<th style="width:10px;border:1px solid #cccccc;border-left:0px;text-align: left;"></th>
 				</tr>
 				<?php
@@ -78,7 +78,7 @@
 					<tr id="row_<?php echo $field; ?>" class="hidden filterTableRow">
 						<td id="key_<?php echo $field;?>" style="border:1px solid #cccccc;font-weight:bold;"><?php echo ucfirst($field); ?></td>
 						<td id="value_<?php echo $field;?>" style="border:1px solid #cccccc;border-right:0px;"></td>
-						<td id="delete_<?php echo $field;?>" style="border:1px solid #cccccc;border-left:0px;"><span class="icon-trash" title="Remove filter" role="button" tabindex="0" aria-label="Remove filter" onClick="indexFilterClearRow('<?php echo $field;?>');"></span></td>
+						<td id="delete_<?php echo $field;?>" style="border:1px solid #cccccc;border-left:0px;"><span class="icon-trash" title="<?php echo __('Remove filter');?>" role="button" tabindex="0" aria-label="<?php echo __('Remove filter');?>" onClick="indexFilterClearRow('<?php echo $field;?>');"></span></td>
 					</tr>
 				<?php
 					endforeach;
@@ -86,7 +86,7 @@
 			</table>
 			<table style="background-color:white;width:100%;" id="FilterplaceholderTable">
 				<tr class="filterTableRow">
-					<td style="border:1px solid #cccccc;border-top:0px;font-weight:bold;width:100%;color:red;">No filters set - add filter terms above.</td>
+					<td style="border:1px solid #cccccc;border-top:0px;font-weight:bold;width:100%;color:red;"><?php echo __('No filters set - add filter terms above.');?></td>
 				</tr>
 			</table>
 		</div>
@@ -101,10 +101,10 @@
 			));
 		?>
 		</fieldset>
-		<div id = "generatedURL" style="word-wrap: break-word;"><br />Save this URL if you would like to use the same filter settings again<br /><div style="background-color:#f5f5f5;border: 1px solid #e3e3e3; border-radius:4px;padding:3px;background-color:white;"><span id="generatedURLContent"></span></div></div>
+		<div id = "generatedURL" style="word-wrap: break-word;"><br /><?php echo __('Save this URL if you would like to use the same filter settings again');?><br /><div style="background-color:#f5f5f5;border: 1px solid #e3e3e3; border-radius:4px;padding:3px;background-color:white;"><span id="generatedURLContent"></span></div></div>
 		<br />
-		<span role="button" tabindex="0" aria-label="Apply filters" title="Apply filters" class="btn btn-primary" onClick="indexApplyFilters();">Apply</span>
-		<span role="button" tabindex="0" aria-label="Cancel" class="btn btn-inverse" onClick="cancelPopoverForm();" style="float:right;">Cancel</span>
+		<span role="button" tabindex="0" aria-label="<?php echo __('Apply filters');?>" title="<?php echo __('Apply filters');?>" class="btn btn-primary" onClick="indexApplyFilters();"><?php echo __('Apply');?></span>
+		<span role="button" tabindex="0" aria-label="<?php echo __('Cancel');?>" class="btn btn-inverse" onClick="cancelPopoverForm();" style="float:right;"><?php echo __('Cancel');?></span>
 		</div>
 </div>
 <script type="text/javascript">

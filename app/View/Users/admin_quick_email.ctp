@@ -1,10 +1,10 @@
 <div class="events form">
-	<h2 style="margin-bottom:0px;">Contact <?php echo h($user['User']['email']); ?></h2>
+	<h2 style="margin-bottom:0px;"><?php echo __('Contact %s', h($user['User']['email'])); ?></h2>
 	<?php
-		$encryptionMessage = 'WARNING: This user does not have an encrpytion key set. The security posture of this instance allows for the sending of cleartext e-mails, so this is what will happen if you proceed.';
+		$encryptionMessage = __('WARNING: This user does not have an encryption key set. The security posture of this instance allows for the sending of clear-text e-mails, so this is what will happen if you proceed.');
 		$encryptionColour = 'white red-background';
 		if ($encryption) {
-			$encryptionMessage = $encryption . ' key found for user, the e-mail will be sent encrypted using this key.';
+			$encryptionMessage = __('%s key found for user, the e-mail will be sent encrypted using this key.', $encryption);
 			$encryptionColour = 'white green-background';
 		}
 	?>
@@ -12,7 +12,7 @@
 	<br />
 	<?php
 		echo $this->Form->create('User');
-		echo $this->Form->input('subject', array('type' => 'text', 'label' => 'Subject', 'style' => 'width:400px;'));
+		echo $this->Form->input('subject', array('type' => 'text', 'label' => __('Subject'), 'style' => 'width:400px;'));
 	?>
 		<div class="clear"></div>
 	<?php

@@ -4,23 +4,23 @@
 <div class="object_template view">
 	<div class="row-fluid">
 		<div class="span8">
-			<h2><?php echo h(ucfirst($template['ObjectTemplate']['name'])); ?> Object Template</h2>
+			<h2><?php echo h(ucfirst($template['ObjectTemplate']['name'])); ?><?php echo __(' Object Template');?></h2>
 			<dl>
-				<dt>Object Template ID</dt>
+				<dt><?php echo __('Object Template ID');?></dt>
 				<dd><?php echo h($template['ObjectTemplate']['id']); ?></dd>
-				<dt>Name</dt>
+				<dt><?php echo __('Name');?></dt>
 				<dd><?php echo $template['ObjectTemplate']['name'] ? h($template['ObjectTemplate']['name']) : h($template['ObjectTemplate']['type']); ?></dd>
-				<dt>Organisation</dt>
+				<dt><?php echo __('Organisation');?></dt>
 				<dd><?php echo h($template['Organisation']['name']); ?></dd>
-				<dt>Uuid</dt>
+				<dt><?php echo __('Uuid');?></dt>
 				<dd><?php echo h($template['ObjectTemplate']['uuid']); ?></dd>
-				<dt>Version</dt>
+				<dt><?php echo __('Version');?></dt>
 				<dd><?php echo h($template['ObjectTemplate']['version']); ?></dd>
-				<dt>Meta-category</dt>
+				<dt><?php echo __('Meta-category');?></dt>
 				<dd><?php echo h($template['ObjectTemplate']['meta-category']); ?></dd>
-				<dt>Description</dt>
+				<dt><?php echo __('Description');?></dt>
 				<dd><?php echo h($template['ObjectTemplate']['description']); ?></dd>
-				<dt>Requirements</dt>
+				<dt><?php echo __('Requirements');?></dt>
 				<dd>
 					<?php
 						if (!empty($template['ObjectTemplate']['requirements'])):

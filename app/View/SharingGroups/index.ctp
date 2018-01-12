@@ -1,5 +1,5 @@
 <div class="sharing_groups index">
-<h2>Sharing Groups</h2>
+<h2><?php echo __('Sharing Groups');?></h2>
 <div class="pagination">
 <ul>
 <?php
@@ -17,17 +17,17 @@
 		</ul>
 	</div>
 	<div class="tabMenuFixedContainer">
-		<span role="button" tabindex="0" aria-label="View only active sharing groups" title="View only active sharing groups" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php if ($passive !== true) echo 'tabMenuActive';?>" onClick="window.location='/sharing_groups/index'">Active Sharing Groups</span>
-		<span role="button" tabindex="0" aria-label="View only passive sharing groups" title="View only passive sharing groups" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php if ($passive === true) echo 'tabMenuActive';?>" onClick="window.location='/sharing_groups/index/true'">Passive Sharing Groups</span>
+		<span role="button" tabindex="0" aria-label="<?php echo __('View only active sharing groups');?>" title="<?php echo __('View only active sharing groups');?>" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php if ($passive !== true) echo 'tabMenuActive';?>" onClick="window.location='/sharing_groups/index'"><?php echo __('Active Sharing Groups');?></span>
+		<span role="button" tabindex="0" aria-label="<?php echo __('View only passive sharing groups');?>" title="<?php echo __('View only passive sharing groups');?>" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php if ($passive === true) echo 'tabMenuActive';?>" onClick="window.location='/sharing_groups/index/true'"><?php echo __('Passive Sharing Groups');?></span>
 	</div>
 	<table class="table table-striped table-hover table-condensed">
 	<tr>
 			<th><?php echo $this->Paginator->sort('id');?></th>
 			<th><?php echo $this->Paginator->sort('name');?></th>
 			<th><?php echo $this->Paginator->sort('Creator');?></th>
-			<th>Description</th>
-			<th>Releasable to</th>
-			<th class="actions">Actions</th>
+			<th><?php echo __('Description');?></th>
+			<th><?php echo __('Releasable to');?></th>
+			<th class="actions"><?php echo __('Actions');?></th>
 	</tr>
 	<?php
 foreach ($sharingGroups as $k => $sharingGroup):
@@ -58,7 +58,7 @@ foreach ($sharingGroups as $k => $sharingGroup):
 			}
 		?>
 		<td>
-			<span data-toggle="popover" data-trigger="hover" title="Distribution List" data-content="<?php echo $combined; ?>">
+			<span data-toggle="popover" data-trigger="hover" title="<?php echo __('Distribution List');?>" data-content="<?php echo $combined; ?>">
 				<?php echo h($sharingGroup['SharingGroup']['releasability']); ?>
 			</span>
 		</td>

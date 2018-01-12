@@ -1,14 +1,14 @@
 <div class="index">
-	<h2>Populate From Template Results</h2>
-	<p>Below you can see the attributes that are to be created based on the data that you have entered into the template. If you are satisfied with the result, click "Finalise". Otherwise, click "Modify".</p>
+	<h2><?php echo __('Populate From Template Results');?></h2>
+	<p><?php echo __('Below you can see the attributes that are to be created based on the data that you have entered into the template. If you are satisfied with the result, click "Finalise". Otherwise, click "Modify".');?></p>
 	<table class="table table-striped table-hover table-condensed">
 	<tr>
-			<th>Category</th>
-			<th>Type</th>
-			<th>Value</th>
-			<th>Comment</th>
-			<th>IDS</th>
-			<th>Distribution</th>
+			<th><?php echo __('Category');?></th>
+			<th><?php echo __('Type');?></th>
+			<th><?php echo __('Value');?></th>
+			<th><?php echo __('Comment');?></th>
+			<th><?php echo __('IDS');?></th>
+			<th><?php echo __('Distribution');?></th>
 	</tr><?php
 foreach ($attributes as $item):?>
 	<tr>
@@ -34,7 +34,7 @@ endforeach;?>
 				?>
 			</fieldset>
 		<?php
-		echo $this->Form->button('Finalise', array('class' => 'btn btn-primary'));
+		echo $this->Form->button(__('Finalise'), array('class' => 'btn btn-primary'));
 		echo $this->Form->end();
 		?>
 	</div>

@@ -1,4 +1,4 @@
-PDO error
+<?php echo __('PDO error');?>
 <h2><?php echo $name; ?></h2>
 <p class="error">
 	<strong><?php echo __d('cake', 'Error'); ?>: </strong>

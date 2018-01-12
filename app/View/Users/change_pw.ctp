@@ -6,7 +6,7 @@
 		$passwordPopover = '<span class=\"blue bold\">Length</span>: ' . h($length) . '<br />';
 		$passwordPopover .= '<span class=\"blue bold\">Complexity</span>: ' . h($complexity);
 		echo $this->Form->input('password', array(
-			'label' => 'Password <span id = "PasswordPopover" class="icon-info-sign" ></span>'
+			'label' => __('Password') . ' <span id = "PasswordPopover" class="icon-info-sign" ></span>'
 		));
 		echo $this->Form->input('confirm_password', array('type' => 'password', 'div' => array('class' => 'input password required')));
 	?>
@@ -15,7 +15,7 @@
 	<div class="clear" style="margin-top:10px;">
 <?php
 	if (Configure::read('Security.require_password_confirmation')) {
-		echo $this->Form->input('current_password', array('type' => 'password', 'div' => false, 'class' => 'input password required', 'label' => 'Confirm with your current password'));
+		echo $this->Form->input('current_password', array('type' => 'password', 'div' => false, 'class' => 'input password required', 'label' => __('Confirm with your current password')));
 	}
 ?>
 	</div>

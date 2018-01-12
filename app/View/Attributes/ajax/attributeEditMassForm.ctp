@@ -9,10 +9,10 @@
 			<?php
 			echo $this->Form->hidden('event_id', array('value' => $id));
 			echo $this->Form->input('attribute_ids', array('style' => 'display:none;', 'label' => false));
-			$distributionLevels[] = 'Do not alter current settings';
+			$distributionLevels[] = __('Do not alter current settings');
 			echo $this->Form->input('distribution', array(
 				'options' => array($distributionLevels),
-				'label' => 'Distribution',
+				'label' => __('Distribution'),
 				'selected' => 6,
 			));
 			?>
@@ -21,16 +21,16 @@
 				if (!empty($sgs)) {
 					echo $this->Form->input('sharing_group_id', array(
 							'options' => array($sgs),
-							'label' => 'Sharing Group',
+							'label' => __('Sharing Group'),
 					));
 				}
 			?>
 				</div>
 			<?php
 			echo $this->Form->input('to_ids', array(
-					'options' => array('No', 'Yes', 'Do not alter current settings'),
+					'options' => array(__('No'), __('Yes'), __('Do not alter current settings')),
 					'data-content' => isset($attrDescriptions['signature']['formdesc']) ? $attrDescriptions['signature']['formdesc'] : $attrDescriptions['signature']['desc'],
-					'label' => 'For Intrusion Detection System',
+					'label' => __('For Intrusion Detection System'),
 					'selected' => 2,
 			));
 			?>
@@ -40,8 +40,8 @@
 			<?php
 			echo $this->Form->input('comment', array(
 					'type' => 'textarea',
-					'placeholder' => 'Leave this field empty to leave the comment field of the selected attributes unaltered.',
-					'label' => 'Contextual Comment',
+					'placeholder' => __('Leave this field empty to leave the comment field of the selected attributes unaltered.'),
+					'label' => __('Contextual Comment'),
 					'error' => array('escape' => false),
 					'div' => 'input clear',
 					'class' => 'input-xxlarge'
@@ -50,16 +50,16 @@
 			<div class="input clear"></div>
 		</div>
 	</fieldset>
-	<p style="color:red;font-weight:bold;display:none;" id="warning-message">Warning: You are about to share data that is of a classified nature (Attribution / targeting data). Make sure that you are authorised to share this.</p>
+	<p style="color:red;font-weight:bold;display:none;" id="warning-message"><?php echo __('Warning: You are about to share data that is of a classified nature (Attribution / targeting data). Make sure that you are authorised to share this.'); ?></p>
 		<div class="overlay_spacing">
 			<table>
 				<tr>
 				<td style="vertical-align:top">
-					<span id="submitButton" class="btn btn-primary" title="Submit" role="button" tabindex="0" aria-label="Submit" onClick="submitPopoverForm('<?php echo $id;?>', 'massEdit')">Submit</span>
+					<span id="submitButton" class="btn btn-primary" title="<?php echo __('Submit'); ?>" role="button" tabindex="0" aria-label="<?php echo __('Submit'); ?>" onClick="submitPopoverForm('<?php echo $id;?>', 'massEdit')"><?php echo __('Submit'); ?></span>
 				</td>
 				<td style="width:540px;">&nbsp;</td>
 				<td style="vertical-align:top;">
-					<span class="btn btn-inverse" title="Cancel" role="button" tabindex="0" aria-label="Cancel" id="cancel_attribute_add">Cancel</span>
+					<span class="btn btn-inverse" title="<?php echo __('Cancel'); ?>" role="button" tabindex="0" aria-label="<?php echo __('Cancel'); ?>" id="cancel_attribute_add"><?php echo __('Cancel'); ?></span>
 				</td>
 				</tr>
 			</table>

@@ -1,5 +1,5 @@
 <div class="regexp index">
-	<h2>Import Regexp</h2>
+	<h2><?php echo __('Import Regexp');?></h2>
 	<div class="pagination">
 		<ul>
 		<?php
