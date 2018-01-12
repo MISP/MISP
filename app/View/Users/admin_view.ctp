@@ -29,12 +29,12 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
 		<dt><?php echo __('Autoalert'); ?></dt>
 		<dd>
 			<?php
-				echo (h($user['User']['autoalert']) == 0)? 'No' : 'Yes'; ?>
+				echo (h($user['User']['autoalert']) == 0)? __('No') : __('Yes'); ?>
 			&nbsp;
 		</dd>
 		<dt><?php echo __('Contactalert'); ?></dt>
 		<dd>
-			<?php echo h(0 == ($user['User']['contactalert'])) ? 'No' : 'Yes'; ?>
+			<?php echo h(0 == ($user['User']['contactalert'])) ? __('No') : __('Yes'); ?>
 			&nbsp;
 		</dd>
 		<dt><?php echo __('Authkey'); ?></dt>
@@ -48,7 +48,7 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
 			<?php echo h($user2['User']['email']); ?>
 			&nbsp;
 		</dd>
-		<dt>Org admin</dt>
+		<dt><?php echo __('Org admin');?></dt>
 		<dd>
 			<?php
 
@@ -71,16 +71,16 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
 		<?php
 			if (!empty($user['User']['gpgkey'])):
 		?>
-			<dt>PGP fingerprint</dt>
+			<dt><?php echo __('PGP fingerprint');?></dt>
 			<dd class="quickSelect bold <?php echo $user['User']['fingerprint'] ? 'green': 'red'; ?>">
 				<?php
 					echo $user['User']['fingerprint'] ? chunk_split(h($user['User']['fingerprint']), 4, ' ') : 'N/A';
 				?>
 			</dd>
-			<dt>PGP status</dt>
-			<dd class="bold <?php echo (empty($user['User']['pgp_status']) || $user['User']['pgp_status'] != 'OK') ? 'red': 'green'; ?>">
+			<dt><?php echo __('PGP status');?></dt>
+			<dd class="bold <?php echo (empty($user['User']['pgp_status']) || $user['User']['pgp_status'] != __('OK')) ? 'red': 'green'; ?>">
 				<?php
-					echo !empty($user['User']['pgp_status']) ? h($user['User']['pgp_status']) : 'N/A';
+					echo !empty($user['User']['pgp_status']) ? h($user['User']['pgp_status']) : __('N/A');
 				?>
 			</dd>
 		<?php
@@ -89,7 +89,7 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
 		<?php if (Configure::read('SMIME.enabled')): ?>
 			<dt><?php echo __('SMIME Public certificate'); ?></dt>
 			<dd class="quickSelect red">
-				<?php echo (h($user['User']['certif_public'])) ? $this->Utility->space2nbsp(nl2br(h($user['User']['certif_public']))) : "N/A"; ?>
+				<?php echo (h($user['User']['certif_public'])) ? $this->Utility->space2nbsp(nl2br(h($user['User']['certif_public']))) : __("N/A"); ?>
 			</dd>
 		<?php endif; ?>
 		<dt><?php echo __('Nids Sid'); ?></dt>
@@ -101,9 +101,9 @@ $buttonModifyStatus = $mayModify ? 'button_on':'button_off';
 		<dd>
 			<?php
 if (h($user['User']['termsaccepted']) == 1) {
-						echo "Yes";
+						echo __("Yes");
 } else {
-						echo "No";
+						echo __("No");
 }?>
 			&nbsp;
 		</dd>
@@ -111,20 +111,20 @@ if (h($user['User']['termsaccepted']) == 1) {
 		<dd>
 			<?php
 if (h($user['User']['change_pw']) == 1) {
-						echo "Yes";
+						echo __("Yes");
 } else {
-						echo "No";
+						echo __("No");
 }?>
 			&nbsp;
 		</dd>
 		<dt><?php echo __('Newsread'); ?></dt>
 		<dd>
-			<?php echo $user['User']['newsread'] ? date('Y/m/d H:i:s', h($user['User']['newsread'])) : 'N/A'; ?>
+			<?php echo $user['User']['newsread'] ? date('Y/m/d H:i:s', h($user['User']['newsread'])) : __('N/A'); ?>
 			&nbsp;
 		</dd>
 		<dt><?php echo __('Disabled'); ?></dt>
 		<dd <?php if ($user['User']['disabled']) echo 'class="visibleDL notPublished"';?>>
-			<?php echo $user['User']['disabled'] ? 'Yes' : 'No'; ?>
+			<?php echo $user['User']['disabled'] ? __('Yes') : __('No'); ?>
 			&nbsp;
 		</dd>
 	</dl>
@@ -143,7 +143,7 @@ if (h($user['User']['change_pw']) == 1) {
 				$(".loading").show();
 			},
 		    error: function(){
-		    	$('#userEvents').html('An error has occurred, please reload the page.');
+		    	$('#userEvents').html(__('An error has occurred, please reload the page.'));
 		    },
 		    success: function(response){
 		    	$('#userEvents').html(response);
