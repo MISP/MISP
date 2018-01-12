@@ -13,7 +13,7 @@
 		echo $this->Form->input('org_name', array(
 				'div' => 'input clear',
 				'class' => 'input-xxlarge',
-				'label' => 'Organisation name',
+				'label' => __('Organisation name'),
 				'placeholder' => __('(Optional) The organisation name that the organisation is associated with')
 		));
 		echo $this->Form->input('comment', array(
@@ -25,7 +25,7 @@
 	?>
 	</fieldset>
 <?php
-echo $this->Form->button(__('Add', array('class' => 'btn btn-primary'));
+echo $this->Form->button(__('Add'), array('class' => 'btn btn-primary'));
 echo $this->Form->end();
 ?>
 </div>
