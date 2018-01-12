@@ -39,7 +39,7 @@
 <div class="events view">
 	<?php
 		if (Configure::read('MISP.showorg') || $isAdmin) {
-			echo $this->element('img', array('id' => $event['Orgc']['name']));
+			echo $this->element('img', array('id' => $event['Orgc']['name'], 'imgSize' => '48px'));
 		}
 		$title = $event['Event']['info'];
 		if (strlen($title) > 58) $title = substr($title, 0, 55) . '...';
@@ -235,14 +235,22 @@
 					<h3>Related Events</h3>
 					<span class="inline">
 						<?php
+							$count = 0;
+							$total = count($event['RelatedEvent']);
 							foreach ($event['RelatedEvent'] as $relatedEvent):
+								$count++;
 								$relatedData = array('Orgc' => $relatedEvent['Event']['Orgc']['name'], 'Date' => $relatedEvent['Event']['date'], 'Info' => $relatedEvent['Event']['info']);
 								$popover = '';
 								foreach ($relatedData as $k => $v) {
 									$popover .= '<span class=\'bold\'>' . h($k) . '</span>: <span class="blue">' . h($v) . '</span><br />';
 								}
+								if ($count == 11 && $total > 10):
+									?>
+										<div class="no-side-padding correlation-expand-button useCursorPointer linkButton blue">Show (<?php echo $total - $count; ?>) more</div>
+									<?php
+								endif;
 						?>
-								<span data-toggle="popover" data-content="<?php echo h($popover); ?>" data-trigger="hover" style="white-space: nowrap;">
+								<span data-toggle="popover" data-content="<?php echo h($popover); ?>" data-trigger="hover" class="<?php if ($count > 11) echo 'correlation-expanded-area'; ?>" style="white-space: nowrap;<?php echo ($count > 10) ? 'display:none;' : ''; ?>">
 						<?php
 								$linkText = $relatedEvent['Event']['date'] . ' (' . $relatedEvent['Event']['id'] . ')';
 								if ($relatedEvent['Event']['orgc_id'] == $me['org_id']) {
@@ -254,6 +262,11 @@
 								</span>&nbsp;
 						<?php
 							endforeach;
+							if ($total > 10):
+						?>
+							<div class="no-side-padding correlation-collapse-button useCursorPointer linkButton blue" style="display:none;">Collapse...</div>
+						<?php
+							endif;
 						?>
 					</span>
 			<?php
@@ -281,7 +294,7 @@
 									<?php
 										else:
 									?>
-											<a href="<?php echo $baseurl; ?>/feeds/previewIndex/<?php echo h($relatedFeed['id']); ?>"><?php echo h($relatedFeed['name']) . ' (' . $relatedFeed['id'] . ')'; ?></a>
+											<a href="<?php echo $baseurl; ?>/feeds/previewIndex/<?php echo h($relatedFeed['id']); ?>"><?php echo h($relatedFeed['name']) . ' (' . $relatedFeed['id'] . ')'; ?></a><br />
 									<?php
 										endif;
 									?>

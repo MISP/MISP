@@ -71,6 +71,9 @@ class SightingsController extends AppController {
 				}
 			}
 		} else {
+			if ($this->_isRest()) {
+				return $this->RestResponse->describe('Sightings', 'add', false, $this->response->type());
+			}
 			if (!$this->request->is('ajax')) {
 				throw new MethodNotAllowedException('This method is only accessible via POST requests and ajax GET requests.');
 			} else {
@@ -190,7 +193,7 @@ class SightingsController extends AppController {
 		$rawId = $id;
 		$id = $this->Sighting->explodeIdList($id);
 		if ($context === 'attribute') {
-			$object = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id, 'Attribute.deleted' => 0)));
+			$object = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id, 'Attribute.deleted' => 0), 'flatten' => 1));
 		} else {
 			// let's set the context to event here, since we reuse the variable later on for some additional lookups.
 			// Passing $context = 'org' could have interesting results otherwise...

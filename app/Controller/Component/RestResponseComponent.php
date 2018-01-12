@@ -82,6 +82,13 @@ class RestResponseComponent extends Component {
 					'description' => "POST an Server object in JSON format to this API to edit a server.",
 					'optional' => array('url', 'name', 'organisation_type', 'authkey', 'json', 'push', 'pull', 'push_rules', 'pul_rules', 'submitted_cert', 'submitted_client_cert')
 				)
+			),
+			'Sighting' => array(
+				'add' => array(
+					'description' => "POST a simplified sighting object in JSON format to this API to add a or a list of sightings. Pass either value(s) or attribute IDs (can be uuids) to identify the target sightings.",
+					'mandatory' => array('OR' => array('values', 'id')),
+					'optional' => array('type', 'source', 'timestamp', 'date', 'time')
+				)
 			)
 	);
 

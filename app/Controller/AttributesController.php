@@ -234,7 +234,8 @@ class AttributesController extends AppController {
 					if (count($attributes) > 1) {
 						$failKeys = array_keys($fails);
 						foreach ($failKeys as $k => $v) {
-							$failKeys[$k] = intval($v) + 1;
+							$v = explode('_', $v);
+							$failKeys[$k] = intval($v[1]) + 1;
 						}
 						$message = 'Attributes saved, however, attributes ' . implode(', ', $failKeys) . ' could not be saved.';
 					} else {
@@ -738,9 +739,9 @@ class AttributesController extends AppController {
 			if (empty($event)) {
 				throw new NotFoundException('Invalid Event.');
 			}
-			if ($this->Attribute->data['Attribute']['object_id']) {
+			if ($existingAttribute['Attribute']['object_id']) {
 				$result = $this->Attribute->save($this->request->data, array('Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.comment', 'Attribute.distribution', 'Attribute.sharing_group_id'));
-				$this->Attribute->Object->updateTimestamp($id);
+				$this->Attribute->Object->updateTimestamp($existingAttribute['Attribute']['object_id']);
 			} else {
 				$result = $this->Attribute->save($this->request->data);
 			}
