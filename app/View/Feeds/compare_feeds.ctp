@@ -53,7 +53,7 @@
 								endforeach;
 								$title = '';
 								if ($percentage == 0) $popover = __('None or less than 1% of the data of %s is contained in %s (%s matching values)', $item['Feed']['name'], $item2['Feed']['name'], $v['overlap_count']);
-								else if ($percentage > 0) $popover = __('%s\% of the data of %s is contained in %s (%s matching values)',$percentage, $item['Feed']['name'], $item2['Feed']['name'], $v['overlap_count'], ;
+								else if ($percentage > 0) $popover = __('%s\% of the data of %s is contained in %s (%s matching values)',$percentage, $item['Feed']['name'], $item2['Feed']['name'], $v['overlap_count'])
 						?>
 							<td class="<?php echo h($class); ?>">
 								<div data-toggle="popover" data-content="<?php echo h($popover);?>" data-trigger="hover">
