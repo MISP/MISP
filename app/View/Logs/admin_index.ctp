@@ -17,8 +17,8 @@
 
 		foreach ($replaceArray as $type => $replace) {
 			if (isset(${$type . 'Search'}) && ${$type . 'Search'} != $replace['default']) {
-				echo ' ' . $replace['text'] . ' "<b>' . h(${$type . __('Search'})) . '</b>"';
-				${$type . 'SearchReplacePairs'} = $this->Highlight->build_replace_pairs(h(${$type . __('Search'})));
+				echo ' ' . $replace['text'] . ' "<b>' . h(${$type . __('Search')}) . '</b>"';
+				${$type . 'SearchReplacePairs'} = $this->Highlight->build_replace_pairs(h(${$type . __('Search')}));
 			}
 		}
 		echo ":</h4>";
