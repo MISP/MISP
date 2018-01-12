@@ -13,13 +13,13 @@
     <?php echo date('Y-m-d', $object['timestamp']); ?>
   </td>
   <td colspan="<?php echo $fieldCount -2;?>">
-    <span class="bold">Name: </span><?php echo h($object['name']);?>
-    <span class="fa fa-expand useCursorPointer" title="Expand or Collapse" role="button" tabindex="0" aria-label="Expand or Collapse" data-toggle="collapse" data-target="#Object_<?php echo h($object['id']); ?>_collapsible"></span>
+    <span class="bold"><?php echo __('Name');?>: </span><?php echo h($object['name']);?>
+    <span class="fa fa-expand useCursorPointer" title="<?php echo __('Expand or Collapse');?>" role="button" tabindex="0" aria-label="<?php echo __('Expand or Collapse');?>" data-toggle="collapse" data-target="#Object_<?php echo h($object['id']); ?>_collapsible"></span>
     <br />
     <div id="Object_<?php echo $object['id']; ?>_collapsible" class="collapse">
-      <span class="bold">Meta-category: </span><?php echo h($object['meta-category']);?><br />
-      <span class="bold">Description: </span><?php echo h($object['description']);?><br />
-      <span class="bold">Template: </span><?php echo h($object['name']) . ' v' . h($object['template_version']) . ' (' . h($object['template_uuid']) . ')'; ?>
+      <span class="bold"><?php echo __('Meta-category');?>: </span><?php echo h($object['meta-category']);?><br />
+      <span class="bold"><?php echo __('Description');?>: </span><?php echo h($object['description']);?><br />
+      <span class="bold"><?php echo __('Template');?>: </span><?php echo h($object['name']) . ' v' . h($object['template_version']) . ' (' . h($object['template_uuid']) . ')'; ?>
     </div>
     <?php
       echo $this->element('/Servers/View/row_object_reference', array(

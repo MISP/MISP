@@ -1,7 +1,7 @@
 <div class="tag form">
 <?php echo $this->Form->create('Tag');?>
 	<fieldset>
-		<legend>Add Tag</legend>
+		<legend><?php echo __('Add Tag');?></legend>
 	<?php
 		echo $this->Form->input('name', array(
 		));
@@ -9,12 +9,12 @@
 		));
 		echo $this->Form->input('org_id', array(
 				'options' => $orgs,
-				'label' => 'Restrict tagging to org'
+				'label' => __('Restrict tagging to org')
 		));
 		if ($isSiteAdmin) {
 			echo $this->Form->input('user_id', array(
 					'options' => $users,
-					'label' => 'Restrict tagging to user'
+					'label' => __('Restrict tagging to user')
 			));
 		}
 	?>
@@ -32,7 +32,7 @@
 	?>
 	</fieldset>
 <?php
-	echo $this->Form->button('Edit', array('class' => 'btn btn-primary'));
+	echo $this->Form->button(__('Edit'), array('class' => 'btn btn-primary'));
 	echo $this->Form->end();
 ?>
 </div>

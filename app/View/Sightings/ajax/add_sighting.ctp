@@ -8,11 +8,11 @@
 			'style' => 'width:230px;margin-right:0px;'
 	));
 	echo $this->Form->input('source', array(
-		'placeholder' => 'honeypot, IDS sensor id, SIEM,...',
+		'placeholder' => __('honeypot, IDS sensor id, SIEM,…'),
 		'style' => 'width:447px;',
 		'div' => array('style' => 'width:457px !important;')
 	));
-	echo $this->Form->label('Sighting date');
+	echo $this->Form->label(__('Sighting date'));
 	echo $this->Form->input('date', array(
 			'type' => 'text',
 			'id' => 'datepicker',
@@ -30,7 +30,7 @@
 		'label' => false
 	));
 ?>
-<span id="submitButton" role="button" tabindex="0" aria-label="Add sighting" title="Add sighting" class="btn btn-primary" onClick="submitPopoverForm('<?php echo h($id);?>', 'addSighting', '<?php echo h($event_id); ?>')">Add</span>
+<span id="submitButton" role="button" tabindex="0" aria-label="<?php echo __('Add sighting');?>" title="<?php echo __('Add sighting');?>" class="btn btn-primary" onClick="submitPopoverForm('<?php echo h($id);?>', 'addSighting', '<?php echo h($event_id); ?>')"><?php echo __('Add');?></span>
 <div class="input clear"></div>
 <?php
 	echo $this->Form->end();

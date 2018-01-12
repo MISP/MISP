@@ -1,5 +1,5 @@
 <div class="events index">
-	<h2>Event with proposals</h2>
+	<h2><?php echo __('Event with proposals');?></h2>
 	<div class="pagination">
 		<ul>
 		<?php
@@ -21,10 +21,10 @@
 				<?php echo $this->Paginator->sort('published');?>
 			</th>
 			<th><?php echo $this->Paginator->sort('id');?></th>
-			<th><?php echo $this->Paginator->sort('attribute_count', 'Proposals');?></th>
-			<th>Contributors</th>
+			<th><?php echo $this->Paginator->sort('attribute_count', __('Proposals'));?></th>
+			<th><?php echo __('Contributors');?></th>
 			<?php if ($isSiteAdmin): ?>
-			<th><?php echo $this->Paginator->sort('user_id', 'Email');?></th>
+			<th><?php echo $this->Paginator->sort('user_id', __('Email'));?></th>
 			<?php endif; ?>
 			<th class="filter">
 				<?php echo $this->Paginator->sort('date');?>
@@ -42,11 +42,11 @@
 				<?php
 				if ($event['Event']['published'] == 1) {
 				?>
-					<a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] ?>" class = "icon-ok" title = "View"></a>
+					<a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] ?>" class = "icon-ok" title = "<?php echo __('View');?>"></a>
 				<?php
 				} else {
 				?>
-					<a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] ?>" class = "icon-remove" title = "View"></a>
+					<a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] ?>" class = "icon-remove" title = "<?php echo __('View');?>"></a>
 				<?php
 				}?>&nbsp;
 			</td>

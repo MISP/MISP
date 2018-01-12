@@ -1,10 +1,10 @@
 <div class="feed index">
 	<h2><?php echo __('Feeds');?></h2>
-	<h4>Generate feed lookup caches</h4>
+	<h4><?php echo __('Generate feed lookup caches');?></h4>
 	<div class="toggleButtons">
-		<a href="<?php echo $baseurl; ?>/feeds/cacheFeeds/all" class="toggle-left qet btn btn-inverse">All</a>
-		<a href="<?php echo $baseurl; ?>/feeds/cacheFeeds/freetext" class="toggle qet btn btn-inverse">Freetext/CSV</a>
-		<a href="<?php echo $baseurl; ?>/feeds/cacheFeeds/misp" class="toggle-right qet btn btn-inverse">MISP</a>
+		<a href="<?php echo $baseurl; ?>/feeds/cacheFeeds/all" class="toggle-left qet btn btn-inverse"><?php echo __('All');?></a>
+		<a href="<?php echo $baseurl; ?>/feeds/cacheFeeds/freetext" class="toggle qet btn btn-inverse"><?php echo __('Freetext/CSV');?></a>
+		<a href="<?php echo $baseurl; ?>/feeds/cacheFeeds/misp" class="toggle-right qet btn btn-inverse"><?php echo __('MISP');?></a>
 	</div><br />
 	<div class="pagination">
 		<ul>
@@ -23,23 +23,23 @@
 		</ul>
 	</div>
 	<div class="tabMenuFixedContainer" style="display:inline-block;">
-  		<span role="button" tabindex="0" aria-label="Default feeds filter" title="Default feeds" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'default' ? 'tabMenuActive' : ''; ?>" onclick="window.location='/feeds/index/scope:default'">Default feeds</span>
-  		<span role="button" tabindex="0" aria-label="Custom feeds filter" title="Custom feeds" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'custom' ? 'tabMenuActive' : ''; ?> " onclick="window.location='/feeds/index/scope:custom'">Custom Feeds</span>
-  		<span role="button" tabindex="0" aria-label="All feeds" title="All feeds" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'all' ? 'tabMenuActive' : ''; ?> " onclick="window.location='/feeds/index/scope:all'">All Feeds</span>
-			<span role="button" tabindex="0" aria-label="Enabled feeds" title="Enabled feeds" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'enabled' ? 'tabMenuActive' : ''; ?> " onclick="window.location='/feeds/index/scope:enabled'">Enabled Feeds</span>
+  		<span role="button" tabindex="0" aria-label="<?php echo __('Default feeds filter');?>" title="<?php echo __('Default feeds');?>" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'default' ? 'tabMenuActive' : ''; ?>" onclick="window.location='/feeds/index/scope:default'"><?php echo __('Default feeds');?></span>
+  		<span role="button" tabindex="0" aria-label="<?php echo __('Custom feeds filter');?>" title="<?php echo __('Custom feeds');?>" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'custom' ? 'tabMenuActive' : ''; ?> " onclick="window.location='/feeds/index/scope:custom'"><?php echo __('Custom Feeds');?></span>
+  		<span role="button" tabindex="0" aria-label="<?php echo __('All feeds');?>" title="<?php echo __('All feeds');?>" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'all' ? 'tabMenuActive' : ''; ?> " onclick="window.location='/feeds/index/scope:all'"><?php echo __('All Feeds');?></span>
+			<span role="button" tabindex="0" aria-label="<?php echo __('Enabled feeds');?>" title="<?php echo __('Enabled feeds');?>" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'enabled' ? 'tabMenuActive' : ''; ?> " onclick="window.location='/feeds/index/scope:enabled'"><?php echo __('Enabled Feeds');?></span>
   </div>
 	<table class="table table-striped table-hover table-condensed">
 	<tr>
 			<th><?php echo $this->Paginator->sort('id');?></th>
 			<th><?php echo $this->Paginator->sort('name');?></th>
-			<th><?php echo $this->Paginator->sort('source_format', 'Feed Format');?></th>
+			<th><?php echo $this->Paginator->sort('source_format', __('Feed Format'));?></th>
 			<th><?php echo $this->Paginator->sort('provider');?></th>
-			<th><?php echo $this->Paginator->sort('input_source', 'Input');?></th>
+			<th><?php echo $this->Paginator->sort('input_source', __('Input'));?></th>
 			<th><?php echo $this->Paginator->sort('url');?></th>
-			<th>Target</th>
-			<th>Publish</th>
-			<th>Delta Merge</th>
-			<th>Override IDS</th>
+			<th><?php echo __('Target');?></th>
+			<th><?php echo __('Publish');?></th>
+			<th><?php echo __('Delta Merge');?></th>
+			<th><?php echo __('Override IDS');?></th>
 			<th><?php echo $this->Paginator->sort('distribution');?></th>
 			<th><?php echo $this->Paginator->sort('tag');?></th>
 			<th><?php echo $this->Paginator->sort('enabled');?></th>
@@ -91,15 +91,15 @@ foreach ($feeds as $item):
 				if ($item['Feed']['fixed_event']):
 					if (isset($item['Feed']['event_error'])):
 				?>
-					<span class="red bold">Error: Invalid event!</span>
+					<span class="red bold"><?php echo __('Error: Invalid event!');?></span>
 				<?php
 					else:
 						if ($item['Feed']['event_id']):
 						?>
-							<a href="<?php echo $baseurl;?>/events/view/<?php echo h($item['Feed']['event_id']); ?>">Fixed event <?php echo h($item['Feed']['event_id']); ?></a>
+							<a href="<?php echo $baseurl;?>/events/view/<?php echo h($item['Feed']['event_id']); ?>"><?php echo __('Fixed event %s', h($item['Feed']['event_id']));?></a>
 						<?php
 						else:
-							echo 'New fixed event';
+							echo __('New fixed event');
 						endif;
 					endif;
 				endif;
@@ -135,7 +135,7 @@ foreach ($feeds as $item):
 			&nbsp;
 		<?php endif;?>
 		</td>
-		<td class="short"><span class="<?php echo ($item['Feed']['enabled'] ? 'icon-ok' : 'icon-remove'); ?>"></span><span class="short <?php if (!$item['Feed']['enabled'] || empty($ruleDescription)) echo "hidden"; ?>" data-toggle="popover" title="Filter rules" data-content="<?php echo $ruleDescription; ?>"> (Rules)</span>
+		<td class="short"><span class="<?php echo ($item['Feed']['enabled'] ? 'icon-ok' : 'icon-remove'); ?>"></span><span class="short <?php if (!$item['Feed']['enabled'] || empty($ruleDescription)) echo "hidden"; ?>" data-toggle="popover" title="<?php echo __('Filter rules');?>" data-content="<?php echo $ruleDescription; ?>"> (<?php echo __('Rules');?>)</span>
 			<td class="short"><span class="<?php echo ($item['Feed']['lookup_visible'] ? 'icon-ok' : 'icon-remove'); ?>"></span>
 		<td class="short action-links <?php echo !empty($item['Feed']['cache_timestamp']) ? 'bold' : 'bold red';?>">
 			<?php
@@ -152,9 +152,9 @@ foreach ($feeds as $item):
 							break;
 						}
 					}
-					echo 'Age: ' . $last . $unit;
+					echo __('Age: ') . $last . $unit;
 				else:
-					echo 'Not cached';
+					echo __('Not cached');
 				endif;
 				if ($item['Feed']['enabled']):
 			?>
@@ -165,14 +165,14 @@ foreach ($feeds as $item):
 		</td>
 		<td class="short action-links">
 			<?php
-				echo $this->Html->link('', array('action' => 'previewIndex', $item['Feed']['id']), array('class' => 'icon-search', 'title' => 'Explore the events remotely'));
+				echo $this->Html->link('', array('action' => 'previewIndex', $item['Feed']['id']), array('class' => 'icon-search', 'title' => __('Explore the events remotely')));
 				if (!isset($item['Feed']['event_error'])) {
-					if ($item['Feed']['enabled']) echo $this->Html->link('', array('action' => 'fetchFromFeed', $item['Feed']['id']), array('class' => 'icon-download', 'title' => 'Fetch all events'));
+					if ($item['Feed']['enabled']) echo $this->Html->link('', array('action' => 'fetchFromFeed', $item['Feed']['id']), array('class' => 'icon-download', 'title' => __('Fetch all events')));
 				}
 			?>
 			<a href="<?php echo $baseurl;?>/feeds/edit/<?php echo h($item['Feed']['id']); ?>"><span class="icon-edit" title="Edit">&nbsp;</span></a>
-			<?php echo $this->Form->postLink('', array('action' => 'delete', h($item['Feed']['id'])), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to permanently remove the feed (%s)?', h($item['Feed']['name']))); ?>
-			<a href="<?php echo $baseurl;?>/feeds/view/<?php echo h($item['Feed']['id']); ?>.json" title="Download feed metadata as JSON" download><span class="fa fa-cloud-download black"></span></a>
+			<?php echo $this->Form->postLink('', array('action' => 'delete', h($item['Feed']['id'])), array('class' => 'icon-trash', 'title' => __('Delete')), __('Are you sure you want to permanently remove the feed (%s)?', h($item['Feed']['name']))); ?>
+			<a href="<?php echo $baseurl;?>/feeds/view/<?php echo h($item['Feed']['id']); ?>.json" title="<?php echo __('Download feed metadata as JSON');?>" download><span class="fa fa-cloud-download black"></span></a>
 		</td>
 	</tr><?php
 endforeach; ?>

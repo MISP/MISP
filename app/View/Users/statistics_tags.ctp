@@ -4,11 +4,11 @@
 	echo $this->Html->css('cal-heatmap');
 ?>
 <div class = "index">
-<h2>Statistics</h2>
-<?php 
+<h2><?php echo __('Statistics');?></h2>
+<?php
 	echo $this->element('Users/statisticsMenu');
 ?>
-<p>A treemap of the currently used event tags. Click on any of the taxonomies to hide it and click it again to show it.</p>
+<p><?php echo __('A treemap of the currently used event tags. Click on any of the taxonomies to hide it and click it again to show it.');?></p>
 <div id="treemapdiv" class="treemapdiv"></div>
 </div>
 <?php

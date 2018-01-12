@@ -1,5 +1,5 @@
 <div class="popover_choice select_tag">
-	<legend>Select Tag</legend>
+	<legend><?php echo __('Select Tag');?></legend>
 	<div style="display:none;">
 		<?php
 			if (isset($attributeTag)) {
@@ -13,7 +13,7 @@
 		?>
 	</div>
 	<div style="text-align:right;width:100%;" class="select_tag_search">
-		<input id="filterField" style="width:100%;border:0px;padding:0px;" placeholder="search tags..."/>
+		<input id="filterField" style="width:100%;border:0px;padding:0px;" placeholder="<?php echo __('search tags…');?>"/>
 	</div>
 	<div class="popover_choice_main" id ="popover_choice_main">
 		<table style="width:100%;">
@@ -22,14 +22,14 @@
 				<?php if (isset($attributeTag)): ?>
 				<td style="padding-left:10px;padding-right:10px; text-align:center;width:100%;" onClick="quickSubmitAttributeTagForm('<?php echo h($object_id);?>', '<?php echo h($k); ?>');" title="<?php echo h($expanded[$k]);?>" role="button" tabindex="0" aria-label="Attach tag <?php echo h($option); ?>"><?php echo h($option); ?></td>
 				<?php else: ?>
-				<td style="padding-left:10px;padding-right:10px; text-align:center;width:100%;" onClick="quickSubmitTagForm('<?php echo h($object_id);?>', '<?php echo h($k); ?>');" title="<?php echo h($expanded[$k]);?>" role="button" tabindex="0" aria-label="Attach tag <?php echo h($option); ?>"><?php echo h($option); ?></td>
+				<td style="padding-left:10px;padding-right:10px; text-align:center;width:100%;" onClick="quickSubmitTagForm('<?php echo h($object_id);?>', '<?php echo h($k); ?>');" title="<?php echo h($expanded[$k]);?>" role="button" tabindex="0" aria-label="<?php echo __('Attach tag');?> <?php echo h($option); ?>"><?php echo h($option); ?></td>
 				<?php endif; ?>
 			</tr>
 		<?php endforeach; ?>
 		</table>
 	</div>
-	<div role="button" tabindex="0" aria-label="Return to taxonomy selection" class="popover-back useCursorPointer" onClick="getPopup('<?php echo h($object_id); if (isset($attributeTag)) echo '/true'; ?>', 'tags', 'selectTaxonomy');" title="Select Taxonomy">Back to Taxonomy Selection</div>
-	<div role="button" tabindex="0" aria-label="Cancel" class="templateChoiceButton templateChoiceButtonLast" onClick="cancelPopoverForm();">Cancel</div>
+	<div role="button" tabindex="0" aria-label="<?php echo __('Return to taxonomy selection');?>" class="popover-back useCursorPointer" onClick="getPopup('<?php echo h($object_id); if (isset($attributeTag)) echo '/true'; ?>', 'tags', 'selectTaxonomy');" title="<?php echo __('Select Taxonomy');?>"><?php echo __('Back to Taxonomy Selection');?></div>
+	<div role="button" tabindex="0" aria-label="<?php echo __('Cancel');?>" class="templateChoiceButton templateChoiceButtonLast" onClick="cancelPopoverForm();"><?php echo __('Cancel');?></div>
 </div>
 <script type="text/javascript">
 	var tags = <?php echo json_encode($options); ?>;

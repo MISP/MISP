@@ -9,12 +9,12 @@
 			<?php
 			echo $this->Form->hidden('event_id');
 			echo $this->Form->input('category', array(
-				'empty' => '(choose one)',
-				'label' => 'Category ' . $this->element('formInfo', array('type' => 'category')),
+				'empty' => __('(choose one)'),
+				'label' => __('Category ') . $this->element('formInfo', array('type' => 'category')),
 			));
 			echo $this->Form->input('type', array(
-				'empty' => '(first choose category)',
-				'label' => 'Type ' . $this->element('formInfo', array('type' => 'type')),
+				'empty' => __('(first choose category)'),
+				'label' => __('Type ') . $this->element('formInfo', array('type' => 'type')),
 			));
 
 			$initialDistribution = 5;
@@ -32,7 +32,7 @@
 
 			echo $this->Form->input('distribution', array(
 				'options' => array($distributionLevels),
-				'label' => 'Distribution ' . $this->element('formInfo', array('type' => 'distribution')),
+				'label' => __('Distribution ') . $this->element('formInfo', array('type' => 'distribution')),
 				'selected' => $initialDistribution,
 			));
 			?>
@@ -41,7 +41,7 @@
 				if (!empty($sharingGroups)) {
 					echo $this->Form->input('sharing_group_id', array(
 							'options' => array($sharingGroups),
-							'label' => 'Sharing Group',
+							'label' => __('Sharing Group'),
 					));
 				}
 			?>
@@ -58,7 +58,7 @@
 			<?php
 			echo $this->Form->input('comment', array(
 					'type' => 'text',
-					'label' => 'Contextual Comment',
+					'label' => __('Contextual Comment'),
 					'error' => array('escape' => false),
 					'div' => 'input clear',
 					'class' => 'input-xxlarge'
@@ -68,7 +68,7 @@
 			<?php
 			echo $this->Form->input('to_ids', array(
 						'checked' => false,
-						'label' => 'for Intrusion Detection System',
+						'label' => __('for Intrusion Detection System'),
 			));
 			echo $this->Form->input('batch_import', array(
 					'type' => 'checkbox'
@@ -81,13 +81,13 @@
 			<table>
 				<tr>
 				<td style="vertical-align:bottom">
-					<span id="submitButton" class="btn btn-primary" title="Submit" role="button" tabindex="0" aria-label="Submit" onClick="submitPopoverForm('<?php echo $event_id;?>', 'add')">Submit</span>
+					<span id="submitButton" class="btn btn-primary" title="<?php echo __('Submit'); ?>" role="button" tabindex="0" aria-label="<?php echo __('Submit'); ?>" onClick="submitPopoverForm('<?php echo $event_id;?>', 'add')"><?php echo __('Submit'); ?></span>
 				</td>
 				<td style="width:540px;margin-bottom:0px;">
-					<p style="color:red;font-weight:bold;display:none;text-align:center;margin-bottom:0px;" id="warning-message">Warning: You are about to share data that is of a classified nature. Make sure that you are authorised to share this.</p>
+					<p style="color:red;font-weight:bold;display:none;text-align:center;margin-bottom:0px;" id="warning-message"><?php echo __('Warning: You are about to share data that is of a classified nature. Make sure that you are authorised to share this.'); ?></p>
 				</td>
 				<td style="vertical-align:bottom;">
-					<span class="btn btn-inverse" title="Cancel" role="button" tabindex="0" aria-label="Cancel" id="cancel_attribute_add">Cancel</span>
+					<span class="btn btn-inverse" title="<?php echo __('Cancel'); ?>" role="button" tabindex="0" aria-label="<?php echo __('Cancel'); ?>" id="cancel_attribute_add"><?php echo __('Cancel'); ?></span>
 				</td>
 				</tr>
 			</table>
@@ -95,7 +95,7 @@
 	<?php
 		else:
 	?>
-		<p style="color:red;font-weight:bold;display:none;" id="warning-message">Warning: You are about to share data that is of a classified nature. Make sure that you are authorised to share this.</p>
+		<p style="color:red;font-weight:bold;display:none;" id="warning-message"><?php echo __('Warning: You are about to share data that is of a classified nature. Make sure that you are authorised to share this.'); ?></p>
 	<?php
 			echo $this->Form->button('Submit', array('class' => 'btn btn-primary'));
 		endif;

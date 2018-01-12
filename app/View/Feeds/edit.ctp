@@ -1,8 +1,8 @@
 <div class="feed form">
 <?php echo $this->Form->create('Feed');?>
 	<fieldset>
-		<legend>Edit MISP Feed</legend>
-		<p>Edit a new MISP feed source.</p>
+		<legend><?php echo __('Edit MISP Feed');?></legend>
+		<p><?php echo __('Edit a new MISP feed source.');?></p>
 	<?php
 			echo $this->Form->input('enabled', array());
 	?>
@@ -11,16 +11,16 @@
 			echo $this->Form->input('lookup_visible', array());
 			echo $this->Form->input('name', array(
 					'div' => 'input clear',
-					'placeholder' => 'Feed name',
+					'placeholder' => __('Feed name'),
 					'class' => 'form-control span6',
 			));
 			echo $this->Form->input('provider', array(
 					'div' => 'input clear',
-					'placeholder' => 'Name of the content provider',
+					'placeholder' => __('Name of the content provider'),
 					'class' => 'form-control span6'
 			));
 			echo $this->Form->input('input_source', array(
-					'label' => 'Source Format',
+					'label' => __('Source Format'),
 					'div' => 'input clear',
 					'options' => array('network' => 'Network', 'local' => 'Local'),
 					'class' => 'form-control span6'
@@ -30,7 +30,7 @@
 			<div id="DeleteLocalFileDiv" class="optionalField">
 					<?php
 						echo $this->Form->input('delete_local_file', array(
-								'label' => 'Remove input after ingestion'
+								'label' => __('Remove input after ingestion')
 						));
 				?>
 			</div>
@@ -38,11 +38,11 @@
 			<?php
 			echo $this->Form->input('url', array(
 					'div' => 'input clear',
-					'placeholder' => 'URL of the feed',
+					'placeholder' => __('URL of the feed'),
 					'class' => 'form-control span6'
 			));
 			echo $this->Form->input('source_format', array(
-					'label' => 'Source Format',
+					'label' => __('Source Format'),
 					'div' => 'input clear',
 					'options' => $feed_types,
 					'class' => 'form-control span6'
@@ -51,7 +51,7 @@
 		<div id="TargetDiv" class="optionalField">
 		<?php
 			echo $this->Form->input('fixed_event', array(
-					'label' => 'Target Event',
+					'label' => __('Target Event'),
 					'div' => 'input clear',
 					'options' => array('New Event Each Pull', 'Fixed Event'),
 					'class' => 'form-control span6'
@@ -61,9 +61,9 @@
 		<div id="TargetEventDiv" class="optionalField">
 		<?php
 			echo $this->Form->input('target_event', array(
-					'label' => 'Target Event ID',
+					'label' => __('Target Event ID'),
 					'div' => 'input clear',
-					'placeholder' => 'Leave blank unless you want to reuse an existing event.',
+					'placeholder' => __('Leave blank unless you want to reuse an existing event.'),
 					'class' => 'form-control span6'
 			));
 		?>
@@ -71,10 +71,10 @@
 		<div id="settingsCsvValueDiv" class="optionalField">
 			<?php
 				echo $this->Form->input('Feed.settings.csv.value', array(
-						'label' => 'Value field(s) in the CSV',
-						'title' => 'Select one or several fields that should be parsed by the CSV parser and converted into MISP attributes',
+						'label' => __('Value field(s) in the CSV'),
+						'title' => __('Select one or several fields that should be parsed by the CSV parser and converted into MISP attributes'),
 						'div' => 'input clear',
-						'placeholder' => '2,3,4 (column position separated by commas)',
+						'placeholder' => __('2,3,4 (column position separated by commas)'),
 						'class' => 'form-control span6'
 				));
 			?>
@@ -82,8 +82,8 @@
 		<div id="settingsCsvDelimiterDiv" class="optionalField">
 			<?php
 				echo $this->Form->input('Feed.settings.csv.delimiter', array(
-						'label' => 'Delimiter',
-						'title' => 'Set the default CSV delimiter (default = ",")',
+						'label' => __('Delimiter'),
+						'title' => __('Set the default CSV delimiter (default = ",")'),
 						'div' => 'input clear',
 						'placeholder' => ',',
 						'class' => 'form-control span6'
@@ -93,10 +93,10 @@
 		<div id="settingsCommonExcluderegexDiv" class="optionalField">
 			<?php
 				echo $this->Form->input('Feed.settings.common.excluderegex', array(
-						'label' => 'Exclusion Regex',
-						'title' => 'Add a regex pattern for detecting iocs that should be skipped (this can be useful to exclude any references to the actual report / feed for example)',
+						'label' => __('Exclusion Regex'),
+						'title' => __('Add a regex pattern for detecting iocs that should be skipped (this can be useful to exclude any references to the actual report / feed for example)'),
 						'div' => 'input clear',
-						'placeholder' => 'Regex pattern, for example: "/^https://myfeedurl/i"',
+						'placeholder' => __('Regex pattern, for example: "/^https://myfeedurl/i"'),
 						'class' => 'form-control span6'
 				));
 			?>
@@ -104,7 +104,7 @@
 		<div id="PublishDiv" class="input clear optionalField">
 		<?php
 			echo $this->Form->input('publish', array(
-					'label' => 'Auto Publish',
+					'label' => __('Auto Publish'),
 					'type' => 'checkbox',
 					'class' => 'form-control'
 			));
@@ -113,8 +113,8 @@
 		<div id="OverrideIdsDiv" class="input clear optionalField">
 		<?php
 			echo $this->Form->input('override_ids', array(
-					'label' => 'Override IDS Flag',
-					'title' => 'If checked, the IDS flags will always be set to off when pulling from this feed',
+					'label' => __('Override IDS Flag'),
+					'title' => __('If checked, the IDS flags will always be set to off when pulling from this feed'),
 					'type' => 'checkbox',
 					'class' => 'form-control'
 			));
@@ -123,8 +123,8 @@
 		<div id="DeltaMergeDiv" class="input clear optionalField">
 		<?php
 			echo $this->Form->input('delta_merge', array(
-					'label' => 'Delta Merge',
-					'title' => 'Merge attributes (only add new attributes, remove revoked attributes)',
+					'label' => __('Delta Merge'),
+					'title' => __('Merge attributes (only add new attributes, remove revoked attributes)'),
 					'type' => 'checkbox',
 					'class' => 'form-control'
 			));
@@ -134,7 +134,7 @@
 			echo $this->Form->input('distribution', array(
 					'options' => array($distributionLevels),
 					'div' => 'input clear',
-					'label' => 'Distribution',
+					'label' => __('Distribution'),
 			));
 		?>
 		<div id="SGContainer" style="display:none;">
@@ -142,7 +142,7 @@
 			if (!empty($sharingGroups)) {
 				echo $this->Form->input('sharing_group_id', array(
 						'options' => array($sharingGroups),
-						'label' => 'Sharing Group',
+						'label' => __('Sharing Group'),
 				));
 			}
 		?>
@@ -151,19 +151,19 @@
 		<?php
 			echo $this->Form->input('tag_id', array(
 					'options' => $tags,
-					'label' => 'Default Tag',
+					'label' => __('Default Tag'),
 			));
 		echo $this->Form->input('pull_rules', array('style' => 'display:none;', 'label' => false, 'div' => false));
 	?>
 	</fieldset>
-	<b>Filter rules:</b><br />
-	<span id="pull_tags_OR" style="display:none;">Events with the following tags allowed: <span id="pull_tags_OR_text" style="color:green;"></span><br /></span>
-	<span id="pull_tags_NOT" style="display:none;">Events with the following tags blocked: <span id="pull_tags_NOT_text" style="color:red;"></span><br /></span>
-	<span id="pull_orgs_OR" style="display:none;">Events with the following organisations allowed: <span id="pull_orgs_OR_text" style="color:green;"></span><br /></span>
-	<span id="pull_orgs_NOT" style="display:none;">Events with the following organisations blocked: <span id="pull_orgs_NOT_text" style="color:red;"></span><br /></span>
-	<span id="pull_modify"  class="btn btn-inverse" style="line-height:10px; padding: 4px 4px;">Modify</span><br /><br />
+	<b><?php echo __('Filter rules');?>:</b><br />
+	<span id="pull_tags_OR" style="display:none;"><?php echo __('Events with the following tags allowed');?>: <span id="pull_tags_OR_text" style="color:green;"></span><br /></span>
+	<span id="pull_tags_NOT" style="display:none;"><?php echo __('Events with the following tags blocked');?>: <span id="pull_tags_NOT_text" style="color:red;"></span><br /></span>
+	<span id="pull_orgs_OR" style="display:none;"><?php echo __('Events with the following organisations allowed');?>: <span id="pull_orgs_OR_text" style="color:green;"></span><br /></span>
+	<span id="pull_orgs_NOT" style="display:none;"><?php echo __('Events with the following organisations blocked');?>: <span id="pull_orgs_NOT_text" style="color:red;"></span><br /></span>
+	<span id="pull_modify"  class="btn btn-inverse" style="line-height:10px; padding: 4px 4px;"><?php echo __('Modify');?></span><br /><br />
 	<?php
-	echo $this->Form->button('Edit', array('class' => 'btn btn-primary'));
+	echo $this->Form->button(__('Edit'), array('class' => 'btn btn-primary'));
 	echo $this->Form->end();
 	?>
 	<div id="hiddenRuleForms">
@@ -176,16 +176,16 @@
 <script type="text/javascript">
 //
 var formInfoValues = {
-		'ServerUrl' : "The base-url to the external server you want to sync with. Example: https://foo.sig.mil.be",
-		'ServerName' : "A name that will make it clear to your users what this instance is. For example: Organisation A's instance",
-		'ServerOrganization' : "The organization having the external server you want to sync with. Example: BE",
-		'ServerAuthkey' : "You can find the authentication key on your profile on the external server.",
-		'ServerPush' : "Allow the upload of events and their attributes.",
-		'ServerPull' : "Allow the download of events and their attributes from the server.",
-		'ServerUnpublishEvent' : 'Unpublish new event (working with Push event).',
-		'ServerPublishWithoutEmail' : 'Publish new event without email (working with Pull event).',
-		'ServerSubmittedCert' : "You can also upload a certificate file if the instance you are trying to connect to has its own signing authority.",
-		'ServerSelfSigned' : "Click this, if you would like to allow a connection despite the other instance using a self-signed certificate (not recommended)."
+		'ServerUrl' : "<?php echo __('The base-url to the external server you want to sync with. Example: https://foo.sig.mil.be');?>",
+		'ServerName' : "<?php echo __('A name that will make it clear to your users what this instance is. For example: Organisation A\'s instance');?>",
+		'ServerOrganization' : "<?php echo __('The organization having the external server you want to sync with. Example: BE');?>",
+		'ServerAuthkey' : "<?php echo __('You can find the authentication key on your profile on the external server.');?>",
+		'ServerPush' : "<?php echo __('Allow the upload of events and their attributes.');?>",
+		'ServerPull' : "<?php echo __('Allow the download of events and their attributes from the server.');?>",
+		'ServerUnpublishEvent' : '<?php echo __('Unpublish new event (working with Push event).');?>',
+		'ServerPublishWithoutEmail' : '<?php echo __('Publish new event without email (working with Pull event).');?>',
+		'ServerSubmittedCert' : "<?php echo __('You can also upload a certificate file if the instance you are trying to connect to has its own signing authority.');?>",
+		'ServerSelfSigned' : "<?php echo __('Click this, if you would like to allow a connection despite the other instance using a self-signed certificate (not recommended).');?>"
 };
 
 

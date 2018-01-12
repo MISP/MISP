@@ -1,4 +1,4 @@
-<span class="bold">References: </span>
+<span class="bold"><?php echo __('References: ');?></span>
 <?php
   $refCount = count($object['ObjectReference']);
   if ($deleted) {
@@ -18,11 +18,11 @@
   echo $refCount . ' ';
   if (!empty($object['ObjectReference'])):
 ?>
-    <span class="fa fa-expand useCursorPointer" title="Expand or Collapse" role="button" tabindex="0" aria-label="Expand or Collapse" data-toggle="collapse" data-target="#Object_<?php echo h($object['id']); ?>_references_collapsible"></span>
+    <span class="fa fa-expand useCursorPointer" title="<?php echo __('Expand or Collapse');?>" role="button" tabindex="0" aria-label="<?php echo __('Expand or Collapse');?>" data-toggle="collapse" data-target="#Object_<?php echo h($object['id']); ?>_references_collapsible"></span>
 <?php
   endif;
 ?>
-<span class="fa fa-plus-square useCursorPointer" title="Add reference" role="button" tabindex="0" aria-label="Add reference" onClick="genericPopup('<?php echo '/objectReferences/add/' . h($object['id']);?>', '#popover_form');"></span>
+<span class="fa fa-plus-square useCursorPointer" title="<?php echo __('Add reference');?>" role="button" tabindex="0" aria-label="<?php echo __('Add reference');?>" onClick="genericPopup('<?php echo '/objectReferences/add/' . h($object['id']);?>', '#popover_form');"></span>
 <div id="Object_<?php echo $object['id']; ?>_references_collapsible" class="collapse">
 <?php
   foreach ($object['ObjectReference'] as $reference):
@@ -42,7 +42,7 @@
     <a class="bold white useCursorPointer <?php echo $reference['deleted'] ? 'strikethrough' : ''; ?>" onClick="pivotObjectReferences('<?php echo h($currentUri); ?>', '<?php echo $uuid; ?>')">
       <?php echo h($reference['relationship_type']) . ' ' . $objectType . ' ' . $reference['referenced_id'] . h($output);?>
     </a>
-    <span class="icon-trash icon-white useCursorPointer" title="Delete object reference" role="button" tabindex="0" aria-label="Delete object reference" onClick="deleteObject('object_references', 'delete', '<?php echo h($idref); ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
+    <span class="icon-trash icon-white useCursorPointer" title="<?php echo __('Delete object reference');?>" role="button" tabindex="0" aria-label="<?php echo __('Delete object reference');?>" onClick="deleteObject('object_references', 'delete', '<?php echo h($idref); ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
     <br />
 <?php
   endforeach;

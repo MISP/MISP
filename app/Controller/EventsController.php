@@ -216,11 +216,14 @@ class EventsController extends AppController {
 		$tags = $this->Event->EventTag->Tag->find('all', array(
 				'conditions' => $subconditions,
 				'fields' => array('name', 'id'),
-				'contain' => array('EventTag'),
+				'contain' => array('EventTag', 'AttributeTag'),
 		));
 		foreach ($tags as $tag) {
 			foreach ($tag['EventTag'] as $eventTag) {
 				if (!in_array($eventTag['event_id'], $result)) $result[] = $eventTag['event_id'];
+			}
+			foreach ($tag['AttributeTag'] as $attributeTag) {
+				if (!in_array($attributeTag['event_id'], $result)) $result[] = $attributeTag['event_id'];
 			}
 		}
 
@@ -776,6 +779,7 @@ class EventsController extends AppController {
 		if (isset($this->params['named']['deleted']) && $this->params['named']['deleted']) {
 			$conditions['deleted'] = 1;
 		}
+		$conditions['includeFeedCorrelations'] = true;
 		$results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
 		if (empty($results)) throw new NotFoundException('Invalid event');
 		$event = $results[0];

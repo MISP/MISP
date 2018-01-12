@@ -3,17 +3,17 @@
 	$url = ($action == 'add') ? '/objects/revise_object/add/' . $event['Event']['id'] . '/' . $template['ObjectTemplate']['id'] : '/objects/revise_object/edit/' . $event['Event']['id'] . '/' . $template['ObjectTemplate']['id'] . '/' . $object['Object']['id'];
 	echo $this->Form->create('Object', array('id', 'url' => $url, 'enctype' => 'multipart/form-data'));
 ?>
-<h3><?php echo ucfirst($action) . ' ' . Inflector::humanize(h($template['ObjectTemplate']['name'])) . ' Object'; ?></h3>
+<h3><?php echo ucfirst($action) . ' ' . Inflector::humanize(h($template['ObjectTemplate']['name'])) . __(' Object'); ?></h3>
 <div class="row-fluid" style="margin-bottom:10px;">
   <dl class="span8">
-    <dt>Object Template</dt>
+    <dt><?php echo __('Object Template');?></dt>
     <dd>
       <?php
         echo Inflector::humanize(h($template['ObjectTemplate']['name'])) . ' v' . h($template['ObjectTemplate']['version']);
       ?>
       &nbsp;
     </dd>
-    <dt>Description</dt>
+    <dt><?php echo __('Description');?></dt>
     <dd>
       <?php echo h($template['ObjectTemplate']['description']); ?>&nbsp;
     </dd>
@@ -34,11 +34,11 @@
     <?php
       endif;
     ?>
-    <dt>Meta category</dt>
+    <dt><?php echo __('Meta category');?></dt>
     <dd>
       <?php echo Inflector::humanize(h($template['ObjectTemplate']['meta-category'])); ?>&nbsp;
     </dd>
-    <dt>Distribution</dt>
+    <dt><?php echo __('Distribution');?></dt>
     <dd>
       <?php
           echo $this->Form->input('Object.distribution', array(
@@ -58,7 +58,7 @@
         ));
       ?>
     </dd>
-    <dt>Comment</dt>
+    <dt><?php echo __('Comment');?></dt>
     <dd>
       <?php
         echo $this->Form->input('Object.comment', array(
@@ -77,7 +77,7 @@
 <?php
 	if (!empty($template['warnings'])):
 	?>
-		<span class="red bold">Warning, issues found with the template:</span>
+		<span class="red bold"><?php echo __('Warning, issues found with the template');?>:</span>
 		<div class="red">
 	<?php
 			foreach ($template['warnings'] as $warning) {
@@ -90,15 +90,15 @@
 ?>
 <table class="table table-striped table-condensed">
   <tr>
-    <th>Save</th>
-    <th>Name :: type</th>
-		<th>Description</th>
-    <th>Category</th>
-    <th>Value</th>
-    <th>IDS</th>
-		<th>Disable Correlation</th>
-    <th>Distribution</th>
-    <th>Comment</th>
+    <th><?php echo __('Save');?></th>
+    <th><?php echo __('Name :: type');?></th>
+		<th><?php echo __('Description');?></th>
+    <th><?php echo __('Category');?></th>
+    <th><?php echo __('Value');?></th>
+    <th><?php echo __('IDS');?></th>
+		<th><?php echo __('Disable Correlation');?></th>
+    <th><?php echo __('Distribution');?></th>
+    <th><?php echo __('Comment');?></th>
   </tr>
 <?php
   $row_list = array();
@@ -145,13 +145,13 @@
 			<table>
 				<tr>
 				<td style="vertical-align:bottom">
-					<span id="submitButton" class="btn btn-primary" title="Submit" role="button" tabindex="0" aria-label="Submit" onClick="submitPopoverForm('<?php echo $event_id;?>', 'add')">Submit</span>
+					<span id="submitButton" class="btn btn-primary" title="<?php echo __('Submit');?>" role="button" tabindex="0" aria-label="<?php echo __('Submit');?>" onClick="submitPopoverForm('<?php echo $event_id;?>', 'add')"><?php echo __('Submit');?></span>
 				</td>
 				<td style="width:540px;margin-bottom:0px;">
-					<p style="color:red;font-weight:bold;display:none;text-align:center;margin-bottom:0px;" id="warning-message">Warning: You are about to share data that is of a classified nature. Make sure that you are authorised to share this.</p>
+					<p style="color:red;font-weight:bold;display:none;text-align:center;margin-bottom:0px;" id="warning-message"><?php echo __('Warning: You are about to share data that is of a classified nature. Make sure that you are authorised to share this.');?></p>
 				</td>
 				<td style="vertical-align:bottom;">
-					<span class="btn btn-inverse" title="Cancel" role="button" tabindex="0" aria-label="Cancel" id="cancel_attribute_add">Cancel</span>
+					<span class="btn btn-inverse" title="<?php echo __('Cancel');?>" role="button" tabindex="0" aria-label="<?php echo __('Cancel');?>" id="cancel_attribute_add"><?php echo __('Cancel');?></span>
 				</td>
 				</tr>
 			</table>
@@ -159,7 +159,7 @@
 	<?php
 		else:
 	?>
-		<p style="color:red;font-weight:bold;display:none;" id="warning-message">Warning: You are about to share data that is of a classified nature. Make sure that you are authorised to share this.</p>
+		<p style="color:red;font-weight:bold;display:none;" id="warning-message"><?php echo __('Warning: You are about to share data that is of a classified nature. Make sure that you are authorised to share this.');?></p>
 	<?php
 			echo $this->Form->button('Submit', array('class' => 'btn btn-primary'));
 		endif;
@@ -176,7 +176,7 @@
   $(document).ready(function() {
     enableDisableObjectRows(rows);
 		$(".Attribute_value_select").each(function() {
-      checkAndEnable($(this).parent().find('.Attribute_value'), $(this).val() == 'Enter value manually');
+      checkAndEnable($(this).parent().find('.Attribute_value'), $(this).val() == '<?php echo __('Enter value manually');?>');
     });
     $(".Attribute_distribution_select").change(function() {
       checkAndEnable($(this).parent().find('.Attribute_sharing_group_id_select'), $(this).val() == 4);
@@ -186,7 +186,7 @@
       checkAndEnable($(this).parent().find('.Object_sharing_group_id_select'), $(this).val() == 4);
     });
     $(".Attribute_value_select").change(function() {
-      checkAndEnable($(this).parent().find('.Attribute_value'), $(this).val() == 'Enter value manually');
+      checkAndEnable($(this).parent().find('.Attribute_value'), $(this).val() == '<?php echo __('Enter value manually');?>');
     });
 		$('.add_attribute_row').click(function() {
 			var selector = $(this).data('target');

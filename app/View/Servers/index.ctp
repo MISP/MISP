@@ -1,5 +1,5 @@
 <div class="servers index">
-	<h2>Servers</h2>
+	<h2><?php echo __('Servers');?></h2>
 	<div class="pagination">
 		<ul>
 		<?php
@@ -20,19 +20,19 @@
 	<tr>
 			<th><?php echo $this->Paginator->sort('id');?></th>
 			<th><?php echo $this->Paginator->sort('name');?></th>
-			<th>Connection test</th>
+			<th><?php echo __('Connection test');?></th>
 			<th><?php echo $this->Paginator->sort('internal');?></th>
 			<th><?php echo $this->Paginator->sort('push');?></th>
 			<th><?php echo $this->Paginator->sort('pull');?></th>
 			<th><?php echo $this->Paginator->sort('unpublish_event (push event)');?></th>
 			<th><?php echo $this->Paginator->sort('publish_without_email (pull event)');?></th>
 			<th><?php echo $this->Paginator->sort('url');?></th>
-			<th>Remote Organisation</th>
+			<th><?php echo __('Remote Organisation');?></th>
 			<th><?php echo $this->Paginator->sort('cert_file');?></th>
 			<th><?php echo $this->Paginator->sort('client_cert_file');?></th>
 			<th><?php echo $this->Paginator->sort('self_signed');?></th>
 			<th><?php echo $this->Paginator->sort('org');?></th>
-			<th class="actions">Actions</th>
+			<th class="actions"><?php echo __('Actions');?></th>
 	</tr>
 	<?php
 foreach ($servers as $server):
@@ -67,10 +67,10 @@ foreach ($servers as $server):
 				else echo h($server['Server']['url']);
 			?>
 		</td>
-		<td id="connection_test_<?php echo $server['Server']['id'];?>"><span role="button" tabindex="0" aria-label="Test the connection to the remote instance" title="Test the connection to the remote intance" class="btn btn-primary" style="line-height:10px; padding: 4px 4px;" onClick="testConnection('<?php echo $server['Server']['id'];?>');">Run</span></td>
-		<td><span class="<?php echo ($server['Server']['internal']? 'icon-ok' : 'icon-remove'); ?>" title="<?php echo ($server['Server']['internal']? 'Internal instance that ignores distribution level degradation *WARNING: Only use this setting if you have several insternal instances and the sync link is to an internal extension of the current MISP community*' : 'Normal sync link to an external MISP instance. Distribution degradation will follow the normal rules.'); ?>"></span></td>
-		<td><span class="<?php echo ($server['Server']['push']? 'icon-ok' : 'icon-remove'); ?>"></span><span class="short <?php if (!$server['Server']['push'] || empty($ruleDescription['push'])) echo "hidden"; ?>" data-toggle="popover" title="Distribution List" data-content="<?php echo $ruleDescription['push']; ?>"> (Rules)</span></td>
-		<td><span class="<?php echo ($server['Server']['pull']? 'icon-ok' : 'icon-remove'); ?>"></span><span class="short <?php if (!$server['Server']['pull'] || empty($ruleDescription['pull'])) echo "hidden"; ?>" data-toggle="popover" title="Distribution List" data-content="<?php echo $ruleDescription['pull']; ?>"> (Rules)</span>
+		<td id="connection_test_<?php echo $server['Server']['id'];?>"><span role="button" tabindex="0" aria-label="<?php echo __('Test the connection to the remote instance');?>" title="<?php echo __('Test the connection to the remote instance');?>" class="btn btn-primary" style="line-height:10px; padding: 4px 4px;" onClick="testConnection('<?php echo $server['Server']['id'];?>');"><?php echo __('Run');?></span></td>
+		<td><span class="<?php echo ($server['Server']['internal']? 'icon-ok' : 'icon-remove'); ?>" title="<?php echo ($server['Server']['internal']? __('Internal instance that ignores distribution level degradation *WARNING: Only use this setting if you have several internal instances and the sync link is to an internal extension of the current MISP community*') : __('Normal sync link to an external MISP instance. Distribution degradation will follow the normal rules.')); ?>"></span></td>
+		<td><span class="<?php echo ($server['Server']['push']? 'icon-ok' : 'icon-remove'); ?>"></span><span class="short <?php if (!$server['Server']['push'] || empty($ruleDescription['push'])) echo "hidden"; ?>" data-toggle="popover" title="Distribution List" data-content="<?php echo $ruleDescription['push']; ?>"> (<?php echo __('Rules');?>)</span></td>
+		<td><span class="<?php echo ($server['Server']['pull']? 'icon-ok' : 'icon-remove'); ?>"></span><span class="short <?php if (!$server['Server']['pull'] || empty($ruleDescription['pull'])) echo "hidden"; ?>" data-toggle="popover" title="Distribution List" data-content="<?php echo $ruleDescription['pull']; ?>"> (<?php echo __('Rules');?>)</span>
 		<td class="short"><span class="<?php echo ($server['Server']['unpublish_event'] ? 'icon-ok' : 'icon-remove'); ?>"></span></td>
 		<td class="short"><span class="<?php echo ($server['Server']['publish_without_email'] ? 'icon-ok' : 'icon-remove'); ?>"></span></td>
 		<td><?php echo h($server['Server']['url']); ?>&nbsp;</td>
@@ -81,20 +81,20 @@ foreach ($servers as $server):
 		<td class="short"><a href="/organisations/view/<?php echo h($server['Organisation']['id']); ?>"><?php echo h($server['Organisation']['name']); ?></a></td>
 		<td class="short action-links">
 			<?php
-			echo $this->Html->link('', array('action' => 'previewIndex', $server['Server']['id']), array('class' => 'icon-search', 'title' => 'Explore'));
+			echo $this->Html->link('', array('action' => 'previewIndex', $server['Server']['id']), array('class' => 'icon-search', 'title' => __('Explore')));
 			if ($server['Server']['pull']) {
-				echo $this->Html->link('', array('action' => 'pull', $server['Server']['id'], 'update'), array('class' => 'icon-refresh', 'title' => 'Pull updates to events that already exist locally'));
-				echo $this->Html->link('', array('action' => 'pull', $server['Server']['id'], 'full'), array('class' => 'icon-download', 'title' => 'Pull all'));
+				echo $this->Html->link('', array('action' => 'pull', $server['Server']['id'], 'update'), array('class' => 'icon-refresh', 'title' => __('Pull updates to events that already exist locally')));
+				echo $this->Html->link('', array('action' => 'pull', $server['Server']['id'], 'full'), array('class' => 'icon-download', 'title' => __('Pull all')));
 			}
 			if ($server['Server']['push']) {
-				echo $this->Html->link('', array('action' => 'push', $server['Server']['id'], 'full'), array('class' => 'icon-upload', 'title' => 'Push all'));
+				echo $this->Html->link('', array('action' => 'push', $server['Server']['id'], 'full'), array('class' => 'icon-upload', 'title' => __('Push all')));
 			}
 			?>
 			&nbsp;
 			<?php
 			$mayModify = ($isSiteAdmin);
-			if ($mayModify) echo $this->Html->link('', array('action' => 'edit', $server['Server']['id']), array('class' => 'icon-edit', 'title' => 'Edit'));
-			if ($mayModify) echo $this->Form->postLink('', array('action' => 'delete', $server['Server']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete # %s?', $server['Server']['id']));
+			if ($mayModify) echo $this->Html->link('', array('action' => 'edit', $server['Server']['id']), array('class' => 'icon-edit', 'title' => __('Edit')));
+			if ($mayModify) echo $this->Form->postLink('', array('action' => 'delete', $server['Server']['id']), array('class' => 'icon-trash', 'title' => __('Delete')), __('Are you sure you want to delete # %s?', $server['Server']['id']));
 			?>
 
 		</td>

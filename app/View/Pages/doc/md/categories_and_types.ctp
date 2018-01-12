@@ -1,4 +1,4 @@
-### Attribute Categories vs Types<br /><br />
+### <?php echo __('Attribute Categories vs. Types');?><br /><br />
 
 <?php
 	$catDefs = array_chunk($categoryDefinitions, 6, true);
@@ -20,7 +20,7 @@
 	endforeach;
 ?>
 
-### Categories<br /><br />
+### <?php echo __('Categories');?><br /><br />
 
 <?php foreach ($categoryDefinitions as $cat => $def) {
 	echo '*&nbsp;&nbsp;&nbsp;**' . $cat . '**: ';
@@ -30,7 +30,7 @@
 }?>
 
 <br />
-### Types<br /><br />
+### <?php echo __('Types');?><br /><br />
 
 <?php foreach ($typeDefinitions as $type => $def) {
 	echo '*&nbsp;&nbsp;&nbsp;**' . $type . '**: ';

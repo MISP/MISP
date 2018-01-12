@@ -6,11 +6,11 @@
 		echo $this->Form->hidden('event_id');
 		echo $this->Form->input('category', array(
 			'default' => 'Payload delivery',
-			'label' => 'Category ' . $this->element('formInfo', array('type' => 'category'))
+			'label' => __('Category ') . $this->element('formInfo', array('type' => 'category'))
 		));
 		echo $this->Form->input('comment', array(
 				'type' => 'text',
-				'label' => 'Contextual Comment',
+				'label' => __('Contextual Comment'),
 				'error' => array('escape' => false),
 				'div' => 'input clear',
 				'class' => 'input-xxlarge'
@@ -32,7 +32,7 @@
 	?>
 	</fieldset>
 <?php
-	echo $this->Form->button('Propose', array('class' => 'btn btn-primary'));
+	echo $this->Form->button(__('Propose'), array('class' => 'btn btn-primary'));
 	echo $this->Form->end();
 ?>
 </div>
@@ -48,7 +48,7 @@
 	foreach ($formInfoTypes as $formInfoType => $humanisedName) {
 		echo 'var ' . $formInfoType . 'FormInfoValues = {' . PHP_EOL;
 		foreach ($info[$formInfoType] as $key => $formInfoData) {
-			echo '"' . $key . '": "<span class=\"blue bold\">' . h($formInfoData['key']) . '</span>: ' . h($formInfoData['desc']) . '<br />",' . PHP_EOL; 
+			echo '"' . $key . '": "<span class=\"blue bold\">' . h($formInfoData['key']) . '</span>: ' . h($formInfoData['desc']) . '<br />",' . PHP_EOL;
 		}
 		echo '}' . PHP_EOL;
 	}

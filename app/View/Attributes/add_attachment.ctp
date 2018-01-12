@@ -6,7 +6,7 @@
 			echo $this->Form->hidden('event_id');
 			echo $this->Form->input('category', array(
 				'default' => 'Payload delivery',
-				'label' => 'Category ' . $this->element('formInfo', array('type' => 'category'))
+				'label' => __('Category ') . $this->element('formInfo', array('type' => 'category'))
 			));
 		?>
 		<div class="input clear"></div>
@@ -30,7 +30,7 @@
 				if (!empty($sharingGroups)) {
 					echo $this->Form->input('sharing_group_id', array(
 							'options' => array($sharingGroups),
-							'label' => 'Sharing Group',
+							'label' => __('Sharing Group'),
 					));
 				}
 			?>
@@ -61,7 +61,7 @@
 					'type' => 'checkbox',
 					'checked' => false,
 					'data-content' => isset($attrDescriptions['signature']['formdesc']) ? $attrDescriptions['signature']['formdesc'] : $attrDescriptions['signature']['desc'],
-					'label' => 'IDS (encrypt and hash)'
+					'label' => __('IDS (encrypt and hash)')
 			));
 		?>
 			<div class="input clear"></div>
@@ -70,7 +70,7 @@
 					'type' => 'checkbox',
 					'checked' => false,
 					'data-content' => isset($attrDescriptions['signature']['formdesc']) ? $attrDescriptions['signature']['formdesc'] : $attrDescriptions['signature']['desc'],
-					'label' => 'Advanced extraction (if installed)',
+					'label' => __('Advanced extraction (if installed)'),
 			));
 		?>
 	</fieldset>

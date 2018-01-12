@@ -4,7 +4,7 @@
 		<table style="width:100%;">
 		<?php foreach ($exports as $k => $export): ?>
 			<tr style="border-bottom:1px solid black;" class="templateChoiceButton">
-				<td role="button" tabindex="0" aria-label="Export as <?php echo h($export['text']); ?>" title="Export as <?php echo h($export['text']); ?>" style="padding-left:10px; text-align:left;width:50%;" onClick="exportChoiceSelect('<?php echo h($export['url']); ?>', '<?php echo h($k); ?>', '<?php echo h($export['checkbox']); ?>')"><?php echo h($export['text']); ?></td>
+				<td role="button" tabindex="0" aria-label="<?php echo __('Export as %s', h($export['text']));?>" title="<?php echo __('Export as %s', h($export['text']));?>" style="padding-left:10px; text-align:left;width:50%;" onClick="exportChoiceSelect('<?php echo h($export['url']); ?>', '<?php echo h($k); ?>', '<?php echo h($export['checkbox']); ?>')"><?php echo h($export['text']); ?></td>
 				<td style="padding-right:10px; width:50%;text-align:right;">
 					<?php if ($export['checkbox']):
 						echo h($export['checkbox_text']);
@@ -19,7 +19,7 @@
 		<?php endforeach; ?>
 		</table>
 	</div>
-	<div role="button" tabindex="0" aria-label="Cancel" title="Cancel" class="templateChoiceButton templateChoiceButtonLast" onClick="cancelPopoverForm();">Cancel</div>
+	<div role="button" tabindex="0" aria-label="<?php echo __('Cancel');?>" title="<?php echo __('Cancel');?>" class="templateChoiceButton templateChoiceButtonLast" onClick="cancelPopoverForm();"><?php echo __('Cancel');?></div>
 </div>
 <script type="text/javascript">
 	$(document).ready(function() {

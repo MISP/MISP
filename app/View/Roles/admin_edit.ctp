@@ -4,7 +4,7 @@
 		<legend><?php echo __('Edit Role'); ?></legend>
 	<?php
 		echo $this->Form->input('name');?>
-		<?php echo $this->Form->input('permission', array('label' => 'Permissions', 'type' => 'select', 'options' => $options), array('value' => '3'));?>
+		<?php echo $this->Form->input('permission', array('label' => __('Permissions'), 'type' => 'select', 'options' => $options), array('value' => '3'));?>
 		<div class = 'input clear'></div>
 		<?php
 			$counter = 1;

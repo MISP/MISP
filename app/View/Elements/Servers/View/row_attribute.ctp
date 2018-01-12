@@ -90,7 +90,7 @@ if ($object['value'] == 'MERGE') debug($object);
           $relatedObject = 'Attribute';
           if (!empty($event['Related' . $relatedObject][$object['id']])) {
             foreach ($event['Related' . $relatedObject][$object['id']] as $relatedAttribute) {
-              $relatedData = array('Event info' => $relatedAttribute['info'], 'Correlating Value' => $relatedAttribute['value'], 'date' => isset($relatedAttribute['date']) ? $relatedAttribute['date'] : 'N/A');
+              $relatedData = array('Event info' => $relatedAttribute['info'], 'Correlating Value' => $relatedAttribute['value'], 'date' => isset($relatedAttribute['date']) ? $relatedAttribute['date'] : __('N/A'));
               $popover = '';
               foreach ($relatedData as $k => $v) {
                 $popover .= '<span class=\'bold black\'>' . h($k) . '</span>: <span class="blue">' . h($v) . '</span><br />';
@@ -139,7 +139,7 @@ if ($object['value'] == 'MERGE') debug($object);
     <td class="short">
       <div id = "Attribute_<?php echo $object['id']; ?>_to_ids_placeholder" class = "inline-field-placeholder"></div>
       <div id = "Attribute_<?php echo $object['id']; ?>_to_ids_solid" class="inline-field-solid" ondblclick="activateField('Attribute', '<?php echo $object['id']; ?>', 'to_ids', <?php echo $event['Event']['id'];?>);">
-        <?php echo $object['to_ids'] ? 'Yes' : 'No'; ?>
+        <?php echo $object['to_ids'] ? __('Yes') : __('No'); ?>
       </div>
     </td>
   </td>

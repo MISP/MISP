@@ -1,7 +1,7 @@
 <div class="index">
 	<h2><?php echo h($title); ?></h2>
 	<?php $scope = !empty($proposals) ? 'proposals' : 'attributes'; ?>
-	<p>Below you can see the <?php echo $scope; ?> that are to be created. Make sure that the categories and the types are correct, often several options will be offered based on an inconclusive automatic resolution. </p>
+	<p><?php echo __('Below you can see the %s that are to be created. Make sure that the categories and the types are correct, often several options will be offered based on an inconclusive automatic resolution.', $scope);?></p>
 	<?php
 		$instanceDefault = 5;
 		if (!empty(Configure::read('MISP.default_attribute_distribution'))) {
@@ -15,7 +15,7 @@
 		if ($isSiteAdmin) {
 			echo $this->Form->input('force', array(
 					'checked' => false,
-					'label' => 'Proposals instead of attributes',
+					'label' => __('Proposals instead of attributes'),
 			));
 		}
 		echo $this->Form->input('JsonObject', array(
@@ -34,15 +34,15 @@
 	?>
 	<table class="table table-striped table-hover table-condensed">
 		<tr>
-				<th>Value</th>
-				<th>Similar Attributes</th>
-				<th>Category</th>
-				<th>Type</th>
-				<th>IDS<input type="checkbox" id="checkAll" style="margin:0px;margin-left:3px;"/></th>
-				<th>Distribution</th>
-				<th>Comment</th>
-				<th>Tags</th>
-				<th>Actions</th>
+				<th><?php echo __('Value');?></th>
+				<th><?php echo __('Similar Attributes');?></th>
+				<th><?php echo __('Category');?></th>
+				<th><?php echo __('Type');?></th>
+				<th><?php echo __('IDS');?><input type="checkbox" id="checkAll" style="margin:0px;margin-left:3px;"/></th>
+				<th><?php echo __('Distribution');?></th>
+				<th><?php echo __('Comment');?></th>
+				<th><?php echo __('Tags');?></th>
+				<th><?php echo __('Actions');?></th>
 		</tr>
 		<?php
 			$options = array();
@@ -180,7 +180,7 @@
 				<input type="text" class="freetextTagField" id="<?php echo 'Attribute' . $k . 'Tags'; ?>" style="padding:0px;height:20px;margin-bottom:0px;"<?php if (isset($item['tags']) && $item['tags'] !== false) echo 'value="' . htmlspecialchars(implode(",",$item['tags'])) . '"'?>/>
 			</td>
 			<td class="action short">
-				<span class="icon-remove pointer" title="Remove resolved attribute" role="button" tabindex="0" aria-label="Remove resolved attribute" onClick="freetextRemoveRow('<?php echo $k; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
+				<span class="icon-remove pointer" title="<?php echo __('Remove resolved attribute');?>" role="button" tabindex="0" aria-label="<?php echo __('Remove resolved attribute');?>" onClick="freetextRemoveRow('<?php echo $k; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
 			</td>
 		</tr>
 	<?php
@@ -197,7 +197,7 @@
 	?>
 	</table>
 	<span>
-		<button class="btn btn-primary" style="float:left;" onClick="freetextImportResultsSubmit('<?php echo h($event['Event']['id']); ?>', '<?php echo count($resultArray); ?>');">Submit <?php echo $scope; ?></button>
+		<button class="btn btn-primary" style="float:left;" onClick="freetextImportResultsSubmit('<?php echo h($event['Event']['id']); ?>', '<?php echo count($resultArray); ?>');"><?php echo __('Submit %s', $scope);?></button>
 		<span style="float:right">
 			<?php
 				if (!empty($optionsRearranged)):
@@ -222,10 +222,10 @@
 						endforeach;
 					?>
 				</select>
-				<span role="button" tabindex="0" aria-label="Apply changes to all applicable resolved attributes" title="Apply changes to all applicable resolved attributes" class="btn btn-inverse" onClick="changeFreetextImportExecute();">Change all</span><br />
+				<span role="button" tabindex="0" aria-label="<?php echo __('Apply changes to all applicable resolved attributes');?>" title="<?php echo __('Apply changes to all applicable resolved attributes');?>" class="btn btn-inverse" onClick="changeFreetextImportExecute();"><?php echo __('Change all');?></span><br />
 			<?php endif; ?>
-			<input type="text" id="changeComments" style="margin-left:50px;margin-top:10px;width:446px;" placeholder="Update all comment fields">
-			<span role="button" tabindex="0" aria-label="Change all" title="Change all" class="btn btn-inverse" onClick="changeFreetextImportCommentExecute();">Change all</span>
+			<input type="text" id="changeComments" style="margin-left:50px;margin-top:10px;width:446px;" placeholder="<?php echo __('Update all comment fields');?>">
+			<span role="button" tabindex="0" aria-label="<?php echo __('Change all');?>" title="<?php echo __('Change all');?>" class="btn btn-inverse" onClick="changeFreetextImportCommentExecute();"><?php echo __('Change all');?></span>
 		</span>
 	</span>
 </div>

@@ -1,6 +1,6 @@
 <div class="tabMenuFixedContainer">
 	<span class="tabMenuFixed tabMenuFixedLeft tabMenuSides">
-	<a href="<?php echo $baseurl;?>/servers/serverSettings/" id="create-button" title="Modify filters" class="discrete">Overview</a>
+	<a href="<?php echo $baseurl;?>/servers/serverSettings/" id="create-button" title="<?php echo __('Modify filters');?>" class="discrete">Overview</a>
 	</span>
 <?php
 	$i = 0;
@@ -12,7 +12,7 @@
 		if ($tab['severity'] == 0) $severity = 'style="color:red;"';
 ?>
 	<span class="tabMenuFixed tabMenuFixedLeft <?php echo h($extra); ?> tabMenuSides">
-		<a href="<?php echo $baseurl."/servers/serverSettings/".h($k); ?>" id="create-button" title="Modify filters" class="discrete">
+		<a href="<?php echo $baseurl."/servers/serverSettings/".h($k); ?>" id="create-button" title="<?php echo __('Modify filters');?>" class="discrete">
 			<?php
 				echo h($label);
 				if ($tab['errors'] > 0) echo '<span ' . $severity . '> (' . $tab['errors'] . ')</span>';
