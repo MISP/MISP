@@ -4,7 +4,7 @@
 		<legend><?php echo __('Import from MISP Export File'); ?></legend>
 <?php
 	echo $this->Form->input('Event.submittedfile', array(
-			'label' => '<b>MISP XML or JSON file</b>',
+			'label' => '<b>' . __('MISP XML or JSON file') . '</b>',
 			'type' => 'file',
 	));
 	?>
@@ -15,7 +15,7 @@
 			'checked' => false,
 			'label' => __('Take ownership of the event'),
 			'title' => __('Warning: This will change the creator organisation of the event, tampering with the event\'s ownership and releasability and can lead to unexpected behaviour when synchronising the event with instances that have another creator for the same event.)'
-	));
+	)));
 	endif;
 	echo $this->Form->input('publish', array(
 			'checked' => false,
