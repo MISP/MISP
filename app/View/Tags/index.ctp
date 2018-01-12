@@ -7,7 +7,7 @@
 	$emptyDate .= $date->format("Y-m-d") . ',0\n';
 ?>
 <div class="tags index">
-	<h2><?php echo $favouritesOnly ? 'Your Favourite Tags' : 'Tags';?></h2>
+	<h2><?php echo $favouritesOnly ? __('Your Favourite Tags') : __('Tags');?></h2>
 	<div class="pagination">
 		<ul>
 		<?php
@@ -49,11 +49,11 @@
 				</span>
 			<?php endforeach; ?>
 			<span class="tabMenuFixed tabMenuFixedRight tabMenuSides">
-				<?php echo $this->Html->link('', array('controller' => 'tags', 'action' => 'index'), array('class' => 'icon-remove', 'title' => 'Remove filters'));?>
+				<?php echo $this->Html->link('', array('controller' => 'tags', 'action' => 'index'), array('class' => 'icon-remove', 'title' => __('Remove filters')));?>
 			</span>
 		<?php endif;?>
 		<span style="border-right:0px !important;">
-			<span id="quickFilterButton" role="button" tabindex="0" aria-label="Filter user tags" class="tabMenuFilterFieldButton useCursorPointer" onClick="quickFilter(<?php echo h($passedArgs); ?>, '<?php echo $baseurl . '/tags/index'; ?>');">Filter</span>
+			<span id="quickFilterButton" role="button" tabindex="0" aria-label="<?php echo __('Filter user tags');?>" class="tabMenuFilterFieldButton useCursorPointer" onClick="quickFilter(<?php echo h($passedArgs); ?>, '<?php echo $baseurl . '/tags/index'; ?>');"><?php echo __('Filter');?></span>
 			<input class="tabMenuFilterField" type="text" id="quickFilterField"></input>
 		</span>
 	</div>
@@ -63,15 +63,15 @@
 			<th><?php echo $this->Paginator->sort('exportable');?></th>
 			<th><?php echo $this->Paginator->sort('hide_tag', 'Hidden');?></th>
 			<th><?php echo $this->Paginator->sort('name');?></th>
-			<th>Restricted to org</th>
+			<th><?php echo __('Restricted to org');?></th>
 			<?php if ($isSiteAdmin): ?>
-				<th>Restricted to user</th>
+				<th><?php echo __('Restricted to user');?></th>
 			<?php endif; ?>
-			<th>Taxonomy</th>
-			<th>Tagged events</th>
-			<th>Tagged attributes</th>
-			<th>Activity</th>
-			<th>Favourite</th>
+			<th><?php echo __('Taxonomy');?></th>
+			<th><?php echo __('Tagged events');?></th>
+			<th><?php echo __('Tagged attributes');?></th>
+			<th><?php echo __('Activity');?></th>
+			<th><?php echo __('Favourite');?></th>
 			<?php if ($isAclTagEditor): ?>
 			<th class="actions"><?php echo __('Actions');?></th>
 			<?php endif; ?>
@@ -122,7 +122,7 @@ foreach ($list as $k => $item): ?>
 		<td class="short action-links">
 			<?php echo $this->Html->link('', array('controller' => 'tags', 'action' => 'viewGraph', $item['Tag']['id']), array('class' => 'fa fa-share-alt', 'title' => 'View graph'));?>
 			<?php echo $this->Html->link('', array('action' => 'edit', $item['Tag']['id']), array('class' => 'icon-edit', 'title' => 'Edit'));?>
-			<?php echo $this->Form->postLink('', array('action' => 'delete', $item['Tag']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete "%s"?', $item['Tag']['name']));?>
+			<?php echo $this->Form->postLink('', array('action' => 'delete', $item['Tag']['id']), array('class' => 'icon-trash', 'title' => __('Delete')), __('Are you sure you want to delete "%s"?', $item['Tag']['name']));?>
 		</td>
 		<?php endif; ?>
 	</tr><?php
