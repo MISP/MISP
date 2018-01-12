@@ -1,8 +1,8 @@
 <div class="actions <?php echo $debugMode;?>">
 	<ol class="nav nav-list">
-			<li><?php echo $this->Html->link(__('Quick Start', array('controller') => 'pages', 'action' => 'display', 'doc', 'quickstart')); ?></li>
-			<li><?php echo $this->Html->link(__('General Layout', array('controller') => 'pages', 'action' => 'display', 'doc', 'general')); ?></li>
-			<li><?php echo $this->Html->link(__('General Concepts', array('controller') => 'pages', 'action' => 'display', 'doc', 'concepts')); ?></li>
+			<li><?php echo $this->Html->link(__('Quick Start'), array('controller' => 'pages', 'action' => 'display', 'doc', 'quickstart')); ?></li>
+			<li><?php echo $this->Html->link(__('General Layout'), array('controller' => 'pages', 'action' => 'display', 'doc', 'general')); ?></li>
+			<li><?php echo $this->Html->link(__('General Concepts'), array('controller' => 'pages', 'action' => 'display', 'doc', 'concepts')); ?></li>
 			<li><?php echo $this->Html->link(__('User Management and Global actions'), array('controller' => 'pages', 'action' => 'display', 'doc', 'user_management')); ?></li>
 			<li><?php echo $this->Html->link(__('Using the system'), array('controller' => 'pages', 'action' => 'display', 'doc', 'using_the_system')); ?></li>
 			<li class="active"><?php echo $this->Html->link(__('Administration'), array('controller' => 'pages', 'action' => 'display', 'doc', 'administration')); ?>
@@ -79,7 +79,7 @@
 	<img src="<?php echo $baseurl;?>/img/doc/whitelist.png" alt = "Whitelist" title = "<?php echo __('You can edit or delete currently white-listed addresses using the action buttons on this list.');?>"/><br />
 	<hr />
 	<h2><a id="user"></a><?php echo __('Managing the users');?>:</h2>
-	<?php echo __('As an admin, you can set up new accounts for users, edit the profiles of users, delete them, or just have a look at all the viewers' profiles. Organisation admins are restricted to executing the same actions on their organisation's users only.');?><br />
+	<?php echo __('As an admin, you can set up new accounts for users, edit the profiles of users, delete them, or just have a look at all the viewers\' profiles. Organisation admins are restricted to executing the same actions on their organisation\'s users only.');?><br />
 	<h3><?php echo __('Adding a new user');?>:</h3>
 	<?php echo __('To add a new user, click on the New User button in the administration menu to the left and fill out the following fields in the view that is loaded');?>:<br />
 	<img src="<?php echo $baseurl;?>/img/doc/add_user.png" alt = "<?php echo __('Add user');?>" title = "<?php echo __('Fill this form out to add a new user. Keep in mind that the drop-down menu titled Role controls the privileges the user will have.');?>"/>
@@ -136,7 +136,7 @@
 		<li><b><?php echo __('Subject');?>:</b> <?php echo __('In the case of a custom e-mail, you can enter a subject line here.');?><br /></li>
 		<li><b><?php echo __('Custom message checkbox');?>:</b> <?php echo __('This is available for password resets, you can either write your own message (which will be appended with a temporary key and the signature), or let the system generate one automatically.');?><br /></li>
 	</ul>
-	<?php echo __('Keep in mind that all e-mails sent through this system will, in addition to your own message, will be signed in the name of the instance's host organisation's support team, will include the e-mail address of the instance's support (if the contact field is set in the bootstrap file), and will include the instance's PGP signature for users that have a PGP key set (and thus are eligible for an encrypted e-mail).');?>
+	<?php echo __('Keep in mind that all e-mails sent through this system will, in addition to your own message, will be signed in the name of the instance\'s host organisation\'s support team, will include the e-mail address of the instance\'s support (if the contact field is set in the bootstrap file), and will include the instance\'s PGP signature for users that have a PGP key set (and thus are eligible for an encrypted e-mail).');?>
 	<hr />
 	<h2><a id="roles"></a><?php echo __('Managing the roles');?></h2>
 	<?php echo __('Privileges are assigned to users by assigning them to rule groups, which use one of four options determining what they can do with events and four additional privilege elevating settings. The four options for event manipulation are: Read Only, Manage My Own Events, Manage Organisation Events, Manage &amp; Publish Organisation Events. The extra privileges are admin, sync, authentication key usage and audit permission');?><br />
