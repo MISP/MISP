@@ -1,5 +1,5 @@
 <div class="threads index">
-	<h2>Discussions</h2>
+	<h2><?php echo __('Discussions');?></h2>
 	<div class="pagination">
 		<ul>
 		<?php
@@ -19,13 +19,13 @@
 	<table class="table table-striped table-hover table-condensed">
 	<tr>
 			<th><?php echo $this->Paginator->sort('org');?></th>
-			<th>Title</th>
+			<th><?php echo __('Title');?></th>
 			<th><?php echo $this->Paginator->sort('date_modified', 'Last Post On');?></th>
-			<th>Last Post By</th>
+			<th><?php echo __('Last Post By');?></th>
 			<th><?php echo $this->Paginator->sort('date_created', 'Thread started On');?></th>
-			<th>Posts</th>
-			<th>Distribution</th>
-			<th>Actions</th>
+			<th><?php echo __('Posts');?></th>
+			<th><?php echo __('Distribution');?></th>
+			<th><?php echo __('Actions');?></th>
 	</tr>
 	<?php
 	$url = Configure::read('MISP.baseurl');
@@ -78,7 +78,7 @@ foreach ($threads as $thread):
 			</td>
 			<td class="short action-links">
 				<?php
-					echo $this->Html->link('', array('action' => 'view', $thread['Thread']['id']), array('class' => 'icon-list-alt', 'title' => 'View Discussion'));
+					echo $this->Html->link('', array('action' => 'view', $thread['Thread']['id']), array('class' => 'icon-list-alt', 'title' => __('View Discussion')));
 				?>
 			</td>
 		</tr>
