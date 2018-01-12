@@ -1,5 +1,5 @@
 <div class="templates index">
-	<h2>Templates</h2>
+	<h2><?php echo __('Templates');?></h2>
 	<div class="pagination">
 		<ul>
 		<?php
