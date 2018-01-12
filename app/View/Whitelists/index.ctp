@@ -1,6 +1,6 @@
 <div class="whitelist index">
-	<h2>Signature Whitelist</h2>
-	<p>Regex entries (in the standard php regex /{regex}/{modifier} format) entered below will restrict matching attributes from being included in the IDS flag sensitive exports (such as NIDS exports).</p>
+	<h2><?php echo __('Signature Whitelist');?></h2>
+	<p><?php echo __('Regex entries (in the standard php regex /{regex}/{modifier} format) entered below will restrict matching attributes from being included in the IDS flag sensitive exports (such as NIDS exports).');?></p>
 	<div class="pagination">
 		<ul>
 		<?php
