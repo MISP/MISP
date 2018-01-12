@@ -201,240 +201,239 @@ Templates are devided into sections, with each section having a title and a desc
 <img src="<?php echo $baseurl;?>/img/doc/event_detail.png" alt = "<?php echo __('Event');?>" title = "<?php echo __('This view includes the basic information about an event, a link to related events, all attributes and attachments with tools to modify or delete them and extra functions for publishing the event or getting in touch with the event\'s reporter.');?>"/><br /><br />
 <b><?php echo __('General Event Information');?></b>
 <ul>
-	<li><b>ID:</b> The ID of the event.</li>
-	<li><b>Uuid:</b> In order to avoid collisions between events and attributes (during for example a sync) a Uuid is assigned that uniquely identifies each of them.</li>
-	<li><b>Org</b> The organisation that has originally created the event. The logo (if it exists on the server, alternatively a string) representing the organisation is also shown int he right upper corner.</li>
-	<li><b>Contributors:</b> Shows a list of the organisations that have contributed to the event via proposals. If you click any of the logos listed here, you'll get redirected to a filtered event history view, including only the changes made by the organisation.</li>
-	<li><b>Tags:</b> A list of tags associated with the event. Clicking a tag will show a list of events with the same tag attached. The little cross next to each tag allows you to remove the tag from the event, whilst the '+' button allows you to assign a tag. For the latter two options to be visible, you have to have tagging permission.</li>
-	<li><b>Date:</b> The date of detection, set by the user that creates the event, not to be confused with the creation date of the event.</li>
-	<li><b>Threat Level:</b> The assigned threat level of the event.</li>
-	<li><b>Analysis:</b> The status of the analysis.</li>
-	<li><b>Distribution:</b> This shows the distribution rules applied to this event, controlling whether only the creating organisation can see (Your organisation only) it or everyone on the instance (This community only). The two remaining settings allow the event to be propagated to organisations on remote connected instances.</li>
-	<li><b>Info:</b> A short description of the event itself. Make sure not to put information in here that could be used for correlation purposes and be better suited as an Attribute. </li>
-	<li><b>Published:</b> Whether the event has been published or not. Publishing allows the attributes of the event to be used for all eligible exports and it notifies users that have subscribed to the event alerts. Also, a publish initiates a push to all eligible instances. </li>
+	<li><b><?php echo __('ID');?>:</b> <?php echo __('The ID of the event.');?></li>
+	<li><b><?php echo __('Uuid');?>:</b> <?php echo __('In order to avoid collisions between events and attributes (during for example a sync) a Uuid is assigned that uniquely identifies each of them.');?></li>
+	<li><b><?php echo __('Org');?></b> <?php echo __('The organisation that has originally created the event. The logo (if it exists on the server, alternatively a string) representing the organisation is also shown int he right upper corner.');?></li>
+	<li><b><?php echo __('Contributors');?>:</b> <?php echo __('Shows a list of the organisations that have contributed to the event via proposals. If you click any of the logos listed here, you\'ll get redirected to a filtered event history view, including only the changes made by the organisation.');?></li>
+	<li><b><?php echo __('Tags');?>:</b> <?php echo __('A list of tags associated with the event. Clicking a tag will show a list of events with the same tag attached. The little cross next to each tag allows you to remove the tag from the event, whilst the \'+\' button allows you to assign a tag. For the latter two options to be visible, you have to have tagging permission.');?></li>
+	<li><b><?php echo __('Date');?>:</b> <?php echo __('The date of detection, set by the user that creates the event, not to be confused with the creation date of the event.');?></li>
+	<li><b><?php echo __('Threat Level');?>:</b> <?php echo __('The assigned threat level of the event.');?></li>
+	<li><b><?php echo __('Analysis');?>:</b> <?php echo __('The status of the analysis.');?></li>
+	<li><b><?php echo __('Distribution');?>:</b> <?php echo __('This shows the distribution rules applied to this event, controlling whether only the creating organisation can see (Your organisation only) it or everyone on the instance (This community only). The two remaining settings allow the event to be propagated to organisations on remote connected instances.');?></li>
+	<li><b><?php echo __('Info');?>:</b> <?php echo __('A short description of the event itself. Make sure not to put information in here that could be used for correlation purposes and be better suited as an Attribute.');?> </li>
+	<li><b><?php echo __('Published');?>:</b> <?php echo __('Whether the event has been published or not. Publishing allows the attributes of the event to be used for all eligible exports and it notifies users that have subscribed to the event alerts. Also, a publish initiates a push to all eligible instances.');?> </li>
 </ul>
-<b>List of Related Events</b><br />
-The list of relations is shown on the right hand side of the general event information. Events can be related by having one or more attributes that are exact matches. For example, if two events both contain a source IP attribute of 11.11.11.11 then they are related. The list of events that are related the currently shown one, are listed under "Related Events", as links (titled the related event's date and ID number) to the events themselves.<br /><br />
-<b>Data Element Toggles</b><br />
-<p>You can control some of the data that is shown on this page using three toggles. The elements that can be disabled are the pivot threads, the attributes (and proposals) and the Discussions. You can collapse these elements and then expand them again using the same button.</p>
-<b>Pivot Threads</b><br />
-While moving from event to event through the relation links (a process that we refer to as pivoting), you create a path that shows which events you have traversed. This path is reset by leaving the event view and navigating elsewhere in the application or by deleting the root pivot element. <br />
-Each event visited is represented by a bubble in the pivot thread graph, connected by lines that show how the user has arrived at the next connected event. It is possible to jump back to an earlier relation and pivot to another event through that, creating branches in the graph.<br />
-The currently selected event is coloured blue in the graph. If you would like to delete an element from the graph (including all of elements that branch off of it) just click on the small x within a pivot bubble. For a deletion to be possible the following conditions have to be met:<br />
+<b><?php echo __('List of Related Events');?></b><br />
+<?php echo __('The list of relations is shown on the right hand side of the general event information. Events can be related by having one or more attributes that are exact matches. For example, if two events both contain a source IP attribute of 11.11.11.11 then they are related. The list of events that are related the currently shown one, are listed under "Related Events", as links (titled the related event\'s date and ID number) to the events themselves.');?><br /><br />
+<b><?php echo __('Data Element Toggles');?></b><br />
+<p><?php echo __('You can control some of the data that is shown on this page using three toggles. The elements that can be disabled are the pivot threads, the attributes (and proposals) and the Discussions. You can collapse these elements and then expand them again using the same button.');?></p>
+<b><?php echo __('Pivot Threads');?></b><br />
+<?php echo __('While moving from event to event through the relation links (a process that we refer to as pivoting), you create a path that shows which events you have traversed. This path is reset by leaving the event view and navigating elsewhere in the application or by deleting the root pivot element.');?> <br />
+<?php echo __('Each event visited is represented by a bubble in the pivot thread graph, connected by lines that show how the user has arrived at the next connected event. It is possible to jump back to an earlier relation and pivot to another event through that, creating branches in the graph.');?><br />
+<?php echo __('The currently selected event is coloured blue in the graph. If you would like to delete an element from the graph (including all of elements that branch off of it) just click on the small x within a pivot bubble. For a deletion to be possible the following conditions have to be met');?>:<br />
 <ul>
-	<li>The pivot element to be deleted cannot be on the path that leads to the currently selected event</li>
-	<li>The pivot element residing in the graph's root can always be deleted - this will simply reset the current pivot thread</li>
+	<li><?php echo __('The pivot element to be deleted cannot be on the path that leads to the currently selected event');?></li>
+	<li><?php echo __('The pivot element residing in the graph\'s root can always be deleted - this will simply reset the current pivot thread');?></li>
 </ul>
-<b>Attributes and Proposals</b><br />
-A list of all attributes and proposals attached to the event. The fields for each of them only differ in the available actions and the fact that for proposals to attributes all fields are blank that would stay unchanged if the proposal was accepted (for example, proposing a change to an attribute to turn the IDS flag on will have all fields apart from the IDS flag blank in the proposal. Here is a list of what each of the fields represents: <br />
+<b><?php echo __('Attributes and Proposals');?></b><br />
+<?php echo __('A list of all attributes and proposals attached to the event. The fields for each of them only differ in the available actions and the fact that for proposals to attributes all fields are blank that would stay unchanged if the proposal was accepted (for example, proposing a change to an attribute to turn the IDS flag on will have all fields apart from the IDS flag blank in the proposal. Here is a list of what each of the fields represents');?>: <br />
 <ul>
-	<li><b>Date</b>: The date of the last modification to the attribute. Proposals don't have a date of last edit.</li>
-	<li><b>Category</b>: The category of the attribute or proposal. For a list of possible categories visit the section on <a href="<?php echo $baseurl;?>/pages/display/doc/categories_and_types">categories and types</a>.</li>
-	<li><b>Type</b>: The type of the attribute or proposal. For a list of possible categories visit the section on <a href="<?php echo $baseurl;?>/pages/display/doc/categories_and_types">categories and types</a>.</li>
-	<li><b>Value</b>: The value or value-pair of the attribute. This is the main payload of the attribute, which is described by the category and type columns. For certain types of attributes that are made up of value-pairs the two parts will be split by a pipe (|), such as for filename|md5. The value field(s) are used by the correlation engine to find relations between events. In value-pair attributes both values are correlated individually. </li>
-	<li><b>Comment</b>: Attributes can have a contextual comment to further describe the attribute. These comments are not used for correlation and are purely informative. </li>
-	<li><b>Related Events</b>: A list of the event IDs that also contain an attribute with the same value. </li>
-	<li><b>IDS</b>: Flags an attribute as an indicator of compromise, allowing it to be included in all of the eligible exports. </li>
-	<li><b>Distribution</b>: Defines the distribution of the attribute individually. An attribute can have a different distribution level than the event. In any case, the lowest distribution level of the two is used. </li>
-	<li><b>Actions</b>: The user can interact with the events through these buttons, which will be further described in the next portion of the guide as they differ for attributes and proposals. </li>
+	<li><b><?php echo __('Date');?></b>: <?php echo __('The date of the last modification to the attribute. Proposals don\'t have a date of last edit.');?></li>
+	<li><b><?php echo __('Category');?></b>: <?php echo __('The category of the attribute or proposal. For a list of possible categories visit the section on <a href="%s/pages/display/doc/categories_and_types">categories and types</a>.', $baseurl);?></li>
+	<li><b><?php echo __('Type');?></b>: <?php echo __('The type of the attribute or proposal. For a list of possible categories visit the section on <a href="%s/pages/display/doc/categories_and_types">categories and types</a>.', $baseurl);?></li>
+	<li><b><?php echo __('Value');?></b>: <?php echo __('The value or value-pair of the attribute. This is the main payload of the attribute, which is described by the category and type columns. For certain types of attributes that are made up of value-pairs the two parts will be split by a pipe (|), such as for filename|md5. The value field(s) are used by the correlation engine to find relations between events. In value-pair attributes both values are correlated individually.');?> </li>
+	<li><b><?php echo __('Comment');?></b>: <?php echo __('Attributes can have a contextual comment to further describe the attribute. These comments are not used for correlation and are purely informative.');?> </li>
+	<li><b><?php echo __('Related Events');?></b>: <?php echo __('A list of the event IDs that also contain an attribute with the same value.');?> </li>
+	<li><b><?php echo __('IDS');?></b>: <?php echo __('Flags an attribute as an indicator of compromise, allowing it to be included in all of the eligible exports.');?> </li>
+	<li><b><?php echo __('Distribution');?></b>: <?php echo __('Defines the distribution of the attribute individually. An attribute can have a different distribution level than the event. In any case, the lowest distribution level of the two is used.');?> </li>
+	<li><b><?php echo __('Actions');?></b>: <?php echo __('The user can interact with the events through these buttons, which will be further described in the next portion of the guide as they differ for attributes and proposals.');?> </li>
 </ul><br />
-Depending on the colour coding of the row, you can have an attribute, a proposal to the event or a proposal to an attribute:<br /><br />
+<?php echo __('Depending on the colour coding of the row, you can have an attribute, a proposal to the event or a proposal to an attribute');?>:<br /><br />
 <ul>
-	<li><b>Attributes</b>: Each uncoloured line represents an Attribute.</li>
-	<li><b>Proposals to an Event</b>: Each gray line at the end of the list represents a Proposal to an event. These are proposals for a new attribute, mostly unrelated to any of the currently existing attributes. If the creator of the event accepts one of these a new attribute will be created.</li>
-	<li><b>Proposals to an Attribute</b>: Each attribute can have several edit proposals. These will be placed right below the attribute that the proposal affects and - as with the event proposals - is coloured grey. The original attribute's row is coloured blue if a proposal exists for it.</li>
+	<li><b><?php echo __('Attributes');?></b>: <?php echo __('Each uncoloured line represents an Attribute.');?></li>
+	<li><b><?php echo __('Proposals to an Event');?></b>: <?php echo __('Each gray line at the end of the list represents a Proposal to an event. These are proposals for a new attribute, mostly unrelated to any of the currently existing attributes. If the creator of the event accepts one of these a new attribute will be created.');?></li>
+	<li><b><?php echo __('Proposals to an Attribute');?></b>: <?php echo __('Each attribute can have several edit proposals. These will be placed right below the attribute that the proposal affects and - as with the event proposals - is coloured grey. The original attribute\'s row is coloured blue if a proposal exists for it.');?></li>
 </ul>
-Using the modify button will bring up the attribute creation view, with all data filled out with the attribute's currently stored data.<br /><br />
-<b>Event Discussion Thread</b><br />
-Each event has its own assigned discussion where users (that are eligible to see the event) can participate in an open discussion. The users are anonymised in the messages, all that other users will see is their user ID number and their organisation. To post a message on the Event Discussion, either use the reply button on a previous post or use the quickresponse field at the bottom of the page.
-Each post is made up of the following:<br /><br />
+<?php echo __('Using the modify button will bring up the attribute creation view, with all data filled out with the attributes currently stored data.');?><br /><br />
+<b><?php echo __('Event Discussion Thread');?></b><br />
+<?php echo __('Each event has its own assigned discussion where users (that are eligible to see the event) can participate in an open discussion. The users are anonymised in the messages, all that other users will see is their user ID number and their organisation. To post a message on the Event Discussion, either use the reply button on a previous post or use the quickresponse field at the bottom of the page.
+Each post is made up of the following');?>:<br /><br />
 <ul>
-	<li><b>Date: </b>The date when the post was created.</li>
-	<li><b>Post navigation: </b>This should the post's ID as well as a link to jump to the top of the discussion thread on the page itself.</li>
-	<li><b>Organisation logo: </b>If such an image exists for the organisation that has posted the message, then the logo is shown.</li>
-	<li><b>Message: </b>The body of the post itself. This can also include automatically generated links to other events and threads as well as show quoted test in embedded bubbles. Editing an event will also append a post with a message indicating that it was edited together with the timestamp of the edit.</li>
-	<li><b>User: </b>The e-mail address of the poster if he/she is from the organisation as the current user. Alternatively a generated sting is shown that includes the user ID of the user, so that his/her e-mail address could remain hidden whilst still being identifiable.</li>
-	<li><b>Action buttons: </b>Edit, Delete and Reply. The first two of the three options are only available to the poster of the message or a site admin. Quoting a post will automatically include the original message in [quote] tags. </li>
+	<li><b><?php echo __('Date');?>: </b><?php echo __('The date when the post was created.');?></li>
+	<li><b><?php echo __('Post navigation');?>: </b><?php echo __('This should the posts\' ID as well as a link to jump to the top of the discussion thread on the page itself.');?></li>
+	<li><b><?php echo __('Organisation logo');?>: </b><?php echo __('If such an image exists for the organisation that has posted the message, then the logo is shown.');?></li>
+	<li><b><?php echo __('Message');?>: </b><?php echo __('The body of the post itself. This can also include automatically generated links to other events and threads as well as show quoted test in embedded bubbles. Editing an event will also append a post with a message indicating that it was edited together with the timestamp of the edit.');?></li>
+	<li><b><?php echo __('User');?>: </b><?php echo __('The e-mail address of the poster if he/she is from the organisation as the current user. Alternatively a generated sting is shown that includes the user ID of the user, so that his/her e-mail address could remain hidden whilst still being identifiable.');?></li>
+	<li><b><?php echo __('Action buttons');?>: </b><?php echo __('Edit, Delete and Reply. The first two of the three options are only available to the poster of the message or a site admin. Quoting a post will automatically include the original message in [quote] tags.');?> </li>
 </ul>
-Here is a list of the various tools you can use while using this feature:<br /><br />
+<?php echo __('Here is a list of the various tools you can use while using this feature');?>:<br /><br />
 <ul>
-	<li><b>Pagination:</b> There are 5 posts visible on each event page, if there have been more messages posted, use the previous and next button to navigate through the thread. This will not reload the rest of the page.</li>
-	<li><b>Discussion Tags:</b> Users can quote something by encapsulating it in [quote][/quote] tags, they can create a link to another event with the [event][/event] tags or to another discussion thread with [thread][/thread].</li>
-	<li><b>Quick Post:</b> Adding a post will take the user to a separate add Post page, something that can be a bit of an inconvenience. To avoid this, there is a quick post button, where users can add messages on the fly without having to reload the page. On top of the quick post field, 3 buttons allow users to generate quote, event and thread tags quickly. </li>
-</ul>
-<hr />
-<h3>Event History:</h3>
-<p>View the logs of the event that show how the event has changed over time, including the contribution from other organisations in the form of proposals. There are two ways to get to this view, either by clicking on View Event History on the side menu of an event view, or by clicking on a contribing organisation's logo on the event view. The latter will show a restricted form of the logs, showing only Proposals created by the selected organisation. The fields shown in this view are as described as follows:</p>
-<ul>
-<li><b>Org</b>: The logo (or in the lack thereof a string representation) of the organisation.</li>
-<li><b>Action</b>: Each entry in the log happens during an action, such as the creation, modification or deletion of data and some special actions (such as accepting a proposal). This field shows which action caused the entry to be created. </li>
-<li><b>Model</b>: As described above, a log entry is generated on certain actions. This field shows which type of data was affected that caused the log entry to be created (such as a change to the event, the creation of an attribute, the discarding of a proposal, etc).</li>
-<li><b>Title</b>: This is a short description of the change itself and it is not nearly as detailed as the information administrators get in the audit logs. However, for attributes and proposals the category / type and value of the created or edited attribute is shown. </li>
-<li><b>Created</b>: The date and time of the log entry's creation.</li>
+	<li><b><?php echo __('Pagination');?>:</b> <?php echo __('There are 5 posts visible on each event page, if there have been more messages posted, use the previous and next button to navigate through the thread. This will not reload the rest of the page.');?></li>
+	<li><b><?php echo __('Discussion Tags');?>:</b> <?php echo __('Users can quote something by encapsulating it in [quote][/quote] tags, they can create a link to another event with the [event][/event] tags or to another discussion thread with [thread][/thread].');?></li>
+	<li><b><?php echo __('Quick Post');?>:</b> <?php echo __('Adding a post will take the user to a separate add Post page, something that can be a bit of an inconvenience. To avoid this, there is a quick post button, where users can add messages on the fly without having to reload the page. On top of the quick post field, 3 buttons allow users to generate quote, event and thread tags quickly.');?> </li>
 </ul>
 <hr />
-<h3>Listing all attributes:</h3>
-	Apart from having a list of all the events, it is also possible to get a list of all the stored attributes in the system by clicking on the list attributes button. The produced list of attributes will include the followings fields:<br /><br />
-	<img src="<?php echo $baseurl;?>/img/doc/list_attributes2.png" alt = "" title = "Use the buttons to the right to view the event that this attribute belongs to or to modify/delete the attribute."/><br /><br />
+<h3><?php echo __('Event History');?>:</h3>
+<p><?php echo __('View the logs of the event that show how the event has changed over time, including the contribution from other organisations in the form of proposals. There are two ways to get to this view, either by clicking on View Event History on the side menu of an event view, or by clicking on a contributing organisation\'s logo on the event view. The latter will show a restricted form of the logs, showing only Proposals created by the selected organisation. The fields shown in this view are as described as follows');?>:</p>
+<ul>
+<li><b><?php echo __('Org');?></b>: <?php echo __('The logo (or in the lack thereof a string representation) of the organisation.');?></li>
+<li><b><?php echo __('Action');?></b>: <?php echo __('Each entry in the log happens during an action, such as the creation, modification or deletion of data and some special actions (such as accepting a proposal). This field shows which action caused the entry to be created.');?> </li>
+<li><b><?php echo __('Model');?></b>: <?php echo __('As described above, a log entry is generated on certain actions. This field shows which type of data was affected that caused the log entry to be created (such as a change to the event, the creation of an attribute, the discarding of a proposal, etc).');?></li>
+<li><b><?php echo __('Title');?></b>: <?php echo __('This is a short description of the change itself and it is not nearly as detailed as the information administrators get in the audit logs. However, for attributes and proposals the category / type and value of the created or edited attribute is shown.');?> </li>
+<li><b><?php echo __('Created');?></b>: <?php echo __('The date and time of the log entrys\' creation.');?></li>
+</ul>
+<hr />
+<h3><?php echo __('Listing all attributes');?>:</h3>
+	<?php echo __('Apart from having a list of all the events, it is also possible to get a list of all the stored attributes in the system by clicking on the list attributes button. The produced list of attributes will include the followings fields');?>:<br /><br />
+	<img src="<?php echo $baseurl;?>/img/doc/list_attributes2.png" alt = "" title = "<?php echo __('Use the buttons to the right to view the event that this attribute belongs to or to modify/delete the attribute.');?>"/><br /><br />
 	<ul>
-		<li><b>Event:</b> This is the ID number of the event that the attribute is tied to. If an event belongs to your organisation, then this field will be coloured red.</li>
-		<li><b>Org:</b> The organisation that has created the event.</li>
-		<li><b>Category:</b> The category of the attribute, showing what the attribute describes (for example the malware's payload). For more information on categories, go to section xy</li>
-		<li><b>Type:</b> The type of the value contained in the attribute (for example a source IP address). For more information on types, go to section xy</li>
-		<li><b>Value:</b> The actual value of the attribute, describing an aspect, defined by the category and type fields of the malware (for example 11.11.11.11).</li>
-		<li><b>Comment:</b> An optional contextual comment attached to the attribute.</li>
-		<li><b>IDS:</b> Shows whether the attribute has been flagged for NIDS signature generation or not.</li>
-		<li><b>Actions:</b> A set of buttons that allow you to view the event that the attribute is tied to, to edit the attribute (using the same view as what is used to set up attributes, but filled out with the attribute's current data) and a delete button.</li>
+		<li><b><?php echo __('Event');?>:</b> <?php echo __('This is the ID number of the event that the attribute is tied to. If an event belongs to your organisation, then this field will be coloured red.');?></li>
+		<li><b><?php echo __('Org');?>:</b> <?php echo __('The organisation that has created the event.');?></li>
+		<li><b><?php echo __('Category');?>:</b> <?php echo __('The category of the attribute, showing what the attribute describes (for example the malware\'s payload). For more information on categories, go to section xy');?></li>
+		<li><b><?php echo __('Type');?>:</b> <?php echo __('The type of the value contained in the attribute (for example a source IP address). For more information on types, go to section xy');?></li>
+		<li><b><?php echo __('Value');?>:</b> <?php echo __('The actual value of the attribute, describing an aspect, defined by the category and type fields of the malware (for example 11.11.11.11).');?></li>
+		<li><b><?php echo __('Comment');?>:</b> <?php echo __('An optional contextual comment attached to the attribute.');?></li>
+		<li><b><?php echo __('IDS');?>:</b> <?php echo __('Shows whether the attribute has been flagged for NIDS signature generation or not.');?></li>
+		<li><b><?php echo __('Actions');?>:</b> <?php echo __('A set of buttons that allow you to view the event that the attribute is tied to, to edit the attribute (using the same view as what is used to set up attributes, but filled out with the attribute\'s current data) and a delete button.');?></li>
 	</ul>
+<h3><?php echo __('Searching for attributes');?>:</h3>
+<?php echo __('Apart from being able to list all events, it is also possible to search for data contained in the value field of an attribute, by clicking on the "Search Attributes" button.');?><br /><br />
+<img src="<?php echo $baseurl;?>/img/doc/search_attribute.png" alt = "<?php echo __('Search attribute');?>" title = "You can search for attributes by searching for a phrase contained in its value. Narrow your search down by selecting a type and/or a category which the event has to belong to."/><br /><br />
+<?php echo __('This will bring up a form that lets you enter one or several search strings (separate search strings with line breaks) that will be compared to the values of all attributes, along with options to narrow down the search based on category and type. The entered search string has to be an exact match with (the sub-string of) a value. A second text field makes it possible to enter event IDs for events that should be excluded from the search (again, each line represents an event ID to be excluded). The third text field allows the user to restrict the results to attributes from certain organisations or to attributes not created by certain other organisations, using the above described syntax.');?><br /><br />
+<?php echo __('The list generated by the search will look exactly the same as listing all attributes, except that only the attributes that matched the search criteria will be listed (to find out more about the list attributes view, %s.). The search parameters will be shown above the produced list and the search terms will be highlighted.', $this->Html->link(__('click here', true), array('controller' => 'pages', 'action' => 'display', 'doc', 'categories_and_types')));?><br /><br />
+<?php echo __('The last option is a checkbox that restricts all of the results to attributes that are marked as IDS signatures.');?><br />
+<br /><img src="<?php echo $baseurl;?>/img/doc/search_attribute_result.png" alt = "" title = "<?php echo __('You can view the event that an attribute belongs to with the view button, or you can edit/delete the attribute via the buttons on the right.');?>"/><br />
 <hr />
-<h3>Searching for attributes:</h3>
-Apart from being able to list all events, it is also possible to search for data contained in the value field of an attribute, by clicking on the "Search Attributes" button.<br /><br />
-<img src="<?php echo $baseurl;?>/img/doc/search_attribute.png" alt = "Search attribute" title = "You can search for attributes by searching for a phrase contained in its value. Narrow your search down by selecting a type and/or a category which the event has to belong to."/><br /><br />
-This will bring up a form that lets you enter one or several search strings (separate search strings with line breaks) that will be compared to the values of all attributes, along with options to narrow down the search based on category and type. The entered search string has to be an exact match with (the sub-string of) a value. A second text field makes it possible to enter event IDs for events that should be excluded from the search (again, each line represents an event ID to be excluded). The third text field allows the user to restrict the results to attributes from certain organisations or to attributes not created by certain other organisations, using the above described syntax.<br /><br />
-The list generated by the search will look exactly the same as listing all attributes, except that only the attributes that matched the search criteria will be listed (to find out more about the list attributes view, <?php echo $this->Html->link(__('click here', true), array('controller' => 'pages', 'action' => 'display', 'doc', 'categories_and_types')); ?>.). The search parameters will be shown above the produced list and the search terms will be highlighted.<br /><br />
-The last option is a checkbox that restricts all of the results to attributes that are marked as IDS signatures.<br />
-<br /><img src="<?php echo $baseurl;?>/img/doc/search_attribute_result.png" alt = "" title = "You can view the event that an attribute belongs to with the view button, or you can edit/delete the attribute via the buttons on the right."/><br />
+<a id="update_events"></a><h2><?php echo __('Updating and modifying events and attributes');?>:</h2>
+<?php echo __('Every event and attribute can easily be edited. First of all it is important to find the event or attribute that is to be edited, using any of the methods mentioned in the section on <a href="#browsing_events">browsing past events</a>.');?><br /><br />
+<?php echo __('Once it is found, the edit button (whether it be under actions when events/attributes get listed or simply on the event view) will bring up the same screen as what is used to create the entry of the same type (for an event it would be the event screen as <a href="#create">seen here</a>, for an attribute the attribute screen as <a href="#create_attribute">described here</a>).');?><br /><br />
+<?php echo __('Keep in mind that editing any event (either directly or indirectly through an attribute) will unpublish it, meaning that you\'ll have to publish it (through the event view) again once you are done.');?><br /><br />
 <hr />
-<a id="update_events"></a><h2>Updating and modifying events and attributes:</h2>
-Every event and attribute can easily be edited. First of all it is important to find the event or attribute that is to be edited, using any of the methods mentioned in the section on <a href="#browsing_events">browsing past events</a>.<br /><br />
-Once it is found, the edit button (whether it be under actions when events/attributes get listed or simply on the event view) will bring up the same screen as what is used to create the entry of the same type (for an event it would be the event screen as <a href="#create">seen here</a>, for an attribute the attribute screen as <a href="#create_attribute">described here</a>).<br /><br />
-Keep in mind that editing any event (either directly or indirectly through an attribute) will unpublish it, meaning that you'll have to publish it (through the event view) again once you are done.<br /><br />
-<hr />
-<a id="tagging"></a><h2>Tagging:</h2>
-<p>As described earlier, users with tagging rights can arbitrarily tag events using tags chosen from a pool of available options. If you have tagging privileges and would like to create a new tag, navigate to Event Actions - Add Tag. You'll be presented with the following form:</p>
-<img src="<?php echo $baseurl;?>/img/doc/tag.png" alt = "Add tag" title = "Enter a name for the tag and click on the color field to be able to pick a colour for it."/><br /><br />
-<p>Fill out the following fields:</p>
+<a id="tagging"></a><h2><?php echo __('Tagging');?>:</h2>
+<p><?php echo __('As described earlier, users with tagging rights can arbitrarily tag events using tags chosen from a pool of available options. If you have tagging privileges and would like to create a new tag, navigate to Event Actions - Add Tag. You\'ll be presented with the following form');?>:</p>
+<img src="<?php echo $baseurl;?>/img/doc/tag.png" alt = "<?php echo __('Add tag');?>" title = "<?php echo __('Enter a name for the tag and click on the color field to be able to pick a colour for it.');?>"/><br /><br />
+<p><?php echo __('Fill out the following fields');?>:</p>
 <ul>
-<li><b>Name</b>: Pick a name for the tag. Try to use consistent naming conventions across your instance, to avoid confusion.</li>
-<li><b>Colour</b>: You can choose a colour for the tag by clicking on the colour field and using the colour picker tool. Try to avoid having duplicate or similar looking colours to help avoid confusion.</li>
+<li><b><?php echo __('Name');?></b>: <?php echo __('Pick a name for the tag. Try to use consistent naming conventions across your instance, to avoid confusion.');?></li>
+<li><b><?php echo __('Colour');?></b>: <?php echo __('You can choose a colour for the tag by clicking on the colour field and using the colour picker tool. Try to avoid having duplicate or similar looking colours to help avoid confusion.');?></li>
 </ul>
 <hr />
-<a id="templating"></a><h2>Templating:</h2>
-<p>Newer users can easily be overwhelmed by having to manually populate events with attributes without any guidance. What sort of information should go into the event? What should be the category and type of a C2 IP? Templates allow users to use simple forms to populate events.<br /><br />
-Even though MISP ships with a few default templates, it is possible for users (with the appropriate templating privilege) to create new templates for their users or for all users of the instance. Let's look at how you can create a template.<br />
-First go to Event Actions - Add Template to go to the event creation view.</p>
-<img src="<?php echo $baseurl;?>/img/doc/create_template.png" alt = "Create Template" title = "Fill in the generic information about the template."/><br /><br />
-<p>The following fields have to be filled out:</p>
+<a id="templating"></a><h2><?php echo __('Templating');?>:</h2>
+<p><?php echo __('Newer users can easily be overwhelmed by having to manually populate events with attributes without any guidance. What sort of information should go into the event? What should be the category and type of a C2 IP? Templates allow users to use simple forms to populate events.');?><br /><br />
+<?php echo __('Even though MISP ships with a few default templates, it is possible for users (with the appropriate templating privilege) to create new templates for their users or for all users of the instance. Let\'s look at how you can create a template.');?><br />
+<?php echo __('First go to Event Actions - Add Template to go to the event creation view.');?></p>
+<img src="<?php echo $baseurl;?>/img/doc/create_template.png" alt = "<?php echo __('Create Template');?>" title = "<?php echo __('Fill in the generic information about the template.');?>"/><br /><br />
+<p><?php echo __('The following fields have to be filled out');?>:</p>
 <ul>
-	<li><b>Name</b>: The name of the template should describe what type of an event it should be used to generate attributes.</li>
-	<li><b>Tags</b>: You can attach tags to the template - an event populated using the template would automatically receive the tag(s). Add new tags using the + button. If you chnage your mind about a tag you can remove it with the cross next to the tag name.</li>
-	<li><b>Event Description</b>: A short description about the events that this template should be used for.</li>
-	<li><b>Share this template with others</b>: The template can be set to be usable by any organisation on the instance or only by the one that has created it.</li>
+	<li><b><?php echo __('Name');?></b>: <?php echo __('The name of the template should describe what type of an event it should be used to generate attributes.');?></li>
+	<li><b><?php echo __('Tags');?></b>: <?php echo __('You can attach tags to the template - an event populated using the template would automatically receive the tag(s). Add new tags using the + button. If you change your mind about a tag you can remove it with the cross next to the tag name.');?></li>
+	<li><b><?php echo __('Event Description');?></b>: <?php echo __('A short description about the events that this template should be used for.');?></li>
+	<li><b><?php echo __('Share this template with others');?></b>: <?php echo __('The template can be set to be usable by any organisation on the instance or only by the one that has created it.');?></li>
 </ul>
-<p>Once the skeleton template is created, you can start populating the template with data. There are 3 types of elements that can be used during the creation of a template: attribute, file and text elements. Text elements divide the template into sections with an information field, followed by all of the attribute/file fields until a new text field is read. Don't worry about the order of the elements during creation, they can be re-arranged using drag &amp; drop. Let's look at the 3 element types:</p>
-<p><b>Attribute Element</b></p>
-<img src="<?php echo $baseurl;?>/img/doc/template_attribute.png" alt = "Template Attribute Element" title = "This element will generate regular attributes based on user entry."/><br /><br />
-<p>The following fields have to be filled out:</p>
+<p><?php echo __('Once the skeleton template is created, you can start populating the template with data. There are 3 types of elements that can be used during the creation of a template: attribute, file and text elements. Text elements divide the template into sections with an information field, followed by all of the attribute/file fields until a new text field is read. Don\'t worry about the order of the elements during creation, they can be re-arranged using drag &amp; drop. Let\'s look at the 3 element types');?>:</p>
+<p><b><?php echo __('Attribute Element');?></b></p>
+<img src="<?php echo $baseurl;?>/img/doc/template_attribute.png" alt = "<?php echo __('Template Attribute Element');?>" title = "<?php echo __('This element will generate regular attributes based on user entry.');?>"/><br /><br />
+<p><?php echo __('The following fields have to be filled out');?>:</p>
 <ul>
-	<li><b>Name</b>: The field name that will be presented to the user.</li>
-	<li><b>Description</b>: A brief description of the element. Make sure that you provide sufficient information to the user to make it obvious what is expected.</li>
-	<li><b>Category</b>: The category used for any attributes created using this template element.</li>
-	<li><b>Type</b>: The type or complex type used for any attributes created using this template element. Complex types allow for several related types to be used on data entry. For example, a "file" complex type element allows for filenames and hashes.</li>
-	<li><b>Use Complex types</b>: If the category permits it, switch to a complex type using this checkbox.</li>
-	<li><b>Automatically mark for IDS</b>: If checked, any attributes generated using this element will be marked for IDS exporting.</li>
-	<li><b>Mandatory element</b>: If the elemnt is marked as mandatory, then the template form can only be submitted by users if this field is filled out.</li>
-	<li><b>Batch import element</b>: Allow for multiple values to be entered (separated by line breaks).</li>
+	<li><b><?php echo __('Name');?></b>: <?php echo __('The field name that will be presented to the user.');?></li>
+	<li><b><?php echo __('Description');?></b>: <?php echo __('A brief description of the element. Make sure that you provide sufficient information to the user to make it obvious what is expected.');?></li>
+	<li><b><?php echo __('Category');?></b>: <?php echo __('The category used for any attributes created using this template element.');?></li>
+	<li><b><?php echo __('Type');?></b>: <?php echo __('The type or complex type used for any attributes created using this template element. Complex types allow for several related types to be used on data entry. For example, a "file" complex type element allows for filenames and hashes.');?></li>
+	<li><b><?php echo __('Use Complex types');?></b>: <?php echo __('If the category permits it, switch to a complex type using this checkbox.');?></li>
+	<li><b><?php echo __('Automatically mark for IDS');?></b>: <?php echo __('If checked, any attributes generated using this element will be marked for IDS exporting.');?></li>
+	<li><b><?php echo __('Mandatory element');?></b>: <?php echo __('If the elemnt is marked as mandatory, then the template form can only be submitted by users if this field is filled out.');?></li>
+	<li><b><?php echo __('Batch import element');?></b>: <?php echo __('Allow for multiple values to be entered (separated by line breaks).');?></li>
 </ul>
-<p><b>File Element</b></p>
-<img src="<?php echo $baseurl;?>/img/doc/template_file.png" alt = "Template File Element" title = "This element will generate attachments based on user entry."/><br /><br />
-<p>The following fields have to be filled out:</p>
+<p><b><?php echo __('File Element');?></b></p>
+<img src="<?php echo $baseurl;?>/img/doc/template_file.png" alt = "<?php echo __('Template File Element');?>" title = "<?php echo __('This element will generate attachments based on user entry.');?>"/><br /><br />
+<p><?php echo __('The following fields have to be filled out');?>:</p>
 <ul>
-	<li><b>Name</b>: The field name that will be presented to the user.</li>
-	<li><b>Description</b>: A brief description of the element. Make sure that you provide sufficient information to the user to make it obvious what is expected.</li>
-	<li><b>Category</b>: The category to be used by all attachments uploaded through this element. </li>
-	<li><b>Malware</b>: If the uploaded files are malicious and should be encrypted and password protected, mark this checkbox.</li>
-	<li><b>Mandatory element</b>: If it should be required to upload an attachment, check this checkbox.</li>
-	<li><b>Batch import element</b>: Ticking this checkbox allows users to upload several files using this element.</li>
+	<li><b><?php echo __('Name');?></b>: <?php echo __('The field name that will be presented to the user.');?></li>
+	<li><b><?php echo __('Description');?></b>: <?php echo __('A brief description of the element. Make sure that you provide sufficient information to the user to make it obvious what is expected.');?></li>
+	<li><b><?php echo __('Category');?></b>: <?php echo __('The category to be used by all attachments uploaded through this element.');?></li>
+	<li><b><?php echo __('Malware');?></b>: <?php echo __('If the uploaded files are malicious and should be encrypted and password protected, mark this checkbox.');?></li>
+	<li><b><?php echo __('Mandatory element');?></b>: <?php echo __('If it should be required to upload an attachment, check this checkbox.');?></li>
+	<li><b><?php echo __('Batch import element');?></b>: <?php echo __('Ticking this checkbox allows users to upload several files using this element.');?></li>
 </ul>
-<p><b>Text Element</b></p>
-<img src="<?php echo $baseurl;?>/img/doc/template_text.png" alt = "Template Text Element" title = "This element will start a section in the template, which continues until the next text element or the end of the template."/><br /><br />
-<p>The following fields have to be filled out:</p>
+<p><b><?php echo __('Text Element');?></b></p>
+<img src="<?php echo $baseurl;?>/img/doc/template_text.png" alt = "<?php echo __('Template Text Element');?>" title = "<?php echo __('This element will start a section in the template, which continues until the next text element or the end of the template.');?>"/><br /><br />
+<p><?php echo __('The following fields have to be filled out');?>:</p>
 <ul>
-	<li><b>Name</b>: The name of the section that will be presented to the user.</li>
-	<li><b>Text</b>: The description of the section. Explain briefly to the user what the following attribute/file elements will be dealing with. There are several ways to split a template into sections, try to have ease of use in mind while creating it.</li>
-</ul>
-<hr />
-<a id="contact"></a><h2>Contacting the reporter:</h2>
-To get in touch with the reporter of a previously registered event, just find the event for which you would like to contact the reporter by either finding it on the list of events, by finding it through one of its attributes or by finding it through a related event.<br /><br />
-Once the event is found and the event view opened, click the button titled "Contact Reporter". This will bring up a view where you can enter your message that is to be e-mailed to all members of the reporting organisation that subscribe to receiving such reports or the reporting user himself. Along with your message, the detailed information about the event in question will be included in the e-mail.<br /><br />
-<br /><img src="<?php echo $baseurl;?>/img/doc/contact_reporter.png" alt = "" title = "Enter your message to the reporter and choose whether his/her entire organisation should get the message or not by ticking the check-box."/><br /><br />
-By default, the message will be sent to every member of the organisation that posted the event in the first place, but if you tick the check-box below the message field before sending the mail, only the person that reported the event will get e-mailed. <br />
-<hr />
-<a id="automation"></a><h2>Automation:</h2>
-It is possible to quickly and conveniently export the data contained within the system using the automation features located in the main menu on the left (available to users with authentication key access only). There are various sets of data that can be exported, by using the authentication key provided by the system (also shown on the export page). If for whatever reason you would need to invalidate your current key and get a new one instead (for example due to the old one becoming compromised) just hit the reset link next to the authentication key in the export view or in your "my profile" view.<br /><br />
-To find out about the various export formats and the usage within the automation functions, please read the page on <a href="<?php echo $baseurl;?>/events/automation">automation</a>.
-<hr />
-<a id="export"></a><h2>Exporting data:</h2>
-For users that do not have authentication key access, an alternate export feature is available that relies on your interactive login to the site. To access these, just use the export menu button to the left and you'll be presented with a list of export options.<br /><br/>
-Depending on your server's configuration, you will be presented with one of two possible pages, depending on whether you have background processing enabled or not. (The setting on this instance is currently set to: <code><?php echo (Configure::read('MISP.background_jobs') == true ? 'On' : 'Off'); ?></code>)<br /><br />
-<br /><h4>Export page with background jobs <code>disabled</code></h4>
-The page will list a set of export formats that you can immediately download as a file. Just click on the desired export format and MISP will start collecting all the data that you will receive in a file. Keep in mind that this can be a lengthy process. To avoid having to wait, consult with your instance's site administrator about enabling the background processing.<br />
-<br /><img src="<?php echo $baseurl;?>/img/doc/export.png" alt = "" title = "Use the export features here to quickly download data in various formats"/><br />
-<br /><h4>Export page with background jobs <code>enabled</code></h4>
-If the background jobs are enabled, you'll be redirected to a different version of the export page. Here you will see a table with all of the major export formats and the current status of the cached export files. Keep in mind that these are generated on an organisation by organisation basis, so even though others have generated newer export caches your organisation may have an outdated cache. You can simply issue a generate command (by clicking the "Generate" button) on the desired export type and the background workers will start fetching and assembling your cache. A progress bar will show the progress of the export process.<br />
-Once done, you can click "Download" to download the freshly generated cache file. If the cache is already up to date from before, then you don't have to regenerate the cache, just click on the "download" button. <br /> <br />
-You may have noticed that the TEXT export only has a generate button - this is because TEXT exports are made up of a lot of types of exports, all of which get generated together. To download any of these files, just click on any of the attribute types at the bottom of the table.<br /><br />
-A quick description of each of the fields in the table:<br /><br />
-<ul>
-<li><b>Type</b>: The type of the export (such as XML, Suricata, MD5, etc.).</li>
-<li><b>Last Update</b>: The generation date of the current cache for the given export type.</li>
-<li><b>Description</b>: A description of the export format. </li>
-<li><b>Outdated</b>: This compares the cache generation date to the last timestamp when an event was updated and lets you know whether the cache is outdated or not. </li>
-<li><b>Progress</b>: Shows the progress of the last initiated generation process.</li>
-<li><b>Actions</b>: Download or Generate the given cache with these buttons. </li>
-</ul>
-<br /><img src="<?php echo $baseurl;?>/img/doc/export_bg.png" alt = "" title = "Use the export features here to quickly download data in various formats"/><br />
-<br /><h4>Exporting search results and individual events</h4>
-Apart from the options offered by the export pages, it's also possible to export all events involved in a search attribute result table, by using the "Download results as XML" button on the left menu bar. <br /><br />
-<br /><img src="<?php echo $baseurl;?>/img/doc/export_search.png" alt = "" title = "Download a .xml from all the events that are shown through an attribute in the search results."/><br /><br />
-Each event's view has its own export feature, both as an XML export and as a .ioc file. To reach these features, just navigate to an event and use the appropriate buttons on the right side.<br /><br />
-<br /><img src="<?php echo $baseurl;?>/img/doc/export_event.png" alt = "" title = "Download a .xml or a .ioc of the event."/><br /><br />
-<hr />
-<h2><a id="connect"></a>Connecting to other instances:</h2>
-Apart from being a self contained repository of attacks/malware, one of the main features of MISP is its ability to connect to other instances and share (parts of) its information. The following options allow you to set up and maintain such connections.<br /><br />
-<h3><a id="new_server"></a>Setting up a connection to another server:</h3>
-In order to share data with a remote server via pushes and pulls, you need to request a valid authentication key from the hosting organisation of the remote instance. When clicking on List Servers and then on New Server, a form comes up that needs to be filled out in order for your instance to connect to it. The following fields need to be filled out:<br /><br />
-<p><img src="<?php echo $baseurl;?>/img/doc/add_server.png" alt ="Add server" title = "Make sure that you enter the authentication key that you have been given by the hosting organisation of the remote instance, instead of the one you have gotten from this one."/></p>
-<ul>
-	<li><b>Base URL:</b> The URL of the remote server.</li>
-	<li><b>Organization:</b> The organisation that runs the remote server. It is very impoportant that this setting is filled out exactly as the organisation name set up in the bootstrap file of the remote instance.</li>
-	<li><b>Authkey:</b> The authentication key that you have received from the hosting organisation of the remote instance.</li>
-	<li><b>Push:</b> This check-box controls whether your server is allowed to push to the remote instance.</li>
-	<li><b>Pull:</b> This check-box controls whether your server can request to pull all data from the remote instance.</li>
-	<li><b>Unpublish event (Push only):</b> This check-box controls to unpublish new event (working with Push events).</li>
-	<li><b>Publish without email (Pull only):</b> This check-box controls whether your server is allowed to publish event without email (working with Pull events).</li>
-	<li><b>Self Signed:</b> Ticking this checkbox will allow syncing with instances using self-signed certificates.</li>
-	<li><b>Certificate File:</b> If the instance that you want to connect to has their entire own certificate chain, you can use this to import a .pem file with it and override CakePHP's standard root CA file.</li>
-</ul>
-<b>If you are an administrator</b>, trying to allow another instance to connect to your own, it is vital that two rules are followed when setting up a synchronisation account: <br />
-<ul>
-	<li>The synchronisation user has to have the sync permission and full read/write/publish privileges turned on</li>
-	<li>Both the sync user and the organisation setting in your instance's Config/bootstrap.php file have to match the organisation identifier of the hosting organisation.</li>
-</ul>
-<h3>Browsing the currently set up server connections and interacting with them:</h3>
-If you ever need to change the data about the linked servers or remove any connections, you have the following options to view and manipulate the server connections, when clicking on List Servers: (you will be able to see a list of all servers that your server connects to, including the base address, the organisation running the server the last pushed and pulled event IDs and the control buttons.).<br /><br />
-<p><img src="<?php echo $baseurl;?>/img/doc/list_servers.png" alt = "" title = "Apart from editing / deleting the link to the remote server, you can issue a push all or pull all command from here."/></p><br />
-<ul>
-	<li><b>Editing the connection to the:</b> By clicking edit a view, <a href=#new_server>that is identical to the new instance view</a>, is loaded, with all the current information of the instance pre-entered.</li>
-	<li><b>Deleting the connection to the instance:</b> Clicking the delete button will delete the link to the instance.</li>
-	<li><b>Push all:</b> By clicking this button, all events that are eligible to be pushed on the instance you are on will start to be pushed to the remote instance. Events and attributes that exist on the far end will be updated.</li>
-	<li><b>Pull all:</b> By clicking this button, all events that are set to be pull-able or full access on the remote server will be copied to this instance. Existing events will not be updated.</li>
+	<li><b><?php echo __('Name');?></b>: <?php echo __('The name of the section that will be presented to the user.');?></li>
+	<li><b><?php echo __('Text');?></b>: <?php echo __('The description of the section. Explain briefly to the user what the following attribute/file elements will be dealing with. There are several ways to split a template into sections, try to have ease of use in mind while creating it.');?></li>
 </ul>
 <hr />
-<a id="rest"></a><h2>Rest API:</h2>
-The platform is also <a href="http://en.wikipedia.org/wiki/Representational_state_transfer">RESTfull</a>, so this means that you can use structured format (XML or JSON) to access Events data.<br /><br />
-<h3>Requests</h3>
-Use any HTTP compliant library to perform requests.<br /><br />
-You can choose which format you would like to use as input/output for the REST calls by specifying the Accept and Content-Type headers.<br /><br />
-The following headers are required if you wish to recieve / push XML data:<br /><br />
+<a id="contact"></a><h2><?php echo __('Contacting the reporter');?>:</h2>
+<?php echo __('To get in touch with the reporter of a previously registered event, just find the event for which you would like to contact the reporter by either finding it on the list of events, by finding it through one of its attributes or by finding it through a related event.');?><br /><br />
+<?php echo __('Once the event is found and the event view opened, click the button titled "Contact Reporter". This will bring up a view where you can enter your message that is to be e-mailed to all members of the reporting organisation that subscribe to receiving such reports or the reporting user himself. Along with your message, the detailed information about the event in question will be included in the e-mail.');?><br /><br />
+<br /><img src="<?php echo $baseurl;?>/img/doc/contact_reporter.png" alt = "" title = "<?php echo __('Enter your message to the reporter and choose whether his/her entire organisation should get the message or not by ticking the check-box.');?>"/><br /><br />
+<?php echo __('By default, the message will be sent to every member of the organisation that posted the event in the first place, but if you tick the check-box below the message field before sending the mail, only the person that reported the event will get e-mailed.');?> <br />
+<hr />
+<a id="automation"></a><h2><?php echo __('Automation');?>:</h2>
+<?php echo __('It is possible to quickly and conveniently export the data contained within the system using the automation features located in the main menu on the left (available to users with authentication key access only). There are various sets of data that can be exported, by using the authentication key provided by the system (also shown on the export page). If for whatever reason you would need to invalidate your current key and get a new one instead (for example due to the old one becoming compromised) just hit the reset link next to the authentication key in the export view or in your "my profile" view.');?><br /><br />
+<?php echo __('To find out about the various export formats and the usage within the automation functions, please read the page on <a href="%s/events/automation">automation</a>.', $baseurl);?>
+<hr />
+<a id="export"></a><h2><?php echo __('Exporting data');?>:</h2>
+<?php echo __('For users that do not have authentication key access, an alternate export feature is available that relies on your interactive login to the site. To access these, just use the export menu button to the left and you\'ll be presented with a list of export options.');?><br /><br/>
+<?php echo __('Depending on your server\'s configuration, you will be presented with one of two possible pages, depending on whether you have background processing enabled or not. (The setting on this instance is currently set to: <code>%s</code>)', (Configure::read('MISP.background_jobs') == true ? __('On') : __('Off')));?><br /><br />
+<br /><h4><?php echo __('Export page with background jobs');?> <code><?php echo __('disabled');?></code></h4>
+<?php echo __('The page will list a set of export formats that you can immediately download as a file. Just click on the desired export format and MISP will start collecting all the data that you will receive in a file. Keep in mind that this can be a lengthy process. To avoid having to wait, consult with your instance\'s site administrator about enabling the background processing.');?><br />
+<br /><img src="<?php echo $baseurl;?>/img/doc/export.png" alt = "" title = "<?php echo __('Use the export features here to quickly download data in various formats');?>"/><br />
+<br /><h4><?php echo __('Export page with background jobs');?> <code><?php echo __('enabled');?></code></h4>
+<?php echo __('If the background jobs are enabled, you\'ll be redirected to a different version of the export page. Here you will see a table with all of the major export formats and the current status of the cached export files. Keep in mind that these are generated on an organisation by organisation basis, so even though others have generated newer export caches your organisation may have an outdated cache. You can simply issue a generate command (by clicking the "Generate" button) on the desired export type and the background workers will start fetching and assembling your cache. A progress bar will show the progress of the export process.');?><br />
+<?php echo __('Once done, you can click "Download" to download the freshly generated cache file. If the cache is already up to date from before, then you don\'t have to regenerate the cache, just click on the "download" button.');?> <br /> <br />
+<?php echo __('You may have noticed that the TEXT export only has a generate button - this is because TEXT exports are made up of a lot of types of exports, all of which get generated together. To download any of these files, just click on any of the attribute types at the bottom of the table.');?><br /><br />
+<?php echo __('A quick description of each of the fields in the table');?>:<br /><br />
+<ul>
+<li><b><?php echo __('Type');?></b>: <?php echo __('The type of the export (such as XML, Suricata, MD5, etc.).');?></li>
+<li><b><?php echo __('Last Update');?></b>: <?php echo __('The generation date of the current cache for the given export type.');?></li>
+<li><b><?php echo __('Description');?></b>: <?php echo __('A description of the export format.');?> </li>
+<li><b><?php echo __('Outdated');?></b>: <?php echo __('This compares the cache generation date to the last timestamp when an event was updated and lets you know whether the cache is outdated or not.');?> </li>
+<li><b><?php echo __('Progress');?></b>: <?php echo __('Shows the progress of the last initiated generation process.');?></li>
+<li><b><?php echo __('Actions');?></b>: <?php echo __('Download or Generate the given cache with these buttons.');?> </li>
+</ul>
+<br /><img src="<?php echo $baseurl;?>/img/doc/export_bg.png" alt = "" title = "<?php echo __('Use the export features here to quickly download data in various formats');?>"/><br />
+<br /><h4><?php echo __('Exporting search results and individual events');?></h4>
+<?php echo __('Apart from the options offered by the export pages, it\'s also possible to export all events involved in a search attribute result table, by using the "Download results as XML" button on the left menu bar.');?> <br /><br />
+<br /><img src="<?php echo $baseurl;?>/img/doc/export_search.png" alt = "" title = "<?php echo __('Download a .xml from all the events that are shown through an attribute in the search results.');?>"/><br /><br />
+<?php echo __('Each event\'s view has its own export feature, both as an XML export and as a .ioc file. To reach these features, just navigate to an event and use the appropriate buttons on the right side.');?><br /><br />
+<br /><img src="<?php echo $baseurl;?>/img/doc/export_event.png" alt = "" title = "<?php echo __('Download a .xml or a .ioc of the event.');?>"/><br /><br />
+<hr />
+<h2><a id="connect"></a><?php echo __('Connecting to other instances');?>:</h2>
+<?php echo __('Apart from being a self contained repository of attacks/malware, one of the main features of MISP is its ability to connect to other instances and share (parts of) its information. The following options allow you to set up and maintain such connections.');?><br /><br />
+<h3><a id="new_server"></a><?php echo __('Setting up a connection to another server');?>:</h3>
+<?php echo __('In order to share data with a remote server via pushes and pulls, you need to request a valid authentication key from the hosting organisation of the remote instance. When clicking on List Servers and then on New Server, a form comes up that needs to be filled out in order for your instance to connect to it. The following fields need to be filled out');?>:<br /><br />
+<p><img src="<?php echo $baseurl;?>/img/doc/add_server.png" alt ="<?php echo __('Add server');?>" title = "<?php echo __('Make sure that you enter the authentication key that you have been given by the hosting organisation of the remote instance, instead of the one you have gotten from this one.');?>"/></p>
+<ul>
+	<li><b><?php echo __('Base URL');?>:</b> <?php echo __('The URL of the remote server.');?></li>
+	<li><b><?php echo __('Organization');?>:</b> <?php echo __('The organisation that runs the remote server. It is very impoportant that this setting is filled out exactly as the organisation name set up in the bootstrap file of the remote instance.');?></li>
+	<li><b><?php echo __('Authkey');?>:</b> <?php echo __('The authentication key that you have received from the hosting organisation of the remote instance.');?></li>
+	<li><b><?php echo __('Push');?>:</b> <?php echo __('This check-box controls whether your server is allowed to push to the remote instance.');?></li>
+	<li><b><?php echo __('Pull');?>:</b> <?php echo __('This check-box controls whether your server can request to pull all data from the remote instance.');?></li>
+	<li><b><?php echo __('Unpublish event (Push only)');?>:</b> <?php echo __('This check-box controls to unpublish new event (working with Push events).');?></li>
+	<li><b><?php echo __('Publish without email (Pull only)');?>:</b> <?php echo __('This check-box controls whether your server is allowed to publish event without email (working with Pull events).');?></li>
+	<li><b><?php echo __('Self Signed');?>:</b> <?php echo __('Ticking this checkbox will allow syncing with instances using self-signed certificates.');?></li>
+	<li><b><?php echo __('Certificate File');?>:</b> <?php echo __('If the instance that you want to connect to has their entire own certificate chain, you can use this to import a .pem file with it and override CakePHP\'s standard root CA file.');?></li>
+</ul>
+<b><?php echo __('If you are an administrator</b>, trying to allow another instance to connect to your own, it is vital that two rules are followed when setting up a synchronisation account');?>: <br />
+<ul>
+	<li><?php echo __('The synchronisation user has to have the sync permission and full read/write/publish privileges turned on');?></li>
+	<li><?php echo __('Both the sync user and the organisation setting in your instance\'s Config/bootstrap.php file have to match the organisation identifier of the hosting organisation.');?></li>
+</ul>
+<h3><?php echo __('Browsing the currently set up server connections and interacting with them');?>:</h3>
+<?php echo __('If you ever need to change the data about the linked servers or remove any connections, you have the following options to view and manipulate the server connections, when clicking on List Servers: (you will be able to see a list of all servers that your server connects to, including the base address, the organisation running the server the last pushed and pulled event IDs and the control buttons.).');?><br /><br />
+<p><img src="<?php echo $baseurl;?>/img/doc/list_servers.png" alt = "" title = "<?php echo __('Apart from editing / deleting the link to the remote server, you can issue a push all or pull all command from here.');?>"/></p><br />
+<ul>
+	<li><b><?php echo __('Editing the connection to the');?>:</b> <?php echo __('By clicking edit a view, <a href=#new_server>that is identical to the new instance view</a>, is loaded, with all the current information of the instance pre-entered.');?></li>
+	<li><b><?php echo __('Deleting the connection to the instance');?>:</b> <?php echo __('Clicking the delete button will delete the link to the instance.');?></li>
+	<li><b><?php echo __('Push all');?>:</b><?php echo __(' By clicking this button, all events that are eligible to be pushed on the instance you are on will start to be pushed to the remote instance. Events and attributes that exist on the far end will be updated.');?></li>
+	<li><b><?php echo __('Pull all');?>:</b> <?php echo __('By clicking this button, all events that are set to be pull-able or full access on the remote server will be copied to this instance. Existing events will not be updated.');?></li>
+</ul>
+<hr />
+<a id="rest"></a><h2><?php echo __('Rest API');?>:</h2>
+<?php echo __('The platform is also <a href="http://en.wikipedia.org/wiki/Representational_state_transfer">RESTfull</a>, so this means that you can use structured format (XML or JSON) to access Events data.');?><br /><br />
+<h3><?php echo __('Requests');?></h3>
+<?php echo __('Use any HTTP compliant library to perform requests.');?><br /><br />
+<?php echo __('You can choose which format you would like to use as input/output for the REST calls by specifying the Accept and Content-Type headers.');?><br /><br />
+<?php echo __('The following headers are required if you wish to recieve / push XML data');?>:<br /><br />
 <b>Authorization</b>: <span class=red><?php echo h($user['authkey']); ?></span><br />
 <b>Accept</b>: <span class=red>application/xml</span><br />
 <b>Content-Type</b>: <span class=red>application/xml</span><br /><br />
-The following headers are required if you wish to recieve / push JSON data:<br /><br />
+<?php echo __('The following headers are required if you wish to receive / push JSON data');?>:<br /><br />
 <b>Authorization</b>: <span class=red><?php echo h($user['authkey']); ?></span><br />
 <b>Accept</b>: <span class=red>application/json</span><br />
 <b>Content-Type</b>: <span class=red>application/json</span><br /><br />
-The following table shows the relation of the request type and the resulting action:<br /><br />
+<?php echo __('The following table shows the relation of the request type and the resulting action');?>:<br /><br />
 
 <table style="width:350px;" summary="">
 <colgroup>
@@ -443,9 +442,9 @@ The following table shows the relation of the request type and the resulting act
 <col width="48%">
 </colgroup>
 <thead valign="bottom">
-<tr><th class="head">HTTP format</th>
-<th class="head">URL</th>
-<th class="head">Controller action invoked</th>
+<tr><th class="head"><?php echo __('HTTP format');?></th>
+<th class="head"><?php echo __('URL');?></th>
+<th class="head"><?php echo __('Controller action invoked');?></th>
 </tr>
 </thead>
 <tbody valign="top">
@@ -475,18 +474,18 @@ The following table shows the relation of the request type and the resulting act
 </tr>
 </tbody>
 </table>
-<small>(1) Warning, there's a limit on the number of results when you call <code>index</code>.</small><br/>
-<small>(2) Attachments are included using base64 encoding below the <code>data</code> tag.</small><br/>
+<small><?php echo __('(1) Warning, there\'s a limit on the number of results when you call <code>index</code>.');?></small><br/>
+<small><?php echo __('(2) Attachments are included using base64 encoding below the <code>data</code> tag.');?></small><br/>
 <br/><br />
 <h3></h3>
-<h3>Example - Get single Event</h3>
-<p>In this example we fetch the details of a single Event (and thus also his Attributes).<br/>
-The request should be:</p>
+<h3><?php echo __('Example - Get single Event');?></h3>
+<p><?php echo __('In this example we fetch the details of a single Event (and thus also his Attributes).');?><br/>
+<?php echo __('The request should be');?>:</p>
 <pre>GET <?php echo Configure::read('MISP.baseurl');?>/events/123</pre>
-<p>And with the HTTP Headers:</p>
+<p><?php echo __('And with the HTTP Headers');?>:</p>
 <pre>Accept: application/xml
 Authorization: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX</pre>
-<p>The response you're going to get is the following data:</p>
+<p><?php echo __('The response you\'re going to get is the following data');?>:</p>
 <pre>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot; standalone=&quot;no&quot;?&gt;
 &lt;response&gt;
 	&lt;Event&gt;
@@ -494,7 +493,7 @@ Authorization: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX</pre>
 		&lt;org&gt;NCIRC&lt;/org&gt;
 		&lt;date&gt;2014-03-04&lt;/date&gt;
 		&lt;threat_level_id&gt;1&lt;/threat_level_id&gt;
-		&lt;info&gt;Code monkey doing code monkey stuff&lt;/info&gt;
+		&lt;info&gt;<?php echo __('Code monkey doing code monkey stuff');?>&lt;/info&gt;
 		&lt;published&gt;1&lt;/published&gt;
 		&lt;uuid&gt;50aa54aa-f7a0-4d74-910d-10f0ff32448e&lt;/uuid&gt;
 		&lt;attribute_count&gt;1&lt;/attribute_count&gt;
@@ -508,14 +507,14 @@ Authorization: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX</pre>
 		&lt;Attribute&gt;
 			&lt;id&gt;9577&lt;/id&gt;
 			&lt;type&gt;other&lt;/type&gt;
-			&lt;category&gt;Artifacts dropped&lt;/category&gt;
+			&lt;category&gt;<?php echo __('Artifacts dropped');?>&lt;/category&gt;
 			&lt;to_ids&gt;1&lt;/to_ids&gt;
 			&lt;uuid&gt;50aa54bd-adec-4544-b494-10f0ff32448e&lt;/uuid&gt;
 			&lt;event_id&gt;57&lt;/event_id&gt;
 			&lt;distribution&gt;1&lt;/distribution&gt;
 			&lt;timestamp&gt;1393327600&lt;/timestamp&gt;
-			&lt;comment&gt;This is an Attribute&lt;/comment&gt;
-			&lt;value&gt;Some_attribute&lt;/value&gt;
+			&lt;comment&gt;<?php echo __('This is an Attribute');?>&lt;/comment&gt;
+			&lt;value&gt;<?php echo __('Some_attribute');?>&lt;/value&gt;
 			&lt;ShadowAttribute /&gt;
 		&lt;/Attribute&gt;
 		&lt;ShadowAttribute /&gt;
@@ -524,17 +523,17 @@ Authorization: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX</pre>
 	&lt;xml_version&gt;2.2.0&lt;/xml_version&gt;
 &lt;/response&gt;</pre>
 
-<h4>Example - Add new Event</h4>
-<p>In this example we want to add a single Event.<br/>
-The request should be:</p>
+<h4><?php echo __('Example - Add new Event');?></h4>
+<p><?php echo __('In this example we want to add a single Event.<br/>
+The request should be');?>:</p>
 <pre>POST <?php echo Configure::read('MISP.baseurl');?>/events
 Accept: application/xml
 Authorization: <?php echo h($user['authkey']); ?></pre>
-<p>And the request body:</p>
+<p><?php echo __('And the request body');?>:</p>
 <pre>&lt;Event&gt
 	&lt;date&gt;2014-03-04&lt;/date&gt;
 	&lt;threat_level_id&gt;1&lt;/threat_level_id&gt;
-	&lt;info&gt;Something concise&lt;/info&gt;
+	&lt;info&gt;<?php echo __('Something concise');?>&lt;/info&gt;
 	&lt;published&gt;1&lt;/published&gt;
 	&lt;analysis&gt;1&lt;/analysis&gt;
 	&lt;distribution&gt;1&lt;/distribution&gt;
@@ -543,11 +542,11 @@ Authorization: <?php echo h($user['authkey']); ?></pre>
 		&lt;category&gt;Artifacts dropped&lt;/category&gt;
 		&lt;to_ids&gt;1&lt;/to_ids&gt;
 		&lt;distribution&gt;1&lt;/distribution&gt;
-		&lt;comment&gt;This is an Attribute&lt;/comment&gt;
-		&lt;value&gt;Some_attribute&lt;/value&gt;
+		&lt;comment&gt;<?php echo __('This is an Attribute');?>&lt;/comment&gt;
+		&lt;value&gt;<?php echo __('Some_attribute');?>&lt;/value&gt;
 	&lt;/Attribute&gt;
 &lt;/Event&gt;</pre>
-<p>The response you're going to get is the following data:</p>
+<p><?php echo __('The response you\'re going to get is the following data');?>:</p>
 <pre>
 HTTP/1.1 100 Continue
 HTTP/1.1 200 Continue
@@ -566,7 +565,7 @@ Content-Type: application/xml
 		&lt;org&gt;NCIRC&lt;/org&gt;
 		&lt;date&gt;2014-03-04&lt;/date&gt;
 		&lt;threat_level_id&gt;1&lt;/threat_level_id&gt;
-		&lt;info&gt;Something concise&lt;/info&gt;
+		&lt;info&gt;<?php echo __('Something concise');?>&lt;/info&gt;
 		&lt;published&gt;1&lt;/published&gt;
 		&lt;uuid&gt;50aa54aa-f7a0-4d74-920d-10f0ff32448e&lt;/uuid&gt;
 		&lt;attribute_count&gt;1&lt;/attribute_count&gt;
@@ -580,14 +579,14 @@ Content-Type: application/xml
 		&lt;Attribute&gt;
 			&lt;id&gt;10462&lt;/id&gt;
 			&lt;type&gt;other&lt;/type&gt;
-			&lt;category&gt;Artifacts dropped&lt;/category&gt;
+			&lt;category&gt;<?php echo __('Artifacts dropped');?>&lt;/category&gt;
 			&lt;to_ids&gt;1&lt;/to_ids&gt;
 			&lt;uuid&gt;50aa54bd-adec-4544-b412-10f0ff32448e&lt;/uuid&gt;
 			&lt;event_id&gt;76&lt;/event_id&gt;
 			&lt;distribution&gt;1&lt;/distribution&gt;
 			&lt;timestamp&gt;1393328991&lt;/timestamp&gt;
 			&lt;comment/&gt;
-			&lt;value&gt;Some_attribute&lt;/value&gt;
+			&lt;value&gt;<?php echo __('Some_attribute');?>&lt;/value&gt;
 			&lt;ShadowAttribute/&gt;
 		&lt;/Attribute&gt;
 		&lt;ShadowAttribute/&gt;
@@ -595,7 +594,7 @@ Content-Type: application/xml
 			&lt;id&gt;75&lt;/id&gt;
 			&lt;org&gt;NCIRC&lt;/org&gt;
 			&lt;date&gt;2012-11-19&lt;/date&gt;
-			&lt;info&gt;Code monkey doing code monkey stuff&lt;/info&gt;
+			&lt;info&gt;<?php echo __('Code monkey doing code monkey stuff');?>&lt;/info&gt;
 			&lt;uuid&gt;50aa54aa-f7a0-4d74-910d-10f0ff32448e&lt;/uuid&gt;
 			&lt;published&gt;1&lt;/published&gt;
 			&lt;analysis&gt;1&lt;/analysis&gt;
@@ -612,7 +611,7 @@ Content-Type: application/xml
 	&lt;xml_version&gt;2.2.0&lt;/xml_version&gt;
 &lt;/response&gt;
 </pre>
-<p>The respone from requesting an invalid page</p>
+<p><?php echo __('The response from requesting an invalid page');?></p>
 <pre>
 &lt;?xml version = "1.0" encoding = "UTF-8"?&gt;
 &lt;response&gt;
