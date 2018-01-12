@@ -23,7 +23,7 @@
 			<th><?php echo $this->Paginator->sort('description');?></th>
 			<th><?php echo $this->Paginator->sort('version');?></th>
 			<th><?php echo $this->Paginator->sort('enabled');?></th>
-			<th>Active Tags</th>
+			<th><?php echo __('Active Tags');?></th>
 			<th class="actions"><?php echo __('Actions');?></th>
 	</tr><?php
 foreach ($taxonomies as $item): ?>

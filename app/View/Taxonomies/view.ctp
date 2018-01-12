@@ -75,7 +75,7 @@
 					<th><?php echo $this->Paginator->sort('events');?></th>
 					<th><?php echo $this->Paginator->sort('attributes');?></th>
 					<th><?php echo $this->Paginator->sort('tag');?></th>
-					<th>Action</th>
+					<th><?php echo __('Action');?></th>
 			</tr><?php
 			foreach ($entries as $k => $item): ?>
 			<tr>
@@ -139,7 +139,7 @@
 								echo $this->Form->input('taxonomy_id', array('type' => 'hidden', 'value' => $taxonomy['id']));
 								echo $this->Form->end();
 						?>
-								<span class="icon-refresh useCursorPointer" title="<?php echo __('Refresh');?>" role="button" tabindex="0" aria-label="Refresh" onClick="submitQuickTag('<?php echo 'quick_' . h($k); ?>');"></span>
+								<span class="icon-refresh useCursorPointer" title="<?php echo __('Refresh');?>" role="button" tabindex="0" aria-label="<?php echo __('Refresh');?>" onClick="submitQuickTag('<?php echo 'quick_' . h($k); ?>');"></span>
 								<span class="icon-minus useCursorPointer" title="<?php echo __('Disable');?>" role="button" tabindex="0" aria-label="<?php echo __('Disable');?>" onClick="submitQuickTag('<?php echo 'quick_disable_' . h($k); ?>');"></span>
 						<?php
 							else:
