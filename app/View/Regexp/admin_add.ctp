@@ -7,7 +7,7 @@
 		echo $this->Form->input('replacement');
 	?>
 	<div class = "clear">
-			<?php echo __('Types to be affected by the filter (Setting 'all' will override the other settings)');?>
+			<?php echo __('Types to be affected by the filter (Setting \'all\' will override the other settings)');?>
 	</div>
 				<br />
 	<div class="input clear">
