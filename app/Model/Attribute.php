@@ -1854,7 +1854,8 @@ class Attribute extends AppModel {
 				'contain' => array('Event' => array(
 					'fields' => array('Event.id', 'Event.published', 'Event.date', 'Event.publish_timestamp'),
 				)),
-				'enforceWarninglist' => $enforceWarninglist
+				'enforceWarninglist' => $enforceWarninglist,
+				'flatten' => 1
 		));
 		return $attributes;
 	}
@@ -2303,6 +2304,17 @@ class Attribute extends AppModel {
 								'Attribute.sharing_group_id' => $sgids,
 							)
 						)
+					),
+					array(
+						'OR' => array(
+							'Attribute.object_id' => 0,
+							'Event.org_id' => $user['org_id'],
+							'Object.distribution' => array('1', '2', '3', '5'),
+							'AND' => array(
+								'Object.distribution' => 4,
+								'Object.sharing_group_id' => $sgids,
+							)
+						)
 					)
 				)
 			);
@@ -2393,6 +2405,9 @@ class Attribute extends AppModel {
 				'Event' => array(
 					'fields' => array('id', 'info', 'org_id', 'orgc_id', 'uuid'),
 				),
+				'Object' => array(
+					'fields' => array('id', 'distribution', 'sharing_group_id')
+				)
 			)
 		);
 		$params['contain']['AttributeTag'] = array('Tag' => array('conditions' => array()));
@@ -2438,7 +2453,7 @@ class Attribute extends AppModel {
 			$results = $this->find('list', array(
 				'conditions' => $params['conditions'],
 				'recursive' => -1,
-				'contain' => array('Event'),
+				'contain' => array('Event', 'Object'),
 				'fields' => $fields,
 				'group' => $group,
 				'sort' => false
