@@ -106,8 +106,8 @@ This software is licensed under [GNU Affero General Public License version 3](ht
 * Copyright (C) 2012 Christophe Vandeplas
 * Copyright (C) 2012 Belgian Defence
 * Copyright (C) 2012 NATO / NCIRC
-* Copyright (C) 2013-2017 Andras Iklody
-* Copyright (C) 2015-2017 CIRCL - Computer Incident Response Center Luxembourg
+* Copyright (C) 2013-2018 Andras Iklody
+* Copyright (C) 2015-2018 CIRCL - Computer Incident Response Center Luxembourg
 * Copyright (C) 2016 Andreas Ziegler
 
 For more information, [the list of authors and contributors](AUTHORS) is available.

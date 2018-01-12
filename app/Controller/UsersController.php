@@ -271,6 +271,30 @@ class UsersController extends AppController {
 			$users = $this->User->find('all', array(
 					'conditions' => $conditions,
 					'recursive' => -1,
+					'fields' => array(
+						'id',
+            'org_id',
+            'server_id',
+            'email',
+            'autoalert',
+            'authkey',
+            'invited_by',
+            'gpgkey',
+            'certif_public',
+            'nids_sid',
+            'termsaccepted',
+            'newsread',
+            'role_id',
+            'change_pw',
+            'contactalert',
+            'disabled',
+            'expiration',
+            'current_login',
+            'last_login',
+            'force_logout',
+            'date_created',
+            'date_modified'
+					),
 					'contain' => array(
 							'Organisation' => array('id', 'name'),
 							'Role' => array('id', 'name', 'perm_auth')
