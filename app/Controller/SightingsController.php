@@ -71,6 +71,9 @@ class SightingsController extends AppController {
 				}
 			}
 		} else {
+			if ($this->_isRest()) {
+				return $this->RestResponse->describe('Sightings', 'add', false, $this->response->type());
+			}
 			if (!$this->request->is('ajax')) {
 				throw new MethodNotAllowedException('This method is only accessible via POST requests and ajax GET requests.');
 			} else {
