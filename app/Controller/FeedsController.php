@@ -420,8 +420,9 @@ class FeedsController extends AppController {
 		// params is passed as reference here, the pagination happens in the method, which isn't ideal but considering the performance gains here it's worth it
 		$resultArray = $this->Feed->getFreetextFeed($feed, $HttpSocket, $feed['Feed']['source_format'], $currentPage, 60, $params);
 		// we want false as a valid option for the split fetch, but we don't want it for the preview
-		if ($resultArray == false) {
-			$resultArray = array();
+		if (!is_array($resultArray)) {
+			$this->Session->setFlash($resultArray);
+			$this->redirect(array('controller' => 'feeds', 'action' => 'index'));
 		}
 		$this->params->params['paging'] = array($this->modelClass => $params);
 		$resultArray = $this->Feed->getFreetextFeedCorrelations($resultArray, $feed['Feed']['id']);

@@ -216,16 +216,18 @@ class Feed extends AppModel {
 					$response = $this->__getRecursive($feed['Feed']['url'], '', array());
 					//$response = $HttpSocket->get($feed['Feed']['url'], '', array());
 				} catch (Exception $e) {
-					return false;
+					return $e->getMessage();
 				}
 				if ($response->code == 200) {
 					$redis = $this->setupRedis();
 					if ($redis === false) {
-							return false;
+							return 'Could not reach Redis.';
 					}
 						$redis->del('misp:feed_cache:' . $feed['Feed']['id']);
 					$data = $response->body;
 					file_put_contents($feedCache, $data);
+				} else {
+					return 'Invalid response code returned: ' . $response->code;
 				}
 			}
 		}
