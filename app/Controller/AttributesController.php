@@ -2580,7 +2580,7 @@ class AttributesController extends AppController {
 		if (empty($attribute)) throw new NotFoundException('Invalid Attribute');
 		$this->loadModel('Server');
 		$this->loadModel('Module');
-		$modules = $this->Module->getEnabledModules();
+		$modules = $this->Module->getEnabledModules($this->Auth->user());
 		$validTypes = array();
 		if (isset($modules['hover_type'][$attribute[0]['Attribute']['type']])) {
 			$validTypes = $modules['hover_type'][$attribute[0]['Attribute']['type']];
