@@ -9,10 +9,8 @@ class AttributesController extends AppController {
 
 	public $paginate = array(
 			'limit' => 60,
-			'maxLimit' => 9999, // LATER we will bump here on a problem once we have more than 9999 events
-			'conditions' => array('AND' => array('NOT' => array('Event.id' => 0), 'Attribute.deleted' => 0)),
-			// Don't sort by default. It's crazy expensive and not really needed in most cases.
-			// Users can still sort on demand
+			'maxLimit' => 9999,
+			'conditions' => array('AND' => array('Attribute.deleted' => 0)),
 			'order' => 'Attribute.event_id DESC'
 	);
 
@@ -52,13 +50,12 @@ class AttributesController extends AppController {
 		}
 		// do not show private to other orgs
 		if (!$this->_isSiteAdmin()) {
-			// TEMP: change to passing an options array with the user!!
 			$this->paginate = Set::merge($this->paginate, array('conditions' => $this->Attribute->buildConditions($this->Auth->user())));
 		}
 	}
 
 	public function index() {
-		$this->Attribute->recursive = 2;
+		$this->Attribute->recursive = -1;
 		$this->paginate['contain'] = array(
 			'Event' => array(
 				'fields' =>  array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info', 'Event.user_id')
@@ -71,6 +68,10 @@ class AttributesController extends AppController {
 		$attributes = $this->paginate();
 		$org_ids = array();
 		foreach ($attributes as $k => $attribute) {
+			if (empty($attribute['Event']['id'])) {
+				unset($attribute[$k]);
+				continue;
+			}
 			if ($attribute['Attribute']['type'] == 'attachment' && preg_match('/.*\.(jpg|png|jpeg|gif)$/i', $attribute['Attribute']['value'])) {
 				$attributes[$k]['Attribute']['image'] = $this->Attribute->base64EncodeAttachment($attribute['Attribute']);
 			}
@@ -174,7 +175,7 @@ class AttributesController extends AppController {
 				}
 			}
 			$fails = array();
-			$successes = array();
+			$successes = 0;
 			$attributeCount = count($attributes);
 			if (!empty($uuids)) {
 				$existingAttributes = $this->Attribute->find('list', array(
@@ -192,27 +193,52 @@ class AttributesController extends AppController {
 					}
 				}
 			}
+			// deduplication
+			$duplicates = 0;
+			foreach ($attributes as $k => $attribute) {
+				foreach ($attributes as $k2 => $attribute2) {
+					if ($k == $k2) continue;
+					if (
+						(
+							!empty($attribute['uuid']) &&
+							!empty($attribute2['uuid']) &&
+							$attribute['uuid'] == $attribute2['uuid']
+						) || (
+							$attribute['value'] == $attribute2['value'] &&
+							$attribute['type'] == $attribute2['type'] &&
+							$attribute['category'] == $attribute2['category']
+						)
+					) {
+						$duplicates++;
+						unset($attributes[$k]);
+						break;
+					}
+				}
+			}
 			foreach ($attributes as $k => $attribute) {
 				if (empty($attribute['blocked'])) {
-					$this->Attribute->create();
-					$result = $this->Attribute->save($attribute);
+					$this->Attribute->set($attribute);
+					$result = $this->Attribute->validates();
 					if (!$result) {
 						$fails["attribute_$k"] = $this->Attribute->validationErrors;
+						unset($attributes[$k]);
 					} else {
-						$successes[$k] = $this->Attribute->id;
+						$successes++;
 					}
 				} else {
-					$fails["attribute_$k"] = 'Attirbute blocked due to warninglist';
+					$fails["attribute_$k"] = 'Attribute blocked due to warninglist';
+					unset($attributes[$k]);
 				}
 			}
 			if (!empty($successes)) {
 				$this->Event->unpublishEvent($eventId);
 			}
+			$result = $this->Attribute->saveMany($attributes);
 			if ($this->_isRest()) {
 				if (!empty($successes)) {
 					$attributes = $this->Attribute->find('all', array(
 						'recursive' => -1,
-						'conditions' => array('Attribute.id' => array_values($successes))
+						'conditions' => array('Attribute.id' => $this->Attribute->inserted_ids)
 					));
 					if (count($attributes) == 1) {
 						$attributes = $attributes[0];
@@ -275,7 +301,7 @@ class AttributesController extends AppController {
 		$events = $this->Event->findById($eventId);
 		$this->set('event_id', $events['Event']['id']);
 		// combobox for distribution
-		$this->set('currentDist', $events['Event']['distribution']); // TODO default distribution
+		$this->set('currentDist', $events['Event']['distribution']);
 		// tooltip for distribution
 
 		$this->loadModel('SharingGroup');
@@ -696,9 +722,6 @@ class AttributesController extends AppController {
 		if ('attachment' == $this->Attribute->data['Attribute']['type'] ||
 			'malware-sample' == $this->Attribute->data['Attribute']['type'] ) {
 			$this->set('attachment', true);
-			//	TODO we should ensure 'value' cannot be changed here and not only on a view level (because of the associated file)
-			//	$this->Session->setFlash(__('You cannot edit attachment attributes.', true), 'default', array(), 'error');
-			//	$this->redirect(array('controller' => 'events', 'action' => 'view', $old_attribute['Event']['id']));
 		} else {
 			$this->set('attachment', false);
 		}
@@ -1035,8 +1058,10 @@ class AttributesController extends AppController {
 			}
 		} else {
 			if (!$this->request->is('post') && !$this->_isRest()) throw new MethodNotAllowedException();
-			if ($this->Attribute->restore($id, $this->Auth->user())) $this->redirect(array('action' => 'view', $id));
-			else throw new NotFoundException('Could not restore the attribute');
+			if ($this->Attribute->restore($id, $this->Auth->user())) {
+				$this->Attribute->__alterAttributeCount($this->data['Attribute']['event_id']);
+				$this->redirect(array('action' => 'view', $id));
+			}	else throw new NotFoundException('Could not restore the attribute');
 		}
 	}
 
@@ -1296,7 +1321,13 @@ class AttributesController extends AppController {
 				// re-get pagination
 				$this->Attribute->recursive = 0;
 				$this->paginate = $this->Session->read('paginate_conditions');
-				$this->set('attributes', $this->paginate());
+				$attributes = $this->paginate();
+				foreach ($attributes as $k => $attribute) {
+					if (empty($attribute['Event']['id'])) {
+						unset($attribute[$k]);
+					}
+				}
+				$this->set('attributes', $attributes);
 
 				// set the same view as the index page
 				$this->render('index');
@@ -1630,6 +1661,10 @@ class AttributesController extends AppController {
 					$attributes = $this->paginate();
 					$org_ids = array();
 					foreach ($attributes as $k => $attribute) {
+						if (empty($attribute['Event']['id'])) {
+							unset($attribute[$k]);
+							continue;
+						}
 						if ($attribute['Attribute']['type'] == 'attachment' && preg_match('/.*\.(jpg|png|jpeg|gif)$/i', $attribute['Attribute']['value'])) {
 							$attributes[$k]['Attribute']['image'] = $this->Attribute->base64EncodeAttachment($attribute['Attribute']);
 						}

@@ -28,6 +28,10 @@ class AppModel extends Model {
 
 	public $loadedPubSubTool = false;
 
+	public $start = 0;
+
+	public $inserted_ids = array();
+
 	private $__redisConnection = false;
 
 	public function __construct($id = false, $table = null, $ds = null) {
@@ -48,10 +52,17 @@ class AppModel extends Model {
 				63 => false, 64 => false, 65 => false, 66 => false, 67 => true,
 				68 => false, 69 => false, 71 => false, 72 => false, 73 => false,
 				75 => false, 77 => false, 78 => false, 79 => false, 80 => false,
-				81 => false, 82 => false, 83 => false, 84 => false
+				81 => false, 82 => false, 83 => false, 84 => false, 85 => false
 			)
 		)
 	);
+
+	function afterSave($created, $options = array()) {
+		if ($created) {
+			$this->inserted_ids[] = $this->getInsertID();
+		}
+		return true;
+	}
 
 	// Generic update script
 	// add special cases where the upgrade does more than just update the DB
@@ -831,6 +842,9 @@ class AppModel extends Model {
 			case '2.4.84':
 				$sqlArray[] = "ALTER TABLE `tags` ADD `user_id` int(11) NOT NULL DEFAULT 0;";
 				$sqlArray[] = 'ALTER TABLE `tags` ADD INDEX `user_id` (`user_id`);';
+				break;
+			case '2.4.85':
+				$sqlArray[] = "ALTER TABLE `shadow_attributes` ADD `disable_correlation` tinyint(1) NOT NULL DEFAULT 0;";
 				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
