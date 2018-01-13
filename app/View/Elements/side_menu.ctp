@@ -149,10 +149,18 @@
 					<?php endif; ?>
 					<li id='liview'><a href="<?php echo $baseurl;?>/users/view/me">My Profile</a></li>
 					<li id='lidashboard'><a href="<?php echo $baseurl;?>/users/dashboard">Dashboard</a></li>
-					<li id='liindexOrg'><a href="<?php echo $baseurl;?>/organisations/index">List Organisations</a></li>
-					<?php if ($menuItem === 'viewOrg'): ?>
+					<?php
+						if ($isSiteAdmin || empty(Configure::read('Security.hide_organisation_index_from_users'))):
+					?>
+							<li id='liindexOrg'><a href="<?php echo $baseurl;?>/organisations/index">List Organisations</a></li>
+					<?php
+						endif;
+						if ($menuItem === 'viewOrg'):
+					?>
 						<li class="active"><a href="<?php echo $baseurl;?>/organisations/view/<?php echo h($id);?>">View Organisation</a></li>
-					<?php endif;?>
+					<?php
+						endif;
+					?>
 					<li id='liroles'><a href="<?php echo $baseurl;?>/roles/index">Role Permissions</a></li>
 					<li class="divider"></li>
 					<?php if ($menuItem === 'editSG' || ($menuItem == 'viewSG' && $mayModify)): ?>

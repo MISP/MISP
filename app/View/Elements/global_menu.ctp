@@ -88,7 +88,13 @@
 							<li><a href="<?php echo $baseurl;?>/news">News</a></li>
 							<li><a href="<?php echo $baseurl;?>/users/view/me">My Profile</a></li>
 							<li><a href="<?php echo $baseurl;?>/users/dashboard">Dashboard</a></li>
-							<li><a href="<?php echo $baseurl;?>/organisations/index">Organisations</a></li>
+						<?php
+							if ($isSiteAdmin || empty(Configure::read('Security.hide_organisation_index_from_users'))):
+						?>
+								<li><a href="<?php echo $baseurl;?>/organisations/index">Organisations</a></li>
+						<?php
+							endif;
+						?>
 							<li><a href="<?php echo $baseurl;?>/roles/index">Role Permissions</a></li>
 							<li class="divider"></li>
 							<li><a href="<?php echo $baseurl;?>/objectTemplates/index">List Object Templates</a></li>

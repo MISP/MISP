@@ -1002,6 +1002,15 @@ class Server extends AppModel {
 						'test' => 'testBool',
 						'type' => 'boolean',
 						'null' => true
+					),
+					'hide_organisation_index_from_users' => array(
+						'level' => 1,
+						'description' => 'Enabling this setting will block the organisation index from being visible to anyone besides site administrators on the current instance. Keep in mind that users can still see organisations that produce data via events, proposals, event history log entries, etc.',
+						'value' => false,
+						'errorMessage' => '',
+						'test' => 'testBool',
+						'type' => 'boolean',
+						'null' => true
 					)
 			),
 			'SecureAuth' => array(

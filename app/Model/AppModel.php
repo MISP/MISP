@@ -845,6 +845,9 @@ class AppModel extends Model {
 				break;
 			case '2.4.85':
 				$sqlArray[] = "ALTER TABLE `shadow_attributes` ADD `disable_correlation` tinyint(1) NOT NULL DEFAULT 0;";
+				// yes, this may look stupid as hell to index a boolean flag - but thanks to the stupidity of MySQL/MariaDB this will
+				// stop blocking other indexes to be used in queries where we also tests for the deleted flag.
+				$indexArray[] = array('attributes', 'deleted');
 				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
