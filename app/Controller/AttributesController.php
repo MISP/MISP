@@ -762,9 +762,9 @@ class AttributesController extends AppController {
 			if (empty($event)) {
 				throw new NotFoundException('Invalid Event.');
 			}
-			if ($this->Attribute->data['Attribute']['object_id']) {
+			if ($existingAttribute['Attribute']['object_id']) {
 				$result = $this->Attribute->save($this->request->data, array('Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.comment', 'Attribute.distribution', 'Attribute.sharing_group_id'));
-				$this->Attribute->Object->updateTimestamp($id);
+				$this->Attribute->Object->updateTimestamp($existingAttribute['Attribute']['object_id']);
 			} else {
 				$result = $this->Attribute->save($this->request->data);
 			}
@@ -2615,7 +2615,7 @@ class AttributesController extends AppController {
 		if (empty($attribute)) throw new NotFoundException('Invalid Attribute');
 		$this->loadModel('Server');
 		$this->loadModel('Module');
-		$modules = $this->Module->getEnabledModules();
+		$modules = $this->Module->getEnabledModules($this->Auth->user());
 		$validTypes = array();
 		if (isset($modules['hover_type'][$attribute[0]['Attribute']['type']])) {
 			$validTypes = $modules['hover_type'][$attribute[0]['Attribute']['type']];

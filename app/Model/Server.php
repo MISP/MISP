@@ -2143,6 +2143,15 @@ class Server extends AppModel {
 		$this->Module = ClassRegistry::init('Module');
 		$serverSettings = $this->serverSettings;
 		$moduleTypes = array('Enrichment', 'Import', 'Export', 'Cortex');
+		$orgs = $this->Organisation->find('list', array(
+			'conditions' => array(
+				'Organisation.local' => 1
+			),
+			'fields' => array(
+				'Organisation.id', 'Organisation.name'
+			)
+		));
+		$orgs = array_merge(array('Unrestricted'), $orgs);
 		foreach ($moduleTypes as $moduleType) {
 			if (Configure::read('Plugin.' . $moduleType . '_services_enable')) {
 				$results = $this->Module->getModuleSettings($moduleType);
@@ -2154,6 +2163,12 @@ class Server extends AppModel {
 							$setting['type'] = 'boolean';
 							$setting['description'] = 'Enable or disable the ' . $module . ' module.';
 							$setting['value'] = false;
+						} else if ($result['type'] == 'orgs') {
+							$setting['description'] = 'Restrict the ' . $module . ' module to the given organisation.';
+							$setting['value'] = 0;
+							$setting['test'] = 'testLocalOrg';
+							$setting['type'] = 'numeric';
+							$setting['optionsSource'] = 'LocalOrgs';
 						} else {
 							$setting['test'] = 'testForEmpty';
 							$setting['type'] = 'string';
@@ -2182,6 +2197,12 @@ class Server extends AppModel {
 						$setting['type'] = 'boolean';
 						$setting['description'] = 'Enable or disable the ' . $module . ' module.';
 						$setting['value'] = false;
+					} else if ($result['type'] == 'orgs') {
+						$setting['description'] = 'Restrict the ' . $module . ' module to the given organisation.';
+						$setting['value'] = 0;
+						$setting['test'] = 'testLocalOrg';
+						$setting['type'] = 'numeric';
+						$setting['optionsSource'] = 'LocalOrgs';
 					} else {
 						$setting['test'] = 'testForEmpty';
 						$setting['type'] = 'string';

@@ -21,6 +21,4 @@ $imgRelativePath = 'orgs/' . $imgId . '.png';
 $imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
 if (file_exists($imgAbsolutePath)) {
 	echo $this->Html->image($imgRelativePath, array('alt' => $imgId, 'style' => 'width:' . $imgSize . '; max-height:' . $imgSize . ';' . $imgStyle, 'title' => $imgId));
-} else {
-	echo $this->Html->tag('span', $imgId, Set::merge(array('class' => 'img'), $imgExtraOptions));
 }
