@@ -26,6 +26,7 @@ eventTypes = {"ipv4-addr": {"src": "ip-src", "dst": "ip-dst", "value": "address_
               "DomainNameObjectType": {"type": "domain", "value": "value", "relation": "domain"},
               "HostnameObjectType": {"type": "hostname", "value": "hostname_value", "relation": "host"},
               "PortObjectType": {"type": "port", "value": "port_value", "relation": "port"},
+              "AddressObjectType": {"type": "email-src"},
               "to": {"type": "email-dst", "value": "address_value", "relation": "to"},
               "from": {"type": "email-src", "value": "value", "relation": "from"},
               "subject": {"type": "email-subject", "value": "value", "relation": "subject"},
@@ -40,37 +41,38 @@ def loadEvent(args, pathname):
     try:
         filename = '{}/tmp/{}'.format(pathname, args[1])
         tempFile = open(filename, 'r')
+        fromMISP = True
         try:
             event = json.loads(tempFile.read())
             isJson = True
         except:
             event = STIXPackage.from_xml(filename)
-            event = json.loads(event.related_packages.related_package[0].to_json())
+            event = json.loads(event.to_json())
+            try:
+                event = event['related_packages']['related_package'][0]
+            except:
+                fromMISP = False
             isJson = False
-        return event, isJson
+        return event, isJson, fromMISP
     except:
         print(json.dumps({'success': 0, 'message': 'The temporary STIX export file could not be read'}))
-        sys.exit(1)
+        sys.exit(0)
 
 def getTimestampfromDate(date):
-    dt = date.split("+")[0]
-    return int(time.mktime(time.strptime(dt, "%Y-%m-%dT%H:%M:%S")))
+    try:
+        dt = date.split('+')[0]
+        d = int(time.mktime(time.strptime(dt, "%Y-%m-%dT%H:%M:%S")))
+    except:
+        dt = date.split('.')[0]
+        d = int(time.mktime(time.strptime(dt, "%Y-%m-%dT%H:%M:%S")))
+    return d
 
 def buildMispDict(stixEvent):
     mispDict = {}
     stixTimestamp = stixEvent.get("timestamp")
-    date = stixTimestamp.split("T")[0]
-    mispDict["date"] = date
-    timestamp = getTimestampfromDate(stixTimestamp)
-    mispDict["timestamp"] = timestamp
+    dictTimestampAndDate(mispDict, stixTimestamp)
     event = stixEvent["incidents"][0]
-    mispDict["info"] = event.get("title")
-    orgSource = event["information_source"]["identity"]["name"]
-    mispDict["Org"] = {}
-    mispDict["Org"]["name"] = orgSource
-    orgReporter = event["reporter"]["identity"]["name"]
-    mispDict["Orgc"] = {}
-    mispDict["Orgc"]["name"] = orgReporter
+    eventInfo(mispDict, event)
     indicators = event["related_indicators"]["indicators"]
     mispDict["Attribute"] = []
     mispDict["Object"] = []
@@ -85,7 +87,7 @@ def buildMispDict(stixEvent):
         try:
             properties = observable["object"]
             attribute = {'timestamp': getTimestampfromDate(timestamp)}
-            attrType, attribute['value'], relation = fillAttribute(properties, category)
+            attrType, attribute['value'], relation = fillMispAttribute(properties, category)
             attribute['type'] = attrType
             if category in categories:
                 attribute['category'] = category
@@ -103,7 +105,7 @@ def buildMispDict(stixEvent):
                 domain = False
                 for obs in observables:
                     properties = obs['object']
-                    tmpType, tmpValue, _ = fillAttribute(properties, category)
+                    tmpType, tmpValue, _ = fillMispAttribute(properties, category)
                     if tmpType == 'domain':
                         domainType = tmpType
                         domainVal = tmpValue
@@ -129,7 +131,7 @@ def buildMispDict(stixEvent):
                 for obs in observables:
                     properties = obs['object']
                     attribute = {'timestamp': getTimestampfromDate(timestamp)}
-                    attrType, attribute['value'], relation = fillAttribute(properties, category)
+                    attrType, attribute['value'], relation = fillMispAttribute(properties, category)
                     if '|' in attrType:
                         attribute['type'] = "malware-sample"
                         attribute['object_relation'] = "malware-sample"
@@ -143,13 +145,64 @@ def buildMispDict(stixEvent):
                 mispDict["Object"].append(obj)
     return mispDict
 
+def dictTimestampAndDate(mispDict, stixTimestamp):
+    date = stixTimestamp.split("T")[0]
+    mispDict["date"] = date
+    timestamp = getTimestampfromDate(stixTimestamp)
+    mispDict["timestamp"] = timestamp
+
+def eventInfo(mispDict, event):
+    mispDict["info"] = event.get("title")
+    orgSource = event["information_source"]["identity"]["name"]
+    mispDict["Org"] = {}
+    mispDict["Org"]["name"] = orgSource
+    try:
+        orgReporter = event["reporter"]["identity"]["name"]
+        mispDict["Orgc"] = {}
+        mispDict["Orgc"]["name"] = orgReporter
+    except:
+        pass
+
 def defineRelation(attribute, attrType, name, relation):
     if attrType in ('md5', 'sha1', 'sha256') and name == 'x509':
         attribute['object_relation'] = "x509-fingerprint-{}".format(attrType)
     else:
         attribute['object_relation'] = relation
 
-def fillAttribute(prop, category):
+def buildExternalDict(stixEvent):
+    mispDict = {}
+    stixTimestamp = stixEvent.get("timestamp")
+    dictTimestampAndDate(mispDict, stixTimestamp)
+    header = stixEvent.get('stix_header')
+    eventInfo(mispDict, header)
+    indicators = stixEvent.get('indicators')
+    mispDict['Attribute'] = []
+    for indicator in indicators:
+        try:
+            properties = observable['object'].get('properties')
+        except:
+            continue
+        indicTimestamp = indicator.get('timestamp').split('+')[0]
+        attribute = {'timestamp': getTimestampfromDate(indicTimestamp)}
+        observable = indicator.get('observable')
+        attribute['type'], attribute['value'] = fillExternalAttribute(properties)
+        mispDict['Attribute'].append(attribute)
+    return mispDict
+
+def fillExternalAttribute(properties):
+    if 'hashes' in properties:
+        hashes = properties['hashes'][0]
+        typeVal = hashes.get('type').lower()
+        value = hashes.get('simple_hash_value')
+    else:
+        typeVal = eventTypes[properties.get('xsi:type')].get('type')
+        try:
+            value = properties['value']
+        except:
+            value = properties['address_value']
+    return typeVal, value
+
+def fillMispAttribute(prop, category):
     properties = prop['properties']
     try:
         cat = properties["category"]
@@ -230,13 +283,16 @@ def saveFile(namefile, pathname, misp):
 
 def main(args):
     pathname = os.path.dirname(args[0])
-    stixEvent, isJson = loadEvent(args, pathname)
-    stixEvent = stixEvent["package"]
+    stixEvent, isJson, fromMISP = loadEvent(args, pathname)
     if isJson:
         namefile = args[1]
     else:
         namefile = '{}.json'.format(args[1][:-4])
-    mispDict = buildMispDict(stixEvent)
+    if fromMISP:
+        stixEvent = stixEvent["package"]
+        mispDict = buildMispDict(stixEvent)
+    else:
+        mispDict = buildExternalDict(stixEvent)
     misp = pymisp.MISPEvent(None, False)
     misp.from_dict(**mispDict)
     saveFile(namefile, pathname, misp)
