@@ -358,6 +358,10 @@ class FeedsController extends AppController {
 		$syncTool = new SyncTool();
 		$HttpSocket = $syncTool->setupHttpSocketFeed($feed);
 		$events = $this->Feed->getManifest($feed, $HttpSocket);
+		if (!is_array($events)) {
+			$this->Session->setFlash($events);
+			$this->redirect(array('controller' => 'feeds', 'action' => 'index'));
+		}
 		foreach ($filterParams as $k => $filter) {
 			if (!empty($filter)) {
 				$filterParams[$k] = json_decode($filter);

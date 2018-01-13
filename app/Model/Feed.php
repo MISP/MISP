@@ -166,10 +166,10 @@ class Feed extends AppModel {
 			try {
 				$response = $HttpSocket->get($uri, '', $request);
 			} catch (Exception $e) {
-				return false;
+				return $e->getMessage();
 			}
 			if ($response->code != 200) {
-				return false;
+				return 'Fetching the manifest failed with error: ' . $response->code;
 			}
 			$data = $response->body;
 			unset($response);
@@ -177,7 +177,7 @@ class Feed extends AppModel {
 		try {
 			$events = json_decode($data, true);
 		} catch (Exception $e) {
-			return false;
+			return 'Invalid MISP JSON returned.';
 		}
 		$events = $this->__filterEventsIndex($events, $feed);
 		return $events;
