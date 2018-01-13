@@ -837,7 +837,7 @@ class AppModel extends Model {
 				$sqlArray[] = "ALTER TABLE organisations ADD restricted_to_domain text COLLATE utf8_bin;";
 				break;
 			case '2.4.83':
-				$sqlArray[] = "ALTER TABLE object_template_elements CHANGE `disable_correlations` `disable_correlation` text COLLATE utf8_bin;";
+				$sqlArray[] = "ALTER TABLE object_template_elements CHANGE `disable_correlation` `disable_correlation` text COLLATE utf8_bin;";
 				break;
 			case '2.4.84':
 				$sqlArray[] = "ALTER TABLE `tags` ADD `user_id` int(11) NOT NULL DEFAULT 0;";
@@ -845,6 +845,7 @@ class AppModel extends Model {
 				break;
 			case '2.4.85':
 				$sqlArray[] = "ALTER TABLE `shadow_attributes` ADD `disable_correlation` tinyint(1) NOT NULL DEFAULT 0;";
+				$sqlArray[] = "ALTER TABLE object_template_elements CHANGE `disable_correlation` `disable_correlation` text COLLATE utf8_bin;";
 				// yes, this may look stupid as hell to index a boolean flag - but thanks to the stupidity of MySQL/MariaDB this will
 				// stop blocking other indexes to be used in queries where we also tests for the deleted flag.
 				$indexArray[] = array('attributes', 'deleted');
