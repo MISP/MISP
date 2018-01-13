@@ -150,7 +150,7 @@
 					<li id='liview'><a href="<?php echo $baseurl;?>/users/view/me">My Profile</a></li>
 					<li id='lidashboard'><a href="<?php echo $baseurl;?>/users/dashboard">Dashboard</a></li>
 					<?php
-						if ($isSiteAdmin || empty(Configure::read('Security.hide_organisation_index_from_users'))):
+						if ($isAclSharingGroup || empty(Configure::read('Security.hide_organisation_index_from_users'))):
 					?>
 							<li id='liindexOrg'><a href="<?php echo $baseurl;?>/organisations/index">List Organisations</a></li>
 					<?php

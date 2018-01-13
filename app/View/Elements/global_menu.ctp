@@ -89,7 +89,7 @@
 							<li><a href="<?php echo $baseurl;?>/users/view/me">My Profile</a></li>
 							<li><a href="<?php echo $baseurl;?>/users/dashboard">Dashboard</a></li>
 						<?php
-							if ($isSiteAdmin || empty(Configure::read('Security.hide_organisation_index_from_users'))):
+							if ($isAclSharingGroup || empty(Configure::read('Security.hide_organisation_index_from_users'))):
 						?>
 								<li><a href="<?php echo $baseurl;?>/organisations/index">Organisations</a></li>
 						<?php
