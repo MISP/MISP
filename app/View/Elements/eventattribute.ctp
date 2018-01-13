@@ -11,7 +11,7 @@
 	} else {
 		$page = 0;
 	}
-	$fieldCount = 8;
+	$fieldCount = 9;
 	if (Configure::read('Plugin.Sightings_enable') !== false) {
 		$fieldCount += 2;
 		if (!empty($event['Sighting'])) {
@@ -166,14 +166,7 @@
 			<th><?php echo $this->Paginator->sort('value');?></th>
 			<th>Tags</th>
 			<th><?php echo $this->Paginator->sort('comment');?></th>
-			<?php
-				if ($mayChangeCorrelation && !$event['Event']['disable_correlation']):
-					$fieldCount += 1;
-			?>
-					<th>Correlate</th>
-			<?php
-				endif;
-			?>
+			<th>Correlate</th>
 			<th>Related Events</th>
 			<th>Feed hits</th>
 			<th title="<?php echo $attrDescriptions['signature']['desc'];?>"><?php echo $this->Paginator->sort('to_ids', 'IDS');?></th>

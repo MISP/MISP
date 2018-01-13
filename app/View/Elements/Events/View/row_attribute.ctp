@@ -105,15 +105,18 @@
         <?php echo nl2br(h($object['comment'])); ?>&nbsp;
       </div>
     </td>
-    <?php
-      if ($mayChangeCorrelation && !$event['Event']['disable_correlation']):
-    ?>
-        <td class="short" style="padding-top:3px;">
-          <input id="correlation_toggle_<?php echo h($object['id']); ?>" class="correlation-toggle" type="checkbox" data-attribute-id="<?php echo h($object['id']); ?>" <?php echo $object['disable_correlation'] ? '' : 'checked'; ?>>
-        </td>
-    <?php
-      endif;
-    ?>
+    <td class="short" style="padding-top:3px;">
+      <input
+        id="correlation_toggle_<?php echo h($object['id']); ?>"
+        class="correlation-toggle"
+        type="checkbox"
+        data-attribute-id="<?php echo h($object['id']); ?>"
+        <?php
+          echo $object['disable_correlation'] ? '' : ' checked';
+          echo ($mayChangeCorrelation && !$event['Event']['disable_correlation']) ? '' : ' disabled';
+        ?>
+      >
+    </td>
     <td class="shortish">
       <ul class="inline" style="margin:0px;">
         <?php
