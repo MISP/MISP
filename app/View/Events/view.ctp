@@ -41,12 +41,12 @@
 		if (Configure::read('MISP.showorg') || $isAdmin) {
 			echo $this->element('img', array('id' => $event['Orgc']['name'], 'imgSize' => '48px'));
 		}
-		$title = $event['Event']['info'];
+		$title = h($event['Event']['info']);
 		if (strlen($title) > 58) $title = substr($title, 0, 55) . '...';
 	?>
 	<div class="row-fluid">
 		<div class="span8">
-			<h2><?php echo nl2br(h($title)); ?></h2>
+			<h2><?php echo nl2br($title); ?></h2>
 			<dl>
 				<dt>Event ID</dt>
 				<dd>
