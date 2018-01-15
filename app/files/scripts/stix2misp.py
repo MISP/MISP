@@ -26,7 +26,7 @@ eventTypes = {"ipv4-addr": {"src": "ip-src", "dst": "ip-dst", "value": "address_
               "DomainNameObjectType": {"type": "domain", "value": "value", "relation": "domain"},
               "HostnameObjectType": {"type": "hostname", "value": "hostname_value", "relation": "host"},
               "PortObjectType": {"type": "port", "value": "port_value", "relation": "port"},
-              "AddressObjectType": {"type": "email-src"},
+              "AddressObjectType": {"email": "email-src", "": ""},
               "to": {"type": "email-dst", "value": "address_value", "relation": "to"},
               "from": {"type": "email-src", "value": "value", "relation": "from"},
               "subject": {"type": "email-subject", "value": "value", "relation": "subject"},
@@ -152,10 +152,16 @@ def dictTimestampAndDate(mispDict, stixTimestamp):
     mispDict["timestamp"] = timestamp
 
 def eventInfo(mispDict, event):
-    mispDict["info"] = event.get("title")
-    orgSource = event["information_source"]["identity"]["name"]
-    mispDict["Org"] = {}
-    mispDict["Org"]["name"] = orgSource
+    try:
+        mispDict["info"] = event["title"]
+    except:
+        mispDict["info"] = "Imported from external STIX event"
+    try:
+        orgSource = event["information_source"]["identity"]["name"]
+        mispDict["Org"] = {}
+        mispDict["Org"]["name"] = orgSource
+    except:
+        pass
     try:
         orgReporter = event["reporter"]["identity"]["name"]
         mispDict["Orgc"] = {}
@@ -175,19 +181,34 @@ def buildExternalDict(stixEvent):
     dictTimestampAndDate(mispDict, stixTimestamp)
     header = stixEvent.get('stix_header')
     eventInfo(mispDict, header)
-    indicators = stixEvent.get('indicators')
     mispDict['Attribute'] = []
-    for indicator in indicators:
+    if 'indicators' in stixEvent:
+        indicators = stixEvent.get('indicators')
+        parseAttributes(indicators, mispDict, True)
+    if 'observables' in stixEvent:
+        observables = stixEvent['observables'].get('observables')
+        parseAttributes(observables, mispDict, False)
+    return mispDict
+
+def parseAttributes(attributes, mispDict, indic):
+    for attr in attributes:
+        if 'observable' in attr:
+            observable = attr.get('observable')
+            obj = observable.get('object')
+        else:
+            obj = attr.get('object')
         try:
-            properties = observable['object'].get('properties')
+            properties = obj.get('properties')
         except:
             continue
-        indicTimestamp = indicator.get('timestamp').split('+')[0]
-        attribute = {'timestamp': getTimestampfromDate(indicTimestamp)}
-        observable = indicator.get('observable')
+        try:
+            attrTimestamp = attr['timestamp'].split('+')[0]
+            attribute = {'timestamp': getTimestampfromDate(attrTimestamp)}
+        except:
+            attribute = {}
         attribute['type'], attribute['value'] = fillExternalAttribute(properties)
+        attribute['to_ids'] = indic
         mispDict['Attribute'].append(attribute)
-    return mispDict
 
 def fillExternalAttribute(properties):
     if 'hashes' in properties:
@@ -195,11 +216,27 @@ def fillExternalAttribute(properties):
         typeVal = hashes.get('type').lower()
         value = hashes.get('simple_hash_value')
     else:
-        typeVal = eventTypes[properties.get('xsi:type')].get('type')
-        try:
-            value = properties['value']
-        except:
-            value = properties['address_value']
+        attrType = properties.get('xsi:type')
+        if attrType == 'AddressObjectType':
+            if 'email' in properties.get('category'):
+                typeVal = eventTypes[attrType]['email']
+            else:
+                try:
+                    if properties.get('is_source') == 'false':
+                        typeVal = eventTypes[properties.get('category')].get('dst')
+                    else:
+                        typeVal = eventTypes[properties.get('category')].get('src')
+                except:
+                    typeVal = "ip-src"
+        else:
+            typeVal = eventTypes[properties.get('xsi:type')].get('type')
+        if 'address_value' in properties:
+            try:
+                value = properties['address_value'].get('value')
+            except:
+                value = properties.get('address_value')
+        else:
+            value = properties.get('value')
     return typeVal, value
 
 def fillMispAttribute(prop, category):
