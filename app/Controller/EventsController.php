@@ -866,7 +866,6 @@ class EventsController extends AppController {
 			$this->loadModel('Module');
 			$modules = $this->Module->getEnabledModules($this->Auth->user());
 			foreach ($modules as $k => $v) {
-				debug($v);
 				if (isset($v['restrict'])) {
 					if (!$this->_isSiteAdmin() && $v['restrict'] != $this->Auth->user('org_id')) {
 						unset($modules[$k]);
