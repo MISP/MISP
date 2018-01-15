@@ -153,6 +153,7 @@ class ACLComponent extends Component {
 					'index' => array(),
 					'previewEvent' => array(),
 					'previewIndex' => array(),
+					'toggleSelected' => array('perm_site_admin'),
 					'view' => array(),
 			),
 			'galaxies' => array(

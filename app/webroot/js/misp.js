@@ -600,7 +600,7 @@ function attributeListAnyAttributeCheckBoxesChecked() {
 	else $('.mass-select').addClass('hidden');
 }
 
-function eventListCheckboxesChecked() {
+function listCheckboxesChecked() {
 	if ($('.select:checked').length > 0) $('.mass-select').removeClass('hidden');
 	else $('.mass-select').addClass('hidden');
 }
@@ -626,6 +626,22 @@ function multiSelectDeleteEvents() {
 		}
 	});
 	$.get("/events/delete/" + JSON.stringify(selected), function(data) {
+		$("#confirmation_box").html(data);
+		openPopup("#confirmation_box");
+	});
+}
+
+function multiSelectToggleFeeds(on) {
+	var selected = [];
+	$(".select").each(function() {
+		if ($(this).is(":checked")) {
+			var temp = $(this).data("id");
+			if (temp != null) {
+				selected.push(temp);
+			}
+		}
+	});
+	$.get("/feeds/toggleSelected/" + on + "/" + JSON.stringify(selected), function(data) {
 		$("#confirmation_box").html(data);
 		openPopup("#confirmation_box");
 	});

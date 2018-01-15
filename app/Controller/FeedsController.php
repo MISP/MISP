@@ -632,4 +632,40 @@ class FeedsController extends AppController {
 			$this->set('feeds', $feeds);
 		}
 	}
+
+	public function toggleSelected($enable = false, $feedList = false) {
+		if (!empty($enable)) $enable = 1;
+		else $enable = 0;
+		try {
+			$feedIds = json_decode($feedList, true);
+		} catch (Exception $e) {
+			$this->Session->setFlash('Invalid feed list received.');
+			$this->redirect(array('controller' => 'feeds', 'action' => 'index'));
+		}
+		if ($this->request->is('post')) {
+			$feeds = $this->Feed->find('all', array(
+				'conditions' => array('Feed.id' => $feedIds),
+				'recursive' => -1
+			));
+			$count = 0;
+			foreach ($feeds as $feed) {
+				if ($feed['Feed']['enabled'] != $enable) {
+					$feed['Feed']['enabled'] = $enable;
+					$this->Feed->save($feed);
+					$count++;
+				}
+			}
+			if ($count > 0) {
+				$this->Session->setFlash($count . ' feeds ' . array('disabled', 'enabled')[$enable] . '.');
+				$this->redirect(array('controller' => 'feeds', 'action' => 'index'));
+			} else {
+				$this->Session->setFlash('All selected feeds are already ' . array('disabled', 'enabled')[$enable] . ', nothing to update.');
+				$this->redirect(array('controller' => 'feeds', 'action' => 'index'));
+			}
+		} else {
+			$this->set('feedList', $feedList);
+			$this->set('enable', $enable);
+			$this->render('ajax/feedToggleConfirmation');
+		}
+	}
 }
