@@ -173,12 +173,12 @@ class EventsController extends AppController {
 		foreach ($values as $v) {
 			$subconditions[] = array('lower(value1) LIKE' => $v);
 			$subconditions[] = array('lower(value2) LIKE' => $v);
-			$subconditions[] = array('lower(comment) LIKE' => $v);
+			$subconditions[] = array('lower(Attribute.comment) LIKE' => $v);
 		}
 		$conditions = array(
 			'AND' => array(
 				'OR' => $subconditions,
-				'deleted' => 0
+				'Attribute.deleted' => 0
 			)
 		);
 		$attributeHits = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array(
