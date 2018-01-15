@@ -247,13 +247,13 @@ class SharingGroupsController extends AppController {
 			array(
 				'SharingGroupOrg' => array(
 					'Organisation' => array(
-						'fields' => array('id', 'name', 'uuid')
+						'fields' => array('id', 'name', 'uuid', 'local')
 					)
 				),
 				'Organisation',
 				'SharingGroupServer' => array(
 					'Server' => array(
-						'fields' => array('id', 'name', 'url',)
+						'fields' => array('id', 'name', 'url')
 					)
 				)
 			)
