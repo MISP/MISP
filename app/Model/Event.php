@@ -1222,6 +1222,16 @@ class Event extends AppModel {
 				'table' => 'event_delegations',
 				'foreign_key' => 'event_id',
 				'value' => $id
+			),
+			array(
+				'table' => 'objects',
+				'foreign_key' => 'event_id',
+				'value' => $id
+			),
+			array(
+				'table' => 'object_references',
+				'foreign_key' => 'event_id',
+				'value' => $id
 			)
 		);
 		if ($thread_id) {
@@ -2084,7 +2094,7 @@ class Event extends AppModel {
 	private function __buildAlertEmailObject($user, &$body, &$bodyTempOther, $objects, $owner, $oldpublish) {
 		foreach ($objects as $object) {
 			if (!$owner && $object['distribution'] == 0) continue;
-			if ($object['distribution'] == 4 && !$this->Event->SharingGroup->checkIfAuthorised($user, $object['sharing_group_id'])) continue;
+			if ($object['distribution'] == 4 && !$this->SharingGroup->checkIfAuthorised($user, $object['sharing_group_id'])) continue;
 			if (isset($oldpublish) && isset($object['timestamp']) && $object['timestamp'] > $oldpublish) {
 				$body .= '* ';
 			} else {
@@ -2101,7 +2111,7 @@ class Event extends AppModel {
 		$appendlen = 20;
 		foreach ($attributes as $attribute) {
 			if (!$owner && $attribute['distribution'] == 0) continue;
-			if ($attribute['distribution'] == 4 && !$this->Event->SharingGroup->checkIfAuthorised($user, $attribute['sharing_group_id'])) continue;
+			if ($attribute['distribution'] == 4 && !$this->SharingGroup->checkIfAuthorised($user, $attribute['sharing_group_id'])) continue;
 			$ids = '';
 			if ($attribute['to_ids']) $ids = ' (IDS)';
 			$strRepeatCount = $appendlen - 2 - strlen($attribute['type']);
@@ -3905,9 +3915,9 @@ class Event extends AppModel {
 		);
 		foreach ($dataForView as $m => $variables) {
 			if ($m === 'Event') {
-				$currentModel = $this->Event;
+				$currentModel = $this;
 			} else if ($m === 'Attribute') {
-				$currentModel = $this->Event->Attribute;
+				$currentModel = $this->Attribute;
 			}
 			foreach ($variables as $alias => $variable) {
 				$this->set($alias, $currentModel->{$variable});

@@ -585,4 +585,17 @@ class MispObject extends AppModel {
 		$result = $this->save($object);
 		return $result;
 	}
+
+	// Hunt down all LEDA and CASTOR clones
+	public function removeOrphanedObjects() {
+		$orphans = $this->find('list', array(
+			'fields' => array('Object.id', 'Object.id'),
+			'conditions' => array('Event.id' => null),
+			'contain' => array('Event' => array('fields' => array('id')))
+		));
+		foreach ($orphans as $orphan) {
+			$this->delete($orphan);
+		}
+		return count($orphans);
+	}
 }

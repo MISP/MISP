@@ -52,7 +52,8 @@ class AppModel extends Model {
 				63 => false, 64 => false, 65 => false, 66 => false, 67 => true,
 				68 => false, 69 => false, 71 => false, 72 => false, 73 => false,
 				75 => false, 77 => false, 78 => false, 79 => false, 80 => false,
-				81 => false, 82 => false, 83 => false, 84 => false, 85 => false
+				81 => false, 82 => false, 83 => false, 84 => false, 85 => false,
+				86 => false
 			)
 		)
 	);
@@ -121,6 +122,11 @@ class AppModel extends Model {
 						$this->OrgBlacklist->save($value);
 					}
 				}
+				$this->updateDatabase($command);
+				break;
+			case '2.4.86':
+				$this->MispObject = Classregistry::init('MispObject');
+				$this->MispObject->removeOrphanedObjects();
 				$this->updateDatabase($command);
 				break;
 			default:
@@ -849,6 +855,9 @@ class AppModel extends Model {
 				// yes, this may look stupid as hell to index a boolean flag - but thanks to the stupidity of MySQL/MariaDB this will
 				// stop blocking other indexes to be used in queries where we also tests for the deleted flag.
 				$indexArray[] = array('attributes', 'deleted');
+				break;
+			case '2.4.86':
+
 				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
