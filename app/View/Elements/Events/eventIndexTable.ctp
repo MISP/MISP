@@ -240,7 +240,7 @@
 <script type="text/javascript">
 	$(document).ready(function() {
 		$('.select').on('change', function() {
-			eventListCheckboxesChecked();
+			listCheckboxesChecked();
 		});
 	});
 </script>
