@@ -3079,7 +3079,29 @@ class Attribute extends AppModel {
 		}
 	$attribute['event_id'] = $eventId;
 		if (isset($attribute['distribution']) && $attribute['distribution'] == 4) {
-			$attribute['sharing_group_id'] = $this->SharingGroup->captureSG($attribute['SharingGroup'], $user);
+			if (!empty($attribute['SharingGroup'])) {
+				$attribute['sharing_group_id'] = $this->SharingGroup->captureSG($attribute['SharingGroup'], $user);
+			} elseif (!empty($attribute['sharing_group_id'])) {
+				if (!$this->SharingGroup->checkIfAuthorised($user, $attribute['sharing_group_id'])) {
+					unset($attribute['sharing_group_id']);
+				}
+			}
+			if (empty($attribute['sharing_group_id'])) {
+				$attribute_short = (isset($attribute['category']) ? $attribute['category'] : 'N/A') . '/' . (isset($attribute['type']) ? $attribute['type'] : 'N/A') . ' ' . (isset($attribute['value']) ? $attribute['value'] : 'N/A');
+				$this->Log = ClassRegistry::init('Log');
+				$this->Log->create();
+				$this->Log->save(array(
+					'org' => $user['Organisation']['name'],
+					'model' => 'Attribute',
+					'model_id' => 0,
+					'email' => $user['email'],
+					'action' => 'edit',
+					'user_id' => $user['id'],
+					'title' => 'Attribute dropped due to invalid sharing group for Event ' . $eventId . ' failed: ' . $attribute_short,
+					'change' => 'Validation errors: ' . json_encode($this->validationErrors) . ' Full Attribute: ' . json_encode($attribute),
+				));
+				return 'Invalid sharing group choice.';
+			}
 		}
 		$fieldList = array(
 			'event_id',
