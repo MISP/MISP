@@ -188,6 +188,9 @@ def buildExternalDict(stixEvent):
     if 'observables' in stixEvent:
         observables = stixEvent['observables'].get('observables')
         parseAttributes(observables, mispDict, False)
+    if 'ttps' in stixEvent:
+        ttps = stixEvent['ttps'].get('ttps')
+        parseTTPS(ttps, mispDict)
     return mispDict
 
 def parseAttributes(attributes, mispDict, indic):
@@ -209,6 +212,28 @@ def parseAttributes(attributes, mispDict, indic):
         attribute['type'], attribute['value'] = fillExternalAttribute(properties)
         attribute['to_ids'] = indic
         mispDict['Attribute'].append(attribute)
+
+def parseTTPS(ttps, mispDict):
+    mispDict['Galaxy'] = []
+    for ttp in ttps:
+        behavior = ttp.get('behavior')
+        if 'malware_instances' in behavior:
+            attr = behavior['malware_instances'][0]
+            attrType = attr['types'][0].get('value')
+            attribute = {'type': attrType, 'GalaxyCluster': []}
+            cluster = {'type': attrType}
+            try:
+                cluster['description'] = attr['short_description']
+            except:
+                cluster['description'] = attr.get('description')
+            if 'names' in attr:
+                synonyms = []
+                for name in attr.get('names'):
+                    synonyms.append(name)
+                cluster['meta'] = {'synonyms': synonyms}
+            cluster['value'] = ttp.get('title')
+            attribute['GalaxyCluster'].append(cluster)
+            mispDict['Galaxy'].append(attribute)
 
 def fillExternalAttribute(properties):
     if 'hashes' in properties:
