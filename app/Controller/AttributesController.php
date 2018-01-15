@@ -59,6 +59,9 @@ class AttributesController extends AppController {
 		$this->paginate['contain'] = array(
 			'Event' => array(
 				'fields' =>  array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info', 'Event.user_id')
+			),
+			'Object' => array(
+				'fields' => array('Object.id', 'Object.distribution', 'Object.sharing_group_id')
 			)
 		);
 		if (!$this->_isRest()) {
@@ -265,7 +268,14 @@ class AttributesController extends AppController {
 						}
 						$message = 'Attributes saved, however, attributes ' . implode(', ', $failKeys) . ' could not be saved.';
 					} else {
-						$message = 'Attribute could not be saved.';
+						if (!empty($fails["attribute_0"])) {
+							foreach ($fails["attribute_0"] as $k => $v) {
+								$message = 'Attribute validation failed [' . $k . ']: ' . $v[0];
+								break;
+							}
+						} else {
+							$message = 'Attribute could not be saved.';
+						}
 					}
 				}
 				if ($this->request->is('ajax')) {

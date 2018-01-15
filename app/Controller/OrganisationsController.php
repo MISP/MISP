@@ -18,7 +18,7 @@ class OrganisationsController extends AppController {
 	);
 
 	public function index() {
-		if (!$role['perm_sharing_group'] && Configure::read('Security.hide_organisation_index_from_users')) {
+		if (!$this->Auth->user('Role')['perm_sharing_group'] && Configure::read('Security.hide_organisation_index_from_users')) {
 			throw new MethodNotAllowedException('This feature is disabled on this instance for normal users.');
 		}
 		$conditions = array();

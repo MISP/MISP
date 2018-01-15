@@ -38,15 +38,15 @@
 			if (!empty($org['Organisation']['restricted_to_domain'])):
 		?>
 				<dt><?php echo 'E-mail domain restrictions'; ?></dt>
-				<dd>
+				<dd style="min-height:40px;">
 					<?php
 						$domains = $org['Organisation']['restricted_to_domain'];
 						foreach ($domains as $k => $domain):
 							$domains[$k] = h($domain);
 						endforeach;
 						$domains = implode("<br />", $domains);
+ 						echo $domains;
 					?>
-					<?php echo $domains; ?>
 				</dd>
 		<?php
 			endif;
