@@ -1595,9 +1595,7 @@ class Event extends AppModel {
 		if (empty($results)) return array();
 
 		// Do some refactoring with the event
-		if (Configure::read('Plugin.Sightings_enable') !== false) {
-			$this->Sighting = ClassRegistry::init('Sighting');
-		}
+		$this->Sighting = ClassRegistry::init('Sighting');
 		$userEmails = array();
 		$fields = array(
 			'common' => array('distribution', 'sharing_group_id', 'uuid'),
@@ -1763,9 +1761,7 @@ class Event extends AppModel {
 					$event['ShadowAttribute'] = $this->Feed->attachFeedCorrelations($event['ShadowAttribute'], $user, $event['Event'], $overrideLimit);
 				}
 			}
-			if (Configure::read('Plugin.Sightings_enable') !== false) {
-				$event['Sighting'] = $this->Sighting->attachToEvent($event, $user);
-			}
+			$event['Sighting'] = $this->Sighting->attachToEvent($event, $user);
 			// remove proposals to attributes that we cannot see
 			// if the shadow attribute wasn't moved within an attribute before, this is the case
 			if (isset($event['ShadowAttribute'])) {

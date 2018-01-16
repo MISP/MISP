@@ -1,35 +1,33 @@
 <?php
 	$mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Orgc']['id'] == $me['org_id']) || ($isAclModifyOrg && $event['Orgc']['id'] == $me['org_id']));
 	$mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
-	if (Configure::read('Plugin.Sightings_enable') !== false) {
-		$csv = array();
-		$sightingPopover = '';
-		if (isset($event['Sighting']) && !empty($event['Sighting'])) {
-			$ownSightings = array();
-			$orgSightings = array();
-			$sparklineData = array();
-			foreach ($event['Sighting'] as $sighting) {
-				if (isset($sighting['org_id']) && $sighting['org_id'] == $me['org_id']) $ownSightings[] = $sighting;
-				if (isset($sighting['org_id'])) {
-					if (isset($orgSightings[$sighting['Organisation']['name']])) {
-						$orgSightings[$sighting['Organisation']['name']]['count']++;
-						if (!isset($orgSightings[$sighting['Organisation']['name']]['date']) || $orgSightings[$sighting['Organisation']['name']]['date'] < $sighting['date_sighting']) {
-							$orgSightings[$sighting['Organisation']['name']]['date'] = $sighting['date_sighting'];
-						}
-					} else {
-						$orgSightings[$sighting['Organisation']['name']]['count'] = 1;
+	$csv = array();
+	$sightingPopover = '';
+	if (isset($event['Sighting']) && !empty($event['Sighting'])) {
+		$ownSightings = array();
+		$orgSightings = array();
+		$sparklineData = array();
+		foreach ($event['Sighting'] as $sighting) {
+			if (isset($sighting['org_id']) && $sighting['org_id'] == $me['org_id']) $ownSightings[] = $sighting;
+			if (isset($sighting['org_id'])) {
+				if (isset($orgSightings[$sighting['Organisation']['name']])) {
+					$orgSightings[$sighting['Organisation']['name']]['count']++;
+					if (!isset($orgSightings[$sighting['Organisation']['name']]['date']) || $orgSightings[$sighting['Organisation']['name']]['date'] < $sighting['date_sighting']) {
 						$orgSightings[$sighting['Organisation']['name']]['date'] = $sighting['date_sighting'];
 					}
 				} else {
-					if (isset($orgSightings['Other organisations']['count'])) {
-						$orgSightings['Other organisations']['count']++;
-						if (!isset($orgSightings['Other organisations']['date']) || $orgSightings['Other organisations']['date'] < $sighting['date_sighting']) {
-							$orgSightings['Other organisations']['date'] = $sighting['date_sighting'];
-						}
-					} else {
-						$orgSightings['Other organisations']['count'] = 1;
+					$orgSightings[$sighting['Organisation']['name']]['count'] = 1;
+					$orgSightings[$sighting['Organisation']['name']]['date'] = $sighting['date_sighting'];
+				}
+			} else {
+				if (isset($orgSightings['Other organisations']['count'])) {
+					$orgSightings['Other organisations']['count']++;
+					if (!isset($orgSightings['Other organisations']['date']) || $orgSightings['Other organisations']['date'] < $sighting['date_sighting']) {
 						$orgSightings['Other organisations']['date'] = $sighting['date_sighting'];
 					}
+				} else {
+					$orgSightings['Other organisations']['count'] = 1;
+					$orgSightings['Other organisations']['date'] = $sighting['date_sighting'];
 				}
 			}
 		}
@@ -164,28 +162,24 @@
 				<dd class="green bold published <?php echo ($event['Event']['published'] == 0) ? 'hidden' : ''; ?>">Yes</dd>
 				<dt>#Attributes</dt>
 				<dd><?php echo h($attribute_count);?></dd>
+				<dt>Sightings</dt>
+				<dd style="word-wrap: break-word;">
+						<span id="eventSightingCount" class="bold sightingsCounter" data-toggle="popover" data-trigger="hover" data-content="<?php echo $sightingPopover; ?>"><?php echo count($event['Sighting']); ?></span>
+						(<span id="eventOwnSightingCount" class="green bold sightingsCounter" data-toggle="popover" data-trigger="hover" data-content="<?php echo $sightingPopover; ?>"><?php echo isset($ownSightings) ? count($ownSightings) : 0; ?></span>)
+						<?php if (!Configure::read('Plugin.Sightings_policy')) echo '- restricted to own organisation only.'; ?>
+						<span class="icon-wrench useCursorPointer sightings_advanced_add" title="Advanced Sightings" role="button" tabindex="0" aria-label="Advanced sightings" data-object-id="<?php echo h($event['Event']['id']); ?>" data-object-context="event">&nbsp;</span>
+				</dd>
+				<dt>Activity</dt>
+				<dd>
+					<?php
+						if (!empty($sightingsData['csv']['event'])) {
+							echo $this->element('sparkline', array('id' => $event['Event']['id'], 'csv' => $sightingsData['csv']['event']));
+						} else {
+							echo '&nbsp';
+						}
+					?>
+				</dd>
 				<?php
-					if (Configure::read('Plugin.Sightings_enable') !== false):
-				?>
-						<dt>Sightings</dt>
-						<dd style="word-wrap: break-word;">
-								<span id="eventSightingCount" class="bold sightingsCounter" data-toggle="popover" data-trigger="hover" data-content="<?php echo $sightingPopover; ?>"><?php echo count($event['Sighting']); ?></span>
-								(<span id="eventOwnSightingCount" class="green bold sightingsCounter" data-toggle="popover" data-trigger="hover" data-content="<?php echo $sightingPopover; ?>"><?php echo isset($ownSightings) ? count($ownSightings) : 0; ?></span>)
-								<?php if (!Configure::read('Plugin.Sightings_policy')) echo '- restricted to own organisation only.'; ?>
-								<span class="icon-wrench useCursorPointer sightings_advanced_add" title="Advanced Sightings" role="button" tabindex="0" aria-label="Advanced sightings" data-object-id="<?php echo h($event['Event']['id']); ?>" data-object-context="event">&nbsp;</span>
-						</dd>
-						<dt>Activity</dt>
-						<dd>
-							<?php
-								if (!empty($sightingsData['csv']['event'])) {
-									echo $this->element('sparkline', array('id' => $event['Event']['id'], 'csv' => $sightingsData['csv']['event']));
-								} else {
-									echo '&nbsp';
-								}
-							?>
-						</dd>
-				<?php
-					endif;
 					if (!empty($delegationRequest)):
 						if ($isSiteAdmin || $me['org_id'] == $delegationRequest['EventDelegation']['org_id']) {
 							$target = $isSiteAdmin ? $delegationRequest['Org']['name'] : 'you';

@@ -237,13 +237,11 @@
       </div>
     </td>
   <?php
-    if (Configure::read('Plugin.Sightings_enable') !== false):
-      echo $this->element('/Events/View/sighting_field', array(
-        'object' => $object,
-        'tr_class' => $tr_class,
-        'page' => $page
-      ));
-    endif;
+    echo $this->element('/Events/View/sighting_field', array(
+      'object' => $object,
+      'tr_class' => $tr_class,
+      'page' => $page
+    ));
   ?>
   <td class="short action-links">
     <?php

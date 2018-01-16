@@ -11,25 +11,22 @@
 	} else {
 		$page = 0;
 	}
-	$fieldCount = 9;
-	if (Configure::read('Plugin.Sightings_enable') !== false) {
-		$fieldCount += 2;
-		if (!empty($event['Sighting'])) {
-			foreach ($sightingsData['data'] as $aid => $data) {
-				$sightingsData['data'][$aid]['html'] = '';
-				foreach ($data as $type => $typeData) {
-					$name = (($type != 'expiration') ? Inflector::pluralize($type) : $type);
-					$sightingsData['data'][$aid]['html'] .= '<span class=\'blue bold\'>' . ucfirst(h($name)) . '</span><br />';
-					foreach ($typeData['orgs'] as $org => $orgData) {
-						$extra = (($org == $me['Organisation']['name']) ? " class=	'bold'" : "");
-						if ($type == 'expiration') {
-							$sightingsData['data'][$aid]['html'] .= '<span ' . $extra . '>' . h($org) . '</span>: <span class=\'orange bold\'>' . date('Y-m-d H:i:s', $orgData['date']) . '</span><br />';
-						} else {
-							$sightingsData['data'][$aid]['html'] .= '<span ' . $extra . '>' . h($org) . '</span>: <span class=\'' . (($type == 'sighting') ? 'green' : 'red') . ' bold\'>' . h($orgData['count']) . ' (' . date('Y-m-d H:i:s', $orgData['date']) . ')</span><br />';
-						}
+	$fieldCount = 11;
+	if (!empty($event['Sighting'])) {
+		foreach ($sightingsData['data'] as $aid => $data) {
+			$sightingsData['data'][$aid]['html'] = '';
+			foreach ($data as $type => $typeData) {
+				$name = (($type != 'expiration') ? Inflector::pluralize($type) : $type);
+				$sightingsData['data'][$aid]['html'] .= '<span class=\'blue bold\'>' . ucfirst(h($name)) . '</span><br />';
+				foreach ($typeData['orgs'] as $org => $orgData) {
+					$extra = (($org == $me['Organisation']['name']) ? " class=	'bold'" : "");
+					if ($type == 'expiration') {
+						$sightingsData['data'][$aid]['html'] .= '<span ' . $extra . '>' . h($org) . '</span>: <span class=\'orange bold\'>' . date('Y-m-d H:i:s', $orgData['date']) . '</span><br />';
+					} else {
+						$sightingsData['data'][$aid]['html'] .= '<span ' . $extra . '>' . h($org) . '</span>: <span class=\'' . (($type == 'sighting') ? 'green' : 'red') . ' bold\'>' . h($orgData['count']) . ' (' . date('Y-m-d H:i:s', $orgData['date']) . ')</span><br />';
 					}
-					$sightingsData['data'][$aid]['html'] .= '<br />';
 				}
+				$sightingsData['data'][$aid]['html'] .= '<br />';
 			}
 		}
 	}
@@ -112,9 +109,7 @@
 		<span id="multi-delete-button" title="Delete selected Attributes" role="button" tabindex="0" aria-label="Delete selected Attributes" class="hidden icon-trash mass-select useCursorPointer" onClick="multiSelectAction(<?php echo $event['Event']['id']; ?>, 'deleteAttributes');"></span>
 		<span id="multi-accept-button" title="Accept selected Proposals" role="button" tabindex="0" aria-label="Accept selected Proposals" class="hidden icon-ok mass-proposal-select useCursorPointer" onClick="multiSelectAction(<?php echo $event['Event']['id']; ?>, 'acceptProposals');"></span>
 		<span id="multi-discard-button" title="Discard selected Proposals" role="button" tabindex="0" aria-label="Discard selected Proposals" class="hidden icon-remove mass-proposal-select useCursorPointer" onClick="multiSelectAction(<?php echo $event['Event']['id']; ?>, 'discardProposals');"></span>
-		<?php if (Configure::read('Plugin.Sightings_enable')): ?>
-			<span id="multi-sighting-button" title="Sightings display for selected attributes" role="button" tabindex="0" aria-label="Sightings display for selected attributes" class="hidden icon-wrench mass-select useCursorPointer sightings_advanced_add" data-object-id="selected" data-object-context="attribute"></span>
-		<?php endif; ?>
+		<span id="multi-sighting-button" title="Sightings display for selected attributes" role="button" tabindex="0" aria-label="Sightings display for selected attributes" class="hidden icon-wrench mass-select useCursorPointer sightings_advanced_add" data-object-id="selected" data-object-context="attribute"></span>
 	</div>
 	<div class="tabMenu tabMenuToolsBlock noPrint">
 		<?php if ($mayModify): ?>
@@ -171,15 +166,8 @@
 			<th>Feed hits</th>
 			<th title="<?php echo $attrDescriptions['signature']['desc'];?>"><?php echo $this->Paginator->sort('to_ids', 'IDS');?></th>
 			<th title="<?php echo $attrDescriptions['distribution']['desc'];?>"><?php echo $this->Paginator->sort('distribution');?></th>
-			<?php
-				if (Configure::read('Plugin.Sightings_enable') !== false):
-					$fieldCount += 2;
-			?>
-					<th>Sightings</th>
-					<th>Activity</th>
-			<?php
-				endif;
-			?>
+			<th>Sightings</th>
+			<th>Activity</th>
 			<th class="actions">Actions</th>
 		</tr>
 		<?php
