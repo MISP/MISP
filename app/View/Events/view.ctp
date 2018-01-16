@@ -39,7 +39,7 @@
 <div class="events view">
 	<?php
 		if (Configure::read('MISP.showorg') || $isAdmin) {
-			echo $this->element('img', array('id' => $event['Orgc']['name'], 'imgSize' => '48px'));
+			echo $this->element('img', array('id' => $event['Orgc']['name'], 'imgSize' => 48));
 		}
 		$title = h($event['Event']['info']);
 		if (strlen($title) > 58) $title = substr($title, 0, 55) . '...';
@@ -277,24 +277,24 @@
 			<?php
 					if (!empty($event['Feed'])):
 						foreach ($event['Feed'] as $relatedFeed):
-							$relatedData = array('Name' => $relatedFeed['name'], 'URL' => $relatedFeed['url'], 'Provider' => $relatedFeed['provider'], 'Source Format' => $relatedFeed['source_format']);
+							$relatedData = array('Name' => $relatedFeed['name'], 'URL' => $relatedFeed['url'], 'Provider' => $relatedFeed['provider'], 'Source Format' => $relatedFeed['source_format'] == 'misp' ? 'MISP' : $relatedFeed['source_format']);
 							$popover = '';
 							foreach ($relatedData as $k => $v) {
 								$popover .= '<span class=\'bold\'>' . h($k) . '</span>: <span class="blue">' . h($v) . '</span><br />';
 							}
 				?>
-								<span data-toggle="popover" data-content="<?php echo h($popover); ?>" data-trigger="hover" style="white-space: nowrap;">
+								<span style="white-space: nowrap;">
 									<?php
 										if ($relatedFeed ['source_format'] == 'misp'):
 									?>
 											<form action="<?php echo $baseurl; ?>/feeds/previewIndex/<?php echo h($relatedFeed['id']); ?>" method="post" style="margin:0px;">
 												<input type="hidden" name="data[Feed][eventid]" value="<?php echo h(json_encode($relatedFeed['event_uuids'], true)); ?>">
-												<input type="submit" class="linkButton useCursorPointer" value="<?php echo h($relatedFeed['name']) . ' (' . $relatedFeed['id'] . ')'; ?>" />
+												<input type="submit" class="linkButton useCursorPointer" value="<?php echo h($relatedFeed['name']) . ' (' . $relatedFeed['id'] . ')'; ?>" data-toggle="popover" data-content="<?php echo h($popover); ?>" data-trigger="hover" />
 											</form>
 									<?php
 										else:
 									?>
-											<a href="<?php echo $baseurl; ?>/feeds/previewIndex/<?php echo h($relatedFeed['id']); ?>"><?php echo h($relatedFeed['name']) . ' (' . $relatedFeed['id'] . ')'; ?></a><br />
+											<a href="<?php echo $baseurl; ?>/feeds/previewIndex/<?php echo h($relatedFeed['id']); ?>" data-toggle="popover" data-content="<?php echo h($popover); ?>" data-trigger="hover"><?php echo h($relatedFeed['name']) . ' (' . $relatedFeed['id'] . ')'; ?></a><br />
 									<?php
 										endif;
 									?>

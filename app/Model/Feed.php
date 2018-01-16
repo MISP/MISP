@@ -356,8 +356,9 @@ class Feed extends AppModel {
 					$feedHits = $pipe->exec();
 					foreach ($feedHits as $k4 => $hit) {
 						if ($hit) {
-							if (!isset($event['Feed'][$feeds[$k3]['Feed']['id']])) {
-								$event['Feed'][$feeds[$k3]['Feed']['id']] = $feed['Feed'];
+							if (!isset($event['Feed'][$feeds[$k3]['Feed']['id']]['id'])) {
+								if (!isset($event['Feed'][$feeds[$k3]['Feed']['id']])) $event['Feed'][$feeds[$k3]['Feed']['id']] = array();
+								$event['Feed'][$feeds[$k3]['Feed']['id']] = array_merge($event['Feed'][$feeds[$k3]['Feed']['id']], $feed['Feed']);
 							}
 							$objects[$hitIds[$k4]]['Feed'][] = $feed['Feed'];
 						}
