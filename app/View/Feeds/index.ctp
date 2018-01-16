@@ -1,11 +1,12 @@
 <div class="feed index">
 	<h2><?php echo __('Feeds');?></h2>
-	<h4>Generate feed lookup caches</h4>
-	<div class="toggleButtons">
-		<a href="<?php echo $baseurl; ?>/feeds/cacheFeeds/all" class="toggle-left qet btn btn-inverse">All</a>
-		<a href="<?php echo $baseurl; ?>/feeds/cacheFeeds/freetext" class="toggle qet btn btn-inverse">Freetext/CSV</a>
-		<a href="<?php echo $baseurl; ?>/feeds/cacheFeeds/misp" class="toggle-right qet btn btn-inverse">MISP</a>
-	</div><br />
+		<b>Generate feed lookup caches or fetch feed data (enabled feeds only)</b>
+		<div class="toggleButtons">
+			<a href="<?php echo $baseurl; ?>/feeds/cacheFeeds/all" class="toggle-left qet btn btn-inverse">Cache all feeds</a>
+			<a href="<?php echo $baseurl; ?>/feeds/cacheFeeds/freetext" class="toggle qet btn btn-inverse">Cache freetext/CSV feeds</a>
+			<a href="<?php echo $baseurl; ?>/feeds/cacheFeeds/misp" class="toggle-right qet btn btn-inverse">Cache MISP feeds</a>
+			<a href="feeds/fetchFromAllFeeds" class="btn btn-primary qet" style="margin-left:20px;">Fetch and store all feed data</a>
+		</div><br />
 	<div class="pagination">
 		<ul>
 		<?php
@@ -21,9 +22,6 @@
 			echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
 		?>
 		</ul>
-	</div>
-	<div class="control-group">
-		<a href="feeds/fetchFromAllFeeds" class="btn btn-primary">Fetch all feeds</a>
 	</div>
 	<div class="tabMenuFixedContainer" style="display:inline-block;">
 			<span id="multi-delete-button" role="button" tabindex="0" aria-label="Default feeds filter" title="Default feeds" class=" hidden tabMenuFixed mass-select tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'default' ? 'tabMenuActive' : ''; ?>" onClick="multiSelectToggleFeeds(1);">Enable Selected</span>
