@@ -305,6 +305,59 @@ class FeedsController extends AppController {
 		}
 	}
 
+	public function fetchFromAllFeeds() {
+	$feeds = $this->Feed->find('all', array(
+			'recursive' => -1,
+			'fields' => array('id')
+		));
+		foreach ($feeds as $feed) {
+		    $feedId = $feed['Feed']['id'];
+            $this->Feed->id = $feedId;
+            $this->Feed->read();
+            if (!empty($this->Feed->data['Feed']['settings'])) {
+                $this->Feed->data['Feed']['settings'] = json_decode($this->Feed->data['Feed']['settings'], true);
+            }
+            if (!$this->Feed->data['Feed']['enabled']) {
+                continue;
+            }
+            if (Configure::read('MISP.background_jobs')) {
+                $this->loadModel('Job');
+                $this->Job->create();
+                $data = array(
+                    'worker' => 'default',
+                    'job_type' => 'fetch_feed',
+                    'job_input' => 'Feed: ' . $feedId,
+                    'status' => 0,
+                    'retries' => 0,
+                    'org' => $this->Auth->user('Organisation')['name'],
+                    'message' => 'Starting fetch from Feed.',
+                );
+                $this->Job->save($data);
+                $jobId = $this->Job->id;
+                $process_id = CakeResque::enqueue(
+                    'default',
+                    'ServerShell',
+                    array('fetchFeed', $this->Auth->user('id'), $feedId, $jobId),
+                    true
+                );
+                $this->Job->saveField('process_id', $process_id);
+                $message = 'Pull queued for background execution.';
+            } else {
+                $result = $this->Feed->downloadFromFeedInitiator($feedId, $this->Auth->user());
+                if (!$result) {
+                    continue;
+                }
+                $message = 'Fetching the feed has successfuly completed.';
+                if ($this->Feed->data['Feed']['source_format'] == 'misp') {
+                    if (isset($result['add'])) $message['result'] .= ' Downloaded ' . count($result['add']) . ' new event(s).';
+                    if (isset($result['edit'])) $message['result'] .= ' Updated ' . count($result['edit']) . ' event(s).';
+                }
+            }
+        }
+        $this->Session->setFlash($message);
+        $this->redirect(array('action' => 'index'));
+	}
+
 	public function getEvent($feedId, $eventUuid, $all = false) {
 		$this->Feed->id = $feedId;
 		if (!$this->Feed->exists()) throw new NotFoundException('Invalid feed.');

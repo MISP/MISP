@@ -22,6 +22,9 @@
 		?>
 		</ul>
 	</div>
+	<div class="control-group">
+		<a href="feeds/fetchFromAllFeeds" class="btn btn-primary">Fetch all feeds</a>
+	</div>
 	<div class="tabMenuFixedContainer" style="display:inline-block;">
 			<span id="multi-delete-button" role="button" tabindex="0" aria-label="Default feeds filter" title="Default feeds" class=" hidden tabMenuFixed mass-select tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'default' ? 'tabMenuActive' : ''; ?>" onClick="multiSelectToggleFeeds(1);">Enable Selected</span>
 			<span id="multi-delete-button" role="button" tabindex="0" aria-label="Default feeds filter" title="Default feeds" class=" hidden tabMenuFixed mass-select tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'default' ? 'tabMenuActive' : ''; ?>" onClick="multiSelectToggleFeeds(0);">Disable Selected</span>
