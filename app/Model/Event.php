@@ -2306,12 +2306,14 @@ class Event extends AppModel {
 		if (isset($element['SharingGroup'])) {
 			$sg = $this->SharingGroup->captureSG($element['SharingGroup'], $user);
 			unset($element['SharingGroup']);
-		} else {
+		} else if (isset($element['sharing_group_id'])){
 			$sg = $this->SharingGroup->checkIfAuthorised($user, $element['sharing_group_id']) ? $element['sharing_group_id'] : false;
+		} else {
+			$sg = false;
 		}
 		if ($sg===false) {
 			$sg = 0;
-			$data['Event']['distribution'] = 0;
+			$element['distribution'] = 0;
 		}
 		$element['sharing_group_id'] = $sg;
 		return $element;
@@ -2328,18 +2330,18 @@ class Event extends AppModel {
 			foreach ($data['Event']['Attribute'] as $k => $a) {
 				unset($data['Event']['Attribute']['id']);
 				if (isset($a['distribution']) && $a['distribution'] == 4) {
-					$data['Event']['Attribute'][$k] = $this->__captureSGForElement($data['Event']['Attribute'][$k], $user);
+					$data['Event']['Attribute'][$k] = $this->__captureSGForElement($a, $user);
 				}
 			}
 		}
 		if (!empty($data['Event']['Object'])) {
 			foreach($data['Event']['Object'] as $k => $o) {
 				if (isset($o['distribution']) && $o['distribution'] == 4) {
-					$data['Event']['Object'][$k] = $this->__captureSGForElement($data['Event']['Object'][$k], $user);
+					$data['Event']['Object'][$k] = $this->__captureSGForElement($o, $user);
 				}
 				foreach ($o['Attribute'] as $k2 => $a) {
 					if (isset($a['distribution']) && $a['distribution'] == 4) {
-						$data['Event']['Object'][$k2]['Attribute'][$k] = $this->__captureSGForElement($data['Event']['Object'][$k2]['Attribute'][$k], $user);
+						$data['Event']['Object'][$k]['Attribute'][$k2] = $this->__captureSGForElement($a, $user);
 					}
 				}
 			}
