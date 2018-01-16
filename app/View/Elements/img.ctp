@@ -20,5 +20,5 @@ else $imgStyle = '';
 $imgRelativePath = 'orgs/' . $imgId . '.png';
 $imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
 if (file_exists($imgAbsolutePath)) {
-	echo $this->Html->image($imgRelativePath, array('alt' => $imgId, 'style' => 'width:' . $imgSize . '; max-height:' . $imgSize . ';' . $imgStyle, 'title' => $imgId));
+	echo $this->Html->image($imgRelativePath, array('alt' => $imgId, 'style' => 'width:' . $imgSize . 'px; max-height:' . $imgSize . 'px;' . $imgStyle, 'title' => $imgId));
 }
