@@ -5,7 +5,7 @@
 			<a href="<?php echo $baseurl; ?>/feeds/cacheFeeds/all" class="toggle-left qet btn btn-inverse">Cache all feeds</a>
 			<a href="<?php echo $baseurl; ?>/feeds/cacheFeeds/freetext" class="toggle qet btn btn-inverse">Cache freetext/CSV feeds</a>
 			<a href="<?php echo $baseurl; ?>/feeds/cacheFeeds/misp" class="toggle-right qet btn btn-inverse">Cache MISP feeds</a>
-			<a href="feeds/fetchFromAllFeeds" class="btn btn-primary qet" style="margin-left:20px;">Fetch and store all feed data</a>
+			<a href="<?php echo $baseurl; ?>/feeds/fetchFromAllFeeds" class="btn btn-primary qet" style="margin-left:20px;">Fetch and store all feed data</a>
 		</div><br />
 	<div class="pagination">
 		<ul>
