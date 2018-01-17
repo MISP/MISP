@@ -2,9 +2,9 @@
 	<?php
 		echo $this->Form->create('Feed', array('style' => 'margin:0px;', 'id' => 'PromptForm'));
 	?>
-	<legend><?php echo array('Enable', 'Disable')[$enable]; ?> Feed(s)</legend>
+	<legend><?php echo array('Disable', 'Enable')[$enable]; ?> Feed(s)</legend>
 	<div style="padding-left:5px;padding-right:5px;padding-bottom:5px;">
-		<p>Are you sure you want to <?php echo array('enable', 'disable')[$enable]; ?> the selected feeds?</p>
+		<p>Are you sure you want to <?php echo array('disable', 'enable')[$enable]; ?> the selected feeds?</p>
 		<table>
 			<tr>
 				<td style="vertical-align:top">
