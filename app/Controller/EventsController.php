@@ -173,12 +173,12 @@ class EventsController extends AppController {
 		foreach ($values as $v) {
 			$subconditions[] = array('lower(value1) LIKE' => $v);
 			$subconditions[] = array('lower(value2) LIKE' => $v);
-			$subconditions[] = array('lower(comment) LIKE' => $v);
+			$subconditions[] = array('lower(Attribute.comment) LIKE' => $v);
 		}
 		$conditions = array(
 			'AND' => array(
 				'OR' => $subconditions,
-				'deleted' => 0
+				'Attribute.deleted' => 0
 			)
 		);
 		$attributeHits = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array(
@@ -596,7 +596,7 @@ class EventsController extends AppController {
 			}
 			$events = $this->Event->attachTagsToEvents($events);
 			if (Configure::read('MISP.showCorrelationsOnIndex')) $events = $this->Event->attachCorrelationCountToEvents($this->Auth->user(), $events);
-			if (Configure::read('MISP.showSightingsCountOnIndex') && Configure::read('MISP.Plugin.Sightings_enable') !== false) $events = $this->Event->attachSightingsCountToEvents($this->Auth->user(), $events);
+			if (Configure::read('MISP.showSightingsCountOnIndex')) $events = $this->Event->attachSightingsCountToEvents($this->Auth->user(), $events);
 			if (Configure::read('MISP.showProposalsCountOnIndex')) $events = $this->Event->attachProposalsCountToEvents($this->Auth->user(), $events);
 			if (Configure::read('MISP.showDiscussionsCountOnIndex')) $events = $this->Event->attachDiscussionsCountToEvents($this->Auth->user(), $events);
 			$events = $this->GalaxyCluster->attachClustersToEventIndex($events, true);
@@ -864,12 +864,19 @@ class EventsController extends AppController {
 		$this->set('sightingsData', $sightingsData);
 		if (Configure::read('Plugin.Enrichment_services_enable')) {
 			$this->loadModel('Module');
-			$modules = $this->Module->getEnabledModules();
+			$modules = $this->Module->getEnabledModules($this->Auth->user());
+			foreach ($modules as $k => $v) {
+				if (isset($v['restrict'])) {
+					if (!$this->_isSiteAdmin() && $v['restrict'] != $this->Auth->user('org_id')) {
+						unset($modules[$k]);
+					}
+				}
+			}
 			$this->set('modules', $modules);
 		}
 		if (Configure::read('Plugin.Cortex_services_enable')) {
 			$this->loadModel('Module');
-			$cortex_modules = $this->Module->getEnabledModules(false, 'Cortex');
+			$cortex_modules = $this->Module->getEnabledModules($this->Auth->user(), false, 'Cortex');
 			$this->set('cortex_modules', $cortex_modules);
 		}
 		$this->set('deleted', (isset($this->params['named']['deleted']) && $this->params['named']['deleted']) ? true : false);
@@ -996,12 +1003,21 @@ class EventsController extends AppController {
 		$this->set('sightingsData', $sightingsData);
 		if (Configure::read('Plugin.Enrichment_services_enable')) {
 			$this->loadModel('Module');
-			$modules = $this->Module->getEnabledModules();
+			$modules = $this->Module->getEnabledModules($this->Auth->user());
+			if (is_array($modules)) {
+				foreach ($modules as $k => $v) {
+					if (isset($v['restrict'])) {
+						if ($this->_isSiteAdmin() && $v['restrict'] != $this->Auth->user('org_id')) {
+							unset($modules[$k]);
+						}
+					}
+				}
+			}
 			$this->set('modules', $modules);
 		}
 		if (Configure::read('Plugin.Cortex_services_enable')) {
 			$this->loadModel('Module');
-			$cortex_modules = $this->Module->getEnabledModules(false, 'Cortex');
+			$cortex_modules = $this->Module->getEnabledModules($this->Auth->user(), false, 'Cortex');
 			$this->set('cortex_modules', $cortex_modules);
 		}
 		$this->set('contributors', $contributors);
@@ -3337,6 +3353,10 @@ class EventsController extends AppController {
 			$this->set('typeList', array_keys($this->Event->Attribute->typeDefinitions));
 			$this->set('defaultCategories', $this->Event->Attribute->defaultCategories);
 			$this->set('typeCategoryMapping', $typeCategoryMapping);
+			foreach ($typeCategoryMapping as $k => $v) {
+				$typeCategoryMapping[$k] = array_values($v);
+			}
+			$this->set('mapping', $typeCategoryMapping);
 			$this->set('resultArray', $resultArray);
 			$this->set('importComment', '');
 			$this->set('title', 'Freetext Import Results');
@@ -3786,7 +3806,7 @@ class EventsController extends AppController {
 			);
 		}
 		$this->loadModel('Module');
-		$modules = $this->Module->getEnabledModules(false, 'Export');
+		$modules = $this->Module->getEnabledModules($this->Auth->user(), false, 'Export');
 		if (is_array($modules) && !empty($modules)) {
 			foreach ($modules['modules'] as $module) {
 				$exports[$module['name']] = array(
@@ -3832,7 +3852,7 @@ class EventsController extends AppController {
 				)
 		);
 		$this->loadModel('Module');
-		$modules = $this->Module->getEnabledModules(false, 'Import');
+		$modules = $this->Module->getEnabledModules($this->Auth->user(), false, 'Import');
 		if (is_array($modules) && !empty($modules)) {
 			foreach ($modules['modules'] as $k => $module) {
 				$imports[$module['name']] = array(
@@ -4138,7 +4158,7 @@ class EventsController extends AppController {
 		if (empty($attribute)) throw new MethodNotAllowedException('Attribute not found or you are not authorised to see it.');
 		if ($this->request->is('ajax')) {
 			$this->loadModel('Module');
-			$enabledModules = $this->Module->getEnabledModules(false, $type);
+			$enabledModules = $this->Module->getEnabledModules($this->Auth->user(), false, $type);
 			if (!is_array($enabledModules) || empty($enabledModules)) throw new MethodNotAllowedException('No valid ' . $type . ' options found for this attribute.');
 			$modules = array();
 			foreach ($enabledModules['modules'] as $module) {
@@ -4151,7 +4171,7 @@ class EventsController extends AppController {
 			$this->render('ajax/enrichmentChoice');
 		} else {
 			$this->loadModel('Module');
-			$enabledModules = $this->Module->getEnabledModules(false, $type);
+			$enabledModules = $this->Module->getEnabledModules($this->Auth->user(), false, $type);
 			if (!is_array($enabledModules) || empty($enabledModules)) throw new MethodNotAllowedException('No valid ' . $type . ' options found for this attribute.');
 			$options = array();
 			foreach ($enabledModules['modules'] as $temp) {
