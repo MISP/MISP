@@ -6,7 +6,6 @@ class SightingsController extends AppController {
 
 	public function beforeFilter() {
 		parent::beforeFilter();
-		if (Configure::read('Plugin.Sightings_enable') === false) throw new MethodNotAllowedException('This feature is not enabled on this instance.');
 	}
 
 	public $paginate = array(

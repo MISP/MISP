@@ -18,6 +18,9 @@ class OrganisationsController extends AppController {
 	);
 
 	public function index() {
+		if (!$this->Auth->user('Role')['perm_sharing_group'] && Configure::read('Security.hide_organisation_index_from_users')) {
+			throw new MethodNotAllowedException('This feature is disabled on this instance for normal users.');
+		}
 		$conditions = array();
 		// We can either index all of the organisations existing on this instance (default)
 		// or we can pass the 'external' keyword in the URL to look at the added external organisations

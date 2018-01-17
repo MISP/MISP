@@ -12,7 +12,8 @@ class ComplexTypeTool {
 		'/\\\\\./' => '.',
 		'/\.+/' => '.',
 		'/\[hxxp:\/\/\]/' => 'http://',
-		'/\\\/' => ''
+		'/\\\/' => '',
+		'/[\@]/' => '@'
 	);
 
 	private $__tlds = array();
@@ -21,6 +22,7 @@ class ComplexTypeTool {
 		if (!empty($tlds)) {
 			$this->__tlds = $tlds;
 		}
+		return true;
 	}
 
 	public function checkComplexRouter($input, $type, $settings = array()) {
@@ -110,7 +112,7 @@ class ComplexTypeTool {
 		foreach ($rows as $k => $row) {
 			if (empty($row[0]) || $row[0] === '#') continue;
 			if ($delimiter == '\t') {
-				$data[$k] = explode("\t", $row);	
+				$data[$k] = explode("\t", $row);
 			} else {
 				$data[$k] = str_getcsv($row, $delimiter);
 			}
@@ -182,10 +184,10 @@ class ComplexTypeTool {
 	}
 
 	private $__hexHashTypes = array(
-		32 => array('single' => array('md5', 'imphash'), 'composite' => array('filename|md5', 'filename|imphash')),
+		32 => array('single' => array('md5', 'imphash', 'x509-fingerprint-md5'), 'composite' => array('filename|md5', 'filename|imphash')),
 		40 => array('single' => array('sha1', 'pehash', 'x509-fingerprint-sha1'), 'composite' => array('filename|sha1', 'filename|pehash')),
 		56 => array('single' => array('sha224', 'sha512/224'), 'composite' => array('filename|sha224', 'filename|sha512/224')),
-		64 => array('single' => array('sha256', 'authentihash', 'sha512/256'), 'composite' => array('filename|sha256', 'filename|authentihash', 'filename|sha512/256')),
+		64 => array('single' => array('sha256', 'authentihash', 'sha512/256', 'x509-fingerprint-sha256'), 'composite' => array('filename|sha256', 'filename|authentihash', 'filename|sha512/256')),
 		96 => array('single' => array('sha384'), 'composite' => array('filename|sha384')),
 		128 => array('single' => array('sha512'), 'composite' => array('filename|sha512'))
 	);
@@ -216,8 +218,8 @@ class ComplexTypeTool {
 			$inputRefanged = preg_replace($regex, $replacement , $inputRefanged);
 		}
 		$inputRefanged = rtrim($inputRefanged, ".");
-		if (strpos($input, '@') !== false) {
-			if (filter_var($input, FILTER_VALIDATE_EMAIL)) return array('types' => array('email-src', 'email-dst', 'target-email', 'whois-registrant-email'), 'to_ids' => true, 'default_type' => 'email-src', 'value' => $input);
+		if (strpos($inputRefanged, '@') !== false) {
+			if (filter_var($inputRefanged, FILTER_VALIDATE_EMAIL)) return array('types' => array('email-src', 'email-dst', 'target-email', 'whois-registrant-email'), 'to_ids' => true, 'default_type' => 'email-src', 'value' => $inputRefanged);
 		}
 		// note down and remove the port if it's a url / domain name / hostname / ip
 		// input2 from here on is the variable containing the original input with the port removed. It is only used by url / domain name / hostname / ip

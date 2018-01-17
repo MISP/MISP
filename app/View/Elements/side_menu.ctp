@@ -149,10 +149,18 @@
 					<?php endif; ?>
 					<li id='liview'><a href="<?php echo $baseurl;?>/users/view/me">My Profile</a></li>
 					<li id='lidashboard'><a href="<?php echo $baseurl;?>/users/dashboard">Dashboard</a></li>
-					<li id='liindexOrg'><a href="<?php echo $baseurl;?>/organisations/index">List Organisations</a></li>
-					<?php if ($menuItem === 'viewOrg'): ?>
+					<?php
+						if ($isAclSharingGroup || empty(Configure::read('Security.hide_organisation_index_from_users'))):
+					?>
+							<li id='liindexOrg'><a href="<?php echo $baseurl;?>/organisations/index">List Organisations</a></li>
+					<?php
+						endif;
+						if ($menuItem === 'viewOrg'):
+					?>
 						<li class="active"><a href="<?php echo $baseurl;?>/organisations/view/<?php echo h($id);?>">View Organisation</a></li>
-					<?php endif;?>
+					<?php
+						endif;
+					?>
 					<li id='liroles'><a href="<?php echo $baseurl;?>/roles/index">Role Permissions</a></li>
 					<li class="divider"></li>
 					<?php if ($menuItem === 'editSG' || ($menuItem == 'viewSG' && $mayModify)): ?>
@@ -226,7 +234,7 @@
 					<li id='liindexRole'><?php echo $this->Html->link('List Roles', array('controller' => 'roles', 'action' => 'index', 'admin' => true)); ?> </li>
 					<?php if ($isSiteAdmin): ?>
 						<li class="divider"></li>
-						<li id='liserverSettings'><a href="<?php echo $baseurl;?>/servers/serverSettings">Server Settings</a></li>
+						<li id='liserverSettings'><a href="<?php echo $baseurl;?>/servers/serverSettings">Server Settings & Maintenance</a></li>
 						<li class="divider"></li>
 						<?php if (Configure::read('MISP.background_jobs')): ?>
 							<li id='lijobs'><a href="<?php echo $baseurl;?>/jobs/index">Jobs</a></li>

@@ -1,11 +1,12 @@
 <div class="feed index">
 	<h2><?php echo __('Feeds');?></h2>
-	<h4>Generate feed lookup caches</h4>
-	<div class="toggleButtons">
-		<a href="<?php echo $baseurl; ?>/feeds/cacheFeeds/all" class="toggle-left qet btn btn-inverse">All</a>
-		<a href="<?php echo $baseurl; ?>/feeds/cacheFeeds/freetext" class="toggle qet btn btn-inverse">Freetext/CSV</a>
-		<a href="<?php echo $baseurl; ?>/feeds/cacheFeeds/misp" class="toggle-right qet btn btn-inverse">MISP</a>
-	</div><br />
+		<b>Generate feed lookup caches or fetch feed data (enabled feeds only)</b>
+		<div class="toggleButtons">
+			<a href="<?php echo $baseurl; ?>/feeds/cacheFeeds/all" class="toggle-left qet btn btn-inverse">Cache all feeds</a>
+			<a href="<?php echo $baseurl; ?>/feeds/cacheFeeds/freetext" class="toggle qet btn btn-inverse">Cache freetext/CSV feeds</a>
+			<a href="<?php echo $baseurl; ?>/feeds/cacheFeeds/misp" class="toggle-right qet btn btn-inverse">Cache MISP feeds</a>
+			<a href="<?php echo $baseurl; ?>/feeds/fetchFromAllFeeds" class="btn btn-primary qet" style="margin-left:20px;">Fetch and store all feed data</a>
+		</div><br />
 	<div class="pagination">
 		<ul>
 		<?php
@@ -23,6 +24,8 @@
 		</ul>
 	</div>
 	<div class="tabMenuFixedContainer" style="display:inline-block;">
+			<span id="multi-delete-button" role="button" tabindex="0" aria-label="Default feeds filter" title="Default feeds" class=" hidden tabMenuFixed mass-select tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'default' ? 'tabMenuActive' : ''; ?>" onClick="multiSelectToggleFeeds(1);">Enable Selected</span>
+			<span id="multi-delete-button" role="button" tabindex="0" aria-label="Default feeds filter" title="Default feeds" class=" hidden tabMenuFixed mass-select tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'default' ? 'tabMenuActive' : ''; ?>" onClick="multiSelectToggleFeeds(0);">Disable Selected</span>
   		<span role="button" tabindex="0" aria-label="Default feeds filter" title="Default feeds" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'default' ? 'tabMenuActive' : ''; ?>" onclick="window.location='/feeds/index/scope:default'">Default feeds</span>
   		<span role="button" tabindex="0" aria-label="Custom feeds filter" title="Custom feeds" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'custom' ? 'tabMenuActive' : ''; ?> " onclick="window.location='/feeds/index/scope:custom'">Custom Feeds</span>
   		<span role="button" tabindex="0" aria-label="All feeds" title="All feeds" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'all' ? 'tabMenuActive' : ''; ?> " onclick="window.location='/feeds/index/scope:all'">All Feeds</span>
@@ -30,7 +33,15 @@
   </div>
 	<table class="table table-striped table-hover table-condensed">
 	<tr>
+			<?php if ($isSiteAdmin): ?>
+				<th>
+					<input class="select_all select" type="checkbox" title="Select all" role="button" tabindex="0" aria-label="Select all eventson current page" onClick="toggleAllCheckboxes();" />&nbsp;
+				</th>
+			<?php else: ?>
+				<th style="padding-left:0px;padding-right:0px;">&nbsp;</th>
+			<?php endif;?>
 			<th><?php echo $this->Paginator->sort('id');?></th>
+			<th><?php echo $this->Paginator->sort('enabled');?></th>
 			<th><?php echo $this->Paginator->sort('name');?></th>
 			<th><?php echo $this->Paginator->sort('source_format', 'Feed Format');?></th>
 			<th><?php echo $this->Paginator->sort('provider');?></th>
@@ -42,7 +53,6 @@
 			<th>Override IDS</th>
 			<th><?php echo $this->Paginator->sort('distribution');?></th>
 			<th><?php echo $this->Paginator->sort('tag');?></th>
-			<th><?php echo $this->Paginator->sort('enabled');?></th>
 			<th><?php echo $this->Paginator->sort('lookup_visible');?></th>
 			<th class="actions"><?php echo __('Caching');?></th>
 			<th class="actions"><?php echo __('Actions');?></th>
@@ -70,7 +80,30 @@ foreach ($feeds as $item):
 	}
 ?>
 	<tr>
+		<?php
+			if ($isSiteAdmin):
+		?>
+				<td style="width:10px;" data-id="<?php echo h($item['Feed']['id']); ?>">
+					<input class="select" type="checkbox" data-id="<?php echo $item['Feed']['id'];?>" />
+				</td>
+		<?php
+			else:
+		?>
+				<td style="padding-left:0px;padding-right:0px;"></td>
+		<?php
+			endif;
+		?>
 		<td class="short"><?php echo h($item['Feed']['id']); ?>&nbsp;</td>
+		<td class="short">
+			<span class="<?php echo ($item['Feed']['enabled'] ? 'icon-ok' : 'icon-remove'); ?>"></span>
+			<span
+				class="short <?php if (!$item['Feed']['enabled'] || empty($ruleDescription)) echo "hidden"; ?>"
+				data-toggle="popover"
+				title="Filter rules"
+				data-content="<?php echo $ruleDescription; ?>"
+			>
+				(Rules)
+			</span>
 		<td>
 			<?php
 				echo h($item['Feed']['name']);
@@ -135,8 +168,7 @@ foreach ($feeds as $item):
 			&nbsp;
 		<?php endif;?>
 		</td>
-		<td class="short"><span class="<?php echo ($item['Feed']['enabled'] ? 'icon-ok' : 'icon-remove'); ?>"></span><span class="short <?php if (!$item['Feed']['enabled'] || empty($ruleDescription)) echo "hidden"; ?>" data-toggle="popover" title="Filter rules" data-content="<?php echo $ruleDescription; ?>"> (Rules)</span>
-			<td class="short"><span class="<?php echo ($item['Feed']['lookup_visible'] ? 'icon-ok' : 'icon-remove'); ?>"></span>
+		<td class="short"><span class="<?php echo ($item['Feed']['lookup_visible'] ? 'icon-ok' : 'icon-remove'); ?>"></span>
 		<td class="short action-links <?php echo !empty($item['Feed']['cache_timestamp']) ? 'bold' : 'bold red';?>">
 			<?php
 				if (!empty($item['Feed']['cache_timestamp'])):
@@ -197,6 +229,9 @@ endforeach; ?>
 <script type="text/javascript">
 	$(document).ready(function(){
 		popoverStartup();
+		$('.select').on('change', function() {
+			listCheckboxesChecked();
+		});
 	});
 </script>
 <?php

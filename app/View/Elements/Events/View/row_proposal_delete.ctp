@@ -50,7 +50,7 @@
   <td class="short context hidden">
     <?php echo h($object['uuid']); ?>
   </td>
-  <td colspan="<?php echo $fieldCount; ?>" style="font-weight:bold;text-align:left;width:100%;">DELETE</td>
+  <td colspan="<?php echo $fieldCount+2; ?>" style="font-weight:bold;text-align:left;width:100%;">DELETE</td>
   <td class="short action-links">
     <?php
         if (($event['Orgc']['id'] == $me['org_id'] && $mayModify) || $isSiteAdmin) {
