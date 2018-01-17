@@ -1060,23 +1060,21 @@ class UsersController extends AppController {
 		if ($selected == '[]') $selected = null;
 		$selectedTypes = array();
 		if ($selected) $selectedTypes = json_decode($selected);
-		$org_ids = $this->User->Event->find('list', array(
-			'fields' => array('Event.orgc_id', 'Event.orgc_id'),
-			'group' => array('Event.orgc_id')
-		));
-		$orgs = $this->User->Organisation->find('list', array(
+		if (!$this->_isSiteAdmin() && !empty(Configure::read('Security.hide_organisation_index_from_users'))) {
+			$org_ids = array($this->Auth->user('org_id'));
+		} else {
+			$org_ids = $this->User->Event->find('list', array(
+				'fields' => array('Event.orgc_id', 'Event.orgc_id'),
+				'group' => array('Event.orgc_id')
+			));
+		}
+		$orgs_temp = $this->User->Organisation->find('list', array(
 			'fields' => array('Organisation.id', 'Organisation.name'),
 			'conditions' => array('Organisation.id' => $org_ids)
 		));
-		$temp = $this->User->Event->find('all', array(
-			'recursive' => -1,
-			'fields' => array('distinct(orgc_id)'),
-			'contain' => array('Orgc' => array('fields' => array('Orgc.name'))),
-		));
 		$orgs = array(0 => 'All organisations');
-		foreach ($temp as $t) {
-			if (!isset($t['Event'])) $t['Event'] = $t[0]; // Postgres workaround, array element has index 0 instead of Event
-			$orgs[$t['Event']['orgc_id']] = $t['Orgc']['name'];
+		foreach ($org_ids as $v) {
+			$orgs[$v] = $orgs_temp[$v];
 		}
 		$data = array();
 		$max = 1;
@@ -1099,8 +1097,10 @@ class UsersController extends AppController {
 					)
 				),
 				//'order' => array('num_types DESC'),
-				'conditions' => $conditions
+				'conditions' => $conditions,
+				'order' => false
 			);
+			if ($org_id == 0) unset($params['joins']);
 			$temp = $this->User->Event->Attribute->find('all', $params);
 			$temp = Hash::combine($temp, '{n}.Attribute.type', '{n}.0.num_types');
 			$total = 0;
@@ -1371,11 +1371,18 @@ class UsersController extends AppController {
 	// shows some statistics about the instance
 	public function statistics($page = 'data') {
 		$this->set('page', $page);
-		$this->set('pages', array('data' => 'Usage data', 'orgs' => 'Organisations', 'tags' => 'Tags', 'attributehistogram' => 'Attribute histogram', 'sightings' => 'Sightings toplists'));
+		$pages = array('data' => 'Usage data', 'orgs' => 'Organisations', 'tags' => 'Tags', 'attributehistogram' => 'Attribute histogram', 'sightings' => 'Sightings toplists');
+		if (!$this->_isSiteAdmin() && !empty(Configure::read('Security.hide_organisation_index_from_users'))) {
+			unset($pages['orgs']);
+		}
+		$this->set('pages', $pages);
 		$result = array();
 		if ($page == 'data') {
 			$result = $this->__statisticsData($this->params['named']);
 		} else if ($page == 'orgs') {
+			if (!$this->_isSiteAdmin() && !empty(Configure::read('Security.hide_organisation_index_from_users'))) {
+				throw new MethodNotAllowedException('This feature is currently disabled.');
+			}
 			$result = $this->__statisticsOrgs($this->params['named']);
 		} else if ($page == 'tags') {
 			$result = $this->__statisticsTags($this->params['named']);
@@ -1395,7 +1402,14 @@ class UsersController extends AppController {
 
 	private function __statisticsData($params = array()) {
 		// set all of the data up for the heatmaps
-		$orgs = $this->User->Organisation->find('all', array('fields' => array('DISTINCT (name) AS name'), 'recursive' => -1));
+		$params = array(
+			'fields' => array('name'),
+			'recursive' => -1
+		);
+		if (!$this->_isSiteAdmin() && !empty(Configure::read('Security.hide_organisation_index_from_users'))) {
+			$params['conditions'] = array('Organisation.id' => $this->Auth->user('org_id'));
+		}
+		$orgs = $this->User->Organisation->find('all', $params);
 		$this->loadModel('Log');
 		$year = date('Y');
 		$month = date('n');
@@ -1406,29 +1420,29 @@ class UsersController extends AppController {
 		}
 		// Some additional statistics
 		$this_month = strtotime('first day of this month');
-		$stats['event_count'] = $this->User->Event->find('count', null);
-		$stats['event_count_month'] = $this->User->Event->find('count', array('conditions' => array('Event.timestamp >' => $this_month)));
+		$stats['event_count'] = $this->User->Event->find('count', array('recursive' => -1));
+		$stats['event_count_month'] = $this->User->Event->find('count', array('conditions' => array('Event.timestamp >' => $this_month), 'recursive' => -1));
 
-		$stats['attribute_count'] = $this->User->Event->Attribute->find('count', array('conditions' => array('Attribute.deleted' => 0)));
-		$stats['attribute_count_month'] = $this->User->Event->Attribute->find('count', array('conditions' => array('Attribute.timestamp >' => $this_month, 'Attribute.deleted' => 0)));
+		$stats['attribute_count'] = $this->User->Event->Attribute->find('count', array('conditions' => array('Attribute.deleted' => 0), 'recursive' => -1));
+		$stats['attribute_count_month'] = $this->User->Event->Attribute->find('count', array('conditions' => array('Attribute.timestamp >' => $this_month, 'Attribute.deleted' => 0), 'recursive' => -1));
 		$stats['attributes_per_event'] = round($stats['attribute_count'] / $stats['event_count']);
 
 		$this->loadModel('Correlation');
 		$this->Correlation->recursive = -1;
-		$stats['correlation_count'] = $this->Correlation->find('count', null);
+		$stats['correlation_count'] = $this->Correlation->find('count', array('recursive' => -1));
 		$stats['correlation_count'] = $stats['correlation_count'] / 2;
 
-		$stats['proposal_count'] = $this->User->Event->ShadowAttribute->find('count', null);
+		$stats['proposal_count'] = $this->User->Event->ShadowAttribute->find('count', array('recursive' => -1));
 
-		$stats['user_count'] = $this->User->find('count', null);
+		$stats['user_count'] = $this->User->find('count', array('recursive' => -1));
 		$stats['org_count'] = count($orgs);
 
 		$this->loadModel('Thread');
-		$stats['thread_count'] = $this->Thread->find('count', array('conditions' => array('Thread.post_count >' => 0)));
-		$stats['thread_count_month'] = $this->Thread->find('count', array('conditions' => array('Thread.date_created >' => date("Y-m-d H:i:s",$this_month), 'Thread.post_count >' => 0)));
+		$stats['thread_count'] = $this->Thread->find('count', array('conditions' => array('Thread.post_count >' => 0), 'recursive' => -1));
+		$stats['thread_count_month'] = $this->Thread->find('count', array('conditions' => array('Thread.date_created >' => date("Y-m-d H:i:s",$this_month), 'Thread.post_count >' => 0), 'recursive' => -1));
 
-		$stats['post_count'] = $this->Thread->Post->find('count', null);
-		$stats['post_count_month'] = $this->Thread->Post->find('count', array('conditions' => array('Post.date_created >' => date("Y-m-d H:i:s",$this_month))));
+		$stats['post_count'] = $this->Thread->Post->find('count', array('recursive' => -1));
+		$stats['post_count_month'] = $this->Thread->Post->find('count', array('conditions' => array('Post.date_created >' => date("Y-m-d H:i:s",$this_month)), 'recursive' => -1));
 
 
 		if ($this->_isRest()) {

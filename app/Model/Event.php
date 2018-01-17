@@ -1222,6 +1222,16 @@ class Event extends AppModel {
 				'table' => 'event_delegations',
 				'foreign_key' => 'event_id',
 				'value' => $id
+			),
+			array(
+				'table' => 'objects',
+				'foreign_key' => 'event_id',
+				'value' => $id
+			),
+			array(
+				'table' => 'object_references',
+				'foreign_key' => 'event_id',
+				'value' => $id
 			)
 		);
 		if ($thread_id) {
@@ -1585,9 +1595,7 @@ class Event extends AppModel {
 		if (empty($results)) return array();
 
 		// Do some refactoring with the event
-		if (Configure::read('Plugin.Sightings_enable') !== false) {
-			$this->Sighting = ClassRegistry::init('Sighting');
-		}
+		$this->Sighting = ClassRegistry::init('Sighting');
 		$userEmails = array();
 		$fields = array(
 			'common' => array('distribution', 'sharing_group_id', 'uuid'),
@@ -1753,9 +1761,7 @@ class Event extends AppModel {
 					$event['ShadowAttribute'] = $this->Feed->attachFeedCorrelations($event['ShadowAttribute'], $user, $event['Event'], $overrideLimit);
 				}
 			}
-			if (Configure::read('Plugin.Sightings_enable') !== false) {
-				$event['Sighting'] = $this->Sighting->attachToEvent($event, $user);
-			}
+			$event['Sighting'] = $this->Sighting->attachToEvent($event, $user);
 			// remove proposals to attributes that we cannot see
 			// if the shadow attribute wasn't moved within an attribute before, this is the case
 			if (isset($event['ShadowAttribute'])) {
@@ -2084,7 +2090,7 @@ class Event extends AppModel {
 	private function __buildAlertEmailObject($user, &$body, &$bodyTempOther, $objects, $owner, $oldpublish) {
 		foreach ($objects as $object) {
 			if (!$owner && $object['distribution'] == 0) continue;
-			if ($object['distribution'] == 4 && !$this->Event->SharingGroup->checkIfAuthorised($user, $object['sharing_group_id'])) continue;
+			if ($object['distribution'] == 4 && !$this->SharingGroup->checkIfAuthorised($user, $object['sharing_group_id'])) continue;
 			if (isset($oldpublish) && isset($object['timestamp']) && $object['timestamp'] > $oldpublish) {
 				$body .= '* ';
 			} else {
@@ -2101,7 +2107,7 @@ class Event extends AppModel {
 		$appendlen = 20;
 		foreach ($attributes as $attribute) {
 			if (!$owner && $attribute['distribution'] == 0) continue;
-			if ($attribute['distribution'] == 4 && !$this->Event->SharingGroup->checkIfAuthorised($user, $attribute['sharing_group_id'])) continue;
+			if ($attribute['distribution'] == 4 && !$this->SharingGroup->checkIfAuthorised($user, $attribute['sharing_group_id'])) continue;
 			$ids = '';
 			if ($attribute['to_ids']) $ids = ' (IDS)';
 			$strRepeatCount = $appendlen - 2 - strlen($attribute['type']);
@@ -2296,12 +2302,14 @@ class Event extends AppModel {
 		if (isset($element['SharingGroup'])) {
 			$sg = $this->SharingGroup->captureSG($element['SharingGroup'], $user);
 			unset($element['SharingGroup']);
-		} else {
+		} else if (isset($element['sharing_group_id'])){
 			$sg = $this->SharingGroup->checkIfAuthorised($user, $element['sharing_group_id']) ? $element['sharing_group_id'] : false;
+		} else {
+			$sg = false;
 		}
 		if ($sg===false) {
 			$sg = 0;
-			$data['Event']['distribution'] = 0;
+			$element['distribution'] = 0;
 		}
 		$element['sharing_group_id'] = $sg;
 		return $element;
@@ -2318,18 +2326,18 @@ class Event extends AppModel {
 			foreach ($data['Event']['Attribute'] as $k => $a) {
 				unset($data['Event']['Attribute']['id']);
 				if (isset($a['distribution']) && $a['distribution'] == 4) {
-					$data['Event']['Attribute'][$k] = $this->__captureSGForElement($data['Event']['Attribute'][$k], $user);
+					$data['Event']['Attribute'][$k] = $this->__captureSGForElement($a, $user);
 				}
 			}
 		}
 		if (!empty($data['Event']['Object'])) {
 			foreach($data['Event']['Object'] as $k => $o) {
 				if (isset($o['distribution']) && $o['distribution'] == 4) {
-					$data['Event']['Object'][$k] = $this->__captureSGForElement($data['Event']['Object'][$k], $user);
+					$data['Event']['Object'][$k] = $this->__captureSGForElement($o, $user);
 				}
 				foreach ($o['Attribute'] as $k2 => $a) {
 					if (isset($a['distribution']) && $a['distribution'] == 4) {
-						$data['Event']['Object'][$k2]['Attribute'][$k] = $this->__captureSGForElement($data['Event']['Object'][$k2]['Attribute'][$k], $user);
+						$data['Event']['Object'][$k]['Attribute'][$k2] = $this->__captureSGForElement($a, $user);
 					}
 				}
 			}
@@ -3905,9 +3913,9 @@ class Event extends AppModel {
 		);
 		foreach ($dataForView as $m => $variables) {
 			if ($m === 'Event') {
-				$currentModel = $this->Event;
+				$currentModel = $this;
 			} else if ($m === 'Attribute') {
-				$currentModel = $this->Event->Attribute;
+				$currentModel = $this->Attribute;
 			}
 			foreach ($variables as $alias => $variable) {
 				$this->set($alias, $currentModel->{$variable});
@@ -3933,6 +3941,7 @@ class Event extends AppModel {
 			$sharingGroupDataTemp = $this->SharingGroup->fetchAllAuthorised($user, 'simplified');
 			$sharingGroupData = array();
 			foreach ($sharingGroupDataTemp as $k => $v) {
+				if (isset($v['Organisation'])) $v['SharingGroup']['Organisation'] = $v['Organisation'];
 				if (isset($v['SharingGroupOrg'])) $v['SharingGroup']['SharingGroupOrg'] = $v['SharingGroupOrg'];
 				if (isset($v['SharingGroupServer'])) {
 					$v['SharingGroup']['SharingGroupServer'] = $v['SharingGroupServer'];

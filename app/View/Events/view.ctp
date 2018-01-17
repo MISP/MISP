@@ -1,35 +1,33 @@
 <?php
 	$mayModify = (($isAclModify && $event['Event']['user_id'] == $me['id'] && $event['Orgc']['id'] == $me['org_id']) || ($isAclModifyOrg && $event['Orgc']['id'] == $me['org_id']));
 	$mayPublish = ($isAclPublish && $event['Orgc']['id'] == $me['org_id']);
-	if (Configure::read('Plugin.Sightings_enable') !== false) {
-		$csv = array();
-		$sightingPopover = '';
-		if (isset($event['Sighting']) && !empty($event['Sighting'])) {
-			$ownSightings = array();
-			$orgSightings = array();
-			$sparklineData = array();
-			foreach ($event['Sighting'] as $sighting) {
-				if (isset($sighting['org_id']) && $sighting['org_id'] == $me['org_id']) $ownSightings[] = $sighting;
-				if (isset($sighting['org_id'])) {
-					if (isset($orgSightings[$sighting['Organisation']['name']])) {
-						$orgSightings[$sighting['Organisation']['name']]['count']++;
-						if (!isset($orgSightings[$sighting['Organisation']['name']]['date']) || $orgSightings[$sighting['Organisation']['name']]['date'] < $sighting['date_sighting']) {
-							$orgSightings[$sighting['Organisation']['name']]['date'] = $sighting['date_sighting'];
-						}
-					} else {
-						$orgSightings[$sighting['Organisation']['name']]['count'] = 1;
+	$csv = array();
+	$sightingPopover = '';
+	if (isset($event['Sighting']) && !empty($event['Sighting'])) {
+		$ownSightings = array();
+		$orgSightings = array();
+		$sparklineData = array();
+		foreach ($event['Sighting'] as $sighting) {
+			if (isset($sighting['org_id']) && $sighting['org_id'] == $me['org_id']) $ownSightings[] = $sighting;
+			if (isset($sighting['org_id'])) {
+				if (isset($orgSightings[$sighting['Organisation']['name']])) {
+					$orgSightings[$sighting['Organisation']['name']]['count']++;
+					if (!isset($orgSightings[$sighting['Organisation']['name']]['date']) || $orgSightings[$sighting['Organisation']['name']]['date'] < $sighting['date_sighting']) {
 						$orgSightings[$sighting['Organisation']['name']]['date'] = $sighting['date_sighting'];
 					}
 				} else {
-					if (isset($orgSightings['Other organisations']['count'])) {
-						$orgSightings['Other organisations']['count']++;
-						if (!isset($orgSightings['Other organisations']['date']) || $orgSightings['Other organisations']['date'] < $sighting['date_sighting']) {
-							$orgSightings['Other organisations']['date'] = $sighting['date_sighting'];
-						}
-					} else {
-						$orgSightings['Other organisations']['count'] = 1;
+					$orgSightings[$sighting['Organisation']['name']]['count'] = 1;
+					$orgSightings[$sighting['Organisation']['name']]['date'] = $sighting['date_sighting'];
+				}
+			} else {
+				if (isset($orgSightings['Other organisations']['count'])) {
+					$orgSightings['Other organisations']['count']++;
+					if (!isset($orgSightings['Other organisations']['date']) || $orgSightings['Other organisations']['date'] < $sighting['date_sighting']) {
 						$orgSightings['Other organisations']['date'] = $sighting['date_sighting'];
 					}
+				} else {
+					$orgSightings['Other organisations']['count'] = 1;
+					$orgSightings['Other organisations']['date'] = $sighting['date_sighting'];
 				}
 			}
 		}
@@ -39,14 +37,14 @@
 <div class="events view">
 	<?php
 		if (Configure::read('MISP.showorg') || $isAdmin) {
-			echo $this->element('img', array('id' => $event['Orgc']['name'], 'imgSize' => '48px'));
+			echo $this->element('img', array('id' => $event['Orgc']['name'], 'imgSize' => 48));
 		}
-		$title = $event['Event']['info'];
+		$title = h($event['Event']['info']);
 		if (strlen($title) > 58) $title = substr($title, 0, 55) . '...';
 	?>
 	<div class="row-fluid">
 		<div class="span8">
-			<h2><?php echo nl2br(h($title)); ?></h2>
+			<h2><?php echo nl2br($title); ?></h2>
 			<dl>
 				<dt><?php echo __('Event ID');?></dt>
 				<dd>
@@ -164,28 +162,24 @@
 				<dd class="green bold published <?php echo ($event['Event']['published'] == 0) ? 'hidden' : ''; ?>"><?php echo __('Yes');?></dd>
 				<dt><?php echo __('#Attributes');?></dt>
 				<dd><?php echo h($attribute_count);?></dd>
+				<dt><?php echo __('Sightings');?></dt>
+				<dd style="word-wrap: break-word;">
+						<span id="eventSightingCount" class="bold sightingsCounter" data-toggle="popover" data-trigger="hover" data-content="<?php echo $sightingPopover; ?>"><?php echo count($event['Sighting']); ?></span>
+						(<span id="eventOwnSightingCount" class="green bold sightingsCounter" data-toggle="popover" data-trigger="hover" data-content="<?php echo $sightingPopover; ?>"><?php echo isset($ownSightings) ? count($ownSightings) : 0; ?></span>)
+						<?php if (!Configure::read('Plugin.Sightings_policy')) echo __('- restricted to own organisation only.'); ?>
+						<span class="icon-wrench useCursorPointer sightings_advanced_add" title="<?php echo __('Advanced Sightings');?>" role="button" tabindex="0" aria-label="<?php echo __('Advanced sightings');?>" data-object-id="<?php echo h($event['Event']['id']); ?>" data-object-context="event">&nbsp;</span>
+				</dd>
+				<dt><?php echo __('Activity');?></dt>
+				<dd>
+					<?php
+						if (!empty($sightingsData['csv']['event'])) {
+							echo $this->element('sparkline', array('id' => $event['Event']['id'], 'csv' => $sightingsData['csv']['event']));
+						} else {
+							echo '&nbsp';
+						}
+					?>
+				</dd>
 				<?php
-					if (Configure::read('Plugin.Sightings_enable') !== false):
-				?>
-						<dt><?php echo __('Sightings');?></dt>
-						<dd style="word-wrap: break-word;">
-								<span id="eventSightingCount" class="bold sightingsCounter" data-toggle="popover" data-trigger="hover" data-content="<?php echo $sightingPopover; ?>"><?php echo count($event['Sighting']); ?></span>
-								(<span id="eventOwnSightingCount" class="green bold sightingsCounter" data-toggle="popover" data-trigger="hover" data-content="<?php echo $sightingPopover; ?>"><?php echo isset($ownSightings) ? count($ownSightings) : 0; ?></span>)
-								<?php if (!Configure::read('Plugin.Sightings_policy')) echo '- ' . __('restricted to own organisation only.'); ?>
-								<span class="icon-wrench useCursorPointer sightings_advanced_add" title="<?php echo __('Advanced Sightings');?>" role="button" tabindex="0" aria-label="<?php echo __('Advanced sightings');?>" data-object-id="<?php echo h($event['Event']['id']); ?>" data-object-context="event">&nbsp;</span>
-						</dd>
-						<dt><?php echo __('Activity');?></dt>
-						<dd>
-							<?php
-								if (!empty($sightingsData['csv']['event'])) {
-									echo $this->element('sparkline', array('id' => $event['Event']['id'], 'csv' => $sightingsData['csv']['event']));
-								} else {
-									echo '&nbsp';
-								}
-							?>
-						</dd>
-				<?php
-					endif;
 					if (!empty($delegationRequest)):
 						if ($isSiteAdmin || $me['org_id'] == $delegationRequest['EventDelegation']['org_id']) {
 							// /!\ This is not ideal for i18n not every language has a plural
@@ -278,24 +272,24 @@
 			<?php
 					if (!empty($event['Feed'])):
 						foreach ($event['Feed'] as $relatedFeed):
-							$relatedData = array('Name' => $relatedFeed['name'], 'URL' => $relatedFeed['url'], 'Provider' => $relatedFeed['provider'], 'Source Format' => $relatedFeed['source_format']);
+							$relatedData = array('Name' => $relatedFeed['name'], 'URL' => $relatedFeed['url'], 'Provider' => $relatedFeed['provider'], 'Source Format' => $relatedFeed['source_format'] == 'misp' ? 'MISP' : $relatedFeed['source_format']);
 							$popover = '';
 							foreach ($relatedData as $k => $v) {
 								$popover .= '<span class=\'bold\'>' . h($k) . '</span>: <span class="blue">' . h($v) . '</span><br />';
 							}
 				?>
-								<span data-toggle="popover" data-content="<?php echo h($popover); ?>" data-trigger="hover" style="white-space: nowrap;">
+								<span style="white-space: nowrap;">
 									<?php
 										if ($relatedFeed ['source_format'] == 'misp'):
 									?>
 											<form action="<?php echo $baseurl; ?>/feeds/previewIndex/<?php echo h($relatedFeed['id']); ?>" method="post" style="margin:0px;">
 												<input type="hidden" name="data[Feed][eventid]" value="<?php echo h(json_encode($relatedFeed['event_uuids'], true)); ?>">
-												<input type="submit" class="linkButton useCursorPointer" value="<?php echo h($relatedFeed['name']) . ' (' . $relatedFeed['id'] . ')'; ?>" />
+												<input type="submit" class="linkButton useCursorPointer" value="<?php echo h($relatedFeed['name']) . ' (' . $relatedFeed['id'] . ')'; ?>" data-toggle="popover" data-content="<?php echo h($popover); ?>" data-trigger="hover" />
 											</form>
 									<?php
 										else:
 									?>
-											<a href="<?php echo $baseurl; ?>/feeds/previewIndex/<?php echo h($relatedFeed['id']); ?>"><?php echo h($relatedFeed['name']) . ' (' . $relatedFeed['id'] . ')'; ?></a><br />
+											<a href="<?php echo $baseurl; ?>/feeds/previewIndex/<?php echo h($relatedFeed['id']); ?>" data-toggle="popover" data-content="<?php echo h($popover); ?>" data-trigger="hover"><?php echo h($relatedFeed['name']) . ' (' . $relatedFeed['id'] . ')'; ?></a><br />
 									<?php
 										endif;
 									?>

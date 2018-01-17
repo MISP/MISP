@@ -705,8 +705,7 @@ class ShadowAttributesController extends AppController {
 		} else {
 			// Read the attribute that we're about to edit
 			$this->ShadowAttribute->create();
-			$request['ShadowAttribute'] = $existingAttribute['Attribute'];
-			$this->request->data = $request;
+			$this->request->data['ShadowAttribute'] = $existingAttribute['Attribute'];
 			unset($this->request->data['ShadowAttribute']['id']);
 		}
 

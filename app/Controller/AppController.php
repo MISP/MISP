@@ -46,7 +46,7 @@ class AppController extends Controller {
 
 	public $helpers = array('Utility');
 
-	private $__queryVersion = '27';
+	private $__queryVersion = '28';
 	public $pyMispVersion = '2.4.85';
 	public $phpmin = '5.6.5';
 	public $phprec = '7.0.16';

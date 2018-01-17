@@ -127,8 +127,8 @@ class Attribute extends AppModel {
 			'pattern-in-file' => array('desc' => 'Pattern in file that identifies the malware', 'default_category' => 'Payload installation', 'to_ids' => 1),
 			'pattern-in-traffic' => array('desc' => 'Pattern in network traffic that identifies the malware', 'default_category' => 'Network activity', 'to_ids' => 1),
 			'pattern-in-memory' => array('desc' => 'Pattern in memory dump that identifies the malware', 'default_category' => 'Payload installation', 'to_ids' => 1),
-            'yara' => array('desc' => 'Yara signature', 'default_category' => 'Payload installation', 'to_ids' => 1),
-            'stix2-pattern' => array('desc' => 'STIX 2 pattern', 'default_category' => 'Payload installation', 'to_ids' => 1),
+      'yara' => array('desc' => 'Yara signature', 'default_category' => 'Payload installation', 'to_ids' => 1),
+      'stix2-pattern' => array('desc' => 'STIX 2 pattern', 'default_category' => 'Payload installation', 'to_ids' => 1),
 			'sigma' => array('desc' => 'Sigma - Generic Signature Format for SIEM Systems', 'default_category' => 'Payload installation', 'to_ids' => 1),
 			'cookie' => array('desc' => 'HTTP cookie as often stored on the user web client. This can include authentication cookie or session cookie.', 'default_category' => 'Network activity', 'to_ids' => 0),
 			'vulnerability' => array('desc' => 'A reference to the vulnerability used in the exploit', 'default_category' => 'External analysis', 'to_ids' => 0),
@@ -188,8 +188,8 @@ class Attribute extends AppModel {
 			'windows-service-displayname' => array('desc' => 'A windows service\'s displayname, not to be confused with the windows-service-name. This is the name that applications will generally display as the service\'s name in applications.', 'default_category' => 'Artifacts dropped', 'to_ids' => 0),
 			'whois-registrant-email' => array('desc' => 'The e-mail of a domain\'s registrant, obtained from the WHOIS information.', 'default_category' => 'Attribution', 'to_ids' => 0),
 			'whois-registrant-phone' => array('desc' => 'The phone number of a domain\'s registrant, obtained from the WHOIS information.', 'default_category' => 'Attribution', 'to_ids' => 0),
-            'whois-registrant-name' => array('desc' => 'The name of a domain\'s registrant, obtained from the WHOIS information.', 'default_category' => 'Attribution', 'to_ids' => 0),
-            'whois-registrant-org' => array('desc' => 'The org of a domain\'s registrant, obtained from the WHOIS information.', 'default_category' => 'Attribution', 'to_ids' => 0),
+			'whois-registrant-name' => array('desc' => 'The name of a domain\'s registrant, obtained from the WHOIS information.', 'default_category' => 'Attribution', 'to_ids' => 0),
+			'whois-registrant-org' => array('desc' => 'The org of a domain\'s registrant, obtained from the WHOIS information.', 'default_category' => 'Attribution', 'to_ids' => 0),
 			'whois-registrar' => array('desc' => 'The registrar of the domain, obtained from the WHOIS information.', 'default_category' => 'Attribution', 'to_ids' => 0),
 			'whois-creation-date' => array('desc' => 'The date of domain\'s creation, obtained from the WHOIS information.', 'default_category' => 'Attribution', 'to_ids' => 0),
 			// 'targeted-threat-index' => array('desc' => ''), // currently not mapped!
@@ -489,9 +489,9 @@ class Attribute extends AppModel {
 			'foreignKey' => 'event_id',
 			'conditions' => '',
 			'fields' => '',
-			'order' => '',
-			'counterCache' => 'attribute_count',
-			'counterScope' => array('Attribute.deleted' => 0)
+			//'counterCache' => 'attribute_count',
+			//'counterScope' => array('Attribute.deleted' => 0),
+			'order' => ''
 		),
 		'SharingGroup' => array(
 				'className' => 'SharingGroup',
@@ -567,10 +567,24 @@ class Attribute extends AppModel {
 		return true;
 	}
 
+	private function __alterAttributeCount($event_id, $increment = true) {
+		$event = $this->Event->find('first', array(
+			'recursive' => -1,
+			'conditions' => array('Event.id' => $event_id)
+		));
+		if (!empty($event)) {
+			if ($increment) $event['Event']['attribute_count'] = $event['Event']['attribute_count'] + 1;
+			else  $event['Event']['attribute_count'] = $event['Event']['attribute_count'] - 1;
+			$this->Event->save($event, array('callbacks' => false));
+		}
+	}
+
 	public function afterSave($created, $options = array()) {
+		parent::afterSave($created, $options);
 		// update correlation...
 		if (isset($this->data['Attribute']['deleted']) && $this->data['Attribute']['deleted']) {
 			$this->__beforeSaveCorrelation($this->data['Attribute']);
+			if (isset($this->data['Attribute']['event_id'])) $this->__alterAttributeCount($this->data['Attribute']['event_id'], false);
 		} else {
 			$this->__afterSaveCorrelation($this->data['Attribute']);
 		}
@@ -598,6 +612,9 @@ class Attribute extends AppModel {
 		// if the 'data' field is set on the $this->data then save the data to the correct file
 		if (isset($this->data['Attribute']['type']) && $this->typeIsAttachment($this->data['Attribute']['type']) && !empty($this->data['Attribute']['data'])) {
 			$result = $result && $this->saveBase64EncodedAttachment($this->data['Attribute']); // TODO : is this correct?
+		}
+		if ($created && isset($this->data['Attribute']['event_id']) && empty($this->data['Attribute']['skip_auto_increment'])) {
+			$this->__alterAttributeCount($this->data['Attribute']['event_id']);
 		}
 		return $result;
 	}
@@ -633,6 +650,9 @@ class Attribute extends AppModel {
 	public function afterDelete() {
 		if (Configure::read('MISP.enable_advanced_correlations') && in_array($this->data['Attribute']['type'], array('ip-src', 'ip-dst', 'domain-ip')) && strpos($this->data['Attribute']['value'], '/')) {
 			$this->setCIDRList();
+		}
+		if (isset($this->data['Attribute']['event_id'])) {
+			if (empty($this->data['Attribute']['deleted'])) $this->__alterAttributeCount($this->data['Attribute']['event_id'], false);
 		}
 		if (!empty($this->data['Attribute']['id'])) {
 			$this->Object->ObjectReference->deleteAll(
@@ -3059,7 +3079,29 @@ class Attribute extends AppModel {
 		}
 	$attribute['event_id'] = $eventId;
 		if (isset($attribute['distribution']) && $attribute['distribution'] == 4) {
-			$attribute['sharing_group_id'] = $this->SharingGroup->captureSG($attribute['SharingGroup'], $user);
+			if (!empty($attribute['SharingGroup'])) {
+				$attribute['sharing_group_id'] = $this->SharingGroup->captureSG($attribute['SharingGroup'], $user);
+			} elseif (!empty($attribute['sharing_group_id'])) {
+				if (!$this->SharingGroup->checkIfAuthorised($user, $attribute['sharing_group_id'])) {
+					unset($attribute['sharing_group_id']);
+				}
+			}
+			if (empty($attribute['sharing_group_id'])) {
+				$attribute_short = (isset($attribute['category']) ? $attribute['category'] : 'N/A') . '/' . (isset($attribute['type']) ? $attribute['type'] : 'N/A') . ' ' . (isset($attribute['value']) ? $attribute['value'] : 'N/A');
+				$this->Log = ClassRegistry::init('Log');
+				$this->Log->create();
+				$this->Log->save(array(
+					'org' => $user['Organisation']['name'],
+					'model' => 'Attribute',
+					'model_id' => 0,
+					'email' => $user['email'],
+					'action' => 'edit',
+					'user_id' => $user['id'],
+					'title' => 'Attribute dropped due to invalid sharing group for Event ' . $eventId . ' failed: ' . $attribute_short,
+					'change' => 'Validation errors: ' . json_encode($this->validationErrors) . ' Full Attribute: ' . json_encode($attribute),
+				));
+				return 'Invalid sharing group choice.';
+			}
 		}
 		$fieldList = array(
 			'event_id',

@@ -166,10 +166,10 @@ class Feed extends AppModel {
 			try {
 				$response = $HttpSocket->get($uri, '', $request);
 			} catch (Exception $e) {
-				return false;
+				return $e->getMessage();
 			}
 			if ($response->code != 200) {
-				return false;
+				return 'Fetching the manifest failed with error: ' . $response->code;
 			}
 			$data = $response->body;
 			unset($response);
@@ -177,7 +177,7 @@ class Feed extends AppModel {
 		try {
 			$events = json_decode($data, true);
 		} catch (Exception $e) {
-			return false;
+			return 'Invalid MISP JSON returned.';
 		}
 		$events = $this->__filterEventsIndex($events, $feed);
 		return $events;
@@ -216,16 +216,18 @@ class Feed extends AppModel {
 					$response = $this->__getRecursive($feed['Feed']['url'], '', array());
 					//$response = $HttpSocket->get($feed['Feed']['url'], '', array());
 				} catch (Exception $e) {
-					return false;
+					return $e->getMessage();
 				}
 				if ($response->code == 200) {
 					$redis = $this->setupRedis();
 					if ($redis === false) {
-							return false;
+							return 'Could not reach Redis.';
 					}
 						$redis->del('misp:feed_cache:' . $feed['Feed']['id']);
 					$data = $response->body;
 					file_put_contents($feedCache, $data);
+				} else {
+					return 'Invalid response code returned: ' . $response->code;
 				}
 			}
 		}
@@ -354,8 +356,9 @@ class Feed extends AppModel {
 					$feedHits = $pipe->exec();
 					foreach ($feedHits as $k4 => $hit) {
 						if ($hit) {
-							if (!isset($event['Feed'][$feeds[$k3]['Feed']['id']])) {
-								$event['Feed'][$feeds[$k3]['Feed']['id']] = $feed['Feed'];
+							if (!isset($event['Feed'][$feeds[$k3]['Feed']['id']]['id'])) {
+								if (!isset($event['Feed'][$feeds[$k3]['Feed']['id']])) $event['Feed'][$feeds[$k3]['Feed']['id']] = array();
+								$event['Feed'][$feeds[$k3]['Feed']['id']] = array_merge($event['Feed'][$feeds[$k3]['Feed']['id']], $feed['Feed']);
 							}
 							$objects[$hitIds[$k4]]['Feed'][] = $feed['Feed'];
 						}

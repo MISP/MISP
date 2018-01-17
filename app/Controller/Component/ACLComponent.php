@@ -146,6 +146,7 @@ class ACLComponent extends Component {
 					'disable' => array(),
 					'edit' => array(),
 					'enable' => array(),
+					'fetchFromAllFeeds' => array(),
 					'fetchFromFeed' => array(),
 					'fetchSelectedFromFreetextIndex' => array(),
 					'getEvent' => array(),
@@ -153,6 +154,7 @@ class ACLComponent extends Component {
 					'index' => array(),
 					'previewEvent' => array(),
 					'previewIndex' => array(),
+					'toggleSelected' => array('perm_site_admin'),
 					'view' => array(),
 			),
 			'galaxies' => array(

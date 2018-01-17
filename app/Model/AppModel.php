@@ -28,6 +28,10 @@ class AppModel extends Model {
 
 	public $loadedPubSubTool = false;
 
+	public $start = 0;
+
+	public $inserted_ids = array();
+
 	private $__redisConnection = false;
 
 	public function __construct($id = false, $table = null, $ds = null) {
@@ -48,10 +52,18 @@ class AppModel extends Model {
 				63 => false, 64 => false, 65 => false, 66 => false, 67 => true,
 				68 => false, 69 => false, 71 => false, 72 => false, 73 => false,
 				75 => false, 77 => false, 78 => false, 79 => false, 80 => false,
-				81 => false, 82 => false, 83 => false, 84 => false
+				81 => false, 82 => false, 83 => false, 84 => false, 85 => false,
+				86 => false
 			)
 		)
 	);
+
+	function afterSave($created, $options = array()) {
+		if ($created) {
+			$this->inserted_ids[] = $this->getInsertID();
+		}
+		return true;
+	}
 
 	// Generic update script
 	// add special cases where the upgrade does more than just update the DB
@@ -110,6 +122,11 @@ class AppModel extends Model {
 						$this->OrgBlacklist->save($value);
 					}
 				}
+				$this->updateDatabase($command);
+				break;
+			case '2.4.86':
+				$this->MispObject = Classregistry::init('MispObject');
+				$this->MispObject->removeOrphanedObjects();
 				$this->updateDatabase($command);
 				break;
 			default:
@@ -826,11 +843,21 @@ class AppModel extends Model {
 				$sqlArray[] = "ALTER TABLE organisations ADD restricted_to_domain text COLLATE utf8_bin;";
 				break;
 			case '2.4.83':
-				$sqlArray[] = "ALTER TABLE object_template_elements CHANGE `disable_correlations` `disable_correlation` text COLLATE utf8_bin;";
+				$sqlArray[] = "ALTER TABLE object_template_elements CHANGE `disable_correlation` `disable_correlation` text COLLATE utf8_bin;";
 				break;
 			case '2.4.84':
 				$sqlArray[] = "ALTER TABLE `tags` ADD `user_id` int(11) NOT NULL DEFAULT 0;";
 				$sqlArray[] = 'ALTER TABLE `tags` ADD INDEX `user_id` (`user_id`);';
+				break;
+			case '2.4.85':
+				$sqlArray[] = "ALTER TABLE `shadow_attributes` ADD `disable_correlation` tinyint(1) NOT NULL DEFAULT 0;";
+				$sqlArray[] = "ALTER TABLE object_template_elements CHANGE `disable_correlation` `disable_correlation` text COLLATE utf8_bin;";
+				// yes, this may look stupid as hell to index a boolean flag - but thanks to the stupidity of MySQL/MariaDB this will
+				// stop blocking other indexes to be used in queries where we also tests for the deleted flag.
+				$indexArray[] = array('attributes', 'deleted');
+				break;
+			case '2.4.86':
+
 				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
