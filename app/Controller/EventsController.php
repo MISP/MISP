@@ -3353,6 +3353,10 @@ class EventsController extends AppController {
 			$this->set('typeList', array_keys($this->Event->Attribute->typeDefinitions));
 			$this->set('defaultCategories', $this->Event->Attribute->defaultCategories);
 			$this->set('typeCategoryMapping', $typeCategoryMapping);
+			foreach ($typeCategoryMapping as $k => $v) {
+				$typeCategoryMapping[$k] = array_values($v);
+			}
+			$this->set('mapping', $typeCategoryMapping);
 			$this->set('resultArray', $resultArray);
 			$this->set('importComment', '');
 			$this->set('title', 'Freetext Import Results');
