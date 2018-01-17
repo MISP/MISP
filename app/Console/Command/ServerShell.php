@@ -243,6 +243,7 @@ class ServerShell extends AppShell
         $data = array(
             'worker' => 'default',
             'job_type' => 'feed_cache',
+            'job_input' => '',
             'retries' => 0,
             'org' => $user['Organisation']['name'],
             'org_id' => $user['org_id'],
