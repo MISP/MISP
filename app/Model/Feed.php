@@ -84,7 +84,7 @@ class Feed extends AppModel {
 				$data = file_get_contents($feed['Feed']['url'] . '/manifest.json');
 			}
 		} else {
-			$request = $this->__createFeedRequest();
+			$request = $this->__createFeedRequest($feed['Feed']['headers']);
 			$uri = $feed['Feed']['url'] . '/manifest.json';
 			$response = $HttpSocket->get($uri, '', $request);
 			if ($response->code != 200) return 1;
@@ -117,7 +117,7 @@ class Feed extends AppModel {
 
 	public function getCache($feed, $HttpSocket) {
 		$result = array();
-		$request = $this->__createFeedRequest();
+		$request = $this->__createFeedRequest($feed['Feed']['headers']);
 		if (isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] == 'local') {
 			if (file_exists($feed['Feed']['url'] . '/hashes.csv')) {
 				$data = file_get_contents($feed['Feed']['url'] . '/hashes.csv');
@@ -153,7 +153,7 @@ class Feed extends AppModel {
 
 	public function getManifest($feed, $HttpSocket) {
 		$result = array();
-		$request = $this->__createFeedRequest();
+		$request = $this->__createFeedRequest($feed['Feed']['headers']);
 		if (isset($feed['Feed']['input_source']) && $feed['Feed']['input_source'] == 'local') {
 			if (file_exists($feed['Feed']['url'] . '/manifest.json')) {
 				$data = file_get_contents($feed['Feed']['url'] . '/manifest.json');
@@ -458,7 +458,7 @@ class Feed extends AppModel {
 		return $results;
 	}
 
-	private function __createFeedRequest() {
+	private function __createFeedRequest($headers = false) {
 		$version = $this->checkMISPVersion();
 		$version = implode('.', $version);
 		try {
@@ -466,7 +466,6 @@ class Feed extends AppModel {
 		} catch (Exception $e) {
 			$commit = false;
 		}
-
 		$result = array(
 			'header' => array(
 					'Accept' => 'application/json',
@@ -477,6 +476,19 @@ class Feed extends AppModel {
 		);
 		if ($commit) {
 			$result['header']['commit'] = $commit;
+		}
+		if (!empty($headers)) {
+			$lines = explode("\n", $headers);
+			foreach ($lines as $line) {
+				if (!empty($line)) {
+					$kv = explode(':', $line);
+					if (!empty($kv[0]) && !empty($kv[1])) {
+						if (!in_array($kv[0], array('commit', 'MISP-version', 'MISP-uuid'))) {
+							$result['header'][trim($kv[0])] = trim($kv[1]);
+						}
+					}
+				}
+			}
 		}
 		return $result;
 	}
@@ -561,7 +573,7 @@ class Feed extends AppModel {
 			}
 		} else {
 			$HttpSocket = $this->__setupHttpSocket($feed);
-			$request = $this->__createFeedRequest();
+			$request = $this->__createFeedRequest($feed['Feed']['headers']);
 			$response = $HttpSocket->get($path, '', $request);
 			if ($response->code != 200) {
 				return false;
@@ -655,7 +667,7 @@ class Feed extends AppModel {
 				$data = file_get_contents($path);
 			}
 		} else {
-			$request = $this->__createFeedRequest();
+			$request = $this->__createFeedRequest($feed['Feed']['headers']);
 			$response = $HttpSocket->get($path, '', $request);
 			if ($response->code != 200) {
 				return false;
@@ -680,7 +692,7 @@ class Feed extends AppModel {
 				$data = file_get_contents($path);
 			}
 		} else {
-			$request = $this->__createFeedRequest();
+			$request = $this->__createFeedRequest($feed['Feed']['headers']);
 			$response = $HttpSocket->get($path, '', $request);
 			if ($response->code != 200) {
 				return false;
@@ -1007,7 +1019,7 @@ class Feed extends AppModel {
 				}
 			} else {
 				$HttpSocket = $this->__setupHttpSocket($feed);
-				$request = $this->__createFeedRequest();
+				$request = $this->__createFeedRequest($feed['Feed']['headers']);
 				$fetchIssue = false;
 				try {
 					$response = $HttpSocket->get($path, '', $request);

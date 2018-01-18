@@ -47,6 +47,7 @@
 			<th><?php echo $this->Paginator->sort('provider');?></th>
 			<th><?php echo $this->Paginator->sort('input_source', __('Input'));?></th>
 			<th><?php echo $this->Paginator->sort('url');?></th>
+			<th><?php echo $this->Paginator->sort('headers');?></th>
 			<th><?php echo __('Target');?></th>
 			<th><?php echo __('Publish');?></th>
 			<th><?php echo __('Delta Merge');?></th>
@@ -118,6 +119,7 @@ foreach ($feeds as $item):
 		<td><?php echo h($item['Feed']['provider']); ?>&nbsp;</td>
 		<td><?php echo h($item['Feed']['input_source']); ?>&nbsp;</td>
 		<td><?php echo h($item['Feed']['url']); ?>&nbsp;</td>
+		<td class="short"><?php echo nl2br(h($item['Feed']['headers'])); ?>&nbsp;</td>
 		<td class="shortish">
 		<?php
 			if (in_array($item['Feed']['source_format'], array('freetext', 'csv'))):

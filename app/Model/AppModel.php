@@ -53,7 +53,7 @@ class AppModel extends Model {
 				68 => false, 69 => false, 71 => false, 72 => false, 73 => false,
 				75 => false, 77 => false, 78 => false, 79 => false, 80 => false,
 				81 => false, 82 => false, 83 => false, 84 => false, 85 => false,
-				86 => false
+				86 => false, 87 => false
 			)
 		)
 	);
@@ -858,6 +858,9 @@ class AppModel extends Model {
 				break;
 			case '2.4.86':
 
+				break;
+			case '2.4.87':
+				$sqlArray[] = "ALTER TABLE `feeds` ADD `headers` TEXT COLLATE utf8_bin;";
 				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';

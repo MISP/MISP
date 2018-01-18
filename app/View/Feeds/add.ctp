@@ -48,6 +48,17 @@
 				'class' => 'form-control span6'
 		));
 	?>
+		<div id="HeadersDiv">
+	<?php
+			echo $this->Form->input('headers', array(
+				'label' => __('Any headers to be passed with requests (for example: Authorization)'),
+				'div' => 'clear',
+				'class' => 'input-xxlarge',
+				'type' => 'textarea',
+				'placeholder' => __('Line break separated list of headers in the "headername: value" format')
+			));
+	?>
+		</div>
 		<div id="TargetDiv" class="optionalField">
 	<?php
 		echo $this->Form->input('fixed_event', array(

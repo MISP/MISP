@@ -2814,8 +2814,10 @@ function feedFormUpdate() {
 	}
 	if ($('#FeedInputSource').val() == 'local') {
 		$('#DeleteLocalFileDiv').show();
+		$('#HeadersDiv').hide();
 	} else {
 		$('#DeleteLocalFileDiv').hide();
+		$('#HeadersDiv').show();
 	}
 }
 

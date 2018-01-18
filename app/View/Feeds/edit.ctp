@@ -26,6 +26,17 @@
 					'class' => 'form-control span6'
 			));
 			?>
+			<div id="HeadersDiv">
+		<?php
+				echo $this->Form->input('headers', array(
+					'label' => __('Any headers to be passed with requests (for example: Authorization)'),
+					'div' => 'clear',
+					'class' => 'input-xxlarge',
+					'type' => 'textarea',
+					'placeholder' => __('Line break separated list of headers in the "headername: value" format')
+				));
+		?>
+			</div>
 			<div class="input clear"></div>
 			<div id="DeleteLocalFileDiv" class="optionalField">
 					<?php
