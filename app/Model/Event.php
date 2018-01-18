@@ -1835,7 +1835,7 @@ class Event extends AppModel {
 		$field = '"' . $field . '"';
 	}
 
-	public function csv($user, $eventid=false, $ignore=false, $attributeIDList = array(), $tags = false, $category = false, $type = false, $includeContext = false, $from = false, $to = false, $last = false, $enforceWarninglist = false, $value = false) {
+	public function csv($user, $eventid=false, $ignore=false, $attributeIDList = array(), $tags = false, $category = false, $type = false, $includeContext = false, $from = false, $to = false, $last = false, $enforceWarninglist = false, $value = false, $timestamp = false) {
 		$this->recursive = -1;
 		$conditions = array();
 		// If we are not in the search result csv download function then we need to check what can be downloaded. CSV downloads are already filtered by the search function.
@@ -1843,6 +1843,10 @@ class Event extends AppModel {
 			if ($from) $conditions['AND']['Event.date >='] = $from;
 			if ($to) $conditions['AND']['Event.date <='] = $to;
 			if ($last) $conditions['AND']['Event.publish_timestamp >='] = $last;
+			if ($timestamp) {
+				$conditions['AND']['Attribute.timestamp >='] = $timestamp;
+				$conditions['AND']['Event.timestamp >='] = $timestamp;
+			}
 			// This is for both single event downloads and for full downloads. Org has to be the same as the user's or distribution not org only - if the user is no siteadmin
 			if ($ignore == false) $conditions['AND']['Event.published'] = 1;
 
