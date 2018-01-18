@@ -303,6 +303,7 @@ class AttributesController extends AppController {
 		}
 		$types = $this->_arrayToValuesIndexArray($types);
 		$this->set('types', $types);
+		$this->set('compositeTypes', $this->Attribute->getCompositeTypes());
 		// combobox for categories
 		$categories = array_keys($this->Attribute->categoryDefinitions);
 		$categories = $this->_arrayToValuesIndexArray($categories);
