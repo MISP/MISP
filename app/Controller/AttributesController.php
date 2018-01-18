@@ -1656,6 +1656,11 @@ class AttributesController extends AppController {
 									'orgc_id', 'id', 'org_id', 'user_id', 'info'
 								)
 							),
+							'Object' => array(
+								'fields' => array(
+									'id'
+								)
+							)
 						)
 					);
 					$this->Attribute->contain(array('AttributeTag' => array('Tag')));
