@@ -1,5 +1,5 @@
 <div class="events index">
-<h4 class="visibleDL notPublished" ><?php echo __('You are currently viewing the event index of a feed (%s by %s).', h($feed['Feed']['name']),h($feed['Feed']['provider']));</h4>
+<h4 class="visibleDL notPublished" ><?php echo __('You are currently viewing the event index of a feed (%s by %s).', h($feed['Feed']['name']),h($feed['Feed']['provider']));?></h4>
 	<div class="pagination">
 		<ul>
 		<?php
