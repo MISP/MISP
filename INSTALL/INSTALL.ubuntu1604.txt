@@ -24,7 +24,7 @@ sudo postfix reload
 Once the system is installed you can perform the following steps:
 
 # Install the dependencies: (some might already be installed)
-sudo apt-get install curl gcc git gnupg-agent make python openssl redis-server sudo vim zip
+sudo apt-get install curl gcc git gnupg-agent make python python3 openssl redis-server sudo vim zip
 
 # Install MariaDB (a MySQL fork/alternative)
 sudo apt-get install mariadb-client mariadb-server
@@ -39,6 +39,7 @@ sudo apt-get install apache2 apache2-doc apache2-utils
 sudo a2dismod status
 sudo a2enmod ssl
 sudo a2enmod rewrite
+sudo a2enmod headers
 sudo a2dissite 000-default
 sudo a2ensite default-ssl
 
@@ -154,6 +155,8 @@ sudo openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
 -subj "/C=<Country>/ST=<State>/L=<Locality>/O=<Organization>/OU=<Organizational Unit Name>/CN=<QDN.here>/emailAddress=admin@<your.FQDN.here>" \
 -keyout /etc/ssl/private/misp.local.key -out /etc/ssl/private/misp.local.crt
 
+# Also remember to verify the SSLCertificateChainFile property in the config file below - usually commented for the self-generated certificate.
+
 # Otherwise, copy the SSLCertificateFile, SSLCertificateKeyFile, and SSLCertificateChainFile to /etc/ssl/private/. (Modify path and config to fit your environment)
 
 ============================================= Begin sample working SSL config for MISP
@@ -252,6 +255,8 @@ sudo -u www-data mkdir /var/www/MISP/.gnupg
 sudo chmod 700 /var/www/MISP/.gnupg
 sudo -u www-data gpg --homedir /var/www/MISP/.gnupg --gen-key
 # The email address should match the one set in the config.php / set in the configuration menu in the administration menu configuration file
+
+# NOTE: if entropy is not high enough, you can install rng-tools and then run rngd -r /dev/urandom do fix it quickly
 
 # And export the public key to the webroot
 sudo -u www-data sh -c "gpg --homedir /var/www/MISP/.gnupg --export --armor YOUR-KEYS-EMAIL-HERE > /var/www/MISP/app/webroot/gpg.asc"
