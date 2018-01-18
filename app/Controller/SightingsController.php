@@ -78,7 +78,7 @@ class SightingsController extends AppController {
 			} else {
 				$this->layout = false;
 				$this->loadModel('Attribute');
-				$attributes = $this->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id)));
+				$attributes = $this->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id), 'flatten' => 1));
 				if (empty($attributes)) {
 					throw new MethodNotAllowedExeption('Invalid Attribute.');
 				}
