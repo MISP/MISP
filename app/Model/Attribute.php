@@ -1095,7 +1095,6 @@ class Attribute extends AppModel {
 			case 'passenger-name-record-locator-number':
 			case 'email-dst-display-name':
 			case 'email-src-display-name':
-			case 'email-header':
 			case 'email-reply-to':
 			case 'email-x-mailer':
 			case 'email-mime-boundary':
@@ -1111,6 +1110,9 @@ class Attribute extends AppModel {
 				if (!preg_match("#\n#", $value)) {
 					$returnValue = true;
 				}
+				break;
+			case 'email-header':
+				$returnValue = true;
 				break;
 			case 'datetime':
 				try {
