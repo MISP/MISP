@@ -258,7 +258,7 @@ class EventsController extends AppController {
 		// list the events
 		$passedArgsArray = array();
 		$urlparams = "";
-		$overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'Datefrom', 'Dateuntil', 'org', 'eventinfo', 'tag', 'distribution', 'analysis', 'threatlevel', 'email', 'hasproposal', 'timestamp', 'publishtimestamp', 'publish_timestamp', 'minimal');
+		$overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'Datefrom', 'Dateuntil', 'org', 'eventinfo', 'tag', 'distribution', 'sharinggroup', 'analysis', 'threatlevel', 'email', 'hasproposal', 'timestamp', 'publishtimestamp', 'publish_timestamp', 'minimal');
 		$passedArgs = $this->passedArgs;
 		if (isset($this->request->data)) {
 			if (isset($this->request->data['request'])) $this->request->data = $this->request->data['request'];
@@ -366,6 +366,18 @@ class EventsController extends AppController {
 							}
 						}
 						$this->paginate['conditions']['AND'][] = $test;
+						break;
+					case 'sharinggroup':
+						$pieces = explode('|', $v);
+						$test = array();
+						foreach ($pieces as $piece) {
+							if ($piece[0] == '!') {
+								$this->paginate['conditions']['AND'][] = array('Event.sharing_group_id !=' => substr($piece, 1));
+							} else {
+								$test['OR'][] = array('Event.sharing_group_id' => $piece);
+							}
+						}
+						if (!empty($test)) $this->paginate['conditions']['AND'][] = $test;
 						break;
 					case 'eventinfo' :
 						if ($v == "") continue 2;
@@ -643,6 +655,7 @@ class EventsController extends AppController {
 			'eventinfo' => array('OR' => array(), 'NOT' => array()),
 			'threatlevel' => array('OR' => array(), 'NOT' => array()),
 			'distribution' => array('OR' => array(), 'NOT' => array()),
+			'sharinggroup' => array('OR' => array(), 'NOT' => array()),
 			'analysis' => array('OR' => array(), 'NOT' => array()),
 			'attribute' => array('OR' => array(), 'NOT' => array()),
 			'hasproposal' => 2,
@@ -672,6 +685,7 @@ class EventsController extends AppController {
 					case 'attribute' :
 					case 'threatlevel' :
 					case 'distribution' :
+					case 'sharinggroup':
 					case 'analysis' :
 						if ($v == "" || ($searchTerm == 'email' && !$this->_isSiteAdmin())) continue 2;
 						$pieces = explode('|', $v);
@@ -700,7 +714,7 @@ class EventsController extends AppController {
 			$eIds = $this->Event->fetchEventIds($this->Auth->user(), false, false, false, true);
 			$conditions['AND'][] = array('Event.id' => $eIds);
 		}
-		$rules = array('published', 'eventid', 'tag', 'date', 'eventinfo', 'threatlevel', 'distribution', 'analysis', 'attribute', 'hasproposal');
+		$rules = array('published', 'eventid', 'tag', 'date', 'eventinfo', 'threatlevel', 'distribution', 'sharinggroup', 'analysis', 'attribute', 'hasproposal');
 		if ($this->_isSiteAdmin()) $rules[] = 'email';
 		if (Configure::read('MISP.showorg')) {
 			$orgs = $this->Event->Orgc->find('list', array(
@@ -715,6 +729,8 @@ class EventsController extends AppController {
 		} else {
 			$this->set('showorg', false);
 		}
+		$sharingGroups = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', true);
+		$this->set('sharingGroups', $sharingGroups);
 		$rules = $this->_arrayToValuesIndexArray($rules);
 		$this->set('tags', $tagNames);
 		$this->set('tagJSON', json_encode($tagJSON));
