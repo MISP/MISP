@@ -271,8 +271,25 @@ class SharingGroup extends AppModel {
 		else return true;
 	}
 
+	public function checkIfExists($uuid) {
+		return !empty($this->SharingGroup->find('first', array(
+			'conditions' => array('SharingGroup.uuid' => $uuid),
+			'recursive' => -1,
+			'fields' => array('SharingGroup.id')
+		)));
+	}
+
 	// returns true if the SG exists and the user is allowed to see it
 	public function checkIfAuthorised($user, $id, $adminCheck = true) {
+		if (Validation::uuid($id)) {
+			$sgid = $this->SharingGroup->find('first', array(
+				'conditions' => array('SharingGroup.uuid' => $id),
+				'recursive' => -1,
+				'fields' => array('SharingGroup.id')
+			));
+			if (empty($sgid)) throw new MethodNotAllowedException('Invalid sharing group.');
+			$id = $sgid['SharingGroup']['id'];
+		}
 		if (!isset($user['id'])) throw new MethodNotAllowedException('Invalid user.');
 		$this->id = $id;
 		if (!$this->exists()) return false;

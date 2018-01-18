@@ -2324,6 +2324,9 @@ class Event extends AppModel {
 	private function __captureObjects($data, $user) {
 		// First we need to check whether the event or any attributes are tied to a sharing group and whether the user is even allowed to create the sharing group / is part of it
 		if (isset($data['Event']['distribution']) && $data['Event']['distribution'] == 4) {
+			if (isset($data['Event']['SharingGroup']) && !$this->SharingGroup->checkIfAuthorisedToSave($user, $data['Event']['SharingGroup'])) {
+				return false;
+			}
 			$data['Event'] = $this->__captureSGForElement($data['Event'], $user);
 		}
 		if (!empty($data['Event']['Attribute'])) {
@@ -2331,6 +2334,9 @@ class Event extends AppModel {
 				unset($data['Event']['Attribute']['id']);
 				if (isset($a['distribution']) && $a['distribution'] == 4) {
 					$data['Event']['Attribute'][$k] = $this->__captureSGForElement($a, $user);
+					if ($data['Event']['Attribute'][$k] === false) {
+						unset($data['Event']['Attribute']);
+					}
 				}
 			}
 		}
@@ -2338,10 +2344,17 @@ class Event extends AppModel {
 			foreach($data['Event']['Object'] as $k => $o) {
 				if (isset($o['distribution']) && $o['distribution'] == 4) {
 					$data['Event']['Object'][$k] = $this->__captureSGForElement($o, $user);
+					if ($data['Event']['Object'][$k] === false) {
+						unset($data['Event']['Object'][$k]);
+						continue;
+					}
 				}
 				foreach ($o['Attribute'] as $k2 => $a) {
 					if (isset($a['distribution']) && $a['distribution'] == 4) {
 						$data['Event']['Object'][$k]['Attribute'][$k2] = $this->__captureSGForElement($a, $user);
+						if ($data['Event']['Object'][$k]['Attribute'][$k2] === false) {
+							unset($data['Event']['Object'][$k]['Attribute'][$k2]);
+						}
 					}
 				}
 			}
@@ -2479,9 +2492,27 @@ class Event extends AppModel {
 				return $existingEvent['Event']['id'];
 			} else {
 				if ($fromXml) $data = $this->__captureObjects($data, $user);
+				if ($data === false) $failedCapture = true;
 			}
 		} else {
 			if ($fromXml) $data = $this->__captureObjects($data, $user);
+			if ($data === false) $failedCapture = true;
+		}
+		if (!empty($failedCapture)) {
+			$this->Log = ClassRegistry::init('Log');
+			$this->Log->create();
+			$this->Log->save(array(
+					'org' => $user['Organisation']['name'],
+					'model' => 'Event',
+					'model_id' => 0,
+					'email' => $user['email'],
+					'action' => 'add',
+					'user_id' => $user['id'],
+					'title' => 'Event could not be saved due to a failed sharing group capture.',
+					'change' => ''
+			));
+			$validationErrors['Event'] = 'Issues saving a Sharing Group.';
+			return json_encode($validationErrors);
 		}
 		$fieldList = array(
 				'Event' => array(
@@ -2610,7 +2641,7 @@ class Event extends AppModel {
 			return true;
 		} else {
 			$validationErrors['Event'] = $this->validationErrors;
-			return json_encode($this->validationErrors);
+			return json_encode($validationErrors);
 		}
 	}
 

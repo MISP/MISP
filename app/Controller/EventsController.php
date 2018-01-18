@@ -1244,7 +1244,12 @@ class EventsController extends AppController {
 					if ($this->request->data['Event']['distribution'] == 4) {
 						if ($this->userRole['perm_sync'] && $this->_isRest()) {
 							if (isset($this->request->data['Event']['SharingGroup'])) {
-								if (!$this->Event->SharingGroup->checkIfAuthorisedToSave($this->Auth->user(), $this->request->data['Event']['SharingGroup'])) throw new MethodNotAllowedException('Invalid Sharing Group or not authorised. (Sync user is not contained in the Sharing group)');
+								if (!isset($this->request->data['Event']['SharingGroup']['uuid'])) {
+									if ($this->Event->SharingGroup->checkIfExists($this->request->data['Event']['SharingGroup']['uuid']) &&
+										$this->Event->SharingGroup->checkIfAuthorised($this->Auth->user(), $this->request->data['Event']['SharingGroup']['uuid'])) {
+											throw new MethodNotAllowedException('Invalid Sharing Group or not authorised (Sync user is not contained in the Sharing group).');
+									}
+								}
 							} else if (!isset($sgs[$this->request->data['Event']['sharing_group_id']])) {
 								throw new MethodNotAllowedException('Invalid Sharing Group or not authorised.');
 							}
