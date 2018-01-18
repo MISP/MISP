@@ -322,7 +322,7 @@ Use semicolons instead (the search will automatically search for colons instead)
 <b>metadata</b>: <?php echo __('Only the metadata (event, tags, relations) is returned, attributes and proposals are omitted.');?><br />
 <b>uuid</b>: <?php echo __('Restrict the results by uuid.');?><br />
 <b>publish_timestamp</b>: <?php echo __('Restrict the results by the last publish timestamp (newer than).');?><br />
-<b>timestamp</b>: <?php echo __('Restrict the results by the timestamp (last edit). Any event with a timestamp newer than the given timestamp will be returned.');?><br />
+<b>timestamp</b>: <?php echo __('Restrict the results by the timestamp (last edit). Any event with a timestamp newer than the given timestamp will be returned. In case you are dealing with /attributes as scope, the attribute\'s timestamp will be used for the lookup.');?><br />
 <b>published</b>: <?php echo __('Set whether published or unpublished events should be returned. Do not set the parameter if you want both.');?><br />
 <b>enforceWarninglist</b>: <?php echo __('Remove any attributes from the result that would cause a hit on a warninglist entry.');?><br />
 <p><?php echo __('The keywords false or null should be used for optional empty parameters in the URL.');?></p>
