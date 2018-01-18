@@ -1133,6 +1133,7 @@ class ShadowAttributesController extends AppController {
 			$response = $this->__accept($a['ShadowAttribute']['id']);
 			if (isset($response['saved'])) $successes[] = $a['ShadowAttribute']['id'];
 		}
+		$this->ShadowAttribute->Event->unpublishEvent($id, true);
 		$fails = array_diff($ids, $successes);
 		$this->autoRender = false;
 		if (count($fails) == 0 && count($successes) > 0) {
