@@ -22,7 +22,7 @@
 					endif;
 					if ($full):
 				?>
-						<div class="tagSecondHalf useCursorPointer noPrint" title="Remove tag" role="button" tabindex="0" aria-label="Remove tag" onClick="removeObjectTagPopup('attribute', '<?php echo h($attributeId); ?>', '<?php echo h($tag['Tag']['id']); ?>');">x</div>
+						<div class="tagSecondHalf useCursorPointer noPrint" title="<?php echo __('Remove tag');?>" role="button" tabindex="0" aria-label="<?php echo __('Remove tag');?>" onClick="removeObjectTagPopup('attribute', '<?php echo h($attributeId); ?>', '<?php echo h($tag['Tag']['id']); ?>');">x</div>
 				<?php
 					endif;
 				?>

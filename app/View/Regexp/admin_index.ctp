@@ -1,5 +1,5 @@
 <div class="regexp index">
-	<h2>Import Regexp</h2>
+	<h2><?php echo __('Import Regexp');?></h2>
 	<div class="pagination">
 		<ul>
 		<?php
@@ -22,7 +22,7 @@
 			<th><?php echo $this->Paginator->sort('regexp');?></th>
 			<th><?php echo $this->Paginator->sort('replacement');?></th>
 			<th><?php echo $this->Paginator->sort('type');?></th>
-			<th class="actions">Actions</th>
+			<th class="actions"><?php echo __('Actions');?></th>
 	</tr><?php
 foreach ($list as $item):?>
 	<tr>

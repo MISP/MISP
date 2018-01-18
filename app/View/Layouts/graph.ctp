@@ -80,7 +80,7 @@
 	</div>
 	<div class="loading">
 		<div class="spinner"></div>
-		<div class="loadingText">Loading</div>
+		<div class="loadingText"><?php echo __('Loading');?></div>
 	</div>
 	<?php
 		if ($debugMode == 'debugOff'):

@@ -1,5 +1,5 @@
 <div class="popover_choice select_cluster">
-	<legend>Select Cluster</legend>
+	<legend><?php echo __('Select Cluster');?></legend>
 	<div class="hidden">
 		<?php
 			echo $this->Form->create('Galaxy', array('url' => '/galaxies/attachClusterToEvent/' . $event_id, 'style' => 'margin:0px;'));
@@ -8,7 +8,7 @@
 		?>
 	</div>
 	<div style="text-align:right;width:100%;" class="select_tag_search">
-		<input id="clusterFilterField" style="width:100%;border:0px;padding:0px;" placeholder="search clusters..."/>
+		<input id="clusterFilterField" style="width:100%;border:0px;padding:0px;" placeholder="<?php echo __('search clusters…');?>"/>
 	</div>
 	<div class="popover_choice_main" id ="popover_choice_main">
 		<table style="width:100%;">
@@ -23,11 +23,11 @@
 		endforeach;
 	?>
 		<tr style="border-bottom:1px solid black;" class="templateChoiceButton">
-			<td class="clusterSelectBack" style="padding-left:10px;padding-right:10px; text-align:center;width:100%;" data-event-id="<?php echo h($event_id); ?>" title="Select Galaxy">Back to Galaxy Selection</td>
+			<td class="clusterSelectBack" style="padding-left:10px;padding-right:10px; text-align:center;width:100%;" data-event-id="<?php echo h($event_id); ?>" title="Select Galaxy"><?php echo __('Back to Galaxy Selection');?></td>
 		</tr>
 		</table>
 	</div>
-	<div role="button" tabindex="0" aria-label="Cancel" title="Cancel" class="templateChoiceButton templateChoiceButtonLast" onClick="cancelPopoverForm();">Cancel</div>
+	<div role="button" tabindex="0" aria-label="<?php echo __('Cancel');?>" title="<?php echo __('Cancel');?>" class="templateChoiceButton templateChoiceButtonLast" onClick="cancelPopoverForm();"><?php echo __('Cancel');?></div>
 </div>
 <script type="text/javascript">
 	var lookup_table = <?php echo json_encode($lookup_table); ?>;

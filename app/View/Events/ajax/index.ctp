@@ -1,6 +1,6 @@
 <div class="events">
 	<div id="eventIndexTable">
-		<h2>Events</h2>
+		<h2><?php echo __('Events');?></h2>
 		<div class="pagination">
 			<ul>
 			<?php

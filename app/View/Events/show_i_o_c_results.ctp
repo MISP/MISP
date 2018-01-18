@@ -1,16 +1,16 @@
 <div class="index">
-	<h2>Results of the import: </h2>
-	<h3><?php echo count($attributes); ?> attributes created successfully, <?php echo count($fails); ?> indicators could not be mapped and saved. </h3>
+	<h2<?php echo __('>Results of the import');?>: </h2>
+	<h3><?php echo __('%s attributes created successfully, %s  indicators could not be mapped and saved.',count($attributes), count($fails));?></h3>
 	<br /><br />
 	<?php
 if (0 != count($attributes)): ?>
-	<h4>Successfully added attributes:</h4>
+	<h4><?php echo __('Successfully added attributes');?>:</h4>
 	<table class="table table-striped table-hover table-condensed">
 	<tr>
-			<th>Uuid</th>
-			<th>Category</th>
-			<th>Type</th>
-			<th>Value</th>
+			<th><?php echo __('Uuid');?></th>
+			<th><?php echo __('Category');?></th>
+			<th><?php echo __('Type');?></th>
+			<th><?php echo __('Value');?></th>
 	</tr><?php
 foreach ($attributes as $attribute): ?>
 	<tr>
@@ -26,12 +26,12 @@ endif;?>
 <?php
 if (isset($fails)):?>
 	<br /><br />
-	<h4>Failed indicators:</h4>
+	<h4><?php echo __('Failed indicators');?>:</h4>
 	<table class="table table-striped table-hover table-condensed">
 	<tr>
-			<th>Uuid</th>
-			<th>Search term</th>
-			<th>Content</th>
+			<th><?php echo __('Uuid');?></th>
+			<th><?php echo __('Search term');?></th>
+			<th><?php echo __('Content');?></th>
 	</tr><?php
 foreach ($fails as $fail): ?>
 	<tr>
@@ -42,7 +42,7 @@ foreach ($fails as $fail): ?>
 endforeach; ?>
 </table><br /><br />
 <div class="visualisation">
-<h4>Visualisation:</h4>
+<h4><?php echo __('Visualisation');?>:</h4>
 <?php
 endif;
 foreach ($graph as $line): ?>

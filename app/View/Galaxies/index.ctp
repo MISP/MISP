@@ -1,5 +1,5 @@
 <div class="regexp index">
-	<h2>Galaxies</h2>
+	<h2><?php echo __('Galaxies');?></h2>
 	<div class="pagination">
 		<ul>
 		<?php

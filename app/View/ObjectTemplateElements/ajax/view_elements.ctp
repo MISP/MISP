@@ -21,10 +21,10 @@
 		<th><?php echo $this->Paginator->sort('multiple');?></th>
     <th><?php echo $this->Paginator->sort('ui-priority', 'UI-priority');?></th>
     <th><?php echo $this->Paginator->sort('description');?></th>
-    <th>Categories</th>
-		<th>Sane defaults</th>
-		<th>List of valid Values</th>
-		<th>Disable correlation</th>
+    <th><?php echo __('Categories');?></th>
+		<th><?php echo __('Sane defaults');?></th>
+		<th><?php echo __('List of valid Values');?></th>
+		<th><?php echo __('Disable correlation');?></th>
 		<th class="actions"><?php echo __('Actions');?></th>
 	</tr>
 <?php
