@@ -3,8 +3,8 @@
 # based on @jasonish idstools regexp
 # https://github.com/jasonish/py-idstools/blob/master/idstools/rule.py
 
-#$rule = "drop tcp $HOME_NET any -> $EXTERNAL_NET any (msg:”ET TROJAN Likely Bot Nick in IRC (USA +..)”; flow:established,to_server; flowbits:isset,is_proto_irc; content:”NICK “; reference:url,doc.emergingthreats.net/2008124; classtype:trojan-activity; sid:2008124; rev:2;)";
-#$rule = "drop  ->  (msg:”ET TROJAN Likely Bot Nick in IRC (USA +..)”; flow:established,to_server; flowbits:isset,is_proto_irc; content:”NICK “; reference:url,doc.emergingthreats.net/2008124; classtype:trojan-activity; sid:2008124; rev:2;)";
+$rule = 'drop tcp $HOME_NET any -> $EXTERNAL_NET any (msg:"ET TROJAN Likely Bot Nick in IRC (USA +..)"; flow:established,to_server; flowbits:isset,is_proto_irc; content:"NICK "; reference:url,doc.emergingthreats.net/2008124; classtype:trojan-activity; sid:2008124; rev:2;)';
+#$rule = 'drop  ->  (msg:"ET TROJAN Likely Bot Nick in IRC (USA +..)"; flow:established,to_server; flowbits:isset,is_proto_irc; content:"NICK "; reference:url,doc.emergingthreats.net/2008124; classtype:trojan-activity; sid:2008124; rev:2;)';
 #$rule = 'empty';
 
 class SuricataRuleFormat {
@@ -19,31 +19,66 @@ class SuricataRuleFormat {
                             . '\((?P<options>.*)\)\s*'
                             . '/';
 
-    private function findOptionEnd($option) {
+    private function findOptionEnd($options) {
         $offset = 0;
         while (true) {
-            $i = strpos($option, ';');
+            $i = strpos($options, ';', $offset);
             if ($i === false) {
                 return -1;
             }
-            if ($option[$offset + $i - 1] == '\\') {
+            if ($options[$offset + $i - 1] == '\\') {
                 $offset += 2;
             }
             else {
-                return $offset + 1;
+                return $offset + $i;
             }
         }
     }
 
-    function parseRule($rule) {
+    private function getOptions($options) {
+        $opt_list = array();
+
+        if ($options == false) {
+            return false;
+        }
+        while (true) {
+            if ($options == false) {
+                return $opt_list;
+            }
+            $index = $this->findOptionEnd($options);
+            if ($index < 0) {
+                throw new LogicException(
+                    'SuricataRule - could not find end of options'
+                );
+            }
+            $option = substr($options, 0, $index);
+            $options = substr($options, $index + 1);
+            $delim = strpos($option, ':');
+            if ($delim == false) {
+                $name = $option;
+                $value = None;
+            }
+            else {
+                $vals = explode(':', $option);
+                $name = $vals[0];
+                $value = $vals[1];
+            }
+            $name = str_replace(' ', '', $name);
+            $opt_list[$name] = $value;
+        }
+        return $opt_list;
+    }
+
+    private function parseRule($rule) {
         $regexp = sprintf($this->rule_pattern, join('|', $this->actions));
         preg_match($regexp, $rule, $matches);
         return $matches;
     }
 
     # function to validate the global syntax of a suricata rule
-    function validateRuleSyntax($rule) {
+    private function validateRuleSyntax($rule) {
         $matches = $this->parseRule($rule);
+        print_r($this->getOptions($matches['options']));
         if (($matches == false) or ($matches['src_ip'] == false) or ($matches['dst_ip'] == false)) {
             return false;
         }
@@ -51,20 +86,20 @@ class SuricataRuleFormat {
     }
 
     #function to validate http rule mandatory arguments
-    function validateRuleHTTP($rule) {
+    private function validateRuleHTTP($rule) {
         // FIXME
         return true;
     }
 
     # function to validate dns rule mandatory arguments
-    function validateRuleDNS($rule) {
+    private function validateRuleDNS($rule) {
         // FIXME
         return true;
     }
 
     # function to validate the complete syntax of a suricata rule
     # idea is to 
-    function validateRule($rule) {
-        return validateRuleSyntax($rule) and validateRuleHTTP($rule) and validateRuleDNS($rule);
+    public function validateRule($rule) {
+        return $this->validateRuleSyntax($rule) and $this->validateRuleHTTP($rule) and $this->validateRuleDNS($rule);
     }
 }
