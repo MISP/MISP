@@ -2627,7 +2627,7 @@ class AttributesController extends AppController {
 	}
 
 	public function hoverEnrichment($id) {
-		$attribute = $this->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id)));
+		$attribute = $this->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $id), 'flatten' => 1));
 		if (empty($attribute)) throw new NotFoundException('Invalid Attribute');
 		$this->loadModel('Server');
 		$this->loadModel('Module');
