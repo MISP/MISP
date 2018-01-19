@@ -183,7 +183,8 @@ class EventsController extends AppController {
 		);
 		$attributeHits = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array(
 				'conditions' => $conditions,
-				'fields' => array('event_id', 'comment', 'distribution', 'value1', 'value2')
+				'fields' => array('event_id', 'comment', 'distribution', 'value1', 'value2'),
+				'flatten' => 1
 		));
 		// rearrange the data into an array where the keys are the event IDs
 		$eventsWithAttributeHits = array();
@@ -920,6 +921,13 @@ class EventsController extends AppController {
 		$emptyEvent = (empty($event['Object']) && empty($event['Attribute']));
 		$this->set('emptyEvent', $emptyEvent);
 		$attributeCount = isset($event['Attribute']) ? count($event['Attribute']) : 0;
+		if (!empty($event['Object'])) {
+			foreach ($event['Object'] as $k => $object) {
+				if (!empty($object['Attribute'])) {
+					$attributeCount += count($object['Attribute']);
+				}
+			}
+		}
 		$this->set('attribute_count', $attributeCount);
 		// set the data for the contributors / history field
 		$org_ids = $this->Event->ShadowAttribute->getEventContributors($event['Event']['id']);
@@ -4175,7 +4183,7 @@ class EventsController extends AppController {
 	// expects an attribute ID and the module to be used
 	public function queryEnrichment($attribute_id, $module = false, $type = 'Enrichment') {
 		if (!Configure::read('Plugin.' . $type . '_services_enable')) throw new MethodNotAllowedException($type . ' services are not enabled.');
-		$attribute = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $attribute_id)));
+		$attribute = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $attribute_id), 'flatten' => 1));
 		if (empty($attribute)) throw new MethodNotAllowedException('Attribute not found or you are not authorised to see it.');
 		if ($this->request->is('ajax')) {
 			$this->loadModel('Module');
