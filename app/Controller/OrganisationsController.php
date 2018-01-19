@@ -193,6 +193,9 @@ class OrganisationsController extends AppController {
 		$this->Organisation->read(null, $id);
 		$this->set('orgId', $id);
 		$this->request->data = $this->Organisation->data;
+		if (is_array($this->request->data['Organisation']['restricted_to_domain'])) {
+			$this->request->data['Organisation']['restricted_to_domain'] = implode("\n", $this->request->data['Organisation']['restricted_to_domain']);
+		}
 		$this->set('id', $id);
 	}
 
