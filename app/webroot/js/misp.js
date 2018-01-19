@@ -3168,6 +3168,26 @@ function objectReferenceCheckForCustomRelationship() {
 	}
 }
 
+function add_basic_auth() {
+	var headers = $('#FeedHeaders').val().split("\n");
+	$('#FeedHeaders').val("");
+	headers.forEach(function(header) {
+		header = header.trim();
+		if (header != "") {
+			header = header.split(":");
+			var key = header.shift();
+			var value = header.join(":");
+			if (key != 'Authorization') {
+				$('#FeedHeaders').val($('#FeedHeaders').val() + key.trim() + ":" + value.trim() + "\n");
+			}
+		}
+	});
+	var basicAuth = $('#BasicAuthUsername').val().trim() + ':' + $('#BasicAuthPassword').val().trim();
+	$('#FeedHeaders').val($('#FeedHeaders').val() + "Authorization: Basic " + btoa(basicAuth) + "\n");
+	$('#basicAuthFormEnable').show();
+	$('#basicAuthForm').hide();
+}
+
 function changeObjectReferenceSelectOption() {
 	var object = $('#targetSelect option:selected');
 	var uuid = $(object).val();

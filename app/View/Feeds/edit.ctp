@@ -26,7 +26,7 @@
 					'class' => 'form-control span6'
 			));
 			?>
-			<div id="HeadersDiv">
+			<div id="HeadersDiv"<?php echo $this->request->data['Feed']['input_source'] == 'file' ? 'style="display:none;"' : '';?>>
 		<?php
 				echo $this->Form->input('headers', array(
 					'label' => __('Any headers to be passed with requests (for example: Authorization)'),
@@ -36,6 +36,22 @@
 					'placeholder' => __('Line break separated list of headers in the "headername: value" format')
 				));
 		?>
+			<div>
+				<span id="basicAuthFormEnable" class="btn btn-inverse quick-popover" style="line-height:10px; padding: 4px 4px;"><?php echo __('Add Basic Auth');?></span>
+				<div id="basicAuthForm" class="quick-form" style="display:none;">
+						<fieldset>
+							<div class="input">
+								<label for="BasicAuthUsername"><?php echo __('Username');?></label>
+								<input class="form-control" type="text" id="BasicAuthUsername"></input><br />
+							</div>
+							<div class="input">
+								<label for ="BasicAuthPassword"><?php echo __('Password');?></label>
+								<input class="form-control" type="text" id="BasicAuthPassword"></input><br />
+							</div>
+						</fieldset>
+						<span class="btn-inverse btn" onClick="add_basic_auth();" style="line-height:10px; padding: 4px 4px;"><?php echo __('Add basic auth header'); ?></span>
+				</div>
+			</div><br />
 			</div>
 			<div class="input clear"></div>
 			<div id="DeleteLocalFileDiv" class="optionalField">
@@ -187,7 +203,7 @@
 <script type="text/javascript">
 //
 var formInfoValues = {
-		'ServerUrl' : "<?php echo __('The base-url to the external server you want to sync with. Example: https://foo.sig.mil.be');?>",
+		'ServerUrl' : "<?php echo __('The base-url to the external server you want to sync with. Example: https://misppriv.circl.lu');?>",
 		'ServerName' : "<?php echo __('A name that will make it clear to your users what this instance is. For example: Organisation A\'s instance');?>",
 		'ServerOrganization' : "<?php echo __('The organization having the external server you want to sync with. Example: BE');?>",
 		'ServerAuthkey' : "<?php echo __('You can find the authentication key on your profile on the external server.');?>",
@@ -217,6 +233,10 @@ $(document).ready(function() {
 	$("#FeedDistribution").change(function() {
 		feedDistributionChange();
 	});
+	$('#basicAuthFormEnable').click(function() {
+		$('#basicAuthFormEnable').hide();
+		$('#basicAuthForm').show();
+	})
 	feedFormUpdate();
 });
 
