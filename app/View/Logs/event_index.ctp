@@ -33,10 +33,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc_id'] == $me['org_id']);
 		<tr>
 			<td class="short">
 			<?php
-				$imgRelativePath = 'orgs' . DS . h($item['Log']['org']) . '.png';
-				$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
-				if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($item['Log']['org']) . '.png', array('alt' => h($item['Log']['org']), 'title' => h($item['Log']['org']), 'style' => 'width:24px; height:24px'));
-				else echo $this->Html->tag('span', h($item['Log']['org']), array('class' => 'welcome', 'style' => 'float:left;'));
+				echo $this->OrgImg->getOrgImg(array('name' => $item['Log']['org'], 'size' => 24));
 			?>
 			&nbsp;
 			</td>

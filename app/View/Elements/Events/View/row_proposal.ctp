@@ -56,9 +56,7 @@
 <?php
   if ($object['objectType'] != 0) {
     if (isset($object['Org']['name'])) {
-      $imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . 'orgs' . DS . h($object['Org']['name']) . '.png';
-      if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($object['Org']['name']) . '.png', array('alt' => h($object['Org']['name']), 'title' => h($object['Org']['name']), 'style' => 'width:24px; height:24px'));
-      else echo h($object['Org']['name']);
+      echo $this->OrgImg->getOrgImg(array('name' => $object['Org']['name'], 'id' => $object['Org']['id'], 'size' => 24));
     }
   } else { ?>
   &nbsp;

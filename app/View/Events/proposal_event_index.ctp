@@ -59,10 +59,7 @@
 			<td class="short">
 				<?php
 					foreach ($event['orgArray'] as $k => $org) {
-						$imgRelativePath = 'orgs' . DS . h($org) . '.png';
-						$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
-						if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($orgs[$org]) . '.png', array('alt' => h($orgs[$org]), 'title' => h($orgs[$org]), 'style' => 'width:24px; height:24px'));
-						else echo $this->Html->tag('span', h($orgs[$org]), array('class' => 'welcome', 'style' => 'float:left;'));
+						echo $this->OrgImg->getOrgImg(array('name' => $orgs[$org], 'id' => $org, 'size' => 24));
 						if ((1 + $k) < (count($event['orgArray']))) echo '<br />';
 					}
 				?>
