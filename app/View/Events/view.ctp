@@ -36,9 +36,11 @@
 ?>
 <div class="events view">
 	<?php
-		if (Configure::read('MISP.showorg') || $isAdmin) {
-			echo $this->element('img', array('id' => $event['Orgc']['name'], 'imgSize' => 48));
-		}
+		if (Configure::read('MISP.showorg') || $isAdmin):
+	?>
+			<div style="float:right;"><?php echo $this->OrgImg->getOrgImg(array('name' => $event['Orgc']['name'], 'id' => $event['Orgc']['id'], 'size' => 48)); ?></div>
+	<?php
+		endif;
 		$title = h($event['Event']['info']);
 		if (strlen($title) > 58) $title = substr($title, 0, 55) . '...';
 	?>

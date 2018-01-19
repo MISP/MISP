@@ -1,7 +1,7 @@
 <div class="organisations view">
 <div class="row-fluid">
 	<div class="span10"><h2><?php  echo __('Organisation ') . h($org['Organisation']['name']);?></h2></div>
-	<div class="span2"><?php echo $this->element('img', array('id' => $org['Organisation']['name'])); ?></div>
+	<div class="span2"><div style="float:right;"><?php echo $this->OrgImg->getOrgImg(array('name' => $org['Organisation']['name'], 'id' => $org['Organisation']['id'], 'size' => 48)); ?></div></div>
 </div>
 	<dl style="width:600px;">
 		<dt><?php echo __('Id'); ?></dt>
