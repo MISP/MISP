@@ -3,9 +3,10 @@
 # based on @jasonish idstools regexp
 # https://github.com/jasonish/py-idstools/blob/master/idstools/rule.py
 
-$rule = 'drop tcp $HOME_NET any -> $EXTERNAL_NET any (msg:"ET TROJAN Likely Bot Nick in IRC (USA +..)"; flow:established,to_server; flowbits:isset,is_proto_irc; content:"NICK "; reference:url,doc.emergingthreats.net/2008124; classtype:trojan-activity; sid:2008124; rev:2;)';
+#$rule = 'drop tcp $HOME_NET any -> $EXTERNAL_NET any (msg:"ET TROJAN Likely Bot Nick in IRC (USA +..)"; flow:established,to_server; flowbits:isset,is_proto_irc; content:"NICK "; reference:url,doc.emergingthreats.net/2008124; classtype:trojan-activity; sid:2008124; rev:2;)';
 #$rule = 'drop  ->  (msg:"ET TROJAN Likely Bot Nick in IRC (USA +..)"; flow:established,to_server; flowbits:isset,is_proto_irc; content:"NICK "; reference:url,doc.emergingthreats.net/2008124; classtype:trojan-activity; sid:2008124; rev:2;)';
 #$rule = 'empty';
+$rule = 'alert dns any any -> any any (msg:"Test dns_query option"; dns_query; content:"google"; nocase; sid:1;)';
 
 class SuricataRuleFormat {
     private $actions = array("alert", "log", "pass", "activate", "dynamic", "drop", "reject", "sdrop");
@@ -78,22 +79,34 @@ class SuricataRuleFormat {
     # function to validate the global syntax of a suricata rule
     private function validateRuleSyntax($rule) {
         $matches = $this->parseRule($rule);
-        print_r($this->getOptions($matches['options']));
         if (($matches == false) or ($matches['src_ip'] == false) or ($matches['dst_ip'] == false)) {
             return false;
         }
         return true;
     }
 
-    #function to validate http rule mandatory arguments
+    #function to validate http rule keywords order (sticky vs modifiers)
     private function validateRuleHTTP($rule) {
         // FIXME
         return true;
     }
 
-    # function to validate dns rule mandatory arguments
+    # function to validate dns rule keywords order
     private function validateRuleDNS($rule) {
-        // FIXME
+        $matches = $this->parseRule($rule);
+        if ($matches['protocol'] != 'dns') {
+            return true;
+        }
+        $options = $this->getOptions($matches['options']);
+        $keys = array_keys($options);
+        $dns_query = array_search('dns_query', $keys);
+        if ($dns_query == false) {
+            return true;
+        }
+        if ($keys[$dns_query + 1] != 'content') {
+            return false;
+        }
+        print_r($options);
         return true;
     }
 
