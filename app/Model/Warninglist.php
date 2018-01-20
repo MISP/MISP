@@ -304,6 +304,8 @@ class Warninglist extends AppModel{
 				$result = $this->__evalSubString($listValues, $value[$component]);
 			} else if ($listType === 'hostname') {
 				$result = $this->__evalHostname($listValues, $value[$component]);
+			} else if ($listType === 'regex') {
+				$result = $this->__evalRegex($listValues, $value[$component]);
 			}
 			if (!empty($result)) return ($component + 1);
 		}
@@ -418,6 +420,13 @@ class Warninglist extends AppModel{
 			if ($listValue == $temp) {
 				return true;
 			}
+		}
+		return false;
+	}
+
+	private function __evalRegex($listValues, $value) {
+		foreach ($listValues as $listValue) {
+			if (preg_match($listValue, $value)) return true;
 		}
 		return false;
 	}
