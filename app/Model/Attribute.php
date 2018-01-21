@@ -149,7 +149,7 @@ class Attribute extends AppModel {
 			'target-external' => array('desc' => 'External Target Organizations Affected by this Attack', 'default_category' => 'Targeting data', 'to_ids' => 0),
 			'btc' => array('desc' => 'Bitcoin Address', 'default_category' => 'Financial fraud', 'to_ids' => 1),
 			'iban' => array('desc' => 'International Bank Account Number', 'default_category' => 'Financial fraud', 'to_ids' => 1),
-			'bic' => array('desc' => 'Bank Identifier Code Number', 'default_category' => 'Financial fraud', 'to_ids' => 1),
+			'bic' => array('desc' => 'Bank Identifier Code Number also known as SWIFT-BIC, SWIFT code or ISO 9362 code', 'default_category' => 'Financial fraud', 'to_ids' => 1),
 			'bank-account-nr' => array('desc' => 'Bank account number without any routing number', 'default_category' => 'Financial fraud', 'to_ids' => 1),
 			'aba-rtn' => array('desc' => 'ABA routing transit number', 'default_category' => 'Financial fraud', 'to_ids' => 1),
 			'bin' => array('desc' => 'Bank Identification Number', 'default_category' => 'Financial fraud', 'to_ids' => 1),
