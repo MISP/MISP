@@ -430,6 +430,11 @@ class AttributesController extends AppController {
 					if (!empty($result)) {
 						foreach ($result['Object'] as $object) {
 							$this->loadModel('MispObject');
+							$object['distribution'] = $this->request->data['Attribute']['distribution'];
+							if (!empty($this->request->data['sharing_group_id'])) $object['sharing_group_id'] = $this->request->data['Attribute']['sharing_group_id'];
+							foreach ($object['Attribute'] as $ka => $attribute) {
+								$object['Attribute'][$ka]['distribution'] = 5;
+							}
 							$this->MispObject->captureObject(array('Object' => $object), $eventId, $this->Auth->user());
 						}
 						if (!empty($result['ObjectReference'])) {
