@@ -1,4 +1,5 @@
 import sys, json, uuid, os, time, datetime, re
+from copy import deepcopy
 from misp2cybox import *
 from misp2ciq import *
 from dateutil.tz import tzutc
@@ -94,7 +95,10 @@ def generateSTIXObjects(event):
     if threat_level_name:
         addJournalEntry(incident, "Event Threat Level: " + threat_level_name)
     ttps = []
+    Tags = {}
     eventTags = event["Event"].get("Tag", [])
+    if eventTags:
+        Tags['event'] = eventTags
     external_id = ExternalID(value=event["Event"]["id"], source="MISP Event")
     incident.add_external_id(external_id)
     incident_status_name = status_mapping.get(event["Event"]["analysis"], None)
@@ -105,8 +109,8 @@ def generateSTIXObjects(event):
     orgc_name = event["Event"]["Orgc"]["name"]
     setRep(incident, orgc_name)
     setTag(incident, eventTags)
-    resolveAttributes(incident, ttps, event["Event"]["Attribute"], eventTags, orgc_name)
-    resolveObjects(incident, ttps, event["Event"]["Object"], eventTags, orgc_name)
+    resolveAttributes(incident, ttps, event["Event"]["Attribute"], Tags, orgc_name)
+    resolveObjects(incident, ttps, event["Event"]["Object"], Tags, orgc_name)
     return [incident, ttps]
 
 
@@ -120,16 +124,17 @@ def setDates(incident, date, published):
     incident.time = incident_time
 
 # decide what to do with the objects, as not all of them will become indicators
-def resolveObjects(incident, ttps, objects, eventTags, org):
+def resolveObjects(incident, ttps, objects, Tags, org):
     for obj in objects:
+        tlpTags = None
         tmp_incident = Incident()
-        resolveAttributes(tmp_incident, ttps, obj["Attribute"], eventTags, org)
+        tlpTags = deepcopy(Tags)
+        resolveAttributes(tmp_incident, ttps, obj["Attribute"], Tags, org)
         indicator = Indicator(timestamp=getDateFromTimestamp(int(obj["timestamp"])))
         indicator.id_= namespace[1] + ":MispObject-" + obj["uuid"]
         setProd(indicator, org)
         if obj["comment"] != "":
             indicator.description = obj["comment"]
-        tlpTags = eventTags
         for attr in obj["Attribute"]:
             tlpTags = mergeTags(tlpTags, attr)
         setTLP(indicator, obj["distribution"], tlpTags, True)
@@ -145,16 +150,16 @@ def resolveObjects(incident, ttps, objects, eventTags, org):
         incident.related_indicators.append(relatedIndicator)
 
 # decide what to do with the attribute, as not all of them will become indicators
-def resolveAttributes(incident, ttps, attributes, eventTags, org):
+def resolveAttributes(incident, ttps, attributes, Tags, org):
     for attribute in attributes:
         if (attribute["type"] in not_implemented_attributes):
             addJournalEntry(incident, "!Not implemented attribute category/type combination caught! attribute[" + attribute["category"] + "][" + attribute["type"] + "]: " + attribute["value"])
         elif (attribute["type"] in non_indicator_attributes):
             #types that will definitely not become indicators
-            handleNonIndicatorAttribute(incident, ttps, attribute, eventTags, org)
+            handleNonIndicatorAttribute(incident, ttps, attribute, Tags, org)
         else:
             #types that may become indicators
-            handleIndicatorAttribute(incident, ttps, attribute, eventTags, org)
+            handleIndicatorAttribute(incident, ttps, attribute, Tags, org)
     for rindicator in incident.related_indicators:
         for ttp in ttps:
             ittp=TTP(idref=ttp.id_, timestamp=ttp.timestamp)
@@ -162,8 +167,8 @@ def resolveAttributes(incident, ttps, attributes, eventTags, org):
     return [incident, ttps]
 
 # Create the indicator and pass the attribute further for observable creation - this can be called from resolveattributes directly or from handleNonindicatorAttribute, for some special cases
-def handleIndicatorAttribute(incident, ttps, attribute, eventTags, org):
-    indicator = generateIndicator(attribute, eventTags, org)
+def handleIndicatorAttribute(incident, ttps, attribute, Tags, org):
+    indicator = generateIndicator(attribute, Tags, org)
     indicator.add_indicator_type("Malware Artifacts")
     indicator.add_valid_time_position(ValidTime())
     if attribute["type"] == "email-attachment":
@@ -178,10 +183,10 @@ def handleIndicatorAttribute(incident, ttps, attribute, eventTags, org):
     incident.related_indicators.append(relatedIndicator)
 
 # Handle the attributes that do not fit into an indicator
-def handleNonIndicatorAttribute(incident, ttps, attribute, eventTags, org):
+def handleNonIndicatorAttribute(incident, ttps, attribute, Tags, org):
     if attribute["type"] in ("comment", "text", "other"):
         if attribute["category"] == "Payload type":
-            generateTTP(incident, attribute, ttps, eventTags)
+            generateTTP(incident, attribute, ttps, Tags)
         elif attribute["category"] == "Attribution":
             ta = generateThreatActor(attribute)
             rta = RelatedThreatActor(ta, relationship="Attribution")
@@ -197,10 +202,10 @@ def handleNonIndicatorAttribute(incident, ttps, attribute, eventTags, org):
             aa.description = attribute["value"]
         incident.affected_assets.append(aa)
     elif attribute["type"] == "vulnerability":
-        generateTTP(incident, attribute, ttps, eventTags)
+        generateTTP(incident, attribute, ttps, Tags)
     elif attribute["type"] == "link":
         if attribute["category"] == "Payload delivery":
-            handleIndicatorAttribute(incident, ttps, attribute, eventTags, org)
+            handleIndicatorAttribute(incident, ttps, attribute, Tags, org)
         else:
             addReference(incident, attribute["value"])
     elif attribute["type"].startswith('target-'):
@@ -212,10 +217,10 @@ def handleNonIndicatorAttribute(incident, ttps, attribute, eventTags, org):
     return [incident, ttps]
 
 # TTPs are only used to describe malware names currently (attribute with category Payload Type and type text/comment/other)
-def generateTTP(incident, attribute, ttps, eventTags):
+def generateTTP(incident, attribute, ttps, Tags):
     ttp = TTP(timestamp=getDateFromTimestamp(int(attribute["timestamp"])))
     ttp.id_= namespace[1] + ":ttp-" + attribute["uuid"]
-    setTLP(ttp, attribute["distribution"], mergeTags(eventTags, attribute))
+    setTLP(ttp, attribute["distribution"], mergeTags(Tags, attribute))
     ttp.title = attribute["category"] + ": " + attribute["value"] + " (MISP Attribute #" + attribute["id"] + ")"
     if attribute["type"] == "vulnerability":
         vulnerability = Vulnerability()
@@ -252,13 +257,13 @@ def generateThreatActor(attribute):
     return ta
 
 # generate the indicator and add the relevant information
-def generateIndicator(attribute, eventTags, org):
+def generateIndicator(attribute, Tags, org):
     indicator = Indicator(timestamp=getDateFromTimestamp(int(attribute["timestamp"])))
     indicator.id_= namespace[1] + ":indicator-" + attribute["uuid"]
     setProd(indicator, org)
     if attribute["comment"] != "":
         indicator.description = attribute["comment"]
-    setTLP(indicator, attribute["distribution"], mergeTags(eventTags, attribute))
+    setTLP(indicator, attribute["distribution"], mergeTags(Tags, attribute))
     indicator.title = attribute["category"] + ": " + attribute["value"] + " (MISP Attribute #" + attribute["id"] + ")"
     indicator.description = indicator.title
     confidence_description = "Derived from MISP's IDS flag. If an attribute is marked for IDS exports, the confidence will be high, otherwise none"
@@ -308,22 +313,46 @@ def setTLP(target, distribution, tags, sort=False):
     marking_specification = MarkingSpecification()
     marking_specification.controlled_structure = "../../../descendant-or-self::node()"
     tlp = TLPMarkingStructure()
-    colour = TLP_mapping.get(distribution, None)
-    for tag in tags:
-        if tag["name"].startswith("tlp:") and tag["name"].count(':') == 1:
-            new_colour = tag["name"][4:].upper()
-            if colour and sort:
-                if TLP_order[colour] < TLP_order[new_colour]:
-                    colour = new_colour
-            else:
-                colour = new_colour
-    if colour is None:
+    attrColors = fetchColors(tags.get('attributes')) if ('attributes' in tags) else []
+    if attrColors:
+        color = setColor(attrColors)
+    else:
+        eventColors = fetchColors(tags.get('event')) if ('event' in tags) else []
+        if eventColors:
+            color = setColor(eventColors)
+        else:
+            color = TLP_mapping.get(distribution, None)
+    #for tag in tags:
+    #    if tag["name"].startswith("tlp:") and tag["name"].count(':') == 1:
+    #        new_colour = tag["name"][4:].upper()
+    #        if colour and sort:
+    #            if TLP_order[colour] < TLP_order[new_colour]:
+    #                colour = new_colour
+    #        else:
+    #            colour = new_colour
+    if color is None:
         return target
-    tlp.color = colour
+    tlp.color = color
     marking_specification.marking_structures.append(tlp)
     handling = Marking()
     handling.add_marking(marking_specification)
     target.handling = handling
+
+def fetchColors(tags):
+    colors = []
+    for tag in tags:
+        if tag["name"].startswith("tlp:") and tag["name"].count(':') == 1:
+            colors.append(tag['name'][4:].upper())
+    return colors
+
+def setColor(colors):
+    tlpColor = 0
+    for color in colors:
+        colorNum = TLP_order[color]
+        if colorNum > tlpColor:
+            tlpColor = colorNum
+            colorStr = color
+    return colorStr
 
 # add a journal entry to an incident
 def addJournalEntry(incident, entry_line):
@@ -335,10 +364,14 @@ def addJournalEntry(incident, entry_line):
         incident.history = History(hi)
 
 # merge event tags with attribute tags, when present
-def mergeTags(eventTags, attr):
-    result = list(eventTags)
+def mergeTags(Tags, attr):
+    result = deepcopy(Tags)
     if "Tag" in attr:
-        result += attr["Tag"]
+        if 'attributes' in Tags:
+            for tag in attr["Tag"]:
+                result['attributes'].append(tag)
+        else:
+            result['attributes'] = attr['Tag']
     return result
 
 # main
