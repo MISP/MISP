@@ -58,7 +58,8 @@ class AttributesController extends AppController {
 		$this->Attribute->recursive = -1;
 		$this->paginate['contain'] = array(
 			'Event' => array(
-				'fields' =>  array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info', 'Event.user_id')
+				'fields' =>  array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info', 'Event.user_id'),
+				'Orgc' => array('fields' => array('Orgc.name'))
 			),
 			'Object' => array(
 				'fields' => array('Object.id', 'Object.distribution', 'Object.sharing_group_id')
@@ -1660,7 +1661,8 @@ class AttributesController extends AppController {
 							'Event' => array(
 								'fields' => array(
 									'orgc_id', 'id', 'org_id', 'user_id', 'info'
-								)
+								),
+								'Orgc' => array('fields' => array('Orgc.name', 'Orgc.id'))
 							),
 							'Object' => array(
 								'fields' => array(
