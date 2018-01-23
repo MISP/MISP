@@ -11,7 +11,11 @@
 	App::uses('JSONConverterTool', 'Tools');
 	$converter = new JSONConverterTool();
 	foreach ($results as &$result):
-		$status = __('Failed');
+		if ($result['result'] === false) {
+			$status = __('Failed');
+		} else {
+			$status = ucfirst($result['result']);
+		}
 		$text = '';
 		$colour = 'red';
 		if ($result['result'] === true) {
