@@ -1616,6 +1616,7 @@ class AttributesController extends AppController {
 									'fields'     => array('id', 'name'),
 									'conditions' => array('lower(name) LIKE' => '%' . strtolower($saveWord) . '%'),
 								));
+								if (empty($org_names)) $conditions['AND'][] = array('Event.orgc_id' => -1);
 								foreach ($org_names as $org_name) {
 									$temp['OR'][] = array('Event.orgc_id' => $org_name['Organisation']['id']);
 								}
