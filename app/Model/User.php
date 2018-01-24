@@ -724,8 +724,10 @@ class User extends AppModel {
 			require_once 'Crypt/GPG.php';
 			try {
 				$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg'), 'debug'));	// , 'debug' => true
-				$gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
-				$body = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
+                if (Configure::read('GnuPG.sign')) {
+                    $gpg->addSignKey(Configure::read('GnuPG.email'), Configure::read('GnuPG.password'));
+                    $body = $gpg->sign($body, Crypt_GPG::SIGN_MODE_CLEAR);
+                }
 			} catch (Exception $e) {
 				$failureReason = " the message could not be signed. The following error message was returned by gpg: " . $e->getMessage();
 				$this->log($e->getMessage());

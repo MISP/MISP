@@ -44,7 +44,8 @@ $config = array(
 			'email'             => '',
 			'homedir'           => '',
 			'password'          => '',
-			'bodyonlyencrypted' => false,
+            'bodyonlyencrypted' => false,
+            'sign'              => true,
 		),
 	'SMIME'            =>
 		array(
