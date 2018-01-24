@@ -239,7 +239,9 @@ class OrganisationsController extends AppController {
 			if (empty($temp)) throw new NotFoundException('Invalid organisation.');
 			$id = $temp['Organisation']['id'];
 		} else if (!is_numeric($id)) {
-			throw new NotFoundException('Invalid organisation.');
+			$temp = $this->Organisation->find('first', array('recursive' => -1, 'fields' => array('Organisation.id'), 'conditions' => array('Organisation.name' => urldecode($id))));
+			if (empty($temp)) throw new NotFoundException('Invalid organisation.');
+			$id = $temp['Organisation']['id'];
 		}
 		$this->Organisation->id = $id;
 		if (!$this->Organisation->exists()) throw new NotFoundException('Invalid organisation');
@@ -254,6 +256,24 @@ class OrganisationsController extends AppController {
 				'fields' => $fields,
 				'recursive' => -1
 		));
+		if (!$this->Auth->user('Role')['perm_sharing_group'] && Configure::read('Security.hide_organisation_index_from_users')) {
+			$this->loadModel('Event');
+			$event = $this->Event->find('first', array(
+				'fields' => array('Event.id'),
+				'recursive' => -1,
+				'conditions' => array('Event.orgc_id' => $org['Organisation']['id'])
+			));
+			if (empty($event)) {
+				$proposal = $this->Event->ShadowAttribute->find('first', array(
+					'fields' => array('ShadowAttribute.id'),
+					'recursive' => -1,
+					'conditions' => array('ShadowAttribute.org_id' => $org['Organisation']['id'])
+				));
+				if (empty($proposal)) {
+					throw new NotFoundException('Invalid organisation');
+				}
+			}
+		}
 		$this->set('local', $org['Organisation']['local']);
 
 		if ($fullAccess) {

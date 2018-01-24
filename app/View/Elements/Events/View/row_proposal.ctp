@@ -54,14 +54,9 @@
   </td>
   <td class="short">
 <?php
-  if ($object['objectType'] != 0) {
     if (isset($object['Org']['name'])) {
       echo $this->OrgImg->getOrgImg(array('name' => $object['Org']['name'], 'id' => $object['Org']['id'], 'size' => 24));
     }
-  } else { ?>
-  &nbsp;
-<?php
-  }
 ?>
   </td>
   <td class="short">

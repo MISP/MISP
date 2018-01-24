@@ -14,19 +14,24 @@ App::uses('AppHelper', 'View/Helper');
           break;
         }
       }
-      if (!empty($imgOptions)) {
+  		if (!empty($imgOptions)) {
         foreach ($imgOptions as $field => $imgOption) {
         ?>
-          <img
-            src="/img/orgs/<?php echo $imgOption; ?>"
-            title = "<?php echo isset($imgOptions['name']) ? h($imgOptions['name']) : h($imgOptions['id']); ?>"
-            style = "<?php echo 'width:' . h($size) . 'px; height:' . h($size) . 'px'; ?>"
-          />
+					<a href="/organisations/view/<?php echo empty($options['id']) ? h($options['name']) : h($options['id']); ?>">
+	          <img
+	            src="/img/orgs/<?php echo $imgOption; ?>"
+	            title = "<?php echo isset($imgOptions['name']) ? h($imgOptions['name']) : h($imgOptions['id']); ?>"
+	            style = "<?php echo 'width:' . h($size) . 'px; height:' . h($size) . 'px'; ?>"
+	          />
+					</a>
         <?php
+					break;
         }
       } else {
       ?>
-        <span class="welcome" style="float:left"><?php echo $options['name']; ?></span>
+        <a href="/organisations/view/<?php echo empty($options['id']) ? h($options['name']) : h($options['id']); ?>">
+					<span class="welcome" style="float:left"><?php echo h($options['name']); ?></span>
+				</a>
       <?php
       }
     }
