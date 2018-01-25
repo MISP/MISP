@@ -673,6 +673,10 @@ class TagsController extends AppController {
 		}
 		$this->loadModel($objectType);
 		$connectorObject = $objectType . 'Tag';
+		$conditions = array(
+			strtolower($objectType) . '_id' => $object[$objectType]['id'],
+			'tag_id' => $existingTag['Tag']['id']
+		);
 		$existingAssociation = $this->$objectType->$connectorObject->find('first', array(
 			'conditions' => array(
 				strtolower($objectType) . '_id' => $object[$objectType]['id'],
@@ -683,10 +687,16 @@ class TagsController extends AppController {
 			throw new MethodNotAllowedException('Cannot attach tag, ' . $objectType . ' already has the tag attached.');
 		}
 		$this->$objectType->$connectorObject->create();
-		$result = $this->$objectType->$connectorObject->save(array($connectorObject => array(
-			strtolower($objectType) . '_id' => $object[$objectType]['id'],
-			'tag_id' => $existingTag['Tag']['id']
-		)));
+		$data = array(
+			$connectorObject => array(
+				strtolower($objectType) . '_id' => $object[$objectType]['id'],
+				'tag_id' => $existingTag['Tag']['id']
+			)
+		);
+		if ($objectType == 'Attribute') {
+			$data[$connectorObject]['event_id'] = $object['Event']['id'];
+		}
+		$result = $this->$objectType->$connectorObject->save($data);
 		if ($result) {
 			$message = 'Tag ' . $existingTag['Tag']['name'] . '(' . $existingTag['Tag']['id'] . ') successfully attached to ' . $objectType . '(' . $object[$objectType]['id'] . ').';
 			return $this->RestResponse->saveSuccessResponse('Tags', 'attachTagToObject', false, $this->response->type(), $message);
