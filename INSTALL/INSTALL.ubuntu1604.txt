@@ -133,7 +133,7 @@ MariaDB [(none)]> exit
 
 # Import the empty MISP database from MYSQL.sql
 sudo -u www-data sh -c "mysql -u misp -p misp < /var/www/MISP/INSTALL/MYSQL.sql"
-# enter the password you set previously
+# enter the password you've set in line 129 when prompted
 
 
 7/ Apache configuration
@@ -155,7 +155,9 @@ sudo openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
 -subj "/C=<Country>/ST=<State>/L=<Locality>/O=<Organization>/OU=<Organizational Unit Name>/CN=<QDN.here>/emailAddress=admin@<your.FQDN.here>" \
 -keyout /etc/ssl/private/misp.local.key -out /etc/ssl/private/misp.local.crt
 
-# Also remember to verify the SSLCertificateChainFile property in the config file below - usually commented for the self-generated certificate.
+# Please find a sample conf file for an SSL enabled conf file in-line below (alternatively use one of the samples provided in /var/www/MISP/INSTALL
+
+# Also remember to verify the SSLCertificateChainFile property in your config file - this is usually commented out for the self-generated certificate in the sample configurations, such as the one pasted below.
 
 # Otherwise, copy the SSLCertificateFile, SSLCertificateKeyFile, and SSLCertificateChainFile to /etc/ssl/private/. (Modify path and config to fit your environment)
 
