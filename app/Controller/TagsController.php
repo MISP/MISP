@@ -63,6 +63,8 @@ class TagsController extends AppController {
 		}
 		if ($this->_isRest()) {
 			unset($this->paginate['limit']);
+			unset($this->paginate['contain']['EventTag']);
+			unset($this->paginate['contain']['AttributeTag']);
 			$paginated = $this->Tag->find('all', $this->paginate);
 		} else {
 			$paginated = $this->paginate();
@@ -72,27 +74,20 @@ class TagsController extends AppController {
 		$sgs = $this->Tag->EventTag->Event->SharingGroup->fetchAllAuthorised($this->Auth->user());
 		foreach ($paginated as $k => $tag) {
 			$tagList[] = $tag['Tag']['id'];
-			if (empty($tag['EventTag'])) {
-				$paginated[$k]['Tag']['count'] = 0;
-			} else {
-				$paginated[$k]['Tag']['count'] = $this->Tag->EventTag->countForTag($tag['Tag']['id'], $this->Auth->user(), $sgs);
+			$paginated[$k]['Tag']['count'] = $this->Tag->EventTag->countForTag($tag['Tag']['id'], $this->Auth->user(), $sgs);
+			if (!$this->_isRest()) {
+				$paginated[$k]['event_ids'] = array();
+				$paginated[$k]['attribute_ids'] = array();
+				foreach($paginated[$k]['EventTag'] as $et) {
+					$paginated[$k]['event_ids'][] = $et['event_id'];
+				}
+				unset($paginated[$k]['EventTag']);
+				foreach($paginated[$k]['AttributeTag'] as $at) {
+					$paginated[$k]['attribute_ids'][] = $at['attribute_id'];
+				}
+				unset($paginated[$k]['AttributeTag']);
 			}
-			$paginated[$k]['event_ids'] = array();
-			$paginated[$k]['attribute_ids'] = array();
-			foreach($paginated[$k]['EventTag'] as $et) {
-				$paginated[$k]['event_ids'][] = $et['event_id'];
-			}
-			unset($paginated[$k]['EventTag']);
-			foreach($paginated[$k]['AttributeTag'] as $at) {
-				$paginated[$k]['attribute_ids'][] = $at['attribute_id'];
-			}
-
-			if (empty($tag['AttributeTag'])) {
-				$paginated[$k]['Tag']['attribute_count'] = 0;
-			} else {
-				$paginated[$k]['Tag']['attribute_count'] = $this->Tag->AttributeTag->countForTag($tag['Tag']['id'], $this->Auth->user(), $sgs);
-			}
-			unset($paginated[$k]['AttributeTag']);
+			$paginated[$k]['Tag']['attribute_count'] = $this->Tag->AttributeTag->countForTag($tag['Tag']['id'], $this->Auth->user(), $sgs);
 			if (!empty($tag['FavouriteTag'])) {
 				foreach ($tag['FavouriteTag'] as $ft) {
 					if ($ft['user_id'] == $this->Auth->user('id')) {
