@@ -58,52 +58,93 @@ class LogsController extends AppController {
 		$mayModify = false;
 		$mineOrAdmin = false;
 		$this->loadModel('Event');
-		$this->Event->recursive = -1;
-		$this->Event->read(null, $id);
-		// send unauthorised people away. Only site admins and users of the same org may see events that are "your org only". Everyone else can proceed for all other levels of distribution
-		if (!$this->_isSiteAdmin()) {
-			if (!$this->Event->checkIfAuthorised($this->Auth->user(), $id)) {
-				$this->Session->setFlash(__('You don\'t have access to view this event.'));
-				$this->redirect(array('controller' => 'events', 'action' => 'index', 'admin' => false));
-			}
-			if ($this->Event->data['Event']['org_id'] == $this->Auth->user('org_id')) {
-				$mineOrAdmin = true;
-			}
-		} else {
-			$mineOrAdmin = true;
-		}
-		$this->set('published', $this->Event->data['Event']['published']);
-		if ($mineOrAdmin && $this->userRole['perm_modify']) $mayModify = true;
-
-		$conditions['OR'][] = array('AND' => array('Log.model LIKE' => 'Event', 'Log.model_id LIKE' => $id));
-		if ($org) $conditions['AND'][] = array('Log.org LIKE' => $org, 'Log.model LIKE' => 'ShadowAttribute');
-		// if we are not the owners of the event and we aren't site admins, then we should only see the entries for attributes that are not private
-		// This means that we will not be able to see deleted attributes - since those could have been private
-		if (!$mayModify) {
-			$sgs = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user());
-
-			// get a list of the attributes that belong to the event
-			$this->loadModel('Attribute');
-			$this->Attribute->recursive = -1;
-			$attributes = $this->Attribute->find('all', array(
-					'conditions' => array('event_id' => $id),
-					'fields' => array ('id', 'event_id', 'distribution', 'sharing_group_id'),
-					'contain' => 'Event.distribution'
-			));
-			// get a list of all log entries that affect the current event or any of the attributes found above
-			$conditions['OR'][] = array('AND' => array ('Log.model LIKE' => 'Attribute'));
-			// set a condition for the attribute, otherwise an empty event will show all attributes in the log
-			$conditions['OR'][1]['AND']['OR'][0] = array('Log.model_id LIKE' => null);
-			foreach ($attributes as $a) {
-				// Hop over the attributes that are private if the user should is not of the same org and not an admin
-				if ($mineOrAdmin || ($a['Event']['distribution'] != 0 && ($a['Attribute']['distribution'] != 0 && ($a['Attribute']['distribution'] != 4 || in_array($a['Attribute']['sharing_group_id'] , $sgs))))) {
-					$conditions['OR'][1]['AND']['OR'][] = array('Log.model_id LIKE' => $a['Attribute']['id']);
+		if (!is_numeric($id) || $id < 1) $id = -1;
+		$event = $this->Event->fetchEvent($this->Auth->user(), array(
+			'eventid' => $id,
+			'includeAllTags' => 1,
+			'sgReferenceOnly' => 1,
+		));
+		$conditions = array(
+			'OR' => array(
+				array(
+					'AND' => array(
+						'Log.model' => 'Event',
+						'Log.model_id' => $id
+					)
+				)
+			)
+		);
+		if (empty($event)) throw new MethodNotFoundException('Invalid event.');
+		$event = $event[0];
+		$attribute_ids = array();
+		$object_ids = array();
+		$proposal_ids = array();
+		$event_tag_ids = array();
+		$attribute_tag_ids = array();
+		if (!empty($event['Attribute'])) {
+			foreach ($event['Attribute'] as $aa) {
+				$attribute_ids[] = $aa['id'];
+				if (!empty($aa['ShadowAttribute'])) {
+					foreach ($aa['ShadowAttribute'] as $sa) {
+						$proposal_ids[] = $sa['id'];
+					}
 				}
 			}
-		} else {
-			$conditions['OR'][] = array('AND' => array ('Log.model LIKE' => 'Attribute', 'Log.title LIKE' => '%Event (' . $id . ')%'));
+			unset($event['Attribute']);
 		}
-		$conditions['OR'][] = array('AND' => array ('Log.model LIKE' => 'ShadowAttribute', 'Log.title LIKE' => '%Event (' . $id . ')%'));
+		if (!empty($event['Object'])) {
+			foreach ($event['Object'] as $ob) {
+				foreach ($ob['Attribute'] as $aa) {
+					$attribute_ids[] = $aa['id'];
+					if (!empty($aa['ShadowAttribute'])) {
+						foreach ($aa['ShadowAttribute'] as $sa) {
+							$proposal_ids[] = $sa['id'];
+						}
+					}
+				}
+				$object_ids[] = $ob['id'];
+			}
+			unset($event['Object']);
+		}
+		$conditions = array();
+		$conditions['OR'][] = array(
+			'AND' => array(
+				'model' => 'Event',
+				'model_id' => $event['Event']['id']
+			)
+		);
+		if (!empty($attribute_ids)) {
+			$conditions['OR'][] = array(
+				'AND' => array(
+					'model' => 'Attribute',
+					'model_id' => $attribute_ids
+				)
+			);
+		}
+		if (!empty($proposal_ids)) {
+			$conditions['OR'][] = array(
+				'AND' => array(
+					'model' => 'ShadowAttribute',
+					'model_id' => $proposal_ids
+				)
+			);
+		}
+		if (!empty($object_ids)) {
+			$conditions['OR'][] = array(
+				'AND' => array(
+					'model' => 'MispObject',
+					'model_id' => $object_ids
+				)
+			);
+		}
+		// send unauthorised people away. Only site admins and users of the same org may see events that are "your org only". Everyone else can proceed for all other levels of distribution
+		$mineOrAdmin = true;
+		if (!$this->_isSiteAdmin() && $event['Event']['org_id'] != $this->Auth->user('org_id')) {
+			$mineOrAdmin = false;
+		}
+		$this->set('published', $event['Event']['published']);
+		if ($mineOrAdmin && $this->userRole['perm_modify']) $mayModify = true;
+
 		$fieldList = array('title', 'created', 'model', 'model_id', 'action', 'change', 'org', 'email');
 		$this->paginate = array(
 				'limit' => 60,
@@ -129,7 +170,7 @@ class LogsController extends AppController {
 			$list = array('Log' => $list);
 			return $this->RestResponse->viewData($list, $this->response->type());
 		} else {
-			$this->set('event', $this->Event->data);
+			$this->set('event', $event);
 			$this->set('list', $list);
 			$this->set('eventId', $id);
 			$this->set('mayModify', $mayModify);
