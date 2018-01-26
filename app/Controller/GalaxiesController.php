@@ -48,8 +48,7 @@ class GalaxiesController extends AppController {
 			if (empty($galaxy)) {
 				throw new NotFoundException('Galaxy not found.');
 			}
-			$this->set('Galaxy', $galaxy);
-			$this->set('_serialize', array('Galaxy'));
+			return $this->RestResponse->viewData($galaxy, $this->response->type());
 		} else {
 			$galaxy = $this->Galaxy->find('first', array(
 					'recursive' => -1,

@@ -38,6 +38,15 @@ class GalaxyCluster extends AppModel{
 		return true;
 	}
 
+	public function afterFind($results, $primary = false) {
+		foreach ($results as $k => $result) {
+			if (isset($results[$k]['GalaxyCluster']['authors'])) {
+				$results[$k]['GalaxyCluster']['authors'] = json_decode($results[$k]['GalaxyCluster']['authors'], true);
+			}
+		}
+		return $results;
+	}
+
 	public function beforeDelete($cascade = true) {
 		$this->GalaxyElement->deleteAll(array('GalaxyElement.galaxy_cluster_id' => $this->id));
 	}
