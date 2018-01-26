@@ -1254,6 +1254,14 @@ class Server extends AppModel {
 						'test' => 'testBool',
 						'type' => 'boolean'
 					),
+					'ZeroMQ_tag_notifications_enable' => array(
+						'level' => 2,
+						'description' => 'Enables or disables the publishing of any tag creations/edits/deletions as well as tags being attached to / detached from various MISP elements.',
+						'value' => false,
+						'errorMessage' => '',
+						'test' => 'testBool',
+						'type' => 'boolean'
+					),
 					'ZeroMQ_sighting_notifications_enable' => array(
 						'level' => 2,
 						'description' => 'Enables or disables the publishing of new sightings to the ZMQ pubsub feed.',

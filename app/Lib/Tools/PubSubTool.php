@@ -119,6 +119,11 @@ class PubSubTool {
 		return $this->__pushToRedis(':data:misp_json_attribute', json_encode($attribute, JSON_PRETTY_PRINT));
 	}
 
+	public function tag_save($tag, $action = false) {
+		if (!empty($action)) $tag['action'] = $action;
+		return $this->__pushToRedis(':data:misp_json_tag', json_encode($tag, JSON_PRETTY_PRINT));
+	}
+
 	public function sighting_save($sighting, $action = false) {
 		if (!empty($action)) $sighting['action'] = $action;
 		return $this->__pushToRedis(':data:misp_json_sighting', json_encode($sighting, JSON_PRETTY_PRINT));
