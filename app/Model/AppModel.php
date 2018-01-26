@@ -40,8 +40,9 @@ class AppModel extends Model {
 		$this->name = get_class($this);
 	}
 
+	// deprecated, use $db_changes
 	// major -> minor -> hotfix -> requires_logout
-	public $db_changes = array(
+	public $old_db_changes = array(
 		2 => array(
 			4 => array(
 				18 => false, 19 => false, 20 => false, 25 => false, 27 => false,
@@ -56,6 +57,9 @@ class AppModel extends Model {
 				86 => false, 87 => false
 			)
 		)
+	);
+
+	public $db_changes = array(
 	);
 
 	function afterSave($created, $options = array()) {
@@ -862,6 +866,7 @@ class AppModel extends Model {
 			case '2.4.87':
 				$sqlArray[] = "ALTER TABLE `feeds` ADD `headers` TEXT COLLATE utf8_bin;";
 				break;
+
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
 				$sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
@@ -1054,7 +1059,7 @@ class AppModel extends Model {
 			$this->__runCleanDB();
 			$db_version = $this->AdminSetting->find('all', array('conditions' => array('setting' => 'db_version')));
 			if (count($db_version) > 1) {
-				// we ran into a bug where we have more than one db_version entry. This bug happened in some rare circumstances around 2.4.50-2.4.57
+				// we rgan into a bug where we have more than one db_version entry. This bug happened in some rare circumstances around 2.4.50-2.4.57
 				foreach ($db_version as $k => $v) {
 					if ($k > 0) {
 						$this->AdminSetting->delete($v['AdminSetting']['id']);
@@ -1106,19 +1111,27 @@ class AppModel extends Model {
 	}
 
 	private function __findUpgrades($db_version) {
-		$version = explode('.', $db_version);
 		$updates = array();
-		foreach ($this->db_changes as $major => $rest) {
-			if ($major < $version[0]) continue;
-			else if ($major == $version[0]) {
-				foreach ($rest as $minor => $hotfixes) {
-					if ($minor < $version[1]) continue;
-					else if ($minor == $version[1]) {
-						foreach ($hotfixes as $hotfix => $requiresLogout) if ($hotfix > $version[2]) $updates[$major . '.' . $minor . '.' . $hotfix] = $requiresLogout;
-					} else {
-						foreach ($hotfixes as $hotfix => $requiresLogout) $updates[$major . '.' . $minor . '.' . $hotfix] = $requiresLogout;
+		if (strpos($db_version, '.')) {
+			$version = explode('.', $db_version);
+			foreach ($this->old_db_changes as $major => $rest) {
+				if ($major < $version[0]) continue;
+				else if ($major == $version[0]) {
+					foreach ($rest as $minor => $hotfixes) {
+						if ($minor < $version[1]) continue;
+						else if ($minor == $version[1]) {
+							foreach ($hotfixes as $hotfix => $requiresLogout) if ($hotfix > $version[2]) $updates[$major . '.' . $minor . '.' . $hotfix] = $requiresLogout;
+						} else {
+							foreach ($hotfixes as $hotfix => $requiresLogout) $updates[$major . '.' . $minor . '.' . $hotfix] = $requiresLogout;
+						}
 					}
 				}
+			}
+			$db_version = 0;
+		}
+		foreach ($this->db_changes as $db_change => $requiresLogout) {
+			if ($db_version < $db_change) {
+				$updates[$db_change] = $requiresLogout;
 			}
 		}
 		return $updates;
@@ -1217,5 +1230,37 @@ class AppModel extends Model {
 		$version = explode('.', $versionString);
 		$minVersion = explode('.', $minVersion);
 		return ($version[0] >= $minVersion[0] && $version[1] >= $minVersion[1] && $version[2] >= $minVersion[2]);
+	}
+
+	// generate a generic subquery - options needs to include conditions
+	public function subQueryGenerator($model, $options, $lookupKey) {
+		$db = $model->getDataSource();
+		$defaults = array(
+			'fields' => array('*'),
+			'table' => $model->alias,
+			'alias' => $model->alias,
+			'limit' => null,
+			'offset' => null,
+			'joins' => array(),
+			'conditions' => array(),
+			'group' => false
+		);
+		$params = array();
+		foreach (array_keys($defaults) as $key) {
+			if (isset($conditions[$key])) {
+				$params[$key] = $conditions[$key];
+			} else {
+				$params[$key] = $conditions[$key];
+			}
+		}
+		$subQuery = $db->buildStatement(
+			$params,
+			$model
+		);
+		$subQuery = $lookupKey . ' IN (' . $subQuery . ') ';
+		$conditions = array(
+			$db->expression($subQuery)->value
+		);
+		return $conditions;
 	}
 }
