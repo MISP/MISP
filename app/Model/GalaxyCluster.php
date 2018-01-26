@@ -144,7 +144,6 @@ class GalaxyCluster extends AppModel{
 			'contain' => array('Galaxy', 'GalaxyElement')
 		));
 		if (!empty($cluster)) {
-			$cluster['GalaxyCluster']['authors'] = json_decode($cluster['GalaxyCluster']['authors'], true);
 			if (isset($cluster['Galaxy'])) {
 				$cluster['GalaxyCluster']['Galaxy'] = $cluster['Galaxy'];
 				unset($cluster['Galaxy']);
