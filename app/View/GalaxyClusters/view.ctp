@@ -21,7 +21,7 @@
 				<dt>Authors</dt>
 				<dd>
 					<?php
-						$authors = json_decode($cluster['GalaxyCluster']['authors']);
+						$authors = $cluster['GalaxyCluster']['authors'];
 						if (!empty($authors)) {
 							echo implode(', ', $authors);
 						} else {
