@@ -120,45 +120,11 @@ class EventTag extends AppModel {
 		}
 		return $tags;
 	}
-
-	public function countForTag($tag_id, $user, $sgids = array()) {
-		$db = $this->getDataSource();
-		$subQuery = $db->buildStatement(
-			array(
-				'fields' => array('EventTag.event_id'),
-				'table' => 'event_tags',
-				'alias' => 'EventTag',
-				'limit' => null,
-				'offset' => null,
-				'joins' => array(),
-				'conditions' => array(
-					'EventTag.tag_id' => $tag_id
-				),
-			),
-			$this
-		);
-		$subQuery = 'Event.id IN (' . $subQuery . ') ';
-		$conditions = array(
-			$db->expression($subQuery)->value
-		);
-		if (!$user['Role']['perm_site_admin']) {
-			$conditions = array_merge(
-				$conditions,
-				array('OR' => array(
-					array('Event.distribution' => array(1, 2, 3)),
-					array('Event.orgc_id' => $user['org_id'])
-				))
-			);
-			if (!empty($sgids)) {
-				$conditions['OR'][] = array('AND' => array(
-					'Event.distribution' => 4,
-					'Event.sharing_group_id' => $sgids
-				));
-			}
-		}
-		return $this->Event->find('count', array(
-			'fields' => array('Event.id', 'Event.distribution', 'Event.orgc_id', 'Event.sharing_group_id'),
-			'conditions' => $conditions
+	
+	public function countForTag($tag_id, $user) {
+		return $this->find('count', array(
+			'recursive' => -1,
+			'conditions' => array('EventTag.tag_id' => $tag_id)
 		));
 	}
 }
