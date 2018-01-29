@@ -600,7 +600,7 @@ function attributeListAnyAttributeCheckBoxesChecked() {
 	else $('.mass-select').addClass('hidden');
 }
 
-function eventListCheckboxesChecked() {
+function listCheckboxesChecked() {
 	if ($('.select:checked').length > 0) $('.mass-select').removeClass('hidden');
 	else $('.mass-select').addClass('hidden');
 }
@@ -626,6 +626,22 @@ function multiSelectDeleteEvents() {
 		}
 	});
 	$.get("/events/delete/" + JSON.stringify(selected), function(data) {
+		$("#confirmation_box").html(data);
+		openPopup("#confirmation_box");
+	});
+}
+
+function multiSelectToggleFeeds(on) {
+	var selected = [];
+	$(".select").each(function() {
+		if ($(this).is(":checked")) {
+			var temp = $(this).data("id");
+			if (temp != null) {
+				selected.push(temp);
+			}
+		}
+	});
+	$.get("/feeds/toggleSelected/" + on + "/" + JSON.stringify(selected), function(data) {
 		$("#confirmation_box").html(data);
 		openPopup("#confirmation_box");
 	});
@@ -2754,9 +2770,9 @@ function getFormInfoContent(property, field) {
 
 function formCategoryChanged(id) {
 	// fill in the types
-	var options = $('#AttributeType').prop('options');
-	$('option', $('#AttributeType')).remove();
-	$.each(category_type_mapping[$('#AttributeCategory').val()], function(val, text) {
+	var options = $('#' + id +'Type').prop('options');
+	$('option', $('#' + id +'Type')).remove();
+	$.each(category_type_mapping[$('#' + id +'Category').val()], function(val, text) {
 		options[options.length] = new Option(text, val);
 	});
 	// enable the form element
@@ -2798,8 +2814,10 @@ function feedFormUpdate() {
 	}
 	if ($('#FeedInputSource').val() == 'local') {
 		$('#DeleteLocalFileDiv').show();
+		$('#HeadersDiv').hide();
 	} else {
 		$('#DeleteLocalFileDiv').hide();
+		$('#HeadersDiv').show();
 	}
 }
 
@@ -3148,6 +3166,26 @@ function objectReferenceCheckForCustomRelationship() {
 	} else {
 		$('#ObjectReferenceRelationshipType').parent().addClass('hidden');
 	}
+}
+
+function add_basic_auth() {
+	var headers = $('#FeedHeaders').val().split("\n");
+	$('#FeedHeaders').val("");
+	headers.forEach(function(header) {
+		header = header.trim();
+		if (header != "") {
+			header = header.split(":");
+			var key = header.shift();
+			var value = header.join(":");
+			if (key != 'Authorization') {
+				$('#FeedHeaders').val($('#FeedHeaders').val() + key.trim() + ":" + value.trim() + "\n");
+			}
+		}
+	});
+	var basicAuth = $('#BasicAuthUsername').val().trim() + ':' + $('#BasicAuthPassword').val().trim();
+	$('#FeedHeaders').val($('#FeedHeaders').val() + "Authorization: Basic " + btoa(basicAuth) + "\n");
+	$('#basicAuthFormEnable').show();
+	$('#basicAuthForm').hide();
 }
 
 function changeObjectReferenceSelectOption() {

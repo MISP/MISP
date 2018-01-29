@@ -2,7 +2,7 @@
 	<?php if ($writeableFiles[APP . 'Config/config.php'] != 0): ?>
 	<div class="bold" style="background-color:red;width:100%;color:white;"><span style="padding-left:10px;"><?php echo __('Warning: app/Config/config.php is not writeable. This means that any setting changes made here will NOT be saved.');?></span></div>
 	<?php endif; ?>
-	<h2><?php echo __('Server settings');?></h2>
+	<h2><?php echo __('Server Settings & Maintenance');?></h2>
 	<?php
 		echo $this->element('healthElements/tabs');
 		if (in_array($tab, array('MISP', 'Security', 'Encryption', 'Proxy', 'Plugin'))) {

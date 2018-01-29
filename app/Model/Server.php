@@ -1002,6 +1002,15 @@ class Server extends AppModel {
 						'test' => 'testBool',
 						'type' => 'boolean',
 						'null' => true
+					),
+					'hide_organisation_index_from_users' => array(
+						'level' => 1,
+						'description' => 'Enabling this setting will block the organisation index from being visible to anyone besides site administrators on the current instance. Keep in mind that users can still see organisations that produce data via events, proposals, event history log entries, etc.',
+						'value' => false,
+						'errorMessage' => '',
+						'test' => 'testBool',
+						'type' => 'boolean',
+						'null' => true
 					)
 			),
 			'SecureAuth' => array(
@@ -1268,14 +1277,6 @@ class Server extends AppModel {
 						'errorMessage' => '',
 						'test' => 'testBool',
 						'type' => 'boolean'
-					),
-					'Sightings_enable' => array(
-						'level' => 1,
-						'description' => 'Enables or disables the sighting functionality. When enabled, users can use the UI or the appropriate APIs to submit sightings data about indicators.',
-						'value' => true,
-						'errorMessage' => '',
-						'test' => 'testBool',
-						'type' => 'boolean',
 					),
 					'Sightings_policy' => array(
 						'level' => 1,
@@ -2143,6 +2144,15 @@ class Server extends AppModel {
 		$this->Module = ClassRegistry::init('Module');
 		$serverSettings = $this->serverSettings;
 		$moduleTypes = array('Enrichment', 'Import', 'Export', 'Cortex');
+		$orgs = $this->Organisation->find('list', array(
+			'conditions' => array(
+				'Organisation.local' => 1
+			),
+			'fields' => array(
+				'Organisation.id', 'Organisation.name'
+			)
+		));
+		$orgs = array_merge(array('Unrestricted'), $orgs);
 		foreach ($moduleTypes as $moduleType) {
 			if (Configure::read('Plugin.' . $moduleType . '_services_enable')) {
 				$results = $this->Module->getModuleSettings($moduleType);
@@ -2154,6 +2164,12 @@ class Server extends AppModel {
 							$setting['type'] = 'boolean';
 							$setting['description'] = 'Enable or disable the ' . $module . ' module.';
 							$setting['value'] = false;
+						} else if ($result['type'] == 'orgs') {
+							$setting['description'] = 'Restrict the ' . $module . ' module to the given organisation.';
+							$setting['value'] = 0;
+							$setting['test'] = 'testLocalOrg';
+							$setting['type'] = 'numeric';
+							$setting['optionsSource'] = 'LocalOrgs';
 						} else {
 							$setting['test'] = 'testForEmpty';
 							$setting['type'] = 'string';
@@ -2182,6 +2198,12 @@ class Server extends AppModel {
 						$setting['type'] = 'boolean';
 						$setting['description'] = 'Enable or disable the ' . $module . ' module.';
 						$setting['value'] = false;
+					} else if ($result['type'] == 'orgs') {
+						$setting['description'] = 'Restrict the ' . $module . ' module to the given organisation.';
+						$setting['value'] = 0;
+						$setting['test'] = 'testLocalOrg';
+						$setting['type'] = 'numeric';
+						$setting['optionsSource'] = 'LocalOrgs';
 					} else {
 						$setting['test'] = 'testForEmpty';
 						$setting['type'] = 'string';

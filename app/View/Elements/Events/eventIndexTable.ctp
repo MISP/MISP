@@ -40,7 +40,7 @@
 		<?php if (Configure::read('MISP.showCorrelationsOnIndex')):?>
 			<th title="<?php echo __('Correlation Count');?>"><?php echo __('#Corr.');?></th>
 		<?php endif; ?>
-		<?php if (Configure::read('MISP.showSightingsCountOnIndex') && Configure::read('Plugin.Sightings_enable') !== false):?>
+		<?php if (Configure::read('MISP.showSightingsCountOnIndex')):?>
 			<th title="<?php echo __('Sigthing Count');?>"><?php echo __('#Sightings');?></th>
 		<?php endif; ?>
 		<?php if (Configure::read('MISP.showProposalsOnIndex')):?>
@@ -90,10 +90,7 @@
 		<?php if (Configure::read('MISP.showorg') || $isAdmin): ?>
 			<td class="short" ondblclick="document.location.href ='<?php echo $baseurl . "/events/index/searchorg:" . $event['Orgc']['id'];?>'">
 				<?php
-					$imgRelativePath = 'orgs' . DS . h($event['Orgc']['name']) . '.png';
-					$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
-					if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($event['Orgc']['name']) . '.png', array('alt' => h($event['Orgc']['name']), 'title' => h($event['Orgc']['name']), 'style' => 'width:24px; height:24px'));
-					else echo $this->Html->tag('span', h($event['Orgc']['name']), array('class' => 'welcome', 'style' => 'float:left;'));
+					echo $this->OrgImg->getOrgImg(array('name' => $event['Orgc']['name'], 'id' => $event['Orgc']['id'], 'size' => 24));
 				?>
 				&nbsp;
 			</td>
@@ -101,10 +98,7 @@
 		<?php if ($isSiteAdmin || (Configure::read('MISP.showorgalternate') && Configure::read('MISP.showorg'))): ?>
 			<td class="short" ondblclick="document.location.href ='<?php echo $baseurl . "/events/index/searchorg:" . $event['Org']['id'];?>'">
 				<?php
-					$imgRelativePath = 'orgs' . DS . h($event['Org']['name']) . '.png';
-					$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
-					if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($event['Org']['name']) . '.png', array('alt' => h($event['Org']['name']), 'title' => h($event['Org']['name']), 'style' => 'width:24px; height:24px'));
-					else echo $this->Html->tag('span', h($event['Org']['name']), array('class' => 'welcome', 'style' => 'float:left;'));
+					echo $this->OrgImg->getOrgImg(array('name' => $event['Org']['name'], 'id' => $event['Org']['id'], 'size' => 24));
 				?>
 				&nbsp;
 			</td>
@@ -174,8 +168,8 @@
 				<?php echo !empty($event['Event']['correlation_count']) ? h($event['Event']['correlation_count']) : ''; ?>&nbsp;
 			</td>
 		<?php endif; ?>
-		<?php if (Configure::read('MISP.showSightingsCountOnIndex') && Configure::read('Plugin.Sightings_enable') !== false):?>
-			<td class = "bold" style="width:30px;" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'" title="<?php echo (!empty($event['Event']['sightings_count']) ? h($event['Event']['sightings_count']) : '0') . __(' sighting(s)');?>">
+		<?php if (Configure::read('MISP.showSightingsCountOnIndex')):?>
+			<td class = "bold" style="width:30px;" ondblclick="location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'" title="<?php echo (!empty($event['Event']['sightings_count']) ? h($event['Event']['sightings_count']) : '0') . ' sighting(s)';?>">
 				<?php echo !empty($event['Event']['sightings_count']) ? h($event['Event']['sightings_count']) : ''; ?>&nbsp;
 			</td>
 		<?php endif; ?>
@@ -240,7 +234,7 @@
 <script type="text/javascript">
 	$(document).ready(function() {
 		$('.select').on('change', function() {
-			eventListCheckboxesChecked();
+			listCheckboxesChecked();
 		});
 	});
 </script>

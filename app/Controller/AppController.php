@@ -44,9 +44,9 @@ class AppController extends Controller {
 
 	public $debugMode = false;
 
-	public $helpers = array('Utility');
+	public $helpers = array('Utility', 'OrgImg');
 
-	private $__queryVersion = '27';
+	private $__queryVersion = '29';
 	public $pyMispVersion = '2.4.85';
 	public $phpmin = '5.6.5';
 	public $phprec = '7.0.16';
@@ -147,6 +147,9 @@ class AppController extends Controller {
 			$baseurl = rtrim($baseurl, '/');
 			$this->loadModel('Server');
 			$this->Server->serverSettingsSaveValue('MISP.baseurl', $baseurl);
+		}
+		if (trim($baseurl) == 'http://') {
+			$this->Server->serverSettingsSaveValue('MISP.baseurl', '');
 		}
 		$this->set('baseurl', h($baseurl));
 
@@ -351,6 +354,8 @@ class AppController extends Controller {
 		} else {
 			$this->set('me', false);
 		}
+		$this->set('br', '<br />');
+		$this->set('bold', array('<span class="bold">', '</span>'));
 		if ($this->_isSiteAdmin()) {
 			if (Configure::read('Session.defaults') == 'database') {
 				$db = ConnectionManager::getDataSource('default');

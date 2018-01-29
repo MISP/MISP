@@ -5,6 +5,7 @@
 	<fieldset>
 		<legend><?php echo __('Add Attribute'); ?></legend>
 		<div id="formWarning" class="message ajaxMessage"></div>
+		<div id="compositeWarning" class="message <?php echo !empty($ajax) ? 'ajaxMessage' : '';?>" style="display:none;">Did you consider adding an object instead of a composite attribute?</div>
 		<div class="add_attribute_fields">
 			<?php
 			echo $this->Form->hidden('event_id');
@@ -140,6 +141,8 @@ var category_type_mapping = new Array();
 	}
 ?>
 
+var composite_types = <?php echo json_encode($compositeTypes); ?>;
+
 $(document).ready(function() {
 	initPopoverContent('Attribute');
 	$('#AttributeDistribution').change(function() {
@@ -164,6 +167,11 @@ $(document).ready(function() {
 		var start = $("#AttributeType").val();
 		initPopoverContent('Attribute');
 		$("#AttributeType").val(start);
+		if ($.inArray(start, composite_types) > -1) {
+			$('#compositeWarning').show();
+		} else {
+			$('#compositeWarning').hide();
+		}
 	});
 	<?php if ($ajax): ?>
 		$('#cancel_attribute_add').click(function() {

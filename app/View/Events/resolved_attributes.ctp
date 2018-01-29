@@ -114,7 +114,7 @@
 
 					}
 				?>
-				<select id="<?php echo 'Attribute' . $k . 'Category'; ?>" style='padding:0px;height:20px;margin-bottom:0px;'>
+				<select id="<?php echo 'Attribute' . $k . 'Category'; ?>" style='padding:0px;height:20px;margin-bottom:0px;' class="categoryToggle">
 					<?php
 						foreach ($typeCategoryMapping[$item['default_type']] as $category) {
 							if (isset($item['categories']) && !in_array($category, $item['categories'])) {
@@ -231,8 +231,34 @@
 </div>
 	<script>
 		var options = <?php echo json_encode($optionsRearranged);?>;
+		var typeCategoryMapping = <?php echo json_encode($typeCategoryMapping); ?>;
 		$(document).ready(function() {
 			popoverStartup();
+			$('.typeToggle').on('change', function() {
+				var currentId = $(this).attr('id');
+				var selected = $(this).val();
+				currentId = currentId.replace('Type', 'Category');
+				var currentOptions = typeCategoryMapping[selected];
+				/*
+				// Coming soon - restrict further if a list of categories is passed by the modules / freetext import tool
+				if ($('#' + currentId)).data('category-restrictions') {
+					var category_restrictions = $('#' + currentId)).data('category-restrictions');
+					currentOptions.forEach(function(category) {
+						var found = False;
+						category_restrictions.forEach(function(restricted_category) {
+
+						});
+					});
+					currentOptions.forEach() {
+
+					}
+				}
+				*/
+				$('#' + currentId).empty();
+				for (var category in currentOptions) {
+					$('#' + currentId).append($("<option></option>").attr("value", category).text(category));
+				}
+			});
 		<?php
 			if (!empty($optionsRearranged)):
 		?>

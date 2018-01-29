@@ -18,6 +18,9 @@ class OrganisationsController extends AppController {
 	);
 
 	public function index() {
+		if (!$this->Auth->user('Role')['perm_sharing_group'] && Configure::read('Security.hide_organisation_index_from_users')) {
+			throw new MethodNotAllowedException('This feature is disabled on this instance for normal users.');
+		}
 		$conditions = array();
 		// We can either index all of the organisations existing on this instance (default)
 		// or we can pass the 'external' keyword in the URL to look at the added external organisations
@@ -100,7 +103,7 @@ class OrganisationsController extends AppController {
 			}
 			if ($this->Organisation->save($this->request->data)) {
 				if (isset($this->request->data['Organisation']['logo']['size']) && $this->request->data['Organisation']['logo']['size'] > 0 && $this->request->data['Organisation']['logo']['error'] == 0) {
-					$filename = basename($this->request->data['Organisation']['name'] . '.png');
+					$filename = basename($this->request->data['Organisation']['id'] . '.png');
 					if (preg_match("/^[0-9a-z\-\_\.]*\.(png)$/i", $filename)) {
 						if (!empty($this->request->data['Organisation']['logo']['tmp_name']) && is_uploaded_file($this->request->data['Organisation']['logo']['tmp_name'])) {
 							$result = move_uploaded_file($this->request->data['Organisation']['logo']['tmp_name'], APP . 'webroot/img/orgs/' . $filename);
@@ -158,7 +161,7 @@ class OrganisationsController extends AppController {
 			$this->request->data['Organisation']['id'] = $id;
 			if ($this->Organisation->save($this->request->data)) {
 				if (isset($this->request->data['Organisation']['logo']['size']) && $this->request->data['Organisation']['logo']['size'] > 0 && $this->request->data['Organisation']['logo']['error'] == 0) {
-					$filename = basename($this->request->data['Organisation']['name'] . '.png');
+					$filename = basename($this->request->data['Organisation']['id'] . '.png');
 					if (preg_match("/^[0-9a-z\-\_\.]*\.(png)$/i", $filename)) {
 						if (!empty($this->request->data['Organisation']['logo']['tmp_name']) && is_uploaded_file($this->request->data['Organisation']['logo']['tmp_name'])) {
 							$result = move_uploaded_file($this->request->data['Organisation']['logo']['tmp_name'], APP . 'webroot/img/orgs/' . $filename);
@@ -190,6 +193,9 @@ class OrganisationsController extends AppController {
 		$this->Organisation->read(null, $id);
 		$this->set('orgId', $id);
 		$this->request->data = $this->Organisation->data;
+		if (is_array($this->request->data['Organisation']['restricted_to_domain'])) {
+			$this->request->data['Organisation']['restricted_to_domain'] = implode("\n", $this->request->data['Organisation']['restricted_to_domain']);
+		}
 		$this->set('id', $id);
 	}
 

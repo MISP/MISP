@@ -20,10 +20,7 @@
 				<td class="short"><a href="<?php echo $baseurl;?>/events/view/<?php echo h($event['Event']['id']); ?>"><?php echo h($event['Event']['id']); ?></a></td>
 				<td class="short">
 					<?php
-						$imgRelativePath = 'orgs' . DS . h($event['Event']['Orgc']['name']) . '.png';
-						$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
-						if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($event['Event']['Orgc']['name']) . '.png', array('alt' => h($event['Event']['Orgc']['name']), 'title' => h($event['Event']['Orgc']['name']), 'style' => 'width:24px; height:24px'));
-						else echo $this->Html->tag('span', h($event['Event']['Orgc']['name']), array('class' => 'welcome', 'style' => 'float:left;'));
+						echo $this->OrgImg->getOrgImg(array('name' => $event['Event']['Orgc']['name'], 'id' => $event['Event']['Orgc']['id'], 'size' => 24));
 					?>
 				</td>
 				<td>

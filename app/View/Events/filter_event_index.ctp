@@ -49,6 +49,13 @@
 						'style' => 'display:none;width:438px;',
 						'div' => false
 				));
+				echo $this->Form->input('searchsharinggroup', array(
+						'options' => $sharingGroups,
+						'class' => 'input',
+						'label' => false,
+						'style' => 'display:none;width:438px;',
+						'div' => false
+				));
 				if ($showorg) {
 					echo $this->Form->input('searchorg', array(
 							'options' => $orgs,
@@ -128,7 +135,7 @@
 						<th style="width:10px;border:1px solid #cccccc;border-left:0px;text-align: left;"></th>
 					</tr>
 					<?php
-						$fields = array('published', 'org', 'tag', 'date', 'eventinfo', 'eventid', 'threatlevel', 'analysis', 'distribution', 'attribute', 'hasproposal');
+						$fields = array('published', 'org', 'tag', 'date', 'eventinfo', 'eventid', 'threatlevel', 'analysis', 'distribution', 'sharinggroup', 'attribute', 'hasproposal');
 						if ($isSiteAdmin) $fields[] = 'email';
 						foreach ($fields as $k => $field):
 					?>
@@ -203,9 +210,9 @@ var filtering = <?php echo $filtering; ?>;
 
 var operators = ["<?php echo __('OR');?>", "<?php echo __('NOT');?>"];
 
-var allFields = ["published", "tag", "date", "eventinfo", "eventid", "threatlevel", "distribution", "analysis", "attribute", "hasproposal"];
+var allFields = ["published", "tag", "date", "eventinfo", "eventid", "threatlevel", "distribution", "sharinggroup", "analysis", "attribute", "hasproposal"];
 
-var simpleFilters = ["tag", "eventinfo", "eventid", "threatlevel", "distribution", "analysis", "attribute"];
+var simpleFilters = ["tag", "eventinfo", "eventid", "threatlevel", "distribution", "sharinggroup", "analysis", "attribute"];
 
 var differentFilters = ["published", "date", "hasproposal"];
 

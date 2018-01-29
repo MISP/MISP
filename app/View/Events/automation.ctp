@@ -7,7 +7,7 @@ To to make this functionality available for automated tools an authentication ke
 <p><?php echo __('Your current key is: <code>%s</code>.
 You can %s this key.', $me['authkey'], $this->Html->link(__('reset'), array('controller' => 'users', 'action' => 'resetauthkey', 'me')));?>
 </p>
-<p style="color:red;"><?php echo __('>Since version 2.2 the usage of the authentication key in the URL is deprecated. Instead, pass the auth key in an Authorization header in the request. The legacy option of having the auth key in the URL is temporarily still supported but not recommended.');?></p>
+<p style="color:red;"><?php echo __('Since version 2.2 the usage of the authentication key in the URL is deprecated. Instead, pass the auth key in an Authorization header in the request. The legacy option of having the auth key in the URL is temporarily still supported but not recommended.');?></p>
 <p><?php echo __('Please use the use the following header');?>:<br />
 <code><?php echo __('Authorization');?>: <?php echo $me['authkey']; ?></code></p>
 <h3><?php echo __('XML Export');?></h3>
@@ -322,7 +322,7 @@ Use semicolons instead (the search will automatically search for colons instead)
 <b>metadata</b>: <?php echo __('Only the metadata (event, tags, relations) is returned, attributes and proposals are omitted.');?><br />
 <b>uuid</b>: <?php echo __('Restrict the results by uuid.');?><br />
 <b>publish_timestamp</b>: <?php echo __('Restrict the results by the last publish timestamp (newer than).');?><br />
-<b>timestamp</b>: <?php echo __('Restrict the results by the timestamp (last edit). Any event with a timestamp newer than the given timestamp will be returned.');?><br />
+<b>timestamp</b>: <?php echo __('Restrict the results by the timestamp (last edit). Any event with a timestamp newer than the given timestamp will be returned. In case you are dealing with /attributes as scope, the attribute\'s timestamp will be used for the lookup.');?><br />
 <b>published</b>: <?php echo __('Set whether published or unpublished events should be returned. Do not set the parameter if you want both.');?><br />
 <b>enforceWarninglist</b>: <?php echo __('Remove any attributes from the result that would cause a hit on a warninglist entry.');?><br />
 <p><?php echo __('The keywords false or null should be used for optional empty parameters in the URL.');?></p>

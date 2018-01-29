@@ -210,7 +210,7 @@ class FeedsController extends AppController {
 				$this->request->data['Feed']['settings']['delimiter'] = ',';
 			}
 			$this->request->data['Feed']['settings'] = json_encode($this->request->data['Feed']['settings']);
-			$fields = array('id', 'name', 'provider', 'enabled', 'rules', 'url', 'distribution', 'sharing_group_id', 'tag_id', 'fixed_event', 'event_id', 'publish', 'delta_merge', 'source_format', 'override_ids', 'settings', 'input_source', 'delete_local_file', 'lookup_visible');
+			$fields = array('id', 'name', 'provider', 'enabled', 'rules', 'url', 'distribution', 'sharing_group_id', 'tag_id', 'fixed_event', 'event_id', 'publish', 'delta_merge', 'source_format', 'override_ids', 'settings', 'input_source', 'delete_local_file', 'lookup_visible', 'headers');
 			$feed = array();
 			foreach ($fields as $field) {
 				if (isset($this->request->data['Feed'][$field])) {
@@ -305,6 +305,59 @@ class FeedsController extends AppController {
 		}
 	}
 
+	public function fetchFromAllFeeds() {
+	$feeds = $this->Feed->find('all', array(
+			'recursive' => -1,
+			'fields' => array('id')
+		));
+		foreach ($feeds as $feed) {
+		    $feedId = $feed['Feed']['id'];
+            $this->Feed->id = $feedId;
+            $this->Feed->read();
+            if (!empty($this->Feed->data['Feed']['settings'])) {
+                $this->Feed->data['Feed']['settings'] = json_decode($this->Feed->data['Feed']['settings'], true);
+            }
+            if (!$this->Feed->data['Feed']['enabled']) {
+                continue;
+            }
+            if (Configure::read('MISP.background_jobs')) {
+                $this->loadModel('Job');
+                $this->Job->create();
+                $data = array(
+                    'worker' => 'default',
+                    'job_type' => 'fetch_feed',
+                    'job_input' => 'Feed: ' . $feedId,
+                    'status' => 0,
+                    'retries' => 0,
+                    'org' => $this->Auth->user('Organisation')['name'],
+                    'message' => 'Starting fetch from Feed.',
+                );
+                $this->Job->save($data);
+                $jobId = $this->Job->id;
+                $process_id = CakeResque::enqueue(
+                    'default',
+                    'ServerShell',
+                    array('fetchFeed', $this->Auth->user('id'), $feedId, $jobId),
+                    true
+                );
+                $this->Job->saveField('process_id', $process_id);
+                $message = 'Pull queued for background execution.';
+            } else {
+                $result = $this->Feed->downloadFromFeedInitiator($feedId, $this->Auth->user());
+                if (!$result) {
+                    continue;
+                }
+                $message = 'Fetching the feed has successfuly completed.';
+                if ($this->Feed->data['Feed']['source_format'] == 'misp') {
+                    if (isset($result['add'])) $message['result'] .= ' Downloaded ' . count($result['add']) . ' new event(s).';
+                    if (isset($result['edit'])) $message['result'] .= ' Updated ' . count($result['edit']) . ' event(s).';
+                }
+            }
+        }
+        $this->Session->setFlash($message);
+        $this->redirect(array('action' => 'index'));
+	}
+
 	public function getEvent($feedId, $eventUuid, $all = false) {
 		$this->Feed->id = $feedId;
 		if (!$this->Feed->exists()) throw new NotFoundException('Invalid feed.');
@@ -358,6 +411,10 @@ class FeedsController extends AppController {
 		$syncTool = new SyncTool();
 		$HttpSocket = $syncTool->setupHttpSocketFeed($feed);
 		$events = $this->Feed->getManifest($feed, $HttpSocket);
+		if (!is_array($events)) {
+			$this->Session->setFlash($events);
+			$this->redirect(array('controller' => 'feeds', 'action' => 'index'));
+		}
 		foreach ($filterParams as $k => $filter) {
 			if (!empty($filter)) {
 				$filterParams[$k] = json_decode($filter);
@@ -416,8 +473,9 @@ class FeedsController extends AppController {
 		// params is passed as reference here, the pagination happens in the method, which isn't ideal but considering the performance gains here it's worth it
 		$resultArray = $this->Feed->getFreetextFeed($feed, $HttpSocket, $feed['Feed']['source_format'], $currentPage, 60, $params);
 		// we want false as a valid option for the split fetch, but we don't want it for the preview
-		if ($resultArray == false) {
-			$resultArray = array();
+		if (!is_array($resultArray)) {
+			$this->Session->setFlash($resultArray);
+			$this->redirect(array('controller' => 'feeds', 'action' => 'index'));
 		}
 		$this->params->params['paging'] = array($this->modelClass => $params);
 		$resultArray = $this->Feed->getFreetextFeedCorrelations($resultArray, $feed['Feed']['id']);
@@ -625,6 +683,42 @@ class FeedsController extends AppController {
 			return $this->RestResponse->viewData($feeds, $this->response->type());
 		} else {
 			$this->set('feeds', $feeds);
+		}
+	}
+
+	public function toggleSelected($enable = false, $feedList = false) {
+		if (!empty($enable)) $enable = 1;
+		else $enable = 0;
+		try {
+			$feedIds = json_decode($feedList, true);
+		} catch (Exception $e) {
+			$this->Session->setFlash('Invalid feed list received.');
+			$this->redirect(array('controller' => 'feeds', 'action' => 'index'));
+		}
+		if ($this->request->is('post')) {
+			$feeds = $this->Feed->find('all', array(
+				'conditions' => array('Feed.id' => $feedIds),
+				'recursive' => -1
+			));
+			$count = 0;
+			foreach ($feeds as $feed) {
+				if ($feed['Feed']['enabled'] != $enable) {
+					$feed['Feed']['enabled'] = $enable;
+					$this->Feed->save($feed);
+					$count++;
+				}
+			}
+			if ($count > 0) {
+				$this->Session->setFlash($count . ' feeds ' . array('disabled', 'enabled')[$enable] . '.');
+				$this->redirect(array('controller' => 'feeds', 'action' => 'index'));
+			} else {
+				$this->Session->setFlash('All selected feeds are already ' . array('disabled', 'enabled')[$enable] . ', nothing to update.');
+				$this->redirect(array('controller' => 'feeds', 'action' => 'index'));
+			}
+		} else {
+			$this->set('feedList', $feedList);
+			$this->set('enable', $enable);
+			$this->render('ajax/feedToggleConfirmation');
 		}
 	}
 }

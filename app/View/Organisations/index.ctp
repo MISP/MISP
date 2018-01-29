@@ -77,6 +77,7 @@
 			<?php endif; ?>
 			<th><?php echo $this->Paginator->sort('local');?></th>
 			<th>Users</th>
+			<th><?php echo $this->Paginator->sort('restrictions');?></th>
 			<th class="actions"><?php echo __('Actions');?></th>
 	</tr>
 	<?php
@@ -85,10 +86,7 @@ foreach ($orgs as $org): ?>
 		<td class="short" ondblclick="document.location.href ='/organisations/view/<?php echo $org['Organisation']['id'];?>'"><?php echo h($org['Organisation']['id']); ?></td>
 		<td class="short" ondblclick="document.location.href ='/organisations/view/<?php echo $org['Organisation']['id'];?>'">
 			<?php
-				$imgRelativePath = 'orgs' . DS . h($org['Organisation']['name']) . '.png';
-				$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
-				if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($org['Organisation']['name']) . '.png', array('alt' => h($org['Organisation']['name']), 'title' => h($org['Organisation']['name']), 'style' => 'width:24px; height:24px'));
-				else echo __('N/A');
+				echo $this->OrgImg->getOrgImg(array('name' => $org['Organisation']['name'], 'id' => $org['Organisation']['id'], 'size' => 24));
 			?>
 		</td>
 		<td class="short" ondblclick="document.location.href ='/organisations/view/<?php echo $org['Organisation']['id'];?>'"><?php echo h($org['Organisation']['name']); ?></td>
@@ -107,6 +105,13 @@ foreach ($orgs as $org): ?>
 		<?php endif; ?>
 		<td class="short <?php echo $org['Organisation']['local'] ? 'green' : 'red';?>" ondblclick="document.location.href ='/organisations/view/<?php echo $org['Organisation']['id'];?>'"><?php echo $org['Organisation']['local'] ? __('Yes') : __('No');?></td>
 		<td class="short"><?php echo isset($org['Organisation']['user_count']) ? $org['Organisation']['user_count'] : '0';?></td>
+		<td class="short">
+			<?php
+				if (!empty($org['Organisation']['restrictions'])) {
+					echo implode('<br />', h($org['Organisation']['restrictions']));
+				}
+			?>
+		</td>
 		<td class="short action-links">
 			<?php if ($isSiteAdmin): ?>
 				<a href='/admin/organisations/edit/<?php echo $org['Organisation']['id'];?>' class = "icon-edit" title = "<?php echo __('');?>Edit"></a>

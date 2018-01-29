@@ -61,10 +61,7 @@
 			</td>
 			<td class="short" onclick="document.location.href ='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>'">
 				<?php
-					$imgRelativePath = 'orgs' . DS . h($event['Org']['name']) . '.png';
-					$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
-					if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($event['Org']['name']) . '.png', array('title' => h($event['Org']['name']), 'style' => 'width:24px; height:24px'));
-					else echo $this->Html->tag('span', h($event['Org']['name']), array('style' => 'float:left;'));
+					echo $this->OrgImg->getOrgImg(array('name' => $event['Org']['name'], 'id' => $event['Org']['id'], 'size' => 24));
 				?>
 				&nbsp;
 			</td>

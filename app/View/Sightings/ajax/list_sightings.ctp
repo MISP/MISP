@@ -17,13 +17,7 @@
 			<td class="short"><?php echo date('Y-m-d H:i:s', $item['Sighting']['date_sighting']);?></td>
 		<td class="short">
 		  <?php
-			$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . 'orgs' . DS . h($item['Organisation']['name']) . '.png';
-			if (file_exists($imgAbsolutePath)):
-			  echo $this->Html->image('orgs/' . h($item['Organisation']['name']) . '.png', array('alt' => h($item['Organisation']['name']), 'title' => h($item['Organisation']['name']), 'style' => 'width:24px; height:24px'));
-			else:
-			  echo h($item['Organisation']['name']);
-			endif;
-
+				echo $this->OrgImg->getOrgImg(array('name' => $item['Organisation']['name'], 'id' => $item['Organisation']['id'], 'size' => 24));
 		  ?>
 		</td>
 		<td class="short">

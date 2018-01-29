@@ -85,10 +85,10 @@
 							if ("<?php echo $type['lastModified']; ?>" != "N/A") {
 								editMessage(<?php echo $i; ?>, "Queued.");
 							} else {
-								editMessage(<?php echo $i; ?>, '<span style="color:red;">'. __('N/A') .'</span>');
+								editMessage(<?php echo $i; ?>, '<span style="color:red;"><?php echo __('N/A'); ?></span>');
 							}
 						}
-						if ("<?php echo $type['progress']; ?>" == 100) editMessage(<?php echo $i; ?>, __("Completed."));
+						if ("<?php echo $type['progress']; ?>" == 100) editMessage(<?php echo $i; ?>, '<?php echo "Completed."; ?>');
 						queueInterval('<?php echo $temp;?>');
 					</script>
 				</td>

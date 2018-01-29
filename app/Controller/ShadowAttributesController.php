@@ -705,8 +705,7 @@ class ShadowAttributesController extends AppController {
 		} else {
 			// Read the attribute that we're about to edit
 			$this->ShadowAttribute->create();
-			$request['ShadowAttribute'] = $existingAttribute['Attribute'];
-			$this->request->data = $request;
+			$this->request->data['ShadowAttribute'] = $existingAttribute['Attribute'];
 			unset($this->request->data['ShadowAttribute']['id']);
 		}
 
@@ -1134,6 +1133,7 @@ class ShadowAttributesController extends AppController {
 			$response = $this->__accept($a['ShadowAttribute']['id']);
 			if (isset($response['saved'])) $successes[] = $a['ShadowAttribute']['id'];
 		}
+		$this->ShadowAttribute->Event->unpublishEvent($id, true);
 		$fails = array_diff($ids, $successes);
 		$this->autoRender = false;
 		if (count($fails) == 0 && count($successes) > 0) {

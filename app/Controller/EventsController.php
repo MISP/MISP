@@ -173,17 +173,18 @@ class EventsController extends AppController {
 		foreach ($values as $v) {
 			$subconditions[] = array('lower(value1) LIKE' => $v);
 			$subconditions[] = array('lower(value2) LIKE' => $v);
-			$subconditions[] = array('lower(comment) LIKE' => $v);
+			$subconditions[] = array('lower(Attribute.comment) LIKE' => $v);
 		}
 		$conditions = array(
 			'AND' => array(
 				'OR' => $subconditions,
-				'deleted' => 0
+				'Attribute.deleted' => 0
 			)
 		);
 		$attributeHits = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array(
 				'conditions' => $conditions,
-				'fields' => array('event_id', 'comment', 'distribution', 'value1', 'value2')
+				'fields' => array('event_id', 'comment', 'distribution', 'value1', 'value2'),
+				'flatten' => 1
 		));
 		// rearrange the data into an array where the keys are the event IDs
 		$eventsWithAttributeHits = array();
@@ -258,7 +259,7 @@ class EventsController extends AppController {
 		// list the events
 		$passedArgsArray = array();
 		$urlparams = "";
-		$overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'Datefrom', 'Dateuntil', 'org', 'eventinfo', 'tag', 'distribution', 'analysis', 'threatlevel', 'email', 'hasproposal', 'timestamp', 'publishtimestamp', 'publish_timestamp', 'minimal');
+		$overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'Datefrom', 'Dateuntil', 'org', 'eventinfo', 'tag', 'distribution', 'sharinggroup', 'analysis', 'threatlevel', 'email', 'hasproposal', 'timestamp', 'publishtimestamp', 'publish_timestamp', 'minimal');
 		$passedArgs = $this->passedArgs;
 		if (isset($this->request->data)) {
 			if (isset($this->request->data['request'])) $this->request->data = $this->request->data['request'];
@@ -366,6 +367,18 @@ class EventsController extends AppController {
 							}
 						}
 						$this->paginate['conditions']['AND'][] = $test;
+						break;
+					case 'sharinggroup':
+						$pieces = explode('|', $v);
+						$test = array();
+						foreach ($pieces as $piece) {
+							if ($piece[0] == '!') {
+								$this->paginate['conditions']['AND'][] = array('Event.sharing_group_id !=' => substr($piece, 1));
+							} else {
+								$test['OR'][] = array('Event.sharing_group_id' => $piece);
+							}
+						}
+						if (!empty($test)) $this->paginate['conditions']['AND'][] = $test;
 						break;
 					case 'eventinfo' :
 						if ($v == "") continue 2;
@@ -596,7 +609,7 @@ class EventsController extends AppController {
 			}
 			$events = $this->Event->attachTagsToEvents($events);
 			if (Configure::read('MISP.showCorrelationsOnIndex')) $events = $this->Event->attachCorrelationCountToEvents($this->Auth->user(), $events);
-			if (Configure::read('MISP.showSightingsCountOnIndex') && Configure::read('MISP.Plugin.Sightings_enable') !== false) $events = $this->Event->attachSightingsCountToEvents($this->Auth->user(), $events);
+			if (Configure::read('MISP.showSightingsCountOnIndex')) $events = $this->Event->attachSightingsCountToEvents($this->Auth->user(), $events);
 			if (Configure::read('MISP.showProposalsCountOnIndex')) $events = $this->Event->attachProposalsCountToEvents($this->Auth->user(), $events);
 			if (Configure::read('MISP.showDiscussionsCountOnIndex')) $events = $this->Event->attachDiscussionsCountToEvents($this->Auth->user(), $events);
 			$events = $this->GalaxyCluster->attachClustersToEventIndex($events, true);
@@ -643,6 +656,7 @@ class EventsController extends AppController {
 			'eventinfo' => array('OR' => array(), 'NOT' => array()),
 			'threatlevel' => array('OR' => array(), 'NOT' => array()),
 			'distribution' => array('OR' => array(), 'NOT' => array()),
+			'sharinggroup' => array('OR' => array(), 'NOT' => array()),
 			'analysis' => array('OR' => array(), 'NOT' => array()),
 			'attribute' => array('OR' => array(), 'NOT' => array()),
 			'hasproposal' => 2,
@@ -672,6 +686,7 @@ class EventsController extends AppController {
 					case 'attribute' :
 					case 'threatlevel' :
 					case 'distribution' :
+					case 'sharinggroup':
 					case 'analysis' :
 						if ($v == "" || ($searchTerm == 'email' && !$this->_isSiteAdmin())) continue 2;
 						$pieces = explode('|', $v);
@@ -700,7 +715,7 @@ class EventsController extends AppController {
 			$eIds = $this->Event->fetchEventIds($this->Auth->user(), false, false, false, true);
 			$conditions['AND'][] = array('Event.id' => $eIds);
 		}
-		$rules = array('published', 'eventid', 'tag', 'date', 'eventinfo', 'threatlevel', 'distribution', 'analysis', 'attribute', 'hasproposal');
+		$rules = array('published', 'eventid', 'tag', 'date', 'eventinfo', 'threatlevel', 'distribution', 'sharinggroup', 'analysis', 'attribute', 'hasproposal');
 		if ($this->_isSiteAdmin()) $rules[] = 'email';
 		if (Configure::read('MISP.showorg')) {
 			$orgs = $this->Event->Orgc->find('list', array(
@@ -715,6 +730,8 @@ class EventsController extends AppController {
 		} else {
 			$this->set('showorg', false);
 		}
+		$sharingGroups = $this->Event->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name', true);
+		$this->set('sharingGroups', $sharingGroups);
 		$rules = $this->_arrayToValuesIndexArray($rules);
 		$this->set('tags', $tagNames);
 		$this->set('tagJSON', json_encode($tagJSON));
@@ -864,12 +881,19 @@ class EventsController extends AppController {
 		$this->set('sightingsData', $sightingsData);
 		if (Configure::read('Plugin.Enrichment_services_enable')) {
 			$this->loadModel('Module');
-			$modules = $this->Module->getEnabledModules();
+			$modules = $this->Module->getEnabledModules($this->Auth->user());
+			foreach ($modules as $k => $v) {
+				if (isset($v['restrict'])) {
+					if (!$this->_isSiteAdmin() && $v['restrict'] != $this->Auth->user('org_id')) {
+						unset($modules[$k]);
+					}
+				}
+			}
 			$this->set('modules', $modules);
 		}
 		if (Configure::read('Plugin.Cortex_services_enable')) {
 			$this->loadModel('Module');
-			$cortex_modules = $this->Module->getEnabledModules(false, 'Cortex');
+			$cortex_modules = $this->Module->getEnabledModules($this->Auth->user(), false, 'Cortex');
 			$this->set('cortex_modules', $cortex_modules);
 		}
 		$this->set('deleted', (isset($this->params['named']['deleted']) && $this->params['named']['deleted']) ? true : false);
@@ -897,6 +921,13 @@ class EventsController extends AppController {
 		$emptyEvent = (empty($event['Object']) && empty($event['Attribute']));
 		$this->set('emptyEvent', $emptyEvent);
 		$attributeCount = isset($event['Attribute']) ? count($event['Attribute']) : 0;
+		if (!empty($event['Object'])) {
+			foreach ($event['Object'] as $k => $object) {
+				if (!empty($object['Attribute'])) {
+					$attributeCount += count($object['Attribute']);
+				}
+			}
+		}
 		$this->set('attribute_count', $attributeCount);
 		// set the data for the contributors / history field
 		$org_ids = $this->Event->ShadowAttribute->getEventContributors($event['Event']['id']);
@@ -996,12 +1027,21 @@ class EventsController extends AppController {
 		$this->set('sightingsData', $sightingsData);
 		if (Configure::read('Plugin.Enrichment_services_enable')) {
 			$this->loadModel('Module');
-			$modules = $this->Module->getEnabledModules();
+			$modules = $this->Module->getEnabledModules($this->Auth->user());
+			if (is_array($modules)) {
+				foreach ($modules as $k => $v) {
+					if (isset($v['restrict'])) {
+						if ($this->_isSiteAdmin() && $v['restrict'] != $this->Auth->user('org_id')) {
+							unset($modules[$k]);
+						}
+					}
+				}
+			}
 			$this->set('modules', $modules);
 		}
 		if (Configure::read('Plugin.Cortex_services_enable')) {
 			$this->loadModel('Module');
-			$cortex_modules = $this->Module->getEnabledModules(false, 'Cortex');
+			$cortex_modules = $this->Module->getEnabledModules($this->Auth->user(), false, 'Cortex');
 			$this->set('cortex_modules', $cortex_modules);
 		}
 		$this->set('contributors', $contributors);
@@ -1212,7 +1252,12 @@ class EventsController extends AppController {
 					if ($this->request->data['Event']['distribution'] == 4) {
 						if ($this->userRole['perm_sync'] && $this->_isRest()) {
 							if (isset($this->request->data['Event']['SharingGroup'])) {
-								if (!$this->Event->SharingGroup->checkIfAuthorisedToSave($this->Auth->user(), $this->request->data['Event']['SharingGroup'])) throw new MethodNotAllowedException('Invalid Sharing Group or not authorised. (Sync user is not contained in the Sharing group)');
+								if (!isset($this->request->data['Event']['SharingGroup']['uuid'])) {
+									if ($this->Event->SharingGroup->checkIfExists($this->request->data['Event']['SharingGroup']['uuid']) &&
+										$this->Event->SharingGroup->checkIfAuthorised($this->Auth->user(), $this->request->data['Event']['SharingGroup']['uuid'])) {
+											throw new MethodNotAllowedException('Invalid Sharing Group or not authorised (Sync user is not contained in the Sharing group).');
+									}
+								}
 							} else if (!isset($sgs[$this->request->data['Event']['sharing_group_id']])) {
 								throw new MethodNotAllowedException('Invalid Sharing Group or not authorised.');
 							}
@@ -2175,8 +2220,8 @@ class EventsController extends AppController {
 	// Usage: csv($key, $eventid)   - key can be a valid auth key or the string 'download'. Download requires the user to be logged in interactively and will generate a .csv file
 	// $eventid can be one of 3 options: left empty it will get all the visible to_ids attributes,
 	// $ignore is a flag that allows the export tool to ignore the ids flag. 0 = only IDS signatures, 1 = everything.
-	public function csv($key, $eventid = false, $ignore = false, $tags = false, $category = false, $type = false, $includeContext = false, $from = false, $to = false, $last = false, $headerless = false, $enforceWarninglist = false, $value = false) {
-		$paramArray = array('eventid', 'ignore', 'tags', 'category', 'type', 'includeContext', 'from', 'to', 'last', 'headerless', 'enforceWarninglist', 'value');
+	public function csv($key, $eventid = false, $ignore = false, $tags = false, $category = false, $type = false, $includeContext = false, $from = false, $to = false, $last = false, $headerless = false, $enforceWarninglist = false, $value = false, $timestamp = false) {
+		$paramArray = array('eventid', 'ignore', 'tags', 'category', 'type', 'includeContext', 'from', 'to', 'last', 'headerless', 'enforceWarninglist', 'value', 'timestamp');
 		if ($this->request->is('post')) {
 			if (empty($this->request->data)) {
 				return $this->RestResponse->throwException(400, 'Either specify the search terms in the url, or POST a json or xml with the filter parameters.', 'csv', true);
@@ -2268,7 +2313,7 @@ class EventsController extends AppController {
 		if (isset($events)) {
 			$events = array_chunk($events, 100);
 			foreach ($events as $k => $eventid) {
-				$attributes = $this->Event->csv($user, $eventid, $ignore, $list, false, $category, $type, $includeContext, false, false, false, $enforceWarninglist, $value);
+				$attributes = $this->Event->csv($user, $eventid, $ignore, $list, false, $category, $type, $includeContext, false, false, false, $enforceWarninglist, $value, $timestamp);
 				$attributes = $this->Whitelist->removeWhitelistedFromArray($attributes, true);
 				foreach ($attributes as $attribute) {
 					$line1 = '';
@@ -3337,6 +3382,10 @@ class EventsController extends AppController {
 			$this->set('typeList', array_keys($this->Event->Attribute->typeDefinitions));
 			$this->set('defaultCategories', $this->Event->Attribute->defaultCategories);
 			$this->set('typeCategoryMapping', $typeCategoryMapping);
+			foreach ($typeCategoryMapping as $k => $v) {
+				$typeCategoryMapping[$k] = array_values($v);
+			}
+			$this->set('mapping', $typeCategoryMapping);
 			$this->set('resultArray', $resultArray);
 			$this->set('importComment', '');
 			$this->set('title', 'Freetext Import Results');
@@ -3786,7 +3835,7 @@ class EventsController extends AppController {
 			);
 		}
 		$this->loadModel('Module');
-		$modules = $this->Module->getEnabledModules(false, 'Export');
+		$modules = $this->Module->getEnabledModules($this->Auth->user(), false, 'Export');
 		if (is_array($modules) && !empty($modules)) {
 			foreach ($modules['modules'] as $module) {
 				$exports[$module['name']] = array(
@@ -3832,7 +3881,7 @@ class EventsController extends AppController {
 				)
 		);
 		$this->loadModel('Module');
-		$modules = $this->Module->getEnabledModules(false, 'Import');
+		$modules = $this->Module->getEnabledModules($this->Auth->user(), false, 'Import');
 		if (is_array($modules) && !empty($modules)) {
 			foreach ($modules['modules'] as $k => $module) {
 				$imports[$module['name']] = array(
@@ -4134,11 +4183,11 @@ class EventsController extends AppController {
 	// expects an attribute ID and the module to be used
 	public function queryEnrichment($attribute_id, $module = false, $type = 'Enrichment') {
 		if (!Configure::read('Plugin.' . $type . '_services_enable')) throw new MethodNotAllowedException($type . ' services are not enabled.');
-		$attribute = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $attribute_id)));
+		$attribute = $this->Event->Attribute->fetchAttributes($this->Auth->user(), array('conditions' => array('Attribute.id' => $attribute_id), 'flatten' => 1));
 		if (empty($attribute)) throw new MethodNotAllowedException('Attribute not found or you are not authorised to see it.');
 		if ($this->request->is('ajax')) {
 			$this->loadModel('Module');
-			$enabledModules = $this->Module->getEnabledModules(false, $type);
+			$enabledModules = $this->Module->getEnabledModules($this->Auth->user(), false, $type);
 			if (!is_array($enabledModules) || empty($enabledModules)) throw new MethodNotAllowedException('No valid ' . $type . ' options found for this attribute.');
 			$modules = array();
 			foreach ($enabledModules['modules'] as $module) {
@@ -4151,7 +4200,7 @@ class EventsController extends AppController {
 			$this->render('ajax/enrichmentChoice');
 		} else {
 			$this->loadModel('Module');
-			$enabledModules = $this->Module->getEnabledModules(false, $type);
+			$enabledModules = $this->Module->getEnabledModules($this->Auth->user(), false, $type);
 			if (!is_array($enabledModules) || empty($enabledModules)) throw new MethodNotAllowedException('No valid ' . $type . ' options found for this attribute.');
 			$options = array();
 			foreach ($enabledModules['modules'] as $temp) {
