@@ -45,6 +45,7 @@ class SightingsController extends AppController {
 				}
 				if (isset($this->request->data['value'])) $this->request->data['values'] = array($this->request->data['value']);
 				$values = isset($this->request->data['values']) ? $this->request->data['values'] : false;
+				if (!$id && isset($this->request->data['uuid'])) $id = $this->request->data['uuid'];
 				if (!$id && isset($this->request->data['id'])) $id = $this->request->data['id'];
 				$type = isset($this->request->data['type']) ? $this->request->data['type'] : '0';
 				$source = isset($this->request->data['source']) ? trim($this->request->data['source']) : '';

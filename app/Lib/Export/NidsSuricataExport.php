@@ -105,14 +105,13 @@ class NidsSuricataExport extends NidsExport {
 		switch ($scheme) {
 		    case "http":
 				$data['host'] = NidsExport::replaceIllegalChars($data['host']);
-
+				$data['host'] = trim($data['host'], '[]');
 				$suricata_protocol = 'http';
 				$suricata_src_ip = '$HOME_NET';
 				$suricata_src_port = 'any';
 				$suricata_dst_ip = NidsExport::getCustomIP($data['host']);
 				$suricata_dst_port = NidsExport::getProtocolPort($scheme, $data['port']);
 				$tag = 'tag:session,600,seconds;';
-
 				if (!array_key_exists('path', $data)) {
 				    $data['path'] = NidsExport::replaceIllegalChars($data['host']);
 				    $content = 'flow:to_server,established; content:"' . $data['host'] . '"; nocase; http_header;';

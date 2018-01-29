@@ -58,7 +58,8 @@ class AttributesController extends AppController {
 		$this->Attribute->recursive = -1;
 		$this->paginate['contain'] = array(
 			'Event' => array(
-				'fields' =>  array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info', 'Event.user_id')
+				'fields' =>  array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info', 'Event.user_id'),
+				'Orgc' => array('fields' => array('Orgc.name'))
 			),
 			'Object' => array(
 				'fields' => array('Object.id', 'Object.distribution', 'Object.sharing_group_id')
@@ -430,6 +431,11 @@ class AttributesController extends AppController {
 					if (!empty($result)) {
 						foreach ($result['Object'] as $object) {
 							$this->loadModel('MispObject');
+							$object['distribution'] = $this->request->data['Attribute']['distribution'];
+							if (!empty($this->request->data['sharing_group_id'])) $object['sharing_group_id'] = $this->request->data['Attribute']['sharing_group_id'];
+							foreach ($object['Attribute'] as $ka => $attribute) {
+								$object['Attribute'][$ka]['distribution'] = 5;
+							}
 							$this->MispObject->captureObject(array('Object' => $object), $eventId, $this->Auth->user());
 						}
 						if (!empty($result['ObjectReference'])) {
@@ -1610,6 +1616,7 @@ class AttributesController extends AppController {
 									'fields'     => array('id', 'name'),
 									'conditions' => array('lower(name) LIKE' => '%' . strtolower($saveWord) . '%'),
 								));
+								if (empty($org_names)) $conditions['AND'][] = array('Event.orgc_id' => -1);
 								foreach ($org_names as $org_name) {
 									$temp['OR'][] = array('Event.orgc_id' => $org_name['Organisation']['id']);
 								}
@@ -1655,7 +1662,8 @@ class AttributesController extends AppController {
 							'Event' => array(
 								'fields' => array(
 									'orgc_id', 'id', 'org_id', 'user_id', 'info'
-								)
+								),
+								'Orgc' => array('fields' => array('Orgc.name', 'Orgc.id'))
 							),
 							'Object' => array(
 								'fields' => array(

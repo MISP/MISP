@@ -835,7 +835,15 @@ class Server extends AppModel {
 							'errorMessage' => '',
 							'test' => 'testBool',
 							'type' => 'boolean',
-					),
+                    ),
+                    'sign' => array(
+                            'level' => 2,
+                            'description' => 'Enable the signing of GPG emails. By default, GPG emails are signed',
+                            'value' => 'true',
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean',
+                    ),
 					'email' => array(
 							'level' => 0,
 							'description' => 'The e-mail address that the instance\'s PGP key is tied to.',
@@ -1241,6 +1249,14 @@ class Server extends AppModel {
 					'ZeroMQ_attribute_notifications_enable' => array(
 						'level' => 2,
 						'description' => 'Enables or disables the publishing of any attribute creations/edits/soft deletions.',
+						'value' => false,
+						'errorMessage' => '',
+						'test' => 'testBool',
+						'type' => 'boolean'
+					),
+					'ZeroMQ_tag_notifications_enable' => array(
+						'level' => 2,
+						'description' => 'Enables or disables the publishing of any tag creations/edits/deletions as well as tags being attached to / detached from various MISP elements.',
 						'value' => false,
 						'errorMessage' => '',
 						'test' => 'testBool',

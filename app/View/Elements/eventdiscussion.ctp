@@ -47,7 +47,7 @@
 							<td class="discussionBoxTD discussionBoxTDMid discussionBoxTDMidLeft">
 								<?php
 								if (isset($post['org_name'])) {
-									echo $this->OrgImg->getOrgImg(array('name' => $post['org_name'], 'id' => $post['org_id'], 'size' => 48));
+									echo $this->OrgImg->getOrgImg(array('name' => $post['org_name'], 'size' => 48));
 								} else {
 									echo 'Deactivated user';
 								}

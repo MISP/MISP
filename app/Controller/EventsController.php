@@ -2264,9 +2264,14 @@ class EventsController extends AppController {
 		if ($eventid === 'search') {
 			$ioc = $this->Session->read('paginate_conditions_ioc');
 			$paginateConditions = $this->Session->read('paginate_conditions');
+			unset($paginateConditions['contain']['Event']['Orgc']);
 			$attributes = $this->Event->Attribute->find('all', array(
 				'conditions' => $paginateConditions['conditions'],
 				'contain' => $paginateConditions['contain'],
+			));
+			$orgs = $this->Event->Orgc->find('list', array(
+				'fields' => array('Orgc.id', 'Orgc.name'),
+				'recursive' => -1
 			));
 			if ($ioc) {
 				$this->loadModel('Whitelist');
@@ -2274,6 +2279,10 @@ class EventsController extends AppController {
 			}
 			$list = array();
 			foreach ($attributes as $attribute) {
+				$attribute['Event']['Orgc'] = array(
+					'id' => $attribute['Event']['org_id'],
+					'name' => $orgs[$attribute['Event']['org_id']]
+				);
 				$list[] = $attribute['Attribute']['id'];
 			}
 			$events = array($eventid);

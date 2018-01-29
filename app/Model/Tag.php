@@ -79,6 +79,32 @@ class Tag extends AppModel {
 		return true;
 	}
 
+	public function afterSave($created, $options = array()) {
+		parent::afterSave($created, $options);
+		if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_tag_notifications_enable')) {
+			$pubSubTool = $this->getPubSubTool();
+			$tag = $this->find('first', array(
+				'recursive' => -1,
+				'conditions' => array('Tag.id' => $this->id)
+			));
+			$action = $created ? 'add' : 'edit';
+			$pubSubTool->tag_save($tag, $action);
+		}
+	}
+
+	public function beforeDelete($cascade = true) {
+		if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_tag_notifications_enable')) {
+			if (!empty($this->id)) {
+				$pubSubTool = $this->getPubSubTool();
+				$tag = $this->find('first', array(
+					'recursive' => -1,
+					'conditions' => array('Tag.id' => $this->id)
+				));
+				$pubSubTool->tag_save($tag, 'delete');
+			}
+		}
+	}
+
 	public function validateColour($fields) {
 		if (!preg_match('/^#[0-9a-f]{6}$/i', $fields['colour'])) return false;
 		return true;

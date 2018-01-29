@@ -31,7 +31,7 @@
 			$date = time();
 			$day = 86400;
 		?>
-		<th><?php echo $this->Paginator->sort('id');?></th>
+		<th><?php echo $this->Paginator->sort('id', null, array('direction' => 'desc'));?></th>
 		<th><?php echo __('Clusters');?></th>
 		<?php if (Configure::read('MISP.tagging')): ?>
 			<th class="filter"><?php echo __('Tags');?></th>
@@ -52,7 +52,7 @@
 		<?php if ($isSiteAdmin): ?>
 		<th><?php echo $this->Paginator->sort('user_id', 'Email');?></th>
 		<?php endif; ?>
-		<th class="filter"><?php echo $this->Paginator->sort('date');?></th>
+		<th class="filter"><?php echo $this->Paginator->sort('date', null, array('direction' => 'desc'));?></th>
 		<th class="filter"><?php echo $this->Paginator->sort('info');?></th>
 		<th title="<?php echo $eventDescriptions['distribution']['desc'];?>">
 			<?php echo $this->Paginator->sort('distribution');?>

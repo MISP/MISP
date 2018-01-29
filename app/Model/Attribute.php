@@ -71,7 +71,8 @@ class Attribute extends AppModel {
 			'counter',
 			'port',
 			'nationality',
-			'cortex'
+			'cortex',
+			'boolean'
 	);
 
 	public $primaryOnlyCorrelatingTypes = array(
@@ -250,7 +251,8 @@ class Attribute extends AppModel {
 			'place-port-of-onward-foreign-destination' => array('desc' => 'A Port where the passenger is transiting to', 'default_category' => 'Person', 'to_ids' => 0),
 			'passenger-name-record-locator-number' => array('desc' => 'The Passenger Name Record Locator is a key under which the reservation for a trip is stored in the system. The PNR contains, among other data, the name, flight segments and address of the passenger. It is defined by a combination of five or six letters and numbers.', 'default_category' => 'Person', 'to_ids' => 0),
 			'mobile-application-id' => array('desc' => 'The application id of a mobile application', 'default_category' => 'Payload delivery', 'to_ids' => 1),
-			'cortex' => array('desc' => 'Cortex analysis result', 'default_category' => 'External analysis', 'to_ids' => 0)
+			'cortex' => array('desc' => 'Cortex analysis result', 'default_category' => 'External analysis', 'to_ids' => 0),
+			'boolean' => array('desc' => 'Boolean value - to be used in objects', 'default_category' => 'Other', 'to_ids' => 0)
 			// Not convinced about this.
 			//'url-regex' => array('desc' => '', 'default_category' => 'Person', 'to_ids' => 0),
 	);
@@ -328,7 +330,7 @@ class Attribute extends AppModel {
 			),
 			'Other' => array(
 					'desc' => 'Attributes that are not part of any other category or are meant to be used as a component in MISP objects in the future',
-					'types' => array('comment', 'text', 'other', 'size-in-bytes', 'counter', 'datetime', 'cpe', 'port', 'float', 'hex', 'phone-number')
+					'types' => array('comment', 'text', 'other', 'size-in-bytes', 'counter', 'datetime', 'cpe', 'port', 'float', 'hex', 'phone-number', 'boolean')
 					)
 	);
 
@@ -365,7 +367,8 @@ class Attribute extends AppModel {
 			'attachment' => 'External analysis',
 			'malware-sample' => 'Payload delivery',
 			'cortex' => 'External analysis',
-			'dns-soa-email' => 'Attribution'
+			'dns-soa-email' => 'Attribution',
+			'boolean' => 'Other'
 	);
 
 	// typeGroupings are a mapping to high level groups for attributes
@@ -473,7 +476,7 @@ class Attribute extends AppModel {
 	);
 
 	public $typeGroupCategoryMapping = array(
-			'Payload delviery' => array('File', 'CnC'),
+			'Payload delivery' => array('File', 'CnC'),
 			'Payload installation' => array('File'),
 			'Artifacts dropped' => array('File'),
 			'Network activity' => array('CnC'),
@@ -1165,6 +1168,10 @@ class Attribute extends AppModel {
 					$returnValue = true;
 				}
 				break;
+			case 'boolean':
+				if ($value == 1 || $value == 0) {
+					$returnValue = true;
+				}
 		}
 		return $returnValue;
 	}
@@ -1280,6 +1287,11 @@ class Attribute extends AppModel {
 				break;
 			case 'hex':
 				$value = strtoupper($value);
+				break;
+			case 'boolean':
+				if ('true' == trim(strtolower($value))) $value = 1;
+				if ('false' == trim(strtolower($value))) $value = 0;
+				$value = ($value) ? '1' : '0';
 				break;
 		}
 		return $value;
@@ -2435,6 +2447,8 @@ class Attribute extends AppModel {
 		$params['contain']['AttributeTag'] = array('Tag' => array('conditions' => array()));
 		if (empty($options['includeAllTags'])) $params['contain']['AttributeTag']['Tag']['conditions']['exportable'] = 1;
 		if (isset($options['contain'])) $params['contain'] = array_merge_recursive($params['contain'], $options['contain']);
+		if (isset($options['page'])) $params['page'] = $options['page'];
+		if (isset($options['limit'])) $params['limit'] = $options['limit'];
 		else $option['contain']['Event']['fields'] = array('id', 'info', 'org_id', 'orgc_id');
 		if (Configure::read('MISP.proposals_block_attributes') && isset($options['conditions']['AND']['Attribute.to_ids']) && $options['conditions']['AND']['Attribute.to_ids'] == 1) {
 			$this->bindModel(array('hasMany' => array('ShadowAttribute' => array('foreignKey' => 'old_id'))));
@@ -2483,6 +2497,8 @@ class Attribute extends AppModel {
 			return $results;
 		}
 		$results = $this->find('all', $params);
+		// return false if we're paginating
+		if (isset($options['limit']) && empty($results)) return false;
 		if ($options['enforceWarninglist']) {
 			$this->Warninglist = ClassRegistry::init('Warninglist');
 			$warninglists = $this->Warninglist->fetchForEventView();

@@ -79,7 +79,7 @@ foreach ($attributes as $attribute):
 		<?php if (Configure::read('MISP.showorg') || $isAdmin): ?>
 		<td class="short" ondblclick="document.location.href ='<?php echo $baseurl;?>/events/view/<?php echo $attribute['Event']['id'];?>'">
 			<?php
-        echo $this->OrgImg->getOrgImg(array('name' => $event['Event']['Orgc']['name'], 'id' => $event['Event']['Orgc']['id'], 'size' => 24));
+        echo $this->OrgImg->getOrgImg(array('name' => $attribute['Event']['Orgc']['name'], 'id' => $attribute['Event']['Orgc']['id'], 'size' => 24));
 			?>
 			&nbsp;
 		</td>

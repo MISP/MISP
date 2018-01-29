@@ -80,6 +80,12 @@ echo "copy of org images and other custom images"
 cp -r $MISPPath/app/webroot/img/orgs $TmpDir/
 cp -r $MISPPath/app/webroot/img/custom $TmpDir/
 cp -r $MISPPath/app/files $TmpDir
+#  MISP Config files
+mkdir -p $TmpDir/Config
+cp $MISPPath/app/Config/bootstrap.php $TmpDir/Config
+cp $MISPPath/app/Config/config.php $TmpDir/Config
+cp $MISPPath/app/Config/core.php $TmpDir/Config
+cp $MISPPath/app/Config/database.php $TmpDir/Config
 
 echo "MySQL Dump"
 MySQLRUser=${MySQLRUser:-$MySQLUUser}

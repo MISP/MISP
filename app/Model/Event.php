@@ -2438,7 +2438,7 @@ class Event extends AppModel {
 		if (Configure::read('MISP.enableEventBlacklisting') !== false && isset($data['Event']['uuid'])) {
 			$this->EventBlacklist = ClassRegistry::init('EventBlacklist');
 			$r = $this->EventBlacklist->find('first', array('conditions' => array('event_uuid' => $data['Event']['uuid'])));
-			if (!empty($r))	return 'blocked';
+			if (!empty($r))	return 'Blocked by blacklist';
 		}
 		$this->create();
 		// force check userid and orgname to be from yourself
