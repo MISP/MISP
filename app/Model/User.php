@@ -304,8 +304,8 @@ class User extends AppModel {
 		// we have a clean, hopefully public, key here
 
 		// key is entered
-		require_once 'Crypt/GPG.php';
 		try {
+			require_once 'Crypt/GPG.php';
 			$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
 			try {
 				$keyImportOutput = $gpg->importKey($check['gpgkey']);
@@ -471,8 +471,13 @@ class User extends AppModel {
 
 	public function verifySingleGPG($user, $gpg = false) {
 		if (!$gpg) {
-			require_once 'Crypt/GPG.php';
-			$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
+			try {
+				require_once 'Crypt/GPG.php';
+				$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
+			} catch (Exception $e) {
+				$result[2] ='GnuPG is not configured on this system.';
+				$result[0] = true;
+			}
 		}
 		$result = array();
 		try {
