@@ -164,11 +164,20 @@ class TagsController extends AppController {
 	public function add() {
 		if (!$this->_isSiteAdmin() && !$this->userRole['perm_tag_editor']) throw new NotFoundException('You don\'t have permission to do that.');
 		if ($this->request->is('post')) {
+			if (!isset($this->request->data['Tag'])) $this->request->data = array('Tag' => $this->request->data);
 			if (isset($this->request->data['Tag']['request'])) $this->request->data['Tag'] = $this->request->data['Tag']['request'];
 			if (!isset($this->request->data['Tag']['colour'])) $this->request->data['Tag']['colour'] = $this->Tag->random_color();
 			if (isset($this->request->data['Tag']['id'])) unset($this->request->data['Tag']['id']);
 			if ($this->Tag->save($this->request->data)) {
-				if ($this->_isRest()) $this->redirect(array('action' => 'view', $this->Tag->id));
+				if ($this->_isRest()) {
+					$tag = $this->Tag->find('first', array(
+						'contidions' => array(
+							'Tag.id' => $this->Tag->id
+						),
+						'recursive' => -1
+					));
+					return $this->RestResponse->viewData($tag, $this->response->type());
+				}
 				$this->Session->setFlash('The tag has been saved.');
 				$this->redirect(array('action' => 'index'));
 			} else {
@@ -234,7 +243,15 @@ class TagsController extends AppController {
 			if (isset($this->request->data['Tag']['request'])) $this->request->data['Tag'] = $this->request->data['Tag']['request'];
 
 			if ($this->Tag->save($this->request->data)) {
-				if ($this->_isRest()) $this->redirect(array('action' => 'view', $id));
+				if ($this->_isRest()) {
+					$tag = $this->Tag->find('first', array(
+						'contidions' => array(
+							'Tag.id' => $id
+						),
+						'recursive' => -1
+					));
+					return $this->RestResponse->viewData($tag, $this->response->type());
+				}
 				$this->Session->setFlash('The Tag has been edited');
 				$this->redirect(array('action' => 'index'));
 			} else {
