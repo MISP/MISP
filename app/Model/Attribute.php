@@ -3060,8 +3060,10 @@ class Attribute extends AppModel {
 				'conditions' => array('Attribute.uuid' => $attribute['uuid']),
 				'recursive' => -1
 			));
+			$this->Log = ClassRegistry::init('Log');
 			if (count($existingAttribute)) {
 				if ($existingAttribute['Attribute']['event_id'] != $eventId || $existingAttribute['Attribute']['object_id'] != $objectId) {
+					$this->Log->create();
 					$result = $this->Log->save(array(
 							'org' => $user['Organisation']['name'],
 							'model' => 'Attribute',
