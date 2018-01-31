@@ -19,4 +19,4 @@ msgstr "La requête a été bloquée"
 
 #: View/Layouts/error.ctp:19
 msgid "CakePHP: the rapid development php framework"
-msgstr "CakePHP: infrastructure php de développement de développement rapide"
+msgstr "CakePHP: cadriciel php de développement rapide"
