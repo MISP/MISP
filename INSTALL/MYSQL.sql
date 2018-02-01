@@ -841,6 +841,7 @@ CREATE TABLE IF NOT EXISTS `tags` (
   `colour` varchar(7) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
   `exportable` tinyint(1) NOT NULL,
   `org_id` tinyint(1) NOT NULL DEFAULT 0,
+  `user_id` tinyint(1) NOT NULL DEFAULT 0,
   `hide_tag` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   INDEX `name` (`name`(255)),
