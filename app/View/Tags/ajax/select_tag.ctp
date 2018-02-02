@@ -13,7 +13,7 @@
 		?>
 	</div>
 	<div style="text-align:right;width:100%;" class="select_tag_search">
-		<input id="filterField" style="width:100%;border:0px;padding:0px;" placeholder="<?php echo __('search tags…');?>"/>
+		<input id="filterField" style="width:100%;border:0px;padding:0px;" value="<?php echo $filterData; ?>" placeholder="<?php echo __('search tags…');?>"/>
 	</div>
 	<div class="popover_choice_main" id ="popover_choice_main">
 		<table style="width:100%;">
@@ -35,10 +35,16 @@
 	var tags = <?php echo json_encode($options); ?>;
 	$(document).ready(function() {
 		resizePopoverBody();
-		 $("#filterField").focus();
+		// Places the cursor at the end of the input before focusing
+		var filterField = $("#filterField");
+		var tempValue = filterField.val();
+		filterField.val('');
+		filterField.val(tempValue);
+		filter();
+		filterField.focus();
 	});
 
-	$('#filterField').keyup(function() {
+	function filter() {
 		var filterString =  $("#filterField").val().toLowerCase();
 		$.each(tags, function(index, value) {
 			if (value.toLowerCase().indexOf(filterString) == -1) {
@@ -47,7 +53,9 @@
 				$('#field_' + index).show();
 			}
 		});
-	});
+	}
+
+	$('#filterField').keyup(filter);
 	$(window).resize(function() {
 		resizePopoverBody();
 	});
