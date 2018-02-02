@@ -1074,6 +1074,8 @@ CREATE TABLE IF NOT EXISTS `users` (
   `current_login` int(11) DEFAULT 0,
   `last_login` int(11) DEFAULT 0,
   `force_logout` tinyint(1) NOT NULL DEFAULT 0,
+  `date_created` bigint(20),
+  `date_modified` bigint(20),
   PRIMARY KEY (`id`),
   INDEX `email` (`email`),
   INDEX `org_id` (`org_id`),
