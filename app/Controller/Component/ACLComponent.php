@@ -324,9 +324,13 @@ class ACLComponent extends Component {
 			),
 			'sharingGroups' => array(
 					'add' => array('perm_sharing_group'),
+					'addServer' => array('perm_sharing_group'),
+					'addOrg' => array('perm_sharing_group'),
 					'delete' => array('perm_sharing_group'),
 					'edit' => array('perm_sharing_group'),
 					'index' => array('*'),
+					'removeServer' => array('perm_sharing_group'),
+					'removeOrg' => array('perm_sharing_group'),
 					'view' => array('*'),
 			),
 			'sightings' => array(
