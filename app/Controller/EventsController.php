@@ -3309,8 +3309,10 @@ class EventsController extends AppController {
 	 *  - false: (default) ignore warninglists
 	 *  - 'soft': Unset the IDS flag of all attributes hitting on a warninglist item
 	 *  - true / 'hard': Block attributes from being added that have a hit in the warninglists
+	 * returnMetaAttributes is a flag that will force the API to return the results of the
+	 * parsing directly for external further processing. The flag is a simple boolean flag (0||1)
 	 */
-	public function freeTextImport($id, $adhereToWarninglists = false) {
+	public function freeTextImport($id, $adhereToWarninglists = false, $returnMetaAttributes = false) {
 		if (!$this->userRole['perm_add']) {
 			throw new MethodNotAllowedException('Event not found or you don\'t have permissions to create attributes');
 		}
@@ -3334,7 +3336,7 @@ class EventsController extends AppController {
 				$this->request->data = array('Attribute' => $this->request->data);
 			}
 			if (!isset($this->request->data['Attribute']['value'])) {
-				$this->request->data['Attribute'] = array('value' => $this->request->data);
+				$this->request->data['Attribute'] = array('value' => $this->request->data['Attribute']);
 			}
 			if (isset($this->request->data['Attribute']['adhereToWarninglists'])) {
 				$adhereToWarninglists = $this->request->data['Attribute']['adhereToWarninglists'];
@@ -3355,13 +3357,17 @@ class EventsController extends AppController {
 				}
 			}
 			if ($this->_isRest()) {
-				return $this->__pushFreetext(
-					$resultArray,
-					$id,
-					isset($this->request->data['Attribute']['distribution']) ? $this->request->data['Attribute']['distribution'] : false,
-					isset($this->request->data['Attribute']['sharing_group_id']) ? $this->request->data['Attribute']['sharing_group_id'] : false,
-					$adhereToWarninglists
-				);
+				if ($returnMetaAttributes || !empty($this->request->data['Attribute']['returnMetaAttributes'])) {
+					return $this->RestResponse->viewData($resultArray, $this->response->type());
+				} else {
+					return $this->__pushFreetext(
+						$resultArray,
+						$id,
+						isset($this->request->data['Attribute']['distribution']) ? $this->request->data['Attribute']['distribution'] : false,
+						isset($this->request->data['Attribute']['sharing_group_id']) ? $this->request->data['Attribute']['sharing_group_id'] : false,
+						$adhereToWarninglists
+					);
+				}
 			}
 			foreach ($resultArray as $key => $result) {
 				$options = array(
