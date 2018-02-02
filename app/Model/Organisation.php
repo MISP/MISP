@@ -304,4 +304,19 @@ class Organisation extends AppModel{
 		$logFile->close();
 		return $success;
 	}
+
+	public function fetchOrg($id) {
+		if (empty($id)) return false;
+		$conditions = array('Organisation.id' => $id);
+		if (Validation::uuid($id)) {
+			$conditions = array('Organisation.uuid' => $id);
+		} else if (!is_numeric($id)) {
+			$conditions = array('LOWER(Organisation.name)' => strtolower($id));
+		}
+		$org = $this->find('first', array(
+			'conditions' => $conditions,
+			'recursive' => -1
+		));
+		return (empty($org)) ? false : $org;
+	}
 }

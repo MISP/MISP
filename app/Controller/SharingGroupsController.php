@@ -285,4 +285,157 @@ class SharingGroupsController extends AppController {
 		$this->set('id', $id);
 		$this->set('sg', $sg);
 	}
+
+	private function __initialiseSGQuickEdit($id, $request) {
+		if (!$this->request->is('post') || !$this->_isRest()) {
+			//throw new MethodNotAllowedException('This action only accepts POST requests coming from the API.');
+		}
+		// allow passing the sg_id via a JSON object
+		if (!$id) {
+			$validParams = array('sg_id', 'sg_uuid', 'id', 'uuid');
+			foreach ($validParams as $param) {
+				if (!empty($request[$param])) {
+					$id = $request[$param];
+					break;
+				}
+			}
+			if (empty($id)) throw new MethodNotAllowedException('No valid sharing group ID provided.');
+		}
+		$sg = $this->SharingGroup->fetchSG($id, $this->Auth->user(), false);
+		if (empty($sg)) {
+			throw new MethodNotAllowedException('Invalid sharing group or no editing rights.');
+		}
+		return $sg;
+	}
+
+	private function __initialiseSGQuickEditObject($id, $request, $type = 'org') {
+		$params = array(
+			'org' => array(
+				'org_id', 'org_uuid', 'org_name'
+			),
+			'server' => array(
+				'server_id', 'server_url', 'server_baseurl', 'server_name'
+			)
+		);
+		if (!empty($id)) {
+			if ($type == 'org') {
+				return $this->SharingGroup->SharingGroupOrg->Organisation->fetchOrg($id);
+			} else {
+				return $this->SharingGroup->SharingGroupServer->Server->fetchServer($id);
+			}
+		}
+		if ($type !== 'org' && $type !== 'server') return false;
+		foreach ($params[$type] as $param) {
+			if (!empty($request[$param])) {
+				if ($type == 'org') {
+					return $this->SharingGroup->SharingGroupOrg->Organisation->fetchOrg($request[$param]);
+				} else {
+					return $this->SharingGroup->SharingGroupServer->Server->fetchServer($request[$param]);
+				}
+			}
+		}
+	}
+
+	public function addOrg($sg_id = false, $object_id = false, $extend = false) {
+		$sg = $this->__initialiseSGQuickEdit($sg_id, $this->request->data);
+		$org = $this->__initialiseSGQuickEditObject($object_id, $this->request->data, $type = 'org');
+		if (empty($org)) throw new MethodNotAllowedException('Invalid organisation.');
+		if (isset($this->request->data['extend'])) {
+			$extend = $this->request->data['extend'];
+		}
+		$addOrg = true;
+		if (!empty($sg['SharingGroupOrg'])) {
+			foreach ($sg['SharingGroupOrg'] as $sgo) {
+				if ($sgo['org_id'] == $org['Organisation']['id']) {
+					$addOrg = false;
+				}
+			}
+		}
+		if (!$addOrg) return $this->RestResponse->saveFailResponse('SharingGroup', $this->action, false, 'Organisation is already in the sharing group.', $this->response->type());
+		$this->SharingGroup->SharingGroupOrg->create();
+		$sgo = array(
+			'SharingGroupOrg' => array(
+				'org_id' => $org['Organisation']['id'],
+				'sharing_group_id' => $sg['SharingGroup']['id'],
+				'extend' => $extend ? 1:0
+			)
+		);
+		$result = $this->SharingGroup->SharingGroupOrg->save($sgo);
+		return $this->__sendQuickSaveResponse($this->action, $result, 'Organisation');
+	}
+
+	public function removeOrg($sg_id = false, $object_id = false) {
+		$sg = $this->__initialiseSGQuickEdit($sg_id, $this->request->data);
+		$org = $this->__initialiseSGQuickEditObject($object_id, $this->request->data, $type = 'org');
+		if (empty($org)) throw new MethodNotAllowedException('Invalid organisation.');
+		$removeOrg = false;
+		if (!empty($sg['SharingGroupOrg'])) {
+			foreach ($sg['SharingGroupOrg'] as $sgo) {
+				if ($sgo['org_id'] == $org['Organisation']['id']) {
+					$removeOrg = $sgo['id'];
+					break;
+				}
+			}
+		}
+		if (false === $removeOrg) return $this->RestResponse->saveFailResponse('SharingGroup', $this->action, false, 'Organisation is not in the sharing group.', $this->response->type());
+		$result = $this->SharingGroup->SharingGroupOrg->delete($removeOrg);
+		return $this->__sendQuickSaveResponse($this->action, $result, 'Organisation');
+	}
+
+	public function addServer($sg_id = false, $object_id = false, $all = false) {
+		$sg = $this->__initialiseSGQuickEdit($sg_id, $this->request->data);
+		$server = $this->__initialiseSGQuickEditObject($object_id, $this->request->data, $type = 'server');
+		if (empty($server)) throw new MethodNotAllowedException('Invalid Server.');
+		if (isset($this->request->data['all'])) $all = $this->request->data['all'];
+		if (isset($this->request->data['all_orgs'])) $all = $this->request->data['all_orgs'];
+		$addServer = true;
+		if (!empty($sg['SharingGroupServer'])) {
+			foreach ($sg['SharingGroupServer'] as $sgs) {
+				if ($sgs['server_id'] == $server['Server']['id']) {
+					$addServer = false;
+				}
+			}
+		}
+		if (!$addServer) return $this->RestResponse->saveFailResponse('SharingGroup', $this->action, false, 'Server is already in the sharing group.', $this->response->type());
+		$this->SharingGroup->SharingGroupServer->create();
+		$sgs = array(
+			'SharingGroupServer' => array(
+				'server_id' => $server['Server']['id'],
+				'sharing_group_id' => $sg['SharingGroup']['id'],
+				'all_orgs' => $all ? 1:0
+			)
+		);
+		$result = $this->SharingGroup->SharingGroupServer->save($sgs);
+		return $this->__sendQuickSaveResponse($this->action, $result);
+	}
+
+	public function removeServer($sg_id = false, $object_id = false) {
+		$sg = $this->__initialiseSGQuickEdit($sg_id, $this->request->data);
+		$server = $this->__initialiseSGQuickEditObject($object_id, $this->request->data, $type = 'server');
+		if (empty($server)) throw new MethodNotAllowedException('Invalid Server.');
+		$removeServer = false;
+		if (!empty($sg['SharingGroupServer'])) {
+			foreach ($sg['SharingGroupServer'] as $sgs) {
+				if ($sgs['server_id'] == $server['Server']['id']) {
+					$removeServer = $server['Server']['id'];
+					break;
+				}
+			}
+		}
+		if (false === $addServer) return $this->RestResponse->saveFailResponse('SharingGroup', $this->action, false, 'Server is not in the sharing group.', $this->response->type());
+		$result = $this->SharingGroup->SharingGroupServer->delete($removeServer);
+		return $this->__sendQuickSaveResponse($this->action, $result);
+	}
+
+	private function __sendQuickSaveResponse($action, $result, $object_type = 'Server') {
+		$actionType = 'added to';
+		if (strpos($action, 'remove') !== false) {
+			$actionType = 'removed from';
+		}
+		if ($result) {
+			return $this->RestResponse->saveSuccessResponse('SharingGroup', $action, false, $this->response->type(), $object_type . ' ' . $actionType . ' the sharing group.');
+		} else {
+			return $this->RestResponse->saveFailResponse('SharingGroup', $action, false, $object_type . ' could not be ' . $actionType . ' the sharing group.', $this->response->type());
+		}
+	}
 }

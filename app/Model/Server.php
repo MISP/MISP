@@ -3679,4 +3679,20 @@ class Server extends AppModel {
 	public function getDefaultAttachments_dir() {
 		return APP . 'files';
 	}
+
+	public function fetchServer($id) {
+			if (empty($id)) return false;
+			$conditions = array('Server.id' => $id);
+			if (!is_numeric($id)) {
+				$conditions = array('OR' => array(
+					'LOWER(Server.name)' => strtolower($id),
+					'LOWER(Server.url)' => strtolower($id)
+				));
+			}
+			$server = $this->find('first', array(
+				'conditions' => $conditions,
+				'recursive' => -1
+			));
+			return (empty($server)) ? false : $server;
+		}
 }

@@ -625,4 +625,33 @@ class SharingGroup extends AppModel {
 			}
 		}
 	}
+
+	// Fetch the Sharing Group passed as ID/uuid. Can be queried for read only and for write operations.
+	public function fetchSG($id, $user, $readOnly = true) {
+		if (empty($id)) return false;
+		if (Validation::uuid($id)) {
+			$id = $this->find('first', array(
+				'conditions' => array('SharingGroup.uuid' => $id),
+				'recursive' => -1,
+				'fields' => array('SharingGroup.id')
+			));
+			if (empty($id)) return false;
+			else $id = $id['SharingGroup']['id'];
+		} else {
+			$temp = $this->find('first', array(
+				'conditions' => array('SharingGroup.id' => $id),
+				'recursive' => -1,
+				'fields' => array('SharingGroup.id')
+			));
+			if (empty($temp)) return false;
+		}
+		if ($readOnly) {
+			if (!$this->checkIfAuthorised($user, $id)) return false;
+		} else {
+			if (!$this->checkIfAuthorisedExtend($user, $id)) return false;
+		}
+		$sg = $this->fetchAllAuthorised($user, 'full', false, $id);
+		if (empty($sg)) return false;
+		return $sg[0];
+	}
 }
