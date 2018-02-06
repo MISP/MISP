@@ -3269,6 +3269,7 @@ let keyboardShortcutsManager = {
 	
 	shortcutKeys: new Map(),
 	shortcutListToggled: false,
+	escapedTagNames: ["INPUT", "TEXTAREA", "SELECT"],
 	
 	/**
 	 * Fetches the keyboard shortcut config files and populates this.shortcutJSON.
@@ -3303,7 +3304,7 @@ let keyboardShortcutsManager = {
 	addShortcutListToHTML() {
 		let html = "<ul>";
 		for(let shortcut of this.shortcutKeys.values()) {
-			html += `<li><strong>${shortcut.key}</strong>: ${shortcut.description}</li>`
+			html += `<li><strong>${shortcut.key.toUpperCase()}</strong>: ${shortcut.description}</li>`
 		}
 		html += "</ul>"
 		$('#shortcuts').html(html);
@@ -3327,7 +3328,7 @@ let keyboardShortcutsManager = {
 		window.onkeyup = (keyboardEvent) => {
 			if(this.shortcutKeys.has(keyboardEvent.key)) {
 				let activeElement = document.activeElement.tagName;
-				if( activeElement !== "TEXTAREA" && activeElement !== "INPUT") {
+				if( !this.escapedTagNames.includes(activeElement)) {
 					eval(this.shortcutKeys.get(keyboardEvent.key).action);
 				}
 			}
