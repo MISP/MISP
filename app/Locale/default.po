@@ -18,139 +18,139 @@ msgstr ""
 #: Controller/EventsController.php:1403;1476;1480;1680;1742;1817;2412
 #: Controller/PostsController.php:52
 msgid "Invalid event"
-msgstr ""
+msgstr "Évènement invalide"
 
 #: Controller/AppController.php:497
 msgid "All done. attribute_count generated from scratch for "
-msgstr ""
+msgstr "Tout est fini. attribute_count généré pour "
 
 #: Controller/AppController.php:599
 #: Controller/AttributesController.php:2231
 #: Controller/ShadowAttributesController.php:1171
 msgid "Job queued. You can view the progress if you navigate to the active jobs view (administration -> jobs)."
-msgstr ""
+msgstr "Tache mise en file d'attente. Vous pouvez visualiser sa progression, accédez à la page des jobs actifs (administration -> jobs)."
 
 #: Controller/AttributesController.php:342;711;716;719;2242;2255;2275;2296;2304;2756;2758;2845;2847
 #: Controller/ShadowAttributesController.php:981;1005;1033;1043
 #: Controller/TagsController.php:410
 msgid "Invalid attribute"
-msgstr ""
+msgstr "Attribut invalide"
 
 #: Controller/AttributesController.php:373
 msgid "Attribute not an attachment or malware-sample"
-msgstr ""
+msgstr "L'attribut n'est pas une pièce jointe ou un échantillon de maliciel"
 
 #: Controller/AttributesController.php:546
 #: Controller/ShadowAttributesController.php:508;518
 msgid "There was a problem to upload the file."
-msgstr ""
+msgstr "Il y a eu un problème pour téléverser le fichier."
 
-#: Controller/AttributesController.php:726;763
-msgid "Invalid attribute."
-msgstr ""
+-#: Controller/AttributesController.php:726;763
+-msgid "Invalid attribute."
+-msgstr "Attribut invalide."
 
 #: Controller/AttributesController.php:782
 msgid "The attribute has been saved"
-msgstr ""
+msgstr "L'attribut n'a pas été savegardé"
 
 #: Controller/AttributesController.php:811
 #: Controller/ShadowAttributesController.php:424
 msgid "The attribute could not be saved. Please, try again."
-msgstr ""
+msgstr "L'attribut n' a pas pu être sauvegardé. Merci de réessayer."
 
 #: Controller/AttributesController.php:890
 #: Controller/EventsController.php:1048
 msgid "Invalid event id."
-msgstr ""
+msgstr "ID d'événement invalide."
 
 #: Controller/AttributesController.php:962
 msgid "Invalid attribute id."
-msgstr ""
+msgstr "ID d'attribut invalide."
 
 #: Controller/AttributesController.php:1028;1038
 msgid "Attribute deleted"
-msgstr ""
+msgstr "Attribut supprimé."
 
 #: Controller/AttributesController.php:1035
 msgid "Attribute was not deleted"
-msgstr ""
+msgstr "L'attribut n' a pas été supprimé."
 
 #: Controller/AttributesController.php:1354
 msgid "Invalid tag"
-msgstr ""
+msgstr "Étiquette invalide."
 
 #: Controller/AttributesController.php:2208
 #: Controller/ShadowAttributesController.php:1149
 msgid "All done. "
-msgstr ""
+msgstr "Tout est fini."
 
 #: Controller/EventBlacklistsController.php:11
 msgid "Event Blacklisting is not currently enabled on this instance."
-msgstr ""
+msgstr "La mise en liste noir d'évènement n'est actuellement pas activé sur cette instance."
 
 #: Controller/EventsController.php:610
 msgid "No x509 certificate or GPG key set in your profile. To receive emails, submit your public certificate or GPG key in your profile."
-msgstr ""
+msgstr "Il n'y a pas de certificat x509 ou clé GPG dans votre profil. Pour recevoir des courriels, renseignez votre certificat public ou votre clé GPG dans votre profil."
 
 #: Controller/EventsController.php:612
 msgid "No GPG key set in your profile. To receive emails, submit your public key in your profile."
-msgstr ""
+msgstr "Il n'y a pas de clé GPG définie dans votre profil. Pour recevoir des courriels, renseignez votre clé public dans votre profil."
 
 #: Controller/EventsController.php:618
 msgid "No x509 certificate or GPG key set in your profile. To receive attributes in emails, submit your public certificate or GPG key in your profile."
-msgstr ""
+msgstr "Aucun certificat x509 ou clé GPG dans votre profil. Pour recevoir des attributs par courriels, renseignez votre certificat public ou votre clé GPG dans votre profil.""
 
 #: Controller/EventsController.php:620
 msgid "No GPG key set in your profile. To receive attributes in emails, submit your public key in your profile."
-msgstr ""
+msgstr "Il n'y a pas de clé GPG définie dans votre profil. Pour recevoir des attributs par courriels, renseignez votre clé public dans votre profil."
 
 #: Controller/EventsController.php:1052
 msgid "Invalid event."
-msgstr ""
+msgstr "Évènement invalide."
 
 #: Controller/EventsController.php:1213
 msgid "You may only upload GFI Sandbox zip files."
-msgstr ""
+msgstr "Vous ne pouvez téléverser que des fichiers GFI Sandbox au format zip."
 
 #: Controller/EventsController.php:1276;1353;1546
 msgid "The event has been saved"
-msgstr ""
+msgstr "L'événement a été sauvegardé"
 
 #: Controller/EventsController.php:1279;1356
 msgid "The event has been saved. "
-msgstr ""
+msgstr "L'événement a été sauvegardé"
 
 #: Controller/EventsController.php:1300;1549
 msgid "The event could not be saved. Please, try again."
-msgstr ""
+msgstr "L'événement n' a pas pu être sauvegardé. Merci de réessayer."
 
 #: Controller/EventsController.php:1381
 msgid "You may only upload MISP XML or MISP JSON files."
-msgstr ""
+msgstr "Vous ne pouvez téléverser que des fichiers au format MISP XML ou MISP JSON."
 
 #: Controller/EventsController.php:1408;1486
 msgid "You are not authorised to do that. Please consider using the 'propose attribute' feature."
-msgstr ""
+msgstr "Vous n'êtes pas autorisé à effectuer cette action. Pensez à utiliser la fonctionnalité 'proposer un attribut'."
 
 #: Controller/EventsController.php:1415
 msgid "Invalid event ID entered."
-msgstr ""
+msgstr "Un ID d'événement invalide a été saisi."
 
 #: Controller/EventsController.php:1420
 msgid "You are not authorised to read the selected event."
-msgstr ""
+msgstr "Vous n'êtes pas autorisé à lire l'événement sélectionné."
 
 #: Controller/EventsController.php:1609
 msgid "Invalid input."
-msgstr ""
+msgstr "Saisie incorrecte."
 
 #: Controller/EventsController.php:1828
 msgid "Email sent to the reporter."
-msgstr ""
+msgstr "Un signalement à été envoyé."
 
 #: Controller/EventsController.php:1830
 msgid "Sending of email failed"
-msgstr ""
+msgstr "L'envoi de courriels a échoué"
 
 #: Controller/EventsController.php:2358
 msgid "Problem with writing the zip file. Please report to administrator."
