@@ -13,7 +13,12 @@
 		{
 			"key": "a",
 			"description": "Add an attribute",
-			"action": "console.log($('#liaddAttribute').children()[0].click())"
+			"action": "$('#liaddAttribute').children()[0].click()"
+		},
+		{
+			"key": "s",
+			"description": "Focus the filter attribute bar",
+			"action": "$('#attributesFilterField').focus()"
 		}
 	]
 }
