@@ -3303,7 +3303,7 @@ let keyboardShortcutsManager = {
 	addShortcutListToHTML() {
 		let html = "<ul>";
 		for(let shortcut of this.shortcutKeys.values()) {
-			html += `<li><strong>${shortcut.key.toUpperCase()}</strong>: ${shortcut.description}</li>`
+			html += `<li><strong>${shortcut.key}</strong>: ${shortcut.description}</li>`
 		}
 		html += "</ul>"
 		$('#shortcuts').html(html);
