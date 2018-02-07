@@ -3461,6 +3461,9 @@ class EventsController extends AppController {
 			throw new MethodNotAllowedException('Event not found or you don\'t have permissions to create attributes');
 		}
 		if ($this->request->is('post')) {
+			if (!$this->Event->checkIfAuthorised($this->Auth->user(), $id)) {
+				throw new MethodNotAllowedException('Invalid event.');
+			}
 			$event = $this->Event->find('first', array(
 				'conditions' => array('id' => $id),
 				'recursive' => -1,
@@ -4288,6 +4291,9 @@ class EventsController extends AppController {
 	public function importModule($module, $eventId) {
 		$this->loadModel('Module');
 		$moduleName = $module;
+		if (!$this->Event->checkIfAuthorised($this->Auth->user(), $eventId)) {
+			throw new MethodNotAllowedException('Invalid event.');
+		}
 		$module = $this->Module->getEnabledModule($module, 'Import');
 		if (!is_array($module)) throw new MethodNotAllowedException($module);
 		if (!isset($module['mispattributes']['inputSource'])) $module['mispattributes']['inputSource'] = array('paste');

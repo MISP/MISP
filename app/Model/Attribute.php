@@ -1001,6 +1001,7 @@ class Attribute extends AppModel {
 				}
 				break;
 			case 'vulnerability':
+				$value = str_replace('–', '-', $value);
 				if (preg_match("#^(CVE-)[0-9]{4}(-)[0-9]{4,6}$#", $value)) {
 					$returnValue = true;
 				} else {
@@ -1026,11 +1027,15 @@ class Attribute extends AppModel {
 			case 'pattern-in-file':
 			case 'pattern-in-traffic':
 			case 'pattern-in-memory':
-            case 'yara':
-            case 'stix2-pattern':
-            case 'sigma':
-            case 'gene':
-            case 'identity-card-number':
+      case 'yara':
+      case 'stix2-pattern':
+      case 'sigma':
+      case 'gene':
+      case 'yara':
+      case 'stix2-pattern':
+      case 'sigma':
+      case 'gene':
+      case 'identity-card-number':
 			case 'cookie':
 			case 'attachment':
 			case 'malware-sample':
@@ -1073,8 +1078,8 @@ class Attribute extends AppModel {
 			case 'filename':
 			case 'pdb':
 			case 'windows-scheduled-task':
-            case 'whois-registrant-name':
-            case 'whois-registrant-org':
+      case 'whois-registrant-name':
+      case 'whois-registrant-org':
 			case 'whois-registrar':
 			case 'whois-creation-date':
 			case 'first-name':
