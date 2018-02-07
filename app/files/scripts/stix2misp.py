@@ -338,7 +338,7 @@ def fillMispAttribute(prop, category):
 
 
 def saveFile(namefile, pathname, misp):
-    filepath = "{}/tmp/{}.stix".format(pathname, namefile)
+    filepath = "{}/tmp/{}".format(pathname, namefile)
     eventDict = misp.to_json()
     with open(filepath, 'w') as f:
         f.write(eventDict)
