@@ -49,7 +49,7 @@ def loadEvent(args, pathname):
             event = STIXPackage.from_xml(filename)
             event = json.loads(event.to_json())
             try:
-                event = event['related_packages']['related_package'][0]
+                event = event['related_packages']['related_packages'][0]
             except:
                 fromMISP = False
             isJson = False
