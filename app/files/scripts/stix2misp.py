@@ -48,9 +48,9 @@ def loadEvent(args, pathname):
         except:
             event = STIXPackage.from_xml(filename)
             event = json.loads(event.to_json())
-            try:
+            if args[1].startswith('misp.'):
                 event = event['related_packages']['related_packages'][0]
-            except:
+            else:
                 fromMISP = False
             isJson = False
         return event, isJson, fromMISP
