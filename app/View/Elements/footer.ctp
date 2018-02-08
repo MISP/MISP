@@ -1,5 +1,12 @@
 <div class="footer <?php echo $debugMode;?>">
-	<div class="navbar navbar-inverse">
+	<div id="shortcutsListContainer">
+		<div id="triangle"></div>
+		<div id="shortcutsList">
+			<span> <?php echo __('Keyboard shortcuts for this page'); ?>:</span><br />
+			<div id="shortcuts"><?php echo __('none'); ?></div>
+		</div>
+	</div>
+	<div id="footerContainer" class="navbar navbar-inverse">
 		<div class="navbar-inner">
 			<div class="pull-left footerText" style="float:left;position:absolute;padding-top:12px;z-index:2;">
 				<?php

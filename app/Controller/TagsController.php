@@ -474,7 +474,7 @@ class TagsController extends AppController {
 		$this->render('ajax/taxonomy_choice');
 	}
 
-	public function selectTag($id, $taxonomy_id, $attributeTag = false) {
+	public function selectTag($id, $taxonomy_id, $attributeTag = false, $filterData = '') {
 		if (!$this->_isSiteAdmin() && !$this->userRole['perm_tagger']) throw new NotFoundException('You don\'t have permission to do that.');
 		$this->loadModel('Taxonomy');
 		$expanded = array();
@@ -538,7 +538,7 @@ class TagsController extends AppController {
 			unset($options[$hidden_tag]);
 			unset($expanded[$hidden_tag]);
 		}
-		if ($attributeTag !== false) {
+		if ($attributeTag !== false && $attributeTag !== "false") {
 			$this->set('attributeTag', true);
 		}
 		$this->set('object_id', $id);
@@ -550,6 +550,7 @@ class TagsController extends AppController {
 		$this->set('options', $options);
 		$this->set('expanded', $expanded);
 		$this->set('custom', $taxonomy_id == 0 ? true : false);
+		$this->set('filterData', $filterData);
 		$this->render('ajax/select_tag');
 	}
 
