@@ -97,6 +97,8 @@ def main(args):
         sys.exit("Invalid parameters")
 
     baseURL = sys.argv[1]
+    if not baseURL:
+        baseURL = 'https://www.misp-project.org'
     orgname = sys.argv[2]
 
     namespace = [baseURL, orgname.replace(" ", "_")]
