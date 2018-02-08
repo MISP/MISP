@@ -349,7 +349,7 @@ def main(args):
     if isJson:
         namefile = args[1]
     else:
-        namefile = '{}.json'.format(args[1][:-4])
+        namefile = '{}.json'.format(args[1])
     if fromMISP:
         stixEvent = stixEvent["package"]
         mispDict = buildMispDict(stixEvent)
