@@ -124,6 +124,7 @@ class ACLComponent extends Component {
 					'toggleCorrelation' => array('perm_add'),
 					'updateGraph' => array('*'),
 					'upload_sample' => array('AND' => array('perm_auth', 'perm_add')),
+					'upload_stix' => array('perm_add'),
 					'view' => array('*'),
 					'viewEventAttributes' => array('*'),
 					'viewGraph' => array('*'),

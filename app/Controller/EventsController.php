@@ -1424,6 +1424,84 @@ class EventsController extends AppController {
 		}
 	}
 
+	public function upload_stix() {
+		if (!$this->userRole['perm_modify']) {
+			throw new UnauthorizedException('You do not have permission to do that.');
+		}
+		if ($this->request->is('post')) {
+			if ($this->_isRest()) {
+				$randomFileName = $this->Event->generateRandomFileName();
+				$tmpDir = APP . "files" . DS . "scripts" . DS . "tmp";
+				$tempFile = new File($tmpDir . DS . $randomFileName, true, 0644);
+				$tempFile->write($this->request->input());
+				$tempFile->close();
+				$result = $this->Event->upload_stix($this->Auth->user(), $randomFileName);
+				if (is_array($result)) {
+					return $this->RestResponse->saveSuccessResponse('Events', 'upload_stix', false, $this->response->type(), 'STIX document imported, event\'s created: ' . implode(', ', $result) . '.');
+				} else if (is_numeric($result)) {
+					$event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $result));
+					if (!empty($event)) {
+						return $this->RestResponse->viewData($event[0], $this->response->type());
+					} else {
+						return $this->RestResponse->saveFailResponse('Events', 'upload_stix', false, 'Could not read saved event.', $this->response->type());
+					}
+				} else {
+					return $this->RestResponse->saveFailResponse('Events', 'upload_stix', false, $result, $this->response->type());
+				}
+			} else {
+				if (isset($this->data['Event']['stix']) && $this->data['Event']['stix']['size'] > 0 && is_uploaded_file($this->data['Event']['stix']['tmp_name'])) {
+					$randomFileName = $this->Event->generateRandomFileName();
+					$tmpDir = APP . "files" . DS . "scripts" . DS . "tmp";
+					move_uploaded_file($this->data['Event']['stix']['tmp_name'], $tmpDir . DS . $randomFileName);
+					$result = $this->Event->upload_stix($this->Auth->user(), $randomFileName);
+					if (is_array($result)) {
+						$this->Session->setFlash(__('STIX document imported, event\'s created: ' . implode(', ', $result) . '.'));
+						$this->redirect(array('action' => 'index'));
+					} else if (is_numeric($result)) {
+						$this->Session->setFlash(__('STIX document imported.'));
+						$this->redirect(array('action' => 'view', $result));
+					} else {
+						$this->Session->setFlash(__('Could not import STIX document: ' . $result));
+					}
+				} else {
+					$max_size = intval(ini_get('post_max_size'));
+					if (intval(ini_get('upload_max_filesize')) < $max_size) $max_size = intval(ini_get('upload_max_filesize'));
+					$this->Session->setFlash(__('File upload failed. Make sure that you select a stix file to be uploaded and that the file doesn\'t exceed the maximum file size of ' . $max_size . '.'));
+				}
+			}
+		}
+	}
+
+/*
+	public function upload_stix2() {
+		if (!$this->userRole['perm_modify']) {
+			throw new UnauthorizedException('You do not have permission to do that.');
+		}
+		if ($this->request->is('post')) {
+
+			if ($this->_isRest()) {
+				$randomFileName = $this->Event->generateRandomFileName();
+				$tmpDir = APP . "files" . DS . "scripts" . DS . "tmp";
+				$tempFile = new File($tmpDir . DS . $randomFileName, true, 0644);
+				$tempFile->write($this->request->input());
+				$tempFile->close();
+				$result = $this->Event->upload_stix2($this->Auth->user(), $randomFileName);
+			} else {
+				if (isset($this->data['Event']['stix']) && $this->data['Event']['stix']['size'] > 0 && is_uploaded_file($this->data['Event']['stix']['tmp_name'])) {
+					$randomFileName = $this->Event->generateRandomFileName();
+					$tmpDir = APP . "files" . DS . "scripts" . DS . "tmp";
+					move_uploaded_file($this->data['Event']['stix']['tmp_name'], $tmpDir . DS . $randomFileName);
+					$result = $this->Event->upload_stix($this->Auth->user(), $randomFileName);
+				} else {
+					$max_size = intval(ini_get('post_max_size'));
+					if (intval(ini_get('upload_max_filesize')) < $max_size) $max_size = intval(ini_get('upload_max_filesize'));
+					throw new UnauthorizedException('File upload failed. Make sure that you select a stix file to be uploaded and that the file doesn\'t exceed the maximum file size of ' . $max_size . '.');
+				}
+			}
+		}
+	}
+	*/
+
 	public function merge($target_id = null) {
 		$this->Event->id = $target_id;
 		$eIds = $this->Event->fetchEventIds($this->Auth->user(), false, false, false, true);
@@ -3869,45 +3947,60 @@ class EventsController extends AppController {
 		$this->render('ajax/exportChoice');
 	}
 
-	public function importChoice($id) {
-		if (!is_numeric($id)) throw new MethodNotAllowedException('Invalid ID');
-		$event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
-		if (empty($event)) throw new NotFoundException('Event not found or you are not authorised to view it.');
-		$event = $event[0];
-		$imports = array(
-				'freetext' => array(
-						'url' => '/events/freeTextImport/' . $id,
-						'text' => 'Freetext Import',
-						'ajax' => true,
-						'target' => 'popover_form'
-				),
-				'template' => array(
-						'url' => '/templates/templateChoices/' . $id,
-						'text' => 'Populate using a Template',
-						'ajax' => true,
-						'target' => 'popover_form'
-				),
-				'OpenIOC' => array(
-						'url' => '/events/addIOC/' . $id,
-						'text' => 'OpenIOC Import',
+	public function importChoice($id = false, $scope = 'event') {
+		if ($scope == 'event') {
+			if (!is_numeric($id)) throw new MethodNotAllowedException('Invalid ID');
+			$event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
+			if (empty($event)) throw new NotFoundException('Event not found or you are not authorised to view it.');
+			$event = $event[0];
+			$imports = array(
+					'freetext' => array(
+							'url' => '/events/freeTextImport/' . $id,
+							'text' => 'Freetext Import',
+							'ajax' => true,
+							'target' => 'popover_form'
+					),
+					'template' => array(
+							'url' => '/templates/templateChoices/' . $id,
+							'text' => 'Populate using a Template',
+							'ajax' => true,
+							'target' => 'popover_form'
+					),
+					'OpenIOC' => array(
+							'url' => '/events/addIOC/' . $id,
+							'text' => 'OpenIOC Import',
+							'ajax' => false,
+					),
+					'ThreatConnect' => array(
+							'url' => '/attributes/add_threatconnect/' . $id,
+							'text' => 'ThreatConnect Import',
+							'ajax' => false
+					)
+			);
+			$this->loadModel('Module');
+			$modules = $this->Module->getEnabledModules($this->Auth->user(), false, 'Import');
+			if (is_array($modules) && !empty($modules)) {
+				foreach ($modules['modules'] as $k => $module) {
+					$imports[$module['name']] = array(
+							'url' => '/events/importModule/' . $module['name'] . '/' . $id,
+							'text' => Inflector::humanize($module['name']),
+							'ajax' => false
+					);
+				}
+			}
+		} else {
+			$imports = array(
+				'MISP' => array(
+						'url' => '/events/add_misp_export',
+						'text' => 'MISP standard (recommended exchange format)',
 						'ajax' => false,
 				),
-				'ThreatConnect' => array(
-						'url' => '/attributes/add_threatconnect/' . $id,
-						'text' => 'ThreatConnect Import',
-						'ajax' => false
+				'STIX' => array(
+						'url' => '/events/upload_stix',
+						'text' => 'STIX 1.1.1 format',
+						'ajax' => false,
 				)
-		);
-		$this->loadModel('Module');
-		$modules = $this->Module->getEnabledModules($this->Auth->user(), false, 'Import');
-		if (is_array($modules) && !empty($modules)) {
-			foreach ($modules['modules'] as $k => $module) {
-				$imports[$module['name']] = array(
-						'url' => '/events/importModule/' . $module['name'] . '/' . $id,
-						'text' => Inflector::humanize($module['name']),
-						'ajax' => false
-				);
-			}
+			);
 		}
 		$this->set('imports', $imports);
 		$this->set('id', $id);
