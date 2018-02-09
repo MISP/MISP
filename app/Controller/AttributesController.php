@@ -1172,11 +1172,11 @@ class AttributesController extends AppController {
 		$attributes = $this->Attribute->find('all', array(
 			'recursive' => -1,
 			'conditions' => array('id' => $ids, 'event_id' => $id),
-			'fields' => array('id', 'event_id')
+			'fields' => array('id', 'event_id', 'deleted')
 		));
 		$successes = array();
 		foreach ($attributes as $a) {
-			if ($this->__delete($a['Attribute']['id'])) $successes[] = $a['Attribute']['id'];
+			if ($this->__delete($a['Attribute']['id'], $a['Attribute']['deleted'] == 1 ? true : false)) $successes[] = $a['Attribute']['id'];
 		}
 		$fails = array_diff($ids, $successes);
 		$this->autoRender = false;
