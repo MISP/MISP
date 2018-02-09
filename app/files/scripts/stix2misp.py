@@ -26,6 +26,7 @@ eventTypes = {"ipv4-addr": {"src": "ip-src", "dst": "ip-dst", "value": "address_
               "DomainNameObjectType": {"type": "domain", "value": "value", "relation": "domain"},
               "HostnameObjectType": {"type": "hostname", "value": "hostname_value", "relation": "host"},
               "PortObjectType": {"type": "port", "value": "port_value", "relation": "port"},
+              "HTTPSessionObjectType": {"type": "", "value": "", "relation": ""},
               "AddressObjectType": {"email": "email-src", "": ""},
               "to": {"type": "email-dst", "value": "address_value", "relation": "to"},
               "from": {"type": "email-src", "value": "value", "relation": "from"},
@@ -48,9 +49,9 @@ def loadEvent(args, pathname):
         except:
             event = STIXPackage.from_xml(filename)
             event = json.loads(event.to_json())
-            try:
+            if args[1].startswith('misp.'):
                 event = event['related_packages']['related_packages'][0]
-            except:
+            else:
                 fromMISP = False
             isJson = False
         return event, isJson, fromMISP
@@ -182,6 +183,7 @@ def buildExternalDict(stixEvent):
     header = stixEvent.get('stix_header')
     eventInfo(mispDict, header)
     mispDict['Attribute'] = []
+    mispDict['Object'] = []
     if 'indicators' in stixEvent:
         indicators = stixEvent.get('indicators')
         parseAttributes(indicators, mispDict, True)
@@ -202,6 +204,11 @@ def parseAttributes(attributes, mispDict, indic):
             obj = attr.get('object')
         try:
             properties = obj.get('properties')
+            if 'hashes' in properties and len(properties.get('hashes')) > 1:
+                parseFileObject(properties, mispDict)
+                continue
+            elif properties.get('xsi:type') == 'WhoisObjectType':
+                continue
         except:
             continue
         try:
@@ -213,13 +220,30 @@ def parseAttributes(attributes, mispDict, indic):
         attribute['to_ids'] = indic
         mispDict['Attribute'].append(attribute)
 
+def parseFileObject(properties, mispDict):
+    obj = {'name': 'file', 'Attribute': []}
+    if 'file_name' in properties:
+        obj['Attribute'].append({'type': 'filename', 'object_relation': 'filename', 'value': properties.get('file_name')})
+    if 'peak_entropy' in properties:
+        obj['Attribute'].append({'type': 'float', 'object_relation': 'entropy', 'value': properties.get('peak_entropy')})
+    if 'size_in_bytes' in properties:
+        obj['Attribute'].append({'type': 'size-in-bytes', 'object_relation': 'size-in-bytes',
+                                 'value': properties.get('size_in_bytes')})
+    for h in properties.get('hashes'):
+        h_type = h.get('type').lower()
+        obj['Attribute'].append({'type': h_type, 'object_relation': h_type, 'value': h.get('simple_hash_value')})
+    mispDict['Object'].append(obj)
+
 def parseTTPS(ttps, mispDict):
     mispDict['Galaxy'] = []
     for ttp in ttps:
         behavior = ttp.get('behavior')
         if 'malware_instances' in behavior:
             attr = behavior['malware_instances'][0]
-            attrType = attr['types'][0].get('value')
+            try:
+                attrType = attr['types'][0].get('value')
+            except:
+                continue
             attribute = {'type': attrType, 'GalaxyCluster': []}
             cluster = {'type': attrType}
             try:
@@ -238,8 +262,13 @@ def parseTTPS(ttps, mispDict):
 def fillExternalAttribute(properties):
     if 'hashes' in properties:
         hashes = properties['hashes'][0]
-        typeVal = hashes.get('type').lower()
+        try:
+            typeVal = hashes.get('type').lower()
+        except:
+            typeVal = hashes['type'].get('value').lower()
         value = hashes.get('simple_hash_value')
+        if type(value) is dict:
+            value = value.get('value')
     else:
         attrType = properties.get('xsi:type')
         if attrType == 'AddressObjectType':
@@ -253,6 +282,8 @@ def fillExternalAttribute(properties):
                         typeVal = eventTypes[properties.get('category')].get('src')
                 except:
                     typeVal = "ip-src"
+        elif attrType == 'HTTPSessionObjectType':
+            return "http-method", properties['http_request_response'][0]['http_client_request']['http_request_header']['raw_header']
         else:
             typeVal = eventTypes[properties.get('xsi:type')].get('type')
         if 'address_value' in properties:
