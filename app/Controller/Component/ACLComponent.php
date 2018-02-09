@@ -497,6 +497,7 @@ class ACLComponent extends Component {
 			if ($controllerName === 'app') $controllerName = '*';
 			$functionArray = array();
 			$fileContents = file_get_contents(APP . 'Controller' . DS . $file);
+			$fileContents = preg_replace('/\/\*[^\*]+?\*\//', '', $fileContents);
 			preg_match_all($functionFinder, $fileContents, $functionArray);
 			foreach ($functionArray[1] as $function) {
 				if (substr($function, 0, 1) !== '_' && $function !== 'beforeFilter') $results[$controllerName][] = $function;
