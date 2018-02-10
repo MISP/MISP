@@ -580,8 +580,10 @@ class Attribute extends AppModel {
 		));
 		if (!empty($event)) {
 			if ($increment) $event['Event']['attribute_count'] = $event['Event']['attribute_count'] + 1;
-			else  $event['Event']['attribute_count'] = $event['Event']['attribute_count'] - 1;
-			$this->Event->save($event, array('callbacks' => false));
+			else $event['Event']['attribute_count'] = $event['Event']['attribute_count'] - 1;
+			if ($event['Event']['attribute_count'] >= 0) {
+				$this->Event->save($event, array('callbacks' => false));
+			}
 		}
 	}
 
