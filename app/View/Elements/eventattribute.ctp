@@ -270,18 +270,18 @@ attributes or the appropriate distribution level. If you think there is a mistak
 		$('.select_attribute').click(function(e) {
 			if ($(this).is(':checked')) {
 				if (e.shiftKey) {
-					selectAllInbetween(lastSelected, $(this).parent().data('position'));
+					selectAllInbetween(lastSelected, this.id);
 				}
-				lastSelected = $(this).parent().data('position');
+				lastSelected = this.id;
 			}
 			attributeListAnyAttributeCheckBoxesChecked();
 		});
 		$('.select_proposal').click(function(e){
 			if ($(this).is(':checked')) {
 				if (e.shiftKey) {
-					selectAllInbetween(lastSelected, $(this).parent().data('position'));
+					selectAllInbetween(lastSelected, this.id);
 				}
-				lastSelected = $(this).parent().data('position');
+				lastSelected = this.id;
 			}
 			attributeListAnyProposalCheckBoxesChecked();
 		});

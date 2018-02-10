@@ -2968,13 +2968,15 @@ function quickEditEvent(id, field) {
 
 function selectAllInbetween(last, current) {
 	if (last === false || last == current) return false;
-	if (last < current) {
-		var temp = current;
-		current = last;
-		last = temp;
+	var from = $('#' + last).parent().parent().index();
+	var to = $('#' + current).parent().parent().index();
+	if (to < from) {
+		var temp = from;
+		from = to;
+		to = temp;
 	}
 	$('.select_proposal, .select_attribute').each(function () {
-		if ($(this).parent().data('position') > current && $(this).parent().data('position') < last) {
+		if ($('#' + this.id).parent().parent().index() >= from && $('#' + this.id).parent().parent().index() <= to) {
 			$(this).prop('checked', true);
 		}
 	});
@@ -3266,11 +3268,11 @@ $(document).ready(function() {
 
 /* ============== KEYBOARD SHORTCUTS ==============*/
 let keyboardShortcutsManager = {
-	
+
 	shortcutKeys: new Map(),
 	shortcutListToggled: false,
 	escapedTagNames: ["INPUT", "TEXTAREA", "SELECT"],
-	
+
 	/**
 	 * Fetches the keyboard shortcut config files and populates this.shortcutJSON.
 	 */
@@ -3351,11 +3353,11 @@ let keyboardShortcutsManager = {
 					reject(new Error(req.statusText));
 				}
 			};
-	
+
 			req.onerror = function() {
 				reject(new Error("Network error"));
 			};
-	
+
 			req.send();
 		});
 	}
