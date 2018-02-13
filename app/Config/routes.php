@@ -39,8 +39,7 @@
 	Router::parseExtensions('xml', 'json');
 
 	Router::connectNamed(
-		array('attributesPage' => array('controller' => 'events', 'action' => 'view')),
-        array('attributesPage' => array('controller' => 'events', 'action' => 'view'))
+		array('attributesPage' => array('controller' => 'events', 'action' => 'view'))
 	);
     
     // ModulesQuery    
