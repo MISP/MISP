@@ -39,8 +39,13 @@
 	Router::parseExtensions('xml', 'json');
 
 	Router::connectNamed(
-		array('attributesPage' => array('controller' => 'events', 'action' => 'view'))
+		array('attributesPage' => array('controller' => 'events', 'action' => 'view')),
+        array('attributesPage' => array('controller' => 'events', 'action' => 'view'))
 	);
+    
+    // ModulesQuery    
+    Router::connect('/modulesQuery/list', array('controller' => 'modulesQuery', 'action' => 'index'));
+    Router::connect('/modulesQuery/query', array('controller' => 'modulesQuery', 'action' => 'query'));
 /**
  * Load all plugin routes.  See the CakePlugin documentation on
  * how to customize the loading of plugin routes.
