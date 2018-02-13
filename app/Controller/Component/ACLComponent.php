@@ -191,6 +191,10 @@ class ACLComponent extends Component {
 					'returnDates' => array('*'),
 					'pruneUpdateLogs' => array()
 			),
+            'modulesQuery' => array(
+                'index' => array(),
+                'query' => array(),
+            ),
 			'news' => array(
 					'add' => array(),
 					'edit' => array(),
