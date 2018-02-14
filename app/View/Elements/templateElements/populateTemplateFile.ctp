@@ -25,5 +25,5 @@
 <script type="text/javascript">
 	var i_<?php echo h($element_id); ?> = 0;
 	var element_id_<?php echo h($element_id); ?> = <?php echo h($element_id); ?>;
-	var batch_<?php echo h($element_id); ?> = "<?php echo ($element['batch'] ? '<?php echo __('yes');?>' : '<?php echo __('no');?>'); ?>";
+	var batch_<?php echo h($element_id); ?> = "<?php echo ($element['batch'] ? '<?php echo __(\'yes\');?>' : '<?php echo __(\'no\');?>'); ?>";
 </script>
