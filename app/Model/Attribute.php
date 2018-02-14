@@ -337,6 +337,7 @@ class Attribute extends AppModel {
 					)
 	);
 
+	// FIXME we need a better way to list the defaultCategories knowing that new attribute types will continue to appear in the future. We should generate this dynamically or use a function using the default_category of the $typeDefinitions
 	public $defaultCategories = array(
 			'md5' => 'Payload delivery',
 			'sha1' => 'Payload delivery',
@@ -357,6 +358,7 @@ class Attribute extends AppModel {
 			'filename' => 'Payload delivery',
 			'ip-src' => 'Network activity',
 			'ip-dst' => 'Network activity',
+			'ip-dst|port' => 'Network activity',
 			'mac-address' => 'Network activity',
 			'mac-eui-64' => 'Network activity',
 			'hostname' => 'Network activity',

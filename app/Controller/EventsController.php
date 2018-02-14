@@ -3486,52 +3486,157 @@ class EventsController extends AppController {
 		}
 	}
 
-	public function __pushFreetext($resultArray, $eventId, $distribution = false, $sg = false, $adhereToWarninglists = false) {
+	public function __pushFreetext($attributes, $id, $distribution = false, $sg = false, $adhereToWarninglists = false) {
+		
+		if ($distribution === false) {
+			if (Configure::read('MISP.default_attribute_distribution') != null) {
+				if (Configure::read('MISP.default_attribute_distribution') == 'event') {
+					$distribution = 5;
+				} else {
+					$distribution = Configure::read('MISP.default_attribute_distribution');
+				}
+			} else {
+				$distribution = 0;
+			}
+		}
+		// prepare the default choices
+		foreach ($attributes as $k => $attribute) {
+			$attribute['type'] = $attribute['default_type'];
+			unset($attribute['default_type']);
+			unset($attribute['types']);
+			if (isset($attribute['default_category'])) {
+				$attribute['category'] = $attribute['default_category'];
+				unset($attribute['default_category']);
+			} else {
+				$attribute['category'] = $this->Event->Attribute->defaultCategories[$attribute['type']];
+			}
+			$attribute['distribution'] = $distribution;
+			$attribute['event_id'] = $id;
+			$attributes[$k] = $attribute;
+		}
+		// actually save the attribute now
+		$this->__processFreeTextData($attributes, $id, '', false, $adhereToWarninglists);
+		// FIXME $attributes does not contain the onteflyattributes
+		$attributes = array_values($attributes);
+		return $this->RestResponse->viewData($attributes, $this->response->type());
+	}
+
+	private function __processFreeTextData($attributes, $id, $default_comment = '', $force = false, $adhereToWarninglists = false) {
+		$event = $this->Event->find('first', array(
+			'conditions' => array('id' => $id),
+			'recursive' => -1,
+			'fields' => array('orgc_id', 'id', 'distribution', 'published', 'uuid'),
+		));
+		if (!$this->_isSiteAdmin() && !empty($event) && $event['Event']['orgc_id'] != $this->Auth->user('org_id')) $objectType = 'ShadowAttribute';
+		else if ($this->_isSiteAdmin() && isset($force) && $force) $objectType = 'ShadowAttribute';
+		else $objectType = 'Attribute';
+
 		if ($adhereToWarninglists) {
 			$this->Warninglist = ClassRegistry::init('Warninglist');
 			$warninglists = $this->Warninglist->fetchForEventView();
 		}
-		foreach ($resultArray as $k => $result) {
-			$result['type'] = $result['default_type'];
-			unset($result['default_type']);
-			unset($result['types']);
-			if (isset($result['default_category'])) {
-				$result['category'] = $result['default_category'];
-				unset($result['default_category']);
-			} else {
-				$result['category'] = $this->Event->Attribute->defaultCategories[$result['type']];
-			}
-			if ($distribution === false) {
-				if (Configure::read('MISP.default_attribute_distribution') != null) {
-					if (Configure::read('MISP.default_attribute_distribution') == 'event') {
-						$distribution = 5;
-					} else {
-						$distribution = Configure::read('MISP.default_attribute_distribution');
+
+		$saved = 0;
+		$failed = 0;
+		$attributeSources = array('attributes', 'ontheflyattributes');
+		$ontheflyattributes = array();
+		foreach ($attributeSources as $source) {
+			foreach (${$source} as $k => $attribute) {
+				if ($attribute['type'] == 'ip-src/ip-dst') {
+					$types = array('ip-src', 'ip-dst');
+				} else if ($attribute['type'] == 'ip-src|port/ip-dst|port') {
+					$types = array('ip-src|port', 'ip-dst|port');
+				} else if ($attribute['type'] == 'malware-sample') {
+					if (!isset($attribute['data_is_handled']) || !$attribute['data_is_handled']) {
+						$result = $this->Event->Attribute->handleMaliciousBase64($id, $attribute['value'], $attribute['data'], array('md5', 'sha1', 'sha256'), $objectType == 'ShadowAttribute' ? true : false);
+						if (!$result['success']) {
+							$failed++;
+							continue;
+						}
+						$attribute['data'] = $result['data'];
+						$shortValue = $attribute['value'];
+						$attribute['value'] = $shortValue . '|' . $result['md5'];
+						$additionalHashes = array('sha1', 'sha256');
+						foreach ($additionalHashes as $hash) {
+							$temp = $attribute;
+							$temp['type'] = 'filename|' . $hash;
+							$temp['value'] = $shortValue . '|' . $result[$hash];
+							unset($temp['data']);
+							$ontheflyattributes[] = $temp;
+						}
 					}
+					$types = array($attribute['type']);
 				} else {
-					$distribution = 0;
+					$types = array($attribute['type']);
 				}
-			}
-			$result['distribution'] = $distribution;
-			$result['event_id'] = $eventId;
-			$resultArray[$k] = $result;
-			if ($adhereToWarninglists) {
-				if (!$this->Warninglist->filterWarninglistAttributes($warninglists, $result)) {
-					if ($adhereToWarninglists == 'soft') {
-						$result['to_ids'] = 0;
+				foreach ($types as $type) {
+					$this->Event->$objectType->create();
+					$attribute['type'] = $type;
+					if (empty($attribute['comment'])) $attribute['comment'] = $default_comment;
+					$attribute['event_id'] = $id;
+					if ($objectType == 'ShadowAttribute') {
+						$attribute['org_id'] = $this->Auth->user('org_id');
+						$attribute['event_org_id'] = $event['Event']['orgc_id'];
+						$attribute['email'] = $this->Auth->user('email');
+						$attribute['event_uuid'] = $event['Event']['uuid'];
+					}
+					// adhere to the warninglist
+					if ($adhereToWarninglists) {
+						if (!$this->Warninglist->filterWarninglistAttributes($warninglists, $attribute)) {
+							if ($adhereToWarninglists == 'soft') {
+								$attribute['to_ids'] = 0;
+							} else {
+								// just ignore the attribute
+								continue;
+							}
+						}
+					}
+					$AttributSave = $this->Event->$objectType->save($attribute);
+					if ($AttributSave) {
+						// If Tags, attache each tags to attribut
+						if (!empty($attribute['tags'])) {
+							foreach (explode(",",$attribute['tags']) as $tagName){
+								$this->loadModel('Tag');
+								$TagId = $this->Tag->captureTag(array('name' => $tagName),array('Role' => $this->userRole));
+								$this->loadModel('AttributeTag');
+								if (!$this->AttributeTag->attachTagToAttribute($AttributSave['Attribute']['id'],$id,$TagId)) {
+									throw new MethodNotAllowedException('Could not add tags.');
+								}
+							}
+						}
+						$saved++;
 					} else {
-						unset($resultArray[$k]);
-						continue;
+						$failed++;
 					}
 				}
-			}
-			$this->Event->Attribute->create();
-			if (!$this->Event->Attribute->save($result)) {
-				unset($resultArray[$k]);
 			}
 		}
-		$resultArray = array_values($resultArray);
-		return $this->RestResponse->viewData($resultArray, $this->response->type());
+		$emailResult = '';
+		$messageScope = $objectType == 'ShadowAttribute' ? 'proposals' : 'attributes';
+		if ($saved > 0) {
+			if ($objectType != 'ShadowAttribute') {
+				$event = $this->Event->find('first', array(
+						'conditions' => array('Event.id' => $id),
+						'recursive' => -1
+				));
+				if ($event['Event']['published'] == 1) {
+					$event['Event']['published'] = 0;
+				}
+				$date = new DateTime();
+				$event['Event']['timestamp'] = $date->getTimestamp();
+				$this->Event->save($event);
+			} else {
+				if (!$this->Event->ShadowAttribute->sendProposalAlertEmail($id)) {
+					$emailResult = " but sending out the alert e-mails has failed for at least one recipient";
+				}
+			}
+		}
+		if ($failed > 0) {
+			$flashMessage = $saved . ' ' . $messageScope . ' created' . $emailResult . '. ' . $failed . ' ' . $messageScope . ' could not be saved. This may be due to attributes with similar values already existing.';
+		} else {
+			$flashMessage = $saved . ' ' . $messageScope . ' created' . $emailResult . '.';
+		}
+		return $flashMessage;
 	}
 
 	public function saveFreeText($id) {
@@ -3542,104 +3647,13 @@ class EventsController extends AppController {
 			if (!$this->Event->checkIfAuthorised($this->Auth->user(), $id)) {
 				throw new MethodNotAllowedException('Invalid event.');
 			}
-			$event = $this->Event->find('first', array(
-				'conditions' => array('id' => $id),
-				'recursive' => -1,
-				'fields' => array('orgc_id', 'id', 'distribution', 'published', 'uuid'),
-			));
-			if (!$this->_isSiteAdmin() && !empty($event) && $event['Event']['orgc_id'] != $this->Auth->user('org_id')) $objectType = 'ShadowAttribute';
-			else if ($this->_isSiteAdmin() && isset($this->request->data['Attribute']['force']) && $this->request->data['Attribute']['force']) $objectType = 'ShadowAttribute';
-			else $objectType = 'Attribute';
-			$saved = 0;
-			$failed = 0;
 			$attributes = json_decode($this->request->data['Attribute']['JsonObject'], true);
-			$attributeSources = array('attributes', 'ontheflyattributes');
-			$ontheflyattributes = array();
-			foreach ($attributeSources as $source) {
-				foreach (${$source} as $k => $attribute) {
-					if ($attribute['type'] == 'ip-src/ip-dst') {
-						$types = array('ip-src', 'ip-dst');
-					} else if ($attribute['type'] == 'ip-src|port/ip-dst|port') {
-						$types = array('ip-src|port', 'ip-dst|port');
-					} else if ($attribute['type'] == 'malware-sample') {
-						if (!isset($attribute['data_is_handled']) || !$attribute['data_is_handled']) {
-							$result = $this->Event->Attribute->handleMaliciousBase64($id, $attribute['value'], $attribute['data'], array('md5', 'sha1', 'sha256'), $objectType == 'ShadowAttribute' ? true : false);
-							if (!$result['success']) {
-								$failed++;
-								continue;
-							}
-							$attribute['data'] = $result['data'];
-							$shortValue = $attribute['value'];
-							$attribute['value'] = $shortValue . '|' . $result['md5'];
-							$additionalHashes = array('sha1', 'sha256');
-							foreach ($additionalHashes as $hash) {
-								$temp = $attribute;
-								$temp['type'] = 'filename|' . $hash;
-								$temp['value'] = $shortValue . '|' . $result[$hash];
-								unset($temp['data']);
-								$ontheflyattributes[] = $temp;
-							}
-						}
-						$types = array($attribute['type']);
-					} else {
-						$types = array($attribute['type']);
-					}
-					foreach ($types as $type) {
-						$this->Event->$objectType->create();
-						$attribute['type'] = $type;
-						if (empty($attribute['comment'])) $attribute['comment'] = $this->request->data['Attribute']['default_comment'];
-						$attribute['event_id'] = $id;
-						if ($objectType == 'ShadowAttribute') {
-							$attribute['org_id'] = $this->Auth->user('org_id');
-							$attribute['event_org_id'] = $event['Event']['orgc_id'];
-							$attribute['email'] = $this->Auth->user('email');
-							$attribute['event_uuid'] = $event['Event']['uuid'];
-						}
-						$AttributSave = $this->Event->$objectType->save($attribute);
-						if ($AttributSave) {
-							// If Tags, attache each tags to attribut
-							if (!empty($attribute['tags'])) {
-								foreach (explode(",",$attribute['tags']) as $tagName){
-									$this->loadModel('Tag');
-									$TagId = $this->Tag->captureTag(array('name' => $tagName),array('Role' => $this->userRole));
-									$this->loadModel('AttributeTag');
-									if (!$this->AttributeTag->attachTagToAttribute($AttributSave['Attribute']['id'],$id,$TagId)) {
-										throw new MethodNotAllowedException('Could not add tags.');
-									}
-								}
-							}
-							$saved++;
-						} else {
-							$failed++;
-						}
-					}
-				}
-			}
-			$emailResult = '';
-			$messageScope = $objectType == 'ShadowAttribute' ? 'proposals' : 'attributes';
-			if ($saved > 0) {
-				if ($objectType != 'ShadowAttribute') {
-					$event = $this->Event->find('first', array(
-							'conditions' => array('Event.id' => $id),
-							'recursive' => -1
-					));
-					if ($event['Event']['published'] == 1) {
-						$event['Event']['published'] = 0;
-					}
-					$date = new DateTime();
-					$event['Event']['timestamp'] = $date->getTimestamp();
-					$this->Event->save($event);
-				} else {
-					if (!$this->Event->ShadowAttribute->sendProposalAlertEmail($id)) {
-						$emailResult = " but sending out the alert e-mails has failed for at least one recipient";
-					}
-				}
-			}
-			if ($failed > 0) {
-				$this->Session->setFlash($saved . ' ' . $messageScope . ' created' . $emailResult . '. ' . $failed . ' ' . $messageScope . ' could not be saved. This may be due to attributes with similar values already existing.');
-			} else {
-				$this->Session->setFlash($saved . ' ' . $messageScope . ' created' . $emailResult . '.');
-			}
+			$default_comment = $this->request->data['Attribute']['default_comment'];
+			$force = $this->request->data['Attribute']['force'];
+
+			$flashMessage = $this->__processFreeTextData($attributes, $id, $default_comment, $force);
+
+			$this->Session->setFlash($flashMessage);
 			$this->redirect(array('controller' => 'events', 'action' => 'view', $id));
 		} else {
 			throw new MethodNotAllowedException();
@@ -4469,7 +4483,7 @@ class EventsController extends AppController {
 							$eventId,
 							false,
 							false,
-							false
+							'soft'
 						);
 					}
 					if (isset($result['comment'])) {
