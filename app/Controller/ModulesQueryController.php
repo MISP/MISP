@@ -14,16 +14,16 @@ class ModulesQueryController extends AppController {
 	public function query() {
         // Initialize models
         $this->loadModel('Server');
-		$this->loadModel('Module');
-		$modules = $this->Module->getEnabledModules($this->Auth->user());
-        
+        $this->loadModel('Module');
+        $modules = $this->Module->getEnabledModules($this->Auth->user());
+
         // Prepare input
         $url = Configure::read('Plugin.Enrichment_services_url') ? Configure::read('Plugin.Enrichment_services_url') : $this->Server->serverSettings['Plugin']['Enrichment_services_url']['value'];
-		$port = Configure::read('Plugin.Enrichment_services_port') ? Configure::read('Plugin.Enrichment_services_port') : $this->Server->serverSettings['Plugin']['Enrichment_services_port']['value'];
+        $port = Configure::read('Plugin.Enrichment_services_port') ? Configure::read('Plugin.Enrichment_services_port') : $this->Server->serverSettings['Plugin']['Enrichment_services_port']['value'];
         $data = $this->request->data;
         $modname = $data['module'];
         $options = array();
-        
+
         // Support credentials
         foreach ($modules['modules'] as $temp) {
             if ($temp['name'] == $modname) {
@@ -34,18 +34,18 @@ class ModulesQueryController extends AppController {
             }
         }
         if (!empty($options)) $data['config'] = $options;
-        
+
         // Query
         $result = $this->Module->queryModuleServer('/query', json_encode($data), true);
         if ($result) {
             $result = json_decode('{"error": "Something went wrong, no response from module."}');
         }
-        
+
         // Set output
         $this->set('results', json_encode($result));
-		$this->layout = 'ajax';
+        $this->layout = 'ajax';
     };
-    
+
 	public function index() {
         // Initialize models
 		$this->loadModel('Module');
