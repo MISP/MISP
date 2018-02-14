@@ -380,7 +380,7 @@ CREATE TABLE IF NOT EXISTS `logs` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `title` text CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,
   `created` datetime NOT NULL,
-  `model` varchar(20) COLLATE utf8_bin NOT NULL,
+  `model` varchar(80) COLLATE utf8_bin NOT NULL,
   `model_id` int(11) NOT NULL,
   `action` varchar(20) COLLATE utf8_bin NOT NULL,
   `user_id` int(11) NOT NULL,
