@@ -60,7 +60,7 @@ class AppModel extends Model {
 	);
 
 	public $db_changes = array(
-		1 => false, 2 => false
+		1 => false, 2 => false, 3 => false
 	);
 
 	function afterSave($created, $options = array()) {
@@ -875,6 +875,16 @@ class AppModel extends Model {
 			// rerun missing db entries
 				$sqlArray[] = "ALTER TABLE users ADD COLUMN date_created bigint(20);";
 				$sqlArray[] = "ALTER TABLE users ADD COLUMN date_modified bigint(20);";
+				break;
+			case 3:
+				$sqlArray[] = "CREATE TABLE IF NOT EXISTS `fuzzy_correlate_ssdeep` (
+  											`id` int(11) NOT NULL AUTO_INCREMENT,
+  											`chunk` varchar(12) NOT NULL,
+  											`attribute_id` int(11) NOT NULL,
+  											PRIMARY KEY (`id`)
+											) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+				$this->__addIndex('fuzzy_correlate_ssdeep', 'chunk');
+				$this->__addIndex('fuzzy_correlate_ssdeep', 'attribute_id');
 				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
