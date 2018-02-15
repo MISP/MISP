@@ -210,6 +210,9 @@ def parseAttributes(attributes, mispDict, indic):
             elif properties.get('xsi:type') == 'WhoisObjectType':
                 continue
         except:
+            if 'description' in attr:
+                attribute = {'type': 'text', 'value': attr.get('description')}
+                mispDict['Attribute'].append(attribute)
             continue
         try:
             attrTimestamp = attr['timestamp'].split('+')[0]
