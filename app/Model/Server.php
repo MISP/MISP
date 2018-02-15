@@ -137,6 +137,14 @@ class Server extends AppModel {
 							'type' => 'boolean',
 							'null' => true
 					),
+					'ssdeep_correlation_threshold' => array(
+						'level' => 1,
+						'description' => 'Set the ssdeep score at which to consider two ssdeep hashes as correlating [1-100]',
+						'value' => 40,
+						'errorMessage' => '',
+						'test' => 'testForEmpty',
+						'type' => 'numeric'
+					),
 					'max_correlations_per_event' => array(
 							'level' => 1,
 							'description' => 'Sets the maximum number of correlations that can be fetched with a single event. For extreme edge cases this can prevent memory issues. The default value is 5k.',
