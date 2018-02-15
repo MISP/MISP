@@ -1501,6 +1501,12 @@ class Attribute extends AppModel {
 					'Correlation.attribute_id' => $a['id']))
 			);
 		}
+		if ($a['type'] == 'ssdeep') {
+			$this->FuzzyCorrelateSsdeep = ClassRegistry::init('FuzzyCorrelateSsdeep');
+			$this->FuzzyCorrelateSsdeep->deleteAll(
+				array('FuzzyCorrelateSsdeep.attribute_id' => $a['id'])
+			);
+		}
 	}
 
 	// using Alnitak's solution from http://stackoverflow.com/questions/594112/matching-an-ip-to-a-cidr-mask-in-php5
@@ -1624,6 +1630,30 @@ class Attribute extends AppModel {
 			}
 			if (Configure::read('MISP.enable_advanced_correlations') && in_array($a['type'], array('ip-src', 'ip-dst', 'domain-ip'))) {
 				$extraConditions = $this->__cidrCorrelation($a);
+			}
+			if ($a['type'] == 'ssdeep') {
+				if (function_exists('ssdeep_fuzzy_compare')) {
+					$this->FuzzyCorrelateSsdeep = ClassRegistry::init('FuzzyCorrelateSsdeep');
+					$fuzzyIds = $this->FuzzyCorrelateSsdeep->query_ssdeep_chunks($a['value'], $a['id']);
+					if (!empty($fuzzyIds)) {
+						$ssdeepIds = $this->find('list', array(
+							'recursive' => -1,
+							'conditions' => array(
+								'Attribute.type' => 'ssdeep',
+								'Attribute.id' => $fuzzyIds
+							),
+							'fields' => array('Attribute.id', 'Attribute.value1')
+						));
+						$extraConditions = array('Attribute.id' => array());
+						$threshold = !empty(Configure::read('MISP.ssdeep_correlation_threshold')) ? Configure::read('MISP.ssdeep_correlation_threshold') : 40;
+						foreach ($ssdeepIds as $k => $v) {
+							$ssdeep_value = ssdeep_fuzzy_compare($a['value'], $v);
+							if ($ssdeep_value >= $threshold) {
+								$extraConditions['Attribute.id'][] = $k;
+							}
+						}
+					}
+				}
 			}
 			$this->Correlation = ClassRegistry::init('Correlation');
 			$correlatingValues = array($a['value1']);
