@@ -301,14 +301,25 @@ class Organisation extends AppModel{
 			}
 		}
 		if ($success) {
+			$updateTargetOrg = false;
 			if ($currentOrgUserCount > 0 && $currentOrg['Organisation']['local'] && !$targetOrg['Organisation']['local']) {
 				$targetOrg['Organisation']['local'] = 1;
-				$this->save($targetOrg);
+				$updateTargetOrg = true;
+			}
+			if (strlen($targetOrg['Organisation']['name']) > strlen($currentOrg['Organisation']['name']) && strpos($targetOrg['Organisation']['name'], $currentOrg['Organisation']['name']) === 0) {
+				$temp = substr($targetOrg['Organisation']['name'], strlen($currentOrg['Organisation']['name']));
+				if (preg_match('/^\_[0-9]+$/i', $temp)) {
+					$targetOrg['Organisation']['name'] = $currentOrg['Organisation']['name'];
+					$updateTargetOrg = true;
+				}
 			}
 			if (!file_exists(APP . 'webroot/img/orgs/' . $targetOrgId . '.png') && file_exists(APP . 'webroot/img/orgs/' . $id . '.png')) {
 				rename(APP . 'webroot/img/orgs/' . $id . '.png', APP . 'webroot/img/orgs/' . $targetOrgId . '.png');
 			}
 			$this->delete($currentOrg['Organisation']['id']);
+			if ($updateTargetOrg) {
+				$this->save($targetOrg);
+			}
 			$success = $targetOrgId;
 		}
 		$backupFile->close();
