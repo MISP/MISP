@@ -23,7 +23,7 @@ class ModulesController extends AppController {
         
         // Query
         $result = $this->Module->queryModuleServer('/query', json_encode($data), true);
-        if ($result) {
+        if (!$result) {
             $result = array('error' => 'Something went wrong, no response from module.');
         }
         
@@ -41,7 +41,7 @@ class ModulesController extends AppController {
             array_push($result, $temp);
         }
         
-        if ($result) {
+        if (!$result) {
             $result = array('error' => 'Something went wrong, no response from misp_modules.');
         }
         
