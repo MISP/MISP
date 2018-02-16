@@ -1454,30 +1454,30 @@ class AttributesController extends AppController {
 										if (!$toInclude) {
 											$temp2[] = array(
 												'AND' => array(
-													'LOWER(Attribute.value1) NOT LIKE' => '%' . $resultParts[0],
-													'LOWER(Attribute.value2) NOT LIKE' => $resultParts[1] . '%',
+													'LOWER(Attribute.value1) NOT LIKE' => $resultParts[0],
+													'LOWER(Attribute.value2) NOT LIKE' => $resultParts[1],
 												));
 										} else {
 											$temp2[] = array(
 												'AND' => array(
-													'LOWER(Attribute.value1)' => '%' . $resultParts[0],
-													'LOWER(Attribute.value2)' => $resultParts[1] . '%',
+													'LOWER(Attribute.value1)' => $resultParts[0],
+													'LOWER(Attribute.value2)' => $resultParts[1],
 												));
 										}
 									} else {
 										if (!$toInclude) {
-											array_push($temp2, array('LOWER(Attribute.value1) NOT LIKE' => '%' . $saveWord . '%'));
-											array_push($temp2, array('LOWER(Attribute.value2) NOT LIKE' => '%' . $saveWord . '%'));
+											array_push($temp2, array('LOWER(Attribute.value1) NOT LIKE' => $saveWord));
+											array_push($temp2, array('LOWER(Attribute.value2) NOT LIKE' => $saveWord));
 										} else {
-											array_push($temp, array('LOWER(Attribute.value1) LIKE' => '%' . $saveWord . '%'));
-											array_push($temp, array('LOWER(Attribute.value2) LIKE' => '%' . $saveWord . '%'));
+											array_push($temp, array('LOWER(Attribute.value1) LIKE' => $saveWord));
+											array_push($temp, array('LOWER(Attribute.value2) LIKE' => $saveWord));
 										}
 									}
 								}
 								if ($toInclude) {
-									array_push($temp, array('LOWER(Attribute.comment) LIKE' => '%' . $saveWord . '%'));
+									array_push($temp, array('LOWER(Attribute.comment) LIKE' => $saveWord));
 								} else {
-									array_push($temp2, array('LOWER(Attribute.comment) NOT LIKE' => '%' . $saveWord . '%'));
+									array_push($temp2, array('LOWER(Attribute.comment) NOT LIKE' => $saveWord));
 								}
 							}
 							if ($i == 1 && $saveWord != '') {
@@ -1606,7 +1606,7 @@ class AttributesController extends AppController {
 							if ($saveWord[0] == '!') {
 								$org_names = $this->Organisation->find('all', array(
 									'fields'     => array('id', 'name'),
-									'conditions' => array('lower(name) LIKE' => '%' . strtolower(substr($saveWord, 1)) . '%'),
+									'conditions' => array('lower(name) LIKE' => strtolower(substr($saveWord, 1))),
 								));
 								foreach ($org_names as $org_name) {
 									$temp['AND'][] = array('Event.orgc_id !=' => $org_name['Organisation']['id']);
@@ -1614,7 +1614,7 @@ class AttributesController extends AppController {
 							} else {
 								$org_names = $this->Organisation->find('all', array(
 									'fields'     => array('id', 'name'),
-									'conditions' => array('lower(name) LIKE' => '%' . strtolower($saveWord) . '%'),
+									'conditions' => array('lower(name) LIKE' => strtolower($saveWord)),
 								));
 								if (empty($org_names)) $conditions['AND'][] = array('Event.orgc_id' => -1);
 								foreach ($org_names as $org_name) {
