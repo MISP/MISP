@@ -210,10 +210,12 @@ class Organisation extends AppModel{
 
 	public function orgMerge($id, $request, $user) {
 		$currentOrg = $this->find('first', array('recursive' => -1, 'conditions' => array('Organisation.id' => $id)));
+		$currentOrgUserCount = $this->User->find('count', array(
+			'conditions' => array('User.org_id' => $id)
+		));
 		$targetOrgId = $request['Organisation']['targetType'] == 0 ? $request['Organisation']['orgsLocal'] : $request['Organisation']['orgsExternal'];
 		$targetOrg = $this->find(
 				'first', array(
-						'fields' => array('id', 'name', 'uuid', 'local'),
 						'recursive' => -1,
 						'conditions' => array('Organisation.id' => $targetOrgId)
 				));
@@ -298,7 +300,17 @@ class Organisation extends AppModel{
 				}
 			}
 		}
-		if ($success) $this->delete($currentOrg['Organisation']['id']);
+		if ($success) {
+			if ($currentOrgUserCount > 0 && $currentOrg['Organisation']['local'] && !$targetOrg['Organisation']['local']) {
+				$targetOrg['Organisation']['local'] = 1;
+				$this->save($targetOrg);
+			}
+			if (!file_exists(APP . 'webroot/img/orgs/' . $targetOrgId . '.png') && file_exists(APP . 'webroot/img/orgs/' . $id . '.png')) {
+				rename(APP . 'webroot/img/orgs/' . $id . '.png', APP . 'webroot/img/orgs/' . $targetOrgId . '.png');
+			}
+			$this->delete($currentOrg['Organisation']['id']);
+			$success = $targetOrgId;
+		}
 		$backupFile->close();
 		$logFile->write(json_encode($dataMoved));
 		$logFile->close();

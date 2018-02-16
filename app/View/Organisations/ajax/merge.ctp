@@ -8,33 +8,43 @@
 		<div class="row-fluid">
 			<div class="span6">
 			<?php
+				$default_type = 0;
+				$default_id = 0;
+				if (!empty($target)) {
+					$default_type = ($target['type'] == 'external') ? 1 : 0;
+					$default_id = $target['id'];
+				}
 				echo $this->Form->input('targetType', array(
 						'options' => array('Local', 'External'),
 						'label' => __('Organisation type'),
 						'style' => 'width:332px;',
 						'class' => 'mergeUpdate',
+						'default' => $default_type,
 						'div' => false,
 				));
 			?>
 			</div>
-			<div id="orgsLocal" class="span6">
+			<div id="orgsLocal" class="span6" <?php echo $default_type == 1 ? 'style="display:none;"' : ''; ?>>
 				<?php
+					$types = array('local', 'external');
 					echo $this->Form->input('orgsLocal', array(
 							'options' => $orgOptions['local'],
 							'class' => 'input mergeUpdate',
 							'label' => __('Target Local Organisation'),
 							'style' => 'width:332px;',
+							'default' => $default_id,
 							'div' => 'orgsLocal',
 					));
 				?>
 			</div>
-			<div id="orgsExternal" class="span6" style="display:none;">
+			<div id="orgsExternal" class="span6" <?php echo $default_type == 0 ? 'style="display:none;"' : ''; ?>>
 				<?php
 					echo $this->Form->input('orgsExternal', array(
 							'options' => $orgOptions['external'],
 							'class' => 'input mergeUpdate',
 							'label' => __('Target External Organisation'),
 							'style' => 'width:332px;',
+							'default' => $default_id,
 							'div' => 'orgsExternal'
 					));
 				?>

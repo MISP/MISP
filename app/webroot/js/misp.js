@@ -2622,9 +2622,13 @@ function toggleDeletedAttributes(url) {
 function mergeOrganisationUpdate() {
 	var orgTypeOptions = ['local', 'external'];
 	var orgTypeSelects = ['OrganisationOrgsLocal', 'OrganisationOrgsExternal'];
-	orgType = orgTypeSelects[$('#OrganisationTargetType').val()];
-	orgID = $('#' + orgType).val();
-	org = orgArray[orgTypeOptions[$('#OrganisationTargetType').val()]][orgID]['Organisation'];
+	var orgTypeId = $('#OrganisationTargetType').val();
+	var orgType = orgTypeSelects[orgTypeId];
+	var orgID = $('#' + orgTypeSelects[orgTypeId]).val();
+	console.log(orgTypeSelects[orgTypeId]);
+	console.log(orgID);
+	org = orgArray[orgTypeOptions[orgTypeId]][orgID]['Organisation'];
+	console.log(org);
 	$('#org_id').text(org['id']);
 	$('#org_name').text(org['name']);
 	$('#org_uuid').text(org['uuid']);

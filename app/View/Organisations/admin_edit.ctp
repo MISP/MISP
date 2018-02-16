@@ -22,6 +22,18 @@
 		?>
 		</div>
 		<span role="button" tabindex="0" aria-label="<?php echo __('Generate a new UUID for the organisation');?>" title="<?php echo __('Generate UUID');?>" class="btn btn-inverse" style="margin-top:25px;" onClick="generateOrgUUID();"><?php echo __('Generate UUID');?></span>
+		<?php
+			if (!empty($duplicate_org)):
+		?>
+			<div class="clear"></div>
+			<span class="bold red">
+				<?php echo __('An organisation with the above uuid already exists. Would you like to merge this organisation into the existing one?');?>
+			</span>
+			<a href="#" onClick="getPopup('<?php echo h($id) . '/' . h($duplicate_org); ?>', 'organisations', 'merge', 'admin');"><?php echo __('Click here'); ?></a>
+			<div class="clear"></div>
+	<?php
+		endif;
+	?>
 	<?php
 		echo $this->Form->input('description', array('label' => __('A brief description of the organisation'), 'div' => 'clear', 'class' => 'input-xxlarge', 'type' => 'textarea', 'placeholder' => __('A description of the organisation that is purely informational.')));
 	?>
