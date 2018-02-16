@@ -183,16 +183,17 @@ class OrganisationsController extends AppController {
 					return $this->RestResponse->saveFailResponse('Organisations', 'admin_edit', false, $this->Organisation->validationErrors, $this->response->type());
 					$this->Session->setFlash('The organisation could not be updated.');
 				}
+				$this->Session->setFlash('The organisation could not be added.');
 			}
 		} else {
 			if ($this->_isRest()) {
 				return $this->RestResponse->describe('Organisations', 'admin_edit', false, $this->response->type());
 			}
+			$this->Organisation->read(null, $id);
+			$this->request->data = $this->Organisation->data;
 		}
 		$this->set('countries', $this->_arrayToValuesIndexArray($this->Organisation->countries));
-		$this->Organisation->read(null, $id);
 		$this->set('orgId', $id);
-		$this->request->data = $this->Organisation->data;
 		if (is_array($this->request->data['Organisation']['restricted_to_domain'])) {
 			$this->request->data['Organisation']['restricted_to_domain'] = implode("\n", $this->request->data['Organisation']['restricted_to_domain']);
 		}
