@@ -39,6 +39,9 @@ class GalaxiesController extends AppController {
 
 	public function view($id) {
 		if (!is_numeric($id)) throw new NotFoundException('Invalid galaxy.');
+		if (isset($this->params['named']['searchall']) && strlen($this->params['named']['searchall']) > 0) {
+			$this->set('passedArgsArray', array('all' => $this->params['named']['searchall']));
+		}
 		if ($this->_isRest()) {
 			$galaxy = $this->Galaxy->find('first', array(
 					'contain' => array('GalaxyCluster' => array('GalaxyElement'/*, 'GalaxyReference'*/)),

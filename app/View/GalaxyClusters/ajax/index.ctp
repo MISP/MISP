@@ -14,6 +14,38 @@
 	?>
 	</ul>
 </div>
+<?php
+	$tab = "Center";
+	$filtered = false;
+	if (count($list) > 0){
+		$galaxy_id = $list[0]['GalaxyCluster']['galaxy_id'];
+	}else{
+		$galaxy_id = "";
+	}
+	if(isset($passedArgsArray)){
+		if (count($passedArgsArray) > 0) {
+			$tab = "Left";
+			$filtered = true;
+		}
+	}
+?>
+<div class="tabMenuFixedContainer" style="display:inline-block;">
+	<?php if ($filtered):
+		foreach ($passedArgsArray as $k => $v):?>
+			<span class="tabMenuFixed tabMenuFixedElement">
+				<?php echo h(ucfirst($k)) . " : " . h($v); ?>
+			</span>
+		<?php endforeach; ?>
+		<span class="tabMenuFixed tabMenuFixedRight tabMenuSides">
+			<?php echo $this->Html->link('', array('controller' => 'galaxies', 'action' => 'view/'. $galaxy_id), array('class' => 'icon-remove', 'title' => 'Remove filters'));?>
+		</span>
+	<?php endif;?>
+	<span style="border-right:0px !important;">
+		<span id="quickFilterButton" role="button" tabindex="0" aria-label="Filter value galaxie cluster" class="tabMenuFilterFieldButton useCursorPointer"
+			onClick="quickFilter('', '<?php echo $baseurl . '/galaxies/view/' . $galaxy_id; ?>');">Filter</span>
+		<input class="tabMenuFilterField" type="text" id="quickFilterField"></input>
+	</span>
+</div>
 <table class="table table-striped table-hover table-condensed">
 	<tr>
 		<th><?php echo $this->Paginator->sort('value');?></th>

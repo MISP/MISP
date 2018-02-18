@@ -32,6 +32,27 @@ class GalaxyClustersController extends AppController {
 
 	public function index($id) {
 		$this->paginate['conditions'] = array('GalaxyCluster.galaxy_id' => $id);
+		if ( isset($this->params['named']['searchall']) && strlen($this->params['named']['searchall']) > 0) {
+			$synonym_hits = $this->GalaxyCluster->GalaxyElement->find(
+				'list', array(
+					'recursive' => -1, 
+					'conditions' => array( 
+						'LOWER(GalaxyElement.value) LIKE' => '%' . strtolower($this->params['named']['searchall']) . '%', 
+						'GalaxyElement.key' => 'synonyms' ), 
+						'fields' => array(
+							'GalaxyElement.galaxy_cluster_id') 
+						));
+			$this->paginate['conditions'] = 
+				array("AND" => array(
+					'OR' => array(
+						"LOWER(GalaxyCluster.value) LIKE" => '%'. strtolower($this->params['named']['searchall']) .'%',
+						"LOWER(GalaxyCluster.description) LIKE" => '%'. strtolower($this->params['named']['searchall']) .'%',
+						"GalaxyCluster.id" => array_values($synonym_hits)
+					),
+					"GalaxyCluster.galaxy_id" => $id
+					));
+			$this->set('passedArgsArray', array('all'=>$this->params['named']['searchall']));
+		}
 		$clusters = $this->paginate();
 		$sgs = $this->GalaxyCluster->Tag->EventTag->Event->SharingGroup->fetchAllAuthorised($this->Auth->user());
 		foreach ($clusters as $k => $cluster) {
