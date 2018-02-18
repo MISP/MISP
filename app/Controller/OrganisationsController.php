@@ -181,6 +181,15 @@ class OrganisationsController extends AppController {
 			} else {
 				if ($this->_isRest()) {
 					return $this->RestResponse->saveFailResponse('Organisations', 'admin_edit', false, $this->Organisation->validationErrors, $this->response->type());
+				} else {
+					if (isset($this->Organisation->validationErrors['uuid'])) {
+						$duplicate_org = $this->Organisation->find('first', array(
+							'recursive' => -1,
+							'conditions' => array('Organisation.uuid' => trim($this->request->data['Organisation']['uuid'])),
+							'fields' => array('Organisation.id')
+						));
+						$this->set('duplicate_org', $duplicate_org['Organisation']['id']);
+					}
 					$this->Session->setFlash('The organisation could not be updated.');
 				}
 			}
@@ -188,11 +197,11 @@ class OrganisationsController extends AppController {
 			if ($this->_isRest()) {
 				return $this->RestResponse->describe('Organisations', 'admin_edit', false, $this->response->type());
 			}
+			$this->Organisation->read(null, $id);
+			$this->request->data = $this->Organisation->data;
 		}
 		$this->set('countries', $this->_arrayToValuesIndexArray($this->Organisation->countries));
-		$this->Organisation->read(null, $id);
 		$this->set('orgId', $id);
-		$this->request->data = $this->Organisation->data;
 		if (is_array($this->request->data['Organisation']['restricted_to_domain'])) {
 			$this->request->data['Organisation']['restricted_to_domain'] = implode("\n", $this->request->data['Organisation']['restricted_to_domain']);
 		}
@@ -356,18 +365,21 @@ class OrganisationsController extends AppController {
 		return new CakeResponse(array('body'=> json_encode($orgs), 'type' => 'json'));
 	}
 
-	public function admin_merge($id) {
+	public function admin_merge($id, $target_id = false) {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException('You are not authorised to do that.');
 		if ($this->request->is('Post')) {
 			$result = $this->Organisation->orgMerge($id, $this->request->data, $this->Auth->user());
-			if ($result) $this->Session->setFlash('The organisation has been successfully merged.');
+			if ($result) {
+				$this->Session->setFlash('The organisation has been successfully merged.');
+				$this->redirect(array('admin' => false, 'action' => 'view', $result));
+			}
 			else $this->Session->setFlash('There was an error while merging the organisations. To find out more about what went wrong, refer to the audit logs. If you would like to revert the changes, you can find a .sql file ');
 			$this->redirect(array('admin' => false, 'action' => 'index'));
 		} else {
 			$currentOrg = $this->Organisation->find('first', array('fields' => array('id', 'name', 'uuid', 'local'), 'recursive' => -1, 'conditions' => array('Organisation.id' => $id)));
 			$orgs['local'] = $this->Organisation->find('all', array(
 					'fields' => array('id', 'name', 'uuid'),
-					'conditions' => array('Organisation.id !=' => $id, 'Organisation.local' => true),
+					'conditions' => array('Organisation.id !=' => $id, 'Organisation.local' => 1),
 					'order' => 'lower(Organisation.name) ASC'
 			));
 			$orgs['external'] = $this->Organisation->find('all', array(
@@ -378,6 +390,19 @@ class OrganisationsController extends AppController {
 			foreach (array('local', 'external') as $type) {
 				$orgOptions[$type] = Hash::combine($orgs[$type], '{n}.Organisation.id', '{n}.Organisation.name');
 				$orgs[$type] = Hash::combine($orgs[$type], '{n}.Organisation.id', '{n}');
+			}
+			if (!empty($target_id)) {
+				$target = array();
+				foreach (array('local', 'external') as $type) {
+					foreach ($orgOptions[$type] as $k => $v) {
+						if ($k == $target_id) {
+							$target = array('id' => $k, 'type' => $type);
+						}
+					}
+				}
+				if (!empty($target)) {
+					$this->set('target', $target);
+				}
 			}
 			$this->set('orgs', json_encode($orgs));
 			$this->set('orgOptions', $orgOptions);

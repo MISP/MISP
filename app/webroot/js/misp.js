@@ -1414,10 +1414,15 @@ function indexEvaluateFiltering() {
 }
 
 function quickFilter(passedArgs, url) {
-	passedArgs["searchall"] = $('#quickFilterField').val().trim();
-	for (var key in passedArgs) {
-		if (key !== 'page') {
-			url += "/" + key + ":" + passedArgs[key];
+	if(!passedArgs){
+		var passedArgs = [];
+	}
+	if( $('#quickFilterField').val().trim().length > 0){
+		passedArgs["searchall"] = $('#quickFilterField').val().trim();
+		for (var key in passedArgs) {
+			if (key !== 'page') {
+				url += "/" + key + ":" + passedArgs[key];
+			}
 		}
 	}
 	window.location.href=url;
@@ -2362,7 +2367,7 @@ function pgpChoiceSelect(uri) {
 	$("#gray_out").fadeOut();
 	$.ajax({
 		type: "get",
-		url: "https://pgp.mit.edu/" + uri,
+		url: "https://pgp.circl.lu" + uri,
 		success: function (data) {
 			var result = data.split("<pre>")[1].split("</pre>")[0];
 			$("#UserGpgkey").val(result);
@@ -2622,9 +2627,13 @@ function toggleDeletedAttributes(url) {
 function mergeOrganisationUpdate() {
 	var orgTypeOptions = ['local', 'external'];
 	var orgTypeSelects = ['OrganisationOrgsLocal', 'OrganisationOrgsExternal'];
-	orgType = orgTypeSelects[$('#OrganisationTargetType').val()];
-	orgID = $('#' + orgType).val();
-	org = orgArray[orgTypeOptions[$('#OrganisationTargetType').val()]][orgID]['Organisation'];
+	var orgTypeId = $('#OrganisationTargetType').val();
+	var orgType = orgTypeSelects[orgTypeId];
+	var orgID = $('#' + orgTypeSelects[orgTypeId]).val();
+	console.log(orgTypeSelects[orgTypeId]);
+	console.log(orgID);
+	org = orgArray[orgTypeOptions[orgTypeId]][orgID]['Organisation'];
+	console.log(org);
 	$('#org_id').text(org['id']);
 	$('#org_name').text(org['name']);
 	$('#org_uuid').text(org['uuid']);
@@ -2968,13 +2977,15 @@ function quickEditEvent(id, field) {
 
 function selectAllInbetween(last, current) {
 	if (last === false || last == current) return false;
-	if (last < current) {
-		var temp = current;
-		current = last;
-		last = temp;
+	var from = $('#' + last).parent().parent().index();
+	var to = $('#' + current).parent().parent().index();
+	if (to < from) {
+		var temp = from;
+		from = to;
+		to = temp;
 	}
 	$('.select_proposal, .select_attribute').each(function () {
-		if ($(this).parent().data('position') > current && $(this).parent().data('position') < last) {
+		if ($('#' + this.id).parent().parent().index() >= from && $('#' + this.id).parent().parent().index() <= to) {
 			$(this).prop('checked', true);
 		}
 	});
@@ -3263,3 +3274,107 @@ $(document).ready(function() {
         format: 'yyyy-mm-dd',
     });
 }());
+
+/* ============== KEYBOARD SHORTCUTS ==============*/
+let keyboardShortcutsManager = {
+
+	shortcutKeys: new Map(),
+	shortcutListToggled: false,
+	escapedTagNames: ["INPUT", "TEXTAREA", "SELECT"],
+
+	/**
+	 * Fetches the keyboard shortcut config files and populates this.shortcutJSON.
+	 */
+	init() {
+		let shortcutURIs = [];
+		for(let keyboardShortcutElement of $('.keyboardShortcutsConfig')) {
+			shortcutURIs.push(keyboardShortcutElement.value);
+			this.ajaxGet(window.location.protocol + "//" + window.location.host + keyboardShortcutElement.value).then(response => {
+				this.mapKeyboardShortcuts(JSON.parse(response));
+			});
+		}
+		this.setKeyboardListener();
+	},
+
+	/**
+	 * Toggles the view on the list of shortcuts at the bottom of the screen.
+	 */
+	onTriangleClick() {
+		let activated = this.shortcutListToggled;
+		let shortcutListElement = $('#shortcutsListContainer');
+		let triangleElement = $('#triangle');
+		let shortcutListElementHeight = shortcutListElement.height();
+		shortcutListElement.css('top', activated ? '' : '-' + shortcutListElementHeight + 'px');
+		triangleElement.css('bottom', activated ? '' : shortcutListElementHeight + 30 + 'px');
+		this.shortcutListToggled = !activated;
+	},
+
+	/**
+	 * Creates the HTML list of shortcuts for the user to read and sets it in the DOM.
+	 */
+	addShortcutListToHTML() {
+		let html = "<ul>";
+		for(let shortcut of this.shortcutKeys.values()) {
+			html += `<li><strong>${shortcut.key.toUpperCase()}</strong>: ${shortcut.description}</li>`
+		}
+		html += "</ul>"
+		$('#shortcuts').html(html);
+	},
+
+	/**
+	 * Sets the shortcut object list.
+	 * @param {} config The shortcut JSON list: [{key: string, description: string, action: string(eval-able JS code)}]
+	 */
+	mapKeyboardShortcuts(config) {
+		for(let shortcut of config.shortcuts) {
+			this.shortcutKeys.set(shortcut.key, shortcut);
+		}
+		this.addShortcutListToHTML();
+	},
+
+	/**
+	 * Sets the event to listen to and the routine to call on keypress.
+	 */
+	setKeyboardListener() {
+		window.onkeyup = (keyboardEvent) => {
+			if(this.shortcutKeys.has(keyboardEvent.key)) {
+				let activeElement = document.activeElement.tagName;
+				if( !this.escapedTagNames.includes(activeElement)) {
+					eval(this.shortcutKeys.get(keyboardEvent.key).action);
+				}
+			}
+		}
+	},
+
+	/**
+	 * Queries the given URL with a GET request and returns a Promise
+	 * that resolves when the response arrives.
+	 * @param string url The URL to fetch.
+	 */
+	ajaxGet(url) {
+		return new Promise(function(resolve, reject) {
+			let req = new XMLHttpRequest();
+			req.open("GET", url);
+			req.onload = function() {
+				if (req.status === 200) {
+					resolve(req.response);
+				} else {
+					reject(new Error(req.statusText));
+				}
+			};
+
+			req.onerror = function() {
+				reject(new Error("Network error"));
+			};
+
+			req.send();
+		});
+	}
+}
+
+// Inits the keyboard shortcut manager's main routine.
+$(document).ready(() => keyboardShortcutsManager.init());
+
+// Inits the click event on the keyboard shortcut triangle at the bottom of the screen.
+$('#triangle').click(keyboardShortcutsManager.onTriangleClick);
+/* ============ END KEYBOARD SHORTCUTS ============*/

@@ -797,6 +797,7 @@ class EventsController extends AppController {
 			$conditions['deleted'] = 1;
 		}
 		$conditions['includeFeedCorrelations'] = true;
+		$conditions['includeAllTags'] = true;
 		$results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
 		if (empty($results)) throw new NotFoundException('Invalid event');
 		$event = $results[0];
@@ -1423,6 +1424,84 @@ class EventsController extends AppController {
 			$this->render('add_misp_export_result');
 		}
 	}
+
+	public function upload_stix() {
+		if (!$this->userRole['perm_modify']) {
+			throw new UnauthorizedException('You do not have permission to do that.');
+		}
+		if ($this->request->is('post')) {
+			if ($this->_isRest()) {
+				$randomFileName = $this->Event->generateRandomFileName();
+				$tmpDir = APP . "files" . DS . "scripts" . DS . "tmp";
+				$tempFile = new File($tmpDir . DS . $randomFileName, true, 0644);
+				$tempFile->write($this->request->input());
+				$tempFile->close();
+				$result = $this->Event->upload_stix($this->Auth->user(), $randomFileName);
+				if (is_array($result)) {
+					return $this->RestResponse->saveSuccessResponse('Events', 'upload_stix', false, $this->response->type(), 'STIX document imported, event\'s created: ' . implode(', ', $result) . '.');
+				} else if (is_numeric($result)) {
+					$event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $result));
+					if (!empty($event)) {
+						return $this->RestResponse->viewData($event[0], $this->response->type());
+					} else {
+						return $this->RestResponse->saveFailResponse('Events', 'upload_stix', false, 'Could not read saved event.', $this->response->type());
+					}
+				} else {
+					return $this->RestResponse->saveFailResponse('Events', 'upload_stix', false, $result, $this->response->type());
+				}
+			} else {
+				if (isset($this->data['Event']['stix']) && $this->data['Event']['stix']['size'] > 0 && is_uploaded_file($this->data['Event']['stix']['tmp_name'])) {
+					$randomFileName = $this->Event->generateRandomFileName();
+					$tmpDir = APP . "files" . DS . "scripts" . DS . "tmp";
+					move_uploaded_file($this->data['Event']['stix']['tmp_name'], $tmpDir . DS . $randomFileName);
+					$result = $this->Event->upload_stix($this->Auth->user(), $randomFileName);
+					if (is_array($result)) {
+						$this->Session->setFlash(__('STIX document imported, event\'s created: ' . implode(', ', $result) . '.'));
+						$this->redirect(array('action' => 'index'));
+					} else if (is_numeric($result)) {
+						$this->Session->setFlash(__('STIX document imported.'));
+						$this->redirect(array('action' => 'view', $result));
+					} else {
+						$this->Session->setFlash(__('Could not import STIX document: ' . $result));
+					}
+				} else {
+					$max_size = intval(ini_get('post_max_size'));
+					if (intval(ini_get('upload_max_filesize')) < $max_size) $max_size = intval(ini_get('upload_max_filesize'));
+					$this->Session->setFlash(__('File upload failed. Make sure that you select a stix file to be uploaded and that the file doesn\'t exceed the maximum file size of ' . $max_size . '.'));
+				}
+			}
+		}
+	}
+
+/*
+	public function upload_stix2() {
+		if (!$this->userRole['perm_modify']) {
+			throw new UnauthorizedException('You do not have permission to do that.');
+		}
+		if ($this->request->is('post')) {
+
+			if ($this->_isRest()) {
+				$randomFileName = $this->Event->generateRandomFileName();
+				$tmpDir = APP . "files" . DS . "scripts" . DS . "tmp";
+				$tempFile = new File($tmpDir . DS . $randomFileName, true, 0644);
+				$tempFile->write($this->request->input());
+				$tempFile->close();
+				$result = $this->Event->upload_stix2($this->Auth->user(), $randomFileName);
+			} else {
+				if (isset($this->data['Event']['stix']) && $this->data['Event']['stix']['size'] > 0 && is_uploaded_file($this->data['Event']['stix']['tmp_name'])) {
+					$randomFileName = $this->Event->generateRandomFileName();
+					$tmpDir = APP . "files" . DS . "scripts" . DS . "tmp";
+					move_uploaded_file($this->data['Event']['stix']['tmp_name'], $tmpDir . DS . $randomFileName);
+					$result = $this->Event->upload_stix($this->Auth->user(), $randomFileName);
+				} else {
+					$max_size = intval(ini_get('post_max_size'));
+					if (intval(ini_get('upload_max_filesize')) < $max_size) $max_size = intval(ini_get('upload_max_filesize'));
+					throw new UnauthorizedException('File upload failed. Make sure that you select a stix file to be uploaded and that the file doesn\'t exceed the maximum file size of ' . $max_size . '.');
+				}
+			}
+		}
+	}
+	*/
 
 	public function merge($target_id = null) {
 		$this->Event->id = $target_id;
@@ -3309,8 +3388,10 @@ class EventsController extends AppController {
 	 *  - false: (default) ignore warninglists
 	 *  - 'soft': Unset the IDS flag of all attributes hitting on a warninglist item
 	 *  - true / 'hard': Block attributes from being added that have a hit in the warninglists
+	 * returnMetaAttributes is a flag that will force the API to return the results of the
+	 * parsing directly for external further processing. The flag is a simple boolean flag (0||1)
 	 */
-	public function freeTextImport($id, $adhereToWarninglists = false) {
+	public function freeTextImport($id, $adhereToWarninglists = false, $returnMetaAttributes = false) {
 		if (!$this->userRole['perm_add']) {
 			throw new MethodNotAllowedException('Event not found or you don\'t have permissions to create attributes');
 		}
@@ -3334,7 +3415,7 @@ class EventsController extends AppController {
 				$this->request->data = array('Attribute' => $this->request->data);
 			}
 			if (!isset($this->request->data['Attribute']['value'])) {
-				$this->request->data['Attribute'] = array('value' => $this->request->data);
+				$this->request->data['Attribute'] = array('value' => $this->request->data['Attribute']);
 			}
 			if (isset($this->request->data['Attribute']['adhereToWarninglists'])) {
 				$adhereToWarninglists = $this->request->data['Attribute']['adhereToWarninglists'];
@@ -3355,13 +3436,17 @@ class EventsController extends AppController {
 				}
 			}
 			if ($this->_isRest()) {
-				return $this->__pushFreetext(
-					$resultArray,
-					$id,
-					isset($this->request->data['Attribute']['distribution']) ? $this->request->data['Attribute']['distribution'] : false,
-					isset($this->request->data['Attribute']['sharing_group_id']) ? $this->request->data['Attribute']['sharing_group_id'] : false,
-					$adhereToWarninglists
-				);
+				if ($returnMetaAttributes || !empty($this->request->data['Attribute']['returnMetaAttributes'])) {
+					return $this->RestResponse->viewData($resultArray, $this->response->type());
+				} else {
+					return $this->__pushFreetext(
+						$resultArray,
+						$id,
+						isset($this->request->data['Attribute']['distribution']) ? $this->request->data['Attribute']['distribution'] : false,
+						isset($this->request->data['Attribute']['sharing_group_id']) ? $this->request->data['Attribute']['sharing_group_id'] : false,
+						$adhereToWarninglists
+					);
+				}
 			}
 			foreach ($resultArray as $key => $result) {
 				$options = array(
@@ -3402,52 +3487,157 @@ class EventsController extends AppController {
 		}
 	}
 
-	public function __pushFreetext($resultArray, $eventId, $distribution = false, $sg = false, $adhereToWarninglists = false) {
+	public function __pushFreetext($attributes, $id, $distribution = false, $sg = false, $adhereToWarninglists = false) {
+		
+		if ($distribution === false) {
+			if (Configure::read('MISP.default_attribute_distribution') != null) {
+				if (Configure::read('MISP.default_attribute_distribution') == 'event') {
+					$distribution = 5;
+				} else {
+					$distribution = Configure::read('MISP.default_attribute_distribution');
+				}
+			} else {
+				$distribution = 0;
+			}
+		}
+		// prepare the default choices
+		foreach ($attributes as $k => $attribute) {
+			$attribute['type'] = $attribute['default_type'];
+			unset($attribute['default_type']);
+			unset($attribute['types']);
+			if (isset($attribute['default_category'])) {
+				$attribute['category'] = $attribute['default_category'];
+				unset($attribute['default_category']);
+			} else {
+				$attribute['category'] = $this->Event->Attribute->defaultCategories[$attribute['type']];
+			}
+			$attribute['distribution'] = $distribution;
+			$attribute['event_id'] = $id;
+			$attributes[$k] = $attribute;
+		}
+		// actually save the attribute now
+		$this->__processFreeTextData($attributes, $id, '', false, $adhereToWarninglists);
+		// FIXME $attributes does not contain the onteflyattributes
+		$attributes = array_values($attributes);
+		return $this->RestResponse->viewData($attributes, $this->response->type());
+	}
+
+	private function __processFreeTextData($attributes, $id, $default_comment = '', $force = false, $adhereToWarninglists = false) {
+		$event = $this->Event->find('first', array(
+			'conditions' => array('id' => $id),
+			'recursive' => -1,
+			'fields' => array('orgc_id', 'id', 'distribution', 'published', 'uuid'),
+		));
+		if (!$this->_isSiteAdmin() && !empty($event) && $event['Event']['orgc_id'] != $this->Auth->user('org_id')) $objectType = 'ShadowAttribute';
+		else if ($this->_isSiteAdmin() && isset($force) && $force) $objectType = 'ShadowAttribute';
+		else $objectType = 'Attribute';
+
 		if ($adhereToWarninglists) {
 			$this->Warninglist = ClassRegistry::init('Warninglist');
 			$warninglists = $this->Warninglist->fetchForEventView();
 		}
-		foreach ($resultArray as $k => $result) {
-			$result['type'] = $result['default_type'];
-			unset($result['default_type']);
-			unset($result['types']);
-			if (isset($result['default_category'])) {
-				$result['category'] = $result['default_category'];
-				unset($result['default_category']);
-			} else {
-				$result['category'] = $this->Event->Attribute->defaultCategories[$result['type']];
-			}
-			if ($distribution === false) {
-				if (Configure::read('MISP.default_attribute_distribution') != null) {
-					if (Configure::read('MISP.default_attribute_distribution') == 'event') {
-						$distribution = 5;
-					} else {
-						$distribution = Configure::read('MISP.default_attribute_distribution');
+
+		$saved = 0;
+		$failed = 0;
+		$attributeSources = array('attributes', 'ontheflyattributes');
+		$ontheflyattributes = array();
+		foreach ($attributeSources as $source) {
+			foreach (${$source} as $k => $attribute) {
+				if ($attribute['type'] == 'ip-src/ip-dst') {
+					$types = array('ip-src', 'ip-dst');
+				} else if ($attribute['type'] == 'ip-src|port/ip-dst|port') {
+					$types = array('ip-src|port', 'ip-dst|port');
+				} else if ($attribute['type'] == 'malware-sample') {
+					if (!isset($attribute['data_is_handled']) || !$attribute['data_is_handled']) {
+						$result = $this->Event->Attribute->handleMaliciousBase64($id, $attribute['value'], $attribute['data'], array('md5', 'sha1', 'sha256'), $objectType == 'ShadowAttribute' ? true : false);
+						if (!$result['success']) {
+							$failed++;
+							continue;
+						}
+						$attribute['data'] = $result['data'];
+						$shortValue = $attribute['value'];
+						$attribute['value'] = $shortValue . '|' . $result['md5'];
+						$additionalHashes = array('sha1', 'sha256');
+						foreach ($additionalHashes as $hash) {
+							$temp = $attribute;
+							$temp['type'] = 'filename|' . $hash;
+							$temp['value'] = $shortValue . '|' . $result[$hash];
+							unset($temp['data']);
+							$ontheflyattributes[] = $temp;
+						}
 					}
+					$types = array($attribute['type']);
 				} else {
-					$distribution = 0;
+					$types = array($attribute['type']);
 				}
-			}
-			$result['distribution'] = $distribution;
-			$result['event_id'] = $eventId;
-			$resultArray[$k] = $result;
-			if ($adhereToWarninglists) {
-				if (!$this->Warninglist->filterWarninglistAttributes($warninglists, $result)) {
-					if ($adhereToWarninglists == 'soft') {
-						$result['to_ids'] = 0;
+				foreach ($types as $type) {
+					$this->Event->$objectType->create();
+					$attribute['type'] = $type;
+					if (empty($attribute['comment'])) $attribute['comment'] = $default_comment;
+					$attribute['event_id'] = $id;
+					if ($objectType == 'ShadowAttribute') {
+						$attribute['org_id'] = $this->Auth->user('org_id');
+						$attribute['event_org_id'] = $event['Event']['orgc_id'];
+						$attribute['email'] = $this->Auth->user('email');
+						$attribute['event_uuid'] = $event['Event']['uuid'];
+					}
+					// adhere to the warninglist
+					if ($adhereToWarninglists) {
+						if (!$this->Warninglist->filterWarninglistAttributes($warninglists, $attribute)) {
+							if ($adhereToWarninglists == 'soft') {
+								$attribute['to_ids'] = 0;
+							} else {
+								// just ignore the attribute
+								continue;
+							}
+						}
+					}
+					$AttributSave = $this->Event->$objectType->save($attribute);
+					if ($AttributSave) {
+						// If Tags, attache each tags to attribut
+						if (!empty($attribute['tags'])) {
+							foreach (explode(",",$attribute['tags']) as $tagName){
+								$this->loadModel('Tag');
+								$TagId = $this->Tag->captureTag(array('name' => $tagName),array('Role' => $this->userRole));
+								$this->loadModel('AttributeTag');
+								if (!$this->AttributeTag->attachTagToAttribute($AttributSave['Attribute']['id'],$id,$TagId)) {
+									throw new MethodNotAllowedException('Could not add tags.');
+								}
+							}
+						}
+						$saved++;
 					} else {
-						unset($resultArray[$k]);
-						continue;
+						$failed++;
 					}
 				}
-			}
-			$this->Event->Attribute->create();
-			if (!$this->Event->Attribute->save($result)) {
-				unset($resultArray[$k]);
 			}
 		}
-		$resultArray = array_values($resultArray);
-		return $this->RestResponse->viewData($resultArray, $this->response->type());
+		$emailResult = '';
+		$messageScope = $objectType == 'ShadowAttribute' ? 'proposals' : 'attributes';
+		if ($saved > 0) {
+			if ($objectType != 'ShadowAttribute') {
+				$event = $this->Event->find('first', array(
+						'conditions' => array('Event.id' => $id),
+						'recursive' => -1
+				));
+				if ($event['Event']['published'] == 1) {
+					$event['Event']['published'] = 0;
+				}
+				$date = new DateTime();
+				$event['Event']['timestamp'] = $date->getTimestamp();
+				$this->Event->save($event);
+			} else {
+				if (!$this->Event->ShadowAttribute->sendProposalAlertEmail($id)) {
+					$emailResult = " but sending out the alert e-mails has failed for at least one recipient";
+				}
+			}
+		}
+		if ($failed > 0) {
+			$flashMessage = $saved . ' ' . $messageScope . ' created' . $emailResult . '. ' . $failed . ' ' . $messageScope . ' could not be saved. This may be due to attributes with similar values already existing.';
+		} else {
+			$flashMessage = $saved . ' ' . $messageScope . ' created' . $emailResult . '.';
+		}
+		return $flashMessage;
 	}
 
 	public function saveFreeText($id) {
@@ -3455,104 +3645,16 @@ class EventsController extends AppController {
 			throw new MethodNotAllowedException('Event not found or you don\'t have permissions to create attributes');
 		}
 		if ($this->request->is('post')) {
-			$event = $this->Event->find('first', array(
-				'conditions' => array('id' => $id),
-				'recursive' => -1,
-				'fields' => array('orgc_id', 'id', 'distribution', 'published', 'uuid'),
-			));
-			if (!$this->_isSiteAdmin() && !empty($event) && $event['Event']['orgc_id'] != $this->Auth->user('org_id')) $objectType = 'ShadowAttribute';
-			else if ($this->_isSiteAdmin() && isset($this->request->data['Attribute']['force']) && $this->request->data['Attribute']['force']) $objectType = 'ShadowAttribute';
-			else $objectType = 'Attribute';
-			$saved = 0;
-			$failed = 0;
+			if (!$this->Event->checkIfAuthorised($this->Auth->user(), $id)) {
+				throw new MethodNotAllowedException('Invalid event.');
+			}
 			$attributes = json_decode($this->request->data['Attribute']['JsonObject'], true);
-			$attributeSources = array('attributes', 'ontheflyattributes');
-			$ontheflyattributes = array();
-			foreach ($attributeSources as $source) {
-				foreach (${$source} as $k => $attribute) {
-					if ($attribute['type'] == 'ip-src/ip-dst') {
-						$types = array('ip-src', 'ip-dst');
-					} else if ($attribute['type'] == 'ip-src|port/ip-dst|port') {
-						$types = array('ip-src|port', 'ip-dst|port');
-					} else if ($attribute['type'] == 'malware-sample') {
-						if (!isset($attribute['data_is_handled']) || !$attribute['data_is_handled']) {
-							$result = $this->Event->Attribute->handleMaliciousBase64($id, $attribute['value'], $attribute['data'], array('md5', 'sha1', 'sha256'), $objectType == 'ShadowAttribute' ? true : false);
-							if (!$result['success']) {
-								$failed++;
-								continue;
-							}
-							$attribute['data'] = $result['data'];
-							$shortValue = $attribute['value'];
-							$attribute['value'] = $shortValue . '|' . $result['md5'];
-							$additionalHashes = array('sha1', 'sha256');
-							foreach ($additionalHashes as $hash) {
-								$temp = $attribute;
-								$temp['type'] = 'filename|' . $hash;
-								$temp['value'] = $shortValue . '|' . $result[$hash];
-								unset($temp['data']);
-								$ontheflyattributes[] = $temp;
-							}
-						}
-						$types = array($attribute['type']);
-					} else {
-						$types = array($attribute['type']);
-					}
-					foreach ($types as $type) {
-						$this->Event->$objectType->create();
-						$attribute['type'] = $type;
-						if (empty($attribute['comment'])) $attribute['comment'] = $this->request->data['Attribute']['default_comment'];
-						$attribute['event_id'] = $id;
-						if ($objectType == 'ShadowAttribute') {
-							$attribute['org_id'] = $this->Auth->user('org_id');
-							$attribute['event_org_id'] = $event['Event']['orgc_id'];
-							$attribute['email'] = $this->Auth->user('email');
-							$attribute['event_uuid'] = $event['Event']['uuid'];
-						}
-						$AttributSave = $this->Event->$objectType->save($attribute);
-						if ($AttributSave) {
-							// If Tags, attache each tags to attribut
-							if (!empty($attribute['tags'])) {
-								foreach (explode(",",$attribute['tags']) as $tagName){
-									$this->loadModel('Tag');
-									$TagId = $this->Tag->captureTag(array('name' => $tagName),array('Role' => $this->userRole));
-									$this->loadModel('AttributeTag');
-									if (!$this->AttributeTag->attachTagToAttribute($AttributSave['Attribute']['id'],$id,$TagId)) {
-										throw new MethodNotAllowedException('Could not add tags.');
-									}
-								}
-							}
-							$saved++;
-						} else {
-							$failed++;
-						}
-					}
-				}
-			}
-			$emailResult = '';
-			$messageScope = $objectType == 'ShadowAttribute' ? 'proposals' : 'attributes';
-			if ($saved > 0) {
-				if ($objectType != 'ShadowAttribute') {
-					$event = $this->Event->find('first', array(
-							'conditions' => array('Event.id' => $id),
-							'recursive' => -1
-					));
-					if ($event['Event']['published'] == 1) {
-						$event['Event']['published'] = 0;
-					}
-					$date = new DateTime();
-					$event['Event']['timestamp'] = $date->getTimestamp();
-					$this->Event->save($event);
-				} else {
-					if (!$this->Event->ShadowAttribute->sendProposalAlertEmail($id)) {
-						$emailResult = " but sending out the alert e-mails has failed for at least one recipient";
-					}
-				}
-			}
-			if ($failed > 0) {
-				$this->Session->setFlash($saved . ' ' . $messageScope . ' created' . $emailResult . '. ' . $failed . ' ' . $messageScope . ' could not be saved. This may be due to attributes with similar values already existing.');
-			} else {
-				$this->Session->setFlash($saved . ' ' . $messageScope . ' created' . $emailResult . '.');
-			}
+			$default_comment = $this->request->data['Attribute']['default_comment'];
+			$force = $this->request->data['Attribute']['force'];
+
+			$flashMessage = $this->__processFreeTextData($attributes, $id, $default_comment, $force);
+
+			$this->Session->setFlash($flashMessage);
 			$this->redirect(array('controller' => 'events', 'action' => 'view', $id));
 		} else {
 			throw new MethodNotAllowedException();
@@ -3860,45 +3962,60 @@ class EventsController extends AppController {
 		$this->render('ajax/exportChoice');
 	}
 
-	public function importChoice($id) {
-		if (!is_numeric($id)) throw new MethodNotAllowedException('Invalid ID');
-		$event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
-		if (empty($event)) throw new NotFoundException('Event not found or you are not authorised to view it.');
-		$event = $event[0];
-		$imports = array(
-				'freetext' => array(
-						'url' => '/events/freeTextImport/' . $id,
-						'text' => 'Freetext Import',
-						'ajax' => true,
-						'target' => 'popover_form'
-				),
-				'template' => array(
-						'url' => '/templates/templateChoices/' . $id,
-						'text' => 'Populate using a Template',
-						'ajax' => true,
-						'target' => 'popover_form'
-				),
-				'OpenIOC' => array(
-						'url' => '/events/addIOC/' . $id,
-						'text' => 'OpenIOC Import',
+	public function importChoice($id = false, $scope = 'event') {
+		if ($scope == 'event') {
+			if (!is_numeric($id)) throw new MethodNotAllowedException('Invalid ID');
+			$event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
+			if (empty($event)) throw new NotFoundException('Event not found or you are not authorised to view it.');
+			$event = $event[0];
+			$imports = array(
+					'freetext' => array(
+							'url' => '/events/freeTextImport/' . $id,
+							'text' => 'Freetext Import',
+							'ajax' => true,
+							'target' => 'popover_form'
+					),
+					'template' => array(
+							'url' => '/templates/templateChoices/' . $id,
+							'text' => 'Populate using a Template',
+							'ajax' => true,
+							'target' => 'popover_form'
+					),
+					'OpenIOC' => array(
+							'url' => '/events/addIOC/' . $id,
+							'text' => 'OpenIOC Import',
+							'ajax' => false,
+					),
+					'ThreatConnect' => array(
+							'url' => '/attributes/add_threatconnect/' . $id,
+							'text' => 'ThreatConnect Import',
+							'ajax' => false
+					)
+			);
+			$this->loadModel('Module');
+			$modules = $this->Module->getEnabledModules($this->Auth->user(), false, 'Import');
+			if (is_array($modules) && !empty($modules)) {
+				foreach ($modules['modules'] as $k => $module) {
+					$imports[$module['name']] = array(
+							'url' => '/events/importModule/' . $module['name'] . '/' . $id,
+							'text' => Inflector::humanize($module['name']),
+							'ajax' => false
+					);
+				}
+			}
+		} else {
+			$imports = array(
+				'MISP' => array(
+						'url' => '/events/add_misp_export',
+						'text' => 'MISP standard (recommended exchange format)',
 						'ajax' => false,
 				),
-				'ThreatConnect' => array(
-						'url' => '/attributes/add_threatconnect/' . $id,
-						'text' => 'ThreatConnect Import',
-						'ajax' => false
+				'STIX' => array(
+						'url' => '/events/upload_stix',
+						'text' => 'STIX 1.1.1 format',
+						'ajax' => false,
 				)
-		);
-		$this->loadModel('Module');
-		$modules = $this->Module->getEnabledModules($this->Auth->user(), false, 'Import');
-		if (is_array($modules) && !empty($modules)) {
-			foreach ($modules['modules'] as $k => $module) {
-				$imports[$module['name']] = array(
-						'url' => '/events/importModule/' . $module['name'] . '/' . $id,
-						'text' => Inflector::humanize($module['name']),
-						'ajax' => false
-				);
-			}
+			);
 		}
 		$this->set('imports', $imports);
 		$this->set('id', $id);
@@ -4282,6 +4399,9 @@ class EventsController extends AppController {
 	public function importModule($module, $eventId) {
 		$this->loadModel('Module');
 		$moduleName = $module;
+		if (!$this->Event->checkIfAuthorised($this->Auth->user(), $eventId)) {
+			throw new MethodNotAllowedException('Invalid event.');
+		}
 		$module = $this->Module->getEnabledModule($module, 'Import');
 		if (!is_array($module)) throw new MethodNotAllowedException($module);
 		if (!isset($module['mispattributes']['inputSource'])) $module['mispattributes']['inputSource'] = array('paste');
@@ -4364,7 +4484,7 @@ class EventsController extends AppController {
 							$eventId,
 							false,
 							false,
-							false
+							'soft'
 						);
 					}
 					if (isset($result['comment'])) {

@@ -464,6 +464,38 @@ dd {
 	}
 }
 
+#footerContainer {
+	z-index: 20;
+	position:relative;
+}
+
+/* footer shortcut list */
+#shortcutsListContainer {
+	z-index: 10;
+	position: absolute;
+	background-color: #1b1b1b;
+	top: 0;
+	width:100%;
+}
+
+#triangle {
+	position:fixed;
+	background-color: #1b1b1b;
+	width: 20px;
+	height: 20px;
+	bottom:30px;
+	right: 30px;
+	transform: rotate(45deg);
+}
+
+#shortcutsList {
+	top: 0;
+	width: 100%;
+	position:relative;
+	color: #999999;
+	margin: 5px 5px 0px 5px;
+}
+
 /* header */
 .header {
 	width:100%;

@@ -84,7 +84,7 @@
 					<li id='liindex'><a href="<?php echo $baseurl;?>/events/index"><?php echo __('List Events');?></a></li>
 					<?php if ($isAclAdd): ?>
 					<li id='liadd'><a href="<?php echo $baseurl;?>/events/add"><?php echo __('Add Event');?></a></li>
-					<li id='liaddMISPExport'><a href="<?php echo $baseurl;?>/events/add_misp_export"><?php echo __('Import From MISP Export');?></a></li>
+					<li id='liaddMISPExport'><a onClick="getPopup('0', 'events', 'importChoice/event-collection');" style="cursor:pointer;"><?php echo __('Import from…');?></a></li>
 					<?php endif; ?>
 					<li class="divider"></li>
 					<li id='lilistAttributes'><a href="<?php echo $baseurl;?>/attributes/index"><?php echo __('List Attributes');?></a></li>

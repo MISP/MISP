@@ -141,10 +141,10 @@ class ShadowAttributesController extends AppController {
 			$this->ShadowAttribute->setDeleted($toDeleteId);
 
 			if ($this->Auth->user('org_id') == $event['Event']['orgc_id']) {
-				$this->Event->unpublishEvent($activeAttribute['Attribute']['event_id'], true);
+				$this->Event->unpublishEvent($shadow['event_id'], true);
 				$event['Event']['proposal_email_lock'] = 0;
 			} else {
-				$this->Event->unpublishEvent($activeAttribute['Attribute']['event_id']);
+				$this->Event->unpublishEvent($shadow['event_id']);
 			}
 			$this->Log = ClassRegistry::init('Log');
 			$this->Log->create();

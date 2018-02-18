@@ -60,6 +60,7 @@ class AppModel extends Model {
 	);
 
 	public $db_changes = array(
+		1 => false, 2 => false, 3 => false
 	);
 
 	function afterSave($created, $options = array()) {
@@ -866,7 +867,25 @@ class AppModel extends Model {
 			case '2.4.87':
 				$sqlArray[] = "ALTER TABLE `feeds` ADD `headers` TEXT COLLATE utf8_bin;";
 				break;
-
+			case 1:
+				$sqlArray[] = "ALTER TABLE `tags` ADD `user_id` int(11) NOT NULL DEFAULT 0;";
+				$sqlArray[] = 'ALTER TABLE `tags` ADD INDEX `user_id` (`user_id`);';
+				break;
+			case 2:
+			// rerun missing db entries
+				$sqlArray[] = "ALTER TABLE users ADD COLUMN date_created bigint(20);";
+				$sqlArray[] = "ALTER TABLE users ADD COLUMN date_modified bigint(20);";
+				break;
+			case 3:
+				$sqlArray[] = "CREATE TABLE IF NOT EXISTS `fuzzy_correlate_ssdeep` (
+  											`id` int(11) NOT NULL AUTO_INCREMENT,
+  											`chunk` varchar(12) NOT NULL,
+  											`attribute_id` int(11) NOT NULL,
+  											PRIMARY KEY (`id`)
+											) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+				$this->__addIndex('fuzzy_correlate_ssdeep', 'chunk');
+				$this->__addIndex('fuzzy_correlate_ssdeep', 'attribute_id');
+				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';
 				$sqlArray[] = 'UPDATE `attributes` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';

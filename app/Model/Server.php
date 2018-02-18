@@ -137,6 +137,14 @@ class Server extends AppModel {
 							'type' => 'boolean',
 							'null' => true
 					),
+					'ssdeep_correlation_threshold' => array(
+						'level' => 1,
+						'description' => 'Set the ssdeep score at which to consider two ssdeep hashes as correlating [1-100]',
+						'value' => 40,
+						'errorMessage' => '',
+						'test' => 'testForEmpty',
+						'type' => 'numeric'
+					),
 					'max_correlations_per_event' => array(
 							'level' => 1,
 							'description' => 'Sets the maximum number of correlations that can be fetched with a single event. For extreme edge cases this can prevent memory issues. The default value is 5k.',
@@ -694,24 +702,6 @@ class Server extends AppModel {
 							'test' => 'testForNumeric',
 							'type' => 'numeric',
 							'null' => false,
-					),
-					'rh_shell_fix' => array(
-							'level' => 1,
-							'description' => 'If you are running CentOS or RHEL using SCL and are having issues with the Background workers not responding to start/stop/restarts via the worker interface, enable this setting. This will pre-pend the shell execution commands with the default path to rh-php56 (/opt/rh/rh-php56/root/usr/bin:/opt/rh/rh-php56/root/usr/sbin).',
-							'value' => false,
-							'errorMessage' => '',
-							'test' => 'testBool',
-							'type' => 'boolean',
-							'null' => true,
-					),
-					'rh_shell_fix_path' => array(
-							'level' => 1,
-							'description' => 'If you have rh_shell_fix enabled, the default PATH for rh-php56 is added (/opt/rh/rh-php56/root/usr/bin:/opt/rh/rh-php56/root/usr/sbin). If you prefer to use a different path, you can set it here.',
-							'value' => '/opt/rh/rh-php56/root/usr/bin:/opt/rh/rh-php56/root/usr/sbin',
-							'errorMessage' => '',
-							'test' => 'testForPath',
-							'type' => 'string',
-							'null' => true,
 					),
 					'tmpdir' => array(
 							'level' => 1,
@@ -3679,4 +3669,20 @@ class Server extends AppModel {
 	public function getDefaultAttachments_dir() {
 		return APP . 'files';
 	}
+
+	public function fetchServer($id) {
+			if (empty($id)) return false;
+			$conditions = array('Server.id' => $id);
+			if (!is_numeric($id)) {
+				$conditions = array('OR' => array(
+					'LOWER(Server.name)' => strtolower($id),
+					'LOWER(Server.url)' => strtolower($id)
+				));
+			}
+			$server = $this->find('first', array(
+				'conditions' => $conditions,
+				'recursive' => -1
+			));
+			return (empty($server)) ? false : $server;
+		}
 }

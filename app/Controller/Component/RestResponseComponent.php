@@ -2,6 +2,15 @@
 
 class RestResponseComponent extends Component {
 
+	private $__convertActionToMessage = array(
+		'SharingGroup' => array(
+			'addOrg' => 'add Organisation to',
+			'removeOrg' => 'remove Organisation from',
+			'addServer' => 'add Server to',
+			'removeServer' => 'remove Server from'
+		)
+	);
+
 	private $__descriptions = array(
 			'User' => array(
 				'admin_add' => array(
@@ -108,7 +117,11 @@ class RestResponseComponent extends Component {
 		$this->autoRender = false;
 		$response = array();
 		$action = $this->__dissectAdminRouting($action);
-		$response['name'] = 'Could not ' . $action['action'] . ' ' . Inflector::singularize($controller);
+		$stringifiedAction = $action['action'];
+		if (isset($this->__convertActionToMessage[$controller][$action['action']])) {
+			$stringifiedAction = $this->__convertActionToMessage[$controller][$action['action']];
+		}
+		$response['name'] = 'Could not ' . $stringifiedAction . ' ' . Inflector::singularize($controller);
 		$response['message'] = $response['name'];
 		$response['url'] = $this->__generateURL($action, $controller, $id);
 		$response['errors'] = $validationErrors;

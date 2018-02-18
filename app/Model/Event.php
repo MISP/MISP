@@ -3284,6 +3284,9 @@ class Event extends AppModel {
 			}
 			$tempFile->close();
 		}
+		if (empty($i)) {
+			return array('success' => 0, 'message' => 'Invalid event.');
+		}
 		if ($returnType == 'xml') {
 			$stixFile->append("    </stix:Related_Packages>\n</stix:STIX_Package>\n\n");
 		} else {
@@ -4046,5 +4049,28 @@ class Event extends AppModel {
 		if ($proposalLock) $event['Event']['proposal_email_lock'] = 0;
 		$event['Event']['unpublishAction'] = true;
 		return $this->save($event);
+	}
+
+	public function upload_stix($user, $filename) {
+		App::uses('Folder', 'Utility');
+		App::uses('File', 'Utility');
+		$scriptFile = APP . 'files/scripts/stix2misp.py';
+		$tempFilePath = APP . 'files/scripts/tmp/' . $filename;
+		$result = shell_exec('python3 ' . $scriptFile . ' ' . $filename . ' 2>' . APP . 'tmp/logs/exec-errors.log');
+		unlink($tempFilePath);
+		if (trim($result) == '1') {
+			$data = file_get_contents($tempFilePath . '.json');
+			$data = json_decode($data, true);
+			unlink($tempFilePath . '.json');
+			$created_id = false;
+			$validationIssues = false;
+			$result = $this->_add($data, true, $user, '', null, false, null, $created_id, $validationIssues);
+			if ($result) return $created_id;
+			return $validationIssues;
+		} else {
+			$response = __('Issues executing the ingestion script or invalid input.');
+			if ($user['Role']['perm_site_admin']) $response .= ' ' . __('Check whether the dependencies for STIX are met via the diagnostic tool.');
+			return $response;
+		}
 	}
 }

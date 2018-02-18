@@ -210,10 +210,12 @@ class Organisation extends AppModel{
 
 	public function orgMerge($id, $request, $user) {
 		$currentOrg = $this->find('first', array('recursive' => -1, 'conditions' => array('Organisation.id' => $id)));
+		$currentOrgUserCount = $this->User->find('count', array(
+			'conditions' => array('User.org_id' => $id)
+		));
 		$targetOrgId = $request['Organisation']['targetType'] == 0 ? $request['Organisation']['orgsLocal'] : $request['Organisation']['orgsExternal'];
 		$targetOrg = $this->find(
 				'first', array(
-						'fields' => array('id', 'name', 'uuid', 'local'),
 						'recursive' => -1,
 						'conditions' => array('Organisation.id' => $targetOrgId)
 				));
@@ -298,10 +300,46 @@ class Organisation extends AppModel{
 				}
 			}
 		}
-		if ($success) $this->delete($currentOrg['Organisation']['id']);
+		if ($success) {
+			$updateTargetOrg = false;
+			if ($currentOrgUserCount > 0 && $currentOrg['Organisation']['local'] && !$targetOrg['Organisation']['local']) {
+				$targetOrg['Organisation']['local'] = 1;
+				$updateTargetOrg = true;
+			}
+			if (strlen($targetOrg['Organisation']['name']) > strlen($currentOrg['Organisation']['name']) && strpos($targetOrg['Organisation']['name'], $currentOrg['Organisation']['name']) === 0) {
+				$temp = substr($targetOrg['Organisation']['name'], strlen($currentOrg['Organisation']['name']));
+				if (preg_match('/^\_[0-9]+$/i', $temp)) {
+					$targetOrg['Organisation']['name'] = $currentOrg['Organisation']['name'];
+					$updateTargetOrg = true;
+				}
+			}
+			if (!file_exists(APP . 'webroot/img/orgs/' . $targetOrgId . '.png') && file_exists(APP . 'webroot/img/orgs/' . $id . '.png')) {
+				rename(APP . 'webroot/img/orgs/' . $id . '.png', APP . 'webroot/img/orgs/' . $targetOrgId . '.png');
+			}
+			$this->delete($currentOrg['Organisation']['id']);
+			if ($updateTargetOrg) {
+				$this->save($targetOrg);
+			}
+			$success = $targetOrgId;
+		}
 		$backupFile->close();
 		$logFile->write(json_encode($dataMoved));
 		$logFile->close();
 		return $success;
+	}
+
+	public function fetchOrg($id) {
+		if (empty($id)) return false;
+		$conditions = array('Organisation.id' => $id);
+		if (Validation::uuid($id)) {
+			$conditions = array('Organisation.uuid' => $id);
+		} else if (!is_numeric($id)) {
+			$conditions = array('LOWER(Organisation.name)' => strtolower($id));
+		}
+		$org = $this->find('first', array(
+			'conditions' => $conditions,
+			'recursive' => -1
+		));
+		return (empty($org)) ? false : $org;
 	}
 }

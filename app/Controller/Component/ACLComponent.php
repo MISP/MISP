@@ -124,6 +124,7 @@ class ACLComponent extends Component {
 					'toggleCorrelation' => array('perm_add'),
 					'updateGraph' => array('*'),
 					'upload_sample' => array('AND' => array('perm_auth', 'perm_add')),
+					'upload_stix' => array('perm_add'),
 					'view' => array('*'),
 					'viewEventAttributes' => array('*'),
 					'viewGraph' => array('*'),
@@ -190,6 +191,10 @@ class ACLComponent extends Component {
 					'returnDates' => array('*'),
 					'pruneUpdateLogs' => array()
 			),
+      'modules' => array(
+        'index' => array('perm_auth'),
+        'queryEnrichment' => array('perm_auth'),
+      ),
 			'news' => array(
 					'add' => array(),
 					'edit' => array(),
@@ -324,9 +329,13 @@ class ACLComponent extends Component {
 			),
 			'sharingGroups' => array(
 					'add' => array('perm_sharing_group'),
+					'addServer' => array('perm_sharing_group'),
+					'addOrg' => array('perm_sharing_group'),
 					'delete' => array('perm_sharing_group'),
 					'edit' => array('perm_sharing_group'),
 					'index' => array('*'),
+					'removeServer' => array('perm_sharing_group'),
+					'removeOrg' => array('perm_sharing_group'),
 					'view' => array('*'),
 			),
 			'sightings' => array(
@@ -492,6 +501,7 @@ class ACLComponent extends Component {
 			if ($controllerName === 'app') $controllerName = '*';
 			$functionArray = array();
 			$fileContents = file_get_contents(APP . 'Controller' . DS . $file);
+			$fileContents = preg_replace('/\/\*[^\*]+?\*\//', '', $fileContents);
 			preg_match_all($functionFinder, $fileContents, $functionArray);
 			foreach ($functionArray[1] as $function) {
 				if (substr($function, 0, 1) !== '_' && $function !== 'beforeFilter') $results[$controllerName][] = $function;

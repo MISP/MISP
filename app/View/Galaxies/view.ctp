@@ -27,7 +27,11 @@
 </div>
 <script type="text/javascript">
 $(document).ready(function () {
-	$.get("/galaxy_clusters/index/<?php echo $galaxy['Galaxy']['id']; ?>", function(data) {
+	<?php
+	$uri = "/galaxy_clusters/index/" . $galaxy['Galaxy']['id'];
+	if (isset($passedArgsArray)) $uri .= '/searchall:' . $passedArgsArray['all'];
+	?>
+	$.get("<?php echo $uri;?>", function(data) {
 		$("#clusters_div").html(data);
 	});
 });

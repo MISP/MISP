@@ -134,7 +134,7 @@
 		<?php endif; ?>
 		<div id="show_context" title="Show attribute context fields" role="button" tabindex="0" aria-label="Show attribute context fields" class="attribute_filter_text" onClick="toggleContextFields();">Show context fields</div>
 		<div title="input filter" tabindex="0" aria-label="input filter" class="attribute_filter_text" style="padding-top:0px;">
-			<input type="text" id="attributesFilterField" style="height:20px;padding:0px;margin:0px;" class="form-control" data-eventid="<?php echo h($event['Event']['id']); ?>"></input>
+			<input type="text" id="attributesFilterField" style="height:20px;padding:0px;margin:0px;" class="form-control" data-eventid="<?php echo h($event['Event']['id']); ?>" value="<?php if ($filtered) echo h($passedArgsArray['all']); ?>"></input>
 				<span id="attributesFilterButton" role="button" class="icon-search" tabindex="0" aria-label="Filter on attributes value" onClick="filterAttributes('value', '<?php echo h($event['Event']['id']); ?>');"></span>
 				<?php if ($filtered):?>
 					<span tabindex="0" aria-label="Show all attributes" title="Remove filters" role="button" onClick="filterAttributes('all', '<?php echo h($event['Event']['id']); ?>');" class='icon-remove'></span>
@@ -270,18 +270,18 @@ attributes or the appropriate distribution level. If you think there is a mistak
 		$('.select_attribute').click(function(e) {
 			if ($(this).is(':checked')) {
 				if (e.shiftKey) {
-					selectAllInbetween(lastSelected, $(this).parent().data('position'));
+					selectAllInbetween(lastSelected, this.id);
 				}
-				lastSelected = $(this).parent().data('position');
+				lastSelected = this.id;
 			}
 			attributeListAnyAttributeCheckBoxesChecked();
 		});
 		$('.select_proposal').click(function(e){
 			if ($(this).is(':checked')) {
 				if (e.shiftKey) {
-					selectAllInbetween(lastSelected, $(this).parent().data('position'));
+					selectAllInbetween(lastSelected, this.id);
 				}
-				lastSelected = $(this).parent().data('position');
+				lastSelected = this.id;
 			}
 			attributeListAnyProposalCheckBoxesChecked();
 		});

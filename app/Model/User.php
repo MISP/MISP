@@ -272,8 +272,8 @@ class User extends AppModel {
 			if (isset($user['User']['id'])) {
 				$user = $this->find('first', array(
 					'recursive' => -1,
-					'condiitons' => array('User.id' => $user['User']['id']),
-					'fields' => array('id', 'email', 'last_login', 'date_modified', 'org_id', 'termsaccepted', 'autoalert', 'newsread', 'disabled'),
+					'conditons' => array('User.id' => $user['User']['id']),
+					'fields' => array('id', 'email', 'last_login', 'org_id', 'termsaccepted', 'autoalert', 'newsread', 'disabled'),
 					'contain' => array(
 						'Organisation' => array(
 							'fields' => array('Organisation.id', 'Organisation.name', 'Organisation.description', 'Organisation.uuid', 'Organisation.nationality', 'Organisation.sector', 'Organisation.type', 'Organisation.local')
@@ -304,8 +304,8 @@ class User extends AppModel {
 		// we have a clean, hopefully public, key here
 
 		// key is entered
-		require_once 'Crypt/GPG.php';
 		try {
+			require_once 'Crypt/GPG.php';
 			$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
 			try {
 				$keyImportOutput = $gpg->importKey($check['gpgkey']);
@@ -471,8 +471,13 @@ class User extends AppModel {
 
 	public function verifySingleGPG($user, $gpg = false) {
 		if (!$gpg) {
-			require_once 'Crypt/GPG.php';
-			$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
+			try {
+				require_once 'Crypt/GPG.php';
+				$gpg = new Crypt_GPG(array('homedir' => Configure::read('GnuPG.homedir'), 'binary' => (Configure::read('GnuPG.binary') ? Configure::read('GnuPG.binary') : '/usr/bin/gpg')));
+			} catch (Exception $e) {
+				$result[2] ='GnuPG is not configured on this system.';
+				$result[0] = true;
+			}
 		}
 		$result = array();
 		try {
@@ -886,7 +891,7 @@ class User extends AppModel {
 		App::uses('SyncTool', 'Tools');
 		$syncTool = new SyncTool();
 		$HttpSocket = $syncTool->setupHttpSocket();
-		$response = $HttpSocket->get('https://pgp.mit.edu/pks/lookup?search=' . $email . '&op=index&fingerprint=on');
+		$response = $HttpSocket->get('https://pgp.circl.lu/pks/lookup?search=' . $email . '&op=index&fingerprint=on');
 		if ($response->code != 200) return $response->code;
 		$string = str_replace(array("\r", "\n"), "", $response->body);
 		$result = preg_match_all('/<pre>pub(.*?)<\/pre>/', $string, $matches);
