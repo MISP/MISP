@@ -214,7 +214,7 @@ class ObjectReference extends AppModel {
 			$referenced_type = 1;
 		}
 		$objectTypes = array('Attribute', 'Object');
-		if ($sourceObject['Object']['event_id'] != $eventId) return true;
+		if (!isset($sourceObject['Object']) || $sourceObject['Object']['event_id'] != $eventId) return true;
 		if ($referencedObject[$objectTypes[$referenced_type]]['event_id'] != $eventId) return true;
 		$this->create();
 		unset($reference['id']);
