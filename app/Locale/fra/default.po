@@ -154,243 +154,243 @@ msgstr "L'envoi de courriels a échoué"
 
 #: Controller/EventsController.php:2358
 msgid "Problem with writing the zip file. Please report to administrator."
-msgstr ""
+msgstr "Il y a un problème avec la création du fichier zip. Veuillez vous adresser à un administrateur."
 
 #: Controller/EventsController.php:2402
 msgid "Problem with writing the ioc file. Please report to administrator."
-msgstr ""
+msgstr "Il y a un problème avec la création du fichier ioc. Veuillez vous adresser à un administrateur."
 
 #: Controller/EventsController.php:2946
 msgid "Invalid event or not authorised."
-msgstr ""
+msgstr "Évènement invalide ou affichage non autorisé."
 
 #: Controller/LogsController.php:66
 msgid "You don't have access to view this event."
-msgstr ""
+msgstr "Vous n'avez pas accès à cet événement."
 
 #: Controller/ObjectReferencesController.php:34
 msgid "Invalid object"
-msgstr ""
+msgstr "Objet invalide"
 
 #: Controller/ObjectReferencesController.php:183
 msgid "Invalid object reference"
-msgstr ""
+msgstr "La référence de l'objet est invalide"
 
 #: Controller/ObjectTemplatesController.php:84
 msgid "ObjectTemplate deleted"
-msgstr ""
+msgstr "Le modèle de l'objet a été supprimé"
 
 #: Controller/OrgBlacklistsController.php:11
 msgid "Organisation Blacklisting is not currently enabled on this instance."
-msgstr ""
+msgstr "La mise ne liste noire d'organisation est actuellement désactivé sur cette instance."
 
 #: Controller/OrganisationsController.php:215
-msgid "Organisation deleted"
+msgid "L'organisation a été supprimé"
 msgstr ""
 
 #: Controller/OrganisationsController.php:222
 msgid "Organisation could not be deleted. Generally organisations should never be deleted, instead consider moving them to the known remote organisations list. Alternatively, if you are certain that you would like to remove an organisation and are aware of the impact, make sure that there are no users or events still tied to this organisation before deleting it."
-msgstr ""
+msgstr "L'organisation ne peut pas être supprimée. Généralement, les organisations ne doivent jamais être supprimées, envisager plutôt de les déplacer vers la liste des organisations distantes connues. Sinon, si vous êtes certain de vouloir supprimer cette organisation et que vous en connaissez l'impact, assurez-vous qu'il n' y a plus d'utilisateurs ou d'événements liés à cette organisation avant de la supprimer."
 
 #: Controller/PostsController.php:76
-msgid "Invalid thread"
+msgid "fil de discution invalide"
 msgstr ""
 
 #: Controller/PostsController.php:169
 msgid "Post added"
-msgstr ""
+msgstr "Message ajouté"
 
 #: Controller/PostsController.php:196;237
 msgid "Invalid post"
-msgstr ""
+msgstr "Message invalide"
 
 #: Controller/RegexpController.php:24
 msgid "The Regexp has been saved."
-msgstr ""
+msgstr "L'expression régulière a été sauvegardée"
 
 #: Controller/RegexpController.php:28
 msgid "The Regexp could not be saved. Please, try again."
-msgstr ""
+msgstr "L'expression régulière n'a pas été sauvegardée, Veuillez réessayer."
 
 #: Controller/RegexpController.php:42;107
 msgid "The Regular expressions have been saved."
-msgstr ""
+msgstr "Les expressions Régulières ont été sauvegardées."
 
 #: Controller/RegexpController.php:45;114
 msgid "Could not create the Regex entry as no types were selected. Either check \"All\" or check the types that you wish the Regex to affect."
-msgstr ""
+msgstr "Impossible de créer la nouvelle expréssion régulière car aucun type n' a été sélectionné. Cochez \"Tous\" ou cochez les types que vous souhaitez voir affecter."
 
 #: Controller/RegexpController.php:178
 msgid "All done! Number of changed attributes: "
-msgstr ""
+msgstr "Terminé! Nombre d'attributs modifiés: "
 
 #: Controller/RegexpController.php:195
 msgid "All done! Found and cleaned "
-msgstr ""
+msgstr "Terminé! Trouvé et nettoyé "
 
 #: Controller/RolesController.php:32
 msgid "Invalid role"
-msgstr ""
+msgstr "Rôle invalide"
 
 #: Controller/RolesController.php:146
 msgid "Role deleted"
-msgstr ""
+msgstr "Rôle supprimé"
 
 #: Controller/ServersController.php:173;330
 msgid "The pull filter rules must be in valid JSON format."
-msgstr ""
+msgstr "Les règles du filtre pull doivent être au format JSON valide."
 
 #: Controller/ServersController.php:183;340
 msgid "The push filter rules must be in valid JSON format."
-msgstr ""
+msgstr "Les règles du filtre push doivent être au format JSON valide."
 
 #: Controller/ServersController.php:206;367
 msgid "That organisation could not be created as the uuid is in use already."
-msgstr ""
+msgstr "Cette organisation n' a pas pu être créée car l'uuid est déjà utilisé."
 
 #: Controller/ServersController.php:223;384
 msgid "Couldn't save the new organisation, are you sure that the uuid is in the correct format?."
-msgstr ""
+msgstr "La nouvelle organisation n'a pas pu être sauvegardé. L'UUID ne semble pas être au bon format."
 
 #: Controller/ServersController.php:252;419
 msgid "The server has been saved"
-msgstr ""
+msgstr "Le serveur a été sauvegardé"
 
 #: Controller/ServersController.php:259;426
 msgid "The server could not be saved. Please, try again."
-msgstr ""
+msgstr "Le serveur n'a pas pu être sauvegardé. Veuillez réessayer."
 
 #: Controller/ServersController.php:309;489;511;517;577;1246
 msgid "Invalid server"
-msgstr ""
+msgstr "Serveur invalide"
 
 #: Controller/ServersController.php:494
 msgid "Server deleted"
-msgstr ""
+msgstr "Serveur supprimé"
 
 #: Controller/ServersController.php:497
 msgid "Server was not deleted"
-msgstr ""
+msgstr "Le serveur n'a pas été supprimé"
 
 #: Controller/ServersController.php:521
 msgid "Pull setting not enabled for this server."
-msgstr ""
+msgstr "Le paramètre Pull n'est pas activé pour ce serveur."
 
 #: Controller/ServersController.php:530
 msgid "Not authorised. This is either due to an invalid auth key, or due to the sync user not having authentication permissions enabled on the remote server. Another reason could be an incorrect sync server setting."
-msgstr ""
+msgstr "Action non autorisée. Ceci est dû soit à une clé d'authentification invalide, soit au fait que l'utilisateur de synchronisation n' a pas les droits d'authentification activés sur le serveur distant. Une autre raison pourrait être un mauvais configuration du serveur de synchronisation."
 
 #: Controller/ServersController.php:1151
 msgid "File not found."
-msgstr ""
+msgstr "Fichier introuvable."
 
 #: Controller/ServersController.php:1157
 msgid "File could not be deleted."
-msgstr ""
+msgstr "Le fichier n'a pas été supprimé"
 
 #: Controller/ServersController.php:1177;1193
 msgid "Upload failed."
-msgstr ""
+msgstr "Le téléversement a échoué."
 
 #: Controller/ServersController.php:1185
 msgid "File already exists. If you would like to replace it, remove the old one first."
-msgstr ""
+msgstr "Le fichier est déjà présent. Pour le remplacer, veuillez le supprimer avant."
 
 #: Controller/ShadowAttributesController.php:193
 msgid "Moving of the file that this attachment references failed."
-msgstr ""
+msgstr "Le déplacement de ce fichier faisant référence à cet attachement à échoué."
 
 #: Controller/ShadowAttributesController.php:309
 msgid "Attribute has not been added: attachments are added by \"Add attachment\" button"
-msgstr ""
+msgstr "L'attribut n'a pas été ajouté. Veuillez sélectionner \"Ajouter une pièce jointe\"(\"Add attachement\")."
 
 #: Controller/ShadowAttributesController.php:356;359;368
 msgid "The lines"
-msgstr ""
+msgstr "Les lignes"
 
 #: Controller/ShadowAttributesController.php:409
 msgid "The proposal has been saved"
-msgstr ""
+msgstr "La proposition a été sauvegardée"
 
 #: Controller/ShadowAttributesController.php:461
 msgid "Invalid Proposal"
-msgstr ""
+msgstr "Proposition invalide"
 
 #: Controller/ShadowAttributesController.php:484
 msgid "Proposal not an attachment or malware-sample"
-msgstr ""
+msgstr "La proposition n'est pas une pièce jointe ou un échantillon de malware"
 
 #: Controller/ShadowAttributesController.php:568
 msgid "The attachment has been uploaded"
-msgstr ""
+msgstr "La pièce jointe a été envoyée"
 
 #: Controller/ShadowAttributesController.php:570
 msgid "The attachment has been uploaded, but some of the proposals could not be created. The failed proposals are: "
-msgstr ""
+msgstr "La pièce jointe a été envoyée, mais certaines propositions n'ont pas pu être créées. Celles en erreurs sont : "
 
 #: Controller/ShadowAttributesController.php:573
 msgid "The attachment could not be saved, please contact your administrator."
-msgstr ""
+msgstr "La pièce jointe n' a pas pu être sauvegardée, veuillez contacter votre administrateur."
 
 #: Controller/ShadowAttributesController.php:691
 msgid "The proposed Attribute has been saved"
-msgstr ""
+msgstr "L'attribut proposé a été sauvegardé."
 
 #: Controller/ShadowAttributesController.php:702
 msgid "The ShadowAttribute could not be saved. Please, try again."
-msgstr ""
+msgstr "Le \"ShadowAttribute\" n'a pas été sauvegardé. Veuillez réessayer."
 
 #: Controller/ShadowAttributesController.php:798
 msgid "Invalid Attribute"
-msgstr ""
+msgstr "Attribut invalide"
 
 #: Controller/ShadowAttributesController.php:902;937
 msgid "This feature is only available using the API to Sync users"
-msgstr ""
+msgstr "Cette fonctionnalité n'est disponible qu'en utilisant l'API pour les utilisateurs ayant les droites d'effectuer des actions de synchronisation."
 
 #: Controller/ShadowAttributesController.php:905
 msgid "Invalid UUID"
-msgstr ""
+msgstr "UUID invalide"
 
 #: Controller/SharingGroupsController.php:204
 msgid "Sharing Group deleted"
-msgstr ""
+msgstr "Groupe de partage supprimé"
 
 #: Controller/SharingGroupsController.php:209
 msgid "Sharing Group could not be deleted. Make sure that there are no events, attributes or threads belonging to this sharing group."
-msgstr ""
+msgstr "Le groupe de partage n' a pas pu être supprimé. Assurez-vous qu'il n' y a aucun événement, attribut ou discussion appartenant à ce groupe de partage."
 
 #: Controller/TagsController.php:302
 msgid "Tag deleted"
-msgstr ""
+msgstr "Tag supprimé"
 
 #: Controller/TagsController.php:305
 msgid "Tag was not deleted"
-msgstr ""
+msgstr "Le tag n'a pas été supprimé"
 
 #: Controller/TemplatesController.php:351
 msgid "Event populated, "
-msgstr ""
+msgstr "Événement peuplé"
 
 #: Controller/TemplatesController.php:352
 msgid "Event populated, but "
-msgstr ""
+msgstr "Événement peuplé, mais "
 
 #: Controller/UsersController.php:38;204
 msgid "Invalid user or not authorised."
-msgstr ""
+msgstr "Utilisateur invalide ou non autorisé."
 
 #: Controller/UsersController.php:50;397;598;824
 msgid "Invalid user"
-msgstr ""
+msgstr "Utilisateur invalide"
 
 #: Controller/UsersController.php:110;514;666
 msgid "Invalid e-mail domain. Your user is restricted to creating users for the following domain(s): "
-msgstr ""
+msgstr "Le domaine de courriel est invalide. Votre utilisateur est limité à la création d'utilisateurs pour les domaines suivants: "
 
 #: Controller/UsersController.php:135
 msgid "The profile has been updated"
-msgstr ""
+msgstr "Le profil a été mis à jour"
 
 #: Controller/UsersController.php:139
 msgid "The profile could not be updated. Please, try again."
