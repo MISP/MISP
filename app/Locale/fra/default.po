@@ -185,16 +185,16 @@ msgid "Organisation Blacklisting is not currently enabled on this instance."
 msgstr "La mise ne liste noire d'organisation est actuellement désactivé sur cette instance."
 
 #: Controller/OrganisationsController.php:215
-msgid "L'organisation a été supprimé"
-msgstr ""
+msgid "Organisation deleted"
+msgstr "L'organisation a été supprimé"
 
 #: Controller/OrganisationsController.php:222
 msgid "Organisation could not be deleted. Generally organisations should never be deleted, instead consider moving them to the known remote organisations list. Alternatively, if you are certain that you would like to remove an organisation and are aware of the impact, make sure that there are no users or events still tied to this organisation before deleting it."
 msgstr "L'organisation ne peut pas être supprimée. Généralement, les organisations ne doivent jamais être supprimées, envisager plutôt de les déplacer vers la liste des organisations distantes connues. Sinon, si vous êtes certain de vouloir supprimer cette organisation et que vous en connaissez l'impact, assurez-vous qu'il n' y a plus d'utilisateurs ou d'événements liés à cette organisation avant de la supprimer."
 
 #: Controller/PostsController.php:76
-msgid "fil de discution invalide"
-msgstr ""
+msgid "Invalid thread"
+msgstr "fil de discution invalide"
 
 #: Controller/PostsController.php:169
 msgid "Post added"
