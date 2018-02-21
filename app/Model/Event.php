@@ -3774,8 +3774,6 @@ class Event extends AppModel {
 			}
 		}
 		$modulePayload['data'] = $events;
-		debug($modulePayload);
-		throw new Exception();
 		$result = $this->Module->queryModuleServer('/query', json_encode($modulePayload, true), false, 'Export');
 		return array(
 				'data' => $result['data'],
