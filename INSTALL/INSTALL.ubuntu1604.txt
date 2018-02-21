@@ -315,7 +315,6 @@ sudo pip install redis
 
 # For the experimental ssdeep correlations, run the following installation:
 # installing ssdeep
-git clone https://github.com/iglocska/php-ssdeep
 wget http://downloads.sourceforge.net/project/ssdeep/ssdeep-2.13/ssdeep-2.13.tar.gz
 tar zxvf ssdeep-2.13.tar.gz
 cd ssdeep-2.13
@@ -325,13 +324,9 @@ sudo make install
 ssdeep -h # test
 
 #installing ssdeep_php
-git clone https://github.com/iglocska/php-ssdeep.git
-cd php-ssdeep/
-phpize
-./configure
-make
-sudo make install
+pecl install ssdeep
 
+# 7.0 if your PHP 7.0 and you know what to do if you have a different version
 sudo echo "extension=ssdeep.so" > /etc/php/7.0/mods-available/ssdeep.ini
 phpenmod ssdeep
 service apache2 restart
