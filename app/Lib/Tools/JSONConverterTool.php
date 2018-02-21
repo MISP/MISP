@@ -9,7 +9,7 @@ class JSONConverterTool {
 		return ']}' . PHP_EOL;
 	}
 
-	public function convert($event, $isSiteAdmin=false) {
+	public function convert($event, $isSiteAdmin=false, $raw = false) {
 		$toRearrange = array('Org', 'Orgc', 'SharingGroup', 'Attribute', 'ShadowAttribute', 'RelatedAttribute', 'RelatedEvent', 'Galaxy', 'Object');
 		foreach ($toRearrange as $object) {
 			if (isset($event[$object])) {
@@ -77,6 +77,7 @@ class JSONConverterTool {
 		}
 		$result = array('Event' => $event['Event']);
 		if (isset($event['errors'])) $result = array_merge($result, array('errors' => $event['errors']));
+		if ($raw) return $result;
 		return json_encode($result, JSON_PRETTY_PRINT);
 	}
 
