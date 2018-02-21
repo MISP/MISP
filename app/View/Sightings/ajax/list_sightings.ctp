@@ -17,7 +17,7 @@
 			<td class="short"><?php echo date('Y-m-d H:i:s', $item['Sighting']['date_sighting']);?></td>
 		<td class="short">
 		  <?php
-				echo $this->OrgImg->getOrgImg(array('name' => $item['Organisation']['name'], 'id' => $item['Organisation']['id'], 'size' => 24));
+				echo $this->OrgImg->getOrgImg(array('name' => $item['Organisation']['name'], 'id' => $item['Sighting']['org_id'], 'size' => 24));
 		  ?>
 		</td>
 		<td class="short">
