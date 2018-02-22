@@ -3758,10 +3758,19 @@ class Event extends AppModel {
 		$module = $this->Module->getEnabledModule($module, 'Export');
 		$events = $this->fetchEvent($user, $options);
 		if (empty($events)) return 'Invalid event.';
+		$standard_format = false;
 		$modulePayload = array('module' => $module['name']);
+		if (!empty($module['meta']['require_standard_format'])) $standard_format = true;
 		if (isset($module['meta']['config'])) {
 			foreach ($module['meta']['config'] as $conf) {
 				$modulePayload['config'][$conf] = Configure::read('Plugin.Export_' . $module['name'] . '_' . $conf);
+			}
+		}
+		if ($standard_format) {
+			App::uses('JSONConverterTool', 'Tools');
+			$converter = new JSONConverterTool();
+			foreach ($events as $k => $event) {
+				$events[$k] = $converter->convert($event, false, true);
 			}
 		}
 		$modulePayload['data'] = $events;

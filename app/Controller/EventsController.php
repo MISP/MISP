@@ -3488,7 +3488,7 @@ class EventsController extends AppController {
 	}
 
 	public function __pushFreetext($attributes, $id, $distribution = false, $sg = false, $adhereToWarninglists = false) {
-		
+
 		if ($distribution === false) {
 			if (Configure::read('MISP.default_attribute_distribution') != null) {
 				if (Configure::read('MISP.default_attribute_distribution') == 'event') {
@@ -4531,8 +4531,8 @@ class EventsController extends AppController {
 		$this->set('eventId', $eventId);
 	}
 
-	public function exportModule($module, $id) {
-		$result = $this->Event->export($this->Auth->user(), $module, array('eventid' => $id));
+	public function exportModule($module, $id, $standard = false) {
+		$result = $this->Event->export($this->Auth->user(), $module, array('eventid' => $id, 'standard' => $standard));
 		$this->response->body(base64_decode($result['data']));
 		$this->response->type($result['response']);
 		$this->response->download('misp.event.' . $id . '.' . $module . '.export.' . $result['extension']);
