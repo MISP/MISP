@@ -1617,6 +1617,9 @@ class Attribute extends AppModel {
 	}
 
 	public function __afterSaveCorrelation($a, $full = false, $event = false) {
+		if ($a['disable_correlation']) {
+			return true;
+		}
 		// Don't do any correlation if the type is a non correlating type
 		if (!in_array($a['type'], $this->nonCorrelatingTypes)) {
 			if (!$event) {
