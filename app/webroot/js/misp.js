@@ -1896,7 +1896,13 @@ function selectContainsOption(selectid, value) {
 	return exists;
 }
 
-function exportChoiceSelect(url, elementId, checkbox) {
+function exportChoiceSelect(e) {
+	if ($(e.target).is("input")) {
+		return false;
+	}
+	var url = $(e.target).parent().data("export-url");
+	var elementId = $(e.target).parent().data("export-key");
+	var checkbox = $(e.target).parent().data("export-checkbox");
 	if (checkbox == 1) {
 		if ($('#' + elementId + '_toggle').prop('checked')) {
 			url = $('#' + elementId + '_set').html();
