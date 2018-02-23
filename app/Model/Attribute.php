@@ -2693,7 +2693,7 @@ class Attribute extends AppModel {
 				$attribute['value'] = $attribute['value'] . '|' . $result['md5'];
 			}
 			if (!isset($attribute['distribution'])) {
-				$attribute['distribition'] = $defaultDistribution;
+				$attribute['distribution'] = $defaultDistribution;
 			}
 			unset($attribute['Attachment']);
 			$this->create();
