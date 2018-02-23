@@ -2674,6 +2674,7 @@ class Attribute extends AppModel {
 	}
 
 	public function saveAttributes($attributes) {
+		$defaultDistribution = 5;
 		if (Configure::read('MISP.default_attribute_distribution') != null) {
 			if (Configure::read('MISP.default_attribute_distribution') === 'event') {
 				$defaultDistribution = 5;
