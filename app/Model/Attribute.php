@@ -2674,6 +2674,13 @@ class Attribute extends AppModel {
 	}
 
 	public function saveAttributes($attributes) {
+		if (Configure::read('MISP.default_attribute_distribution') != null) {
+			if (Configure::read('MISP.default_attribute_distribution') === 'event') {
+				$defaultDistribution = 5;
+			} else {
+				$defaultDistribution = Configure::read('MISP.default_attribute_distribution');
+			}
+		}
 		foreach ($attributes as $k => $attribute) {
 			if (!empty($attribute['encrypt']) && $attribute['encrypt']) {
 				if (strpos($attribute['value'], '|') !== false) {
@@ -2683,6 +2690,9 @@ class Attribute extends AppModel {
 				$result = $this->handleMaliciousBase64($attribute['event_id'], $attribute['value'], $attribute['data'], array('md5'));
 				$attribute['data'] = $result['data'];
 				$attribute['value'] = $attribute['value'] . '|' . $result['md5'];
+			}
+			if (!isset($attribute['distribution'])) {
+				$attribute['distribition'] = $defaultDistribution;
 			}
 			unset($attribute['Attachment']);
 			$this->create();
