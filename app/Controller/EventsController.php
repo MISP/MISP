@@ -3633,7 +3633,11 @@ class EventsController extends AppController {
 			}
 		}
 		if ($failed > 0) {
-			$flashMessage = $saved . ' ' . $messageScope . ' created' . $emailResult . '. ' . $failed . ' ' . $messageScope . ' could not be saved. This may be due to attributes with similar values already existing.';
+			if ($failed == 1) {
+				$flashMessage = $saved . ' ' . $messageScope . ' created' . $emailResult . '. ' . $failed . ' ' . $messageScope . ' could not be saved. Reason for the failure: ' . $this->Event->objectType->validationErrors;
+			} else {
+				$flashMessage = $saved . ' ' . $messageScope . ' created' . $emailResult . '. ' . $failed . ' ' . $messageScope . ' could not be saved. This may be due to attributes with similar values already existing.';
+			}
 		} else {
 			$flashMessage = $saved . ' ' . $messageScope . ' created' . $emailResult . '.';
 		}
