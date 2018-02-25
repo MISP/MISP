@@ -278,7 +278,7 @@ class ComplexTypeTool {
 					if (preg_match('/^https:\/\/www\.hybrid-analysis\.com\//i', $inputRefangedNoPort)) return array('types' => array('link'), 'categories' => array('External analysis'), 'to_ids' => false, 'default_type' => 'link', 'comment' => $comment, 'value' => $inputRefangedNoPort);
 					if (strpos($inputRefangedNoPort, '/')) return array('types' => array('url'), 'to_ids' => true, 'default_type' => 'url', 'comment' => $comment, 'value' => $inputRefangedNoPort);
 				}
-				if ($this->__resolveFilename($input)) return array('types' => array('filename'), 'to_ids' => true, 'default_type' => 'filename', 'value' => $inputRefanged);
+				if ($this->__resolveFilename($input)) return array('types' => array('filename'), 'to_ids' => true, 'default_type' => 'filename', 'value' => $input);
 			}
 		}
 
