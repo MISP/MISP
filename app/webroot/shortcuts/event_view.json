@@ -13,7 +13,7 @@
 		{
 			"key": "a",
 			"description": "Add an attribute",
-			"action": "$('#liaddAttribute').children()[0].click()"
+			"action": "$('#create-button').click()"
 		},
 		{
 			"key": "s",
