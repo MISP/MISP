@@ -2554,7 +2554,7 @@ class Attribute extends AppModel {
 				unset($results[$key]);
 				continue;
 			}
-			if (!empty($options['includeAttributeUuid'])) {
+			if (!empty($options['includeAttributeUuid']) || !empty($options['includeEventUuid'])) {
 				$results[$key]['Attribute']['event_uuid'] = $results[$key]['Event']['uuid'];
 			}
 			if ($proposals_block_attributes) {
