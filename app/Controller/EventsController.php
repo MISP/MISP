@@ -3285,7 +3285,9 @@ class EventsController extends AppController {
 		}
 		$this->Event->recursive = -1;
 		$event = $this->Event->read(array(), $id);
-
+		if (empty($event)) {
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid event.')), 'status'=>200, 'type' => 'json'));
+		}
 		if (!$this->_isSiteAdmin() && !$this->userRole['perm_sync']) {
 			if (!$this->userRole['perm_tagger'] || ($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id'])) {
 				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200, 'type' => 'json'));
