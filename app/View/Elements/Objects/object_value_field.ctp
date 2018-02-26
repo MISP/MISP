@@ -1,9 +1,22 @@
 <div class="object_value_field">
   <?php
     if ($element['type'] == 'malware-sample' || $element['type'] == 'attachment'):
-      echo $this->Form->file('Attribute.' . $k . '.Attachment', array(
-        'class' => 'Attribute_attachment'
-      ));
+      if ($action != 'edit'):
+        echo $this->Form->file('Attribute.' . $k . '.Attachment', array(
+          'class' => 'Attribute_attachment'
+        ));
+      else:
+        echo h($element['value']);
+        echo $this->Form->input('Attribute.' . $k . '.value', array(
+          'type' => 'textarea',
+          'required' => false,
+          'allowEmpty' => true,
+          'style' => 'height:20px;width:400px;display:none;',
+          'label' => false,
+          'div' => false,
+          'value' => empty($element['value']) ? '' : $element['value']
+        ));
+      endif;
     else:
       if (empty($element['values_list']) && empty($element['sane_default'])):
         echo $this->Form->input('Attribute.' . $k . '.value', array(
