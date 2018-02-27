@@ -189,6 +189,8 @@ class TagsController extends AppController {
 					$this->Session->setFlash('The tag could not be saved. Please, try again.');
 				}
 			}
+		} elseif ($this->_isRest()) {
+			return $this->RestResponse->describe('Tag', 'add', false, $this->response->type());
 		}
 		$this->loadModel('Organisation');
 		$temp = $this->Organisation->find('all', array(
