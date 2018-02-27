@@ -148,7 +148,7 @@ class ComplexTypeTool {
 
 	public function checkFreeText($input, $settings = array()) {
 		$charactersToTrim = array('\'', '"', ',', '(', ')');
-		$iocArray = preg_split("/\r\n|\n|\r|\s|\s+|,|;/", $input);
+		$iocArray = preg_split("/\r\n|\n|\r|\s|\s+|,|\<|\>|;/", $input);
 		$quotedText = explode('"', $input);
 		foreach ($quotedText as $k => $temp) {
 			$temp = trim($temp);
