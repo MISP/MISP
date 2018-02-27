@@ -12,105 +12,112 @@ class RestResponseComponent extends Component {
 	);
 
 	private $__descriptions = array(
-			'User' => array(
-				'admin_add' => array(
-					'description' => "POST a User object in JSON format to this API to create a new user.",
-					'mandatory' => array('email', 'org_id', 'role_id'),
-					'optional' => array('password', 'external_auth_required', 'external_auth_key', 'enable_password', 'nids_sid', 'server_id', 'gpgkey', 'certif_public', 'autoalert', 'contactalert', 'disabled', 'change_pw', 'termsaccepted', 'newsread')
-				),
-				'admin_edit' => array(
-					'description' => "POST a User object in JSON format to this API to edit a user.",
-					'optional' => array('email', 'org_id', 'role_id', 'password', 'external_auth_required', 'external_auth_key', 'enable_password', 'nids_sid', 'server_id', 'gpgkey', 'certif_public', 'autoalert', 'contactalert', 'disabled', 'change_pw', 'termsaccepted', 'newsread')
-				),
-				'admin_quickEmail' => array(
-					'description' => "POST a body and a subject in a JSON to send an e-mail through MISP to the user ID given in the URL",
-					'mandatory' => array('subject', 'body')
+		'Organisation' => array(
+			'admin_add' => array(
+				'description' => "POST an Organisation object in JSON format to this API to create a new organsiation.",
+				'mandatory' => array('name'),
+				'optional' => array('anonymise', 'description', 'type', 'nationality', 'sector', 'uuid', 'contacts', 'local')
+			),
+			'admin_edit' => array(
+				'description' => "POST an Organisation object in JSON format to this API to create a new organsiation.",
+				'mandatory' => array('name'),
+				'optional' => array('anonymise', 'description', 'type', 'nationality', 'sector', 'uuid', 'contacts', 'local')
+			)
+		),
+		'Role' => array(
+			'admin_add' => array(
+				'description' => "POST a Role object in JSON format to this API to create a new role. 'permission' sets the data access permission (0 => read only, 1 => add/edit own, 2 => add/edit org, 3 => publish)",
+				'mandatory' => array('name'),
+				'optional' => array(
+          'perm_delegate',
+          'perm_sync',
+          'perm_admin',
+          'perm_audit',
+          'perm_auth',
+          'perm_site_admin',
+          'perm_regexp_access',
+          'perm_tagger',
+          'perm_template',
+          'perm_sharing_group',
+          'perm_tag_editor',
+          'default_role',
+          'perm_sighting',
+          'permission'
 				)
 			),
-			'Organisation' => array(
-				'admin_add' => array(
-					'description' => "POST an Organisation object in JSON format to this API to create a new organsiation.",
-					'mandatory' => array('name'),
-					'optional' => array('anonymise', 'description', 'type', 'nationality', 'sector', 'uuid', 'contacts', 'local')
-				),
-				'admin_edit' => array(
-					'description' => "POST an Organisation object in JSON format to this API to create a new organsiation.",
-					'mandatory' => array('name'),
-					'optional' => array('anonymise', 'description', 'type', 'nationality', 'sector', 'uuid', 'contacts', 'local')
-				)
-			),
-			'Role' => array(
-				'admin_add' => array(
-					'description' => "POST a Role object in JSON format to this API to create a new role. 'permission' sets the data access permission (0 => read only, 1 => add/edit own, 2 => add/edit org, 3 => publish)",
-					'mandatory' => array('name'),
-					'optional' => array(
-            'perm_delegate',
-            'perm_sync',
-            'perm_admin',
-            'perm_audit',
-            'perm_auth',
-            'perm_site_admin',
-            'perm_regexp_access',
-            'perm_tagger',
-            'perm_template',
-            'perm_sharing_group',
-            'perm_tag_editor',
-            'default_role',
-            'perm_sighting',
-            'permission'
-					)
-				),
-				'admin_edit' => array(
-					'description' => "POST a Role object in JSON format to this API to edit a role. 'permission' sets the data access permission (0 => read only, 1 => add/edit own, 2 => add/edit org, 3 => publish)",
-					'mandatory' => array('name'),
-					'optional' => array(
-            'perm_delegate',
-            'perm_sync',
-            'perm_admin',
-            'perm_audit',
-            'perm_auth',
-            'perm_site_admin',
-            'perm_regexp_access',
-            'perm_tagger',
-            'perm_template',
-            'perm_sharing_group',
-            'perm_tag_editor',
-            'default_role',
-            'perm_sighting',
-            'permission'
-					)
-				)
-			),
-			'Server' => array(
-				'add' => array(
-					'description' => "POST an Server object in JSON format to this API to add a server.",
-					'mandatory' => array('url', 'name', 'organisation_type', 'authkey', 'json'),
-					'optional' => array('push', 'pull', 'push_rules', 'pul_rules', 'submitted_cert', 'submitted_client_cert')
-				),
-				'edit' => array(
-					'description' => "POST an Server object in JSON format to this API to edit a server.",
-					'optional' => array('url', 'name', 'organisation_type', 'authkey', 'json', 'push', 'pull', 'push_rules', 'pul_rules', 'submitted_cert', 'submitted_client_cert')
-				)
-			),
-			'Sighting' => array(
-				'add' => array(
-					'description' => "POST a simplified sighting object in JSON format to this API to add a or a list of sightings. Pass either value(s) or attribute IDs (can be uuids) to identify the target sightings.",
-					'mandatory' => array('OR' => array('values', 'id')),
-					'optional' => array('type', 'source', 'timestamp', 'date', 'time')
-				)
-			),
-			'SharingGroup' => array(
-				'add' => array(
-					'description' => "POST a Sharing Group object in JSON format to this API to add a Sharing Group. The API will also try to capture attached organisations and servers if applicable to the current user.",
-					'mandatory' => array('name', 'releasability'),
-					'optional' => array('description', 'uuid', 'organisation_uuid (sync/site admin only)', 'active', 'created', 'modified', 'roaming', 'Server' => array('url', 'name', 'all_orgs'), 'Organisation' => array('uuid', 'name', 'extend'))
-				),
-				'edit' => array(
-					'description' => "POST a Sharing Group object in JSON format to this API to edit a Sharing Group. The API will also try to capture attached organisations and servers if applicable to the current user.",
-					'mandatory' => array(),
-					'optional' => array('name', 'releasability', 'description', 'uuid', 'organisation_uuid (sync/site admin only)', 'active', 'created', 'modified', 'roaming', 'SharingGroupServer' => array('url', 'name', 'all_orgs'), 'SharingGroupOrg' => array('uuid', 'name', 'extend'))
+			'admin_edit' => array(
+				'description' => "POST a Role object in JSON format to this API to edit a role. 'permission' sets the data access permission (0 => read only, 1 => add/edit own, 2 => add/edit org, 3 => publish)",
+				'mandatory' => array('name'),
+				'optional' => array(
+          'perm_delegate',
+          'perm_sync',
+          'perm_admin',
+          'perm_audit',
+          'perm_auth',
+          'perm_site_admin',
+          'perm_regexp_access',
+          'perm_tagger',
+          'perm_template',
+          'perm_sharing_group',
+          'perm_tag_editor',
+          'default_role',
+          'perm_sighting',
+          'permission'
 				)
 			)
+		),
+		'Server' => array(
+			'add' => array(
+				'description' => "POST an Server object in JSON format to this API to add a server.",
+				'mandatory' => array('url', 'name', 'organisation_type', 'authkey', 'json'),
+				'optional' => array('push', 'pull', 'push_rules', 'pul_rules', 'submitted_cert', 'submitted_client_cert')
+			),
+			'edit' => array(
+				'description' => "POST an Server object in JSON format to this API to edit a server.",
+				'optional' => array('url', 'name', 'organisation_type', 'authkey', 'json', 'push', 'pull', 'push_rules', 'pul_rules', 'submitted_cert', 'submitted_client_cert')
+			)
+		),
+		'Sighting' => array(
+			'add' => array(
+				'description' => "POST a simplified sighting object in JSON format to this API to add a or a list of sightings. Pass either value(s) or attribute IDs (can be uuids) to identify the target sightings.",
+				'mandatory' => array('OR' => array('values', 'id')),
+				'optional' => array('type', 'source', 'timestamp', 'date', 'time')
+			)
+		),
+		'SharingGroup' => array(
+			'add' => array(
+				'description' => "POST a Sharing Group object in JSON format to this API to add a Sharing Group. The API will also try to capture attached organisations and servers if applicable to the current user.",
+				'mandatory' => array('name', 'releasability'),
+				'optional' => array('description', 'uuid', 'organisation_uuid (sync/site admin only)', 'active', 'created', 'modified', 'roaming', 'Server' => array('url', 'name', 'all_orgs'), 'Organisation' => array('uuid', 'name', 'extend'))
+			),
+			'edit' => array(
+				'description' => "POST a Sharing Group object in JSON format to this API to edit a Sharing Group. The API will also try to capture attached organisations and servers if applicable to the current user.",
+				'mandatory' => array(),
+				'optional' => array('name', 'releasability', 'description', 'uuid', 'organisation_uuid (sync/site admin only)', 'active', 'created', 'modified', 'roaming', 'SharingGroupServer' => array('url', 'name', 'all_orgs'), 'SharingGroupOrg' => array('uuid', 'name', 'extend'))
+			)
+		),
+		'Tag' => array(
+			'add' => array(
+				'description' => "POST a Tag object in JSON format to this API to create a new tag.",
+				'mandatory' => array('name'),
+				'optional' => array('colour', 'exportable', 'hide_tag', 'org_id', 'user_id')
+			)
+		),
+		'User' => array(
+			'admin_add' => array(
+				'description' => "POST a User object in JSON format to this API to create a new user.",
+				'mandatory' => array('email', 'org_id', 'role_id'),
+				'optional' => array('password', 'external_auth_required', 'external_auth_key', 'enable_password', 'nids_sid', 'server_id', 'gpgkey', 'certif_public', 'autoalert', 'contactalert', 'disabled', 'change_pw', 'termsaccepted', 'newsread')
+			),
+			'admin_edit' => array(
+				'description' => "POST a User object in JSON format to this API to edit a user.",
+				'optional' => array('email', 'org_id', 'role_id', 'password', 'external_auth_required', 'external_auth_key', 'enable_password', 'nids_sid', 'server_id', 'gpgkey', 'certif_public', 'autoalert', 'contactalert', 'disabled', 'change_pw', 'termsaccepted', 'newsread')
+			),
+			'admin_quickEmail' => array(
+				'description' => "POST a body and a subject in a JSON to send an e-mail through MISP to the user ID given in the URL",
+				'mandatory' => array('subject', 'body')
+			)
+		)
 	);
 
 	public function saveFailResponse($controller, $action, $id = false, $validationErrors, $format = false) {
