@@ -56,19 +56,23 @@ class AttributesController extends AppController {
 
 	public function index() {
 		$this->Attribute->recursive = -1;
-		$this->paginate['contain'] = array(
-			'Event' => array(
-				'fields' =>  array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info', 'Event.user_id'),
-				'Orgc' => array('fields' => array('Orgc.name'))
-			),
-			'Object' => array(
-				'fields' => array('Object.id', 'Object.distribution', 'Object.sharing_group_id')
-			)
-		);
 		if (!$this->_isRest()) {
+			$this->paginate['contain'] = array(
+				'Event' => array(
+					'fields' =>  array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info', 'Event.user_id'),
+					'Orgc' => array('fields' => array('Orgc.name'))
+				),
+				'Object' => array(
+					'fields' => array('Object.id', 'Object.distribution', 'Object.sharing_group_id')
+				)
+			);
 			$this->Attribute->contain(array('AttributeTag' => array('Tag')));
 		}
 		$this->set('isSearch', 0);
+		$attributes = $this->paginate();
+		if ($this->_isRest()) {
+			return $this->RestResponse->viewData($attributes, $this->response->type());
+		}
 		$attributes = $this->paginate();
 		$org_ids = array();
 		foreach ($attributes as $k => $attribute) {
