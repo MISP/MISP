@@ -135,6 +135,8 @@ sudo python2 setup.py install
 cd /usr/local/www/MISP
 sudo -u www git submodule init
 sudo -u www git submodule update
+# Make git ignore filesystem permission differences for submodules
+sudo -u www git submodule foreach git config core.filemode false
 
 # Once done, install CakeResque along with its dependencies if you intend to use the built in background jobs:
 cd /usr/local/www/MISP/app
