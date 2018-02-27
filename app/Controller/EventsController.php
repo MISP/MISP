@@ -883,10 +883,12 @@ class EventsController extends AppController {
 		if (Configure::read('Plugin.Enrichment_services_enable')) {
 			$this->loadModel('Module');
 			$modules = $this->Module->getEnabledModules($this->Auth->user());
-			foreach ($modules as $k => $v) {
-				if (isset($v['restrict'])) {
-					if (!$this->_isSiteAdmin() && $v['restrict'] != $this->Auth->user('org_id')) {
-						unset($modules[$k]);
+			if (!empty($modules) && is_array($modules)) {
+				foreach ($modules as $k => $v) {
+					if (isset($v['restrict'])) {
+						if (!$this->_isSiteAdmin() && $v['restrict'] != $this->Auth->user('org_id')) {
+							unset($modules[$k]);
+						}
 					}
 				}
 			}
