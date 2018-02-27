@@ -59,12 +59,12 @@ class AttributesController extends AppController {
 		if (!$this->_isRest()) {
 			$this->paginate['contain'] = array(
 				'Event' => array(
-					'fields' =>  array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info', 'Event.user_id'),
-					'Orgc' => array('fields' => array('Orgc.name'))
+					'fields' =>  array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.info', 'Event.user_id')
 				),
 				'Object' => array(
 					'fields' => array('Object.id', 'Object.distribution', 'Object.sharing_group_id')
-				)
+				),
+				'AttributeTag'
 			);
 			$this->Attribute->contain(array('AttributeTag' => array('Tag')));
 		}
@@ -75,6 +75,7 @@ class AttributesController extends AppController {
 		}
 		$attributes = $this->paginate();
 		$org_ids = array();
+		$tag_ids = array();
 		foreach ($attributes as $k => $attribute) {
 			if (empty($attribute['Event']['id'])) {
 				unset($attribute[$k]);
@@ -83,13 +84,40 @@ class AttributesController extends AppController {
 			if ($attribute['Attribute']['type'] == 'attachment' && preg_match('/.*\.(jpg|png|jpeg|gif)$/i', $attribute['Attribute']['value'])) {
 				$attributes[$k]['Attribute']['image'] = $this->Attribute->base64EncodeAttachment($attribute['Attribute']);
 			}
-			$org_ids[$attribute['Event']['org_id']] = false;
+			if (!in_array($attribute['Event']['orgc_id'], $org_ids)) $org_ids[] = $attribute['Event']['orgc_id'];
+			if (!in_array($attribute['Event']['org_id'], $org_ids)) $org_ids[] = $attribute['Event']['org_id'];
 			$org_ids[$attribute['Event']['orgc_id']] = false;
+			if (!empty($attribute['AttributeTag'])) {
+				foreach ($attribute['AttributeTag'] as $k => $v) {
+					if (!in_array($v['tag_id'], $tag_ids)) $tag_ids[] = $v['tag_id'];
+				}
+			}
 		}
 		$orgs = $this->Attribute->Event->Orgc->find('list', array(
-				'conditions' => array('Orgc.id' => array_keys($org_ids)),
+				'conditions' => array('Orgc.id' => $org_ids),
 				'fields' => array('Orgc.id', 'Orgc.name')
 		));
+		if (!empty($tag_ids)) {
+			$tags = $this->Attribute->AttributeTag->Tag->find('all', array(
+				'conditions' => array('Tag.id' => $tag_ids),
+				'recursive' => -1,
+				'fields' => array('Tag.id', 'Tag.name', 'Tag.colour')
+			));
+		}
+
+		foreach ($attributes as $k => $attribute) {
+			$attributes[$k]['Event']['Orgc'] = array('id' => $attribute['Event']['orgc_id'], 'name' => $orgs[$attribute['Event']['orgc_id']]);
+			$attributes[$k]['Event']['Org'] = array('id' => $attribute['Event']['org_id'], 'name' => $orgs[$attribute['Event']['org_id']]);
+			if (!empty($attribute['AttributeTag'])) {
+				foreach ($attribute['AttributeTag'] as $kat => $at) {
+					foreach ($tags as $ktag => $tag) {
+						if ($tag['Tag']['id'] == $at['tag_id']) {
+							$attributes[$k]['AttributeTag'][$kat]['Tag'] =	$tag['Tag'];
+						}
+					}
+				}
+			}
+		}
 		$this->set('orgs', $orgs);
 		$this->set('attributes', $attributes);
 		$this->set('attrDescriptions', $this->Attribute->fieldDescriptions);
