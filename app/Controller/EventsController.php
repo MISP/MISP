@@ -883,10 +883,12 @@ class EventsController extends AppController {
 		if (Configure::read('Plugin.Enrichment_services_enable')) {
 			$this->loadModel('Module');
 			$modules = $this->Module->getEnabledModules($this->Auth->user());
-			foreach ($modules as $k => $v) {
-				if (isset($v['restrict'])) {
-					if (!$this->_isSiteAdmin() && $v['restrict'] != $this->Auth->user('org_id')) {
-						unset($modules[$k]);
+			if (!empty($modules) && is_array($modules)) {
+				foreach ($modules as $k => $v) {
+					if (isset($v['restrict'])) {
+						if (!$this->_isSiteAdmin() && $v['restrict'] != $this->Auth->user('org_id')) {
+							unset($modules[$k]);
+						}
 					}
 				}
 			}
@@ -3285,7 +3287,9 @@ class EventsController extends AppController {
 		}
 		$this->Event->recursive = -1;
 		$event = $this->Event->read(array(), $id);
-
+		if (empty($event)) {
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Invalid event.')), 'status'=>200, 'type' => 'json'));
+		}
 		if (!$this->_isSiteAdmin() && !$this->userRole['perm_sync']) {
 			if (!$this->userRole['perm_tagger'] || ($this->Auth->user('org_id') !== $event['Event']['org_id'] && $this->Auth->user('org_id') !== $event['Event']['orgc_id'])) {
 				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200, 'type' => 'json'));
@@ -3488,7 +3492,7 @@ class EventsController extends AppController {
 	}
 
 	public function __pushFreetext($attributes, $id, $distribution = false, $sg = false, $adhereToWarninglists = false) {
-		
+
 		if ($distribution === false) {
 			if (Configure::read('MISP.default_attribute_distribution') != null) {
 				if (Configure::read('MISP.default_attribute_distribution') == 'event') {
@@ -3633,7 +3637,11 @@ class EventsController extends AppController {
 			}
 		}
 		if ($failed > 0) {
-			$flashMessage = $saved . ' ' . $messageScope . ' created' . $emailResult . '. ' . $failed . ' ' . $messageScope . ' could not be saved. This may be due to attributes with similar values already existing.';
+			if ($failed == 1) {
+				$flashMessage = $saved . ' ' . $messageScope . ' created' . $emailResult . '. ' . $failed . ' ' . $messageScope . ' could not be saved. Reason for the failure: ' . $this->Event->objectType->validationErrors;
+			} else {
+				$flashMessage = $saved . ' ' . $messageScope . ' created' . $emailResult . '. ' . $failed . ' ' . $messageScope . ' could not be saved. This may be due to attributes with similar values already existing.';
+			}
 		} else {
 			$flashMessage = $saved . ' ' . $messageScope . ' created' . $emailResult . '.';
 		}
@@ -4531,8 +4539,8 @@ class EventsController extends AppController {
 		$this->set('eventId', $eventId);
 	}
 
-	public function exportModule($module, $id) {
-		$result = $this->Event->export($this->Auth->user(), $module, array('eventid' => $id));
+	public function exportModule($module, $id, $standard = false) {
+		$result = $this->Event->export($this->Auth->user(), $module, array('eventid' => $id, 'standard' => $standard));
 		$this->response->body(base64_decode($result['data']));
 		$this->response->type($result['response']);
 		$this->response->download('misp.event.' . $id . '.' . $module . '.export.' . $result['extension']);

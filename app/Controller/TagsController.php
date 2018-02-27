@@ -189,6 +189,8 @@ class TagsController extends AppController {
 					$this->Session->setFlash('The tag could not be saved. Please, try again.');
 				}
 			}
+		} elseif ($this->_isRest()) {
+			return $this->RestResponse->describe('Tag', 'add', false, $this->response->type());
 		}
 		$this->loadModel('Organisation');
 		$temp = $this->Organisation->find('all', array(
@@ -230,13 +232,17 @@ class TagsController extends AppController {
 		$this->redirect($this->referer());
 	}
 
-	public function edit($id) {
+	public function edit($id = false) {
+		if ($id === false && (!$this->_isRest() || !$this->request->is('get'))) {
+			throw new NotFoundException('No ID set.');
+		} elseif (!empty($id)){
+			$this->Tag->id = $id;
+			if (!$this->Tag->exists()) {
+				throw new NotFoundException('Invalid tag');
+			}
+		}
 		if (!$this->_isSiteAdmin()) {
 			throw new NotFoundException('You don\'t have permission to do that.');
-		}
-		$this->Tag->id = $id;
-		if (!$this->Tag->exists()) {
-			throw new NotFoundException('Invalid tag');
 		}
 		if ($this->request->is('post') || $this->request->is('put')) {
 			$this->request->data['Tag']['id'] = $id;
@@ -262,6 +268,8 @@ class TagsController extends AppController {
 				}
 				$this->Session->setFlash('The Tag could not be saved. Please, try again.');
 			}
+		} elseif ($this->_isRest()) {
+			return $this->RestResponse->describe('Tag', 'edit', false, $this->response->type());
 		}
 		$this->loadModel('Organisation');
 		$temp = $this->Organisation->find('all', array(

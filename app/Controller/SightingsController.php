@@ -227,6 +227,9 @@ class SightingsController extends AppController {
 				}
 			}
 		}
+		if ($this->_isRest()) {
+			return $this->RestResponse->viewData($sightings, $this->response->type());
+		}
 		$this->set('sightings', $sightings);
 		$this->layout = false;
 		$this->render('ajax/list_sightings');

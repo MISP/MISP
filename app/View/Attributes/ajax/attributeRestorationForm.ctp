@@ -4,7 +4,7 @@
 ?>
 <legend><?php echo __('Attribute Restoration'); ?></legend>
 <div style="padding-left:5px;padding-right:5px;padding-bottom:5px;">
-<p><?php echo __('Are you sure you want to undelete Attribute #' . echo $id . '?' ?></p>
+<p><?php echo __('Are you sure you want to undelete Attribute #%s?', h($id)); ?></p>
 	<table>
 		<tr>
 			<td style="vertical-align:top">

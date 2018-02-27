@@ -63,7 +63,8 @@
         'Objects/object_value_field',
         array(
           'element' => $element,
-          'k' => $k
+          'k' => $k,
+          'action' => $action
         )
       );
     ?>

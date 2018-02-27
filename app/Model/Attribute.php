@@ -1617,6 +1617,9 @@ class Attribute extends AppModel {
 	}
 
 	public function __afterSaveCorrelation($a, $full = false, $event = false) {
+		if ($a['disable_correlation']) {
+			return true;
+		}
 		// Don't do any correlation if the type is a non correlating type
 		if (!in_array($a['type'], $this->nonCorrelatingTypes)) {
 			if (!$event) {
@@ -2551,7 +2554,7 @@ class Attribute extends AppModel {
 				unset($results[$key]);
 				continue;
 			}
-			if (!empty($options['includeAttributeUuid'])) {
+			if (!empty($options['includeAttributeUuid']) || !empty($options['includeEventUuid'])) {
 				$results[$key]['Attribute']['event_uuid'] = $results[$key]['Event']['uuid'];
 			}
 			if ($proposals_block_attributes) {
@@ -2671,6 +2674,14 @@ class Attribute extends AppModel {
 	}
 
 	public function saveAttributes($attributes) {
+		$defaultDistribution = 5;
+		if (Configure::read('MISP.default_attribute_distribution') != null) {
+			if (Configure::read('MISP.default_attribute_distribution') === 'event') {
+				$defaultDistribution = 5;
+			} else {
+				$defaultDistribution = Configure::read('MISP.default_attribute_distribution');
+			}
+		}
 		foreach ($attributes as $k => $attribute) {
 			if (!empty($attribute['encrypt']) && $attribute['encrypt']) {
 				if (strpos($attribute['value'], '|') !== false) {
@@ -2680,6 +2691,9 @@ class Attribute extends AppModel {
 				$result = $this->handleMaliciousBase64($attribute['event_id'], $attribute['value'], $attribute['data'], array('md5'));
 				$attribute['data'] = $result['data'];
 				$attribute['value'] = $attribute['value'] . '|' . $result['md5'];
+			}
+			if (!isset($attribute['distribution'])) {
+				$attribute['distribution'] = $defaultDistribution;
 			}
 			unset($attribute['Attachment']);
 			$this->create();
