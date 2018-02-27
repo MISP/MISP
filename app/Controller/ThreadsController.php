@@ -16,7 +16,8 @@ class ThreadsController extends AppController {
 			'limit' => 60,
 	);
 
-	public function viewEvent($id) {
+	public function viewEvent($id = false) {
+		if (empty($id)) throw new MethodNotAllowedException('No Event ID set.');
 		$this->loadModel('Event');
 		$result = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
 		$thread_id = false;
