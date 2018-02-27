@@ -101,6 +101,11 @@ class RestResponseComponent extends Component {
 				'description' => "POST a Tag object in JSON format to this API to create a new tag.",
 				'mandatory' => array('name'),
 				'optional' => array('colour', 'exportable', 'hide_tag', 'org_id', 'user_id')
+			),
+			'edit' => array(
+				'description' => "POST or PUT a Tag object in JSON format to this API to create a edit an existing tag.",
+				'optional' => array('name', 'colour', 'exportable', 'hide_tag', 'org_id', 'user_id'),
+				'params' => array('tag_id')
 			)
 		),
 		'User' => array(
@@ -212,7 +217,13 @@ class RestResponseComponent extends Component {
 		if (isset($this->__descriptions[Inflector::singularize($controller)][$action]['optional'])) {
 			$response['optional_fields'] = $this->__descriptions[Inflector::singularize($controller)][$action]['optional'];
 		}
-		$response['url'] = $this->__generateURL($actionArray, $controller, $id);
+		$params = '';
+		if (!empty($this->__descriptions[Inflector::singularize($controller)][$action]['params'])) {
+			foreach ($this->__descriptions[Inflector::singularize($controller)][$action]['params'] as $k => $param) {
+				$params .= ($k > 0 ? '/': '') . '[' . $param . ']';
+			}
+		}
+		$response['url'] = $this->__generateURL($actionArray, $controller, $params);
 		return $this->__sendResponse($response, 200, $format);
 	}
 }
