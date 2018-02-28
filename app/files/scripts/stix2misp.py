@@ -43,29 +43,36 @@ def loadEvent(args, pathname):
         filename = '{}/tmp/{}'.format(pathname, args[1])
         tempFile = open(filename, 'r')
         fromMISP = True
+        stixJson = True
         try:
             event = json.loads(tempFile.read())
             isJson = True
         except:
             event = STIXPackage.from_xml(filename)
-            event = json.loads(event.to_json())
+            try:
+                event = json.loads(event.to_json())
+            except:
+                stixJson = False
             if args[1].startswith('misp.'):
                 event = event['related_packages']['related_packages'][0]
             else:
                 fromMISP = False
             isJson = False
-        return event, isJson, fromMISP
+        return event, isJson, fromMISP, stixJson
     except:
         print(json.dumps({'success': 0, 'message': 'The temporary STIX export file could not be read'}))
         sys.exit(0)
 
 def getTimestampfromDate(date):
     try:
-        dt = date.split('+')[0]
-        d = int(time.mktime(time.strptime(dt, "%Y-%m-%dT%H:%M:%S")))
-    except:
-        dt = date.split('.')[0]
-        d = int(time.mktime(time.strptime(dt, "%Y-%m-%dT%H:%M:%S")))
+        try:
+            dt = date.split('+')[0]
+            d = int(time.mktime(time.strptime(dt, "%Y-%m-%dT%H:%M:%S")))
+        except:
+            dt = date.split('.')[0]
+            d = int(time.mktime(time.strptime(dt, "%Y-%m-%dT%H:%M:%S")))
+    except AttributeError:
+        d = int(time.mktime(date.timetuple()))
     return d
 
 def buildMispDict(stixEvent):
@@ -147,7 +154,10 @@ def buildMispDict(stixEvent):
     return mispDict
 
 def dictTimestampAndDate(mispDict, stixTimestamp):
-    date = stixTimestamp.split("T")[0]
+    try:
+        date = stixTimestamp.split("T")[0]
+    except AttributeError:
+        date = stixTimestamp
     mispDict["date"] = date
     timestamp = getTimestampfromDate(stixTimestamp)
     mispDict["timestamp"] = timestamp
@@ -195,6 +205,20 @@ def buildExternalDict(stixEvent):
         parseTTPS(ttps, mispDict)
     return mispDict
 
+def buildExternalDict_fromPackage(stixEvent):
+    mispDict = {}
+    dictTimestampAndDate(mispDict, stixEvent.timestamp)
+    eventInfo(mispDict, stixEvent.stix_header)
+    mispDict['Attribute'] = []
+    mispDict['Object'] = []
+    if stixEvent.indicators:
+        parseAttributes(stixEvent.indicators.to_dict(), mispDict, True)
+    if stixEvent.observables:
+        parseAttributes(stixEvent.observables.to_dict()['observables'], mispDict, False)
+    if stixEvent.ttps:
+        parseTTPS(stixEvent.ttps.to_dict()['ttps'], mispDict)
+    return mispDict
+
 def parseAttributes(attributes, mispDict, indic):
     for attr in attributes:
         if 'observable' in attr:
@@ -240,7 +264,10 @@ def parseFileObject(properties, mispDict):
 def parseTTPS(ttps, mispDict):
     mispDict['Galaxy'] = []
     for ttp in ttps:
-        behavior = ttp.get('behavior')
+        try:
+            behavior = ttp['behavior']
+        except KeyError:
+            continue
         if 'malware_instances' in behavior:
             attr = behavior['malware_instances'][0]
             try:
@@ -379,7 +406,7 @@ def saveFile(namefile, pathname, misp):
 
 def main(args):
     pathname = os.path.dirname(args[0])
-    stixEvent, isJson, fromMISP = loadEvent(args, pathname)
+    stixEvent, isJson, fromMISP, stixJson = loadEvent(args, pathname)
     if isJson:
         namefile = args[1]
     else:
@@ -388,7 +415,10 @@ def main(args):
         stixEvent = stixEvent["package"]
         mispDict = buildMispDict(stixEvent)
     else:
-        mispDict = buildExternalDict(stixEvent)
+        if stixJson:
+            mispDict = buildExternalDict(stixEvent)
+        else:
+            mispDict = buildExternalDict_fromPackage(stixEvent)
     misp = pymisp.MISPEvent(None, False)
     misp.from_dict(**mispDict)
     saveFile(namefile, pathname, misp)
