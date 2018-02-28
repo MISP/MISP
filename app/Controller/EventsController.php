@@ -542,7 +542,7 @@ class EventsController extends AppController {
 				$passedArgsArray[$searchTerm] = $v;
 			}
 		}
-		if (Configure::read('MISP.tagging') && !$this->_isRest()) {
+		if (!$this->_isRest()) {
 			$this->paginate['contain'] = array_merge($this->paginate['contain'], array('User.email', 'EventTag'));
 		} else {
 			$this->paginate['contain'] = array_merge($this->paginate['contain'], array('User.email'));
@@ -577,9 +577,6 @@ class EventsController extends AppController {
 				$rules['page'] = intval($passedArgs['page']);
 			}
 			$rules['contain'] = $this->paginate['contain'];
-			if (Configure::read('MISP.tagging') && empty($passedArgs['searchminimal'])) {
-				$rules['contain']['EventTag'] = array('Tag' => array('fields' => array('id', 'name', 'colour', 'exportable'), 'conditions' => array('Tag.exportable' => true)));
-			}
 			if (isset($this->paginate['conditions'])) $rules['conditions'] = $this->paginate['conditions'];
 			if (!empty($passedArgs['searchminimal'])) {
 				unset($rules['contain']);
@@ -588,11 +585,46 @@ class EventsController extends AppController {
 			}
 			$events = $this->Event->find('all', $rules);
 			if (empty($passedArgs['searchminimal'])) {
-				foreach ($events as $k => $event) {
-					foreach ($event['EventTag'] as $k2 => $et) {
-						if (empty($et['Tag'])) unset($events[$k]['EventTag'][$k2]);
+				$total_events = count($events);
+				$passes = ceil($total_events / 1000);
+				for ($i = 0; $i < $passes; $i++) {
+					$event_tag_objects = array();
+					$event_tag_ids = array();
+					$elements = 1000;
+					if ($i == ($passes-1)) {
+						$elements = ($total_events % 1000);
 					}
-					$events[$k]['EventTag'] = array_values($events[$k]['EventTag']);
+					for ($j = 0; $j < $elements; $j++) {
+						$event_tag_ids[$events[($i*1000) + $j]['Event']['id']] = array();
+					}
+					$eventTags = $this->Event->EventTag->find('all', array(
+						'recursive' => -1,
+						'conditions' => array(
+							'EventTag.event_id' => array_keys($event_tag_ids)
+						),
+						'contain' => array(
+							'Tag' => array(
+								'conditions' => array('Tag.exportable' => 1),
+								'fields' => array('Tag.id', 'Tag.name', 'Tag.colour')
+							)
+						)
+					));
+					foreach ($eventTags as $et) {
+						$et['EventTag']['Tag'] = $et['Tag'];
+						unset($et['Tag']);
+						if (empty($event_tag_objects[$et['EventTag']['event_id']])) {
+							$event_tag_objects[$et['EventTag']['event_id']] = array($et['EventTag']);
+						} else {
+							$event_tag_objects[$et['EventTag']['event_id']][] = $et['EventTag'];
+						}
+					}
+					for ($j = 0; $j < $elements; $j++) {
+						if (!empty($event_tag_objects[$events[($i*1000) + $j]['Event']['id']])) {
+							$events[($i*1000) + $j]['EventTag'] = $event_tag_objects[$events[($i*1000) + $j]['Event']['id']];
+						} else {
+							$events[($i*1000) + $j]['EventTag'] = array();
+						}
+					}
 				}
 				$events = $this->GalaxyCluster->attachClustersToEventIndex($events);
 				$this->set('events', $events);
