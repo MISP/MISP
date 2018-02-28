@@ -1902,7 +1902,7 @@ class Attribute extends AppModel {
 			$conditions['AND']['Attribute.to_ids'] = 1;
 			if ($allowNotPublished === false) $conditions['AND']['Event.published'] = 1;
 		}
-		if ($type !== 'all') $conditions['AND']['Attribute.type'] = $type;
+		if (!is_array($type) && $type !== 'all') $conditions['AND']['Attribute.type'] = $type;
 		if ($from) $conditions['AND']['Event.date >='] = $from;
 		if ($to) $conditions['AND']['Event.date <='] = $to;
 		if ($last) $conditions['AND']['Event.publish_timestamp >='] = $last;
