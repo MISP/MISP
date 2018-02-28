@@ -1630,7 +1630,7 @@ class Attribute extends AppModel {
 						'order' => array(),
 				));
 			}
-			if ($event['Event']['disable_correlation']) {
+			if (!empty($event['Event']['disable_correlation']) && $event['Event']['disable_correlation']) {
 				return true;
 			}
 			if (Configure::read('MISP.enable_advanced_correlations') && in_array($a['type'], array('ip-src', 'ip-dst', 'domain-ip'))) {
