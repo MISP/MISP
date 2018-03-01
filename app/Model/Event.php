@@ -2580,6 +2580,11 @@ class Event extends AppModel {
 						'Server.publish_without_email'
 					)
 				));
+				if ($server['Server']['publish_without_email'] == 0) {
+					$st = "enabled";
+				} else {
+					$st = "disabled";
+				}
 				$this->Log->create();
 				$this->Log->save(array(
 						'org' => $user['Organisation']['name'],
@@ -2588,7 +2593,7 @@ class Event extends AppModel {
 						'email' => $user['email'],
 						'action' => 'add',
 						'user_id' => $user['id'],
-						'title' => 'Event pulled from Server(' . $server['Server']['id'] . ') - "' . $server['Server']['name'] . '" - Notification by mail' . isset($server['Server']['publish_without_email']) ? "disabled" : "enabled",
+						'title' => 'Event pulled from Server(' . $server['Server']['id'] . ') - "' . $server['Server']['name'] . '" - Notification by mail ' . $st,
 						'change' => ''
 				));
 			}
@@ -2634,7 +2639,7 @@ class Event extends AppModel {
 			if ($fromXml) $created_id = $this->id;
 			if (!empty($data['Event']['published']) && 1 == $data['Event']['published']) {
 				// do the necessary actions to publish the event (email, upload,...)
-				if (('true' != Configure::read('MISP.disablerestalert')) && ($server['Server']['publish_without_email'] != 1)) {
+				if (('true' != Configure::read('MISP.disablerestalert')) && ($server['Server']['publish_without_email'] == 0)) {
 					$this->sendAlertEmailRouter($this->getID(), $user);
 				}
 				$this->publish($this->getID(), $passAlong);
