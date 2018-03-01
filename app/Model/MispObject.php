@@ -470,6 +470,7 @@ class MispObject extends AppModel {
 		if (empty($log)) {
 			$log = ClassRegistry::init('Log');
 		}
+		if (isset($object['Object']['id'])) unset($object['Object']['id']);
 		$object['Object']['event_id'] = $eventId;
 		if ($this->save($object)) {
 			$this->Event->unpublishEvent($eventId);
