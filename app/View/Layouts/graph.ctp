@@ -71,6 +71,7 @@
 	echo $this->Html->script('bootstrap-datepicker');
 	echo $this->Html->script('bootstrap-colorpicker');
 	echo $this->Html->script('misp.js?' . $queryVersion);
+	echo $this->Html->script('keyboard-shortcuts.js?' . $queryVersion);
 	?>
 	<div id = "ajax_success_container" class="ajax_container">
 		<div id="ajax_success" class="ajax_result ajax_success"></div>

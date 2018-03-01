@@ -89,6 +89,7 @@
 	echo $this->Html->script('bootstrap-colorpicker');
 	if ($me) {
 		echo $this->Html->script('misp.js?' . $queryVersion);
+		echo $this->Html->script('keyboard-shortcuts.js?' . $queryVersion);
 	}
 	?>
 	<div id = "ajax_success_container" class="ajax_container">
