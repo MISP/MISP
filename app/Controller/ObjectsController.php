@@ -533,4 +533,28 @@ class ObjectsController extends AppController {
 			}
 		}
   }
+
+	public function orphanedObjectDiagnostics() {
+		$objectIds = $this->MispObject->find('list', array(
+			'fields' => array('id', 'event_id')
+		));
+		$count = 0;
+		foreach ($objectIds as $objectId => $event_id) {
+			$attributes = $this->MispObject->Attribute->find('list', array(
+				'fields' => array('Attribute.object_id', 'Attribute.object_id'),
+				'conditions' => array(
+					'Attribute.object_id' => $objectId,
+					'Attribute.event_id !=' => $event_id
+				),
+				'order' => 'Attribute.object_id',
+				'recursive' => -1
+			));
+			if (!empty($attributes)) {
+				foreach ($attributes as $attribute) {
+					$count++;
+				}
+			}
+		}
+		return $this->RestResponse->viewData($count, $this->response->type());
+	}
 }

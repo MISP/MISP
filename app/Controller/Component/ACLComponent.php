@@ -207,6 +207,7 @@ class ACLComponent extends Component {
 				'delete' => array('perm_add'),
 				'edit' => array('perm_add'),
 				'get_row' => array('perm_add'),
+				'orphanedObjectDiagnostics' => array(),
 				'revise_object' => array('perm_add'),
 				'view' => array('*'),
 			),
