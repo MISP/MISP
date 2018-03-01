@@ -22,8 +22,8 @@ class NidsSuricataExport extends NidsExport {
 				'any',							// src_port
 				'->',							// direction
 				'any',							// dst_ip
-				'53',							// dst_port
-				'Hostname: ' . $attribute['value'],		// msg
+				'any',							// dst_port
+				'Hostname ' . $attribute['value'],		// msg
 				$content,						// rule_content
 				'',								// tag
 				$sid,							// sid
@@ -41,7 +41,7 @@ class NidsSuricataExport extends NidsExport {
 				'->',							// direction
 				'$EXTERNAL_NET',				// dst_ip
 				'any',							// dst_port
-				'Outgoing HTTP Hostname: ' . $attribute['value'],		// msg
+				'Outgoing HTTP Hostname ' . $attribute['value'],		// msg
 				$content,						// rule_content
 				'tag:session,600,seconds;',		// tag
 				$sid,							// sid
@@ -60,8 +60,8 @@ class NidsSuricataExport extends NidsExport {
 				'any',							// src_port
 				'->',							// direction
 				'any',							// dst_ip
-				'53',							// dst_port
-				'Domain: ' . $attribute['value'],		// msg
+				'any',							// dst_port
+				'Domain ' . $attribute['value'],		// msg
 				$content,						// rule_content
 				'',								// tag
 				$sid,							// sid
@@ -79,7 +79,7 @@ class NidsSuricataExport extends NidsExport {
 				'->',							// direction
 				'$EXTERNAL_NET',				// dst_ip
 				'any',							// dst_port
-				'Outgoing HTTP Domain: ' . $attribute['value'],		// msg
+				'Outgoing HTTP Domain ' . $attribute['value'],		// msg
 				$content,						// rule_content
 				'tag:session,600,seconds;',		// tag
 				$sid,							// sid
@@ -90,7 +90,7 @@ class NidsSuricataExport extends NidsExport {
 	public function urlRule($ruleFormat, $attribute, &$sid) {
 		$createRule = true;
 		$overruled = $this->checkWhitelist($attribute['value']);
-	
+
 		$scheme = parse_url($attribute['value'], PHP_URL_SCHEME);
 		$data = parse_url($attribute['value']);
 		if (is_array($data)) {
@@ -101,31 +101,30 @@ class NidsSuricataExport extends NidsExport {
 				$data['host'] = '';
 			}
 		}
-	
+
 		switch ($scheme) {
 		    case "http":
 				$data['host'] = NidsExport::replaceIllegalChars($data['host']);
-		
+				$data['host'] = trim($data['host'], '[]');
 				$suricata_protocol = 'http';
 				$suricata_src_ip = '$HOME_NET';
 				$suricata_src_port = 'any';
 				$suricata_dst_ip = NidsExport::getCustomIP($data['host']);
 				$suricata_dst_port = NidsExport::getProtocolPort($scheme, $data['port']);
 				$tag = 'tag:session,600,seconds;';
-		
 				if (!array_key_exists('path', $data)) {
 				    $data['path'] = NidsExport::replaceIllegalChars($data['host']);
 				    $content = 'flow:to_server,established; content:"' . $data['host'] . '"; nocase; http_header;';
 				} else {
 				    $content = 'flow:to_server,established; content:"' . $data['host'] . '"; fast_pattern; nocase; http_header; content:"' . $data['path'] . '"; nocase; http_uri;';
 				}
-		
+
 				break;
-	
+
 		    case "https":
 				$data['host'] = NidsExport::replaceIllegalChars($data['host']);
 				$tag = 'tag:session,600,seconds;';
-		
+
 				# IP: classic IP rule for HTTPS
 				if (filter_var($data['host'], FILTER_VALIDATE_IP)) {
 				    $suricata_protocol = 'tcp';
@@ -137,15 +136,10 @@ class NidsSuricataExport extends NidsExport {
 				}
 				# Domain: rule on https certificate subject
 				else {
-				    $suricata_protocol = 'tls';
-				    $suricata_src_ip = '$EXTERNAL_NET';
-				    $suricata_src_port = NidsExport::getProtocolPort($scheme, $data['port']);
-				    $suricata_dst_ip = '$HOME_NET';
-				    $suricata_dst_port = 'any';
-				    $content = 'tls_cert_subject; content:"' . $data['host'] . '"; nocase; pcre:"/' . $data['host'] . '$/";';
+					$createRule = false;
 				}
 				break;
-	
+
 		    case "ssh":
 				# IP: classic IP rule for SSH
 				if (filter_var($data['host'], FILTER_VALIDATE_IP)) {
@@ -179,7 +173,7 @@ class NidsSuricataExport extends NidsExport {
 				    $createRule = false;
 				}
 				break;
-	
+
 		    # Unknown/No protocol: keep old behaviour
 		    default:
 				$suricata_protocol = 'http';
@@ -187,14 +181,14 @@ class NidsSuricataExport extends NidsExport {
 				$suricata_src_port = 'any';
 				$suricata_dst_ip = '$EXTERNAL_NET';
 				$suricata_dst_port = 'any';
-		
+
 				$url = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
 				$content = 'flow:to_server,established; content:"' . $url . '"; fast_pattern; nocase; http_uri;';
 				$tag = 'tag:session,600,seconds;';
-		
+
 				break;
 		}
-	
+
 		if ($createRule) {
 			$attribute['value'] = NidsExport::replaceIllegalChars($attribute['value']);  // substitute chars not allowed in rule
 			$this->rules[] = sprintf($ruleFormat, ($overruled) ? '#OVERRULED BY WHITELIST# ' : '', $suricata_protocol, // proto
@@ -203,7 +197,7 @@ class NidsSuricataExport extends NidsExport {
 				'->',						// direction
 				$suricata_dst_ip,			// dst_ip
 				$suricata_dst_port,			// dst_port
-				'Outgoing URL: ' . $attribute['value'],		// msg
+				'Outgoing URL ' . $attribute['value'],		// msg
 				$content,					// rule_content
 				$tag,						// tag
 				$sid,						// sid
@@ -225,7 +219,7 @@ class NidsSuricataExport extends NidsExport {
 				'->',							// direction
 				'$EXTERNAL_NET',				// dst_ip
 				'any',							// dst_port
-				'Outgoing User-Agent: ' . $attribute['value'],		// msg
+				'Outgoing User-Agent ' . $attribute['value'],		// msg
 				$content,						// rule_content
 				'tag:session,600,seconds;',		// tag
 				$sid,							// sid

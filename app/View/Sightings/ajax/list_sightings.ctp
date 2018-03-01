@@ -2,13 +2,13 @@
 	<div id="org_id" class="hidden"><?php echo h($org_id); ?></div>
 	<table class="table table-striped table-hover table-condensed" style="display:block; overflow-y:auto;max-height:500px;">
 	<tr>
-		<th>Date</th>
-		<th>Organisation</th>
-		<th>Type</th>
-		<th>Source</th>
-		<th>Event ID</th>
-		<th>Attribute ID</th>
-		<th class="actions">Actions</th>
+		<th><?php echo __('Date');?></th>
+		<th><?php echo __('Organisation');?></th>
+		<th><?php echo __('Type');?></th>
+		<th><?php echo __('Source');?></th>
+		<th><?php echo __('Event ID');?></th>
+		<th><?php echo __('Attribute ID');?></th>
+		<th class="actions"><?php echo __('Actions');?></th>
 	</tr>
 <?php
 	foreach ($sightings as $item):
@@ -17,13 +17,7 @@
 			<td class="short"><?php echo date('Y-m-d H:i:s', $item['Sighting']['date_sighting']);?></td>
 		<td class="short">
 		  <?php
-			$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . 'orgs' . DS . h($item['Organisation']['name']) . '.png';
-			if (file_exists($imgAbsolutePath)):
-			  echo $this->Html->image('orgs/' . h($item['Organisation']['name']) . '.png', array('alt' => h($item['Organisation']['name']), 'title' => h($item['Organisation']['name']), 'style' => 'width:24px; height:24px'));
-			else:
-			  echo h($item['Organisation']['name']);
-			endif;
-
+				echo $this->OrgImg->getOrgImg(array('name' => $item['Organisation']['name'], 'id' => $item['Sighting']['org_id'], 'size' => 24));
 		  ?>
 		</td>
 		<td class="short">
@@ -38,7 +32,7 @@
 		  <?php
 			if ($isSiteAdmin || ($item['Sighting']['org_id'] == $me['org_id'] && $isAclAdd)):
 		  ?>
-			<span class="icon-trash useCursorPointer" title="Delete sighting" role="button" tabindex="0" aria-label="Delete sighting" onClick="quickDeleteSighting('<?php echo h($item['Sighting']['id']); ?>', '<?php echo h($rawId); ?>', '<?php echo h($context); ?>');"></span>
+			<span class="icon-trash useCursorPointer" title="Delete sighting" role="button" tabindex="0" aria-label="<?php echo __('Delete sighting');?>" onClick="quickDeleteSighting('<?php echo h($item['Sighting']['id']); ?>', '<?php echo h($rawId); ?>', '<?php echo h($context); ?>');"></span>
 		  <?php
 			endif;
 				?>

@@ -6,7 +6,7 @@
 			echo $this->Form->hidden('event_id');
 			echo $this->Form->input('category', array(
 				'default' => 'Payload delivery',
-				'label' => 'Category ' . $this->element('formInfo', array('type' => 'category'))
+				'label' => __('Category ') . $this->element('formInfo', array('type' => 'category'))
 			));
 		?>
 		<div class="input clear"></div>
@@ -21,7 +21,7 @@
 				}
 				echo $this->Form->input('distribution', array(
 						'options' => $distributionLevels,
-						'label' => 'Distribution ' . $this->element('formInfo', array('type' => 'distribution')),
+						'label' => __('Distribution ') . $this->element('formInfo', array('type' => 'distribution')),
 						'selected' => $initialDistribution,
 				));
 			?>
@@ -30,7 +30,7 @@
 				if (!empty($sharingGroups)) {
 					echo $this->Form->input('sharing_group_id', array(
 							'options' => array($sharingGroups),
-							'label' => 'Sharing Group',
+							'label' => __('Sharing Group'),
 					));
 				}
 			?>
@@ -38,7 +38,7 @@
 			<?php
 				echo $this->Form->input('comment', array(
 						'type' => 'text',
-						'label' => 'Contextual Comment',
+						'label' => __('Contextual Comment'),
 						'error' => array('escape' => false),
 						'div' => 'input clear',
 						'class' => 'input-xxlarge'
@@ -61,9 +61,16 @@
 					'type' => 'checkbox',
 					'checked' => false,
 					'data-content' => isset($attrDescriptions['signature']['formdesc']) ? $attrDescriptions['signature']['formdesc'] : $attrDescriptions['signature']['desc'],
-					'label' => 'IDS (encrypt and hash)',
-					// 'after' => $this->Html->div('forminfo', 'Tick this box to neutralize the sample. Every malware sample will be zipped with the password "infected"', ''),
-					//'after' => '<br>Tick this box to neutralize the sample. Every malware sample will be zipped with the password "infected"',
+					'label' => __('IDS (encrypt and hash)')
+			));
+		?>
+			<div class="input clear"></div>
+		<?php
+			echo $this->Form->input('advanced', array(
+					'type' => 'checkbox',
+					'checked' => false,
+					'data-content' => isset($attrDescriptions['signature']['formdesc']) ? $attrDescriptions['signature']['formdesc'] : $attrDescriptions['signature']['desc'],
+					'label' => __('Advanced extraction (if installed)'),
 			));
 		?>
 	</fieldset>

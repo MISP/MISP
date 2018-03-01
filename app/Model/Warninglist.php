@@ -72,12 +72,27 @@ class Warninglist extends AppModel{
 		return $updated;
 	}
 
+	public function quickDelete($id) {
+		$result = $this->WarninglistEntry->deleteAll(
+			array('WarninglistEntry.warninglist_id' => $id)
+		);
+		if ($result) {
+			$result = $this->WarninglistType->deleteAll(
+				array('WarninglistType.warninglist_id' => $id)
+			);
+		}
+		if ($result) {
+			$result = $this->delete($id, false);
+		}
+		return $result;
+	}
+
 	private function __updateList($list, $current) {
 		$list['enabled'] = 0;
 		$warninglist = array();
 		if (!empty($current)) {
 			if ($current['Warninglist']['enabled']) $list['enabled'] = 1;
-			$this->deleteAll(array('Warninglist.id' => $current['Warninglist']['id']));
+			$this->quickDelete($current['Warninglist']['id']);
 		}
 		$fieldsToSave = array('name', 'version', 'description', 'type', 'enabled');
 		foreach ($fieldsToSave as $fieldToSave) {
@@ -89,13 +104,17 @@ class Warninglist extends AppModel{
 			$values = array();
 			foreach ($list['list'] as $value) {
 				if (!empty($value)) {
-					$values[] = array($value, $this->id);
+					$values[] = array('value' => $value, 'warninglist_id' => $this->id);
 				}
 			}
 			unset($list['list']);
-			$result = $db->insertMulti('warninglist_entries', array('value', 'warninglist_id'), $values);
+			$count = count($values);
+			$values = array_chunk($values, 100);
+			foreach ($values as $chunk) {
+				$result = $db->insertMulti('warninglist_entries', array('value', 'warninglist_id'), $chunk);
+			}
 			if ($result) {
-				$this->saveField('warninglist_entry_count', count($values));
+				$this->saveField('warninglist_entry_count', $count);
 			} else {
 				return 'Could not insert values.';
 			}
@@ -232,6 +251,23 @@ class Warninglist extends AppModel{
 		return $warninglists;
 	}
 
+	public function checkForWarning($object, &$eventWarnings, $warningLists) {
+		if ($object['to_ids']) {
+			foreach ($warningLists as $list) {
+				if (in_array('ALL', $list['types']) || in_array($object['type'], $list['types'])) {
+					$result = $this->__checkValue($list['values'], $object['value'], $object['type'], $list['Warninglist']['type']);
+					if (!empty($result)) {
+						$object['warnings'][$result][] = $list['Warninglist']['name'];
+						if (!in_array($list['Warninglist']['name'], $eventWarnings)) {
+							$eventWarnings[$list['Warninglist']['id']] = $list['Warninglist']['name'];
+						}
+					}
+				}
+			}
+		}
+		return $object;
+	}
+
 	public function setWarnings(&$event, &$warninglists) {
 		if (empty($event['objects'])) return $event;
 		$eventWarnings = array();
@@ -268,6 +304,8 @@ class Warninglist extends AppModel{
 				$result = $this->__evalSubString($listValues, $value[$component]);
 			} else if ($listType === 'hostname') {
 				$result = $this->__evalHostname($listValues, $value[$component]);
+			} else if ($listType === 'regex') {
+				$result = $this->__evalRegex($listValues, $value[$component]);
 			}
 			if (!empty($result)) return ($component + 1);
 		}
@@ -366,9 +404,11 @@ class Warninglist extends AppModel{
 		if (!isset($hostname)) {
 			return false;
 		}
+		$hostname = rtrim($hostname, '.');
 		$value = explode('.', $hostname);
 		$pieces = count($value);
 		foreach ($listValues as $listValue) {
+			$listValue = rtrim($listValue, '.');
 			$listValue = explode('.', $listValue);
 			if (count($listValue) > $pieces) {
 				continue;
@@ -380,6 +420,13 @@ class Warninglist extends AppModel{
 			if ($listValue == $temp) {
 				return true;
 			}
+		}
+		return false;
+	}
+
+	private function __evalRegex($listValues, $value) {
+		foreach ($listValues as $listValue) {
+			if (preg_match($listValue, $value)) return true;
 		}
 		return false;
 	}
@@ -396,13 +443,14 @@ class Warninglist extends AppModel{
 				}
 			}
 		}
+		if (!in_array('onion', $tlds)) $tlds[] = 'onion';
 		return $tlds;
 	}
 
 	public function filterWarninglistAttributes($warninglists, $attribute) {
 		foreach ($warninglists as $warninglist) {
 			$result = $this->__checkValue($warninglist['values'], $attribute['value'], $attribute['type'], $warninglist['Warninglist']['type']);
-			if ($result === false) {
+			if ($result !== false) {
 				return false;
 			}
 		}

@@ -102,25 +102,18 @@ class ShadowAttributesController extends AppController {
 			$this->Event->recursive = -1;
 			// Unpublish the event, accepting a proposal is modifying the event after all. Also, reset the lock.
 			$event = $this->Event->read(null, $activeAttribute['Attribute']['event_id']);
-			$fieldList = array('proposal_email_lock', 'id', 'info', 'published', 'timestamp');
-			$event['Event']['timestamp'] = $date->getTimestamp();
-			$event['Event']['proposal_email_lock'] = 0;
-			$event['Event']['published'] = 0;
-			if ($this->Event->save($event, array('fieldList' => $fieldList))) {
-				$this->Log = ClassRegistry::init('Log');
-				$this->Log->create();
-				$this->Log->save(array(
-					'org_id' => $this->Auth->user('org_id'),
-					'model' => 'ShadowAttribute',
-					'model_id' => $id,
-					'email' => $this->Auth->user('email'),
-					'action' => 'accept',
-					'title' => 'Proposal (' . $shadow['id'] . ') of ' . $shadow['org_id'] . ' to Attribute (' . $shadow['old_id'] . ') of Event (' . $shadow['event_id'] . ') accepted - ' . $shadow['category'] . '/' . $shadow['type'] . ' ' . $shadow['value'],
-				));
-				return array('saved' => true, 'success' => 'Proposed change accepted.');
-			} else {
-				return array('false' => true, 'errors' => 'Could not accept proposal.');
-			}
+			$this->Event->unpublishEvent($activeAttribute['Attribute']['event_id'], true);
+			$this->Log = ClassRegistry::init('Log');
+			$this->Log->create();
+			$this->Log->save(array(
+				'org_id' => $this->Auth->user('org_id'),
+				'model' => 'ShadowAttribute',
+				'model_id' => $id,
+				'email' => $this->Auth->user('email'),
+				'action' => 'accept',
+				'title' => 'Proposal (' . $shadow['id'] . ') of ' . $shadow['org_id'] . ' to Attribute (' . $shadow['old_id'] . ') of Event (' . $shadow['event_id'] . ') accepted - ' . $shadow['category'] . '/' . $shadow['type'] . ' ' . $shadow['value'],
+			));
+			return array('saved' => true, 'success' => 'Proposed change accepted.');
 		} else {
 			// If the old_id is set to 0, then we're dealing with a brand new proposed attribute
 			// The idea is to load the event that the new attribute will be attached to, create an attribute to it and set the distribution equal to that of the event
@@ -147,29 +140,24 @@ class ShadowAttributesController extends AppController {
 			$this->Attribute->save($attribute);
 			$this->ShadowAttribute->setDeleted($toDeleteId);
 
-			$fieldList = array('proposal_email_lock', 'id', 'info', 'published');
 			if ($this->Auth->user('org_id') == $event['Event']['orgc_id']) {
+				$this->Event->unpublishEvent($shadow['event_id'], true);
 				$event['Event']['proposal_email_lock'] = 0;
-			}
-			$event['Event']['published'] = 0;
-			$date = new DateTime();
-			$event['Event']['timestamp'] = $date->getTimestamp();
-			if ($this->Event->save($event, array('fieldList' => $fieldList))) {
-				$this->Log = ClassRegistry::init('Log');
-				$this->Log->create();
-				$this->Log->save(array(
-					'org_id' => $this->Auth->user('org_id'),
-					'model' => 'ShadowAttribute',
-					'model_id' => $id,
-					'email' => $this->Auth->user('email'),
-					'action' => 'accept',
-					'title' => 'Proposal (' . $shadowForLog['id'] . ') of ' . $shadowForLog['org_id'] . ' to Event(' . $shadowForLog['event_id'] . ') accepted',
-					'change' => null,
-				));
-				return array('saved' => true, 'success' => 'Proposal accepted.');
 			} else {
-				return array('false' => true, 'errors' => 'Could not accept proposal.');
+				$this->Event->unpublishEvent($shadow['event_id']);
 			}
+			$this->Log = ClassRegistry::init('Log');
+			$this->Log->create();
+			$this->Log->save(array(
+				'org_id' => $this->Auth->user('org_id'),
+				'model' => 'ShadowAttribute',
+				'model_id' => $id,
+				'email' => $this->Auth->user('email'),
+				'action' => 'accept',
+				'title' => 'Proposal (' . $shadowForLog['id'] . ') of ' . $shadowForLog['org_id'] . ' to Event(' . $shadowForLog['event_id'] . ') accepted',
+				'change' => null,
+			));
+			return array('saved' => true, 'success' => 'Proposal accepted.');
 		}
 	}
 
@@ -191,7 +179,7 @@ class ShadowAttributesController extends AppController {
 			}
 		} else {
 			$this->autoRender = false;
-			return new CakeResponse(array('body'=> json_encode($response),'status'=>200));
+			return new CakeResponse(array('body'=> json_encode($response), 'status'=>200, 'type' => 'json'));
 		}
 	}
 
@@ -262,14 +250,14 @@ class ShadowAttributesController extends AppController {
 					$this->set('_serialize', array('name', 'message', 'url'));
 				} else {
 					$this->autoRender = false;
-					return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Proposal discarded.')),'status'=>200));
+					return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Proposal discarded.')), 'status'=>200, 'type' => 'json'));
 				}
 			} else {
 				if ($this->_isRest()) {
 					throw new MethodNotAllowedException('Could not discard proposal.');
 				} else {
 					$this->autoRender = false;
-					return new CakeResponse(array('body'=> json_encode(array('false' => true, 'errors' => 'Could not discard proposal.')),'status'=>200));
+					return new CakeResponse(array('body'=> json_encode(array('false' => true, 'errors' => 'Could not discard proposal.')), 'status'=>200, 'type' => 'json'));
 				}
 			}
 		} else {
@@ -357,9 +345,9 @@ class ShadowAttributesController extends AppController {
 					// handle it if some of them failed!
 					if ($fails) {
 						$error_message = 'The lines' . $fails . ' could not be saved. Please, try again.';
-						return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $error_message)), 'status' => 200));
+						return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $error_message)), 'status' => 200, 'type' => 'json'));
 					} else {
-						return new CakeResponse(array('body'=> json_encode(array('saved' => true)), 'status' => 200));
+						return new CakeResponse(array('body'=> json_encode(array('saved' => true)), 'status' => 200, 'type' => 'json'));
 					}
 				} else {
 					if ($fails) {
@@ -405,7 +393,7 @@ class ShadowAttributesController extends AppController {
 					// inform the user and redirect
 					if ($this->request->is('ajax')) {
 						$this->autoRender = false;
-						return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Proposal added' . $emailResult)),'status'=>200));
+						return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Proposal added' . $emailResult)), 'status'=>200, 'type' => 'json'));
 					} else if ($this->_isRest()) {
 						$sa = $this->ShadowAttribute->find(
 							'first',
@@ -424,7 +412,7 @@ class ShadowAttributesController extends AppController {
 				} else {
 					if ($this->request->is('ajax')) {
 						$this->autoRender = false;
-						return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $this->ShadowAttribute->validationErrors)),'status'=>200));
+						return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $this->ShadowAttribute->validationErrors)), 'status'=>200, 'type' => 'json'));
 					} else if ($this->_isRest()) {
 						$message = '';
 						foreach ($this->ShadowAttribute->validationErrors as $k => $v) {
@@ -633,7 +621,8 @@ class ShadowAttributesController extends AppController {
 	public function edit($id = null) {
 		$existingAttribute = $this->ShadowAttribute->Event->Attribute->fetchAttributes($this->Auth->user(), array(
 				'contain' => array('Event' => array('fields' => array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.distribution', 'Event.uuid'))),
-				'conditions' => array('Attribute.id' => $id)
+				'conditions' => array('Attribute.id' => $id),
+				'flatten' => 1
 		));
 		if (empty($existingAttribute)) throw new MethodNotAllowedException('Invalid Attribute.');
 		$existingAttribute = $existingAttribute[0];
@@ -662,6 +651,10 @@ class ShadowAttributesController extends AppController {
 						'static' => array('old_id' => 'Attribute.id', 'uuid' => 'Attribute.uuid', 'event_id' => 'Attribute.event_id', 'event_uuid' => 'Event.uuid', 'event_org_id' => 'Event.orgc_id'),
 						'optional' => array('category', 'type', 'value', 'to_ids', 'comment')
 				);
+				if ($existingAttribute['Attribute']['object_id']) {
+					unset($fields['optional']['type']);
+					$fields['static']['type'] = 'Attribute.type';
+				}
 			}
 			foreach ($fields['static'] as $k => $v) {
 				$v = explode('.', $v);
@@ -712,8 +705,7 @@ class ShadowAttributesController extends AppController {
 		} else {
 			// Read the attribute that we're about to edit
 			$this->ShadowAttribute->create();
-			$request['ShadowAttribute'] = $existingAttribute['Attribute'];
-			$this->request->data = $request;
+			$this->request->data['ShadowAttribute'] = $existingAttribute['Attribute'];
 			unset($this->request->data['ShadowAttribute']['id']);
 		}
 
@@ -724,18 +716,36 @@ class ShadowAttributesController extends AppController {
 				unset($types[$key]);
 			}
 		}
+		if ($existingAttribute['Attribute']['object_id']) {
+			$this->set('objectAttribute', true);
+		} else {
+			$this->set('objectAttribute', false);
+		}
 		$types = $this->_arrayToValuesIndexArray($types);
 		$this->set('types', $types);
 		// combobox for categories
 		$categories = $this->_arrayToValuesIndexArray(array_keys($this->ShadowAttribute->Event->Attribute->categoryDefinitions));
 		$categories = $this->_arrayToValuesIndexArray($categories);
-		$this->set('categories', $categories);
 		foreach ($this->ShadowAttribute->Event->Attribute->categoryDefinitions as $key => $value) {
 			$info['category'][$key] = array('key' => $key, 'desc' => isset($value['formdesc'])? $value['formdesc'] : $value['desc']);
 		}
 		foreach ($this->ShadowAttribute->Event->Attribute->typeDefinitions as $key => $value) {
 			$info['type'][$key] = array('key' => $key, 'desc' => isset($value['formdesc'])? $value['formdesc'] : $value['desc']);
 		}
+		$categoryDefinitions = $this->ShadowAttribute->Event->Attribute->categoryDefinitions;
+		if ($existingAttribute['Attribute']['object_id']) {
+			foreach ($categoryDefinitions as $k => $v) {
+				if (!in_array($existingAttribute['Attribute']['type'], $v['types'])) {
+					unset($categoryDefinitions[$k]);
+				}
+			}
+			foreach ($categories as $k => $v) {
+				if (!isset($categoryDefinitions[$k])) {
+					unset($categories[$k]);
+				}
+			}
+		}
+		$this->set('categories', $categories);
 		$this->set('info', $info);
 		$this->set('attrDescriptions', $this->ShadowAttribute->fieldDescriptions);
 		$this->set('typeDefinitions', $this->ShadowAttribute->typeDefinitions);
@@ -761,7 +771,7 @@ class ShadowAttributesController extends AppController {
 		));
 
 		if ($this->request->is('post')) {
-			if (empty($existingAttribute)) return new CakeResponse(array('body'=> json_encode(array('false' => true, 'errors' => 'Invalid Attribute.')),'status'=>200));
+			if (empty($existingAttribute)) return new CakeResponse(array('body'=> json_encode(array('false' => true, 'errors' => 'Invalid Attribute.')), 'status'=>200, 'type' => 'json'));
 			$this->ShadowAttribute->create();
 			$sa = array(
 					'old_id' => $existingAttribute['Attribute']['id'],
@@ -780,9 +790,9 @@ class ShadowAttributesController extends AppController {
 			if ($this->ShadowAttribute->save($sa)) {
 				$emailResult = "";
 				if (!$this->ShadowAttribute->sendProposalAlertEmail($existingAttribute['Event']['id'])) $emailResult = " but sending out the alert e-mails has failed for at least one recipient.";
-				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'The proposal to delete the attribute has been saved' . $emailResult)),'status'=>200));
+				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'The proposal to delete the attribute has been saved' . $emailResult)), 'status'=>200, 'type' => 'json'));
 			} else {
-				return new CakeResponse(array('body'=> json_encode(array('false' => true, 'errors' => 'Could not create proposal.')),'status'=>200));
+				return new CakeResponse(array('body'=> json_encode(array('false' => true, 'errors' => 'Could not create proposal.')), 'status'=>200, 'type' => 'json'));
 			}
 		} else {
 			if (empty($existingAttribute)) throw new NotFoundException(__('Invalid Attribute'));
@@ -1045,17 +1055,17 @@ class ShadowAttributesController extends AppController {
 		foreach ($this->request->data['ShadowAttribute'] as $changedKey => $changedField) {
 			if ($proposal[$changedKey] == $changedField) {
 				$this->autoRender = false;
-				return new CakeResponse(array('body'=> json_encode('nochange'),'status'=>200));
+				return new CakeResponse(array('body'=> json_encode('nochange'), 'status'=>200, 'type' => 'json'));
 			}
 			$proposal[$changedKey] = $changedField;
 		}
 
 		if ($this->ShadowAttribute->save($proposal)) {
 			$this->autoRender = false;
-			return new CakeResponse(array('body'=> json_encode(array('saved' => true)),'status'=>200));
+			return new CakeResponse(array('body'=> json_encode(array('saved' => true)), 'status'=>200, 'type' => 'json'));
 		} else {
 			$this->autoRender = false;
-			return new CakeResponse(array('body'=> json_encode(array('fail' => false, 'errors' => $this->ShadowAttribute->validationErrors)),'status'=>200));
+			return new CakeResponse(array('body'=> json_encode(array('fail' => false, 'errors' => $this->ShadowAttribute->validationErrors)), 'status'=>200, 'type' => 'json'));
 		}
 	}
 
@@ -1072,7 +1082,7 @@ class ShadowAttributesController extends AppController {
 					'fields' => array('id', 'orgc_id', 'user_id')
 			));
 			if ($event['Event']['orgc_id'] != $this->Auth->user('org_id') || (!$this->userRole['perm_modify_org'] && !($this->userRole['perm_modify'] && $event['Event']['user_id'] == $this->Auth->user('id')))) {
-				return new CakeResponse(array('body'=> json_encode(array('false' => true, 'errors' => 'You don\'t have permission to do that.')),'status'=>200));
+				return new CakeResponse(array('body'=> json_encode(array('false' => true, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200, 'type' => 'json'));
 			}
 		}
 
@@ -1089,9 +1099,9 @@ class ShadowAttributesController extends AppController {
 		$fails = array_diff($ids, $successes);
 		$this->autoRender = false;
 		if (count($fails) == 0 && count($successes) > 0) {
-			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => count($successes) . ' proposal' . (count($successes) != 1 ? 's' : '') . ' deleted.')),'status'=>200));
+			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => count($successes) . ' proposal' . (count($successes) != 1 ? 's' : '') . ' deleted.')), 'status'=>200, 'type' => 'json'));
 		} else {
-			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => count($successes) . ' proposal' . (count($successes) != 1 ? 's' : '') . ' deleted, but ' . count($fails) . ' proposal' . (count($fails) != 1 ? 's' : '') . ' could not be deleted.')),'status'=>200));
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => count($successes) . ' proposal' . (count($successes) != 1 ? 's' : '') . ' deleted, but ' . count($fails) . ' proposal' . (count($fails) != 1 ? 's' : '') . ' could not be deleted.')), 'status'=>200, 'type' => 'json'));
 		}
 	}
 
@@ -1108,7 +1118,7 @@ class ShadowAttributesController extends AppController {
 					'fields' => array('id', 'orgc_id', 'user_id')
 			));
 			if ($event['Event']['orgc_id'] != $this->Auth->user('org_id') || (!$this->userRole['perm_modify_org'] && !($this->userRole['perm_modify'] && $event['Event']['user_id'] == $this->Auth->user('id')))) {
-				return new CakeResponse(array('body'=> json_encode(array('false' => true, 'errors' => 'You don\'t have permission to do that.')),'status'=>200));
+				return new CakeResponse(array('body'=> json_encode(array('false' => true, 'errors' => 'You don\'t have permission to do that.')), 'status'=>200, 'type' => 'json'));
 			}
 		}
 
@@ -1123,12 +1133,13 @@ class ShadowAttributesController extends AppController {
 			$response = $this->__accept($a['ShadowAttribute']['id']);
 			if (isset($response['saved'])) $successes[] = $a['ShadowAttribute']['id'];
 		}
+		$this->ShadowAttribute->Event->unpublishEvent($id, true);
 		$fails = array_diff($ids, $successes);
 		$this->autoRender = false;
 		if (count($fails) == 0 && count($successes) > 0) {
-			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => count($successes) . ' proposal' . (count($successes) != 1 ? 's' : '') . ' accepted.')),'status'=>200));
+			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => count($successes) . ' proposal' . (count($successes) != 1 ? 's' : '') . ' accepted.')), 'status'=>200, 'type' => 'json'));
 		} else {
-			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => count($successes) . ' proposal' . (count($successes) != 1 ? 's' : '') . ' accepted, but ' . count($fails) . ' proposal' . (count($fails) != 1 ? 's' : '') . ' could not be accepted.')),'status'=>200));
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => count($successes) . ' proposal' . (count($successes) != 1 ? 's' : '') . ' accepted, but ' . count($fails) . ' proposal' . (count($fails) != 1 ? 's' : '') . ' could not be accepted.')), 'status'=>200, 'type' => 'json'));
 		}
 	}
 

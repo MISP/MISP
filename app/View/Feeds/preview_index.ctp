@@ -1,5 +1,5 @@
 <div class="events index">
-<h4 class="visibleDL notPublished" >You are currently viewing the event index of a feed (<?php echo h($feed['Feed']['name']); ?> by <?php echo h($feed['Feed']['provider']); ?>).</h4>
+<h4 class="visibleDL notPublished" ><?php echo __('You are currently viewing the event index of a feed (%s by %s).', h($feed['Feed']['name']),h($feed['Feed']['provider']));?></h4>
 	<div class="pagination">
 		<ul>
 		<?php
@@ -32,10 +32,10 @@
 			<th class="filter">Tags</th>
 			<th class="filter"><?php echo $this->Paginator->sort('date');?></th>
 			<th class="filter" title="<?php echo $eventDescriptions['threat_level_id']['desc'];?>"><?php echo $this->Paginator->sort('threat_level_id');?></th>
-			<th title="<?php echo $eventDescriptions['analysis']['desc'];?>"><?php echo $this->Paginator->sort('analysis');?></th>
+			<th class="filter" title="<?php echo $eventDescriptions['analysis']['desc']; ?>"><?php echo $this->Paginator->sort('analysis');?></th>
 			<th class="filter"><?php echo $this->Paginator->sort('info');?></th>
 			<th class="filter"><?php echo $this->Paginator->sort('timestamp');?></th>
-			<th class="actions">Actions</th>
+			<th class="actions"><?php echo __('Actions');?></th>
 
 		</tr>
 		<?php if (!empty($events)) foreach ($events as $uuid => $event): ?>
@@ -62,8 +62,8 @@
 			</td>
 			<td ondblclick="document.location.href ='<?php echo $eventViewURL . h($uuid);?>'" class="short"><?php echo h($event['timestamp']); ?></td>
 			<td class="short action-links">
-				<?php if ($feed['Feed']['enabled']) echo $this->Form->postLink('', '/feeds/getEvent/' . $id . '/' . $uuid, array('class' => 'icon-download'), __('Are you sure you want to fetch and save this event on your instance?', $this->Form->value('Feed.id'))); ?>
-				<a href='<?php echo $eventViewURL . h($uuid);?>' class = "icon-list-alt" title = "View"></a>
+				<?php if ($feed['Feed']['enabled']) echo $this->Form->postLink('', '/feeds/getEvent/' . $id . '/' . $uuid, array('class' => 'icon-download', 'title' => 'Fetch the event'), __('Are you sure you want to fetch and save this event on your instance?', $this->Form->value('Feed.id'))); ?>
+				<a href='<?php echo $eventViewURL . h($uuid);?>' class = "icon-list-alt" title = "<?php echo __('View');?>"></a>
 			</td>
 		</tr>
 		<?php endforeach; ?>

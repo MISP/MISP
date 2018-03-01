@@ -28,11 +28,60 @@ class XMLConverterTool {
 				if ($v === false) $v = 0;
 				if ($v === "" || $v === null) $text .= '<' . $k . '/>';
 				else {
+					$this->__sanitizeField($v);
 					$text .= '<' . $k . '>' . $v . '</' . $k . '>';
 				}
 			}
 		}
 		return $text;
+	}
+
+	private function __rearrange($data, $model, $container) {
+		if (isset($data[$model])) {
+			$data[$container][$model] = $data[$model];
+			unset($data[$model]);
+		}
+		return $data;
+	}
+
+	private function __rearrangeAttributes($attributes) {
+		foreach ($attributes as $key => $value) {
+			unset($attributes[$key]['value1'], $attributes[$key]['value2'], $attributes[$key]['category_order']);
+			if (isset($event['Event']['RelatedAttribute']) && isset($event['Event']['RelatedAttribute'][$value['id']])) {
+				$attributes[$key]['RelatedAttribute'] = $event['Event']['RelatedAttribute'][$value['id']];
+				foreach ($attributes[$key]['RelatedAttribute'] as &$ra) {
+					$ra = array('Attribute' => array(0 => $ra));
+				}
+			}
+			if (isset($attributes[$key]['ShadowAttribute'])) {
+				foreach ($attributes[$key]['ShadowAttribute'] as $skey => $svalue) {
+					$attributes[$key]['ShadowAttribute'][$skey]['Org'] = array(0 => $attributes[$key]['ShadowAttribute'][$skey]['Org']);
+					if (isset($attributes[$key]['ShadowAttribute'][$skey]['EventOrg'])) $attributes[$key]['ShadowAttribute'][$skey]['EventOrg'] = array(0 => $attributes[$key]['ShadowAttribute'][$skey]['EventOrg']);
+				}
+			}
+			if (isset($attributes[$key]['SharingGroup']['SharingGroupOrg'])) {
+				foreach ($attributes[$key]['SharingGroup']['SharingGroupOrg'] as $k => $sgo) {
+					$attributes[$key]['SharingGroup']['SharingGroupOrg'][$k]['Organisation'] = array(0 => $attributes[$key]['SharingGroup']['SharingGroupOrg'][$k]['Organisation']);
+				}
+			}
+			if (isset($attributes[$key]['SharingGroup']['SharingGroupServer'])) {
+				foreach ($attributes[$key]['SharingGroup']['SharingGroupServer'] as $k => $sgs) {
+					$attributes[$key]['SharingGroup']['SharingGroupServer'][$k]['Server'] = array(0 => $attributes[$key]['SharingGroup']['SharingGroupServer'][$k]['Server']);
+				}
+			}
+			if (isset($attributes[$key]['SharingGroup'])) {
+				$attributes[$key]['SharingGroup'][0] = $attributes[$key]['SharingGroup'];
+				unset($attributes[$key]['SharingGroup']);
+			}
+			if (isset($attributes[$key]['AttributeTag'])) {
+				foreach ($attributes[$key]['AttributeTag'] as $atk => $tag) {
+					unset($tag['Tag']['org_id']);
+					$attributes[$key]['Tag'][$atk] = $tag['Tag'];
+				}
+				unset($attributes[$key]['AttributeTag']);
+			}
+		}
+		return $attributes;
 	}
 
 	public function convertArray($event, $isSiteAdmin=false) {
@@ -51,12 +100,11 @@ class XMLConverterTool {
 		if (isset($event['SharingGroup'])) {
 			$event['Event']['SharingGroup'][0] = $event['SharingGroup'];
 		}
-		if (isset($event['Attribute'])) $event['Event']['Attribute'] = $event['Attribute'];
-		if (isset($event['ShadowAttribute'])) {
-			$event['Event']['ShadowAttribute'] = $event['ShadowAttribute'];
-			unset($event['ShadowAttribute']);
-		}
-		if (isset($event['RelatedEvent'])) if (isset($event['RelatedEvent'])) $event['Event']['RelatedEvent'] = $event['RelatedEvent'];
+		$event = $this->__rearrange($event, 'Attribute', 'Event');
+		$event = $this->__rearrange($event, 'Object', 'Event');
+		$event = $this->__rearrange($event, 'ShadowAttribute', 'Event');
+		$event = $this->__rearrange($event, 'RelatedEvent', 'Event');
+		$event = $this->__rearrange($event, 'RelatedAttribute', 'Event');
 
 		// legacy
 		unset($event['Event']['org']);
@@ -68,18 +116,7 @@ class XMLConverterTool {
 				$event['Event']['Tag'][$k] = $tag['Tag'];
 			}
 		}
-		$this->__sanitizeField($event['Event']['info']);
-		if (isset($event['RelatedAttribute'])) {
-			$event['Event']['RelatedAttribute'] = $event['RelatedAttribute'];
-			unset($event['RelatedAttribute']);
-		}
-		else $event['Event']['RelatedAttribute'] = array();
-		foreach ($event['Event']['RelatedAttribute'] as &$attribute_w_relation) {
-			foreach ($attribute_w_relation as &$relation) {
-				$this->__sanitizeField($relation['info']);
-				$this->__sanitizeField($relation['value']);
-			}
-		}
+		unset($event['Event']['RelatedAttribute']);
 		//
 		// cleanup the array from things we do not want to expose
 		//
@@ -91,60 +128,16 @@ class XMLConverterTool {
 
 		if (isset($event['Event']['Attribute'])) {
 			// remove value1 and value2 from the output and remove invalid utf8 characters for the xml parser
-			foreach ($event['Event']['Attribute'] as $key => $value) {
-				$this->__sanitizeField($event['Event']['Attribute'][$key]['value']);
-				$this->__sanitizeField($event['Event']['Attribute'][$key]['comment']);
-				unset($event['Event']['Attribute'][$key]['value1'], $event['Event']['Attribute'][$key]['value2'], $event['Event']['Attribute'][$key]['category_order']);
-				if (isset($event['Event']['RelatedAttribute']) && isset($event['Event']['RelatedAttribute'][$value['id']])) {
-					$event['Event']['Attribute'][$key]['RelatedAttribute'] = $event['Event']['RelatedAttribute'][$value['id']];
-					foreach ($event['Event']['Attribute'][$key]['RelatedAttribute'] as &$ra) {
-						$ra = array('Attribute' => array(0 => $ra));
-					}
-				}
-				if (!empty($event['Event']['Attribute'][$key]['Feed'])) {
-					foreach ($event['Event']['Attribute'][$key]['Feed'] as $fKey => $feed) {
-						$this->__sanitizeField($event['Event']['Attribute'][$key]['Feed'][$fKey]['name']);
-						$this->__sanitizeField($event['Event']['Attribute'][$key]['Feed'][$fKey]['url']);
-						$this->__sanitizeField($event['Event']['Attribute'][$key]['Feed'][$fKey]['provider']);
-					}
-				}
-				if (isset($event['Event']['Attribute'][$key]['ShadowAttribute'])) {
-					foreach ($event['Event']['Attribute'][$key]['ShadowAttribute'] as $skey => $svalue) {
-						$this->__sanitizeField($event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['value']);
-						$this->__sanitizeField($event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['comment']);
-						$event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['Org'] = array(0 => $event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['Org']);
-						if (isset($event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['EventOrg'])) $event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['EventOrg'] = array(0 => $event['Event']['Attribute'][$key]['ShadowAttribute'][$skey]['EventOrg']);
-					}
-				}
-				if (isset($event['Event']['Attribute'][$key]['SharingGroup']['SharingGroupOrg'])) {
-					foreach ($event['Event']['Attribute'][$key]['SharingGroup']['SharingGroupOrg'] as $k => $sgo) {
-						$event['Event']['Attribute'][$key]['SharingGroup']['SharingGroupOrg'][$k]['Organisation'] = array(0 => $event['Event']['Attribute'][$key]['SharingGroup']['SharingGroupOrg'][$k]['Organisation']);
-					}
-				}
-				if (isset($event['Event']['Attribute'][$key]['SharingGroup']['SharingGroupServer'])) {
-					foreach ($event['Event']['Attribute'][$key]['SharingGroup']['SharingGroupServer'] as $k => $sgs) {
-						$event['Event']['Attribute'][$key]['SharingGroup']['SharingGroupServer'][$k]['Server'] = array(0 => $event['Event']['Attribute'][$key]['SharingGroup']['SharingGroupServer'][$k]['Server']);
-					}
-				}
-				if (isset($event['Event']['Attribute'][$key]['SharingGroup'])) {
-					$event['Event']['Attribute'][$key]['SharingGroup'][0] = $event['Event']['Attribute'][$key]['SharingGroup'];
-					unset($event['Event']['Attribute'][$key]['SharingGroup']);
-				}
-				if (isset($event['Event']['Attribute'][$key]['AttributeTag'])) {
-					foreach ($event['Event']['Attribute'][$key]['AttributeTag'] as $atk => $tag) {
-						unset($tag['Tag']['org_id']);
-						$event['Event']['Attribute'][$key]['Tag'][$atk] = $tag['Tag'];
-					}
-					unset($event['Event']['Attribute'][$key]['AttributeTag']);
-				}
+			$event['Event']['Attribute'] = $this->__rearrangeAttributes($event['Event']['Attribute']);
+		}
+		if (!empty($event['Event']['Object'])) {
+			foreach ($event['Event']['Object'] as $k => $v) {
+				$event['Event']['Object'][$k]['Attribute'] = $this->__rearrangeAttributes($event['Event']['Object'][$k]['Attribute']);
 			}
 		}
-		unset($event['Event']['RelatedAttribute']);
 		if (isset($event['Event']['ShadowAttribute'])) {
 			// remove invalid utf8 characters for the xml parser
 			foreach ($event['Event']['ShadowAttribute'] as $key => $value) {
-				$this->__sanitizeField($event['Event']['ShadowAttribute'][$key]['value']);
-				$this->__sanitizeField($event['Event']['ShadowAttribute'][$key]['comment']);
 				$event['Event']['ShadowAttribute'][$key]['Org'] = array(0 => $event['Event']['ShadowAttribute'][$key]['Org']);
 				if (isset($event['Event']['ShadowAttribute'][$key]['EventOrg'])) $event['Event']['ShadowAttribute'][$key]['EventOrg'] = array(0 => $event['Event']['ShadowAttribute'][$key]['EventOrg']);
 			}
@@ -156,7 +149,12 @@ class XMLConverterTool {
 				unset($event['Event']['RelatedEvent'][$key]['Event']);
 				$event['Event']['RelatedEvent'][$key]['Event'][0] = $temp;
 				unset($event['Event']['RelatedEvent'][$key]['Event'][0]['user_id']);
-				$this->__sanitizeField($event['Event']['RelatedEvent'][$key]['Event'][0]['info']);
+				if (isset($event['Event']['RelatedEvent'][$key]['Event'][0]['Org'])) {
+					$event['Event']['RelatedEvent'][$key]['Event'][0]['Org'] = array(0 => $event['Event']['RelatedEvent'][$key]['Event'][0]['Org']);
+				}
+				if (isset($event['Event']['RelatedEvent'][$key]['Event'][0]['Orgc'])) {
+					$event['Event']['RelatedEvent'][$key]['Event'][0]['Orgc'] = array(0 => $event['Event']['RelatedEvent'][$key]['Event'][0]['Orgc']);
+				}
 				unset($temp);
 			}
 		}
@@ -188,5 +186,9 @@ class XMLConverterTool {
 		$result .= $input;
 		if ($mispVersion) $result .= '<xml_version>' . $mispVersion . '</xml_version>';
 		return $result . '</response>' . PHP_EOL;
+	}
+
+	private function __prepareAttributes($attributes) {
+		return $attributes;
 	}
 }

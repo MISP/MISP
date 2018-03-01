@@ -123,11 +123,13 @@ class ServersController extends AppController {
 		$this->loadModel('Event');
 		$dataForView = array(
 				'Attribute' => array('attrDescriptions' => 'fieldDescriptions', 'distributionDescriptions' => 'distributionDescriptions', 'distributionLevels' => 'distributionLevels'),
-				'Event' => array('eventDescriptions' => 'fieldDescriptions', 'analysisLevels' => 'analysisLevels')
+				'Event' => array('eventDescriptions' => 'fieldDescriptions', 'analysisLevels' => 'analysisLevels'),
+				'Object' => array()
 		);
 		foreach ($dataForView as $m => $variables) {
 			if ($m === 'Event') $currentModel = $this->Event;
 			else if ($m === 'Attribute') $currentModel = $this->Event->Attribute;
+			else if ($m === 'Object') $currentModel = $this->Event->Object;
 			foreach ($variables as $alias => $variable) {
 				$this->set($alias, $currentModel->{$variable});
 			}
@@ -674,6 +676,13 @@ class ServersController extends AppController {
 		$this->set('priorities', $priorities);
 		$this->set('k', $id);
 		$this->layout = false;
+
+		$subGroup = 'general';
+		if ($pathToSetting[0] === 'Plugin') {
+			$subGroup = explode('_', $pathToSetting[1])[0];
+		}
+		$this->set('subGroup', $subGroup);
+
 		$this->render('/Elements/healthElements/settings_row');
 	}
 
@@ -760,6 +769,15 @@ class ServersController extends AppController {
 			}
 			// Only run this check on the diagnostics tab
 			if ($tab == 'diagnostics' || $tab == 'download') {
+				$php_ini = php_ini_loaded_file();
+				$this->set('php_ini', $php_ini);
+				$advanced_attachments = shell_exec('python ' . APP . 'files/scripts/generate_file_objects.py -c');
+				try {
+					$advanced_attachments = json_decode($advanced_attachments, true);
+				} catch (Exception $e) {
+					$advanced_attachments = false;
+				}
+				$this->set('advanced_attachments', $advanced_attachments);
 				// check if the current version of MISP is outdated or not
 				$version = $this->__checkVersion();
 				$this->set('version', $version);
@@ -864,6 +882,11 @@ class ServersController extends AppController {
 						'finalSettings' => $dumpResults,
 						'extensions' => $extensions
 				);
+				foreach ($dump['finalSettings'] as $k => $v) {
+					if (!empty($v['redacted'])) {
+						$dump['finalSettings'][$k]['value'] = '*****';
+					}
+				}
 				$this->response->body(json_encode($dump, JSON_PRETTY_PRINT));
 				$this->response->type('json');
 				$this->response->download('MISP.report.json');
@@ -886,7 +909,6 @@ class ServersController extends AppController {
 		$validTypes = array('default', 'email', 'scheduler', 'cache', 'prio');
 		if (!in_array($type, $validTypes)) throw new MethodNotAllowedException('Invalid worker type.');
 		$prepend = '';
-		if (Configure::read('MISP.rh_shell_fix')) $prepend = 'export PATH=$PATH:"/opt/rh/rh-php56/root/usr/bin:/opt/rh/rh-php56/root/usr/sbin"; ';
 		if ($type != 'scheduler') shell_exec($prepend . APP . 'Console' . DS . 'cake CakeResque.CakeResque start --interval 5 --queue ' . $type .' > /dev/null 2>&1 &');
 		else shell_exec($prepend . APP . 'Console' . DS . 'cake CakeResque.CakeResque startscheduler -i 5 > /dev/null 2>&1 &');
 		$this->redirect('/servers/serverSettings/workers');
@@ -922,7 +944,10 @@ class ServersController extends AppController {
 		}
 	}
 
-	public function serverSettingsEdit($setting, $id, $forceSave = false) {
+	public function serverSettingsEdit($setting, $id = false, $forceSave = false) {
+		// invalidate config.php from php opcode cache
+		if (function_exists('opcache_reset')) opcache_reset();
+
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
 		if (!isset($setting) || !isset($id)) throw new MethodNotAllowedException();
 		$this->set('id', $id);
@@ -965,11 +990,29 @@ class ServersController extends AppController {
 			} else {
 				$subGroup = 'general';
 			}
-			$this->set('subGroup', $subGroup);
-			$this->set('setting', $found);
-			$this->render('ajax/server_settings_edit');
+			if ($this->_isRest()) {
+				return $this->RestResponse->viewData(array($setting => $found['value']));
+			} else {
+				$this->set('subGroup', $subGroup);
+				$this->set('setting', $found);
+				$this->render('ajax/server_settings_edit');
+			}
+
 		}
 		if ($this->request->is('post')) {
+			if (!isset($this->request->data['Server'])) $this->request->data = array('Server' => $this->request->data);
+			if (!isset($this->request->data['Server']['value'])) {
+				if ($this->_isRest()) {
+					return $this->RestResponse->saveFailResponse('Servers', 'serverSettingsEdit', false, 'Invalid input. Expected: {"value": "new_setting"}', $this->response->type());
+				}
+			}
+			if (trim($this->request->data['Server']['value']) === '*****') {
+				if ($this->_isRest()) {
+					return $this->RestResponse->saveFailResponse('Servers', 'serverSettingsEdit', false, 'No change.', $this->response->type());
+				} else {
+					return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'No change.')), 'status'=>200, 'type' => 'json'));
+				}
+			}
 			$this->autoRender = false;
 			$this->loadModel('Log');
 			if (!is_writeable(APP . 'Config/config.php')) {
@@ -984,7 +1027,11 @@ class ServersController extends AppController {
 						'title' => 'Server setting issue',
 						'change' => 'There was an issue witch changing ' . $setting . ' to ' . $this->request->data['Server']['value']  . '. The error message returned is: app/Config.config.php is not writeable to the apache user. No changes were made.',
 				));
-				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'app/Config.config.php is not writeable to the apache user.')),'status'=>200));
+				if ($this->_isRest()) {
+					return $this->RestResponse->saveFailResponse('Servers', 'serverSettingsEdit', false, 'app/Config.config.php is not writeable to the apache user.', $this->response->type());
+				} else {
+					return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'app/Config.config.php is not writeable to the apache user.')), 'status'=>200, 'type' => 'json'));
+				}
 			}
 
 			if (isset($found['beforeHook'])) {
@@ -1001,7 +1048,11 @@ class ServersController extends AppController {
 							'title' => 'Server setting issue',
 							'change' => 'There was an issue witch changing ' . $setting . ' to ' . $this->request->data['Server']['value']  . '. The error message returned is: ' . $beforeResult . 'No changes were made.',
 					));
-					return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $beforeResult)),'status'=>200));
+					if ($this->_isRest) {
+						return $this->RestResponse->saveFailResponse('Servers', 'serverSettingsEdit', false, $beforeResult, $this->response->type());
+					} else {
+						return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $beforeResult)), 'status'=>200, 'type' => 'json'));
+					}
 				}
 			}
 			$this->request->data['Server']['value'] = trim($this->request->data['Server']['value']);
@@ -1011,11 +1062,19 @@ class ServersController extends AppController {
 			if ($found['type'] == 'numeric') {
 				$this->request->data['Server']['value'] = intval($this->request->data['Server']['value']);
 			}
-			$testResult = $this->Server->{$found['test']}($this->request->data['Server']['value']);
+			if  (!empty($leafValue['test'])) {
+				$testResult = $this->Server->{$found['test']}($this->request->data['Server']['value']);
+			} else  {
+				$testResult = true;  # No test defined for this setting: cannot fail
+			}
 			if (!$forceSave && $testResult !== true) {
 				if ($testResult === false) $errorMessage = $found['errorMessage'];
 				else $errorMessage = $testResult;
-				return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $errorMessage)),'status'=>200));
+				if ($this->_isRest) {
+					return $this->RestResponse->saveFailResponse('Servers', 'serverSettingsEdit', false, $errorMessage, $this->response->type());
+				} else {
+					return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $errorMessage)), 'status'=>200, 'type' => 'json'));
+				}
 			} else {
 				$oldValue = Configure::read($setting);
 				$this->Server->serverSettingsSaveValue($setting, $this->request->data['Server']['value']);
@@ -1045,10 +1104,18 @@ class ServersController extends AppController {
 								'title' => 'Server setting issue',
 								'change' => 'There was an issue after setting a new setting. The error message returned is: ' . $afterResult,
 						));
-						return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $afterResult)),'status'=>200));
+						if ($this->_isRest) {
+							return $this->RestResponse->saveFailResponse('Servers', 'serverSettingsEdit', false, $afterResult, $this->response->type());
+						} else {
+							return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $afterResult)), 'status'=>200, 'type' => 'json'));
+						}
 					}
 				}
-				return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Field updated.')),'status'=>200));
+				if ($this->_isRest) {
+					return $this->RestResponse->saveSuccessResponse('Servers', 'serverSettingsEdit', false, $this->response->type(), 'Field updated');
+				} else {
+					return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Field updated.')), 'status'=>200, 'type' => 'json'));
+				}
 			}
 		}
 	}
@@ -1057,12 +1124,6 @@ class ServersController extends AppController {
 		if (!$this->_isSiteAdmin() || !$this->request->is('post')) throw new MethodNotAllowedException();
 		$this->Server->workerRemoveDead($this->Auth->user());
 		$prepend = '';
-		if (Configure::read('MISP.rh_shell_fix')) {
-			$prepend = 'export PATH=$PATH:"/opt/rh/rh-php56/root/usr/bin:/opt/rh/rh-php56/root/usr/sbin"; ';
-			if (Configure::read('MISP.rh_shell_fix_path')) {
-				if ($this->Server->testForPath(Configure::read('MISP.rh_shell_fix_path'))) $prepend = Configure::read('MISP.rh_shell_fix_path');
-			}
-		}
 		shell_exec($prepend . APP . 'Console' . DS . 'worker' . DS . 'start.sh > /dev/null 2>&1 &');
 		$this->redirect(array('controller' => 'servers', 'action' => 'serverSettings', 'workers'));
 	}
@@ -1165,7 +1226,7 @@ class ServersController extends AppController {
 			$result['headers']['Content-type'] = isset($headers['Content-type']) ? $headers['Content-type'] : 0;
 			$result['headers']['Accept'] = isset($headers['Accept']) ? $headers['Accept'] : 0;
 			$result['headers']['Authorization'] = isset($headers['Authorization']) ? 'OK' : 0;
-			return new CakeResponse(array('body'=> json_encode($result)));
+			return new CakeResponse(array('body'=> json_encode($result), 'type' => 'json'));
 		} else {
 			throw new MethodNotAllowedException('Invalid request, expecting a POST request.');
 		}
@@ -1207,36 +1268,50 @@ class ServersController extends AppController {
 					if (!isset($version['perm_sync'])) {
 						if (!$this->Server->checkLegacyServerSyncPrivilege($id)) {
 							$result['status'] = 7;
-							return new CakeResponse(array('body'=> json_encode($result)));
+							return new CakeResponse(array('body'=> json_encode($result), 'type' => 'json'));
 						}
 					} else {
 						if (!$version['perm_sync']) {
 							$result['status'] = 7;
-							return new CakeResponse(array('body'=> json_encode($result)));
+							return new CakeResponse(array('body'=> json_encode($result), 'type' => 'json'));
 						}
 					}
-					return new CakeResponse(array('body'=> json_encode(array('status' => 1, 'local_version' => implode('.', $local_version), 'version' => implode('.', $version), 'mismatch' => $mismatch, 'newer' => $newer, 'post' => isset($post) ? $post : 'too old'))));
+					return new CakeResponse(
+						array(
+						'body'=> json_encode(
+							array(
+								'status' => 1,
+								'local_version' => implode('.', $local_version),
+								'version' => implode('.', $version),
+								'mismatch' => $mismatch,
+								'newer' => $newer,
+								'post' => isset($post) ? $post : 'too old'
+								)
+							),
+							'type' => 'json'
+						)
+					);
 				} else {
 					$result['status'] = 3;
 				}
 			}
-			return new CakeResponse(array('body'=> json_encode($result)));
+			return new CakeResponse(array('body'=> json_encode($result), 'type' => 'json'));
 	}
 
 	public function startZeroMQServer() {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
 		$pubSubTool = $this->Server->getPubSubTool();
 		$result = $pubSubTool->restartServer();
-		if ($result === true) return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'ZeroMQ server successfully started.')),'status'=>200));
-		else return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $result)),'status'=>200));
+		if ($result === true) return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'ZeroMQ server successfully started.')), 'status'=>200, 'type' => 'json'));
+		else return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $result)), 'status'=>200, 'type' => 'json'));
 	}
 
 	public function stopZeroMQServer() {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException();
 		$pubSubTool = $this->Server->getPubSubTool();
 		$result = $pubSubTool->killService();
-		if ($result === true) return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'ZeroMQ server successfully killed.')),'status'=>200));
-		else return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Could not kill the previous instance of the ZeroMQ script.')),'status'=>200));
+		if ($result === true) return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'ZeroMQ server successfully killed.')), 'status'=>200, 'type' => 'json'));
+		else return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Could not kill the previous instance of the ZeroMQ script.')), 'status'=>200, 'type' => 'json'));
 	}
 
 	public function statusZeroMQServer() {
@@ -1293,7 +1368,7 @@ class ServersController extends AppController {
 		if ($this->request->is('post')) {
 			$status = $this->Server->getCurrentGitStatus();
 			$update = $this->Server->update($status);
-			return new CakeResponse(array('body'=> $update));
+			return new CakeResponse(array('body'=> $update, 'type' => 'txt'));
 		} else {
 			$branch = $this->Server->getCurrentBranch();
 			$this->set('branch', $branch);

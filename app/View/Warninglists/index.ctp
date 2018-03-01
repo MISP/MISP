@@ -1,5 +1,5 @@
 <div class="taxonomies index">
-	<h2>Warninglists</h2>
+	<h2><?php echo __('Warninglists');?></h2>
 	<div class="pagination">
 		<ul>
 		<?php
@@ -52,7 +52,8 @@ foreach ($warninglists as $k => $item): ?>
 		</td>
 		<?php endif;?>
 		<td class="short action-links">
-			<a href='<?php echo $baseurl."/warninglists/view/". h($item['Warninglist']['id']);?>' class = "icon-list-alt" title = "View"></a>
+			<a href='<?php echo $baseurl."/warninglists/view/". h($item['Warninglist']['id']);?>' class = "icon-list-alt" title = "<?php echo __('View');?>"></a>
+			<span class="icon-trash useCursorPointer" title="<?php echo __('Delete Warninglist');?>" role="button" tabindex="0" aria-label="<?php echo __('Delete warninglist');?>" onClick="deleteObject('warninglists', 'delete', '<?php echo h($item['Warninglist']['id']); ?>', '<?php echo h($item['Warninglist']['id']); ?>');"></span>
 		</td>
 	</tr><?php
 endforeach; ?>

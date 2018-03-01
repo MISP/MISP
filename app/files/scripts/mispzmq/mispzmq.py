@@ -70,12 +70,16 @@ def main(args):
     socket = context.socket(zmq.PUB)
     socket.bind("tcp://*:%s" % settings["port"])
     time.sleep(1)
+
     while True:
         command = r.lpop(namespace + ":command")
         if command is not None:
             handleCommand(command)
-        topics = ["misp_json", "misp_json_attribute", "misp_json_sighting", 
-                  "misp_json_organisation", "misp_json_user", "misp_json_conversation"]
+        topics = ["misp_json", "misp_json_event", "misp_json_attribute", "misp_json_sighting",
+                  "misp_json_organisation", "misp_json_user", "misp_json_conversation",
+                  "misp_json_object", "misp_json_object_reference", "misp_json_audit",
+                  "misp_json_tag" 
+                 ]
         message_received = False
         for topic in topics:
             data = r.lpop(namespace + ":data:" + topic)
@@ -83,9 +87,12 @@ def main(args):
                 pubMessage(topic, data, socket)
                 message_received = True
         if (message_received == False):
-            time.sleep(1)
-        if ((int(time.time()) - start_time) % 10 == 0):
-            status_entry = int(((int(time.time()) - start_time)/10) % 5)
+            time.sleep(0.1)
+        current_time = 10*time.time()
+        temp_start_time = 10*start_time
+        time_delta = int(current_time - temp_start_time)
+        if (time_delta % 100 == 0):
+            status_entry = time_delta/100 % 5
             status_message = {
                 'status': status_array[status_entry],
                 'uptime': int(time.time()) - start_time

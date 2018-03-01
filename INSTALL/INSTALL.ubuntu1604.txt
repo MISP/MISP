@@ -24,7 +24,7 @@ sudo postfix reload
 Once the system is installed you can perform the following steps:
 
 # Install the dependencies: (some might already be installed)
-sudo apt-get install curl gcc git gnupg-agent make python openssl redis-server sudo vim zip
+sudo apt-get install curl gcc git gnupg-agent make python python3 openssl redis-server sudo vim zip
 
 # Install MariaDB (a MySQL fork/alternative)
 sudo apt-get install mariadb-client mariadb-server
@@ -39,6 +39,7 @@ sudo apt-get install apache2 apache2-doc apache2-utils
 sudo a2dismod status
 sudo a2enmod ssl
 sudo a2enmod rewrite
+sudo a2enmod headers
 sudo a2dissite 000-default
 sudo a2ensite default-ssl
 
@@ -78,10 +79,13 @@ sudo python setup.py install
 
 # install mixbox to accomodate the new STIX dependencies:
 cd /var/www/MISP/app/files/scripts/
-git clone https://github.com/CybOXProject/mixbox.git
+sudo -u www-data git clone https://github.com/CybOXProject/mixbox.git
 cd /var/www/MISP/app/files/scripts/mixbox
-git checkout v1.0.2
-python setup.py install
+sudo -u www-data git checkout v1.0.2
+sudo python setup.py install
+
+# install support for STIX 2.0 (Python 3 is required)
+pip3 install stix2
 
 4/ CakePHP
 -----------
@@ -89,6 +93,8 @@ python setup.py install
 cd /var/www/MISP
 sudo -u www-data git submodule init
 sudo -u www-data git submodule update
+# Make git ignore filesystem permission differences for submodules
+sudo -u www-data git submodule foreach git config core.filemode false
 
 # Once done, install CakeResque along with its dependencies if you intend to use the built in background jobs:
 cd /var/www/MISP/app
@@ -102,6 +108,8 @@ sudo phpenmod redis
 # To use the scheduler worker for scheduled tasks, do the following:
 sudo -u www-data cp -fa /var/www/MISP/INSTALL/setup/config.php /var/www/MISP/app/Plugin/CakeResque/Config/config.php
 
+# If you have multiple MISP instances on the same system, don't forget to have a different Redis per MISP instance for the CakeResque workers
+# The default Redis port can be updated in Plugin/CakeResque/Config/config.php
 
 5/ Set the permissions
 ----------------------
@@ -127,7 +135,7 @@ MariaDB [(none)]> exit
 
 # Import the empty MISP database from MYSQL.sql
 sudo -u www-data sh -c "mysql -u misp -p misp < /var/www/MISP/INSTALL/MYSQL.sql"
-# enter the password you set previously
+# enter the password you've set in line 129 when prompted
 
 
 7/ Apache configuration
@@ -148,6 +156,10 @@ sudo cp /var/www/MISP/INSTALL/apache.24.misp.ssl /etc/apache2/sites-available/mi
 sudo openssl req -newkey rsa:4096 -days 365 -nodes -x509 \
 -subj "/C=<Country>/ST=<State>/L=<Locality>/O=<Organization>/OU=<Organizational Unit Name>/CN=<QDN.here>/emailAddress=admin@<your.FQDN.here>" \
 -keyout /etc/ssl/private/misp.local.key -out /etc/ssl/private/misp.local.crt
+
+# Please find a sample conf file for an SSL enabled conf file in-line below (alternatively use one of the samples provided in /var/www/MISP/INSTALL
+
+# Also remember to verify the SSLCertificateChainFile property in your config file - this is usually commented out for the self-generated certificate in the sample configurations, such as the one pasted below.
 
 # Otherwise, copy the SSLCertificateFile, SSLCertificateKeyFile, and SSLCertificateChainFile to /etc/ssl/private/. (Modify path and config to fit your environment)
 
@@ -248,6 +260,8 @@ sudo chmod 700 /var/www/MISP/.gnupg
 sudo -u www-data gpg --homedir /var/www/MISP/.gnupg --gen-key
 # The email address should match the one set in the config.php / set in the configuration menu in the administration menu configuration file
 
+# NOTE: if entropy is not high enough, you can install rng-tools and then run rngd -r /dev/urandom do fix it quickly
+
 # And export the public key to the webroot
 sudo -u www-data sh -c "gpg --homedir /var/www/MISP/.gnupg --export --armor YOUR-KEYS-EMAIL-HERE > /var/www/MISP/app/webroot/gpg.asc"
 
@@ -295,8 +309,32 @@ Recommended actions
 
 
 Optional features
--------------------
+-----------------
 # MISP has a new pub/sub feature, using ZeroMQ. To enable it, simply run the following command
 sudo pip install pyzmq
 # ZeroMQ depends on the Python client for Redis
 sudo pip install redis
+
+# For the experimental ssdeep correlations, run the following installation:
+# installing ssdeep
+wget http://downloads.sourceforge.net/project/ssdeep/ssdeep-2.13/ssdeep-2.13.tar.gz
+tar zxvf ssdeep-2.13.tar.gz
+cd ssdeep-2.13
+./configure
+make
+sudo make install
+ssdeep -h # test
+
+#installing ssdeep_php
+pecl install ssdeep
+
+# 7.0 if your PHP 7.0 and you know what to do if you have a different version
+sudo echo "extension=ssdeep.so" > /etc/php/7.0/mods-available/ssdeep.ini
+phpenmod ssdeep
+service apache2 restart
+
+Optional features: misp-modules
+-------------------------------
+# If you want to add the misp modules functionality, follow the setup procedure described in misp-modules:
+# https://github.com/MISP/misp-modules#how-to-install-and-start-misp-modules
+# Then the enrichment, export and import modules can be enabled in MISP via the settings.

@@ -10,7 +10,7 @@
 	</title>
 	<?php
 		echo $this->Html->meta('icon');
-		echo $this->Html->css('roboto');
+		//echo $this->Html->css('roboto');
 		echo $this->Html->css('bootstrap'); // see http://twitter.github.io/bootstrap/base-css.html
 		echo $this->Html->css('bootstrap-datepicker');
 		echo $this->Html->css('bootstrap-timepicker');
@@ -80,7 +80,7 @@
 	</div>
 	<div class="loading">
 		<div class="spinner"></div>
-		<div class="loadingText">Loading</div>
+		<div class="loadingText"><?php echo __('Loading');?></div>
 	</div>
 	<?php
 		if ($debugMode == 'debugOff'):

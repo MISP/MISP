@@ -1,5 +1,6 @@
 /vendors
 /app/Vendor
+/app/vendor
 /app/composer*
 !/app/composer.phar
 !/app/composer.license
@@ -29,6 +30,8 @@
 !/app/files/warninglists/*
 !/app/files/misp-galaxy
 !/app/files/misp-galaxy/*
+!/app/files/misp-objects
+!/app/files/misp-objects/*
 /app/files/scripts/python-stix/
 /app/files/scripts/python-cybox/
 /app/files/scripts/mixbox/
@@ -71,8 +74,11 @@
 /app/tmp/cached_exports/stix/*
 /app/tmp/cached_exports/sha256/*
 /app/tmp/cached_exports/bro/*
+/app/Plugin/CakeResque
 .gnupg
 .smime
 *.swp
 *.iml
 .ropeproject/
+vagrant/.vagrant/
+vagrant/*.log

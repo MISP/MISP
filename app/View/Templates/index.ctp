@@ -1,5 +1,5 @@
 <div class="templates index">
-	<h2>Templates</h2>
+	<h2><?php echo __('Templates');?></h2>
 	<div class="pagination">
 		<ul>
 		<?php
@@ -32,10 +32,7 @@ foreach ($list as $item): ?>
 		<td class="short" onclick="document.location.href ='<?php echo $baseurl."/templates/view/".$item['Template']['id']; ?>'"><?php echo h($item['Template']['id']); ?>&nbsp;</td>
 		<td class="short" onclick="document.location.href ='<?php echo $baseurl."/templates/view/".$item['Template']['id']; ?>'">
 			<?php
-				$imgRelativePath = 'orgs' . DS . h($item['Template']['org']) . '.png';
-				$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
-				if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($item['Template']['org']) . '.png', array('alt' => h($item['Template']['org']), 'title' => h($item['Template']['org']), 'style' => 'width:24px; height:24px'));
-				else echo $this->Html->tag('span', h($item['Template']['org']), array('class' => 'welcome', 'style' => 'float:left;'));
+				echo $this->OrgImg->getOrgImg(array('name' => $item['Template']['org'], 'size' => 24));
 			?>
 			&nbsp;
 		</td>

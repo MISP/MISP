@@ -137,6 +137,23 @@ class Server extends AppModel {
 							'type' => 'boolean',
 							'null' => true
 					),
+					'ssdeep_correlation_threshold' => array(
+						'level' => 1,
+						'description' => 'Set the ssdeep score at which to consider two ssdeep hashes as correlating [1-100]',
+						'value' => 40,
+						'errorMessage' => '',
+						'test' => 'testForEmpty',
+						'type' => 'numeric'
+					),
+					'max_correlations_per_event' => array(
+							'level' => 1,
+							'description' => 'Sets the maximum number of correlations that can be fetched with a single event. For extreme edge cases this can prevent memory issues. The default value is 5k.',
+							'value' => 5000,
+							'errorMessage' => '',
+							'test' => 'testForNumeric',
+							'type' => 'numeric',
+							'null' => true
+					),
 					'maintenance_message' => array(
 							'level' => 2,
 							'description' => 'The message that users will see if the instance is not live.',
@@ -348,6 +365,15 @@ class Server extends AppModel {
 							'test' => 'testBool',
 							'type' => 'boolean',
 					),
+					'attachments_dir' => array(
+							'level' => 2,
+							'description' => 'Directory where attachments are stored. MISP will NOT migrate the existing data if you change this setting. The only safe way to change this setting is in config.php, when MISP is not running, and after having moved/copied the existing data to the new location. This directory must already exist and be writable and readable by the MISP application.',
+							'value' =>  'app/files', # GUI display purpose only. Default value defined in func getDefaultAttachments_dir()
+							'errorMessage' => '',
+							'null' => false,
+							'test' => 'testForWritableDir',
+							'type' => 'string',
+					),
 					'cached_attachments' => array(
 							'level' => 1,
 							'description' => 'Allow the XML caches to include the encoded attachments.',
@@ -488,6 +514,14 @@ class Server extends AppModel {
 							'errorMessage' => '',
 							'test' => 'testForCustomImage',
 							'type' => 'string',
+					),
+					'title_text' => array(
+						'level' => 2,
+						'description' => 'Used in the page title, after the name of the page',
+						'value' => 'MISP',
+						'errorMessage' => '',
+						'test' => 'testForEmpty',
+						'type' => 'string',
 					),
 					'take_ownership_xml_import' => array(
 							'level' => 2,
@@ -669,24 +703,6 @@ class Server extends AppModel {
 							'type' => 'numeric',
 							'null' => false,
 					),
-					'rh_shell_fix' => array(
-							'level' => 1,
-							'description' => 'If you are running CentOS or RHEL using SCL and are having issues with the Background workers not responding to start/stop/restarts via the worker interface, enable this setting. This will pre-pend the shell execution commands with the default path to rh-php56 (/opt/rh/rh-php56/root/usr/bin:/opt/rh/rh-php56/root/usr/sbin).',
-							'value' => false,
-							'errorMessage' => '',
-							'test' => 'testBool',
-							'type' => 'boolean',
-							'null' => true,
-					),
-					'rh_shell_fix_path' => array(
-							'level' => 1,
-							'description' => 'If you have rh_shell_fix enabled, the default PATH for rh-php56 is added (/opt/rh/rh-php56/root/usr/bin:/opt/rh/rh-php56/root/usr/sbin). If you prefer to use a different path, you can set it here.',
-							'value' => '/opt/rh/rh-php56/root/usr/bin:/opt/rh/rh-php56/root/usr/sbin',
-							'errorMessage' => '',
-							'test' => 'testForPath',
-							'type' => 'string',
-							'null' => true,
-					),
 					'tmpdir' => array(
 							'level' => 1,
 							'description' => 'Please indicate the temp directory you wish to use for certain functionalities in MISP. By default this is set to /tmp and will be used among others to store certain temporary files extracted from imports during the import process.',
@@ -765,6 +781,23 @@ class Server extends AppModel {
 						'errorMessage' => '',
 						'test' => 'testForNumeric',
 						'type' => 'numeric'
+					),
+					'redis_password' => array(
+						'level' => 0,
+						'description' => 'The password on the redis server (if any) to be used for generic MISP tasks.',
+						'value' => '',
+						'errorMessage' => '',
+						'test' => null,
+						'type' => 'string',
+						'redacted' => true
+					),
+					'event_view_filter_fields' => array(
+						'level' => 2,
+						'description' => 'Specify which fields to filter on when you search on the event view. Default values are : "id, uuid, value, comment, type, category, Tag.name"',
+						'value' => 'id, uuid, value, comment, type, category, Tag.name',
+						'errorMessage' => '',
+						'test' => null,
+						'type' => 'string',
 					)
 			),
 			'GnuPG' => array(
@@ -792,7 +825,15 @@ class Server extends AppModel {
 							'errorMessage' => '',
 							'test' => 'testBool',
 							'type' => 'boolean',
-					),
+                    ),
+                    'sign' => array(
+                            'level' => 2,
+                            'description' => 'Enable the signing of GPG emails. By default, GPG emails are signed',
+                            'value' => 'true',
+                            'errorMessage' => '',
+                            'test' => 'testBool',
+                            'type' => 'boolean',
+                    ),
 					'email' => array(
 							'level' => 0,
 							'description' => 'The e-mail address that the instance\'s PGP key is tied to.',
@@ -808,6 +849,7 @@ class Server extends AppModel {
 							'errorMessage' => '',
 							'test' => 'testForEmpty',
 							'type' => 'string',
+							'redacted' => true
 					),
 					'homedir' => array(
 							'level' => 0,
@@ -859,6 +901,7 @@ class Server extends AppModel {
 							'errorMessage' => '',
 							'test' => 'testForEmpty',
 							'type' => 'string',
+							'redacted' => true
 					),
 			),
 			'Proxy' => array(
@@ -915,6 +958,15 @@ class Server extends AppModel {
 							'type' => 'string',
 							'editable' => false,
 					),
+					'syslog' => array(
+						'level' => 0,
+						'description' => 'Enable this setting to pass all audit log entries directly to syslog. Keep in mind, this is verbose and will include user, organisation, event data.',
+						'value' => false,
+						'errorMessage' => '',
+						'test' => 'testBool',
+						'type' => 'boolean',
+						'null' => true
+					),
 					'password_policy_length' => array(
 							'level' => 2,
 							'description' => 'Password length requirement. If it is not set or it is set to 0, then the default value is assumed (12).',
@@ -931,9 +983,27 @@ class Server extends AppModel {
 							'test' => 'testPasswordRegex',
 							'type' => 'string',
 					),
+					'require_password_confirmation' => array(
+						'level' => 1,
+						'description' => 'Enabling this setting will require users to submit their current password on any edits to their profile (including a triggered password change). For administrators, the confirmation will be required when changing the profile of any user. Could potentially mitigate an attacker trying to change a compromised user\'s password in order to establish persistance, however, enabling this feature will be highly annoying to users.',
+						'value' => false,
+						'errorMessage' => '',
+						'test' => 'testBool',
+						'type' => 'boolean',
+						'null' => true
+					),
 					'sanitise_attribute_on_delete' => array(
 						'level' => 1,
 						'description' => 'Enabling this setting will sanitise the contents of an attribute on a soft delete',
+						'value' => false,
+						'errorMessage' => '',
+						'test' => 'testBool',
+						'type' => 'boolean',
+						'null' => true
+					),
+					'hide_organisation_index_from_users' => array(
+						'level' => 1,
+						'description' => 'Enabling this setting will block the organisation index from being visible to anyone besides site administrators on the current instance. Keep in mind that users can still see organisations that produce data via events, proposals, event history log entries, etc.',
 						'value' => false,
 						'errorMessage' => '',
 						'test' => 'testBool',
@@ -1063,6 +1133,14 @@ class Server extends AppModel {
 							'test' => 'testForEmpty',
 							'type' => 'string',
 					),
+					'RPZ_ns_alt' => array(
+						'level' => 2,
+						'description' => 'Alternate nameserver',
+						'value' => '',
+						'errorMessage' => '',
+						'test' => 'testForEmpty',
+						'type' => 'string',
+				),
 					'RPZ_email' => array(
 						'level' => 2,
 						'description' => 'The e-mail address specified in the SOA portion of the zone file.',
@@ -1134,9 +1212,41 @@ class Server extends AppModel {
 						'type' => 'string',
 						'afterHook' => 'zmqAfterHook',
 					),
+					'ZeroMQ_event_notifications_enable' => array(
+						'level' => 2,
+						'description' => 'Enables or disables the publishing of any event creations/edits/deletions.',
+						'value' => false,
+						'errorMessage' => '',
+						'test' => 'testBool',
+						'type' => 'boolean'
+					),
+					'ZeroMQ_object_notifications_enable' => array(
+						'level' => 2,
+						'description' => 'Enables or disables the publishing of any object creations/edits/deletions.',
+						'value' => false,
+						'errorMessage' => '',
+						'test' => 'testBool',
+						'type' => 'boolean'
+					),
+					'ZeroMQ_object_reference_notifications_enable' => array(
+						'level' => 2,
+						'description' => 'Enables or disables the publishing of any object reference creations/deletions.',
+						'value' => false,
+						'errorMessage' => '',
+						'test' => 'testBool',
+						'type' => 'boolean'
+					),
 					'ZeroMQ_attribute_notifications_enable' => array(
 						'level' => 2,
 						'description' => 'Enables or disables the publishing of any attribute creations/edits/soft deletions.',
+						'value' => false,
+						'errorMessage' => '',
+						'test' => 'testBool',
+						'type' => 'boolean'
+					),
+					'ZeroMQ_tag_notifications_enable' => array(
+						'level' => 2,
+						'description' => 'Enables or disables the publishing of any tag creations/edits/deletions as well as tags being attached to / detached from various MISP elements.',
 						'value' => false,
 						'errorMessage' => '',
 						'test' => 'testBool',
@@ -1166,13 +1276,13 @@ class Server extends AppModel {
 						'test' => 'testBool',
 						'type' => 'boolean'
 					),
-					'Sightings_enable' => array(
-						'level' => 1,
-						'description' => 'Enables or disables the sighting functionality. When enabled, users can use the UI or the appropriate APIs to submit sightings data about indicators.',
-						'value' => true,
+					'ZeroMQ_audit_notifications_enable' => array(
+						'level' => 2,
+						'description' => 'Enables or disables the publishing of log entries to the ZMQ pubsub feed. Keep in mind, this can get pretty verbose depending on your logging settings.',
+						'value' => false,
 						'errorMessage' => '',
 						'test' => 'testBool',
-						'type' => 'boolean',
+						'type' => 'boolean'
 					),
 					'Sightings_policy' => array(
 						'level' => 1,
@@ -1337,7 +1447,7 @@ class Server extends AppModel {
 					),
 					'Export_services_enable' => array(
 							'level' => 0,
-							'description' => 'Enable/disable the import services',
+							'description' => 'Enable/disable the export services',
 							'value' => false,
 							'errorMessage' => '',
 							'test' => 'testBool',
@@ -1345,7 +1455,7 @@ class Server extends AppModel {
 					),
 					'Export_timeout' => array(
 							'level' => 1,
-							'description' => 'Set a timeout for the import services',
+							'description' => 'Set a timeout for the export services',
 							'value' => 10,
 							'errorMessage' => '',
 							'test' => 'testForEmpty',
@@ -1385,8 +1495,8 @@ class Server extends AppModel {
 					),
 					'Cortex_services_url' => array(
 							'level' => 1,
-							'description' => 'The url used to access Cortex. By default, it is accessible at http://cortex-url/api',
-							'value' => 'http://127.0.0.1/api',
+							'description' => 'The url used to access Cortex. By default, it is accessible at http://cortex-url',
+							'value' => 'http://127.0.0.1',
 							'errorMessage' => '',
 							'test' => 'testForEmpty',
 							'type' => 'string'
@@ -1863,7 +1973,11 @@ class Server extends AppModel {
 				$fails = array();
 				$lowestfailedid = null;
 				foreach ($eventUUIDsFiltered as $k => $eventUuid) {
-					$event = $this->Event->fetchEvent($user, array('event_uuid' => $eventUuid, 'includeAttachments' => true, 'includeAllTags' => true));
+					$event = $this->Event->fetchEvent($user, array(
+						'event_uuid' => $eventUuid,
+						'includeAttachments' => true,
+						'includeAllTags' => true
+					));
 					$event = $event[0];
 					$event['Event']['locked'] = true;
 					$result = $this->Event->uploadEventToServer(
@@ -1963,7 +2077,7 @@ class Server extends AppModel {
 		if ($sa_id == null) {
 			if ($event_id == null) {
 				// event_id is null when we are doing a push
-				$ids = $this->getEventIdsFromServer($server, true, $HttpSocket);
+				$ids = $this->getEventIdsFromServer($server, true, $HttpSocket, false, true);
 				// error return strings or ints or throw exceptions
 				if (!is_array($ids)) return false;
 				$conditions = array('uuid' => $ids);
@@ -2036,6 +2150,15 @@ class Server extends AppModel {
 		$this->Module = ClassRegistry::init('Module');
 		$serverSettings = $this->serverSettings;
 		$moduleTypes = array('Enrichment', 'Import', 'Export', 'Cortex');
+		$orgs = $this->Organisation->find('list', array(
+			'conditions' => array(
+				'Organisation.local' => 1
+			),
+			'fields' => array(
+				'Organisation.id', 'Organisation.name'
+			)
+		));
+		$orgs = array_merge(array('Unrestricted'), $orgs);
 		foreach ($moduleTypes as $moduleType) {
 			if (Configure::read('Plugin.' . $moduleType . '_services_enable')) {
 				$results = $this->Module->getModuleSettings($moduleType);
@@ -2047,6 +2170,12 @@ class Server extends AppModel {
 							$setting['type'] = 'boolean';
 							$setting['description'] = 'Enable or disable the ' . $module . ' module.';
 							$setting['value'] = false;
+						} else if ($result['type'] == 'orgs') {
+							$setting['description'] = 'Restrict the ' . $module . ' module to the given organisation.';
+							$setting['value'] = 0;
+							$setting['test'] = 'testLocalOrg';
+							$setting['type'] = 'numeric';
+							$setting['optionsSource'] = 'LocalOrgs';
 						} else {
 							$setting['test'] = 'testForEmpty';
 							$setting['type'] = 'string';
@@ -2075,6 +2204,12 @@ class Server extends AppModel {
 						$setting['type'] = 'boolean';
 						$setting['description'] = 'Enable or disable the ' . $module . ' module.';
 						$setting['value'] = false;
+					} else if ($result['type'] == 'orgs') {
+						$setting['description'] = 'Restrict the ' . $module . ' module to the given organisation.';
+						$setting['value'] = 0;
+						$setting['test'] = 'testLocalOrg';
+						$setting['type'] = 'numeric';
+						$setting['optionsSource'] = 'LocalOrgs';
 					} else {
 						$setting['test'] = 'testForEmpty';
 						$setting['type'] = 'string';
@@ -2126,6 +2261,9 @@ class Server extends AppModel {
 	}
 
 	public function serverSettingReadSingle($settingObject, $settingName, $leafKey) {
+		// invalidate config.php from php opcode cache
+		if (function_exists('opcache_reset')) opcache_reset();
+
 		$setting = Configure::read($settingName);
 		$result = $this->__evaluateLeaf($settingObject, $leafKey, $setting);
 		$result['setting'] = $settingName;
@@ -2134,10 +2272,12 @@ class Server extends AppModel {
 
 	private function __evaluateLeaf($leafValue, $leafKey, $setting) {
 		if (isset($setting)) {
-			$result = $this->{$leafValue['test']}($setting);
-			if ($result !== true) {
-				$leafValue['error'] = 1;
-				if ($result !== false) $leafValue['errorMessage'] = $result;
+			if (!empty($leafValue['test'])) {
+				$result = $this->{$leafValue['test']}($setting);
+				if ($result !== true) {
+					$leafValue['error'] = 1;
+					if ($result !== false) $leafValue['errorMessage'] = $result;
+				}
 			}
 			if ($setting !== '') $leafValue['value'] = $setting;
 		} else {
@@ -2191,6 +2331,12 @@ class Server extends AppModel {
 		if ($value === '') return true;
 		if (preg_match('@^\/?(([a-z0-9_.]+[a-z0-9_.\-.\:]*[a-z0-9_.\-.\:]|[a-z0-9_.])+\/?)+$@i', $value)) return true;
 		return 'Invalid characters in the path.';
+	}
+
+	public function testForWritableDir($value) {
+		if (!is_dir($value)) return 'Not a valid directory.';
+		if (!is_writeable($value)) return 'Not a writable directory.';
+		return true;
 	}
 
 	public function testDebug($value) {
@@ -2503,6 +2649,7 @@ class Server extends AppModel {
 		}
 		$settingsString = var_export($settingsArray, true);
 		$settingsString = '<?php' . "\n" . '$config = ' . $settingsString . ';';
+		if (function_exists('opcache_reset')) opcache_reset();
 		file_put_contents(APP . 'Config' . DS . 'config.php', $settingsString);
 	}
 
@@ -2714,9 +2861,14 @@ class Server extends AppModel {
 		try {
 			$response = $HttpSocket->get($uri, '', $request);
 		} catch (Exception $e) {
-			if ($response->code != '200') {
+			if (!isset($response) || $response->code != '200') {
 				$this->Log = ClassRegistry::init('Log');
 				$this->Log->create();
+				if (isset($response->code)) {
+					$title = 'Error: Connection to the server has failed.' . isset($response->code) ? ' Returned response code: ' . $response->code : '';
+				} else {
+					$title = 'Error: Connection to the server has failed. The returned exception\'s error message was: ' . $e->getMessage();
+				}
 				$this->Log->save(array(
 						'org' => $user['Organisation']['name'],
 						'model' => 'Server',
@@ -2724,11 +2876,11 @@ class Server extends AppModel {
 						'email' => $user['email'],
 						'action' => 'error',
 						'user_id' => $user['id'],
-						'title' => 'Error: Connection to the server has failed.',
+						'title' => $title,
 				));
 			}
 		}
-		if ($response->code != '200') {
+		if (!isset($response) || $response->code != '200') {
 			return 1;
 		}
 		$remoteVersion = json_decode($response->body, true);
@@ -3030,7 +3182,18 @@ class Server extends AppModel {
 	}
 
 	public function workerDiagnostics(&$workerIssueCount) {
-		$this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
+		try {
+			$this->ResqueStatus = new ResqueStatus\ResqueStatus(Resque::redis());
+		} catch (Exception $e) {
+			// redis connection failed
+			return array(
+					'cache' => array('ok' => false),
+					'default' => array('ok' => false),
+					'email' => array('ok' => false),
+					'prio' => array('ok' => false),
+					'scheduler' => array('ok' => false)
+			);
+		}
 		$workers = $this->ResqueStatus->getWorkers();
 		if (function_exists('posix_getpwuid')) {
 			$currentUser = posix_getpwuid(posix_geteuid());
@@ -3469,7 +3632,7 @@ class Server extends AppModel {
 	}
 
 	public function getLatestGitRemote() {
-		return exec('git ls-remote https://github.com/MISP/MISP | head -1 | sed "s/HEAD//"');
+		return exec('timeout 3 git ls-remote https://github.com/MISP/MISP | head -1 | sed "s/HEAD//"');
 	}
 
 	public function getCurrentGitStatus() {
@@ -3502,4 +3665,24 @@ class Server extends AppModel {
 		$final .= implode("\n", $output);
 		return $final;
 	}
+
+	public function getDefaultAttachments_dir() {
+		return APP . 'files';
+	}
+
+	public function fetchServer($id) {
+			if (empty($id)) return false;
+			$conditions = array('Server.id' => $id);
+			if (!is_numeric($id)) {
+				$conditions = array('OR' => array(
+					'LOWER(Server.name)' => strtolower($id),
+					'LOWER(Server.url)' => strtolower($id)
+				));
+			}
+			$server = $this->find('first', array(
+				'conditions' => $conditions,
+				'recursive' => -1
+			));
+			return (empty($server)) ? false : $server;
+		}
 }

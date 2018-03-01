@@ -38,4 +38,9 @@ class FileAccessTool {
 			throw new MethodNotAllowedException($this->__fileErrorMsgPrefix . $errorMsgPart . '".');
 		}
 	}
+
+	public function deleteFile($file) {
+		unlink($file);
+		return true;
+	}
 }

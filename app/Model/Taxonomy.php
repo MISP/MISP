@@ -162,6 +162,7 @@ class Taxonomy extends AppModel {
 		if ($user) {
 			if (!$user['Role']['perm_site_admin']) {
 				$conditions = array('Tag.org_id' => array(0, $user['org_id']));
+				$conditions = array('Tag.user_id' => array(0, $user['id']));
 			}
 		}
 		if (Configure::read('MISP.incoming_tags_disabled_by_default')) {
@@ -313,5 +314,46 @@ class Taxonomy extends AppModel {
 			$taxonomies[$t['Taxonomy']['namespace']] = $t['Taxonomy'];
 		}
 		return $taxonomies;
+	}
+
+	public function getTaxonomyForTag($tagName) {
+		if (preg_match('/^[^:="]+:[^:="]+="[^:="]+"$/i', $tagName)) {
+			$temp = explode(':', $tagName);
+			$pieces = array_merge(array($temp[0]), explode('=', $temp[1]));
+			$pieces[2] = trim($pieces[2], '"');
+			$taxonomy = $this->find('first', array(
+				'recursive' => -1,
+				'conditions' => array('LOWER(Taxonomy.namespace)' => strtolower($pieces[0])),
+				'contain' => array(
+					'TaxonomyPredicate' => array(
+						'conditions' => array(
+							'LOWER(TaxonomyPredicate.value)' => strtolower($pieces[1])
+						),
+						'TaxonomyEntry' => array(
+							'conditions' => array(
+								'LOWER(TaxonomyEntry.value)' => strtolower($pieces[2])
+							)
+						)
+					)
+				)
+			));
+			return $taxonomy;
+		} else if (preg_match('/^[^:="]+:[^:="]+$/i', $tagName)) {
+			$pieces = explode(':', $tagName);
+			$taxonomy = $this->find('first', array(
+				'recursive' => -1,
+				'conditions' => array('LOWER(Taxonomy.namespace)' => strtolower($pieces[0])),
+				'contain' => array(
+					'TaxonomyPredicate' => array(
+						'conditions' => array(
+							'LOWER(TaxonomyPredicate.value)' => strtolower($pieces[1])
+						)
+					)
+				)
+			));
+			return $taxonomy;
+		} else {
+			return false;
+		}
 	}
 }

@@ -3,17 +3,17 @@
 		$title = $event['Event']['info'];
 		if (strlen($title) > 58) $title = substr($title, 0, 55) . '...';
 	?>
-	<h4 class="visibleDL notPublished" >You are currently viewing an event from a feed (<?php echo h($feed['Feed']['name']); ?> by <?php echo h($feed['Feed']['provider']); ?>)</h4>
+	<h4 class="visibleDL notPublished" ><?php echo __('You are currently viewing an event from a feed (%s by %s)', h($feed['Feed']['name']), h($feed['Feed']['provider']));?></h4>
 	<div class="row-fluid">
 		<div class="span8">
 			<h2><?php echo nl2br(h($title)); ?></h2>
 			<dl>
-				<dt>Uuid</dt>
+				<dt><?php echo __('Uuid');?></dt>
 				<dd><?php echo h($event['Event']['uuid']); ?></dd>
 				<dt><?php echo Configure::read('MISP.showorgalternate') ? 'Source Organisation' : 'Org'?></dt>
 				<dd><?php echo h($event['Orgc']['name']); ?></dd>
 				<?php if (Configure::read('MISP.tagging')): ?>
-					<dt>Tags</dt>
+					<dt><?php echo __('Tags');?></dt>
 					<dd class="eventTagContainer">
 					<?php if (!empty($event['Tag'])) foreach ($event['Tag'] as $tag): ?>
 						<span style="padding-right:0px;">
@@ -27,19 +27,19 @@
 					<?php echo h($event['Event']['date']); ?>
 					&nbsp;
 				</dd>
-				<dt title="<?php echo $eventDescriptions['threat_level_id']['desc'];?>">Threat Level</dt>
+				<dt title="<?php echo $eventDescriptions['threat_level_id']['desc'];?>"><?php echo __('Threat Level');?></dt>
 				<dd>
 					<?php
 						echo h($threatLevels[$event['Event']['threat_level_id']]);
 					?>
 					&nbsp;
 				</dd>
-				<dt title="<?php echo $eventDescriptions['analysis']['desc'];?>">Analysis</dt>
+				<dt title="<?php echo $eventDescriptions['analysis']['desc'];?>"><?php echo __('Analysis');?></dt>
 				<dd>
 					<?php echo h($analysisLevels[$event['Event']['analysis']]); ?>
 					&nbsp;
 				</dd>
-				<dt>Info</dt>
+				<dt><?php echo __('Info');?></dt>
 				<dd style="word-wrap: break-word;">
 					<?php echo nl2br(h($event['Event']['info'])); ?>
 					&nbsp;
@@ -52,30 +52,30 @@
 						$notPublished = '';
 					}
 				?>
-						<dt class="published" <?php echo $published;?>>Published</dt>
-						<dd class="published green" <?php echo $published;?>>Yes</dd>
+						<dt class="published" <?php echo $published;?>><?php echo __('Published');?></dt>
+						<dd class="published green" <?php echo $published;?>><?php echo __('Yes');?></dd>
 				<?php
 					if ($isAclPublish) :
 				?>
-						<dt class="visibleDL notPublished" <?php echo $notPublished;?>>Published</dt>
-						<dd class="visibleDL notPublished" <?php echo $notPublished;?>>No</dd>
+						<dt class="visibleDL notPublished" <?php echo $notPublished;?>><?php echo __('Published');?></dt>
+						<dd class="visibleDL notPublished" <?php echo $notPublished;?>><?php echo __('No');?></dd>
 				<?php
 					else:
 				?>
-						<dt class="notPublished" <?php echo $notPublished;?>>Published</dt>
-						<dd class="notPublished red" <?php echo $notPublished;?>>No</dd>
+						<dt class="notPublished" <?php echo $notPublished;?>><?php echo __('Published');?></dt>
+						<dd class="notPublished red" <?php echo $notPublished;?>><?php echo __('No');?></dd>
 				<?php endif; ?>
 			</dl>
 		</div>
 
 	<?php if (!empty($event['RelatedEvent'])):?>
 	<div class="related span4">
-		<h3>Related Events</h3>
+		<h3><?php echo __('Related Events');?></h3>
 		<ul class="inline">
 			<?php foreach ($event['RelatedEvent'] as $relatedEvent): ?>
 			<li>
 			<div title="<?php echo h($relatedEvent['Event'][0]['info']); ?>">
-			<a href = "<?php echo '/servers/previewEvent/' . $server['Server']['id'] . '/' . $relatedEvent['Event'][0]['id']; ?>"><?php echo h($relatedEvent['Event'][0]['date']) . ' (' . h($relatedEvent['Event'][0]['id']) . ')'; ?></a>
+			<a href = "<?php echo '/feeds/previewEvent/' . $feed['Feed']['id'] . '/' . $relatedEvent['Event'][0]['uuid']; ?>"><?php echo h($relatedEvent['Event'][0]['date']) . ' (' . h($relatedEvent['Event'][0]['uuid']) . ')'; ?></a>
 			</div></li>
 			<?php endforeach; ?>
 		</ul>
@@ -84,88 +84,7 @@
 	</div>
 	<br />
 	<div id="attributes_div">
-		<?php
-			$all = false;
-			if (isset($this->params->params['paging']['Event']['page']) && $this->params->params['paging']['Event']['page'] == 0) $all = true;
-		?>
-		<div class="pagination">
-	        <ul>
-	        <?php
-		        $this->Paginator->options(array(
-					'url' => array($feed['Feed']['id'], $event['Event']['uuid']),
-		            'evalScripts' => true,
-		            'before' => '$(".progress").show()',
-		            'complete' => '$(".progress").hide()',
-		        ));
-	            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-	            echo $this->Paginator->numbers(array('modulus' => 60, 'separator' => '', 'tag' => 'li', 'currentClass' => 'red', 'currentTag' => 'span'));
-	            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-	        ?>
-			<li class="all <?php if ($all) echo 'disabled'; ?>">
-				<?php
-					if ($all):
-				?>
-					<span class="red">view all</span>
-				<?php
-					else:
-						echo $this->Paginator->link(__('view all'), 'all');
-					endif;
-				?>
-			</li>
-	        </ul>
-	    </div>
-	    <div id="attributeList" class="attributeListContainer">
-			<table class="table table-striped table-condensed">
-				<tr>
-					<th><?php echo $this->Paginator->sort('date');?></th>
-					<th><?php echo $this->Paginator->sort('category');?></th>
-					<th><?php echo $this->Paginator->sort('type');?></th>
-					<th><?php echo $this->Paginator->sort('value');?></th>
-					<th><?php echo $this->Paginator->sort('comment');?></th>
-					<th title="<?php echo $attrDescriptions['signature']['desc'];?>"><?php echo $this->Paginator->sort('to_ids', 'IDS');?></th>
-				</tr>
-			    <?php
-					foreach ($event['objects'] as $k => $object):
-				?>
-					<tr id = "<?php echo 'Attribute_' . $object['uuid'] . '_tr'; ?>">
-						<td class="short"><?php echo (isset($object['timestamp'])) ? date('Y-m-d', $object['timestamp']) : '&nbsp'; ?></td>
-						<td class="shortish"><?php echo h($object['category']); ?></td>
-						<td class="shortish"><?php echo h($object['type']); ?></td>
-						<td class="shortish"><?php echo h($object['value']); ?></td>
-						<td class="shortish"><?php echo h($object['comment']); ?></td>
-						<td class="shortish"><?php echo ($object['to_ids']) ? 'Yes' : 'No'; ?></td>
-					</tr>
-				<?php
-					endforeach;
-				?>
-			</table>
-	    </div>
-		<div class="pagination">
-	        <ul>
-	        <?php
-		        $this->Paginator->options(array(
-					'url' => array($feed['Feed']['id'], $event['Event']['uuid']),
-		            'evalScripts' => true,
-		            'before' => '$(".progress").show()',
-		            'complete' => '$(".progress").hide()',
-		        ));
-	            echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-	            echo $this->Paginator->numbers(array('modulus' => 60, 'separator' => '', 'tag' => 'li', 'currentClass' => 'red', 'currentTag' => 'span'));
-	            echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-	        ?>
-			<li class="all <?php if ($all) echo 'disabled'; ?>">
-				<?php
-					if ($all):
-				?>
-					<span class="red">view all</span>
-				<?php
-					else:
-						echo $this->Paginator->link(__('view all'), 'all');
-					endif;
-				?>
-			</li>
-	        </ul>
-	    </div>
+		<?php echo $this->element('Feeds/eventattribute'); ?>
 	</div>
 </div>
 <?php

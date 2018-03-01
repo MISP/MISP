@@ -2,16 +2,16 @@
 <?php
 	$texts = array(
 			'all' => array(
-					'text' => 'All organisations',
-					'extra' => ', both local and remote'
+					'text' => __('All organisations'),
+					'extra' => __(', both local and remote')
 			),
 			'external' => array(
-					'text' => 'Known remote organisations',
-					'extra' => ' on other instances'
+					'text' => ('Known remote organisations'),
+					'extra' => __(' on other instances')
 			),
 			'local' => array(
-					'text' => 'Local organisations',
-					'extra' => ' having a presence on this instance'
+					'text' => __('Local organisations'),
+					'extra' => __(' having a presence on this instance')
 			),
 	);
 	if (!in_array($scope, array_keys($texts))) $scope = 'local';
@@ -22,9 +22,9 @@
 		endif;
 		$partial[] = h($key) . ':' . h($value);
 	endforeach;
-	$viewall_button_text = 'Paginate';
+	$viewall_button_text = __('Paginate');
 	if (!$viewall):
-		$viewall_button_text = 'View all';
+		$viewall_button_text = __('View all');
 		$partial[] = 'viewall:1';
 	endif;
 ?>
@@ -56,13 +56,13 @@
 	<?php
 		endforeach;
 	?>
-		<span role="button" tabindex="0" aria-label="Filtr" title="Filter" id="quickFilterButton" class="tabMenuFilterFieldButton useCursorPointer" onClick="quickFilter(<?php echo  h($passedArgs); ?>, '<?php echo $baseurl . '/organisations/index'; ?>');">Filter</span>
+		<span role="button" tabindex="0" aria-label="Filtr" title="Filter" id="quickFilterButton" class="tabMenuFilterFieldButton useCursorPointer" onClick="quickFilter(<?php echo  h($passedArgs); ?>, '<?php echo $baseurl . '/organisations/index'; ?>');"><?php echo __('Filter');?></span>
 		<input class="tabMenuFilterField" type="text" id="quickFilterField"></input>
 	</div>
 	<table class="table table-striped table-hover table-condensed">
 	<tr>
 			<th><?php echo $this->Paginator->sort('id');?></th>
-			<th>Logo</th>
+			<th><?php echo __('Logo');?></th>
 			<th><?php echo $this->Paginator->sort('name');?></th>
 			<?php if ($isSiteAdmin): ?>
 				<th><?php echo $this->Paginator->sort('uuid');?></th>
@@ -73,11 +73,12 @@
 			<th><?php echo $this->Paginator->sort('type');?></th>
 			<th><?php echo $this->Paginator->sort('contacts');?></th>
 			<?php if ($isSiteAdmin): ?>
-				<th>Added by</th>
+				<th><?php echo __('Added by');?></th>
 			<?php endif; ?>
 			<th><?php echo $this->Paginator->sort('local');?></th>
 			<th>Users</th>
-			<th class="actions">Actions</th>
+			<th><?php echo $this->Paginator->sort('restrictions');?></th>
+			<th class="actions"><?php echo __('Actions');?></th>
 	</tr>
 	<?php
 foreach ($orgs as $org): ?>
@@ -85,10 +86,7 @@ foreach ($orgs as $org): ?>
 		<td class="short" ondblclick="document.location.href ='/organisations/view/<?php echo $org['Organisation']['id'];?>'"><?php echo h($org['Organisation']['id']); ?></td>
 		<td class="short" ondblclick="document.location.href ='/organisations/view/<?php echo $org['Organisation']['id'];?>'">
 			<?php
-				$imgRelativePath = 'orgs' . DS . h($org['Organisation']['name']) . '.png';
-				$imgAbsolutePath = APP . WEBROOT_DIR . DS . 'img' . DS . $imgRelativePath;
-				if (file_exists($imgAbsolutePath)) echo $this->Html->image('orgs/' . h($org['Organisation']['name']) . '.png', array('alt' => h($org['Organisation']['name']), 'title' => h($org['Organisation']['name']), 'style' => 'width:24px; height:24px'));
-				else echo 'N/A';
+				echo $this->OrgImg->getOrgImg(array('name' => $org['Organisation']['name'], 'id' => $org['Organisation']['id'], 'size' => 24));
 			?>
 		</td>
 		<td class="short" ondblclick="document.location.href ='/organisations/view/<?php echo $org['Organisation']['id'];?>'"><?php echo h($org['Organisation']['name']); ?></td>
@@ -105,16 +103,23 @@ foreach ($orgs as $org): ?>
 				<?php echo (isset($org['Organisation']['created_by_email'])) ? h($org['Organisation']['created_by_email']) : '&nbsp;'; ?>
 			</td>
 		<?php endif; ?>
-		<td class="short <?php echo $org['Organisation']['local'] ? 'green' : 'red';?>" ondblclick="document.location.href ='/organisations/view/<?php echo $org['Organisation']['id'];?>'"><?php echo $org['Organisation']['local'] ? 'Yes' : 'No';?></td>
+		<td class="short <?php echo $org['Organisation']['local'] ? 'green' : 'red';?>" ondblclick="document.location.href ='/organisations/view/<?php echo $org['Organisation']['id'];?>'"><?php echo $org['Organisation']['local'] ? __('Yes') : __('No');?></td>
 		<td class="short"><?php echo isset($org['Organisation']['user_count']) ? $org['Organisation']['user_count'] : '0';?></td>
+		<td class="short">
+			<?php
+				if (!empty($org['Organisation']['restrictions'])) {
+					echo implode('<br />', h($org['Organisation']['restrictions']));
+				}
+			?>
+		</td>
 		<td class="short action-links">
 			<?php if ($isSiteAdmin): ?>
-				<a href='/admin/organisations/edit/<?php echo $org['Organisation']['id'];?>' class = "icon-edit" title = "Edit"></a>
+				<a href='/admin/organisations/edit/<?php echo $org['Organisation']['id'];?>' class = "icon-edit" title = "<?php echo __('');?>Edit"></a>
 				<?php
-					echo $this->Form->postLink('', array('admin' => true, 'action' => 'delete', $org['Organisation']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete %s?', $org['Organisation']['name']));
+					echo $this->Form->postLink('', array('admin' => true, 'action' => 'delete', $org['Organisation']['id']), array('class' => 'icon-trash', 'title' => __('Delete')), __('Are you sure you want to delete %s?', $org['Organisation']['name']));
 				?>
 			<?php endif; ?>
-			<a href='/organisations/view/<?php echo $org['Organisation']['id']; ?>' class = "icon-list-alt" title = "View"></a>
+			<a href='/organisations/view/<?php echo $org['Organisation']['id']; ?>' class = "icon-list-alt" title = "<?php echo __('View');?>"></a>
 		</td>
 	</tr>
 	<?php

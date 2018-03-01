@@ -19,7 +19,7 @@
 	<table class="table table-striped table-hover table-condensed">
 	<tr>
 			<th><?php echo $this->Paginator->sort('id');?></th>
-			<th>Default</th>
+			<th><?php echo __('Default');?></th>
 			<th><?php echo $this->Paginator->sort('name');?></th>
 			<th><?php echo $this->Paginator->sort('permission', 'Permission');?></th>
 			<?php
@@ -33,7 +33,7 @@
 foreach ($list as $item): ?>
 	<tr>
 		<td class="short"><?php echo h($item['Role']['id']); ?>&nbsp;</td>
-		<td class="short" style="text-align:center;width:20px;"><div class="icon-<?php echo $default_role_id == $item['Role']['id'] ? 'ok' : 'remove' ?>"></div></td>
+		<td class="short" style="text-align:center;width:20px;"><div class="icon-<?php echo $default_role_id == $item['Role']['id'] ? __('ok') : __('remove') ?>"></div></td>
 		<td><?php echo h($item['Role']['name']); ?>&nbsp;</td>
 		<td class="short"><?php echo h($options[$item['Role']['permission']]); ?>&nbsp;</td>
 		<?php foreach ($permFlags as $k => $flags): ?>

@@ -81,11 +81,19 @@ class Module extends AppModel {
 		} else return 'The module service reports that it found no modules.';
 	}
 
-	public function getEnabledModules($type = false, $moduleFamily = 'Enrichment') {
+	public function getEnabledModules($user, $type = false, $moduleFamily = 'Enrichment') {
 		$modules = $this->getModules($type, $moduleFamily);
 		if (is_array($modules)) {
 			foreach ($modules['modules'] as $k => $module) {
 				if (!Configure::read('Plugin.' . $moduleFamily . '_' . $module['name'] . '_enabled') || ($type && in_array(strtolower($type), $module['meta']['module-type']))) {
+					unset($modules['modules'][$k]);
+					continue;
+				}
+				if (
+					!$user['Role']['perm_site_admin'] &&
+					Configure::read('Plugin.' . $moduleFamily . '_' . $module['name'] . '_restrict') &&
+					Configure::read('Plugin.' . $moduleFamily . '_' . $module['name'] . '_restrict') != $user['org_id']
+				) {
 					unset($modules['modules'][$k]);
 				}
 			}
@@ -165,6 +173,7 @@ class Module extends AppModel {
 			foreach ($modules['modules'] as $module) {
 				if (array_intersect($this->__validTypes[$moduleFamily], $module['meta']['module-type'])) {
 					$result[$module['name']][0] = array('name' => 'enabled', 'type' => 'boolean');
+					$result[$module['name']][1] = array('name' => 'restrict', 'type' => 'orgs');
 					if (isset($module['meta']['config'])) foreach ($module['meta']['config'] as $conf) $result[$module['name']][] = array('name' => $conf, 'type' => 'string');
 				}
 			}

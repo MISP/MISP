@@ -4,8 +4,8 @@
 	echo $this->Html->css('cal-heatmap');
 ?>
 <div class = "index">
-	<h2>Statistics</h2>
-	<?php 
+	<h2><?php echo __('Statistics');?></h2>
+	<?php
 		echo $this->element('Users/statisticsMenu');
 		$types = array(
 				'local' => array('selected' => false, 'text' => 'Local organisations'),
@@ -14,40 +14,40 @@
 		);
 		$types[$scope]['selected'] = true;
 	?>
-	<p>Quick overview over the organisations residing on or known by this instance.</p>
+	<p><?php echo __('Quick overview over the organisations residing on or known by this instance.');?></p>
 	<div class="tabMenuFixedContainer" style="display:inline-block;">
-			<?php 
+			<?php
 				foreach ($types as $key => $value):
 			?>
 				<span class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php if ($value['selected']) echo 'tabMenuActive'; ?>" onclick="window.location='/users/statistics/orgs/scope:<?php echo h($key);?>'"><?php echo h($value['text']); ?></span>
-			<?php 
+			<?php
 				endforeach;
 			?>
 	</div>
 	<table class="table table-striped table-hover table-condensed" style="width:50%;">
 	<tr>
-			<th>Logo</th>
-			<th>Name</th>
-			<th>Users</th>
-			<th>Events</th>
-			<th>Nationality</th>
-			<th>Type</th>
-			<th>Sector</th>
+			<th><?php echo __('Logo');?></th>
+			<th><?php echo __('Name');?></th>
+			<th><?php echo __('Users');?></th>
+			<th><?php echo __('Events');?></th>
+			<th><?php echo __('Nationality');?></th>
+			<th><?php echo __('Type');?></th>
+			<th><?php echo __('Sector');?></th>
 	</tr>
 	<?php
 		foreach ($orgs as $data):
 	?>
 		<tr class="org_row" data-orgid="<?php echo h($data['id']); ?>">
 			<td class="short">
-				<?php 
+				<?php
 					if (isset($data['logo'])):
 				?>
 						<img src="<?php echo $baseurl; ?>/img/orgs/<?php echo h($data['name']); ?>.png" height="24" width="24" />
-				<?php 
+				<?php
 					else:
 						echo '&nbsp;';
 					endif;
-					
+
 				?>
 			</td>
 			<td class="short"><?php echo h($data['name']); ?></td>

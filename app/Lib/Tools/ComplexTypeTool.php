@@ -10,7 +10,10 @@ class ComplexTypeTool {
 		'/\[dot\]/' => '.',
 		'/\(dot\)/' => '.',
 		'/\\\\\./' => '.',
-		'/\.+/' => '.'
+		'/\.+/' => '.',
+		'/\[hxxp:\/\/\]/' => 'http://',
+		'/\\\/' => '',
+		'/[\@]/' => '@'
 	);
 
 	private $__tlds = array();
@@ -19,6 +22,7 @@ class ComplexTypeTool {
 		if (!empty($tlds)) {
 			$this->__tlds = $tlds;
 		}
+		return true;
 	}
 
 	public function checkComplexRouter($input, $type, $settings = array()) {
@@ -88,6 +92,10 @@ class ComplexTypeTool {
 		return array_values($array);
 	}
 
+	private function __parse_row($row, $delimiter) {
+		$columns = str_getcsv($row, $delimiter);
+		return $columns;
+	}
 
 	/*
 	 * parse a CSV file with the given settings
@@ -99,7 +107,17 @@ class ComplexTypeTool {
 	 */
 	public function checkCSV($input, $settings = array()) {
 		$delimiter = !empty($settings['delimiter']) ? $settings['delimiter'] : ",";
-		$lines = explode("\n", $input);
+		$rows = str_getcsv($input, "\n");
+		$data = array();
+		foreach ($rows as $k => $row) {
+			if (empty($row[0]) || $row[0] === '#') continue;
+			if ($delimiter == '\t') {
+				$data[$k] = explode("\t", $row);
+			} else {
+				$data[$k] = str_getcsv($row, $delimiter);
+			}
+		}
+		unset($rows);
 		unset($input);
 		$values = !empty($settings['value']) ? $settings['value'] : array();
 		if (!is_array($values)) {
@@ -109,15 +127,8 @@ class ComplexTypeTool {
 			$values[$key] = intval($value);
 		}
 		$iocArray = array();
-		foreach ($lines as $linePos => $line) {
-			$line = trim($line);
-			if (empty($line) || $line[0] === "#") continue;
-			if ($delimiter === '\t') {
-				$elements = preg_split('/\t/', $line);
-			} else {
-				$elements = explode($delimiter, $line);
-			}
-			foreach ($elements as $elementPos => $element) {
+		foreach ($data as $rowPos => $row) {
+			foreach ($row as $elementPos => $element) {
 				if ((!empty($values) && in_array(($elementPos + 1), $values)) || empty($values)) {
 					$element = trim($element, " \t\n\r\0\x0B\"\'");
 					if (isset($settings['excluderegex']) && !empty($settings['excluderegex'])) {
@@ -137,7 +148,7 @@ class ComplexTypeTool {
 
 	public function checkFreeText($input, $settings = array()) {
 		$charactersToTrim = array('\'', '"', ',', '(', ')');
-		$iocArray = preg_split("/\r\n|\n|\r|\s|\s+|,|;/", $input);
+		$iocArray = preg_split("/\r\n|\n|\r|\s|\s+|,|\<|\>|;/", $input);
 		$quotedText = explode('"', $input);
 		foreach ($quotedText as $k => $temp) {
 			$temp = trim($temp);
@@ -173,10 +184,10 @@ class ComplexTypeTool {
 	}
 
 	private $__hexHashTypes = array(
-		32 => array('single' => array('md5', 'imphash'), 'composite' => array('filename|md5', 'filename|imphash')),
+		32 => array('single' => array('md5', 'imphash', 'x509-fingerprint-md5'), 'composite' => array('filename|md5', 'filename|imphash')),
 		40 => array('single' => array('sha1', 'pehash', 'x509-fingerprint-sha1'), 'composite' => array('filename|sha1', 'filename|pehash')),
 		56 => array('single' => array('sha224', 'sha512/224'), 'composite' => array('filename|sha224', 'filename|sha512/224')),
-		64 => array('single' => array('sha256', 'authentihash', 'sha512/256'), 'composite' => array('filename|sha256', 'filename|authentihash', 'filename|sha512/256')),
+		64 => array('single' => array('sha256', 'authentihash', 'sha512/256', 'x509-fingerprint-sha256'), 'composite' => array('filename|sha256', 'filename|authentihash', 'filename|sha512/256')),
 		96 => array('single' => array('sha384'), 'composite' => array('filename|sha384')),
 		128 => array('single' => array('sha512'), 'composite' => array('filename|sha512'))
 	);
@@ -191,7 +202,7 @@ class ComplexTypeTool {
 						if (strlen($compositeParts[1]) == $k && preg_match("#[0-9a-f]{" . $k . "}$#i", $compositeParts[1])) return array('types' => $v['composite'], 'to_ids' => true, 'default_type' => $v['composite'][0], 'value' => $input);
 					}
 					if (preg_match('#^[0-9]+:[0-9a-zA-Z\/\+]+:[0-9a-zA-Z\/\+]+$#', $compositeParts[1]) && !preg_match('#^[0-9]{1,2}:[0-9]{1,2}:[0-9]{1,2}$#', $compositeParts[1])) {
-						return array('types' => array('ssdeep'), 'to_ids' => true, 'default_type' => 'filename|ssdeep', 'value' => $input);
+						return array('types' => array('filename|ssdeep'), 'to_ids' => true, 'default_type' => 'filename|ssdeep', 'value' => $input);
 					}
 				}
 			}
@@ -207,8 +218,8 @@ class ComplexTypeTool {
 			$inputRefanged = preg_replace($regex, $replacement , $inputRefanged);
 		}
 		$inputRefanged = rtrim($inputRefanged, ".");
-		if (strpos($input, '@') !== false) {
-			if (filter_var($input, FILTER_VALIDATE_EMAIL)) return array('types' => array('email-src', 'email-dst', 'whois-registrant-email'), 'to_ids' => true, 'default_type' => 'email-src', 'value' => $input);
+		if (strpos($inputRefanged, '@') !== false) {
+			if (filter_var($inputRefanged, FILTER_VALIDATE_EMAIL)) return array('types' => array('email-src', 'email-dst', 'target-email', 'whois-registrant-email'), 'to_ids' => true, 'default_type' => 'email-src', 'value' => $inputRefanged);
 		}
 		// note down and remove the port if it's a url / domain name / hostname / ip
 		// input2 from here on is the variable containing the original input with the port removed. It is only used by url / domain name / hostname / ip
@@ -235,7 +246,6 @@ class ComplexTypeTool {
 				if (filter_var($temp[0], FILTER_VALIDATE_IP) && is_numeric($temp[1])) return array('types' => array('ip-dst', 'ip-src', 'ip-src/ip-dst'), 'to_ids' => true, 'default_type' => 'ip-dst', 'comment' => $comment, 'value' => $inputRefangedNoPort);
 			}
 		}
-
 		// check for domain name, hostname, filename
 		if (strpos($inputRefanged, '.') !== false) {
 			$temp = explode('.', $inputRefanged);
@@ -243,7 +253,7 @@ class ComplexTypeTool {
 			//if (filter_var($input, FILTER_VALIDATE_URL)) {
 			$domainDetection = true;
 			if (preg_match('/^([-\pL\pN]+\.)+[a-z]+(:[0-9]{2,5})?$/iu', $inputRefanged)) {
-				if (empty($this->__tlds)) {
+				if (empty($this->__tlds) || count($this->__tlds) == 1) {
 					$this->__generateTLDList();
 				}
 				$tldExploded = explode(':', $temp[count($temp)-1]);
@@ -265,9 +275,10 @@ class ComplexTypeTool {
 				if (count($temp) > 1 && (filter_var($inputRefangedNoPort, FILTER_VALIDATE_URL) || filter_var('http://' . $inputRefangedNoPort, FILTER_VALIDATE_URL))) {
 					// TODO: add comment explaining why there is a check for a specific domain
 					if (preg_match('/^https:\/\/(www.)?virustotal.com\//i', $inputRefangedNoPort)) return array('types' => array('link'), 'to_ids' => false, 'default_type' => 'link', 'comment' => $comment, 'value' => $inputRefangedNoPort);
+					if (preg_match('/^https:\/\/www\.hybrid-analysis\.com\//i', $inputRefangedNoPort)) return array('types' => array('link'), 'categories' => array('External analysis'), 'to_ids' => false, 'default_type' => 'link', 'comment' => $comment, 'value' => $inputRefangedNoPort);
 					if (strpos($inputRefangedNoPort, '/')) return array('types' => array('url'), 'to_ids' => true, 'default_type' => 'url', 'comment' => $comment, 'value' => $inputRefangedNoPort);
 				}
-				if ($this->__resolveFilename($input)) return array('types' => array('filename'), 'to_ids' => true, 'default_type' => 'filename', 'value' => $inputRefanged);
+				if ($this->__resolveFilename($input)) return array('types' => array('filename'), 'to_ids' => true, 'default_type' => 'filename', 'value' => $input);
 			}
 		}
 
@@ -282,17 +293,21 @@ class ComplexTypeTool {
 
 		// check for CVE
 		if (preg_match("#^cve-[0-9]{4}-[0-9]{4,9}$#i", $input)) return array('types' => array('vulnerability'), 'categories' => array('External analysis'), 'to_ids' => false, 'default_type' => 'vulnerability', 'value' => $input);
+		if (preg_match("#^(\+)?([0-9]{1,3}(\(0\))?)?[0-9\/\-]{5,}[0-9]$#i", $input)) return array('types' => array('phone-number', 'prtn', 'whois-registrant-phone'), 'categories' => array('Other'), 'to_ids' => false, 'default_type' => 'phone-number', 'value' => $input);
 
 		return false;
 	}
 
 	private function __resolveFilename($input) {
-		if ((preg_match('/^.:/', $input) || strpos($input, '.') !=0)) return true;
+		if ((preg_match('/^.:/', $input) || strpos($input, '.') !=0)) {
+			$parts = explode('.', $input);
+			if (!is_numeric($parts[count($parts)-1]) && ctype_alnum($parts[count($parts)-1])) return true;
+		}
 		return false;
 	}
 
 	private function __generateTLDList() {
-		$this->__tlds = array('biz', 'cat', 'com', 'edu', 'gov', 'int', 'mil', 'net', 'org', 'pro', 'tel', 'aero', 'arpa', 'asia', 'coop', 'info', 'jobs', 'mobi', 'name', 'museum', 'travel');
+		$this->__tlds = array('biz', 'cat', 'com', 'edu', 'gov', 'int', 'mil', 'net', 'org', 'pro', 'tel', 'aero', 'arpa', 'asia', 'coop', 'info', 'jobs', 'mobi', 'name', 'museum', 'travel', 'onion');
 		$char1 = $char2 = 'a';
 		for ($i = 0; $i < 26; $i++) {
 			for ($j = 0; $j < 26; $j++) {

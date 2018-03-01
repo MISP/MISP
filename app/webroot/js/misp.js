@@ -4,8 +4,9 @@ String.prototype.ucfirst = function() {
 
 function deleteObject(type, action, id, event) {
 	var destination = 'attributes';
-	var alternateDestinations = ['shadow_attributes', 'template_elements', 'taxonomies'];
+	var alternateDestinations = ['shadow_attributes', 'template_elements', 'taxonomies', 'objects', 'object_references'];
 	if (alternateDestinations.indexOf(type) > -1) destination = type;
+	else destination = type;
 	url = "/" + destination + "/" + action + "/" + id;
 	$.get(url, function(data) {
 		openPopup("#confirmation_box");
@@ -71,28 +72,6 @@ function cancelPrompt(isolated) {
 	$("#confirmation_box").empty();
 }
 
-function submitEventDeletion() {
-	var formData = $('#PromptForm').serialize();
-	$.ajax({
-		beforeSend: function (XMLHttpRequest) {
-			$(".loading").show();
-		},
-		data: formData,
-		success:function (data, textStatus) {
-			updateIndex(context_id, context);
-			handleGenericAjaxResponse(data);
-		},
-		complete:function() {
-			$(".loading").hide();
-			$("#confirmation_box").fadeOut();
-			$("#gray_out").fadeOut();
-		},
-		type:"post",
-		cache: false,
-		url:"/" + type + "/" + action + "/" + id,
-	});
-}
-
 function submitDeletion(context_id, action, type, id) {
 	var context = 'event';
 	if (type == 'template_elements') context = 'template';
@@ -117,7 +96,10 @@ function submitDeletion(context_id, action, type, id) {
 	});
 }
 
-function removeSighting(id, rawid, context) {
+function removeSighting(caller) {
+	var id = $(caller).data('id');
+	var rawid = $(caller).data('rawid');
+	var context = $(caller).data('context');
 	if (context != 'attribute') {
 		context = 'event';
 	}
@@ -129,15 +111,15 @@ function removeSighting(id, rawid, context) {
 		data: formData,
 		success:function (data, textStatus) {
 			handleGenericAjaxResponse(data);
-		},
-		complete:function() {
-			$(".loading").hide();
-			$("#confirmation_box").fadeOut();
 			var org = "/" + $('#org_id').text();
 			updateIndex(id, 'event');
 			$.get( "/sightings/listSightings/" + rawid + "/" + context + org, function(data) {
 				$("#sightingsData").html(data);
 			});
+		},
+		complete:function() {
+			$(".loading").hide();
+			$("#confirmation_box").fadeOut();
 		},
 		type:"post",
 		cache: false,
@@ -161,6 +143,12 @@ function toggleSetting(e, setting, id) {
 		replacementForm = '/favourite_tags/getToggleField/';
 		searchString = 'Adding';
 		break;
+	case 'activate_object_template':
+		formID = '#ObjectTemplateIndexForm';
+		dataDiv = '#ObjectTemplateData';
+		replacementForm = '/ObjectTemplates/getToggleField/';
+		searchString = 'activated';
+		break;
 	}
 	$(dataDiv).val(id);
 	var formData = $(formID).serialize();
@@ -170,7 +158,7 @@ function toggleSetting(e, setting, id) {
 		},
 		data: formData,
 		success:function (data, textStatus) {
-			var result = JSON.parse(data);
+			var result = data;
 			if (result.success) {
 				var setting = false;
 				if (result.success.indexOf(searchString) > -1) setting = true;
@@ -351,6 +339,7 @@ function activateField(type, id, field, event) {
 		objectType = 'shadow_attributes';
 	}
 	var name = '#' + type + '_' + id + '_' + field;
+	var container_name = '#Attribute_' + id + '_' + field;
 	$.ajax({
 		beforeSend: function (XMLHttpRequest) {
 			$(".loading").show();
@@ -359,7 +348,7 @@ function activateField(type, id, field, event) {
 		cache: false,
 		success:function (data, textStatus) {
 			$(".loading").hide();
-			$(name + '_placeholder').html(data);
+			$(container_name + '_placeholder').html(data);
 			postActivationScripts(name, type, id, field, event);
 		},
 		url:"/" + objectType + "/fetchEditForm/" + id + "/" + field,
@@ -418,7 +407,7 @@ function addSighting(type, attribute_id, event_id, page) {
 		cache: false,
 		success:function (data, textStatus) {
 			handleGenericAjaxResponse(data);
-			var result = JSON.parse(data);
+			var result = data;
 			if (result.saved == true) {
 				$('.sightingsCounter').each(function( counter ) {
 					$(this).html(parseInt($(this).html()) + 1);
@@ -542,7 +531,7 @@ function quickSubmitAttributeTagForm(attribute_id, tag_id) {
 }
 
 function handleAjaxEditResponse(data, name, type, id, field, event) {
-	responseArray = JSON.parse(data);
+	responseArray = data;
 	if (type == 'Attribute') {
 		if (responseArray.saved) {
 			showMessage('success', responseArray.success);
@@ -611,7 +600,7 @@ function attributeListAnyAttributeCheckBoxesChecked() {
 	else $('.mass-select').addClass('hidden');
 }
 
-function eventListCheckboxesChecked() {
+function listCheckboxesChecked() {
 	if ($('.select:checked').length > 0) $('.mass-select').removeClass('hidden');
 	else $('.mass-select').addClass('hidden');
 }
@@ -637,6 +626,22 @@ function multiSelectDeleteEvents() {
 		}
 	});
 	$.get("/events/delete/" + JSON.stringify(selected), function(data) {
+		$("#confirmation_box").html(data);
+		openPopup("#confirmation_box");
+	});
+}
+
+function multiSelectToggleFeeds(on) {
+	var selected = [];
+	$(".select").each(function() {
+		if ($(this).is(":checked")) {
+			var temp = $(this).data("id");
+			if (temp != null) {
+				selected.push(temp);
+			}
+		}
+	});
+	$.get("/feeds/toggleSelected/" + on + "/" + JSON.stringify(selected), function(data) {
 		$("#confirmation_box").html(data);
 		openPopup("#confirmation_box");
 	});
@@ -877,6 +882,9 @@ function submitPopoverForm(context_id, referer, update_context_id) {
 			url = "/sightings/add/" + context_id;
 			closePopover = false;
 			break;
+		case 'addObjectReference':
+			url = "/objectReferences/add/" + context_id;
+			break;
 	}
 	if (url !== null) {
 		$.ajax({
@@ -902,17 +910,18 @@ function submitPopoverForm(context_id, referer, update_context_id) {
 					$('#sightingsListAllToggle').removeClass('btn-inverse');
 					$('#sightingsListAllToggle').addClass('btn-primary');
 				}
-				if (context == 'event' && (referer == 'add' || referer == 'massEdit' || referer == 'replaceAttributes')) eventUnpublish();
+				if (context == 'event' && (referer == 'add' || referer == 'massEdit' || referer == 'replaceAttributes' || referer == 'addObjectReference')) eventUnpublish();
 				$(".loading").hide();
 			},
 			type:"post",
 			url:url
 		});
 	}
+	return false;
 };
 
 function handleAjaxPopoverResponse(response, context_id, url, referer, context, contextNamingConvention) {
-	responseArray = JSON.parse(response);
+	responseArray = response;
 	var message = null;
 	if (responseArray.saved) {
 		updateIndex(context_id, context);
@@ -1238,6 +1247,11 @@ function simplePopup(url) {
 			$("#popover_form").html(data);
 			openPopup("#popover_form");
 		},
+		error:function() {
+			$(".loading").hide();
+			$("#gray_out").fadeOut();
+			showMessage('fail', 'Could not fetch the given PGP key.');
+		},
 		url: url,
 	});
 }
@@ -1400,10 +1414,15 @@ function indexEvaluateFiltering() {
 }
 
 function quickFilter(passedArgs, url) {
-	passedArgs["searchall"] = $('#quickFilterField').val().trim();
-	for (var key in passedArgs) {
-		if (key !== 'page') {
-			url += "/" + key + ":" + passedArgs[key];
+	if(!passedArgs){
+		var passedArgs = [];
+	}
+	if( $('#quickFilterField').val().trim().length > 0){
+		passedArgs["searchall"] = $('#quickFilterField').val().trim();
+		for (var key in passedArgs) {
+			if (key !== 'page') {
+				url += "/" + key + ":" + passedArgs[key];
+			}
 		}
 	}
 	window.location.href=url;
@@ -1877,7 +1896,13 @@ function selectContainsOption(selectid, value) {
 	return exists;
 }
 
-function exportChoiceSelect(url, elementId, checkbox) {
+function exportChoiceSelect(e) {
+	if ($(e.target).is("input")) {
+		return false;
+	}
+	var url = $(e.target).parent().data("export-url");
+	var elementId = $(e.target).parent().data("export-key");
+	var checkbox = $(e.target).parent().data("export-checkbox");
 	if (checkbox == 1) {
 		if ($('#' + elementId + '_toggle').prop('checked')) {
 			url = $('#' + elementId + '_set').html();
@@ -1931,6 +1956,27 @@ function freetextImportResultsSubmit(id, count) {
 			$(".loading").hide();
 		},
 	});
+}
+
+function objectTemplateViewContent(context, id) {
+	var url = "/objectTemplateElements/viewElements/" + id + "/" + context;
+	$.ajax({
+			url: url,
+			type:'GET',
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+			error: function(){
+				$('#ajaxContent').html('An error has occured, please reload the page.');
+			},
+			success: function(response){
+				$('#ajaxContent').html(response);
+			},
+		complete: function() {
+			$(".loading").hide();
+		},
+	});
+
 }
 
 function organisationViewContent(context, id) {
@@ -2040,7 +2086,7 @@ function sharingGroupPopulateOrganisations() {
 	organisations.forEach(function(org) {
 		html = '<tr id="orgRow' + id + '" class="orgRow">';
 		html += '<td class="short">' + org.type + '&nbsp;</td>';
-		html += '<td>' + org.name + '&nbsp;</td>';
+		html += '<td>' + $('<div>').text(org.name).html() + '&nbsp;</td>';
 		html += '<td>' + org.uuid + '&nbsp;</td>';
 		html += '<td class="short" style="text-align:center;">';
 		if (org.removable == 1) {
@@ -2245,7 +2291,7 @@ function testConnection(id) {
 	    	$("#connection_test_" + id).html('Internal error.');
 	    },
 	    success: function(response){
-	    	var result = JSON.parse(response);
+	    	var result = response;
 	    	switch (result.status) {
 			case 1:
 				status_message = "OK";
@@ -2327,7 +2373,7 @@ function pgpChoiceSelect(uri) {
 	$("#gray_out").fadeOut();
 	$.ajax({
 		type: "get",
-		url: "https://pgp.mit.edu/" + uri,
+		url: "https://pgp.circl.lu" + uri,
 		success: function (data) {
 			var result = data.split("<pre>")[1].split("</pre>")[0];
 			$("#UserGpgkey").val(result);
@@ -2521,7 +2567,30 @@ function syncUserSelected() {
 
 function filterAttributes(filter, id) {
 	url = "/events/viewEventAttributes/" + id + "/attributeFilter:" + filter;
+	if(filter === 'value'){
+		filter = $('#attributesFilterField').val().trim();
+		url += "/searchFor:" + filter;
+	}
 	if (deleted) url += '/deleted:true';
+	$.ajax({
+		type:"get",
+		url:url,
+		beforeSend: function (XMLHttpRequest) {
+			$(".loading").show();
+		},
+		success:function (data) {
+			$("#attributes_div").html(data);
+			$(".loading").hide();
+		},
+		error:function() {
+			showMessage('fail', 'Something went wrong - could not fetch attributes.');
+		}
+	});
+}
+
+function pivotObjectReferences(url, uuid) {
+	url += '/focus:' + uuid;
+	console.log(url);
 	$.ajax({
 		type:"get",
 		url:url,
@@ -2564,9 +2633,13 @@ function toggleDeletedAttributes(url) {
 function mergeOrganisationUpdate() {
 	var orgTypeOptions = ['local', 'external'];
 	var orgTypeSelects = ['OrganisationOrgsLocal', 'OrganisationOrgsExternal'];
-	orgType = orgTypeSelects[$('#OrganisationTargetType').val()];
-	orgID = $('#' + orgType).val();
-	org = orgArray[orgTypeOptions[$('#OrganisationTargetType').val()]][orgID]['Organisation'];
+	var orgTypeId = $('#OrganisationTargetType').val();
+	var orgType = orgTypeSelects[orgTypeId];
+	var orgID = $('#' + orgTypeSelects[orgTypeId]).val();
+	console.log(orgTypeSelects[orgTypeId]);
+	console.log(orgID);
+	org = orgArray[orgTypeOptions[orgTypeId]][orgID]['Organisation'];
+	console.log(org);
 	$('#org_id').text(org['id']);
 	$('#org_name').text(org['name']);
 	$('#org_uuid').text(org['uuid']);
@@ -2712,9 +2785,9 @@ function getFormInfoContent(property, field) {
 
 function formCategoryChanged(id) {
 	// fill in the types
-	var options = $('#AttributeType').prop('options');
-	$('option', $('#AttributeType')).remove();
-	$.each(category_type_mapping[$('#AttributeCategory').val()], function(val, text) {
+	var options = $('#' + id +'Type').prop('options');
+	$('option', $('#' + id +'Type')).remove();
+	$.each(category_type_mapping[$('#' + id +'Category').val()], function(val, text) {
 		options[options.length] = new Option(text, val);
 	});
 	// enable the form element
@@ -2756,8 +2829,10 @@ function feedFormUpdate() {
 	}
 	if ($('#FeedInputSource').val() == 'local') {
 		$('#DeleteLocalFileDiv').show();
+		$('#HeadersDiv').hide();
 	} else {
 		$('#DeleteLocalFileDiv').hide();
+		$('#HeadersDiv').show();
 	}
 }
 
@@ -2908,13 +2983,15 @@ function quickEditEvent(id, field) {
 
 function selectAllInbetween(last, current) {
 	if (last === false || last == current) return false;
-	if (last < current) {
-		var temp = current;
-		current = last;
-		last = temp;
+	var from = $('#' + last).parent().parent().index();
+	var to = $('#' + current).parent().parent().index();
+	if (to < from) {
+		var temp = from;
+		from = to;
+		to = temp;
 	}
 	$('.select_proposal, .select_attribute').each(function () {
-		if ($(this).parent().data('position') > current && $(this).parent().data('position') < last) {
+		if ($('#' + this.id).parent().parent().index() >= from && $('#' + this.id).parent().parent().index() <= to) {
 			$(this).prop('checked', true);
 		}
 	});
@@ -3048,9 +3125,262 @@ $(".cortex-json").click(function() {
 	$("#gray_out").fadeIn();
 });
 
+// Show $(id) if the enable parameter evaluates to true. Hide it otherwise
+function checkAndEnable(id, enable) {
+	if (enable) {
+		$(id).show();
+	} else {
+		$(id).hide();
+	}
+}
+
+// Show and enable checkbox $(id) if the enable parameter evaluates to true. Hide and disable it otherwise.
+function checkAndEnableCheckbox(id, enable) {
+	if (enable) {
+		$(id).removeAttr("disabled");
+		$(id).prop('checked', true);
+	} else {
+		$(id).prop('checked', false);
+		$(id).attr("disabled", true);
+	}
+}
+
+function enableDisableObjectRows(rows) {
+	rows.forEach(function(i) {
+		if ($("#Attribute" + i + "ValueSelect").length != 0) {
+			checkAndEnableCheckbox("#Attribute" + i + "Save", true);
+		} else if ($("#Attribute" + i + "Attachment").length != 0) {
+			checkAndEnableCheckbox("#Attribute" + i + "Save", $("#Attribute" + i + "Attachment").val() != "");
+		} else {
+			checkAndEnableCheckbox("#Attribute" + i + "Save", $("#Attribute" + i + "Value").val() != "");
+		}
+		$("#Attribute" + i + "Value").bind('input propertychange', function() {
+			checkAndEnableCheckbox("#Attribute" + i + "Save", $(this).val() != "");
+		});
+		$("#Attribute" + i + "Attachment").on('change', function() {
+			checkAndEnableCheckbox("#Attribute" + i + "Save", $("#Attribute" + i + "Attachment").val() != "");
+		});
+	});
+}
+
+function objectReferenceInput() {
+	var types = ["Attribute", "Object"];
+	for (var type in types) {
+		for (var k in targetEvent[types[type]]) {
+			if (targetEvent[types[type]][k]['uuid'] == $('#ObjectReferenceReferencedUuid').val()) {
+				$('#targetSelect').val($('#ObjectReferenceReferencedUuid').val());
+				changeObjectReferenceSelectOption();
+			}
+		}
+	}
+}
+
+function objectReferenceCheckForCustomRelationship() {
+	var relationship_type_field = $('#ObjectReferenceRelationshipTypeSelect option:selected');
+	var relationship_type = $(relationship_type_field).val();
+	if (relationship_type == 'custom') {
+		$('#ObjectReferenceRelationshipType').parent().removeClass('hidden');
+	} else {
+		$('#ObjectReferenceRelationshipType').parent().addClass('hidden');
+	}
+}
+
+function add_basic_auth() {
+	var headers = $('#FeedHeaders').val().split("\n");
+	$('#FeedHeaders').val("");
+	headers.forEach(function(header) {
+		header = header.trim();
+		if (header != "") {
+			header = header.split(":");
+			var key = header.shift();
+			var value = header.join(":");
+			if (key != 'Authorization') {
+				$('#FeedHeaders').val($('#FeedHeaders').val() + key.trim() + ":" + value.trim() + "\n");
+			}
+		}
+	});
+	var basicAuth = $('#BasicAuthUsername').val().trim() + ':' + $('#BasicAuthPassword').val().trim();
+	$('#FeedHeaders').val($('#FeedHeaders').val() + "Authorization: Basic " + btoa(basicAuth) + "\n");
+	$('#basicAuthFormEnable').show();
+	$('#basicAuthForm').hide();
+}
+
+function changeObjectReferenceSelectOption() {
+	var object = $('#targetSelect option:selected');
+	var uuid = $(object).val();
+	$('#ObjectReferenceReferencedUuid').val(uuid);
+	var type = $(object).data('type');
+	if (type == "Attribute") {
+		$('#targetData').html("");
+		for (var k in targetEvent[type][uuid]) {
+			if ($.inArray(k, ['uuid', 'category', 'type', 'value', 'to_ids']) !== -1) {
+				$('#targetData').append('<div><span id="' + uuid + '_' + k + '_key" class="bold"></span>: <span id="' + uuid + '_' + k + '_data"></span></div>');
+				$('#' + uuid + '_' + k + '_key').text(k);
+				$('#' + uuid + '_' + k + '_data').text(targetEvent[type][uuid][k]);
+			}
+		}
+	} else {
+		$('#targetData').html("");
+		for (var k in targetEvent[type][uuid]) {
+			if (k == 'Attribute') {
+				$('#targetData').append('<br /><div><span id="header" class="bold">Attributes:</span>');
+				for (attribute in targetEvent[type][uuid]['Attribute']) {
+					for (k2 in targetEvent[type][uuid]['Attribute'][attribute]) {
+						if ($.inArray(k2, ['category', 'type', 'value', 'to_ids']) !== -1) {
+							$('#targetData').append('<div class="indent"><span id="' + targetEvent[type][uuid]['Attribute'][attribute]['uuid'] + '_' + k2 + '_key" class="bold"></span>: <span id="' + targetEvent[type][uuid]['Attribute'][attribute]['uuid'] + '_' + k2 + '_data"></span></div>');
+							$('#' + targetEvent[type][uuid]['Attribute'][attribute]['uuid'] + '_' + k2 + '_key').text(k2);
+							$('#' + targetEvent[type][uuid]['Attribute'][attribute]['uuid'] + '_' + k2 + '_data').text(targetEvent[type][uuid]['Attribute'][attribute][k2]);
+						}
+					}
+					$('#targetData').append('<br />');
+				}
+			} else {
+				if ($.inArray(k, ['name', 'uuid', 'meta-category']) !== -1) {
+					$('#targetData').append('<div><span id="' + uuid + '_' + k + '_key" class="bold"></span>: <span id="' + uuid + '_' + k + '_data"></span></div>');
+					$('#' + uuid + '_' + k + '_key').text(k);
+					$('#' + uuid + '_' + k + '_data').text(targetEvent[type][uuid][k]);
+				}
+			}
+		}
+	}
+}
+
+$('.add_object_attribute_row').click(function() {
+	var template_id = $(this).data('template-id');
+	var object_relation = $(this).data('object-relation');
+	var k = $('#last-row').data('last-row');
+	var k = k+1;
+	$('#last-row').data('last-row', k);
+	url = "/objects/get_row/" + template_id + "/" + object_relation + "/" + k;
+	$.get(url, function(data) {
+		$('#row_' + object_relation + '_expand').before($(data).fadeIn()).html();
+	});
+});
+
+$('.quickToggleCheckbox').toggle(function() {
+	var url = $(this).data('checkbox-url');
+});
+
+$(document).ready(function() {
+	$(".correlation-expand-button").on("click", function() {
+		$(this).parent().children(".correlation-expanded-area").show();
+		$(this).parent().children(".correlation-collapse-button").show();
+		$(this).hide();
+	});
+	$(".correlation-collapse-button").on("click", function() {
+		$(this).parent().children(".correlation-expanded-area").hide();
+		$(this).parent().children(".correlation-expand-button").show();
+		$(this).hide();
+	});
+});
+
 (function(){
     "use strict";
     $(".datepicker").datepicker({
         format: 'yyyy-mm-dd',
     });
 }());
+
+/* ============== KEYBOARD SHORTCUTS ==============*/
+let keyboardShortcutsManager = {
+
+	shortcutKeys: new Map(),
+	shortcutListToggled: false,
+	escapedTagNames: ["INPUT", "TEXTAREA", "SELECT"],
+
+	/**
+	 * Fetches the keyboard shortcut config files and populates this.shortcutJSON.
+	 */
+	init() {
+		let shortcutURIs = [];
+		for(let keyboardShortcutElement of $('.keyboardShortcutsConfig')) {
+			shortcutURIs.push(keyboardShortcutElement.value);
+			this.ajaxGet(window.location.protocol + "//" + window.location.host + keyboardShortcutElement.value).then(response => {
+				this.mapKeyboardShortcuts(JSON.parse(response));
+			});
+		}
+		this.setKeyboardListener();
+	},
+
+	/**
+	 * Toggles the view on the list of shortcuts at the bottom of the screen.
+	 */
+	onTriangleClick() {
+		let activated = this.shortcutListToggled;
+		let shortcutListElement = $('#shortcutsListContainer');
+		let triangleElement = $('#triangle');
+		let shortcutListElementHeight = shortcutListElement.height();
+		shortcutListElement.css('top', activated ? '' : '-' + shortcutListElementHeight + 'px');
+		triangleElement.css('bottom', activated ? '' : shortcutListElementHeight + 30 + 'px');
+		this.shortcutListToggled = !activated;
+	},
+
+	/**
+	 * Creates the HTML list of shortcuts for the user to read and sets it in the DOM.
+	 */
+	addShortcutListToHTML() {
+		let html = "<ul>";
+		for(let shortcut of this.shortcutKeys.values()) {
+			html += `<li><strong>${shortcut.key.toUpperCase()}</strong>: ${shortcut.description}</li>`
+		}
+		html += "</ul>"
+		$('#shortcuts').html(html);
+	},
+
+	/**
+	 * Sets the shortcut object list.
+	 * @param {} config The shortcut JSON list: [{key: string, description: string, action: string(eval-able JS code)}]
+	 */
+	mapKeyboardShortcuts(config) {
+		for(let shortcut of config.shortcuts) {
+			this.shortcutKeys.set(shortcut.key, shortcut);
+		}
+		this.addShortcutListToHTML();
+	},
+
+	/**
+	 * Sets the event to listen to and the routine to call on keypress.
+	 */
+	setKeyboardListener() {
+		window.onkeyup = (keyboardEvent) => {
+			if(this.shortcutKeys.has(keyboardEvent.key)) {
+				let activeElement = document.activeElement.tagName;
+				if( !this.escapedTagNames.includes(activeElement)) {
+					eval(this.shortcutKeys.get(keyboardEvent.key).action);
+				}
+			}
+		}
+	},
+
+	/**
+	 * Queries the given URL with a GET request and returns a Promise
+	 * that resolves when the response arrives.
+	 * @param string url The URL to fetch.
+	 */
+	ajaxGet(url) {
+		return new Promise(function(resolve, reject) {
+			let req = new XMLHttpRequest();
+			req.open("GET", url);
+			req.onload = function() {
+				if (req.status === 200) {
+					resolve(req.response);
+				} else {
+					reject(new Error(req.statusText));
+				}
+			};
+
+			req.onerror = function() {
+				reject(new Error("Network error"));
+			};
+
+			req.send();
+		});
+	}
+}
+
+// Inits the keyboard shortcut manager's main routine.
+$(document).ready(() => keyboardShortcutsManager.init());
+
+// Inits the click event on the keyboard shortcut triangle at the bottom of the screen.
+$('#triangle').click(keyboardShortcutsManager.onTriangleClick);
+/* ============ END KEYBOARD SHORTCUTS ============*/

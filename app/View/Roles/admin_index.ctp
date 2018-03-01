@@ -19,7 +19,7 @@
 	<table class="table table-striped table-hover table-condensed">
 	<tr>
 			<th><?php echo $this->Paginator->sort('id');?></th>
-			<th>Default</th>
+			<th><?php echo __('Default');?></th>
 			<th><?php echo $this->Paginator->sort('name');?></th>
 			<th><?php echo $this->Paginator->sort('permission', 'Permission');?></th>
 			<?php
@@ -42,7 +42,7 @@ foreach ($list as $item): ?>
 		<?php endforeach; ?>
 		<td class="short action-links">
 			<?php echo $this->Html->link('', array('admin' => true, 'action' => 'edit', $item['Role']['id']), array('class' => 'icon-edit', 'title' => 'Edit')); ?>
-			<?php echo $this->Form->postLink('', array('admin' => true, 'action' => 'delete', $item['Role']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete %s?', $item['Role']['name'])); ?>
+			<?php echo $this->Form->postLink('', array('admin' => true, 'action' => 'delete', $item['Role']['id']), array('class' => 'icon-trash', 'title' => __('Delete')), __('Are you sure you want to delete %s?', $item['Role']['name'])); ?>
 		</td>
 	</tr><?php
 endforeach; ?>

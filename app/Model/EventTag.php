@@ -23,6 +23,37 @@ class EventTag extends AppModel {
 		'Tag'
 	);
 
+	public function afterSave($created, $options = array()) {
+		parent::afterSave($created, $options);
+		if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_tag_notifications_enable')) {
+			$pubSubTool = $this->getPubSubTool();
+			$tag = $this->find('first', array(
+				'recursive' => -1,
+				'conditions' => array('EventTag.id' => $this->id),
+				'contain' => array('Tag')
+			));
+			$tag['Tag']['event_id'] = $tag['EventTag']['event_id'];
+			$tag = array('Tag' => $tag['Tag']);
+			$pubSubTool->tag_save($tag, 'attached to event');
+		}
+	}
+
+	public function beforeDelete($cascade = true) {
+		if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_tag_notifications_enable')) {
+			if (!empty($this->id)) {
+				$pubSubTool = $this->getPubSubTool();
+				$tag = $this->find('first', array(
+					'recursive' => -1,
+					'conditions' => array('EventTag.id' => $this->id),
+					'contain' => array('Tag')
+				));
+				$tag['Tag']['event_id'] = $tag['EventTag']['event_id'];
+				$tag = array('Tag' => $tag['Tag']);
+				$pubSubTool->tag_save($tag, 'detached from event');
+			}
+		}
+	}
+
 	// take an array of tag names to be included and an array with tagnames to be excluded and find all event IDs that fit the criteria
 	public function getEventIDsFromTags($includedTags, $excludedTags) {
 		$conditions = array();
@@ -88,5 +119,12 @@ class EventTag extends AppModel {
 			$tags[$k] = $temp[$k];
 		}
 		return $tags;
+	}
+	
+	public function countForTag($tag_id, $user) {
+		return $this->find('count', array(
+			'recursive' => -1,
+			'conditions' => array('EventTag.tag_id' => $tag_id)
+		));
 	}
 }

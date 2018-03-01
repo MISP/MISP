@@ -22,15 +22,25 @@
 	<?php
 		echo $this->Form->input('gpgkey', array('label' => 'GPG key', 'div' => 'clear', 'class' => 'input-xxlarge'));
 		?>
-			<div class="clear"><span role="button" tabindex="0" aria-label="Fetch PGP key" onClick="lookupPGPKey('UserEmail');" class="btn btn-inverse" style="margin-bottom:10px;">Fetch GPG key</span></div>
+			<div class="clear"><span role="button" tabindex="0" aria-label="<?php echo __('Fetch PGP key');?>" onClick="lookupPGPKey('UserEmail');" class="btn btn-inverse" style="margin-bottom:10px;"><?php echo __('Fetch GPG key');?></span></div>
 		<?php
-		if (Configure::read('SMIME.enabled')) echo $this->Form->input('certif_public', array('label' => 'SMIME Public certificate (PEM format)', 'div' => 'clear', 'class' => 'input-xxlarge'));
-		echo $this->Form->input('autoalert', array('label' => 'Receive alerts when events are published', 'type' => 'checkbox'));
-		echo $this->Form->input('contactalert', array('label' => 'Receive alerts from "contact reporter" requests', 'type' => 'checkbox'));
+		if (Configure::read('SMIME.enabled')) echo $this->Form->input('certif_public', array('label' => __('SMIME Public certificate (PEM format)'), 'div' => 'clear', 'class' => 'input-xxlarge'));
+		echo $this->Form->input('autoalert', array('label' => __('Receive alerts when events are published'), 'type' => 'checkbox'));
+		echo $this->Form->input('contactalert', array('label' => __('Receive alerts from "contact reporter" requests'), 'type' => 'checkbox'));
 	?>
 	</fieldset>
-<?php echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary'));
-echo $this->Form->end();?>
+	<div style="border-bottom: 1px solid #e5e5e5;width:100%;">&nbsp;</div>
+	<div class="clear" style="margin-top:10px;">
+<?php
+	if (Configure::read('Security.require_password_confirmation')) {
+		echo $this->Form->input('current_password', array('type' => 'password', 'div' => false, 'class' => 'input password required', 'label' => __('Confirm with your current password')));
+	}
+?>
+	</div>
+<?php
+	echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary'));
+	echo $this->Form->end();
+?>
 </div>
 <?php
 	$user['User']['id'] = $id;

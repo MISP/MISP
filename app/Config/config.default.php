@@ -36,6 +36,7 @@ $config = array(
 			'take_ownership_xml_import'      => false,
 			'unpublishedprivate'             => false,
 			'disable_emailing'               => false,
+			'Attributes_Values_Filter_In_Event' => 'id, uuid, value, comment, type, category, Tag.name',
 		),
 	'GnuPG'            =>
 		array(
@@ -43,7 +44,8 @@ $config = array(
 			'email'             => '',
 			'homedir'           => '',
 			'password'          => '',
-			'bodyonlyencrypted' => false,
+            'bodyonlyencrypted' => false,
+            'sign'              => true,
 		),
 	'SMIME'            =>
 		array(
@@ -153,7 +155,8 @@ $config = array(
 			//                         'misp_readonly' => 6,
 			//                         ),
 			//
-			'ldapDefaultOrg'     => '1',      // uses 1st local org in MISP if undefined
+			'ldapDefaultOrg'     => '1',      // uses 1st local org in MISP if undefined,
+			'ldapAllowReferrals' => true,   // allow or disallow chasing LDAP referrals
 		),
 	*/
 );

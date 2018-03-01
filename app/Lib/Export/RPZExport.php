@@ -55,7 +55,14 @@ class RPZExport {
 		$header = '';
 		$header .= '$TTL ' . $rpzSettings['ttl'] . ';' . PHP_EOL;
 		$header .= '@               SOA ' . $rpzSettings['ns'] . ' ' . $rpzSettings['email'] . ' ('  . $rpzSettings['serial'] . ' ' . $rpzSettings['refresh'] . ' ' . $rpzSettings['retry'] . ' ' . $rpzSettings['expiry'] . ' ' . $rpzSettings['minimum_ttl'] . ')' . PHP_EOL;
-		$header .= '                NS ' . $rpzSettings['ns'] . PHP_EOL . PHP_EOL;
+		
+		if (!empty($rpzSettings['ns_alt'])){
+			$header .= '                NS ' . $rpzSettings['ns'] . PHP_EOL;
+			$header .= '                NS ' . $rpzSettings['ns_alt'] . PHP_EOL . PHP_EOL;
+			} else {
+				$header .= '                NS ' . $rpzSettings['ns'] . PHP_EOL . PHP_EOL;
+			}
+
 		return $header;
 	}
 

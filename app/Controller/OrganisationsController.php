@@ -18,6 +18,9 @@ class OrganisationsController extends AppController {
 	);
 
 	public function index() {
+		if (!$this->Auth->user('Role')['perm_sharing_group'] && Configure::read('Security.hide_organisation_index_from_users')) {
+			throw new MethodNotAllowedException('This feature is disabled on this instance for normal users.');
+		}
 		$conditions = array();
 		// We can either index all of the organisations existing on this instance (default)
 		// or we can pass the 'external' keyword in the URL to look at the added external organisations
@@ -100,7 +103,7 @@ class OrganisationsController extends AppController {
 			}
 			if ($this->Organisation->save($this->request->data)) {
 				if (isset($this->request->data['Organisation']['logo']['size']) && $this->request->data['Organisation']['logo']['size'] > 0 && $this->request->data['Organisation']['logo']['error'] == 0) {
-					$filename = basename($this->request->data['Organisation']['name'] . '.png');
+					$filename = basename($this->request->data['Organisation']['id'] . '.png');
 					if (preg_match("/^[0-9a-z\-\_\.]*\.(png)$/i", $filename)) {
 						if (!empty($this->request->data['Organisation']['logo']['tmp_name']) && is_uploaded_file($this->request->data['Organisation']['logo']['tmp_name'])) {
 							$result = move_uploaded_file($this->request->data['Organisation']['logo']['tmp_name'], APP . 'webroot/img/orgs/' . $filename);
@@ -158,7 +161,7 @@ class OrganisationsController extends AppController {
 			$this->request->data['Organisation']['id'] = $id;
 			if ($this->Organisation->save($this->request->data)) {
 				if (isset($this->request->data['Organisation']['logo']['size']) && $this->request->data['Organisation']['logo']['size'] > 0 && $this->request->data['Organisation']['logo']['error'] == 0) {
-					$filename = basename($this->request->data['Organisation']['name'] . '.png');
+					$filename = basename($this->request->data['Organisation']['id'] . '.png');
 					if (preg_match("/^[0-9a-z\-\_\.]*\.(png)$/i", $filename)) {
 						if (!empty($this->request->data['Organisation']['logo']['tmp_name']) && is_uploaded_file($this->request->data['Organisation']['logo']['tmp_name'])) {
 							$result = move_uploaded_file($this->request->data['Organisation']['logo']['tmp_name'], APP . 'webroot/img/orgs/' . $filename);
@@ -178,6 +181,15 @@ class OrganisationsController extends AppController {
 			} else {
 				if ($this->_isRest()) {
 					return $this->RestResponse->saveFailResponse('Organisations', 'admin_edit', false, $this->Organisation->validationErrors, $this->response->type());
+				} else {
+					if (isset($this->Organisation->validationErrors['uuid'])) {
+						$duplicate_org = $this->Organisation->find('first', array(
+							'recursive' => -1,
+							'conditions' => array('Organisation.uuid' => trim($this->request->data['Organisation']['uuid'])),
+							'fields' => array('Organisation.id')
+						));
+						$this->set('duplicate_org', $duplicate_org['Organisation']['id']);
+					}
 					$this->Session->setFlash('The organisation could not be updated.');
 				}
 			}
@@ -185,11 +197,14 @@ class OrganisationsController extends AppController {
 			if ($this->_isRest()) {
 				return $this->RestResponse->describe('Organisations', 'admin_edit', false, $this->response->type());
 			}
+			$this->Organisation->read(null, $id);
+			$this->request->data = $this->Organisation->data;
 		}
 		$this->set('countries', $this->_arrayToValuesIndexArray($this->Organisation->countries));
-		$this->Organisation->read(null, $id);
 		$this->set('orgId', $id);
-		$this->request->data = $this->Organisation->data;
+		if (is_array($this->request->data['Organisation']['restricted_to_domain'])) {
+			$this->request->data['Organisation']['restricted_to_domain'] = implode("\n", $this->request->data['Organisation']['restricted_to_domain']);
+		}
 		$this->set('id', $id);
 	}
 
@@ -233,12 +248,14 @@ class OrganisationsController extends AppController {
 			if (empty($temp)) throw new NotFoundException('Invalid organisation.');
 			$id = $temp['Organisation']['id'];
 		} else if (!is_numeric($id)) {
-			throw new NotFoundException('Invalid organisation.');
+			$temp = $this->Organisation->find('first', array('recursive' => -1, 'fields' => array('Organisation.id'), 'conditions' => array('Organisation.name' => urldecode($id))));
+			if (empty($temp)) throw new NotFoundException('Invalid organisation.');
+			$id = $temp['Organisation']['id'];
 		}
 		$this->Organisation->id = $id;
 		if (!$this->Organisation->exists()) throw new NotFoundException('Invalid organisation');
 		$fullAccess = false;
-		$fields = array('id', 'name', 'date_created', 'date_modified', 'type', 'nationality', 'sector', 'contacts', 'description', 'local', 'uuid');
+		$fields = array('id', 'name', 'date_created', 'date_modified', 'type', 'nationality', 'sector', 'contacts', 'description', 'local', 'uuid', 'restricted_to_domain');
 		if ($this->_isSiteAdmin() || ($this->_isAdmin() && $this->Auth->user('Organisation')['id'] == $id)) {
 			$fullAccess = true;
 			$fields = array_merge($fields, array('created_by'));
@@ -248,6 +265,24 @@ class OrganisationsController extends AppController {
 				'fields' => $fields,
 				'recursive' => -1
 		));
+		if (!$this->Auth->user('Role')['perm_sharing_group'] && Configure::read('Security.hide_organisation_index_from_users')) {
+			$this->loadModel('Event');
+			$event = $this->Event->find('first', array(
+				'fields' => array('Event.id'),
+				'recursive' => -1,
+				'conditions' => array('Event.orgc_id' => $org['Organisation']['id'])
+			));
+			if (empty($event)) {
+				$proposal = $this->Event->ShadowAttribute->find('first', array(
+					'fields' => array('ShadowAttribute.id'),
+					'recursive' => -1,
+					'conditions' => array('ShadowAttribute.org_id' => $org['Organisation']['id'])
+				));
+				if (empty($proposal)) {
+					throw new NotFoundException('Invalid organisation');
+				}
+			}
+		}
 		$this->set('local', $org['Organisation']['local']);
 
 		if ($fullAccess) {
@@ -327,21 +362,24 @@ class OrganisationsController extends AppController {
 		foreach ($temp as $t) {
 			$orgs[] = $t['Organisation']['uuid'];
 		}
-		return new CakeResponse(array('body'=> json_encode($orgs)));
+		return new CakeResponse(array('body'=> json_encode($orgs), 'type' => 'json'));
 	}
 
-	public function admin_merge($id) {
+	public function admin_merge($id, $target_id = false) {
 		if (!$this->_isSiteAdmin()) throw new MethodNotAllowedException('You are not authorised to do that.');
 		if ($this->request->is('Post')) {
 			$result = $this->Organisation->orgMerge($id, $this->request->data, $this->Auth->user());
-			if ($result) $this->Session->setFlash('The organisation has been successfully merged.');
+			if ($result) {
+				$this->Session->setFlash('The organisation has been successfully merged.');
+				$this->redirect(array('admin' => false, 'action' => 'view', $result));
+			}
 			else $this->Session->setFlash('There was an error while merging the organisations. To find out more about what went wrong, refer to the audit logs. If you would like to revert the changes, you can find a .sql file ');
 			$this->redirect(array('admin' => false, 'action' => 'index'));
 		} else {
 			$currentOrg = $this->Organisation->find('first', array('fields' => array('id', 'name', 'uuid', 'local'), 'recursive' => -1, 'conditions' => array('Organisation.id' => $id)));
 			$orgs['local'] = $this->Organisation->find('all', array(
 					'fields' => array('id', 'name', 'uuid'),
-					'conditions' => array('Organisation.id !=' => $id, 'Organisation.local' => true),
+					'conditions' => array('Organisation.id !=' => $id, 'Organisation.local' => 1),
 					'order' => 'lower(Organisation.name) ASC'
 			));
 			$orgs['external'] = $this->Organisation->find('all', array(
@@ -352,6 +390,19 @@ class OrganisationsController extends AppController {
 			foreach (array('local', 'external') as $type) {
 				$orgOptions[$type] = Hash::combine($orgs[$type], '{n}.Organisation.id', '{n}.Organisation.name');
 				$orgs[$type] = Hash::combine($orgs[$type], '{n}.Organisation.id', '{n}');
+			}
+			if (!empty($target_id)) {
+				$target = array();
+				foreach (array('local', 'external') as $type) {
+					foreach ($orgOptions[$type] as $k => $v) {
+						if ($k == $target_id) {
+							$target = array('id' => $k, 'type' => $type);
+						}
+					}
+				}
+				if (!empty($target)) {
+					$this->set('target', $target);
+				}
 			}
 			$this->set('orgs', json_encode($orgs));
 			$this->set('orgOptions', $orgOptions);

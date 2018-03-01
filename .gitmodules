@@ -21,3 +21,12 @@
 [submodule "app/files/misp-galaxy"]
 	path = app/files/misp-galaxy
 	url = https://github.com/MISP/misp-galaxy
+[submodule "app/files/misp-objects"]
+	path = app/files/misp-objects
+	url = https://github.com/MISP/misp-objects
+[submodule "misp-vagrant"]
+	path = misp-vagrant
+	url = https://github.com/MISP/misp-vagrant.git
+[submodule "cti-python-stix2"]
+	path = cti-python-stix2
+	url = https://github.com/oasis-open/cti-python-stix2

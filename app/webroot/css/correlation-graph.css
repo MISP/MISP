@@ -1,0 +1,81 @@
+.node circle {
+  cursor: pointer;
+  stroke: #3182bd;
+  stroke-width: 1.5px;
+}
+.node text {
+  font: 10px sans-serif;
+  pointer-events: none;
+  text-anchor: middle;
+}
+line.link {
+  fill: none;
+  stroke: #9ecae1;
+  stroke-width: 1.5px;
+}
+#main {
+  display: inline-block;
+  background-color: grey;
+  position: relative;
+}
+.menu {
+  border: 1px solid black;
+  background-color: grey;
+  display: none;
+  position: relative;
+}
+.menu,
+.menu li {
+  padding: 0px;
+  margin: 0px;
+  width: 250px;
+  max-height: 300px;
+}
+.menu li {
+  color: white;
+}
+.menu > li:hover {
+  background-color: lightblue;
+  color: black;
+}
+.menu li {
+  display: block;
+  word-wrap: break-word;
+}
+.menu li:hover ul {
+  display:inline-block;
+  position: relative;
+  top: 0;
+}
+.menu > li > span > a {
+  color:white;
+  font-weight:bold;
+}
+.menu > li > span:first-child {
+  font-weight:bold;
+}
+.graphMenuTitle {
+  background-color:#0088cc;
+  font-weight:bold;
+  color:white;
+}
+.graphMenuActions {
+  background-color:#0088cc;
+  color:white;
+}
+.graphMenuAction {
+  cursor: hand;
+}
+
+.menu-container {
+  position:absolute;
+  width:300px;
+}
+
+.font-white {
+  color:white;
+}
+.corrected-icon {
+  top:-5px;
+  margin-left:100px;
+}

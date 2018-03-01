@@ -18,8 +18,12 @@ class Tag extends AppModel {
 
 	public $validate = array(
 			'name' => array(
+					'required' => array(
+						'required' => true,
+						'message' => 'This field is required.'
+					),
 					'valueNotEmpty' => array(
-						'rule' => array('valueNotEmpty'),
+						'rule' => array('valueNotEmpty', 'name'),
 					),
 					'unique' => array(
 							'rule' => 'isUnique',
@@ -28,7 +32,7 @@ class Tag extends AppModel {
 			),
 			'colour' => array(
 					'valueNotEmpty' => array(
-						'rule' => array('valueNotEmpty'),
+						'rule' => array('valueNotEmpty', 'colour'),
 					),
 					'userdefined' => array(
 							'rule' => 'validateColour',
@@ -55,6 +59,10 @@ class Tag extends AppModel {
 		'Organisation' => array(
 			'className' => 'Organisation',
 			'foreignKey' => 'org_id',
+		),
+		'User' => array(
+			'className' => 'User',
+			'foreignKey' => 'user_id',
 		)
 	);
 
@@ -62,6 +70,9 @@ class Tag extends AppModel {
 		parent::beforeValidate();
 		if (!isset($this->data['Tag']['org_id'])) {
 			$this->data['Tag']['org_id'] = 0;
+		}
+		if (!isset($this->data['Tag']['user_id'])) {
+			$this->data['Tag']['user_id'] = 0;
 		}
 		if (!isset($this->data['Tag']['hide_tag'])) {
 			$this->data['Tag']['hide_tag'] = Configure::read('MISP.incoming_tags_disabled_by_default') ? 1 : 0;
@@ -72,13 +83,67 @@ class Tag extends AppModel {
 		return true;
 	}
 
+	public function afterSave($created, $options = array()) {
+		parent::afterSave($created, $options);
+		if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_tag_notifications_enable')) {
+			$pubSubTool = $this->getPubSubTool();
+			$tag = $this->find('first', array(
+				'recursive' => -1,
+				'conditions' => array('Tag.id' => $this->id)
+			));
+			$action = $created ? 'add' : 'edit';
+			$pubSubTool->tag_save($tag, $action);
+		}
+	}
+
+	public function beforeDelete($cascade = true) {
+		if (Configure::read('Plugin.ZeroMQ_enable') && Configure::read('Plugin.ZeroMQ_tag_notifications_enable')) {
+			if (!empty($this->id)) {
+				$pubSubTool = $this->getPubSubTool();
+				$tag = $this->find('first', array(
+					'recursive' => -1,
+					'conditions' => array('Tag.id' => $this->id)
+				));
+				$pubSubTool->tag_save($tag, 'delete');
+			}
+		}
+	}
+
 	public function validateColour($fields) {
 		if (!preg_match('/^#[0-9a-f]{6}$/i', $fields['colour'])) return false;
 		return true;
 	}
 
+	public function lookupTagIdFromName($tagName) {
+		$tagId = $this->find('first', array(
+			'conditions' => array('LOWER(Tag.name)' => strtolower($tagName)),
+			'recursive' => -1,
+			'fields' => array('Tag.id')
+		));
+		if (empty($tagId)) return -1;
+		else return $tagId['Tag']['id'];
+	}
+
+	// find all of the tag ids that belong to the accepted tag names and the rejected tag names
+	public function fetchTagIdsFromFilter($accept = array(), $reject = array()) {
+		$results = array(0 => array(), 1 => array());
+		if (!empty($accept)) {
+			foreach ($accept as $tag) {
+				$temp = $this->lookupTagIdFromName($tag);
+				if (!in_array($temp, $results[0])) $results[0][] = $temp;
+			}
+		}
+		if (!empty($reject)) {
+			foreach ($reject as $tag) {
+				$temp = $this->lookupTagIdFromName($tag);
+				if (!in_array($temp, $results[1])) $results[1][] = $temp;
+			}
+		}
+		return $results;
+	}
+
 	// find all of the event Ids that belong to the accepted tags and the rejected tags
-	public function fetchEventTagIds($accept=array(), $reject=array()) {
+	public function fetchEventTagIds($accept = array(), $reject = array()) {
 		$acceptIds = array();
 		$rejectIds = array();
 		if (!empty($accept)) {
@@ -143,13 +208,20 @@ class Tag extends AppModel {
 						'colour' => $tag['colour'],
 						'exportable' => isset($tag['exportable']) ? $tag['exportable'] : 0,
 						'org_id' => 0,
+						'user_id' => 0,
 						'hide_tag' => Configure::read('MISP.incoming_tags_disabled_by_default') ? 1 : 0
 				);
 				$this->save($tag);
 				return $this->id;
 			} else return false;
 		} else {
-			if (!$user['Role']['perm_site_admin'] && $existingTag['Tag']['org_id'] != 0 && $existingTag['Tag']['org_id'] != $user['org_id']) {
+			if (
+				!$user['Role']['perm_site_admin'] &&
+				$existingTag['Tag']['org_id'] != 0 &&
+				$existingTag['Tag']['org_id'] != $user['org_id'] &&
+				$existingTag['Tag']['user_id'] != 0 &&
+				$existingTag['Tag']['user_id'] != $user['id']
+			) {
 				return false;
 			}
 		}
@@ -221,5 +293,30 @@ class Tag extends AppModel {
 		$tags = array();
 		foreach ($tags_temp as $temp) $tags[strtoupper($temp['Tag']['name'])] = $temp;
 		return $tags;
+	}
+
+	public function fetchSimpleEventsForTag($id, $user, $useTagName = false) {
+		if ($useTagName) {
+			$tag = $this->find('first', array(
+				'recursive' => -1,
+				'fields' => array('Tag.id'),
+				'conditions' => array('Tag.name' => $id)
+			));
+			if (empty($tag)) return array();
+			$id = $tag['Tag']['id'];
+		}
+		$event_ids = $this->EventTag->find('list', array(
+			'recursive' => -1,
+			'conditions' => array('EventTag.tag_id' => $id),
+			'fields'  => array('EventTag.event_id', 'EventTag.event_id'),
+			'order' => array('EventTag.event_id')
+		));
+		$params = array('conditions' => array('Event.id' => array_values($event_ids)));
+		$events = $this->EventTag->Event->fetchSimpleEvents($user, $params, true);
+		foreach ($events as $k => $event) {
+			$event['Event']['Orgc'] = $event['Orgc'];
+			$events[$k] = $event['Event'];
+		}
+		return $events;
 	}
 }

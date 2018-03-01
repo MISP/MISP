@@ -1,20 +1,23 @@
 <div class="attributes form">
 <?php echo $this->Form->create('Attribute');?>
 	<fieldset>
-		<legend>Search Attribute</legend>
-		You can search for attributes based on contained expression within the value, event ID, submitting organisation, category and type. <br />For the value, event ID and organisation, you can enter several search terms by entering each term as a new line. To exclude things from a result, use the NOT operator (!) in front of the term.<br/><br />
+		<legend><?php echo __('Search Attribute'); ?></legend>
+<?php echo __('You can search for attributes based on contained expression within the value, event ID, submitting organisation, category and type. <br />For the value, event ID and organisation, you can enter several search terms by entering each term as a new line. To exclude things from a result, use the NOT operator (!) in front of the term.'); ?>
+		<br />
+<?php echo __('For string searches (such as searching for an expression, tags, etc) - lookups are simple string matches. If you want a substring match encapsulate the lookup string between "%" characters.'); ?>
+		<br /><br />
 		<?php
-			echo $this->Form->input('keyword', array('type' => 'textarea', 'rows' => 2, 'label' => 'Containing the following expressions', 'div' => 'clear', 'class' => 'input-xxlarge'));
-			echo $this->Form->input('attributetags', array('type' => 'textarea', 'rows' => 2, 'label' => 'Being an attribute matching the following tags', 'div' => 'clear', 'class' => 'input-xxlarge'));
-			echo $this->Form->input('keyword2', array('type' => 'textarea', 'rows' => 2, 'label' => 'Being attributes of the following event IDs, event UUIDs or attribute UUIDs', 'div' => 'clear', 'class' => 'input-xxlarge'));
-			echo $this->Form->input('tags', array('type' => 'textarea', 'rows' => 2, 'label' => 'Being an attribute of an event matching the following tags', 'div' => 'clear', 'class' => 'input-xxlarge'));
+			echo $this->Form->input('keyword', array('type' => 'textarea', 'rows' => 2, 'label' => __('Containing the following expressions'), 'div' => 'clear', 'class' => 'input-xxlarge'));
+			echo $this->Form->input('attributetags', array('type' => 'textarea', 'rows' => 2, 'label' => __('Being an attribute matching the following tags'), 'div' => 'clear', 'class' => 'input-xxlarge'));
+			echo $this->Form->input('keyword2', array('type' => 'textarea', 'rows' => 2, 'label' => __('Being attributes of the following event IDs, event UUIDs or attribute UUIDs'), 'div' => 'clear', 'class' => 'input-xxlarge'));
+			echo $this->Form->input('tags', array('type' => 'textarea', 'rows' => 2, 'label' => __('Being an attribute of an event matching the following tags'), 'div' => 'clear', 'class' => 'input-xxlarge'));
 
 		?>
 		<?php
 			if (Configure::read('MISP.showorg') || $isAdmin)
 				echo $this->Form->input('org', array(
 						'type' => 'textarea',
-						'label' => 'From the following organisation(s)',
+						'label' => __('From the following organisation(s)'),
 						'div' => 'input clear',
 						'rows' => 2,
 						'class' => 'input-xxlarge'));
@@ -30,11 +33,11 @@
 		<?php
 			echo $this->Form->input('ioc', array(
 				'type' => 'checkbox',
-				'label' => 'Only find IOCs to use in IDS',
+				'label' => __('Only find IOCs to use in IDS'),
 			));
 			echo $this->Form->input('alternate', array(
 					'type' => 'checkbox',
-					'label' => 'Alternate Search Result (Events)',
+					'label' => __('Alternate Search Result (Events)'),
 			));
 		?>
 	</fieldset>

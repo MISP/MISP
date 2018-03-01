@@ -31,6 +31,7 @@ NS_DICT = {
         "http://cybox.mitre.org/default_vocabularies-2" : 'cyboxVocabs',
         "http://cybox.mitre.org/objects#ASObject-1" : 'ASObj',
         "http://cybox.mitre.org/objects#AddressObject-2" : 'AddressObj',
+        "http://cybox.mitre.org/objects#PortObject-2" : 'PortObj',
         "http://cybox.mitre.org/objects#DomainNameObject-1" : 'DomainNameObj',
         "http://cybox.mitre.org/objects#EmailMessageObject-2" : 'EmailMessageObj',
         "http://cybox.mitre.org/objects#FileObject-2" : 'FileObj',
@@ -96,6 +97,8 @@ def main(args):
         sys.exit("Invalid parameters")
 
     baseURL = sys.argv[1]
+    if not baseURL:
+        baseURL = 'https://www.misp-project.org'
     orgname = sys.argv[2]
 
     namespace = [baseURL, orgname.replace(" ", "_")]
@@ -103,18 +106,18 @@ def main(args):
     NS_DICT[namespace[0]]=namespace[1]
 
     try:
-        idgen.set_id_namespace({baseURL: orgname})
+        idgen.set_id_namespace({baseURL: namespace[1]})
     except ValueError:
         # Some weird stix error that sometimes occurs if the stars
         # align and Mixbox is being mean to us
         # Glory to STIX, peace and good xmlns be upon it
         try:
-            idgen.set_id_namespace(Namespace(baseURL, orgname))
+            idgen.set_id_namespace(Namespace(baseURL, namespace[1]))
         except TypeError:
             # Ok this only occurs if the script is being run under py3
             # and if we're running a REALLY weird version of stix
             # May as well catch it
-            idgen.set_id_namespace(Namespace(baseURL, orgname, "MISP"))
+            idgen.set_id_namespace(Namespace(baseURL, namespace[1], "MISP"))
 
 
     stix_package = STIXPackage()

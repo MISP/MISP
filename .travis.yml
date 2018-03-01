@@ -3,20 +3,19 @@ language: php
 php:
     - 5.6
     - 7.0
+    - 7.1
     - nightly
 
 services:
     - redis
-    - mysql
 
 sudo: required
 dist: trusty
 group: edge
 
-env:
-    - DB=mysql
-
 addons:
+    mariadb:
+        - '10.0'
     hosts:
         - misp.local
         - localhost
@@ -26,14 +25,13 @@ addons:
             - python3-pip
             - libxml2-dev
             - zlib1g-dev
-            - php5-dev
-            - php5-cli
             - apache2
-            - libapache2-mod-php5
             - curl
             - php5-mysql
+            - php5-dev
+            - php5-cli
+            - libapache2-mod-php5
 
-cache: pip
 
 before_install:
     - git config --global user.name "TravisCI"
@@ -48,8 +46,6 @@ install:
     - pip3 install --user git+https://github.com/CybOXProject/python-cybox.git@v2.1.0.12#egg=Package
     - pip3 install --user git+https://github.com/stixproject/python-stix.git@v1.2.0.0#egg=Package
     - pip3 install --user git+https://github.com/MISP/PyMISP.git#egg=Package
-    - pear install Crypt_GPG
-    - pear install Net_GeoIP
     - phpenv rehash
     - pushd app
     - composer install
@@ -124,12 +120,12 @@ script:
     - ./curl_tests.sh $AUTH
     - popd
     - pushd PyMISP
-    - pip3 install -U nose
-    - pip3 install coveralls
-    - pip3 install codecov
-    - pip3 install requests-mock
-    - pip3 install .
-    - nosetests --with-coverage --cover-package=pymisp tests/test_offline.py
+    - pip3 install --user -U nose
+    - pip3 install --user coveralls
+    - pip3 install --user codecov
+    - pip3 install --user requests-mock
+    - pip3 install --user .
+    - nosetests --with-coverage --cover-package=pymisp tests/test_*.py
     - python3 tests/test.py
     - popd
     - cp PyMISP/tests/keys.py PyMISP/examples/events/
@@ -160,4 +156,4 @@ after_success:
     - coveralls
     - coverage report
     - coverage xml
-    - codecov -d
+    - codecov

@@ -64,6 +64,9 @@ cd /var/www/MISP/app/files/scripts/mixbox
 git checkout v1.0.2
 python setup.py install
 
+# install support for STIX 2.0 (Python 3 is required)
+pip3 install stix2
+
 4/ CakePHP
 -----------
 # CakePHP is now included as a submodule of MISP, execute the following commands to let git fetch it:
@@ -71,6 +74,8 @@ python setup.py install
 cd /var/www/MISP
 git submodule init
 git submodule update
+# Make git ignore filesystem permission differences for submodules
+git submodule foreach git config core.filemode false
 
 # Once done, install CakeResque along with its dependencies if you intend to use the built in background jobs:
 cd /var/www/MISP/app

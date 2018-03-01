@@ -44,10 +44,10 @@ class AppController extends Controller {
 
 	public $debugMode = false;
 
-	public $helpers = array('Utility');
+	public $helpers = array('Utility', 'OrgImg');
 
-	private $__queryVersion = '13';
-	public $pyMispVersion = '2.4.71';
+	private $__queryVersion = '31';
+	public $pyMispVersion = '2.4.87';
 	public $phpmin = '5.6.5';
 	public $phprec = '7.0.16';
 
@@ -73,6 +73,14 @@ class AppController extends Controller {
 				'authError' => 'Unauthorised access.',
 				'loginRedirect' => array('controller' => 'users', 'action' => 'routeafterlogin'),
 				'logoutRedirect' => array('controller' => 'users', 'action' => 'login', 'admin' => false),
+				'authenticate' => array(
+					'Form' => array(
+						'passwordHasher' => 'Blowfish',
+						'fields' => array(
+							'username' => 'email'
+						)
+					)
+				)
 			),
 			'Security',
 			'ACL',
@@ -125,12 +133,7 @@ class AppController extends Controller {
 				)
 			);
 		} else {
-			$this->Auth->authenticate = array(
-				'Form' => array(
-					'fields' => array('username' => 'email'),
-					'userFields' => $auth_user_fields
-				)
-			);
+			$this->Auth->authenticate['Form']['userFields'] = $auth_user_fields;
 		}
 		$versionArray = $this->{$this->modelClass}->checkMISPVersion();
 		$this->mispVersion = implode('.', array_values($versionArray));
@@ -142,7 +145,11 @@ class AppController extends Controller {
 		if (substr($baseurl, -1) == '/') {
 			// if the baseurl has a trailing slash, remove it. It can lead to issues with the CSRF protection
 			$baseurl = rtrim($baseurl, '/');
-			Configure::write('MISP.baseurl', $baseurl);
+			$this->loadModel('Server');
+			$this->Server->serverSettingsSaveValue('MISP.baseurl', $baseurl);
+		}
+		if (trim($baseurl) == 'http://') {
+			$this->Server->serverSettingsSaveValue('MISP.baseurl', '');
 		}
 		$this->set('baseurl', h($baseurl));
 
@@ -151,7 +158,6 @@ class AppController extends Controller {
 		if (isset($_SERVER['HTTP_USER_AGENT'])) {
 			if (preg_match('/(?i)msie [2-8]/',$_SERVER['HTTP_USER_AGENT']) && !strpos($_SERVER['HTTP_USER_AGENT'], 'Opera')) throw new MethodNotAllowedException('You are using an unsecure and outdated version of IE, please download Google Chrome, Mozilla Firefox or update to a newer version of IE. If you are running IE9 or newer and still receive this error message, please make sure that you are not running your browser in compatibility mode. If you still have issues accessing the site, get in touch with your administration team at ' . Configure::read('MISP.contact'));
 		}
-
 		$userLoggedIn = false;
 		if (Configure::read('Plugin.CustomAuth_enable')) $userLoggedIn = $this->__customAuthentication($_SERVER);
 		if (!$userLoggedIn) {
@@ -302,7 +308,7 @@ class AppController extends Controller {
 		}
 
 		if ($this->Session->check(AuthComponent::$sessionKey)) {
-			if (!empty(Configure::read('MISP.terms_file')) && !$this->Auth->user('termsaccepted') && (!in_array($this->request->here, array($base_dir.'/users/terms', $base_dir.'/users/logout', $base_dir.'/users/login')))) {
+			if (!empty(Configure::read('MISP.terms_file')) && !$this->Auth->user('termsaccepted') && (!in_array($this->request->here, array($base_dir.'/users/terms', $base_dir.'/users/logout', $base_dir.'/users/login', $base_dir.'/users/downloadTerms')))) {
 				if ($this->_isRest()) throw new MethodNotAllowedException('You have not accepted the terms of use yet, please log in via the web interface and accept them.');
 				$this->redirect(array('controller' => 'users', 'action' => 'terms', 'admin' => false));
 			} else if ($this->Auth->user('change_pw') && (!in_array($this->request->here, array($base_dir.'/users/terms', $base_dir.'/users/change_pw', $base_dir.'/users/logout', $base_dir.'/users/login')))) {
@@ -348,6 +354,8 @@ class AppController extends Controller {
 		} else {
 			$this->set('me', false);
 		}
+		$this->set('br', '<br />');
+		$this->set('bold', array('<span class="bold">', '</span>'));
 		if ($this->_isSiteAdmin()) {
 			if (Configure::read('Session.defaults') == 'database') {
 				$db = ConnectionManager::getDataSource('default');
@@ -511,14 +519,13 @@ class AppController extends Controller {
 			));
 			foreach ($attributes as $k => $attribute) {
 				if ($k > 0) {
-					$attribute['Attribute']['uuid'] = CakeText::uuid();
-					$this->Attribute->save($attribute);
+					$this->Attribute->delete($attribute['Attribute']['id']);
 					$counter++;
 				}
 			}
 		}
 		$this->Server->updateDatabase('makeAttributeUUIDsUnique');
-		$this->Session->setFlash('Done. Assigned new UUIDs to ' . $counter . ' attribute(s).');
+		$this->Session->setFlash('Done. Deleted ' . $counter . ' duplicate attribute(s).');
 		$this->redirect(array('controller' => 'pages', 'action' => 'display', 'administration'));
 	}
 

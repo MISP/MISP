@@ -4,17 +4,20 @@
 <div class="galaxy view">
 	<div class="row-fluid">
 		<div class="span8">
-			<h2><?php echo h($galaxy['Galaxy']['name']); ?> galaxy</h2>
+			<h2>
+				<span class="fa fa-<?php echo h($galaxy['Galaxy']['icon']); ?>"></span>&nbsp;
+				<?php echo h($galaxy['Galaxy']['name']); ?> galaxy
+			</h2>
 			<dl>
-				<dt>Galaxy ID</dt>
+				<dt><?php echo __('Galaxy ID');?></dt>
 				<dd><?php echo h($galaxy['Galaxy']['id']); ?></dd>
-				<dt>Name</dt>
+				<dt><?php echo __('Name');?></dt>
 				<dd><?php echo $galaxy['Galaxy']['name'] ? h($galaxy['Galaxy']['name']) : h($galaxy['Galaxy']['type']); ?></dd>
-				<dt>Uuid</dt>
+				<dt><?php echo __('Uuid');?></dt>
 				<dd><?php echo h($galaxy['Galaxy']['uuid']); ?></dd>
-				<dt>Description</dt>
+				<dt><?php echo __('Description');?></dt>
 				<dd><?php echo h($galaxy['Galaxy']['description']); ?></dd>
-				<dt>Version</dt>
+				<dt><?php echo __('Version');?></dt>
 				<dd><?php echo h($galaxy['Galaxy']['version']); ?></dd>
 
 			</dl>
@@ -24,7 +27,11 @@
 </div>
 <script type="text/javascript">
 $(document).ready(function () {
-	$.get("/galaxy_clusters/index/<?php echo $galaxy['Galaxy']['id']; ?>", function(data) {
+	<?php
+	$uri = "/galaxy_clusters/index/" . $galaxy['Galaxy']['id'];
+	if (isset($passedArgsArray)) $uri .= '/searchall:' . $passedArgsArray['all'];
+	?>
+	$.get("<?php echo $uri;?>", function(data) {
 		$("#clusters_div").html(data);
 	});
 });

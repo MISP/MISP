@@ -1,6 +1,6 @@
 <div class="events <?php if (!$ajax) echo 'index'; ?>">
 	<?php $serverName = $server['Server']['name'] ? '"' . $server['Server']['name'] . '" (' . $server['Server']['url'] . ')' : '"' . $server['Server']['url'] . '"'; ?>
-	<h4 class="visibleDL notPublished" >You are currently viewing the event index of the remote instance <?php echo h($serverName);?></h4>
+	<h4 class="visibleDL notPublished" ><?php echo __('You are currently viewing the event index of the remote instance %s', h($serverName));?></h4>
 	<div class="pagination">
 		<ul>
 		<?php
@@ -30,7 +30,7 @@
 
 	<div class="tabMenuFixedContainer" style="display:inline-block;">
 		<span class="tabMenuFixed tabMenuFixed<?php echo $tab; ?> tabMenuSides">
-			<span id="create-button" title="Modify filters" role="button" tabindex="0" aria-label="Modify filters" class="icon-search useCursorPointer" onClick="getPopup('<?php echo h($urlparams);?>', 'servers', 'filterEventIndex/<?php echo h($id);?>');"></span>
+			<span id="create-button" title="<?php echo __('Modify filters');?>" role="button" tabindex="0" aria-label="<?php echo __('Modify filters');?>" class="icon-search useCursorPointer" onClick="getPopup('<?php echo h($urlparams);?>', 'servers', 'filterEventIndex/<?php echo h($id);?>');"></span>
 		</span>
 		<?php if ($filtered):
 			foreach ($passedArgsArray as $k => $v):?>
@@ -39,10 +39,10 @@
 				</span>
 			<?php endforeach; ?>
 		<span class="tabMenuFixed tabMenuFixedRight tabMenuSides">
-			<?php echo $this->Html->link('', '/servers/previewIndex/' . h($id), array('class' => 'icon-remove', 'title' => 'Remove filters'));?>
+			<?php echo $this->Html->link('', '/servers/previewIndex/' . h($id), array('class' => 'icon-remove', 'title' => __('Remove filters')));?>
 		</span>
 		<?php endif;?>
-		<span id="quickFilterButton" role="button" tabindex="0" aria-label="Filter" title="Filter" class="tabMenuFilterFieldButton useCursorPointer" onClick='quickFilterRemoteEvents(<?php echo h($passedArgs);?>, <?php echo h($id); ?>);'>Filter</span>
+		<span id="quickFilterButton" role="button" tabindex="0" aria-label="<?php echo __('Filter');?>" title="<?php echo __('Filter');?>" class="tabMenuFilterFieldButton useCursorPointer" onClick='quickFilterRemoteEvents(<?php echo h($passedArgs);?>, <?php echo h($id); ?>);'><?php echo __('Filter');?></span>
 		<input class="tabMenuFilterField" type="text" id="quickFilterField"></input>
 	</div>
 	<table class="table table-striped table-hover table-condensed">
@@ -65,7 +65,7 @@
 			?>
 			<th><?php echo $this->Paginator->sort('id');?></th>
 			<?php if (Configure::read('MISP.tagging')): ?>
-				<th class="filter">Tags</th>
+				<th class="filter"><?php echo __('Tags');?></th>
 			<?php endif; ?>
 			<th><?php echo $this->Paginator->sort('attribute_count', '#Attr.');?></th>
 			<th class="filter"><?php echo $this->Paginator->sort('date');?></th>
@@ -77,13 +77,13 @@
 			<th title="<?php echo $eventDescriptions['distribution']['desc'];?>">
 				<?php echo $this->Paginator->sort('distribution');?>
 			</th>
-			<th class="actions">Actions</th>
+			<th class="actions"><?php echo __('Actions');?></th>
 
 		</tr>
 		<?php if (!empty($events)) foreach ($events as $event): ?>
 		<tr <?php if ($event['Event']['distribution'] == 0) echo 'class = "privateRed"'?>>
 			<td class="short" ondblclick="document.location.href ='<?php echo $eventViewURL . h($event['Event']['id']);?>'">
-				<span class="icon-<?php echo ($event['Event']['published'] == 1) ? 'ok' : 'remove'; ?>" title="Published" aria-label="Event <?php echo ($event['Event']['published'] == 1) ? '' : 'not '?>published"></span>
+				<span class="icon-<?php echo ($event['Event']['published'] == 1) ? 'ok' : 'remove'; ?>" title="<?php echo __('Published');?>" aria-label="<?php echo __('Event ') . ($event['Event']['published'] == 1) ? '' : __('not ') . __('published'); ?>"></span>
 			</td>
 			<td class="short" ondblclick="document.location.href ='<?php echo $eventViewURL . h($event['Event']['id']);?>'">
 				<?php
@@ -144,8 +144,8 @@
 				?>
 			</td>
 			<td class="short action-links">
-				<?php if ($event['Event']['published']) echo $this->Form->postLink('', '/servers/pull/' . $server['Server']['id'] . '/' . $event['Event']['id'], array('class' => 'icon-download'), __('Are you sure you want to fetch and save this event on your instance?', $this->Form->value('Server.id'))); ?>
-				<a href='<?php echo $eventViewURL . h($event['Event']['id']);?>' class = "icon-list-alt" title = "View"></a>
+				<?php if ($event['Event']['published']) echo $this->Form->postLink('', '/servers/pull/' . $server['Server']['id'] . '/' . $event['Event']['id'], array('class' => 'icon-download', 'title' => __('Fetch the event')), __('Are you sure you want to fetch and save this event on your instance?', $this->Form->value('Server.id'))); ?>
+				<a href='<?php echo $eventViewURL . h($event['Event']['id']);?>' class = "icon-list-alt" title = "<?php echo __('View');?>"></a>
 			</td>
 		</tr>
 		<?php endforeach; ?>

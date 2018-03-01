@@ -54,6 +54,7 @@ class ApacheAuthenticate extends BaseAuthenticate {
 
 		// LDAP protocol configuration
 		ldap_set_option($ldapconn, LDAP_OPT_PROTOCOL_VERSION, Configure::read('ApacheSecureAuth.ldapProtocol'));
+		ldap_set_option($ldapconn, LDAP_OPT_REFERRALS, Configure::read('ApacheSecureAuth.ldapAllowReferrals', true));
 
 		if ($ldapconn) {
 			// LDAP bind
