@@ -2639,7 +2639,7 @@ class Event extends AppModel {
 			if ($fromXml) $created_id = $this->id;
 			if (!empty($data['Event']['published']) && 1 == $data['Event']['published']) {
 				// do the necessary actions to publish the event (email, upload,...)
-				if (('true' != Configure::read('MISP.disablerestalert')) && ($server['Server']['publish_without_email'] == 0)) {
+				if (('true' != Configure::read('MISP.disablerestalert')) && (empty($server) || $server['Server']['publish_without_email'] == 0)) {
 					$this->sendAlertEmailRouter($this->getID(), $user);
 				}
 				$this->publish($this->getID(), $passAlong);
