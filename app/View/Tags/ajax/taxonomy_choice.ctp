@@ -28,7 +28,11 @@
 <script type="text/javascript">
 	$(document).ready(function() {
 		resizePopoverBody();
-		new Promise(resolve => setTimeout(function() {$("#filterField").focus()}, 100));
+		try {
+			new Promise(resolve => setTimeout(function() {$("#filterField").focus()}, 100));
+		} catch(error) {
+			setTimeout(function() {$("#filterField").focus()}, 100);
+		}
 	});
 
 	$(window).resize(function() {
