@@ -3,13 +3,6 @@
 # based on @jasonish idstools regexp
 # https://github.com/jasonish/py-idstools/blob/master/idstools/rule.py
 
-#$rule = 'drop tcp $HOME_NET any -> $EXTERNAL_NET any (msg:"ET TROJAN Likely Bot Nick in IRC (USA +..)"; flow:established,to_server; flowbits:isset,is_proto_irc; content:"NICK "; reference:url,doc.emergingthreats.net/2008124; classtype:trojan-activity; sid:2008124; rev:2;)';
-#$rule = 'drop  ->  (msg:"ET TROJAN Likely Bot Nick in IRC (USA +..)"; flow:established,to_server; flowbits:isset,is_proto_irc; content:"NICK "; reference:url,doc.emergingthreats.net/2008124; classtype:trojan-activity; sid:2008124; rev:2;)';
-#$rule = 'empty';
-#$rule = 'alert dns any any -> any any (msg:"Test dns_query option"; dns_query; content:"google"; nocase; sid:1;)';
-$rule = 'alert http any any -> any any (content:"403 Forbidden"; http_response_line; sid:1;)';
-#$rule = 'alert http any any -> any any (content:"index.php"; http_uri; sid:1;)';
-
 class SuricataRuleFormat {
     private $actions = array("alert", "log", "pass", "activate", "dynamic", "drop", "reject", "sdrop");
     private $rule_pattern = '/(?P<action>%s)\s*'
