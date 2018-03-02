@@ -29,7 +29,7 @@
 	$(document).ready(function() {
 		resizePopoverBody();
 		try {
-			new Promise(resolve => setTimeout(function() {$("#filterField").focus()}, 100));
+			new Promise(function(resolve) { setTimeout(function() {$("#filterField").focus()}, 100)});
 		} catch(error) {
 			setTimeout(function() {$("#filterField").focus()}, 100);
 		}
