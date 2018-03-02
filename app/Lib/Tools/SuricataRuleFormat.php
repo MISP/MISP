@@ -6,7 +6,9 @@
 #$rule = 'drop tcp $HOME_NET any -> $EXTERNAL_NET any (msg:"ET TROJAN Likely Bot Nick in IRC (USA +..)"; flow:established,to_server; flowbits:isset,is_proto_irc; content:"NICK "; reference:url,doc.emergingthreats.net/2008124; classtype:trojan-activity; sid:2008124; rev:2;)';
 #$rule = 'drop  ->  (msg:"ET TROJAN Likely Bot Nick in IRC (USA +..)"; flow:established,to_server; flowbits:isset,is_proto_irc; content:"NICK "; reference:url,doc.emergingthreats.net/2008124; classtype:trojan-activity; sid:2008124; rev:2;)';
 #$rule = 'empty';
-$rule = 'alert dns any any -> any any (msg:"Test dns_query option"; dns_query; content:"google"; nocase; sid:1;)';
+#$rule = 'alert dns any any -> any any (msg:"Test dns_query option"; dns_query; content:"google"; nocase; sid:1;)';
+$rule = 'alert http any any -> any any (content:"403 Forbidden"; http_response_line; sid:1;)';
+#$rule = 'alert http any any -> any any (content:"index.php"; http_uri; sid:1;)';
 
 class SuricataRuleFormat {
     private $actions = array("alert", "log", "pass", "activate", "dynamic", "drop", "reject", "sdrop");
@@ -19,6 +21,10 @@ class SuricataRuleFormat {
                             . '(?P<dst_port>[^\s]*)\s*'
                             . '\((?P<options>.*)\)\s*'
                             . '/';
+    private $http_req_modifiers = array('http_uri', 'http_raw_uri', 'http_method', 'http_client_body', 'http_header', 'http_raw_header', 'http_cookie', 'http_user_agent', 'http_host', 'http_raw_host');
+    private $http_req_sticky = array('http_request_line', 'http_accept', 'http_accept_lang', 'http_accept_enc', 'http_referer', 'http_connection', 'http_content_type', 'http_content_len', 'http_start', 'http_protocol', 'http_header_names');
+    private $http_res_modifiers = array('http_stat_msg', 'http_stat_code', 'http_header', 'http_raw_header', 'http_cookie', 'http_server_body');
+    private $http_res_sticky = array('http_response_line', 'file_data', 'http_content_type', 'http_content_len', 'http_start', 'http_protocol', 'http_header_names');
 
     private function findOptionEnd($options) {
         $offset = 0;
@@ -55,7 +61,7 @@ class SuricataRuleFormat {
             $option = substr($options, 0, $index);
             $options = substr($options, $index + 1);
             $delim = strpos($option, ':');
-            if ($delim == false) {
+            if ($delim === false) {
                 $name = $option;
                 $value = None;
             }
@@ -79,7 +85,7 @@ class SuricataRuleFormat {
     # function to validate the global syntax of a suricata rule
     private function validateRuleSyntax($rule) {
         $matches = $this->parseRule($rule);
-        if (($matches == false) or ($matches['src_ip'] == false) or ($matches['dst_ip'] == false)) {
+        if (($matches === false) or ($matches['src_ip'] === false) or ($matches['dst_ip'] === false)) {
             return false;
         }
         return true;
@@ -87,7 +93,29 @@ class SuricataRuleFormat {
 
     #function to validate http rule keywords order (sticky vs modifiers)
     private function validateRuleHTTP($rule) {
-        // FIXME
+        $matches = $this->parseRule($rule);
+        if ($matches['protocol'] != 'http') {
+            return true;
+        }
+        $options = $this->getOptions($matches['options']);
+        $keys = array_keys($options);
+        foreach ($keys as $k)
+        {
+            if (in_array($k, $this->http_req_modifiers) or in_array($k, $this->http_res_modifiers))
+            {
+                $mod = array_search($k, $keys);
+                if (($mod != 0) and ($keys[$mod - 1] != 'content')) {
+                    return false;
+                }
+            }
+            elseif (in_array($k, $this->http_req_sticky) or in_array($k, $this->http_res_sticky))
+            {
+                $mod = array_search($k, $keys);
+                if (($mod != (count($keys) - 1)) and ($keys[$mod + 1] != 'content')) {
+                    return false;
+                }
+            }
+        }
         return true;
     }
 
@@ -103,10 +131,9 @@ class SuricataRuleFormat {
         if ($dns_query == false) {
             return true;
         }
-        if ($keys[$dns_query + 1] != 'content') {
+        if (($dns_query != (count($keys) - 1)) and ($keys[$dns_query + 1] != 'content')) {
             return false;
         }
-        print_r($options);
         return true;
     }
 
