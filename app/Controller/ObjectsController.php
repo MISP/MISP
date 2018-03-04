@@ -679,60 +679,49 @@ class ObjectsController extends AppController {
 			}
 		}
 		if ($this->request->is('post')) {
-			$saveResult = array(
-				'success' => array(
-					'Object' => array(),
-					'ObjectReference' => array(),
-					'ObjectReferenceReverse' => array()
-				),
-				'fail' => array(
-					'Object' => array(),
-					'ObjectReference' => array(),
-					'ObjectReferenceReverse' => array()
-				)
-			);
+			$success = 0;
 			$log = ClassRegistry::init('Log');
 			$queries = array();
 			$counterQueries = array();
 			foreach ($capturedObjects as $object) {
-				// Don't execute the rest of the loop yet
-				break;
 				$this->MispObject->create();
 				$result = $this->MispObject->save($object);
-				$id = intval($this->id);
+				$id = intval($this->MispObject->id);
 				if ($id > 0) {
+					$success++;
 					$saveResult['success']['Object'][] = $id;
 					foreach ($object['Attribute'] as $attribute) {
 						if (!empty($attribute['id']) && $attribute['id'] > 0) {
-							$queries[] = 'UPDATE attributes SET object_id = ' . $id . ' WHERE id = ' . intval($attribute['id']);
-							$counterQueries[] = 'UPDATE attributes SET object_id = ' . intval($attribute['object_id']) . ' WHERE id = ' . intval($attribute['id']);
+							$queries[] = 'UPDATE attributes SET object_id = ' . $id . ' WHERE id = ' . intval($attribute['id']) . ';';
+							$counterQueries[] = 'UPDATE attributes SET object_id = ' . intval($attribute['object_id']) . ' WHERE id = ' . intval($attribute['id']) . ';';
 						}
 					}
 					if (!empty($object['ObjectReference'])) {
 						foreach ($object['ObjectReference'] as $reference) {
 							if (!empty($reference['id']) && $reference['id'] > 0) {
-								$queries[] = 'UPDATE object_references SET object_id = ' . $id . ' WHERE id = ' . intval($reference['id']);
-								$counterQueries[] = 'UPDATE object_references SET object_id = ' . intval($reference['object_id']) . ' WHERE id = ' . intval($reference['id']);
+								$queries[] = 'UPDATE object_references SET object_id = ' . $id . ' WHERE id = ' . intval($reference['id']) . ';';
+								$counterQueries[] = 'UPDATE object_references SET object_id = ' . intval($reference['object_id']) . ' WHERE id = ' . intval($reference['id']) . ';';
 							}
 						}
 					}
 					if (!empty($object['ObjectReferenceReverse'])) {
 						foreach ($object['ObjectReferenceReverse'] as $reference) {
 							if (!empty($reference['id']) && $reference['id'] > 0) {
-								$queries[] = 'UPDATE object_references SET referenced_id = ' . $id . ' WHERE id = ' . intval($reference['id']);
-								$counterQueries[] = 'UPDATE object_references SET referenced_id = ' . intval($reference['referenced_id']) . ' WHERE id = ' . intval($reference['id']);
+								$queries[] = 'UPDATE object_references SET referenced_id = ' . $id . ' WHERE id = ' . intval($reference['id']) . ';';
+								$counterQueries[] = 'UPDATE object_references SET referenced_id = ' . intval($reference['referenced_id']) . ' WHERE id = ' . intval($reference['id']) . ';';
 							}
 						}
 					}
 				}
 			}
-			debug($queries);
-			debug($counterQueries);
+			file_put_contents(APP . 'files/scripts/tmp/object_recovery_' . time() . '.sql', implode("\n", $counterQueries));
+			$this->MispObject->query(implode("\n", $queries));
+			$message = '';
+			$this->Session->setFlash(__('%s objects successfully reconstructed.', $success));
+			$this->redirect('/objects/orphanedObjectDiagnostics');
 		}
 		$this->set('captured', $capturedObjects);
 		$this->set('unmapped', $unmappedAttributes);
-		//debug($unmappedAttributes);
-		//debug($capturedObjects);
-		//return $this->RestResponse->viewData($count, $this->response->type());
+
 	}
 }

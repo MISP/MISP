@@ -1,5 +1,10 @@
 <div class="index">
 	<?php
+    echo '<h2>' . __('Object reconstruction') . '</h2>';
+    echo '<p>';
+    echo __('Due to a bug prior to version 2.4.89, a condition could cause objects to be overwritten on a pull, leading to orphaned object attributes. This script reconstructs the missing objects if any exist.');
+    echo '<span class="bold">' . __(' Please create a backup of your mysql database before executing the script.') . '</span>';
+    echo '</p>';
     if (empty($unmapped) && empty($captured)) {
       echo '<h3 class="red">' .  __('No unmapped data found, everything is working as expected.') . '</h3>';
     }
