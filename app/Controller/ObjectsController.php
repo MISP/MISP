@@ -538,23 +538,201 @@ class ObjectsController extends AppController {
 		$objectIds = $this->MispObject->find('list', array(
 			'fields' => array('id', 'event_id')
 		));
+		$template_uuids = $this->MispObject->ObjectTemplate->find('list', array(
+			'recursive' => -1,
+			'fields' => array('ObjectTemplate.version', 'ObjectTemplate.id', 'ObjectTemplate.uuid')
+		));
+		$template_ids = array();
+		foreach ($template_uuids as $template_uuid) {
+			$template_ids[] = end($template_uuid);
+		}
+		$templates = $this->MispObject->ObjectTemplate->find('all', array(
+			'conditions' => array('ObjectTemplate.id' => $template_ids),
+			'recursive' => -1,
+			'fields' => array(
+				'ObjectTemplate.id',
+				'ObjectTemplate.uuid',
+				'ObjectTemplate.name',
+				'ObjectTemplate.version',
+				'ObjectTemplate.description',
+				'ObjectTemplate.meta-category',
+			),
+			'contain' => array('ObjectTemplateElement' => array('fields' => array('ObjectTemplateElement.object_relation', 'ObjectTemplateElement.type')))
+		));
+		foreach ($templates as $k => $v) {
+			$templates[$k]['elements'] = array();
+			foreach ($v['ObjectTemplateElement'] as $k2 => $v2) {
+				$templates[$k]['elements'][$v2['object_relation']] = $v2['type'];
+			}
+			unset($templates[$k]['ObjectTemplateElement']);
+		}
 		$count = 0;
+		$capturedObjects = array();
+		$unmappedAttributes = array();
 		foreach ($objectIds as $objectId => $event_id) {
-			$attributes = $this->MispObject->Attribute->find('list', array(
-				'fields' => array('Attribute.object_id', 'Attribute.object_id'),
+			$attributes = $this->MispObject->Attribute->find('all', array(
 				'conditions' => array(
 					'Attribute.object_id' => $objectId,
-					'Attribute.event_id !=' => $event_id
+					'Attribute.event_id !=' => $event_id,
+					'Attribute.deleted' => 0
 				),
-				'order' => 'Attribute.object_id',
 				'recursive' => -1
 			));
+			$matched_template = false;
 			if (!empty($attributes)) {
-				foreach ($attributes as $attribute) {
-					$count++;
+				foreach ($templates as $template) {
+					$fail = false;
+					$original_event_id = false;
+					$original_timestamp = false;
+					foreach ($attributes as $ka => $attribute) {
+						if ($original_event_id == false) $original_event_id = $attribute['Attribute']['event_id'];
+						if ($original_timestamp == false) $original_timestamp = $attribute['Attribute']['timestamp'] -1;
+						else if ($original_event_id != $attribute['Attribute']['event_id']) {
+							unset($attributes[$ka]);
+							break;
+						}
+						if (!isset($template['elements'][$attribute['Attribute']['object_relation']]) || $template['elements'][$attribute['Attribute']['object_relation']] != $attribute['Attribute']['type']) {
+							$fail = true;
+							break;
+						}
+					}
+					$template['ObjectTemplate']['timestamp'] = $original_timestamp;
+					if (!$fail) {
+						$matched_template = $template;
+						$template['ObjectTemplate']['template_uuid'] = $template['ObjectTemplate']['uuid'];
+						unset($template['ObjectTemplate']['uuid']);
+						$template['ObjectTemplate']['template_version'] = $template['ObjectTemplate']['version'];
+						unset($template['ObjectTemplate']['version']);
+						$template['ObjectTemplate']['original_id'] = $objectId;
+						unset($template['ObjectTemplate']['id']);
+						$template['ObjectTemplate']['distribution'] = 0;
+						$template['ObjectTemplate']['sharing_group_id'] = 0;
+						$template['ObjectTemplate']['comment'] = '';
+						$template['ObjectTemplate']['event_id'] = $original_event_id;
+						$capturedObjects[$objectId]['Object'] = $template['ObjectTemplate'];
+						$capturedObjects[$objectId]['Attribute'] = array();
+						foreach ($attributes as $attribute) {
+							if ($attribute['Attribute']['event_id'] == $original_event_id) {
+								$capturedObjects[$objectId]['Attribute'][] = $attribute['Attribute'];
+							} else {
+								$unmappedAttributes[] = $attribute['Attribute'];
+							}
+						}
+						$this->loadModel('Log');
+						$logEntries = $this->Log->find('list', array(
+							'recursive' => -1,
+							'conditions' => array(
+								'model_id' => $template['ObjectTemplate']['original_id'],
+								'action' => 'add',
+								'model' => 'MispObject'
+							),
+							'fields' => array('id', 'change'),
+							'sort' => array('id asc')
+						));
+						$capturedOriginalData = array();
+						// reconstructing object details via log entries
+						if (!empty($logEntries)) {
+							$logEntry = reset($logEntries);
+							preg_match('/event_id.\(\).\=\>.\(([0-9]+)?\)/', $logEntry, $capturedOriginalData['event_id']);
+							preg_match('/uuid.\(\).\=\>.\(([0-9a-f\-]+)?\)/', $logEntry, $capturedOriginalData['uuid']);
+							preg_match('/distribution.\(\).\=\>.\(([0-9]+)?\)/', $logEntry, $capturedOriginalData['distribution']);
+							preg_match('/sharing_group_id.\(\).\=\>.\(([0-9]+)?\)/', $logEntry, $capturedOriginalData['sharing_group_id']);
+							if (!empty($capturedOriginalData['event_id']) && $capturedOriginalData['event_id'] == $original_event_id) {
+								if (isset($capturedOriginalData['uuid'][1])) $capturedObjects[$objectId]['uuid'] = $capturedOriginalData['uuid'][1];
+								if (isset($capturedOriginalData['distribution'][1])) $capturedObjects[$objectId]['distribution'] = $capturedOriginalData['distribution'][1];
+								if (isset($capturedOriginalData['sharing_group_id'][1])) $capturedObjects[$objectId]['sharing_group_id'] = $capturedOriginalData['sharing_group_id'][1];
+							} else {
+								$capturedOriginalData = array();
+							}
+						}
+						$objectReferences = $this->MispObject->ObjectReference->find('all', array(
+							'recursive' => -1,
+							'conditions' => array(
+								'ObjectReference.event_id' => $original_event_id,
+								'ObjectReference.object_id' => $template['ObjectTemplate']['original_id']
+							)
+						));
+						$objectReferencesReverse = $this->MispObject->ObjectReference->find('all', array(
+							'recursive' => -1,
+							'conditions' => array(
+								'ObjectReference.event_id' => $original_event_id,
+								'ObjectReference.referenced_id' => $template['ObjectTemplate']['original_id'],
+								'ObjectReference.referenced_type' => 1,
+							)
+						));
+						$original_uuid = false;
+						if (!empty($objectReferences)) {
+							foreach ($objectReferences as $objectReference) {
+								$original_uuid = $objectReference['ObjectReference']['object_uuid'];
+								$capturedObjects[$objectId]['ObjectReference'][] = $objectReference['ObjectReference'];
+							}
+						}
+						if (!empty($objectReferencesReverse)) {
+							foreach ($objectReferencesReverse as $objectReference) {
+								$original_uuid = $objectReference['ObjectReference']['object_uuid'];
+								$capturedObjects[$objectId]['ObjectReferenceReverse'][] = $objectReference['ObjectReference'];
+							}
+						}
+						break;
+					}
 				}
 			}
 		}
-		return $this->RestResponse->viewData($count, $this->response->type());
+		if ($this->request->is('post')) {
+			$saveResult = array(
+				'success' => array(
+					'Object' => array(),
+					'ObjectReference' => array(),
+					'ObjectReferenceReverse' => array()
+				),
+				'fail' => array(
+					'Object' => array(),
+					'ObjectReference' => array(),
+					'ObjectReferenceReverse' => array()
+				)
+			);
+			$log = ClassRegistry::init('Log');
+			$queries = array();
+			$counterQueries = array();
+			foreach ($capturedObjects as $object) {
+				// Don't execute the rest of the loop yet
+				break;
+				$this->MispObject->create();
+				$result = $this->MispObject->save($object);
+				$id = intval($this->id);
+				if ($id > 0) {
+					$saveResult['success']['Object'][] = $id;
+					foreach ($object['Attribute'] as $attribute) {
+						if (!empty($attribute['id']) && $attribute['id'] > 0) {
+							$queries[] = 'UPDATE attributes SET object_id = ' . $id . ' WHERE id = ' . intval($attribute['id']);
+							$counterQueries[] = 'UPDATE attributes SET object_id = ' . intval($attribute['object_id']) . ' WHERE id = ' . intval($attribute['id']);
+						}
+					}
+					if (!empty($object['ObjectReference'])) {
+						foreach ($object['ObjectReference'] as $reference) {
+							if (!empty($reference['id']) && $reference['id'] > 0) {
+								$queries[] = 'UPDATE object_references SET object_id = ' . $id . ' WHERE id = ' . intval($reference['id']);
+								$counterQueries[] = 'UPDATE object_references SET object_id = ' . intval($reference['object_id']) . ' WHERE id = ' . intval($reference['id']);
+							}
+						}
+					}
+					if (!empty($object['ObjectReferenceReverse'])) {
+						foreach ($object['ObjectReferenceReverse'] as $reference) {
+							if (!empty($reference['id']) && $reference['id'] > 0) {
+								$queries[] = 'UPDATE object_references SET referenced_id = ' . $id . ' WHERE id = ' . intval($reference['id']);
+								$counterQueries[] = 'UPDATE object_references SET referenced_id = ' . intval($reference['referenced_id']) . ' WHERE id = ' . intval($reference['id']);
+							}
+						}
+					}
+				}
+			}
+			debug($queries);
+			debug($counterQueries);
+		}
+		$this->set('captured', $capturedObjects);
+		$this->set('unmapped', $unmappedAttributes);
+		//debug($unmappedAttributes);
+		//debug($capturedObjects);
+		//return $this->RestResponse->viewData($count, $this->response->type());
 	}
 }
