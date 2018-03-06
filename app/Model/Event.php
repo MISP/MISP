@@ -3235,7 +3235,7 @@ class Event extends AppModel {
 		}
 		$i = 0;
 		$eventCount = count($event_ids);
-		foreach ($event_ids as $event_id) {
+		if ($event_ids) foreach ($event_ids as $event_id) {
 			$tempFile = new File($tmpDir . DS . $randomFileName, true, 0644);
 			$event = $this->fetchEvent($user, array('eventid' => $event_id));
 			if (empty($event)) continue;
@@ -3289,9 +3289,6 @@ class Event extends AppModel {
 				}
 			}
 			$tempFile->close();
-		}
-		if (empty($i)) {
-			return array('success' => 0, 'message' => 'Invalid event.');
 		}
 		if ($returnType == 'xml') {
 			$stixFile->append("    </stix:Related_Packages>\n</stix:STIX_Package>\n\n");
