@@ -3290,9 +3290,6 @@ class Event extends AppModel {
 			}
 			$tempFile->close();
 		}
-		if (empty($i)) {
-			return array('success' => 0, 'message' => 'Invalid event.');
-		}
 		if ($returnType == 'xml') {
 			$stixFile->append("    </stix:Related_Packages>\n</stix:STIX_Package>\n\n");
 		} else {
