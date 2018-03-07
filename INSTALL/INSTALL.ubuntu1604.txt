@@ -326,11 +326,11 @@ sudo make install
 ssdeep -h # test
 
 #installing ssdeep_php
-pecl install ssdeep
+sudo pecl install ssdeep
 
 # 7.0 if your PHP 7.0 and you know what to do if you have a different version
 sudo echo "extension=ssdeep.so" > /etc/php/7.0/mods-available/ssdeep.ini
-phpenmod ssdeep
+sudo phpenmod ssdeep
 service apache2 restart
 
 Optional features: misp-modules
