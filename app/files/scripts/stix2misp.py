@@ -257,7 +257,7 @@ def parseFileObject(properties, mispDict):
         obj['Attribute'].append({'type': 'size-in-bytes', 'object_relation': 'size-in-bytes',
                                  'value': properties.get('size_in_bytes')})
     for h in properties.get('hashes'):
-        h_type = h.get('type').lower()
+        h_type = h['type'].get('value').lower()
         obj['Attribute'].append({'type': h_type, 'object_relation': h_type, 'value': h.get('simple_hash_value')})
     mispDict['Object'].append(obj)
 
