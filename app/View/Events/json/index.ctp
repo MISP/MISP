@@ -9,7 +9,7 @@ foreach ($events as $key => $event) {
 		$events[$key]['GalaxyCluster'] = $event['GalaxyCluster'];
 	}
 	if (isset($event['EventTag'])) $events[$key]['EventTag'] = $event['EventTag'];
-	$events[$key]['SharingGroup'] = $event['SharingGroup'];
+	if (!empty($events[$key]['SharingGroup'])) $events[$key]['SharingGroup'] = $event['SharingGroup'];
 
 	// cleanup the array from things we do not want to expose
 	unset($events[$key]['user_id']);

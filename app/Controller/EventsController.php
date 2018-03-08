@@ -19,9 +19,9 @@ class EventsController extends AppController {
 					'Event.timestamp' => 'DESC'
 			),
 			'contain' => array(
-					'Org' => array('fields' => array('id', 'name')),
-					'Orgc' => array('fields' => array('id', 'name')),
-					'SharingGroup' => array('fields' => array('id', 'name'))
+					'Org' => array('fields' => array('id', 'name', 'uuid')),
+					'Orgc' => array('fields' => array('id', 'name', 'uuid')),
+					'SharingGroup' => array('fields' => array('id', 'name', 'uuid'))
 			)
 	);
 
@@ -593,6 +593,11 @@ class EventsController extends AppController {
 				$rules['fields'] = array('id', 'timestamp', 'published', 'uuid');
 			}
 			$events = $this->Event->find('all', $rules);
+			foreach ($events as $k => $event) {
+				if (empty($event['SharingGroup']['name'])) {
+					unset($events[$k]['SharingGroup']);
+				}
+			}
 			if (empty($passedArgs['searchminimal'])) {
 				$total_events = count($events);
 				$passes = ceil($total_events / 1000);
@@ -645,6 +650,11 @@ class EventsController extends AppController {
 			}
 		} else {
 			$events = $this->paginate();
+			foreach ($events as $k => $event) {
+				if (empty($event['SharingGroup']['name'])) {
+					unset($events[$k]['SharingGroup']);
+				}
+			}
 			if (count($events) == 1 && isset($this->passedArgs['searchall'])) {
 				$this->redirect(array('controller' => 'events', 'action' => 'view', $events[0]['Event']['id']));
 			}
