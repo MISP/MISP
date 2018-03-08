@@ -344,6 +344,7 @@ class EventsController extends AppController {
 						if ($v == "") continue 2;
 						if (!Configure::read('MISP.showorg')) continue 2;
 						$orgArray = $this->Event->Org->find('list', array('fields' => array('Org.name')));
+						$orgUuidArray = $this->Event->Org->find('list', array('fields' => array('Org.uuid')));
 						$orgArray = array_map('strtoupper', $orgArray);
 						// if the first character is '!', search for NOT LIKE the rest of the string (excluding the '!' itself of course)
 						$pieces = explode('|', $v);
@@ -353,14 +354,22 @@ class EventsController extends AppController {
 								if (is_numeric(substr($piece, 1))) {
 									$this->paginate['conditions']['AND'][] = array('Event.orgc_id !=' => substr($piece, 1));
 								} else {
-									$org_id = array_search(strtoupper(substr($piece, 1)), $orgArray);
+									if (Validation::uuid(substr($piece, 1))) {
+										$org_id = array_search(substr($piece, 1), $orgUuidArray);
+									} else {
+										$org_id = array_search(strtoupper(substr($piece, 1)), $orgArray);
+									}
 									if ($org_id) $this->paginate['conditions']['AND'][] = array('Event.orgc_id !=' => $org_id);
 								}
 							} else {
 								if (is_numeric($piece)) {
 									$test['OR'][] = array('Event.orgc_id' => array('Event.orgc_id' => $piece));
 								} else {
-									$org_id = array_search(strtoupper($piece), $orgArray);
+									if (Validation::uuid($piece)) {
+										$org_id = array_search($piece, $orgUuidArray);
+									} else {
+										$org_id = array_search(strtoupper($piece), $orgArray);
+									}
 									if ($org_id) $test['OR'][] = array('Event.orgc_id' => $org_id);
 									else $test['OR'][] = array('Event.orgc_id' => -1);
 								}
