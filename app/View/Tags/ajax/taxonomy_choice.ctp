@@ -38,10 +38,20 @@
 	$(window).resize(function() {
 		resizePopoverBody();
 	});
-	$('#filterField').keyup(function() {
-		var filterString =  $("#filterField").val().toLowerCase();
-		if(filterString.length > 0) {
-			$('#allTags').click();
-		}
-	});
+
+	var lastKeyPressTimestamp = null;
+	function onKeyUp() {
+		lastKeyPressTimestamp = (new Date()).getTime();
+		setTimeout(function() {
+			if(lastKeyPressTimestamp + 400 < (new Date()).getTime()) {
+				var filterString =  $("#filterField").val().toLowerCase();
+				if(filterString.length > 0) {
+					$('#allTags').click();
+				}
+			}
+		}, 500);
+		
+	}
+
+	$('#filterField').keyup(onKeyUp);
 </script>
