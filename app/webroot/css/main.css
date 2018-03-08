@@ -1430,6 +1430,11 @@ a.proposal_link_red:hover {
 }
 
 .templateChoiceButton:hover {
+	background-color:#bbb !important;
+	color:white;
+}
+
+.selected-tag {
 	background-color:#0088cc !important;
 	color:white;
 }
