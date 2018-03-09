@@ -19,7 +19,10 @@ import sys, json, os, time
 import pymisp
 from stix.core import STIXPackage
 
-eventTypes = {"FileObjectType": "filename", "URIObjectType": "url", "WindowsRegistryKeyObjectType": "regkey"}
+eventTypes = {"FileObjectType": {"type": "filename", "relation": "filename"},
+              "HostnameObjectType": {"type": "hostname", "relation": "host"},
+              "URIObjectType": {"type": "url", "relation": "url"},
+              "WindowsRegistryKeyObjectType": {"type": "regkey", "relation": ""}}
 
 descFilename = os.path.join(pymisp.__path__[0], 'data/describeTypes.json')
 with open(descFilename, 'r') as f:
@@ -110,41 +113,104 @@ class StixParser():
     def parse_misp_indicator(self, indicator):
         if indicator.relationship in categories:
             self.parse_misp_attribute(indicator)
-        # else:
-        #     self.parse_misp_object(indicator)
+        else:
+            self.parse_misp_object(indicator)
 
     def parse_misp_attribute(self, indicator):
         misp_attribute = {'category': str(indicator.relationship)}
         item = indicator.item
         misp_attribute['timestamp'] = self.getTimestampfromDate(item.timestamp)
         properties = item.observable.object_.properties
-        attribute_type, attribute_value = self.handle_attribute_type(properties)
+        attribute_type, attribute_value, _ = self.handle_attribute_type(properties)
         self.misp_event.add_attribute(attribute_type, attribute_value, **misp_attribute)
 
     def handle_attribute_type(self, properties):
         xsi_type = properties._XSI_TYPE
+        # print(xsi_type)
         if xsi_type == 'EmailMessageObjectType':
-            return self.handle_email_message(properties)
+            return self.handle_email_attribute(properties)
+        elif xsi_type == 'DomainNameObjectType':
+            return
         elif xsi_type == 'FileObjectType':
-            return eventTypes[xsi_type], properties.file_name.value
+            if properties.hashes:
+                return self.handle_hashes_attribute(properties)
+            elif properties.file_name:
+                event_types = eventTypes[xsi_type]
+                return event_types['type'], properties.file_name.value, event_types['relation']
+            else:
+                # ATM USED TO CATCH UNSUPPORTED FILE OBJECTS PROPERTIES
+                print("Unsupported File Object property")
+                sys.exit(1)
+        elif xsi_type == 'HostnameObjectType':
+            event_types = eventTypes[xsi_type]
+            return event_types['type'], properties.hostname_value.value, event_types['relation']
+        elif xsi_type == 'HTTPSessionObjectType':
+            return
         elif xsi_type == 'URIObjectType':
-            return eventTypes[xsi_type], properties.value.value
+            event_types = eventTypes[xsi_type]
+            return event_types['type'], properties.value.value, event_types['relation']
         elif xsi_type == 'WindowsRegistryKeyObjectType':
-            return eventTypes[xsi_type], properties.key.value
+            event_types = eventTypes[xsi_type]
+            return event_types['type'], properties.key.value, event_types['relation']
         else:
+            # ATM USED TO TEST TYPES
             print("Unparsed type: {}".format(xsi_type))
             sys.exit(1)
 
-    def handle_email_message(self, properties):
+    @staticmethod
+    def handle_email_attribute(properties):
         if properties.from_:
-            return "email-src", properties.from_.address_value.value
+            return "email-src", properties.from_.address_value.value, "from"
         elif properties.to:
-            return "email-dst", properties.to.value.address_value.value
+            return "email-dst", properties.to.address_value.value, "to"
+        elif properties.subject:
+            return "email-subject", properties.subject.value, "subject"
+        else:
+            # ATM USED TO TEST EMAIL PROPERTIES
+            print("Unsupported Email property")
+            sys.exit(1)
+
+    @staticmethod
+    def handle_hashes_attribute(properties):
+        if properties.md5:
+            hash_type = "md5"
+            return hash_type, properties.md5.value, hash_type
+        elif properties.sha1:
+            hash_type = "sha1"
+            return hash_type, properties.sha1.value, hash_type
+        elif properties.sha224:
+            hash_type = "sha224"
+            return hash_type, properties.sha224.value, hash_type
+        elif properties.sha256:
+            hash_type = "sha256"
+            return hash_type, properties.sha256.value, hash_type
+        elif properties.sha384:
+            hash_type = "sha384"
+            return hash_type, properties.sha384.value, hash_type
+        elif properties.sha512:
+            hash_type = "sha512"
+            return hash_type, properties.sha512.value, hash_type
+        elif properties.ssdeep:
+            hash_type = "ssdeep"
+            return hash_type, properties.ssdeep.value, hash_type
+        else:
+            # ATM USED TO CATCH UNSUPPORTED HASH PROPERTIES
+            print("Unsupported hash property")
+            sys.exit(1)
 
     def parse_misp_object(self, indicator):
         name = str(indicator.relationship)
         if name in ['file']:
             misp_object = pymisp.MISPObject(name)
+            item = indicator.item
+            misp_object.timestamp = self.getTimestampfromDate(item.timestamp)
+            observables = item.observable.observable_composition.observables
+            for observable in observables:
+                properties = observable.object_.properties
+                misp_attribute = pymisp.MISPAttribute()
+                misp_attribute.type, misp_attribute.value, misp_attribute.object_relation = self.handle_attribute_type(properties)
+                misp_object.add_attribute(**misp_attribute)
+            self.misp_event.add_object(**misp_object)
 
     def saveFile(self):
         eventDict = self.misp_event.to_json()
