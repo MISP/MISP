@@ -18,7 +18,7 @@
 	<div class="popover_choice_main" id ="popover_choice_main">
 		<table style="width:100%;">
 		<?php foreach ($options as $k => &$option): ?>
-			<tr style="border-top:1px solid black;" class="templateChoiceButton" id="field_<?php echo h($k); ?>">
+			<tr style="border-top:1px solid black;" class="templateChoiceButton shown" id="field_<?php echo h($k); ?>">
 				<?php if (isset($attributeTag)): ?>
 				<td style="padding-left:10px;padding-right:10px; text-align:center;width:100%;" onClick="quickSubmitAttributeTagForm('<?php echo h($object_id);?>', '<?php echo h($k); ?>');" title="<?php echo h($expanded[$k]);?>" role="button" tabindex="0" aria-label="Attach tag <?php echo h($option); ?>"><?php echo h($option); ?></td>
 				<?php else: ?>
@@ -48,9 +48,13 @@
 		var filterString =  $("#filterField").val().toLowerCase();
 		$.each(tags, function(index, value) {
 			if (value.toLowerCase().indexOf(filterString) == -1) {
-				$('#field_' + index).hide();
+				let element = $('#field_' + index);
+				element.hide();
+				element.removeClass('shown');
 			} else {
-				$('#field_' + index).show();
+				let element = $('#field_' + index);
+				element.show();
+				element.addClass('shown');
 			}
 		});
 	}
@@ -60,3 +64,4 @@
 		resizePopoverBody();
 	});
 </script>
+<?php echo $this->Html->script('tag-selection-keyboard-navigation.js'); ?>

@@ -1,11 +1,19 @@
 /**
- * This classes deals with the front-end keyboard shortcuts and is included in every page.
+ * This object deals with the front-end keyboard shortcuts and is included in every page.
  */
 let keyboardShortcutsManager = {
 
+	NAVIGATION_KEYS: ["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Enter"],
+	EVENTS: {
+		"ArrowUp": "upArrowPressed",
+		"ArrowDown": "downArrowPressed",
+		"Enter": "enterPressed",
+		"PageUp": "pageUpPressed",
+		"PageDown": "pageDownPressed"
+	},
+	ESCAPED_TAG_NAMES: ["INPUT", "TEXTAREA", "SELECT"],
 	shortcutKeys: new Map(),
 	shortcutListToggled: false,
-	escapedTagNames: ["INPUT", "TEXTAREA", "SELECT"],
 
 	/**
 	 * Fetches the keyboard shortcut config files and populates this.shortcutJSON.
@@ -59,14 +67,18 @@ let keyboardShortcutsManager = {
 
 	/**
 	 * Sets the event to listen to and the routine to call on keypress.
+	 * If it's a shortcut key, execute its code. If its a navigation
+	 * key, trigger an event depending on the key.
 	 */
 	setKeyboardListener() {
 		window.onkeyup = (keyboardEvent) => {
 			if(this.shortcutKeys.has(keyboardEvent.key)) {
 				let activeElement = document.activeElement.tagName;
-				if( !this.escapedTagNames.includes(activeElement)) {
+				if( !this.ESCAPED_TAG_NAMES.includes(activeElement)) {
 					eval(this.shortcutKeys.get(keyboardEvent.key).action);
 				}
+			} else if(this.NAVIGATION_KEYS.includes(keyboardEvent.key)) {
+				window.dispatchEvent(new CustomEvent(this.EVENTS[keyboardEvent.key], {detail: keyboardEvent}));
 			}
 		}
 	},
