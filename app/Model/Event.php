@@ -2608,6 +2608,7 @@ class Event extends AppModel {
 				foreach ($data['Event']['Attribute'] as $k => $attribute) {
 					$block = false;
 					for ($i = 0; $i < $k; $i++) {
+						if (empty($data['Event']['Attribute'][$i])) continue;
 						if (
 							$data['Event']['Attribute'][$i]['value'] == $attribute['value'] &&
 							$data['Event']['Attribute'][$i]['type'] == $attribute['type'] &&

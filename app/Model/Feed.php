@@ -781,6 +781,7 @@ class Feed extends AppModel {
 				$job->saveField('progress', 50);
 				$job->saveField('message', 'Saving data.');
 			}
+			if (empty($data)) return true;
 			$result = $this->saveFreetextFeedData($this->data, $data, $user);
 			$message = 'Job complete.';
 			if ($result !== true) {

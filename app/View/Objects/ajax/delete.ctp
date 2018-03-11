@@ -7,12 +7,12 @@
 <div style="padding-left:5px;padding-right:5px;padding-bottom:5px;">
 <?php
 	$stringParams = array(
-		0 => $hard ? 'hard-' : 0,
+		0 => $hard ? 'hard-' : 'soft-',
 		1 => h($id),
 		2 => $hard ? ' ' . __('The Object will be permanently deleted and unrecoverable. Also, this will prevent the deletion to be propagated to other instances.') : ''
 	);
 ?>
-<p><?php echo __('Are you sure you want to %s\delete Object #%s? %s', $stringParams[0], $stringParams[1], $stringParams[2]);?></p>
+<p><?php echo __('Are you sure you want to %sdelete Object #%s? %s', $stringParams[0], $stringParams[1], $stringParams[2]);?></p>
 	<table>
 		<tr>
 			<td style="vertical-align:top">

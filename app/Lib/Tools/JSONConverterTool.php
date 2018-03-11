@@ -58,11 +58,26 @@ class JSONConverterTool {
 						}
 					}
 				}
-				unset($event['Sighting']);
 			}
 		}
 		if (isset($event['Event']['Object'])) {
 			$event['Event']['Object'] = $this->__cleanObjects($event['Event']['Object']);
+			if (!empty($event['Sighting'])) {
+				foreach ($event['Event']['Object'] as $k => $object) {
+					if (!empty($object['Attribute'])) {
+						foreach ($object['Attribute'] as $ak => $attribute) {
+							foreach ($event['Sighting'] as $as => $sighting) {
+								if ($attribute['id'] == $sighting['attribute_id']) {
+									$event['Event']['Object'][$k]['Attribute'][$ak]['Sighting'][] = $sighting;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		if (!empty($event['Sighting'])) {
+			unset($event['Sighting']);
 		}
 
 		unset($event['Event']['RelatedAttribute']);

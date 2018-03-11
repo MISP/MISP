@@ -19,9 +19,9 @@ class EventsController extends AppController {
 					'Event.timestamp' => 'DESC'
 			),
 			'contain' => array(
-					'Org' => array('fields' => array('id', 'name')),
-					'Orgc' => array('fields' => array('id', 'name')),
-					'SharingGroup' => array('fields' => array('id', 'name'))
+					'Org' => array('fields' => array('id', 'name', 'uuid')),
+					'Orgc' => array('fields' => array('id', 'name', 'uuid')),
+					'SharingGroup' => array('fields' => array('id', 'name', 'uuid'))
 			)
 	);
 
@@ -344,6 +344,7 @@ class EventsController extends AppController {
 						if ($v == "") continue 2;
 						if (!Configure::read('MISP.showorg')) continue 2;
 						$orgArray = $this->Event->Org->find('list', array('fields' => array('Org.name')));
+						$orgUuidArray = $this->Event->Org->find('list', array('fields' => array('Org.uuid')));
 						$orgArray = array_map('strtoupper', $orgArray);
 						// if the first character is '!', search for NOT LIKE the rest of the string (excluding the '!' itself of course)
 						$pieces = explode('|', $v);
@@ -353,14 +354,22 @@ class EventsController extends AppController {
 								if (is_numeric(substr($piece, 1))) {
 									$this->paginate['conditions']['AND'][] = array('Event.orgc_id !=' => substr($piece, 1));
 								} else {
-									$org_id = array_search(strtoupper(substr($piece, 1)), $orgArray);
+									if (Validation::uuid(substr($piece, 1))) {
+										$org_id = array_search(substr($piece, 1), $orgUuidArray);
+									} else {
+										$org_id = array_search(strtoupper(substr($piece, 1)), $orgArray);
+									}
 									if ($org_id) $this->paginate['conditions']['AND'][] = array('Event.orgc_id !=' => $org_id);
 								}
 							} else {
 								if (is_numeric($piece)) {
 									$test['OR'][] = array('Event.orgc_id' => array('Event.orgc_id' => $piece));
 								} else {
-									$org_id = array_search(strtoupper($piece), $orgArray);
+									if (Validation::uuid($piece)) {
+										$org_id = array_search($piece, $orgUuidArray);
+									} else {
+										$org_id = array_search(strtoupper($piece), $orgArray);
+									}
 									if ($org_id) $test['OR'][] = array('Event.orgc_id' => $org_id);
 									else $test['OR'][] = array('Event.orgc_id' => -1);
 								}
@@ -584,6 +593,11 @@ class EventsController extends AppController {
 				$rules['fields'] = array('id', 'timestamp', 'published', 'uuid');
 			}
 			$events = $this->Event->find('all', $rules);
+			foreach ($events as $k => $event) {
+				if (empty($event['SharingGroup']['name'])) {
+					unset($events[$k]['SharingGroup']);
+				}
+			}
 			if (empty($passedArgs['searchminimal'])) {
 				$total_events = count($events);
 				$passes = ceil($total_events / 1000);
@@ -636,6 +650,11 @@ class EventsController extends AppController {
 			}
 		} else {
 			$events = $this->paginate();
+			foreach ($events as $k => $event) {
+				if (empty($event['SharingGroup']['name'])) {
+					unset($events[$k]['SharingGroup']);
+				}
+			}
 			if (count($events) == 1 && isset($this->passedArgs['searchall'])) {
 				$this->redirect(array('controller' => 'events', 'action' => 'view', $events[0]['Event']['id']));
 			}
