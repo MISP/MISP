@@ -15,6 +15,11 @@
 					if (isset($configTypes[$config['type']]['field'])) {
 						$settings['type'] = $configTypes[$config['type']]['field'];
 					}
+					if ($settings['type'] == 'select') {
+						if (isset($config['options'])) {
+							$settings['options'] = $config['options'];
+						}
+					}
 					?>
 					<span class="bold">
 						<?php
