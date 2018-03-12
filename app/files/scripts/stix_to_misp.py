@@ -140,7 +140,7 @@ class StixParser():
         except Exception as excep:
             print(excep)
 
-    def handle_attribute_type(self, properties):
+    def handle_attribute_type(self, properties, is_object=False):
         xsi_type = properties._XSI_TYPE
         # print(xsi_type)
         if xsi_type == 'AddressObjectType':
@@ -155,6 +155,9 @@ class StixParser():
             event_types = eventTypes[xsi_type]
             return event_types['type'], properties.value.value, event_types['relation']
         elif xsi_type == 'FileObjectType':
+            if properties.hashes and properties.file_name:
+                if is_object:
+                    return self.handle_malware_sample(properties)
             if properties.hashes:
                 return self.handle_hashes_attribute(properties)
             elif properties.file_name:
@@ -205,6 +208,11 @@ class StixParser():
             sys.exit(1)
 
     @staticmethod
+    def handle_malware_sample(properties):
+        malware_sample_value = "{}|{}".format(properties.file_name.value, properties.md5.value)
+        return "malware-sample", malware_sample_value, "malware-sample"
+
+    @staticmethod
     def handle_hashes_attribute(properties):
         if properties.md5:
             hash_type = "md5"
@@ -242,12 +250,12 @@ class StixParser():
             for observable in observables:
                 properties = observable.object_.properties
                 misp_attribute = pymisp.MISPAttribute()
-                misp_attribute.type, misp_attribute.value, misp_attribute.object_relation = self.handle_attribute_type(properties)
+                misp_attribute.type, misp_attribute.value, misp_attribute.object_relation = self.handle_attribute_type(properties, is_object=True)
                 misp_object.add_attribute(**misp_attribute)
             self.misp_event.add_object(**misp_object)
-        else:
-            if name != "misc":
-                print("Unparsed Object type: {}".format(name))
+        # else:
+        #     if name != "misc":
+                # print("Unparsed Object type: {}".format(name))
                 # print(indicator.to_json())
 
     def saveFile(self):
