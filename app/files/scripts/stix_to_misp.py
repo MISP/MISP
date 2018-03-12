@@ -19,7 +19,8 @@ import sys, json, os, time
 import pymisp
 from stix.core import STIXPackage
 
-eventTypes = {"FileObjectType": {"type": "filename", "relation": "filename"},
+eventTypes = {"DomainNameObjectType": {"type": "domain", "relation": "domain"},
+              "FileObjectType": {"type": "filename", "relation": "filename"},
               "HostnameObjectType": {"type": "hostname", "relation": "host"},
               "URIObjectType": {"type": "url", "relation": "url"},
               "WindowsRegistryKeyObjectType": {"type": "regkey", "relation": ""}}
@@ -31,6 +32,7 @@ with open(descFilename, 'r') as f:
 class StixParser():
     def __init__(self):
         self.misp_event = pymisp.MISPEvent()
+        self.error = {"error": []}
 
     def loadEvent(self, args, pathname):
         try:
@@ -120,32 +122,62 @@ class StixParser():
         misp_attribute = {'category': str(indicator.relationship)}
         item = indicator.item
         misp_attribute['timestamp'] = self.getTimestampfromDate(item.timestamp)
-        properties = item.observable.object_.properties
-        attribute_type, attribute_value, _ = self.handle_attribute_type(properties)
-        self.misp_event.add_attribute(attribute_type, attribute_value, **misp_attribute)
+        try:
+            if item.observable:
+                properties = item.observable.object_.properties
+                if properties:
+                    # print(properties.to_json())
+                    try:
+                        attribute_type, attribute_value, _ = self.handle_attribute_type(properties)
+                    except:
+                        raise Exception('handle_attribute fail: {}'.format(self.handle_attribute_type(properties)))
+                    try:
+                        self.misp_event.add_attribute(attribute_type, attribute_value, **misp_attribute)
+                    except:
+                        raise Exception('fail on adding attribute')
+                else:
+                    raise Exception("properties fail")
+        except Exception as excep:
+            print(excep)
 
     def handle_attribute_type(self, properties):
         xsi_type = properties._XSI_TYPE
         # print(xsi_type)
-        if xsi_type == 'EmailMessageObjectType':
+        if xsi_type == 'AddressObjectType':
+            if properties.is_source:
+                ip_type = "ip-src"
+            elif properties.is_destination:
+                ip_type = "ip-dst"
+            return ip_type, properties.address_value.value, "ip"
+        elif xsi_type == 'EmailMessageObjectType':
             return self.handle_email_attribute(properties)
         elif xsi_type == 'DomainNameObjectType':
-            return
+            event_types = eventTypes[xsi_type]
+            return event_types['type'], properties.value.value, event_types['relation']
         elif xsi_type == 'FileObjectType':
             if properties.hashes:
                 return self.handle_hashes_attribute(properties)
             elif properties.file_name:
                 event_types = eventTypes[xsi_type]
-                return event_types['type'], properties.file_name.value, event_types['relation']
+                value = properties.file_name.value
+                if not value:
+                    value = properties.file_path.value
+                return event_types['type'], value, event_types['relation']
+            elif properties.byte_runs:
+                return "pattern-in-file", properties.byte_runs[0].byte_run_data, "pattern-in-file"
             else:
                 # ATM USED TO CATCH UNSUPPORTED FILE OBJECTS PROPERTIES
                 print("Unsupported File Object property")
-                sys.exit(1)
+                # sys.exit(1)
         elif xsi_type == 'HostnameObjectType':
             event_types = eventTypes[xsi_type]
             return event_types['type'], properties.hostname_value.value, event_types['relation']
         elif xsi_type == 'HTTPSessionObjectType':
-            return
+            request_header = properties.http_request_response[0].http_client_request.http_request_header
+            if request_header.parsed_header:
+                return "user-agent", request_header.parsed_header.user_agent.value, "user-agent"
+            # elif request_header.raw_header:
+            #     return "http-method", request_header.raw_header.
         elif xsi_type == 'URIObjectType':
             event_types = eventTypes[xsi_type]
             return event_types['type'], properties.value.value, event_types['relation']
@@ -155,6 +187,8 @@ class StixParser():
         else:
             # ATM USED TO TEST TYPES
             print("Unparsed type: {}".format(xsi_type))
+            # print(properties.to_json())
+            # print(dir(properties))
             sys.exit(1)
 
     @staticmethod
@@ -162,7 +196,7 @@ class StixParser():
         if properties.from_:
             return "email-src", properties.from_.address_value.value, "from"
         elif properties.to:
-            return "email-dst", properties.to.address_value.value, "to"
+            return "email-dst", properties.to[0].address_value.value, "to"
         elif properties.subject:
             return "email-subject", properties.subject.value, "subject"
         else:
@@ -211,6 +245,10 @@ class StixParser():
                 misp_attribute.type, misp_attribute.value, misp_attribute.object_relation = self.handle_attribute_type(properties)
                 misp_object.add_attribute(**misp_attribute)
             self.misp_event.add_object(**misp_object)
+        else:
+            if name != "misc":
+                print("Unparsed Object type: {}".format(name))
+                # print(indicator.to_json())
 
     def saveFile(self):
         eventDict = self.misp_event.to_json()
@@ -221,6 +259,7 @@ def main(args):
     pathname = os.path.dirname(args[0])
     stix_parser = StixParser()
     stix_parser.loadEvent(args, pathname)
+    # print(stix_parser.filename)
     stix_parser.handler()
     stix_parser.saveFile()
     print(1)
