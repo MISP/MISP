@@ -1216,12 +1216,24 @@ class AttributesController extends AppController {
 				throw new MethodNotAllowedException('Invalid Event.');
 			}
 		}
+		if (empty($ids)) $ids = -1;
+		$conditions = array('id' => $ids, 'event_id' => $id);
+		if ($ids == 'all') unset($conditions['id']);
+		if ($this->_isRest() && empty($this->request->data['Attribute']['allow_hard_delete'])) {
+			$conditions['deleted'] = 0;
+		}
 		// find all attributes from the ID list that also match the provided event ID.
 		$attributes = $this->Attribute->find('all', array(
 			'recursive' => -1,
-			'conditions' => array('id' => $ids, 'event_id' => $id),
+			'conditions' => $conditions,
 			'fields' => array('id', 'event_id', 'deleted')
 		));
+		if ($ids == 'all') {
+			$ids = array();
+			foreach ($attributes as $attribute) {
+				$ids[] = $attribute['Attribute']['id'];
+			}
+		}
 		if (empty($attributes)) {
 			throw new NotFoundException('No matching attributes found.');
 		}
