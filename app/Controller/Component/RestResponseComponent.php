@@ -14,9 +14,14 @@ class RestResponseComponent extends Component {
 	private $__descriptions = array(
 		'Attribute' => array(
 			'deleteSelected' => array(
-				'description' => "POST a list of attribute IDs in JSON format to this API to delete the given attributes. This API also expect an event ID passed via the URL or via the event_id key.",
+				'description' => "POST a list of attribute IDs in JSON format to this API
+					to delete the given attributes. This API also expects an event ID passed via
+					the URL or via the event_id key. The id key also takes 'all' as a parameter
+					for a wildcard search to mass delete attributes. If you want the function to
+					also hard-delete already soft-deleted attributes, pass the allow_hard_delete
+					key.",
 				'mandatory' => array('id'),
-				'optional' => array('event_id'),
+				'optional' => array('event_id', 'allow_hard_delete'),
 				'params' => array('event_id')
 			)
 		),
