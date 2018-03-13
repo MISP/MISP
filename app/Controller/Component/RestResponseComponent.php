@@ -12,6 +12,14 @@ class RestResponseComponent extends Component {
 	);
 
 	private $__descriptions = array(
+		'Attribute' => array(
+			'deleteSelected' => array(
+				'description' => "POST a list of attribute IDs in JSON format to this API to delete the given attributes. This API also expect an event ID passed via the URL or via the event_id key.",
+				'mandatory' => array('id'),
+				'optional' => array('event_id'),
+				'params' => array('event_id')
+			)
+		),
 		'Organisation' => array(
 			'admin_add' => array(
 				'description' => "POST an Organisation object in JSON format to this API to create a new organsiation.",
@@ -106,7 +114,12 @@ class RestResponseComponent extends Component {
 				'description' => "POST or PUT a Tag object in JSON format to this API to create a edit an existing tag.",
 				'optional' => array('name', 'colour', 'exportable', 'hide_tag', 'org_id', 'user_id'),
 				'params' => array('tag_id')
-			)
+			),
+			'removeTag' => array(
+				'description' => "POST a request object in JSON format to this API to create detach a tag from an event.",
+				'mandatory' => array('event', 'tag'),
+				'params' => array('tag_id')
+			),
 		),
 		'User' => array(
 			'admin_add' => array(
