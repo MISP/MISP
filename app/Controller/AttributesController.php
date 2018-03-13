@@ -1182,13 +1182,23 @@ class AttributesController extends AppController {
 		}
 	}
 
-	public function deleteSelected($id) {
-		if (!$this->request->is('post') || !$this->request->is('ajax')) {
-			throw new MethodNotAllowedException();
+	public function deleteSelected($id = false) {
+		if (!$this->request->is('post')) {
+			throw new MethodNotAllowedException('This function is only accessible via POST requests.');
+		}
+		if (empty($id)) {
+			throw new MethodNotAllowedException('No event ID set.');
 		}
 		// get a json object with a list of attribute IDs to be deleted
 		// check each of them and return a json object with the successful deletes and the failed ones.
-		$ids = json_decode($this->request->data['Attribute']['ids_delete']);
+		if ($this->_isRest()) {
+			if (!empty($this->request->data['Attribute'])) {
+				$this->request->data = $this->request->data['Attribute'];
+			}
+			$ids = $this->request->data;
+		} else {
+			$ids = json_decode($this->request->data['Attribute']['ids_delete']);
+		}
 
 		if (!$this->_isSiteAdmin()) {
 			$event = $this->Attribute->Event->find('first', array(
@@ -1213,9 +1223,17 @@ class AttributesController extends AppController {
 		$fails = array_diff($ids, $successes);
 		$this->autoRender = false;
 		if (count($fails) == 0 && count($successes) > 0) {
-			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => count($successes) . ' attribute' . (count($successes) != 1 ? 's' : '') . ' deleted.')), 'status'=>200, 'type' => 'json'));
+			$message = count($successes) . ' attribute' . (count($successes) != 1 ? 's' : '') . ' deleted.';
+			if ($this->_isRest()) {
+				return $this->RestResponse->saveSuccessResponse('Attributes', 'deleteSelected', $id, false, $message);
+			}
+			return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => $message)), 'status'=>200, 'type' => 'json'));
 		} else {
-			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => count($successes) . ' attribute' . (count($successes) != 1 ? 's' : '') . ' deleted, but ' . count($fails) . ' attribute' . (count($fails) != 1 ? 's' : '') . ' could not be deleted.')), 'status'=>200, 'type' => 'json'));
+			$message = count($successes) . ' attribute' . (count($successes) != 1 ? 's' : '') . ' deleted, but ' . count($fails) . ' attribute' . (count($fails) != 1 ? 's' : '') . ' could not be deleted.';
+			if ($this->_isRest()) {
+				return $this->RestResponse->saveFailResponse('Attributes', 'deleteSelected', false, $meesage);
+			}
+			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $message)), 'status'=>200, 'type' => 'json'));
 		}
 	}
 
