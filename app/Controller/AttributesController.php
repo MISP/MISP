@@ -1184,22 +1184,28 @@ class AttributesController extends AppController {
 
 	public function deleteSelected($id = false) {
 		if (!$this->request->is('post')) {
+			if ($this->request->is('get')) {
+				return $this->RestResponse->describe('Attributes', 'deleteSelected', false, $this->response->type());
+			}
 			throw new MethodNotAllowedException('This function is only accessible via POST requests.');
-		}
-		if (empty($id)) {
-			throw new MethodNotAllowedException('No event ID set.');
 		}
 		// get a json object with a list of attribute IDs to be deleted
 		// check each of them and return a json object with the successful deletes and the failed ones.
 		if ($this->_isRest()) {
-			if (!empty($this->request->data['Attribute'])) {
-				$this->request->data = $this->request->data['Attribute'];
+			if (empty($this->request->data['Attribute'])) {
+				$this->request->data['Attribute'] = $this->request->data;
 			}
-			$ids = $this->request->data;
+			if (isset($this->request->data['Attribute']['id'])) $ids = $this->request->data['Attribute']['id'];
+			else $ids = $this->request->data['Attribute'];
+			if (empty($id) && isset($this->request->data['Attribute']['event_id']) && is_numeric($this->request->data['Attribute']['event_id'])) {
+				$id = $this->request->data['Attribute']['event_id'];
+			}
 		} else {
 			$ids = json_decode($this->request->data['Attribute']['ids_delete']);
 		}
-
+		if (empty($id)) {
+			throw new MethodNotAllowedException('No event ID set.');
+		}
 		if (!$this->_isSiteAdmin()) {
 			$event = $this->Attribute->Event->find('first', array(
 					'conditions' => array('id' => $id),
@@ -1216,6 +1222,9 @@ class AttributesController extends AppController {
 			'conditions' => array('id' => $ids, 'event_id' => $id),
 			'fields' => array('id', 'event_id', 'deleted')
 		));
+		if (empty($attributes)) {
+			throw new NotFoundException('No matching attributes found.');
+		}
 		$successes = array();
 		foreach ($attributes as $a) {
 			if ($this->__delete($a['Attribute']['id'], $a['Attribute']['deleted'] == 1 ? true : false)) $successes[] = $a['Attribute']['id'];
@@ -1231,7 +1240,7 @@ class AttributesController extends AppController {
 		} else {
 			$message = count($successes) . ' attribute' . (count($successes) != 1 ? 's' : '') . ' deleted, but ' . count($fails) . ' attribute' . (count($fails) != 1 ? 's' : '') . ' could not be deleted.';
 			if ($this->_isRest()) {
-				return $this->RestResponse->saveFailResponse('Attributes', 'deleteSelected', false, $meesage);
+				return $this->RestResponse->saveFailResponse('Attributes', 'deleteSelected', false, $message);
 			}
 			return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => $message)), 'status'=>200, 'type' => 'json'));
 		}
