@@ -22,6 +22,7 @@ from stix.core import STIXPackage
 eventTypes = {"DomainNameObjectType": {"type": "domain", "relation": "domain"},
               "FileObjectType": {"type": "filename", "relation": "filename"},
               "HostnameObjectType": {"type": "hostname", "relation": "host"},
+              "PortObjectType": {"type": "port", "relation": "dst-port"},
               "URIObjectType": {"type": "url", "relation": "url"},
               "WindowsRegistryKeyObjectType": {"type": "regkey", "relation": ""}}
 
@@ -176,11 +177,16 @@ class StixParser():
             event_types = eventTypes[xsi_type]
             return event_types['type'], properties.hostname_value.value, event_types['relation']
         elif xsi_type == 'HTTPSessionObjectType':
-            request_header = properties.http_request_response[0].http_client_request.http_request_header
-            if request_header.parsed_header:
-                return "user-agent", request_header.parsed_header.user_agent.value, "user-agent"
-            # elif request_header.raw_header:
-            #     return "http-method", request_header.raw_header.
+            client_request = properties.http_request_response[0].http_client_request
+            if client_request.http_request_header:
+                value = client_request.http_request_header.parsed_header.user_agent.value
+                return "user-agent", value, "user-agent"
+            elif client_request.http_request_line:
+                value = client_request.http_request_line.http_method.value
+                return "http-method", value, "method"
+        elif xsi_type == 'PortObjectType':
+            event_types = eventTypes[xsi_type]
+            return event_types['type'], properties.port_value.value, event_types['relation']
         elif xsi_type == 'URIObjectType':
             event_types = eventTypes[xsi_type]
             return event_types['type'], properties.value.value, event_types['relation']
@@ -241,22 +247,29 @@ class StixParser():
             sys.exit(1)
 
     def parse_misp_object(self, indicator):
-        name = str(indicator.relationship)
-        if name in ['file']:
-            misp_object = pymisp.MISPObject(name)
+        object_type = str(indicator.relationship)
+        if object_type == 'file':
             item = indicator.item
-            misp_object.timestamp = self.getTimestampfromDate(item.timestamp)
-            observables = item.observable.observable_composition.observables
-            for observable in observables:
-                properties = observable.object_.properties
-                misp_attribute = pymisp.MISPAttribute()
-                misp_attribute.type, misp_attribute.value, misp_attribute.object_relation = self.handle_attribute_type(properties, is_object=True)
-                misp_object.add_attribute(**misp_attribute)
-            self.misp_event.add_object(**misp_object)
-        # else:
-        #     if name != "misc":
-                # print("Unparsed Object type: {}".format(name))
+            self.fill_misp_object(item, object_type)
+        elif object_type == 'network':
+            item = indicator.item
+            name = item.title.split(' ')[0]
+            self.fill_misp_object(item, name)
+        else:
+            if object_type != "misc":
+                print("Unparsed Object type: {}".format(name))
                 # print(indicator.to_json())
+
+    def fill_misp_object(self, item, name):
+        misp_object = pymisp.MISPObject(name)
+        misp_object.timestamp = self.getTimestampfromDate(item.timestamp)
+        observables = item.observable.observable_composition.observables
+        for observable in observables:
+            properties = observable.object_.properties
+            misp_attribute = pymisp.MISPAttribute()
+            misp_attribute.type, misp_attribute.value, misp_attribute.object_relation = self.handle_attribute_type(properties, is_object=True)
+            misp_object.add_attribute(**misp_attribute)
+        self.misp_event.add_object(**misp_object)
 
     def saveFile(self):
         eventDict = self.misp_event.to_json()
