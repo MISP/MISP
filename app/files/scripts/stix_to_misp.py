@@ -33,7 +33,6 @@ with open(descFilename, 'r') as f:
 class StixParser():
     def __init__(self):
         self.misp_event = pymisp.MISPEvent()
-        self.error = {"error": []}
 
     def loadEvent(self, args, pathname):
         try:
@@ -78,6 +77,12 @@ class StixParser():
     def buildExternalDict(self):
         self.dictTimestampAndDate()
         self.eventInfo()
+        if self.event.indicators:
+            self.parse_external_indicator(self.event.indicators)
+        if self.event.observables:
+            self.parse_external_observable(self.event.observables.observables)
+        if self.event.ttps:
+            self.parse_ttps(self.event.ttps.ttps)
 
     def dictTimestampAndDate(self):
         stixTimestamp = self.event.timestamp
@@ -111,7 +116,7 @@ class StixParser():
             else:
                 raise Exception("Imported from external STIX event")
         except Exception as noinfo:
-            self.misp_event.info = noinfo
+            self.misp_event.info = str(noinfo)
 
     def parse_misp_indicator(self, indicator):
         if indicator.relationship in categories:
@@ -147,7 +152,7 @@ class StixParser():
         if xsi_type == 'AddressObjectType':
             if properties.is_source:
                 ip_type = "ip-src"
-            elif properties.is_destination:
+            else:
                 ip_type = "ip-dst"
             return ip_type, properties.address_value.value, "ip"
         elif xsi_type == 'EmailMessageObjectType':
@@ -179,8 +184,13 @@ class StixParser():
         elif xsi_type == 'HTTPSessionObjectType':
             client_request = properties.http_request_response[0].http_client_request
             if client_request.http_request_header:
-                value = client_request.http_request_header.parsed_header.user_agent.value
-                return "user-agent", value, "user-agent"
+                request_header = client_request.http_request_header
+                if request_header.parsed_header:
+                    value = request_header.parsed_header.user_agent.value
+                    return "user-agent", value, "user-agent"
+                elif request_header.raw_header:
+                    value = request_header.raw_header.value
+                    return "http-method", value, "method"
             elif client_request.http_request_line:
                 value = client_request.http_request_line.http_method.value
                 return "http-method", value, "method"
@@ -193,6 +203,8 @@ class StixParser():
         elif xsi_type == 'WindowsRegistryKeyObjectType':
             event_types = eventTypes[xsi_type]
             return event_types['type'], properties.key.value, event_types['relation']
+        elif xsi_type == "WhoisObjectType":
+            return
         else:
             # ATM USED TO TEST TYPES
             print("Unparsed type: {}".format(xsi_type))
@@ -271,6 +283,39 @@ class StixParser():
             misp_object.add_attribute(**misp_attribute)
         self.misp_event.add_object(**misp_object)
 
+    def parse_external_indicator(self, indicators):
+        for indicator in indicators:
+            try:
+                properties = indicator.observable.object_.properties
+            except:
+                continue
+            if properties:
+                attribute = {'timestamp': self.getTimestampfromDate(indicator.timestamp),
+                             'to_ids': True}
+                try:
+                    attribute_type, attribute_value, _ = self.handle_attribute_type(properties)
+                    self.misp_event.add_attribute(attribute_type, attribute_value, **attribute)
+                except:
+                    print('handle_attribute fail for type {}'.format(attribute_type))
+
+    def parse_external_observable(self, observables):
+        for observable in observables:
+            try:
+                properties = observable.object_.properties
+            except:
+                continue
+            if properties:
+                attribute = {'to_ids': False}
+                try:
+                    attribute_type, attribute_value, _ = self.handle_attribute_type(properties)
+                    self.misp_event.add_attribute(attribute_type, attribute_value, **attribute)
+                except:
+                    print('handle_attribute fail for type {}'.format(attribute_type))
+
+    def parse_ttps(self, ttps):
+        for ttp in ttps:
+            behavior = ttp.behavior
+
     def saveFile(self):
         eventDict = self.misp_event.to_json()
         with open(self.outputname, 'w') as f:
@@ -280,7 +325,6 @@ def main(args):
     pathname = os.path.dirname(args[0])
     stix_parser = StixParser()
     stix_parser.loadEvent(args, pathname)
-    # print(stix_parser.filename)
     stix_parser.handler()
     stix_parser.saveFile()
     print(1)
