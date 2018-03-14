@@ -2787,6 +2787,9 @@ class Attribute extends AppModel {
 		}
 		if (!empty($tagArray[1])) {
 			$temp['AND']['NOT'] = $this->__createTagSubQuery($tagArray[1], true);
+			if ($limitAttributeHitsTo == 'attribute') {
+				$temp['AND']['NOT'] = $this->__createTagSubQuery($tagArray[1], true, 'Attribute', $limitAttributeHitsTo);
+			}
 		}
 		$conditions['AND'][] = $temp;
 		return $conditions;
