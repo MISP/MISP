@@ -71,6 +71,10 @@ class Module extends AppModel {
 		return 'Value has to be a boolean.';
 	}
 
+	public function validateSelectField($value) {
+		return true;
+	}
+
 
 	public function getModules($type = false, $moduleFamily = 'Enrichment', &$exception = false) {
 		$modules = $this->queryModuleServer('/modules', false, false, $moduleFamily, $exception);
