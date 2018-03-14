@@ -434,6 +434,10 @@ class Attribute extends AppModel {
 					//'last' => false, // Stop validation after this rule
 					//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
+			'validComposite' => array(
+				'rule' => array('validComposite'),
+				'message' => 'Composite type found but the value not in the composite (value1|value2) format.'
+			)
 		),
 		'to_ids' => array(
 			'boolean' => array(
@@ -736,6 +740,17 @@ class Attribute extends AppModel {
 		// return true, otherwise the object cannot be saved
 
 		if ($this->data['Attribute']['type'] == 'float' && $this->data['Attribute']['value'] == 0) $this->data['Attribute']['value'] = '0.0';
+		return true;
+	}
+
+	public function validComposite($fields) {
+		$compositeTypes = $this->getCompositeTypes();
+		if (in_array($this->data['Attribute']['type'], $compositeTypes)) {
+			$pieces = explode('|', $fields['value']);
+			if (2 != count($pieces)) {
+				return false;
+			}
+		}
 		return true;
 	}
 
