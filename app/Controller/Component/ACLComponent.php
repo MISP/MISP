@@ -181,7 +181,8 @@ class ACLComponent extends Component {
 					'getError' => array(),
 					'getGenerateCorrelationProgress' => array('*'),
 					'getProgress' => array('*'),
-					'index' => array()
+					'index' => array(),
+					'clearJobs' => array()
 			),
 			'logs' => array(
 					'admin_index' => array('perm_audit'),
