@@ -22,6 +22,7 @@ from stix.core import STIXPackage
 eventTypes = {"DomainNameObjectType": {"type": "domain", "relation": "domain"},
               "FileObjectType": {"type": "filename", "relation": "filename"},
               "HostnameObjectType": {"type": "hostname", "relation": "host"},
+              "MutexObjectType": {"type": "mutex", "relation": "mutex"},
               "PortObjectType": {"type": "port", "relation": "dst-port"},
               "URIObjectType": {"type": "url", "relation": "url"},
               "WindowsRegistryKeyObjectType": {"type": "regkey", "relation": ""}}
@@ -150,53 +151,27 @@ class StixParser():
         xsi_type = properties._XSI_TYPE
         # print(xsi_type)
         if xsi_type == 'AddressObjectType':
-            if properties.is_source:
-                ip_type = "ip-src"
-            else:
-                ip_type = "ip-dst"
-            return ip_type, properties.address_value.value, "ip"
+            return self.handle_address(properties)
         elif xsi_type == 'EmailMessageObjectType':
             return self.handle_email_attribute(properties)
         elif xsi_type == 'DomainNameObjectType':
             event_types = eventTypes[xsi_type]
             return event_types['type'], properties.value.value, event_types['relation']
         elif xsi_type == 'FileObjectType':
-            if properties.hashes and properties.file_name:
-                if is_object:
-                    return self.handle_malware_sample(properties)
-            if properties.hashes:
-                return self.handle_hashes_attribute(properties)
-            elif properties.file_name:
-                event_types = eventTypes[xsi_type]
-                value = properties.file_name.value
-                if not value:
-                    value = properties.file_path.value
-                return event_types['type'], value, event_types['relation']
-            elif properties.byte_runs:
-                return "pattern-in-file", properties.byte_runs[0].byte_run_data, "pattern-in-file"
-            else:
-                # ATM USED TO CATCH UNSUPPORTED FILE OBJECTS PROPERTIES
-                print("Unsupported File Object property")
-                # sys.exit(1)
+            return self.handle_file(properties, is_object)
         elif xsi_type == 'HostnameObjectType':
             event_types = eventTypes[xsi_type]
             return event_types['type'], properties.hostname_value.value, event_types['relation']
         elif xsi_type == 'HTTPSessionObjectType':
-            client_request = properties.http_request_response[0].http_client_request
-            if client_request.http_request_header:
-                request_header = client_request.http_request_header
-                if request_header.parsed_header:
-                    value = request_header.parsed_header.user_agent.value
-                    return "user-agent", value, "user-agent"
-                elif request_header.raw_header:
-                    value = request_header.raw_header.value
-                    return "http-method", value, "method"
-            elif client_request.http_request_line:
-                value = client_request.http_request_line.http_method.value
-                return "http-method", value, "method"
+            return self.handle_http(properties)
+        elif xsi_type == 'MutexObjectType':
+            event_types = eventTypes[xsi_type]
+            return event_types['type'], properties.name.value, event_types['relation']
         elif xsi_type == 'PortObjectType':
             event_types = eventTypes[xsi_type]
             return event_types['type'], properties.port_value.value, event_types['relation']
+        elif xsi_type == 'SocketAddressObjectType':
+            return self.handle_socket_address(properties)
         elif xsi_type == 'URIObjectType':
             event_types = eventTypes[xsi_type]
             return event_types['type'], properties.value.value, event_types['relation']
@@ -213,6 +188,14 @@ class StixParser():
             sys.exit(1)
 
     @staticmethod
+    def handle_address(properties):
+        if properties.is_source:
+            ip_type = "ip-src"
+        else:
+            ip_type = "ip-dst"
+        return ip_type, properties.address_value.value, "ip"
+
+    @staticmethod
     def handle_email_attribute(properties):
         if properties.from_:
             return "email-src", properties.from_.address_value.value, "from"
@@ -224,6 +207,28 @@ class StixParser():
             # ATM USED TO TEST EMAIL PROPERTIES
             print("Unsupported Email property")
             sys.exit(1)
+
+    def handle_file(self, properties, is_object):
+        if properties.hashes and properties.file_name:
+            if is_object:
+                return self.handle_malware_sample(properties)
+            else:
+                hash_type, hash_value, _ = self.handle_hashes_attribute(properties)
+                return "filename|{}".format(hash_type), "{}|{}".format(properties.file_name.value, hash_value), ""
+        if properties.hashes:
+            return self.handle_hashes_attribute(properties)
+        elif properties.file_name:
+            event_types = eventTypes[properties._XSI_TYPE]
+            value = properties.file_name.value
+            if not value:
+                value = properties.file_path.value
+            return event_types['type'], value, event_types['relation']
+        elif properties.byte_runs:
+            return "pattern-in-file", properties.byte_runs[0].byte_run_data, "pattern-in-file"
+        else:
+            # ATM USED TO CATCH UNSUPPORTED FILE OBJECTS PROPERTIES
+            print("Unsupported File Object property")
+            # sys.exit(1)
 
     @staticmethod
     def handle_malware_sample(properties):
@@ -257,6 +262,29 @@ class StixParser():
             # ATM USED TO CATCH UNSUPPORTED HASH PROPERTIES
             print("Unsupported hash property")
             sys.exit(1)
+
+    @staticmethod
+    def handle_http(properties):
+        client_request = properties.http_request_response[0].http_client_request
+        if client_request.http_request_header:
+            request_header = client_request.http_request_header
+            if request_header.parsed_header:
+                value = request_header.parsed_header.user_agent.value
+                return "user-agent", value, "user-agent"
+            elif request_header.raw_header:
+                value = request_header.raw_header.value
+                return "http-method", value, "method"
+        elif client_request.http_request_line:
+            value = client_request.http_request_line.http_method.value
+            return "http-method", value, "method"
+
+    def handle_socket_address(self, properties):
+        if properties.ip_address:
+            type1, value1, _ = self.handle_address(properties.ip_address)
+        elif properties.hostname:
+            type1 = "hostname"
+            value1 = properties.hostname.hostname_value.value
+        return "{}|port".format(type1), "{}|{}".format(value1, properties.port.port_value.value), ""
 
     def parse_misp_object(self, indicator):
         object_type = str(indicator.relationship)
@@ -292,11 +320,8 @@ class StixParser():
             if properties:
                 attribute = {'timestamp': self.getTimestampfromDate(indicator.timestamp),
                              'to_ids': True}
-                try:
-                    attribute_type, attribute_value, _ = self.handle_attribute_type(properties)
-                    self.misp_event.add_attribute(attribute_type, attribute_value, **attribute)
-                except:
-                    print('handle_attribute fail for type {}'.format(attribute_type))
+                attribute_type, attribute_value, _ = self.handle_attribute_type(properties)
+                self.misp_event.add_attribute(attribute_type, attribute_value, **attribute)
 
     def parse_external_observable(self, observables):
         for observable in observables:
@@ -306,11 +331,8 @@ class StixParser():
                 continue
             if properties:
                 attribute = {'to_ids': False}
-                try:
-                    attribute_type, attribute_value, _ = self.handle_attribute_type(properties)
-                    self.misp_event.add_attribute(attribute_type, attribute_value, **attribute)
-                except:
-                    print('handle_attribute fail for type {}'.format(attribute_type))
+                attribute_type, attribute_value, _ = self.handle_attribute_type(properties)
+                self.misp_event.add_attribute(attribute_type, attribute_value, **attribute)
 
     def parse_ttps(self, ttps):
         for ttp in ttps:
