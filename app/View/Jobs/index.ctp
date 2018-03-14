@@ -1,7 +1,7 @@
 <div class="jobs index">
 	<h2><?php echo __('Jobs');?></h2>
 	<h4>
-		Purge log entries:
+		Purge job entries:
 	</h4>
 	<span>
 		<?php
