@@ -256,7 +256,6 @@ attributes or the appropriate distribution level. If you think there is a mistak
 			if ($focusedRow !== false):
 		?>
 			//window.location.hash = '.row_' + '<?php echo h($focusedRow); ?>';
-			console.log('.row_' + '<?php echo h($focusedRow); ?>');
 			//$.scrollTo('#row_' + '<?php echo h($k); ?>', 800, {easing:'elasout'});
 			//$('html,body').animate({scrollTop: $('#row_' + '<?php echo h($k); ?>').offset().top}, 'slow');
 				$('.row_' + '<?php echo h($focusedRow); ?>').focus();
