@@ -131,4 +131,18 @@ class JobsController extends AppController {
 			return new CakeResponse(array('body' => json_encode($id), 'type' => 'json'));
 		}
 	}
+
+	public function clearJobs($type = 'completed') {
+		if ($this->request->is('post')) {
+			$conditions = array('Job.progress' => 100);
+			$message = __('All completed jobs have been purged');
+			if ($type == 'all') {
+				$conditions = array('Job.id !=' => 0);
+				$message = __('All jobs have been purged');
+			}
+			$this->Job->deleteAll($conditions, false);
+			$this->Session->setFlash($message);
+			$this->redirect(array('action' => 'index'));
+		}
+	}
 }

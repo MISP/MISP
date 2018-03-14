@@ -1,5 +1,25 @@
 <div class="jobs index">
 	<h2><?php echo __('Jobs');?></h2>
+	<h4>
+		Purge log entries:
+	</h4>
+	<span>
+		<?php
+			echo $this->Form->postLink(
+				__('Completed'),
+				array('controller' => 'jobs', 'action' => 'clearJobs'),
+				array('class' => 'btn btn-inverse qet toggle-left'),
+				__('Are you sure you want to purge all completed job entries? Job entries are considered as log entries and have no impact on actual job execution.')
+			);
+			echo $this->Form->postLink(
+				__('All'),
+				array('controller' => 'jobs', 'action' => 'clearJobs', 'all'),
+				array('class' => 'btn btn-inverse qet toggle-right'),
+				__('Are you sure you want to purge all job entries? Job entries are considered as log entries and have no impact on actual job execution.')
+			);
+		?>
+	</span>
+	<br />
 	<div class="pagination">
 		<ul>
 		<?php
@@ -35,7 +55,6 @@
 				}, 3000);
 		}
 	</script>
-	<br />
 	<div id="attributeList" class="attributeListContainer">
 		<div class="tabMenu tabMenuFiltersBlock noPrint" style="padding-right:0px !important;">
 			<span id="filter_header" class="attribute_filter_header"><?php echo __('Filters');?>: </span>
