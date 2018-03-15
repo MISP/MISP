@@ -185,8 +185,8 @@ class StixParser():
             event_types = eventTypes[xsi_type]
             return event_types['type'], properties.key.value, event_types['relation']
         elif xsi_type == "WhoisObjectType":
-            # print(dir(properties))
-            return
+            print(dir(properties))
+            return self.handle_whois(properties)
         else:
             # ATM USED TO TEST TYPES
             print("Unparsed type: {}".format(xsi_type))
@@ -294,6 +294,37 @@ class StixParser():
             value1 = properties.hostname.hostname_value.value
         return "{}|port".format(type1), "{}|{}".format(value1, properties.port.port_value.value), ""
 
+    @staticmethod
+    def handle_whois(properties):
+        attributes = []
+        if properties.remarks:
+            attribute_type = "text"
+            attributes.append([attribute_type, properties.remarks.value, attribute_type])
+        if properties.registrar_info:
+            attribute_type = "whois-registrar"
+            attributes.append([attribute_type, properties.registrar_info.value, attribute_type])
+        # if properties.registrants:
+        #     print(dir(properties.registrants))
+            # self.handle_registrants(attributes, properties.registrants)
+        if properties.creation_date:
+            attributes.append(["datetime", properties.creation_date.value, "creation-date"])
+        if properties.updated_date:
+            attributes.append(["datetime", properties.updated_date.value, "modification-date"])
+        if properties.expiration_date:
+            attributes.append(["datetime", properties.expiration_date.value, "expiration-date"])
+        # if properties.nameservers:
+        #     print(dir(properties.nameservers))
+        #     self.handle_nameservers(attributes, properties.nameservers)
+        if properties.domain_name:
+            attribute_type = "domain"
+            attributes.append([attribute_type, properties.domain_name.value, attribute_type])
+        if len(attributes) == 1:
+            return attributes[0]
+        return_attributes = []
+        for attribute in attributes:
+            return_attributes.append(dict(zip(('type', 'value', 'object_relation'), attribute)))
+        return "whois", return_attributes, ""
+
     def parse_misp_object(self, indicator):
         object_type = str(indicator.relationship)
         if object_type == 'file':
@@ -361,6 +392,7 @@ class StixParser():
 
     def saveFile(self):
         eventDict = self.misp_event.to_json()
+        # print(eventDict)
         with open(self.outputname, 'w') as f:
             f.write(eventDict)
 
