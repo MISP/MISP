@@ -120,6 +120,7 @@ class StixParser():
             self.misp_event.info = str(noinfo)
 
     def parse_misp_indicator(self, indicator):
+        # print(indicator.relationship)
         if indicator.relationship in categories:
             self.parse_misp_attribute(indicator)
         else:
@@ -129,23 +130,28 @@ class StixParser():
         misp_attribute = {'category': str(indicator.relationship)}
         item = indicator.item
         misp_attribute['timestamp'] = self.getTimestampfromDate(item.timestamp)
-        try:
-            if item.observable:
-                properties = item.observable.object_.properties
-                if properties:
-                    # print(properties.to_json())
-                    try:
-                        attribute_type, attribute_value, _ = self.handle_attribute_type(properties)
-                    except:
-                        raise Exception('handle_attribute fail: {}'.format(self.handle_attribute_type(properties)))
-                    try:
-                        self.misp_event.add_attribute(attribute_type, attribute_value, **misp_attribute)
-                    except:
-                        raise Exception('fail on adding attribute')
+        # try:
+        if item.observable:
+            properties = item.observable.object_.properties
+            if properties:
+                # print(properties.to_json())
+                # try:
+                attribute_type, attribute_value, _ = self.handle_attribute_type(properties)
+                # except:
+                #     raise Exception('handle_attribute fail: {}'.format(attribute_type))
+                # try:
+                if type(attribute_value) is str:
+                    self.misp_event.add_attribute(attribute_type, attribute_value, **misp_attribute)
                 else:
-                    raise Exception("properties fail")
-        except Exception as excep:
-            print(excep)
+                    misp_object = pymisp.MISPObject(attribute_type)
+                    misp_object.attributes = attribute.value
+                    self.misp_event.add_object(**misp_object)
+        #         except:
+        #             raise Exception('fail on adding attribute')
+        #     else:
+        #         raise Exception("properties fail")
+        # except Exception as excep:
+        #     print(excep)
 
     def handle_attribute_type(self, properties, is_object=False):
         xsi_type = properties._XSI_TYPE
@@ -179,6 +185,7 @@ class StixParser():
             event_types = eventTypes[xsi_type]
             return event_types['type'], properties.key.value, event_types['relation']
         elif xsi_type == "WhoisObjectType":
+            # print(dir(properties))
             return
         else:
             # ATM USED TO TEST TYPES
@@ -209,59 +216,60 @@ class StixParser():
             sys.exit(1)
 
     def handle_file(self, properties, is_object):
-        if properties.hashes and properties.file_name:
-            if is_object:
-                return self.handle_malware_sample(properties)
-            else:
-                hash_type, hash_value, _ = self.handle_hashes_attribute(properties)
-                return "filename|{}".format(hash_type), "{}|{}".format(properties.file_name.value, hash_value), ""
+        b_hash, b_file = False, False
+        attributes = []
         if properties.hashes:
-            return self.handle_hashes_attribute(properties)
-        elif properties.file_name:
+            b_hash = True
+            for h in properties.hashes:
+                attributes.append(self.handle_hashes_attribute(h))
+        if properties.file_name:
+            b_file = True
             event_types = eventTypes[properties._XSI_TYPE]
             value = properties.file_name.value
             if not value:
                 value = properties.file_path.value
-            return event_types['type'], value, event_types['relation']
-        elif properties.byte_runs:
-            return "pattern-in-file", properties.byte_runs[0].byte_run_data, "pattern-in-file"
-        else:
-            # ATM USED TO CATCH UNSUPPORTED FILE OBJECTS PROPERTIES
-            print("Unsupported File Object property")
-            # sys.exit(1)
+            attributes.append([event_types['type'], value, event_types['relation']])
+        if properties.byte_runs:
+            attribute_type = "pattern-in-file"
+            attributes.append([attribute_type, properties.byte_runs[0].byte_run_data, attribute_type])
+        if properties.size_in_bytes:
+            attribute_type = "size-in-bytes"
+            attributes.append([attribute_type, properties.size_in_bytes.value, attribute_type])
+        if properties.peak_entropy:
+            attributes.append(["float", properties.peak_entropy.value, "entropy"])
+        if len(attributes) == 1:
+            return attributes[0]
+        if len(attributes) == 2:
+            if b_hash and b_file:
+                return self.handle_filename_object(attributes, is_object)
+        return_attributes= []
+        for attribute in attributes:
+            return_attributes.append(dict(zip(('type', 'value', 'object_relation'), attribute)))
+        return "file", return_attributes, ""
 
     @staticmethod
-    def handle_malware_sample(properties):
-        malware_sample_value = "{}|{}".format(properties.file_name.value, properties.md5.value)
-        return "malware-sample", malware_sample_value, "malware-sample"
+    def handle_filename_object(attributes, is_object):
+        for attribute in attributes:
+            attribute_type, attribute_value, _ = attribute
+            if attribute_type == "filename":
+                filename_value = attribute_value
+            else:
+                hash_type, hash_value = attribute_type, attribute_value
+        value = "{}|{}".format(filename_value,  hash_value)
+        if is_object:
+            attr_type = "malware-sample"
+            return attr_type, value, attr_type
+        else:
+            return "filename|{}".format(hash_type), value, ""
 
     @staticmethod
     def handle_hashes_attribute(properties):
-        if properties.md5:
-            hash_type = "md5"
-            return hash_type, properties.md5.value, hash_type
-        elif properties.sha1:
-            hash_type = "sha1"
-            return hash_type, properties.sha1.value, hash_type
-        elif properties.sha224:
-            hash_type = "sha224"
-            return hash_type, properties.sha224.value, hash_type
-        elif properties.sha256:
-            hash_type = "sha256"
-            return hash_type, properties.sha256.value, hash_type
-        elif properties.sha384:
-            hash_type = "sha384"
-            return hash_type, properties.sha384.value, hash_type
-        elif properties.sha512:
-            hash_type = "sha512"
-            return hash_type, properties.sha512.value, hash_type
-        elif properties.ssdeep:
-            hash_type = "ssdeep"
-            return hash_type, properties.ssdeep.value, hash_type
-        else:
-            # ATM USED TO CATCH UNSUPPORTED HASH PROPERTIES
-            print("Unsupported hash property")
-            sys.exit(1)
+        hash_type = properties.type_.value.lower()
+        try:
+            hash_value = properties.simple_hash_value.value
+        except AttributeError:
+            hash_value = properties.fuzzy_hash_value.value
+        return hash_type, hash_value, hash_type
 
     @staticmethod
     def handle_http(properties):
@@ -294,7 +302,8 @@ class StixParser():
         elif object_type == 'network':
             item = indicator.item
             name = item.title.split(' ')[0]
-            self.fill_misp_object(item, name)
+            if name not in ('whois', 'passive-dns'):
+                self.fill_misp_object(item, name)
         else:
             if object_type != "misc":
                 print("Unparsed Object type: {}".format(name))
@@ -318,10 +327,16 @@ class StixParser():
             except:
                 continue
             if properties:
-                attribute = {'timestamp': self.getTimestampfromDate(indicator.timestamp),
-                             'to_ids': True}
                 attribute_type, attribute_value, _ = self.handle_attribute_type(properties)
-                self.misp_event.add_attribute(attribute_type, attribute_value, **attribute)
+                if type(attribute_value) is str:
+                    attribute = {'timestamp': self.getTimestampfromDate(indicator.timestamp),
+                                 'to_ids': True}
+                    self.misp_event.add_attribute(attribute_type, attribute_value, **attribute)
+                else:
+                    misp_object = pymisp.MISPObject(attribute_type)
+                    for attribute in attribute_value:
+                        misp_object.add_attribute(**attribute)
+                    self.misp_event.add_object(**misp_object)
 
     def parse_external_observable(self, observables):
         for observable in observables:
@@ -330,9 +345,15 @@ class StixParser():
             except:
                 continue
             if properties:
-                attribute = {'to_ids': False}
                 attribute_type, attribute_value, _ = self.handle_attribute_type(properties)
-                self.misp_event.add_attribute(attribute_type, attribute_value, **attribute)
+                if type(attribute_value) is str:
+                    attribute = {'to_ids': False}
+                    self.misp_event.add_attribute(attribute_type, attribute_value, **attribute)
+                else:
+                    misp_object = pymisp.MISPObject(attribute_type)
+                    for attribute in attribute_value:
+                        misp_object.add_attribute(**attribute)
+                    self.misp_event.add_object(**misp_object)
 
     def parse_ttps(self, ttps):
         for ttp in ttps:
