@@ -181,12 +181,13 @@ class StixParser():
         elif xsi_type == 'URIObjectType':
             event_types = eventTypes[xsi_type]
             return event_types['type'], properties.value.value, event_types['relation']
+        elif xsi_type == "WhoisObjectType":
+            return self.handle_whois(properties)
         elif xsi_type == 'WindowsRegistryKeyObjectType':
             event_types = eventTypes[xsi_type]
             return event_types['type'], properties.key.value, event_types['relation']
-        elif xsi_type == "WhoisObjectType":
-            print(dir(properties))
-            return self.handle_whois(properties)
+        elif xsi_type == "WindowsExecutableFileObjectType":
+            return self.handle_pe(properties)
         else:
             # ATM USED TO TEST TYPES
             print("Unparsed type: {}".format(xsi_type))
@@ -292,11 +293,12 @@ class StixParser():
         return "{}|port".format(type1), "{}|{}".format(value1, properties.port.port_value.value), ""
 
     def handle_whois(self, properties):
-        required, required_one_of = False, False
+        required_one_of = False
         attributes = []
         if properties.remarks:
             attribute_type = "text"
             attributes.append([attribute_type, properties.remarks.value, attribute_type])
+            required_one_of = True
         if properties.registrar_info:
             attribute_type = "whois-registrar"
             attributes.append([attribute_type, properties.registrar_info.value, attribute_type])
@@ -313,18 +315,21 @@ class StixParser():
         if properties.nameservers:
             for nameserver in properties.nameservers:
                 attributes.append(["hostname", nameserver.value.value, "nameserver"])
+        if properties.ip_address:
+            attributes.append(["ip-dst", properties.ip_address.value, "ip-address"])
+            required_one_of = True
         if properties.domain_name:
             attribute_type = "domain"
             attributes.append([attribute_type, properties.domain_name.value, attribute_type])
-            required = True
-        if len(attributes) == 1:
-            return attributes[0]
+            required_one_of = True
         # Testing if we have the required attribute types for Object whois
-        if required and required_one_of:
+        if required_one_of:
             # if yes, we return the object type and the attributes
             return "whois", self.return_attributes(attributes), ""
         else:
             # otherwise, attributes are added in the event, and one attribute is returned to not make the function crash
+            if len(attributes) == 1:
+                return attributes[0]
             last_attribute = attributes.pop(-1)
             for attribute in attributes:
                 attribute_type, attribute_value, attribute_relation = attribute
@@ -340,7 +345,7 @@ class StixParser():
         elif object_type == 'network':
             item = indicator.item
             name = item.title.split(' ')[0]
-            if name not in ('whois', 'passive-dns'):
+            if name not in ('passive-dns'):
                 self.fill_misp_object(item, name)
         else:
             if object_type != "misc":
@@ -415,7 +420,6 @@ class StixParser():
 
     def saveFile(self):
         eventDict = self.misp_event.to_json()
-        # print(eventDict)
         with open(self.outputname, 'w') as f:
             f.write(eventDict)
 
