@@ -25,6 +25,7 @@ eventTypes = {"DomainNameObjectType": {"type": "domain", "relation": "domain"},
               "MutexObjectType": {"type": "mutex", "relation": "mutex"},
               "PortObjectType": {"type": "port", "relation": "dst-port"},
               "URIObjectType": {"type": "url", "relation": "url"},
+              "WindowsExecutableFileObjectType": {"type": "filename", "relation": "filename"},
               "WindowsRegistryKeyObjectType": {"type": "regkey", "relation": ""}}
 
 descFilename = os.path.join(pymisp.__path__[0], 'data/describeTypes.json')
@@ -144,7 +145,7 @@ class StixParser():
                     self.misp_event.add_attribute(attribute_type, attribute_value, **misp_attribute)
                 else:
                     misp_object = pymisp.MISPObject(attribute_type)
-                    misp_object.attributes = attribute.value
+                    misp_object.attributes = attribute_value
                     self.misp_event.add_object(**misp_object)
         #         except:
         #             raise Exception('fail on adding attribute')
@@ -223,6 +224,8 @@ class StixParser():
             b_hash = True
             for h in properties.hashes:
                 attributes.append(self.handle_hashes_attribute(h))
+        if properties.file_format:
+            attributes.append(["mime-type", properties.file_format.value, "mimetype"])
         if properties.file_name:
             b_file = True
             event_types = eventTypes[properties._XSI_TYPE]
@@ -337,6 +340,22 @@ class StixParser():
                 self.misp_event.add_attribute(attribute_type, attribute_value, **misp_attributes)
             return last_attribute
 
+    def handle_pe(self, properties):
+        pe_uuid = self.parse_pe(properties)
+        file_type, file_value, _ = self.handle_file(properties, False)
+        return file_type, file_value, pe_uuid
+
+    def parse_pe(self, properties):
+        misp_object = pymisp.MISPObject('pe')
+        filename = properties.file_name
+        for attr in ('internal-filename', 'original-filename'):
+            misp_object.add_attribute(**dict(zip(('type', 'value', 'object_relation'),('filename', filename, attr))))
+        if properties.headers:
+            misp_object.add_attribute({"type": "counter", "object_relation": "number-sections",
+                                       "value": properties.headers.file_header.number_of_sections.value})
+        self.misp_event.add_object(**misp_object)
+        return {"pe_uuid": misp_object.uuid}
+
     def parse_misp_object(self, indicator):
         object_type = str(indicator.relationship)
         if object_type == 'file':
@@ -371,16 +390,13 @@ class StixParser():
                 self.parse_description(indicator)
                 continue
             if properties:
-                attribute_type, attribute_value, _ = self.handle_attribute_type(properties)
+                attribute_type, attribute_value, compl_data = self.handle_attribute_type(properties)
                 if type(attribute_value) is str:
                     attribute = {'timestamp': self.getTimestampfromDate(indicator.timestamp),
                                  'to_ids': True}
                     self.misp_event.add_attribute(attribute_type, attribute_value, **attribute)
                 else:
-                    misp_object = pymisp.MISPObject(attribute_type)
-                    for attribute in attribute_value:
-                        misp_object.add_attribute(**attribute)
-                    self.misp_event.add_object(**misp_object)
+                    self.handle_object_case(attribute_type, attribute_value, compl_data)
 
     def parse_external_observable(self, observables):
         for observable in observables:
@@ -390,15 +406,12 @@ class StixParser():
                 self.parse_description(observable)
                 continue
             if properties:
-                attribute_type, attribute_value, _ = self.handle_attribute_type(properties)
+                attribute_type, attribute_value, compl_data = self.handle_attribute_type(properties)
                 if type(attribute_value) is str:
                     attribute = {'to_ids': False}
                     self.misp_event.add_attribute(attribute_type, attribute_value, **attribute)
                 else:
-                    misp_object = pymisp.MISPObject(attribute_type)
-                    for attribute in attribute_value:
-                        misp_object.add_attribute(**attribute)
-                    self.misp_event.add_object(**misp_object)
+                    self.handle_object_case(attribute_type, attribute_value, compl_data)
 
     def parse_description(self, stix_object):
         if stix_object.description:
@@ -406,6 +419,14 @@ class StixParser():
             if stix_object.timestamp:
                 misp_attribute['timestamp'] = self.getTimestampfromDate(stix_object.timestamp)
             self.misp_event.add_attribute("text", stix_object.description.value, **misp_attribute)
+
+    def handle_object_case(self, attribute_type, attribute_value, compl_data):
+        misp_object = pymisp.MISPObject(attribute_type)
+        for attribute in attribute_value:
+            misp_object.add_attribute(**attribute)
+        if compl_data is dict and "pe_uuid" in compl_data:
+            misp_object.add_reference(compl_data['pe_uuid'], 'pe')
+        self.misp_event.add_object(**misp_object)
 
     def parse_ttps(self, ttps):
         for ttp in ttps:
