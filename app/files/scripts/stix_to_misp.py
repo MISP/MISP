@@ -363,6 +363,7 @@ class StixParser():
             try:
                 properties = indicator.observable.object_.properties
             except:
+                self.parse_description(indicator)
                 continue
             if properties:
                 attribute_type, attribute_value, _ = self.handle_attribute_type(properties)
@@ -381,6 +382,7 @@ class StixParser():
             try:
                 properties = observable.object_.properties
             except:
+                self.parse_description(observable)
                 continue
             if properties:
                 attribute_type, attribute_value, _ = self.handle_attribute_type(properties)
@@ -392,6 +394,13 @@ class StixParser():
                     for attribute in attribute_value:
                         misp_object.add_attribute(**attribute)
                     self.misp_event.add_object(**misp_object)
+
+    def parse_description(self, stix_object):
+        if stix_object.description:
+            misp_attribute = {}
+            if stix_object.timestamp:
+                misp_attribute['timestamp'] = self.getTimestampfromDate(stix_object.timestamp)
+            self.misp_event.add_attribute("text", stix_object.description.value, **misp_attribute)
 
     def parse_ttps(self, ttps):
         for ttp in ttps:
