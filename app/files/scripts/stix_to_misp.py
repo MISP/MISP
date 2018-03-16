@@ -242,10 +242,7 @@ class StixParser():
         if len(attributes) == 2:
             if b_hash and b_file:
                 return self.handle_filename_object(attributes, is_object)
-        return_attributes= []
-        for attribute in attributes:
-            return_attributes.append(dict(zip(('type', 'value', 'object_relation'), attribute)))
-        return "file", return_attributes, ""
+        return "file", self.return_attributes(attributes), ""
 
     @staticmethod
     def handle_filename_object(attributes, is_object):
@@ -294,8 +291,8 @@ class StixParser():
             value1 = properties.hostname.hostname_value.value
         return "{}|port".format(type1), "{}|{}".format(value1, properties.port.port_value.value), ""
 
-    @staticmethod
-    def handle_whois(properties):
+    def handle_whois(self, properties):
+        required, required_one_of = False, False
         attributes = []
         if properties.remarks:
             attribute_type = "text"
@@ -303,27 +300,37 @@ class StixParser():
         if properties.registrar_info:
             attribute_type = "whois-registrar"
             attributes.append([attribute_type, properties.registrar_info.value, attribute_type])
-        # if properties.registrants:
-        #     print(dir(properties.registrants))
-            # self.handle_registrants(attributes, properties.registrants)
+            required_one_of = True
+        if properties.registrants:
+            print(dir(properties.registrants))
         if properties.creation_date:
             attributes.append(["datetime", properties.creation_date.value, "creation-date"])
+            required_one_of = True
         if properties.updated_date:
             attributes.append(["datetime", properties.updated_date.value, "modification-date"])
         if properties.expiration_date:
             attributes.append(["datetime", properties.expiration_date.value, "expiration-date"])
-        # if properties.nameservers:
-        #     print(dir(properties.nameservers))
-        #     self.handle_nameservers(attributes, properties.nameservers)
+        if properties.nameservers:
+            for nameserver in properties.nameservers:
+                attributes.append(["hostname", nameserver.value.value, "nameserver"])
         if properties.domain_name:
             attribute_type = "domain"
             attributes.append([attribute_type, properties.domain_name.value, attribute_type])
+            required = True
         if len(attributes) == 1:
             return attributes[0]
-        return_attributes = []
-        for attribute in attributes:
-            return_attributes.append(dict(zip(('type', 'value', 'object_relation'), attribute)))
-        return "whois", return_attributes, ""
+        # Testing if we have the required attribute types for Object whois
+        if required and required_one_of:
+            # if yes, we return the object type and the attributes
+            return "whois", self.return_attributes(attributes), ""
+        else:
+            # otherwise, attributes are added in the event, and one attribute is returned to not make the function crash
+            last_attribute = attributes.pop(-1)
+            for attribute in attributes:
+                attribute_type, attribute_value, attribute_relation = attribute
+                misp_attributes = {"comment": "Whois {}".format(attribute_relation)}
+                self.misp_event.add_attribute(attribute_type, attribute_value, **misp_attributes)
+            return last_attribute
 
     def parse_misp_object(self, indicator):
         object_type = str(indicator.relationship)
@@ -389,6 +396,13 @@ class StixParser():
     def parse_ttps(self, ttps):
         for ttp in ttps:
             behavior = ttp.behavior
+
+    @staticmethod
+    def return_attributes(attributes):
+        return_attributes = []
+        for attribute in attributes:
+            return_attributes.append(dict(zip(('type', 'value', 'object_relation'), attribute)))
+        return return_attributes
 
     def saveFile(self):
         eventDict = self.misp_event.to_json()
