@@ -39,13 +39,22 @@
   ?>
         <div class="value_select_with_manual_entry">
   <?php
+          $choice = '';
+          if (!empty($element['value'])) {
+            if (in_array($element['value'], $list)) {
+              $choice = $element['value'];
+            } else {
+              $choice = 'Enter value manually';
+            }
+          }
+
           echo $this->Form->input('Attribute.' . $k . '.value_select', array(
             'class' => 'Attribute_value_select',
             'style' => 'width:414px;margin-bottom:0px;',
             'options' => array_combine($list, $list),
             'label' => false,
             'div' => false,
-            'value' => empty($element['value']) ? '' : $element['value']
+            'value' => $choice
           ));
   ?>
     <br />
@@ -55,7 +64,7 @@
             'type' => 'textarea',
             'required' => false,
             'allowEmpty' => true,
-            'style' => 'height:20px;width:400px;display:none;',
+            'style' => 'height:20px;width:400px;' . (($choice == 'Enter value manually') ? '' : 'display:none;'),
             'label' => false,
             'div' => false,
             'value' => empty($element['value']) ? '' : $element['value']
