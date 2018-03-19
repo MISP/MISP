@@ -350,7 +350,7 @@ class StixParser():
 
     def parse_pe(self, properties):
         misp_object = pymisp.MISPObject('pe')
-        filename = properties.file_name
+        filename = properties.file_name.value
         for attr in ('internal-filename', 'original-filename'):
             misp_object.add_attribute(**dict(zip(('type', 'value', 'object_relation'),('filename', filename, attr))))
         if properties.headers:
