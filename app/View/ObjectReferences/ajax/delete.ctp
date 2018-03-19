@@ -9,7 +9,20 @@
 ?>
 <legend><?php echo __('Object reference Deletion');?></legend>
 <div style="padding-left:5px;padding-right:5px;padding-bottom:5px;">
-<p><?php echo __('Are you sure you want to %s delete Object reference #%s? %s',(if ($hard) echo 'hard-'), $id, (if ($hard) echo ' The Attribute will be permanently deleted and unrecoverable. Also, this will prevent the deletion to be propagated to other instances.'));?></p>
+<?php
+  $type = 'soft-';
+  if ($hard) $type = 'hard-';
+?>
+<p>
+  <?php
+    echo __(
+      'Are you sure you want to %s delete Object reference #%s?%s',
+      __($type),
+      $id,
+      $hard ? __(' The Attribute will be permanently deleted and unrecoverable. Also, this will prevent the deletion to be propagated to other instances.') : ''
+    );
+  ?>
+</p>
 	<table>
 		<tr>
 			<td style="vertical-align:top">
