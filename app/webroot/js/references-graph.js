@@ -259,13 +259,7 @@ function update_graph(data) {
 }
 
 function reset_view() {
-	network.moveTo({
-		position: {
-			x: 0,
-			y: 0
-		},
-		animation: true,
-	});
+	network.fit({animation: true });
 }
 
 // Data
