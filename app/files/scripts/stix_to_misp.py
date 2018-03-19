@@ -354,10 +354,46 @@ class StixParser():
         for attr in ('internal-filename', 'original-filename'):
             misp_object.add_attribute(**dict(zip(('type', 'value', 'object_relation'),('filename', filename, attr))))
         if properties.headers:
-            misp_object.add_attribute({"type": "counter", "object_relation": "number-sections",
-                                       "value": properties.headers.file_header.number_of_sections.value})
+            headers = properties.headers
+            header_object = pymisp.MISPObject('pe-section')
+            if headers.entropy:
+                header_object.add_attribute(**{"type": "float", "object_relation": "entropy",
+                                               "value": headers.entropy.value.value})
+            file_header = headers.file_header
+            misp_object.add_attribute(**{"type": "counter", "object_relation": "number-sections",
+                                         "value": file_header.number_of_sections.value})
+            for h in file_header.hashes:
+                hash_type, hash_value, hash_relation = self.handle_hashes_attribute(h)
+                header_object.add_attribute(**{"type": hash_type, "value": hash_value, "object_relation": hash_relation})
+            if file_header.size_of_optional_header:
+                header_object.add_attribute(**{"type": "size-in-bytes", "object_relation": "size-in-bytes",
+                                               "value": file_header.size_of_optional_header.value})
+            self.misp_event.add_object(**header_object)
+            misp_object.add_reference(header_object.uuid, 'pe-section')
+        if properties.sections:
+            for section in properties.sections:
+                section_uuid = self.parse_pe_section(section)
+                misp_object.add_reference(section_uuid, 'pe-section')
         self.misp_event.add_object(**misp_object)
         return {"pe_uuid": misp_object.uuid}
+
+    def parse_pe_section(self, section):
+        section_object = pymisp.MISPObject('pe-section')
+        header_hashes = section.header_hashes
+        for h in header_hashes:
+            hash_type, hash_value, hash_relation = self.handle_hashes_attribute(h)
+            section_object.add_attribute(**{"type": hash_type, "value": hash_value, "object_relation": hash_relation})
+        if section.entropy:
+            section_object.add_attribute(**{"type": "float", "object_relation": "entropy",
+                                            "value": section.entropy.value.value})
+        if section.section_header:
+            section_header = section.section_header
+            section_object.add_attribute(**{"type": "text", "object_relation": "name",
+                                            "value": section_header.name.value})
+            section_object.add_attribute(**{"type": "size-in-bytes", "object_relation": "size-in-bytes",
+                                            "value": section_header.size_of_raw_data.value})
+        self.misp_event.add_object(**section_object)
+        return section_object.uuid
 
     def parse_misp_object(self, indicator):
         object_type = str(indicator.relationship)
@@ -434,7 +470,7 @@ class StixParser():
         misp_object = pymisp.MISPObject(attribute_type)
         for attribute in attribute_value:
             misp_object.add_attribute(**attribute)
-        if compl_data is dict and "pe_uuid" in compl_data:
+        if type(compl_data) is dict and "pe_uuid" in compl_data:
             misp_object.add_reference(compl_data['pe_uuid'], 'pe')
         self.misp_event.add_object(**misp_object)
 
