@@ -67,8 +67,10 @@ class StixParser():
         else:
             self.outputname = '{}.json'.format(self.filename)
         if self.fromMISP:
+            # STIX format coming from a MISP export
             self.buildMispDict()
         else:
+            # external STIX format file
             self.buildExternalDict()
 
     def buildMispDict(self):
@@ -122,7 +124,7 @@ class StixParser():
             self.misp_event.info = str(noinfo)
 
     def parse_misp_indicator(self, indicator):
-        # print(indicator.relationship)
+    # define is an indicator will be imported as attribute or object
         if indicator.relationship in categories:
             self.parse_misp_attribute(indicator)
         else:
@@ -132,32 +134,21 @@ class StixParser():
         misp_attribute = {'category': str(indicator.relationship)}
         item = indicator.item
         misp_attribute['timestamp'] = self.getTimestampfromDate(item.timestamp)
-        # try:
         if item.observable:
             properties = item.observable.object_.properties
             if properties:
-                # print(properties.to_json())
-                # try:
                 attribute_type, attribute_value, _ = self.handle_attribute_type(properties)
-                # except:
-                #     raise Exception('handle_attribute fail: {}'.format(attribute_type))
-                # try:
                 if type(attribute_value) is str:
+                    # if the returned value is a simple value, we build an attribute
                     self.misp_event.add_attribute(attribute_type, attribute_value, **misp_attribute)
                 else:
+                    # otherwise, it is a dictionary of attributes, so we build an object
                     misp_object = pymisp.MISPObject(attribute_type)
                     misp_object.attributes = attribute_value
                     self.misp_event.add_object(**misp_object)
-        #         except:
-        #             raise Exception('fail on adding attribute')
-        #     else:
-        #         raise Exception("properties fail")
-        # except Exception as excep:
-        #     print(excep)
 
     def handle_attribute_type(self, properties, is_object=False, title=None):
         xsi_type = properties._XSI_TYPE
-        # print(xsi_type)
         if xsi_type == 'AddressObjectType':
             return self.handle_address(properties)
         elif xsi_type == 'EmailMessageObjectType':
@@ -195,8 +186,6 @@ class StixParser():
         else:
             # ATM USED TO TEST TYPES
             print("Unparsed type: {}".format(xsi_type))
-            # print(properties.to_json())
-            # print(dir(properties))
             sys.exit(1)
 
     @staticmethod
@@ -261,9 +250,11 @@ class StixParser():
                 hash_type, hash_value = attribute_type, attribute_value
         value = "{}|{}".format(filename_value,  hash_value)
         if is_object:
+            # file object attributes cannot be filename|hash, so it is malware-sample
             attr_type = "malware-sample"
             return attr_type, value, attr_type
         else:
+            # it could be malware-sample as well, but STIX is losing this information
             return "filename|{}".format(hash_type), value, ""
 
     @staticmethod
@@ -408,7 +399,6 @@ class StixParser():
         else:
             if object_type != "misc":
                 print("Unparsed Object type: {}".format(name))
-                # print(indicator.to_json())
 
     def fill_misp_object(self, item, name):
         misp_object = pymisp.MISPObject(name)
@@ -471,6 +461,9 @@ class StixParser():
         for attribute in attribute_value:
             misp_object.add_attribute(**attribute)
         if type(compl_data) is dict and "pe_uuid" in compl_data:
+            # if some complementary data is a dictionary containing an uuid,
+            # it means we are using it to add an object reference of a pe object
+            # in a file object
             misp_object.add_reference(compl_data['pe_uuid'], 'pe')
         self.misp_event.add_object(**misp_object)
 
