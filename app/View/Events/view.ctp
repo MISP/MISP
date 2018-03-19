@@ -331,6 +331,9 @@
 		<button class="btn btn-inverse toggle qet galaxy-toggle-button" id="galaxies_toggle" data-toggle-type="galaxies">
 			<span class="icon-minus icon-white" title="<?php echo __('Toggle galaxies');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle galaxies');?>" style="vertical-align:top;"></span><?php echo __('Galaxy');?>
 		</button>
+		<button class="btn btn-inverse toggle qet galaxy-toggle-button" id="references_toggle" data-toggle-type="references">
+			<span class="icon-minus icon-white" title="<?php echo __('Toggle references');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle references');?>" style="vertical-align:top;"></span><?php echo __('References');?>
+		</button>
 		<button class="btn btn-inverse toggle qet galaxy-toggle-button" id="attributes_toggle" data-toggle-type="attributes">
 			<span class="icon-minus icon-white" title="<?php echo __('Toggle attributes');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle attributes');?>" style="vertical-align:top;"></span><?php echo __('Attributes');?>
 		</button>
@@ -346,6 +349,9 @@
 	<div id="galaxies_div" class="info_container">
 		<h4 class="blue"><?php echo __('Galaxies');?></h4>
 		<?php echo $this->element('galaxyQuickView', array('mayModify' => $mayModify, 'isAclTagger' => $isAclTagger)); ?>
+	</div>
+	<div id="references_div" class="info_container_references_network">
+		<div id="references_network" class="references_network" data-event-id="<?php echo h($event['Event']['id']); ?>" data-user-manipulation="<?php echo h($mayModify) ? 'true' : 'false'; ?>"></div>
 	</div>
 	<div id="attributes_div">
 		<?php echo $this->element('eventattribute'); ?>
@@ -372,3 +378,7 @@ $(document).ready(function () {
 });
 </script>
 <input type="hidden" value="/shortcuts/event_view.json" class="keyboardShortcutsConfig" />
+<?php echo $this->Html->script('vis'); ?>
+<?php echo $this->Html->css('vis'); ?>
+<?php echo $this->Html->css('references-graph'); ?>
+<?php echo $this->Html->script('references-graph'); ?>

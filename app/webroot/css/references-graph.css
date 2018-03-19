@@ -1,0 +1,13 @@
+.info_container_references_network {
+	margin-top: 10px;
+	border: 1px solid #0088cc;
+	border-radius: 7px;
+	box-shadow: 0px 0px 6px #B2B2B2;
+	padding: 2px;
+	width: 100%;
+	height: 800px;
+}
+
+.references_network {
+	height: inherit;
+}
