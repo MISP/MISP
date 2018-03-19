@@ -51,7 +51,7 @@ var network_options = {
 		initiallyActive: true,
 		addEdge: add_reference,
 		editEdge: false,
-		addNode: false,
+		addNode: add_item,
 		deleteNode: false,
 		deleteEdge: remove_reference
 	},
@@ -114,6 +114,8 @@ var network_options = {
 			edit: 'Edit',
 			del: 'Delete selected',
 			back: 'Back',
+			addNode: 'Add Object or Attribute',
+			addDescription: 'Click in an empty space to place a new node.',
 			addEdge: 'Add Reference',
 			edgeDescription: 'Click on an Object and drag the edge to another Object (or Attribute) to connect them.'
 		}
@@ -206,6 +208,19 @@ function add_reference(edgeData, callback) {
 		$('#targetSelect').val(uuid);
 		$('option[value='+uuid+']').click()
 	});
+}
+
+function add_item(nodeData, callback) {
+	choicePopup("Add an element", [
+		{
+			text: "Add an object",
+			onclick: "getPopup('"+scope_id+"', 'objectTemplates', 'objectChoice');"
+		},
+		{
+			text: "Add an attribute",
+			onclick: "simplePopup('/attributes/add/"+scope_id+"');"
+		},
+	]);
 }
 
 function reset_graphs() {

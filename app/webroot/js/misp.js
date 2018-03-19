@@ -1259,6 +1259,29 @@ function simplePopup(url) {
 	});
 }
 
+function choicePopup(legend, list) {
+	var popupHtml = '<div class="popover_choice">';
+	popupHtml += '<legend>Select Object Category</legend>';
+		popupHtml += '<div class="popover_choice_main" id ="popover_choice_main">';
+			popupHtml += '<table style="width:100%;" id="MainTable">';
+				popupHtml += '<tbody>';
+					for (var item of list) {
+						popupHtml += '<tr style="border-bottom:1px solid black;" class="templateChoiceButton">';
+							popupHtml += '<td role="button" tabindex="0" aria-label="All meta-categories" title="'+item.text+'" style="padding-left:10px;padding-right:10px; text-align:center;width:100%;" onClick="'+item.onclick+';">'+item.text+'</td>';
+						popupHtml += '</tr>';
+					}
+				popupHtml += '</tbody>';
+			popupHtml += '</table>';
+		popupHtml += '</div>';
+		popupHtml += '<div role="button" tabindex="0" aria-label="Cancel" title="Cancel" class="templateChoiceButton templateChoiceButtonLast" onClick="cancelPopoverForm();">Cancel</div>';
+	popupHtml += '</div>';
+
+	$("#popover_form").html(popupHtml);
+	openPopup("#popover_form");
+
+	//$("#gray_out").fadeIn();
+}
+
 function resizePopoverBody() {
 	var bodyheight = $(window).height();
 	bodyheight = 3 * bodyheight / 4 - 150;
