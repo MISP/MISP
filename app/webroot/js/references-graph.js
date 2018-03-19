@@ -258,6 +258,16 @@ function update_graph(data) {
 	edges.update(newRelations);
 }
 
+function reset_view() {
+	network.moveTo({
+		position: {
+			x: 0,
+			y: 0
+		},
+		animation: true,
+	})
+}
+
 // Data
 function extract_references(data) {
 	var items = [];
@@ -323,6 +333,11 @@ $( document ).ready(function() {
 			animation: true,
 		});
 	});
+	// Fit view only when page is loading for the first time
+	network.on("stabilized", function(params) {
+		network.fit({ animation: true });
+		network.off("stabilized");
+	});
 
 	$(document).on("keydown", function(evt) {
 		switch(evt.keyCode) {
@@ -336,13 +351,7 @@ $( document ).ready(function() {
 				collapse_node(selected_id);
 				break;
 			case 86: // v
-				network.moveTo({
-					position: {
-						x: 0,
-						y: 0
-					},
-					animation: true,
-				});
+				reset_view();
 				break;
 
 			case 16: // <SHIFT>

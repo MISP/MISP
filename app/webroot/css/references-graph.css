@@ -6,6 +6,8 @@
 	padding: 2px;
 	width: 100%;
 	height: 800px;
+	resize: vertical;
+	overflow: auto;
 }
 
 .references_network {
