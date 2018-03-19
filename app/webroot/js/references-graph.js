@@ -52,17 +52,17 @@ var network_options = {
 		addEdge: add_reference,
 		editEdge: false,
 		addNode: add_item,
-		deleteNode: false,
+		deleteNode: delete_item,
 		deleteEdge: remove_reference
 	},
 	physics: {
 		enabled: true,
 		barnesHut: {
 			gravitationalConstant: -10000,
-			centralGravity: 3,
+			centralGravity: 5,
 			springLength: 150,
 			springConstant: 0.24,
-			damping: 0.6,
+			damping: 0.8,
 
 		}
 	},
@@ -223,6 +223,26 @@ function add_item(nodeData, callback) {
 	]);
 }
 
+function delete_item(nodeData, callback) {
+	var selected_nodes = nodeData.nodes;
+	for (nodeID of selected_nodes) {
+		node = nodes.get(nodeID)
+		if (node.group == "attribute") {
+			deleteObject('attributes', 'delete', nodeID, scope_id);
+		} else if (node.group == "object") {
+			deleteObject('objects', 'delete', nodeID, scope_id);
+		}
+	}
+	
+}
+
+function genericPopupCallback(result, referer) {
+	if (result == "success") {
+		reset_graphs();
+		fetch_data_and_update();
+	}
+}
+
 function reset_graphs() {
 	nodes.clear();
 	edges.clear();
@@ -374,9 +394,17 @@ $( document ).ready(function() {
 				if (!user_manipulation) { // user can't modify references
 					break;
 				}
-				var selected_id = network.getSelectedEdges()[0]; 
-				var edge = { edges: [selected_id] }; // trick to use the same function
-				remove_reference(edge);
+				//  References
+				var selected_ids = network.getSelectedEdges(); 
+				for (var selected_id of selected_ids) {
+					var edge = { edges: [selected_id] }; // trick to use the same function
+					remove_reference(edge);
+				}
+
+				//  Objects or Attributes
+				selected_ids = network.getSelectedNodes();
+				data = { nodes: selected_ids };
+				delete_item(data);
 				break;
 
 			default:

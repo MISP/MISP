@@ -565,9 +565,15 @@ function handleGenericAjaxResponse(data) {
 		if (responseArray.hasOwnProperty('check_publish')) {
 			checkAndSetPublishedInfo();
 		}
+		if (typeof genericPopupCallback !== "undefined") {
+			genericPopupCallback("success", data.success);
+		}
 		return true;
 	} else {
 		showMessage('fail', responseArray.errors);
+		if (typeof genericPopupCallback !== "undefined") {
+			genericPopupCallback("fail", data.success);
+		}
 		return false;
 	}
 }
@@ -900,8 +906,9 @@ function submitPopoverForm(context_id, referer, update_context_id) {
 			},
 			data: $("#submitButton").closest("form").serialize(),
 			success:function (data, textStatus) {
+				var result;
 				if (closePopover) {
-					var result = handleAjaxPopoverResponse(data, context_id, url, referer, context, contextNamingConvention);
+					result = handleAjaxPopoverResponse(data, context_id, url, referer, context, contextNamingConvention);
 				}
 				if (referer == 'addSighting') {
 					updateIndex(update_context_id, 'event');
@@ -915,21 +922,30 @@ function submitPopoverForm(context_id, referer, update_context_id) {
 				}
 				if (context == 'event' && (referer == 'add' || referer == 'massEdit' || referer == 'replaceAttributes' || referer == 'addObjectReference')) eventUnpublish();
 				$(".loading").hide();
+				// generic callback
+				if (typeof genericPopupCallback !== "undefined") {
+					genericPopupCallback(result, referer);
+				} else {
+					console.log('genericPopupCallback not defined');
+				}
 			},
 			type:"post",
 			url:url
 		});
 	}
+
 	return false;
 };
 
 function handleAjaxPopoverResponse(response, context_id, url, referer, context, contextNamingConvention) {
 	responseArray = response;
 	var message = null;
+	var result = "fail";
 	if (responseArray.saved) {
 		updateIndex(context_id, context);
 		if (responseArray.success) {
 			showMessage("success", responseArray.success);
+			result = "success";
 		}
 		if (responseArray.errors) {
 			showMessage("fail", responseArray.errors);
@@ -944,7 +960,9 @@ function handleAjaxPopoverResponse(response, context_id, url, referer, context, 
 				openPopup("#popover_form");
 				var error_context = context.charAt(0).toUpperCase() + context.slice(1);
 				handleValidationErrors(responseArray.errors, context, contextNamingConvention);
+				result = "success";
 				if (!$.isEmptyObject(responseArray)) {
+					result = "fail";
 					$("#formWarning").show();
 					$("#formWarning").html('The object(s) could not be saved. Please, try again.');
 				}
@@ -954,6 +972,7 @@ function handleAjaxPopoverResponse(response, context_id, url, referer, context, 
 			url:url
 		});
 	}
+	return result;
 }
 
 //before we update the form (in case the action failed), we want to retrieve the data from every field, so that we can set the fields in the new form that we fetch
@@ -1278,8 +1297,6 @@ function choicePopup(legend, list) {
 
 	$("#popover_form").html(popupHtml);
 	openPopup("#popover_form");
-
-	//$("#gray_out").fadeIn();
 }
 
 function resizePopoverBody() {
