@@ -24,7 +24,7 @@ eventTypes = {"ArtifactObjectType": {"type": "attachment", "relation": "attachme
               "FileObjectType": {"type": "filename", "relation": "filename"},
               "HostnameObjectType": {"type": "hostname", "relation": "host"},
               "MutexObjectType": {"type": "mutex", "relation": "mutex"},
-              "PortObjectType": {"type": "port", "relation": "dst-port"},
+              "PortObjectType": {"type": "port", "relation": "port"},
               "URIObjectType": {"type": "url", "relation": "url"},
               "WindowsExecutableFileObjectType": {"type": "filename", "relation": "filename"},
               "WindowsRegistryKeyObjectType": {"type": "regkey", "relation": ""}}
