@@ -59,7 +59,7 @@ var network_options = {
 		enabled: true,
 		barnesHut: {
 			gravitationalConstant: -10000,
-			centralGravity: 0.3,
+			centralGravity: 3,
 			springLength: 150,
 			springConstant: 0.24,
 			damping: 0.6,
@@ -336,7 +336,7 @@ $( document ).ready(function() {
 	// Fit view only when page is loading for the first time
 	network.on("stabilized", function(params) {
 		network.fit({ animation: true });
-		network.off("stabilized");
+		network.off("stabilized"); //  Removed listener
 	});
 
 	$(document).on("keydown", function(evt) {
