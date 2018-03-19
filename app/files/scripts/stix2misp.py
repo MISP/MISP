@@ -124,7 +124,7 @@ class StixParser():
             self.misp_event.info = str(noinfo)
 
     def parse_misp_indicator(self, indicator):
-    # define is an indicator will be imported as attribute or object
+        # define is an indicator will be imported as attribute or object
         if indicator.relationship in categories:
             self.parse_misp_attribute(indicator)
         else:
@@ -196,18 +196,36 @@ class StixParser():
             ip_type = "ip-dst"
         return ip_type, properties.address_value.value, "ip"
 
-    @staticmethod
-    def handle_email_attribute(properties):
-        if properties.from_:
-            return "email-src", properties.from_.address_value.value, "from"
-        elif properties.to:
-            return "email-dst", properties.to[0].address_value.value, "to"
-        elif properties.subject:
-            return "email-subject", properties.subject.value, "subject"
+    def handle_email_attribute(self, properties):
+        try:
+            if properties.from_:
+                return "email-src", properties.from_.address_value.value, "from"
+        except:
+            pass
+        try:
+            if properties.to:
+                return "email-dst", properties.to[0].address_value.value, "to"
+        except:
+            pass
+        try:
+            if properties.subject:
+                return "email-subject", properties.subject.value, "subject"
+        except:
+            pass
+        try:
+            if properties.attachments:
+                return self.handle_email_attachment(properties.parent)
+        except:
+            pass
         else:
             # ATM USED TO TEST EMAIL PROPERTIES
             print("Unsupported Email property")
             sys.exit(1)
+
+    @staticmethod
+    def handle_email_attachment(indicator_object):
+        properties = indicator_object.related_objects[0].properties
+        return "email-attachment", properties.file_name.value, "attachment"
 
     def handle_file(self, properties, is_object):
         b_hash, b_file = False, False
