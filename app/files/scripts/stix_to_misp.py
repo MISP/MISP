@@ -19,7 +19,8 @@ import sys, json, os, time
 import pymisp
 from stix.core import STIXPackage
 
-eventTypes = {"DomainNameObjectType": {"type": "domain", "relation": "domain"},
+eventTypes = {"ArtifactObjectType": {"type": "attachment", "relation": "attachment"},
+              "DomainNameObjectType": {"type": "domain", "relation": "domain"},
               "FileObjectType": {"type": "filename", "relation": "filename"},
               "HostnameObjectType": {"type": "hostname", "relation": "host"},
               "MutexObjectType": {"type": "mutex", "relation": "mutex"},
@@ -154,7 +155,7 @@ class StixParser():
         # except Exception as excep:
         #     print(excep)
 
-    def handle_attribute_type(self, properties, is_object=False):
+    def handle_attribute_type(self, properties, is_object=False, title=None):
         xsi_type = properties._XSI_TYPE
         # print(xsi_type)
         if xsi_type == 'AddressObjectType':
@@ -189,6 +190,8 @@ class StixParser():
             return event_types['type'], properties.key.value, event_types['relation']
         elif xsi_type == "WindowsExecutableFileObjectType":
             return self.handle_pe(properties)
+        elif xsi_type == "ArtifactObjectType":
+            return eventTypes[xsi_type]['type'], title, properties.raw_artifact.value
         else:
             # ATM USED TO TEST TYPES
             print("Unparsed type: {}".format(xsi_type))
@@ -394,22 +397,24 @@ class StixParser():
                 if type(attribute_value) is str:
                     attribute = {'timestamp': self.getTimestampfromDate(indicator.timestamp),
                                  'to_ids': True}
-                    self.misp_event.add_attribute(attribute_type, attribute_value, **attribute)
+                    self.handle_attribute_case(attribute_type, attribute_value, compl_data, attribute)
                 else:
                     self.handle_object_case(attribute_type, attribute_value, compl_data)
 
     def parse_external_observable(self, observables):
         for observable in observables:
+            title = observable.title
             try:
                 properties = observable.object_.properties
             except:
                 self.parse_description(observable)
                 continue
             if properties:
-                attribute_type, attribute_value, compl_data = self.handle_attribute_type(properties)
-                if type(attribute_value) is str:
+                attribute_type, attribute_value, compl_data = self.handle_attribute_type(properties, title=title)
+                attr_type = type(attribute_value)
+                if attr_type is str or attr_type is int:
                     attribute = {'to_ids': False}
-                    self.misp_event.add_attribute(attribute_type, attribute_value, **attribute)
+                    self.handle_attribute_case(attribute_type, attribute_value, compl_data, attribute)
                 else:
                     self.handle_object_case(attribute_type, attribute_value, compl_data)
 
@@ -419,6 +424,11 @@ class StixParser():
             if stix_object.timestamp:
                 misp_attribute['timestamp'] = self.getTimestampfromDate(stix_object.timestamp)
             self.misp_event.add_attribute("text", stix_object.description.value, **misp_attribute)
+
+    def handle_attribute_case(self, attribute_type, attribute_value, data, attribute):
+        if attribute_type == 'attachment':
+            attribute['data'] = data
+        self.misp_event.add_attribute(attribute_type, attribute_value, **attribute)
 
     def handle_object_case(self, attribute_type, attribute_value, compl_data):
         misp_object = pymisp.MISPObject(attribute_type)
