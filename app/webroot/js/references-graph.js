@@ -77,7 +77,7 @@ var network_options = {
 				values.shadowSize = 5;
 				values.shadowX = 2;
 				values.shadowY = 2;
-				shadowColor: "rgba(0,0,0,0.1)"
+				values.shadowColor = "rgba(0,0,0,0.1)";
 			}
 		}
 	},
@@ -87,7 +87,7 @@ var network_options = {
 			icon: {
 				face: 'FontAwesome',
 				code: '\uf00a',
-				size: 50,
+				size: 50
 			},
 			font: {
 				size: 18, // px
@@ -98,7 +98,7 @@ var network_options = {
 			size: 10,
 			color: { 
 				border:'black'
-			},
+			}
 		},
 		attribute: {
 			shape: 'box',
@@ -265,7 +265,7 @@ function reset_view() {
 			y: 0
 		},
 		animation: true,
-	})
+	});
 }
 
 // Data
