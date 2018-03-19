@@ -135,17 +135,36 @@ class StixParser():
         item = indicator.item
         misp_attribute['timestamp'] = self.getTimestampfromDate(item.timestamp)
         if item.observable:
-            properties = item.observable.object_.properties
-            if properties:
-                attribute_type, attribute_value, _ = self.handle_attribute_type(properties)
-                if type(attribute_value) is str:
-                    # if the returned value is a simple value, we build an attribute
+            observable = item.observable
+            try:
+                properties = observable.object_.properties
+                if properties:
+                    attribute_type, attribute_value, _ = self.handle_attribute_type(properties)
                     self.misp_event.add_attribute(attribute_type, attribute_value, **misp_attribute)
-                else:
-                    # otherwise, it is a dictionary of attributes, so we build an object
-                    misp_object = pymisp.MISPObject(attribute_type)
-                    misp_object.attributes = attribute_value
-                    self.misp_event.add_object(**misp_object)
+            except AttributeError:
+                attribute_dict = {}
+                for observables in observable.observable_composition.observables:
+                    properties = observables.object_.properties
+                    attribute_type, attribute_value, _ = self.handle_attribute_type(properties)
+                    attribute_dict[attribute_type] = attribute_value
+                attribute_type, attribute_value = self.composite_type(attribute_dict)
+                self.misp_event.add_attribute(attribute_type, attribute_value, **misp_attribute)
+
+    @staticmethod
+    def composite_type(attributes):
+        if "port" in attributes:
+            if "ip-src" in attributes:
+                return "ip-src|port", "{}|{}".format(attributes["ip-src"], attributes["port"])
+            elif "ip-dst" in attributes:
+                return "ip-dst|port", "{}|{}".format(attributes["ip-dst"], attributes["port"])
+            elif "hostname" in attributes:
+                return "hostname|port", "{}|{}".format(attributes["hostname"], attributes["port"])
+        elif "domain" in attributes:
+            if "ip-src" in attributes:
+                ip_value = attributes["ip-src"]
+            elif "ip-dst" in attributes:
+                ip_value = attributes["ip-dst"]
+            return "domain|ip", "{}|{}".format(attributes["domain"], ip_value)
 
     def handle_attribute_type(self, properties, is_object=False, title=None):
         xsi_type = properties._XSI_TYPE
@@ -439,10 +458,12 @@ class StixParser():
             if properties:
                 attribute_type, attribute_value, compl_data = self.handle_attribute_type(properties)
                 if type(attribute_value) is str:
+                    # if the returned value is a simple value, we build an attribute
                     attribute = {'timestamp': self.getTimestampfromDate(indicator.timestamp),
                                  'to_ids': True}
                     self.handle_attribute_case(attribute_type, attribute_value, compl_data, attribute)
                 else:
+                    # otherwise, it is a dictionary of attributes, so we build an object
                     self.handle_object_case(attribute_type, attribute_value, compl_data)
 
     def parse_external_observable(self, observables):
@@ -457,9 +478,11 @@ class StixParser():
                 attribute_type, attribute_value, compl_data = self.handle_attribute_type(properties, title=title)
                 attr_type = type(attribute_value)
                 if attr_type is str or attr_type is int:
+                    # if the returned value is a simple value, we build an attribute
                     attribute = {'to_ids': False}
                     self.handle_attribute_case(attribute_type, attribute_value, compl_data, attribute)
                 else:
+                    # otherwise, it is a dictionary of attributes, so we build an object
                     self.handle_object_case(attribute_type, attribute_value, compl_data)
 
     def parse_description(self, stix_object):
