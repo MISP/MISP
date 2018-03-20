@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-#    Copyright (C) 2017 CIRCL Computer Incident Response Center Luxembourg (smile gie)
-#    Copyright (C) 2017 Christian Studer
+#    Copyright (C) 2017-2018 CIRCL Computer Incident Response Center Luxembourg (smile gie)
+#    Copyright (C) 2017-2018 Christian Studer
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -19,409 +19,515 @@ import sys, json, os, time
 import pymisp
 from stix.core import STIXPackage
 
-eventTypes = {"ipv4-addr": {"src": "ip-src", "dst": "ip-dst", "value": "address_value", "relation": "ip"},
-              "ipv6-addr": {"src": "ip-src", "dst": "ip-dst", "value": "address_value", "relation": "ip"},
-              "URIObjectType": {"type": "url", "value": "value", "relation": "url"},
-              "FileObjectType": {"type": "filename", "value": "file_name", "relation": "filename"},
-              "DomainNameObjectType": {"type": "domain", "value": "value", "relation": "domain"},
-              "HostnameObjectType": {"type": "hostname", "value": "hostname_value", "relation": "host"},
-              "PortObjectType": {"type": "port", "value": "port_value", "relation": "port"},
-              "HTTPSessionObjectType": {"type": "", "value": "", "relation": ""},
-              "AddressObjectType": {"email": "email-src", "": ""},
-              "to": {"type": "email-dst", "value": "address_value", "relation": "to"},
-              "from": {"type": "email-src", "value": "value", "relation": "from"},
-              "subject": {"type": "email-subject", "value": "value", "relation": "subject"},
-              "email-attachment": {"value": "file_name", "relation": "attachment"},
-              "user_agent": "user-agent"}
+eventTypes = {"ArtifactObjectType": {"type": "attachment", "relation": "attachment"},
+              "DomainNameObjectType": {"type": "domain", "relation": "domain"},
+              "FileObjectType": {"type": "filename", "relation": "filename"},
+              "HostnameObjectType": {"type": "hostname", "relation": "host"},
+              "MutexObjectType": {"type": "mutex", "relation": "mutex"},
+              "PortObjectType": {"type": "port", "relation": "port"},
+              "URIObjectType": {"type": "url", "relation": "url"},
+              "WindowsExecutableFileObjectType": {"type": "filename", "relation": "filename"},
+              "WindowsRegistryKeyObjectType": {"type": "regkey", "relation": ""}}
 
 descFilename = os.path.join(pymisp.__path__[0], 'data/describeTypes.json')
 with open(descFilename, 'r') as f:
     categories = json.loads(f.read())['result'].get('categories')
 
-def loadEvent(args, pathname):
-    try:
-        filename = '{}/tmp/{}'.format(pathname, args[1])
-        tempFile = open(filename, 'r')
-        fromMISP = True
-        stixJson = True
+class StixParser():
+    def __init__(self):
+        self.misp_event = pymisp.MISPEvent()
+
+    def loadEvent(self, args, pathname):
         try:
-            event = json.loads(tempFile.read())
-            isJson = True
-        except:
+            filename = '{}/tmp/{}'.format(pathname, args[1])
             event = STIXPackage.from_xml(filename)
-            try:
-                event = json.loads(event.to_json())
-            except:
-                stixJson = False
-            if args[1].startswith('misp.'):
-                event = event['related_packages']['related_packages'][0]
+            if "CIRCL:Package" in event.id_ and "CIRCL MISP" in event.stix_header.title:
+                fromMISP = True
             else:
                 fromMISP = False
-            isJson = False
-        return event, isJson, fromMISP, stixJson
-    except:
-        print(json.dumps({'success': 0, 'message': 'The temporary STIX export file could not be read'}))
-        sys.exit(0)
-
-def getTimestampfromDate(date):
-    try:
-        try:
-            dt = date.split('+')[0]
-            d = int(time.mktime(time.strptime(dt, "%Y-%m-%dT%H:%M:%S")))
-        except:
-            dt = date.split('.')[0]
-            d = int(time.mktime(time.strptime(dt, "%Y-%m-%dT%H:%M:%S")))
-    except AttributeError:
-        d = int(time.mktime(date.timetuple()))
-    return d
-
-def buildMispDict(stixEvent):
-    mispDict = {}
-    stixTimestamp = stixEvent.get("timestamp")
-    dictTimestampAndDate(mispDict, stixTimestamp)
-    event = stixEvent["incidents"][0]
-    eventInfo(mispDict, event)
-    indicators = event["related_indicators"]["indicators"]
-    mispDict["Attribute"] = []
-    mispDict["Object"] = []
-    for indic in indicators:
-        try:
-            indicator = indic.get("indicator")
-            timestamp = indicator.get("timestamp").split("+")[0]
-            category = indic.get("relationship")
-            observable = indicator["observable"]
-        except:
-            continue
-        try:
-            properties = observable["object"]
-            attribute = {'timestamp': getTimestampfromDate(timestamp)}
-            attrType, attribute['value'], relation = fillMispAttribute(properties, category)
-            attribute['type'] = attrType
-            if category in categories:
-                attribute['category'] = category
-                mispDict["Attribute"].append(attribute)
+            if fromMISP:
+                self.event = event.related_packages.related_package[0].item.incidents[0]
             else:
-                name = indicator.get('description').split(' ')[0]
-                defineRelation(attribute, attrType, name, relation)
-                obj = {'timestamp': getTimestampfromDate(timestamp), 'meta-category': category,
-                       'Attribute': [attribute]}
-                obj['name'] = name
-                mispDict["Object"].append(obj)
+                self.event = event
+            self.fromMISP = fromMISP
+            self.filename = filename
         except:
-            observables = observable['observable_composition'].get('observables')
-            if category in categories:
-                domain = False
-                for obs in observables:
-                    properties = obs['object']
-                    tmpType, tmpValue, _ = fillMispAttribute(properties, category)
-                    if tmpType == 'domain':
-                        domainType = tmpType
-                        domainVal = tmpValue
-                        domain = True
-                    elif tmpType in ('filename', 'regkey', 'hostname', 'ip-src', 'ip-dst'):
-                        type1 = tmpType
-                        value1 = tmpValue
-                    else:
-                        type2 = tmpType
-                        value2 = tmpValue
-                    if domain == True:
-                        type2 = type1.split('-')[0]
-                        type1 = domainType
-                        value2 = value1
-                        value1 = domainVal
-                attribute = {'timestamp': getTimestampfromDate(timestamp),
-                             'type': '{}|{}'.format(type1, type2),
-                             'value': '{}|{}'.format(value1, value2)}
-                mispDict['Attribute'].append(attribute)
-            else:
-                attributes = []
-                name = indicator.get('description').split(' ')[0]
-                for obs in observables:
-                    properties = obs['object']
-                    attribute = {'timestamp': getTimestampfromDate(timestamp)}
-                    attrType, attribute['value'], relation = fillMispAttribute(properties, category)
-                    if '|' in attrType:
-                        attribute['type'] = "malware-sample"
-                        attribute['object_relation'] = "malware-sample"
-                    else:
-                        attribute['type'] = attrType
-                        defineRelation(attribute, attrType, name, relation)
-                    attributes.append(attribute)
-                obj = {'timestamp': getTimestampfromDate(timestamp), 'meta-category': category,
-                       'Attribute': attributes}
-                obj['name'] = name
-                mispDict["Object"].append(obj)
-    return mispDict
+            print(json.dumps({'success': 0, 'message': 'The temporary STIX export file could not be read'}))
+            sys.exit(0)
 
-def dictTimestampAndDate(mispDict, stixTimestamp):
-    try:
-        date = stixTimestamp.split("T")[0]
-    except AttributeError:
-        date = stixTimestamp
-    mispDict["date"] = date
-    timestamp = getTimestampfromDate(stixTimestamp)
-    mispDict["timestamp"] = timestamp
-
-def eventInfo(mispDict, event):
-    try:
-        mispDict["info"] = event["title"]
-    except:
-        mispDict["info"] = "Imported from external STIX event"
-    try:
-        orgSource = event["information_source"]["identity"]["name"]
-        mispDict["Org"] = {}
-        mispDict["Org"]["name"] = orgSource
-    except:
-        pass
-    try:
-        orgReporter = event["reporter"]["identity"]["name"]
-        mispDict["Orgc"] = {}
-        mispDict["Orgc"]["name"] = orgReporter
-    except:
-        pass
-
-def defineRelation(attribute, attrType, name, relation):
-    if attrType in ('md5', 'sha1', 'sha256') and name == 'x509':
-        attribute['object_relation'] = "x509-fingerprint-{}".format(attrType)
-    else:
-        attribute['object_relation'] = relation
-
-def buildExternalDict(stixEvent):
-    mispDict = {}
-    stixTimestamp = stixEvent.get("timestamp")
-    dictTimestampAndDate(mispDict, stixTimestamp)
-    header = stixEvent.get('stix_header')
-    eventInfo(mispDict, header)
-    mispDict['Attribute'] = []
-    mispDict['Object'] = []
-    if 'indicators' in stixEvent:
-        indicators = stixEvent.get('indicators')
-        parseAttributes(indicators, mispDict, True)
-    if 'observables' in stixEvent:
-        observables = stixEvent['observables'].get('observables')
-        parseAttributes(observables, mispDict, False)
-    if 'ttps' in stixEvent:
-        ttps = stixEvent['ttps'].get('ttps')
-        parseTTPS(ttps, mispDict)
-    return mispDict
-
-def buildExternalDict_fromPackage(stixEvent):
-    mispDict = {}
-    dictTimestampAndDate(mispDict, stixEvent.timestamp)
-    eventInfo(mispDict, stixEvent.stix_header)
-    mispDict['Attribute'] = []
-    mispDict['Object'] = []
-    if stixEvent.indicators:
-        parseAttributes(stixEvent.indicators.to_dict(), mispDict, True)
-    if stixEvent.observables:
-        parseAttributes(stixEvent.observables.to_dict()['observables'], mispDict, False)
-    if stixEvent.ttps:
-        parseTTPS(stixEvent.ttps.to_dict()['ttps'], mispDict)
-    return mispDict
-
-def parseAttributes(attributes, mispDict, indic):
-    for attr in attributes:
-        if 'observable' in attr:
-            observable = attr.get('observable')
-            obj = observable.get('object')
+    def handler(self):
+        self.outputname = '{}.json'.format(self.filename)
+        if self.fromMISP:
+            # STIX format coming from a MISP export
+            self.buildMispDict()
         else:
-            obj = attr.get('object')
-        try:
-            properties = obj.get('properties')
-            if 'hashes' in properties and len(properties.get('hashes')) > 1:
-                parseFileObject(properties, mispDict)
-                continue
-            elif properties.get('xsi:type') == 'WhoisObjectType':
-                continue
-        except:
-            if 'description' in attr:
-                attribute = {'type': 'text', 'value': attr.get('description')}
-                mispDict['Attribute'].append(attribute)
-            continue
-        try:
-            attrTimestamp = attr['timestamp'].split('+')[0]
-            attribute = {'timestamp': getTimestampfromDate(attrTimestamp)}
-        except:
-            attribute = {}
-        attribute['type'], attribute['value'] = fillExternalAttribute(properties)
-        attribute['to_ids'] = indic
-        mispDict['Attribute'].append(attribute)
+            # external STIX format file
+            self.buildExternalDict()
 
-def parseFileObject(properties, mispDict):
-    obj = {'name': 'file', 'Attribute': []}
-    if 'file_name' in properties:
-        obj['Attribute'].append({'type': 'filename', 'object_relation': 'filename', 'value': properties.get('file_name')})
-    if 'peak_entropy' in properties:
-        obj['Attribute'].append({'type': 'float', 'object_relation': 'entropy', 'value': properties.get('peak_entropy')})
-    if 'size_in_bytes' in properties:
-        obj['Attribute'].append({'type': 'size-in-bytes', 'object_relation': 'size-in-bytes',
-                                 'value': properties.get('size_in_bytes')})
-    for h in properties.get('hashes'):
-        h_type = h.get('type').lower()
-        obj['Attribute'].append({'type': h_type, 'object_relation': h_type, 'value': h.get('simple_hash_value')})
-    mispDict['Object'].append(obj)
+    def buildMispDict(self):
+        self.dictTimestampAndDate()
+        self.eventInfo()
+        for indicator in self.event.related_indicators.indicator:
+            self.parse_misp_indicator(indicator)
 
-def parseTTPS(ttps, mispDict):
-    mispDict['Galaxy'] = []
-    for ttp in ttps:
+    def buildExternalDict(self):
+        self.dictTimestampAndDate()
+        self.eventInfo()
+        if self.event.indicators:
+            self.parse_external_indicator(self.event.indicators)
+        if self.event.observables:
+            self.parse_external_observable(self.event.observables.observables)
+        if self.event.ttps:
+            self.parse_ttps(self.event.ttps.ttps)
+
+    def dictTimestampAndDate(self):
+        stixTimestamp = self.event.timestamp
         try:
-            behavior = ttp['behavior']
-        except KeyError:
-            continue
-        if 'malware_instances' in behavior:
-            attr = behavior['malware_instances'][0]
+            date = stixTimestamp.split("T")[0]
+        except AttributeError:
+            date = stixTimestamp
+        self.misp_event.date = date
+        self.misp_event.timestamp = self.getTimestampfromDate(stixTimestamp)
+
+    def getTimestampfromDate(self, date):
+        try:
             try:
-                attrType = attr['types'][0].get('value')
+                dt = date.split('+')[0]
+                d = int(time.mktime(time.strptime(dt, "%Y-%m-%dT%H:%M:%S")))
             except:
+                dt = date.split('.')[0]
+                d = int(time.mktime(time.strptime(dt, "%Y-%m-%dT%H:%M:%S")))
+        except AttributeError:
+            d = int(time.mktime(date.timetuple()))
+        return d
+
+    def eventInfo(self):
+        try:
+            try:
+                info = self.event.stix_header.title
+            except:
+                info = self.event.title
+            if info:
+                self.misp_event.info = info
+            else:
+                raise Exception("Imported from external STIX event")
+        except Exception as noinfo:
+            self.misp_event.info = str(noinfo)
+
+    def parse_misp_indicator(self, indicator):
+        # define is an indicator will be imported as attribute or object
+        if indicator.relationship in categories:
+            self.parse_misp_attribute(indicator)
+        else:
+            self.parse_misp_object(indicator)
+
+    def parse_misp_attribute(self, indicator):
+        misp_attribute = {'category': str(indicator.relationship)}
+        item = indicator.item
+        misp_attribute['timestamp'] = self.getTimestampfromDate(item.timestamp)
+        if item.observable:
+            observable = item.observable
+            try:
+                properties = observable.object_.properties
+                if properties:
+                    attribute_type, attribute_value, _ = self.handle_attribute_type(properties)
+                    self.misp_event.add_attribute(attribute_type, attribute_value, **misp_attribute)
+            except AttributeError:
+                attribute_dict = {}
+                for observables in observable.observable_composition.observables:
+                    properties = observables.object_.properties
+                    attribute_type, attribute_value, _ = self.handle_attribute_type(properties)
+                    attribute_dict[attribute_type] = attribute_value
+                attribute_type, attribute_value = self.composite_type(attribute_dict)
+                self.misp_event.add_attribute(attribute_type, attribute_value, **misp_attribute)
+
+    @staticmethod
+    def composite_type(attributes):
+        if "port" in attributes:
+            if "ip-src" in attributes:
+                return "ip-src|port", "{}|{}".format(attributes["ip-src"], attributes["port"])
+            elif "ip-dst" in attributes:
+                return "ip-dst|port", "{}|{}".format(attributes["ip-dst"], attributes["port"])
+            elif "hostname" in attributes:
+                return "hostname|port", "{}|{}".format(attributes["hostname"], attributes["port"])
+        elif "domain" in attributes:
+            if "ip-src" in attributes:
+                ip_value = attributes["ip-src"]
+            elif "ip-dst" in attributes:
+                ip_value = attributes["ip-dst"]
+            return "domain|ip", "{}|{}".format(attributes["domain"], ip_value)
+
+    def handle_attribute_type(self, properties, is_object=False, title=None):
+        xsi_type = properties._XSI_TYPE
+        if xsi_type == 'AddressObjectType':
+            return self.handle_address(properties)
+        elif xsi_type == 'EmailMessageObjectType':
+            return self.handle_email_attribute(properties)
+        elif xsi_type == 'DomainNameObjectType':
+            event_types = eventTypes[xsi_type]
+            return event_types['type'], properties.value.value, event_types['relation']
+        elif xsi_type == 'FileObjectType':
+            return self.handle_file(properties, is_object)
+        elif xsi_type == 'HostnameObjectType':
+            event_types = eventTypes[xsi_type]
+            return event_types['type'], properties.hostname_value.value, event_types['relation']
+        elif xsi_type == 'HTTPSessionObjectType':
+            return self.handle_http(properties)
+        elif xsi_type == 'MutexObjectType':
+            event_types = eventTypes[xsi_type]
+            return event_types['type'], properties.name.value, event_types['relation']
+        elif xsi_type == 'PortObjectType':
+            event_types = eventTypes[xsi_type]
+            return event_types['type'], properties.port_value.value, event_types['relation']
+        elif xsi_type == 'SocketAddressObjectType':
+            return self.handle_socket_address(properties)
+        elif xsi_type == 'URIObjectType':
+            event_types = eventTypes[xsi_type]
+            return event_types['type'], properties.value.value, event_types['relation']
+        elif xsi_type == "WhoisObjectType":
+            return self.handle_whois(properties)
+        elif xsi_type == 'WindowsRegistryKeyObjectType':
+            event_types = eventTypes[xsi_type]
+            return event_types['type'], properties.key.value, event_types['relation']
+        elif xsi_type == "WindowsExecutableFileObjectType":
+            return self.handle_pe(properties)
+        elif xsi_type == "ArtifactObjectType":
+            return eventTypes[xsi_type]['type'], title, properties.raw_artifact.value
+        else:
+            # ATM USED TO TEST TYPES
+            print("Unparsed type: {}".format(xsi_type))
+            sys.exit(1)
+
+    @staticmethod
+    def handle_address(properties):
+        if properties.is_source:
+            ip_type = "ip-src"
+        else:
+            ip_type = "ip-dst"
+        return ip_type, properties.address_value.value, "ip"
+
+    def handle_email_attribute(self, properties):
+        try:
+            if properties.from_:
+                return "email-src", properties.from_.address_value.value, "from"
+        except:
+            pass
+        try:
+            if properties.to:
+                return "email-dst", properties.to[0].address_value.value, "to"
+        except:
+            pass
+        try:
+            if properties.subject:
+                return "email-subject", properties.subject.value, "subject"
+        except:
+            pass
+        try:
+            if properties.attachments:
+                return self.handle_email_attachment(properties.parent)
+        except:
+            pass
+        else:
+            # ATM USED TO TEST EMAIL PROPERTIES
+            print("Unsupported Email property")
+            sys.exit(1)
+
+    @staticmethod
+    def handle_email_attachment(indicator_object):
+        properties = indicator_object.related_objects[0].properties
+        return "email-attachment", properties.file_name.value, "attachment"
+
+    def handle_file(self, properties, is_object):
+        b_hash, b_file = False, False
+        attributes = []
+        if properties.hashes:
+            b_hash = True
+            for h in properties.hashes:
+                attributes.append(self.handle_hashes_attribute(h))
+        if properties.file_format:
+            attributes.append(["mime-type", properties.file_format.value, "mimetype"])
+        if properties.file_name:
+            b_file = True
+            event_types = eventTypes[properties._XSI_TYPE]
+            value = properties.file_name.value
+            if not value:
+                value = properties.file_path.value
+            attributes.append([event_types['type'], value, event_types['relation']])
+        if properties.byte_runs:
+            attribute_type = "pattern-in-file"
+            attributes.append([attribute_type, properties.byte_runs[0].byte_run_data, attribute_type])
+        if properties.size_in_bytes:
+            attribute_type = "size-in-bytes"
+            attributes.append([attribute_type, properties.size_in_bytes.value, attribute_type])
+        if properties.peak_entropy:
+            attributes.append(["float", properties.peak_entropy.value, "entropy"])
+        if len(attributes) == 1:
+            return attributes[0]
+        if len(attributes) == 2:
+            if b_hash and b_file:
+                return self.handle_filename_object(attributes, is_object)
+        return "file", self.return_attributes(attributes), ""
+
+    @staticmethod
+    def handle_filename_object(attributes, is_object):
+        for attribute in attributes:
+            attribute_type, attribute_value, _ = attribute
+            if attribute_type == "filename":
+                filename_value = attribute_value
+            else:
+                hash_type, hash_value = attribute_type, attribute_value
+        value = "{}|{}".format(filename_value,  hash_value)
+        if is_object:
+            # file object attributes cannot be filename|hash, so it is malware-sample
+            attr_type = "malware-sample"
+            return attr_type, value, attr_type
+        else:
+            # it could be malware-sample as well, but STIX is losing this information
+            return "filename|{}".format(hash_type), value, ""
+
+    @staticmethod
+    def handle_hashes_attribute(properties):
+        hash_type = properties.type_.value.lower()
+        try:
+            hash_value = properties.simple_hash_value.value
+        except AttributeError:
+            hash_value = properties.fuzzy_hash_value.value
+        return hash_type, hash_value, hash_type
+
+    @staticmethod
+    def handle_http(properties):
+        client_request = properties.http_request_response[0].http_client_request
+        if client_request.http_request_header:
+            request_header = client_request.http_request_header
+            if request_header.parsed_header:
+                value = request_header.parsed_header.user_agent.value
+                return "user-agent", value, "user-agent"
+            elif request_header.raw_header:
+                value = request_header.raw_header.value
+                return "http-method", value, "method"
+        elif client_request.http_request_line:
+            value = client_request.http_request_line.http_method.value
+            return "http-method", value, "method"
+
+    def handle_socket_address(self, properties):
+        if properties.ip_address:
+            type1, value1, _ = self.handle_address(properties.ip_address)
+        elif properties.hostname:
+            type1 = "hostname"
+            value1 = properties.hostname.hostname_value.value
+        return "{}|port".format(type1), "{}|{}".format(value1, properties.port.port_value.value), ""
+
+    def handle_whois(self, properties):
+        required_one_of = False
+        attributes = []
+        if properties.remarks:
+            attribute_type = "text"
+            attributes.append([attribute_type, properties.remarks.value, attribute_type])
+            required_one_of = True
+        if properties.registrar_info:
+            attribute_type = "whois-registrar"
+            attributes.append([attribute_type, properties.registrar_info.value, attribute_type])
+            required_one_of = True
+        if properties.registrants:
+            print(dir(properties.registrants))
+        if properties.creation_date:
+            attributes.append(["datetime", properties.creation_date.value, "creation-date"])
+            required_one_of = True
+        if properties.updated_date:
+            attributes.append(["datetime", properties.updated_date.value, "modification-date"])
+        if properties.expiration_date:
+            attributes.append(["datetime", properties.expiration_date.value, "expiration-date"])
+        if properties.nameservers:
+            for nameserver in properties.nameservers:
+                attributes.append(["hostname", nameserver.value.value, "nameserver"])
+        if properties.ip_address:
+            attributes.append(["ip-dst", properties.ip_address.value, "ip-address"])
+            required_one_of = True
+        if properties.domain_name:
+            attribute_type = "domain"
+            attributes.append([attribute_type, properties.domain_name.value, attribute_type])
+            required_one_of = True
+        # Testing if we have the required attribute types for Object whois
+        if required_one_of:
+            # if yes, we return the object type and the attributes
+            return "whois", self.return_attributes(attributes), ""
+        else:
+            # otherwise, attributes are added in the event, and one attribute is returned to not make the function crash
+            if len(attributes) == 1:
+                return attributes[0]
+            last_attribute = attributes.pop(-1)
+            for attribute in attributes:
+                attribute_type, attribute_value, attribute_relation = attribute
+                misp_attributes = {"comment": "Whois {}".format(attribute_relation)}
+                self.misp_event.add_attribute(attribute_type, attribute_value, **misp_attributes)
+            return last_attribute
+
+    def handle_pe(self, properties):
+        pe_uuid = self.parse_pe(properties)
+        file_type, file_value, _ = self.handle_file(properties, False)
+        return file_type, file_value, pe_uuid
+
+    def parse_pe(self, properties):
+        misp_object = pymisp.MISPObject('pe')
+        filename = properties.file_name.value
+        for attr in ('internal-filename', 'original-filename'):
+            misp_object.add_attribute(**dict(zip(('type', 'value', 'object_relation'),('filename', filename, attr))))
+        if properties.headers:
+            headers = properties.headers
+            header_object = pymisp.MISPObject('pe-section')
+            if headers.entropy:
+                header_object.add_attribute(**{"type": "float", "object_relation": "entropy",
+                                               "value": headers.entropy.value.value})
+            file_header = headers.file_header
+            misp_object.add_attribute(**{"type": "counter", "object_relation": "number-sections",
+                                         "value": file_header.number_of_sections.value})
+            for h in file_header.hashes:
+                hash_type, hash_value, hash_relation = self.handle_hashes_attribute(h)
+                header_object.add_attribute(**{"type": hash_type, "value": hash_value, "object_relation": hash_relation})
+            if file_header.size_of_optional_header:
+                header_object.add_attribute(**{"type": "size-in-bytes", "object_relation": "size-in-bytes",
+                                               "value": file_header.size_of_optional_header.value})
+            self.misp_event.add_object(**header_object)
+            misp_object.add_reference(header_object.uuid, 'pe-section')
+        if properties.sections:
+            for section in properties.sections:
+                section_uuid = self.parse_pe_section(section)
+                misp_object.add_reference(section_uuid, 'pe-section')
+        self.misp_event.add_object(**misp_object)
+        return {"pe_uuid": misp_object.uuid}
+
+    def parse_pe_section(self, section):
+        section_object = pymisp.MISPObject('pe-section')
+        header_hashes = section.header_hashes
+        for h in header_hashes:
+            hash_type, hash_value, hash_relation = self.handle_hashes_attribute(h)
+            section_object.add_attribute(**{"type": hash_type, "value": hash_value, "object_relation": hash_relation})
+        if section.entropy:
+            section_object.add_attribute(**{"type": "float", "object_relation": "entropy",
+                                            "value": section.entropy.value.value})
+        if section.section_header:
+            section_header = section.section_header
+            section_object.add_attribute(**{"type": "text", "object_relation": "name",
+                                            "value": section_header.name.value})
+            section_object.add_attribute(**{"type": "size-in-bytes", "object_relation": "size-in-bytes",
+                                            "value": section_header.size_of_raw_data.value})
+        self.misp_event.add_object(**section_object)
+        return section_object.uuid
+
+    def parse_misp_object(self, indicator):
+        object_type = str(indicator.relationship)
+        if object_type == 'file':
+            item = indicator.item
+            self.fill_misp_object(item, object_type)
+        elif object_type == 'network':
+            item = indicator.item
+            name = item.title.split(' ')[0]
+            if name not in ('passive-dns'):
+                self.fill_misp_object(item, name)
+        else:
+            if object_type != "misc":
+                print("Unparsed Object type: {}".format(name))
+
+    def fill_misp_object(self, item, name):
+        misp_object = pymisp.MISPObject(name)
+        misp_object.timestamp = self.getTimestampfromDate(item.timestamp)
+        try:
+            observables = item.observable.observable_composition.observables
+            for observable in observables:
+                properties = observable.object_.properties
+                self.parse_observable(properties, misp_object)
+        except AttributeError:
+            properties = item.observable.object_.properties
+            self.parse_observable(properties, misp_object)
+        self.misp_event.add_object(**misp_object)
+
+    def parse_observable(self, properties, misp_object):
+        misp_attribute = pymisp.MISPAttribute()
+        misp_attribute.type, misp_attribute.value, misp_attribute.object_relation = self.handle_attribute_type(properties, is_object=True)
+        misp_object.add_attribute(**misp_attribute)
+
+    def parse_external_indicator(self, indicators):
+        for indicator in indicators:
+            try:
+                properties = indicator.observable.object_.properties
+            except:
+                self.parse_description(indicator)
                 continue
-            attribute = {'type': attrType, 'GalaxyCluster': []}
-            cluster = {'type': attrType}
+            if properties:
+                attribute_type, attribute_value, compl_data = self.handle_attribute_type(properties)
+                if type(attribute_value) is str:
+                    # if the returned value is a simple value, we build an attribute
+                    attribute = {'timestamp': self.getTimestampfromDate(indicator.timestamp),
+                                 'to_ids': True}
+                    self.handle_attribute_case(attribute_type, attribute_value, compl_data, attribute)
+                else:
+                    # otherwise, it is a dictionary of attributes, so we build an object
+                    self.handle_object_case(attribute_type, attribute_value, compl_data)
+
+    def parse_external_observable(self, observables):
+        for observable in observables:
+            title = observable.title
             try:
-                cluster['description'] = attr['short_description']
+                properties = observable.object_.properties
             except:
-                cluster['description'] = attr.get('description')
-            if 'names' in attr:
-                synonyms = []
-                for name in attr.get('names'):
-                    synonyms.append(name)
-                cluster['meta'] = {'synonyms': synonyms}
-            cluster['value'] = ttp.get('title')
-            attribute['GalaxyCluster'].append(cluster)
-            mispDict['Galaxy'].append(attribute)
+                self.parse_description(observable)
+                continue
+            if properties:
+                attribute_type, attribute_value, compl_data = self.handle_attribute_type(properties, title=title)
+                attr_type = type(attribute_value)
+                if attr_type is str or attr_type is int:
+                    # if the returned value is a simple value, we build an attribute
+                    attribute = {'to_ids': False}
+                    self.handle_attribute_case(attribute_type, attribute_value, compl_data, attribute)
+                else:
+                    # otherwise, it is a dictionary of attributes, so we build an object
+                    self.handle_object_case(attribute_type, attribute_value, compl_data)
 
-def fillExternalAttribute(properties):
-    if 'hashes' in properties:
-        hashes = properties['hashes'][0]
-        try:
-            typeVal = hashes.get('type').lower()
-        except:
-            typeVal = hashes['type'].get('value').lower()
-        value = hashes.get('simple_hash_value')
-        if type(value) is dict:
-            value = value.get('value')
-    else:
-        attrType = properties.get('xsi:type')
-        if attrType == 'AddressObjectType':
-            if 'email' in properties.get('category'):
-                typeVal = eventTypes[attrType]['email']
-            else:
-                try:
-                    if properties.get('is_source') == 'false':
-                        typeVal = eventTypes[properties.get('category')].get('dst')
-                    else:
-                        typeVal = eventTypes[properties.get('category')].get('src')
-                except:
-                    typeVal = "ip-src"
-        elif attrType == 'HTTPSessionObjectType':
-            return "http-method", properties['http_request_response'][0]['http_client_request']['http_request_header']['raw_header']
-        else:
-            typeVal = eventTypes[properties.get('xsi:type')].get('type')
-        if 'address_value' in properties:
-            try:
-                value = properties['address_value'].get('value')
-            except:
-                value = properties.get('address_value')
-        else:
-            value = properties.get('value')
-    return typeVal, value
+    def parse_description(self, stix_object):
+        if stix_object.description:
+            misp_attribute = {}
+            if stix_object.timestamp:
+                misp_attribute['timestamp'] = self.getTimestampfromDate(stix_object.timestamp)
+            self.misp_event.add_attribute("text", stix_object.description.value, **misp_attribute)
 
-def fillMispAttribute(prop, category):
-    properties = prop['properties']
-    try:
-        cat = properties["category"]
-    except:
-        cat = properties["xsi:type"]
-    if 'ip' in cat:
-        if properties.get("is_source"):
-            attr_type = "src"
-        else:
-            attr_type = "dst"
-        typeVal = eventTypes[cat][attr_type]
-        value = eventTypes[cat]["value"]
-        valueVal = properties[value]["value"]
-        relation = 'ip'
-    elif cat == 'EmailMessageObjectType':
-        try:
-            header = properties["header"]
-            emailType = list(header)[0]
-            typeVal = eventTypes[emailType]["type"]
-            value = eventTypes[emailType]["value"]
-            headerVal = header[emailType]
-            if emailType == "to":
-                headerVal = headerVal[0]
-            elif emailType == "from":
-                headerVal = headerVal["address_value"]
-            valueVal = headerVal.get(value)
-            relation = eventTypes[emailType]['relation']
-        except:
-            attachmentProp = prop['related_objects'][0]['properties']
-            if attachmentProp.get('xsi:type') == 'FileObjectType':
-                typeVal = 'email-attachment'
-                propCat = eventTypes[typeVal]['value']
-            valueVal = attachmentProp[propCat].get('value')
-            relation = eventTypes[typeVal]['relation']
-    elif cat == "FileObjectType" and "hashes" in properties:
-        hashes = properties['hashes'][0]
-        if 'file_name' in properties:
-            type2 = hashes["type"].get("value").lower()
-            typeVal = 'filename|{}'.format(type2)
-            value1 = properties['file_name'].get('value')
-            value2 = hashes["simple_hash_value"].get("value")
-            valueVal = '{}|{}'.format(value1, value2)
-            relation = None
-        else:
-            if category == 'Network activity':
-                typeVal = 'x509-fingerprint-sha1'
-            else:
-                typeVal = hashes["type"].get("value").lower()
-            valueVal = hashes["simple_hash_value"].get("value")
-            relation = typeVal
-    elif cat == "HTTPSessionObjectType":
-        http = properties["http_request_response"][0]
-        httpAttr = http["http_client_request"]["http_request_header"]["parsed_header"]
-        attrVal = list(httpAttr)[0]
-        valueVal = httpAttr.get(attrVal)
-        typeVal = eventTypes[attrVal]
-        relation = 'user-agent'
-    elif cat == "WindowsRegistryKeyObjectType":
-        valueVal = ""
-        if properties['hive'].get('value') == "HKEY_LOCAL_MACHINE":
-            valueVal += "HKLM\\"
-        valueVal += properties['key'].get('value')
-        typeVal = "regkey"
-        relation = "key"
-    else:
-        value = eventTypes[cat]["value"]
-        typeVal = eventTypes[cat]["type"]
-        valueVal = properties[value]["value"]
-        relation = eventTypes[cat]["relation"]
-    return typeVal, valueVal, relation
+    def handle_attribute_case(self, attribute_type, attribute_value, data, attribute):
+        if attribute_type == 'attachment':
+            attribute['data'] = data
+        self.misp_event.add_attribute(attribute_type, attribute_value, **attribute)
 
+    def handle_object_case(self, attribute_type, attribute_value, compl_data):
+        misp_object = pymisp.MISPObject(attribute_type)
+        for attribute in attribute_value:
+            misp_object.add_attribute(**attribute)
+        if type(compl_data) is dict and "pe_uuid" in compl_data:
+            # if some complementary data is a dictionary containing an uuid,
+            # it means we are using it to add an object reference of a pe object
+            # in a file object
+            misp_object.add_reference(compl_data['pe_uuid'], 'pe')
+        self.misp_event.add_object(**misp_object)
 
-def saveFile(namefile, pathname, misp):
-    filepath = "{}/tmp/{}".format(pathname, namefile)
-    eventDict = misp.to_json()
-    with open(filepath, 'w') as f:
-        f.write(eventDict)
+    def parse_ttps(self, ttps):
+        for ttp in ttps:
+            behavior = ttp.behavior
+
+    @staticmethod
+    def return_attributes(attributes):
+        return_attributes = []
+        for attribute in attributes:
+            return_attributes.append(dict(zip(('type', 'value', 'object_relation'), attribute)))
+        return return_attributes
+
+    def saveFile(self):
+        eventDict = self.misp_event.to_json()
+        with open(self.outputname, 'w') as f:
+            f.write(eventDict)
 
 def main(args):
     pathname = os.path.dirname(args[0])
-    stixEvent, isJson, fromMISP, stixJson = loadEvent(args, pathname)
-    if isJson:
-        namefile = args[1]
-    else:
-        namefile = '{}.json'.format(args[1])
-    if fromMISP:
-        stixEvent = stixEvent["package"]
-        mispDict = buildMispDict(stixEvent)
-    else:
-        if stixJson:
-            mispDict = buildExternalDict(stixEvent)
-        else:
-            mispDict = buildExternalDict_fromPackage(stixEvent)
-    misp = pymisp.MISPEvent(None, False)
-    misp.from_dict(**mispDict)
-    saveFile(namefile, pathname, misp)
+    stix_parser = StixParser()
+    stix_parser.loadEvent(args, pathname)
+    stix_parser.handler()
+    stix_parser.saveFile()
     print(1)
 
 if __name__ == "__main__":
