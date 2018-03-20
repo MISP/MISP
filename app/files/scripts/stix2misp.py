@@ -431,13 +431,20 @@ class StixParser():
     def fill_misp_object(self, item, name):
         misp_object = pymisp.MISPObject(name)
         misp_object.timestamp = self.getTimestampfromDate(item.timestamp)
-        observables = item.observable.observable_composition.observables
-        for observable in observables:
-            properties = observable.object_.properties
-            misp_attribute = pymisp.MISPAttribute()
-            misp_attribute.type, misp_attribute.value, misp_attribute.object_relation = self.handle_attribute_type(properties, is_object=True)
-            misp_object.add_attribute(**misp_attribute)
+        try:
+            observables = item.observable.observable_composition.observables
+            for observable in observables:
+                properties = observable.object_.properties
+                self.parse_observable(properties, misp_object)
+        except AttributeError:
+            properties = item.observable.object_.properties
+            self.parse_observable(properties, misp_object)
         self.misp_event.add_object(**misp_object)
+
+    def parse_observable(self, properties, misp_object):
+        misp_attribute = pymisp.MISPAttribute()
+        misp_attribute.type, misp_attribute.value, misp_attribute.object_relation = self.handle_attribute_type(properties, is_object=True)
+        misp_object.add_attribute(**misp_attribute)
 
     def parse_external_indicator(self, indicators):
         for indicator in indicators:
