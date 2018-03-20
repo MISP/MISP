@@ -40,21 +40,15 @@ class StixParser():
     def loadEvent(self, args, pathname):
         try:
             filename = '{}/tmp/{}'.format(pathname, args[1])
-            if args[1].startswith('misp.'):
+            event = STIXPackage.from_xml(filename)
+            if "CIRCL:Package" in event.id_ and "CIRCL MISP" in event.stix_header.title:
                 fromMISP = True
             else:
                 fromMISP = False
-            try:
-                with open(filename, 'r') as f:
-                    self.event = json.loads(f.read())
-                self.isJson = True
-            except:
-                event = STIXPackage.from_xml(filename)
-                self.isJson = False
-                if fromMISP:
-                    self.event = event.related_packages.related_package[0].item.incidents[0]
-                else:
-                    self.event = event
+            if fromMISP:
+                self.event = event.related_packages.related_package[0].item.incidents[0]
+            else:
+                self.event = event
             self.fromMISP = fromMISP
             self.filename = filename
         except:
@@ -62,10 +56,7 @@ class StixParser():
             sys.exit(0)
 
     def handler(self):
-        if self.isJson:
-            self.outputname = self.filename
-        else:
-            self.outputname = '{}.json'.format(self.filename)
+        self.outputname = '{}.json'.format(self.filename)
         if self.fromMISP:
             # STIX format coming from a MISP export
             self.buildMispDict()
