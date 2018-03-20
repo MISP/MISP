@@ -19,14 +19,17 @@ import sys, json, os, time
 import pymisp
 from stix.core import STIXPackage
 
+file_object_type = {"type": "filename", "relation": "filename"}
+
 eventTypes = {"ArtifactObjectType": {"type": "attachment", "relation": "attachment"},
               "DomainNameObjectType": {"type": "domain", "relation": "domain"},
-              "FileObjectType": {"type": "filename", "relation": "filename"},
+              "FileObjectType": file_object_type,
               "HostnameObjectType": {"type": "hostname", "relation": "host"},
               "MutexObjectType": {"type": "mutex", "relation": "mutex"},
+              "PDFFileObjectType": file_object_type,
               "PortObjectType": {"type": "port", "relation": "port"},
               "URIObjectType": {"type": "url", "relation": "url"},
-              "WindowsExecutableFileObjectType": {"type": "filename", "relation": "filename"},
+              "WindowsExecutableFileObjectType": file_object_type,
               "WindowsRegistryKeyObjectType": {"type": "regkey", "relation": ""}}
 
 descFilename = os.path.join(pymisp.__path__[0], 'data/describeTypes.json')
@@ -166,7 +169,7 @@ class StixParser():
         elif xsi_type == 'DomainNameObjectType':
             event_types = eventTypes[xsi_type]
             return event_types['type'], properties.value.value, event_types['relation']
-        elif xsi_type == 'FileObjectType':
+        elif xsi_type == 'FileObjectType' or xsi_type == 'PDFFileObjectType':
             return self.handle_file(properties, is_object)
         elif xsi_type == 'HostnameObjectType':
             event_types = eventTypes[xsi_type]
