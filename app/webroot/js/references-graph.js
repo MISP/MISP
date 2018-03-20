@@ -1,3 +1,4 @@
+var max_displayed_char = 32;
 // Util
 function getRandomColor() {
 	var letters = '0123456789ABCDEF';
@@ -59,6 +60,7 @@ var network_options = {
 		addEdge: add_reference,
 		editEdge: false,
 		addNode: add_item,
+		editNode: edit_item,
 		deleteNode: delete_item,
 		deleteEdge: remove_reference
 	},
@@ -122,6 +124,7 @@ var network_options = {
 			del: 'Delete selected',
 			back: 'Back',
 			addNode: 'Add Object or Attribute',
+			editNode: 'Edit selected item',
 			addDescription: 'Click in an empty space to place a new node.',
 			addEdge: 'Add Reference',
 			edgeDescription: 'Click on an Object and drag the edge to another Object (or Attribute) to connect them.'
@@ -172,9 +175,11 @@ function expand_node(parent_id) {
 			continue;
 		}
 				
+		var striped_value = attr.value.substring(0, max_displayed_char) + (attr.value.length > max_displayed_char ? "" : "[...]");
 		var node = { 
 			id: attr.uuid,
-			label: attr.type + ': ' + attr.value,
+			label: attr.type + ': ' + striped_value,
+			title: attr.type + ': ' + attr.value,
 			group: 'obj_relation',
 			color: { 
 				background: parent_color
@@ -243,6 +248,11 @@ function delete_item(nodeData, callback) {
 	
 }
 
+function edit_item(nodeData, callback) {
+	var id = nodeData.id
+	simplePopup('/attributes/edit/'+id);
+}
+
 function genericPopupCallback(result) {
 	if (result == "success") {
 		fetch_data_and_update();
@@ -267,15 +277,16 @@ function update_graph(data) {
 		var group, label;
 		if ( node.node_type == 'object' ) {
 			group =  'object';
-			label = '('+node.val+') ' + node.type;
 			label = node.type;
 		} else {
 			group =  'attribute';
 			label = node.type + ': ' + node.val;
 		}
+		var striped_value = label.substring(0, max_displayed_char) + (label.length < max_displayed_char ? "" : "[...]");
 		var node = { 
 			id: node.id,
-			label: label,
+			label: striped_value,
+			title: label,
 			group: group,
 			mass: 5,
 			icon: {
@@ -433,7 +444,6 @@ function network_loading(iterations, total) {
 	}
 }
 
-//$( document ).ready(function() {
 function enable_interactive_graph() {
 	// unregister onclick
 	$('#references_toggle').removeAttr('onclick');
@@ -475,6 +485,14 @@ function enable_interactive_graph() {
 					break;
 				case 86: // v
 					reset_view();
+					break;
+
+				case 69: // e
+					if (evt.shiftKey) {
+						var selected_id = network.getSelectedNodes()[0]; 
+						data = { id: selected_id };
+						edit_item(data);
+					}
 					break;
 
 				case 16: // <SHIFT>
