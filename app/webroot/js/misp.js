@@ -844,6 +844,9 @@ function submitPopoverForm(context_id, referer, update_context_id) {
 		case 'add':
 			url = "/attributes/add/" + context_id;
 			break;
+		case 'edit':
+			url = "/attributes/edit/" + context_id;
+			break;
 		case 'propose':
 			url = "/shadow_attributes/add/" + context_id;
 			break;
