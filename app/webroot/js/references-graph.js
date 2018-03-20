@@ -27,6 +27,13 @@ function get_node_color(uuid) {
 
 
 // Global var
+var shortcut_text = "<b>V:</b> Center camera"
+		+ "\n<b>X:</b> Expaned node"
+		+ "\n<b>C:</b> Collapse node"
+		+ "\n<b>E:</b> Edit node"
+		+ "\n<b>SHIFT:</b> Hold to add a reference"
+		+ "\n<b>DEL:</b> Delete selected item";
+
 var scope_id = $('#references_network').data('event-id');
 var container = document.getElementById('references_network');
 var nodes = new vis.DataSet();
@@ -48,7 +55,7 @@ var network_options = {
 	},
 	manipulation: {
 		enabled: user_manipulation,
-		initiallyActive: true,
+		initiallyActive: false,
 		addEdge: add_reference,
 		editEdge: false,
 		addNode: add_item,
@@ -62,7 +69,7 @@ var network_options = {
 			centralGravity: 5,
 			springLength: 150,
 			springConstant: 0.24,
-			damping: 0.8,
+			damping: 1.4,
 
 		}
 	},
@@ -91,7 +98,7 @@ var network_options = {
 			},
 			font: {
 				size: 18, // px
-				background: 'white'
+				background: 'rgba(255, 255, 255, 0.7)'
 			}
 		},
 		obj_relation: {
@@ -125,7 +132,7 @@ var network_options = {
 
 // Graph interaction
 function collapse_node(parent_id) {
-	if (parent_id === undefined) { //  node node selected
+	if (parent_id === undefined) { //  No node selected
 		return
 	}
 	var connected_nodes = network.getConnectedNodes(parent_id);
@@ -148,9 +155,9 @@ function collapse_node(parent_id) {
 }
 
 function expand_node(parent_id) {
-	if (parent_id === undefined) { //  node node selected
+	if (parent_id === undefined) { //  Node node selected
 		return;
-	} else if (nodes.get(parent_id).group == "attribute") { //  cannot expand attribute
+	} else if (nodes.get(parent_id).group == "attribute") { //  Cannot expand attribute
 		return;
 	}
 
@@ -213,11 +220,11 @@ function add_reference(edgeData, callback) {
 function add_item(nodeData, callback) {
 	choicePopup("Add an element", [
 		{
-			text: "Add an object",
+			text: "Add an Object",
 			onclick: "getPopup('"+scope_id+"', 'objectTemplates', 'objectChoice');"
 		},
 		{
-			text: "Add an attribute",
+			text: "Add an Attribute",
 			onclick: "simplePopup('/attributes/add/"+scope_id+"');"
 		},
 	]);
@@ -236,10 +243,10 @@ function delete_item(nodeData, callback) {
 	
 }
 
-function genericPopupCallback(result, referer) {
+function genericPopupCallback(result) {
 	if (result == "success") {
-		reset_graphs();
 		fetch_data_and_update();
+		reset_view_on_stabilized();
 	}
 }
 
@@ -249,9 +256,13 @@ function reset_graphs() {
 }
 
 function update_graph(data) {
-	reset_graphs();
+	var total = data.items.length + data.relations.length;
+	network_loading(0, total);
 	
+	// New nodes will be automatically added
+	// removed references will be deleted
 	newNodes = [];
+	newNodeIDs = [];
 	for(var node of data.items) {
 		var group, label;
 		if ( node.node_type == 'object' ) {
@@ -272,10 +283,24 @@ function update_graph(data) {
 			}
 		};
 		newNodes.push(node);
+		newNodeIDs.push(node.id);
 	}
+	// check if nodes got deleted
+	var old_node_ids = nodes.getIds();
+	for (var old_id of old_node_ids) {
+		// This old node got removed
+		if (newNodeIDs.indexOf(old_id) == -1) {
+			nodes.remove(old_id);
+		}
+	}
+
 	nodes.update(newNodes);
+	network_loading(data.items.length, total);
 	
+	// New relations will be automatically added
+	// removed references will be deleted
 	newRelations = [];
+	newRelationIDs = [];
 	for(var rel of data.relations) {
 		var fromto = rel.from + '-' + rel.to;
 		var rel = {
@@ -289,12 +314,30 @@ function update_graph(data) {
 			}
 		};
 		newRelations.push(rel);
+		newRelationIDs.push(fromto);
 	}
+	// check if nodes got deleted
+	var old_rel_ids = edges.getIds();
+	for (var old_id of old_rel_ids) {
+		// This old node got removed
+		if (newRelationIDs.indexOf(old_id) == -1) {
+			edges.remove(old_id);
+		}
+	}
+
 	edges.update(newRelations);
+	network_loading(total, total);
 }
 
 function reset_view() {
 	network.fit({animation: true });
+}
+
+function reset_view_on_stabilized() {
+	network.on("stabilized", function(params) {
+		network.fit({ animation: true });
+		network.off("stabilized"); //  Removed listener
+	});
 }
 
 // Data
@@ -345,87 +388,139 @@ function extract_references(data) {
 }
 
 function fetch_data_and_update() {
+	network_loading(-1, 0);
 	$.getJSON( "/events/getReferences/"+scope_id+"/event.json", function( data ) {
 		extracted = extract_references(data);
-		update_graph(extracted);
+		network_loading(1, 0);
+		update_graph(extracted, reset_view);
 	});
 }
 
-$( document ).ready(function() {
-	network = new vis.Network(container, data, network_options);
-	network.on("selectNode", function (params) {
-		network.moveTo({
-			position: {
-				x: params.pointer.canvas.x,
-				y: params.pointer.canvas.y
-			},
-			animation: true,
+// -1: Undefined state
+// 0<=iterations<total: state known
+// iterations>=total: finished
+function network_loading(iterations, total) {
+	var progressbar_length = 3; // divided by 100
+	if(iterations == -1) {
+		var loadingText = 'Fetching data';
+		$('.loading-network-div').show();
+		$('.spinner-network').show();
+		$('.loadingText-network').text(loadingText);
+		$('.loadingText-network').show();
+	} else if (iterations >= 0 && iterations < total) {
+		var loadingText = 'Constructing network';
+		$('.loading-network-div').show();
+		$('.loadingText-network').text(loadingText);
+		$('.loadingText-network').show();
+		$('.spinner-network').hide();
+		// pb
+		var percentage = parseInt(iterations*100/total);
+		$('.progressbar-network-div').show();
+		$('#progressbar-network').show();
+		$('#progressbar-network').width(percentage*progressbar_length);
+		$('#progressbar-network').text(percentage+' %');
+
+	} else if (iterations >= total) {
+		$('#progressbar-network').width(100*progressbar_length);
+		$('#progressbar-network').text(100+' %');
+		setTimeout(function() {
+			$('.loading-network-div').hide();
+			$('.spinner-network').hide();
+			$('.loadingText-network').hide();
+			$('.progressbar-network-div').hide();
+			$('#progressbar-network').hide();
+		}, 1000)
+	}
+}
+
+//$( document ).ready(function() {
+function enable_interactive_graph() {
+	// unregister onclick
+	$('#references_toggle').removeAttr('onclick');
+
+	// Defer the loading of the network to let some time for the DIV to appear
+	setTimeout(function() {
+		$('.shortcut-help').popover({
+			container: 'body',
+			title: 'Shortcuts',
+			content: shortcut_text,
+			placement: 'left',
+			trigger: 'hover',
+			html: true,
 		});
-	});
-	// Fit view only when page is loading for the first time
-	network.on("stabilized", function(params) {
-		network.fit({ animation: true });
-		network.off("stabilized"); //  Removed listener
-	});
 
-	$(document).on("keydown", function(evt) {
-		switch(evt.keyCode) {
-			case 88: // x
-				var selected_id = network.getSelectedNodes()[0]; 
-				expand_node(selected_id);
-				break;
+		network = new vis.Network(container, data, network_options);
+		network.on("selectNode", function (params) {
+			network.moveTo({
+				position: {
+					x: params.pointer.canvas.x,
+					y: params.pointer.canvas.y
+				},
+				animation: true,
+			});
+		});
+		// Fit view only when page is loading for the first time
+		reset_view_on_stabilized();
 
-			case 67: // c
-				var selected_id = network.getSelectedNodes()[0]; 
-				collapse_node(selected_id);
-				break;
-			case 86: // v
-				reset_view();
-				break;
-
-			case 16: // <SHIFT>
-				if (!user_manipulation) { // user can't modify references
+		$(document).on("keydown", function(evt) {
+			switch(evt.keyCode) {
+				case 88: // x
+					var selected_id = network.getSelectedNodes()[0]; 
+					expand_node(selected_id);
 					break;
-				}
-				network.addEdgeMode(); // toggle edit mode
-				break;
 
-			case 46: // <Delete>
-				if (!user_manipulation) { // user can't modify references
+				case 67: // c
+					var selected_id = network.getSelectedNodes()[0]; 
+					collapse_node(selected_id);
 					break;
-				}
-				//  References
-				var selected_ids = network.getSelectedEdges(); 
-				for (var selected_id of selected_ids) {
-					var edge = { edges: [selected_id] }; // trick to use the same function
-					remove_reference(edge);
-				}
-
-				//  Objects or Attributes
-				selected_ids = network.getSelectedNodes();
-				data = { nodes: selected_ids };
-				delete_item(data);
-				break;
-
-			default:
-				break;
-		}
-	});
-
-	$(document).on("keyup", function(evt) {
-		switch(evt.keyCode) {
-			case 16: // <SHIFT>
-				if (!user_manipulation) { // user can't modify references
+				case 86: // v
+					reset_view();
 					break;
-				}
-				network.disableEditMode(); // un-toggle edit mode
-				break;
-			default:
-				break;
-		}
 
-		
-	});
+				case 16: // <SHIFT>
+					if (!user_manipulation) { // user can't modify references
+						break;
+					}
+					network.addEdgeMode(); // toggle edit mode
+					break;
 
-	fetch_data_and_update();
-});
+				case 46: // <Delete>
+					if (!user_manipulation) { // user can't modify references
+						break;
+					}
+					//  References
+					var selected_ids = network.getSelectedEdges(); 
+					for (var selected_id of selected_ids) {
+						var edge = { edges: [selected_id] }; // trick to use the same function
+						remove_reference(edge);
+					}
+
+					//  Objects or Attributes
+					selected_ids = network.getSelectedNodes();
+					data = { nodes: selected_ids };
+					delete_item(data);
+					break;
+
+				default:
+					break;
+			}
+		});
+
+		$(document).on("keyup", function(evt) {
+			switch(evt.keyCode) {
+				case 16: // <SHIFT>
+					if (!user_manipulation) { // user can't modify references
+						break;
+					}
+					network.disableEditMode(); // un-toggle edit mode
+					break;
+				default:
+					break;
+			}
+
+			
+		});
+
+		fetch_data_and_update();
+	}, 1);
+}

@@ -306,6 +306,11 @@ function updateIndex(id, context, newPage) {
 		success:function (data, textStatus) {
 			$(".loading").hide();
 			$(div).html(data);
+			if (typeof genericPopupCallback !== "undefined") {
+				genericPopupCallback("success");
+			} else {
+				console.log("genericPopupCallback function not defined");
+			}
 		},
 		url: url,
 	});
@@ -565,15 +570,9 @@ function handleGenericAjaxResponse(data) {
 		if (responseArray.hasOwnProperty('check_publish')) {
 			checkAndSetPublishedInfo();
 		}
-		if (typeof genericPopupCallback !== "undefined") {
-			genericPopupCallback("success", data.success);
-		}
 		return true;
 	} else {
 		showMessage('fail', responseArray.errors);
-		if (typeof genericPopupCallback !== "undefined") {
-			genericPopupCallback("fail", data.success);
-		}
 		return false;
 	}
 }
@@ -922,12 +921,6 @@ function submitPopoverForm(context_id, referer, update_context_id) {
 				}
 				if (context == 'event' && (referer == 'add' || referer == 'massEdit' || referer == 'replaceAttributes' || referer == 'addObjectReference')) eventUnpublish();
 				$(".loading").hide();
-				// generic callback
-				if (typeof genericPopupCallback !== "undefined") {
-					genericPopupCallback(result, referer);
-				} else {
-					console.log('genericPopupCallback not defined');
-				}
 			},
 			type:"post",
 			url:url
