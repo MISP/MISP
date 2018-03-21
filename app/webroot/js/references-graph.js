@@ -1,4 +1,11 @@
 var max_displayed_char = 32;
+
+var mapping_meta_fa = new Map();
+mapping_meta_fa.set('file', {"meta-category": "file","fa_text": "file","fa-hex": "f15b"});
+mapping_meta_fa.set('financial', {"meta-category": "financial","fa_text": "money-bil-alt","fa-hex": "f3d1"});
+mapping_meta_fa.set('network', {"meta-category": "network","fa_text": "server","fa-hex": "f223"});
+mapping_meta_fa.set('misc', {"meta-category": "misc","fa_text": "cube","fa-hex": "f1b2"});
+
 // Util
 function getRandomColor() {
 	var letters = '0123456789ABCDEF';
@@ -31,7 +38,8 @@ function get_node_color(uuid) {
 var shortcut_text = "<b>V:</b> Center camera"
 		+ "\n<b>X:</b> Expaned node"
 		+ "\n<b>C:</b> Collapse node"
-		+ "\n<b>E:</b> Edit node"
+		+ "\n<b>SHIFT+E:</b> Edit node"
+		+ "\n<b>SHIFT+F:</b> Search for value"
 		+ "\n<b>SHIFT:</b> Hold to add a reference"
 		+ "\n<b>DEL:</b> Delete selected item";
 
@@ -39,10 +47,12 @@ var scope_id = $('#references_network').data('event-id');
 var container = document.getElementById('references_network');
 var nodes = new vis.DataSet();
 var edges = new vis.DataSet();
+var mapping_value_to_nodeID = new Map();
 var map_id_to_uuid = new Map();
 var map_fromto_to_rel_id = new Map();
 var all_obj_relation = new Map();
 var user_manipulation = $('#references_network').data('user-manipulation');
+var user_manipulation = true;
 var data = {
 	nodes: nodes,
 	edges: edges
@@ -71,9 +81,10 @@ var network_options = {
 			centralGravity: 5,
 			springLength: 150,
 			springConstant: 0.24,
-			damping: 1.4,
+			damping: 1.0,
 
-		}
+		},
+		minVelocity: 2.0
 	},
 	edges: {
 		width: 3,
@@ -95,13 +106,12 @@ var network_options = {
 			shape: 'icon',
 			icon: {
 				face: 'FontAwesome',
-				code: '\uf00a',
 				size: 50
 			},
 			font: {
 				size: 18, // px
 				background: 'rgba(255, 255, 255, 0.7)'
-			}
+			},
 		},
 		obj_relation: {
 			size: 10,
@@ -132,6 +142,33 @@ var network_options = {
 	}
 };
 
+var typeaheadData;
+var typeaheadOption = {
+	source: function (query, process) {
+		if (typeaheadData === undefined) { // caching
+			typeaheadData = get_typeaheadData();
+		}
+		process(typeaheadData);
+	},
+	updater: function(value) {
+		var nodeID = mapping_value_to_nodeID.get(value);
+		// select node and focus on it
+		network.selectNodes([nodeID]);
+		network.focus(nodeID, {animation: true, scale: 1});
+		// set focus to the network
+		$("#network-typeahead").blur();
+	},
+	autoSelect: true
+}
+
+function get_typeaheadData() {
+	var to_ret = []
+	for( entry of mapping_value_to_nodeID) {
+		var value = entry[0];
+		to_ret.push(value);
+	}
+	return to_ret;
+}
 
 // Graph interaction
 function collapse_node(parent_id) {
@@ -175,7 +212,7 @@ function expand_node(parent_id) {
 			continue;
 		}
 				
-		var striped_value = attr.value.substring(0, max_displayed_char) + (attr.value.length > max_displayed_char ? "" : "[...]");
+		var striped_value = attr.value.substring(0, max_displayed_char) + (attr.value.length < max_displayed_char ? "" : "[...]");
 		var node = { 
 			id: attr.uuid,
 			label: attr.type + ': ' + striped_value,
@@ -271,6 +308,7 @@ function update_graph(data) {
 	
 	// New nodes will be automatically added
 	// removed references will be deleted
+	var node_conf;
 	newNodes = [];
 	newNodeIDs = [];
 	for(var node of data.items) {
@@ -278,22 +316,35 @@ function update_graph(data) {
 		if ( node.node_type == 'object' ) {
 			group =  'object';
 			label = node.type;
+			var striped_value = label.substring(0, max_displayed_char) + (label.length < max_displayed_char ? "" : "[...]");
+			node_conf = { 
+				id: node.id,
+				label: striped_value,
+				title: label,
+				group: group,
+				mass: 5,
+				icon: {
+					color: getRandomColor(),
+					face: 'FontAwesome',
+					code: String.fromCharCode(parseInt(mapping_meta_fa.get(node['meta-category'])['fa-hex'], 16)),
+				}
+			};
+			mapping_value_to_nodeID.set(striped_value, node.id);
 		} else {
 			group =  'attribute';
 			label = node.type + ': ' + node.val;
+			var striped_value = label.substring(0, max_displayed_char) + (label.length < max_displayed_char ? "" : "[...]");
+			node_conf = { 
+				id: node.id,
+				label: striped_value,
+				title: label,
+				group: group,
+				mass: 5,
+			};
+			mapping_value_to_nodeID.set(striped_value, node.id);
 		}
-		var striped_value = label.substring(0, max_displayed_char) + (label.length < max_displayed_char ? "" : "[...]");
-		var node = { 
-			id: node.id,
-			label: striped_value,
-			title: label,
-			group: group,
-			mass: 5,
-			icon: {
-				color: getRandomColor()
-			}
-		};
-		newNodes.push(node);
+
+		newNodes.push(node_conf);
 		newNodeIDs.push(node.id);
 	}
 	// check if nodes got deleted
@@ -376,7 +427,8 @@ function extract_references(data) {
 				'id': obj.id,
 				'type': obj.name,
 				'val': obj.value,
-				'node_type': 'object'
+				'node_type': 'object',
+				'meta-category': obj['meta-category']
 			});
 			
 			for (var rel of obj.ObjectReference) {
@@ -458,6 +510,20 @@ function enable_interactive_graph() {
 			trigger: 'hover',
 			html: true,
 		});
+		$('.fullscreen-btn').click(function() {
+			var network_div = $('#references_div');
+			var fullscreen_enabled = !network_div.data('fullscreen');
+			network_div.data('fullscreen', fullscreen_enabled);
+			var height_val = fullscreen_enabled == true ? "calc(100vh - 42px - 42px - 10px)" : "500px";
+
+			network_div.css("height", height_val);
+			network_div[0].scrollIntoView({
+				behavior: "smooth",
+
+			});
+			setTimeout(function() { reset_view(); }, 400);
+		});
+		$('#network-typeahead').typeahead(typeaheadOption);
 
 		network = new vis.Network(container, data, network_options);
 		network.on("selectNode", function (params) {
@@ -492,6 +558,16 @@ function enable_interactive_graph() {
 						var selected_id = network.getSelectedNodes()[0]; 
 						data = { id: selected_id };
 						edit_item(data);
+					}
+					break;
+
+				case 70: // f
+					if (evt.shiftKey) {
+						// set focus to search input
+						network.disableEditMode(); // un-toggle edit mode
+						$('#network-typeahead').focus();
+						$('#network-typeahead').text('');
+						evt.preventDefault(); // avoid writting a 'F' in the input field
 					}
 					break;
 

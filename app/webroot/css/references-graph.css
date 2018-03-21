@@ -6,8 +6,7 @@
 	box-shadow: 0px 0px 6px #B2B2B2;
 	padding: 2px;
 	width: 100%;
-	height: 800px;
-	resize: vertical;
+	height: 500px;
 	overflow: hidden;
 }
 
@@ -89,14 +88,27 @@
 
 .shortcut-help {
 	position: absolute;
-	right: 25px;
-	top: 2px;
+	right: 5px;
+	bottom: 2px;
 	font-weight: bold;
 	z-index: 1;
 	cursor: help;
 }
 
+.fullscreen-btn {
+	position: absolute;
+	right: 45px;
+	bottom: 2px;
+	font-weight: bold;
+	z-index: 1;
+	cursor: nesw-resize;
+}
 .popover-content {
 	white-space: pre-wrap;
 }
 
+.network-typeahead {
+	position: absolute;
+	right: 2px;
+	z-index: 1;
+}
