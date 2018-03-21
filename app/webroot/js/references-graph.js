@@ -197,13 +197,14 @@ function collapse_node(parent_id) {
 function expand_node(parent_id) {
 	if (parent_id === undefined) { //  Node node selected
 		return;
-	} else if (nodes.get(parent_id).group == "attribute") { //  Cannot expand attribute
+	} else if (nodes.get(parent_id).group == "attribute" || nodes.get(parent_id).group == "obj_relation") { //  Cannot expand attribute
 		return;
 	}
 
 	newNodes = [];
 	newRelations = [];
 
+	var parent_pos = network.getPositions([parent_id])[parent_id];
 	for(var attr of all_obj_relation.get(parent_id)) {
 		var parent_color = get_node_color(parent_id);
 				
@@ -215,6 +216,8 @@ function expand_node(parent_id) {
 		var striped_value = attr.value.substring(0, max_displayed_char) + (attr.value.length < max_displayed_char ? "" : "[...]");
 		var node = { 
 			id: attr.uuid,
+			x: parent_pos.x,
+			y: parent_pos.y,
 			label: attr.type + ': ' + striped_value,
 			title: attr.type + ': ' + attr.value,
 			group: 'obj_relation',
