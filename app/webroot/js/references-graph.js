@@ -22,7 +22,8 @@ var user_manipulation = true;
 // network class (handle the event graph manipulation and events)
 class EventGraph {
 	constructor(network_options, nodes, edges) {
-		// FIXME: To remove
+		// FIXME: Do the mapping between meta-catory and fa-icons.
+		// Should be replaced later on.
 		this.mapping_meta_fa = new Map();
 		this.mapping_meta_fa.set('file', {"meta-category": "file","fa_text": "file","fa-hex": "f15b"});
 		this.mapping_meta_fa.set('financial', {"meta-category": "financial","fa_text": "money-bil-alt","fa-hex": "f3d1"});
