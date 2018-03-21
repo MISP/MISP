@@ -256,10 +256,28 @@ function remove_reference(edgeData, callback) {
 
 function add_reference(edgeData, callback) {
 	var uuid = map_id_to_uuid.get(edgeData.to);
+	if (!can_create_reference(edgeData.from) || !can_be_referenced(edgeData.to)) {
+		return;
+	}
 	genericPopup('/objectReferences/add/'+edgeData.from, '#popover_form', function() {
 		$('#targetSelect').val(uuid);
 		$('option[value='+uuid+']').click()
 	});
+}
+
+function can_create_reference(id) {
+	return nodes.get(id).group == "object";
+}
+function can_be_referenced(id) {
+	var res;
+	if (nodes.get(id).group == "object") {
+		res = true;
+	} else if (nodes.get(id).group == "attribute") {
+		res = true;
+	} else {
+		res = false;
+	}
+	return res;
 }
 
 function add_item(nodeData, callback) {
