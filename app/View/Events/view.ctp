@@ -331,8 +331,8 @@
 		<button class="btn btn-inverse toggle qet galaxy-toggle-button" id="galaxies_toggle" data-toggle-type="galaxies">
 			<span class="icon-minus icon-white" title="<?php echo __('Toggle galaxies');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle galaxies');?>" style="vertical-align:top;"></span><?php echo __('Galaxy');?>
 		</button>
-		<button class="btn btn-inverse toggle qet galaxy-toggle-button" id="references_toggle" data-toggle-type="references" onclick="enable_interactive_graph();">
-			<span class="icon-plus icon-white" title="<?php echo __('Toggle references');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle references');?>" style="vertical-align:top;"></span><?php echo __('References');?>
+		<button class="btn btn-inverse toggle qet galaxy-toggle-button" id="eventgraph_toggle" data-toggle-type="eventgraph" onclick="enable_interactive_graph();">
+			<span class="icon-plus icon-white" title="<?php echo __('Toggle Event graph');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle Event graph');?>" style="vertical-align:top;"></span><?php echo __('Event graph');?>
 		</button>
 		<button class="btn btn-inverse toggle qet galaxy-toggle-button" id="attributes_toggle" data-toggle-type="attributes">
 			<span class="icon-minus icon-white" title="<?php echo __('Toggle attributes');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle attributes');?>" style="vertical-align:top;"></span><?php echo __('Attributes');?>
@@ -350,12 +350,12 @@
 		<h4 class="blue"><?php echo __('Galaxies');?></h4>
 		<?php echo $this->element('galaxyQuickView', array('mayModify' => $mayModify, 'isAclTagger' => $isAclTagger)); ?>
 	</div>
-	<div id="references_div" class="info_container_references_network" style="display: none;" data-fullscreen="false">
-		<span class="shortcut-help btn btn-xs btn-primary">?</span>
-		<span class="fullscreen-btn btn btn-xs btn-primary" data-toggle="tooltip" data-placement="left" data-title="<?php echo __('Toggle fullscreen');?>"><span class="fa fa-desktop"></span></span>
+	<div id="eventgraph_div" class="info_container_eventgraph_network" style="display: none;" data-fullscreen="false">
+		<span class="shortcut-help btn btn-xs btn-info">?</span>
+		<span class="fullscreen-btn btn btn-xs btn-primary" data-toggle="tooltip" data-placement="top" data-title="<?php echo __('Toggle fullscreen');?>"><span class="fa fa-desktop"></span></span>
 		<input type="text" id="network-typeahead" class="network-typeahead" data-provide="typeahead" size="20" placeholder="Search for an item">
 
-		<div id="references_network" class="references_network" data-event-id="<?php echo h($event['Event']['id']); ?>" data-user-manipulation="<?php echo h($mayModify) ? 'true' : 'false'; ?>"></div>
+		<div id="eventgraph_network" class="eventgraph_network" data-event-id="<?php echo h($event['Event']['id']); ?>" data-user-manipulation="<?php echo h($mayModify) ? 'true' : 'false'; ?>"></div>
 		<div class="loading-network-div" id="refecences_network_loading_div" style="display: none;">
 			<div class="spinner-network" data-original-title="" title="" style="display: none;"></div>
 			<div class="progress progressbar-network-div" >

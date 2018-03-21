@@ -1,4 +1,4 @@
-.info_container_references_network {
+.info_container_eventgraph_network {
 	position: relative;
 	margin-top: 10px;
 	border: 1px solid #0088cc;
@@ -10,7 +10,7 @@
 	overflow: hidden;
 }
 
-.references_network {
+.eventgraph_network {
 	height: inherit;
 }
 
