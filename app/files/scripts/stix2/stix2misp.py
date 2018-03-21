@@ -517,7 +517,7 @@ def checkIfFromMISP(stix2Event):
     return False
 
 def main(args):
-    pathname = os.path.dirname(sys.argv[0])
+    pathname = os.path.dirname(args[0])
     stix2Event = loadEvent(args, pathname)
     stix2Event = stix2Event.get('objects')
     if checkIfFromMISP(stix2Event):
