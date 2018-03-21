@@ -249,11 +249,12 @@ class StixParser():
                 attributes.append(self.handle_hashes_attribute(h))
         if properties.file_format:
             attributes.append(["mime-type", properties.file_format.value, "mimetype"])
-        if properties.file_name:
+        if properties.file_name or properties.file_path:
             b_file = True
             event_types = eventTypes[properties._XSI_TYPE]
-            value = properties.file_name.value
-            if not value:
+            try:
+                value = properties.file_name.value
+            except AttributeError:
                 value = properties.file_path.value
             attributes.append([event_types['type'], value, event_types['relation']])
         if properties.byte_runs:
