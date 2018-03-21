@@ -35,7 +35,7 @@
 			if (isset($errors[$element_id])) $error = $errors[$element_id];
 			if ($element['batch']) {
 				if ($element['complex']) {
-					$placeholder = __('Describe the %s using one or several (separated by a line-break) of the following types: %s' , h($element['name'], $types));
+					$placeholder = __('Describe the %s using one or several (separated by a line-break) of the following types: %s' , h($element['name']), $types);
 				} else {
 					$placeholder = __('Describe the %s using one or several %s\s (separated by a line-break) ' , h($element['name']) , h($element['type']));
 				}
