@@ -460,8 +460,9 @@ class StixParser():
                 attribute_type, attribute_value, compl_data = self.handle_attribute_type(properties)
                 if type(attribute_value) is str:
                     # if the returned value is a simple value, we build an attribute
-                    attribute = {'timestamp': self.getTimestampfromDate(indicator.timestamp),
-                                 'to_ids': True}
+                    attribute = {'to_ids': True}
+                    if indicator.timestamp:
+                        attribute['timestamp'] = self.getTimestampfromDate(indicator.timestamp)
                     self.handle_attribute_case(attribute_type, attribute_value, compl_data, attribute)
                 else:
                     # otherwise, it is a dictionary of attributes, so we build an object
@@ -510,8 +511,10 @@ class StixParser():
         self.misp_event.add_object(**misp_object)
 
     def parse_ttps(self, ttps):
+        self.misp_event['Galaxy'] = []
         for ttp in ttps:
-            behavior = ttp.behavior
+            if ttp.behavior:
+                print(ttp.behavior) # WAITING FOR EXAMPLES THAT ARE RELEVANT TO BE PARSED
 
     @staticmethod
     def return_attributes(attributes):
