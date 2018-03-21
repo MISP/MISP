@@ -24,6 +24,16 @@ echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary'));
 echo $this->Form->end();
 ?>
 </div>
+<script type="text/javascript">
+	$(document).ready(function() {
+		$('#PasswordPopover').popover("destroy").popover({
+			placement: 'right',
+			html: 'true',
+			trigger: 'hover',
+			content: '<?php echo $passwordPopover; ?>'
+		});
+	});
+</script>
 <?php
 	echo $this->element('side_menu', array('menuList' => 'globalActions', 'menuItem' => 'news'));
 ?>
