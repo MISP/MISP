@@ -17,16 +17,15 @@
 .spinner-network {
 	height: 60px;
 	width: 60px;
-	margin: 0 auto;
-	position: absolute;
+	position: relative;
 	-webkit-animation: rotation .6s infinite linear;
 	-moz-animation: rotation .6s infinite linear;
 	-o-animation: rotation .6s infinite linear;
 	animation: rotation .6s infinite linear;
 	border: 6px solid rgba(0,174,239,.15);
 	border-radius: 100%;
-	right: 10px;
 	z-index: 15;
+	display: inline-block;
 }
 
 .spinner-network:before {
@@ -47,43 +46,20 @@
 
 .loadingText-network {
 	color: #0088cc;
-	margin: 0 auto;
 	position: relative;
-	top: 32px;
-	text-align: center;
-	font-size: 18px;
+	font-size: 16px;
 }
 
 .loading-network-div {
-	width:320px;
-	height: 100px;
 	position: absolute;
+	width: 170px;
 	top: 40px;
-	right: 0;
-}
-
-.progressbar-network-div {
-	position: relative;
-	margin: 0 auto;
 	right: 10px;
-	top: 10px;
-	width: 300px;
-}
-
-.progress-bar {
-	float: left;
-	width: 0;
-	height: 100%;
-	font-size: 12px;
-	line-height: 20px;
-	color: #fff;
 	text-align: center;
-	background-color: #337ab7;
-	-webkit-box-shadow: inset 0 -1px 0 rgba(0,0,0,.15);
-	box-shadow: inset 0 -1px 0 rgba(0,0,0,.15);
-	-webkit-transition: width .6s ease;
-	-o-transition: width .6s ease;
-	transition: width .6s ease;
+	padding: 5px;
+	background: #FAFAFA;
+	border-radius: 7px;
+	box-shadow: 0px 0px 6px #B2B2B2;
 }
 
 .shortcut-help {

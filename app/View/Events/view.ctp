@@ -357,11 +357,8 @@
 
 		<div id="eventgraph_network" class="eventgraph_network" data-event-id="<?php echo h($event['Event']['id']); ?>" data-user-manipulation="<?php echo $mayModify || $isSiteAdmin ? 'true' : 'false'; ?>"></div>
 		<div class="loading-network-div" id="refecences_network_loading_div" style="display: none;">
-			<div class="spinner-network" data-original-title="" title="" style="display: none;"></div>
-			<div class="progress progressbar-network-div" >
-				<div id="progressbar-network" class="progress-bar progress-bar-striped" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="300" style="width:0%">0%</div>
-			</div> 
-			<div class="loadingText-network" data-original-title="" title="" style="display: none;"></div>
+			<div class="spinner-network" data-original-title="" title=""></div>
+			<div class="loadingText-network" data-original-title="" title=""></div>
 		</div>
 	</div>
 	<div id="attributes_div">

@@ -63,8 +63,7 @@ class EventGraph {
 	}
 	
 	update_graph(data) {
-		var total = data.items.length + data.relations.length;
-		this.network_loading(0, total);
+		this.network_loading(true, loadingText_creating);
 		
 		// New nodes will be automatically added
 		// removed references will be deleted
@@ -117,7 +116,6 @@ class EventGraph {
 		}
 	
 		this.nodes.update(newNodes);
-		this.network_loading(data.items.length, total);
 		
 		// New relations will be automatically added
 		// removed references will be deleted
@@ -148,7 +146,7 @@ class EventGraph {
 		}
 	
 		this.edges.update(newRelations);
-		this.network_loading(total, total);
+		this.network_loading(false, "");
 	}
 	
 	reset_view() {
@@ -163,39 +161,16 @@ class EventGraph {
 		});
 	}
 
-	// -1: Undefined state
-	// 0<=iterations<total: state known
-	// iterations>=total: finished
-	network_loading(iterations, total) {
-		if(iterations == -1) {
-			var loadingText = loadingText_fetching;
+	// state true: loading
+	// state false: finished
+	network_loading(state, message) {
+		if(state) {
 			$('.loading-network-div').show();
-			$('.spinner-network').show();
-			$('.loadingText-network').text(loadingText);
-			$('.loadingText-network').show();
-		} else if (iterations >= 0 && iterations < total) {
-			var loadingText = loadingText_creating;
-			$('.loading-network-div').show();
-			$('.loadingText-network').text(loadingText);
-			$('.loadingText-network').show();
-			$('.spinner-network').hide();
-			// pb
-			var percentage = parseInt(iterations*100/total);
-			$('.progressbar-network-div').show();
-			$('#progressbar-network').show();
-			$('#progressbar-network').width(percentage*progressbar_length);
-			$('#progressbar-network').text(percentage+' %');
-	
-		} else if (iterations >= total) {
-			$('#progressbar-network').width(100*progressbar_length);
-			$('#progressbar-network').text(100+' %');
+			$('.loadingText-network').text(message);
+		} else {
 			setTimeout(function() {
 				$('.loading-network-div').hide();
-				$('.spinner-network').hide();
-				$('.loadingText-network').hide();
-				$('.progressbar-network-div').hide();
-				$('#progressbar-network').hide();
-			}, 1000)
+			}, 500)
 		}
 	}
 
@@ -336,10 +311,9 @@ class DataHandler {
 	}
 	
 	fetch_data_and_update() {
-		eventGraph.network_loading(-1, 0);
+		eventGraph.network_loading(true, loadingText_fetching);
 		$.getJSON( "/events/getReferences/"+scope_id+"/event.json", function( data ) {
 			var extracted = dataHandler.extract_references(data);
-			eventGraph.network_loading(1, 0);
 			eventGraph.update_graph(extracted);
 			eventGraph.reset_view_on_stabilized();
 		});
