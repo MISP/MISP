@@ -176,7 +176,8 @@ class EventGraph {
 
 
 	collapse_node(parent_id) {
-		if (parent_id === undefined) { //  No node selected
+		var node_group = this.nodes.get(parent_id).group;
+		if (parent_id === undefined || node_group != 'object') { //  No node selected  or collapse not permitted
 			return
 		}
 		var connected_nodes = this.network.getConnectedNodes(parent_id);
@@ -200,8 +201,7 @@ class EventGraph {
 	
 	expand_node(parent_id) {
 		if (parent_id === undefined //  Node node selected
-		    || this,nodes.get(parent_id).group == "attribute"
-		    || this.nodes.get(parent_id).group == "obj_relation") { //  Cannot expand attribute
+		    || this.nodes.get(parent_id).group != "object") { //  Cannot expand attribute
 			return;
 		}
 	
