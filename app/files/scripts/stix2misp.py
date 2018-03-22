@@ -19,14 +19,17 @@ import sys, json, os, time
 import pymisp
 from stix.core import STIXPackage
 
+file_object_type = {"type": "filename", "relation": "filename"}
+
 eventTypes = {"ArtifactObjectType": {"type": "attachment", "relation": "attachment"},
               "DomainNameObjectType": {"type": "domain", "relation": "domain"},
-              "FileObjectType": {"type": "filename", "relation": "filename"},
+              "FileObjectType": file_object_type,
               "HostnameObjectType": {"type": "hostname", "relation": "host"},
               "MutexObjectType": {"type": "mutex", "relation": "mutex"},
+              "PDFFileObjectType": file_object_type,
               "PortObjectType": {"type": "port", "relation": "port"},
               "URIObjectType": {"type": "url", "relation": "url"},
-              "WindowsExecutableFileObjectType": {"type": "filename", "relation": "filename"},
+              "WindowsExecutableFileObjectType": file_object_type,
               "WindowsRegistryKeyObjectType": {"type": "regkey", "relation": ""}}
 
 descFilename = os.path.join(pymisp.__path__[0], 'data/describeTypes.json')
@@ -166,7 +169,7 @@ class StixParser():
         elif xsi_type == 'DomainNameObjectType':
             event_types = eventTypes[xsi_type]
             return event_types['type'], properties.value.value, event_types['relation']
-        elif xsi_type == 'FileObjectType':
+        elif xsi_type == 'FileObjectType' or xsi_type == 'PDFFileObjectType':
             return self.handle_file(properties, is_object)
         elif xsi_type == 'HostnameObjectType':
             event_types = eventTypes[xsi_type]
@@ -244,22 +247,24 @@ class StixParser():
             b_hash = True
             for h in properties.hashes:
                 attributes.append(self.handle_hashes_attribute(h))
-        if properties.file_format:
+        if properties.file_format and properties.file_format.value:
             attributes.append(["mime-type", properties.file_format.value, "mimetype"])
-        if properties.file_name:
-            b_file = True
-            event_types = eventTypes[properties._XSI_TYPE]
-            value = properties.file_name.value
-            if not value:
+        if properties.file_name or properties.file_path:
+            try:
+                value = properties.file_name.value
+            except AttributeError:
                 value = properties.file_path.value
-            attributes.append([event_types['type'], value, event_types['relation']])
+            if value:
+                b_file = True
+                event_types = eventTypes[properties._XSI_TYPE]
+                attributes.append([event_types['type'], value, event_types['relation']])
         if properties.byte_runs:
             attribute_type = "pattern-in-file"
             attributes.append([attribute_type, properties.byte_runs[0].byte_run_data, attribute_type])
-        if properties.size_in_bytes:
+        if properties.size_in_bytes and properties.size_in_bytes.value:
             attribute_type = "size-in-bytes"
             attributes.append([attribute_type, properties.size_in_bytes.value, attribute_type])
-        if properties.peak_entropy:
+        if properties.peak_entropy and properties.peak_entropy.value:
             attributes.append(["float", properties.peak_entropy.value, "entropy"])
         if len(attributes) == 1:
             return attributes[0]
@@ -457,8 +462,9 @@ class StixParser():
                 attribute_type, attribute_value, compl_data = self.handle_attribute_type(properties)
                 if type(attribute_value) is str:
                     # if the returned value is a simple value, we build an attribute
-                    attribute = {'timestamp': self.getTimestampfromDate(indicator.timestamp),
-                                 'to_ids': True}
+                    attribute = {'to_ids': True}
+                    if indicator.timestamp:
+                        attribute['timestamp'] = self.getTimestampfromDate(indicator.timestamp)
                     self.handle_attribute_case(attribute_type, attribute_value, compl_data, attribute)
                 else:
                     # otherwise, it is a dictionary of attributes, so we build an object
@@ -507,8 +513,12 @@ class StixParser():
         self.misp_event.add_object(**misp_object)
 
     def parse_ttps(self, ttps):
+        self.misp_event['Galaxy'] = []
         for ttp in ttps:
-            behavior = ttp.behavior
+            if ttp.behavior:
+                for mi in ttp.behavior.malware_instances:
+                    print(mi.maec.to_json())
+                # print(ttp.behavior) # WAITING FOR EXAMPLES THAT ARE RELEVANT TO BE PARSED
 
     @staticmethod
     def return_attributes(attributes):
