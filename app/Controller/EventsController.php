@@ -4333,6 +4333,23 @@ class EventsController extends AppController {
 		return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
 	}
 
+	public function getReferenceData($uuid, $type = 'reference') {
+		$validTools = array('reference');
+		if (!in_array($type, $validTools)) throw new MethodNotAllowedException('Invalid type.');
+		App::uses('ReferencesGraphTool', 'Tools');
+		$grapher = new ReferencesGraphTool();
+		$data = $this->request->is('post') ? $this->request->data : array();
+		$grapher->construct_for_ref($this->Event->Object, $this->Auth->user(), $data);
+		$json = $grapher->get_reference_data($uuid);
+
+		array_walk_recursive($json, function(&$item, $key){
+			if(!mb_detect_encoding($item, 'utf-8', true)){
+				$item = utf8_encode($item);
+			}
+		});
+		$this->response->type('json');
+		return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
+	}
 
 	public function delegation_index() {
 		$this->loadModel('EventDelegation');

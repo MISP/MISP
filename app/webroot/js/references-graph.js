@@ -1,6 +1,3 @@
-function log(m) {
-	console.log(m);
-}
 /*=============
  * GLOBAL VARS
  * ============*/
@@ -47,8 +44,15 @@ class EventGraph {
 				animation: true,
 			});
 		});
-		// Fit view only when page is loading for the first time
-		//this.reset_view_on_stabilized();
+
+		// we use the zoom for the clustering
+		this.network.on("zoom", function (params) {
+			if (params.direction == '+') { // zooming
+
+			} else { // un-zooming
+
+			}
+		});
 	}
 
 	// Util
@@ -122,9 +126,8 @@ class EventGraph {
 		var newRelations = [];
 		var newRelationIDs = [];
 		for(var rel of data.relations) {
-			var fromto = rel.from + '-' + rel.to;
 			var rel = {
-				id: fromto,
+				id: rel.id,
 				from: rel.from,
 				to: rel.to,
 				label: rel.type,
@@ -134,7 +137,7 @@ class EventGraph {
 				}
 			};
 			newRelations.push(rel);
-			newRelationIDs.push(fromto);
+			newRelationIDs.push(rel.id);
 		}
 		// check if nodes got deleted
 		var old_rel_ids = this.edges.getIds();
@@ -257,9 +260,9 @@ class DataHandler {
 	constructor(network) {
 		this.network = network;
 		this.mapping_value_to_nodeID = new Map();
-		this.mapping_id_to_uuid = new Map();
-		this.mapping_fromto_to_rel_id = new Map();
+		this.mapping_attr_id_to_uuid = new Map();
 		this.mapping_all_obj_relation = new Map();
+		this.mapping_rel_id_to_uuid = new Map();
 	}
 
 	extract_references(data) {
@@ -268,7 +271,7 @@ class DataHandler {
 	
 		if (data.Attribute !== undefined) {
 			for (var attr of data.Attribute) {
-				this.mapping_id_to_uuid.set(attr.id, attr.uuid);
+				this.mapping_attr_id_to_uuid.set(attr.id, attr.uuid);
 				items.push({
 					'id': attr.id,
 					'type': attr.type,
@@ -280,7 +283,7 @@ class DataHandler {
 	
 		if (data.Object !== undefined) {
 			for (var obj of data.Object) {
-				this.mapping_id_to_uuid.set(obj.id, obj.uuid);
+				this.mapping_attr_id_to_uuid.set(obj.id, obj.uuid);
 				this.mapping_all_obj_relation.set(obj.id, obj.Attribute);
 				items.push({
 					'id': obj.id,
@@ -291,9 +294,9 @@ class DataHandler {
 				});
 				
 				for (var rel of obj.ObjectReference) {
-					var fromto = obj.id + '-' + rel.referenced_id;
-					this.mapping_fromto_to_rel_id.set(fromto, rel.id);
+					this.mapping_rel_id_to_uuid.set(rel.id, rel.uuid);
 					relations.push({
+						'id': rel.id,
 						'from': obj.id,
 						'to': rel.referenced_id,
 						'type': rel.relationship_type,
@@ -309,12 +312,20 @@ class DataHandler {
 		}
 	}
 	
-	fetch_data_and_update() {
+	fetch_data_and_update(stabilize) {
 		eventGraph.network_loading(true, loadingText_fetching);
 		$.getJSON( "/events/getReferences/"+scope_id+"/event.json", function( data ) {
 			var extracted = dataHandler.extract_references(data);
 			eventGraph.update_graph(extracted);
-			eventGraph.reset_view_on_stabilized();
+			if ( stabilize === undefined || stabilize) {
+				eventGraph.reset_view_on_stabilized();
+			}
+		});
+	}
+
+	fetch_reference_data(rel_uuid, callback) {
+		$.getJSON( "/events/getReferenceData/"+rel_uuid+"/reference.json", function( data ) {
+			callback(data);
 		});
 	}
 
@@ -334,24 +345,62 @@ class MispInteraction {
 	constructor(nodes, edges) {
 		this.nodes = nodes;
 		this.edges = edges;
+		// Dirty way to know what modif was successful as the callback gives no information
+		// May be changed in the futur
+		this.callback_to_be_called = null;
+	}
+	
+	register_callback(callback) {
+		this.callback_to_be_called = callback;
+	}
+
+	apply_callback() {
+		var that = mispInteraction;
+		if (that.callback_to_be_called !== null) {
+			that.callback_to_be_called(that.callback_data);
+		}
+		that.callback_to_be_called = null;
+		that.callback_data = null;
 	}
 
 	remove_reference(edgeData, callback) {
+		var that = mispInteraction;
 		var edge_id = edgeData.edges[0];
-		var fromto = edge_id;
-		var relation_id = dataHandler.mapping_fromto_to_rel_id.get(fromto);
+		var relation_id = edge_id;
 		deleteObject('object_references', 'delete', relation_id, scope_id);
 	}
 	
 	add_reference(edgeData, callback) {
 		var that = mispInteraction;
-		var uuid = dataHandler.mapping_id_to_uuid.get(edgeData.to);
+		var uuid = dataHandler.mapping_attr_id_to_uuid.get(edgeData.to);
 		if (!that.can_create_reference(edgeData.from) || !that.can_be_referenced(edgeData.to)) {
 			return;
 		}
 		genericPopup('/objectReferences/add/'+edgeData.from, '#popover_form', function() {
 			$('#targetSelect').val(uuid);
 			$('option[value='+uuid+']').click()
+		});
+	}
+
+	edit_reference(edgeData, callback) {
+		var that = mispInteraction;
+		var rel_id = edgeData.id;
+		var rel_uuid = dataHandler.mapping_rel_id_to_uuid.get(rel_id);
+		
+		that.register_callback(function() {
+			var relation_id = edgeData.id;
+			submitDeletion(scope_id, 'delete', 'object_references', relation_id);
+		});
+
+		dataHandler.fetch_reference_data(rel_uuid, function(data) {
+			data = data[0].ObjectReference;
+			var uuid = data.referenced_uuid;
+			genericPopup('/objectReferences/add/'+data.object_id, '#popover_form', function() {
+				$('#targetSelect').val(uuid);
+				$('#ObjectReferenceComment').val(data.comment);
+				$('#ObjectReferenceRelationshipTypeSelect').val(data.relationship_type);
+				$('option[value='+uuid+']').click();
+			});
 		});
 	}
 	
@@ -372,6 +421,7 @@ class MispInteraction {
 	}
 
 	add_item(nodeData, callback) {
+		var that = mispInteraction;
 		choicePopup("Add an element", [
 			{
 				text: "Add an Object",
@@ -398,8 +448,14 @@ class MispInteraction {
 	}
 	
 	edit_item(nodeData, callback) {
+		var that = mispInteraction;
 		var id = nodeData.id
-		simplePopup('/attributes/edit/'+id);
+		var group = nodes.get(id).group;
+		if (group == 'attribute') {
+			simplePopup('/attributes/edit/'+id);
+		} else if (group == 'object') {
+			window.location = '/objects/edit/'+id;
+		}
 	}
 }
 
@@ -431,9 +487,10 @@ function getTextColour(hex) {
 
 
 function genericPopupCallback(result) {
-	if (result == "success") {
-		dataHandler.fetch_data_and_update();
-		//eventGraph.reset_view_on_stabilized();
+ 	// sucess and eventgraph is enabled
+	if (result == "success" && dataHandler !== undefined) {
+		mispInteraction.apply_callback();
+		dataHandler.fetch_data_and_update(false);
 	}
 }
 
@@ -489,8 +546,17 @@ function enable_interactive_graph() {
 				case 69: // e
 					if (evt.shiftKey) {
 						var selected_id = eventGraph.network.getSelectedNodes()[0]; 
-						data = { id: selected_id };
-						mispInteraction.edit_item(data);
+						if (selected_id !== undefined) { // A node is selected
+							var data = { id: selected_id };
+							mispInteraction.edit_item(data);
+							break;
+						}
+						selected_id = eventGraph.network.getSelectedEdges()[0]; 
+						if (selected_id !== undefined) { // A edge is selected
+							var data = { id: selected_id };
+							mispInteraction.edit_reference(data);
+							break;
+						}
 					}
 					break;
 
@@ -548,7 +614,7 @@ function enable_interactive_graph() {
 			
 		});
 
-		dataHandler.fetch_data_and_update();
+		dataHandler.fetch_data_and_update(false);
 	}, 1);
 }
 
@@ -565,7 +631,7 @@ var network_options = {
 		enabled: user_manipulation,
 		initiallyActive: false,
 		addEdge: mispInteraction.add_reference,
-		editEdge: false,
+		editEdge: { editWithoutDrag: mispInteraction.edit_reference },
 		addNode: mispInteraction.add_item,
 		editNode: mispInteraction.edit_item,
 		deleteNode: mispInteraction.delete_item,
@@ -634,6 +700,7 @@ var network_options = {
 			editNode: 'Edit selected item',
 			addDescription: 'Click in an empty space to place a new node.',
 			addEdge: 'Add Reference',
+			editEdge: 'Edit Reference',
 			edgeDescription: 'Click on an Object and drag the edge to another Object (or Attribute) to connect them.'
 		}
 	}
