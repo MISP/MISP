@@ -355,7 +355,7 @@
 		<span class="fullscreen-btn btn btn-xs btn-primary" data-toggle="tooltip" data-placement="top" data-title="<?php echo __('Toggle fullscreen');?>"><span class="fa fa-desktop"></span></span>
 		<input type="text" id="network-typeahead" class="network-typeahead" data-provide="typeahead" size="20" placeholder="Search for an item">
 
-		<div id="eventgraph_network" class="eventgraph_network" data-event-id="<?php echo h($event['Event']['id']); ?>" data-user-manipulation="<?php echo h($mayModify) ? 'true' : 'false'; ?>"></div>
+		<div id="eventgraph_network" class="eventgraph_network" data-event-id="<?php echo h($event['Event']['id']); ?>" data-user-manipulation="<?php echo $mayModify || $isSiteAdmin ? 'true' : 'false'; ?>"></div>
 		<div class="loading-network-div" id="refecences_network_loading_div" style="display: none;">
 			<div class="spinner-network" data-original-title="" title="" style="display: none;"></div>
 			<div class="progress progressbar-network-div" >

@@ -109,6 +109,6 @@
 
 .network-typeahead {
 	position: absolute;
-	right: 2px;
+	right: 20px;
 	z-index: 1;
 }

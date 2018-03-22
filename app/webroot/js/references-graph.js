@@ -14,7 +14,6 @@ var typeaheadData;
 var scope_id = $('#eventgraph_network').data('event-id');
 var container = document.getElementById('eventgraph_network');
 var user_manipulation = $('#eventgraph_network').data('user-manipulation');
-var user_manipulation = true;
 
 /*=========
  * CLASSES
@@ -357,7 +356,7 @@ class DataHandler {
 }
 
 
-// misp interaction class (handle interaction with misp)
+// MISP interaction class (handle interaction with misp)
 class MispInteraction {
 	constructor(nodes, edges) {
 		this.nodes = nodes;
@@ -365,7 +364,7 @@ class MispInteraction {
 	}
 
 	remove_reference(edgeData, callback) {
-		edge_id = edgeData.edges[0];
+		var edge_id = edgeData.edges[0];
 		var fromto = edge_id;
 		var relation_id = dataHandler.mapping_fromto_to_rel_id.get(fromto);
 		deleteObject('object_references', 'delete', relation_id, scope_id);
