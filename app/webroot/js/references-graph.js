@@ -155,9 +155,8 @@ class EventGraph {
 	
 	reset_view_on_stabilized() {
 		var that = this;
-		this.network.on("stabilized", function(params) {
+		this.network.once("stabilized", function(params) {
 			that.network.fit({ animation: true });
-			that.network.off("stabilized"); //  Removed listener
 		});
 	}
 
