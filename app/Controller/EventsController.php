@@ -4318,8 +4318,8 @@ class EventsController extends AppController {
 	public function getReferences($id, $type = 'event') {
 		$validTools = array('event');
 		if (!in_array($type, $validTools)) throw new MethodNotAllowedException('Invalid type.');
-		App::uses('ReferencesGraphTool', 'Tools');
-		$grapher = new ReferencesGraphTool();
+		App::uses('EventGraphTool', 'Tools');
+		$grapher = new EventGraphTool();
 		$data = $this->request->is('post') ? $this->request->data : array();
 		$grapher->construct($this->Event, $this->Auth->user(), $data);
 		$json = $grapher->get_all_data($id);
@@ -4336,8 +4336,8 @@ class EventsController extends AppController {
 	public function getReferenceData($uuid, $type = 'reference') {
 		$validTools = array('reference');
 		if (!in_array($type, $validTools)) throw new MethodNotAllowedException('Invalid type.');
-		App::uses('ReferencesGraphTool', 'Tools');
-		$grapher = new ReferencesGraphTool();
+		App::uses('EventGraphTool', 'Tools');
+		$grapher = new EventGraphTool();
 		$data = $this->request->is('post') ? $this->request->data : array();
 		$grapher->construct_for_ref($this->Event->Object, $this->Auth->user(), $data);
 		$json = $grapher->get_reference_data($uuid);
