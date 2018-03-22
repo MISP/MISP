@@ -83,7 +83,7 @@ systemctl enable rh-redis32-redis.service
 scl enable rh-mariadb102 rh-php71 rh-redis32 bash
 
 2.08/ Secure the MariaDB installation, run the following command and follow the prompts
-mysqld_secure_installation
+mysql_secure_installation
 
 2.10/ Update the PHP extension repository and install required package
 pear channel-update pear.php.net
@@ -156,9 +156,9 @@ php composer.phar install
 
 4.03/ Install and configure php redis connector through pecl
 pecl install redis
-echo "extension=redis.so" > /etc/opt/rh/rh-php56/php-fpm.d/redis.ini
-ln -s ../php-fpm.d/redis.ini /etc/opt/rh/rh-php56/php.d/99-redis.ini
-systemctl restart rh-php56-php-fpm.service
+echo "extension=redis.so" > /etc/opt/rh/rh-php71/php-fpm.d/redis.ini
+ln -s ../php-fpm.d/redis.ini /etc/opt/rh/rh-php71/php.d/99-redis.ini
+systemctl restart rh-php71-php-fpm.service
 
 4.04/ Set a timezone in php.ini
 echo 'date.timezone = "Australia/Sydney"' > /etc/opt/rh/rh-php71/php-fpm.d/timezone.ini
@@ -382,7 +382,7 @@ export LIEF_TMP=/tmp/LIEF
 export LIEF_INSTALL=/tmp/LIEF_INSTALL
 export LIEF_BRANCH=master
 cd $LIEF_TMP
-git clone --depth 3 --branch $LIEF_BRANCH --single-branch https://github.com/lief-project/LIEF.git LIEF
+git clone --branch $LIEF_BRANCH --single-branch https://github.com/lief-project/LIEF.git LIEF
 
 11.04/ Compile lief and install
 cd $LIEF_TMP/LIEF
