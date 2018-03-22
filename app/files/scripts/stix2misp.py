@@ -247,23 +247,24 @@ class StixParser():
             b_hash = True
             for h in properties.hashes:
                 attributes.append(self.handle_hashes_attribute(h))
-        if properties.file_format:
+        if properties.file_format and properties.file_format.value:
             attributes.append(["mime-type", properties.file_format.value, "mimetype"])
         if properties.file_name or properties.file_path:
-            b_file = True
-            event_types = eventTypes[properties._XSI_TYPE]
             try:
                 value = properties.file_name.value
             except AttributeError:
                 value = properties.file_path.value
-            attributes.append([event_types['type'], value, event_types['relation']])
+            if value:
+                b_file = True
+                event_types = eventTypes[properties._XSI_TYPE]
+                attributes.append([event_types['type'], value, event_types['relation']])
         if properties.byte_runs:
             attribute_type = "pattern-in-file"
             attributes.append([attribute_type, properties.byte_runs[0].byte_run_data, attribute_type])
-        if properties.size_in_bytes:
+        if properties.size_in_bytes and properties.size_in_bytes.value:
             attribute_type = "size-in-bytes"
             attributes.append([attribute_type, properties.size_in_bytes.value, attribute_type])
-        if properties.peak_entropy:
+        if properties.peak_entropy and properties.peak_entropy.value:
             attributes.append(["float", properties.peak_entropy.value, "entropy"])
         if len(attributes) == 1:
             return attributes[0]
@@ -515,7 +516,9 @@ class StixParser():
         self.misp_event['Galaxy'] = []
         for ttp in ttps:
             if ttp.behavior:
-                print(ttp.behavior) # WAITING FOR EXAMPLES THAT ARE RELEVANT TO BE PARSED
+                for mi in ttp.behavior.malware_instances:
+                    print(mi.maec.to_json())
+                # print(ttp.behavior) # WAITING FOR EXAMPLES THAT ARE RELEVANT TO BE PARSED
 
     @staticmethod
     def return_attributes(attributes):
