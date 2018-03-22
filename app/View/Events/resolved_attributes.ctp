@@ -143,8 +143,8 @@
 					<?php
 						if (!empty($item['types'])) {
 							foreach ($item['types'] as $type) {
-								echo '<option value="' . $type . '" ';
-								echo ($type == $item['default_type'] ? 'selected="selected"' : '') . '>' . $type . '</option>';
+								echo '<option value="' . h($type) . '" ';
+								echo ($type == $item['default_type'] ? 'selected="selected"' : '') . '>' . h($type) . '</option>';
 							}
 						}
 					?>
@@ -167,17 +167,17 @@
 					<select id = "<?php echo 'Attribute' . $k . 'SharingGroupId'; ?>" class='sgToggle' style='padding:0px;height:20px;margin-top:3px;margin-bottom:0px;'>
 						<?php
 							foreach ($sgs as $sgKey => $sgValue) {
-								echo '<option value="' . $sgKey . '">' . $sgValue . '</option>';
+								echo '<option value="' . h($sgKey) . '">' . h($sgValue) . '</option>';
 							}
 						?>
 					</select>
 				</div>
 			</td>
 			<td class="short">
-				<input type="text" class="freetextCommentField" id="<?php echo 'Attribute' . $k . 'Comment'; ?>" style="padding:0px;height:20px;margin-bottom:0px;" placeholder="<?php echo h($importComment); ?>" <?php if (isset($item['comment']) && $item['comment'] !== false) echo 'value="' . $item['comment'] . '"'?>/>
+				<input type="text" class="freetextCommentField" id="<?php echo 'Attribute' . $k . 'Comment'; ?>" style="padding:0px;height:20px;margin-bottom:0px;" placeholder="<?php echo h($importComment); ?>" <?php if (isset($item['comment']) && $item['comment'] !== false) echo 'value="' . h($item['comment']) . '"'?>/>
 			</td>
 			<td class="short">
-				<input type="text" class="freetextTagField" id="<?php echo 'Attribute' . $k . 'Tags'; ?>" style="padding:0px;height:20px;margin-bottom:0px;"<?php if (isset($item['tags']) && $item['tags'] !== false) echo 'value="' . htmlspecialchars(implode(",",$item['tags'])) . '"'?>/>
+				<input type="text" class="freetextTagField" id="<?php echo 'Attribute' . $k . 'Tags'; ?>" style="padding:0px;height:20px;margin-bottom:0px;"<?php if (isset($item['tags']) && $item['tags'] !== false) echo 'value="' . h(implode(",",$item['tags'])) . '"'?>/>
 			</td>
 			<td class="action short">
 				<span class="icon-remove pointer" title="<?php echo __('Remove resolved attribute');?>" role="button" tabindex="0" aria-label="<?php echo __('Remove resolved attribute');?>" onClick="freetextRemoveRow('<?php echo $k; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
@@ -206,7 +206,7 @@
 					<?php
 						foreach (array_keys($optionsRearranged) as $fromElement):
 					?>
-							<option><?php echo $fromElement; ?></option>
+							<option><?php echo h($fromElement); ?></option>
 					<?php
 						endforeach;
 					?>
