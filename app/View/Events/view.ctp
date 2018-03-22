@@ -389,5 +389,5 @@ $(document).ready(function () {
 <?php echo $this->Html->script('vis'); ?>
 <?php echo $this->Html->css('vis'); ?>
 <?php echo $this->Html->script('bootstrap-typeahead'); ?>
-<?php echo $this->Html->css('references-graph'); ?>
-<?php echo $this->Html->script('references-graph'); ?>
+<?php echo $this->Html->css('event-graph'); ?>
+<?php echo $this->Html->script('event-graph'); ?>
