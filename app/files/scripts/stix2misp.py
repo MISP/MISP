@@ -84,13 +84,14 @@ class StixParser():
             self.parse_ttps(self.event.ttps.ttps)
 
     def dictTimestampAndDate(self):
-        stixTimestamp = self.event.timestamp
-        try:
-            date = stixTimestamp.split("T")[0]
-        except AttributeError:
-            date = stixTimestamp
-        self.misp_event.date = date
-        self.misp_event.timestamp = self.getTimestampfromDate(stixTimestamp)
+        if self.event.timestamp:
+            stixTimestamp = self.event.timestamp
+            try:
+                date = stixTimestamp.split("T")[0]
+            except AttributeError:
+                date = stixTimestamp
+            self.misp_event.date = date
+            self.misp_event.timestamp = self.getTimestampfromDate(stixTimestamp)
 
     def getTimestampfromDate(self, date):
         try:
@@ -515,10 +516,8 @@ class StixParser():
     def parse_ttps(self, ttps):
         self.misp_event['Galaxy'] = []
         for ttp in ttps:
-            if ttp.behavior:
-                for mi in ttp.behavior.malware_instances:
-                    print(mi.maec.to_json())
-                # print(ttp.behavior) # WAITING FOR EXAMPLES THAT ARE RELEVANT TO BE PARSED
+            if ttp.behavior and ttp.behavior.malware_instances:
+                print(ttp.behavior.to_json()) # WAITING FOR EXAMPLES THAT ARE RELEVANT TO BE PARSED
 
     @staticmethod
     def return_attributes(attributes):
