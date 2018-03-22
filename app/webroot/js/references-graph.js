@@ -383,6 +383,9 @@ class MispInteraction {
 	}
 
 	edit_reference(edgeData, callback) {
+		if (callback !== undefined) {
+			callback();
+		}
 		var that = mispInteraction;
 		var rel_id = edgeData.id;
 		var rel_uuid = dataHandler.mapping_rel_id_to_uuid.get(rel_id);
@@ -738,6 +741,3 @@ var shortcut_text = "<b>V:</b> Center camera"
 		+ "\n<b>SHIFT+F:</b> Search for value"
 		+ "\n<b>SHIFT:</b> Hold to add a reference"
 		+ "\n<b>DEL:</b> Delete selected item";
-
-
-
