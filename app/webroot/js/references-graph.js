@@ -614,7 +614,7 @@ function enable_interactive_graph() {
 			
 		});
 
-		dataHandler.fetch_data_and_update(false);
+		dataHandler.fetch_data_and_update();
 	}, 1);
 }
 
