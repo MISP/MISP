@@ -529,6 +529,9 @@ function enable_interactive_graph() {
 		dataHandler = new DataHandler(eventGraph.network);
 
 		$(document).on("keydown", function(evt) {
+			if($('#network-typeahead').is(":focus")) {
+				return;
+			}
 			switch(evt.keyCode) {
 				case 88: // x
 					var selected_id = eventGraph.network.getSelectedNodes()[0]; 
