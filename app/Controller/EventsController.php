@@ -1478,7 +1478,7 @@ class EventsController extends AppController {
 		}
 	}
 
-	public function upload_stix() {
+	public function upload_stix($stix_version = '1') {
 		if (!$this->userRole['perm_modify']) {
 			throw new UnauthorizedException('You do not have permission to do that.');
 		}
@@ -1489,7 +1489,7 @@ class EventsController extends AppController {
 				$tempFile = new File($tmpDir . DS . $randomFileName, true, 0644);
 				$tempFile->write($this->request->input());
 				$tempFile->close();
-				$result = $this->Event->upload_stix($this->Auth->user(), $randomFileName);
+				$result = $this->Event->upload_stix($this->Auth->user(), $randomFileName, $stix_version);
 				if (is_array($result)) {
 					return $this->RestResponse->saveSuccessResponse('Events', 'upload_stix', false, $this->response->type(), 'STIX document imported, event\'s created: ' . implode(', ', $result) . '.');
 				} else if (is_numeric($result)) {
@@ -1507,7 +1507,7 @@ class EventsController extends AppController {
 					$randomFileName = $this->Event->generateRandomFileName();
 					$tmpDir = APP . "files" . DS . "scripts" . DS . "tmp";
 					move_uploaded_file($this->data['Event']['stix']['tmp_name'], $tmpDir . DS . $randomFileName);
-					$result = $this->Event->upload_stix($this->Auth->user(), $randomFileName);
+					$result = $this->Event->upload_stix($this->Auth->user(), $randomFileName, $stix_version);
 					if (is_array($result)) {
 						$this->Session->setFlash(__('STIX document imported, event\'s created: ' . implode(', ', $result) . '.'));
 						$this->redirect(array('action' => 'index'));
@@ -1524,37 +1524,14 @@ class EventsController extends AppController {
 				}
 			}
 		}
-	}
 
-/*
-	public function upload_stix2() {
-		if (!$this->userRole['perm_modify']) {
-			throw new UnauthorizedException('You do not have permission to do that.');
+		if ($stix_version == 2) {
+			$stix_version = '2.x JSON';
+		} else {
+			$stix_version = '1.x XML';
 		}
-		if ($this->request->is('post')) {
-
-			if ($this->_isRest()) {
-				$randomFileName = $this->Event->generateRandomFileName();
-				$tmpDir = APP . "files" . DS . "scripts" . DS . "tmp";
-				$tempFile = new File($tmpDir . DS . $randomFileName, true, 0644);
-				$tempFile->write($this->request->input());
-				$tempFile->close();
-				$result = $this->Event->upload_stix2($this->Auth->user(), $randomFileName);
-			} else {
-				if (isset($this->data['Event']['stix']) && $this->data['Event']['stix']['size'] > 0 && is_uploaded_file($this->data['Event']['stix']['tmp_name'])) {
-					$randomFileName = $this->Event->generateRandomFileName();
-					$tmpDir = APP . "files" . DS . "scripts" . DS . "tmp";
-					move_uploaded_file($this->data['Event']['stix']['tmp_name'], $tmpDir . DS . $randomFileName);
-					$result = $this->Event->upload_stix($this->Auth->user(), $randomFileName);
-				} else {
-					$max_size = intval(ini_get('post_max_size'));
-					if (intval(ini_get('upload_max_filesize')) < $max_size) $max_size = intval(ini_get('upload_max_filesize'));
-					throw new UnauthorizedException('File upload failed. Make sure that you select a stix file to be uploaded and that the file doesn\'t exceed the maximum file size of ' . $max_size . '.');
-				}
-			}
-		}
+		$this->set('stix_version', $stix_version);
 	}
-	*/
 
 	public function merge($target_id = null) {
 		$this->Event->id = $target_id;
@@ -4066,12 +4043,18 @@ class EventsController extends AppController {
 			$imports = array(
 				'MISP' => array(
 						'url' => '/events/add_misp_export',
-						'text' => 'MISP standard (recommended exchange format)',
+						'text' => 'MISP standard (recommended exchange format - lossless)',
 						'ajax' => false,
+						'bold' => true
 				),
 				'STIX' => array(
 						'url' => '/events/upload_stix',
-						'text' => 'STIX 1.1.1 format',
+						'text' => 'STIX 1.1.1 format (lossy)',
+						'ajax' => false,
+				),
+				'STIX2' => array(
+						'url' => '/events/upload_stix/2',
+						'text' => 'STIX 2.0 format (lossy)',
 						'ajax' => false,
 				)
 			);
