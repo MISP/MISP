@@ -148,7 +148,7 @@ def fillAttributes(attr, attrLabels, Attribute):
 def fillCustom(attr, attrLabels, Attribute):
     attribute = {}
     attribute['type'] = attr.get('type').split('x-misp-object-')[1]
-    attribute['timestamp'] = int(time.mktime(time.strptime(attr.get('x_misp_timestamp'), "%Y-%m-%d %H:%M:%S")))
+    attribute['timestamp'] = getTimestampfromDate(attr.get('x_misp_timestamp'))
     attribute['to_ids'] = bool(attrLabels[1].split('=')[1])
     attribute['value'] = attr.get('x_misp_value')
     attribute['category'] = getMispCategory(attrLabels)
@@ -157,7 +157,7 @@ def fillCustom(attr, attrLabels, Attribute):
 def fillCustomFromObject(attr, attrLabels, Object):
     obj = {}
     obj['name'] = attr.get('type').split('x-misp-object-')[1]
-    obj['timestamp'] = int(time.mktime(time.strptime(attr.get('x_misp_timestamp'), "%Y-%m-%d %H:%M:%S")))
+    obj['timestamp'] = getTimestampfromDate(attr.get('x_misp_timestamp'))
     obj['meta-category'] = attr.get('category')
     #obj['labels'] = bool(attrLabels[0].split('=')[1])
     Attribute = []
@@ -175,6 +175,8 @@ def fillCustomFromObject(attr, attrLabels, Object):
 def getTimestampfromDate(date):
     if '.' in date:
         return int(time.mktime(time.strptime(date.split('.')[0], "%Y-%m-%dT%H:%M:%S")))
+    elif '+' in date:
+        return int(time.mktime(time.strptime(date.split('+')[0], "%Y-%m-%d %H:%M:%S")))
     else:
         return int(time.mktime(time.strptime(date, "%Y-%m-%dT%H:%M:%SZ")))
 
