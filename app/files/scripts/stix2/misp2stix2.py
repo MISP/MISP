@@ -22,8 +22,6 @@ from misp2stix2_dictionaries import *
 from copy import deepcopy
 from collections import defaultdict
 
-namespace = ['https://github.com/MISP/MISP', 'MISP']
-
 not_implemented_attributes = ['yara', 'pattern-in-traffic', 'pattern-in-memory']
 
 non_indicator_attributes = ['text', 'comment', 'other', 'link', 'target-user', 'target-email',
@@ -770,11 +768,6 @@ def generateEventPackage(event, SDOs):
 
 def main(args):
     pathname = os.path.dirname(args[0])
-    if len(sys.argv) > 3:
-        namespace[0] = sys.argv[3]
-    if len(sys.argv) > 4:
-        namespace[1] = sys.argv[4].replace(" ", "_")
-        namespace[1] = re.sub('[\W]+', '', namespace[1])
     misp = pymisp.MISPEvent(None, False)
     misp.load_file(os.path.join(pathname, args[1]))
     if 'Attribute' not in dir(misp):
