@@ -1026,7 +1026,7 @@ class EventsController extends AppController {
 			if (!empty($event['RelatedAttribute'])) {
 				foreach ($event['RelatedAttribute'] as $key => $relatedAttribute) {
 					foreach ($relatedAttribute as $key2 => $relation) {
-						$event['RelatedAttribute'][$key][$key2]['date'] = $relatedDates[$relation['id']];
+						if (!empty($relatedDates[$relation['id']])) $event['RelatedAttribute'][$key][$key2]['date'] = $relatedDates[$relation['id']];
 					}
 				}
 			}
