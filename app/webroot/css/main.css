@@ -432,6 +432,7 @@ dd {
 	bottom:0px;
 	height:42px;
 	min-width:1300px;
+	z-index: 2;
 }
 
 .debugOff {
@@ -500,7 +501,7 @@ dd {
 /* header */
 .header {
 	width:100%;
-	z-index: 1;
+	z-index: 2;
 }
 
 /* fonts for logo */
@@ -555,7 +556,6 @@ dd {
 	position: absolute;
 	width:100%;
 	text-align:center;
-	z-index:1;
 }
 
 .privateRedText {

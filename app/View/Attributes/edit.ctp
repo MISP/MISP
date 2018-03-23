@@ -1,4 +1,4 @@
-<div class="attributes form">
+<div class="attributes <?php if (!isset($ajax) || !$ajax) echo 'form';?>">
 <?php echo $this->Form->create('Attribute');?>
 	<fieldset>
 		<legend><?php echo __('Edit Attribute'); ?></legend>
@@ -68,9 +68,11 @@
 ?>
 </div>
 <?php
-	$event['Event']['id'] = $this->request->data['Attribute']['event_id'];
-	$event['Event']['published'] = $published;
-	echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'addAttribute', 'event' => $event));
+	if (!$ajax) {
+		$event['Event']['id'] = $this->request->data['Attribute']['event_id'];
+		$event['Event']['published'] = $published;
+		echo $this->element('side_menu', array('menuList' => 'event', 'menuItem' => 'addAttribute', 'event' => $event));
+	}
 ?>
 <script type="text/javascript">
 var fieldsArray = new Array('AttributeCategory', 'AttributeType', 'AttributeValue', 'AttributeDistribution', 'AttributeComment', 'AttributeToIds', 'AttributeBatchImport', 'AttributeSharingGroupId');

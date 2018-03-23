@@ -1,0 +1,90 @@
+.info_container_eventgraph_network {
+	position: relative;
+	margin-top: 10px;
+	border: 1px solid #0088cc;
+	border-radius: 7px;
+	box-shadow: 0px 0px 6px #B2B2B2;
+	padding: 2px;
+	width: 100%;
+	height: 500px;
+	overflow: hidden;
+}
+
+.eventgraph_network {
+	height: inherit;
+}
+
+.spinner-network {
+	height: 60px;
+	width: 60px;
+	position: relative;
+	-webkit-animation: rotation .6s infinite linear;
+	-moz-animation: rotation .6s infinite linear;
+	-o-animation: rotation .6s infinite linear;
+	animation: rotation .6s infinite linear;
+	border: 6px solid rgba(0,174,239,.15);
+	border-radius: 100%;
+	z-index: 15;
+	display: inline-block;
+}
+
+.spinner-network:before {
+	content:"";
+	display:block;
+	position:absolute;
+	left:-6px;
+	top:-6px;
+	height:100%;
+	width:100%;
+	border-top:6px solid rgba(0,136,204,.8);
+	border-left:6px solid transparent;
+	border-bottom:6px solid transparent;
+	border-right:6px solid transparent;
+	border-radius:100%;
+	z-index:15;
+}
+
+.loadingText-network {
+	color: #0088cc;
+	position: relative;
+	font-size: 16px;
+}
+
+.loading-network-div {
+	position: absolute;
+	width: 170px;
+	top: 40px;
+	right: 10px;
+	text-align: center;
+	padding: 5px;
+	background: #FAFAFA;
+	border-radius: 7px;
+	box-shadow: 0px 0px 6px #B2B2B2;
+}
+
+.shortcut-help {
+	position: absolute;
+	right: 5px;
+	bottom: 2px;
+	font-weight: bold;
+	z-index: 1;
+	cursor: help;
+}
+
+.fullscreen-btn {
+	position: absolute;
+	right: 45px;
+	bottom: 2px;
+	font-weight: bold;
+	z-index: 1;
+	cursor: nesw-resize;
+}
+.popover-content {
+	white-space: pre-wrap;
+}
+
+.network-typeahead {
+	position: absolute;
+	right: 20px;
+	z-index: 1;
+}
