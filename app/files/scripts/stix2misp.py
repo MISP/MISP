@@ -16,7 +16,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import sys, json, os, time
-import pymisp
+from pymisp import MISPEvent, MISPObject, MISPAttribute, __path__
 from stix.core import STIXPackage
 
 file_object_type = {"type": "filename", "relation": "filename"}
@@ -32,13 +32,13 @@ eventTypes = {"ArtifactObjectType": {"type": "attachment", "relation": "attachme
               "WindowsExecutableFileObjectType": file_object_type,
               "WindowsRegistryKeyObjectType": {"type": "regkey", "relation": ""}}
 
-descFilename = os.path.join(pymisp.__path__[0], 'data/describeTypes.json')
+descFilename = os.path.join(__path__[0], 'data/describeTypes.json')
 with open(descFilename, 'r') as f:
     categories = json.loads(f.read())['result'].get('categories')
 
 class StixParser():
     def __init__(self):
-        self.misp_event = pymisp.MISPEvent()
+        self.misp_event = MISPEvent()
 
     def loadEvent(self, args, pathname):
         try:
@@ -374,13 +374,13 @@ class StixParser():
         return file_type, file_value, pe_uuid
 
     def parse_pe(self, properties):
-        misp_object = pymisp.MISPObject('pe')
+        misp_object = MISPObject('pe')
         filename = properties.file_name.value
         for attr in ('internal-filename', 'original-filename'):
             misp_object.add_attribute(**dict(zip(('type', 'value', 'object_relation'),('filename', filename, attr))))
         if properties.headers:
             headers = properties.headers
-            header_object = pymisp.MISPObject('pe-section')
+            header_object = MISPObject('pe-section')
             if headers.entropy:
                 header_object.add_attribute(**{"type": "float", "object_relation": "entropy",
                                                "value": headers.entropy.value.value})
@@ -403,7 +403,7 @@ class StixParser():
         return {"pe_uuid": misp_object.uuid}
 
     def parse_pe_section(self, section):
-        section_object = pymisp.MISPObject('pe-section')
+        section_object = MISPObject('pe-section')
         header_hashes = section.header_hashes
         for h in header_hashes:
             hash_type, hash_value, hash_relation = self.handle_hashes_attribute(h)
@@ -435,7 +435,7 @@ class StixParser():
                 print("Unparsed Object type: {}".format(name))
 
     def fill_misp_object(self, item, name):
-        misp_object = pymisp.MISPObject(name)
+        misp_object = MISPObject(name)
         misp_object.timestamp = self.getTimestampfromDate(item.timestamp)
         try:
             observables = item.observable.observable_composition.observables
@@ -448,7 +448,7 @@ class StixParser():
         self.misp_event.add_object(**misp_object)
 
     def parse_observable(self, properties, misp_object):
-        misp_attribute = pymisp.MISPAttribute()
+        misp_attribute = MISPAttribute()
         misp_attribute.type, misp_attribute.value, misp_attribute.object_relation = self.handle_attribute_type(properties, is_object=True)
         misp_object.add_attribute(**misp_attribute)
 
@@ -503,7 +503,7 @@ class StixParser():
         self.misp_event.add_attribute(attribute_type, attribute_value, **attribute)
 
     def handle_object_case(self, attribute_type, attribute_value, compl_data):
-        misp_object = pymisp.MISPObject(attribute_type)
+        misp_object = MISPObject(attribute_type)
         for attribute in attribute_value:
             misp_object.add_attribute(**attribute)
         if type(compl_data) is dict and "pe_uuid" in compl_data:
