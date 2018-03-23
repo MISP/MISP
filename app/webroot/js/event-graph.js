@@ -23,7 +23,7 @@ class EventGraph {
 		this.mapping_meta_fa = new Map();
 		this.mapping_meta_fa.set('file', {"meta-category": "file","fa_text": "file","fa-hex": "f15b"});
 		this.mapping_meta_fa.set('financial', {"meta-category": "financial","fa_text": "money-bil-alt","fa-hex": "f3d1"});
-		this.mapping_meta_fa.set('network', {"meta-category": "network","fa_text": "server","fa-hex": "f223"});
+		this.mapping_meta_fa.set('network', {"meta-category": "network","fa_text": "server","fa-hex": "f233"});
 		this.mapping_meta_fa.set('misc', {"meta-category": "misc","fa_text": "cube","fa-hex": "f1b2"});
 		// FIXME
 		this.nodes = nodes;
