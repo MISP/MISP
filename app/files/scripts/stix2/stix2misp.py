@@ -34,12 +34,13 @@ def fillReportInfo(mispDict, report):
     if report.get('published'):
         mispDict['publish_timestamp'] = getTimestampfromDate(report.get('published'))
     labels = report.get('labels')
-    Tag = []
-    for l in labels:
-        label = {'exportable': True, 'hide_tag': False}
-        label['name'] = l
-        Tag.append(label)
-    mispDict['Tag'] = Tag
+    if labels:
+        Tag = []
+        for l in labels:
+            label = {'exportable': True, 'hide_tag': False}
+            label['name'] = l
+            Tag.append(label)
+        mispDict['Tag'] = Tag
 
 def buildMispDict(event):
     mispDict = {}
