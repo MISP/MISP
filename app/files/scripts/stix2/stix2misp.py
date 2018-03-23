@@ -157,7 +157,7 @@ def fillCustom(attr, attrLabels, Attribute):
 def fillCustomFromObject(attr, attrLabels, Object):
     obj = {}
     obj['name'] = attr.get('type').split('x-misp-object-')[1]
-    obj['timestamp'] = getTimestampfromDate(attr.get('x_misp_timestamp'))
+    obj['timestamp'] = int(time.mktime(time.strptime(attr.get('x_misp_timestamp'), "%Y-%m-%d %H:%M:%S")))
     obj['meta-category'] = attr.get('category')
     #obj['labels'] = bool(attrLabels[0].split('=')[1])
     Attribute = []
