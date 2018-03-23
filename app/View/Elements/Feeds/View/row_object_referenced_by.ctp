@@ -4,11 +4,11 @@
   echo $refCount;
   if (!empty($object['referenced_by'])):
 ?>
-    <span class="fa fa-expand useCursorPointer" title="<?php echo __('Expand or Collapse');?>" role="button" tabindex="0" aria-label="<?php echo __('Expand or Collapse');?>" data-toggle="collapse" data-target="#Object_<?php echo h($object['id']); ?>_referenced_by_collapsible"></span>
+    <span class="fa fa-expand useCursorPointer" title="<?php echo __('Expand or Collapse');?>" role="button" tabindex="0" aria-label="<?php echo __('Expand or Collapse');?>" data-toggle="collapse" data-target="#Object_<?php echo h($object['uuid']); ?>_referenced_by_collapsible"></span>
 <?php
   endif;
 ?>
-<div id="Object_<?php echo $object['id']; ?>_referenced_by_collapsible" class="collapse">
+<div id="Object_<?php echo $object['uuid']; ?>_referenced_by_collapsible" class="collapse">
 <?php
   foreach ($object['referenced_by'] as $type => $reference):
     foreach ($reference as $ref):
@@ -21,9 +21,9 @@
       }
 ?>
       &nbsp;&nbsp;
-        <a class="bold white useCursorPointer" onClick="pivotObjectReferences('<?php echo h($currentUri); ?>', '<?php echo $uuid; ?>')">
-          <?php echo h($ref['relationship_type']) . ' ' . ucfirst($type) . ' ' . h($ref['id']) . h($output);?>
-        </a>
+        <span class="bold white useCursorPointer">
+          <?php echo h($ref['relationship_type']) . ' ' . ucfirst($type) . ' ' . h($output);?>
+        </span>
       <br />
 <?php
     endforeach;
