@@ -31,7 +31,8 @@ def loadEvent(args, pathname):
 
 def fillReportInfo(mispDict, report):
     mispDict['info'] = report.get('name')
-    mispDict['publish_timestamp'] = getTimestampfromDate(report.get('published'))
+    if report.get('published'):
+        mispDict['publish_timestamp'] = getTimestampfromDate(report.get('published'))
     labels = report.get('labels')
     Tag = []
     for l in labels:
