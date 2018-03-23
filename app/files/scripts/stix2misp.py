@@ -514,10 +514,10 @@ class StixParser():
         self.misp_event.add_object(**misp_object)
 
     def parse_ttps(self, ttps):
-        self.misp_event['Galaxy'] = []
         for ttp in ttps:
             if ttp.behavior and ttp.behavior.malware_instances:
-                print(ttp.behavior.to_json()) # WAITING FOR EXAMPLES THAT ARE RELEVANT TO BE PARSED
+                for mi in ttp.behavior.malware_instances:
+                    print(mi.to_json()) # WAITING FOR RELEVANT EXAMPLES
 
     @staticmethod
     def return_attributes(attributes):
