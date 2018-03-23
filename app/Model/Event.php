@@ -4064,17 +4064,28 @@ class Event extends AppModel {
 		return $this->save($event);
 	}
 
-	public function upload_stix($user, $filename) {
+	public function upload_stix($user, $filename, $stix_version) {
 		App::uses('Folder', 'Utility');
 		App::uses('File', 'Utility');
-		$scriptFile = APP . 'files/scripts/stix2misp.py';
-		$tempFilePath = APP . 'files/scripts/tmp/' . $filename;
-		$result = shell_exec('python3 ' . $scriptFile . ' ' . $filename . ' 2>' . APP . 'tmp/logs/exec-errors.log');
+		if ($stix_version == '2') {
+			$scriptFile = APP . 'files/scripts/stix2/stix2misp.py';
+			$tempFilePath = APP . 'files/scripts/tmp/' . $filename;
+			$shell_command = 'python3 ' . $scriptFile . ' ' . $tempFilePath . ' 2>' . APP . 'tmp/logs/exec-errors.log';
+			$output_path = $tempFilePath . '.stix2';
+		} else if ($stix_version == '1' || $stix_version == '1.1' || $stix_version == '1.2') {
+			$scriptFile = APP . 'files/scripts/stix2misp.py';
+			$tempFilePath = APP . 'files/scripts/tmp/' . $filename;
+			$shell_command = 'python3 ' . $scriptFile . ' ' . $filename . ' 2>' . APP . 'tmp/logs/exec-errors.log';
+			$output_path = $tempFilePath . '.json';
+		} else {
+			throw new MethodNotAllowedException('Invalid STIX version');
+		}
+		$result = shell_exec($shell_command);
 		unlink($tempFilePath);
 		if (trim($result) == '1') {
-			$data = file_get_contents($tempFilePath . '.json');
+			$data = file_get_contents($output_path);
 			$data = json_decode($data, true);
-			unlink($tempFilePath . '.json');
+			unlink($output_path);
 			$created_id = false;
 			$validationIssues = false;
 			$result = $this->_add($data, true, $user, '', null, false, null, $created_id, $validationIssues);
