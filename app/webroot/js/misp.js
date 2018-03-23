@@ -36,13 +36,16 @@ function delegatePopup(id) {
 	simplePopup("/event_delegations/delegateEvent/" + id);
 }
 
-function genericPopup(url, popupTarget) {
+function genericPopup(url, popupTarget, callback) {
 	$.get(url, function(data) {
 		$(popupTarget).html(data);
 		$(popupTarget).fadeIn();
 		left = ($(window).width() / 2) - ($(popupTarget).width() / 2);
 		$(popupTarget).css({'left': left + 'px'});
 		$("#gray_out").fadeIn();
+		if (callback !== undefined) {
+			callback();
+		}
 	});
 }
 
@@ -303,6 +306,11 @@ function updateIndex(id, context, newPage) {
 		success:function (data, textStatus) {
 			$(".loading").hide();
 			$(div).html(data);
+			if (typeof genericPopupCallback !== "undefined") {
+				genericPopupCallback("success");
+			} else {
+				console.log("genericPopupCallback function not defined");
+			}
 		},
 		url: url,
 	});
@@ -836,6 +844,9 @@ function submitPopoverForm(context_id, referer, update_context_id) {
 		case 'add':
 			url = "/attributes/add/" + context_id;
 			break;
+		case 'edit':
+			url = "/attributes/edit/" + context_id;
+			break;
 		case 'propose':
 			url = "/shadow_attributes/add/" + context_id;
 			break;
@@ -897,8 +908,9 @@ function submitPopoverForm(context_id, referer, update_context_id) {
 			},
 			data: $("#submitButton").closest("form").serialize(),
 			success:function (data, textStatus) {
+				var result;
 				if (closePopover) {
-					var result = handleAjaxPopoverResponse(data, context_id, url, referer, context, contextNamingConvention);
+					result = handleAjaxPopoverResponse(data, context_id, url, referer, context, contextNamingConvention);
 				}
 				if (referer == 'addSighting') {
 					updateIndex(update_context_id, 'event');
@@ -917,16 +929,19 @@ function submitPopoverForm(context_id, referer, update_context_id) {
 			url:url
 		});
 	}
+
 	return false;
 };
 
 function handleAjaxPopoverResponse(response, context_id, url, referer, context, contextNamingConvention) {
 	responseArray = response;
 	var message = null;
+	var result = "fail";
 	if (responseArray.saved) {
 		updateIndex(context_id, context);
 		if (responseArray.success) {
 			showMessage("success", responseArray.success);
+			result = "success";
 		}
 		if (responseArray.errors) {
 			showMessage("fail", responseArray.errors);
@@ -941,7 +956,9 @@ function handleAjaxPopoverResponse(response, context_id, url, referer, context, 
 				openPopup("#popover_form");
 				var error_context = context.charAt(0).toUpperCase() + context.slice(1);
 				handleValidationErrors(responseArray.errors, context, contextNamingConvention);
+				result = "success";
 				if (!$.isEmptyObject(responseArray)) {
+					result = "fail";
 					$("#formWarning").show();
 					$("#formWarning").html('The object(s) could not be saved. Please, try again.');
 				}
@@ -951,6 +968,7 @@ function handleAjaxPopoverResponse(response, context_id, url, referer, context, 
 			url:url
 		});
 	}
+	return result;
 }
 
 //before we update the form (in case the action failed), we want to retrieve the data from every field, so that we can set the fields in the new form that we fetch
@@ -1254,6 +1272,27 @@ function simplePopup(url) {
 		},
 		url: url,
 	});
+}
+
+function choicePopup(legend, list) {
+	var popupHtml = '<div class="popover_choice">';
+	popupHtml += '<legend>Select Object Category</legend>';
+		popupHtml += '<div class="popover_choice_main" id ="popover_choice_main">';
+			popupHtml += '<table style="width:100%;" id="MainTable">';
+				popupHtml += '<tbody>';
+					for (var item of list) {
+						popupHtml += '<tr style="border-bottom:1px solid black;" class="templateChoiceButton">';
+							popupHtml += '<td role="button" tabindex="0" aria-label="All meta-categories" title="'+item.text+'" style="padding-left:10px;padding-right:10px; text-align:center;width:100%;" onClick="'+item.onclick+';">'+item.text+'</td>';
+						popupHtml += '</tr>';
+					}
+				popupHtml += '</tbody>';
+			popupHtml += '</table>';
+		popupHtml += '</div>';
+		popupHtml += '<div role="button" tabindex="0" aria-label="Cancel" title="Cancel" class="templateChoiceButton templateChoiceButtonLast" onClick="cancelPopoverForm();">Cancel</div>';
+	popupHtml += '</div>';
+
+	$("#popover_form").html(popupHtml);
+	openPopup("#popover_form");
 }
 
 function resizePopoverBody() {

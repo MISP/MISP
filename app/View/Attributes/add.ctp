@@ -1,9 +1,10 @@
 <div class="attributes <?php if (!isset($ajax) || !$ajax) echo 'form';?>">
 <?php
-	echo $this->Form->create('Attribute', array('id', 'url' => '/attributes/add/' . $event_id));
+	$url_params = $action == 'add' ? 'add/' . $event_id : 'edit/' . $attribute['Attribute']['id'];
+	echo $this->Form->create('Attribute', array('id', 'url' => '/attributes/' . $url_params));
 ?>
 	<fieldset>
-		<legend><?php echo __('Add Attribute'); ?></legend>
+		<legend><?php echo $action == 'add' ? __('Add Attribute') : __('Edit Attribute'); ?></legend>
 		<div id="formWarning" class="message ajaxMessage"></div>
 		<div id="compositeWarning" class="message <?php echo !empty($ajax) ? 'ajaxMessage' : '';?>" style="display:none;">Did you consider adding an object instead of a composite attribute?</div>
 		<div class="add_attribute_fields">
@@ -82,7 +83,7 @@
 			<table>
 				<tr>
 				<td style="vertical-align:bottom">
-					<span id="submitButton" class="btn btn-primary" title="<?php echo __('Submit'); ?>" role="button" tabindex="0" aria-label="<?php echo __('Submit'); ?>" onClick="submitPopoverForm('<?php echo $event_id;?>', 'add')"><?php echo __('Submit'); ?></span>
+					<span id="submitButton" class="btn btn-primary" title="<?php echo __('Submit'); ?>" role="button" tabindex="0" aria-label="<?php echo __('Submit'); ?>" onClick="submitPopoverForm('<?php echo $action == 'add' ? $event_id : $attribute['Attribute']['id'];?>', '<?php echo $action; ?>')"><?php echo __('Submit'); ?></span>
 				</td>
 				<td style="width:540px;margin-bottom:0px;">
 					<p style="color:red;font-weight:bold;display:none;text-align:center;margin-bottom:0px;" id="warning-message"><?php echo __('Warning: You are about to share data that is of a classified nature. Make sure that you are authorised to share this.'); ?></p>

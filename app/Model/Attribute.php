@@ -3128,6 +3128,7 @@ class Attribute extends AppModel {
 			$attribute['data'] = $result['data'];
 			$attribute['value'] = $attribute['value'] . '|' . $result['md5'];
 		}
+		unset($attribute['id']);
 		if (isset($attribute['uuid'])) {
 			$existingAttribute = $this->find('first', array(
 				'conditions' => array('Attribute.uuid' => $attribute['uuid']),

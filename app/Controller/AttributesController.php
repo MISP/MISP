@@ -368,6 +368,7 @@ class AttributesController extends AppController {
 		$this->set('typeDefinitions', $this->Attribute->typeDefinitions);
 		$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
 		$this->set('published', $events['Event']['published']);
+		$this->set('action', $this->action);
 	}
 
 	public function download($id = null) {
@@ -816,6 +817,14 @@ class AttributesController extends AppController {
 				$this->Attribute->Object->updateTimestamp($existingAttribute['Attribute']['object_id']);
 			} else {
 				$result = $this->Attribute->save($this->request->data);
+				if ($this->request->is('ajax')) {
+					$this->autoRender = false;
+ 					if ($result) {
+						return new CakeResponse(array('body'=> json_encode(array('saved' => true, 'success' => 'Attribute updated.')),'status' => 200, 'type' => 'json'));
+					} else {
+						return new CakeResponse(array('body'=> json_encode(array('saved' => false, 'errors' => 'Could not update attribute, reason: ' . json_encode($this->Attribute->validationErrors))),'status' => 200, 'type' => 'json'));
+					}
+				}
 			}
 			if ($result) {
 				$this->Session->setFlash(__('The attribute has been saved'));
@@ -864,6 +873,7 @@ class AttributesController extends AppController {
 		// enabling / disabling the distribution field in the edit view based on whether user's org == orgc in the event
 		$this->loadModel('Event');
 		$this->Event->id = $eventId;
+		$this->set('event_id', $eventId);
 		$this->Event->read();
 		$this->set('published', $this->Event->data['Event']['published']);
 		// needed for RBAC
@@ -878,6 +888,7 @@ class AttributesController extends AppController {
 		$this->set('types', $types);
 		// combobox for categories
 		$this->set('currentDist', $this->Event->data['Event']['distribution']);
+		$this->set('ajax', $this->request->is('ajax'));
 
 		$this->loadModel('SharingGroup');
 		$sgs = $this->SharingGroup->fetchAllAuthorised($this->Auth->user(), 'name',  1);
@@ -916,6 +927,9 @@ class AttributesController extends AppController {
 		}
 		$this->set('categories', $categories);
 		$this->set('categoryDefinitions', $categoryDefinitions);
+		$this->set('compositeTypes', $this->Attribute->getCompositeTypes());
+		$this->set('action', $this->action);
+		$this->render('add');
 	}
 
 	// ajax edit - post a single edited field and this method will attempt to save it and return a json with the validation errors if they occur.

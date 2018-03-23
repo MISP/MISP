@@ -331,6 +331,9 @@
 		<button class="btn btn-inverse toggle qet galaxy-toggle-button" id="galaxies_toggle" data-toggle-type="galaxies">
 			<span class="icon-minus icon-white" title="<?php echo __('Toggle galaxies');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle galaxies');?>" style="vertical-align:top;"></span><?php echo __('Galaxy');?>
 		</button>
+		<button class="btn btn-inverse toggle qet galaxy-toggle-button" id="eventgraph_toggle" data-toggle-type="eventgraph" onclick="enable_interactive_graph();">
+			<span class="icon-plus icon-white" title="<?php echo __('Toggle Event graph');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle Event graph');?>" style="vertical-align:top;"></span><?php echo __('Event graph');?>
+		</button>
 		<button class="btn btn-inverse toggle qet galaxy-toggle-button" id="attributes_toggle" data-toggle-type="attributes">
 			<span class="icon-minus icon-white" title="<?php echo __('Toggle attributes');?>" role="button" tabindex="0" aria-label="<?php echo __('Toggle attributes');?>" style="vertical-align:top;"></span><?php echo __('Attributes');?>
 		</button>
@@ -346,6 +349,17 @@
 	<div id="galaxies_div" class="info_container">
 		<h4 class="blue"><?php echo __('Galaxies');?></h4>
 		<?php echo $this->element('galaxyQuickView', array('mayModify' => $mayModify, 'isAclTagger' => $isAclTagger)); ?>
+	</div>
+	<div id="eventgraph_div" class="info_container_eventgraph_network" style="display: none;" data-fullscreen="false">
+		<span class="shortcut-help btn btn-xs btn-info">?</span>
+		<span class="fullscreen-btn btn btn-xs btn-primary" data-toggle="tooltip" data-placement="top" data-title="<?php echo __('Toggle fullscreen');?>"><span class="fa fa-desktop"></span></span>
+		<input type="text" id="network-typeahead" class="network-typeahead" data-provide="typeahead" size="20" placeholder="Search for an item">
+
+		<div id="eventgraph_network" class="eventgraph_network" data-event-id="<?php echo h($event['Event']['id']); ?>" data-user-manipulation="<?php echo $mayModify || $isSiteAdmin ? 'true' : 'false'; ?>"></div>
+		<div class="loading-network-div" id="refecences_network_loading_div" style="display: none;">
+			<div class="spinner-network" data-original-title="" title=""></div>
+			<div class="loadingText-network" data-original-title="" title=""></div>
+		</div>
 	</div>
 	<div id="attributes_div">
 		<?php echo $this->element('eventattribute'); ?>
@@ -372,3 +386,8 @@ $(document).ready(function () {
 });
 </script>
 <input type="hidden" value="/shortcuts/event_view.json" class="keyboardShortcutsConfig" />
+<?php echo $this->Html->script('vis'); ?>
+<?php echo $this->Html->css('vis'); ?>
+<?php echo $this->Html->script('bootstrap-typeahead'); ?>
+<?php echo $this->Html->css('event-graph'); ?>
+<?php echo $this->Html->script('event-graph'); ?>

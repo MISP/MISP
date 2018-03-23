@@ -1026,7 +1026,7 @@ class EventsController extends AppController {
 			if (!empty($event['RelatedAttribute'])) {
 				foreach ($event['RelatedAttribute'] as $key => $relatedAttribute) {
 					foreach ($relatedAttribute as $key2 => $relation) {
-						$event['RelatedAttribute'][$key][$key2]['date'] = $relatedDates[$relation['id']];
+						if (!empty($relatedDates[$relation['id']])) $event['RelatedAttribute'][$key][$key2]['date'] = $relatedDates[$relation['id']];
 					}
 				}
 			}
@@ -4305,6 +4305,42 @@ class EventsController extends AppController {
 		$data = $this->request->is('post') ? $this->request->data : array();
 		$grapher->construct($this->Event, $this->Taxonomy, $this->GalaxyCluster, $this->Auth->user(), $data);
 		$json = $grapher->buildGraphJson($id, $type);
+
+		array_walk_recursive($json, function(&$item, $key){
+			if(!mb_detect_encoding($item, 'utf-8', true)){
+				$item = utf8_encode($item);
+			}
+		});
+		$this->response->type('json');
+		return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
+	}
+
+	public function getReferences($id, $type = 'event') {
+		$validTools = array('event');
+		if (!in_array($type, $validTools)) throw new MethodNotAllowedException('Invalid type.');
+		App::uses('EventGraphTool', 'Tools');
+		$grapher = new EventGraphTool();
+		$data = $this->request->is('post') ? $this->request->data : array();
+		$grapher->construct($this->Event, $this->Auth->user(), $data);
+		$json = $grapher->get_all_data($id);
+
+		array_walk_recursive($json, function(&$item, $key){
+			if(!mb_detect_encoding($item, 'utf-8', true)){
+				$item = utf8_encode($item);
+			}
+		});
+		$this->response->type('json');
+		return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
+	}
+
+	public function getReferenceData($uuid, $type = 'reference') {
+		$validTools = array('reference');
+		if (!in_array($type, $validTools)) throw new MethodNotAllowedException('Invalid type.');
+		App::uses('EventGraphTool', 'Tools');
+		$grapher = new EventGraphTool();
+		$data = $this->request->is('post') ? $this->request->data : array();
+		$grapher->construct_for_ref($this->Event->Object, $this->Auth->user(), $data);
+		$json = $grapher->get_reference_data($uuid);
 
 		array_walk_recursive($json, function(&$item, $key){
 			if(!mb_detect_encoding($item, 'utf-8', true)){
