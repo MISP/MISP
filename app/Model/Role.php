@@ -67,7 +67,7 @@ class Role extends AppModel {
 		'perm_sharing_group' => array('id' => 'RolePermSharingGroup', 'text' => 'Sharing Group Editor', 'readonlyenabled' => false),
 		'perm_delegate' => array('id' => 'RolePermDelegate', 'text' => 'Delegations Access', 'readonlyenabled' => false),
 		'perm_sighting' => array('id' => 'RolePermSighting', 'text' => 'Sighting Creator', 'readonlyenabled' => true),
-		'perm_object_template' => array('id' => 'RolePermObjectTemplate', 'text' => 'Object Template Editor', 'readonlyenabled' => false),
+		'perm_object_template' => array('id' => 'RolePermObjectTemplate', 'text' => 'Object Template Editor', 'readonlyenabled' => false)
 	);
 
 	public $premissionLevelName = array('Read Only', 'Manage Own Events', 'Manage Organisation Events', 'Manage and Publish Organisation Events');
@@ -118,6 +118,20 @@ class Role extends AppModel {
 				if (!isset($this->data['Role'][$permFlag])) {
 					$this->data['Role'][$permFlag] = 0;
 				}
+			}
+			if (!isset($this->data['Role']['max_execution_time'])) {
+				$this->data['Role']['max_execution_time'] = '';
+			} else if ($this->data['Role']['max_execution_time'] !== '') {
+				$this->data['Role']['max_execution_time'] = intval($this->data['Role']['max_execution_time']);
+			}
+			if (!isset($this->data['Role']['memory_limit'])) {
+				$this->data['Role']['memory_limit'] = '';
+			} else if (
+				$this->data['Role']['memory_limit'] !== '' &&
+				!preg_match('/^[0-9]+[MG]$/i', $this->data['Role']['memory_limit']) &&
+				$this->data['Role']['memory_limit'] != -1
+			) {
+				$this->data['Role']['memory_limit'] = '';
 			}
 		}
 		return true;

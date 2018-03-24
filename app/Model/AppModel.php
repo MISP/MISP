@@ -60,7 +60,7 @@ class AppModel extends Model {
 	);
 
 	public $db_changes = array(
-		1 => false, 2 => false, 3 => false
+		1 => false, 2 => false, 3 => false, 4 => true
 	);
 
 	function afterSave($created, $options = array()) {
@@ -862,7 +862,6 @@ class AppModel extends Model {
 				$indexArray[] = array('attributes', 'deleted');
 				break;
 			case '2.4.86':
-
 				break;
 			case '2.4.87':
 				$sqlArray[] = "ALTER TABLE `feeds` ADD `headers` TEXT COLLATE utf8_bin;";
@@ -885,6 +884,11 @@ class AppModel extends Model {
 											) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
 				$this->__addIndex('fuzzy_correlate_ssdeep', 'chunk');
 				$this->__addIndex('fuzzy_correlate_ssdeep', 'attribute_id');
+				break;
+			case 4:
+				$sqlArray[] = 'ALTER TABLE `roles` ADD `memory_limit` VARCHAR(255) COLLATE utf8_bin DEFAULT "";';
+				$sqlArray[] = 'ALTER TABLE `roles` ADD `max_execution_time` VARCHAR(255) COLLATE utf8_bin DEFAULT "";';
+				$sqlArray[] = "ALTER TABLE `roles` ADD `restricted_to_site_admin` tinyint(1) NOT NULL DEFAULT 0;";
 				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';

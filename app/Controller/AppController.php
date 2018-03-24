@@ -282,6 +282,18 @@ class AppController extends Controller {
 					$this->redirect(array('controller' => 'users', 'action' => 'login', 'admin' => false));
 				}
 			}
+			$this->set('default_memory_limit', ini_get('memory_limit'));
+			if (isset($this->Auth->user('Role')['memory_limit'])) {
+				if ($this->Auth->user('Role')['memory_limit'] !== '') {
+					ini_set('memory_limit', $this->Auth->user('Role')['memory_limit']);
+				}
+			}
+			$this->set('default_max_execution_time', ini_get('max_execution_time'));
+			if (isset($this->Auth->user('Role')['max_execution_time'])) {
+				if ($this->Auth->user('Role')['max_execution_time'] !== '') {
+					ini_set('max_execution_time', $this->Auth->user('Role')['max_execution_time']);
+				}
+			}
 		} else {
 			if (!($this->params['controller'] === 'users' && $this->params['action'] === 'login')) $this->redirect(array('controller' => 'users', 'action' => 'login', 'admin' => false));
 		}

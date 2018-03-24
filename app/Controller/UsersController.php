@@ -490,7 +490,12 @@ class UsersController extends AppController {
 				$this->loadModel('Role');
 				$this->Role->recursive = -1;
 				$chosenRole = $this->Role->findById($this->request->data['User']['role_id']);
-				if ($chosenRole['Role']['perm_site_admin'] == 1 || $chosenRole['Role']['perm_regexp_access'] == 1 || $chosenRole['Role']['perm_sync'] == 1) {
+				if (
+					$chosenRole['Role']['perm_site_admin'] == 1 ||
+					$chosenRole['Role']['perm_regexp_access'] == 1 ||
+					$chosenRole['Role']['perm_sync'] == 1 ||
+					$chosenRole['Role']['restricted_to_site_admin'] == 1
+				) {
 					throw new Exception('You are not authorised to assign that role to a user.');
 				}
 			}
@@ -617,7 +622,7 @@ class UsersController extends AppController {
 			$params = array('conditions' => array(
 					'OR' => array(
 							'AND' => array(
-								'perm_site_admin' => 0, 'perm_sync' => 0, 'perm_regexp_access' => 0
+								'perm_site_admin' => 0, 'perm_sync' => 0, 'perm_regexp_access' => 0, 'restricted_to_site_admin' => 0
 							),
 							'id' => $allowedRole,
 					)
