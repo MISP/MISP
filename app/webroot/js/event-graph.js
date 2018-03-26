@@ -885,13 +885,14 @@ var typeaheadOption = {
 			// Remove old node and edges
 			eventGraph.nodes.remove(nodeID);
 			eventGraph.nodes.add(searched_node);
-			// don't need to re-add the edge as it is the same
-
+			/* don't need to re-add the edge as it is the same */
+			eventGraph.focus_on_stabilized(nodeID);
+		} else {
+			// set focus to the network
+			eventGraph.network.focus(nodeID, {animation: true, scale: 1});
 		}
 		// select node and focus on it
 		eventGraph.network.selectNodes([nodeID]);
-		eventGraph.focus_on_stabilized(nodeID);
-		// set focus to the network
 		$("#network-typeahead").blur();
 	},
 	autoSelect: true
