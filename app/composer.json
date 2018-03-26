@@ -2,9 +2,11 @@
     "prefer-stable": true,
     "minimum-stability": "dev",
     "require": {
-        "kamisama/cake-resque": "@stable",
+        "kamisama/cake-resque": "4.1.2",
         "pear/crypt_gpg": "@stable",
         "pear/net_geoip": "@dev"
+    },
+    "config": {
+        "vendor-dir": "Vendor"
     }
 }
-
