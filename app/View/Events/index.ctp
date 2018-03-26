@@ -42,7 +42,7 @@
 			</span>
 			<?php endif;?>
 			<span role="button" tabindex="0" aria-label="<?php echo __('Quickfilter');?>" title="<?php echo __('Quickfilter');?>" id="quickFilterButton" class="tabMenuFilterFieldButton useCursorPointer" onClick="quickFilter(<?php echo h($passedArgs); ?>, '<?php echo $baseurl . '/events/index'; ?>');"><?php echo __('Filter');?></span>
-			<input class="tabMenuFilterField" type="text" id="quickFilterField"></input>
+			<input class="form-control" class="tabMenuFilterField" type="text" id="quickFilterField"></input>
 			<?php
 				$tempArgs = json_decode($passedArgs, true);
 				$tabBackground = "";
@@ -93,6 +93,6 @@
 		</ul>
 	</div>
 </div>
-<input type="hidden" class="keyboardShortcutsConfig" value="/shortcuts/event_index.json" />
+<input class="form-control" type="hidden" class="keyboardShortcutsConfig" value="/shortcuts/event_index.json" />
 <?php
 	if (!$ajax) echo $this->element('side_menu', array('menuList' => 'event-collection', 'menuItem' => 'index'));

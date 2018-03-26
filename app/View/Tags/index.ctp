@@ -54,7 +54,7 @@
 		<?php endif;?>
 		<span style="border-right:0px !important;">
 			<span id="quickFilterButton" role="button" tabindex="0" aria-label="<?php echo __('Filter user tags');?>" class="tabMenuFilterFieldButton useCursorPointer" onClick="quickFilter(<?php echo h($passedArgs); ?>, '<?php echo $baseurl . '/tags/index'; ?>');"><?php echo __('Filter');?></span>
-			<input class="tabMenuFilterField" type="text" id="quickFilterField"></input>
+			<input class="form-control" class="tabMenuFilterField" type="text" id="quickFilterField"></input>
 		</span>
 	</div>
 	<table class="table table-striped table-hover table-condensed">
@@ -116,7 +116,7 @@ foreach ($list as $k => $item): ?>
 			<?php echo $this->element('sparkline', array('id' => $item['Tag']['id'], 'csv' => isset($csv[$k]) ? $csv[$k] : $emptyDate)); ?>
 		</td>
 		<td class="short" id ="checkbox_row_<?php echo h($item['Tag']['id']);?>">
-			<input id="checkBox_<?php echo h($item['Tag']['id']); ?>" type="checkbox" onClick="toggleSetting(event, 'favourite_tag', '<?php echo h($item['Tag']['id']); ?>')" <?php echo $item['Tag']['favourite'] ? 'checked' : ''; ?>/>
+			<input class="form-control" id="checkBox_<?php echo h($item['Tag']['id']); ?>" type="checkbox" onClick="toggleSetting(event, 'favourite_tag', '<?php echo h($item['Tag']['id']); ?>')" <?php echo $item['Tag']['favourite'] ? 'checked' : ''; ?>/>
 		</td>
 		<?php if ($isSiteAdmin): ?>
 		<td class="short action-links">

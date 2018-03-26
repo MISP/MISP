@@ -7,10 +7,10 @@
 <?php echo __('For string searches (such as searching for an expression, tags, etc) - lookups are simple string matches. If you want a substring match encapsulate the lookup string between "%" characters.'); ?>
 		<br /><br />
 		<?php
-			echo $this->Form->input('keyword', array('type' => 'textarea', 'rows' => 2, 'label' => __('Containing the following expressions'), 'div' => 'clear', 'class' => 'input-xxlarge'));
-			echo $this->Form->input('attributetags', array('type' => 'textarea', 'rows' => 2, 'label' => __('Being an attribute matching the following tags'), 'div' => 'clear', 'class' => 'input-xxlarge'));
-			echo $this->Form->input('keyword2', array('type' => 'textarea', 'rows' => 2, 'label' => __('Being attributes of the following event IDs, event UUIDs or attribute UUIDs'), 'div' => 'clear', 'class' => 'input-xxlarge'));
-			echo $this->Form->input('tags', array('type' => 'textarea', 'rows' => 2, 'label' => __('Being an attribute of an event matching the following tags'), 'div' => 'clear', 'class' => 'input-xxlarge'));
+			echo $this->Form->input('keyword', array('type' => 'textarea', 'rows' => 2, 'label' => __('Containing the following expressions'), 'div' => 'clear', 'class' => 'form-control input-xxlarge'));
+			echo $this->Form->input('attributetags', array('type' => 'textarea', 'rows' => 2, 'label' => __('Being an attribute matching the following tags'), 'div' => 'clear', 'class' => 'form-control input-xxlarge'));
+			echo $this->Form->input('keyword2', array('type' => 'textarea', 'rows' => 2, 'label' => __('Being attributes of the following event IDs, event UUIDs or attribute UUIDs'), 'div' => 'clear', 'class' => 'form-control input-xxlarge'));
+			echo $this->Form->input('tags', array('type' => 'textarea', 'rows' => 2, 'label' => __('Being an attribute of an event matching the following tags'), 'div' => 'clear', 'class' => 'form-control input-xxlarge'));
 
 		?>
 		<?php
@@ -20,13 +20,15 @@
 						'label' => __('From the following organisation(s)'),
 						'div' => 'input clear',
 						'rows' => 2,
-						'class' => 'input-xxlarge'));
+						'class' => 'form-control input-xxlarge'));
 		?>
 		<?php
 			echo $this->Form->input('type', array(
 					'div' => 'input clear',
+					'class' => 'form-control'
 					));
 			echo $this->Form->input('category', array(
+				'class' => 'form-control'
 					));
 		?>
 			<div class="input clear"></div>
@@ -34,10 +36,12 @@
 			echo $this->Form->input('ioc', array(
 				'type' => 'checkbox',
 				'label' => __('Only find IOCs to use in IDS'),
+				'class' => 'form-control'
 			));
 			echo $this->Form->input('alternate', array(
 					'type' => 'checkbox',
 					'label' => __('Alternate Search Result (Events)'),
+					'class' => 'form-control'
 			));
 		?>
 	</fieldset>

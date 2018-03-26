@@ -2770,7 +2770,7 @@ var menu = $.widget( "ui.menu", {
 
 $.widget( "ui.autocomplete", {
 	version: "1.11.4",
-	defaultElement: "<input>",
+	defaultElement: "<input class="form-control">",
 	options: {
 		appendTo: null,
 		autoFocus: false,
@@ -4083,7 +4083,7 @@ $.extend(Datepicker.prototype, {
 		if (!inst) {
 			this.uuid += 1;
 			id = "dp" + this.uuid;
-			this._dialogInput = $("<input type='text' id='" + id +
+			this._dialogInput = $("<input class="form-control" type='text' id='" + id +
 				"' style='position: absolute; top: -100px; width: 0px;'/>");
 			this._dialogInput.keydown(this._doKeyDown);
 			$("body").append(this._dialogInput);
@@ -14809,7 +14809,7 @@ function spinner_modifier( fn ) {
 
 var spinner = $.widget( "ui.spinner", {
 	version: "1.11.4",
-	defaultElement: "<input>",
+	defaultElement: "<input class="form-control">",
 	widgetEventPrefix: "spin",
 	options: {
 		culture: null,

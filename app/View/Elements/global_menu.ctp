@@ -210,4 +210,4 @@
 		<?php endif;?>
 	</div>
 </div>
-<input type="hidden" class="keyboardShortcutsConfig" value="/shortcuts/global_menu.json" />
+<input class="form-control" type="hidden" class="keyboardShortcutsConfig" value="/shortcuts/global_menu.json" />

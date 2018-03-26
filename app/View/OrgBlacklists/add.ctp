@@ -7,19 +7,19 @@
 		echo $this->Form->input('uuids', array(
 				'type' => 'textarea',
 				'div' => 'input clear',
-				'class' => 'input-xxlarge',
+				'class' => 'form-control input-xxlarge',
 				'placeholder' => __('Enter a single or a list of UUIDs')
 		));
 		echo $this->Form->input('org_name', array(
 				'div' => 'input clear',
-				'class' => 'input-xxlarge',
+				'class' => 'form-control input-xxlarge',
 				'label' => __('Organisation name'),
 				'placeholder' => __('(Optional) The organisation name that the organisation is associated with')
 		));
 		echo $this->Form->input('comment', array(
 				'type' => 'textarea',
 				'div' => 'input clear',
-				'class' => 'input-xxlarge',
+				'class' => 'form-control input-xxlarge',
 				'placeholder' => __('(Optional) Any comments you would like to add regarding this (or these) entries.')
 		));
 	?>

@@ -27,7 +27,7 @@
 		</div>
 	<table class="table table-striped table-hover table-condensed">
 	<tr>
-		<th><input class="select_all" type="checkbox" onClick="toggleAllAttributeCheckboxes();" /></th>
+		<th><input class="form-control" class="select_all" type="checkbox" onClick="toggleAllAttributeCheckboxes();" /></th>
 		<th><?php echo __('Category');?></th>
 		<th><?php echo __('Type');?></th>
 		<th><?php echo __('Value');?></th>
@@ -40,7 +40,7 @@
 	?>
 	<tr>
 		<td style="width:10px;">
-			<input class="select_attribute" type="checkbox" data-rowid="<?php echo h($key); ?>" />
+			<input class="form-control" class="select_attribute" type="checkbox" data-rowid="<?php echo h($key); ?>" />
 		</td>
 		<td class="short" id="<?php echo h($key);?>_category"><?php echo h($attribute['category']);?></td>
 		<td class="short" id="<?php echo h($key);?>_type"><?php echo h($attribute['default_type']);?></td>

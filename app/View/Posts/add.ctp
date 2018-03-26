@@ -14,7 +14,7 @@
 		?>
 			<div class="input text">
 				<label for="PostTitle"><?php echo __('Thread Subject');?></label>
-				<input class = "input-xxlarge" disabled="disabled" value="<?php echo h($title);?>" id="PostTitle" type="text">
+				<input class="form-control" class = "input-xxlarge" disabled="disabled" value="<?php echo h($title);?>" id="PostTitle" type="text">
 			</div>
 		<?php
 		endif;

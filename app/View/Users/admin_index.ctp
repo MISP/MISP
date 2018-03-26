@@ -38,7 +38,7 @@
 		</span>
 		<?php endif;?>
 		<span id="quickFilterButton" role="button" tabindex="0" aria-label="<?php echo __('Filter user index');?>" class="tabMenuFilterFieldButton useCursorPointer" onClick="quickFilter(<?php echo h($passedArgs); ?>, '<?php echo $baseurl . '/users/admin_index'; ?>');">Filter</span>
-		<input class="tabMenuFilterField" type="text" id="quickFilterField"></input>
+		<input class="form-control" class="tabMenuFilterField" type="text" id="quickFilterField"></input>
 	</div>
 	<?php
 		echo $this->element('Users/userIndexTable');

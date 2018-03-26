@@ -57,7 +57,7 @@
 		endforeach;
 	?>
 		<span role="button" tabindex="0" aria-label="Filtr" title="Filter" id="quickFilterButton" class="tabMenuFilterFieldButton useCursorPointer" onClick="quickFilter(<?php echo  h($passedArgs); ?>, '<?php echo $baseurl . '/organisations/index'; ?>');"><?php echo __('Filter');?></span>
-		<input class="tabMenuFilterField" type="text" id="quickFilterField"></input>
+		<input class="form-control" class="tabMenuFilterField" type="text" id="quickFilterField"></input>
 	</div>
 	<table class="table table-striped table-hover table-condensed">
 	<tr>

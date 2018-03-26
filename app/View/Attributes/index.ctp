@@ -15,8 +15,8 @@
 				echo ":</h4>";
 			}
 		?>
-	<div class="pagination">
-		<ul>
+	<div class="">
+		<ul class="pagination">
 		<?php
 		$this->Paginator->options(array(
 			'update' => '.span12',
@@ -25,9 +25,9 @@
 			'complete' => '$(".progress").hide()',
 		));
 
-			echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-			echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-			echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
+			echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'class' => 'page-item', 'currentTag' => 'a', 'currentClass' => 'page-item', 'escape' => false), null, array('tag' => 'li', 'class' => 'page-item', 'currentTag' => 'a', 'currentClass' => 'page-item', 'escape' => false));
+			echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'page-link', 'currentTag' => 'a'));
+			echo $this->Paginator->next(__('next') . ' &raquo;',array('tag' => 'li', 'class' => 'page-item', 'currentTag' => 'a', 'currentClass' => 'page-item', 'escape' => false), null, array('tag' => 'a', 'class' => 'page-item', 'escape' => false, 'disabledTag' => 'a'));
 		?>
 		</ul>
 	</div>

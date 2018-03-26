@@ -30,7 +30,7 @@
     if ($mayModify):
   ?>
       <td style="width:10px;" data-position="<?php echo h($object['objectType']) . '_' . h($object['id']); ?>">
-        <input id = "select_<?php echo $object['id']; ?>" class="select_attribute row_checkbox" type="checkbox" data-id="<?php echo $object['id'];?>" />
+        <input class="form-control" id = "select_<?php echo $object['id']; ?>" class="select_attribute row_checkbox" type="checkbox" data-id="<?php echo $object['id'];?>" />
       </td>
   <?php
     endif;
@@ -106,7 +106,7 @@
       </div>
     </td>
     <td class="short" style="padding-top:3px;">
-      <input
+      <input class="form-control"
         id="correlation_toggle_<?php echo h($object['id']); ?>"
         class="correlation-toggle"
         type="checkbox"
@@ -184,8 +184,8 @@
                     if ($feed['source_format'] == 'misp'):
                   ?>
                       <form action="<?php echo $baseurl; ?>/feeds/previewIndex/1" method="post" style="margin:0px;line-height:auto;">
-                        <input type="hidden" name="data[Feed][eventid]" value="<?php echo h(json_encode($feed['event_uuids'], true)); ?>">
-                        <input type="submit" class="linkButton useCursorPointer" value="<?php echo h($feed['id']); ?>" data-toggle="popover" data-content="<?php echo h($popover);?>" data-trigger="hover" style="margin-right:3px;line-height:normal;vertical-align: text-top;" />
+                        <input class="form-control" type="hidden" name="data[Feed][eventid]" value="<?php echo h(json_encode($feed['event_uuids'], true)); ?>">
+                        <input class="form-control" type="submit" class="linkButton useCursorPointer" value="<?php echo h($feed['id']); ?>" data-toggle="popover" data-content="<?php echo h($popover);?>" data-trigger="hover" style="margin-right:3px;line-height:normal;vertical-align: text-top;" />
                       </form>
                   <?php
                     else:

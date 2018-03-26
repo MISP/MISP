@@ -4,7 +4,7 @@
 		<legend><?php echo __('Edit Post');?></legend>
 		<div class="input text">
 			<label for="PostTitle"><?php echo __('Thread Subject');?></label>
-			<input class = "input-xxlarge" disabled="disabled" value="<?php echo h($title);?>" id="PostTitle" type="text">
+			<input class="form-control" class = "input-xxlarge" disabled="disabled" value="<?php echo h($title);?>" id="PostTitle" type="text">
 		</div>
 	<?php
 		echo $this->Form->input('contents', array(

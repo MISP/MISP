@@ -2129,7 +2129,7 @@ function sharingGroupPopulateOrganisations() {
 		html += '<td>' + org.uuid + '&nbsp;</td>';
 		html += '<td class="short" style="text-align:center;">';
 		if (org.removable == 1) {
-			html += '<input id="orgExtend' + id + '" type="checkbox" onClick="sharingGroupExtendOrg(' + id + ')" ';
+			html += '<input class="form-control" id="orgExtend' + id + '" type="checkbox" onClick="sharingGroupExtendOrg(' + id + ')" ';
 			if (org.extend) html+= 'checked';
 			html += '></input>';
 		} else {
@@ -2154,7 +2154,7 @@ function sharingGroupPopulateServers() {
 		html += '<td>' + server.name + '&nbsp;</td>';
 		html += '<td>' + server.url + '&nbsp;</td>';
 		html += '<td>';
-		html += '<input id="serverAddOrgs' + id + '" type="checkbox" onClick="sharingGroupServerAddOrgs(' + id + ')" ';
+		html += '<input class="form-control" id="serverAddOrgs' + id + '" type="checkbox" onClick="sharingGroupServerAddOrgs(' + id + ')" ';
 		if (server.all_orgs) html += 'checked';
 		html += '></input>';
 		html +='</td>';

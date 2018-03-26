@@ -9,7 +9,7 @@
 		<?php
 		echo $this->Form->input('date', array(
 				'type' => 'text',
-				'class' => 'datepicker'
+				'class' => 'datepicker form-control'
 		));
 		$initialDistribution = 3;
 		if (Configure::read('MISP.default_event_distribution') != null) {
@@ -19,6 +19,7 @@
 				'options' => array($distributionLevels),
 				'label' => __('Distribution ') . $this->element('formInfo', array('type' => 'distribution')),
 				'selected' => $initialDistribution,
+				'class' => 'form-control'
 			));
 		?>
 			<div id="SGContainer" style="display:none;">
@@ -27,6 +28,7 @@
 			echo $this->Form->input('sharing_group_id', array(
 					'options' => array($sharingGroups),
 					'label' => __('Sharing Group'),
+					'class' => 'form-control'
 			));
 		}
 		?>
@@ -36,16 +38,18 @@
 				'div' => 'input clear',
 				'label' => __('Threat Level ') . $this->element('formInfo', array('type' => 'threat_level')),
 				'selected' => Configure::read('MISP.default_event_threat_level') ? Configure::read('MISP.default_event_threat_level') : '1',
+				'class' => 'form-control'
 				));
 		echo $this->Form->input('analysis', array(
 				'label' => __('Analysis ') . $this->element('formInfo', array('type' => 'analysis')),
 				'options' => array($analysisLevels),
+				'class' => 'form-control'
 				));
 		echo $this->Form->input('info', array(
 					'label' => __('Event Info'),
 					'div' => 'clear',
+					'class' => 'form-control',
 					'type' => 'text',
-					'class' => 'form-control span6',
 					'placeholder' => __('Quick Event Description or Tracking Info')
 				));
 		echo $this->Form->input('Event.submittedgfi', array(

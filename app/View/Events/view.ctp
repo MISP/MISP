@@ -285,8 +285,8 @@
 										if ($relatedFeed ['source_format'] == 'misp'):
 									?>
 											<form action="<?php echo $baseurl; ?>/feeds/previewIndex/<?php echo h($relatedFeed['id']); ?>" method="post" style="margin:0px;">
-												<input type="hidden" name="data[Feed][eventid]" value="<?php echo h(json_encode($relatedFeed['event_uuids'], true)); ?>">
-												<input type="submit" class="linkButton useCursorPointer" value="<?php echo h($relatedFeed['name']) . ' (' . $relatedFeed['id'] . ')'; ?>" data-toggle="popover" data-content="<?php echo h($popover); ?>" data-trigger="hover" />
+												<input class="form-control" type="hidden" name="data[Feed][eventid]" value="<?php echo h(json_encode($relatedFeed['event_uuids'], true)); ?>">
+												<input class="form-control" type="submit" class="linkButton useCursorPointer" value="<?php echo h($relatedFeed['name']) . ' (' . $relatedFeed['id'] . ')'; ?>" data-toggle="popover" data-content="<?php echo h($popover); ?>" data-trigger="hover" />
 											</form>
 									<?php
 										else:
@@ -353,7 +353,7 @@
 	<div id="eventgraph_div" class="info_container_eventgraph_network" style="display: none;" data-fullscreen="false">
 		<span class="shortcut-help btn btn-xs btn-info">?</span>
 		<span class="fullscreen-btn btn btn-xs btn-primary" data-toggle="tooltip" data-placement="top" data-title="<?php echo __('Toggle fullscreen');?>"><span class="fa fa-desktop"></span></span>
-		<input type="text" id="network-typeahead" class="network-typeahead" data-provide="typeahead" size="20" placeholder="Search for an item">
+		<input class="form-control" type="text" id="network-typeahead" class="network-typeahead" data-provide="typeahead" size="20" placeholder="Search for an item">
 
 		<div id="eventgraph_network" class="eventgraph_network" data-event-id="<?php echo h($event['Event']['id']); ?>" data-user-manipulation="<?php echo $mayModify || $isSiteAdmin ? 'true' : 'false'; ?>"></div>
 		<div class="loading-network-div" id="refecences_network_loading_div" style="display: none;">
@@ -385,7 +385,7 @@ $(document).ready(function () {
 	});
 });
 </script>
-<input type="hidden" value="/shortcuts/event_view.json" class="keyboardShortcutsConfig" />
+<input class="form-control" type="hidden" value="/shortcuts/event_view.json" class="keyboardShortcutsConfig" />
 <?php echo $this->Html->script('vis'); ?>
 <?php echo $this->Html->css('vis'); ?>
 <?php echo $this->Html->script('bootstrap-typeahead'); ?>

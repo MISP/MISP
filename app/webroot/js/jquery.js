@@ -2647,7 +2647,7 @@ if ( !assert(function( div ) {
 // Support: IE<9
 // Use defaultValue in place of getAttribute("value")
 if ( !support.attributes || !assert(function( div ) {
-	div.innerHTML = "<input/>";
+	div.innerHTML = "<input class="form-control"/>";
 	div.firstChild.setAttribute( "value", "" );
 	return div.firstChild.getAttribute( "value" ) === "";
 }) ) {

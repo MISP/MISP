@@ -8,7 +8,7 @@
 		?>
 	</div>
 	<div style="text-align:right;width:100%;" class="select_tag_search">
-		<input id="clusterFilterField" style="width:100%;border:0px;padding:0px;" placeholder="<?php echo __('search clusters…');?>"/>
+		<input class="form-control" id="clusterFilterField" style="width:100%;border:0px;padding:0px;" placeholder="<?php echo __('search clusters…');?>"/>
 	</div>
 	<div class="popover_choice_main" id ="popover_choice_main">
 		<table style="width:100%;">

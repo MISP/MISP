@@ -32,7 +32,7 @@
 					<?php if ($export['checkbox']):
 						echo h($export['checkbox_text']);
 					?>
-						<input
+						<input class="form-control"
 							title="<?php h($export['checkbox_text']); ?>"
 							id="<?php echo h($k) . '_toggle';?>"
 							type="checkbox"

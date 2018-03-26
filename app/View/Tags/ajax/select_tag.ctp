@@ -13,7 +13,7 @@
 		?>
 	</div>
 	<div style="text-align:right;width:100%;" class="select_tag_search">
-		<input id="filterField" style="width:100%;border:0px;padding:0px;" value="<?php echo h($filterData); ?>" placeholder="<?php echo __('search tags…');?>"/>
+		<input class="form-control" id="filterField" style="width:100%;border:0px;padding:0px;" value="<?php echo h($filterData); ?>" placeholder="<?php echo __('search tags…');?>"/>
 	</div>
 	<div class="popover_choice_main" id ="popover_choice_main">
 		<table style="width:100%;">

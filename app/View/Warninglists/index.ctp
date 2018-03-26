@@ -48,7 +48,7 @@ foreach ($warninglists as $k => $item): ?>
 		<td class="short" ondblclick="document.location.href ='<?php echo $baseurl."/warninglists/view/".h($item['Warninglist']['id']);?>'"><?php echo h($item['Warninglist']['warninglist_entry_count']); ?>&nbsp;</td>
 		<?php if ($isSiteAdmin): ?>
 		<td class="short" id ="checkbox_row_<?php echo h($item['Warninglist']['id']);?>">
-			<input id="checkBox_<?php echo h($item['Warninglist']['id']); ?>" type="checkbox" onClick="toggleSetting(event, 'warninglist_enable', '<?php echo h($item['Warninglist']['id']); ?>')" <?php echo $item['Warninglist']['enabled'] ? 'checked' : ''; ?>/>
+			<input class="form-control" id="checkBox_<?php echo h($item['Warninglist']['id']); ?>" type="checkbox" onClick="toggleSetting(event, 'warninglist_enable', '<?php echo h($item['Warninglist']['id']); ?>')" <?php echo $item['Warninglist']['enabled'] ? 'checked' : ''; ?>/>
 		</td>
 		<?php endif;?>
 		<td class="short action-links">

@@ -5,9 +5,11 @@
 	<?php
 		echo $this->Form->input('url', array(
 			'label' => __('Base URL'),
+			'class' => 'form-control'
 		));
 		echo $this->Form->input('name', array(
 				'label' => __('Instance name'),
+				'class' => 'form-control'
 		));
 		if (!empty($host_org_id)):
 	?>
@@ -18,6 +20,7 @@
 				echo $this->Form->input('internal', array(
 						'label' => __('Internal instance'),
 						'type' => 'checkbox',
+			'class' => 'form-control'
 				));
 	?>
 			</div>
@@ -34,6 +37,7 @@
 		echo $this->Form->input('organisation_type', array(
 				'label' => __('Remote Sync Organisation Type'),
 				'options' => $organisationOptions,
+				'class' => 'form-control'
 		));
 	?>
 		<div id="ServerExternalContainer" class="input select hiddenField" style="display:none;">
@@ -50,16 +54,17 @@
 		</div>
 		<div id="ServerExternalNameContainer" class="input select hiddenField" style="display:none;">
 			<label for="ServerExternalName"><?php echo __('Remote Organisation\'s Name');?></label>
-			<input type="text" id="ServerExternalName" <?php if (isset($this->request->data['Server']['external_name'])) echo 'value="' . $this->request->data['Server']['external_name'] . '"';?>>
+			<input class="form-control" type="text" id="ServerExternalName" <?php if (isset($this->request->data['Server']['external_name'])) echo 'value="' . $this->request->data['Server']['external_name'] . '"';?>>
 		</div>
 		<div id="ServerExternalUuidContainer" class="input select hiddenField" style="display:none;">
 			<label for="ServerExternalUuid"><?php echo __('Remote Organisation\'s Uuid');?></label>
-			<input type="text" id="ServerExternalUuid" <?php if (isset($this->request->data['Server']['external_uuid'])) echo 'value="' . $this->request->data['Server']['external_uuid'] . '"';?>>
+			<input class="form-control" type="text" id="ServerExternalUuid" <?php if (isset($this->request->data['Server']['external_uuid'])) echo 'value="' . $this->request->data['Server']['external_uuid'] . '"';?>>
 		</div>
 		<div class = "input clear"></div>
 	<?php
 		endif;
 		echo $this->Form->input('authkey', array(
+			'class' => 'form-control'
 		));
 	?>
 		<div class = "input clear" style="width:100%;"><hr /></div>
