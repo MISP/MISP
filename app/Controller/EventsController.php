@@ -259,7 +259,7 @@ class EventsController extends AppController {
 		// list the events
 		$passedArgsArray = array();
 		$urlparams = "";
-		$overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'Datefrom', 'Dateuntil', 'org', 'eventinfo', 'tag', 'distribution', 'sharinggroup', 'analysis', 'threatlevel', 'email', 'hasproposal', 'timestamp', 'publishtimestamp', 'publish_timestamp', 'minimal');
+		$overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'Datefrom', 'Dateuntil', 'org', 'eventinfo', 'tag', 'tags', 'distribution', 'sharinggroup', 'analysis', 'threatlevel', 'email', 'hasproposal', 'timestamp', 'publishtimestamp', 'publish_timestamp', 'minimal');
 		$passedArgs = $this->passedArgs;
 		if (isset($this->request->data)) {
 			if (isset($this->request->data['request'])) $this->request->data = $this->request->data['request'];
@@ -328,15 +328,19 @@ class EventsController extends AppController {
 						break;
 					case 'timestamp':
 						if ($v == "") continue 2;
+						if (preg_match('/^[0-9]+[mhdw]$/i', $v)) $v = $this->Event->resolveTimeDelta($v);
 						$this->paginate['conditions']['AND'][] = array('Event.timestamp >=' => $v);
 						break;
 					case 'publish_timestamp':
 					case 'publishtimestamp':
 						if ($v == "") continue 2;
 						if (is_array($v) && isset($v[0]) && isset($v[1])) {
+							if (preg_match('/^[0-9]+[mhdw]$/i', $v[0])) $v[0] = $this->Event->resolveTimeDelta($v[0]);
+							if (preg_match('/^[0-9]+[mhdw]$/i', $v[1])) $v[1] = $this->Event->resolveTimeDelta($v[1]);
 							$this->paginate['conditions']['AND'][] = array('Event.publish_timestamp >=' => $v[0]);
 							$this->paginate['conditions']['AND'][] = array('Event.publish_timestamp <=' => $v[1]);
 						} else {
+							if (preg_match('/^[0-9]+[mhdw]$/i', $v)) $v = $this->Event->resolveTimeDelta($v);
 							$this->paginate['conditions']['AND'][] = array('Event.publish_timestamp >=' => $v);
 						}
 						break;
@@ -403,7 +407,8 @@ class EventsController extends AppController {
 						}
 						$this->paginate['conditions']['AND'][] = $test;
 						break;
-					case 'tag' :
+					case 'tag':
+					case 'tags':
 						if (!$v || !Configure::read('MISP.tagging') || $v === 0) continue 2;
 						$pieces = explode('|', $v);
 						$filterString = "";
