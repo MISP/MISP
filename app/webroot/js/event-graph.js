@@ -31,6 +31,8 @@ class EventGraph {
 		this.mapping_meta_fa.set('misc', {"meta-category": "misc","fa_text": "cube","fa-hex": "f1b2"});
 		// FIXME
 		this.first_draw = true;
+		this.layout = 'default';
+		this.network_options = network_options;
 		this.nodes = nodes;
 		this.edges = edges;
 		var data = { // empty
@@ -41,7 +43,7 @@ class EventGraph {
 		this.clusters = [];
 		this.unreferenced_nodes = new Map();
 
-		this.network = new vis.Network(container, data, network_options);
+		this.network = new vis.Network(container, data, this.network_options);
 		this.add_unreferenced_root_node();
 
 		var that = this;
@@ -370,6 +372,36 @@ class EventGraph {
 			group: 'rootNodeObject'
 		};
 		this.nodes.add([root_node_attr, root_node_obj]);
+	}
+
+	change_layout_type(layout) {
+		var that = eventGraph;
+		if (that.layout == layout) { // Hasn't changed
+			return;
+		}
+
+		if (layout == 'default') {
+			that.network_options.layout.hierarchical.enabled = false;
+			that.network_options.physics.solver = 'barnesHut';
+			that.layout = layout;
+		} else {
+			that.network_options.layout.hierarchical.enabled = true;
+			that.network_options.layout.hierarchical.sortMethod = layout;
+			that.layout = layout;
+		}
+		that.network_loading(true, loadingText_redrawing);
+		setTimeout(function() {that.destroy_and_redraw();} );
+		that.network_loading(false, "");
+	}
+
+	destroy_and_redraw() {
+		var that = eventGraph;
+               	that.network.destroy();
+                that.network = null;
+		var data = {nodes: that.nodes, edges: that.edges};
+		that.network = new vis.Network(container, data, that.network_options);
+		console.log(that.network_options);
+		that.init_clusterize();
 	}
 
 }
@@ -739,6 +771,23 @@ function enable_interactive_graph() {
 			
 		});
 
+		$("#network-layout-type").change(function() {
+			var selected = $(this).val();
+			switch(selected) {
+				case "default":
+					eventGraph.change_layout_type('default');
+					break;
+					
+				case "hierarchical.directed":
+					eventGraph.change_layout_type('directed');
+					break;
+
+				case "hierarchical.hubsize":
+					eventGraph.change_layout_type('hubsize');
+					break;
+			}
+		});
+
 		dataHandler.fetch_data_and_update();
 	}, 1);
 }
@@ -753,7 +802,19 @@ var network_options = {
 		hover: true
 	},
 	layout: {
-		randomSeed: 321453
+		improvedLayout: false,
+		hierarchical: {
+			      enabled: false,
+			      levelSeparation: 150,
+			      nodeSpacing: 5,
+			      treeSpacing: 200,
+			      blockShifting: true,
+			      edgeMinimization: true,
+			      parentCentralization: true,
+			      direction: 'UD',        // UD, DU, LR, RL
+			      sortMethod: 'directed'   // hubsize, directed
+		}
+
 	},
 	manipulation: {
 		enabled: user_manipulation,
@@ -774,6 +835,13 @@ var network_options = {
 			springConstant: 0.24,
 			damping: 1.0,
 
+		},
+		hierarchicalRepulsion: {
+			centralGravity: 0,
+			springLength: 150,
+			springConstant: 0.24,
+			nodeDistance: 120,
+			damping: 1
 		},
 		minVelocity: 3.0,
 	},
@@ -901,6 +969,7 @@ var max_displayed_char = 32;
 var progressbar_length = 3; // divided by 100
 var loadingText_fetching = 'Fetching data';
 var loadingText_creating = 'Constructing network';
+var loadingText_redrawing = 'Redrawing network';
 
 var shortcut_text = "<b>V:</b> Center camera"
 		+ "\n<b>X:</b> Expaned node"
