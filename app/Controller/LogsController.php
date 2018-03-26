@@ -346,4 +346,31 @@ class LogsController extends AppController {
 		}
 		$this->redirect($this->referer());
 	}
+
+	public function testForStolenAttributes() {
+		$logs = $this->Log->find('list', array(
+			'recursive' => -1,
+			'conditions' => array(
+				'Log.model' => 'Attribute',
+				'Log.action' => 'edit'
+			),
+			'fields' => array('Log.title')
+		));
+		$ids = array();
+		foreach ($logs as $log) {
+			preg_match('/Attribute \(([0-9]+?)\)/', $log, $attribute_id);
+			preg_match('/Event \(([0-9]+?)\)/', $log, $event_id);
+			if (!isset($attribute_id[1])) continue;
+			if (empty($ids[$attribute_id[1]]) || !in_array($event_id[1], $ids[$attribute_id[1]])) {
+				$ids[$attribute_id[1]][] = $event_id[1];
+			}
+		}
+		$issues = array();
+		foreach ($ids as $aid => $eids) {
+			if (count($eids) > 1) {
+				$issues[$aid] = $eids;
+			}
+		}
+		$this->set('issues', $issues);
+	}
 }
