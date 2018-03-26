@@ -4421,7 +4421,7 @@ class EventsController extends AppController {
 					}
 				}
 			}
-			$data = array('module' => $module, $attribute[0]['Attribute']['type'] => $attribute[0]['Attribute']['value'], 'event_id' => $attribute[0]['Attribute']['event_id']);
+			$data = array('module' => $module, $attribute[0]['Attribute']['type'] => $attribute[0]['Attribute']['value'], 'event_id' => $attribute[0]['Attribute']['event_id'], 'attribute_uuid' => $attribute[0]['Attribute']['uuid']);
 			if ($this->Event->Attribute->typeIsAttachment($attribute[0]['Attribute']['type'])) {
 				$data['data'] = $this->Event->Attribute->base64EncodeAttachment($attribute[0]['Attribute']);
 			}
