@@ -11,6 +11,10 @@ var typeaheadData;
 var scope_id = $('#eventgraph_network').data('event-id');
 var container = document.getElementById('eventgraph_network');
 var user_manipulation = $('#eventgraph_network').data('user-manipulation');
+var root_id_attr = "rootNode:attribute"
+var root_id_object = "rootNode:object"
+var root_node_x_pos = 800;
+var cluster_expand_threshold = 100;
 
 /*=========
  * CLASSES
@@ -23,17 +27,23 @@ class EventGraph {
 		this.mapping_meta_fa = new Map();
 		this.mapping_meta_fa.set('file', {"meta-category": "file","fa_text": "file","fa-hex": "f15b"});
 		this.mapping_meta_fa.set('financial', {"meta-category": "financial","fa_text": "money-bil-alt","fa-hex": "f3d1"});
-		this.mapping_meta_fa.set('network', {"meta-category": "network","fa_text": "server","fa-hex": "f223"});
+		this.mapping_meta_fa.set('network', {"meta-category": "network","fa_text": "server","fa-hex": "f233"});
 		this.mapping_meta_fa.set('misc', {"meta-category": "misc","fa_text": "cube","fa-hex": "f1b2"});
 		// FIXME
+		this.first_draw = true;
 		this.nodes = nodes;
 		this.edges = edges;
 		var data = { // empty
 			nodes: this.nodes,
 			edges: this.edges
 		};
+		this.cluster_index = 0; // use to get uniq cluster ID
+		this.clusters = [];
+		this.unreferenced_nodes = new Map();
 
 		this.network = new vis.Network(container, data, network_options);
+		this.add_unreferenced_root_node();
+
 		var that = this;
 		this.network.on("selectNode", function (params) {
 			that.network.moveTo({
@@ -45,14 +55,6 @@ class EventGraph {
 			});
 		});
 
-		// we use the zoom for the clustering
-		this.network.on("zoom", function (params) {
-			if (params.direction == '+') { // zooming
-
-			} else { // un-zooming
-
-			}
-		});
 	}
 
 	// Util
@@ -61,6 +63,33 @@ class EventGraph {
 	}
 
 	// Graph interaction
+	
+	// Clusterize the specified node with its connected childs 
+	clusterize(nodeID) {
+		var that = eventGraph;
+		var clusterOptionsByData = {
+			processProperties: global_processProperties,
+			clusterNodeProperties: {borderWidth: 3, shape: 'database', font: {size: 30}}
+
+		};
+		that.network.clusterByConnection(nodeID, clusterOptionsByData);
+	}
+
+	init_clusterize() {
+		var that = eventGraph;
+		var clusterOptionsByData = {
+			processProperties: global_processProperties,
+			clusterNodeProperties: {borderWidth: 3, shape: 'database', font: {size: 30}},
+			joinCondition: function(nodeOptions) {
+				var is_unref = that.unreferenced_nodes.get(nodeOptions.id) === undefined ? false : true;
+				return is_unref;
+			}
+
+
+		};
+		this.network.clusterOutliers(clusterOptionsByData);
+	}
+
 	reset_graphs() {
 		this.nodes.clear();
 		this.edges.clear();
@@ -113,6 +142,10 @@ class EventGraph {
 		// check if nodes got deleted
 		var old_node_ids = this.nodes.getIds();
 		for (var old_id of old_node_ids) {
+			// Ignore root node
+			if (old_id == "rootNode:attribute" || old_id == "rootNode:object") {
+				continue;
+			}
 			// This old node got removed
 			if (newNodeIDs.indexOf(old_id) == -1) {
 				this.nodes.remove(old_id);
@@ -133,7 +166,7 @@ class EventGraph {
 				label: rel.type,
 				title: rel.comment,
 				color: {
-					opacity: 1.0
+					opacity: 1.0,
 				}
 			};
 			newRelations.push(rel);
@@ -149,6 +182,13 @@ class EventGraph {
 		}
 	
 		this.edges.update(newRelations);
+
+		// links unreferenced attributes and object to root nodes
+		if (this.first_draw) {
+			this.link_not_referenced_nodes();
+			this.first_draw = !this.first_draw
+		}
+
 		this.network_loading(false, "");
 	}
 	
@@ -157,7 +197,7 @@ class EventGraph {
 	}
 	
 	reset_view_on_stabilized() {
-		var that = this;
+		var that = eventGraph;
 		this.network.once("stabilized", function(params) {
 			that.network.fit({ animation: true });
 		});
@@ -178,79 +218,152 @@ class EventGraph {
 
 
 	collapse_node(parent_id) {
-		var node_group = this.nodes.get(parent_id).group;
-		if (parent_id === undefined || node_group != 'object') { //  No node selected  or collapse not permitted
-			return
-		}
-		var connected_nodes = this.network.getConnectedNodes(parent_id);
-		var connected_edges = this.network.getConnectedEdges(parent_id);
-		// Remove nodes
-		for (var nodeID of connected_nodes) {
-	 		// Object's attribute are in UUID format (while other object or in simple integer)
-			if (nodeID.length > 10) {
-				this.nodes.remove(nodeID);
+		if(parent_id === undefined) { return; }
+		
+		if (!(parent_id == root_id_attr || parent_id == root_id_object)) { // Is not a root node
+			var node_group = this.nodes.get(parent_id).group;
+			if (parent_id === undefined || node_group != 'object') { //  No node selected  or collapse not permitted
+				return
 			}
-		}
+			var connected_nodes = this.network.getConnectedNodes(parent_id);
+			var connected_edges = this.network.getConnectedEdges(parent_id);
+			// Remove nodes
+			for (var nodeID of connected_nodes) {
+	 			// Object's attribute are in UUID format (while other object or in simple integer)
+				if (nodeID.length > 10) {
+					this.nodes.remove(nodeID);
+				}
+			}
 	
-		// Remove edges
-		for (var edgeID of connected_edges) {
-	 		// Object's attribute (edge) are in UUID format (while other object or in simple integer)
-			if (edgeID.length > 10) {
-				this.edges.remove(edgeID);
+			// Remove edges
+			for (var edgeID of connected_edges) {
+	 			// Object's attribute (edge) are in UUID format (while other object or in simple integer)
+				if (edgeID.length > 10) {
+					this.edges.remove(edgeID);
+				}
 			}
+		} else { // Is a root node
+			this.clusterize(parent_id);
 		}
 	}
 	
 	expand_node(parent_id) {
-		if (parent_id === undefined //  Node node selected
-		    || this.nodes.get(parent_id).group != "object") { //  Cannot expand attribute
-			return;
-		}
-	
-		var newNodes = [];
-		var newRelations = [];
-	
-		var parent_pos = this.network.getPositions([parent_id])[parent_id];
-		for(var attr of dataHandler.mapping_all_obj_relation.get(parent_id)) {
-			var parent_color = eventGraph.get_node_color(parent_id);
-					
-			// Ensure unicity of nodes
-			if (this.nodes.get(attr.uuid) !== null) {
-				continue;
+		if (!this.network.isCluster(parent_id)) {
+
+			if (parent_id === undefined //  Node node selected
+			    || this.nodes.get(parent_id).group != "object") { //  Cannot expand attribute
+				return;
 			}
-					
-			var striped_value = attr.value.substring(0, max_displayed_char) + (attr.value.length < max_displayed_char ? "" : "[...]");
-			var node = { 
-				id: attr.uuid,
-				x: parent_pos.x,
-				y: parent_pos.y,
-				label: attr.type + ': ' + striped_value,
-				title: attr.type + ': ' + attr.value,
-				group: 'obj_relation',
-				color: { 
-					background: parent_color
-				},
-				font: {
-					color: getTextColour(parent_color)
+	
+			var newNodes = [];
+			var newRelations = [];
+	
+			var parent_pos = this.network.getPositions([parent_id])[parent_id];
+			for(var attr of dataHandler.mapping_all_obj_relation.get(parent_id)) {
+				var parent_color = eventGraph.get_node_color(parent_id);
+						
+				// Ensure unicity of nodes
+				if (this.nodes.get(attr.uuid) !== null) {
+					continue;
 				}
-			};
-			newNodes.push(node);
-					
-			var rel = {
-				from: parent_id,
-				to: attr.uuid,
+						
+				var striped_value = attr.value.substring(0, max_displayed_char) + (attr.value.length < max_displayed_char ? "" : "[...]");
+				var node = { 
+					id: attr.uuid,
+					x: parent_pos.x,
+					y: parent_pos.y,
+					label: attr.type + ': ' + striped_value,
+					title: attr.type + ': ' + attr.value,
+					group: 'obj_relation',
+					color: { 
+						background: parent_color
+					},
+					font: {
+						color: getTextColour(parent_color)
+					}
+				};
+				newNodes.push(node);
+						
+				var rel = {
+					from: parent_id,
+					to: attr.uuid,
+					arrows: '',
+					color: {
+						opacity: 0.5,
+						color: parent_color
+					},
+					length: 40
+				};
+				newRelations.push(rel);
+			}
+				
+			this.nodes.add(newNodes);
+			this.edges.add(newRelations);
+
+		} else { // is a cluster
+			if(this.network.getNodesInCluster(parent_id).length > cluster_expand_threshold) {
+				if(!confirm("The cluster contains lots of nodes. Are you sure you want to expand it?")) {
+					return;
+				}
+			}
+			// expand cluster
+			this.network.openCluster(parent_id);
+		}
+	}
+
+	link_not_referenced_nodes() {
+		var newEdges = [];
+		var that = this;
+		this.nodes.forEach(function(nodeData) {
+			var cur_id = nodeData.id;
+			var cur_group = nodeData.group;
+
+			// Do not link already connected nodes
+			if (that.network.getConnectedEdges(cur_id).length > 0) {
+				return;
+			}
+
+			var new_edge = {
+				to: cur_id,
 				arrows: '',
 				color: {
-					opacity: 0.5,
-					color: parent_color
+					opacity: 0.7,
+					color: '#d9d9d9'
 				},
-				length: 40
-			};
-			newRelations.push(rel);
-		}
-			
-		this.nodes.add(newNodes);
-		this.edges.add(newRelations);
+				length: 150
+			}
+			if (cur_group == 'attribute') {
+				new_edge.from = root_id_attr;
+			} else if (cur_group == 'object') {
+				new_edge.from = root_id_object;
+			}
+			that.unreferenced_nodes.set(cur_id, '')
+			newEdges.push(new_edge);
+		});
+		this.edges.add(newEdges);
+		this.init_clusterize();
+	}
+
+	add_unreferenced_root_node() {
+		var root_node_attr = {
+			id: root_id_attr,
+			fixed: true,
+			x: -root_node_x_pos,
+			y: 0,
+			label: 'Unreferenced Attributes',
+			title: 'All Attributes not being referenced',
+			group: 'rootNodeAttribute'
+		};
+		var root_node_obj = {
+			id: root_id_object,
+			fixed: true,
+			x: root_node_x_pos,
+			y: 0,
+			label: 'Unreferenced Objects',
+			title: 'All Objects not being referenced',
+			group: 'rootNodeObject'
+		};
+		this.nodes.add([root_node_attr, root_node_obj]);
 	}
 
 }
@@ -633,6 +746,9 @@ var network_options = {
 	interaction: {
 		hover: true
 	},
+	layout: {
+		randomSeed: 321453
+	},
 	manipulation: {
 		enabled: user_manipulation,
 		initiallyActive: false,
@@ -653,7 +769,7 @@ var network_options = {
 			damping: 1.0,
 
 		},
-		minVelocity: 2.0
+		minVelocity: 3.0,
 	},
 	edges: {
 		width: 3,
@@ -696,6 +812,40 @@ var network_options = {
 			},
 			size: 15
 		},
+		rootNodeObject: {
+			shape: 'icon',
+			icon: {
+				face: 'FontAwesome',
+				code: '\uf00a',
+			},
+			font: {
+				size: 18, // px
+				background: 'rgba(255, 255, 255, 0.7)'
+			},
+
+		},
+		rootNodeAttribute: {
+			shape: 'icon',
+			icon: {
+				face: 'FontAwesome',
+				code: '\uf1c0',
+			},
+			font: {
+				size: 18, // px
+				background: 'rgba(255, 255, 255, 0.7)'
+			},
+		},
+		clustered_object: {
+			shape: 'icon',
+			icon: {
+				face: 'FontAwesome',
+				code: '\uf009',
+			},
+			font: {
+				size: 18, // px
+				background: 'rgba(255, 255, 255, 0.7)'
+			},
+		}
 	},
 	locales: {
 		en: {
@@ -741,3 +891,36 @@ var shortcut_text = "<b>V:</b> Center camera"
 		+ "\n<b>SHIFT+F:</b> Search for value"
 		+ "\n<b>SHIFT:</b> Hold to add a reference"
 		+ "\n<b>DEL:</b> Delete selected item";
+
+function global_processProperties(clusterOptions, childNodes) {
+	var concerned_root_node;
+	var that = eventGraph;
+	that.cluster_index = that.cluster_index + 1;
+	var childrenCount = 0;
+	for (var i = 0; i < childNodes.length; i++) {
+		var childNodeID = childNodes[i].id
+		if ( childNodeID == "rootNode:object" || childNodeID == "rootNode:attribute") {
+			concerned_root_node = childNodeID;
+		}
+		childrenCount += childNodes[i].childrenCount || 1;
+	}
+	clusterOptions.childrenCount = childrenCount;
+	clusterOptions.font = {size: Math.sqrt(childrenCount)*0.5+30}
+	clusterOptions.id = 'cluster:' + that.cluster_index;
+	if (concerned_root_node !== undefined) {
+		clusterOptions.icon = { size: Math.sqrt(childrenCount)*5+100 };
+		if (concerned_root_node == "rootNode:object") {
+			clusterOptions.label = "Unreferenced Objects (" + childrenCount + ")";
+			clusterOptions.x =  root_node_x_pos;
+			clusterOptions.group = 'rootNodeObject';
+		} else if (concerned_root_node == "rootNode:attribute") {
+			clusterOptions.label = "Unreferenced Attributes (" + childrenCount + ")";
+			clusterOptions.x =  -root_node_x_pos;
+			clusterOptions.group = 'rootNodeAttribute';
+		}
+		clusterOptions.fixed = true;
+	}
+	clusterOptions.y = 0
+	that.clusters.push({id:'cluster:' + that.cluster_index, scale: that.cur_scale, group: clusterOptions.group});
+	return clusterOptions;
+}
