@@ -49,6 +49,7 @@
 					<li class="nav-item" id='liproposeAttachment'><a class="nav-link active" href="<?php echo $baseurl;?>/shadow_attributes/add_attachment/<?php echo h($event['Event']['id']);?>"><?php echo __('Propose Attachment');?></a></li>
 					<?php endif; ?>
 					<li class="nav-item" class="dropdown-divider"></li>
+					
 					<?php
 						$publishButtons = ' hidden';
 						if (isset($event['Event']['published']) && 0 == $event['Event']['published'] && ($isSiteAdmin || (isset($mayPublish) && $mayPublish))) $publishButtons = "";
@@ -204,6 +205,8 @@
 					<li class="nav-item" id='lieditUser'><?php echo $this->Html->link(__('Edit User'), array('controller' => 'users', 'action' => 'edit', 'admin' => true, h($id))); ?> </li>
 					<li class="nav-item"><?php echo $this->Form->postLink(__('Delete User'), array('admin' => true, 'action' => 'delete', h($id)), null, __('Are you sure you want to delete # %s? It is highly recommended to never delete users but to disable them instead.', h($id)));?></li>
 					<li class="nav-item" class="dropdown-divider"></li>
+					<hr>
+					<hr>
 					<?php endif;
 					if ($isSiteAdmin && $menuItem === 'editRole'): ?>
 					<li class="nav-item" class="active"><?php echo $this->Html->link(__('Edit Role'), array('controller' => 'roles', 'action' => 'edit', 'admin' => true, h($id))); ?> </li>
@@ -218,6 +221,7 @@
 					<li class="nav-item" id='licontact'><?php echo $this->Html->link(__('Contact Users'), array('controller' => 'users', 'action' => 'email', 'admin' => true)); ?> </li>
 					<?php endif; ?>
 					<li class="nav-item" class="dropdown-divider"></li>
+					<hr>
 					<?php if ($isSiteAdmin): ?>
 					<li class="nav-item" id='liaddOrg'><a class="nav-link active" href="<?php echo $baseurl;?>/admin/organisations/add"><?php echo __('Add Organisation');?></a></li>
 					<?php if ($menuItem === 'editOrg' || $menuItem === 'viewOrg'): ?>

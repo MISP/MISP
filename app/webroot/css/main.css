@@ -210,9 +210,9 @@ div.message{
 	padding: 5px;
 	float: top;
 	color: #FFFFFF;
-	background-color: #C11B17;
-	border-radius: 10px;
-	box-shadow: 5px 5px 8px #B2B2B2;
+	background-color: #d14d4b;
+	border-radius: 2px;
+	border: 1px solid #881b19;
 }
 
 .clear{
