@@ -2044,3 +2044,9 @@ table tr:hover .down-expand-button {
 		transform: rotate(359deg);
 	}
 }
+
+/* BOOTSTRAP 4 */
+
+a {
+	font-size: 12px;
+}

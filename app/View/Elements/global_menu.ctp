@@ -1,6 +1,5 @@
 <div id="topBar" class="navbar-wrapper header <?php echo $debugMode;?>">
 	<div class="navbar navbar-dark bg-dark">
-		<div class="navbar-inner">
 		  <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
 	    <!-- <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
 	      <span class="icon-bar"></span>
@@ -16,7 +15,7 @@
 					?>
 					<li class="dropdown mr-md-3"><a href="<?php echo !empty($baseurl) ? $baseurl : '/';?>" style="color:white"><?php echo $logo; ?></a></li>
 					<li class="dropdown mr-md-3">
-						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
+						<a class="dropdown-toggle text-muted" data-toggle="dropdown" href="#">
 							Event Actions
 							<b class="caret"></b>
 						</a>
@@ -51,7 +50,7 @@
 					</li>
 
 					<li class="dropdown mr-md-3">
-						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
+						<a class="dropdown-toggle text-muted" data-toggle="dropdown" href="#">
 							Galaxies
 							<b class="caret"></b>
 						</a>
@@ -62,7 +61,7 @@
 
 
 					<li class="dropdown mr-md-3">
-						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
+						<a class="dropdown-toggle text-muted" data-toggle="dropdown" href="#">
 							Input Filters
 							<b class="caret"></b>
 						</a>
@@ -80,7 +79,7 @@
 					</li>
 
 					<li class="dropdown  mr-md-3">
-						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
+						<a class="dropdown-toggle text-muted" data-toggle="dropdown" href="#">
 							Global Actions
 							<b class="caret"></b>
 						</a>
@@ -115,7 +114,7 @@
 
 					<?php if ($isAclSync || $isAdmin): ?>
 					<li class="dropdown  mr-md-3">
-						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
+						<a class="dropdown-toggle text-muted" data-toggle="dropdown" href="#">
 							Sync Actions
 							<b class="caret"></b>
 						</a>
@@ -130,7 +129,7 @@
 
 					<?php if ($isAdmin || $isSiteAdmin): ?>
 					<li class="dropdown  mr-md-3">
-						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
+						<a class="dropdown-toggle text-muted" data-toggle="dropdown" href="#">
 							Administration
 							<b class="caret"></b>
 						</a>
@@ -174,7 +173,7 @@
 
 					<?php if ($isAclAudit): ?>
 					<li class="dropdown ">
-						<a class="dropdown-toggle" data-toggle="dropdown" href="#">
+						<a class="dropdown-toggle text-muted" data-toggle="dropdown" href="#">
 							Audit
 							<b class="caret"></b>
 						</a>
@@ -186,30 +185,29 @@
 					<?php endif;?>
 				</ul>
 			</div>
-			<div class="nav-collapse collapse pull-right">
+			<div class="nav-collapse pull-right">
 				<ul class="nav">
-					<li class="dropdown-item">
+					<li class="navbar-right">
 						<a href="<?php echo $baseurl;?>/" id="smallLogo" style="font-weight:bold;">
 							<span class="logoBlueStatic">MISP</span>
 						</a>
 					</li>
-					<li class="dropdown-item">
+					<li class="navbar-right">
 						<a href="<?php echo $baseurl;?>/users/view/me" class="white" style="padding-left:0px;padding-right:5px;" title="<?php echo h($me['email']);?>"><?php echo $loggedInUserName;?></a>
 					</li>
-					<li class="dropdown-item">
+					<li class="navbar-right">
 						<a href="<?php echo $baseurl;?>/users/dashboard" style="padding-left:0px;padding-right:0px;">
-							<span class="notification-<?php echo ($notifications['total'] > 0) ? 'active' : 'passive';?>"><span style="float:left;margin-top:3px;margin-right:3px;margin-left:3px;" class="icon-envelope icon-white" title="Dashboard" role="button" tabindex="0" aria-label="Dashboard"></span></span>
+							<span class="notification-<?php echo ($notifications['total'] > 0) ? 'active' : 'passive';?>"><span style="float:left;margin-top:3px;margin-right:3px;margin-left:3px;" class="glyphicon-envelope icon-white" title="Dashboard" role="button" tabindex="0" aria-label="Dashboard"></span></span>
 						</a>
 					</li>
 					<?php if (!$externalAuthUser && !Configure::read('Plugin.CustomAuth_disable_logout')): ?>
-						<li class="dropdown-item"><a href="<?php echo $baseurl;?>/users/logout">Log out</a></li>
+						<li class="navbar-right"><a href="<?php echo $baseurl;?>/users/logout">Log out</a></li>
 					<?php elseif (Configure::read('Plugin.CustomAuth_custom_logout')): ?>
-						<li class="dropdown-item"><a href="<?php echo h(Configure::read('Plugin.CustomAuth_custom_logout'));?>">Log out</a></li>
+						<li class="navbar-right"><a href="<?php echo h(Configure::read('Plugin.CustomAuth_custom_logout'));?>">Log out</a></li>
 					<?php endif; ?>
 				</ul>
 			</div>
 		<?php endif;?>
-		</div>
 	</div>
 </div>
 <input type="hidden" class="keyboardShortcutsConfig" value="/shortcuts/global_menu.json" />
