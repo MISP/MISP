@@ -904,6 +904,7 @@ function global_processProperties(clusterOptions, childNodes) {
 		}
 		childrenCount += childNodes[i].childrenCount || 1;
 	}
+	childrenCount--; // -1 because 2 nodes merged into 1
 	clusterOptions.childrenCount = childrenCount;
 	clusterOptions.font = {size: Math.sqrt(childrenCount)*0.5+30}
 	clusterOptions.id = 'cluster:' + that.cluster_index;
