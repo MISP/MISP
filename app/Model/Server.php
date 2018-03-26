@@ -1517,6 +1517,15 @@ class Server extends AppModel {
 							'test' => 'testBool',
 							'type' => 'boolean'
 					),
+					'Cortex_authkey' => array(
+							'level' => 1,
+							'description' => 'Set an authentication key to be passed to Cortex',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+							'null' => true
+					),
 					'Cortex_timeout' => array(
 							'level' => 1,
 							'description' => 'Set a timeout for the import services',
