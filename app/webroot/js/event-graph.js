@@ -203,6 +203,12 @@ class EventGraph {
 		});
 	}
 
+	focus_on_stabilized(nodeID) {
+		this.network.once("stabilized", function(params) {
+			eventGraph.network.focus(nodeID, {animation: true, scale: 1});
+		});
+	}
+
 	// state true: loading
 	// state false: finished
 	network_loading(state, message) {
@@ -871,9 +877,20 @@ var typeaheadOption = {
 	},
 	updater: function(value) {
 		var nodeID = dataHandler.mapping_value_to_nodeID.get(value);
+		// check if node in cluster
+		nested_length = eventGraph.network.findNode(nodeID).length;
+		if (nested_length > 1) { // Node is in cluster
+			// As vis.js cannot supply a way to uncluster a single node, we remove it and add it again
+			searched_node = eventGraph.nodes.get(nodeID);
+			// Remove old node and edges
+			eventGraph.nodes.remove(nodeID);
+			eventGraph.nodes.add(searched_node);
+			// don't need to re-add the edge as it is the same
+
+		}
 		// select node and focus on it
 		eventGraph.network.selectNodes([nodeID]);
-		eventGraph.network.focus(nodeID, {animation: true, scale: 1});
+		eventGraph.focus_on_stabilized(nodeID);
 		// set focus to the network
 		$("#network-typeahead").blur();
 	},
