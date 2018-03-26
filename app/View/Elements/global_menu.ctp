@@ -2,11 +2,11 @@
 	<div class="navbar navbar-dark bg-dark">
 		<div class="navbar-inner">
 		  <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
-	    <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+	    <!-- <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
 	      <span class="icon-bar"></span>
 	      <span class="icon-bar"></span>
 	      <span class="icon-bar"></span>
-	    </a> 
+	    </a> -->
 		<?php if ($me != false ):?>
 			<div class="nav-toggler toggle">
 				<ul class="nav">
