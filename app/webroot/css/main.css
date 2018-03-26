@@ -1062,7 +1062,6 @@ a.proposal_link_red:hover {
 }
 
 .tabMenuFilterFieldHeader {
-	border-radius: 10px 0px 0 0 !important;
 	height:14px !important;
 	width:30px;
 	margin:0px !important;
@@ -1078,7 +1077,6 @@ a.proposal_link_red:hover {
 }
 
 .tabMenuFilterField {
-	border-radius: 10px 0 0 0 !important;
 	height:20px !important;
 	margin:0px !important;
 	margin-bottom:1px !important;
@@ -1092,7 +1090,6 @@ a.proposal_link_red:hover {
 }
 
 .tabMenuFilterFieldButton {
-	border-radius: 0px 10px 0 0 !important;
 	background-color:#f9f9f9;
 	height:20px !important;
 	width:34px;
@@ -1229,9 +1226,6 @@ a.proposal_link_red:hover {
 	display:inline-block;
 	width:10px;
 	height:10px;
-	-webkit-border-radius: 2px;
-	-moz-border-radius: 2px;
-	border-radius: 2px;
 	box-shadow: 1px 1px 1px #888888;
 }
 
@@ -1267,15 +1261,11 @@ a.proposal_link_red:hover {
 .templateTableRow {
 	width:100%;
 	display:inline-block;
-	box-shadow: 4px 2px 4px 2px #aaa;
 	margin: 0 0 15px 0;
-	background-color: #FFFFFF;
+	background-color: #fff;
 	padding:0px !important;
 	padding-right:0px !important;
-	border: 1px solid black !important;
-	-webkit-radius: 8px;
-	-moz-border-radius: 8px;
-	border-radius: 8px;
+	border: 1px solid #eee !important;
 }
 
 .templateTableRow80 {
@@ -1356,9 +1346,6 @@ a.proposal_link_red:hover {
 	color:white;
 	font-weight:bold;
 	height:25px;
-	-moz-border-radius: 0px;
-	-webkit-border-radius: 7px 7px 0px 0px;
-	border-radius: 7px 7px 0px 0px;
 }
 
 .templateElementHeaderText {
@@ -1372,15 +1359,7 @@ a.proposal_link_red:hover {
 	height: 100%;
 	position: absolute;
 	padding: 0;
-	-webkit-border-radius: 7px 7px 0px 0px;
-	-moz-border-radius: 7px 7px 0px 0px;
-	border-radius: 7px 7px 0px 0px;
 	background: rgba(0,0,0,0.1.25);
-	box-shadow: 0 2px 6px rgba(0,0,0,0.5),
-		inset 0 1px rgba(255,255,255,0.3),
-		inset 0 10px rgba(255,255,255,0.1),
-		inset 0 10px 20px rgba(255,255,255,0.3),
-		inset 0 -15px 30px rgba(0,0,0,0.3);
 
 }
 

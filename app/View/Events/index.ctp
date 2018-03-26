@@ -42,7 +42,7 @@
 			</span>
 			<?php endif;?>
 			<span role="button" tabindex="0" aria-label="<?php echo __('Quickfilter');?>" title="<?php echo __('Quickfilter');?>" id="quickFilterButton" class="tabMenuFilterFieldButton useCursorPointer" onClick="quickFilter(<?php echo h($passedArgs); ?>, '<?php echo $baseurl . '/events/index'; ?>');"><?php echo __('Filter');?></span>
-			<input class="form-control" class="tabMenuFilterField" type="text" id="quickFilterField"></input>
+			<input class="tabMenuFilterField" type="text" id="quickFilterField"></input>
 			<?php
 				$tempArgs = json_decode($passedArgs, true);
 				$tabBackground = "";

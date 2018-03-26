@@ -107,10 +107,10 @@
 				break;
 
 				case 'regexp': ?>
-					<li class="nav-item" id='liindex'><?php echo $this->Html->link('List Regexp', array('admin' => $isSiteAdmin, 'action' => 'index'));?></li>
+					<li class="nav-item" id='liindex'><?php echo $this->Html->link('List Regexp', array('admin' => $isSiteAdmin, 'action' => 'index'), array('class' => 'nav-link active'));?></li>
 					<?php if ($isSiteAdmin): ?>
-					<li class="nav-item" id='liadd'><?php echo $this->Html->link('New Regexp', array('admin' => true, 'action' => 'add'));?></li>
-					<li class="nav-item"><?php echo $this->Form->postLink(__('Perform on existing'), array('admin' => true, 'action' => 'clean'));?></li>
+					<li class="nav-item" id='liadd'><?php echo $this->Html->link('New Regexp', array('admin' => true, 'action' => 'add'), array('class' => 'nav-link active'));?></li>
+					<li class="nav-item"><?php echo $this->Form->postLink(__('Perform on existing'), array('admin' => true, 'action' => 'clean'), array('class' => 'nav-link active'));?></li>
 					<?php endif;
 					if ($menuItem == 'edit'):?>
 					<li class="nav-item" class="dropdown-divider"></li>
@@ -128,9 +128,9 @@
 						endif;
 				break;
 				case 'whitelist':?>
-					<li class="nav-item" id='liindex'><?php echo $this->Html->link(__('List Whitelist'), array('admin' => $isSiteAdmin, 'action' => 'index'));?></li>
+					<li class="nav-item" id='liindex'><?php echo $this->Html->link(__('List Whitelist'), array('admin' => $isSiteAdmin, 'action' => 'index'), array('class' => 'nav-link active'));?></li>
 					<?php if ($isSiteAdmin): ?>
-					<li class="nav-item" id='liadd'><?php echo $this->Html->link(__('New Whitelist'), array('admin' => true, 'action' => 'add'));?></li>
+					<li class="nav-item" id='liadd'><?php echo $this->Html->link(__('New Whitelist'), array('admin' => true, 'action' => 'add'), array('class' => 'nav-link active'));?></li>
 					<?php endif;
 					if ($menuItem == 'edit'):?>
 					<li class="nav-item" class="dropdown-divider"></li>
@@ -142,8 +142,8 @@
 
 				case 'globalActions':
 					if (((Configure::read('MISP.disableUserSelfManagement') && $isAdmin) || !Configure::read('MISP.disableUserSelfManagement')) && ($menuItem === 'edit' || $menuItem === 'view')): ?>
-					<li class="nav-item" id='liedit'><?php echo $this->Html->link(__('Edit My Profile', true), array('action' => 'edit')); ?></li>
-					<li class="nav-item" id='liedit'><?php echo $this->Html->link(__('Change Password', true), array('action' => 'change_pw')); ?></li>
+					<li class="nav-item" id='liedit'><?php echo $this->Html->link(__('Edit My Profile', true), array('action' => 'edit'), array('class' => 'nav-link active')); ?></li>
+					<li class="nav-item" id='liedit'><?php echo $this->Html->link(__('Change Password', true), array('action' => 'change_pw'), array('class' => 'nav-link active')); ?></li>
 					<li class="nav-item" class="dropdown-divider"></li>
 					<?php elseif (Configure::read('Plugin.CustomAuth_custom_password_reset')): ?>
 					<li class="nav-item" id='lipwreset'><a class="nav-link active" href="<?php echo h(Configure::read('Plugin.CustomAuth_custom_password_reset'));?>">Reset Password</a></li>
@@ -191,9 +191,9 @@
 					<li class="nav-item"><?php echo $this->Form->postLink(__('Delete'), array('action' => 'delete', $this->Form->value('Server.id')), null, __('Are you sure you want to delete # %s?', $this->Form->value('Server.id'))); ?></li>
 					<li class="nav-item" class="dropdown-divider"></li>
 					<?php endif; ?>
-					<li class="nav-item" id='liindex'><?php echo $this->Html->link(__('List Servers'), array('controller' => 'servers', 'action' => 'index'));?></li>
+					<li class="nav-item" id='liindex'><?php echo $this->Html->link(__('List Servers'), array('controller' => 'servers', 'action' => 'index'), array('class' => 'nav-link active'));?></li>
 					<?php if ($isSiteAdmin): ?>
-					<li class="nav-item" id='liadd'><?php echo $this->Html->link(__('New Server'), array('controller' => 'servers', 'action' => 'add')); ?></li>
+					<li class="nav-item" id='liadd'><?php echo $this->Html->link(__('New Server'), array('controller' => 'servers', 'action' => 'add'), array('class' => 'nav-link active')); ?></li>
 					<?php endif;?>
 					<?php
 				break;
@@ -214,11 +214,11 @@
 					<li class="nav-item" class="dropdown-divider"></li>
 					<?php endif;
 					if ($isSiteAdmin): ?>
-					<li class="nav-item" id='liaddUser'><?php echo $this->Html->link(__('Add User'), array('controller' => 'users', 'action' => 'add', 'admin' => true)); ?> </li>
-					<li class="nav-item" id='liindexUser'><?php echo $this->Html->link(__('List Users'), array('controller' => 'users', 'action' => 'index', 'admin' => true)); ?> </li>
+					<li class="nav-item" id='liaddUser'><?php echo $this->Html->link(__('Add User'), array('controller' => 'users', 'action' => 'add', 'admin' => true), array('class' => 'nav-link active')); ?> </li>
+					<li class="nav-item" id='liindexUser'><?php echo $this->Html->link(__('List Users'), array('controller' => 'users', 'action' => 'index', 'admin' => true), array('class' => 'nav-link active')); ?> </li>
 					<?php endif; ?>
 					<?php if ($isAdmin): ?>
-					<li class="nav-item" id='licontact'><?php echo $this->Html->link(__('Contact Users'), array('controller' => 'users', 'action' => 'email', 'admin' => true)); ?> </li>
+					<li class="nav-item" id='licontact'><?php echo $this->Html->link(__('Contact Users'), array('controller' => 'users', 'action' => 'email', 'admin' => true), array('class' => 'nav-link active')); ?> </li>
 					<?php endif; ?>
 					<li class="nav-item" class="dropdown-divider"></li>
 					<hr>
@@ -233,9 +233,9 @@
 					<?php endif;?>
 					<li class="nav-item" id='liindexOrg'><a class="nav-link active" href="<?php echo $baseurl;?>/organisations/index"><?php echo __('List Organisations');?></a></li>
 					<li class="nav-item" class="dropdown-divider"></li>
-					<li class="nav-item" id='liaddRole'><?php echo $this->Html->link('Add Role', array('controller' => 'roles', 'action' => 'add', 'admin' => true)); ?> </li>
+					<li class="nav-item" id='liaddRole'><?php echo $this->Html->link('Add Role', array('controller' => 'roles', 'action' => 'add', 'admin' => true), array('class' => 'nav-link active')); ?> </li>
 					<?php endif; ?>
-					<li class="nav-item" id='liindexRole'><?php echo $this->Html->link('List Roles', array('controller' => 'roles', 'action' => 'index', 'admin' => true)); ?> </li>
+					<li class="nav-item" id='liindexRole'><?php echo $this->Html->link('List Roles', array('controller' => 'roles', 'action' => 'index', 'admin' => true), array('class' => 'nav-link active')); ?> </li>
 					<?php if ($isSiteAdmin): ?>
 						<li class="nav-item" class="dropdown-divider"></li>
 						<li class="nav-item" id='liserverSettings'><a class="nav-link active" href="<?php echo $baseurl;?>/servers/serverSettings"><?php echo __('Server Settings & Maintenance');?></a></li>
@@ -257,8 +257,8 @@
 				break;
 
 				case 'logs': ?>
-					<li class="nav-item" id='liindex'><?php echo $this->Html->link(__('List Logs'), array('admin' => true, 'action' => 'index'));?></li>
-					<li class="nav-item" id='lisearch'><?php echo $this->Html->link(__('Search Logs'), array('admin' => true, 'action' => 'search'));?></li>
+					<li class="nav-item" id='liindex'><?php echo $this->Html->link(__('List Logs'), array('admin' => true, 'action' => 'index'), array('class' => 'nav-link active'));?></li>
+					<li class="nav-item" id='lisearch'><?php echo $this->Html->link(__('Search Logs'), array('admin' => true, 'action' => 'search'), array('class' => 'nav-link active'));?></li>
 					<?php
 				break;
 
@@ -273,20 +273,20 @@
 						}
 					}
 					if ($menuItem === 'edit') { ?>
-						<li class="nav-item"><?php echo $this->Html->link(__('View Thread'), array('controller' => 'threads', 'action' => 'view', h($thread_id)));?></li>
+						<li class="nav-item"><?php echo $this->Html->link(__('View Thread'), array('controller' => 'threads', 'action' => 'view', h($thread_id), array('class' => 'nav-link active')));?></li>
 						<li class="nav-item" class="active"><?php echo $this->Html->link(__('Edit Post'), array('controller' => 'threads', 'action' => 'view', h($id)));?></li>
 						<li class="nav-item" class="dropdown-divider"></li>
 					<?php
 					}
 					?>
-					<li class="nav-item" id='liindex'><?php echo $this->Html->link(__('List Threads'), array('controller' => 'threads', 'action' => 'index'));?></li>
+					<li class="nav-item" id='liindex'><?php echo $this->Html->link(__('List Threads'), array('controller' => 'threads', 'action' => 'index'), array('class' => 'nav-link active'));?></li>
 					<li class="nav-item" id='liadd'><a class="nav-link active" href = "<?php echo Configure::read('MISP.baseurl');?>/posts/add"><?php echo __('New Thread');?></a></li>
 					<?php
 				break;
 
 				case 'tags': ?>
-					<li class="nav-item" id='liindexfav'><?php echo $this->Html->link(__('List Favourite Tags'), array('action' => 'index', true));?></li>
-					<li class="nav-item" id='liindex'><?php echo $this->Html->link(__('List Tags'), array('action' => 'index'));?></li>
+					<li class="nav-item" id='liindexfav'><?php echo $this->Html->link(__('List Favourite Tags'), array('action' => 'index', true), array('class' => 'nav-link active'));?></li>
+					<li class="nav-item" id='liindex'><?php echo $this->Html->link(__('List Tags'), array('action' => 'index'), array('class' => 'nav-link active'));?></li>
 				<?php
 					if ($isAclTagEditor):
 				?>
@@ -373,7 +373,7 @@
 				<?php
 					if ($isSiteAdmin):
 				?>
-						<li class="nav-item" class="nav-item"><?php echo $this->Form->postLink(__('Update Galaxies'), array('controller' => 'galaxies', 'action' => 'update', 'class' => 'nav-link'), null, __('Are you sure you want to reimport all galaxies from the submodule?')); ?></li>
+						<li class="nav-item" class="nav-item"><?php echo $this->Form->postLink(__('Update Galaxies'), array('controller' => 'galaxies', 'action' => 'update'), array('class' => 'nav-link active'), __('Are you sure you want to reimport all galaxies from the submodule?')); ?></li>
 				<?php
 					endif;
 					if ($menuItem === 'viewGraph' || $menuItem === 'view_cluster'): ?>
@@ -395,7 +395,7 @@
 				<?php
 					if ($isSiteAdmin):
 				?>
-					<li class="nav-item"><?php echo $this->Form->postLink(__('Update Objects'), '/objectTemplates/update'); ?></li>
+					<li class="nav-item"><?php echo $this->Form->postLink(__('Update Objects'), '/objectTemplates/update', array('class' => 'nav-link active')); ?></li>
 				<?php
 					endif;
 					if ($menuItem === 'view'):
