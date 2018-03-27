@@ -209,6 +209,11 @@ class EventGraph {
 		});
 	}
 
+	physics_state(state) {
+		var that = eventGraph;
+		that.network.setOptions({physics: { enabled: state} })
+	}
+
 	// state true: loading
 	// state false: finished
 	network_loading(state, message) {
@@ -711,6 +716,9 @@ function enable_interactive_graph() {
 
 			});
 		});
+		$('#network-physics').change(function() {
+			eventGraph.physics_state($(this).is(":checked"));
+		});
 		$('#network-typeahead').typeahead(typeaheadOption);
 
 		eventGraph = new EventGraph(network_options, nodes, edges);
@@ -874,7 +882,7 @@ var network_options = {
 			centralGravity: 0,
 			springLength: 150,
 			springConstant: 0.24,
-			nodeDistance: 120,
+			nodeDistance: 220,
 			damping: 1
 		},
 		minVelocity: 3.0,

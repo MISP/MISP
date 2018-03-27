@@ -23,14 +23,32 @@
 }
 
 select.center-in-network-header {
+	margin-bottom: 0px;
 	width: fit-content;
-	left: 5px;
+}
+
+input[type="text"].center-in-network-header {
+	top: 5px;
+	margin: 0px;
+	margin-left: 5px;
+}
+
+input[type="checkbox"].center-in-network-header {
+	top: 0px;
+	margin: 0px;
+	margin-left: 5px;
+}
+
+label.center-in-network-header {
+	user-select: none;
+	font-weight: bold;
 }
 
 .center-in-network-header {
-	position: absolute;
+	position: relative;
+	display: inline-block;
 	top: 5px;
-	margin: 0px;
+	margin-left: 5px;
 }
 
 .eventgraph_network {
@@ -106,3 +124,6 @@ select.center-in-network-header {
 	white-space: pre-wrap;
 }
 
+.flushright {
+	float: right;
+}

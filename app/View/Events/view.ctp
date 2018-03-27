@@ -357,7 +357,8 @@
 				<option value="hierarchical.directed"><?php echo __('Hierarchical directed'); ?></option>
 				<option value="hierarchical.hubsize"><?php echo __('Hierarchical hubsize'); ?></option>
 			</select>
-			<input type="text" id="network-typeahead" class="center-in-network-header network-typeahead" data-provide="typeahead" size="20" placeholder="Search for an item">
+			<label class="center-in-network-header">Physics<input type="checkbox" id="network-physics" class="center-in-network-header" checked></label>
+			<input type="text" id="network-typeahead" class="center-in-network-header network-typeahead flushright" data-provide="typeahead" size="20" placeholder="Search for an item">
 		</div>
 		<span class="shortcut-help btn btn-xs btn-info">?</span>
 		<span class="fullscreen-btn btn btn-xs btn-primary" data-toggle="tooltip" data-placement="top" data-title="<?php echo __('Toggle fullscreen');?>"><span class="fa fa-desktop"></span></span>
