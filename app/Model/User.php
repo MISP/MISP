@@ -123,7 +123,7 @@ class User extends AppModel {
 		'gpgkey' => array(
 			'gpgvalidation' => array(
 				'rule' => array('validateGpgkey'),
-				'message' => 'GPG key not valid, please enter a valid key.',
+				'message' => 'GnuPG key not valid, please enter a valid key.',
 			),
 		),
 		'certif_public' => array(
@@ -290,7 +290,7 @@ class User extends AppModel {
 		return true;
 	}
 
-	// Checks if the GPG key is a valid key, but also import it in the keychain.
+	// Checks if the GnuPG key is a valid key, but also import it in the keychain.
 	// TODO: this will NOT fail on keys that can only be used for signing but not encryption!
 	// the method in verifyUsers will fail in that case.
 	public function validateGpgkey($check) {
