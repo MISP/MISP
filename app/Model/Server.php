@@ -433,7 +433,7 @@ class Server extends AppModel {
 					),
 					'extended_alert_subject' => array(
 							'level' => 1,
-							'description' => 'enabling this flag will allow the event description to be transmitted in the alert e-mail\'s subject. Be aware that this is not encrypted by PGP, so only enable it if you accept that part of the event description will be sent out in clear-text.',
+							'description' => 'enabling this flag will allow the event description to be transmitted in the alert e-mail\'s subject. Be aware that this is not encrypted by GnuPG, so only enable it if you accept that part of the event description will be sent out in clear-text.',
 							'value' => false,
 							'errorMessage' => '',
 							'test' => 'testBool',
@@ -812,7 +812,7 @@ class Server extends AppModel {
 					),
 					'onlyencrypted' => array(
 							'level' => 0,
-							'description' => 'Allow (false) unencrypted e-mails to be sent to users that don\'t have a PGP key.',
+							'description' => 'Allow (false) unencrypted e-mails to be sent to users that don\'t have a GnuPG key.',
 							'value' => '',
 							'errorMessage' => '',
 							'test' => 'testBool',
@@ -836,7 +836,7 @@ class Server extends AppModel {
                     ),
 					'email' => array(
 							'level' => 0,
-							'description' => 'The e-mail address that the instance\'s PGP key is tied to.',
+							'description' => 'The e-mail address that the instance\'s GnuPG key is tied to.',
 							'value' => '',
 							'errorMessage' => '',
 							'test' => 'testForEmpty',
@@ -844,7 +844,7 @@ class Server extends AppModel {
 					),
 					'password' => array(
 							'level' => 1,
-							'description' => 'The password (if it is set) of the PGP key of the instance.',
+							'description' => 'The password (if it is set) of the GnuPG key of the instance.',
 							'value' => '',
 							'errorMessage' => '',
 							'test' => 'testForEmpty',
