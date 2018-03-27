@@ -37,9 +37,10 @@
 				$passwordPopover = '<span class=\"blue bold\">Length</span>: ' . h($length) . '<br />';
 				$passwordPopover .= '<span class=\"blue bold\">Complexity</span>: ' . h($complexity);
 				echo $this->Form->input('password', array(
+					'class' => 'form-control',
 					'label' => __('Password') . ' <span id = "PasswordPopover" class="icon-info-sign" ></span>'
 				));
-				echo $this->Form->input('confirm_password', array('type' => 'password', 'div' => array('class' => 'input password required')));
+				echo $this->Form->input('confirm_password', array('class' => 'form-control', 'type' => 'password', 'div' => array('class' => 'input password required')));
 			?>
 		</div>
 	</div>
@@ -63,7 +64,7 @@
 	<?php
 		echo $this->Form->input('gpgkey', array('label' => __('GPG key'), 'div' => 'clear', 'class' => 'input-xxlarge', 'placeholder' => __('Paste the user\'s PGP key here or try to retrieve it from the MIT key server by clicking on "Fetch GPG key" below.')));
 	?>
-		<div class="clear"><span role="button" tabindex="0" aria-label="<?php echo __('Fetch the user\'s PGP key');?>" onClick="lookupPGPKey('UserEmail');" class="btn btn-inverse" style="margin-bottom:10px;"><?php echo __('Fetch GPG key');?></span></div>
+		<div class="clear"><span role="button" tabindex="0" aria-label="<?php echo __('Fetch the user\'s PGP key');?>" onClick="lookupPGPKey('UserEmail');" class="btn btn-dark" style="margin-bottom:10px;"><?php echo __('Fetch GPG key');?></span></div>
 	<?php
 		if (Configure::read('SMIME.enabled')) echo $this->Form->input('certif_public', array('label' => __('SMIME key'), 'div' => 'clear', 'class' => 'input-xxlarge', 'placeholder' => __('Paste the user\'s SMIME public key in PEM format here.')));
 		echo $this->Form->input('termsaccepted', array('label' => __('Terms accepted')));

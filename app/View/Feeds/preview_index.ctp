@@ -1,20 +1,19 @@
 <div class="events index">
 <h4 class="visibleDL notPublished" ><?php echo __('You are currently viewing the event index of a feed (%s by %s).', h($feed['Feed']['name']),h($feed['Feed']['provider']));?></h4>
-	<div class="pagination">
-		<ul>
-		<?php
-			$eventViewURL = '/feeds/previewEvent/' . h($id) . '/';
-			$this->Paginator->options(array(
-				'url' => $id,
-				'update' => '.span12',
-				'evalScripts' => true,
-				'before' => '$(".progress").show()',
-				'complete' => '$(".progress").hide()',
-			));
-			echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-			echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'red', 'currentTag' => 'span'));
-			echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-		?>
+<div>
+		<ul class="pagination">
+			<?php
+				$this->Paginator->options(array(
+						'update' => '.span12',
+						'evalScripts' => true,
+						'before' => '$(".progress").show()',
+						'complete' => '$(".progress").hide()',
+				));
+
+				echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
+				echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
+				echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
+			?>
 		</ul>
 	</div>
 	<?php
@@ -63,7 +62,7 @@
 			<td ondblclick="document.location.href ='<?php echo $eventViewURL . h($uuid);?>'" class="short"><?php echo h($event['timestamp']); ?></td>
 			<td class="short action-links">
 				<?php if ($feed['Feed']['enabled']) echo $this->Form->postLink('', '/feeds/getEvent/' . $id . '/' . $uuid, array('class' => 'icon-download', 'title' => 'Fetch the event'), __('Are you sure you want to fetch and save this event on your instance?', $this->Form->value('Feed.id'))); ?>
-				<a href='<?php echo $eventViewURL . h($uuid);?>' class = "icon-list-alt" title = "<?php echo __('View');?>"></a>
+				<a href='<?php echo $eventViewURL . h($uuid);?>' class = "fa fa-list" title = "<?php echo __('View');?>"></a>
 			</td>
 		</tr>
 		<?php endforeach; ?>
@@ -76,13 +75,14 @@
 	));
 	?>
 	</p>
-	<div class="pagination">
-		<ul>
-		<?php
-			echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-			echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'red', 'currentTag' => 'span'));
-			echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-		?>
+	<div>
+		<ul class="pagination">
+			<?php
+
+				echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
+				echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
+				echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
+			?>
 		</ul>
 	</div>
 </div>

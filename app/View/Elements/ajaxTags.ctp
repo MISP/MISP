@@ -15,7 +15,7 @@
 	?>
 		<div style="float:left">
 			<?php if ($full): ?>
-				<button id="addTagButton" title="<?php echo __('Add a tag');?>" role="button" tabindex="0" aria-label="<?php echo __('Add a tag');?>" class="btn btn-inverse noPrint" style="line-height:10px; padding: 4px 4px;" onClick="getPopup('<?php echo h($event['Event']['id']); ?>', 'tags', 'selectTaxonomy');">+</button>
+				<button id="addTagButton" title="<?php echo __('Add a tag');?>" role="button" tabindex="0" aria-label="<?php echo __('Add a tag');?>" class="btn btn-dark noPrint" style="line-height:10px; padding: 4px 4px;" onClick="getPopup('<?php echo h($event['Event']['id']); ?>', 'tags', 'selectTaxonomy');">+</button>
 			<?php else:?>
 				&nbsp;
 			<?php endif; ?>

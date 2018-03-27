@@ -19,7 +19,7 @@
 		</div>
 		<div class="overlay_spacing">
 		<span role="button" tabindex="0" aria-label="<?php echo __('Apply filters to the remote instance's index');?>" title="<?php echo __('Apply filters to the remote instance's index');?>" class="btn btn-primary" onClick="remoteIndexApplyFilters(actionUrl);"><?php echo __('Apply');?></span>
-		<span role="button" tabindex="0" aria-label="<?php echo __('Cancel');?>" title="<?php echo __('Cancel');?>" class="btn btn-inverse" onClick="cancelPopoverForm();" style="float:right;"><?php echo __('Cancel');?></span>
+		<span role="button" tabindex="0" aria-label="<?php echo __('Cancel');?>" title="<?php echo __('Cancel');?>" class="btn btn-dark" onClick="cancelPopoverForm();" style="float:right;"><?php echo __('Cancel');?></span>
 		</div>
 	</fieldset>
 	<?php echo $this->Form->end();?>

@@ -20,7 +20,7 @@ $requester = $me['org_id'] == $delegation['RequesterOrg']['id'] ? __('Your organ
 		<?php if ($isSiteAdmin || $me['org_id'] == $delegation['Org']['id']):?>
 			<span role="button" tabindex="0" aria-label="<?php echo __('Accept delegation request');?>" title="<?php echo __('Accept delegation request');?>" class="btn btn-primary" onClick="genericPopup('<?php echo $baseurl?>/event_delegations/acceptDelegation/<?php echo h($delegation['EventDelegation']['id']); ?>', '#confirmation_box');"><?php echo __('Accept');?></span>
 		<?php endif;?>
-		<span role="button" tabindex="0" aria-label="<?php echo __('Decline and remove delegation request');?>" title="<?php echo __('Decline and remove delegation request');?>" class="btn btn-inverse" onClick="genericPopup('<?php echo $baseurl?>/event_delegations/deleteDelegation/<?php echo h($delegation['EventDelegation']['id']); ?>', '#confirmation_box');"><?php echo __('Discard');?></span>
-		<span role="button" tabindex="0" aria-label="<?php echo __('Cancel');?>" title="<?php echo __('Cancel');?>" class="btn btn-inverse" style="float:right;" id="PromptNoButton" onClick="cancelPrompt();"><?php echo __('Cancel');?></span>
+		<span role="button" tabindex="0" aria-label="<?php echo __('Decline and remove delegation request');?>" title="<?php echo __('Decline and remove delegation request');?>" class="btn btn-dark" onClick="genericPopup('<?php echo $baseurl?>/event_delegations/deleteDelegation/<?php echo h($delegation['EventDelegation']['id']); ?>', '#confirmation_box');"><?php echo __('Discard');?></span>
+		<span role="button" tabindex="0" aria-label="<?php echo __('Cancel');?>" title="<?php echo __('Cancel');?>" class="btn btn-dark" style="float:right;" id="PromptNoButton" onClick="cancelPrompt();"><?php echo __('Cancel');?></span>
 	</div>
 </div>

@@ -1,18 +1,19 @@
 <div class="events <?php if (!$ajax) echo 'index'; ?>">
 	<h2><?php echo __('Events');?></h2>
-	<div class="pagination">
-		<ul>
-		<?php
+	<div>
+		<ul class="pagination">
+			<?php
 			$this->Paginator->options(array(
 				'update' => '.span12',
 				'evalScripts' => true,
 				'before' => '$(".progress").show()',
 				'complete' => '$(".progress").hide()',
 			));
-			echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-			echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-			echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-		?>
+
+			echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false, 'class' => 'page-link'), null, array('tag' => 'li', 'class' => 'page-link', 'escape' => false, 'disabledTag' => 'span'));
+			echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'class' => 'page-link', 'currentClass' => 'page-link', 'currentTag' => 'span', 'currentClass' => 'p-active'));
+			echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false, 'class' => 'page-link'), null, array('tag' => 'li', 'class' => 'page-link', 'escape' => false, 'disabledTag' => 'span', 'disabledClass' => 'page-link'));
+			?>
 		</ul>
 	</div>
 	<?php
@@ -28,7 +29,7 @@
 	<div class="tabMenuFixedContainer" style="display:inline-block;">
 		<span class="tabMenuFixed tabMenuFixed<?php echo $tab; ?> tabMenuSides">
 			<span role="button" tabindex="0" aria-label="<?php echo __('Modify filters');?>" id="create-button" title="<?php echo __('Modify filters');?>" class="icon-search useCursorPointer" title="Filter events" role="button" tabindex="0" aria-label="<?php echo __('Filter events');?>" onClick="getPopup('<?php echo h($urlparams);?>', 'events', 'filterEventIndex');"></span>
-			<span id="multi-delete-button" title="<?php echo __('Delete selected Events');?>" role="button" tabindex="0" aria-label="<?php echo __('Delete selected Events');?>" class="hidden icon-trash mass-select useCursorPointer" onClick="multiSelectDeleteEvents();"></span>
+			<span id="multi-delete-button" title="<?php echo __('Delete selected Events');?>" role="button" tabindex="0" aria-label="<?php echo __('Delete selected Events');?>" class="hidden fa fa-trash mass-select useCursorPointer" onClick="multiSelectDeleteEvents();"></span>
 		</span>
 		<?php
 			if ($filtered):
@@ -83,13 +84,20 @@
 	));
 	?>
 	</p>
-	<div class="pagination">
-		<ul>
-		<?php
-			echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-			echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-			echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-		?>
+	<div>
+		<ul class="pagination">
+			<?php
+			$this->Paginator->options(array(
+				'update' => '.span12',
+				'evalScripts' => true,
+				'before' => '$(".progress").show()',
+				'complete' => '$(".progress").hide()',
+			));
+
+			echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false, 'class' => 'page-link'), null, array('tag' => 'li', 'class' => 'page-link', 'escape' => false, 'disabledTag' => 'span'));
+			echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'class' => 'page-link', 'currentClass' => 'page-link', 'currentTag' => 'span', 'currentClass' => 'p-active'));
+			echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false, 'class' => 'page-link'), null, array('tag' => 'li', 'class' => 'page-link', 'escape' => false, 'disabledTag' => 'span', 'disabledClass' => 'page-link'));
+			?>
 		</ul>
 	</div>
 </div>

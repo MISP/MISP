@@ -2,19 +2,19 @@
 	<div class="popover-legend"><p><?php echo __('Sighting details'); ?></p></div>
 	<div style="margin:10px;">
 		<span id="sightingsGraphToggle" class="btn btn-primary qet toggle-left sightingsToggle" data-type="graph"><?php echo __('Graph');?></span>
-		<span id="sightingsListAllToggle" class="btn btn-inverse qet toggle sightingsToggle" data-type="all"><?php echo __('All');?></span>
-		<span id="sightingsListMyToggle" class="btn btn-inverse qet toggle<?php echo $context == 'event' ? '-right' : ''; ?> sightingsToggle" data-type="org"><?php echo __('My org');?></span>
+		<span id="sightingsListAllToggle" class="btn btn-dark qet toggle sightingsToggle" data-type="all"><?php echo __('All');?></span>
+		<span id="sightingsListMyToggle" class="btn btn-dark qet toggle<?php echo $context == 'event' ? '-right' : ''; ?> sightingsToggle" data-type="org"><?php echo __('My org');?></span>
 			<?php
 				if ($context == 'attribute'):
 			?>
-					<span id="sightingsAddToggle" class="btn btn-inverse qet toggle-right sightingsToggle" data-type="add"><?php echo __('Add sighting');?></span>
+					<span id="sightingsAddToggle" class="btn btn-dark qet toggle-right sightingsToggle" data-type="add"><?php echo __('Add sighting');?></span>
 			<?php
 				endif;
 			?>
 	</div>
 	<div id="mainContents" style="margin-top:40px;padding:10px;">
 		<div id="sightingsData" class="sightingTab"></div>
-		<span style="float:right;margin-bottom:10px;" class="btn btn-inverse" id="cancel"><?php echo __('Cancel');?></span>
+		<span style="float:right;margin-bottom:10px;" class="btn btn-dark" id="cancel"><?php echo __('Cancel');?></span>
 	</div>
 </div>
 

@@ -86,15 +86,15 @@
 	</dl>
 	<br />
 	<?php if ($local): ?>
-		<button id="button_description" class="btn btn-inverse toggle-left qet orgViewButton" onClick="organisationViewContent('description', '<?php echo $id;?>');"><?php echo __('Description');?></button>
+		<button id="button_description" class="btn btn-dark toggle-left qet orgViewButton" onClick="organisationViewContent('description', '<?php echo $id;?>');"><?php echo __('Description');?></button>
 		<button id="button_description_active" style="display:none;" class="btn btn-primary toggle-left qet orgViewButtonActive" onClick="organisationViewContent('description', '<?php echo $id;?>');"><?php echo __('Description');?></button>
 
 		<?php if ($fullAccess): ?>
-			<button id="button_members" class="btn btn-inverse toggle qet orgViewButton" onClick="organisationViewContent('members', '<?php echo $id;?>');"><?php echo __('Members');?></button>
+			<button id="button_members" class="btn btn-dark toggle qet orgViewButton" onClick="organisationViewContent('members', '<?php echo $id;?>');"><?php echo __('Members');?></button>
 			<button id="button_members_active" style="display:none;" class="btn btn-primary toggle qet orgViewButtonActive" onClick="organisationViewContent('members', '<?php echo $id;?>');"><?php echo __('Members');?></button>
 		<?php endif; ?>
 
-		<button id="button_events" class="btn btn-inverse toggle-right qet orgViewButton" onClick="organisationViewContent('events', '<?php echo $id;?>');"><?php echo __('Events');?></button>
+		<button id="button_events" class="btn btn-dark toggle-right qet orgViewButton" onClick="organisationViewContent('events', '<?php echo $id;?>');"><?php echo __('Events');?></button>
 		<button id="button_events_active" style="display:none;" class="btn btn-primary toggle-right qet orgViewButtonActive" onClick="organisationViewContent('events', '<?php echo $id;?>');"><?php echo __('Events');?></button>
 	<br /><br />
 	<?php endif;?>

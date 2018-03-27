@@ -13,7 +13,7 @@
 			<td style="width:540px;">
 			</td>
 			<td style="vertical-align:top;">
-				<span class="btn btn-inverse" id="PromptNoButton" onClick="cancelPrompt();"><?php echo __('No');?></span>
+				<span class="btn btn-dark" id="PromptNoButton" onClick="cancelPrompt();"><?php echo __('No');?></span>
 			</td>
 		</tr>
 	</table>

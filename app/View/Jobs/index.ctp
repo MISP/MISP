@@ -8,32 +8,32 @@
 			echo $this->Form->postLink(
 				__('Completed'),
 				array('controller' => 'jobs', 'action' => 'clearJobs'),
-				array('class' => 'btn btn-inverse qet toggle-left'),
+				array('class' => 'btn btn-dark qet toggle-left'),
 				__('Are you sure you want to purge all completed job entries? Job entries are considered as log entries and have no impact on actual job execution.')
 			);
 			echo $this->Form->postLink(
 				__('All'),
 				array('controller' => 'jobs', 'action' => 'clearJobs', 'all'),
-				array('class' => 'btn btn-inverse qet toggle-right'),
+				array('class' => 'btn btn-dark qet toggle-right'),
 				__('Are you sure you want to purge all job entries? Job entries are considered as log entries and have no impact on actual job execution.')
 			);
 		?>
 	</span>
 	<br />
-	<div class="pagination">
-		<ul>
-		<?php
-			$this->Paginator->options(array(
-				'update' => '.span12',
-				'evalScripts' => true,
-				'before' => '$(".progress").show()',
-				'complete' => '$(".progress").hide()',
-			));
+	<div>
+		<ul class="pagination">
+			<?php
+				$this->Paginator->options(array(
+						'update' => '.span12',
+						'evalScripts' => true,
+						'before' => '$(".progress").show()',
+						'complete' => '$(".progress").hide()',
+				));
 
-			echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-			echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-			echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-		?>
+				echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
+				echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
+				echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
+			?>
 		</ul>
 	</div>
 	<script type="text/javascript">
@@ -154,13 +154,13 @@
 		));
 	?>
 	</p>
-	<div class="pagination">
-		<ul>
-		<?php
-			echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-			echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-			echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-		?>
+	<div>
+		<ul class="pagination">
+			<?php
+				echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
+				echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
+				echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
+			?>
 		</ul>
 	</div>
 </div>

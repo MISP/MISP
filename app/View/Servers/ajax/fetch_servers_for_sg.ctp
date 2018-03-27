@@ -14,8 +14,8 @@
 					</select>
 				</td>
 				<td style="width:100%;text-align:center;">
-					<span class="btn btn-inverse" id="btnLeft">&lt;&lt;</span>
-					<span class="btn btn-inverse" id="btnRight">&gt;&gt;</span>
+					<span class="btn btn-dark" id="btnLeft">&lt;&lt;</span>
+					<span class="btn btn-dark" id="btnRight">&gt;&gt;</span>
 				</td>
 				<td style="width:285px;">
 					<p><?php echo __('Added Organisations');?></p>
@@ -24,7 +24,7 @@
 			</tr>
 		</table>
 		<span role="button" tabindex="0" aria-label="<?php echo __('Add servers to sharing group');?>" title="<?php echo __('Add servers to sharing group');?>" class="btn btn-primary" style="margin-left:auto;margin-right:auto;width:40px;" onClick="submitPicklistValues('server');"><?php echo __('Add');?></span>
-		<span role="button" tabindex="0" aria-label="<?php echo __('Cancel');?>" title="<?php echo __('Cancel');?>" class="btn btn-inverse" style="float:right;margin-left:auto;margin-right:auto;width:40px;" onClick="cancelPicklistValues();"><?php echo __('Cancel');?></span>
+		<span role="button" tabindex="0" aria-label="<?php echo __('Cancel');?>" title="<?php echo __('Cancel');?>" class="btn btn-dark" style="float:right;margin-left:auto;margin-right:auto;width:40px;" onClick="cancelPicklistValues();"><?php echo __('Cancel');?></span>
 	</div>
 </div>
 <script>

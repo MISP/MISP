@@ -59,7 +59,7 @@
 				</td>
 				<td style="width:540px;">&nbsp;</td>
 				<td style="vertical-align:top;">
-					<span class="btn btn-inverse" title="<?php echo __('Cancel'); ?>" role="button" tabindex="0" aria-label="<?php echo __('Cancel'); ?>" id="cancel_attribute_add"><?php echo __('Cancel'); ?></span>
+					<span class="btn btn-dark" title="<?php echo __('Cancel'); ?>" role="button" tabindex="0" aria-label="<?php echo __('Cancel'); ?>" id="cancel_attribute_add"><?php echo __('Cancel'); ?></span>
 				</td>
 				</tr>
 			</table>

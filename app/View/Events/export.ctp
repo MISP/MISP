@@ -95,13 +95,13 @@
 				<td style="width:150px;">
 					<?php
 						if ($k !== 'text') {
-							echo $this->Html->link('Download', array('action' => 'downloadExport', $k), array('class' => 'btn btn-inverse toggle-left btn.active qet'));
+							echo $this->Html->link('Download', array('action' => 'downloadExport', $k), array('class' => 'btn btn-dark toggle-left btn.active qet'));
 						?>
-							<button class = "btn btn-inverse toggle-right btn.active qet" id=button<?php echo $i;?> onClick = "generate('<?php echo $temp; ?>')" <?php if (!$type['recommendation']) echo 'disabled';?>><?php echo __('Generate');?></button>
+							<button class = "btn btn-dark toggle-right btn.active qet" id=button<?php echo $i;?> onClick = "generate('<?php echo $temp; ?>')" <?php if (!$type['recommendation']) echo 'disabled';?>><?php echo __('Generate');?></button>
 						<?php
 						} else {
 						?>
-							<button class = "btn btn-inverse btn.active qet" id=button<?php echo $i;?> onClick = "generate('<?php echo $temp; ?>')" <?php if (!$type['recommendation']) echo 'disabled';?>><?php echo __('Generate');?></button>
+							<button class = "btn btn-dark btn.active qet" id=button<?php echo $i;?> onClick = "generate('<?php echo $temp; ?>')" <?php if (!$type['recommendation']) echo 'disabled';?>><?php echo __('Generate');?></button>
 						<?php
 						}
 						?>
@@ -116,7 +116,7 @@
 	<?php
 	foreach ($sigTypes as $sigType): ?>
 		<li class="actions" style="text-align:center; width: auto; padding: 7px 2px;">
-			<?php echo $this->Html->link($sigType, array('action' => 'downloadExport', $k, $sigType), array('class' => 'btn btn-inverse btn.active qet')); ?>
+			<?php echo $this->Html->link($sigType, array('action' => 'downloadExport', $k, $sigType), array('class' => 'btn btn-dark btn.active qet')); ?>
 		</li>
 	<?php endforeach; ?>
 	</ul>

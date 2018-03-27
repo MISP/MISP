@@ -18,7 +18,7 @@
 				<input class="form-control" type="checkbox" style="float:left;" title="<?php echo __('Active sharing groups can be selected by users of the local instance when creating events. Generally, sharing groups received through synchronisation will have this disabled until manually enabled.');?>" value="1" id="SharingGroupActive" checked></input>
 				<label for="SharingGroupActive" style="padding-left:20px;"><?php echo __('Make the sharing group selectable (active)');?></label>
 			</div>
-			<span role="button" tabindex="0" aria-label="<?php echo __('Next page');?>" title="<?php echo __('Next page');?>" class="btn btn-inverse" onClick="simpleTabPage(2);"><?php echo __('Next page');?></span>
+			<span role="button" tabindex="0" aria-label="<?php echo __('Next page');?>" title="<?php echo __('Next page');?>" class="btn btn-dark" onClick="simpleTabPage(2);"><?php echo __('Next page');?></span>
 		</div>
 		<div id="page2_content" class="multi-page-form-div tabContent" style="display:none;width:544px;">
 			<div class="tabMenuFixedContainer">
@@ -34,8 +34,8 @@
 					<th><?php echo __('Actions');?></th>
 				</tr>
 			</table>
-				<span role="button" tabindex="0" aria-label="<?php echo __('Previous page');?>" title="<?php echo __('Previous page');?>" class="btn btn-inverse" onClick="simpleTabPage(1);"><?php echo __('Previous page');?></span>
-				<span role="button" tabindex="0" aria-label="<?php echo __('Next page');?>" title="<?php echo __('Next page');?>" class="btn btn-inverse" onClick="simpleTabPage(3);"><?php echo __('Next page');?></span>
+				<span role="button" tabindex="0" aria-label="<?php echo __('Previous page');?>" title="<?php echo __('Previous page');?>" class="btn btn-dark" onClick="simpleTabPage(1);"><?php echo __('Previous page');?></span>
+				<span role="button" tabindex="0" aria-label="<?php echo __('Next page');?>" title="<?php echo __('Next page');?>" class="btn btn-dark" onClick="simpleTabPage(3);"><?php echo __('Next page');?></span>
 		</div>
 		<div id="page3_content" class="multi-page-form-div tabContent" style="display:none;width:544px;">
 			<div style="display:block;">
@@ -55,8 +55,8 @@
 					</tr>
 				</table>
 			</div>
-				<span role="button" tabindex="0" aria-label="<?php echo __('Previous page');?>" title="<?php echo __('Previous page');?>" class="btn btn-inverse" onClick="simpleTabPage(2);"><?php echo __('Previous page');?></span>
-				<span role="button" tabindex="0" aria-label="<?php echo __('Next page');?>" title="<?php echo __('Next page');?>" class="btn btn-inverse" onClick="simpleTabPage(4);"><?php echo __('Next page');?></span>
+				<span role="button" tabindex="0" aria-label="<?php echo __('Previous page');?>" title="<?php echo __('Previous page');?>" class="btn btn-dark" onClick="simpleTabPage(2);"><?php echo __('Previous page');?></span>
+				<span role="button" tabindex="0" aria-label="<?php echo __('Next page');?>" title="<?php echo __('Next page');?>" class="btn btn-dark" onClick="simpleTabPage(4);"><?php echo __('Next page');?></span>
 		</div>
 	</fieldset>
 	<div id="page4_content" class="multi-page-form-div tabContent" style="display:none;width:544px;">
@@ -71,7 +71,7 @@
 			//echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary'));
 			echo $this->Form->end();
 		?>
-		<span role="button" tabindex="0" aria-label="<?php echo __('Previous page');?>" title="<?php echo __('Previous page');?>" class="btn btn-inverse" onClick="simpleTabPage(3);"><?php echo __('Previous page');?></span>
+		<span role="button" tabindex="0" aria-label="<?php echo __('Previous page');?>" title="<?php echo __('Previous page');?>" class="btn btn-dark" onClick="simpleTabPage(3);"><?php echo __('Previous page');?></span>
 		<span role="button" tabindex="0" aria-label="<?php echo __('Submit and create sharing group');?>" title="<?php echo __('Submit and create sharing group');?>" class="btn btn-primary" onClick="sgSubmitForm('Add');"><?php echo __('Submit');?></span>
 	</div>
 </div>

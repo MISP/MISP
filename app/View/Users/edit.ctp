@@ -3,26 +3,27 @@
 	<fieldset>
 		<legend><?php echo __('Edit My Profile'); ?></legend>
 	<?php
-		echo $this->Form->input('email');
+		echo $this->Form->input('email', array('class' => 'form-control'));
 	?>
 		<div class="input clear"></div>
 	<?php
 		$passwordPopover = '<span class=\"blue bold\">Length</span>: ' . h($length) . '<br />';
 		$passwordPopover .= '<span class=\"blue bold\">Complexity</span>: ' . h($complexity);
 		echo $this->Form->input('password', array(
-			'label' => 'Password <span id = "PasswordPopover" class="icon-info-sign" ></span>'
+			'label' => 'Password <span id = "PasswordPopover" class="icon-info-sign" ></span>',
+			'class' => 'form-control'
 		));
-		echo $this->Form->input('confirm_password', array('type' => 'password', 'div' => array('class' => 'input password required')));
+		echo $this->Form->input('confirm_password', array('type' => 'password', 'class' => 'form-control', 'div' => array('class' => 'input password required')));
 	?>
 		<div class="input clear"></div>
 	<?php
-		echo $this->Form->input('nids_sid');
+		echo $this->Form->input('nids_sid', array('class' => 'form-control'));
 	?>
 		<div class="input clear"></div>
 	<?php
-		echo $this->Form->input('gpgkey', array('label' => 'GPG key', 'div' => 'clear', 'class' => 'input-xxlarge'));
+		echo $this->Form->input('gpgkey', array('label' => 'GPG key', 'div' => 'clear', 'class' => 'form-control input-xxlarge'));
 		?>
-			<div class="clear"><span role="button" tabindex="0" aria-label="<?php echo __('Fetch PGP key');?>" onClick="lookupPGPKey('UserEmail');" class="btn btn-inverse" style="margin-bottom:10px;"><?php echo __('Fetch GPG key');?></span></div>
+			<div class="clear"><span role="button" tabindex="0" aria-label="<?php echo __('Fetch PGP key');?>" onClick="lookupPGPKey('UserEmail');" class="btn btn-dark" style="margin-bottom:10px;"><?php echo __('Fetch GPG key');?></span></div>
 		<?php
 		if (Configure::read('SMIME.enabled')) echo $this->Form->input('certif_public', array('label' => __('SMIME Public certificate (PEM format)'), 'div' => 'clear', 'class' => 'input-xxlarge'));
 		echo $this->Form->input('autoalert', array('label' => __('Receive alerts when events are published'), 'type' => 'checkbox'));

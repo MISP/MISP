@@ -13,7 +13,7 @@
 				<td style="width:540px;">
 				</td>
 				<td style="vertical-align:top;">
-					<span role="button" tabindex="0" aria-label="Cancel" title="Cancel" class="btn btn-inverse" id="PromptNoButton" onClick="cancelPrompt();">No</span>
+					<span role="button" tabindex="0" aria-label="Cancel" title="Cancel" class="btn btn-dark" id="PromptNoButton" onClick="cancelPrompt();">No</span>
 				</td>
 			</tr>
 		</table>

@@ -8,7 +8,7 @@
 		?>
 	</div>
 	<div style="text-align:right;width:100%;" class="select_tag_search">
-		<input class="form-control" id="clusterFilterField" style="width:100%;border:0px;padding:0px;" placeholder="<?php echo __('search clusters…');?>"/>
+		<input class="small-search-box" id="clusterFilterField" style="width:100%;border:0px;padding:0px;" placeholder="<?php echo __('search clusters…');?>"/>
 	</div>
 	<div class="popover_choice_main" id ="popover_choice_main">
 		<table style="width:100%;">
@@ -16,14 +16,14 @@
 		foreach ($clusters as $k => $cluster):
 			$title = isset($cluster['description']) ? $cluster['description'] : $cluster['value'];
 	?>
-			<tr id="field_<?php echo h($cluster['id']); ?>" style="border-bottom:1px solid black;" class="templateChoiceButton filterableButton">
-				<td class="clusterSelectChoice" data-event-id="<?php echo h($event_id); ?>" data-cluster-id="<?php echo h($cluster['id']); ?>" style="padding-left:10px;padding-right:10px; text-align:center;width:100%;" title="<?php echo 'Synonyms: ' . h($cluster['synonyms_string']); ?>"><?php echo h($cluster['value']); ?></td>
+			<tr id="field_<?php echo h($cluster['id']); ?>"  class="templateChoiceButton filterableButton">
+				<td class="clusterSelectChoice" data-event-id="<?php echo h($event_id); ?>" data-cluster-id="<?php echo h($cluster['id']); ?>" style="padding-left:10px;padding-right:10px;width:100%;" title="<?php echo 'Synonyms: ' . h($cluster['synonyms_string']); ?>"><?php echo h($cluster['value']); ?></td>
 			</tr>
 	<?php
 		endforeach;
 	?>
-		<tr style="border-bottom:1px solid black;" class="templateChoiceButton">
-			<td class="clusterSelectBack" style="padding-left:10px;padding-right:10px; text-align:center;width:100%;" data-event-id="<?php echo h($event_id); ?>" title="Select Galaxy"><?php echo __('Back to Galaxy Selection');?></td>
+		<tr  class="templateChoiceButton">
+			<td class="clusterSelectBack" style="padding-left:10px;padding-right:10px;width:100%;" data-event-id="<?php echo h($event_id); ?>" title="Select Galaxy"><?php echo __('Back to Galaxy Selection');?></td>
 		</tr>
 		</table>
 	</div>

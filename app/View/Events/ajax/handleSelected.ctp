@@ -19,7 +19,7 @@
 				<td style="width:540px;">
 				</td>
 				<td style="vertical-align:top;">
-					<span class="btn btn-inverse" id="PromptNoButton" role="button" tabindex="0" aria-label="<?php echo __('No');?>" title="<?php echo __('No');?>" onClick="cancelPrompt();"><?php echo __('No');?></span>
+					<span class="btn btn-dark" id="PromptNoButton" role="button" tabindex="0" aria-label="<?php echo __('No');?>" title="<?php echo __('No');?>" onClick="cancelPrompt();"><?php echo __('No');?></span>
 				</td>
 			</tr>
 		</table>

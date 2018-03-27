@@ -22,7 +22,7 @@
 				<td style="width:540px;">
 				</td>
 				<td style="vertical-align:top;">
-					<span class="btn btn-inverse" role="button" tabindex="0" aria-label="Cancel" title="Cancel" id="PromptNoButton" onClick="cancelPrompt();"><?php echo __('No');?></span>
+					<span class="btn btn-dark" role="button" tabindex="0" aria-label="Cancel" title="Cancel" id="PromptNoButton" onClick="cancelPrompt();"><?php echo __('No');?></span>
 				</td>
 			</tr>
 		</table>

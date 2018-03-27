@@ -18,7 +18,7 @@
 					if ($isSiteAdmin || ($mayModify && $isAclTagger)) {
 						echo $this->Form->postLink('',
 							$baseurl . '/galaxy_clusters/detachFromEvent/' . $event['Event']['id'] . '/' . $cluster['tag_id'],
-							array('class' => 'icon-trash', 'title' => 'Delete'),
+							array('class' => 'fa fa-trash', 'title' => 'Delete'),
 							__('Are you sure you want to detach %s from this event?', h($cluster['value']))
 						);
 					}
@@ -94,7 +94,7 @@
 <?php
 	if ($isSiteAdmin || ($mayModify && $isAclTagger)):
 ?>
-		<span class="useCursorPointer btn btn-inverse" id="addGalaxy" data-event-id="<?php echo h($event['Event']['id']); ?>" role="button" tabindex="0" aria-label="Add new cluster" style="margin-top:20px;padding: 1px 5px !important;font-size: 12px !important;">Add new cluster</span>
+		<span class="useCursorPointer btn btn-dark" id="addGalaxy" data-event-id="<?php echo h($event['Event']['id']); ?>" role="button" tabindex="0" aria-label="Add new cluster" style="margin-top:20px;padding: 1px 5px !important;font-size: 12px !important;">Add new cluster</span>
 <?php
 	endif;
 ?>

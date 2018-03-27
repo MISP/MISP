@@ -59,7 +59,7 @@
 					}
 				}
 			?>
-			<span id="addRuleButton" class="btn btn-inverse" style="margin-bottom:10px;display:none;"><?php echo __('Add');?></span>
+			<span id="addRuleButton" class="btn btn-dark" style="margin-bottom:10px;display:none;"><?php echo __('Add');?></span>
 			</div>
 		</fieldset>
 		<div class="overlay_spacing">
@@ -78,7 +78,7 @@
 					<tr id="row_<?php echo $field; ?>" class="hidden filterTableRow">
 						<td id="key_<?php echo $field;?>" style="border:1px solid #cccccc;font-weight:bold;"><?php echo ucfirst($field); ?></td>
 						<td id="value_<?php echo $field;?>" style="border:1px solid #cccccc;border-right:0px;"></td>
-						<td id="delete_<?php echo $field;?>" style="border:1px solid #cccccc;border-left:0px;"><span class="icon-trash" title="<?php echo __('Remove filter');?>" role="button" tabindex="0" aria-label="<?php echo __('Remove filter');?>" onClick="indexFilterClearRow('<?php echo $field;?>');"></span></td>
+						<td id="delete_<?php echo $field;?>" style="border:1px solid #cccccc;border-left:0px;"><span class="fa fa-trash" title="<?php echo __('Remove filter');?>" role="button" tabindex="0" aria-label="<?php echo __('Remove filter');?>" onClick="indexFilterClearRow('<?php echo $field;?>');"></span></td>
 					</tr>
 				<?php
 					endforeach;
@@ -104,7 +104,7 @@
 		<div id = "generatedURL" style="word-wrap: break-word;"><br /><?php echo __('Save this URL if you would like to use the same filter settings again');?><br /><div style="background-color:#f5f5f5;border: 1px solid #e3e3e3; border-radius:4px;padding:3px;background-color:white;"><span id="generatedURLContent"></span></div></div>
 		<br />
 		<span role="button" tabindex="0" aria-label="<?php echo __('Apply filters');?>" title="<?php echo __('Apply filters');?>" class="btn btn-primary" onClick="indexApplyFilters();"><?php echo __('Apply');?></span>
-		<span role="button" tabindex="0" aria-label="<?php echo __('Cancel');?>" class="btn btn-inverse" onClick="cancelPopoverForm();" style="float:right;"><?php echo __('Cancel');?></span>
+		<span role="button" tabindex="0" aria-label="<?php echo __('Cancel');?>" class="btn btn-dark" onClick="cancelPopoverForm();" style="float:right;"><?php echo __('Cancel');?></span>
 		</div>
 </div>
 <script type="text/javascript">

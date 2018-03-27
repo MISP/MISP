@@ -31,7 +31,7 @@
 				endif;
 			?>
 		</div>
-		<span role="button" tabindex="0" aria-label="<?php echo __('Cancel');?>" title="<?php echo __('Cancel');?>" class="btn btn-inverse" id="PromptNoButton" onClick="cancelPopoverForm();"><?php echo __('Close');?></span>
+		<span role="button" tabindex="0" aria-label="<?php echo __('Cancel');?>" title="<?php echo __('Cancel');?>" class="btn btn-dark" id="PromptNoButton" onClick="cancelPopoverForm();"><?php echo __('Close');?></span>
 	</div>
 </div>
 <script type="text/javascript">

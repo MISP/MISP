@@ -75,7 +75,7 @@
 								if ($mayModify) {
 									echo $this->Form->create('TemplateElement', array('class' => 'inline-delete', 'style' => 'display:inline-block;', 'id' => 'TemplateElement_' . h($element_id) . '_delete', 'url' => array('action' => 'delete')));
 							?>
-									<span class="icon-trash useCursorPointer" title="<?php echo __('Delete template element');?>" role="button" tabindex="0" aria-label="<?php echo __('Delete template element');?>" onClick="deleteObject('template_elements', 'delete' ,'<?php echo h($element_id); ?>', '<?php echo h($element['TemplateElement']['template_id']); ?>');"></span>
+									<span class="fa fa-trash useCursorPointer" title="<?php echo __('Delete template element');?>" role="button" tabindex="0" aria-label="<?php echo __('Delete template element');?>" onClick="deleteObject('template_elements', 'delete' ,'<?php echo h($element_id); ?>', '<?php echo h($element['TemplateElement']['template_id']); ?>');"></span>
 							<?php
 									echo $this->Form->end();
 							?>

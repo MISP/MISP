@@ -1281,8 +1281,8 @@ function choicePopup(legend, list) {
 			popupHtml += '<table style="width:100%;" id="MainTable">';
 				popupHtml += '<tbody>';
 					for (var item of list) {
-						popupHtml += '<tr style="border-bottom:1px solid black;" class="templateChoiceButton">';
-							popupHtml += '<td role="button" tabindex="0" aria-label="All meta-categories" title="'+item.text+'" style="padding-left:10px;padding-right:10px; text-align:center;width:100%;" onClick="'+item.onclick+';">'+item.text+'</td>';
+						popupHtml += '<tr  class="templateChoiceButton">';
+							popupHtml += '<td role="button" tabindex="0" aria-label="All meta-categories" title="'+item.text+'" style="padding-left:10px;padding-right:10px;width:100%;" onClick="'+item.onclick+';">'+item.text+'</td>';
 						popupHtml += '</tr>';
 					}
 				popupHtml += '</tbody>';
@@ -2137,7 +2137,7 @@ function sharingGroupPopulateOrganisations() {
 		}
 		html +='</td>';
 		html += '<td class="actions short">';
-		if (org.removable == 1) html += '<span class="icon-trash" onClick="sharingGroupRemoveOrganisation(' + id + ')"></span>';
+		if (org.removable == 1) html += '<span class="fa fa-trash" onClick="sharingGroupRemoveOrganisation(' + id + ')"></span>';
 		html += '&nbsp;</td></tr>';
 		$('#organisations_table tr:last').after(html);
 		id++;
@@ -2159,7 +2159,7 @@ function sharingGroupPopulateServers() {
 		html += '></input>';
 		html +='</td>';
 		html += '<td class="actions short">';
-		if (server.removable == 1) html += '<span class="icon-trash" onClick="sharingGroupRemoveServer(' + id + ')"></span>';
+		if (server.removable == 1) html += '<span class="fa fa-trash" onClick="sharingGroupRemoveServer(' + id + ')"></span>';
 		html += '&nbsp;</td></tr>';
 		$('#servers_table tr:last').after(html);
 		id++;
@@ -3039,11 +3039,11 @@ function selectAllInbetween(last, current) {
 $('.galaxy-toggle-button').click(function() {
 	var element = $(this).data('toggle-type');
 	if ($(this).children('span').hasClass('icon-minus')) {
-		$(this).children('span').addClass('icon-plus');
+		$(this).children('span').addClass('fa fa-plus');
 		$(this).children('span').removeClass('icon-minus');
 		$('#' + element + '_div').hide();
 	} else {
-		$(this).children('span').removeClass('icon-plus');
+		$(this).children('span').removeClass('fa fa-plus');
 		$(this).children('span').addClass('icon-minus');
 		$('#' + element + '_div').show();
 	}

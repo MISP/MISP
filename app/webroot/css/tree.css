@@ -65,9 +65,6 @@
  }
 
 .tree div:last-of-type::before {
-	border-bottom-left-radius: 7px;
-	-webkit-bottom-left-border-radius: 7px;
-	-moz-border-bottom-left-radius: 7px;
 }
 
 .tree div:first-of-type::before {
@@ -95,9 +92,6 @@
 	width: 105px;
 
 	display: inline-block;
-	border-radius: 7px;
-	-webkit-border-radius: 7px;
-	-moz-border-radius: 7px;
 }
 
 .tree .pivotElement div{
@@ -125,7 +119,4 @@
 
 .pivotSpanBlue {
 	background-color: #0088cc;
-	border-radius: 7px;
-	-webkit-border-radius: 7px;
-	-moz-border-radius: 7px;
 }

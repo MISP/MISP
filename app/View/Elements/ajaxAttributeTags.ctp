@@ -32,7 +32,7 @@
 	?>
 		<div style="float:left">
 			<?php if ($full): ?>
-				<button id="addTagButton" class="btn btn-inverse noPrint" style="line-height:10px; padding: 4px 4px;" onClick="getPopup('<?php echo h($attributeId); ?>' + '/true', 'tags', 'selectTaxonomy');">+</button>
+				<button id="addTagButton" class="btn btn-dark noPrint" style="line-height:10px; padding: 4px 4px;" onClick="getPopup('<?php echo h($attributeId); ?>' + '/true', 'tags', 'selectTaxonomy');">+</button>
 			<?php else:?>
 				&nbsp;
 			<?php endif; ?>

@@ -6,9 +6,10 @@
 		$passwordPopover = '<span class=\"blue bold\">Length</span>: ' . h($length) . '<br />';
 		$passwordPopover .= '<span class=\"blue bold\">Complexity</span>: ' . h($complexity);
 		echo $this->Form->input('password', array(
+			'class' => 'form-control',
 			'label' => __('Password') . ' <span id = "PasswordPopover" class="icon-info-sign" ></span>'
 		));
-		echo $this->Form->input('confirm_password', array('type' => 'password', 'div' => array('class' => 'input password required')));
+		echo $this->Form->input('confirm_password', array('class' => 'form-control', 'type' => 'password', 'div' => array('class' => 'input password required')));
 	?>
 	</fieldset>
 	<div style="border-bottom: 1px solid #e5e5e5;width:100%;">&nbsp;</div>

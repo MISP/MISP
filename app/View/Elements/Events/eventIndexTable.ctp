@@ -215,7 +215,7 @@
 		<td class="short action-links">
 			<?php
 				if (0 == $event['Event']['published'] && ($isSiteAdmin || ($isAclPublish && $event['Event']['orgc_id'] == $me['org_id'])))
-					echo $this->Form->postLink('', array('action' => 'alert', $event['Event']['id']), array('class' => 'icon-download-alt', 'title' => __('Publish Event'), __('Are you sure this event is complete and everyone should be informed?')));
+					echo $this->Form->postLink('', array('action' => 'alert', $event['Event']['id']), array('class' => 'fa fa-download', 'title' => __('Publish Event'), __('Are you sure this event is complete and everyone should be informed?')));
 				else if (0 == $event['Event']['published']) echo __('Not published');
 
 				if ($isSiteAdmin || ($isAclModify && $event['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $event['Event']['orgc_id'] == $me['org_id'])):
@@ -223,10 +223,10 @@
 					<a href='<?php echo $baseurl."/events/edit/".$event['Event']['id'];?>' class = "icon-edit" title = "<?php echo __('Edit');?>"></a>
 			<?php
 
-					echo $this->Form->postLink('', array('action' => 'delete', $event['Event']['id']), array('class' => 'icon-trash', 'title' => __('Delete')), __('Are you sure you want to delete # %s?', $event['Event']['id']));
+					echo $this->Form->postLink('', array('action' => 'delete', $event['Event']['id']), array('class' => 'fa fa-trash', 'title' => __('Delete')), __('Are you sure you want to delete # %s?', $event['Event']['id']));
 				endif;
 			?>
-			<a href='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>' class = "icon-list-alt" title = "<?php echo __('View');?>"></a>
+			<a href='<?php echo $baseurl."/events/view/".$event['Event']['id'];?>' class = "fa fa-list" title = "<?php echo __('View');?>"></a>
 		</td>
 	</tr>
 	<?php endforeach; ?>

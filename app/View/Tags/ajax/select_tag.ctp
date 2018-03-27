@@ -18,11 +18,11 @@
 	<div class="popover_choice_main" id ="popover_choice_main">
 		<table style="width:100%;">
 		<?php foreach ($options as $k => &$option): ?>
-			<tr style="border-top:1px solid black;" class="templateChoiceButton shown" id="field_<?php echo h($k); ?>">
+			<tr class="templateChoiceButton shown" id="field_<?php echo h($k); ?>">
 				<?php if (isset($attributeTag)): ?>
-				<td style="padding-left:10px;padding-right:10px; text-align:center;width:100%;" onClick="quickSubmitAttributeTagForm('<?php echo h($object_id);?>', '<?php echo h($k); ?>');" title="<?php echo h($expanded[$k]);?>" role="button" tabindex="0" aria-label="Attach tag <?php echo h($option); ?>"><?php echo h($option); ?></td>
+				<td style="padding-left:10px;padding-right:10px;width:100%;" onClick="quickSubmitAttributeTagForm('<?php echo h($object_id);?>', '<?php echo h($k); ?>');" title="<?php echo h($expanded[$k]);?>" role="button" tabindex="0" aria-label="Attach tag <?php echo h($option); ?>"><?php echo h($option); ?></td>
 				<?php else: ?>
-				<td style="padding-left:10px;padding-right:10px; text-align:center;width:100%;" onClick="quickSubmitTagForm('<?php echo h($object_id);?>', '<?php echo h($k); ?>');" title="<?php echo h($expanded[$k]);?>" role="button" tabindex="0" aria-label="<?php echo __('Attach tag');?> <?php echo h($option); ?>"><?php echo h($option); ?></td>
+				<td style="padding-left:10px;padding-right:10px;width:100%;" onClick="quickSubmitTagForm('<?php echo h($object_id);?>', '<?php echo h($k); ?>');" title="<?php echo h($expanded[$k]);?>" role="button" tabindex="0" aria-label="<?php echo __('Attach tag');?> <?php echo h($option); ?>"><?php echo h($option); ?></td>
 				<?php endif; ?>
 			</tr>
 		<?php endforeach; ?>

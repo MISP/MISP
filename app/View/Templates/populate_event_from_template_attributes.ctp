@@ -69,7 +69,7 @@ endforeach;?>
 				?>
 			</fieldset>
 		<?php
-		echo $this->Form->button('Modify', array('class' => 'btn btn-inverse'));
+		echo $this->Form->button('Modify', array('class' => 'btn btn-dark'));
 		echo $this->Form->end();
 		?>
 	</div>

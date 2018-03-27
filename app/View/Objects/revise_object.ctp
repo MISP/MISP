@@ -84,7 +84,7 @@
   <?php
     echo $this->Form->button(__('Submit'), array('class' => 'btn btn-primary'));
   ?>
-    <a href="<?php echo $baseurl . '/events/view/' . h($event['Event']['id']); ?>" style="margin-left:10px;" class="btn btn-inverse"><?php echo __('Cancel');?></a>
+    <a href="<?php echo $baseurl . '/events/view/' . h($event['Event']['id']); ?>" style="margin-left:10px;" class="btn btn-dark"><?php echo __('Cancel');?></a>
   <?php
     echo $this->Form->end();
   ?>

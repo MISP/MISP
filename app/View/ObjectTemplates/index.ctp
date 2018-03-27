@@ -1,7 +1,7 @@
 <div class="objectTemplates index">
 	<h2><?php echo __('Object Template index');?></h2>
-	<div class="pagination">
-		<ul>
+	<div>
+		<ul class="pagination">
 			<?php
 				$this->Paginator->options(array(
 						'update' => '.span12',
@@ -101,11 +101,11 @@ foreach ($list as $template):
 			?>
 		</td>
 		<td class="short action-links">
-			<a href='/objectTemplates/view/<?php echo $template['ObjectTemplate']['id']; ?>' class = "icon-list-alt" title = "<?php echo __('View');?>"></a>
+			<a href='/objectTemplates/view/<?php echo $template['ObjectTemplate']['id']; ?>' class = "fa fa-list" title = "<?php echo __('View');?>"></a>
 			<?php
 				if ($isSiteAdmin):
 					echo $this->Form->postLink('', array('action' => 'update', $template['ObjectTemplate']['name'], 1), array('class' => 'icon-refresh', 'title' => 'Force update'), __('Are you sure you want to force an update for template # %s?', $template['ObjectTemplate']['id']));
-					echo $this->Form->postLink('', array('action' => 'delete', $template['ObjectTemplate']['id']), array('class' => 'icon-trash', 'title' => 'Delete'), __('Are you sure you want to delete template # %s?', $template['ObjectTemplate']['id']));
+					echo $this->Form->postLink('', array('action' => 'delete', $template['ObjectTemplate']['id']), array('class' => 'fa fa-trash', 'title' => 'Delete'), __('Are you sure you want to delete template # %s?', $template['ObjectTemplate']['id']));
 				endif;
 			?>
 		</td>
@@ -120,13 +120,13 @@ endforeach; ?>
 	));
 	?>
 	</p>
-	<div class="pagination">
-		<ul>
-		<?php
-			echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-			echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-			echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-		?>
+	<div>
+		<ul class="pagination">
+			<?php
+				echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
+				echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
+				echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
+			?>
 		</ul>
 	</div>
 </div>

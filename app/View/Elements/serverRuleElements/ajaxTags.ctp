@@ -28,7 +28,7 @@
 	?>
 		<div style="float:left">
 			<?php if ($isSiteAdmin): ?>
-				<button title="Add a tag" id="addTagButton" class="btn btn-inverse noPrint" style="line-height:10px; padding: 4px 4px;" onClick="getPopup('<?php echo h($server['Server']['id']); ?>', 'tags', 'selectTaxonomy');">+</button>
+				<button title="Add a tag" id="addTagButton" class="btn btn-dark noPrint" style="line-height:10px; padding: 4px 4px;" onClick="getPopup('<?php echo h($server['Server']['id']); ?>', 'tags', 'selectTaxonomy');">+</button>
 			<?php else:?>
 				&nbsp;
 			<?php endif; ?>

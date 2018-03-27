@@ -11,13 +11,13 @@
 		?>
 			<div class = 'input clear'></div>
 		<?php
-			echo $this->Form->input('name');
-			echo $this->Form->input('permission', array('type' => 'select', 'options' => $options), array('value' => '3'));
+			echo $this->Form->input('name', array('class' => 'form-control'));
+			echo $this->Form->input('permission', array('class' => 'form-control', 'type' => 'select', 'options' => $options), array('value' => '3'));
 		?>
 		<div class = 'input clear'></div>
 		<?php
-			echo $this->Form->input('memory_limit', array('label' => __('Memory limit') .  ' (' . h($default_memory_limit) . ')'));
-			echo $this->Form->input('max_execution_time', array('label' => __('Maximum execution time') . ' (' . h($default_max_execution_time) . ')'));
+			echo $this->Form->input('memory_limit', array('class' => 'form-control', 'label' => __('Memory limit') .  ' (' . h($default_memory_limit) . ')'));
+			echo $this->Form->input('max_execution_time', array('class' => 'form-control', 'label' => __('Maximum execution time') . ' (' . h($default_max_execution_time) . ')'));
 		?>
 		<div class = 'input clear'></div>
 		<?php

@@ -21,7 +21,7 @@
 			echo $this->Form->input('uuid', array('div' => 'clear', 'label' => __('UUID'), 'placeholder' => __('Paste UUID or click generate'), 'style' => 'width:405px;'));
 		?>
 		</div>
-		<span role="button" tabindex="0" aria-label="<?php echo __('Generate a new UUID for the organisation');?>" title="<?php echo __('Generate UUID');?>" class="btn btn-inverse" style="margin-top:25px;" onClick="generateOrgUUID();"><?php echo __('Generate UUID');?></span>
+		<span role="button" tabindex="0" aria-label="<?php echo __('Generate a new UUID for the organisation');?>" title="<?php echo __('Generate UUID');?>" class="btn btn-dark" style="margin-top:25px;" onClick="generateOrgUUID();"><?php echo __('Generate UUID');?></span>
 		<?php
 			if (!empty($duplicate_org)):
 		?>

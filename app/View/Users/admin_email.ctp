@@ -19,15 +19,15 @@
 		$recipientOptions=array(__('A single user'), __('All users'));
 		?>
 		<div class="row-fluid">
-			<?php echo $this->Form->input('action', array('type' => 'select', 'options' => $actionOptions, 'id' => 'action')); ?>
+			<?php echo $this->Form->input('action', array('class' => 'form-control', 'type' => 'select', 'options' => $actionOptions, 'id' => 'action')); ?>
 			<div id="subject">
-				<?php echo $this->Form->input('subject', array('type' => 'text', 'label' => __('Subject'), 'style' => 'width:400px;')); ?>
+				<?php echo $this->Form->input('subject', array('class' => 'form-control', 'type' => 'text', 'label' => __('Subject'), 'style' => 'width:400px;')); ?>
 			</div>
 		</div>
 		<div class="row-fluid">
-			<?php echo $this->Form->input('recipient', array('type' => 'select', 'options' => $recipientOptions, 'id' => 'recipient'));	?>
+			<?php echo $this->Form->input('recipient', array('class' => 'form-control', 'type' => 'select', 'options' => $recipientOptions, 'id' => 'recipient'));	?>
 			<div id="recipientEmailList" class="hideAble">
-				<?php echo $this->Form->input('recipientEmailList', array('type' => 'select', 'options' => $recipientEmail, 'label' => 'Recipient Email')); ?>
+				<?php echo $this->Form->input('recipientEmailList', array('class' => 'form-control', 'type' => 'select', 'options' => $recipientEmail, 'label' => 'Recipient Email')); ?>
 			</div>
 		</div>
 		<div id="customMessage" class="row-fluid hideAble">
@@ -35,14 +35,15 @@
 			echo $this->Form->input('customMessage', array(
 				'label' => __('Enter a custom message'),
 				'type' => 'checkbox',
-				'id' => 'customMessageToggle'
+				'id' => 'customMessageToggle',
+				'class' => 'form-control'
 			));
 			?>
 		</div>
 		<div class="row-fluid">
 			<div id="messageDiv" class="messageDiv hideAble">
 				<?php
-				echo $this->Form->input('message', array('type' => 'textarea', 'class' => 'input-xxlarge'));
+				echo $this->Form->input('message', array('type' => 'textarea', 'class' => 'form-control input-xxlarge'));
 				?>
 			</div>
 		</div>

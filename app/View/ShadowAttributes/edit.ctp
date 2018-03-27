@@ -54,7 +54,7 @@
 					<p style="color:red;font-weight:bold;display:none;<?php if (isset($ajax) && $ajax) echo "text-align:center;"?>" id="warning-message"><?php echo __('Warning: You are about to share data that is of a sensitive nature (Attribution / targeting data). Make sure that you are authorised to share this.');?></p>
 				</td>
 				<td style="vertical-align:top;">
-					<span class="btn btn-inverse" id="cancel_attribute_add"><?php echo __('Cancel');?></span>
+					<span class="btn btn-dark" id="cancel_attribute_add"><?php echo __('Cancel');?></span>
 				</td>
 				</tr>
 			</table>

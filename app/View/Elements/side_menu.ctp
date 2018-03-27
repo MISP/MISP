@@ -1,5 +1,5 @@
 <div class="actions <?php echo $debugMode;?> sideMenu">
-	<ul class="nav nav-flex">
+	<ul class="nav flex-column">
 		<?php
 			switch ($menuList) {
 				case 'event':
@@ -26,12 +26,12 @@
 					?>
 					<?php if ($menuItem === 'freetextResults'): ?>
 					<li class="nav-item" class="nav-item" id='lifreetextResults'><a class="nav-link active" href="#"><?php echo __('Freetext Import Results');?></a></li>
-					<li class="nav-item" class="dropdown-divider"></li>
+					<hr>
 					<?php endif;?>
 					<li class="nav-item" id='liviewEvent'><a class="nav-link active" href="<?php echo $baseurl;?>/events/view/<?php echo h($event['Event']['id']);?>"><?php echo __('View Event');?></a></li>
 					<li class="nav-item" id='liviewGraph'><a class="nav-link active" href="<?php echo $baseurl;?>/events/viewGraph/<?php echo h($event['Event']['id']);?>"><?php echo __('View Correlation Graph');?></a></li>
 					<li class="nav-item" id='lieventLog'><a class="nav-link active" href="<?php echo $baseurl;?>/logs/event_index/<?php echo h($event['Event']['id']);?>"><?php echo __('View Event History');?></a></li>
-					<li class="nav-item" class="dropdown-divider"></li>
+					<hr>
 					<?php if ($isSiteAdmin || (isset($mayModify) && $mayModify)): ?>
 					<li class="nav-item" id='lieditEvent'><a class="nav-link active" href="<?php echo $baseurl;?>/events/edit/<?php echo h($event['Event']['id']);?>"><?php echo __('Edit Event');?></a></li>
 					<li class="nav-item"><?php echo $this->Form->postLink(__('Delete Event'), array('controller' => 'events', 'action' => 'delete', h($event['Event']['id'])), null, __('Are you sure you want to delete # %s?', h($event['Event']['id']))); ?></li>
@@ -48,7 +48,7 @@
 					<li class="nav-item" id='liproposeAttribute'><a class="nav-link active" href="<?php echo $baseurl;?>/shadow_attributes/add/<?php echo h($event['Event']['id']);?>"><?php echo __('Propose Attribute');?></a></li>
 					<li class="nav-item" id='liproposeAttachment'><a class="nav-link active" href="<?php echo $baseurl;?>/shadow_attributes/add_attachment/<?php echo h($event['Event']['id']);?>"><?php echo __('Propose Attachment');?></a></li>
 					<?php endif; ?>
-					<li class="nav-item" class="dropdown-divider"></li>
+					<hr>
 					
 					<?php
 						$publishButtons = ' hidden';
@@ -61,12 +61,12 @@
 								<li class="nav-item" id='lidelegateEvent'><a class="nav-link active" href="#" onClick="delegatePopup('<?php echo h($event['Event']['id']); ?>');"><?php echo __('Delegate Publishing');?></a></li>
 						<?php endif;?>
 						<?php if (isset($delegationRequest) && $delegationRequest && ($isSiteAdmin || ($isAclPublish && ($me['org_id'] == $delegationRequest['EventDelegation']['org_id'] || $me['org_id'] == $delegationRequest['EventDelegation']['requester_org_id'])))): ?>
-							<li class="nav-item" class="dropdown-divider"></li>
+							<hr>
 							<?php if ($isSiteAdmin || ($isAclPublish && ($me['org_id'] == $delegationRequest['EventDelegation']['org_id']))): ?>
 								<li class="nav-item" id='liacceptDelegation'><a class="nav-link active" href="#" onClick="genericPopup('<?php echo $baseurl?>/event_delegations/acceptDelegation/<?php echo h($delegationRequest['EventDelegation']['id']); ?>', '#confirmation_box');"><?php echo __('Accept Delegation Request');?></a></li>
 							<?php endif;?>
 							<li class="nav-item" id='lideleteDelegation'><a class="nav-link active" href="#" onClick="genericPopup('<?php echo $baseurl?>/event_delegations/deleteDelegation/<?php echo h($delegationRequest['EventDelegation']['id']); ?>', '#confirmation_box');"><?php echo __('Discard Delegation Request');?></a></li>
-							<li class="nav-item" class="dropdown-divider"></li>
+							<hr>
 						<?php endif;?>
 					<?php endif;?>
 					<?php if (Configure::read('Plugin.ZeroMQ_enable') && $isSiteAdmin): ?>
@@ -74,7 +74,7 @@
 					<?php endif; ?>
 					<li class="nav-item" id='licontact'><a class="nav-link active" href="<?php echo $baseurl;?>/events/contact/<?php echo h($event['Event']['id']);?>"><?php echo __('Contact Reporter');?></a></li>
 					<li class="nav-item"><a class="nav-link active" onClick="getPopup('<?php echo h($event['Event']['id']); ?>', 'events', 'exportChoice');" style="cursor:pointer;"><?php echo __('Download as…');?></a></li>
-					<li class="nav-item" class="dropdown-divider"></li>
+					<hr>
 					<li class="nav-item"><a class="nav-link active" href="<?php echo $baseurl;?>/events/index"><?php echo __('List Events');?></a></li>
 					<?php if ($isAclAdd): ?>
 					<li class="nav-item"><a class="nav-link active" href="<?php echo $baseurl;?>/events/add"><?php echo __('Add Event');?></a></li>
@@ -87,19 +87,19 @@
 					<li class="nav-item" id='liadd'><a class="nav-link active" href="<?php echo $baseurl;?>/events/add"><?php echo __('Add Event');?></a></li>
 					<li class="nav-item" id='liaddMISPExport'><a class="nav-link active" onClick="getPopup('0', 'events', 'importChoice/event-collection');" style="cursor:pointer;"><?php echo __('Import from…');?></a></li>
 					<?php endif; ?>
-					<li class="nav-item" class="dropdown-divider"></li>
+					<hr>
 					<li class="nav-item" id='lilistAttributes'><a class="nav-link active" href="<?php echo $baseurl;?>/attributes/index"><?php echo __('List Attributes');?></a></li>
 					<li class="nav-item" id='lisearchAttributes'><a class="nav-link active" href="<?php echo $baseurl;?>/attributes/search"><?php echo __('Search Attributes');?></a></li>
 					<?php if ($menuItem == 'searchAttributes2'): ?>
-					<li class="nav-item" class="dropdown-divider"></li>
+					<hr>
 					<li class="nav-item"><a class="nav-link active" href="<?php echo $baseurl;?>/events/downloadSearchResult.json"><?php echo __('Download results as JSON');?></a></li>
 					<li class="nav-item"><a class="nav-link active" href="<?php echo $baseurl;?>/events/downloadSearchResult.xml"><?php echo __('Download results as XML');?></a></li>
 					<li class="nav-item"><a class="nav-link active" href="<?php echo $baseurl;?>/events/csv/download/search"><?php echo __('Download results as CSV');?></a></li>
 					<?php endif; ?>
-					<li class="nav-item" class="dropdown-divider"></li>
+					<hr>
 					<li class="nav-item" id='liviewProposals'><a class="nav-link active" href="<?php echo $baseurl;?>/shadow_attributes/index"><?php echo __('View Proposals');?></a></li>
 					<li class="nav-item" id='liviewProposalIndex'><a class="nav-link active" href="<?php echo $baseurl;?>/events/proposalEventIndex"><?php echo __('Events with proposals');?></a></li>
-					<li class="nav-item" class="dropdown-divider"></li>
+					<hr>
 					<li class="nav-item" id='liexport'><a class="nav-link active" href="<?php echo $baseurl;?>/events/export"><?php echo __('Export');?></a></li>
 					<?php if ($isAclAuth): ?>
 					<li class="nav-item" id='liautomation'><a class="nav-link active" href="<?php echo $baseurl;?>/events/automation"><?php echo __('Automation');?></a></li>
@@ -113,7 +113,7 @@
 					<li class="nav-item"><?php echo $this->Form->postLink(__('Perform on existing'), array('admin' => true, 'action' => 'clean'), array('class' => 'nav-link active'));?></li>
 					<?php endif;
 					if ($menuItem == 'edit'):?>
-					<li class="nav-item" class="dropdown-divider"></li>
+					<hr>
 					<li class="nav-item" class="active"><?php echo $this->Html->link('Edit Regexp', array('admin' => true, 'action' => 'edit', h($id)));?></li>
 					<li class="nav-item"><?php echo $this->Form->postLink(__('Delete Regexp'), array('admin' => true, 'action' => 'delete', h($id)), null, __('Are you sure you want to delete # %s?', h($id)));?></li>
 					<?php
@@ -133,7 +133,7 @@
 					<li class="nav-item" id='liadd'><?php echo $this->Html->link(__('New Whitelist'), array('admin' => true, 'action' => 'add'), array('class' => 'nav-link active'));?></li>
 					<?php endif;
 					if ($menuItem == 'edit'):?>
-					<li class="nav-item" class="dropdown-divider"></li>
+					<hr>
 					<li class="nav-item" class="active"><?php echo $this->Html->link(__('Edit Whitelist'), array('admin' => true, 'action' => 'edit', h($id)));?></li>
 					<li class="nav-item"><?php echo $this->Form->postLink(__('Delete Whitelist'), array('admin' => true, 'action' => 'delete', h($id)), null, __('Are you sure you want to delete # %s?', h($id)));?></li>
 					<?php
@@ -144,7 +144,7 @@
 					if (((Configure::read('MISP.disableUserSelfManagement') && $isAdmin) || !Configure::read('MISP.disableUserSelfManagement')) && ($menuItem === 'edit' || $menuItem === 'view')): ?>
 					<li class="nav-item" id='liedit'><?php echo $this->Html->link(__('Edit My Profile', true), array('action' => 'edit'), array('class' => 'nav-link active')); ?></li>
 					<li class="nav-item" id='liedit'><?php echo $this->Html->link(__('Change Password', true), array('action' => 'change_pw'), array('class' => 'nav-link active')); ?></li>
-					<li class="nav-item" class="dropdown-divider"></li>
+					<hr>
 					<?php elseif (Configure::read('Plugin.CustomAuth_custom_password_reset')): ?>
 					<li class="nav-item" id='lipwreset'><a class="nav-link active" href="<?php echo h(Configure::read('Plugin.CustomAuth_custom_password_reset'));?>">Reset Password</a></li>
 					<?php endif; ?>
@@ -163,14 +163,14 @@
 						endif;
 					?>
 					<li class="nav-item" id='liroles'><a class="nav-link active" href="<?php echo $baseurl;?>/roles/index"><?php echo __('Role Permissions');?></a></li>
-					<li class="nav-item" class="dropdown-divider"></li>
+					<hr>
 					<?php if ($menuItem === 'editSG' || ($menuItem == 'viewSG' && $mayModify)): ?>
 						<li class="nav-item" id='lieditSG'><a class="nav-link active" href="<?php echo $baseurl;?>/sharing_groups/edit/<?php echo h($id); ?>"><?php echo __('Edit Sharing Group');?></a></li>
 						<li class="nav-item" id='liviewSG'><a class="nav-link active" href="<?php echo $baseurl;?>/sharing_groups/view/<?php echo h($id);?>"><?php echo __('View Sharing Group');?></a></li>
 					<?php endif; ?>
 					<li class="nav-item" id='liindexSG'><a class="nav-link active" href="<?php echo $baseurl;?>/sharing_groups/index"><?php echo __('List Sharing Groups');?></a></li>
 					<li class="nav-item" id='liaddSG'><a class="nav-link active" href="<?php echo $baseurl;?>/sharing_groups/add"><?php echo __('Add Sharing Group');?></a></li>
-					<li class="nav-item" class="dropdown-divider"></li>
+					<hr>
 					<li class="nav-item" id='liuserGuide'><a class="nav-link active" href="<?php echo $baseurl;?>/pages/display/doc/general"><?php echo __('User Guide');?></a></li>
 					<li class="nav-item" id='literms'><a class="nav-link active" href="<?php echo $baseurl;?>/users/terms"><?php echo __('Terms &amp; Conditions');?></a></li>
 					<li class="nav-item" id='listatistics'><a class="nav-link active" href="<?php echo $baseurl;?>/users/statistics"><?php echo __('Statistics');?></a></li>
@@ -189,7 +189,7 @@
 					<?php if ($menuItem === 'edit' && $isSiteAdmin): ?>
 					<li class="nav-item" class="active"><?php echo $this->Html->link(__('Edit Server'), array('controller' => 'servers', 'action' => 'edit')); ?></li>
 					<li class="nav-item"><?php echo $this->Form->postLink(__('Delete'), array('action' => 'delete', $this->Form->value('Server.id')), null, __('Are you sure you want to delete # %s?', $this->Form->value('Server.id'))); ?></li>
-					<li class="nav-item" class="dropdown-divider"></li>
+					<hr>
 					<?php endif; ?>
 					<li class="nav-item" id='liindex'><?php echo $this->Html->link(__('List Servers'), array('controller' => 'servers', 'action' => 'index'), array('class' => 'nav-link active'));?></li>
 					<?php if ($isSiteAdmin): ?>
@@ -200,18 +200,16 @@
 
 				case 'admin':
 					if ($menuItem === 'editUser' || $menuItem === 'viewUser'): ?>
-					<li class="nav-item" id='liviewUser'><?php echo $this->Html->link(__('View User'), array('controller' => 'users', 'action' => 'view', 'admin' => true, h($id))); ?> </li>
+					<li class="nav-item" id='liviewUser'><?php echo $this->Html->link(__('View User'), array('controller' => 'users', 'action' => 'view', 'admin' => true, h($id)), array('class' => 'nav-link active')); ?> </li>
 					<li class="nav-item"><a class="nav-link active" href="#/" onClick="initiatePasswordReset('<?php echo h($id); ?>');"><?php echo __('Reset Password');?></a></li>
-					<li class="nav-item" id='lieditUser'><?php echo $this->Html->link(__('Edit User'), array('controller' => 'users', 'action' => 'edit', 'admin' => true, h($id))); ?> </li>
-					<li class="nav-item"><?php echo $this->Form->postLink(__('Delete User'), array('admin' => true, 'action' => 'delete', h($id)), null, __('Are you sure you want to delete # %s? It is highly recommended to never delete users but to disable them instead.', h($id)));?></li>
-					<li class="nav-item" class="dropdown-divider"></li>
-					<hr>
+					<li class="nav-item" id='lieditUser'><?php echo $this->Html->link(__('Edit User'), array('controller' => 'users', 'action' => 'edit', 'admin' => true, h($id)), array('class' => 'nav-link active')); ?> </li>
+					<li class="nav-item"><?php echo $this->Form->postLink(__('Delete User'), array('admin' => true, 'action' => 'delete', h($id)), array('class' => 'nav-link active'), __('Are you sure you want to delete # %s? It is highly recommended to never delete users but to disable them instead.', h($id)));?></li>
 					<hr>
 					<?php endif;
 					if ($isSiteAdmin && $menuItem === 'editRole'): ?>
 					<li class="nav-item" class="active"><?php echo $this->Html->link(__('Edit Role'), array('controller' => 'roles', 'action' => 'edit', 'admin' => true, h($id))); ?> </li>
 					<li class="nav-item"><?php echo $this->Form->postLink(__('Delete Role'), array('controller' => 'roles', 'admin' => true, 'action' => 'delete', h($id)), null, __('Are you sure you want to delete # %s?', h($id)));?></li>
-					<li class="nav-item" class="dropdown-divider"></li>
+					<hr>
 					<?php endif;
 					if ($isSiteAdmin): ?>
 					<li class="nav-item" id='liaddUser'><?php echo $this->Html->link(__('Add User'), array('controller' => 'users', 'action' => 'add', 'admin' => true), array('class' => 'nav-link active')); ?> </li>
@@ -220,7 +218,6 @@
 					<?php if ($isAdmin): ?>
 					<li class="nav-item" id='licontact'><?php echo $this->Html->link(__('Contact Users'), array('controller' => 'users', 'action' => 'email', 'admin' => true), array('class' => 'nav-link active')); ?> </li>
 					<?php endif; ?>
-					<li class="nav-item" class="dropdown-divider"></li>
 					<hr>
 					<?php if ($isSiteAdmin): ?>
 					<li class="nav-item" id='liaddOrg'><a class="nav-link active" href="<?php echo $baseurl;?>/admin/organisations/add"><?php echo __('Add Organisation');?></a></li>
@@ -232,17 +229,17 @@
 						<li class="nav-item" id='liviewOrg'><a class="nav-link active" href="<?php echo $baseurl;?>/organisations/view/<?php echo h($id);?>"><?php echo __('View Organisation');?></a></li>
 					<?php endif;?>
 					<li class="nav-item" id='liindexOrg'><a class="nav-link active" href="<?php echo $baseurl;?>/organisations/index"><?php echo __('List Organisations');?></a></li>
-					<li class="nav-item" class="dropdown-divider"></li>
+					<hr>
 					<li class="nav-item" id='liaddRole'><?php echo $this->Html->link('Add Role', array('controller' => 'roles', 'action' => 'add', 'admin' => true), array('class' => 'nav-link active')); ?> </li>
 					<?php endif; ?>
 					<li class="nav-item" id='liindexRole'><?php echo $this->Html->link('List Roles', array('controller' => 'roles', 'action' => 'index', 'admin' => true), array('class' => 'nav-link active')); ?> </li>
 					<?php if ($isSiteAdmin): ?>
-						<li class="nav-item" class="dropdown-divider"></li>
+						<hr>
 						<li class="nav-item" id='liserverSettings'><a class="nav-link active" href="<?php echo $baseurl;?>/servers/serverSettings"><?php echo __('Server Settings & Maintenance');?></a></li>
-						<li class="nav-item" class="dropdown-divider"></li>
+						<hr>
 						<?php if (Configure::read('MISP.background_jobs')): ?>
 							<li class="nav-item" id='lijobs'><a class="nav-link active" href="<?php echo $baseurl;?>/jobs/index"><?php echo __('Jobs');?></a></li>
-							<li class="nav-item" class="dropdown-divider"></li>
+							<hr>
 							<li class="nav-item" id='litasks'><a class="nav-link active" href="<?php echo $baseurl;?>/tasks"><?php echo __('Scheduled Tasks');?></a></li>
 						<?php endif;
 						if (Configure::read('MISP.enableEventBlacklisting') !== false): ?>
@@ -268,14 +265,14 @@
 						if (!(empty($thread_id) && empty($target_type))) { ?>
 					<li class="nav-item"  id='view'><?php echo $this->Html->link(__('View Thread'), array('controller' => 'threads', 'action' => 'view', h($thread_id)));?></li>
 					<li class="nav-item"  id='add'><?php echo $this->Html->link(__('Add Post'), array('controller' => 'posts', 'action' => 'add', 'thread', h($thread_id)));?></li>
-					<li class="nav-item" class="dropdown-divider"></li>
+					<hr>
 					<?php
 						}
 					}
 					if ($menuItem === 'edit') { ?>
 						<li class="nav-item"><?php echo $this->Html->link(__('View Thread'), array('controller' => 'threads', 'action' => 'view', h($thread_id), array('class' => 'nav-link active')));?></li>
 						<li class="nav-item" class="active"><?php echo $this->Html->link(__('Edit Post'), array('controller' => 'threads', 'action' => 'view', h($id)));?></li>
-						<li class="nav-item" class="dropdown-divider"></li>
+						<hr>
 					<?php
 					}
 					?>

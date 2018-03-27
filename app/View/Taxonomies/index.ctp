@@ -1,19 +1,19 @@
 <div class="taxonomies index">
 	<h2><?php echo __('Taxonomies');?></h2>
-	<div class="pagination">
-		<ul>
-		<?php
-		$this->Paginator->options(array(
-			'update' => '.span12',
-			'evalScripts' => true,
-			'before' => '$(".progress").show()',
-			'complete' => '$(".progress").hide()',
-		));
+	<div>
+		<ul class="pagination">
+			<?php
+			$this->Paginator->options(array(
+				'update' => '.span12',
+				'evalScripts' => true,
+				'before' => '$(".progress").show()',
+				'complete' => '$(".progress").hide()',
+			));
 
-			echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-			echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-			echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-		?>
+			echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false, 'class' => 'page-link'), null, array('tag' => 'li', 'class' => 'page-link', 'escape' => false, 'disabledTag' => 'span'));
+			echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'class' => 'page-link', 'currentClass' => 'page-link', 'currentTag' => 'span', 'currentClass' => 'p-active'));
+			echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false, 'class' => 'page-link'), null, array('tag' => 'li', 'class' => 'page-link', 'escape' => false, 'disabledTag' => 'span', 'disabledClass' => 'page-link'));
+			?>
 		</ul>
 	</div>
 	<table class="table table-striped table-hover table-condensed">
@@ -40,12 +40,12 @@ foreach ($taxonomies as $item): ?>
 					if ($item['Taxonomy']['enabled']) {
 						echo $this->Form->postLink('', array('action' => 'disable', h($item['Taxonomy']['id'])), array('class' => 'icon-minus', 'title' => __('Disable')), (__('Are you sure you want to disable this taxonomy library?')));
 					} else {
-						echo $this->Form->postLink('', array('action' => 'enable', h($item['Taxonomy']['id'])), array('class' => 'icon-plus', 'title' => __('Enable')), (__('Are you sure you want to enable this taxonomy library?')));
+						echo $this->Form->postLink('', array('action' => 'enable', h($item['Taxonomy']['id'])), array('class' => 'fa fa-plus', 'title' => __('Enable')), (__('Are you sure you want to enable this taxonomy library?')));
 					}
 				}
 			?>
-			<a href='<?php echo $baseurl."/taxonomies/view/". h($item['Taxonomy']['id']);?>' class = "icon-list-alt" title = "<?php echo __('View');?>"></a>
-			<span class="icon-trash useCursorPointer" title="<?php echo __('Delete taxonomy');?>" role="button" tabindex="0" aria-label="<?php echo __('Delete taxonomy');?>" onClick="deleteObject('taxonomies', 'delete', '<?php echo h($item['Taxonomy']['id']); ?>', '<?php echo h($item['Taxonomy']['id']); ?>');"></span>
+			<a href='<?php echo $baseurl."/taxonomies/view/". h($item['Taxonomy']['id']);?>' class = "fa fa-list" title = "<?php echo __('View');?>"></a>
+			<span class="fa fa-trash useCursorPointer" title="<?php echo __('Delete taxonomy');?>" role="button" tabindex="0" aria-label="<?php echo __('Delete taxonomy');?>" onClick="deleteObject('taxonomies', 'delete', '<?php echo h($item['Taxonomy']['id']); ?>', '<?php echo h($item['Taxonomy']['id']); ?>');"></span>
 		</td>
 	</tr><?php
 endforeach; ?>
@@ -57,13 +57,14 @@ endforeach; ?>
 	));
 	?>
 	</p>
-	<div class="pagination">
-		<ul>
-		<?php
-			echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-			echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-			echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-		?>
+	<div>
+		<ul class="pagination">
+			<?php
+
+			echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false, 'class' => 'page-link'), null, array('tag' => 'li', 'class' => 'page-link', 'escape' => false, 'disabledTag' => 'span'));
+			echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'class' => 'page-link', 'currentClass' => 'page-link', 'currentTag' => 'span', 'currentClass' => 'p-active'));
+			echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false, 'class' => 'page-link'), null, array('tag' => 'li', 'class' => 'page-link', 'escape' => false, 'disabledTag' => 'span', 'disabledClass' => 'page-link'));
+			?>
 		</ul>
 	</div>
 </div>

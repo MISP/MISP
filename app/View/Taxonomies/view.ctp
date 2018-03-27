@@ -37,29 +37,26 @@
 		</dd>
 	</dl>
 	<br />
-	<div class="pagination">
-		<ul>
-		<?php
-		if (!empty($filter)) $url = array($id, 'filter:' . $filter);
-		else $url = array($id);
-		$this->Paginator->options(array(
-			'url' => $url,
-			'update' => '.span12',
-			'evalScripts' => true,
-			'before' => '$(".progress").show()',
-			'complete' => '$(".progress").hide()',
-		));
+	<div>
+		<ul class="pagination">
+			<?php
+			$this->Paginator->options(array(
+				'update' => '.span12',
+				'evalScripts' => true,
+				'before' => '$(".progress").show()',
+				'complete' => '$(".progress").hide()',
+			));
 
-			echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-			echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-			echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-		?>
+			echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false, 'class' => 'page-link'), null, array('tag' => 'li', 'class' => 'page-link', 'escape' => false, 'disabledTag' => 'span'));
+			echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'class' => 'page-link', 'currentClass' => 'page-link', 'currentTag' => 'span', 'currentClass' => 'p-active'));
+			echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false, 'class' => 'page-link'), null, array('tag' => 'li', 'class' => 'page-link', 'escape' => false, 'disabledTag' => 'span', 'disabledClass' => 'page-link'));
+			?>
 		</ul>
 	</div>
 	 <div id="attributeList" class="attributeListContainer">
 		<div class="tabMenuFixedContainer">
 			<div class="tabMenu tabMenuEditBlock noPrint mass-select" style="float:left;top:-1px;">
-				<span id="multi-edit-button" title="Create / update selected tags" role="button" tabindex="0" aria-label="<?php echo __('Create and/or update selected tags');?>" class="icon-plus useCursorPointer" onClick="addSelectedTaxonomies(<?php echo $taxonomy['id']; ?>);"></span>
+				<span id="multi-edit-button" title="Create / update selected tags" role="button" tabindex="0" aria-label="<?php echo __('Create and/or update selected tags');?>" class="fa fa-plus useCursorPointer" onClick="addSelectedTaxonomies(<?php echo $taxonomy['id']; ?>);"></span>
 			</div>
 			<div style="float:right !important;overflow:hidden;border:0px;padding:0px;padding-right:200px;">
 					<input class="form-control" type="text" id="quickFilterField" class="tabMenuFilterField taxFilter" value="<?php echo h($filter);?>" /><span id="quickFilterButton" class="useCursorPointer taxFilterButton" onClick='quickFilterTaxonomy("<?php echo h($taxonomy['id']);?>");'><?php echo __('Filter');?></span>
@@ -144,7 +141,7 @@
 						<?php
 							else:
 						?>
-								<span class="icon-plus useCursorPointer" title="<?php echo __('Enable');?>" role="button" tabindex="0" aria-label="<?php echo __('Refresh or enable');?>" onClick="submitQuickTag('<?php echo 'quick_' . h($k); ?>');"></span>
+								<span class="fa fa-plus useCursorPointer" title="<?php echo __('Enable');?>" role="button" tabindex="0" aria-label="<?php echo __('Refresh or enable');?>" onClick="submitQuickTag('<?php echo 'quick_' . h($k); ?>');"></span>
 						<?php
 							endif;
 							echo $this->Form->end();
@@ -163,15 +160,15 @@
 		));
 		?>
 		</p>
-		<div class="pagination">
-			<ul>
+		<div>
+		<ul class="pagination">
 			<?php
-				echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-				echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-				echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
+			echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false, 'class' => 'page-link'), null, array('tag' => 'li', 'class' => 'page-link', 'escape' => false, 'disabledTag' => 'span'));
+			echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'class' => 'page-link', 'currentClass' => 'page-link', 'currentTag' => 'span', 'currentClass' => 'p-active'));
+			echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false, 'class' => 'page-link'), null, array('tag' => 'li', 'class' => 'page-link', 'escape' => false, 'disabledTag' => 'span', 'disabledClass' => 'page-link'));
 			?>
-			</ul>
-		</div>
+		</ul>
+	</div>
 	</div>
 </div>
 <script type="text/javascript">

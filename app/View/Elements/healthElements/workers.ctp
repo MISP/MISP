@@ -33,7 +33,7 @@
 			<?php
 				echo h($data['jobCount']);
 				if ($data['jobCount'] > 0) {
-					echo $this->Form->postLink('<span class="icon-trash useCursorPointer"></span>', $baseurl . '/servers/clearWorkerQueue/' . h($type), array('escape' => false, 'inline' => true, 'style' => 'margin-left:2px;'));
+					echo $this->Form->postLink('<span class="fa fa-trash useCursorPointer"></span>', $baseurl . '/servers/clearWorkerQueue/' . h($type), array('escape' => false, 'inline' => true, 'style' => 'margin-left:2px;'));
 				}
 			?>
 		</span>
@@ -97,7 +97,7 @@
 			<td style="<?php echo $style; ?>"><?php echo $message; ?></td>
 			<td class="actions short" style="<?php echo $style; ?>">
 			<?php
-				echo $this->Form->postLink('', '/servers/stopWorker/' . h($worker['pid']), array('class' => 'icon-trash' . $icon_modifier, 'title' => __('Stop (if still running) and remove this worker. This will immediately terminate any jobs that are being executed by it.')));
+				echo $this->Form->postLink('', '/servers/stopWorker/' . h($worker['pid']), array('class' => 'fa fa-trash' . $icon_modifier, 'title' => __('Stop (if still running) and remove this worker. This will immediately terminate any jobs that are being executed by it.')));
 			?>
 			</td>
 		</tr>
@@ -108,7 +108,7 @@
 	</table>
 	<?php
 			echo $this->Form->create('Server', array('url' => '/servers/startWorker/' . h($type)));
-			echo $this->Form->button(__('Start a worker'), array('class' => 'btn btn-inverse'));
+			echo $this->Form->button(__('Start a worker'), array('class' => 'btn btn-dark'));
 			echo $this->Form->end();
 		endforeach;
 	?>

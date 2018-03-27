@@ -68,7 +68,7 @@
 		</div>
 		<br />
 		<?php echo $this->Form->submit(__('Merge'), array('div' => false, 'class' => 'btn btn-primary')); ?>
-		<span role="button" tabindex="0" aria-label="<?php echo __('Cancel');?>" title="<?php echo __('Cancel');?>" class="btn btn-inverse" onClick="cancelPopoverForm();" style="float:right;"><?php echo __('Cancel');?></span>
+		<span role="button" tabindex="0" aria-label="<?php echo __('Cancel');?>" title="<?php echo __('Cancel');?>" class="btn btn-dark" onClick="cancelPopoverForm();" style="float:right;"><?php echo __('Cancel');?></span>
 		<?php echo $this->Form->end(); ?>
 	</div>
 </div>

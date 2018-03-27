@@ -4,7 +4,7 @@
 		<table style="width:100%;">
 		<?php foreach ($exports as $k => $export): ?>
 			<tr
-				style="border-bottom:1px solid black;"
+				
 				class="templateChoiceButton"
 				data-export-url="<?php echo h($export['url']); ?>"
 				data-export-key="<?php echo h($k); ?>"

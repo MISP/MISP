@@ -59,7 +59,7 @@
 			));
 	?>
 			<div>
-				<span id="basicAuthFormEnable" class="btn btn-inverse quick-popover" style="line-height:10px; padding: 4px 4px;"><?php echo __('Add Basic Auth');?></span>
+				<span id="basicAuthFormEnable" class="btn btn-dark quick-popover" style="line-height:10px; padding: 4px 4px;"><?php echo __('Add Basic Auth');?></span>
 				<div id="basicAuthForm" class="quick-form" style="display:none;">
 						<fieldset>
 							<div class="input">
@@ -192,7 +192,7 @@
 	<span id="pull_tags_NOT" style="display:none;"><?php echo __('Events with the following tags blocked');?>: <span id="pull_tags_NOT_text" style="color:red;"></span><br /></span>
 	<span id="pull_orgs_OR" style="display:none;"><?php echo __('Events with the following organisations allowed');?>: <span id="pull_orgs_OR_text" style="color:green;"></span><br /></span>
 	<span id="pull_orgs_NOT" style="display:none;"><?php echo __('Events with the following organisations blocked');?>: <span id="pull_orgs_NOT_text" style="color:red;"></span><br /></span>
-	<span id="pull_modify"  class="btn btn-inverse" style="line-height:10px; padding: 4px 4px;"><?php echo __('Modify');?></span><br /><br />
+	<span id="pull_modify"  class="btn btn-dark" style="line-height:10px; padding: 4px 4px;"><?php echo __('Modify');?></span><br /><br />
 	<?php
 	echo $this->Form->button(__('Add'), array('class' => 'btn btn-primary'));
 	echo $this->Form->end();

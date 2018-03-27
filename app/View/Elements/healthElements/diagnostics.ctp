@@ -61,7 +61,7 @@
 			</span>
 		</span><br />
 		<pre class="hidden green bold" id="gitResult"></pre>
-		<button title="<?php echo __('Pull the latest MISP version from github');?>" class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick = "updateMISP();"><?php echo __('Update MISP');?></button>
+		<button title="<?php echo __('Pull the latest MISP version from github');?>" class="btn btn-dark" style="padding-top:1px;padding-bottom:1px;" onClick = "updateMISP();"><?php echo __('Update MISP');?></button>
 	</div>
 	<h3><?php echo __('Writeable Directories and files');?></h3>
 	<p><?php echo __('The following directories and files have to be writeable for MISP to function properly. Make sure that the apache user has write privileges for the directories below.');?></p>
@@ -255,9 +255,9 @@
 		?>
 	</div>
 	<div>
-		<span class="btn btn-inverse" role="button" tabindex="0" aria-label="<?php echo __('Start ZMQ service');?>" title="<?php echo __('Start ZeroMQ service');?>" style="padding-top:1px;padding-bottom:1px;" onClick = "zeroMQServerAction('start')"><?php echo __('Start');?></span>
-		<span class="btn btn-inverse" role="button" tabindex="0" aria-label="<?php echo __('Stop ZeroMQ service');?>" title="<?php echo __('Stop ZeroMQ service');?>" style="padding-top:1px;padding-bottom:1px;" onClick = "zeroMQServerAction('stop')"><?php echo __('Stop');?></span>
-		<span class="btn btn-inverse" role="button" tabindex="0" aria-label="<?php echo __('Check ZeroMQ service status');?>" title="<?php echo __('Check ZeroMQ service status');?>" style="padding-top:1px;padding-bottom:1px;" onClick = "zeroMQServerAction('status')"><?php echo __('Status');?></span>
+		<span class="btn btn-dark" role="button" tabindex="0" aria-label="<?php echo __('Start ZMQ service');?>" title="<?php echo __('Start ZeroMQ service');?>" style="padding-top:1px;padding-bottom:1px;" onClick = "zeroMQServerAction('start')"><?php echo __('Start');?></span>
+		<span class="btn btn-dark" role="button" tabindex="0" aria-label="<?php echo __('Stop ZeroMQ service');?>" title="<?php echo __('Stop ZeroMQ service');?>" style="padding-top:1px;padding-bottom:1px;" onClick = "zeroMQServerAction('stop')"><?php echo __('Stop');?></span>
+		<span class="btn btn-dark" role="button" tabindex="0" aria-label="<?php echo __('Check ZeroMQ service status');?>" title="<?php echo __('Check ZeroMQ service status');?>" style="padding-top:1px;padding-bottom:1px;" onClick = "zeroMQServerAction('status')"><?php echo __('Status');?></span>
 	</div>
 	<h3><?php echo __('Proxy');?></h3>
 	<p><?php echo __('This tool tests whether your HTTP proxy settings are correct.');?></p>
@@ -307,37 +307,37 @@
 	<?php
 		if ($sessionStatus < 2):
 	?>
-	<a href="<?php echo $baseurl;?>/servers/purgeSessions"><span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;"><?php echo __('Purge sessions');?></span></a>
+	<a href="<?php echo $baseurl;?>/servers/purgeSessions"><span class="btn btn-dark" style="padding-top:1px;padding-bottom:1px;"><?php echo __('Purge sessions');?></span></a>
 	<?php
 		endif;
 	?>
 	<h3><?php echo __('Clean model cache');?></h3>
 	<p><?php echo __('If you ever run into issues with missing database fields / tables, please run the following script to clean the model cache.');?></p>
-	<?php echo $this->Form->postLink('<span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;">' . __('Clean cache') . '</span>', $baseurl . '/events/cleanModelCaches', array('escape' => false));?>
+	<?php echo $this->Form->postLink('<span class="btn btn-dark" style="padding-top:1px;padding-bottom:1px;">' . __('Clean cache') . '</span>', $baseurl . '/events/cleanModelCaches', array('escape' => false));?>
 	<h3><?php echo __('Overwritten objects');?></h3>
 	<p><?php echo __('Prior to 2.4.89, due to a bug a situation could occur where objects got overwritten on a sync pull. This tool allows you to inspect whether you are affected and if yes, remedy the issue.');?></p>
-	<a href="<?php echo $baseurl; ?>/objects/orphanedObjectDiagnostics"><span class="btn btn-inverse">Reconstruct overwritten objects</span></a>
+	<a href="<?php echo $baseurl; ?>/objects/orphanedObjectDiagnostics"><span class="btn btn-dark">Reconstruct overwritten objects</span></a>
 	<h3><?php echo __('Orphaned attributes');?></h3>
 	<p><?php echo __('In some rare cases attributes can remain in the database after an event is deleted becoming orphaned attributes. This means that they do not belong to any event, which can cause issues with the correlation engine (known cases include event deletion directly in the database without cleaning up the attributes and situations involving a race condition with an event deletion happening before all attributes are synchronised over).');?></p>
 	<div style="background-color:#f7f7f9;width:400px;">
 		<?php echo __('Orphaned attributes');?>…<span id="orphanedAttributeCount"><span style="color:orange;"><?php echo __('Run the test below');?></span></span>
 	</div><br />
-	<span class="btn btn-inverse" role="button" tabindex="0" aria-label="<?php echo __('Check for orphaned attribute');?>" title="<?php echo __('Check for orphaned attributes');?>" style="padding-top:1px;padding-bottom:1px;" onClick="checkOrphanedAttributes();"><?php echo __('Check for orphaned attributes');?></span><br /><br />
+	<span class="btn btn-dark" role="button" tabindex="0" aria-label="<?php echo __('Check for orphaned attribute');?>" title="<?php echo __('Check for orphaned attributes');?>" style="padding-top:1px;padding-bottom:1px;" onClick="checkOrphanedAttributes();"><?php echo __('Check for orphaned attributes');?></span><br /><br />
 	<?php echo $this->Form->postButton(__('Remove orphaned attributes'), $baseurl . '/attributes/pruneOrphanedAttributes', $options = array('class' => 'btn btn-primary', 'style' => 'padding-top:1px;padding-bottom:1px;')); ?>
 	<h3><?php echo __('Verify PGP keys');?></h3>
 	<p><?php echo __('Run a full validation of all PGP keys within this instance\'s userbase. The script will try to identify possible issues with each key and report back on the results.');?></p>
-	<span class="btn btn-inverse" onClick="location.href='<?php echo $baseurl;?>/users/verifyGPG';"><?php echo __('Verify PGP keys');?></span> (<?php echo __('Check whether every user\'s PGP key is usable');?>)</li>
+	<span class="btn btn-dark" onClick="location.href='<?php echo $baseurl;?>/users/verifyGPG';"><?php echo __('Verify PGP keys');?></span> (<?php echo __('Check whether every user\'s PGP key is usable');?>)</li>
 	<h3><?php echo __('Database cleanup scripts');?></h3>
 	<p><?php echo __('If you run into an issue with an infinite upgrade loop (when upgrading from version ~2.4.50) that ends up filling your database with upgrade script log messages, run the following script.');?></p>
 	<?php echo $this->Form->postButton(__('Prune upgrade logs'), $baseurl . '/logs/pruneUpdateLogs', $options = array('class' => 'btn btn-primary', 'style' => 'padding-top:1px;padding-bottom:1px;')); ?>
 	<h3><?php echo __('Legacy Administrative Tools');?></h3>
 	<p><?php echo __('Click the following button to go to the legacy administrative tools page. There should in general be no need to do this unless you are upgrading a very old MISP instance (<2.4), all updates are done automatically with more current versions.');?></p>
-	<span class="btn btn-inverse" style="padding-top:1px;padding-bottom:1px;" onClick="location.href = '<?php echo $baseurl; ?>/pages/display/administration';"><?php echo __('Legacy Administrative Tools');?></span>
+	<span class="btn btn-dark" style="padding-top:1px;padding-bottom:1px;" onClick="location.href = '<?php echo $baseurl; ?>/pages/display/administration';"><?php echo __('Legacy Administrative Tools');?></span>
     <h3><?php echo __('Verify bad link on attachments');?></h3>
 	<p><?php echo __('Verify each attachment referenced in database is accessible on filesystem.');?></p>
 	<div style="background-color:#f7f7f9;width:400px;">
         <?php echo __('Non existing attachments referenced in Database');?>…<span id="orphanedFileCount"><span style="color:orange;"><?php echo __('Run the test below');?></span></span>
     </div><br>
-	<span class="btn btn-inverse" role="button" tabindex="0" aria-label="<?php echo __('Check bad link on attachments');?>" title="<?php echo __('Check bad link on attachments');?>" style="padding-top:1px;padding-bottom:1px;" onClick="checkAttachments();"><?php echo __('Check bad link on attachments');?></span>
+	<span class="btn btn-dark" role="button" tabindex="0" aria-label="<?php echo __('Check bad link on attachments');?>" title="<?php echo __('Check bad link on attachments');?>" style="padding-top:1px;padding-bottom:1px;" onClick="checkAttachments();"><?php echo __('Check bad link on attachments');?></span>
 
 </div>

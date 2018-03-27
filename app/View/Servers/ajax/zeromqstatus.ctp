@@ -8,6 +8,6 @@
 	<?php else: ?>
 		<p><?php echo __('The ZeroMQ server is unreachable.');?></p>
 	<?php endif; ?>
-		<span role="button" tabindex="0" aria-label="<?php echo __('Cancel prompt');?>" title="<?php echo __('Cancel prompt');?>" class="btn btn-inverse" id="PromptNoButton" onClick="cancelPrompt();"><?php echo __('OK');?></span>
+		<span role="button" tabindex="0" aria-label="<?php echo __('Cancel prompt');?>" title="<?php echo __('Cancel prompt');?>" class="btn btn-dark" id="PromptNoButton" onClick="cancelPrompt();"><?php echo __('OK');?></span>
 	</div>
 </div>

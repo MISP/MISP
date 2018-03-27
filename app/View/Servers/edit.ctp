@@ -105,8 +105,8 @@
 				?>
 			</span>
 			<br />
-			<span id="add_cert_file" class="btn btn-inverse" style="line-height:10px; padding: 4px 4px;"><?php echo __('Add certificate file');?></span>
-			<span id="remove_cert_file" class="btn btn-inverse" style="line-height:10px; padding: 4px 4px;"><?php echo __('Remove certificate file');?></span>
+			<span id="add_cert_file" class="btn btn-dark" style="line-height:10px; padding: 4px 4px;"><?php echo __('Add certificate file');?></span>
+			<span id="remove_cert_file" class="btn btn-dark" style="line-height:10px; padding: 4px 4px;"><?php echo __('Remove certificate file');?></span>
 		</p>
 		<div style="width: 0px;height: 0px;overflow: hidden;">
 		<?php
@@ -127,8 +127,8 @@
 				?>
 			</span>
 			<br />
-			<span id="add_client_cert_file" class="btn btn-inverse" style="line-height:10px; padding: 4px 4px;"><?php echo __('Add certificate file');?></span>
-			<span id="remove_client_cert_file" class="btn btn-inverse" style="line-height:10px; padding: 4px 4px;"><?php echo __('Remove certificate file');?></span>
+			<span id="add_client_cert_file" class="btn btn-dark" style="line-height:10px; padding: 4px 4px;"><?php echo __('Add certificate file');?></span>
+			<span id="remove_client_cert_file" class="btn btn-dark" style="line-height:10px; padding: 4px 4px;"><?php echo __('Remove certificate file');?></span>
 		</p>
 		<div style="width: 0px;height: 0px;overflow: hidden;">
 		<?php
@@ -145,13 +145,13 @@
 		<span id="push_tags_NOT" style="display:none;"><?php echo __('Events with the following tags blocked: ');?><span id="push_tags_NOT_text" style="color:red;"></span><br /></span>
 		<span id="push_orgs_OR" style="display:none;"><?php echo __('Events with the following organisations allowed: ');?><span id="push_orgs_OR_text" style="color:green;"></span><br /></span>
 		<span id="push_orgs_NOT" style="display:none;"><?php echo __('Events with the following organisations blocked: ');?><span id="push_orgs_NOT_text" style="color:red;"></span><br /></span>
-		<span id="push_modify" class="btn btn-inverse" style="line-height:10px; padding: 4px 4px;"><?php echo __('Modify');?></span><br /><br />
+		<span id="push_modify" class="btn btn-dark" style="line-height:10px; padding: 4px 4px;"><?php echo __('Modify');?></span><br /><br />
 		<b><?php echo __('Pull rules:');?></b><br />
 		<span id="pull_tags_OR" style="display:none;"><?php echo __('Events with the following tags allowed: ');?><span id="pull_tags_OR_text" style="color:green;"></span><br /></span>
 		<span id="pull_tags_NOT" style="display:none;"><?php echo __('Events with the following tags blocked: ');?><span id="pull_tags_NOT_text" style="color:red;"></span><br /></span>
 		<span id="pull_orgs_OR" style="display:none;"><?php echo __('Events with the following organisations allowed: ');?><span id="pull_orgs_OR_text" style="color:green;"></span><br /></span>
 		<span id="pull_orgs_NOT" style="display:none;"><?php echo __('Events with the following organisations blocked: ');?><span id="pull_orgs_NOT_text" style="color:red;"></span><br /></span>
-		<span id="pull_modify" class="btn btn-inverse" style="line-height:10px; padding: 4px 4px;"><?php echo __('Modify');?></span><br /><br />
+		<span id="pull_modify" class="btn btn-dark" style="line-height:10px; padding: 4px 4px;"><?php echo __('Modify');?></span><br /><br />
 	<?php
 		echo $this->Form->input('push_rules', array('style' => 'display:none;', 'label' => false, 'div' => false));
 		echo $this->Form->input('pull_rules', array('style' => 'display:none;', 'label' => false, 'div' => false));

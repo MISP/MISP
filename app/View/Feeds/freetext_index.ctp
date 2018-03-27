@@ -4,27 +4,29 @@
 		echo $this->Form->create('Feed', array('url' => array('controller' => 'feeds', 'action' => 'fetchSelectedFromFreetextIndex', $feed['Feed']['id'])));
 		echo $this->Form->input('data', array('style' => 'display:none;', 'label' => false, 'div' => false));
 	?>
-		<span id="FetchSelected" class="btn btn-inverse"><?php echo __('Fetch selected');?></span>
+		<span id="FetchSelected" class="btn btn-dark"><?php echo __('Fetch selected');?></span>
 	<?php
 		echo $this->Form->end();
 	?>
-	<div class="pagination">
-				<ul>
-				<?php
-					$url = array_merge(array('controller' => 'feeds', 'action' => 'previewIndex', $feed['Feed']['id']), $this->request->named);
-					$this->Paginator->options(array(
-							'url' => $url,
-							'update' => '.span12',
-							'evalScripts' => true,
-							'before' => '$(".progress").show()',
-							'complete' => '$(".progress").hide()',
-					));
-						echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
-						echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
-						echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
-				?>
-				</ul>
-		</div>
+
+		<div>
+		<ul class="pagination">
+			<?php
+				$url = array_merge(array('controller' => 'feeds', 'action' => 'previewIndex', $feed['Feed']['id']), $this->request->named);
+				$this->Paginator->options(array(
+						'url' => $url,
+						'update' => '.span12',
+						'evalScripts' => true,
+						'before' => '$(".progress").show()',
+						'complete' => '$(".progress").hide()',
+				));
+
+				echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
+				echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
+				echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
+			?>
+		</ul>
+	</div>
 	<table class="table table-striped table-hover table-condensed">
 	<tr>
 		<th><input class="form-control" class="select_all" type="checkbox" onClick="toggleAllAttributeCheckboxes();" /></th>
@@ -73,21 +75,21 @@
 		endforeach;
 	?>
 	</table>
-	<div class="pagination">
-			<ul>
+	<div>
+		<ul class="pagination">
 			<?php
 				$this->Paginator->options(array(
-						'url' => $url,
 						'update' => '.span12',
 						'evalScripts' => true,
 						'before' => '$(".progress").show()',
 						'complete' => '$(".progress").hide()',
 				));
+
 				echo $this->Paginator->prev('&laquo; ' . __('previous'), array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'prev disabled', 'escape' => false, 'disabledTag' => 'span'));
 				echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'currentClass' => 'active', 'currentTag' => 'span'));
 				echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false), null, array('tag' => 'li', 'class' => 'next disabled', 'escape' => false, 'disabledTag' => 'span'));
 			?>
-			</ul>
+		</ul>
 	</div>
 </div>
 <?php

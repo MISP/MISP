@@ -79,7 +79,7 @@
 								</td>
 								<td style="width:100%;">&nbsp;</td>
 								<td>
-									<span class="btn btn-inverse" title="<?php echo __('Cancel');?>" role="button" tabindex="0" aria-label="<?php echo __('Cancel');?>" onClick="cancelPopoverForm();"><?php echo __('Cancel');?></span>
+									<span class="btn btn-dark" title="<?php echo __('Cancel');?>" role="button" tabindex="0" aria-label="<?php echo __('Cancel');?>" onClick="cancelPopoverForm();"><?php echo __('Cancel');?></span>
 								</td>
 							</tr>
 						</table>

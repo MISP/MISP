@@ -34,7 +34,7 @@
 			));
 			echo $this->Form->submit(__('Yes'), array('div' => false, 'class' => 'btn btn-primary'));
 		?>
-		<span role="button" tabindex="0" aria-label="<?php echo __('Cancel');?>" title="<?php echo __('Cancel');?>" class="btn btn-inverse" id="PromptNoButton" onClick="cancelPopoverForm();" style="float:right;"><?php echo __('No');?></span>
+		<span role="button" tabindex="0" aria-label="<?php echo __('Cancel');?>" title="<?php echo __('Cancel');?>" class="btn btn-dark" id="PromptNoButton" onClick="cancelPopoverForm();" style="float:right;"><?php echo __('No');?></span>
 		<?php
 			echo $this->Form->end();
 		?>
