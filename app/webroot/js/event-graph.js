@@ -13,6 +13,9 @@ var container = document.getElementById('eventgraph_network');
 var user_manipulation = $('#eventgraph_network').data('user-manipulation');
 var root_id_attr = "rootNode:attribute"
 var root_id_object = "rootNode:object"
+var mapping_root_id_to_type = {};
+mapping_root_id_to_type[root_id_attr] = 'attribute';
+mapping_root_id_to_type[root_id_object] = 'object';
 var root_node_x_pos = 800;
 var cluster_expand_threshold = 100;
 
@@ -32,6 +35,7 @@ class EventGraph {
 		// FIXME
 		this.first_draw = true;
 		this.layout = 'default';
+		this.backup_connection_edges = {};
 		this.network_options = network_options;
 		this.nodes = nodes;
 		this.edges = edges;
@@ -41,7 +45,6 @@ class EventGraph {
 		};
 		this.cluster_index = 0; // use to get uniq cluster ID
 		this.clusters = [];
-		this.unreferenced_nodes = new Map();
 
 		this.network = new vis.Network(container, data, this.network_options);
 		this.add_unreferenced_root_node();
@@ -67,29 +70,24 @@ class EventGraph {
 	// Graph interaction
 	
 	// Clusterize the specified node with its connected childs 
-	clusterize(nodeID) {
+	clusterize(rootID) {
 		var that = eventGraph;
-		var clusterOptionsByData = {
-			processProperties: global_processProperties,
-			clusterNodeProperties: {borderWidth: 3, shape: 'database', font: {size: 30}}
-
-		};
-		that.network.clusterByConnection(nodeID, clusterOptionsByData);
-	}
-
-	init_clusterize() {
-		var that = eventGraph;
+		var type = mapping_root_id_to_type[rootID];
 		var clusterOptionsByData = {
 			processProperties: global_processProperties,
 			clusterNodeProperties: {borderWidth: 3, shape: 'database', font: {size: 30}},
 			joinCondition: function(nodeOptions) {
-				var is_unref = that.unreferenced_nodes.get(nodeOptions.id) === undefined ? false : true;
-				return is_unref;
+				return nodeOptions.unreferenced == type || nodeOptions.id == rootID;
 			}
 
-
 		};
-		this.network.clusterOutliers(clusterOptionsByData);
+		that.network.cluster(clusterOptionsByData);
+	}
+
+	init_clusterize() {
+		for(var key of Object.keys(mapping_root_id_to_type)) {
+			this.clusterize(key);
+		}
 	}
 
 	reset_graphs() {
@@ -325,6 +323,7 @@ class EventGraph {
 		this.nodes.forEach(function(nodeData) {
 			var cur_id = nodeData.id;
 			var cur_group = nodeData.group;
+			var prev_nodeID = cur_group == 'attribute' ? root_id_attr : root_id_object;
 
 			// Do not link already connected nodes
 			if (that.network.getConnectedEdges(cur_id).length > 0) {
@@ -341,12 +340,14 @@ class EventGraph {
 				length: 150
 			}
 			if (cur_group == 'attribute') {
-				new_edge.from = root_id_attr;
+				new_edge.from = that.layout == 'default' ? root_id_attr : prev_nodeID;
+				that.nodes.update({id: nodeData.id, unreferenced: 'attribute'});
 			} else if (cur_group == 'object') {
-				new_edge.from = root_id_object;
+				new_edge.from = that.layout == 'default' ? root_id_object : prev_nodeID;
+				that.nodes.update({id: nodeData.id, unreferenced: 'object'});
 			}
-			that.unreferenced_nodes.set(cur_id, '')
 			newEdges.push(new_edge);
+			prev_nodeID = cur_id;
 		});
 		this.edges.add(newEdges);
 		this.init_clusterize();
@@ -374,6 +375,36 @@ class EventGraph {
 		this.nodes.add([root_node_attr, root_node_obj]);
 	}
 
+	switch_unreferenced_nodes_connection() {
+		var that = eventGraph;
+		var to_update = [];
+		for(var root_id of [root_id_attr, root_id_object]) {
+			if(that.layout == 'default') {
+				var all_edgesID = that.backup_connection_edges[root_id]
+			} else {
+				that.network.storePositions();
+				var prev_node = root_id;
+				var all_edgesID = that.network.getConnectedEdges(root_id)
+				that.backup_connection_edges[root_id] = all_edgesID;
+			}
+			var all_edges = that.edges.get(all_edgesID);
+
+			for(var i=0; i<all_edges.length; i++ ) {
+				var edge = all_edges[i];
+				if(that.layout == 'default') {
+					// restore all edges connected to root node
+					edge.from = root_id;
+				} else {
+					// change edges so that they are linked one node after the other
+					edge.from = prev_node;
+					prev_node = edge.to;
+				}
+				to_update.push(edge);
+			}
+		}
+		that.edges.update(to_update);
+	}
+
 	change_layout_type(layout) {
 		var that = eventGraph;
 		if (that.layout == layout) { // Hasn't changed
@@ -390,7 +421,8 @@ class EventGraph {
 			that.layout = layout;
 		}
 		that.network_loading(true, loadingText_redrawing);
-		setTimeout(function() {that.destroy_and_redraw();} );
+		that.switch_unreferenced_nodes_connection();
+		that.destroy_and_redraw();
 		that.network_loading(false, "");
 	}
 
@@ -400,7 +432,6 @@ class EventGraph {
                 that.network = null;
 		var data = {nodes: that.nodes, edges: that.edges};
 		that.network = new vis.Network(container, data, that.network_options);
-		console.log(that.network_options);
 		that.init_clusterize();
 	}
 
