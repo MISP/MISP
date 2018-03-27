@@ -2490,7 +2490,7 @@ class Server extends AppModel {
 	public function testForGPGBinary($value) {
 		if (empty($value)) $value = $this->serverSettings['GnuPG']['binary']['value'];
 		if (file_exists($value)) return true;
-		return 'Could not find the gnupg executable at the defined location.';
+		return 'Could not find the GnuPG executable at the defined location.';
 	}
 
 	public function testForRPZDuration($value) {
