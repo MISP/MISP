@@ -10509,7 +10509,7 @@ msgid "Associated E-mail addresses"
 msgstr ""
 
 #: View/Users/ajax/fetchpgpkey.ctp:12
-msgid "Select pgp key"
+msgid "Select GnuPG key"
 msgstr ""
 
 #: View/Users/ajax/passwordResetConfirmationForm.ctp:3
