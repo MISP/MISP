@@ -708,7 +708,7 @@ class ServersController extends AppController {
 			);
 			$writeableErrors = array(0 => 'OK', 1 => 'not found', 2 => 'is not writeable');
 			$readableErrors = array(0 => 'OK', 1 => 'not readable');
-			$gpgErrors = array(0 => 'OK', 1 => 'FAIL: settings not set', 2 => 'FAIL: Failed to load GPG', 3 => 'FAIL: Issues with the key/passphrase', 4 => 'FAIL: encrypt failed');
+			$gpgErrors = array(0 => 'OK', 1 => 'FAIL: settings not set', 2 => 'FAIL: Failed to load GnuPG', 3 => 'FAIL: Issues with the key/passphrase', 4 => 'FAIL: encrypt failed');
 			$proxyErrors = array(0 => 'OK', 1 => 'not configured (so not tested)', 2 => 'Getting URL via proxy failed');
 			$zmqErrors = array(0 => 'OK', 1 => 'not enabled (so not tested)', 2 => 'Python ZeroMQ library not installed correctly.', 3 => 'ZeroMQ script not running.');
 			$stixOperational = array(0 => 'STIX or CyBox or mixbox library not installed correctly', 1 => 'OK');
@@ -821,7 +821,7 @@ class ServersController extends AppController {
 				// check if the STIX and Cybox libraries are working and the correct version using the test script stixtest.py
 				$stix = $this->Server->stixDiagnostics($diagnostic_errors, $stixVersion, $cyboxVersion, $mixboxVersion);
 
-				// if GPG is set up in the settings, try to encrypt a test message
+				// if GnuPG is set up in the settings, try to encrypt a test message
 				$gpgStatus = $this->Server->gpgDiagnostics($diagnostic_errors);
 
 				// if the message queue pub/sub is enabled, check whether the extension works
