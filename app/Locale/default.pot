@@ -89,19 +89,19 @@ msgid "Event Blacklisting is not currently enabled on this instance."
 msgstr ""
 
 #: Controller/EventsController.php:610
-msgid "No x509 certificate or GPG key set in your profile. To receive emails, submit your public certificate or GPG key in your profile."
+msgid "No x509 certificate or GnuPG key set in your profile. To receive emails, submit your public certificate or GnuPG key in your profile."
 msgstr ""
 
 #: Controller/EventsController.php:612
-msgid "No GPG key set in your profile. To receive emails, submit your public key in your profile."
+msgid "No GnuPG key set in your profile. To receive emails, submit your public key in your profile."
 msgstr ""
 
 #: Controller/EventsController.php:618
-msgid "No x509 certificate or GPG key set in your profile. To receive attributes in emails, submit your public certificate or GPG key in your profile."
+msgid "No x509 certificate or GnuPG key set in your profile. To receive attributes in emails, submit your public certificate or GnuPG key in your profile."
 msgstr ""
 
 #: Controller/EventsController.php:620
-msgid "No GPG key set in your profile. To receive attributes in emails, submit your public key in your profile."
+msgid "No GnuPG key set in your profile. To receive attributes in emails, submit your public key in your profile."
 msgstr ""
 
 #: Controller/EventsController.php:1052
@@ -6111,7 +6111,7 @@ msgid "GnuPG settings"
 msgstr ""
 
 #: View/Pages/doc/administration.ctp:34
-msgid "GPG related settings."
+msgid "GnuPG related settings."
 msgstr ""
 
 #: View/Pages/doc/administration.ctp:35
@@ -6139,7 +6139,7 @@ msgid "Diagnostics"
 msgstr ""
 
 #: View/Pages/doc/administration.ctp:38
-msgid "The diagnostics tool checks if all directories that MISP uses to store data are writeable by the apache user. Also, the tool checks whether the STIX libraries and GPG are working as intended."
+msgid "The diagnostics tool checks if all directories that MISP uses to store data are writeable by the apache user. Also, the tool checks whether the STIX libraries and GnuPG are working as intended."
 msgstr ""
 
 #: View/Pages/doc/administration.ctp:39
@@ -6393,7 +6393,7 @@ msgid "Nids ID, not yet implemented."
 msgstr ""
 
 #: View/Pages/doc/administration.ctp:96;127
-msgid "Gpgkey"
+msgid "GNuPGkey"
 msgstr ""
 
 #: View/Pages/doc/administration.ctp:96;127
@@ -6443,7 +6443,7 @@ msgid "Shows whether the user has the subscription to contact reporter e-mails d
 msgstr ""
 
 #: View/Pages/doc/administration.ctp:107
-msgid "Shows whether the user has entered a Gpgkey yet."
+msgid "Shows whether the user has entered a GnuPG key yet."
 msgstr ""
 
 #: View/Pages/doc/administration.ctp:108
@@ -7468,11 +7468,11 @@ msgid "After accepting the ToU, you'll be prompted to change your password, but 
 msgstr ""
 
 #: View/Pages/doc/user_management.ctp:27;44
-msgid "Setting up the GPG Key"
+msgid "Setting up the GnuPG Key"
 msgstr ""
 
 #: View/Pages/doc/user_management.ctp:27
-msgid "In order for the system to be able to encrypt the messages that you send through it, it needs to know your GPG key. Navigate to the Edit profile view (My Profile on the left -&gt; Edit profile in the top right corner). Paste the key into the Gpgkey field and click submit."
+msgid "In order for the system to be able to encrypt the messages that you send through it, it needs to know your GnuPG key. Navigate to the Edit profile view (My Profile on the left -&gt; Edit profile in the top right corner). Paste the key into the GnuPG key field and click submit."
 msgstr ""
 
 #: View/Pages/doc/user_management.ctp:28;42
@@ -7536,7 +7536,7 @@ msgid "Turning this feature on will allow you to receive e-mails addressed to yo
 msgstr ""
 
 #: View/Pages/doc/user_management.ctp:44
-msgid "In order for the system to be able to encrypt the messages that you send through it, it needs to know your GPG key. You can acquire this by clicking on the GnuPG key link at the bottom left of the screen. Copy the entirety of the key and navigate to the Edit profile view (My Profile on the left -&gt; Edit profile in the top right corner). Paste the key into the Gpgkey field and click submit."
+msgid "In order for the system to be able to encrypt the messages that you send through it, it needs to know your GnuPG key. You can acquire this by clicking on the GnuPG key link at the bottom left of the screen. Copy the entirety of the key and navigate to the Edit profile view (My Profile on the left -&gt; Edit profile in the top right corner). Paste the key into the GnuPG key field and click submit."
 msgstr ""
 
 #: View/Pages/doc/user_management.ctp:45
@@ -10157,12 +10157,12 @@ msgstr ""
 
 #: View/Users/admin_add.ctp:70
 #: View/Users/admin_edit.ctp:64
-msgid "GPG key"
+msgid "GnuPG key"
 msgstr ""
 
 #: View/Users/admin_add.ctp:70
 #: View/Users/admin_edit.ctp:64
-msgid "Paste the user's GnuPG key here or try to retrieve it from the MIT key server by clicking on \"Fetch GPG key\" below."
+msgid "Paste the user's GnuPG key here or try to retrieve it from the MIT key server by clicking on \"Fetch GnuPG key\" below."
 msgstr ""
 
 #: View/Users/admin_add.ctp:72
@@ -10173,7 +10173,7 @@ msgstr ""
 #: View/Users/admin_add.ctp:72
 #: View/Users/admin_edit.ctp:66
 #: View/Users/edit.ctp:25
-msgid "Fetch GPG key"
+msgid "Fetch GnuPG key"
 msgstr ""
 
 #: View/Users/admin_add.ctp:74
@@ -10238,7 +10238,7 @@ msgid "You can then specify (if eligible) what the e-mail address of the target 
 msgstr ""
 
 #: View/Users/admin_email.ctp:12
-msgid "In the case of a new user, you can specify the future user's gpg key, to send his/her new key in an encrypted e-mail."
+msgid "In the case of a new user, you can specify the future user's GnuPG key, to send his/her new key in an encrypted e-mail."
 msgstr ""
 
 #: View/Users/admin_email.ctp:13
@@ -10355,7 +10355,7 @@ msgid "Password change"
 msgstr ""
 
 #: View/Users/check_and_correct_pgps.ctp:2
-msgid "Failed GPGs?"
+msgid "Failed GnuPGs?"
 msgstr ""
 
 #: View/Users/check_and_correct_pgps.ctp:4
@@ -10481,7 +10481,7 @@ msgid "Certificates validation"
 msgstr ""
 
 #: View/Users/verify_g_p_g.ctp:2
-msgid "GPG key validation"
+msgid "GnuPG key validation"
 msgstr ""
 
 #: View/Users/view.ctp:45
