@@ -804,7 +804,7 @@ class Server extends AppModel {
 					'branch' => 1,
 					'binary' => array(
 							'level' => 2,
-							'description' => 'The location of the GPG executable. If you would like to use a different gpg executable than /usr/bin/gpg, you can set it here. If the default is fine, just keep the setting suggested by MISP.',
+							'description' => 'The location of the GnuPG executable. If you would like to use a different GnuPG executable than /usr/bin/gpg, you can set it here. If the default is fine, just keep the setting suggested by MISP.',
 							'value' => '/usr/bin/gpg',
 							'errorMessage' => '',
 							'test' => 'testForGPGBinary',
@@ -828,7 +828,7 @@ class Server extends AppModel {
                     ),
                     'sign' => array(
                             'level' => 2,
-                            'description' => 'Enable the signing of GPG emails. By default, GPG emails are signed',
+                            'description' => 'Enable the signing of GnuPG emails. By default, GnuPG emails are signed',
                             'value' => 'true',
                             'errorMessage' => '',
                             'test' => 'testBool',
@@ -853,7 +853,7 @@ class Server extends AppModel {
 					),
 					'homedir' => array(
 							'level' => 0,
-							'description' => 'The location of the GPG homedir.',
+							'description' => 'The location of the GnuPG homedir.',
 							'value' => '',
 							'errorMessage' => '',
 							'test' => 'testForEmpty',
