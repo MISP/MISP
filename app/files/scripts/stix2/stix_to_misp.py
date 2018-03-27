@@ -24,6 +24,7 @@ class StixParser():
     def __init__(self):
         self.misp_event = pymisp.MISPEvent()
         self.event = []
+        self.misp_event['Galaxy'] = []
 
     def loadEvent(self, args, pathname):
         # try:
@@ -91,7 +92,14 @@ class StixParser():
         for o in self.event:
             object_type = o._type
             labels = o.get('labels')
-            if object_type in ('observed-data', 'indicator'):
+            if object_type in ('attack-pattern', 'course-of-action', 'intrusion-set', 'malware', 'threat-actor', 'tool'):
+                self.parse_galaxy(o, labels)
+            elif 'x-misp-objecct' in object_type:
+                if 'from_object' in labels:
+                    self.parse_custom_object(o, labels)
+                else:
+                    self.parse_custom_attribute(o. labels)
+            else:
                 if 'from_object' in labels:
                     self.parse_object(o, labels)
                 else:
@@ -121,8 +129,61 @@ class StixParser():
                 link['value'] = e.get('url')
                 self.misp_event.add_attribute(**link)
 
+    def parse_galaxy(self, o, labels):
+        galaxy_type = self.get_misp_type(labels)
+        tag = labels[1]
+        value = tag.split(':')[1].split('=')[1]
+        galaxy_description, cluster_description = o.get('description').split('|')
+        galaxy = {'type': galaxy_type, 'name': o.get('name'), 'description': galaxy_description,
+                  'GalaxyCluster': [{'type': galaxy_type, 'value':value, 'tag_name': tag,
+                                     'description': cluster_description}]}
+        self.misp_event['Galaxy'].append(galaxy)
+
+    def parse_custom_object(self, o):
+        name = o.get('type').split('x-misp-object-')[1]
+        timestamp = self.getTimestampfromDate(o.get('x_misp_timestamp'))
+        category = o.get('category')
+        attributes = []
+        values = o.get('x_misp_values')
+        for v in values:
+            attribute_type, object_relation = v.split('_')
+            attribute = {'type': attribute_type, 'value': value.get(v),
+                         'object_relation': object_relation}
+            attributes.append(attribute)
+        misp_object = {'name': name, 'timestamp': timestamp, 'meta-category': category,
+                       'Attribute': attributes}
+        self.misp_event.add_object(**misp_object)
+
+    def parse_custom_attribute(self, o, labels):
+        attribute_type = o.get('type').split('x-misp-object-')[1]
+        timestamp = self.getTimestampfromDate(o.get('x_misp_timestamp'))
+        to_ids = bool(labels[1].split('=')[1])
+        value = o.get('x_misp_value')
+        category = self.get_misp_category(labels)
+        attribute = {'type': attribute_type, 'timestamp': timestamp, 'to_ids': to_ids,
+                     'value': value, 'category': category}
+        self.misp_event.add_attribute(**attribute)
+
     def parse_object(self, o, labels):
-        object_type = o.get('type')
+        object_type = self.get_misp_type(labels)
+        object_category = self.get_misp_category(labels)
+        stix_type = o._type
+        if stix_type == 'indicator':
+            misp_object = {'name': object_type, 'meta-category': object_category}
+            pattern = o.get('pattern').split('AND')
+            pattern[0] = pattern[0][2:]
+            pattern[-1] = pattern[-1][:-2]
+            attributes = self.parse_pattern_from_object(pattern, stix_type, labels)
+        if stix_type == 'observed-data':
+            misp_object = {'name': object_type, 'meta-category': object_category}
+            observable = o.get('objects')
+            attributes = self.parse_observable_from_object(observable, stix_type, labels)
+        misp_object['to_ids'] = bool(labels[1].split('=')[1])
+        self.misp_event.add_object(**misp_object)
+
+    def parse_pattern_from_object(pattern, stix_type, labels):
+        if 'malware-sample' in labels:
+            self.parse_malware_sample()
 
     def parse_attribute(self, o, labels):
         attribute_type = self.get_misp_type(labels)
@@ -132,11 +193,11 @@ class StixParser():
         if stix_type == 'indicator':
             o_date = o.get('valid_from')
             pattern = o.get('pattern')
-            value = self.resolve_pattern(pattern)
+            value = self.parse_pattern(pattern)
         else:
             o_date = o.get('first_observed')
             observable = o.get('objects')
-            self.resolve_observable(observable)
+            value = self.parse_observable(observable, attribute_type)
         attribute['timestamp'] = self.getTimestampfromDate(o_date)
         try:
             attribute['value'] = value
@@ -166,7 +227,7 @@ class StixParser():
         return labels[1].split('=')[1][1:-1]
 
     @staticmethod
-    def resolve_pattern(pattern):
+    def parse_pattern(pattern):
         if ' AND ' in pattern:
             pattern_parts = pattern.split(' AND ')
             if len(pattern_parts) == 3:
@@ -180,8 +241,11 @@ class StixParser():
             return pattern.split(' = ')[1][1:-1]
 
     @staticmethod
-    def resolve_observable(observable):
-        print(observable)
+    def parse_observable(observable, attribute_type):
+        obj0 = observable.get('0')
+        if attribute_type in misp_simple_mapping:
+            return obj0.get(misp_simple_mapping[attribute_type])
+
 
 def main(args):
     pathname = os.path.dirname(args[0])
