@@ -1,29 +1,77 @@
+def define_address_type(address):
+    if ':' in address:
+        return 'ipv6-addr'
+    else:
+        return 'ipv4-addr'
+
+def observable_domain(_, attribute_value):
+    return {'0': {'type': 'domain-name', 'value': attribute_value}}
+
+def pattern_domain(_, attribute_value):
+    return "domain-name:value = '{}'".format(attribute_value)
+
+def observable_domain_ip(_, attribute_value):
+    address_type = define_address_type(attribute_value)
+    domain_value, ip_value = attribute_value.split('|')
+    domain = observable_domain(_, domain_value)
+    domain['0']['resolves_to_refs'] = '1'
+    domain['1'] = {'type': address_type, 'value': ip_value}
+    return domain
+
+def pattern_domain_ip(_, attribute_value):
+    address_type = define_address_type(attribute_value)
+    domain_value, ip_value = attribute_value.split('|')
+    domain = pattern_domain(_, domain_value)
+    domain += " AND domain-name:resolves_to_refs[*].value = '{}'".format(ip_value)
+    return domain
+
+def observable_file(_, attribute_value):
+    return {'0': {'type': 'file', 'name': attribute_value}}
+
+def pattern_file(_, attribute_value):
+    return "file:name = '{}'".format(attribute_value)
+
+def observable_file_hash(attribute_type, attribute_value):
+    _, hash_type = attribute_type.split('|')
+    value1, value2 = attribute_value.split('|')
+    return {'0': {'type': 'file', 'name': value1, 'hashes': {hash_type: value2}}}
+
+def pattern_file_hash(attribute_type, attribute_value):
+    _, hash_type = attribute_type.split('|')
+    value1, value2 = attribute_value.split('|')
+    return "file:name = '{0}' AND file:hashes.'{1}' = '{2}'".format(value1, hash_type, value2)
+
+def observable_ip(attribute_type, attribute_value):
+    ip_type = attribute_type.split('-')[1]
+    address_type = define_address_type(attribute_value)
+    return {'0': {'type': address_type, 'value': attribute_value},
+            '1': {'type': 'network-traffic', '{}_ref'.format(ip_type): '0', 'protocols': ['tcp']}}
+
+def pattern_ip(attribute_type, attribute_value):
+    ip_type = attribute_type.split('-')[1]
+    address_type = define_address_type(attribute_value)
+    return "network-traffic:{0}_ref.type = '{1}' AND network-traffic:{0}_ref.value = '{2}'".format(ip_type, address_type, attribute_value)
+
+def observable_hash(attribute_type, attribute_value):
+    return {'0': {'type': 'file', 'hashes': {attribute_type: attribute_value}}}
+
+def pattern_hash(attribute_type, attribute_value):
+    return "file:hashes.'{}' = '{}'".format(attribute_type, attribute_value)
+
 mispTypesMapping = {
     'vulnerability': {'source_name': 'cve', 'external_id': ''},
-    'md5': {'observable': {'0': {'type': 'file', 'hashes': ''}},
-            'pattern': 'file:hashes.\'md5\' = \'{0}\''},
-    'sha1': {'observable': {'0': {'type': 'file', 'hashes': ''}},
-             'pattern': 'file:hashes.\'sha1\' = \'{0}\''},
-    'sha256': {'observable': {'0': {'type': 'file', 'hashes': ''}},
-               'pattern': 'file:hashes.\'sha256\' = \'{0}\''},
-    'filename': {'observable': {'0': {'type': 'file', 'name': ''}},
-                 'pattern': 'file:name = \'{0}\''},
-    'filename|md5': {'observable': {'0': {'type': 'file', 'name': '', 'hashes': ''}},
-                     'pattern': 'file:name = \'{0}\' AND file:hashes.\'md5\' = \'{1}\''},
-    'filename|sha1': {'observable': {'0': {'type': 'file', 'name': '', 'hashes': ''}},
-                      'pattern': 'file:name = \'{0}\' AND file:hashes.\'sha1\' = \'{1}\''},
-    'filename|sha256': {'observable': {'0': {'type': 'file', 'name': '', 'hashes': ''}},
-                        'pattern': 'file:name = \'{0}\' AND file:hashes.\'sha256\' = \'{1}\''},
-    'ip-src': {'observable': {'0': {'type': '', 'value': ''}, '1': {'type': 'network-traffic', 'src_ref': '0', 'protocols': ['tcp']}},
-               'pattern': 'network-traffic:src_ref.type = \'{0}\' AND network-traffic:src_ref.value = \'{1}\''},
-    'ip-dst': {'observable': {'0': {'type': '', 'value': ''}, '1': {'type': 'network-traffic', 'dst_ref': '0', 'protocols': ['tcp']}},
-               'pattern': 'network-traffic:dst_ref.type = \'{0}\' AND network-traffic:dst_ref.value = \'{1}\''},
-    'hostname': {'observable': {'0': {'type': 'domain-name', 'value': ''}},
-                 'pattern': 'domain-name:value = \'{0}\''},
-    'domain': {'observable': {'0': {'type': 'domain-name', 'value': ''}},
-               'pattern': 'domain-name:value = \'{0}\''},
-    'domain|ip': {'observable': {'0': {'type': 'domain-name', 'value': '', 'resolves_to_refs': '1'}, '1': {'type': '', 'value': ''}},
-                  'pattern': 'domain-name:value = \'{0}\' AND domain-name:resolves_to_refs[*].value = \'{1}\''},
+    'md5': {'observable': observable_hash, 'pattern': pattern_hash},
+    'sha1': {'observable': observable_hash, 'pattern': pattern_hash},
+    'sha256': {'observable': observable_hash, 'pattern': pattern_hash},
+    'filename': {'observable': observable_file, 'pattern': pattern_file},
+    'filename|md5': {'observable': observable_file_hash, 'pattern': pattern_file_hash},
+    'filename|sha1': {'observable': observable_file_hash, 'pattern': pattern_file_hash},
+    'filename|sha256': {'observable': observable_file_hash, 'pattern': pattern_file_hash},
+    'ip-src': {'observable': observable_ip, 'pattern': pattern_ip},
+    'ip-dst': {'observable': observable_ip, 'pattern': pattern_ip},
+    'hostname': {'observable': observable_domain, 'pattern': pattern_domain},
+    'domain': {'observable': observable_domain, 'pattern': pattern_domain},
+    'domain|ip': {'observable': observable_domain_ip, 'pattern': pattern_domain_ip},
     'email-src': {'observable': {'0': {'type': 'email-addr', 'value': ''}, '1': {'type': 'email-message', 'from_ref': '0', 'is_multipart': 'false'}},
                   'pattern': 'email-message:from_ref = \'{0}\''},
     'email-dst': {'observable': {'0': {'type': 'email-addr', 'value': ''}, '1': {'type': 'email-message', 'to_refs': ['0'], 'is_multipart': 'false'}},
@@ -45,50 +93,28 @@ mispTypesMapping = {
               'pattern': 'mutex:name = \'{0}\''},
     'uri': {'observable': {'0': {'type': 'url', 'value': ''}},
             'pattern': 'url:value = \'{0}\''},
-    'authentihash': {'observable': {'0': {'type': 'file', 'hashes': ''}},
-                     'pattern': 'file:hashes.\'authentihash\' = \'{0}\''},
-    'ssdeep': {'observable': {'0': {'type': 'file', 'hashes': ''}},
-               'pattern': 'file:hashes.\'ssdeep\' = \'{0}\''},
-    'imphash': {'observable': {'0': {'type': 'file', 'hashes': ''}},
-                'pattern': 'file:hashes.\'imphash\' = \'{0}\''},
-    'pehash': {'observable': {'0': {'type': 'file', 'hashes': ''}},
-               'pattern': 'file:hashes.\'pehash\' = \'{0}\''},
-    'impfuzzy': {'observable': {'0': {'type': 'file', 'hashes': ''}},
-                 'pattern': 'file:hashes.\'impfuzzy\' = \'{0}\''},
-    'sha224': {'observable': {'0': {'type': 'file', 'hashes': ''}},
-               'pattern': 'file:hashes.\'sha224\' = \'{0}\''},
-    'sha384': {'observable': {'0': {'type': 'file', 'hashes': ''}},
-               'pattern': 'file:hashes.\'sha384\' = \'{0}\''},
-    'sha512': {'observable': {'0': {'type': 'file', 'hashes': ''}},
-               'pattern': 'file:hashes.\'sha512\' = \'{0}\''},
-    'sha512/224': {'observable': {'0': {'type': 'file', 'hashes': ''}},
-                   'pattern': 'file:hashes.\'sha512/224\' = \'{0}\''},
-    'sha512/256': {'observable': {'0': {'type': 'file', 'hashes': ''}},
-                   'pattern': 'file:hashes.\'sha512/256\' = \'{0}\''},
-    'tlsh': {'observable': {'0': {'type': 'file', 'hashes': ''}},
-             'pattern': 'file:hashes.\'tlsh\' = \'{0}\''},
-    'filename|authentihash': {'observable': {'0': {'type': 'file', 'name': '', 'hashes': ''}},
-                              'pattern': 'file:name = \'{0}\' AND file:hashes.\'authentihash\' = \'{1}\''},
-    'filename|ssdeep': {'observable': {'0': {'type': 'file', 'name': '', 'hashes': ''}},
-                        'pattern': 'file:name = \'{0}\' AND file:hashes.\'ssdeep\' = \'{1}\''},
-    'filename|imphash': {'observable': {'0': {'type': 'file', 'name': '', 'hashes': ''}},
-                         'pattern': 'file:name = \'{0}\' AND file:hashes.\'imphash\' = \'{1}\''},
-    'filename|impfuzzy': {'observable': {'0': {'type': 'file', 'name': '', 'hashes': ''}},
-                          'pattern': 'file:name = \'{0}\' AND file:hashes.\'impfuzzy\' = \'{1}\''},
-    'filename|pehash': {'observable': {'0': {'type': 'file', 'name': '', 'hashes': ''}},
-                        'pattern': 'file:name = \'{0}\' AND file:hashes.\'pehash\' = \'{1}\''},
-    'filename|sha224': {'observable': {'0': {'type': 'file', 'name': '', 'hashes': ''}},
-                        'pattern': 'file:name = \'{0}\' AND file:hashes.\'sha224\' = \'{1}\''},
-    'filename|sha384': {'observable': {'0': {'type': 'file', 'name': '', 'hashes': ''}},
-                        'pattern': 'file:name = \'{0}\' AND file:hashes.\'sha384\' = \'{1}\''},
-    'filename|sha512': {'observable': {'0': {'type': 'file', 'name': '', 'hashes': ''}},
-                        'pattern': 'file:name = \'{0}\' AND file:hashes.\'sha512\' = \'{1}\''},
-    'filename|sha512/224': {'observable': {'0': {'type': 'file', 'name': '', 'hashes': ''}},
-                            'pattern': 'file:name = \'{0}\' AND file:hashes.\'sha512/224\' = \'{1}\''},
-    'filename|sha512/256': {'observable': {'0': {'type': 'file', 'name': '', 'hashes': ''}},
-                            'pattern': 'file:name = \'{0}\' AND file:hashes.\'sha512/256\' = \'{1}\''},
-    'filename|tlsh': {'observable': {'0': {'type': 'file', 'name': '', 'hashes': ''}},
-                      'pattern': 'file:name = \'{0}\' AND file:hashes.\'tlsh\' = \'{1}\''},
+    'authentihash': {'observable': observable_hash, 'pattern': pattern_hash},
+    'ssdeep': {'observable': observable_hash, 'pattern': pattern_hash},
+    'imphash': {'observable': observable_hash, 'pattern': pattern_hash},
+    'pehash': {'observable': observable_hash, 'pattern': pattern_hash},
+    'impfuzzy': {'observable': observable_hash, 'pattern': pattern_hash},
+    'sha224': {'observable': observable_hash, 'pattern': pattern_hash},
+    'sha384': {'observable': observable_hash, 'pattern': pattern_hash},
+    'sha512': {'observable': observable_hash, 'pattern': pattern_hash},
+    'sha512/224': {'observable': observable_hash, 'pattern': pattern_hash},
+    'sha512/256': {'observable': observable_hash, 'pattern': pattern_hash},
+    'tlsh': {'observable': observable_hash, 'pattern': pattern_hash},
+    'filename|authentihash': {'observable': observable_file_hash, 'pattern': pattern_file_hash},
+    'filename|ssdeep': {'observable': observable_file_hash, 'pattern': pattern_file_hash},
+    'filename|imphash': {'observable': observable_file_hash, 'pattern': pattern_file_hash},
+    'filename|impfuzzy': {'observable': observable_file_hash, 'pattern': pattern_file_hash},
+    'filename|pehash': {'observable': observable_file_hash, 'pattern': pattern_file_hash},
+    'filename|sha224': {'observable': observable_file_hash, 'pattern': pattern_file_hash},
+    'filename|sha384': {'observable': observable_file_hash, 'pattern': pattern_file_hash},
+    'filename|sha512': {'observable': observable_file_hash, 'pattern': pattern_file_hash},
+    'filename|sha512/224': {'observable': observable_file_hash, 'pattern': pattern_file_hash},
+    'filename|sha512/256': {'observable': observable_file_hash, 'pattern': pattern_file_hash},
+    'filename|tlsh': {'observable': observable_file_hash, 'pattern': pattern_file_hash},
     'x509-fingerprint-sha1': {'observable': {'0': {'type': 'x509-certificate', 'hashes': {'sha1': ''}}},
                               'pattern': 'x509-certificate:hashes = \'{0}\''},
     'port': {'observable': {'0': {'type': 'network-traffic', 'dst_port': '', 'protpocols': []}},
@@ -165,4 +191,4 @@ objectTypes = {'text': {'x509': {'subject': 'subject', 'issuer': 'issuer', 'pubk
               'regkey': 'key'
 }
 
-defineProtocols = {'80': 'http', '443': 'https'} 
+defineProtocols = {'80': 'http', '443': 'https'}
