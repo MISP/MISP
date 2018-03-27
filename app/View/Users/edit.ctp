@@ -20,9 +20,9 @@
 	?>
 		<div class="input clear"></div>
 	<?php
-		echo $this->Form->input('gpgkey', array('label' => 'GPG key', 'div' => 'clear', 'class' => 'input-xxlarge'));
+		echo $this->Form->input('gpgkey', array('label' => 'GnuPG key', 'div' => 'clear', 'class' => 'input-xxlarge'));
 		?>
-			<div class="clear"><span role="button" tabindex="0" aria-label="<?php echo __('Fetch GnuPG key');?>" onClick="lookupPGPKey('UserEmail');" class="btn btn-inverse" style="margin-bottom:10px;"><?php echo __('Fetch GPG key');?></span></div>
+			<div class="clear"><span role="button" tabindex="0" aria-label="<?php echo __('Fetch GnuPG key');?>" onClick="lookupPGPKey('UserEmail');" class="btn btn-inverse" style="margin-bottom:10px;"><?php echo __('Fetch GnuPG key');?></span></div>
 		<?php
 		if (Configure::read('SMIME.enabled')) echo $this->Form->input('certif_public', array('label' => __('SMIME Public certificate (PEM format)'), 'div' => 'clear', 'class' => 'input-xxlarge'));
 		echo $this->Form->input('autoalert', array('label' => __('Receive alerts when events are published'), 'type' => 'checkbox'));
