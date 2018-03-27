@@ -2649,16 +2649,16 @@ msgstr ""
 
 #: View/Elements/healthElements/diagnostics.ctp:324;326
 #: View/Pages/administration.ctp:17
-msgid "Verify PGP keys"
+msgid "Verify GnuPG keys"
 msgstr ""
 
 #: View/Elements/healthElements/diagnostics.ctp:325
-msgid "Run a full validation of all PGP keys within this instance's userbase. The script will try to identify possible issues with each key and report back on the results."
+msgid "Run a full validation of all GnuPG keys within this instance's userbase. The script will try to identify possible issues with each key and report back on the results."
 msgstr ""
 
 #: View/Elements/healthElements/diagnostics.ctp:326
 #: View/Pages/administration.ctp:17
-msgid "Check whether every user's PGP key is usable"
+msgid "Check whether every user's GnuPG key is usable"
 msgstr ""
 
 #: View/Elements/healthElements/diagnostics.ctp:327
@@ -6510,7 +6510,7 @@ msgid "Contacting a user"
 msgstr ""
 
 #: View/Pages/doc/administration.ctp:130
-msgid "Site admins can use the \"Contact users\" feature to send all or an individual user an e-mail. Users that have a PGP key set will receive their e-mails encrypted. When clicking this button on the left, you'll be presented with a form that allows you to specify the type of the e-mail, who it should reach and what the content is using the following options"
+msgid "Site admins can use the \"Contact users\" feature to send all or an individual user an e-mail. Users that have a GnuPG key set will receive their e-mails encrypted. When clicking this button on the left, you'll be presented with a form that allows you to specify the type of the e-mail, who it should reach and what the content is using the following options"
 msgstr ""
 
 #: View/Pages/doc/administration.ctp:131
@@ -6536,7 +6536,7 @@ msgid "Recipient"
 msgstr ""
 
 #: View/Pages/doc/administration.ctp:134
-msgid "The recipient toggle lets you contact all your users, a single user (which creates a second drop-down list with all the e-mail addresses of the users) and potential future users (which opens up a text field for the e-mail address and a text area field for a PGP public key)."
+msgid "The recipient toggle lets you contact all your users, a single user (which creates a second drop-down list with all the e-mail addresses of the users) and potential future users (which opens up a text field for the e-mail address and a text area field for a GnuPG public key)."
 msgstr ""
 
 #: View/Pages/doc/administration.ctp:135;136
@@ -6558,7 +6558,7 @@ msgid "This is available for password resets, you can either write your own mess
 msgstr ""
 
 #: View/Pages/doc/administration.ctp:139
-msgid "Keep in mind that all e-mails sent through this system will, in addition to your own message, will be signed in the name of the instance's host organisation's support team, will include the e-mail address of the instance's support (if the contact field is set in the bootstrap file), and will include the instance's PGP signature for users that have a PGP key set (and thus are eligible for an encrypted e-mail)."
+msgid "Keep in mind that all e-mails sent through this system will, in addition to your own message, will be signed in the name of the instance's host organisation's support team, will include the e-mail address of the instance's support (if the contact field is set in the bootstrap file), and will include the instance's GnuPG signature for users that have a GnuPG key set (and thus are eligible for an encrypted e-mail)."
 msgstr ""
 
 #: View/Pages/doc/administration.ctp:141
@@ -7536,7 +7536,7 @@ msgid "Turning this feature on will allow you to receive e-mails addressed to yo
 msgstr ""
 
 #: View/Pages/doc/user_management.ctp:44
-msgid "In order for the system to be able to encrypt the messages that you send through it, it needs to know your GPG key. You can acquire this by clicking on the PGP/GPG key link at the bottom left of the screen. Copy the entirety of the key and navigate to the Edit profile view (My Profile on the left -&gt; Edit profile in the top right corner). Paste the key into the Gpgkey field and click submit."
+msgid "In order for the system to be able to encrypt the messages that you send through it, it needs to know your GPG key. You can acquire this by clicking on the GnuPG key link at the bottom left of the screen. Copy the entirety of the key and navigate to the Edit profile view (My Profile on the left -&gt; Edit profile in the top right corner). Paste the key into the Gpgkey field and click submit."
 msgstr ""
 
 #: View/Pages/doc/user_management.ctp:45
@@ -10162,12 +10162,12 @@ msgstr ""
 
 #: View/Users/admin_add.ctp:70
 #: View/Users/admin_edit.ctp:64
-msgid "Paste the user's PGP key here or try to retrieve it from the MIT key server by clicking on \"Fetch GPG key\" below."
+msgid "Paste the user's GnuPG key here or try to retrieve it from the MIT key server by clicking on \"Fetch GPG key\" below."
 msgstr ""
 
 #: View/Users/admin_add.ctp:72
 #: View/Users/admin_edit.ctp:66
-msgid "Fetch the user's PGP key"
+msgid "Fetch the user's GnuPG key"
 msgstr ""
 
 #: View/Users/admin_add.ctp:72
@@ -10328,17 +10328,17 @@ msgstr ""
 
 #: View/Users/admin_view.ctp:67
 #: View/Users/view.ctp:60
-msgid "PGP key"
+msgid "GnuPG key"
 msgstr ""
 
 #: View/Users/admin_view.ctp:74
 #: View/Users/view.ctp:67
-msgid "PGP fingerprint"
+msgid "GnuPG fingerprint"
 msgstr ""
 
 #: View/Users/admin_view.ctp:80
 #: View/Users/view.ctp:73
-msgid "PGP status"
+msgid "GnuPG status"
 msgstr ""
 
 #: View/Users/admin_view.ctp:90
@@ -10363,7 +10363,7 @@ msgid "No failed composites"
 msgstr ""
 
 #: View/Users/edit.ctp:25
-msgid "Fetch PGP key"
+msgid "Fetch GnuPG key"
 msgstr ""
 
 #: View/Users/edit.ctp:27
