@@ -1268,7 +1268,7 @@ function simplePopup(url) {
 		error:function() {
 			$(".loading").hide();
 			$("#gray_out").fadeOut();
-			showMessage('fail', 'Could not fetch the given PGP key.');
+			showMessage('fail', 'Could not fetch the given GnuPG key.');
 		},
 		url: url,
 	});

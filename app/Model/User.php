@@ -123,7 +123,7 @@ class User extends AppModel {
 		'gpgkey' => array(
 			'gpgvalidation' => array(
 				'rule' => array('validateGpgkey'),
-				'message' => 'GPG key not valid, please enter a valid key.',
+				'message' => 'GnuPG key not valid, please enter a valid key.',
 			),
 		),
 		'certif_public' => array(
@@ -290,7 +290,7 @@ class User extends AppModel {
 		return true;
 	}
 
-	// Checks if the GPG key is a valid key, but also import it in the keychain.
+	// Checks if the GnuPG key is a valid key, but also import it in the keychain.
 	// TODO: this will NOT fail on keys that can only be used for signing but not encryption!
 	// the method in verifyUsers will fail in that case.
 	public function validateGpgkey($check) {
@@ -499,7 +499,7 @@ class User extends AppModel {
 				$sortedKeys['valid']++;
 			}
 			if (!$sortedKeys['valid']) {
-				$result[2] = 'The user\'s PGP key does not include a valid subkey that could be used for encryption.';
+				$result[2] = 'The user\'s GnuPG key does not include a valid subkey that could be used for encryption.';
 				if ($sortedKeys['expired']) $result[2] .= ' Found ' . $sortedKeys['expired'] . ' subkey(s) that have expired.';
 				if ($sortedKeys['noEncrypt']) $result[2] .= ' Found ' . $sortedKeys['noEncrypt'] . ' subkey(s) that are sign only.';
 				$result[0] = true;
@@ -765,8 +765,8 @@ class User extends AppModel {
 					$failureReason = " the message could not be encrypted because the provided key is either expired or cannot be used for encryption.";
 				}
 			} catch (Exception $e) {
-				// despite the user having a PGP key and the signing already succeeding earlier, we get an exception. This must mean that there is an issue with the user's key.
-				$failureReason = " the message could not be encrypted because there was an issue with the user's PGP key. The following error message was returned by gpg: " . $e->getMessage();
+				// despite the user having a GnuPG key and the signing already succeeding earlier, we get an exception. This must mean that there is an issue with the user's key.
+				$failureReason = " the message could not be encrypted because there was an issue with the user's GnuPG key. The following error message was returned by gpg: " . $e->getMessage();
 				$this->log($e->getMessage());
 				$failed = true;
 			}

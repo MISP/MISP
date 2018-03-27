@@ -1,5 +1,5 @@
 <div class="composites index">
-	<h2><?php echo __('Failed GPGs?');?></h2><?php
+	<h2><?php echo __('Failed GnuPGs?');?></h2><?php
 if (0 == count($fails)):?>
 	<p><?php echo __('No failed composites');?></p>
 	<?php else:?>
