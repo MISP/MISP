@@ -211,6 +211,7 @@ class EventGraph {
 
 	physics_state(state) {
 		var that = eventGraph;
+		that.network_options.physics.enabled = state;
 		that.network.setOptions({physics: { enabled: state} })
 	}
 
