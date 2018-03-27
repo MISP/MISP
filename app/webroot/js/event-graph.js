@@ -550,6 +550,9 @@ class MispInteraction {
 		var edge_id = edgeData.edges[0];
 		var relation_id = edge_id;
 		deleteObject('object_references', 'delete', relation_id, scope_id);
+		if (callback !== undefined) {
+			callback();
+		}
 	}
 	
 	add_reference(edgeData, callback) {
