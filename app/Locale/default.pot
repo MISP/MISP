@@ -6393,7 +6393,7 @@ msgid "Nids ID, not yet implemented."
 msgstr ""
 
 #: View/Pages/doc/administration.ctp:96;127
-msgid "GNuPGkey"
+msgid "GnuPGkey"
 msgstr ""
 
 #: View/Pages/doc/administration.ctp:96;127
