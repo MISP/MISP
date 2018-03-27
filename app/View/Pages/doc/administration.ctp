@@ -31,11 +31,11 @@
 	<ul>
 		<li><b><?php echo __('Overview');?></b>: <?php echo __('General overview of the current state of your MISP installation');?></li>
 		<li><b><?php echo __('MISP settings');?></b>: <?php echo __('Basic MISP settings. This includes the way MISP handles the default settings for distribution settings, whether background jobs are enabled, etc');?></li>
-		<li><b><?php echo __('GnuPG settings');?></b>: <?php echo __('GPG related settings.');?></li>
+		<li><b><?php echo __('GnuPG settings');?></b>: <?php echo __('GnuPG related settings.');?></li>
 		<li><b><?php echo __('Proxy settings');?></b>: <?php echo __('HTTP proxy related settings.');?></li>
 		<li><b><?php echo __('Security settings');?></b>: <?php echo __('Settings controlling the brute-force protection and the application\'s salt key.');?></li>
 		<li><b><?php echo __('Misc settings');?></b>: <?php echo __('You change the debug options here, but make sure that debug is always disabled on a production system.');?></li>
-		<li><b><?php echo __('Diagnostics');?></b>: <?php echo __('The diagnostics tool checks if all directories that MISP uses to store data are writeable by the apache user. Also, the tool checks whether the STIX libraries and GPG are working as intended.');?></li>
+		<li><b><?php echo __('Diagnostics');?></b>: <?php echo __('The diagnostics tool checks if all directories that MISP uses to store data are writeable by the apache user. Also, the tool checks whether the STIX libraries and GnuPG are working as intended.');?></li>
 		<li><b><?php echo __('Workers');?></b>: <?php echo __('Shows the background workers (if enabled) and shows a warning if they are not running. Admins can also restart the workers here.');?></li>
 		<li><b><?php echo __('Download report');?></b>: <?php echo __('Download a report in JSON format, compiled of all of the settings visible in the tool.');?></li>
 	</ul>
@@ -93,7 +93,7 @@
 		<li><b><?php echo __('Receive alerts from "contact reporter" requests');?>:</b> <?php echo __('This option will subscribe the new user to e-mails that are generated when another user tries to get in touch with an event\'s reporting organisation that matches that of the new user.');?><br /></li>
 		<li><b><?php echo __('Authkey');?>:</b> <?php echo __('This is assigned automatically and is the unique authentication key of the user (he/she will be able to reset this and receive a new key). It is used for exports and for connecting one server to another, but it requires the user to be assigned to a role that has auth permission enabled.');?><br /></li>
 		<li><b><?php echo __('NIDS Sid');?>:</b> <?php echo __('Nids ID, not yet implemented.');?><br /></li>
-		<li><b><?php echo __('Gpgkey');?>:</b> <?php echo __('The key used for encrypting e-mails sent through the system.');?> <br /></li>
+		<li><b><?php echo __('GnuPGkey');?>:</b> <?php echo __('The key used for encrypting e-mails sent through the system.');?> <br /></li>
 	</ul>
 	<h3><?php echo __('Listing all users');?>:</h3>
 	<?php echo __('To list all current users of the system, just click on List Users under the administration menu to the left. A view will be loaded with a list of all users and the following columns of information');?>:<br />
@@ -103,8 +103,8 @@
 		<li><b>Org:</b> <?php echo __('The organisation that the user belongs to.');?><br /></li>
 		<li><b><?php echo __('Email');?>:</b> <?php echo __('The e-mail address (and login name) of the user.');?><br /></li>
 		<li><b><?php echo __('Autoalert');?>:</b> <?php echo __('Shows whether the user has subscribed to auto-alerts and is always receiving the mass-emails regarding newly published events that he/she is eligible for.');?><br /></li>
-		<li><b>ontactalert:</b> <?php echo __('Shows whether the user has the subscription to contact reporter e-mails directed at his/her organisation turned on or off.');?><br /></li>
-		<li><b>Gpgkey:</b> <?php echo __('Shows whether the user has entered a Gpgkey yet.');?><br /></li>
+		<li><b>Contactalert:</b> <?php echo __('Shows whether the user has the subscription to contact reporter e-mails directed at his/her organisation turned on or off.');?><br /></li>
+		<li><b>GnuPGkey:</b> <?php echo __('Shows whether the user has entered a GnuPGkey yet.');?><br /></li>
 		<li><b>Nids Sid:</b> <?php echo __('Shows the currently assigned NIDS ID.');?><br /></li>
 		<li><b><?php echo __('Termsaccepted');?>:</b> <?php echo __('This flag indicates whether the user has accepted the terms of use or not.');?><br /></li>
 		<li><b><?php echo __('Newsread');?>:</b> <?php echo __('The last point in time when the user has looked at the news section of the system.');?><br /></li>
@@ -124,7 +124,7 @@
 		<li><b><?php echo __('NIDS Sid');?>:</b> <?php echo __('Nids ID, not yet implemented.');?><br /></li>
 		<li><b><?php echo __('Termsaccepted');?>:</b> <?php echo __('Indicates whether the user has accepted the terms of use already or not.');?><br /></li>
 		<li><b><?php echo __('Change Password');?>:</b> <?php echo __('Setting this flag will require the user to change password after the next login.');?><br /></li>
-		<li><b><?php echo __('Gpgkey');?>:</b> <?php echo __('The key used for encrypting e-mails sent through the system.');?> <br /></li>
+		<li><b><?php echo __('GnuPGkey');?>:</b> <?php echo __('The key used for encrypting e-mails sent through the system.');?> <br /></li>
 	</ul>
 	<h3><?php echo __('Contacting a user');?>:</h3>
 	<?php echo __('Site admins can use the "Contact users" feature to send all or an individual user an e-mail. Users that have a GnuPG key set will receive their e-mails encrypted. When clicking this button on the left, you\'ll be presented with a form that allows you to specify the type of the e-mail, who it should reach and what the content is using the following options');?>:<br />
