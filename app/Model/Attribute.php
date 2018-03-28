@@ -386,6 +386,8 @@ class Attribute extends AppModel {
         'financial' => array('btc', 'iban', 'bic', 'bank-account-nr', 'aba-rtn', 'bin', 'cc-number', 'prtn', 'phone-number')
 	);
 
+	private $__fTool = false;
+
 	public $order = array("Attribute.event_id" => "DESC");
 
 	public $validate = array(
@@ -1213,7 +1215,6 @@ class Attribute extends AppModel {
 			case 'sha512':
 			case 'sha512/224':
 			case 'sha512/256':
-			case 'domain':
 			case 'hostname':
 			case 'pehash':
 			case 'authentihash':
@@ -1225,8 +1226,14 @@ class Attribute extends AppModel {
 			case 'whois-registrant-email':
 				$value = strtolower($value);
 				break;
+			case 'domain':
+				$value = strtolower($value);
+				$value = trim($value, '.');
+				break;
 			case 'domain|ip':
+				$value = strtolower($value);
 				$parts = explode('|', $value);
+				$parts[0] = trim($parts[0], '.');
 				if (filter_var($parts[1], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
 					// convert IPv6 address to compressed format
 					$parts[1] = inet_ntop(inet_pton($value));
@@ -3262,5 +3269,14 @@ class Attribute extends AppModel {
 			}
 		}
 		return true;
+	}
+	public function attachValidationWarnings($adata) {
+		if (!$this->__fTool) {
+				$this->__fTool = new FinancialTool();
+		}
+		if (!$this->__fTool->validateRouter($adata['type'], $adata['value'])) {
+			$adata['validationIssue'] = true;
+		}
+		return $adata;
 	}
 }

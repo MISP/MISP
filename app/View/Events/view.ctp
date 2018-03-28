@@ -164,6 +164,11 @@
 				<dd class="green bold published <?php echo ($event['Event']['published'] == 0) ? 'hidden' : ''; ?>"><?php echo __('Yes');?></dd>
 				<dt><?php echo __('#Attributes');?></dt>
 				<dd><?php echo h($attribute_count);?></dd>
+				<dt><?php echo __('Last change');?></dt>
+				<dd>
+					<?php echo date('Y/m/d h:i:s', $event['Event']['timestamp']);; ?>
+					&nbsp;
+				</dd>
 				<dt><?php echo __('Sightings');?></dt>
 				<dd style="word-wrap: break-word;">
 						<span id="eventSightingCount" class="bold sightingsCounter" data-toggle="popover" data-trigger="hover" data-content="<?php echo $sightingPopover; ?>"><?php echo count($event['Sighting']); ?></span>

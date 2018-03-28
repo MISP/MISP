@@ -14,7 +14,7 @@ and how important these are to the users.
 
 ## Reporting security vulnerabilities
 
-Reporting security vulnerabilities is of great importance for us, as MISP is used in multiple critical infrastructures. In the case of a security vulnerability report, we ask the reporter to directly report to [CIRCL](https://www.circl.lu/contact/), encrypting the report with the PGP key: CA57 2205 C002 4E06 BA70 BE89 EAAD CFFC 22BD 4CD5. We usually fix reported and confirmed security vulnerabilities in less than 48 hours, followed by a software release containing the fixes within the following days. If you report security vulnerabilities, don't forget to tell us if and how you want to be acknowledged and if you already requested CVE(s). If not, we will request the CVE directly.
+Reporting security vulnerabilities is of great importance for us, as MISP is used in multiple critical infrastructures. In the case of a security vulnerability report, we ask the reporter to directly report to [CIRCL](https://www.circl.lu/contact/), encrypting the report with the GnuPG key: CA57 2205 C002 4E06 BA70 BE89 EAAD CFFC 22BD 4CD5. We usually fix reported and confirmed security vulnerabilities in less than 48 hours, followed by a software release containing the fixes within the following days. If you report security vulnerabilities, don't forget to tell us if and how you want to be acknowledged and if you already requested CVE(s). If not, we will request the CVE directly.
 
 As one of the critical user-bases of MISP consists of the CSIRT community, it is our duty to clearly state which bug could be potentially abused and could have a security impact on a deployed MISP instance. CVE assignment is performed even for minor bugs having some possible security impact. This allows users using MISP instances in their environment to understand which bugs could have an impact on their security. We firmly believe that, even though unfortunately it is often not regarded as common practice in our industry, being as transparent as possible about vulnerabilities, no matter how minor, is of absolute crucial importance. At MISP-project, we care about the security of our users and prefer to have a high number of published CVEs than to a few swept under the rug. 
  
@@ -26,7 +26,7 @@ If you want to contribute to the [MISP core](https://github.com/MISP/MISP) proje
 - Branch off from 2.4 (2.4 branch is the main branch of development in MISP) `git checkout 2.4`
 - Then create a branch for your own contribution (bug fixes, enhancement, new features) by typing `git checkout -b fix-glossy-user-interface`
 - Work on your fix or feature (only work on that, avoid committing any debug functionalities, testing or unused code)
-- Commit your fix or feature (and sign it with PGP - if you have a PGP key) with a meaningful commit message as recommended in [A Note About Git Commit Messages](http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html).
+- Commit your fix or feature (and sign it with GnuPG - if you have a GnuPG key) with a meaningful commit message as recommended in [A Note About Git Commit Messages](http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html).
 - MISP uses [gitchangelog](https://github.com/vaab/gitchangelog/blob/master/src/gitchangelog/gitchangelog.rc.reference) to generate changelog, so it's recommended to use `new:` for new features, `fix:` when it's a bug-fix or `chg` when it's re-factoring or clean-up..
 - Push and then open a pull-request via the GitHub interface.
 

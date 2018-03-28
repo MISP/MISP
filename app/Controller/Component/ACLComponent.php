@@ -192,6 +192,7 @@ class ACLComponent extends Component {
 					'event_index' => array('*'),
 					'maxDateActivity' => array('*'),
 					'returnDates' => array('*'),
+					'testForStolenAttributes' => array(),
 					'pruneUpdateLogs' => array()
 			),
       'modules' => array(
