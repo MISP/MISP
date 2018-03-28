@@ -124,21 +124,21 @@ def pattern_port(_, attribute_value):
     return "network-traffic:dst_port = '{}'".format(attribute_value)
 
 def observable_regkey(_, attribute_value):
-    return {'0': {'type': 'windows-registry-key', 'key': attribute_value}}
+    return {'0': {'type': 'windows-registry-key', 'key': attribute_value.strip()}}
 
 def pattern_regkey(_, attribute_value):
-    return "windows-registry-key:key = '{}'".format(attribute_value)
+    return "windows-registry-key:key = '{}'".format(attribute_value.strip())
 
 def observable_regkey_value(_, attribute_value):
     key, value = attribute_value.split('|')
     regkey = observable_regkey(_, key)
-    regkey['0']['values'] = {'name': value}
+    regkey['0']['values'] = {'name': value.strip()}
     return regkey
 
 def pattern_regkey_value(_, attribute_value):
     key, value = attribute_value.split('|')
     regkey = pattern_regkey(_, key)
-    regkey += " AND windows-registry-key:values = '{}'".format(value)
+    regkey += " AND windows-registry-key:values = '{}'".format(value.strip())
     return regkey
 
 def observable_reply_to(_, attribute_value):
