@@ -93,7 +93,8 @@ class StixParser():
             self.misp_event.date = date
             self.misp_event.timestamp = self.getTimestampfromDate(stixTimestamp)
 
-    def getTimestampfromDate(self, date):
+    @staticmethod
+    def getTimestampfromDate(date):
         try:
             try:
                 dt = date.split('+')[0]
