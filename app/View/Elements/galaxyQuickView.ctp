@@ -5,14 +5,14 @@
 		<div style="margin-left:10px;">
 			<span title="<?php echo isset($galaxy['description']) ? h($galaxy['description']) : h($galaxy['name']);?>" class="bold blue" style="font-size:14px;">
 				<?php echo h($galaxy['name']); ?>&nbsp;
-				<a href="<?php echo $baseurl; ?>/galaxies/view/<?php echo h($galaxy['id']); ?>" class="icon-search" title="View details about this galaxy"></a>
+				<a href="<?php echo $baseurl; ?>/galaxies/view/<?php echo h($galaxy['id']); ?>" class="fa fa-search icon-search" title="View details about this galaxy"></a>
 			</span>
 	<?php
 		foreach ($galaxy['GalaxyCluster'] as $cluster):
 	?>
 			<div style="margin-left:8px;">
 				<span class="bold blue expandable useCursorPointer"><span class="collapse-status" style="font-size: 16px;">+</span>&nbsp;<?php echo h($cluster['value']); ?></span>&nbsp;
-				<a href="<?php echo $baseurl; ?>/galaxy_clusters/view/<?php echo h($cluster['id']); ?>" class="icon-search" title="View details about this cluster"></a>&nbsp;
+				<a href="<?php echo $baseurl; ?>/galaxy_clusters/view/<?php echo h($cluster['id']); ?>" class="fa fa-search icon-search" title="View details about this cluster"></a>&nbsp;
 				<a href="<?php echo $baseurl; ?>/events/index/searchtag:<?php echo h($cluster['tag_id']); ?>" class="icon-th-list" title="View all events containing this cluster."></a>
 				<?php
 					if ($isSiteAdmin || ($mayModify && $isAclTagger)) {

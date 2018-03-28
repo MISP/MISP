@@ -144,7 +144,7 @@ foreach ($attributes as $attribute):
 	<?php
 		if ($isSiteAdmin || ($isAclModify && $attribute['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $attribute['Event']['org_id'] == $me['org_id'])):
 	?>
-			<a href="<?php echo $baseurl;?>/attributes/edit/<?php echo $attribute['Attribute']['id'];?>" class="icon-edit" title="Edit"></a><?php
+			<a href="<?php echo $baseurl;?>/attributes/edit/<?php echo $attribute['Attribute']['id'];?>" class="fa fa-edit" title="Edit"></a><?php
 			echo $this->Form->postLink('',array('action' => 'delete', $attribute['Attribute']['id']), array('class' => 'fa fa-trash', 'title' => 'Delete'), __('Are you sure you want to delete this attribute?'));
 		elseif ($isAclModify):
 	?>

@@ -117,7 +117,7 @@ foreach ($orgs as $org): ?>
 		</td>
 		<td class="short action-links">
 			<?php if ($isSiteAdmin): ?>
-				<a href='/admin/organisations/edit/<?php echo $org['Organisation']['id'];?>' class = "icon-edit" title = "<?php echo __('');?>Edit"></a>
+				<a href='/admin/organisations/edit/<?php echo $org['Organisation']['id'];?>' class = "fa fa-edit" title = "<?php echo __('');?>Edit"></a>
 				<?php
 					echo $this->Form->postLink('', array('admin' => true, 'action' => 'delete', $org['Organisation']['id']), array('class' => 'fa fa-trash', 'title' => __('Delete')), __('Are you sure you want to delete %s?', $org['Organisation']['name']));
 				?>

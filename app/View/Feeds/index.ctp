@@ -96,7 +96,7 @@ foreach ($feeds as $item):
 		?>
 		<td class="short"><?php echo h($item['Feed']['id']); ?>&nbsp;</td>
 		<td class="short">
-			<span class="<?php echo ($item['Feed']['enabled'] ? 'icon-ok' : 'icon-remove'); ?>"></span>
+			<span class="<?php echo ($item['Feed']['enabled'] ? 'icon-ok' : 'fa fa-remove'); ?>"></span>
 			<span
 				class="short <?php if (!$item['Feed']['enabled'] || empty($ruleDescription)) echo "hidden"; ?>"
 				data-toggle="popover"
@@ -146,9 +146,9 @@ foreach ($feeds as $item):
 		<?php
 			if ($item['Feed']['source_format'] != 'misp'):
 		?>
-				<td><span class="<?php echo ($item['Feed']['publish'] ? 'icon-ok' : 'icon-remove'); ?>"></span></td>
-				<td><span class="<?php echo ($item['Feed']['delta_merge'] ? 'icon-ok' : 'icon-remove'); ?>"></span></td>
-				<td><span class="<?php echo ($item['Feed']['override_ids'] ? 'icon-ok' : 'icon-remove'); ?>"></span></td>
+				<td><span class="<?php echo ($item['Feed']['publish'] ? 'icon-ok' : 'fa fa-remove'); ?>"></span></td>
+				<td><span class="<?php echo ($item['Feed']['delta_merge'] ? 'icon-ok' : 'fa fa-remove'); ?>"></span></td>
+				<td><span class="<?php echo ($item['Feed']['override_ids'] ? 'icon-ok' : 'fa fa-remove'); ?>"></span></td>
 		<?php
 			else:
 		?>
@@ -170,7 +170,7 @@ foreach ($feeds as $item):
 			&nbsp;
 		<?php endif;?>
 		</td>
-		<td class="short"><span class="<?php echo ($item['Feed']['lookup_visible'] ? 'icon-ok' : 'icon-remove'); ?>"></span>
+		<td class="short"><span class="<?php echo ($item['Feed']['lookup_visible'] ? 'icon-ok' : 'fa fa-remove'); ?>"></span>
 		<td class="short action-links <?php echo !empty($item['Feed']['cache_timestamp']) ? 'bold' : 'bold red';?>">
 			<?php
 				if (!empty($item['Feed']['cache_timestamp'])):
@@ -204,7 +204,7 @@ foreach ($feeds as $item):
 					if ($item['Feed']['enabled']) echo $this->Html->link('', array('action' => 'fetchFromFeed', $item['Feed']['id']), array('class' => 'fa fa-download', 'title' => __('Fetch all events')));
 				}
 			?>
-			<a href="<?php echo $baseurl;?>/feeds/edit/<?php echo h($item['Feed']['id']); ?>"><span class="icon-edit" title="Edit">&nbsp;</span></a>
+			<a href="<?php echo $baseurl;?>/feeds/edit/<?php echo h($item['Feed']['id']); ?>"><span class="fa fa-edit" title="Edit">&nbsp;</span></a>
 			<?php echo $this->Form->postLink('', array('action' => 'delete', h($item['Feed']['id'])), array('class' => 'fa fa-trash', 'title' => __('Delete')), __('Are you sure you want to permanently remove the feed (%s)?', h($item['Feed']['name']))); ?>
 			<a href="<?php echo $baseurl;?>/feeds/view/<?php echo h($item['Feed']['id']); ?>.json" title="<?php echo __('Download feed metadata as JSON');?>" download><span class="fa fa-cloud-download black"></span></a>
 		</td>

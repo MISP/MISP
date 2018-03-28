@@ -47,7 +47,7 @@
 				<?php
 				} else {
 				?>
-					<a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] ?>" class = "icon-remove" title = "<?php echo __('View');?>"></a>
+					<a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] ?>" class = "fa fa-remove" title = "<?php echo __('View');?>"></a>
 				<?php
 				}?>&nbsp;
 			</td>

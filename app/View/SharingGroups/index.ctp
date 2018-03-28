@@ -64,7 +64,7 @@ foreach ($sharingGroups as $k => $sharingGroup):
 		</td>
 		<td class="action">
 		<?php if ($isSiteAdmin || $sharingGroup['editable']): ?>
-			<?php echo $this->Html->link('', '/SharingGroups/edit/' . $sharingGroup['SharingGroup']['id'], array('class' => 'icon-edit', 'title' => 'Edit')); ?>
+			<?php echo $this->Html->link('', '/SharingGroups/edit/' . $sharingGroup['SharingGroup']['id'], array('class' => 'fa fa-edit', 'title' => 'Edit')); ?>
 			<?php echo $this->Form->postLink('', '/SharingGroups/delete/' . $sharingGroup['SharingGroup']['id'], array('class' => 'fa fa-trash', 'title' => 'Delete'), __('Are you sure you want to delete %s?', h($sharingGroup['SharingGroup']['name']))); ?>
 		<?php endif; ?>
 			<a href="/sharing_groups/view/<?php echo $sharingGroup['SharingGroup']['id']; ?>" class="fa fa-list"></a>

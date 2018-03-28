@@ -81,7 +81,7 @@
     <?php
       if ($mayModify && empty($object['deleted'])):
     ?>
-        <a href="<?php echo $baseurl;?>/objects/edit/<?php echo $object['id']; ?>" title="Edit" class="icon-edit icon-white useCursorPointer"></a>
+        <a href="<?php echo $baseurl;?>/objects/edit/<?php echo $object['id']; ?>" title="Edit" class="fa fa-edit icon-white useCursorPointer"></a>
         <span class="fa fa-trash icon-white useCursorPointer" title="<?php echo __('Permanently delete object');?>" role="button" tabindex="0" aria-label="<?php echo __('Permanently delete object');?>" onClick="deleteObject('objects', 'delete', '<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
     <?php
       elseif ($mayModify):

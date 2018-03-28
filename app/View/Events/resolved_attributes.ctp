@@ -180,7 +180,7 @@
 				<input class="form-control" type="text" class="freetextTagField" id="<?php echo 'Attribute' . $k . 'Tags'; ?>" style="padding:0px;height:20px;margin-bottom:0px;"<?php if (isset($item['tags']) && $item['tags'] !== false) echo 'value="' . h(implode(",",$item['tags'])) . '"'?>/>
 			</td>
 			<td class="action short">
-				<span class="icon-remove pointer" title="<?php echo __('Remove resolved attribute');?>" role="button" tabindex="0" aria-label="<?php echo __('Remove resolved attribute');?>" onClick="freetextRemoveRow('<?php echo $k; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
+				<span class="fa fa-remove pointer" title="<?php echo __('Remove resolved attribute');?>" role="button" tabindex="0" aria-label="<?php echo __('Remove resolved attribute');?>" onClick="freetextRemoveRow('<?php echo $k; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
 			</td>
 		</tr>
 	<?php

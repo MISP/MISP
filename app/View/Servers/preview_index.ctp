@@ -38,7 +38,7 @@
 				</span>
 			<?php endforeach; ?>
 		<span class="tabMenuFixed tabMenuFixedRight tabMenuSides">
-			<?php echo $this->Html->link('', '/servers/previewIndex/' . h($id), array('class' => 'icon-remove', 'title' => __('Remove filters')));?>
+			<?php echo $this->Html->link('', '/servers/previewIndex/' . h($id), array('class' => 'fa fa-remove', 'title' => __('Remove filters')));?>
 		</span>
 		<?php endif;?>
 		<span id="quickFilterButton" role="button" tabindex="0" aria-label="<?php echo __('Filter');?>" title="<?php echo __('Filter');?>" class="tabMenuFilterFieldButton useCursorPointer" onClick='quickFilterRemoteEvents(<?php echo h($passedArgs);?>, <?php echo h($id); ?>);'><?php echo __('Filter');?></span>

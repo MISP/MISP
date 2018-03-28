@@ -37,7 +37,7 @@
 			</span>
 		<?php endforeach; ?>
 		<span class="tabMenuFixed tabMenuFixedRight tabMenuSides">
-			<?php echo $this->Html->link('', array('controller' => 'galaxies', 'action' => 'view/'. $galaxy_id), array('class' => 'icon-remove', 'title' => 'Remove filters'));?>
+			<?php echo $this->Html->link('', array('controller' => 'galaxies', 'action' => 'view/'. $galaxy_id), array('class' => 'fa fa-remove', 'title' => 'Remove filters'));?>
 		</span>
 	<?php endif;?>
 	<span style="border-right:0px !important;">

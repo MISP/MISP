@@ -28,7 +28,7 @@ foreach ($list as $item):?>
 		<td class="short"><?php echo h($item['Whitelist']['id']);?>&nbsp;</td>
 		<td><?php echo h($item['Whitelist']['name']);?>&nbsp;</td>
 		<td class="short action-links">
-			<?php echo $this->Html->link('', array('admin' => true, 'action' => 'edit', $item['Whitelist']['id']), array('class' => 'icon-edit', 'title' => 'Edit'));?>
+			<?php echo $this->Html->link('', array('admin' => true, 'action' => 'edit', $item['Whitelist']['id']), array('class' => 'fa fa-edit', 'title' => 'Edit'));?>
 			<?php echo $this->Form->postLink('', array('admin' => true, 'action' => 'delete', $item['Whitelist']['id']), array('class' => 'fa fa-trash', 'title' => 'Delete'), __('Are you sure you want to delete "%s"?', $item['Whitelist']['name']));?>
 		</td>
 	</tr><?php

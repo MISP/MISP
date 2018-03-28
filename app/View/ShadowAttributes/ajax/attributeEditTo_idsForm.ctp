@@ -3,7 +3,7 @@
 ?>
 	<div class='inline-input inline-input-container'>
 	<div class="inline-input-accept inline-input-button inline-input-passive"><span class = "icon-ok" title="<?php echo __('Accept');?>" role="button" tabindex="0" aria-label="<?php echo __('Accept');?>"></span></div>
-	<div class="inline-input-decline inline-input-button inline-input-passive"><span class = "icon-remove" title="<?php echo __('Discard');?>" role="button" tabindex="0" aria-label="<?php echo __('Discard');?>"></span></div>
+	<div class="inline-input-decline inline-input-button inline-input-passive"><span class = "fa fa-remove" title="<?php echo __('Discard');?>" role="button" tabindex="0" aria-label="<?php echo __('Discard');?>"></span></div>
 <?php
 	$current = 0;
 	if ($object['to_ids']) $current = 1;

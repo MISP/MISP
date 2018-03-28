@@ -79,7 +79,7 @@
 							<?php
 									echo $this->Form->end();
 							?>
-									<span class="icon-edit useCursorPointer" title="<?php echo __('Edit template element');?>" role="button" tabindex="0" aria-label="<?php echo __('Edit template element');?>" onClick="editTemplateElement('file' ,'<?php echo h($element_id); ?>');"></span>
+									<span class="fa fa-edit useCursorPointer" title="<?php echo __('Edit template element');?>" role="button" tabindex="0" aria-label="<?php echo __('Edit template element');?>" onClick="editTemplateElement('file' ,'<?php echo h($element_id); ?>');"></span>
 							<?php
 								} else {
 									echo '&nbsp;';

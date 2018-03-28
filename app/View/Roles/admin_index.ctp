@@ -63,7 +63,7 @@ foreach ($list as $item): ?>
 			?>
 		</td>
 		<td class="short action-links">
-			<?php echo $this->Html->link('', array('admin' => true, 'action' => 'edit', $item['Role']['id']), array('class' => 'icon-edit', 'title' => 'Edit')); ?>
+			<?php echo $this->Html->link('', array('admin' => true, 'action' => 'edit', $item['Role']['id']), array('class' => 'fa fa-edit', 'title' => 'Edit')); ?>
 			<?php echo $this->Form->postLink('', array('admin' => true, 'action' => 'delete', $item['Role']['id']), array('class' => 'fa fa-trash', 'title' => __('Delete')), __('Are you sure you want to delete %s?', $item['Role']['name'])); ?>
 		</td>
 	</tr><?php

@@ -285,7 +285,7 @@
       <?php
             endif;
       ?>
-            <a href="<?php echo $baseurl;?>/attributes/edit/<?php echo $object['id']; ?>" title="<?php echo __('Edit');?>" class="icon-edit useCursorPointer"></a>
+            <a href="<?php echo $baseurl;?>/attributes/edit/<?php echo $object['id']; ?>" title="<?php echo __('Edit');?>" class="fa fa-edit useCursorPointer"></a>
             <span class="fa fa-trash useCursorPointer" title="<?php echo __('Soft-delete attribute');?>" role="button" tabindex="0" aria-label="<?php echo __('Soft-delete attribute');?>" onClick="deleteObject('attributes', 'delete', '<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
       <?php
           endif;

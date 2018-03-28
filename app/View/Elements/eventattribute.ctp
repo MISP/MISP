@@ -106,11 +106,11 @@
 <div id="attributeList" class="attributeListContainer">
 	<div class="tabMenu tabMenuEditBlock noPrint">
 		<span id="create-button" title="Add attribute" role="button" tabindex="0" aria-label="Add attribute" class="fa fa-plus useCursorPointer" onClick="clickCreateButton(<?php echo $event['Event']['id']; ?>, '<?php echo $possibleAction; ?>');"></span>
-		<span id="multi-edit-button" title="Edit selected Attributes" role="button" tabindex="0" aria-label="Edit selected Attributes" class="hidden icon-edit mass-select useCursorPointer" onClick="editSelectedAttributes(<?php echo $event['Event']['id']; ?>);"></span>
+		<span id="multi-edit-button" title="Edit selected Attributes" role="button" tabindex="0" aria-label="Edit selected Attributes" class="hidden fa fa-edit mass-select useCursorPointer" onClick="editSelectedAttributes(<?php echo $event['Event']['id']; ?>);"></span>
 		<span id="multi-tag-button" title="Tag selected Attributes" role="button" tabindex="0" aria-label="Tag selected Attributes" class="hidden icon-tag mass-select useCursorPointer" onClick="getPopup('selected/true', 'tags', 'selectTaxonomy');"></span>
 		<span id="multi-delete-button" title="Delete selected Attributes" role="button" tabindex="0" aria-label="Delete selected Attributes" class="hidden fa fa-trash mass-select useCursorPointer" onClick="multiSelectAction(<?php echo $event['Event']['id']; ?>, 'deleteAttributes');"></span>
 		<span id="multi-accept-button" title="Accept selected Proposals" role="button" tabindex="0" aria-label="Accept selected Proposals" class="hidden icon-ok mass-proposal-select useCursorPointer" onClick="multiSelectAction(<?php echo $event['Event']['id']; ?>, 'acceptProposals');"></span>
-		<span id="multi-discard-button" title="Discard selected Proposals" role="button" tabindex="0" aria-label="Discard selected Proposals" class="hidden icon-remove mass-proposal-select useCursorPointer" onClick="multiSelectAction(<?php echo $event['Event']['id']; ?>, 'discardProposals');"></span>
+		<span id="multi-discard-button" title="Discard selected Proposals" role="button" tabindex="0" aria-label="Discard selected Proposals" class="hidden fa fa-remove mass-proposal-select useCursorPointer" onClick="multiSelectAction(<?php echo $event['Event']['id']; ?>, 'discardProposals');"></span>
 		<span id="multi-sighting-button" title="Sightings display for selected attributes" role="button" tabindex="0" aria-label="Sightings display for selected attributes" class="hidden icon-wrench mass-select useCursorPointer sightings_advanced_add" data-object-id="selected" data-object-context="attribute"></span>
 	</div>
 	<div class="tabMenu tabMenuToolsBlock noPrint">
@@ -139,7 +139,7 @@
 			<input class="form-control" type="text" id="attributesFilterField" style="height:20px;padding:0px;margin:0px;" class="form-control" data-eventid="<?php echo h($event['Event']['id']); ?>" value="<?php if ($filtered) echo h($passedArgsArray['all']); ?>"></input>
 				<span id="attributesFilterButton" role="button" class="fa fa-search icon-search" tabindex="0" aria-label="Filter on attributes value" onClick="filterAttributes('value', '<?php echo h($event['Event']['id']); ?>');"></span>
 				<?php if ($filtered):?>
-					<span tabindex="0" aria-label="Show all attributes" title="Remove filters" role="button" onClick="filterAttributes('all', '<?php echo h($event['Event']['id']); ?>');" class='icon-remove'></span>
+					<span tabindex="0" aria-label="Show all attributes" title="Remove filters" role="button" onClick="filterAttributes('all', '<?php echo h($event['Event']['id']); ?>');" class='fa fa-remove'></span>
 				<?php endif;?>
 		</div>
 	</div>

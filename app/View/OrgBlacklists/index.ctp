@@ -33,7 +33,7 @@ foreach ($response as $item): ?>
 		<td><?php echo h($item['OrgBlacklist']['created']); ?>&nbsp;</td>
 		<td class="short"><?php echo (isset($item['OrgBlacklist']['comment']) ? h($item['OrgBlacklist']['comment']) : '&nbsp;'); ?></td>
 		<td class="short action-links">
-			<a href="<?php echo $baseurl;?>/orgBlacklists/edit/<?php echo h($item['OrgBlacklist']['id']); ?>"><span class="icon-edit" title="edit">&nbsp;</span></a>
+			<a href="<?php echo $baseurl;?>/orgBlacklists/edit/<?php echo h($item['OrgBlacklist']['id']); ?>"><span class="fa fa-edit" title="edit">&nbsp;</span></a>
 			<?php echo $this->Form->postLink('', array('action' => 'delete', h($item['OrgBlacklist']['id'])), array('class' => 'fa fa-trash', 'title' => 'Delete'), __('Are you sure you want to delete the blacklist entry for the organisation UUID %s?', h($item['OrgBlacklist']['org_uuid']))); ?>
 		</td>
 	</tr><?php

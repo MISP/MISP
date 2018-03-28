@@ -83,7 +83,7 @@
 			<?php
 			} else {
 			?>
-				<a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] ?>" class = "icon-remove" title = "<?php echo __('View');?>"></a>
+				<a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] ?>" class = "fa fa-remove" title = "<?php echo __('View');?>"></a>
 			<?php
 			}?>&nbsp;
 		</td>
@@ -220,7 +220,7 @@
 
 				if ($isSiteAdmin || ($isAclModify && $event['Event']['user_id'] == $me['id']) || ($isAclModifyOrg && $event['Event']['orgc_id'] == $me['org_id'])):
 			?>
-					<a href='<?php echo $baseurl."/events/edit/".$event['Event']['id'];?>' class = "icon-edit" title = "<?php echo __('Edit');?>"></a>
+					<a href='<?php echo $baseurl."/events/edit/".$event['Event']['id'];?>' class = "fa fa-edit" title = "<?php echo __('Edit');?>"></a>
 			<?php
 
 					echo $this->Form->postLink('', array('action' => 'delete', $event['Event']['id']), array('class' => 'fa fa-trash', 'title' => __('Delete')), __('Are you sure you want to delete # %s?', $event['Event']['id']));

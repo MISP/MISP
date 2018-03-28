@@ -3,7 +3,7 @@
 ?>
 <div class='inline-input inline-input-container'>
 <div class="inline-input-accept inline-input-button inline-input-passive"><span class = "icon-ok" title="<?php echo __('Accept');?>" role="button" tabindex="0" aria-label="<?php echo __('Accept');?>"></span></div>
-<div class="inline-input-decline inline-input-button inline-input-passive"><span class = "icon-remove" title="<?php echo __('Cancel');?>" role="button" tabindex="0" aria-label="<?php echo __('Cancel');?>"></span></div>
+<div class="inline-input-decline inline-input-button inline-input-passive"><span class = "fa fa-remove" title="<?php echo __('Cancel');?>" role="button" tabindex="0" aria-label="<?php echo __('Cancel');?>"></span></div>
 <?php
 	echo $this->Form->input('category', array(
 		'options' => array(array_combine($typeCategory[$object['type']], $typeCategory[$object['type']])),
