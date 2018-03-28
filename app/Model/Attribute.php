@@ -118,7 +118,7 @@ class Attribute extends AppModel {
 			'email-attachment' => array('desc' => "File name of the email attachment.", 'default_category' => 'Payload delivery', 'to_ids' => 1),
 			'email-body' => array('desc' => 'Email body', 'default_category' => 'Payload delivery', 'to_ids' => 0),
 			'float' => array('desc' => "A floating point value.", 'default_category' => 'Other', 'to_ids' => 0),
-			'url' => array('desc' => 'url', 'default_category' => 'External analysis', 'to_ids' => 1),
+			'url' => array('desc' => 'url', 'default_category' => 'Network activity', 'to_ids' => 1),
 			'http-method' => array('desc' => "HTTP method used by the malware (e.g. POST, GET, ...).", 'default_category' => 'Network activity', 'to_ids' => 0),
 			'user-agent' => array('desc' => "The user-agent used by the malware in the HTTP request.", 'default_category' => 'Network activity', 'to_ids' => 0),
 			'regkey' => array('desc' => "Registry key or value", 'default_category' => 'Persistence mechanism', 'to_ids' => 1),
