@@ -119,7 +119,7 @@
 				echo h($item['Job']['job_status']);
 				if ($item['Job']['failed']):
 			?>
-				<div class="icon-search useCursorPointer queryPopover" title="<?php echo __('View stacktrace');?>" role="button" tabindex="0" aria-label="<?php echo __('View stacktrace');?>" data-url="/jobs/getError" data-id="<?php echo h($item['Job']['process_id']); ?>"></div>
+				<div class="fa fa-search icon-search useCursorPointer queryPopover" title="<?php echo __('View stacktrace');?>" role="button" tabindex="0" aria-label="<?php echo __('View stacktrace');?>" data-url="/jobs/getError" data-id="<?php echo h($item['Job']['process_id']); ?>"></div>
 			<?php
 				endif;
 			?>

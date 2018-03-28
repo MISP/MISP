@@ -34,7 +34,7 @@
 					<hr>
 					<?php if ($isSiteAdmin || (isset($mayModify) && $mayModify)): ?>
 					<li class="nav-item" id='lieditEvent'><a class="nav-link active" href="<?php echo $baseurl;?>/events/edit/<?php echo h($event['Event']['id']);?>"><?php echo __('Edit Event');?></a></li>
-					<li class="nav-item"><?php echo $this->Form->postLink(__('Delete Event'), array('controller' => 'events', 'action' => 'delete', h($event['Event']['id'])), null, __('Are you sure you want to delete # %s?', h($event['Event']['id']))); ?></li>
+					<li class="nav-item"><?php echo $this->Form->postLink(__('Delete Event'), array('controller' => 'events', 'action' => 'delete', h($event['Event']['id'])), array('class' => 'nav-link'), __('Are you sure you want to delete # %s?', h($event['Event']['id']))); ?></li>
 					<li class="nav-item" id='liaddAttribute'><a class="nav-link active" href="<?php echo $baseurl;?>/attributes/add/<?php echo h($event['Event']['id']);?>"><?php echo __('Add Attribute');?></a></li>
 					<li class="nav-item"><a class="nav-link active" onClick="getPopup('<?php echo h($event['Event']['id']); ?>', 'objectTemplates', 'objectChoice');" style="cursor:pointer;"><?php echo __('Add Object');?></a></li>
 					<li class="nav-item" id='liaddAttachment'><a class="nav-link active" href="<?php echo $baseurl;?>/attributes/add_attachment/<?php echo h($event['Event']['id']);?>"><?php echo __('Add Attachment');?></a></li>
@@ -316,7 +316,7 @@
 					endif;
 					if ($isSiteAdmin):
 					?>
-						<li class="nav-item" id='liupdate'><?php echo $this->Form->postLink('Update Taxonomies', array('controller' => 'taxonomies', 'action' => 'update'));?></li>
+						<li class="nav-item" id='liupdate'><?php echo $this->Form->postLink('Update Taxonomies', array('class' => 'nav-link active', 'controller' => 'taxonomies', 'action' => 'update'));?></li>
 					<?php
 					endif;
 				break;

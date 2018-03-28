@@ -81,7 +81,7 @@ foreach ($servers as $server):
 		<td class="short"><a href="/organisations/view/<?php echo h($server['Organisation']['id']); ?>"><?php echo h($server['Organisation']['name']); ?></a></td>
 		<td class="short action-links">
 			<?php
-			echo $this->Html->link('', array('action' => 'previewIndex', $server['Server']['id']), array('class' => 'icon-search', 'title' => __('Explore')));
+			echo $this->Html->link('', array('action' => 'previewIndex', $server['Server']['id']), array('class' => 'fa fa-search icon-search', 'title' => __('Explore')));
 			if ($server['Server']['pull']) {
 				echo $this->Html->link('', array('action' => 'pull', $server['Server']['id'], 'update'), array('class' => 'icon-refresh', 'title' => __('Pull updates to events that already exist locally')));
 				echo $this->Html->link('', array('action' => 'pull', $server['Server']['id'], 'full'), array('class' => 'fa fa-download', 'title' => __('Pull all')));

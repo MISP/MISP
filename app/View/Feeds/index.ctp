@@ -199,7 +199,7 @@ foreach ($feeds as $item):
 		</td>
 		<td class="short action-links">
 			<?php
-				echo $this->Html->link('', array('action' => 'previewIndex', $item['Feed']['id']), array('class' => 'icon-search', 'title' => __('Explore the events remotely')));
+				echo $this->Html->link('', array('action' => 'previewIndex', $item['Feed']['id']), array('class' => 'fa fa-search icon-search', 'title' => __('Explore the events remotely')));
 				if (!isset($item['Feed']['event_error'])) {
 					if ($item['Feed']['enabled']) echo $this->Html->link('', array('action' => 'fetchFromFeed', $item['Feed']['id']), array('class' => 'fa fa-download', 'title' => __('Fetch all events')));
 				}
