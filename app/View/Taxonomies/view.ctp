@@ -59,13 +59,13 @@
 				<span id="multi-edit-button" title="Create / update selected tags" role="button" tabindex="0" aria-label="<?php echo __('Create and/or update selected tags');?>" class="fa fa-plus useCursorPointer" onClick="addSelectedTaxonomies(<?php echo $taxonomy['id']; ?>);"></span>
 			</div>
 			<div style="float:right !important;overflow:hidden;border:0px;padding:0px;padding-right:200px;">
-					<input class="form-control" type="text" id="quickFilterField" class="tabMenuFilterField taxFilter" value="<?php echo h($filter);?>" /><span id="quickFilterButton" class="useCursorPointer taxFilterButton" onClick='quickFilterTaxonomy("<?php echo h($taxonomy['id']);?>");'><?php echo __('Filter');?></span>
+					<input type="text" id="quickFilterField" class="tabMenuFilterField taxFilter" value="<?php echo h($filter);?>" /><span id="quickFilterButton" class="useCursorPointer taxFilterButton" onClick='quickFilterTaxonomy("<?php echo h($taxonomy['id']);?>");'><?php echo __('Filter');?></span>
 			</div>
 		</div>
 		<table class="table table-striped table-hover table-condensed">
 			<tr>
 				<?php if ($isAclTagger && !empty($entries)): ?>
-					<th><input class="form-control" class="select_all" type="checkbox" onClick="toggleAllTaxonomyCheckboxes();" /></th>
+					<th><input class="form_control select_all" type="checkbox" onClick="toggleAllTaxonomyCheckboxes();" /></th>
 				<?php endif;?>
 					<th><?php echo $this->Paginator->sort('tag');?></th>
 					<th><?php echo $this->Paginator->sort('expanded');?></th>

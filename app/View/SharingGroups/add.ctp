@@ -13,7 +13,7 @@
 			<label for="SharingGroupReleasability"><?php echo __('Releasable to');?></label>
 			<input class="form-control" type="text" class="input-xxlarge" placeholder="<?php echo __('Example: Community1, Organisation1, Organisation2');?>" id="SharingGroupReleasability"></input>
 			<label for="SharingGroupDescription"><?php echo __('Description');?></label>
-			<textarea class="input-xxlarge" placeholder="<?php echo __('A description of the sharing group.');?>" cols="30" rows="6" id="SharingGroupDescription"></textarea>
+			<textarea class="form-control input-xxlarge" placeholder="<?php echo __('A description of the sharing group.');?>" cols="30" rows="6" id="SharingGroupDescription"></textarea>
 			<div style="display:block;">
 				<input class="form-control" type="checkbox" style="float:left;" title="<?php echo __('Active sharing groups can be selected by users of the local instance when creating events. Generally, sharing groups received through synchronisation will have this disabled until manually enabled.');?>" value="1" id="SharingGroupActive" checked></input>
 				<label for="SharingGroupActive" style="padding-left:20px;"><?php echo __('Make the sharing group selectable (active)');?></label>

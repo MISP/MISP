@@ -44,7 +44,7 @@
 			echo $this->Paginator->numbers(array('modulus' => 20, 'separator' => '', 'tag' => 'li', 'class' => 'page-link', 'currentClass' => 'page-link', 'currentTag' => 'span', 'currentClass' => 'p-active'));
 			echo $this->Paginator->next(__('next') . ' &raquo;', array('tag' => 'li', 'escape' => false, 'class' => 'page-link'), null, array('tag' => 'li', 'class' => 'page-link', 'escape' => false, 'disabledTag' => 'span', 'disabledClass' => 'page-link'));
 			?>
-			<li class="all">
+			<li class="page-link">
 				<a href="<?php echo $baseurl . '/organisations/index/' . implode('/', $partial); ?>"><?php echo $viewall_button_text; ?></a>
 			</li>
 		</ul>
@@ -60,7 +60,7 @@
 		endforeach;
 	?>
 		<span role="button" tabindex="0" aria-label="Filtr" title="Filter" id="quickFilterButton" class="tabMenuFilterFieldButton useCursorPointer" onClick="quickFilter(<?php echo  h($passedArgs); ?>, '<?php echo $baseurl . '/organisations/index'; ?>');"><?php echo __('Filter');?></span>
-		<input class="form-control" class="tabMenuFilterField" type="text" id="quickFilterField"></input>
+		<input class="tabMenuFilterField" type="text" id="quickFilterField"></input>
 	</div>
 	<table class="table table-striped table-hover table-condensed">
 	<tr>
