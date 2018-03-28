@@ -3056,6 +3056,8 @@ class EventsController extends AppController {
 				if ($i < $eventCount) {
 					$final .= ',' . PHP_EOL;
 				}
+			} else {
+				$eventCount -= 1;
 			}
 		}
 		$final .= $converter->generateBottom($responseType, $final);
