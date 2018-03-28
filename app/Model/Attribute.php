@@ -337,44 +337,11 @@ class Attribute extends AppModel {
 					)
 	);
 
-	// FIXME we need a better way to list the defaultCategories knowing that new attribute types will continue to appear in the future. We should generate this dynamically or use a function using the default_category of the $typeDefinitions
-	public $defaultCategories = array(
-			'md5' => 'Payload delivery',
-			'sha1' => 'Payload delivery',
-			'sha224' =>'Payload delivery',
-			'sha256' => 'Payload delivery',
-			'sha384' => 'Payload delivery',
-			'sha512' => 'Payload delivery',
-			'sha512/224' => 'Payload delivery',
-			'sha512/256' => 'Payload delivery',
-			'authentihash' => 'Payload delivery',
-			'imphash' => 'Payload delivery',
-			'impfuzzy'=> 'Payload delivery',
-			'pehash' => 'Payload delivery',
-			'filename|md5' => 'Payload delivery',
-			'filename|sha1' => 'Payload delivery',
-			'filename|sha256' => 'Payload delivery',
-			'regkey' => 'Persistence mechanism',
-			'filename' => 'Payload delivery',
-			'ip-src' => 'Network activity',
-			'ip-dst' => 'Network activity',
-			'ip-dst|port' => 'Network activity',
-			'mac-address' => 'Network activity',
-			'mac-eui-64' => 'Network activity',
-			'hostname' => 'Network activity',
-			'domain' => 'Network activity',
-			'url' => 'Network activity',
-			'link' => 'External analysis',
-			'email-src' => 'Payload delivery',
-			'email-dst' => 'Payload delivery',
-			'text' => 'Other',
-			'hex' => 'Other',
-			'attachment' => 'External analysis',
-			'malware-sample' => 'Payload delivery',
-			'cortex' => 'External analysis',
-			'dns-soa-email' => 'Attribution',
-			'boolean' => 'Other'
-	);
+	// Create a list of defaultCategories based on given definitions.
+	public $defaultCategories = array();
+	foreach($typeDefinitions as $type => $definition) {
+		$defaultCategories[$type] = $definition['default_category'];
+	}
 
 	// typeGroupings are a mapping to high level groups for attributes
 	// for example, IP addresses, domain names, hostnames and e-mail addresses are network related attribute types
