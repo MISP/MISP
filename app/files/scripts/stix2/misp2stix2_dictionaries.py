@@ -139,13 +139,14 @@ def pattern_regkey_value(_, attribute_value):
     key, value = attribute_value.split('|')
     regkey = pattern_regkey(_, key)
     regkey += " AND windows-registry-key:values = '{}'".format(value)
+    return regkey
 
 def observable_reply_to(_, attribute_value):
     return {'0': {'type': 'email-addr', 'value': attribute_value},
             '1': {'type': 'email-message', 'additional_header_fields': {'Reply-To': ['0']}, 'is_multipart': 'false'}}
 
 def pattern_reply_to(_, attribute_value):
-    return "email-message:additional_header_fields.Reply-To = '{}'".format(attribute_value)
+    return "email-message:additional_header_fields.reply_to = '{}'".format(attribute_value)
 
 def observable_url(_, attribute_value):
     return {'0': {'type': 'url', 'value': attribute_value}}
