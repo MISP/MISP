@@ -673,20 +673,20 @@ class EventsController extends AppController {
 		}
 
 		if (!$this->Event->User->getPGP($this->Auth->user('id')) && Configure::read('GnuPG.onlyencrypted')) {
-			// No GPG
+			// No GnuPG
 			if (Configure::read('SMIME.enabled') && !$this->Event->User->getCertificate($this->Auth->user('id'))) {
-				// No GPG and No SMIME
-				$this->Session->setFlash(__('No x509 certificate or GPG key set in your profile. To receive emails, submit your public certificate or GPG key in your profile.'));
+				// No GnuPG and No SMIME
+				$this->Session->setFlash(__('No x509 certificate or GnuPG key set in your profile. To receive emails, submit your public certificate or GnuPG key in your profile.'));
 			} else if (!Configure::read('SMIME.enabled')) {
-				$this->Session->setFlash(__('No GPG key set in your profile. To receive emails, submit your public key in your profile.'));
+				$this->Session->setFlash(__('No GnuPG key set in your profile. To receive emails, submit your public key in your profile.'));
 			}
 		} else if ($this->Auth->user('autoalert') && !$this->Event->User->getPGP($this->Auth->user('id')) && Configure::read('GnuPG.bodyonlyencrypted')) {
-			// No GPG & autoalert
+			// No GnuPG & autoalert
 			if ($this->Auth->user('autoalert') && Configure::read('SMIME.enabled') && !$this->Event->User->getCertificate($this->Auth->user('id'))) {
-				// No GPG and No SMIME & autoalert
-				$this->Session->setFlash(__('No x509 certificate or GPG key set in your profile. To receive attributes in emails, submit your public certificate or GPG key in your profile.'));
+				// No GnuPG and No SMIME & autoalert
+				$this->Session->setFlash(__('No x509 certificate or GnuPG key set in your profile. To receive attributes in emails, submit your public certificate or GnuPG key in your profile.'));
 			} else if (!Configure::read('SMIME.enabled')) {
-				$this->Session->setFlash(__('No GPG key set in your profile. To receive attributes in emails, submit your public key in your profile.'));
+				$this->Session->setFlash(__('No GnuPG key set in your profile. To receive attributes in emails, submit your public key in your profile.'));
 			}
 		}
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
@@ -1877,7 +1877,7 @@ class EventsController extends AppController {
 	}
 
 	// Send out an alert email to all the users that wanted to be notified.
-	// Users with a GPG key will get the mail encrypted, other users will get the mail unencrypted
+	// Users with a GnuPG key will get the mail encrypted, other users will get the mail unencrypted
 	public function alert($id = null) {
 		$this->Event->id = $id;
 		$this->Event->recursive = 0;
@@ -1953,7 +1953,7 @@ class EventsController extends AppController {
 	}
 
 	// Send out an contact email to the person who posted the event.
-	// Users with a GPG key will get the mail encrypted, other users will get the mail unencrypted
+	// Users with a GnuPG key will get the mail encrypted, other users will get the mail unencrypted
 	public function contact($id = null) {
 		$this->Event->id = $id;
 		if (!$this->Event->exists()) {
@@ -3037,7 +3037,6 @@ class EventsController extends AppController {
 		$eventCount = count($eventIds);
 		$i = 0;
 		foreach ($eventIds as $k => $currentEventId) {
-			$i++;
 			$result = $this->Event->fetchEvent(
 				$this->Auth->user(),
 				array(
@@ -3052,12 +3051,14 @@ class EventsController extends AppController {
 			);
 			if (!empty($result)) {
 				$result = $this->Whitelist->removeWhitelistedFromArray($result, false);
-				$final .= $converter->convert($result[0]);
-				if ($i < $eventCount) {
+				if ($i != 0) {
 					$final .= ',' . PHP_EOL;
 				}
+				$final .= $converter->convert($result[0]);
+				$i++;
 			}
 		}
+		if ($i > 0) $final .= PHP_EOL;
 		$final .= $converter->generateBottom($responseType, $final);
 		$extension = $responseType;
 		if ($key == 'openioc') {

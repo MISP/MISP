@@ -80,8 +80,8 @@ class StixParser():
             self.parse_external_indicator(self.event.indicators)
         if self.event.observables:
             self.parse_external_observable(self.event.observables.observables)
-        if self.event.ttps:
-            self.parse_ttps(self.event.ttps.ttps)
+        # if self.event.ttps:
+        #    self.parse_ttps(self.event.ttps.ttps)
 
     def dictTimestampAndDate(self):
         if self.event.timestamp:
@@ -93,7 +93,8 @@ class StixParser():
             self.misp_event.date = date
             self.misp_event.timestamp = self.getTimestampfromDate(stixTimestamp)
 
-    def getTimestampfromDate(self, date):
+    @staticmethod
+    def getTimestampfromDate(date):
         try:
             try:
                 dt = date.split('+')[0]
@@ -335,6 +336,7 @@ class StixParser():
             attributes.append([attribute_type, properties.registrar_info.value, attribute_type])
             required_one_of = True
         if properties.registrants:
+            # ATM: need to see how it looks like in a real example
             print(dir(properties.registrants))
         if properties.creation_date:
             attributes.append(["datetime", properties.creation_date.value, "creation-date"])
@@ -514,10 +516,20 @@ class StixParser():
         self.misp_event.add_object(**misp_object)
 
     def parse_ttps(self, ttps):
+        galaxies = []
         for ttp in ttps:
             if ttp.behavior and ttp.behavior.malware_instances:
-                for mi in ttp.behavior.malware_instances:
-                    print(mi.to_json()) # WAITING FOR RELEVANT EXAMPLES
+                mi = ttp.behavior.malware_instances[0]
+                if mi.types:
+                    mi_type = mi.types[0].value
+                    galaxy = {'type': mi_type, 'GalaxyCluster': []}
+                    cluster = {'type': mi_type}
+                    if mi.description:
+                        cluster['description'] = mi.description.value
+                    cluster['value'] = ttp.title
+                    galaxy['GalaxyCluster'].append(cluster)
+                    galaxies.append(galaxy)
+        self.misp_event['Galaxy'] = galaxies
 
     @staticmethod
     def return_attributes(attributes):
