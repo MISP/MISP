@@ -164,7 +164,15 @@ class StixBuilder():
         self.append_object(observed_data, observed_data_id)
 
     def add_vulnerability(self, attribute):
-
+        vulnerability_id = "vulnerability--{}".format(attribute.uuid)
+        name = attribute.value
+        vulnerability_data = mispTypesMapping['vulnerability'](name)
+        labels = self.create_labels(attribute)
+        vulnerability_args = {'id': vulnerability_id, 'type': 'vulnerability',
+                              'name': name, 'external_refs': [vulnerability_data],
+                              'created_by_ref': self.identity_id, 'labels': labels}
+        vulnerability = Vulnerability(**vulnerability_args)
+        self.append_object(vulnerability, vulnerability_id)
 
     def append_object(stix_object, stix_object_id):
         self.SDOs.append(stix_object)
