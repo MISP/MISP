@@ -196,10 +196,20 @@ class StixBuilder():
             return 'ipv4:addr'
 
     def define_observable(self, attribute_type, attribute_value):
-        return mispTypesMapping[attribute_type]['observable'](attribute_type, attribute_value)
+        if attribute_type == 'malware_sample':
+            return mispTypesMapping[attribute]['observable']('filename|md5', attribute_value)
+        observable = mispTypesMapping[attribute_type]['observable'](attribute_type, attribute_value)
+        if 'port' in attribute_type:
+            try:
+                observable['0']['protocols'].append(defineProtocols[attribute_value] if attribute_value in defineProtocols else "tcp")
+            except AttributeError:
+                observable['1']['protocols'].append(defineProtocols[attribute_value] if attribute_value in defineProtocols else "tcp")
+        return observable
 
     def define_pattern(self, attribute_type, attribute_value):
         attribute_value = attribute_value.replace("'", '##APOSTROPHE##').replace('"', '##QUOTE##')
+        if attribute_type == 'malware_sample':
+            return mispTypesMapping[attribute]['pattern']('filename|md5', attribute_value)
         return mispTypesMapping[attribute_type]['pattern'](attribute_type, attribute_value)
 
 def main(args):
