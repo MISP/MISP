@@ -3037,7 +3037,6 @@ class EventsController extends AppController {
 		$eventCount = count($eventIds);
 		$i = 0;
 		foreach ($eventIds as $k => $currentEventId) {
-			$i++;
 			$result = $this->Event->fetchEvent(
 				$this->Auth->user(),
 				array(
@@ -3052,14 +3051,14 @@ class EventsController extends AppController {
 			);
 			if (!empty($result)) {
 				$result = $this->Whitelist->removeWhitelistedFromArray($result, false);
-				$final .= $converter->convert($result[0]);
-				if ($i < $eventCount) {
+				if ($i != 0) {
 					$final .= ',' . PHP_EOL;
 				}
-			} else {
-				$eventCount -= 1;
+				$final .= $converter->convert($result[0]);
+				$i++;
 			}
 		}
+		if ($i > 0) $final .= PHP_EOL;
 		$final .= $converter->generateBottom($responseType, $final);
 		$extension = $responseType;
 		if ($key == 'openioc') {
