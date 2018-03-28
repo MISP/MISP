@@ -40,6 +40,36 @@ class StixBuilder():
     def buildEvent(self):
         self.__set_identity()
         self.read_attributes()
+        report = self.eventReport()
+        self.SDOs.insert(1, report)
+        self.stix_package = self.generate_package()
+
+    def eventReport(self):
+        report_args = {'type': 'report', 'id': 'report--{}'.format(self.misp_event.uuid),
+                       'created_by_ref': self.identity_id, 'name': self.misp_event.info,
+                       'published': self.misp_event.publish_timestamp,
+                       'object_refs': self.objects_refs}
+        labels = []
+        if self.misp_event.Tag:
+            for tag in self.misp_event.Tag:
+                labels.append(tag.name)
+        if labels:
+            report_args['labels'] = labels
+        else:
+            report_args['labels'] = ['Threat-Report']
+        if self.external_refs:
+            report_args['external_references'] = external_refs
+        return Report(**args_report)
+
+    def generate_package(self):
+        bundle_args = {"type": "bundle", "spec_version": "2.0", "objects": self.SDOs,
+                       "id": "bundle--{}".format(self.misp_event.uuid)}
+        return Bundle(**bundle_args)
+
+    def saveFile(self):
+        outputfile = "{}.out".format(self.filename)
+        with open(outputifle, 'w') as f:
+            f.write(json.dumps(self.stix_package, cls=base.STIXJSONEncoder))
 
     def __set_identity(self):
         org = self.misp_event.Orgc
@@ -51,12 +81,12 @@ class StixBuilder():
 
     def misp_types(self):
         describe_types_filename = os.path.join(pymisp.__path__[0], 'data/describeTypes.json')
-        describe_types = open(dedscribe_types_filename, 'r')
+        describe_types = open(describe_types_filename, 'r')
         self.categories_mapping = json.loads(describe_types.read())['result']['category_type_mappings']
 
     def read_attributes(self):
         self.misp_types()
-        for attribute in event.attributes:
+        for attribute in self.misp_event.attributes:
             attribute_type = attribute.type
             if attribute_type in non_indicator_attributes:
                 self.handle_non_indicator(attribute, attribute_type)
@@ -76,7 +106,7 @@ class StixBuilder():
         else:
             self.handle_non_indicator_attribute(attribute, attribute_type)
 
-    def handle_non_indicator_attribute(self, attribute, attribute_types):
+    def handle_non_indicator_attribute(self, attribute, attribute_type):
         if attribute_type == "vulnerability":
             self.add_vulnerability(attribute)
         else:
@@ -109,12 +139,12 @@ class StixBuilder():
         custom_object_id = "x-misp-object--{}".format(attribute.uuid)
         custom_object_type = "x-misp-object-{}".format(attribute.type)
         labels = self.create_labels(attribute)
-        custom_objects_args = {'id': custom_object_id, 'x_misp_timestamp': attribute.timestamp, 'labels': labels,
+        custom_object_args = {'id': custom_object_id, 'x_misp_timestamp': attribute.timestamp, 'labels': labels,
                                'x_misp_value': attribute.value, 'created_by_ref': self.identity_id,
                                'x_misp_category': attribute.category}
         if attribute.comment:
             custom_object_args['x_misp_comment'] = attribute.comment
-        @CustomObject(customObject_type, [('id', properties.StringProperty(required=True)),
+        @CustomObject(custom_object_type, [('id', properties.StringProperty(required=True)),
                                           ('x_misp_timestamp', properties.StringProperty(required=True)),
                                           ('labels', properties.ListProperty(labels, required=True)),
                                           ('x_misp_value', properties.StringProperty(required=True)),
@@ -126,7 +156,7 @@ class StixBuilder():
             def __init__(self, **kwargs):
                 return
         custom_object = Custom(**custom_object_args)
-        self.append_object(identity_object, identity_id)
+        self.append_object(custom_object, custom_object_id)
 
     def add_identity(self, attribute):
         identity_id = "identity--{}".format(attribute.uuid)
@@ -153,13 +183,14 @@ class StixBuilder():
         self.append_object(indicator, indicator_id)
 
     def add_observed_data(self, attribute):
-        observed_data_id = "observedd-data--{}".format(attribute.uuid)
+        observed_data_id = "observed-data--{}".format(attribute.uuid)
         timestamp = attribute.timestamp
         labels = self.create_labels(attribute)
         observed_data_args = {'id': observed_data_id, 'type': 'observed-data', 'number_observed': 1,
                               'first_observed': timestamp, 'last_observed': timestamp, 'labels': labels,
                               'created_by_ref': self.identity_id,
                               'objects': self.define_observable(attribute.type, attribute.value)}
+        print(observed_data_args)
         observed_data = ObservedData(**observed_data_args)
         self.append_object(observed_data, observed_data_id)
 
@@ -174,7 +205,7 @@ class StixBuilder():
         vulnerability = Vulnerability(**vulnerability_args)
         self.append_object(vulnerability, vulnerability_id)
 
-    def append_object(stix_object, stix_object_id):
+    def append_object(self, stix_object, stix_object_id):
         self.SDOs.append(stix_object)
         self.object_refs.append(stix_object_id)
 
@@ -217,6 +248,8 @@ def main(args):
     stix_builder = StixBuilder()
     stix_builder.loadEvent(pathname, args)
     stix_builder.buildEvent()
+    stix_builder.saveFile()
+    print(1)
 
 if __name__ == "__main__":
     main(sys.argv)
