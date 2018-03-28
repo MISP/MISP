@@ -166,7 +166,7 @@
 				<dd><?php echo h($attribute_count);?></dd>
 				<dt><?php echo __('Last change');?></dt>
 				<dd>
-					<?php echo date('m/d/Y h:i:s', $event['Event']['timestamp']);; ?>
+					<?php echo date('Y/m/d h:i:s', $event['Event']['timestamp']);; ?>
 					&nbsp;
 				</dd>
 				<dt><?php echo __('Sightings');?></dt>
