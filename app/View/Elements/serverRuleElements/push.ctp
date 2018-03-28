@@ -7,7 +7,7 @@
 				<tr>
 					<td style="width:120px;">
 						<p style="color:green;font-weight:bold;"><?php echo __('Allowed Tags (OR)');?></p>
-						<select id="tagspushLeftValues" size="5" multiple style="width:185px;">
+						<select class="form-control" id="tagspushLeftValues" size="5" multiple style="width:185px;">
 						</select>
 					</td>
 					<td style="width:50px;text-align:center;">
@@ -16,7 +16,7 @@
 					</td>
 					<td style="width:120px;">
 						<p style="font-weight:bold;"><?php echo __('Available Tags');?></p>
-						<select id="tagspushMiddleValues" size="5" multiple style="width:185px;">
+						<select class="form-control" id="tagspushMiddleValues" size="5" multiple style="width:185px;">
 						</select>
 					</td>
 					<td style="width:50px;text-align:center;">
@@ -25,7 +25,7 @@
 					</td>
 					<td style="width:120px;">
 						<p style="color:red;font-weight:bold;"><?php echo __('Blocked Tags (AND NOT)');?></p>
-						<select id="tagspushRightValues" size="5" multiple style="width:185px;"></select>
+						<select class="form-control" id="tagspushRightValues" size="5" multiple style="width:185px;"></select>
 					</td>
 				</tr>
 				<tr>
@@ -38,7 +38,7 @@
 				<tr>
 					<td style="width:120px;">
 						<p style="color:green;font-weight:bold;"><?php echo __('Allowed Orgs (OR)');?></p>
-						<select id="orgspushLeftValues" size="5" multiple style="width:185px;">
+						<select class="form-control" id="orgspushLeftValues" size="5" multiple style="width:185px;">
 						</select>
 					</td>
 					<td style="width:50px;text-align:center;">
@@ -47,7 +47,7 @@
 					</td>
 					<td style="width:120px;">
 						<p style="font-weight:bold;"><?php echo __('Available  Organisations');?></p>
-						<select id="orgspushMiddleValues" size="5" multiple style="width:185px;">
+						<select class="form-control" id="orgspushMiddleValues" size="5" multiple style="width:185px;">
 						</select>
 					</td>
 					<td style="width:50px;text-align:center;">
@@ -56,7 +56,7 @@
 					</td>
 					<td style="width:120px;">
 						<p style="color:red;font-weight:bold;"><?php echo __('Blocked Orgs (AND NOT)');?></p>
-						<select id="orgspushRightValues" size="5" multiple style="width:185px;"></select>
+						<select class="form-control" id="orgspushRightValues" size="5" multiple style="width:185px;"></select>
 					</td>
 				</tr>
 			</table>

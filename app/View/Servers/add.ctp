@@ -42,13 +42,13 @@
 	?>
 		<div id="ServerExternalContainer" class="input select hiddenField" style="display:none;">
 			<label for="ServerExternal"><?php echo __('External Organisation');?></label>
-			<select id="ServerExternal">
+			<select class="form-control" id="ServerExternal">
 				<?php foreach ($externalOrganisations as $k => $v) echo '<option value="' . $k . '">' . h($v) . '</option>'; ?>
 			</select>
 		</div>
 		<div id="ServerLocalContainer" class="input select hiddenField" style="display:none;">
 			<label for="ServerLocal"><?php echo __('Local Organisation');?></label>
-			<select id="ServerLocal">
+			<select class="form-control" id="ServerLocal">
 				<?php foreach ($localOrganisations as $k => $v) echo '<option value="' . $k . '">' . h($v) . '</option>'; ?>
 			</select>
 		</div>

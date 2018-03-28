@@ -60,9 +60,8 @@
 		// We need to make sure that the default role is actually available to the admin (for an org admin it might not be)
 		if (!empty($default_role_id) && isset($roles[intval($default_role_id)])) {
 			$roleOptions['default'] = $default_role_id;
-			$roleOptions['class'] = 'form-control';
 		}
-		echo $this->Form->input('role_id', $roleOptions);
+		echo $this->Form->input('role_id', $roleOptions, array('class' => 'form-control'));
 		echo $this->Form->input('authkey', array('class' => 'form-control', 'value' => $authkey, 'readonly' => 'readonly', 'div' => 'input clear'));
 		echo $this->Form->input('nids_sid', array('class' => 'form-control'));
 	?>

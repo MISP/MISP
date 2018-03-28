@@ -45,7 +45,7 @@
 								));
 							?>
 							<br />
-							<select id="targetSelect" size="10" style="width:100%;height:200px;">
+							<select class="form-control" id="targetSelect" size="10" style="width:100%;height:200px;">
 								<?php
 									if (!empty($event['Object'])):
 										foreach ($event['Object'] as $object):

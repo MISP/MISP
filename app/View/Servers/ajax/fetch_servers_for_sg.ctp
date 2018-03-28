@@ -5,7 +5,7 @@
 			<tr>
 				<td style="width:285px;">
 					<p><?php echo __('Available Instances');?></p>
-					<select id="leftValues" size="5" multiple style="width:285px;">
+					<select class="form-control" id="leftValues" size="5" multiple style="width:285px;">
 						<?php
 							foreach ($servers as $server) {
 								echo '<option data-url="' . h($server['url']) . '" value="' . h($server['id']) . '" selected>' . h($server['name']) . '</option>';
@@ -19,7 +19,7 @@
 				</td>
 				<td style="width:285px;">
 					<p><?php echo __('Added Organisations');?></p>
-					<select id="rightValues" size="5" multiple style="width:285px;"></select>
+					<select class="form-control" id="rightValues" size="5" multiple style="width:285px;"></select>
 				</td>
 			</tr>
 		</table>

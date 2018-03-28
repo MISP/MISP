@@ -42,7 +42,7 @@
 <h3><?php echo __('Activity Heatmap');?></h3>
 <p><?php echo __('A heatmap showing user activity for each day during this month and the 4 months that preceded it. Use the buttons below to only show the heatmap of a specific organisation.');?></p>
 <div id="orgs">
-	<select onchange="updateCalendar(this.options[this.selectedIndex].value);">
+	<select class="form-control" onchange="updateCalendar(this.options[this.selectedIndex].value);">
 		<option value="all"><?php echo __('All organisations');?></option>
 		<?php
 			foreach ($orgs as $org):

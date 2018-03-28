@@ -7,7 +7,7 @@
 				<tr>
 					<td style="width:120px;">
 						<p style="color:green;font-weight:bold;"><?php echo __('Allowed Tags (OR)');?></p>
-						<select id="tagspullLeftValues" size="5" multiple style="width:185px;">
+						<select class="form-control" id="tagspullLeftValues" size="5" multiple style="width:185px;">
 						</select>
 					</td>
 					<td style="width:50px;text-align:center;">
@@ -23,7 +23,7 @@
 					</td>
 					<td style="width:120px;">
 						<p style="color:red;font-weight:bold;"><?php echo __('Blocked Tags (AND NOT)');?></p>
-						<select id="tagspullRightValues" size="5" multiple style="width:185px;"></select>
+						<select class="form-control" id="tagspullRightValues" size="5" multiple style="width:185px;"></select>
 					</td>
 				</tr>
 				<tr>
@@ -36,7 +36,7 @@
 				<tr>
 					<td style="width:120px;">
 						<p style="color:green;font-weight:bold;">Allowed Orgs (OR)</p>
-						<select id="orgspullLeftValues" size="5" multiple style="width:185px;">
+						<select class="form-control" id="orgspullLeftValues" size="5" multiple style="width:185px;">
 						</select>
 					</td>
 					<td style="width:50px;text-align:center;">
@@ -52,7 +52,7 @@
 					</td>
 					<td style="width:120px;">
 						<p style="color:red;font-weight:bold;"><?php echo __('Blocked Orgs (AND NOT)');?></p>
-						<select id="orgspullRightValues" size="5" multiple style="width:185px;"></select>
+						<select class="form-control" id="orgspullRightValues" size="5" multiple style="width:185px;"></select>
 					</td>
 				</tr>
 			</table>

@@ -19,7 +19,7 @@
 				</td>
 				<td style="width:285px;">
 					<p><?php echo __('Added Organisations');?></p>
-					<select id="rightValues" size="5" multiple style="width:285px;"></select>
+					<select class="form-control" id="rightValues" size="5" multiple style="width:285px;"></select>
 				</td>
 			</tr>
 		</table>
