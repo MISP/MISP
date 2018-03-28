@@ -43,7 +43,7 @@
 				<?php
 				if ($event['Event']['published'] == 1) {
 				?>
-					<a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] ?>" class = "icon-ok" title = "<?php echo __('View');?>"></a>
+					<a href="<?php echo $baseurl."/events/view/".$event['Event']['id'] ?>" class = "fa fa-check" title = "<?php echo __('View');?>"></a>
 				<?php
 				} else {
 				?>

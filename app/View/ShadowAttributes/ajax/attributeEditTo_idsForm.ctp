@@ -2,7 +2,7 @@
 	echo $this->Form->create('ShadowAttribute', array('class' => 'inline-form inline-field-form', 'id' => 'Attribute' . '_' . $object['id'] . '_to_ids_form', 'url' => '/shadow_attributes/editField/' . $object['id']));
 ?>
 	<div class='inline-input inline-input-container'>
-	<div class="inline-input-accept inline-input-button inline-input-passive"><span class = "icon-ok" title="<?php echo __('Accept');?>" role="button" tabindex="0" aria-label="<?php echo __('Accept');?>"></span></div>
+	<div class="inline-input-accept inline-input-button inline-input-passive"><span class = "fa fa-check" title="<?php echo __('Accept');?>" role="button" tabindex="0" aria-label="<?php echo __('Accept');?>"></span></div>
 	<div class="inline-input-decline inline-input-button inline-input-passive"><span class = "fa fa-remove" title="<?php echo __('Discard');?>" role="button" tabindex="0" aria-label="<?php echo __('Discard');?>"></span></div>
 <?php
 	$current = 0;

@@ -37,7 +37,7 @@ foreach ($list as $item): ?>
 		<td><?php echo h($item['Role']['name']); ?>&nbsp;</td>
 		<td class="short"><?php echo h($options[$item['Role']['permission']]); ?>&nbsp;</td>
 		<?php foreach ($permFlags as $k => $flags): ?>
-			<td class="short"><span class="<?php if ($item['Role'][$k]) echo 'icon-ok'; ?>"></span>&nbsp;</td>
+			<td class="short"><span class="<?php if ($item['Role'][$k]) echo 'fa fa-check'; ?>"></span>&nbsp;</td>
 		<?php endforeach; ?>
 	</tr><?php
 endforeach; ?>

@@ -79,7 +79,7 @@
 foreach ($list as $k => $item): ?>
 	<tr>
 		<td class="short"><?php echo h($item['Tag']['id']); ?>&nbsp;</td>
-		<td class="short"><span class="<?php echo ($item['Tag']['exportable'] ? 'icon-ok' : 'fa fa-remove'); ?>"></span></td>
+		<td class="short"><span class="<?php echo ($item['Tag']['exportable'] ? 'fa fa-check' : 'fa fa-remove'); ?>"></span></td>
 		<td class="short"><span class="icon-<?php echo $item['Tag']['hide_tag'] ? 'ok' : 'remove'; ?>"></span></td>
 		<td><a href="<?php echo $baseurl . "/events/index/searchtag:" . $item['Tag']['id']; ?>" class="tag" style="background-color: <?php echo h($item['Tag']['colour']); ?>;color:<?php echo $this->TextColour->getTextColour($item['Tag']['colour']); ?>" title="<?php echo isset($item['Tag']['Taxonomy']['expanded']) ? h($item['Tag']['Taxonomy']['expanded']) : h($item['Tag']['name']); ?>"><?php echo h($item['Tag']['name']); ?></a></td>
 		<td class="short">

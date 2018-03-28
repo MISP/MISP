@@ -2133,7 +2133,7 @@ function sharingGroupPopulateOrganisations() {
 			if (org.extend) html+= 'checked';
 			html += '></input>';
 		} else {
-			html += '<span class="icon-ok"></span>'
+			html += '<span class="fa fa-check"></span>'
 		}
 		html +='</td>';
 		html += '<td class="actions short">';

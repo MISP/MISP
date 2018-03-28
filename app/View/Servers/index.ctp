@@ -68,16 +68,16 @@ foreach ($servers as $server):
 			?>
 		</td>
 		<td id="connection_test_<?php echo $server['Server']['id'];?>"><span role="button" tabindex="0" aria-label="<?php echo __('Test the connection to the remote instance');?>" title="<?php echo __('Test the connection to the remote instance');?>" class="btn btn-primary" style="line-height:10px; padding: 4px 4px;" onClick="testConnection('<?php echo $server['Server']['id'];?>');"><?php echo __('Run');?></span></td>
-		<td><span class="<?php echo ($server['Server']['internal']? 'icon-ok' : 'fa fa-remove'); ?>" title="<?php echo ($server['Server']['internal']? __('Internal instance that ignores distribution level degradation *WARNING: Only use this setting if you have several internal instances and the sync link is to an internal extension of the current MISP community*') : __('Normal sync link to an external MISP instance. Distribution degradation will follow the normal rules.')); ?>"></span></td>
-		<td><span class="<?php echo ($server['Server']['push']? 'icon-ok' : 'fa fa-remove'); ?>"></span><span class="short <?php if (!$server['Server']['push'] || empty($ruleDescription['push'])) echo "hidden"; ?>" data-toggle="popover" title="Distribution List" data-content="<?php echo $ruleDescription['push']; ?>"> (<?php echo __('Rules');?>)</span></td>
-		<td><span class="<?php echo ($server['Server']['pull']? 'icon-ok' : 'fa fa-remove'); ?>"></span><span class="short <?php if (!$server['Server']['pull'] || empty($ruleDescription['pull'])) echo "hidden"; ?>" data-toggle="popover" title="Distribution List" data-content="<?php echo $ruleDescription['pull']; ?>"> (<?php echo __('Rules');?>)</span>
-		<td class="short"><span class="<?php echo ($server['Server']['unpublish_event'] ? 'icon-ok' : 'fa fa-remove'); ?>"></span></td>
-		<td class="short"><span class="<?php echo ($server['Server']['publish_without_email'] ? 'icon-ok' : 'fa fa-remove'); ?>"></span></td>
+		<td><span class="<?php echo ($server['Server']['internal']? 'fa fa-check' : 'fa fa-remove'); ?>" title="<?php echo ($server['Server']['internal']? __('Internal instance that ignores distribution level degradation *WARNING: Only use this setting if you have several internal instances and the sync link is to an internal extension of the current MISP community*') : __('Normal sync link to an external MISP instance. Distribution degradation will follow the normal rules.')); ?>"></span></td>
+		<td><span class="<?php echo ($server['Server']['push']? 'fa fa-check' : 'fa fa-remove'); ?>"></span><span class="short <?php if (!$server['Server']['push'] || empty($ruleDescription['push'])) echo "hidden"; ?>" data-toggle="popover" title="Distribution List" data-content="<?php echo $ruleDescription['push']; ?>"> (<?php echo __('Rules');?>)</span></td>
+		<td><span class="<?php echo ($server['Server']['pull']? 'fa fa-check' : 'fa fa-remove'); ?>"></span><span class="short <?php if (!$server['Server']['pull'] || empty($ruleDescription['pull'])) echo "hidden"; ?>" data-toggle="popover" title="Distribution List" data-content="<?php echo $ruleDescription['pull']; ?>"> (<?php echo __('Rules');?>)</span>
+		<td class="short"><span class="<?php echo ($server['Server']['unpublish_event'] ? 'fa fa-check' : 'fa fa-remove'); ?>"></span></td>
+		<td class="short"><span class="<?php echo ($server['Server']['publish_without_email'] ? 'fa fa-check' : 'fa fa-remove'); ?>"></span></td>
 		<td><?php echo h($server['Server']['url']); ?>&nbsp;</td>
 		<td><a href="/organisations/view/<?php echo h($server['RemoteOrg']['id']); ?>"><?php echo h($server['RemoteOrg']['name']); ?></a></td>
 		<td class="short"><?php echo h($server['Server']['cert_file']); ?>&nbsp;</td>
 		<td class="short"><?php echo h($server['Server']['client_cert_file']); ?>&nbsp;</td>
-		<td class="short"><span class="<?php echo ($server['Server']['self_signed'] ? 'icon-ok' : 'fa fa-remove'); ?>"></span></td>
+		<td class="short"><span class="<?php echo ($server['Server']['self_signed'] ? 'fa fa-check' : 'fa fa-remove'); ?>"></span></td>
 		<td class="short"><a href="/organisations/view/<?php echo h($server['Organisation']['id']); ?>"><?php echo h($server['Organisation']['name']); ?></a></td>
 		<td class="short action-links">
 			<?php

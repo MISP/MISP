@@ -205,7 +205,7 @@
         <?php
           elseif (!empty($object['FeedHit'])):
         ?>
-          <span class="icon-ok"></span>
+          <span class="fa fa-check"></span>
         <?php
           endif;
         ?>

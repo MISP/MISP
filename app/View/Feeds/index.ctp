@@ -96,7 +96,7 @@ foreach ($feeds as $item):
 		?>
 		<td class="short"><?php echo h($item['Feed']['id']); ?>&nbsp;</td>
 		<td class="short">
-			<span class="<?php echo ($item['Feed']['enabled'] ? 'icon-ok' : 'fa fa-remove'); ?>"></span>
+			<span class="<?php echo ($item['Feed']['enabled'] ? 'fa fa-check' : 'fa fa-remove'); ?>"></span>
 			<span
 				class="short <?php if (!$item['Feed']['enabled'] || empty($ruleDescription)) echo "hidden"; ?>"
 				data-toggle="popover"
@@ -146,9 +146,9 @@ foreach ($feeds as $item):
 		<?php
 			if ($item['Feed']['source_format'] != 'misp'):
 		?>
-				<td><span class="<?php echo ($item['Feed']['publish'] ? 'icon-ok' : 'fa fa-remove'); ?>"></span></td>
-				<td><span class="<?php echo ($item['Feed']['delta_merge'] ? 'icon-ok' : 'fa fa-remove'); ?>"></span></td>
-				<td><span class="<?php echo ($item['Feed']['override_ids'] ? 'icon-ok' : 'fa fa-remove'); ?>"></span></td>
+				<td><span class="<?php echo ($item['Feed']['publish'] ? 'fa fa-check' : 'fa fa-remove'); ?>"></span></td>
+				<td><span class="<?php echo ($item['Feed']['delta_merge'] ? 'fa fa-check' : 'fa fa-remove'); ?>"></span></td>
+				<td><span class="<?php echo ($item['Feed']['override_ids'] ? 'fa fa-check' : 'fa fa-remove'); ?>"></span></td>
 		<?php
 			else:
 		?>
@@ -170,7 +170,7 @@ foreach ($feeds as $item):
 			&nbsp;
 		<?php endif;?>
 		</td>
-		<td class="short"><span class="<?php echo ($item['Feed']['lookup_visible'] ? 'icon-ok' : 'fa fa-remove'); ?>"></span>
+		<td class="short"><span class="<?php echo ($item['Feed']['lookup_visible'] ? 'fa fa-check' : 'fa fa-remove'); ?>"></span>
 		<td class="short action-links <?php echo !empty($item['Feed']['cache_timestamp']) ? 'bold' : 'bold red';?>">
 			<?php
 				if (!empty($item['Feed']['cache_timestamp'])):
