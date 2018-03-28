@@ -104,7 +104,10 @@ class StixBuilder():
         elif attribute_type in ('text', 'comment', 'other') or attribute_type not in mispTypesMapping:
             self.add_custom(attribute)
         else:
-            self.handle_non_indicator_attribute(attribute, attribute_type)
+            try:
+                self.handle_non_indicator_attribute(attribute, attribute_type)
+            except:
+                self.add_custom(attribute)
 
     def handle_non_indicator_attribute(self, attribute, attribute_type):
         if attribute_type == "vulnerability":
@@ -119,10 +122,13 @@ class StixBuilder():
             self.add_custom(attribute)
 
     def handle_usual_type(self, attribute):
-        if attribute.to_ids:
-            self.add_indicator(attribute)
-        else:
-            self.add_observed_data(attribute)
+        try:
+            if attribute.to_ids:
+                self.add_indicator(attribute)
+            else:
+                self.add_observed_data(attribute)
+        except:
+            self.add_custom(attribute)
 
     def handle_link(self, attribute):
         url = attribute.value
@@ -190,7 +196,6 @@ class StixBuilder():
                               'first_observed': timestamp, 'last_observed': timestamp, 'labels': labels,
                               'created_by_ref': self.identity_id,
                               'objects': self.define_observable(attribute.type, attribute.value)}
-        print(observed_data_args)
         observed_data = ObservedData(**observed_data_args)
         self.append_object(observed_data, observed_data_id)
 
