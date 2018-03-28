@@ -135,7 +135,7 @@
 					'label' => __('Auto Publish'),
 					'title' => __('Publish events directly after pulling the feed - if you would like to review the event before publishing uncheck this'),
 					'type' => 'checkbox',
-					'class' => 'form-control'
+					'class' => 'form-check-input'
 			));
 		?>
 		</div>
@@ -145,7 +145,7 @@
 					'label' => __('Override IDS Flag'),
 					'title' => __('If checked, the IDS flags will always be set to off when pulling from this feed'),
 					'type' => 'checkbox',
-					'class' => 'form-control'
+					'class' => 'form-check-input'
 			));
 		?>
 		</div>
@@ -155,7 +155,7 @@
 					'label' => __('Delta Merge'),
 					'title' => __('Merge attributes (only add new attributes, remove revoked attributes)'),
 					'type' => 'checkbox',
-					'class' => 'form-control'
+					'class' => 'form-check-input'
 			));
 		?>
 		</div>

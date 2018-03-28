@@ -21,13 +21,15 @@
 		<div class="clear"></div>
 	<?php
 		echo $this->Form->input('exportable', array(
-			'type' => 'checkbox'
+			'type' => 'checkbox',
+			'class' => 'form-check-input'
 		));
 	?>
 	<div class="clear"></div>
 	<?php
 		echo $this->Form->input('hide_tag', array(
 			'type' => 'checkbox',
+			'class' => 'form-check-input'
 		));
 	?>
 	</fieldset>

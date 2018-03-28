@@ -2136,27 +2136,27 @@ select.form-control-lg:not([size]):not([multiple]), .input-group-lg > select.for
   padding-left: 5px;
 }
 
-.form-check {
+.form-check-input {
   position: relative;
   display: block;
   padding-left: 1.25rem;
 }
 
-.form-check-input {
+.form-check-input-input {
   position: absolute;
   margin-top: 0.3rem;
   margin-left: -1.25rem;
 }
 
-.form-check-input:disabled ~ .form-check-label {
+.form-check-input-input:disabled ~ .form-check-input-label {
   color: #6c757d;
 }
 
-.form-check-label {
+.form-check-input-label {
   margin-bottom: 0;
 }
 
-.form-check-inline {
+.form-check-input-inline {
   display: -webkit-inline-box;
   display: -ms-inline-flexbox;
   display: inline-flex;
@@ -2167,7 +2167,7 @@ select.form-control-lg:not([size]):not([multiple]), .input-group-lg > select.for
   margin-right: 0.75rem;
 }
 
-.form-check-inline .form-check-input {
+.form-check-input-inline .form-check-input-input {
   position: static;
   margin-top: 0;
   margin-right: 0.3125rem;
@@ -2221,13 +2221,13 @@ select.form-control-lg:not([size]):not([multiple]), .input-group-lg > select.for
   display: block;
 }
 
-.was-validated .form-check-input:valid ~ .form-check-label, .form-check-input.is-valid ~ .form-check-label {
+.was-validated .form-check-input-input:valid ~ .form-check-input-label, .form-check-input-input.is-valid ~ .form-check-input-label {
   color: #28a745;
 }
 
-.was-validated .form-check-input:valid ~ .valid-feedback,
-.was-validated .form-check-input:valid ~ .valid-tooltip, .form-check-input.is-valid ~ .valid-feedback,
-.form-check-input.is-valid ~ .valid-tooltip {
+.was-validated .form-check-input-input:valid ~ .valid-feedback,
+.was-validated .form-check-input-input:valid ~ .valid-tooltip, .form-check-input-input.is-valid ~ .valid-feedback,
+.form-check-input-input.is-valid ~ .valid-tooltip {
   display: block;
 }
 
@@ -2318,13 +2318,13 @@ select.form-control-lg:not([size]):not([multiple]), .input-group-lg > select.for
   display: block;
 }
 
-.was-validated .form-check-input:invalid ~ .form-check-label, .form-check-input.is-invalid ~ .form-check-label {
+.was-validated .form-check-input-input:invalid ~ .form-check-input-label, .form-check-input-input.is-invalid ~ .form-check-input-label {
   color: #dc3545;
 }
 
-.was-validated .form-check-input:invalid ~ .invalid-feedback,
-.was-validated .form-check-input:invalid ~ .invalid-tooltip, .form-check-input.is-invalid ~ .invalid-feedback,
-.form-check-input.is-invalid ~ .invalid-tooltip {
+.was-validated .form-check-input-input:invalid ~ .invalid-feedback,
+.was-validated .form-check-input-input:invalid ~ .invalid-tooltip, .form-check-input-input.is-invalid ~ .invalid-feedback,
+.form-check-input-input.is-invalid ~ .invalid-tooltip {
   display: block;
 }
 
@@ -2381,7 +2381,7 @@ select.form-control-lg:not([size]):not([multiple]), .input-group-lg > select.for
   align-items: center;
 }
 
-.form-inline .form-check {
+.form-inline .form-check-input {
   width: 100%;
 }
 
@@ -2425,7 +2425,7 @@ select.form-control-lg:not([size]):not([multiple]), .input-group-lg > select.for
   .form-inline .input-group {
     width: auto;
   }
-  .form-inline .form-check {
+  .form-inline .form-check-input {
     display: -webkit-box;
     display: -ms-flexbox;
     display: flex;
@@ -2438,7 +2438,7 @@ select.form-control-lg:not([size]):not([multiple]), .input-group-lg > select.for
     width: auto;
     padding-left: 0;
   }
-  .form-inline .form-check-input {
+  .form-inline .form-check-input-input {
     position: relative;
     margin-top: 0;
     margin-right: 0.25rem;

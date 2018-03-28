@@ -37,7 +37,7 @@
 foreach ($list as $item): ?>
 	<tr>
 		<td><?php echo $this->Html->link(h($item['Role']['id']), array('admin' => true, 'action' => 'edit', $item['Role']['id'])); ?>&nbsp;</td>
-		<td class="short" style="text-align:center;width:20px;"><input class="form-control" class="servers_default_role_checkbox" type="checkbox" data-id="<?php echo h($item['Role']['id']); ?>" <?php if ($default_role_id && $default_role_id == $item['Role']['id']) echo 'checked'; ?>></td>
+		<td class="short" style="text-align:center;width:20px;"><input class="form-check-input servers_default_role_checkbox" type="checkbox" data-id="<?php echo h($item['Role']['id']); ?>" <?php if ($default_role_id && $default_role_id == $item['Role']['id']) echo 'checked'; ?>></td>
 		<td><?php echo h($item['Role']['name']); ?>&nbsp;</td>
 		<td class="short"><span class="<?php if ($item['Role']['restricted_to_site_admin']) echo 'icon-ok'; ?>"></span>&nbsp;</td>
 		<td><?php echo h($options[$item['Role']['permission']]); ?>&nbsp;</td>

@@ -19,6 +19,7 @@
 		echo $this->Form->input('all', array(
 			'checked' => false,
 			'label' => 'All',
+			'class' => 'form-check-input-input'
 		));
 	?>
 	</div>
@@ -28,6 +29,7 @@
 			echo $this->Form->input($key, array(
 				'checked' => false,
 				'label' => $type,
+				'class' => 'form-check-input-input'
 			));
 		}
 	?>

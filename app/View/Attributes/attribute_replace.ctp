@@ -17,6 +17,7 @@ echo $this->Form->create('Attribute', array('id', 'url' => '/attributes/attribut
 			echo $this->Form->input('to_ids', array(
 					'type' => 'checkbox',
 					'label' => __('Mark all new attributes as to IDS'),
+					'class' => 'check-control'
 			));
 			echo $this->Form->input('value', array(
 					'type' => 'textarea',

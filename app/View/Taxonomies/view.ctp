@@ -65,7 +65,7 @@
 		<table class="table table-striped table-hover table-condensed">
 			<tr>
 				<?php if ($isAclTagger && !empty($entries)): ?>
-					<th><input class="form_control select_all" type="checkbox" onClick="toggleAllTaxonomyCheckboxes();" /></th>
+					<th><input class="form_check form-check-input select_all" type="checkbox" onClick="toggleAllTaxonomyCheckboxes();" /></th>
 				<?php endif;?>
 					<th><?php echo $this->Paginator->sort('tag');?></th>
 					<th><?php echo $this->Paginator->sort('expanded');?></th>
@@ -78,7 +78,7 @@
 			<tr>
 			<?php if ($isAclTagger): ?>
 				<td style="width:10px;">
-					<input class="form-control" id = "select_<?php echo h($k); ?>" class="select_taxonomy" type="checkbox" data-id="<?php echo h($k);?>" />
+					<input id = "select_<?php echo h($k); ?>" class="form-check-input select_taxonomy" type="checkbox" data-id="<?php echo h($k);?>" />
 				</td>
 			<?php endif; ?>
 				<td id="tag_<?php echo h($k); ?>" class="short"><?php echo h($item['tag']); ?></td>

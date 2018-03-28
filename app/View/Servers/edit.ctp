@@ -18,6 +18,7 @@
 				echo $this->Form->input('internal', array(
 						'label' => __('Internal instance'),
 						'type' => 'checkbox',
+						'class' => 'form-check-input'
 				));
 	?>
 			</div>
@@ -81,18 +82,21 @@
 	<?php
 		echo $this->Form->input('unpublish_event', array(
 			'type' => 'checkbox',
+			'class' => 'form-check-input'
 		));
 	?>
 		<div class = "input clear"></div>
 	<?php
 		echo $this->Form->input('publish_without_email', array(
 			'type' => 'checkbox',
+			'class' => 'form-check-input'
 		));
 	?>
 		<div class = "input clear"></div>
 	<?php
 		echo $this->Form->input('self_signed', array(
 			'type' => 'checkbox',
+			'class' => 'form-check-input'
 		));
 	?>
 	<div class="clear">
@@ -156,8 +160,8 @@
 		echo $this->Form->input('push_rules', array('style' => 'display:none;', 'label' => false, 'div' => false));
 		echo $this->Form->input('pull_rules', array('style' => 'display:none;', 'label' => false, 'div' => false));
 		echo $this->Form->input('json', array('style' => 'display:none;', 'label' => false, 'div' => false));
-		echo $this->Form->checkbox('delete_cert', array('style' => 'display:none;', 'label' => false, 'div' => false));
-		echo $this->Form->checkbox('delete_client_cert', array('style' => 'display:none;', 'label' => false, 'div' => false));
+		echo $this->Form->checkbox('delete_cert', array('class' => 'form-check-input', 'style' => 'display:none;', 'label' => false, 'div' => false));
+		echo $this->Form->checkbox('delete_client_cert', array('class' => 'form-check-input', 'style' => 'display:none;', 'label' => false, 'div' => false));
 	?>
 	</fieldset>
 	<span role="button" tabindex="0" aria-label="<?php echo __('Submit');?>" title="<?php echo __('Submit');?>" class="btn btn-primary" onClick="serverSubmitForm('Edit');"><?php echo __('Submit');?></span>

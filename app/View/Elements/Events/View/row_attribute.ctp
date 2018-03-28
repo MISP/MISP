@@ -30,7 +30,7 @@
     if ($mayModify):
   ?>
       <td style="width:10px;" data-position="<?php echo h($object['objectType']) . '_' . h($object['id']); ?>">
-        <input class="form-control" id = "select_<?php echo $object['id']; ?>" class="select_attribute row_checkbox" type="checkbox" data-id="<?php echo $object['id'];?>" />
+        <input class="check-control" id = "select_<?php echo $object['id']; ?>" class="select_attribute row_checkbox" type="checkbox" data-id="<?php echo $object['id'];?>" />
       </td>
   <?php
     endif;
@@ -106,9 +106,8 @@
       </div>
     </td>
     <td class="short" style="padding-top:3px;">
-      <input class="form-control"
         id="correlation_toggle_<?php echo h($object['id']); ?>"
-        class="correlation-toggle"
+        class="check-control correlation-toggle"
         type="checkbox"
         data-attribute-id="<?php echo h($object['id']); ?>"
         <?php

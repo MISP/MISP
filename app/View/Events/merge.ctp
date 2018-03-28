@@ -18,7 +18,7 @@
 				'type' => 'checkbox',
 				'checked' => false,
 				'label' => __('copy only IDS attributes'),
-				'class' => 'form-control'
+				'class' => 'form-check-input'
 		));
 		?>
 

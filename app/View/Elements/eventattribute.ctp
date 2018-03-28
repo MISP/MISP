@@ -150,7 +150,7 @@
 				if ($mayModify && !empty($event['objects'])):
 					$fieldCount += 1;
 			?>
-					<th><input class="form-control" class="select_all" type="checkbox" title="Select all" role="button" tabindex="0" aria-label="Select all attributes/proposals on current page" onClick="toggleAllAttributeCheckboxes();" /></th>
+					<th><input class="check-control" class="select_all" type="checkbox" title="Select all" role="button" tabindex="0" aria-label="Select all attributes/proposals on current page" onClick="toggleAllAttributeCheckboxes();" /></th>
 			<?php
 				endif;
 			?>

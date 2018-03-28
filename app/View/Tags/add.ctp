@@ -26,14 +26,14 @@
 	<?php
 		echo $this->Form->input('exportable', array(
 			'type' => 'checkbox', 'checked' => true,
-			'class' => 'form-control'
+			'class' => 'form-check-input'
 		));
 	?>
 		<div class="clear"></div>
 	<?php
 		echo $this->Form->input('hide_tag', array(
 			'type' => 'checkbox', 'checked' => false,
-			'class' => 'form-control'
+			'class' => 'form-check-input'
 		));
 	?>
 	</fieldset>

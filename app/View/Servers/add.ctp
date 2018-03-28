@@ -20,7 +20,7 @@
 				echo $this->Form->input('internal', array(
 						'label' => __('Internal instance'),
 						'type' => 'checkbox',
-			'class' => 'form-control'
+						'class' => 'form-check-input'
 				));
 	?>
 			</div>
@@ -80,18 +80,23 @@
 	<?php
 		echo $this->Form->input('unpublish_event', array(
 			'type' => 'checkbox',
+			'class' => 'form-check-input'
+      
 		));
 	?>
 		<div class = "input clear"></div>
 	<?php
 		echo $this->Form->input('publish_without_email', array(
-			'type' => 'checkbox',
+			'type' => 'checkbox',  
+			'class' => 'form-check-input'
 		));
 	?>
 		<div class = "input clear"></div>
 	<?php
 		echo $this->Form->input('self_signed', array(
 			'type' => 'checkbox',
+			'class' => 'form-check-input'
+      
 		));
 
 		echo $this->Form->input('Server.submitted_cert', array(

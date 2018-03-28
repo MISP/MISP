@@ -5,7 +5,7 @@
 		<?php
 			echo $this->Form->input('restricted_to_site_admin', array(
 				'type' => 'checkbox',
-				'class' => 'checkbox readonlyenabled',
+				'class' => 'checkbox form-check-input readonlyenabled',
 				'label' => __('Restrict to site admins')
 			));
 		?>
@@ -28,7 +28,7 @@
 		<?php
 					echo $this->Form->input($k, array(
 						'type' => 'checkbox',
-						'class' => 'checkbox ' . ($flag['readonlyenabled'] ? 'readonlyenabled' : 'readonlydisabled'),
+						'class' => 'form-check-input checkbox ' . ($flag['readonlyenabled'] ? 'readonlyenabled' : 'readonlydisabled'),
 						'checked' => false,
 						'label' => Inflector::humanize(substr($k, 5))
 					));

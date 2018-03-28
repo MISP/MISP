@@ -36,7 +36,7 @@
 				'label' => __('Enter a custom message'),
 				'type' => 'checkbox',
 				'id' => 'customMessageToggle',
-				'class' => 'form-control'
+				'class' => 'form-check-input'
 			));
 			?>
 		</div>

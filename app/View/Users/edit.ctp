@@ -26,8 +26,8 @@
 			<div class="clear"><span role="button" tabindex="0" aria-label="<?php echo __('Fetch PGP key');?>" onClick="lookupPGPKey('UserEmail');" class="btn btn-dark" style="margin-bottom:10px;"><?php echo __('Fetch GPG key');?></span></div>
 		<?php
 		if (Configure::read('SMIME.enabled')) echo $this->Form->input('certif_public', array('label' => __('SMIME Public certificate (PEM format)'), 'div' => 'clear', 'class' => 'input-xxlarge'));
-		echo $this->Form->input('autoalert', array('label' => __('Receive alerts when events are published'), 'type' => 'checkbox'));
-		echo $this->Form->input('contactalert', array('label' => __('Receive alerts from "contact reporter" requests'), 'type' => 'checkbox'));
+		echo $this->Form->input('autoalert', array('label' => __('Receive alerts when events are published'),'class' => 'form-check-input', 'type' => 'checkbox'));
+		echo $this->Form->input('contactalert', array('label' => __('Receive alerts from "contact reporter" requests'),'class' => 'form-check-input', 'type' => 'checkbox'));
 	?>
 	</fieldset>
 	<div style="border-bottom: 1px solid #e5e5e5;width:100%;">&nbsp;</div>

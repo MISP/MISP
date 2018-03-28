@@ -27,6 +27,8 @@
 						'type' => 'checkbox',
 						'checked' => $newsItem['News']['user_id'] == 0,
 						'label' => __('Create anonymously'),
+						'class' => 'form-check-input'
+
 			));
 		?>
 	</fieldset>

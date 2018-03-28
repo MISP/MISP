@@ -2048,3 +2048,12 @@ hr {
 	justify-content: center;
 	align-items: center;
 }
+
+.form-check-input-input {
+	margin-left: 0px;
+}
+
+.form-check-input-input + label {
+	margin-left: 30px;
+
+}

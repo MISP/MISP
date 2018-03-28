@@ -66,7 +66,7 @@
 					'checked' => false,
 					'data-content' => isset($attrDescriptions['signature']['formdesc']) ? $attrDescriptions['signature']['formdesc'] : $attrDescriptions['signature']['desc'],
 					'label' => __('IDS (encrypt and hash)'),
-					'class' => 'form-control'
+					'class' => 'check-control'
 			));
 		?>
 			<div class="input clear"></div>
@@ -76,7 +76,7 @@
 					'checked' => false,
 					'data-content' => isset($attrDescriptions['signature']['formdesc']) ? $attrDescriptions['signature']['formdesc'] : $attrDescriptions['signature']['desc'],
 					'label' => __('Advanced extraction (if installed)'),
-					'class' => 'form-control'
+					'class' => 'check-control'
 			));
 		?>
 	</fieldset>

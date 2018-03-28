@@ -55,6 +55,7 @@
 				echo $this->Form->input('batch_import', array(
 						'type' => 'checkbox',
 						'data-content' => 'Create multiple attributes one per line',
+						'class' => 'check-control'
 				));
 				// link an onchange event to the form elements
 				$this->Js->get('#AttributeCategory')->event('change', 'formCategoryChanged("#AttributeCategory")');

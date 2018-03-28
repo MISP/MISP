@@ -116,7 +116,7 @@ foreach ($list as $k => $item): ?>
 			<?php echo $this->element('sparkline', array('id' => $item['Tag']['id'], 'csv' => isset($csv[$k]) ? $csv[$k] : $emptyDate)); ?>
 		</td>
 		<td class="short" id ="checkbox_row_<?php echo h($item['Tag']['id']);?>">
-			<input class="form-control" id="checkBox_<?php echo h($item['Tag']['id']); ?>" type="checkbox" onClick="toggleSetting(event, 'favourite_tag', '<?php echo h($item['Tag']['id']); ?>')" <?php echo $item['Tag']['favourite'] ? 'checked' : ''; ?>/>
+			<input class="form-check-input" id="checkBox_<?php echo h($item['Tag']['id']); ?>" type="checkbox" onClick="toggleSetting(event, 'favourite_tag', '<?php echo h($item['Tag']['id']); ?>')" <?php echo $item['Tag']['favourite'] ? 'checked' : ''; ?>/>
 		</td>
 		<?php if ($isSiteAdmin): ?>
 		<td class="short action-links">

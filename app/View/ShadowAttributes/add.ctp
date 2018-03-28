@@ -39,6 +39,7 @@
 			));
 			echo $this->Form->input('batch_import', array(
 					'type' => 'checkbox',
+					'class' => 'form-check-input'
 			));
 		?>
 	</div>

@@ -57,6 +57,7 @@
 			if (!$objectAttribute) {
 				echo $this->Form->input('batch_import', array(
 						'type' => 'checkbox',
+						'class' => 'check-control'
 				));
 			}
 		?>

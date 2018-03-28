@@ -15,7 +15,7 @@
 				$password = false;
 			else:
 				$userType = Configure::read('Plugin.CustomAuth_name') ? Configure::read('Plugin.CustomAuth_name') : 'External authentication';
-				echo $this->Form->input('external_auth_required', array('type' => 'checkbox', 'class' => 'form-control', 'label' => $userType . ' user'));
+				echo $this->Form->input('external_auth_required', array('type' => 'checkbox', 'class' => 'form-check-input', 'label' => $userType . ' user'));
 			endif;
 
 	?>
@@ -31,7 +31,7 @@
 	<div class="clear"></div>
 	<div id="passwordDivDiv">
 		<?php
-			echo $this->Form->input('enable_password', array('type' => 'checkbox', 'label' => __('Set password')));
+			echo $this->Form->input('enable_password', array('type' => 'checkbox', 'class' => 'form-check-input', 'label' => __('Set password')));
 		?>
 		<div id="PasswordDiv">
 			<div class="clear"></div>
@@ -77,13 +77,13 @@
 		<div class="clear"><span  role="button" tabindex="0" aria-label="<?php echo __('Fetch the user\'s PGP key');?>" onClick="lookupPGPKey('UserEmail');" class="btn btn-dark" style="margin-bottom:10px;"><?php echo __('Fetch GPG key');?></span></div>
 	<?php
 		if (Configure::read('SMIME.enabled')) echo $this->Form->input('certif_public', array('label' => __('SMIME key'), 'div' => 'clear', 'class' => 'input-xxlarge', 'placeholder' => __('Paste the user\'s SMIME public key in PEM format here.')));
-		echo $this->Form->input('autoalert', array('label' => __('Receive alerts when events are published'), 'type' => 'checkbox', 'checked' => true));
-		echo $this->Form->input('contactalert', array('label' => __('Receive alerts from "contact reporter" requests'), 'type' => 'checkbox', 'checked' => true));
+		echo $this->Form->input('autoalert', array('label' => __('Receive alerts when events are published'), 'type' => 'checkbox', 'checked' => true), array('class' => 'form-check-input'));
+		echo $this->Form->input('contactalert', array('label' => __('Receive alerts from "contact reporter" requests'), 'type' => 'checkbox', 'checked' => true), array('class' => 'form-check-input'));
 	?>
 		<div class="clear"></div>
 	<?php
 		echo $this->Form->input('disabled', array('label' => __('Disable this user account')));
-		echo $this->Form->input('notify', array('label' => __('Send credentials automatically'), 'type' => 'checkbox', 'checked' => true));
+		echo $this->Form->input('notify', array('label' => __('Send credentials automatically'), 'type' => 'checkbox', 'checked' => true), array('class' => 'form-check-input'));
 	?>
 	</fieldset>
 <?php

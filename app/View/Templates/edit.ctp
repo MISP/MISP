@@ -42,7 +42,8 @@
 		));
 		echo $this->Form->input('share', array(
 			'label' => __('Share this template with others'),
-			'type' => 'checkbox'
+			'type' => 'checkbox',
+			'class' => 'form-check-input'
 		));
 	?>
 	</fieldset>

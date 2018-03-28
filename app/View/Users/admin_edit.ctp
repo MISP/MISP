@@ -13,7 +13,7 @@
 				$password = false;
 			else:
 				$userType = Configure::read('Plugin.CustomAuth_name') ? Configure::read('Plugin.CustomAuth_name') : 'External authentication';
-				echo $this->Form->input('external_auth_required', array('type' => 'checkbox', 'label' => $userType . ' user'));
+				echo $this->Form->input('external_auth_required', array('type' => 'checkbox', 'class' => 'form-check-input','label' => $userType . ' user'));
 			endif;
 
 	?>
@@ -29,7 +29,7 @@
 	<div class="clear"></div>
 	<div id="passwordDivDiv">
 		<?php
-			echo $this->Form->input('enable_password', array('type' => 'checkbox', 'label' => __('Set password')));
+			echo $this->Form->input('enable_password', array('type' => 'checkbox','class' => 'form-check-input', 'label' => __('Set password')));
 		?>
 		<div id="PasswordDiv">
 			<div class="clear"></div>
@@ -68,9 +68,9 @@
 	<?php
 		if (Configure::read('SMIME.enabled')) echo $this->Form->input('certif_public', array('label' => __('SMIME key'), 'div' => 'clear', 'class' => 'input-xxlarge', 'placeholder' => __('Paste the user\'s SMIME public key in PEM format here.')));
 		echo $this->Form->input('termsaccepted', array('label' => __('Terms accepted')));
-		echo $this->Form->input('change_pw', array('type' => 'checkbox', 'label' => __('Change Password')));
-		echo $this->Form->input('autoalert', array('label' => __('Receive alerts when events are published'), 'type' => 'checkbox'));
-		echo $this->Form->input('contactalert', array('label' => __('Receive alerts from "contact reporter" requests'), 'type' => 'checkbox'));
+		echo $this->Form->input('change_pw', array('type' => 'checkbox', 'class' => 'form-check-input', 'label' => __('Change Password')));
+		echo $this->Form->input('autoalert', array('label' => __('Receive alerts when events are published'), 'class' => 'form-check-input', 'type' => 'checkbox'));
+		echo $this->Form->input('contactalert', array('label' => __('Receive alerts from "contact reporter" requests'), 'class' => 'form-check-input', 'type' => 'checkbox'));
 
 		echo $this->Html->link(__('Reset Auth Key'), array('controller' => 'users', 'action' => 'resetauthkey', $currentId));
 	?>

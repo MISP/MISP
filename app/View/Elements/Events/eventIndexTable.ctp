@@ -2,7 +2,7 @@
 	<tr>
 		<?php if ($isSiteAdmin): ?>
 			<th>
-				<input class="form-control" class="select_all select" type="checkbox" title="<?php echo __('Select all');?>" role="button" tabindex="0" aria-label="<?php echo __('Select all events on current page');?>" onClick="toggleAllCheckboxes();" />&nbsp;
+				<input class="check-control" class="select_all select" type="checkbox" title="<?php echo __('Select all');?>" role="button" tabindex="0" aria-label="<?php echo __('Select all events on current page');?>" onClick="toggleAllCheckboxes();" />&nbsp;
 			</th>
 		<?php else: ?>
 			<th style="padding-left:0px;padding-right:0px;">&nbsp;</th>
@@ -66,7 +66,7 @@
 				if ($isSiteAdmin || ($event['Event']['orgc_id'] == $me['org_id'])):
 			?>
 					<td style="width:10px;" data-id="<?php echo h($event['Event']['id']); ?>">
-						<input class="form-control" class="select" type="checkbox" data-id="<?php echo $event['Event']['id'];?>" />
+						<input class="check-control" class="select" type="checkbox" data-id="<?php echo $event['Event']['id'];?>" />
 					</td>
 			<?php
 				else:

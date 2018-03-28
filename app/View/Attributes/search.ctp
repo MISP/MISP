@@ -36,12 +36,12 @@
 			echo $this->Form->input('ioc', array(
 				'type' => 'checkbox',
 				'label' => __('Only find IOCs to use in IDS'),
-				'class' => 'form-control'
+				'class' => 'check-control'
 			));
 			echo $this->Form->input('alternate', array(
 					'type' => 'checkbox',
 					'label' => __('Alternate Search Result (Events)'),
-					'class' => 'form-control'
+					'class' => 'check-control'
 			));
 		?>
 	</fieldset>

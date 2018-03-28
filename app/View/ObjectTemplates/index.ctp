@@ -63,7 +63,7 @@ foreach ($list as $template):
 			if ($isSiteAdmin):
 		?>
 				<td class="short" <?php echo $td_attributes; ?>>
-					<input class="form-control" id="checkBox_<?php echo h($template['ObjectTemplate']['id']); ?>" type="checkbox" onClick="toggleSetting(event, 'activate_object_template', '<?php echo h($template['ObjectTemplate']['id']); ?>')" <?php echo $template['ObjectTemplate']['active'] ? 'checked' : ''; ?>/>
+					<input class="form-check-input" id="checkBox_<?php echo h($template['ObjectTemplate']['id']); ?>" type="checkbox" onClick="toggleSetting(event, 'activate_object_template', '<?php echo h($template['ObjectTemplate']['id']); ?>')" <?php echo $template['ObjectTemplate']['active'] ? 'checked' : ''; ?>/>
 				</td>
 		<?php
 			endif;

@@ -7,7 +7,8 @@
         'type' => 'checkbox',
         'checked' => in_array($k, $enabledRows),
         'label' => false,
-        'div' => false
+        'div' => false,
+        'class' => 'form-check-input'
       ));
     ?>
   </td>
@@ -17,7 +18,7 @@
         'type' => 'hidden',
         'value' => $element['object_relation'],
         'label' => false,
-        'div' => false
+        'div' => false,
       );
       echo $this->Form->input('Attribute.' . $k . '.object_relation', $formSettings);
       if ($action == 'edit') {
@@ -75,7 +76,9 @@
         'type' => 'checkbox',
         'checked' => $element['to_ids'],
         'label' => false,
-        'div' => false
+        'div' => false,
+        'class' => 'form-check-input'
+      
       ));
     ?>
   </td>
@@ -85,7 +88,9 @@
         'type' => 'checkbox',
         'checked' => $element['disable_correlation'],
         'label' => false,
-        'div' => false
+        'div' => false,
+        'class' => 'form-check-input'
+      
       ));
     ?>
   </td>

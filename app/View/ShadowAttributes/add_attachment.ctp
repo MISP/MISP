@@ -28,6 +28,7 @@
 		echo $this->Form->input('malware', array(
 				'type' => 'checkbox',
 				'checked' => false,
+				'class' => 'form-check-input'
 		));
 	?>
 	</fieldset>

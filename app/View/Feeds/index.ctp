@@ -35,7 +35,7 @@
 	<tr>
 			<?php if ($isSiteAdmin): ?>
 				<th>
-					<input class="form-control" class="select_all select" type="checkbox" title="<?php echo __('Select all');?>" role="button" tabindex="0" aria-label="<?php echo __('Select all eventson current page');?>" onClick="toggleAllCheckboxes();" />&nbsp;
+					<input class="form-check-input" class="select_all select" type="checkbox" title="<?php echo __('Select all');?>" role="button" tabindex="0" aria-label="<?php echo __('Select all eventson current page');?>" onClick="toggleAllCheckboxes();" />&nbsp;
 				</th>
 			<?php else: ?>
 				<th style="padding-left:0px;padding-right:0px;">&nbsp;</th>
@@ -85,7 +85,7 @@ foreach ($feeds as $item):
 			if ($isSiteAdmin):
 		?>
 				<td style="width:10px;" data-id="<?php echo h($item['Feed']['id']); ?>">
-					<input class="form-control" class="select" type="checkbox" data-id="<?php echo $item['Feed']['id'];?>" />
+					<input class="form-control select" type="checkbox" data-id="<?php echo $item['Feed']['id'];?>" />
 				</td>
 		<?php
 			else:

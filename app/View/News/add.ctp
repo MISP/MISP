@@ -26,6 +26,7 @@
 			echo $this->Form->input('anonymise', array(
 						'checked' => false,
 						'label' => __('Create anonymously'),
+						'class' => 'check-control'
 			));
 		?>
 	</fieldset>

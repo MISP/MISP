@@ -38,7 +38,7 @@
 				<th><?php echo __('Similar Attributes');?></th>
 				<th><?php echo __('Category');?></th>
 				<th><?php echo __('Type');?></th>
-				<th><?php echo __('IDS');?><input class="form-control" type="checkbox" id="checkAll" style="margin:0px;margin-left:3px;"/></th>
+				<th><?php echo __('IDS');?><input class="form-check-input" type="checkbox" id="checkAll" style="margin:0px;margin-left:3px;"/></th>
 				<th><?php echo __('Distribution');?></th>
 				<th><?php echo __('Comment');?></th>
 				<th><?php echo __('Tags');?></th>
@@ -151,7 +151,7 @@
 				</select>
 			</td>
 			<td class="short" style="width:40px;text-align:center;">
-				<input class="form-control" type="checkbox" id="<?php echo 'Attribute' . $k . 'To_ids'; ?>" <?php if ($item['to_ids']) echo 'checked'; ?> class="idsCheckbox" />
+				<input type="checkbox" id="<?php echo 'Attribute' . $k . 'To_ids'; ?>" <?php if ($item['to_ids']) echo 'checked'; ?> class="form-check-input idsCheckbox" />
 			</td>
 			<td class="short" style="width:40px;text-align:center;">
 				<select id = "<?php echo 'Attribute' . $k . 'Distribution'; ?>" class='distributionToggle' style='padding:0px;height:20px;margin-bottom:0px;'>
@@ -174,10 +174,10 @@
 				</div>
 			</td>
 			<td class="short">
-				<input class="form-control" type="text" class="freetextCommentField" id="<?php echo 'Attribute' . $k . 'Comment'; ?>" style="padding:0px;height:20px;margin-bottom:0px;" placeholder="<?php echo h($importComment); ?>" <?php if (isset($item['comment']) && $item['comment'] !== false) echo 'value="' . h($item['comment']) . '"'?>/>
+				<input class="form-check-input" type="text" class="freetextCommentField" id="<?php echo 'Attribute' . $k . 'Comment'; ?>" style="padding:0px;height:20px;margin-bottom:0px;" placeholder="<?php echo h($importComment); ?>" <?php if (isset($item['comment']) && $item['comment'] !== false) echo 'value="' . h($item['comment']) . '"'?>/>
 			</td>
 			<td class="short">
-				<input class="form-control" type="text" class="freetextTagField" id="<?php echo 'Attribute' . $k . 'Tags'; ?>" style="padding:0px;height:20px;margin-bottom:0px;"<?php if (isset($item['tags']) && $item['tags'] !== false) echo 'value="' . h(implode(",",$item['tags'])) . '"'?>/>
+				<input class="form-check-input" type="text" class="freetextTagField" id="<?php echo 'Attribute' . $k . 'Tags'; ?>" style="padding:0px;height:20px;margin-bottom:0px;"<?php if (isset($item['tags']) && $item['tags'] !== false) echo 'value="' . h(implode(",",$item['tags'])) . '"'?>/>
 			</td>
 			<td class="action short">
 				<span class="fa fa-remove pointer" title="<?php echo __('Remove resolved attribute');?>" role="button" tabindex="0" aria-label="<?php echo __('Remove resolved attribute');?>" onClick="freetextRemoveRow('<?php echo $k; ?>', '<?php echo $event['Event']['id']; ?>');"></span>
