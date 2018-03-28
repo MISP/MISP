@@ -324,7 +324,6 @@
 	</div><br />
 	<span class="btn btn-dark" role="button" tabindex="0" aria-label="<?php echo __('Check for orphaned attribute');?>" title="<?php echo __('Check for orphaned attributes');?>" style="padding-top:1px;padding-bottom:1px;" onClick="checkOrphanedAttributes();"><?php echo __('Check for orphaned attributes');?></span><br /><br />
 	<?php echo $this->Form->postButton(__('Remove orphaned attributes'), $baseurl . '/attributes/pruneOrphanedAttributes', $options = array('class' => 'btn btn-primary', 'style' => 'padding-top:1px;padding-bottom:1px;')); ?>
-
 	<h3><?php echo __('Verify GnuPG keys');?></h3>
 	<p><?php echo __('Run a full validation of all GnuPG keys within this instance\'s userbase. The script will try to identify possible issues with each key and report back on the results.');?></p>
 	<span class="btn btn-dark" onClick="location.href='<?php echo $baseurl;?>/users/verifyGPG';"><?php echo __('Verify GnuPG keys');?></span> (<?php echo __('Check whether every user\'s GnuPG key is usable');?>)</li>
