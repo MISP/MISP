@@ -48,7 +48,7 @@ class StixBuilder():
         report_args = {'type': 'report', 'id': 'report--{}'.format(self.misp_event.uuid),
                        'created_by_ref': self.identity_id, 'name': self.misp_event.info,
                        'published': self.misp_event.publish_timestamp,
-                       'object_refs': self.objects_refs}
+                       'object_refs': self.object_refs}
         labels = []
         if self.misp_event.Tag:
             for tag in self.misp_event.Tag:
@@ -59,7 +59,7 @@ class StixBuilder():
             report_args['labels'] = ['Threat-Report']
         if self.external_refs:
             report_args['external_references'] = external_refs
-        return Report(**args_report)
+        return Report(**report_args)
 
     def generate_package(self):
         bundle_args = {"type": "bundle", "spec_version": "2.0", "objects": self.SDOs,
@@ -68,7 +68,7 @@ class StixBuilder():
 
     def saveFile(self):
         outputfile = "{}.out".format(self.filename)
-        with open(outputifle, 'w') as f:
+        with open(outputfile, 'w') as f:
             f.write(json.dumps(self.stix_package, cls=base.STIXJSONEncoder))
 
     def __set_identity(self):
@@ -174,7 +174,7 @@ class StixBuilder():
         category = attribute.category
         killchain = self.create_killchain(category)
         labels = self.create_labels(attribute)
-        indicators_args = {'id': indicator_id, 'type': 'indicator', 'labels': labels, 'kill_chain_phases': killchain,
+        indicator_args = {'id': indicator_id, 'type': 'indicator', 'labels': labels, 'kill_chain_phases': killchain,
                            'valid_from': attribute.timestamp, 'created_by_ref': self.identity_id,
                            'pattern': self.define_pattern(attribute.type, attribute.value)}
         if attribute.comment:
@@ -200,7 +200,7 @@ class StixBuilder():
         vulnerability_data = mispTypesMapping['vulnerability'](name)
         labels = self.create_labels(attribute)
         vulnerability_args = {'id': vulnerability_id, 'type': 'vulnerability',
-                              'name': name, 'external_refs': [vulnerability_data],
+                              'name': name, 'external_references': [vulnerability_data],
                               'created_by_ref': self.identity_id, 'labels': labels}
         vulnerability = Vulnerability(**vulnerability_args)
         self.append_object(vulnerability, vulnerability_id)
@@ -227,8 +227,8 @@ class StixBuilder():
             return 'ipv4:addr'
 
     def define_observable(self, attribute_type, attribute_value):
-        if attribute_type == 'malware_sample':
-            return mispTypesMapping[attribute]['observable']('filename|md5', attribute_value)
+        if attribute_type == 'malware-sample':
+            return mispTypesMapping[attribute_type]['observable']('filename|md5', attribute_value)
         observable = mispTypesMapping[attribute_type]['observable'](attribute_type, attribute_value)
         if 'port' in attribute_type:
             try:
@@ -239,9 +239,9 @@ class StixBuilder():
 
     def define_pattern(self, attribute_type, attribute_value):
         attribute_value = attribute_value.replace("'", '##APOSTROPHE##').replace('"', '##QUOTE##')
-        if attribute_type == 'malware_sample':
-            return mispTypesMapping[attribute]['pattern']('filename|md5', attribute_value)
-        return mispTypesMapping[attribute_type]['pattern'](attribute_type, attribute_value)
+        if attribute_type == 'malware-sample':
+            return [mispTypesMapping[attribute_type]['pattern']('filename|md5', attribute_value)]
+        return [mispTypesMapping[attribute_type]['pattern'](attribute_type, attribute_value)]
 
 def main(args):
     pathname = os.path.dirname(args[0])
