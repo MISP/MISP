@@ -4,30 +4,36 @@
 		<legend><?php echo __('Add Tag');?></legend>
 	<?php
 		echo $this->Form->input('name', array(
+			'class' => 'form-control'
 		));
 		echo $this->Form->input('colour', array(
+			'class' => 'form-control'
 		));
 		echo $this->Form->input('org_id', array(
 				'options' => $orgs,
-				'label' => __('Restrict tagging to org')
+				'label' => __('Restrict tagging to org'),
+				'class' => 'form-control'
 		));
 		if ($isSiteAdmin) {
 			echo $this->Form->input('user_id', array(
 					'options' => $users,
-					'label' => __('Restrict tagging to user')
+					'label' => __('Restrict tagging to user'),
+					'class' => 'form-control'
 			));
 		}
 	?>
 		<div class="clear"></div>
 	<?php
 		echo $this->Form->input('exportable', array(
-			'type' => 'checkbox', 'checked' => true
+			'type' => 'checkbox', 'checked' => true,
+			'class' => 'form-control'
 		));
 	?>
 		<div class="clear"></div>
 	<?php
 		echo $this->Form->input('hide_tag', array(
-			'type' => 'checkbox', 'checked' => false
+			'type' => 'checkbox', 'checked' => false,
+			'class' => 'form-control'
 		));
 	?>
 	</fieldset>
