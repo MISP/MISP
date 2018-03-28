@@ -33,10 +33,11 @@ class EventGraph {
 		this.mapping_meta_fa.set('network', {"meta-category": "network","fa_text": "server","fa-hex": "f233"});
 		this.mapping_meta_fa.set('misc', {"meta-category": "misc","fa_text": "cube","fa-hex": "f1b2"});
 		// FIXME
+		this.network_options = network_options;
 		this.first_draw = true;
+		this.cmenu = this.init_contextual_menu();
 		this.layout = 'default';
 		this.backup_connection_edges = {};
-		this.network_options = network_options;
 		this.nodes = nodes;
 		this.edges = edges;
 		var data = { // empty
@@ -65,6 +66,29 @@ class EventGraph {
 	// Util
 	get_node_color(uuid) {
 		return this.nodes.get(uuid).icon.color;
+	}
+
+	init_contextual_menu() {
+		var cmenu = new ContextualMenu();
+		cmenu.add_slider({
+			id: 'slider_physic_node_repulsion',
+			label: "Node repulsion",
+			min: 0,
+			max: 1000,
+			value: this.network_options.physics.barnesHut.springLength,
+			step: 10,
+			event: function(value) {
+				eventGraph.physics_change_repulsion(parseInt(value));
+			}
+		});
+		cmenu.add_checkbox({
+			label: "Enable physics",
+			event: function(checked) {
+				eventGraph.physics_state(checked);
+			},
+			checked: true
+		});
+		return cmenu
 	}
 
 	// Graph interaction
@@ -213,6 +237,15 @@ class EventGraph {
 		var that = eventGraph;
 		that.network_options.physics.enabled = state;
 		that.network.setOptions({physics: { enabled: state} })
+	}
+
+	physics_change_repulsion(value) {
+		var that = eventGraph;
+		if(that.layout == 'default') { // repulsion on default is related to spring length
+			that.network.setOptions({physics: { barnesHut: {springLength: value} } })
+		} else {
+			that.network.setOptions({physics: { hierarchicalRepulsion: {nodeDistance: value} } })
+		}
 	}
 
 	// state true: loading
@@ -418,14 +451,19 @@ class EventGraph {
 		}
 
 		if (layout == 'default') {
-			that.network_options.layout.hierarchical.enabled = false;
-			that.network_options.physics.solver = 'barnesHut';
-			that.layout = layout;
+			that.network_options = that.backup_options;
+			// update physics slider value
+			$("#slider_physic_node_repulsion").val(that.network_options.physics.barnesHut.springLength);
+			$("#slider_physic_node_repulsion").parent().find("span").text(that.network_options.physics.barnesHut.springLength);
 		} else {
+			that.backup_options = $.extend(true, {}, that.network_options);
 			that.network_options.layout.hierarchical.enabled = true;
 			that.network_options.layout.hierarchical.sortMethod = layout;
-			that.layout = layout;
+			// update physics slider value
+			$("#slider_physic_node_repulsion").val(that.network_options.physics.hierarchicalRepulsion.nodeDistance);
+			$("#slider_physic_node_repulsion").parent().find("span").text(that.network_options.physics.hierarchicalRepulsion.nodeDistance);
 		}
+		that.layout = layout;
 		that.network_loading(true, loadingText_redrawing);
 		that.switch_unreferenced_nodes_connection();
 		that.destroy_and_redraw();
@@ -717,9 +755,7 @@ function enable_interactive_graph() {
 
 			});
 		});
-		$('#network-physics').change(function() {
-			eventGraph.physics_state($(this).is(":checked"));
-		});
+
 		$('#network-typeahead').typeahead(typeaheadOption);
 
 		eventGraph = new EventGraph(network_options, nodes, edges);
@@ -883,7 +919,7 @@ var network_options = {
 			centralGravity: 0,
 			springLength: 150,
 			springConstant: 0.24,
-			nodeDistance: 220,
+			nodeDistance: 120,
 			damping: 1
 		},
 		minVelocity: 3.0,

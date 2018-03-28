@@ -357,7 +357,8 @@
 				<option value="hierarchical.directed"><?php echo __('Hierarchical directed'); ?></option>
 				<option value="hierarchical.hubsize"><?php echo __('Hierarchical hubsize'); ?></option>
 			</select>
-			<label class="center-in-network-header">Physics<input type="checkbox" id="network-physics" class="center-in-network-header" checked></label>
+			<label class="center-in-network-header"><?php echo __('Physics')?><span id="network-physic-param" class="useCursorPointer fa fa-cog" style="margin-left: 3px;"></span></label>
+			
 			<input type="text" id="network-typeahead" class="center-in-network-header network-typeahead flushright" data-provide="typeahead" size="20" placeholder="Search for an item">
 		</div>
 		<span class="shortcut-help btn btn-xs btn-info">?</span>
@@ -397,5 +398,7 @@ $(document).ready(function () {
 <?php echo $this->Html->script('vis'); ?>
 <?php echo $this->Html->css('vis'); ?>
 <?php echo $this->Html->script('bootstrap-typeahead'); ?>
+<?php echo $this->Html->script('contextual_menu'); ?>
+<?php echo $this->Html->css('contextual_menu'); ?>
 <?php echo $this->Html->css('event-graph'); ?>
 <?php echo $this->Html->script('event-graph'); ?>
