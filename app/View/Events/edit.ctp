@@ -10,12 +10,13 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc_id'] == $me['org_id']);
 	echo $this->Form->input('id');
 	echo $this->Form->input('date', array(
 			'type' => 'text',
-			'class' => 'datepicker'
+			'class' => 'form-control datepicker'
 	));
 	echo $this->Form->input('distribution', array(
 		'options' => array($distributionLevels),
 		'label' => 'Distribution ' . $this->element('formInfo', array('type' => 'distribution')),
 		'default' => $event['Event']['distribution'],
+		'class' => 'form-control'
 	));
 ?>
 	<div id="SGContainer" style="display:none;">
@@ -25,6 +26,7 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc_id'] == $me['org_id']);
 				'options' => array($sharingGroups),
 				'label' => __('Sharing Group'),
 				'default' => $event['Event']['sharing_group_id'],
+				'class' => 'form-control'	
 			));
 		}
 		?>
@@ -32,10 +34,12 @@ $mayPublish = ($isAclPublish && $event['Event']['orgc_id'] == $me['org_id']);
 <?php
 	echo $this->Form->input('threat_level_id', array(
 			'div' => 'input clear',
-			'label' => __('Threat Level ') . $this->element('formInfo', array('type' => 'threat_level'))
+			'label' => __('Threat Level ') . $this->element('formInfo', array('type' => 'threat_level')),
+			'class' => 'form-control'
 	));
 	echo $this->Form->input('analysis', array(
 			'label' => __('Analysis ') . $this->element('formInfo', array('type' => 'analysis')),
+			'class' => 'form-control',
 			'options' => array($analysisLevels)
 	));
 	echo $this->Form->input('info', array(

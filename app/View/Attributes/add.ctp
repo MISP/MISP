@@ -13,10 +13,12 @@
 			echo $this->Form->input('category', array(
 				'empty' => __('(choose one)'),
 				'label' => __('Category ') . $this->element('formInfo', array('type' => 'category')),
+				'class' => 'form-control'
 			));
 			echo $this->Form->input('type', array(
 				'empty' => __('(first choose category)'),
 				'label' => __('Type ') . $this->element('formInfo', array('type' => 'type')),
+				'class' => 'form-control'
 			));
 
 			$initialDistribution = 5;
@@ -36,6 +38,7 @@
 				'options' => array($distributionLevels),
 				'label' => __('Distribution ') . $this->element('formInfo', array('type' => 'distribution')),
 				'selected' => $initialDistribution,
+				'class' => 'form-control'
 			));
 			?>
 				<div id="SGContainer" style="display:none;">
@@ -44,6 +47,7 @@
 					echo $this->Form->input('sharing_group_id', array(
 							'options' => array($sharingGroups),
 							'label' => __('Sharing Group'),
+							'class' => 'form-control'
 					));
 				}
 			?>
@@ -53,7 +57,7 @@
 					'type' => 'textarea',
 					'error' => array('escape' => false),
 					'div' => 'input clear',
-					'class' => 'input-xxlarge'
+					'class' => 'form-control input-xxlarge'
 			));
 			?>
 				<div class="input clear"></div>
@@ -63,7 +67,7 @@
 					'label' => __('Contextual Comment'),
 					'error' => array('escape' => false),
 					'div' => 'input clear',
-					'class' => 'input-xxlarge'
+					'class' => 'form-control input-xxlarge'
 			));
 			?>
 			<div class="input clear"></div>
@@ -71,9 +75,11 @@
 			echo $this->Form->input('to_ids', array(
 						'checked' => false,
 						'label' => __('for Intrusion Detection System'),
+						'class' => 'form-control'
 			));
 			echo $this->Form->input('batch_import', array(
-					'type' => 'checkbox'
+					'type' => 'checkbox',
+					'class' => 'form-control'
 			));
 		?>
 		</div>

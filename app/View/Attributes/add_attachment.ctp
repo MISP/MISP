@@ -6,7 +6,8 @@
 			echo $this->Form->hidden('event_id');
 			echo $this->Form->input('category', array(
 				'default' => 'Payload delivery',
-				'label' => __('Category ') . $this->element('formInfo', array('type' => 'category'))
+				'label' => __('Category ') . $this->element('formInfo', array('type' => 'category')),
+				'class' => 'form-control'
 			));
 		?>
 		<div class="input clear"></div>
@@ -23,6 +24,7 @@
 						'options' => $distributionLevels,
 						'label' => __('Distribution ') . $this->element('formInfo', array('type' => 'distribution')),
 						'selected' => $initialDistribution,
+						'class' => 'form-control'
 				));
 			?>
 		<div id="SGContainer" style="display:none;">
@@ -31,6 +33,7 @@
 					echo $this->Form->input('sharing_group_id', array(
 							'options' => array($sharingGroups),
 							'label' => __('Sharing Group'),
+							'class' => 'form-control'
 					));
 				}
 			?>
@@ -41,7 +44,7 @@
 						'label' => __('Contextual Comment'),
 						'error' => array('escape' => false),
 						'div' => 'input clear',
-						'class' => 'input-xxlarge'
+						'class' => 'form-control input-xxlarge'
 				));
 			//'before' => $this->Html->div('forminfo', isset($attrDescriptions['distribution']['formdesc']) ? $attrDescriptions['distribution']['formdesc'] : $attrDescriptions['distribution']['desc']),));
 		?>
@@ -51,7 +54,8 @@
 			echo $this->Form->input('values.', array(
 				'error' => array('escape' => false),
 				'type' => 'file',
-				'multiple' => true
+				'multiple' => true,
+				'class' => 'form-control'
 			));
 		?>
 		</div>
@@ -61,7 +65,8 @@
 					'type' => 'checkbox',
 					'checked' => false,
 					'data-content' => isset($attrDescriptions['signature']['formdesc']) ? $attrDescriptions['signature']['formdesc'] : $attrDescriptions['signature']['desc'],
-					'label' => __('IDS (encrypt and hash)')
+					'label' => __('IDS (encrypt and hash)'),
+					'class' => 'form-control'
 			));
 		?>
 			<div class="input clear"></div>
@@ -71,6 +76,7 @@
 					'checked' => false,
 					'data-content' => isset($attrDescriptions['signature']['formdesc']) ? $attrDescriptions['signature']['formdesc'] : $attrDescriptions['signature']['desc'],
 					'label' => __('Advanced extraction (if installed)'),
+					'class' => 'form-control'
 			));
 		?>
 	</fieldset>

@@ -9,7 +9,7 @@
 				'label' => __('Event id to copy the attributes from'),
 				'error' => array('escape' => false),
 				'div' => 'input clear',
-				'class' => 'input'
+				'class' => 'form-control input'
 		));
 		?>
 		<div class="input clear"></div>
@@ -18,6 +18,7 @@
 				'type' => 'checkbox',
 				'checked' => false,
 				'label' => __('copy only IDS attributes'),
+				'class' => 'form-control'
 		));
 		?>
 
