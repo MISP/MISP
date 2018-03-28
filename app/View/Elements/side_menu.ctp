@@ -287,7 +287,7 @@
 				<?php
 					if ($isAclTagEditor):
 				?>
-						<li class="nav-item" id='liadd'><?php echo $this->Html->link(__('Add Tag'), array('action' => 'add'));?></li>
+						<li class="nav-item" id='liadd'><?php echo $this->Html->link(__('Add Tag'), array('action' => 'add'), array('class' => 'nav-link active'));?></li>
 				<?php
 					endif;
 					if ($menuItem === 'edit'):

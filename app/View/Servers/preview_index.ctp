@@ -42,7 +42,7 @@
 		</span>
 		<?php endif;?>
 		<span id="quickFilterButton" role="button" tabindex="0" aria-label="<?php echo __('Filter');?>" title="<?php echo __('Filter');?>" class="tabMenuFilterFieldButton useCursorPointer" onClick='quickFilterRemoteEvents(<?php echo h($passedArgs);?>, <?php echo h($id); ?>);'><?php echo __('Filter');?></span>
-		<input class="form-control" class="tabMenuFilterField" type="text" id="quickFilterField"></input>
+		<input class="tabMenuFilterField" type="text" id="quickFilterField"></input>
 	</div>
 	<table class="table table-striped table-hover table-condensed">
 		<tr>
