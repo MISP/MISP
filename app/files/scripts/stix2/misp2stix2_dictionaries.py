@@ -4,6 +4,12 @@ def define_address_type(address):
     else:
         return 'ipv4-addr'
 
+def observable_attachment(_, attribute_value):
+    return {'0': {'type': 'artifact', 'payload_bin': attribute_value}}
+
+def pattern_attachment(_, attribute_value):
+    return "artifact:payload_bin = '{}'".format(attribute_value)
+
 def observable_domain(_, attribute_value):
     return {'0': {'type': 'domain-name', 'value': attribute_value}}
 
@@ -25,6 +31,23 @@ def pattern_domain_ip(_, attribute_value):
     domain += " AND domain-name:resolves_to_refs[*].value = '{}'".format(ip_value)
     return domain
 
+def observable_email_address(attribute_type, attribute_value):
+    email_type = "from_ref" if 'src' in attribute_type else "to_refs"
+    return {'0': {'type': 'email-addr', 'value': attribute_value},
+            '1': {'type': 'email-message', email_type: '0', 'is_multipart': 'false'}}
+
+def pattern_email_address(attribute_type, attribute_value):
+    email_type = "from_ref" if 'src' in attribute_type else "to_refs"
+    return "email-message:{} = '{}'".format(email_type, attribute_value)
+
+def observable_email_message(attribute_type, attribute_value):
+    email_type = attribute_type.split('-')[1]
+    return {'0': {'type': 'email-message', email_type: attribute_value, 'is_multipart': 'false'}}
+
+def pattern_email_message(attribute_type, attribute_value):
+    email_type = attribute_type.split('-')[1]
+    return "email-message:{} = '{}'".format(email_type, attribute_value)
+
 def observable_file(_, attribute_value):
     return {'0': {'type': 'file', 'name': attribute_value}}
 
@@ -41,6 +64,22 @@ def pattern_file_hash(attribute_type, attribute_value):
     value1, value2 = attribute_value.split('|')
     return "file:name = '{0}' AND file:hashes.'{1}' = '{2}'".format(value1, hash_type, value2)
 
+def observable_hash(attribute_type, attribute_value):
+    return {'0': {'type': 'file', 'hashes': {attribute_type: attribute_value}}}
+
+def pattern_hash(attribute_type, attribute_value):
+    return "file:hashes.'{}' = '{}'".format(attribute_type, attribute_value)
+
+def observable_hostname_port(_, attribute_value):
+    hostname, port = attribute_value.split('|')
+    hostname_port = observable_domain(_, hostname)
+    hostname_port[1] = observable_port(_, port)['0']
+    return hostname_port
+
+def pattern_hostname_port(_, attribute_value):
+    hostname, port = attribute_value.split('|')
+    return "{} AND {}".format(pattern_domain(_, hostname), pattern_port(_, port))
+
 def observable_ip(attribute_type, attribute_value):
     ip_type = attribute_type.split('-')[1]
     address_type = define_address_type(attribute_value)
@@ -52,14 +91,79 @@ def pattern_ip(attribute_type, attribute_value):
     address_type = define_address_type(attribute_value)
     return "network-traffic:{0}_ref.type = '{1}' AND network-traffic:{0}_ref.value = '{2}'".format(ip_type, address_type, attribute_value)
 
-def observable_hash(attribute_type, attribute_value):
-    return {'0': {'type': 'file', 'hashes': {attribute_type: attribute_value}}}
+def observable_ip_port(attribute_type, attribute_value):
+    ip_type, _ = attribute_type.split('|')
+    ip, port = attribute_value.split('|')
+    ip_port = observable_ip(ip_type, ip)
+    port_type = "{}_port".format(ip_type.split('-')[1])
+    ip_port['1'][port_type] = port
+    return ip_port
 
-def pattern_hash(attribute_type, attribute_value):
-    return "file:hashes.'{}' = '{}'".format(attribute_type, attribute_value)
+def pattern_ip_port(attribute_type, attribute_value):
+    ip_type, _ = attribute_type.split('|')
+    ip, port = attribute_value.split('|')
+    port_type = "{}_port".format(ip_type.split('-')[1])
+    return "network-traffic:{} = '{}' AND {}".format(port_type, port, pattern_ip(ip_type, ip))
+
+def observable_mac_address(_, attribute_value):
+    return {'0': {'type': 'mac-addr', 'value': attribute_value}}
+
+def pattern_mac_address(_, attribute_value):
+    return "mac-addr:value = '{}'".format(attribute_value)
+
+def observable_mutex(_, attribute_value):
+    return {'0': {'type': 'mutex', 'name': attribute_value}}
+
+def pattern_mutex(_, attribute_value):
+    return "mutex:name = '{}'".format(attribute_value)
+
+def observable_port(_, attribute_value):
+    return {'0': {'type': 'network-traffic', 'dst_port': attribute_value, 'protocols': []}}
+
+def pattern_port(_, attribute_value):
+    return "network-traffic:dst_port = '{}'".format(attribute_value)
+
+def observable_regkey(_, attribute_value):
+    return {'0': {'type': 'windows-registry-key', 'key': attribute_value}}
+
+def pattern_regkey(_, attribute_value):
+    return "windows-registry-key:key = '{}'".format(attribute_value)
+
+def observable_regkey_value(_, attribute_value):
+    key, value = attribute_value.split('|')
+    regkey = observable_regkey(_, key)
+    regkey['0']['values'] = {'name': value}
+    return regkey
+
+def pattern_regkey_value(_, attribute_value):
+    key, value = attribute_value.split('|')
+    regkey = pattern_regkey(_, key)
+    regkey += " AND windows-registry-key:values = '{}'".format(value)
+
+def observable_reply_to(_, attribute_value):
+    return {'0': {'type': 'email-addr', 'value': attribute_value},
+            '1': {'type': 'email-message', 'additional_header_fields': {'Reply-To': ['0']}, 'is_multipart': 'false'}}
+
+def pattern_reply_to(_, attribute_value):
+    return "email-message:additional_header_fields.Reply-To = '{}'".format(attribute_value)
+
+def observable_url(_, attribute_value):
+    return {'0': {'type': 'url', 'value': attribute_value}}
+
+def pattern_url(_, attribute_value):
+    return "url:value = '{}'".format(attribute_value)
+
+def observable_x509(_, attribute_value):
+    return {'0': {'type': 'x509-certificate', 'hashes': {'sha1': attribute_value}}}
+
+def pattern_x509(_, attribute_value):
+    return "x509-certificate:hashes = '{}'".format(attribute_value)
+
+def return_vulnerability(name):
+    return {'source_name': 'cve', 'external_id': name}
 
 mispTypesMapping = {
-    'vulnerability': {'source_name': 'cve', 'external_id': ''},
+    'vulnerability': return_vulnerability,
     'md5': {'observable': observable_hash, 'pattern': pattern_hash},
     'sha1': {'observable': observable_hash, 'pattern': pattern_hash},
     'sha256': {'observable': observable_hash, 'pattern': pattern_hash},
@@ -72,27 +176,16 @@ mispTypesMapping = {
     'hostname': {'observable': observable_domain, 'pattern': pattern_domain},
     'domain': {'observable': observable_domain, 'pattern': pattern_domain},
     'domain|ip': {'observable': observable_domain_ip, 'pattern': pattern_domain_ip},
-    'email-src': {'observable': {'0': {'type': 'email-addr', 'value': ''}, '1': {'type': 'email-message', 'from_ref': '0', 'is_multipart': 'false'}},
-                  'pattern': 'email-message:from_ref = \'{0}\''},
-    'email-dst': {'observable': {'0': {'type': 'email-addr', 'value': ''}, '1': {'type': 'email-message', 'to_refs': ['0'], 'is_multipart': 'false'}},
-                  'pattern': 'email-message:to_refs = \'{0}\''},
-    'email-subject': {'observable': {'0': {'type': 'email-message', 'subject': '', 'is_multipart': 'false'}},
-                      'pattern': 'email-message:subject = \'{0}\''},
-
-    'email-body': {'observable': {'0': {'type': 'email-message', 'body': '', 'is_multipart': 'false'}},
-                   'pattern': 'email-message:body = \'{0}\''},
-    'url': {'observable': {'0': {'type': 'url', 'value': ''}},
-            'pattern': 'url:value = \'{0}\''},
-    'regkey': {'observable': {'0': {'type': 'windows-registry-key', 'key': ''}},
-               'pattern': 'windows-registry-key:key = \'{0}\''},
-    'regkey|value': {'observable': {'0': {'type': 'windows-registry-key', 'key': '', 'values': {'name': ''}}},
-                     'pattern': 'windows-registry-key:key = \'{0}\' AND windows-registry-key:values = \'{1}\''},
-    'malware-sample': {'observable': {'0': {'type': 'file', 'name': '', 'hashes': ''}},
-                       'pattern': 'file:name = \'{0}\' AND file:hashes.\'md5\' = \'{1}\''},
-    'mutex': {'observable': {'0': {'type': 'mutex', 'name': ''}},
-              'pattern': 'mutex:name = \'{0}\''},
-    'uri': {'observable': {'0': {'type': 'url', 'value': ''}},
-            'pattern': 'url:value = \'{0}\''},
+    'email-src': {'observable': observable_email_address, 'pattern': pattern_email_address},
+    'email-dst': {'observable': observable_email_address, 'pattern': pattern_email_address},
+    'email-subject': {'observable': observable_email_message, 'pattern': pattern_email_message},
+    'email-body': {'observable': observable_email_message, 'pattern': pattern_email_message},
+    'url': {'observable': observable_url, 'pattern': pattern_url},
+    'regkey': {'observable': observable_regkey, 'pattern': pattern_regkey},
+    'regkey|value': {'observable': observable_regkey_value, 'pattern': pattern_regkey_value},
+    'malware-sample': {'observable': observable_file_hash, 'pattern': pattern_file_hash},
+    'mutex': {'observable': observable_mutex, 'pattern': pattern_mutex},
+    'uri': {'observable': observable_url, 'pattern': pattern_url},
     'authentihash': {'observable': observable_hash, 'pattern': pattern_hash},
     'ssdeep': {'observable': observable_hash, 'pattern': pattern_hash},
     'imphash': {'observable': observable_hash, 'pattern': pattern_hash},
@@ -115,26 +208,18 @@ mispTypesMapping = {
     'filename|sha512/224': {'observable': observable_file_hash, 'pattern': pattern_file_hash},
     'filename|sha512/256': {'observable': observable_file_hash, 'pattern': pattern_file_hash},
     'filename|tlsh': {'observable': observable_file_hash, 'pattern': pattern_file_hash},
-    'x509-fingerprint-sha1': {'observable': {'0': {'type': 'x509-certificate', 'hashes': {'sha1': ''}}},
-                              'pattern': 'x509-certificate:hashes = \'{0}\''},
-    'port': {'observable': {'0': {'type': 'network-traffic', 'dst_port': '', 'protpocols': []}},
-             'pattern': 'network-traffic:dst_port = \'{0}\''},
-    'ip-dst|port': {'observable': {'0': {'type': '', 'value': ''}, '1': {'type': 'network-traffic', 'dst_ref': '0', 'dst_port': '', 'protocols': []}},
-                    'pattern': 'network-traffic:dst_port = \'{1}\' AND network-traffic:dst_ref.type = \'{2}\' AND network-traffic:dst_ref.value = \'{0}\''},
-    'ip-src|port': {'observable': {'0': {'type': '', 'value': ''}, '1': {'type': 'network-traffic', 'src_ref': '0', 'src_port': '', 'protocols': []}},
-                    'pattern': 'network-traffic:src_port = \'{1}\' AND network-traffic:src_ref.type = \'{2}\' AND network-traffic:src_ref.value = \'{0}\''},
-    'hostname|port': {'observable': {'0': {'type': 'domain-name', 'value': ''}, '1': {'type': 'network-traffic', 'dst_ref': '0', 'dst_port': '', 'protocols': []}},
-                      'pattern': 'domain-name:value = \'{0}\' AND network-traffic:dst_port = \'{1}\''},
+    'x509-fingerprint-sha1': {'observable': observable_x509, 'pattern': pattern_x509},
+    'port': {'observable': observable_port, 'pattern': pattern_port},
+    'ip-dst|port': {'observable': observable_ip_port, 'pattern': pattern_ip_port},
+    'ip-src|port': {'observable': observable_ip_port, 'pattern': pattern_ip_port},
+    'hostname|port': {'observable': observable_hostname_port, 'pattern': pattern_hostname_port},
+    'email-reply-to': {'observable': observable_reply_to, 'pattern': pattern_reply_to},
+    'attachment': {'observable': observable_attachment, 'pattern': pattern_attachment},
+    'mac-address': {'observable': observable_mac_address, 'pattern': pattern_mac_address}
     #'email-dst-display-name': {'observable': {'0': {'type': 'email-addr', 'display_name': ''}},
     #                           'pattern': 'email-addr:display_name = \'{0}\''},
     #'email-src-display-name': {'observable': {'0': {'type': 'email-addr', 'display_name': ''}},
-    #                           'pattern': 'email-addr:display_name = \'{0}\''},
-    'email-reply-to': {'observable': {'0': {'type': 'email-addr', 'value': ''}, '1': {'type': 'email-message', 'additional_header_fields': {'Reply-To': ['0']}, 'is_multipart': 'false'}},
-                       'pattern': 'email-message:additional_header_fields.Reply-To = \'{0}\''},
-    'attachment': {'observable': {'0': {'type': 'artifact', 'payload_bin': ''}},
-                   'pattern': 'artifact:payload_bin = \'{0}\''},
-    'mac-address': {'observable': {'0': {'type': 'mac-addr', 'value': ''}},
-                    'pattern': 'mac-addr:value = \'{0}\''}
+    #                           'pattern': 'email-addr:display_name = \'{0}\''}
 }
 
 objectsMapping = {'domain|ip': {'pattern': 'domain-name:{0} = \'{1}\' AND '},
