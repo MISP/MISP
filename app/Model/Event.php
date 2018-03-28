@@ -1701,6 +1701,9 @@ class Event extends AppModel {
 						unset($event['Attribute'][$key]);
 						continue;
 					}
+					if ($event['Attribute'][$key]['category'] === 'Financial fraud') {
+						$event['Attribute'][$key] = $this->Attribute->attachValidationWarnings($event['Attribute'][$key]);
+					}
 					if (isset($options['includeAttachments']) && $options['includeAttachments']) {
 						if ($this->Attribute->typeIsAttachment($attribute['type'])) {
 							$encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
@@ -1742,6 +1745,11 @@ class Event extends AppModel {
 							foreach ($event['Object'] as $objectKey => $objectValue) {
 								if (!empty($event['Object'][$objectKey]['Attribute'])) {
 									$event['Object'][$objectKey]['Attribute'] = $this->__attachSharingGroups(!$options['sgReferenceOnly'], $event['Object'][$objectKey]['Attribute'], $sharingGroupData);
+									foreach ($event['Object'][$objectKey]['Attribute'] as $akey => $adata) {
+										if ($adata['category'] === 'Financial fraud') {
+											$event['Object'][$objectKey]['Attribute'][$akey] = $this->Attribute->attachValidationWarnings($adata);
+										}
+									}
 								}
 								if ($event['Attribute'][$key]['object_id'] == $objectValue['id']) {
 									$event['Object'][$objectKey]['Attribute'][] = $event['Attribute'][$key];
