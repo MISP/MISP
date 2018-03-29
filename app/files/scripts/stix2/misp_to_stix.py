@@ -86,17 +86,36 @@ class StixBuilder():
 
     def read_attributes(self):
         self.misp_types()
-        for attribute in self.misp_event.attributes:
-            attribute_type = attribute.type
-            if attribute_type in non_indicator_attributes:
-                self.handle_non_indicator(attribute, attribute_type)
-            else:
-                if attribute_type in self.categories_mapping['Person']:
-                    self.handle_person(attribute)
-                elif attribute_type in mispTypesMapping:
-                    self.handle_usual_type(attribute)
+        if hasattr(self.misp_event, 'attributes'):
+            for attribute in self.misp_event.attributes:
+                attribute_type = attribute.type
+                if attribute_type in non_indicator_attributes:
+                    self.handle_non_indicator(attribute, attribute_type)
                 else:
-                    self.add_custom(attribute)
+                    if attribute_type in self.categories_mapping['Person']:
+                        self.handle_person(attribute)
+                    elif attribute_type in mispTypesMapping:
+                        self.handle_usual_type(attribute)
+                    else:
+                        self.add_custom(attribute)
+        if hasattr(self.misp_event, 'Galaxy'):
+            for galaxy in self.misp_event.Galaxy:
+                galaxy_type = galaxy.get('type')
+                if 'attack-pattern' in galaxy_type:
+                    self.add_attack_pattern(galaxy)
+                elif 'course' in galaxy_type:
+                    self.add_course_of_action(galaxy)
+                elif 'intrusion' in galaxy_type:
+                    self.add_intrusion_set(galaxy)
+                elif 'ware' in galaxy_type:
+                    self.add_malware(galaxy)
+                elif galaxy_type in ['threat-actor', 'microsoft-activity-group']:
+                    self.add_threat_actor(galaxy)
+                elif galaxy_type in ['rat', 'exploit-kit'] or 'tool' in galaxy_type:
+                    self.add_tool(galaxy)
+        if hasattr(self.misp_event, 'objects'):
+            for misp_object in self.misp_event.objects:
+                object_name = misp_object.name
 
     def handle_non_indicator(self, attribute, attribute_type):
         if attribute_type == "link":
@@ -140,6 +159,42 @@ class StixBuilder():
             pass
         link = {'source_name': source, 'url': url}
         self.external_refs.append(link)
+
+    @staticmethod
+    def generate_galaxy_args(galaxy, b_killchain, b_alias, sdo_type):
+        galaxy_type = galaxy.get('type')
+        name = galaxy.get('name')
+        cluster = galaxy['GalaxyCluster'][0]
+        sdo_id = "{}--{}".format(sdo_type, cluster.get('uuid'))
+        description = "{} | {}".format(galaxy.get('description'), cluster.get('description'))
+        labels = ['misp:type=\"{}\"'.format(galaxy_type)]
+        sdo_args = {'id': sdo_id, 'type': sdo_type, 'name': name, 'description': description}
+        if b_killchain:
+            killchain = [{'kill_chain_name': 'misp-category',
+                          'phase_name': galaxy_type}]
+            sdo_args['kill_chain_phases'] = killchain
+        if cluster['tag_name']:
+            labels.append(cluster.get('tag_name'))
+            meta = cluster.get('meta')
+        if 'synonyms' in meta and b_alias:
+            aliases = []
+            for a in meta['synonyms']:
+                aliases.append(a)
+            sdo_args['aliases'] = aliases
+        sdo_args['labels'] = labels
+        return sdo_args, sdo_id
+
+    def add_attack_pattern(self, galaxy):
+        a_p_args, a_p_id = self.generate_galaxy_args(galaxy, True, False, 'attack-pattern')
+        a_p_args['created_by_ref'] = self.identity_id
+        attack_pattern = AttackPattern(**a_p_args)
+        self.append_object(attack_pattern, a_p_id)
+
+    def add_course_of_action(self, galaxy):
+        c_o_a_args, c_o_a_id = self.generate_galaxy_args(galaxy, False, False, 'course-of-action')
+        c_o_a_args['created_by_ref'] = self.identity_id
+        course_of_action = CourseOfAction(**c_o_a_args)
+        self.append_object(course_of_action, c_o_a_id)
 
     def add_custom(self, attribute):
         custom_object_id = "x-misp-object--{}".format(attribute.uuid)
@@ -188,6 +243,18 @@ class StixBuilder():
         indicator = Indicator(**indicator_args)
         self.append_object(indicator, indicator_id)
 
+    def add_intrusion_set(self, galaxy):
+        i_s_args, i_s_id = self.generate_galaxy_args(galaxy, False, True, 'intrusion-set')
+        i_s_args['created_by_ref'] = self.identity_id
+        intrusion_set = IntrusionSet(**i_s_args)
+        self.append_object(intrusion_set, i_s_id)
+
+    def add_malware(self, galaxy):
+        malware_args, malware_id = self.generate_galaxy_args(galaxy, True, False, 'malware')
+        malware_args['created_by_ref'] = self.identity_id
+        malware = Malware(**malware_args)
+        self.append_object(malware, malware_id)
+
     def add_observed_data(self, attribute):
         observed_data_id = "observed-data--{}".format(attribute.uuid)
         timestamp = attribute.timestamp
@@ -198,6 +265,18 @@ class StixBuilder():
                               'objects': self.define_observable(attribute.type, attribute.value)}
         observed_data = ObservedData(**observed_data_args)
         self.append_object(observed_data, observed_data_id)
+
+    def add_threat_actor(self, galaxy):
+        t_a_args,  t_a_id = self.generate_galaxy_args(galaxy, False, True, 'threat-actor')
+        t_a_args['created_by_ref'] = self.identity_id
+        threat_actor = ThreatActor(**t_a_args)
+        self.append_object(threat_actor, t_a_id)
+
+    def add_tool(self, galaxy):
+        tool_args, tool_id = self.generate_galaxy_args(galaxy, True, False, 'tool')
+        tool_args['created_by_ref'] = self.identity_id
+        tool = Tool(**tool_args)
+        self.append_object(tool, tool_id)
 
     def add_vulnerability(self, attribute):
         vulnerability_id = "vulnerability--{}".format(attribute.uuid)
