@@ -34,8 +34,10 @@ class EventGraph {
 		this.mapping_meta_fa.set('misc', {"meta-category": "misc","fa_text": "cube","fa-hex": "f1b2"});
 		// FIXME
 		this.network_options = network_options;
+		this.default_layout_option = $.extend(true, {}, this.network_options);
 		this.first_draw = true;
-		this.cmenu = this.init_contextual_menu();
+		this.menu_physic = this.init_physic_menu();
+		this.menu_display = this.init_display_menu();
 		this.layout = 'default';
 		this.backup_connection_edges = {};
 		this.nodes = nodes;
@@ -44,6 +46,8 @@ class EventGraph {
 			nodes: this.nodes,
 			edges: this.edges
 		};
+		this.object_templates = {};
+
 		this.cluster_index = 0; // use to get uniq cluster ID
 		this.clusters = [];
 
@@ -68,9 +72,9 @@ class EventGraph {
 		return this.nodes.get(uuid).icon.color;
 	}
 
-	init_contextual_menu() {
-		var cmenu = new ContextualMenu();
-		cmenu.add_slider({
+	init_physic_menu() {
+		var menu_physic = new ContextualMenu();
+		menu_physic.add_slider({
 			id: 'slider_physic_node_repulsion',
 			label: "Node repulsion",
 			min: 0,
@@ -79,18 +83,30 @@ class EventGraph {
 			step: 10,
 			event: function(value) {
 				eventGraph.physics_change_repulsion(parseInt(value));
-			}
+			},
+			tooltip: "Correspond to spring length for barnesHut and node spacing for hierachical"
 		});
-		cmenu.add_checkbox({
+		menu_physic.add_checkbox({
 			label: "Enable physics",
 			event: function(checked) {
 				eventGraph.physics_state(checked);
 			},
 			checked: true
 		});
-		return cmenu
+		return menu_physic;
 	}
-
+	init_display_menu() {
+		var menu_display = new ContextualMenu();
+		menu_display.add_select({
+			label: "Enable physics",
+			event: function(selected) {
+				eventGraph.physics_state(checked);
+			},
+			default: "First required_one_off",
+			options: ['list of options that the user can select', 'to set the value to be displayed below each object']
+		});
+		return menu_display;
+	}
 	// Graph interaction
 	
 	// Clusterize the specified node with its connected childs 
@@ -132,6 +148,7 @@ class EventGraph {
 			if ( node.node_type == 'object' ) {
 				group =  'object';
 				label = node.type;
+				label = node.label;
 				var striped_value = label.substring(0, max_displayed_char) + (label.length < max_displayed_char ? "" : "[...]");
 				node_conf = { 
 					id: node.id,
@@ -451,12 +468,11 @@ class EventGraph {
 		}
 
 		if (layout == 'default') {
-			that.network_options = that.backup_options;
+			that.network_options = that.default_layout_option;
 			// update physics slider value
 			$("#slider_physic_node_repulsion").val(that.network_options.physics.barnesHut.springLength);
 			$("#slider_physic_node_repulsion").parent().find("span").text(that.network_options.physics.barnesHut.springLength);
 		} else {
-			that.backup_options = $.extend(true, {}, that.network_options);
 			that.network_options.layout.hierarchical.enabled = true;
 			that.network_options.layout.hierarchical.sortMethod = layout;
 			// update physics slider value
@@ -483,12 +499,12 @@ class EventGraph {
 
 // data class (handle data)
 class DataHandler {
-	constructor(network) {
-		this.network = network;
+	constructor() {
 		this.mapping_value_to_nodeID = new Map();
 		this.mapping_attr_id_to_uuid = new Map();
 		this.mapping_all_obj_relation = new Map();
 		this.mapping_rel_id_to_uuid = new Map();
+		this.mapping_uuid_to_template = new Map();
 	}
 
 	extract_references(data) {
@@ -516,7 +532,8 @@ class DataHandler {
 					'type': obj.name,
 					'val': obj.value,
 					'node_type': 'object',
-					'meta-category': obj['meta-category']
+					'meta-category': obj['meta-category'],
+					'label': this.generate_label(obj)
 				});
 				
 				for (var rel of obj.ObjectReference) {
@@ -537,21 +554,47 @@ class DataHandler {
 			relations: relations
 		}
 	}
+
+	generate_label(obj) {
+		var template_uuid = obj.template_uuid;
+		var template_req = this.mapping_uuid_to_template.get(template_uuid);
+		var label = obj.name;
+		// search if this field exists in the object
+		for (var attr of obj.Attribute) { // for each field
+			var attr_type = attr.type
+			if (template_req.indexOf(attr_type) != -1) {
+				label += ": " + attr.value;
+				break;
+			}
+		}
+		return label;
+	}
 	
 	fetch_data_and_update(stabilize) {
 		eventGraph.network_loading(true, loadingText_fetching);
-		$.getJSON( "/events/getReferences/"+scope_id+"/event.json", function( data ) {
-			var extracted = dataHandler.extract_references(data);
-			eventGraph.update_graph(extracted);
-			if ( stabilize === undefined || stabilize) {
-				eventGraph.reset_view_on_stabilized();
-			}
+		$.when(this.fetch_objects_template()).done(function() {
+			$.getJSON( "/events/getReferences/"+scope_id+"/event.json", function( data ) {
+				var extracted = dataHandler.extract_references(data);
+				eventGraph.update_graph(extracted);
+				if ( stabilize === undefined || stabilize) {
+					eventGraph.reset_view_on_stabilized();
+				}
+			});
 		});
 	}
 
 	fetch_reference_data(rel_uuid, callback) {
 		$.getJSON( "/events/getReferenceData/"+rel_uuid+"/reference.json", function( data ) {
 			callback(data);
+		});
+	}
+
+	fetch_objects_template() {
+		return $.getJSON( "/events/getObjectTemplate/templates.json", function( data ) {
+			for (var i in data) {
+				var template = data[i].ObjectTemplate;
+				dataHandler.mapping_uuid_to_template.set(template.uuid, template.requirements.requiredOneOf);
+			}
 		});
 	}
 
@@ -758,8 +801,8 @@ function enable_interactive_graph() {
 
 		$('#network-typeahead').typeahead(typeaheadOption);
 
+		dataHandler = new DataHandler();
 		eventGraph = new EventGraph(network_options, nodes, edges);
-		dataHandler = new DataHandler(eventGraph.network);
 
 		$(document).on("keydown", function(evt) {
 			if($('#network-typeahead').is(":focus")) {

@@ -4351,6 +4351,25 @@ class EventsController extends AppController {
 		return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
 	}
 
+	public function getObjectTemplate($type = 'templates') {
+		$validTools = array('templates');
+		if (!in_array($type, $validTools)) throw new MethodNotAllowedException('Invalid type.');
+		App::uses('EventGraphTool', 'Tools');
+		$eventGraphTool = new EventGraphTool();
+
+		$data = $this->request->is('post') ? $this->request->data : array();
+		$eventGraphTool->construct_for_ref($this->Event->Object, $this->Auth->user(), $data);
+		$json = $eventGraphTool->get_object_templates();
+
+		array_walk_recursive($json, function(&$item, $key){
+			if(!mb_detect_encoding($item, 'utf-8', true)){
+				$item = utf8_encode($item);
+			}
+		});
+		$this->response->type('json');
+		return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
+	}
+
 	public function delegation_index() {
 		$this->loadModel('EventDelegation');
 		$delegatedEvents = $this->EventDelegation->find('list', array(

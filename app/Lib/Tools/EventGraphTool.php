@@ -50,5 +50,16 @@
 			if (empty($objectReference)) throw new NotFoundException('Invalid object reference');
 			return $objectReference;
 		}
-  }
+
+		public function get_object_templates() {
+			$templates = $this->__refModel->ObjectTemplate->find('all', array(
+				'recursive' => -1,
+				'contain' => array(
+					'ObjectTemplateElement'
+				)
+			));
+			if (empty($templates)) throw new NotFoundException('No templates');
+			return $templates;
+		}
+  	}
 ?>

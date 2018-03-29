@@ -106,6 +106,7 @@ class ACLComponent extends Component {
 					'freeTextImport' => array('perm_add'),
 					'getReferences' => array('*'),
 					'getReferenceData' => array('*'),
+					'getObjectTemplate' => array('*'),
 					'hids' => array('*'),
 					'index' => array('*'),
 					'massDelete' => array('perm_site_admin'),

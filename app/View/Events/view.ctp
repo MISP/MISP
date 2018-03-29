@@ -357,7 +357,9 @@
 				<option value="hierarchical.directed"><?php echo __('Hierarchical directed'); ?></option>
 				<option value="hierarchical.hubsize"><?php echo __('Hierarchical hubsize'); ?></option>
 			</select>
-			<label class="center-in-network-header"><?php echo __('Physics')?><span id="network-physic-param" class="useCursorPointer fa fa-cog" style="margin-left: 3px;"></span></label>
+			<label id="network-physic-param" class="btn center-in-network-header"><?php echo __('Physics')?><span class="useCursorPointer fa fa-space-shuttle" style="margin-left: 3px;"></span></label>
+			<label id="network-display" class="btn center-in-network-header"><?php echo __('Display')?><span class="useCursorPointer fa fa-list-alt" style="margin-left: 3px;"></span></label>
+			<label id="network-filters" class="btn center-in-network-header"><?php echo __('Filters')?><span class="useCursorPointer fa fa-filter" style="margin-left: 3px;"></span></label>
 			
 			<input type="text" id="network-typeahead" class="center-in-network-header network-typeahead flushright" data-provide="typeahead" size="20" placeholder="Search for an item">
 		</div>
