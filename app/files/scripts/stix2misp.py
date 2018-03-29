@@ -54,9 +54,29 @@ class StixParser():
                 self.event = event
             self.fromMISP = fromMISP
             self.filename = filename
+            self.load_mapping()
         except:
             print(json.dumps({'success': 0, 'message': 'The temporary STIX export file could not be read'}))
             sys.exit(0)
+
+    def load_mapping(self):
+        self.attribute_types_mapping = {
+            'AddressObjectType': self.handle_address,
+            "ArtifactObjectType": self.handle_attachment,
+            'DomainNameObjectType': self.handle_domain_or_url,
+            'EmailMessageObjectType': self.handle_email_attribute,
+            'FileObjectType': self.handle_file,
+            'HostnameObjectType': self.handle_hostname,
+            'HTTPSessionObjectType': self.handle_http,
+            'MutexObjectType': self.handle_mutex,
+            'PDFFileObjectType': self.handle_file,
+            'PortObjectType': self.handle_port,
+            'SocketAddressObjectType': self.handle_socket_address,
+            'URIObjectType': self.handle_domain_or_url,
+            "WhoisObjectType": self.handle_whois,
+            'WindowsRegistryKeyObjectType': self.handle_regkey,
+            "WindowsExecutableFileObjectType": self.handle_pe
+        }
 
     def handler(self):
         self.outputname = '{}.json'.format(self.filename)
@@ -80,8 +100,8 @@ class StixParser():
             self.parse_external_indicator(self.event.indicators)
         if self.event.observables:
             self.parse_external_observable(self.event.observables.observables)
-        if self.event.ttps:
-            self.parse_ttps(self.event.ttps.ttps)
+        # if self.event.ttps:
+        #    self.parse_ttps(self.event.ttps.ttps)
 
     def dictTimestampAndDate(self):
         if self.event.timestamp:
@@ -93,7 +113,8 @@ class StixParser():
             self.misp_event.date = date
             self.misp_event.timestamp = self.getTimestampfromDate(stixTimestamp)
 
-    def getTimestampfromDate(self, date):
+    @staticmethod
+    def getTimestampfromDate(date):
         try:
             try:
                 dt = date.split('+')[0]
@@ -163,41 +184,14 @@ class StixParser():
 
     def handle_attribute_type(self, properties, is_object=False, title=None):
         xsi_type = properties._XSI_TYPE
-        if xsi_type == 'AddressObjectType':
-            return self.handle_address(properties)
-        elif xsi_type == 'EmailMessageObjectType':
-            return self.handle_email_attribute(properties)
-        elif xsi_type == 'DomainNameObjectType':
-            event_types = eventTypes[xsi_type]
-            return event_types['type'], properties.value.value, event_types['relation']
-        elif xsi_type == 'FileObjectType' or xsi_type == 'PDFFileObjectType':
-            return self.handle_file(properties, is_object)
-        elif xsi_type == 'HostnameObjectType':
-            event_types = eventTypes[xsi_type]
-            return event_types['type'], properties.hostname_value.value, event_types['relation']
-        elif xsi_type == 'HTTPSessionObjectType':
-            return self.handle_http(properties)
-        elif xsi_type == 'MutexObjectType':
-            event_types = eventTypes[xsi_type]
-            return event_types['type'], properties.name.value, event_types['relation']
-        elif xsi_type == 'PortObjectType':
-            event_types = eventTypes[xsi_type]
-            return event_types['type'], properties.port_value.value, event_types['relation']
-        elif xsi_type == 'SocketAddressObjectType':
-            return self.handle_socket_address(properties)
-        elif xsi_type == 'URIObjectType':
-            event_types = eventTypes[xsi_type]
-            return event_types['type'], properties.value.value, event_types['relation']
-        elif xsi_type == "WhoisObjectType":
-            return self.handle_whois(properties)
-        elif xsi_type == 'WindowsRegistryKeyObjectType':
-            event_types = eventTypes[xsi_type]
-            return event_types['type'], properties.key.value, event_types['relation']
-        elif xsi_type == "WindowsExecutableFileObjectType":
-            return self.handle_pe(properties)
-        elif xsi_type == "ArtifactObjectType":
-            return eventTypes[xsi_type]['type'], title, properties.raw_artifact.value
-        else:
+        try:
+            args = [properties]
+            if xsi_type in ("FileObjectType", "PDFFileObjectType"):
+                args.append(is_object)
+            elif xsi_type == "ArtifactObjectType":
+                args.append(title)
+            return self.attribute_types_mapping[xsi_type](*args)
+        except AttributeError:
             # ATM USED TO TEST TYPES
             print("Unparsed type: {}".format(xsi_type))
             sys.exit(1)
@@ -209,6 +203,15 @@ class StixParser():
         else:
             ip_type = "ip-dst"
         return ip_type, properties.address_value.value, "ip"
+
+    @staticmethod
+    def handle_attachment(properties, title):
+        return eventTypes[properties._XSI_TYPE]['type'], title, properties.raw_artifact.value
+
+    @staticmethod
+    def handle_domain_or_url(properties):
+        event_types = eventTypes[proprties._XSI_TYPE]
+        return event_types['type'], properties.value.value, event_types['relation']
 
     def handle_email_attribute(self, properties):
         try:
@@ -301,6 +304,11 @@ class StixParser():
         return hash_type, hash_value, hash_type
 
     @staticmethod
+    def handle_hostname(properties):
+        event_types = eventTypes[properties._XSI_TYPE]
+        return event_types['type'], properties.hostname_value.value, event_types['relation']
+
+    @staticmethod
     def handle_http(properties):
         client_request = properties.http_request_response[0].http_client_request
         if client_request.http_request_header:
@@ -314,6 +322,21 @@ class StixParser():
         elif client_request.http_request_line:
             value = client_request.http_request_line.http_method.value
             return "http-method", value, "method"
+
+    @staticmethod
+    def handle_mutex(properties):
+        event_types = eventTypes[properties._XSI_TYPE]
+        return event_types['type'], properties.name.value, event_types['relation']
+
+    @staticmethod
+    def handle_port(properties):
+        event_types = eventTypes[properties._XSI_TYPE]
+        return event_types['type'], properties.port_value.value, event_types['relation']
+
+    @staticmethod
+    def handle_regkey(properties):
+        event_types = eventTypes[properties._XSI_TYPE]
+        return event_types['type'], properties.key.value, event_types['relation']
 
     def handle_socket_address(self, properties):
         if properties.ip_address:
@@ -335,6 +358,7 @@ class StixParser():
             attributes.append([attribute_type, properties.registrar_info.value, attribute_type])
             required_one_of = True
         if properties.registrants:
+            # ATM: need to see how it looks like in a real example
             print(dir(properties.registrants))
         if properties.creation_date:
             attributes.append(["datetime", properties.creation_date.value, "creation-date"])
@@ -514,10 +538,20 @@ class StixParser():
         self.misp_event.add_object(**misp_object)
 
     def parse_ttps(self, ttps):
+        galaxies = []
         for ttp in ttps:
             if ttp.behavior and ttp.behavior.malware_instances:
-                for mi in ttp.behavior.malware_instances:
-                    print(mi.to_json()) # WAITING FOR RELEVANT EXAMPLES
+                mi = ttp.behavior.malware_instances[0]
+                if mi.types:
+                    mi_type = mi.types[0].value
+                    galaxy = {'type': mi_type, 'GalaxyCluster': []}
+                    cluster = {'type': mi_type}
+                    if mi.description:
+                        cluster['description'] = mi.description.value
+                    cluster['value'] = ttp.title
+                    galaxy['GalaxyCluster'].append(cluster)
+                    galaxies.append(galaxy)
+        self.misp_event['Galaxy'] = galaxies
 
     @staticmethod
     def return_attributes(attributes):
