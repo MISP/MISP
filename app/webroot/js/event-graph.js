@@ -106,6 +106,30 @@ class EventGraph {
 			options: Array.from(dataHandler.all_objects_relation),
 			title: "If no item is selected, display the first requiredOneOf of the object"
 		});
+		menu_display.add_button({
+			label: "Expand all nodes",
+			type: "danger",
+			event: function() {
+				var objectIds = eventGraph.nodes.getIds({
+					filter: function(item) { return item.group == 'object'; }
+				})
+				for(var nodeId of objectIds) {
+					eventGraph.expand_node(nodeId);
+				}
+			}
+		});
+		menu_display.add_button({
+			label: "Collapse all nodes",
+			type: "danger",
+			event: function() {
+				var objectIds = eventGraph.nodes.getIds({
+					filter: function(item) { return item.group == 'object'; }
+				});
+				for(var nodeId of objectIds) {
+					eventGraph.collapse_node(nodeId);
+				}
+			}
+		});
 		return menu_display;
 	}
 	// Graph interaction
