@@ -5,6 +5,7 @@
 		<p><?php echo __('Add a new MISP feed source.');?></p>
 	<?php
 		echo $this->Form->input('enabled', array());
+		echo $this->Form->input('caching_enabled', array());
 	?>
 		<div class="input clear"></div>
 	<?php

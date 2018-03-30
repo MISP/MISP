@@ -639,7 +639,7 @@ function multiSelectDeleteEvents() {
 	});
 }
 
-function multiSelectToggleFeeds(on) {
+function multiSelectToggleFeeds(on, cache) {
 	var selected = [];
 	$(".select").each(function() {
 		if ($(this).is(":checked")) {
@@ -649,7 +649,7 @@ function multiSelectToggleFeeds(on) {
 			}
 		}
 	});
-	$.get("/feeds/toggleSelected/" + on + "/" + JSON.stringify(selected), function(data) {
+	$.get("/feeds/toggleSelected/" + on + "/" + cache + "/" + JSON.stringify(selected), function(data) {
 		$("#confirmation_box").html(data);
 		openPopup("#confirmation_box");
 	});
