@@ -184,7 +184,7 @@ class EventGraph {
 				group =  'object';
 				label = node.type;
 				label = node.label;
-				var striped_value = label.substring(0, max_displayed_char) + (label.length < max_displayed_char ? "" : "[...]");
+				var striped_value = this.strip_text_value(label);
 				node_conf = { 
 					id: node.id,
 					label: striped_value,
@@ -201,7 +201,7 @@ class EventGraph {
 			} else {
 				group =  'attribute';
 				label = node.type + ': ' + node.val;
-				var striped_value = label.substring(0, max_displayed_char) + (label.length < max_displayed_char ? "" : "[...]");
+				var striped_value = this.strip_text_value(label);
 				node_conf = { 
 					id: node.id,
 					label: striped_value,
@@ -266,6 +266,11 @@ class EventGraph {
 		}
 
 		this.network_loading(false, "");
+	}
+
+	strip_text_value(text) {
+		var max_num = 32;
+		return text.substring(0, max_num) + (text.length < max_num ? "" : "[...]")
 	}
 	
 	reset_view() {
@@ -388,7 +393,7 @@ class EventGraph {
 					continue;
 				}
 						
-				var striped_value = attr.value.substring(0, max_displayed_char) + (attr.value.length < max_displayed_char ? "" : "[...]");
+				var striped_value = this.strip_text_value(attr.value);
 				var node = { 
 					id: attr.uuid,
 					x: parent_pos.x,
@@ -620,17 +625,24 @@ class DataHandler {
 	}
 
 	generate_label(obj) {
-		var object_type_to_display = document.getElementById("select_display_object_field").value;
+		var object_type_to_display = document.getElementById("select_display_object_field");
 		var label = obj.name;
 		for (var attr of obj.Attribute) { // for each field
-			if (attr.type == object_type_to_display) {
+			if (attr.type == object_type_to_display.value) {
 				label += ": " + attr.value;
 				return label;
 			}
 		}
+		if(object_type_to_display.selectedIndex != -1) { // User explicitly choose the type to display
+			return label;
+		}
 		// no matching, taking the first requiredOff
 		var template_uuid = obj.template_uuid;
 		var template_req = this.mapping_uuid_to_template.get(template_uuid);
+		if (template_req === undefined) { // template not known
+			console.log(template_uuid);
+			return label;
+		}
 		// search if this field exists in the object
 		for (var attr of obj.Attribute) { // for each field
 			var attr_type = attr.type;
