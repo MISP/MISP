@@ -39,6 +39,7 @@ class EventGraph {
 		this.menu_physic = this.init_physic_menu();
 		this.menu_display = this.init_display_menu();
 		this.layout = 'default';
+		this.solver = 'barnesHut';
 		this.backup_connection_edges = {};
 		this.nodes = nodes;
 		this.edges = edges;
@@ -74,6 +75,16 @@ class EventGraph {
 
 	init_physic_menu() {
 		var menu_physic = new ContextualMenu({container: document.getElementById("network-physic-param")});
+		menu_physic.add_select({
+			id: "select_physic_solver",
+			label: "Solver",
+			tooltip: "Physics solver to use",
+			event: function(value) {
+				eventGraph.physics_change_solver(value);
+			},
+			options: ["barnesHut", "repulsion"],
+			default: "barnesHut"
+		});
 		menu_physic.add_slider({
 			id: 'slider_physic_node_repulsion',
 			label: "Node repulsion",
@@ -278,16 +289,40 @@ class EventGraph {
 	physics_state(state) {
 		var that = eventGraph;
 		that.network_options.physics.enabled = state;
+		if(that.layout == "default") {
+			$("#select_physic_solver").prop('disabled', !state);
+		}
+		$("#slider_physic_node_repulsion").prop('disabled', !state);
 		that.network.setOptions({physics: { enabled: state} })
 	}
 
 	physics_change_repulsion(value) {
 		var that = eventGraph;
 		if(that.layout == 'default') { // repulsion on default is related to spring length
-			that.network.setOptions({physics: { barnesHut: {springLength: value} } })
+			if(that.solver == "barnesHut") {
+				that.network.setOptions({physics: { barnesHut: {springLength: value} } })
+			} else {
+				that.network.setOptions({physics: { repulsion: {nodeDistance: value} } })
+			}
 		} else {
 			that.network.setOptions({physics: { hierarchicalRepulsion: {nodeDistance: value} } })
 		}
+	}
+
+	physics_change_solver(solver) {
+		var that = eventGraph;
+		if(that.layout == 'default') { // only hierachical repulsion for other layout
+			that.network.setOptions({physics: { solver: solver } })
+			// update physics slider value
+			if(solver == "barnesHut") {
+				$("#slider_physic_node_repulsion").val(that.network_options.physics.barnesHut.springLength);
+				$("#slider_physic_node_repulsion").parent().find("span").text(that.network_options.physics.barnesHut.springLength);
+			} else {
+				$("#slider_physic_node_repulsion").val(that.network_options.physics.repulsion.nodeDistance);
+				$("#slider_physic_node_repulsion").parent().find("span").text(that.network_options.physics.repulsion.nodeDistance);
+			}
+		}
+		that.solver = solver;
 	}
 
 	// state true: loading
@@ -496,12 +531,14 @@ class EventGraph {
 			// update physics slider value
 			$("#slider_physic_node_repulsion").val(that.network_options.physics.barnesHut.springLength);
 			$("#slider_physic_node_repulsion").parent().find("span").text(that.network_options.physics.barnesHut.springLength);
+			$("#select_physic_solver").prop('disabled', false);
 		} else {
 			that.network_options.layout.hierarchical.enabled = true;
 			that.network_options.layout.hierarchical.sortMethod = layout;
 			// update physics slider value
 			$("#slider_physic_node_repulsion").val(that.network_options.physics.hierarchicalRepulsion.nodeDistance);
 			$("#slider_physic_node_repulsion").parent().find("span").text(that.network_options.physics.hierarchicalRepulsion.nodeDistance);
+			$("#select_physic_solver").prop('disabled', true);
 		}
 		that.layout = layout;
 		that.network_loading(true, loadingText_redrawing);
@@ -1007,6 +1044,13 @@ var network_options = {
 			springConstant: 0.24,
 			damping: 1.0,
 
+		},
+		repulsion: {
+			centralGravity: 5,
+			springLength: 150,
+			springConstant: 0.04,
+			nodeDistance: 240,
+			damping: 1.0
 		},
 		hierarchicalRepulsion: {
 			centralGravity: 0,
