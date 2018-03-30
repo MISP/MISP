@@ -73,7 +73,7 @@ class EventGraph {
 	}
 
 	init_physic_menu() {
-		var menu_physic = new ContextualMenu();
+		var menu_physic = new ContextualMenu({container: document.getElementById("network-physic-param")});
 		menu_physic.add_slider({
 			id: 'slider_physic_node_repulsion',
 			label: "Node repulsion",
@@ -96,14 +96,15 @@ class EventGraph {
 		return menu_physic;
 	}
 	init_display_menu() {
-		var menu_display = new ContextualMenu();
+		var menu_display = new ContextualMenu({container: document.getElementById("network-display")});
 		menu_display.add_select({
-			label: "Enable physics",
-			event: function(selected) {
-				eventGraph.physics_state(checked);
+			id: "select_display_object_field",
+			label: "Object-relation to be displayed",
+			event: function(value) {
+				dataHandler.fetch_data_and_update();
 			},
-			default: "First required_one_off",
-			options: ['list of options that the user can select', 'to set the value to be displayed below each object']
+			options: Array.from(dataHandler.all_objects_relation),
+			title: "If no item is selected, display the first requiredOneOf of the object"
 		});
 		return menu_display;
 	}
@@ -412,7 +413,6 @@ class EventGraph {
 	add_unreferenced_root_node() {
 		var root_node_attr = {
 			id: root_id_attr,
-			fixed: true,
 			x: -root_node_x_pos,
 			y: 0,
 			label: 'Unreferenced Attributes',
@@ -421,7 +421,6 @@ class EventGraph {
 		};
 		var root_node_obj = {
 			id: root_id_object,
-			fixed: true,
 			x: root_node_x_pos,
 			y: 0,
 			label: 'Unreferenced Objects',
@@ -505,6 +504,7 @@ class DataHandler {
 		this.mapping_all_obj_relation = new Map();
 		this.mapping_rel_id_to_uuid = new Map();
 		this.mapping_uuid_to_template = new Map();
+		this.all_objects_relation = new Set();
 	}
 
 	extract_references(data) {
@@ -527,6 +527,7 @@ class DataHandler {
 			for (var obj of data.Object) {
 				this.mapping_attr_id_to_uuid.set(obj.id, obj.uuid);
 				this.mapping_all_obj_relation.set(obj.id, obj.Attribute);
+				this.record_object_ref(obj.Attribute);
 				items.push({
 					'id': obj.id,
 					'type': obj.name,
@@ -548,6 +549,7 @@ class DataHandler {
 				}
 			}
 		}
+		eventGraph.menu_display.add_option("select_display_object_field", Array.from(dataHandler.all_objects_relation));
 	
 		return {
 			items: items,
@@ -556,18 +558,32 @@ class DataHandler {
 	}
 
 	generate_label(obj) {
+		var object_type_to_display = document.getElementById("select_display_object_field").value;
+		var label = obj.name;
+		for (var attr of obj.Attribute) { // for each field
+			if (attr.type == object_type_to_display) {
+				label += ": " + attr.value;
+				return label;
+			}
+		}
+		// no matching, taking the first requiredOff
 		var template_uuid = obj.template_uuid;
 		var template_req = this.mapping_uuid_to_template.get(template_uuid);
-		var label = obj.name;
 		// search if this field exists in the object
 		for (var attr of obj.Attribute) { // for each field
-			var attr_type = attr.type
+			var attr_type = attr.type;
 			if (template_req.indexOf(attr_type) != -1) {
 				label += ": " + attr.value;
-				break;
+				return label;
 			}
 		}
 		return label;
+	}
+
+	record_object_ref(attr_list) {
+		for (var attr of attr_list) {
+			this.all_objects_relation.add(attr.type);
+		}
 	}
 	
 	fetch_data_and_update(stabilize) {
@@ -1128,7 +1144,6 @@ function global_processProperties(clusterOptions, childNodes) {
 			clusterOptions.x =  -root_node_x_pos;
 			clusterOptions.group = 'rootNodeAttribute';
 		}
-		clusterOptions.fixed = true;
 	}
 	clusterOptions.y = 0
 	that.clusters.push({id:'cluster:' + that.cluster_index, scale: that.cur_scale, group: clusterOptions.group});
