@@ -140,6 +140,22 @@ class EventGraph {
 				}
 			}
 		});
+		menu_display.add_slider({
+			id: 'slider_display_max_char_num',
+			label: "Charater to show",
+			title: "Maximum number of charater to display in the label",
+			min: 8,
+			max: 1024,
+			value: max_displayed_char,
+			step: 8,
+			applyButton: true,
+			event: function(value) {
+				$("#slider_display_max_char_num").parent().find("span").text(value);
+			},
+			eventApply: function(value) {
+				dataHandler.fetch_data_and_update();
+			}
+		});
 		return menu_display;
 	}
 	// Graph interaction
@@ -269,7 +285,7 @@ class EventGraph {
 	}
 
 	strip_text_value(text) {
-		var max_num = 32;
+		var max_num = $("#slider_display_max_char_num").val();
 		return text.substring(0, max_num) + (text.length < max_num ? "" : "[...]")
 	}
 	
