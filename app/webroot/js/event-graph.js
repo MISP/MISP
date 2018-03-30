@@ -346,6 +346,7 @@ class EventGraph {
 					}
 				};
 				newNodes.push(node);
+				dataHandler.mapping_obj_relation_value_to_nodeID.set(striped_value, node.id);
 						
 				var rel = {
 					from: parent_id,
@@ -500,6 +501,7 @@ class EventGraph {
 class DataHandler {
 	constructor() {
 		this.mapping_value_to_nodeID = new Map();
+		this.mapping_obj_relation_value_to_nodeID = new Map();
 		this.mapping_attr_id_to_uuid = new Map();
 		this.mapping_all_obj_relation = new Map();
 		this.mapping_rel_id_to_uuid = new Map();
@@ -617,6 +619,11 @@ class DataHandler {
 	get_typeaheadData() {
 		var to_ret = []
 		for( var entry of this.mapping_value_to_nodeID) {
+			var value = entry[0];
+			to_ret.push(value);
+		}
+		// object relation
+		for( var entry of this.mapping_obj_relation_value_to_nodeID) {
 			var value = entry[0];
 			to_ret.push(value);
 		}
@@ -822,6 +829,9 @@ function enable_interactive_graph() {
 
 		$(document).on("keydown", function(evt) {
 			if($('#network-typeahead').is(":focus")) {
+				if (evt.keyCode == 27) { // <ESC>
+					$('#network-typeahead').blur();
+				}
 				return;
 			}
 			switch(evt.keyCode) {
@@ -1083,6 +1093,8 @@ var typeaheadOption = {
 	},
 	updater: function(value) {
 		var nodeID = dataHandler.mapping_value_to_nodeID.get(value);
+		// in case we searched for an object relation
+		nodeID = nodeID === undefined ? dataHandler.mapping_obj_relation_value_to_nodeID.get(value) : nodeID;
 		// check if node in cluster
 		nested_length = eventGraph.network.findNode(nodeID).length;
 		if (nested_length > 1) { // Node is in cluster
