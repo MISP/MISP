@@ -223,19 +223,52 @@ mispTypesMapping = {
     #                           'pattern': 'email-addr:display_name = \'{0}\''}
 }
 
-objectsMapping = {'domain|ip': {'pattern': 'domain-name:{0} = \'{1}\' AND '},
+objectsMapping = {'domain-ip': {'pattern': "domain-name:{0} = '{1}' AND "},
                  'email': {'observable': {'0': {'type': 'email-message'}},
-                           'pattern': 'email-{0}:{1} = \'{2}\' AND '},
+                           'pattern': "email-{0}:{1} = '{2}' AND "},
                  'file': {'observable': {'0': {'type': 'file', 'hashes': {}}},
-                          'pattern': 'file:{0} = \'{1}\' AND '},
-                 'ip|port': {'pattern': 'network-traffic:{0} = \'{1}\' AND '},
+                          'pattern': "file:{0} = '{1}' AND "},
+                 'ip-port': {'pattern': "network-traffic:{0} = '{1}' AND "},
                  'registry-key': {'observable': {'0': {'type': 'windows-registry-key'}},
-                                  'pattern': 'windows-registry-key:{0} = \'{1}\' AND '},
+                                  'pattern': "windows-registry-key:{0} = '{1}' AND "},
                  'url': {'observable': {'0': {'type': 'url'}},
-                         'pattern': 'url:{0} = \'{1}\' AND '},
+                         'pattern': "url:{0} = '{1}' AND "},
                  'x509': {'observable': {'0': {'type': 'x509-certificate', 'hashes': {}}},
-                          'pattern': 'x509-certificate:{0} = \'{1}\' AND '}
+                          'pattern': "x509-certificate:{0} = '{1}' AND "}
 }
+
+domainIpObjectMapping = {'ip-dst': 'resolves_to_refs[*].value', 'domain': 'value'}
+
+emailObjectMapping = {'email-body': {'email_type': 'message', 'stix_type': 'body'},
+                      'email-subject': {'email_type': 'message', 'stix_type': 'subject'},
+                      'email-dst': {'email_type': 'message', 'stix_type': {'to': 'to_refs', 'cc': 'cc_refs'}},
+                      'email-dst-display-name': {'email_type': 'addr', 'stix_type': 'display_name'},
+                      'email-src': {'email_type': 'message', 'stix_type': 'from_ref'},
+                      'email-src-display-name': {'email_type': 'addr', 'stix_type': 'display_name'},
+                      'email-reply-to': {'email_type': 'message', 'stix_type': 'additional_header_fields.reply_to'},
+                      'email-attachment': {'email_type': 'message', 'stix_type': 'body_multipart[*].body_raw_ref.name'},
+                      'datetime': {'email_type': 'message', 'stix_type': 'date'},
+                      'email-x-mailer': {'email_type': 'message', 'stix_type': 'additional_header_fields.x_mailer'}}
+
+fileMapping = {'hashes': "hashes.'{0}'", 'size-in-bytes': 'size', 'filename': 'name', 'mime-type': 'mime_type'}
+
+ipPortObjectMapping = {'ip-dst': "dst_ref.type = '{0}' AND network-traffic:dst_ref.value",
+                       'port': {'src-port': 'src_port', 'dst-port': 'dst_port'},
+                       'datetime': {'first-seen': 'start', 'last-seen': 'end'},
+                       'domain': 'value'}
+
+regkeyMapping = {'text': {'data-type': 'data_type', 'data': 'data', 'name': 'name'},
+                 'datetime': 'modified', 'regkey': 'key'}
+
+urlMapping = {'url': 'value', 'domain': 'value', 'port': 'dst_port'}
+
+x509mapping = {'text':{'subject': 'subject', 'issuer': 'issuer', 'pubkey-info-algorithm': 'subject_public_key_algorithm',
+                       'pubkey-info-exponent': 'subject_public_key_exponent', 'pubkey-info-modulus': 'subject_public_key_modulus',
+                       'serial-number': 'serial_number', 'version': 'version'},
+               'datetime': {'validity-not-before': 'validity_not_before', 'validity-not-after': 'validity_not_after'}}
+
+defineProtocols = {'80': 'http', '443': 'https'}
+
 relationshipsSpecifications = {'attack-pattern': {'vulnerability': 'targets', 'identity': 'targets',
                                                  'malware': 'uses', 'tool': 'uses'},
                               'campaign': {'intrusion-set': 'attributed-to', 'threat-actor': 'attributed-to',
@@ -257,24 +290,3 @@ relationshipsSpecifications = {'attack-pattern': {'vulnerability': 'targets', 'i
                                                'tool': 'uses'},
                               'tool': {'identity': 'targets', 'vulnerability': 'targets'}
 }
-objectTypes = {'text': {'x509': {'subject': 'subject', 'issuer': 'issuer', 'pubkey-info-algorithm': 'subject_public_key_algorithm',
-                                'pubkey-info-exponent': 'subject_public_key_exponent', 'pubkey-info-modulus': 'subject_public_key_modulus',
-                                'serial-number': 'serial_number', 'version': 'version'},
-                       'file': {'mimetype': 'mime_type'},
-                       'registry-key': {'data-type': 'data_type', 'data': 'data', 'name': 'name'}},
-              'datetime': {'x509': {'validity-not-before': 'validity_not_before', 'validity-not-after': 'validity_not_after'},
-                           'ip|port': {'first-seen': 'start', 'last-seen': 'end'},
-                           'email': 'date',
-                           'registry-key': 'modified'},
-              'port': {'src-port': 'src_port', 'dst-port': 'dst_port'}, 'url': 'value',
-              'domain': {'domain': 'domain'}, 'email-x-mailer': 'additional_header_fields.X-Mailer',
-              'email-subject': 'subject', 'email-attachment': 'body_multipart[*].body_raw_ref.name',
-              'email-dst': {'to': 'to_refs', 'cc': 'cc_refs'}, 'email-src': 'from_ref',
-              'email-reply-to': 'additional_header_fields.Reply-To',
-              'hashes': 'hashes.\'{0}\'', 'size-in-bytes': 'size', 'filename': 'name',
-              'ip-dst': {'ip|port': 'dst_ref.type = \'{0}\' AND network-traffic:dst_ref.value',
-                         'domain|ip': 'resolves_to_refs[*].value'},
-              'regkey': 'key'
-}
-
-defineProtocols = {'80': 'http', '443': 'https'}
