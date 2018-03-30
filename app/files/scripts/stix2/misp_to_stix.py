@@ -86,7 +86,7 @@ class StixBuilder():
 
     def read_attributes(self):
         self.misp_types()
-        if hasattr(self.misp_event, 'attributes'):
+        if hasattr(self.misp_event, 'attributes') and self.misp_event.attributes:
             for attribute in self.misp_event.attributes:
                 attribute_type = attribute.type
                 if attribute_type in non_indicator_attributes:
@@ -98,7 +98,22 @@ class StixBuilder():
                         self.handle_usual_type(attribute)
                     else:
                         self.add_custom(attribute)
-        if hasattr(self.misp_event, 'Galaxy'):
+        if hasattr(self.misp_event, 'objects') and self.misp_event.objects:
+            self.load_objects_mapping()
+            for misp_object in self.misp_event.objects:
+                object_attributes = misp_object.attributes
+                to_ids = self.fetch_ids_flag(object_attributes)
+                object_name = misp_object.name
+                if object_name == "vulnerability":
+                    self.add_object_vulnerability(misp_object, to_ids)
+                elif object_name in objectsMapping:
+                    if to_ids:
+                        self.add_object_indicator(misp_object, to_ids)
+                    else:
+                        self.add_object_observable(misp_object, to_ids)
+                else:
+                    self.add_object_custom(misp_object, to_ids)
+        if hasattr(self.misp_event, 'Galaxy') and self.misp_event.Galaxy:
             for galaxy in self.misp_event.Galaxy:
                 galaxy_type = galaxy.get('type')
                 if 'attack-pattern' in galaxy_type:
@@ -113,9 +128,17 @@ class StixBuilder():
                     self.add_threat_actor(galaxy)
                 elif galaxy_type in ['rat', 'exploit-kit'] or 'tool' in galaxy_type:
                     self.add_tool(galaxy)
-        if hasattr(self.misp_event, 'objects'):
-            for misp_object in self.misp_event.objects:
-                object_name = misp_object.name
+
+    def load_objects_mapping(self):
+        self.objects_mapping = {
+            'domain-ip': self.resolve_domain_ip,
+            'email': self.resolve_email_object,
+            'file': self.resolve_file,
+            'ip-port': self.resolve_ip_port,
+            'registry-key': self.resolve_regkey,
+            'url': self.resolve_url,
+            'x509': self.resolve_x509
+        }
 
     def handle_non_indicator(self, attribute, attribute_type):
         if attribute_type == "link":
@@ -153,7 +176,7 @@ class StixBuilder():
         url = attribute.value
         source = "url"
         try:
-            if attribute.comment:
+            if hasattr(attribute, 'comment') and attribute.comment:
                 source += " - {}".format(attribute.comment)
         except AttributeError:
             pass
@@ -175,7 +198,7 @@ class StixBuilder():
             sdo_args['kill_chain_phases'] = killchain
         if cluster['tag_name']:
             labels.append(cluster.get('tag_name'))
-            meta = cluster.get('meta')
+        meta = cluster.get('meta')
         if 'synonyms' in meta and b_alias:
             aliases = []
             for a in meta['synonyms']:
@@ -203,7 +226,7 @@ class StixBuilder():
         custom_object_args = {'id': custom_object_id, 'x_misp_timestamp': attribute.timestamp, 'labels': labels,
                                'x_misp_value': attribute.value, 'created_by_ref': self.identity_id,
                                'x_misp_category': attribute.category}
-        if attribute.comment:
+        if hasattr(attribute, 'comment') and attribute.comment:
             custom_object_args['x_misp_comment'] = attribute.comment
         @CustomObject(custom_object_type, [('id', properties.StringProperty(required=True)),
                                           ('x_misp_timestamp', properties.StringProperty(required=True)),
@@ -225,7 +248,7 @@ class StixBuilder():
         labels = self.create_labels(attribute)
         identity_args = {'id': identity_id,  'type': identity, 'name': name, 'labels': labels,
                           'identity_class': 'individual', 'created_by_ref': self.identity_id}
-        if attribute.comment:
+        if hasattr(attribute, 'comment') and attribute.comment:
             identity_args['description'] = attribute.comment
         identity = Identity(**identity_args)
         self.append_object(identity, identity_id)
@@ -237,8 +260,8 @@ class StixBuilder():
         labels = self.create_labels(attribute)
         indicator_args = {'id': indicator_id, 'type': 'indicator', 'labels': labels, 'kill_chain_phases': killchain,
                            'valid_from': attribute.timestamp, 'created_by_ref': self.identity_id,
-                           'pattern': self.define_pattern(attribute.type, attribute.value)}
-        if attribute.comment:
+                           'pattern': [self.define_pattern(attribute.type, attribute.value)]}
+        if hasattr(attribute, 'comment') and attribute.comment:
             indicator_args['description'] = attribute.comment
         indicator = Indicator(**indicator_args)
         self.append_object(indicator, indicator_id)
@@ -289,13 +312,68 @@ class StixBuilder():
         vulnerability = Vulnerability(**vulnerability_args)
         self.append_object(vulnerability, vulnerability_id)
 
+    def add_object_custom(self, misp_object, to_ids):
+        custom_object_id = 'x-misp-object--{}'.format(misp_object.uuid)
+        name = misp_object.name
+        custom_object_type = 'x-misp-object--{}'.format(name)
+        category = misp_object.get('meta-category')
+        labels = self.create_object_labels(name, category, to_ids)
+        values = self.fetch_custom_values(misp_object.attributes)
+        timestamp = self.get_date_from_timestamp(int(misp_object.timestamp))
+        custom_object_args = {'id': custom_object_id, 'x_misp_values': values,
+                              'x_misp_category': category, 'created_by_ref': self.identity_id,
+                              'x_misp_timestamp': timestamp}
+        if hasattr(misp_object, 'comment') and misp_object.comment:
+            custom_object_args['x_misp_comment'] = misp_object.comment
+        @CustomObject(custom_object_type, [('id', properties.StringProperty(required=True)),
+                                           ('x_misp_timestamp', properties.StringProperty(required=True)),
+                                           ('labels', properties.ListProperty(labels, required=True)),
+                                           ('x_misp_values', properties.DictionaryProperty(required=True)),
+                                           ('created_by_ref', properties.StringProperty(required=True)),
+                                           ('x_misp_comment', properties.StringProperty()),
+                                           ('x_misp_category', properties.StringProperty())
+                                          ])
+        class Custom(object):
+            def __init__(self, **kwargs):
+                return
+        custom_object = Custom(**custom_object_args)
+        self.append_object(custom_object, custom_object_id)
+
+    def add_object_indicator(self, misp_object, to_ids):
+        indicator_id = 'indicator--{}'.format(misp_object.uuid)
+        name = misp_object.name
+        category = misp_object.get('meta-category')
+        killchain = self.create_killchain(category)
+        labels = self.create_object_labels(name, category, to_ids)
+        pattern = self.define_object_pattern(name, misp_object.attributes)
+        timestamp = self.get_date_from_timestamp(int(misp_object.timestamp))
+        indicator_args = {'id': indicator_id, 'valid_from': timestamp, 'type': 'indicator',
+                          'labels': labels, 'description': misp_object.description,
+                          'pattern': [pattern], 'kill_chain_phases': killchain,
+                          'created_by_ref': self.identity_id}
+        indicator = Indicator(**indicator_args)
+        self.append_object(indicator, indicator_id)
+
+    def add_object_observable(self, misp_object, to_ids):
+        observed_data_id = 'observed-data--{}'.format(misp_object.uuid)
+
+    def add_object_vulnerability(self, misp_object, to_ids):
+        vulnerability_id = 'vulnerability--{}'.format(misp_object.uuid)
+        name = self.fetch_vulnerability_name(misp_object.attributes)
+        labels = self.create_object_labels(name, misp_object.get('meta-category'), to_ids)
+        vulnerability_args = {'id': vulnerability_id, 'type': 'vulnerability',
+                              'name': name, 'created_by_ref': self.identity_id,
+                              'labels': labels}
+        vulnerability = Vulnerability(**vulnerability_args)
+        self.append_object(vulnerability, vulnerability_id)
+
     def append_object(self, stix_object, stix_object_id):
         self.SDOs.append(stix_object)
         self.object_refs.append(stix_object_id)
 
     @staticmethod
-    def create_killchain(name):
-        return [{'kill_chain_name': 'misp-category', 'phase_name': name}]
+    def create_killchain(category):
+        return [{'kill_chain_name': 'misp-category', 'phase_name': category}]
 
     @staticmethod
     def create_labels(attribute):
@@ -304,13 +382,21 @@ class StixBuilder():
                 'misp:to_ids="{}"'.format(attribute.to_ids)]
 
     @staticmethod
+    def create_object_labels(name, category, to_ids):
+        return ['misp:type="{}"'.format(name),
+                'misp:category="{}"'.format(category),
+                'misp:to_ids="{}"'.format(to_ids),
+                'from_object']
+
+    @staticmethod
     def define_address_type(value):
         if ':' in value:
             return 'ipv6-addr'
         else:
             return 'ipv4:addr'
 
-    def define_observable(self, attribute_type, attribute_value):
+    @staticmethod
+    def define_observable(attribute_type, attribute_value):
         if attribute_type == 'malware-sample':
             return mispTypesMapping[attribute_type]['observable']('filename|md5', attribute_value)
         observable = mispTypesMapping[attribute_type]['observable'](attribute_type, attribute_value)
@@ -321,11 +407,161 @@ class StixBuilder():
                 observable['1']['protocols'].append(defineProtocols[attribute_value] if attribute_value in defineProtocols else "tcp")
         return observable
 
-    def define_pattern(self, attribute_type, attribute_value):
+    @staticmethod
+    def define_pattern(attribute_type, attribute_value):
         attribute_value = attribute_value.replace("'", '##APOSTROPHE##').replace('"', '##QUOTE##')
         if attribute_type == 'malware-sample':
             return [mispTypesMapping[attribute_type]['pattern']('filename|md5', attribute_value)]
-        return [mispTypesMapping[attribute_type]['pattern'](attribute_type, attribute_value)]
+        return mispTypesMapping[attribute_type]['pattern'](attribute_type, attribute_value)
+
+    def define_object_pattern(self, name, attributes):
+        return self.objects_mapping[name](attributes)
+
+    @staticmethod
+    def fetch_custom_values(attributes):
+        values = {}
+        for attribute in attributes:
+            attribute_type = '{}_{}'.format(attribute.type, attribute.object_relation)
+            values[attribute_type] = attribute.value
+        return values
+
+    @staticmethod
+    def fetch_ids_flag(attributes):
+        for attribute in attributes:
+            if attribute.to_ids:
+                return True
+        return False
+
+    @staticmethod
+    def fetch_vulnerability_name(attributes):
+        for attribute in attributes:
+            if attribute.type == 'vulnerability':
+                return attribute.value
+        return "Undefined name"
+
+    @staticmethod
+    def get_date_from_timestamp(timestamp):
+        return datetime.datetime(1970, 1, 1) + datetime.timedelta(seconds=timestamp)
+
+    @staticmethod
+    def resolve_domain_ip(attributes):
+        pattern = ""
+        for attribute in attributes:
+            try:
+                stix_type = domainIpObjectMapping[attribute.type]
+            except:
+                continue
+            pattern += objectsMapping['domain-ip']['pattern'].format(stix_type, attribute.value)
+        return pattern[:-5]
+
+    @staticmethod
+    def resolve_email_object(attributes):
+        pattern = ""
+        for attribute in attributes:
+            try:
+                mapping = emailObjectMapping[attribute.type]
+            except:
+                continue
+            try:
+                stix_type = mapping['stix_type'][attribute.object_relation]
+            except:
+                stix_type = mapping['stix_type']
+            pattern += objectsMapping['email']['pattern'].format(mapping['email_type'], stix_type, attribute.value)
+        return pattern[:-5]
+
+    @staticmethod
+    def resolve_file(self, attributes):
+        pattern = ""
+        d_pattern = {}
+        s_pattern = objectsMapping['file']['pattern']
+        malware_sample = {}
+        for attribute in attributes:
+            attribute_type = attribute.type
+            attribute_value = attribute.value
+            if attribute_type == "malware-sample":
+                filename, md5 = attribute_value.slit('|')
+                malware_sample['filename'] = filename
+                malware_sample['md5'] = md5
+            else:
+                d_pattern[attribute_type] = attribute_value
+        if malware_sample:
+            if not('md5' in d_pattern and 'filename' in d_pattern and d_pattern['md5'] == malware_sample['md5'] and d_pattern['filename'] == malware_sample['filename']):
+                filename_pattern = s_pattern.format('name', malware_sample['filename'])
+                md5_pattern = s_pattern.format(fileMapping['hashes'].format('md5'), malware_sample['md5'])
+                pattern += "{}{}".format(filename_pattern, md5_pattern)
+        for p in d_pattern:
+            if p in ("authentihash", "ssdeep", "imphash", "md5", "sha1", "sha224",
+                     "sha256","sha384","sha512","sha512/224","sha512/256","tlsh",):
+                stix_type = fileMapping['hashes'].format(p)
+            else:
+                try:
+                    stix_type = fileMapping[p]
+                except:
+                    continue
+            pattern += s_pattern.format(stix_type, d_pattern[p])
+        return pattern[:-5]
+
+    def resolve_ip_port(self, atttributes):
+        pattern = ""
+        for attribute in attributes:
+            attribute_type = attribute.type
+            attribute_value = attribute.value
+            if attribute_type == 'domain':
+                pattern += objectsMapping['domain-ip']['pattern'].format(ipPortObjectMapping[attribute_type], attribute_value)
+            else:
+                try:
+                    try:
+                        stix_type = ipPortObjectMapping[attribute_type][attribute.object_relation]
+                    except:
+                        stix_type = ipPortObjectMapping[attribute_type].format(self.define_address_type(attribute_value))
+                except:
+                    continue
+                pattern += objectsMapping['ip-port']['pattern'].format(stix_type, attribute_value)
+        return pattern[:-5]
+
+    @staticmethod
+    def resolve_regkey(attributes):
+        pattern = ""
+        for attribute in attributes:
+            attribute_type = attribute.type
+            try:
+                try:
+                    stix_type = regkeyMapping[attribute_type][attribute.object_relation]
+                except:
+                    stix_type = regkeyMapping[attribute_type]
+            except:
+                continue
+            pattern += objectsMapping['registry-key']['pattern'].format(stix_type, attribute.value)
+        return pattern[:-5]
+
+    @staticmethod
+    def resolve_url(attributes):
+        pattern = ""
+        for attribute in attributes:
+            attribute_type = attribute.type
+            try:
+                stix_type = urlMapping[attribute_type]
+            except:
+                continue
+            if attribute_type == 'port':
+                mapping = 'ip-port'
+            elif attribute_type == 'domain':
+                mapping = 'domain-ip'
+            else:
+                mapping = attribute_type
+            pattern += objectsMapping[mapping]['pattern'].format(stix_type, attribute.value)
+        return pattern[:-5]
+
+    @staticmethod
+    def resolve_x509(attributes):
+        pattern = ""
+        for attribute in attributes:
+            try:
+                stix_type = x509mapping[attribute.type][attribute.object_relation]
+            except:
+                continue
+            pattern += objectsMapping['x509']['pattern'].format(stix_type, attribute.value)
+        return pattern[:-5]
 
 def main(args):
     pathname = os.path.dirname(args[0])
