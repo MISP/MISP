@@ -34,7 +34,6 @@ class EventGraph {
 		this.mapping_meta_fa.set('misc', {"meta-category": "misc","fa_text": "cube","fa-hex": "f1b2"});
 		// FIXME
 		this.network_options = network_options;
-		this.default_layout_option = $.extend(true, {}, this.network_options);
 		this.first_draw = true;
 		this.menu_physic = this.init_physic_menu();
 		this.menu_display = this.init_display_menu();
@@ -527,7 +526,7 @@ class EventGraph {
 		}
 
 		if (layout == 'default') {
-			that.network_options = that.default_layout_option;
+			that.network_options = $.extend(true, {}, default_layout_option);;
 			// update physics slider value
 			$("#slider_physic_node_repulsion").val(that.network_options.physics.barnesHut.springLength);
 			$("#slider_physic_node_repulsion").parent().find("span").text(that.network_options.physics.barnesHut.springLength);
@@ -1151,6 +1150,7 @@ var network_options = {
 		}
 	}
 };
+var default_layout_option = $.extend(true, {}, network_options);
 
 var typeaheadOption = {
 	source: function (query, process) {
