@@ -556,10 +556,15 @@ class StixBuilder():
     def resolve_x509(attributes):
         pattern = ""
         for attribute in attributes:
-            try:
-                stix_type = x509mapping[attribute.type][attribute.object_relation]
-            except:
-                continue
+            attribute_type = attribute.type
+            if attribute_type in ("x509-fingerprint-md5", "x509-fingerprint-sha1", "x509-fingerprint-sha256"):
+                h_type = attribute_type.split('-')[2]
+                stix_type = fileMapping['hashes'].format(h_type)
+            else:
+                try:
+                    stix_type = x509mapping[attribute_type][attribute.object_relation]
+                except:
+                    continue
             pattern += objectsMapping['x509']['pattern'].format(stix_type, attribute.value)
         return pattern[:-5]
 
