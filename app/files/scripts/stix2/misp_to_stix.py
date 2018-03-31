@@ -131,13 +131,20 @@ class StixBuilder():
 
     def load_objects_mapping(self):
         self.objects_mapping = {
-            'domain-ip': self.resolve_domain_ip,
-            'email': self.resolve_email_object,
-            'file': self.resolve_file,
-            'ip-port': self.resolve_ip_port,
-            'registry-key': self.resolve_regkey,
-            'url': self.resolve_url,
-            'x509': self.resolve_x509
+            'domain-ip': {'observable': self.resolve_domain_ip_observable,
+                          'pattern': self.resolve_domain_ip_pattern},
+            'email': {'observable': self.resolve_email_object_observable,
+                      'pattern': self.resolve_email_object_pattern},
+            'file': {'observable': self.resolve_file_observable,
+                     'pattern': self.resolve_file_pattern},
+            'ip-port': {'observable': self.resolve_ip_port_observable,
+                        'pattern': self.resolve_ip_port_pattern},
+            'registry-key': {'observable': self.resolve_regkey_observable,
+                             'pattern': self.resolve_regkey_pattern},
+            'url': {'observable': self.resolve_url_observable,
+                    'pattern': self.resolve_url_pattern},
+            'x509': {'observable': self.resolve_x509_observable,
+                     'pattern': self.resolve_x509_pattern}
         }
 
     def handle_non_indicator(self, attribute, attribute_type):
@@ -356,6 +363,15 @@ class StixBuilder():
 
     def add_object_observable(self, misp_object, to_ids):
         observed_data_id = 'observed-data--{}'.format(misp_object.uuid)
+        name = misp_object.name
+        category = misp_object.get('meta-category')
+        labels = self.create_object_labels(name, category, to_ids)
+        observable_objects = self.define_object_observable(name, misp_object.attributes)
+        timestamp = self.get_date_from_timestamp(int(misp_object.timestamp))
+        observed_data_args = {'id': observed_data_id, 'type': 'observed-data',
+                              'number_observed': 1, 'labels': labels, 'objects': observable_objects,
+                              'first_observed': timestamp, 'last_obseved': timestamp,
+                              'created_by_ref': self.idedntity_id}
 
     def add_object_vulnerability(self, misp_object, to_ids):
         vulnerability_id = 'vulnerability--{}'.format(misp_object.uuid)
@@ -407,6 +423,9 @@ class StixBuilder():
                 observable['1']['protocols'].append(defineProtocols[attribute_value] if attribute_value in defineProtocols else "tcp")
         return observable
 
+    def define_object_observable(self, name, attributes):
+        return self.objects_mapping[name]['observable'](attributes)
+
     @staticmethod
     def define_pattern(attribute_type, attribute_value):
         attribute_value = attribute_value.replace("'", '##APOSTROPHE##').replace('"', '##QUOTE##')
@@ -415,7 +434,7 @@ class StixBuilder():
         return mispTypesMapping[attribute_type]['pattern'](attribute_type, attribute_value)
 
     def define_object_pattern(self, name, attributes):
-        return self.objects_mapping[name](attributes)
+        return self.objects_mapping[name]['pattern'](attributes)
 
     @staticmethod
     def fetch_custom_values(attributes):
@@ -444,7 +463,17 @@ class StixBuilder():
         return datetime.datetime(1970, 1, 1) + datetime.timedelta(seconds=timestamp)
 
     @staticmethod
-    def resolve_domain_ip(attributes):
+    def resolve_domain_ip_observable(attributes):
+        for attribute in attributes:
+            if attribute.type == 'ip-dst':
+                ip_value = attribute.value
+            elif attribute.type == 'domain':
+                domain_value = attribute.value
+        domain_ip_value = "{}|{}".format(domain_value, ip_value)
+        return mispTypesMapping['domain|ip']['observable'](_, domain_ip_value)
+
+    @staticmethod
+    def resolve_domain_ip_pattern(attributes):
         pattern = ""
         for attribute in attributes:
             try:
@@ -455,7 +484,11 @@ class StixBuilder():
         return pattern[:-5]
 
     @staticmethod
-    def resolve_email_object(attributes):
+    def resolve_email_object_observable(attributes):
+        return
+
+    @staticmethod
+    def resolve_email_object_pattern(attributes):
         pattern = ""
         for attribute in attributes:
             try:
@@ -470,7 +503,11 @@ class StixBuilder():
         return pattern[:-5]
 
     @staticmethod
-    def resolve_file(self, attributes):
+    def resolve_file_observable(attributes):
+        return
+
+    @staticmethod
+    def resolve_file_pattern(attributes):
         pattern = ""
         d_pattern = {}
         s_pattern = objectsMapping['file']['pattern']
@@ -501,7 +538,10 @@ class StixBuilder():
             pattern += s_pattern.format(stix_type, d_pattern[p])
         return pattern[:-5]
 
-    def resolve_ip_port(self, atttributes):
+    def resolve_ip_port_observable(self, atttributes):
+        return
+
+    def resolve_ip_port_pattern(self, atttributes):
         pattern = ""
         for attribute in attributes:
             attribute_type = attribute.type
@@ -520,7 +560,11 @@ class StixBuilder():
         return pattern[:-5]
 
     @staticmethod
-    def resolve_regkey(attributes):
+    def resolve_regkey_observable(attributes):
+        return
+
+    @staticmethod
+    def resolve_regkey_pattern(attributes):
         pattern = ""
         for attribute in attributes:
             attribute_type = attribute.type
@@ -535,7 +579,11 @@ class StixBuilder():
         return pattern[:-5]
 
     @staticmethod
-    def resolve_url(attributes):
+    def resolve_url_observable(attributes):
+        return
+
+    @staticmethod
+    def resolve_url_pattern(attributes):
         pattern = ""
         for attribute in attributes:
             attribute_type = attribute.type
@@ -553,7 +601,11 @@ class StixBuilder():
         return pattern[:-5]
 
     @staticmethod
-    def resolve_x509(attributes):
+    def resolve_x509_observable(attributes):
+        return
+
+    @staticmethod
+    def resolve_x509_pattern(attributes):
         pattern = ""
         for attribute in attributes:
             attribute_type = attribute.type
