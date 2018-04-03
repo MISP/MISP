@@ -370,8 +370,10 @@ class StixBuilder():
         timestamp = self.get_date_from_timestamp(int(misp_object.timestamp))
         observed_data_args = {'id': observed_data_id, 'type': 'observed-data',
                               'number_observed': 1, 'labels': labels, 'objects': observable_objects,
-                              'first_observed': timestamp, 'last_obseved': timestamp,
-                              'created_by_ref': self.idedntity_id}
+                              'first_observed': timestamp, 'last_observed': timestamp,
+                              'created_by_ref': self.identity_id}
+        observed_data = ObservedData(**observed_data_args)
+        self.append_object(observed_data, observed_data_id)
 
     def add_object_vulnerability(self, misp_object, to_ids):
         vulnerability_id = 'vulnerability--{}'.format(misp_object.uuid)
@@ -470,7 +472,7 @@ class StixBuilder():
             elif attribute.type == 'domain':
                 domain_value = attribute.value
         domain_ip_value = "{}|{}".format(domain_value, ip_value)
-        return mispTypesMapping['domain|ip']['observable'](_, domain_ip_value)
+        return mispTypesMapping['domain|ip']['observable']('', domain_ip_value)
 
     @staticmethod
     def resolve_domain_ip_pattern(attributes):
@@ -561,7 +563,20 @@ class StixBuilder():
 
     @staticmethod
     def resolve_regkey_observable(attributes):
-        return
+        observable = {'0': {'type': 'windows-registry-key'}}
+        values = {}
+        for attribute in attributes:
+            attribute_type = attribute.type
+            if attribute_type == 'text':
+                values[regkeyMapping[attribute_type][attribute.object_relation]] = attribute.value
+            else:
+                try:
+                    observable['0'][regkeyMapping[attribute_type]] = attribute.value
+                except:
+                    pass
+        if values:
+            observable['0']['values'] = [values]
+        return observable
 
     @staticmethod
     def resolve_regkey_pattern(attributes):
