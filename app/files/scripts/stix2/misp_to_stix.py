@@ -487,7 +487,50 @@ class StixBuilder():
 
     @staticmethod
     def resolve_email_object_observable(attributes):
-        return
+        observable = {}
+        message = defaultdict(list)
+        reply_to = []
+        object_num = 0
+        for attribute in attributes:
+            attribute_type = attribute.type
+            attribute_value = attribute.value
+            try:
+                mapping = emailObjectMapping[attribute_type]
+            except:
+                continue
+            if attribute_type in ('email-src', 'email-dst'):
+                object_str = str(object_num)
+                observable[object_str] = {'type': 'email-addr', 'value': attribute_value}
+                try:
+                    message[mapping['stix_type'][attribute.object_relation]].append(object_str)
+                except:
+                    message[mapping['stix_type']] = object_str
+                object_num += 1
+            elif attribute_type == 'email-reply-to':
+                reply_to.append(attribute_value)
+            elif attribute_type == 'email-attachment':
+                object_str = str(object_num)
+                body = {"content_disposition": "attachment; filename='{}'".format(attribute_value),
+                                  "body_raw_ref": object_str}
+                message['body_multipart'].append(body)
+                observable[object_str] = {'type': 'file', 'name': attribute_value}
+                object_num += 1
+            elif attribute_type == 'email-x-mailer':
+                if 'additional_header_fields' in message:
+                    message['additional_header_fields']['X-Mailer'] = attribute_value
+                else:
+                    message['additional_header_fields'] = {'X-Mailer': attribute_value}
+            else:
+                message[mapping['stix_type']] = attribute_value
+        if reply_to and 'additional_header_fields' in message:
+            message['additional_header_fields']['Reply-To'] = reply_to
+        message['type'] = 'email-message'
+        if 'body_multipart' in message:
+            message['is_multipart'] = True
+        else:
+            message['is_multipart'] = False
+        observable[str(object_num)] = dict(message)
+        return observable
 
     @staticmethod
     def resolve_email_object_pattern(attributes):
@@ -605,7 +648,7 @@ class StixBuilder():
                 url_args[attribute.type] = attribute.value
         observable = {}
         if 'domain' in url_args:
-            observable['0'] = {'type': 'domain-name', 'value': url_args['domain']}}
+            observable['0'] = {'type': 'domain-name', 'value': url_args['domain']}
         if 'port' in url_args:
             port_value = url_args['port']
             port = {'type': 'network-traffic', 'dst_ref': '0', 'protocols': ['tcp'], 'dst_port': port_value}
