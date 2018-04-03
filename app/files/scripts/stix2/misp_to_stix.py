@@ -603,8 +603,9 @@ class StixBuilder():
             else:
                 # otherwise, we need to see if there is a port or domain value to parse
                 url_args[attribute.type] = attribute.value
+        observable = {}
         if 'domain' in url_args:
-            observable = {'0': {'type': 'domain-name', 'value': url_args['domain']}}
+            observable['0'] = {'type': 'domain-name', 'value': url_args['domain']}}
         if 'port' in url_args:
             port_value = url_args['port']
             port = {'type': 'network-traffic', 'dst_ref': '0', 'protocols': ['tcp'], 'dst_port': port_value}
@@ -615,7 +616,7 @@ class StixBuilder():
             if observable:
                 observable['1'] = port
             else:
-                observable = {'0': port}
+                observable['0'] = port
         return observable
 
     @staticmethod
