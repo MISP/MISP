@@ -617,7 +617,21 @@ class StixBuilder():
 
     @staticmethod
     def resolve_x509_observable(attributes):
-        return
+        observable = {'0': {'type': 'x509-certificate'}}
+        hashes = {}
+        for attribute in attributes:
+            attribute_type = attribute.type
+            if attribute_type in ("x509-fingerprint-md5", "x509-fingerprint-sha1", "x509-fingerprint-sha256"):
+                h_type = attribute_type.split('-')[2]
+                hashes[h_type] = attribute.value
+            else:
+                try:
+                    observable['0'][x509mapping[attribute_type][attribute.object_relation]] = attribute.value
+                except:
+                    pass
+        if hashes:
+            observable['0']['hashes'] = hashes
+        return observable
 
     @staticmethod
     def resolve_x509_pattern(attributes):
