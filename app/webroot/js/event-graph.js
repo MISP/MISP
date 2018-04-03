@@ -73,7 +73,10 @@ class EventGraph {
 	}
 
 	init_physic_menu() {
-		var menu_physic = new ContextualMenu({container: document.getElementById("network-physic-param")});
+		var menu_physic = new ContextualMenu({
+			trigger_container: document.getElementById("network-physic-param"),
+			bootstrap_popover: true
+		});
 		menu_physic.add_select({
 			id: "select_physic_solver",
 			label: "Solver",
@@ -106,7 +109,10 @@ class EventGraph {
 		return menu_physic;
 	}
 	init_display_menu() {
-		var menu_display = new ContextualMenu({container: document.getElementById("network-display")});
+		var menu_display = new ContextualMenu({
+			trigger_container: document.getElementById("network-display"),
+			bootstrap_popover: true
+		});
 		menu_display.add_select({
 			id: "select_display_object_field",
 			label: "Object-relation to be displayed",
