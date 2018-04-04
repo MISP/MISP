@@ -18,7 +18,7 @@
 import sys, json, os, datetime, re, base64
 import pymisp
 from stix2 import *
-from misp2stix2_dictionaries import *
+from misp2stix2_mapping import *
 from collections import defaultdict
 
 non_indicator_attributes = ['text', 'comment', 'other', 'link', 'target-user', 'target-email',
