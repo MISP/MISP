@@ -24,9 +24,10 @@
 		</ul>
 	</div>
 	<div class="tabMenuFixedContainer" style="display:inline-block;">
-			<span id="multi-delete-button" role="button" tabindex="0" aria-label="<?php echo __('Default feeds filter');?>" title="<?php echo __('Default feeds');?>" class=" hidden tabMenuFixed mass-select tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'default' ? 'tabMenuActive' : ''; ?>" onClick="multiSelectToggleFeeds(1);"><?php echo __('Enable Selected');?></span>
-			<span id="multi-delete-button" role="button" tabindex="0" aria-label="<?php echo __('Default feeds filter');?>" title="<?php echo __('Default feeds');?>" class=" hidden tabMenuFixed mass-select tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'default' ? 'tabMenuActive' : ''; ?>" onClick="multiSelectToggleFeeds(0);"><?php echo __('Disable Selected');?></span>
-  		<span role="button" tabindex="0" aria-label="<?php echo __('Default feeds filter');?>" title="<?php echo __('Default feeds');?>" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'default' ? 'tabMenuActive' : ''; ?>" onclick="window.location='/feeds/index/scope:default'"><?php echo __('Default feeds');?></span>
+			<span id="multi-delete-button" role="button" tabindex="0" aria-label="<?php echo __('Enable selected');?>" title="<?php echo __('Enable selected');?>" class=" hidden tabMenuFixed mass-select tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'default' ? 'tabMenuActive' : ''; ?>" onClick="multiSelectToggleFeeds(1, 0);"><?php echo __('Enable Selected');?></span>
+			<span id="multi-delete-button" role="button" tabindex="0" aria-label="<?php echo __('Disable selected');?>" title="<?php echo __('Disable selected');?>" class=" hidden tabMenuFixed mass-select tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'default' ? 'tabMenuActive' : ''; ?>" onClick="multiSelectToggleFeeds(0, 0);"><?php echo __('Disable Selected');?></span>
+			<span id="multi-delete-button" role="button" tabindex="0" aria-label="<?php echo __('Enable caching for selected');?>" title="<?php echo __('Enable caching for selected');?>" class=" hidden tabMenuFixed mass-select tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'default' ? 'tabMenuActive' : ''; ?>" onClick="multiSelectToggleFeeds(1, 1);"><?php echo __('Enable Caching for Selected');?></span>
+			<span id="multi-delete-button" role="button" tabindex="0" aria-label="<?php echo __('Disable caching for selected');?>" title="<?php echo __('Disable caching for selected');?>" class=" hidden tabMenuFixed mass-select tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'default' ? 'tabMenuActive' : ''; ?>" onClick="multiSelectToggleFeeds(0, 1);"><?php echo __('Disable Caching for  Selected');?></span>  		<span role="button" tabindex="0" aria-label="<?php echo __('Default feeds filter');?>" title="<?php echo __('Default feeds');?>" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'default' ? 'tabMenuActive' : ''; ?>" onclick="window.location='/feeds/index/scope:default'"><?php echo __('Default feeds');?></span>
   		<span role="button" tabindex="0" aria-label="<?php echo __('Custom feeds filter');?>" title="<?php echo __('Custom feeds');?>" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'custom' ? 'tabMenuActive' : ''; ?> " onclick="window.location='/feeds/index/scope:custom'"><?php echo __('Custom Feeds');?></span>
   		<span role="button" tabindex="0" aria-label="<?php echo __('All feeds');?>" title="<?php echo __('All feeds');?>" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'all' ? 'tabMenuActive' : ''; ?> " onclick="window.location='/feeds/index/scope:all'"><?php echo __('All Feeds');?></span>
 			<span role="button" tabindex="0" aria-label="<?php echo __('Enabled feeds');?>" title="<?php echo __('Enabled feeds');?>" class="tabMenuFixed tabMenuFixedCenter tabMenuSides useCursorPointer <?php echo $scope == 'enabled' ? 'tabMenuActive' : ''; ?> " onclick="window.location='/feeds/index/scope:enabled'"><?php echo __('Enabled Feeds');?></span>
@@ -42,6 +43,7 @@
 			<?php endif;?>
 			<th><?php echo $this->Paginator->sort('id');?></th>
 			<th><?php echo $this->Paginator->sort('enabled');?></th>
+			<th><?php echo $this->Paginator->sort('caching_enabled');?></th>
 			<th><?php echo $this->Paginator->sort('name');?></th>
 			<th><?php echo $this->Paginator->sort('source_format', __('Feed Format'));?></th>
 			<th><?php echo $this->Paginator->sort('provider');?></th>
@@ -105,6 +107,10 @@ foreach ($feeds as $item):
 			>
 				(<?php echo __('Rules');?>)
 			</span>
+		</td>
+		<td class="short">
+			<span class="<?php echo ($item['Feed']['caching_enabled'] ? 'icon-ok' : 'icon-remove'); ?>"></span>
+		</td>
 		<td>
 			<?php
 				echo h($item['Feed']['name']);
@@ -190,7 +196,7 @@ foreach ($feeds as $item):
 				else:
 					echo __('Not cached');
 				endif;
-				if ($item['Feed']['enabled']):
+				if ($item['Feed']['caching_enabled']):
 			?>
 					<a href="<?php echo $baseurl;?>/feeds/cacheFeeds/<?php echo h($item['Feed']['id']); ?>" title="Cache feed"><span class="icon-download-alt"></span></a>
 			<?php

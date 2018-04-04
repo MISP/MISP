@@ -31,7 +31,10 @@ class FeedsController extends AppController {
 		if ($scope !== 'all') {
 			if ($scope == 'enabled') {
 				$this->paginate['conditions'][] = array(
-					'Feed.enabled' => 1
+					'OR' => array(
+						'Feed.enabled' => 1,
+						'Feed.caching_enabled' => 1
+					)
 				);
 			} else {
 				$this->paginate['conditions'][] = array(
@@ -210,7 +213,7 @@ class FeedsController extends AppController {
 				$this->request->data['Feed']['settings']['delimiter'] = ',';
 			}
 			$this->request->data['Feed']['settings'] = json_encode($this->request->data['Feed']['settings']);
-			$fields = array('id', 'name', 'provider', 'enabled', 'rules', 'url', 'distribution', 'sharing_group_id', 'tag_id', 'fixed_event', 'event_id', 'publish', 'delta_merge', 'source_format', 'override_ids', 'settings', 'input_source', 'delete_local_file', 'lookup_visible', 'headers');
+			$fields = array('id', 'name', 'provider', 'enabled', 'caching_enabled','rules', 'url', 'distribution', 'sharing_group_id', 'tag_id', 'fixed_event', 'event_id', 'publish', 'delta_merge', 'source_format', 'override_ids', 'settings', 'input_source', 'delete_local_file', 'lookup_visible', 'headers');
 			$feed = array();
 			foreach ($fields as $field) {
 				if (isset($this->request->data['Feed'][$field])) {
@@ -686,7 +689,8 @@ class FeedsController extends AppController {
 		}
 	}
 
-	public function toggleSelected($enable = false, $feedList = false) {
+	public function toggleSelected($enable = false, $cache = false, $feedList = false) {
+		$field = $cache ? 'caching_enabled' : 'enabled';
 		if (!empty($enable)) $enable = 1;
 		else $enable = 0;
 		try {
@@ -702,8 +706,8 @@ class FeedsController extends AppController {
 			));
 			$count = 0;
 			foreach ($feeds as $feed) {
-				if ($feed['Feed']['enabled'] != $enable) {
-					$feed['Feed']['enabled'] = $enable;
+				if ($feed['Feed'][$field] != $enable) {
+					$feed['Feed'][$field] = $enable;
 					$this->Feed->save($feed);
 					$count++;
 				}

@@ -1280,6 +1280,7 @@ class EventsController extends AppController {
 				}
 				// rearrange the response if the event came from an export
 				if (isset($this->request->data['response'])) $this->request->data = $this->request->data['response'];
+				if (!isset($this->request->data['Event'])) $this->request->data['Event'] = $this->request->data;
 
 				// Distribution, reporter for the events pushed will be the owner of the authentication key
 				$this->request->data['Event']['user_id'] = $this->Auth->user('id');
@@ -1391,6 +1392,8 @@ class EventsController extends AppController {
 					}
 				}
 			}
+		} else if ($this->_isRest()) {
+			return $this->RestResponse->describe('Events', 'add', false, $this->response->type());
 		}
 
 		$this->request->data['Event']['date'] = date('Y-m-d');
@@ -1611,6 +1614,9 @@ class EventsController extends AppController {
 	}
 
 	public function edit($id = null) {
+		if ($this->request->is('get') && $this->_isRest()) {
+			return $this->RestResponse->describe('Events', 'edit', false, $this->response->type());
+		}
 		if (Validation::uuid($id)) {
 			$temp = $this->Event->find('first', array('recursive' => -1, 'fields' => array('Event.id'), 'conditions' => array('Event.uuid' => $id)));
 			if (empty($temp)) throw new NotFoundException('Invalid event');
@@ -1632,12 +1638,10 @@ class EventsController extends AppController {
 		}
 		if ($this->request->is('post') || $this->request->is('put')) {
 			if ($this->_isRest()) {
-				if ($this->_isRest()) {
-					if (isset($this->request->data['response'])) {
-						$this->request->data = $this->Event->updateXMLArray($this->request->data, true);
-					} else {
-						$this->request->data = $this->Event->updateXMLArray($this->request->data, false);
-					}
+				if (isset($this->request->data['response'])) {
+					$this->request->data = $this->Event->updateXMLArray($this->request->data, true);
+				} else {
+					$this->request->data = $this->Event->updateXMLArray($this->request->data, false);
 				}
 				// Workaround for different structure in XML/array than what CakePHP expects
 				if (isset($this->request->data['response'])) $this->request->data = $this->request->data['response'];
@@ -4294,7 +4298,6 @@ class EventsController extends AppController {
 		$data = $this->request->is('post') ? $this->request->data : array();
 		$grapher->construct($this->Event, $this->Taxonomy, $this->GalaxyCluster, $this->Auth->user(), $data);
 		$json = $grapher->buildGraphJson($id, $type);
-
 		array_walk_recursive($json, function(&$item, $key){
 			if(!mb_detect_encoding($item, 'utf-8', true)){
 				$item = utf8_encode($item);

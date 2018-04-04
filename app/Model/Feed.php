@@ -714,6 +714,7 @@ class Feed extends AppModel {
 						'provider' => $newFeed['provider'],
 						'url' => $newFeed['url'],
 						'enabled' => $newFeed['enabled'],
+						'caching_enabled' => !empty($newFeed['caching_enabled']) ? $newFeed['caching_enabled'] : 0,
 						'distribution' => 3,
 						'sharing_group_id' => 0,
 						'tag_id' => 0,
@@ -912,7 +913,7 @@ class Feed extends AppModel {
 
 	public function cacheFeedInitiator($user, $jobId = false, $scope = 'freetext') {
 		$params = array(
-			'conditions' => array('enabled' => 1),
+			'conditions' => array('caching_enabled' => 1),
 			'recursive' => -1,
 			'fields' => array('source_format', 'input_source', 'url', 'id', 'settings')
 		);
@@ -1177,6 +1178,21 @@ class Feed extends AppModel {
 		$user = array('Role' => array('perm_tag_editor' => 1, 'perm_site_admin' => 1));
 		$json = file_get_contents(APP . 'files/feed-metadata/defaults.json');
 		$this->importFeeds($json, $user, true);
+		return true;
+	}
+
+	public function setEnableFeedCachingDefaults() {
+		$feeds = $this->find('all', array(
+			'conditions' => array(
+				'Feed.enabled' => 1
+			),
+			'recursive' => -1
+		));
+		if (empty($feeds)) return true;
+		foreach ($feeds as $feed) {
+			$feed['Feed']['caching_enabled'] = 1;
+			$this->save($feed);
+		}
 		return true;
 	}
 }
