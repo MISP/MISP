@@ -35,8 +35,10 @@ class EventGraph {
 		// FIXME
 		this.network_options = network_options;
 		this.first_draw = true;
+		this.menu_scope = this.init_scope_menu();
 		this.menu_physic = this.init_physic_menu();
 		this.menu_display = this.init_display_menu();
+		this.menu_filter = this.init_filter_menu();
 		this.layout = 'default';
 		this.solver = 'barnesHut';
 		this.backup_connection_edges = {};
@@ -72,9 +74,27 @@ class EventGraph {
 		return this.nodes.get(uuid).icon.color;
 	}
 
+	init_scope_menu() {
+		var menu_scope = new ContextualMenu({
+			trigger_container: document.getElementById("network-scope"),
+			bootstrap_popover: true,
+		});
+		menu_scope.add_select({
+			id: "select_graph_scope",
+			label: "Scope",
+			tooltip: "The scope represented by the network",
+			event: function(value) {
+
+			},
+			options: ["Reference", "Correlation", "Tag", "Distribution"],
+			default: "Reference"
+		});
+		return menu_scope;
+	}
+
 	init_physic_menu() {
 		var menu_physic = new ContextualMenu({
-			trigger_container: document.getElementById("network-physic-param"),
+			trigger_container: document.getElementById("network-physic"),
 			bootstrap_popover: true
 		});
 		menu_physic.add_select({
@@ -114,8 +134,33 @@ class EventGraph {
 			bootstrap_popover: true
 		});
 		menu_display.add_select({
+			id: "select_display_layout",
+			label: "Layout",
+			event: function(value) {
+				switch(value) {
+					case "default":
+						eventGraph.change_layout_type('default');
+						break;
+						
+					case "hierarchical.directed":
+						eventGraph.change_layout_type('directed');
+						break;
+
+					case "hierarchical.hubsize":
+						eventGraph.change_layout_type('hubsize');
+						break;
+				}
+			},
+			options: [
+				{text: "Default layout", value: "default"}, 
+				{text: "Hierachical directed", value: "hierarchical.directed"}, 
+				{text: "Hierachical hubsize", value: "hierarchical.hubsize"}
+			],
+			default: "default"
+		});
+		menu_display.add_select({
 			id: "select_display_object_field",
-			label: "Object-relation to be displayed",
+			label: "Object-relation in label",
 			event: function(value) {
 				dataHandler.fetch_data_and_update();
 			},
@@ -163,6 +208,73 @@ class EventGraph {
 			}
 		});
 		return menu_display;
+	}
+	init_filter_menu() {
+		var menu_filter = new ContextualMenu({
+			trigger_container: document.getElementById("network-filter"),
+			bootstrap_popover: true
+		});
+		menu_filter.add_action_table({
+			id: "table_attr_presence",
+			container: menu_filter.menu,
+			title: "Filter on Attribute presence",
+			header: ["Relation", "Attribute"],
+			control_items: [
+				{
+					DOMType: "select",
+					item_options: {
+						options: ["Contains", "Do not contain"]
+					}
+				},
+				{
+					DOMType: "select",
+					item_options: {
+						id: "table_control_select_attr_presence",
+						options: Array.from(dataHandler.all_objects_relation)
+					}
+				},
+			],
+			data: [ 
+				["Contains", "text"]
+			]
+		});
+		menu_filter.create_divider(3);
+		menu_filter.add_action_table({
+			id: "table_attr_value",
+			container: menu_filter.menu,
+			title: "Filter on Attribute value",
+			header: ["Attribute", "Comparison", "Value"],
+			control_items: [
+				{
+					DOMType: "select",
+					item_options: {
+						id: "table_control_select_attr_value",
+						options: Array.from(dataHandler.all_objects_relation)
+					}
+				},
+				{
+					DOMType: "select",
+					item_options: {
+						options: ["<", "<=", "==", ">=", ">"]
+					}
+				},
+				{
+					DOMType: "input",
+					item_options: {}
+				}
+			],
+			data: [ 
+				["text", "==", "123"]
+			]
+		});
+		menu_filter.add_button({
+			label: "Filter",
+			type: "primary",
+			event: function() {
+
+			}
+		});
+		return menu_filter;
 	}
 	// Graph interaction
 	
@@ -614,6 +726,7 @@ class DataHandler {
 	
 		if (data.Object !== undefined) {
 			for (var obj of data.Object) {
+				console.log(obj);
 				this.mapping_attr_id_to_uuid.set(obj.id, obj.uuid);
 				this.mapping_all_obj_relation.set(obj.id, obj.Attribute);
 				this.record_object_ref(obj.Attribute);
@@ -638,7 +751,9 @@ class DataHandler {
 				}
 			}
 		}
-		eventGraph.menu_display.add_option("select_display_object_field", Array.from(dataHandler.all_objects_relation));
+		eventGraph.menu_display.add_options("select_display_object_field", Array.from(dataHandler.all_objects_relation));
+		eventGraph.menu_filter.items["table_attr_presence"].add_options("table_control_select_attr_presence", Array.from(dataHandler.all_objects_relation));
+		eventGraph.menu_filter.items["table_attr_value"].add_options("table_control_select_attr_value", Array.from(dataHandler.all_objects_relation));
 	
 		return {
 			items: items,
@@ -1011,23 +1126,6 @@ function enable_interactive_graph() {
 			}
 
 			
-		});
-
-		$("#network-layout-type").change(function() {
-			var selected = $(this).val();
-			switch(selected) {
-				case "default":
-					eventGraph.change_layout_type('default');
-					break;
-					
-				case "hierarchical.directed":
-					eventGraph.change_layout_type('directed');
-					break;
-
-				case "hierarchical.hubsize":
-					eventGraph.change_layout_type('hubsize');
-					break;
-			}
 		});
 
 		dataHandler.fetch_data_and_update();

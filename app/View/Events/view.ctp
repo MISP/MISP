@@ -352,14 +352,10 @@
 	</div>
 	<div id="eventgraph_div" class="info_container_eventgraph_network" style="display: none;" data-fullscreen="false">
 		<div class="eventgraph_header">
-			<select id="network-layout-type" class="center-in-network-header">
-			<option value="default" selected><?php echo __('Default layout'); ?></option>
-				<option value="hierarchical.directed"><?php echo __('Hierarchical directed'); ?></option>
-				<option value="hierarchical.hubsize"><?php echo __('Hierarchical hubsize'); ?></option>
-			</select>
-			<label id="network-physic-param" class="btn center-in-network-header"><?php echo __('Physics')?><span class="useCursorPointer fa fa-space-shuttle" style="margin-left: 3px;"></span></label>
+			<label id="network-scope" class="btn center-in-network-header"><?php echo __('Scope')?><span class="useCursorPointer fa fa-object-group" style="margin-left: 3px;"></span></label>
+			<label id="network-physic" class="btn center-in-network-header"><?php echo __('Physics')?><span class="useCursorPointer fa fa-space-shuttle" style="margin-left: 3px;"></span></label>
 			<label id="network-display" class="btn center-in-network-header"><?php echo __('Display')?><span class="useCursorPointer fa fa-list-alt" style="margin-left: 3px;"></span></label>
-			<label id="network-filters" class="btn center-in-network-header"><?php echo __('Filters')?><span class="useCursorPointer fa fa-filter" style="margin-left: 3px;"></span></label>
+			<label id="network-filter" class="btn center-in-network-header"><?php echo __('Filters')?><span class="useCursorPointer fa fa-filter" style="margin-left: 3px;"></span></label>
 			
 			<input type="text" id="network-typeahead" class="center-in-network-header network-typeahead flushright" data-provide="typeahead" size="20" placeholder="Search for an item">
 		</div>
@@ -402,5 +398,7 @@ $(document).ready(function () {
 <?php echo $this->Html->script('bootstrap-typeahead'); ?>
 <?php echo $this->Html->script('contextual_menu'); ?>
 <?php echo $this->Html->css('contextual_menu'); ?>
+<?php echo $this->Html->script('action_table'); ?>
+<?php echo $this->Html->css('action_table'); ?>
 <?php echo $this->Html->css('event-graph'); ?>
 <?php echo $this->Html->script('event-graph'); ?>
