@@ -17,8 +17,8 @@
 
 import sys, json, os, time
 import stix2
-# from stix2 import *
 import pymisp
+from stix2misp_mapping import *
 
 class StixParser():
     def __init__(self):
@@ -80,7 +80,7 @@ class StixParser():
 
     def from_misp(self):
         for o in self.event:
-            if o._type == 'report' and 'misp:tool="misp2stix"' in o.get('labels'):
+            if o._type == 'report' and 'misp:tool="misp2stix2"' in o.get('labels'):
                 index = self.event.index(o)
                 self.report = self.event.pop(index)
                 return True
@@ -94,11 +94,11 @@ class StixParser():
             labels = o.get('labels')
             if object_type in ('attack-pattern', 'course-of-action', 'intrusion-set', 'malware', 'threat-actor', 'tool'):
                 self.parse_galaxy(o, labels)
-            elif 'x-misp-objecct' in object_type:
+            elif 'x-misp-object' in object_type:
                 if 'from_object' in labels:
                     self.parse_custom_object(o, labels)
                 else:
-                    self.parse_custom_attribute(o. labels)
+                    self.parse_custom_attribute(o, labels)
             else:
                 if 'from_object' in labels:
                     self.parse_object(o, labels)
@@ -115,11 +115,11 @@ class StixParser():
         self.misp_event.info = report.get('name')
         if report.get('published'):
             self.misp_event.publish_timestamp = self.getTimestampfromDate(report.get('published'))
-        if report['labels']:
+        if hasattr(report, 'labels'):
             labels = report['labels']
             for l in labels:
                 self.misp_event.add_tag(l)
-        if report['external_references']:
+        if hasattr(report, 'external_references'):
             ext_refs = report['external_references']
             for e in ext_refs:
                 link = {"type": "link"}
@@ -190,20 +190,26 @@ class StixParser():
         attribute_category = self.get_misp_category(labels)
         attribute = {'type': attribute_type, 'category': attribute_category}
         stix_type = o._type
-        if stix_type == 'indicator':
-            o_date = o.get('valid_from')
-            pattern = o.get('pattern')
-            value = self.parse_pattern(pattern)
+        if stix_type == 'vulnerability':
+            value = o.get('name')
         else:
-            o_date = o.get('first_observed')
-            observable = o.get('objects')
-            value = self.parse_observable(observable, attribute_type)
-        attribute['timestamp'] = self.getTimestampfromDate(o_date)
-        try:
-            attribute['value'] = value
-            self.misp_event.add_attribute(**attribute)
-        except:
-            pass
+            if stix_type == 'indicator':
+                o_date = o.get('valid_from')
+                pattern = o.get('pattern')
+                value = self.parse_pattern(pattern)
+            else:
+                o_date = o.get('first_observed')
+                observable = o.get('objects')
+                try:
+                    self.parse_observable(observable, attribute_type)
+                except:
+                    print('{}: {}'.format(attribute_type, observable))
+            attribute['timestamp'] = self.getTimestampfromDate(o_date)
+        # try:
+        #     attribute['value'] = value
+        #     self.misp_event.add_attribute(**attribute)
+        # except:
+        #     pass
 
     def buildExternalDict(self):
         sys.exit(1)
@@ -216,7 +222,10 @@ class StixParser():
 
     @staticmethod
     def getTimestampfromDate(stix_date):
-        return int(stix_date.timestamp())
+        try:
+            return int(stix_date.timestamp())
+        except:
+            return int(time.mktime(time.strptime(stix_date.split('+')[0], "%Y-%m-%d %H:%M:%S")))
 
     @staticmethod
     def get_misp_type(labels):
@@ -242,10 +251,7 @@ class StixParser():
 
     @staticmethod
     def parse_observable(observable, attribute_type):
-        obj0 = observable.get('0')
-        if attribute_type in misp_simple_mapping:
-            return obj0.get(misp_simple_mapping[attribute_type])
-
+        print('{}: {}'.format(attribute_type, misp_types_mapping[attribute_type](observable, attribute_type)))
 
 def main(args):
     pathname = os.path.dirname(args[0])
