@@ -10,10 +10,10 @@
 		private $__related_events = array();
 		private $__related_attributes = array();
 
-		public function construct($eventModel, $user, $json) {
+		public function construct($eventModel, $user) {
 			$this->__eventModel = $eventModel;
 			$this->__user = $user;
-			$this->__json = $json;
+			$this->__json = array();
 			$this->__lookupTables = array(
 				'analysisLevels' => $this->__eventModel->analysisLevels,
 				'distributionLevels' => $this->__eventModel->Attribute->distributionLevels
@@ -21,24 +21,107 @@
 			return true;
 		}
 
-		public function construct_for_ref($refModel, $user, $json) {
+		public function construct_for_ref($refModel, $user) {
 			$this->__refModel = $refModel;
 			$this->__user = $user;
-			$this->__json = $json;
+			$this->__json = array();
 			return true;
 		}
 
-		public function get_all_data($id) {
-			$event = $this->__eventModel->fetchEvent($this->__user, array('eventid' => $id, 'flatten' => 0, 'includeTagRelations' => 1));
-			if (empty($event)) return $this->__json;
+		private function __get_event($id) {
+			$fullevent = $this->__eventModel->fetchEvent($this->__user, array('eventid' => $id, 'flatten' => 0, 'includeTagRelations' => 1));
+			$event = array();
+			if (empty($fullevent)) return $event;
 
-			if (!empty($event[0]['Object'])) {
-				$this->__json['Object'] = $event[0]['Object'];
+			if (!empty($fullevent[0]['Object'])) {
+				$event['Object'] = $fullevent[0]['Object'];
 			}
-			if (!empty($event[0]['Attribute'])) {
-				$this->__json['Attribute'] = $event[0]['Attribute'];
+			if (!empty($fullevent[0]['Attribute'])) {
+				$event['Attribute'] = $fullevent[0]['Attribute'];
 			}
+			return $event;
+		}
+
+		private function __get_filtered_event($id, $filterRules) {
+			$event = $this->__get_event($id);
+			if (empty($filterRules)) return $event;
+
+			// perform filtering
+			debug($filterRules);
+			return $event;
+		}
+
+		public function get_references($id, $filterRules=array()) {
+			$event = $this->__get_filtered_event($id, $filterRules);
+			$this->__json['items'] = array();
+			$this->__json['relations'] = array();
+			$this->__json['existing_object_relation'] = array();
+			if (empty($event)) return $this->__json;
+			
+			if (!empty($event['Object'])) {
+				$object = $event['Object'];
+			} else {
+				$object = array();
+			}
+
+			if (!empty($event['Attribute'])) {
+				$attribute = $event['Attribute'];
+			} else {
+				$attribute = array();
+			}
+
+			// extract links and node type
+			foreach ($attribute as $attr) {
+				$toPush = array(
+					'id' => $attr['id'],
+					'uuid' => $attr['uuid'],
+					'type' => $attr['type'],
+					'label' => $attr['value'],
+					'node_type' => 'attribute',
+				);
+				array_push($this->__json['items'], $toPush);
+			}
+
+			foreach ($object as $obj) {
+				$toPush = array(
+					'id' => $obj['id'],
+					'uuid' => $obj['uuid'],
+					'type' => $obj['name'],
+					'Attribute' => $obj['Attribute'],
+					'label' => '',
+					'node_type' => 'object',
+					'meta-category' => $obj['meta-category'],
+					'template_uuid' => $obj['template_uuid'],
+				);
+				array_push($this->__json['items'], $toPush);
+
+				// Record existing object_relation
+				foreach ($obj['Attribute'] as $attr) {
+					$this->__json['existing_object_relation'][$attr['type']] = 0; // set-alike
+				}
+
+				foreach($obj['ObjectReference'] as $rel) {
+					$toPush = array(
+						'id' => $rel['id'],
+						'uuid' => $rel['uuid'],
+						'from' => $obj['id'],
+						'to' => $rel['referenced_id'],
+						'type' => $rel['relationship_type'],
+						'comment' => $rel['comment'],
+					);
+					array_push($this->__json['relations'], $toPush);
+				}
+			}
+
 			return $this->__json;
+		}
+
+		public function get_tag($id) {
+			// to do
+		}
+
+		public function get_distribution($id) {
+			// to do
 		}
 
 		public function get_reference_data($uuid) {

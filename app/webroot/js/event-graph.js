@@ -164,7 +164,7 @@ class EventGraph {
 			event: function(value) {
 				dataHandler.fetch_data_and_update();
 			},
-			options: Array.from(dataHandler.all_objects_relation),
+			options: [],
 			title: "If no item is selected, display the first requiredOneOf of the object"
 		});
 		menu_display.add_button({
@@ -230,7 +230,7 @@ class EventGraph {
 					DOMType: "select",
 					item_options: {
 						id: "table_control_select_attr_presence",
-						options: Array.from(dataHandler.all_objects_relation)
+						options: []
 					}
 				},
 			],
@@ -249,7 +249,7 @@ class EventGraph {
 					DOMType: "select",
 					item_options: {
 						id: "table_control_select_attr_value",
-						options: Array.from(dataHandler.all_objects_relation)
+						options: []
 					}
 				},
 				{
@@ -315,12 +315,15 @@ class EventGraph {
 		for(var node of data.items) {
 			var group, label;
 			if ( node.node_type == 'object' ) {
-				group =  'object';
-				label = node.type;
-				label = node.label;
+				var group =  'object';
+				var label = node.type;
+				var label = node.label;
+				var label = dataHandler.generate_label(node);
 				var striped_value = this.strip_text_value(label);
 				node_conf = { 
 					id: node.id,
+					uuid: node.uuid,
+					Attribute: node.Attribute,
 					label: striped_value,
 					title: label,
 					group: group,
@@ -334,10 +337,11 @@ class EventGraph {
 				dataHandler.mapping_value_to_nodeID.set(striped_value, node.id);
 			} else {
 				group =  'attribute';
-				label = node.type + ': ' + node.val;
+				label = node.type + ': ' + node.label;
 				var striped_value = this.strip_text_value(label);
 				node_conf = { 
 					id: node.id,
+					uuid: node.uuid,
 					label: striped_value,
 					title: label,
 					group: group,
@@ -510,16 +514,18 @@ class EventGraph {
 	expand_node(parent_id) {
 		if (!this.network.isCluster(parent_id)) {
 
+			var parent_node = this.nodes.get(parent_id);
 			if (parent_id === undefined //  Node node selected
-			    || this.nodes.get(parent_id).group != "object") { //  Cannot expand attribute
+			    || parent_node.group != "object") { //  Cannot expand attribute
 				return;
 			}
-	
+
+			var objAttributes = parent_node.Attribute;
 			var newNodes = [];
 			var newRelations = [];
 	
 			var parent_pos = this.network.getPositions([parent_id])[parent_id];
-			for(var attr of dataHandler.mapping_all_obj_relation.get(parent_id)) {
+			for(var attr of objAttributes) {
 				var parent_color = eventGraph.get_node_color(parent_id);
 						
 				// Ensure unicity of nodes
@@ -701,11 +707,7 @@ class DataHandler {
 	constructor() {
 		this.mapping_value_to_nodeID = new Map();
 		this.mapping_obj_relation_value_to_nodeID = new Map();
-		this.mapping_attr_id_to_uuid = new Map();
-		this.mapping_all_obj_relation = new Map();
-		this.mapping_rel_id_to_uuid = new Map();
 		this.mapping_uuid_to_template = new Map();
-		this.all_objects_relation = new Set();
 	}
 
 	extract_references(data) {
@@ -714,11 +716,10 @@ class DataHandler {
 	
 		if (data.Attribute !== undefined) {
 			for (var attr of data.Attribute) {
-				this.mapping_attr_id_to_uuid.set(attr.id, attr.uuid);
 				items.push({
 					'id': attr.id,
 					'type': attr.type,
-					'val': attr.value,
+					'label': attr.value,
 					'node_type': 'attribute'
 				});
 			}
@@ -726,21 +727,15 @@ class DataHandler {
 	
 		if (data.Object !== undefined) {
 			for (var obj of data.Object) {
-				console.log(obj);
-				this.mapping_attr_id_to_uuid.set(obj.id, obj.uuid);
-				this.mapping_all_obj_relation.set(obj.id, obj.Attribute);
-				this.record_object_ref(obj.Attribute);
 				items.push({
 					'id': obj.id,
 					'type': obj.name,
-					'val': obj.value,
 					'node_type': 'object',
 					'meta-category': obj['meta-category'],
 					'label': this.generate_label(obj)
 				});
 				
 				for (var rel of obj.ObjectReference) {
-					this.mapping_rel_id_to_uuid.set(rel.id, rel.uuid);
 					relations.push({
 						'id': rel.id,
 						'from': obj.id,
@@ -751,10 +746,7 @@ class DataHandler {
 				}
 			}
 		}
-		eventGraph.menu_display.add_options("select_display_object_field", Array.from(dataHandler.all_objects_relation));
-		eventGraph.menu_filter.items["table_attr_presence"].add_options("table_control_select_attr_presence", Array.from(dataHandler.all_objects_relation));
-		eventGraph.menu_filter.items["table_attr_value"].add_options("table_control_select_attr_value", Array.from(dataHandler.all_objects_relation));
-	
+
 		return {
 			items: items,
 			relations: relations
@@ -763,7 +755,7 @@ class DataHandler {
 
 	generate_label(obj) {
 		var object_type_to_display = document.getElementById("select_display_object_field");
-		var label = obj.name;
+		var label = obj.type;
 		for (var attr of obj.Attribute) { // for each field
 			if (attr.type == object_type_to_display.value) {
 				label += ": " + attr.value;
@@ -791,18 +783,21 @@ class DataHandler {
 		return label;
 	}
 
-	record_object_ref(attr_list) {
-		for (var attr of attr_list) {
-			this.all_objects_relation.add(attr.type);
-		}
+	update_available_object_references(available_object_references) {
+		eventGraph.menu_display.add_options("select_display_object_field", available_object_references);
+		eventGraph.menu_filter.items["table_attr_presence"].add_options("table_control_select_attr_presence", available_object_references);
+		eventGraph.menu_filter.items["table_attr_value"].add_options("table_control_select_attr_value", available_object_references);
 	}
 	
 	fetch_data_and_update(stabilize) {
 		eventGraph.network_loading(true, loadingText_fetching);
 		$.when(this.fetch_objects_template()).done(function() {
-			$.getJSON( "/events/getReferences/"+scope_id+"/event.json", function( data ) {
-				var extracted = dataHandler.extract_references(data);
-				eventGraph.update_graph(extracted);
+			$.getJSON( "/events/getReferences/"+scope_id+"/references.json", function( data ) {
+			//$.getJSON( "/events/getEvent/"+scope_id+"/event.json", function( data ) {
+				//var extracted = dataHandler.extract_references(data);
+				var available_object_references = Object.keys(data.existing_object_relation);
+				dataHandler.update_available_object_references(available_object_references);
+				eventGraph.update_graph(data);
 				if ( stabilize === undefined || stabilize) {
 					eventGraph.reset_view_on_stabilized();
 				}
@@ -876,7 +871,8 @@ class MispInteraction {
 	
 	add_reference(edgeData, callback) {
 		var that = mispInteraction;
-		var uuid = dataHandler.mapping_attr_id_to_uuid.get(edgeData.to);
+		//var uuid = dataHandler.mapping_attr_id_to_uuid.get(edgeData.to);
+		var uuid = that.nodes.get(edgeData.to).uuid;
 		if (!that.can_create_reference(edgeData.from) || !that.can_be_referenced(edgeData.to)) {
 			return;
 		}
@@ -892,7 +888,7 @@ class MispInteraction {
 		}
 		var that = mispInteraction;
 		var rel_id = edgeData.id;
-		var rel_uuid = dataHandler.mapping_rel_id_to_uuid.get(rel_id);
+		var rel_uuid = edgeData.uuid;
 		
 		that.register_callback(function() {
 			var relation_id = edgeData.id;
