@@ -414,7 +414,7 @@ class StixBuilder():
         if ':' in value:
             return 'ipv6-addr'
         else:
-            return 'ipv4:addr'
+            return 'ipv4-addr'
 
     @staticmethod
     def define_observable(attribute_type, attribute_value):
@@ -597,10 +597,46 @@ class StixBuilder():
             pattern += s_pattern.format(stix_type, d_pattern[p])
         return pattern[:-5]
 
-    def resolve_ip_port_observable(self, atttributes):
-        return
+    def resolve_ip_port_observable(self, attributes):
+        observable = {'type': 'network-traffic', 'protocols': ['tcp']}
+        ip_address = {}
+        domain = {}
+        for attribute in attributes:
+            attribute_type = attribute.type
+            attribute_value = attribute.value
+            if attribute_type == 'ip-dst':
+                ip_address['type'] = self.define_address_type(attribute_value)
+                ip_address['value'] = attribute_value
+            elif attribute_type == 'domain':
+                domain['type'] = 'domain-name'
+                domain['value'] = attribute_value
+            else:
+                try:
+                    observable_type = ipPortObjectMapping[attribute_type][attribute.object_relation]
+                except:
+                    continue
+                observable[observable_type] = attribute_value
+        if 'src_port' in observable or 'dst_port' in observable:
+            for port in ('src_port', 'dst_port'):
+                try:
+                    port_value = defineProtocols[str(observable[port])]
+                    if port_value not in observable['protocols']:
+                        observable['protocols'].append(port_value)
+                except:
+                    pass
+            return self.ip_port_observable_to_return(ip_address, observable, 'dst_ref')
+        elif domain:
+            return self.ip_port_observable_to_return(ip_address, domain, 'resolves_to_refs')
+        return {'0': ip_address}
 
-    def resolve_ip_port_pattern(self, atttributes):
+    @staticmethod
+    def ip_port_observable_to_return(ip_address, d_object, s_object):
+        if ip_address:
+            d_object[s_object] = '0'
+            return {'0': ip_address, '1': d_object}
+        return {'0': d_object}
+
+    def resolve_ip_port_pattern(self, attributes):
         pattern = ""
         for attribute in attributes:
             attribute_type = attribute.type
