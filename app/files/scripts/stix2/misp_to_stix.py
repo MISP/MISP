@@ -25,6 +25,9 @@ non_indicator_attributes = ['text', 'comment', 'other', 'link', 'target-user', '
                             'target-machine', 'target-org', 'target-location', 'target-external',
                             'vulnerability', 'attachment']
 
+misp_hash_types = ["authentihash", "ssdeep", "imphash", "md5", "sha1", "sha224",
+                   "sha256", "sha384", "sha512", "sha512/224","sha512/256","tlsh"]
+
 class StixBuilder():
     def __init__(self):
         self.misp_event = pymisp.MISPEvent()
@@ -549,7 +552,19 @@ class StixBuilder():
 
     @staticmethod
     def resolve_file_observable(attributes):
-        return
+        observable = defaultdict(dict)
+        observable['type'] = 'file'
+        for attribute in attributes:
+            attribute_type = attribute.type
+            if attribute_type in misp_hash_types:
+                observable['hashes'][attribute_type.upper()] = attribute.value
+            else:
+                try:
+                    observable_type = fileMapping[attribute_type]
+                except:
+                    continue
+                observable[observable_type] = attribute.value
+        return {'0': dict(observable)}
 
     @staticmethod
     def resolve_file_pattern(attributes):
@@ -572,8 +587,7 @@ class StixBuilder():
                 md5_pattern = s_pattern.format(fileMapping['hashes'].format('md5'), malware_sample['md5'])
                 pattern += "{}{}".format(filename_pattern, md5_pattern)
         for p in d_pattern:
-            if p in ("authentihash", "ssdeep", "imphash", "md5", "sha1", "sha224",
-                     "sha256","sha384","sha512","sha512/224","sha512/256","tlsh",):
+            if p in misp_hash_types:
                 stix_type = fileMapping['hashes'].format(p)
             else:
                 try:
