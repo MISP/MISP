@@ -60,6 +60,7 @@ class StixBuilder():
             report_args['labels'] = labels
         else:
             report_args['labels'] = ['Threat-Report']
+        report_args['labels'].append('misp:tool="misp2stix2"')
         if self.external_refs:
             report_args['external_references'] = external_refs
         return Report(**report_args)
