@@ -82,11 +82,11 @@
       if ($mayModify && empty($object['deleted'])):
     ?>
         <a href="<?php echo $baseurl;?>/objects/edit/<?php echo $object['id']; ?>" title="Edit" class="icon-edit icon-white useCursorPointer"></a>
-        <span class="icon-trash icon-white useCursorPointer" title="<?php echo __('Permanently delete object');?>" role="button" tabindex="0" aria-label="<?php echo __('Permanently delete object');?>" onClick="deleteObject('objects', 'delete', '<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
+        <span class="icon-trash icon-white useCursorPointer" title="<?php echo __('Soft delete object');?>" role="button" tabindex="0" aria-label="<?php echo __('Soft delete object');?>" onClick="deleteObject('objects', 'delete', '<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
     <?php
       elseif ($mayModify):
     ?>
-        <span class="icon-trash icon-white useCursorPointer" title="<?php echo __('Soft delete object');?>" role="button" tabindex="0" aria-label="<?php echo __('Soft delete attribute');?>" onClick="deleteObject('objects', 'delete', '<?php echo h($object['id']) . '/true'; ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
+        <span class="icon-trash icon-white useCursorPointer" title="<?php echo __('Permanently delete object');?>" role="button" tabindex="0" aria-label="<?php echo __('Permanently delete attribute');?>" onClick="deleteObject('objects', 'delete', '<?php echo h($object['id']) . '/true'; ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
     <?php
       endif;
     ?>
