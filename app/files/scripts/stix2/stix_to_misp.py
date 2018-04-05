@@ -170,7 +170,7 @@ class StixParser():
         stix_type = o._type
         if stix_type == 'indicator':
             misp_object = {'name': object_type, 'meta-category': object_category}
-            pattern = o.get('pattern').replace('\\\\', '\\').split('AND')
+            pattern = o.get('pattern').replace('\\\\', '\\').split(' AND ')
             pattern[0] = pattern[0][2:]
             pattern[-1] = pattern[-1][:-2]
             attributes = self.parse_pattern_from_object(pattern)
