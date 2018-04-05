@@ -170,7 +170,7 @@ class StixParser():
         stix_type = o._type
         if stix_type == 'indicator':
             misp_object = {'name': object_type, 'meta-category': object_category}
-            pattern = o.get('pattern').split('AND')
+            pattern = o.get('pattern').replace('\\\\', '\\').split('AND')
             pattern[0] = pattern[0][2:]
             pattern[-1] = pattern[-1][:-2]
             attributes = self.parse_pattern_from_object(pattern)
@@ -191,7 +191,7 @@ class StixParser():
         else:
             if stix_type == 'indicator':
                 o_date = o.get('valid_from')
-                pattern = o.get('pattern')
+                pattern = o.get('pattern').replace('\\\\', '\\')
                 value = self.parse_pattern(pattern)
             else:
                 o_date = o.get('first_observed')
@@ -244,12 +244,15 @@ class StixParser():
             if len(pattern_parts) == 3:
                 _, value1 = pattern_parts[2].split(' = ')
                 _, value2 = pattern_parts[0].split(' = ')
+                return '{}|{}'.format(value1[1:-3], value2[1:-1])
             else:
                 _, value1 = pattern_parts[0].split(' = ')
                 _, value2 = pattern_parts[1].split(' = ')
-            return '{}|{}'.split(value1[1:-1], value2[1:-1])
+                if value1 in ("'ipv4-addr'", "'ipv6-addr'"):
+                    return value2[1:-3]
+                return '{}|{}'.format(value1[1:-1], value2[1:-3])
         else:
-            return pattern.split(' = ')[1][1:-1]
+            return pattern.split(' = ')[1][1:-3]
 
     @staticmethod
     def parse_observable_from_object(observable):
@@ -257,8 +260,6 @@ class StixParser():
 
     @staticmethod
     def parse_pattern_from_object(pattern):
-        if 'malware-sample' in labels:
-            self.parse_malware_sample()
         return
 
 def main(args):
