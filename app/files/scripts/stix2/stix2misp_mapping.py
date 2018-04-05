@@ -1,5 +1,9 @@
 def define_observable_hash_type(h_type):
-    return 'SHA-{}'.format(h_type.split('sha')[1]) if 'sha' in h_type else h_type.upper()
+    if 'sha' in h_type:
+        return 'SHA-{}'.format(h_type.split('sha')[1])
+    if h_type == 'md5':
+        return h_type.upper()
+    return h_type
 
 def parse_name(observable, _):
     return observable['0'].get('name')
