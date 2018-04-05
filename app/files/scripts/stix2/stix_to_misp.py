@@ -173,17 +173,13 @@ class StixParser():
             pattern = o.get('pattern').split('AND')
             pattern[0] = pattern[0][2:]
             pattern[-1] = pattern[-1][:-2]
-            attributes = self.parse_pattern_from_object(pattern, stix_type, labels)
+            attributes = self.parse_pattern_from_object(pattern)
         if stix_type == 'observed-data':
             misp_object = {'name': object_type, 'meta-category': object_category}
             observable = o.get('objects')
-            attributes = self.parse_observable_from_object(observable, stix_type, labels)
+            attributes = self.parse_observable_from_object(observable)
         misp_object['to_ids'] = bool(labels[1].split('=')[1])
         self.misp_event.add_object(**misp_object)
-
-    def parse_pattern_from_object(pattern, stix_type, labels):
-        if 'malware-sample' in labels:
-            self.parse_malware_sample()
 
     def parse_attribute(self, o, labels):
         attribute_type = self.get_misp_type(labels)
@@ -201,15 +197,15 @@ class StixParser():
                 o_date = o.get('first_observed')
                 observable = o.get('objects')
                 try:
-                    self.parse_observable(observable, attribute_type)
+                    value = self.parse_observable(observable, attribute_type)
                 except:
                     print('{}: {}'.format(attribute_type, observable))
             attribute['timestamp'] = self.getTimestampfromDate(o_date)
-        # try:
-        #     attribute['value'] = value
-        #     self.misp_event.add_attribute(**attribute)
-        # except:
-        #     pass
+        try:
+            attribute['value'] = value
+            self.misp_event.add_attribute(**attribute)
+        except:
+            pass
 
     def buildExternalDict(self):
         sys.exit(1)
@@ -218,7 +214,9 @@ class StixParser():
 
     def saveFile(self):
         eventDict = self.misp_event.to_json()
-        print(eventDict)
+        outputfile = '{}.stix2'.format(self.filename)
+        with open(outputfile, 'w') as f:
+            f.write(eventDict)
 
     @staticmethod
     def getTimestampfromDate(stix_date):
@@ -236,6 +234,10 @@ class StixParser():
         return labels[1].split('=')[1][1:-1]
 
     @staticmethod
+    def parse_observable(observable, attribute_type):
+        return misp_types_mapping[attribute_type](observable, attribute_type)
+
+    @staticmethod
     def parse_pattern(pattern):
         if ' AND ' in pattern:
             pattern_parts = pattern.split(' AND ')
@@ -250,8 +252,14 @@ class StixParser():
             return pattern.split(' = ')[1][1:-1]
 
     @staticmethod
-    def parse_observable(observable, attribute_type):
-        print('{}: {}'.format(attribute_type, misp_types_mapping[attribute_type](observable, attribute_type)))
+    def parse_observable_from_object(observable):
+        return
+
+    @staticmethod
+    def parse_pattern_from_object(pattern):
+        if 'malware-sample' in labels:
+            self.parse_malware_sample()
+        return
 
 def main(args):
     pathname = os.path.dirname(args[0])
@@ -259,6 +267,7 @@ def main(args):
     stix_parser.loadEvent(args, pathname)
     stix_parser.handler()
     stix_parser.saveFile()
+    print(1)
 
 if __name__ == "__main__":
     main(sys.argv)
