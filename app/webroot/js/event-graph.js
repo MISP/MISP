@@ -243,7 +243,7 @@ class EventGraph {
 					}
 				},
 			],
-			data: []
+			data: [],
 		});
 		menu_filter.create_divider(3);
 		menu_filter.add_action_table({
@@ -270,7 +270,10 @@ class EventGraph {
 					item_options: {}
 				}
 			],
-			data: []
+			data: [],
+			onAddition: function(data) {
+				eventGraph.menu_filter.items["table_attr_presence"].add_row(["Contains", data[0]]);
+			}
 		});
 		menu_filter.items["table_attr_value"].table.style.minWidth = "550px";
 		menu_filter.add_button({

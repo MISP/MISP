@@ -54,7 +54,7 @@
 				}
 			}
 			foreach($event['Attribute'] as $attr) {
-				if ($this->__satisfy_attr_filtering($attr)) {
+				if ($this->__satisfy_val_filtering($attr, false)) {
 					array_push($filtered['Attribute'], $attr);
 				}
 			}
@@ -64,7 +64,7 @@
 
 		// NOT OPTIMIZED: But allow clearer code
 		private function __satisfy_obj_filtering($obj) {
-			// presence rule search in the object's attribute
+			// presence rule - search in the object's attribute
 			$presenceMatch = true;
 			foreach ($this->filterRules['presence'] as $rule) {
 				$relation = $rule[0];
@@ -79,23 +79,45 @@
 				}
 			}
 
-			$valueMatch = false;
+			// value rule - search in the object's atribute value
+			$valueMatch = true;
 			foreach($obj['Attribute'] as $attr) {
-				if ($this->__satisfy_attr_filtering($attr)) {
-					$valueMatch = true;
+				$valueMatch = $this->__satisfy_val_filtering($attr);
+				if (!$valueMatch) {
+					return false;
 				}
 			}
-			return $valueMatch;
+			return true;
 		}
 
-		private function __satisfy_attr_filtering($attr) {
+		private function __satisfy_val_filtering($attr, $different_type_return=true) {
 			if (count($this->filterRules['value']) == 0) return true;
 
 			foreach ($this->filterRules['value'] as $rule) {
 				$attr_type = $rule[0];
 				$comparison = $rule[1];
-				$value = $rule[2];
-				return true;
+				$attr_value = $rule[2];
+
+				if ($attr['object_relation'] != $attr_type) {
+					return $different_type_return; // cannot compare different type
+				}
+
+				$value = $attr['value'];
+				switch($comparison) {
+					case "<":
+						return $value < $attr_value;
+					case "<=":
+						return $value <= $attr_value;
+					case "==":
+						return $value == $attr_value;
+					case ">":
+						return $value > $attr_value;
+					case ">=":
+						return $value >= $attr_value;
+
+					default:
+						return false;
+				}
 			}
 		}
 
