@@ -42,17 +42,75 @@
 			return $event;
 		}
 
-		private function __get_filtered_event($id, $filterRules) {
+		private function __get_filtered_event($id) {
 			$event = $this->__get_event($id);
-			if (empty($filterRules)) return $event;
+			if (empty($this->filterRules)) return $event;
+			$filtered = array('Object' => array(), 'Attribute' => array());
 
 			// perform filtering
-			debug($filterRules);
-			return $event;
+			foreach($event['Object'] as $obj) {
+				if ($this->__satisfy_obj_filtering($obj)) {
+					array_push($filtered['Object'], $obj);
+				}
+			}
+			foreach($event['Attribute'] as $attr) {
+				if ($this->__satisfy_attr_filtering($attr)) {
+					array_push($filtered['Attribute'], $attr);
+				}
+			}
+
+			return $filtered;
+		}
+
+		// NOT OPTIMIZED: But allow clearer code
+		private function __satisfy_obj_filtering($obj) {
+			// presence rule search in the object's attribute
+			$presenceMatch = true;
+			foreach ($this->filterRules['presence'] as $rule) {
+				$relation = $rule[0];
+				$obj_rel = $rule[1];
+				if($relation === "Contains") {
+					$presenceMatch = $this->__contain_object_relation($obj['Attribute'], $obj_rel);
+				} else if ($relation == "Do not contain") {
+					$presenceMatch = !$this->__contain_object_relation($obj['Attribute'], $obj_rel);
+				}
+				if (!$presenceMatch) { // Does not match, can stop filtering
+					return false;
+				}
+			}
+
+			$valueMatch = false;
+			foreach($obj['Attribute'] as $attr) {
+				if ($this->__satisfy_attr_filtering($attr)) {
+					$valueMatch = true;
+				}
+			}
+			return $valueMatch;
+		}
+
+		private function __satisfy_attr_filtering($attr) {
+			if (count($this->filterRules['value']) == 0) return true;
+
+			foreach ($this->filterRules['value'] as $rule) {
+				$attr_type = $rule[0];
+				$comparison = $rule[1];
+				$value = $rule[2];
+				return true;
+			}
+		}
+
+		private function __contain_object_relation($attrList, $obj_rel) {
+			foreach ($attrList as $attr) {
+				if ($attr['object_relation'] === $obj_rel) {
+					return true;
+				}
+			}
+			return false;
 		}
 
 		public function get_references($id, $filterRules=array()) {
-			$event = $this->__get_filtered_event($id, $filterRules);
+			$this->filterRules = $filterRules;
+			$event = $this->__get_filtered_event($id);
 			$this->__json['items'] = array();
 			$this->__json['relations'] = array();
 			$this->__json['existing_object_relation'] = array();
@@ -97,7 +155,7 @@
 
 				// Record existing object_relation
 				foreach ($obj['Attribute'] as $attr) {
-					$this->__json['existing_object_relation'][$attr['type']] = 0; // set-alike
+					$this->__json['existing_object_relation'][$attr['object_relation']] = 0; // set-alike
 				}
 
 				foreach($obj['ObjectReference'] as $rel) {

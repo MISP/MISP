@@ -352,10 +352,10 @@
 	</div>
 	<div id="eventgraph_div" class="info_container_eventgraph_network" style="display: none;" data-fullscreen="false">
 		<div class="eventgraph_header">
-			<label id="network-scope" class="btn center-in-network-header"><?php echo __('Scope')?><span class="useCursorPointer fa fa-object-group" style="margin-left: 3px;"></span></label>
-			<label id="network-physic" class="btn center-in-network-header"><?php echo __('Physics')?><span class="useCursorPointer fa fa-space-shuttle" style="margin-left: 3px;"></span></label>
-			<label id="network-display" class="btn center-in-network-header"><?php echo __('Display')?><span class="useCursorPointer fa fa-list-alt" style="margin-left: 3px;"></span></label>
-			<label id="network-filter" class="btn center-in-network-header"><?php echo __('Filters')?><span class="useCursorPointer fa fa-filter" style="margin-left: 3px;"></span></label>
+			<label id="network-scope" class="btn center-in-network-header network-control-btn"><?php echo __('Scope')?><span class="useCursorPointer fa fa-object-group" style="margin-left: 3px;"></span></label>
+			<label id="network-physic" class="btn center-in-network-header network-control-btn"><?php echo __('Physics')?><span class="useCursorPointer fa fa-space-shuttle" style="margin-left: 3px;"></span></label>
+			<label id="network-display" class="btn center-in-network-header network-control-btn"><?php echo __('Display')?><span class="useCursorPointer fa fa-list-alt" style="margin-left: 3px;"></span></label>
+			<label id="network-filter" class="btn center-in-network-header network-control-btn"><?php echo __('Filters')?><span class="useCursorPointer fa fa-filter" style="margin-left: 3px;"></span></label>
 			
 			<input type="text" id="network-typeahead" class="center-in-network-header network-typeahead flushright" data-provide="typeahead" size="20" placeholder="Search for an item">
 		</div>

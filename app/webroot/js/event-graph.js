@@ -34,11 +34,15 @@ class EventGraph {
 		this.mapping_meta_fa.set('misc', {"meta-category": "misc","fa_text": "cube","fa-hex": "f1b2"});
 		// FIXME
 		this.network_options = network_options;
+		this.globalCounter = 0;
 		this.first_draw = true;
+		this.root_node_shown = false;
+		this.is_filtered = false;
 		this.menu_scope = this.init_scope_menu();
 		this.menu_physic = this.init_physic_menu();
 		this.menu_display = this.init_display_menu();
 		this.menu_filter = this.init_filter_menu();
+		this.new_edges_for_unreferenced_nodes = [];
 		this.layout = 'default';
 		this.solver = 'barnesHut';
 		this.backup_connection_edges = {};
@@ -73,6 +77,10 @@ class EventGraph {
 	get_node_color(uuid) {
 		return this.nodes.get(uuid).icon.color;
 	}
+	getUniqId() {
+		this.globalCounter++;
+		return this.globalCounter-1;
+	}
 
 	init_scope_menu() {
 		var menu_scope = new ContextualMenu({
@@ -86,7 +94,7 @@ class EventGraph {
 			event: function(value) {
 
 			},
-			options: ["Reference", "Correlation", "Tag", "Distribution"],
+			options: ["Event", "Reference", "Correlation", "Tag", "Distribution"],
 			default: "Reference"
 		});
 		return menu_scope;
@@ -162,6 +170,7 @@ class EventGraph {
 			id: "select_display_object_field",
 			label: "Object-relation in label",
 			event: function(value) {
+				dataHandler.selected_type_to_display = value;
 				dataHandler.fetch_data_and_update();
 			},
 			options: [],
@@ -234,9 +243,7 @@ class EventGraph {
 					}
 				},
 			],
-			data: [ 
-				["Contains", "text"]
-			]
+			data: []
 		});
 		menu_filter.create_divider(3);
 		menu_filter.add_action_table({
@@ -263,18 +270,24 @@ class EventGraph {
 					item_options: {}
 				}
 			],
-			data: [ 
-				["text", "==", "123"]
-			]
+			data: []
 		});
+		menu_filter.items["table_attr_value"].table.style.minWidth = "550px";
 		menu_filter.add_button({
 			label: "Filter",
 			type: "primary",
 			event: function() {
-
+				dataHandler.fetch_data_and_update();
 			}
 		});
 		return menu_filter;
+	}
+
+	get_filtering_rules() {
+		var rules_presence = eventGraph.menu_filter.items["table_attr_presence"].get_data();
+		var rules_value = eventGraph.menu_filter.items["table_attr_value"].get_data();
+		var rules = { presence: rules_presence, value: rules_value };
+		return rules;
 	}
 	// Graph interaction
 	
@@ -396,11 +409,17 @@ class EventGraph {
 		}
 	
 		this.edges.update(newRelations);
-
-		// links unreferenced attributes and object to root nodes
-		if (this.first_draw) {
-			this.link_not_referenced_nodes();
-			this.first_draw = !this.first_draw
+		
+		// remove root node if graph is filtered
+		if (this.is_filtered) {
+			this.remove_unreferenced_root_node();
+		} else {
+			this.add_unreferenced_root_node();
+			// links unreferenced attributes and object to root nodes
+			if (this.first_draw) {
+				this.link_not_referenced_nodes();
+				this.first_draw = !this.first_draw
+			}
 		}
 
 		this.network_loading(false, "");
@@ -538,8 +557,8 @@ class EventGraph {
 					id: attr.uuid,
 					x: parent_pos.x,
 					y: parent_pos.y,
-					label: attr.type + ': ' + striped_value,
-					title: attr.type + ': ' + attr.value,
+					label: attr.object_relation + ': ' + striped_value,
+					title: attr.object_relation + ': ' + attr.value,
 					group: 'obj_relation',
 					color: { 
 						background: parent_color
@@ -579,6 +598,11 @@ class EventGraph {
 	}
 
 	link_not_referenced_nodes() {
+		// unlink previously linked
+		this.edges.remove(this.new_edges_for_unreferenced_nodes)
+		this.new_edges_for_unreferenced_nodes = [];
+
+		// link not referenced nodes
 		var newEdges = [];
 		var that = this;
 		this.nodes.forEach(function(nodeData) {
@@ -593,6 +617,7 @@ class EventGraph {
 
 			var new_edge = {
 				to: cur_id,
+				id: "temp_edge_unreferenced_" + that.getUniqId(),
 				arrows: '',
 				color: {
 					opacity: 0.7,
@@ -608,6 +633,7 @@ class EventGraph {
 				that.nodes.update({id: nodeData.id, unreferenced: 'object'});
 			}
 			newEdges.push(new_edge);
+			that.new_edges_for_unreferenced_nodes.push(new_edge.id);
 			prev_nodeID = cur_id;
 		});
 		this.edges.add(newEdges);
@@ -615,6 +641,9 @@ class EventGraph {
 	}
 
 	add_unreferenced_root_node() {
+		if (this.root_node_shown) {
+			return;
+		}
 		var root_node_attr = {
 			id: root_id_attr,
 			x: -root_node_x_pos,
@@ -632,6 +661,11 @@ class EventGraph {
 			group: 'rootNodeObject'
 		};
 		this.nodes.add([root_node_attr, root_node_obj]);
+		this.root_node_shown = true;
+	}
+	remove_unreferenced_root_node() {
+		this.nodes.remove([root_id_attr, root_id_object]);
+		this.root_node_shown = false;
 	}
 
 	switch_unreferenced_nodes_connection() {
@@ -708,6 +742,7 @@ class DataHandler {
 		this.mapping_value_to_nodeID = new Map();
 		this.mapping_obj_relation_value_to_nodeID = new Map();
 		this.mapping_uuid_to_template = new Map();
+		this.selected_type_to_display = "";
 	}
 
 	extract_references(data) {
@@ -754,15 +789,14 @@ class DataHandler {
 	}
 
 	generate_label(obj) {
-		var object_type_to_display = document.getElementById("select_display_object_field");
 		var label = obj.type;
 		for (var attr of obj.Attribute) { // for each field
-			if (attr.type == object_type_to_display.value) {
+			if (attr.object_relation == this.selected_type_to_display) {
 				label += ": " + attr.value;
 				return label;
 			}
 		}
-		if(object_type_to_display.selectedIndex != -1) { // User explicitly choose the type to display
+		if(this.selected_type_to_display !== "") { // User explicitly choose the type to display
 			return label;
 		}
 		// no matching, taking the first requiredOff
@@ -792,14 +826,26 @@ class DataHandler {
 	fetch_data_and_update(stabilize) {
 		eventGraph.network_loading(true, loadingText_fetching);
 		$.when(this.fetch_objects_template()).done(function() {
-			$.getJSON( "/events/getReferences/"+scope_id+"/references.json", function( data ) {
-			//$.getJSON( "/events/getEvent/"+scope_id+"/event.json", function( data ) {
-				//var extracted = dataHandler.extract_references(data);
-				var available_object_references = Object.keys(data.existing_object_relation);
-				dataHandler.update_available_object_references(available_object_references);
-				eventGraph.update_graph(data);
-				if ( stabilize === undefined || stabilize) {
-					eventGraph.reset_view_on_stabilized();
+			var filtering_rules = eventGraph.get_filtering_rules();
+			$.ajax({
+				url: "/events/getReferences/"+scope_id+"/references.json",
+				dataType: 'json',
+				type: 'post',
+				contentType: 'application/json',
+				data: JSON.stringify( filtering_rules ),
+				processData: false,
+				success: function( data, textStatus, jQxhr ){
+					eventGraph.is_filtered = (filtering_rules.presence.length > 0 || filtering_rules.value.length > 0);
+					eventGraph.first_draw = true;
+					var available_object_references = Object.keys(data.existing_object_relation);
+					dataHandler.update_available_object_references(available_object_references);
+					eventGraph.update_graph(data);
+					if ( stabilize === undefined || stabilize) {
+						eventGraph.reset_view_on_stabilized();
+					}
+				},
+				error: function( jqXhr, textStatus, errorThrown ){
+					console.log( errorThrown );
 				}
 			});
 		});
@@ -1177,7 +1223,7 @@ var network_options = {
 			springLength: 150,
 			springConstant: 0.04,
 			nodeDistance: 240,
-			damping: 1.0
+			damping: 0.3
 		},
 		hierarchicalRepulsion: {
 			centralGravity: 0,
