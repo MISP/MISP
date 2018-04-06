@@ -244,7 +244,7 @@ def fill_pattern_attributes(pattern, object_mapping):
         try:
             mapping = object_mapping[p_type]
         except KeyError:
-            print(p_type)
+            continue
         attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
                            'value': p_value[1:-1]})
     return attributes
@@ -375,7 +375,7 @@ def pattern_regkey(pattern):
         try:
             mapping = regkey_mapping[p_type]
         except KeyError:
-            print(p_type)
+            continue
         attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
                            'value': p_value.replace('\\\\', '\\')[1:-1]})
     return attributes
