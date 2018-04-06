@@ -262,9 +262,7 @@ class StixParser():
 
     @staticmethod
     def parse_pattern_from_object(pattern, object_type):
-        values = objects_mapping[object_type]['pattern'](pattern)
-        print(values)
-        return
+        return objects_mapping[object_type]['pattern'](pattern)
 
 def main(args):
     pathname = os.path.dirname(args[0])

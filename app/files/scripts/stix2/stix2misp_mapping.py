@@ -105,7 +105,130 @@ misp_types_mapping = {
     'mac-address': parse_value
 }
 
-def fill_attributes(attributes, stix_object, object_mapping):
+cc_attribute_mapping = {'type': 'email-dst', 'relation': 'cc'}
+data_attribute_mapping = {'type': 'text', 'relation': 'data'}
+data_type_attribute_mapping = {'type': 'text', 'relation': 'data-type'}
+domain_attribute_mapping = {'type': 'domain', 'relation': 'domain'}
+dst_port_attribute_mapping = {'type': 'port', 'relation': 'dst-port'}
+email_date_attribute_mapping = {'type': 'datetime', 'relation': 'send-date'}
+email_subject_attribute_mapping = {'type': 'email-subject', 'relation': 'subject'}
+end_datetime_attribute_mapping = {'type': 'datetime', 'relation': 'last-seen'}
+filename_attribute_mapping = {'type': 'filename', 'relation': 'filename'}
+ip_attribute_mapping = {'type': 'ip-dst', 'relation': 'ip'}
+issuer_attribute_mapping = {'type': 'text', 'relation': 'issuer'}
+key_attribute_mapping = {'type': 'regkey', 'relation': 'key'}
+mime_type_attribute_mapping = {'type': 'mime-type', 'relation': 'mimetype'}
+modified_attribute_mapping = {'type': 'datetime', 'relation': 'last-modified'}
+regkey_name_attribute_mapping = {'type': 'text', 'relation': 'name'}
+reply_to_attribute_mapping = {'type': 'email-reply-to', 'relation': 'reply-to'}
+serial_number_attribute_mapping = {'type': 'text', 'relation': 'serial-number'}
+size_attribute_mapping = {'type': 'size-in-bytes', 'relation': 'size-in-bytes'}
+src_port_attribute_mapping = {'type': 'port', 'relation': 'src-port'}
+start_datetime_attribute_mapping = {'type': 'datetime', 'relation': 'first-seen'}
+to_attribute_mapping = {'type': 'email-dst', 'relation': 'to'}
+url_attribute_mapping = {'type': 'url', 'relation': 'url'}
+url_port_attribute_mapping = {'type': 'port', 'relation': 'port'}
+x_mailer_attribute_mapping = {'type': 'email-x-mailer', 'relation': 'x-mailer'}
+x509_md5_attribute_mapping = {'type': 'x509-fingerprint-md5', 'relation': 'x509-fingerprint-md5'}
+x509_sha1_attribute_mapping = {'type': 'x509-fingerprint-sha1', 'relation': 'x509-fingerprint-sha1'}
+x509_sha256_attribute_mapping = {'type': 'x509-fingerprint-sha256', 'relation': 'x509-fingerprint-sha256'}
+x509_spka_attribute_mapping = {'type': 'text', 'relation': 'pubkey-info-algorithm'} # x509 subject public key algorithm
+x509_spke_attribute_mapping = {'type': 'text', 'relation': 'pubkey-info-exponent'} # x509 subject public key exponent
+x509_spkm_attribute_mapping = {'type': 'text', 'relation': 'pubkey-info-modulus'} # x509 subject public key modulus
+x509_subject_attribute_mapping = {'type': 'text', 'relation': 'subject'}
+x509_version_attribute_mapping = {'type': 'text', 'relation': 'version'}
+x509_vna_attribute_mapping = {'type': 'datetime', 'relation': 'validity-not-after'} # x509 validity not after
+x509_vnb_attribute_mapping = {'type': 'datetime', 'relation': 'validity-not-before'} # x509 validity not before
+
+domain_ip_mapping = {'domain-name': domain_attribute_mapping,
+                     'domain-name:value': domain_attribute_mapping,
+                     'ipv4-addr': ip_attribute_mapping,
+                     'ipv6-addr': ip_attribute_mapping,
+                     'domain-name:resolves_to_refs[*].value': ip_attribute_mapping,}
+
+email_mapping = {'date': email_date_attribute_mapping,
+                 'email-message:date': email_date_attribute_mapping,
+                 'to_refs': to_attribute_mapping,
+                 'email-message:to_refs': to_attribute_mapping,
+                 'cc_refs': cc_attribute_mapping,
+                 'email-message:cc_refs': cc_attribute_mapping,
+                 'subject': email_subject_attribute_mapping,
+                 'email-message:subject': email_subject_attribute_mapping,
+                 'X-Mailer': x_mailer_attribute_mapping,
+                 'email-message:additional_header_fields.x_mailer': x_mailer_attribute_mapping,
+                 'Reply-To': reply_to_attribute_mapping,
+                 'email-message:additional_header_fields.reply_to': reply_to_attribute_mapping,
+                 'email-message:from_ref': {'type': 'email-dst', 'relation': 'from'},
+                 'email-message:body_multipart[*].body_raw_ref.name': {'type': 'email-attachment',
+                                                                       'relation': 'attachment'}
+                 }
+
+file_mapping = {'mime_type': mime_type_attribute_mapping,
+                'file:mime_type': mime_type_attribute_mapping,
+                'name': filename_attribute_mapping,
+                'file:name': filename_attribute_mapping,
+                'size': size_attribute_mapping,
+                'file:size': size_attribute_mapping}
+
+ip_port_mapping = {'src_port': src_port_attribute_mapping,
+                   'network-traffic:src_port': src_port_attribute_mapping,
+                   'dst_port': dst_port_attribute_mapping,
+                   'network-traffic:dst_port': dst_port_attribute_mapping,
+                   'start': start_datetime_attribute_mapping,
+                   'network-traffic:start': start_datetime_attribute_mapping,
+                   'end': end_datetime_attribute_mapping,
+                   'network-traffic:end': end_datetime_attribute_mapping,
+                   'value': domain_attribute_mapping,
+                   'domain-name:value': domain_attribute_mapping,
+                   'network-traffic:dst_ref.value': ip_attribute_mapping}
+
+regkey_mapping = {'data': data_attribute_mapping,
+                  'windows-registry-key:data': data_attribute_mapping,
+                  'data_type': data_type_attribute_mapping,
+                  'windows-registry-key:data_type': data_type_attribute_mapping,
+                  'modified': modified_attribute_mapping,
+                  'windows-registry-key:modified': modified_attribute_mapping,
+                  'name': regkey_name_attribute_mapping,
+                  'windows-registry-key:name': regkey_name_attribute_mapping,
+                  'key': key_attribute_mapping,
+                  'windows-registry-key:key': key_attribute_mapping
+                  }
+
+url_mapping = {'url': url_attribute_mapping,
+               'url:value': url_attribute_mapping,
+               'domain-name': domain_attribute_mapping,
+               'domain-name:value': domain_attribute_mapping,
+               'network-traffic': url_port_attribute_mapping,
+               'network-traffic:dst_port': url_port_attribute_mapping
+               }
+
+x509_mapping = {'issuer': issuer_attribute_mapping,
+                'x509-certificate:issuer': issuer_attribute_mapping,
+                'serial_number': serial_number_attribute_mapping,
+                'x509-certificate:serial_number': serial_number_attribute_mapping,
+                'subject': x509_subject_attribute_mapping,
+                'x509-certificate:subject': x509_subject_attribute_mapping,
+                'subject_public_key_algorithm': x509_spka_attribute_mapping,
+                'x509-certificate:subject_public_key_algorithm': x509_spka_attribute_mapping,
+                'subject_public_key_exponent': x509_spke_attribute_mapping,
+                'x509-certificate:subject_public_key_exponent': x509_spke_attribute_mapping,
+                'subject_public_key_modulus': x509_spkm_attribute_mapping,
+                'x509-certificate:subject_public_key_modulus': x509_spkm_attribute_mapping,
+                'validity_not_before': x509_vnb_attribute_mapping,
+                'x509-certificate:validity_not_before': x509_vnb_attribute_mapping,
+                'validity_not_after': x509_vna_attribute_mapping,
+                'x509-certificate:validity_not_after': x509_vna_attribute_mapping,
+                'version': x509_version_attribute_mapping,
+                'x509-certificate:version': x509_version_attribute_mapping,
+                'SHA-1': x509_sha1_attribute_mapping,
+                "x509-certificate:hashes.'sha1'": x509_sha1_attribute_mapping,
+                'SHA-256': x509_sha256_attribute_mapping,
+                "x509-certificate:hashes.'sha256'": x509_sha256_attribute_mapping,
+                'MD5': x509_md5_attribute_mapping,
+                "x509-certificate:hashes.'md5'": x509_md5_attribute_mapping,
+                }
+
+def fill_observable_attributes(attributes, stix_object, object_mapping):
     for o in stix_object:
         try:
             mapping = object_mapping[o]
@@ -114,9 +237,17 @@ def fill_attributes(attributes, stix_object, object_mapping):
         attributes.append({'type': mapping.get('type'), 'object_relation': mapping.get('relation'),
                            'value': stix_object.get(o)})
 
-domain_ip_mapping = {'domain-name': {'type': 'domain', 'relation': 'domain'},
-                     'ipv4-addr': {'type': 'ip-dst', 'relation': 'ip'},
-                     'ipv6-addr': {'type': 'ip-dst', 'relation': 'ip'}}
+def fill_pattern_attributes(pattern, object_mapping):
+    attributes = []
+    for p in pattern:
+        p_type, p_value = p.split(' = ')
+        try:
+            mapping = object_mapping[p_type]
+        except KeyError:
+            print(p_type)
+        attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
+                           'value': p_value[1:-1]})
+    return attributes
 
 def observable_domain_ip(observable):
     attributes = []
@@ -129,13 +260,7 @@ def observable_domain_ip(observable):
     return attributes
 
 def pattern_domain_ip(pattern):
-    return pattern
-
-email_mapping = {'to_refs': {'type': 'email-dst', 'relation': 'to'},
-                 'cc_refs': {'type': 'email-dst', 'relation': 'cc'},
-                 'subject': {'type': 'email-subject', 'relation': 'subject'},
-                 'X-Mailer': {'type': 'email-x-mailer', 'relation': 'x-mailer'},
-                 'Reply-To': {'type': 'email-reply-to', 'relation': 'reply-to'}}
+    return fill_pattern_attributes(pattern, domain_ip_mapping)
 
 def observable_email(observable):
     attributes = []
@@ -186,11 +311,7 @@ def observable_email(observable):
     return attributes
 
 def pattern_email(pattern):
-    return pattern
-
-file_mapping = {'mime_type': {'type': 'mime-type', 'relation': 'mimetype'},
-                'name': {'type': 'filename', 'relation': 'filename'},
-                'size': {'type': 'size-in-bytes', 'relation': 'size-in-bytes'}}
+    return fill_pattern_attributes(pattern, email_mapping)
 
 def observable_file(observable):
     attributes = []
@@ -201,17 +322,22 @@ def observable_file(observable):
             h_type = h.lower().replace('-', '')
             attributes.append({'type': h_type, 'object_relation': h_type,
                                'value': hashes[h]})
-    fill_attributes(attributes, observable, file_mapping)
+    fill_observable_attributes(attributes, observable, file_mapping)
     return attributes
 
 def pattern_file(pattern):
-    return pattern
-
-ip_port_mapping = {'src_port': {'type': 'port', 'relation': 'src-port'},
-                   'dst_port': {'type': 'port', 'relation': 'dst-port'},
-                   'start': {'type': 'datetime', 'relation': 'first-seen'},
-                   'end': {'type': 'datetime', 'relation': 'last-seen'},
-                   'value': {'type': 'domain', 'relation': 'domain'}}
+    attributes = []
+    for p in pattern:
+        p_type, p_value = p.split(' = ')
+        if 'file:hashes.' in p:
+            _, h = p_type.split('.')
+            h = h[1:-1]
+            attributes.append({'type': h, 'object_relation': h, 'value': p_value[1:-1]})
+        else:
+            mapping = file_mapping[p_type]
+            attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
+                               'value': p_value[1:-1]})
+    return attributes
 
 def observable_ip_port(observable):
     attributes = []
@@ -219,24 +345,18 @@ def observable_ip_port(observable):
         attributes.append({'type': 'ip-dst', 'object_relation': 'ip',
                            'value': observable['0'].get('value')})
     observable = dict(observable['1'])
-    fill_attributes(attributes, observable, ip_port_mapping)
+    fill_observable_attributes(attributes, observable, ip_port_mapping)
     return attributes
 
 def pattern_ip_port(pattern):
-    return pattern
-
-regkey_mapping = {'data': {'type': 'text', 'relation': 'data'},
-                  'data_type': {'type': 'text', 'relation': 'data-type'},
-                  'modified': {'type': 'datetime', 'relation': 'last-modified'},
-                  'name': {'type': 'text', 'relation': 'name'},
-                  'key': {'type': 'regkey', 'relation': 'key'}}
+    return fill_pattern_attributes(pattern, ip_port_mapping)
 
 def observable_regkey(observable):
     attributes = []
     observable = dict(observable['0'])
     if 'values' in observable:
         values = observable.pop('values')
-        fill_attributes(attributes, values[0], regkey_mapping)
+        fill_observable_attributes(attributes, values[0], regkey_mapping)
     # here following, we don't use the function just used on values bacause we may want to rearrange
     # the strings (such as for regkeys) but not for all the values in all the other objects
     for o in observable:
@@ -249,18 +369,27 @@ def observable_regkey(observable):
     return attributes
 
 def pattern_regkey(pattern):
-    return pattern
-
-url_mapping = {'url': {'type': 'url', 'relation': 'url'},
-               'domain-name': {'type': 'domain', 'relation': 'domain'},
-               'network-traffic': {'type': 'port', 'relation': 'port'}}
+    attributes = []
+    for p in pattern:
+        p_type, p_value = p.split(' = ')
+        try:
+            mapping = regkey_mapping[p_type]
+        except KeyError:
+            print(p_type)
+        attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
+                           'value': p_value.replace('\\\\', '\\')[1:-1]})
+    return attributes
+    # return fill_pattern_attributes(pattern, regkey_mapping)
 
 def observable_url(observable):
     attributes = []
     for o in observable:
         observable_part = observable[o]
         part_type = observable_part._type
-        mapping = url_mapping[part_type]
+        try:
+            mapping = url_mapping[part_type]
+        except:
+            continue
         try:
             value = observable_part['value']
         except:
@@ -270,32 +399,19 @@ def observable_url(observable):
     return attributes
 
 def pattern_url(pattern):
-    return pattern
-
-x509_mapping = {'issuer': {'type': 'text', 'relation': 'issuer'},
-                'serial_number': {'type': 'text', 'relation': 'serial-number'},
-                'subject': {'type': 'text', 'relation': 'subject'},
-                'subject_public_key_algorithm': {'type': 'text', 'relation': 'pubkey-info-algorithm'},
-                'subject_public_key_exponent': {'type': 'text', 'relation': 'pubkey-info-exponent'},
-                'subject_public_key_modulus': {'type': 'text', 'relation': 'pubkey-info-modulus'},
-                'validity_not_before': {'type': 'datetime', 'relation': 'validity-not-before'},
-                'validity_not_after': {'type': 'datetime', 'relation': 'validity-not-after'},
-                'version': {'type': 'text', 'relation': 'version'},
-                'SHA-1': {'type': 'x509-fingerprint-sha1', 'relation': 'x509-fingerprint-sha1'},
-                'SHA-256': {'type': 'x509-fingerprint-sha256', 'relation': 'x509-fingerprint-sha256'},
-                'MD5': {'type': 'x509-fingerprint-md5', 'relation': 'x509-fingerprint-md5'}}
+    return fill_pattern_attributes(pattern, url_mapping)
 
 def observable_x509(observable):
     attributes = []
     observable = dict(observable['0'])
     if 'hashes' in observable:
         hashes = observable.pop('hashes')
-        fill_attributes(attributes, hashes, x509_mapping)
-    fill_attributes(attributes, observable, x509_mapping)
+        fill_observable_attributes(attributes, hashes, x509_mapping)
+    fill_observable_attributes(attributes, observable, x509_mapping)
     return attributes
 
 def pattern_x509(pattern):
-    return pattern
+    return fill_pattern_attributes(pattern, x509_mapping)
 
 objects_mapping = {'domain-ip':{'observable': observable_domain_ip, 'pattern': pattern_domain_ip},
                    'email': {'observable': observable_email, 'pattern': pattern_email},
