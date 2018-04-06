@@ -693,24 +693,23 @@ class StixBuilder():
         for attribute in attributes:
             if attribute.type == 'url':
                 # If we have the url (WE SHOULD), we return the observable supported atm with the url value
-                return {'0': {'type': 'url', 'value': attribute.value}}
+                observable = {'0': {'type': 'url', 'value': attribute.value}}
             else:
                 # otherwise, we need to see if there is a port or domain value to parse
                 url_args[attribute.type] = attribute.value
-        observable = {}
         if 'domain' in url_args:
-            observable['0'] = {'type': 'domain-name', 'value': url_args['domain']}
+            observable['1'] = {'type': 'domain-name', 'value': url_args['domain']}
         if 'port' in url_args:
             port_value = url_args['port']
-            port = {'type': 'network-traffic', 'dst_ref': '0', 'protocols': ['tcp'], 'dst_port': port_value}
+            port = {'type': 'network-traffic', 'dst_ref': '1', 'protocols': ['tcp'], 'dst_port': port_value}
             try:
                 port['protocols'].append(defineProtocols[port_value])
             except:
                 pass
-            if observable:
-                observable['1'] = port
+            if '1' in observable:
+                observable['2'] = port
             else:
-                observable['0'] = port
+                observable['1'] = port
         return observable
 
     @staticmethod
