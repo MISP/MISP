@@ -168,17 +168,19 @@ class StixParser():
         object_type = self.get_misp_type(labels)
         object_category = self.get_misp_category(labels)
         stix_type = o._type
+        misp_object = pymisp.MISPObject(object_type)
+        misp_object['meta-category'] = object_category
         if stix_type == 'indicator':
-            misp_object = {'name': object_type, 'meta-category': object_category}
             pattern = o.get('pattern').replace('\\\\', '\\').split(' AND ')
             pattern[0] = pattern[0][2:]
             pattern[-1] = pattern[-1][:-2]
-            attributes = self.parse_pattern_from_object(pattern)
+            attributes = self.parse_pattern_from_object(pattern, object_type)
         if stix_type == 'observed-data':
-            misp_object = {'name': object_type, 'meta-category': object_category}
             observable = o.get('objects')
-            attributes = self.parse_observable_from_object(observable)
-        misp_object['to_ids'] = bool(labels[1].split('=')[1])
+            attributes = self.parse_observable_from_object(observable, object_type)
+        for attribute in attributes:
+            misp_object.add_attribute(**attribute)
+        misp_object.to_ids = bool(labels[1].split('=')[1])
         self.misp_event.add_object(**misp_object)
 
     def parse_attribute(self, o, labels):
@@ -255,11 +257,13 @@ class StixParser():
             return pattern.split(' = ')[1][1:-3]
 
     @staticmethod
-    def parse_observable_from_object(observable):
-        return
+    def parse_observable_from_object(observable, object_type):
+        return objects_mapping[object_type]['observable'](observable)
 
     @staticmethod
-    def parse_pattern_from_object(pattern):
+    def parse_pattern_from_object(pattern, object_type):
+        values = objects_mapping[object_type]['pattern'](pattern)
+        print(values)
         return
 
 def main(args):
