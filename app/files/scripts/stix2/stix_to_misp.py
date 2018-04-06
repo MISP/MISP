@@ -195,6 +195,7 @@ class StixParser():
                 o_date = o.get('valid_from')
                 pattern = o.get('pattern').replace('\\\\', '\\')
                 value = self.parse_pattern(pattern)
+                attribute['to_ids'] = True
             else:
                 o_date = o.get('first_observed')
                 observable = o.get('objects')
@@ -202,6 +203,7 @@ class StixParser():
                     value = self.parse_observable(observable, attribute_type)
                 except:
                     print('{}: {}'.format(attribute_type, observable))
+                attribute['to_ids'] = False
             attribute['timestamp'] = self.getTimestampfromDate(o_date)
         try:
             attribute['value'] = value

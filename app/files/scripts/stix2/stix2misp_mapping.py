@@ -379,7 +379,6 @@ def pattern_regkey(pattern):
         attributes.append({'type': mapping['type'], 'object_relation': mapping['relation'],
                            'value': p_value.replace('\\\\', '\\')[1:-1]})
     return attributes
-    # return fill_pattern_attributes(pattern, regkey_mapping)
 
 def observable_url(observable):
     attributes = []
