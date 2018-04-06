@@ -357,7 +357,11 @@
 	</div>
 	<div id="eventgraph_div" class="info_container_eventgraph_network" style="display: none;" data-fullscreen="false">
 		<div class="eventgraph_header">
-			<label id="network-scope" class="btn center-in-network-header network-control-btn"><span class="useCursorPointer fa fa-object-group" style="margin-right: 3px;"></span><?php echo __('Scope')?></label>
+			<label id="network-scope" class="btn center-in-network-header network-control-btn">
+				<span class="useCursorPointer fa fa-object-group" style="margin-right: 3px;">
+				</span><?php echo __('Scope')?>
+				<span id="network-scope-badge" class="badge"></span>
+			</label>
 			<label id="network-physic" class="btn center-in-network-header network-control-btn"><span class="useCursorPointer fa fa-space-shuttle" style="margin-right: 3px;"></span><?php echo __('Physics')?></label>
 			<label id="network-display" class="btn center-in-network-header network-control-btn"><span class="useCursorPointer fa fa-list-alt" style="margin-right: 3px;"></span><?php echo __('Display')?></label>
 			<label id="network-filter" class="btn center-in-network-header network-control-btn"><span class="useCursorPointer fa fa-filter" style="margin-right: 3px;"></span><?php echo __('Filters')?></label>

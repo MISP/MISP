@@ -86,6 +86,10 @@ class EventGraph {
 		this.globalCounter++;
 		return this.globalCounter-1;
 	}
+	update_scope_badge(value) {
+		value = value === undefined ? $("#select_graph_scope").val() : value;
+		$("#network-scope-badge").text(value);
+	}
 
 	init_scope_menu() {
 		var menu_scope = new ContextualMenu({
@@ -97,7 +101,7 @@ class EventGraph {
 			label: "Scope",
 			tooltip: "The scope represented by the network",
 			event: function(value) {
-
+				eventGraph.update_scope_badge(value);
 			},
 			options: ["Event", "Reference", "Correlation", "Tag", "Distribution"],
 			default: "Reference"
@@ -1178,6 +1182,7 @@ function enable_interactive_graph() {
 			
 		});
 
+		eventGraph.update_scope_badge();
 		dataHandler.fetch_data_and_update();
 	}, 1);
 }

@@ -52,7 +52,7 @@ label.center-in-network-header {
 }
 
 .eventgraph_network {
-	height: inherit;
+	height: calc(100% - 40px);
 }
 
 .spinner-network {
