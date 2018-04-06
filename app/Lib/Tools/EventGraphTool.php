@@ -10,9 +10,10 @@
 		private $__related_events = array();
 		private $__related_attributes = array();
 
-		public function construct($eventModel, $user) {
+		public function construct($eventModel, $user, $filterRules) {
 			$this->__eventModel = $eventModel;
 			$this->__user = $user;
+			$this->__filterRules = $filterRules;
 			$this->__json = array();
 			$this->__lookupTables = array(
 				'analysisLevels' => $this->__eventModel->analysisLevels,
@@ -44,7 +45,7 @@
 
 		private function __get_filtered_event($id) {
 			$event = $this->__get_event($id);
-			if (empty($this->filterRules)) return $event;
+			if (empty($this->__filterRules)) return $event;
 			$filtered = array('Object' => array(), 'Attribute' => array());
 
 			// perform filtering
@@ -66,7 +67,7 @@
 		private function __satisfy_obj_filtering($obj) {
 			// presence rule - search in the object's attribute
 			$presenceMatch = true;
-			foreach ($this->filterRules['presence'] as $rule) {
+			foreach ($this->__filterRules['presence'] as $rule) {
 				$relation = $rule[0];
 				$obj_rel = $rule[1];
 				if($relation === "Contains") {
@@ -91,9 +92,9 @@
 		}
 
 		private function __satisfy_val_filtering($attr, $different_type_return=true) {
-			if (count($this->filterRules['value']) == 0) return true;
+			if (count($this->__filterRules['value']) == 0) return true;
 
-			foreach ($this->filterRules['value'] as $rule) {
+			foreach ($this->__filterRules['value'] as $rule) {
 				$attr_type = $rule[0];
 				$comparison = $rule[1];
 				$attr_value = $rule[2];
@@ -130,8 +131,7 @@
 			return false;
 		}
 
-		public function get_references($id, $filterRules=array()) {
-			$this->filterRules = $filterRules;
+		public function get_references($id) {
 			$event = $this->__get_filtered_event($id);
 			$this->__json['items'] = array();
 			$this->__json['relations'] = array();
@@ -196,8 +196,103 @@
 			return $this->__json;
 		}
 
-		public function get_tag($id) {
-			// to do
+		public function get_tags($id) {
+			$event = $this->__get_filtered_event($id);
+			$this->__json['items'] = array();
+			$this->__json['relations'] = array();
+			$this->__json['existing_object_relation'] = array();
+			if (empty($event)) return $this->__json;
+			
+			if (!empty($event['Object'])) {
+				$object = $event['Object'];
+			} else {
+				$object = array();
+			}
+
+			if (!empty($event['Attribute'])) {
+				$attribute = $event['Attribute'];
+			} else {
+				$attribute = array();
+			}
+
+			$tagSet = array();
+			$i = 0;
+
+			// extract links and node type
+			foreach ($attribute as $attr) {
+				$Tags = $attr['AttributeTag'];
+				$toPush = array(
+					'id' => $attr['id'],
+					'uuid' => $attr['uuid'],
+					'type' => $attr['type'],
+					'label' => $attr['value'],
+					'node_type' => 'attribute',
+					//'Tag' => $Tags,
+				);
+				array_push($this->__json['items'], $toPush);
+
+				foreach($Tags as $tag) {
+					$tag = $tag['Tag'];
+					$toPush = array(
+						'id' => 'tag_edge_id_' . $i,
+						'from' => $attr['id'],
+						'to' => $tag['name'],
+					);
+					$tagSet[$tag['name']] = $tag;
+					array_push($this->__json['relations'], $toPush);
+					$i = $i+1;
+				}
+			}
+
+			foreach ($object as $obj) {
+				$toPush = array(
+					'id' => $obj['id'],
+					'uuid' => $obj['uuid'],
+					'type' => $obj['name'],
+					'Attribute' => $obj['Attribute'],
+					'label' => '',
+					'node_type' => 'object',
+					'meta-category' => $obj['meta-category'],
+					'template_uuid' => $obj['template_uuid'],
+				);
+				array_push($this->__json['items'], $toPush);
+
+				// Record existing object_relation
+				foreach ($obj['Attribute'] as $attr) {
+					$this->__json['existing_object_relation'][$attr['object_relation']] = 0; // set-alike
+				}
+
+				// get all tags in the Object's Attributes
+				foreach($obj['Attribute'] as $ObjAttr) {
+					$Tags = $ObjAttr['AttributeTag'];
+					foreach($Tags as $tag) {
+						$tag = $tag['Tag'];
+						$toPush = array(
+							'id' => "tag_edge_id_" . $i,
+							'from' => $obj['id'],
+							'to' => $tag['name'],
+						);
+						$tagSet[$tag['name']] = $tag;
+						array_push($this->__json['relations'], $toPush);
+						$i = $i + 1;
+					}
+				}
+			}
+
+			// Add tags as nodes
+			foreach($tagSet as $tag) {
+				$toPush = array(
+					'id' => $tag['name'],
+					'uuid' => $tag['id'], // id is used for linking edges in vis.js, this uuid (which is not the tag uuid) is used to store the real tag id
+					'type' => 'tag',
+					'label' => $tag['name'],
+					'node_type' => 'tag',
+					'tagContent' => $tag,
+				);
+				array_push($this->__json['items'], $toPush);
+			}
+
+			return $this->__json;
 		}
 
 		public function get_distribution($id) {

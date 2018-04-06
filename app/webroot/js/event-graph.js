@@ -13,9 +13,11 @@ var container = document.getElementById('eventgraph_network');
 var user_manipulation = $('#eventgraph_network').data('user-manipulation');
 var root_id_attr = "rootNode:attribute"
 var root_id_object = "rootNode:object"
+var root_id_tag = "rootNode:tag"
 var mapping_root_id_to_type = {};
 mapping_root_id_to_type[root_id_attr] = 'attribute';
 mapping_root_id_to_type[root_id_object] = 'object';
+mapping_root_id_to_type[root_id_tag] = 'tag';
 var root_node_x_pos = 800;
 var cluster_expand_threshold = 100;
 
@@ -34,6 +36,7 @@ class EventGraph {
 		this.mapping_meta_fa.set('misc', {"meta-category": "misc","fa_text": "cube","fa-hex": "f1b2"}); // Also considered as default
 		// FIXME
 		this.network_options = network_options;
+		this.scope_name;
 		this.globalCounter = 0;
 		this.first_draw = true;
 		this.root_node_shown = false;
@@ -86,11 +89,13 @@ class EventGraph {
 		this.globalCounter++;
 		return this.globalCounter-1;
 	}
-	update_scope_badge(value) {
+	update_scope(value) {
 		value = value === undefined ? $("#select_graph_scope").val() : value;
 		$("#network-scope-badge").text(value);
+		this.scope_name = value;
+		dataHandler.scope_name = value;
 	}
-
+	
 	init_scope_menu() {
 		var menu_scope = new ContextualMenu({
 			trigger_container: document.getElementById("network-scope"),
@@ -101,9 +106,10 @@ class EventGraph {
 			label: "Scope",
 			tooltip: "The scope represented by the network",
 			event: function(value) {
-				eventGraph.update_scope_badge(value);
+				eventGraph.update_scope(value);
+				dataHandler.fetch_data_and_update();
 			},
-			options: ["Event", "Reference", "Correlation", "Tag", "Distribution"],
+			options: ["Reference", "Correlation", "Tag", "Distribution"],
 			default: "Reference"
 		});
 		return menu_scope;
@@ -145,6 +151,7 @@ class EventGraph {
 		});
 		return menu_physic;
 	}
+
 	init_display_menu() {
 		var menu_display = new ContextualMenu({
 			trigger_container: document.getElementById("network-display"),
@@ -156,16 +163,16 @@ class EventGraph {
 			event: function(value) {
 				switch(value) {
 					case "default":
-						eventGraph.change_layout_type('default');
+						eventGraph.change_layout_type("default");
 						break;
-						
 					case "hierarchical.directed":
-						eventGraph.change_layout_type('directed');
+						eventGraph.change_layout_type("directed");
 						break;
-
 					case "hierarchical.hubsize":
-						eventGraph.change_layout_type('hubsize');
+						eventGraph.change_layout_type("hubsize");
 						break;
+					default:
+						eventGraph.change_layout_type("default");
 				}
 			},
 			options: [
@@ -227,6 +234,7 @@ class EventGraph {
 		});
 		return menu_display;
 	}
+
 	init_filter_menu() {
 		var menu_filter = new ContextualMenu({
 			trigger_container: document.getElementById("network-filter"),
@@ -324,13 +332,16 @@ class EventGraph {
 		}
 	}
 
-	reset_graphs() {
+	reset_graphs(hard) {
 		this.nodes.clear();
 		this.edges.clear();
+		if (hard) {
+			this.backup_connection_edges = {};
+		}
 	}
 	
 	update_graph(data) {
-		this.network_loading(true, loadingText_creating);
+		setTimeout(function() { eventGraph.network_loading(true, loadingText_creating); });
 		
 		// New nodes will be automatically added
 		// removed references will be deleted
@@ -341,8 +352,6 @@ class EventGraph {
 			var group, label;
 			if ( node.node_type == 'object' ) {
 				var group =  'object';
-				var label = node.type;
-				var label = node.label;
 				var label = dataHandler.generate_label(node);
 				var striped_value = this.strip_text_value(label);
 				node_conf = { 
@@ -357,6 +366,31 @@ class EventGraph {
 						color: getRandomColor(),
 						face: 'FontAwesome',
 						code: this.get_FA_icon(node['meta-category']),
+					}
+				};
+				dataHandler.mapping_value_to_nodeID.set(striped_value, node.id);
+			} else if (node.node_type == 'tag') {
+				var tag_color = node.tagContent.colour;
+				group =  'tag';
+				label = node.label;
+				node_conf = { 
+					id: node.id,
+					uuid: node.uuid,
+					label: label,
+					title: label,
+					group: group,
+					mass: 20,
+					color: { 
+						background: tag_color,
+						border: tag_color
+					},
+					font: {
+						color: getTextColour(tag_color),
+						bold: true,
+						size: 28
+					},
+					shapeProperties: {
+						borderRadius: 6
 					}
 				};
 				dataHandler.mapping_value_to_nodeID.set(striped_value, node.id);
@@ -382,7 +416,7 @@ class EventGraph {
 		var old_node_ids = this.nodes.getIds();
 		for (var old_id of old_node_ids) {
 			// Ignore root node
-			if (old_id == "rootNode:attribute" || old_id == "rootNode:object") {
+			if (old_id == "rootNode:attribute" || old_id == "rootNode:object" || old_id == "rootNode:tag") {
 				continue;
 			}
 			// This old node got removed
@@ -422,16 +456,24 @@ class EventGraph {
 	
 		this.edges.update(newRelations);
 		
-		// remove root node if graph is filtered
-		if (this.is_filtered) {
-			this.remove_unreferenced_root_node();
-		} else {
+		this.remove_root_nodes();
+		if (this.scope_name == 'Reference') {
 			this.add_unreferenced_root_node();
 			// links unreferenced attributes and object to root nodes
 			if (this.first_draw) {
 				this.link_not_referenced_nodes();
 				this.first_draw = !this.first_draw
 			}
+		} else if (this.scope_name == 'Tag') {
+			this.add_tag_root_node();
+			// links untagged attributes and object to root nodes
+			if (this.first_draw) {
+				this.link_not_referenced_nodes();
+				this.first_draw = !this.first_draw
+			}
+		} else if (this.scope_name == 'Distribution') {
+		} else if (this.scope_name == 'Correlation') {
+		} else {
 		}
 
 		this.network_loading(false, "");
@@ -515,7 +557,7 @@ class EventGraph {
 	collapse_node(parent_id) {
 		if(parent_id === undefined) { return; }
 		
-		if (!(parent_id == root_id_attr || parent_id == root_id_object)) { // Is not a root node
+		if (!(parent_id == root_id_attr || parent_id == root_id_object || parent_id == root_id_tag)) { // Is not a root node
 			var node_group = this.nodes.get(parent_id).group;
 			if (parent_id === undefined || node_group != 'object') { //  No node selected  or collapse not permitted
 				return
@@ -620,7 +662,6 @@ class EventGraph {
 		this.nodes.forEach(function(nodeData) {
 			var cur_id = nodeData.id;
 			var cur_group = nodeData.group;
-			var prev_nodeID = cur_group == 'attribute' ? root_id_attr : root_id_object;
 
 			// Do not link already connected nodes
 			if (that.network.getConnectedEdges(cur_id).length > 0) {
@@ -637,19 +678,33 @@ class EventGraph {
 				},
 				length: 150
 			}
-			if (cur_group == 'attribute') {
-				new_edge.from = that.layout == 'default' ? root_id_attr : prev_nodeID;
-				that.nodes.update({id: nodeData.id, unreferenced: 'attribute'});
-			} else if (cur_group == 'object') {
-				new_edge.from = that.layout == 'default' ? root_id_object : prev_nodeID;
-				that.nodes.update({id: nodeData.id, unreferenced: 'object'});
+
+
+			if (that.scope_name == 'Reference') {
+				if (cur_group == 'attribute' || cur_group == 'object') {
+					new_edge.from = cur_group == 'attribute' ? root_id_attr : root_id_object;
+					that.nodes.update({id: nodeData.id, unreferenced: cur_group});
+				}
+			} else if (that.scope_name == 'Tag') {
+				if (cur_group == 'attribute' || cur_group == 'object') {
+					new_edge.from = root_id_tag;
+					that.nodes.update({id: nodeData.id, unreferenced: 'tag'});
+				}
+			} else if (that.scope_name == 'Distribution') {
+			} else if (that.scope_name == 'Correlation') {
+			} else {
 			}
+			
 			newEdges.push(new_edge);
 			that.new_edges_for_unreferenced_nodes.push(new_edge.id);
-			prev_nodeID = cur_id;
 		});
 		this.edges.add(newEdges);
 		this.init_clusterize();
+	}
+
+	remove_root_nodes() {
+		this.remove_unreferenced_root_node();
+		this.remove_tag_root_node();
 	}
 
 	add_unreferenced_root_node() {
@@ -680,12 +735,38 @@ class EventGraph {
 		this.root_node_shown = false;
 	}
 
+	add_tag_root_node() {
+		if (this.root_node_shown) {
+			return;
+		}
+		var root_node_tag = {
+			id: root_id_tag,
+			x: -root_node_x_pos,
+			y: 0,
+			label: 'Untagged Attribute',
+			title: 'All Attributes not being tagged',
+			group: 'rootNodeTag'
+		};
+		this.nodes.add([root_node_tag]);
+		this.root_node_shown = true;
+	}
+	remove_tag_root_node() {
+		this.nodes.remove([root_id_tag]);
+		this.root_node_shown = false;
+	}
+
 	switch_unreferenced_nodes_connection() {
 		var that = eventGraph;
 		var to_update = [];
-		for(var root_id of [root_id_attr, root_id_object]) {
+		var root_ids = that.scope_name == 'Reference' ? [root_id_attr, root_id_object] : [root_id_tag];
+		for(var root_id of root_ids) {
 			if(that.layout == 'default') {
 				var all_edgesID = that.backup_connection_edges[root_id]
+				if (all_edgesID === undefined) { // edgesID was not saved (happen if we switch scope then layout)
+					// redraw everything
+					eventGraph.destroy_and_redraw();
+					return;
+				}
 			} else {
 				that.network.storePositions();
 				var prev_node = root_id;
@@ -755,6 +836,23 @@ class DataHandler {
 		this.mapping_obj_relation_value_to_nodeID = new Map();
 		this.mapping_uuid_to_template = new Map();
 		this.selected_type_to_display = "";
+		this.scope_name;
+	}
+
+	get_scope_url() {
+		switch(this.scope_name) {
+			case "Reference":
+				return "getEventGraphReferences";
+			case "Tag":
+				return "getEventGraphTags";
+			case "Correlation":
+				return "getEventGraphReferences";
+			case "Distribution":
+				return "getEventGraphReferences";
+			default:
+				return "getEventGraphReferences";
+
+		}
 	}
 
 	extract_references(data) {
@@ -815,7 +913,6 @@ class DataHandler {
 		var template_uuid = obj.template_uuid;
 		var template_req = this.mapping_uuid_to_template.get(template_uuid);
 		if (template_req === undefined) { // template not known
-			console.log(template_uuid);
 			return label;
 		}
 		// search if this field exists in the object
@@ -840,13 +937,14 @@ class DataHandler {
 		$.when(this.fetch_objects_template()).done(function() {
 			var filtering_rules = eventGraph.get_filtering_rules();
 			$.ajax({
-				url: "/events/getReferences/"+scope_id+"/references.json",
+				url: "/events/"+dataHandler.get_scope_url()+"/"+scope_id+"/event.json",
 				dataType: 'json',
 				type: 'post',
 				contentType: 'application/json',
 				data: JSON.stringify( filtering_rules ),
 				processData: false,
 				success: function( data, textStatus, jQxhr ){
+					eventGraph.reset_graphs(true);
 					eventGraph.is_filtered = (filtering_rules.presence.length > 0 || filtering_rules.value.length > 0);
 					eventGraph.first_draw = true;
 					var available_object_references = Object.keys(data.existing_object_relation);
@@ -1182,7 +1280,7 @@ function enable_interactive_graph() {
 			
 		});
 
-		eventGraph.update_scope_badge();
+		eventGraph.update_scope();
 		dataHandler.fetch_data_and_update();
 	}, 1);
 }
@@ -1275,6 +1373,7 @@ var network_options = {
 			},
 		},
 		obj_relation: {
+			mass: 3,
 			size: 10,
 			color: { 
 				border:'black'
@@ -1288,6 +1387,15 @@ var network_options = {
 			},
 			size: 15
 		},
+		tag: {
+			shape: 'box',
+			size: 15,
+			shadow: {
+				enabled: true,
+				size: 3,
+				x: 3, y: 3
+			}
+		},
 		rootNodeObject: {
 			shape: 'icon',
 			icon: {
@@ -1298,7 +1406,7 @@ var network_options = {
 				size: 18, // px
 				background: 'rgba(255, 255, 255, 0.7)'
 			},
-
+			mass: 5
 		},
 		rootNodeAttribute: {
 			shape: 'icon',
@@ -1310,6 +1418,19 @@ var network_options = {
 				size: 18, // px
 				background: 'rgba(255, 255, 255, 0.7)'
 			},
+			mass: 5
+		},
+		rootNodeTag: {
+			shape: 'icon',
+			icon: {
+				face: 'FontAwesome',
+				code: '\uf02b',
+			},
+			font: {
+				size: 22, // px
+				background: 'rgba(255, 255, 255, 0.7)'
+			},
+			mass: 5
 		},
 		clustered_object: {
 			shape: 'icon',
@@ -1321,6 +1442,7 @@ var network_options = {
 				size: 18, // px
 				background: 'rgba(255, 255, 255, 0.7)'
 			},
+			mass: 5
 		}
 	},
 	locales: {
@@ -1391,7 +1513,7 @@ function global_processProperties(clusterOptions, childNodes) {
 	var childrenCount = 0;
 	for (var i = 0; i < childNodes.length; i++) {
 		var childNodeID = childNodes[i].id
-		if ( childNodeID == "rootNode:object" || childNodeID == "rootNode:attribute") {
+		if ( childNodeID.includes("rootNode:")) {
 			concerned_root_node = childNodeID;
 		}
 		childrenCount += childNodes[i].childrenCount || 1;
@@ -1410,6 +1532,10 @@ function global_processProperties(clusterOptions, childNodes) {
 			clusterOptions.label = "Unreferenced Attributes (" + childrenCount + ")";
 			clusterOptions.x =  -root_node_x_pos;
 			clusterOptions.group = 'rootNodeAttribute';
+		} else if (concerned_root_node == "rootNode:tag") {
+			clusterOptions.label = "Untagged elements (" + childrenCount + ")";
+			clusterOptions.x =  -root_node_x_pos;
+			clusterOptions.group = 'rootNodeTag';
 		}
 	}
 	clusterOptions.y = 0
