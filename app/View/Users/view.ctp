@@ -57,20 +57,20 @@
 			<?php echo h((0 == $user['User']['termsaccepted'])? __('No') : __('Yes')); ?>
 			&nbsp;
 		</dd>
-		<dt><?php echo __('PGP key'); ?></dt>
+		<dt><?php echo __('GnuPG key'); ?></dt>
 		<dd class="quickSelect <?php echo $user['User']['gpgkey'] ? 'green' : 'bold red'; ?>">
 			<?php echo $user['User']['gpgkey'] ? nl2br(h($user['User']['gpgkey'])) : __("N/A"); ?>
 		</dd>
 		<?php
 			if (!empty($user['User']['gpgkey'])):
 		?>
-			<dt><?php echo __('PGP fingerprint');?></dt>
+			<dt><?php echo __('GnuPG fingerprint');?></dt>
 			<dd class="quickSelect bold <?php echo $user['User']['fingerprint'] ? 'green': 'red'; ?>">
 				<?php
 					echo $user['User']['fingerprint'] ? chunk_split(h($user['User']['fingerprint']), 4, ' ') : 'N/A';
 				?>
 			</dd>
-			<dt><?php echo __('PGP status');?></dt>
+			<dt><?php echo __('GnuPG status');?></dt>
 			<dd class="bold <?php echo (empty($user['User']['pgp_status']) || $user['User']['pgp_status'] != 'OK') ? 'red': 'green'; ?>">
 				<?php
 					echo !empty($user['User']['pgp_status']) ? h($user['User']['pgp_status']) : 'N/A';

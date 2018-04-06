@@ -160,6 +160,11 @@ class Module extends AppModel {
 						'Content-Type' => 'application/json',
 				)
 		);
+		if ($moduleFamily == 'Cortex') {
+			if (!empty(Configure::read('Plugin.' . $moduleFamily . '_authkey'))) {
+				$request['header']['Authorization'] = 'bearer ' . Configure::read('Plugin.' . $moduleFamily . '_authkey');
+			}
+		}
 		try {
 			if ($post) $response = $httpSocket->post($url . $uri, $post, $request);
 			else $response = $httpSocket->get($url . $uri);

@@ -1,5 +1,5 @@
 <div class="footer <?php echo $debugMode;?>">
-	<div id="shortcutsListContainer">
+	<div id="shortcutsListContainer" class="<?php echo $debugMode ? 'hidden': ''; ?>">
 		<div id="triangle"></div>
 		<div id="shortcutsList">
 			<span> <?php echo __('Keyboard shortcuts for this page'); ?>:</span><br />
@@ -12,9 +12,9 @@
 				<?php
 				$gpgpath = ROOT.DS.APP_DIR.DS.WEBROOT_DIR.DS.'gpg.asc';
 				if (file_exists($gpgpath) && is_file($gpgpath)){ ?>
-					<span>Download: <?php echo $this->Html->link('PGP/GPG key', $this->webroot.'gpg.asc');?></span>
+					<span>Download: <?php echo $this->Html->link('GnuPG key', $this->webroot.'gpg.asc');?></span>
 				<?php } else { ?>
-					<span>Could not locate the PGP/GPG public key.</span>
+					<span>Could not locate the GnuPG public key.</span>
 				<?php }
 				if (Configure::read('SMIME.enabled')):
 					$smimepath = ROOT.DS.APP_DIR.DS.WEBROOT_DIR.DS.'public_certificate.pem';

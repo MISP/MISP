@@ -1701,6 +1701,9 @@ class Event extends AppModel {
 						unset($event['Attribute'][$key]);
 						continue;
 					}
+					if ($event['Attribute'][$key]['category'] === 'Financial fraud') {
+						$event['Attribute'][$key] = $this->Attribute->attachValidationWarnings($event['Attribute'][$key]);
+					}
 					if (isset($options['includeAttachments']) && $options['includeAttachments']) {
 						if ($this->Attribute->typeIsAttachment($attribute['type'])) {
 							$encodedFile = $this->Attribute->base64EncodeAttachment($attribute);
@@ -1742,6 +1745,11 @@ class Event extends AppModel {
 							foreach ($event['Object'] as $objectKey => $objectValue) {
 								if (!empty($event['Object'][$objectKey]['Attribute'])) {
 									$event['Object'][$objectKey]['Attribute'] = $this->__attachSharingGroups(!$options['sgReferenceOnly'], $event['Object'][$objectKey]['Attribute'], $sharingGroupData);
+									foreach ($event['Object'][$objectKey]['Attribute'] as $akey => $adata) {
+										if ($adata['category'] === 'Financial fraud') {
+											$event['Object'][$objectKey]['Attribute'][$akey] = $this->Attribute->attachValidationWarnings($adata);
+										}
+									}
 								}
 								if ($event['Attribute'][$key]['object_id'] == $objectValue['id']) {
 									$event['Object'][$objectKey]['Attribute'][] = $event['Attribute'][$key];
@@ -2243,7 +2251,7 @@ class Event extends AppModel {
 		$body .= "\n";
 		$body .= "You can reach him at " . $user['User']['email'] . "\n";
 		if (!$user['User']['gpgkey'])
-			$body .= "His GPG/PGP key is added as attachment to this email. \n";
+			$body .= "His GnuPG key is added as attachment to this email. \n";
 		if (!$user['User']['certif_public'])
 			$body .= "His Public certificate is added as attachment to this email. \n";
 		$body .= "\n";
@@ -4064,17 +4072,28 @@ class Event extends AppModel {
 		return $this->save($event);
 	}
 
-	public function upload_stix($user, $filename) {
+	public function upload_stix($user, $filename, $stix_version) {
 		App::uses('Folder', 'Utility');
 		App::uses('File', 'Utility');
-		$scriptFile = APP . 'files/scripts/stix2misp.py';
-		$tempFilePath = APP . 'files/scripts/tmp/' . $filename;
-		$result = shell_exec('python3 ' . $scriptFile . ' ' . $filename . ' 2>' . APP . 'tmp/logs/exec-errors.log');
+		if ($stix_version == '2') {
+			$scriptFile = APP . 'files/scripts/stix2/stix2misp.py';
+			$tempFilePath = APP . 'files/scripts/tmp/' . $filename;
+			$shell_command = 'python3 ' . $scriptFile . ' ' . $tempFilePath . ' 2>' . APP . 'tmp/logs/exec-errors.log';
+			$output_path = $tempFilePath . '.stix2';
+		} else if ($stix_version == '1' || $stix_version == '1.1' || $stix_version == '1.2') {
+			$scriptFile = APP . 'files/scripts/stix2misp.py';
+			$tempFilePath = APP . 'files/scripts/tmp/' . $filename;
+			$shell_command = 'python3 ' . $scriptFile . ' ' . $filename . ' 2>' . APP . 'tmp/logs/exec-errors.log';
+			$output_path = $tempFilePath . '.json';
+		} else {
+			throw new MethodNotAllowedException('Invalid STIX version');
+		}
+		$result = shell_exec($shell_command);
 		unlink($tempFilePath);
 		if (trim($result) == '1') {
-			$data = file_get_contents($tempFilePath . '.json');
+			$data = file_get_contents($output_path);
 			$data = json_decode($data, true);
-			unlink($tempFilePath . '.json');
+			unlink($output_path);
 			$created_id = false;
 			$validationIssues = false;
 			$result = $this->_add($data, true, $user, '', null, false, null, $created_id, $validationIssues);

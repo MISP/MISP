@@ -20,7 +20,7 @@
  * @license       MIT License (http://www.opensource.org/licenses/mit-license.php)
  */
 
-// TODO GPG encryption has issues when keys are expired
+// TODO GnuPG encryption has issues when keys are expired
 
 App::uses('ConnectionManager', 'Model');
 App::uses('Controller', 'Controller');
@@ -46,8 +46,8 @@ class AppController extends Controller {
 
 	public $helpers = array('Utility', 'OrgImg');
 
-	private $__queryVersion = '31';
-	public $pyMispVersion = '2.4.87';
+	private $__queryVersion = '33';
+	public $pyMispVersion = '2.4.89';
 	public $phpmin = '5.6.5';
 	public $phprec = '7.0.16';
 
@@ -280,6 +280,18 @@ class AppController extends Controller {
 				} else {
 					$this->Session->setFlash('Your user account has been disabled.');
 					$this->redirect(array('controller' => 'users', 'action' => 'login', 'admin' => false));
+				}
+			}
+			$this->set('default_memory_limit', ini_get('memory_limit'));
+			if (isset($this->Auth->user('Role')['memory_limit'])) {
+				if ($this->Auth->user('Role')['memory_limit'] !== '') {
+					ini_set('memory_limit', $this->Auth->user('Role')['memory_limit']);
+				}
+			}
+			$this->set('default_max_execution_time', ini_get('max_execution_time'));
+			if (isset($this->Auth->user('Role')['max_execution_time'])) {
+				if ($this->Auth->user('Role')['max_execution_time'] !== '') {
+					ini_set('max_execution_time', $this->Auth->user('Role')['max_execution_time']);
 				}
 			}
 		} else {

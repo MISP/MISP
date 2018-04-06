@@ -31,7 +31,7 @@ class EventGraph {
 		this.mapping_meta_fa.set('file', {"meta-category": "file","fa_text": "file","fa-hex": "f15b"});
 		this.mapping_meta_fa.set('financial', {"meta-category": "financial","fa_text": "money-bil-alt","fa-hex": "f3d1"});
 		this.mapping_meta_fa.set('network', {"meta-category": "network","fa_text": "server","fa-hex": "f233"});
-		this.mapping_meta_fa.set('misc', {"meta-category": "misc","fa_text": "cube","fa-hex": "f1b2"});
+		this.mapping_meta_fa.set('misc', {"meta-category": "misc","fa_text": "cube","fa-hex": "f1b2"}); // Also considered as default
 		// FIXME
 		this.network_options = network_options;
 		this.globalCounter = 0;
@@ -76,6 +76,11 @@ class EventGraph {
 	// Util
 	get_node_color(uuid) {
 		return this.nodes.get(uuid).icon.color;
+	}
+	get_FA_icon(metaCateg) {
+		var dict = this.mapping_meta_fa.get(metaCateg);
+		dict = dict === undefined ? this.mapping_meta_fa.get('misc') : dict; // if unknown meta-categ, take default
+		return String.fromCharCode(parseInt(dict['fa-hex'], 16))
 	}
 	getUniqId() {
 		this.globalCounter++;
@@ -347,7 +352,7 @@ class EventGraph {
 					icon: {
 						color: getRandomColor(),
 						face: 'FontAwesome',
-						code: String.fromCharCode(parseInt(this.mapping_meta_fa.get(node['meta-category'])['fa-hex'], 16)),
+						code: this.get_FA_icon(node['meta-category']),
 					}
 				};
 				dataHandler.mapping_value_to_nodeID.set(striped_value, node.id);

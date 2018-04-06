@@ -1,13 +1,12 @@
 <div class="events form">
 <?php
   echo $this->Form->create('Event', array('type' => 'file'));
-  $stixVersion = 'STIX 1.1.1 XML';
 ?>
 	<fieldset>
-		<legend><?php echo __('Import %s file', $stixVersion); ?></legend>
+		<legend><?php echo __('Import %s file', $stix_version); ?></legend>
 <?php
 	echo $this->Form->input('Event.stix', array(
-			'label' => '<b>' . __('%s file', $stixVersion) . '</b>',
+			'label' => '<b>' . __('%s file', $stix_version) . '</b>',
 			'type' => 'file',
 	));
 	?>

@@ -31,14 +31,16 @@ def loadEvent(args, pathname):
 
 def fillReportInfo(mispDict, report):
     mispDict['info'] = report.get('name')
-    mispDict['publish_timestamp'] = getTimestampfromDate(report.get('published'))
+    if report.get('published'):
+        mispDict['publish_timestamp'] = getTimestampfromDate(report.get('published'))
     labels = report.get('labels')
-    Tag = []
-    for l in labels:
-        label = {'exportable': True, 'hide_tag': False}
-        label['name'] = l
-        Tag.append(label)
-    mispDict['Tag'] = Tag
+    if labels:
+        Tag = []
+        for l in labels:
+            label = {'exportable': True, 'hide_tag': False}
+            label['name'] = l
+            Tag.append(label)
+        mispDict['Tag'] = Tag
 
 def buildMispDict(event):
     mispDict = {}
@@ -148,7 +150,7 @@ def fillAttributes(attr, attrLabels, Attribute):
 def fillCustom(attr, attrLabels, Attribute):
     attribute = {}
     attribute['type'] = attr.get('type').split('x-misp-object-')[1]
-    attribute['timestamp'] = int(time.mktime(time.strptime(attr.get('x_misp_timestamp'), "%Y-%m-%d %H:%M:%S")))
+    attribute['timestamp'] = getTimestampfromDate(attr.get('x_misp_timestamp'))
     attribute['to_ids'] = bool(attrLabels[1].split('=')[1])
     attribute['value'] = attr.get('x_misp_value')
     attribute['category'] = getMispCategory(attrLabels)
@@ -175,6 +177,8 @@ def fillCustomFromObject(attr, attrLabels, Object):
 def getTimestampfromDate(date):
     if '.' in date:
         return int(time.mktime(time.strptime(date.split('.')[0], "%Y-%m-%dT%H:%M:%S")))
+    elif '+' in date:
+        return int(time.mktime(time.strptime(date.split('+')[0], "%Y-%m-%d %H:%M:%S")))
     else:
         return int(time.mktime(time.strptime(date, "%Y-%m-%dT%H:%M:%SZ")))
 
@@ -517,7 +521,7 @@ def checkIfFromMISP(stix2Event):
     return False
 
 def main(args):
-    pathname = os.path.dirname(sys.argv[0])
+    pathname = os.path.dirname(args[0])
     stix2Event = loadEvent(args, pathname)
     stix2Event = stix2Event.get('objects')
     if checkIfFromMISP(stix2Event):

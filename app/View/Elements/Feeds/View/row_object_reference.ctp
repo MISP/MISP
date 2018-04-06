@@ -1,6 +1,6 @@
 <span class="bold"><?php echo __('References: ');?></span>
 <?php
-  $refCount = count($object['ObjectReference']);
+  $refCount = empty($object['ObjectReference']) ? 0 : count($object['ObjectReference']);
   echo $refCount . ' ';
   if (!empty($object['ObjectReference'])):
 ?>
@@ -10,25 +10,25 @@
 ?>
 <div id="Object_<?php echo $object['uuid']; ?>_references_collapsible" class="collapse">
 <?php
-  foreach ($object['ObjectReference'] as $reference):
-    if (!empty($reference['Object'])) {
-      $uuid = $reference['Object']['uuid'];
-      $output = ' (' . $reference['Object']['name'] . ': ' . $reference['Object']['name'] . ')';
-      $objectType = 'Object';
-    } else {
-      $uuid = $reference['Attribute']['uuid'];
-      $output = ' (' . $reference['Attribute']['category'] . '/' . $reference['Attribute']['type'] . ': "' . $reference['Attribute']['value'] . '")';
-      $objectType = 'Attribute';
-    }
-    $uuid = empty($reference['Object']) ? $reference['Attribute']['uuid'] : $reference['Object']['uuid'];
-    $idref = $reference['uuid'];
+  if (!empty($object['ObjectReference'])):
+    foreach ($object['ObjectReference'] as $reference):
+      if (!empty($reference['Object'])) {
+        $uuid = $reference['Object']['uuid'];
+        $output = ' (' . $reference['Object']['name'] . ': ' . $reference['Object']['name'] . ')';
+        $objectType = 'Object';
+      } else {
+        $uuid = $reference['referenced_uuid'];
+        $output = '';
+        $objectType = 'Attribute';
+      }
+      $uuid = $reference['referenced_uuid'];
+      $idref = $reference['uuid'];
 ?>
-    &nbsp;&nbsp;
-    <div class="bold white useCursorPointer">
-      <?php echo h($reference['relationship_type']) . ' ' . $objectType . ' ' . $reference['referenced_uuid'] . h($output);?>
-    </div>
-    <br />
+      <div class="bold white useCursorPointer">
+        &nbsp;&nbsp;<?php echo h($reference['relationship_type']) . ' ' . $objectType . ' ' . $reference['referenced_uuid'] . h($output);?>
+      </div>
 <?php
-  endforeach;
+    endforeach;
+  endif;
 ?>
 </div>

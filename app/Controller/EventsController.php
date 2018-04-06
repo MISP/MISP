@@ -259,7 +259,7 @@ class EventsController extends AppController {
 		// list the events
 		$passedArgsArray = array();
 		$urlparams = "";
-		$overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'Datefrom', 'Dateuntil', 'org', 'eventinfo', 'tag', 'distribution', 'sharinggroup', 'analysis', 'threatlevel', 'email', 'hasproposal', 'timestamp', 'publishtimestamp', 'publish_timestamp', 'minimal');
+		$overrideAbleParams = array('all', 'attribute', 'published', 'eventid', 'Datefrom', 'Dateuntil', 'org', 'eventinfo', 'tag', 'tags', 'distribution', 'sharinggroup', 'analysis', 'threatlevel', 'email', 'hasproposal', 'timestamp', 'publishtimestamp', 'publish_timestamp', 'minimal');
 		$passedArgs = $this->passedArgs;
 		if (isset($this->request->data)) {
 			if (isset($this->request->data['request'])) $this->request->data = $this->request->data['request'];
@@ -328,15 +328,19 @@ class EventsController extends AppController {
 						break;
 					case 'timestamp':
 						if ($v == "") continue 2;
+						if (preg_match('/^[0-9]+[mhdw]$/i', $v)) $v = $this->Event->resolveTimeDelta($v);
 						$this->paginate['conditions']['AND'][] = array('Event.timestamp >=' => $v);
 						break;
 					case 'publish_timestamp':
 					case 'publishtimestamp':
 						if ($v == "") continue 2;
 						if (is_array($v) && isset($v[0]) && isset($v[1])) {
+							if (preg_match('/^[0-9]+[mhdw]$/i', $v[0])) $v[0] = $this->Event->resolveTimeDelta($v[0]);
+							if (preg_match('/^[0-9]+[mhdw]$/i', $v[1])) $v[1] = $this->Event->resolveTimeDelta($v[1]);
 							$this->paginate['conditions']['AND'][] = array('Event.publish_timestamp >=' => $v[0]);
 							$this->paginate['conditions']['AND'][] = array('Event.publish_timestamp <=' => $v[1]);
 						} else {
+							if (preg_match('/^[0-9]+[mhdw]$/i', $v)) $v = $this->Event->resolveTimeDelta($v);
 							$this->paginate['conditions']['AND'][] = array('Event.publish_timestamp >=' => $v);
 						}
 						break;
@@ -403,7 +407,8 @@ class EventsController extends AppController {
 						}
 						$this->paginate['conditions']['AND'][] = $test;
 						break;
-					case 'tag' :
+					case 'tag':
+					case 'tags':
 						if (!$v || !Configure::read('MISP.tagging') || $v === 0) continue 2;
 						$pieces = explode('|', $v);
 						$filterString = "";
@@ -668,20 +673,20 @@ class EventsController extends AppController {
 		}
 
 		if (!$this->Event->User->getPGP($this->Auth->user('id')) && Configure::read('GnuPG.onlyencrypted')) {
-			// No GPG
+			// No GnuPG
 			if (Configure::read('SMIME.enabled') && !$this->Event->User->getCertificate($this->Auth->user('id'))) {
-				// No GPG and No SMIME
-				$this->Session->setFlash(__('No x509 certificate or GPG key set in your profile. To receive emails, submit your public certificate or GPG key in your profile.'));
+				// No GnuPG and No SMIME
+				$this->Session->setFlash(__('No x509 certificate or GnuPG key set in your profile. To receive emails, submit your public certificate or GnuPG key in your profile.'));
 			} else if (!Configure::read('SMIME.enabled')) {
-				$this->Session->setFlash(__('No GPG key set in your profile. To receive emails, submit your public key in your profile.'));
+				$this->Session->setFlash(__('No GnuPG key set in your profile. To receive emails, submit your public key in your profile.'));
 			}
 		} else if ($this->Auth->user('autoalert') && !$this->Event->User->getPGP($this->Auth->user('id')) && Configure::read('GnuPG.bodyonlyencrypted')) {
-			// No GPG & autoalert
+			// No GnuPG & autoalert
 			if ($this->Auth->user('autoalert') && Configure::read('SMIME.enabled') && !$this->Event->User->getCertificate($this->Auth->user('id'))) {
-				// No GPG and No SMIME & autoalert
-				$this->Session->setFlash(__('No x509 certificate or GPG key set in your profile. To receive attributes in emails, submit your public certificate or GPG key in your profile.'));
+				// No GnuPG and No SMIME & autoalert
+				$this->Session->setFlash(__('No x509 certificate or GnuPG key set in your profile. To receive attributes in emails, submit your public certificate or GnuPG key in your profile.'));
 			} else if (!Configure::read('SMIME.enabled')) {
-				$this->Session->setFlash(__('No GPG key set in your profile. To receive attributes in emails, submit your public key in your profile.'));
+				$this->Session->setFlash(__('No GnuPG key set in your profile. To receive attributes in emails, submit your public key in your profile.'));
 			}
 		}
 		$this->set('eventDescriptions', $this->Event->fieldDescriptions);
@@ -1026,7 +1031,7 @@ class EventsController extends AppController {
 			if (!empty($event['RelatedAttribute'])) {
 				foreach ($event['RelatedAttribute'] as $key => $relatedAttribute) {
 					foreach ($relatedAttribute as $key2 => $relation) {
-						$event['RelatedAttribute'][$key][$key2]['date'] = $relatedDates[$relation['id']];
+						if (!empty($relatedDates[$relation['id']])) $event['RelatedAttribute'][$key][$key2]['date'] = $relatedDates[$relation['id']];
 					}
 				}
 			}
@@ -1275,6 +1280,7 @@ class EventsController extends AppController {
 				}
 				// rearrange the response if the event came from an export
 				if (isset($this->request->data['response'])) $this->request->data = $this->request->data['response'];
+				if (!isset($this->request->data['Event'])) $this->request->data['Event'] = $this->request->data;
 
 				// Distribution, reporter for the events pushed will be the owner of the authentication key
 				$this->request->data['Event']['user_id'] = $this->Auth->user('id');
@@ -1386,6 +1392,8 @@ class EventsController extends AppController {
 					}
 				}
 			}
+		} else if ($this->_isRest()) {
+			return $this->RestResponse->describe('Events', 'add', false, $this->response->type());
 		}
 
 		$this->request->data['Event']['date'] = date('Y-m-d');
@@ -1478,7 +1486,7 @@ class EventsController extends AppController {
 		}
 	}
 
-	public function upload_stix() {
+	public function upload_stix($stix_version = '1') {
 		if (!$this->userRole['perm_modify']) {
 			throw new UnauthorizedException('You do not have permission to do that.');
 		}
@@ -1489,7 +1497,7 @@ class EventsController extends AppController {
 				$tempFile = new File($tmpDir . DS . $randomFileName, true, 0644);
 				$tempFile->write($this->request->input());
 				$tempFile->close();
-				$result = $this->Event->upload_stix($this->Auth->user(), $randomFileName);
+				$result = $this->Event->upload_stix($this->Auth->user(), $randomFileName, $stix_version);
 				if (is_array($result)) {
 					return $this->RestResponse->saveSuccessResponse('Events', 'upload_stix', false, $this->response->type(), 'STIX document imported, event\'s created: ' . implode(', ', $result) . '.');
 				} else if (is_numeric($result)) {
@@ -1507,7 +1515,7 @@ class EventsController extends AppController {
 					$randomFileName = $this->Event->generateRandomFileName();
 					$tmpDir = APP . "files" . DS . "scripts" . DS . "tmp";
 					move_uploaded_file($this->data['Event']['stix']['tmp_name'], $tmpDir . DS . $randomFileName);
-					$result = $this->Event->upload_stix($this->Auth->user(), $randomFileName);
+					$result = $this->Event->upload_stix($this->Auth->user(), $randomFileName, $stix_version);
 					if (is_array($result)) {
 						$this->Session->setFlash(__('STIX document imported, event\'s created: ' . implode(', ', $result) . '.'));
 						$this->redirect(array('action' => 'index'));
@@ -1524,37 +1532,14 @@ class EventsController extends AppController {
 				}
 			}
 		}
-	}
 
-/*
-	public function upload_stix2() {
-		if (!$this->userRole['perm_modify']) {
-			throw new UnauthorizedException('You do not have permission to do that.');
+		if ($stix_version == 2) {
+			$stix_version = '2.x JSON';
+		} else {
+			$stix_version = '1.x XML';
 		}
-		if ($this->request->is('post')) {
-
-			if ($this->_isRest()) {
-				$randomFileName = $this->Event->generateRandomFileName();
-				$tmpDir = APP . "files" . DS . "scripts" . DS . "tmp";
-				$tempFile = new File($tmpDir . DS . $randomFileName, true, 0644);
-				$tempFile->write($this->request->input());
-				$tempFile->close();
-				$result = $this->Event->upload_stix2($this->Auth->user(), $randomFileName);
-			} else {
-				if (isset($this->data['Event']['stix']) && $this->data['Event']['stix']['size'] > 0 && is_uploaded_file($this->data['Event']['stix']['tmp_name'])) {
-					$randomFileName = $this->Event->generateRandomFileName();
-					$tmpDir = APP . "files" . DS . "scripts" . DS . "tmp";
-					move_uploaded_file($this->data['Event']['stix']['tmp_name'], $tmpDir . DS . $randomFileName);
-					$result = $this->Event->upload_stix($this->Auth->user(), $randomFileName);
-				} else {
-					$max_size = intval(ini_get('post_max_size'));
-					if (intval(ini_get('upload_max_filesize')) < $max_size) $max_size = intval(ini_get('upload_max_filesize'));
-					throw new UnauthorizedException('File upload failed. Make sure that you select a stix file to be uploaded and that the file doesn\'t exceed the maximum file size of ' . $max_size . '.');
-				}
-			}
-		}
+		$this->set('stix_version', $stix_version);
 	}
-	*/
 
 	public function merge($target_id = null) {
 		$this->Event->id = $target_id;
@@ -1629,6 +1614,9 @@ class EventsController extends AppController {
 	}
 
 	public function edit($id = null) {
+		if ($this->request->is('get') && $this->_isRest()) {
+			return $this->RestResponse->describe('Events', 'edit', false, $this->response->type());
+		}
 		if (Validation::uuid($id)) {
 			$temp = $this->Event->find('first', array('recursive' => -1, 'fields' => array('Event.id'), 'conditions' => array('Event.uuid' => $id)));
 			if (empty($temp)) throw new NotFoundException('Invalid event');
@@ -1650,12 +1638,10 @@ class EventsController extends AppController {
 		}
 		if ($this->request->is('post') || $this->request->is('put')) {
 			if ($this->_isRest()) {
-				if ($this->_isRest()) {
-					if (isset($this->request->data['response'])) {
-						$this->request->data = $this->Event->updateXMLArray($this->request->data, true);
-					} else {
-						$this->request->data = $this->Event->updateXMLArray($this->request->data, false);
-					}
+				if (isset($this->request->data['response'])) {
+					$this->request->data = $this->Event->updateXMLArray($this->request->data, true);
+				} else {
+					$this->request->data = $this->Event->updateXMLArray($this->request->data, false);
 				}
 				// Workaround for different structure in XML/array than what CakePHP expects
 				if (isset($this->request->data['response'])) $this->request->data = $this->request->data['response'];
@@ -1895,7 +1881,7 @@ class EventsController extends AppController {
 	}
 
 	// Send out an alert email to all the users that wanted to be notified.
-	// Users with a GPG key will get the mail encrypted, other users will get the mail unencrypted
+	// Users with a GnuPG key will get the mail encrypted, other users will get the mail unencrypted
 	public function alert($id = null) {
 		$this->Event->id = $id;
 		$this->Event->recursive = 0;
@@ -1971,7 +1957,7 @@ class EventsController extends AppController {
 	}
 
 	// Send out an contact email to the person who posted the event.
-	// Users with a GPG key will get the mail encrypted, other users will get the mail unencrypted
+	// Users with a GnuPG key will get the mail encrypted, other users will get the mail unencrypted
 	public function contact($id = null) {
 		$this->Event->id = $id;
 		if (!$this->Event->exists()) {
@@ -3055,7 +3041,6 @@ class EventsController extends AppController {
 		$eventCount = count($eventIds);
 		$i = 0;
 		foreach ($eventIds as $k => $currentEventId) {
-			$i++;
 			$result = $this->Event->fetchEvent(
 				$this->Auth->user(),
 				array(
@@ -3070,12 +3055,14 @@ class EventsController extends AppController {
 			);
 			if (!empty($result)) {
 				$result = $this->Whitelist->removeWhitelistedFromArray($result, false);
-				$final .= $converter->convert($result[0]);
-				if ($i < $eventCount) {
+				if ($i != 0) {
 					$final .= ',' . PHP_EOL;
 				}
+				$final .= $converter->convert($result[0]);
+				$i++;
 			}
 		}
+		if ($i > 0) $final .= PHP_EOL;
 		$final .= $converter->generateBottom($responseType, $final);
 		$extension = $responseType;
 		if ($key == 'openioc') {
@@ -3689,7 +3676,7 @@ class EventsController extends AppController {
 		}
 		if ($failed > 0) {
 			if ($failed == 1) {
-				$flashMessage = $saved . ' ' . $messageScope . ' created' . $emailResult . '. ' . $failed . ' ' . $messageScope . ' could not be saved. Reason for the failure: ' . $this->Event->objectType->validationErrors;
+				$flashMessage = $saved . ' ' . $messageScope . ' created' . $emailResult . '. ' . $failed . ' ' . $messageScope . ' could not be saved. Reason for the failure: ' . json_encode($this->Event->$objectType->validationErrors);
 			} else {
 				$flashMessage = $saved . ' ' . $messageScope . ' created' . $emailResult . '. ' . $failed . ' ' . $messageScope . ' could not be saved. This may be due to attributes with similar values already existing.';
 			}
@@ -4066,12 +4053,18 @@ class EventsController extends AppController {
 			$imports = array(
 				'MISP' => array(
 						'url' => '/events/add_misp_export',
-						'text' => 'MISP standard (recommended exchange format)',
+						'text' => 'MISP standard (recommended exchange format - lossless)',
 						'ajax' => false,
+						'bold' => true
 				),
 				'STIX' => array(
 						'url' => '/events/upload_stix',
-						'text' => 'STIX 1.1.1 format',
+						'text' => 'STIX 1.1.1 format (lossy)',
+						'ajax' => false,
+				),
+				'STIX2' => array(
+						'url' => '/events/upload_stix/2',
+						'text' => 'STIX 2.0 format (lossy)',
 						'ajax' => false,
 				)
 			);
@@ -4305,7 +4298,6 @@ class EventsController extends AppController {
 		$data = $this->request->is('post') ? $this->request->data : array();
 		$grapher->construct($this->Event, $this->Taxonomy, $this->GalaxyCluster, $this->Auth->user(), $data);
 		$json = $grapher->buildGraphJson($id, $type);
-
 		array_walk_recursive($json, function(&$item, $key){
 			if(!mb_detect_encoding($item, 'utf-8', true)){
 				$item = utf8_encode($item);
@@ -4452,7 +4444,7 @@ class EventsController extends AppController {
 					}
 				}
 			}
-			$data = array('module' => $module, $attribute[0]['Attribute']['type'] => $attribute[0]['Attribute']['value'], 'event_id' => $attribute[0]['Attribute']['event_id']);
+			$data = array('module' => $module, $attribute[0]['Attribute']['type'] => $attribute[0]['Attribute']['value'], 'event_id' => $attribute[0]['Attribute']['event_id'], 'attribute_uuid' => $attribute[0]['Attribute']['uuid']);
 			if ($this->Event->Attribute->typeIsAttachment($attribute[0]['Attribute']['type'])) {
 				$data['data'] = $this->Event->Attribute->base64EncodeAttachment($attribute[0]['Attribute']);
 			}

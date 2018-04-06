@@ -118,7 +118,7 @@ class Attribute extends AppModel {
 			'email-attachment' => array('desc' => "File name of the email attachment.", 'default_category' => 'Payload delivery', 'to_ids' => 1),
 			'email-body' => array('desc' => 'Email body', 'default_category' => 'Payload delivery', 'to_ids' => 0),
 			'float' => array('desc' => "A floating point value.", 'default_category' => 'Other', 'to_ids' => 0),
-			'url' => array('desc' => 'url', 'default_category' => 'External analysis', 'to_ids' => 1),
+			'url' => array('desc' => 'url', 'default_category' => 'Network activity', 'to_ids' => 1),
 			'http-method' => array('desc' => "HTTP method used by the malware (e.g. POST, GET, ...).", 'default_category' => 'Network activity', 'to_ids' => 0),
 			'user-agent' => array('desc' => "The user-agent used by the malware in the HTTP request.", 'default_category' => 'Network activity', 'to_ids' => 0),
 			'regkey' => array('desc' => "Registry key or value", 'default_category' => 'Persistence mechanism', 'to_ids' => 1),
@@ -385,6 +385,8 @@ class Attribute extends AppModel {
         'network' => array('ip-src', 'ip-dst', 'ip-src|port', 'ip-dst|port', 'mac-address', 'mac-eui-64', 'hostname', 'hostname|port', 'domain', 'domain|ip', 'email-dst', 'url', 'uri', 'user-agent', 'http-method', 'AS', 'snort', 'pattern-in-traffic', 'x509-fingerprint-md5', 'x509-fingerprint-sha1', 'x509-fingerprint-sha256'),
         'financial' => array('btc', 'iban', 'bic', 'bank-account-nr', 'aba-rtn', 'bin', 'cc-number', 'prtn', 'phone-number')
 	);
+
+	private $__fTool = false;
 
 	public $order = array("Attribute.event_id" => "DESC");
 
@@ -1213,7 +1215,6 @@ class Attribute extends AppModel {
 			case 'sha512':
 			case 'sha512/224':
 			case 'sha512/256':
-			case 'domain':
 			case 'hostname':
 			case 'pehash':
 			case 'authentihash':
@@ -1225,8 +1226,14 @@ class Attribute extends AppModel {
 			case 'whois-registrant-email':
 				$value = strtolower($value);
 				break;
+			case 'domain':
+				$value = strtolower($value);
+				$value = trim($value, '.');
+				break;
 			case 'domain|ip':
+				$value = strtolower($value);
 				$parts = explode('|', $value);
+				$parts[0] = trim($parts[0], '.');
 				if (filter_var($parts[1], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
 					// convert IPv6 address to compressed format
 					$parts[1] = inet_ntop(inet_pton($value));
@@ -3128,6 +3135,7 @@ class Attribute extends AppModel {
 			$attribute['data'] = $result['data'];
 			$attribute['value'] = $attribute['value'] . '|' . $result['md5'];
 		}
+		unset($attribute['id']);
 		if (isset($attribute['uuid'])) {
 			$existingAttribute = $this->find('first', array(
 				'conditions' => array('Attribute.uuid' => $attribute['uuid']),
@@ -3261,5 +3269,14 @@ class Attribute extends AppModel {
 			}
 		}
 		return true;
+	}
+	public function attachValidationWarnings($adata) {
+		if (!$this->__fTool) {
+				$this->__fTool = new FinancialTool();
+		}
+		if (!$this->__fTool->validateRouter($adata['type'], $adata['value'])) {
+			$adata['validationIssue'] = true;
+		}
+		return $adata;
 	}
 }

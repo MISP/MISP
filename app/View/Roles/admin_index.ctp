@@ -21,14 +21,17 @@
 			<th><?php echo $this->Paginator->sort('id');?></th>
 			<th><?php echo __('Default');?></th>
 			<th><?php echo $this->Paginator->sort('name');?></th>
+			<th><?php echo $this->Paginator->sort('restricted_to_site_admin');?></th>
 			<th><?php echo $this->Paginator->sort('permission', 'Permission');?></th>
 			<?php
 				foreach ($permFlags as $k => $flags):
 			?>
-				<th><?php echo $this->Paginator->sort($k, $flags['text']);?></th>
+				<th title="<?php echo h($flags['title']); ?>"><?php echo $this->Paginator->sort($k, $flags['text']);?></th>
 			<?php
 				endforeach;
 			?>
+			<th><?php echo $this->Paginator->sort('memory_limit');?></th>
+			<th><?php echo $this->Paginator->sort('max_execution_time');?></th>
 			<th class="actions"><?php echo __('Actions');?></th>
 	</tr><?php
 foreach ($list as $item): ?>
@@ -36,10 +39,29 @@ foreach ($list as $item): ?>
 		<td><?php echo $this->Html->link(h($item['Role']['id']), array('admin' => true, 'action' => 'edit', $item['Role']['id'])); ?>&nbsp;</td>
 		<td class="short" style="text-align:center;width:20px;"><input class="servers_default_role_checkbox" type="checkbox" data-id="<?php echo h($item['Role']['id']); ?>" <?php if ($default_role_id && $default_role_id == $item['Role']['id']) echo 'checked'; ?>></td>
 		<td><?php echo h($item['Role']['name']); ?>&nbsp;</td>
+		<td class="short"><span class="<?php if ($item['Role']['restricted_to_site_admin']) echo 'icon-ok'; ?>"></span>&nbsp;</td>
 		<td><?php echo h($options[$item['Role']['permission']]); ?>&nbsp;</td>
 		<?php foreach ($permFlags as $k => $flags): ?>
 			<td class="short"><span class="<?php if ($item['Role'][$k]) echo 'icon-ok'; ?>"></span>&nbsp;</td>
 		<?php endforeach; ?>
+		<td class="short">
+			<?php
+				if (empty($item['Role']['memory_limit'])) {
+					echo h($default_memory_limit);
+				} else {
+					echo h($item['Role']['memory_limit']);
+				}
+			?>
+		</td>
+		<td class="short">
+			<?php
+				if (empty($item['Role']['max_execution_time'])) {
+					echo h($default_max_execution_time);
+				} else {
+					echo h($item['Role']['max_execution_time']);
+				}
+			?>
+		</td>
 		<td class="short action-links">
 			<?php echo $this->Html->link('', array('admin' => true, 'action' => 'edit', $item['Role']['id']), array('class' => 'icon-edit', 'title' => 'Edit')); ?>
 			<?php echo $this->Form->postLink('', array('admin' => true, 'action' => 'delete', $item['Role']['id']), array('class' => 'icon-trash', 'title' => __('Delete')), __('Are you sure you want to delete %s?', $item['Role']['name'])); ?>

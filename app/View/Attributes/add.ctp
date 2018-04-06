@@ -69,7 +69,6 @@
 			<div class="input clear"></div>
 			<?php
 			echo $this->Form->input('to_ids', array(
-						'checked' => false,
 						'label' => __('for Intrusion Detection System'),
 			));
 			echo $this->Form->input('batch_import', array(
