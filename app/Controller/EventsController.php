@@ -3649,6 +3649,7 @@ class EventsController extends AppController {
 						}
 						$saved++;
 					} else {
+						$lastError = $this->Event->$objectType->validationErrors;
 						$failed++;
 					}
 				}
@@ -3676,7 +3677,7 @@ class EventsController extends AppController {
 		}
 		if ($failed > 0) {
 			if ($failed == 1) {
-				$flashMessage = $saved . ' ' . $messageScope . ' created' . $emailResult . '. ' . $failed . ' ' . $messageScope . ' could not be saved. Reason for the failure: ' . json_encode($this->Event->$objectType->validationErrors);
+				$flashMessage = $saved . ' ' . $messageScope . ' created' . $emailResult . '. ' . $failed . ' ' . $messageScope . ' could not be saved. Reason for the failure: ' . json_encode($lastError);
 			} else {
 				$flashMessage = $saved . ' ' . $messageScope . ' created' . $emailResult . '. ' . $failed . ' ' . $messageScope . ' could not be saved. This may be due to attributes with similar values already existing.';
 			}
