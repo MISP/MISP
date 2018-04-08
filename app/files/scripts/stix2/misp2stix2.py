@@ -111,10 +111,13 @@ class StixBuilder():
                 if object_name == "vulnerability":
                     self.add_object_vulnerability(misp_object, to_ids)
                 elif object_name in objectsMapping:
-                    if to_ids:
-                        self.add_object_indicator(misp_object, to_ids)
-                    else:
-                        self.add_object_observable(misp_object, to_ids)
+                    try:
+                        if to_ids:
+                            self.add_object_indicator(misp_object, to_ids)
+                        else:
+                            self.add_object_observable(misp_object, to_ids)
+                    except:
+                        self.add_object_custom(misp_object, to_ids)
                 else:
                     self.add_object_custom(misp_object, to_ids)
         if hasattr(self.misp_event, 'Galaxy') and self.misp_event.Galaxy:
@@ -331,7 +334,7 @@ class StixBuilder():
         labels = self.create_object_labels(name, category, to_ids)
         values = self.fetch_custom_values(misp_object.attributes)
         timestamp = self.get_date_from_timestamp(int(misp_object.timestamp))
-        custom_object_args = {'id': custom_object_id, 'x_misp_values': values,
+        custom_object_args = {'id': custom_object_id, 'x_misp_values': values, 'labels': labels,
                               'x_misp_category': category, 'created_by_ref': self.identity_id,
                               'x_misp_timestamp': timestamp}
         if hasattr(misp_object, 'comment') and misp_object.comment:
