@@ -359,7 +359,7 @@ class EventGraph {
 			}
 		});
 		menu_canvas.add_button({
-			label: "Remove (from graph only)",
+			label: "Hide",
 			type: "info",
 			event: function() {
 				var selected_id = eventGraph.network.getSelectedNodes()[0]; 
