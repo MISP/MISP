@@ -7,7 +7,7 @@ var mispInteraction;
 var nodes = new vis.DataSet();
 var edges = new vis.DataSet();
 
-var typeaheadData;
+var typeaheadDataSearch;
 var scope_id = $('#eventgraph_network').data('event-id');
 var container = document.getElementById('eventgraph_network');
 var user_manipulation = $('#eventgraph_network').data('user-manipulation');
@@ -39,6 +39,7 @@ class EventGraph {
 		// FIXME
 		this.network_options = network_options;
 		this.scope_name;
+		this.scope_keyType;
 		this.globalCounter = 0;
 		this.first_draw = true;
 		this.root_node_shown = false;
@@ -92,7 +93,11 @@ class EventGraph {
 		return this.globalCounter-1;
 	}
 	update_scope(value) {
-		value = value === undefined ? $("#select_graph_scope").val() : value;
+		if (value === undefined) {
+			value = $("#select_graph_scope").val();
+		} else {
+			$("#select_graph_scope").val(value);
+		}
 		$("#network-scope-badge").text(value);
 		this.scope_name = value;
 		dataHandler.scope_name = value;
@@ -108,11 +113,33 @@ class EventGraph {
 			label: "Scope",
 			tooltip: "The scope represented by the network",
 			event: function(value) {
-				eventGraph.update_scope(value);
-				dataHandler.fetch_data_and_update();
+				if (value == "JSON key" && $('#input_graph_scope_jsonkey').val() == "") { // no key selected  for JSON key scope
+					return;
+				} else {
+					eventGraph.update_scope(value);
+					dataHandler.fetch_data_and_update();
+				}
 			},
-			options: ["Reference", "Correlation", "Tag", "distribution"],
+			options: ["Reference", "Correlation", "Tag", "JSON key"],
 			default: "Reference"
+		});
+		menu_scope.add_input({
+			id: "input_graph_scope_jsonkey",
+			label: "JSON key",
+			tooltip: "The JSON key to be graphed",
+			placeholder: "E.g. distribution",
+			typeahead: {
+				source: function(query, process) {
+					process(dataHandler.available_JSON_key);
+				},
+				updater: function (value) {
+					// change scope to JSON key
+					eventGraph.update_scope("JSON key");
+					eventGraph.scope_keyType = value;
+					dataHandler.fetch_data_and_update();
+				},
+				autoSelect: true
+			}
 		});
 		return menu_scope;
 	}
@@ -398,7 +425,7 @@ class EventGraph {
 				dataHandler.mapping_value_to_nodeID.set(striped_value, node.id);
 			} else if (node.node_type == 'keyType') {
 				group = 'keyType';
-				label = this.scope_name + ": " + node.label;
+				label = this.scope_keyType + ": " + node.label;
 				var striped_value = this.strip_text_value(label);
 				node_conf = {
 					id: node.id,
@@ -703,14 +730,12 @@ class EventGraph {
 					new_edge.from = root_id_tag;
 					that.nodes.update({id: nodeData.id, unreferenced: 'tag'});
 				}
-			} else if (that.scope_name == 'Distribution') {
-			} else if (that.scope_name == 'distribution') {
+			} else if (that.scope_name == 'Correlation') {
+			} else {  // specified key
 				if (cur_group == 'attribute' || cur_group == 'object') {
 					new_edge.from = root_id_keyType;
 					that.nodes.update({id: nodeData.id, unreferenced: that.scope_name});
 				}
-			} else if (that.scope_name == 'Correlation') {
-			} else {
 			}
 			
 			newEdges.push(new_edge);
@@ -899,11 +924,8 @@ class DataHandler {
 				return "getEventGraphTags";
 			case "Correlation":
 				return "getEventGraphReferences";
-			case "Distribution":
-				return "getEventGraphGeneric";
 			default:
 				return "getEventGraphGeneric";
-
 		}
 	}
 
@@ -945,7 +967,8 @@ class DataHandler {
 		eventGraph.network_loading(true, loadingText_fetching);
 		$.when(this.fetch_objects_template()).done(function() {
 			var filtering_rules = eventGraph.get_filtering_rules();
-			var keyType = dataHandler.scope_name;
+			//var keyType = dataHandler.scope_name == "JSON key" ? eventGraph.scope_keyType : dataHandler.scope_name;
+			var keyType = eventGraph.scope_keyType;
 			var payload = {};
 			payload.filtering = filtering_rules;
 			payload.keyType = keyType;
@@ -962,6 +985,7 @@ class DataHandler {
 					eventGraph.first_draw = true;
 					var available_object_references = Object.keys(data.existing_object_relation);
 					dataHandler.update_available_object_references(available_object_references);
+					dataHandler.available_JSON_key = data.available_JSON_key;
 					eventGraph.update_graph(data);
 					if ( stabilize === undefined || stabilize) {
 						eventGraph.reset_view_on_stabilized();
@@ -989,7 +1013,7 @@ class DataHandler {
 		});
 	}
 
-	get_typeaheadData() {
+	get_typeaheadData_search() {
 		var to_ret = []
 		for( var entry of this.mapping_value_to_nodeID) {
 			var value = entry[0];
@@ -1420,7 +1444,7 @@ var network_options = {
 				size: 18, //px
 				color: 'white'
 			},
-			mass: 5
+			mass: 25
 
 		},
 		rootNodeObject: {
@@ -1502,10 +1526,10 @@ var default_layout_option = $.extend(true, {}, network_options);
 
 var typeaheadOption = {
 	source: function (query, process) {
-		if (typeaheadData === undefined) { // caching
-			typeaheadData = dataHandler.get_typeaheadData();
+		if (typeaheadDataSearch === undefined) { // caching
+			typeaheadDataSearch = dataHandler.get_typeaheadData_search();
 		}
-		process(typeaheadData);
+		process(typeaheadDataSearch);
 	},
 	updater: function(value) {
 		var nodeID = dataHandler.mapping_value_to_nodeID.get(value);

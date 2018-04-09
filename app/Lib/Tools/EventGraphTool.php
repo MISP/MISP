@@ -30,6 +30,8 @@
 		}
 
 		private function __get_event($id) {
+			$this->__json['available_JSON_key'] = array('event_id', 'distribution', 'category', 'type', 'value', 'comment', 'uuid', 'to_ids', 'timestamp', 'id');
+
 			$fullevent = $this->__eventModel->fetchEvent($this->__user, array('eventid' => $id, 'flatten' => 0, 'includeTagRelations' => 1));
 			$event = array();
 			if (empty($fullevent)) return $event;
@@ -334,6 +336,7 @@
 
 				// Add edge
 				$keyVal = $attr[$keyType];
+				$keyVal = json_encode($keyVal); // in case the value is false...
 				$toPush = array(
 					'id' => "keyval_edge_id_" . $i,
 					'from' => $attr['id'],
@@ -366,6 +369,7 @@
 				$added_value = array();
 				foreach($obj['Attribute'] as $ObjAttr) {
 					$keyVal = $ObjAttr[$keyType];
+					$keyVal = json_encode($keyVal); // in case the value is false...
 					if (!in_array($keyVal, $added_value)) {
 						$toPush = array(
 							'id' => "keyType_edge_id_" . $i,
