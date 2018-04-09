@@ -206,6 +206,8 @@ class StixParser():
                     print('{}: {}'.format(attribute_type, observable))
                 attribute['to_ids'] = False
             attribute['timestamp'] = self.getTimestampfromDate(o_date)
+        if 'description' in o:
+            attribute['comment'] = o.get('description')
         try:
             attribute['value'] = value
             self.misp_event.add_attribute(**attribute)
