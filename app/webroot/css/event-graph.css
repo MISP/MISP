@@ -24,6 +24,7 @@
 	left: 2%;
 	font-size: xx-large;
 	opacity: 0.06;
+	user-select: none;
 }
 
 .eventgraph_network_background td {

@@ -4278,6 +4278,17 @@ class EventsController extends AppController {
 		$this->set('id', $id);
 	}
 
+
+	public function viewEventGraph() {
+		$event = $this->Event->fetchEvent($this->Auth->user(), array('eventid' => $id));
+		if (empty($event)) throw new MethodNotAllowedException('Invalid Event.');
+		$this->set('event', $event[0]);
+		$this->set('scope', 'event');
+		$this->set('id', $id);
+	}
+
+
+
 /*
 	public function deleteNode($id) {
 		if (!$this->request->is('post')) throw new MethodNotAllowedException('Only POST requests are allowed.');
@@ -4350,7 +4361,11 @@ class EventsController extends AppController {
 		$grapher = new EventGraphTool();
 		$data = $this->request->is('post') ? $this->request->data : array();
 		$grapher->construct($this->Event, $this->Auth->user(), $data['filtering']);
-		$keyType = $data['keyType'];
+		if (!array_key_exists('keyType', $data)) {
+			$keyType = ''; // empty key
+		} else {
+			$keyType = $data['keyType'];
+		}
 		$json = $grapher->get_generic_from_key($id, $keyType);
 
 		array_walk_recursive($json, function(&$item, $key){

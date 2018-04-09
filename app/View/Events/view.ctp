@@ -356,27 +356,7 @@
 		<?php echo $this->element('galaxyQuickView', array('mayModify' => $mayModify, 'isAclTagger' => $isAclTagger)); ?>
 	</div>
 	<div id="eventgraph_div" class="info_container_eventgraph_network" style="display: none;" data-fullscreen="false">
-		<div class="eventgraph_header">
-			<label id="network-scope" class="btn center-in-network-header network-control-btn">
-				<span class="useCursorPointer fa fa-object-group" style="margin-right: 3px;">
-				</span><?php echo __('Scope')?>
-				<span id="network-scope-badge" class="badge"></span>
-			</label>
-			<label id="network-physic" class="btn center-in-network-header network-control-btn"><span class="useCursorPointer fa fa-space-shuttle" style="margin-right: 3px;"></span><?php echo __('Physics')?></label>
-			<label id="network-display" class="btn center-in-network-header network-control-btn"><span class="useCursorPointer fa fa-list-alt" style="margin-right: 3px;"></span><?php echo __('Display')?></label>
-			<label id="network-filter" class="btn center-in-network-header network-control-btn"><span class="useCursorPointer fa fa-filter" style="margin-right: 3px;"></span><?php echo __('Filters')?></label>
-			
-			<input type="text" id="network-typeahead" class="center-in-network-header network-typeahead flushright" data-provide="typeahead" size="20" placeholder="Search for an item">
-		</div>
-		<span class="shortcut-help btn btn-xs btn-info">?</span>
-		<span class="fullscreen-btn btn btn-xs btn-primary" data-toggle="tooltip" data-placement="top" data-title="<?php echo __('Toggle fullscreen');?>"><span class="fa fa-desktop"></span></span>
-
-		<div id="eventgraph_shortcuts_background" class="eventgraph_network_background"></div>
-		<div id="eventgraph_network" class="eventgraph_network" data-event-id="<?php echo h($event['Event']['id']); ?>" data-user-manipulation="<?php echo $mayModify || $isSiteAdmin ? 'true' : 'false'; ?>"></div>
-		<div class="loading-network-div" id="refecences_network_loading_div" style="display: none;">
-			<div class="spinner-network" data-original-title="" title=""></div>
-			<div class="loadingText-network" data-original-title="" title=""></div>
-		</div>
+		<?php echo $this->element('view_event_graph'); ?>
 	</div>
 	<div id="attributes_div">
 		<?php echo $this->element('eventattribute'); ?>
@@ -403,12 +383,3 @@ $(document).ready(function () {
 });
 </script>
 <input type="hidden" value="/shortcuts/event_view.json" class="keyboardShortcutsConfig" />
-<?php echo $this->Html->script('vis'); ?>
-<?php echo $this->Html->css('vis'); ?>
-<?php echo $this->Html->script('bootstrap-typeahead'); ?>
-<?php echo $this->Html->script('contextual_menu'); ?>
-<?php echo $this->Html->css('contextual_menu'); ?>
-<?php echo $this->Html->script('action_table'); ?>
-<?php echo $this->Html->css('action_table'); ?>
-<?php echo $this->Html->css('event-graph'); ?>
-<?php echo $this->Html->script('event-graph'); ?>
