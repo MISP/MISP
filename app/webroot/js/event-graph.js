@@ -98,7 +98,12 @@ class EventGraph {
 		} else {
 			$("#select_graph_scope").val(value);
 		}
-		$("#network-scope-badge").text(value);
+
+		if (value == "JSON key") {
+			$("#network-scope-badge").text(value + ": " + eventGraph.scope_keyType);
+		} else {
+			$("#network-scope-badge").text(value);
+		}
 		this.scope_name = value;
 		dataHandler.scope_name = value;
 	}
@@ -134,11 +139,14 @@ class EventGraph {
 				},
 				updater: function (value) {
 					// change scope to JSON key
-					eventGraph.update_scope("JSON key");
 					eventGraph.scope_keyType = value;
+					eventGraph.update_scope("JSON key");
 					dataHandler.fetch_data_and_update();
 				},
 				autoSelect: true
+			},
+			event: function(value) {
+				eventGraph.scope_keyType = value;
 			}
 		});
 		return menu_scope;
@@ -719,7 +727,6 @@ class EventGraph {
 				length: 150
 			}
 
-
 			if (that.scope_name == 'Reference') {
 				if (cur_group == 'attribute' || cur_group == 'object') {
 					new_edge.from = cur_group == 'attribute' ? root_id_attr : root_id_object;
@@ -807,7 +814,7 @@ class EventGraph {
 			id: root_id_keyType,
 			x: -root_node_x_pos,
 			y: 0,
-			label: this.scope_name + ': No value',
+			label: this.scope_keyType + ': No value',
 			title: 'All Attributes not having a value for the specified field',
 			group: 'rootNodeKeyType'
 		};
@@ -967,7 +974,6 @@ class DataHandler {
 		eventGraph.network_loading(true, loadingText_fetching);
 		$.when(this.fetch_objects_template()).done(function() {
 			var filtering_rules = eventGraph.get_filtering_rules();
-			//var keyType = dataHandler.scope_name == "JSON key" ? eventGraph.scope_keyType : dataHandler.scope_name;
 			var keyType = eventGraph.scope_keyType;
 			var payload = {};
 			payload.filtering = filtering_rules;

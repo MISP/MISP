@@ -19,6 +19,7 @@
 				'analysisLevels' => $this->__eventModel->analysisLevels,
 				'distributionLevels' => $this->__eventModel->Attribute->distributionLevels
 			);
+			$this->__authorized_JSON_key = array('event_id', 'distribution', 'category', 'type', 'value', 'comment', 'uuid', 'to_ids', 'timestamp', 'id');
 			return true;
 		}
 
@@ -30,7 +31,7 @@
 		}
 
 		private function __get_event($id) {
-			$this->__json['available_JSON_key'] = array('event_id', 'distribution', 'category', 'type', 'value', 'comment', 'uuid', 'to_ids', 'timestamp', 'id');
+			$this->__json['available_JSON_key'] = $this->__authorized_JSON_key;
 
 			$fullevent = $this->__eventModel->fetchEvent($this->__user, array('eventid' => $id, 'flatten' => 0, 'includeTagRelations' => 1));
 			$event = array();
@@ -318,6 +319,10 @@
 				$attribute = $event['Attribute'];
 			} else {
 				$attribute = array();
+			}
+
+			if (!in_array($keyType, $this->__authorized_JSON_key)) { // not valid key
+				return $this->__json;
 			}
 
 			$keySet = array();
