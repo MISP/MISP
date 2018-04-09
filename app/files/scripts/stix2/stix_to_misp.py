@@ -27,19 +27,19 @@ class StixParser():
         self.misp_event['Galaxy'] = []
 
     def loadEvent(self, args, pathname):
-        # try:
-        filename = os.path.join(pathname, args[1])
-        tempFile = open(filename, 'r')
-        self.filename = filename
-        event = stix2.get_dict(tempFile)
-        for o in event.get('objects'):
-            try:
-                self.event.append(stix2.parse(o))
-            except:
-                self.parse_custom(o)
-        # except:
-        #     print(json.dumps({'success': 0, 'message': 'The temporary STIX export file could not be read'}))
-        #     sys.exit(1)
+        try:
+            filename = os.path.join(pathname, args[1])
+            tempFile = open(filename, 'r')
+            self.filename = filename
+            event = stix2.get_dict(tempFile)
+            for o in event.get('objects'):
+                try:
+                    self.event.append(stix2.parse(o))
+                except:
+                    self.parse_custom(o)
+        except:
+            print(json.dumps({'success': 0, 'message': 'The temporary STIX export file could not be read'}))
+            sys.exit(1)
 
     def parse_custom(self, obj):
         custom_object_type = obj.pop('type')
