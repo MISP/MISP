@@ -56,6 +56,7 @@ class StixParser():
             class Custom(object):
                 def __init__(self, **kwargs):
                     return
+            custom = Custom(**obj)
         except:
             @stix2.CustomObject(custom_object_type,[('id', stix2.properties.StringProperty(required=True)),
             ('x_misp_timestamp', stix2.properties.StringProperty(required=True)),
@@ -68,7 +69,7 @@ class StixParser():
             class Custom(object):
                 def __init__(self, **kwargs):
                     return
-        custom = Custom(**obj)
+            custom = Custom(**obj)
         self.event.append(stix2.parse(custom))
 
     def handler(self):
@@ -96,7 +97,7 @@ class StixParser():
                 self.parse_galaxy(o, labels)
             elif 'x-misp-object' in object_type:
                 if 'from_object' in labels:
-                    self.parse_custom_object(o, labels)
+                    self.parse_custom_object(o)
                 else:
                     self.parse_custom_attribute(o, labels)
             else:
@@ -147,7 +148,7 @@ class StixParser():
         values = o.get('x_misp_values')
         for v in values:
             attribute_type, object_relation = v.split('_')
-            attribute = {'type': attribute_type, 'value': value.get(v),
+            attribute = {'type': attribute_type, 'value': values.get(v),
                          'object_relation': object_relation}
             attributes.append(attribute)
         misp_object = {'name': name, 'timestamp': timestamp, 'meta-category': category,
