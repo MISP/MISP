@@ -11,13 +11,15 @@ var typeaheadData;
 var scope_id = $('#eventgraph_network').data('event-id');
 var container = document.getElementById('eventgraph_network');
 var user_manipulation = $('#eventgraph_network').data('user-manipulation');
-var root_id_attr = "rootNode:attribute"
-var root_id_object = "rootNode:object"
-var root_id_tag = "rootNode:tag"
+var root_id_attr = "rootNode:attribute";
+var root_id_object = "rootNode:object";
+var root_id_tag = "rootNode:tag";
+var root_id_keyType = "rootNode:keyType";
 var mapping_root_id_to_type = {};
 mapping_root_id_to_type[root_id_attr] = 'attribute';
 mapping_root_id_to_type[root_id_object] = 'object';
 mapping_root_id_to_type[root_id_tag] = 'tag';
+mapping_root_id_to_type[root_id_keyType] = 'keyType';
 var root_node_x_pos = 800;
 var cluster_expand_threshold = 100;
 
@@ -109,7 +111,7 @@ class EventGraph {
 				eventGraph.update_scope(value);
 				dataHandler.fetch_data_and_update();
 			},
-			options: ["Reference", "Correlation", "Tag", "Distribution"],
+			options: ["Reference", "Correlation", "Tag", "distribution"],
 			default: "Reference"
 		});
 		return menu_scope;
@@ -394,6 +396,17 @@ class EventGraph {
 					}
 				};
 				dataHandler.mapping_value_to_nodeID.set(striped_value, node.id);
+			} else if (node.node_type == 'keyType') {
+				group = 'keyType';
+				label = this.scope_name + ": " + node.label;
+				var striped_value = this.strip_text_value(label);
+				node_conf = {
+					id: node.id,
+					label: striped_value,
+					title: label,
+					group: group
+				};
+				dataHandler.mapping_value_to_nodeID.set(striped_value, node.id);
 			} else {
 				group =  'attribute';
 				label = node.type + ': ' + node.label;
@@ -416,7 +429,7 @@ class EventGraph {
 		var old_node_ids = this.nodes.getIds();
 		for (var old_id of old_node_ids) {
 			// Ignore root node
-			if (old_id == "rootNode:attribute" || old_id == "rootNode:object" || old_id == "rootNode:tag") {
+			if (old_id == "rootNode:attribute" || old_id == "rootNode:object" || old_id == "rootNode:tag" || old_id == "rootNode:keyType") {
 				continue;
 			}
 			// This old node got removed
@@ -474,6 +487,11 @@ class EventGraph {
 		} else if (this.scope_name == 'Distribution') {
 		} else if (this.scope_name == 'Correlation') {
 		} else {
+			this.add_keyType_root_node();
+			if (this.first_draw) {
+				this.link_not_referenced_nodes();
+				this.first_draw = !this.first_draw
+			}
 		}
 
 		this.network_loading(false, "");
@@ -557,26 +575,21 @@ class EventGraph {
 	collapse_node(parent_id) {
 		if(parent_id === undefined) { return; }
 		
-		if (!(parent_id == root_id_attr || parent_id == root_id_object || parent_id == root_id_tag)) { // Is not a root node
+		if (!(parent_id == root_id_attr || parent_id == root_id_object || parent_id == root_id_tag || parent_id == root_id_keyType)) { // Is not a root node
 			var node_group = this.nodes.get(parent_id).group;
 			if (parent_id === undefined || node_group != 'object') { //  No node selected  or collapse not permitted
 				return
 			}
-			var connected_nodes = this.network.getConnectedNodes(parent_id);
-			var connected_edges = this.network.getConnectedEdges(parent_id);
-			// Remove nodes
-			for (var nodeID of connected_nodes) {
-	 			// Object's attribute are in UUID format (while other object or in simple integer)
-				if (nodeID.length > 10) {
-					this.nodes.remove(nodeID);
-				}
-			}
-	
-			// Remove edges
-			for (var edgeID of connected_edges) {
-	 			// Object's attribute (edge) are in UUID format (while other object or in simple integer)
-				if (edgeID.length > 10) {
-					this.edges.remove(edgeID);
+			var connected_nodes_ids = this.network.getConnectedNodes(parent_id);
+			var connected_nodes = this.nodes.get(connected_nodes_ids);
+			for (var node of connected_nodes) {
+				if (node.group == "obj_relation") {
+					// remove edge
+					var connected_edges = this.network.getConnectedEdges(node.id);
+					for (var edgeID of connected_edges) {
+						this.edges.remove(edgeID);
+					}
+					this.nodes.remove(node.id);
 				}
 			}
 		} else { // Is a root node
@@ -691,6 +704,11 @@ class EventGraph {
 					that.nodes.update({id: nodeData.id, unreferenced: 'tag'});
 				}
 			} else if (that.scope_name == 'Distribution') {
+			} else if (that.scope_name == 'distribution') {
+				if (cur_group == 'attribute' || cur_group == 'object') {
+					new_edge.from = root_id_keyType;
+					that.nodes.update({id: nodeData.id, unreferenced: that.scope_name});
+				}
 			} else if (that.scope_name == 'Correlation') {
 			} else {
 			}
@@ -705,6 +723,7 @@ class EventGraph {
 	remove_root_nodes() {
 		this.remove_unreferenced_root_node();
 		this.remove_tag_root_node();
+		this.remove_keyType_root_node();
 	}
 
 	add_unreferenced_root_node() {
@@ -755,10 +774,43 @@ class EventGraph {
 		this.root_node_shown = false;
 	}
 
+	add_keyType_root_node() {
+		if (this.root_node_shown) {
+			return;
+		}
+		var root_node_keyType = {
+			id: root_id_keyType,
+			x: -root_node_x_pos,
+			y: 0,
+			label: this.scope_name + ': No value',
+			title: 'All Attributes not having a value for the specified field',
+			group: 'rootNodeKeyType'
+		};
+		this.nodes.add([root_node_keyType]);
+		this.root_node_shown = true;
+
+	}
+	remove_keyType_root_node() {
+		this.nodes.remove([root_id_keyType]);
+		this.root_node_shown = false;
+	}
+
 	switch_unreferenced_nodes_connection() {
 		var that = eventGraph;
 		var to_update = [];
-		var root_ids = that.scope_name == 'Reference' ? [root_id_attr, root_id_object] : [root_id_tag];
+		var root_ids;
+		switch(that.scope_name) {
+			case "Reference":
+				root_ids = [root_id_attr, root_id_object];
+				break;
+			case "Tag":
+				root_ids = [root_id_tag];
+				break;
+			default:
+				root_ids = [root_id_keyType];
+				break;
+		}
+
 		for(var root_id of root_ids) {
 			if(that.layout == 'default') {
 				var all_edgesID = that.backup_connection_edges[root_id]
@@ -848,53 +900,10 @@ class DataHandler {
 			case "Correlation":
 				return "getEventGraphReferences";
 			case "Distribution":
-				return "getEventGraphReferences";
+				return "getEventGraphGeneric";
 			default:
-				return "getEventGraphReferences";
+				return "getEventGraphGeneric";
 
-		}
-	}
-
-	extract_references(data) {
-		var items = [];
-		var relations = [];
-	
-		if (data.Attribute !== undefined) {
-			for (var attr of data.Attribute) {
-				items.push({
-					'id': attr.id,
-					'type': attr.type,
-					'label': attr.value,
-					'node_type': 'attribute'
-				});
-			}
-		}
-	
-		if (data.Object !== undefined) {
-			for (var obj of data.Object) {
-				items.push({
-					'id': obj.id,
-					'type': obj.name,
-					'node_type': 'object',
-					'meta-category': obj['meta-category'],
-					'label': this.generate_label(obj)
-				});
-				
-				for (var rel of obj.ObjectReference) {
-					relations.push({
-						'id': rel.id,
-						'from': obj.id,
-						'to': rel.referenced_id,
-						'type': rel.relationship_type,
-						'comment': rel.comment != "" ? rel.comment : "[Comment not set]"
-					});
-				}
-			}
-		}
-
-		return {
-			items: items,
-			relations: relations
 		}
 	}
 
@@ -936,12 +945,16 @@ class DataHandler {
 		eventGraph.network_loading(true, loadingText_fetching);
 		$.when(this.fetch_objects_template()).done(function() {
 			var filtering_rules = eventGraph.get_filtering_rules();
+			var keyType = dataHandler.scope_name;
+			var payload = {};
+			payload.filtering = filtering_rules;
+			payload.keyType = keyType;
 			$.ajax({
 				url: "/events/"+dataHandler.get_scope_url()+"/"+scope_id+"/event.json",
 				dataType: 'json',
 				type: 'post',
 				contentType: 'application/json',
-				data: JSON.stringify( filtering_rules ),
+				data: JSON.stringify( payload ),
 				processData: false,
 				success: function( data, textStatus, jQxhr ){
 					eventGraph.reset_graphs(true);
@@ -1394,7 +1407,21 @@ var network_options = {
 				enabled: true,
 				size: 3,
 				x: 3, y: 3
-			}
+			},
+			mass: 20
+		},
+		keyType: {
+			shape: 'box',
+			color: {
+				border: '#303030',
+				background: '#808080',
+			},
+			font: {
+				size: 18, //px
+				color: 'white'
+			},
+			mass: 5
+
 		},
 		rootNodeObject: {
 			shape: 'icon',
@@ -1416,6 +1443,18 @@ var network_options = {
 			},
 			font: {
 				size: 18, // px
+				background: 'rgba(255, 255, 255, 0.7)'
+			},
+			mass: 5
+		},
+		rootNodeKeyType: {
+			shape: 'icon',
+			icon: {
+				face: 'FontAwesome',
+				code: '\uf111',
+			},
+			font: {
+				size: 22, // px
 				background: 'rgba(255, 255, 255, 0.7)'
 			},
 			mass: 5
@@ -1536,6 +1575,10 @@ function global_processProperties(clusterOptions, childNodes) {
 			clusterOptions.label = "Untagged elements (" + childrenCount + ")";
 			clusterOptions.x =  -root_node_x_pos;
 			clusterOptions.group = 'rootNodeTag';
+		} else if (concerned_root_node == "rootNode:keyType") {
+			clusterOptions.label = "Empty value elements (" + childrenCount + ")";
+			clusterOptions.x =  -root_node_x_pos;
+			clusterOptions.group = 'rootNodeKeyType';
 		}
 	}
 	clusterOptions.y = 0

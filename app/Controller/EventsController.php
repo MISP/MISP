@@ -4313,7 +4313,7 @@ class EventsController extends AppController {
 		App::uses('EventGraphTool', 'Tools');
 		$grapher = new EventGraphTool();
 		$data = $this->request->is('post') ? $this->request->data : array();
-		$grapher->construct($this->Event, $this->Auth->user(), $data);
+		$grapher->construct($this->Event, $this->Auth->user(), $data['filtering']);
 		$json = $grapher->get_references($id);
 
 		array_walk_recursive($json, function(&$item, $key){
@@ -4331,7 +4331,7 @@ class EventsController extends AppController {
 		App::uses('EventGraphTool', 'Tools');
 		$grapher = new EventGraphTool();
 		$data = $this->request->is('post') ? $this->request->data : array();
-		$grapher->construct($this->Event, $this->Auth->user(), $data);
+		$grapher->construct($this->Event, $this->Auth->user(), $data['filtering']);
 		$json = $grapher->get_tags($id);
 
 		array_walk_recursive($json, function(&$item, $key){
@@ -4342,6 +4342,26 @@ class EventsController extends AppController {
 		$this->response->type('json');
 		return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
 	}
+
+	public function getEventGraphGeneric($id, $type = 'event') {
+		$validTools = array('event');
+		if (!in_array($type, $validTools)) throw new MethodNotAllowedException('Invalid type.');
+		App::uses('EventGraphTool', 'Tools');
+		$grapher = new EventGraphTool();
+		$data = $this->request->is('post') ? $this->request->data : array();
+		$grapher->construct($this->Event, $this->Auth->user(), $data['filtering']);
+		$keyType = $data['keyType'];
+		$json = $grapher->get_generic_from_key($id, $keyType);
+
+		array_walk_recursive($json, function(&$item, $key){
+			if(!mb_detect_encoding($item, 'utf-8', true)){
+				$item = utf8_encode($item);
+			}
+		});
+		$this->response->type('json');
+		return new CakeResponse(array('body' => json_encode($json), 'status' => 200, 'type' => 'json'));
+	}
+
 	public function getReferenceData($uuid, $type = 'reference') {
 		$validTools = array('reference');
 		if (!in_array($type, $validTools)) throw new MethodNotAllowedException('Invalid type.');
