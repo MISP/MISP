@@ -48,6 +48,7 @@ class EventGraph {
 		this.menu_physic = this.init_physic_menu();
 		this.menu_display = this.init_display_menu();
 		this.menu_filter = this.init_filter_menu();
+		this.menu_canvas = this.init_canvas_menu();
 		this.new_edges_for_unreferenced_nodes = [];
 		this.layout = 'default';
 		this.solver = 'barnesHut';
@@ -125,7 +126,7 @@ class EventGraph {
 					dataHandler.fetch_data_and_update();
 				}
 			},
-			options: ["Reference", "Correlation", "Tag", "JSON key"],
+			options: ["Reference", "Tag", "JSON key"],
 			default: "Reference"
 		});
 		menu_scope.add_input({
@@ -338,6 +339,58 @@ class EventGraph {
 			}
 		});
 		return menu_filter;
+	}
+
+	init_canvas_menu() {
+		var menu_canvas = new ContextualMenu({
+			trigger_container: document.getElementById("eventgraph_network"),
+			right_click: true
+		});
+		menu_canvas.add_button({
+			label: "View/Edit",
+			type: "primary",
+			event: function() {
+				var selected_id = eventGraph.network.getSelectedNodes()[0]; 
+				if (selected_id === undefined) { // A node is selected
+					return;
+				}
+				var data = { id: selected_id };
+				mispInteraction.edit_item(data);
+			}
+		});
+		menu_canvas.add_button({
+			label: "Remove (from graph only)",
+			type: "info",
+			event: function() {
+				var selected_id = eventGraph.network.getSelectedNodes()[0]; 
+				if (selected_id === undefined) { // A node is selected
+					return;
+				}
+				eventGraph.nodes.remove(selected_id);
+			}
+		});
+		menu_canvas.add_button({
+			label: "Expand",
+			type: "primary",
+			event: function() {
+				var selected_id = eventGraph.network.getSelectedNodes()[0]; 
+				if (selected_id === undefined) { // A node is selected
+					return;
+				}
+				eventGraph.expand_node(selected_id);
+			}
+		});
+		menu_canvas.add_button({
+			label: "Collapse",
+			type: "primary",
+			event: function() {
+				var selected_id = eventGraph.network.getSelectedNodes()[0]; 
+				if (selected_id === undefined) { // A node is selected
+					return;
+				}
+				eventGraph.collapse_node(selected_id);
+			}
+		});
 	}
 
 	get_filtering_rules() {
