@@ -220,7 +220,12 @@ class StixParser():
             object_type = o._type
             if object_type in ('relationship', 'report'):
                 continue
-            if object_type == 'indicator':
+            if object_type == 'vulnerability':
+                attribute = {'type': 'vulnerability', 'value': o.get('name')}
+                if 'description' in o:
+                    attribute['comment'] = o.get('description')
+                self.misp_event.add_attribute(**attribute)
+            elif object_type == 'indicator':
                 attribute = {'type': 'stix2-pattern', 'object_relation': 'stix2-pattern', 'value': o.get('pattern')}
                 misp_object = {'name': 'stix2-pattern', 'meta-category': 'stix2-pattern', 'Attribute': [attribute]}
                 self.misp_event.add_object(**misp_object)
