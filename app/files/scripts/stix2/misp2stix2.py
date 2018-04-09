@@ -620,6 +620,8 @@ class StixBuilder():
                 except:
                     continue
                 observable[observable_type] = attribute_value
+        ref_type = 'dst_ref'
+        main_observable = None
         if 'src_port' in observable or 'dst_port' in observable:
             for port in ('src_port', 'dst_port'):
                 try:
@@ -628,17 +630,29 @@ class StixBuilder():
                         observable['protocols'].append(port_value)
                 except:
                     pass
-            return self.ip_port_observable_to_return(ip_address, observable, 'dst_ref')
-        elif domain:
-            return self.ip_port_observable_to_return(ip_address, domain, 'resolves_to_refs')
-        return {'0': ip_address}
+            main_observable = observable
+        else:
+            if domain:
+                ref_type = 'resolves_to_refs'
+        return self.ip_port_observable_to_return(ip_address, main_observable, domain, ref_type)
 
     @staticmethod
-    def ip_port_observable_to_return(ip_address, d_object, s_object):
+    def ip_port_observable_to_return(ip_address, d_object, domain, s_object):
+        observable = {}
+        o_id = 0
         if ip_address:
-            d_object[s_object] = '0'
-            return {'0': ip_address, '1': d_object}
-        return {'0': d_object}
+            observable['0'] = ip_address
+            o_id += 1
+        if d_object:
+            if ip_address:
+                d_object[s_object] = '0'
+            observable[str(o_id)] = d_object
+            o_id += 1
+        if domain:
+            if ip_address and not d_object:
+                domain[s_object] = '0'
+            observable[str(o_id)] = domain
+        return observable
 
     def resolve_ip_port_pattern(self, attributes):
         pattern = ""
