@@ -341,11 +341,18 @@ def pattern_file(pattern):
 
 def observable_ip_port(observable):
     attributes = []
-    if len(observable) == 2:
+    if len(observable) >= 2:
         attributes.append({'type': 'ip-dst', 'object_relation': 'ip',
                            'value': observable['0'].get('value')})
-    observable = dict(observable['1'])
-    fill_observable_attributes(attributes, observable, ip_port_mapping)
+        observable_part = dict(observable['1'])
+        fill_observable_attributes(attributes, observable_part, ip_port_mapping)
+        try:
+            observable_part = dict(observable['2'])
+        except:
+            return attributes
+    else:
+        observable_part = dict(observable['0'])
+    fill_observable_attributes(attributes, observable_part, ip_port_mapping)
     return attributes
 
 def pattern_ip_port(pattern):
