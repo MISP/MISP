@@ -18,6 +18,18 @@
 	overflow: hidden;
 }
 
+.eventgraph_network_background {
+	position: absolute;
+	top: 144px;
+	left: 2%;
+	font-size: xx-large;
+	opacity: 0.06;
+}
+
+.eventgraph_network_background td {
+	padding: 8px;
+}
+
 .network-typeahead {
 	right: 5px;
 }

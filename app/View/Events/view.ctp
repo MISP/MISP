@@ -371,6 +371,7 @@
 		<span class="shortcut-help btn btn-xs btn-info">?</span>
 		<span class="fullscreen-btn btn btn-xs btn-primary" data-toggle="tooltip" data-placement="top" data-title="<?php echo __('Toggle fullscreen');?>"><span class="fa fa-desktop"></span></span>
 
+		<div id="eventgraph_shortcuts_background" class="eventgraph_network_background"></div>
 		<div id="eventgraph_network" class="eventgraph_network" data-event-id="<?php echo h($event['Event']['id']); ?>" data-user-manipulation="<?php echo $mayModify || $isSiteAdmin ? 'true' : 'false'; ?>"></div>
 		<div class="loading-network-div" id="refecences_network_loading_div" style="display: none;">
 			<div class="spinner-network" data-original-title="" title=""></div>

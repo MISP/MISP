@@ -126,7 +126,7 @@ class EventGraph {
 					dataHandler.fetch_data_and_update();
 				}
 			},
-			options: ["Reference", "Tag", "JSON key"],
+			options: ["Reference", "Tag", "Extended event", "JSON key"],
 			default: "Reference"
 		});
 		menu_scope.add_input({
@@ -1227,6 +1227,24 @@ function getRandomColor() {
 	return color;
 }
 
+function generate_background_shortcuts(shortcut_text) {
+	var table = document.createElement('table');
+	for (var shortcut of shortcut_text.split("\n")) {
+		var index = shortcut.indexOf(" ");
+		var text1 = shortcut.substring(0, index);
+		var text2 = shortcut.substring(index, shortcut.length);
+		var tr = document.createElement('tr');
+		var td = document.createElement('td');
+		td.innerHTML = text1;
+		tr.appendChild(td);
+		var td = document.createElement('td');
+		td.innerHTML = text2;
+		tr.appendChild(td);
+		table.appendChild(tr);
+	}
+	document.getElementById("eventgraph_shortcuts_background").appendChild(table);
+}
+
 function getTextColour(hex) {
 	hex = hex.slice(1);
 	var r = parseInt(hex.substring(0,2), 16);
@@ -1266,6 +1284,7 @@ function enable_interactive_graph() {
 			trigger: 'hover',
 			html: true,
 		});
+		generate_background_shortcuts(shortcut_text);
 		$('.fullscreen-btn').click(function() {
 			var network_div = $('#eventgraph_div');
 			var fullscreen_enabled = !network_div.data('fullscreen');
@@ -1620,13 +1639,14 @@ var loadingText_fetching = 'Fetching data';
 var loadingText_creating = 'Constructing network';
 var loadingText_redrawing = 'Redrawing network';
 
-var shortcut_text = "<b>V:</b> Center camera"
-		+ "\n<b>X:</b> Expaned node"
-		+ "\n<b>C:</b> Collapse node"
-		+ "\n<b>SHIFT+E:</b> Edit node"
-		+ "\n<b>SHIFT+F:</b> Search for value"
-		+ "\n<b>SHIFT:</b> Hold to add a reference"
-		+ "\n<b>DEL:</b> Delete selected item";
+var shortcut_text = "<b>V</b> Center camera"
+		+ "\n<b>X</b> Expaned node"
+		+ "\n<b>C</b> Collapse node"
+		+ "\n<b>SHIFT+E</b> Edit node"
+		+ "\n<b>SHIFT+F</b> Search for value"
+		+ "\n<b>SHIFT</b> Hold to add a reference"
+		+ "\n<b>DEL</b> Delete selected item"
+		+ "\n<b>RIGHT-CLICK</b> Open contextual menu";
 
 function global_processProperties(clusterOptions, childNodes) {
 	var concerned_root_node;
