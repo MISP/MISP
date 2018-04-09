@@ -213,9 +213,24 @@ class StixParser():
             pass
 
     def buildExternalDict(self):
-        sys.exit(1)
+        self.fetch_report()
         for o in self.event:
-            print(o)
+            object_type = o._type
+            if object_type in ('relationship', 'report'):
+                continue
+            if object_type == 'indicator':
+                attribute = {'type': 'stix2-pattern', 'object_relation': 'stix2-pattern', 'value': o.get('pattern')}
+                misp_object = {'name': 'stix2-pattern', 'meta-category': 'stix2-pattern', 'Attribute': [attribute]}
+                self.misp_event.add_object(**misp_object)
+
+    def fetch_report(self):
+        reports = []
+        for o in self.event:
+            if o._type == 'report':
+                reports.append(o)
+        if len(reports) == 1:
+            self.report = reports[0]
+            self.parse_report()
 
     def saveFile(self):
         eventDict = self.misp_event.to_json()
