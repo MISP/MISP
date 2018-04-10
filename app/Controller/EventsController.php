@@ -845,10 +845,16 @@ class EventsController extends AppController {
 		if (isset($this->params['named']['focus'])) {
 			$this->set('focus', $this->params['named']['focus']);
 		}
+		$conditions = array('eventid' => $id);
+		if (isset($this->params['named']['extended'])) {
+			$conditions['extended'] = 1;
+			$this->set('extended', 1);
+		} else {
+			$this->set('extended', 0);
+		}
 		if (!empty($this->params['named']['overrideLimit'])) {
 			$conditions['overrideLimit'] = 1;
 		}
-		$conditions = array('eventid' => $id);
 		if (isset($this->params['named']['deleted']) && $this->params['named']['deleted']) {
 			$conditions['deleted'] = 1;
 		}
@@ -1071,6 +1077,18 @@ class EventsController extends AppController {
 				$this->set($variable, $currentModel->{$variable});
 			}
 		}
+		$extensionParams = array(
+			'conditions' => array(
+				'Event.extends_uuid' => $event['Event']['uuid']
+			)
+		);
+		$extensions = $this->Event->fetchSimpleEvents($this->Auth->user(), $extensionParams);
+		$this->set('extensions', $extensions);
+		if (!empty($event['Event']['extends_uuid'])) {
+			$extendedEvent = $this->Event->fetchSimpleEvents($this->Auth->user(), array('conditions' => array('Event.uuid' => $event['Event']['extends_uuid'])));
+			if (empty($extendedEvent)) $extendedEvent = $event['Event']['extends_uuid'];
+			$this->set('extendedEvent', $extendedEvent);
+		}
 		if (Configure::read('MISP.delegation')) {
 			$this->loadModel('EventDelegation');
 			$delegationConditions = array('EventDelegation.event_id' => $event['Event']['id']);
@@ -1148,6 +1166,12 @@ class EventsController extends AppController {
 		}
 		if (!empty($this->params['named']['overrideLimit']) && !$this->_isRest()) {
 			$conditions['overrideLimit'] = 1;
+		}
+		if (!empty($this->params['named']['extended'])) {
+			$conditions['extended'] = 1;
+			$this->set('extended', 1);
+		} else {
+			$this->set('extended', 0);
 		}
 		$conditions['includeFeedCorrelations'] = true;
 		$results = $this->Event->fetchEvent($this->Auth->user(), $conditions);
@@ -1307,6 +1331,11 @@ class EventsController extends AppController {
 					}
 					if (!isset($this->request->data['Event']['date'])) {
 						$this->request->data['Event']['date'] = date('Y-m-d');
+					}
+					if (!empty($this->request->data['Event']['extends_uuid']) && !Validation::uuid($this->request->data['Event']['extends_uuid'])) {
+						if (!$this->Event->checkIfAuthorised($this->Auth->user(), $this->request->data['Event']['extends_uuid'])) {
+							throw new MethodNotAllowedException('Invalid ID given for the event that is to be extended. Make sure that you pass the UUID of the correct event or the local ID of an existing event that you have access to.');
+						}
 					}
 					// If the distribution is set to sharing group, check if the id provided is really visible to the user, if not throw an error.
 					if ($this->request->data['Event']['distribution'] == 4) {
@@ -1646,6 +1675,11 @@ class EventsController extends AppController {
 				// Workaround for different structure in XML/array than what CakePHP expects
 				if (isset($this->request->data['response'])) $this->request->data = $this->request->data['response'];
 				if (!isset($this->request->data['Event'])) $this->request->data = array('Event' => $this->request->data);
+				if (isset($this->request->data['Event']['extends_uuid']) && !Validation::uuid($this->request->data['Event']['extends_uuid'])) {
+					if (!$this->Event->checkIfAuthorised($this->Auth->user(), $this->request->data['Event']['extends_uuid'])) {
+						throw new MethodNotAllowedException('Invalid ID given for the event that is to be extended. Make sure that you pass the UUID of the correct event or the local ID of an existing event that you have access to.');
+					}
+				}
 				$result = $this->Event->_edit($this->request->data, $this->Auth->user(), $id);
 				if ($result === true) {
 					// REST users want to see the newly created event
@@ -1677,7 +1711,7 @@ class EventsController extends AppController {
 				}
 			}
 			// say what fields are to be updated
-			$fieldList = array('date', 'threat_level_id', 'analysis', 'info', 'published', 'distribution', 'timestamp', 'sharing_group_id');
+			$fieldList = array('date', 'threat_level_id', 'analysis', 'info', 'published', 'distribution', 'timestamp', 'sharing_group_id', 'extends_uuid');
 
 			$this->Event->read();
 			// always force the org, but do not force it for admins
@@ -1689,6 +1723,11 @@ class EventsController extends AppController {
 			$this->request->data['Event']['published'] = 0;
 			$date = new DateTime();
 			$this->request->data['Event']['timestamp'] = $date->getTimestamp();
+			if (isset($this->request->data['Event']['extends_uuid']) && !Validation::uuid($this->request->data['Event']['extends_uuid'])) {
+				if (!$this->Event->checkIfAuthorised($this->Auth->user(), $this->request->data['Event']['extends_uuid'])) {
+					throw new MethodNotAllowedException('Invalid ID given for the event that is to be extended. Make sure that you pass the UUID of the correct event or the local ID of an existing event that you have access to.');
+				}
+			}
 			if ($this->Event->save($this->request->data, true, $fieldList)) {
 				$this->Session->setFlash(__('The event has been saved'));
 				$this->redirect(array('action' => 'view', $id));
