@@ -251,6 +251,7 @@ class StixParser():
             galaxy['type'] = o['kill_chain_phases'][0].get('phase_name')
         cluster = defaultdict(dict)
         cluster['value'] = o.get('name')
+        cluster['description'] = o.get('description')
         if 'aliases' in o:
             aliases = []
             for a in o.get('aliases'):
