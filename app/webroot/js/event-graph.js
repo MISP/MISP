@@ -67,6 +67,10 @@ class EventGraph {
 		this.network = new vis.Network(container, data, this.network_options);
 		this.add_unreferenced_root_node();
 
+		this.bind_listener();
+	}
+
+	bind_listener() {
 		var that = this;
 		this.network.on("selectNode", function (params) {
 			that.network.moveTo({
@@ -78,6 +82,12 @@ class EventGraph {
 			});
 		});
 
+		this.network.on("dragStart", function (params) {
+			eventGraph.physics_state(false);
+		});
+		this.network.on("dragEnd", function (params) {
+			eventGraph.physics_state(true);
+		});
 	}
 
 	// Util
@@ -962,6 +972,7 @@ class EventGraph {
 		var data = {nodes: that.nodes, edges: that.edges};
 		that.network = new vis.Network(container, data, that.network_options);
 		that.init_clusterize();
+		that.bind_listener();
 	}
 
 }
