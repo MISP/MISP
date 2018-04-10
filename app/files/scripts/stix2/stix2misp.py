@@ -19,6 +19,10 @@ import sys, json, os, time
 import stix2
 import pymisp
 from stix2misp_mapping import *
+from collections import defaultdict
+
+galaxy_types = {'attack-pattern': 'Attack Pattern', 'course-of-action': 'Course of Action', 'intrusion-set': 'Intrusion Set',
+                'malware': 'Malware', 'threat-actor': 'Threat Actor', 'tool': 'Tool'}
 
 class StixParser():
     def __init__(self):
@@ -93,7 +97,7 @@ class StixParser():
         for o in self.event:
             object_type = o._type
             labels = o.get('labels')
-            if object_type in ('attack-pattern', 'course-of-action', 'intrusion-set', 'malware', 'threat-actor', 'tool'):
+            if object_type in galaxy_types:
                 self.parse_galaxy(o, labels)
             elif 'x-misp-object' in object_type:
                 if 'from_object' in labels:
@@ -220,7 +224,9 @@ class StixParser():
             object_type = o._type
             if object_type in ('relationship', 'report'):
                 continue
-            if object_type == 'vulnerability':
+            if object_type in galaxy_types:
+                self.parse_external_galaxy(o)
+            elif object_type == 'vulnerability':
                 attribute = {'type': 'vulnerability', 'value': o.get('name')}
                 if 'description' in o:
                     attribute['comment'] = o.get('description')
@@ -238,6 +244,20 @@ class StixParser():
         if len(reports) == 1:
             self.report = reports[0]
             self.parse_report()
+
+    def parse_external_galaxy(self, o):
+        galaxy = {'name': galaxy_types[o._type]}
+        if 'kill_chain_phases' in o:
+            galaxy['type'] = o['kill_chain_phases'][0].get('phase_name')
+        cluster = defaultdict(dict)
+        cluster['value'] = o.get('name')
+        if 'aliases' in o:
+            aliases = []
+            for a in o.get('aliases'):
+                aliases.append(a)
+            cluster['meta']['synonyms'] = aliases
+        galaxy['GalaxyCluster'] = cluster
+        self.misp_event['Galaxy'].append(galaxy)
 
     def saveFile(self):
         eventDict = self.misp_event.to_json()
