@@ -67,8 +67,7 @@
           'required' => false,
           'allowEmpty' => true,
           'label' => false,
-          'div' => false,
-					'value' => empty($template['Object']['comment']) ? '' : $template['Object']['comment']
+          'div' => false
         ));
       ?>
     </dd>

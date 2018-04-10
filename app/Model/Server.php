@@ -2638,7 +2638,32 @@ class Server extends AppModel {
 		return true;
 	}
 
+	private function __serverSettingNormaliseValue($data, $value, $setting) {
+		if (!empty($data['type'])) {
+			if ($data['type'] == 'boolean') {
+				$value = $value ? true : false;
+			} else if ($data['type'] == 'numeric') {
+				$value = intval($value);
+			}
+		}
+		return $value;
+	}
+
 	public function serverSettingsSaveValue($setting, $value) {
+		$settingObject = $this->getCurrentServerSettings();
+		foreach ($settingObject as $branchName => $branch) {
+			if (!isset($branch['level'])) {
+				foreach ($branch as $settingName => $settingObject) {
+					if ($setting == $branchName . '.' . $settingName) {
+						$value = $this->__serverSettingNormaliseValue($settingObject, $value, $setting);
+					}
+				}
+			} else {
+				if ($setting == $branchName) {
+					$value = $this->__serverSettingNormaliseValue($branch, $value, $setting);
+				}
+			}
+		}
 		Configure::write($setting, $value);
 		$arrayFix = array(
 			'Security.auth',
