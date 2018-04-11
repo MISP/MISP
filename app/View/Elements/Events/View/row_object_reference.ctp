@@ -22,7 +22,13 @@
 <?php
   endif;
 ?>
-<span class="fa fa-plus-square useCursorPointer" title="<?php echo __('Add reference');?>" role="button" tabindex="0" aria-label="<?php echo __('Add reference');?>" onClick="genericPopup('<?php echo '/objectReferences/add/' . h($object['id']);?>', '#popover_form');"></span>
+<?php
+  if ($mayModify):
+?>
+    <span class="fa fa-plus-square useCursorPointer" title="<?php echo __('Add reference');?>" role="button" tabindex="0" aria-label="<?php echo __('Add reference');?>" onClick="genericPopup('<?php echo '/objectReferences/add/' . h($object['id']);?>', '#popover_form');"></span>
+<?php
+  endif;
+?>
 <div id="Object_<?php echo $object['id']; ?>_references_collapsible" class="collapse">
 <?php
   foreach ($object['ObjectReference'] as $reference):

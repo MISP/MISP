@@ -25,7 +25,7 @@
 			<?php
 				foreach ($permFlags as $k => $flags):
 			?>
-				<th><?php echo $this->Paginator->sort($k, $flags['text']);?></th>
+				<th title="<?php echo h($flags['title']); ?>"><?php echo $this->Paginator->sort($k, $flags['text']);?></th>
 			<?php
 				endforeach;
 			?>

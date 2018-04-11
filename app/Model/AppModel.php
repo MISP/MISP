@@ -60,7 +60,7 @@ class AppModel extends Model {
 	);
 
 	public $db_changes = array(
-		1 => false, 2 => false, 3 => false, 4 => true, 5 => false
+		1 => false, 2 => false, 3 => false, 4 => true, 5 => false, 6 => false
 	);
 
 	function afterSave($created, $options = array()) {
@@ -897,6 +897,10 @@ class AppModel extends Model {
 				break;
 			case 5:
 				$sqlArray[] = "ALTER TABLE `feeds` ADD `caching_enabled` BOOLEAN NOT NULL DEFAULT 0;";
+				break;
+			case 6:
+				$sqlArray[] = "ALTER TABLE `events` ADD `extends_uuid` varchar(40) COLLATE utf8_bin DEFAULT '';";
+				$indexArray[] = array('events', 'extends_uuid');
 				break;
 			case 'fixNonEmptySharingGroupID':
 				$sqlArray[] = 'UPDATE `events` SET `sharing_group_id` = 0 WHERE `distribution` != 4;';

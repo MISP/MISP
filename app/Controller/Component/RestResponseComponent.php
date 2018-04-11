@@ -13,6 +13,18 @@ class RestResponseComponent extends Component {
 
 	private $__descriptions = array(
 		'Attribute' => array(
+			'add' => array(
+				'description' => "POST a MISP Attribute JSON to this API to create an Attribute.",
+				'mandatory' => array('value', 'type'),
+				'optional' => array('category', 'to_ids', 'uuid', 'distribution', 'sharing_group_id', 'timestamp', 'comment'),
+				'params' => array('event_id')
+			),
+			'edit' => array(
+				'description' => "POST a MISP Attribute JSON to this API to update an Attribute. If the timestamp is set, it has to be newer than the existing Attribute.",
+				'mandatory' => array(),
+				'optional' => array('value', 'type', 'category', 'to_ids', 'uuid', 'distribution', 'sharing_group_id', 'timestamp', 'comment'),
+				'params' => array('event_id')
+			),
 			'deleteSelected' => array(
 				'description' => "POST a list of attribute IDs in JSON format to this API
 					to delete the given attributes. This API also expects an event ID passed via
@@ -22,6 +34,20 @@ class RestResponseComponent extends Component {
 					key.",
 				'mandatory' => array('id'),
 				'optional' => array('event_id', 'allow_hard_delete'),
+				'params' => array('event_id')
+			)
+		),
+		'Event' => array(
+			'add' => array(
+				'description' => "POST a MISP Event JSON to this API to create an Event. Contained objects can also be included (such as attributes, objects, tags, etc).",
+				'mandatory' => array('info'),
+				'optional' => array('threat_level_id', 'analysis', 'distribution', 'sharing_group_id', 'uuid', 'published', 'timestamp', 'date', 'Attribute', 'Object', 'Shadow_Attribute', 'EventTag'),
+				'params' => array()
+			),
+			'edit' => array(
+				'description' => "POST a MISP Event JSON to this API to update an Event. Contained objects can also be included (such as attributes, objects, tags, etc). If the timestamp is set, it has to be newer than the existing Attribute.",
+				'mandatory' => array(),
+				'optional' => array('info', 'threat_level_id', 'analysis', 'distribution', 'sharing_group_id', 'uuid', 'published', 'timestamp', 'date', 'Attribute', 'Object', 'Shadow_Attribute', 'EventTag'),
 				'params' => array('event_id')
 			)
 		),

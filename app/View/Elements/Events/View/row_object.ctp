@@ -3,6 +3,11 @@
   $linkClass = 'white';
   $currentType = 'denyForm';
   $tr_class = 'tableHighlightBorderTop borderBlue';
+  if ($event['Event']['id'] != $object['event_id']) {
+    if (!$isSiteAdmin && $event['extensionEvents'][$object['event_id']]['Orgc']['id'] != $me['org_id']) {
+      $mayModify = false;
+    }
+  }
   if ($object['deleted']) $tr_class .= ' lightBlueRow';
   else $tr_class .= ' blueRow';
   if (!empty($k)) {
@@ -11,10 +16,16 @@
 ?>
 <tr id = "Object_<?php echo $object['id']; ?>_tr" class="<?php echo $tr_class; ?>" tabindex="0">
   <?php
-    if ($mayModify):
+    if ($mayModify || $extended):
   ?>
     <td style="width:10px;" data-position="<?php echo h($object['objectType']) . '_' . h($object['id']); ?>">
-      <input id = "select_object_<?php echo $object['id']; ?>" class="select_object row_checkbox" type="checkbox" data-id="<?php echo $object['id'];?>" />
+      <?php
+        if ($mayModify):
+      ?>
+        <input id = "select_object_<?php echo $object['id']; ?>" class="select_object row_checkbox" type="checkbox" data-id="<?php echo $object['id'];?>" />
+      <?php
+        endif;
+      ?>
     </td>
   <?php
     endif;
@@ -25,8 +36,30 @@
   <td class="short context hidden">
     <?php echo h($object['uuid']); ?>
   </td>
-  <td class="short" colspan="2">
+  <td class="short">
     <?php echo date('Y-m-d', $object['timestamp']); ?>
+  </td>
+  <?php
+    if ($extended):
+  ?>
+    <td class="short">
+      <?php echo '<a href="' . $baseurl . '/events/view/' . h($object['event_id']) . '" class="white">' . h($object['event_id']) . '</a>'; ?>
+    </td>
+  <?php
+    endif;
+  ?>
+  <td class="short">
+    <?php
+      if ($extended):
+        if ($object['event_id'] != $event['Event']['id']):
+          $extensionOrg = $event['extensionEvents'][$object['event_id']]['Orgc'];
+          echo $this->OrgImg->getOrgImg(array('name' => $extensionOrg['name'], 'id' => $extensionOrg['id'], 'size' => 24));
+        else:
+          echo $this->OrgImg->getOrgImg(array('name' => $event['Orgc']['name'], 'id' => $event['Orgc']['id'], 'size' => 24));
+        endif;
+      endif;
+    ?>
+    &nbsp;
   </td>
   <td colspan="4">
     <span class="bold"><?php echo __('Name: ');?></span><?php echo h($object['name']);?>
@@ -40,7 +73,8 @@
     <?php
       echo $this->element('/Events/View/row_object_reference', array(
         'deleted' => $deleted,
-        'object' => $object
+        'object' => $object,
+        'mayModify' => $mayModify
       ));
       if (!empty($object['referenced_by'])) {
         echo $this->element('/Events/View/row_object_referenced_by', array(
@@ -82,11 +116,11 @@
       if ($mayModify && empty($object['deleted'])):
     ?>
         <a href="<?php echo $baseurl;?>/objects/edit/<?php echo $object['id']; ?>" title="Edit" class="icon-edit icon-white useCursorPointer"></a>
-        <span class="icon-trash icon-white useCursorPointer" title="<?php echo __('Permanently delete object');?>" role="button" tabindex="0" aria-label="<?php echo __('Permanently delete object');?>" onClick="deleteObject('objects', 'delete', '<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
+        <span class="icon-trash icon-white useCursorPointer" title="<?php echo __('Soft delete object');?>" role="button" tabindex="0" aria-label="<?php echo __('Soft delete object');?>" onClick="deleteObject('objects', 'delete', '<?php echo h($object['id']); ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
     <?php
       elseif ($mayModify):
     ?>
-        <span class="icon-trash icon-white useCursorPointer" title="<?php echo __('Soft delete object');?>" role="button" tabindex="0" aria-label="<?php echo __('Soft delete attribute');?>" onClick="deleteObject('objects', 'delete', '<?php echo h($object['id']) . '/true'; ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
+        <span class="icon-trash icon-white useCursorPointer" title="<?php echo __('Permanently delete object');?>" role="button" tabindex="0" aria-label="<?php echo __('Permanently delete attribute');?>" onClick="deleteObject('objects', 'delete', '<?php echo h($object['id']) . '/true'; ?>', '<?php echo h($event['Event']['id']); ?>');"></span>
     <?php
       endif;
     ?>

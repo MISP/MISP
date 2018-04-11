@@ -107,8 +107,8 @@ foreach ($orgs as $org): ?>
 		<td class="short"><?php echo isset($org['Organisation']['user_count']) ? $org['Organisation']['user_count'] : '0';?></td>
 		<td class="short">
 			<?php
-				if (!empty($org['Organisation']['restrictions'])) {
-					echo implode('<br />', h($org['Organisation']['restrictions']));
+				if (!empty($org['Organisation']['restricted_to_domain'])) {
+					echo implode('<br />', h($org['Organisation']['restricted_to_domain']));
 				}
 			?>
 		</td>

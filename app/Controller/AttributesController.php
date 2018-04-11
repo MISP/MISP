@@ -125,7 +125,11 @@ class AttributesController extends AppController {
 		$this->set('categoryDefinitions', $this->Attribute->categoryDefinitions);
 	}
 
-	public function add($eventId) {
+	public function add($eventId = false) {
+		if ($this->request->is('get') && $this->_isRest()) {
+			return $this->RestResponse->describe('Attributes', 'add', false, $this->response->type());
+		}
+		if ($eventId === false) throw new MethodNotAllowedException('No event ID set.');
 		if (!$this->userRole['perm_add']) {
 			throw new MethodNotAllowedException('You don\'t have permissions to create attributes');
 		}
@@ -742,6 +746,9 @@ class AttributesController extends AppController {
 
 
 	public function edit($id = null) {
+		if ($this->request->is('get') && $this->_isRest()) {
+			return $this->RestResponse->describe('Attributes', 'edit', false, $this->response->type());
+		}
 		if (Validation::uuid($id)) {
 			$this->Attribute->recursive = -1;
 			$temp = $this->Attribute->findByUuid($id);

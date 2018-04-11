@@ -417,8 +417,8 @@ class Attribute extends AppModel {
 			'message' => 'Options : Payload delivery, Antivirus detection, Payload installation, Files dropped ...'
 		),
 		'value' => array(
-			'valueNotEmpty' => array(
-				'rule' => array('valueNotEmpty'),
+			'stringNotEmpty' => array(
+				'rule' => array('stringNotEmpty'),
 			),
 			'userdefined' => array(
 				'rule' => array('validateAttributeValue'),

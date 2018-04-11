@@ -50,7 +50,24 @@
   <td class="short context hidden">
     <?php echo h($object['uuid']); ?>
   </td>
-  <td colspan="<?php echo $fieldCount+2; ?>" style="font-weight:bold;text-align:left;width:100%;">DELETE</td>
+  <td style="font-weight:bold;text-align:left;">DELETE</td>
+  <?php
+    if ($extended):
+  ?>
+    <td class="short">
+      <?php echo '<a href="' . $baseurl . '/events/view/' . h($object['event_id']) . '" class="white">' . h($object['event_id']) . '</a>'; ?>
+    </td>
+  <?php
+    endif;
+  ?>
+  <td class="short">
+  <?php
+    if (isset($object['Org']['name'])) {
+      echo $this->OrgImg->getOrgImg(array('name' => $object['Org']['name'], 'id' => $object['Org']['id'], 'size' => 24));
+    }
+  ?>
+  </td>
+  <td colspan="<?php echo $fieldCount; ?>">&nbsp;</td>
   <td class="short action-links">
     <?php
         if (($event['Orgc']['id'] == $me['org_id'] && $mayModify) || $isSiteAdmin) {
