@@ -36,6 +36,7 @@ class StixParser():
             tempFile = open(filename, 'r')
             self.filename = filename
             event = stix2.get_dict(tempFile)
+            self.stix_version = 'stix {}'.format(event.get('spec_version'))
             for o in event.get('objects'):
                 try:
                     self.event.append(stix2.parse(o))
@@ -81,6 +82,7 @@ class StixParser():
         if self.from_misp():
             self.buildMispDict()
         else:
+            self.version_attribute = {'type': 'text', 'object_relation': 'version', 'value': self.stix_version}
             self.buildExternalDict()
 
     def from_misp(self):
@@ -233,7 +235,8 @@ class StixParser():
                 self.misp_event.add_attribute(**attribute)
             elif object_type == 'indicator':
                 attribute = {'type': 'stix2-pattern', 'object_relation': 'stix2-pattern', 'value': o.get('pattern')}
-                misp_object = {'name': 'stix2-pattern', 'meta-category': 'stix2-pattern', 'Attribute': [attribute]}
+                misp_object = {'name': 'stix2-pattern', 'meta-category': 'stix2-pattern',
+                               'Attribute': [self.version_attribute, attribute]}
                 self.misp_event.add_object(**misp_object)
 
     def fetch_report(self):
