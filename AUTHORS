@@ -48,7 +48,7 @@ This project started around June 2011 when Christophe Vandeplas had a frustratio
 Mid July 2011 he presented his personal project at work (Belgian Defence) where the feedback was rather positive. After giving access to CyDefSIG running on his personal server the Belgian Defence started to use CyDefSIG officially starting mid August 2011.
 Christophe was then allowed to spend some time on CyDefSIG during his work-hours, while still working on it at home.
 
-At some point NATO heard about this project. On January 2012 a first presentation was done to introduce them in more depth to the project. They looked at other products that the marked offered, but it seemed they deemed the openness of CyDefSIG to be of a great advantage. Andrzej Dereszowski was the first part-time developer from NATO side.
+At some point NATO heard about this project. On January 2012 a first presentation was done to introduce them in more depth to the project. They looked at other products that the market offered, but it seemed they deemed the openness of CyDefSIG to be of a great advantage. Andrzej Dereszowski was the first part-time developer from NATO side.
 
 One thing led to another and some months later NATO hired a full-time developer to improve the code and add more features. A collaborative development started from that date.
 As with many personal projects the license was not explicitly written yet, it was collaboratively decided that the project would be released publicly as Affero GPL. This to share the code with as many people as possible and to protect it from any harm.
