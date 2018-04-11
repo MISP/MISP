@@ -120,12 +120,20 @@
 			<span id="attribute-replace-button" title="Replace all attributes of a category/type combination within the event" role="button" tabindex="0" aria-label="Replace all attributes of a category/type combination within the event" class="icon-random useCursorPointer" onClick="getPopup(<?php echo $event['Event']['id']; ?>, 'attributes', 'attributeReplace');"></span>
 		<?php endif; ?>
 	</div>
+	<?php
+		$target = h($event['Event']['id']);
+		if ($extended) $target .= '/extended:1';
+	?>
 	<div class="tabMenu tabMenuFiltersBlock noPrint" style="padding-right:0px !important;">
 		<span id="filter_header" class="attribute_filter_header">Filters: </span>
-		<div id="filter_all" title="Show all attributes" role="button" tabindex="0" aria-label="Show all attributes" class="attribute_filter_text<?php if ($attributeFilter == 'all') echo '_active'; ?>" onClick="filterAttributes('all', '<?php echo h($event['Event']['id']); ?>');">All</div>
-		<?php foreach ($typeGroups as $group): ?>
-			<div id="filter_<?php echo h($group); ?>" title="Only show <?php echo $group; ?> related attributes" role="button" tabindex="0" aria-label="Only show <?php echo h($group); ?> related attributes" class="attribute_filter_text<?php if ($attributeFilter == $group) echo '_active'; ?>" onClick="filterAttributes('<?php echo $group; ?>', '<?php echo h($event['Event']['id']); ?>');"><?php echo ucfirst($group); ?></div>
-		<?php endforeach; ?>
+		<div id="filter_all" title="Show all attributes" role="button" tabindex="0" aria-label="Show all attributes" class="attribute_filter_text<?php if ($attributeFilter == 'all') echo '_active'; ?>" onClick="filterAttributes('all', '<?php echo $target; ?>');">All</div>
+		<?php
+			foreach ($typeGroups as $group):
+		?>
+				<div id="filter_<?php echo h($group); ?>" title="Only show <?php echo $group; ?> related attributes" role="button" tabindex="0" aria-label="Only show <?php echo h($group); ?> related attributes" class="attribute_filter_text<?php if ($attributeFilter == $group) echo '_active'; ?>" onClick="filterAttributes('<?php echo $group; ?>', '<?php echo $target; ?>');"><?php echo ucfirst($group); ?></div>
+		<?php
+			endforeach;
+		?>
 		<div id="filter_proposal" title="Only show proposals" role="button" tabindex="0" aria-label="Only show proposals" class="attribute_filter_text<?php if ($attributeFilter == 'proposal') echo '_active'; ?>" onClick="filterAttributes('proposal', '<?php echo h($event['Event']['id']); ?>');">Proposal</div>
 		<div id="filter_correlation" title="Only show correlating attributes" role="button" tabindex="0" aria-label="Only show correlating attributes" class="attribute_filter_text<?php if ($attributeFilter == 'correlation') echo '_active'; ?>" onClick="filterAttributes('correlation', '<?php echo h($event['Event']['id']); ?>');">Correlation</div>
 		<div id="filter_warning" title="Only show potentially false positive attributes" role="button" tabindex="0" aria-label="Only show potentially false positive attributes" class="attribute_filter_text<?php if ($attributeFilter == 'warning') echo '_active'; ?>" onClick="filterAttributes('warning', '<?php echo h($event['Event']['id']); ?>');">Warnings</div>
@@ -145,7 +153,7 @@
 	<table class="table table-striped table-condensed">
 		<tr>
 			<?php
-				if ($mayModify && !empty($event['objects'])):
+				if ($extended || ($mayModify && !empty($event['objects']))):
 					$fieldCount += 1;
 			?>
 					<th><input class="select_all" type="checkbox" title="Select all" role="button" tabindex="0" aria-label="Select all attributes/proposals on current page" onClick="toggleAllAttributeCheckboxes();" /></th>
@@ -155,6 +163,13 @@
 			<th class="context hidden"><?php echo $this->Paginator->sort('id');?></th>
 			<th class="context hidden">UUID</th>
 			<th><?php echo $this->Paginator->sort('timestamp', 'Date');?></th>
+			<?php
+				if ($extended):
+			?>
+					<th class="event_id"><?php echo $this->Paginator->sort('event_id', 'Event');?></th>
+			<?php
+		endif;
+			?>
 			<th><?php echo $this->Paginator->sort('Org.name', 'Org'); ?>
 			<th><?php echo $this->Paginator->sort('category');?></th>
 			<th><?php echo $this->Paginator->sort('type');?></th>

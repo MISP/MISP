@@ -127,17 +127,15 @@ class StixParser():
         return d
 
     def eventInfo(self):
+        info = "Imported from external STIX event"
         try:
             try:
                 info = self.event.stix_header.title
             except:
                 info = self.event.title
-            if info:
-                self.misp_event.info = info
-            else:
-                raise Exception("Imported from external STIX event")
-        except Exception as noinfo:
-            self.misp_event.info = str(noinfo)
+        except:
+            pass
+        self.misp_event.info = str(info)
 
     def parse_misp_indicator(self, indicator):
         # define is an indicator will be imported as attribute or object

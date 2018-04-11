@@ -230,13 +230,8 @@ class Event extends AppModel {
 		),
 		'user_id' => array(
 			'numeric' => array(
-				'rule' => array('numeric'),
-				//'message' => 'Your custom message here',
-				//'allowEmpty' => false,
-				//'required' => false,
-				//'last' => false, // Stop validation after this rule
-				//'on' => 'create', // Limit validation to 'create' or 'update' operations
-			),
+				'rule' => array('numeric')
+			)
 		),
 		'published' => array(
 			'boolean' => array(
@@ -254,6 +249,13 @@ class Event extends AppModel {
 				'message' => 'Please provide a valid UUID'
 			),
 		),
+		'extends_uuid' => array(
+			'uuid' => array(
+				'rule' => array('custom', '/^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/'),
+				'message' => 'Please provide a valid UUID',
+				'allowEmpty' => true
+			)
+		)
 	);
 
 	public function __construct($id = false, $table = null, $ds = null) {
@@ -1406,7 +1408,7 @@ class Event extends AppModel {
 	// includeAttachments: true will attach the attachments to the attributes in the data field
 	public function fetchEvent($user, $options = array(), $useCache = false) {
 		if (isset($options['Event.id'])) $options['eventid'] = $options['Event.id'];
-		$possibleOptions = array('eventid', 'idList', 'tags', 'from', 'to', 'last', 'to_ids', 'includeAllTags', 'includeAttachments', 'event_uuid', 'distribution', 'sharing_group_id', 'disableSiteAdmin', 'metadata', 'includeGalaxy', 'enforceWarninglist', 'sgReferenceOnly', 'flatten', 'blockedAttributeTags');
+		$possibleOptions = array('eventid', 'idList', 'tags', 'from', 'to', 'last', 'to_ids', 'includeAllTags', 'includeAttachments', 'event_uuid', 'distribution', 'sharing_group_id', 'disableSiteAdmin', 'metadata', 'includeGalaxy', 'enforceWarninglist', 'sgReferenceOnly', 'flatten', 'blockedAttributeTags', 'eventsExtendingUuid', 'extended');
 		if (!isset($options['excludeGalaxy']) || !$options['excludeGalaxy']) {
 			$this->GalaxyCluster = ClassRegistry::init('GalaxyCluster');
 		}
@@ -1415,6 +1417,33 @@ class Event extends AppModel {
 			$conditions['AND'][] = array("Event.id" => $options['eventid']);
 		} else {
 			$conditions = array();
+		}
+		if ($options['eventsExtendingUuid']) {
+			if (!is_array($options['eventsExtendingUuid'])) {
+				$options['eventsExtendingUuid'] = array($options['eventsExtendingUuid']);
+			}
+			foreach ($options['eventsExtendingUuid'] as $extendedEvent) {
+				$extendedUuids = array();
+				if (!Validation::uuid($extendedEvent)) {
+					$eventUuid = $this->find('first', array(
+						'recursive' => -1,
+						'conditions' => array('Event.id' => $extendedEvent),
+						'fields' => array('Event.uuid')
+					));
+					if (!empty($eventUuid)) {
+						$extendedUuids[] = $eventUuid['Event']['uuid'];
+					}
+				} else {
+					$extendedUuids[] = $extendedEvent;
+				}
+			}
+			if (!empty($extendedUuids)) {
+				$conditions['AND'][] = array('Event.extends_uuid' => $extendedUuids);
+			} else {
+				// We've set as a search pattern any event that extends an event and didn't find anything
+				// valid, make sure we don't get everything thrown in our face that the user can see.
+				$conditions['AND'][] = array('Event.id' => -1);
+			}
 		}
 		if (!isset($user['org_id'])) {
 			throw new Exception('There was an error with the user account.');
@@ -1532,7 +1561,7 @@ class Event extends AppModel {
 		// $conditions['AND'][] = array('Event.published =' => 1);
 
 		// do not expose all the data ...
-		$fields = array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.date', 'Event.threat_level_id', 'Event.info', 'Event.published', 'Event.uuid', 'Event.attribute_count', 'Event.analysis', 'Event.timestamp', 'Event.distribution', 'Event.proposal_email_lock', 'Event.user_id', 'Event.locked', 'Event.publish_timestamp', 'Event.sharing_group_id', 'Event.disable_correlation');
+		$fields = array('Event.id', 'Event.orgc_id', 'Event.org_id', 'Event.date', 'Event.threat_level_id', 'Event.info', 'Event.published', 'Event.uuid', 'Event.attribute_count', 'Event.analysis', 'Event.timestamp', 'Event.distribution', 'Event.proposal_email_lock', 'Event.user_id', 'Event.locked', 'Event.publish_timestamp', 'Event.sharing_group_id', 'Event.disable_correlation', 'Event.extends_uuid');
 		$fieldsAtt = array('Attribute.id', 'Attribute.type', 'Attribute.category', 'Attribute.value', 'Attribute.to_ids', 'Attribute.uuid', 'Attribute.event_id', 'Attribute.distribution', 'Attribute.timestamp', 'Attribute.comment', 'Attribute.sharing_group_id', 'Attribute.deleted', 'Attribute.disable_correlation', 'Attribute.object_id', 'Attribute.object_relation');
 		$fieldsObj = array('*');
 		$fieldsShadowAtt = array('ShadowAttribute.id', 'ShadowAttribute.type', 'ShadowAttribute.category', 'ShadowAttribute.value', 'ShadowAttribute.to_ids', 'ShadowAttribute.uuid', 'ShadowAttribute.event_uuid', 'ShadowAttribute.event_id', 'ShadowAttribute.old_id', 'ShadowAttribute.comment', 'ShadowAttribute.org_id', 'ShadowAttribute.proposal_to_delete', 'ShadowAttribute.timestamp');
@@ -1783,7 +1812,33 @@ class Event extends AppModel {
 				$event['Event']['event_creator_email'] = $UserEmail;
 			}
 		}
+		if ($options['extended']) {
+			foreach ($results as $k => $result) {
+				$results[$k] = $this->__mergeExtensions($user, $result['Event']['uuid'], $result);
+			}
+		}
 		return $results;
+	}
+
+	private function __mergeExtensions($user, $uuid, $event) {
+		$extensions = $this->fetchEvent($user, array('eventsExtendingUuid' => $uuid));
+		$thingsToMerge = array('Attribute', 'Object', 'ShadowAttribute', 'EventTag', 'Galaxy', 'RelatedEvent');
+		foreach ($extensions as $k2 => $extensionEvent) {
+			$eventMeta = array(
+				'id' => $extensionEvent['Event']['id'],
+				'info' => $extensionEvent['Event']['info'],
+				'Orgc' => array(
+					'id' => $extensionEvent['Orgc']['id'],
+					'name' => $extensionEvent['Orgc']['name'],
+					'uuid' => $extensionEvent['Orgc']['uuid']
+				)
+			);
+			$event['Event']['extensionEvents'][$eventMeta['id']] = $eventMeta;
+			foreach ($thingsToMerge as $thingToMerge) {
+				$event[$thingToMerge] = array_merge($event[$thingToMerge], $extensionEvent[$thingToMerge]);
+			}
+		}
+		return $event;
 	}
 
 	private function __attachSharingGroups($doAttach, $data, $sharingGroupData) {
@@ -2537,7 +2592,8 @@ class Event extends AppModel {
 					'distribution',
 					'sharing_group_id',
 					'locked',
-					'disable_correlation'
+					'disable_correlation',
+					'extends_uuid'
 				),
 				'Attribute' => array(
 					'event_id',
@@ -2725,7 +2781,8 @@ class Event extends AppModel {
 			'distribution',
 			'timestamp',
 			'sharing_group_id',
-			'disable_correlation'
+			'disable_correlation',
+			'extends_uuid'
 		);
 		$saveResult = $this->save(array('Event' => $data['Event']), array('fieldList' => $fieldList));
 		$this->Log = ClassRegistry::init('Log');
