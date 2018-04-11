@@ -1675,7 +1675,7 @@ class EventsController extends AppController {
 				// Workaround for different structure in XML/array than what CakePHP expects
 				if (isset($this->request->data['response'])) $this->request->data = $this->request->data['response'];
 				if (!isset($this->request->data['Event'])) $this->request->data = array('Event' => $this->request->data);
-				if (isset($this->request->data['Event']['extends_uuid']) && !Validation::uuid($this->request->data['Event']['extends_uuid'])) {
+				if (!empty($this->request->data['Event']['extends_uuid']) && !Validation::uuid($this->request->data['Event']['extends_uuid'])) {
 					if (!$this->Event->checkIfAuthorised($this->Auth->user(), $this->request->data['Event']['extends_uuid'])) {
 						throw new MethodNotAllowedException('Invalid ID given for the event that is to be extended. Make sure that you pass the UUID of the correct event or the local ID of an existing event that you have access to.');
 					}

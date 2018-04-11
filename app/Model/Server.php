@@ -1033,11 +1033,11 @@ class Server extends AppModel {
 			'Session' => array(
 					'branch' => 1,
 					'autoRegenerate' => array(
-							'level' => 1,
-							'description' => 'Set to true to automatically regenerate sessions on activity. (Recommended)',
+							'level' => 0,
+							'description' => 'Set to true to automatically regenerate sessions after x number of requests. This might lead to the user getting de-authenticated and is frustrating in general, so only enable it if you really need to regenerate sessions. (Not recommended)',
 							'value' => false,
 							'errorMessage' => '',
-							'test' => 'testBool',
+							'test' => 'testBoolFalse',
 							'type' => 'boolean',
 					),
 					'defaults' => array(
