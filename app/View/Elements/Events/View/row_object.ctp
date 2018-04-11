@@ -73,7 +73,8 @@
     <?php
       echo $this->element('/Events/View/row_object_reference', array(
         'deleted' => $deleted,
-        'object' => $object
+        'object' => $object,
+        'mayModify' => $mayModify
       ));
       if (!empty($object['referenced_by'])) {
         echo $this->element('/Events/View/row_object_referenced_by', array(
