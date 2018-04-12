@@ -208,7 +208,7 @@ class StixParser():
 
     @staticmethod
     def handle_domain_or_url(properties):
-        event_types = eventTypes[proprties._XSI_TYPE]
+        event_types = eventTypes[properties._XSI_TYPE]
         return event_types['type'], properties.value.value, event_types['relation']
 
     def handle_email_attribute(self, properties):
