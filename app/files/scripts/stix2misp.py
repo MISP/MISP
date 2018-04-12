@@ -100,8 +100,8 @@ class StixParser():
             self.parse_external_indicator(self.event.indicators)
         if self.event.observables:
             self.parse_external_observable(self.event.observables.observables)
-        # if self.event.ttps:
-        #    self.parse_ttps(self.event.ttps.ttps)
+        if self.event.courses_of_action:
+            self.parse_coa(self.event.courses_of_action)
 
     def dictTimestampAndDate(self):
         if self.event.timestamp:
@@ -550,6 +550,43 @@ class StixParser():
                     galaxy['GalaxyCluster'].append(cluster)
                     galaxies.append(galaxy)
         self.misp_event['Galaxy'] = galaxies
+
+    def parse_coa(self, courses_of_action):
+        for coa in courses_of_action:
+            misp_object = MISPObject('course-of-action')
+            if coa.title:
+                attribute = {'type': 'text', 'object_relation': 'name',
+                             'value': coa.title}
+                misp_object.add_attribute(**attribute)
+            if coa.type_:
+                attribute = {'type': 'text', 'object_relation': 'type',
+                             'value': coa.type_.value}
+                misp_object.add_attribute(**attribute)
+            if coa.stage:
+                attribute = {'type': 'text', 'object_relation': 'stage',
+                             'value': coa.stage.value}
+                misp_object.add_attribute(**attribute)
+            if coa.description:
+                attribute = {'type': 'text', 'object_relation': 'description',
+                             'value': coa.description.value} # POSSIBLE ISSUE HERE, need example to test
+                misp_object.add_attribute(**attribute)
+            if coa.objective:
+                attribute = {'type': 'text', 'object_relation': 'objective',
+                             'value': coa.objective.description.value}
+                misp_object.add_attribute(**attribute)
+            if coa.cost:
+                attribute = {'type': 'text', 'object_relation': 'cost',
+                             'value': coa.cost.value.value}
+                misp_object.add_attribute(**attribute)
+            if coa.efficacy:
+                attribute = {'type': 'text', 'object_relation': 'efficacy',
+                             'value': coa.efficacy.value.value}
+                misp_object.add_attribute(**attribute)
+            if coa.impact:
+                attribute = {'type': 'text', 'object_relation': 'impact',
+                             'value': coa.impact.value.value}
+                misp_object.add_attribute(**attribute)
+            self.misp_event.add_object(**misp_object)
 
     @staticmethod
     def return_attributes(attributes):
