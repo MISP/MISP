@@ -266,7 +266,7 @@ class StixParser():
             for a in o.get('aliases'):
                 aliases.append(a)
             cluster['meta']['synonyms'] = aliases
-        galaxy['GalaxyCluster'] = cluster
+        galaxy['GalaxyCluster'] = [cluster]
         self.misp_event['Galaxy'].append(galaxy)
 
     def saveFile(self):
