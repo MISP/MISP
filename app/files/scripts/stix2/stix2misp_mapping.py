@@ -426,3 +426,13 @@ objects_mapping = {'domain-ip':{'observable': observable_domain_ip, 'pattern': p
                    'registry-key': {'observable': observable_regkey, 'pattern': pattern_regkey},
                    'url': {'observable': observable_url, 'pattern': pattern_url},
                    'x509': {'observable': observable_x509, 'pattern': pattern_x509}}
+
+domain_pattern_mapping = {'value': {'type': 'domain'}}
+ip_pattern_mapping = {'value': {'type': 'ip-dst'}}
+
+external_pattern_mapping = {'domain-name': domain_pattern_mapping,
+                            'file': file_mapping,
+                            'ipv4-addr': ip_pattern_mapping,
+                            'ipv6-addr': ip_pattern_mapping,
+                            'x509-certificate': x509_mapping
+                            }

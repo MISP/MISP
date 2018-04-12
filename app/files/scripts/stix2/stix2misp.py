@@ -244,7 +244,9 @@ class StixParser():
                     attribute['comment'] = o.get('description')
                 self.misp_event.add_attribute(**attribute)
             elif object_type == 'indicator':
-                attribute = {'type': 'stix2-pattern', 'object_relation': 'stix2-pattern', 'value': o.get('pattern')}
+                pattern = o.get('pattern')
+                self.parse_external_pattern(pattern)
+                attribute = {'type': 'stix2-pattern', 'object_relation': 'stix2-pattern', 'value': pattern}
                 misp_object = {'name': 'stix2-pattern', 'meta-category': 'stix2-pattern',
                                'Attribute': [self.version_attribute, attribute]}
                 self.misp_event.add_object(**misp_object)
@@ -272,6 +274,25 @@ class StixParser():
             cluster['meta']['synonyms'] = aliases
         galaxy['GalaxyCluster'] = [cluster]
         self.misp_event['Galaxy'].append(galaxy)
+
+    def parse_external_pattern(self, pattern):
+        if 'OR' not in pattern and 'LIKE' not in pattern:
+            pattern = pattern.split('AND')
+            if len(pattern) == 1:
+                attribute = self.attribute_from_external_pattern(pattern[0])
+                self.misp_event.add_attribute(**attribute)
+
+    @staticmethod
+    def attribute_from_external_pattern(pattern):
+        pattern_type, pattern_value = pattern.split(' = ')
+        pattern_type, pattern_value = pattern_type[1:].strip(), pattern_value[1:-2].strip()
+        stix_type, value_type = pattern_type.split(':')
+        if 'hashes' in value_type and 'x509' not in stix_type:
+            h_type = value_type.split('.')[1]
+            return {'type': h_type, 'value': pattern_value}
+        else:
+            # Might cause some issues, need more examples to test
+            return {'type': external_pattern_mapping[stix_type][value_type].get('type'), 'value': pattern_value}
 
     def saveFile(self):
         eventDict = self.misp_event.to_json()
