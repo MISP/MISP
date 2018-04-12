@@ -39,11 +39,17 @@ class StixParser():
             self.stix_version = 'stix {}'.format(event.get('spec_version'))
             for o in event.get('objects'):
                 try:
-                    self.event.append(stix2.parse(o))
+                    try:
+                        self.event.append(stix2.parse(o))
+                    except:
+                        self.parse_custom(o)
                 except:
-                    self.parse_custom(o)
+                    pass
+            if not self.event:
+                print(json.dumps({'success': 0, 'message': 'There is no valid STIX object to import'}))
+                sys.exit(1)
         except:
-            print(json.dumps({'success': 0, 'message': 'The temporary STIX export file could not be read'}))
+            print(json.dumps({'success': 0, 'message': 'The STIX file could not be read'}))
             sys.exit(1)
 
     def parse_custom(self, obj):
