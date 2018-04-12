@@ -1024,10 +1024,10 @@ class Attribute extends AppModel {
 				break;
 			case 'vulnerability':
 				$value = str_replace('–', '-', $value);
-				if (preg_match("#^(CVE-)[0-9]{4}(-)[0-9]{4,6}$#", $value)) {
+				if (preg_match("#^(CVE-)[0-9]{4}(-)[0-9]{4,}$#", $value)) {
 					$returnValue = true;
 				} else {
-					$returnValue = 'Invalid format. Expected: CVE-xxxx-xxxx.';
+					$returnValue = 'Invalid format. Expected: CVE-xxxx-xxxx...';
 				}
 				break;
 			case 'named pipe':
