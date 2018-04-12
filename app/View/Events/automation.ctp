@@ -333,10 +333,8 @@ Use semicolons instead (the search will automatically search for colons instead)
 	echo $baseurl.'/events/restSearch/json';
 ?>
 </pre>
-<p><?php echo __('POST message payload (XML)');?>:</p>
-<p><code><?php echo h('<request><value>red october</value><searchall>1</searchall><eventid>!15</eventid></request>'); ?></code></p>
 <p><?php echo __('POST message payload (json)');?>:</p>
-<p><code>{"request": {"value":"red october","searchall":1,"eventid":"!15"}}</code></p>
+<p><code>{"value":"red october","searchall":1,"eventid":"!15"}</code></p>
 <p><?php echo __('To just return a list of attributes, use the following syntax');?>:</p>
 <b>value</b>: <?php echo __('Search for the given value in the attributes\' value field.');?><br />
 <b>type</b>: <?php echo __('The attribute type, any valid MISP attribute type is accepted.');?><br />
@@ -354,7 +352,19 @@ Use semicolons instead (the search will automatically search for colons instead)
 <b>publish_timestamp</b>: <?php echo __('Restrict the results by the last publish timestamp (newer than).');?><br />
 <b>published</b>: <?php echo __('Set whether published or unpublished events should be returned. Do not set the parameter if you want both.');?><br />
 <b>timestamp</b>: <?php echo __('Restrict the results by the timestamp (of the attribute). Any attributes with a timestamp newer than the given timestamp will be returned.');?><br />
-<b>enforceWarninglist</b>: <?php echo __('Remove any attributes from the result that would cause a hit on a warninglist entry.');?><br /><br />
+<b>enforceWarninglist</b>: <?php echo __('Remove any attributes from the result that would cause a hit on a warninglist entry.');?><br />
+<b>to_ids</b>: <?php echo __('By default (0) all attributes are returned that match the other filter parameters, irregardless of their to_ids setting. To restrict the returned data set to to_ids only attributes set this parameter to 1. You can only use the special "exclude" setting to only return attributes that have the to_ids flag disabled.'); ?> <br />
+<b>deleted</b>: <?php echo __('If this parameter is set to 1, it will return soft-deleted attributes along with active ones. By using "only" as a parameter it will limit the returned data set to soft-deleted data only.'); ?> <br />
+<b>includeEventUuid</b>: <?php echo __('Instead of just including the event ID, also include the event UUID in each of the attributes.'); ?> <br />
+<b>event_timestamp</b>: <?php echo __('Only return attributes from events that have received a modification after the given timestamp.'); ?> <br /><br />
+<p>For example, to get all attributes of events modified after a given timestamp, simply POST to:</p>
+<pre>
+<?php
+	echo $baseurl.'/attributes/restSearch/json';
+?>
+</pre>
+<p><?php echo __('POST message payload (json)');?>:</p>
+<p><code>{"event_timestamp":1523521850}</code></p>
 <p><?php echo __('The keywords false or null should be used for optional empty parameters in the URL. Keep in mind, this is only needed if you use the deprecated URL parameters.');?></p>
 <pre>
 <?php
