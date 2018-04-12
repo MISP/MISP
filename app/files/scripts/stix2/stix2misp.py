@@ -21,7 +21,7 @@ import pymisp
 from stix2misp_mapping import *
 from collections import defaultdict
 
-galaxy_types = {'attack-pattern': 'Attack Pattern', 'course-of-action': 'Course of Action', 'intrusion-set': 'Intrusion Set',
+galaxy_types = {'attack-pattern': 'Attack Pattern', 'intrusion-set': 'Intrusion Set',
                 'malware': 'Malware', 'threat-actor': 'Threat Actor', 'tool': 'Tool'}
 
 class StixParser():
@@ -107,6 +107,8 @@ class StixParser():
             labels = o.get('labels')
             if object_type in galaxy_types:
                 self.parse_galaxy(o, labels)
+            elif object_type == 'course-of-action':
+                self.parse_course_of_action(o)
             elif 'x-misp-object' in object_type:
                 if 'from_object' in labels:
                     self.parse_custom_object(o)
@@ -155,6 +157,18 @@ class StixParser():
                   'GalaxyCluster': [{'type': galaxy_type, 'value':value, 'tag_name': tag,
                                      'description': cluster_description}]}
         self.misp_event['Galaxy'].append(galaxy)
+
+    def parse_course_of_action(self, o):
+        misp_object = pymisp.MISPObject('course-of-action')
+        if 'name' in o:
+            attribute = {'type': 'text', 'object_relation': 'name', 'value': o.get('name')}
+            misp_object.add_attribute(**attribute)
+        else:
+            return
+        if 'description' in o:
+            attribute = {'type': 'text', 'object_relation': 'description', 'value': o.get('description')}
+            misp_object.add_attribute(**attribute)
+        self.misp_event.add_object(**misp_object)
 
     def parse_custom_object(self, o):
         name = o.get('type').split('x-misp-object-')[1]
@@ -243,6 +257,8 @@ class StixParser():
                 if 'description' in o:
                     attribute['comment'] = o.get('description')
                 self.misp_event.add_attribute(**attribute)
+            elif object_type == 'course-of-action':
+                self.parse_course_of_action(o)
             elif object_type == 'indicator':
                 pattern = o.get('pattern')
                 self.parse_external_pattern(pattern)
