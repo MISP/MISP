@@ -158,7 +158,7 @@
               if ($i == 4):
             ?>
                 <li class="no-side-padding correlation-expand-button useCursorPointer linkButton blue">
-                  Show <?php echo __('Show ') . (count($event['Related' . $relatedObject][$object['id']]) - 4); echo __('more...');?>
+                  <?php echo __('Show ') . (count($event['Related' . $relatedObject][$object['id']]) - 4); echo __(' more...');?>
                 </li>
                 <?php
                   endif;
