@@ -18,6 +18,7 @@
 import sys, json, os, time
 from pymisp import MISPEvent, MISPObject, MISPAttribute, __path__
 from stix.core import STIXPackage
+from collections import defaultdict
 
 file_object_type = {"type": "filename", "relation": "filename"}
 
@@ -39,6 +40,7 @@ with open(descFilename, 'r') as f:
 class StixParser():
     def __init__(self):
         self.misp_event = MISPEvent()
+        self.misp_event['Galaxy'] = []
 
     def loadEvent(self, args, pathname):
         try:
@@ -100,6 +102,8 @@ class StixParser():
             self.parse_external_indicator(self.event.indicators)
         if self.event.observables:
             self.parse_external_observable(self.event.observables.observables)
+        if self.event.ttps:
+            self.parse_ttps(self.event.ttps.ttps)
         if self.event.courses_of_action:
             self.parse_coa(self.event.courses_of_action)
 
@@ -536,20 +540,24 @@ class StixParser():
         self.misp_event.add_object(**misp_object)
 
     def parse_ttps(self, ttps):
-        galaxies = []
         for ttp in ttps:
             if ttp.behavior and ttp.behavior.malware_instances:
                 mi = ttp.behavior.malware_instances[0]
                 if mi.types:
                     mi_type = mi.types[0].value
-                    galaxy = {'type': mi_type, 'GalaxyCluster': []}
-                    cluster = {'type': mi_type}
+                    galaxy = {'type': mi_type}
+                    cluster = defaultdict(dict)
+                    cluster['type'] = mi_type
                     if mi.description:
                         cluster['description'] = mi.description.value
                     cluster['value'] = ttp.title
-                    galaxy['GalaxyCluster'].append(cluster)
-                    galaxies.append(galaxy)
-        self.misp_event['Galaxy'] = galaxies
+                    if mi.names:
+                        synonyms = []
+                        for name in mi.names:
+                            synonyms.append(name.value)
+                        cluster['meta']['synonyms'] = synonyms
+                    galaxy['GalaxyCluster'] = [cluster]
+                    self.misp_event['Galaxy'].append(galaxy)
 
     def parse_coa(self, courses_of_action):
         for coa in courses_of_action:
