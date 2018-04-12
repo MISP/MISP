@@ -134,9 +134,11 @@ class StixParser():
         info = "Imported from external STIX event"
         try:
             try:
-                info = self.event.stix_header.title
+                title = self.event.stix_header.title
             except:
-                info = self.event.title
+                title = self.event.title
+            if title:
+                info = title
         except:
             pass
         self.misp_event.info = str(info)
