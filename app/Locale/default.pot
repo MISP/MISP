@@ -5750,8 +5750,8 @@ msgstr ""
 
 #: View/Organisations/index.ctp:112
 #: View/Posts/add.ctp:33
-msgid ""
-msgstr ""
+# msgid ""
+# msgstr ""
 
 #: View/Organisations/view.ctp:3
 msgid "Organisation "
@@ -10328,8 +10328,8 @@ msgstr ""
 
 #: View/Users/admin_view.ctp:67
 #: View/Users/view.ctp:60
-msgid "GnuPG key"
-msgstr ""
+# msgid "GnuPG key"
+# msgstr ""
 
 #: View/Users/admin_view.ctp:74
 #: View/Users/view.ctp:67
@@ -10363,8 +10363,8 @@ msgid "No failed composites"
 msgstr ""
 
 #: View/Users/edit.ctp:25
-msgid "Fetch GnuPG key"
-msgstr ""
+# msgid "Fetch GnuPG key"
+# msgstr ""
 
 #: View/Users/edit.ctp:27
 msgid "SMIME Public certificate (PEM format)"
