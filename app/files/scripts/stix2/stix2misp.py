@@ -136,7 +136,11 @@ class StixParser():
             ext_refs = report['external_references']
             for e in ext_refs:
                 link = {"type": "link"}
-                comment = e.get('source_name').split('url - ')[1]
+                comment = e.get('source_name')
+                try:
+                    comment = comment.split('url - ')[1]
+                except:
+                    pass
                 if comment:
                     link['comment'] = comment
                 link['value'] = e.get('url')
