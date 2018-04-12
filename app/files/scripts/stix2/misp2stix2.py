@@ -110,6 +110,8 @@ class StixBuilder():
                 object_name = misp_object.name
                 if object_name == "vulnerability":
                     self.add_object_vulnerability(misp_object, to_ids)
+                elif object_name == "course-of-action":
+                    self.add_course_of_action(misp_object, from_object=True)
                 elif object_name in objectsMapping:
                     try:
                         if to_ids:
@@ -227,11 +229,23 @@ class StixBuilder():
         attack_pattern = AttackPattern(**a_p_args)
         self.append_object(attack_pattern, a_p_id)
 
-    def add_course_of_action(self, galaxy):
-        c_o_a_args, c_o_a_id = self.generate_galaxy_args(galaxy, False, False, 'course-of-action')
-        c_o_a_args['created_by_ref'] = self.identity_id
-        course_of_action = CourseOfAction(**c_o_a_args)
-        self.append_object(course_of_action, c_o_a_id)
+    def add_course_of_action(self, misp_object, from_object=False):
+        if from_object:
+            coa_id = 'course-of-action--{}'.format(misp_object.uuid)
+            coa_args = {'id': coa_id, 'type': 'course-of-action'}
+            for attribute in misp_object.attributes:
+                relation = attribute.object_relation
+                if relation == 'name':
+                    coa_args['name'] = attribute.value
+                elif relation == 'description':
+                    coa_args['description'] = attribute.value
+            if not 'name' in coa_args:
+                return
+        else:
+            coa_args, coa_id = self.generate_galaxy_args(misp_object, False, False, 'course-of-action')
+        coa_args['created_by_ref'] = self.identity_id
+        course_of_action = CourseOfAction(**coa_args)
+        self.append_object(course_of_action, coa_id)
 
     def add_custom(self, attribute):
         custom_object_id = "x-misp-object--{}".format(attribute.uuid)
