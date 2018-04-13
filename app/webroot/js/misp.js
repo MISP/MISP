@@ -2730,7 +2730,7 @@ function runHoverLookup(type, id) {
 			$('#' + type + '_' + id + '_container').popover({
 				title: 'Lookup results:',
 				content: html,
-				placement: 'left',
+				placement: 'top',
 				html: true,
 				trigger: 'hover',
 				container: 'body'
@@ -2749,7 +2749,7 @@ $(".eventViewAttributeHover").mouseenter(function() {
 		$('#' + type + '_' + id + '_container').popover({
 			title: 'Lookup results:',
 			content: ajaxResults[type + "_" + id],
-			placement: 'left',
+			placement: 'top',
 			html: true,
 			trigger: 'hover',
 			container: 'body'

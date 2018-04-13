@@ -1,6 +1,6 @@
-#!/usr/bin/env python3
-#    Copyright (C) 2017 CIRCL Computer Incident Response Center Luxembourg (smile gie)
-#    Copyright (C) 2017 Christian Studer
+# -*- coding: utf-8 -*-
+#    Copyright (C) 2017-2018 CIRCL Computer Incident Response Center Luxembourg (smile gie)
+#    Copyright (C) 2017-2018 Christian Studer
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -15,522 +15,362 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import sys, json, os, time, re
-from stix2 import *
+import sys, json, os, time
+import stix2
 import pymisp
+from stix2misp_mapping import *
+from collections import defaultdict
 
-def loadEvent(args, pathname):
-    try:
-        filename = os.path.join(pathname, args[1])
-        tempFile = open(filename, 'r')
-        event = json.loads(tempFile.read())
-        return event
-    except:
-        print(json.dumps({'success': 0, 'message': 'The temporary STIX export file could not be read'}))
-        sys.exit(1)
+galaxy_types = {'attack-pattern': 'Attack Pattern', 'intrusion-set': 'Intrusion Set',
+                'malware': 'Malware', 'threat-actor': 'Threat Actor', 'tool': 'Tool'}
 
-def fillReportInfo(mispDict, report):
-    mispDict['info'] = report.get('name')
-    if report.get('published'):
-        mispDict['publish_timestamp'] = getTimestampfromDate(report.get('published'))
-    labels = report.get('labels')
-    if labels:
-        Tag = []
-        for l in labels:
-            label = {'exportable': True, 'hide_tag': False}
-            label['name'] = l
-            Tag.append(label)
-        mispDict['Tag'] = Tag
+class StixParser():
+    def __init__(self):
+        self.misp_event = pymisp.MISPEvent()
+        self.event = []
+        self.misp_event['Galaxy'] = []
 
-def buildMispDict(event):
-    mispDict = {}
-    identity = event.pop(0)
-    mispDict['Org'] = {}
-    mispDict['Org']['name'] = identity.get('name')
-    report = event.pop(0)
-    fillReportInfo(mispDict, report)
-    Attribute = []
-    Galaxy = []
-    Object = []
-    try:
-        external_refs = report.get('external_references')
-        for e in external_refs:
-            link = {'type': 'link'}
-            link['comment'] = e.get('source_name').split('url - ')[1]
-            link['value'] = e.get('url')
-            Attribute.append(link)
-    except:
-        pass
-    for attr in event:
-        attrType = attr.get('type')
-        attrLabels = attr.pop('labels')
-        if attrType in ('attack-pattern', 'course-of-action', 'intrusion-set', 'malware', 'threat-actor', 'tool'):
-            fillGalaxy(attr, attrLabels, Galaxy)
-        elif 'x-misp-object' in attrType:
-            if 'from_object' in attrLabels:
-                fillCustomFromObject(attr, attrLabels, Object)
-            else:
-                fillCustom(attr, attrLabels, Attribute)
-        else:
-            if 'from_object' in attrLabels:
-                fillObjects(attr, attrLabels, Object)
-            else:
-                fillAttributes(attr, attrLabels, Attribute)
-    mispDict['Attribute'] = Attribute
-    mispDict['Galaxy'] = Galaxy
-    mispDict['Object'] = Object
-    return mispDict
-
-def fillGalaxy(attr, attrLabels, Galaxy):
-    galaxy = {}
-    mispType = getMispType(attrLabels)
-    tag = attrLabels[1]
-    value = tag.split(':')[1].split('=')[1]
-    galaxy['type'] = mispType
-    galaxy['name'] = attr.get('name')
-    galaxyDescription, clusterDescription = attr.get('description').split(' | ')
-    galaxy['description'] = galaxyDescription
-    galaxy['GalaxyCluster'] = [{'type': mispType, 'value': value, 'tag_name': tag,
-                               'description': clusterDescription}]
-    Galaxy.append(galaxy)
-
-def fillObjects(attr, attrLabels, Object):
-    obj = {}
-    objType = getMispType(attrLabels)
-    objCat = getMispCategory(attrLabels)
-    attrType = attr.get('type')
-    if attrType == 'observed-data':
-        observable = attr.get('objects')
-        obj['name'] = objType
-        obj['meta-category'] = objCat
-        obj['Attribute'] = resolveObservableFromObjects(observable, objType, attrLabels)
-    elif attrType == 'indicator':
-        obj['name'] = objType
-        obj['meta-category'] = objCat
-        pattern = attr.get('pattern').replace('\\\\', '\\').split(' AND ')
-        pattern[0] = pattern[0][2:]
-        pattern[-1] = pattern[-1][:-2]
-        obj['Attribute'] = resolvePatternFromObjects(pattern, objType, attrLabels)
-    else:
-        obj['name'] = attrType
-    obj['to_ids'] = bool(attrLabels[1].split('=')[1])
-    Object.append(obj)
-
-def fillAttributes(attr, attrLabels, Attribute):
-    attribute = {}
-    mispType = getMispType(attrLabels)
-    mispCat = getMispCategory(attrLabels)
-    attrType = attr.get('type')
-    if attrType == 'observed-data':
-        attribute['type'] = mispType
-        attribute['category'] = mispCat
-        date = attr.get('first_observed')
-        attribute['timestamp'] = getTimestampfromDate(date)
-        observable = attr.get('objects')
-        attribute['value'] = resolveObservable(observable, mispType)
-    elif attrType == 'indicator':
-        attribute['type'] = mispType
-        attribute['category'] = mispCat
-        date = attr.get('valid_from')
-        attribute['timestamp'] = getTimestampfromDate(date)
-        pattern = attr.get('pattern').replace('\\\\', '\\')
-        attribute['value'] = resolvePattern(pattern, mispType)
-    else:
-        attribute['value'] = attr.get('name')
-        if attrType == 'identity':
-            attribute['type'] = mispType
-        else:
-            attribute['type'] = attrType
-        attribute['category'] = mispCat
-    attribute['to_ids'] = bool(attrLabels[1].split('=')[1])
-    if 'description' in attr:
-        attribute['comment'] = attr.get('description')
-    Attribute.append(attribute)
-
-def fillCustom(attr, attrLabels, Attribute):
-    attribute = {}
-    attribute['type'] = attr.get('type').split('x-misp-object-')[1]
-    attribute['timestamp'] = getTimestampfromDate(attr.get('x_misp_timestamp'))
-    attribute['to_ids'] = bool(attrLabels[1].split('=')[1])
-    attribute['value'] = attr.get('x_misp_value')
-    attribute['category'] = getMispCategory(attrLabels)
-    Attribute.append(attribute)
-
-def fillCustomFromObject(attr, attrLabels, Object):
-    obj = {}
-    obj['name'] = attr.get('type').split('x-misp-object-')[1]
-    obj['timestamp'] = int(time.mktime(time.strptime(attr.get('x_misp_timestamp'), "%Y-%m-%d %H:%M:%S")))
-    obj['meta-category'] = attr.get('category')
-    #obj['labels'] = bool(attrLabels[0].split('=')[1])
-    Attribute = []
-    values = attr.get('x_misp_values')
-    for obj_attr in values:
-        attribute = {}
-        attr_type, objRelation = obj_attr.split('_')
-        attribute['type'] = attr_type
-        attribute['object_relation'] = objRelation
-        attribute['value'] = values.get(obj_attr)
-        Attribute.append(attribute)
-    obj['Attribute'] = Attribute
-    Object.append(obj)
-
-def getTimestampfromDate(date):
-    if '.' in date:
-        return int(time.mktime(time.strptime(date.split('.')[0], "%Y-%m-%dT%H:%M:%S")))
-    elif '+' in date:
-        return int(time.mktime(time.strptime(date.split('+')[0], "%Y-%m-%d %H:%M:%S")))
-    else:
-        return int(time.mktime(time.strptime(date, "%Y-%m-%dT%H:%M:%SZ")))
-
-def getMispType(labels):
-    return labels[0].split('=')[1][1:-1]
-
-def getMispCategory(labels):
-    return labels[1].split('=')[1][1:-1]
-
-mispSimpleMapping = {
-        'email-subject': 'subject', 'email-body': 'body', 'regkey': 'key', 'mutex': 'name', 'port': 'dst_port',
-        'attachment': 'payload_bin', 'filename': 'name'}
-
-mispComplexMapping = {
-        'single': {'regkey|value': {'values': 'name'},
-                   'x509-fingerprint-sha1': {'hashes': 'SHA-1'}},
-        'double': {'domain|ip': {'0': 'value', '1': 'value'},
-                   'ip-src|port': {'0': 'value', '1': 'src_port'},
-                   'ip-dst|port': {'0': 'value', '1': 'dst_port'},
-                   'hostname|port': {'0': 'value', '1': 'dst_port'}}
-        }
-
-def resolveObservable(observable, mispType):
-    obj0 = observable.get('0')
-    if mispType in mispSimpleMapping:
-        return obj0.get(mispSimpleMapping[mispType])
-    elif mispType in mispComplexMapping['single']:
-        singleDict = mispComplexMapping['single'].get(mispType)
-        key1 = list(singleDict.keys())[0]
-        key2 = singleDict[key1]
-        value2 = obj0[key1].get(key2)
+    def loadEvent(self, args, pathname):
         try:
-            value1 = obj0.get('key')
-            return '{}|{}'.format(value1, value2)
+            filename = os.path.join(pathname, args[1])
+            tempFile = open(filename, 'r')
+            self.filename = filename
+            event = stix2.get_dict(tempFile)
+            self.stix_version = 'stix {}'.format(event.get('spec_version'))
+            for o in event.get('objects'):
+                try:
+                    try:
+                        self.event.append(stix2.parse(o))
+                    except:
+                        self.parse_custom(o)
+                except:
+                    pass
+            if not self.event:
+                print(json.dumps({'success': 0, 'message': 'There is no valid STIX object to import'}))
+                sys.exit(1)
         except:
-            return value2
-    elif mispType in mispComplexMapping['double']:
-        obj1 = observable.get('1')
-        doubleDict = mispComplexMapping['double'].get(mispType)
-        value0 = obj0.get(doubleDict['0'])
-        value1 = obj1.get(doubleDict['1'])
-        return '{}|{}'.format(value0, value1)
-    elif 'filename|' in mispType or mispType == 'malware-sample':
-        value1 = obj0.get('name')
+            print(json.dumps({'success': 0, 'message': 'The STIX file could not be read'}))
+            sys.exit(1)
+
+    def parse_custom(self, obj):
+        custom_object_type = obj.pop('type')
+        labels = obj['labels']
         try:
-            value2 = obj0['hashes'].get(mispType.split('|')[1])
+            @stix2.CustomObject(custom_object_type,[('id', stix2.properties.StringProperty(required=True)),
+            ('x_misp_timestamp', stix2.properties.StringProperty(required=True)),
+            ('labels', stix2.properties.ListProperty(labels, required=True)),
+            ('x_misp_value', stix2.properties.StringProperty(required=True)),
+            ('created_by_ref', stix2.properties.StringProperty(required=True)),
+            ('x_misp_comment', stix2.properties.StringProperty()),
+            ('x_misp_category', stix2.properties.StringProperty())
+            ])
+            class Custom(object):
+                def __init__(self, **kwargs):
+                    return
+            custom = Custom(**obj)
         except:
-            value2 = obj0['hashes'].get('md5')
-        return '{}|{}'.format(value1, value2)
-    elif 'hashes' in obj0:
-        if 'sha' in mispType:
-            return obj0['hashes'].get('SHA-{}'.format(mispType.split('sha')[1]))
-        return obj0['hashes'].get(mispType.upper())
-    else:
-        return obj0.get('value')
+            @stix2.CustomObject(custom_object_type,[('id', stix2.properties.StringProperty(required=True)),
+            ('x_misp_timestamp', stix2.properties.StringProperty(required=True)),
+            ('labels', stix2.properties.ListProperty(labels, required=True)),
+            ('x_misp_values', stix2.properties.DictionaryProperty(required=True)),
+            ('created_by_ref', stix2.properties.StringProperty(required=True)),
+            ('x_misp_comment', stix2.properties.StringProperty()),
+            ('x_misp_category', stix2.properties.StringProperty())
+            ])
+            class Custom(object):
+                def __init__(self, **kwargs):
+                    return
+            custom = Custom(**obj)
+        self.event.append(stix2.parse(custom))
 
-def resolveObservableFromObjects(observable, mispType, attrLabels):
-    mapping = objectMapping[mispType]
-    if mispType == 'email':
-        return resolveEmailObject(observable, mapping)
-    elif mispType == 'domain|ip':
-        return resolveDomainIpObject(observable, mapping)
-    elif mispType == 'ip|port':
-        return resolveIpPortObject (observable, mapping)
-    elif mispType == 'registry-key':
-        return resolveRegKeyObject(observable, mapping)
-    else:
-        return resolveBasicObject(observable, mapping, attrLabels)
-
-def resolveEmailObject(observable, mapping):
-    obj0 = observable.get('0')
-    Attribute = []
-    if obj0.pop('type') != 'email-message':
-        print(json.dumps({'success': 0, 'message': 'Object type error. \'email\' needed.'}))
-        sys.exit(1)
-    if 'subject' in obj0:
-        subject = obj0.pop('subject')
-        Attribute.append(buildAttribute(mapping, subject, 'subject'))
-    is_multipart = obj0.pop('is_multipart')
-    if is_multipart:
-        body = obj0.pop('body_multipart')
-        for item in body:
-            part = item.get('body_raw_ref')
-            obj = observable[part].get('name')
-            Attribute.append(buildAttribute(mapping, obj, 'body_raw_ref'))
-    if 'additional_header_fields' in obj0:
-        header = obj0.pop('additional_header_fields')
-        for h in header:
-            obj = header.get(h)
-            Attribute.append(buildAttribute(mapping, obj, h))
-    if 'from_ref' in obj0:
-        part = obj0.pop('from_ref')
-        obj = observable[part].get('value')
-        Attribute.append(buildAttribute(mapping, obj, 'from_ref'))
-    for o in obj0:
-        field = obj0.get(o)
-        for f in field:
-            obj = observable[f].get('value')
-            Attribute.append(buildAttribute(mapping, obj, o))
-    return Attribute
-
-def resolveDomainIpObject(observable, mapping):
-    Attribute = []
-    obj0 = observable.get('0')
-    obj = obj0.get('value')
-    Attribute.append(buildAttribute(mapping, obj, 'domain'))
-    refs = obj.get('resolves_to_refs')
-    for ref in refs:
-        obj = observable[ref].get('value')
-        Attribute.append(buildAttribute(mapping, obj, 'resolves_to_refs[*].value'))
-    return Attribute
-
-def resolveIpPortObject(observable, mapping):
-    Attribute = []
-    obj0 = observable.get('0')
-    objIp = obj0.get('value')
-    Attribute.append(buildAttribute(mapping, objIp, 'dst_ref.value'))
-    obj1 = observable.get('1')
-    for o in obj1:
-        if o in mapping:
-            obj = obj1.get(o)
-            Attribute.append(buildAttribute(mapping, obj, o))
-        elif o in objDateRelation:
-            objValue = obj1.get(o)
-            objRelation = objDateRelation.get(o)
-            attribute = {'type': 'datetime', 'object_relation': objRelation, 'value': objValue}
-            Attribute.append(attribute)
-    return Attribute
-
-def resolveRegKeyObject(observable, mapping):
-    Attribute = []
-    obj0 = observable.get('0')
-    if 'values' in obj0:
-        values = obj0.pop('values')
-        for val in values[0]:
-            v = values[0].get(val)
-            Attribute.append(buildAttribute(mapping, v, val))
-    obj0.pop('type')
-    if 'key' in obj0:
-        key = obj0.pop('key')
-        Attribute.append(buildAttribute(mapping, key, 'key'))
-    if 'modified' in obj0:
-        date = obj.pop('modified')
-        relation = objDateRelation.get('modified')
-        attribute = {'type': 'datetime', 'object_relation': relation, 'value': date}
-        Attribute.append(attribute)
-    return Attribute
-
-def resolveBasicObject(observable, mapping, attrLabels):
-    obj0 = observable.get('0')
-    if obj0.pop('type') not in ('x509-certificate', 'file', 'url'):
-        print(json.dumps({'success': 0, 'message': 'Object type error.'}))
-        sys.exit(1)
-    Attribute = []
-    if 'malware-sample' in attrLabels:
-        for o in observable:
-            if o.get('type') == 'file':
-                value = '{}|{}'.format(o.get('name'), o['hashes'].get('MD5'))
-                Attribute.append({'type': 'malware-sample', 'object_relation': 'malware-sample', 'value': value})
-                break
-    if 'hashes' in obj0:
-        hashes = obj0.pop('hashes')
-        for h in hashes:
-            obj = hashes.get(h)
-            hsh = h.lower().replace('-', '')
-            Attribute.append({'type': hsh, 'object_relation': hsh, 'value': obj})
-    for o in obj0:
-        obj = obj0.get(o)
-        if o in mapping:
-            Attribute.append(buildAttribute(mapping, obj, o))
-            continue
-        elif o in objTextRelation:
-            attribute = {}
-            attrType = 'text'
-            attrRelation = objTextRelation.get(o)
-        elif o in objDateRelation:
-            attribute = {}
-            attrType = 'datetime'
-            attrRelation = objDateRelation.get(o)
-        attribute['type'] = attrType
-        attribute['object_relation'] = attrRelation
-        attribute['value'] = obj
-        Attribute.append(attribute)
-    return Attribute
-
-def getTypeAndRelation(mapping, obj):
-    objType = mapping[obj].get('type')
-    objRelation = mapping[obj].get('relation')
-    return objType, objRelation
-
-def buildAttribute(mapping, obj, objString):
-    attribute = {}
-    attribute['type'], attribute['object_relation'] = getTypeAndRelation(mapping, objString)
-    attribute['value'] = obj
-    return attribute
-
-def resolvePattern(pattern, mispType):
-    if ' AND ' in pattern:
-        patternParts = pattern.split(' AND ')
-        if len(patternParts) == 3:
-            _, value1 = patternParts[2].split(' = ')
-            _, value2 = patternParts[0].split(' = ')
+    def handler(self):
+        self.outputname = '{}.stix2'.format(self.filename)
+        if self.from_misp():
+            self.buildMispDict()
         else:
-            _, value1 = patternParts[0].split(' = ')
-            _, value2 = patternParts[1].split(' = ')
-        value = '{}|{}'.format(value1[1:-1], value2[1:-1])
-    else:
-        _, value = pattern.split(' = ')
-        value = value[1:-1]
-    return value
+            self.version_attribute = {'type': 'text', 'object_relation': 'version', 'value': self.stix_version}
+            self.buildExternalDict()
 
-objectMapping = {
-        'domain|ip': {'domain': {'type': 'domain', 'relation': 'domain'},
-                      'resolves_to_refs[*].value': {'type': 'ip-dst', 'relation': 'ip'}},
-        'email': {'to_refs': {'type': 'email-dst', 'relation': 'to'},
-                  'cc_refs': {'type': 'email-dst', 'relation': 'cc'},
-                  'subject': {'type': 'email-subject', 'relation': 'subject'},
-                  'additional_header_fields.X-Mailer': {'type': 'email-x-mailer', 'relation': 'x-mailer'},
-                  'x-mailer': {'type': 'email-x-mailer', 'relation': 'x-mailer'},
-                  'from_ref': {'type': 'email-src', 'relation': 'from'},
-                  'body_multipart[*].body_raw_ref.name': {'type': 'email-attachment', 'relation': 'attachment'},
-                  'body_raw_ref': {'type': 'email-attachment', 'relation': 'attachment'},
-                  'additional_header_fields.Reply-To': {'type': 'email-reply-to', 'relation': 'reply-to'},
-                  'reply-to': {'type': 'email-reply-to', 'relation': 'reply-to'}},
-        'file': {'size': {'type': 'size-in-bytes', 'relation': 'size-in-bytes'},
-                 'name': {'type': 'filename', 'relation': 'filename'}},
-        'ip|port': {'src_port': {'type': 'port', 'relation': 'src-port'},
-                    'dst_port': {'type': 'port', 'relation': 'dst-port'},
-                    'dst_ref.value': {'type': 'ip-dst', 'relation': 'ip'}},
-        'registry-key': {'data_type': {'type': 'text', 'relation': 'data-type'},
-                         'data': {'type': 'text', 'relation': 'data'},
-                         'name': {'type': 'text', 'relation': 'name'},
-                         'key': {'type': 'regkey', 'relation': 'key'}},
-        'url': {'value': {'type': 'url', 'relation': 'url'}},
-        'x509': {}
-        }
-objTextRelation = {'subject': 'subject', 'issuer': 'issuer', 'serial_number': 'serial-number',
-                   'subject_public_key_exponent': 'pubkey-info-exponent', 'version': 'version',
-                   'subject_public_key_modulus': 'pubkey-info-modulus', 'mime_type': 'mimetype',
-                   'subject_public_key_algorithm': 'pubkey-info-algorithm'}
-objDateRelation = {'validity_not_before': 'validity-not-before', 'start': 'first-seen',
-                   'validity_not_after': 'validity-not-after', 'end': 'last-seen',
-                   'date': 'send-date', 'modified': 'last-modified'}
+    def from_misp(self):
+        for o in self.event:
+            if o._type == 'report' and 'misp:tool="misp2stix2"' in o.get('labels'):
+                index = self.event.index(o)
+                self.report = self.event.pop(index)
+                return True
+        return False
 
-def resolvePatternFromObjects(pattern, mispType, attrLabels):
-    Attribute = []
-    mapping = objectMapping.get(mispType)
-    if 'malware-sample' in attrLabels:
-        name = False
-        h = False
-        for p in pattern:
-            if 'file:name' in p:
-                filename = p.split(' = ')[1][1:-1]
-                name = True
-            if 'hashes.\'md5\'' in p:
-                md5 = p.split(' = ')[1][1:-1]
-                h = True
-            if name == True and h == True:
-                break
-        Attribute.append({'type': 'malware-sample', 'object_relation': 'malware-sample',
-                          'value': '{}|{}'.format(filename, md5)})
-    for p in pattern:
-        attribute = {}
-        stixType, value = p.split(' = ')
-        stixType = stixType.split(':')[1]
-        if stixType in mapping:
-            attrType = mapping[stixType].get('type')
-            relation = mapping[stixType].get('relation')
-        elif 'hashes' in stixType:
-            attrType = stixType.split('.')[1][1:-1]
-            relation = attrType
-        else:
-            if stixType in objTextRelation:
-                relation = objTextRelation.get(stixType)
-                attrType = 'text'
-            elif stixType in objDateRelation:
-                relation = objDateRelation.get(stixType)
-                attrType = 'datetime'
+    def buildMispDict(self):
+        self.parse_identity()
+        self.parse_report()
+        for o in self.event:
+            object_type = o._type
+            labels = o.get('labels')
+            if object_type in galaxy_types:
+                self.parse_galaxy(o, labels)
+            elif object_type == 'course-of-action':
+                self.parse_course_of_action(o)
+            elif 'x-misp-object' in object_type:
+                if 'from_object' in labels:
+                    self.parse_custom_object(o)
+                else:
+                    self.parse_custom_attribute(o, labels)
             else:
+                if 'from_object' in labels:
+                    self.parse_object(o, labels)
+                else:
+                    self.parse_attribute(o, labels)
+
+    def parse_identity(self):
+        identity = self.event.pop(0)
+        org = {'name': identity.get('name')}
+        self.misp_event['Org'] = org
+
+    def parse_report(self):
+        report = self.report
+        self.misp_event.info = report.get('name')
+        if report.get('published'):
+            self.misp_event.publish_timestamp = self.getTimestampfromDate(report.get('published'))
+        if hasattr(report, 'labels'):
+            labels = report['labels']
+            for l in labels:
+                self.misp_event.add_tag(l)
+        if hasattr(report, 'external_references'):
+            ext_refs = report['external_references']
+            for e in ext_refs:
+                link = {"type": "link"}
+                comment = e.get('source_name')
+                try:
+                    comment = comment.split('url - ')[1]
+                except:
+                    pass
+                if comment:
+                    link['comment'] = comment
+                link['value'] = e.get('url')
+                self.misp_event.add_attribute(**link)
+
+    def parse_galaxy(self, o, labels):
+        galaxy_type = self.get_misp_type(labels)
+        tag = labels[1]
+        value = tag.split(':')[1].split('=')[1]
+        galaxy_description, cluster_description = o.get('description').split('|')
+        galaxy = {'type': galaxy_type, 'name': o.get('name'), 'description': galaxy_description,
+                  'GalaxyCluster': [{'type': galaxy_type, 'value':value, 'tag_name': tag,
+                                     'description': cluster_description}]}
+        self.misp_event['Galaxy'].append(galaxy)
+
+    def parse_course_of_action(self, o):
+        misp_object = pymisp.MISPObject('course-of-action')
+        if 'name' in o:
+            attribute = {'type': 'text', 'object_relation': 'name', 'value': o.get('name')}
+            misp_object.add_attribute(**attribute)
+        else:
+            return
+        if 'description' in o:
+            attribute = {'type': 'text', 'object_relation': 'description', 'value': o.get('description')}
+            misp_object.add_attribute(**attribute)
+        self.misp_event.add_object(**misp_object)
+
+    def parse_custom_object(self, o):
+        name = o.get('type').split('x-misp-object-')[1]
+        timestamp = self.getTimestampfromDate(o.get('x_misp_timestamp'))
+        category = o.get('category')
+        attributes = []
+        values = o.get('x_misp_values')
+        for v in values:
+            attribute_type, object_relation = v.split('_')
+            attribute = {'type': attribute_type, 'value': values.get(v),
+                         'object_relation': object_relation}
+            attributes.append(attribute)
+        misp_object = {'name': name, 'timestamp': timestamp, 'meta-category': category,
+                       'Attribute': attributes}
+        self.misp_event.add_object(**misp_object)
+
+    def parse_custom_attribute(self, o, labels):
+        attribute_type = o.get('type').split('x-misp-object-')[1]
+        timestamp = self.getTimestampfromDate(o.get('x_misp_timestamp'))
+        to_ids = bool(labels[1].split('=')[1])
+        value = o.get('x_misp_value')
+        category = self.get_misp_category(labels)
+        attribute = {'type': attribute_type, 'timestamp': timestamp, 'to_ids': to_ids,
+                     'value': value, 'category': category}
+        self.misp_event.add_attribute(**attribute)
+
+    def parse_object(self, o, labels):
+        object_type = self.get_misp_type(labels)
+        object_category = self.get_misp_category(labels)
+        stix_type = o._type
+        misp_object = pymisp.MISPObject(object_type)
+        misp_object['meta-category'] = object_category
+        if stix_type == 'indicator':
+            pattern = o.get('pattern').replace('\\\\', '\\').split(' AND ')
+            pattern[0] = pattern[0][2:]
+            pattern[-1] = pattern[-1][:-2]
+            attributes = self.parse_pattern_from_object(pattern, object_type)
+        if stix_type == 'observed-data':
+            observable = o.get('objects')
+            attributes = self.parse_observable_from_object(observable, object_type)
+        for attribute in attributes:
+            misp_object.add_attribute(**attribute)
+        misp_object.to_ids = bool(labels[1].split('=')[1])
+        self.misp_event.add_object(**misp_object)
+
+    def parse_attribute(self, o, labels):
+        attribute_type = self.get_misp_type(labels)
+        attribute_category = self.get_misp_category(labels)
+        attribute = {'type': attribute_type, 'category': attribute_category}
+        stix_type = o._type
+        if stix_type == 'vulnerability':
+            value = o.get('name')
+        else:
+            if stix_type == 'indicator':
+                o_date = o.get('valid_from')
+                pattern = o.get('pattern').replace('\\\\', '\\')
+                value = self.parse_pattern(pattern)
+                attribute['to_ids'] = True
+            else:
+                o_date = o.get('first_observed')
+                observable = o.get('objects')
+                try:
+                    value = self.parse_observable(observable, attribute_type)
+                except:
+                    print('{}: {}'.format(attribute_type, observable))
+                attribute['to_ids'] = False
+            attribute['timestamp'] = self.getTimestampfromDate(o_date)
+        if 'description' in o:
+            attribute['comment'] = o.get('description')
+        try:
+            attribute['value'] = value
+            self.misp_event.add_attribute(**attribute)
+        except:
+            pass
+
+    def buildExternalDict(self):
+        self.fetch_report()
+        for o in self.event:
+            object_type = o._type
+            if object_type in ('relationship', 'report'):
                 continue
-        attribute['type'] = attrType
-        attribute['object_relation'] = relation
-        attribute['value'] = value[1:-1]
-        Attribute.append(attribute)
-    return Attribute
+            if object_type in galaxy_types:
+                self.parse_external_galaxy(o)
+            elif object_type == 'vulnerability':
+                attribute = {'type': 'vulnerability', 'value': o.get('name')}
+                if 'description' in o:
+                    attribute['comment'] = o.get('description')
+                self.misp_event.add_attribute(**attribute)
+            elif object_type == 'course-of-action':
+                self.parse_course_of_action(o)
+            elif object_type == 'indicator':
+                pattern = o.get('pattern')
+                self.parse_external_pattern(pattern)
+                attribute = {'type': 'stix2-pattern', 'object_relation': 'stix2-pattern', 'value': pattern}
+                misp_object = {'name': 'stix2-pattern', 'meta-category': 'stix2-pattern',
+                               'Attribute': [self.version_attribute, attribute]}
+                self.misp_event.add_object(**misp_object)
 
-def parseExternalStix(event):
-    mispDict = {}
-    report = event.pop(0)
-    fillReportInfo(mispDict, report)
-    Attribute = []
-    Galaxy = []
-    Object = []
-    for e in event:
-        attrType = e.get('type')
-        if attrType in ('relationship', 'report'):
-            continue
-        if attrType == 'indicator':
-            pattern = e.get('pattern')
-            attribute = {'type': 'stix2-pattern', 'object_relation': 'stix2-pattern', 'value': pattern}
-            obj = {'name': 'stix2-pattern', 'meta-category': 'stix2-pattern', 'Attribute': [attribute]}
-            Object.append(obj)
-            pattern = re.split(' AND | OR ', pattern[2:-2])
-            #pattern_parser(pattern)
-    mispDict['Attribute'] = Attribute
-    mispDict['Galaxy'] = Galaxy
-    mispDict['Object'] = Object
-    return mispDict
+    def fetch_report(self):
+        reports = []
+        for o in self.event:
+            if o._type == 'report':
+                reports.append(o)
+        if len(reports) == 1:
+            self.report = reports[0]
+            self.parse_report()
 
-def pattern_parser(pattern):
-    #pattern_dict = {}
-    for p in pattern:
-        if ' LIKE ' in p:
-            continue
-        if p.startswith('('):
-            print(p)
-            p = p[1:]
-            print(p)
-        if p.endswith(')') and '(' not in p:
-            p = p[:-1]
-        pType, pValue = p.split(' = ')
-    #    pattern_dict[pType] = pValue[1:-1]
-    if len(pattern_dict) == 1:
-        fieldType = 'attribute'
-    #return fieldType
+    def parse_external_galaxy(self, o):
+        galaxy = {'name': galaxy_types[o._type]}
+        if 'kill_chain_phases' in o:
+            galaxy['type'] = o['kill_chain_phases'][0].get('phase_name')
+        cluster = defaultdict(dict)
+        cluster['value'] = o.get('name')
+        cluster['description'] = o.get('description')
+        if 'aliases' in o:
+            aliases = []
+            for a in o.get('aliases'):
+                aliases.append(a)
+            cluster['meta']['synonyms'] = aliases
+        galaxy['GalaxyCluster'] = [cluster]
+        self.misp_event['Galaxy'].append(galaxy)
 
-def observable_parser(observable):
-    return
+    def parse_external_pattern(self, pattern):
+        if ' OR ' in pattern and ' AND ' not in pattern:
+            pattern = pattern.split('OR')
+            for p in pattern:
+                attribute = self.attribute_from_external_pattern(p)
+                self.misp_event.add_attribute(**attribute)
+        elif ' OR ' not in pattern and ' LIKE ' not in pattern:
+            pattern = pattern.split('AND')
+            if len(pattern) == 1:
+                attribute = self.attribute_from_external_pattern(pattern[0])
+                self.misp_event.add_attribute(**attribute)
 
-def saveFile(args, misp):
-    filename = '{}.stix2'.format(args[1])
-    eventDict = misp.to_json()
-    with open(filename, 'w') as f:
-        f.write(eventDict)
+    @staticmethod
+    def attribute_from_external_pattern(pattern):
+        pattern_type, pattern_value = pattern.split(' = ')
+        pattern_type, pattern_value = pattern_type[1:].strip(), pattern_value[1:-2].strip()
+        stix_type, value_type = pattern_type.split(':')
+        if 'hashes' in value_type and 'x509' not in stix_type:
+            h_type = value_type.split('.')[1]
+            return {'type': h_type, 'value': pattern_value}
+        else:
+            # Might cause some issues, need more examples to test
+            return {'type': external_pattern_mapping[stix_type][value_type].get('type'), 'value': pattern_value}
 
-def checkIfFromMISP(stix2Event):
-    for e in stix2Event:
-        if e.get('type') == 'report' and 'misp:tool="misp2stix"' in e.get('labels'):
-            return True
-    return False
+    def saveFile(self):
+        eventDict = self.misp_event.to_json()
+        outputfile = '{}.stix2'.format(self.filename)
+        with open(outputfile, 'w') as f:
+            f.write(eventDict)
+
+    @staticmethod
+    def getTimestampfromDate(stix_date):
+        try:
+            return int(stix_date.timestamp())
+        except:
+            return int(time.mktime(time.strptime(stix_date.split('+')[0], "%Y-%m-%d %H:%M:%S")))
+
+    @staticmethod
+    def get_misp_type(labels):
+        return labels[0].split('=')[1][1:-1]
+
+    @staticmethod
+    def get_misp_category(labels):
+        return labels[1].split('=')[1][1:-1]
+
+    @staticmethod
+    def parse_observable(observable, attribute_type):
+        return misp_types_mapping[attribute_type](observable, attribute_type)
+
+    @staticmethod
+    def parse_pattern(pattern):
+        if ' AND ' in pattern:
+            pattern_parts = pattern.split(' AND ')
+            if len(pattern_parts) == 3:
+                _, value1 = pattern_parts[2].split(' = ')
+                _, value2 = pattern_parts[0].split(' = ')
+                return '{}|{}'.format(value1[1:-3], value2[1:-1])
+            else:
+                _, value1 = pattern_parts[0].split(' = ')
+                _, value2 = pattern_parts[1].split(' = ')
+                if value1 in ("'ipv4-addr'", "'ipv6-addr'"):
+                    return value2[1:-3]
+                return '{}|{}'.format(value1[1:-1], value2[1:-3])
+        else:
+            return pattern.split(' = ')[1][1:-3]
+
+    @staticmethod
+    def parse_observable_from_object(observable, object_type):
+        return objects_mapping[object_type]['observable'](observable)
+
+    @staticmethod
+    def parse_pattern_from_object(pattern, object_type):
+        return objects_mapping[object_type]['pattern'](pattern)
 
 def main(args):
     pathname = os.path.dirname(args[0])
-    stix2Event = loadEvent(args, pathname)
-    stix2Event = stix2Event.get('objects')
-    if checkIfFromMISP(stix2Event):
-        mispDict = buildMispDict(stix2Event)
-    else:
-        mispDict = parseExternalStix(stix2Event)
-    misp = pymisp.MISPEvent(None, False)
-    misp.from_dict(**mispDict)
-    saveFile(args, misp)
+    stix_parser = StixParser()
+    stix_parser.loadEvent(args, pathname)
+    stix_parser.handler()
+    stix_parser.saveFile()
     print(1)
 
 if __name__ == "__main__":
