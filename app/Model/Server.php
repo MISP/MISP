@@ -1534,6 +1534,42 @@ class Server extends AppModel {
 							'test' => 'testForEmpty',
 							'type' => 'numeric'
 					),
+					'Cortex_ssl_verify_peer' => array(
+							'level' => 1,
+							'description' => 'Set to false to disable SSL verification. This is not recommended.',
+							'value' => true,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+							'null' => true
+					),
+					'Cortex_ssl_verify_host' => array(
+							'level' => 1,
+							'description' => 'Set to false if you wish to ignore hostname match errors when validating certificates.',
+							'value' => true,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+							'null' => true
+					),
+					'Cortex_ssl_allow_self_signed' => array(
+							'level' => 1,
+							'description' => 'Set to true to enable self-signed certificates to be accepted. This requires Cortex_ssl_verify_peer to be enabled.',
+							'value' => false,
+							'errorMessage' => '',
+							'test' => 'testBool',
+							'type' => 'boolean',
+							'null' => true
+					),
+					'Cortex_ssl_cafile' => array(
+							'level' => 1,
+							'description' => 'Set to the absolute path of the Certificate Authority file that you wish to use for verifying SSL certificates.',
+							'value' => '',
+							'errorMessage' => '',
+							'test' => 'testForEmpty',
+							'type' => 'string',
+							'null' => true
+					),
 					'CustomAuth_custom_password_reset' => array(
 							'level' => 2,
 							'description' => 'Provide your custom authentication users with an external URL to the authentication system to reset their passwords.',

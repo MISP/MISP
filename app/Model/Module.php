@@ -151,10 +151,21 @@ class Module extends AppModel {
 		if (!$url) return false;
 		App::uses('HttpSocket', 'Network/Http');
 		if ($hover) {
-			$httpSocket = new HttpSocket(array('timeout' => Configure::read('Plugin.' . $moduleFamily . '_hover_timeout') ? Configure::read('Plugin.' . $moduleFamily . '_hover_timeout') : 5));
+			$settings = array(
+				'timeout' => Configure::read('Plugin.' . $moduleFamily . '_hover_timeout') ? Configure::read('Plugin.' . $moduleFamily . '_hover_timeout') : 5
+			);
 		} else {
-			$httpSocket = new HttpSocket(array('timeout' => Configure::read('Plugin.' . $moduleFamily . '_timeout') ? Configure::read('Plugin.' . $moduleFamily . '_timeout') : 10));
+			$settings = array(
+				'timeout' => Configure::read('Plugin.' . $moduleFamily . '_timeout') ? Configure::read('Plugin.' . $moduleFamily . '_timeout') : 10
+			);
 		}
+		$sslSettings = array('ssl_verify_peer', 'ssl_verify_host', 'ssl_allow_self_signed', 'ssl_verify_peer', 'ssl_cafile');
+		foreach ($sslSettings as $sslSetting) {
+			if (!empty(Configure::read('Plugin.' . $moduleFamily . '_' . $sslSetting))) {
+				$settings[$sslSetting] = Configure::read('Plugin.' . $moduleFamily . '_' . $sslSetting);
+			}
+		}
+		$httpSocket = new HttpSocket($settings);
 		$request = array(
 				'header' => array(
 						'Content-Type' => 'application/json',
@@ -167,7 +178,7 @@ class Module extends AppModel {
 		}
 		try {
 			if ($post) $response = $httpSocket->post($url . $uri, $post, $request);
-			else $response = $httpSocket->get($url . $uri);
+			else $response = $httpSocket->get($url . $uri, false, $request);
 			return json_decode($response->body, true);
 		} catch (Exception $e) {
 			$exception = $e->getMessage();
