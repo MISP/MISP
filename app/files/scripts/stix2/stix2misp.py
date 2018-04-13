@@ -292,7 +292,12 @@ class StixParser():
         self.misp_event['Galaxy'].append(galaxy)
 
     def parse_external_pattern(self, pattern):
-        if 'OR' not in pattern and 'LIKE' not in pattern:
+        if ' OR ' in pattern and ' AND ' not in pattern:
+            pattern = pattern.split('OR')
+            for p in pattern:
+                attribute = self.attribute_from_external_pattern(p)
+                self.misp_event.add_attribute(**attribute)
+        elif ' OR ' not in pattern and ' LIKE ' not in pattern:
             pattern = pattern.split('AND')
             if len(pattern) == 1:
                 attribute = self.attribute_from_external_pattern(pattern[0])
