@@ -15,7 +15,7 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import sys, json, os, time
+import sys, json, os, time, uuid
 from pymisp import MISPEvent, MISPObject, MISPAttribute, __path__
 from stix.core import STIXPackage
 from collections import defaultdict
@@ -596,6 +596,15 @@ class StixParser():
                 attribute = {'type': 'text', 'object_relation': 'impact',
                              'value': coa.impact.value.value}
                 misp_object.add_attribute(**attribute)
+            if coa.parameter_observables:
+                for observable in coa.parameter_observables.observables:
+                    properties = observable.object_.properties
+                    attribute = MISPAttribute()
+                    attribute.type, attribute.value, _ = self.handle_attribute_type(properties)
+                    referenced_uuid = str(uuid.uuid4())
+                    attribute.uuid = referenced_uuid
+                    self.misp_event.add_attribute(**attribute)
+                    misp_object.add_reference(referenced_uuid, 'observable', None, **attribute)
             self.misp_event.add_object(**misp_object)
 
     @staticmethod
